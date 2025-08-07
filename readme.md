@@ -26,7 +26,7 @@
   <table align="center">
     <tr>
       <td style="border: 2px solid #6b7280; padding: 8px;">
-        <img src="./resources/video_1.gif" alt="AionUi Demo" width="800">
+        <img src="./resources/AionUI_screenrecord.gif" alt="AionUi Demo" width="800">
       </td>
     </tr>
   </table>
