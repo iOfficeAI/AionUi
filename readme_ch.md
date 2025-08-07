@@ -93,11 +93,11 @@ AionUi 为需要更好工作流效率的开发者提供了现代界面。
 准备试用 AionUi？下载适合您平台的最新版本：
 
 <p>
-  <a href="https://github.com/office-sec/AionUi/releases/latest/download/AionUi-mac-arm64.dmg">
+  <a href="https://github.com/office-sec/AionUi/releases/download/v1.0.0/AionUi-v1.0.0-mac-arm64.dmg">
     <img src="https://img.shields.io/badge/macOS-Apple%20Silicon-000000?style=for-the-badge&logo=apple&logoColor=white" alt="Download for macOS (Apple Silicon)">
   </a>
   &nbsp;
-  <a href="https://github.com/office-sec/AionUi/releases/latest/download/AionUi-win-x64.exe">
+  <a href="https://github.com/office-sec/AionUi/releases/download/v1.0.0/AionUi-v1.0.0-win-x64.exe">
     <img src="https://img.shields.io/badge/Windows-x64-0078D6?style=for-the-badge&logo=windows&logoColor=ffffff" alt="Download for Windows">
   </a>
 </p>

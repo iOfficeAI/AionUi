@@ -94,11 +94,11 @@ AionUi offers a modern interface designed for developers who need better workflo
 Ready to try AionUi? Download the latest version for your platform:
 
 <p>
-  <a href="https://github.com/office-sec/AionUi/releases/latest/download/AionUi-mac-arm64.dmg">
+  <a href="https://github.com/office-sec/AionUi/releases/download/v1.0.0/AionUi-v1.0.0-mac-arm64.dmg">
     <img src="https://img.shields.io/badge/macOS-Apple%20Silicon-000000?style=for-the-badge&logo=apple&logoColor=white" alt="Download for macOS (Apple Silicon)">
   </a>
   &nbsp;
-  <a href="https://github.com/office-sec/AionUi/releases/latest/download/AionUi-win-x64.exe">
+  <a href="https://github.com/office-sec/AionUi/releases/download/v1.0.0/AionUi-v1.0.0-win-x64.exe">
     <img src="https://img.shields.io/badge/Windows-x64-0078D6?style=for-the-badge&logo=windows&logoColor=ffffff" alt="Download for Windows">
   </a>
 </p>
