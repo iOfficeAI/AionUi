@@ -133,15 +133,6 @@ export class GeminiAgent {
       acc[key] = value.join("=");
       return acc;
     }, {});
-    const lines = envOutput.split("\n");
-    for (let i = 0, len = lines.length; i < len; i++) {
-      const line = lines[i];
-      const [key, ...value] = line.split("=");
-      if (key === "GOOGLE_GEMINI_BASE_URL") {
-        process.env.GOOGLE_GEMINI_BASE_URL = value.join("=");
-        break;
-      }
-    }
   }
   private createAbortController() {
     this.abortController = new AbortController();
