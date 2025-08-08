@@ -111,6 +111,11 @@ const GeminiSettings: React.FC<{
           <Input></Input>
         </Form.Item>
       ) : null}
+      {authType === "gemini-api-key" && (
+        <Form.Item label={t("settings.geminiBaseUrl")} field="GOOGLE_GEMINI_BASE_URL">
+          <Input placeholder="https://generativelanguage.googleapis.com"></Input>
+        </Form.Item>
+      )}
       <Form.Item label={t("settings.proxyConfig")} field="proxy">
         <Input></Input>
       </Form.Item>

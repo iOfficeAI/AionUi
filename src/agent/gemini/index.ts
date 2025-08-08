@@ -71,6 +71,7 @@ export class GeminiAgent {
     authType?: AuthType;
     GEMINI_API_KEY?: string;
     GOOGLE_API_KEY?: string;
+    GOOGLE_GEMINI_BASE_URL?: string;
     GOOGLE_CLOUD_PROJECT?: string;
     onStreamEvent: (event: { type: string; data: any; msg_id: string }) => void;
   }) {
@@ -92,6 +93,10 @@ export class GeminiAgent {
       process.env.GEMINI_API_KEY = fallbackValue(
         options?.GEMINI_API_KEY,
         env.GEMINI_API_KEY
+      );
+      process.env.GOOGLE_GEMINI_BASE_URL = fallbackValue(
+        options?.GOOGLE_GEMINI_BASE_URL,
+        env.GOOGLE_GEMINI_BASE_URL
       );
     } else if (this.authType === AuthType.USE_VERTEX_AI) {
       process.env.GOOGLE_API_KEY = fallbackValue(
