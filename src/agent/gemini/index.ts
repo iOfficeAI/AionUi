@@ -109,11 +109,6 @@ export class GeminiAgent {
 
   // 从环境变量中获取API密钥
   private initAPIKeyFromEnv() {
-    const envOutput = execSync('zsh -ic "env"', { encoding: "utf8" });
-    const lines = envOutput.split("\n");
-
-    // 处理 API Keys：优先查找 GEMINI_API_KEY，找到后退出
-    for (let i = 0, len = lines.length; i < len; i++) {
     let command = "";
     if (process.platform === "win32") {
       command = "cmd /c set";
@@ -121,13 +116,10 @@ export class GeminiAgent {
       command = "zsh -ic 'env'";
     }
     if (!command) return;
-
     const envOutput = execSync(command, { encoding: "utf8" });
-    for (
-      let lines = envOutput.split("\n"), i = 0, len = lines.length;
-      i < len;
-      i++
-    ) {
+    const lines = envOutput.split("\n");
+    // 处理 API Keys：优先查找 GEMINI_API_KEY，找到后退出
+    for (let i = 0, len = lines.length;i < len;i++) {
       const line = lines[i];
       const [key, ...value] = line.split("=");
       if (key === "GEMINI_API_KEY") {
