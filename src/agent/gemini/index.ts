@@ -81,16 +81,29 @@ export class GeminiAgent {
 
     const env = this.getEnv();
 
+    const fallbackValue = (value1: string, value2: string) => {
+      if (value1 && value1 !== "undefined") {
+        return value1;
+      }
+      return value2;
+    };
+
     if (this.authType === AuthType.USE_GEMINI) {
-      process.env.GEMINI_API_KEY =
-        options?.GEMINI_API_KEY || env.GEMINI_API_KEY;
+      process.env.GEMINI_API_KEY = fallbackValue(
+        options?.GEMINI_API_KEY,
+        env.GEMINI_API_KEY
+      );
     } else if (this.authType === AuthType.USE_VERTEX_AI) {
-      process.env.GOOGLE_API_KEY =
-        options?.GOOGLE_API_KEY || env.GOOGLE_API_KEY;
+      process.env.GOOGLE_API_KEY = fallbackValue(
+        options?.GOOGLE_API_KEY,
+        env.GOOGLE_API_KEY
+      );
       process.env.GOOGLE_GENAI_USE_VERTEXAI = "true";
     } else if (this.authType === AuthType.LOGIN_WITH_GOOGLE) {
-      process.env.GOOGLE_CLOUD_PROJECT =
-        options?.GOOGLE_CLOUD_PROJECT || env.GOOGLE_CLOUD_PROJECT;
+      process.env.GOOGLE_CLOUD_PROJECT = fallbackValue(
+        options?.GOOGLE_CLOUD_PROJECT,
+        env.GOOGLE_CLOUD_PROJECT
+      );
     }
     this.bootstrap = this.initialize();
     this.bootstrap.then(() => {
