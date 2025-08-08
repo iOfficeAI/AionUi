@@ -3,6 +3,8 @@
 </p>
 
 <p align="center">
+  <img src="https://img.shields.io/github/v/release/office-sec/AionUi?style=flat-square&color=32CD32" alt="Version">
+  &nbsp;
   <img src="https://img.shields.io/badge/license-Apache--2.0-32CD32?style=flat-square&logo=apache&logoColor=white" alt="License">
   &nbsp;
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6C757D?style=flat-square&logo=linux&logoColor=white" alt="Platform">
@@ -91,20 +93,12 @@ AionUi offers a modern interface designed for developers who need better workflo
 
 ### 📥 Download
 
-Ready to try AionUi? Download the latest version for your platform:
+Ready to try AionUi? Download the latest version for your platform from our releases page:
 
 <p>
-  <a href="https://github.com/office-sec/AionUi/releases/download/v1.0.0/AionUi-v1.0.0-mac-arm64.dmg">
-    <img src="https://img.shields.io/badge/macOS-Apple%20Silicon-000000?style=for-the-badge&logo=apple&logoColor=white" alt="Download for macOS (Apple Silicon)">
+  <a href="https://github.com/office-sec/AionUi/releases">
+    <img src="https://img.shields.io/badge/Download-Latest%20Release-32CD32?style=for-the-badge&logo=github&logoColor=white" alt="Download Latest Release">
   </a>
-  &nbsp;
-  <a href="https://github.com/office-sec/AionUi/releases/download/v1.0.0/AionUi-v1.0.0-win-x64.exe">
-    <img src="https://img.shields.io/badge/Windows-x64-0078D6?style=for-the-badge&logo=windows&logoColor=ffffff" alt="Download for Windows">
-  </a>
-</p>
-
-<p>
-  <em>For other platforms or development builds, see the <a href="https://github.com/office-sec/AionUi/releases">releases page</a>.</em>
 </p>
 
 ### 📋 Requirements
@@ -248,6 +242,18 @@ Issues and Pull Requests are welcome!
 3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
+
+## 👥 Contributors
+
+Thanks goes to these wonderful people:
+
+<p align="center">
+  <a href="https://github.com/office-sec/AionUi/graphs/contributors">
+    <img src="https://contrib.rocks/image?repo=office-sec/AionUi" alt="Contributors" />
+  </a>
+</p>
+
+
 
 ---
 

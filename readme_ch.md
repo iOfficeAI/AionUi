@@ -3,6 +3,8 @@
 </p>
 
 <p align="center">
+  <img src="https://img.shields.io/github/v/release/office-sec/AionUi?style=flat-square&color=32CD32" alt="Version">
+  &nbsp;
   <img src="https://img.shields.io/badge/license-Apache--2.0-32CD32?style=flat-square&logo=apache&logoColor=white" alt="License">
   &nbsp;
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6C757D?style=flat-square&logo=linux&logoColor=white" alt="Platform">
@@ -93,20 +95,12 @@ AionUi 为需要更好工作流效率的开发者提供了现代界面。
 
 ### 📥 下载
 
-准备试用 AionUi？下载适合您平台的最新版本：
+准备试用 AionUi？从我们的发布页面下载适合您平台的最新版本：
 
 <p>
-  <a href="https://github.com/office-sec/AionUi/releases/download/v1.0.0/AionUi-v1.0.0-mac-arm64.dmg">
-    <img src="https://img.shields.io/badge/macOS-Apple%20Silicon-000000?style=for-the-badge&logo=apple&logoColor=white" alt="Download for macOS (Apple Silicon)">
+  <a href="https://github.com/office-sec/AionUi/releases">
+    <img src="https://img.shields.io/badge/下载-最新版本-32CD32?style=for-the-badge&logo=github&logoColor=white" alt="下载最新版本">
   </a>
-  &nbsp;
-  <a href="https://github.com/office-sec/AionUi/releases/download/v1.0.0/AionUi-v1.0.0-win-x64.exe">
-    <img src="https://img.shields.io/badge/Windows-x64-0078D6?style=for-the-badge&logo=windows&logoColor=ffffff" alt="Download for Windows">
-  </a>
-</p>
-
-<p>
-  <em>其他平台或开发版本，请查看 <a href="https://github.com/office-sec/AionUi/releases">发布页面</a>。</em>
 </p>
 
 ### 📋 系统要求
@@ -256,6 +250,18 @@ AionUi 旨在弥合强大 AI 能力与日常可用性之间的差距，让复杂
 3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
 4. 推送到分支 (`git push origin feature/AmazingFeature`)
 5. 打开 Pull Request
+
+## 👥 贡献者
+
+感谢这些优秀的贡献者：
+
+<p align="center">
+  <a href="https://github.com/office-sec/AionUi/graphs/contributors">
+    <img src="https://contrib.rocks/image?repo=office-sec/AionUi" alt="Contributors" />
+  </a>
+</p>
+
+
 
 ---
 
