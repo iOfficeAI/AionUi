@@ -101,9 +101,16 @@ export class GeminiAgent {
   }
 
   // 从环境变量中获取API密钥
-  // @todo windows 适配
   private initAPIKeyFromEnv() {
-    const envOutput = execSync('zsh -ic "env"', { encoding: "utf8" });
+    let command = "";
+    if (process.platform === "win32") {
+      command = "cmd /c set";
+    } else {
+      command = "zsh -ic 'env'";
+    }
+    if (!command) return;
+
+    const envOutput = execSync(command, { encoding: "utf8" });
     for (
       let lines = envOutput.split("\n"), i = 0, len = lines.length;
       i < len;
