@@ -38,7 +38,7 @@
   },
   "settings": {
     "authMethod": "认证",
-    "geminiApiKey": "Gemini API 密钥 (API Studio)",
+    "geminiApiKey": "Gemini API 密钥",
     "vertexApiKey": "Vertex AI",
     "personalAuth": "Google帐号登录",
     "proxyConfig": "代理",

@@ -38,7 +38,7 @@
   },
   "settings": {
     "authMethod": "Authentication",
-    "geminiApiKey": "Gemini API Key(API Studio)",
+    "geminiApiKey": "Gemini API Key",
     "vertexApiKey": "Vertex AI",
     "personalAuth": "Login with Google",
     "proxyConfig": "Proxy",

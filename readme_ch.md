@@ -118,7 +118,7 @@ AionUi 为需要更好工作流效率的开发者提供了现代界面。
 
    ```bash
    git clone https://github.com/office-sec/AionUi.git
-cd AionUi
+   cd AionUi
    ```
 
 2. **安装依赖**
