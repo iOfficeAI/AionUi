@@ -42,6 +42,7 @@
     "vertexApiKey": "Vertex AI",
     "personalAuth": "Google帐号登录",
     "proxyConfig": "代理",
+    "geminiBaseUrl": "Gemini API 基础URL",
     "tempDir": "临时目录",
     "language": "语言"
   },

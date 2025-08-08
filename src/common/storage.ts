@@ -23,6 +23,7 @@ export interface IConfigStorageRefer {
   "gemini.config": {
     authType: string;
     proxy: string;
+    GOOGLE_GEMINI_BASE_URL?: string;
   };
   language: string;
 }

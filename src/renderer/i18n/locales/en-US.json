@@ -42,6 +42,7 @@
     "vertexApiKey": "Vertex AI",
     "personalAuth": "Login with Google",
     "proxyConfig": "Proxy",
+    "geminiBaseUrl": "Gemini API Base URL",
     "tempDir": "Temporary Directory",
     "language": "Language"
   },

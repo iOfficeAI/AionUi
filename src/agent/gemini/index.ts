@@ -67,6 +67,7 @@ export class GeminiAgent {
     authType?: AuthType;
     GEMINI_API_KEY?: string;
     GOOGLE_API_KEY?: string;
+    GOOGLE_GEMINI_BASE_URL?: string;
     onStreamEvent: (event: { type: string; data: any; msg_id: string }) => void;
   }) {
     this.workspace = options.workspace;
@@ -91,6 +92,12 @@ export class GeminiAgent {
       process.env.GOOGLE_GENAI_USE_VERTEXAI = "true";
       hasKey = true;
     }
+    
+    // Set GOOGLE_GEMINI_BASE_URL if provided
+    if (options?.GOOGLE_GEMINI_BASE_URL && options?.GOOGLE_GEMINI_BASE_URL !== "undefined") {
+      process.env.GOOGLE_GEMINI_BASE_URL = options?.GOOGLE_GEMINI_BASE_URL;
+    }
+    
     if (!hasKey) {
       this.initAPIKeyFromEnv();
     }
@@ -104,11 +111,10 @@ export class GeminiAgent {
   // @todo windows 适配
   private initAPIKeyFromEnv() {
     const envOutput = execSync('zsh -ic "env"', { encoding: "utf8" });
-    for (
-      let lines = envOutput.split("\n"), i = 0, len = lines.length;
-      i < len;
-      i++
-    ) {
+    const lines = envOutput.split("\n");
+    
+    // 处理 API Keys：优先查找 GEMINI_API_KEY，找到后退出
+    for (let i = 0, len = lines.length; i < len; i++) {
       const line = lines[i];
       const [key, ...value] = line.split("=");
       if (key === "GEMINI_API_KEY") {
@@ -117,6 +123,15 @@ export class GeminiAgent {
       }
       if (key === "GOOGLE_API_KEY") {
         process.env.GOOGLE_API_KEY = value.join("=");
+        break;
+      }
+    }
+    // 循环结束后，单独检查 GOOGLE_GEMINI_BASE_URL
+    for (let i = 0, len = lines.length; i < len; i++) {
+      const line = lines[i];
+      const [key, ...value] = line.split("=");
+      if (key === "GOOGLE_GEMINI_BASE_URL") {
+        process.env.GOOGLE_GEMINI_BASE_URL = value.join("=");
         break;
       }
     }
