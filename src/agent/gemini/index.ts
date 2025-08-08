@@ -94,6 +94,10 @@ export class GeminiAgent {
         options?.GEMINI_API_KEY,
         env.GEMINI_API_KEY
       );
+      process.env.GOOGLE_GEMINI_BASE_URL = fallbackValue(
+        options?.GOOGLE_GEMINI_BASE_URL,
+        env.GOOGLE_GEMINI_BASE_URL
+      );
     } else if (this.authType === AuthType.USE_VERTEX_AI) {
       process.env.GOOGLE_API_KEY = fallbackValue(
         options?.GOOGLE_API_KEY,
@@ -105,9 +109,6 @@ export class GeminiAgent {
         options?.GOOGLE_CLOUD_PROJECT,
         env.GOOGLE_CLOUD_PROJECT
       );
-    }
-    if (options?.GOOGLE_GEMINI_BASE_URL && options?.GOOGLE_GEMINI_BASE_URL !== "undefined") {
-      process.env.GOOGLE_GEMINI_BASE_URL = options?.GOOGLE_GEMINI_BASE_URL;
     }
     this.bootstrap = this.initialize();
     this.bootstrap.then(() => {
