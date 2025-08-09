@@ -43,6 +43,7 @@
     "personalAuth": "Login with Google",
     "proxyConfig": "Proxy",
     "geminiBaseUrl": "Gemini API Base URL",
+    "proxyHttpOnly": "Only http/https protocols are supported",
     "tempDir": "Temporary Directory",
     "language": "Language"
   },

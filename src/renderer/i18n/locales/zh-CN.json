@@ -43,6 +43,7 @@
     "personalAuth": "Google帐号登录",
     "proxyConfig": "代理",
     "geminiBaseUrl": "Gemini API 基础URL",
+    "proxyHttpOnly": "仅支持 http/https 协议",
     "tempDir": "临时目录",
     "language": "语言"
   },

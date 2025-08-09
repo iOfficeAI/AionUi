@@ -117,7 +117,14 @@ const GeminiSettings: React.FC<{
         </Form.Item>
       )}
       <Form.Item label={t("settings.proxyConfig")} field="proxy">
-        <Input></Input>
+        <Input
+          placeholder={`${t("settings.proxyHttpOnly")}: http://127.0.0.1:7890`}
+          onChange={(value) => {
+            if (value.startsWith("socks5://")) {
+              form.setFieldValue("proxy", value.replace("socks5://", "http://"));
+            }
+          }}
+        ></Input>
       </Form.Item>
       <Form.Item label={t("settings.tempDir")} field="tempDir">
         {(props) => (
