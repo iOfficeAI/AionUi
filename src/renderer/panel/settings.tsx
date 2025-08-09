@@ -26,7 +26,7 @@ const Settings: React.FC<{
           </Form.Item>
         </Form>
         <Divider orientation="left" className="!my-0px">
-          gemini settings
+          {t("settings.geminiSettings")}
         </Divider>
         <GeminiSettings onBack={props.onBack}></GeminiSettings>
       </div>
@@ -39,7 +39,7 @@ const Settings: React.FC<{
         }}
         className={"[&_.arco-row]:flex-nowrap pl-20px"}
       >
-        <Form.Item label={"关于我们"} field={"about"}>
+        <Form.Item label={t("common.about")} field={"about"}>
           <a
             href="https://www.aionui.com"
             target="_blank"

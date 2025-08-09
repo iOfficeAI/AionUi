@@ -44,7 +44,8 @@
     "proxyConfig": "Proxy",
     "geminiBaseUrl": "Gemini API Base URL",
     "tempDir": "Temporary Directory",
-    "language": "Language"
+    "language": "Language",
+    "geminiSettings": "gemini settings"
   },
   "messages": {
     "conversationInProgress": "A conversation is currently in progress...",

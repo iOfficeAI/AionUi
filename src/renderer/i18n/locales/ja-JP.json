@@ -1,0 +1,58 @@
+{
+  "common": {
+    "send": "送信",
+    "cancel": "キャンセル",
+    "save": "保存",
+    "delete": "削除",
+    "confirm": "確認",
+    "file": "ファイル",
+    "folder": "フォルダ",
+    "upload": "アップロード",
+    "attach": "添付",
+    "workspace": "ワークスペース",
+    "settings": "設定",
+    "system": "システム",
+    "about": "私たちについて"
+  },
+  "conversation": {
+    "welcome": {
+      "title": "こんにちは、何をお手伝いできますか？",
+      "placeholder": "メッセージを送信、ファイルをアップロード、またはフォルダを開く...",
+      "uploadFile": "ファイルをアップロード",
+      "linkFolder": "フォルダを開く",
+      "newConversation": "新しいチャット"
+    },
+    "history": {
+      "today": "今日",
+      "yesterday": "昨日",
+      "recent7Days": "過去7日間",
+      "earlier": "以前",
+      "noHistory": "チャット履歴はありません",
+      "deleteTitle": "チャットを削除",
+      "deleteConfirm": "このチャットを削除してもよろしいですか？"
+    },
+    "workspace": {
+      "title": "ワークスペース",
+      "empty": "空です",
+      "emptyDescription": "ファイルをアップロードするかフォルダを開くと、ここに表示されます"
+    }
+  },
+  "settings": {
+    "authMethod": "認証",
+    "geminiApiKey": "Gemini API キー",
+    "vertexApiKey": "Vertex AI",
+    "personalAuth": "Googleでログイン",
+    "proxyConfig": "プロキシ",
+    "geminiBaseUrl": "Gemini API Base URL",
+    "tempDir": "一時ディレクトリ",
+    "language": "言語",
+    "geminiSettings": "gemini 設定"
+  },
+  "messages": {
+    "conversationInProgress": "会話を処理中です...",
+    "confirm": "確認",
+    "canceledExecution": "実行がキャンセルされました",
+    "openLinkFailed": "リンクを開けませんでした"
+  }
+}
+

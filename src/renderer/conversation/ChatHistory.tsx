@@ -118,6 +118,8 @@ const ChatHistory: React.FC<{
           <Popconfirm
             title={t("conversation.history.deleteTitle")}
             content={t("conversation.history.deleteConfirm")}
+            okText={t("messages.confirm")}
+            cancelText={t("common.cancel")}
             onOk={(event) => {
               event.stopPropagation();
               handleRemoveConversation(conversation.id);
