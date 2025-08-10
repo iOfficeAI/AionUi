@@ -28,7 +28,9 @@
       "earlier": "Earlier",
       "noHistory": "No chat history",
       "deleteTitle": "Delete chat",
-      "deleteConfirm": "Are you sure you want to delete this chat?"
+      "deleteConfirm": "Are you sure you want to delete this chat?",
+      "confirmDelete": "Yes",
+      "cancelDelete": "No"
     },
     "workspace": {
       "title": "Workspace",

@@ -17,9 +17,9 @@
   "conversation": {
     "welcome": {
       "title": "こんにちは、何かお手伝いしましょうか？",
-      "placeholder": "メッセージの送信、ファイルのアップロード、またはフォルダーを開く...",
-      "uploadFile": "ファイルをアップロード",
-      "linkFolder": "フォルダを開く",
+      "placeholder": "メッセージの送信、ファイルの追加、またはフォルダーの追加...",
+      "uploadFile": "ファイルを追加",
+      "linkFolder": "フォルダを追加",
       "newConversation": "新しいチャット"
     },
     "history": {
@@ -29,7 +29,9 @@
       "earlier": "それ以前",
       "noHistory": "チャット履歴はありません",
       "deleteTitle": "チャットを削除",
-      "deleteConfirm": "このチャットを削除してもよろしいですか？"
+      "deleteConfirm": "このチャットを削除してもよろしいですか？",
+      "confirmDelete": "はい",
+      "cancelDelete": "いいえ"
     },
     "workspace": {
       "title": "ワークスペース",

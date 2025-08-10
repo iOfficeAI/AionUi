@@ -29,7 +29,9 @@
       "earlier": "更早",
       "noHistory": "暫無對話記錄",
       "deleteTitle": "刪除對話",
-      "deleteConfirm": "確定要刪除此對話嗎？"
+      "deleteConfirm": "確定要刪除此對話嗎？",
+      "confirmDelete": "確定",
+      "cancelDelete": "取消"
     },
     "workspace": {
       "title": "工作空間",
