@@ -11,7 +11,8 @@
     "attach": "Attach",
     "workspace": "Workspace",
     "settings": "Settings",
-    "system": "System"
+    "system": "System",
+    "about": "About Us"
   },
   "conversation": {
     "welcome": {
