@@ -205,6 +205,7 @@ function mergeExcludeTools(
 
 function findEnvFile(startDir: string): string | null {
   let currentDir = path.resolve(startDir);
+  // eslint-disable-next-line no-constant-condition
   while (true) {
     // prefer gemini-specific .env under GEMINI_DIR
     const geminiEnvPath = path.join(currentDir, GEMINI_DIR, ".env");

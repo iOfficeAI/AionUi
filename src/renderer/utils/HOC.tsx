@@ -6,7 +6,7 @@
 
 import React, { PropsWithChildren } from "react";
 
-const HOC = <HOCProps extends {}>(
+const HOC = <HOCProps extends object>(
   HOCComponent: React.FC<PropsWithChildren<HOCProps>>,
   hocProps?: Partial<HOCProps>
 ) => {
@@ -21,7 +21,7 @@ const HOC = <HOCProps extends {}>(
   };
 };
 
-const Create = <HOCProps extends {}>(
+const Create = <HOCProps extends object>(
   HOCComponent: React.FC<HOCProps>,
   hocProps?: Partial<HOCProps>
 ): React.FC<HOCProps> => {
