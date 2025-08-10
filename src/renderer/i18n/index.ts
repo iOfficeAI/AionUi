@@ -4,6 +4,8 @@ import LanguageDetector from "i18next-browser-languagedetector";
 
 import zhCN from "./locales/zh-CN.json";
 import enUS from "./locales/en-US.json";
+import jaJP from "./locales/ja-JP.json";
+import zhTW from "./locales/zh-TW.json";
 import { ConfigStorage } from "@/common/storage";
 
 const resources = {
@@ -12,6 +14,12 @@ const resources = {
   },
   "en-US": {
     translation: enUS,
+  },
+  "ja-JP": {
+    translation: jaJP,
+  },
+  "zh-TW": {
+    translation: zhTW,
   },
 };
 

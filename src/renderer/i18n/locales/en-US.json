@@ -28,7 +28,9 @@
       "earlier": "Earlier",
       "noHistory": "No chat history",
       "deleteTitle": "Delete chat",
-      "deleteConfirm": "Are you sure you want to delete this chat?"
+      "deleteConfirm": "Are you sure you want to delete this chat?",
+      "confirmDelete": "Yes",
+      "cancelDelete": "No"
     },
     "workspace": {
       "title": "Workspace",
@@ -44,7 +46,8 @@
     "proxyConfig": "Proxy",
     "geminiBaseUrl": "Gemini API Base URL",
     "tempDir": "Temporary Directory",
-    "language": "Language"
+    "language": "Language",
+    "geminiSettings": "gemini settings"
   },
   "messages": {
     "conversationInProgress": "A conversation is currently in progress...",

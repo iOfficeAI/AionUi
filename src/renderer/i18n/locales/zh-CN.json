@@ -28,7 +28,9 @@
       "earlier": "更早",
       "noHistory": "暂无对话历史",
       "deleteTitle": "删除对话",
-      "deleteConfirm": "确定删除该对话吗？"
+      "deleteConfirm": "确定删除该对话吗？",
+      "confirmDelete": "是",
+      "cancelDelete": "否"
     },
     "workspace": {
       "title": "工作空间",
@@ -42,9 +44,25 @@
     "vertexApiKey": "Vertex AI",
     "personalAuth": "Google帐号登录",
     "proxyConfig": "代理",
-    "geminiBaseUrl": "Gemini API 基础URL",
+    "geminiBaseUrl": "Gemini API Base URL",
     "tempDir": "临时目录",
-    "language": "语言"
+    "language": "语言",
+    "geminiSettings": "gemini 设置"
+  },
+  "common": {
+    "send": "发送",
+    "cancel": "取消",
+    "save": "保存",
+    "delete": "删除",
+    "confirm": "确定",
+    "file": "文件",
+    "folder": "文件夹",
+    "upload": "上传",
+    "attach": "附件",
+    "workspace": "工作空间",
+    "settings": "设置",
+    "system": "系统",
+    "about": "关于我们"
   },
   "messages": {
     "conversationInProgress": "当前正在进行对话中...",

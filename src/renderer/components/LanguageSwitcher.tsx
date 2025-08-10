@@ -19,7 +19,9 @@ const LanguageSwitcher: React.FC = () => {
         style={{ width: 100 }}
         size="small"
       >
-        <Select.Option value="zh-CN">中文</Select.Option>
+        <Select.Option value="zh-CN">简体中文</Select.Option>
+        <Select.Option value="zh-TW">繁體中文</Select.Option>
+        <Select.Option value="ja-JP">日本語</Select.Option>
         <Select.Option value="en-US">English</Select.Option>
       </Select>
     </div>
