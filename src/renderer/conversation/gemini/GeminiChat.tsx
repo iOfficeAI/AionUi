@@ -10,7 +10,9 @@ import MessageList from "@renderer/messages/MessageList";
 import {
   MessageListProvider,
   useAddOrUpdateMessage,
+  useChatPromptDraftByKey,
   useMessageLstCache,
+  useUpdateChatPromptDraftByKey,
 } from "@renderer/messages/hooks";
 import { ipcBridge } from "@/common";
 import { uuid } from "@renderer/utils/common";
@@ -125,6 +127,12 @@ const GeminiChat: React.FC<{
     setAtPath([]);
   }, [conversation_id]);
 
+  // 考虑到现在 Layout 的布局方式，不会同时存在多个 ChatConversation 组件
+  // 也就不会有多个 chat prompt draft 的消费端
+  // 因此直接在具体 Chat 组件中消费也不会造成过多消费者的性能隐患
+  const prompt = useChatPromptDraftByKey(conversation_id);
+  const setPrompt = useUpdateChatPromptDraftByKey(conversation_id);
+
   return (
     <div className="h-full  flex flex-col px-20px">
       <FlexFullContainer>
@@ -151,6 +159,8 @@ const GeminiChat: React.FC<{
         ) : null}
 
         <SendBox
+          value={prompt}
+          onChange={setPrompt}
           loading={running}
           onStop={() => {
             return ipcBridge.stopStream.invoke({ conversation_id }).then(() => {

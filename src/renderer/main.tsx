@@ -15,6 +15,7 @@ import ConversationWelcome from "./conversation/ConversationWelcome";
 import ChatSider from "./conversation/ChatSider";
 import { ipcBridge } from "@/common";
 import Settings from "./panel/settings";
+import { ConversationPromptDraftProvider } from "./messages/hooks";
 
 const Main = () => {
   const { t } = useTranslation();
@@ -25,6 +26,8 @@ const Main = () => {
   const [currentPane, setCurrentPane] = useState<"guid" | "chat" | "settings">(
     "guid"
   );
+
+  const [conversationPrompt, setConversationPrompt] = useState<Record<TChatConversation["id"], string>>({});
 
   const panel = useMemo(() => {
     switch (currentPane) {
@@ -139,6 +142,11 @@ const Main = () => {
                     setCurrentPane("guid");
                   }
                   setChatHistory(chatHistory.filter((item) => item.id !== id));
+                  setConversationPrompt((draft) => {
+                    const newState = {...draft};
+                    delete newState[id];
+                    return newState;
+                  });
                 }
               });
             }}
@@ -167,7 +175,9 @@ const Main = () => {
         </div>
       }
     >
-      {panel}
+      <ConversationPromptDraftProvider value={conversationPrompt}>
+        {panel}
+      </ConversationPromptDraftProvider>
     </Layout>
   );
 };

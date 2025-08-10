@@ -9,17 +9,20 @@ import React, { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { ArrowUp } from "@icon-park/react";
 
+const constVoid = (): void => undefined;
+
 const SendBox: React.FC<{
+  value?: string;
+  onChange?: (value: string) => void;
   onSend: (message: string) => Promise<void>;
   onStop?: () => Promise<void>;
   loading?: boolean;
   className?: string;
   tools?: React.ReactNode;
   prefix?: React.ReactNode;
-}> = ({ onSend, onStop, prefix, className, loading, tools }) => {
+}> = ({ onSend, onStop, prefix, className, loading, tools, value: input = "", onChange: setInput = constVoid }) => {
   const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
-  const [input, setInput] = useState("");
 
   const [message, context] = Message.useMessage();
 
