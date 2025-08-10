@@ -11,7 +11,8 @@
     "attach": "附件",
     "workspace": "工作空间",
     "settings": "设置",
-    "system": "系统"
+    "system": "系统",
+    "about": "关于我们"
   },
   "conversation": {
     "welcome": {
@@ -48,21 +49,6 @@
     "tempDir": "临时目录",
     "language": "语言",
     "geminiSettings": "gemini 设置"
-  },
-  "common": {
-    "send": "发送",
-    "cancel": "取消",
-    "save": "保存",
-    "delete": "删除",
-    "confirm": "确定",
-    "file": "文件",
-    "folder": "文件夹",
-    "upload": "上传",
-    "attach": "附件",
-    "workspace": "工作空间",
-    "settings": "设置",
-    "system": "系统",
-    "about": "关于我们"
   },
   "messages": {
     "conversationInProgress": "当前正在进行对话中...",
