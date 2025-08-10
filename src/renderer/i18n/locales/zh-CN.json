@@ -28,7 +28,9 @@
       "earlier": "更早",
       "noHistory": "暂无对话历史",
       "deleteTitle": "删除对话",
-      "deleteConfirm": "确定删除该对话吗？"
+      "deleteConfirm": "确定删除该对话吗？",
+      "confirmDelete": "是",
+      "cancelDelete": "否"
     },
     "workspace": {
       "title": "工作空间",
