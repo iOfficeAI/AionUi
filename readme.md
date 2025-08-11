@@ -12,6 +12,8 @@
   <img src="https://img.shields.io/badge/Electron-37.2.0-007ACC?style=flat-square&logo=electron&logoColor=white" alt="Electron">
   &nbsp;
   <img src="https://img.shields.io/badge/React-19.1.0-FF6B35?style=flat-square&logo=react&logoColor=white" alt="React">
+  &nbsp;
+  <a href="https://github.com/Piebald-AI/awesome-gemini-cli"><img src="https://awesome.re/mentioned-badge-flat.svg"></a>
 </p>
 
 
