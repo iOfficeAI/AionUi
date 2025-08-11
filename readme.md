@@ -113,7 +113,7 @@ Ready to try AionUi? Download the latest version for your platform from our rele
 
    ```bash
    git clone https://github.com/office-sec/AionUi.git
-cd AionUi
+   cd AionUi
    ```
 
 2. **Install dependencies**
