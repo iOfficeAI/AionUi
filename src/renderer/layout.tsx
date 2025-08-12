@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useCallback, useEffect } from "react";
 import { Layout as ArcoLayout } from "@arco-design/web-react";
 import {
   ExpandLeft,
@@ -15,6 +15,13 @@ import {
 import classNames from "classnames";
 import FlexFullContainer from "./components/FlexFullContainer";
 import { ipcBridge } from "@/common";
+
+// 右侧面板宽度配置
+const RIGHT_SIDER_CONFIG = {
+  DEFAULT_WIDTH: 266,
+  MIN_WIDTH: 200,
+  MAX_WIDTH: 500,
+};
 
 const useDebug = () => {
   const [count, setCount] = useState(0);
@@ -53,7 +60,56 @@ const Layout: React.FC<{
 }> = ({ sider, children, ...props }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [rightSiderCollapsed, setRightSiderCollapsed] = useState(false);
+  const [rightSiderWidth, setRightSiderWidth] = useState(RIGHT_SIDER_CONFIG.DEFAULT_WIDTH);
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStartX = useRef(0);
+  const dragStartWidth = useRef(0);
   const { onClick } = useDebug();
+
+  // 拖拽开始处理
+  const handleDragStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+    dragStartX.current = e.clientX;
+    dragStartWidth.current = rightSiderWidth;
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  }, [rightSiderWidth]);
+
+  // 拖拽过程处理
+  const handleDragMove = useCallback((e: MouseEvent) => {
+    if (!isDragging) return;
+    
+    const deltaX = dragStartX.current - e.clientX;
+    const newWidth = Math.max(
+      RIGHT_SIDER_CONFIG.MIN_WIDTH, 
+      Math.min(RIGHT_SIDER_CONFIG.MAX_WIDTH, dragStartWidth.current + deltaX)
+    );
+    setRightSiderWidth(newWidth);
+  }, [isDragging]);
+
+  // 拖拽结束处理
+  const handleDragEnd = useCallback(() => {
+    if (!isDragging) return;
+    
+    setIsDragging(false);
+    document.body.style.cursor = '';
+    document.body.style.userSelect = '';
+  }, [isDragging]);
+
+  // 监听全局鼠标事件
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleDragMove);
+      document.addEventListener('mouseup', handleDragEnd);
+      
+      return () => {
+        document.removeEventListener('mousemove', handleDragMove);
+        document.removeEventListener('mouseup', handleDragEnd);
+      };
+    }
+  }, [isDragging, handleDragMove, handleDragEnd]);
+
   return (
     <ArcoLayout className={"size-full"}>
       <ArcoLayout.Sider
@@ -158,30 +214,41 @@ const Layout: React.FC<{
         </ArcoLayout.Content>
       </ArcoLayout.Content>
       {props.rightSider && (
-        <ArcoLayout.Sider
-          width={266}
-          collapsedWidth={0}
-          collapsed={rightSiderCollapsed}
-          className={"!bg-#F7F8FA"}
-        >
-          <ArcoLayout.Header
-            className={"flex items-center justify-start p-16px gap-16px h-56px"}
+        <>
+          {/* 拖拽手柄 */}
+          <div
+            className="absolute top-0 bottom-0 w-1 bg-transparent hover:bg-#E5E6EB cursor-col-resize z-10"
+            style={{ 
+              left: `calc(100% - ${rightSiderWidth}px - 1px)`,
+              right: `${rightSiderWidth}px`
+            }}
+            onMouseDown={handleDragStart}
+          />
+          <ArcoLayout.Sider
+            width={rightSiderWidth}
+            collapsedWidth={0}
+            collapsed={rightSiderCollapsed}
+            className={"!bg-#F7F8FA"}
           >
-            <div className="flex-1">{props.rightSiderTitle}</div>
-            <ExpandLeft
-              theme="outline"
-              size="24"
-              fill="#86909C"
-              className="cursor-pointer"
-              strokeWidth={3}
-              onClick={() => setRightSiderCollapsed(true)}
-            />
-          </ArcoLayout.Header>
-          {/* <Divider className="!m-0"></Divider> */}
-          <ArcoLayout.Content className="h-[calc(100%-66px)]">
-            {props.rightSider}
-          </ArcoLayout.Content>
-        </ArcoLayout.Sider>
+            <ArcoLayout.Header
+              className={"flex items-center justify-start p-16px gap-16px h-56px"}
+            >
+              <div className="flex-1">{props.rightSiderTitle}</div>
+              <ExpandLeft
+                theme="outline"
+                size="24"
+                fill="#86909C"
+                className="cursor-pointer"
+                strokeWidth={3}
+                onClick={() => setRightSiderCollapsed(true)}
+              />
+            </ArcoLayout.Header>
+            {/* <Divider className="!m-0"></Divider> */}
+            <ArcoLayout.Content className="h-[calc(100%-66px)]">
+              {props.rightSider}
+            </ArcoLayout.Content>
+          </ArcoLayout.Sider>
+        </>
       )}
     </ArcoLayout>
   );
