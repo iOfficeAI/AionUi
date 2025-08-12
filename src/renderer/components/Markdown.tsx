@@ -13,11 +13,10 @@ import remarkBreaks from "remark-breaks";
 import SyntaxHighlighter from "react-syntax-highlighter";
 // import { coy } from "react-syntax-highlighter/dist/esm/styles/prism";
 
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Down, Up } from "@icon-park/react";
 import ReactDOM from "react-dom";
 import { theme } from "@office-ai/platform";
-import React from "react";
 import { useTranslation } from "react-i18next";
 import { ipcBridge } from "@/common";
 

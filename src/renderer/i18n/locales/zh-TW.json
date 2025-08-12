@@ -4,7 +4,7 @@
     "cancel": "取消",
     "save": "儲存",
     "delete": "刪除",
-    "confirm": "確認",
+    "confirm": "確定",
     "file": "檔案",
     "folder": "資料夾",
     "upload": "上傳",
@@ -16,8 +16,8 @@
   },
   "conversation": {
     "welcome": {
-      "title": "嗨，我能為你做什麼？",
-      "placeholder": "發送訊息、上傳檔案或開啟資料夾...",
+      "title": "你好，有什麼可以幫你的？",
+      "placeholder": "發訊息、上傳檔案或開啟資料夾...",
       "uploadFile": "上傳檔案",
       "linkFolder": "開啟資料夾",
       "newConversation": "新對話"
@@ -25,36 +25,39 @@
     "history": {
       "today": "今天",
       "yesterday": "昨天",
-      "recent7Days": "近7天",
+      "recent7Days": "最近7天",
       "earlier": "更早",
-      "noHistory": "暫無對話記錄",
+      "noHistory": "暫無對話歷史",
       "deleteTitle": "刪除對話",
-      "deleteConfirm": "確定要刪除此對話嗎？",
-      "confirmDelete": "確定",
-      "cancelDelete": "取消"
+      "deleteConfirm": "確定刪除該對話嗎？",
+      "confirmDelete": "是",
+      "cancelDelete": "否"
     },
     "workspace": {
       "title": "工作空間",
-      "empty": "空的",
-      "emptyDescription": "上傳檔案或開啟資料夾後，檔案將顯示在這裡"
+      "empty": "工作空間為空",
+      "emptyDescription": "上傳檔案或開啟資料夾後，檔案將顯示在這裡",
+      "searchPlaceholder": "搜尋檔案或資料夾...",
+      "searchNoResults": "未找到匹配結果",
+      "searchNoResultsDescription": "請嘗試使用其他關鍵詞搜尋"
     }
   },
   "settings": {
-    "authMethod": "驗證",
+    "authMethod": "認證",
     "geminiApiKey": "Gemini API 金鑰",
     "vertexApiKey": "Vertex AI",
-    "personalAuth": "使用 Google 登入",
+    "personalAuth": "Google帳號登入",
     "proxyConfig": "代理",
     "geminiBaseUrl": "Gemini API Base URL",
-    "tempDir": "暫存資料夾",
+    "tempDir": "暫存目錄",
     "language": "語言",
     "geminiSettings": "gemini 設定"
   },
   "messages": {
-    "conversationInProgress": "目前正在進行對話...",
+    "conversationInProgress": "當前正在進行對話中...",
     "confirm": "確認",
     "canceledExecution": "已取消執行",
-    "openLinkFailed": "無法開啟連結"
+    "openLinkFailed": "開啟連結失敗"
   }
 }
 

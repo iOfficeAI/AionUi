@@ -8,49 +8,52 @@
     "file": "File",
     "folder": "Folder",
     "upload": "Upload",
-    "attach": "Attach",
+    "attach": "Attachment",
     "workspace": "Workspace",
     "settings": "Settings",
     "system": "System"
   },
   "conversation": {
     "welcome": {
-      "title": "Hi, what can I help with?",
-      "placeholder": "Send a message, upload files, or open a folder...",
-      "uploadFile": "Upload Files",
+      "title": "Hello, how can I help you?",
+      "placeholder": "Send message, upload file or open folder...",
+      "uploadFile": "Upload File",
       "linkFolder": "Open Folder",
-      "newConversation": "New Chat"
+      "newConversation": "New Conversation"
     },
     "history": {
       "today": "Today",
       "yesterday": "Yesterday",
-      "recent7Days": "Last 7 Days",
+      "recent7Days": "Last 7 days",
       "earlier": "Earlier",
-      "noHistory": "No chat history",
-      "deleteTitle": "Delete chat",
-      "deleteConfirm": "Are you sure you want to delete this chat?",
+      "noHistory": "No conversation history",
+      "deleteTitle": "Delete Conversation",
+      "deleteConfirm": "Are you sure to delete this conversation?",
       "confirmDelete": "Yes",
       "cancelDelete": "No"
     },
     "workspace": {
       "title": "Workspace",
-      "empty": "It's empty",
-      "emptyDescription": "Files will appear here after uploading files or opening a folder"
+      "empty": "Workspace is empty",
+      "emptyDescription": "Files will appear here after uploading files or opening folders",
+      "searchPlaceholder": "Search files or folders...",
+      "searchNoResults": "No matching results found",
+      "searchNoResultsDescription": "Please try searching with other keywords"
     }
   },
   "settings": {
     "authMethod": "Authentication",
     "geminiApiKey": "Gemini API Key",
     "vertexApiKey": "Vertex AI",
-    "personalAuth": "Login with Google",
+    "personalAuth": "Google Account Login",
     "proxyConfig": "Proxy",
     "geminiBaseUrl": "Gemini API Base URL",
     "tempDir": "Temporary Directory",
     "language": "Language",
-    "geminiSettings": "gemini settings"
+    "geminiSettings": "Gemini Settings"
   },
   "messages": {
-    "conversationInProgress": "A conversation is currently in progress...",
+    "conversationInProgress": "Conversation in progress...",
     "confirm": "Confirm",
     "canceledExecution": "Execution canceled",
     "openLinkFailed": "Failed to open link"

@@ -35,7 +35,10 @@
     "workspace": {
       "title": "工作空间",
       "empty": "工作空间为空",
-      "emptyDescription": "上传文件或打开文件夹后，文件将显示在这里"
+      "emptyDescription": "上传文件或打开文件夹后，文件将显示在这里",
+      "searchPlaceholder": "搜索文件或文件夹...",
+      "searchNoResults": "未找到匹配结果",
+      "searchNoResultsDescription": "请尝试使用其他关键词搜索"
     }
   },
   "settings": {
