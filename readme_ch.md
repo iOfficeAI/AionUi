@@ -251,19 +251,15 @@ AionUi 旨在弥合强大 AI 能力与日常可用性之间的差距，让复杂
 4. 推送到分支 (`git push origin feature/AmazingFeature`)
 5. 打开 Pull Request
 
-## 👥 贡献者
+---
 
-感谢这些优秀的贡献者：
+## 📊 Star 历史
 
 <p align="center">
-  <a href="https://github.com/office-sec/AionUi/graphs/contributors">
-    <img src="https://contrib.rocks/image?repo=office-sec/AionUi" alt="Contributors" />
+  <a href="https://www.star-history.com/#office-sec/aionui&Date" target="_blank">
+    <img src="https://api.star-history.com/svg?repos=office-sec/aionui&type=Date" alt="GitHub 星星趋势" width="600">
   </a>
 </p>
-
-
-
----
 
 <div align="center">
 
