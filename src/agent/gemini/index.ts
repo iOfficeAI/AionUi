@@ -5,18 +5,20 @@
  */
 
 // src/core/ConfigManager.ts
-import {
-  AuthType,
+import type {
   Config,
   GeminiClient,
-  sessionId,
   ToolCallRequestInfo,
   ServerGeminiStreamEvent,
-  CoreToolScheduler,
   CompletedToolCall,
-  ToolCall,
+  ToolCall} from "@google/gemini-cli-core";
+import {
+  AuthType,
+  sessionId,
+  CoreToolScheduler
 } from "@google/gemini-cli-core";
-import { Extension, loadExtensions } from "./cli/extension";
+import type { Extension} from "./cli/extension";
+import { loadExtensions } from "./cli/extension";
 import { loadSettings } from "./cli/settings";
 import { loadCliConfig, loadHierarchicalGeminiMemory } from "./cli/config";
 import { handleCompletedTools, processGeminiStreamEvents } from "./utils";

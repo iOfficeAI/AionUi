@@ -9,7 +9,7 @@ import { Attention, CheckOne } from "@icon-park/react";
 import { theme } from "@office-ai/platform";
 import classNames from "classnames";
 import MarkdownView from "../components/Markdown";
-import { IMessageTips } from "@/common/chatLib";
+import type { IMessageTips } from "@/common/chatLib";
 const icon = {
   success: (
     <CheckOne

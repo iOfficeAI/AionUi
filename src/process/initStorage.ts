@@ -4,22 +4,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import fs from "fs/promises";
-import { existsSync, mkdirSync as _mkdirSync } from "fs";
-import {
-  ChatMessageStorage,
-  ChatStorage,
-  ConfigStorage,
-  IChatConversationRefer,
-  IConfigStorageRefer,
-} from "../common/storage";
-import { systemInfo } from "../common/ipcBridge";
-import { getTempPath } from "./utils";
+import { mkdirSync as _mkdirSync, existsSync } from 'fs';
+import fs from 'fs/promises';
+import { application } from '../common/ipcBridge';
+import type { IChatConversationRefer, IConfigStorageRefer } from '../common/storage';
+import { ChatMessageStorage, ChatStorage, ConfigStorage } from '../common/storage';
+import { getTempPath } from './utils';
 
 const STORAGE_PATH = {
-  config: "aionui-config.txt",
-  chatMessage: "aionui-chat-message.txt",
-  chat: "aionui-chat.txt",
+  config: 'aionui-config.txt',
+  chatMessage: 'aionui-chat-message.txt',
+  chat: 'aionui-chat.txt',
 };
 
 const getHomePage = getTempPath;
@@ -33,11 +28,11 @@ if (!existsSync(getHomePage())) {
 }
 
 const WriteFile = (fileName: string, data: string) => {
-  return fs.writeFile(getHomePage() + "/" + fileName, data);
+  return fs.writeFile(getHomePage() + '/' + fileName, data);
 };
 
 const ReadFile = (fileName: string) => {
-  return fs.readFile(getHomePage() + "/" + fileName);
+  return fs.readFile(getHomePage() + '/' + fileName);
 };
 
 const FileBuilder = (fileName: string) => {
@@ -54,6 +49,24 @@ const FileBuilder = (fileName: string) => {
 };
 
 const JsonFileBuilder = <S extends Record<string, any>>(fileName: string) => {
+  const stack: (() => Promise<any>)[] = [];
+  let isRunning = false;
+  const run = () => {
+    if (isRunning || !stack.length) return;
+    isRunning = true;
+    stack
+      .shift()?.()
+      .finally(() => {
+        isRunning = false;
+        run();
+      });
+  };
+  const pushStack = <R extends any>(fn: () => Promise<R>) => {
+    return new Promise<R>((resolve, reject) => {
+      stack.push(() => fn().then(resolve).catch(reject));
+      run();
+    });
+  };
   const getFile = () => {
     return FileBuilder(fileName);
   };
@@ -113,12 +126,11 @@ const _chatMessageFile = JsonFileBuilder(STORAGE_PATH.chatMessage);
 const chatFile = JsonFileBuilder<IChatConversationRefer>(STORAGE_PATH.chat);
 
 const buildMessageListStorage = (conversation_id: string) => {
-  const path =
-    getHomePage() + "/aionui-chat-history/" + conversation_id + ".txt";
+  const path = getHomePage() + '/aionui-chat-history/' + conversation_id + '.txt';
   if (!existsSync(path)) {
-    mkdirSync(getHomePage() + "/aionui-chat-history/");
+    mkdirSync(getHomePage() + '/aionui-chat-history/');
   }
-  return JsonFileBuilder("aionui-chat-history/" + conversation_id + ".txt");
+  return JsonFileBuilder('aionui-chat-history/' + conversation_id + '.txt');
 };
 
 const conversationHistoryProxy = (options: typeof _chatMessageFile) => {
@@ -145,7 +157,7 @@ const initStorage = () => {
   ConfigStorage.interceptor(configFile);
   ChatStorage.interceptor(chatFile);
   ChatMessageStorage.interceptor(chatMessageFile);
-  systemInfo.provider(async () => {
+  application.systemInfo.provider(async () => {
     return {
       tempDir: getHomePage(),
     };

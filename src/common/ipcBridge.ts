@@ -4,51 +4,90 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { bridge } from "@office-ai/platform";
-import { TChatConversation } from "./storage";
-import { OpenDialogOptions } from "electron";
+import { bridge } from '@office-ai/platform';
+import type { OpenDialogOptions } from 'electron';
+import type { IModel, TChatConversation, TModelWithConversation } from './storage';
 
 // 发送消息
-const sendMessage = bridge.buildProvider<
-  {
-    success: boolean;
-    msg?: string;
-  },
-  {
-    input: string;
-    msg_id: string;
-    conversation_id: string;
-    files?: string[];
-  }
->("chat.send.message");
+const sendMessage = bridge.buildProvider<IBridgeResponse<{}>, ISendMessageParams>('chat.send.message');
 
 //接受消息
-const responseStream = bridge.buildEmitter<IResponseMessage>(
-  "chat.response.stream"
-);
-// 停止会话
-export const stopStream = bridge.buildProvider<
-  { success: boolean; msg?: string },
-  { conversation_id: string }
->("chat.stop.stream");
+const responseStream = bridge.buildEmitter<IResponseMessage>('chat.response.stream');
 
-// 打开文件/文件夹选择窗口
-export const openFileDialog = bridge.buildProvider<
-  string[] | undefined,
-  | { defaultPath?: string; properties?: OpenDialogOptions["properties"] }
-  | undefined
->("open-dialog");
+export const shell = {
+  openFile: bridge.buildProvider<void, string>('open-file'), // 使用系统默认程序打开文件
+  showItemInFolder: bridge.buildProvider<void, string>('show-item-in-folder'), // 打开文件夹
+  openExternal: bridge.buildProvider<void, string>('open-external'), // 使用系统默认程序打开外部链接
+};
 
-// 使用系统默认程序打开文件
-export const openFile = bridge.buildProvider<void, string>("open-file");
+//通用会话能力
+export const conversation = {
+  create: bridge.buildProvider<TChatConversation, ICreateConversationParams>('create-conversation'), // 创建对话
+  get: bridge.buildProvider<TChatConversation, { id: string }>('get-conversation'), // 获取对话信息
+  remove: bridge.buildProvider<boolean, { id: string }>('remove-conversation'), // 删除对话
+  reset: bridge.buildProvider<void, IResetConversationParams>('reset-conversation'), // 重置对话
+  stop: bridge.buildProvider<IBridgeResponse<{}>, { conversation_id: string }>('chat.stop.stream'), // 停止会话
+};
 
-// 显示文件夹
-export const showItemInFolder = bridge.buildProvider<void, string>(
-  "show-item-in-folder"
-);
+// gemini对话相关接口
+export const geminiConversation = {
+  sendMessage: sendMessage,
+  confirmMessage: bridge.buildProvider<IBridgeResponse, IConfirmGeminiMessageParams>('input.confirm.message'),
+  responseStream: responseStream,
+  getWorkspace: bridge.buildProvider<IDirOrFile[], { workspace: string }>('gemini.get-workspace'),
+};
 
-// 使用系统默认程序打开外部链接
-export const openExternal = bridge.buildProvider<void, string>("open-external");
+export const application = {
+  restart: bridge.buildProvider<void, void>('restart-app'), // 重启应用
+  openDevTools: bridge.buildProvider<void, void>('open-dev-tools'), // 打开开发者工具
+  systemInfo: bridge.buildProvider<{ tempDir: string }, void>('system.info'), // 获取系统信息
+};
+
+export const dialog = {
+  showOpen: bridge.buildProvider<string[] | undefined, { defaultPath?: string; properties?: OpenDialogOptions['properties'] } | undefined>('show-open'), // 打开文件/文件夹选择窗口
+};
+export const fs = {
+  getFilesByDir: bridge.buildProvider<Array<IDirOrFile>, { dir: string }>('get-file-by-dir'), // 获取指定文件夹下所有文件夹和文件列表
+};
+
+export const googleAuth = {
+  login: bridge.buildProvider<IBridgeResponse<{ account: string }>, { proxy?: string }>('google.auth.login'),
+  logout: bridge.buildProvider<void, {}>('google.auth.logout'),
+  status: bridge.buildProvider<IBridgeResponse<{ account: string }>, { proxy?: string }>('google.auth.status'),
+};
+
+export const mode = {
+  fetchModelList: bridge.buildProvider<IBridgeResponse<{ mode: Array<string> }>, { base_url: string; api_key: string }>('mode.get-model-list'),
+  saveModelConfig: bridge.buildProvider<IBridgeResponse, IModel[]>('mode.save-model-config'),
+  getModelConfig: bridge.buildProvider<IModel[], void>('mode.get-model-config'),
+};
+
+interface ISendMessageParams {
+  input: string;
+  msg_id: string;
+  conversation_id: string;
+  files?: string[];
+}
+
+interface IConfirmGeminiMessageParams {
+  confirmKey: string;
+  msg_id: string;
+  conversation_id: string;
+  callId: string;
+}
+
+interface ICreateConversationParams {
+  type: 'gemini';
+  name?: string;
+  model: TModelWithConversation;
+  extra: { workspace?: string; defaultFiles?: string[] };
+}
+interface IResetConversationParams {
+  id?: string;
+  gemini?: {
+    clearCachedCredentialFile?: boolean;
+  };
+}
 
 // 获取文件夹或文件列表
 export interface IDirOrFile {
@@ -58,82 +97,16 @@ export interface IDirOrFile {
   isFile: boolean;
   children?: Array<IDirOrFile>;
 }
-// 获取指定文件夹下所有文件夹和文件列表
-export const getFilesByDir = bridge.buildProvider<
-  Array<IDirOrFile>,
-  { dir: string }
->("get-file-by-dir");
-
-// 获取系统信息
-export const systemInfo = bridge.buildProvider<
-  {
-    tempDir: string;
-  },
-  void
->("system.info");
-
-// 创建对话
-export const createConversation = bridge.buildProvider<
-  TChatConversation,
-  {
-    type: "gemini";
-    name?: string;
-    extra: { workspace?: string; defaultFiles?: string[] };
-  }
->("create-conversation");
-
-// 获取对话信息
-export const getConversation = bridge.buildProvider<
-  TChatConversation,
-  { id: string }
->("get-conversation");
-
-// 删除对话
-export const removeConversation = bridge.buildProvider<boolean, { id: string }>(
-  "remove-conversation"
-);
-
-// gemini对话相关接口
-export const geminiConversation = {
-  sendMessage: sendMessage,
-  confirmMessage: bridge.buildProvider<
-    {
-      success: boolean;
-      mgs?: string;
-    },
-    {
-      confirmKey: string;
-      msg_id: string;
-      conversation_id: string;
-      callId: string;
-    }
-  >("input.confirm.message"),
-  responseStream: responseStream,
-  getWorkspace: bridge.buildProvider<IDirOrFile[], { workspace: string }>(
-    "gemini.get-workspace"
-  ),
-};
-
-// 重置对话
-export const resetConversation = bridge.buildProvider<
-  void,
-  {
-    id?: string;
-    gemini?: {
-      clearCachedCredentialFile?: boolean;
-    };
-  }
->("reset-conversation");
-
-// 重启应用
-export const restartApp = bridge.buildProvider<void, void>("restart-app");
-
-// 打开开发者工具
-export const openDevTools = bridge.buildProvider<void, void>("open-dev-tools");
 
 export interface IResponseMessage {
   type: string;
   data: any;
   msg_id: string;
   conversation_id: string;
+}
+
+interface IBridgeResponse<D = {}> {
+  success: boolean;
+  data?: D;
+  msg?: string;
 }

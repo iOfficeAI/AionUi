@@ -4,14 +4,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {
+import type {
   ServerGeminiStreamEvent,
   ToolCallRequestInfo,
-  GeminiEventType as ServerGeminiEventType,
   ServerGeminiContentEvent as ContentEvent,
-  executeToolCall,
   Config,
-  CompletedToolCall,
+  CompletedToolCall} from "@google/gemini-cli-core";
+import {
+  GeminiEventType as ServerGeminiEventType,
+  executeToolCall
 } from "@google/gemini-cli-core";
 import { parseAndFormatApiError } from "./cli/errorParsing";
 

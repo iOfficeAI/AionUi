@@ -8,7 +8,7 @@ import { FileDiscoveryService } from "@google/gemini-cli-core";
 import { app } from "electron";
 import path from "path";
 import fs from "fs/promises";
-import { IDirOrFile } from "@/common/ipcBridge";
+import type { IDirOrFile } from "@/common/ipcBridge";
 export const getTempPath = () => {
   const rootPath = app.getPath("temp");
   return path.join(rootPath, "aionui");
@@ -34,7 +34,7 @@ export const generateHashWithFullName = (fullName: string): string => {
 export async function readDirectoryRecursive(
   dirPath: string,
   root = dirPath + "/",
-  fileService?: FileDiscoveryService
+  fileService?: any
 ): Promise<IDirOrFile> {
   const stats = await fs.stat(dirPath);
   if (!stats.isDirectory()) {

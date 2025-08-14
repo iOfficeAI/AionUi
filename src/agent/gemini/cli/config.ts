@@ -5,6 +5,8 @@
  */
 
 import process from "node:process";
+import type {
+  TelemetryTarget} from "@google/gemini-cli-core";
 import {
   Config,
   loadServerHierarchicalMemory,
@@ -14,12 +16,11 @@ import {
   GEMINI_CONFIG_DIR as GEMINI_DIR,
   DEFAULT_GEMINI_EMBEDDING_MODEL,
   FileDiscoveryService,
-  TelemetryTarget,
   DEFAULT_GEMINI_MODEL,
 } from "@google/gemini-cli-core";
-import { Settings } from "./settings";
+import type { Settings } from "./settings";
 
-import { Extension } from "./extension";
+import type { Extension } from "./extension";
 import * as dotenv from "dotenv";
 import * as fs from "node:fs";
 import * as path from "node:path";

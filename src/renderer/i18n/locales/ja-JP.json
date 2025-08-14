@@ -12,7 +12,14 @@
     "workspace": "ワークスペース",
     "settings": "設定",
     "system": "システム",
-    "about": "私たちについて"
+    "about": "私たちについて",
+    "back": "戻る",
+    "add": "追加",
+    "edit": "編集",
+    "website": "公式サイト",
+    "version": "バージョン",
+    "contact": "お問い合わせ",
+    "github": "Github"
   },
   "conversation": {
     "welcome": {
@@ -37,18 +44,38 @@
       "title": "ワークスペース",
       "empty": "ワークスペースが空です",
       "emptyDescription": "ファイルをアップロードするか、またはフォルダーを開くと、ここにファイルが表示されます"
+    },
+    "chat": {
+      "noModelSelected": "現在のセッションでモデルが選択されていないため、メッセージを送信できません"
     }
   },
   "settings": {
     "authMethod": "認証",
     "geminiApiKey": "Gemini API キー",
     "vertexApiKey": "Vertex AI API キー",
-    "personalAuth": "Google でログイン",
+    "personalAuth": "Google アカウント",
+    "googleLogin": "Google でログイン",
+    "googleLogout": "ログアウト",
+    "openai": "OpenAI",
     "proxyConfig": "プロキシ",
     "geminiBaseUrl": "Gemini API ベース URL",
     "tempDir": "一時ディレクトリ",
     "language": "言語",
-    "geminiSettings": "Geminiの設定"
+    "gemini": "Gemini 設定",
+    "model": "モデル設定",
+    "system": "システム設定",
+    "about": "私たちについて",
+    "addModel": "モデルを追加",
+    "editModel": "モデルを編集",
+    "modelPlatform": "モデルプラットフォーム",
+    "platformName": "プラットフォーム名",
+    "modelName": "モデル名",
+    "baseUrl": "ベースURL",
+    "apiKey": "API キー",
+    "deleteModelConfirm": "このモデルを削除してもよろしいですか？",
+    "modelCount": "モデル",
+    "pleaseEnterBaseUrlAndApiKey": "ベースURLとAPIキーを入力してください",
+    "customOpenAI": "カスタム（OpenAI互換）"
   },
   "messages": {
     "conversationInProgress": "現在、会話中です...",
@@ -57,4 +84,3 @@
     "openLinkFailed": "リンクを開けませんでした"
   }
 }
-

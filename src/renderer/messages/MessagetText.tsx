@@ -7,7 +7,7 @@
 import React, { useMemo } from "react";
 import MarkdownView from "../components/Markdown";
 import classNames from "classnames";
-import { IMessageText } from "@/common/chatLib";
+import type { IMessageText } from "@/common/chatLib";
 
 const useFormatContent = (content: string) => {
   return useMemo(() => {

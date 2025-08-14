@@ -7,12 +7,13 @@
 import * as fs from "fs";
 import * as path from "path";
 import { homedir } from "os";
-import {
+import type {
   MCPServerConfig,
-  getErrorMessage,
   BugCommandSettings,
   TelemetrySettings,
-  AuthType,
+  AuthType} from "@google/gemini-cli-core";
+import {
+  getErrorMessage
 } from "@google/gemini-cli-core";
 import stripJsonComments from "strip-json-comments";
 

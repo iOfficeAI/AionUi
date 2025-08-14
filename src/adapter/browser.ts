@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { bridge, logger } from "@office-ai/platform";
+import { bridge, logger } from '@office-ai/platform';
 
 const win: any = window;
 
@@ -21,9 +21,10 @@ if (win.electronAPI) {
         try {
           const { value } = event;
           const { name, data } = JSON.parse(value);
+          // console.log('>>>>>>>>>>>>>>>>>>browser.on', name, data);
           emitter.emit(name, data);
         } catch (e) {
-          console.warn("-----electronAPI.on", e);
+          console.warn('-----electronAPI.on', e);
         }
       });
     },
@@ -32,9 +33,9 @@ if (win.electronAPI) {
 
 logger.provider({
   log(log) {
-    console.log("process.log", log.type, ...log.logs);
+    console.log('process.log', log.type, ...log.logs);
   },
   path() {
-    return Promise.resolve("");
+    return Promise.resolve('');
   },
 });

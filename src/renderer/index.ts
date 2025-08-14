@@ -5,7 +5,8 @@
  */
 
 import "../adapter/browser";
-import React, { PropsWithChildren } from "react";
+import type { PropsWithChildren } from "react";
+import React from "react";
 import { createRoot } from "react-dom/client";
 import Main from "./main";
 

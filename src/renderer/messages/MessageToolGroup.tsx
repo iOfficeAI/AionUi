@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { IMessageToolGroup } from "@/common/chatLib";
+import type { IMessageToolGroup } from "@/common/chatLib";
 import { Alert, Button, Radio, Tag } from "@arco-design/web-react";
 import { LoadingOne } from "@icon-park/react";
 import React, { useMemo, useState } from "react";
@@ -227,21 +227,13 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
           );
         }
 
-        if (name === "WriteFile") {
+        if (name === "WriteFile" && typeof resultDisplay !== "string") {
           return (
             <div className="min-w-400px">
-              {typeof resultDisplay === "string" ? (
-                <MarkdownView
-                  codeStyle={{ marginLeft: 16, marginTop: 4, marginBottom: 4 }}
-                >
-                  {resultDisplay}
-                </MarkdownView>
-              ) : (
-                <Diff2Html
-                  className="ml-16px"
-                  diff={resultDisplay?.fileDiff || ""}
-                ></Diff2Html>
-              )}
+              <Diff2Html
+                className="ml-16px"
+                diff={resultDisplay?.fileDiff || ""}
+              ></Diff2Html>
             </div>
           );
         }
