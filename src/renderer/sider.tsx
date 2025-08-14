@@ -7,9 +7,9 @@ import SettingsSider from './pages/settings/SettingsSider';
 
 const Sider: React.FC = () => {
   const { pathname } = useLocation();
+
   const { t } = useTranslation();
   const navigate = useNavigate();
-  console.log(pathname);
   const isSettings = pathname.startsWith('/settings');
   return (
     <div className='size-full flex flex-col'>

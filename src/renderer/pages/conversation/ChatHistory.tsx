@@ -13,7 +13,7 @@ import { DeleteOne, MessageOne } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 
 const diffDay = (time1: number, time2: number) => {
   const date1 = new Date(time1);
@@ -48,8 +48,8 @@ const useTimeline = () => {
 
 const ChatHistory: React.FC = ({ ...props }) => {
   const [chatHistory, setChatHistory] = useState<TChatConversation[]>([]);
+  const { id } = useParams();
   const navigate = useNavigate();
-  const selectId = '';
   const { t } = useTranslation();
   const handleSelect = (conversation: TChatConversation) => {
     ipcBridge.conversation.create.invoke({
@@ -60,13 +60,15 @@ const ChatHistory: React.FC = ({ ...props }) => {
     navigate(`/conversation/${conversation.id}`);
   };
 
+  const isConversation = !!id;
+
   useEffect(() => {
     ChatStorage.get('chat.history').then((history) => {
       if (history) {
         setChatHistory(history.sort((a, b) => (b.createTime - a.createTime < 0 ? -1 : 1)));
       }
     });
-  }, []);
+  }, [isConversation]);
 
   const handleRemoveConversation = (id: string) => {
     ipcBridge.conversation.remove.invoke({ id }).then((success) => {
@@ -80,7 +82,7 @@ const ChatHistory: React.FC = ({ ...props }) => {
   const formatTimeline = useTimeline();
 
   const renderConversation = (conversation: TChatConversation) => {
-    const isSelected = selectId === conversation.id;
+    const isSelected = id === conversation.id;
     return (
       <div
         key={conversation.id}
