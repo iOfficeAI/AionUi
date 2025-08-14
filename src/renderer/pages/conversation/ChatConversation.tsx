@@ -33,7 +33,7 @@ const ChatConversation: React.FC<{
   }, [conversation]);
 
   return (
-    <ChatLayout title={siderTitle} sider={<ChatSider conversation={conversation} />}>
+    <ChatLayout title={conversation.name} siderTitle={siderTitle} sider={<ChatSider conversation={conversation} />}>
       {conversationNode}
     </ChatLayout>
   );
