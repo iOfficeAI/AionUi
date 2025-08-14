@@ -16,45 +16,45 @@
   },
   "conversation": {
     "welcome": {
-      "title": "こんにちは、何かお手伝いできることはありますか？",
-      "placeholder": "メッセージを送信、ファイルをアップロード、またはフォルダを開く...",
-      "uploadFile": "ファイルをアップロード",
-      "linkFolder": "フォルダを開く",
-      "newConversation": "新しい会話"
+      "title": "こんにちは、何かお手伝いしましょうか？",
+      "placeholder": "メッセージの送信、ファイルの追加、またはフォルダーの追加...",
+      "uploadFile": "ファイルを追加",
+      "linkFolder": "フォルダを追加",
+      "newConversation": "新しいチャット"
     },
     "history": {
       "today": "今日",
       "yesterday": "昨日",
       "recent7Days": "過去7日間",
       "earlier": "それ以前",
-      "noHistory": "会話履歴がありません",
-      "deleteTitle": "会話を削除",
-      "deleteConfirm": "この会話を削除してもよろしいですか？",
+      "noHistory": "チャット履歴はありません",
+      "deleteTitle": "チャットを削除",
+      "deleteConfirm": "このチャットを削除してもよろしいですか？",
       "confirmDelete": "はい",
       "cancelDelete": "いいえ"
     },
     "workspace": {
       "title": "ワークスペース",
       "empty": "ワークスペースが空です",
-      "emptyDescription": "ファイルをアップロードするか、フォルダを開くと、ファイルがここに表示されます",
-      "searchPlaceholder": "ファイルまたはフォルダを検索...",
-      "searchNoResults": "一致する結果が見つかりません",
-      "searchNoResultsDescription": "他のキーワードで検索してみてください"
+      "emptyDescription": "ファイルやフォルダーを追加すると、ここに表示されます",
+      "searchPlaceholder": "ファイルやフォルダーを検索...",
+      "searchNoResults": "検索結果が見つかりませんでした",
+      "searchNoResultsDescription": "別のキーワードでお試しください"
     }
   },
   "settings": {
     "authMethod": "認証",
     "geminiApiKey": "Gemini API キー",
-    "vertexApiKey": "Vertex AI",
-    "personalAuth": "Googleアカウントでログイン",
+    "vertexApiKey": "Vertex AI API キー",
+    "personalAuth": "Google でログイン",
     "proxyConfig": "プロキシ",
-    "geminiBaseUrl": "Gemini API Base URL",
+    "geminiBaseUrl": "Gemini API ベース URL",
     "tempDir": "一時ディレクトリ",
     "language": "言語",
-    "geminiSettings": "Gemini設定"
+    "geminiSettings": "Geminiの設定"
   },
   "messages": {
-    "conversationInProgress": "会話が進行中...",
+    "conversationInProgress": "現在、会話中です...",
     "confirm": "確認",
     "canceledExecution": "実行がキャンセルされました",
     "openLinkFailed": "リンクを開けませんでした"
