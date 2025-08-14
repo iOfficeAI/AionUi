@@ -145,14 +145,14 @@ ipcBridge.geminiConversation.confirmMessage.provider(async ({ confirmKey, msg_id
 ipcBridge.conversation.stop.provider(async ({ conversation_id }) => {
   const task = WorkerManage.getTaskById(conversation_id);
   if (!task) return { success: true, msg: 'conversation not found' };
-  if (task.type !== 'gemini') return { success: true, msg: 'not support' };
+  if (task.type !== 'gemini' && task.type !== 'gemini2') return { success: false, msg: 'not support' };
   return task.stop().then(() => ({ success: true }));
 });
 
 ipcBridge.geminiConversation.getWorkspace.provider(async ({ workspace }) => {
   const task = WorkerManage.getTaskById(generateHashWithFullName(workspace));
   console.log('geminiConversation.getWorkspace', task.type);
-  if (!task || task.type !== 'gemini') return [];
+  if (!task || (task.type !== 'gemini' && task.type !== 'gemini2')) return [];
   return task.postMessagePromise('gemini.get.workspace', {}).then((res: any) => {
     return res;
   });

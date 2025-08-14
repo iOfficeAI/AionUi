@@ -15,14 +15,14 @@ export const geminiModeList = [
     label: DEFAULT_GEMINI_FLASH_MODEL,
     value: DEFAULT_GEMINI_FLASH_MODEL,
   },
-  {
-    label: DEFAULT_GEMINI_FLASH_LITE_MODEL,
-    value: DEFAULT_GEMINI_FLASH_LITE_MODEL,
-  },
-  {
-    label: DEFAULT_GEMINI_EMBEDDING_MODEL,
-    value: DEFAULT_GEMINI_EMBEDDING_MODEL,
-  },
+  // {
+  //   label: DEFAULT_GEMINI_FLASH_LITE_MODEL,
+  //   value: DEFAULT_GEMINI_FLASH_LITE_MODEL,
+  // },
+  // {
+  //   label: DEFAULT_GEMINI_EMBEDDING_MODEL,
+  //   value: DEFAULT_GEMINI_EMBEDDING_MODEL,
+  // },
 ];
 
 const useModeModeList = (platform: string, base_url?: string, api_key?: string) => {

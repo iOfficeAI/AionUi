@@ -130,6 +130,7 @@ const AddPlatformModal = ModalHOC<{
         <Form.Item label={t('settings.modelName')} field={'model'} required rules={[{ required: true }]} validateStatus={modelListState.error ? 'error' : 'success'} help={modelListState.error}>
           <Select
             loading={modelListState.isLoading}
+            showSearch
             suffixIcon={
               <Search
                 onClick={(e) => {
