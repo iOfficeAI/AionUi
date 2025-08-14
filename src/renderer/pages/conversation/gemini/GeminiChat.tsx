@@ -176,7 +176,7 @@ const GeminiChat: React.FC<{
               ></Button>
               {model && (
                 <Button className={'ml-4px'} shape='round'>
-                  {model.platform + ':' + model.useModel}
+                  {model.useModel}
                 </Button>
               )}
             </>

@@ -19,16 +19,12 @@ const useModePlatformList = () => {
         value: 'gemini-vertex-ai',
       },
       {
-        label: 'qwen',
-        value: 'qwen',
+        label: 'ModelScope',
+        value: 'ModelScope',
       },
-      // {
-      //   label: 'Moonshot',
-      //   value: 'moonshot',
-      // },
       {
-        label: 'Open Router',
-        value: 'open-router',
+        label: 'OpenRouter',
+        value: 'OpenRouter',
       },
       {
         label: t('settings.customOpenAI'),
@@ -41,7 +37,8 @@ const useModePlatformList = () => {
 const defaultBaseUrl = {
   qwen: 'https://api.qwen.com/v1',
   moonshot: 'https://api.moonshot.cn/v1',
-  'open-router': 'https://openrouter.ai/api/v1',
+  OpenRouter: 'https://openrouter.ai/api/v1',
+  ModelScope: 'https://api-inference.modelscope.cn/v1',
 };
 
 const AddPlatformModal = ModalHOC<{
@@ -99,13 +96,32 @@ const AddPlatformModal = ModalHOC<{
             options={modelPlatformOptions}
             onChange={(value) => {
               form.setFieldValue('baseUrl', defaultBaseUrl[value as keyof typeof defaultBaseUrl] || '');
+              form.setFieldValue('name', value !== 'custom' ? value : '');
             }}
           ></Select>
         </Form.Item>
-        <Form.Item label={t('settings.platformName')} required rules={[{ required: true }]} field={'name'}>
-          <Input></Input>
+        <Form.Item hidden={platform !== 'custom' && platform !== 'gemini'} label='base url' required={platform !== 'gemini'} rules={[{ required: platform !== 'gemini' }]} field={'baseUrl'}>
+          <Input
+            placeholder={platform === 'gemini' ? 'https://generativelanguage.googleapis.com' : ''}
+            onChange={(value) => {
+              if (platform === 'custom') {
+                try {
+                  const urlObj = new URL(value);
+                  const hostname = urlObj.hostname;
+                  const parts = hostname.split('.');
+                  if (parts.length >= 2) {
+                    form.setFieldValue('name', parts[parts.length - 2]);
+                  } else {
+                    form.setFieldValue('name', parts[0]);
+                  }
+                } catch (e) {
+                  console.error('Invalid URL:', e);
+                }
+              }
+            }}
+          ></Input>
         </Form.Item>
-        <Form.Item hidden={platform === 'gemini-vertex-ai'} label='base url' required={platform !== 'gemini'} rules={[{ required: platform !== 'gemini' }]} field={'baseUrl'}>
+        <Form.Item hidden={platform !== 'custom'} label={t('settings.platformName')} required rules={[{ required: true }]} field={'name'}>
           <Input></Input>
         </Form.Item>
         <Form.Item label='API Key' required rules={[{ required: true }]} field={'apiKey'}>

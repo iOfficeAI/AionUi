@@ -182,7 +182,7 @@ const Guid: React.FC = () => {
                 </Menu>
               }
             >
-              <Button shape='round'>{currentModel ? currentModel.platform + ':' + currentModel.useModel : 'Select Model'}</Button>
+              <Button shape='round'>{currentModel ? currentModel.useModel : 'Select Model'}</Button>
             </Dropdown>
           </div>
           <Button shape='circle' type='primary' loading={loading} disabled={!currentModel} icon={<ArrowUp theme='outline' size='14' fill='white' strokeWidth={2} />} onClick={sendMessageHandler} />

@@ -74,7 +74,7 @@ const ModelSettings: React.FC = () => {
       {addModelModalContext}
       {messageContext}
       {(data || []).map((platform, index) => {
-        const key = platform.apiKey + platform.baseUrl;
+        const key = platform.apiKey + platform.baseUrl + index;
         return (
           <Collapse
             activeKey={collapseKey[key] ? ['1'] : []}
