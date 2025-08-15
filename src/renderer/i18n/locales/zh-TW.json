@@ -43,7 +43,8 @@
     "workspace": {
       "title": "工作空間",
       "empty": "空的",
-      "emptyDescription": "上傳檔案或開啟資料夾後，檔案將顯示在這裡"
+      "emptyDescription": "上傳檔案或開啟資料夾後，檔案將顯示在這裡",
+      "searchPlaceholder": "搜尋檔案..."
     },
     "chat": {
       "noModelSelected": "當前會話未選擇模型，無法發送訊息"
