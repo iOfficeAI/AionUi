@@ -21,7 +21,7 @@ export class GeminiAgentTask extends BaseAgentTask<{
   model: TModelWithConversation;
   private bootstrap: Promise<void>;
   constructor(data: { workspace: string; conversation_id: string }, model: TModelWithConversation) {
-    super('gemini2', { ...data, model });
+    super('gemini', { ...data, model });
     this.workspace = data.workspace;
     this.conversation_id = data.conversation_id;
     this.model = model;

@@ -40,7 +40,7 @@ interface GeminiAgent2Options {
   onStreamEvent: (event: { type: string; data: any; msg_id: string }) => void;
 }
 
-export class GeminiAgent2 {
+export class GeminiAgent {
   config: Config | null = null;
   private workspace: string | null = null;
   private proxy: string | null = null;

@@ -4,37 +4,25 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import * as fs from "fs";
-import * as path from "path";
-import { homedir } from "node:os";
-import process from "node:process";
-import type {
-  TelemetryTarget,
-  FileFilteringOptions} from "@office-ai/aioncli-core";
-import {
-  Config,
-  loadServerHierarchicalMemory,
-  setGeminiMdFilename as setServerGeminiMdFilename,
-  getCurrentGeminiMdFilename,
-  ApprovalMode,
-  DEFAULT_GEMINI_MODEL,
-  DEFAULT_GEMINI_EMBEDDING_MODEL,
-  DEFAULT_MEMORY_FILE_FILTERING_OPTIONS,
-  FileDiscoveryService
-} from "@office-ai/aioncli-core";
-import type { Settings } from "./settings.js";
+import type { FileFilteringOptions, TelemetryTarget } from '@office-ai/aioncli-core';
+import { ApprovalMode, Config, DEFAULT_GEMINI_EMBEDDING_MODEL, DEFAULT_GEMINI_MODEL, DEFAULT_MEMORY_FILE_FILTERING_OPTIONS, FileDiscoveryService, getCurrentGeminiMdFilename, loadServerHierarchicalMemory, setGeminiMdFilename as setServerGeminiMdFilename } from '@office-ai/aioncli-core';
+import * as fs from 'fs';
+import { homedir } from 'node:os';
+import process from 'node:process';
+import * as path from 'path';
+import type { Settings } from './settings';
 
-import type { Extension} from "./extension";
-import { annotateActiveExtensions } from "./extension";
+import type { Extension } from './extension';
+import { annotateActiveExtensions } from './extension';
 
 // Simple console logger for now - replace with actual logger if available
 const logger = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  debug: (...args: any[]) => console.debug("[DEBUG]", ...args),
+  debug: (...args: any[]) => console.debug('[DEBUG]', ...args),
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  warn: (...args: any[]) => console.warn("[WARN]", ...args),
+  warn: (...args: any[]) => console.warn('[WARN]', ...args),
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  error: (...args: any[]) => console.error("[ERROR]", ...args),
+  error: (...args: any[]) => console.error('[ERROR]', ...args),
 };
 
 export interface CliArgs {
@@ -70,16 +58,7 @@ export interface CliArgs {
 // This function is now a thin wrapper around the server's implementation.
 // It's kept in the CLI for now as App.tsx directly calls it for memory refresh.
 // TODO: Consider if App.tsx should get memory via a server call or if Config should refresh itself.
-export async function loadHierarchicalGeminiMemory(
-  currentWorkingDirectory: string,
-  includeDirectoriesToReadGemini: readonly string[] = [],
-  debugMode: boolean,
-  fileService: FileDiscoveryService,
-  settings: Settings,
-  extensionContextFilePaths: string[] = [],
-  memoryImportFormat: "flat" | "tree" = "tree",
-  fileFilteringOptions?: FileFilteringOptions
-): Promise<{ memoryContent: string; fileCount: number }> {
+export async function loadHierarchicalGeminiMemory(currentWorkingDirectory: string, includeDirectoriesToReadGemini: readonly string[] = [], debugMode: boolean, fileService: FileDiscoveryService, settings: Settings, extensionContextFilePaths: string[] = [], memoryImportFormat: 'flat' | 'tree' = 'tree', fileFilteringOptions?: FileFilteringOptions): Promise<{ memoryContent: string; fileCount: number }> {
   // FIX: Use real, canonical paths for a reliable comparison to handle symlinks.
   const realCwd = fs.realpathSync(path.resolve(currentWorkingDirectory));
   const realHome = fs.realpathSync(path.resolve(homedir()));
@@ -87,65 +66,28 @@ export async function loadHierarchicalGeminiMemory(
 
   // If it is the home directory, pass an empty string to the core memory
   // function to signal that it should skip the workspace search.
-  const effectiveCwd = isHomeDirectory ? "" : currentWorkingDirectory;
+  const effectiveCwd = isHomeDirectory ? '' : currentWorkingDirectory;
 
   if (debugMode) {
-    logger.debug(
-      `CLI: Delegating hierarchical memory load to server for CWD: ${currentWorkingDirectory} (memoryImportFormat: ${memoryImportFormat})`
-    );
+    logger.debug(`CLI: Delegating hierarchical memory load to server for CWD: ${currentWorkingDirectory} (memoryImportFormat: ${memoryImportFormat})`);
   }
 
   // Directly call the server function with the corrected path.
-  return loadServerHierarchicalMemory(
-    effectiveCwd,
-    includeDirectoriesToReadGemini,
-    debugMode,
-    fileService,
-    extensionContextFilePaths,
-    memoryImportFormat,
-    fileFilteringOptions,
-    settings.memoryDiscoveryMaxDirs
-  );
+  return loadServerHierarchicalMemory(effectiveCwd, includeDirectoriesToReadGemini, debugMode, fileService, extensionContextFilePaths, memoryImportFormat, fileFilteringOptions, settings.memoryDiscoveryMaxDirs);
 }
 
-export async function loadCliConfig({
-  workspace,
-  settings,
-  extensions,
-  sessionId,
-  proxy,
-  model,
-}: {
-  workspace: string;
-  settings: Settings;
-  extensions: Extension[];
-  sessionId: string;
-  proxy?: string;
-  model?: string;
-}): Promise<Config> {
+export async function loadCliConfig({ workspace, settings, extensions, sessionId, proxy, model }: { workspace: string; settings: Settings; extensions: Extension[]; sessionId: string; proxy?: string; model?: string }): Promise<Config> {
   const argv: Partial<CliArgs> = {};
 
-  const debugMode =
-    argv.debug ||
-    [process.env.DEBUG, process.env.DEBUG_MODE].some(
-      (v) => v === "true" || v === "1"
-    ) ||
-    false;
-  const memoryImportFormat = settings.memoryImportFormat || "tree";
+  const debugMode = argv.debug || [process.env.DEBUG, process.env.DEBUG_MODE].some((v) => v === 'true' || v === '1') || false;
+  const memoryImportFormat = settings.memoryImportFormat || 'tree';
   const ideMode = settings.ideMode ?? false;
 
-  const ideModeFeature =
-    (argv.ideModeFeature ?? settings.ideModeFeature ?? false) &&
-    !process.env.SANDBOX;
+  const ideModeFeature = (argv.ideModeFeature ?? settings.ideModeFeature ?? false) && !process.env.SANDBOX;
 
-  const allExtensions = annotateActiveExtensions(
-    extensions,
-    argv.extensions || []
-  );
+  const allExtensions = annotateActiveExtensions(extensions, argv.extensions || []);
 
-  const activeExtensions = extensions.filter(
-    (_, i) => allExtensions[i].isActive
-  );
+  const activeExtensions = extensions.filter((_, i) => allExtensions[i].isActive);
   // Handle OpenAI API key from command line
   if (argv.openaiApiKey) {
     process.env.OPENAI_API_KEY = argv.openaiApiKey;
@@ -167,9 +109,7 @@ export async function loadCliConfig({
     setServerGeminiMdFilename(getCurrentGeminiMdFilename());
   }
 
-  const extensionContextFilePaths = activeExtensions.flatMap(
-    (e) => e.contextFiles
-  );
+  const extensionContextFilePaths = activeExtensions.flatMap((e) => e.contextFiles);
 
   const fileService = new FileDiscoveryService(workspace);
 
@@ -179,16 +119,7 @@ export async function loadCliConfig({
   };
 
   // Call the (now wrapper) loadHierarchicalGeminiMemory which calls the server's version
-  const { memoryContent, fileCount } = await loadHierarchicalGeminiMemory(
-    workspace,
-    [],
-    debugMode,
-    fileService,
-    settings,
-    extensionContextFilePaths,
-    memoryImportFormat,
-    fileFiltering
-  );
+  const { memoryContent, fileCount } = await loadHierarchicalGeminiMemory(workspace, [], debugMode, fileService, settings, extensionContextFilePaths, memoryImportFormat, fileFiltering);
 
   let mcpServers = mergeMcpServers(settings, activeExtensions);
   const excludeTools = mergeExcludeTools(settings, activeExtensions);
@@ -198,18 +129,14 @@ export async function loadCliConfig({
     if (settings.allowMCPServers) {
       const allowedNames = new Set(settings.allowMCPServers.filter(Boolean));
       if (allowedNames.size > 0) {
-        mcpServers = Object.fromEntries(
-          Object.entries(mcpServers).filter(([key]) => allowedNames.has(key))
-        );
+        mcpServers = Object.fromEntries(Object.entries(mcpServers).filter(([key]) => allowedNames.has(key)));
       }
     }
 
     if (settings.excludeMCPServers) {
       const excludedNames = new Set(settings.excludeMCPServers.filter(Boolean));
       if (excludedNames.size > 0) {
-        mcpServers = Object.fromEntries(
-          Object.entries(mcpServers).filter(([key]) => !excludedNames.has(key))
-        );
+        mcpServers = Object.fromEntries(Object.entries(mcpServers).filter(([key]) => !excludedNames.has(key)));
       }
     }
   }
@@ -223,7 +150,7 @@ export async function loadCliConfig({
           if (!isAllowed) {
             blockedMcpServers.push({
               name: key,
-              extensionName: server.extensionName || "",
+              extensionName: server.extensionName || '',
             });
           }
           return isAllowed;
@@ -233,7 +160,7 @@ export async function loadCliConfig({
       blockedMcpServers.push(
         ...Object.entries(mcpServers).map(([key, server]) => ({
           name: key,
-          extensionName: server.extensionName || "",
+          extensionName: server.extensionName || '',
         }))
       );
       mcpServers = {};
@@ -247,7 +174,7 @@ export async function loadCliConfig({
     targetDir: workspace,
     includeDirectories: argv.includeDirectories,
     debugMode,
-    question: argv.promptInteractive || argv.prompt || "",
+    question: argv.promptInteractive || argv.prompt || '',
     fullContext: argv.allFiles || argv.all_files || false,
     coreTools: settings.coreTools || undefined,
     excludeTools,
@@ -258,20 +185,12 @@ export async function loadCliConfig({
     userMemory: memoryContent,
     geminiMdFileCount: fileCount,
     approvalMode: argv.yolo || false ? ApprovalMode.YOLO : ApprovalMode.DEFAULT,
-    showMemoryUsage:
-      argv.showMemoryUsage ||
-      argv.show_memory_usage ||
-      settings.showMemoryUsage ||
-      false,
+    showMemoryUsage: argv.showMemoryUsage || argv.show_memory_usage || settings.showMemoryUsage || false,
     accessibility: settings.accessibility,
     telemetry: {
       enabled: argv.telemetry ?? settings.telemetry?.enabled,
-      target: (argv.telemetryTarget ??
-        settings.telemetry?.target) as TelemetryTarget,
-      otlpEndpoint:
-        argv.telemetryOtlpEndpoint ??
-        process.env.OTEL_EXPORTER_OTLP_ENDPOINT ??
-        settings.telemetry?.otlpEndpoint,
+      target: (argv.telemetryTarget ?? settings.telemetry?.target) as TelemetryTarget,
+      otlpEndpoint: argv.telemetryOtlpEndpoint ?? process.env.OTEL_EXPORTER_OTLP_ENDPOINT ?? settings.telemetry?.otlpEndpoint,
       logPrompts: argv.telemetryLogPrompts ?? settings.telemetry?.logPrompts,
       outfile: argv.telemetryOutfile ?? settings.telemetry?.outfile,
     },
@@ -280,8 +199,7 @@ export async function loadCliConfig({
     fileFiltering: {
       respectGitIgnore: settings.fileFiltering?.respectGitIgnore,
       respectGeminiIgnore: settings.fileFiltering?.respectGeminiIgnore,
-      enableRecursiveFileSearch:
-        settings.fileFiltering?.enableRecursiveFileSearch,
+      enableRecursiveFileSearch: settings.fileFiltering?.enableRecursiveFileSearch,
     },
     checkpointing: argv.checkpointing || settings.checkpointing?.enabled,
     proxy: proxy,
@@ -306,28 +224,21 @@ export async function loadCliConfig({
 function mergeMcpServers(settings: Settings, extensions: Extension[]) {
   const mcpServers = { ...(settings.mcpServers || {}) };
   for (const extension of extensions) {
-    Object.entries(extension.config.mcpServers || {}).forEach(
-      ([key, server]) => {
-        if (mcpServers[key]) {
-          logger.warn(
-            `Skipping extension MCP config for server with key "${key}" as it already exists.`
-          );
-          return;
-        }
-        mcpServers[key] = {
-          ...server,
-          extensionName: extension.config.name,
-        };
+    Object.entries(extension.config.mcpServers || {}).forEach(([key, server]) => {
+      if (mcpServers[key]) {
+        logger.warn(`Skipping extension MCP config for server with key "${key}" as it already exists.`);
+        return;
       }
-    );
+      mcpServers[key] = {
+        ...server,
+        extensionName: extension.config.name,
+      };
+    });
   }
   return mcpServers;
 }
 
-function mergeExcludeTools(
-  settings: Settings,
-  extensions: Extension[]
-): string[] {
+function mergeExcludeTools(settings: Settings, extensions: Extension[]): string[] {
   const allExcludeTools = new Set(settings.excludeTools || []);
   for (const extension of extensions) {
     for (const tool of extension.config.excludeTools || []) {
