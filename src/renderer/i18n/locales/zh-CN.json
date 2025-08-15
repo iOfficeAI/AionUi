@@ -43,7 +43,8 @@
     "workspace": {
       "title": "工作空间",
       "empty": "工作空间为空",
-      "emptyDescription": "上传文件或打开文件夹后，文件将显示在这里"
+      "emptyDescription": "上传文件或打开文件夹后，文件将显示在这里",
+      "searchPlaceholder": "搜索文件..."
     },
     "chat": {
       "noModelSelected": "当前会话未选择模型，无法发送消息"

@@ -43,7 +43,8 @@
     "workspace": {
       "title": "Workspace",
       "empty": "It's empty",
-      "emptyDescription": "Files will appear here after uploading files or opening a folder"
+      "emptyDescription": "Files will appear here after uploading files or opening a folder",
+      "searchPlaceholder": "Search files..."
     },
     "chat": {
       "noModelSelected": "No model selected for current session, cannot send message"

@@ -52,14 +52,14 @@ const SendBox: React.FC<{
 
   return (
     <div className={`mb-16px  ${className}`}>
-      <div className='p-12px !pt-4px b-#E5E6EB b bg-white b-solid rd-20px  focus-within:shadow-[0px_2px_20px_rgba(77,60,234,0.1)] '>
+      <div className='p-16px b-#E5E6EB b bg-white b-solid rd-20px  focus-within:shadow-[0px_2px_20px_rgba(77,60,234,0.1)] '>
         {prefix}
         {context}
         <Input.TextArea
           disabled={disabled}
           value={input}
           placeholder={placeholder}
-          className='!b-none   focus:shadow-none flex-1 !pl-0px m-0 !bg-transparent !focus:bg-transparent !hover:bg-transparent lh-[16px] !resize-none'
+          className='!b-none   focus:shadow-none flex-1 m-0 !bg-transparent !focus:bg-transparent !hover:bg-transparent lh-[20px] !resize-none text-14px'
           onChange={(v) => {
             setInput(v);
           }}

@@ -8,9 +8,9 @@ import { ipcBridge } from '@/common';
 import type { IDirOrFile } from '@/common/ipcBridge';
 import FlexFullContainer from '@/renderer/components/FlexFullContainer';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
-import { Empty, Tree } from '@arco-design/web-react';
-import { Refresh } from '@icon-park/react';
-import React, { useEffect, useState } from 'react';
+import { Empty, Input, Tree } from '@arco-design/web-react';
+import { Refresh, Search } from '@icon-park/react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 const GeminiWorkspace: React.FC<{
   workspace: string;
@@ -20,6 +20,7 @@ const GeminiWorkspace: React.FC<{
   const [selected, setSelected] = useState<string[]>([]);
   const [files, setFiles] = useState<IDirOrFile[]>([]);
   const [loading, setLoading] = useState(false);
+  const [searchText, setSearchText] = useState<string>('');
   useAddEventListener('gemini.selected.file.clear', () => {
     setSelected([]);
   });
@@ -64,13 +65,45 @@ const GeminiWorkspace: React.FC<{
 
   useAddEventListener('gemini.workspace.refresh', () => refreshWorkspace(), [workspace]);
 
-  const hasFile = files.length > 0 && files[0].children.length > 0;
+  // File search filter logic
+  const filteredFiles = useMemo(() => {
+    if (!searchText.trim()) return files;
+
+    const filterNode = (node: IDirOrFile): IDirOrFile | null => {
+      // Keep node if name matches search text
+      if (node.name.toLowerCase().includes(searchText.toLowerCase())) {
+        return node;
+      }
+
+      // Recursively filter children if they exist
+      if (node.children?.length > 0) {
+        const filteredChildren = node.children.map((child) => filterNode(child)).filter(Boolean) as IDirOrFile[];
+
+        if (filteredChildren.length > 0) {
+          return { ...node, children: filteredChildren };
+        }
+      }
+
+      return null;
+    };
+
+    return files.map((file) => filterNode(file)).filter(Boolean) as IDirOrFile[];
+  }, [files, searchText]);
+
+  const hasFile = filteredFiles.length > 0 && filteredFiles[0]?.children?.length > 0;
+  const hasOriginalFiles = files.length > 0 && files[0]?.children?.length > 0;
+
   return (
     <div className='size-full flex flex-col'>
-      <div className='px-16px pb-0px flex items-center justify-start gap-4px'>
+      <div className='px-16px pb-8px flex items-center justify-start gap-4px'>
         <span className='font-bold text-14px'>{t('common.file')}</span>
         <Refresh className={loading ? 'loading lh-[1] flex' : 'flex'} theme='outline' fill='#333' onClick={refreshWorkspace} />
       </div>
+      {hasOriginalFiles && (
+        <div className='px-16px pb-8px'>
+          <Input className='w-full' placeholder={t('conversation.workspace.searchPlaceholder')} value={searchText} onChange={setSearchText} allowClear prefix={<Search theme='outline' size='14' fill='#333' />} />
+        </div>
+      )}
       <FlexFullContainer containerClassName='overflow-y-auto'>
         {!hasFile ? (
           <div className=' flex-1 size-full flex items-center justify-center px-16px box-border'>
@@ -88,7 +121,7 @@ const GeminiWorkspace: React.FC<{
             className={'!px-16px'}
             showLine
             selectedKeys={selected}
-            treeData={files}
+            treeData={filteredFiles}
             autoExpandParent
             fieldNames={{
               children: 'children',

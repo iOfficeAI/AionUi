@@ -118,8 +118,8 @@ const createInitStyle = () => {
   const style = document.createElement('style');
   style.innerHTML = `
   * {
-    line-height:22px;
-    font-size:12px;
+    line-height:26px;
+    font-size:14px;
   }
   .markdown-shadow-body>p:first-child
   {
