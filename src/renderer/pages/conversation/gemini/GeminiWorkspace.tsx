@@ -131,8 +131,9 @@ const GeminiWorkspace: React.FC<{
               );
             }}
             onSelect={(keys) => {
-              setSelected(keys);
-              emitter.emit('gemini.selected.file', keys);
+              const newKeys = keys.filter((key) => key !== workspace);
+              setSelected(newKeys);
+              emitter.emit('gemini.selected.file', newKeys);
             }}
           ></Tree>
         )}

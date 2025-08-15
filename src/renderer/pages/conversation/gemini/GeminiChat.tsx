@@ -4,70 +4,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ipcBridge } from '@/common';
-import { transformMessage } from '@/common/chatLib';
 import { TModelWithConversation } from '@/common/storage';
-import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
-import { Button, Tag } from '@arco-design/web-react';
-import { Plus } from '@icon-park/react';
 import FlexFullContainer from '@renderer/components/FlexFullContainer';
-import SendBox from '@renderer/components/sendbox';
 import MessageList from '@renderer/messages/MessageList';
-import { MessageListProvider, useAddOrUpdateMessage, useMessageLstCache } from '@renderer/messages/hooks';
+import { MessageListProvider, useMessageLstCache } from '@renderer/messages/hooks';
 import HOC from '@renderer/utils/HOC';
-import { uuid } from '@renderer/utils/common';
-import classNames from 'classnames';
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { useTranslation } from 'react-i18next';
-
-const useGeminiMessage = (conversation_id: string) => {
-  const addMessage = useAddOrUpdateMessage();
-  const [running, setRunning] = useState(false);
-  const [thought, setThought] = useState({
-    description: '',
-    subject: '',
-  });
-  useEffect(() => {
-    return ipcBridge.geminiConversation.responseStream.on(async (message) => {
-      if (conversation_id !== message.conversation_id) {
-        return;
-      }
-      console.log('responseStream.message', message);
-      switch (message.type) {
-        case 'thought':
-          setThought(message.data);
-          break;
-        case 'start':
-          setRunning(true);
-          break;
-        case 'finish':
-          {
-            setRunning(false);
-            setThought({ subject: '', description: '' });
-          }
-          break;
-        default:
-          {
-            addMessage(transformMessage(message));
-          }
-          break;
-      }
-    });
-  }, [conversation_id]);
-
-  useEffect(() => {
-    setRunning(false);
-    setThought({ subject: '', description: '' });
-    ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
-      if (!res) return;
-      if (res.status === 'running') {
-        setRunning(true);
-      }
-    });
-  }, [conversation_id]);
-
-  return { thought, setThought, running };
-};
+import GeminiSendBox from './GeminiSendBox';
 
 const GeminiChat: React.FC<{
   workspace: string;
@@ -75,149 +19,15 @@ const GeminiChat: React.FC<{
   model: TModelWithConversation;
 }> = ({ conversation_id, model }) => {
   const { t } = useTranslation();
-  const [atPath, setAtPath] = useState<string[]>([]);
-  const { thought, running } = useGeminiMessage(conversation_id);
-  const [uploadFile, setUploadFile] = useState<string[]>([]);
-  const addMessage = useAddOrUpdateMessage();
-
-  const onSendHandler = async (message: string) => {
-    if (!model?.useModel) return;
-    const msg_id = uuid();
-    if (atPath.length || uploadFile.length) {
-      message = uploadFile.map((p) => '@' + p.split('/').pop()).join(' ') + ' ' + atPath.map((p) => '@' + p).join(' ') + ' ' + message;
-    }
-    addMessage(
-      {
-        id: msg_id,
-        type: 'text',
-        position: 'right',
-        conversation_id,
-        content: {
-          content: message,
-        },
-      },
-      true
-    );
-    await ipcBridge.geminiConversation.sendMessage.invoke({
-      input: message,
-      msg_id,
-      conversation_id,
-      files: uploadFile,
-    });
-    emitter.emit('gemini.selected.file.clear');
-    if (uploadFile.length) {
-      emitter.emit('gemini.workspace.refresh');
-    }
-    setAtPath([]);
-    setUploadFile([]);
-  };
 
   useMessageLstCache(conversation_id);
-
-  useAddEventListener('gemini.selected.file', setAtPath);
-
-  useEffect(() => {
-    setUploadFile([]);
-    setAtPath([]);
-  }, [conversation_id]);
 
   return (
     <div className='h-full  flex flex-col px-20px'>
       <FlexFullContainer>
         <MessageList className='flex-1'></MessageList>
       </FlexFullContainer>
-      <div className='max-w-800px w-full  mx-auto flex flex-col'>
-        {thought.subject ? (
-          <div
-            className=' px-10px py-10px rd-20px text-14px pb-40px  lh-20px color-#86909C'
-            style={{
-              background: 'linear-gradient(90deg, #F0F3FF 0%, #F2F2F2 100%)',
-              transform: 'translateY(36px)',
-            }}
-          >
-            <Tag color='arcoblue' size='small' className={'float-left mr-4px'}>
-              {thought.subject}
-            </Tag>
-            {/* <FlexFullContainer> */}
-            {/* <div className="text-nowrap overflow-hidden text-ellipsis"> */}
-            {thought.description}
-            {/* </div> */}
-            {/* </FlexFullContainer> */}
-          </div>
-        ) : null}
-
-        <SendBox
-          loading={running}
-          disabled={!model?.useModel}
-          placeholder={model?.useModel ? '' : t('conversation.chat.noModelSelected')}
-          onStop={() => {
-            return ipcBridge.conversation.stop.invoke({ conversation_id }).then(() => {
-              console.log('stopStream');
-            });
-          }}
-          className={classNames('z-10 ', {
-            'mt-0px': !!thought.subject,
-          })}
-          tools={
-            <>
-              <Button
-                type='secondary'
-                shape='circle'
-                icon={<Plus theme='outline' size='14' strokeWidth={2} fill='#333' />}
-                onClick={() => {
-                  ipcBridge.dialog.showOpen
-                    .invoke({
-                      properties: ['openFile', 'multiSelections'],
-                    })
-                    .then((files) => {
-                      setUploadFile(files || []);
-                    });
-                }}
-              ></Button>
-              {model && (
-                <Button className={'ml-4px'} shape='round'>
-                  {model.useModel}
-                </Button>
-              )}
-            </>
-          }
-          prefix={
-            <>
-              {uploadFile.map((path) => {
-                return (
-                  <Tag
-                    color='blue'
-                    key={path}
-                    closable
-                    className={'mr-4px'}
-                    onClose={() => {
-                      setUploadFile(uploadFile.filter((v) => v !== path));
-                    }}
-                  >
-                    {path.split('/').pop()}
-                  </Tag>
-                );
-              })}
-              {atPath.map((path) => (
-                <Tag
-                  key={path}
-                  color='gray'
-                  closable
-                  className={'mr-4px'}
-                  onClose={() => {
-                    const newAtPath = atPath.filter((v) => v !== path);
-                    emitter.emit('gemini.selected.file', newAtPath);
-                    setAtPath(newAtPath);
-                  }}
-                >
-                  {path}
-                </Tag>
-              ))}
-            </>
-          }
-          onSend={onSendHandler}
-        ></SendBox>
-      </div>
+      <GeminiSendBox conversation_id={conversation_id} model={model}></GeminiSendBox>
     </div>
   );
 };
