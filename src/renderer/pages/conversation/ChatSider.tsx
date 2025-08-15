@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { TChatConversation } from "@/common/storage";
+import type { TChatConversation } from "@/common/storage";
 import React from "react";
 import GeminiWorkspace from "./gemini/GeminiWorkspace";
 

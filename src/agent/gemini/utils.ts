@@ -4,15 +4,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import {
+import type {
   ServerGeminiStreamEvent,
   ToolCallRequestInfo,
+  Config,
+  CompletedToolCall} from "@office-ai/aioncli-core";
+import {
   GeminiEventType as ServerGeminiEventType,
   ServerGeminiContentEvent as ContentEvent,
-  executeToolCall,
-  Config,
-  CompletedToolCall,
-} from "@google/gemini-cli-core";
+  executeToolCall
+} from "@office-ai/aioncli-core";
 import { parseAndFormatApiError } from "./cli/errorParsing";
 
 enum StreamProcessingStatus {
@@ -20,14 +21,6 @@ enum StreamProcessingStatus {
   UserCancelled,
   Error,
 }
-
-const handleContentEvent = (
-  eventValue: ContentEvent["value"],
-  currentGeminiMessageBuffer: string
-): string => {
-  const newGeminiMessageBuffer = currentGeminiMessageBuffer + eventValue;
-  return newGeminiMessageBuffer;
-};
 
 export const processGeminiStreamEvents = async (
   stream: AsyncIterable<ServerGeminiStreamEvent>,
@@ -38,7 +31,6 @@ export const processGeminiStreamEvents = async (
   }) => void
 ): Promise<StreamProcessingStatus> => {
   for await (const event of stream) {
-    console.log("processGeminiStreamEvents.event", event);
     switch (event.type) {
       case ServerGeminiEventType.Thought:
         onStreamEvent({ type: event.type, data: event.value });
@@ -63,13 +55,15 @@ export const processGeminiStreamEvents = async (
         }
         break;
       case ServerGeminiEventType.ChatCompressed:
-        break;
       case ServerGeminiEventType.ToolCallConfirmation:
       case ServerGeminiEventType.ToolCallResponse:
+      case ServerGeminiEventType.MaxSessionTurns:
+      case ServerGeminiEventType.Finished:
+      case ServerGeminiEventType.LoopDetected:
         break;
       default: {
         // enforces exhaustive switch-case
-        const unreachable: never = event;
+        const unreachable: any = event;
         return unreachable;
       }
     }
@@ -98,6 +92,7 @@ export const processGeminiFunctionCalls = async (
       name: fc.name,
       args: fc.args ?? {},
       isClientInitiated: false,
+      prompt_id: fc.prompt_id,
     };
     await onProgress({
       type: "tool_call_request",
@@ -246,4 +241,14 @@ export const handleCompletedTools = async (
     return resultParts;
   }
   return mergePartListUnions(responsesToSend);
+};
+
+let promptCount = 0;
+
+export const startNewPrompt = () => {
+  promptCount++;
+};
+
+export const getPromptCount = () => {
+  return promptCount;
 };

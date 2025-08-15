@@ -1,0 +1,12 @@
+node_modules/
+dist/
+build/
+.webpack/
+*.min.js
+*.min.css
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+*.log
+.DS_Store
+Thumbs.db 

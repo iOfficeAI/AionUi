@@ -1,6 +1,6 @@
-import type { Configuration } from "webpack";
+import type { Configuration } from 'webpack';
 
-import { rendererConfig } from "./webpack.renderer.config";
+import { rendererConfig } from './webpack.renderer.config';
 export const mainConfig: Configuration = {
   /**
    * This is the main entry point for your application, it's the first file
@@ -8,12 +8,12 @@ export const mainConfig: Configuration = {
    */
   // entry: "./src/index.ts",
   entry: {
-    index: "./src/index.ts",
-    worker: "./src/worker/index.ts",
-    gemini: "./src/worker/gemini.ts",
+    index: './src/index.ts',
+    worker: './src/worker/index.ts',
+    gemini: './src/worker/gemini.ts',
   },
   output: {
-    filename: "[name].js",
+    filename: '[name].js',
     // path: path.resolve(__dirname, "../../main"),
   },
   ...rendererConfig,

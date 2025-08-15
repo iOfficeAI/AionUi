@@ -4,22 +4,24 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Button, Input, Message } from "@arco-design/web-react";
-import React, { useRef, useState } from "react";
-import { useTranslation } from "react-i18next";
-import { ArrowUp } from "@icon-park/react";
+import { Button, Input, Message } from '@arco-design/web-react';
+import { ArrowUp } from '@icon-park/react';
+import React, { useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 const SendBox: React.FC<{
   onSend: (message: string) => Promise<void>;
   onStop?: () => Promise<void>;
+  disabled?: boolean;
   loading?: boolean;
   className?: string;
   tools?: React.ReactNode;
   prefix?: React.ReactNode;
-}> = ({ onSend, onStop, prefix, className, loading, tools }) => {
+  placeholder?: string;
+}> = ({ onSend, onStop, prefix, className, loading, tools, disabled, placeholder }) => {
   const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
-  const [input, setInput] = useState("");
+  const [input, setInput] = useState('');
 
   const [message, context] = Message.useMessage();
 
@@ -27,14 +29,14 @@ const SendBox: React.FC<{
 
   const sendMessageHandler = () => {
     if (loading || isLoading) {
-      message.warning(t("messages.conversationInProgress"));
+      message.warning(t('messages.conversationInProgress'));
       return;
     }
     if (!input.trim()) return;
     setIsLoading(true);
     onSend(input)
       .then(() => {
-        setInput("");
+        setInput('');
       })
       .finally(() => {
         setIsLoading(false);
@@ -50,12 +52,14 @@ const SendBox: React.FC<{
 
   return (
     <div className={`mb-16px  ${className}`}>
-      <div className="p-12px b-#E5E6EB b bg-white b-solid rd-20px  focus-within:shadow-[0px_2px_20px_rgba(77,60,234,0.1)] ">
+      <div className='p-12px !pt-4px b-#E5E6EB b bg-white b-solid rd-20px  focus-within:shadow-[0px_2px_20px_rgba(77,60,234,0.1)] '>
         {prefix}
         {context}
         <Input.TextArea
+          disabled={disabled}
           value={input}
-          className="!b-none   focus:shadow-none flex-1 !pl-0px m-0 !bg-transparent !focus:bg-transparent !hover:bg-transparent lh-[16px] !resize-none"
+          placeholder={placeholder}
+          className='!b-none   focus:shadow-none flex-1 !pl-0px m-0 !bg-transparent !focus:bg-transparent !hover:bg-transparent lh-[16px] !resize-none'
           onChange={(v) => {
             setInput(v);
           }}
@@ -68,15 +72,15 @@ const SendBox: React.FC<{
           }}
           onKeyDown={(e) => {
             if (isComposing.current) return;
-            if (e.key === "Enter" && !e.shiftKey) {
+            if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault();
               sendMessageHandler();
             }
           }}
         ></Input.TextArea>
-        <div className="flex items-center justify-between gap-2 ">
+        <div className='flex items-center justify-between gap-2 '>
           <span>{tools}</span>
-          <div className="flex items-center gap-2">
+          <div className='flex items-center gap-2'>
             {isLoading || loading ? (
               // <Loading
               //   theme="outline"
@@ -84,29 +88,12 @@ const SendBox: React.FC<{
               //   size={18}
               //   onClick={stopHandler}
               // />
-              <Button
-                shape="circle"
-                type="secondary"
-                className="bg-animate"
-                icon={
-                  <div
-                    className="mx-auto size-12px bg-#86909C"
-                    onClick={stopHandler}
-                  ></div>
-                }
-              ></Button>
+              <Button shape='circle' type='secondary' className='bg-animate' icon={<div className='mx-auto size-12px bg-#86909C' onClick={stopHandler}></div>}></Button>
             ) : (
               <Button
-                shape="circle"
-                type="primary"
-                icon={
-                  <ArrowUp
-                    theme="outline"
-                    size="14"
-                    fill="white"
-                    strokeWidth={2}
-                  />
-                }
+                shape='circle'
+                type='primary'
+                icon={<ArrowUp theme='outline' size='14' fill='white' strokeWidth={2} />}
                 onClick={() => {
                   sendMessageHandler();
                 }}

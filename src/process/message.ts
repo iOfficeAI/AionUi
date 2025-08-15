@@ -4,7 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { composeMessage, TMessage } from "@/common/chatLib";
+import type { TMessage } from "@/common/chatLib";
+import { composeMessage } from "@/common/chatLib";
 import { ProcessChatMessage } from "./initStorage";
 
 let addStack = new Map<

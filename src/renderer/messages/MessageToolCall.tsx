@@ -10,7 +10,7 @@ import MarkdownView from "../components/Markdown";
 import { diffStringsUnified } from "jest-diff";
 import { html } from "diff2html";
 import "diff2html/bundles/css/diff2html.min.css";
-import { IMessageToolCall } from "@/common/chatLib";
+import type { IMessageToolCall } from "@/common/chatLib";
 import { MessageSearch } from "@icon-park/react";
 
 const Diff2Html = ({ message }: { message: IMessageToolCall }) => {

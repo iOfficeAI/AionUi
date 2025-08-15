@@ -4,10 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ForkTask } from "@/worker/fork/ForkTask";
-import path from "path";
+import { ForkTask } from '@/worker/fork/ForkTask';
+import path from 'path';
 
-type AgentType = "gemini";
+type AgentType = 'gemini';
 
 /**
  * @description agent任务基础类
@@ -18,9 +18,9 @@ class BaseAgentTask<Data> extends ForkTask<{
 }> {
   type: AgentType;
   protected conversation_id: string;
-  status: "pending" | "running" | "finished" | undefined;
+  status: 'pending' | 'running' | 'finished' | undefined;
   constructor(type: AgentType, data: Data) {
-    super(path.resolve(__dirname, type + ".js"), {
+    super(path.resolve(__dirname, type + '.js'), {
       type: type,
       data: data,
     });
@@ -40,11 +40,11 @@ class BaseAgentTask<Data> extends ForkTask<{
   }
 
   stop() {
-    return this.postMessagePromise("stop.stream", {});
+    return this.postMessagePromise('stop.stream', {});
   }
 
   sendMessage(data: any) {
-    return this.postMessagePromise("send.message", data);
+    return this.postMessagePromise('send.message', data);
   }
 }
 

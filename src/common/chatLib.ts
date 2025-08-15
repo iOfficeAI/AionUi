@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { IResponseMessage } from "./ipcBridge";
+import type { IResponseMessage } from "./ipcBridge";
 import { uuid } from "./utils";
 
 /**

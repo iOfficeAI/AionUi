@@ -7,7 +7,8 @@
 import { useEffect } from "react";
 import { createContext } from "../utils/createContext";
 import { ChatMessageStorage } from "@/common/storage";
-import { composeMessage, TMessage } from "@/common/chatLib";
+import type { TMessage } from "@/common/chatLib";
+import { composeMessage } from "@/common/chatLib";
 
 const [useMessageList, MessageListProvider, useUpdateMessageList] =
   createContext([] as TMessage[]);

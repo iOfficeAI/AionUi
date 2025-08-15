@@ -9,7 +9,7 @@ import {
   getErrorMessage,
   isNodeError,
   unescapePath,
-} from "@google/gemini-cli-core";
+} from "@office-ai/aioncli-core";
 import { ToolCallStatus } from "./types.js";
 /**
  * Parses a query string to find all '@<path>' commands and text segments.

@@ -12,7 +12,8 @@
 
 import { uuid } from "@/renderer/utils/common";
 import { Pipe } from "./pipe";
-import { UtilityProcess, utilityProcess } from "electron";
+import type { UtilityProcess} from "electron";
+import { utilityProcess } from "electron";
 
 export class ForkTask<Data> extends Pipe {
   protected path = "";

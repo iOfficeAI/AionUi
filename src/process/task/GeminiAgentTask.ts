@@ -4,45 +4,51 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ProcessConfig } from "@/process/initStorage";
-import BaseAgentTask from "./BaseAgentTask";
-import { ipcBridge } from "@/common";
-import { addMessage, addOrUpdateMessage, nextTickSync } from "../message";
-import { TMessage, transformMessage } from "@/common/chatLib";
+import { ipcBridge } from '@/common';
+import type { TMessage } from '@/common/chatLib';
+import { transformMessage } from '@/common/chatLib';
+import type { TModelWithConversation } from '@/common/storage';
+import { ProcessConfig } from '@/process/initStorage';
+import { addMessage, addOrUpdateMessage, nextTickSync } from '../message';
+import BaseAgentTask from './BaseAgentTask';
 
 // gemini agent任务类
 export class GeminiAgentTask extends BaseAgentTask<{
   workspace: string;
+  model: TModelWithConversation;
 }> {
   workspace: string;
+  model: TModelWithConversation;
   private bootstrap: Promise<void>;
-  constructor(data: { workspace: string; conversation_id: string }) {
-    super("gemini", data);
+  constructor(data: { workspace: string; conversation_id: string }, model: TModelWithConversation) {
+    super('gemini', { ...data, model });
     this.workspace = data.workspace;
     this.conversation_id = data.conversation_id;
-    this.bootstrap = ProcessConfig.get("gemini.config").then((config) => {
+    this.model = model;
+    this.bootstrap = ProcessConfig.get('gemini.config').then((config) => {
       return this.start({
         ...config,
         workspace: this.workspace,
+        model: this.model,
       });
     });
   }
   sendMessage(data: { input: string; msg_id: string }) {
     const message: TMessage = {
       id: data.msg_id,
-      type: "text",
-      position: "right",
+      type: 'text',
+      position: 'right',
       conversation_id: this.conversation_id,
       content: {
         content: data.input,
       },
     };
     addMessage(this.conversation_id, message);
-    this.status = "pending";
+    this.status = 'pending';
     return this.bootstrap
       .catch((e) => {
-        this.emit("gemini.message", {
-          type: "error",
+        this.emit('gemini.message', {
+          type: 'error',
           data: e.message || JSON.stringify(e),
           msg_id: data.msg_id,
         });
@@ -60,12 +66,12 @@ export class GeminiAgentTask extends BaseAgentTask<{
   init() {
     super.init();
     // 接受来子进程的对话消息
-    this.on("gemini.message", (data) => {
-      if (data.type === "finish") {
-        this.status = "finished";
+    this.on('gemini.message', (data) => {
+      if (data.type === 'finish') {
+        this.status = 'finished';
       }
-      if (data.type === "start") {
-        this.status = "running";
+      if (data.type === 'start') {
+        this.status = 'running';
       }
       ipcBridge.geminiConversation.responseStream.emit({
         ...data,
@@ -76,11 +82,7 @@ export class GeminiAgentTask extends BaseAgentTask<{
     });
   }
   // 发送tools用户确认的消息
-  async confirmMessage(data: {
-    confirmKey: string;
-    msg_id: string;
-    callId: string;
-  }) {
+  async confirmMessage(data: { confirmKey: string; msg_id: string; callId: string }) {
     return this.postMessagePromise(data.callId, data.confirmKey);
   }
 }

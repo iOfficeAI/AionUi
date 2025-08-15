@@ -12,7 +12,14 @@
     "workspace": "工作空間",
     "settings": "設定",
     "system": "系統",
-    "about": "關於我們"
+    "about": "關於我們",
+    "back": "返回聊天",
+    "add": "新增",
+    "edit": "編輯",
+    "website": "官網",
+    "version": "版本號",
+    "contact": "聯絡我們",
+    "github": "Github"
   },
   "conversation": {
     "welcome": {
@@ -37,18 +44,40 @@
       "title": "工作空間",
       "empty": "空的",
       "emptyDescription": "上傳檔案或開啟資料夾後，檔案將顯示在這裡"
+    },
+    "chat": {
+      "noModelSelected": "當前會話未選擇模型，無法發送訊息"
     }
   },
   "settings": {
     "authMethod": "驗證",
     "geminiApiKey": "Gemini API 金鑰",
     "vertexApiKey": "Vertex AI",
-    "personalAuth": "使用 Google 登入",
+    "personalAuth": "Google 帳號",
+    "googleLogin": "Google 登入",
+    "googleLogout": "登出",
+    "openai": "OpenAI",
     "proxyConfig": "代理",
     "geminiBaseUrl": "Gemini API Base URL",
     "tempDir": "暫存資料夾",
     "language": "語言",
-    "geminiSettings": "gemini 設定"
+    "gemini": "Gemini 設定",
+    "model": "模型配置",
+    "system": "系統設定",
+    "about": "關於我們",
+    "addModel": "新增模型",
+    "editModel": "編輯模型",
+    "modelPlatform": "模型平台",
+    "platformName": "平台名稱",
+    "modelName": "模型名稱",
+    "baseUrl": "base url",
+    "apiKey": "API Key",
+    "deleteModelConfirm": "是否刪除該模型？",
+    "deleteAllModelConfirm": "是否刪除所有模型？",
+    "modelCount": "模型",
+    "pleaseEnterBaseUrlAndApiKey": "請輸入base url和api key",
+    "customOpenAI": "自定義(相容OpenAI)",
+    "proxyHttpOnly": "僅支持 http/https 協議"
   },
   "messages": {
     "conversationInProgress": "目前正在進行對話...",
@@ -57,4 +86,3 @@
     "openLinkFailed": "無法開啟連結"
   }
 }
-
