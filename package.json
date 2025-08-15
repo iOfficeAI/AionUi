@@ -1,7 +1,7 @@
 {
   "name": "AionUi",
   "productName": "AionUi",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "My Electron application description",
   "main": ".webpack/main",
   "scripts": {
@@ -12,6 +12,7 @@
     "lint": "eslint --ext .ts,.tsx .",
     "build-mac": "arch=$npm_config_arch identity=$npm_config_identity appleId=$npm_config_appleid appleIdPassword=$npm_config_appleidpassword teamId=$npm_config_teamid ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ DEBUG=electron-osx-sign*,electron-packager electron-forge make --verbose --platform=darwin --arch=$npm_config_arch",
     "build-win": "npm run make --platform=win32 --arch=x64",
+    "build-deb": "DEBUG=electron-packager electron-forge make --verbose --platform=linux --arch=x64,arm64,armv7l",
     "build": "npm run build-mac --arch=arm64 && npm run build-mac --arch=x64",
     "build-mac:arm64": "npm run build-mac --arch=arm64",
     "build-mac:x64": "npm run build-mac --arch=x64"

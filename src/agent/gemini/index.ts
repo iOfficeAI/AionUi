@@ -60,7 +60,7 @@ export class GeminiAgent {
     if (platform === 'gemini-with-google-auth') {
       this.authType = AuthType.LOGIN_WITH_GOOGLE;
     } else if (platform === 'gemini') {
-      this.authType = AuthType.USE_OPENAI;
+      this.authType = AuthType.USE_GEMINI;
     } else if (platform === 'gemini-vertex-ai') {
       this.authType = AuthType.USE_VERTEX_AI;
     } else {
