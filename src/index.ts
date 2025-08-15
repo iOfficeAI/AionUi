@@ -5,6 +5,7 @@
  */
 
 import { app, BrowserWindow } from 'electron';
+import fixPath from 'fix-path';
 import { initMainAdapterWithWindow } from './adapter/main';
 import { ipcBridge } from './common';
 import './process';
@@ -15,6 +16,11 @@ declare const MAIN_WINDOW_WEBPACK_ENTRY: string;
 declare const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string;
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
+// 修复 macOS 和 Linux 下 GUI 应用的 PATH 环境变量，使其与命令行一致
+if (process.platform === 'darwin' || process.platform === 'linux') {
+  fixPath();
+}
+
 if (require('electron-squirrel-startup')) {
   app.quit();
 }
