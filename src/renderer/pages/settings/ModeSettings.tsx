@@ -1,7 +1,7 @@
 import { ipcBridge } from '@/common';
 import { IModel } from '@/common/storage';
 import { Button, Collapse, Divider, Message, Popconfirm } from '@arco-design/web-react';
-import { DeleteFour, Plus, Write } from '@icon-park/react';
+import { DeleteFour, Minus, Plus, Write } from '@icon-park/react';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
@@ -16,26 +16,37 @@ const ModelSettings: React.FC = () => {
   const [collapseKey, setCollapseKey] = useState<Record<string, boolean>>({});
   const { data } = useSWR(cacheKey, () => {
     return ipcBridge.mode.getModelConfig.invoke().then((data) => {
+      if (!data) return [];
       return data;
     });
   });
   const [message, messageContext] = Message.useMessage();
+
+  const saveModelConfig = (newData: IModel[], success?: () => void) => {
+    ipcBridge.mode.saveModelConfig.invoke(newData).then((data) => {
+      if (data.success) {
+        setCacheKey('model.config' + Date.now());
+        success?.();
+      } else {
+        message.error(data.msg);
+      }
+    });
+  };
+
   const updatePlatform = (platform: IModel, success: () => void) => {
     let newData = [...(data || [])];
-    const originData = newData.find((item) => item.name === platform.name && item.baseUrl === platform.baseUrl);
+    const originData = newData.find((item) => item.id === platform.id);
     if (originData) {
       Object.assign(originData, platform);
     } else {
       newData.push(platform);
     }
-    ipcBridge.mode.saveModelConfig.invoke(newData).then((data) => {
-      if (data.success) {
-        setCacheKey('model.config' + Date.now());
-        success();
-      } else {
-        message.error(data.msg);
-      }
-    });
+    saveModelConfig(newData, success);
+  };
+
+  const removePlatform = (id: string) => {
+    const newData = data.filter((item) => item.id !== id);
+    saveModelConfig(newData);
   };
 
   const [addPlatformModalCtrl, addPlatformModalContext] = AddPlatformModal.useModal({
@@ -74,7 +85,7 @@ const ModelSettings: React.FC = () => {
       {addModelModalContext}
       {messageContext}
       {(data || []).map((platform, index) => {
-        const key = platform.apiKey + platform.baseUrl + index;
+        const key = platform.id;
         return (
           <Collapse
             activeKey={collapseKey[key] ? ['1'] : []}
@@ -89,23 +100,30 @@ const ModelSettings: React.FC = () => {
               header={
                 <div className='flex items-center justify-between'>
                   {platform.name}
-                  <div className='flex items-center gap-10px'>
+                  <div className='flex items-center gap-10px' onClick={(e) => e.stopPropagation()}>
                     <span className='text-12px'>
-                      {t('settings.modelCount')}
-                      {platform.model.length}
+                      {t('settings.modelCount')}（{platform.model.length}）
                     </span>
                     <Button
-                      icon={<Plus></Plus>}
+                      size='mini'
+                      icon={<Plus size={'14'} className=''></Plus>}
                       onClick={(e) => {
-                        e.stopPropagation();
                         addModelModalCtrl.open({ data: platform });
                       }}
                     ></Button>
+                    <Popconfirm
+                      title={t('settings.deleteAllModelConfirm')}
+                      onOk={() => {
+                        removePlatform(platform.id);
+                      }}
+                    >
+                      <Button size='mini' icon={<Minus size={'14'} />}></Button>
+                    </Popconfirm>
                     <Button
-                      icon={<Write></Write>}
+                      size='mini'
+                      icon={<Write size={'14'}></Write>}
                       onClick={(e) => {
                         editModalCtrl.open({ data: platform });
-                        e.stopPropagation();
                       }}
                     ></Button>
                   </div>

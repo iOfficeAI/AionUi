@@ -1,4 +1,4 @@
-import { Plus, SettingTwo } from '@icon-park/react';
+import { ArrowCircleLeft, Plus, SettingTwo } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -36,7 +36,7 @@ const Sider: React.FC = () => {
         }}
         className='flex items-center justify-start gap-10px px-12px py-8px hover:bg-#f3f4f6 rd-0.5rem mb-8px cursor-pointer'
       >
-        <SettingTwo className='flex' theme='outline' size='24' fill='#333' />
+        {isSettings ? <ArrowCircleLeft className='flex' theme='outline' size='24' fill='#333' /> : <SettingTwo className='flex' theme='outline' size='24' fill='#333' />}
         <span className='collapsed-hidden'>{isSettings ? t('common.back') : t('common.settings')}</span>
       </div>
     </div>

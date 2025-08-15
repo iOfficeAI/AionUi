@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import { ConfigStorage, TModelWithConversation } from '@/common/storage';
+import { ConfigStorage, IModel, TModelWithConversation } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import { geminiModeList } from '@/renderer/hooks/useModeModeList';
 import { Button, Dropdown, Input, Menu, Tooltip } from '@arco-design/web-react';
@@ -32,16 +32,15 @@ const useModelList = () => {
 
   return useMemo(() => {
     if (isGoogleAuth) {
-      return [
-        {
-          name: 'Gemini Google Auth',
-          platform: 'gemini-with-google-auth',
-          baseUrl: '',
-          apiKey: '',
-          model: geminiModeList.map((v) => v.value),
-        },
-        ...(modelConfig || []),
-      ];
+      const geminiModel: IModel = {
+        id: uuid(),
+        name: 'Gemini Google Auth',
+        platform: 'gemini-with-google-auth',
+        baseUrl: '',
+        apiKey: '',
+        model: geminiModeList.map((v) => v.value),
+      };
+      return [geminiModel, ...(modelConfig || [])];
     }
     return modelConfig || [];
   }, [isGoogleAuth, modelConfig]);
@@ -165,7 +164,7 @@ const Guid: React.FC = () => {
                 <Menu selectedKeys={currentModel ? [currentModel.useModel] : []}>
                   {(modelList || []).map((platform) => {
                     return (
-                      <Menu.ItemGroup title={platform.name} key={platform.name + platform.platform + platform.baseUrl + platform.apiKey}>
+                      <Menu.ItemGroup title={platform.name} key={platform.id}>
                         {platform.model.map((model) => (
                           <Menu.Item
                             key={model}

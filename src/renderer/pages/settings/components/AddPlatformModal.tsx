@@ -1,4 +1,5 @@
 import { IModel } from '@/common/storage';
+import { uuid } from '@/common/utils';
 import ModalHOC from '@/renderer/utils/ModalHOC';
 import { Form, Input, Message, Modal, Select } from '@arco-design/web-react';
 import { Search } from '@icon-park/react';
@@ -65,6 +66,7 @@ const AddPlatformModal = ModalHOC<{
       .validate()
       .then((values) => {
         onSubmit({
+          id: uuid(),
           platform: values.platform,
           name: values.name,
           baseUrl: values.baseUrl,
@@ -96,6 +98,7 @@ const AddPlatformModal = ModalHOC<{
             options={modelPlatformOptions}
             onChange={(value) => {
               form.setFieldValue('baseUrl', defaultBaseUrl[value as keyof typeof defaultBaseUrl] || '');
+              form.setFieldValue('model', '');
               form.setFieldValue('name', value !== 'custom' ? value : '');
             }}
           ></Select>
@@ -104,7 +107,7 @@ const AddPlatformModal = ModalHOC<{
           <Input
             placeholder={platform === 'gemini' ? 'https://generativelanguage.googleapis.com' : ''}
             onChange={(value) => {
-              if (platform === 'custom') {
+              if (platform === 'custom' || platform === 'gemini') {
                 try {
                   const urlObj = new URL(value);
                   const hostname = urlObj.hostname;
@@ -121,7 +124,7 @@ const AddPlatformModal = ModalHOC<{
             }}
           ></Input>
         </Form.Item>
-        <Form.Item hidden={platform !== 'custom'} label={t('settings.platformName')} required rules={[{ required: true }]} field={'name'}>
+        <Form.Item hidden={platform !== 'custom'} label={t('settings.platformName')} required rules={[{ required: true }]} field={'name'} initialValue={'gemini'}>
           <Input></Input>
         </Form.Item>
         <Form.Item label='API Key' required rules={[{ required: true }]} field={'apiKey'}>

@@ -13,7 +13,7 @@
     "settings": "設定",
     "system": "系統",
     "about": "關於我們",
-    "back": "返回",
+    "back": "返回聊天",
     "add": "新增",
     "edit": "編輯",
     "website": "官網",
@@ -73,9 +73,11 @@
     "baseUrl": "base url",
     "apiKey": "API Key",
     "deleteModelConfirm": "是否刪除該模型？",
+    "deleteAllModelConfirm": "是否刪除所有模型？",
     "modelCount": "模型",
     "pleaseEnterBaseUrlAndApiKey": "請輸入base url和api key",
-    "customOpenAI": "自定義(相容OpenAI)"
+    "customOpenAI": "自定義(相容OpenAI)",
+    "proxyHttpOnly": "僅支持 http/https 協議"
   },
   "messages": {
     "conversationInProgress": "目前正在進行對話...",

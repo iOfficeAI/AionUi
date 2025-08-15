@@ -52,6 +52,7 @@ export type IChatConversationRefer = {
 };
 
 export interface IModel {
+  id: string;
   platform: string;
   name: string;
   baseUrl: string;

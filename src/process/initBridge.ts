@@ -5,6 +5,7 @@
  */
 
 import { IModel } from '@/common/storage';
+import { uuid } from '@/common/utils';
 import { AuthType, clearCachedCredentialFile, Config, getOauthInfoWithCache, loginWithOauth } from '@office-ai/aioncli-core';
 import { logger } from '@office-ai/platform';
 import { app, dialog, shell } from 'electron';
@@ -214,7 +215,12 @@ ipcBridge.mode.saveModelConfig.provider((models) => {
 });
 
 ipcBridge.mode.getModelConfig.provider(async () => {
-  return ProcessConfig.get('model.config').catch(() => {
-    return [] as IModel[];
-  });
+  return ProcessConfig.get('model.config')
+    .then((data) => {
+      if (!data) return [];
+      return data.map((v) => ({ ...v, id: v.id || uuid() }));
+    })
+    .catch(() => {
+      return [] as IModel[];
+    });
 });

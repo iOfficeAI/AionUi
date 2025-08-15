@@ -13,12 +13,12 @@
     "settings": "Settings",
     "system": "System",
     "about": "About Us",
-    "back": "Back",
+    "back": "Back to Chat",
     "add": "Add",
     "edit": "Edit",
     "website": "Website",
     "version": "Version",
-    "contact": "Contact Us",
+    "contact": "Contact",
     "github": "Github"
   },
   "conversation": {
@@ -73,9 +73,11 @@
     "baseUrl": "base url",
     "apiKey": "API Key",
     "deleteModelConfirm": "Are you sure you want to delete this model?",
+    "deleteAllModelConfirm": "Are you sure you want to delete all models?",
     "modelCount": "Model",
     "pleaseEnterBaseUrlAndApiKey": "Please enter base url and api key",
-    "customOpenAI": "Custom (OpenAI Compatible)"
+    "customOpenAI": "Custom (OpenAI Compatible)",
+    "proxyHttpOnly": "Only support http/https protocol"
   },
   "messages": {
     "conversationInProgress": "A conversation is currently in progress...",

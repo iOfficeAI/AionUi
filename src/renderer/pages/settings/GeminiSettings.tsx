@@ -126,8 +126,8 @@ const GeminiSettings: React.FC = (props) => {
             );
           }}
         </Form.Item>
-        <Form.Item label={t('settings.proxyConfig')} field='proxy'>
-          <Input></Input>
+        <Form.Item label={t('settings.proxyConfig')} field='proxy' rules={[{ match: /^https?:\/\/.+$/, message: t('settings.proxyHttpOnly') }]}>
+          <Input placeholder={t('settings.proxyHttpOnly')}></Input>
         </Form.Item>
         <Form.Item label={t('settings.tempDir')} field='tempDir'>
           {(props) => (

@@ -24,7 +24,7 @@ const EditModeModal = ModalHOC<{ data?: IModel; onChange(data: IModel): void }>(
       }}
     >
       <Form form={form}>
-        <Form.Item label={t('settings.platformName')} required rules={[{ required: true }]} field={'name'} disabled>
+        <Form.Item label={t('settings.platformName')} required rules={[{ required: true }]} field={'name'} disabled={data?.platform !== 'custom'}>
           <Input></Input>
         </Form.Item>
         <Form.Item label={t('settings.baseUrl')} required rules={[{ required: true }]} field={'baseUrl'} disabled>

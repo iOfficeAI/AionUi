@@ -13,7 +13,7 @@
     "settings": "設定",
     "system": "システム",
     "about": "私たちについて",
-    "back": "戻る",
+    "back": "チャットに戻る",
     "add": "追加",
     "edit": "編集",
     "website": "公式サイト",
@@ -73,9 +73,11 @@
     "baseUrl": "ベースURL",
     "apiKey": "API キー",
     "deleteModelConfirm": "このモデルを削除してもよろしいですか？",
+    "deleteAllModelConfirm": "すべてのモデルを削除してもよろしいですか？",
     "modelCount": "モデル",
     "pleaseEnterBaseUrlAndApiKey": "ベースURLとAPIキーを入力してください",
-    "customOpenAI": "カスタム（OpenAI互換）"
+    "customOpenAI": "カスタム（OpenAI互換）",
+    "proxyHttpOnly": "HTTP/HTTPSのみをサポート"
   },
   "messages": {
     "conversationInProgress": "現在、会話中です...",
