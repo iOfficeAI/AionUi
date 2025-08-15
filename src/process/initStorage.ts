@@ -36,19 +36,6 @@ const ReadFile = (fileName: string) => {
 };
 
 const FileBuilder = (fileName: string) => {
-  return {
-    write(data: string) {
-      return WriteFile(fileName, data);
-    },
-    read() {
-      return ReadFile(fileName).then((data) => {
-        return data.toString();
-      });
-    },
-  };
-};
-
-const JsonFileBuilder = <S extends Record<string, any>>(fileName: string) => {
   const stack: (() => Promise<any>)[] = [];
   let isRunning = false;
   const run = () => {
@@ -67,9 +54,22 @@ const JsonFileBuilder = <S extends Record<string, any>>(fileName: string) => {
       run();
     });
   };
-  const getFile = () => {
-    return FileBuilder(fileName);
+  return {
+    write(data: string) {
+      return pushStack(() => WriteFile(fileName, data));
+    },
+    read() {
+      return pushStack(() =>
+        ReadFile(fileName).then((data) => {
+          return data.toString();
+        })
+      );
+    },
   };
+};
+
+const JsonFileBuilder = <S extends Record<string, any>>(fileName: string) => {
+  const file = FileBuilder(fileName);
   const encode = (data: any) => {
     return btoa(encodeURIComponent(data));
   };
@@ -80,7 +80,6 @@ const JsonFileBuilder = <S extends Record<string, any>>(fileName: string) => {
 
   const toJson = async (): Promise<S> => {
     try {
-      const file = getFile();
       const result = await file.read();
       if (!result) return {} as S;
       return JSON.parse(decode(result)) as S;
@@ -91,7 +90,6 @@ const JsonFileBuilder = <S extends Record<string, any>>(fileName: string) => {
 
   const setJson = (data: any): Promise<any> => {
     try {
-      const file = getFile();
       return file.write(encode(JSON.stringify(data)));
     } catch (e) {
       return Promise.reject(e);
