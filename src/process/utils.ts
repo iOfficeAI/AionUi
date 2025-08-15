@@ -4,19 +4,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { FileDiscoveryService } from "@google/gemini-cli-core";
-import { app } from "electron";
-import path from "path";
-import fs from "fs/promises";
-import type { IDirOrFile } from "@/common/ipcBridge";
+import type { IDirOrFile } from '@/common/ipcBridge';
+import { app } from 'electron';
+import fs from 'fs/promises';
+import path from 'path';
 export const getTempPath = () => {
-  const rootPath = app.getPath("temp");
-  return path.join(rootPath, "aionui");
+  const rootPath = app.getPath('temp');
+  return path.join(rootPath, 'aionui');
 };
 
 export const getDataPath = () => {
-  const rootPath = app.getPath("userData");
-  return path.join(rootPath, "aionui");
+  const rootPath = app.getPath('userData');
+  return path.join(rootPath, 'aionui');
 };
 
 export const generateHashWithFullName = (fullName: string): string => {
@@ -27,29 +26,25 @@ export const generateHashWithFullName = (fullName: string): string => {
     hash = hash & hash; // Convert to 32bit integer
   }
   // 取绝对值并转换为16进制，然后取前8位
-  return Math.abs(hash).toString(16).padStart(8, "0"); //.slice(0, 8);
+  return Math.abs(hash).toString(16).padStart(8, '0'); //.slice(0, 8);
 };
 
 // 递归读取目录内容，返回树状结构
-export async function readDirectoryRecursive(
-  dirPath: string,
-  root = dirPath + "/",
-  fileService?: any
-): Promise<IDirOrFile> {
+export async function readDirectoryRecursive(dirPath: string, root = dirPath + '/', fileService?: any): Promise<IDirOrFile> {
   const stats = await fs.stat(dirPath);
   if (!stats.isDirectory()) {
     return null;
   }
   const result: IDirOrFile = {
     name: path.basename(dirPath),
-    path: dirPath.replace(root, ""),
+    path: dirPath.replace(root, ''),
     isDir: true,
     isFile: false,
     children: [],
   };
   const items = await fs.readdir(dirPath);
   for (const item of items) {
-    if (item === "node_modules") continue;
+    if (item === 'node_modules') continue;
     const itemPath = path.join(dirPath, item);
     const itemStats = await fs.stat(itemPath);
 
@@ -60,7 +55,7 @@ export async function readDirectoryRecursive(
     } else {
       result.children.push({
         name: item,
-        path: itemPath.replace(root, ""),
+        path: itemPath.replace(root, ''),
         isDir: false,
         isFile: true,
       });
