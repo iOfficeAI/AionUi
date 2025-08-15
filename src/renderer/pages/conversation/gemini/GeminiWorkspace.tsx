@@ -68,33 +68,31 @@ const GeminiWorkspace: React.FC<{
   // File search filter logic
   const filteredFiles = useMemo(() => {
     if (!searchText.trim()) return files;
-    
+
     const filterNode = (node: IDirOrFile): IDirOrFile | null => {
       // Keep node if name matches search text
       if (node.name.toLowerCase().includes(searchText.toLowerCase())) {
         return node;
       }
-      
+
       // Recursively filter children if they exist
       if (node.children?.length > 0) {
-        const filteredChildren = node.children
-          .map(child => filterNode(child))
-          .filter(Boolean) as IDirOrFile[];
-        
+        const filteredChildren = node.children.map((child) => filterNode(child)).filter(Boolean) as IDirOrFile[];
+
         if (filteredChildren.length > 0) {
           return { ...node, children: filteredChildren };
         }
       }
-      
+
       return null;
     };
-    
-    return files.map(file => filterNode(file)).filter(Boolean) as IDirOrFile[];
+
+    return files.map((file) => filterNode(file)).filter(Boolean) as IDirOrFile[];
   }, [files, searchText]);
 
   const hasFile = filteredFiles.length > 0 && filteredFiles[0]?.children?.length > 0;
   const hasOriginalFiles = files.length > 0 && files[0]?.children?.length > 0;
-  
+
   return (
     <div className='size-full flex flex-col'>
       <div className='px-16px pb-8px flex items-center justify-start gap-4px'>
@@ -103,14 +101,7 @@ const GeminiWorkspace: React.FC<{
       </div>
       {hasOriginalFiles && (
         <div className='px-16px pb-8px'>
-          <Input
-            className='w-full'
-            placeholder={t('conversation.workspace.searchPlaceholder')}
-            value={searchText}
-            onChange={setSearchText}
-            allowClear
-            prefix={<Search theme='outline' size='14' fill='#333' />}
-          />
+          <Input className='w-full' placeholder={t('conversation.workspace.searchPlaceholder')} value={searchText} onChange={setSearchText} allowClear prefix={<Search theme='outline' size='14' fill='#333' />} />
         </div>
       )}
       <FlexFullContainer containerClassName='overflow-y-auto'>
