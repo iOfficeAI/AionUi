@@ -197,6 +197,12 @@ ipcBridge.mode.fetchModelList.provider(async ({ base_url, api_key }) => {
 
   try {
     const res = await openai.models.list();
+
+    // 检查返回的数据是否有效
+    if (res.data.length === 0) {
+      throw new Error('Invalid response: empty data');
+    }
+
     return { success: true, data: { mode: res.data.map((v) => v.id) } };
   } catch (e) {
     // 如果是API key问题，直接返回错误，不尝试修复URL
