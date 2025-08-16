@@ -9,6 +9,8 @@ import { ArrowUp } from '@icon-park/react';
 import React, { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
+const constVoid = (): void => undefined;
+
 const SendBox: React.FC<{
   value?: string;
   onChange?: (value: string) => void;
@@ -20,10 +22,9 @@ const SendBox: React.FC<{
   tools?: React.ReactNode;
   prefix?: React.ReactNode;
   placeholder?: string;
-}> = ({ onSend, onStop, prefix, className, loading, tools, disabled, placeholder }) => {
+}> = ({ onSend, onStop, prefix, className, loading, tools, disabled, placeholder, value: input = '', onChange: setInput = constVoid }) => {
   const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
-  const [input, setInput] = useState('');
 
   const [message, context] = Message.useMessage();
 

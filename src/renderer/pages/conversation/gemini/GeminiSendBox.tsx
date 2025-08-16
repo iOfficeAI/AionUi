@@ -3,13 +3,21 @@ import { transformMessage } from '@/common/chatLib';
 import { TModelWithConversation } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import SendBox from '@/renderer/components/sendbox';
+import { getSendBoxDraftHook } from '@/renderer/hooks/useSendBoxDraft';
 import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { Button, Tag } from '@arco-design/web-react';
 import { Plus } from '@icon-park/react';
 import classNames from 'classnames';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+
+const useGeminiSendBoxDraft = getSendBoxDraftHook('gemini', {
+  _type: 'gemini',
+  atPath: [],
+  content: '',
+  uploadFile: [],
+});
 
 const useGeminiMessage = (conversation_id: string) => {
   const addMessage = useAddOrUpdateMessage();
@@ -59,6 +67,47 @@ const useGeminiMessage = (conversation_id: string) => {
 
   return { thought, setThought, running };
 };
+
+const EMPTY_ARRAY: string[] = [];
+
+const useSendBoxDraft = (conversation_id: string) => {
+  const { data, mutate } = useGeminiSendBoxDraft(conversation_id);
+
+  const atPath = data?.atPath ?? EMPTY_ARRAY;
+  const uploadFile = data?.uploadFile ?? EMPTY_ARRAY;
+  const content = data?.content ?? '';
+
+  const setAtPath = useCallback(
+    (atPath: string[]) => {
+      mutate((prev) => ({ ...prev, atPath }));
+    },
+    [data, mutate]
+  );
+
+  const setUploadFile = useCallback(
+    (uploadFile: string[]) => {
+      mutate((prev) => ({ ...prev, uploadFile }));
+    },
+    [data, mutate]
+  );
+
+  const setContent = useCallback(
+    (content: string) => {
+      mutate((prev) => ({ ...prev, content }));
+    },
+    [data, mutate]
+  );
+
+  return {
+    atPath,
+    uploadFile,
+    setAtPath,
+    setUploadFile,
+    content,
+    setContent,
+  };
+};
+
 const GeminiSendBox: React.FC<{
   conversation_id: string;
   model: TModelWithConversation;
@@ -66,8 +115,8 @@ const GeminiSendBox: React.FC<{
   const { t } = useTranslation();
   const { thought, running } = useGeminiMessage(conversation_id);
 
-  const [atPath, setAtPath] = useState<string[]>([]);
-  const [uploadFile, setUploadFile] = useState<string[]>([]);
+  const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
+
   const addMessage = useAddOrUpdateMessage();
 
   const onSendHandler = async (message: string) => {
@@ -104,11 +153,6 @@ const GeminiSendBox: React.FC<{
 
   useAddEventListener('gemini.selected.file', setAtPath);
 
-  useEffect(() => {
-    setUploadFile([]);
-    setAtPath([]);
-  }, [conversation_id]);
-
   return (
     <div className='max-w-800px w-full  mx-auto flex flex-col'>
       {thought.subject ? (
@@ -131,6 +175,8 @@ const GeminiSendBox: React.FC<{
       ) : null}
 
       <SendBox
+        value={content}
+        onChange={setContent}
         loading={running}
         disabled={!model?.useModel}
         placeholder={model?.useModel ? '' : t('conversation.chat.noModelSelected')}
