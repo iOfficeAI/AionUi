@@ -4,9 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, {
+import type {
   FunctionComponent,
-  PropsWithChildren,
+  PropsWithChildren} from "react";
+import React, {
   useEffect,
   useRef,
   useState,

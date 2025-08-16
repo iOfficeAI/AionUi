@@ -5,139 +5,119 @@
  */
 
 // src/core/ConfigManager.ts
-import {
-  AuthType,
-  Config,
-  GeminiClient,
-  sessionId,
-  ToolCallRequestInfo,
-  ServerGeminiStreamEvent,
-  CoreToolScheduler,
-  CompletedToolCall,
-  ToolCall,
-} from "@google/gemini-cli-core";
-import { Extension, loadExtensions } from "./cli/extension";
-import { loadSettings } from "./cli/settings";
-import { loadCliConfig, loadHierarchicalGeminiMemory } from "./cli/config";
-import { handleCompletedTools, processGeminiStreamEvents } from "./utils";
-import { handleAtCommand } from "./cli/atCommandProcessor";
-import { execSync } from "child_process";
-import { mapToDisplay } from "./cli/useReactToolScheduler";
-import { uuid } from "@/common/utils";
+import { TModelWithConversation } from '@/common/storage';
+import { uuid } from '@/common/utils';
+import type { CompletedToolCall, Config, GeminiClient, ServerGeminiStreamEvent, ToolCall, ToolCallRequestInfo } from '@office-ai/aioncli-core';
+import { AuthType, CoreToolScheduler, sessionId } from '@office-ai/aioncli-core';
+import { execSync } from 'child_process';
+import { handleAtCommand } from './cli/atCommandProcessor';
+import { loadCliConfig, loadHierarchicalGeminiMemory } from './cli/config';
+import type { Extension } from './cli/extension';
+import { loadExtensions } from './cli/extension';
+import type { Settings } from './cli/settings';
+import { loadSettings } from './cli/settings';
+import { mapToDisplay } from './cli/useReactToolScheduler';
+import { getPromptCount, handleCompletedTools, processGeminiStreamEvents, startNewPrompt } from './utils';
 
-function mergeMcpServers(
-  settings: ReturnType<typeof loadSettings>["merged"],
-  extensions: Extension[]
-) {
+function mergeMcpServers(settings: ReturnType<typeof loadSettings>['merged'], extensions: Extension[]) {
   const mcpServers = { ...(settings.mcpServers || {}) };
   for (const extension of extensions) {
-    Object.entries(extension.config.mcpServers || {}).forEach(
-      ([key, server]) => {
-        if (mcpServers[key]) {
-          console.warn(
-            `Skipping extension MCP config for server with key "${key}" as it already exists.`
-          );
-          return;
-        }
-        mcpServers[key] = server;
+    Object.entries(extension.config.mcpServers || {}).forEach(([key, server]) => {
+      if (mcpServers[key]) {
+        console.warn(`Skipping extension MCP config for server with key "${key}" as it already exists.`);
+        return;
       }
-    );
+      mcpServers[key] = server;
+    });
   }
   return mcpServers;
 }
 
-const realValue = (value: string) => {
-  return value && value !== "undefined";
-};
+interface GeminiAgent2Options {
+  workspace: string;
+  proxy?: string;
+  model: TModelWithConversation;
+  onStreamEvent: (event: { type: string; data: any; msg_id: string }) => void;
+}
 
 export class GeminiAgent {
   config: Config | null = null;
   private workspace: string | null = null;
   private proxy: string | null = null;
+  private model: TModelWithConversation | null = null;
   private geminiClient: GeminiClient | null = null;
   private authType: AuthType | null = null;
   private scheduler: CoreToolScheduler | null = null;
   private trackedCalls: ToolCall[] = [];
   private abortController: AbortController | null = null;
-  private onStreamEvent: (event: {
-    type: string;
-    data: any;
-    msg_id: string;
-  }) => void;
+  private onStreamEvent: (event: { type: string; data: any; msg_id: string }) => void;
   bootstrap: Promise<void>;
-  constructor(options: {
-    workspace: string;
-    proxy?: string;
-    authType?: AuthType;
-    GEMINI_API_KEY?: string;
-    GOOGLE_API_KEY?: string;
-    GOOGLE_GEMINI_BASE_URL?: string;
-    GOOGLE_CLOUD_PROJECT?: string;
-    onStreamEvent: (event: { type: string; data: any; msg_id: string }) => void;
-  }) {
+  constructor(options: GeminiAgent2Options) {
     this.workspace = options.workspace;
     this.proxy = options.proxy;
-    this.authType = options.authType;
+    this.model = options.model;
+    const platform = options.model.platform;
+    if (platform === 'gemini-with-google-auth') {
+      this.authType = AuthType.LOGIN_WITH_GOOGLE;
+    } else if (platform === 'gemini') {
+      this.authType = AuthType.USE_GEMINI;
+    } else if (platform === 'gemini-vertex-ai') {
+      this.authType = AuthType.USE_VERTEX_AI;
+    } else {
+      this.authType = AuthType.USE_OPENAI;
+    }
     this.onStreamEvent = options.onStreamEvent;
+    this.initClientEnv();
+    this.bootstrap = this.initialize();
+  }
 
+  private initClientEnv() {
     const env = this.getEnv();
-
-    const fallbackValue = (key: string, value1: string, value2: string) => {
-      if (value1 && value1 !== "undefined") {
+    const fallbackValue = (key: string, value1: string, value2?: string) => {
+      if (value1 && value1 !== 'undefined') {
         process.env[key] = value1;
       }
-      if (value2 && value2 !== "undefined") {
+      if (value2 && value2 !== 'undefined') {
         process.env[key] = value2;
       }
     };
 
     if (this.authType === AuthType.USE_GEMINI) {
-      fallbackValue(
-        "GEMINI_API_KEY",
-        options?.GEMINI_API_KEY,
-        env.GEMINI_API_KEY
-      );
-      fallbackValue(
-        "GOOGLE_GEMINI_BASE_URL",
-        options?.GOOGLE_GEMINI_BASE_URL,
-        env.GOOGLE_GEMINI_BASE_URL
-      );
-    } else if (this.authType === AuthType.USE_VERTEX_AI) {
-      fallbackValue(
-        "GOOGLE_API_KEY",
-        options?.GOOGLE_API_KEY,
-        env.GOOGLE_API_KEY
-      );
-      process.env.GOOGLE_GENAI_USE_VERTEXAI = "true";
-    } else if (this.authType === AuthType.LOGIN_WITH_GOOGLE) {
-      fallbackValue(
-        "GOOGLE_CLOUD_PROJECT",
-        options?.GOOGLE_CLOUD_PROJECT,
-        env.GOOGLE_CLOUD_PROJECT
-      );
+      fallbackValue('GEMINI_API_KEY', this.model.apiKey);
+      fallbackValue('GOOGLE_GEMINI_BASE_URL', this.model.baseUrl);
+      return;
     }
-    this.bootstrap = this.initialize();
-    this.bootstrap.then(() => {
-      this.initToolScheduler();
-    });
+    if (this.authType === AuthType.USE_VERTEX_AI) {
+      fallbackValue('GOOGLE_API_KEY', this.model.apiKey);
+      process.env.GOOGLE_GENAI_USE_VERTEXAI = 'true';
+      return;
+    }
+    if (this.authType === AuthType.LOGIN_WITH_GOOGLE) {
+      fallbackValue('GOOGLE_CLOUD_PROJECT', '', env.GOOGLE_CLOUD_PROJECT); //@todo接入配置
+      return;
+    }
+    if (this.authType === AuthType.USE_OPENAI) {
+      fallbackValue('OPENAI_BASE_URL', this.model.baseUrl);
+      fallbackValue('OPENAI_API_KEY', this.model.apiKey);
+    }
   }
 
   // 加载环境变量
   private getEnv() {
-    let command = "";
-    if (process.platform === "win32") {
-      command = "cmd /c set";
+    let command = '';
+    if (process.platform === 'win32') {
+      command = 'cmd /c set';
     }
-    if (process.platform === "darwin") {
+    if (process.platform === 'darwin') {
       command = "zsh -ic 'env'";
     }
     if (!command) return {};
 
-    const envOutput = execSync(command, { encoding: "utf8" });
+    const envOutput = execSync(command, { encoding: 'utf8' });
 
-    return envOutput.split("\n").reduce<Record<string, string>>((acc, line) => {
-      const [key, ...value] = line.split("=");
-      acc[key] = value.join("=");
+    return envOutput.split('\n').reduce<Record<string, string>>((acc, line) => {
+      const [key, ...value] = line.split('=');
+      acc[key] = value.join('=');
       return acc;
     }, {});
   }
@@ -158,81 +138,98 @@ export class GeminiAgent {
       extensions,
       sessionId,
       proxy: this.proxy,
+      model: this.model.useModel,
     });
+    await this.config.initialize();
 
     await this.config.refreshAuth(this.authType || AuthType.USE_GEMINI);
 
     this.geminiClient = this.config.getGeminiClient();
+    this.initToolScheduler(settings);
   }
 
   // 初始化调度工具
-  private initToolScheduler() {
+  private initToolScheduler(settings: Settings) {
     this.scheduler = new CoreToolScheduler({
       toolRegistry: this.config.getToolRegistry(),
-      onAllToolCallsComplete: async (
-        completedToolCalls: CompletedToolCall[]
-      ) => {
-        if (completedToolCalls.length > 0) {
-          const refreshMemory = async () => {
-            const config = this.config;
-            const { memoryContent, fileCount } =
-              await loadHierarchicalGeminiMemory(
-                process.cwd(),
-                config.getDebugMode(),
-                config.getFileService(),
-                config.getExtensionContextFilePaths()
-              );
-            config.setUserMemory(memoryContent);
-            config.setGeminiMdFileCount(fileCount);
-          };
-          const response = await handleCompletedTools(
-            completedToolCalls,
-            this.geminiClient,
-            refreshMemory
-          );
-          if (response.length > 0) {
-            this.submitQuery(response, uuid(), this.createAbortController());
+      onAllToolCallsComplete: async (completedToolCalls: CompletedToolCall[]) => {
+        try {
+          if (completedToolCalls.length > 0) {
+            const refreshMemory = async () => {
+              const config = this.config;
+              const { memoryContent, fileCount } = await loadHierarchicalGeminiMemory(this.workspace, [], config.getDebugMode(), config.getFileService(), settings, config.getExtensionContextFilePaths());
+              config.setUserMemory(memoryContent);
+              config.setGeminiMdFileCount(fileCount);
+            };
+            const response = await handleCompletedTools(completedToolCalls, this.geminiClient, refreshMemory);
+            if (response.length > 0) {
+              const geminiTools = completedToolCalls.filter((tc) => {
+                const isTerminalState = tc.status === 'success' || tc.status === 'error' || tc.status === 'cancelled';
+
+                if (isTerminalState) {
+                  const completedOrCancelledCall = tc;
+                  return completedOrCancelledCall.response?.responseParts !== undefined && !tc.request.isClientInitiated;
+                }
+                return false;
+              });
+
+              console.log('geminiTools.done.request>>>>>>>>>>>>>>>>>>>', geminiTools[0].request.prompt_id);
+
+              this.submitQuery(response, uuid(), this.createAbortController(), {
+                isContinuation: true,
+                prompt_id: geminiTools[0].request.prompt_id,
+              });
+            }
           }
+        } catch (e) {
+          this.onStreamEvent({
+            type: 'error',
+            data: 'handleCompletedTools error: ' + (e.message || JSON.stringify(e)),
+            msg_id: uuid(),
+          });
         }
       },
       onToolCallsUpdate: (updatedCoreToolCalls: ToolCall[]) => {
-        const prevTrackedCalls = this.trackedCalls || [];
-        const toolCalls = updatedCoreToolCalls.map((coreTc) => {
-          const existingTrackedCall = prevTrackedCalls.find(
-            (ptc) => ptc.request.callId === coreTc.request.callId
-          );
-          const newTrackedCall = {
-            ...coreTc,
-            responseSubmittedToGemini:
-              (existingTrackedCall as any)?.responseSubmittedToGemini ?? false,
-          };
-          return newTrackedCall;
-        });
-        const display = mapToDisplay(toolCalls);
-        this.onStreamEvent({
-          type: "tool_group",
-          data: display.tools,
-          msg_id: uuid(),
-        });
+        try {
+          const prevTrackedCalls = this.trackedCalls || [];
+          const toolCalls = updatedCoreToolCalls.map((coreTc) => {
+            const existingTrackedCall = prevTrackedCalls.find((ptc) => ptc.request.callId === coreTc.request.callId);
+            const newTrackedCall = {
+              ...coreTc,
+              responseSubmittedToGemini: (existingTrackedCall as any)?.responseSubmittedToGemini ?? false,
+            };
+            return newTrackedCall;
+          });
+          const display = mapToDisplay(toolCalls);
+          this.onStreamEvent({
+            type: 'tool_group',
+            data: display.tools,
+            msg_id: uuid(),
+          });
+        } catch (e) {
+          this.onStreamEvent({
+            type: 'error',
+            data: 'tool_calls_update error: ' + (e.message || JSON.stringify(e)),
+            msg_id: uuid(),
+          });
+        }
       },
-      approvalMode: this.config.getApprovalMode(),
+      onEditorClose() {
+        console.log('onEditorClose');
+      },
+      // approvalMode: this.config.getApprovalMode(),
       getPreferredEditor() {
-        return "vscode";
+        return 'vscode';
       },
       config: this.config,
     });
   }
 
-  private async handleMessage(
-    stream: AsyncGenerator<ServerGeminiStreamEvent, any, any>,
-    msg_id: string,
-    abortController: AbortController
-  ): Promise<any> {
+  private async handleMessage(stream: AsyncGenerator<ServerGeminiStreamEvent, any, any>, msg_id: string, abortController: AbortController): Promise<any> {
     const toolCallRequests: ToolCallRequestInfo[] = [];
 
     return processGeminiStreamEvents(stream, this.config, (data) => {
-      console.log("processGeminiStreamEvents", data);
-      if (data.type === "tool_call_request") {
+      if (data.type === 'tool_call_request') {
         toolCallRequests.push(data.data);
         return;
       }
@@ -242,14 +239,13 @@ export class GeminiAgent {
       });
     })
       .then(() => {
-        console.log("processGeminiStreamEvents.then", toolCallRequests);
         if (toolCallRequests.length > 0) {
           this.scheduler.schedule(toolCallRequests, abortController.signal);
         }
       })
       .catch((e) => {
         this.onStreamEvent({
-          type: "error",
+          type: 'error',
           data: e.message,
           msg_id,
         });
@@ -259,63 +255,67 @@ export class GeminiAgent {
   async submitQuery(
     query: any,
     msg_id: string,
-    abortController: AbortController
+    abortController: AbortController,
+    options?: {
+      prompt_id?: string;
+      isContinuation?: boolean;
+    }
   ) {
     try {
-      const stream = await this.geminiClient.sendMessageStream(
-        query,
-        abortController.signal
-      );
+      let prompt_id = options?.prompt_id;
+      if (!prompt_id) {
+        prompt_id = this.config.getSessionId() + '########' + getPromptCount();
+      }
+      if (!options?.isContinuation) {
+        startNewPrompt();
+      }
+      const stream = await this.geminiClient.sendMessageStream(query, abortController.signal, prompt_id);
       this.onStreamEvent({
-        type: "start",
-        data: "",
+        type: 'start',
+        data: '',
         msg_id,
       });
       this.handleMessage(stream, msg_id, abortController)
         .catch((e: any) => {
           this.onStreamEvent({
-            type: "error",
+            type: 'error',
             data: e?.message || JSON.stringify(e),
             msg_id,
           });
         })
         .finally(() => {
           this.onStreamEvent({
-            type: "finish",
-            data: "",
+            type: 'finish',
+            data: '',
             msg_id,
           });
         });
-      return "";
+      return '';
     } catch (e) {
       this.onStreamEvent({
-        type: "error",
+        type: 'error',
         data: e.message,
         msg_id,
       });
     }
   }
 
-  async send(message: string | Array<{ text: string }>, msg_id = "") {
+  async send(message: string | Array<{ text: string }>, msg_id = '') {
     await this.bootstrap;
     const abortController = this.createAbortController();
     const { processedQuery, shouldProceed } = await handleAtCommand({
       query: Array.isArray(message) ? message[0].text : message,
       config: this.config,
       addItem: () => {
-        console.log("addItem");
+        console.log('addItem');
       },
       onDebugMessage(log: any) {
-        console.log("onDebugMessage", log);
+        console.log('onDebugMessage', log);
       },
-      messageId: msg_id,
+      messageId: Date.now(),
       signal: abortController.signal,
     });
-    if (
-      !shouldProceed ||
-      processedQuery === null ||
-      abortController.signal.aborted
-    ) {
+    if (!shouldProceed || processedQuery === null || abortController.signal.aborted) {
       return;
     }
     return this.submitQuery(processedQuery, msg_id, abortController);

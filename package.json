@@ -1,7 +1,7 @@
 {
   "name": "AionUi",
   "productName": "AionUi",
-  "version": "1.0.0",
+  "version": "1.1.2",
   "description": "My Electron application description",
   "main": ".webpack/main",
   "scripts": {
@@ -12,6 +12,7 @@
     "lint": "eslint --ext .ts,.tsx .",
     "build-mac": "arch=$npm_config_arch identity=$npm_config_identity appleId=$npm_config_appleid appleIdPassword=$npm_config_appleidpassword teamId=$npm_config_teamid ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ DEBUG=electron-osx-sign*,electron-packager electron-forge make --verbose --platform=darwin --arch=$npm_config_arch",
     "build-win": "npm run make --platform=win32 --arch=x64",
+    "build-deb": "DEBUG=electron-packager electron-forge make --verbose --platform=linux --arch=x64,arm64,armv7l",
     "build": "npm run build-mac --arch=arm64 && npm run build-mac --arch=x64",
     "build-mac:arm64": "npm run build-mac --arch=arm64",
     "build-mac:x64": "npm run build-mac --arch=x64"
@@ -24,14 +25,14 @@
   "license": "MIT",
   "devDependencies": {
     "@electron-forge/cli": "^7.8.1",
-    "@electron-forge/maker-deb": "^7.8.1",
+    "@electron-forge/maker-deb": "^7.8.3",
     "@electron-forge/maker-dmg": "^7.8.1",
     "@electron-forge/maker-rpm": "^7.8.1",
     "@electron-forge/maker-squirrel": "^7.8.1",
     "@electron-forge/maker-zip": "^7.8.1",
     "@electron-forge/plugin-auto-unpack-natives": "^7.8.1",
     "@electron-forge/plugin-fuses": "^7.8.1",
-    "@electron-forge/plugin-webpack": "^7.8.1",
+    "@electron-forge/plugin-webpack": "^7.8.3",
     "@electron/fuses": "^1.8.0",
     "@types/react-dom": "^19.1.6",
     "@typescript-eslint/eslint-plugin": "^5.62.0",
@@ -56,26 +57,31 @@
   },
   "dependencies": {
     "@arco-design/web-react": "^2.66.1",
-    "@google/gemini-cli-core": "^0.1.9",
     "@icon-park/react": "^1.4.2",
+    "@office-ai/aioncli-core": "^0.1.19",
     "@office-ai/platform": "^0.3.15",
     "@types/react-syntax-highlighter": "^15.5.13",
     "classnames": "^2.5.1",
     "diff2html": "^3.4.52",
+    "dotenv": "^17.2.1",
     "electron-squirrel-startup": "^1.0.1",
     "eventemitter3": "^5.0.1",
+    "fix-path": "^4.0.0",
     "i18next": "^23.7.16",
     "i18next-browser-languagedetector": "^7.2.0",
     "jest-diff": "^30.0.4",
     "katex": "^0.16.22",
+    "openai": "^5.12.2",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-i18next": "^14.0.5",
     "react-markdown": "^10.1.0",
-    "react-syntax-highlighter": "^5.8.0",
+    "react-router-dom": "^7.8.0",
+    "react-syntax-highlighter": "^15.6.1",
     "rehype-katex": "^7.0.1",
     "remark-breaks": "^4.0.0",
     "remark-gfm": "^4.0.1",
-    "remark-math": "^6.0.0"
+    "remark-math": "^6.0.0",
+    "swr": "^2.3.6"
   }
 }

@@ -1,0 +1,89 @@
+{
+  "common": {
+    "send": "發送",
+    "cancel": "取消",
+    "save": "儲存",
+    "delete": "刪除",
+    "confirm": "確認",
+    "file": "檔案",
+    "folder": "資料夾",
+    "upload": "上傳",
+    "attach": "附件",
+    "workspace": "工作空間",
+    "settings": "設定",
+    "system": "系統",
+    "about": "關於我們",
+    "back": "返回聊天",
+    "add": "新增",
+    "edit": "編輯",
+    "website": "官網",
+    "version": "版本號",
+    "contact": "聯絡我們",
+    "github": "Github"
+  },
+  "conversation": {
+    "welcome": {
+      "title": "嗨，我能為你做什麼？",
+      "placeholder": "發送訊息、上傳檔案或開啟資料夾...",
+      "uploadFile": "上傳檔案",
+      "linkFolder": "開啟資料夾",
+      "newConversation": "新對話"
+    },
+    "history": {
+      "today": "今天",
+      "yesterday": "昨天",
+      "recent7Days": "近7天",
+      "earlier": "更早",
+      "noHistory": "暫無對話記錄",
+      "deleteTitle": "刪除對話",
+      "deleteConfirm": "確定要刪除此對話嗎？",
+      "confirmDelete": "確定",
+      "cancelDelete": "取消"
+    },
+    "workspace": {
+      "title": "工作空間",
+      "empty": "空的",
+      "emptyDescription": "上傳檔案或開啟資料夾後，檔案將顯示在這裡",
+      "searchPlaceholder": "搜尋檔案..."
+    },
+    "chat": {
+      "noModelSelected": "當前會話未選擇模型，無法發送訊息"
+    }
+  },
+  "settings": {
+    "authMethod": "驗證",
+    "geminiApiKey": "Gemini API 金鑰",
+    "vertexApiKey": "Vertex AI",
+    "personalAuth": "Google 帳號",
+    "googleLogin": "Google 登入",
+    "googleLogout": "登出",
+    "openai": "OpenAI",
+    "proxyConfig": "代理",
+    "geminiBaseUrl": "Gemini API Base URL",
+    "tempDir": "暫存資料夾",
+    "language": "語言",
+    "gemini": "Gemini 設定",
+    "model": "模型配置",
+    "system": "系統設定",
+    "about": "關於我們",
+    "addModel": "新增模型",
+    "editModel": "編輯模型",
+    "modelPlatform": "模型平台",
+    "platformName": "平台名稱",
+    "modelName": "模型名稱",
+    "baseUrl": "base url",
+    "apiKey": "API Key",
+    "deleteModelConfirm": "是否刪除該模型？",
+    "deleteAllModelConfirm": "是否刪除所有模型？",
+    "modelCount": "模型",
+    "pleaseEnterBaseUrlAndApiKey": "請輸入base url和api key",
+    "customOpenAI": "自定義(相容OpenAI)",
+    "proxyHttpOnly": "僅支持 http/https 協議"
+  },
+  "messages": {
+    "conversationInProgress": "目前正在進行對話...",
+    "confirm": "確認",
+    "canceledExecution": "已取消執行",
+    "openLinkFailed": "無法開啟連結"
+  }
+}

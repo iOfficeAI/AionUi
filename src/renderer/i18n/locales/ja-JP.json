@@ -1,0 +1,89 @@
+{
+  "common": {
+    "send": "送信",
+    "cancel": "キャンセル",
+    "save": "保存",
+    "delete": "削除",
+    "confirm": "確認",
+    "file": "ファイル",
+    "folder": "フォルダ",
+    "upload": "アップロード",
+    "attach": "添付",
+    "workspace": "ワークスペース",
+    "settings": "設定",
+    "system": "システム",
+    "about": "私たちについて",
+    "back": "チャットに戻る",
+    "add": "追加",
+    "edit": "編集",
+    "website": "公式サイト",
+    "version": "バージョン",
+    "contact": "お問い合わせ",
+    "github": "Github"
+  },
+  "conversation": {
+    "welcome": {
+      "title": "こんにちは、何かお手伝いしましょうか？",
+      "placeholder": "メッセージの送信、ファイルの追加、またはフォルダーの追加...",
+      "uploadFile": "ファイルを追加",
+      "linkFolder": "フォルダを追加",
+      "newConversation": "新しいチャット"
+    },
+    "history": {
+      "today": "今日",
+      "yesterday": "昨日",
+      "recent7Days": "過去7日間",
+      "earlier": "それ以前",
+      "noHistory": "チャット履歴はありません",
+      "deleteTitle": "チャットを削除",
+      "deleteConfirm": "このチャットを削除してもよろしいですか？",
+      "confirmDelete": "はい",
+      "cancelDelete": "いいえ"
+    },
+    "workspace": {
+      "title": "ワークスペース",
+      "empty": "ワークスペースが空です",
+      "emptyDescription": "ファイルをアップロードするか、またはフォルダーを開くと、ここにファイルが表示されます",
+      "searchPlaceholder": "ファイルを検索..."
+    },
+    "chat": {
+      "noModelSelected": "現在のセッションでモデルが選択されていないため、メッセージを送信できません"
+    }
+  },
+  "settings": {
+    "authMethod": "認証",
+    "geminiApiKey": "Gemini API キー",
+    "vertexApiKey": "Vertex AI API キー",
+    "personalAuth": "Google アカウント",
+    "googleLogin": "Google でログイン",
+    "googleLogout": "ログアウト",
+    "openai": "OpenAI",
+    "proxyConfig": "プロキシ",
+    "geminiBaseUrl": "Gemini API ベース URL",
+    "tempDir": "一時ディレクトリ",
+    "language": "言語",
+    "gemini": "Gemini 設定",
+    "model": "モデル設定",
+    "system": "システム設定",
+    "about": "私たちについて",
+    "addModel": "モデルを追加",
+    "editModel": "モデルを編集",
+    "modelPlatform": "モデルプラットフォーム",
+    "platformName": "プラットフォーム名",
+    "modelName": "モデル名",
+    "baseUrl": "ベースURL",
+    "apiKey": "API キー",
+    "deleteModelConfirm": "このモデルを削除してもよろしいですか？",
+    "deleteAllModelConfirm": "すべてのモデルを削除してもよろしいですか？",
+    "modelCount": "モデル",
+    "pleaseEnterBaseUrlAndApiKey": "ベースURLとAPIキーを入力してください",
+    "customOpenAI": "カスタム（OpenAI互換）",
+    "proxyHttpOnly": "HTTP/HTTPSのみをサポート"
+  },
+  "messages": {
+    "conversationInProgress": "現在、会話中です...",
+    "confirm": "確認",
+    "canceledExecution": "実行がキャンセルされました",
+    "openLinkFailed": "リンクを開けませんでした"
+  }
+}

@@ -4,22 +4,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useCallback, useEffect } from "react";
-import { createContext } from "../utils/createContext";
-import { ChatMessageStorage, TChatConversation } from "@/common/storage";
-import { composeMessage, TMessage } from "@/common/chatLib";
+import type { TMessage } from '@/common/chatLib';
+import { composeMessage } from '@/common/chatLib';
+import { ChatMessageStorage, TChatConversation } from '@/common/storage';
+import { useCallback, useEffect } from 'react';
+import { createContext } from '../utils/createContext';
 
-const [useMessageList, MessageListProvider, useUpdateMessageList] =
-  createContext([] as TMessage[]);
+const [useMessageList, MessageListProvider, useUpdateMessageList] = createContext([] as TMessage[]);
 
-const [useChatKey, ChatKeyProvider, useUpdateChatKey] = createContext("");
+const [useChatKey, ChatKeyProvider, useUpdateChatKey] = createContext('');
 
 // 每个会话中 用户当前输入的尚未发送的 prompt 状态
-const [
-  useConversationPromptDraft,
-  ConversationPromptDraftProvider,
-  useUpdateConversationPromptDraft
-] = createContext<Record<TChatConversation["id"], string>>({});
+const [useConversationPromptDraft, ConversationPromptDraftProvider, useUpdateConversationPromptDraft] = createContext<Record<TChatConversation['id'], string>>({});
 
 export const useAddOrUpdateMessage = () => {
   const update = useUpdateMessageList();
@@ -45,30 +41,27 @@ export const useMessageLstCache = (key: string) => {
   }, [key]);
 };
 
-export { useMessageList, MessageListProvider };
-export { useChatKey, ChatKeyProvider };
+export { ChatKeyProvider, MessageListProvider, useChatKey, useMessageList };
 
 // #region 更新管理会话中用户的 prompt
 
 const useUpdateChatPromptDraftByKey = (key: string) => {
-  const update= useUpdateConversationPromptDraft();
-  return useCallback((prompt: string) => {
-    update((draft) => {
-      return {...draft, [key]: prompt};
-    });
-  }, [key, update]);
-}
+  const update = useUpdateConversationPromptDraft();
+  return useCallback(
+    (prompt: string) => {
+      update((draft) => {
+        return { ...draft, [key]: prompt };
+      });
+    },
+    [key, update]
+  );
+};
 
 const useChatPromptDraftByKey = (key: string): string | undefined => {
   // TODO 开启 ts 的索引严格模式
   return useConversationPromptDraft()[key];
-}
-
-export {
-  useChatPromptDraftByKey,
-  useUpdateChatPromptDraftByKey,
-  useConversationPromptDraft,
-  ConversationPromptDraftProvider,
 };
+
+export { ConversationPromptDraftProvider, useChatPromptDraftByKey, useConversationPromptDraft, useUpdateChatPromptDraftByKey };
 
 // #endregion

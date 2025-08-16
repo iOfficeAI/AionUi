@@ -11,7 +11,7 @@ import MessageTips from "./MessageTips";
 import HOC from "../utils/HOC";
 import classNames from "classnames";
 import MessageToolCall from "./MessageToolCall";
-import { TMessage } from "@/common/chatLib";
+import type { TMessage } from "@/common/chatLib";
 import MessageToolGroup from "./MessageToolGroup";
 
 const MessageItem: React.FC<{ message: TMessage }> = HOC((props) => {

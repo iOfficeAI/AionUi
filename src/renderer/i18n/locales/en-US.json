@@ -11,7 +11,15 @@
     "attach": "Attach",
     "workspace": "Workspace",
     "settings": "Settings",
-    "system": "System"
+    "system": "System",
+    "about": "About Us",
+    "back": "Back to Chat",
+    "add": "Add",
+    "edit": "Edit",
+    "website": "Website",
+    "version": "Version",
+    "contact": "Contact",
+    "github": "Github"
   },
   "conversation": {
     "welcome": {
@@ -28,23 +36,49 @@
       "earlier": "Earlier",
       "noHistory": "No chat history",
       "deleteTitle": "Delete chat",
-      "deleteConfirm": "Are you sure you want to delete this chat?"
+      "deleteConfirm": "Are you sure you want to delete this chat?",
+      "confirmDelete": "Yes",
+      "cancelDelete": "No"
     },
     "workspace": {
       "title": "Workspace",
       "empty": "It's empty",
-      "emptyDescription": "Files will appear here after uploading files or opening a folder"
+      "emptyDescription": "Files will appear here after uploading files or opening a folder",
+      "searchPlaceholder": "Search files..."
+    },
+    "chat": {
+      "noModelSelected": "No model selected for current session, cannot send message"
     }
   },
   "settings": {
     "authMethod": "Authentication",
     "geminiApiKey": "Gemini API Key",
     "vertexApiKey": "Vertex AI",
-    "personalAuth": "Login with Google",
+    "personalAuth": "Google Account",
+    "googleLogin": "Login with Google",
+    "googleLogout": "Logout",
+    "openai": "OpenAI",
     "proxyConfig": "Proxy",
     "geminiBaseUrl": "Gemini API Base URL",
     "tempDir": "Temporary Directory",
-    "language": "Language"
+    "language": "Language",
+    "gemini": "Gemini Settings",
+    "model": "Model Settings",
+    "system": "System Settings",
+    "about": "About Us",
+    "addModel": "Add Model",
+    "editModel": "Edit Model",
+    "modelPlatform": "Model Platform",
+    "platformName": "Platform Name",
+    "modelName": "Model Name",
+    "baseUrl": "base url",
+    "apiKey": "API Key",
+    "deleteModelConfirm": "Are you sure you want to delete this model?",
+    "deleteAllModelConfirm": "Are you sure you want to delete all models?",
+    "modelCount": "Model",
+    "pleaseEnterBaseUrlAndApiKey": "Please enter base url and api key",
+    "customOpenAI": "Custom (OpenAI Compatible)",
+    "proxyHttpOnly": "Only support http/https protocol"
   },
   "messages": {
     "conversationInProgress": "A conversation is currently in progress...",

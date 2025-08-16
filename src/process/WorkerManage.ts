@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { TChatConversation } from "@/common/storage";
-import AgentBaseTask from "./task/BaseAgentTask";
-import { GeminiAgentTask } from "./task/GeminiAgentTask";
+import type { TChatConversation } from '@/common/storage';
+import type AgentBaseTask from './task/BaseAgentTask';
+import { GeminiAgentTask } from './task/GeminiAgentTask';
 
 const taskList: {
   id: string;
@@ -23,15 +23,14 @@ const buildConversation = (conversation: TChatConversation) => {
     return task;
   }
   switch (conversation.type) {
-    case "gemini": {
-      console.log(
-        "------buildConversation.gemini>:",
-        conversation.extra.workspace
+    case 'gemini': {
+      const task = new GeminiAgentTask(
+        {
+          workspace: conversation.extra.workspace,
+          conversation_id: conversation.id,
+        },
+        conversation.model
       );
-      const task = new GeminiAgentTask({
-        workspace: conversation.extra.workspace,
-        conversation_id: conversation.id,
-      });
       taskList.push({ id: conversation.id, task });
       return task;
     }

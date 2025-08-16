@@ -11,7 +11,15 @@
     "attach": "附件",
     "workspace": "工作空间",
     "settings": "设置",
-    "system": "系统"
+    "system": "系统",
+    "about": "关于我们",
+    "back": "返回聊天",
+    "add": "添加",
+    "edit": "编辑",
+    "website": "官网",
+    "version": "版本号",
+    "contact": "联系我们",
+    "github": "Github"
   },
   "conversation": {
     "welcome": {
@@ -28,23 +36,49 @@
       "earlier": "更早",
       "noHistory": "暂无对话历史",
       "deleteTitle": "删除对话",
-      "deleteConfirm": "确定删除该对话吗？"
+      "deleteConfirm": "确定删除该对话吗？",
+      "confirmDelete": "是",
+      "cancelDelete": "否"
     },
     "workspace": {
       "title": "工作空间",
       "empty": "工作空间为空",
-      "emptyDescription": "上传文件或打开文件夹后，文件将显示在这里"
+      "emptyDescription": "上传文件或打开文件夹后，文件将显示在这里",
+      "searchPlaceholder": "搜索文件..."
+    },
+    "chat": {
+      "noModelSelected": "当前会话未选择模型，无法发送消息"
     }
   },
   "settings": {
     "authMethod": "认证",
     "geminiApiKey": "Gemini API 密钥",
     "vertexApiKey": "Vertex AI",
-    "personalAuth": "Google帐号登录",
+    "personalAuth": "Google帐号",
+    "googleLogin": "Google 登录",
+    "googleLogout": "退出登录",
+    "openai": "OpenAI",
     "proxyConfig": "代理",
-    "geminiBaseUrl": "Gemini API 基础URL",
+    "geminiBaseUrl": "Gemini API Base URL",
     "tempDir": "临时目录",
-    "language": "语言"
+    "language": "语言",
+    "gemini": "Gemini 设置",
+    "model": "模型配置",
+    "system": "系统设置",
+    "about": "关于我们",
+    "addModel": "添加模型",
+    "editModel": "编辑模型",
+    "modelPlatform": "模型平台",
+    "platformName": "平台名称",
+    "modelName": "模型名称",
+    "baseUrl": "base url",
+    "apiKey": "API Key",
+    "deleteModelConfirm": "是否删除该模型？",
+    "deleteAllModelConfirm": "是否删除所有模型？",
+    "modelCount": "模型",
+    "pleaseEnterBaseUrlAndApiKey": "请输入base url和api key",
+    "customOpenAI": "自定义(兼容OpenAI)",
+    "proxyHttpOnly": "仅支持 http/https 协议"
   },
   "messages": {
     "conversationInProgress": "当前正在进行对话中...",
