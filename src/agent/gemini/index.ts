@@ -153,50 +153,66 @@ export class GeminiAgent {
     this.scheduler = new CoreToolScheduler({
       toolRegistry: this.config.getToolRegistry(),
       onAllToolCallsComplete: async (completedToolCalls: CompletedToolCall[]) => {
-        if (completedToolCalls.length > 0) {
-          const refreshMemory = async () => {
-            const config = this.config;
-            const { memoryContent, fileCount } = await loadHierarchicalGeminiMemory(this.workspace, [], config.getDebugMode(), config.getFileService(), settings, config.getExtensionContextFilePaths());
-            config.setUserMemory(memoryContent);
-            config.setGeminiMdFileCount(fileCount);
-          };
-          const response = await handleCompletedTools(completedToolCalls, this.geminiClient, refreshMemory);
-          if (response.length > 0) {
-            const geminiTools = completedToolCalls.filter((tc) => {
-              const isTerminalState = tc.status === 'success' || tc.status === 'error' || tc.status === 'cancelled';
+        try {
+          if (completedToolCalls.length > 0) {
+            const refreshMemory = async () => {
+              const config = this.config;
+              const { memoryContent, fileCount } = await loadHierarchicalGeminiMemory(this.workspace, [], config.getDebugMode(), config.getFileService(), settings, config.getExtensionContextFilePaths());
+              config.setUserMemory(memoryContent);
+              config.setGeminiMdFileCount(fileCount);
+            };
+            const response = await handleCompletedTools(completedToolCalls, this.geminiClient, refreshMemory);
+            if (response.length > 0) {
+              const geminiTools = completedToolCalls.filter((tc) => {
+                const isTerminalState = tc.status === 'success' || tc.status === 'error' || tc.status === 'cancelled';
 
-              if (isTerminalState) {
-                const completedOrCancelledCall = tc;
-                return completedOrCancelledCall.response?.responseParts !== undefined && !tc.request.isClientInitiated;
-              }
-              return false;
-            });
+                if (isTerminalState) {
+                  const completedOrCancelledCall = tc;
+                  return completedOrCancelledCall.response?.responseParts !== undefined && !tc.request.isClientInitiated;
+                }
+                return false;
+              });
 
-            console.log('geminiTools.done.request>>>>>>>>>>>>>>>>>>>', geminiTools[0].request.prompt_id);
+              console.log('geminiTools.done.request>>>>>>>>>>>>>>>>>>>', geminiTools[0].request.prompt_id);
 
-            this.submitQuery(response, uuid(), this.createAbortController(), {
-              isContinuation: true,
-              prompt_id: geminiTools[0].request.prompt_id,
-            });
+              this.submitQuery(response, uuid(), this.createAbortController(), {
+                isContinuation: true,
+                prompt_id: geminiTools[0].request.prompt_id,
+              });
+            }
           }
+        } catch (e) {
+          this.onStreamEvent({
+            type: 'error',
+            data: 'handleCompletedTools error: ' + (e.message || JSON.stringify(e)),
+            msg_id: uuid(),
+          });
         }
       },
       onToolCallsUpdate: (updatedCoreToolCalls: ToolCall[]) => {
-        const prevTrackedCalls = this.trackedCalls || [];
-        const toolCalls = updatedCoreToolCalls.map((coreTc) => {
-          const existingTrackedCall = prevTrackedCalls.find((ptc) => ptc.request.callId === coreTc.request.callId);
-          const newTrackedCall = {
-            ...coreTc,
-            responseSubmittedToGemini: (existingTrackedCall as any)?.responseSubmittedToGemini ?? false,
-          };
-          return newTrackedCall;
-        });
-        const display = mapToDisplay(toolCalls);
-        this.onStreamEvent({
-          type: 'tool_group',
-          data: display.tools,
-          msg_id: uuid(),
-        });
+        try {
+          const prevTrackedCalls = this.trackedCalls || [];
+          const toolCalls = updatedCoreToolCalls.map((coreTc) => {
+            const existingTrackedCall = prevTrackedCalls.find((ptc) => ptc.request.callId === coreTc.request.callId);
+            const newTrackedCall = {
+              ...coreTc,
+              responseSubmittedToGemini: (existingTrackedCall as any)?.responseSubmittedToGemini ?? false,
+            };
+            return newTrackedCall;
+          });
+          const display = mapToDisplay(toolCalls);
+          this.onStreamEvent({
+            type: 'tool_group',
+            data: display.tools,
+            msg_id: uuid(),
+          });
+        } catch (e) {
+          this.onStreamEvent({
+            type: 'error',
+            data: 'tool_calls_update error: ' + (e.message || JSON.stringify(e)),
+            msg_id: uuid(),
+          });
+        }
       },
       onEditorClose() {
         console.log('onEditorClose');
@@ -223,7 +239,6 @@ export class GeminiAgent {
       });
     })
       .then(() => {
-        console.log('processGeminiStreamEvents.then', toolCallRequests);
         if (toolCallRequests.length > 0) {
           this.scheduler.schedule(toolCallRequests, abortController.signal);
         }
@@ -254,7 +269,6 @@ export class GeminiAgent {
       if (!options?.isContinuation) {
         startNewPrompt();
       }
-      console.log('submitQuery>>>>>>>>>>>>>>>>>>>', JSON.stringify(query), prompt_id);
       const stream = await this.geminiClient.sendMessageStream(query, abortController.signal, prompt_id);
       this.onStreamEvent({
         type: 'start',
@@ -298,7 +312,7 @@ export class GeminiAgent {
       onDebugMessage(log: any) {
         console.log('onDebugMessage', log);
       },
-      messageId: msg_id,
+      messageId: Date.now(),
       signal: abortController.signal,
     });
     if (!shouldProceed || processedQuery === null || abortController.signal.aborted) {

@@ -4,17 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type {
-  ServerGeminiStreamEvent,
-  ToolCallRequestInfo,
-  Config,
-  CompletedToolCall} from "@office-ai/aioncli-core";
-import {
-  GeminiEventType as ServerGeminiEventType,
-  ServerGeminiContentEvent as ContentEvent,
-  executeToolCall
-} from "@office-ai/aioncli-core";
-import { parseAndFormatApiError } from "./cli/errorParsing";
+import type { CompletedToolCall, Config, ServerGeminiStreamEvent, ToolCallRequestInfo } from '@office-ai/aioncli-core';
+import { executeToolCall, GeminiEventType as ServerGeminiEventType } from '@office-ai/aioncli-core';
+import { parseAndFormatApiError } from './cli/errorParsing';
 
 enum StreamProcessingStatus {
   Completed,
@@ -22,14 +14,7 @@ enum StreamProcessingStatus {
   Error,
 }
 
-export const processGeminiStreamEvents = async (
-  stream: AsyncIterable<ServerGeminiStreamEvent>,
-  config: Config,
-  onStreamEvent: (event: {
-    type: ServerGeminiStreamEvent["type"];
-    data: any;
-  }) => void
-): Promise<StreamProcessingStatus> => {
+export const processGeminiStreamEvents = async (stream: AsyncIterable<ServerGeminiStreamEvent>, config: Config, onStreamEvent: (event: { type: ServerGeminiStreamEvent['type']; data: any }) => void): Promise<StreamProcessingStatus> => {
   for await (const event of stream) {
     switch (event.type) {
       case ServerGeminiEventType.Thought:
@@ -41,25 +26,25 @@ export const processGeminiStreamEvents = async (
       case ServerGeminiEventType.ToolCallRequest:
         onStreamEvent({ type: event.type, data: event.value });
         break;
-      case ServerGeminiEventType.UserCancelled:
-        break;
+
       case ServerGeminiEventType.Error:
         {
           onStreamEvent({
             type: event.type,
-            data: parseAndFormatApiError(
-              event.value.error,
-              config.getContentGeneratorConfig().authType
-            ),
+            data: parseAndFormatApiError(event.value.error, config.getContentGeneratorConfig().authType),
           });
         }
         break;
+      case ServerGeminiEventType.UserCancelled:
       case ServerGeminiEventType.ChatCompressed:
       case ServerGeminiEventType.ToolCallConfirmation:
       case ServerGeminiEventType.ToolCallResponse:
       case ServerGeminiEventType.MaxSessionTurns:
       case ServerGeminiEventType.Finished:
       case ServerGeminiEventType.LoopDetected:
+        {
+          console.log('event>>>>>>>>>>>>>>>>>>>', event);
+        }
         break;
       default: {
         // enforces exhaustive switch-case
@@ -71,18 +56,7 @@ export const processGeminiStreamEvents = async (
   return StreamProcessingStatus.Completed;
 };
 
-export const processGeminiFunctionCalls = async (
-  config: Config,
-  functionCalls: ToolCallRequestInfo[],
-  onProgress: (event: {
-    type:
-      | "tool_call_request"
-      | "tool_call_response"
-      | "tool_call_error"
-      | "tool_call_finish";
-    data: any;
-  }) => Promise<any>
-) => {
+export const processGeminiFunctionCalls = async (config: Config, functionCalls: ToolCallRequestInfo[], onProgress: (event: { type: 'tool_call_request' | 'tool_call_response' | 'tool_call_error' | 'tool_call_finish'; data: any }) => Promise<any>) => {
   const toolResponseParts = [];
 
   for (const fc of functionCalls) {
@@ -95,43 +69,34 @@ export const processGeminiFunctionCalls = async (
       prompt_id: fc.prompt_id,
     };
     await onProgress({
-      type: "tool_call_request",
+      type: 'tool_call_request',
       data: requestInfo,
     });
     const toolRegistry = await config.getToolRegistry();
     const abortController = new AbortController();
 
-    const toolResponse = await executeToolCall(
-      config,
-      requestInfo,
-      toolRegistry,
-      abortController.signal
-    );
+    const toolResponse = await executeToolCall(config, requestInfo, toolRegistry, abortController.signal);
     if (toolResponse.error) {
       await onProgress({
-        type: "tool_call_error",
+        type: 'tool_call_error',
         data: Object.assign({}, requestInfo, {
-          status: "error",
-          error: `Error executing tool ${fc.name}: ${
-            toolResponse.resultDisplay || toolResponse.error.message
-          }`,
+          status: 'error',
+          error: `Error executing tool ${fc.name}: ${toolResponse.resultDisplay || toolResponse.error.message}`,
         }),
       });
       return;
     }
     await onProgress({
-      type: "tool_call_finish",
+      type: 'tool_call_finish',
       data: Object.assign({}, requestInfo, {
-        status: "success",
+        status: 'success',
       }),
     });
 
     if (toolResponse.responseParts) {
-      const parts = Array.isArray(toolResponse.responseParts)
-        ? toolResponse.responseParts
-        : [toolResponse.responseParts];
+      const parts = Array.isArray(toolResponse.responseParts) ? toolResponse.responseParts : [toolResponse.responseParts];
       for (const part of parts) {
-        if (typeof part === "string") {
+        if (typeof part === 'string') {
           toolResponseParts.push({ text: part });
         } else if (part) {
           toolResponseParts.push(part);
@@ -140,39 +105,28 @@ export const processGeminiFunctionCalls = async (
     }
   }
   await onProgress({
-    type: "tool_call_finish",
+    type: 'tool_call_finish',
     data: toolResponseParts,
   });
 };
 
-export const handleCompletedTools = async (
-  completedToolCallsFromScheduler: CompletedToolCall[],
-  geminiClient: any,
-  performMemoryRefresh: () => void
-) => {
-  const completedAndReadyToSubmitTools = completedToolCallsFromScheduler.filter(
-    (tc) => {
-      const isTerminalState =
-        tc.status === "success" ||
-        tc.status === "error" ||
-        tc.status === "cancelled";
-      if (isTerminalState) {
-        const completedOrCancelledCall = tc;
-        return completedOrCancelledCall.response?.responseParts !== undefined;
-      }
-      return false;
+export const handleCompletedTools = async (completedToolCallsFromScheduler: CompletedToolCall[], geminiClient: any, performMemoryRefresh: () => void) => {
+  const completedAndReadyToSubmitTools = completedToolCallsFromScheduler.filter((tc) => {
+    const isTerminalState = tc.status === 'success' || tc.status === 'error' || tc.status === 'cancelled';
+    if (isTerminalState) {
+      const completedOrCancelledCall = tc;
+      return completedOrCancelledCall.response?.responseParts !== undefined;
     }
-  );
+    return false;
+  });
   // Finalize any client-initiated tools as soon as they are done.
-  const clientTools = completedAndReadyToSubmitTools.filter(
-    (t) => t.request.isClientInitiated
-  );
+  const clientTools = completedAndReadyToSubmitTools.filter((t) => t.request.isClientInitiated);
   if (clientTools.length > 0) {
     // markToolsAsSubmitted(clientTools.map((t) => t.request.callId)); responseSubmittedToGemini=true
   }
   // Identify new, successful save_memory calls that we haven't processed yet.
   const newSuccessfulMemorySaves = completedAndReadyToSubmitTools.filter(
-    (t) => t.request.name === "save_memory" && t.status === "success"
+    (t) => t.request.name === 'save_memory' && t.status === 'success'
     // !processedMemoryToolsRef.current.has(t.request.callId)
   );
   if (newSuccessfulMemorySaves.length > 0) {
@@ -183,34 +137,28 @@ export const handleCompletedTools = async (
     //   processedMemoryToolsRef.current.add(t.request.callId)
     // );
   }
-  const geminiTools = completedAndReadyToSubmitTools.filter(
-    (t) => !t.request.isClientInitiated
-  );
+  const geminiTools = completedAndReadyToSubmitTools.filter((t) => !t.request.isClientInitiated);
   if (geminiTools.length === 0) {
     return;
   }
   // If all the tools were cancelled, don't submit a response to Gemini.
-  const allToolsCancelled = geminiTools.every(
-    (tc) => tc.status === "cancelled"
-  );
+  const allToolsCancelled = geminiTools.every((tc) => tc.status === 'cancelled');
   if (allToolsCancelled) {
     if (geminiClient) {
       // We need to manually add the function responses to the history
       // so the model knows the tools were cancelled.
-      const responsesToAdd = geminiTools.flatMap(
-        (toolCall) => toolCall.response.responseParts
-      );
+      const responsesToAdd = geminiTools.flatMap((toolCall) => toolCall.response.responseParts);
       for (const response of responsesToAdd) {
         let parts;
         if (Array.isArray(response)) {
           parts = response;
-        } else if (typeof response === "string") {
+        } else if (typeof response === 'string') {
           parts = [{ text: response }];
         } else {
           parts = [response];
         }
         geminiClient.addHistory({
-          role: "user",
+          role: 'user',
           parts,
         });
       }
@@ -221,9 +169,7 @@ export const handleCompletedTools = async (
     // markToolsAsSubmitted(callIdsToMarkAsSubmitted);
     return;
   }
-  const responsesToSend = geminiTools.map(
-    (toolCall) => toolCall.response.responseParts
-  );
+  const responsesToSend = geminiTools.map((toolCall) => toolCall.response.responseParts);
   // const callIdsToMarkAsSubmitted = geminiTools.map(
   //   (toolCall) => toolCall.request.callId
   // );

@@ -161,13 +161,14 @@ const Guid: React.FC = () => {
             <Dropdown
               trigger='hover'
               droplist={
-                <Menu selectedKeys={currentModel ? [currentModel.useModel] : []}>
+                <Menu selectedKeys={currentModel ? [currentModel.id + currentModel.useModel] : []}>
                   {(modelList || []).map((platform) => {
                     return (
                       <Menu.ItemGroup title={platform.name} key={platform.id}>
                         {platform.model.map((model) => (
                           <Menu.Item
-                            key={model}
+                            key={platform.id + model}
+                            className={currentModel?.id + currentModel?.useModel === platform.id + model ? '!bg-#f2f3f5' : ''}
                             // key={platform.name + platform.platform + platform.baseUrl + platform.apiKey+model}
                             onClick={() => {
                               setCurrentModel({ ...platform, useModel: model });
