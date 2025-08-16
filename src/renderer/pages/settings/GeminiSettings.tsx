@@ -52,9 +52,8 @@ const GeminiSettings: React.FC = (props) => {
   };
   useEffect(() => {
     ConfigStorage.get('gemini.config').then((data) => {
-      if (!data) return;
       form.setFieldsValue(data);
-      loadGoogleAuthStatus(data.proxy);
+      loadGoogleAuthStatus(data?.proxy);
     });
     ipcBridge.application.systemInfo.invoke().then((data) => {
       form.setFieldValue('tempDir', data.tempDir);
