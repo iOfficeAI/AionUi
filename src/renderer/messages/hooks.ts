@@ -4,15 +4,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { TMessage } from '@/common/chatLib';
-import { composeMessage } from '@/common/chatLib';
-import { ChatMessageStorage } from '@/common/storage';
-import { useEffect } from 'react';
-import { createContext } from '../utils/createContext';
+import { useEffect } from "react";
+import { createContext } from "../utils/createContext";
+import { ChatMessageStorage } from "@/common/storage";
+import type { TMessage } from "@/common/chatLib";
+import { composeMessage } from "@/common/chatLib";
 
-const [useMessageList, MessageListProvider, useUpdateMessageList] = createContext([] as TMessage[]);
+const [useMessageList, MessageListProvider, useUpdateMessageList] =
+  createContext([] as TMessage[]);
 
-const [useChatKey, ChatKeyProvider, useUpdateChatKey] = createContext('');
+const [useChatKey, ChatKeyProvider, useUpdateChatKey] = createContext("");
 
 export const useAddOrUpdateMessage = () => {
   const update = useUpdateMessageList();
@@ -38,4 +39,5 @@ export const useMessageLstCache = (key: string) => {
   }, [key]);
 };
 
-export { ChatKeyProvider, MessageListProvider, useChatKey, useMessageList };
+export { useMessageList, MessageListProvider };
+export { useChatKey, ChatKeyProvider };
