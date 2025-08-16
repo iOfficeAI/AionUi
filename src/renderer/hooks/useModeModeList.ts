@@ -35,10 +35,20 @@ const useModeModeList = (platform: string, base_url?: string, api_key?: string) 
     }
     const res = await ipcBridge.mode.fetchModelList.invoke({ base_url, api_key });
     if (res.success) {
-      return res.data?.mode.map((v) => ({
+      const modelList = res.data?.mode.map((v) => ({
         label: v,
         value: v,
       }));
+      
+      // 如果返回了修复的 base_url，将其添加到结果中
+      if (res.data?.fix_base_url) {
+        return {
+          models: modelList,
+          fix_base_url: res.data.fix_base_url
+        };
+      }
+      
+      return modelList;
     }
     return Promise.reject(res.msg);
   });

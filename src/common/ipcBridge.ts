@@ -57,7 +57,7 @@ export const googleAuth = {
 };
 
 export const mode = {
-  fetchModelList: bridge.buildProvider<IBridgeResponse<{ mode: Array<string> }>, { base_url: string; api_key: string }>('mode.get-model-list'),
+  fetchModelList: bridge.buildProvider<IBridgeResponse<{ mode: Array<string>; fix_base_url?: string }>, { base_url: string; api_key: string }>('mode.get-model-list'),
   saveModelConfig: bridge.buildProvider<IBridgeResponse, IModel[]>('mode.save-model-config'),
   getModelConfig: bridge.buildProvider<IModel[], void>('mode.get-model-config'),
 };

@@ -194,10 +194,43 @@ ipcBridge.mode.fetchModelList.provider(async ({ base_url, api_key }) => {
     baseURL: base_url,
     apiKey: api_key,
   });
+
   try {
     const res = await openai.models.list();
     return { success: true, data: { mode: res.data.map((v) => v.id) } };
   } catch (e) {
+    // 如果是API key问题，直接返回错误，不尝试修复URL
+    if (e.status === 401 || e.message?.includes('401') || e.message?.includes('Unauthorized') || e.message?.includes('Invalid API key')) {
+      return { success: false, msg: e.message || e.toString() };
+    }
+
+    try {
+      // 先验证URL是否有效
+      const url = new URL(base_url);
+      const fixedBaseUrl = `${url.protocol}//${url.host}/v1`;
+
+      // 如果修复后的URL和原URL一样，就不用重试了
+      if (fixedBaseUrl === base_url) {
+        return { success: false, msg: e.message || e.toString() };
+      }
+
+      const retryOpenai = new OpenAI({
+        baseURL: fixedBaseUrl,
+        apiKey: api_key,
+      });
+
+      const retryRes = await retryOpenai.models.list();
+      return {
+        success: true,
+        data: {
+          mode: retryRes.data.map((v) => v.id),
+          fix_base_url: fixedBaseUrl,
+        },
+      };
+    } catch (retryError) {
+      return { success: false, msg: e.message || e.toString() };
+    }
+
     return { success: false, msg: e.message || e.toString() };
   }
 });

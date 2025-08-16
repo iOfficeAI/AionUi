@@ -55,11 +55,19 @@ const AddPlatformModal = ModalHOC<{
   const apiKey = Form.useWatch('apiKey', form);
 
   const modelListState = useModeModeList(platform, baseUrl, apiKey);
+  
   useEffect(() => {
     if (platform?.includes('gemini')) {
       modelListState.mutate();
     }
   }, [platform]);
+
+  // 处理自动修复的 base_url
+  useEffect(() => {
+    if (modelListState.data && typeof modelListState.data === 'object' && 'fix_base_url' in modelListState.data) {
+      form.setFieldValue('baseUrl', modelListState.data.fix_base_url);
+    }
+  }, [modelListState.data, form]);
 
   const handleSubmit = () => {
     form
@@ -147,7 +155,7 @@ const AddPlatformModal = ModalHOC<{
                 className='flex'
               />
             }
-            options={modelListState.data}
+            options={Array.isArray(modelListState.data) ? modelListState.data : modelListState.data?.models || []}
           ></Select>
         </Form.Item>
       </Form>
