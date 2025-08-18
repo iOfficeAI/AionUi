@@ -78,7 +78,8 @@
     "modelCount": "モデル",
     "pleaseEnterBaseUrlAndApiKey": "ベースURLとAPIキーを入力してください",
     "customOpenAI": "カスタム（OpenAI互換）",
-    "proxyHttpOnly": "HTTP/HTTPSのみをサポート"
+    "proxyHttpOnly": "HTTP/HTTPSのみをサポート",
+    "baseUrlAutoFix": "base_url 自動修復為：{{base_url}}"
   },
   "messages": {
     "conversationInProgress": "現在、会話中です...",

@@ -189,16 +189,40 @@ ipcBridge.googleAuth.logout.provider(async ({}) => {
   return clearCachedCredentialFile();
 });
 
-ipcBridge.mode.fetchModelList.provider(async ({ base_url, api_key }) => {
+ipcBridge.mode.fetchModelList.provider(async function fetchModelList({ base_url, api_key, try_fix }): Promise<{ success: boolean; msg?: string; data?: { mode: Array<string>; fix_base_url?: string } }> {
   const openai = new OpenAI({
     baseURL: base_url,
     apiKey: api_key,
   });
+
   try {
     const res = await openai.models.list();
+    // 检查返回的数据是否有效 lms 获取失败时仍然会返回有效空数据
+    if (res.data?.length === 0) {
+      throw new Error('Invalid response: empty data');
+    }
     return { success: true, data: { mode: res.data.map((v) => v.id) } };
   } catch (e) {
-    return { success: false, msg: e.message || e.toString() };
+    console.log('fetchModelList error', e);
+    const errRes = { success: false, msg: e.message || e.toString() };
+
+    if (!try_fix) return errRes;
+
+    // 如果是API key问题，直接返回错误，不尝试修复URL
+    if (e.status === 401 || e.message?.includes('401') || e.message?.includes('Unauthorized') || e.message?.includes('Invalid API key')) {
+      return errRes;
+    }
+
+    const url = new URL(base_url);
+    const fixedBaseUrl = `${url.protocol}//${url.host}/v1`;
+
+    if (fixedBaseUrl === base_url) return errRes;
+
+    const retryRes = await fetchModelList({ base_url: fixedBaseUrl, api_key: api_key, try_fix: false });
+    if (retryRes.success) {
+      return { ...retryRes, data: { mode: retryRes.data.mode, fix_base_url: fixedBaseUrl } };
+    }
+    return retryRes;
   }
 });
 

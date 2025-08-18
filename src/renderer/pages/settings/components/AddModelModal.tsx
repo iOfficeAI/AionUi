@@ -10,8 +10,10 @@ const AddModelModal = ModalHOC<{ data?: IModel; onSubmit: (model: IModel) => voi
   const [model, setModel] = useState('');
   const { data: modelList, isLoading } = useModeModeList(data?.platform, data?.baseUrl, data?.apiKey);
   const optionsList = useMemo(() => {
-    if (!modelList || !data?.model) return modelList || [];
-    return modelList.map((item) => {
+    // 处理新的数据格式，可能包含 fix_base_url
+    const models = Array.isArray(modelList) ? modelList : modelList?.models || [];
+    if (!models || !data?.model) return models;
+    return models.map((item) => {
       return { ...item, disabled: data.model.includes(item.value) };
     });
   }, [modelList, data?.model]);
@@ -23,7 +25,8 @@ const AddModelModal = ModalHOC<{ data?: IModel; onSubmit: (model: IModel) => voi
         disabled: !model,
       }}
       onOk={() => {
-        onSubmit({ ...data, model: [...(data?.model || []), model] });
+        const updatedData = { ...data, model: [...(data?.model || []), model] };
+        onSubmit(updatedData);
       }}
     >
       <Select showSearch options={optionsList} loading={isLoading} onChange={setModel} value={model}></Select>

@@ -78,7 +78,8 @@
     "modelCount": "模型",
     "pleaseEnterBaseUrlAndApiKey": "请输入base url和api key",
     "customOpenAI": "自定义(兼容OpenAI)",
-    "proxyHttpOnly": "仅支持 http/https 协议"
+    "proxyHttpOnly": "仅支持 http/https 协议",
+    "baseUrlAutoFix": "base_url 自动修复为：{{base_url}}"
   },
   "messages": {
     "conversationInProgress": "当前正在进行对话中...",
