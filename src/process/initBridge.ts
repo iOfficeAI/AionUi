@@ -190,7 +190,6 @@ ipcBridge.googleAuth.logout.provider(async ({}) => {
 });
 
 ipcBridge.mode.fetchModelList.provider(async function fetchModelList({ base_url, api_key, try_fix }): Promise<{ success: boolean; msg?: string; data?: { mode: Array<string>; fix_base_url?: string } }> {
-  console.log('fetchModelList', base_url, api_key, try_fix);
   const openai = new OpenAI({
     baseURL: base_url,
     apiKey: api_key,
@@ -198,10 +197,10 @@ ipcBridge.mode.fetchModelList.provider(async function fetchModelList({ base_url,
 
   try {
     const res = await openai.models.list();
-    console.log(
-      'fetchModelList res',
-      res.data.map((v) => v.id)
-    );
+    // 检查返回的数据是否有效 lms 获取失败时仍然会返回有效空数据
+    if (res.data?.length === 0) {
+      throw new Error('Invalid response: empty data');
+    }
     return { success: true, data: { mode: res.data.map((v) => v.id) } };
   } catch (e) {
     console.log('fetchModelList error', e);
