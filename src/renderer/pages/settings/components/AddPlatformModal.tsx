@@ -54,8 +54,8 @@ const AddPlatformModal = ModalHOC<{
   const baseUrl = Form.useWatch('baseUrl', form);
   const apiKey = Form.useWatch('apiKey', form);
 
-  const modelListState = useModeModeList(platform, baseUrl, apiKey);
-  
+  const modelListState = useModeModeList(platform, baseUrl, apiKey, true);
+
   useEffect(() => {
     if (platform?.includes('gemini')) {
       modelListState.mutate();
@@ -64,10 +64,11 @@ const AddPlatformModal = ModalHOC<{
 
   // 处理自动修复的 base_url
   useEffect(() => {
-    if (modelListState.data && typeof modelListState.data === 'object' && 'fix_base_url' in modelListState.data) {
+    if (modelListState.data && modelListState.data.fix_base_url) {
       form.setFieldValue('baseUrl', modelListState.data.fix_base_url);
+      message.info('base_url 自动修复为：' + modelListState.data.fix_base_url);
     }
-  }, [modelListState.data, form]);
+  }, [modelListState.data.fix_base_url, form]);
 
   const handleSubmit = () => {
     form
@@ -136,7 +137,11 @@ const AddPlatformModal = ModalHOC<{
           <Input></Input>
         </Form.Item>
         <Form.Item label='API Key' required rules={[{ required: true }]} field={'apiKey'}>
-          <Input></Input>
+          <Input
+            onBlur={() => {
+              modelListState.mutate();
+            }}
+          ></Input>
         </Form.Item>
         <Form.Item label={t('settings.modelName')} field={'model'} required rules={[{ required: true }]} validateStatus={modelListState.error ? 'error' : 'success'} help={modelListState.error}>
           <Select
@@ -155,7 +160,7 @@ const AddPlatformModal = ModalHOC<{
                 className='flex'
               />
             }
-            options={Array.isArray(modelListState.data) ? modelListState.data : modelListState.data?.models || []}
+            options={modelListState.data?.models || []}
           ></Select>
         </Form.Item>
       </Form>

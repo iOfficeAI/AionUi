@@ -25,30 +25,30 @@ export const geminiModeList = [
   // },
 ];
 
-const useModeModeList = (platform: string, base_url?: string, api_key?: string) => {
-  return useSWR([platform + '/models', { platform, base_url, api_key }], async ([url, { platform, base_url, api_key }]) => {
+const useModeModeList = (platform: string, base_url?: string, api_key?: string, try_fix?: boolean) => {
+  return useSWR([platform + '/models', { platform, base_url, api_key, try_fix }], async ([url, { platform, base_url, api_key, try_fix }]): Promise<{ models: { label: string; value: string }[]; fix_base_url?: string }> => {
     if (platform?.includes('gemini')) {
-      return geminiModeList;
+      return { models: geminiModeList };
     }
     if (!base_url || !api_key) {
-      return;
+      return { models: [] };
     }
-    const res = await ipcBridge.mode.fetchModelList.invoke({ base_url, api_key });
+    const res = await ipcBridge.mode.fetchModelList.invoke({ base_url, api_key, try_fix });
     if (res.success) {
       const modelList = res.data?.mode.map((v) => ({
         label: v,
         value: v,
       }));
-      
+
       // 如果返回了修复的 base_url，将其添加到结果中
       if (res.data?.fix_base_url) {
         return {
           models: modelList,
-          fix_base_url: res.data.fix_base_url
+          fix_base_url: res.data.fix_base_url,
         };
       }
-      
-      return modelList;
+
+      return { models: modelList };
     }
     return Promise.reject(res.msg);
   });

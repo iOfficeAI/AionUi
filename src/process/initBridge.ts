@@ -189,7 +189,8 @@ ipcBridge.googleAuth.logout.provider(async ({}) => {
   return clearCachedCredentialFile();
 });
 
-ipcBridge.mode.fetchModelList.provider(async ({ base_url, api_key }) => {
+ipcBridge.mode.fetchModelList.provider(async function fetchModelList({ base_url, api_key, try_fix }): Promise<{ success: boolean; msg?: string; data?: { mode: Array<string>; fix_base_url?: string } }> {
+  console.log('fetchModelList', base_url, api_key, try_fix);
   const openai = new OpenAI({
     baseURL: base_url,
     apiKey: api_key,
@@ -197,47 +198,32 @@ ipcBridge.mode.fetchModelList.provider(async ({ base_url, api_key }) => {
 
   try {
     const res = await openai.models.list();
-
-    // 检查返回的数据是否有效
-    if (res.data.length === 0) {
-      throw new Error('Invalid response: empty data');
-    }
-
+    console.log(
+      'fetchModelList res',
+      res.data.map((v) => v.id)
+    );
     return { success: true, data: { mode: res.data.map((v) => v.id) } };
   } catch (e) {
+    console.log('fetchModelList error', e);
+    const errRes = { success: false, msg: e.message || e.toString() };
+
+    if (!try_fix) return errRes;
+
     // 如果是API key问题，直接返回错误，不尝试修复URL
     if (e.status === 401 || e.message?.includes('401') || e.message?.includes('Unauthorized') || e.message?.includes('Invalid API key')) {
-      return { success: false, msg: e.message || e.toString() };
+      return errRes;
     }
 
-    try {
-      // 先验证URL是否有效
-      const url = new URL(base_url);
-      const fixedBaseUrl = `${url.protocol}//${url.host}/v1`;
+    const url = new URL(base_url);
+    const fixedBaseUrl = `${url.protocol}//${url.host}/v1`;
 
-      // 如果修复后的URL和原URL一样，就不用重试了
-      if (fixedBaseUrl === base_url) {
-        return { success: false, msg: e.message || e.toString() };
-      }
+    if (fixedBaseUrl === base_url) return errRes;
 
-      const retryOpenai = new OpenAI({
-        baseURL: fixedBaseUrl,
-        apiKey: api_key,
-      });
-
-      const retryRes = await retryOpenai.models.list();
-      return {
-        success: true,
-        data: {
-          mode: retryRes.data.map((v) => v.id),
-          fix_base_url: fixedBaseUrl,
-        },
-      };
-    } catch (retryError) {
-      return { success: false, msg: e.message || e.toString() };
+    const retryRes = await fetchModelList({ base_url: fixedBaseUrl, api_key: api_key, try_fix: false });
+    if (retryRes.success) {
+      return { ...retryRes, data: { mode: retryRes.data.mode, fix_base_url: fixedBaseUrl } };
     }
-
-    return { success: false, msg: e.message || e.toString() };
+    return retryRes;
   }
 });
 

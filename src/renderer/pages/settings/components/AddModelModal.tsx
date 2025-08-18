@@ -26,10 +26,6 @@ const AddModelModal = ModalHOC<{ data?: IModel; onSubmit: (model: IModel) => voi
       }}
       onOk={() => {
         const updatedData = { ...data, model: [...(data?.model || []), model] };
-        // 如果 base_url 被修复了，更新 baseUrl
-        if (!Array.isArray(modelList) && modelList?.fix_base_url) {
-          updatedData.baseUrl = modelList.fix_base_url;
-        }
         onSubmit(updatedData);
       }}
     >
