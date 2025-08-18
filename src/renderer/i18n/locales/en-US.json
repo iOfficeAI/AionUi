@@ -78,7 +78,8 @@
     "modelCount": "Model",
     "pleaseEnterBaseUrlAndApiKey": "Please enter base url and api key",
     "customOpenAI": "Custom (OpenAI Compatible)",
-    "proxyHttpOnly": "Only support http/https protocol"
+    "proxyHttpOnly": "Only support http/https protocol",
+    "baseUrlAutoFix": "base_url auto fix to: {{base_url}}"
   },
   "messages": {
     "conversationInProgress": "A conversation is currently in progress...",
