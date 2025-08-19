@@ -40,7 +40,8 @@ export const geminiConversation = {
 export const application = {
   restart: bridge.buildProvider<void, void>('restart-app'), // 重启应用
   openDevTools: bridge.buildProvider<void, void>('open-dev-tools'), // 打开开发者工具
-  systemInfo: bridge.buildProvider<{ tempDir: string }, void>('system.info'), // 获取系统信息
+  systemInfo: bridge.buildProvider<{ cacheDir: string; workDir: string }, void>('system.info'), // 获取系统信息
+  updateSystemInfo: bridge.buildProvider<IBridgeResponse, { cacheDir: string; workDir: string }>('system.update-info'), // 更新系统信息
 };
 
 export const dialog = {

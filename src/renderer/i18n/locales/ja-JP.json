@@ -60,7 +60,8 @@
     "openai": "OpenAI",
     "proxyConfig": "プロキシ",
     "geminiBaseUrl": "Gemini API ベース URL",
-    "tempDir": "一時ディレクトリ",
+    "cacheDir": "キャッシュディレクトリ",
+    "workDir": "作業ディレクトリ",
     "language": "言語",
     "gemini": "Gemini 設定",
     "model": "モデル設定",
@@ -79,7 +80,9 @@
     "pleaseEnterBaseUrlAndApiKey": "ベースURLとAPIキーを入力してください",
     "customOpenAI": "カスタム（OpenAI互換）",
     "proxyHttpOnly": "HTTP/HTTPSのみをサポート",
-    "baseUrlAutoFix": "base_url 自動修復為：{{base_url}}"
+    "baseUrlAutoFix": "base_url 自動修復為：{{base_url}}",
+    "updateConfirm": "確認変更",
+    "restartConfirm": "変更後にアプリを再起動します。続行しますか？"
   },
   "messages": {
     "conversationInProgress": "現在、会話中です...",

@@ -6,18 +6,58 @@
 
 import { ipcBridge } from '@/common';
 import { ConfigStorage } from '@/common/storage';
-import { Alert, Button, Form, Input } from '@arco-design/web-react';
+import { Alert, Button, Form, Input, Modal } from '@arco-design/web-react';
 import { FolderOpen } from '@icon-park/react';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import useSWR from 'swr';
 import SettingContainer from './components/SettingContainer';
+
+const DirInputItem: React.FC<{
+  label: string;
+  field: string;
+  rules?: any[];
+}> = (props) => {
+  const { t } = useTranslation();
+  return (
+    <Form.Item label={props.label} field={props.field}>
+      {(options, form) => (
+        <Input
+          disabled
+          value={options[props.field]}
+          addAfter={
+            <FolderOpen
+              theme='outline'
+              size='24'
+              fill='#333'
+              onClick={() => {
+                ipcBridge.dialog.showOpen
+                  .invoke({
+                    defaultPath: options[props.field],
+                    properties: ['openDirectory', 'createDirectory'],
+                  })
+                  .then((data) => {
+                    if (data?.[0]) {
+                      form.setFieldValue(props.field, data[0]);
+                    }
+                  });
+              }}
+            />
+          }
+        ></Input>
+      )}
+    </Form.Item>
+  );
+};
 
 const GeminiSettings: React.FC = (props) => {
   const { t } = useTranslation();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const [modal, modalContextHolder] = Modal.useModal();
   const [error, setError] = useState<string | null>(null);
   const [googleAccountLoading, setGoogleAccountLoading] = useState(false);
+  const { data } = useSWR('gemini.env.config', () => ipcBridge.application.systemInfo.invoke());
   const loadGoogleAuthStatus = (proxy?: string) => {
     setGoogleAccountLoading(true);
     ipcBridge.googleAuth.status
@@ -31,16 +71,29 @@ const GeminiSettings: React.FC = (props) => {
         setGoogleAccountLoading(false);
       });
   };
+
+  const saveDirConfigValidate = async (values: { cacheDir: string; workDir: string }) => {
+    return new Promise((resolve, reject) => {
+      modal.confirm({
+        title: t('settings.updateConfirm'),
+        content: t('settings.restartConfirm'),
+        onOk: resolve,
+        onCancel: reject,
+      });
+    });
+  };
+
   const onSubmit = async () => {
     const values = await form.validate();
-    delete values.tempDir;
-    delete values.googleAccount;
+    const { cacheDir, workDir, googleAccount, ...rest } = values;
     setLoading(true);
     setError(null);
+    await saveDirConfigValidate(values);
     ConfigStorage.set('gemini.config', values)
       .then(() => {
-        ipcBridge.conversation.reset.invoke({}).finally(() => {
-          window.location.reload();
+        return ipcBridge.application.updateSystemInfo.invoke({ cacheDir, workDir }).then((data) => {
+          if (data.success) return ipcBridge.application.restart.invoke();
+          return Promise.reject(data.msg);
         });
       })
       .catch((e) => {
@@ -55,10 +108,13 @@ const GeminiSettings: React.FC = (props) => {
       form.setFieldsValue(data);
       loadGoogleAuthStatus(data?.proxy);
     });
-    ipcBridge.application.systemInfo.invoke().then((data) => {
-      form.setFieldValue('tempDir', data.tempDir);
-    });
   }, []);
+  useEffect(() => {
+    if (data) {
+      form.setFieldValue('cacheDir', data.cacheDir);
+      form.setFieldValue('workDir', data.workDir);
+    }
+  }, [data]);
 
   return (
     <SettingContainer
@@ -129,26 +185,11 @@ const GeminiSettings: React.FC = (props) => {
         <Form.Item label={t('settings.proxyConfig')} field='proxy' rules={[{ match: /^https?:\/\/.+$/, message: t('settings.proxyHttpOnly') }]}>
           <Input placeholder={t('settings.proxyHttpOnly')}></Input>
         </Form.Item>
-        <Form.Item label={t('settings.tempDir')} field='tempDir'>
-          {(props) => (
-            <Input
-              disabled
-              value={props.tempDir}
-              addAfter={
-                <FolderOpen
-                  theme='outline'
-                  size='24'
-                  fill='#333'
-                  onClick={() => {
-                    ipcBridge.shell.showItemInFolder.invoke(props.tempDir);
-                  }}
-                />
-              }
-            ></Input>
-          )}
-        </Form.Item>
+        <DirInputItem label={t('settings.cacheDir')} field='cacheDir' />
+        <DirInputItem label={t('settings.workDir')} field='workDir' />
         {error && <Alert className={'m-b-10px'} type='error' content={typeof error === 'string' ? error : JSON.stringify(error)} />}
       </Form>
+      {modalContextHolder}
     </SettingContainer>
   );
 };
