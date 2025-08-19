@@ -28,7 +28,7 @@
   <table align="center">
     <tr>
       <td style="border: 2px solid #6b7280; padding: 8px;">
-        <img src="./resources/AionUI_screenrecord.gif" alt="AionUi Demo" width="800">
+        <img src="./resources/sort_out_folder.gif" alt="AionUi Demo" width="800">
       </td>
     </tr>
   </table>
@@ -41,6 +41,7 @@
   - [💬 Enhanced Chat Experience](#-enhanced-chat-experience)
   - [🗂️ File & Project Management](#️-file--project-management)
   - [⚡ Developer Workflow](#-developer-workflow)
+  - [🔧 Simple & Convenient Settings](#-simple--convenient-settings)
 - [🚀 Quick Start](#-quick-start)
   - [📥 Download](#-download)
   - [📋 Requirements](#-requirements)
@@ -49,6 +50,11 @@
 - [🛠️ Tech Stack](#️-tech-stack)
 - [📁 Project Structure](#-project-structure)
 - [🎯 Use Cases](#-use-cases)
+- [🎬 Feature Demonstrations](#-feature-demonstrations)
+  - [📊 Excel Generation & Management](#-excel-generation--management)
+  - [🤖 Multi-Model Support](#-multi-model-support)
+  - [💬 Side-by-Side Chat Management](#-side-by-side-chat-management)
+  - [📁 Smart Folder Organization](#-smart-folder-organization)
 - [🔧 Configuration](#-configuration)
   - [🔑 API Configuration](#-api-configuration)
   - [🌐 Proxy Configuration](#-proxy-configuration)
@@ -68,8 +74,9 @@ While the official Gemini CLI is powerful, its command-line interface has limita
 *   **Chat History:** Conversations are lost when closing the CLI window
 *   **Chat Experience:** Command-line interface lacks natural chat interactions
 *   **Multi-tasking:** Single conversation model limits parallel workflows
+*   **Model Limitations:** Restricted to Gemini models only, unable to leverage other excellent large language models
 
-AionUi offers a modern interface designed for developers who need better workflow efficiency.
+AionUi not only provides a modern interface for users who need better workflow efficiency, but more importantly, **breaks the single-model limitation**, allowing you to choose the most suitable AI model for different task requirements.
 
 ## ✨ Key Features
 
@@ -77,17 +84,25 @@ AionUi offers a modern interface designed for developers who need better workflo
 - **Multi-Conversation** - Manage multiple independent chat sessions
 - **Persistent History** - All conversations saved locally, never lose your work
 - **Modern Interface** - Natural chat UI with familiar messaging controls
+- **Multi-Model Support** - Break single-model limitations, support multiple large language models
 
 ### 🗂️ **File & Project Management**
 - **Visual File Tree** - Browse and select files with one-click chat integration
-- **File Upload** - Drag & drop files for AI processing with secure temporary storage
+- **File Upload** - Upload files for AI processing with secure temporary storage
 - **Code Diff View** - Side-by-side comparison of file changes
-
+- **Smart Folder Organization** - AI-powered file sorting and categorization
+- **Excel Generation** - Create and manage Excel files with AI assistance
 
 ### ⚡ **Developer Workflow**
 - **Function Calling** - Full Gemini API integration for advanced features
 - **Rich Markdown** - Beautiful rendering of code blocks and formatted content
-- **Easy Setup** - Configure API keys directly in the interface
+- **Smart Tool Scheduling** - Automatically select appropriate tools for task execution
+
+### 🔧 **Simple & Convenient Settings**
+- **Multi-Platform Model Management** - Support mainstream platforms like Gemini, OpenAI, ModelScope, OpenRouter, etc.
+- **Flexible Configuration** - Each platform can configure multiple models, support custom API endpoints
+- **Unified Authentication** - Support Google personal authentication, account login is convenient and fast
+- **Smart URL Fixing** - Automatically detect and fix API endpoint configuration issues
 
 ## 🚀 Quick Start
 
@@ -184,16 +199,50 @@ AionUI/
 - **Data Analysis**: Data visualization, analysis reports
 - **Project Management**: Task planning, progress tracking
 - **Learning Assistant**: Knowledge Q&A, concept explanation
+- **Multi-Model Collaboration**: Choose the most suitable AI model based on task characteristics
+  - **Gemini**: Code generation, technical documentation
+  - **OpenAI**: Creative writing, content creation
+  - **ModelScope**: Chinese understanding, localization tasks
+  - **OpenRouter**: Cost optimization, model comparison
+
+## 🎬 Feature Demonstrations
+
+### 📊 **Excel Generation & Management**
+<p align="center">
+  <img src="./resources/generate_xlsx.gif" alt="Excel Generation Demo" width="800">
+</p>
+
+### 🤖 **Multi-Model Support**
+<p align="center">
+  <img src="./resources/multi-llm.gif" alt="Multi-Model Support Demo" width="800">
+</p>
+
+### 💬 **Side-by-Side Chat Management**
+<p align="center">
+  <img src="./resources/multichat-side-by-side.gif" alt="Side-by-Side Chat Demo" width="800">
+</p>
+
+### 📁 **Smart Folder Organization**
+<p align="center">
+  <img src="./resources/sort_out_folder.gif" alt="Folder Organization Demo" width="800">
+</p>
 
 ## 🔧 Configuration
 
 ### 🔑 API Configuration
 
-Supports three authentication methods:
+Supports multiple authentication methods and platforms:
 
-1. **Gemini API Key**: Direct use of Gemini API
-2. **Vertex AI**: Use Google Cloud Vertex AI
-3. **Personal Authentication**: OAuth personal authentication
+1. **Gemini Platform**:
+   - Gemini API Key: Direct use of Gemini API
+   - Vertex AI: Use Google Cloud Vertex AI
+   - Personal Authentication: OAuth personal authentication
+
+2. **Other Platforms**:
+   - **OpenAI Compatible**: Support any service compatible with OpenAI API
+   - **ModelScope**: Support Alibaba Cloud ModelScope platform
+   - **OpenRouter**: Support OpenRouter aggregation platform
+   - **Custom Platform**: Support custom API endpoints and models
 
 ### 🌐 Proxy Configuration
 
@@ -202,7 +251,7 @@ Supports HTTP proxy configuration for network-restricted environments.
 ## 🚀 What's Next?
 
 ### 📍 Where We Are
-AionUi currently provides a powerful GUI for Gemini CLI, offering enhanced chat experience, file management, and developer workflow optimization.
+AionUi currently provides a powerful GUI for Gemini CLI, offering enhanced chat experience, file management, and developer workflow optimization. More importantly, we have **broken the single-model limitation** and now support multiple large language model platforms, allowing users to choose the most suitable AI model for different task requirements.
 
 ### 🎯 Where We're Going
 We envision AionUi evolving into a **Universal AI Agent Platform** that democratizes powerful AI agents for everyday users:
@@ -217,6 +266,8 @@ We envision AionUi evolving into a **Universal AI Agent Platform** that democrat
 - **Multi-LLM Support**: Bind different language models (Gemini, Claude, GPT, etc.) to any agent
 - **Model Switching**: Easily switch between different LLMs without changing your workflow
 - **Custom Configurations**: Configure API keys and settings for each model independently
+- **Smart Model Selection**: Automatically recommend the most suitable model based on task type
+- **Cost Optimization**: Support cost comparison and intelligent selection between different models
 
 #### 🎯 **Making AI Agents Accessible**
 Our goal is to make powerful AI agents accessible to everyone, not just developers. We believe that:
