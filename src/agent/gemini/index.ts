@@ -117,7 +117,7 @@ export class GeminiAgent {
 
     return envOutput.split('\n').reduce<Record<string, string>>((acc, line) => {
       const [key, ...value] = line.split('=');
-      acc[key] = value.join('=');
+      acc[key] = value.join('=').replace(/\r$/, '');
       return acc;
     }, {});
   }
