@@ -227,7 +227,7 @@ ipcBridge.mode.fetchModelList.provider(async function fetchModelList({ base_url,
 });
 
 ipcBridge.mode.saveModelConfig.provider((models) => {
-  console.log('saveModelConfig', models);
+  // console.log('saveModelConfig', models);
   return ProcessConfig.set('model.config', models)
     .then(() => {
       return { success: true };
