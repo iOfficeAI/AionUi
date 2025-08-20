@@ -24,24 +24,44 @@
   <strong>English</strong> | <a href="./readme_ch.md">简体中文</a> | <a href="https://www.aionui.com" target="_blank">Official Site</a> | <a href="https://twitter.com/WailiVery" target="_blank">Twitter</a>
 </p>
 
+## 🚀 **What Can AionUi Do?**
+
+### 📁 **Organizing Your Files**
+*Batch renaming, auto organization, smart classification, file merging*
 <p align="center">
-  <table align="center">
-    <tr>
-      <td style="border: 2px solid #6b7280; padding: 8px;">
-        <img src="./resources/sort_out_folder.gif" alt="AionUi Demo" width="800">
-      </td>
-    </tr>
-  </table>
+  <img src="./resources/sort_out_folder.gif" alt="File Management Demo" width="800">
 </p>
+
+### 📊 **Make Excel Smarter**
+*AI helps you create, organize, analyze, and beautify Excel files*
+<p align="center">
+  <img src="./resources/generate_xlsx.gif" alt="Excel Processing Demo" width="800">
+</p>
+
+### 💬 **Handle Multiple Tasks at Once**
+*Multiple conversations, no task confusion, independent memory, double efficiency*
+<p align="center">
+  <img src="./resources/multichat-side-by-side.gif" alt="Conversation Management Demo" width="800">
+</p>
+
+---
+
+**This is just the tip of AionUi's capabilities!** 🚀
+
+Want to explore more features? Keep reading to discover what else AionUi can help you with:
+- 🎯 Write code, create documents, analyze data
+- 🗂️ Learn new things, answer questions, translate text
+- ⚡ And many more daily work and learning scenarios
 
 ## 📋 Table of Contents
 
 - [🤔 Why does AionUi exist?](#-why-does-aionui-exist)
+- [🚀 What Can AionUi Do?](#-what-can-aionui-do)
 - [✨ Key Features](#-key-features)
-  - [💬 Enhanced Chat Experience](#-enhanced-chat-experience)
-  - [🗂️ File & Project Management](#️-file--project-management)
-  - [⚡ Developer Workflow](#-developer-workflow)
-  - [🔧 Simple & Convenient Settings](#-simple--convenient-settings)
+  - [💬 Better Chat Experience](#-better-chat-experience)
+  - [🗂️ File Management Made Simple](#-file-management-made-simple)
+  - [⚡ Development Efficiency Boost](#-development-efficiency-boost)
+  - [🔧 Settings Are Simple](#-settings-are-simple)
 - [🚀 Quick Start](#-quick-start)
   - [📥 Download](#-download)
   - [📋 Requirements](#-requirements)
@@ -50,17 +70,14 @@
 - [🛠️ Tech Stack](#️-tech-stack)
 - [📁 Project Structure](#-project-structure)
 - [🎯 Use Cases](#-use-cases)
-- [🎬 Feature Demonstrations](#-feature-demonstrations)
-  - [📊 Excel Generation & Management](#-excel-generation--management)
-  - [🤖 Multi-Model Support](#-multi-model-support)
-  - [💬 Side-by-Side Chat Management](#-side-by-side-chat-management)
-  - [📁 Smart Folder Organization](#-smart-folder-organization)
+
 - [🔧 Configuration](#-configuration)
   - [🔑 API Configuration](#-api-configuration)
   - [🌐 Proxy Configuration](#-proxy-configuration)
-- [🚀 What's Next?](#-whats-next)
-  - [📍 Where We Are](#-where-we-are)
-  - [🎯 Where We're Going](#-where-were-going)
+- [🚀 Where We're Going](#-where-were-going)
+  - [🤖 Multiple AI Assistants](#-multiple-ai-assistants)
+  - [🔄 Flexible AI Model Selection](#-flexible-ai-model-selection)
+  - [🎯 Making AI Agents Accessible](#-making-ai-agents-accessible)
 - [📄 License](#-license)
 - [🤝 Contributing](#-contributing)
 
@@ -70,39 +87,39 @@
 
 While the official Gemini CLI is powerful, its command-line interface has limitations for daily use. AionUi provides a GUI alternative that addresses these key pain points:
 
-*   **File Management:** Managing code context with the `@` command can be cumbersome
-*   **Chat History:** Conversations are lost when closing the CLI window
-*   **Chat Experience:** Command-line interface lacks natural chat interactions
-*   **Multi-tasking:** Single conversation model limits parallel workflows
-*   **Model Limitations:** Restricted to Gemini models only, unable to leverage other excellent large language models
+> *   Using the `@` command to select files is cumbersome
+> *   Conversations are lost when closing the CLI window
+> *   Command-line interface lacks natural chat interactions
+> *   Single conversation mode limits parallel workflows
+> *   Restricted to Gemini models only, unable to use other excellent large language models
 
-AionUi not only provides a modern interface for users who need better workflow efficiency, but more importantly, **breaks the single-model limitation**, allowing you to choose the most suitable AI model for different task requirements.
+AionUi provides a modern interface for users who need better workflow efficiency, while **breaking the single-model limitation**, allowing you to choose the most suitable AI model for different task requirements.
 
 ## ✨ Key Features
 
-### 💬 **Enhanced Chat Experience**  
-- **Multi-Conversation** - Manage multiple independent chat sessions
-- **Persistent History** - All conversations saved locally, never lose your work
-- **Modern Interface** - Natural chat UI with familiar messaging controls
-- **Multi-Model Support** - Break single-model limitations, support multiple large language models
+### 💬 **Better Chat Experience**  
+- **Multi-Conversation** - Open multiple chats simultaneously, no interference
+- **Permanent Storage** - All conversations saved locally, never lost
+- **Modern Interface** - Chat interface like WeChat, simple to use
+- **Multi-Model Support** - Not just Gemini, can use other AI models too
 
-### 🗂️ **File & Project Management**
-- **Visual File Tree** - Browse and select files with one-click chat integration
-- **File Upload** - Upload files for AI processing with secure temporary storage
-- **Code Diff View** - Side-by-side comparison of file changes
-- **Smart Folder Organization** - AI-powered file sorting and categorization
-- **Excel Generation** - Create and manage Excel files with AI assistance
+### 🗂️ **File Management Made Simple**
+- **File Tree Browsing** - Browse files like folders, click to use
+- **File Upload** - Drag and drop files, AI helps you process
+- **Code Comparison** - File before/after comparison, clear at a glance
+- **Smart Organization** - AI helps organize folders, automatic classification
+- **Excel Processing** - AI helps create and modify Excel files
 
-### ⚡ **Developer Workflow**
-- **Function Calling** - Full Gemini API integration for advanced features
-- **Rich Markdown** - Beautiful rendering of code blocks and formatted content
-- **Smart Tool Scheduling** - Automatically select appropriate tools for task execution
+### ⚡ **Development Efficiency Boost**
+- **Function Calling** - Complete Gemini API, more powerful features
+- **Code Rendering** - Code blocks display more beautifully, format clearer
+- **Tool Scheduling** - Automatically select most suitable tools, no manual selection needed
 
-### 🔧 **Simple & Convenient Settings**
-- **Multi-Platform Model Management** - Support mainstream platforms like Gemini, OpenAI, ModelScope, OpenRouter, etc.
-- **Flexible Configuration** - Each platform can configure multiple models, support custom API endpoints
-- **Unified Authentication** - Support Google personal authentication, account login is convenient and fast
-- **Smart URL Fixing** - Automatically detect and fix API endpoint configuration issues
+### 🔧 **Settings Are Simple**
+- **Multi-Platform Support** - Support Gemini, OpenAI, ModelScope, OpenRouter, etc.
+- **Flexible Configuration** - Each platform can configure multiple models, support custom addresses
+- **Easy Login** - Support Google account login, no need to remember API keys
+- **Auto Fix** - Automatically detect and fix configuration issues, no manual debugging needed
 
 ## 🚀 Quick Start
 
@@ -199,33 +216,16 @@ AionUI/
 - **Data Analysis**: Data visualization, analysis reports
 - **Project Management**: Task planning, progress tracking
 - **Learning Assistant**: Knowledge Q&A, concept explanation
+- **Daily Office Work**: Email writing, meeting notes, work summaries
+- **Learning & Growth**: Language learning, skill training, knowledge organization
+- **Creative Work**: Copywriting, brainstorming, inspiration collection
 - **Multi-Model Collaboration**: Choose the most suitable AI model based on task characteristics
   - **Gemini**: Code generation, technical documentation
   - **OpenAI**: Creative writing, content creation
   - **ModelScope**: Chinese understanding, localization tasks
   - **OpenRouter**: Cost optimization, model comparison
 
-## 🎬 Feature Demonstrations
 
-### 📊 **Excel Generation & Management**
-<p align="center">
-  <img src="./resources/generate_xlsx.gif" alt="Excel Generation Demo" width="800">
-</p>
-
-### 🤖 **Multi-Model Support**
-<p align="center">
-  <img src="./resources/multi-llm.gif" alt="Multi-Model Support Demo" width="800">
-</p>
-
-### 💬 **Side-by-Side Chat Management**
-<p align="center">
-  <img src="./resources/multichat-side-by-side.gif" alt="Side-by-Side Chat Demo" width="800">
-</p>
-
-### 📁 **Smart Folder Organization**
-<p align="center">
-  <img src="./resources/sort_out_folder.gif" alt="Folder Organization Demo" width="800">
-</p>
 
 ## 🔧 Configuration
 
@@ -248,33 +248,28 @@ Supports multiple authentication methods and platforms:
 
 Supports HTTP proxy configuration for network-restricted environments.
 
-## 🚀 What's Next?
-
-### 📍 Where We Are
-AionUi currently provides a powerful GUI for Gemini CLI, offering enhanced chat experience, file management, and developer workflow optimization. More importantly, we have **broken the single-model limitation** and now support multiple large language model platforms, allowing users to choose the most suitable AI model for different task requirements.
-
-### 🎯 Where We're Going
+## 🚀 Where We're Going
 We envision AionUi evolving into a **Universal AI Agent Platform** that democratizes powerful AI agents for everyday users:
 
-#### 🤖 **Multi-Agent Ecosystem**
-- **Terminal Agents**: Starting with Gemini CLI, expanding to other terminal-based agents
-- **Browser Agents**: Integrating open-source browser automation agents for web tasks
-- **Unified Experience**: Simple chat interface that works across all agent types
-- **Agent Discovery**: Easy access to new agents as they become available
+### 🤖 **Multiple AI Assistants**
+- **Terminal Assistants**: Starting with Gemini CLI, will support more terminal tools in the future
+- **Browser Assistants**: Integrate open-source web automation tools to help with web tasks
+- **Unified Interface**: All AI assistants use the same simple chat interface
+- **Easy Discovery**: New AI assistants can be easily found and used
 
-#### 🔄 **Flexible LLM Binding**
-- **Multi-LLM Support**: Bind different language models (Gemini, Claude, GPT, etc.) to any agent
-- **Model Switching**: Easily switch between different LLMs without changing your workflow
-- **Custom Configurations**: Configure API keys and settings for each model independently
-- **Smart Model Selection**: Automatically recommend the most suitable model based on task type
-- **Cost Optimization**: Support cost comparison and intelligent selection between different models
+### 🔄 **Flexible AI Model Selection**
+- **Multi-Model Support**: Can use various AI models like Gemini, Claude, GPT, etc.
+- **Switch Anytime**: Use whichever model you want without changing your workflow
+- **Independent Configuration**: Each model has independent settings, no interference
+- **Smart Recommendations**: Automatically recommend the most suitable AI model based on task
+- **Cost Comparison**: Help you choose the most cost-effective model
 
-#### 🎯 **Making AI Agents Accessible**
-Our goal is to make powerful AI agents accessible to everyone, not just developers. We believe that:
-- **Complex tasks should feel simple**: Users shouldn't need to learn different interfaces for different agents
-- **AI should adapt to users**: Not the other way around
-- **Open source matters**: We prioritize integrating open-source agents to ensure transparency and community control
-- **Chat is universal**: A simple conversation interface can handle complex workflows
+### 🎯 **Making AI Agents Accessible**
+Our goal is to make AI agents simple and easy to use, so ordinary users can get started easily. We believe that:
+- **Simplicity is beauty**: Complex AI features should be simple to use
+- **AI should understand users**: Users shouldn't need to adapt to AI, but AI should adapt to users
+- **Open source is more transparent**: We prioritize using open-source agents so everyone can see the code
+- **Chat is most natural**: Complex work can be done through simple chat
 
 AionUi aims to bridge the gap between powerful AI capabilities and everyday usability, making sophisticated AI agents as easy to use as chatting with a friend.
 
