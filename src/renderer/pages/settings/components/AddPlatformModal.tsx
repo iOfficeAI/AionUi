@@ -42,6 +42,81 @@ const defaultBaseUrl = {
   ModelScope: 'https://api-inference.modelscope.cn/v1',
 };
 
+const openaiCompatibleBaseUrls = [
+  {
+    url: 'https://api.openai.com/v1',
+    name: 'OpenAI',
+  },
+  {
+    url: 'https://openrouter.ai/api/v1',
+    name: 'OpenRouter',
+  },
+  {
+    url: 'https://api.anthropic.com/v1',
+    name: 'Anthropic',
+  },
+  {
+    url: 'https://api.x.ai/v1',
+    name: 'xAI',
+  },
+  {
+    url: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+    name: 'Dashscope',
+  },
+  {
+    url: 'https://ark.cn-beijing.volces.com/api/v3',
+    name: 'Ark',
+  },
+  {
+    url: 'https://api.deepseek.com',
+    name: 'DeepSeek',
+  },
+  {
+    url: 'https://qianfan.baidubce.com/v2',
+    name: 'Qianfan',
+  },
+  {
+    url: 'https://api.moonshot.cn/v1',
+    name: 'Moonshot',
+  },
+  {
+    url: 'https://open.bigmodel.cn/api/paas/v4',
+    name: 'Zhipu',
+  },
+  {
+    url: 'https://api.hunyuan.cloud.tencent.com/v1',
+    name: 'Hunyuan',
+  },
+  {
+    url: 'https://api.lingyiwanwu.com/v1',
+    name: 'Lingyi',
+  },
+  {
+    url: 'https://api.poe.com/v1',
+    name: 'Poe',
+  },
+  {
+    url: 'https://api-inference.modelscope.cn/v1',
+    name: 'ModelScope',
+  },
+  {
+    url: 'https://api.siliconflow.cn/v1',
+    name: 'SiliconFlow',
+  },
+  {
+    url: 'https://cloud.infini-ai.com/maas/v1',
+    name: 'InfiniAI',
+  },
+  {
+    url: 'https://wishub-x1.ctyun.cn/v1',
+    name: 'Ctyun',
+  },
+  {
+    url: 'https://api.stepfun.com/v1',
+    name: 'StepFun',
+  },
+];
+
 const AddPlatformModal = ModalHOC<{
   onSubmit: (platform: IModel) => void;
 }>(({ modalProps, onSubmit }) => {
@@ -113,25 +188,50 @@ const AddPlatformModal = ModalHOC<{
           ></Select>
         </Form.Item>
         <Form.Item hidden={platform !== 'custom' && platform !== 'gemini'} label='base url' required={platform !== 'gemini'} rules={[{ required: platform !== 'gemini' }]} field={'baseUrl'}>
-          <Input
-            placeholder={platform === 'gemini' ? 'https://generativelanguage.googleapis.com' : ''}
-            onChange={(value) => {
-              if (platform === 'custom' || platform === 'gemini') {
-                try {
-                  const urlObj = new URL(value);
-                  const hostname = urlObj.hostname;
-                  const parts = hostname.split('.');
-                  if (parts.length >= 2) {
-                    form.setFieldValue('name', parts[parts.length - 2]);
-                  } else {
-                    form.setFieldValue('name', parts[0]);
+          {platform === 'custom' ? (
+            <Select
+              showSearch
+              allowCreate
+              options={openaiCompatibleBaseUrls.map(item => ({
+                label: item.url,
+                value: item.url,
+              }))}
+              onChange={(value) => {
+                const selectedItem = openaiCompatibleBaseUrls.find(i => i.url === value);
+                if (selectedItem) {
+                  form.setFieldValue('name', selectedItem.name);
+                } else {
+                  try {
+                    const { hostname } = new URL(value);
+                    const parts = hostname.split('.');
+                    form.setFieldValue('name', parts.length >= 2 ? parts[parts.length - 2] : parts[0]);
+                  } catch (e) {
+                    console.error('Invalid URL:', e);
                   }
-                } catch (e) {
-                  console.error('Invalid URL:', e);
                 }
-              }
-            }}
-          ></Input>
+              }}
+            ></Select>
+          ) : (
+            <Input
+              placeholder={platform === 'gemini' ? 'https://generativelanguage.googleapis.com' : ''}
+              onChange={(value) => {
+                if (platform === 'gemini') {
+                  try {
+                    const urlObj = new URL(value);
+                    const hostname = urlObj.hostname;
+                    const parts = hostname.split('.');
+                    if (parts.length >= 2) {
+                      form.setFieldValue('name', parts[parts.length - 2]);
+                    } else {
+                      form.setFieldValue('name', parts[0]);
+                    }
+                  } catch (e) {
+                    console.error('Invalid URL:', e);
+                  }
+                }
+              }}
+            ></Input>
+          )}
         </Form.Item>
         <Form.Item hidden={platform !== 'custom'} label={t('settings.platformName')} required rules={[{ required: true }]} field={'name'} initialValue={'gemini'}>
           <Input></Input>
