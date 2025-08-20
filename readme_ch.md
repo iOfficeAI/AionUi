@@ -26,12 +26,6 @@
 
 ## 🚀 **AionUi 可以做什么？**
 
-### 💬 **同时处理多个任务**
-*开多个对话、任务不混乱、记忆独立、效率翻倍*
-<p align="center">
-  <img src="./resources/multichat-side-by-side.gif" alt="对话管理演示" width="800">
-</p>
-
 ### 📁 **整理您的文件**
 *批量重命名、自动整理、智能分类、文件合并*
 <p align="center">
@@ -42,6 +36,12 @@
 *AI 帮你创建、整理、分析、美化 Excel 文件*
 <p align="center">
   <img src="./resources/generate_xlsx.gif" alt="Excel 处理演示" width="800">
+</p>
+
+### 💬 **同时处理多个任务**
+*开多个对话、任务不混乱、记忆独立、效率翻倍*
+<p align="center">
+  <img src="./resources/multichat-side-by-side.gif" alt="对话管理演示" width="800">
 </p>
 
 ---

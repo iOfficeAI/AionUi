@@ -26,12 +26,6 @@
 
 ## 🚀 **What Can AionUi Do?**
 
-### 💬 **Handle Multiple Tasks at Once**
-*Multiple conversations, no task confusion, independent memory, double efficiency*
-<p align="center">
-  <img src="./resources/multichat-side-by-side.gif" alt="Conversation Management Demo" width="800">
-</p>
-
 ### 📁 **Organizing Your Files**
 *Batch renaming, auto organization, smart classification, file merging*
 <p align="center">
@@ -42,6 +36,12 @@
 *AI helps you create, organize, analyze, and beautify Excel files*
 <p align="center">
   <img src="./resources/generate_xlsx.gif" alt="Excel Processing Demo" width="800">
+</p>
+
+### 💬 **Handle Multiple Tasks at Once**
+*Multiple conversations, no task confusion, independent memory, double efficiency*
+<p align="center">
+  <img src="./resources/multichat-side-by-side.gif" alt="Conversation Management Demo" width="800">
 </p>
 
 ---
