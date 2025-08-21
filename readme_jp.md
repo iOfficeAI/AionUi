@@ -24,16 +24,6 @@
   <a href="./readme.md">English</a> | <a href="./readme_ch.md">简体中文</a> | <strong>日本語</strong> | <a href="https://www.aionui.com" target="_blank">公式サイト</a> | <a href="https://x.com/AionUI" target="_blank">X(旧ツイッター)</a>
 </p>
 
-<p align="center">
-  <table align="center">
-    <tr>
-      <td style="border: 2px solid #6b7280; padding: 8px;">
-        <img src="./resources/sort_out_folder.gif" alt="AionUi 実演" width="800">
-      </td>
-    </tr>
-  </table>
-</p>
-
 ## 🚀 **AionUi で、どんなことができますか？**
 
 ### 📁 **ファイルを整理する**
@@ -67,7 +57,7 @@ _複数の会話を開いてもタスクは混乱せず、それぞれの記憶�
   - [💬 強化されたチャット体験](#-強化されたチャット体験)
   - [🗂️ ファイル・プロジェクト管理](#️-ファイル・プロジェクト管理)
   - [⚡ 開発者ワークフロー](#-開発者ワークフロー)
-  - [🔧 简单便捷的设置](#-简单便捷的设置)
+  - [🔧 シンプルで便利な設定](#-シンプルで便利な設定)
 - [🚀 クイックスタート](#-クイックスタート)
   - [📥 ダウンロード](#-ダウンロード)
   - [📋 システム要件](#-システム要件)
