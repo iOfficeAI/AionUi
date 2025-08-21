@@ -60,7 +60,8 @@
     "openai": "OpenAI",
     "proxyConfig": "代理",
     "geminiBaseUrl": "Gemini API Base URL",
-    "tempDir": "暫存資料夾",
+    "cacheDir": "緩存目錄",
+    "workDir": "工作目錄",
     "language": "語言",
     "gemini": "Gemini 設定",
     "model": "模型配置",
@@ -79,7 +80,9 @@
     "pleaseEnterBaseUrlAndApiKey": "請輸入base url和api key",
     "customOpenAI": "自定義(相容OpenAI)",
     "proxyHttpOnly": "僅支持 http/https 協議",
-    "baseUrlAutoFix": "base_url 自動修復為：{{base_url}}"
+    "baseUrlAutoFix": "base_url 自動修復為：{{base_url}}",
+    "updateConfirm": "確認修改",
+    "restartConfirm": "修改後將重啟應用，是否繼續？"
   },
   "messages": {
     "conversationInProgress": "目前正在進行對話...",
