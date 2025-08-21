@@ -225,32 +225,6 @@ AionUI/
   - **ModelScope**: 日本語を含む言語理解やローカライズされた作業に。
   - **OpenRouter**: コストの最適化やモデルの性能比較に。
 
-## 🎬 機能実演
-
-### 📊 **Excel をスマートに生成・管理**
-
-<p align="center">
-  <img src="./resources/generate_xlsx.gif" alt="Excelをスマートに生成・管理" width="800">
-</p>
-
-### 🤖 **複数モデルを使いこなす**
-
-<p align="center">
-  <img src="./resources/multi-llm.gif" alt="複数モデルを使いこなす" width="800">
-</p>
-
-### 💬 **並列チャット管理**
-
-<p align="center">
-  <img src="./resources/multichat-side-by-side.gif" alt="並列チャット管理" width="800">
-</p>
-
-### 📁 **スマートフォルダ整理**
-
-<p align="center">
-  <img src="./resources/sort_out_folder.gif" alt="スマートフォルダ整理" width="800">
-</p>
-
 ## 🔧 設定
 
 ### 🔑 API 設定
