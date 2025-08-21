@@ -17,6 +17,9 @@ export const ChatMessageStorage = storage.buildStorage('agent.chat.message');
 // 系统配置存储
 export const ConfigStorage = storage.buildStorage<IConfigStorageRefer>('agent.config');
 
+// 系统环境变量存储
+export const EnvStorage = storage.buildStorage<IEnvStorageRefer>('agent.env');
+
 export interface IConfigStorageRefer {
   'gemini.config': {
     authType: string;
@@ -25,6 +28,13 @@ export interface IConfigStorageRefer {
   };
   'model.config': IModel[];
   language: string;
+}
+
+export interface IEnvStorageRefer {
+  'aionui.dir': {
+    workDir: string;
+    cacheDir: string;
+  };
 }
 
 interface IChatConversation<T, Extra> {

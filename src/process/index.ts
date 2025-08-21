@@ -4,11 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import initStorage from "./initStorage";
-import "./initBridge";
-import { app } from "electron";
-
-setTimeout(initStorage);
+import { app } from 'electron';
+import './initBridge';
+import initStorage from './initStorage';
 
 app.whenReady().then(() => {
   initStorage();

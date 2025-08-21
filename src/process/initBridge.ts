@@ -14,9 +14,10 @@ import OpenAI from 'openai';
 import path from 'path';
 import { ipcBridge } from '../common';
 import { createGeminiAgent } from './initAgent';
-import { ProcessChat, ProcessConfig } from './initStorage';
+import { getSystemDir, ProcessChat, ProcessChatMessage, ProcessConfig, ProcessEnv } from './initStorage';
+import { nextTickSync } from './message';
 import type { GeminiAgentTask } from './task/GeminiAgentTask';
-import { generateHashWithFullName, readDirectoryRecursive } from './utils';
+import { copyDirectoryRecursively, generateHashWithFullName, readDirectoryRecursive } from './utils';
 import WorkerManage from './WorkerManage';
 
 logger.config({ print: true });
@@ -82,6 +83,9 @@ ipcBridge.conversation.remove.provider(async ({ id }) => {
         'chat.history',
         history.filter((item) => item.id !== id)
       );
+
+      nextTickSync(() => ProcessChatMessage.backup(id));
+
       return true;
     } catch (e) {
       return false;
@@ -110,8 +114,26 @@ ipcBridge.conversation.get.provider(async ({ id }) => {
 });
 
 ipcBridge.application.restart.provider(async () => {
+  console.log('重启应用开始...');
+  // 清理所有工作进程
+  WorkerManage.clear();
+  console.log('工作进程已清理');
+  // 重启应用 - 使用标准的 Electron 重启方式
   app.relaunch();
   app.exit(0);
+});
+
+ipcBridge.application.updateSystemInfo.provider(async ({ cacheDir, workDir }) => {
+  try {
+    const oldDir = getSystemDir();
+    if (oldDir.cacheDir !== cacheDir) {
+      await copyDirectoryRecursively(oldDir.cacheDir, cacheDir);
+    }
+    await ProcessEnv.set('aionui.dir', { cacheDir, workDir });
+    return { success: true };
+  } catch (e) {
+    return { success: false, msg: e.message || e.toString() };
+  }
 });
 
 ipcBridge.geminiConversation.sendMessage.provider(async ({ conversation_id, files, ...other }) => {
