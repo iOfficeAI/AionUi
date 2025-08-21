@@ -4,20 +4,22 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { mkdirSync as _mkdirSync, existsSync } from 'fs';
+import { mkdirSync as _mkdirSync, existsSync, readFileSync } from 'fs';
 import fs from 'fs/promises';
+import path from 'path';
 import { application } from '../common/ipcBridge';
-import type { IChatConversationRefer, IConfigStorageRefer } from '../common/storage';
-import { ChatMessageStorage, ChatStorage, ConfigStorage } from '../common/storage';
-import { getTempPath } from './utils';
+import type { IChatConversationRefer, IConfigStorageRefer, IEnvStorageRefer } from '../common/storage';
+import { ChatMessageStorage, ChatStorage, ConfigStorage, EnvStorage } from '../common/storage';
+import { getDataPath } from './utils';
 
 const STORAGE_PATH = {
   config: 'aionui-config.txt',
   chatMessage: 'aionui-chat-message.txt',
   chat: 'aionui-chat.txt',
+  env: '.aionui-env',
 };
 
-const getHomePage = getTempPath;
+const getHomePage = getDataPath;
 
 const mkdirSync = (path: string) => {
   return _mkdirSync(path, { recursive: true });
@@ -26,16 +28,19 @@ const mkdirSync = (path: string) => {
 if (!existsSync(getHomePage())) {
   mkdirSync(getHomePage());
 }
+if (!existsSync(path.join(getHomePage(), 'workspace'))) {
+  mkdirSync(path.join(getHomePage(), 'workspace'));
+}
 
-const WriteFile = (fileName: string, data: string) => {
-  return fs.writeFile(getHomePage() + '/' + fileName, data);
+const WriteFile = (path: string, data: string) => {
+  return fs.writeFile(path, data);
 };
 
-const ReadFile = (fileName: string) => {
-  return fs.readFile(getHomePage() + '/' + fileName);
+const ReadFile = (path: string) => {
+  return fs.readFile(path);
 };
 
-const FileBuilder = (fileName: string) => {
+const FileBuilder = (file: string) => {
   const stack: (() => Promise<any>)[] = [];
   let isRunning = false;
   const run = () => {
@@ -56,11 +61,11 @@ const FileBuilder = (fileName: string) => {
   };
   return {
     write(data: string) {
-      return pushStack(() => WriteFile(fileName, data));
+      return pushStack(() => WriteFile(file, data));
     },
     read() {
       return pushStack(() =>
-        ReadFile(fileName).then((data) => {
+        ReadFile(file).then((data) => {
           return data.toString();
         })
       );
@@ -68,8 +73,8 @@ const FileBuilder = (fileName: string) => {
   };
 };
 
-const JsonFileBuilder = <S extends Record<string, any>>(fileName: string) => {
-  const file = FileBuilder(fileName);
+const JsonFileBuilder = <S extends Record<string, any>>(path: string) => {
+  const file = FileBuilder(path);
   const encode = (data: any) => {
     return btoa(encodeURIComponent(data));
   };
@@ -96,9 +101,18 @@ const JsonFileBuilder = <S extends Record<string, any>>(fileName: string) => {
     }
   };
 
+  const toJsonSync = (): S => {
+    try {
+      return JSON.parse(decode(readFileSync(path).toString())) as S;
+    } catch (e) {
+      return {} as S;
+    }
+  };
+
   return {
     toJson,
     setJson,
+    toJsonSync,
     async set<K extends keyof S>(key: K, value: S[K]) {
       const data = await toJson();
       data[key] = value as any;
@@ -116,32 +130,42 @@ const JsonFileBuilder = <S extends Record<string, any>>(fileName: string) => {
     clear() {
       return setJson({});
     },
+    getSync<K extends keyof S>(key: K): S[K] {
+      const data = toJsonSync();
+      return data[key];
+    },
   };
 };
 
-const configFile = JsonFileBuilder<IConfigStorageRefer>(STORAGE_PATH.config);
-const _chatMessageFile = JsonFileBuilder(STORAGE_PATH.chatMessage);
-const chatFile = JsonFileBuilder<IChatConversationRefer>(STORAGE_PATH.chat);
+const envFile = JsonFileBuilder<IEnvStorageRefer>(path.join(getHomePage(), STORAGE_PATH.env));
 
-const buildMessageListStorage = (conversation_id: string) => {
-  const path = getHomePage() + '/aionui-chat-history/' + conversation_id + '.txt';
-  if (!existsSync(path)) {
-    mkdirSync(getHomePage() + '/aionui-chat-history/');
+const dirConfig = envFile.getSync('aionui.dir');
+
+const cacheDir = dirConfig?.cacheDir || getHomePage();
+
+const configFile = JsonFileBuilder<IConfigStorageRefer>(path.join(cacheDir, STORAGE_PATH.config));
+const _chatMessageFile = JsonFileBuilder(path.join(cacheDir, STORAGE_PATH.chatMessage));
+const chatFile = JsonFileBuilder<IChatConversationRefer>(path.join(cacheDir, STORAGE_PATH.chat));
+
+const buildMessageListStorage = (conversation_id: string, dir: string) => {
+  const fullName = path.join(dir, 'aionui-chat-history', conversation_id + '.txt');
+  if (!existsSync(fullName)) {
+    mkdirSync(path.join(dir, 'aionui-chat-history'));
   }
-  return JsonFileBuilder('aionui-chat-history/' + conversation_id + '.txt');
+  return JsonFileBuilder(path.join(dir, 'aionui-chat-history', conversation_id + '.txt'));
 };
 
-const conversationHistoryProxy = (options: typeof _chatMessageFile) => {
+const conversationHistoryProxy = (options: typeof _chatMessageFile, dir: string) => {
   return {
     ...options,
     async set(key: string, data: any) {
       const conversation_id = key;
-      const storage = buildMessageListStorage(conversation_id);
+      const storage = buildMessageListStorage(conversation_id, dir);
       return storage.setJson(data);
     },
     async get(key: string): Promise<any[]> {
       const conversation_id = key;
-      const storage = buildMessageListStorage(conversation_id);
+      const storage = buildMessageListStorage(conversation_id, dir);
       const data = await storage.toJson();
       if (Array.isArray(data)) return data;
       return [];
@@ -149,15 +173,17 @@ const conversationHistoryProxy = (options: typeof _chatMessageFile) => {
   };
 };
 
-const chatMessageFile = conversationHistoryProxy(_chatMessageFile);
+const chatMessageFile = conversationHistoryProxy(_chatMessageFile, cacheDir);
 
 const initStorage = () => {
   ConfigStorage.interceptor(configFile);
   ChatStorage.interceptor(chatFile);
   ChatMessageStorage.interceptor(chatMessageFile);
+  EnvStorage.interceptor(envFile);
   application.systemInfo.provider(async () => {
     return {
-      tempDir: getHomePage(),
+      cacheDir: cacheDir,
+      workDir: getSystemDir().workDir,
     };
   });
 };
@@ -167,5 +193,14 @@ export const ProcessConfig = configFile;
 export const ProcessChat = chatFile;
 
 export const ProcessChatMessage = chatMessageFile;
+
+export const ProcessEnv = envFile;
+
+export const getSystemDir = () => {
+  return {
+    cacheDir: cacheDir,
+    workDir: dirConfig?.workDir || path.join(getDataPath(), 'workspace'),
+  };
+};
 
 export default initStorage;

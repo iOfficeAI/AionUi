@@ -6,6 +6,7 @@
 
 import type { IDirOrFile } from '@/common/ipcBridge';
 import { app } from 'electron';
+import { existsSync } from 'fs';
 import fs from 'fs/promises';
 import path from 'path';
 export const getTempPath = () => {
@@ -67,4 +68,23 @@ export async function readDirectoryRecursive(dirPath: string, root = dirPath + '
     return 0;
   });
   return result;
+}
+
+export async function copyDirectoryRecursively(src: string, dest: string) {
+  if (!existsSync(dest)) {
+    await fs.mkdir(dest, { recursive: true });
+  }
+  const entries = await fs.readdir(src, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+
+    if (entry.isDirectory()) {
+      await fs.mkdir(destPath, { recursive: true });
+      await copyDirectoryRecursively(srcPath, destPath);
+    } else {
+      await fs.copyFile(srcPath, destPath);
+    }
+  }
 }

@@ -7,12 +7,13 @@
 import type { TChatConversation, TModelWithConversation } from '@/common/storage';
 import fs from 'fs/promises';
 import path from 'path';
-import { generateHashWithFullName, getDataPath } from './utils';
+import { getSystemDir } from './initStorage';
+import { generateHashWithFullName } from './utils';
 
 export const createGeminiAgent = async (model: TModelWithConversation, workspace?: string, defaultFiles?: string[]): Promise<TChatConversation> => {
   const customWorkspace = !!workspace;
   if (!workspace) {
-    const tempPath = getDataPath();
+    const tempPath = getSystemDir().workDir;
     const fileName = `gemini-temp-${Date.now()}`;
     workspace = path.join(tempPath, fileName);
     await fs.mkdir(workspace, { recursive: true });

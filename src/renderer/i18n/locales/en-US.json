@@ -60,7 +60,8 @@
     "openai": "OpenAI",
     "proxyConfig": "Proxy",
     "geminiBaseUrl": "Gemini API Base URL",
-    "tempDir": "Temporary Directory",
+    "cacheDir": "Cache Directory",
+    "workDir": "Work Directory",
     "language": "Language",
     "gemini": "Gemini Settings",
     "model": "Model Settings",
@@ -79,7 +80,9 @@
     "pleaseEnterBaseUrlAndApiKey": "Please enter base url and api key",
     "customOpenAI": "Custom (OpenAI Compatible)",
     "proxyHttpOnly": "Only support http/https protocol",
-    "baseUrlAutoFix": "base_url auto fix to: {{base_url}}"
+    "baseUrlAutoFix": "base_url auto fix to: {{base_url}}",
+    "updateConfirm": "Confirm Changes",
+    "restartConfirm": "Changes will restart the application. Continue?"
   },
   "messages": {
     "conversationInProgress": "A conversation is currently in progress...",
