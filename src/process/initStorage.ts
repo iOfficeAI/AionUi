@@ -12,6 +12,8 @@ import type { IChatConversationRefer, IConfigStorageRefer, IEnvStorageRefer } fr
 import { ChatMessageStorage, ChatStorage, ConfigStorage, EnvStorage } from '../common/storage';
 import { getDataPath } from './utils';
 
+const nodePath = path;
+
 const STORAGE_PATH = {
   config: 'aionui-config.txt',
   chatMessage: 'aionui-chat-message.txt',
@@ -38,6 +40,14 @@ const WriteFile = (path: string, data: string) => {
 
 const ReadFile = (path: string) => {
   return fs.readFile(path);
+};
+
+const RmFile = (path: string) => {
+  return fs.rm(path, { recursive: true });
+};
+
+const CopyFile = (src: string, dest: string) => {
+  return fs.copyFile(src, dest);
 };
 
 const FileBuilder = (file: string) => {
@@ -69,6 +79,12 @@ const FileBuilder = (file: string) => {
           return data.toString();
         })
       );
+    },
+    copy(dist: string) {
+      return pushStack(() => CopyFile(file, dist));
+    },
+    rm() {
+      return pushStack(() => RmFile(file));
     },
   };
 };
@@ -134,6 +150,13 @@ const JsonFileBuilder = <S extends Record<string, any>>(path: string) => {
       const data = toJsonSync();
       return data[key];
     },
+    backup(fullName: string) {
+      const dir = nodePath.dirname(fullName);
+      if (!existsSync(dir)) {
+        mkdirSync(dir);
+      }
+      return file.copy(fullName).then(() => file.rm());
+    },
   };
 };
 
@@ -169,6 +192,10 @@ const conversationHistoryProxy = (options: typeof _chatMessageFile, dir: string)
       const data = await storage.toJson();
       if (Array.isArray(data)) return data;
       return [];
+    },
+    backup(conversation_id: string) {
+      const storage = buildMessageListStorage(conversation_id, dir);
+      return storage.backup(path.join(dir, 'aionui-chat-history', 'backup', conversation_id + '_' + Date.now() + '.txt'));
     },
   };
 };

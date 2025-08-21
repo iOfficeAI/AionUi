@@ -4,25 +4,21 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { TMessage } from "@/common/chatLib";
-import { composeMessage } from "@/common/chatLib";
-import { ProcessChatMessage } from "./initStorage";
+import type { TMessage } from '@/common/chatLib';
+import { composeMessage } from '@/common/chatLib';
+import { ProcessChatMessage } from './initStorage';
 
 let addStack = new Map<
   string,
   {
-    type: "add" | "compose";
+    type: 'add' | 'compose';
     message: TMessage | ((message?: TMessage[]) => TMessage[]);
   }[]
 >();
 
 const nextTickCallback: Array<() => void> = [];
 
-const pushCacheMessage = (
-  id: string,
-  message: TMessage,
-  type: "add" | "compose"
-) => {
+const pushCacheMessage = (id: string, message: TMessage, type: 'add' | 'compose') => {
   const list = addStack.get(id) || [];
   addStack.set(id, list.concat({ type, message }));
 };
@@ -39,7 +35,10 @@ const debounce = (fn: () => void) => {
   };
 };
 
+let isSyncing = false;
 const syncToLocalFile = () => {
+  if (isSyncing) return;
+  isSyncing = true;
   const stack = addStack;
   addStack = new Map();
   const promiseList: Promise<any>[] = [];
@@ -48,11 +47,11 @@ const syncToLocalFile = () => {
       let newList = messages || [];
       for (let i = 0, len = list.length; i < len; i++) {
         const { type, message } = list[i];
-        if (typeof message === "function") {
+        if (typeof message === 'function') {
           newList = message(newList);
           continue;
         }
-        if (type === "add") {
+        if (type === 'add') {
           newList = newList.concat(message);
         } else {
           newList = composeMessage(message, newList);
@@ -68,32 +67,30 @@ const syncToLocalFile = () => {
         nextTickCallback.shift()();
       }
     })
-    .finally(debounce(syncToLocalFile));
+    .finally(() => {
+      isSyncing = false;
+      debounce(syncToLocalFile)();
+    });
 };
 const nextTickSyncToLocalFile = debounce(syncToLocalFile);
 
 export const addMessage = (conversation_id: string, message: TMessage) => {
-  pushCacheMessage(conversation_id, message, "add");
+  pushCacheMessage(conversation_id, message, 'add');
   nextTickSyncToLocalFile();
 };
 
-export const updateMessage = (
-  conversation_id: string,
-  message: (message: TMessage[]) => TMessage[]
-) => {
+export const updateMessage = (conversation_id: string, message: (message: TMessage[]) => TMessage[]) => {
   const list = addStack.get(conversation_id) || [];
-  addStack.set(conversation_id, list.concat({ type: "compose", message }));
+  addStack.set(conversation_id, list.concat({ type: 'compose', message }));
   nextTickSyncToLocalFile();
 };
 
-export const addOrUpdateMessage = (
-  conversation_id: string,
-  message: TMessage
-) => {
-  pushCacheMessage(conversation_id, message, "compose");
+export const addOrUpdateMessage = (conversation_id: string, message: TMessage) => {
+  pushCacheMessage(conversation_id, message, 'compose');
   nextTickSyncToLocalFile();
 };
 
 export const nextTickSync = (fn: () => void) => {
   nextTickCallback.push(fn);
+  nextTickSyncToLocalFile();
 };
