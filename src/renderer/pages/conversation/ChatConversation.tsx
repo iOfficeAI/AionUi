@@ -12,10 +12,11 @@ import ChatSider from './ChatSider';
 import GeminiChat from './gemini/GeminiChat';
 
 const ChatConversation: React.FC<{
-  conversation: TChatConversation;
+  conversation?: TChatConversation;
 }> = ({ conversation }) => {
   const { t } = useTranslation();
   const conversationNode = useMemo(() => {
+    if (!conversation) return null;
     switch (conversation.type) {
       case 'gemini':
         return <GeminiChat conversation_id={conversation.id} workspace={conversation.extra.workspace} model={conversation.model}></GeminiChat>;

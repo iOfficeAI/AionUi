@@ -14,7 +14,8 @@ import OpenAI from 'openai';
 import path from 'path';
 import { ipcBridge } from '../common';
 import { createGeminiAgent } from './initAgent';
-import { getSystemDir, ProcessChat, ProcessConfig, ProcessEnv } from './initStorage';
+import { getSystemDir, ProcessChat, ProcessChatMessage, ProcessConfig, ProcessEnv } from './initStorage';
+import { nextTickSync } from './message';
 import type { GeminiAgentTask } from './task/GeminiAgentTask';
 import { copyDirectoryRecursively, generateHashWithFullName, readDirectoryRecursive } from './utils';
 import WorkerManage from './WorkerManage';
@@ -82,6 +83,9 @@ ipcBridge.conversation.remove.provider(async ({ id }) => {
         'chat.history',
         history.filter((item) => item.id !== id)
       );
+
+      nextTickSync(() => ProcessChatMessage.backup(id));
+
       return true;
     } catch (e) {
       return false;
