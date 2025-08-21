@@ -8,6 +8,6 @@ import { app } from 'electron';
 import './initBridge';
 import initStorage from './initStorage';
 
-app.whenReady().then(() => {
-  initStorage();
+app.whenReady().then(async () => {
+  await initStorage();
 });
