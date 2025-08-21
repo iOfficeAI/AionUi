@@ -1,7 +1,7 @@
 {
   "name": "AionUi",
   "productName": "AionUi",
-  "version": "1.1.2",
+  "version": "1.1.3",
   "description": "My Electron application description",
   "main": ".webpack/main",
   "scripts": {
@@ -58,7 +58,7 @@
   "dependencies": {
     "@arco-design/web-react": "^2.66.1",
     "@icon-park/react": "^1.4.2",
-    "@office-ai/aioncli-core": "^0.1.19",
+    "@office-ai/aioncli-core": "^0.1.20",
     "@office-ai/platform": "^0.3.15",
     "@types/react-syntax-highlighter": "^15.5.13",
     "classnames": "^2.5.1",
