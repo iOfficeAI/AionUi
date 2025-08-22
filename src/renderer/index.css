@@ -32,3 +32,138 @@
     display: none !important;
   }
 }
+
+/* CSS Dark Mode using filter invert */
+
+/* Apply dark mode to the entire page */
+html {
+  /* Use a smooth transition for better UX */
+  transition:
+    filter 0.3s ease,
+    background-color 0.3s ease;
+}
+html[data-theme="dark"] {
+  /* Set a light background that will become dark when inverted */
+  background-color: #f0f0f0;
+
+  /* Invert colors and adjust hue/contrast for better readability */
+  filter: invert(1) hue-rotate(180deg) contrast(0.9) brightness(1.1);
+}
+
+[data-theme="dark"] body {
+  /* Ensure body doesn't override the background */
+  background-color: transparent;
+}
+
+/* Revert inversion for media elements to show them normally */
+[data-theme="dark"] img, 
+[data-theme="dark"] video, 
+[data-theme="dark"] iframe, 
+[data-theme="dark"] embed, 
+[data-theme="dark"] object,
+[data-theme="dark"] svg,
+[data-theme="dark"] canvas,
+/* Also handle background images */
+[data-theme="dark"] [style*="background-image"],
+/* Common image containers */
+[data-theme="dark"] .image,
+[data-theme="dark"] .logo,
+[data-theme="dark"] .avatar,
+[data-theme="dark"] .thumbnail,
+[data-theme="dark"] .photo {
+  /* Double inversion cancels out, showing original colors */
+  filter: none;
+
+  /* Smooth transition for better UX */
+  transition: filter 0.3s ease;
+}
+
+/* Handle elements that might contain mixed content */
+[data-theme="dark"] .content-area img,
+[data-theme="dark"] .post-content img,
+[data-theme="dark"] article img {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+/* Fix for elements that should remain dark */
+[data-theme="dark"] input[type="color"],
+[data-theme="dark"] progress,
+[data-theme="dark"] meter {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+/* Improve contrast for text elements */
+[data-theme="dark"] h1,
+[data-theme="dark"] h2,
+[data-theme="dark"] h3,
+[data-theme="dark"] h4,
+[data-theme="dark"] h5,
+[data-theme="dark"] h6,
+[data-theme="dark"] p,
+[data-theme="dark"] span,
+[data-theme="dark"] a,
+[data-theme="dark"] li,
+[data-theme="dark"] td,
+[data-theme="dark"] th,
+[data-theme="dark"] .text-content {
+  text-shadow: none;
+}
+
+/* Handle code blocks and pre-formatted text */
+[data-theme="dark"] code,
+[data-theme="dark"] pre,
+[data-theme="dark"] .code-block,
+[data-theme="dark"] .syntax-highlight {
+  filter: invert(1) hue-rotate(180deg) contrast(1.2);
+  border-radius: 4px;
+}
+
+/* Fix for form elements that might look weird */
+[data-theme="dark"] input,
+[data-theme="dark"] textarea,
+[data-theme="dark"] select,
+[data-theme="dark"] button {
+  transition: filter 0.3s ease;
+}
+
+/* Add a toggle class for easier JavaScript control */
+[data-theme="dark"] .dark-mode-disabled {
+  filter: none !important;
+}
+
+[data-theme="dark"] .dark-mode-disabled img,
+[data-theme="dark"] .dark-mode-disabled video,
+[data-theme="dark"] .dark-mode-disabled iframe,
+[data-theme="dark"] .dark-mode-disabled embed,
+[data-theme="dark"] .dark-mode-disabled object,
+[data-theme="dark"] .dark-mode-disabled svg,
+[data-theme="dark"] .dark-mode-disabled canvas {
+  filter: none !important;
+}
+
+/* Handle specific UI elements that might need adjustment */
+[data-theme="dark"] .button,
+[data-theme="dark"] .btn,
+[data-theme="dark"] .card,
+[data-theme="dark"] .modal,
+[data-theme="dark"] .dropdown {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Design light scrollbar that becomes dark when inverted */
+[data-theme="dark"] ::-webkit-scrollbar {
+  width: 12px;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-track {
+  background: #e5e5e5;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: #cccccc;
+  border-radius: 6px;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: #b8b8b8;
+}

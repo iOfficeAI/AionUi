@@ -28,6 +28,7 @@ export interface IConfigStorageRefer {
   };
   'model.config': IModel[];
   language: string;
+  theme: string;
 }
 
 export interface IEnvStorageRefer {
