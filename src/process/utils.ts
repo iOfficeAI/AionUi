@@ -19,6 +19,11 @@ export const getDataPath = () => {
   return path.join(rootPath, 'aionui');
 };
 
+export const getConfigPath = () => {
+  const rootPath = app.getPath('userData');
+  return path.join(rootPath, 'config');
+};
+
 export const generateHashWithFullName = (fullName: string): string => {
   let hash = 0;
   for (let i = 0; i < fullName.length; i++) {
@@ -86,5 +91,46 @@ export async function copyDirectoryRecursively(src: string, dest: string) {
     } else {
       await fs.copyFile(srcPath, destPath);
     }
+  }
+}
+
+// 验证两个目录的文件名结构是否相同
+export async function verifyDirectoryFiles(dir1: string, dir2: string): Promise<boolean> {
+  try {
+    if (!existsSync(dir1) || !existsSync(dir2)) {
+      return false;
+    }
+
+    const entries1 = await fs.readdir(dir1, { withFileTypes: true });
+    const entries2 = await fs.readdir(dir2, { withFileTypes: true });
+
+    if (entries1.length !== entries2.length) {
+      return false;
+    }
+
+    entries1.sort((a, b) => a.name.localeCompare(b.name));
+    entries2.sort((a, b) => a.name.localeCompare(b.name));
+
+    for (let i = 0; i < entries1.length; i++) {
+      const entry1 = entries1[i];
+      const entry2 = entries2[i];
+
+      if (entry1.name !== entry2.name || entry1.isDirectory() !== entry2.isDirectory()) {
+        return false;
+      }
+
+      if (entry1.isDirectory()) {
+        const path1 = path.join(dir1, entry1.name);
+        const path2 = path.join(dir2, entry2.name);
+        if (!(await verifyDirectoryFiles(path1, path2))) {
+          return false;
+        }
+      }
+    }
+
+    return true;
+  } catch (error) {
+    console.warn('[AionUi] Error verifying directory files:', error);
+    return false;
   }
 }

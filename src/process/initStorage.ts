@@ -4,13 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { mkdirSync as _mkdirSync, existsSync, readFileSync } from 'fs';
+import { mkdirSync as _mkdirSync, existsSync, readFileSync, readdirSync } from 'fs';
 import fs from 'fs/promises';
 import path from 'path';
 import { application } from '../common/ipcBridge';
 import type { IChatConversationRefer, IConfigStorageRefer, IEnvStorageRefer } from '../common/storage';
 import { ChatMessageStorage, ChatStorage, ConfigStorage, EnvStorage } from '../common/storage';
-import { getDataPath } from './utils';
+import { copyDirectoryRecursively, getConfigPath, getDataPath, getTempPath, verifyDirectoryFiles } from './utils';
 
 const nodePath = path;
 
@@ -21,18 +21,61 @@ const STORAGE_PATH = {
   env: '.aionui-env',
 };
 
-const getHomePage = getDataPath;
+const getHomePage = getConfigPath;
 
 const mkdirSync = (path: string) => {
   return _mkdirSync(path, { recursive: true });
 };
 
-if (!existsSync(getHomePage())) {
-  mkdirSync(getHomePage());
-}
-if (!existsSync(path.join(getHomePage(), 'workspace'))) {
-  mkdirSync(path.join(getHomePage(), 'workspace'));
-}
+/**
+ * 迁移老版本数据从temp目录到userData/config目录
+ */
+const migrateLegacyData = async () => {
+  const oldDir = getTempPath(); // 老的temp目录
+  const newDir = getConfigPath(); // 新的userData/config目录
+
+  try {
+    // 检查新目录是否为空（不存在或者存在但无内容）
+    const isNewDirEmpty =
+      !existsSync(newDir) ||
+      (() => {
+        try {
+          return existsSync(newDir) && readdirSync(newDir).length === 0;
+        } catch (error) {
+          console.warn('[AionUi] Warning: Could not read new directory during migration check:', error);
+          return false; // 假设非空以避免迁移覆盖
+        }
+      })();
+
+    // 检查迁移条件：老目录存在且新目录为空
+    if (existsSync(oldDir) && isNewDirEmpty) {
+      // 创建目标目录
+      mkdirSync(newDir);
+
+      // 复制所有文件和文件夹
+      await copyDirectoryRecursively(oldDir, newDir);
+
+      // 验证迁移是否成功
+      const isVerified = await verifyDirectoryFiles(oldDir, newDir);
+      if (isVerified) {
+        // 确保不会删除相同的目录
+        if (path.resolve(oldDir) !== path.resolve(newDir)) {
+          try {
+            await fs.rm(oldDir, { recursive: true });
+          } catch (cleanupError) {
+            console.warn('[AionUi] 原目录清理失败，请手动删除:', oldDir, cleanupError);
+          }
+        }
+      }
+
+      return true;
+    }
+  } catch (error) {
+    console.error('[AionUi] 数据迁移失败:', error);
+  }
+
+  return false;
+};
 
 const WriteFile = (path: string, data: string) => {
   return fs.writeFile(path, data);
@@ -202,7 +245,19 @@ const conversationHistoryProxy = (options: typeof _chatMessageFile, dir: string)
 
 const chatMessageFile = conversationHistoryProxy(_chatMessageFile, cacheDir);
 
-const initStorage = () => {
+const initStorage = async () => {
+  // 1. 先执行数据迁移（在任何目录创建之前）
+  await migrateLegacyData();
+
+  // 2. 创建必要的目录（迁移后再创建，确保迁移能正常进行）
+  if (!existsSync(getHomePage())) {
+    mkdirSync(getHomePage());
+  }
+  if (!existsSync(getDataPath())) {
+    mkdirSync(getDataPath());
+  }
+
+  // 3. 初始化存储系统
   ConfigStorage.interceptor(configFile);
   ChatStorage.interceptor(chatFile);
   ChatMessageStorage.interceptor(chatMessageFile);
@@ -226,7 +281,7 @@ export const ProcessEnv = envFile;
 export const getSystemDir = () => {
   return {
     cacheDir: cacheDir,
-    workDir: dirConfig?.workDir || path.join(getDataPath(), 'workspace'),
+    workDir: dirConfig?.workDir || getDataPath(),
   };
 };
 
