@@ -1,4 +1,5 @@
 import LanguageSwitcher from '@/renderer/components/LanguageSwitcher';
+import ThemeSwitcher from '@/renderer/components/ThemeSwitcher';
 import { Form } from '@arco-design/web-react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
@@ -19,6 +20,9 @@ const SystemSettings: React.FC = (props) => {
       >
         <Form.Item label={t('settings.language')} field={'language'}>
           <LanguageSwitcher></LanguageSwitcher>
+        </Form.Item>
+        <Form.Item label={t('settings.theme')} field={'theme'}>
+          <ThemeSwitcher></ThemeSwitcher>
         </Form.Item>
       </Form>
     </SettingContainer>
