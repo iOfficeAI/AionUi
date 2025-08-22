@@ -1,4 +1,4 @@
-import { TChatConversation } from '@/common/storage';
+import type { TChatConversation } from '@/common/storage';
 import { useCallback } from 'react';
 import useSWR from 'swr';
 import useSWRMutation from 'swr/mutation';

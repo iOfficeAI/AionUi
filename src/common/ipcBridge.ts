@@ -49,6 +49,8 @@ export const dialog = {
 };
 export const fs = {
   getFilesByDir: bridge.buildProvider<Array<IDirOrFile>, { dir: string }>('get-file-by-dir'), // 获取指定文件夹下所有文件夹和文件列表
+  readFile: bridge.buildProvider<string, { filePath: string }>('read-file'), // 读取文件内容
+  readDir: bridge.buildProvider<string[], { dirPath: string }>('read-dir'), // 读取目录内容
 };
 
 export const googleAuth = {

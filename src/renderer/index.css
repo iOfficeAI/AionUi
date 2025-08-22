@@ -8,10 +8,10 @@
 
 @keyframes bg-animate {
   0% {
-    background-color: #f2f3f5;
+    background-color: var(--theme-background-tertiary);
   }
   100% {
-    background-color: #e5e6eb;
+    background-color: var(--theme-surface-selected);
   }
 }
 
@@ -33,137 +33,960 @@
   }
 }
 
-/* CSS Dark Mode using filter invert */
+.arco-theme-dark {
+  /* 滚动条样式 */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
 
-/* Apply dark mode to the entire page */
-html {
-  /* Use a smooth transition for better UX */
-  transition:
-    filter 0.3s ease,
-    background-color 0.3s ease;
+  ::-webkit-scrollbar-track {
+    background-color: var(--theme-surface) !important;
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--theme-border) !important;
+    border-radius: 4px;
+    border: 1px solid var(--theme-surface) !important;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--theme-text-tertiary) !important;
+  }
+
+  ::-webkit-scrollbar-corner {
+    background-color: var(--theme-surface) !important;
+  }
+
+  /* 强制覆盖所有 Arco Design 组件的文本颜色 */
+  .arco-typography,
+  .arco-typography-text,
+  .arco-typography-title,
+  .arco-input,
+  .arco-input-wrapper,
+  .arco-form-item-label,
+  .arco-radio-label,
+  .arco-radio,
+  .arco-radio-wrapper,
+  .arco-checkbox-label,
+  .arco-menu-item,
+  .arco-menu-item-inner,
+  .arco-select-option {
+    color: var(--theme-text-primary) !important;
+  }
+
+  /* 特殊处理Form标签的文本颜色 - 根据data-i18n-key属性应用特定颜色 */
+  .arco-form-item-label[data-i18n-key="settings.personalAuth"] {
+    color: var(--theme-personal-auth-color, var(--theme-text-primary)) !important;
+  }
+  .arco-form-item-label[data-i18n-key="settings.proxyConfig"] {
+    color: var(--theme-proxy-config-color, var(--theme-text-primary)) !important;
+  }
+  .arco-form-item-label[data-i18n-key="settings.cacheDir"] {
+    color: var(--theme-cache-dir-color, var(--theme-text-primary)) !important;
+  }
+  .arco-form-item-label[data-i18n-key="settings.workDir"] {
+    color: var(--theme-work-dir-color, var(--theme-text-primary)) !important;
+  }
+
+  /* Radio 和 Checkbox 特殊处理 */
+  .arco-radio-wrapper,
+  .arco-radio-wrapper span,
+  .arco-radio-label,
+  .arco-checkbox-wrapper,
+  .arco-checkbox-wrapper span,
+  .arco-checkbox-label {
+    color: var(--theme-text-primary) !important;
+  }
+
+  /* Radio 组件 hover 状态样式 */
+  .arco-radio {
+    background-color: transparent !important;
+  }
+
+  .arco-radio-wrapper:hover .arco-radio,
+  .arco-radio:hover {
+    background-color: var(--theme-surface-hover) !important;
+    border-color: var(--theme-border) !important;
+  }
+
+  .arco-radio-wrapper:hover .arco-radio-inner,
+  .arco-radio:hover .arco-radio-inner {
+    background-color: var(--theme-background) !important;
+    border-color: var(--theme-border-hover) !important;
+  }
+
+  .arco-radio-wrapper:hover .arco-radio-inner::after,
+  .arco-radio:hover .arco-radio-inner::after {
+    background-color: var(--theme-primary) !important;
+  }
+
+  .arco-radio-wrapper:hover,
+  .arco-radio-wrapper:hover * {
+    color: var(--theme-text-primary) !important;
+  }
+
+  /* Radio 特定内部组件的 hover 样式修复 - 使用更高优先级 */
+  .arco-radio-icon-hover,
+  .arco-icon-hover,
+  .arco-radio-mask-wrapper,
+  .arco-radio .arco-radio-icon-hover,
+  .arco-radio .arco-icon-hover,
+  .arco-radio .arco-radio-mask-wrapper,
+  .arco-radio-wrapper .arco-radio-icon-hover,
+  .arco-radio-wrapper .arco-icon-hover,
+  .arco-radio-wrapper .arco-radio-mask-wrapper {
+    background-color: var(--theme-surface) !important;
+    color: var(--theme-text-primary) !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .arco-radio-wrapper:hover .arco-radio-icon-hover,
+  .arco-radio-wrapper:hover .arco-icon-hover,
+  .arco-radio-wrapper:hover .arco-radio-mask-wrapper,
+  .arco-radio:hover .arco-radio-icon-hover,
+  .arco-radio:hover .arco-icon-hover,
+  .arco-radio:hover .arco-radio-mask-wrapper,
+  .arco-radio.arco-radio:hover .arco-radio-icon-hover,
+  .arco-radio.arco-radio:hover .arco-icon-hover,
+  .arco-radio.arco-radio:hover .arco-radio-mask-wrapper {
+    background-color: var(--theme-surface) !important;
+    border-color: var(--theme-border) !important;
+    color: var(--theme-text-primary) !important;
+    box-shadow: none !important;
+    opacity: 1 !important;
+  }
+
+  /* Radio 组件选中状态的样式 */
+  .arco-radio-checked .arco-radio-inner {
+    background-color: var(--theme-background) !important;
+    border-color: var(--theme-primary) !important;
+  }
+
+  .arco-radio-checked .arco-radio-inner::after {
+    background-color: var(--theme-primary) !important;
+  }
+
+  /* 输入框样式 */
+  .arco-input,
+  .arco-textarea,
+  .arco-select-view,
+  .arco-input-wrapper {
+    background-color: var(--theme-surface) !important;
+    border-color: var(--theme-border) !important;
+    color: var(--theme-text-primary) !important;
+  }
+
+  /* 输入框内部wrapper样式 */
+  .arco-input-inner-wrapper,
+  .arco-input-inner-wrapper-disabled,
+  .arco-input-inner-wrapper-default {
+    background-color: transparent !important;
+    border: 1px solid var(--theme-border) !important;
+    border-radius: 6px !important;
+    color: var(--theme-text-primary) !important;
+    padding: 4px 12px !important;
+  }
+
+  .arco-input-inner-wrapper .arco-input {
+    background-color: transparent !important;
+    border: none !important;
+    color: var(--theme-text-primary) !important;
+  }
+
+  .arco-input-inner-wrapper-disabled {
+    background-color: transparent !important;
+    border: 1px solid var(--theme-border) !important;
+    border-radius: 6px !important;
+    color: var(--theme-text-secondary) !important;
+    opacity: 0.7;
+  }
+
+  /* 输入框前缀和后缀 */
+  .arco-input-prefix,
+  .arco-input-suffix,
+  .arco-input-addAfter,
+  .arco-input-addBefore {
+    background-color: var(--theme-surface) !important;
+    border-color: var(--theme-border) !important;
+    color: var(--theme-text-secondary) !important;
+  }
+
+  .arco-input-group-wrapper .arco-input-addAfter,
+  .arco-input-group-wrapper .arco-input-addBefore,
+  .arco-input-group-addafter,
+  .arco-input-group-addbefore {
+    background-color: var(--theme-surface) !important;
+    border: none !important;
+    color: var(--theme-text-secondary) !important;
+    padding: 4px 8px !important;
+  }
+
+  /* 输入框组内的输入框去除边框 */
+  .arco-input-group .arco-input,
+  .arco-input-group-wrapper .arco-input {
+    border: none !important;
+    background-color: transparent !important;
+  }
+
+  /* 输入框组合样式 */
+  .arco-input-group,
+  .arco-input-group-wrapper {
+    background-color: var(--theme-surface) !important;
+    border: 1px solid var(--theme-border) !important;
+    border-radius: 6px !important;
+  }
+
+  .arco-input-group:hover,
+  .arco-input-group-wrapper:hover {
+    border-color: var(--theme-border-hover) !important;
+  }
+
+  .arco-input-group:focus-within,
+  .arco-input-group-wrapper:focus-within {
+    border-color: var(--theme-primary) !important;
+    box-shadow: 0 0 0 2px rgba(100, 148, 237, 0.1) !important;
+  }
+
+  /* 分割线样式 */
+  .arco-divider,
+  .arco-divider-horizontal,
+  .arco-divider-vertical {
+    border-color: var(--theme-border) !important;
+    background-color: var(--theme-border) !important;
+  }
+
+  .arco-divider-text {
+    color: var(--theme-text-secondary) !important;
+    background-color: var(--theme-surface) !important;
+  }
+
+  .arco-divider-text-left,
+  .arco-divider-text-right,
+  .arco-divider-text-center {
+    color: var(--theme-text-secondary) !important;
+    background-color: var(--theme-surface) !important;
+  }
+
+  /* 折叠面板样式 */
+  .arco-collapse,
+  .arco-collapse-border {
+    background-color: var(--theme-surface) !important;
+    border-color: var(--theme-border) !important;
+  }
+
+  .arco-collapse-item {
+    background-color: var(--theme-surface) !important;
+    border-color: var(--theme-border) !important;
+  }
+
+  .arco-collapse-item-header {
+    background-color: var(--theme-surface) !important;
+    color: var(--theme-text-primary) !important;
+    border-color: var(--theme-border) !important;
+  }
+
+  .arco-collapse-item-header:hover {
+    background-color: var(--theme-surface-hover) !important;
+  }
+
+  .arco-collapse-item-content {
+    background-color: var(--theme-surface) !important;
+    color: var(--theme-text-primary) !important;
+    border-color: var(--theme-border) !important;
+  }
+
+  .arco-collapse-item-content-box {
+    background-color: var(--theme-surface) !important;
+    color: var(--theme-text-primary) !important;
+  }
+
+  /* 折叠面板图标 */
+  .arco-collapse-item-header-icon {
+    color: var(--theme-text-secondary) !important;
+  }
+
+  /* Tree 组件样式 */
+  .arco-tree {
+    background-color: var(--theme-sidebar-background) !important;
+    color: var(--theme-text-primary) !important;
+  }
+
+  .arco-tree-node {
+    background-color: transparent !important;
+    color: var(--theme-text-primary) !important;
+  }
+
+  .arco-tree-node-title {
+    background-color: transparent !important;
+    color: var(--theme-text-primary) !important;
+  }
+
+  .arco-tree-node-title:hover {
+    background-color: var(--theme-sidebar-hover) !important;
+    color: var(--theme-text-primary) !important;
+  }
+
+  .arco-tree-node-selected .arco-tree-node-title {
+    background-color: var(--theme-surface-selected) !important;
+    color: var(--theme-text-primary) !important;
+  }
+
+  .arco-tree-node-switcher {
+    color: var(--theme-text-secondary) !important;
+  }
+
+  /* Tree 连接线颜色 */
+  .arco-tree-node::before,
+  .arco-tree-node::after {
+    border-color: var(--theme-border) !important;
+  }
+
+  /* Empty 组件样式 */
+  .arco-empty {
+    color: var(--theme-text-secondary) !important;
+  }
+
+  .arco-empty-description {
+    color: var(--theme-text-secondary) !important;
+  }
+
+  /* Select 组件特殊处理 */
+  .arco-select {
+    border-color: var(--theme-border) !important;
+  }
+
+  .arco-select-view-single,
+  .arco-select-view-multiple {
+    background-color: var(--theme-surface) !important;
+    border-color: var(--theme-border) !important;
+    color: var(--theme-text-primary) !important;
+  }
+
+  .arco-select-view-single:hover,
+  .arco-select-view-multiple:hover {
+    border-color: var(--theme-border) !important;
+  }
+
+  .arco-select-view-single.arco-select-view-focus,
+  .arco-select-view-multiple.arco-select-view-focus {
+    border-color: var(--theme-primary) !important;
+    box-shadow: 0 0 0 2px rgba(100, 148, 237, 0.1) !important;
+  }
+
+  /* Modal 内的 Select 组件 */
+  .arco-modal .arco-select,
+  .arco-modal .arco-select-view,
+  .arco-modal .arco-select-view-single,
+  .arco-modal .arco-select-view-multiple {
+    background-color: var(--theme-surface) !important;
+    border-color: var(--theme-border) !important;
+    color: var(--theme-text-primary) !important;
+  }
+
+  .arco-modal .arco-select-view-single:hover,
+  .arco-modal .arco-select-view-multiple:hover {
+    border-color: var(--theme-border) !important;
+  }
+
+  /* 强制覆盖所有可能的 Select 边框颜色 */
+  .arco-select,
+  .arco-select-view,
+  .arco-select-view-single,
+  .arco-select-view-multiple,
+  .arco-modal .arco-select,
+  .arco-modal .arco-select-view {
+    border-color: var(--theme-border) !important;
+  }
+
+  /* Select 下拉箭头颜色 */
+  .arco-select-arrow,
+  .arco-select-view-suffix {
+    color: var(--theme-text-secondary) !important;
+  }
+
+  /* Modal 内容区域的所有元素 */
+  .arco-modal-wrapper .arco-modal-content {
+    color: var(--theme-text-primary) !important;
+  }
+
+  /* Modal 中的表单元素 */
+  .arco-modal-wrapper .arco-form-item,
+  .arco-modal-wrapper .arco-form-item-label,
+  .arco-modal-wrapper .arco-form-item-content {
+    color: var(--theme-text-primary) !important;
+  }
+
+  /* Modal 整体样式 */
+  .arco-modal-wrapper .arco-modal {
+    background-color: var(--theme-surface) !important;
+    color: var(--theme-text-primary) !important;
+  }
+
+  .arco-modal-wrapper .arco-modal-header,
+  .arco-modal-wrapper .arco-modal-body {
+    background-color: var(--theme-surface) !important;
+    color: var(--theme-text-primary) !important;
+  }
+
+  /* 输入框聚焦状态 */
+  .arco-input:focus,
+  .arco-textarea:focus,
+  .arco-input-wrapper:focus-within {
+    background-color: var(--theme-surface) !important;
+    border-color: var(--theme-primary) !important;
+    color: var(--theme-text-primary) !important;
+  }
+
+  /* 占位符文字 */
+  .arco-input::placeholder,
+  .arco-textarea::placeholder {
+    color: var(--theme-text-tertiary) !important;
+  }
+
+  /* 卡片和面板 */
+  .arco-card,
+  .arco-card-body,
+  .arco-card-header,
+  .arco-card-header-title,
+  .arco-card-header .arco-card-header-title,
+  .arco-card .arco-card-header .arco-card-header-title {
+    background-color: var(--theme-surface) !important;
+    color: var(--theme-text-primary) !important;
+  }
+
+  /* 卡片标题的所有子元素 */
+  .arco-card-header *,
+  .arco-card-header-title * {
+    color: var(--theme-text-primary) !important;
+  }
+
+  /* 按钮样式覆盖 */
+  .arco-btn:hover {
+    color: var(--theme-text-primary) !important;
+  }
+
+  /* Secondary 按钮 */
+  .arco-btn-secondary {
+    background-color: var(--theme-surface) !important;
+    border-color: var(--theme-border) !important;
+    color: var(--theme-text-primary) !important;
+  }
+
+  .arco-btn-secondary:hover {
+    background-color: var(--theme-surface-hover) !important;
+    border-color: var(--theme-border) !important;
+    color: var(--theme-text-primary) !important;
+  }
+
+  .arco-btn-secondary:active {
+    background-color: var(--theme-surface-selected) !important;
+    border-color: var(--theme-border) !important;
+    color: var(--theme-text-primary) !important;
+  }
+
+  /* 默认按钮 */
+  .arco-btn-default {
+    background-color: var(--theme-surface) !important;
+    border-color: var(--theme-border) !important;
+    color: var(--theme-text-primary) !important;
+  }
+
+  .arco-btn-default:hover {
+    background-color: var(--theme-surface-hover) !important;
+    border-color: var(--theme-border) !important;
+    color: var(--theme-text-primary) !important;
+  }
+
+  /* 按钮组内的按钮 */
+  .arco-btn-group .arco-btn {
+    background-color: var(--theme-surface) !important;
+    border-color: var(--theme-border) !important;
+    color: var(--theme-text-primary) !important;
+  }
+
+  .arco-btn-group .arco-btn:hover {
+    background-color: var(--theme-surface-hover) !important;
+    border-color: var(--theme-border) !important;
+    color: var(--theme-text-primary) !important;
+  }
+
+  /* 下拉框和弹出层 */
+  .arco-select-dropdown,
+  .arco-select-popup,
+  .arco-dropdown,
+  .arco-tooltip,
+  .arco-popover,
+  .arco-menu,
+  .arco-menu-inner {
+    background-color: var(--theme-surface) !important;
+    border-color: var(--theme-border) !important;
+    color: var(--theme-text-primary) !important;
+  }
+
+  /* Tooltip 特殊样式 */
+  .arco-tooltip-content,
+  .arco-tooltip-inner {
+    background-color: var(--theme-surface) !important;
+    color: var(--theme-text-primary) !important;
+    border: 1px solid var(--theme-border) !important;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3) !important;
+  }
+
+  .arco-tooltip-content .arco-tooltip-arrow,
+  .arco-tooltip-arrow::before {
+    background-color: var(--theme-surface) !important;
+    border-color: var(--theme-border) !important;
+  }
+
+  /* Select 弹出层特殊处理 */
+  .arco-select-popup {
+    border: 1px solid var(--theme-border) !important;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3) !important;
+  }
+
+  .arco-select-popup .arco-select-dropdown {
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  /* 下拉选项 */
+  .arco-select-option,
+  .arco-menu-item {
+    background-color: var(--theme-surface) !important;
+    color: var(--theme-text-primary) !important;
+  }
+
+  .arco-select-option:hover,
+  .arco-menu-item:hover {
+    background-color: var(--theme-surface-hover) !important;
+    color: var(--theme-text-primary) !important;
+  }
+
+  .arco-select-option.arco-select-option-selected,
+  .arco-menu-item-selected {
+    background-color: var(--theme-surface-selected) !important;
+    color: var(--theme-text-primary) !important;
+  }
+
+  /* Dropdown 菜单特殊处理 */
+  .arco-dropdown-menu,
+  .arco-dropdown-content {
+    background-color: var(--theme-surface) !important;
+    border: 1px solid var(--theme-border) !important;
+    color: var(--theme-text-primary) !important;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3) !important;
+  }
+
+  .arco-dropdown-menu .arco-menu-item,
+  .arco-dropdown-content .arco-menu-item {
+    background-color: var(--theme-surface) !important;
+    color: var(--theme-text-primary) !important;
+    padding: 8px 12px !important;
+  }
+
+  .arco-dropdown-menu .arco-menu-item:hover,
+  .arco-dropdown-content .arco-menu-item:hover {
+    background-color: var(--theme-surface-hover) !important;
+    color: var(--theme-text-primary) !important;
+  }
+
+  /* 强制覆盖所有 Menu 样式 */
+  .arco-menu,
+  .arco-menu-item,
+  div[class*="arco-menu"] {
+    background-color: var(--theme-surface) !important;
+    color: var(--theme-text-primary) !important;
+    border-color: var(--theme-border) !important;
+  }
+
+  .arco-menu-item:hover,
+  div[class*="arco-menu-item"]:hover {
+    background-color: var(--theme-surface-hover) !important;
+    color: var(--theme-text-primary) !important;
+  }
+
+  /* 菜单分组标题 */
+  .arco-menu-group-title {
+    color: var(--theme-text-secondary) !important;
+  }
+
+  /* 强制覆盖所有 Dropdown Menu 样式 - 包括开始页面的上传菜单 */
+  .arco-dropdown .arco-menu,
+  .arco-dropdown .arco-menu-item,
+  .arco-dropdown-content .arco-menu,
+  .arco-dropdown-content .arco-menu-item,
+  [class*="arco-dropdown"] .arco-menu-item {
+    background-color: var(--theme-surface) !important;
+    color: var(--theme-text-primary) !important;
+    border: none !important;
+  }
+
+  .arco-dropdown .arco-menu-item:hover,
+  .arco-dropdown-content .arco-menu-item:hover,
+  [class*="arco-dropdown"] .arco-menu-item:hover {
+    background-color: var(--theme-surface-hover) !important;
+    color: var(--theme-text-primary) !important;
+  }
+
+  /* Dropdown 菜单容器 */
+  .arco-dropdown,
+  .arco-dropdown-content,
+  .arco-trigger-popup {
+    background-color: var(--theme-surface) !important;
+    border: 1px solid var(--theme-border) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  }
+
+  /* 最强优先级覆盖 - 针对所有可能的菜单项 */
+  div[class*="arco-menu-item"],
+  li[class*="arco-menu-item"],
+  .arco-menu-item,
+  [role="menuitem"] {
+    background-color: var(--theme-surface) !important;
+    color: var(--theme-text-primary) !important;
+  }
+
+  div[class*="arco-menu-item"]:hover,
+  li[class*="arco-menu-item"]:hover,
+  .arco-menu-item:hover,
+  [role="menuitem"]:hover {
+    background-color: var(--theme-surface-hover) !important;
+    color: var(--theme-text-primary) !important;
+  }
+
+  /* Modal 弹窗 */
+  .arco-modal,
+  .arco-modal-header,
+  .arco-modal-body,
+  .arco-modal-footer {
+    background-color: var(--theme-surface) !important;
+    border-color: var(--theme-border) !important;
+    color: var(--theme-text-primary) !important;
+  }
+
+  .arco-modal-title {
+    color: var(--theme-text-primary) !important;
+  }
+
+  /* 搜索高亮样式 - Arco Design Select 组件的搜索匹配高亮 */
+  .arco-select-highlight,
+  .arco-select-option .arco-select-highlight,
+  .arco-select-option-content mark,
+  .arco-select-option mark,
+  .arco-menu-item mark,
+  .arco-menu-item-inner mark,
+  [class*="arco-select"] mark,
+  [class*="arco-menu"] mark,
+  .arco-select-option-content .arco-select-highlight,
+  .arco-select-popup .arco-select-highlight,
+  .arco-dropdown .arco-select-highlight,
+  .arco-select-option-inner .arco-select-highlight,
+  .arco-select-option-wrapper .arco-select-highlight,
+  span.arco-select-highlight,
+  em.arco-select-highlight {
+    background-color: var(--theme-search-highlight-background) !important;
+    color: var(--theme-search-highlight) !important;
+    padding: 0 2px !important;
+    border-radius: 2px !important;
+    font-style: normal !important;
+  }
+
+  /* 针对 Select 下拉选项中的高亮文本 */
+  .arco-select-option .arco-select-highlight,
+  .arco-select-option-content .arco-select-highlight {
+    background-color: var(--theme-search-highlight-background) !important;
+    color: var(--theme-search-highlight) !important;
+    font-weight: bold !important;
+  }
+
+  /* 更通用的搜索高亮覆盖 - 使用属性选择器 */
+  [class*="arco-select"] [class*="highlight"],
+  .arco-select-popup [class*="highlight"],
+  .arco-dropdown [class*="highlight"] {
+    background-color: var(--theme-search-highlight-background) !important;
+    color: var(--theme-search-highlight) !important;
+    padding: 0 2px !important;
+    border-radius: 2px !important;
+  }
 }
-html[data-theme="dark"] {
-  /* Set a light background that will become dark when inverted */
-  background-color: #f0f0f0;
 
-  /* Invert colors and adjust hue/contrast for better readability */
-  filter: invert(1) hue-rotate(180deg) contrast(0.9) brightness(1.1);
+/* 浅色主题样式 */
+.arco-theme-light {
+  /* 滚动条样式 */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background-color: var(--theme-surface) !important;
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: var(--theme-border) !important;
+    border-radius: 4px;
+    border: 1px solid var(--theme-surface) !important;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: var(--theme-text-tertiary) !important;
+  }
+
+  ::-webkit-scrollbar-corner {
+    background-color: var(--theme-surface) !important;
+  }
+
+  /* 强制覆盖所有 Arco Design 组件的文本颜色 */
+  .arco-typography,
+  .arco-typography-text,
+  .arco-typography-title,
+  .arco-input,
+  .arco-input-wrapper,
+  .arco-form-item-label,
+  .arco-radio-label,
+  .arco-radio,
+  .arco-radio-wrapper,
+  .arco-checkbox-label,
+  .arco-menu-item,
+  .arco-menu-item-inner,
+  .arco-select-option {
+    color: var(--theme-text-primary) !important;
+  }
+
+  /* Radio 组件 hover 状态样式 */
+  .arco-radio {
+    background-color: transparent !important;
+  }
+
+  .arco-radio-wrapper:hover .arco-radio,
+  .arco-radio:hover {
+    background-color: var(--theme-surface-hover) !important;
+    border-color: var(--theme-border) !important;
+  }
+
+  .arco-radio-wrapper:hover .arco-radio-inner,
+  .arco-radio:hover .arco-radio-inner {
+    background-color: var(--theme-background) !important;
+    border-color: var(--theme-border-hover) !important;
+  }
+
+  .arco-radio-wrapper:hover .arco-radio-inner::after,
+  .arco-radio:hover .arco-radio-inner::after {
+    background-color: var(--theme-primary) !important;
+  }
+
+  .arco-radio-wrapper:hover,
+  .arco-radio-wrapper:hover * {
+    color: var(--theme-text-primary) !important;
+  }
+
+  /* Radio 特定内部组件的 hover 样式修复 - 使用更高优先级 */
+  .arco-radio-icon-hover,
+  .arco-icon-hover,
+  .arco-radio-mask-wrapper,
+  .arco-radio .arco-radio-icon-hover,
+  .arco-radio .arco-icon-hover,
+  .arco-radio .arco-radio-mask-wrapper,
+  .arco-radio-wrapper .arco-radio-icon-hover,
+  .arco-radio-wrapper .arco-icon-hover,
+  .arco-radio-wrapper .arco-radio-mask-wrapper {
+    background-color: var(--theme-surface) !important;
+    color: var(--theme-text-primary) !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .arco-radio-wrapper:hover .arco-radio-icon-hover,
+  .arco-radio-wrapper:hover .arco-icon-hover,
+  .arco-radio-wrapper:hover .arco-radio-mask-wrapper,
+  .arco-radio:hover .arco-radio-icon-hover,
+  .arco-radio:hover .arco-icon-hover,
+  .arco-radio:hover .arco-radio-mask-wrapper,
+  .arco-radio.arco-radio:hover .arco-radio-icon-hover,
+  .arco-radio.arco-radio:hover .arco-icon-hover,
+  .arco-radio.arco-radio:hover .arco-radio-mask-wrapper {
+    background-color: var(--theme-surface) !important;
+    border-color: var(--theme-border) !important;
+    color: var(--theme-text-primary) !important;
+    box-shadow: none !important;
+    opacity: 1 !important;
+  }
+
+  /* Radio 组件选中状态的样式 */
+  .arco-radio-checked .arco-radio-inner {
+    background-color: var(--theme-background) !important;
+    border-color: var(--theme-primary) !important;
+  }
+
+  .arco-radio-checked .arco-radio-inner::after {
+    background-color: var(--theme-primary) !important;
+  }
+
+  /* 输入框样式 */
+  .arco-input,
+  .arco-textarea,
+  .arco-select-view,
+  .arco-input-wrapper {
+    background-color: var(--theme-surface) !important;
+    border-color: var(--theme-border) !important;
+    color: var(--theme-text-primary) !important;
+  }
+
+  /* 输入框内部wrapper样式 */
+  .arco-input-inner-wrapper,
+  .arco-input-inner-wrapper-disabled,
+  .arco-input-inner-wrapper-default {
+    background-color: transparent !important;
+    border: 1px solid var(--theme-border) !important;
+    border-radius: 6px !important;
+    color: var(--theme-text-primary) !important;
+    padding: 4px 12px !important;
+  }
+
+  .arco-input-inner-wrapper .arco-input {
+    background-color: transparent !important;
+    border: none !important;
+    color: var(--theme-text-primary) !important;
+  }
+
+  .arco-input-inner-wrapper-disabled {
+    background-color: transparent !important;
+    border: 1px solid var(--theme-border) !important;
+    border-radius: 6px !important;
+    color: var(--theme-text-secondary) !important;
+    opacity: 0.7;
+  }
+
+  /* Select 组件特殊处理 */
+  .arco-select-view-single,
+  .arco-select-view-multiple {
+    background-color: var(--theme-surface) !important;
+    border-color: var(--theme-border) !important;
+    color: var(--theme-text-primary) !important;
+  }
+
+  /* 下拉框和弹出层 */
+  .arco-select-dropdown,
+  .arco-select-popup,
+  .arco-dropdown,
+  .arco-tooltip,
+  .arco-popover,
+  .arco-menu,
+  .arco-menu-inner {
+    background-color: var(--theme-surface) !important;
+    border-color: var(--theme-border) !important;
+    color: var(--theme-text-primary) !important;
+  }
+
+  /* Select 弹出层特殊处理 */
+  .arco-select-popup {
+    border: 1px solid var(--theme-border) !important;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1) !important;
+  }
+
+  /* 下拉选项 */
+  .arco-select-option,
+  .arco-menu-item {
+    background-color: var(--theme-surface) !important;
+    color: var(--theme-text-primary) !important;
+  }
+
+  .arco-select-option:hover,
+  .arco-menu-item:hover {
+    background-color: var(--theme-surface-hover) !important;
+    color: var(--theme-text-primary) !important;
+  }
+
+  .arco-select-option.arco-select-option-selected,
+  .arco-menu-item-selected {
+    background-color: var(--theme-surface-selected) !important;
+    color: var(--theme-text-primary) !important;
+  }
+
+  /* Modal 弹窗 */
+  .arco-modal,
+  .arco-modal-header,
+  .arco-modal-body,
+  .arco-modal-footer {
+    background-color: var(--theme-surface) !important;
+    border-color: var(--theme-border) !important;
+    color: var(--theme-text-primary) !important;
+  }
+
+  .arco-modal-title {
+    color: var(--theme-text-primary) !important;
+  }
+
+  /* 搜索高亮样式 - Arco Design Select 组件的搜索匹配高亮 */
+  .arco-select-highlight,
+  .arco-select-option .arco-select-highlight,
+  .arco-select-option-content mark,
+  .arco-select-option mark,
+  .arco-menu-item mark,
+  .arco-menu-item-inner mark,
+  [class*="arco-select"] mark,
+  [class*="arco-menu"] mark,
+  .arco-select-option-content .arco-select-highlight,
+  .arco-select-popup .arco-select-highlight,
+  .arco-dropdown .arco-select-highlight,
+  .arco-select-option-inner .arco-select-highlight,
+  .arco-select-option-wrapper .arco-select-highlight,
+  span.arco-select-highlight,
+  em.arco-select-highlight {
+    background-color: var(--theme-search-highlight-background) !important;
+    color: var(--theme-search-highlight) !important;
+    padding: 0 2px !important;
+    border-radius: 2px !important;
+    font-style: normal !important;
+  }
+
+  /* 针对 Select 下拉选项中的高亮文本 */
+  .arco-select-option .arco-select-highlight,
+  .arco-select-option-content .arco-select-highlight {
+    background-color: var(--theme-search-highlight-background) !important;
+    color: var(--theme-search-highlight) !important;
+    font-weight: bold !important;
+  }
+
+  /* 更通用的搜索高亮覆盖 - 使用属性选择器 */
+  [class*="arco-select"] [class*="highlight"],
+  .arco-select-popup [class*="highlight"],
+  .arco-dropdown [class*="highlight"] {
+    background-color: var(--theme-search-highlight-background) !important;
+    color: var(--theme-search-highlight) !important;
+    padding: 0 2px !important;
+    border-radius: 2px !important;
+  }
+}
+/* 统一修复Radio组件所有部分的hover效果为暗色主题 */
+.arco-theme-dark .arco-radio-wrapper:hover,
+.arco-theme-dark .arco-radio-wrapper:hover .arco-radio-label {
+  background-color: var(--theme-surface-hover) !important;
+  background: var(--theme-surface-hover) !important;
 }
 
-[data-theme="dark"] body {
-  /* Ensure body doesn't override the background */
-  background-color: transparent;
+/* Radio圈和相关元素使用不同的颜色 */
+.arco-theme-dark .arco-radio-wrapper:hover .arco-radio,
+.arco-theme-dark .arco-radio-wrapper:hover span,
+.arco-theme-dark .arco-icon-hover:hover,
+.arco-theme-dark .arco-radio-icon-hover:hover,
+.arco-theme-dark .arco-radio-mask-wrapper:hover {
+  background-color: var(--theme-surface) !important;
+  background: var(--theme-surface) !important;
 }
 
-/* Revert inversion for media elements to show them normally */
-[data-theme="dark"] img, 
-[data-theme="dark"] video, 
-[data-theme="dark"] iframe, 
-[data-theme="dark"] embed, 
-[data-theme="dark"] object,
-[data-theme="dark"] svg,
-[data-theme="dark"] canvas,
-/* Also handle background images */
-[data-theme="dark"] [style*="background-image"],
-/* Common image containers */
-[data-theme="dark"] .image,
-[data-theme="dark"] .logo,
-[data-theme="dark"] .avatar,
-[data-theme="dark"] .thumbnail,
-[data-theme="dark"] .photo {
-  /* Double inversion cancels out, showing original colors */
-  filter: none;
-
-  /* Smooth transition for better UX */
-  transition: filter 0.3s ease;
-}
-
-/* Handle elements that might contain mixed content */
-[data-theme="dark"] .content-area img,
-[data-theme="dark"] .post-content img,
-[data-theme="dark"] article img {
-  filter: invert(1) hue-rotate(180deg);
-}
-
-/* Fix for elements that should remain dark */
-[data-theme="dark"] input[type="color"],
-[data-theme="dark"] progress,
-[data-theme="dark"] meter {
-  filter: invert(1) hue-rotate(180deg);
-}
-
-/* Improve contrast for text elements */
-[data-theme="dark"] h1,
-[data-theme="dark"] h2,
-[data-theme="dark"] h3,
-[data-theme="dark"] h4,
-[data-theme="dark"] h5,
-[data-theme="dark"] h6,
-[data-theme="dark"] p,
-[data-theme="dark"] span,
-[data-theme="dark"] a,
-[data-theme="dark"] li,
-[data-theme="dark"] td,
-[data-theme="dark"] th,
-[data-theme="dark"] .text-content {
-  text-shadow: none;
-}
-
-/* Handle code blocks and pre-formatted text */
-[data-theme="dark"] code,
-[data-theme="dark"] pre,
-[data-theme="dark"] .code-block,
-[data-theme="dark"] .syntax-highlight {
-  filter: invert(1) hue-rotate(180deg) contrast(1.2);
-  border-radius: 4px;
-}
-
-/* Fix for form elements that might look weird */
-[data-theme="dark"] input,
-[data-theme="dark"] textarea,
-[data-theme="dark"] select,
-[data-theme="dark"] button {
-  transition: filter 0.3s ease;
-}
-
-/* Add a toggle class for easier JavaScript control */
-[data-theme="dark"] .dark-mode-disabled {
-  filter: none !important;
-}
-
-[data-theme="dark"] .dark-mode-disabled img,
-[data-theme="dark"] .dark-mode-disabled video,
-[data-theme="dark"] .dark-mode-disabled iframe,
-[data-theme="dark"] .dark-mode-disabled embed,
-[data-theme="dark"] .dark-mode-disabled object,
-[data-theme="dark"] .dark-mode-disabled svg,
-[data-theme="dark"] .dark-mode-disabled canvas {
-  filter: none !important;
-}
-
-/* Handle specific UI elements that might need adjustment */
-[data-theme="dark"] .button,
-[data-theme="dark"] .btn,
-[data-theme="dark"] .card,
-[data-theme="dark"] .modal,
-[data-theme="dark"] .dropdown {
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-/* Design light scrollbar that becomes dark when inverted */
-[data-theme="dark"] ::-webkit-scrollbar {
-  width: 12px;
-}
-
-[data-theme="dark"] ::-webkit-scrollbar-track {
-  background: #e5e5e5;
-}
-
-[data-theme="dark"] ::-webkit-scrollbar-thumb {
-  background: #cccccc;
-  border-radius: 6px;
-}
-
-[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
-  background: #b8b8b8;
+/* 修复伪元素的hover效果 - Radio圈使用不同颜色 */
+.arco-theme-dark .arco-icon-hover:hover::before,
+.arco-theme-dark .arco-radio-icon-hover:hover::before,
+.arco-theme-dark .arco-radio-mask-wrapper:hover::before,
+.arco-theme-dark .arco-radio-wrapper:hover .arco-icon-hover::before,
+.arco-theme-dark .arco-radio-wrapper:hover .arco-radio-icon-hover::before,
+.arco-theme-dark .arco-radio-wrapper:hover .arco-radio-mask-wrapper::before,
+.arco-theme-dark .arco-radio:hover .arco-radio-icon-hover::before {
+  background-color: var(--theme-surface) !important;
+  background: var(--theme-surface) !important;
 }

@@ -1,6 +1,6 @@
 import { ipcBridge } from '@/common';
 import { transformMessage } from '@/common/chatLib';
-import { TModelWithConversation } from '@/common/storage';
+import type { TModelWithConversation } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import SendBox from '@/renderer/components/sendbox';
 import { getSendBoxDraftHook } from '@/renderer/hooks/useSendBoxDraft';
@@ -11,6 +11,7 @@ import { Plus } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useThemeColors, useTextColor } from '../../../themes/index';
 
 const useGeminiSendBoxDraft = getSendBoxDraftHook('gemini', {
   _type: 'gemini',
@@ -113,6 +114,8 @@ const GeminiSendBox: React.FC<{
   model: TModelWithConversation;
 }> = ({ conversation_id, model }) => {
   const { t } = useTranslation();
+  const themeColors = useThemeColors();
+  const getTextColor = useTextColor();
   const { thought, running } = useGeminiMessage(conversation_id);
 
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
@@ -157,9 +160,10 @@ const GeminiSendBox: React.FC<{
     <div className='max-w-800px w-full  mx-auto flex flex-col'>
       {thought.subject ? (
         <div
-          className=' px-10px py-10px rd-20px text-14px pb-40px  lh-20px color-#86909C'
+          className=' px-10px py-10px rd-20px text-14px pb-40px  lh-20px'
           style={{
             background: 'linear-gradient(90deg, #F0F3FF 0%, #F2F2F2 100%)',
+            color: 'var(--theme-text-secondary)',
             transform: 'translateY(36px)',
           }}
         >
@@ -193,7 +197,7 @@ const GeminiSendBox: React.FC<{
             <Button
               type='secondary'
               shape='circle'
-              icon={<Plus theme='outline' size='14' strokeWidth={2} fill='#333' />}
+              icon={<Plus theme='outline' size='14' strokeWidth={2} fill={getTextColor('conversation.addFile', 'textSecondary')} />}
               onClick={() => {
                 ipcBridge.dialog.showOpen
                   .invoke({

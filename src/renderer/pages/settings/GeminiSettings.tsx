@@ -12,24 +12,33 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import SettingContainer from './components/SettingContainer';
+import { useThemeColors, useTextColor } from '../../themes/index';
 
 const DirInputItem: React.FC<{
   label: string;
+  labelKey: string;
   field: string;
   rules?: any[];
 }> = (props) => {
   const { t } = useTranslation();
+  const themeColors = useThemeColors();
+  const getTextColor = useTextColor();
   return (
-    <Form.Item label={props.label} field={props.field}>
+    <Form.Item label={<span style={{ color: getTextColor(props.labelKey, 'textPrimary') }}>{props.label}</span>} field={props.field}>
       {(options, form) => (
         <Input
           disabled
           value={options[props.field]}
+          style={{
+            backgroundColor: themeColors.surface,
+            borderColor: themeColors.border,
+            color: getTextColor('settings.gemini.directory', 'textPrimary'),
+          }}
           addAfter={
             <FolderOpen
               theme='outline'
               size='24'
-              fill='#333'
+              fill={getTextColor('settings.gemini.folderIcon', 'textSecondary')}
               onClick={() => {
                 ipcBridge.dialog.showOpen
                   .invoke({
@@ -53,6 +62,8 @@ const DirInputItem: React.FC<{
 const GeminiSettings: React.FC = (props) => {
   const { t } = useTranslation();
   const [form] = Form.useForm();
+  const themeColors = useThemeColors();
+  const getTextColor = useTextColor();
   const [loading, setLoading] = useState(false);
   const [modal, modalContextHolder] = Modal.useModal();
   const [error, setError] = useState<string | null>(null);
@@ -139,7 +150,7 @@ const GeminiSettings: React.FC = (props) => {
         form={form}
         className={'[&_.arco-row]:flex-nowrap  max-w-800px'}
       >
-        <Form.Item label={t('settings.personalAuth')} field={'googleAccount'}>
+        <Form.Item label={<span style={{ color: getTextColor('settings.personalAuth', 'textPrimary') }}>{t('settings.personalAuth')}</span>} field={'googleAccount'}>
           {(props) => {
             return (
               <div>
@@ -182,11 +193,11 @@ const GeminiSettings: React.FC = (props) => {
             );
           }}
         </Form.Item>
-        <Form.Item label={t('settings.proxyConfig')} field='proxy' rules={[{ match: /^https?:\/\/.+$/, message: t('settings.proxyHttpOnly') }]}>
+        <Form.Item label={<span style={{ color: getTextColor('settings.proxyConfig', 'textPrimary') }}>{t('settings.proxyConfig')}</span>} field='proxy' rules={[{ match: /^https?:\/\/.+$/, message: t('settings.proxyHttpOnly') }]}>
           <Input placeholder={t('settings.proxyHttpOnly')}></Input>
         </Form.Item>
-        <DirInputItem label={t('settings.cacheDir')} field='cacheDir' />
-        <DirInputItem label={t('settings.workDir')} field='workDir' />
+        <DirInputItem label={t('settings.cacheDir')} labelKey='settings.cacheDir' field='cacheDir' />
+        <DirInputItem label={t('settings.workDir')} labelKey='settings.workDir' field='workDir' />
         {error && <Alert className={'m-b-10px'} type='error' content={typeof error === 'string' ? error : JSON.stringify(error)} />}
       </Form>
       {modalContextHolder}

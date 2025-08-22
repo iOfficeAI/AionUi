@@ -5,7 +5,8 @@
  */
 
 import { ipcBridge } from '@/common';
-import { ConfigStorage, IModel, TModelWithConversation } from '@/common/storage';
+import type { IModel, TModelWithConversation } from '@/common/storage';
+import { ConfigStorage } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import { geminiModeList } from '@/renderer/hooks/useModeModeList';
 import { Button, Dropdown, Input, Menu, Tooltip } from '@arco-design/web-react';
@@ -14,6 +15,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import useSWR from 'swr';
+import { useThemeColors, useTextColor } from '../../themes/index';
 
 const useModelList = () => {
   const geminiConfig = useSWR('gemini.config', () => {
@@ -48,6 +50,8 @@ const useModelList = () => {
 
 const Guid: React.FC = () => {
   const { t } = useTranslation();
+  const themeColors = useThemeColors();
+  const getTextColor = useTextColor();
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [files, setFiles] = useState<string[]>([]);
@@ -94,12 +98,24 @@ const Guid: React.FC = () => {
   }, [modelList]);
   return (
     <div className='h-full flex-center flex-col px-100px'>
-      <p className='text-2xl font-semibold text-gray-900 mb-8'>{t('conversation.welcome.title')}</p>
-      <div className='w-full bg-white b-solid border border-#E5E6EB  rd-20px  focus-within:shadow-[0px_2px_20px_rgba(77,60,234,0.1)] transition-all duration-200 overflow-hidden p-16px'>
+      <p className='text-2xl font-semibold mb-8' style={{ color: getTextColor('conversation.welcome.title', 'textPrimary') }}>
+        {t('conversation.welcome.title')}
+      </p>
+      <div
+        className='w-full b-solid border rd-20px focus-within:shadow-[0px_2px_20px_rgba(77,60,234,0.1)] transition-all duration-200 overflow-hidden p-16px'
+        style={{
+          backgroundColor: themeColors.surface,
+          borderColor: themeColors.border,
+        }}
+      >
         <Input.TextArea
           rows={5}
           placeholder={t('conversation.welcome.placeholder')}
-          className='text-16px focus:b-none rounded-xl !bg-white !b-none !resize-none'
+          className='text-16px focus:b-none rounded-xl !b-none !resize-none'
+          style={{
+            backgroundColor: themeColors.surface,
+            color: themeColors.textPrimary,
+          }}
           value={input}
           onChange={(v) => setInput(v)}
           onCompositionStartCapture={() => {
@@ -122,6 +138,11 @@ const Guid: React.FC = () => {
               trigger='hover'
               droplist={
                 <Menu
+                  style={{
+                    backgroundColor: themeColors.surface,
+                    borderColor: themeColors.border,
+                    color: themeColors.textPrimary,
+                  }}
                   onClickMenuItem={(key) => {
                     const isFile = key === 'file';
                     ipcBridge.dialog.showOpen
@@ -139,21 +160,25 @@ const Guid: React.FC = () => {
                       });
                   }}
                 >
-                  <Menu.Item key='file'>{t('conversation.welcome.uploadFile')}</Menu.Item>
-                  <Menu.Item key='dir'>{t('conversation.welcome.linkFolder')}</Menu.Item>
+                  <Menu.Item key='file' style={{ color: getTextColor('conversation.welcome.uploadFile', 'textPrimary') }}>
+                    {t('conversation.welcome.uploadFile')}
+                  </Menu.Item>
+                  <Menu.Item key='dir' style={{ color: getTextColor('conversation.welcome.linkFolder', 'textPrimary') }}>
+                    {t('conversation.welcome.linkFolder')}
+                  </Menu.Item>
                 </Menu>
               }
             >
               <span className='flex items-center gap-4px cursor-pointer lh-[1]'>
-                <Button type='secondary' shape='circle' icon={<Plus theme='outline' size='14' strokeWidth={2} fill='#333' />}></Button>
+                <Button type='secondary' shape='circle' icon={<Plus theme='outline' size='14' strokeWidth={2} fill={themeColors.textSecondary} />}></Button>
                 {files.length > 0 && (
                   <Tooltip className={'!max-w-max'} content={<span className='whitespace-break-spaces'>{files.join('\n')}</span>}>
-                    <span>File({files.length})</span>
+                    <span style={{ color: getTextColor('conversation.welcome.fileCount', 'textPrimary') }}>File({files.length})</span>
                   </Tooltip>
                 )}
                 {!!dir && (
                   <Tooltip className={'!max-w-max'} content={<span className='whitespace-break-spaces'>{dir}</span>}>
-                    <span>Folder(1)</span>
+                    <span style={{ color: getTextColor('conversation.welcome.folderCount', 'textPrimary') }}>Folder(1)</span>
                   </Tooltip>
                 )}
               </span>
@@ -168,7 +193,11 @@ const Guid: React.FC = () => {
                         {platform.model.map((model) => (
                           <Menu.Item
                             key={platform.id + model}
-                            className={currentModel?.id + currentModel?.useModel === platform.id + model ? '!bg-#f2f3f5' : ''}
+                            className={currentModel?.id + currentModel?.useModel === platform.id + model ? '' : ''}
+                            style={{
+                              // eslint-disable-next-line max-len
+                              ...(currentModel?.id + currentModel?.useModel === platform.id + model ? { backgroundColor: themeColors.surfaceSelected } : {}),
+                            }}
                             // key={platform.name + platform.platform + platform.baseUrl + platform.apiKey+model}
                             onClick={() => {
                               setCurrentModel({ ...platform, useModel: model });
@@ -186,7 +215,7 @@ const Guid: React.FC = () => {
               <Button shape='round'>{currentModel ? currentModel.useModel : 'Select Model'}</Button>
             </Dropdown>
           </div>
-          <Button shape='circle' type='primary' loading={loading} disabled={!currentModel} icon={<ArrowUp theme='outline' size='14' fill='white' strokeWidth={2} />} onClick={sendMessageHandler} />
+          <Button shape='circle' type='primary' loading={loading} disabled={!currentModel} icon={<ArrowUp theme='outline' size='14' fill='#FFFFFF' strokeWidth={2} />} onClick={sendMessageHandler} />
         </div>
       </div>
     </div>

@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { IModel } from '@/common/storage';
+import type { IModel } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import { AuthType, clearCachedCredentialFile, Config, getOauthInfoWithCache, loginWithOauth } from '@office-ai/aioncli-core';
 import { logger } from '@office-ai/platform';
@@ -47,6 +47,24 @@ ipcBridge.shell.openExternal.provider(async (url) => {
 ipcBridge.fs.getFilesByDir.provider(async ({ dir }) => {
   const tree = await readDirectoryRecursive(dir);
   return tree ? [tree] : [];
+});
+
+ipcBridge.fs.readFile.provider(async ({ filePath }) => {
+  try {
+    const content = await fs.readFile(filePath, 'utf-8');
+    return content;
+  } catch (error) {
+    throw new Error(`Failed to read file ${filePath}: ${error.message}`);
+  }
+});
+
+ipcBridge.fs.readDir.provider(async ({ dirPath }) => {
+  try {
+    const files = await fs.readdir(dirPath);
+    return files;
+  } catch (error) {
+    throw new Error(`Failed to read directory ${dirPath}: ${error.message}`);
+  }
 });
 
 ipcBridge.conversation.create.provider(async ({ type, extra, name, model }) => {

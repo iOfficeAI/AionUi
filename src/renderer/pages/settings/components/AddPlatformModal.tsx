@@ -1,4 +1,4 @@
-import { IModel } from '@/common/storage';
+import type { IModel } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import ModalHOC from '@/renderer/utils/ModalHOC';
 import { Form, Input, Message, Modal, Select } from '@arco-design/web-react';
@@ -6,6 +6,7 @@ import { Search } from '@icon-park/react';
 import React, { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import useModeModeList from '../../../hooks/useModeModeList';
+import { useThemeColors, useTextColor } from '../../../themes/index';
 
 const useModePlatformList = () => {
   const { t } = useTranslation();
@@ -123,6 +124,8 @@ const AddPlatformModal = ModalHOC<{
   const [message, messageContext] = Message.useMessage();
   const modelPlatformOptions = useModePlatformList();
   const { t } = useTranslation();
+  const themeColors = useThemeColors();
+  const getTextColor = useTextColor();
   const [form] = Form.useForm();
 
   const platform = Form.useWatch('platform', form);
@@ -164,7 +167,30 @@ const AddPlatformModal = ModalHOC<{
   };
 
   return (
-    <Modal {...modalProps} title={t('settings.addModel')} onOk={handleSubmit} style={{ width: 750 }}>
+    <Modal
+      {...modalProps}
+      title={t('settings.addModel')}
+      onOk={handleSubmit}
+      style={{
+        width: 750,
+        backgroundColor: themeColors.surface,
+        color: getTextColor('settings.addPlatform', 'textPrimary'),
+      }}
+      okButtonProps={{
+        style: {
+          backgroundColor: themeColors.primary,
+          borderColor: themeColors.primary,
+          color: '#FFFFFF',
+        },
+      }}
+      cancelButtonProps={{
+        style: {
+          backgroundColor: themeColors.surface,
+          borderColor: themeColors.border,
+          color: getTextColor('settings.addPlatform.cancel', 'textPrimary'),
+        },
+      }}
+    >
       {messageContext}
       <Form
         form={form}
@@ -175,11 +201,18 @@ const AddPlatformModal = ModalHOC<{
         wrapperCol={{
           flex: '1',
         }}
+        style={{
+          color: getTextColor('settings.addPlatform.form', 'textPrimary'),
+        }}
       >
-        <Form.Item initialValue='gemini' label={t('settings.modelPlatform')} field={'platform'}>
+        <Form.Item initialValue='gemini' label={<span style={{ color: getTextColor('settings.modelPlatform', 'textPrimary') }}>{t('settings.modelPlatform')}</span>} field={'platform'}>
           <Select
             showSearch
             options={modelPlatformOptions}
+            style={{
+              backgroundColor: themeColors.surface,
+              color: getTextColor('settings.addPlatform.select', 'textPrimary'),
+            }}
             onChange={(value) => {
               form.setFieldValue('baseUrl', defaultBaseUrl[value as keyof typeof defaultBaseUrl] || '');
               form.setFieldValue('model', '');
@@ -187,17 +220,21 @@ const AddPlatformModal = ModalHOC<{
             }}
           ></Select>
         </Form.Item>
-        <Form.Item hidden={platform !== 'custom' && platform !== 'gemini'} label='base url' required={platform !== 'gemini'} rules={[{ required: platform !== 'gemini' }]} field={'baseUrl'}>
+        <Form.Item hidden={platform !== 'custom' && platform !== 'gemini'} label={<span style={{ color: getTextColor('settings.baseUrl', 'textPrimary') }}>base url</span>} required={platform !== 'gemini'} rules={[{ required: platform !== 'gemini' }]} field={'baseUrl'}>
           {platform === 'custom' ? (
             <Select
               showSearch
               allowCreate
-              options={openaiCompatibleBaseUrls.map(item => ({
+              options={openaiCompatibleBaseUrls.map((item) => ({
                 label: item.url,
                 value: item.url,
               }))}
+              style={{
+                backgroundColor: themeColors.surface,
+                color: getTextColor('settings.addPlatform.baseUrl', 'textPrimary'),
+              }}
               onChange={(value) => {
-                const selectedItem = openaiCompatibleBaseUrls.find(i => i.url === value);
+                const selectedItem = openaiCompatibleBaseUrls.find((i) => i.url === value);
                 if (selectedItem) {
                   form.setFieldValue('name', selectedItem.name);
                 } else {
@@ -214,6 +251,10 @@ const AddPlatformModal = ModalHOC<{
           ) : (
             <Input
               placeholder={platform === 'gemini' ? 'https://generativelanguage.googleapis.com' : ''}
+              style={{
+                backgroundColor: themeColors.surface,
+                color: getTextColor('settings.addPlatform.baseUrl', 'textPrimary'),
+              }}
               onChange={(value) => {
                 if (platform === 'gemini') {
                   try {
@@ -233,20 +274,33 @@ const AddPlatformModal = ModalHOC<{
             ></Input>
           )}
         </Form.Item>
-        <Form.Item hidden={platform !== 'custom'} label={t('settings.platformName')} required rules={[{ required: true }]} field={'name'} initialValue={'gemini'}>
-          <Input></Input>
-        </Form.Item>
-        <Form.Item label='API Key' required rules={[{ required: true }]} field={'apiKey'}>
+        <Form.Item hidden={platform !== 'custom'} label={<span style={{ color: getTextColor('settings.platformName', 'textPrimary') }}>{t('settings.platformName')}</span>} required rules={[{ required: true }]} field={'name'} initialValue={'gemini'}>
           <Input
+            style={{
+              backgroundColor: themeColors.surface,
+              color: getTextColor('settings.addPlatform.name', 'textPrimary'),
+            }}
+          ></Input>
+        </Form.Item>
+        <Form.Item label={<span style={{ color: getTextColor('settings.apiKey', 'textPrimary') }}>API Key</span>} required rules={[{ required: true }]} field={'apiKey'}>
+          <Input
+            style={{
+              backgroundColor: themeColors.surface,
+              color: getTextColor('settings.addPlatform.apiKey', 'textPrimary'),
+            }}
             onBlur={() => {
               modelListState.mutate();
             }}
           ></Input>
         </Form.Item>
-        <Form.Item label={t('settings.modelName')} field={'model'} required rules={[{ required: true }]} validateStatus={modelListState.error ? 'error' : 'success'} help={modelListState.error}>
+        <Form.Item label={<span style={{ color: getTextColor('settings.modelName', 'textPrimary') }}>{t('settings.modelName')}</span>} field={'model'} required rules={[{ required: true }]} validateStatus={modelListState.error ? 'error' : 'success'} help={modelListState.error}>
           <Select
             loading={modelListState.isLoading}
             showSearch
+            style={{
+              backgroundColor: themeColors.surface,
+              color: getTextColor('settings.addPlatform.model', 'textPrimary'),
+            }}
             suffixIcon={
               <Search
                 onClick={(e) => {
@@ -258,6 +312,7 @@ const AddPlatformModal = ModalHOC<{
                   modelListState.mutate();
                 }}
                 className='flex'
+                style={{ color: getTextColor('settings.addPlatform.search', 'textSecondary') }}
               />
             }
             options={modelListState.data?.models || []}

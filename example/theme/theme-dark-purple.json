@@ -1,0 +1,48 @@
+{
+  "id": "dark-purple-theme",
+  "name": "Dark Purple",
+  "mode": "dark",
+  "colors": {
+    "primary": "#8b5cf6",
+    "primaryHover": "#a78bfa",
+    "primaryActive": "#7c3aed",
+    "background": "#0f0f23",
+    "backgroundSecondary": "#1a1a2e",
+    "backgroundTertiary": "#16213e",
+    "surface": "#1e1e3f",
+    "surfaceHover": "#252547",
+    "surfaceSelected": "#2d2d5f",
+    "textPrimary": "#f8fafc",
+    "textSecondary": "#cbd5e1",
+    "textTertiary": "#94a3b8",
+    "textDisabled": "#64748b",
+    "border": "#374151",
+    "borderHover": "#8b5cf6",
+    "borderActive": "#7c3aed",
+    "success": "#10b981",
+    "warning": "#f59e0b",
+    "error": "#ef4444",
+    "info": "#8b5cf6",
+    "sidebarBackground": "#0a0a18",
+    "sidebarHover": "#1a1a2e",
+    "logoBackground": "#8b5cf6",
+    "logoForeground": "#ffffff",
+    "searchHighlight": "#fbbf24",
+    "searchHighlightBackground": "#451a03",
+    "codeBlockTheme": "vs-dark",
+    "iconPrimary": "#cbd5e1",
+    "iconSecondary": "#94a3b8"
+  },
+  "textColorMap": {
+    "settings.theme.title": "#a78bfa",
+    "settings.theme.darkPurple": "#8b5cf6",
+    "conversation.welcome.title": "#f8fafc",
+    "settings.customDir": "#a78bfa"
+  },
+  "iconColorMap": {
+    "settings.theme": "#8b5cf6",
+    "settings.system": "#cbd5e1",
+    "settings.model": "#10b981",
+    "settings.gemini": "#a78bfa"
+  }
+}

@@ -106,7 +106,7 @@ const FileBuilder = (file: string) => {
         run();
       });
   };
-  const pushStack = <R extends any>(fn: () => Promise<R>) => {
+  const pushStack = <R>(fn: () => Promise<R>) => {
     return new Promise<R>((resolve, reject) => {
       stack.push(() => fn().then(resolve).catch(reject));
       run();
