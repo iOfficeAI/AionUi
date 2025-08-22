@@ -1,12 +1,13 @@
 import LanguageSwitcher from '@/renderer/components/LanguageSwitcher';
-import ThemeSwitcher from '@/renderer/components/ThemeSwitcher';
 import { Form } from '@arco-design/web-react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import SettingContainer from './components/SettingContainer';
+import { useTextColor } from '../../themes/index';
 
 const SystemSettings: React.FC = (props) => {
   const { t } = useTranslation();
+  const getTextColor = useTextColor();
   return (
     <SettingContainer title={t('settings.system')}>
       <Form
@@ -18,11 +19,8 @@ const SystemSettings: React.FC = (props) => {
         }}
         className={'[&_.arco-row]:flex-nowrap pl-20px'}
       >
-        <Form.Item label={t('settings.language')} field={'language'}>
+        <Form.Item label={<span style={{ color: getTextColor('settings.language', 'textPrimary') }}>{t('settings.language')}</span>} field={'language'}>
           <LanguageSwitcher></LanguageSwitcher>
-        </Form.Item>
-        <Form.Item label={t('settings.theme')} field={'theme'}>
-          <ThemeSwitcher></ThemeSwitcher>
         </Form.Item>
       </Form>
     </SettingContainer>

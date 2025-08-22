@@ -10,6 +10,7 @@ import { theme } from '@office-ai/platform';
 import classNames from 'classnames';
 import React, { useMemo } from 'react';
 import MarkdownView from '../components/Markdown';
+import { useThemeColors } from '../themes/index';
 const icon = {
   success: <CheckOne theme='filled' size='16' fill={theme.Color.FunctionalColor.success} className='m-t-2px' />,
   warning: <Attention theme='filled' size='16' strokeLinejoin='bevel' className='m-t-2px' fill={theme.Color.FunctionalColor.warn} />,
@@ -33,6 +34,7 @@ const useFormatContent = (content: string) => {
 const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
   const { content, type } = message.content;
   const { json, data } = useFormatContent(content);
+  const themeColors = useThemeColors();
 
   if (json)
     return (
@@ -41,7 +43,7 @@ const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
       </div>
     );
   return (
-    <div className={classNames('bg-#f0f4ff rd-8px  p-x-12px p-y-8px flex items-start gap-4px')}>
+    <div className={classNames('rd-8px p-x-12px p-y-8px flex items-start gap-4px')} style={{ backgroundColor: themeColors.surfaceHover }}>
       {icon[type] || icon.warning}
       <span
         className='whitespace-break-spaces   [word-break:break-word]'

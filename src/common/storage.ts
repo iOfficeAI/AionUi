@@ -27,6 +27,16 @@ export interface IConfigStorageRefer {
     GOOGLE_GEMINI_BASE_URL?: string;
   };
   'model.config': IModel[];
+  'theme.config': {
+    customThemeDir?: string;
+  };
+  'theme.settings': {
+    currentTheme: string;
+    autoMode: boolean;
+    themeMode: 'light' | 'dark' | 'auto';
+    preferredLightTheme: string;
+    preferredDarkTheme: string;
+  };
   language: string;
   theme: string;
 }

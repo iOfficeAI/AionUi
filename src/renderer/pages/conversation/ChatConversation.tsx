@@ -28,7 +28,11 @@ const ChatConversation: React.FC<{
   const siderTitle = useMemo(() => {
     switch (conversation?.type) {
       case 'gemini':
-        return <span className='text-16px font-bold color-#111827'>{t('conversation.workspace.title')}</span>;
+        return (
+          <span className='text-16px font-bold' style={{ color: 'var(--theme-text-primary)' }}>
+            {t('conversation.workspace.title')}
+          </span>
+        );
     }
     return null;
   }, [conversation]);

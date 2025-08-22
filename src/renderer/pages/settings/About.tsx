@@ -4,9 +4,11 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import packageJson from '../../../../package.json';
 import SettingContainer from './components/SettingContainer';
+import { useTextColor } from '../../themes/index';
 
 const About: React.FC = () => {
   const { t } = useTranslation();
+  const getTextColor = useTextColor();
   const link = (url: string) => {
     return (
       <a
@@ -31,12 +33,12 @@ const About: React.FC = () => {
           flex: '1',
         }}
       >
-        <Form.Item label={t('common.website')}>{link('https://www.aionui.com')}</Form.Item>
-        <Form.Item label={t('common.version')}>
+        <Form.Item label={<span style={{ color: getTextColor('common.website', 'textPrimary') }}>{t('common.website')}</span>}>{link('https://www.aionui.com')}</Form.Item>
+        <Form.Item label={<span style={{ color: getTextColor('common.version', 'textPrimary') }}>{t('common.version')}</span>}>
           <span>{packageJson.version}</span>
         </Form.Item>
-        <Form.Item label={t('common.contact')}>{link('https://x.com/WailiVery')}</Form.Item>
-        <Form.Item label={t('common.github')}>{link('https://github.com/office-sec/AionUI ')}</Form.Item>
+        <Form.Item label={<span style={{ color: getTextColor('common.contact', 'textPrimary') }}>{t('common.contact')}</span>}>{link('https://x.com/WailiVery')}</Form.Item>
+        <Form.Item label={<span style={{ color: getTextColor('common.github', 'textPrimary') }}>{t('common.github')}</span>}>{link('https://github.com/office-sec/AionUI ')}</Form.Item>
       </Form>
     </SettingContainer>
   );

@@ -7,11 +7,12 @@
 import ReactMarkdown from 'react-markdown';
 
 import SyntaxHighlighter from 'react-syntax-highlighter';
+import { github, tomorrowNight, atomOneDark } from 'react-syntax-highlighter/dist/esm/styles/hljs';
+
 import rehypeKatex from 'rehype-katex';
 import remarkBreaks from 'remark-breaks';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
-// import { coy } from "react-syntax-highlighter/dist/esm/styles/prism";
 
 import { ipcBridge } from '@/common';
 import { Down, Up } from '@icon-park/react';
@@ -19,6 +20,7 @@ import { theme } from '@office-ai/platform';
 import React, { useMemo, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { useTranslation } from 'react-i18next';
+import { useThemeColors, useTextColor } from '../themes/index';
 
 const formatCode = (code: string) => {
   const content = String(code).replace(/\n$/, '');
@@ -42,8 +44,26 @@ const logicRender = <T, F>(condition: boolean, trueComponent: T, falseComponent?
 
 function CodeBlock(props: any) {
   const [fold, setFlow] = useState(false);
+  const themeColors = useThemeColors();
+  const getTextColor = useTextColor();
+
+  // 获取代码块主题样式
+  const getCodeBlockStyle = () => {
+    const themeName = themeColors.codeBlockTheme;
+    switch (themeName) {
+      case 'github':
+        return github;
+      case 'tomorrow-night':
+        return tomorrowNight;
+      case 'atom-one-dark':
+        return atomOneDark;
+      default:
+        return github;
+    }
+  };
+
   return useMemo(() => {
-    const { children, className, node, hiddenCodeCopyButton, ...rest } = props;
+    const { children, className, node, hiddenCodeCopyButton, codeStyle, ...rest } = props;
     const match = /language-(\w+)/.exec(className || '');
     const language = match?.[1] || 'text';
     if (!String(children).includes('\n')) {
@@ -52,12 +72,13 @@ function CodeBlock(props: any) {
           {...rest}
           className={className}
           style={{
-            backgroundColor: '#f1f1f1',
+            backgroundColor: themeColors.surface,
             padding: '2px 4px',
             margin: '0 4px',
             borderRadius: '4px',
             border: '1px solid',
-            borderColor: '#ddd',
+            borderColor: themeColors.border,
+            color: getTextColor('markdown.inlineCode', 'textPrimary'),
           }}
         >
           {children}
@@ -65,14 +86,14 @@ function CodeBlock(props: any) {
       );
     }
     return (
-      <div style={props.codeStyle}>
+      <div style={codeStyle}>
         <div
           style={{
             display: 'flex',
             justifyContent: 'space-between',
             width: '100%',
             alignItems: 'center',
-            backgroundColor: '#dcdcdc', // "rgb(50, 50, 50)",
+            backgroundColor: themeColors.surfaceHover,
             borderTopLeftRadius: '0.3rem',
             borderTopRightRadius: '0.3rem',
             borderBottomLeftRadius: '0',
@@ -82,21 +103,21 @@ function CodeBlock(props: any) {
           <span
             style={{
               textDecoration: 'none',
-              color: 'gray',
+              color: getTextColor('markdown.codeHeader', 'textSecondary'),
               padding: '2px',
               margin: '2px 10px 0 10px',
             }}
           >
             {'<' + language.toLocaleLowerCase() + '>'}
           </span>
-          <div style={{ marginRight: 10, paddingTop: 2 }}>{logicRender(!fold, <Up theme='outline' size='24' style={{ cursor: 'pointer' }} fill='gray' onClick={() => setFlow(true)} />, <Down theme='outline' size='24' style={{ cursor: 'pointer' }} fill='gray' onClick={() => setFlow(false)} />)}</div>
+          <div style={{ marginRight: 10, paddingTop: 2 }}>{logicRender(!fold, <Up theme='outline' size='24' style={{ cursor: 'pointer' }} fill={getTextColor('markdown.codeToggle', 'textSecondary')} onClick={() => setFlow(true)} />, <Down theme='outline' size='24' style={{ cursor: 'pointer' }} fill={getTextColor('markdown.codeToggle', 'textSecondary')} onClick={() => setFlow(false)} />)}</div>
         </div>
         {logicRender(
           !fold,
           <SyntaxHighlighter
             children={formatCode(children)}
             language={language}
-            // style={coy}
+            style={getCodeBlockStyle()} // 使用主题样式
             PreTag='div'
             customStyle={{
               marginTop: '0',
@@ -111,7 +132,7 @@ function CodeBlock(props: any) {
         )}
       </div>
     );
-  }, [props]);
+  }, [props, themeColors.codeBlockTheme]); // 依赖主题变化
 }
 
 const createInitStyle = () => {
@@ -161,14 +182,16 @@ const createInitStyle = () => {
     border-collapse: collapse;  /* 表格边框合并为单一边框 */
     th{
       padding: 8px;
-      border: 1px solid #ddd;
-      background-color: #f5f5f5;
+      border: 1px solid var(--theme-border);
+      background-color: var(--theme-surface-hover);
       font-weight: bold;
+      color: var(--theme-text-primary);
     }
     td{
         padding: 8px;
-        border: 1px solid #ddd;
+        border: 1px solid var(--theme-border);
         min-width: 120px;
+        color: var(--theme-text-primary);
     }
   }`;
   return style;
@@ -201,6 +224,13 @@ const MarkdownView: React.FC<{
   onRef?: (el?: HTMLDivElement | null) => void;
 }> = ({ hiddenCodeCopyButton, codeStyle, ...props }) => {
   const { t } = useTranslation();
+  const themeColors = useThemeColors();
+  const getTextColor = useTextColor();
+
+  // Pre-compute theme values for components
+  const tableBorder = `1px solid ${themeColors.border}`;
+  const tableCellColor = getTextColor('markdown.tableCell', 'textPrimary');
+
   return (
     <ShadowView>
       <div ref={props.onRef} className='markdown-shadow-body'>
@@ -233,7 +263,7 @@ const MarkdownView: React.FC<{
                   style={{
                     ...props.style,
                     borderCollapse: 'collapse',
-                    border: '1px solid #ddd',
+                    border: tableBorder,
                     minWidth: '100%',
                   }}
                 />
@@ -245,8 +275,10 @@ const MarkdownView: React.FC<{
                 style={{
                   ...props.style,
                   padding: '8px',
-                  border: '1px solid #ddd',
+                  border: tableBorder,
                   minWidth: '120px',
+                  backgroundColor: themeColors.surface,
+                  color: tableCellColor,
                 }}
               />
             ),

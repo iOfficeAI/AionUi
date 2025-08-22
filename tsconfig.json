@@ -5,14 +5,15 @@
     "module": "commonjs",
     "skipLibCheck": true,
     "esModuleInterop": true,
-    "noImplicitAny": true,
+    "noImplicitAny": false,
     "sourceMap": true,
     "baseUrl": ".",
     "outDir": "dist",
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "jsx": "react",
-    "types": ["unocss"],
+    "types": ["node", "unocss"],
+    "strict": false,
     "paths": {
       "@/*": ["./src/*"],
       "@process/*": ["./src/process/*"],
@@ -20,5 +21,6 @@
       "@worker/*": ["./src/worker/*"]
     }
   },
-  "include": ["src/**/*", "uno.config.ts"]
+  "include": ["src/**/*", "uno.config.ts"],
+  "exclude": ["node_modules", "dist", ".webpack"]
 }

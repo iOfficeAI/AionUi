@@ -4,9 +4,12 @@ import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import ChatHistory from './pages/conversation/ChatHistory';
 import SettingsSider from './pages/settings/SettingsSider';
+import { useThemeColors, useTextColor } from './themes/index';
 
 const Sider: React.FC = () => {
   const { pathname } = useLocation();
+  const themeColors = useThemeColors();
+  const getTextColor = useTextColor();
 
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -18,12 +21,21 @@ const Sider: React.FC = () => {
       ) : (
         <>
           <div
-            className='flex items-center justify-start gap-10px px-12px py-8px hover:bg-#f3f4f6 rd-0.5rem mb-8px cursor-pointer group'
+            className='flex items-center justify-start gap-10px px-12px py-8px rd-0.5rem mb-8px cursor-pointer group'
+            style={{
+              color: getTextColor('conversation.welcome.newConversation', 'textPrimary'),
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = themeColors.sidebarHover;
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+            }}
             onClick={() => {
               navigate('/guid');
             }}
           >
-            <Plus theme='outline' size='24' fill='#333' className='flex' />
+            <Plus theme='outline' size='24' fill={getTextColor('conversation.welcome.newConversation', 'textSecondary')} className='flex' />
             <span className='collapsed-hidden font-bold'>{t('conversation.welcome.newConversation')}</span>
           </div>
           <ChatHistory></ChatHistory>
@@ -34,9 +46,18 @@ const Sider: React.FC = () => {
           if (isSettings) return navigate('/guid');
           navigate('/settings');
         }}
-        className='flex items-center justify-start gap-10px px-12px py-8px hover:bg-#f3f4f6 rd-0.5rem mb-8px cursor-pointer'
+        className='flex items-center justify-start gap-10px px-12px py-8px rd-0.5rem mb-8px cursor-pointer'
+        style={{
+          color: getTextColor(isSettings ? 'common.back' : 'common.settings', 'textPrimary'),
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = themeColors.sidebarHover;
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = 'transparent';
+        }}
       >
-        {isSettings ? <ArrowCircleLeft className='flex' theme='outline' size='24' fill='#333' /> : <SettingTwo className='flex' theme='outline' size='24' fill='#333' />}
+        {isSettings ? <ArrowCircleLeft className='flex' theme='outline' size='24' fill={getTextColor('common.back', 'textSecondary')} /> : <SettingTwo className='flex' theme='outline' size='24' fill={getTextColor('common.settings', 'textSecondary')} />}
         <span className='collapsed-hidden'>{isSettings ? t('common.back') : t('common.settings')}</span>
       </div>
     </div>

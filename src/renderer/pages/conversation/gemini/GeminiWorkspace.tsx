@@ -12,11 +12,14 @@ import { Empty, Input, Tree } from '@arco-design/web-react';
 import { Refresh, Search } from '@icon-park/react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useThemeColors, useTextColor } from '../../../themes/index';
 const GeminiWorkspace: React.FC<{
   workspace: string;
   customWorkspace?: boolean;
 }> = ({ workspace, customWorkspace }) => {
   const { t } = useTranslation();
+  const themeColors = useThemeColors();
+  const getTextColor = useTextColor();
   const [selected, setSelected] = useState<string[]>([]);
   const [files, setFiles] = useState<IDirOrFile[]>([]);
   const [loading, setLoading] = useState(false);
@@ -94,14 +97,28 @@ const GeminiWorkspace: React.FC<{
   const hasOriginalFiles = files.length > 0 && files[0]?.children?.length > 0;
 
   return (
-    <div className='size-full flex flex-col'>
+    <div className='size-full flex flex-col' style={{ backgroundColor: themeColors.sidebarBackground, color: themeColors.textPrimary }}>
       <div className='px-16px pb-8px flex items-center justify-start gap-4px'>
-        <span className='font-bold text-14px'>{t('common.file')}</span>
-        <Refresh className={loading ? 'loading lh-[1] flex' : 'flex'} theme='outline' fill='#333' onClick={refreshWorkspace} />
+        <span className='font-bold text-14px' style={{ color: getTextColor('conversation.workspace.title', 'textPrimary') }}>
+          {t('common.file')}
+        </span>
+        <Refresh className={loading ? 'loading lh-[1] flex' : 'flex'} theme='outline' fill={getTextColor('conversation.workspace.refresh', 'textSecondary')} onClick={refreshWorkspace} />
       </div>
       {hasOriginalFiles && (
         <div className='px-16px pb-8px'>
-          <Input className='w-full' placeholder={t('conversation.workspace.searchPlaceholder')} value={searchText} onChange={setSearchText} allowClear prefix={<Search theme='outline' size='14' fill='#333' />} />
+          <Input
+            className='w-full'
+            placeholder={t('conversation.workspace.searchPlaceholder')}
+            value={searchText}
+            onChange={setSearchText}
+            allowClear
+            prefix={<Search theme='outline' size='14' fill={getTextColor('conversation.workspace.search', 'textSecondary')} />}
+            style={{
+              backgroundColor: themeColors.surface,
+              borderColor: themeColors.border,
+              color: getTextColor('conversation.workspace.searchInput', 'textPrimary'),
+            }}
+          />
         </div>
       )}
       <FlexFullContainer containerClassName='overflow-y-auto'>
@@ -110,8 +127,10 @@ const GeminiWorkspace: React.FC<{
             <Empty
               description={
                 <div>
-                  <span className='color-#6b7280 font-bold text-14px'>{t('conversation.workspace.empty')}</span>
-                  <div>{t('conversation.workspace.emptyDescription')}</div>
+                  <span className='font-bold text-14px' style={{ color: getTextColor('conversation.workspace.empty', 'textSecondary') }}>
+                    {t('conversation.workspace.empty')}
+                  </span>
+                  <div style={{ color: getTextColor('conversation.workspace.emptyDescription', 'textTertiary') }}>{t('conversation.workspace.emptyDescription')}</div>
                 </div>
               }
             />
@@ -123,6 +142,10 @@ const GeminiWorkspace: React.FC<{
             selectedKeys={selected}
             treeData={filteredFiles}
             autoExpandParent
+            style={{
+              backgroundColor: themeColors.sidebarBackground,
+              color: themeColors.textPrimary,
+            }}
             fieldNames={{
               children: 'children',
               title: 'name',

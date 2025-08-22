@@ -14,6 +14,7 @@ import classNames from 'classnames';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useThemeColors, useTextColor } from '@/renderer/themes';
 
 const diffDay = (time1: number, time2: number) => {
   const date1 = new Date(time1);
@@ -51,6 +52,8 @@ const ChatHistory: React.FC = ({ ...props }) => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const themeColors = useThemeColors();
+  const getTextColor = useTextColor();
   const handleSelect = (conversation: TChatConversation) => {
     ipcBridge.conversation.create.invoke({
       type: 'gemini',
@@ -87,19 +90,32 @@ const ChatHistory: React.FC = ({ ...props }) => {
       <div
         key={conversation.id}
         id={'c-' + conversation.id}
-        className={classNames('hover:bg-#EBECF1 px-12px py-8px rd-8px flex justify-start items-center group cursor-pointer relative overflow-hidden group shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px', {
-          '!bg-#E5E7F0 ': isSelected,
-        })}
+        className={classNames('px-12px py-8px rd-8px flex justify-start items-center group cursor-pointer relative overflow-hidden group shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px')}
+        style={{
+          backgroundColor: isSelected ? themeColors.surfaceSelected : 'transparent',
+        }}
+        onMouseEnter={(e) => {
+          if (!isSelected) {
+            e.currentTarget.style.backgroundColor = themeColors.surfaceHover;
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (!isSelected) {
+            e.currentTarget.style.backgroundColor = 'transparent';
+          }
+        }}
         onClick={handleSelect.bind(null, conversation)}
       >
-        <MessageOne theme='outline' size='20' className='mt-2px ml-2px mr-8px flex' />
+        <MessageOne theme='outline' size='20' className='mt-2px ml-2px mr-8px flex' style={{ color: getTextColor('conversation.history.item', 'textSecondary') }} />
         <FlexFullContainer className='h-24px'>
-          <div className='text-nowrap overflow-hidden inline-block w-full text-14px lh-24px  whitespace-nowrap'>{conversation.name}</div>
+          <div className='text-nowrap overflow-hidden inline-block w-full text-14px lh-24px whitespace-nowrap' style={{ color: getTextColor('conversation.history.item', 'textPrimary') }}>
+            {conversation.name}
+          </div>
         </FlexFullContainer>
         <div
           className={classNames('absolute right--15px top-0px h-full w-70px items-center justify-center hidden group-hover:flex !collapsed-hidden')}
           style={{
-            backgroundImage: `linear-gradient(to right, rgba(219, 234, 254, 0),${isSelected ? '#E5E7F0' : '#E5E7F0'} 50%)`,
+            backgroundImage: `linear-gradient(to right, transparent, ${isSelected ? themeColors.surfaceSelected : themeColors.surfaceHover} 50%)`,
           }}
           onClick={(event) => {
             event.stopPropagation();
@@ -124,7 +140,7 @@ const ChatHistory: React.FC = ({ ...props }) => {
                 event.stopPropagation();
               }}
             >
-              <DeleteOne theme='outline' size='20' className='flex' />
+              <DeleteOne theme='outline' size='20' className='flex' style={{ color: getTextColor('conversation.history.delete', 'textSecondary') }} />
             </span>
           </Popconfirm>
         </div>
@@ -146,7 +162,11 @@ const ChatHistory: React.FC = ({ ...props }) => {
             const timeline = formatTimeline(item);
             return (
               <React.Fragment key={item.id}>
-                {timeline && <div className='collapsed-hidden px-12px py-8px text-13px color-#555 font-bold'>{timeline}</div>}
+                {timeline && (
+                  <div className='collapsed-hidden px-12px py-8px text-13px font-bold' style={{ color: getTextColor('conversation.history.timeline', 'textTertiary') }}>
+                    {timeline}
+                  </div>
+                )}
                 {renderConversation(item)}
               </React.Fragment>
             );

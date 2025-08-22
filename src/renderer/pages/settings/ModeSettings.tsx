@@ -1,5 +1,5 @@
 import { ipcBridge } from '@/common';
-import { IModel } from '@/common/storage';
+import type { IModel } from '@/common/storage';
 import { Button, Collapse, Divider, Message, Popconfirm } from '@arco-design/web-react';
 import { DeleteFour, Minus, Plus, Write } from '@icon-park/react';
 import React, { useState } from 'react';
@@ -34,7 +34,7 @@ const ModelSettings: React.FC = () => {
   };
 
   const updatePlatform = (platform: IModel, success: () => void) => {
-    let newData = [...(data || [])];
+    const newData = [...(data || [])];
     const originData = newData.find((item) => item.id === platform.id);
     if (originData) {
       Object.assign(originData, platform);

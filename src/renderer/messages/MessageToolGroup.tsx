@@ -14,6 +14,7 @@ import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Diff2Html from '../components/Diff2Html';
 import MarkdownView from '../components/Markdown';
+import { useThemeColors, useTextColor } from '../themes/index';
 
 interface IMessageToolGroupProps {
   message: IMessageToolGroup;
@@ -167,6 +168,8 @@ const ConfirmationDetails: React.FC<{
 
 const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
   const { t } = useTranslation();
+  const themeColors = useThemeColors();
+  const getTextColor = useTextColor();
   console.log('----->message', message);
   return (
     <div>
@@ -208,14 +211,16 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
             className={'!items-start !rd-8px !px-8px [&_div.arco-alert-content-wrapper]:max-w-[calc(100%-24px)]'}
             key={callId}
             type={status === 'Error' ? 'error' : status === 'Success' ? 'success' : status === 'Canceled' ? 'warning' : 'info'}
-            icon={isLoading && <LoadingOne theme='outline' size='12' fill='#333' className='loading lh-[1] flex' />}
+            icon={isLoading && <LoadingOne theme='outline' size='12' fill={getTextColor('messages.loading', 'textSecondary')} className='loading lh-[1] flex' />}
             content={
               <div>
                 <Tag className={'mr-4px'}>
                   {name}
                   {status === 'Canceled' ? `(${t('messages.canceledExecution')})` : ''}
                 </Tag>
-                <div className='text-12px color-#666'>{description}</div>
+                <div className='text-12px' style={{ color: 'var(--theme-text-tertiary)' }}>
+                  {description}
+                </div>
                 <div className='overflow-auto'>{display}</div>
               </div>
             }

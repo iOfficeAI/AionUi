@@ -1,0 +1,46 @@
+{
+  "id": "ocean-blue-theme",
+  "name": "Ocean Blue",
+  "mode": "light",
+  "colors": {
+    "primary": "#0077be",
+    "primaryHover": "#005fa3",
+    "primaryActive": "#004788",
+    "background": "#ffffff",
+    "backgroundSecondary": "#f8fafc",
+    "backgroundTertiary": "#f1f5f9",
+    "surface": "#ffffff",
+    "surfaceHover": "#f0f9ff",
+    "surfaceSelected": "#dbeafe",
+    "textPrimary": "#1e293b",
+    "textSecondary": "#64748b",
+    "textTertiary": "#94a3b8",
+    "textDisabled": "#cbd5e1",
+    "border": "#e2e8f0",
+    "borderHover": "#0077be",
+    "borderActive": "#005fa3",
+    "success": "#10b981",
+    "warning": "#f59e0b",
+    "error": "#ef4444",
+    "info": "#0077be",
+    "sidebarBackground": "#0f172a",
+    "sidebarHover": "#1e293b",
+    "logoBackground": "#0077be",
+    "logoForeground": "#ffffff",
+    "searchHighlight": "#fef3c7",
+    "searchHighlightBackground": "#fffbeb",
+    "codeBlockTheme": "github",
+    "iconPrimary": "#64748b",
+    "iconSecondary": "#94a3b8"
+  },
+  "textColorMap": {
+    "settings.theme.title": "#0077be",
+    "settings.theme.oceanBlue": "#0077be",
+    "conversation.welcome.title": "#1e293b"
+  },
+  "iconColorMap": {
+    "settings.theme": "#0077be",
+    "settings.system": "#64748b",
+    "settings.model": "#10b981"
+  }
+}

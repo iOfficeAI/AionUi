@@ -6,6 +6,7 @@ import About from './pages/settings/About';
 import GeminiSettings from './pages/settings/GeminiSettings';
 import ModeSettings from './pages/settings/ModeSettings';
 import SystemSettings from './pages/settings/SystemSettings';
+import ThemeSettings from './pages/settings/ThemeSettings';
 const PanelRoute: React.FC<{ layout: React.ReactNode }> = (props) => {
   return (
     <HashRouter>
@@ -16,6 +17,7 @@ const PanelRoute: React.FC<{ layout: React.ReactNode }> = (props) => {
           <Route path='/conversation/:id' element={<Conversation></Conversation>} />
           <Route path='/settings/gemini' element={<GeminiSettings />} />
           <Route path='/settings/model' element={<ModeSettings />} />
+          <Route path='/settings/theme' element={<ThemeSettings />} />
           <Route path='/settings/system' element={<SystemSettings />} />
           <Route path='/settings/about' element={<About />} />
           <Route path='/settings' element={<Navigate to='/settings/gemini' />}></Route>
