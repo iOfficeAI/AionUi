@@ -35,23 +35,26 @@ const useTheme = (): [Theme, (theme: Theme) => Promise<void>] => {
   }, []);
 
   // Set theme with persistence
-  const setTheme = useCallback(async (newTheme: Theme) => {
-    try {
-      setThemeState(newTheme);
-      applyTheme(newTheme);
-      await ConfigStorage.set('theme', newTheme);
-    } catch (error) {
-      console.error('Failed to save theme:', error);
-      // Revert on error
-      setThemeState(theme);
-      applyTheme(theme);
-    }
-  }, [theme, applyTheme]);
+  const setTheme = useCallback(
+    async (newTheme: Theme) => {
+      try {
+        setThemeState(newTheme);
+        applyTheme(newTheme);
+        await ConfigStorage.set('theme', newTheme);
+      } catch (error) {
+        console.error('Failed to save theme:', error);
+        // Revert on error
+        setThemeState(theme);
+        applyTheme(theme);
+      }
+    },
+    [theme, applyTheme]
+  );
 
   // Initialize theme state from the early initialization
   useEffect(() => {
     if (initialThemePromise) {
-      initialThemePromise.then(initialTheme => {
+      initialThemePromise.then((initialTheme) => {
         setThemeState(initialTheme);
       });
     }

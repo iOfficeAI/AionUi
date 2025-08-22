@@ -4,49 +4,42 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import * as fs from "fs";
-import * as path from "path";
-import { homedir, platform } from "os";
-import * as dotenv from "dotenv";
-import type {
-  MCPServerConfig,
-  BugCommandSettings,
-  TelemetrySettings,
-  AuthType} from "@office-ai/aioncli-core";
-import {
-  GEMINI_CONFIG_DIR as GEMINI_DIR,
-  getErrorMessage
-} from "@office-ai/aioncli-core";
-import stripJsonComments from "strip-json-comments";
+import * as fs from 'fs';
+import * as path from 'path';
+import { homedir, platform } from 'os';
+import * as dotenv from 'dotenv';
+import type { MCPServerConfig, BugCommandSettings, TelemetrySettings, AuthType } from '@office-ai/aioncli-core';
+import { GEMINI_CONFIG_DIR as GEMINI_DIR, getErrorMessage } from '@office-ai/aioncli-core';
+import stripJsonComments from 'strip-json-comments';
 
-export const SETTINGS_DIRECTORY_NAME = ".qwen";
+export const SETTINGS_DIRECTORY_NAME = '.qwen';
 export const USER_SETTINGS_DIR = path.join(homedir(), SETTINGS_DIRECTORY_NAME);
-export const USER_SETTINGS_PATH = path.join(USER_SETTINGS_DIR, "settings.json");
-export const DEFAULT_EXCLUDED_ENV_VARS = ["DEBUG", "DEBUG_MODE"];
+export const USER_SETTINGS_PATH = path.join(USER_SETTINGS_DIR, 'settings.json');
+export const DEFAULT_EXCLUDED_ENV_VARS = ['DEBUG', 'DEBUG_MODE'];
 
 export function getSystemSettingsPath(): string {
   if (process.env.GEMINI_CLI_SYSTEM_SETTINGS_PATH) {
     return process.env.GEMINI_CLI_SYSTEM_SETTINGS_PATH;
   }
-  if (platform() === "darwin") {
-    return "/Library/Application Support/aioncli/settings.json";
-  } else if (platform() === "win32") {
-    return "C:\\ProgramData\\aioncli\\settings.json";
+  if (platform() === 'darwin') {
+    return '/Library/Application Support/aioncli/settings.json';
+  } else if (platform() === 'win32') {
+    return 'C:\\ProgramData\\aioncli\\settings.json';
   } else {
-    return "/etc/aioncli/settings.json";
+    return '/etc/aioncli/settings.json';
   }
 }
 
 export function getWorkspaceSettingsPath(workspaceDir: string): string {
-  return path.join(workspaceDir, SETTINGS_DIRECTORY_NAME, "settings.json");
+  return path.join(workspaceDir, SETTINGS_DIRECTORY_NAME, 'settings.json');
 }
 
-export type DnsResolutionOrder = "ipv4first" | "verbatim";
+export type DnsResolutionOrder = 'ipv4first' | 'verbatim';
 
 export enum SettingScope {
-  User = "User",
-  Workspace = "Workspace",
-  System = "System",
+  User = 'User',
+  Workspace = 'Workspace',
+  System = 'System',
 }
 
 export interface CheckpointingSettings {
@@ -113,7 +106,7 @@ export interface Settings {
   summarizeToolOutput?: Record<string, SummarizeToolOutputSettings>;
 
   vimMode?: boolean;
-  memoryImportFormat?: "tree" | "flat";
+  memoryImportFormat?: 'tree' | 'flat';
 
   // Flag to be removed post-launch.
   ideModeFeature?: boolean;
@@ -152,12 +145,7 @@ export interface SettingsFile {
   path: string;
 }
 export class LoadedSettings {
-  constructor(
-    system: SettingsFile,
-    user: SettingsFile,
-    workspace: SettingsFile,
-    errors: SettingsError[]
-  ) {
+  constructor(system: SettingsFile, user: SettingsFile, workspace: SettingsFile, errors: SettingsError[]) {
     this.system = system;
     this.user = user;
     this.workspace = workspace;
@@ -211,11 +199,7 @@ export class LoadedSettings {
     }
   }
 
-  setValue<K extends keyof Settings>(
-    scope: SettingScope,
-    key: K,
-    value: Settings[K]
-  ): void {
+  setValue<K extends keyof Settings>(scope: SettingScope, key: K, value: Settings[K]): void {
     const settingsFile = this.forScope(scope);
     settingsFile.settings[key] = value;
     this._merged = this.computeMergedSettings();
@@ -227,7 +211,7 @@ function resolveEnvVarsInString(value: string): string {
   const envVarRegex = /\$(?:(\w+)|{([^}]+)})/g; // Find $VAR_NAME or ${VAR_NAME}
   return value.replace(envVarRegex, (match, varName1, varName2) => {
     const varName = varName1 || varName2;
-    if (process && process.env && typeof process.env[varName] === "string") {
+    if (process && process.env && typeof process.env[varName] === 'string') {
       return process.env[varName]!;
     }
     return match;
@@ -235,16 +219,11 @@ function resolveEnvVarsInString(value: string): string {
 }
 
 function resolveEnvVarsInObject<T>(obj: T): T {
-  if (
-    obj === null ||
-    obj === undefined ||
-    typeof obj === "boolean" ||
-    typeof obj === "number"
-  ) {
+  if (obj === null || obj === undefined || typeof obj === 'boolean' || typeof obj === 'number') {
     return obj;
   }
 
-  if (typeof obj === "string") {
+  if (typeof obj === 'string') {
     return resolveEnvVarsInString(obj) as unknown as T;
   }
 
@@ -252,7 +231,7 @@ function resolveEnvVarsInObject<T>(obj: T): T {
     return obj.map((item) => resolveEnvVarsInObject(item)) as unknown as T;
   }
 
-  if (typeof obj === "object") {
+  if (typeof obj === 'object') {
     const newObj = { ...obj } as T;
     for (const key in newObj) {
       if (Object.prototype.hasOwnProperty.call(newObj, key)) {
@@ -269,22 +248,22 @@ function findEnvFile(startDir: string): string | null {
   let currentDir = path.resolve(startDir);
   while (true) {
     // prefer gemini-specific .env under GEMINI_DIR
-    const geminiEnvPath = path.join(currentDir, GEMINI_DIR, ".env");
+    const geminiEnvPath = path.join(currentDir, GEMINI_DIR, '.env');
     if (fs.existsSync(geminiEnvPath)) {
       return geminiEnvPath;
     }
-    const envPath = path.join(currentDir, ".env");
+    const envPath = path.join(currentDir, '.env');
     if (fs.existsSync(envPath)) {
       return envPath;
     }
     const parentDir = path.dirname(currentDir);
     if (parentDir === currentDir || !parentDir) {
       // check .env under home as fallback, again preferring gemini-specific .env
-      const homeGeminiEnvPath = path.join(homedir(), GEMINI_DIR, ".env");
+      const homeGeminiEnvPath = path.join(homedir(), GEMINI_DIR, '.env');
       if (fs.existsSync(homeGeminiEnvPath)) {
         return homeGeminiEnvPath;
       }
-      const homeEnvPath = path.join(homedir(), ".env");
+      const homeEnvPath = path.join(homedir(), '.env');
       if (fs.existsSync(homeEnvPath)) {
         return homeEnvPath;
       }
@@ -308,11 +287,11 @@ export function setUpCloudShellEnvironment(envFilePath: string | null): void {
       process.env.GOOGLE_CLOUD_PROJECT = parsedEnv.GOOGLE_CLOUD_PROJECT;
     } else {
       // If not in .env, set to default and override global
-      process.env.GOOGLE_CLOUD_PROJECT = "cloudshell-gca";
+      process.env.GOOGLE_CLOUD_PROJECT = 'cloudshell-gca';
     }
   } else {
     // If no .env file, set to default and override global
-    process.env.GOOGLE_CLOUD_PROJECT = "cloudshell-gca";
+    process.env.GOOGLE_CLOUD_PROJECT = 'cloudshell-gca';
   }
 }
 
@@ -320,7 +299,7 @@ export function loadEnvironment(settings?: Settings): void {
   const envFilePath = findEnvFile(process.cwd());
 
   // Cloud Shell environment variable handling
-  if (process.env.CLOUD_SHELL === "true") {
+  if (process.env.CLOUD_SHELL === 'true') {
     setUpCloudShellEnvironment(envFilePath);
   }
 
@@ -330,13 +309,8 @@ export function loadEnvironment(settings?: Settings): void {
     const workspaceSettingsPath = getWorkspaceSettingsPath(process.cwd());
     try {
       if (fs.existsSync(workspaceSettingsPath)) {
-        const workspaceContent = fs.readFileSync(
-          workspaceSettingsPath,
-          "utf-8"
-        );
-        const parsedWorkspaceSettings = JSON.parse(
-          stripJsonComments(workspaceContent)
-        ) as Settings;
+        const workspaceContent = fs.readFileSync(workspaceSettingsPath, 'utf-8');
+        const parsedWorkspaceSettings = JSON.parse(stripJsonComments(workspaceContent)) as Settings;
         resolvedSettings = resolveEnvVarsInObject(parsedWorkspaceSettings);
       }
     } catch (_e) {
@@ -348,11 +322,10 @@ export function loadEnvironment(settings?: Settings): void {
     // Manually parse and load environment variables to handle exclusions correctly.
     // This avoids modifying environment variables that were already set from the shell.
     try {
-      const envFileContent = fs.readFileSync(envFilePath, "utf-8");
+      const envFileContent = fs.readFileSync(envFilePath, 'utf-8');
       const parsedEnv = dotenv.parse(envFileContent);
 
-      const excludedVars =
-        resolvedSettings?.excludedProjectEnvVars || DEFAULT_EXCLUDED_ENV_VARS;
+      const excludedVars = resolvedSettings?.excludedProjectEnvVars || DEFAULT_EXCLUDED_ENV_VARS;
       const isProjectEnvFile = !envFilePath.includes(GEMINI_DIR);
 
       for (const key in parsedEnv) {
@@ -405,10 +378,8 @@ export function loadSettings(workspaceDir: string): LoadedSettings {
   // Load system settings
   try {
     if (fs.existsSync(systemSettingsPath)) {
-      const systemContent = fs.readFileSync(systemSettingsPath, "utf-8");
-      const parsedSystemSettings = JSON.parse(
-        stripJsonComments(systemContent)
-      ) as Settings;
+      const systemContent = fs.readFileSync(systemSettingsPath, 'utf-8');
+      const parsedSystemSettings = JSON.parse(stripJsonComments(systemContent)) as Settings;
       systemSettings = resolveEnvVarsInObject(parsedSystemSettings);
     }
   } catch (error: unknown) {
@@ -421,10 +392,8 @@ export function loadSettings(workspaceDir: string): LoadedSettings {
   // Load user settings
   try {
     if (fs.existsSync(USER_SETTINGS_PATH)) {
-      const userContent = fs.readFileSync(USER_SETTINGS_PATH, "utf-8");
-      const parsedUserSettings = JSON.parse(
-        stripJsonComments(userContent)
-      ) as Settings;
+      const userContent = fs.readFileSync(USER_SETTINGS_PATH, 'utf-8');
+      const parsedUserSettings = JSON.parse(stripJsonComments(userContent)) as Settings;
       userSettings = resolveEnvVarsInObject(parsedUserSettings);
       // Support legacy theme names
     }
@@ -440,10 +409,8 @@ export function loadSettings(workspaceDir: string): LoadedSettings {
     // Load workspace settings
     try {
       if (fs.existsSync(workspaceSettingsPath)) {
-        const projectContent = fs.readFileSync(workspaceSettingsPath, "utf-8");
-        const parsedWorkspaceSettings = JSON.parse(
-          stripJsonComments(projectContent)
-        ) as Settings;
+        const projectContent = fs.readFileSync(workspaceSettingsPath, 'utf-8');
+        const parsedWorkspaceSettings = JSON.parse(stripJsonComments(projectContent)) as Settings;
         workspaceSettings = resolveEnvVarsInObject(parsedWorkspaceSettings);
       }
     } catch (error: unknown) {
@@ -485,12 +452,8 @@ export function saveSettings(settingsFile: SettingsFile): void {
       fs.mkdirSync(dirPath, { recursive: true });
     }
 
-    fs.writeFileSync(
-      settingsFile.path,
-      JSON.stringify(settingsFile.settings, null, 2),
-      "utf-8"
-    );
+    fs.writeFileSync(settingsFile.path, JSON.stringify(settingsFile.settings, null, 2), 'utf-8');
   } catch (error) {
-    console.error("Error saving user settings file:", error);
+    console.error('Error saving user settings file:', error);
   }
 }

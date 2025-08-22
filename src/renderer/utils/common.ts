@@ -13,4 +13,4 @@ export const removeStack = (...args: Array<() => void>) => {
   };
 };
 
-export { uuid } from "@/common/utils";
+export { uuid } from '@/common/utils';

@@ -1,4 +1,4 @@
-import { IModel } from '@/common/storage';
+import type { IModel } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import ModalHOC from '@/renderer/utils/ModalHOC';
 import { Form, Input, Message, Modal, Select } from '@arco-design/web-react';
@@ -192,12 +192,12 @@ const AddPlatformModal = ModalHOC<{
             <Select
               showSearch
               allowCreate
-              options={openaiCompatibleBaseUrls.map(item => ({
+              options={openaiCompatibleBaseUrls.map((item) => ({
                 label: item.url,
                 value: item.url,
               }))}
               onChange={(value) => {
-                const selectedItem = openaiCompatibleBaseUrls.find(i => i.url === value);
+                const selectedItem = openaiCompatibleBaseUrls.find((i) => i.url === value);
                 if (selectedItem) {
                   form.setFieldValue('name', selectedItem.name);
                 } else {

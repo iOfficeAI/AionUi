@@ -1,4 +1,4 @@
-import { ModalProps } from '@arco-design/web-react';
+import type { ModalProps } from '@arco-design/web-react';
 import React, { useMemo, useState } from 'react';
 
 type TUseModalReturn<Props extends Record<string, any> = {}> = [
@@ -6,7 +6,7 @@ type TUseModalReturn<Props extends Record<string, any> = {}> = [
     open(params?: Partial<Props>): void;
     close(): void;
   },
-  React.ReactNode
+  React.ReactNode,
 ];
 const ModalHOC = <Props extends Record<string, any> = {}>(
   ModalBodyComponent: React.FC<

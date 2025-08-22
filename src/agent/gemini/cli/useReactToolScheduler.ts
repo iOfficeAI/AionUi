@@ -4,9 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { AllToolCallsCompleteHandler, CancelledToolCall, CompletedToolCall, Config, Status as CoreStatus, CoreToolScheduler, EditorType, ExecutingToolCall, OutputUpdateHandler, ScheduledToolCall, ToolCall, ToolCallRequestInfo, ToolCallsUpdateHandler, ValidatingToolCall, WaitingToolCall } from '@office-ai/aioncli-core';
+import type { AllToolCallsCompleteHandler, CancelledToolCall, CompletedToolCall, Config, Status as CoreStatus, EditorType, ExecutingToolCall, OutputUpdateHandler, ScheduledToolCall, ToolCall, ToolCallRequestInfo, ToolCallsUpdateHandler, ValidatingToolCall, WaitingToolCall } from '@office-ai/aioncli-core';
+import { CoreToolScheduler } from '@office-ai/aioncli-core';
 import { useCallback, useMemo, useState } from 'react';
-import { HistoryItemToolGroup, HistoryItemWithoutId, IndividualToolCallDisplay, ToolCallStatus } from './types';
+import type { HistoryItemToolGroup, HistoryItemWithoutId, IndividualToolCallDisplay } from './types';
+import { ToolCallStatus } from './types';
 
 export type ScheduleFn = (request: ToolCallRequestInfo | ToolCallRequestInfo[], signal: AbortSignal) => void;
 export type MarkToolsAsSubmittedFn = (callIds: string[]) => void;

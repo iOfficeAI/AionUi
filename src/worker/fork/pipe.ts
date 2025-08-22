@@ -9,7 +9,7 @@ const uuid = (len = 4) => {
   return (Math.random() * 1e16).toString(16).substring(index, index + len);
 };
 
-const callbackKey = (key: string) => key + ".callback";
+const callbackKey = (key: string) => key + '.callback';
 
 class Deferred {
   resolve: (data: any) => void;
@@ -42,16 +42,11 @@ class Deferred {
   with(promise: Promise<any>) {
     promise.then(this.resolve).catch(this.reject);
   }
-  pipe(
-    handler: (
-      key: string,
-      data: { data: any; state: "fulfilled" | "rejected" }
-    ) => void
-  ) {
+  pipe(handler: (key: string, data: { data: any; state: 'fulfilled' | 'rejected' }) => void) {
     const key = callbackKey(this.key);
     return this.promise()
-      .then((data) => handler(key, { data, state: "fulfilled" }))
-      .catch((data) => handler(key, { data, state: "rejected" }));
+      .then((data) => handler(key, { data, state: 'fulfilled' }))
+      .catch((data) => handler(key, { data, state: 'rejected' }));
   }
 }
 
@@ -66,7 +61,7 @@ export class Pipe {
     if (!master) {
       // 接受主进程消息
       if (process.parentPort) {
-        process.parentPort.on("message", (event) => {
+        process.parentPort.on('message', (event) => {
           const { type, data, pipeId } = event.data || {};
           // console.log("--------------->from main message", event.data);
           if (type) {
@@ -118,11 +113,11 @@ export class Pipe {
    */
   call(name: string, data: any, extPrams: any = {}) {
     if (this.isClose) {
-      console.log("---主进程已关闭", name, "执行失败！!");
+      console.log('---主进程已关闭', name, '执行失败！!');
       return;
     }
     if (!process.parentPort?.postMessage) {
-      console.error("---非子线程，无法使用主线程事件机制");
+      console.error('---非子线程，无法使用主线程事件机制');
       return;
     }
     process.parentPort.postMessage({
@@ -139,7 +134,7 @@ export class Pipe {
     });
     const promise = new Promise<T>((resolve, reject) => {
       this.once(callbackKey(pipeId), (data) => {
-        if (data.type === "fulfilled") {
+        if (data.type === 'fulfilled') {
           resolve(data.data);
         } else {
           reject(data.data);
@@ -149,7 +144,7 @@ export class Pipe {
     return promise;
   }
   log(...args: any[]) {
-    this.call("log", args);
+    this.call('log', args);
   }
   clear() {
     this.listener = {};

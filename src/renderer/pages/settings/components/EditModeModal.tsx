@@ -1,4 +1,4 @@
-import { IModel } from '@/common/storage';
+import type { IModel } from '@/common/storage';
 import ModalHOC from '@/renderer/utils/ModalHOC';
 import { Form, Input, Modal } from '@arco-design/web-react';
 import React, { useEffect } from 'react';
