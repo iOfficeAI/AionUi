@@ -82,7 +82,10 @@
     "proxyHttpOnly": "Only support http/https protocol",
     "baseUrlAutoFix": "base_url auto fix to: {{base_url}}",
     "updateConfirm": "Confirm Changes",
-    "restartConfirm": "Changes will restart the application. Continue?"
+    "restartConfirm": "Changes will restart the application. Continue?",
+    "theme": "Theme",
+    "lightMode": "Light",
+    "darkMode": "Dark"
   },
   "messages": {
     "conversationInProgress": "A conversation is currently in progress...",
