@@ -82,7 +82,10 @@
     "proxyHttpOnly": "仅支持 http/https 协议",
     "baseUrlAutoFix": "base_url 自动修复为：{{base_url}}",
     "updateConfirm": "确认修改",
-    "restartConfirm": "修改后将重启应用，是否继续？"
+    "restartConfirm": "修改后将重启应用，是否继续？",
+    "theme": "主题",
+    "lightMode": "浅色",
+    "darkMode": "深色"
   },
   "messages": {
     "conversationInProgress": "当前正在进行对话中...",
