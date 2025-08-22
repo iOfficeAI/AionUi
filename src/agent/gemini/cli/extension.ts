@@ -4,13 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { MCPServerConfig, GeminiCLIExtension } from "@office-ai/aioncli-core";
-import * as fs from "fs";
-import * as path from "path";
-import * as os from "os";
+import type { MCPServerConfig, GeminiCLIExtension } from '@office-ai/aioncli-core';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
 
-export const EXTENSIONS_DIRECTORY_NAME = path.join(".qwen", "extensions");
-export const EXTENSIONS_CONFIG_FILENAME = "gemini-extension.json";
+export const EXTENSIONS_DIRECTORY_NAME = path.join('.qwen', 'extensions');
+export const EXTENSIONS_CONFIG_FILENAME = 'gemini-extension.json';
 
 export interface Extension {
   path: string;
@@ -27,10 +27,7 @@ export interface ExtensionConfig {
 }
 
 export function loadExtensions(workspaceDir: string): Extension[] {
-  const allExtensions = [
-    ...loadExtensionsFromDir(workspaceDir),
-    ...loadExtensionsFromDir(os.homedir()),
-  ];
+  const allExtensions = [...loadExtensionsFromDir(workspaceDir), ...loadExtensionsFromDir(os.homedir())];
 
   const uniqueExtensions = new Map<string, Extension>();
   for (const extension of allExtensions) {
@@ -62,27 +59,21 @@ function loadExtensionsFromDir(dir: string): Extension[] {
 
 function loadExtension(extensionDir: string): Extension | null {
   if (!fs.statSync(extensionDir).isDirectory()) {
-    console.error(
-      `Warning: unexpected file ${extensionDir} in extensions directory.`
-    );
+    console.error(`Warning: unexpected file ${extensionDir} in extensions directory.`);
     return null;
   }
 
   const configFilePath = path.join(extensionDir, EXTENSIONS_CONFIG_FILENAME);
   if (!fs.existsSync(configFilePath)) {
-    console.error(
-      `Warning: extension directory ${extensionDir} does not contain a config file ${configFilePath}.`
-    );
+    console.error(`Warning: extension directory ${extensionDir} does not contain a config file ${configFilePath}.`);
     return null;
   }
 
   try {
-    const configContent = fs.readFileSync(configFilePath, "utf-8");
+    const configContent = fs.readFileSync(configFilePath, 'utf-8');
     const config = JSON.parse(configContent) as ExtensionConfig;
     if (!config.name || !config.version) {
-      console.error(
-        `Invalid extension config in ${configFilePath}: missing name or version.`
-      );
+      console.error(`Invalid extension config in ${configFilePath}: missing name or version.`);
       return null;
     }
 
@@ -96,26 +87,21 @@ function loadExtension(extensionDir: string): Extension | null {
       contextFiles,
     };
   } catch (e) {
-    console.error(
-      `Warning: error parsing extension config in ${configFilePath}: ${e}`
-    );
+    console.error(`Warning: error parsing extension config in ${configFilePath}: ${e}`);
     return null;
   }
 }
 
 function getContextFileNames(config: ExtensionConfig): string[] {
   if (!config.contextFileName) {
-    return ["QWEN.md"];
+    return ['QWEN.md'];
   } else if (!Array.isArray(config.contextFileName)) {
     return [config.contextFileName];
   }
   return config.contextFileName;
 }
 
-export function annotateActiveExtensions(
-  extensions: Extension[],
-  enabledExtensionNames: string[]
-): GeminiCLIExtension[] {
+export function annotateActiveExtensions(extensions: Extension[], enabledExtensionNames: string[]): GeminiCLIExtension[] {
   const annotatedExtensions: GeminiCLIExtension[] = [];
 
   if (enabledExtensionNames.length === 0) {
@@ -127,14 +113,9 @@ export function annotateActiveExtensions(
     }));
   }
 
-  const lowerCaseEnabledExtensions = new Set(
-    enabledExtensionNames.map((e) => e.trim().toLowerCase())
-  );
+  const lowerCaseEnabledExtensions = new Set(enabledExtensionNames.map((e) => e.trim().toLowerCase()));
 
-  if (
-    lowerCaseEnabledExtensions.size === 1 &&
-    lowerCaseEnabledExtensions.has("none")
-  ) {
+  if (lowerCaseEnabledExtensions.size === 1 && lowerCaseEnabledExtensions.has('none')) {
     return extensions.map((extension) => ({
       name: extension.config.name,
       version: extension.config.version,

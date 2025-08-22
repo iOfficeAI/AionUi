@@ -4,10 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { PropsWithChildren } from "react";
-import React from "react";
+import type { PropsWithChildren } from 'react';
+import React from 'react';
 
-import classNames from "classnames";
+import classNames from 'classnames';
 
 const FlexFullContainer: React.FC<
   PropsWithChildren<{
@@ -16,12 +16,8 @@ const FlexFullContainer: React.FC<
   }>
 > = (props) => {
   return (
-    <div className={classNames("flex-1 relative", props.className)}>
-      <div
-        className={classNames("absolute size-full", props.containerClassName)}
-      >
-        {props.children}
-      </div>
+    <div className={classNames('flex-1 relative', props.className)}>
+      <div className={classNames('absolute size-full', props.containerClassName)}>{props.children}</div>
     </div>
   );
 };

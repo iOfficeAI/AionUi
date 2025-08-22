@@ -5,7 +5,7 @@
  */
 
 // src/core/ConfigManager.ts
-import { TModelWithConversation } from '@/common/storage';
+import type { TModelWithConversation } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import type { CompletedToolCall, Config, GeminiClient, ServerGeminiStreamEvent, ToolCall, ToolCallRequestInfo } from '@office-ai/aioncli-core';
 import { AuthType, CoreToolScheduler, sessionId } from '@office-ai/aioncli-core';

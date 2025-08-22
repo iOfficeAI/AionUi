@@ -10,13 +10,13 @@
  * 提供主/子进程间通信功能
  */
 
-import { uuid } from "@/renderer/utils/common";
-import { Pipe } from "./pipe";
-import type { UtilityProcess} from "electron";
-import { utilityProcess } from "electron";
+import { uuid } from '@/renderer/utils/common';
+import { Pipe } from './pipe';
+import type { UtilityProcess } from 'electron';
+import { utilityProcess } from 'electron';
 
 export class ForkTask<Data> extends Pipe {
-  protected path = "";
+  protected path = '';
   protected data: Data;
   protected fcp: UtilityProcess;
   private killFn: () => void;
@@ -27,27 +27,27 @@ export class ForkTask<Data> extends Pipe {
     this.killFn = () => {
       this.kill();
     };
-    process.on("exit", this.killFn);
+    process.on('exit', this.killFn);
     this.init();
   }
   kill() {
     if (this.fcp) {
       this.fcp.kill();
     }
-    process.off("exit", this.killFn);
+    process.off('exit', this.killFn);
   }
   protected init() {
     const fcp = utilityProcess.fork(this.path);
     // 接受子进程发送的消息
-    fcp.on("message", (e: IForkData) => {
+    fcp.on('message', (e: IForkData) => {
       // console.log("---------接受来子进程消息>", e);
       // 接爱子进程消息
-      if (e.type === "complete") {
+      if (e.type === 'complete') {
         fcp.kill();
-        this.emit("complete", e.data);
-      } else if (e.type === "error") {
+        this.emit('complete', e.data);
+      } else if (e.type === 'error') {
         fcp.kill();
-        this.emit("error", e.data);
+        this.emit('error', e.data);
       } else {
         // clientId约束为主/子进程间通信钥匙
         // 如果有clientId则向指定通道发起信息
@@ -59,14 +59,14 @@ export class ForkTask<Data> extends Pipe {
         return this.emit(e.type, e.data, deferred);
       }
     });
-    fcp.on("error", (err) => {
-      this.emit("error", err);
+    fcp.on('error', (err) => {
+      this.emit('error', err);
     });
     this.fcp = fcp;
   }
   start() {
     const { data } = this;
-    return this.postMessagePromise("start", data);
+    return this.postMessagePromise('start', data);
   }
   // 向子进程发送消息并等待回调
   postMessagePromise(type: string, data: any) {
@@ -75,7 +75,7 @@ export class ForkTask<Data> extends Pipe {
       // console.log("---------发送消息>", this.callbackKey(pipeId), type, data);
       this.once(this.callbackKey(pipeId), (data) => {
         // console.log("---------子进程消息加调监听>", data);
-        if (data.state === "fulfilled") {
+        if (data.state === 'fulfilled') {
           resolve(data.data);
         } else {
           reject(data.data);
@@ -91,7 +91,7 @@ export class ForkTask<Data> extends Pipe {
 }
 
 interface IForkData {
-  type: "complete" | "error" | string;
+  type: 'complete' | 'error' | string;
   data: any;
   pipeId?: string;
   [key: string]: any;

@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { IModel } from '@/common/storage';
+import type { IModel } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import { AuthType, clearCachedCredentialFile, Config, getOauthInfoWithCache, loginWithOauth } from '@office-ai/aioncli-core';
 import { logger } from '@office-ai/platform';
