@@ -1,24 +1,24 @@
-import i18n from "i18next";
-import { initReactI18next } from "react-i18next";
-import LanguageDetector from "i18next-browser-languagedetector";
+import i18n from 'i18next';
+import { initReactI18next } from 'react-i18next';
+import LanguageDetector from 'i18next-browser-languagedetector';
 
-import zhCN from "./locales/zh-CN.json";
-import enUS from "./locales/en-US.json";
-import jaJP from "./locales/ja-JP.json";
-import zhTW from "./locales/zh-TW.json";
-import { ConfigStorage } from "@/common/storage";
+import zhCN from './locales/zh-CN.json';
+import enUS from './locales/en-US.json';
+import jaJP from './locales/ja-JP.json';
+import zhTW from './locales/zh-TW.json';
+import { ConfigStorage } from '@/common/storage';
 
 const resources = {
-  "zh-CN": {
+  'zh-CN': {
     translation: zhCN,
   },
-  "en-US": {
+  'en-US': {
     translation: enUS,
   },
-  "ja-JP": {
+  'ja-JP': {
     translation: jaJP,
   },
-  "zh-TW": {
+  'zh-TW': {
     translation: zhTW,
   },
 };
@@ -28,18 +28,18 @@ i18n
   .use(initReactI18next)
   .init({
     resources,
-    fallbackLng: "en-US",
+    fallbackLng: 'en-US',
     debug: false,
     interpolation: {
       escapeValue: false,
     },
     detection: {
-      order: ["localStorage", "navigator"],
-      caches: ["localStorage"],
+      order: ['localStorage', 'navigator'],
+      caches: ['localStorage'],
     },
   });
 
-ConfigStorage.get("language").then((language) => {
+ConfigStorage.get('language').then((language) => {
   if (language) {
     i18n.changeLanguage(language);
   }

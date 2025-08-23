@@ -1,6 +1,6 @@
 import { ipcBridge } from '@/common';
 import { transformMessage } from '@/common/chatLib';
-import { TModelWithConversation } from '@/common/storage';
+import type { TModelWithConversation } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import SendBox from '@/renderer/components/sendbox';
 import { getSendBoxDraftHook } from '@/renderer/hooks/useSendBoxDraft';
