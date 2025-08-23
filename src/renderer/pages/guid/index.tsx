@@ -5,7 +5,8 @@
  */
 
 import { ipcBridge } from '@/common';
-import { ConfigStorage, IModel, TModelWithConversation } from '@/common/storage';
+import type { IModel, TModelWithConversation } from '@/common/storage';
+import { ConfigStorage } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import { geminiModeList } from '@/renderer/hooks/useModeModeList';
 import { Button, Dropdown, Input, Menu, Tooltip } from '@arco-design/web-react';

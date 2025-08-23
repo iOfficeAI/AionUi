@@ -1,0 +1,19 @@
+# 简单的提交信息格式检查
+commit_regex='^(feat|fix|docs|style|refactor|test|chore)(\(.+\))?: .{1,50}'
+
+if ! grep -qE "$commit_regex" "$1"; then
+    echo "❌ 提交信息格式不正确！"
+    echo "请使用以下格式："
+    echo "  feat: 添加新功能"
+    echo "  fix: 修复bug"
+    echo "  docs: 更新文档"
+    echo "  style: 代码格式调整"
+    echo "  refactor: 代码重构"
+    echo "  test: 添加测试"
+    echo "  chore: 构建过程或辅助工具的变动"
+    echo ""
+    echo "示例："
+    echo "  feat: 添加用户登录功能"
+    echo "  fix(login): 修复登录验证问题"
+    exit 1
+fi
