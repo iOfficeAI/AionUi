@@ -53,7 +53,11 @@ const Guid: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [files, setFiles] = useState<string[]>([]);
   const [dir, setDir] = useState<string>('');
-  const [currentModel, setCurrentModel] = useState<TModelWithConversation>();
+  const [currentModel, _setCurrentModel] = useState<TModelWithConversation>();
+  const setCurrentModel = async (modelInfo: TModelWithConversation) => {
+    await ConfigStorage.set('gemini.defaultModel', modelInfo.useModel);
+    _setCurrentModel(modelInfo);
+  };
   const navigate = useNavigate();
   const handleSend = async () => {
     if (!currentModel) return;
@@ -88,10 +92,14 @@ const Guid: React.FC = () => {
   };
   const isComposing = useRef(false);
   const modelList = useModelList();
+  const setDefaultModel = async () => {
+    const useModel = await ConfigStorage.get('gemini.defaultModel');
+    const defaultModel = modelList.find((m) => m.model.includes(useModel)) || modelList[0];
+    if (!defaultModel) return;
+    setCurrentModel({ ...defaultModel, useModel: defaultModel.model.find((m) => m == useModel) || defaultModel.model[0] });
+  };
   useEffect(() => {
-    const firstModel = modelList[0];
-    if (!firstModel) return;
-    setCurrentModel({ ...firstModel, useModel: firstModel.model[0] });
+    setDefaultModel();
   }, [modelList]);
   return (
     <div className='h-full flex-center flex-col px-100px'>
