@@ -158,6 +158,16 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   const [preferredDarkTheme, setPreferredDarkTheme] = useState<string>('idea-dark-modernized');
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
 
+  // 验证主题ID是否存在的辅助函数
+  const isValidThemeId = (themeId: string): boolean => {
+    return availableThemes.some((theme) => theme.manifest.id === themeId);
+  };
+
+  // 获取有效的主题ID，如果无效则使用回退主题
+  const getValidThemeId = (themeId: string, fallbackId: string): string => {
+    return isValidThemeId(themeId) ? themeId : fallbackId;
+  };
+
   // 获取当前主题
   const currentTheme = availableThemes.find((theme) => theme.manifest.id === currentThemeId) || availableThemes[0];
 
@@ -282,14 +292,28 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     setThemeModeState(mode);
     if (mode === 'auto') {
       setIsAutoMode(true);
-      const themeId = systemTheme === 'dark' ? preferredDarkTheme : preferredLightTheme;
+      // 确保使用有效的主题，验证主题是否存在
+      let themeId: string;
+      if (systemTheme === 'dark') {
+        themeId = getValidThemeId(preferredDarkTheme, 'idea-dark-modernized');
+      } else {
+        themeId = getValidThemeId(preferredLightTheme, 'default-light-modernized');
+      }
       setCurrentThemeId(themeId);
     } else if (mode === 'filter-dark') {
       setIsAutoMode(false);
-      setCurrentThemeId(preferredLightTheme);
+      // 确保使用有效的浅色主题，验证主题是否存在
+      const lightThemeId = getValidThemeId(preferredLightTheme, 'default-light-modernized');
+      setCurrentThemeId(lightThemeId);
     } else {
       setIsAutoMode(false);
-      const themeId = mode === 'dark' ? preferredDarkTheme : preferredLightTheme;
+      // 确保使用有效的主题，验证主题是否存在
+      let themeId: string;
+      if (mode === 'dark') {
+        themeId = getValidThemeId(preferredDarkTheme, 'idea-dark-modernized');
+      } else {
+        themeId = getValidThemeId(preferredLightTheme, 'default-light-modernized');
+      }
       setCurrentThemeId(themeId);
     }
   };
@@ -365,10 +389,16 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   // 自动模式下根据系统主题切换
   useEffect(() => {
     if (isAutoMode && isInitialized) {
-      const themeId = systemTheme === 'dark' ? preferredDarkTheme : preferredLightTheme;
+      // 确保使用有效的主题，验证主题是否存在
+      let themeId: string;
+      if (systemTheme === 'dark') {
+        themeId = getValidThemeId(preferredDarkTheme, 'idea-dark-modernized');
+      } else {
+        themeId = getValidThemeId(preferredLightTheme, 'default-light-modernized');
+      }
       setCurrentThemeId(themeId);
     }
-  }, [systemTheme, isAutoMode, preferredDarkTheme, preferredLightTheme, isInitialized]);
+  }, [systemTheme, isAutoMode, preferredDarkTheme, preferredLightTheme, isInitialized, availableThemes]);
 
   const contextValue: ThemeContextType = {
     currentTheme,

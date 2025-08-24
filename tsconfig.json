@@ -22,5 +22,5 @@
     }
   },
   "include": ["src/**/*", "uno.config.ts"],
-  "exclude": ["node_modules", "dist", ".webpack", "src/tools"]
+  "exclude": ["node_modules", "dist", ".webpack"]
 }

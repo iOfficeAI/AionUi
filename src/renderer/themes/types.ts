@@ -58,23 +58,3 @@ export interface ThemeColors {
   iconPrimary: string;
   iconSecondary: string;
 }
-
-export interface Theme {
-  id: string;
-  name: string;
-  mode: 'light' | 'dark';
-  colors: ThemeColors;
-  // 文本颜色映射：i18n key -> 颜色值
-  textColorMap?: Record<string, string>;
-  // 图标颜色映射：i18n key -> 颜色值
-  iconColorMap?: Record<string, string>;
-}
-
-export interface ThemeConfig {
-  currentTheme: string;
-  autoMode: boolean;
-  themes: Record<string, Theme>;
-  // 分别保存亮色和暗色模式下选择的主题
-  preferredLightTheme?: string;
-  preferredDarkTheme?: string;
-}

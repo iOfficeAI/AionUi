@@ -4,11 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { Button, Card, Divider, Space, Typography } from '@arco-design/web-react';
 import React, { useState } from 'react';
-import { Card, Space, Typography, Divider, Button } from '@arco-design/web-react';
 import { useTranslation } from 'react-i18next';
 import { ThemeSelector } from '../../components/ThemeSelector';
-import { useTheme, useThemeColors, useTextColor } from '../../themes/index';
+import { useTextColor, useTheme, useThemeColors } from '../../themes/index';
 
 import SettingContainer from './components/SettingContainer';
 
@@ -118,9 +118,9 @@ const ThemeSettings: React.FC = () => {
             >
               <div className='text-center'>
                 <div className='mb-2'>{renderAutoThemePreview()}</div>
-                <Text className='text-sm font-medium'>{t('settings.theme.auto', 'Auto (Follow System)')}</Text>
+                <Text className='text-sm font-medium'>{t('settings.theme.auto', 'Auto')}</Text>
                 <Text className='text-xs mt-1' style={{ color: getTextColor('settings.theme.mode', 'textSecondary') }}>
-                  {t('settings.theme.autoDescription', 'Automatically switch based on system')}
+                  {t('settings.theme.autoDescription', ' Follow System')}
                 </Text>
                 {themeMode === 'auto' && (
                   <Text className='text-xs mt-1' style={{ color: themeColors.primary, fontWeight: 'bold' }}>
