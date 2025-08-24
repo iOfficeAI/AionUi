@@ -117,7 +117,9 @@
       "clearError": "Failed to clear theme directory: ",
       "externalThemesStatus": "External Themes Status",
       "themesLoaded": "{{count}} themes loaded",
-      "noThemes": "No external themes loaded"
+      "noThemes": "No external themes loaded",
+      "filterDark": "Filter Dark",
+      "filterDarkDesc": "Dark theme implemented with CSS filters"
     }
   },
   "messages": {

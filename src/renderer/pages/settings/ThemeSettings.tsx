@@ -145,11 +145,19 @@ const ThemeSettings: React.FC = () => {
             <Radio value='dark' style={{ color: getTextColor('settings.theme.dark', 'textPrimary') }}>
               <span style={{ color: getTextColor('settings.theme.dark', 'textPrimary') }}>{t('settings.theme.dark', 'Dark')}</span>
             </Radio>
+            <Radio value='filter-dark' style={{ color: getTextColor('settings.theme.filterDark', 'textPrimary') }}>
+              <Space>
+                <span style={{ color: getTextColor('settings.theme.filterDark', 'textPrimary') }}>{t('settings.theme.filterDark', '滤镜暗黑')}</span>
+                <Text type='secondary' className='text-xs' style={{ color: getTextColor('settings.theme.filterDarkDesc', 'textSecondary') }}>
+                  {t('settings.theme.filterDarkDesc', 'CSS滤镜实现的暗色主题')}
+                </Text>
+              </Space>
+            </Radio>
           </Radio.Group>
         </div>
 
-        {/* Manual Theme Selection (when not in auto mode) */}
-        {!isAutoMode && (
+        {/* Manual Theme Selection (when not in auto mode and not filter-dark) */}
+        {!isAutoMode && themeMode !== 'filter-dark' && (
           <div>
             <Title heading={6} className='mb-3' style={{ color: getTextColor('settings.theme.selectTheme', 'textPrimary') }}>
               {t('settings.theme.selectTheme', 'Select Theme')}
@@ -202,10 +210,10 @@ const ThemeSettings: React.FC = () => {
           >
             <Space>
               <div>
-                <Text bold>{currentTheme.name}</Text>
+                <Text bold>{themeMode === 'filter-dark' ? t('settings.theme.filterDark', '滤镜暗黑') : currentTheme.name}</Text>
                 <br />
                 <Text type='secondary' className='text-sm'>
-                  {currentTheme.mode === 'dark' ? t('settings.theme.darkTheme', 'Dark theme') : t('settings.theme.lightTheme', 'Light theme')}
+                  {themeMode === 'filter-dark' ? t('settings.theme.filterDarkDesc', 'CSS滤镜实现的暗色主题') : currentTheme.mode === 'dark' ? t('settings.theme.darkTheme', 'Dark theme') : t('settings.theme.lightTheme', 'Light theme')}
                   {isAutoMode && <span className='ml-2'>({t('settings.theme.autoMode', 'Auto mode enabled')})</span>}
                 </Text>
               </div>
