@@ -1,0 +1,103 @@
+/**
+ * 按钮组件样式
+ */
+
+/* ========== Arco Design 按钮覆盖 ========== */
+.arco-btn {
+  border-radius: var(--theme-button-radius);
+  transition: var(--theme-transition-base);
+}
+
+.arco-btn:hover {
+  color: var(--theme-text-on-surface);
+}
+
+/* Secondary 按钮 */
+.arco-btn-secondary {
+  background-color: var(--theme-surface);
+  border-color: var(--theme-border);
+  color: var(--theme-text-primary);
+}
+
+.arco-btn-secondary:hover {
+  background-color: var(--theme-surface-hover);
+  border-color: var(--theme-border-hover);
+  color: var(--theme-text-primary);
+}
+
+.arco-btn-secondary:active {
+  background-color: var(--theme-surface-selected);
+  border-color: var(--theme-border-active);
+  color: var(--theme-text-primary);
+}
+
+/* 默认按钮 */
+.arco-btn-default {
+  background-color: var(--theme-surface);
+  border-color: var(--theme-border);
+  color: var(--theme-text-primary);
+}
+
+.arco-btn-default:hover {
+  background-color: var(--theme-surface-hover);
+  border-color: var(--theme-border-hover);
+  color: var(--theme-text-primary);
+}
+
+/* 按钮组 */
+.arco-btn-group .arco-btn {
+  background-color: var(--theme-surface);
+  border-color: var(--theme-border);
+  color: var(--theme-text-primary);
+}
+
+.arco-btn-group .arco-btn:hover {
+  background-color: var(--theme-surface-hover);
+  border-color: var(--theme-border-hover);
+  color: var(--theme-text-primary);
+}
+
+/* ========== 自定义按钮类 ========== */
+.aion-button {
+  background-color: var(--theme-primary);
+  color: var(--theme-text-on-primary);
+  border: 1px solid var(--theme-primary);
+  border-radius: var(--theme-button-radius);
+  padding: var(--theme-spacing-sm) var(--theme-spacing-md);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.aion-button:hover {
+  background-color: var(--theme-primary-hover);
+  border-color: var(--theme-primary-hover);
+}
+
+.aion-button:active {
+  background-color: var(--theme-primary-active);
+  border-color: var(--theme-primary-active);
+}
+
+.aion-button--secondary {
+  background-color: transparent;
+  color: var(--theme-text-primary);
+  border-color: var(--theme-border);
+}
+
+.aion-button--secondary:hover {
+  background-color: var(--theme-surface-hover);
+  border-color: var(--theme-border-hover);
+}
+
+.aion-button--danger {
+  background-color: var(--theme-error);
+  color: white;
+  border-color: var(--theme-error);
+}
+
+.aion-button--disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+}

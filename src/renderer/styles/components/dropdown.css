@@ -1,0 +1,161 @@
+/**
+ * 下拉菜单和弹出层组件样式
+ */
+
+/* ========== 下拉框基础样式 ========== */
+.arco-select-dropdown,
+.arco-select-popup,
+.arco-dropdown,
+.arco-menu,
+.arco-menu-inner {
+  background-color: var(--theme-surface);
+  border-color: var(--theme-border);
+  color: var(--theme-text-primary);
+  border-radius: var(--theme-input-radius);
+}
+
+/* ========== Select 弹出层样式 ========== */
+.arco-select-popup {
+  border: 1px solid var(--theme-border);
+  box-shadow: var(--theme-shadow-lg);
+  border-radius: var(--theme-input-radius);
+}
+
+.arco-select-popup .arco-select-dropdown {
+  border: none;
+  box-shadow: none;
+}
+
+/* ========== 下拉选项样式 ========== */
+.arco-select-option,
+.arco-menu-item {
+  background-color: var(--theme-surface);
+  color: var(--theme-text-primary);
+  padding: var(--theme-spacing-sm) var(--theme-spacing-md);
+  transition: background-color 0.2s ease;
+}
+
+.arco-select-option:hover,
+.arco-menu-item:hover {
+  background-color: var(--theme-surface-hover);
+  color: var(--theme-text-primary);
+}
+
+.arco-select-option.arco-select-option-selected,
+.arco-menu-item-selected {
+  background-color: var(--theme-surface-selected);
+  color: var(--theme-text-primary);
+}
+
+/* ========== Dropdown 菜单样式 ========== */
+.arco-dropdown,
+.arco-dropdown-content,
+.arco-dropdown-menu {
+  background-color: var(--theme-surface);
+  border: 1px solid var(--theme-border);
+  color: var(--theme-text-primary);
+  box-shadow: var(--theme-shadow-lg);
+  border-radius: var(--theme-input-radius);
+}
+
+.arco-dropdown-menu .arco-menu-item,
+.arco-dropdown-content .arco-menu-item {
+  background-color: var(--theme-surface);
+  color: var(--theme-text-primary);
+  padding: var(--theme-spacing-sm) var(--theme-spacing-md);
+}
+
+.arco-dropdown-menu .arco-menu-item:hover,
+.arco-dropdown-content .arco-menu-item:hover {
+  background-color: var(--theme-surface-hover);
+  color: var(--theme-text-primary);
+}
+
+/* ========== 通用菜单项覆盖 ========== */
+div[class*='arco-menu-item'],
+li[class*='arco-menu-item'],
+.arco-menu-item,
+[role='menuitem'] {
+  background-color: var(--theme-surface);
+  color: var(--theme-text-primary);
+  border: none;
+}
+
+div[class*='arco-menu-item']:hover,
+li[class*='arco-menu-item']:hover,
+.arco-menu-item:hover,
+[role='menuitem']:hover {
+  background-color: var(--theme-surface-hover);
+  color: var(--theme-text-primary);
+}
+
+/* ========== 菜单分组标题 ========== */
+.arco-menu-group-title {
+  color: var(--theme-text-secondary);
+  font-size: 12px;
+  padding: var(--theme-spacing-xs) var(--theme-spacing-md);
+}
+
+/* ========== Trigger 弹出层 ========== */
+.arco-trigger-popup {
+  background-color: var(--theme-surface);
+  border: 1px solid var(--theme-border);
+  box-shadow: var(--theme-shadow-lg);
+  border-radius: var(--theme-input-radius);
+}
+
+/* ========== 搜索高亮样式 ========== */
+.arco-select-highlight,
+.arco-select-option .arco-select-highlight,
+.arco-select-option-content mark,
+.arco-select-option mark,
+.arco-menu-item mark,
+.arco-menu-item-inner mark,
+[class*='arco-select'] mark,
+[class*='arco-menu'] mark,
+span.arco-select-highlight,
+em.arco-select-highlight {
+  background-color: var(--theme-search-highlight-background);
+  color: var(--theme-search-highlight);
+  padding: 0 2px;
+  border-radius: 2px;
+  font-style: normal;
+  font-weight: bold;
+}
+
+/* ========== 自定义下拉组件 ========== */
+.aion-dropdown {
+  background-color: var(--theme-surface);
+  border: 1px solid var(--theme-border);
+  border-radius: var(--theme-input-radius);
+  box-shadow: var(--theme-shadow-lg);
+  padding: var(--theme-spacing-xs) 0;
+  min-width: 160px;
+}
+
+.aion-dropdown-item {
+  padding: var(--theme-spacing-sm) var(--theme-spacing-md);
+  color: var(--theme-text-primary);
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.aion-dropdown-item:hover {
+  background-color: var(--theme-surface-hover);
+}
+
+.aion-dropdown-item--selected {
+  background-color: var(--theme-surface-selected);
+}
+
+.aion-dropdown-item--disabled {
+  color: var(--theme-text-disabled);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.aion-dropdown-divider {
+  height: 1px;
+  background-color: var(--theme-border);
+  margin: var(--theme-spacing-xs) 0;
+}

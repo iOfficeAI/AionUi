@@ -1,0 +1,115 @@
+/**
+ * 基础CSS变量定义
+ * 所有主题的变量都应该在这里有默认值
+ */
+
+:root {
+  /* ========== 核心色彩变量 ========== */
+  --theme-primary: #1677ff;
+  --theme-primary-hover: #4096ff;
+  --theme-primary-active: #0958d9;
+
+  /* ========== 背景色变量 ========== */
+  --theme-background: #ffffff;
+  --theme-background-secondary: #f5f5f5;
+  --theme-background-tertiary: #fafafa;
+
+  /* ========== 表面色变量 ========== */
+  --theme-surface: #ffffff;
+  --theme-surface-hover: #f5f5f5;
+  --theme-surface-selected: #e6f7ff;
+
+  /* ========== 文本色变量 ========== */
+  --theme-text-primary: #1f2937;
+  --theme-text-secondary: #6b7280;
+  --theme-text-tertiary: #9ca3af;
+  --theme-text-disabled: #d1d5db;
+
+  /* ========== 边框色变量 ========== */
+  --theme-border: #e5e7eb;
+  --theme-border-hover: #d1d5db;
+  --theme-border-active: #9ca3af;
+
+  /* ========== 状态色变量 ========== */
+  --theme-success: #52c41a;
+  --theme-warning: #faad14;
+  --theme-error: #ff4d4f;
+  --theme-info: #1890ff;
+
+  /* ========== 侧边栏变量 ========== */
+  --theme-sidebar-background: #ffffff;
+  --theme-sidebar-hover: #f5f5f5;
+
+  /* ========== Logo/品牌色变量 ========== */
+  --theme-logo-background: #ffffff;
+  --theme-logo-foreground: #1f2937;
+
+  /* ========== 搜索高亮变量 ========== */
+  --theme-search-highlight: #1890ff;
+  --theme-search-highlight-background: #e6f7ff;
+
+  /* ========== 代码块主题 ========== */
+  --theme-code-block-theme: 'github';
+
+  /* ========== 图标色变量 ========== */
+  --theme-icon-primary: #6b7280;
+  --theme-icon-secondary: #9ca3af;
+
+  /* ========== 语义化变量 (基于核心变量) ========== */
+  --theme-surface-primary: var(--theme-surface);
+  --theme-surface-secondary: var(--theme-surface-hover);
+  --theme-text-on-primary: #ffffff;
+  --theme-text-on-surface: var(--theme-text-primary);
+
+  /* ========== 组件特定变量 ========== */
+  --theme-button-radius: 6px;
+  --theme-input-radius: 6px;
+  --theme-card-radius: 8px;
+  --theme-modal-radius: 8px;
+
+  /* ========== 间距变量 ========== */
+  --theme-spacing-xs: 4px;
+  --theme-spacing-sm: 8px;
+  --theme-spacing-md: 16px;
+  --theme-spacing-lg: 24px;
+  --theme-spacing-xl: 32px;
+
+  /* ========== 阴影变量 ========== */
+  --theme-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --theme-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --theme-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* ========== 暗色主题变量 ========== */
+:root[data-theme-mode='dark'] {
+  --theme-background: #1f2937;
+  --theme-background-secondary: #374151;
+  --theme-background-tertiary: #4b5563;
+
+  --theme-surface: #374151;
+  --theme-surface-hover: #4b5563;
+  --theme-surface-selected: #1f2937;
+
+  --theme-text-primary: #f9fafb;
+  --theme-text-secondary: #d1d5db;
+  --theme-text-tertiary: #9ca3af;
+  --theme-text-disabled: #6b7280;
+
+  --theme-border: #4b5563;
+  --theme-border-hover: #6b7280;
+  --theme-border-active: #9ca3af;
+
+  --theme-sidebar-background: #1f2937;
+  --theme-sidebar-hover: #374151;
+
+  --theme-logo-background: #1f2937;
+  --theme-logo-foreground: #f9fafb;
+
+  --theme-icon-primary: #d1d5db;
+  --theme-icon-secondary: #9ca3af;
+
+  /* 暗色主题的阴影 */
+  --theme-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --theme-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);
+  --theme-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.3);
+}
