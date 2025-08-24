@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { ConfigStorage } from '@/common/storage';
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { ThemePackageManager, type ThemePackageFile } from './themePackage';
-import { ConfigStorage } from '@/common/storage';
 import type { ThemeMode } from './types';
 
 interface ThemeContextType {
@@ -264,17 +264,17 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
 
     setCurrentThemeId(themeId);
 
-    // 根据主题模式更新偏好设置
+    // 根据主题模式更新偏好设置和当前模式
     if (selectedTheme.manifest.mode === 'dark') {
       setPreferredDarkTheme(themeId);
+      setThemeModeState('dark');
     } else {
       setPreferredLightTheme(themeId);
+      setThemeModeState('light');
     }
 
-    // 如果不在自动模式，则关闭自动模式
-    if (!isAutoMode) {
-      setIsAutoMode(false);
-    }
+    // 关闭自动模式和滤镜模式
+    setIsAutoMode(false);
   };
 
   // 设置主题模式
