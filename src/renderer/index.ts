@@ -30,51 +30,65 @@ const Config: React.FC<PropsWithChildren> = (props) => {
   } = useTranslation();
   const { currentTheme } = useTheme();
 
+  // 如果没有当前主题，使用默认配置
+  if (!currentTheme) {
+    return React.createElement(
+      ConfigProvider,
+      {
+        locale: language === 'zh-CN' ? zhCN : language === 'zh-TW' ? zhTW : language === 'ja-JP' ? jaJP : enUS,
+      },
+      props.children
+    );
+  }
+
+  const themeColors = currentTheme.manifest.variables;
+  const isDarkMode = currentTheme.manifest.mode === 'dark';
+
   return React.createElement(
     ConfigProvider,
     {
       theme: {
-        primaryColor: currentTheme.colors.primary,
+        primaryColor: themeColors.primary,
         // 添加暗色主题支持
-        ...(currentTheme.mode === 'dark' && {
+        ...(isDarkMode && {
           // 基础背景色
-          colorBgLayout: currentTheme.colors.background,
-          colorBgContainer: currentTheme.colors.surface,
-          colorBgElevated: currentTheme.colors.surfaceHover,
-          colorBgBase: currentTheme.colors.background,
-          colorBgSpotlight: currentTheme.colors.surface,
+          colorBgLayout: themeColors.background,
+          colorBgContainer: themeColors.surface,
+          colorBgElevated: themeColors.surfaceHover,
+          colorBgBase: themeColors.background,
+          colorBgSpotlight: themeColors.surface,
 
           // 文字颜色
-          colorText: currentTheme.colors.textPrimary,
-          colorTextSecondary: currentTheme.colors.textSecondary,
-          colorTextTertiary: currentTheme.colors.textTertiary,
-          colorTextQuaternary: currentTheme.colors.textDisabled,
-          colorTextBase: currentTheme.colors.textPrimary,
-          colorTextLabel: currentTheme.colors.textPrimary,
-          colorTextPlaceholder: currentTheme.colors.textTertiary,
+          colorText: themeColors.textPrimary,
+          colorTextSecondary: themeColors.textSecondary,
+          colorTextTertiary: themeColors.textTertiary,
+          colorTextQuaternary: themeColors.textDisabled,
+          colorTextBase: themeColors.textPrimary,
+          colorTextLabel: themeColors.textPrimary,
+          colorTextPlaceholder: themeColors.textTertiary,
 
           // 边框颜色
-          colorBorder: currentTheme.colors.border,
-          colorBorderSecondary: currentTheme.colors.borderHover,
+          colorBorder: themeColors.border,
+          colorBorderSecondary: themeColors.borderHover,
 
           // 填充颜色
-          colorFill: currentTheme.colors.surfaceHover,
-          colorFillSecondary: currentTheme.colors.surface,
-          colorFillTertiary: currentTheme.colors.backgroundSecondary,
-          colorFillQuaternary: currentTheme.colors.backgroundTertiary,
+          colorFill: themeColors.surfaceHover,
+          colorFillSecondary: themeColors.surface,
+          colorFillTertiary: themeColors.backgroundSecondary,
+          colorFillQuaternary: themeColors.backgroundTertiary,
 
           // 输入框相关
-          colorBgTextInput: currentTheme.colors.surface,
-          colorBgTextInputHover: currentTheme.colors.surfaceHover,
-          colorBgTextInputFocus: currentTheme.colors.surface,
-          colorBgTextInputDisabled: currentTheme.colors.backgroundSecondary,
+          colorBgTextInput: themeColors.surface,
+          colorBgTextInputHover: themeColors.surfaceHover,
+          colorBgTextInputFocus: themeColors.surface,
+          colorBgTextInputDisabled: themeColors.backgroundSecondary,
 
           // 卡片和面板
-          colorBgCard: currentTheme.colors.surface,
-          colorBgPanel: currentTheme.colors.backgroundSecondary,
+          colorBgCard: themeColors.surface,
+          colorBgPanel: themeColors.backgroundSecondary,
 
           // 分割线
-          colorSplit: currentTheme.colors.border,
+          colorSplit: themeColors.border,
         }),
       },
       locale: language === 'zh-CN' ? zhCN : language === 'zh-TW' ? zhTW : language === 'ja-JP' ? jaJP : enUS,

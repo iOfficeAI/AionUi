@@ -5,14 +5,49 @@
  */
 
 import { useTheme } from './ThemeProvider';
+import { createThemeAdapter, getTextColor, getIconColor } from './themeAdapter';
 import type { ThemeColors } from './types';
 
 /**
- * Hook to get theme colors for easy usage in components
+ * 获取当前主题的颜色配置
  */
 export const useThemeColors = (): ThemeColors => {
   const { currentTheme } = useTheme();
-  return currentTheme.colors;
+  if (!currentTheme) {
+    // 返回默认颜色
+    return {
+      primary: '#4E5969',
+      primaryHover: '#3D4652',
+      primaryActive: '#2A2E37',
+      background: '#ffffff',
+      backgroundSecondary: '#f7f8fa',
+      backgroundTertiary: '#f2f3f5',
+      surface: '#ffffff',
+      surfaceHover: '#f7f8fa',
+      surfaceSelected: '#e5e6eb',
+      textPrimary: '#1d2129',
+      textSecondary: '#4e5969',
+      textTertiary: '#86909c',
+      textDisabled: '#c9cdd4',
+      border: '#e5e6eb',
+      borderHover: '#c9cdd4',
+      borderActive: '#86909c',
+      success: '#00b42a',
+      warning: '#ff7d00',
+      error: '#f53f3f',
+      info: '#165dff',
+      sidebarBackground: '#f2f3f5',
+      sidebarHover: '#e5e6eb',
+      logoBackground: '#000000',
+      logoForeground: '#ffffff',
+      searchHighlight: '#ff6b35',
+      searchHighlightBackground: '#fff3e0',
+      codeBlockTheme: 'github',
+      iconPrimary: '#4e5969',
+      iconSecondary: '#86909c',
+    };
+  }
+  return currentTheme.manifest.variables as unknown as ThemeColors;
 };
 
 /**
@@ -31,7 +66,7 @@ export const useThemeVar = () => {
  */
 export const useIsDarkMode = (): boolean => {
   const { currentTheme } = useTheme();
-  return currentTheme.mode === 'dark';
+  return currentTheme?.manifest.mode === 'dark';
 };
 
 /**
@@ -40,12 +75,12 @@ export const useIsDarkMode = (): boolean => {
  */
 export const useThemeClasses = () => {
   const { currentTheme } = useTheme();
-  const isDark = currentTheme.mode === 'dark';
+  const isDark = currentTheme?.manifest.mode === 'dark';
 
   return {
     isDark,
-    themeMode: currentTheme.mode,
-    themeId: currentTheme.id,
+    themeMode: currentTheme?.manifest.mode || 'light',
+    themeId: currentTheme?.manifest.id || 'default',
     // Common class combinations
     background: 'bg-[var(--theme-background)]',
     backgroundSecondary: 'bg-[var(--theme-background-secondary)]',
@@ -68,18 +103,10 @@ export const useTextColor = () => {
   const { currentTheme } = useTheme();
 
   return (i18nKey: string, fallback?: keyof ThemeColors): string => {
-    // 优先使用textColorMap中配置的颜色
-    if (currentTheme.textColorMap && currentTheme.textColorMap[i18nKey]) {
-      return currentTheme.textColorMap[i18nKey];
-    }
+    if (!currentTheme) return '#000000';
 
-    // 如果没有配置特定颜色，使用fallback颜色
-    if (fallback) {
-      return currentTheme.colors[fallback];
-    }
-
-    // 最后使用默认的主要文字颜色
-    return currentTheme.colors.textPrimary;
+    const adapter = createThemeAdapter(currentTheme);
+    return getTextColor(adapter, i18nKey, fallback);
   };
 };
 
@@ -94,25 +121,9 @@ export const useIconColor = () => {
   const { currentTheme } = useTheme();
 
   return (i18nKeyOrLevel: string, fallback?: 'primary' | 'secondary'): string => {
-    // 如果第一个参数是 'primary' 或 'secondary'，则直接返回对应的默认图标颜色
-    if (i18nKeyOrLevel === 'primary') {
-      return currentTheme.colors.iconPrimary;
-    }
-    if (i18nKeyOrLevel === 'secondary') {
-      return currentTheme.colors.iconSecondary;
-    }
+    if (!currentTheme) return '#666666';
 
-    // 否则作为 i18n key 处理，优先使用 iconColorMap 中配置的颜色
-    if (currentTheme.iconColorMap && currentTheme.iconColorMap[i18nKeyOrLevel]) {
-      return currentTheme.iconColorMap[i18nKeyOrLevel];
-    }
-
-    // 如果没有配置特定颜色，使用 fallback 颜色
-    if (fallback) {
-      return fallback === 'primary' ? currentTheme.colors.iconPrimary : currentTheme.colors.iconSecondary;
-    }
-
-    // 最后使用默认的主要图标颜色
-    return currentTheme.colors.iconPrimary;
+    const adapter = createThemeAdapter(currentTheme);
+    return getIconColor(adapter, i18nKeyOrLevel, fallback);
   };
 };

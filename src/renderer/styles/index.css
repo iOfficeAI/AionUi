@@ -1,0 +1,197 @@
+/**
+ * AionUI 主题系统 - 模块化样式入口
+ * 这个文件整合了所有的主题和样式模块
+ */
+
+/* ========== 基础模块 ========== */
+@import './base/variables.css';
+@import './base/reset.css';
+
+/* ========== 组件模块 ========== */
+@import './components/button.css';
+@import './components/form.css';
+@import './components/dropdown.css';
+@import './components/modal.css';
+
+/* ========== 特殊主题模式 ========== */
+/* 滤镜暗黑模式 - 使用CSS filter实现全局颜色反转 */
+html[data-theme='filter-dark'] {
+  background-color: #f0f0f0;
+  filter: invert(1) hue-rotate(180deg) contrast(0.9) brightness(1.1);
+  transition:
+    filter 0.3s ease,
+    background-color 0.3s ease;
+}
+
+[data-theme='filter-dark'] body {
+  background-color: transparent;
+}
+
+/* 恢复媒体元素的正常显示 */
+[data-theme='filter-dark'] img,
+[data-theme='filter-dark'] video,
+[data-theme='filter-dark'] iframe,
+[data-theme='filter-dark'] embed,
+[data-theme='filter-dark'] object,
+[data-theme='filter-dark'] svg,
+[data-theme='filter-dark'] canvas {
+  filter: invert(1) hue-rotate(180deg);
+  transition: filter 0.3s ease;
+}
+
+/* ========== UnoCSS与主题系统协调 ========== */
+/* 确保UnoCSS原子类与主题系统协同工作 */
+
+/* 主题感知的工具类 */
+.theme-transition {
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+/* 主题特定的布局类 */
+.theme-layout {
+  background-color: var(--theme-background);
+  color: var(--theme-text-primary);
+  min-height: 100vh;
+}
+
+.theme-sidebar {
+  background-color: var(--theme-sidebar-background);
+  border-right: 1px solid var(--theme-border);
+  color: var(--theme-text-primary);
+}
+
+.theme-main-content {
+  background-color: var(--theme-background);
+  color: var(--theme-text-primary);
+  flex: 1;
+}
+
+/* ========== Arco Design 组件深度集成 ========== */
+/* 这里包含了对Arco Design组件的全面样式覆盖 */
+/* 使用主题变量确保组件与主题系统完全一致 */
+
+.arco-theme-light,
+.arco-theme-dark {
+  /* Typography 组件 */
+  .arco-typography,
+  .arco-typography-text,
+  .arco-typography-title {
+    color: var(--theme-text-primary);
+  }
+
+  /* Tree 组件 */
+  .arco-tree {
+    background-color: var(--theme-sidebar-background);
+    color: var(--theme-text-primary);
+  }
+
+  .arco-tree-node-title {
+    background-color: transparent;
+    color: var(--theme-text-primary);
+  }
+
+  .arco-tree-node-title:hover {
+    background-color: var(--theme-sidebar-hover);
+  }
+
+  .arco-tree-node-selected .arco-tree-node-title {
+    background-color: var(--theme-surface-selected);
+  }
+
+  .arco-tree-node-switcher {
+    color: var(--theme-text-secondary);
+  }
+
+  /* Empty 组件 */
+  .arco-empty,
+  .arco-empty-description {
+    color: var(--theme-text-secondary);
+  }
+}
+
+/* ========== 特殊情况处理 ========== */
+/* 处理一些特殊的UI状态和交互 */
+
+/* 焦点状态的统一处理 */
+*:focus {
+  outline: none;
+}
+
+*:focus-visible {
+  outline: 2px solid var(--theme-primary);
+  outline-offset: 2px;
+}
+
+/* 选中文本的样式 */
+::selection {
+  background-color: var(--theme-surface-selected);
+  color: var(--theme-text-primary);
+}
+
+/* 拖拽状态 */
+.dragging {
+  opacity: 0.7;
+  transform: rotate(5deg);
+  transition: all 0.2s ease;
+}
+
+.drop-zone {
+  background-color: var(--theme-surface-selected);
+  border: 2px dashed var(--theme-primary);
+  border-radius: var(--theme-input-radius);
+}
+
+/* ========== 响应式主题调整 ========== */
+@media (max-width: 768px) {
+  :root {
+    --theme-spacing-xs: 2px;
+    --theme-spacing-sm: 4px;
+    --theme-spacing-md: 8px;
+    --theme-spacing-lg: 12px;
+    --theme-spacing-xl: 16px;
+  }
+}
+
+/* ========== 高对比度模式支持 ========== */
+@media (prefers-contrast: high) {
+  :root {
+    --theme-border: #000000;
+    --theme-text-secondary: var(--theme-text-primary);
+  }
+
+  :root[data-theme-mode='dark'] {
+    --theme-border: #ffffff;
+    --theme-text-secondary: var(--theme-text-primary);
+  }
+}
+
+/* ========== 减少动画偏好支持 ========== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ========== 打印样式 ========== */
+@media print {
+  :root {
+    --theme-background: white;
+    --theme-surface: white;
+    --theme-text-primary: black;
+    --theme-text-secondary: #333;
+    --theme-border: #ccc;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+}

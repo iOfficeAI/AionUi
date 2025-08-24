@@ -1,0 +1,89 @@
+/**
+ * 基础重置样式和通用样式
+ */
+
+/* ========== 滚动条样式 ========== */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background-color: var(--theme-surface);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--theme-border);
+  border-radius: 4px;
+  border: 1px solid var(--theme-surface);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--theme-text-tertiary);
+}
+
+::-webkit-scrollbar-corner {
+  background-color: var(--theme-surface);
+}
+
+/* ========== 通用动画类 ========== */
+.loading {
+  animation: loading 1s linear infinite;
+}
+
+.bg-animate {
+  animation: bg-animate 1s alternate infinite;
+}
+
+@keyframes bg-animate {
+  0% {
+    background-color: var(--theme-background-tertiary);
+  }
+  100% {
+    background-color: var(--theme-surface-selected);
+  }
+}
+
+@keyframes loading {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* ========== 折叠状态类 ========== */
+.collapsed .collapsed-hidden {
+  display: none;
+}
+
+.collapsed .\!collapsed-hidden {
+  display: none !important;
+}
+
+/* ========== 过渡动画 ========== */
+.transition-theme {
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease;
+}
+
+/* ========== 主题模式数据属性基础设置 ========== */
+html {
+  transition:
+    filter 0.3s ease,
+    background-color 0.3s ease;
+}
+
+html[data-theme-mode] {
+  background-color: var(--theme-background);
+  color: var(--theme-text-primary);
+}
+
+body {
+  background-color: var(--theme-background);
+  color: var(--theme-text-primary);
+}

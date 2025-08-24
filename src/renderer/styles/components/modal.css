@@ -1,0 +1,215 @@
+/**
+ * 模态框和卡片组件样式
+ */
+
+/* ========== Modal 弹窗样式 ========== */
+.arco-modal,
+.arco-modal-header,
+.arco-modal-body,
+.arco-modal-footer {
+  background-color: var(--theme-surface);
+  border-color: var(--theme-border);
+  color: var(--theme-text-primary);
+}
+
+.arco-modal {
+  border-radius: var(--theme-modal-radius);
+  box-shadow: var(--theme-shadow-lg);
+}
+
+.arco-modal-title {
+  color: var(--theme-text-primary);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.arco-modal-wrapper .arco-modal-content {
+  color: var(--theme-text-primary);
+}
+
+/* Modal 中的表单元素 */
+.arco-modal-wrapper .arco-form-item,
+.arco-modal-wrapper .arco-form-item-label,
+.arco-modal-wrapper .arco-form-item-content {
+  color: var(--theme-text-primary);
+}
+
+/* Modal 中的 Select 组件 */
+.arco-modal .arco-select,
+.arco-modal .arco-select-view,
+.arco-modal .arco-select-view-single,
+.arco-modal .arco-select-view-multiple {
+  background-color: var(--theme-surface);
+  border-color: var(--theme-border);
+  color: var(--theme-text-primary);
+}
+
+/* ========== Card 卡片样式 ========== */
+.arco-card,
+.arco-card-body,
+.arco-card-header {
+  background-color: var(--theme-surface);
+  color: var(--theme-text-primary);
+  border-color: var(--theme-border);
+}
+
+.arco-card {
+  border-radius: var(--theme-card-radius);
+  box-shadow: var(--theme-shadow-sm);
+}
+
+.arco-card-header-title,
+.arco-card-header .arco-card-header-title,
+.arco-card .arco-card-header .arco-card-header-title {
+  background-color: var(--theme-surface);
+  color: var(--theme-text-primary);
+}
+
+.arco-card-header *,
+.arco-card-header-title * {
+  color: var(--theme-text-primary);
+}
+
+/* ========== Tooltip 样式 ========== */
+.arco-tooltip,
+.arco-popover {
+  background-color: var(--theme-surface);
+  border-color: var(--theme-border);
+  color: var(--theme-text-primary);
+}
+
+.arco-tooltip-content,
+.arco-tooltip-inner {
+  background-color: var(--theme-surface);
+  color: var(--theme-text-primary);
+  border: 1px solid var(--theme-border);
+  box-shadow: var(--theme-shadow-lg);
+  border-radius: var(--theme-input-radius);
+}
+
+.arco-tooltip-content .arco-tooltip-arrow,
+.arco-tooltip-arrow::before {
+  background-color: var(--theme-surface);
+  border-color: var(--theme-border);
+}
+
+/* ========== 分割线样式 ========== */
+.arco-divider,
+.arco-divider-horizontal,
+.arco-divider-vertical {
+  border-color: var(--theme-border);
+  background-color: var(--theme-border);
+}
+
+.arco-divider-text {
+  color: var(--theme-text-secondary);
+  background-color: var(--theme-surface);
+}
+
+.arco-divider-text-left,
+.arco-divider-text-right,
+.arco-divider-text-center {
+  color: var(--theme-text-secondary);
+  background-color: var(--theme-surface);
+}
+
+/* ========== 折叠面板样式 ========== */
+.arco-collapse,
+.arco-collapse-border {
+  background-color: var(--theme-surface);
+  border-color: var(--theme-border);
+}
+
+.arco-collapse-item {
+  background-color: var(--theme-surface);
+  border-color: var(--theme-border);
+}
+
+.arco-collapse-item-header {
+  background-color: var(--theme-surface);
+  color: var(--theme-text-primary);
+  border-color: var(--theme-border);
+  padding: var(--theme-spacing-md);
+}
+
+.arco-collapse-item-header:hover {
+  background-color: var(--theme-surface-hover);
+}
+
+.arco-collapse-item-content {
+  background-color: var(--theme-surface);
+  color: var(--theme-text-primary);
+  border-color: var(--theme-border);
+}
+
+.arco-collapse-item-content-box {
+  background-color: var(--theme-surface);
+  color: var(--theme-text-primary);
+  padding: var(--theme-spacing-md);
+}
+
+.arco-collapse-item-header-icon {
+  color: var(--theme-text-secondary);
+}
+
+/* ========== 自定义Modal组件 ========== */
+.aion-modal {
+  background-color: var(--theme-surface);
+  border-radius: var(--theme-modal-radius);
+  box-shadow: var(--theme-shadow-lg);
+  border: 1px solid var(--theme-border);
+  max-width: 600px;
+  width: 90vw;
+}
+
+.aion-modal-header {
+  padding: var(--theme-spacing-lg);
+  border-bottom: 1px solid var(--theme-border);
+}
+
+.aion-modal-title {
+  color: var(--theme-text-primary);
+  font-size: 18px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.aion-modal-body {
+  padding: var(--theme-spacing-lg);
+  color: var(--theme-text-primary);
+}
+
+.aion-modal-footer {
+  padding: var(--theme-spacing-md) var(--theme-spacing-lg);
+  border-top: 1px solid var(--theme-border);
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--theme-spacing-sm);
+}
+
+/* ========== 自定义Card组件 ========== */
+.aion-card {
+  background-color: var(--theme-surface);
+  border: 1px solid var(--theme-border);
+  border-radius: var(--theme-card-radius);
+  box-shadow: var(--theme-shadow-sm);
+  overflow: hidden;
+}
+
+.aion-card-header {
+  padding: var(--theme-spacing-md) var(--theme-spacing-lg);
+  border-bottom: 1px solid var(--theme-border);
+  background-color: var(--theme-surface);
+}
+
+.aion-card-title {
+  color: var(--theme-text-primary);
+  font-size: 16px;
+  font-weight: 500;
+  margin: 0;
+}
+
+.aion-card-body {
+  padding: var(--theme-spacing-lg);
+  color: var(--theme-text-primary);
+}

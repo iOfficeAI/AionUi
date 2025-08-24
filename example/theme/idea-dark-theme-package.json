@@ -1,0 +1,69 @@
+{
+  "manifest": {
+    "name": "IDEA Dark",
+    "id": "idea-dark-modernized",
+    "version": "2.0.0",
+    "author": "AionUI Official",
+    "description": "升级版IDEA Dark主题 - 现代化主题包格式，经典IDEA风格暗色设计",
+    "mode": "dark",
+    "baseTheme": "idea-dark",
+    "variables": {
+      "primary": "#6494ED",
+      "primaryHover": "#5B85D6",
+      "primaryActive": "#4A75C2",
+      "background": "#1E1E1E",
+      "backgroundSecondary": "#252526",
+      "backgroundTertiary": "#2D2D30",
+      "surface": "#252526",
+      "surfaceHover": "#2D2D30",
+      "surfaceSelected": "#37373D",
+      "textPrimary": "#E8E8E8",
+      "textSecondary": "#C0C0C0",
+      "textTertiary": "#909090",
+      "textDisabled": "#606060",
+      "border": "#3E3E42",
+      "borderHover": "#464647",
+      "borderActive": "#6494ED",
+      "success": "#6A8759",
+      "warning": "#BBB529",
+      "error": "#BC3F3C",
+      "info": "#6897BB",
+      "sidebarBackground": "#1E1E1E",
+      "sidebarHover": "#2D2D30",
+      "logoBackground": "#6494ED",
+      "logoForeground": "#FFFFFF",
+      "searchHighlight": "#FFD700",
+      "searchHighlightBackground": "#3D3D00",
+      "codeBlockTheme": "tomorrow-night",
+      "iconPrimary": "#B0B0B0",
+      "iconSecondary": "#808080"
+    },
+    "modules": {
+      "components": ["button", "form", "dropdown", "modal"],
+      "layouts": ["sidebar", "main"],
+      "overrides": true
+    },
+    "unocss": {
+      "safelist": ["bg-theme-primary", "bg-theme-surface", "bg-theme-background", "text-theme-text-primary", "btn-primary", "card-base", "sidebar-base"],
+      "shortcuts": {
+        "btn-idea-primary": "bg-theme-primary text-white border border-theme-primary rounded-theme-button px-theme-spacing-md py-theme-spacing-sm transition-all duration-200 hover:bg-theme-primary-hover",
+        "card-idea": "bg-theme-surface border border-theme-border rounded-theme-card shadow-theme-sm",
+        "sidebar-idea": "bg-theme-sidebar-background border-r border-theme-border text-theme-text-primary"
+      }
+    }
+  },
+  "styles": {
+    "variables": ":root[data-theme-id=\"idea-dark-modernized\"] {\n  /* IDEA Dark 主题变量 */\n  --theme-primary: #6494ED;\n  --theme-primary-hover: #5B85D6;\n  --theme-primary-active: #4A75C2;\n  --theme-background: #1E1E1E;\n  --theme-background-secondary: #252526;\n  --theme-background-tertiary: #2D2D30;\n  --theme-surface: #252526;\n  --theme-surface-hover: #2D2D30;\n  --theme-surface-selected: #37373D;\n  --theme-text-primary: #E8E8E8;\n  --theme-text-secondary: #C0C0C0;\n  --theme-text-tertiary: #909090;\n  --theme-text-disabled: #606060;\n  --theme-border: #3E3E42;\n  --theme-border-hover: #464647;\n  --theme-border-active: #6494ED;\n  --theme-success: #6A8759;\n  --theme-warning: #BBB529;\n  --theme-error: #BC3F3C;\n  --theme-info: #6897BB;\n  --theme-sidebar-background: #1E1E1E;\n  --theme-sidebar-hover: #2D2D30;\n  --theme-logo-background: #6494ED;\n  --theme-logo-foreground: #FFFFFF;\n  --theme-search-highlight: #FFD700;\n  --theme-search-highlight-background: #3D3D00;\n  --theme-icon-primary: #B0B0B0;\n  --theme-icon-secondary: #808080;\n  \n  /* 语义化变量 */\n  --theme-text-on-primary: #ffffff;\n  --theme-surface-primary: var(--theme-surface);\n  --theme-surface-secondary: var(--theme-surface-hover);\n  \n  /* 组件特定变量 */\n  --theme-button-radius: 6px;\n  --theme-input-radius: 6px;\n  --theme-card-radius: 8px;\n  --theme-modal-radius: 8px;\n  \n  /* 间距变量 */\n  --theme-spacing-xs: 4px;\n  --theme-spacing-sm: 8px;\n  --theme-spacing-md: 16px;\n  --theme-spacing-lg: 24px;\n  --theme-spacing-xl: 32px;\n  \n  /* 阴影变量 - 暗色主题 */\n  --theme-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);\n  --theme-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.3);\n  --theme-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.3);\n}",
+    "components": {
+      "button": "[data-theme-id=\"idea-dark-modernized\"] .aion-button {\n  background-color: var(--theme-primary);\n  color: var(--theme-text-on-primary);\n  border: 1px solid var(--theme-primary);\n  border-radius: var(--theme-button-radius);\n  padding: var(--theme-spacing-sm) var(--theme-spacing-md);\n  font-size: 14px;\n  cursor: pointer;\n  transition: all 0.2s ease;\n}\n\n[data-theme-id=\"idea-dark-modernized\"] .aion-button:hover {\n  background-color: var(--theme-primary-hover);\n  border-color: var(--theme-primary-hover);\n}\n\n[data-theme-id=\"idea-dark-modernized\"] .aion-button--secondary {\n  background-color: transparent;\n  color: var(--theme-text-primary);\n  border-color: var(--theme-border);\n}\n\n[data-theme-id=\"idea-dark-modernized\"] .aion-button--secondary:hover {\n  background-color: var(--theme-surface-hover);\n  border-color: var(--theme-border-hover);\n}",
+      "form": "[data-theme-id=\"idea-dark-modernized\"] .aion-input {\n  background-color: var(--theme-surface);\n  border: 1px solid var(--theme-border);\n  border-radius: var(--theme-input-radius);\n  color: var(--theme-text-primary);\n  padding: var(--theme-spacing-sm);\n  font-size: 14px;\n  transition: all 0.2s ease;\n}\n\n[data-theme-id=\"idea-dark-modernized\"] .aion-input:focus {\n  outline: none;\n  border-color: var(--theme-primary);\n  box-shadow: 0 0 0 2px rgba(100, 148, 237, 0.2);\n}\n\n[data-theme-id=\"idea-dark-modernized\"] .aion-input::placeholder {\n  color: var(--theme-text-tertiary);\n}",
+      "dropdown": "[data-theme-id=\"idea-dark-modernized\"] .aion-dropdown {\n  background-color: var(--theme-surface);\n  border: 1px solid var(--theme-border);\n  border-radius: var(--theme-input-radius);\n  box-shadow: var(--theme-shadow-lg);\n  padding: var(--theme-spacing-xs) 0;\n  min-width: 160px;\n}\n\n[data-theme-id=\"idea-dark-modernized\"] .aion-dropdown-item {\n  padding: var(--theme-spacing-sm) var(--theme-spacing-md);\n  color: var(--theme-text-primary);\n  cursor: pointer;\n  transition: background-color 0.2s ease;\n}\n\n[data-theme-id=\"idea-dark-modernized\"] .aion-dropdown-item:hover {\n  background-color: var(--theme-surface-hover);\n}",
+      "modal": "[data-theme-id=\"idea-dark-modernized\"] .aion-modal {\n  background-color: var(--theme-surface);\n  border-radius: var(--theme-modal-radius);\n  box-shadow: var(--theme-shadow-lg);\n  border: 1px solid var(--theme-border);\n  max-width: 600px;\n  width: 90vw;\n}\n\n[data-theme-id=\"idea-dark-modernized\"] .aion-modal-header {\n  padding: var(--theme-spacing-lg);\n  border-bottom: 1px solid var(--theme-border);\n}\n\n[data-theme-id=\"idea-dark-modernized\"] .aion-modal-title {\n  color: var(--theme-text-primary);\n  font-size: 18px;\n  font-weight: 600;\n  margin: 0;\n}\n\n[data-theme-id=\"idea-dark-modernized\"] .aion-modal-body {\n  padding: var(--theme-spacing-lg);\n  color: var(--theme-text-primary);\n}"
+    },
+    "layouts": {
+      "sidebar": "[data-theme-id=\"idea-dark-modernized\"] .theme-sidebar {\n  background-color: var(--theme-sidebar-background);\n  border-right: 1px solid var(--theme-border);\n  color: var(--theme-text-primary);\n}\n\n[data-theme-id=\"idea-dark-modernized\"] .sidebar-item {\n  padding: var(--theme-spacing-sm) var(--theme-spacing-md);\n  color: var(--theme-text-primary);\n  transition: background-color 0.2s ease;\n  cursor: pointer;\n}\n\n[data-theme-id=\"idea-dark-modernized\"] .sidebar-item:hover {\n  background-color: var(--theme-sidebar-hover);\n}\n\n[data-theme-id=\"idea-dark-modernized\"] .sidebar-item--active {\n  background-color: var(--theme-surface-selected);\n  color: var(--theme-primary);\n}",
+      "main": "[data-theme-id=\"idea-dark-modernized\"] .theme-main-content {\n  background-color: var(--theme-background);\n  color: var(--theme-text-primary);\n  min-height: 100vh;\n  flex: 1;\n}\n\n[data-theme-id=\"idea-dark-modernized\"] .theme-layout {\n  background-color: var(--theme-background);\n  color: var(--theme-text-primary);\n  min-height: 100vh;\n}"
+    },
+    "overrides": "/* IDEA Dark - Arco Design 组件覆盖 */\n[data-theme-id=\"idea-dark-modernized\"] .arco-btn {\n  border-radius: var(--theme-button-radius);\n  transition: all 0.2s ease;\n}\n\n[data-theme-id=\"idea-dark-modernized\"] .arco-btn-primary {\n  background-color: var(--theme-primary);\n  border-color: var(--theme-primary);\n  color: var(--theme-text-on-primary);\n}\n\n[data-theme-id=\"idea-dark-modernized\"] .arco-btn-primary:hover {\n  background-color: var(--theme-primary-hover);\n  border-color: var(--theme-primary-hover);\n}\n\n[data-theme-id=\"idea-dark-modernized\"] .arco-input {\n  background-color: var(--theme-surface);\n  border-color: var(--theme-border);\n  color: var(--theme-text-primary);\n  border-radius: var(--theme-input-radius);\n}\n\n[data-theme-id=\"idea-dark-modernized\"] .arco-input:focus {\n  border-color: var(--theme-primary);\n  box-shadow: 0 0 0 2px rgba(100, 148, 237, 0.2);\n}\n\n[data-theme-id=\"idea-dark-modernized\"] .arco-card {\n  background-color: var(--theme-surface);\n  border-color: var(--theme-border);\n  color: var(--theme-text-primary);\n  border-radius: var(--theme-card-radius);\n}\n\n[data-theme-id=\"idea-dark-modernized\"] .arco-modal {\n  background-color: var(--theme-surface);\n  border-radius: var(--theme-modal-radius);\n  box-shadow: var(--theme-shadow-lg);\n}"
+  }
+}

@@ -1,0 +1,69 @@
+{
+  "manifest": {
+    "name": "Default Light",
+    "id": "default-light-modernized",
+    "version": "2.0.0",
+    "author": "AionUI Official",
+    "description": "升级版Default Light主题 - 现代化主题包格式，清新简洁的浅色设计",
+    "mode": "light",
+    "baseTheme": "default-light",
+    "variables": {
+      "primary": "#4E5969",
+      "primaryHover": "#3D4652",
+      "primaryActive": "#2A2E37",
+      "background": "#ffffff",
+      "backgroundSecondary": "#f7f8fa",
+      "backgroundTertiary": "#f2f3f5",
+      "surface": "#ffffff",
+      "surfaceHover": "#f7f8fa",
+      "surfaceSelected": "#e5e6eb",
+      "textPrimary": "#1d2129",
+      "textSecondary": "#4e5969",
+      "textTertiary": "#86909c",
+      "textDisabled": "#c9cdd4",
+      "border": "#e5e6eb",
+      "borderHover": "#c9cdd4",
+      "borderActive": "#86909c",
+      "success": "#00b42a",
+      "warning": "#ff7d00",
+      "error": "#f53f3f",
+      "info": "#165dff",
+      "sidebarBackground": "#f2f3f5",
+      "sidebarHover": "#e5e6eb",
+      "logoBackground": "#000000",
+      "logoForeground": "#ffffff",
+      "searchHighlight": "#ff6b35",
+      "searchHighlightBackground": "#fff3e0",
+      "codeBlockTheme": "github",
+      "iconPrimary": "#4e5969",
+      "iconSecondary": "#86909c"
+    },
+    "modules": {
+      "components": ["button", "form", "dropdown", "modal"],
+      "layouts": ["sidebar", "main"],
+      "overrides": true
+    },
+    "unocss": {
+      "safelist": ["bg-theme-primary", "bg-theme-surface", "bg-theme-background", "text-theme-text-primary", "btn-primary", "card-base", "sidebar-base"],
+      "shortcuts": {
+        "btn-light-primary": "bg-theme-primary text-white border border-theme-primary rounded-theme-button px-theme-spacing-md py-theme-spacing-sm transition-all duration-200 hover:bg-theme-primary-hover",
+        "card-light": "bg-theme-surface border border-theme-border rounded-theme-card shadow-theme-sm",
+        "sidebar-light": "bg-theme-sidebar-background border-r border-theme-border text-theme-text-primary"
+      }
+    }
+  },
+  "styles": {
+    "variables": ":root[data-theme-id=\"default-light-modernized\"] {\n  /* Default Light 主题变量 */\n  --theme-primary: #4E5969;\n  --theme-primary-hover: #3D4652;\n  --theme-primary-active: #2A2E37;\n  --theme-background: #ffffff;\n  --theme-background-secondary: #f7f8fa;\n  --theme-background-tertiary: #f2f3f5;\n  --theme-surface: #ffffff;\n  --theme-surface-hover: #f7f8fa;\n  --theme-surface-selected: #e5e6eb;\n  --theme-text-primary: #1d2129;\n  --theme-text-secondary: #4e5969;\n  --theme-text-tertiary: #86909c;\n  --theme-text-disabled: #c9cdd4;\n  --theme-border: #e5e6eb;\n  --theme-border-hover: #c9cdd4;\n  --theme-border-active: #86909c;\n  --theme-success: #00b42a;\n  --theme-warning: #ff7d00;\n  --theme-error: #f53f3f;\n  --theme-info: #165dff;\n  --theme-sidebar-background: #f2f3f5;\n  --theme-sidebar-hover: #e5e6eb;\n  --theme-logo-background: #000000;\n  --theme-logo-foreground: #ffffff;\n  --theme-search-highlight: #ff6b35;\n  --theme-search-highlight-background: #fff3e0;\n  --theme-icon-primary: #4e5969;\n  --theme-icon-secondary: #86909c;\n  \n  /* 语义化变量 */\n  --theme-text-on-primary: #ffffff;\n  --theme-surface-primary: var(--theme-surface);\n  --theme-surface-secondary: var(--theme-surface-hover);\n  \n  /* 组件特定变量 */\n  --theme-button-radius: 6px;\n  --theme-input-radius: 6px;\n  --theme-card-radius: 8px;\n  --theme-modal-radius: 8px;\n  \n  /* 间距变量 */\n  --theme-spacing-xs: 4px;\n  --theme-spacing-sm: 8px;\n  --theme-spacing-md: 16px;\n  --theme-spacing-lg: 24px;\n  --theme-spacing-xl: 32px;\n  \n  /* 阴影变量 - 浅色主题 */\n  --theme-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);\n  --theme-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);\n  --theme-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);\n}",
+    "components": {
+      "button": "[data-theme-id=\"default-light-modernized\"] .aion-button {\n  background-color: var(--theme-primary);\n  color: var(--theme-text-on-primary);\n  border: 1px solid var(--theme-primary);\n  border-radius: var(--theme-button-radius);\n  padding: var(--theme-spacing-sm) var(--theme-spacing-md);\n  font-size: 14px;\n  cursor: pointer;\n  transition: all 0.2s ease;\n}\n\n[data-theme-id=\"default-light-modernized\"] .aion-button:hover {\n  background-color: var(--theme-primary-hover);\n  border-color: var(--theme-primary-hover);\n}\n\n[data-theme-id=\"default-light-modernized\"] .aion-button--secondary {\n  background-color: transparent;\n  color: var(--theme-text-primary);\n  border-color: var(--theme-border);\n}\n\n[data-theme-id=\"default-light-modernized\"] .aion-button--secondary:hover {\n  background-color: var(--theme-surface-hover);\n  border-color: var(--theme-border-hover);\n}",
+      "form": "[data-theme-id=\"default-light-modernized\"] .aion-input {\n  background-color: var(--theme-surface);\n  border: 1px solid var(--theme-border);\n  border-radius: var(--theme-input-radius);\n  color: var(--theme-text-primary);\n  padding: var(--theme-spacing-sm);\n  font-size: 14px;\n  transition: all 0.2s ease;\n}\n\n[data-theme-id=\"default-light-modernized\"] .aion-input:focus {\n  outline: none;\n  border-color: var(--theme-primary);\n  box-shadow: 0 0 0 2px rgba(78, 89, 105, 0.2);\n}\n\n[data-theme-id=\"default-light-modernized\"] .aion-input::placeholder {\n  color: var(--theme-text-tertiary);\n}",
+      "dropdown": "[data-theme-id=\"default-light-modernized\"] .aion-dropdown {\n  background-color: var(--theme-surface);\n  border: 1px solid var(--theme-border);\n  border-radius: var(--theme-input-radius);\n  box-shadow: var(--theme-shadow-lg);\n  padding: var(--theme-spacing-xs) 0;\n  min-width: 160px;\n}\n\n[data-theme-id=\"default-light-modernized\"] .aion-dropdown-item {\n  padding: var(--theme-spacing-sm) var(--theme-spacing-md);\n  color: var(--theme-text-primary);\n  cursor: pointer;\n  transition: background-color 0.2s ease;\n}\n\n[data-theme-id=\"default-light-modernized\"] .aion-dropdown-item:hover {\n  background-color: var(--theme-surface-hover);\n}",
+      "modal": "[data-theme-id=\"default-light-modernized\"] .aion-modal {\n  background-color: var(--theme-surface);\n  border-radius: var(--theme-modal-radius);\n  box-shadow: var(--theme-shadow-lg);\n  border: 1px solid var(--theme-border);\n  max-width: 600px;\n  width: 90vw;\n}\n\n[data-theme-id=\"default-light-modernized\"] .aion-modal-header {\n  padding: var(--theme-spacing-lg);\n  border-bottom: 1px solid var(--theme-border);\n}\n\n[data-theme-id=\"default-light-modernized\"] .aion-modal-title {\n  color: var(--theme-text-primary);\n  font-size: 18px;\n  font-weight: 600;\n  margin: 0;\n}\n\n[data-theme-id=\"default-light-modernized\"] .aion-modal-body {\n  padding: var(--theme-spacing-lg);\n  color: var(--theme-text-primary);\n}"
+    },
+    "layouts": {
+      "sidebar": "[data-theme-id=\"default-light-modernized\"] .theme-sidebar {\n  background-color: var(--theme-sidebar-background);\n  border-right: 1px solid var(--theme-border);\n  color: var(--theme-text-primary);\n}\n\n[data-theme-id=\"default-light-modernized\"] .sidebar-item {\n  padding: var(--theme-spacing-sm) var(--theme-spacing-md);\n  color: var(--theme-text-primary);\n  transition: background-color 0.2s ease;\n  cursor: pointer;\n}\n\n[data-theme-id=\"default-light-modernized\"] .sidebar-item:hover {\n  background-color: var(--theme-sidebar-hover);\n}\n\n[data-theme-id=\"default-light-modernized\"] .sidebar-item--active {\n  background-color: var(--theme-surface-selected);\n  color: var(--theme-primary);\n}",
+      "main": "[data-theme-id=\"default-light-modernized\"] .theme-main-content {\n  background-color: var(--theme-background);\n  color: var(--theme-text-primary);\n  min-height: 100vh;\n  flex: 1;\n}\n\n[data-theme-id=\"default-light-modernized\"] .theme-layout {\n  background-color: var(--theme-background);\n  color: var(--theme-text-primary);\n  min-height: 100vh;\n}"
+    },
+    "overrides": "/* Default Light - Arco Design 组件覆盖 */\n[data-theme-id=\"default-light-modernized\"] .arco-btn {\n  border-radius: var(--theme-button-radius);\n  transition: all 0.2s ease;\n}\n\n[data-theme-id=\"default-light-modernized\"] .arco-btn-primary {\n  background-color: var(--theme-primary);\n  border-color: var(--theme-primary);\n  color: var(--theme-text-on-primary);\n}\n\n[data-theme-id=\"default-light-modernized\"] .arco-btn-primary:hover {\n  background-color: var(--theme-primary-hover);\n  border-color: var(--theme-primary-hover);\n}\n\n[data-theme-id=\"default-light-modernized\"] .arco-input {\n  background-color: var(--theme-surface);\n  border-color: var(--theme-border);\n  color: var(--theme-text-primary);\n  border-radius: var(--theme-input-radius);\n}\n\n[data-theme-id=\"default-light-modernized\"] .arco-input:focus {\n  border-color: var(--theme-primary);\n  box-shadow: 0 0 0 2px rgba(78, 89, 105, 0.2);\n}\n\n[data-theme-id=\"default-light-modernized\"] .arco-card {\n  background-color: var(--theme-surface);\n  border-color: var(--theme-border);\n  color: var(--theme-text-primary);\n  border-radius: var(--theme-card-radius);\n}\n\n[data-theme-id=\"default-light-modernized\"] .arco-modal {\n  background-color: var(--theme-surface);\n  border-radius: var(--theme-modal-radius);\n  box-shadow: var(--theme-shadow-lg);\n}"
+  }
+}
