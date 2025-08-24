@@ -29,6 +29,7 @@ export interface IConfigStorageRefer {
   'model.config': IModel[];
   language: string;
   theme: string;
+  'gemini.defaultModel': string;
 }
 
 export interface IEnvStorageRefer {
