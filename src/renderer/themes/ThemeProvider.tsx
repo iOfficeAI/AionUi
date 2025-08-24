@@ -120,6 +120,9 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
             const currentSystemTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
             const themeId = currentSystemTheme === 'dark' ? settings.preferredDarkTheme || 'idea-dark' : settings.preferredLightTheme || 'default-light';
             setCurrentThemeId(themeId);
+          } else if (settings.themeMode === 'filter-dark') {
+            // 滤镜暗黑模式使用亮色主题作为基础
+            setCurrentThemeId(settings.preferredLightTheme || 'default-light');
           }
         } else if (settings.autoMode) {
           setThemeModeState('auto');
@@ -178,9 +181,17 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
     root.setAttribute('data-theme-mode', theme.mode);
     root.setAttribute('data-theme-id', theme.id);
 
-    // Add/remove theme CSS classes
-    root.classList.remove('arco-theme-light', 'arco-theme-dark');
-    root.classList.add(`arco-theme-${theme.mode}`);
+    // Handle filter-dark mode
+    if (themeMode === 'filter-dark') {
+      root.setAttribute('data-theme', 'filter-dark');
+      root.classList.remove('arco-theme-light', 'arco-theme-dark');
+      root.classList.add('arco-theme-light'); // Use light theme as base for filter
+    } else {
+      root.removeAttribute('data-theme');
+      // Add/remove theme CSS classes
+      root.classList.remove('arco-theme-light', 'arco-theme-dark');
+      root.classList.add(`arco-theme-${theme.mode}`);
+    }
   };
 
   // Set theme
@@ -211,6 +222,10 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
       // 在自动模式下，根据系统主题使用对应的偏好主题
       const themeId = systemTheme === 'dark' ? preferredDarkTheme : preferredLightTheme;
       setCurrentThemeId(themeId);
+    } else if (mode === 'filter-dark') {
+      setIsAutoMode(false);
+      // 滤镜暗黑模式使用默认亮色主题作为基础
+      setCurrentThemeId(preferredLightTheme);
     } else {
       setIsAutoMode(false);
       // 根据选择的模式使用对应的偏好主题
@@ -260,9 +275,15 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({ children }) => {
   // Update theme mode state separately to avoid circular dependency
   useEffect(() => {
     if (isAutoMode) {
-      setThemeModeState('auto');
+      if (themeMode !== 'auto') {
+        setThemeModeState('auto');
+      }
+    } else if (themeMode === 'filter-dark') {
+      // Keep filter-dark mode - no need to set again
     } else {
-      setThemeModeState(currentTheme.mode);
+      if (themeMode !== currentTheme.mode) {
+        setThemeModeState(currentTheme.mode);
+      }
     }
   }, [isAutoMode, currentTheme.mode]);
 

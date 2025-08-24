@@ -117,7 +117,9 @@
       "clearError": "清除主题目录失败：",
       "externalThemesStatus": "外部主题状态",
       "themesLoaded": "{{count}} 个主题已加载",
-      "noThemes": "未加载外部主题"
+      "noThemes": "未加载外部主题",
+      "filterDark": "滤镜暗黑",
+      "filterDarkDesc": "CSS滤镜实现的暗色主题"
     }
   },
   "messages": {

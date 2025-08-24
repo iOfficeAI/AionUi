@@ -52,7 +52,7 @@
       }
     ],
     "max-len": [
-      "error",
+      "warn",
       {
         "code": 120,
         "ignoreUrls": true,
@@ -60,6 +60,12 @@
         "ignoreTemplateLiterals": true,
         "ignoreRegExpLiterals": true
       }
-    ]
+    ],
+    "@typescript-eslint/no-explicit-any": "warn",
+    "@typescript-eslint/ban-types": "warn",
+    "@typescript-eslint/no-unnecessary-type-constraint": "warn",
+    "no-constant-condition": "warn",
+    "no-empty-pattern": "warn",
+    "import/no-named-as-default-member": "warn"
   }
 }

@@ -33,7 +33,7 @@ export interface IConfigStorageRefer {
   'theme.settings': {
     currentTheme: string;
     autoMode: boolean;
-    themeMode: 'light' | 'dark' | 'auto';
+    themeMode: 'light' | 'dark' | 'auto' | 'filter-dark';
     preferredLightTheme: string;
     preferredDarkTheme: string;
   };

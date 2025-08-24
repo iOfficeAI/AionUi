@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export type ThemeMode = 'light' | 'dark' | 'auto';
+export type ThemeMode = 'light' | 'dark' | 'auto' | 'filter-dark';
 
 export interface ThemeColors {
   // Primary colors

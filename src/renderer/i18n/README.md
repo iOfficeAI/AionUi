@@ -23,15 +23,15 @@ src/renderer/i18n/
 ### 在组件中使用翻译
 
 ```tsx
-import { useTranslation } from "react-i18next";
+import { useTranslation } from 'react-i18next';
 
 const MyComponent = () => {
   const { t } = useTranslation();
 
   return (
     <div>
-      <h1>{t("common.title")}</h1>
-      <p>{t("common.description")}</p>
+      <h1>{t('common.title')}</h1>
+      <p>{t('common.description')}</p>
     </div>
   );
 };
@@ -40,7 +40,7 @@ const MyComponent = () => {
 ### 切换语言
 
 ```tsx
-import { useTranslation } from "react-i18next";
+import { useTranslation } from 'react-i18next';
 
 const LanguageSwitcher = () => {
   const { i18n } = useTranslation();
@@ -51,8 +51,8 @@ const LanguageSwitcher = () => {
 
   return (
     <div>
-      <button onClick={() => changeLanguage("zh-CN")}>中文</button>
-      <button onClick={() => changeLanguage("en-US")}>English</button>
+      <button onClick={() => changeLanguage('zh-CN')}>中文</button>
+      <button onClick={() => changeLanguage('en-US')}>English</button>
     </div>
   );
 };

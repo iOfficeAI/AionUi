@@ -10,12 +10,16 @@
     "make": "electron-forge make",
     "publish": "electron-forge publish",
     "lint": "eslint --ext .ts,.tsx .",
+    "lint:fix": "eslint --ext .ts,.tsx . --fix",
+    "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "build-mac": "arch=$npm_config_arch identity=$npm_config_identity appleId=$npm_config_appleid appleIdPassword=$npm_config_appleidpassword teamId=$npm_config_teamid ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ DEBUG=electron-osx-sign*,electron-packager electron-forge make --verbose --platform=darwin --arch=$npm_config_arch",
     "build-win": "npm run make --platform=win32 --arch=x64",
     "build-deb": "DEBUG=electron-packager electron-forge make --verbose --platform=linux --arch=x64,arm64,armv7l",
     "build": "npm run build-mac --arch=arm64 && npm run build-mac --arch=x64",
     "build-mac:arm64": "npm run build-mac --arch=arm64",
-    "build-mac:x64": "npm run build-mac --arch=x64"
+    "build-mac:x64": "npm run build-mac --arch=x64",
+    "prepare": "husky"
   },
   "keywords": [],
   "author": {
@@ -35,8 +39,8 @@
     "@electron-forge/plugin-webpack": "^7.8.3",
     "@electron/fuses": "^1.8.0",
     "@types/react-dom": "^19.1.6",
-    "@typescript-eslint/eslint-plugin": "^5.62.0",
-    "@typescript-eslint/parser": "^5.62.0",
+    "@typescript-eslint/eslint-plugin": "^6.21.0",
+    "@typescript-eslint/parser": "^6.21.0",
     "@unocss/webpack": "^66.3.3",
     "@vercel/webpack-asset-relocator-loader": "^1.7.3",
     "css-loader": "^6.11.0",
@@ -46,14 +50,17 @@
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-prettier": "^5.5.4",
     "fork-ts-checker-webpack-plugin": "^7.3.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.5",
     "mini-css-extract-plugin": "^2.9.2",
     "node-loader": "^2.1.0",
     "postcss-loader": "^8.1.1",
+    "prettier": "^3.6.2",
     "sharp": "^0.34.3",
     "style-loader": "^3.3.4",
     "ts-loader": "^9.5.2",
     "ts-node": "^10.9.2",
-    "typescript": "~4.5.4",
+    "typescript": "^5.3.3",
     "unocss": "^66.3.3",
     "unocss-preset-extra": "^1.0.0"
   },
@@ -85,5 +92,14 @@
     "remark-gfm": "^4.0.1",
     "remark-math": "^6.0.0",
     "swr": "^2.3.6"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,js,jsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,css,md}": [
+      "prettier --write"
+    ]
   }
 }

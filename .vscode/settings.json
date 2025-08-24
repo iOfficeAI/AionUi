@@ -1,22 +1,20 @@
 {
-  "editor.defaultFormatter": "esbenp.prettier-vscode",
   "editor.formatOnSave": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
   "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": "always",
-    "source.organizeImports": "always"
+    "source.fixAll.eslint": true,
+    "source.organizeImports": true
   },
-  "prettier.requireConfig": true,
   "eslint.validate": ["javascript", "javascriptreact", "typescript", "typescriptreact"],
-  "[typescript]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  "typescript.preferences.importModuleSpecifier": "relative",
+  "typescript.suggest.autoImports": true,
+  "typescript.updateImportsOnFileMove.enabled": "always",
+  "files.associations": {
+    "*.tsx": "typescriptreact",
+    "*.ts": "typescript"
   },
-  "[typescriptreact]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  "[javascript]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
-  },
-  "[javascriptreact]": {
-    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  "emmet.includeLanguages": {
+    "typescript": "html",
+    "typescriptreact": "html"
   }
 }
