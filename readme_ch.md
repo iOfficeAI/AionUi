@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/github/v/release/office-sec/AionUi?style=flat-square&color=32CD32" alt="Version">
+  <img src="https://img.shields.io/github/v/release/iOfficeAI/AionUi?style=flat-square&color=32CD32" alt="Version">
   &nbsp;
   <img src="https://img.shields.io/badge/license-Apache--2.0-32CD32?style=flat-square&logo=apache&logoColor=white" alt="License">
   &nbsp;
@@ -131,7 +131,7 @@ AionUi 为需要更好工作流效率的用户提供了现代界面，同时**�
 准备试用 AionUi？从我们的发布页面下载适合您平台的最新版本：
 
 <p>
-  <a href="https://github.com/office-sec/AionUi/releases">
+  <a href="https://github.com/iOfficeAI/AionUi/releases">
     <img src="https://img.shields.io/badge/下载-最新版本-32CD32?style=for-the-badge&logo=github&logoColor=white" alt="下载最新版本">
   </a>
 </p>
@@ -147,7 +147,7 @@ AionUi 为需要更好工作流效率的用户提供了现代界面，同时**�
 1. **克隆仓库**
 
    ```bash
-    git clone https://github.com/office-sec/AionUi.git
+    git clone https://github.com/iOfficeAI/AionUi.git
     cd AionUi
    ```
 
@@ -302,8 +302,8 @@ AionUi 旨在弥合强大 AI 能力与日常可用性之间的差距，让复杂
 ## 📊 Star 历史
 
 <p align="center">
-  <a href="https://www.star-history.com/#office-sec/aionui&Date" target="_blank">
-    <img src="https://api.star-history.com/svg?repos=office-sec/aionui&type=Date" alt="GitHub 星星趋势" width="600">
+  <a href="https://www.star-history.com/#iOfficeAI/aionui&Date" target="_blank">
+    <img src="https://api.star-history.com/svg?repos=iOfficeAI/aionui&type=Date" alt="GitHub 星星趋势" width="600">
   </a>
 </p>
 
@@ -311,6 +311,6 @@ AionUi 旨在弥合强大 AI 能力与日常可用性之间的差距，让复杂
 
 **⭐ 如果喜欢就给我们一个星吧**
 
-[报告 Bug](https://github.com/office-sec/AionUi/issues) · [创建功能请求](https://github.com/office-sec/AionUi/issues)
+[报告 Bug](https://github.com/iOfficeAI/AionUi/issues) · [创建功能请求](https://github.com/iOfficeAI/AionUi/issues)
 
 </div>
