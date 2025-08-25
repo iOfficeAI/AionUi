@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/github/v/release/office-sec/AionUi?style=flat-square&color=32CD32" alt="Version">
+  <img src="https://img.shields.io/github/v/release/iOfficeAI/AionUi?style=flat-square&color=32CD32" alt="Version">
   &nbsp;
   <img src="https://img.shields.io/badge/license-Apache--2.0-32CD32?style=flat-square&logo=apache&logoColor=white" alt="License">
   &nbsp;
@@ -128,7 +128,7 @@ AionUi provides a modern interface for users who need better workflow efficiency
 Ready to try AionUi? Download the latest version for your platform from our releases page:
 
 <p>
-  <a href="https://github.com/office-sec/AionUi/releases">
+  <a href="https://github.com/iOfficeAI/AionUi/releases">
     <img src="https://img.shields.io/badge/Download-Latest%20Release-32CD32?style=for-the-badge&logo=github&logoColor=white" alt="Download Latest Release">
   </a>
 </p>
@@ -295,7 +295,7 @@ Issues and Pull Requests are welcome!
 
 <p align="center">
   <a href="https://www.star-history.com/#office-sec/aionui&Date" target="_blank">
-    <img src="https://api.star-history.com/svg?repos=office-sec/aionui&type=Date" alt="GitHub Stars Trend" width="600">
+    <img src="https://api.star-history.com/svg?repos=iOfficeAI/aionui&type=Date" alt="GitHub Stars Trend" width="600">
   </a>
 </p>
 
@@ -303,6 +303,6 @@ Issues and Pull Requests are welcome!
 
 **⭐ Star the repo if you like it**
 
-[Report Bug](https://github.com/office-sec/AionUi/issues) · [Request Feature](https://github.com/office-sec/AionUi/issues)
+[Report Bug](https://github.com/iOfficeAI/AionUi/issues) · [Request Feature](https://github.com/iOfficeAI/AionUi/issues)
 
 </div>
