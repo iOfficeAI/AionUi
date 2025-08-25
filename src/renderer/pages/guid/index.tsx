@@ -74,13 +74,16 @@ const Guid: React.FC = () => {
       input:
         files.length > 0
           ? files
-              .map((v) => v.split('/').pop())
+              .map((v) => v.split(/[\\/]/).pop() || '')
               .map((v) => `@${v}`)
-              .join(' ') + input
+              .join(' ') +
+            ' ' +
+            input
           : input,
       conversation_id: conversation.id,
       msg_id: uuid(),
     });
+
     navigate(`/conversation/${conversation.id}`);
   };
   const sendMessageHandler = () => {
