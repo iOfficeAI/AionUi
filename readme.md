@@ -144,7 +144,7 @@ Ready to try AionUi? Download the latest version for your platform from our rele
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/office-sec/AionUi.git
+   git clone https://github.com/iOfficeAI/AionUi.git
 cd AionUi
    ```
 
@@ -294,7 +294,7 @@ Issues and Pull Requests are welcome!
 ## 📊 Star History
 
 <p align="center">
-  <a href="https://www.star-history.com/#office-sec/aionui&Date" target="_blank">
+  <a href="https://www.star-history.com/#iOfficeAI/aionui&Date" target="_blank">
     <img src="https://api.star-history.com/svg?repos=iOfficeAI/aionui&type=Date" alt="GitHub Stars Trend" width="600">
   </a>
 </p>
