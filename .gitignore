@@ -90,3 +90,6 @@ typings/
 
 # Electron-Forge
 out/
+CLAUDE.md
+AGENTS.md
+GEMINI.md
