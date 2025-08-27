@@ -92,9 +92,15 @@ export class WebFetchTool extends BaseTool<WebFetchToolParams, ToolResult> {
   private async executeFetch(params: WebFetchToolParams, signal: AbortSignal): Promise<ToolResult> {
     let url = params.url;
 
-    // Convert GitHub blob URL to raw URL
-    if (url.includes('github.com') && url.includes('/blob/')) {
-      url = url.replace('github.com', 'raw.githubusercontent.com').replace('/blob/', '/');
+    // Convert GitHub blob URL to raw URL - using secure URL parsing
+    try {
+      const parsedUrl = new URL(url);
+      if ((parsedUrl.hostname === 'github.com' || parsedUrl.hostname === 'www.github.com') && parsedUrl.pathname.includes('/blob/')) {
+        url = url.replace('github.com', 'raw.githubusercontent.com').replace('/blob/', '/');
+      }
+    } catch (e) {
+      // Invalid URL format - will be handled by the fetch attempt below
+      // No need to transform the URL if it's malformed
     }
 
     try {
