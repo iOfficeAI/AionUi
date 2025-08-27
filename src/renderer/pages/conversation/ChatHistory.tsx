@@ -49,11 +49,18 @@ const useTimeline = () => {
 
 const ChatHistory: React.FC = () => {
   const [chatHistory, setChatHistory] = useState<TChatConversation[]>([]);
-  const [renameModalVisible, setRenameModalVisible] = useState(false);
-  const [renameInputValue, setRenameInputValue] = useState('');
-  const [currentConversation, setCurrentConversation] = useState<TChatConversation | null>(null);
-  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
-  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  
+  // 统一的状态管理
+  const [modalState, setModalState] = useState<{
+    type: 'rename' | 'delete' | null;
+    conversation: TChatConversation | null;
+    inputValue: string;
+  }>({
+    type: null,
+    conversation: null,
+    inputValue: ''
+  });
+  
   const { id } = useParams();
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -62,23 +69,31 @@ const ChatHistory: React.FC = () => {
   });
 
   /**
-   * 重置重命名相关的状态
+   * 重置模态框状态
    */
-  const resetRenameState = () => {
-    setRenameModalVisible(false);
-    setCurrentConversation(null);
-    setRenameInputValue('');
+  const resetModalState = () => {
+    setModalState({
+      type: null,
+      conversation: null,
+      inputValue: ''
+    });
   };
 
   /**
-   * 重置删除相关的状态
+   * 打开模态框
    */
-  const resetDeleteState = () => {
-    setDeleteModalVisible(false);
-    setDeleteTargetId(null);
+  const openModal = (type: 'rename' | 'delete', conversation: TChatConversation) => {
+    setModalState({
+      type,
+      conversation,
+      inputValue: type === 'rename' ? conversation.name : ''
+    });
   };
 
-  const handleSelect = (conversation: TChatConversation) => {
+  /**
+   * 处理会话选择
+   */
+  const handleConversationSelect = (conversation: TChatConversation) => {
     ipcBridge.conversation.create.invoke({
       type: 'gemini',
       model: conversation.model,
@@ -90,48 +105,45 @@ const ChatHistory: React.FC = () => {
   const isConversation = !!id;
 
   useEffect(() => {
-    ChatStorage.get('chat.history').then((history) => {
-      if (history) {
-        setChatHistory(history.sort((a, b) => (b.createTime - a.createTime < 0 ? -1 : 1)));
+    const fetchHistory = async () => {
+      try {
+        const history = await ChatStorage.get('chat.history');
+        if (history) {
+          setChatHistory(history.sort((a, b) => b.createTime - a.createTime));
+        }
+      } catch (error) {
+        console.error('获取聊天历史失败:', error);
       }
-    });
+    };
+    
+    fetchHistory();
   }, [isConversation]);
 
   /**
    * 处理删除会话操作
    * 1. 调用IPC接口删除会话
    * 2. 更新本地状态
-   * 3. 重置删除相关状态
+   * 3. 重置模态框状态
    * 4. 显示操作结果提示
    * 5. 删除成功后跳转到首页
    */
-  const handleRemoveConversation = (id: string) => {
-    ipcBridge.conversation.remove.invoke({ id }).then((success) => {
+  const handleRemoveConversation = async (id: string) => {
+    try {
+      const success = await ipcBridge.conversation.remove.invoke({ id });
+      
       if (success) {
-        setChatHistory(chatHistory.filter((item) => item.id !== id));
-        // 删除成功后重置状态并跳转
-        resetDeleteState();
-        // 显示删除成功提示
+        setChatHistory(prev => prev.filter(item => item.id !== id));
         message.success(t('messages.deleteSuccess'));
         navigate('/');
       } else {
-        // 删除失败时显示错误提示
         message.error(t('messages.deleteFailed'));
-        // 删除失败时也需要重置状态
-        resetDeleteState();
       }
-    }).catch((error) => {
-      // 处理IPC调用异常
+    } catch (error) {
       console.error('删除操作异常:', error);
       message.error(t('messages.deleteFailed'));
-      resetDeleteState();
-    });
-  };
-
-  const handleRenameConversation = (conversation: TChatConversation) => {
-    setCurrentConversation(conversation);
-    setRenameInputValue(conversation.name);
-    setRenameModalVisible(true);
+    } finally {
+      resetModalState();
+    }
   };
 
   /**
@@ -142,43 +154,80 @@ const ChatHistory: React.FC = () => {
    * 4. 显示操作结果提示
    */
   const handleRenameConfirm = async () => {
-    if (!currentConversation || !renameInputValue.trim()) return;
+    if (!modalState.conversation || !modalState.inputValue.trim()) return;
     
     try {
       const success = await ipcBridge.conversation.rename.invoke({
-        id: currentConversation.id,
-        name: renameInputValue.trim()
+        id: modalState.conversation.id,
+        name: modalState.inputValue.trim()
       });
       
       if (success) {
         setChatHistory(prev => prev.map(item => 
-          item.id === currentConversation.id 
-            ? { ...item, name: renameInputValue.trim() }
+          item.id === modalState.conversation.id 
+            ? { ...item, name: modalState.inputValue.trim() }
             : item
         ));
-        resetRenameState();
-        // 显示重命名成功提示
         message.success(t('messages.renameSuccess'));
         
         // 如果当前正在查看这个会话，同步更新顶部标题
-        if (id === currentConversation.id) {
-          // 重新验证当前会话的数据，更新顶部标题
-          // 注意：这里使用 mutate 是为了确保 ChatConversation 组件能获取到最新的会话名称
-          // 虽然我们已经在本地更新了 chatHistory，但顶部标题来自父组件的 conversation props
+        if (id === modalState.conversation.id) {
           mutate(`conversation/${id}`);
         }
       } else {
-        // 显示重命名失败提示
         message.error(t('messages.renameFailed'));
       }
     } catch (error) {
-      // 处理IPC调用异常
       console.error('重命名操作异常:', error);
       message.error(t('messages.renameFailed'));
+    } finally {
+      resetModalState();
     }
   };
 
-  const handleRenameCancel = resetRenameState;
+  const handleRenameCancel = resetModalState;
+
+  /**
+   * 处理菜单重命名点击
+   */
+  const handleMenuRename = (conversation: TChatConversation) => {
+    openModal('rename', conversation);
+  };
+
+  /**
+   * 处理菜单删除点击
+   */
+  const handleMenuDelete = (conversation: TChatConversation) => {
+    openModal('delete', conversation);
+  };
+
+  /**
+   * 处理删除模态框确认
+   */
+  const handleDeleteConfirm = () => {
+    if (modalState.conversation) {
+      handleRemoveConversation(modalState.conversation.id);
+    }
+  };
+
+  /**
+   * 处理删除模态框取消
+   */
+  const handleDeleteCancel = resetModalState;
+
+  /**
+   * 处理输入框值变化
+   */
+  const handleInputChange = (value: string) => {
+    setModalState(prev => ({ ...prev, inputValue: value }));
+  };
+
+  /**
+   * 处理事件冒泡阻止
+   */
+  const handleStopPropagation = (event: React.MouseEvent) => {
+    event.stopPropagation();
+  };
 
   const formatTimeline = useTimeline();
 
@@ -187,13 +236,10 @@ const ChatHistory: React.FC = () => {
     
     const menu = (
       <Menu>
-        <Menu.Item key="rename" onClick={() => handleRenameConversation(conversation)}>
+        <Menu.Item key="rename" onClick={() => handleMenuRename(conversation)}>
           {t('conversation.history.rename')}
         </Menu.Item>
-        <Menu.Item key="delete" onClick={() => {
-          setDeleteTargetId(conversation.id);
-          setDeleteModalVisible(true);
-        }}>
+        <Menu.Item key="delete" onClick={() => handleMenuDelete(conversation)}>
           <span className="text-red-500 hover:text-red-600 transition-colors duration-200">
             {t('common.delete')}
           </span>
@@ -208,7 +254,7 @@ const ChatHistory: React.FC = () => {
         className={classNames('hover:bg-#EBECF1 px-12px py-8px rd-8px flex justify-start items-center group cursor-pointer relative overflow-hidden group shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px', {
           '!bg-#E5E7F0 ': isSelected,
         })}
-        onClick={handleSelect.bind(null, conversation)}
+        onClick={() => handleConversationSelect(conversation)}
       >
         <MessageOne theme='outline' size='20' className='mt-2px ml-2px mr-8px flex' />
         <FlexFullContainer className='h-24px'>
@@ -217,11 +263,9 @@ const ChatHistory: React.FC = () => {
         <div
           className={classNames('absolute right--15px top-0px h-full w-70px items-center justify-center hidden group-hover:flex !collapsed-hidden')}
           style={{
-            backgroundImage: `linear-gradient(to right, rgba(219, 234, 254, 0),${isSelected ? '#E5E7F0' : '#E5E7F0'} 50%)`,
+            backgroundImage: `linear-gradient(to right, rgba(219, 234, 254, 0), #E5E7F0 50%)`,
           }}
-          onClick={(event) => {
-            event.stopPropagation();
-          }}
+          onClick={handleStopPropagation}
         >
           <Dropdown droplist={menu} trigger="click" position="bottom">
             <span className='flex-center cursor-pointer'>
@@ -238,7 +282,7 @@ const ChatHistory: React.FC = () => {
       <div
         className={classNames('size-full', {
           'flex-center size-full': !chatHistory.length,
-          'flex flex-col overflow-y-auto': !!chatHistory.length,
+          'flex flex-col overflow-y-auto': chatHistory.length > 0,
         })}
       >
         {!chatHistory.length ? (
@@ -259,15 +303,15 @@ const ChatHistory: React.FC = () => {
       {/* 重命名模态框 */}
       <Modal
         title={t('conversation.history.renameTitle')}
-        visible={renameModalVisible}
+        visible={modalState.type === 'rename'}
         onOk={handleRenameConfirm}
         onCancel={handleRenameCancel}
         okText={t('common.save')}
         cancelText={t('common.cancel')}
       >
         <Input
-          value={renameInputValue}
-          onChange={setRenameInputValue}
+          value={modalState.inputValue}
+          onChange={handleInputChange}
           placeholder={t('conversation.history.renamePlaceholder')}
           onPressEnter={handleRenameConfirm}
         />
@@ -276,15 +320,9 @@ const ChatHistory: React.FC = () => {
       {/* 删除确认模态框 */}
       <Modal
         title={t('conversation.history.deleteTitle')}
-        visible={deleteModalVisible}
-        onOk={() => {
-          if (deleteTargetId) {
-            handleRemoveConversation(deleteTargetId);
-          }
-        }}
-        onCancel={() => {
-          resetDeleteState();
-        }}
+        visible={modalState.type === 'delete'}
+        onOk={handleDeleteConfirm}
+        onCancel={handleDeleteCancel}
         okText={t('common.delete')}
         cancelText={t('common.cancel')}
       >
