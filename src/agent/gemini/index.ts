@@ -12,6 +12,7 @@ import { AuthType, CoreToolScheduler, sessionId } from '@office-ai/aioncli-core'
 import { execSync } from 'child_process';
 import { handleAtCommand } from './cli/atCommandProcessor';
 import { loadCliConfig, loadHierarchicalGeminiMemory } from './cli/config';
+import { ConversationToolConfig } from './cli/tools/conversation-tool-config';
 import type { Extension } from './cli/extension';
 import { loadExtensions } from './cli/extension';
 import type { Settings } from './cli/settings';
@@ -51,6 +52,7 @@ export class GeminiAgent {
   private trackedCalls: ToolCall[] = [];
   private abortController: AbortController | null = null;
   private onStreamEvent: (event: { type: string; data: any; msg_id: string }) => void;
+  private toolConfig = new ConversationToolConfig(); // 对话级别的工具配置
   bootstrap: Promise<void>;
   constructor(options: GeminiAgent2Options) {
     this.workspace = options.workspace;
@@ -131,6 +133,9 @@ export class GeminiAgent {
 
     const settings = loadSettings(path).merged;
 
+    // 初始化对话级别的工具配置
+    await this.toolConfig.initializeForConversation(this.authType!);
+
     const extensions = loadExtensions(path);
     this.config = await loadCliConfig({
       workspace: path,
@@ -139,12 +144,17 @@ export class GeminiAgent {
       sessionId,
       proxy: this.proxy,
       model: this.model.useModel,
+      conversationToolConfig: this.toolConfig,
     });
     await this.config.initialize();
 
     await this.config.refreshAuth(this.authType || AuthType.USE_GEMINI);
 
     this.geminiClient = this.config.getGeminiClient();
+
+    // 注册对话级别的自定义工具
+    await this.toolConfig.registerCustomTools(this.config, this.geminiClient);
+
     this.initToolScheduler(settings);
   }
 
