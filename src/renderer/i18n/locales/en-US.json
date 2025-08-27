@@ -38,7 +38,10 @@
       "deleteTitle": "Delete chat",
       "deleteConfirm": "Are you sure you want to delete this chat?",
       "confirmDelete": "Yes",
-      "cancelDelete": "No"
+      "cancelDelete": "No",
+      "rename": "Rename",
+      "renameTitle": "Rename chat",
+      "renamePlaceholder": "Please enter new chat name"
     },
     "workspace": {
       "title": "Workspace",
@@ -91,6 +94,10 @@
     "conversationInProgress": "A conversation is currently in progress...",
     "confirm": "Confirm",
     "canceledExecution": "Execution canceled",
-    "openLinkFailed": "Failed to open link"
+    "openLinkFailed": "Failed to open link",
+    "deleteSuccess": "Delete successful",
+    "deleteFailed": "Delete failed",
+    "renameSuccess": "Rename successful",
+    "renameFailed": "Rename failed"
   }
 }

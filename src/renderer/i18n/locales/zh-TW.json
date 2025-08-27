@@ -38,7 +38,10 @@
       "deleteTitle": "刪除對話",
       "deleteConfirm": "確定要刪除此對話嗎？",
       "confirmDelete": "確定",
-      "cancelDelete": "取消"
+      "cancelDelete": "取消",
+      "rename": "重新命名",
+      "renameTitle": "重新命名對話",
+      "renamePlaceholder": "請輸入新的對話名稱"
     },
     "workspace": {
       "title": "工作空間",
@@ -91,6 +94,10 @@
     "conversationInProgress": "目前正在進行對話...",
     "confirm": "確認",
     "canceledExecution": "已取消執行",
-    "openLinkFailed": "無法開啟連結"
+    "openLinkFailed": "無法開啟連結",
+    "deleteSuccess": "刪除成功",
+    "deleteFailed": "刪除失敗",
+    "renameSuccess": "重新命名成功",
+    "renameFailed": "重新命名失敗"
   }
 }

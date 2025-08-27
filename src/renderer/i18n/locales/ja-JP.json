@@ -38,7 +38,10 @@
       "deleteTitle": "チャットを削除",
       "deleteConfirm": "このチャットを削除してもよろしいですか？",
       "confirmDelete": "はい",
-      "cancelDelete": "いいえ"
+      "cancelDelete": "いいえ",
+      "rename": "名前を変更",
+      "renameTitle": "チャットの名前を変更",
+      "renamePlaceholder": "新しいチャット名を入力してください"
     },
     "workspace": {
       "title": "ワークスペース",
@@ -91,6 +94,10 @@
     "conversationInProgress": "現在、会話中です...",
     "confirm": "確認",
     "canceledExecution": "実行がキャンセルされました",
-    "openLinkFailed": "リンクを開けませんでした"
+    "openLinkFailed": "リンクを開けませんでした",
+    "deleteSuccess": "削除が完了しました",
+    "deleteFailed": "削除に失敗しました",
+    "renameSuccess": "名前の変更が完了しました",
+    "renameFailed": "名前の変更に失敗しました"
   }
 }

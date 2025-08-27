@@ -38,7 +38,10 @@
       "deleteTitle": "删除对话",
       "deleteConfirm": "确定删除该对话吗？",
       "confirmDelete": "是",
-      "cancelDelete": "否"
+      "cancelDelete": "否",
+      "rename": "重命名",
+      "renameTitle": "重命名对话",
+      "renamePlaceholder": "请输入新的对话名称"
     },
     "workspace": {
       "title": "工作空间",
@@ -91,6 +94,10 @@
     "conversationInProgress": "当前正在进行对话中...",
     "confirm": "确认",
     "canceledExecution": "已取消执行",
-    "openLinkFailed": "打开链接失败"
+    "openLinkFailed": "打开链接失败",
+    "deleteSuccess": "删除成功",
+    "deleteFailed": "删除失败",
+    "renameSuccess": "重命名成功",
+    "renameFailed": "重命名失败"
   }
 }

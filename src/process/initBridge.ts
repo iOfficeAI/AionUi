@@ -113,6 +113,30 @@ ipcBridge.conversation.get.provider(async ({ id }) => {
     });
 });
 
+ipcBridge.conversation.rename.provider(async ({ id, name }) => {
+  try {
+    const history = await ProcessChat.get('chat.history');
+    if (!history) return false;
+    
+    const conversationIndex = history.findIndex((item) => item.id === id);
+    if (conversationIndex === -1) return false;
+    
+    // 更新会话名称和修改时间
+    history[conversationIndex] = {
+      ...history[conversationIndex],
+      name,
+      modifyTime: Date.now()
+    };
+    
+    // 保存到存储
+    await ProcessChat.set('chat.history', history);
+    return true;
+  } catch (e) {
+    console.error('-----renameConversation error-----', e);
+    return false;
+  }
+});
+
 ipcBridge.application.restart.provider(async () => {
   console.log('重启应用开始...');
   // 清理所有工作进程
