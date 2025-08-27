@@ -66,6 +66,7 @@
   },
   "dependencies": {
     "@arco-design/web-react": "^2.66.1",
+    "@google/genai": "^1.9.0",
     "@icon-park/react": "^1.4.2",
     "@office-ai/aioncli-core": "^0.1.20",
     "@office-ai/platform": "^0.3.15",
