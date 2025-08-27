@@ -9,6 +9,7 @@ import { uuid } from '@/common/utils';
 import type { GeminiClient } from '@office-ai/aioncli-core';
 import { AuthType, Config, getOauthInfoWithCache } from '@office-ai/aioncli-core';
 import { WebSearchTool } from './web-search';
+import { WebFetchTool } from './web-fetch';
 
 /**
  * 对话级别的工具配置
@@ -16,6 +17,7 @@ import { WebSearchTool } from './web-search';
  */
 export class ConversationToolConfig {
   private useGeminiWebSearch = false;
+  private useAionuiWebFetch = false;
   private geminiModel: TModelWithConversation | null = null;
   private excludeTools: string[] = [];
   private dedicatedGeminiClient: GeminiClient | null = null; // 缓存专门的Gemini客户端
@@ -39,12 +41,17 @@ export class ConversationToolConfig {
    * @param authType 认证类型（平台类型）
    */
   async initializeForConversation(authType: AuthType): Promise<void> {
+    // 所有模型都使用 aionui_web_fetch 替换内置的 web_fetch
+    this.useAionuiWebFetch = true;
+    this.excludeTools.push('web_fetch');
+
+    // OpenAI 模型额外启用 gemini_web_search
     if (authType === AuthType.USE_OPENAI) {
       this.useGeminiWebSearch = true;
       // 检查是否有Google认证，决定是否排除google_web_search
       const hasGoogleAuth = await this.getGoogleAuthStatus();
       if (hasGoogleAuth) {
-        this.excludeTools = ['google_web_search'];
+        this.excludeTools.push('google_web_search');
       }
     }
   }
@@ -98,6 +105,7 @@ export class ConversationToolConfig {
   getConfig() {
     return {
       useGeminiWebSearch: this.useGeminiWebSearch,
+      useAionuiWebFetch: this.useAionuiWebFetch,
       geminiModel: this.geminiModel,
       excludeTools: this.excludeTools,
     };
@@ -116,37 +124,44 @@ export class ConversationToolConfig {
    * 在对话初始化后调用
    */
   async registerCustomTools(config: Config, geminiClient: GeminiClient): Promise<void> {
-    if (!this.useGeminiWebSearch) return;
+    const toolRegistry = await config.getToolRegistry();
 
-    // 创建专门的Gemini客户端（如果还没有）
-    if (!this.dedicatedGeminiClient) {
-      try {
-        const geminiModel = await this.findBestGeminiModel();
-        if (!geminiModel) {
-          return;
-        }
-
-        this.geminiModel = geminiModel;
-        const dedicatedConfig = this.createDedicatedGeminiConfig(geminiModel);
-        const authType = AuthType.LOGIN_WITH_GOOGLE; // 固定使用Google认证
-
-        // 设置环境变量
-        this.setEnvironmentForGeminiModel(geminiModel, authType);
-
-        await dedicatedConfig.initialize();
-        await dedicatedConfig.refreshAuth(authType);
-
-        // 创建新的 GeminiClient
-        this.dedicatedGeminiClient = dedicatedConfig.getGeminiClient();
-      } catch (error) {
-        return;
-      }
+    // 注册 aionui_web_fetch 工具（所有模型）
+    if (this.useAionuiWebFetch) {
+      const customWebFetchTool = new WebFetchTool(geminiClient);
+      toolRegistry.registerTool(customWebFetchTool);
     }
 
-    // 注册自定义WebSearch工具
-    const toolRegistry = await config.getToolRegistry();
-    const customWebSearchTool = new WebSearchTool(this.dedicatedGeminiClient!);
-    toolRegistry.registerTool(customWebSearchTool);
+    // 注册 gemini_web_search 工具（仅OpenAI模型）
+    if (this.useGeminiWebSearch) {
+      // 创建专门的Gemini客户端（如果还没有）
+      if (!this.dedicatedGeminiClient) {
+        try {
+          const geminiModel = await this.findBestGeminiModel();
+          if (!geminiModel) {
+            return;
+          }
+
+          this.geminiModel = geminiModel;
+          const dedicatedConfig = this.createDedicatedGeminiConfig(geminiModel);
+          const authType = AuthType.LOGIN_WITH_GOOGLE; // 固定使用Google认证
+
+          // 设置环境变量
+          this.setEnvironmentForGeminiModel(geminiModel, authType);
+
+          await dedicatedConfig.initialize();
+          await dedicatedConfig.refreshAuth(authType);
+
+          // 创建新的 GeminiClient
+          this.dedicatedGeminiClient = dedicatedConfig.getGeminiClient();
+        } catch (error) {
+          return;
+        }
+      }
+
+      const customWebSearchTool = new WebSearchTool(this.dedicatedGeminiClient!);
+      toolRegistry.registerTool(customWebSearchTool);
+    }
 
     // 同步工具到模型客户端
     await geminiClient.setTools();
