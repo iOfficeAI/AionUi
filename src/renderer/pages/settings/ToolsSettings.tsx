@@ -18,7 +18,7 @@ const ToolsSettings: React.FC = () => {
   const imageGenerationModelList = useMemo(() => {
     if (!data) return [];
     return (data || []).filter((v) => {
-      const isImagePlatform = (v.platform || v.name).toLocaleLowerCase().includes('openrouter');
+      const isImagePlatform = v.baseUrl?.toLocaleLowerCase().includes('openrouter');
       if (!isImagePlatform) return false;
       v.model = v.model.filter((model) => {
         return model.toLocaleLowerCase().includes('image');
