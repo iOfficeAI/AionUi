@@ -13,6 +13,7 @@ import 'diff2html/bundles/css/diff2html.min.css';
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import Diff2Html from '../components/Diff2Html';
+import LocalImageView from '../components/LocalImageView';
 import MarkdownView from '../components/Markdown';
 
 interface IMessageToolGroupProps {
@@ -165,6 +166,18 @@ const ConfirmationDetails: React.FC<{
   );
 };
 
+const ToolResultDisplay: React.FC<{
+  content: IMessageToolGroupProps['message']['content'][number];
+}> = ({ content }) => {
+  const { resultDisplay, name } = content;
+  const display = typeof resultDisplay === 'string' ? resultDisplay : JSON.stringify(resultDisplay);
+  if (name === 'ImageGeneration' && typeof resultDisplay === 'object') {
+    const { img_url, relative_path } = resultDisplay as any;
+    return <LocalImageView src={img_url} alt={relative_path || img_url} className='max-w-100% max-h-100%' />;
+  }
+  return <div>{display}</div>;
+};
+
 const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
   const { t } = useTranslation();
   console.log('----->message', message);
@@ -197,7 +210,7 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
         if (name === 'WriteFile' && typeof resultDisplay !== 'string') {
           return (
             <div className='min-w-400px'>
-              <Diff2Html className='ml-16px' diff={resultDisplay?.fileDiff || ''}></Diff2Html>
+              <Diff2Html className='ml-16px' diff={(resultDisplay as any)?.fileDiff || ''}></Diff2Html>
             </div>
           );
         }
@@ -216,7 +229,9 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
                   {status === 'Canceled' ? `(${t('messages.canceledExecution')})` : ''}
                 </Tag>
                 <div className='text-12px color-#666'>{description}</div>
-                <div className='overflow-auto'>{display}</div>
+                <div className='overflow-auto'>
+                  <ToolResultDisplay content={content}></ToolResultDisplay>
+                </div>
               </div>
             }
           ></Alert>

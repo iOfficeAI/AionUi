@@ -4,15 +4,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect, useRef } from 'react';
-import { useMessageList } from './hooks';
-import MessageText from './MessagetText';
-import MessageTips from './MessageTips';
-import HOC from '../utils/HOC';
-import classNames from 'classnames';
-import MessageToolCall from './MessageToolCall';
 import type { TMessage } from '@/common/chatLib';
+import classNames from 'classnames';
+import React, { useEffect, useRef } from 'react';
+import HOC from '../utils/HOC';
+import { useMessageList } from './hooks';
+import MessageTips from './MessageTips';
+import MessageToolCall from './MessageToolCall';
 import MessageToolGroup from './MessageToolGroup';
+import MessageText from './MessagetText';
 
 const MessageItem: React.FC<{ message: TMessage }> = HOC((props) => {
   const { message } = props as { message: TMessage };
@@ -56,6 +56,7 @@ const MessageList: React.FC<{ className?: string }> = ({ className }) => {
     setTimeout(() => {
       scrollToBottom();
     }, 100);
+    console.log('message.list----->', list);
   }, [list]);
 
   return (

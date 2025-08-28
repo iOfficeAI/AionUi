@@ -350,10 +350,11 @@ Please ensure the image file exists and has a valid image extension (.jpg, .png,
         const relativeImagePath = path.relative(this.config.getWorkingDir(), imagePath);
 
         return {
-          llmContent: `${responseText}
-
-Generated image: ${relativeImagePath}`,
-          returnDisplay: `${responseText}\n\n📷 Image: ${relativeImagePath}`,
+          llmContent: `${responseText}`,
+          returnDisplay: {
+            img_url: imagePath,
+            relative_path: relativeImagePath,
+          } as unknown as any, // @todo core ts interface,, // `${responseText}\n\n📷 Image: ${relativeImagePath}`,
         };
       }
 
