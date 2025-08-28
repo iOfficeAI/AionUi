@@ -8,8 +8,8 @@ import type { TModelWithConversation } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import type { GeminiClient } from '@office-ai/aioncli-core';
 import { AuthType, Config, getOauthInfoWithCache } from '@office-ai/aioncli-core';
-import { WebSearchTool } from './web-search';
 import { WebFetchTool } from './web-fetch';
+import { WebSearchTool } from './web-search';
 
 /**
  * 对话级别的工具配置
@@ -21,14 +21,17 @@ export class ConversationToolConfig {
   private geminiModel: TModelWithConversation | null = null;
   private excludeTools: string[] = [];
   private dedicatedGeminiClient: GeminiClient | null = null; // 缓存专门的Gemini客户端
-
+  private proxy: string = '';
+  constructor(proxy: string) {
+    this.proxy = proxy;
+  }
   /**
    * 简化版本：直接检查 Google 认证状态，不依赖主进程存储
    */
   private async getGoogleAuthStatus(): Promise<boolean> {
     try {
       // 直接检查 OAuth 信息，传入空字符串作为默认proxy
-      const oauthInfo = await getOauthInfoWithCache('');
+      const oauthInfo = await getOauthInfoWithCache(this.proxy);
       return !!oauthInfo;
     } catch (error) {
       console.warn('[ConversationTools] Failed to check Google auth status:', error);
@@ -96,6 +99,7 @@ export class ConversationToolConfig {
       userMemory: '',
       geminiMdFileCount: 0,
       model: geminiModel.useModel,
+      proxy: this.proxy,
     });
   }
 
