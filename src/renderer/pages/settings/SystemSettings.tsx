@@ -8,7 +8,7 @@ import SettingContainer from './components/SettingContainer';
 const SystemSettings: React.FC = (props) => {
   const { t } = useTranslation();
   return (
-    <SettingContainer title={t('settings.system')}>
+    <SettingContainer title={t('settings.system')} bodyContainer>
       <Form
         labelCol={{
           flex: '100px',

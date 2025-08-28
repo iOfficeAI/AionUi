@@ -74,7 +74,7 @@ const ModelSettings: React.FC = () => {
       title={
         <div className='flex items-center justify-between'>
           {t('settings.model')}
-          <Button size='mini' onClick={() => addPlatformModalCtrl.open()}>
+          <Button size='mini' type='outline' icon={<Plus size={'14'} className=''></Plus>} shape='round' onClick={() => addPlatformModalCtrl.open()}>
             {t('settings.addModel')}
           </Button>
         </div>
