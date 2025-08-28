@@ -22,7 +22,7 @@ const About: React.FC = () => {
     );
   };
   return (
-    <SettingContainer title={t('settings.about')}>
+    <SettingContainer title={t('settings.about')} bodyContainer>
       <Form
         labelCol={{
           flex: '200px',
