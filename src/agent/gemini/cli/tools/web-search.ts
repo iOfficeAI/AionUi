@@ -8,7 +8,7 @@ import type { GroundingMetadata } from '@google/genai';
 import { Type } from '@google/genai';
 import type { GeminiClient, ToolResult } from '@office-ai/aioncli-core';
 import { BaseTool, Icon, SchemaValidator } from '@office-ai/aioncli-core';
-import { getResponseText, getErrorMessage } from './utils';
+import { getErrorMessage, getResponseText } from './utils';
 
 interface GroundingChunkWeb {
   uri?: string;
@@ -57,7 +57,7 @@ export class WebSearchTool extends BaseTool<WebSearchToolParams, WebSearchToolRe
   static readonly Name: string = 'gemini_web_search';
 
   constructor(private readonly geminiClient: GeminiClient) {
-    super(WebSearchTool.Name, 'GoogleSearch', 'Performs a web search using Google Search (via the Gemini API) and returns the results. This tool is useful for finding information on the internet based on a query.', Icon.Globe, {
+    super(WebSearchTool.Name, 'GoogleSearch', 'Generate image references, art styles, drawing techniques, or visual inspiration when users request image generation, drawing, or creative visual content.', Icon.Globe, {
       type: Type.OBJECT,
       properties: {
         query: {
@@ -100,8 +100,9 @@ export class WebSearchTool extends BaseTool<WebSearchToolParams, WebSearchToolRe
     }
 
     try {
-      const response = await this.geminiClient.generateContent([{ role: 'user', parts: [{ text: params.query }] }], { tools: [{ googleSearch: {} }] }, signal);
+      const response = await this.geminiClient.generateContent([{ parts: [{ text: params.query }] }], {}, signal);
 
+      console.log('[DEBUG] WebSearch response:', String(response));
       const responseText = getResponseText(response);
       const groundingMetadata = response.candidates?.[0]?.groundingMetadata;
       const sources = groundingMetadata?.groundingChunks as GroundingChunkItem[] | undefined;

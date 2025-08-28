@@ -8,8 +8,8 @@ import type { TModelWithConversation } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import type { GeminiClient } from '@office-ai/aioncli-core';
 import { AuthType, Config, getOauthInfoWithCache } from '@office-ai/aioncli-core';
-import { WebSearchTool } from './web-search';
 import { WebFetchTool } from './web-fetch';
+import { WebSearchTool } from './web-search';
 
 /**
  * 对话级别的工具配置
@@ -70,7 +70,7 @@ export class ConversationToolConfig {
           platform: 'gemini-with-google-auth',
           baseUrl: '',
           apiKey: '',
-          useModel: 'gemini-2.5-flash',
+          useModel: 'gemini-2.5-flash-image-preview',
         };
       }
 
