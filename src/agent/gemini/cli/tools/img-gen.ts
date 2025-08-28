@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import type { TModelWithConversation } from '@/common/storage';
 import { Type } from '@google/genai';
 import type { Config, ToolResult } from '@office-ai/aioncli-core';
 import { BaseTool, Icon, SchemaValidator } from '@office-ai/aioncli-core';
@@ -12,8 +13,6 @@ import OpenAI from 'openai';
 import * as os from 'os';
 import * as path from 'path';
 
-const OPENROUTER_BASE_URL = 'https://openrouter.ai/api/v1';
-const DEFAULT_MODEL = 'google/gemini-2.5-flash-image-preview:free';
 const REQUEST_TIMEOUT_MS = 120000; // 2 minutes for image generation
 
 export interface ImageGenerationToolParams {
@@ -129,9 +128,12 @@ function readApiKeyFromShellConfig(): string | null {
 export class ImageGenerationTool extends BaseTool<ImageGenerationToolParams, ToolResult> {
   static readonly Name: string = 'aionui_image_generation';
   private openai: OpenAI | null = null;
-  private currentModel: string = DEFAULT_MODEL;
+  private currentModel: string | null = null;
 
-  constructor(private readonly config: Config) {
+  constructor(
+    private readonly config: Config,
+    private readonly imageGenerationModel: TModelWithConversation
+  ) {
     super(
       ImageGenerationTool.Name,
       'ImageGeneration',
@@ -183,7 +185,7 @@ Output:
     console.log('[ImageGen] 开始初始化 OpenAI 客户端...');
 
     // 1. 优先使用环境变量
-    let apiKey = process.env.OPENROUTER_API_KEY;
+    let apiKey = this.imageGenerationModel.apiKey; //|| process.env.OPENROUTER_API_KEY;
     console.log(`[ImageGen] 环境变量 OPENROUTER_API_KEY: ${apiKey ? '✓ 找到' : '✗ 未找到'}`);
 
     // 2. 如果环境变量没有，从shell配置文件读取
@@ -213,9 +215,9 @@ Debug info:
     console.log(`[ImageGen] API密钥前缀: ${keyPrefix}...`);
 
     console.log('[ImageGen] 使用 OpenRouter API key 初始化客户端');
-    this.currentModel = DEFAULT_MODEL;
+    this.currentModel = this.imageGenerationModel.useModel;
     this.openai = new OpenAI({
-      baseURL: OPENROUTER_BASE_URL,
+      baseURL: this.imageGenerationModel.baseUrl,
       apiKey: cleanedApiKey, // 使用清理后的密钥
       defaultHeaders: {
         'HTTP-Referer': 'https://www.aionui.com',

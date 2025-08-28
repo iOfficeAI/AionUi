@@ -85,7 +85,9 @@
     "restartConfirm": "変更後にアプリを再起動します。続行しますか？",
     "theme": "テーマ",
     "lightMode": "ライト",
-    "darkMode": "ダーク"
+    "darkMode": "ダーク",
+    "tools": "ツール設定",
+    "imageGenerationModel": "画像モデル"
   },
   "messages": {
     "conversationInProgress": "現在、会話中です...",

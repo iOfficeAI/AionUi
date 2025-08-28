@@ -38,6 +38,7 @@ interface GeminiAgent2Options {
   workspace: string;
   proxy?: string;
   model: TModelWithConversation;
+  imageGenerationModel?: TModelWithConversation;
   onStreamEvent: (event: { type: string; data: any; msg_id: string }) => void;
 }
 
@@ -46,6 +47,7 @@ export class GeminiAgent {
   private workspace: string | null = null;
   private proxy: string | null = null;
   private model: TModelWithConversation | null = null;
+  private imageGenerationModel: TModelWithConversation | null = null;
   private geminiClient: GeminiClient | null = null;
   private authType: AuthType | null = null;
   private scheduler: CoreToolScheduler | null = null;
@@ -58,6 +60,7 @@ export class GeminiAgent {
     this.workspace = options.workspace;
     this.proxy = options.proxy;
     this.model = options.model;
+    this.imageGenerationModel = options.imageGenerationModel;
     const platform = options.model.platform;
     if (platform === 'gemini-with-google-auth') {
       this.authType = AuthType.LOGIN_WITH_GOOGLE;
@@ -70,7 +73,10 @@ export class GeminiAgent {
     }
     this.onStreamEvent = options.onStreamEvent;
     this.initClientEnv();
-    this.toolConfig = new ConversationToolConfig(this.proxy);
+    this.toolConfig = new ConversationToolConfig({
+      proxy: this.proxy,
+      imageGenerationModel: this.imageGenerationModel,
+    });
     this.bootstrap = this.initialize();
   }
 

@@ -8,9 +8,9 @@ import type { TModelWithConversation } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import type { GeminiClient } from '@office-ai/aioncli-core';
 import { AuthType, Config, getOauthInfoWithCache } from '@office-ai/aioncli-core';
-import { WebSearchTool } from './web-search';
-import { WebFetchTool } from './web-fetch';
 import { ImageGenerationTool } from './img-gen';
+import { WebFetchTool } from './web-fetch';
+import { WebSearchTool } from './web-search';
 
 /**
  * 对话级别的工具配置
@@ -22,9 +22,13 @@ export class ConversationToolConfig {
   private geminiModel: TModelWithConversation | null = null;
   private excludeTools: string[] = [];
   private dedicatedGeminiClient: GeminiClient | null = null; // 缓存专门的Gemini客户端
+  private imageGenerationModel: TModelWithConversation | undefined;
   private proxy: string = '';
-  constructor(proxy: string) {
-    this.proxy = proxy;
+  constructor(options: { proxy: string; imageGenerationModel?: TModelWithConversation }) {
+    this.proxy = options.proxy;
+    if (options.imageGenerationModel) {
+      this.imageGenerationModel = options.imageGenerationModel;
+    }
   }
   /**
    * 简化版本：直接检查 Google 认证状态，不依赖主进程存储
@@ -138,9 +142,11 @@ export class ConversationToolConfig {
       toolRegistry.registerTool(customWebFetchTool);
     }
 
-    // 注册 aionui_image_generation 工具（所有模型）
-    const imageGenTool = new ImageGenerationTool(config);
-    toolRegistry.registerTool(imageGenTool);
+    if (this.imageGenerationModel) {
+      // 注册 aionui_image_generation 工具（所有模型）
+      const imageGenTool = new ImageGenerationTool(config, this.imageGenerationModel);
+      toolRegistry.registerTool(imageGenTool);
+    }
 
     // 注册 gemini_web_search 工具（仅OpenAI模型）
     if (this.useGeminiWebSearch) {
