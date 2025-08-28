@@ -119,6 +119,7 @@ const GeminiSettings: React.FC = (props) => {
   return (
     <SettingContainer
       title={t('settings.gemini')}
+      className='setting-gemini-container'
       footer={
         <div className='flex justify-center gap-10px' onClick={onSubmit}>
           <Button type='primary' loading={loading}>
@@ -126,6 +127,7 @@ const GeminiSettings: React.FC = (props) => {
           </Button>
         </div>
       }
+      bodyContainer
     >
       <Form
         layout='horizontal'
@@ -137,7 +139,7 @@ const GeminiSettings: React.FC = (props) => {
           flex: '1',
         }}
         form={form}
-        className={'[&_.arco-row]:flex-nowrap  max-w-800px'}
+        className={'[&_.arco-row]:flex-nowrap  max-w-800px '}
       >
         <Form.Item label={t('settings.personalAuth')} field={'googleAccount'}>
           {(props) => {

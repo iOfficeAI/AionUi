@@ -12,11 +12,11 @@ import { AuthType, CoreToolScheduler, sessionId } from '@office-ai/aioncli-core'
 import { execSync } from 'child_process';
 import { handleAtCommand } from './cli/atCommandProcessor';
 import { loadCliConfig, loadHierarchicalGeminiMemory } from './cli/config';
-import { ConversationToolConfig } from './cli/tools/conversation-tool-config';
 import type { Extension } from './cli/extension';
 import { loadExtensions } from './cli/extension';
 import type { Settings } from './cli/settings';
 import { loadSettings } from './cli/settings';
+import { ConversationToolConfig } from './cli/tools/conversation-tool-config';
 import { mapToDisplay } from './cli/useReactToolScheduler';
 import { getPromptCount, handleCompletedTools, processGeminiStreamEvents, startNewPrompt } from './utils';
 
@@ -52,7 +52,7 @@ export class GeminiAgent {
   private trackedCalls: ToolCall[] = [];
   private abortController: AbortController | null = null;
   private onStreamEvent: (event: { type: string; data: any; msg_id: string }) => void;
-  private toolConfig = new ConversationToolConfig(); // 对话级别的工具配置
+  private toolConfig: ConversationToolConfig; // 对话级别的工具配置
   bootstrap: Promise<void>;
   constructor(options: GeminiAgent2Options) {
     this.workspace = options.workspace;
@@ -70,6 +70,7 @@ export class GeminiAgent {
     }
     this.onStreamEvent = options.onStreamEvent;
     this.initClientEnv();
+    this.toolConfig = new ConversationToolConfig(this.proxy);
     this.bootstrap = this.initialize();
   }
 

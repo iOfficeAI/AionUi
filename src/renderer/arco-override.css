@@ -1,0 +1,14 @@
+.arco-btn {
+  &.arco-btn-outline {
+    border-color: #86909c;
+    color: #86909c;
+  }
+}
+
+.arco-collapse {
+  border: none;
+  border-radius: 8px;
+  .arco-collapse-item-header {
+    border-bottom: none;
+  }
+}
