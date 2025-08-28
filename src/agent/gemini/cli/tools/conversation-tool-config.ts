@@ -8,8 +8,9 @@ import type { TModelWithConversation } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import type { GeminiClient } from '@office-ai/aioncli-core';
 import { AuthType, Config, getOauthInfoWithCache } from '@office-ai/aioncli-core';
-import { WebFetchTool } from './web-fetch';
 import { WebSearchTool } from './web-search';
+import { WebFetchTool } from './web-fetch';
+import { ImageGenerationTool } from './img-gen';
 
 /**
  * 对话级别的工具配置
@@ -99,7 +100,6 @@ export class ConversationToolConfig {
       userMemory: '',
       geminiMdFileCount: 0,
       model: geminiModel.useModel,
-      proxy: this.proxy,
     });
   }
 
@@ -123,6 +123,8 @@ export class ConversationToolConfig {
     // Google Cloud项目配置通过OAuth流程自动处理
   }
 
+  // 移除复杂的配置获取逻辑，简化为环境变量方案
+
   /**
    * 为给定的 Config 注册自定义工具
    * 在对话初始化后调用
@@ -135,6 +137,10 @@ export class ConversationToolConfig {
       const customWebFetchTool = new WebFetchTool(geminiClient);
       toolRegistry.registerTool(customWebFetchTool);
     }
+
+    // 注册 aionui_image_generation 工具（所有模型）
+    const imageGenTool = new ImageGenerationTool(config);
+    toolRegistry.registerTool(imageGenTool);
 
     // 注册 gemini_web_search 工具（仅OpenAI模型）
     if (this.useGeminiWebSearch) {
