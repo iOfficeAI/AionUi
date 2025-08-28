@@ -16,7 +16,7 @@ import type { Extension } from './cli/extension';
 import { loadExtensions } from './cli/extension';
 import type { Settings } from './cli/settings';
 import { loadSettings } from './cli/settings';
-import { ConversationToolConfig } from './cli/tools';
+import { ConversationToolConfig } from './cli/tools/conversation-tool-config';
 import { mapToDisplay } from './cli/useReactToolScheduler';
 import { getPromptCount, handleCompletedTools, processGeminiStreamEvents, startNewPrompt } from './utils';
 
@@ -68,9 +68,9 @@ export class GeminiAgent {
     } else {
       this.authType = AuthType.USE_OPENAI;
     }
-    this.toolConfig = new ConversationToolConfig(this.proxy);
     this.onStreamEvent = options.onStreamEvent;
     this.initClientEnv();
+    this.toolConfig = new ConversationToolConfig(this.proxy);
     this.bootstrap = this.initialize();
   }
 
