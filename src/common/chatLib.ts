@@ -72,13 +72,17 @@ export type IMessageToolGroup = IMessage<
   Array<{
     callId: string;
     description: string;
-    name: 'GoogleSearch' | 'Shell' | 'WriteFile' | 'ReadFile';
+    name: 'GoogleSearch' | 'Shell' | 'WriteFile' | 'ReadFile' | 'ImageGeneration';
     renderOutputAsMarkdown: boolean;
     resultDisplay?:
       | string
       | {
           fileDiff: string;
           fileName: string;
+        }
+      | {
+          img_url: string;
+          relative_path: string;
         };
     status: 'Executing' | 'Success' | 'Error' | 'Canceled' | 'Pending' | 'Confirming';
     confirmationDetails?:

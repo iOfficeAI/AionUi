@@ -48,6 +48,25 @@ ipcBridge.fs.getFilesByDir.provider(async ({ dir }) => {
   const tree = await readDirectoryRecursive(dir);
   return tree ? [tree] : [];
 });
+ipcBridge.fs.getImageBase64.provider(async ({ path: filePath }) => {
+  const ext = (path.extname(filePath) || '').toLowerCase().replace(/^\./, '');
+  const mimeMap: Record<string, string> = {
+    png: 'image/png',
+    jpg: 'image/jpeg',
+    jpeg: 'image/jpeg',
+    gif: 'image/gif',
+    webp: 'image/webp',
+    bmp: 'image/bmp',
+    svg: 'image/svg+xml',
+    ico: 'image/x-icon',
+    tif: 'image/tiff',
+    tiff: 'image/tiff',
+    avif: 'image/avif',
+  };
+  const mime = mimeMap[ext] || 'application/octet-stream';
+  const base64 = await fs.readFile(filePath, { encoding: 'base64' });
+  return `data:${mime};base64,${base64}`;
+});
 
 ipcBridge.conversation.create.provider(async ({ type, extra, name, model }) => {
   try {
