@@ -85,12 +85,15 @@
     "restartConfirm": "変更後にアプリを再起動します。続行しますか？",
     "theme": "テーマ",
     "lightMode": "ライト",
-    "darkMode": "ダーク"
+    "darkMode": "ダーク",
+    "tools": "ツール設定",
+    "imageGenerationModel": "画像モデル"
   },
   "messages": {
     "conversationInProgress": "現在、会話中です...",
     "confirm": "確認",
     "canceledExecution": "実行がキャンセルされました",
-    "openLinkFailed": "リンクを開けませんでした"
+    "openLinkFailed": "リンクを開けませんでした",
+    "imageGenerationModelDetected": "画像モデルが検出されました。画像ツールが自動的に有効になりました。デフォルトモデル：{{platform}}:{{model}}"
   }
 }

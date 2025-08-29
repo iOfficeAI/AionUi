@@ -25,6 +25,7 @@ export const createGeminiAgent = async (model: TModelWithConversation, workspace
       }
     }
   }
+
   return {
     type: 'gemini',
     model,

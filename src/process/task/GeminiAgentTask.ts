@@ -16,6 +16,7 @@ import BaseAgentTask from './BaseAgentTask';
 export class GeminiAgentTask extends BaseAgentTask<{
   workspace: string;
   model: TModelWithConversation;
+  imageGenerationModel?: TModelWithConversation;
 }> {
   workspace: string;
   model: TModelWithConversation;
@@ -25,13 +26,24 @@ export class GeminiAgentTask extends BaseAgentTask<{
     this.workspace = data.workspace;
     this.conversation_id = data.conversation_id;
     this.model = model;
-    this.bootstrap = ProcessConfig.get('gemini.config').then((config) => {
+    this.bootstrap = Promise.all([ProcessConfig.get('gemini.config'), this.getImageGenerationModel()]).then(([config, imageGenerationModel]) => {
       return this.start({
         ...config,
         workspace: this.workspace,
         model: this.model,
+        imageGenerationModel,
       });
     });
+  }
+  private async getImageGenerationModel(): Promise<TModelWithConversation | undefined> {
+    return ProcessConfig.get('tools.imageGenerationModel')
+      .then((imageGenerationModel) => {
+        if (imageGenerationModel && imageGenerationModel.switch) {
+          return imageGenerationModel;
+        }
+        return undefined;
+      })
+      .catch(() => Promise.resolve(undefined));
   }
   sendMessage(data: { input: string; msg_id: string }) {
     const message: TMessage = {

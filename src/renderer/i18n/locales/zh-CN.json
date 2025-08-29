@@ -85,12 +85,15 @@
     "restartConfirm": "修改后将重启应用，是否继续？",
     "theme": "主题",
     "lightMode": "浅色",
-    "darkMode": "深色"
+    "darkMode": "深色",
+    "tools": "工具配置",
+    "imageGenerationModel": "图片模型"
   },
   "messages": {
     "conversationInProgress": "当前正在进行对话中...",
     "confirm": "确认",
     "canceledExecution": "已取消执行",
-    "openLinkFailed": "打开链接失败"
+    "openLinkFailed": "打开链接失败",
+    "imageGenerationModelDetected": "检测到图片模型，已自动开启图片工具，设置为默认模型：{{platform}}:{{model}}"
   }
 }
