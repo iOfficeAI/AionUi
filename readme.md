@@ -26,6 +26,12 @@
 
 ## 🚀 **What Can AionUi Do?**
 
+### 🎨 **AI Image Generation & Editing**
+*Intelligent image generation, editing, and recognition powered by Gemini 2.5 Flash Image Preview - the most advanced image model, with support for other leading AI image models*
+<p align="center">
+  <img src="./resources/Image_Generation.gif" alt="AI Image Generation Demo" width="800">
+</p>
+
 ### 📁 **Organizing Your Files**
 *Batch renaming, auto organization, smart classification, file merging*
 <p align="center">
@@ -61,6 +67,7 @@ Want to explore more features? Keep reading to discover what else AionUi can hel
   - [💬 Better Chat Experience](#-better-chat-experience)
   - [🗂️ File Management Made Simple](#-file-management-made-simple)
   - [⚡ Development Efficiency Boost](#-development-efficiency-boost)
+  - [🎨 AI Image Generation & Editing](#-ai-image-generation--editing)
   - [🔧 Settings Are Simple](#-settings-are-simple)
 - [🚀 Quick Start](#-quick-start)
   - [📥 Download](#-download)
@@ -114,6 +121,13 @@ AionUi provides a modern interface for users who need better workflow efficiency
 - **Function Calling** - Complete Gemini API, more powerful features
 - **Code Rendering** - Code blocks display more beautifully, format clearer
 - **Tool Scheduling** - Automatically select most suitable tools, no manual selection needed
+
+### 🎨 **AI Image Generation & Editing**
+- **Smart Image Generation** - Powered by Gemini 2.5 Flash Image Preview, the most advanced image model
+- **Multi-Model Support** - Also supports other leading AI image models for diverse creative needs
+- **Intelligent Editing** - AI-powered image editing and enhancement capabilities
+- **Image Recognition** - Advanced image analysis and understanding
+- **High-Quality Output** - Professional-grade image generation with detailed control
 
 ### 🔧 **Settings Are Simple**
 - **Multi-Platform Support** - Support Gemini, OpenAI, ModelScope, OpenRouter, etc.
@@ -219,8 +233,9 @@ AionUI/
 - **Daily Office Work**: Email writing, meeting notes, work summaries
 - **Learning & Growth**: Language learning, skill training, knowledge organization
 - **Creative Work**: Copywriting, brainstorming, inspiration collection
+- **AI Image Generation**: Create, edit, and enhance images with AI-powered tools
 - **Multi-Model Collaboration**: Choose the most suitable AI model based on task characteristics
-  - **Gemini**: Code generation, technical documentation
+  - **Gemini**: Code generation, technical documentation, image generation & editing
   - **OpenAI**: Creative writing, content creation
   - **ModelScope**: Chinese understanding, localization tasks
   - **OpenRouter**: Cost optimization, model comparison
