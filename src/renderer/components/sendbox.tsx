@@ -5,11 +5,19 @@
  */
 
 import { Button, Input, Message } from '@arco-design/web-react';
-import { ArrowUp } from '@icon-park/react';
 import React, { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 const constVoid = (): void => undefined;
+
+const SendIcon: React.FC = () => (
+  <span className='arco-icon inline-flex items-center justify-center' style={{ width: 20, height: 20, lineHeight: 0 }}>
+    <svg width='20' height='20' viewBox='0 0 21 20' fill='none' xmlns='http://www.w3.org/2000/svg' style={{ display: 'block', transform: 'translateY(2px)' }}>
+      <path d='M10.5 15.834L10.5 4.16732' stroke='white' strokeWidth='1.5' strokeLinecap='round' strokeLinejoin='round'/>
+      <path d='M4.50008 9.83398L10.3334 4.00065L16.1667 9.83398' stroke='white' strokeWidth='1.5' strokeLinecap='round' strokeLinejoin='round'/>
+    </svg>
+  </span>
+);
 
 const SendBox: React.FC<{
   value?: string;
@@ -53,10 +61,13 @@ const SendBox: React.FC<{
     });
   };
 
+  const hasPrefix = !!prefix && React.Children.count(prefix) > 0;
   return (
     <div className={`mb-16px  ${className}`}>
       <div className='p-16px b-#E5E6EB b bg-white b-solid rd-20px  focus-within:shadow-[0px_2px_20px_rgba(77,60,234,0.1)] '>
-        {prefix}
+        {hasPrefix && <div className='flex flex-wrap items-center gap-6px mb-8px'>
+          {prefix}
+        </div>}
         {context}
         <Input.TextArea
           disabled={disabled}
@@ -81,7 +92,7 @@ const SendBox: React.FC<{
             }
           }}
         ></Input.TextArea>
-        <div className='flex items-center justify-between gap-2 '>
+        <div className='flex items-center justify-between gap-8px mt-8px'>
           <span>{tools}</span>
           <div className='flex items-center gap-2'>
             {isLoading || loading ? (
@@ -96,7 +107,7 @@ const SendBox: React.FC<{
               <Button
                 shape='circle'
                 type='primary'
-                icon={<ArrowUp theme='outline' size='14' fill='white' strokeWidth={2} />}
+                icon={<SendIcon />}
                 onClick={() => {
                   sendMessageHandler();
                 }}
