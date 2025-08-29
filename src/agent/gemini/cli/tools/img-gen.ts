@@ -10,7 +10,6 @@ import type { Config, ToolResult } from '@office-ai/aioncli-core';
 import { BaseTool, Icon, SchemaValidator } from '@office-ai/aioncli-core';
 import * as fs from 'fs';
 import OpenAI from 'openai';
-import * as os from 'os';
 import * as path from 'path';
 
 const REQUEST_TIMEOUT_MS = 120000; // 2 minutes for image generation
@@ -95,36 +94,6 @@ async function saveGeneratedImage(base64Data: string, config: Config): Promise<s
   }
 }
 
-function readApiKeyFromShellConfig(): string | null {
-  try {
-    const homeDir = os.homedir();
-    const shellConfigFiles = [path.join(homeDir, '.zshrc'), path.join(homeDir, '.bashrc'), path.join(homeDir, '.bash_profile'), path.join(homeDir, '.profile')];
-
-    for (const configFile of shellConfigFiles) {
-      if (fs.existsSync(configFile)) {
-        console.log(`[ImageGen] 检查配置文件: ${configFile}`);
-        const content = fs.readFileSync(configFile, 'utf8');
-
-        // 匹配 export OPENROUTER_API_KEY=value 或 OPENROUTER_API_KEY=value
-        const match = content.match(/^\s*(?:export\s+)?OPENROUTER_API_KEY\s*=\s*['"']?([^'"\n\r]+)['"']?\s*$/m);
-        if (match && match[1]) {
-          console.log(`[ImageGen] 在 ${configFile} 中找到 OPENROUTER_API_KEY`);
-          // 过滤掉所有不可见字符（换行、回车、制表符、空格等）
-          const cleanedKey = match[1].replace(/[\s\r\n\t]/g, '').trim();
-          console.log(`[ImageGen] 清理后的密钥长度: ${cleanedKey.length} 字符`);
-          return cleanedKey;
-        }
-      }
-    }
-
-    console.log('[ImageGen] 未在shell配置文件中找到 OPENROUTER_API_KEY');
-    return null;
-  } catch (error) {
-    console.warn('[ImageGen] 读取shell配置文件失败:', error);
-    return null;
-  }
-}
-
 export class ImageGenerationTool extends BaseTool<ImageGenerationToolParams, ToolResult> {
   static readonly Name: string = 'aionui_image_generation';
   private openai: OpenAI | null = null;
@@ -182,18 +151,8 @@ Output:
       return;
     }
 
-    console.log('[ImageGen] 开始初始化 OpenAI 客户端...');
-
     // 1. 优先使用环境变量
-    let apiKey = this.imageGenerationModel.apiKey; //|| process.env.OPENROUTER_API_KEY;
-    console.log(`[ImageGen] 环境变量 OPENROUTER_API_KEY: ${apiKey ? '✓ 找到' : '✗ 未找到'}`);
-
-    // 2. 如果环境变量没有，从shell配置文件读取
-    if (!apiKey) {
-      console.log('[ImageGen] 尝试从shell配置文件读取...');
-      apiKey = readApiKeyFromShellConfig();
-      console.log(`[ImageGen] Shell配置文件结果: ${apiKey ? '✓ 找到' : '✗ 未找到'}`);
-    }
+    const apiKey = this.imageGenerationModel.apiKey; //|| process.env.OPENROUTER_API_KEY;
 
     if (!apiKey) {
       throw new Error(`OPENROUTER_API_KEY not found. Please either:
@@ -208,13 +167,7 @@ Debug info:
 
     // 清理API密钥（过滤不可见字符）
     const cleanedApiKey = apiKey.replace(/[\s\r\n\t]/g, '').trim();
-    console.log(`[ImageGen] 原始密钥长度: ${apiKey.length}, 清理后长度: ${cleanedApiKey.length}`);
 
-    // 验证API密钥格式（OpenRouter密钥通常以sk-or-开头）
-    const keyPrefix = cleanedApiKey.substring(0, 10);
-    console.log(`[ImageGen] API密钥前缀: ${keyPrefix}...`);
-
-    console.log('[ImageGen] 使用 OpenRouter API key 初始化客户端');
     this.currentModel = this.imageGenerationModel.useModel;
     this.openai = new OpenAI({
       baseURL: this.imageGenerationModel.baseUrl,
@@ -224,8 +177,6 @@ Debug info:
         'X-Title': 'AionUi',
       },
     });
-
-    console.log('[ImageGen] OpenAI 客户端初始化完成');
   }
 
   validateToolParams(params: ImageGenerationToolParams): string | null {
@@ -262,12 +213,10 @@ Debug info:
       if (!path.isAbsolute(imageUri)) {
         const workspaceDir = this.config.getWorkingDir();
         fullPath = path.join(workspaceDir, imageUri);
-        console.log(`[ImageGen] 相对路径转换: ${imageUri} -> ${fullPath}`);
       }
 
       // 检查文件是否存在且为图片文件
       if (fs.existsSync(fullPath) && isImageFile(fullPath)) {
-        console.log(`[ImageGen] 找到图片文件: ${fullPath}`);
         const base64Data = await fileToBase64(fullPath);
         const mimeType = getImageMimeType(fullPath);
         return {
