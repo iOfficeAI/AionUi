@@ -93,6 +93,7 @@
     "conversationInProgress": "当前正在进行对话中...",
     "confirm": "确认",
     "canceledExecution": "已取消执行",
-    "openLinkFailed": "打开链接失败"
+    "openLinkFailed": "打开链接失败",
+    "imageGenerationModelDetected": "检测到图片模型，已自动开启图片工具，设置为默认模型：{{platform}}:{{model}}"
   }
 }
