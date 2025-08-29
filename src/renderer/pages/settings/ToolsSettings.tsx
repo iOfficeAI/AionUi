@@ -50,7 +50,7 @@ const ToolsSettings: React.FC = () => {
           <div>
             <Form className={'mt-10px'}>
               <Form.Item label={t('settings.imageGenerationModel')}>
-                <Select value={imageGenerationModel?.platform + imageGenerationModel?.useModel}>
+                <Select value={imageGenerationModel?.useModel}>
                   {imageGenerationModelList.map(({ model, ...platform }) => {
                     return (
                       <Select.OptGroup label={platform.name} key={platform.id}>
