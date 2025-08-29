@@ -93,6 +93,7 @@
     "conversationInProgress": "目前正在進行對話...",
     "confirm": "確認",
     "canceledExecution": "已取消執行",
-    "openLinkFailed": "無法開啟連結"
+    "openLinkFailed": "無法開啟連結",
+    "imageGenerationModelDetected": "檢測到圖片模型，已自動開啟圖片工具，設置為默認模型：{{platform}}:{{model}}"
   }
 }

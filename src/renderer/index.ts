@@ -40,4 +40,4 @@ const Config: React.FC<PropsWithChildren> = (props) => {
   );
 };
 
-root.render(React.createElement(HOC(Config)(Main)));
+root.render(React.createElement(HOC.Wrapper(Config)(Main)));
