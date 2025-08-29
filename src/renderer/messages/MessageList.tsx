@@ -56,6 +56,7 @@ const MessageList: React.FC<{ className?: string }> = ({ className }) => {
     setTimeout(() => {
       scrollToBottom();
     }, 100);
+    console.log('message.list----->', list);
   }, [list]);
 
   useEffect(() => {

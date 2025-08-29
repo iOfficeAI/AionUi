@@ -1,5 +1,5 @@
 import FlexFullContainer from '@/renderer/components/FlexFullContainer';
-import { Gemini, Info, LinkCloud, System } from '@icon-park/react';
+import { Gemini, Info, LinkCloud, System, Toolkit } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -21,6 +21,11 @@ const SettingsSider: React.FC = () => {
         label: t('settings.model'),
         icon: <LinkCloud />,
         path: 'model',
+      },
+      {
+        label: t('settings.tools'),
+        icon: <Toolkit />,
+        path: 'tools',
       },
       {
         label: t('settings.system'),

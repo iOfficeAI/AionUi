@@ -10,6 +10,7 @@ import { MenuFold, MenuUnfold } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useRef, useState } from 'react';
 import { Outlet } from 'react-router-dom';
+import useDefaultImageGenerationMode from './hooks/useDefaultImageGenerationMode';
 
 const useDebug = () => {
   const [count, setCount] = useState(0);
@@ -44,19 +45,20 @@ const Layout: React.FC<{
 }> = ({ sider }) => {
   const [collapsed, setCollapsed] = useState(false);
   const { onClick } = useDebug();
+  const { contextHolder } = useDefaultImageGenerationMode();
   return (
-    <ArcoLayout className={'size-full'}>
+    <ArcoLayout className={'size-full layout'}>
       <ArcoLayout.Sider
         collapsedWidth={64}
         collapsed={collapsed}
         width={250}
-        className={classNames('!bg-#f2f3f5', {
+        className={classNames('!bg-#f2f3f5 layout-sider', {
           collapsed: collapsed,
           'overflow-hidden': collapsed,
         })}
       >
         <ArcoLayout.Header
-          className={classNames('flex items-center justify-start p-16px gap-12px pl-20px', {
+          className={classNames('flex items-center justify-start p-16px gap-12px pl-20px layout-sider-header', {
             'cursor-pointer group ': collapsed,
           })}
         >
@@ -86,12 +88,13 @@ const Layout: React.FC<{
             </div>
           )}
         </ArcoLayout.Header>
-        <ArcoLayout.Content className={classNames('h-[calc(100%-72px-16px)] p-8px', {
+        <ArcoLayout.Content className={classNames('h-[calc(100%-72px-16px)] p-8px layout-sider-content', {
           '!overflow-hidden': collapsed,
         })}>{sider}</ArcoLayout.Content>
       </ArcoLayout.Sider>
-      <ArcoLayout.Content>
+      <ArcoLayout.Content className={'bg-#F9FAFB layout-content'}>
         <Outlet></Outlet>
+        {contextHolder}
       </ArcoLayout.Content>
     </ArcoLayout>
   );

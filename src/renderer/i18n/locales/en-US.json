@@ -85,12 +85,15 @@
     "restartConfirm": "Changes will restart the application. Continue?",
     "theme": "Theme",
     "lightMode": "Light",
-    "darkMode": "Dark"
+    "darkMode": "Dark",
+    "tools": "Tools Settings",
+    "imageGenerationModel": "Image Processing Model"
   },
   "messages": {
     "conversationInProgress": "A conversation is currently in progress...",
     "confirm": "Confirm",
     "canceledExecution": "Execution canceled",
-    "openLinkFailed": "Failed to open link"
+    "openLinkFailed": "Failed to open link",
+    "imageGenerationModelDetected": "Image model detected, image tool has been automatically enabled. Default model: {{platform}}:{{model}}"
   }
 }

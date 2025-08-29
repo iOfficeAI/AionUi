@@ -76,7 +76,7 @@ export const processGeminiFunctionCalls = async (config: Config, functionCalls: 
     const abortController = new AbortController();
 
     const toolResponse = await executeToolCall(config, requestInfo, toolRegistry, abortController.signal);
-    if (toolResponse.error) {
+    if (toolResponse?.error) {
       await onProgress({
         type: 'tool_call_error',
         data: Object.assign({}, requestInfo, {

@@ -30,6 +30,9 @@ export interface IConfigStorageRefer {
   language: string;
   theme: string;
   'gemini.defaultModel': string;
+  'tools.imageGenerationModel': TModelWithConversation & {
+    switch: boolean;
+  };
 }
 
 export interface IEnvStorageRefer {

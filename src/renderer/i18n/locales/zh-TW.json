@@ -85,12 +85,15 @@
     "restartConfirm": "修改後將重啟應用，是否繼續？",
     "theme": "主題",
     "lightMode": "淺色",
-    "darkMode": "深色"
+    "darkMode": "深色",
+    "tools": "工具配置",
+    "imageGenerationModel": "圖片模型"
   },
   "messages": {
     "conversationInProgress": "目前正在進行對話...",
     "confirm": "確認",
     "canceledExecution": "已取消執行",
-    "openLinkFailed": "無法開啟連結"
+    "openLinkFailed": "無法開啟連結",
+    "imageGenerationModelDetected": "檢測到圖片模型，已自動開啟圖片工具，設置為默認模型：{{platform}}:{{model}}"
   }
 }

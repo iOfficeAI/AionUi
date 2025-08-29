@@ -5,6 +5,7 @@ import { DeleteFour, Minus, Plus, Write } from '@icon-park/react';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
+import useDefaultImageGenerationMode from '../../hooks/useDefaultImageGenerationMode';
 import AddModelModal from './components/AddModelModal';
 import AddPlatformModal from './components/AddPlatformModal';
 import EditModeModal from './components/EditModeModal';
@@ -14,6 +15,7 @@ const ModelSettings: React.FC = () => {
   const { t } = useTranslation();
   const [cacheKey, setCacheKey] = useState('model.config');
   const [collapseKey, setCollapseKey] = useState<Record<string, boolean>>({});
+  const { updateDefaultImageGenerationMode, contextHolder: defaultImageGenerationModeContext } = useDefaultImageGenerationMode(false);
   const { data } = useSWR(cacheKey, () => {
     return ipcBridge.mode.getModelConfig.invoke().then((data) => {
       if (!data) return [];
@@ -26,6 +28,7 @@ const ModelSettings: React.FC = () => {
     ipcBridge.mode.saveModelConfig.invoke(newData).then((data) => {
       if (data.success) {
         setCacheKey('model.config' + Date.now());
+        updateDefaultImageGenerationMode();
         success?.();
       } else {
         message.error(data.msg);
@@ -74,7 +77,7 @@ const ModelSettings: React.FC = () => {
       title={
         <div className='flex items-center justify-between'>
           {t('settings.model')}
-          <Button size='mini' onClick={() => addPlatformModalCtrl.open()}>
+          <Button size='mini' type='outline' icon={<Plus size={'14'} className=''></Plus>} shape='round' onClick={() => addPlatformModalCtrl.open()}>
             {t('settings.addModel')}
           </Button>
         </div>
@@ -84,6 +87,7 @@ const ModelSettings: React.FC = () => {
       {editModalContext}
       {addModelModalContext}
       {messageContext}
+      {defaultImageGenerationModeContext}
       {(data || []).map((platform, index) => {
         const key = platform.id;
         return (
