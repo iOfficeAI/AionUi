@@ -103,8 +103,7 @@ const FileBuilder = (file: string) => {
       .shift()?.()
       .finally(() => {
         isRunning = false;
-        requestIdleCallback(run);
-        // run();
+        run();
       });
   };
   const pushStack = <R extends any>(fn: () => Promise<R>) => {

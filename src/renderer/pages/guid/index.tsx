@@ -95,8 +95,9 @@ const Guid: React.FC = () => {
   const setDefaultModel = async () => {
     const useModel = await ConfigStorage.get('gemini.defaultModel');
     const defaultModel = modelList.find((m) => m.model.includes(useModel)) || modelList[0];
+    console.log('----->defaultModel', useModel);
     if (!defaultModel) return;
-    setCurrentModel({ ...defaultModel, useModel: defaultModel.model.find((m) => m == useModel) || defaultModel.model[0] });
+    _setCurrentModel({ ...defaultModel, useModel: defaultModel.model.find((m) => m == useModel) || defaultModel.model[0] });
   };
   useEffect(() => {
     setDefaultModel();

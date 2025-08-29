@@ -2,19 +2,13 @@ import { ConfigStorage, type IConfigStorageRefer } from '@/common/storage';
 import { Collapse, Form, Select, Switch } from '@arco-design/web-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import useSWR from 'swr';
-import { ipcBridge } from '../../../common';
+import useConfigModelListWithImage from '../../hooks/useConfigModelListWithImage';
 import SettingContainer from './components/SettingContainer';
 
 const ToolsSettings: React.FC = () => {
   const { t } = useTranslation();
   const [imageGenerationModel, setImageGenerationModel] = useState<IConfigStorageRefer['tools.imageGenerationModel'] | undefined>();
-  const { data } = useSWR('tools.model.config', () => {
-    return ipcBridge.mode.getModelConfig.invoke().then((data) => {
-      if (!data) return [];
-      return data;
-    });
-  });
+  const { modelListWithImage: data } = useConfigModelListWithImage();
   const imageGenerationModelList = useMemo(() => {
     if (!data) return [];
     return (data || []).filter((v) => {
