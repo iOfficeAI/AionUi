@@ -36,7 +36,7 @@ const About: React.FC = () => {
           <span>{packageJson.version}</span>
         </Form.Item>
         <Form.Item label={t('common.contact')}>{link('https://x.com/WailiVery')}</Form.Item>
-        <Form.Item label={t('common.github')}>{link('https://github.com/office-sec/AionUI ')}</Form.Item>
+        <Form.Item label={t('common.github')}>{link('https://github.com/iOfficeAI/AionUi')}</Form.Item>
       </Form>
     </SettingContainer>
   );
