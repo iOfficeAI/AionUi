@@ -4,23 +4,24 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import '../adapter/browser';
 import type { PropsWithChildren } from 'react';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
+import '../adapter/browser';
 import Main from './main';
 
-import 'uno.css';
-import './index.css';
+import { ConfigProvider } from '@arco-design/web-react';
 import '@arco-design/web-react/dist/css/arco.css';
-import './i18n';
 import enUS from '@arco-design/web-react/es/locale/en-US'; // 英文
+import jaJP from '@arco-design/web-react/es/locale/ja-JP'; // 日文
 import zhCN from '@arco-design/web-react/es/locale/zh-CN'; // 中文（简体）
 import zhTW from '@arco-design/web-react/es/locale/zh-TW'; // 中文（繁体）
-import jaJP from '@arco-design/web-react/es/locale/ja-JP'; // 日文
-import { ConfigProvider } from '@arco-design/web-react';
-import HOC from './utils/HOC';
 import { useTranslation } from 'react-i18next';
+import 'uno.css';
+import './arco-override.css';
+import './i18n';
+import './index.css';
+import HOC from './utils/HOC';
 const root = createRoot(document.getElementById('root'));
 
 const Config: React.FC<PropsWithChildren> = (props) => {
@@ -39,4 +40,4 @@ const Config: React.FC<PropsWithChildren> = (props) => {
   );
 };
 
-root.render(React.createElement(HOC(Config)(Main)));
+root.render(React.createElement(HOC.Wrapper(Config)(Main)));

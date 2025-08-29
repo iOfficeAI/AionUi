@@ -12,11 +12,11 @@ import { AuthType, CoreToolScheduler, sessionId } from '@office-ai/aioncli-core'
 import { execSync } from 'child_process';
 import { handleAtCommand } from './cli/atCommandProcessor';
 import { loadCliConfig, loadHierarchicalGeminiMemory } from './cli/config';
-import { ConversationToolConfig } from './cli/tools/conversation-tool-config';
 import type { Extension } from './cli/extension';
 import { loadExtensions } from './cli/extension';
 import type { Settings } from './cli/settings';
 import { loadSettings } from './cli/settings';
+import { ConversationToolConfig } from './cli/tools/conversation-tool-config';
 import { mapToDisplay } from './cli/useReactToolScheduler';
 import { getPromptCount, handleCompletedTools, processGeminiStreamEvents, startNewPrompt } from './utils';
 
@@ -38,6 +38,7 @@ interface GeminiAgent2Options {
   workspace: string;
   proxy?: string;
   model: TModelWithConversation;
+  imageGenerationModel?: TModelWithConversation;
   onStreamEvent: (event: { type: string; data: any; msg_id: string }) => void;
 }
 
@@ -46,18 +47,20 @@ export class GeminiAgent {
   private workspace: string | null = null;
   private proxy: string | null = null;
   private model: TModelWithConversation | null = null;
+  private imageGenerationModel: TModelWithConversation | null = null;
   private geminiClient: GeminiClient | null = null;
   private authType: AuthType | null = null;
   private scheduler: CoreToolScheduler | null = null;
   private trackedCalls: ToolCall[] = [];
   private abortController: AbortController | null = null;
   private onStreamEvent: (event: { type: string; data: any; msg_id: string }) => void;
-  private toolConfig = new ConversationToolConfig(); // 对话级别的工具配置
+  private toolConfig: ConversationToolConfig; // 对话级别的工具配置
   bootstrap: Promise<void>;
   constructor(options: GeminiAgent2Options) {
     this.workspace = options.workspace;
     this.proxy = options.proxy;
     this.model = options.model;
+    this.imageGenerationModel = options.imageGenerationModel;
     const platform = options.model.platform;
     if (platform === 'gemini-with-google-auth') {
       this.authType = AuthType.LOGIN_WITH_GOOGLE;
@@ -70,6 +73,10 @@ export class GeminiAgent {
     }
     this.onStreamEvent = options.onStreamEvent;
     this.initClientEnv();
+    this.toolConfig = new ConversationToolConfig({
+      proxy: this.proxy,
+      imageGenerationModel: this.imageGenerationModel,
+    });
     this.bootstrap = this.initialize();
   }
 
