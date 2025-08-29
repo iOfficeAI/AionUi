@@ -19,6 +19,7 @@ import { theme } from '@office-ai/platform';
 import React, { useMemo, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { useTranslation } from 'react-i18next';
+import LocalImageView from './LocalImageView';
 
 const formatCode = (code: string) => {
   const content = String(code).replace(/\n$/, '');
@@ -201,6 +202,23 @@ const MarkdownView: React.FC<{
   onRef?: (el?: HTMLDivElement | null) => void;
 }> = ({ hiddenCodeCopyButton, codeStyle, ...props }) => {
   const { t } = useTranslation();
+  const children = useMemo(() => {
+    if (typeof props.children === 'string') {
+      return props.children.replace(/file:\/\//g, '');
+    }
+    return props.children;
+  }, [props.children]);
+
+  const isLocalFilePath = (src: string): boolean => {
+    if (src.startsWith('http://') || src.startsWith('https://')) {
+      return false;
+    }
+    if (src.startsWith('data:')) {
+      return false;
+    }
+    return true;
+  };
+
   return (
     <ShadowView>
       <div ref={props.onRef} className='markdown-shadow-body'>
@@ -250,9 +268,17 @@ const MarkdownView: React.FC<{
                 }}
               />
             ),
+            img: ({ node, ...props }) => {
+              // 判断是否为本地文件路径
+              if (isLocalFilePath(props.src || '')) {
+                return <LocalImageView src={decodeURIComponent(props.src || '')} alt={props.alt || ''} className={props.className} />;
+              }
+              // 否则使用普通的 img 标签
+              return <img {...props} />;
+            },
           }}
         >
-          {props.children}
+          {children}
         </ReactMarkdown>
       </div>
     </ShadowView>
