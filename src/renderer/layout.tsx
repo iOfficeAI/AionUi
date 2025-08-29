@@ -52,6 +52,7 @@ const Layout: React.FC<{
         width={250}
         className={classNames('!bg-#f2f3f5', {
           collapsed: collapsed,
+          'overflow-hidden': collapsed,
         })}
       >
         <ArcoLayout.Header
@@ -85,7 +86,9 @@ const Layout: React.FC<{
             </div>
           )}
         </ArcoLayout.Header>
-        <ArcoLayout.Content className='h-[calc(100%-72px-16px)] p-8px'>{sider}</ArcoLayout.Content>
+        <ArcoLayout.Content className={classNames('h-[calc(100%-72px-16px)] p-8px', {
+          '!overflow-hidden': collapsed,
+        })}>{sider}</ArcoLayout.Content>
       </ArcoLayout.Sider>
       <ArcoLayout.Content>
         <Outlet></Outlet>
