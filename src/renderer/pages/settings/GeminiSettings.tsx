@@ -1,197 +1,167 @@
-/**
- * @license
- * Copyright 2025 AionUi (aionui.com)
- * SPDX-License-Identifier: Apache-2.0
- */
-
-import { ipcBridge } from '@/common';
-import { ConfigStorage } from '@/common/storage';
-import { Alert, Button, Form, Input, Modal } from '@arco-design/web-react';
-import { FolderOpen } from '@icon-park/react';
+import { ipcBridge, type IManagedKey } from '@/common';
+import { KeyStatus } from '@/common/keyManager';
+import type { IModel } from '@/common/storage';
+import { Badge, Button, Collapse, Divider, Message, Popconfirm, Tag, Input } from '@arco-design/web-react';
+import { DeleteFour, Minus, Plus, Write } from '@icon-park/react';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
+import useDefaultImageGenerationMode from '../../hooks/useDefaultImageGenerationMode';
+import AddApiKeyModal from './components/AddApiKeyModal';
 import SettingContainer from './components/SettingContainer';
 
-const DirInputItem: React.FC<{
-  label: string;
-  field: string;
-  rules?: any[];
-}> = (props) => {
+const GeminiSettings: React.FC = () => {
   const { t } = useTranslation();
-  return (
-    <Form.Item label={props.label} field={props.field}>
-      {(options, form) => (
-        <Input
-          disabled
-          value={options[props.field]}
-          addAfter={
-            <FolderOpen
-              theme='outline'
-              size='24'
-              fill='#333'
-              onClick={() => {
-                ipcBridge.dialog.showOpen
-                  .invoke({
-                    defaultPath: options[props.field],
-                    properties: ['openDirectory', 'createDirectory'],
-                  })
-                  .then((data) => {
-                    if (data?.[0]) {
-                      form.setFieldValue(props.field, data[0]);
-                    }
-                  });
-              }}
-            />
-          }
-        ></Input>
-      )}
-    </Form.Item>
-  );
-};
+  const [cacheKey, setCacheKey] = useState('model.config');
+  const [collapseKey, setCollapseKey] = useState<Record<string, boolean>>({});
+  const { updateDefaultImageGenerationMode, contextHolder: defaultImageGenerationModeContext } = useDefaultImageGenerationMode(false);
+  const { data } = useSWR(cacheKey, () => {
+    return ipcBridge.mode.getModelConfig.invoke().then((data) => {
+      if (!data) return [];
+      return data;
+    });
+  });
+  const { data: keyStatus, mutate: mutateKeyStatus } = useSWR('gemini.key.status', () => {
+    return ipcBridge.gemini.getKeyStatus.invoke();
+  });
+  const [message, messageContext] = Message.useMessage();
 
-const GeminiSettings: React.FC = (props) => {
-  const { t } = useTranslation();
-  const [form] = Form.useForm();
-  const [loading, setLoading] = useState(false);
-  const [modal, modalContextHolder] = Modal.useModal();
-  const [error, setError] = useState<string | null>(null);
-  const [googleAccountLoading, setGoogleAccountLoading] = useState(false);
-  const { data } = useSWR('gemini.env.config', () => ipcBridge.application.systemInfo.invoke());
-  const loadGoogleAuthStatus = (proxy?: string) => {
-    setGoogleAccountLoading(true);
-    ipcBridge.googleAuth.status
-      .invoke({ proxy: proxy })
-      .then((data) => {
-        if (data.success && data.data?.account) {
-          form.setFieldValue('googleAccount', data.data.account);
-        }
-      })
-      .finally(() => {
-        setGoogleAccountLoading(false);
-      });
-  };
+  useEffect(() => {
+    const interval = setInterval(() => {
+      mutateKeyStatus();
+    }, 5000); // refresh every 5 seconds
+    const off = ipcBridge.gemini.keyRotated.on(({ newApiKey }) => {
+      message.info(`Key rotated to: ${newApiKey.slice(0, 8)}...`);
+      mutateKeyStatus();
+    });
+    return () => {
+      clearInterval(interval);
+      off();
+    };
+  }, [mutateKeyStatus]);
 
-  const saveDirConfigValidate = async (values: { cacheDir: string; workDir: string }) => {
-    return new Promise((resolve, reject) => {
-      modal.confirm({
-        title: t('settings.updateConfirm'),
-        content: t('settings.restartConfirm'),
-        onOk: resolve,
-        onCancel: reject,
-      });
+  const saveModelConfig = (newData: IModel[], success?: () => void) => {
+    ipcBridge.mode.saveModelConfig.invoke(newData).then((data) => {
+      if (data.success) {
+        setCacheKey('model.config' + Date.now());
+        updateDefaultImageGenerationMode();
+        success?.();
+      } else {
+        message.error(data.msg);
+      }
     });
   };
 
-  const onSubmit = async () => {
-    const values = await form.validate();
-    const { cacheDir, workDir, googleAccount, ...rest } = values;
-    setLoading(true);
-    setError(null);
-    await saveDirConfigValidate(values);
-    ConfigStorage.set('gemini.config', values)
-      .then(() => {
-        return ipcBridge.application.updateSystemInfo.invoke({ cacheDir, workDir }).then((data) => {
-          if (data.success) return ipcBridge.application.restart.invoke();
-          return Promise.reject(data.msg);
-        });
-      })
-      .catch((e) => {
-        setError(e.message || e);
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  };
-  useEffect(() => {
-    ConfigStorage.get('gemini.config').then((data) => {
-      form.setFieldsValue(data);
-      loadGoogleAuthStatus(data?.proxy);
-    });
-  }, []);
-  useEffect(() => {
-    if (data) {
-      form.setFieldValue('cacheDir', data.cacheDir);
-      form.setFieldValue('workDir', data.workDir);
+  const updatePlatform = (platform: IModel, success: () => void) => {
+    const newData = [...(data || [])];
+    const originData = newData.find((item) => item.id === platform.id);
+    if (originData) {
+      Object.assign(originData, platform);
+    } else {
+      newData.push(platform);
     }
-  }, [data]);
+    saveModelConfig(newData, success);
+  };
+
+  const removePlatform = (id: string) => {
+    const geminiKeys = (data || []).filter(p => p.platform === 'gemini');
+    const otherKeys = (data || []).filter(p => p.platform !== 'gemini');
+    const newGeminiKeys = geminiKeys.filter((item) => item.id !== id);
+    saveModelConfig([...newGeminiKeys, ...otherKeys]);
+  };
+
+  const [addApiKeyModalCtrl, addApiKeyModalContext] = AddApiKeyModal.useModal({
+    onSubmit(platform) {
+      updatePlatform(platform, () => addApiKeyModalCtrl.close());
+    },
+  });
+
+  const [editedApiKeys, setEditedApiKeys] = useState<Record<string, string>>({});
+
+  const handleApiKeyChange = (id: string, newApiKey: string) => {
+    setEditedApiKeys(prev => ({ ...prev, [id]: newApiKey }));
+  };
+
+  const handleSaveApiKey = (id: string) => {
+    const platform = (data || []).find(p => p.id === id);
+    if (platform && editedApiKeys[id]) {
+      const updatedPlatform = { ...platform, apiKey: editedApiKeys[id] };
+      updatePlatform(updatedPlatform, () => {
+        setEditedApiKeys(prev => {
+          const newEdited = { ...prev };
+          delete newEdited[id];
+          return newEdited;
+        });
+        message.success('API Key saved');
+      });
+    }
+  };
+
+  const geminiModels = (data || []).filter(p => p.platform === 'gemini');
 
   return (
     <SettingContainer
-      title={t('settings.gemini')}
-      className='setting-gemini-container'
-      footer={
-        <div className='flex justify-center gap-10px' onClick={onSubmit}>
-          <Button type='primary' loading={loading}>
-            {t('common.save')}
+      title={
+        <div className='flex items-center justify-between'>
+          {t('Gemini API Keys')}
+          <Button size='mini' type='outline' icon={<Plus size={'14'} className=''></Plus>} shape='round'
+            onClick={() => addApiKeyModalCtrl.open()}
+            disabled={geminiModels.length >= 5}
+          >
+            {t('Add API Key')}
           </Button>
         </div>
       }
-      bodyContainer
     >
-      <Form
-        layout='horizontal'
-        labelCol={{
-          span: 5,
-          flex: '200px',
-        }}
-        wrapperCol={{
-          flex: '1',
-        }}
-        form={form}
-        className={'[&_.arco-row]:flex-nowrap  max-w-800px '}
-      >
-        <Form.Item label={t('settings.personalAuth')} field={'googleAccount'}>
-          {(props) => {
-            return (
-              <div>
-                {props.googleAccount ? (
-                  <span>
-                    {props.googleAccount}
-                    <Button
-                      type='outline'
-                      size='mini'
-                      className={'ml-4px'}
-                      onClick={() => {
-                        ipcBridge.googleAuth.logout.invoke({}).then(() => {
-                          form.setFieldValue('googleAccount', '');
-                        });
-                      }}
-                    >
-                      {t('settings.googleLogout')}
-                    </Button>
-                  </span>
-                ) : (
-                  <Button
-                    type='primary'
-                    loading={googleAccountLoading}
-                    onClick={() => {
-                      setGoogleAccountLoading(true);
-                      ipcBridge.googleAuth.login
-                        .invoke({ proxy: form.getFieldValue('proxy') })
-                        .then(() => {
-                          loadGoogleAuthStatus(form.getFieldValue('proxy'));
-                        })
-                        .finally(() => {
-                          setGoogleAccountLoading(false);
-                        });
-                    }}
-                  >
-                    {t('settings.googleLogin')}
-                  </Button>
-                )}
-              </div>
-            );
-          }}
-        </Form.Item>
-        <Form.Item label={t('settings.proxyConfig')} field='proxy' rules={[{ match: /^https?:\/\/.+$/, message: t('settings.proxyHttpOnly') }]}>
-          <Input placeholder={t('settings.proxyHttpOnly')}></Input>
-        </Form.Item>
-        <DirInputItem label={t('settings.cacheDir')} field='cacheDir' />
-        <DirInputItem label={t('settings.workDir')} field='workDir' />
-        {error && <Alert className={'m-b-10px'} type='error' content={typeof error === 'string' ? error : JSON.stringify(error)} />}
-      </Form>
-      {modalContextHolder}
+      {addApiKeyModalContext}
+      {messageContext}
+      {defaultImageGenerationModeContext}
+      {geminiModels.map((platform, index) => {
+        const key = platform.id;
+        const currentKeyStatus = keyStatus?.find(k => k.key.apiKey === platform.apiKey);
+        return (
+          <div key={key} className="flex items-center gap-10px mb-10px">
+            <Input
+              value={editedApiKeys[key] ?? platform.apiKey}
+              onChange={(value) => handleApiKeyChange(key, value)}
+            />
+            {editedApiKeys[key] && (
+              <Button size='mini' type='primary' onClick={() => handleSaveApiKey(key)}>Save</Button>
+            )}
+            {currentKeyStatus && (
+              <Badge
+                status={currentKeyStatus.status === KeyStatus.Active ? 'success' : currentKeyStatus.status === KeyStatus.RateLimited ? 'warning' : 'error'}
+                text={currentKeyStatus.status}
+              />
+            )}
+            {currentKeyStatus?.status === KeyStatus.RateLimited && currentKeyStatus.resetTime && (
+                <Tag color='arcoblue'>
+                    Resets in {Math.ceil((currentKeyStatus.resetTime - Date.now()) / 1000)}s
+                </Tag>
+            )}
+            <Button
+              size='mini'
+              onClick={() => {
+                ipcBridge.gemini.setActiveKey.invoke({ apiKey: platform.apiKey });
+                message.success('Active key set');
+              }}
+              disabled={currentKeyStatus?.status !== KeyStatus.Active}
+            >
+              Set Active
+            </Button>
+            {index > 0 && (
+              <Popconfirm
+                title={t('settings.deleteModelConfirm')}
+                onOk={() => {
+                  removePlatform(platform.id);
+                }}
+              >
+                <Button icon={<DeleteFour theme='outline' size='20' strokeWidth={2} />}></Button>
+              </Popconfirm>
+            )}
+          </div>
+        );
+      })}
     </SettingContainer>
   );
 };

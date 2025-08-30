@@ -13,9 +13,14 @@ const SettingsSider: React.FC = () => {
   const menus = useMemo(() => {
     return [
       {
-        label: t('settings.gemini'),
+        label: t('Gemini API Keys'),
         icon: <Gemini />,
-        path: 'gemini',
+        path: 'gemini-api-keys',
+      },
+      {
+        label: t('Google Auth'),
+        icon: <Gemini />,
+        path: 'google-auth',
       },
       {
         label: t('settings.model'),

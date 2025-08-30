@@ -7,6 +7,7 @@
 import { bridge } from '@office-ai/platform';
 import type { OpenDialogOptions } from 'electron';
 import type { IModel, TChatConversation, TModelWithConversation } from './storage';
+import { KeyStatus } from './keyManager';
 
 // 发送消息
 const sendMessage = bridge.buildProvider<IBridgeResponse<{}>, ISendMessageParams>('chat.send.message');
@@ -35,6 +36,12 @@ export const geminiConversation = {
   confirmMessage: bridge.buildProvider<IBridgeResponse, IConfirmGeminiMessageParams>('input.confirm.message'),
   responseStream: responseStream,
   getWorkspace: bridge.buildProvider<IDirOrFile[], { workspace: string }>('gemini.get-workspace'),
+};
+
+export const gemini = {
+  getKeyStatus: bridge.buildProvider<IManagedKey[], void>('gemini.get-key-status'),
+  setActiveKey: bridge.buildProvider<void, { apiKey: string }>('gemini.set-active-key'),
+  keyRotated: bridge.buildEmitter<{ newApiKey: string }>('gemini.key-rotated'),
 };
 
 export const application = {
@@ -105,6 +112,12 @@ export interface IResponseMessage {
   data: any;
   msg_id: string;
   conversation_id: string;
+}
+
+export interface IManagedKey {
+  key: IModel;
+  status: KeyStatus;
+  resetTime?: number;
 }
 
 interface IBridgeResponse<D = {}> {

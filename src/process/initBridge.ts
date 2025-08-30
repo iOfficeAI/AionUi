@@ -279,6 +279,8 @@ ipcBridge.mode.saveModelConfig.provider((models) => {
     });
 });
 
+import { GeminiKeyManager } from '../common/keyManager';
+
 ipcBridge.mode.getModelConfig.provider(async () => {
   return ProcessConfig.get('model.config')
     .then((data) => {
@@ -288,4 +290,14 @@ ipcBridge.mode.getModelConfig.provider(async () => {
     .catch(() => {
       return [] as IModel[];
     });
+});
+
+ipcBridge.gemini.getKeyStatus.provider(async () => {
+  const keyManager = GeminiKeyManager.getInstance();
+  return keyManager.getKeysStatus();
+});
+
+ipcBridge.gemini.setActiveKey.provider(async ({ apiKey }) => {
+  const keyManager = GeminiKeyManager.getInstance();
+  keyManager.setInitialKey(apiKey);
 });

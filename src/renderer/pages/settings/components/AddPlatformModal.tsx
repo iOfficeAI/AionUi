@@ -119,6 +119,7 @@ const openaiCompatibleBaseUrls = [
 
 const AddPlatformModal = ModalHOC<{
   onSubmit: (platform: IModel) => void;
+  data?: Partial<IModel>;
 }>(({ modalProps, onSubmit }) => {
   const [message, messageContext] = Message.useMessage();
   const modelPlatformOptions = useModePlatformList();
@@ -130,6 +131,12 @@ const AddPlatformModal = ModalHOC<{
   const apiKey = Form.useWatch('apiKey', form);
 
   const modelListState = useModeModeList(platform, baseUrl, apiKey, true);
+
+  useEffect(() => {
+    if (modalProps.data) {
+      form.setFieldsValue(modalProps.data);
+    }
+  }, [modalProps.data]);
 
   useEffect(() => {
     if (platform?.includes('gemini')) {
@@ -164,7 +171,7 @@ const AddPlatformModal = ModalHOC<{
   };
 
   return (
-    <Modal {...modalProps} title={t('settings.addModel')} onOk={handleSubmit} style={{ width: 750 }}>
+    <Modal {...modalProps} title={modalProps.data?.platform === 'gemini' ? t('Add Gemini API Key') : t('settings.addModel')} onOk={handleSubmit} style={{ width: 750 }}>
       {messageContext}
       <Form
         form={form}
@@ -180,6 +187,7 @@ const AddPlatformModal = ModalHOC<{
           <Select
             showSearch
             options={modelPlatformOptions}
+            disabled={modalProps.data?.platform === 'gemini'}
             onChange={(value) => {
               form.setFieldValue('baseUrl', defaultBaseUrl[value as keyof typeof defaultBaseUrl] || '');
               form.setFieldValue('model', '');

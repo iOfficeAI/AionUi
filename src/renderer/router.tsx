@@ -3,6 +3,7 @@ import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 import Conversation from './pages/conversation';
 import Guid from './pages/guid';
 import About from './pages/settings/About';
+import GoogleAuthSettings from './pages/settings/GoogleAuthSettings';
 import GeminiSettings from './pages/settings/GeminiSettings';
 import ModeSettings from './pages/settings/ModeSettings';
 import SystemSettings from './pages/settings/SystemSettings';
@@ -15,12 +16,13 @@ const PanelRoute: React.FC<{ layout: React.ReactNode }> = (props) => {
           <Route index path='/' element={<Navigate to='/guid' />}></Route>
           <Route index path='/guid' element={<Guid />} />
           <Route path='/conversation/:id' element={<Conversation></Conversation>} />
-          <Route path='/settings/gemini' element={<GeminiSettings />} />
+          <Route path='/settings/gemini-api-keys' element={<GeminiSettings />} />
+          <Route path='/settings/google-auth' element={<GoogleAuthSettings />} />
           <Route path='/settings/model' element={<ModeSettings />} />
           <Route path='/settings/system' element={<SystemSettings />} />
           <Route path='/settings/about' element={<About />} />
           <Route path='/settings/tools' element={<ToolsSettings />} />
-          <Route path='/settings' element={<Navigate to='/settings/gemini' />}></Route>
+          <Route path='/settings' element={<Navigate to='/settings/gemini-api-keys' />}></Route>
         </Route>
       </Routes>
     </HashRouter>

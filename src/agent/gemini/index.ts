@@ -5,6 +5,7 @@
  */
 
 // src/core/ConfigManager.ts
+import { GeminiKeyManager, KeyStatus } from '@/common/keyManager';
 import type { TModelWithConversation } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import type { CompletedToolCall, Config, GeminiClient, ServerGeminiStreamEvent, ToolCall, ToolCallRequestInfo } from '@office-ai/aioncli-core';
@@ -46,7 +47,8 @@ export class GeminiAgent {
   config: Config | null = null;
   private workspace: string | null = null;
   private proxy: string | null = null;
-  private model: TModelWithConversation | null = null;
+  private activeModel: TModelWithConversation | null = null;
+  private keyManager: GeminiKeyManager;
   private imageGenerationModel: TModelWithConversation | null = null;
   private geminiClient: GeminiClient | null = null;
   private authType: AuthType | null = null;
@@ -59,20 +61,10 @@ export class GeminiAgent {
   constructor(options: GeminiAgent2Options) {
     this.workspace = options.workspace;
     this.proxy = options.proxy;
-    this.model = options.model;
     this.imageGenerationModel = options.imageGenerationModel;
-    const platform = options.model.platform;
-    if (platform === 'gemini-with-google-auth') {
-      this.authType = AuthType.LOGIN_WITH_GOOGLE;
-    } else if (platform === 'gemini') {
-      this.authType = AuthType.USE_GEMINI;
-    } else if (platform === 'gemini-vertex-ai') {
-      this.authType = AuthType.USE_VERTEX_AI;
-    } else {
-      this.authType = AuthType.USE_OPENAI;
-    }
+    this.keyManager = GeminiKeyManager.getInstance();
+    this.keyManager.setInitialKey(options.model.apiKey);
     this.onStreamEvent = options.onStreamEvent;
-    this.initClientEnv();
     this.toolConfig = new ConversationToolConfig({
       proxy: this.proxy,
       imageGenerationModel: this.imageGenerationModel,
@@ -92,12 +84,12 @@ export class GeminiAgent {
     };
 
     if (this.authType === AuthType.USE_GEMINI) {
-      fallbackValue('GEMINI_API_KEY', this.model.apiKey);
-      fallbackValue('GOOGLE_GEMINI_BASE_URL', this.model.baseUrl);
+      fallbackValue('GEMINI_API_KEY', this.activeModel.apiKey);
+      fallbackValue('GOOGLE_GEMINI_BASE_URL', this.activeModel.baseUrl);
       return;
     }
     if (this.authType === AuthType.USE_VERTEX_AI) {
-      fallbackValue('GOOGLE_API_KEY', this.model.apiKey);
+      fallbackValue('GOOGLE_API_KEY', this.activeModel.apiKey);
       process.env.GOOGLE_GENAI_USE_VERTEXAI = 'true';
       return;
     }
@@ -106,8 +98,8 @@ export class GeminiAgent {
       return;
     }
     if (this.authType === AuthType.USE_OPENAI) {
-      fallbackValue('OPENAI_BASE_URL', this.model.baseUrl);
-      fallbackValue('OPENAI_API_KEY', this.model.apiKey);
+      fallbackValue('OPENAI_BASE_URL', this.activeModel.baseUrl);
+      fallbackValue('OPENAI_API_KEY', this.activeModel.apiKey);
     }
   }
 
@@ -136,6 +128,23 @@ export class GeminiAgent {
   }
 
   private async initialize(): Promise<void> {
+    this.activeModel = await this.keyManager.getKey();
+    if (!this.activeModel) {
+      throw new Error('No available Gemini API key.');
+    }
+
+    const platform = this.activeModel.platform;
+    if (platform === 'gemini-with-google-auth') {
+      this.authType = AuthType.LOGIN_WITH_GOOGLE;
+    } else if (platform === 'gemini') {
+      this.authType = AuthType.USE_GEMINI;
+    } else if (platform === 'gemini-vertex-ai') {
+      this.authType = AuthType.USE_VERTEX_AI;
+    } else {
+      this.authType = AuthType.USE_OPENAI;
+    }
+    this.initClientEnv();
+
     const path = this.workspace;
 
     const settings = loadSettings(path).merged;
@@ -150,7 +159,7 @@ export class GeminiAgent {
       extensions,
       sessionId,
       proxy: this.proxy,
-      model: this.model.useModel,
+      model: this.activeModel.useModel,
       conversationToolConfig: this.toolConfig,
     });
     await this.config.initialize();
@@ -278,43 +287,69 @@ export class GeminiAgent {
       isContinuation?: boolean;
     }
   ) {
-    try {
-      let prompt_id = options?.prompt_id;
-      if (!prompt_id) {
-        prompt_id = this.config.getSessionId() + '########' + getPromptCount();
-      }
-      if (!options?.isContinuation) {
-        startNewPrompt();
-      }
-      const stream = await this.geminiClient.sendMessageStream(query, abortController.signal, prompt_id);
-      this.onStreamEvent({
-        type: 'start',
-        data: '',
-        msg_id,
-      });
-      this.handleMessage(stream, msg_id, abortController)
-        .catch((e: any) => {
-          this.onStreamEvent({
-            type: 'error',
-            data: e?.message || JSON.stringify(e),
-            msg_id,
-          });
-        })
-        .finally(() => {
-          this.onStreamEvent({
-            type: 'finish',
-            data: '',
-            msg_id,
-          });
+    const maxRetries = this.keyManager.getKeysStatus().length > 0 ? this.keyManager.getKeysStatus().length : 1;
+    let retries = 0;
+
+    while (retries < maxRetries) {
+      try {
+        let prompt_id = options?.prompt_id;
+        if (!prompt_id) {
+          prompt_id = this.config.getSessionId() + '########' + getPromptCount();
+        }
+        if (!options?.isContinuation) {
+          startNewPrompt();
+        }
+        const stream = await this.geminiClient.sendMessageStream(query, abortController.signal, prompt_id);
+        this.onStreamEvent({
+          type: 'start',
+          data: '',
+          msg_id,
         });
-      return '';
-    } catch (e) {
-      this.onStreamEvent({
-        type: 'error',
-        data: e.message,
-        msg_id,
-      });
+        this.handleMessage(stream, msg_id, abortController)
+          .catch((e: any) => {
+            this.onStreamEvent({
+              type: 'error',
+              data: e?.message || JSON.stringify(e),
+              msg_id,
+            });
+          })
+          .finally(() => {
+            this.onStreamEvent({
+              type: 'finish',
+              data: '',
+              msg_id,
+            });
+          });
+        return '';
+      } catch (e) {
+        if (this.isInvalidAuthError(e)) {
+          this.keyManager.setKeyStatus(this.activeModel.apiKey, KeyStatus.Invalid);
+        } else if (this.isRateLimitError(e)) {
+          this.keyManager.setKeyStatus(this.activeModel.apiKey, KeyStatus.RateLimited, Date.now() + 60 * 1000); // 1 minute cooldown
+        }
+
+        const newModel = await this.keyManager.getKey();
+        if (newModel) {
+          this.activeModel = newModel;
+          await this.reInitializeClient();
+          ipcBridge.gemini.keyRotated.emit({ newApiKey: newModel.apiKey });
+          retries++;
+          continue;
+        }
+
+        this.onStreamEvent({
+          type: 'error',
+          data: e.message,
+          msg_id,
+        });
+        return;
+      }
     }
+    this.onStreamEvent({
+      type: 'error',
+      data: 'All API keys are rate-limited. Please try again later.',
+      msg_id,
+    });
   }
 
   async send(message: string | Array<{ text: string }>, msg_id = '') {
@@ -339,5 +374,31 @@ export class GeminiAgent {
   }
   async stop() {
     this.abortController?.abort();
+  }
+
+  private isRateLimitError(e: any): boolean {
+    const message = e.message || '';
+    return message.includes('429') || message.toLowerCase().includes('rate limit') || message.toLowerCase().includes('quota exceeded');
+  }
+
+  private isInvalidAuthError(e: any): boolean {
+    const message = e.message || '';
+    return message.includes('401') || message.includes('403');
+  }
+
+  private async reInitializeClient(): Promise<void> {
+    const platform = this.activeModel.platform;
+    if (platform === 'gemini-with-google-auth') {
+      this.authType = AuthType.LOGIN_WITH_GOOGLE;
+    } else if (platform === 'gemini') {
+      this.authType = AuthType.USE_GEMINI;
+    } else if (platform === 'gemini-vertex-ai') {
+      this.authType = AuthType.USE_VERTEX_AI;
+    } else {
+      this.authType = AuthType.USE_OPENAI;
+    }
+    this.initClientEnv();
+    await this.config.refreshAuth(this.authType || AuthType.USE_GEMINI);
+    this.geminiClient = this.config.getGeminiClient();
   }
 }
