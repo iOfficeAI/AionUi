@@ -138,7 +138,7 @@ Output:
           },
           image_uri: {
             type: Type.STRING,
-            description: 'Optional: Path to local image file or HTTP URL of image to edit/modify',
+            description: 'Optional: Path to existing local image file or HTTP/HTTPS URL to edit/modify. Local files must actually exist on disk.',
           },
         },
         required: ['prompt'],
@@ -207,12 +207,19 @@ Debug info:
       };
     } else {
       // 处理本地文件路径：支持绝对路径、相对路径和纯文件名
-      let fullPath = imageUri;
+      let processedUri = imageUri;
+
+      // 如果文件名以@开头，去掉@符号
+      if (imageUri.startsWith('@')) {
+        processedUri = imageUri.substring(1);
+      }
+
+      let fullPath = processedUri;
 
       // 如果不是绝对路径，尝试拼接工作目录
-      if (!path.isAbsolute(imageUri)) {
+      if (!path.isAbsolute(processedUri)) {
         const workspaceDir = this.config.getWorkingDir();
-        fullPath = path.join(workspaceDir, imageUri);
+        fullPath = path.join(workspaceDir, processedUri);
       }
 
       // 检查文件是否存在且为图片文件
@@ -267,6 +274,13 @@ Please ensure the image file exists and has a valid image extension (.jpg, .png,
         content: contentParts,
       });
 
+      // Log API call input
+      console.debug('[ImageGen] API call input', {
+        model: this.currentModel,
+        prompt: params.prompt.length > 100 ? params.prompt.substring(0, 100) + '...' : params.prompt,
+        image_uri: params.image_uri || 'none',
+      });
+
       const completion = await this.openai.chat.completions.create(
         {
           model: this.currentModel,
@@ -277,6 +291,17 @@ Please ensure the image file exists and has a valid image extension (.jpg, .png,
           timeout: REQUEST_TIMEOUT_MS,
         }
       );
+
+      // Log API call output
+      const responseContent = completion.choices[0]?.message?.content;
+      console.debug('[ImageGen] API call output', {
+        model: completion.model,
+        usage: completion.usage,
+        response: {
+          content: responseContent && responseContent.length > 100 ? responseContent.substring(0, 100) + '...' : responseContent,
+          images: (completion.choices[0]?.message as any)?.images?.length || 0,
+        },
+      });
 
       const choice = completion.choices[0];
       if (!choice) {
@@ -294,16 +319,17 @@ Please ensure the image file exists and has a valid image extension (.jpg, .png,
       }
 
       const firstImage = images[0];
+
       if (firstImage.type === 'image_url' && firstImage.image_url?.url) {
         const imagePath = await saveGeneratedImage(firstImage.image_url.url, this.config);
         const relativeImagePath = path.relative(this.config.getWorkingDir(), imagePath);
 
         return {
-          llmContent: `${responseText}`,
+          llmContent: `${responseText}\n\nGenerated image saved to: ${imagePath}`,
           returnDisplay: {
             img_url: imagePath,
             relative_path: relativeImagePath,
-          } as unknown as any, // @todo core ts interface,, // `${responseText}\n\n📷 Image: ${relativeImagePath}`,
+          } as unknown as any,
         };
       }
 

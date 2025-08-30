@@ -66,6 +66,25 @@ export type IChatConversationRefer = {
   'chat.history': TChatConversation[];
 };
 
+export type ModelType =
+  | 'text' // 文本对话
+  | 'vision' // 视觉理解
+  | 'function_calling' // 工具调用
+  | 'image_generation' // 图像生成
+  | 'web_search' // 网络搜索
+  | 'reasoning' // 推理模型
+  | 'embedding' // 嵌入模型
+  | 'rerank' // 重排序模型
+  | 'excludeFromPrimary'; // 排除：不适合作为主力模型
+
+export type ModelCapability = {
+  type: ModelType;
+  /**
+   * 是否为用户手动选择，如果为true，则表示用户手动选择了该类型，否则表示用户手动禁止了该模型；如果为undefined，则表示使用默认值
+   */
+  isUserSelected?: boolean;
+};
+
 export interface IModel {
   id: string;
   platform: string;
@@ -73,6 +92,14 @@ export interface IModel {
   baseUrl: string;
   apiKey: string;
   model: string[];
+  /**
+   * 模型能力标签列表。打了标签就是支持，没打就是不支持
+   */
+  capabilities?: ModelCapability[];
+  /**
+   * 上下文token限制，可选字段，只在明确知道时填写
+   */
+  contextLimit?: number;
 }
 
 export type TModelWithConversation = Omit<IModel, 'model'> & { useModel: string };
