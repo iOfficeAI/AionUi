@@ -8,6 +8,7 @@ import { ipcBridge } from '@/common';
 import type { IModel, TModelWithConversation } from '@/common/storage';
 import { ConfigStorage } from '@/common/storage';
 import { uuid } from '@/common/utils';
+import { hasModelCapability } from '@/renderer/utils/modelCapabilities';
 import { geminiModeList } from '@/renderer/hooks/useModeModeList';
 import { Button, Dropdown, Input, Menu, Tooltip } from '@arco-design/web-react';
 import { ArrowUp, Plus } from '@icon-park/react';
@@ -15,6 +16,28 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import useSWR from 'swr';
+
+/**
+ * 检查模型是否适合作为主力对话模型
+ * @param model - 要检查的模型
+ * @returns true 表示适合作为主力模型，false 表示不适合
+ */
+const isPrimaryModel = (model: IModel): boolean => {
+  // 1. 检查是否明确排除
+  const excludeStatus = hasModelCapability(model, 'excludeFromPrimary');
+  if (excludeStatus === true) {
+    return false; // 明确排除
+  }
+
+  // 2. 检查 function_calling 能力
+  const functionCallingStatus = hasModelCapability(model, 'function_calling');
+
+  // 3. 判断逻辑：
+  // - true (明确支持) → 可作为主力模型
+  // - undefined (未知) → 可作为主力模型 (新模型友好)
+  // - false (明确不支持) → 不可作为主力模型
+  return functionCallingStatus === true || functionCallingStatus === undefined;
+};
 
 const useModelList = () => {
   const geminiConfig = useSWR('gemini.config', () => {
@@ -32,6 +55,8 @@ const useModelList = () => {
   });
 
   return useMemo(() => {
+    let allModels: IModel[] = [];
+
     if (isGoogleAuth) {
       const geminiModel: IModel = {
         id: uuid(),
@@ -40,10 +65,15 @@ const useModelList = () => {
         baseUrl: '',
         apiKey: '',
         model: geminiModeList.map((v) => v.value),
+        capabilities: [{ type: 'text' }, { type: 'vision' }, { type: 'function_calling' }],
       };
-      return [geminiModel, ...(modelConfig || [])];
+      allModels = [geminiModel, ...(modelConfig || [])];
+    } else {
+      allModels = modelConfig || [];
     }
-    return modelConfig || [];
+
+    // 过滤出适合作为主力对话模型的模型
+    return allModels.filter(isPrimaryModel);
   }, [isGoogleAuth, modelConfig]);
 };
 
@@ -182,7 +212,6 @@ const Guid: React.FC = () => {
                           <Menu.Item
                             key={platform.id + model}
                             className={currentModel?.id + currentModel?.useModel === platform.id + model ? '!bg-#f2f3f5' : ''}
-                            // key={platform.name + platform.platform + platform.baseUrl + platform.apiKey+model}
                             onClick={() => {
                               setCurrentModel({ ...platform, useModel: model });
                             }}
