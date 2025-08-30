@@ -1,3 +1,8 @@
+.arco-btn .arco-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
 .loading {
   animation: loading 1s linear infinite;
 }
