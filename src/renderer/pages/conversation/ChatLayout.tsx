@@ -2,7 +2,7 @@ import FlexFullContainer from '@/renderer/components/FlexFullContainer';
 import { removeStack } from '@/renderer/utils/common';
 import { Layout as ArcoLayout } from '@arco-design/web-react';
 import { ExpandLeft, ExpandRight } from '@icon-park/react';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 const addEventListener = <K extends keyof DocumentEventMap>(key: K, handler: (e: DocumentEventMap[K]) => void): (() => void) => {
   document.addEventListener(key, handler);
@@ -12,7 +12,25 @@ const addEventListener = <K extends keyof DocumentEventMap>(key: K, handler: (e:
 };
 
 const useSiderWidthWithDray = (defaultWidth: number) => {
+  const minWidth = 200;
+  const maxWidth = 500;
   const [siderWidth, setSiderWidth] = useState(defaultWidth);
+  // 记录用户期望的基准宽度与基准窗口宽度，用于“随窗口缩放”的效果
+  const [preferredWidth, setPreferredWidth] = useState(defaultWidth);
+  const [baselineWindowWidth, setBaselineWindowWidth] = useState<number>(typeof window !== 'undefined' ? window.innerWidth : 1440);
+
+  // 窗口缩放时，按照比例在最小/最大宽度内进行收缩/放大
+  useEffect(() => {
+    const handleResize = () => {
+      const current = window.innerWidth || baselineWindowWidth;
+      const scale = current / (baselineWindowWidth || current);
+      const target = Math.round(preferredWidth * scale);
+      const clamped = Math.max(minWidth, Math.min(maxWidth, target));
+      setSiderWidth(clamped);
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [baselineWindowWidth, preferredWidth]);
 
   const handleDragStart = (e: React.MouseEvent) => {
     const startX = e.clientX;
@@ -35,13 +53,16 @@ const useSiderWidthWithDray = (defaultWidth: number) => {
       initDragStyle(),
       addEventListener('mousemove', (e: MouseEvent) => {
         const deltaX = startX - e.clientX;
-        const newWidth = Math.max(200, Math.min(500, siderWidth + deltaX));
+        const newWidth = Math.max(minWidth, Math.min(maxWidth, siderWidth + deltaX));
         target.style.transform = `translateX(${siderWidth - newWidth}px)`;
       }),
       addEventListener('mouseup', (e) => {
         const deltaX = startX - e.clientX;
-        const newWidth = Math.max(200, Math.min(500, siderWidth + deltaX));
+        const newWidth = Math.max(minWidth, Math.min(maxWidth, siderWidth + deltaX));
         setSiderWidth(newWidth);
+        // 用户完成拖拽，重置基线，后续随窗口缩放
+        setPreferredWidth(newWidth);
+        setBaselineWindowWidth(window.innerWidth || baselineWindowWidth);
         remove();
       })
     );
@@ -53,6 +74,8 @@ const useSiderWidthWithDray = (defaultWidth: number) => {
       onMouseDown={handleDragStart}
       onDoubleClick={() => {
         setSiderWidth(defaultWidth);
+        setPreferredWidth(defaultWidth);
+        setBaselineWindowWidth(window.innerWidth || baselineWindowWidth);
       }}
     />
   );
@@ -83,7 +106,7 @@ const ChatLayout: React.FC<{
             </div>
           )}
         </ArcoLayout.Header>
-        <ArcoLayout.Content className={'h-[calc(100%-66px)] bg-#F9FAFB'}>{props.children}</ArcoLayout.Content>
+        <ArcoLayout.Content className={'h-[calc(100%-56px)] bg-#F9FAFB'}>{props.children}</ArcoLayout.Content>
       </ArcoLayout.Content>
 
       <ArcoLayout.Sider width={siderWidth} collapsedWidth={0} collapsed={rightSiderCollapsed} className={'!bg-#F7F8FA relative'}>
@@ -94,7 +117,7 @@ const ChatLayout: React.FC<{
           <div className='flex-1'>{props.siderTitle}</div>
           <ExpandLeft theme='outline' size='24' fill='#86909C' className='cursor-pointer' strokeWidth={3} onClick={() => setRightSiderCollapsed(true)} />
         </ArcoLayout.Header>
-        <ArcoLayout.Content className={'h-[calc(100%-66px)] bg-#F9FAFB'}>{props.sider}</ArcoLayout.Content>
+        <ArcoLayout.Content className={'h-[calc(100%-56px)] bg-#F9FAFB'}>{props.sider}</ArcoLayout.Content>
       </ArcoLayout.Sider>
     </ArcoLayout>
   );

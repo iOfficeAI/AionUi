@@ -10,7 +10,7 @@ import FlexFullContainer from '@/renderer/components/FlexFullContainer';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { Empty, Input, Tree } from '@arco-design/web-react';
 import { Refresh, Search } from '@icon-park/react';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 const GeminiWorkspace: React.FC<{
   workspace: string;
@@ -93,6 +93,36 @@ const GeminiWorkspace: React.FC<{
   const hasFile = filteredFiles.length > 0 && filteredFiles[0]?.children?.length > 0;
   const hasOriginalFiles = files.length > 0 && files[0]?.children?.length > 0;
 
+  const containerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = containerRef.current; if (!el) return;
+    const TOUCH = 8;
+    const nearEdge = (e: MouseEvent) => {
+      const r = el.getBoundingClientRect();
+      const hasV = el.scrollHeight > el.clientHeight;
+      const hasH = el.scrollWidth > el.clientWidth;
+      const withinY = e.clientY >= r.top && e.clientY <= r.bottom;
+      const withinX = e.clientX >= r.left && e.clientX <= r.right;
+      const nearRight = hasV && withinY && e.clientX >= r.right - TOUCH && e.clientX <= r.right;
+      const nearBottom = hasH && withinX && e.clientY >= r.bottom - TOUCH && e.clientY <= r.bottom;
+      return nearRight || nearBottom;
+    };
+    const onMove = (e: MouseEvent) => el.classList.toggle('scrollbar-gentle--hover', nearEdge(e));
+    const onDown = (e: MouseEvent) => { if (nearEdge(e)) el.classList.add('scrollbar-gentle--dragging'); };
+    const onUp = () => el.classList.remove('scrollbar-gentle--dragging');
+    const onLeave = () => el.classList.remove('scrollbar-gentle--hover');
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mousedown', onDown);
+    window.addEventListener('mouseup', onUp);
+    el.addEventListener('mouseleave', onLeave);
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mousedown', onDown);
+      window.removeEventListener('mouseup', onUp);
+      el.removeEventListener('mouseleave', onLeave);
+    };
+  }, []);
+
   return (
     <div className='size-full flex flex-col'>
       <div className='px-16px pb-8px flex items-center justify-start gap-4px'>
@@ -104,7 +134,7 @@ const GeminiWorkspace: React.FC<{
           <Input className='w-full' placeholder={t('conversation.workspace.searchPlaceholder')} value={searchText} onChange={setSearchText} allowClear prefix={<Search theme='outline' size='14' fill='#333' />} />
         </div>
       )}
-      <FlexFullContainer containerClassName='overflow-y-auto'>
+      <FlexFullContainer containerRef={containerRef} containerClassName='overflow-y-auto scrollbar-gentle relative'>
         {!hasFile ? (
           <div className=' flex-1 size-full flex items-center justify-center px-16px box-border'>
             <Empty

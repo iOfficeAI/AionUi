@@ -59,8 +59,38 @@ const MessageList: React.FC<{ className?: string }> = ({ className }) => {
     console.log('message.list----->', list);
   }, [list]);
 
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const TOUCH = 8; // 与滚动条宽度一致，提升精度
+    const nearEdge = (e: MouseEvent) => {
+      const r = el.getBoundingClientRect();
+      const hasV = el.scrollHeight > el.clientHeight;
+      const hasH = el.scrollWidth > el.clientWidth;
+      const withinY = e.clientY >= r.top && e.clientY <= r.bottom;
+      const withinX = e.clientX >= r.left && e.clientX <= r.right;
+      const nearRight = hasV && withinY && e.clientX >= r.right - TOUCH && e.clientX <= r.right;
+      const nearBottom = hasH && withinX && e.clientY >= r.bottom - TOUCH && e.clientY <= r.bottom;
+      return nearRight || nearBottom;
+    };
+    const onMove = (e: MouseEvent) => el.classList.toggle('scrollbar-gentle--hover', nearEdge(e));
+    const onDown = (e: MouseEvent) => { if (nearEdge(e)) el.classList.add('scrollbar-gentle--dragging'); };
+    const onUp = () => el.classList.remove('scrollbar-gentle--dragging');
+    const onLeave = () => el.classList.remove('scrollbar-gentle--hover');
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mousedown', onDown);
+    window.addEventListener('mouseup', onUp);
+    el.addEventListener('mouseleave', onLeave);
+    return () => {
+      window.removeEventListener('mousemove', onMove);
+      window.removeEventListener('mousedown', onDown);
+      window.removeEventListener('mouseup', onUp);
+      el.removeEventListener('mouseleave', onLeave);
+    };
+  }, []);
+
   return (
-    <div className='flex-1 overflow-auto h-full pb-10px box-border' ref={ref}>
+    <div className='flex-1 overflow-auto h-full pb-10px box-border scrollbar-gentle relative' ref={ref}>
       {list.map((message) => {
         return <MessageItem message={message} key={message.id}></MessageItem>;
       })}

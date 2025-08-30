@@ -1,3 +1,8 @@
+.arco-btn .arco-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
 .loading {
   animation: loading 1s linear infinite;
 }
@@ -166,4 +171,108 @@ html[data-theme='dark'] {
 
 [data-theme='dark'] ::-webkit-scrollbar-thumb:hover {
   background: #b8b8b8;
+}
+
+/* Remove only the divider borders/shadows between Sider and Content */
+.arco-layout-sider {
+  border-right: none !important;
+  border-inline-end: none !important;
+  box-shadow: none !important;
+}
+
+/* When layout has sider, remove the left divider of content */
+.arco-layout-has-sider > .arco-layout-content {
+  border-left: none !important;
+  border-inline-start: none !important;
+  box-shadow: none !important;
+}
+
+/* Add a subtle left border for the right workspace sider only */
+.arco-layout-content + .arco-layout-sider {
+  border-left: 0.5px solid #E5E6EB !important;
+  border-inline-start: 0.5px solid #E5E6EB !important;
+}
+
+/* Hide scrollbar on the LEFT sider when collapsed (expanded remains scrollable) */
+.arco-layout-sider.collapsed,
+.arco-layout-sider.collapsed .arco-layout-content {
+  overflow: hidden !important;
+}
+.arco-layout-sider.collapsed ::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* Ensure all inner custom scroll containers are hidden when sider is collapsed */
+.arco-layout-sider.collapsed .scrollbar-gentle {
+  overflow: hidden !important;
+  scrollbar-width: none !important; /* Firefox */
+}
+.arco-layout-sider.collapsed .scrollbar-gentle::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+}
+
+/* Elegant thin scrollbar used in chat list and workspace only */
+.scrollbar-gentle {
+  scrollbar-width: thin; /* Firefox */
+  /* normal state */
+  scrollbar-color: #EAEAEA transparent;
+}
+/* Note: Firefox doesn't support scrollbar hover states; keep normal color there */
+.scrollbar-gentle::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.scrollbar-gentle::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-gentle::-webkit-scrollbar-thumb {
+  /* normal state */
+  background-color: #EAEAEA;
+  border-radius: 8px;
+  border: 2px solid transparent; /* remove edge feeling */
+  background-clip: content-box;
+}
+/* WebKit: change only when cursor is on the thumb or pressing it */
+.scrollbar-gentle::-webkit-scrollbar-thumb:hover,
+.scrollbar-gentle::-webkit-scrollbar-thumb:active {
+  /* hover/press state */
+  background-color: #D1D5E5;
+}
+
+/* Optional: subtle feedback when hovering track itself (not whole container) */
+.scrollbar-gentle::-webkit-scrollbar-track:hover {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+/* JS-assisted proximity hover class */
+.scrollbar-gentle--hover {
+  scrollbar-color: #D1D5E5 transparent;
+}
+.scrollbar-gentle--hover::-webkit-scrollbar-thumb {
+  background-color: #D1D5E5;
+}
+.scrollbar-gentle::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Proximity hover hitbox (10px) to trigger hover state near the edge */
+.scrollbar-hover-hitbox {
+  position: absolute;
+  right: 0;
+  top: 0;
+  width: 10px;
+  height: 100%;
+  pointer-events: auto;
+  background: transparent;
+  z-index: 2;
+}
+
+/* When cursor enters the hitbox, treat as hover state */
+.scrollbar-gentle:has(.scrollbar-hover-hitbox:hover) {
+  scrollbar-color: #D1D5E5 transparent;
+}
+.scrollbar-gentle:has(.scrollbar-hover-hitbox:hover)::-webkit-scrollbar-thumb {
+  background-color: #D1D5E5;
 }
