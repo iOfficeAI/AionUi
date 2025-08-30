@@ -44,7 +44,7 @@ const Diff2Html = ({ message }: { message: IMessageToolCall }) => {
     </div>
   );
 };
-const MessageToolCall: React.FC<{ message: IMessageToolCall }> = ({ message }) => {
+const MessageToolCall: React.FC<{ message: IMessageToolCall; workspace?: string }> = ({ message, workspace }) => {
   if (['list_directory', 'read_file', 'write_file'].includes(message.content.name)) {
     const { absolute_path, path, file_path = absolute_path || path, status } = message.content.args;
     const OpName = message.content.name === 'read_file' ? 'ReadFile' : 'WriteFile';
@@ -54,7 +54,7 @@ const MessageToolCall: React.FC<{ message: IMessageToolCall }> = ({ message }) =
     return <Alert icon={<MessageSearch theme='outline' fill='#333' className='lh-[1]' />} content={message.content.args.query}></Alert>;
   }
   if (message.content.name === 'run_shell_command') {
-    return <MarkdownView>{`\`\`\`shell\n${message.content.args.command}\n#${message.content.args.description}`}</MarkdownView>;
+    return <MarkdownView workspace={workspace}>{`\`\`\`shell\n${message.content.args.command}\n#${message.content.args.description}`}</MarkdownView>;
   }
   if (message.content.name === 'replace') {
     return <Diff2Html message={message}></Diff2Html>;

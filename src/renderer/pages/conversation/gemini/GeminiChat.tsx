@@ -17,7 +17,7 @@ const GeminiChat: React.FC<{
   workspace: string;
   conversation_id: string;
   model: TModelWithConversation;
-}> = ({ conversation_id, model }) => {
+}> = ({ conversation_id, model, workspace }) => {
   const { t } = useTranslation();
 
   useMessageLstCache(conversation_id);
@@ -25,7 +25,7 @@ const GeminiChat: React.FC<{
   return (
     <div className='h-full  flex flex-col px-20px'>
       <FlexFullContainer>
-        <MessageList className='flex-1'></MessageList>
+        <MessageList className='flex-1' workspace={workspace}></MessageList>
       </FlexFullContainer>
       <GeminiSendBox conversation_id={conversation_id} model={model}></GeminiSendBox>
     </div>
