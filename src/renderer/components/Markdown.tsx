@@ -27,7 +27,7 @@ const formatCode = (code: string) => {
     //@todo 可以再美化
     return JSON.stringify(
       JSON.parse(content),
-      (key, value) => {
+      (_key, value) => {
         return value;
       },
       2
@@ -44,7 +44,7 @@ const logicRender = <T, F>(condition: boolean, trueComponent: T, falseComponent?
 function CodeBlock(props: any) {
   const [fold, setFlow] = useState(false);
   return useMemo(() => {
-    const { children, className, node, hiddenCodeCopyButton, ...rest } = props;
+    const { children, className, node: _node, hiddenCodeCopyButton: _hiddenCodeCopyButton, ...rest } = props;
     const match = /language-(\w+)/.exec(className || '');
     const language = match?.[1] || 'text';
     if (!String(children).includes('\n')) {
@@ -200,7 +200,8 @@ const MarkdownView: React.FC<{
   codeStyle?: React.CSSProperties;
   className?: string;
   onRef?: (el?: HTMLDivElement | null) => void;
-}> = ({ hiddenCodeCopyButton, codeStyle, ...props }) => {
+  workspace?: string;
+}> = ({ hiddenCodeCopyButton, codeStyle, workspace, ...props }) => {
   const { t } = useTranslation();
   const children = useMemo(() => {
     if (typeof props.children === 'string') {
@@ -219,6 +220,23 @@ const MarkdownView: React.FC<{
     return true;
   };
 
+  const isAbsolutePath = (path: string): boolean => {
+    return path.startsWith('/') || path.startsWith('\\') || /^[A-Za-z]:/.test(path);
+  };
+
+  const joinPath = (basePath: string, relativePath: string): string => {
+    // 安全的路径拼接，保持相对路径的语义
+    const cleanBase = basePath.replace(/[/\\]+$/, ''); // 去掉末尾斜杠
+
+    // 只去掉单个 ./ 开头，保留 ../ 的语义
+    let cleanRelative = relativePath;
+    if (cleanRelative.startsWith('./')) {
+      cleanRelative = cleanRelative.slice(2);
+    }
+
+    return `${cleanBase}/${cleanRelative}`.replace(/\\/g, '/');
+  };
+
   return (
     <ShadowView>
       <div ref={props.onRef} className='markdown-shadow-body'>
@@ -227,7 +245,7 @@ const MarkdownView: React.FC<{
           rehypePlugins={[rehypeKatex]}
           components={{
             code: (props: any) => CodeBlock({ ...props, codeStyle, hiddenCodeCopyButton }),
-            a: ({ node, ...props }) => (
+            a: ({ node: _node, ...props }) => (
               <a
                 {...props}
                 target='_blank'
@@ -244,7 +262,7 @@ const MarkdownView: React.FC<{
                 }}
               />
             ),
-            table: ({ node, ...props }) => (
+            table: ({ node: _node, ...props }) => (
               <div style={{ overflowX: 'auto', maxWidth: 'calc(100vw - 32px)' }}>
                 <table
                   {...props}
@@ -257,7 +275,7 @@ const MarkdownView: React.FC<{
                 />
               </div>
             ),
-            td: ({ node, ...props }) => (
+            td: ({ node: _node, ...props }) => (
               <td
                 {...props}
                 style={{
@@ -268,10 +286,13 @@ const MarkdownView: React.FC<{
                 }}
               />
             ),
-            img: ({ node, ...props }) => {
+            img: ({ node: _node, ...props }) => {
               // 判断是否为本地文件路径
               if (isLocalFilePath(props.src || '')) {
-                return <LocalImageView src={decodeURIComponent(props.src || '')} alt={props.alt || ''} className={props.className} />;
+                const src = decodeURIComponent(props.src || '');
+                // 如果是相对路径且有workspace，则拼接绝对路径
+                const fullPath = workspace && src && !isAbsolutePath(src) ? joinPath(workspace, src) : src;
+                return <LocalImageView src={fullPath} alt={props.alt || ''} className={props.className} />;
               }
               // 否则使用普通的 img 标签
               return <img {...props} />;
