@@ -59,6 +59,7 @@
     "googleLogout": "Logout",
     "openai": "OpenAI",
     "proxyConfig": "Proxy",
+    "yoloMode": "YOLO (Auto Allow)",
     "geminiBaseUrl": "Gemini API Base URL",
     "cacheDir": "Cache Directory",
     "workDir": "Work Directory",
