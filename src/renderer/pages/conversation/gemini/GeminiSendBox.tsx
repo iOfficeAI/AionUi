@@ -219,7 +219,7 @@ const GeminiSendBox: React.FC<{
                   color='blue'
                   key={path}
                   closable
-                  className={'mr-4px'}
+                  className={'m-0'}
                   onClose={() => {
                     setUploadFile(uploadFile.filter((v) => v !== path));
                   }}
@@ -233,7 +233,7 @@ const GeminiSendBox: React.FC<{
                 key={path}
                 color='gray'
                 closable
-                className={'mr-4px'}
+                className={'m-0'}
                 onClose={() => {
                   const newAtPath = atPath.filter((v) => v !== path);
                   emitter.emit('gemini.selected.file', newAtPath);
