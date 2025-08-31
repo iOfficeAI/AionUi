@@ -115,7 +115,7 @@ function CodeBlock(props: any) {
   }, [props]);
 }
 
-const createInitStyle = () => {
+const createInitStyle = (currentTheme = 'light') => {
   const style = document.createElement('style');
   style.innerHTML = `
   * {
@@ -171,7 +171,19 @@ const createInitStyle = () => {
         border: 1px solid #ddd;
         min-width: 120px;
     }
-  }`;
+  }
+  
+  /* 暗色主题下保护图片不被反转 */
+  ${
+    currentTheme === 'dark'
+      ? `
+    img, video, canvas, svg {
+      filter: invert(1) hue-rotate(180deg);
+    }
+  `
+      : ''
+  }
+  `;
   return style;
 };
 
@@ -183,7 +195,9 @@ const ShadowView = ({ children }: { children: React.ReactNode }) => {
         if (!el || el.__init__shadow) return;
         el.__init__shadow = true;
         const shadowRoot = el.attachShadow({ mode: 'open' });
-        shadowRoot.appendChild(createInitStyle());
+        // 获取当前主题并传递给 Shadow DOM
+        const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+        shadowRoot.appendChild(createInitStyle(currentTheme));
         setRoot(shadowRoot);
       }}
       className='markdown-shadow'
