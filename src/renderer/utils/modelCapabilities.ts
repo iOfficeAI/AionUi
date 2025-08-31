@@ -21,7 +21,7 @@ const CAPABILITY_PATTERNS: Record<ModelType, RegExp> = {
   reasoning: /o1-|reasoning|think/i,
   embedding: /(?:^text-|embed|bge-|e5-|LLM2Vec|retrieval|uae-|gte-|jina-clip|jina-embeddings|voyage-)/i,
   rerank: /(?:rerank|re-rank|re-ranker|re-ranking|retrieval|retriever)/i,
-  excludeFromPrimary: /^$/, // 空正则，只通过特殊规则匹配
+  excludeFromPrimary: /dall-e|flux|stable-diffusion|midjourney|flash-image|embed|rerank/i, // 要排除的主力模型
 };
 
 /**
@@ -36,7 +36,7 @@ const CAPABILITY_EXCLUSIONS: Record<ModelType, RegExp[]> = {
   reasoning: [],
   embedding: [],
   rerank: [],
-  excludeFromPrimary: [/dall-e/i, /flux/i, /stable-diffusion/i, /midjourney/i, /flash-image/i, /embed/i, /rerank/i],
+  excludeFromPrimary: [],
 };
 
 /**
@@ -131,47 +131,51 @@ export const hasModelCapability = (model: IModel, type: ModelType): boolean | un
       result = providerRule;
     } else {
       // 3. 优先级3：正则表达式匹配
-      // 只检查 model 数组中的具体模型名称
-      const modelNames = model.model?.join(' ') || '';
-      const baseModelName = getBaseModelName(modelNames);
+      // 检查平台下是否有任一模型支持该能力
+      const modelNames = model.model || [];
 
-      // 对于 excludeFromPrimary 类型，逻辑与其他类型相反
-      if (type === 'excludeFromPrimary') {
-        // 检查是否匹配排除规则
-        const exclusions = CAPABILITY_EXCLUSIONS[type];
-        const isExcluded = exclusions.some((pattern) => pattern.test(baseModelName));
+      // 统一逻辑处理所有能力类型
+      // 检查是否有任一模型支持该能力
+      const exclusions = CAPABILITY_EXCLUSIONS[type];
+      const pattern = CAPABILITY_PATTERNS[type];
 
-        if (isExcluded) {
-          result = true; // 明确排除
-        } else {
-          result = undefined; // 未知，不排除
-        }
-      } else {
-        // 其他能力类型的正常逻辑
-        // 检查是否在黑名单中（明确不支持）
-        const exclusions = CAPABILITY_EXCLUSIONS[type];
-        const isExcluded = exclusions.some((pattern) => pattern.test(baseModelName));
+      const hasSupport = modelNames.some((modelName) => {
+        const baseModelName = getBaseModelName(modelName);
 
-        if (isExcluded) {
-          result = false; // 明确不支持
-        } else {
-          // 检查是否匹配白名单
-          const pattern = CAPABILITY_PATTERNS[type];
-          const isMatched = pattern.test(baseModelName);
+        // 检查黑名单
+        const isExcluded = exclusions.some((excludePattern) => excludePattern.test(baseModelName));
+        if (isExcluded) return false;
 
-          if (isMatched) {
-            result = true; // 明确支持
-          } else {
-            result = undefined; // 未知状态
-          }
-        }
-      }
+        // 检查白名单
+        return pattern.test(baseModelName);
+      });
+
+      result = hasSupport ? true : undefined;
     }
   }
 
   // 缓存结果
   modelCapabilitiesCache.set(cacheKey, result);
   return result;
+};
+
+/**
+ * 判断平台下的具体模型是否具有某个能力
+ * @param platformModel - 平台配置
+ * @param modelName - 具体模型名
+ * @param type - 能力类型
+ */
+export const hasSpecificModelCapability = (platformModel: IModel, modelName: string, type: ModelType): boolean | undefined => {
+  const baseModelName = getBaseModelName(modelName);
+  const exclusions = CAPABILITY_EXCLUSIONS[type];
+  const pattern = CAPABILITY_PATTERNS[type];
+
+  // 统一逻辑：先检查黑名单，再检查白名单
+  const isExcluded = exclusions.some((excludePattern) => excludePattern.test(baseModelName));
+  if (isExcluded) return false;
+
+  // 检查白名单
+  return pattern.test(baseModelName) ? true : undefined;
 };
 
 /**
