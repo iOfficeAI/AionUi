@@ -5,10 +5,10 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { IModel, TModelWithConversation } from '@/common/storage';
+import type { IModel as IProvider, TModelWithConversation } from '@/common/storage';
 import { ConfigStorage } from '@/common/storage';
 import { uuid } from '@/common/utils';
-import { hasModelCapability } from '@/renderer/utils/modelCapabilities';
+import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
 import { geminiModeList } from '@/renderer/hooks/useModeModeList';
 import { Button, Dropdown, Input, Menu, Tooltip } from '@arco-design/web-react';
 import { ArrowUp, Plus } from '@icon-park/react';
@@ -18,25 +18,49 @@ import { useNavigate } from 'react-router-dom';
 import useSWR from 'swr';
 
 /**
- * 检查模型是否适合作为主力对话模型
- * @param model - 要检查的模型
- * @returns true 表示适合作为主力模型，false 表示不适合
+ * 缓存Provider的可用模型列表，避免重复计算
  */
-const isPrimaryModel = (model: IModel): boolean => {
-  // 1. 检查是否明确排除
-  const excludeStatus = hasModelCapability(model, 'excludeFromPrimary');
-  if (excludeStatus === true) {
-    return false; // 明确排除
+const availableModelsCache = new Map<string, string[]>();
+
+/**
+ * 获取提供商下所有可用的主力模型（带缓存）
+ * @param provider - 提供商配置
+ * @returns 可用的主力模型名称数组
+ */
+const getAvailableModels = (provider: IProvider): string[] => {
+  // 生成缓存键，包含模型列表以检测变化
+  const cacheKey = `${provider.id}-${provider.name}-${(provider.model || []).join(',')}`;
+
+  // 检查缓存
+  if (availableModelsCache.has(cacheKey)) {
+    return availableModelsCache.get(cacheKey)!;
   }
 
-  // 2. 检查 function_calling 能力
-  const functionCallingStatus = hasModelCapability(model, 'function_calling');
+  // 计算可用模型
+  const result: string[] = [];
+  for (const modelName of provider.model || []) {
+    const functionCalling = hasSpecificModelCapability(provider, modelName, 'function_calling');
+    const excluded = hasSpecificModelCapability(provider, modelName, 'excludeFromPrimary');
 
-  // 3. 判断逻辑：
-  // - true (明确支持) → 可作为主力模型
-  // - undefined (未知) → 可作为主力模型 (新模型友好)
-  // - false (明确不支持) → 不可作为主力模型
-  return functionCallingStatus === true || functionCallingStatus === undefined;
+    if ((functionCalling === true || functionCalling === undefined) && excluded !== true) {
+      result.push(modelName);
+    }
+  }
+
+  // 缓存结果
+  availableModelsCache.set(cacheKey, result);
+  return result;
+};
+
+/**
+ * 检查提供商是否有可用的主力对话模型（高效版本）
+ * @param provider - 提供商配置
+ * @returns true 表示提供商有可用模型，false 表示无可用模型
+ */
+const hasAvailableModels = (provider: IProvider): boolean => {
+  // 直接使用缓存的结果，避免重复计算
+  const availableModels = getAvailableModels(provider);
+  return availableModels.length > 0;
 };
 
 const useModelList = () => {
@@ -55,10 +79,10 @@ const useModelList = () => {
   });
 
   return useMemo(() => {
-    let allModels: IModel[] = [];
+    let allProviders: IProvider[] = [];
 
     if (isGoogleAuth) {
-      const geminiModel: IModel = {
+      const geminiProvider: IProvider = {
         id: uuid(),
         name: 'Gemini Google Auth',
         platform: 'gemini-with-google-auth',
@@ -67,13 +91,13 @@ const useModelList = () => {
         model: geminiModeList.map((v) => v.value),
         capabilities: [{ type: 'text' }, { type: 'vision' }, { type: 'function_calling' }],
       };
-      allModels = [geminiModel, ...(modelConfig || [])];
+      allProviders = [geminiProvider, ...(modelConfig || [])];
     } else {
-      allModels = modelConfig || [];
+      allProviders = modelConfig || [];
     }
 
-    // 过滤出适合作为主力对话模型的模型
-    return allModels.filter(isPrimaryModel);
+    // 过滤出有可用主力模型的提供商
+    return allProviders.filter(hasAvailableModels);
   }, [isGoogleAuth, modelConfig]);
 };
 
@@ -205,18 +229,19 @@ const Guid: React.FC = () => {
               trigger='hover'
               droplist={
                 <Menu selectedKeys={currentModel ? [currentModel.id + currentModel.useModel] : []}>
-                  {(modelList || []).map((platform) => {
+                  {(modelList || []).map((provider) => {
+                    const availableModels = getAvailableModels(provider);
                     return (
-                      <Menu.ItemGroup title={platform.name} key={platform.id}>
-                        {platform.model.map((model) => (
+                      <Menu.ItemGroup title={provider.name} key={provider.id}>
+                        {availableModels.map((modelName) => (
                           <Menu.Item
-                            key={platform.id + model}
-                            className={currentModel?.id + currentModel?.useModel === platform.id + model ? '!bg-#f2f3f5' : ''}
+                            key={provider.id + modelName}
+                            className={currentModel?.id + currentModel?.useModel === provider.id + modelName ? '!bg-#f2f3f5' : ''}
                             onClick={() => {
-                              setCurrentModel({ ...platform, useModel: model });
+                              setCurrentModel({ ...provider, useModel: modelName });
                             }}
                           >
-                            {model}
+                            {modelName}
                           </Menu.Item>
                         ))}
                       </Menu.ItemGroup>
