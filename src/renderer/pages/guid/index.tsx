@@ -11,7 +11,7 @@ import { uuid } from '@/common/utils';
 import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
 import { geminiModeList } from '@/renderer/hooks/useModeModeList';
 import { Button, Dropdown, Input, Menu, Tooltip } from '@arco-design/web-react';
-import { ArrowUp, Plus } from '@icon-park/react';
+import { Plus } from '@icon-park/react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -113,6 +113,14 @@ const Guid: React.FC = () => {
     _setCurrentModel(modelInfo);
   };
   const navigate = useNavigate();
+  const SendIcon: React.FC = () => (
+    <span className='arco-icon inline-flex items-center justify-center' style={{ width: 20, height: 20, lineHeight: 0 }}>
+      <svg width='20' height='20' viewBox='0 0 21 20' fill='none' xmlns='http://www.w3.org/2000/svg' style={{ display: 'block', transform: 'translateY(2px)' }}>
+        <path d='M10.5 15.834L10.5 4.16732' stroke='white' strokeWidth='1.5' strokeLinecap='round' strokeLinejoin='round'/>
+        <path d='M4.50008 9.83398L10.3334 4.00065L16.1667 9.83398' stroke='white' strokeWidth='1.5' strokeLinecap='round' strokeLinejoin='round'/>
+      </svg>
+    </span>
+  );
   const handleSend = async () => {
     if (!currentModel) return;
     const conversation = await ipcBridge.conversation.create.invoke({
@@ -253,7 +261,7 @@ const Guid: React.FC = () => {
               <Button shape='round'>{currentModel ? currentModel.useModel : 'Select Model'}</Button>
             </Dropdown>
           </div>
-          <Button shape='circle' type='primary' loading={loading} disabled={!currentModel} icon={<ArrowUp theme='outline' size='14' fill='white' strokeWidth={2} />} onClick={sendMessageHandler} />
+          <Button shape='circle' type='primary' loading={loading} disabled={!currentModel} icon={<SendIcon />} onClick={sendMessageHandler} />
         </div>
       </div>
     </div>
