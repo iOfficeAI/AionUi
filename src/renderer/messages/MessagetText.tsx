@@ -24,13 +24,11 @@ const useFormatContent = (content: string) => {
   }, [content]);
 };
 
-const MessageText: React.FC<{ message: IMessageText; workspace?: string }> = ({ message, workspace }) => {
+const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
   const { data, json } = useFormatContent(message.content.content);
   return (
     <div className={classNames('rd-8px  rd-tr-2px  [&>p:first-child]:mt-0px [&>p:last-child]:mb-0px max-w-80%', { 'bg-#E9EFFF p-8px': message.position === 'right' })}>
-      <MarkdownView workspace={workspace} codeStyle={{ marginLeft: 16, marginTop: 4, marginBlock: 4 }}>
-        {json ? `\`\`\`json\n${JSON.stringify(data, null, 2)}\n\`\`\`` : data}
-      </MarkdownView>
+      <MarkdownView codeStyle={{ marginLeft: 16, marginTop: 4, marginBlock: 4 }}>{json ? `\`\`\`json\n${JSON.stringify(data, null, 2)}\n\`\`\`` : data}</MarkdownView>
     </div>
   );
 };

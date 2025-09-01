@@ -9,7 +9,7 @@ import type { TMessage } from '@/common/chatLib';
 import { transformMessage } from '@/common/chatLib';
 import type { TModelWithConversation } from '@/common/storage';
 import { ProcessConfig } from '@/process/initStorage';
-import { addMessage, addOrUpdateMessage, nextTickSync } from '../message';
+import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '../message';
 import BaseAgentTask from './BaseAgentTask';
 
 // gemini agent任务类
@@ -68,7 +68,7 @@ export class GeminiAgentTask extends BaseAgentTask<{
         // 为什么需要如此?
         // 在某些情况下，消息需要同步到本地文件中，由于是异步，可能导致前端接受响应和无法获取到最新的消息，因此需要等待同步后再返回
         return new Promise((_, reject) => {
-          nextTickSync(() => {
+          nextTickToLocalFinish(() => {
             reject(e);
           });
         });
@@ -90,7 +90,8 @@ export class GeminiAgentTask extends BaseAgentTask<{
         conversation_id: this.conversation_id,
       });
       data.conversation_id = this.conversation_id;
-      addOrUpdateMessage(this.conversation_id, transformMessage(data));
+      const message = transformMessage(data);
+      addOrUpdateMessage(this.conversation_id, message);
     });
   }
   // 发送tools用户确认的消息

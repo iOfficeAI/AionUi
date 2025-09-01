@@ -18,7 +18,6 @@ import MarkdownView from '../components/Markdown';
 
 interface IMessageToolGroupProps {
   message: IMessageToolGroup;
-  workspace?: string;
 }
 
 const useConfirmationButtons = (confirmationDetails: IMessageToolGroupProps['message']['content'][number]['confirmationDetails']) => {
@@ -110,8 +109,7 @@ const useConfirmationButtons = (confirmationDetails: IMessageToolGroupProps['mes
 const ConfirmationDetails: React.FC<{
   content: IMessageToolGroupProps['message']['content'][number];
   onConfirm: (outcome: ToolConfirmationOutcome) => void;
-  workspace?: string;
-}> = ({ content, onConfirm, workspace }) => {
+}> = ({ content, onConfirm }) => {
   const { t } = useTranslation();
   const { confirmationDetails } = content;
   if (!confirmationDetails) return;
@@ -128,7 +126,7 @@ const ConfirmationDetails: React.FC<{
       case 'exec':
         return (
           <div className='min-w-400px'>
-            <MarkdownView workspace={workspace} codeStyle={{ marginLeft: 16, marginTop: 4, marginBottom: 4 }}>{`\`\`\`bash\n${confirmationDetails.command}\n\`\`\``}</MarkdownView>
+            <MarkdownView codeStyle={{ marginLeft: 16, marginTop: 4, marginBottom: 4 }}>{`\`\`\`bash\n${confirmationDetails.command}\n\`\`\``}</MarkdownView>
           </div>
         );
       case 'info':
@@ -180,7 +178,7 @@ const ToolResultDisplay: React.FC<{
   return <div>{display}</div>;
 };
 
-const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message, workspace }) => {
+const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
   const { t } = useTranslation();
   console.log('----->message', message);
   return (
@@ -193,7 +191,6 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message, workspace
           return (
             <ConfirmationDetails
               content={content}
-              workspace={workspace}
               onConfirm={(outcome) => {
                 ipcBridge.geminiConversation.confirmMessage
                   .invoke({

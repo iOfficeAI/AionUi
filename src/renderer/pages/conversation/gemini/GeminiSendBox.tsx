@@ -26,6 +26,7 @@ const useGeminiMessage = (conversation_id: string) => {
     description: '',
     subject: '',
   });
+
   useEffect(() => {
     return ipcBridge.geminiConversation.responseStream.on(async (message) => {
       if (conversation_id !== message.conversation_id) {

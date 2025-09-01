@@ -172,6 +172,19 @@ const createInitStyle = (currentTheme = 'light') => {
         min-width: 120px;
     }
   }
+  .loading {
+    animation: loading 1s linear infinite;
+  }
+
+
+  @keyframes loading {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
   
   /* 暗色主题下保护图片不被反转 */
   ${
@@ -214,8 +227,7 @@ const MarkdownView: React.FC<{
   codeStyle?: React.CSSProperties;
   className?: string;
   onRef?: (el?: HTMLDivElement | null) => void;
-  workspace?: string;
-}> = ({ hiddenCodeCopyButton, codeStyle, workspace, ...props }) => {
+}> = ({ hiddenCodeCopyButton, codeStyle, ...props }) => {
   const { t } = useTranslation();
   const children = useMemo(() => {
     if (typeof props.children === 'string') {
@@ -232,23 +244,6 @@ const MarkdownView: React.FC<{
       return false;
     }
     return true;
-  };
-
-  const isAbsolutePath = (path: string): boolean => {
-    return path.startsWith('/') || path.startsWith('\\') || /^[A-Za-z]:/.test(path);
-  };
-
-  const joinPath = (basePath: string, relativePath: string): string => {
-    // 安全的路径拼接，保持相对路径的语义
-    const cleanBase = basePath.replace(/[/\\]+$/, ''); // 去掉末尾斜杠
-
-    // 只去掉单个 ./ 开头，保留 ../ 的语义
-    let cleanRelative = relativePath;
-    if (cleanRelative.startsWith('./')) {
-      cleanRelative = cleanRelative.slice(2);
-    }
-
-    return `${cleanBase}/${cleanRelative}`.replace(/\\/g, '/');
   };
 
   return (
@@ -304,9 +299,7 @@ const MarkdownView: React.FC<{
               // 判断是否为本地文件路径
               if (isLocalFilePath(props.src || '')) {
                 const src = decodeURIComponent(props.src || '');
-                // 如果是相对路径且有workspace，则拼接绝对路径
-                const fullPath = workspace && src && !isAbsolutePath(src) ? joinPath(workspace, src) : src;
-                return <LocalImageView src={fullPath} alt={props.alt || ''} className={props.className} />;
+                return <LocalImageView src={src} alt={props.alt || ''} className={props.className} />;
               }
               // 否则使用普通的 img 标签
               return <img {...props} />;
