@@ -4,14 +4,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useMemo, useState } from 'react';
+import type { IMessageToolCall } from '@/common/chatLib';
 import { Alert, Checkbox } from '@arco-design/web-react';
-import MarkdownView from '../components/Markdown';
-import { diffStringsUnified } from 'jest-diff';
+import { MessageSearch } from '@icon-park/react';
 import { html } from 'diff2html';
 import 'diff2html/bundles/css/diff2html.min.css';
-import type { IMessageToolCall } from '@/common/chatLib';
-import { MessageSearch } from '@icon-park/react';
+import { diffStringsUnified } from 'jest-diff';
+import React, { useMemo, useState } from 'react';
+import MarkdownView from '../components/Markdown';
 
 const Diff2Html = ({ message }: { message: IMessageToolCall }) => {
   const [sideBySide, setSideBySide] = useState(false);
@@ -44,7 +44,7 @@ const Diff2Html = ({ message }: { message: IMessageToolCall }) => {
     </div>
   );
 };
-const MessageToolCall: React.FC<{ message: IMessageToolCall; workspace?: string }> = ({ message, workspace }) => {
+const MessageToolCall: React.FC<{ message: IMessageToolCall }> = ({ message }) => {
   if (['list_directory', 'read_file', 'write_file'].includes(message.content.name)) {
     const { absolute_path, path, file_path = absolute_path || path, status } = message.content.args;
     const OpName = message.content.name === 'read_file' ? 'ReadFile' : 'WriteFile';
@@ -54,7 +54,7 @@ const MessageToolCall: React.FC<{ message: IMessageToolCall; workspace?: string 
     return <Alert icon={<MessageSearch theme='outline' fill='#333' className='lh-[1]' />} content={message.content.args.query}></Alert>;
   }
   if (message.content.name === 'run_shell_command') {
-    return <MarkdownView workspace={workspace}>{`\`\`\`shell\n${message.content.args.command}\n#${message.content.args.description}`}</MarkdownView>;
+    return <MarkdownView>{`\`\`\`shell\n${message.content.args.command}\n#${message.content.args.description}`}</MarkdownView>;
   }
   if (message.content.name === 'replace') {
     return <Diff2Html message={message}></Diff2Html>;

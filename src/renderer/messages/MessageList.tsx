@@ -14,8 +14,8 @@ import MessageToolCall from './MessageToolCall';
 import MessageToolGroup from './MessageToolGroup';
 import MessageText from './MessagetText';
 
-const MessageItem: React.FC<{ message: TMessage; workspace?: string }> = HOC((props) => {
-  const { message, workspace } = props as { message: TMessage; workspace?: string };
+const MessageItem: React.FC<{ message: TMessage }> = HOC((props) => {
+  const { message } = props as { message: TMessage };
   return (
     <div
       className={classNames('flex items-start message-item [&>div]:max-w-95% min-w-300px px-8px m-t-10px max-w-780px mx-auto', message.type, {
@@ -27,22 +27,22 @@ const MessageItem: React.FC<{ message: TMessage; workspace?: string }> = HOC((pr
       {props.children}
     </div>
   );
-})(({ message, workspace }) => {
+})(({ message }) => {
   switch (message.type) {
     case 'text':
-      return <MessageText message={message} workspace={workspace}></MessageText>;
+      return <MessageText message={message}></MessageText>;
     case 'tips':
-      return <MessageTips message={message} workspace={workspace}></MessageTips>;
+      return <MessageTips message={message}></MessageTips>;
     case 'tool_call':
-      return <MessageToolCall message={message} workspace={workspace}></MessageToolCall>;
+      return <MessageToolCall message={message}></MessageToolCall>;
     case 'tool_group':
-      return <MessageToolGroup message={message} workspace={workspace}></MessageToolGroup>;
+      return <MessageToolGroup message={message}></MessageToolGroup>;
     default:
       return <div>Unknown message type: {(message as any).type}</div>;
   }
 });
 
-const MessageList: React.FC<{ className?: string; workspace?: string }> = ({ className, workspace }) => {
+const MessageList: React.FC<{ className?: string }> = ({ className }) => {
   const list = useMessageList();
 
   const ref = useRef<HTMLDivElement>(null);
@@ -62,7 +62,7 @@ const MessageList: React.FC<{ className?: string; workspace?: string }> = ({ cla
   return (
     <div className='flex-1 overflow-auto h-full pb-10px box-border' ref={ref}>
       {list.map((message) => {
-        return <MessageItem message={message} workspace={workspace} key={message.id}></MessageItem>;
+        return <MessageItem message={message} key={message.id}></MessageItem>;
       })}
     </div>
   );

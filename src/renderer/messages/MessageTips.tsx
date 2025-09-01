@@ -30,14 +30,14 @@ const useFormatContent = (content: string) => {
   }, [content]);
 };
 
-const MessageTips: React.FC<{ message: IMessageTips; workspace?: string }> = ({ message, workspace }) => {
+const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
   const { content, type } = message.content;
   const { json, data } = useFormatContent(content);
 
   if (json)
     return (
       <div className=' p-x-12px p-y-8px min-w-400px'>
-        <MarkdownView workspace={workspace}>{`\`\`\`json\n${JSON.stringify(data, null, 2)}\n\`\`\``}</MarkdownView>
+        <MarkdownView>{`\`\`\`json\n${JSON.stringify(data, null, 2)}\n\`\`\``}</MarkdownView>
       </div>
     );
   return (
