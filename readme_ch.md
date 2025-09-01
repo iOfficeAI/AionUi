@@ -32,6 +32,8 @@
   <img src="./resources/Image_Generation.gif" alt="AI 图像生成演示" width="800">
 </p>
 
+> 💡 **需要帮助设置免费图像生成？** [按照教程配置免费图像生成模型](https://github.com/iOfficeAI/AionUi/wiki/OpenRouter-Setup-and-Image-Generation) - OpenRouter 设置和免费 Gemini 2.5 Flash Image Preview 配置的完整分步指南。
+
 ### 📁 **整理您的文件**
 *批量重命名、自动整理、智能分类、文件合并*
 <p align="center">
