@@ -88,7 +88,9 @@
     "lightMode": "淺色",
     "darkMode": "深色",
     "tools": "工具配置",
-    "imageGenerationModel": "圖片模型"
+    "imageGenerationModel": "圖像模型",
+    "imageGenerationGuide": "免費圖像模型配置指南",
+    "noAvailable": "暫無可用圖像模型，請先配置。"
   },
   "messages": {
     "conversationInProgress": "目前正在進行對話...",
