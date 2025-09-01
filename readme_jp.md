@@ -34,6 +34,8 @@ _インテリジェントな画像生成、編集、認識を Gemini 2.5 Flash I
   <img src="./resources/Image_Generation.gif" alt="AI 画像生成デモ" width="800">
 </p>
 
+> 💡 **無料画像生成の設定に困っていませんか？** [チュートリアルに従って無料画像生成モデルを設定](https://github.com/iOfficeAI/AionUi/wiki/OpenRouter-Setup-and-Image-Generation) - OpenRouter 設定と無料 Gemini 2.5 Flash Image Preview 設定の完全なステップバイステップガイド。
+
 ### 📁 **ファイルを整理する**
 
 _ファイルの一括リネーム、自動整理、スマート分類、ファイルの統合_
