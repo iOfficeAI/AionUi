@@ -8,6 +8,46 @@ import type { IResponseMessage } from './ipcBridge';
 import { uuid } from './utils';
 
 /**
+ * 安全的路径拼接函数，兼容Windows和Mac
+ * @param basePath 基础路径
+ * @param relativePath 相对路径
+ * @returns 拼接后的绝对路径
+ */
+export const joinPath = (basePath: string, relativePath: string): string => {
+  // 标准化路径分隔符为 /
+  const normalizePath = (path: string) => path.replace(/\\/g, '/');
+
+  const base = normalizePath(basePath);
+  const relative = normalizePath(relativePath);
+
+  // 去掉base路径末尾的斜杠
+  const cleanBase = base.replace(/\/+$/, '');
+
+  // 处理相对路径中的 ./ 和 ../
+  const parts = relative.split('/');
+  const resultParts = [];
+
+  for (const part of parts) {
+    if (part === '.' || part === '') {
+      continue; // 跳过 . 和空字符串
+    } else if (part === '..') {
+      // 处理上级目录
+      if (resultParts.length > 0) {
+        resultParts.pop(); // 移除最后一个部分
+      }
+    } else {
+      resultParts.push(part);
+    }
+  }
+
+  // 拼接路径
+  const result = cleanBase + '/' + resultParts.join('/');
+
+  // 确保路径格式正确
+  return result.replace(/\/+/g, '/'); // 将多个连续的斜杠替换为单个
+};
+
+/**
  * @description 跟对话相关的消息类型申明 及相关处理
  */
 
@@ -220,4 +260,30 @@ export const composeMessage = (message: TMessage | undefined, list: TMessage[] |
   }
   Object.assign(last, message);
   return list;
+};
+
+export const handleImageGenerationWithWorkspace = (message: TMessage, workspace: string): TMessage => {
+  // 只处理text类型的消息
+  if (message.type !== 'text') {
+    return message;
+  }
+
+  // 深拷贝消息以避免修改原始对象
+  const processedMessage = {
+    ...message,
+    content: {
+      ...message.content,
+      content: message.content.content.replace(/!\[([^\]]*)\]\(([^)]+)\)/g, (match, alt, imagePath) => {
+        // 如果是绝对路径、http链接或data URL，保持不变
+        if (imagePath.startsWith('http') || imagePath.startsWith('data:') || imagePath.startsWith('/') || imagePath.startsWith('file:') || imagePath.startsWith('\\') || /^[A-Za-z]:/.test(imagePath)) {
+          return match;
+        }
+        // 如果是相对路径，与workspace拼接
+        const absolutePath = joinPath(workspace, imagePath);
+        return `![${alt}](${encodeURI(absolutePath)})`;
+      }),
+    },
+  };
+
+  return processedMessage;
 };

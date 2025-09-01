@@ -4,14 +4,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useMemo, useState } from 'react';
+import type { IMessageToolCall } from '@/common/chatLib';
 import { Alert, Checkbox } from '@arco-design/web-react';
-import MarkdownView from '../components/Markdown';
-import { diffStringsUnified } from 'jest-diff';
+import { MessageSearch } from '@icon-park/react';
 import { html } from 'diff2html';
 import 'diff2html/bundles/css/diff2html.min.css';
-import type { IMessageToolCall } from '@/common/chatLib';
-import { MessageSearch } from '@icon-park/react';
+import { diffStringsUnified } from 'jest-diff';
+import React, { useMemo, useState } from 'react';
+import MarkdownView from '../components/Markdown';
 
 const Diff2Html = ({ message }: { message: IMessageToolCall }) => {
   const [sideBySide, setSideBySide] = useState(false);

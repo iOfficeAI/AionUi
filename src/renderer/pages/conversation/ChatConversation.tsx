@@ -19,7 +19,7 @@ const ChatConversation: React.FC<{
     if (!conversation) return null;
     switch (conversation.type) {
       case 'gemini':
-        return <GeminiChat conversation_id={conversation.id} workspace={conversation.extra.workspace} model={conversation.model}></GeminiChat>;
+        return <GeminiChat key={conversation.id} conversation_id={conversation.id} workspace={conversation.extra.workspace} model={conversation.model}></GeminiChat>;
       default:
         return null;
     }

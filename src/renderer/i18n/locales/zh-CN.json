@@ -59,6 +59,7 @@
     "googleLogout": "退出登录",
     "openai": "OpenAI",
     "proxyConfig": "代理",
+    "yoloMode": "自动允许",
     "geminiBaseUrl": "Gemini API Base URL",
     "cacheDir": "缓存目录",
     "workDir": "工作目录",
