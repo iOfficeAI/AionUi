@@ -12,11 +12,16 @@ const ToolsSettings: React.FC = () => {
   const imageGenerationModelList = useMemo(() => {
     if (!data) return [];
     return (data || []).filter((v) => {
-      v.model = v.model.filter((model) => {
+      const filteredModels = v.model.filter((model) => {
         return model.toLocaleLowerCase().includes('image');
       });
-      return v.model.length > 0;
-    });
+      return filteredModels.length > 0;
+    }).map((v) => ({
+      ...v,
+      model: v.model.filter((model) => {
+        return model.toLocaleLowerCase().includes('image');
+      })
+    }));
   }, [data]);
 
   useEffect(() => {
@@ -50,29 +55,44 @@ const ToolsSettings: React.FC = () => {
           <div>
             <Form className={'mt-10px'}>
               <Form.Item label={t('settings.imageGenerationModel')}>
-                <Select value={imageGenerationModel?.useModel}>
-                  {imageGenerationModelList.map(({ model, ...platform }) => {
-                    return (
-                      <Select.OptGroup label={platform.name} key={platform.id}>
-                        {model.map((model) => {
-                          return (
-                            <Select.Option
-                              onClick={() => {
-                                handleImageGenerationModelChange({ ...platform, useModel: model });
-                              }}
-                              key={platform.platform + model}
-                              value={model}
-                            >
-                              {model}
-                            </Select.Option>
-                          );
-                        })}
-                      </Select.OptGroup>
-                    );
-                  })}
-                </Select>
+                {imageGenerationModelList.length > 0 ? (
+                  <Select value={imageGenerationModel?.useModel}>
+                    {imageGenerationModelList.map(({ model, ...platform }) => {
+                      return (
+                        <Select.OptGroup label={platform.name} key={platform.id}>
+                          {model.map((model) => {
+                            return (
+                              <Select.Option
+                                onClick={() => {
+                                  handleImageGenerationModelChange({ ...platform, useModel: model });
+                                }}
+                                key={platform.platform + model}
+                                value={model}
+                              >
+                                {model}
+                              </Select.Option>
+                            );
+                          })}
+                        </Select.OptGroup>
+                      );
+                    })}
+                  </Select>
+                ) : (
+                  <div className="text-gray-400">{t('settings.noAvailable')}</div>
+                )}
               </Form.Item>
             </Form>
+            <div className="mt-3 text-sm text-gray-500">
+              <span className="mr-1">👉</span>
+              <a 
+                href="https://github.com/iOfficeAI/AionUi/wiki/OpenRouter-Setup-and-Image-Generation" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-blue-500 hover:text-blue-600 underline"
+              >
+                {t('settings.imageGenerationGuide')}
+              </a>
+            </div>
           </div>
         </Collapse.Item>
       </Collapse>
