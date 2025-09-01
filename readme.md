@@ -32,6 +32,8 @@
   <img src="./resources/Image_Generation.gif" alt="AI Image Generation Demo" width="800">
 </p>
 
+> 💡 **Need help setting up free image generation?** [Follow the tutorial to configure free image generation models](https://github.com/iOfficeAI/AionUi/wiki/OpenRouter-Setup-and-Image-Generation) - Complete step-by-step guide for OpenRouter setup and free Gemini 2.5 Flash Image Preview configuration.
+
 ### 📁 **Organizing Your Files**
 *Batch renaming, auto organization, smart classification, file merging*
 <p align="center">
