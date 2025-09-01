@@ -78,8 +78,10 @@ export async function loadHierarchicalGeminiMemory(currentWorkingDirectory: stri
 
 import type { ConversationToolConfig } from './tools/conversation-tool-config';
 
-export async function loadCliConfig({ workspace, settings, extensions, sessionId, proxy, model, conversationToolConfig }: { workspace: string; settings: Settings; extensions: Extension[]; sessionId: string; proxy?: string; model?: string; conversationToolConfig: ConversationToolConfig }): Promise<Config> {
-  const argv: Partial<CliArgs> = {};
+export async function loadCliConfig({ workspace, settings, extensions, sessionId, proxy, model, conversationToolConfig, yoloMode }: { workspace: string; settings: Settings; extensions: Extension[]; sessionId: string; proxy?: string; model?: string; conversationToolConfig: ConversationToolConfig; yoloMode?: boolean }): Promise<Config> {
+  const argv: Partial<CliArgs> = {
+    yolo: yoloMode,
+  };
 
   const debugMode = argv.debug || [process.env.DEBUG, process.env.DEBUG_MODE].some((v) => v === 'true' || v === '1') || false;
   const memoryImportFormat = settings.memoryImportFormat || 'tree';

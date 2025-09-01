@@ -59,6 +59,7 @@
     "googleLogout": "ログアウト",
     "openai": "OpenAI",
     "proxyConfig": "プロキシ",
+    "yoloMode": "自動許可",
     "geminiBaseUrl": "Gemini API ベース URL",
     "cacheDir": "キャッシュディレクトリ",
     "workDir": "作業ディレクトリ",

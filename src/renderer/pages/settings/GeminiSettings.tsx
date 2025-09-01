@@ -6,7 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import { ConfigStorage } from '@/common/storage';
-import { Alert, Button, Form, Input, Modal } from '@arco-design/web-react';
+import { Alert, Button, Form, Input, Modal, Switch } from '@arco-design/web-react';
 import { FolderOpen } from '@icon-park/react';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -88,13 +88,25 @@ const GeminiSettings: React.FC = (props) => {
     const { cacheDir, workDir, googleAccount, ...rest } = values;
     setLoading(true);
     setError(null);
-    await saveDirConfigValidate(values);
+
+    // 检查是否修改了需要重启的目录设置
+    const currentConfig = await ConfigStorage.get('gemini.config');
+    const needsRestart = cacheDir !== (currentConfig as any)?.cacheDir || workDir !== (currentConfig as any)?.workDir;
+
+    if (needsRestart) {
+      await saveDirConfigValidate(values);
+    }
+
     ConfigStorage.set('gemini.config', values)
       .then(() => {
-        return ipcBridge.application.updateSystemInfo.invoke({ cacheDir, workDir }).then((data) => {
-          if (data.success) return ipcBridge.application.restart.invoke();
-          return Promise.reject(data.msg);
-        });
+        if (needsRestart) {
+          return ipcBridge.application.updateSystemInfo.invoke({ cacheDir, workDir }).then((data) => {
+            if (data.success) return ipcBridge.application.restart.invoke();
+            return Promise.reject(data.msg);
+          });
+        }
+        // 如果不需要重启，直接完成保存
+        return Promise.resolve();
       })
       .catch((e) => {
         setError(e.message || e);
@@ -186,6 +198,9 @@ const GeminiSettings: React.FC = (props) => {
         </Form.Item>
         <Form.Item label={t('settings.proxyConfig')} field='proxy' rules={[{ match: /^https?:\/\/.+$/, message: t('settings.proxyHttpOnly') }]}>
           <Input placeholder={t('settings.proxyHttpOnly')}></Input>
+        </Form.Item>
+        <Form.Item label={t('settings.yoloMode')} field='yoloMode'>
+          {(value, form) => <Switch checked={value.yoloMode} onChange={(checked) => form.setFieldValue('yoloMode', checked)} />}
         </Form.Item>
         <DirInputItem label={t('settings.cacheDir')} field='cacheDir' />
         <DirInputItem label={t('settings.workDir')} field='workDir' />

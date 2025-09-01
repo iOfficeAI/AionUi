@@ -150,33 +150,40 @@ export class ConversationToolConfig {
 
     // 注册 gemini_web_search 工具（仅OpenAI模型）
     if (this.useGeminiWebSearch) {
-      // 创建专门的Gemini客户端（如果还没有）
-      if (!this.dedicatedGeminiClient) {
-        try {
-          const geminiModel = await this.findBestGeminiModel();
-          if (!geminiModel) {
-            return;
+      try {
+        // 检查Google认证状态，只有登录时才尝试注册
+        const hasGoogleAuth = await this.getGoogleAuthStatus();
+        if (hasGoogleAuth) {
+          // 创建专门的Gemini客户端（如果还没有）
+          if (!this.dedicatedGeminiClient) {
+            const geminiModel = await this.findBestGeminiModel();
+            if (geminiModel) {
+              this.geminiModel = geminiModel;
+              const dedicatedConfig = this.createDedicatedGeminiConfig(geminiModel);
+              const authType = AuthType.LOGIN_WITH_GOOGLE; // 固定使用Google认证
+
+              // 设置环境变量
+              this.setEnvironmentForGeminiModel(geminiModel, authType);
+
+              await dedicatedConfig.initialize();
+              await dedicatedConfig.refreshAuth(authType);
+
+              // 创建新的 GeminiClient
+              this.dedicatedGeminiClient = dedicatedConfig.getGeminiClient();
+            }
           }
 
-          this.geminiModel = geminiModel;
-          const dedicatedConfig = this.createDedicatedGeminiConfig(geminiModel);
-          const authType = AuthType.LOGIN_WITH_GOOGLE; // 固定使用Google认证
-
-          // 设置环境变量
-          this.setEnvironmentForGeminiModel(geminiModel, authType);
-
-          await dedicatedConfig.initialize();
-          await dedicatedConfig.refreshAuth(authType);
-
-          // 创建新的 GeminiClient
-          this.dedicatedGeminiClient = dedicatedConfig.getGeminiClient();
-        } catch (error) {
-          return;
+          // 只有成功创建客户端时才注册工具
+          if (this.dedicatedGeminiClient) {
+            const customWebSearchTool = new WebSearchTool(this.dedicatedGeminiClient);
+            toolRegistry.registerTool(customWebSearchTool);
+          }
         }
+        // Google未登录时静默跳过，不影响其他工具
+      } catch (error) {
+        console.warn('Failed to register gemini_web_search tool:', error);
+        // 异常时也不影响其他工具的注册
       }
-
-      const customWebSearchTool = new WebSearchTool(this.dedicatedGeminiClient!);
-      toolRegistry.registerTool(customWebSearchTool);
     }
 
     // 同步工具到模型客户端

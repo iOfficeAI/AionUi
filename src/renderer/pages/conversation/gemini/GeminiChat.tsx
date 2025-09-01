@@ -9,18 +9,20 @@ import FlexFullContainer from '@renderer/components/FlexFullContainer';
 import MessageList from '@renderer/messages/MessageList';
 import { MessageListProvider, useMessageLstCache } from '@renderer/messages/hooks';
 import HOC from '@renderer/utils/HOC';
-import React from 'react';
-import { useTranslation } from 'react-i18next';
+import React, { useEffect } from 'react';
+import LocalImageView from '../../../components/LocalImageView';
 import GeminiSendBox from './GeminiSendBox';
 
 const GeminiChat: React.FC<{
-  workspace: string;
   conversation_id: string;
   model: TModelWithConversation;
-}> = ({ conversation_id, model }) => {
-  const { t } = useTranslation();
-
+  workspace: string;
+}> = ({ conversation_id, model, workspace }) => {
   useMessageLstCache(conversation_id);
+  const updateLocalImage = LocalImageView.useUpdateLocalImage();
+  useEffect(() => {
+    updateLocalImage({ root: workspace });
+  }, [workspace]);
 
   return (
     <div className='h-full  flex flex-col px-20px'>
@@ -32,4 +34,4 @@ const GeminiChat: React.FC<{
   );
 };
 
-export default HOC(MessageListProvider)(GeminiChat);
+export default HOC.Wrapper(MessageListProvider, LocalImageView.Provider)(GeminiChat);
