@@ -6,8 +6,8 @@
 
 import type { TModelWithConversation } from '@/common/storage';
 import { Type } from '@google/genai';
-import type { Config, ToolResult } from '@office-ai/aioncli-core';
-import { BaseTool, Icon, SchemaValidator } from '@office-ai/aioncli-core';
+import type { Config, ToolResult, ToolInvocation, ToolLocation, ToolCallConfirmationDetails } from '@office-ai/aioncli-core';
+import { BaseDeclarativeTool, BaseToolInvocation, Kind, getErrorMessage, ToolErrorType } from '@office-ai/aioncli-core';
 import * as fs from 'fs';
 import OpenAI from 'openai';
 import * as path from 'path';
@@ -15,7 +15,14 @@ import * as path from 'path';
 const REQUEST_TIMEOUT_MS = 120000; // 2 minutes for image generation
 
 export interface ImageGenerationToolParams {
+  /**
+   * The text prompt describing what to generate or how to modify the image
+   */
   prompt: string;
+
+  /**
+   * Optional: Path to existing local image file or HTTP/HTTPS URL to edit/modify
+   */
   image_uri?: string;
 }
 
@@ -58,7 +65,6 @@ function getFileExtensionFromDataUrl(dataUrl: string): string {
   if (mimeTypeMatch && mimeTypeMatch[1]) {
     const mimeType = mimeTypeMatch[1].toLowerCase();
 
-    // 常见类型映射
     const mimeToExtMap: Record<string, string> = {
       jpeg: '.jpg',
       jpg: '.jpg',
@@ -70,10 +76,9 @@ function getFileExtensionFromDataUrl(dataUrl: string): string {
       'svg+xml': '.svg',
     };
 
-    // 优先使用映射表，如果没有就直接用MIME类型作为扩展名
     return mimeToExtMap[mimeType] || `.${mimeType}`;
   }
-  return '.png'; // 默认后缀
+  return '.png';
 }
 
 async function saveGeneratedImage(base64Data: string, config: Config): Promise<string> {
@@ -94,10 +99,8 @@ async function saveGeneratedImage(base64Data: string, config: Config): Promise<s
   }
 }
 
-export class ImageGenerationTool extends BaseTool<ImageGenerationToolParams, ToolResult> {
+export class ImageGenerationTool extends BaseDeclarativeTool<ImageGenerationToolParams, ToolResult> {
   static readonly Name: string = 'aionui_image_generation';
-  private openai: OpenAI | null = null;
-  private currentModel: string | null = null;
 
   constructor(
     private readonly config: Config,
@@ -119,16 +122,18 @@ When to Use:
 - For creating new images from text descriptions
 - For editing existing images with AI assistance
 - As a fallback when built-in vision features are unavailable
+- IMPORTANT: Always use this tool when user mentions @filename with image extensions (.jpg, .jpeg, .png, .gif, .webp, .bmp, .tiff, .svg)
 
 Input Support:
 - Local file paths (absolute, relative, or filename only)
 - HTTP/HTTPS image URLs
 - Text prompts for generation or analysis
+- @filename references to local image files (automatically pass the filename to image_uri parameter)
 
 Output:
 - Saves generated/processed images to workspace with timestamp naming
 - Returns image path and AI description/analysis`,
-      Icon.Hammer,
+      Kind.Other,
       {
         type: Type.OBJECT,
         properties: {
@@ -138,62 +143,85 @@ Output:
           },
           image_uri: {
             type: Type.STRING,
-            description: 'Optional: Path to existing local image file or HTTP/HTTPS URL to edit/modify. Local files must actually exist on disk.',
+            description: 'Optional: Path to existing local image file or HTTP/HTTPS URL to edit/modify. When user uses @filename.ext format with image extensions, always pass the filename (without @) to this parameter. Local files must actually exist on disk.',
           },
         },
         required: ['prompt'],
-      }
+      },
+      true, // isOutputMarkdown
+      false // canUpdateOutput
     );
   }
 
-  private async initializeOpenAI(): Promise<void> {
-    if (this.openai) {
-      return;
-    }
-
-    // 1. 优先使用环境变量
-    const apiKey = this.imageGenerationModel.apiKey; //|| process.env.OPENROUTER_API_KEY;
-
-    if (!apiKey) {
-      throw new Error(`OPENROUTER_API_KEY not found. Please either:
-1. Set environment variable: export OPENROUTER_API_KEY=your_key
-2. Add to ~/.zshrc: export OPENROUTER_API_KEY=your_key
-3. Add to ~/.bashrc: export OPENROUTER_API_KEY=your_key
-
-Debug info:
-- Environment variable: ${process.env.OPENROUTER_API_KEY ? 'found' : 'not found'}
-- Shell config search: not found`);
-    }
-
-    // 清理API密钥（过滤不可见字符）
-    const cleanedApiKey = apiKey.replace(/[\s\r\n\t]/g, '').trim();
-
-    this.currentModel = this.imageGenerationModel.useModel;
-    this.openai = new OpenAI({
-      baseURL: this.imageGenerationModel.baseUrl,
-      apiKey: cleanedApiKey, // 使用清理后的密钥
-      defaultHeaders: {
-        'HTTP-Referer': 'https://www.aionui.com',
-        'X-Title': 'AionUi',
-      },
-    });
-  }
-
-  validateToolParams(params: ImageGenerationToolParams): string | null {
-    const errors = SchemaValidator.validate(this.schema.parametersJsonSchema, params);
-    if (errors) {
-      return errors;
-    }
+  public override validateToolParams(params: ImageGenerationToolParams): string | null {
     if (!params.prompt || params.prompt.trim() === '') {
       return "The 'prompt' parameter cannot be empty.";
     }
+
+    // Validate image_uri if provided
+    if (params.image_uri) {
+      const imageUri = params.image_uri.trim();
+
+      // Check if it's a valid URL or file path
+      if (!isHttpUrl(imageUri) && imageUri !== '') {
+        // For local files, check if it exists and is an image
+        const workspaceDir = this.config.getWorkingDir();
+        let actualImagePath: string;
+
+        if (path.isAbsolute(imageUri)) {
+          actualImagePath = imageUri;
+        } else {
+          actualImagePath = path.resolve(workspaceDir, imageUri);
+        }
+
+        if (!fs.existsSync(actualImagePath)) {
+          return `Image file does not exist: ${actualImagePath}`;
+        }
+
+        if (!isImageFile(actualImagePath)) {
+          return `File is not a supported image type: ${actualImagePath}`;
+        }
+      }
+    }
+
     return null;
   }
 
-  getDescription(params: ImageGenerationToolParams): string {
-    const displayPrompt = params.prompt.length > 100 ? params.prompt.substring(0, 97) + '...' : params.prompt;
-    const action = params.image_uri ? 'Editing image with' : 'Generating image with';
-    return `${action} prompt: "${displayPrompt}"`;
+  protected createInvocation(params: ImageGenerationToolParams): ToolInvocation<ImageGenerationToolParams, ToolResult> {
+    return new ImageGenerationInvocation(this.config, this.imageGenerationModel, params);
+  }
+}
+
+class ImageGenerationInvocation extends BaseToolInvocation<ImageGenerationToolParams, ToolResult> {
+  private openai: OpenAI | null = null;
+  private currentModel: string | null = null;
+
+  constructor(
+    private readonly config: Config,
+    private readonly imageGenerationModel: TModelWithConversation,
+    params: ImageGenerationToolParams
+  ) {
+    super(params);
+  }
+
+  getDescription(): string {
+    const displayPrompt = this.params.prompt.length > 100 ? this.params.prompt.substring(0, 97) + '...' : this.params.prompt;
+
+    if (this.params.image_uri) {
+      return `Modifying image "${this.params.image_uri}" with prompt: "${displayPrompt}"`;
+    } else {
+      return `Generating image with prompt: "${displayPrompt}"`;
+    }
+  }
+
+  override toolLocations(): ToolLocation[] {
+    // Images are saved to workspace with timestamp, so no specific location to report
+    return [];
+  }
+
+  override async shouldConfirmExecute(): Promise<ToolCallConfirmationDetails | false> {
+    // No confirmation needed for image generation
+    return false;
   }
 
   private async processImageUri(imageUri: string): Promise<{ type: 'image_url'; image_url: { url: string; detail: 'auto' | 'low' | 'high' } } | null> {
@@ -246,40 +274,86 @@ Please ensure the image file exists and has a valid image extension (.jpg, .png,
     }
   }
 
-  private async executeImageGeneration(params: ImageGenerationToolParams, signal: AbortSignal): Promise<ToolResult> {
+  private async initializeOpenAI(): Promise<void> {
+    if (this.openai) {
+      return;
+    }
+
+    const apiKey = this.imageGenerationModel.apiKey;
+
+    if (!apiKey) {
+      throw new Error(`OPENROUTER_API_KEY not found. Please configure API key in model settings.`);
+    }
+
+    // Clean API key
+    const cleanedApiKey = apiKey.replace(/[\s\r\n\t]/g, '').trim();
+
+    this.currentModel = this.imageGenerationModel.useModel;
+    this.openai = new OpenAI({
+      baseURL: this.imageGenerationModel.baseUrl,
+      apiKey: cleanedApiKey,
+      defaultHeaders: {
+        'HTTP-Referer': 'https://www.aionui.com',
+        'X-Title': 'AionUi',
+      },
+    });
+  }
+
+  async execute(signal: AbortSignal, updateOutput?: (output: string) => void): Promise<ToolResult> {
+    if (signal.aborted) {
+      return {
+        llmContent: 'Image generation was cancelled by user before it could start.',
+        returnDisplay: 'Operation cancelled by user.',
+      };
+    }
+
     try {
       await this.initializeOpenAI();
 
       if (!this.openai) {
-        throw new Error('Failed to initialize OpenAI client');
+        const errorMsg = 'Failed to initialize OpenAI client';
+        return {
+          llmContent: `Error: ${errorMsg}`,
+          returnDisplay: errorMsg,
+          error: {
+            message: errorMsg,
+            type: ToolErrorType.EXECUTION_FAILED,
+          },
+        };
       }
 
-      const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [];
+      updateOutput?.('Initializing image generation...');
+
+      // Build message content using the same structure as the original implementation
       const contentParts: OpenAI.Chat.Completions.ChatCompletionContentPart[] = [
         {
           type: 'text',
-          text: params.prompt,
+          text: this.params.prompt,
         },
       ];
 
-      if (params.image_uri) {
-        const imageContent = await this.processImageUri(params.image_uri);
+      if (this.params.image_uri) {
+        const imageContent = await this.processImageUri(this.params.image_uri);
         if (imageContent) {
           contentParts.push(imageContent);
         }
       }
 
-      messages.push({
-        role: 'user',
-        content: contentParts,
-      });
+      const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
+        {
+          role: 'user',
+          content: contentParts,
+        },
+      ];
 
       // Log API call input
       console.debug('[ImageGen] API call input', {
         model: this.currentModel,
-        prompt: params.prompt.length > 100 ? params.prompt.substring(0, 100) + '...' : params.prompt,
-        image_uri: params.image_uri || 'none',
+        prompt: this.params.prompt.length > 100 ? this.params.prompt.substring(0, 100) + '...' : this.params.prompt,
+        image_uri: this.params.image_uri || 'none',
       });
+
+      updateOutput?.('Sending request to AI service...');
 
       const completion = await this.openai.chat.completions.create(
         {
@@ -292,7 +366,7 @@ Please ensure the image file exists and has a valid image extension (.jpg, .png,
         }
       );
 
-      // Log API call output
+      // Log API call output for debugging
       const responseContent = completion.choices[0]?.message?.content;
       console.debug('[ImageGen] API call output', {
         model: completion.model,
@@ -305,13 +379,24 @@ Please ensure the image file exists and has a valid image extension (.jpg, .png,
 
       const choice = completion.choices[0];
       if (!choice) {
-        throw new Error('No response from image generation API');
+        const errorMsg = 'No response from image generation API';
+        return {
+          llmContent: `Error: ${errorMsg}`,
+          returnDisplay: errorMsg,
+          error: {
+            message: errorMsg,
+            type: ToolErrorType.EXECUTION_FAILED,
+          },
+        };
       }
+
+      updateOutput?.('Processing AI response...');
 
       const responseText = choice.message.content || 'Image generated successfully.';
       const images = (choice.message as any).images;
 
       if (!images || images.length === 0) {
+        // No images generated, return text response
         return {
           llmContent: responseText,
           returnDisplay: responseText,
@@ -321,6 +406,7 @@ Please ensure the image file exists and has a valid image extension (.jpg, .png,
       const firstImage = images[0];
 
       if (firstImage.type === 'image_url' && firstImage.image_url?.url) {
+        updateOutput?.('Saving generated image...');
         const imagePath = await saveGeneratedImage(firstImage.image_url.url, this.config);
         const relativeImagePath = path.relative(this.config.getWorkingDir(), imagePath);
 
@@ -333,30 +419,39 @@ Please ensure the image file exists and has a valid image extension (.jpg, .png,
         };
       }
 
+      // Fallback to text response
       return {
         llmContent: responseText,
         returnDisplay: responseText,
       };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      const fullErrorMessage = `Error generating image: ${errorMessage}`;
+      if (signal.aborted) {
+        return {
+          llmContent: 'Image generation was cancelled by user.',
+          returnDisplay: 'Operation cancelled by user.',
+        };
+      }
+
+      const errorMessage = getErrorMessage(error);
+      let errorType: ToolErrorType = ToolErrorType.EXECUTION_FAILED;
+
+      // Map specific errors to appropriate types
+      if (errorMessage.includes('API key') || errorMessage.includes('authentication')) {
+        errorType = ToolErrorType.EXECUTION_FAILED;
+      } else if (errorMessage.includes('timeout') || errorMessage.includes('timed out')) {
+        errorType = ToolErrorType.EXECUTION_FAILED;
+      } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+        errorType = ToolErrorType.EXECUTION_FAILED;
+      }
 
       return {
-        llmContent: fullErrorMessage,
-        returnDisplay: `❌ ${fullErrorMessage}`,
+        llmContent: `Error generating image: ${errorMessage}`,
+        returnDisplay: `Error: ${errorMessage}`,
+        error: {
+          message: errorMessage,
+          type: errorType,
+        },
       };
     }
-  }
-
-  async execute(params: ImageGenerationToolParams, signal: AbortSignal): Promise<ToolResult> {
-    const validationError = this.validateToolParams(params);
-    if (validationError) {
-      return {
-        llmContent: `Error: Invalid parameters provided. Reason: ${validationError}`,
-        returnDisplay: `❌ ${validationError}`,
-      };
-    }
-
-    return this.executeImageGeneration(params, signal);
   }
 }
