@@ -27,25 +27,35 @@
 ## 🚀 **AionUi 可以做什么？**
 
 ### 🎨 **AI 图像生成与编辑**
-*智能图像生成、编辑和识别，由 Gemini 2.5 Flash Image Preview 驱动 - 最先进的图像模型，同时支持其他领先的AI图像模型*
+
+_智能图像生成、编辑和识别，由 Gemini 2.5 Flash Image Preview 驱动 - 最先进的图像模型，同时支持其他领先的AI图像模型_
+
 <p align="center">
   <img src="./resources/Image_Generation.gif" alt="AI 图像生成演示" width="800">
 </p>
 
+> 💡 **需要帮助设置免费图像生成？** [按照教程配置免费图像生成模型](https://github.com/iOfficeAI/AionUi/wiki/OpenRouter-Setup-and-Image-Generation) - OpenRouter 设置和免费 Gemini 2.5 Flash Image Preview 配置的完整分步指南。
+
 ### 📁 **整理您的文件**
-*批量重命名、自动整理、智能分类、文件合并*
+
+_批量重命名、自动整理、智能分类、文件合并_
+
 <p align="center">
   <img src="./resources/sort_out_folder.gif" alt="文件管理演示" width="800">
 </p>
 
 ### 📊 **让 Excel 更智能**
-*AI 帮你创建、整理、分析、美化 Excel 文件*
+
+_AI 帮你创建、整理、分析、美化 Excel 文件_
+
 <p align="center">
   <img src="./resources/generate_xlsx.gif" alt="Excel 处理演示" width="800">
 </p>
 
 ### 💬 **同时处理多个任务**
-*开多个对话、任务不混乱、记忆独立、效率翻倍*
+
+_开多个对话、任务不混乱、记忆独立、效率翻倍_
+
 <p align="center">
   <img src="./resources/multichat-side-by-side.gif" alt="对话管理演示" width="800">
 </p>
@@ -55,6 +65,7 @@
 **这只是 AionUi 能力的冰山一角！** 🚀
 
 想要探索更多功能？继续往下看，你会发现 AionUi 还能帮你：
+
 - 🎯 写代码、写文档、分析数据
 - 🗂️ 学习新知识、解答问题、翻译文本
 - ⚡ 以及更多日常工作和学习场景
@@ -173,7 +184,6 @@ AionUi 为需要更好工作流效率的用户提供了现代界面，同时**�
    ```
 
 3. **配置 API 密钥**
-
    - 打开应用程序并进入设置
    - 输入您的 Google Gemini API 密钥
    - 支持多种认证方式：Gemini API 密钥、Vertex AI、个人认证
@@ -243,8 +253,6 @@ AionUI/
   - **OpenAI**: 创意写作、内容创作
   - **ModelScope**: 中文理解、本地化任务
   - **OpenRouter**: 成本优化、模型对比
-
-
 
 ## 🔧 配置
 
