@@ -82,6 +82,7 @@
     "i18next": "^23.7.16",
     "i18next-browser-languagedetector": "^7.2.0",
     "jest-diff": "^30.0.4",
+    "jsonrepair": "^3.13.0",
     "katex": "^0.16.22",
     "openai": "^5.12.2",
     "react": "^19.1.0",
