@@ -9,8 +9,30 @@ import { Type } from '@google/genai';
 import type { Config, ToolResult, ToolInvocation, ToolLocation, ToolCallConfirmationDetails } from '@office-ai/aioncli-core';
 import { BaseDeclarativeTool, BaseToolInvocation, Kind, getErrorMessage, ToolErrorType } from '@office-ai/aioncli-core';
 import * as fs from 'fs';
+import { jsonrepair } from 'jsonrepair';
 import OpenAI from 'openai';
 import * as path from 'path';
+
+/**
+ * Safely parse JSON string with jsonrepair fallback
+ */
+function safeJsonParse<T = unknown>(jsonString: string, fallbackValue: T): T {
+  if (!jsonString || typeof jsonString !== 'string') {
+    return fallbackValue;
+  }
+
+  try {
+    return JSON.parse(jsonString) as T;
+  } catch (error) {
+    try {
+      const repairedJson = jsonrepair(jsonString);
+      return JSON.parse(repairedJson) as T;
+    } catch (repairError) {
+      console.warn('[ImageGen] JSON parse failed:', jsonString.substring(0, 50));
+      return fallbackValue;
+    }
+  }
+}
 
 const REQUEST_TIMEOUT_MS = 120000; // 2 minutes for image generation
 
@@ -21,9 +43,11 @@ export interface ImageGenerationToolParams {
   prompt: string;
 
   /**
-   * Optional: Path to existing local image file or HTTP/HTTPS URL to edit/modify
+   * Optional: Array of paths to existing local image files or HTTP/HTTPS URLs to edit/modify
+   * Examples: ["test.jpg", "https://example.com/img.png", "abc.png"]
+   * For single image, use array format: ["test.jpg"]
    */
-  image_uri?: string;
+  image_uris?: string[];
 }
 
 function isImageFile(filePath: string): boolean {
@@ -115,24 +139,27 @@ Primary Functions:
 - Generate new images from text descriptions
 - Analyze and describe existing images (alternative to built-in vision)
 - Edit/modify existing images with text prompts
-- Support image format conversion and processing
+- Support multiple image processing and comparison
 
 When to Use:
 - When the current model lacks image analysis capabilities
 - For creating new images from text descriptions
 - For editing existing images with AI assistance
+- For processing multiple images together (comparison, combining, etc.)
 - As a fallback when built-in vision features are unavailable
 - IMPORTANT: Always use this tool when user mentions @filename with image extensions (.jpg, .jpeg, .png, .gif, .webp, .bmp, .tiff, .svg)
 
 Input Support:
-- Local file paths (absolute, relative, or filename only)
-- HTTP/HTTPS image URLs
+- Multiple local file paths in array format: ["img1.jpg", "img2.png"]
+- Multiple HTTP/HTTPS image URLs in array format
+- Single or multiple @filename references (pass ALL filenames to image_uris array)
 - Text prompts for generation or analysis
-- @filename references to local image files (automatically pass the filename to image_uri parameter)
 
 Output:
 - Saves generated/processed images to workspace with timestamp naming
-- Returns image path and AI description/analysis`,
+- Returns image path and AI description/analysis
+
+IMPORTANT: When user provides multiple images (like @img1.jpg @img2.png), ALWAYS pass ALL images to the image_uris parameter as an array: ["img1.jpg", "img2.png"]`,
       Kind.Other,
       {
         type: Type.OBJECT,
@@ -141,9 +168,12 @@ Output:
             type: Type.STRING,
             description: 'The text prompt that must clearly specify the operation type: "Generate image: [description]" for creating new images, "Analyze image: [what to analyze]" for image recognition/analysis, or "Edit image: [modifications]" for image editing. Always start with the operation type.',
           },
-          image_uri: {
-            type: Type.STRING,
-            description: 'Optional: Path to existing local image file or HTTP/HTTPS URL to edit/modify. When user uses @filename.ext format with image extensions, always pass the filename (without @) to this parameter. Local files must actually exist on disk.',
+          image_uris: {
+            type: Type.ARRAY,
+            description: 'Optional: Array of paths to existing local image files or HTTP/HTTPS URLs to edit/modify. Examples: ["test.jpg", "https://example.com/img.png"]. When user uses @filename.ext format, always pass the filename (without @) to this array. For single image, use array format: ["test.jpg"]. Local files must actually exist on disk.',
+            items: {
+              type: Type.STRING,
+            },
           },
         },
         required: ['prompt'],
@@ -158,28 +188,49 @@ Output:
       return "The 'prompt' parameter cannot be empty.";
     }
 
-    // Validate image_uri if provided
-    if (params.image_uri) {
-      const imageUri = params.image_uri.trim();
+    // Validate image_uris if provided
+    if (params.image_uris) {
+      let imageUris: string[];
 
-      // Check if it's a valid URL or file path
-      if (!isHttpUrl(imageUri) && imageUri !== '') {
-        // For local files, check if it exists and is an image
-        const workspaceDir = this.config.getWorkingDir();
-        let actualImagePath: string;
+      if (typeof params.image_uris === 'string') {
+        const parsed = safeJsonParse<string[]>(params.image_uris, null);
+        imageUris = Array.isArray(parsed) ? parsed : [params.image_uris];
+      } else if (Array.isArray(params.image_uris)) {
+        imageUris = params.image_uris;
+      } else {
+        return null;
+      }
 
-        if (path.isAbsolute(imageUri)) {
-          actualImagePath = imageUri;
-        } else {
-          actualImagePath = path.resolve(workspaceDir, imageUri);
+      if (imageUris.length === 0) {
+        return null;
+      }
+
+      for (let i = 0; i < imageUris.length; i++) {
+        const imageUri = imageUris[i].trim();
+
+        if (imageUri === '') {
+          return `Empty image URI at index ${i}`;
         }
 
-        if (!fs.existsSync(actualImagePath)) {
-          return `Image file does not exist: ${actualImagePath}`;
-        }
+        // Check if it's a valid URL or file path
+        if (!isHttpUrl(imageUri)) {
+          // For local files, check if it exists and is an image
+          const workspaceDir = this.config.getWorkingDir();
+          let actualImagePath: string;
 
-        if (!isImageFile(actualImagePath)) {
-          return `File is not a supported image type: ${actualImagePath}`;
+          if (path.isAbsolute(imageUri)) {
+            actualImagePath = imageUri;
+          } else {
+            actualImagePath = path.resolve(workspaceDir, imageUri);
+          }
+
+          if (!fs.existsSync(actualImagePath)) {
+            return `Image file does not exist: ${actualImagePath}`;
+          }
+
+          if (!isImageFile(actualImagePath)) {
+            return `File is not a supported image type: ${actualImagePath}`;
+          }
         }
       }
     }
@@ -204,11 +255,25 @@ class ImageGenerationInvocation extends BaseToolInvocation<ImageGenerationToolPa
     super(params);
   }
 
+  private parseImageUris(imageUris: string | string[]): string[] {
+    if (typeof imageUris === 'string') {
+      const parsed = safeJsonParse<string[]>(imageUris, null);
+      return Array.isArray(parsed) ? parsed : [imageUris];
+    }
+    return Array.isArray(imageUris) ? imageUris : [];
+  }
+
+  private getImageUris(): string[] {
+    return this.params.image_uris ? this.parseImageUris(this.params.image_uris) : [];
+  }
+
   getDescription(): string {
     const displayPrompt = this.params.prompt.length > 100 ? this.params.prompt.substring(0, 97) + '...' : this.params.prompt;
+    const imageUris = this.getImageUris();
 
-    if (this.params.image_uri) {
-      return `Modifying image "${this.params.image_uri}" with prompt: "${displayPrompt}"`;
+    if (imageUris.length > 0) {
+      const imageDisplay = imageUris.length === 1 ? `"${imageUris[0]}"` : `${imageUris.length} images`;
+      return `Modifying ${imageDisplay} with prompt: "${displayPrompt}"`;
     } else {
       return `Generating image with prompt: "${displayPrompt}"`;
     }
@@ -324,18 +389,53 @@ Please ensure the image file exists and has a valid image extension (.jpg, .png,
 
       updateOutput?.('Initializing image generation...');
 
-      // Build message content using the same structure as the original implementation
+      // Build message content with explicit operation type for better AI understanding
+      const imageUris = this.getImageUris();
+      const hasImages = imageUris.length > 0;
+
+      // Add operation type prefix to help AI understand the task
+      let enhancedPrompt: string;
+      if (hasImages) {
+        enhancedPrompt = `Analyze/Edit image: ${this.params.prompt}`;
+      } else {
+        enhancedPrompt = `Generate image: ${this.params.prompt}`;
+      }
+
       const contentParts: OpenAI.Chat.Completions.ChatCompletionContentPart[] = [
         {
           type: 'text',
-          text: this.params.prompt,
+          text: enhancedPrompt,
         },
       ];
 
-      if (this.params.image_uri) {
-        const imageContent = await this.processImageUri(this.params.image_uri);
-        if (imageContent) {
-          contentParts.push(imageContent);
+      // Process all image URIs (supports both single string and array)
+      if (hasImages) {
+        updateOutput?.(`Processing ${imageUris.length} image(s)...`);
+
+        // Process images in parallel for better performance
+        const imageProcessingPromises = imageUris.map(async (uri, _index) => {
+          try {
+            return await this.processImageUri(uri);
+          } catch (error) {
+            console.warn(`[ImageGen] Failed to process image (${uri}):`, error);
+            return null;
+          }
+        });
+
+        const imageContents = await Promise.all(imageProcessingPromises);
+
+        // Add successfully processed images to content
+        imageContents.forEach((imageContent) => {
+          if (imageContent) {
+            contentParts.push(imageContent);
+          }
+        });
+
+        const successfulImages = imageContents.filter((content) => content !== null).length;
+        if (successfulImages === 0) {
+          throw new Error(`Failed to process any of the ${imageUris.length} provided image(s)`);
+        } else if (successfulImages < imageUris.length) {
+          console.warn(`[ImageGen] Successfully processed ${successfulImages}/${imageUris.length} images`);
         }
       }
 
@@ -346,13 +446,15 @@ Please ensure the image file exists and has a valid image extension (.jpg, .png,
         },
       ];
 
-      // Log API call input with image data URL if available
-      const imageDataUrl = contentParts.find((part) => part.type === 'image_url')?.image_url?.url;
+      // Log API call input with image information
+      const imageDataUrls = contentParts.filter((part) => part.type === 'image_url').map((part) => part.image_url?.url?.substring(0, 50) + '...');
+
       console.debug('[ImageGen] API call input', {
         model: this.currentModel,
         prompt: this.params.prompt.length > 100 ? this.params.prompt.substring(0, 100) + '...' : this.params.prompt,
-        image_uri: this.params.image_uri || 'none',
-        image_data_url: imageDataUrl ? imageDataUrl.substring(0, 50) + '...' : 'none',
+        image_uris: imageUris.length > 0 ? imageUris : 'none',
+        image_count: imageUris.length,
+        processed_images: imageDataUrls.length,
       });
 
       updateOutput?.('Sending request to AI service...');
