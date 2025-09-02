@@ -7,10 +7,16 @@
 import type { TModelWithConversation } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import type { GeminiClient } from '@office-ai/aioncli-core';
-import { AuthType, Config, getOauthInfoWithCache } from '@office-ai/aioncli-core';
+import { AuthType, Config } from '@office-ai/aioncli-core';
 import { ImageGenerationTool } from './img-gen';
 import { WebFetchTool } from './web-fetch';
 import { WebSearchTool } from './web-search';
+
+interface ConversationToolConfigOptions {
+  proxy: string;
+  imageGenerationModel?: TModelWithConversation;
+  webSearchEngine?: 'google' | 'default';
+}
 
 /**
  * 对话级别的工具配置
@@ -23,25 +29,12 @@ export class ConversationToolConfig {
   private excludeTools: string[] = [];
   private dedicatedGeminiClient: GeminiClient | null = null; // 缓存专门的Gemini客户端
   private imageGenerationModel: TModelWithConversation | undefined;
+  private webSearchEngine: 'google' | 'default' = 'default';
   private proxy: string = '';
-  constructor(options: { proxy: string; imageGenerationModel?: TModelWithConversation }) {
+  constructor(options: ConversationToolConfigOptions) {
     this.proxy = options.proxy;
-    if (options.imageGenerationModel) {
-      this.imageGenerationModel = options.imageGenerationModel;
-    }
-  }
-  /**
-   * 简化版本：直接检查 Google 认证状态，不依赖主进程存储
-   */
-  private async getGoogleAuthStatus(): Promise<boolean> {
-    try {
-      // 直接检查 OAuth 信息，传入空字符串作为默认proxy
-      const oauthInfo = await getOauthInfoWithCache(this.proxy);
-      return !!oauthInfo;
-    } catch (error) {
-      console.warn('[ConversationTools] Failed to check Google auth status:', error);
-      return false;
-    }
+    this.webSearchEngine = options.webSearchEngine ?? 'default';
+    this.imageGenerationModel = options.imageGenerationModel;
   }
 
   /**
@@ -53,15 +46,13 @@ export class ConversationToolConfig {
     this.useAionuiWebFetch = true;
     this.excludeTools.push('web_fetch');
 
-    // OpenAI 模型额外启用 gemini_web_search
-    if (authType === AuthType.USE_OPENAI) {
+    // 根据 webSearchEngine 配置决定启用哪个搜索工具
+    if (this.webSearchEngine === 'google' && authType === AuthType.USE_OPENAI) {
+      // 启用 Google 搜索（仅OpenAI模型需要，需要认证）
       this.useGeminiWebSearch = true;
-      // 检查是否有Google认证，决定是否排除google_web_search
-      const hasGoogleAuth = await this.getGoogleAuthStatus();
-      if (hasGoogleAuth) {
-        this.excludeTools.push('google_web_search');
-      }
+      this.excludeTools.push('google_web_search'); // 排除内置的 Google 搜索
     }
+    // webSearchEngine === 'default' 时不启用 Google 搜索工具
   }
 
   /**
@@ -69,8 +60,8 @@ export class ConversationToolConfig {
    */
   private async findBestGeminiModel(): Promise<TModelWithConversation | null> {
     try {
-      // 检查Google认证状态
-      const hasGoogleAuth = await this.getGoogleAuthStatus();
+      // 前端已通过 webSearchEngine 参数确认认证状态
+      const hasGoogleAuth = this.webSearchEngine === 'google';
       if (hasGoogleAuth) {
         return {
           id: uuid(),
@@ -120,16 +111,6 @@ export class ConversationToolConfig {
   }
 
   /**
-   * 设置Gemini模型的环境变量
-   */
-  private setEnvironmentForGeminiModel(_geminiModel: TModelWithConversation, _authType: AuthType): void {
-    // LOGIN_WITH_GOOGLE 使用OAuth认证，不需要设置额外的环境变量
-    // Google Cloud项目配置通过OAuth流程自动处理
-  }
-
-  // 移除复杂的配置获取逻辑，简化为环境变量方案
-
-  /**
    * 为给定的 Config 注册自定义工具
    * 在对话初始化后调用
    */
@@ -144,40 +125,34 @@ export class ConversationToolConfig {
 
     if (this.imageGenerationModel) {
       // 注册 aionui_image_generation 工具（所有模型）
-      const imageGenTool = new ImageGenerationTool(config, this.imageGenerationModel);
+      const imageGenTool = new ImageGenerationTool(config, this.imageGenerationModel, this.proxy);
       toolRegistry.registerTool(imageGenTool);
     }
 
     // 注册 gemini_web_search 工具（仅OpenAI模型）
     if (this.useGeminiWebSearch) {
       try {
-        // 检查Google认证状态，只有登录时才尝试注册
-        const hasGoogleAuth = await this.getGoogleAuthStatus();
-        if (hasGoogleAuth) {
-          // 创建专门的Gemini客户端（如果还没有）
-          if (!this.dedicatedGeminiClient) {
-            const geminiModel = await this.findBestGeminiModel();
-            if (geminiModel) {
-              this.geminiModel = geminiModel;
-              const dedicatedConfig = this.createDedicatedGeminiConfig(geminiModel);
-              const authType = AuthType.LOGIN_WITH_GOOGLE; // 固定使用Google认证
+        // 前端已通过 webSearchEngine 参数确认认证状态，直接创建客户端
+        // 创建专门的Gemini客户端（如果还没有）
+        if (!this.dedicatedGeminiClient) {
+          const geminiModel = await this.findBestGeminiModel();
+          if (geminiModel) {
+            this.geminiModel = geminiModel;
+            const dedicatedConfig = this.createDedicatedGeminiConfig(geminiModel);
+            const authType = AuthType.LOGIN_WITH_GOOGLE; // 固定使用Google认证
 
-              // 设置环境变量
-              this.setEnvironmentForGeminiModel(geminiModel, authType);
+            await dedicatedConfig.initialize();
+            await dedicatedConfig.refreshAuth(authType);
 
-              await dedicatedConfig.initialize();
-              await dedicatedConfig.refreshAuth(authType);
-
-              // 创建新的 GeminiClient
-              this.dedicatedGeminiClient = dedicatedConfig.getGeminiClient();
-            }
+            // 创建新的 GeminiClient
+            this.dedicatedGeminiClient = dedicatedConfig.getGeminiClient();
           }
+        }
 
-          // 只有成功创建客户端时才注册工具
-          if (this.dedicatedGeminiClient) {
-            const customWebSearchTool = new WebSearchTool(this.dedicatedGeminiClient);
-            toolRegistry.registerTool(customWebSearchTool);
-          }
+        // 只有成功创建客户端时才注册工具
+        if (this.dedicatedGeminiClient) {
+          const customWebSearchTool = new WebSearchTool(this.dedicatedGeminiClient);
+          toolRegistry.registerTool(customWebSearchTool);
         }
         // Google未登录时静默跳过，不影响其他工具
       } catch (error) {
