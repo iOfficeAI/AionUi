@@ -218,14 +218,12 @@ export async function loadCliConfig({ workspace, settings, extensions, sessionId
     // model: "kimi-k2-0711-preview", // "Qwen/Qwen2.5-Coder-32B-Instruct", // "deepseek-chat",
     extensionContextFilePaths,
     maxSessionTurns: settings.maxSessionTurns ?? -1,
-    experimentalAcp: argv.experimentalAcp || false,
     listExtensions: argv.listExtensions || false,
     extensions: allExtensions,
     blockedMcpServers,
     noBrowser: !!process.env.NO_BROWSER,
     summarizeToolOutput: settings.summarizeToolOutput,
     ideMode,
-    ideModeFeature,
   });
 }
 

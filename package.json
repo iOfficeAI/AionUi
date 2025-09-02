@@ -1,7 +1,7 @@
 {
   "name": "AionUi",
   "productName": "AionUi",
-  "version": "1.1.6",
+  "version": "1.1.7",
   "description": "My Electron application description",
   "main": ".webpack/main",
   "scripts": {
@@ -23,10 +23,10 @@
   },
   "keywords": [],
   "author": {
-    "name": "halvee",
-    "email": "halvee@office-ai.cn"
+    "name": "AionUi",
+    "email": "service@aionui.com"
   },
-  "license": "MIT",
+  "license": "Apache-2.0",
   "devDependencies": {
     "@electron-forge/cli": "^7.8.1",
     "@electron-forge/maker-deb": "^7.8.3",
@@ -38,6 +38,7 @@
     "@electron-forge/plugin-fuses": "^7.8.1",
     "@electron-forge/plugin-webpack": "^7.8.3",
     "@electron/fuses": "^1.8.0",
+    "@types/html-to-text": "^9.0.4",
     "@types/react-dom": "^19.1.6",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
@@ -66,9 +67,9 @@
   },
   "dependencies": {
     "@arco-design/web-react": "^2.66.1",
-    "@google/genai": "^1.9.0",
+    "@google/genai": "^1.13.0",
     "@icon-park/react": "^1.4.2",
-    "@office-ai/aioncli-core": "^0.1.21",
+    "@office-ai/aioncli-core": "^0.2.2",
     "@office-ai/platform": "^0.3.15",
     "@types/react-syntax-highlighter": "^15.5.13",
     "classnames": "^2.5.1",
@@ -93,7 +94,8 @@
     "remark-breaks": "^4.0.0",
     "remark-gfm": "^4.0.1",
     "remark-math": "^6.0.0",
-    "swr": "^2.3.6"
+    "swr": "^2.3.6",
+    "zod": "^3.23.8"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [
