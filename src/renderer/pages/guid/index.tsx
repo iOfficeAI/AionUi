@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { IModel as IProvider, TModelWithConversation } from '@/common/storage';
+import type { IProvider, TModelWithConversation } from '@/common/storage';
 import { ConfigStorage } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
@@ -78,7 +78,7 @@ const useModelList = () => {
     });
   });
 
-  return useMemo(() => {
+  const modelList = useMemo(() => {
     let allProviders: IProvider[] = [];
 
     if (isGoogleAuth) {
@@ -99,6 +99,8 @@ const useModelList = () => {
     // 过滤出有可用主力模型的提供商
     return allProviders.filter(hasAvailableModels);
   }, [isGoogleAuth, modelConfig]);
+
+  return { modelList, isGoogleAuth };
 };
 
 const Guid: React.FC = () => {
@@ -122,6 +124,7 @@ const Guid: React.FC = () => {
       extra: {
         defaultFiles: files,
         workspace: dir,
+        webSearchEngine: isGoogleAuth ? 'google' : 'default',
       },
     });
     await ipcBridge.geminiConversation.sendMessage.invoke({
@@ -148,13 +151,16 @@ const Guid: React.FC = () => {
     });
   };
   const isComposing = useRef(false);
-  const modelList = useModelList();
+  const { modelList, isGoogleAuth } = useModelList();
   const setDefaultModel = async () => {
     const useModel = await ConfigStorage.get('gemini.defaultModel');
     const defaultModel = modelList.find((m) => m.model.includes(useModel)) || modelList[0];
     console.log('----->defaultModel', useModel);
     if (!defaultModel) return;
-    _setCurrentModel({ ...defaultModel, useModel: defaultModel.model.find((m) => m == useModel) || defaultModel.model[0] });
+    _setCurrentModel({
+      ...defaultModel,
+      useModel: defaultModel.model.find((m) => m == useModel) || defaultModel.model[0],
+    });
   };
   useEffect(() => {
     setDefaultModel();
