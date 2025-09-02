@@ -139,7 +139,7 @@ Output:
         properties: {
           prompt: {
             type: Type.STRING,
-            description: 'The text prompt describing what to generate or how to modify the image',
+            description: 'The text prompt that must clearly specify the operation type: "Generate image: [description]" for creating new images, "Analyze image: [what to analyze]" for image recognition/analysis, or "Edit image: [modifications]" for image editing. Always start with the operation type.',
           },
           image_uri: {
             type: Type.STRING,
@@ -346,11 +346,13 @@ Please ensure the image file exists and has a valid image extension (.jpg, .png,
         },
       ];
 
-      // Log API call input
+      // Log API call input with image data URL if available
+      const imageDataUrl = contentParts.find((part) => part.type === 'image_url')?.image_url?.url;
       console.debug('[ImageGen] API call input', {
         model: this.currentModel,
         prompt: this.params.prompt.length > 100 ? this.params.prompt.substring(0, 100) + '...' : this.params.prompt,
         image_uri: this.params.image_uri || 'none',
+        image_data_url: imageDataUrl ? imageDataUrl.substring(0, 50) + '...' : 'none',
       });
 
       updateOutput?.('Sending request to AI service...');
