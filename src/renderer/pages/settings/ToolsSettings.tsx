@@ -11,17 +11,19 @@ const ToolsSettings: React.FC = () => {
   const { modelListWithImage: data } = useConfigModelListWithImage();
   const imageGenerationModelList = useMemo(() => {
     if (!data) return [];
-    return (data || []).filter((v) => {
-      const filteredModels = v.model.filter((model) => {
-        return model.toLocaleLowerCase().includes('image');
-      });
-      return filteredModels.length > 0;
-    }).map((v) => ({
-      ...v,
-      model: v.model.filter((model) => {
-        return model.toLocaleLowerCase().includes('image');
+    return (data || [])
+      .filter((v) => {
+        const filteredModels = v.model.filter((model) => {
+          return model.toLocaleLowerCase().includes('image');
+        });
+        return filteredModels.length > 0;
       })
-    }));
+      .map((v) => ({
+        ...v,
+        model: v.model.filter((model) => {
+          return model.toLocaleLowerCase().includes('image');
+        }),
+      }));
   }, [data]);
 
   useEffect(() => {
@@ -78,18 +80,13 @@ const ToolsSettings: React.FC = () => {
                     })}
                   </Select>
                 ) : (
-                  <div className="text-gray-400">{t('settings.noAvailable')}</div>
+                  <div className='text-gray-400'>{t('settings.noAvailable')}</div>
                 )}
               </Form.Item>
             </Form>
-            <div className="mt-3 text-sm text-gray-500">
-              <span className="mr-1">👉</span>
-              <a 
-                href="https://github.com/iOfficeAI/AionUi/wiki/OpenRouter-Setup-and-Image-Generation" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-blue-500 hover:text-blue-600 underline"
-              >
+            <div className='mt-3 text-sm text-gray-500'>
+              <span className='mr-1'>👉</span>
+              <a href='https://github.com/iOfficeAI/AionUi/wiki/OpenRouter-Setup-and-Image-Generation' target='_blank' rel='noopener noreferrer' className='text-blue-500 hover:text-blue-600 underline'>
                 {t('settings.imageGenerationGuide')}
               </a>
             </div>
