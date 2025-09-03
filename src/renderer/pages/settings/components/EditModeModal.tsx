@@ -1,10 +1,10 @@
-import type { IProvider } from '@/common/storage';
+import type { IModel } from '@/common/storage';
 import ModalHOC from '@/renderer/utils/ModalHOC';
 import { Form, Input, Modal } from '@arco-design/web-react';
 import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
-const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): void }>(({ modalProps, modalCtrl, ...props }) => {
+const EditModeModal = ModalHOC<{ data?: IModel; onChange(data: IModel): void }>(({ modalProps, modalCtrl, ...props }) => {
   const { t } = useTranslation();
   const { data } = props;
   const [form] = Form.useForm();

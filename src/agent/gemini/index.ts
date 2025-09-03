@@ -20,7 +20,7 @@ import { ConversationToolConfig } from './cli/tools/conversation-tool-config';
 import { mapToDisplay } from './cli/useReactToolScheduler';
 import { getPromptCount, handleCompletedTools, processGeminiStreamEvents, startNewPrompt } from './utils';
 
-function _mergeMcpServers(settings: ReturnType<typeof loadSettings>['merged'], extensions: Extension[]) {
+function mergeMcpServers(settings: ReturnType<typeof loadSettings>['merged'], extensions: Extension[]) {
   const mcpServers = { ...(settings.mcpServers || {}) };
   for (const extension of extensions) {
     Object.entries(extension.config.mcpServers || {}).forEach(([key, server]) => {
@@ -39,7 +39,6 @@ interface GeminiAgent2Options {
   proxy?: string;
   model: TModelWithConversation;
   imageGenerationModel?: TModelWithConversation;
-  webSearchEngine?: 'google' | 'default';
   yoloMode?: boolean;
   onStreamEvent: (event: { type: string; data: any; msg_id: string }) => void;
 }
@@ -50,7 +49,6 @@ export class GeminiAgent {
   private proxy: string | null = null;
   private model: TModelWithConversation | null = null;
   private imageGenerationModel: TModelWithConversation | null = null;
-  private webSearchEngine: 'google' | 'default' | null = null;
   private yoloMode: boolean = false;
   private geminiClient: GeminiClient | null = null;
   private authType: AuthType | null = null;
@@ -65,7 +63,6 @@ export class GeminiAgent {
     this.proxy = options.proxy;
     this.model = options.model;
     this.imageGenerationModel = options.imageGenerationModel;
-    this.webSearchEngine = options.webSearchEngine || 'default';
     this.yoloMode = options.yoloMode || false;
     const platform = options.model.platform;
     if (platform === 'gemini-with-google-auth') {
@@ -82,7 +79,6 @@ export class GeminiAgent {
     this.toolConfig = new ConversationToolConfig({
       proxy: this.proxy,
       imageGenerationModel: this.imageGenerationModel,
-      webSearchEngine: this.webSearchEngine,
     });
     this.bootstrap = this.initialize();
   }

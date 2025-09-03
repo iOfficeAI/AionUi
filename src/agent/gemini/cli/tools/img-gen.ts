@@ -128,8 +128,7 @@ export class ImageGenerationTool extends BaseDeclarativeTool<ImageGenerationTool
 
   constructor(
     private readonly config: Config,
-    private readonly imageGenerationModel: TModelWithConversation,
-    private readonly proxy?: string
+    private readonly imageGenerationModel: TModelWithConversation
   ) {
     super(
       ImageGenerationTool.Name,
@@ -240,7 +239,7 @@ IMPORTANT: When user provides multiple images (like @img1.jpg @img2.png), ALWAYS
   }
 
   protected createInvocation(params: ImageGenerationToolParams): ToolInvocation<ImageGenerationToolParams, ToolResult> {
-    return new ImageGenerationInvocation(this.config, this.imageGenerationModel, params, this.proxy);
+    return new ImageGenerationInvocation(this.config, this.imageGenerationModel, params);
   }
 }
 
@@ -251,8 +250,7 @@ class ImageGenerationInvocation extends BaseToolInvocation<ImageGenerationToolPa
   constructor(
     private readonly config: Config,
     private readonly imageGenerationModel: TModelWithConversation,
-    params: ImageGenerationToolParams,
-    private readonly proxy?: string
+    params: ImageGenerationToolParams
   ) {
     super(params);
   }
@@ -356,23 +354,14 @@ Please ensure the image file exists and has a valid image extension (.jpg, .png,
     const cleanedApiKey = apiKey.replace(/[\s\r\n\t]/g, '').trim();
 
     this.currentModel = this.imageGenerationModel.useModel;
-    const openaiConfig: any = {
+    this.openai = new OpenAI({
       baseURL: this.imageGenerationModel.baseUrl,
       apiKey: cleanedApiKey,
       defaultHeaders: {
         'HTTP-Referer': 'https://www.aionui.com',
         'X-Title': 'AionUi',
       },
-    };
-
-    // 添加代理配置（如果提供）
-    if (this.proxy) {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const HttpsProxyAgent = require('https-proxy-agent');
-      openaiConfig.httpAgent = new HttpsProxyAgent(this.proxy);
-    }
-
-    this.openai = new OpenAI(openaiConfig);
+    });
   }
 
   async execute(signal: AbortSignal, updateOutput?: (output: string) => void): Promise<ToolResult> {

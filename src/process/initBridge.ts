@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IProvider } from '@/common/storage';
+import type { IModel } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import { AuthType, clearCachedCredentialFile, Config, getOauthInfoWithCache, loginWithOauth } from '@office-ai/aioncli-core';
 import { logger } from '@office-ai/platform';
@@ -77,7 +77,7 @@ ipcBridge.fs.getImageBase64.provider(async ({ path: filePath }) => {
 ipcBridge.conversation.create.provider(async ({ type, extra, name, model }) => {
   try {
     if (type === 'gemini') {
-      const conversation = await createGeminiAgent(model, extra.workspace, extra.defaultFiles, extra.webSearchEngine);
+      const conversation = await createGeminiAgent(model, extra.workspace, extra.defaultFiles);
       if (name) {
         conversation.name = name;
       }
@@ -290,6 +290,6 @@ ipcBridge.mode.getModelConfig.provider(async () => {
       return data.map((v) => ({ ...v, id: v.id || uuid() }));
     })
     .catch(() => {
-      return [] as IProvider[];
+      return [] as IModel[];
     });
 });

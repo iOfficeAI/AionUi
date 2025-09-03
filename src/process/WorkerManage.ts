@@ -28,7 +28,6 @@ const buildConversation = (conversation: TChatConversation) => {
         {
           workspace: conversation.extra.workspace,
           conversation_id: conversation.id,
-          webSearchEngine: conversation.extra.webSearchEngine,
         },
         conversation.model
       );

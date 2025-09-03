@@ -10,7 +10,7 @@ import path from 'path';
 import { getSystemDir } from './initStorage';
 import { generateHashWithFullName } from './utils';
 
-export const createGeminiAgent = async (model: TModelWithConversation, workspace?: string, defaultFiles?: string[], webSearchEngine?: 'google' | 'default'): Promise<TChatConversation> => {
+export const createGeminiAgent = async (model: TModelWithConversation, workspace?: string, defaultFiles?: string[]): Promise<TChatConversation> => {
   const customWorkspace = !!workspace;
   if (!workspace) {
     const tempPath = getSystemDir().workDir;
@@ -29,7 +29,7 @@ export const createGeminiAgent = async (model: TModelWithConversation, workspace
   return {
     type: 'gemini',
     model,
-    extra: { workspace: workspace, customWorkspace, webSearchEngine },
+    extra: { workspace: workspace, customWorkspace },
     desc: customWorkspace ? workspace : '临时工作区',
     createTime: Date.now(),
     modifyTime: Date.now(),

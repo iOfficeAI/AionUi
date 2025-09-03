@@ -1,11 +1,11 @@
-import type { IProvider } from '@/common/storage';
+import type { IModel } from '@/common/storage';
 import ModalHOC from '@/renderer/utils/ModalHOC';
 import { Modal, Select } from '@arco-design/web-react';
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useModeModeList from '../../../hooks/useModeModeList';
 
-const AddModelModal = ModalHOC<{ data?: IProvider; onSubmit: (model: IProvider) => void }>(({ modalProps, data, onSubmit }) => {
+const AddModelModal = ModalHOC<{ data?: IModel; onSubmit: (model: IModel) => void }>(({ modalProps, data, onSubmit }) => {
   const { t } = useTranslation();
   const [model, setModel] = useState('');
   const { data: modelList, isLoading } = useModeModeList(data?.platform, data?.baseUrl, data?.apiKey);

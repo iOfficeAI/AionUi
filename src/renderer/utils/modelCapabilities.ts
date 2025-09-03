@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IProvider, ModelCapability, ModelType } from '@/common/storage';
+import type { IModel, ModelCapability, ModelType } from '@/common/storage';
 
 // 能力判断缓存
 const modelCapabilitiesCache = new Map<string, boolean | undefined>();
@@ -86,7 +86,7 @@ const getBaseModelName = (modelName: string): string => {
  * @param type - 能力类型
  * @returns true/false 如果用户有明确配置，undefined 如果未配置
  */
-const getUserSelectedCapability = (model: IProvider, type: ModelType): boolean | undefined => {
+const getUserSelectedCapability = (model: IModel, type: ModelType): boolean | undefined => {
   const capability = model.capabilities?.find((cap) => cap.type === type);
   return capability?.isUserSelected;
 };
@@ -108,7 +108,7 @@ const getProviderCapabilityRule = (provider: string, type: ModelType): boolean |
  * @param type - 能力类型
  * @returns true=支持, false=不支持, undefined=未知
  */
-export const hasModelCapability = (model: IProvider, type: ModelType): boolean | undefined => {
+export const hasModelCapability = (model: IModel, type: ModelType): boolean | undefined => {
   // 生成缓存键（包含 capabilities 版本以避免缓存过期）
   const capabilitiesHash = model.capabilities ? JSON.stringify(model.capabilities) : '';
   const cacheKey = `${model.id}-${model.name}-${model.platform}-${type}-${capabilitiesHash}`;
@@ -165,7 +165,7 @@ export const hasModelCapability = (model: IProvider, type: ModelType): boolean |
  * @param modelName - 具体模型名
  * @param type - 能力类型
  */
-export const hasSpecificModelCapability = (platformModel: IProvider, modelName: string, type: ModelType): boolean | undefined => {
+export const hasSpecificModelCapability = (platformModel: IModel, modelName: string, type: ModelType): boolean | undefined => {
   const baseModelName = getBaseModelName(modelName);
   const exclusions = CAPABILITY_EXCLUSIONS[type];
   const pattern = CAPABILITY_PATTERNS[type];

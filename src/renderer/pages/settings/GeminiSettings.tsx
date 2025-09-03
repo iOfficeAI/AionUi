@@ -57,7 +57,6 @@ const GeminiSettings: React.FC = (props) => {
   const [modal, modalContextHolder] = Modal.useModal();
   const [error, setError] = useState<string | null>(null);
   const [googleAccountLoading, setGoogleAccountLoading] = useState(false);
-  const [userLoggedOut, setUserLoggedOut] = useState(false);
   const { data } = useSWR('gemini.env.config', () => ipcBridge.application.systemInfo.invoke());
   const loadGoogleAuthStatus = (proxy?: string) => {
     setGoogleAccountLoading(true);
@@ -66,16 +65,7 @@ const GeminiSettings: React.FC = (props) => {
       .then((data) => {
         if (data.success && data.data?.account) {
           form.setFieldValue('googleAccount', data.data.account);
-          setUserLoggedOut(false); // 重置logout标记
-        } else if (data.success === false && (!data.msg || userLoggedOut)) {
-          // 明确认证失败 OR 用户主动logout时才清空账户信息
-          form.setFieldValue('googleAccount', '');
         }
-        // 如果有错误信息且非用户主动logout，保持当前状态不变
-      })
-      .catch((error) => {
-        // 网络或系统错误，保持当前状态
-        console.warn('Failed to check Google auth status:', error);
       })
       .finally(() => {
         setGoogleAccountLoading(false);
@@ -175,7 +165,6 @@ const GeminiSettings: React.FC = (props) => {
                       size='mini'
                       className={'ml-4px'}
                       onClick={() => {
-                        setUserLoggedOut(true);
                         ipcBridge.googleAuth.logout.invoke({}).then(() => {
                           form.setFieldValue('googleAccount', '');
                         });

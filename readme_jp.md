@@ -177,6 +177,7 @@ AionUi をお試しですか？お使いの環境に合った最新版を、リ�
    ```
 
 3. **API キーを設定**
+
    - アプリを開いて、設定画面へ行く。
    - お手持ちの Google Gemini API キーを入力してください。
    - Gemini API キー、Vertex AI、個人認証など、複数の認証方法に対応しています。
@@ -251,6 +252,7 @@ AionUI/
 様々な認証方法とプラットフォームに対応しています：
 
 1. **Gemini プラットフォーム**:
+
    - Gemini API キー: シンプルに直接 API を利用できます。
    - Vertex AI: Google Cloud Vertex AI を使用
    - 個人認証: OAuth による個人認証

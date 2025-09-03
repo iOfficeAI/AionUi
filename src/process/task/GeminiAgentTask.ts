@@ -17,12 +17,11 @@ export class GeminiAgentTask extends BaseAgentTask<{
   workspace: string;
   model: TModelWithConversation;
   imageGenerationModel?: TModelWithConversation;
-  webSearchEngine?: 'google' | 'default';
 }> {
   workspace: string;
   model: TModelWithConversation;
   private bootstrap: Promise<void>;
-  constructor(data: { workspace: string; conversation_id: string; webSearchEngine?: 'google' | 'default' }, model: TModelWithConversation) {
+  constructor(data: { workspace: string; conversation_id: string }, model: TModelWithConversation) {
     super('gemini', { ...data, model });
     this.workspace = data.workspace;
     this.conversation_id = data.conversation_id;
@@ -33,7 +32,6 @@ export class GeminiAgentTask extends BaseAgentTask<{
         workspace: this.workspace,
         model: this.model,
         imageGenerationModel,
-        webSearchEngine: data.webSearchEngine,
       });
     });
   }
