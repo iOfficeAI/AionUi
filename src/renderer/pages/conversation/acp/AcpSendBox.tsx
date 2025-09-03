@@ -34,6 +34,7 @@ const useAcpMessage = (conversation_id: string) => {
       if (conversation_id !== message.conversation_id) {
         return;
       }
+
       switch (message.type) {
         case 'thought':
           setThought(message.data);
@@ -49,6 +50,8 @@ const useAcpMessage = (conversation_id: string) => {
           break;
         case 'content':
           {
+            // Clear thought when final answer arrives
+            setThought({ subject: '', description: '' });
             addMessage(transformMessage(message));
           }
           break;
@@ -157,7 +160,6 @@ const AcpSendBox: React.FC<{
 
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
   const navigate = useNavigate();
-
 
   const onSendHandler = async (message: string) => {
     const msg_id = uuid();
