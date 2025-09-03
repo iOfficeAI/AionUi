@@ -488,28 +488,79 @@ ipcBridge.acpConversation.clearAllCache?.provider(async () => {
 
 ipcBridge.acpConversation.detectCliPath.provider(async ({ backend }) => {
   const { execSync } = await import('child_process');
+  const fs = await import('fs');
+
+  if (backend !== 'claude' && backend !== 'gemini') {
+    return { success: false, msg: `Unsupported backend: ${backend}` };
+  }
+
+  const isWindows = process.platform === 'win32';
+
+  // First, try to test if the command works directly (handles aliases)
   try {
-    const isWindows = process.platform === 'win32';
-    let command: string;
+    execSync(`${backend} --version`, { encoding: 'utf-8', stdio: 'pipe', timeout: 5000 });
+    return { success: true, data: { path: backend } };
+  } catch (directTestError) {
+    // Direct test failed, try path detection
+  }
 
-    if (backend === 'claude') {
-      command = isWindows ? 'where claude' : 'which claude';
-    } else if (backend === 'gemini') {
-      command = isWindows ? 'where gemini' : 'which gemini';
-    } else {
-      return { success: false, msg: `Unsupported backend: ${backend}` };
-    }
+  // If direct test failed, try traditional path detection
+  try {
+    const whichCommand = isWindows ? `where ${backend}` : `which ${backend}`;
+    let cliPath = execSync(whichCommand, { encoding: 'utf-8' }).trim();
 
-    let cliPath = execSync(command, { encoding: 'utf-8' }).trim();
-
-    // Windows의 where 명령어는 여러 줄을 반환할 수 있음, 첫 번째 줄 사용
     if (isWindows && cliPath.includes('\n')) {
       cliPath = cliPath.split('\n')[0].trim();
     }
 
-    return { success: true, data: { path: cliPath } };
-  } catch (error) {
-    return { success: false, msg: error instanceof Error ? error.message : String(error) };
+    if (!cliPath) {
+      throw new Error('Empty path returned');
+    }
+
+    // Test if the detected path actually works
+    try {
+      execSync(`${cliPath} --version`, { encoding: 'utf-8', stdio: 'pipe', timeout: 5000 });
+      return { success: true, data: { path: cliPath } };
+    } catch (pathTestError) {
+      // Path exists but command doesn't work, might be a script wrapper
+      if (!isWindows && fs.existsSync(cliPath)) {
+        try {
+          const stats = fs.statSync(cliPath);
+          if (stats.isFile()) {
+            // Try to read the file to see if it's a script wrapper
+            const content = fs.readFileSync(cliPath, 'utf-8');
+
+            // Check for common wrapper patterns
+            if (backend === 'gemini' && content.includes('npx')) {
+              // Try npx approach
+              try {
+                execSync('npx @google/gemini-cli --version', { encoding: 'utf-8', stdio: 'pipe', timeout: 10000 });
+                return { success: true, data: { path: 'npx @google/gemini-cli' } };
+              } catch (npxError) {
+                // npx also failed
+              }
+            }
+          }
+        } catch (readError) {
+          // Can't read the file, continue with original path
+        }
+      }
+
+      return { success: true, data: { path: cliPath } }; // Return the path even if test failed
+    }
+  } catch (pathError) {
+    // Both direct test and path detection failed
+    if (backend === 'gemini') {
+      // Last resort: try npx for gemini
+      try {
+        execSync('npx @google/gemini-cli --version', { encoding: 'utf-8', stdio: 'pipe', timeout: 10000 });
+        return { success: true, data: { path: 'npx @google/gemini-cli' } };
+      } catch (npxError) {
+        // All methods failed
+      }
+    }
+
+    return { success: false, msg: `${backend} CLI not found. Please install it and ensure it's accessible.` };
   }
 });
 
