@@ -19,7 +19,9 @@
     "build": "npm run build-mac --arch=arm64 && npm run build-mac --arch=x64",
     "build-mac:arm64": "npm run build-mac --arch=arm64",
     "build-mac:x64": "npm run build-mac --arch=x64",
-    "prepare": "husky"
+    "prepare": "husky",
+    "postinstall": "patch-package && npm run rebuild-acp-bridge",
+    "rebuild-acp-bridge": "cd node_modules/@zed-industries/claude-code-acp && npm run build"
   },
   "keywords": [],
   "author": {
@@ -54,6 +56,7 @@
     "lint-staged": "^16.1.5",
     "mini-css-extract-plugin": "^2.9.2",
     "node-loader": "^2.1.0",
+    "patch-package": "^8.0.0",
     "postcss-loader": "^8.1.1",
     "prettier": "^3.6.2",
     "sharp": "^0.34.3",
@@ -71,6 +74,7 @@
     "@office-ai/aioncli-core": "^0.1.21",
     "@office-ai/platform": "^0.3.15",
     "@types/react-syntax-highlighter": "^15.5.13",
+    "@zed-industries/claude-code-acp": "^0.1.6",
     "classnames": "^2.5.1",
     "diff2html": "^3.4.52",
     "dotenv": "^17.2.1",

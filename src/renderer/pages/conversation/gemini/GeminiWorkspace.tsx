@@ -15,28 +15,37 @@ import { useTranslation } from 'react-i18next';
 const GeminiWorkspace: React.FC<{
   workspace: string;
   customWorkspace?: boolean;
-}> = ({ workspace, customWorkspace }) => {
+  eventPrefix?: 'gemini' | 'acp';
+}> = ({ workspace, customWorkspace, eventPrefix = 'gemini' }) => {
   const { t } = useTranslation();
   const [selected, setSelected] = useState<string[]>([]);
   const [files, setFiles] = useState<IDirOrFile[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState<string>('');
-  useAddEventListener('gemini.selected.file.clear', () => {
+  useAddEventListener(`${eventPrefix}.selected.file.clear`, () => {
     setSelected([]);
   });
 
-  useAddEventListener('gemini.selected.file', (files) => {
+  useAddEventListener(`${eventPrefix}.selected.file`, (files) => {
     setSelected(files);
   });
 
   const refreshWorkspace = () => {
     setLoading(true);
     const startTime = Date.now();
-    ipcBridge.geminiConversation.getWorkspace
+    
+    // 根据 eventPrefix 选择对应的 getWorkspace 方法
+    const getWorkspaceMethod = eventPrefix === 'acp' 
+      ? ipcBridge.acpConversation.getWorkspace // 使用 ACP 专用的 getWorkspace
+      : ipcBridge.geminiConversation.getWorkspace;
+    
+    getWorkspaceMethod
       .invoke({ workspace: workspace })
       .then((res) => {
-        console.log('----getWorkspace', res);
         setFiles(res);
+      })
+      .catch(() => {
+        // Silently handle getWorkspace errors
       })
       .finally(() => {
         if (Date.now() - startTime > 1000) {
@@ -52,8 +61,8 @@ const GeminiWorkspace: React.FC<{
   useEffect(() => {
     setFiles([]);
     refreshWorkspace();
-    emitter.emit('gemini.selected.file', []);
-  }, [workspace]);
+    emitter.emit(`${eventPrefix}.selected.file`, []);
+  }, [workspace, eventPrefix]);
 
   useEffect(() => {
     return ipcBridge.geminiConversation.responseStream.on((data) => {
@@ -63,7 +72,7 @@ const GeminiWorkspace: React.FC<{
     });
   }, [workspace]);
 
-  useAddEventListener('gemini.workspace.refresh', () => refreshWorkspace(), [workspace]);
+  useAddEventListener(`${eventPrefix}.workspace.refresh`, () => refreshWorkspace(), [workspace, eventPrefix]);
 
   // File search filter logic
   const filteredFiles = useMemo(() => {
@@ -144,7 +153,7 @@ const GeminiWorkspace: React.FC<{
                         let newList = [...list];
                         if (list.some((key) => key === path)) newList = list.filter((key) => key !== path);
                         else newList = [...list, path];
-                        emitter.emit('gemini.selected.file', newList);
+                        emitter.emit(`${eventPrefix}.selected.file`, newList);
                         return newList;
                       });
                     }, 100);
@@ -166,7 +175,7 @@ const GeminiWorkspace: React.FC<{
             onSelect={(keys) => {
               const newKeys = keys.filter((key) => key !== workspace);
               setSelected(newKeys);
-              emitter.emit('gemini.selected.file', newKeys);
+              emitter.emit(`${eventPrefix}.selected.file`, newKeys);
             }}
           ></Tree>
         )}

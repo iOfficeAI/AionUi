@@ -52,22 +52,35 @@ const ChatHistory: React.FC = ({ ...props }) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const handleSelect = (conversation: TChatConversation) => {
-    ipcBridge.conversation.create.invoke({
-      type: 'gemini',
-      model: conversation.model,
-      extra: { workspace: conversation.extra.workspace },
-    });
+    if (conversation.type === 'gemini') {
+      ipcBridge.conversation.create.invoke({
+        type: 'gemini',
+        model: conversation.model,
+        extra: { workspace: conversation.extra.workspace },
+      });
+    } else if (conversation.type === 'acp') {
+      // For ACP conversations, don't create new - let conversation.get handle task recreation if needed
+      // This preserves the original conversation ID, createTime, and all metadata
+    }
+    
     navigate(`/conversation/${conversation.id}`);
   };
 
   const isConversation = !!id;
 
   useEffect(() => {
-    ChatStorage.get('chat.history').then((history) => {
-      if (history) {
-        setChatHistory(history.sort((a, b) => (b.createTime - a.createTime < 0 ? -1 : 1)));
-      }
-    });
+    ChatStorage.get('chat.history')
+      .then((history) => {        
+        if (history && Array.isArray(history) && history.length > 0) {
+          const sortedHistory = history.sort((a, b) => (b.createTime - a.createTime < 0 ? -1 : 1));
+          setChatHistory(sortedHistory);
+        } else {
+          setChatHistory([]);
+        }
+      })
+      .catch(() => {
+        setChatHistory([]);
+      });
   }, [isConversation]);
 
   const handleRemoveConversation = (id: string) => {

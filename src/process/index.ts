@@ -5,9 +5,10 @@
  */
 
 import { app } from 'electron';
-import './initBridge';
 import initStorage from './initStorage';
 
 app.whenReady().then(async () => {
   await initStorage();
+  // Import initBridge after storage is initialized
+  await import('./initBridge');
 });

@@ -6,6 +6,7 @@
 
 import { bridge } from '@office-ai/platform';
 import type { OpenDialogOptions } from 'electron';
+import type { AcpBackend } from './acpTypes';
 import type { IModel, TChatConversation, TModelWithConversation } from './storage';
 
 // 发送消息
@@ -64,6 +65,20 @@ export const mode = {
   getModelConfig: bridge.buildProvider<IModel[], void>('mode.get-model-config'),
 };
 
+// ACP对话相关接口 - 使用独立的sendMessage和responseStream
+const acpSendMessage = bridge.buildProvider<IBridgeResponse<{}>, ISendMessageParams>('acp.send.message');
+const acpResponseStream = bridge.buildEmitter<IResponseMessage>('acp.response.stream');
+
+export const acpConversation = {
+  sendMessage: acpSendMessage,
+  confirmMessage: bridge.buildProvider<IBridgeResponse, IConfirmAcpMessageParams>('acp.input.confirm.message'),
+  responseStream: acpResponseStream,
+  detectCliPath: bridge.buildProvider<IBridgeResponse<{ path?: string }>, { backend: AcpBackend }>('acp.detect-cli-path'),
+  checkEnv: bridge.buildProvider<{ env: Record<string, string> }, void>('acp.check.env'),
+  getWorkspace: bridge.buildProvider<IDirOrFile[], { workspace: string }>('acp.get-workspace'),
+  // clearAllCache: bridge.buildProvider<IBridgeResponse<{ details?: any }>, void>('acp.clear.all.cache'),
+};
+
 interface ISendMessageParams {
   input: string;
   msg_id: string;
@@ -78,11 +93,18 @@ interface IConfirmGeminiMessageParams {
   callId: string;
 }
 
+interface IConfirmAcpMessageParams {
+  confirmKey: string;
+  msg_id: string;
+  conversation_id: string;
+  callId: string;
+}
+
 interface ICreateConversationParams {
-  type: 'gemini';
+  type: 'gemini' | 'acp';
   name?: string;
-  model: TModelWithConversation;
-  extra: { workspace?: string; defaultFiles?: string[] };
+  model?: TModelWithConversation;
+  extra: { workspace?: string; defaultFiles?: string[]; backend?: AcpBackend; cliPath?: string };
 }
 interface IResetConversationParams {
   id?: string;
