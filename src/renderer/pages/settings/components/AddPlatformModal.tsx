@@ -1,4 +1,4 @@
-import type { IModel } from '@/common/storage';
+import type { IProvider } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import ModalHOC from '@/renderer/utils/ModalHOC';
 import { Form, Input, Message, Modal, Select } from '@arco-design/web-react';
@@ -118,7 +118,7 @@ const openaiCompatibleBaseUrls = [
 ];
 
 const AddPlatformModal = ModalHOC<{
-  onSubmit: (platform: IModel) => void;
+  onSubmit: (platform: IProvider) => void;
 }>(({ modalProps, onSubmit }) => {
   const [message, messageContext] = Message.useMessage();
   const modelPlatformOptions = useModePlatformList();

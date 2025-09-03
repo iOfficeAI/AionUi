@@ -26,7 +26,7 @@ export interface IConfigStorageRefer {
     proxy: string;
     GOOGLE_GEMINI_BASE_URL?: string;
   };
-  'model.config': IModel[];
+  'model.config': IProvider[];
   language: string;
   theme: string;
   'gemini.defaultModel': string;
@@ -59,6 +59,7 @@ export type TChatConversation = IChatConversation<
   {
     workspace: string;
     customWorkspace?: boolean; // true 用户指定工作目录 false 系统默认工作目录
+    webSearchEngine?: 'google' | 'default'; // 搜索引擎配置
   }
 >;
 
@@ -85,7 +86,7 @@ export type ModelCapability = {
   isUserSelected?: boolean;
 };
 
-export interface IModel {
+export interface IProvider {
   id: string;
   platform: string;
   name: string;
@@ -102,4 +103,4 @@ export interface IModel {
   contextLimit?: number;
 }
 
-export type TModelWithConversation = Omit<IModel, 'model'> & { useModel: string };
+export type TModelWithConversation = Omit<IProvider, 'model'> & { useModel: string };
