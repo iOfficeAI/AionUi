@@ -39,7 +39,14 @@
       "Read(/Users/zhoukai/Library/Application Support/AionUi/aionui/**)",
       "Read(/Users/zhoukai/Library/Application Support/AionUi/aionui/**)",
       "Bash(npm run:*)",
-      "Read(/Users/zhoukai/.gemini/**)"
+      "Read(/Users/zhoukai/.gemini/**)",
+      "Bash(git merge:*)",
+      "mcp__ide__getDiagnostics",
+      "Bash(npm start)",
+      "Bash(git init:*)",
+      "Bash(npm install:*)",
+      "Bash(git commit:*)",
+      "Bash(npx eslint:*)"
     ],
     "deny": [],
     "ask": []

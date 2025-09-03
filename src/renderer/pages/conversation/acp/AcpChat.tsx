@@ -5,7 +5,6 @@
  */
 
 import type { AcpBackend } from '@/common/acpTypes';
-import type { TModelWithConversation } from '@/common/storage';
 import FlexFullContainer from '@renderer/components/FlexFullContainer';
 import MessageList from '@renderer/messages/MessageList';
 import { MessageListProvider, useMessageLstCache } from '@renderer/messages/hooks';
@@ -17,7 +16,7 @@ const AcpChat: React.FC<{
   conversation_id: string;
   workspace?: string;
   backend: AcpBackend;
-}> = ({ conversation_id, workspace, backend }) => {
+}> = ({ conversation_id, backend }) => {
   useMessageLstCache(conversation_id);
 
   return (

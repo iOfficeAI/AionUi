@@ -7,6 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { TMessage } from '@/common/chatLib';
 import { transformMessage } from '@/common/chatLib';
+import type { TProviderWithModel } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import { EventEmitter } from 'events';
 import { AcpAdapter } from '../../adapter/AcpAdapter';
@@ -31,21 +32,14 @@ export interface AcpAgentConfig {
     cliPath?: string;
     customWorkspace?: boolean;
   };
-  model?: {
-    id: string;
-    platform: string;
-    name: string;
-    baseUrl: string;
-    apiKey: string;
-    useModel: string;
-  };
+  model?: TProviderWithModel;
 }
 
 // ACP agent任务类
 export class AcpAgentTask extends EventEmitter {
   public id: string;
   public name: string;
-  public type: 'acp' = 'acp';
+  public type = 'acp' as const;
   public backend: AcpBackend;
   public workspace: string;
   public status: 'pending' | 'running' | 'finished' = 'pending';
@@ -59,14 +53,7 @@ export class AcpAgentTask extends EventEmitter {
     cliPath?: string;
     customWorkspace?: boolean;
   };
-  public model: {
-    id: string;
-    platform: string;
-    name: string;
-    baseUrl: string;
-    apiKey: string;
-    useModel: string;
-  };
+  public model: TProviderWithModel;
 
   private connection: AcpConnection;
 
@@ -106,7 +93,7 @@ export class AcpAgentTask extends EventEmitter {
       name: `${config.backend.toUpperCase()} ACP`,
       baseUrl: '',
       apiKey: '',
-      useModel: config.backend,
+      selectedModel: config.backend,
     };
 
     this.connection = new AcpConnection();
@@ -119,6 +106,7 @@ export class AcpAgentTask extends EventEmitter {
     try {
       // Skip saving CLI path for now to avoid blocking
       if (this.cliPath) {
+        console.log('Using provided CLI path:', this.cliPath);
       } else {
         // Load saved CLI path if not provided in config
         try {
@@ -126,8 +114,11 @@ export class AcpAgentTask extends EventEmitter {
           if (savedCliPath) {
             this.cliPath = savedCliPath;
           } else {
+            console.log('No saved CLI path found');
           }
-        } catch (error) {}
+        } catch (error) {
+          console.error('Failed to get CLI path:', error);
+        }
       }
     } catch (error) {
       // Don't throw - just continue with what we have
@@ -198,8 +189,8 @@ export class AcpAgentTask extends EventEmitter {
       // Only process if there are actual files involved AND the message contains @ symbols
       if ((data.files && data.files.length > 0) && processedContent.includes('@')) {
         // Get actual filenames from uploaded files
+        const path = require('path');
         const actualFilenames = data.files.map(filePath => {
-          const path = require('path');
           return path.basename(filePath);
         });
         
@@ -506,6 +497,7 @@ export class AcpAgentTask extends EventEmitter {
           // 请在这里使用你的有效 API key
           process.env.GEMINI_API_KEY = 'AIzaSyD8MT6K7s7yDyrrJ9FuHqk0dF2tpiL5SOo';
         } else {
+          console.log('GEMINI_API_KEY already set in environment');
         }
       }
 
@@ -513,7 +505,9 @@ export class AcpAgentTask extends EventEmitter {
       let savedAuth = null;
       try {
         savedAuth = await Promise.race([AcpConfigManager.getValidAuthInfo(this.backend), new Promise((_, reject) => setTimeout(() => reject(new Error('GetValidAuthInfo timeout')), 3000))]);
-      } catch (error) {}
+      } catch (error) {
+        console.error('Failed to get saved auth info:', error);
+      }
 
       if (savedAuth) {
         try {
@@ -522,8 +516,10 @@ export class AcpAgentTask extends EventEmitter {
           return;
         } catch (error) {
           // Don't clear auth info if it causes blocking
+          console.error('Failed to authenticate with saved credentials:', error);
         }
       } else {
+        console.log('No saved auth info found');
       }
 
       // If no saved auth or saved auth failed, try available methods
@@ -544,6 +540,7 @@ export class AcpAgentTask extends EventEmitter {
         try {
           // We'll try OAuth even without GOOGLE_CLOUD_PROJECT to see what happens
           if (authMethod.id === 'oauth-personal' && this.backend === 'gemini' && !process.env.GOOGLE_CLOUD_PROJECT) {
+            console.log('Skipping OAuth without GOOGLE_CLOUD_PROJECT');
           }
 
           await Promise.race([
@@ -558,7 +555,9 @@ export class AcpAgentTask extends EventEmitter {
           // Skip saving authentication info for now to avoid blocking
           try {
             await Promise.race([AcpConfigManager.saveAuthInfo(this.backend, authMethod.id), new Promise((_, reject) => setTimeout(() => reject(new Error('SaveAuthInfo timeout')), 2000))]);
-          } catch (error) {}
+          } catch (error) {
+            console.error('Failed to save auth info:', error);
+          }
 
           this.emitStatusMessage('authenticated', `Authenticated with ${this.backend} using ${authMethod.name}`);
           return;
@@ -584,16 +583,17 @@ export class AcpAgentTask extends EventEmitter {
       const history = await ProcessChat.get('chat.history');
       
       if (history) {
-        const conversationIndex = history.findIndex(conv => conv.id === this.id);
+        const conversationIndex = history.findIndex((conv: any) => conv.id === this.id);
         
         if (conversationIndex >= 0) {
-          const updatedHistory = history.map(conv => 
+          const updatedHistory = history.map((conv: any) => 
             conv.id === this.id ? { ...conv, modifyTime: this.modifyTime } : conv
           );
           await ProcessChat.set('chat.history', updatedHistory);
         }
       }
     } catch (error) {
+      console.error('Failed to update chat history:', error);
     }
   }
 }
