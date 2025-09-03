@@ -95,10 +95,10 @@ ipcBridge.conversation.create.provider(async ({ type, extra, name, model }): Pro
           // 其他异常情况（比如解析错误），为安全起见不保存
           return;
         }
-        
+
         // 检查是否已存在
         if (safeHistory.some((h) => h.id === conversation.id)) return;
-        
+
         // 安全地添加新会话
         ProcessChat.set('chat.history', [...safeHistory, conversation]);
       });
@@ -115,7 +115,7 @@ ipcBridge.conversation.create.provider(async ({ type, extra, name, model }): Pro
       const workspace = path.join(baseWorkspace, fileName);
       // Create the unique workspace directory
       await fs.mkdir(workspace, { recursive: true });
-      
+
       // Copy default files if provided
       if (extra.defaultFiles) {
         for (const file of extra.defaultFiles) {
@@ -124,11 +124,11 @@ ipcBridge.conversation.create.provider(async ({ type, extra, name, model }): Pro
           await fs.copyFile(file, destPath);
         }
       }
-      
+
       const customWorkspace = !!extra.workspace;
 
       const conversationId = generateHashWithFullName(`${extra.backend}-acp-${workspace}`);
-      
+
       // Check if conversation already exists before creating
       const history = await ProcessChat.get('chat.history');
       let safeHistory: TChatConversation[];
@@ -141,7 +141,7 @@ ipcBridge.conversation.create.provider(async ({ type, extra, name, model }): Pro
         // 其他异常情况（比如解析错误），为安全起见不保存
         safeHistory = [];
       }
-      
+
       // 检查是否已存在
       const existingConversation = safeHistory.find((h) => h.id === conversationId);
       if (existingConversation) {
@@ -190,7 +190,7 @@ ipcBridge.conversation.create.provider(async ({ type, extra, name, model }): Pro
 
       // Add the ACP task to WorkerManage
       WorkerManage.addTask(conversation.id, conversation);
-      
+
       // Convert AcpAgentTask to TChatConversation for storage
       const conversationForStorage: TChatConversation = {
         id: conversation.id,
@@ -295,7 +295,6 @@ ipcBridge.conversation.get.provider(async ({ id }) => {
             model: conversation.model as any, // Type compatibility for legacy models
           };
 
-          
           const newTask = new AcpAgentTask(config);
 
           // ACP messages are handled directly in AcpAgentTask
@@ -440,11 +439,11 @@ ipcBridge.acpConversation.confirmMessage.provider(async ({ confirmKey, msg_id, c
   if (!task) {
     return { success: false, msg: 'conversation not found' };
   }
-  
+
   if ((task as any).type !== 'acp') {
     return { success: false, msg: 'not support' };
   }
-  
+
   return (task as unknown as AcpAgentTask)
     .confirmMessage({ confirmKey, msg_id, callId })
     .then(() => ({ success: true }))
@@ -534,26 +533,26 @@ ipcBridge.acpConversation.getWorkspace.provider(async ({ workspace }) => {
   try {
     const fs = await import('fs');
     const path = await import('path');
-    
+
     // 检查目录是否存在
     if (!fs.existsSync(workspace)) {
       return [];
     }
-    
+
     // 读取目录内容
     const buildFileTree = (dirPath: string, basePath: string = dirPath): any[] => {
       const result = [];
       const items = fs.readdirSync(dirPath);
-      
+
       for (const item of items) {
         // 跳过隐藏文件和系统文件
         if (item.startsWith('.')) continue;
         if (item === 'node_modules') continue;
-        
+
         const itemPath = path.join(dirPath, item);
         const relativePath = path.relative(basePath, itemPath);
         const stat = fs.statSync(itemPath);
-        
+
         if (stat.isDirectory()) {
           const children = buildFileTree(itemPath, basePath);
           if (children.length > 0) {
@@ -562,7 +561,7 @@ ipcBridge.acpConversation.getWorkspace.provider(async ({ workspace }) => {
               path: relativePath,
               isDir: true,
               isFile: false,
-              children
+              children,
             });
           }
         } else {
@@ -570,11 +569,11 @@ ipcBridge.acpConversation.getWorkspace.provider(async ({ workspace }) => {
             name: item,
             path: relativePath,
             isDir: false,
-            isFile: true
+            isFile: true,
           });
         }
       }
-      
+
       return result.sort((a, b) => {
         // 目录优先，然后按名称排序
         if (a.isDir && b.isFile) return -1;
@@ -582,20 +581,21 @@ ipcBridge.acpConversation.getWorkspace.provider(async ({ workspace }) => {
         return a.name.localeCompare(b.name);
       });
     };
-    
+
     const files = buildFileTree(workspace);
-    
+
     // 返回的格式需要与 gemini 保持一致
-    const result = [{
-      name: path.basename(workspace),
-      path: workspace,
-      isDir: true,
-      isFile: false,
-      children: files
-    }];
-    
+    const result = [
+      {
+        name: path.basename(workspace),
+        path: workspace,
+        isDir: true,
+        isFile: false,
+        children: files,
+      },
+    ];
+
     return result;
-    
   } catch (error) {
     return [];
   }
@@ -621,7 +621,7 @@ ipcBridge.googleAuth.login.provider(async ({ proxy }) => {
     model: '',
   });
   const client = await loginWithOauth(AuthType.LOGIN_WITH_GOOGLE, config);
-  
+
   if (client) {
     // After successful login, get the actual account info
     try {
@@ -691,7 +691,28 @@ ipcBridge.mode.getModelConfig.provider(async () => {
   return ProcessConfig.get('model.config')
     .then((data) => {
       if (!data) return [];
-      return data.map((v) => ({ ...v, id: v.id || uuid() }));
+
+      // Handle migration from old IModel format to new IProvider format
+      return data.map((v: any) => {
+        // Check if this is old format (has 'useModel' field) vs new format (has 'selectedModel')
+        if ('useModel' in v && !('selectedModel' in v)) {
+          // Migrate from old format
+          return {
+            ...v,
+            selectedModel: v.useModel, // Rename useModel to selectedModel
+            id: v.id || uuid(),
+            capabilities: v.capabilities || [], // Add missing capabilities field
+            contextLimit: v.contextLimit, // Keep existing contextLimit if present
+          };
+        }
+
+        // Already in new format or unknown format, just ensure ID exists
+        return {
+          ...v,
+          id: v.id || uuid(),
+          selectedModel: v.selectedModel || v.useModel || '', // Fallback for edge cases
+        };
+      });
     })
     .catch(() => {
       return [] as IProvider[];
