@@ -110,14 +110,17 @@ export class AcpAgentTask extends EventEmitter {
       } else {
         // Load saved CLI path if not provided in config
         try {
-          const savedCliPath = (await Promise.race([AcpConfigManager.getCliPath(this.backend), new Promise((_, reject) => setTimeout(() => reject(new Error('GetCliPath timeout')), 5000))])) as string | undefined;
+          const savedCliPath = (await Promise.race([
+            AcpConfigManager.getCliPath(this.backend),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('GetCliPath timeout')), 1000))
+          ])) as string | undefined;
           if (savedCliPath) {
             this.cliPath = savedCliPath;
           } else {
             console.log('No saved CLI path found');
           }
         } catch (error) {
-          console.error('Failed to get CLI path:', error);
+          console.log('Skipping CLI path check due to storage timeout');
         }
       }
     } catch (error) {
@@ -504,9 +507,14 @@ export class AcpAgentTask extends EventEmitter {
       // Skip saved auth check for now to avoid blocking
       let savedAuth = null;
       try {
-        savedAuth = await Promise.race([AcpConfigManager.getValidAuthInfo(this.backend), new Promise((_, reject) => setTimeout(() => reject(new Error('GetValidAuthInfo timeout')), 3000))]);
+        // Reduce timeout to 1 second and skip if storage is slow
+        savedAuth = await Promise.race([
+          AcpConfigManager.getValidAuthInfo(this.backend),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('GetValidAuthInfo timeout')), 1000))
+        ]);
       } catch (error) {
-        console.error('Failed to get saved auth info:', error);
+        // Silently skip saved auth if storage is having issues
+        console.log('Skipping saved auth check due to storage timeout');
       }
 
       if (savedAuth) {
@@ -554,9 +562,13 @@ export class AcpAgentTask extends EventEmitter {
 
           // Skip saving authentication info for now to avoid blocking
           try {
-            await Promise.race([AcpConfigManager.saveAuthInfo(this.backend, authMethod.id), new Promise((_, reject) => setTimeout(() => reject(new Error('SaveAuthInfo timeout')), 2000))]);
+            await Promise.race([
+              AcpConfigManager.saveAuthInfo(this.backend, authMethod.id),
+              new Promise((_, reject) => setTimeout(() => reject(new Error('SaveAuthInfo timeout')), 1000))
+            ]);
           } catch (error) {
-            console.error('Failed to save auth info:', error);
+            // Silently skip saving if storage is having issues
+            console.log('Skipping auth info save due to storage timeout');
           }
 
           this.emitStatusMessage('authenticated', `Authenticated with ${this.backend} using ${authMethod.name}`);
