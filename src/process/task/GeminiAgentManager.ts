@@ -12,8 +12,8 @@ import { ProcessConfig } from '@/process/initStorage';
 import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '../message';
 import BaseAgentTask from './BaseAgentTask';
 
-// gemini agent任务类
-export class GeminiAgentTask extends BaseAgentTask<{
+// gemini agent管理器类
+export class GeminiAgentManager extends BaseAgentTask<{
   workspace: string;
   model: TModelWithConversation;
   imageGenerationModel?: TModelWithConversation;
