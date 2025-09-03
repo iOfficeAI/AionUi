@@ -30,7 +30,7 @@ export interface IConfigStorageRefer {
   language: string;
   theme: string;
   'gemini.defaultModel': string;
-  'tools.imageGenerationModel': TModelWithConversation & {
+  'tools.imageGenerationModel': TProviderWithModel & {
     switch: boolean;
   };
 }
@@ -50,7 +50,7 @@ interface IChatConversation<T, Extra> {
   id: string;
   type: T;
   extra: Extra;
-  model: TModelWithConversation;
+  model: TProviderWithModel;
   status?: 'pending' | 'running' | 'finished' | undefined;
 }
 
@@ -103,4 +103,4 @@ export interface IProvider {
   contextLimit?: number;
 }
 
-export type TModelWithConversation = Omit<IProvider, 'model'> & { useModel: string };
+export type TProviderWithModel = Omit<IProvider, 'model'> & { selectedModel: string };

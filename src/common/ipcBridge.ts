@@ -6,7 +6,7 @@
 
 import { bridge } from '@office-ai/platform';
 import type { OpenDialogOptions } from 'electron';
-import type { IProvider, TChatConversation, TModelWithConversation } from './storage';
+import type { IProvider, TChatConversation, TProviderWithModel } from './storage';
 
 // 发送消息
 const sendMessage = bridge.buildProvider<IBridgeResponse<{}>, ISendMessageParams>('chat.send.message');
@@ -81,7 +81,7 @@ interface IConfirmGeminiMessageParams {
 interface ICreateConversationParams {
   type: 'gemini';
   name?: string;
-  model: TModelWithConversation;
+  model: TProviderWithModel;
   extra: { workspace?: string; defaultFiles?: string[]; webSearchEngine?: 'google' | 'default' };
 }
 interface IResetConversationParams {

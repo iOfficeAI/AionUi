@@ -5,7 +5,7 @@
  */
 
 // src/core/ConfigManager.ts
-import type { TModelWithConversation } from '@/common/storage';
+import type { TProviderWithModel } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import type { CompletedToolCall, Config, GeminiClient, ServerGeminiStreamEvent, ToolCall, ToolCallRequestInfo } from '@office-ai/aioncli-core';
 import { AuthType, CoreToolScheduler, sessionId } from '@office-ai/aioncli-core';
@@ -37,8 +37,8 @@ function _mergeMcpServers(settings: ReturnType<typeof loadSettings>['merged'], e
 interface GeminiAgent2Options {
   workspace: string;
   proxy?: string;
-  model: TModelWithConversation;
-  imageGenerationModel?: TModelWithConversation;
+  model: TProviderWithModel;
+  imageGenerationModel?: TProviderWithModel;
   webSearchEngine?: 'google' | 'default';
   yoloMode?: boolean;
   onStreamEvent: (event: { type: string; data: any; msg_id: string }) => void;
@@ -48,8 +48,8 @@ export class GeminiAgent {
   config: Config | null = null;
   private workspace: string | null = null;
   private proxy: string | null = null;
-  private model: TModelWithConversation | null = null;
-  private imageGenerationModel: TModelWithConversation | null = null;
+  private model: TProviderWithModel | null = null;
+  private imageGenerationModel: TProviderWithModel | null = null;
   private webSearchEngine: 'google' | 'default' | null = null;
   private yoloMode: boolean = false;
   private geminiClient: GeminiClient | null = null;
@@ -160,7 +160,7 @@ export class GeminiAgent {
       extensions,
       sessionId,
       proxy: this.proxy,
-      model: this.model.useModel,
+      model: this.model.selectedModel,
       conversationToolConfig: this.toolConfig,
       yoloMode,
     });
