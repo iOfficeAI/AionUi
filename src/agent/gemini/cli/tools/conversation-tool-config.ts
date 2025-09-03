@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { TProviderWithModel } from '@/common/storage';
+import type { TModelWithConversation } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import type { GeminiClient } from '@office-ai/aioncli-core';
 import { AuthType, Config } from '@office-ai/aioncli-core';
@@ -14,7 +14,7 @@ import { WebSearchTool } from './web-search';
 
 interface ConversationToolConfigOptions {
   proxy: string;
-  imageGenerationModel?: TProviderWithModel;
+  imageGenerationModel?: TModelWithConversation;
   webSearchEngine?: 'google' | 'default';
 }
 
@@ -25,10 +25,10 @@ interface ConversationToolConfigOptions {
 export class ConversationToolConfig {
   private useGeminiWebSearch = false;
   private useAionuiWebFetch = false;
-  private geminiModel: TProviderWithModel | null = null;
+  private geminiModel: TModelWithConversation | null = null;
   private excludeTools: string[] = [];
   private dedicatedGeminiClient: GeminiClient | null = null; // 缓存专门的Gemini客户端
-  private imageGenerationModel: TProviderWithModel | undefined;
+  private imageGenerationModel: TModelWithConversation | undefined;
   private webSearchEngine: 'google' | 'default' = 'default';
   private proxy: string = '';
   constructor(options: ConversationToolConfigOptions) {
@@ -58,7 +58,7 @@ export class ConversationToolConfig {
   /**
    * 查找最佳可用的Gemini模型
    */
-  private async findBestGeminiModel(): Promise<TProviderWithModel | null> {
+  private async findBestGeminiModel(): Promise<TModelWithConversation | null> {
     try {
       // 前端已通过 webSearchEngine 参数确认认证状态
       const hasGoogleAuth = this.webSearchEngine === 'google';
@@ -69,7 +69,7 @@ export class ConversationToolConfig {
           platform: 'gemini-with-google-auth',
           baseUrl: '',
           apiKey: '',
-          selectedModel: 'gemini-2.5-flash',
+          useModel: 'gemini-2.5-flash',
         };
       }
 
@@ -83,7 +83,7 @@ export class ConversationToolConfig {
   /**
    * 创建专门的Gemini配置
    */
-  private createDedicatedGeminiConfig(geminiModel: TProviderWithModel): Config {
+  private createDedicatedGeminiConfig(geminiModel: TModelWithConversation): Config {
     // 创建一个最小化的配置，只用于Gemini WebSearch
     return new Config({
       sessionId: 'gemini-websearch-' + Date.now(),
@@ -94,7 +94,7 @@ export class ConversationToolConfig {
       fullContext: false,
       userMemory: '',
       geminiMdFileCount: 0,
-      model: geminiModel.selectedModel,
+      model: geminiModel.useModel,
     });
   }
 

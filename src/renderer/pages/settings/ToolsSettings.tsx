@@ -49,7 +49,7 @@ const ToolsSettings: React.FC = () => {
           header={
             <div className='flex items-center justify-between'>
               Image Generation
-              <Switch disabled={!imageGenerationModelList.length || !imageGenerationModel?.selectedModel} checked={imageGenerationModel?.switch} onChange={(checked) => handleImageGenerationModelChange({ switch: checked })} onClick={(e) => e.stopPropagation()}></Switch>
+              <Switch disabled={!imageGenerationModelList.length || !imageGenerationModel?.useModel} checked={imageGenerationModel?.switch} onChange={(checked) => handleImageGenerationModelChange({ switch: checked })} onClick={(e) => e.stopPropagation()}></Switch>
             </div>
           }
           name={'image-generation'}
@@ -58,7 +58,7 @@ const ToolsSettings: React.FC = () => {
             <Form className={'mt-10px'}>
               <Form.Item label={t('settings.imageGenerationModel')}>
                 {imageGenerationModelList.length > 0 ? (
-                  <Select value={imageGenerationModel?.selectedModel}>
+                  <Select value={imageGenerationModel?.useModel}>
                     {imageGenerationModelList.map(({ model, ...platform }) => {
                       return (
                         <Select.OptGroup label={platform.name} key={platform.id}>
@@ -66,7 +66,7 @@ const ToolsSettings: React.FC = () => {
                             return (
                               <Select.Option
                                 onClick={() => {
-                                  handleImageGenerationModelChange({ ...platform, selectedModel: model });
+                                  handleImageGenerationModelChange({ ...platform, useModel: model });
                                 }}
                                 key={platform.platform + model}
                                 value={model}

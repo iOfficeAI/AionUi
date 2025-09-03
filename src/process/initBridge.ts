@@ -16,7 +16,7 @@ import { ipcBridge } from '../common';
 import { createGeminiAgent } from './initAgent';
 import { getSystemDir, ProcessChat, ProcessChatMessage, ProcessConfig, ProcessEnv } from './initStorage';
 import { nextTickToLocalFinish } from './message';
-import type { GeminiAgentManager } from './task/GeminiAgentManager';
+import type { GeminiAgentTask } from './task/GeminiAgentTask';
 import { copyDirectoryRecursively, generateHashWithFullName, readDirectoryRecursive } from './utils';
 import WorkerManage from './WorkerManage';
 
@@ -160,7 +160,7 @@ ipcBridge.application.updateSystemInfo.provider(async ({ cacheDir, workDir }) =>
 });
 
 ipcBridge.geminiConversation.sendMessage.provider(async ({ conversation_id, files, ...other }) => {
-  const task = WorkerManage.getTaskById(conversation_id) as GeminiAgentManager;
+  const task = WorkerManage.getTaskById(conversation_id) as GeminiAgentTask;
   if (!task) return { success: false, msg: 'conversation not found' };
   if (files) {
     for (const file of files) {
@@ -177,7 +177,7 @@ ipcBridge.geminiConversation.sendMessage.provider(async ({ conversation_id, file
     });
 });
 ipcBridge.geminiConversation.confirmMessage.provider(async ({ confirmKey, msg_id, conversation_id, callId }) => {
-  const task: GeminiAgentManager = WorkerManage.getTaskById(conversation_id) as any;
+  const task: GeminiAgentTask = WorkerManage.getTaskById(conversation_id) as any;
   if (!task) return { success: false, msg: 'conversation not found' };
   if (task.type !== 'gemini' && task.type !== 'gemini2') return { success: false, msg: 'not support' };
   return task

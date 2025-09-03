@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { TProviderWithModel } from '@/common/storage';
+import type { TModelWithConversation } from '@/common/storage';
 import FlexFullContainer from '@renderer/components/FlexFullContainer';
 import MessageList from '@renderer/messages/MessageList';
 import { MessageListProvider, useMessageLstCache } from '@renderer/messages/hooks';
@@ -15,7 +15,7 @@ import GeminiSendBox from './GeminiSendBox';
 
 const GeminiChat: React.FC<{
   conversation_id: string;
-  model: TProviderWithModel;
+  model: TModelWithConversation;
   workspace: string;
 }> = ({ conversation_id, model, workspace }) => {
   useMessageLstCache(conversation_id);
