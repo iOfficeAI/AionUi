@@ -1,13 +1,13 @@
 diff --git a/node_modules/@zed-industries/claude-code-acp/dist/acp-agent.js b/node_modules/@zed-industries/claude-code-acp/dist/acp-agent.js
-index 1234567..abcdefg 100644
+index 9b3ab97..2161a30 100644
 --- a/node_modules/@zed-industries/claude-code-acp/dist/acp-agent.js
 +++ b/node_modules/@zed-industries/claude-code-acp/dist/acp-agent.js
-@@ -10,11 +10,12 @@ import { toolInfoFromToolUse, planEntries, toolUpdateFromToolResult } from "./t
+@@ -6,11 +6,12 @@ import { createMcpServer } from "./mcp-server.js";
+ import { toolInfoFromToolUse, planEntries, toolUpdateFromToolResult, } from "./tools.js";
  // Implement the ACP Agent interface
  export class ClaudeAcpAgent {
 -    constructor(client) {
 +    constructor(client, claudePath) {
-         this.backgroundTerminals = {};
          this.sessions = {};
          this.client = client;
          this.toolUseCache = {};
@@ -16,7 +16,8 @@ index 1234567..abcdefg 100644
      }
      async initialize(request) {
          this.clientCapabilities = request.clientCapabilities;
-@@ -67,12 +68,36 @@ export class ClaudeAcpAgent {
+@@ -59,12 +60,34 @@ export class ClaudeAcpAgent {
+                 "x-acp-proxy-session-id": sessionId,
              },
          };
 +        // 使用传入的 Claude 路径，或动态检测
@@ -34,24 +35,23 @@ index 1234567..abcdefg 100644
 +                    claudePath = claudePath.split('\n')[0].trim();
 +                }
 +                console.error('Auto-detected claude at:', claudePath);
-+            }
-+            catch (error) {
++            } catch (error) {
 +                console.warn('Could not find claude via platform command, using default:', claudePath);
 +            }
-+        }
-+        else {
++        } else {
 +            console.error('Using provided claude path:', claudePath);
 +        }
-         const options = {
+         let options = {
              cwd: params.cwd,
              mcpServers,
+             disallowedTools: [],
              permissionPromptToolName: "mcp__acp__permission",
              stderr: (err) => console.error(err),
 +            pathToClaudeCodeExecutable: claudePath,
          };
-         const allowedTools = [];
-         const disallowedTools = [];
-@@ -442,6 +467,6 @@ export function toAcpNotifications(message, sessionId, toolUseCache, fileContent
+         if (this.clientCapabilities?.fs?.readTextFile) {
+             options.allowedTools = ["mcp__acp__read"];
+@@ -327,6 +350,6 @@ export function toAcpNotifications(message, sessionId, toolUseCache, fileContent
      }
      return output;
  }
@@ -61,12 +61,17 @@ index 1234567..abcdefg 100644
 +    new AgentSideConnection((client) => new ClaudeAcpAgent(client, claudePath), nodeToWebWritable(process.stdout), nodeToWebReadable(process.stdin));
  }
 diff --git a/node_modules/@zed-industries/claude-code-acp/dist/index.js b/node_modules/@zed-industries/claude-code-acp/dist/index.js
-index 7890123..def4567 100755
+index db95f28..205d559 100755
 --- a/node_modules/@zed-industries/claude-code-acp/dist/index.js
 +++ b/node_modules/@zed-industries/claude-code-acp/dist/index.js
-@@ -6,7 +6,12 @@ console.info = console.error;
- console.warn = console.error;
- console.debug = console.error;
+@@ -1,5 +1,16 @@
+ #!/usr/bin/env node
++// stdout is used to send messages to the client
++// we redirect everything else to stderr to make sure it doesn't interfere with ACP
++console.log = console.error;
++console.info = console.error;
++console.warn = console.error;
++console.debug = console.error;
  import { runAcp as runAcp } from "./acp-agent.js";
 -runAcp();
 +// Parse command line arguments for Claude path
