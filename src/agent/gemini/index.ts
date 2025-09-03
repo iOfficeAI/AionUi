@@ -160,7 +160,7 @@ export class GeminiAgent {
       extensions,
       sessionId,
       proxy: this.proxy,
-      model: this.model.selectedModel,
+      model: this.model.useModel,
       conversationToolConfig: this.toolConfig,
       yoloMode,
     });

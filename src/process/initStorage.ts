@@ -146,13 +146,34 @@ const JsonFileBuilder = <S extends Record<string, any>>(path: string) => {
     try {
       const result = await file.read();
       if (!result) return {} as S;
-      return JSON.parse(decode(result)) as S;
+
+      // 验证文件内容不为空且不是损坏的base64
+      if (result.trim() === '') {
+        console.warn(`[Storage] Empty file detected: ${path}`);
+        return {} as S;
+      }
+
+      const decoded = decode(result);
+      if (!decoded || decoded.trim() === '') {
+        console.warn(`[Storage] Empty or corrupted content after decode: ${path}`);
+        return {} as S;
+      }
+
+      const parsed = JSON.parse(decoded) as S;
+
+      // 额外验证：如果是聊天历史文件且解析结果为空对象，警告用户
+      if (path.includes('chat.txt') && Object.keys(parsed).length === 0) {
+        console.warn(`[Storage] Chat history file appears to be empty: ${path}`);
+      }
+
+      return parsed;
     } catch (e) {
+      console.error(`[Storage] Error reading/parsing file ${path}:`, e);
       return {} as S;
     }
   };
 
-  const setJson = (data: any): Promise<any> => {
+  const setJson = async (data: any): Promise<any> => {
     try {
       return file.write(encode(JSON.stringify(data)));
     } catch (e) {

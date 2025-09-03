@@ -11,9 +11,7 @@ const useDefaultImageGenerationMode = (defaultSetting = true) => {
   const updateDefaultImageGenerationMode = async () => {
     try {
       const config = await ConfigStorage.get('tools.imageGenerationModel');
-      // Handle backward compatibility: useModel -> selectedModel (read only)
-      const effectiveSelectedModel = config?.selectedModel || (config as any)?.useModel;
-      if (effectiveSelectedModel) {
+      if (config?.useModel) {
         return;
       }
       throw new Error('No image generation model found');
@@ -22,7 +20,7 @@ const useDefaultImageGenerationMode = (defaultSetting = true) => {
         const { model, ...other } = platform;
         for (const m of model) {
           if (other.platform.includes('OpenRouter') && m.includes('image') && m.includes('free')) {
-            await ConfigStorage.set('tools.imageGenerationModel', { selectedModel: m, ...other, switch: true });
+            await ConfigStorage.set('tools.imageGenerationModel', { useModel: m, ...other, switch: true });
             message.info(t('messages.imageGenerationModelDetected', { platform: other.platform, model: m }));
             return;
           }
