@@ -55,7 +55,7 @@ const SendBox: React.FC<{
 
   return (
     <div className={`mb-16px  ${className}`}>
-      <div className='p-16px b-#E5E6EB b bg-white b-solid rd-20px  focus-within:shadow-[0px_2px_20px_rgba(77,60,234,0.1)] '>
+      <div className='p-16px b rd-20px focus-within:shadow-[var(--o-focus-shadow)]' data-app-style='o-setting-group'>
         {prefix}
         {context}
         <Input.TextArea
@@ -91,12 +91,12 @@ const SendBox: React.FC<{
               //   size={18}
               //   onClick={stopHandler}
               // />
-              <Button shape='circle' type='secondary' className='bg-animate' icon={<div className='mx-auto size-12px bg-#86909C' onClick={stopHandler}></div>}></Button>
+              <Button shape='circle' type='secondary' className='bg-animate' icon={<div className='mx-auto size-12px' data-app-style='o-sendbox-dot' onClick={stopHandler}></div>}></Button>
             ) : (
               <Button
                 shape='circle'
                 type='primary'
-                icon={<ArrowUp theme='outline' size='14' fill='white' strokeWidth={2} />}
+                icon={<ArrowUp theme='outline' size='14' fill='currentColor' strokeWidth={2} />}
                 onClick={() => {
                   sendMessageHandler();
                 }}

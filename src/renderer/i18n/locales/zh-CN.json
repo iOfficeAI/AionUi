@@ -92,6 +92,138 @@
     "imageGenerationGuide": "免费图像模型配置指南",
     "noAvailable": "暂无可用图像模型，请先配置。"
   },
+  "theme": {
+    "management": "主题管理",
+    "panel": {
+      "importExport": "导入/导出",
+      "themeSelection": "主题选择与预设",
+      "modeSettings": "模式与默认模式",
+      "variables": "变量（Variables）",
+      "appStyles": "应用样式（AppStyles）",
+      "textStyles": "文本样式（i18nStyles）",
+      "codeHighlight": "代码高亮（CodeHighlight）",
+      "importBuiltin": "导入内置预设",
+      "importFile": "从文件导入 (JSON/YAML)",
+      "exportFile": "保存为文件 (JSON/YAML)",
+      "importText": "导入主题 JSON/YAML",
+      "selectTheme": "主题",
+      "mode": "模式",
+      "defaultMode": "默认模式",
+      "arcoConfig": "Arco Design 配置",
+      "i18nKey": "i18n 关键字样式"
+    },
+    "action": {
+      "expandAll": "展开全部",
+      "showImportExportOnly": "仅显示导入/导出",
+      "collapseAll": "折叠全部",
+      "saveAsJson": "另存为 JSON",
+      "saveAsYaml": "另存为 YAML",
+      "import": "导入",
+      "exportToJson": "导出为 JSON 到下方",
+      "exportToYaml": "导出为 YAML 到下方",
+      "createStyle": "新建样式",
+      "saveStyle": "保存样式"
+    },
+    "mode": {
+      "light": "明亮",
+      "dark": "暗黑"
+    },
+    "defaultMode": {
+      "none": "无默认",
+      "light": "默认明亮",
+      "dark": "默认暗黑"
+    },
+    "arco": {
+      "primaryColor": "主色调"
+    },
+    "section": {
+      "textStyle": "文字样式",
+      "background": "背景",
+      "border": "边框",
+      "spacing": "间距",
+      "basic": "基础设置",
+      "syntaxColors": "语法高亮颜色",
+      "uiElements": "UI 元素",
+      "baseStyle": "基础样式",
+      "hover": "HOVER 状态",
+      "active": "ACTIVE 状态",
+      "focus": "FOCUS 状态"
+    },
+    "codeHighlight": {
+      "background": "背景色",
+      "color": "前景色",
+      "fontFamily": "字体",
+      "fontSize": "字体大小",
+      "lineHeight": "行高",
+      "keyword": "关键字",
+      "string": "字符串",
+      "comment": "注释",
+      "number": "数字",
+      "function": "函数",
+      "variable": "变量",
+      "operator": "操作符",
+      "type": "类型",
+      "constant": "常量",
+      "punctuation": "标点",
+      "className": "类名",
+      "property": "属性",
+      "tag": "标签",
+      "attr": "属性名",
+      "headerBackground": "头部背景",
+      "headerColor": "头部文字",
+      "lineNumberColor": "行号颜色",
+      "selectedLineBackground": "选中行背景",
+      "borderColor": "边框颜色",
+      "scrollbarColor": "滚动条颜色",
+      "iconColor": "图标颜色",
+      "inlineCodeBackground": "内联代码背景",
+      "inlineCodeBorder": "内联代码边框"
+    },
+    "placeholder": {
+      "pasteTheme": "粘贴导入的主题 JSON 或 YAML",
+      "selectI18nKey": "选择或搜索 i18n key（支持 * 与 a.b.*）",
+      "colorVar": "选择颜色变量，例如 --color-text-1",
+      "textColor": "文字颜色，如 #333333",
+      "fontSize": "字体大小，如 16px",
+      "fontWeight": "字重，如 600",
+      "bgColorVar": "背景颜色变量，例如 --color-bg-1",
+      "bgColor": "背景色值，如 #ffffff",
+      "bgImage": "背景图片，如 linear-gradient(...) 或 url(...)",
+      "borderColorVar": "边框颜色变量，例如 --color-border-1",
+      "borderColor": "边框颜色，如 #cccccc",
+      "borderWidth": "边框宽度，如 1px",
+      "borderStyle": "边框样式，如 solid / dashed",
+      "borderRadius": "圆角，如 4px",
+      "padding": "内边距 padding，如 4px 8px",
+      "margin": "外边距 margin，如 8px 12px"
+    },
+    "help": {
+      "currentTheme": "当前主题：",
+      "defaultMode": "为当前主题",
+      "setDefaultMode": "设置默认模式：",
+      "arcoConfig": "当前模式：",
+      "noStyle": "当前未配置样式"
+    },
+    "label": {
+      "preview": "预览："
+    },
+    "preview": {
+      "text": "样式预览文字"
+    },
+    "success": {
+      "saved": "已保存",
+      "imported": "主题导入成功",
+      "i18nStyleSaved": "已更新 i18n 样式"
+    },
+    "error": {
+      "invalidFile": "文件格式不正确",
+      "importFailed": "导入失败：",
+      "saveFailed": "保存失败：",
+      "exportFailed": "导出失败：",
+      "invalidFormat": "无效的主题格式",
+      "i18nStyleFailed": "i18n 样式保存失败："
+    }
+  },
   "messages": {
     "conversationInProgress": "当前正在进行对话中...",
     "confirm": "确认",

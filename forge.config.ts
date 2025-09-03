@@ -17,7 +17,7 @@ let osxSign;
 if (process.env.identity) {
   osxSign = {
     identity: process.env.identity,
-    optionsForFile: (filePath) => {
+    optionsForFile: (_filePath) => {
       return {
         hardenedRuntime: true,
         entitlements: path.resolve(__dirname, 'entitlements.plist'),
@@ -111,6 +111,18 @@ module.exports = {
           'Access-Control-Allow-Origin': '*',
           'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
           'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        },
+        client: {
+          overlay: {
+            errors: (error) => {
+              // 过滤掉 ResizeObserver 错误
+              if (error.message && error.message.includes('ResizeObserver')) {
+                return false;
+              }
+              return true;
+            },
+            warnings: false,
+          },
         },
       },
     }),

@@ -19,7 +19,7 @@ const ChatConversation: React.FC<{
     if (!conversation) return null;
     switch (conversation.type) {
       case 'gemini':
-        return <GeminiChat key={conversation.id} conversation_id={conversation.id} workspace={conversation.extra.workspace} model={conversation.model}></GeminiChat>;
+        return <GeminiChat conversation_id={conversation.id} workspace={conversation.extra.workspace} model={conversation.model} />;
       default:
         return null;
     }
@@ -28,7 +28,11 @@ const ChatConversation: React.FC<{
   const siderTitle = useMemo(() => {
     switch (conversation?.type) {
       case 'gemini':
-        return <span className='text-16px font-bold color-#111827'>{t('conversation.workspace.title')}</span>;
+        return (
+          <span className='text-16px font-bold' data-app-style='o-icon-color'>
+            {t('conversation.workspace.title')}
+          </span>
+        );
     }
     return null;
   }, [conversation]);

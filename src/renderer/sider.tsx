@@ -18,13 +18,16 @@ const Sider: React.FC = () => {
       ) : (
         <>
           <div
-            className='flex items-center justify-start gap-10px px-12px py-8px hover:bg-#f3f4f6 rd-0.5rem mb-8px cursor-pointer group'
+            data-app-style='o-slider-menu'
+            className='flex items-center justify-start gap-10px px-12px py-8px rd-0.5rem mb-8px cursor-pointer group'
             onClick={() => {
               navigate('/guid');
             }}
           >
-            <Plus theme='outline' size='24' fill='#333' className='flex' />
-            <span className='collapsed-hidden font-bold'>{t('conversation.welcome.newConversation')}</span>
+            <Plus theme='outline' size='24' fill='currentColor' className='flex' />
+            <span className='collapsed-hidden font-bold' data-i18n-key='conversation.welcome.newConversation'>
+              {t('conversation.welcome.newConversation')}
+            </span>
           </div>
           <ChatHistory></ChatHistory>
         </>
@@ -34,10 +37,13 @@ const Sider: React.FC = () => {
           if (isSettings) return navigate('/guid');
           navigate('/settings');
         }}
-        className='flex items-center justify-start gap-10px px-12px py-8px hover:bg-#f3f4f6 rd-0.5rem mb-8px cursor-pointer'
+        data-app-style='o-slider-menu'
+        className='flex items-center justify-start gap-10px px-12px py-8px rd-0.5rem mb-8px cursor-pointer'
       >
-        {isSettings ? <ArrowCircleLeft className='flex' theme='outline' size='24' fill='#333' /> : <SettingTwo className='flex' theme='outline' size='24' fill='#333' />}
-        <span className='collapsed-hidden'>{isSettings ? t('common.back') : t('common.settings')}</span>
+        {isSettings ? <ArrowCircleLeft className='flex' theme='outline' size='24' fill='currentColor' /> : <SettingTwo className='flex' theme='outline' size='24' fill='currentColor' />}
+        <span className='collapsed-hidden' data-i18n-key={isSettings ? 'common.back' : 'common.settings'}>
+          {isSettings ? t('common.back') : t('common.settings')}
+        </span>
       </div>
     </div>
   );

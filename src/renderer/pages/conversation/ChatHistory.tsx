@@ -46,7 +46,7 @@ const useTimeline = () => {
   };
 };
 
-const ChatHistory: React.FC = ({ ...props }) => {
+const ChatHistory: React.FC = () => {
   const [chatHistory, setChatHistory] = useState<TChatConversation[]>([]);
   const { id } = useParams();
   const navigate = useNavigate();
@@ -87,8 +87,10 @@ const ChatHistory: React.FC = ({ ...props }) => {
       <div
         key={conversation.id}
         id={'c-' + conversation.id}
-        className={classNames('hover:bg-#EBECF1 px-12px py-8px rd-8px flex justify-start items-center group cursor-pointer relative overflow-hidden group shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px', {
-          '!bg-#E5E7F0 ': isSelected,
+        data-app-style='o-slider-menu'
+        data-app-state={isSelected ? 'active' : undefined}
+        className={classNames('px-12px py-8px rd-8px flex justify-start items-center group cursor-pointer relative overflow-hidden group shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px', {
+          selected: isSelected,
         })}
         onClick={handleSelect.bind(null, conversation)}
       >
@@ -98,9 +100,7 @@ const ChatHistory: React.FC = ({ ...props }) => {
         </FlexFullContainer>
         <div
           className={classNames('absolute right--15px top-0px h-full w-70px items-center justify-center hidden group-hover:flex !collapsed-hidden')}
-          style={{
-            backgroundImage: `linear-gradient(to right, rgba(219, 234, 254, 0),${isSelected ? '#E5E7F0' : '#E5E7F0'} 50%)`,
-          }}
+          // gradient visual removed in favor of themed hover via appStyles
           onClick={(event) => {
             event.stopPropagation();
           }}
@@ -146,7 +146,11 @@ const ChatHistory: React.FC = ({ ...props }) => {
             const timeline = formatTimeline(item);
             return (
               <React.Fragment key={item.id}>
-                {timeline && <div className='collapsed-hidden px-12px py-8px text-13px color-#555 font-bold'>{timeline}</div>}
+                {timeline && (
+                  <div className='collapsed-hidden px-12px py-8px text-13px font-bold' data-app-style='o-icon-color'>
+                    {timeline}
+                  </div>
+                )}
                 {renderConversation(item)}
               </React.Fragment>
             );

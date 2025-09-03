@@ -221,14 +221,14 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
             className={'!items-start !rd-8px !px-8px [&_div.arco-alert-content-wrapper]:max-w-[calc(100%-24px)]'}
             key={callId}
             type={status === 'Error' ? 'error' : status === 'Success' ? 'success' : status === 'Canceled' ? 'warning' : 'info'}
-            icon={isLoading && <LoadingOne theme='outline' size='12' fill='#333' className='loading lh-[1] flex' />}
+            icon={isLoading && <LoadingOne theme='outline' size='12' fill='currentColor' className='loading lh-[1] flex' />}
             content={
               <div>
                 <Tag className={'mr-4px'}>
                   {name}
                   {status === 'Canceled' ? `(${t('messages.canceledExecution')})` : ''}
                 </Tag>
-                <div className='text-12px color-#666'>{description}</div>
+                <div className='text-12px text-[var(--color-text-2)]'>{description}</div>
                 <div className='overflow-auto'>
                   <ToolResultDisplay content={content}></ToolResultDisplay>
                 </div>

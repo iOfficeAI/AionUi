@@ -220,7 +220,7 @@ export abstract class DeclarativeTool<TParams extends object, TResult extends To
         returnDisplay: errorMessage,
         error: {
           message: errorMessage,
-          type: ToolErrorType.EXECUTION_FAILED,
+          type: ToolErrorType.UNKNOWN,
         },
       };
     }

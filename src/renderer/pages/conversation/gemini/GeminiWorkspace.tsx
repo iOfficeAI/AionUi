@@ -15,7 +15,7 @@ import { useTranslation } from 'react-i18next';
 const GeminiWorkspace: React.FC<{
   workspace: string;
   customWorkspace?: boolean;
-}> = ({ workspace, customWorkspace }) => {
+}> = ({ workspace }) => {
   const { t } = useTranslation();
   const [selected, setSelected] = useState<string[]>([]);
   const [files, setFiles] = useState<IDirOrFile[]>([]);
@@ -96,12 +96,14 @@ const GeminiWorkspace: React.FC<{
   return (
     <div className='size-full flex flex-col'>
       <div className='px-16px pb-8px flex items-center justify-start gap-4px'>
-        <span className='font-bold text-14px'>{t('common.file')}</span>
-        <Refresh className={loading ? 'loading lh-[1] flex' : 'flex'} theme='outline' fill='#333' onClick={refreshWorkspace} />
+        <span className='font-bold text-14px' data-app-style='o-icon-color'>
+          {t('common.file')}
+        </span>
+        <Refresh className={loading ? 'loading lh-[1] flex' : 'flex'} theme='outline' fill='currentColor' onClick={refreshWorkspace} />
       </div>
       {hasOriginalFiles && (
         <div className='px-16px pb-8px'>
-          <Input className='w-full' placeholder={t('conversation.workspace.searchPlaceholder')} value={searchText} onChange={setSearchText} allowClear prefix={<Search theme='outline' size='14' fill='#333' />} />
+          <Input className='w-full' placeholder={t('conversation.workspace.searchPlaceholder')} value={searchText} onChange={setSearchText} allowClear prefix={<Search theme='outline' size='14' fill='currentColor' />} />
         </div>
       )}
       <FlexFullContainer containerClassName='overflow-y-auto'>
@@ -110,7 +112,9 @@ const GeminiWorkspace: React.FC<{
             <Empty
               description={
                 <div>
-                  <span className='color-#6b7280 font-bold text-14px'>{t('conversation.workspace.empty')}</span>
+                  <span className='font-bold text-14px' data-app-style='o-icon-color'>
+                    {t('conversation.workspace.empty')}
+                  </span>
                   <div>{t('conversation.workspace.emptyDescription')}</div>
                 </div>
               }
@@ -130,7 +134,7 @@ const GeminiWorkspace: React.FC<{
             }}
             multiple
             renderTitle={(node) => {
-              let timer: any;
+              let timer: NodeJS.Timeout;
               const path = node.dataRef.path;
               let time = Date.now();
               return (

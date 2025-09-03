@@ -16,7 +16,7 @@ import SettingContainer from './components/SettingContainer';
 const DirInputItem: React.FC<{
   label: string;
   field: string;
-  rules?: any[];
+  rules?: unknown[];
 }> = (props) => {
   const { t } = useTranslation();
   return (
@@ -29,7 +29,7 @@ const DirInputItem: React.FC<{
             <FolderOpen
               theme='outline'
               size='24'
-              fill='#333'
+              fill='currentColor'
               onClick={() => {
                 ipcBridge.dialog.showOpen
                   .invoke({
@@ -50,7 +50,7 @@ const DirInputItem: React.FC<{
   );
 };
 
-const GeminiSettings: React.FC = (props) => {
+const GeminiSettings: React.FC = () => {
   const { t } = useTranslation();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
@@ -82,7 +82,7 @@ const GeminiSettings: React.FC = (props) => {
       });
   };
 
-  const saveDirConfigValidate = async (values: { cacheDir: string; workDir: string }) => {
+  const saveDirConfigValidate = async (_values: { cacheDir: string; workDir: string }) => {
     return new Promise((resolve, reject) => {
       modal.confirm({
         title: t('settings.updateConfirm'),
@@ -95,7 +95,7 @@ const GeminiSettings: React.FC = (props) => {
 
   const onSubmit = async () => {
     const values = await form.validate();
-    const { cacheDir, workDir, googleAccount, ...rest } = values;
+    const { cacheDir, workDir } = values;
     setLoading(true);
     setError(null);
 
