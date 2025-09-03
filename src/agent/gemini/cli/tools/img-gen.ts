@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { TModelWithConversation } from '@/common/storage';
+import type { TProviderWithModel } from '@/common/storage';
 import { Type } from '@google/genai';
 import type { Config, ToolResult, ToolInvocation, ToolLocation, ToolCallConfirmationDetails } from '@office-ai/aioncli-core';
 import { BaseDeclarativeTool, BaseToolInvocation, Kind, getErrorMessage, ToolErrorType } from '@office-ai/aioncli-core';
@@ -128,7 +128,7 @@ export class ImageGenerationTool extends BaseDeclarativeTool<ImageGenerationTool
 
   constructor(
     private readonly config: Config,
-    private readonly imageGenerationModel: TModelWithConversation,
+    private readonly imageGenerationModel: TProviderWithModel,
     private readonly proxy?: string
   ) {
     super(
@@ -250,7 +250,7 @@ class ImageGenerationInvocation extends BaseToolInvocation<ImageGenerationToolPa
 
   constructor(
     private readonly config: Config,
-    private readonly imageGenerationModel: TModelWithConversation,
+    private readonly imageGenerationModel: TProviderWithModel,
     params: ImageGenerationToolParams,
     private readonly proxy?: string
   ) {
@@ -355,7 +355,7 @@ Please ensure the image file exists and has a valid image extension (.jpg, .png,
     // Clean API key
     const cleanedApiKey = apiKey.replace(/[\s\r\n\t]/g, '').trim();
 
-    this.currentModel = this.imageGenerationModel.useModel;
+    this.currentModel = this.imageGenerationModel.selectedModel;
     const openaiConfig: any = {
       baseURL: this.imageGenerationModel.baseUrl,
       apiKey: cleanedApiKey,
