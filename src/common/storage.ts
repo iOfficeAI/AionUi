@@ -103,4 +103,4 @@ export interface IProvider {
   contextLimit?: number;
 }
 
-export type TProviderWithModel = Omit<IProvider, 'model'> & { selectedModel: string };
+export type TProviderWithModel = Omit<IProvider, 'model'> & { useModel: string };
