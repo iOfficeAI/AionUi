@@ -13,6 +13,8 @@ import MessageTips from './MessageTips';
 import MessageToolCall from './MessageToolCall';
 import MessageToolGroup from './MessageToolGroup';
 import MessageText from './MessagetText';
+import MessageAcpStatus from './MessageAcpStatus';
+import MessageAcpPermission from './MessageAcpPermission';
 
 const MessageItem: React.FC<{ message: TMessage }> = HOC((props) => {
   const { message } = props as { message: TMessage };
@@ -37,6 +39,10 @@ const MessageItem: React.FC<{ message: TMessage }> = HOC((props) => {
       return <MessageToolCall message={message}></MessageToolCall>;
     case 'tool_group':
       return <MessageToolGroup message={message}></MessageToolGroup>;
+    case 'acp_status':
+      return <MessageAcpStatus message={message}></MessageAcpStatus>;
+    case 'acp_permission':
+      return <MessageAcpPermission message={message}></MessageAcpPermission>;
     default:
       return <div>Unknown message type: {(message as any).type}</div>;
   }
@@ -56,7 +62,6 @@ const MessageList: React.FC<{ className?: string }> = ({ className }) => {
     setTimeout(() => {
       scrollToBottom();
     }, 100);
-    console.log('message.list----->', list);
   }, [list]);
 
   return (

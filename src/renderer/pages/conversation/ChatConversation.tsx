@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 import ChatLayout from './ChatLayout';
 import ChatSider from './ChatSider';
 import GeminiChat from './gemini/GeminiChat';
+import AcpChat from './acp/AcpChat';
 
 const ChatConversation: React.FC<{
   conversation?: TChatConversation;
@@ -20,6 +21,8 @@ const ChatConversation: React.FC<{
     switch (conversation.type) {
       case 'gemini':
         return <GeminiChat conversation_id={conversation.id} workspace={conversation.extra.workspace} model={conversation.model}></GeminiChat>;
+      case 'acp':
+        return <AcpChat conversation_id={conversation.id} workspace={conversation.extra?.workspace} backend={conversation.extra?.backend || 'claude'}></AcpChat>;
       default:
         return null;
     }
@@ -29,6 +32,8 @@ const ChatConversation: React.FC<{
     switch (conversation?.type) {
       case 'gemini':
         return <span className='text-16px font-bold color-#111827'>{t('conversation.workspace.title')}</span>;
+      case 'acp':
+        return <span className='text-16px font-bold color-#111827'>ACP {conversation.extra?.backend || 'claude'}</span>;
     }
     return null;
   }, [conversation]);

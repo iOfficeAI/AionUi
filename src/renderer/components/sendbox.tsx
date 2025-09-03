@@ -35,12 +35,15 @@ const SendBox: React.FC<{
       message.warning(t('messages.conversationInProgress'));
       return;
     }
-    if (!input.trim()) return;
+    if (!input.trim()) {
+      return;
+    }
     setIsLoading(true);
     onSend(input)
       .then(() => {
         setInput('');
       })
+      .catch(() => {})
       .finally(() => {
         setIsLoading(false);
       });

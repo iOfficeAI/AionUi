@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IModel } from '@/common/storage';
+import type { IModel, TChatConversation } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import { AuthType, clearCachedCredentialFile, Config, getOauthInfoWithCache, loginWithOauth } from '@office-ai/aioncli-core';
 import { logger } from '@office-ai/platform';
@@ -16,10 +16,11 @@ import { ipcBridge } from '../common';
 import { createGeminiAgent } from './initAgent';
 import { getSystemDir, ProcessChat, ProcessChatMessage, ProcessConfig, ProcessEnv } from './initStorage';
 import { nextTickSync } from './message';
+import type { AcpAgentConfig } from './task/AcpAgentTask';
+import { AcpAgentTask } from './task/AcpAgentTask';
 import type { GeminiAgentTask } from './task/GeminiAgentTask';
 import { copyDirectoryRecursively, generateHashWithFullName, readDirectoryRecursive } from './utils';
 import WorkerManage from './WorkerManage';
-
 logger.config({ print: true });
 
 ipcBridge.dialog.showOpen.provider((options) => {
@@ -77,18 +78,144 @@ ipcBridge.conversation.create.provider(async ({ type, extra, name, model }) => {
       }
       WorkerManage.buildConversation(conversation);
       await ProcessChat.get('chat.history').then((history) => {
-        if (!history) {
-          ProcessChat.set('chat.history', [conversation]);
+        // 区分真正的空历史和读取失败
+        let safeHistory: TChatConversation[];
+        if (Array.isArray(history)) {
+          safeHistory = history;
+        } else if (history === null || history === undefined) {
+          // 全新用户或首次使用，创建空的历史列表
+          safeHistory = [];
         } else {
-          if (history.some((h) => h.id === conversation.id)) return;
-          ProcessChat.set('chat.history', [...history, conversation]);
+          // 其他异常情况（比如解析错误），为安全起见不保存
+          return;
         }
+        
+        // 检查是否已存在
+        if (safeHistory.some((h) => h.id === conversation.id)) return;
+        
+        // 安全地添加新会话
+        ProcessChat.set('chat.history', [...safeHistory, conversation]);
       });
+      return conversation;
+    } else if (type === 'acp') {
+      if (!extra.backend) {
+        throw new Error('ACP backend is required');
+      }
+
+      // Create unique workspace directory for each ACP conversation
+      // Always create a new acp-temp directory, even if workspace is provided
+      const baseWorkspace = extra.workspace || getSystemDir().workDir;
+      const fileName = `acp-temp-${Date.now()}`;
+      const workspace = path.join(baseWorkspace, fileName);
+      // Create the unique workspace directory
+      try {
+        await fs.mkdir(workspace, { recursive: true });
+      } catch (error) {
+        throw error;
+      }
+      
+      // Copy default files if provided
+      if (extra.defaultFiles) {
+        for (const file of extra.defaultFiles) {
+          const fileName = path.basename(file);
+          const destPath = path.join(workspace, fileName);
+          await fs.copyFile(file, destPath);
+        }
+      }
+      
+      const customWorkspace = !!extra.workspace;
+
+      const conversationId = generateHashWithFullName(`${extra.backend}-acp-${workspace}`);
+      
+      // Check if conversation already exists before creating
+      const history = await ProcessChat.get('chat.history');
+      let safeHistory: TChatConversation[];
+      if (Array.isArray(history)) {
+        safeHistory = history;
+      } else if (history === null || history === undefined) {
+        // 全新用户或首次使用，创建空的历史列表
+        safeHistory = [];
+      } else {
+        // 其他异常情况（比如解析错误），为安全起见不保存
+        safeHistory = [];
+      }
+      
+      // 检查是否已存在
+      const existingConversation = safeHistory.find((h) => h.id === conversationId);
+      if (existingConversation) {
+        // Re-add to WorkerManage if not already present
+        if (!WorkerManage.getTaskById(conversationId)) {
+          const existingConfig: AcpAgentConfig = {
+            id: existingConversation.id,
+            name: existingConversation.name,
+            backend: (existingConversation.extra as any)?.backend || (extra as any).backend,
+            cliPath: (existingConversation.extra as any)?.cliPath || (extra as any).cliPath,
+            workingDir: existingConversation.extra?.workspace || workspace,
+            createTime: existingConversation.createTime,
+            modifyTime: existingConversation.modifyTime,
+            extra: existingConversation.extra as any,
+            model: existingConversation.model,
+          };
+          const restoredConversation = new AcpAgentTask(existingConfig);
+          WorkerManage.addTask(conversationId, restoredConversation);
+        }
+        return existingConversation;
+      }
+
+      const config: AcpAgentConfig = {
+        id: conversationId,
+        name: name || `${extra.backend} ACP`,
+        backend: extra.backend,
+        cliPath: extra.cliPath,
+        workingDir: workspace,
+        extra: {
+          workspace: workspace,
+          backend: extra.backend,
+          cliPath: extra.cliPath,
+          customWorkspace: customWorkspace,
+        },
+      };
+
+      // Save CLI path if provided
+      // TODO: Fix saveCliPath blocking issue
+      // if (extra.cliPath) {
+      //   await AcpConfigManager.saveCliPath(extra.backend, extra.cliPath);
+      // }
+
+      const conversation = new AcpAgentTask(config);
+
+      // ACP messages are handled directly in AcpAgentTask, no need for additional listeners
+
+      // Add the ACP task to WorkerManage
+      WorkerManage.addTask(conversation.id, conversation);
+      
+      // 安全地添加新会话到历史记录
+      ProcessChat.set('chat.history', [...safeHistory, conversation]);
+
+      // Start the ACP connection asynchronously - don't block conversation creation
+
+      // Start connection in background - don't block conversation creation
+      setTimeout(async () => {
+        try {
+          const startPromise = conversation.start();
+
+          await Promise.race([
+            startPromise,
+            new Promise((_, reject) => {
+              setTimeout(() => {
+                reject(new Error('ACP start timeout after 120 seconds'));
+              }, 120000);
+            }),
+          ]);
+        } catch (error) {
+          // Don't throw - just log the error so the conversation remains in the list
+        }
+      }, 100);
+
       return conversation;
     }
     throw new Error('Unsupported conversation type');
   } catch (e) {
-    console.error('-----createConversation error-----', e);
     return null;
   }
 });
@@ -121,22 +248,53 @@ ipcBridge.conversation.reset.provider(async ({ id }) => {
 ipcBridge.conversation.get.provider(async ({ id }) => {
   return ProcessChat.get('chat.history')
     .then((history) => {
-      return history.find((item) => item.id === id);
+      return history?.find((item) => item.id === id);
     })
-    .then((conversation) => {
-      if (conversation) {
-        const task = WorkerManage.getTaskById(id);
+    .then(async (conversation) => {
+      if (!conversation) {
+        return null;
+      }
+
+      let task = WorkerManage.getTaskById(id);
+
+      // If task doesn't exist and this is an ACP conversation, try to recreate it
+      if (!task && conversation.type === 'acp') {
+        try {
+          const config: AcpAgentConfig = {
+            id: conversation.id,
+            name: conversation.name,
+            backend: conversation.extra?.backend || 'claude',
+            cliPath: conversation.extra?.cliPath,
+            workingDir: conversation.extra?.workspace || process.cwd(),
+            // Preserve original conversation metadata
+            createTime: conversation.createTime,
+            modifyTime: conversation.modifyTime,
+            extra: conversation.extra,
+            model: conversation.model,
+          };
+
+          
+          const newTask = new AcpAgentTask(config);
+
+          // ACP messages are handled directly in AcpAgentTask
+
+          // Add to WorkerManage
+          WorkerManage.addTask(conversation.id, newTask);
+          task = newTask;
+        } catch (error) {}
+      }
+
+      if (task) {
         conversation.status = task.status;
       }
+
       return conversation;
     });
 });
 
 ipcBridge.application.restart.provider(async () => {
-  console.log('重启应用开始...');
   // 清理所有工作进程
   WorkerManage.clear();
-  console.log('工作进程已清理');
   // 重启应用 - 使用标准的 Electron 重启方式
   app.relaunch();
   app.exit(0);
@@ -156,27 +314,96 @@ ipcBridge.application.updateSystemInfo.provider(async ({ cacheDir, workDir }) =>
 });
 
 ipcBridge.geminiConversation.sendMessage.provider(async ({ conversation_id, files, ...other }) => {
-  const task = WorkerManage.getTaskById(conversation_id) as GeminiAgentTask;
+  const task = WorkerManage.getTaskById(conversation_id);
   if (!task) return { success: false, msg: 'conversation not found' };
+
+  // Handle files for both Gemini and ACP tasks
   if (files) {
     for (const file of files) {
       const fileName = path.basename(file);
-      const destPath = path.join(task.workspace, fileName);
+      const workspace = (task as any).workspace || process.cwd();
+      const destPath = path.join(workspace, fileName);
       await fs.copyFile(file, destPath);
     }
   }
-  return task
-    .sendMessage(other)
-    .then(() => ({ success: true }))
-    .catch((err) => {
-      return { success: false, msg: err };
-    });
+
+  // Support Gemini tasks only, ACP has its own provider
+  if ((task as any).type === 'gemini' || (task as any).type === 'gemini2') {
+    return (task as GeminiAgentTask)
+      .sendMessage(other)
+      .then(() => ({ success: true }))
+      .catch((err) => {
+        return { success: false, msg: err };
+      });
+  }
+
+  return { success: false, msg: 'unsupported task type for Gemini provider' };
+});
+
+// ACP 专用的 sendMessage provider
+ipcBridge.acpConversation.sendMessage.provider(async ({ conversation_id, files, ...other }) => {
+  let task = WorkerManage.getTaskById(conversation_id);
+  if (!task) {
+    // Try to find the conversation in chat history and recreate the task
+    const history = await ProcessChat.get('chat.history');
+    const conversation = history?.find((conv) => conv.id === conversation_id);
+
+    if (conversation && conversation.type === 'acp') {
+      // Recreate the ACP task
+      const config = {
+        id: conversation.id,
+        name: conversation.name,
+        backend: conversation.extra?.backend || 'claude',
+        cliPath: conversation.extra?.cliPath,
+        workingDir: conversation.extra?.workspace || process.cwd(),
+      };
+
+      const newTask = new AcpAgentTask(config);
+
+      // ACP messages are handled directly in AcpAgentTask
+
+      // Add to WorkerManage
+      WorkerManage.addTask(conversation.id, newTask);
+
+      // Start the task
+      try {
+        await newTask.start();
+        task = newTask;
+      } catch (error) {
+        return { success: false, msg: 'failed to recreate task: ' + error };
+      }
+    } else {
+      return { success: false, msg: 'conversation not found in history' };
+    }
+  }
+
+  // Handle files for ACP tasks
+  if (files) {
+    for (const file of files) {
+      const fileName = path.basename(file);
+      const workspace = (task as any).workspace || process.cwd();
+      const destPath = path.join(workspace, fileName);
+      await fs.copyFile(file, destPath);
+    }
+  }
+
+  // Support ACP tasks only
+  if ((task as any).type === 'acp') {
+    return (task as unknown as AcpAgentTask)
+      .sendMessage({ content: other.input, files, msg_id: other.msg_id })
+      .then(() => ({ success: true }))
+      .catch((err) => {
+        return { success: false, msg: err };
+      });
+  }
+
+  return { success: false, msg: 'unsupported task type for ACP provider' };
 });
 ipcBridge.geminiConversation.confirmMessage.provider(async ({ confirmKey, msg_id, conversation_id, callId }) => {
-  const task: GeminiAgentTask = WorkerManage.getTaskById(conversation_id) as any;
+  const task = WorkerManage.getTaskById(conversation_id);
   if (!task) return { success: false, msg: 'conversation not found' };
-  if (task.type !== 'gemini' && task.type !== 'gemini2') return { success: false, msg: 'not support' };
-  return task
+  if ((task as any).type !== 'gemini' && (task as any).type !== 'gemini2') return { success: false, msg: 'not support' };
+  return (task as GeminiAgentTask)
     .confirmMessage({ confirmKey, msg_id, callId })
     .then(() => ({ success: true }))
     .catch((err) => {
@@ -184,26 +411,175 @@ ipcBridge.geminiConversation.confirmMessage.provider(async ({ confirmKey, msg_id
     });
 });
 
+ipcBridge.acpConversation.confirmMessage.provider(async ({ confirmKey, msg_id, conversation_id, callId }) => {
+  const task = WorkerManage.getTaskById(conversation_id);
+  if (!task) {
+    return { success: false, msg: 'conversation not found' };
+  }
+  
+  if ((task as any).type !== 'acp') {
+    return { success: false, msg: 'not support' };
+  }
+  
+  return (task as unknown as AcpAgentTask)
+    .confirmMessage({ confirmKey, msg_id, callId })
+    .then(() => ({ success: true }))
+    .catch((err) => ({ success: false, msg: err }));
+});
+
+// Debug provider to check environment variables
+ipcBridge.acpConversation.checkEnv.provider(async () => {
+  return {
+    env: {
+      GEMINI_API_KEY: process.env.GEMINI_API_KEY ? '[SET]' : '[NOT SET]',
+      GOOGLE_CLOUD_PROJECT: process.env.GOOGLE_CLOUD_PROJECT ? '[SET]' : '[NOT SET]',
+      NODE_ENV: process.env.NODE_ENV || '[NOT SET]',
+    },
+  };
+});
+
+// Force clear all ACP and Google auth cache - temporarily commented out
+/*
+// @ts-ignore - temporary fix for type issue
+ipcBridge.acpConversation.clearAllCache?.provider(async () => {
+  try {
+    // Clear ACP config cache
+    await AcpConfigManager.clearAllConfig();
+    
+    // Clear Google OAuth cache
+    const oauthResult = await clearCachedCredentialFile();
+    
+    return { 
+      success: true, 
+      msg: 'All cache cleared successfully',
+      details: { oauthResult }
+    };
+  } catch (error) {
+    return { 
+      success: false, 
+      msg: error instanceof Error ? error.message : String(error) 
+    };
+  }
+});
+*/
+
+ipcBridge.acpConversation.detectCliPath.provider(async ({ backend }) => {
+  const { execSync } = require('child_process');
+  try {
+    const isWindows = process.platform === 'win32';
+    let command: string;
+
+    if (backend === 'claude') {
+      command = isWindows ? 'where claude' : 'which claude';
+    } else if (backend === 'gemini') {
+      command = isWindows ? 'where gemini' : 'which gemini';
+    } else {
+      return { success: false, msg: `Unsupported backend: ${backend}` };
+    }
+
+    let cliPath = execSync(command, { encoding: 'utf-8' }).trim();
+
+    // Windows의 where 명령어는 여러 줄을 반환할 수 있음, 첫 번째 줄 사용
+    if (isWindows && cliPath.includes('\n')) {
+      cliPath = cliPath.split('\n')[0].trim();
+    }
+
+    return { success: true, data: { path: cliPath } };
+  } catch (error) {
+    return { success: false, msg: error instanceof Error ? error.message : String(error) };
+  }
+});
+
 ipcBridge.conversation.stop.provider(async ({ conversation_id }) => {
   const task = WorkerManage.getTaskById(conversation_id);
   if (!task) return { success: true, msg: 'conversation not found' };
-  if (task.type !== 'gemini' && task.type !== 'gemini2') return { success: false, msg: 'not support' };
-  return task.stop().then(() => ({ success: true }));
+  if ((task as any).type !== 'gemini' && (task as any).type !== 'gemini2' && (task as any).type !== 'acp') return { success: false, msg: 'not support' };
+  return (task as any).stop().then(() => ({ success: true }));
 });
 
 ipcBridge.geminiConversation.getWorkspace.provider(async ({ workspace }) => {
   const task = WorkerManage.getTaskById(generateHashWithFullName(workspace));
-  console.log('geminiConversation.getWorkspace', task.type);
-  if (!task || (task.type !== 'gemini' && task.type !== 'gemini2')) return [];
+  if (!task || ((task as any).type !== 'gemini' && (task as any).type !== 'gemini2')) return [];
   return task.postMessagePromise('gemini.get.workspace', {}).then((res: any) => {
     return res;
   });
 });
 
+// ACP 的 getWorkspace 实现
+ipcBridge.acpConversation.getWorkspace.provider(async ({ workspace }) => {
+  try {
+    const fs = require('fs');
+    const path = require('path');
+    
+    // 检查目录是否存在
+    if (!fs.existsSync(workspace)) {
+      return [];
+    }
+    
+    // 读取目录内容
+    const buildFileTree = (dirPath: string, basePath: string = dirPath): any[] => {
+      const result = [];
+      const items = fs.readdirSync(dirPath);
+      
+      for (const item of items) {
+        // 跳过隐藏文件和系统文件
+        if (item.startsWith('.')) continue;
+        if (item === 'node_modules') continue;
+        
+        const itemPath = path.join(dirPath, item);
+        const relativePath = path.relative(basePath, itemPath);
+        const stat = fs.statSync(itemPath);
+        
+        if (stat.isDirectory()) {
+          const children = buildFileTree(itemPath, basePath);
+          if (children.length > 0) {
+            result.push({
+              name: item,
+              path: relativePath,
+              isDir: true,
+              isFile: false,
+              children
+            });
+          }
+        } else {
+          result.push({
+            name: item,
+            path: relativePath,
+            isDir: false,
+            isFile: true
+          });
+        }
+      }
+      
+      return result.sort((a, b) => {
+        // 目录优先，然后按名称排序
+        if (a.isDir && b.isFile) return -1;
+        if (a.isFile && b.isDir) return 1;
+        return a.name.localeCompare(b.name);
+      });
+    };
+    
+    const files = buildFileTree(workspace);
+    
+    // 返回的格式需要与 gemini 保持一致
+    const result = [{
+      name: path.basename(workspace),
+      path: workspace,
+      isDir: true,
+      isFile: false,
+      children: files
+    }];
+    
+    return result;
+    
+  } catch (error) {
+    return [];
+  }
+});
+
 ipcBridge.googleAuth.status.provider(async ({ proxy }) => {
   try {
     const info = await getOauthInfoWithCache(proxy);
-    console.log('getOauthInfoWithCache----->', proxy, info);
 
     if (info) return { success: true, data: { account: info.email } };
     return { success: false };
@@ -221,12 +597,23 @@ ipcBridge.googleAuth.login.provider(async ({ proxy }) => {
     model: '',
   });
   const client = await loginWithOauth(AuthType.LOGIN_WITH_GOOGLE, config);
-  if (client) return { success: true, data: { account: '' } };
+  
+  if (client) {
+    // After successful login, get the actual account info
+    try {
+      const oauthInfo = await getOauthInfoWithCache(proxy);
+      if (oauthInfo && oauthInfo.email) {
+        return { success: true, data: { account: oauthInfo.email } };
+      }
+    } catch (_error) {
+      // Even if we can't get the email, login was successful
+    }
+    return { success: true, data: { account: '' } };
+  }
   return { success: false };
 });
 
 ipcBridge.googleAuth.logout.provider(async ({}) => {
-  console.log('clearCachedCredentialFile');
   return clearCachedCredentialFile();
 });
 
@@ -244,7 +631,6 @@ ipcBridge.mode.fetchModelList.provider(async function fetchModelList({ base_url,
     }
     return { success: true, data: { mode: res.data.map((v) => v.id) } };
   } catch (e) {
-    console.log('fetchModelList error', e);
     const errRes = { success: false, msg: e.message || e.toString() };
 
     if (!try_fix) return errRes;
@@ -268,13 +654,11 @@ ipcBridge.mode.fetchModelList.provider(async function fetchModelList({ base_url,
 });
 
 ipcBridge.mode.saveModelConfig.provider((models) => {
-  // console.log('saveModelConfig', models);
   return ProcessConfig.set('model.config', models)
     .then(() => {
       return { success: true };
     })
     .catch((e) => {
-      console.error('saveModelConfig error', e);
       return { success: false, msg: e.message || e.toString() };
     });
 });
