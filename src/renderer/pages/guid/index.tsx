@@ -116,7 +116,7 @@ const Guid: React.FC = () => {
   const [showAcpSetup, setShowAcpSetup] = useState(false);
   const [acpConfig, setAcpConfig] = useState<{ backend: AcpBackend; cliPath?: string; workingDir: string } | null>(null);
   const setCurrentModel = async (modelInfo: TProviderWithModel) => {
-    await ConfigStorage.set('gemini.defaultModel', modelInfo.selectedModel);
+    await ConfigStorage.set('gemini.defaultModel', modelInfo.useModel);
     _setCurrentModel(modelInfo);
   };
   const navigate = useNavigate();
@@ -184,7 +184,7 @@ const Guid: React.FC = () => {
         navigate(`/conversation/${conversation.id}`);
       } catch (error: any) {
         console.error('Failed to create ACP conversation:', error);
-        
+
         // Check if it's a Gemini authentication error
         if (error?.message?.includes('[ACP-AUTH-')) {
           console.error('ACP认证错误详情:', error.message);
@@ -213,7 +213,7 @@ const Guid: React.FC = () => {
     if (!defaultModel) return;
     _setCurrentModel({
       ...defaultModel,
-      selectedModel: defaultModel.model.find((m) => m == useModel) || defaultModel.model[0],
+      useModel: defaultModel.model.find((m) => m == useModel) || defaultModel.model[0],
     });
   };
   useEffect(() => {
@@ -293,24 +293,24 @@ const Guid: React.FC = () => {
                 )}
               </span>
             </Dropdown>
-
             {conversationType === 'gemini' ? (
               <Dropdown
                 trigger='hover'
                 droplist={
-                  <Menu selectedKeys={currentModel ? [currentModel.id + currentModel.selectedModel] : []}>
-                    {(modelList || []).map((platform) => {
+                  <Menu selectedKeys={currentModel ? [currentModel.id + currentModel.useModel] : []}>
+                    {(modelList || []).map((provider) => {
+                      const availableModels = getAvailableModels(provider);
                       return (
-                        <Menu.ItemGroup title={platform.name} key={platform.id}>
-                          {platform.model.map((model) => (
+                        <Menu.ItemGroup title={provider.name} key={provider.id}>
+                          {availableModels.map((modelName) => (
                             <Menu.Item
-                              key={platform.id + model}
-                              className={currentModel?.id + currentModel?.selectedModel === platform.id + model ? '!bg-#f2f3f5' : ''}
+                              key={provider.id + modelName}
+                              className={currentModel?.id + currentModel?.useModel === provider.id + modelName ? '!bg-#f2f3f5' : ''}
                               onClick={() => {
-                                setCurrentModel({ ...platform, selectedModel: model });
+                                setCurrentModel({ ...provider, useModel: modelName });
                               }}
                             >
-                              {model}
+                              {modelName}
                             </Menu.Item>
                           ))}
                         </Menu.ItemGroup>
@@ -319,7 +319,7 @@ const Guid: React.FC = () => {
                   </Menu>
                 }
               >
-                <Button shape='round'>{currentModel ? currentModel.selectedModel : 'Select Model'}</Button>
+                <Button shape='round'>{currentModel ? currentModel.useModel : 'Select Model'}</Button>
               </Dropdown>
             ) : (
               <Button shape='round' onClick={() => setShowAcpSetup(true)}>
