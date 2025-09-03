@@ -23,17 +23,6 @@ import { copyDirectoryRecursively, generateHashWithFullName, readDirectoryRecurs
 import WorkerManage from './WorkerManage';
 logger.config({ print: true });
 
-// Helper function to transform TProviderWithModel to AcpAgentTask model format
-const transformModelForAcp = (model: any) => {
-  if (model?.selectedModel) {
-    return {
-      ...model,
-      useModel: model.selectedModel,
-    };
-  }
-  return model;
-};
-
 ipcBridge.dialog.showOpen.provider((options) => {
   return dialog
     .showOpenDialog({
@@ -86,7 +75,7 @@ ipcBridge.fs.getImageBase64.provider(async ({ path: filePath }) => {
   }
 });
 
-ipcBridge.conversation.create.provider(async ({ type, extra, name, model }) => {
+ipcBridge.conversation.create.provider(async ({ type, extra, name, model }): Promise<TChatConversation> => {
   try {
     if (type === 'gemini') {
       const conversation = await createGeminiAgent(model, extra.workspace, extra.defaultFiles, extra.webSearchEngine);
@@ -125,11 +114,7 @@ ipcBridge.conversation.create.provider(async ({ type, extra, name, model }) => {
       const fileName = `acp-temp-${Date.now()}`;
       const workspace = path.join(baseWorkspace, fileName);
       // Create the unique workspace directory
-      try {
-        await fs.mkdir(workspace, { recursive: true });
-      } catch (error) {
-        throw error;
-      }
+      await fs.mkdir(workspace, { recursive: true });
       
       // Copy default files if provided
       if (extra.defaultFiles) {
@@ -171,7 +156,7 @@ ipcBridge.conversation.create.provider(async ({ type, extra, name, model }) => {
             createTime: existingConversation.createTime,
             modifyTime: existingConversation.modifyTime,
             extra: existingConversation.extra as any,
-            model: transformModelForAcp(existingConversation.model),
+            model: existingConversation.model as any, // Type compatibility for legacy models
           };
           const restoredConversation = new AcpAgentTask(existingConfig);
           WorkerManage.addTask(conversationId, restoredConversation);
@@ -206,8 +191,20 @@ ipcBridge.conversation.create.provider(async ({ type, extra, name, model }) => {
       // Add the ACP task to WorkerManage
       WorkerManage.addTask(conversation.id, conversation);
       
+      // Convert AcpAgentTask to TChatConversation for storage
+      const conversationForStorage: TChatConversation = {
+        id: conversation.id,
+        name: conversation.name,
+        type: 'acp' as const,
+        createTime: conversation.createTime,
+        modifyTime: conversation.modifyTime,
+        model: conversation.model as any, // Type compatibility for legacy models
+        extra: conversation.extra,
+        status: conversation.status,
+      };
+
       // 安全地添加新会话到历史记录
-      ProcessChat.set('chat.history', [...safeHistory, conversation]);
+      ProcessChat.set('chat.history', [...safeHistory, conversationForStorage]);
 
       // Start the ACP connection asynchronously - don't block conversation creation
 
@@ -229,7 +226,17 @@ ipcBridge.conversation.create.provider(async ({ type, extra, name, model }) => {
         }
       }, 100);
 
-      return conversation;
+      // Convert AcpAgentTask to TChatConversation format for return
+      return {
+        id: conversation.id,
+        name: conversation.name,
+        type: 'acp' as const,
+        createTime: conversation.createTime,
+        modifyTime: conversation.modifyTime,
+        model: conversation.model as any, // Type assertion for compatibility
+        extra: conversation.extra,
+        status: conversation.status,
+      };
     }
     throw new Error('Unsupported conversation type');
   } catch (e) {
@@ -285,7 +292,7 @@ ipcBridge.conversation.get.provider(async ({ id }) => {
             createTime: conversation.createTime,
             modifyTime: conversation.modifyTime,
             extra: conversation.extra,
-            model: transformModelForAcp(conversation.model),
+            model: conversation.model as any, // Type compatibility for legacy models
           };
 
           
@@ -296,7 +303,9 @@ ipcBridge.conversation.get.provider(async ({ id }) => {
           // Add to WorkerManage
           WorkerManage.addTask(conversation.id, newTask);
           task = newTask;
-        } catch (error) {}
+        } catch (error) {
+          console.error('Failed to create ACP task:', error);
+        }
       }
 
       if (task) {
@@ -455,7 +464,7 @@ ipcBridge.acpConversation.checkEnv.provider(async () => {
 
 // Force clear all ACP and Google auth cache - temporarily commented out
 /*
-// @ts-ignore - temporary fix for type issue
+// @ts-expect-error - temporary fix for type issue
 ipcBridge.acpConversation.clearAllCache?.provider(async () => {
   try {
     // Clear ACP config cache
@@ -479,7 +488,7 @@ ipcBridge.acpConversation.clearAllCache?.provider(async () => {
 */
 
 ipcBridge.acpConversation.detectCliPath.provider(async ({ backend }) => {
-  const { execSync } = require('child_process');
+  const { execSync } = await import('child_process');
   try {
     const isWindows = process.platform === 'win32';
     let command: string;
@@ -523,8 +532,8 @@ ipcBridge.geminiConversation.getWorkspace.provider(async ({ workspace }) => {
 // ACP 的 getWorkspace 实现
 ipcBridge.acpConversation.getWorkspace.provider(async ({ workspace }) => {
   try {
-    const fs = require('fs');
-    const path = require('path');
+    const fs = await import('fs');
+    const path = await import('path');
     
     // 检查目录是否存在
     if (!fs.existsSync(workspace)) {
