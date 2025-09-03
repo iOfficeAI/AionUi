@@ -43,7 +43,7 @@ export class AcpAgentTask extends EventEmitter {
   public backend: AcpBackend;
   public workspace: string;
   public status: 'pending' | 'running' | 'finished' = 'pending';
-  
+
   // TChatConversation required fields
   public createTime: number;
   public modifyTime: number;
@@ -110,10 +110,7 @@ export class AcpAgentTask extends EventEmitter {
       } else {
         // Load saved CLI path if not provided in config
         try {
-          const savedCliPath = (await Promise.race([
-            AcpConfigManager.getCliPath(this.backend),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('GetCliPath timeout')), 1000))
-          ])) as string | undefined;
+          const savedCliPath = (await Promise.race([AcpConfigManager.getCliPath(this.backend), new Promise((_, reject) => setTimeout(() => reject(new Error('GetCliPath timeout')), 1000))])) as string | undefined;
           if (savedCliPath) {
             this.cliPath = savedCliPath;
           } else {
@@ -178,7 +175,6 @@ export class AcpAgentTask extends EventEmitter {
   // 发送消息到ACP服务器
   async sendMessage(data: { content: string; files?: string[]; msg_id?: string }): Promise<{ success: boolean; msg?: string }> {
     try {
-
       if (!this.connection.isConnected || !this.connection.hasActiveSession) {
         throw new Error('ACP connection not ready');
       }
@@ -188,23 +184,19 @@ export class AcpAgentTask extends EventEmitter {
 
       // Smart processing for ACP file references to avoid @filename confusion
       let processedContent = data.content;
-      
+
       // Only process if there are actual files involved AND the message contains @ symbols
-      if ((data.files && data.files.length > 0) && processedContent.includes('@')) {
+      if (data.files && data.files.length > 0 && processedContent.includes('@')) {
         // Get actual filenames from uploaded files
-        const path = require('path');
-        const actualFilenames = data.files.map(filePath => {
-          return path.basename(filePath);
+        const actualFilenames = data.files.map((filePath) => {
+          return filePath.split('/').pop() || filePath;
         });
-        
+
         // Replace @actualFilename with just actualFilename for each uploaded file
-        actualFilenames.forEach(filename => {
+        actualFilenames.forEach((filename) => {
           const atFilename = `@${filename}`;
           if (processedContent.includes(atFilename)) {
-            processedContent = processedContent.replace(
-              new RegExp(atFilename.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), 
-              filename
-            );
+            processedContent = processedContent.replace(new RegExp(atFilename.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), filename);
           }
         });
       }
@@ -223,7 +215,7 @@ export class AcpAgentTask extends EventEmitter {
         };
         // Persist to chat history
         addMessage(this.id, userMessage);
-        
+
         // Also emit to UI for immediate display
         const userResponseMessage = {
           conversation_id: this.id,
@@ -418,13 +410,37 @@ export class AcpAgentTask extends EventEmitter {
     this.emitMessage(errorMessage);
   }
 
+  private extractThoughtSubject(content: string): string {
+    const lines = content.split('\n');
+    const firstLine = lines[0].trim();
+
+    // Try to extract subject from **Subject** format
+    const subjectMatch = firstLine.match(/^\*\*(.+?)\*\*$/);
+    if (subjectMatch) {
+      return subjectMatch[1];
+    }
+
+    // Use first line as subject if it looks like a title
+    if (firstLine.length < 80 && !firstLine.endsWith('.')) {
+      return firstLine;
+    }
+
+    // Extract first sentence as subject
+    const firstSentence = content.split('.')[0];
+    if (firstSentence.length < 100) {
+      return firstSentence;
+    }
+
+    return 'Thinking';
+  }
+
   private emitMessage(message: TMessage): void {
     // Update modify time when new messages are emitted
     this.modifyTime = Date.now();
-    
+
     // Update conversation in chat history
     this.updateChatHistory();
-    
+
     // Create response message based on the message type, following GeminiAgentTask pattern
     const responseMessage: any = {
       conversation_id: this.id,
@@ -446,8 +462,19 @@ export class AcpAgentTask extends EventEmitter {
         responseMessage.data = message.content;
         break;
       case 'tips':
-        responseMessage.type = 'error'; // Tips with error type map to error response
-        responseMessage.data = message.content.content;
+        // Distinguish between thought messages and error messages
+        if (message.content.type === 'warning' && message.position === 'center') {
+          const subject = this.extractThoughtSubject(message.content.content);
+
+          responseMessage.type = 'thought';
+          responseMessage.data = {
+            subject,
+            description: message.content.content,
+          };
+        } else {
+          responseMessage.type = 'error';
+          responseMessage.data = message.content.content;
+        }
         break;
       default:
         responseMessage.type = 'content';
@@ -456,7 +483,7 @@ export class AcpAgentTask extends EventEmitter {
 
     // Emit to ACP response stream for real-time UI updates
     ipcBridge.acpConversation.responseStream.emit(responseMessage);
-    
+
     // Persist message to chat history (following GeminiAgentTask pattern)
     addOrUpdateMessage(this.id, transformMessage(responseMessage));
   }
@@ -508,10 +535,7 @@ export class AcpAgentTask extends EventEmitter {
       let savedAuth = null;
       try {
         // Reduce timeout to 1 second and skip if storage is slow
-        savedAuth = await Promise.race([
-          AcpConfigManager.getValidAuthInfo(this.backend),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('GetValidAuthInfo timeout')), 1000))
-        ]);
+        savedAuth = await Promise.race([AcpConfigManager.getValidAuthInfo(this.backend), new Promise((_, reject) => setTimeout(() => reject(new Error('GetValidAuthInfo timeout')), 1000))]);
       } catch (error) {
         // Silently skip saved auth if storage is having issues
         console.log('Skipping saved auth check due to storage timeout');
@@ -532,7 +556,7 @@ export class AcpAgentTask extends EventEmitter {
 
       // If no saved auth or saved auth failed, try available methods
       // For Gemini, prefer API key authentication
-      let sortedMethods = [...initResponse.authMethods];
+      const sortedMethods = [...initResponse.authMethods];
       if (this.backend === 'gemini') {
         // Sort methods to prioritize API key
         sortedMethods.sort((a, b) => {
@@ -562,10 +586,7 @@ export class AcpAgentTask extends EventEmitter {
 
           // Skip saving authentication info for now to avoid blocking
           try {
-            await Promise.race([
-              AcpConfigManager.saveAuthInfo(this.backend, authMethod.id),
-              new Promise((_, reject) => setTimeout(() => reject(new Error('SaveAuthInfo timeout')), 1000))
-            ]);
+            await Promise.race([AcpConfigManager.saveAuthInfo(this.backend, authMethod.id), new Promise((_, reject) => setTimeout(() => reject(new Error('SaveAuthInfo timeout')), 1000))]);
           } catch (error) {
             // Silently skip saving if storage is having issues
             console.log('Skipping auth info save due to storage timeout');
@@ -593,14 +614,12 @@ export class AcpAgentTask extends EventEmitter {
   private async updateChatHistory(): Promise<void> {
     try {
       const history = await ProcessChat.get('chat.history');
-      
+
       if (history) {
         const conversationIndex = history.findIndex((conv: any) => conv.id === this.id);
-        
+
         if (conversationIndex >= 0) {
-          const updatedHistory = history.map((conv: any) => 
-            conv.id === this.id ? { ...conv, modifyTime: this.modifyTime } : conv
-          );
+          const updatedHistory = history.map((conv: any) => (conv.id === this.id ? { ...conv, modifyTime: this.modifyTime } : conv));
           await ProcessChat.set('chat.history', updatedHistory);
         }
       }
