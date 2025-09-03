@@ -14,8 +14,8 @@
   <img src="https://img.shields.io/badge/React-19.1.0-FF6B35?style=flat-square&logo=react&logoColor=white" alt="React">
 </p>
 
-
 ---
+
 <p align="center">
   <strong>Transform your command-line experience into a modern, efficient AI Chat interface.</strong>
 </p>
@@ -27,7 +27,9 @@
 ## 🚀 **What Can AionUi Do?**
 
 ### 🎨 **AI Image Generation & Editing**
-*Intelligent image generation, editing, and recognition powered by Gemini 2.5 Flash Image Preview - the most advanced image model, with support for other leading AI image models*
+
+_Intelligent image generation, editing, and recognition powered by Gemini 2.5 Flash Image Preview - the most advanced image model, with support for other leading AI image models_
+
 <p align="center">
   <img src="./resources/Image_Generation.gif" alt="AI Image Generation Demo" width="800">
 </p>
@@ -35,19 +37,25 @@
 > 💡 **Need help setting up free image generation?** [Follow the tutorial to configure free image generation models](https://github.com/iOfficeAI/AionUi/wiki/OpenRouter-Setup-and-Image-Generation) - Complete step-by-step guide for OpenRouter setup and free Gemini 2.5 Flash Image Preview configuration.
 
 ### 📁 **Organizing Your Files**
-*Batch renaming, auto organization, smart classification, file merging*
+
+_Batch renaming, auto organization, smart classification, file merging_
+
 <p align="center">
   <img src="./resources/sort_out_folder.gif" alt="File Management Demo" width="800">
 </p>
 
 ### 📊 **Make Excel Smarter**
-*AI helps you create, organize, analyze, and beautify Excel files*
+
+_AI helps you create, organize, analyze, and beautify Excel files_
+
 <p align="center">
   <img src="./resources/generate_xlsx.gif" alt="Excel Processing Demo" width="800">
 </p>
 
 ### 💬 **Handle Multiple Tasks at Once**
-*Multiple conversations, no task confusion, independent memory, double efficiency*
+
+_Multiple conversations, no task confusion, independent memory, double efficiency_
+
 <p align="center">
   <img src="./resources/multichat-side-by-side.gif" alt="Conversation Management Demo" width="800">
 </p>
@@ -57,6 +65,7 @@
 **This is just the tip of AionUi's capabilities!** 🚀
 
 Want to explore more features? Keep reading to discover what else AionUi can help you with:
+
 - 🎯 Write code, create documents, analyze data
 - 🗂️ Learn new things, answer questions, translate text
 - ⚡ And many more daily work and learning scenarios
@@ -96,23 +105,25 @@ Want to explore more features? Keep reading to discover what else AionUi can hel
 
 While the official Gemini CLI is powerful, its command-line interface has limitations for daily use. AionUi provides a GUI alternative that addresses these key pain points:
 
-> *   Using the `@` command to select files is cumbersome
-> *   Conversations are lost when closing the CLI window
-> *   Command-line interface lacks natural chat interactions
-> *   Single conversation mode limits parallel workflows
-> *   Restricted to Gemini models only, unable to use other excellent large language models
+> - Using the `@` command to select files is cumbersome
+> - Conversations are lost when closing the CLI window
+> - Command-line interface lacks natural chat interactions
+> - Single conversation mode limits parallel workflows
+> - Restricted to Gemini models only, unable to use other excellent large language models
 
 AionUi provides a modern interface for users who need better workflow efficiency, while **breaking the single-model limitation**, allowing you to choose the most suitable AI model for different task requirements.
 
 ## ✨ Key Features
 
-### 💬 **Better Chat Experience**  
+### 💬 **Better Chat Experience**
+
 - **Multi-Conversation** - Open multiple chats simultaneously, no interference
 - **Permanent Storage** - All conversations saved locally, never lost
 - **Modern Interface** - Chat interface like WeChat, simple to use
 - **Multi-Model Support** - Not just Gemini, can use other AI models too
 
 ### 🗂️ **File Management Made Simple**
+
 - **File Tree Browsing** - Browse files like folders, click to use
 - **File Upload** - Drag and drop files, AI helps you process
 - **Code Comparison** - File before/after comparison, clear at a glance
@@ -120,11 +131,13 @@ AionUi provides a modern interface for users who need better workflow efficiency
 - **Excel Processing** - AI helps create and modify Excel files
 
 ### ⚡ **Development Efficiency Boost**
+
 - **Function Calling** - Complete Gemini API, more powerful features
 - **Code Rendering** - Code blocks display more beautifully, format clearer
 - **Tool Scheduling** - Automatically select most suitable tools, no manual selection needed
 
 ### 🎨 **AI Image Generation & Editing**
+
 - **Smart Image Generation** - Powered by Gemini 2.5 Flash Image Preview, the most advanced image model
 - **Multi-Model Support** - Also supports other leading AI image models for diverse creative needs
 - **Intelligent Editing** - AI-powered image editing and enhancement capabilities
@@ -132,6 +145,7 @@ AionUi provides a modern interface for users who need better workflow efficiency
 - **High-Quality Output** - Professional-grade image generation with detailed control
 
 ### 🔧 **Settings Are Simple**
+
 - **Multi-Platform Support** - Support Gemini, OpenAI, ModelScope, OpenRouter, etc.
 - **Flexible Configuration** - Each platform can configure multiple models, support custom addresses
 - **Easy Login** - Support Google account login, no need to remember API keys
@@ -161,7 +175,7 @@ Ready to try AionUi? Download the latest version for your platform from our rele
 
    ```bash
    git clone https://github.com/iOfficeAI/AionUi.git
-cd AionUi
+   cd AionUi
    ```
 
 2. **Install dependencies**
@@ -171,7 +185,6 @@ cd AionUi
    ```
 
 3. **Configure API Key**
-
    - Open the application and go to Settings
    - Enter your Google Gemini API Key
    - Supports multiple authentication methods: Gemini API Key, Vertex AI, Personal Authentication
@@ -242,8 +255,6 @@ AionUI/
   - **ModelScope**: Chinese understanding, localization tasks
   - **OpenRouter**: Cost optimization, model comparison
 
-
-
 ## 🔧 Configuration
 
 ### 🔑 API Configuration
@@ -266,15 +277,18 @@ Supports multiple authentication methods and platforms:
 Supports HTTP proxy configuration for network-restricted environments.
 
 ## 🚀 Where We're Going
+
 We envision AionUi evolving into a **Universal AI Agent Platform** that democratizes powerful AI agents for everyday users:
 
 ### 🤖 **Multiple AI Assistants**
+
 - **Terminal Assistants**: Starting with Gemini CLI, will support more terminal tools in the future
 - **Browser Assistants**: Integrate open-source web automation tools to help with web tasks
 - **Unified Interface**: All AI assistants use the same simple chat interface
 - **Easy Discovery**: New AI assistants can be easily found and used
 
 ### 🔄 **Flexible AI Model Selection**
+
 - **Multi-Model Support**: Can use various AI models like Gemini, Claude, GPT, etc.
 - **Switch Anytime**: Use whichever model you want without changing your workflow
 - **Independent Configuration**: Each model has independent settings, no interference
@@ -282,7 +296,9 @@ We envision AionUi evolving into a **Universal AI Agent Platform** that democrat
 - **Cost Comparison**: Help you choose the most cost-effective model
 
 ### 🎯 **Making AI Agents Accessible**
+
 Our goal is to make AI agents simple and easy to use, so ordinary users can get started easily. We believe that:
+
 - **Simplicity is beauty**: Complex AI features should be simple to use
 - **AI should understand users**: Users shouldn't need to adapt to AI, but AI should adapt to users
 - **Open source is more transparent**: We prioritize using open-source agents so everyone can see the code
