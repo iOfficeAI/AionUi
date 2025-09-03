@@ -125,7 +125,7 @@ export class AcpConnection {
       const env: Record<string, string | undefined> = {
         ...process.env,
       };
-      
+
       // Try to get proxy configuration for OAuth check
       const { ProcessConfig } = await import('@/process/initStorage');
       const proxy = await ProcessConfig.get('gemini.config')
@@ -135,27 +135,25 @@ export class AcpConnection {
       try {
         // Priority 1: Use existing Google OAuth authentication from GeminiSettings
         const { getOauthInfoWithCache, AuthType, loginWithOauth, Config } = await import('@office-ai/aioncli-core');
-        
+
         const oauthInfo = await getOauthInfoWithCache(proxy);
-        
+
         if (oauthInfo && oauthInfo.email) {
           // Use existing Google OAuth authentication from GeminiSettings
           // Gemini CLI will use cached credentials automatically
         } else {
           // Priority 2: Check for API Key from ModeSettings
           const modelConfig = await ProcessConfig.get('model.config').catch((): null => null);
-          
+
           if (modelConfig && Array.isArray(modelConfig)) {
-            const geminiModels = modelConfig.filter((m: any) => 
-              m.platform === 'gemini' && m.apiKey
-            );
-            
+            const geminiModels = modelConfig.filter((m: any) => m.platform === 'gemini' && m.apiKey);
+
             if (geminiModels.length > 0) {
               // Use API Key from ModeSettings
               env.GEMINI_API_KEY = geminiModels[0].apiKey;
             }
           }
-          
+
           // Priority 3: If no API Key from ModeSettings, trigger Google OAuth login
           if (!env.GEMINI_API_KEY) {
             const config = new Config({
@@ -166,13 +164,13 @@ export class AcpConnection {
               cwd: '',
               model: '',
             });
-            
+
             const client = await loginWithOauth(AuthType.LOGIN_WITH_GOOGLE, config);
-            
+
             if (client) {
               // OAuth login successful, Gemini CLI will use cached credentials
               const newOauthInfo = await getOauthInfoWithCache(proxy);
-              
+
               if (newOauthInfo && newOauthInfo.email) {
                 // Successfully authenticated with Google OAuth
               } else {
@@ -187,7 +185,23 @@ export class AcpConnection {
         throw new Error('[ACP-AUTH-002] 无法获取 Gemini 认证信息: 请在 GeminiSettings 中登录或在 ModeSettings 中配置 API Key');
       }
 
-      this.child = spawn(cliPath, ['--experimental-acp'], {
+      // Handle npx command format properly
+      let spawnCommand: string;
+      let spawnArgs: string[];
+
+      if (cliPath.startsWith('npx ')) {
+        // For "npx @google/gemini-cli", split into command and arguments
+        const parts = cliPath.split(' ');
+        const isWindows = process.platform === 'win32';
+        spawnCommand = isWindows ? 'npx.cmd' : 'npx'; // Use npx.cmd on Windows
+        spawnArgs = [...parts.slice(1), '--experimental-acp']; // ['@google/gemini-cli', '--experimental-acp']
+      } else {
+        // For regular paths like '/usr/local/bin/gemini'
+        spawnCommand = cliPath;
+        spawnArgs = ['--experimental-acp'];
+      }
+
+      this.child = spawn(spawnCommand, spawnArgs, {
         cwd: workingDir,
         stdio: ['pipe', 'pipe', 'pipe'],
         env,
@@ -197,14 +211,15 @@ export class AcpConnection {
     }
 
     this.child.stderr?.on('data', (data) => {
-      const errorOutput = data.toString();
+      const _errorOutput = data.toString();
+      // Error output handled by parent process
     });
 
     this.child.on('error', (error) => {
       spawnError = error;
     });
 
-    this.child.on('exit', (code, signal) => {
+    this.child.on('exit', (code, _signal) => {
       if (code !== 0) {
         if (!spawnError) {
           spawnError = new Error(`${backend} ACP process failed with exit code: ${code}`);
@@ -238,24 +253,22 @@ export class AcpConnection {
           try {
             const message = JSON.parse(line) as AcpMessage;
             this.handleMessage(message);
-          } catch (_error) {}
+          } catch (_error) {
+            // Ignore parsing errors for non-JSON messages
+          }
         }
       }
     });
 
     // Initialize protocol with timeout
-    try {
-      await Promise.race([
-        this.initialize(),
-        new Promise((_, reject) =>
-          setTimeout(() => {
-            reject(new Error('Initialize timeout after 20 seconds'));
-          }, 20000)
-        ),
-      ]);
-    } catch (error) {
-      throw error;
-    }
+    await Promise.race([
+      this.initialize(),
+      new Promise((_, reject) =>
+        setTimeout(() => {
+          reject(new Error('Initialize timeout after 20 seconds'));
+        }, 20000)
+      ),
+    ]);
   }
 
   private async sendRequest(method: string, params?: any): Promise<any> {
@@ -270,7 +283,7 @@ export class AcpConnection {
     return new Promise((resolve, reject) => {
       const timeoutDuration = 15000;
       const startTime = Date.now();
-      
+
       const createTimeoutHandler = () => {
         return setTimeout(() => {
           const request = this.pendingRequests.get(id);
@@ -300,7 +313,7 @@ export class AcpConnection {
         method,
         isPaused: false,
         startTime,
-        timeoutDuration
+        timeoutDuration,
       };
 
       this.pendingRequests.set(id, pendingRequest);
@@ -325,7 +338,7 @@ export class AcpConnection {
     if (request && request.isPaused) {
       const elapsedTime = Date.now() - request.startTime;
       const remainingTime = Math.max(0, request.timeoutDuration - elapsedTime);
-      
+
       if (remainingTime > 0) {
         request.timeoutId = setTimeout(() => {
           if (this.pendingRequests.has(requestId) && !request.isPaused) {
@@ -344,22 +357,22 @@ export class AcpConnection {
 
   // 暂停所有 session/prompt 请求的超时
   private pauseSessionPromptTimeouts(): void {
-    let pausedCount = 0;
+    let _pausedCount = 0;
     for (const [id, request] of this.pendingRequests) {
       if (request.method === 'session/prompt') {
         this.pauseRequestTimeout(id);
-        pausedCount++;
+        _pausedCount++;
       }
     }
   }
 
   // 恢复所有 session/prompt 请求的超时
   private resumeSessionPromptTimeouts(): void {
-    let resumedCount = 0;
+    let _resumedCount = 0;
     for (const [id, request] of this.pendingRequests) {
       if (request.method === 'session/prompt' && request.isPaused) {
         this.resumeRequestTimeout(id);
-        resumedCount++;
+        _resumedCount++;
       }
     }
   }
@@ -369,6 +382,7 @@ export class AcpConnection {
       const jsonString = JSON.stringify(message) + '\n';
       this.child.stdin.write(jsonString);
     } else {
+      // Child process not available, cannot send message
     }
   }
 
@@ -394,10 +408,15 @@ export class AcpConnection {
         }
       } else if ('method' in message) {
         // This is a request or notification
-        this.handleIncomingRequest(message).catch((error) => {});
+        this.handleIncomingRequest(message).catch((_error) => {
+          // Handle request errors silently
+        });
       } else {
+        // Unknown message format, ignore
       }
-    } catch (_error) {}
+    } catch (_error) {
+      // Handle message parsing errors silently
+    }
   }
 
   private async handleIncomingRequest(message: AcpRequest | AcpNotification): Promise<void> {
@@ -452,10 +471,10 @@ export class AcpConnection {
   private async handlePermissionRequest(params: AcpPermissionRequest): Promise<{ outcome: { outcome: string; optionId: string } }> {
     // 暂停所有 session/prompt 请求的超时计时器
     this.pauseSessionPromptTimeouts();
-    
+
     try {
       const response = await this.onPermissionRequest(params);
-      
+
       return {
         outcome: {
           outcome: 'selected',
@@ -469,7 +488,7 @@ export class AcpConnection {
   }
 
   private async handleReadTextFile(params: { path: string }): Promise<{ content: string }> {
-    const fs = require('fs').promises;
+    const { promises: fs } = await import('fs');
     try {
       const content = await fs.readFile(params.path, 'utf-8');
       return { content };
@@ -479,7 +498,7 @@ export class AcpConnection {
   }
 
   private async handleWriteTextFile(params: { path: string; content: string }): Promise<null> {
-    const fs = require('fs').promises;
+    const { promises: fs } = await import('fs');
     try {
       await fs.writeFile(params.path, params.content, 'utf-8');
       return null;

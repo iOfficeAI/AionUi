@@ -504,10 +504,22 @@ ipcBridge.acpConversation.detectCliPath.provider(async ({ backend }) => {
     // Direct test failed, try path detection
   }
 
-  // If direct test failed, try traditional path detection
+  // If direct test failed, try traditional path detection and alias detection
   try {
     const whichCommand = isWindows ? `where ${backend}` : `which ${backend}`;
     let cliPath = execSync(whichCommand, { encoding: 'utf-8' }).trim();
+
+    // Also try 'type' command for better alias detection on Unix systems
+    if (!isWindows && !cliPath) {
+      try {
+        const typeOutput = execSync(`type ${backend}`, { encoding: 'utf-8', stdio: 'pipe' }).trim();
+        if (typeOutput) {
+          cliPath = typeOutput;
+        }
+      } catch (typeError) {
+        // type command failed, continue with which output
+      }
+    }
 
     if (isWindows && cliPath.includes('\n')) {
       cliPath = cliPath.split('\n')[0].trim();
@@ -515,6 +527,40 @@ ipcBridge.acpConversation.detectCliPath.provider(async ({ backend }) => {
 
     if (!cliPath) {
       throw new Error('Empty path returned');
+    }
+
+    // Handle alias detection - check if output contains alias patterns
+    if (cliPath.includes('aliased to') || cliPath.includes('is aliased to') || cliPath.includes('is an alias for') || cliPath.match(/\w+\s+is\s+/)) {
+      // Extract the actual command from various alias output formats
+      // Examples:
+      // "gemini is aliased to npx @google/gemini-cli"
+      // "gemini is aliased to `npx @google/gemini-cli`"
+      // "gemini is an alias for npx @google/gemini-cli"
+      // "gemini is npx @google/gemini-cli"
+      const aliasPatterns = [/(?:is )?aliased to\s*`?([^`\n]+)`?/, /is an alias for\s*`?([^`\n]+)`?/, /\w+\s+is\s+([^`\n]+)/];
+
+      let aliasedCommand = null;
+      for (const pattern of aliasPatterns) {
+        const match = cliPath.match(pattern);
+        if (match) {
+          aliasedCommand = match[1].trim().replace(/['"`]/g, ''); // Remove quotes
+          break;
+        }
+      }
+
+      if (aliasedCommand) {
+        console.log(`[detectCliPath] Detected alias: ${backend} -> ${aliasedCommand}`);
+
+        // Test if the aliased command works
+        try {
+          execSync(`${aliasedCommand} --version`, { encoding: 'utf-8', stdio: 'pipe', timeout: 5000 });
+          console.log(`[detectCliPath] Alias command works: ${aliasedCommand}`);
+          return { success: true, data: { path: aliasedCommand } };
+        } catch (aliasTestError) {
+          console.log(`[detectCliPath] Alias command failed: ${aliasTestError.message}`);
+          // Continue with fallback logic
+        }
+      }
     }
 
     // Test if the detected path actually works
@@ -532,9 +578,11 @@ ipcBridge.acpConversation.detectCliPath.provider(async ({ backend }) => {
 
             // Check for common wrapper patterns
             if (backend === 'gemini' && content.includes('npx')) {
-              // Try npx approach
+              // Try npx approach with proper Windows handling
+              const isWindows = process.platform === 'win32';
+              const npxCommand = isWindows ? 'npx.cmd' : 'npx';
               try {
-                execSync('npx @google/gemini-cli --version', { encoding: 'utf-8', stdio: 'pipe', timeout: 10000 });
+                execSync(`${npxCommand} @google/gemini-cli --version`, { encoding: 'utf-8', stdio: 'pipe', timeout: 10000 });
                 return { success: true, data: { path: 'npx @google/gemini-cli' } };
               } catch (npxError) {
                 // npx also failed
@@ -551,9 +599,11 @@ ipcBridge.acpConversation.detectCliPath.provider(async ({ backend }) => {
   } catch (pathError) {
     // Both direct test and path detection failed
     if (backend === 'gemini') {
-      // Last resort: try npx for gemini
+      // Last resort: try npx for gemini with proper Windows handling
+      const isWindows = process.platform === 'win32';
+      const npxCommand = isWindows ? 'npx.cmd' : 'npx';
       try {
-        execSync('npx @google/gemini-cli --version', { encoding: 'utf-8', stdio: 'pipe', timeout: 10000 });
+        execSync(`${npxCommand} @google/gemini-cli --version`, { encoding: 'utf-8', stdio: 'pipe', timeout: 10000 });
         return { success: true, data: { path: 'npx @google/gemini-cli' } };
       } catch (npxError) {
         // All methods failed
