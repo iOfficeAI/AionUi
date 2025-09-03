@@ -488,28 +488,17 @@ ipcBridge.acpConversation.clearAllCache?.provider(async () => {
 
 ipcBridge.acpConversation.detectCliPath.provider(async ({ backend }) => {
   const { execSync } = await import('child_process');
+
+  if (backend !== 'claude' && backend !== 'gemini') {
+    return { success: false, msg: `Unsupported backend: ${backend}` };
+  }
+
+  // Simply test if the command works directly
   try {
-    const isWindows = process.platform === 'win32';
-    let command: string;
-
-    if (backend === 'claude') {
-      command = isWindows ? 'where claude' : 'which claude';
-    } else if (backend === 'gemini') {
-      command = isWindows ? 'where gemini' : 'which gemini';
-    } else {
-      return { success: false, msg: `Unsupported backend: ${backend}` };
-    }
-
-    let cliPath = execSync(command, { encoding: 'utf-8' }).trim();
-
-    // Windows의 where 명령어는 여러 줄을 반환할 수 있음, 첫 번째 줄 사용
-    if (isWindows && cliPath.includes('\n')) {
-      cliPath = cliPath.split('\n')[0].trim();
-    }
-
-    return { success: true, data: { path: cliPath } };
+    execSync(`${backend} --version`, { encoding: 'utf-8', stdio: 'pipe', timeout: 5000 });
+    return { success: true, data: { path: backend } };
   } catch (error) {
-    return { success: false, msg: error instanceof Error ? error.message : String(error) };
+    return { success: false, msg: `${backend} command not found or not working. Please install ${backend} CLI and make sure it's in your PATH, or specify the full path manually.` };
   }
 });
 
