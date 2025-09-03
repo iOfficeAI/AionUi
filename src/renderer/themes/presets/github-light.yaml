@@ -1,0 +1,24 @@
+id: github-light
+name: GitHub Light
+light:
+  arco:
+    primaryColor: "#0969DA"
+  variables:
+    --color-bg-1: "#ffffff"
+    --color-text-1: "#24292e"
+    --color-border-1: "#e1e4e8"
+    --color-fill-1: "#f6f8fa"
+    --primary-6: "#0969DA"
+    --primary-5: "#1f6feb"
+    --primary-7: "#0550ae"
+dark:
+  arco:
+    primaryColor: "#2F81F7"
+  variables:
+    --color-bg-1: "#0d1117"
+    --color-text-1: "#c9d1d9"
+    --color-border-1: "#30363d"
+    --color-fill-1: "#161b22"
+    --primary-6: "#2F81F7"
+    --primary-5: "#58a6ff"
+    --primary-7: "#1f6feb"

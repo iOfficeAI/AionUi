@@ -31,13 +31,14 @@ const Diff2Html = ({ diff, className, title }: { diff: string; className?: strin
   return (
     <div className={classNames('relative ', className)}>
       <div
-        className={classNames('![&_.line-num1]:hidden ![&_.line-num2]:w-30px [&_td:first-child]:w-40px ![&_td:nth-child(2)>div]:pl-45px min-w-500px [&_div.d2f-file-wrapper]:rd-[0.3rem_0.3rem_0px_0px]  [&_div.d2h-file-header]:items-center [&_div.d2h-file-header]:bg-[rgb(220,220,220)]', {
+        className={classNames('![&_.line-num1]:hidden ![&_.line-num2]:w-30px [&_td:first-child]:w-40px ![&_td:nth-child(2)>div]:pl-45px min-w-500px [&_div.d2f-file-wrapper]:rd-[0.3rem_0.3rem_0px_0px]  [&_div.d2h-file-header]:items-center', {
           '[&_.d2h-file-diff]:hidden [&_.d2h-files-diff]:hidden': collapse,
         })}
         ref={(el) => {
           if (!el) return;
           const header = el.querySelectorAll('.d2h-file-header')[0] as HTMLDivElement;
           if (header) {
+            header.setAttribute('data-app-style', 'o-diff-header');
             header.style.alignItems = 'center';
             header.style.height = '23px';
             operatorRef.current.className = 'flex items-center justify-center gap-10px';
@@ -62,7 +63,7 @@ const Diff2Html = ({ diff, className, title }: { diff: string; className?: strin
           >
             <span className='whitespace-nowrap'>side-by-side</span>
           </Checkbox>
-          {collapse ? <ExpandDownOne theme='outline' size='14' fill='#333' className='flex items-center' onClick={() => setCollapse(false)} /> : <FoldUpOne theme='outline' size='14' fill='#333' className='flex items-center' onClick={() => setCollapse(true)} />}
+          {collapse ? <ExpandDownOne theme='outline' size='14' fill='currentColor' className='flex items-center' onClick={() => setCollapse(false)} /> : <FoldUpOne theme='outline' size='14' fill='currentColor' className='flex items-center' onClick={() => setCollapse(true)} />}
         </>,
         operatorRef.current
       )}

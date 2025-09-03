@@ -1,5 +1,5 @@
 import FlexFullContainer from '@/renderer/components/FlexFullContainer';
-import { Gemini, Info, LinkCloud, System, Toolkit } from '@icon-park/react';
+import { Gemini, Info, LinkCloud, System, Theme, Toolkit } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -33,6 +33,11 @@ const SettingsSider: React.FC = () => {
         path: 'system',
       },
       {
+        label: t('settings.theme'),
+        icon: <Theme />,
+        path: 'theme',
+      },
+      {
         label: t('settings.about'),
         icon: <Info />,
         path: 'about',
@@ -46,8 +51,10 @@ const SettingsSider: React.FC = () => {
         return (
           <div
             key={item.path}
-            className={classNames('hover:bg-#EBECF1 px-12px py-8px rd-8px flex justify-start items-center group cursor-pointer relative overflow-hidden group shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px', {
-              '!bg-#E5E7F0 ': isSelected,
+            data-app-style='o-slider-menu'
+            data-app-state={isSelected ? 'active' : undefined}
+            className={classNames(' px-12px py-8px rd-8px flex justify-start items-center group cursor-pointer relative overflow-hidden group shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px', {
+              '': isSelected,
             })}
             onClick={() => {
               navigate(`/settings/${item.path}`);
@@ -59,7 +66,9 @@ const SettingsSider: React.FC = () => {
               className: 'mt-2px ml-2px mr-8px flex',
             })}
             <FlexFullContainer className='h-24px'>
-              <div className='text-nowrap overflow-hidden inline-block w-full text-14px lh-24px  whitespace-nowrap'>{item.label}</div>
+              <div className='text-nowrap overflow-hidden inline-block w-full text-14px lh-24px  whitespace-nowrap' data-i18n-key={`settings.${item.path}`}>
+                {item.label}
+              </div>
             </FlexFullContainer>
           </div>
         );

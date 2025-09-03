@@ -92,6 +92,138 @@
     "imageGenerationGuide": "Free Image Model Setup Guide",
     "noAvailable": "No available image models, please configure first."
   },
+  "theme": {
+    "management": "Theme Management",
+    "panel": {
+      "importExport": "Import/Export",
+      "themeSelection": "Theme Selection & Presets",
+      "modeSettings": "Mode & Default Mode",
+      "variables": "Variables",
+      "appStyles": "App Styles",
+      "textStyles": "Text Styles (i18nStyles)",
+      "codeHighlight": "Code Highlight",
+      "importBuiltin": "Import Built-in Presets",
+      "importFile": "Import from File (JSON/YAML)",
+      "exportFile": "Save as File (JSON/YAML)",
+      "importText": "Import Theme JSON/YAML",
+      "selectTheme": "Theme",
+      "mode": "Mode",
+      "defaultMode": "Default Mode",
+      "arcoConfig": "Arco Design Configuration",
+      "i18nKey": "i18n Key Styles"
+    },
+    "action": {
+      "expandAll": "Expand All",
+      "showImportExportOnly": "Import/Export Only",
+      "collapseAll": "Collapse All",
+      "saveAsJson": "Save as JSON",
+      "saveAsYaml": "Save as YAML",
+      "import": "Import",
+      "exportToJson": "Export as JSON below",
+      "exportToYaml": "Export as YAML below",
+      "createStyle": "Create Style",
+      "saveStyle": "Save Style"
+    },
+    "mode": {
+      "light": "Light",
+      "dark": "Dark"
+    },
+    "defaultMode": {
+      "none": "No Default",
+      "light": "Default Light",
+      "dark": "Default Dark"
+    },
+    "arco": {
+      "primaryColor": "Primary Color"
+    },
+    "section": {
+      "textStyle": "Text Style",
+      "background": "Background",
+      "border": "Border",
+      "spacing": "Spacing",
+      "basic": "Basic Settings",
+      "syntaxColors": "Syntax Highlight Colors",
+      "uiElements": "UI Elements",
+      "baseStyle": "Base Style",
+      "hover": "HOVER State",
+      "active": "ACTIVE State",
+      "focus": "FOCUS State"
+    },
+    "codeHighlight": {
+      "background": "Background",
+      "color": "Foreground",
+      "fontFamily": "Font Family",
+      "fontSize": "Font Size",
+      "lineHeight": "Line Height",
+      "keyword": "Keyword",
+      "string": "String",
+      "comment": "Comment",
+      "number": "Number",
+      "function": "Function",
+      "variable": "Variable",
+      "operator": "Operator",
+      "type": "Type",
+      "constant": "Constant",
+      "punctuation": "Punctuation",
+      "className": "Class Name",
+      "property": "Property",
+      "tag": "Tag",
+      "attr": "Attribute",
+      "headerBackground": "Header Background",
+      "headerColor": "Header Color",
+      "lineNumberColor": "Line Number Color",
+      "selectedLineBackground": "Selected Line Background",
+      "borderColor": "Border Color",
+      "scrollbarColor": "Scrollbar Color",
+      "iconColor": "Icon Color",
+      "inlineCodeBackground": "Inline Code Background",
+      "inlineCodeBorder": "Inline Code Border"
+    },
+    "placeholder": {
+      "pasteTheme": "Paste theme JSON or YAML",
+      "selectI18nKey": "Select or search i18n key (supports * and a.b.*)",
+      "colorVar": "Select color variable, e.g. --color-text-1",
+      "textColor": "Text color, e.g. #333333",
+      "fontSize": "Font size, e.g. 16px",
+      "fontWeight": "Font weight, e.g. 600",
+      "bgColorVar": "Background color variable, e.g. --color-bg-1",
+      "bgColor": "Background color, e.g. #ffffff",
+      "bgImage": "Background image, e.g. linear-gradient(...) or url(...)",
+      "borderColorVar": "Border color variable, e.g. --color-border-1",
+      "borderColor": "Border color, e.g. #cccccc",
+      "borderWidth": "Border width, e.g. 1px",
+      "borderStyle": "Border style, e.g. solid / dashed",
+      "borderRadius": "Border radius, e.g. 4px",
+      "padding": "Padding, e.g. 4px 8px",
+      "margin": "Margin, e.g. 8px 12px"
+    },
+    "help": {
+      "currentTheme": "Current theme: ",
+      "defaultMode": "For current theme ",
+      "setDefaultMode": " set default mode: ",
+      "arcoConfig": "Current mode: ",
+      "noStyle": "No style configured"
+    },
+    "label": {
+      "preview": "Preview: "
+    },
+    "preview": {
+      "text": "Style preview text"
+    },
+    "success": {
+      "saved": "Saved",
+      "imported": "Theme imported successfully",
+      "i18nStyleSaved": "i18n style updated"
+    },
+    "error": {
+      "invalidFile": "Invalid file format",
+      "importFailed": "Import failed: ",
+      "saveFailed": "Save failed: ",
+      "exportFailed": "Export failed: ",
+      "invalidFormat": "Invalid theme format",
+      "i18nStyleFailed": "i18n style save failed: "
+    }
+  },
   "messages": {
     "conversationInProgress": "A conversation is currently in progress...",
     "confirm": "Confirm",

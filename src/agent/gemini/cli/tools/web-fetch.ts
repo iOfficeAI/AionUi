@@ -6,7 +6,7 @@
 
 import { Type } from '@google/genai';
 import type { GeminiClient, Config, ToolResult, ToolInvocation, ToolLocation, ToolCallConfirmationDetails } from '@office-ai/aioncli-core';
-import { BaseDeclarativeTool, BaseToolInvocation, Kind, getErrorMessage, ToolErrorType } from '@office-ai/aioncli-core';
+import { BaseDeclarativeTool, BaseToolInvocation, getErrorMessage, ToolErrorType } from '@office-ai/aioncli-core';
 import { getResponseText } from './utils';
 import { convert } from 'html-to-text';
 
@@ -165,7 +165,7 @@ ${textContent}
         returnDisplay: `Error: ${errorMessage}`,
         error: {
           message: errorMessage,
-          type: ToolErrorType.EXECUTION_FAILED,
+          type: ToolErrorType.UNKNOWN,
         },
       };
     }
@@ -196,7 +196,7 @@ ${textContent}
         returnDisplay: `Error: ${errorMessage}`,
         error: {
           message: errorMessage,
-          type: ToolErrorType.EXECUTION_FAILED,
+          type: ToolErrorType.UNKNOWN,
         },
       };
     }

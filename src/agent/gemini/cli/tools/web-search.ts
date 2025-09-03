@@ -7,7 +7,7 @@
 import type { GroundingMetadata } from '@google/genai';
 import { Type } from '@google/genai';
 import type { GeminiClient, ToolResult, ToolInvocation, ToolLocation, ToolCallConfirmationDetails } from '@office-ai/aioncli-core';
-import { BaseDeclarativeTool, BaseToolInvocation, Kind, getErrorMessage, ToolErrorType } from '@office-ai/aioncli-core';
+import { BaseDeclarativeTool, BaseToolInvocation, getErrorMessage, ToolErrorType } from '@office-ai/aioncli-core';
 import { getResponseText } from './utils';
 
 interface GroundingChunkWeb {
@@ -133,7 +133,7 @@ class WebSearchInvocation extends BaseToolInvocation<WebSearchToolParams, WebSea
           returnDisplay: errorMsg,
           error: {
             message: errorMsg,
-            type: ToolErrorType.EXECUTION_FAILED,
+            type: ToolErrorType.UNKNOWN,
           },
         };
       }
@@ -168,7 +168,7 @@ class WebSearchInvocation extends BaseToolInvocation<WebSearchToolParams, WebSea
       }
 
       const errorMessage = getErrorMessage(error);
-      const errorType: ToolErrorType = ToolErrorType.EXECUTION_FAILED;
+      const errorType: ToolErrorType = ToolErrorType.UNKNOWN;
 
       // Check for specific Google API errors
       if (errorMessage.includes('Google') || errorMessage.includes('search')) {

@@ -1,0 +1,24 @@
+id: vscode
+name: VS Code
+light:
+  arco:
+    primaryColor: "#007ACC"
+  variables:
+    --color-bg-1: "#ffffff"
+    --color-text-1: "#1e1e1e"
+    --color-border-1: "#e5e5e5"
+    --color-fill-1: "#f3f3f3"
+    --primary-6: "#007ACC"
+    --primary-5: "#0e8de6"
+    --primary-7: "#006bb3"
+dark:
+  arco:
+    primaryColor: "#3794FF"
+  variables:
+    --color-bg-1: "#1e1e1e"
+    --color-text-1: "#d4d4d4"
+    --color-border-1: "#2e2e2e"
+    --color-fill-1: "#252526"
+    --primary-6: "#3794FF"
+    --primary-5: "#4aa6ff"
+    --primary-7: "#2d7fe0"
