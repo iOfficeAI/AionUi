@@ -93,3 +93,41 @@ out/
 CLAUDE.md
 AGENTS.md
 GEMINI.md
+
+# Gemini API configuration (contains sensitive API keys)
+gemini-config.js
+
+# IDE and Editor files
+.idea
+.vscode/launch.json
+.vscode/*.log
+
+# Claude Code settings (may contain sensitive information)
+.claude/
+
+# Temporary and backup files
+*.tmp
+*.bak
+*.swp
+*~
+.#*
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Build and output directories
+dist/
+build/
+out/
+.webpack/
+
+# Debug and test files
+debug.log
+test-*.js
+diagnose-*.js

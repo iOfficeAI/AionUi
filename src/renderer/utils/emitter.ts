@@ -12,6 +12,9 @@ interface EventTypes {
   'gemini.selected.file': [string[]];
   'gemini.selected.file.clear': void;
   'gemini.workspace.refresh': void;
+  'acp.selected.file': [string[]];
+  'acp.selected.file.clear': void;
+  'acp.workspace.refresh': void;
 }
 
 export const emitter = new EventEmitter<EventTypes>();

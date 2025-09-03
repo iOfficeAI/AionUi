@@ -35,8 +35,10 @@ export class ConversationToolConfig {
    */
   private async getGoogleAuthStatus(): Promise<boolean> {
     try {
+      console.log('🔍 Gemini: 检查 Google 认证状态, proxy:', this.proxy);
       // 直接检查 OAuth 信息，传入空字符串作为默认proxy
       const oauthInfo = await getOauthInfoWithCache(this.proxy);
+      console.log('📋 Gemini: getOauthInfoWithCache 结果:', oauthInfo);
       return !!oauthInfo;
     } catch (error) {
       console.warn('[ConversationTools] Failed to check Google auth status:', error);

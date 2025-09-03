@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import type { AcpBackend } from './acpTypes';
 import type { IResponseMessage } from './ipcBridge';
 import { uuid } from './utils';
 
@@ -11,7 +12,7 @@ import { uuid } from './utils';
  * @description 跟对话相关的消息类型申明 及相关处理
  */
 
-type TMessageType = 'text' | 'tips' | 'tool_call' | 'tool_group';
+type TMessageType = 'text' | 'tips' | 'tool_call' | 'tool_group' | 'acp_status' | 'acp_permission';
 
 interface IMessage<T extends TMessageType, Content extends Record<string, any>> {
   /**
@@ -119,7 +120,41 @@ export type IMessageToolGroup = IMessage<
   }>
 >;
 
-export type TMessage = IMessageText | IMessageTips | IMessageToolCall | IMessageToolGroup;
+export type IMessageAcpStatus = IMessage<
+  'acp_status',
+  {
+    backend: AcpBackend;
+    status: 'connecting' | 'connected' | 'authenticated' | 'session_active' | 'disconnected' | 'error';
+    message: string;
+  }
+>;
+
+export type IMessageAcpPermission = IMessage<
+  'acp_permission',
+  {
+    title?: string;
+    description?: string;
+    options: Array<{
+      optionId: string;
+      name: string;
+      kind: 'allow_once' | 'allow_always' | 'reject_once' | 'reject_always';
+      // 以下字段为向后兼容，不是 ACP 官方协议标准
+      description?: string;
+      title?: string;
+    }>;
+    requestId: string;
+    sessionId?: string;
+    toolCall?: {
+      toolCallId: string;
+      rawInput: {
+        command?: string;
+        description?: string;
+      };
+    };
+  }
+>;
+
+export type TMessage = IMessageText | IMessageTips | IMessageToolCall | IMessageToolGroup | IMessageAcpStatus | IMessageAcpPermission;
 
 /**
  * @description 将后端返回的消息转换为前端消息
@@ -151,6 +186,18 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         },
       };
     }
+    case 'user_content': {
+      return {
+        id: uuid(),
+        type: 'text',
+        msg_id: message.msg_id,
+        position: 'right',
+        conversation_id: message.conversation_id,
+        content: {
+          content: message.data,
+        },
+      };
+    }
     case 'tool_call': {
       return {
         id: uuid(),
@@ -170,6 +217,26 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         content: message.data,
       };
     }
+    case 'acp_status': {
+      return {
+        id: uuid(),
+        type: 'acp_status',
+        msg_id: message.msg_id,
+        position: 'center',
+        conversation_id: message.conversation_id,
+        content: message.data,
+      };
+    }
+    case 'acp_permission': {
+      return {
+        id: uuid(),
+        type: 'acp_permission',
+        msg_id: message.msg_id,
+        position: 'center',
+        conversation_id: message.conversation_id,
+        content: message.data,
+      };
+    }
     case 'start':
     case 'finish':
     case 'thought':
@@ -181,7 +248,6 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         position: 'left',
         id: uuid(),
       } as any;
-      break;
   }
 };
 
