@@ -69,7 +69,7 @@ export class ConversationToolConfig {
           platform: 'gemini-with-google-auth',
           baseUrl: '',
           apiKey: '',
-          selectedModel: 'gemini-2.5-flash',
+          useModel: 'gemini-2.5-flash',
         };
       }
 
@@ -94,7 +94,7 @@ export class ConversationToolConfig {
       fullContext: false,
       userMemory: '',
       geminiMdFileCount: 0,
-      model: geminiModel.selectedModel,
+      model: geminiModel.useModel,
     });
   }
 

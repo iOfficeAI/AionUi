@@ -111,7 +111,7 @@ const Guid: React.FC = () => {
   const [dir, setDir] = useState<string>('');
   const [currentModel, _setCurrentModel] = useState<TProviderWithModel>();
   const setCurrentModel = async (modelInfo: TProviderWithModel) => {
-    await ConfigStorage.set('gemini.defaultModel', modelInfo.selectedModel);
+    await ConfigStorage.set('gemini.defaultModel', modelInfo.useModel);
     _setCurrentModel(modelInfo);
   };
   const navigate = useNavigate();
@@ -159,7 +159,7 @@ const Guid: React.FC = () => {
     if (!defaultModel) return;
     _setCurrentModel({
       ...defaultModel,
-      selectedModel: defaultModel.model.find((m) => m == useModel) || defaultModel.model[0],
+      useModel: defaultModel.model.find((m) => m == useModel) || defaultModel.model[0],
     });
   };
   useEffect(() => {
@@ -234,7 +234,7 @@ const Guid: React.FC = () => {
             <Dropdown
               trigger='hover'
               droplist={
-                <Menu selectedKeys={currentModel ? [currentModel.id + currentModel.selectedModel] : []}>
+                <Menu selectedKeys={currentModel ? [currentModel.id + currentModel.useModel] : []}>
                   {(modelList || []).map((provider) => {
                     const availableModels = getAvailableModels(provider);
                     return (
@@ -242,9 +242,9 @@ const Guid: React.FC = () => {
                         {availableModels.map((modelName) => (
                           <Menu.Item
                             key={provider.id + modelName}
-                            className={currentModel?.id + currentModel?.selectedModel === provider.id + modelName ? '!bg-#f2f3f5' : ''}
+                            className={currentModel?.id + currentModel?.useModel === provider.id + modelName ? '!bg-#f2f3f5' : ''}
                             onClick={() => {
-                              setCurrentModel({ ...provider, selectedModel: modelName });
+                              setCurrentModel({ ...provider, useModel: modelName });
                             }}
                           >
                             {modelName}
@@ -256,7 +256,7 @@ const Guid: React.FC = () => {
                 </Menu>
               }
             >
-              <Button shape='round'>{currentModel ? currentModel.selectedModel : 'Select Model'}</Button>
+              <Button shape='round'>{currentModel ? currentModel.useModel : 'Select Model'}</Button>
             </Dropdown>
           </div>
           <Button shape='circle' type='primary' loading={loading} disabled={!currentModel} icon={<ArrowUp theme='outline' size='14' fill='white' strokeWidth={2} />} onClick={sendMessageHandler} />

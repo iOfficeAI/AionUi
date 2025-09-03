@@ -130,7 +130,9 @@ ipcBridge.conversation.get.provider(async ({ id }) => {
     .then((conversation) => {
       if (conversation) {
         const task = WorkerManage.getTaskById(id);
-        conversation.status = task.status;
+        if (task) {
+          conversation.status = task.status;
+        }
       }
       return conversation;
     });

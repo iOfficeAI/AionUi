@@ -355,7 +355,7 @@ Please ensure the image file exists and has a valid image extension (.jpg, .png,
     // Clean API key
     const cleanedApiKey = apiKey.replace(/[\s\r\n\t]/g, '').trim();
 
-    this.currentModel = this.imageGenerationModel.selectedModel;
+    this.currentModel = this.imageGenerationModel.useModel;
     const openaiConfig: any = {
       baseURL: this.imageGenerationModel.baseUrl,
       apiKey: cleanedApiKey,
