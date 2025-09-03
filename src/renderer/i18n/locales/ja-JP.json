@@ -59,6 +59,7 @@
     "googleLogout": "ログアウト",
     "openai": "OpenAI",
     "proxyConfig": "プロキシ",
+    "yoloMode": "自動許可",
     "geminiBaseUrl": "Gemini API ベース URL",
     "cacheDir": "キャッシュディレクトリ",
     "workDir": "作業ディレクトリ",
@@ -87,7 +88,9 @@
     "lightMode": "ライト",
     "darkMode": "ダーク",
     "tools": "ツール設定",
-    "imageGenerationModel": "画像モデル"
+    "imageGenerationModel": "画像モデル",
+    "imageGenerationGuide": "無料画像モデル設定ガイド",
+    "noAvailable": "利用可能な画像モデルがありません。先に設定してください。"
   },
   "messages": {
     "conversationInProgress": "現在、会話中です...",
