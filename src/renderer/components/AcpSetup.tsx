@@ -5,10 +5,10 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Button, Select, Input, Form, Typography, Alert, Modal } from '@arco-design/web-react';
-import { FolderOpen, Link } from '@icon-park/react';
+import { Button, Select, Input, Form, Typography, Alert, Modal, Message } from '@arco-design/web-react';
+import { Link } from '@icon-park/react';
 import type { AcpBackend } from '@/common/acpTypes';
-import { dialog, acpConversation } from '@/common/ipcBridge';
+import { acpConversation } from '@/common/ipcBridge';
 import { ipcBridge } from '@/common';
 import { ConfigStorage } from '@/common/storage';
 
@@ -22,15 +22,16 @@ export interface AcpSetupProps {
 
 const AcpSetup: React.FC<AcpSetupProps> = ({ onSetupComplete, onCancel, onNavigateToSettings }) => {
   const [form] = Form.useForm();
+  const [message, messageContext] = Message.useMessage();
   const [backend, setBackend] = useState<AcpBackend>('claude');
   const [cliPath, setCliPath] = useState('');
   const [workingDir, setWorkingDir] = useState('');
   const [isDetecting, setIsDetecting] = useState(false);
   const [isValid, setIsValid] = useState(false);
-  const [geminiAuthStatus, setGeminiAuthStatus] = useState<{ 
-    isAvailable: boolean; 
-    method?: 'oauth' | 'apikey'; 
-    account?: string; 
+  const [geminiAuthStatus, setGeminiAuthStatus] = useState<{
+    isAvailable: boolean;
+    method?: 'oauth' | 'apikey';
+    account?: string;
     modelName?: string;
   }>({ isAvailable: false });
   const [isCheckingAuth, setIsCheckingAuth] = useState(false);
@@ -81,9 +82,11 @@ const AcpSetup: React.FC<AcpSetupProps> = ({ onSetupComplete, onCancel, onNaviga
         form.setFieldValue('cliPath', result.data.path);
       } else {
         setIsValid(false);
+        // Don't show error message for automatic detection
       }
     } catch (error) {
       setIsValid(false);
+      // Don't show error message for automatic detection
     } finally {
       setIsDetecting(false);
     }
@@ -95,27 +98,25 @@ const AcpSetup: React.FC<AcpSetupProps> = ({ onSetupComplete, onCancel, onNaviga
       // First check Google OAuth status
       const geminiConfig = await ConfigStorage.get('gemini.config');
       const oauthResult = await ipcBridge.googleAuth.status.invoke({ proxy: (geminiConfig as any)?.proxy });
-      
+
       if (oauthResult.success && oauthResult.data?.account) {
-        setGeminiAuthStatus({ 
-          isAvailable: true, 
-          method: 'oauth', 
-          account: oauthResult.data.account 
+        setGeminiAuthStatus({
+          isAvailable: true,
+          method: 'oauth',
+          account: oauthResult.data.account,
         });
         return;
       }
 
       // If OAuth not available, check for API Key models
       const modelConfig = await ipcBridge.mode.getModelConfig.invoke();
-      const geminiModels = (modelConfig || []).filter(platform => 
-        platform.platform === 'gemini' && platform.apiKey && platform.model.length > 0
-      );
+      const geminiModels = (modelConfig || []).filter((platform) => platform.platform === 'gemini' && platform.apiKey && platform.model.length > 0);
 
       if (geminiModels.length > 0) {
-        setGeminiAuthStatus({ 
-          isAvailable: true, 
-          method: 'apikey', 
-          modelName: geminiModels[0].name 
+        setGeminiAuthStatus({
+          isAvailable: true,
+          method: 'apikey',
+          modelName: geminiModels[0].name,
         });
         return;
       }
@@ -127,20 +128,6 @@ const AcpSetup: React.FC<AcpSetupProps> = ({ onSetupComplete, onCancel, onNaviga
     } finally {
       setIsCheckingAuth(false);
     }
-  };
-
-  const selectCliPath = async () => {
-    try {
-      const result = await dialog.showOpen.invoke({
-        properties: ['openFile'],
-      });
-
-      if (result && result.length > 0) {
-        setCliPath(result[0]);
-        setIsValid(true);
-        form.setFieldValue('cliPath', result[0]);
-      }
-    } catch (error) {}
   };
 
   const handleSubmit = () => {
@@ -165,6 +152,7 @@ const AcpSetup: React.FC<AcpSetupProps> = ({ onSetupComplete, onCancel, onNaviga
 
   return (
     <div className='acp-setup p-4 max-w-md mx-auto'>
+      {messageContext}
       <div className='mb-4'>
         <h3 className='text-lg font-semibold mb-2'>Setup ACP Connection</h3>
         <Text type='secondary'>Configure connection to {backend === 'claude' ? 'Claude Code' : 'Gemini CLI'} via ACP protocol</Text>
@@ -191,19 +179,10 @@ const AcpSetup: React.FC<AcpSetupProps> = ({ onSetupComplete, onCancel, onNaviga
           </Select>
         </Form.Item>
 
-        <Form.Item
-          field='cliPath'
-          label={
-            <div className='flex items-center justify-between'>
-              <span>{backend === 'claude' ? 'Claude CLI Path (Optional)' : 'Gemini CLI Path'}</span>
-              <Button type='text' size='mini' loading={isDetecting} onClick={detectCliPath}>
-                Auto-detect
-              </Button>
-            </div>
-          }
-          rules={[{ required: backend === 'gemini', message: 'CLI path is required for Gemini' }]}
-        >
-          <Input value={cliPath} onChange={setCliPath} placeholder={backend === 'claude' ? 'Optional: Path to claude executable' : `Path to ${backend} executable`} suffix={<Button type='text' size='mini' icon={<FolderOpen />} onClick={selectCliPath} />} />
+        <Form.Item field='cliPath' label={backend === 'claude' ? 'Claude CLI Path (Optional)' : 'Gemini CLI Path'} rules={[{ required: backend === 'gemini', message: 'CLI path is required for Gemini' }]}>
+          <div className='p-2 bg-gray-50 rounded border min-h-8 flex items-center'>
+            <Text type={cliPath ? 'secondary' : 'warning'}>{isDetecting ? 'Detecting...' : cliPath || `${backend} CLI not detected`}</Text>
+          </div>
         </Form.Item>
 
         {/* Gemini Authentication Status */}
@@ -212,17 +191,10 @@ const AcpSetup: React.FC<AcpSetupProps> = ({ onSetupComplete, onCancel, onNaviga
             {isCheckingAuth ? (
               <Alert type='info' content='检查 Gemini 认证状态...' />
             ) : geminiAuthStatus.isAvailable ? (
-              <Alert 
-                type='success' 
-                content={
-                  geminiAuthStatus.method === 'oauth' 
-                    ? `已登录 Google 账户: ${geminiAuthStatus.account}` 
-                    : `已配置 API Key 模型: ${geminiAuthStatus.modelName}`
-                } 
-              />
+              <Alert type='success' content={geminiAuthStatus.method === 'oauth' ? `已登录 Google 账户: ${geminiAuthStatus.account}` : `已配置 API Key 模型: ${geminiAuthStatus.modelName}`} />
             ) : (
-              <Alert 
-                type='info' 
+              <Alert
+                type='info'
                 content={
                   <div className='flex items-center justify-between'>
                     <span>暂未检测到预配置的认证信息，系统将在连接时自动启动 Google 登录</span>
@@ -249,14 +221,7 @@ const AcpSetup: React.FC<AcpSetupProps> = ({ onSetupComplete, onCancel, onNaviga
 
         <div className='flex justify-between mt-6'>
           {onCancel && <Button onClick={onCancel}>Cancel</Button>}
-          <Button 
-            type='primary' 
-            onClick={handleSubmit} 
-            disabled={
-              (backend === 'gemini' && !isValid) || 
-              isCheckingAuth
-            }
-          >
+          <Button type='primary' onClick={handleSubmit} disabled={(backend === 'gemini' && !isValid) || isCheckingAuth}>
             Create ACP Connection
           </Button>
         </div>
