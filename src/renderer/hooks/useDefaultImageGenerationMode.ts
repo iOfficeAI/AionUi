@@ -11,9 +11,7 @@ const useDefaultImageGenerationMode = (defaultSetting = true) => {
   const updateDefaultImageGenerationMode = async () => {
     try {
       const config = await ConfigStorage.get('tools.imageGenerationModel');
-      // Handle backward compatibility: useModel -> selectedModel (read only)
-      const effectiveSelectedModel = config?.selectedModel || (config as any)?.useModel;
-      if (effectiveSelectedModel) {
+      if (config?.selectedModel) {
         return;
       }
       throw new Error('No image generation model found');
