@@ -11,18 +11,31 @@ const ToolsSettings: React.FC = () => {
   const { modelListWithImage: data } = useConfigModelListWithImage();
   const imageGenerationModelList = useMemo(() => {
     if (!data) return [];
-    return (data || []).filter((v) => {
-      v.model = v.model.filter((model) => {
-        return model.toLocaleLowerCase().includes('image');
-      });
-      return v.model.length > 0;
-    });
+    return (data || [])
+      .filter((v) => {
+        const filteredModels = v.model.filter((model) => {
+          return model.toLocaleLowerCase().includes('image');
+        });
+        return filteredModels.length > 0;
+      })
+      .map((v) => ({
+        ...v,
+        model: v.model.filter((model) => {
+          return model.toLocaleLowerCase().includes('image');
+        }),
+      }));
   }, [data]);
 
   useEffect(() => {
     ConfigStorage.get('tools.imageGenerationModel').then((data) => {
       if (!data) return;
-      setImageGenerationModel(data);
+      // Handle backward compatibility: useModel -> selectedModel (read only)
+      if (data && 'useModel' in data && !data.selectedModel) {
+        const compatData = { ...data, selectedModel: (data as any).useModel };
+        setImageGenerationModel(compatData);
+      } else {
+        setImageGenerationModel(data);
+      }
     });
   }, []);
 
@@ -42,7 +55,7 @@ const ToolsSettings: React.FC = () => {
           header={
             <div className='flex items-center justify-between'>
               Image Generation
-              <Switch disabled={!imageGenerationModelList.length || !imageGenerationModel?.useModel} checked={imageGenerationModel?.switch} onChange={(checked) => handleImageGenerationModelChange({ switch: checked })} onClick={(e) => e.stopPropagation()}></Switch>
+              <Switch disabled={!imageGenerationModelList.length || !imageGenerationModel?.selectedModel} checked={imageGenerationModel?.switch} onChange={(checked) => handleImageGenerationModelChange({ switch: checked })} onClick={(e) => e.stopPropagation()}></Switch>
             </div>
           }
           name={'image-generation'}
@@ -50,29 +63,39 @@ const ToolsSettings: React.FC = () => {
           <div>
             <Form className={'mt-10px'}>
               <Form.Item label={t('settings.imageGenerationModel')}>
-                <Select value={imageGenerationModel?.useModel}>
-                  {imageGenerationModelList.map(({ model, ...platform }) => {
-                    return (
-                      <Select.OptGroup label={platform.name} key={platform.id}>
-                        {model.map((model) => {
-                          return (
-                            <Select.Option
-                              onClick={() => {
-                                handleImageGenerationModelChange({ ...platform, useModel: model });
-                              }}
-                              key={platform.platform + model}
-                              value={model}
-                            >
-                              {model}
-                            </Select.Option>
-                          );
-                        })}
-                      </Select.OptGroup>
-                    );
-                  })}
-                </Select>
+                {imageGenerationModelList.length > 0 ? (
+                  <Select value={imageGenerationModel?.selectedModel}>
+                    {imageGenerationModelList.map(({ model, ...platform }) => {
+                      return (
+                        <Select.OptGroup label={platform.name} key={platform.id}>
+                          {model.map((model) => {
+                            return (
+                              <Select.Option
+                                onClick={() => {
+                                  handleImageGenerationModelChange({ ...platform, selectedModel: model });
+                                }}
+                                key={platform.platform + model}
+                                value={model}
+                              >
+                                {model}
+                              </Select.Option>
+                            );
+                          })}
+                        </Select.OptGroup>
+                      );
+                    })}
+                  </Select>
+                ) : (
+                  <div className='text-gray-400'>{t('settings.noAvailable')}</div>
+                )}
               </Form.Item>
             </Form>
+            <div className='mt-3 text-sm text-gray-500'>
+              <span className='mr-1'>👉</span>
+              <a href='https://github.com/iOfficeAI/AionUi/wiki/OpenRouter-Setup-and-Image-Generation' target='_blank' rel='noopener noreferrer' className='text-blue-500 hover:text-blue-600 underline'>
+                {t('settings.imageGenerationGuide')}
+              </a>
+            </div>
           </div>
         </Collapse.Item>
       </Collapse>

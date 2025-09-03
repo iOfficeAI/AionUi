@@ -7,7 +7,7 @@
 import { bridge } from '@office-ai/platform';
 import type { OpenDialogOptions } from 'electron';
 import type { AcpBackend } from './acpTypes';
-import type { IModel, TChatConversation, TModelWithConversation } from './storage';
+import type { IProvider, TChatConversation, TProviderWithModel } from './storage';
 
 // 发送消息
 const sendMessage = bridge.buildProvider<IBridgeResponse<{}>, ISendMessageParams>('chat.send.message');
@@ -61,8 +61,8 @@ export const googleAuth = {
 
 export const mode = {
   fetchModelList: bridge.buildProvider<IBridgeResponse<{ mode: Array<string>; fix_base_url?: string }>, { base_url: string; api_key: string; try_fix?: boolean }>('mode.get-model-list'),
-  saveModelConfig: bridge.buildProvider<IBridgeResponse, IModel[]>('mode.save-model-config'),
-  getModelConfig: bridge.buildProvider<IModel[], void>('mode.get-model-config'),
+  saveModelConfig: bridge.buildProvider<IBridgeResponse, IProvider[]>('mode.save-model-config'),
+  getModelConfig: bridge.buildProvider<IProvider[], void>('mode.get-model-config'),
 };
 
 // ACP对话相关接口 - 使用独立的sendMessage和responseStream
@@ -103,8 +103,8 @@ interface IConfirmAcpMessageParams {
 interface ICreateConversationParams {
   type: 'gemini' | 'acp';
   name?: string;
-  model?: TModelWithConversation;
-  extra: { workspace?: string; defaultFiles?: string[]; backend?: AcpBackend; cliPath?: string };
+  model: TProviderWithModel;
+  extra: { workspace?: string; defaultFiles?: string[]; backend?: AcpBackend; cliPath?: string; webSearchEngine?: 'google' | 'default' };
 }
 interface IResetConversationParams {
   id?: string;

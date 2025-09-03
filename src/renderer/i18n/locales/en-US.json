@@ -59,6 +59,7 @@
     "googleLogout": "Logout",
     "openai": "OpenAI",
     "proxyConfig": "Proxy",
+    "yoloMode": "YOLO (Auto Allow)",
     "geminiBaseUrl": "Gemini API Base URL",
     "cacheDir": "Cache Directory",
     "workDir": "Work Directory",
@@ -87,7 +88,9 @@
     "lightMode": "Light",
     "darkMode": "Dark",
     "tools": "Tools Settings",
-    "imageGenerationModel": "Image Processing Model"
+    "imageGenerationModel": "Image Model",
+    "imageGenerationGuide": "Free Image Model Setup Guide",
+    "noAvailable": "No available image models, please configure first."
   },
   "messages": {
     "conversationInProgress": "A conversation is currently in progress...",

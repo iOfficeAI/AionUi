@@ -1,6 +1,6 @@
 import { ipcBridge } from '@/common';
 import { transformMessage } from '@/common/chatLib';
-import type { TModelWithConversation } from '@/common/storage';
+import type { TProviderWithModel } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import SendBox from '@/renderer/components/sendbox';
 import { getSendBoxDraftHook } from '@/renderer/hooks/useSendBoxDraft';
@@ -26,6 +26,7 @@ const useGeminiMessage = (conversation_id: string) => {
     description: '',
     subject: '',
   });
+
   useEffect(() => {
     return ipcBridge.geminiConversation.responseStream.on(async (message) => {
       if (conversation_id !== message.conversation_id) {
@@ -110,7 +111,7 @@ const useSendBoxDraft = (conversation_id: string) => {
 
 const GeminiSendBox: React.FC<{
   conversation_id: string;
-  model: TModelWithConversation;
+  model: TProviderWithModel;
 }> = ({ conversation_id, model }) => {
   const { t } = useTranslation();
   const { thought, running } = useGeminiMessage(conversation_id);
@@ -120,7 +121,7 @@ const GeminiSendBox: React.FC<{
   const addMessage = useAddOrUpdateMessage();
 
   const onSendHandler = async (message: string) => {
-    if (!model?.useModel) return;
+    if (!model?.selectedModel) return;
     const msg_id = uuid();
     if (atPath.length || uploadFile.length) {
       message = uploadFile.map((p) => '@' + p.split(/[\\/]/).pop()).join(' ') + ' ' + atPath.map((p) => '@' + p).join(' ') + ' ' + message;
@@ -178,8 +179,8 @@ const GeminiSendBox: React.FC<{
         value={content}
         onChange={setContent}
         loading={running}
-        disabled={!model?.useModel}
-        placeholder={model?.useModel ? '' : t('conversation.chat.noModelSelected')}
+        disabled={!model?.selectedModel}
+        placeholder={model?.selectedModel ? '' : t('conversation.chat.noModelSelected')}
         onStop={() => {
           return ipcBridge.conversation.stop.invoke({ conversation_id }).then(() => {
             console.log('stopStream');
@@ -206,7 +207,7 @@ const GeminiSendBox: React.FC<{
             ></Button>
             {model && (
               <Button className={'ml-4px'} shape='round'>
-                {model.useModel}
+                {model.selectedModel}
               </Button>
             )}
           </>

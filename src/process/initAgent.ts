@@ -4,13 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { TChatConversation, TModelWithConversation } from '@/common/storage';
+import type { TChatConversation, TProviderWithModel } from '@/common/storage';
 import fs from 'fs/promises';
 import path from 'path';
 import { getSystemDir } from './initStorage';
 import { generateHashWithFullName } from './utils';
 
-export const createGeminiAgent = async (model: TModelWithConversation, workspace?: string, defaultFiles?: string[]): Promise<TChatConversation> => {
+export const createGeminiAgent = async (model: TProviderWithModel, workspace?: string, defaultFiles?: string[], webSearchEngine?: 'google' | 'default'): Promise<TChatConversation> => {
   const customWorkspace = !!workspace;
   if (!workspace) {
     const tempPath = getSystemDir().workDir;
@@ -29,7 +29,7 @@ export const createGeminiAgent = async (model: TModelWithConversation, workspace
   return {
     type: 'gemini',
     model,
-    extra: { workspace: workspace, customWorkspace },
+    extra: { workspace: workspace, customWorkspace, webSearchEngine },
     desc: customWorkspace ? workspace : '临时工作区',
     createTime: Date.now(),
     modifyTime: Date.now(),

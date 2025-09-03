@@ -18,6 +18,8 @@ let addStack = new Map<
 
 const nextTickCallback: Array<() => void> = [];
 
+const nextAsyncCallback: Array<(list: TMessage[]) => TMessage[]> = [];
+
 const pushCacheMessage = (id: string, message: TMessage, type: 'add' | 'compose') => {
   const list = addStack.get(id) || [];
   addStack.set(id, list.concat({ type, message }));
@@ -57,6 +59,9 @@ const syncToLocalFile = () => {
           newList = composeMessage(message, newList);
         }
       }
+      while (nextAsyncCallback.length) {
+        newList = nextAsyncCallback.shift()(newList);
+      }
       return ProcessChatMessage.set(id, newList);
     });
     promiseList.push(promise);
@@ -90,7 +95,11 @@ export const addOrUpdateMessage = (conversation_id: string, message: TMessage) =
   nextTickSyncToLocalFile();
 };
 
-export const nextTickSync = (fn: () => void) => {
+export const nextTickToLocalFinish = (fn: () => void) => {
   nextTickCallback.push(fn);
   nextTickSyncToLocalFile();
+};
+
+export const nextTickToLocalRunning = (fn: (list: TMessage[]) => TMessage[]) => {
+  nextAsyncCallback.push(fn);
 };

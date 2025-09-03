@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IModel, TChatConversation } from '@/common/storage';
+import type { IProvider, TChatConversation } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import { AuthType, clearCachedCredentialFile, Config, getOauthInfoWithCache, loginWithOauth } from '@office-ai/aioncli-core';
 import { logger } from '@office-ai/platform';
@@ -15,13 +15,24 @@ import path from 'path';
 import { ipcBridge } from '../common';
 import { createGeminiAgent } from './initAgent';
 import { getSystemDir, ProcessChat, ProcessChatMessage, ProcessConfig, ProcessEnv } from './initStorage';
-import { nextTickSync } from './message';
+import { nextTickToLocalFinish } from './message';
 import type { AcpAgentConfig } from './task/AcpAgentTask';
 import { AcpAgentTask } from './task/AcpAgentTask';
-import type { GeminiAgentTask } from './task/GeminiAgentTask';
+import type { GeminiAgentManager } from './task/GeminiAgentManager';
 import { copyDirectoryRecursively, generateHashWithFullName, readDirectoryRecursive } from './utils';
 import WorkerManage from './WorkerManage';
 logger.config({ print: true });
+
+// Helper function to transform TProviderWithModel to AcpAgentTask model format
+const transformModelForAcp = (model: any) => {
+  if (model?.selectedModel) {
+    return {
+      ...model,
+      useModel: model.selectedModel,
+    };
+  }
+  return model;
+};
 
 ipcBridge.dialog.showOpen.provider((options) => {
   return dialog
@@ -50,29 +61,35 @@ ipcBridge.fs.getFilesByDir.provider(async ({ dir }) => {
   return tree ? [tree] : [];
 });
 ipcBridge.fs.getImageBase64.provider(async ({ path: filePath }) => {
-  const ext = (path.extname(filePath) || '').toLowerCase().replace(/^\./, '');
-  const mimeMap: Record<string, string> = {
-    png: 'image/png',
-    jpg: 'image/jpeg',
-    jpeg: 'image/jpeg',
-    gif: 'image/gif',
-    webp: 'image/webp',
-    bmp: 'image/bmp',
-    svg: 'image/svg+xml',
-    ico: 'image/x-icon',
-    tif: 'image/tiff',
-    tiff: 'image/tiff',
-    avif: 'image/avif',
-  };
-  const mime = mimeMap[ext] || 'application/octet-stream';
-  const base64 = await fs.readFile(filePath, { encoding: 'base64' });
-  return `data:${mime};base64,${base64}`;
+  try {
+    const ext = (path.extname(filePath) || '').toLowerCase().replace(/^\./, '');
+    const mimeMap: Record<string, string> = {
+      png: 'image/png',
+      jpg: 'image/jpeg',
+      jpeg: 'image/jpeg',
+      gif: 'image/gif',
+      webp: 'image/webp',
+      bmp: 'image/bmp',
+      svg: 'image/svg+xml',
+      ico: 'image/x-icon',
+      tif: 'image/tiff',
+      tiff: 'image/tiff',
+      avif: 'image/avif',
+    };
+    const mime = mimeMap[ext] || 'application/octet-stream';
+    const base64 = await fs.readFile(filePath, { encoding: 'base64' });
+    return `data:${mime};base64,${base64}`;
+  } catch (error) {
+    console.error(`Failed to read image file: ${filePath}`, error);
+    // Return a placeholder data URL instead of throwing
+    return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIG5vdCBmb3VuZDwvdGV4dD48L3N2Zz4=';
+  }
 });
 
 ipcBridge.conversation.create.provider(async ({ type, extra, name, model }) => {
   try {
     if (type === 'gemini') {
-      const conversation = await createGeminiAgent(model, extra.workspace, extra.defaultFiles);
+      const conversation = await createGeminiAgent(model, extra.workspace, extra.defaultFiles, extra.webSearchEngine);
       if (name) {
         conversation.name = name;
       }
@@ -154,7 +171,7 @@ ipcBridge.conversation.create.provider(async ({ type, extra, name, model }) => {
             createTime: existingConversation.createTime,
             modifyTime: existingConversation.modifyTime,
             extra: existingConversation.extra as any,
-            model: existingConversation.model,
+            model: transformModelForAcp(existingConversation.model),
           };
           const restoredConversation = new AcpAgentTask(existingConfig);
           WorkerManage.addTask(conversationId, restoredConversation);
@@ -229,9 +246,7 @@ ipcBridge.conversation.remove.provider(async ({ id }) => {
         'chat.history',
         history.filter((item) => item.id !== id)
       );
-
-      nextTickSync(() => ProcessChatMessage.backup(id));
-
+      nextTickToLocalFinish(() => ProcessChatMessage.backup(id));
       return true;
     } catch (e) {
       return false;
@@ -270,7 +285,7 @@ ipcBridge.conversation.get.provider(async ({ id }) => {
             createTime: conversation.createTime,
             modifyTime: conversation.modifyTime,
             extra: conversation.extra,
-            model: conversation.model,
+            model: transformModelForAcp(conversation.model),
           };
 
           
@@ -314,7 +329,7 @@ ipcBridge.application.updateSystemInfo.provider(async ({ cacheDir, workDir }) =>
 });
 
 ipcBridge.geminiConversation.sendMessage.provider(async ({ conversation_id, files, ...other }) => {
-  const task = WorkerManage.getTaskById(conversation_id);
+  const task = WorkerManage.getTaskById(conversation_id) as GeminiAgentManager;
   if (!task) return { success: false, msg: 'conversation not found' };
 
   // Handle files for both Gemini and ACP tasks
@@ -329,7 +344,7 @@ ipcBridge.geminiConversation.sendMessage.provider(async ({ conversation_id, file
 
   // Support Gemini tasks only, ACP has its own provider
   if ((task as any).type === 'gemini' || (task as any).type === 'gemini2') {
-    return (task as GeminiAgentTask)
+    return (task as GeminiAgentManager)
       .sendMessage(other)
       .then(() => ({ success: true }))
       .catch((err) => {
@@ -400,10 +415,10 @@ ipcBridge.acpConversation.sendMessage.provider(async ({ conversation_id, files, 
   return { success: false, msg: 'unsupported task type for ACP provider' };
 });
 ipcBridge.geminiConversation.confirmMessage.provider(async ({ confirmKey, msg_id, conversation_id, callId }) => {
-  const task = WorkerManage.getTaskById(conversation_id);
+  const task: GeminiAgentManager = WorkerManage.getTaskById(conversation_id) as any;
   if (!task) return { success: false, msg: 'conversation not found' };
   if ((task as any).type !== 'gemini' && (task as any).type !== 'gemini2') return { success: false, msg: 'not support' };
-  return (task as GeminiAgentTask)
+  return (task as GeminiAgentManager)
     .confirmMessage({ confirmKey, msg_id, callId })
     .then(() => ({ success: true }))
     .catch((err) => {
@@ -670,6 +685,6 @@ ipcBridge.mode.getModelConfig.provider(async () => {
       return data.map((v) => ({ ...v, id: v.id || uuid() }));
     })
     .catch(() => {
-      return [] as IModel[];
+      return [] as IProvider[];
     });
 });

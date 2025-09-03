@@ -56,23 +56,24 @@ html[data-theme='dark'] {
 }
 
 /* Revert inversion for media elements to show them normally */
-[data-theme="dark"] img, 
-[data-theme="dark"] video, 
-[data-theme="dark"] iframe, 
-[data-theme="dark"] embed, 
-[data-theme="dark"] object,
-[data-theme="dark"] svg,
-[data-theme="dark"] canvas,
+html[data-theme="dark"] img, 
+html[data-theme="dark"] video, 
+html[data-theme="dark"] iframe, 
+html[data-theme="dark"] embed, 
+html[data-theme="dark"] object,
+html[data-theme="dark"] canvas,
 /* Also handle background images */
-[data-theme="dark"] [style*="background-image"],
+html[data-theme="dark"] [style*="background-image"],
 /* Common image containers */
-[data-theme="dark"] .image,
-[data-theme="dark"] .logo,
-[data-theme="dark"] .avatar,
-[data-theme="dark"] .thumbnail,
-[data-theme="dark"] .photo {
+html[data-theme="dark"] .image,
+html[data-theme="dark"] .logo,
+html[data-theme="dark"] .avatar,
+html[data-theme="dark"] .thumbnail,
+html[data-theme="dark"] .photo,
+/* AionUi logo container */
+html[data-theme="dark"] .layout-sider-header > div:first-child {
   /* Double inversion cancels out, showing original colors */
-  filter: none;
+  filter: invert(1) hue-rotate(180deg);
 
   /* Smooth transition for better UX */
   transition: filter 0.3s ease;
