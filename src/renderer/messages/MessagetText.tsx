@@ -4,10 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import type { IMessageText } from '@/common/chatLib';
+import classNames from 'classnames';
 import React, { useMemo } from 'react';
 import MarkdownView from '../components/Markdown';
-import classNames from 'classnames';
-import type { IMessageText } from '@/common/chatLib';
 
 const useFormatContent = (content: string) => {
   return useMemo(() => {

@@ -6,9 +6,9 @@
 
 import type { GroundingMetadata } from '@google/genai';
 import { Type } from '@google/genai';
-import type { GeminiClient, ToolResult } from '@office-ai/aioncli-core';
-import { BaseTool, Icon, SchemaValidator } from '@office-ai/aioncli-core';
-import { getResponseText, getErrorMessage } from './utils';
+import type { GeminiClient, ToolResult, ToolInvocation, ToolLocation, ToolCallConfirmationDetails } from '@office-ai/aioncli-core';
+import { BaseDeclarativeTool, BaseToolInvocation, Kind, getErrorMessage, ToolErrorType } from '@office-ai/aioncli-core';
+import { getResponseText } from './utils';
 
 interface GroundingChunkWeb {
   uri?: string;
@@ -17,19 +17,18 @@ interface GroundingChunkWeb {
 
 interface GroundingChunkItem {
   web?: GroundingChunkWeb;
-  // Other properties might exist if needed in the future
 }
 
 interface GroundingSupportSegment {
   startIndex: number;
   endIndex: number;
-  text?: string; // text is optional as per the example
+  text?: string;
 }
 
 interface GroundingSupportItem {
   segment?: GroundingSupportSegment;
   groundingChunkIndices?: number[];
-  confidenceScores?: number[]; // Optional as per example
+  confidenceScores?: number[];
 }
 
 /**
@@ -39,7 +38,6 @@ export interface WebSearchToolParams {
   /**
    * The search query.
    */
-
   query: string;
 }
 
@@ -53,117 +51,138 @@ export interface WebSearchToolResult extends ToolResult {
 /**
  * A tool to perform web searches using Google Search via the Gemini API.
  */
-export class WebSearchTool extends BaseTool<WebSearchToolParams, WebSearchToolResult> {
+export class WebSearchTool extends BaseDeclarativeTool<WebSearchToolParams, WebSearchToolResult> {
   static readonly Name: string = 'gemini_web_search';
 
   constructor(private readonly geminiClient: GeminiClient) {
-    super(WebSearchTool.Name, 'GoogleSearch', 'Performs a web search using Google Search (via the Gemini API) and returns the results. This tool is useful for finding information on the internet based on a query.', Icon.Globe, {
-      type: Type.OBJECT,
-      properties: {
-        query: {
-          type: Type.STRING,
-          description: 'The search query to find information on the web.',
+    super(
+      WebSearchTool.Name,
+      'GoogleSearch',
+      'Performs a web search using Google Search (via the Gemini API) and returns the results. This tool is useful for finding information on the internet based on a query.',
+      Kind.Search,
+      {
+        type: Type.OBJECT,
+        properties: {
+          query: {
+            type: Type.STRING,
+            description: 'The search query to find information on the web.',
+          },
         },
+        required: ['query'],
       },
-      required: ['query'],
-    });
+      true, // isOutputMarkdown
+      false // canUpdateOutput
+    );
   }
 
-  /**
-   * Validates the parameters for the WebSearchTool.
-   * @param params The parameters to validate
-   * @returns An error message string if validation fails, null if valid
-   */
-  validateToolParams(params: WebSearchToolParams): string | null {
-    const errors = SchemaValidator.validate(this.schema.parameters, params);
-    if (errors) {
-      return errors;
-    }
-
+  public override validateToolParams(params: WebSearchToolParams): string | null {
     if (!params.query || params.query.trim() === '') {
       return "The 'query' parameter cannot be empty.";
     }
     return null;
   }
 
-  getDescription(params: WebSearchToolParams): string {
-    return `Searching the web for: "${params.query}"`;
+  protected createInvocation(params: WebSearchToolParams): ToolInvocation<WebSearchToolParams, WebSearchToolResult> {
+    return new WebSearchInvocation(this.geminiClient, params);
+  }
+}
+
+class WebSearchInvocation extends BaseToolInvocation<WebSearchToolParams, WebSearchToolResult> {
+  constructor(
+    private readonly geminiClient: GeminiClient,
+    params: WebSearchToolParams
+  ) {
+    super(params);
   }
 
-  async execute(params: WebSearchToolParams, signal: AbortSignal): Promise<WebSearchToolResult> {
-    const validationError = this.validateToolParams(params);
-    if (validationError) {
+  getDescription(): string {
+    return `Searching the web for: "${this.params.query}"`;
+  }
+
+  override toolLocations(): ToolLocation[] {
+    return [];
+  }
+
+  override async shouldConfirmExecute(): Promise<ToolCallConfirmationDetails | false> {
+    // No confirmation needed for web search
+    return false;
+  }
+
+  async execute(signal: AbortSignal, updateOutput?: (output: string) => void): Promise<WebSearchToolResult> {
+    if (signal.aborted) {
       return {
-        llmContent: `Error: Invalid parameters provided. Reason: ${validationError}`,
-        returnDisplay: validationError,
+        llmContent: 'Web search was cancelled by user before it could start.',
+        returnDisplay: 'Operation cancelled by user.',
       };
     }
 
     try {
-      const response = await this.geminiClient.generateContent([{ role: 'user', parts: [{ text: params.query }] }], { tools: [{ googleSearch: {} }] }, signal);
+      updateOutput?.(`Searching the web for: "${this.params.query}"`);
+
+      const response = await this.geminiClient.generateContent([{ role: 'user', parts: [{ text: this.params.query }] }], { tools: [{ googleSearch: {} }] }, signal);
 
       const responseText = getResponseText(response);
       const groundingMetadata = response.candidates?.[0]?.groundingMetadata;
       const sources = groundingMetadata?.groundingChunks as GroundingChunkItem[] | undefined;
       const groundingSupports = groundingMetadata?.groundingSupports as GroundingSupportItem[] | undefined;
 
-      if (!responseText || !responseText.trim()) {
+      if (!responseText) {
+        const errorMsg = 'No search results received';
         return {
-          llmContent: `Error: No search results found for query "${params.query}".`,
-          returnDisplay: `Search completed but no results were returned.`,
+          llmContent: `Error: ${errorMsg}`,
+          returnDisplay: errorMsg,
+          error: {
+            message: errorMsg,
+            type: ToolErrorType.EXECUTION_FAILED,
+          },
         };
       }
 
-      let modifiedResponseText = responseText;
+      // Process grounding information
+      let displayContent = responseText;
+
       if (sources && sources.length > 0) {
-        const sourceListFormatted: string[] = [];
-        sources.forEach((source, index) => {
-          const uri = source.web?.uri;
-          const title = source.web?.title;
-          if (uri && title) {
-            sourceListFormatted.push(`[${index + 1}] ${title} (${uri})`);
+        displayContent += '\n\n**Sources:**\n';
+        sources.forEach((chunk, index) => {
+          if (chunk.web?.title && chunk.web?.uri) {
+            displayContent += `${index + 1}. [${chunk.web.title}](${chunk.web.uri})\n`;
+          } else if (chunk.web?.uri) {
+            displayContent += `${index + 1}. ${chunk.web.uri}\n`;
           }
         });
-
-        if (groundingSupports && groundingSupports.length > 0) {
-          const insertions: Array<{ index: number; marker: string }> = [];
-          groundingSupports.forEach((support: GroundingSupportItem) => {
-            if (support.segment && support.groundingChunkIndices) {
-              const citationMarker = support.groundingChunkIndices.map((chunkIndex: number) => `[${chunkIndex + 1}]`).join('');
-              insertions.push({
-                index: support.segment.endIndex,
-                marker: citationMarker,
-              });
-            }
-          });
-
-          insertions.sort((a, b) => b.index - a.index);
-
-          const responseChars = modifiedResponseText.split('');
-          insertions.forEach((insertion) => {
-            responseChars.splice(insertion.index, 0, insertion.marker);
-          });
-          modifiedResponseText = responseChars.join('');
-        }
-
-        if (sourceListFormatted.length > 0) {
-          modifiedResponseText += '\n\nSources:\n' + sourceListFormatted.join('\n');
-        }
       }
 
-      const result = {
-        llmContent: `Web search results for "${params.query}":\n\n${modifiedResponseText}`,
-        returnDisplay: `Search results for "${params.query}" returned.`,
-        sources,
-      };
+      updateOutput?.('Search completed successfully');
 
-      return result;
-    } catch (error: unknown) {
-      const errorMessage = `Error during web search for query "${params.query}": ${getErrorMessage(error)}`;
-      console.error('[ERROR] gemini_web_search failed:', errorMessage);
       return {
-        llmContent: `Error: ${errorMessage}`,
-        returnDisplay: `Error performing web search.`,
+        llmContent: responseText,
+        returnDisplay: displayContent,
+        sources: sources || [],
+      };
+    } catch (error) {
+      if (signal.aborted) {
+        return {
+          llmContent: 'Web search was cancelled by user.',
+          returnDisplay: 'Operation cancelled by user.',
+        };
+      }
+
+      const errorMessage = getErrorMessage(error);
+      const errorType: ToolErrorType = ToolErrorType.EXECUTION_FAILED;
+
+      // Check for specific Google API errors
+      if (errorMessage.includes('Google') || errorMessage.includes('search')) {
+        // Google未登录或API限制等
+      }
+
+      return {
+        llmContent: `Error performing web search: ${errorMessage}`,
+        returnDisplay: `Error: ${errorMessage}`,
+        error: {
+          message: errorMessage,
+          type: errorType,
+        },
+        sources: [],
       };
     }
   }

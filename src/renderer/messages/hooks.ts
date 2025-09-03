@@ -4,21 +4,27 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useEffect } from 'react';
-import { createContext } from '../utils/createContext';
-import { ChatMessageStorage } from '@/common/storage';
 import type { TMessage } from '@/common/chatLib';
 import { composeMessage } from '@/common/chatLib';
+import { ChatMessageStorage } from '@/common/storage';
+import { useEffect } from 'react';
+import { createContext } from '../utils/createContext';
 
 const [useMessageList, MessageListProvider, useUpdateMessageList] = createContext([] as TMessage[]);
 
 const [useChatKey, ChatKeyProvider, useUpdateChatKey] = createContext('');
 
+const beforeUpdateMessageListStack: Array<(list: TMessage[]) => TMessage[]> = [];
+
 export const useAddOrUpdateMessage = () => {
   const update = useUpdateMessageList();
   return (message: TMessage, add = false) => {
     update((list) => {
-      return add ? list.concat(message) : composeMessage(message, list).slice();
+      let newList = add ? list.concat(message) : composeMessage(message, list).slice();
+      while (beforeUpdateMessageListStack.length) {
+        newList = beforeUpdateMessageListStack.shift()(newList);
+      }
+      return newList;
     });
   };
 };
@@ -38,5 +44,11 @@ export const useMessageLstCache = (key: string) => {
   }, [key]);
 };
 
-export { useMessageList, MessageListProvider };
-export { useChatKey, ChatKeyProvider };
+export const beforeUpdateMessageList = (fn: (list: TMessage[]) => TMessage[]) => {
+  beforeUpdateMessageListStack.push(fn);
+  return () => {
+    beforeUpdateMessageListStack.splice(beforeUpdateMessageListStack.indexOf(fn), 1);
+  };
+};
+
+export { ChatKeyProvider, MessageListProvider, useChatKey, useMessageList };

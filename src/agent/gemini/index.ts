@@ -5,7 +5,7 @@
  */
 
 // src/core/ConfigManager.ts
-import type { TModelWithConversation } from '@/common/storage';
+import type { TProviderWithModel } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import type { CompletedToolCall, Config, GeminiClient, ServerGeminiStreamEvent, ToolCall, ToolCallRequestInfo } from '@office-ai/aioncli-core';
 import { AuthType, CoreToolScheduler, sessionId } from '@office-ai/aioncli-core';
@@ -20,7 +20,7 @@ import { ConversationToolConfig } from './cli/tools/conversation-tool-config';
 import { mapToDisplay } from './cli/useReactToolScheduler';
 import { getPromptCount, handleCompletedTools, processGeminiStreamEvents, startNewPrompt } from './utils';
 
-function mergeMcpServers(settings: ReturnType<typeof loadSettings>['merged'], extensions: Extension[]) {
+function _mergeMcpServers(settings: ReturnType<typeof loadSettings>['merged'], extensions: Extension[]) {
   const mcpServers = { ...(settings.mcpServers || {}) };
   for (const extension of extensions) {
     Object.entries(extension.config.mcpServers || {}).forEach(([key, server]) => {
@@ -37,8 +37,10 @@ function mergeMcpServers(settings: ReturnType<typeof loadSettings>['merged'], ex
 interface GeminiAgent2Options {
   workspace: string;
   proxy?: string;
-  model: TModelWithConversation;
-  imageGenerationModel?: TModelWithConversation;
+  model: TProviderWithModel;
+  imageGenerationModel?: TProviderWithModel;
+  webSearchEngine?: 'google' | 'default';
+  yoloMode?: boolean;
   onStreamEvent: (event: { type: string; data: any; msg_id: string }) => void;
 }
 
@@ -46,8 +48,10 @@ export class GeminiAgent {
   config: Config | null = null;
   private workspace: string | null = null;
   private proxy: string | null = null;
-  private model: TModelWithConversation | null = null;
-  private imageGenerationModel: TModelWithConversation | null = null;
+  private model: TProviderWithModel | null = null;
+  private imageGenerationModel: TProviderWithModel | null = null;
+  private webSearchEngine: 'google' | 'default' | null = null;
+  private yoloMode: boolean = false;
   private geminiClient: GeminiClient | null = null;
   private authType: AuthType | null = null;
   private scheduler: CoreToolScheduler | null = null;
@@ -61,6 +65,8 @@ export class GeminiAgent {
     this.proxy = options.proxy;
     this.model = options.model;
     this.imageGenerationModel = options.imageGenerationModel;
+    this.webSearchEngine = options.webSearchEngine || 'default';
+    this.yoloMode = options.yoloMode || false;
     const platform = options.model.platform;
     if (platform === 'gemini-with-google-auth') {
       this.authType = AuthType.LOGIN_WITH_GOOGLE;
@@ -76,6 +82,7 @@ export class GeminiAgent {
     this.toolConfig = new ConversationToolConfig({
       proxy: this.proxy,
       imageGenerationModel: this.imageGenerationModel,
+      webSearchEngine: this.webSearchEngine,
     });
     this.bootstrap = this.initialize();
   }
@@ -140,6 +147,9 @@ export class GeminiAgent {
 
     const settings = loadSettings(path).merged;
 
+    // 使用传入的 YOLO 设置
+    const yoloMode = this.yoloMode;
+
     // 初始化对话级别的工具配置
     await this.toolConfig.initializeForConversation(this.authType!);
 
@@ -150,8 +160,9 @@ export class GeminiAgent {
       extensions,
       sessionId,
       proxy: this.proxy,
-      model: this.model.useModel,
+      model: this.model.selectedModel,
       conversationToolConfig: this.toolConfig,
+      yoloMode,
     });
     await this.config.initialize();
 
