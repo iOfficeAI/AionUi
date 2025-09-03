@@ -28,6 +28,83 @@ const mkdirSync = (path: string) => {
 };
 
 /**
+ * 迁移配置中的字段重命名: useModel -> selectedModel
+ */
+const migrateConfigFieldRenames = async () => {
+  try {
+    const config = await configFile.toJson();
+    const chatConfig = await chatFile.toJson();
+    let hasConfigChanges = false;
+    let hasChatChanges = false;
+
+    // 迁移 tools.imageGenerationModel 中的 useModel -> selectedModel
+    if (config['tools.imageGenerationModel'] && 'useModel' in config['tools.imageGenerationModel'] && !config['tools.imageGenerationModel'].selectedModel) {
+      const imageGenConfig = config['tools.imageGenerationModel'] as any;
+      const originalUseModel = imageGenConfig.useModel;
+
+      // 先设置新字段
+      imageGenConfig.selectedModel = originalUseModel;
+
+      // 验证迁移是否成功
+      if (imageGenConfig.selectedModel === originalUseModel) {
+        // 验证成功，删除旧字段
+        delete imageGenConfig.useModel;
+        hasConfigChanges = true;
+        console.log('[AionUi] Migrated tools.imageGenerationModel: useModel -> selectedModel');
+      } else {
+        console.error('[AionUi] Failed to migrate tools.imageGenerationModel: verification failed');
+      }
+    }
+
+    // 迁移聊天历史中的 model 字段
+    if (chatConfig['chat.history'] && Array.isArray(chatConfig['chat.history'])) {
+      let migratedCount = 0;
+
+      chatConfig['chat.history'].forEach((conversation, index) => {
+        if (conversation.model && 'useModel' in conversation.model && !conversation.model.selectedModel) {
+          const modelConfig = conversation.model as any;
+          const originalUseModel = modelConfig.useModel;
+
+          // 先设置新字段
+          modelConfig.selectedModel = originalUseModel;
+
+          // 验证迁移是否成功
+          if (modelConfig.selectedModel === originalUseModel) {
+            // 验证成功，删除旧字段
+            delete modelConfig.useModel;
+            migratedCount++;
+            hasChatChanges = true;
+          } else {
+            console.error(`[AionUi] Failed to migrate chat history[${index}]: verification failed`);
+          }
+        }
+      });
+
+      if (migratedCount > 0) {
+        console.log(`[AionUi] Migrated ${migratedCount} chat conversations: useModel -> selectedModel`);
+      }
+    }
+
+    // 保存配置变更
+    if (hasConfigChanges) {
+      await configFile.setJson(config);
+    }
+    if (hasChatChanges) {
+      await chatFile.setJson(chatConfig);
+    }
+
+    if (hasConfigChanges || hasChatChanges) {
+      console.log('[AionUi] Configuration field migration completed successfully');
+    }
+
+    return hasConfigChanges || hasChatChanges;
+  } catch (error) {
+    console.error('[AionUi] Configuration field migration failed:', error);
+    return false;
+  }
+};
+
+/**
  * 迁移老版本数据从temp目录到userData/config目录
  */
 const migrateLegacyData = async () => {
@@ -249,7 +326,10 @@ const initStorage = async () => {
   // 1. 先执行数据迁移（在任何目录创建之前）
   await migrateLegacyData();
 
-  // 2. 创建必要的目录（迁移后再创建，确保迁移能正常进行）
+  // 2. 执行配置字段迁移
+  await migrateConfigFieldRenames();
+
+  // 3. 创建必要的目录（迁移后再创建，确保迁移能正常进行）
   if (!existsSync(getHomePage())) {
     mkdirSync(getHomePage());
   }
@@ -257,7 +337,7 @@ const initStorage = async () => {
     mkdirSync(getDataPath());
   }
 
-  // 3. 初始化存储系统
+  // 4. 初始化存储系统
   ConfigStorage.interceptor(configFile);
   ChatStorage.interceptor(chatFile);
   ChatMessageStorage.interceptor(chatMessageFile);

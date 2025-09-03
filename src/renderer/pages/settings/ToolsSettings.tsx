@@ -29,13 +29,7 @@ const ToolsSettings: React.FC = () => {
   useEffect(() => {
     ConfigStorage.get('tools.imageGenerationModel').then((data) => {
       if (!data) return;
-      // Handle backward compatibility: useModel -> selectedModel (read only)
-      if (data && 'useModel' in data && !data.selectedModel) {
-        const compatData = { ...data, selectedModel: (data as any).useModel };
-        setImageGenerationModel(compatData);
-      } else {
-        setImageGenerationModel(data);
-      }
+      setImageGenerationModel(data);
     });
   }, []);
 
