@@ -6,7 +6,7 @@
 
 import type { TChatConversation } from '@/common/storage';
 import type AgentBaseTask from './task/BaseAgentTask';
-import { GeminiAgentTask } from './task/GeminiAgentTask';
+import { GeminiAgentManager } from './task/GeminiAgentManager';
 
 const taskList: {
   id: string;
@@ -24,7 +24,7 @@ const buildConversation = (conversation: TChatConversation) => {
   }
   switch (conversation.type) {
     case 'gemini': {
-      const task = new GeminiAgentTask(
+      const task = new GeminiAgentManager(
         {
           workspace: conversation.extra.workspace,
           conversation_id: conversation.id,
