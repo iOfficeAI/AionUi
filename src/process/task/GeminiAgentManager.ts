@@ -7,7 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { TMessage } from '@/common/chatLib';
 import { transformMessage } from '@/common/chatLib';
-import type { TModelWithConversation } from '@/common/storage';
+import type { TProviderWithModel } from '@/common/storage';
 import { ProcessConfig } from '@/process/initStorage';
 import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '../message';
 import BaseAgentTask from './BaseAgentTask';
@@ -15,14 +15,14 @@ import BaseAgentTask from './BaseAgentTask';
 // gemini agent管理器类
 export class GeminiAgentManager extends BaseAgentTask<{
   workspace: string;
-  model: TModelWithConversation;
-  imageGenerationModel?: TModelWithConversation;
+  model: TProviderWithModel;
+  imageGenerationModel?: TProviderWithModel;
   webSearchEngine?: 'google' | 'default';
 }> {
   workspace: string;
-  model: TModelWithConversation;
+  model: TProviderWithModel;
   private bootstrap: Promise<void>;
-  constructor(data: { workspace: string; conversation_id: string; webSearchEngine?: 'google' | 'default' }, model: TModelWithConversation) {
+  constructor(data: { workspace: string; conversation_id: string; webSearchEngine?: 'google' | 'default' }, model: TProviderWithModel) {
     super('gemini', { ...data, model });
     this.workspace = data.workspace;
     this.conversation_id = data.conversation_id;
@@ -37,7 +37,7 @@ export class GeminiAgentManager extends BaseAgentTask<{
       });
     });
   }
-  private async getImageGenerationModel(): Promise<TModelWithConversation | undefined> {
+  private async getImageGenerationModel(): Promise<TProviderWithModel | undefined> {
     return ProcessConfig.get('tools.imageGenerationModel')
       .then((imageGenerationModel) => {
         if (imageGenerationModel && imageGenerationModel.switch) {
