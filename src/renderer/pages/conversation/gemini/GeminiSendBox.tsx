@@ -121,7 +121,7 @@ const GeminiSendBox: React.FC<{
   const addMessage = useAddOrUpdateMessage();
 
   const onSendHandler = async (message: string) => {
-    if (!model?.selectedModel) return;
+    if (!model?.useModel) return;
     const msg_id = uuid();
     if (atPath.length || uploadFile.length) {
       message = uploadFile.map((p) => '@' + p.split(/[\\/]/).pop()).join(' ') + ' ' + atPath.map((p) => '@' + p).join(' ') + ' ' + message;
@@ -179,8 +179,8 @@ const GeminiSendBox: React.FC<{
         value={content}
         onChange={setContent}
         loading={running}
-        disabled={!model?.selectedModel}
-        placeholder={model?.selectedModel ? '' : t('conversation.chat.noModelSelected')}
+        disabled={!model?.useModel}
+        placeholder={model?.useModel ? '' : t('conversation.chat.noModelSelected')}
         onStop={() => {
           return ipcBridge.conversation.stop.invoke({ conversation_id }).then(() => {
             console.log('stopStream');
@@ -207,7 +207,7 @@ const GeminiSendBox: React.FC<{
             ></Button>
             {model && (
               <Button className={'ml-4px'} shape='round'>
-                {model.selectedModel}
+                {model.useModel}
               </Button>
             )}
           </>
