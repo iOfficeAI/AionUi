@@ -1,5 +1,5 @@
 import { ipcBridge } from '@/common';
-import type { IModel } from '@/common/storage';
+import type { IProvider } from '@/common/storage';
 import { Button, Collapse, Divider, Message, Popconfirm } from '@arco-design/web-react';
 import { DeleteFour, Minus, Plus, Write } from '@icon-park/react';
 import React, { useState } from 'react';
@@ -24,7 +24,7 @@ const ModelSettings: React.FC = () => {
   });
   const [message, messageContext] = Message.useMessage();
 
-  const saveModelConfig = (newData: IModel[], success?: () => void) => {
+  const saveModelConfig = (newData: IProvider[], success?: () => void) => {
     ipcBridge.mode.saveModelConfig.invoke(newData).then((data) => {
       if (data.success) {
         setCacheKey('model.config' + Date.now());
@@ -36,7 +36,7 @@ const ModelSettings: React.FC = () => {
     });
   };
 
-  const updatePlatform = (platform: IModel, success: () => void) => {
+  const updatePlatform = (platform: IProvider, success: () => void) => {
     const newData = [...(data || [])];
     const originData = newData.find((item) => item.id === platform.id);
     if (originData) {
