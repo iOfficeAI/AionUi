@@ -59,6 +59,7 @@
     "googleLogout": "退出登录",
     "openai": "OpenAI",
     "proxyConfig": "代理",
+    "yoloMode": "自动允许",
     "geminiBaseUrl": "Gemini API Base URL",
     "cacheDir": "缓存目录",
     "workDir": "工作目录",
@@ -87,7 +88,9 @@
     "lightMode": "浅色",
     "darkMode": "深色",
     "tools": "工具配置",
-    "imageGenerationModel": "图片模型"
+    "imageGenerationModel": "图像模型",
+    "imageGenerationGuide": "免费图像模型配置指南",
+    "noAvailable": "暂无可用图像模型，请先配置。"
   },
   "messages": {
     "conversationInProgress": "当前正在进行对话中...",

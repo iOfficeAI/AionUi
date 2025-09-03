@@ -19,6 +19,7 @@ import { theme } from '@office-ai/platform';
 import React, { useMemo, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { useTranslation } from 'react-i18next';
+import LocalImageView from './LocalImageView';
 
 const formatCode = (code: string) => {
   const content = String(code).replace(/\n$/, '');
@@ -26,7 +27,7 @@ const formatCode = (code: string) => {
     //@todo 可以再美化
     return JSON.stringify(
       JSON.parse(content),
-      (key, value) => {
+      (_key, value) => {
         return value;
       },
       2
@@ -43,7 +44,7 @@ const logicRender = <T, F>(condition: boolean, trueComponent: T, falseComponent?
 function CodeBlock(props: any) {
   const [fold, setFlow] = useState(false);
   return useMemo(() => {
-    const { children, className, node, hiddenCodeCopyButton, ...rest } = props;
+    const { children, className, node: _node, hiddenCodeCopyButton: _hiddenCodeCopyButton, ...rest } = props;
     const match = /language-(\w+)/.exec(className || '');
     const language = match?.[1] || 'text';
     if (!String(children).includes('\n')) {
@@ -114,7 +115,7 @@ function CodeBlock(props: any) {
   }, [props]);
 }
 
-const createInitStyle = () => {
+const createInitStyle = (currentTheme = 'light') => {
   const style = document.createElement('style');
   style.innerHTML = `
   * {
@@ -170,7 +171,32 @@ const createInitStyle = () => {
         border: 1px solid #ddd;
         min-width: 120px;
     }
-  }`;
+  }
+  .loading {
+    animation: loading 1s linear infinite;
+  }
+
+
+  @keyframes loading {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+  
+  /* 暗色主题下保护图片不被反转 */
+  ${
+    currentTheme === 'dark'
+      ? `
+    img, video, canvas, svg {
+      filter: invert(1) hue-rotate(180deg);
+    }
+  `
+      : ''
+  }
+  `;
   return style;
 };
 
@@ -182,7 +208,9 @@ const ShadowView = ({ children }: { children: React.ReactNode }) => {
         if (!el || el.__init__shadow) return;
         el.__init__shadow = true;
         const shadowRoot = el.attachShadow({ mode: 'open' });
-        shadowRoot.appendChild(createInitStyle());
+        // 获取当前主题并传递给 Shadow DOM
+        const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+        shadowRoot.appendChild(createInitStyle(currentTheme));
         setRoot(shadowRoot);
       }}
       className='markdown-shadow'
@@ -201,6 +229,23 @@ const MarkdownView: React.FC<{
   onRef?: (el?: HTMLDivElement | null) => void;
 }> = ({ hiddenCodeCopyButton, codeStyle, ...props }) => {
   const { t } = useTranslation();
+  const children = useMemo(() => {
+    if (typeof props.children === 'string') {
+      return props.children.replace(/file:\/\//g, '');
+    }
+    return props.children;
+  }, [props.children]);
+
+  const isLocalFilePath = (src: string): boolean => {
+    if (src.startsWith('http://') || src.startsWith('https://')) {
+      return false;
+    }
+    if (src.startsWith('data:')) {
+      return false;
+    }
+    return true;
+  };
+
   return (
     <ShadowView>
       <div ref={props.onRef} className='markdown-shadow-body'>
@@ -209,7 +254,7 @@ const MarkdownView: React.FC<{
           rehypePlugins={[rehypeKatex]}
           components={{
             code: (props: any) => CodeBlock({ ...props, codeStyle, hiddenCodeCopyButton }),
-            a: ({ node, ...props }) => (
+            a: ({ node: _node, ...props }) => (
               <a
                 {...props}
                 target='_blank'
@@ -226,7 +271,7 @@ const MarkdownView: React.FC<{
                 }}
               />
             ),
-            table: ({ node, ...props }) => (
+            table: ({ node: _node, ...props }) => (
               <div style={{ overflowX: 'auto', maxWidth: 'calc(100vw - 32px)' }}>
                 <table
                   {...props}
@@ -239,7 +284,7 @@ const MarkdownView: React.FC<{
                 />
               </div>
             ),
-            td: ({ node, ...props }) => (
+            td: ({ node: _node, ...props }) => (
               <td
                 {...props}
                 style={{
@@ -250,9 +295,18 @@ const MarkdownView: React.FC<{
                 }}
               />
             ),
+            img: ({ node: _node, ...props }) => {
+              // 判断是否为本地文件路径
+              if (isLocalFilePath(props.src || '')) {
+                const src = decodeURIComponent(props.src || '');
+                return <LocalImageView src={src} alt={props.alt || ''} className={props.className} />;
+              }
+              // 否则使用普通的 img 标签
+              return <img {...props} />;
+            },
           }}
         >
-          {props.children}
+          {children}
         </ReactMarkdown>
       </div>
     </ShadowView>
