@@ -137,6 +137,7 @@ export class ApiKeyManager {
     envKey: string;
     current: number;
     total: number;
+    keys: string[];
     blacklisted: number[];
   } {
     const now = Date.now();
@@ -153,7 +154,13 @@ export class ApiKeyManager {
       envKey: this.envKey,
       current: this.currentIndex + 1,
       total: this.keys.length,
+      keys: this.keys,
       blacklisted,
     };
+  }
+
+  getCurrentKey(): string {
+    if (this.keys.length === 0) return '';
+    return this.keys[this.currentIndex] || '';
   }
 }
