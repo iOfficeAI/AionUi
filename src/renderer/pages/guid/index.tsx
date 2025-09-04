@@ -6,7 +6,6 @@
 
 import { ipcBridge } from '@/common';
 import type { AcpBackend } from '@/common/acpTypes';
-import { getAllAcpBackends } from '@/common/acpTypes';
 import type { IProvider, TProviderWithModel } from '@/common/storage';
 import { ConfigStorage } from '@/common/storage';
 import { uuid } from '@/common/utils';
@@ -126,57 +125,14 @@ const Guid: React.FC = () => {
   };
   const navigate = useNavigate();
 
-  // 检测可用的 ACP agents (异步检测，避免卡渲染进程)
-  const { data: availableAgentsData } = useSWR('acp.agents.detect', async () => {
-    const allBackends = getAllAcpBackends();
-    const detected = [];
-
-    // 使用 Promise.allSettled 并行检测所有 backends，避免串行阻塞
-    const detectionPromises = allBackends.map(async (backend) => {
-      try {
-        // 添加超时机制，避免单个检测时间过长
-        const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('Detection timeout')), 3000));
-
-        const detectionPromise = ipcBridge.acpConversation.detectCliPath.invoke({
-          backend: backend.id as AcpBackend,
-        });
-
-        const result = (await Promise.race([detectionPromise, timeoutPromise])) as any;
-
-        if (result?.success && result?.data?.path) {
-          return {
-            backend: backend.id as AcpBackend,
-            name: backend.name,
-            cliPath: result.data.path,
-          };
-        }
-      } catch (error) {
-        // 检测失败或超时，跳过这个 backend
-        console.warn(`Detection failed for ${backend.id}:`, error);
-      }
-      return null;
-    });
-
-    const results = await Promise.allSettled(detectionPromises);
-
-    // 收集成功检测到的 agents
-    for (const result of results) {
-      if (result.status === 'fulfilled' && result.value) {
-        detected.push(result.value);
-      }
+  // 获取可用的 ACP agents - 基于全局标记位
+  const { data: availableAgentsData } = useSWR('acp.agents.available', async () => {
+    const result = await ipcBridge.acpConversation.getAvailableAgents.invoke();
+    if (result.success) {
+      // 过滤掉检测到的gemini命令，只保留内置Gemini
+      return result.data.filter((agent) => !(agent.backend === 'gemini' && agent.cliPath));
     }
-
-    // 如果检测到任何 ACP agent，在最前面添加自带的 Gemini
-    if (detected.length > 0) {
-      const builtInGemini = {
-        backend: 'gemini' as AcpBackend,
-        name: 'Gemini',
-        cliPath: undefined as string | undefined, // 自带的不需要 CLI 路径
-      };
-      detected.unshift(builtInGemini);
-    }
-
-    return detected;
+    return [];
   });
 
   // 更新本地状态

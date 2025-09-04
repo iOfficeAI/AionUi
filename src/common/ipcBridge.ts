@@ -74,6 +74,7 @@ export const acpConversation = {
   confirmMessage: bridge.buildProvider<IBridgeResponse, IConfirmAcpMessageParams>('acp.input.confirm.message'),
   responseStream: acpResponseStream,
   detectCliPath: bridge.buildProvider<IBridgeResponse<{ path?: string }>, { backend: AcpBackend }>('acp.detect-cli-path'),
+  getAvailableAgents: bridge.buildProvider<IBridgeResponse<Array<{ backend: AcpBackend; name: string; cliPath?: string }>>, void>('acp.get-available-agents'),
   checkEnv: bridge.buildProvider<{ env: Record<string, string> }, void>('acp.check.env'),
   getWorkspace: bridge.buildProvider<IDirOrFile[], { workspace: string }>('acp.get-workspace'),
   // clearAllCache: bridge.buildProvider<IBridgeResponse<{ details?: any }>, void>('acp.clear.all.cache'),

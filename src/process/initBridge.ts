@@ -13,6 +13,7 @@ import fs from 'fs/promises';
 import OpenAI from 'openai';
 import path from 'path';
 import { ipcBridge } from '../common';
+import { acpDetector } from './AcpDetector';
 import { createGeminiAgent } from './initAgent';
 import { getSystemDir, ProcessChat, ProcessChatMessage, ProcessConfig, ProcessEnv } from './initStorage';
 import { nextTickToLocalFinish } from './message';
@@ -523,122 +524,16 @@ ipcBridge.acpConversation.clearAllCache?.provider(async () => {
 });
 */
 
+// 保留旧的detectCliPath接口用于向后兼容，但使用新检测器的结果
 ipcBridge.acpConversation.detectCliPath.provider(async ({ backend }) => {
-  const { execSync } = await import('child_process');
+  const agents = acpDetector.getDetectedAgents();
+  const agent = agents.find((a) => a.backend === backend);
 
-  // Import ACP backends configuration to check supported backends
-  const { isValidAcpBackend } = await import('@/common/acpTypes');
-
-  if (!isValidAcpBackend(backend)) {
-    return { success: false, msg: `Unsupported backend: ${backend}` };
+  if (agent?.cliPath) {
+    return { success: true, data: { path: agent.cliPath } };
   }
 
-  const isWindows = process.platform === 'win32';
-
-  // 优化：减少超时时间，但不要太激进
-  const QUICK_TIMEOUT = 3000; // 3秒超时，平衡性能和检测成功率
-
-  // First, try to test if the command works directly (handles aliases) - 使用快速超时
-  try {
-    execSync(`${backend} --version`, { encoding: 'utf-8', stdio: 'pipe', timeout: QUICK_TIMEOUT });
-    return { success: true, data: { path: backend } };
-  } catch (directTestError) {
-    // Direct test failed, try path detection
-  }
-
-  // If direct test failed, try traditional path detection and alias detection
-  try {
-    const whichCommand = isWindows ? `where ${backend}` : `which ${backend}`;
-    let cliPath = execSync(whichCommand, { encoding: 'utf-8', timeout: QUICK_TIMEOUT }).trim();
-
-    // Also try 'type' command for better alias detection on Unix systems
-    if (!isWindows && !cliPath) {
-      try {
-        const typeOutput = execSync(`type ${backend}`, { encoding: 'utf-8', stdio: 'pipe', timeout: QUICK_TIMEOUT }).trim();
-        if (typeOutput) {
-          cliPath = typeOutput;
-        }
-      } catch (typeError) {
-        // type command failed, continue with which output
-      }
-    }
-
-    if (isWindows && cliPath.includes('\n')) {
-      cliPath = cliPath.split('\n')[0].trim();
-    }
-
-    if (!cliPath) {
-      throw new Error('Empty path returned');
-    }
-
-    // Handle alias detection - check if output contains alias patterns
-    if (cliPath.includes('aliased to') || cliPath.includes('is aliased to') || cliPath.includes('is an alias for') || cliPath.match(/\w+\s+is\s+/)) {
-      const aliasPatterns = [/(?:is )?aliased to\s*`?([^`\n]+)`?/, /is an alias for\s*`?([^`\n]+)`?/, /\w+\s+is\s+([^`\n]+)/];
-
-      let aliasedCommand = null;
-      for (const pattern of aliasPatterns) {
-        const match = cliPath.match(pattern);
-        if (match) {
-          aliasedCommand = match[1].trim().replace(/['"`]/g, '');
-          break;
-        }
-      }
-
-      if (aliasedCommand) {
-        // Test if the aliased command works
-        try {
-          execSync(`${aliasedCommand} --version`, { encoding: 'utf-8', stdio: 'pipe', timeout: QUICK_TIMEOUT });
-          return { success: true, data: { path: aliasedCommand } };
-        } catch (aliasTestError) {
-          // Continue with fallback logic
-        }
-      }
-    }
-
-    // Test if the detected path actually works
-    try {
-      execSync(`${cliPath} --version`, { encoding: 'utf-8', stdio: 'pipe', timeout: QUICK_TIMEOUT });
-      return { success: true, data: { path: cliPath } };
-    } catch (pathTestError) {
-      // Path exists but command doesn't work, return the path anyway - it might work in different contexts
-      return { success: true, data: { path: cliPath } };
-    }
-  } catch (pathError) {
-    // 最后尝试 npx 方法，但使用快速超时
-    if (backend === 'gemini') {
-      const npxCommand = isWindows ? 'npx.cmd' : 'npx';
-      try {
-        execSync(`${npxCommand} @google/gemini-cli --version`, { encoding: 'utf-8', stdio: 'pipe', timeout: QUICK_TIMEOUT });
-        return { success: true, data: { path: 'npx @google/gemini-cli' } };
-      } catch (npxError) {
-        // npx 也失败了
-      }
-    } else if (backend === 'claude') {
-      const npxCommand = isWindows ? 'npx.cmd' : 'npx';
-      try {
-        execSync(`${npxCommand} @zed-industries/claude-code-acp --version`, { encoding: 'utf-8', stdio: 'pipe', timeout: QUICK_TIMEOUT });
-        return { success: true, data: { path: 'npx @zed-industries/claude-code-acp' } };
-      } catch (npxError) {
-        // npx 也失败了
-      }
-    } else if (backend === 'qwen') {
-      // qwen 的 npx 检测作为最后备用方案
-      const npxCommand = isWindows ? 'npx.cmd' : 'npx';
-      const qwenPackages = ['@qwen-code/qwen-code', 'qwen-code'];
-
-      for (const pkg of qwenPackages) {
-        try {
-          execSync(`${npxCommand} ${pkg} --version`, { encoding: 'utf-8', stdio: 'pipe', timeout: QUICK_TIMEOUT });
-          return { success: true, data: { path: `npx ${pkg}` } };
-        } catch (npxError) {
-          // 尝试下一个包
-          continue;
-        }
-      }
-    }
-
-    return { success: false, msg: `${backend} CLI not found. Please install it and ensure it's accessible.` };
-  }
+  return { success: false, msg: `${backend} CLI not found. Please install it and ensure it's accessible.` };
 });
 
 ipcBridge.conversation.stop.provider(async ({ conversation_id }) => {
@@ -848,3 +743,25 @@ ipcBridge.mode.getModelConfig.provider(async () => {
       return [] as IProvider[];
     });
 });
+
+// 新的ACP检测接口 - 基于全局标记位
+ipcBridge.acpConversation.getAvailableAgents.provider(async () => {
+  try {
+    const agents = acpDetector.getDetectedAgents();
+    return { success: true, data: agents };
+  } catch (error) {
+    return {
+      success: false,
+      msg: error instanceof Error ? error.message : 'Unknown error',
+    };
+  }
+});
+
+// 初始化ACP检测器
+export async function initializeAcpDetector(): Promise<void> {
+  try {
+    await acpDetector.initialize();
+  } catch (error) {
+    console.error('[ACP] Failed to initialize detector:', error);
+  }
+}
