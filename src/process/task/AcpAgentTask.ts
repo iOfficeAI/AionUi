@@ -93,7 +93,7 @@ export class AcpAgentTask extends EventEmitter {
       name: `${config.backend.toUpperCase()} ACP`,
       baseUrl: '',
       apiKey: '',
-      selectedModel: config.backend,
+      useModel: config.backend,
     };
 
     this.connection = new AcpConnection();

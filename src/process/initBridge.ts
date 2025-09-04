@@ -794,24 +794,37 @@ ipcBridge.mode.getModelConfig.provider(async () => {
       if (!data) return [];
 
       // Handle migration from old IModel format to new IProvider format
-      return data.map((v: any) => {
-        // Check if this is old format (has 'useModel' field) vs new format (has 'selectedModel')
-        if ('useModel' in v && !('selectedModel' in v)) {
+      console.log('[DEBUG] Model config migration - raw data:', data.length, 'providers');
+      return data.map((v: any, index: number) => {
+        console.log(`[DEBUG] Provider ${index}:`, {
+          name: v.name,
+          platform: v.platform,
+          hasUseModel: 'useModel' in v,
+          hasSelectedModel: 'selectedModel' in v,
+          useModel: v.useModel,
+          selectedModel: v.selectedModel,
+        });
+
+        // Check if this is old format (has 'selectedModel' field) vs new format (has 'useModel')
+        if ('selectedModel' in v && !('useModel' in v)) {
+          console.log(`[DEBUG] Migrating provider ${v.name}: selectedModel -> useModel`);
           // Migrate from old format
           return {
             ...v,
-            selectedModel: v.useModel, // Rename useModel to selectedModel
+            useModel: v.selectedModel, // Rename selectedModel to useModel
             id: v.id || uuid(),
             capabilities: v.capabilities || [], // Add missing capabilities field
             contextLimit: v.contextLimit, // Keep existing contextLimit if present
           };
+          // Note: we don't delete selectedModel here as this is read-only migration
         }
 
+        console.log(`[DEBUG] Provider ${v.name} already in correct format or mixed format`);
         // Already in new format or unknown format, just ensure ID exists
         return {
           ...v,
           id: v.id || uuid(),
-          selectedModel: v.selectedModel || v.useModel || '', // Fallback for edge cases
+          useModel: v.useModel || v.selectedModel || '', // Fallback for edge cases
         };
       });
     })
