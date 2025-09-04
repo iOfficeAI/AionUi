@@ -7,6 +7,7 @@
 // src/core/ConfigManager.ts
 import type { TProviderWithModel } from '@/common/storage';
 import { uuid } from '@/common/utils';
+import { getProviderAuthType } from '@/common/utils/platformAuthType';
 import type { CompletedToolCall, Config, GeminiClient, ServerGeminiStreamEvent, ToolCall, ToolCallRequestInfo } from '@office-ai/aioncli-core';
 import { AuthType, CoreToolScheduler, sessionId } from '@office-ai/aioncli-core';
 import { execSync } from 'child_process';
@@ -72,16 +73,8 @@ export class GeminiAgent {
     this.imageGenerationModel = options.imageGenerationModel;
     this.webSearchEngine = options.webSearchEngine || 'default';
     this.yoloMode = options.yoloMode || false;
-    const platform = options.model.platform;
-    if (platform === 'gemini-with-google-auth') {
-      this.authType = AuthType.LOGIN_WITH_GOOGLE;
-    } else if (platform === 'gemini') {
-      this.authType = AuthType.USE_GEMINI;
-    } else if (platform === 'gemini-vertex-ai') {
-      this.authType = AuthType.USE_VERTEX_AI;
-    } else {
-      this.authType = AuthType.USE_OPENAI;
-    }
+    // 使用统一的工具函数获取认证类型
+    this.authType = getProviderAuthType(options.model);
     this.onStreamEvent = options.onStreamEvent;
     this.initClientEnv();
     this.toolConfig = new ConversationToolConfig({
@@ -336,7 +329,7 @@ export class GeminiAgent {
       if (!options?.isContinuation) {
         startNewPrompt();
       }
-      const stream = await this.geminiClient.sendMessageStream(query, abortController.signal, prompt_id);
+      const stream = this.geminiClient.sendMessageStream(query, abortController.signal, prompt_id);
       this.onStreamEvent({
         type: 'start',
         data: '',
