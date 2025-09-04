@@ -227,28 +227,30 @@ export async function loadCliConfig({ workspace, settings, extensions, sessionId
     ideMode,
   });
 
-  // Register multi-key fallback handler
   const flashFallbackHandler = async (
-    currentModel: string,
-    fallbackModel: string,
-    error?: unknown
-  ): Promise<boolean> => {
-    const agent = getCurrentGeminiAgent();
-    const apiKeyManager = agent?.getApiKeyManager();
-    
-    if (!apiKeyManager?.hasMultipleKeys()) {
-      return true; // Single key mode, accept fallback
-    }
+    _currentModel: string,
+    _fallbackModel: string,
+    _error?: unknown,
+  ): Promise<string | boolean> => {
+    try {
+      const agent = getCurrentGeminiAgent();
+      const apiKeyManager = agent?.getApiKeyManager();
 
-    // Try to rotate to next key
-    const hasMoreKeys = apiKeyManager.rotateKey();
-    if (hasMoreKeys) {
-      console.log(`[MultiKey] Rotated API key, retrying with ${currentModel}`);
-      return false; // Prevent fallback, retry with new key
-    }
+      if (!apiKeyManager?.hasMultipleKeys()) {
+        return true;
+      }
 
-    console.log(`[MultiKey] All keys exhausted, falling back to ${fallbackModel}`);
-    return true; // Accept fallback
+      const hasMoreKeys = apiKeyManager.rotateKey();
+
+      if (hasMoreKeys) {
+        return true;
+      }
+
+      return false;
+    } catch (e) {
+      console.error(`[FlashFallback] Handler error:`, e);
+      return true;
+    }
   };
 
   config.setFlashFallbackHandler(flashFallbackHandler);
