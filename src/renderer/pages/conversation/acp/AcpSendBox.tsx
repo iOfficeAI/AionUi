@@ -1,5 +1,6 @@
 import { ipcBridge } from '@/common';
 import type { AcpBackend } from '@/common/acpTypes';
+import { isRetryableError } from '@/common/acpTypes';
 import { transformMessage } from '@/common/chatLib';
 // import type { TModelWithConversation } from '@/common/storage';
 import { uuid } from '@/common/utils';
@@ -157,9 +158,132 @@ const AcpSendBox: React.FC<{
   backend: AcpBackend;
 }> = ({ conversation_id, backend }) => {
   const { thought, running } = useAcpMessage(conversation_id);
+  const { t } = useTranslation();
 
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
   const navigate = useNavigate();
+  const [initialMessageSent, setInitialMessageSent] = useState(false);
+
+  // Check for and send initial message from guid page when ACP connection is ready
+  useEffect(() => {
+    if (initialMessageSent || running) {
+      return;
+    }
+
+    const checkAndSendInitialMessage = async () => {
+      const storageKey = `acp_initial_message_${conversation_id}`;
+      const storedMessage = sessionStorage.getItem(storageKey);
+
+      if (!storedMessage) {
+        return;
+      }
+
+      try {
+        const initialMessage = JSON.parse(storedMessage);
+        const { input, files } = initialMessage;
+
+        // Wait for ACP connection to be ready by polling
+        const maxAttempts = 30; // 30 seconds max wait
+        let attempt = 0;
+
+        const waitForConnection = async (): Promise<boolean> => {
+          while (attempt < maxAttempts) {
+            try {
+              // Try to send the message - if successful, connection is ready
+              const msg_id = uuid();
+
+              const result = await ipcBridge.acpConversation.sendMessage.invoke({
+                input,
+                msg_id,
+                conversation_id,
+                files,
+              });
+
+              // Check if the result indicates success
+              if (result && result.success === true) {
+                // Success - clear the stored message and mark as sent
+                sessionStorage.removeItem(storageKey);
+                setInitialMessageSent(true);
+                return true;
+              } else {
+                // Result indicates failure, but no exception was thrown
+                const acpError = (result as any)?.error;
+                const errorMsg = result?.msg || 'Unknown error';
+
+                if (acpError && isRetryableError(acpError)) {
+                  // Continue retrying for retryable errors
+                  attempt++;
+                  await new Promise((resolve) => setTimeout(resolve, 1000));
+                  continue;
+                } else {
+                  // Non-retryable error or no typed error available
+                  throw new Error(acpError?.message || errorMsg);
+                }
+              }
+            } catch (error: any) {
+              const errorMsg = error?.message || error.toString();
+
+              // Check if this looks like a connection not ready error (retryable)
+              const isConnectionError = errorMsg.includes('ACP connection not ready') || errorMsg.includes('connection') || errorMsg.includes('timeout');
+
+              const isAuthError = errorMsg.includes('[ACP-AUTH-') || errorMsg.includes('authentication failed') || errorMsg.includes('认证失败');
+
+              if (isConnectionError) {
+                // Connection not ready yet, wait and retry
+                attempt++;
+                await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait 1 second
+                continue;
+              } else if (isAuthError) {
+                // Authentication error - send error message to conversation
+
+                // Create error message in conversation
+                const errorMsg = {
+                  id: uuid(),
+                  msg_id: uuid(),
+                  conversation_id,
+                  type: 'error',
+                  data: {
+                    content: t('acp.auth.failed', {
+                      backend,
+                      error: error.message,
+                      defaultValue: `${backend} authentication failed:\n\n{{error}}\n\nPlease check your local CLI tool authentication status`,
+                    }),
+                    role: 'system',
+                  },
+                  createTime: Date.now(),
+                };
+
+                // Add error message to conversation
+                ipcBridge.acpConversation.responseStream.emit(errorMsg);
+
+                sessionStorage.removeItem(storageKey);
+                setInitialMessageSent(true);
+                return false;
+              } else {
+                // Other error - fail silently and remove stored message
+                sessionStorage.removeItem(storageKey);
+                setInitialMessageSent(true);
+                return false;
+              }
+            }
+          }
+
+          // Timeout - remove stored message
+          sessionStorage.removeItem(storageKey);
+          setInitialMessageSent(true);
+          return false;
+        };
+
+        waitForConnection();
+      } catch (error) {
+        console.error('Error parsing initial message:', error);
+        sessionStorage.removeItem(storageKey);
+        setInitialMessageSent(true);
+      }
+    };
+
+    checkAndSendInitialMessage();
+  }, [conversation_id, backend, navigate, initialMessageSent, running]);
 
   const onSendHandler = async (message: string) => {
     const msg_id = uuid();
@@ -178,14 +302,33 @@ const AcpSendBox: React.FC<{
         files: uploadFile,
       });
     } catch (error: any) {
-      // Check if it's a Gemini authentication error
-      if (error?.message?.includes('[ACP-AUTH-')) {
-        console.error('ACP认证错误详情:', error.message);
-        const confirmed = window.confirm(`ACP Gemini 认证失败：\n\n${error.message}\n\n是否现在前往设置页面配置？`);
-        if (confirmed) {
-          navigate('/settings/model');
-        }
-        return; // Don't re-throw error if user was prompted for authentication
+      const errorMsg = error?.message || error.toString();
+
+      // Check if it's an ACP authentication error
+      const isAuthError = errorMsg.includes('[ACP-AUTH-') || errorMsg.includes('authentication failed') || errorMsg.includes('认证失败');
+
+      if (isAuthError) {
+        // Create error message in conversation instead of alert
+        const errorMessage = {
+          id: uuid(),
+          msg_id: uuid(),
+          conversation_id,
+          type: 'error',
+          data: {
+            content: t('acp.auth.failed', {
+              backend,
+              error: errorMsg,
+              defaultValue: `${backend} authentication failed:\n\n{{error}}\n\nPlease check your local CLI tool authentication status`,
+            }),
+            role: 'system',
+          },
+          createTime: Date.now(),
+        };
+
+        // Add error message to conversation
+        ipcBridge.acpConversation.responseStream.emit(errorMessage);
+
+        return; // Don't re-throw error, just show the message
       }
       throw error;
     }
@@ -247,9 +390,6 @@ const AcpSendBox: React.FC<{
                   });
               }}
             ></Button>
-            <Button className={'ml-4px'} shape='round'>
-              {backend} ACP
-            </Button>
           </>
         }
         prefix={

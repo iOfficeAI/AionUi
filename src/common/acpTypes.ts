@@ -122,3 +122,40 @@ export function getAllAcpBackendsIncludingDisabled(): AcpBackendConfig[] {
 export function isAcpBackendEnabled(backend: AcpBackendAll): boolean {
   return ACP_BACKENDS_ALL[backend]?.enabled ?? false;
 }
+
+// ACP Error Type System - 优雅的错误处理
+export enum AcpErrorType {
+  CONNECTION_NOT_READY = 'CONNECTION_NOT_READY',
+  AUTHENTICATION_FAILED = 'AUTHENTICATION_FAILED',
+  SESSION_EXPIRED = 'SESSION_EXPIRED',
+  NETWORK_ERROR = 'NETWORK_ERROR',
+  TIMEOUT = 'TIMEOUT',
+  PERMISSION_DENIED = 'PERMISSION_DENIED',
+  UNKNOWN = 'UNKNOWN',
+}
+
+export interface AcpError {
+  type: AcpErrorType;
+  code: string;
+  message: string;
+  retryable: boolean;
+  details?: any;
+}
+
+// ACP Result Type - Type-safe result handling
+export type AcpResult<T = any> = { success: true; data: T } | { success: false; error: AcpError };
+
+// Helper function to create ACP errors
+export function createAcpError(type: AcpErrorType, message: string, retryable: boolean = false, details?: any): AcpError {
+  return {
+    type,
+    code: type.toString(),
+    message,
+    retryable,
+    details,
+  };
+}
+
+export function isRetryableError(error: AcpError): boolean {
+  return error.retryable || error.type === AcpErrorType.CONNECTION_NOT_READY;
+}

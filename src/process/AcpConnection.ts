@@ -207,7 +207,7 @@ export class AcpConnection {
   private async setupChildProcessHandlers(backend: string): Promise<void> {
     let spawnError: Error | null = null;
 
-    this.child.stderr?.on('data', (_data) => {
+    this.child.stderr?.on('data', (data) => {
       // Error output handled by parent process
     });
 
@@ -215,7 +215,7 @@ export class AcpConnection {
       spawnError = error;
     });
 
-    this.child.on('exit', (code, _signal) => {
+    this.child.on('exit', (code, signal) => {
       if (code !== 0) {
         if (!spawnError) {
           spawnError = new Error(`${backend} ACP process failed with exit code: ${code}`);
@@ -249,7 +249,7 @@ export class AcpConnection {
           try {
             const message = JSON.parse(line) as AcpMessage;
             this.handleMessage(message);
-          } catch (_error) {
+          } catch (error) {
             // Ignore parsing errors for non-JSON messages
           }
         }
@@ -277,7 +277,8 @@ export class AcpConnection {
     };
 
     return new Promise((resolve, reject) => {
-      const timeoutDuration = 15000;
+      // Use longer timeout for session/prompt requests as they involve LLM processing
+      const timeoutDuration = method === 'session/prompt' ? 120000 : 15000; // 2 minutes for prompts, 15s for others
       const startTime = Date.now();
 
       const createTimeoutHandler = () => {
@@ -285,7 +286,8 @@ export class AcpConnection {
           const request = this.pendingRequests.get(id);
           if (request && !request.isPaused) {
             this.pendingRequests.delete(id);
-            reject(new Error(`Request ${method} timed out`));
+            const timeoutMsg = method === 'session/prompt' ? `LLM request timed out after ${timeoutDuration / 1000} seconds` : `Request ${method} timed out after ${timeoutDuration / 1000} seconds`;
+            reject(new Error(timeoutMsg));
           }
         }, timeoutDuration);
       };
@@ -561,11 +563,13 @@ export class AcpConnection {
   }
 
   get isConnected(): boolean {
-    return this.child !== null && !this.child.killed;
+    const connected = this.child !== null && !this.child.killed;
+    return connected;
   }
 
   get hasActiveSession(): boolean {
-    return this.sessionId !== null;
+    const hasSession = this.sessionId !== null;
+    return hasSession;
   }
 
   get currentBackend(): AcpBackend | null {

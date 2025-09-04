@@ -7,10 +7,10 @@
 import type { TChatConversation } from '@/common/storage';
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import AcpChat from './acp/AcpChat';
 import ChatLayout from './ChatLayout';
 import ChatSider from './ChatSider';
 import GeminiChat from './gemini/GeminiChat';
-import AcpChat from './acp/AcpChat';
 
 const ChatConversation: React.FC<{
   conversation?: TChatConversation;
@@ -39,7 +39,7 @@ const ChatConversation: React.FC<{
   }, [conversation]);
 
   return (
-    <ChatLayout title={conversation.name} siderTitle={siderTitle} sider={<ChatSider conversation={conversation} />}>
+    <ChatLayout title={conversation.name} backend={conversation.type === 'acp' ? conversation?.extra?.backend : undefined} siderTitle={siderTitle} sider={<ChatSider conversation={conversation} />}>
       {conversationNode}
     </ChatLayout>
   );

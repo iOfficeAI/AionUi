@@ -100,5 +100,10 @@
     "canceledExecution": "已取消执行",
     "openLinkFailed": "打开链接失败",
     "imageGenerationModelDetected": "检测到图片模型，已自动开启图片工具，设置为默认模型：{{platform}}:{{model}}"
+  },
+  "acp": {
+    "auth": {
+      "failed": "{{backend}} 认证失败：\n\n{{error}}\n\n请检查本地CLI工具的认证状态"
+    }
   }
 }

@@ -100,5 +100,10 @@
     "canceledExecution": "Execution canceled",
     "openLinkFailed": "Failed to open link",
     "imageGenerationModelDetected": "Image model detected, image tool has been automatically enabled. Default model: {{platform}}:{{model}}"
+  },
+  "acp": {
+    "auth": {
+      "failed": "{{backend}} authentication failed:\n\n{{error}}\n\nPlease check your local CLI tool authentication status"
+    }
   }
 }

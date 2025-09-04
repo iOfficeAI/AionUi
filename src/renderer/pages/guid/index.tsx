@@ -207,32 +207,38 @@ const Guid: React.FC = () => {
     // 默认情况使用 Gemini（参考 main 分支的纯粹逻辑）
     if (!selectedAgent) {
       if (!currentModel) return;
-      const conversation = await ipcBridge.conversation.create.invoke({
-        type: 'gemini',
-        name: input,
-        model: currentModel,
-        extra: {
-          defaultFiles: files,
-          workspace: dir,
-          webSearchEngine: isGoogleAuth ? 'google' : 'default',
-        },
-      });
+      try {
+        const conversation = await ipcBridge.conversation.create.invoke({
+          type: 'gemini',
+          name: input,
+          model: currentModel,
+          extra: {
+            defaultFiles: files,
+            workspace: dir,
+            webSearchEngine: isGoogleAuth ? 'google' : 'default',
+          },
+        });
 
-      await ipcBridge.geminiConversation.sendMessage.invoke({
-        input:
-          files.length > 0
-            ? files
-                .map((v) => v.split(/[\\/]/).pop() || '')
-                .map((v) => `@${v}`)
-                .join(' ') +
-              ' ' +
-              input
-            : input,
-        conversation_id: conversation.id,
-        msg_id: uuid(),
-      });
+        await ipcBridge.geminiConversation.sendMessage.invoke({
+          input:
+            files.length > 0
+              ? files
+                  .map((v) => v.split(/[\\/]/).pop() || '')
+                  .map((v) => `@${v}`)
+                  .join(' ') +
+                ' ' +
+                input
+              : input,
+          conversation_id: conversation.id,
+          msg_id: uuid(),
+        });
 
-      navigate(`/conversation/${conversation.id}`);
+        navigate(`/conversation/${conversation.id}`);
+      } catch (error: any) {
+        console.error('Failed to create or send Gemini message:', error);
+        alert(`Failed to create Gemini conversation: ${error.message || error}`);
+        throw error; // Re-throw to prevent input clearing
+      }
       return;
     }
 
@@ -241,32 +247,38 @@ const Guid: React.FC = () => {
       // 使用内置 Gemini
       if (!currentModel) return;
 
-      const conversation = await ipcBridge.conversation.create.invoke({
-        type: 'gemini',
-        name: input,
-        model: currentModel,
-        extra: {
-          defaultFiles: files,
-          workspace: dir,
-          webSearchEngine: isGoogleAuth ? 'google' : 'default',
-        },
-      });
+      try {
+        const conversation = await ipcBridge.conversation.create.invoke({
+          type: 'gemini',
+          name: input,
+          model: currentModel,
+          extra: {
+            defaultFiles: files,
+            workspace: dir,
+            webSearchEngine: isGoogleAuth ? 'google' : 'default',
+          },
+        });
 
-      await ipcBridge.geminiConversation.sendMessage.invoke({
-        input:
-          files.length > 0
-            ? files
-                .map((v) => v.split(/[\\/]/).pop() || '')
-                .map((v) => `@${v}`)
-                .join(' ') +
-              ' ' +
-              input
-            : input,
-        conversation_id: conversation.id,
-        msg_id: uuid(),
-      });
+        await ipcBridge.geminiConversation.sendMessage.invoke({
+          input:
+            files.length > 0
+              ? files
+                  .map((v) => v.split(/[\\/]/).pop() || '')
+                  .map((v) => `@${v}`)
+                  .join(' ') +
+                ' ' +
+                input
+              : input,
+          conversation_id: conversation.id,
+          msg_id: uuid(),
+        });
 
-      navigate(`/conversation/${conversation.id}`);
+        navigate(`/conversation/${conversation.id}`);
+      } catch (error: any) {
+        console.error('Failed to create or send Gemini message:', error);
+        alert(`Failed to create Gemini conversation: ${error.message || error}`);
+        throw error; // Re-throw to prevent input clearing
+      }
     } else {
       // ACP conversation type
       const agentInfo = availableAgents?.find((a) => a.backend === selectedAgent);
@@ -311,13 +323,16 @@ const Guid: React.FC = () => {
           return;
         }
 
-        // For ACP, send the initial message directly to the conversation
-        await ipcBridge.acpConversation.sendMessage.invoke({
+        // For ACP, we need to wait for the connection to be ready before sending the message
+        // Store the initial message and let the conversation page handle it when ready
+        // Navigate immediately and let the conversation page handle the initial message
+        const initialMessage = {
           input,
-          conversation_id: conversation.id,
-          msg_id: uuid(),
           files: files.length > 0 ? files : undefined,
-        });
+        };
+
+        // Store initial message in sessionStorage to be picked up by the conversation page
+        sessionStorage.setItem(`acp_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
 
         navigate(`/conversation/${conversation.id}`);
       } catch (error: any) {
@@ -333,15 +348,24 @@ const Guid: React.FC = () => {
         } else {
           alert(`Failed to create ${selectedAgent} ACP conversation. Please check your ACP configuration and ensure the CLI is installed.`);
         }
+        throw error; // Re-throw to prevent input clearing
       }
     }
   };
   const sendMessageHandler = () => {
     setLoading(true);
-    handleSend().finally(() => {
-      setLoading(false);
-      setInput('');
-    });
+    handleSend()
+      .then(() => {
+        // Only clear input on successful send
+        setInput('');
+      })
+      .catch((error) => {
+        console.error('Failed to send message:', error);
+        // Keep the input content when there's an error
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   };
   const isComposing = useRef(false);
   const { modelList, isGoogleAuth } = useModelList();
