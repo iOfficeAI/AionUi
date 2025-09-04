@@ -94,8 +94,6 @@ CLAUDE.md
 AGENTS.md
 GEMINI.md
 
-# Gemini API configuration (contains sensitive API keys)
-gemini-config.js
 
 # IDE and Editor files
 .idea
