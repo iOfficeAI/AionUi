@@ -29,7 +29,6 @@
       "Read(/Users/zhoukai/Library/Application Support/AionUi/config/aionui-chat-history/**)",
       "Read(/Users/zhoukai/Library/Application Support/AionUi/config/**)",
       "Read(/Users/zhoukai/Library/Application Support/AionUi/config/aionui-chat-history/**)",
-      "Bash(git add:*)",
       "Bash(git grep:*)",
       "WebSearch",
       "Bash(find:*)",
@@ -40,16 +39,13 @@
       "Read(/Users/zhoukai/Library/Application Support/AionUi/aionui/**)",
       "Bash(npm run:*)",
       "Read(/Users/zhoukai/.gemini/**)",
-      "Bash(git merge:*)",
       "mcp__ide__getDiagnostics",
       "Bash(npm start)",
-      "Bash(git init:*)",
       "Bash(npm install:*)",
-      "Bash(git commit:*)",
       "Bash(npx eslint:*)",
       "Bash(cat:*)",
-      "Bash(git restore:*)",
-      "Bash(git checkout:*)"
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:api.github.com)"
     ],
     "deny": [],
     "ask": []

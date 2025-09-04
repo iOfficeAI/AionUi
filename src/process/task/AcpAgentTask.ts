@@ -106,18 +106,16 @@ export class AcpAgentTask extends EventEmitter {
     try {
       // Skip saving CLI path for now to avoid blocking
       if (this.cliPath) {
-        console.log('Using provided CLI path:', this.cliPath);
+        // Using provided CLI path
       } else {
         // Load saved CLI path if not provided in config
         try {
           const savedCliPath = (await Promise.race([AcpConfigManager.getCliPath(this.backend), new Promise((_, reject) => setTimeout(() => reject(new Error('GetCliPath timeout')), 1000))])) as string | undefined;
           if (savedCliPath) {
             this.cliPath = savedCliPath;
-          } else {
-            console.log('No saved CLI path found');
           }
         } catch (error) {
-          console.log('Skipping CLI path check due to storage timeout');
+          // Skipping CLI path check due to storage timeout
         }
       }
     } catch (error) {
@@ -236,6 +234,16 @@ export class AcpAgentTask extends EventEmitter {
       return { success: true };
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
+
+      // Special handling for Internal error
+      if (errorMsg.includes('Internal error')) {
+        if (this.backend === 'qwen') {
+          const enhancedMsg = `Qwen ACP Internal Error: This usually means authentication failed or ` + `the Qwen CLI has compatibility issues. Please try: 1) Restart the application ` + `2) Use 'npx @qwen-code/qwen-code' instead of global qwen 3) Check if you have valid Qwen credentials.`;
+          this.emitErrorMessage(enhancedMsg);
+          return { success: false, msg: enhancedMsg };
+        }
+      }
+
       this.emitErrorMessage(errorMsg);
       return { success: false, msg: errorMsg };
     }
@@ -517,97 +525,24 @@ export class AcpAgentTask extends EventEmitter {
     try {
       const initResponse = await this.connection.getInitializeResponse();
       if (!initResponse?.authMethods?.length) {
+        // No auth methods available - CLI should handle authentication itself
+        this.emitStatusMessage('authenticated', `${this.backend} CLI is ready. Authentication is handled by the CLI itself.`);
         return;
       }
 
-      // Debug environment variables for Gemini
-      if (this.backend === 'gemini') {
-        // Check if API key is available, set it if not
-        if (!process.env.GEMINI_API_KEY) {
-          // 请在这里使用你的有效 API key
-          process.env.GEMINI_API_KEY = 'AIzaSyD8MT6K7s7yDyrrJ9FuHqk0dF2tpiL5SOo';
-        } else {
-          console.log('GEMINI_API_KEY already set in environment');
-        }
-      }
-
-      // Skip saved auth check for now to avoid blocking
-      let savedAuth = null;
+      // Check if CLI is already authenticated by trying to create a session
       try {
-        // Reduce timeout to 1 second and skip if storage is slow
-        savedAuth = await Promise.race([AcpConfigManager.getValidAuthInfo(this.backend), new Promise((_, reject) => setTimeout(() => reject(new Error('GetValidAuthInfo timeout')), 1000))]);
+        await this.connection.newSession(this.workspace);
+        this.emitStatusMessage('authenticated', `${this.backend} CLI is already authenticated and ready`);
+        return;
       } catch (error) {
-        // Silently skip saved auth if storage is having issues
-        console.log('Skipping saved auth check due to storage timeout');
+        // CLI requires authentication
       }
 
-      if (savedAuth) {
-        try {
-          await this.connection.authenticate((savedAuth as any).authMethodId);
-          this.emitStatusMessage('authenticated', `Authenticated with ${this.backend} using saved credentials`);
-          return;
-        } catch (error) {
-          // Don't clear auth info if it causes blocking
-          console.error('Failed to authenticate with saved credentials:', error);
-        }
-      } else {
-        console.log('No saved auth info found');
-      }
-
-      // If no saved auth or saved auth failed, try available methods
-      // For Gemini, prefer API key authentication
-      const sortedMethods = [...initResponse.authMethods];
-      if (this.backend === 'gemini') {
-        // Sort methods to prioritize API key
-        sortedMethods.sort((a, b) => {
-          if (a.id === 'gemini-api-key') return -1;
-          if (b.id === 'gemini-api-key') return 1;
-          if (a.id === 'oauth-personal') return -1;
-          if (b.id === 'oauth-personal') return 1;
-          return 0;
-        });
-      }
-
-      for (const authMethod of sortedMethods) {
-        try {
-          // We'll try OAuth even without GOOGLE_CLOUD_PROJECT to see what happens
-          if (authMethod.id === 'oauth-personal' && this.backend === 'gemini' && !process.env.GOOGLE_CLOUD_PROJECT) {
-            console.log('Skipping OAuth without GOOGLE_CLOUD_PROJECT');
-          }
-
-          await Promise.race([
-            this.connection.authenticate(authMethod.id),
-            new Promise((_, reject) =>
-              setTimeout(() => {
-                reject(new Error('Authentication timeout after 30 seconds'));
-              }, 30000)
-            ),
-          ]);
-
-          // Skip saving authentication info for now to avoid blocking
-          try {
-            await Promise.race([AcpConfigManager.saveAuthInfo(this.backend, authMethod.id), new Promise((_, reject) => setTimeout(() => reject(new Error('SaveAuthInfo timeout')), 1000))]);
-          } catch (error) {
-            // Silently skip saving if storage is having issues
-            console.log('Skipping auth info save due to storage timeout');
-          }
-
-          this.emitStatusMessage('authenticated', `Authenticated with ${this.backend} using ${authMethod.name}`);
-          return;
-        } catch (error) {
-          // If this is an internal error, it might be a protocol issue
-          if (error instanceof Error && error.message.includes('Internal error')) {
-            // For Gemini, check if it's the GOOGLE_CLOUD_PROJECT issue
-            if (this.backend === 'gemini' && error.message.includes('GOOGLE_CLOUD_PROJECT')) {
-              this.emitStatusMessage('error', `Authentication failed: GOOGLE_CLOUD_PROJECT environment variable required. ` + `Please set it or use API key authentication. See: https://goo.gle/gemini-cli-auth-docs#workspace-gca`);
-            } else {
-              this.emitStatusMessage('error', `Authentication failed: Internal error with ${this.backend} ACP`);
-            }
-          }
-        }
-      }
+      // If CLI requires authentication, guide user to authenticate manually
+      this.emitStatusMessage('error', `${this.backend} CLI needs authentication. Please run '${this.backend} login' in terminal first, then reconnect.`);
     } catch (error) {
-      // Continue without authentication for some backends
+      this.emitStatusMessage('error', `Authentication check failed. Please ensure ${this.backend} CLI is properly installed and authenticated.`);
     }
   }
 
@@ -624,7 +559,7 @@ export class AcpAgentTask extends EventEmitter {
         }
       }
     } catch (error) {
-      console.error('Failed to update chat history:', error);
+      // Failed to update chat history
     }
   }
 }
