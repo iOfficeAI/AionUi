@@ -1,5 +1,5 @@
 import { ApiKeyManager } from './ApiKeyManager';
-import { AuthType } from '@office-ai/aioncli-core';
+import type { AuthType } from '@office-ai/aioncli-core';
 
 export interface RotatingApiClientOptions {
   maxRetries?: number;
@@ -23,12 +23,7 @@ export abstract class RotatingApiClient<T> {
   protected readonly options: Required<RotatingApiClientOptions>;
   protected readonly originalApiKeys: string;
 
-  constructor(
-    apiKeys: string,
-    authType: AuthType,
-    createClientFn: (apiKey: string) => T,
-    options: RotatingApiClientOptions = {}
-  ) {
+  constructor(apiKeys: string, authType: AuthType, createClientFn: (apiKey: string) => T, options: RotatingApiClientOptions = {}) {
     this.originalApiKeys = apiKeys;
     this.createClientFn = createClientFn;
     this.options = {
@@ -45,7 +40,7 @@ export abstract class RotatingApiClient<T> {
 
   protected initializeClient(): void {
     const apiKey = this.getCurrentApiKey();
-    
+
     if (apiKey) {
       try {
         this.client = this.createClientFn(apiKey);
@@ -66,11 +61,11 @@ export abstract class RotatingApiClient<T> {
 
   private extractFirstKey(): string | undefined {
     if (!this.originalApiKeys) return undefined;
-    
+
     if (this.isSingleKey()) {
       return this.originalApiKeys.trim() || undefined;
     }
-    
+
     const keys = this.parseMultipleKeys();
     return keys[0] || undefined;
   }
@@ -82,27 +77,25 @@ export abstract class RotatingApiClient<T> {
   private parseMultipleKeys(): string[] {
     return this.originalApiKeys
       .split(/[,\n]/)
-      .map(key => key.trim())
-      .filter(key => key);
+      .map((key) => key.trim())
+      .filter((key) => key);
   }
 
   protected isRetryableError(error: unknown): boolean {
     if (!error || typeof error !== 'object') return false;
-    
+
     const apiError = error as ApiError;
     const status = apiError.status || apiError.code;
-    
+
     // Retry on 401 (unauthorized), 429 (rate limit), 503 (service unavailable), and 5xx errors
     return status === 401 || status === 429 || status === 503 || (status >= 500 && status < 600);
   }
 
   protected async delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
-  async executeWithRetry<R>(
-    operation: (client: T) => Promise<R>
-  ): Promise<R> {
+  async executeWithRetry<R>(operation: (client: T) => Promise<R>): Promise<R> {
     if (!this.client) {
       throw new Error('Client not initialized - no valid API key provided');
     }
@@ -116,9 +109,7 @@ export abstract class RotatingApiClient<T> {
         lastError = error;
 
         const isLastAttempt = attempt === this.options.maxRetries - 1;
-        const canRotateKey = this.apiKeyManager?.hasMultipleKeys() && 
-          this.isRetryableError(error) && 
-          !isLastAttempt;
+        const canRotateKey = this.apiKeyManager?.hasMultipleKeys() && this.isRetryableError(error) && !isLastAttempt;
 
         if (canRotateKey && this.apiKeyManager.rotateKey()) {
           this.initializeClient();

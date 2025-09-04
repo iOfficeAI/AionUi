@@ -21,10 +21,7 @@ export interface ClientOptions {
 export type RotatingClient = OpenAIRotatingClient | GeminiRotatingClient;
 
 export class ClientFactory {
-  static createRotatingClient(
-    provider: TProviderWithModel,
-    options: ClientOptions = {}
-  ): RotatingClient {
+  static createRotatingClient(provider: TProviderWithModel, options: ClientOptions = {}): RotatingClient {
     const authType = getProviderAuthType(provider);
     const rotatingOptions = options.rotatingOptions || { maxRetries: 3, retryDelay: 1000 };
 
@@ -60,7 +57,7 @@ export class ClientFactory {
         return new GeminiRotatingClient(provider.apiKey, clientConfig, rotatingOptions);
       }
 
-      default:
+      default: {
         // 默认使用OpenAI兼容协议
         const clientConfig: OpenAIClientConfig = {
           baseURL: provider.baseUrl,
@@ -80,6 +77,7 @@ export class ClientFactory {
         }
 
         return new OpenAIRotatingClient(provider.apiKey, clientConfig, rotatingOptions);
+      }
     }
   }
 }

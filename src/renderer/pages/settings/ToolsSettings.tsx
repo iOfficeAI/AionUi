@@ -36,17 +36,17 @@ const ToolsSettings: React.FC = () => {
   // Sync imageGenerationModel apiKey when provider apiKey changes
   useEffect(() => {
     if (!imageGenerationModel || !data) return;
-    
+
     // Find the corresponding provider
-    const currentProvider = data.find(p => p.id === imageGenerationModel.id);
-    
+    const currentProvider = data.find((p) => p.id === imageGenerationModel.id);
+
     if (currentProvider && currentProvider.apiKey !== imageGenerationModel.apiKey) {
       // Only update apiKey, keep other settings unchanged
       const updatedModel = {
         ...imageGenerationModel,
-        apiKey: currentProvider.apiKey
+        apiKey: currentProvider.apiKey,
       };
-      
+
       setImageGenerationModel(updatedModel);
       ConfigStorage.set('tools.imageGenerationModel', updatedModel);
     } else if (!currentProvider) {

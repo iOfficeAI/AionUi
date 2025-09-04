@@ -39,9 +39,10 @@ export class ApiKeyManager {
 
   private parseKeys(keysString: string): string[] {
     if (!keysString) return [];
-    return keysString.split(/[,\n]/)
-      .map(k => k.trim())
-      .filter(k => k.length > 0);
+    return keysString
+      .split(/[,\n]/)
+      .map((k) => k.trim())
+      .filter((k) => k.length > 0);
   }
 
   private initializeWithRandomKey(): void {
@@ -74,7 +75,7 @@ export class ApiKeyManager {
 
     // Find next available (non-blacklisted) key
     const availableIndex = this.findNextAvailableKey();
-    
+
     if (availableIndex !== -1) {
       const previousIndex = this.currentIndex;
       this.currentIndex = availableIndex;
@@ -93,7 +94,7 @@ export class ApiKeyManager {
   private blacklistCurrentKey(): void {
     const recoveryTime = Date.now() + this.BLACKLIST_DURATION;
     this.blacklistedUntil.set(this.currentIndex, recoveryTime);
-    
+
     const recoveryDate = new Date(recoveryTime);
     console.log(`[MultiKey] Blacklisted ${this.authType} key #${this.currentIndex + 1} until ${recoveryDate.toLocaleTimeString()}`);
   }
