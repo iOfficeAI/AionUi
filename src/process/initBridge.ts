@@ -519,7 +519,6 @@ ipcBridge.acpConversation.clearAllCache?.provider(async () => {
 
 ipcBridge.acpConversation.detectCliPath.provider(async ({ backend }) => {
   const { execSync } = await import('child_process');
-  const fs = await import('fs');
 
   // Import ACP backends configuration to check supported backends
   const { isValidAcpBackend } = await import('@/common/acpTypes');
@@ -530,65 +529,12 @@ ipcBridge.acpConversation.detectCliPath.provider(async ({ backend }) => {
 
   const isWindows = process.platform === 'win32';
 
-  // For qwen, try to detect available CLI paths
-  if (backend === 'qwen') {
-    // Method 1: Try npx version (shorter timeout to avoid blocking)
-    try {
-      const npxCommand = isWindows ? 'npx.cmd' : 'npx';
-      execSync(`${npxCommand} @qwen-code/qwen-code --version`, { encoding: 'utf-8', stdio: 'pipe', timeout: 5000 });
-      return { success: true, data: { path: 'npx @qwen-code/qwen-code' } };
-    } catch (qwenNpxError) {
-      // Npx command not available
-    }
+  // 优化：减少超时时间，但不要太激进
+  const QUICK_TIMEOUT = 3000; // 3秒超时，平衡性能和检测成功率
 
-    // Method 2: Try global qwen-code command
-    try {
-      execSync('qwen-code --version', { encoding: 'utf-8', stdio: 'pipe', timeout: 3000 });
-      return { success: true, data: { path: 'qwen-code' } };
-    } catch (qwenCodeError) {
-      // Global qwen-code command not available
-    }
-
-    // Method 3: Try global 'qwen' command (but verify it's really Qwen, not Gemini)
-    try {
-      execSync('qwen --version', { encoding: 'utf-8', stdio: 'pipe', timeout: 3000 });
-
-      const whichOutput = execSync('which qwen', { encoding: 'utf-8', stdio: 'pipe', timeout: 2000 }).trim();
-
-      // Critical verification: check if this is actually Gemini CLI disguised as Qwen
-      try {
-        const fileContent = execSync(`head -20 ${whichOutput}`, { encoding: 'utf-8', stdio: 'pipe', timeout: 2000 });
-
-        if (fileContent.includes('Google LLC') || fileContent.includes('gemini.js')) {
-          return { success: true, data: { path: 'qwen' } };
-        } else {
-          return { success: true, data: { path: 'qwen' } };
-        }
-      } catch (verifyError) {
-        // If we can't verify, be cautious and don't use it
-        return { success: false };
-      }
-    } catch (qwenGlobalError) {
-      // Global qwen command not available
-    }
-
-    // Method 4: Check if there's a global @qwen-code/qwen-code installation
-    try {
-      const globalList = execSync('npm list -g @qwen-code/qwen-code --depth=0', { encoding: 'utf-8', stdio: 'pipe', timeout: 3000 });
-      if (globalList.includes('@qwen-code/qwen-code')) {
-        // Global installation found but binary not accessible
-      }
-    } catch (globalCheckError) {
-      // No global installation found
-    }
-
-    // No Qwen CLI paths detected
-    return { success: false };
-  }
-
-  // First, try to test if the command works directly (handles aliases)
+  // First, try to test if the command works directly (handles aliases) - 使用快速超时
   try {
-    execSync(`${backend} --version`, { encoding: 'utf-8', stdio: 'pipe', timeout: 5000 });
+    execSync(`${backend} --version`, { encoding: 'utf-8', stdio: 'pipe', timeout: QUICK_TIMEOUT });
     return { success: true, data: { path: backend } };
   } catch (directTestError) {
     // Direct test failed, try path detection
@@ -597,12 +543,12 @@ ipcBridge.acpConversation.detectCliPath.provider(async ({ backend }) => {
   // If direct test failed, try traditional path detection and alias detection
   try {
     const whichCommand = isWindows ? `where ${backend}` : `which ${backend}`;
-    let cliPath = execSync(whichCommand, { encoding: 'utf-8' }).trim();
+    let cliPath = execSync(whichCommand, { encoding: 'utf-8', timeout: QUICK_TIMEOUT }).trim();
 
     // Also try 'type' command for better alias detection on Unix systems
     if (!isWindows && !cliPath) {
       try {
-        const typeOutput = execSync(`type ${backend}`, { encoding: 'utf-8', stdio: 'pipe' }).trim();
+        const typeOutput = execSync(`type ${backend}`, { encoding: 'utf-8', stdio: 'pipe', timeout: QUICK_TIMEOUT }).trim();
         if (typeOutput) {
           cliPath = typeOutput;
         }
@@ -621,19 +567,13 @@ ipcBridge.acpConversation.detectCliPath.provider(async ({ backend }) => {
 
     // Handle alias detection - check if output contains alias patterns
     if (cliPath.includes('aliased to') || cliPath.includes('is aliased to') || cliPath.includes('is an alias for') || cliPath.match(/\w+\s+is\s+/)) {
-      // Extract the actual command from various alias output formats
-      // Examples:
-      // "gemini is aliased to npx @google/gemini-cli"
-      // "gemini is aliased to `npx @google/gemini-cli`"
-      // "gemini is an alias for npx @google/gemini-cli"
-      // "gemini is npx @google/gemini-cli"
       const aliasPatterns = [/(?:is )?aliased to\s*`?([^`\n]+)`?/, /is an alias for\s*`?([^`\n]+)`?/, /\w+\s+is\s+([^`\n]+)/];
 
       let aliasedCommand = null;
       for (const pattern of aliasPatterns) {
         const match = cliPath.match(pattern);
         if (match) {
-          aliasedCommand = match[1].trim().replace(/['"`]/g, ''); // Remove quotes
+          aliasedCommand = match[1].trim().replace(/['"`]/g, '');
           break;
         }
       }
@@ -641,84 +581,52 @@ ipcBridge.acpConversation.detectCliPath.provider(async ({ backend }) => {
       if (aliasedCommand) {
         // Test if the aliased command works
         try {
-          execSync(`${aliasedCommand} --version`, { encoding: 'utf-8', stdio: 'pipe', timeout: 5000 });
+          execSync(`${aliasedCommand} --version`, { encoding: 'utf-8', stdio: 'pipe', timeout: QUICK_TIMEOUT });
           return { success: true, data: { path: aliasedCommand } };
         } catch (aliasTestError) {
           // Continue with fallback logic
         }
       }
     }
+
     // Test if the detected path actually works
     try {
-      execSync(`${cliPath} --version`, { encoding: 'utf-8', stdio: 'pipe', timeout: 5000 });
+      execSync(`${cliPath} --version`, { encoding: 'utf-8', stdio: 'pipe', timeout: QUICK_TIMEOUT });
       return { success: true, data: { path: cliPath } };
     } catch (pathTestError) {
-      // Path exists but command doesn't work, might be a script wrapper
-      if (!isWindows && fs.existsSync(cliPath)) {
-        try {
-          const stats = fs.statSync(cliPath);
-          if (stats.isFile()) {
-            // Try to read the file to see if it's a script wrapper
-            const content = fs.readFileSync(cliPath, 'utf-8');
-
-            // Check for common wrapper patterns
-            if (backend === 'gemini' && content.includes('npx')) {
-              // Try npx approach with proper Windows handling
-              const isWindows = process.platform === 'win32';
-              const npxCommand = isWindows ? 'npx.cmd' : 'npx';
-              try {
-                execSync(`${npxCommand} @google/gemini-cli --version`, { encoding: 'utf-8', stdio: 'pipe', timeout: 10000 });
-                return { success: true, data: { path: 'npx @google/gemini-cli' } };
-              } catch (npxError) {
-                // npx also failed
-              }
-            } else if (backend === 'qwen' && content.includes('npx')) {
-              // Try npx approach for qwen with common package names
-              const isWindows = process.platform === 'win32';
-              const npxCommand = isWindows ? 'npx.cmd' : 'npx';
-              const qwenPackages = ['@qwen-code/qwen-code', 'qwen-code-cli', 'qwen-cli'];
-
-              for (const packageName of qwenPackages) {
-                try {
-                  execSync(`${npxCommand} ${packageName} --version`, { encoding: 'utf-8', stdio: 'pipe', timeout: 10000 });
-                  return { success: true, data: { path: `npx ${packageName}` } };
-                } catch (npxError) {
-                  // Try next package
-                }
-              }
-            }
-          }
-        } catch (readError) {
-          // Can't read the file, continue with original path
-        }
-      }
-
-      return { success: true, data: { path: cliPath } }; // Return the path even if test failed
+      // Path exists but command doesn't work, return the path anyway - it might work in different contexts
+      return { success: true, data: { path: cliPath } };
     }
   } catch (pathError) {
-    // Both direct test and path detection failed
+    // 最后尝试 npx 方法，但使用快速超时
     if (backend === 'gemini') {
-      // Last resort: try npx for gemini with proper Windows handling
-      const isWindows = process.platform === 'win32';
       const npxCommand = isWindows ? 'npx.cmd' : 'npx';
       try {
-        execSync(`${npxCommand} @google/gemini-cli --version`, { encoding: 'utf-8', stdio: 'pipe', timeout: 10000 });
+        execSync(`${npxCommand} @google/gemini-cli --version`, { encoding: 'utf-8', stdio: 'pipe', timeout: QUICK_TIMEOUT });
         return { success: true, data: { path: 'npx @google/gemini-cli' } };
       } catch (npxError) {
-        // All methods failed
+        // npx 也失败了
+      }
+    } else if (backend === 'claude') {
+      const npxCommand = isWindows ? 'npx.cmd' : 'npx';
+      try {
+        execSync(`${npxCommand} @zed-industries/claude-code-acp --version`, { encoding: 'utf-8', stdio: 'pipe', timeout: QUICK_TIMEOUT });
+        return { success: true, data: { path: 'npx @zed-industries/claude-code-acp' } };
+      } catch (npxError) {
+        // npx 也失败了
       }
     } else if (backend === 'qwen') {
-      // Last resort: try npx for qwen with common package names
-      const isWindows = process.platform === 'win32';
+      // qwen 的 npx 检测作为最后备用方案
       const npxCommand = isWindows ? 'npx.cmd' : 'npx';
-      const qwenPackages = ['@qwen-code/qwen-code', 'qwen-code-cli', 'qwen-cli'];
+      const qwenPackages = ['@qwen-code/qwen-code', 'qwen-code'];
 
-      for (const packageName of qwenPackages) {
+      for (const pkg of qwenPackages) {
         try {
-          execSync(`${npxCommand} ${packageName} --version`, { encoding: 'utf-8', stdio: 'pipe', timeout: 10000 });
-          return { success: true, data: { path: `npx ${packageName}` } };
+          execSync(`${npxCommand} ${pkg} --version`, { encoding: 'utf-8', stdio: 'pipe', timeout: QUICK_TIMEOUT });
+          return { success: true, data: { path: `npx ${pkg}` } };
         } catch (npxError) {
-          // Try next package
+          // 尝试下一个包
+          continue;
         }
       }
     }

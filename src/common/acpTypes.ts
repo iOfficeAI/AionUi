@@ -48,7 +48,7 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     cliCommand: 'gemini',
     authRequired: true,
     supportedFeatures: ['text', 'files', 'tools'],
-    enabled: true, // ✅ 重新启用：使用简化的认证方式
+    enabled: false,
   },
   qwen: {
     id: 'qwen',
