@@ -100,5 +100,10 @@
     "canceledExecution": "已取消執行",
     "openLinkFailed": "無法開啟連結",
     "imageGenerationModelDetected": "檢測到圖片模型，已自動開啟圖片工具，設置為默認模型：{{platform}}:{{model}}"
+  },
+  "acp": {
+    "auth": {
+      "failed": "{{backend}} 認證失敗：\n\n{{error}}\n\n請檢查本地CLI工具的認證狀態"
+    }
   }
 }

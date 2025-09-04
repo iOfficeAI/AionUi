@@ -445,7 +445,13 @@ ipcBridge.acpConversation.sendMessage.provider(async ({ conversation_id, files, 
   if ((task as any).type === 'acp') {
     return (task as unknown as AcpAgentTask)
       .sendMessage({ content: other.input, files, msg_id: other.msg_id })
-      .then(() => ({ success: true }))
+      .then((result) => {
+        if (result.success === true) {
+          return { success: true };
+        } else {
+          return { success: false, msg: result.error.message, error: result.error };
+        }
+      })
       .catch((err) => {
         return { success: false, msg: err };
       });
