@@ -23,11 +23,13 @@
   },
   "conversation": {
     "welcome": {
-      "title": "こんにちは、何かお手伝いしましょうか？",
+      "title": "Hi、今日の予定は何ですか？",
       "placeholder": "メッセージの送信、ファイルの追加、またはフォルダーの追加...",
       "uploadFile": "ファイルを追加",
       "linkFolder": "フォルダを追加",
-      "newConversation": "新しいチャット"
+      "newConversation": "新しいチャット",
+      "multiAgentDetected": "{{agents}}がインストールされていることを検出しました",
+      "multiAgentModeEnabled": "マルチエージェントモードに入ります (*￣▽￣*)"
     },
     "history": {
       "today": "今日",
