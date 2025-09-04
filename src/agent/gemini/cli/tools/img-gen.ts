@@ -262,7 +262,7 @@ class ImageGenerationInvocation extends BaseToolInvocation<ImageGenerationToolPa
 
     this.rotatingClient = ClientFactory.createRotatingClient(this.imageGenerationModel, {
       proxy: this.proxy,
-      rotatingOptions: { maxRetries: 3, retryDelay: 1000 }
+      rotatingOptions: { maxRetries: 3, retryDelay: 1000 },
     });
   }
 
@@ -359,7 +359,6 @@ Please ensure the image file exists and has a valid image extension (.jpg, .png,
     }
 
     try {
-
       updateOutput?.('Initializing image generation...');
 
       // Build message content with explicit operation type for better AI understanding

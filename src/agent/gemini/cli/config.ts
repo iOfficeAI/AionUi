@@ -227,11 +227,7 @@ export async function loadCliConfig({ workspace, settings, extensions, sessionId
     ideMode,
   });
 
-  const flashFallbackHandler = async (
-    _currentModel: string,
-    _fallbackModel: string,
-    _error?: unknown,
-  ): Promise<string | boolean> => {
+  const flashFallbackHandler = async (_currentModel: string, _fallbackModel: string, _error?: unknown): Promise<string | boolean> => {
     try {
       const agent = getCurrentGeminiAgent();
       const apiKeyManager = agent?.getApiKeyManager();
@@ -254,7 +250,7 @@ export async function loadCliConfig({ workspace, settings, extensions, sessionId
   };
 
   config.setFlashFallbackHandler(flashFallbackHandler);
-  
+
   return config;
 }
 

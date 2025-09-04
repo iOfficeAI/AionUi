@@ -13,7 +13,7 @@ import { AuthType } from '@office-ai/aioncli-core';
  */
 export function getAuthTypeFromPlatform(platform: string): AuthType {
   const platformLower = platform?.toLowerCase() || '';
-  
+
   // Gemini 相关平台
   if (platformLower.includes('gemini-with-google-auth')) {
     return AuthType.LOGIN_WITH_GOOGLE;
@@ -24,7 +24,7 @@ export function getAuthTypeFromPlatform(platform: string): AuthType {
   if (platformLower.includes('gemini') || platformLower.includes('google')) {
     return AuthType.USE_GEMINI;
   }
-  
+
   // 其他所有平台默认使用OpenAI兼容协议
   // 包括：OpenRouter, OpenAI, DeepSeek, Anthropic, Claude, 等
   return AuthType.USE_OPENAI;
@@ -40,7 +40,7 @@ export function getProviderAuthType(provider: { platform: string; authType?: Aut
   if (provider.authType) {
     return provider.authType;
   }
-  
+
   // 否则根据platform推断
   return getAuthTypeFromPlatform(provider.platform);
 }

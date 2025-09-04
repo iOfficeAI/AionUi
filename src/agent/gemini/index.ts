@@ -82,10 +82,11 @@ export class GeminiAgent {
       imageGenerationModel: this.imageGenerationModel,
       webSearchEngine: this.webSearchEngine,
     });
-    
+
     // Register as current agent for flashFallbackHandler access
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     currentGeminiAgent = this;
-    
+
     this.bootstrap = this.initialize();
   }
 

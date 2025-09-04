@@ -1,6 +1,7 @@
 import { GoogleGenAI } from '@google/genai';
 import { AuthType } from '@office-ai/aioncli-core';
-import { RotatingApiClient, RotatingApiClientOptions } from '../RotatingApiClient';
+import type { RotatingApiClientOptions } from '../RotatingApiClient';
+import { RotatingApiClient } from '../RotatingApiClient';
 
 export interface GeminiClientConfig {
   model?: string;
@@ -11,16 +12,12 @@ export interface GeminiClientConfig {
 export class GeminiRotatingClient extends RotatingApiClient<GoogleGenAI> {
   private readonly config: GeminiClientConfig;
 
-  constructor(
-    apiKeys: string,
-    config: GeminiClientConfig = {},
-    options: RotatingApiClientOptions = {}
-  ) {
+  constructor(apiKeys: string, config: GeminiClientConfig = {}, options: RotatingApiClientOptions = {}) {
     const createClient = (apiKey: string) => {
       const cleanedApiKey = apiKey.replace(/[\s\r\n\t]/g, '').trim();
-      const clientConfig: any = { 
+      const clientConfig: any = {
         apiKey: cleanedApiKey === '' ? undefined : cleanedApiKey,
-        vertexai: false
+        vertexai: false,
       };
       if (config.baseURL) {
         clientConfig.baseURL = config.baseURL;
@@ -41,7 +38,6 @@ export class GeminiRotatingClient extends RotatingApiClient<GoogleGenAI> {
     return super.getCurrentApiKey();
   }
 
-
   // Remove async override since base class is now sync
   // protected async initializeClient(): Promise<void> {
   //   await super.initializeClient();
@@ -54,7 +50,7 @@ export class GeminiRotatingClient extends RotatingApiClient<GoogleGenAI> {
       const model = client.models.generateContent({
         model: this.config.model || 'gemini-1.5-flash',
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        ...config
+        ...config,
       });
       return model;
     });
