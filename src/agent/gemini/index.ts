@@ -19,6 +19,10 @@ import { loadSettings } from './cli/settings';
 import { ConversationToolConfig } from './cli/tools/conversation-tool-config';
 import { mapToDisplay } from './cli/useReactToolScheduler';
 import { getPromptCount, handleCompletedTools, processGeminiStreamEvents, startNewPrompt } from './utils';
+import { ApiKeyManager } from '../../common/ApiKeyManager';
+
+// Global registry for current agent instance (used by flashFallbackHandler)
+let currentGeminiAgent: GeminiAgent | null = null;
 
 function _mergeMcpServers(settings: ReturnType<typeof loadSettings>['merged'], extensions: Extension[]) {
   const mcpServers = { ...(settings.mcpServers || {}) };
@@ -59,6 +63,7 @@ export class GeminiAgent {
   private abortController: AbortController | null = null;
   private onStreamEvent: (event: { type: string; data: any; msg_id: string }) => void;
   private toolConfig: ConversationToolConfig; // 对话级别的工具配置
+  private apiKeyManager: ApiKeyManager | null = null; // 多API Key管理器
   bootstrap: Promise<void>;
   constructor(options: GeminiAgent2Options) {
     this.workspace = options.workspace;
@@ -84,6 +89,10 @@ export class GeminiAgent {
       imageGenerationModel: this.imageGenerationModel,
       webSearchEngine: this.webSearchEngine,
     });
+    
+    // Register as current agent for flashFallbackHandler access
+    currentGeminiAgent = this;
+    
     this.bootstrap = this.initialize();
   }
 
@@ -98,6 +107,9 @@ export class GeminiAgent {
       }
     };
 
+    // Initialize multi-key manager for supported auth types
+    this.initializeMultiKeySupport();
+
     if (this.authType === AuthType.USE_GEMINI) {
       fallbackValue('GEMINI_API_KEY', this.model.apiKey);
       fallbackValue('GOOGLE_GEMINI_BASE_URL', this.model.baseUrl);
@@ -109,13 +121,32 @@ export class GeminiAgent {
       return;
     }
     if (this.authType === AuthType.LOGIN_WITH_GOOGLE) {
-      fallbackValue('GOOGLE_CLOUD_PROJECT', '', env.GOOGLE_CLOUD_PROJECT); //@todo接入配置
+      fallbackValue('GOOGLE_CLOUD_PROJECT', '', env.GOOGLE_CLOUD_PROJECT);
       return;
     }
     if (this.authType === AuthType.USE_OPENAI) {
       fallbackValue('OPENAI_BASE_URL', this.model.baseUrl);
       fallbackValue('OPENAI_API_KEY', this.model.apiKey);
     }
+  }
+
+  private initializeMultiKeySupport(): void {
+    const apiKey = this.model?.apiKey;
+    if (!apiKey || (!apiKey.includes(',') && !apiKey.includes('\n'))) {
+      return; // Single key or no key, skip multi-key setup
+    }
+
+    // Only initialize for supported auth types
+    if (this.authType === AuthType.USE_OPENAI || this.authType === AuthType.USE_GEMINI) {
+      this.apiKeyManager = new ApiKeyManager(apiKey, this.authType);
+    }
+  }
+
+  /**
+   * Get multi-key manager (used by flashFallbackHandler)
+   */
+  getApiKeyManager(): ApiKeyManager | null {
+    return this.apiKeyManager;
   }
 
   // 加载环境变量
@@ -351,4 +382,11 @@ export class GeminiAgent {
   async stop() {
     this.abortController?.abort();
   }
+}
+
+/**
+ * Get current GeminiAgent instance (used by flashFallbackHandler)
+ */
+export function getCurrentGeminiAgent(): GeminiAgent | null {
+  return currentGeminiAgent;
 }
