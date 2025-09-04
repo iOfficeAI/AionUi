@@ -293,6 +293,7 @@ const Guid: React.FC = () => {
                 )}
               </span>
             </Dropdown>
+
             {conversationType === 'gemini' ? (
               <Dropdown
                 trigger='hover'

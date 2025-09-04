@@ -48,7 +48,8 @@
       "Bash(git commit:*)",
       "Bash(npx eslint:*)",
       "Bash(cat:*)",
-      "Bash(git restore:*)"
+      "Bash(git restore:*)",
+      "Bash(git checkout:*)"
     ],
     "deny": [],
     "ask": []
