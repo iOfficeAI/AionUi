@@ -23,11 +23,13 @@
   },
   "conversation": {
     "welcome": {
-      "title": "嗨，我能為你做什麼？",
+      "title": "Hi，今天有什麼安排？",
       "placeholder": "發送訊息、上傳檔案或開啟資料夾...",
       "uploadFile": "上傳檔案",
       "linkFolder": "開啟資料夾",
-      "newConversation": "新對話"
+      "newConversation": "新對話",
+      "multiAgentDetected": "檢測到您已安裝{{agents}}",
+      "multiAgentModeEnabled": "已進入多智能體模式 (*￣▽￣*)"
     },
     "history": {
       "today": "今天",
