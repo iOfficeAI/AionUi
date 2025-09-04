@@ -7,9 +7,9 @@
 import type { TProviderWithModel } from '@/common/storage';
 import { Type } from '@google/genai';
 import type { Config, ToolResult, ToolInvocation, ToolLocation, ToolCallConfirmationDetails } from '@office-ai/aioncli-core';
-import { BaseDeclarativeTool, BaseToolInvocation, Kind, getErrorMessage, ToolErrorType } from '@office-ai/aioncli-core';
+import { BaseDeclarativeTool, BaseToolInvocation, getErrorMessage, ToolErrorType } from '@office-ai/aioncli-core';
 import * as fs from 'fs';
-import { jsonrepair } from 'jsonrepair';
+// import { jsonrepair } from 'jsonrepair'; // 暂时禁用
 import OpenAI from 'openai';
 import * as path from 'path';
 
@@ -25,7 +25,10 @@ function safeJsonParse<T = unknown>(jsonString: string, fallbackValue: T): T {
     return JSON.parse(jsonString) as T;
   } catch (error) {
     try {
-      const repairedJson = jsonrepair(jsonString);
+      // Simple repair attempt - remove trailing commas and quotes
+      const repairedJson = jsonString
+        .replace(/,(\s*[}\]])/g, '$1') // Remove trailing commas
+        .replace(/^\s*["']|["']\s*$/g, ''); // Remove surrounding quotes
       return JSON.parse(repairedJson) as T;
     } catch (repairError) {
       console.warn('[ImageGen] JSON parse failed:', jsonString.substring(0, 50));
@@ -393,7 +396,7 @@ Please ensure the image file exists and has a valid image extension (.jpg, .png,
           returnDisplay: errorMsg,
           error: {
             message: errorMsg,
-            type: ToolErrorType.EXECUTION_FAILED,
+            type: ToolErrorType.UNKNOWN,
           },
         };
       }
@@ -458,7 +461,7 @@ Please ensure the image file exists and has a valid image extension (.jpg, .png,
       ];
 
       // Log API call input with image information
-      const imageDataUrls = contentParts.filter((part) => part.type === 'image_url').map((part) => part.image_url?.url?.substring(0, 50) + '...');
+      const imageDataUrls = contentParts.filter((part) => part.type === 'image_url').map((part) => (part as any).image_url?.url?.substring(0, 50) + '...');
 
       console.debug('[ImageGen] API call input', {
         model: this.currentModel,
@@ -500,7 +503,7 @@ Please ensure the image file exists and has a valid image extension (.jpg, .png,
           returnDisplay: errorMsg,
           error: {
             message: errorMsg,
-            type: ToolErrorType.EXECUTION_FAILED,
+            type: ToolErrorType.UNKNOWN,
           },
         };
       }
@@ -548,15 +551,15 @@ Please ensure the image file exists and has a valid image extension (.jpg, .png,
       }
 
       const errorMessage = getErrorMessage(error);
-      let errorType: ToolErrorType = ToolErrorType.EXECUTION_FAILED;
+      let errorType: ToolErrorType = ToolErrorType.UNKNOWN;
 
       // Map specific errors to appropriate types
       if (errorMessage.includes('API key') || errorMessage.includes('authentication')) {
-        errorType = ToolErrorType.EXECUTION_FAILED;
+        errorType = ToolErrorType.UNKNOWN;
       } else if (errorMessage.includes('timeout') || errorMessage.includes('timed out')) {
-        errorType = ToolErrorType.EXECUTION_FAILED;
+        errorType = ToolErrorType.UNKNOWN;
       } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
-        errorType = ToolErrorType.EXECUTION_FAILED;
+        errorType = ToolErrorType.UNKNOWN;
       }
 
       return {

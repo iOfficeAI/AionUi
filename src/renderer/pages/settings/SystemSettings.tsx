@@ -5,24 +5,16 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import SettingContainer from './components/SettingContainer';
 
-const SystemSettings: React.FC = (props) => {
+const SystemSettings: React.FC = () => {
   const { t } = useTranslation();
   return (
-    <SettingContainer title={t('settings.system')} bodyContainer>
-      <Form
-        labelCol={{
-          flex: '100px',
-        }}
-        wrapperCol={{
-          flex: '1',
-        }}
-        className={'[&_.arco-row]:flex-nowrap pl-20px'}
-      >
+    <SettingContainer title={t('settings.system')}>
+      <Form labelCol={{ flex: '100px' }} wrapperCol={{ flex: '1' }} className={'pl-20px'}>
         <Form.Item label={t('settings.language')} field={'language'}>
-          <LanguageSwitcher></LanguageSwitcher>
+          <LanguageSwitcher />
         </Form.Item>
         <Form.Item label={t('settings.theme')} field={'theme'}>
-          <ThemeSwitcher></ThemeSwitcher>
+          <ThemeSwitcher />
         </Form.Item>
       </Form>
     </SettingContainer>

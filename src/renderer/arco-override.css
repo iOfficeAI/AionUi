@@ -1,8 +1,6 @@
-.arco-btn {
-  &.arco-btn-outline {
-    border-color: #86909c;
-    color: #86909c;
-  }
+.arco-btn.arco-btn-outline {
+  border-color: var(--color-border-2, #86909c);
+  color: var(--color-text-2, #86909c);
 }
 
 .arco-collapse {

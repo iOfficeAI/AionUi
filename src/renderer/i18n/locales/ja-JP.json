@@ -92,6 +92,138 @@
     "imageGenerationGuide": "無料画像モデル設定ガイド",
     "noAvailable": "利用可能な画像モデルがありません。先に設定してください。"
   },
+  "theme": {
+    "management": "テーマ管理",
+    "panel": {
+      "importExport": "インポート/エクスポート",
+      "themeSelection": "テーマ選択とプリセット",
+      "modeSettings": "モードとデフォルトモード",
+      "variables": "変数",
+      "appStyles": "アプリスタイル",
+      "textStyles": "テキストスタイル (i18nStyles)",
+      "codeHighlight": "コードハイライト",
+      "importBuiltin": "内蔵プリセットのインポート",
+      "importFile": "ファイルからインポート (JSON/YAML)",
+      "exportFile": "ファイルに保存 (JSON/YAML)",
+      "importText": "テーマ JSON/YAML をインポート",
+      "selectTheme": "テーマ",
+      "mode": "モード",
+      "defaultMode": "デフォルトモード",
+      "arcoConfig": "Arco Design 設定",
+      "i18nKey": "i18n キースタイル"
+    },
+    "action": {
+      "expandAll": "すべて展開",
+      "showImportExportOnly": "インポート/エクスポートのみ",
+      "collapseAll": "すべて折りたたみ",
+      "saveAsJson": "JSON として保存",
+      "saveAsYaml": "YAML として保存",
+      "import": "インポート",
+      "exportToJson": "下に JSON としてエクスポート",
+      "exportToYaml": "下に YAML としてエクスポート",
+      "createStyle": "スタイル作成",
+      "saveStyle": "スタイル保存"
+    },
+    "mode": {
+      "light": "ライト",
+      "dark": "ダーク"
+    },
+    "defaultMode": {
+      "none": "デフォルトなし",
+      "light": "デフォルトライト",
+      "dark": "デフォルトダーク"
+    },
+    "arco": {
+      "primaryColor": "プライマリカラー"
+    },
+    "section": {
+      "textStyle": "テキストスタイル",
+      "background": "背景",
+      "border": "境界線",
+      "spacing": "スペース",
+      "basic": "基本設定",
+      "syntaxColors": "シンタックスハイライト色",
+      "uiElements": "UI要素",
+      "baseStyle": "基本スタイル",
+      "hover": "HOVER状態",
+      "active": "ACTIVE状態",
+      "focus": "FOCUS状態"
+    },
+    "codeHighlight": {
+      "background": "背景",
+      "color": "前景",
+      "fontFamily": "フォントファミリー",
+      "fontSize": "フォントサイズ",
+      "lineHeight": "行の高さ",
+      "keyword": "キーワード",
+      "string": "文字列",
+      "comment": "コメント",
+      "number": "数字",
+      "function": "関数",
+      "variable": "変数",
+      "operator": "演算子",
+      "type": "型",
+      "constant": "定数",
+      "punctuation": "句読点",
+      "className": "クラス名",
+      "property": "プロパティ",
+      "tag": "タグ",
+      "attr": "属性",
+      "headerBackground": "ヘッダー背景",
+      "headerColor": "ヘッダー色",
+      "lineNumberColor": "行番号色",
+      "selectedLineBackground": "選択行背景",
+      "borderColor": "境界線色",
+      "scrollbarColor": "スクロールバー色",
+      "iconColor": "アイコン色",
+      "inlineCodeBackground": "インラインコード背景",
+      "inlineCodeBorder": "インラインコード境界線"
+    },
+    "placeholder": {
+      "pasteTheme": "テーマ JSON または YAML を貼り付け",
+      "selectI18nKey": "i18n キーを選択または検索 (* と a.b.* をサポート)",
+      "colorVar": "色変数を選択、例: --color-text-1",
+      "textColor": "テキスト色、例: #333333",
+      "fontSize": "フォントサイズ、例: 16px",
+      "fontWeight": "フォントウェイト、例: 600",
+      "bgColorVar": "背景色変数、例: --color-bg-1",
+      "bgColor": "背景色、例: #ffffff",
+      "bgImage": "背景画像、例: linear-gradient(...) または url(...)",
+      "borderColorVar": "境界線色変数、例: --color-border-1",
+      "borderColor": "境界線色、例: #cccccc",
+      "borderWidth": "境界線幅、例: 1px",
+      "borderStyle": "境界線スタイル、例: solid / dashed",
+      "borderRadius": "境界線半径、例: 4px",
+      "padding": "パディング、例: 4px 8px",
+      "margin": "マージン、例: 8px 12px"
+    },
+    "help": {
+      "currentTheme": "現在のテーマ: ",
+      "defaultMode": "現在のテーマ ",
+      "setDefaultMode": " にデフォルトモードを設定: ",
+      "arcoConfig": "現在のモード: ",
+      "noStyle": "スタイル未設定"
+    },
+    "label": {
+      "preview": "プレビュー: "
+    },
+    "preview": {
+      "text": "スタイルプレビューテキスト"
+    },
+    "success": {
+      "saved": "保存済み",
+      "imported": "テーマインポート成功",
+      "i18nStyleSaved": "i18n スタイル更新済み"
+    },
+    "error": {
+      "invalidFile": "無効なファイル形式",
+      "importFailed": "インポート失敗: ",
+      "saveFailed": "保存失敗: ",
+      "exportFailed": "エクスポート失敗: ",
+      "invalidFormat": "無効なテーマ形式",
+      "i18nStyleFailed": "i18n スタイル保存失敗: "
+    }
+  },
   "messages": {
     "conversationInProgress": "現在、会話中です...",
     "confirm": "確認",

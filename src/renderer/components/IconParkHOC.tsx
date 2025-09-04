@@ -7,7 +7,7 @@
 import React from 'react';
 import { IconProvider, DEFAULT_ICON_CONFIGS } from '@icon-park/react/es/runtime';
 import { theme } from '@office-ai/platform';
-const IconParkHOC = <T extends Record<string, any>>(Component: React.FunctionComponent<T>): React.FC<T> => {
+const IconParkHOC = <T extends Record<string, unknown>>(Component: React.FunctionComponent<T>): React.FC<T> => {
   return (props) => {
     return React.createElement(
       IconProvider,
@@ -21,9 +21,9 @@ const IconParkHOC = <T extends Record<string, any>>(Component: React.FunctionCom
         React.createElement(Component, {
           key: 'c3',
           strokeWidth: 3,
-          fill: '#86909C',
+          fill: 'currentColor',
           ...props,
-          className: 'cursor-pointer  ' + ((props as any).className || ''),
+          className: 'cursor-pointer  ' + ((props as T & { className?: string }).className || ''),
         }),
       ]
     );

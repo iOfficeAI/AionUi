@@ -51,7 +51,7 @@ const MessageToolCall: React.FC<{ message: IMessageToolCall }> = ({ message }) =
     return <Alert content={OpName + ':' + file_path} type={status === 'error' ? 'error' : status === 'success' ? 'success' : 'info'}></Alert>;
   }
   if (message.content.name === 'google_web_search') {
-    return <Alert icon={<MessageSearch theme='outline' fill='#333' className='lh-[1]' />} content={message.content.args.query}></Alert>;
+    return <Alert icon={<MessageSearch theme='outline' fill='currentColor' className='lh-[1]' />} content={message.content.args.query}></Alert>;
   }
   if (message.content.name === 'run_shell_command') {
     return <MarkdownView>{`\`\`\`shell\n${message.content.args.command}\n#${message.content.args.description}`}</MarkdownView>;

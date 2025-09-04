@@ -167,28 +167,33 @@ const Guid: React.FC = () => {
   }, [modelList]);
   return (
     <div className='h-full flex-center flex-col px-100px'>
-      <p className='text-2xl font-semibold text-gray-900 mb-8'>{t('conversation.welcome.title')}</p>
-      <div className='w-full bg-white b-solid border border-#E5E6EB  rd-20px  focus-within:shadow-[0px_2px_20px_rgba(77,60,234,0.1)] transition-all duration-200 overflow-hidden p-16px'>
-        <Input.TextArea
-          rows={5}
-          placeholder={t('conversation.welcome.placeholder')}
-          className='text-16px focus:b-none rounded-xl !bg-white !b-none !resize-none'
-          value={input}
-          onChange={(v) => setInput(v)}
-          onCompositionStartCapture={() => {
-            isComposing.current = true;
-          }}
-          onCompositionEndCapture={() => {
-            isComposing.current = false;
-          }}
-          onKeyDown={(e) => {
-            if (isComposing.current) return;
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              sendMessageHandler();
-            }
-          }}
-        ></Input.TextArea>
+      <p className='text-2xl font-semibold mb-8' data-i18n-key='conversation.welcome.title'>
+        {t('conversation.welcome.title')}
+      </p>
+      <div className='w-full rd-20px focus-within:shadow-[var(--o-focus-shadow)] transition-all duration-200 overflow-hidden p-16px' data-app-style='o-workspace' data-i18n-key='input.container'>
+        <div data-app-style='o-textarea'>
+          <Input.TextArea
+            rows={5}
+            placeholder={t('conversation.welcome.placeholder')}
+            className='text-16px focus:b-none rounded-xl !b-none !resize-none'
+            value={input}
+            onChange={(v) => setInput(v)}
+            data-i18n-key='conversation.welcome.input'
+            onCompositionStartCapture={() => {
+              isComposing.current = true;
+            }}
+            onCompositionEndCapture={() => {
+              isComposing.current = false;
+            }}
+            onKeyDown={(e) => {
+              if (isComposing.current) return;
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessageHandler();
+              }
+            }}
+          ></Input.TextArea>
+        </div>
         <div className='flex items-center justify-between '>
           <div className='flex items-center gap-10px'>
             <Dropdown
@@ -218,7 +223,7 @@ const Guid: React.FC = () => {
               }
             >
               <span className='flex items-center gap-4px cursor-pointer lh-[1]'>
-                <Button type='secondary' shape='circle' icon={<Plus theme='outline' size='14' strokeWidth={2} fill='#333' />}></Button>
+                <Button type='secondary' shape='circle' icon={<Plus theme='outline' size='14' strokeWidth={2} fill='currentColor' />}></Button>
                 {files.length > 0 && (
                   <Tooltip className={'!max-w-max'} content={<span className='whitespace-break-spaces'>{files.join('\n')}</span>}>
                     <span>File({files.length})</span>
@@ -239,27 +244,33 @@ const Guid: React.FC = () => {
                     const availableModels = getAvailableModels(provider);
                     return (
                       <Menu.ItemGroup title={provider.name} key={provider.id}>
-                        {availableModels.map((modelName) => (
-                          <Menu.Item
-                            key={provider.id + modelName}
-                            className={currentModel?.id + currentModel?.useModel === provider.id + modelName ? '!bg-#f2f3f5' : ''}
-                            onClick={() => {
-                              setCurrentModel({ ...provider, useModel: modelName });
-                            }}
-                          >
-                            {modelName}
-                          </Menu.Item>
-                        ))}
+                        {provider.model.map((model: string) => {
+                          const isActive = currentModel?.id + currentModel?.useModel === provider.id + model;
+                          return (
+                            <Menu.Item
+                              key={provider.id + model}
+                              data-app-style='o-dropdown-item'
+                              data-app-state={isActive ? 'active' : undefined}
+                              onClick={() => {
+                                setCurrentModel({ ...provider, useModel: model });
+                              }}
+                            >
+                              {model}
+                            </Menu.Item>
+                          );
+                        })}
                       </Menu.ItemGroup>
                     );
                   })}
                 </Menu>
               }
             >
-              <Button shape='round'>{currentModel ? currentModel.useModel : 'Select Model'}</Button>
+              <Button shape='round' data-i18n-key='model.selector'>
+                {currentModel ? currentModel.useModel : 'Select Model'}
+              </Button>
             </Dropdown>
           </div>
-          <Button shape='circle' type='primary' loading={loading} disabled={!currentModel} icon={<ArrowUp theme='outline' size='14' fill='white' strokeWidth={2} />} onClick={sendMessageHandler} />
+          <Button shape='circle' type='primary' loading={loading} disabled={!currentModel} icon={<ArrowUp theme='outline' size='14' fill='currentColor' strokeWidth={2} />} onClick={sendMessageHandler} data-i18n-key='button.send' />
         </div>
       </div>
     </div>

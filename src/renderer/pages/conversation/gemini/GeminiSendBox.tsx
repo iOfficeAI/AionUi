@@ -158,9 +158,9 @@ const GeminiSendBox: React.FC<{
     <div className='max-w-800px w-full  mx-auto flex flex-col'>
       {thought.subject ? (
         <div
-          className=' px-10px py-10px rd-20px text-14px pb-40px  lh-20px color-#86909C'
+          className=' px-10px py-10px rd-20px text-14px pb-40px  lh-20px'
           style={{
-            background: 'linear-gradient(90deg, #F0F3FF 0%, #F2F2F2 100%)',
+            // background via appStyles if needed
             transform: 'translateY(36px)',
           }}
         >
@@ -194,7 +194,7 @@ const GeminiSendBox: React.FC<{
             <Button
               type='secondary'
               shape='circle'
-              icon={<Plus theme='outline' size='14' strokeWidth={2} fill='#333' />}
+              icon={<Plus theme='outline' size='14' strokeWidth={2} fill='currentColor' />}
               onClick={() => {
                 ipcBridge.dialog.showOpen
                   .invoke({

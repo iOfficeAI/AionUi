@@ -13,6 +13,7 @@ import fs from 'fs/promises';
 import OpenAI from 'openai';
 import path from 'path';
 import { ipcBridge } from '../common';
+import * as ipcBridgeEx from '../common/ipcBridgeEx';
 import { createGeminiAgent } from './initAgent';
 import { getSystemDir, ProcessChat, ProcessChatMessage, ProcessConfig, ProcessEnv } from './initStorage';
 import { nextTickToLocalFinish } from './message';
@@ -31,6 +32,24 @@ ipcBridge.dialog.showOpen.provider((options) => {
     .then((res) => {
       return res.filePaths;
     });
+});
+
+// 系统保存对话框 + 写入文件（使用扩展桥接，避免改动既有类型声明）
+ipcBridgeEx.showSave.provider(async (options: { defaultPath?: string; filters?: Electron.SaveDialogOptions['filters'] }) => {
+  const res = await dialog.showSaveDialog({
+    defaultPath: options?.defaultPath,
+    filters: options?.filters,
+  });
+  return res.canceled ? undefined : res.filePath;
+});
+
+ipcBridgeEx.saveTextFile.provider(async ({ fullPath, content }: { fullPath: string; content: string }) => {
+  try {
+    await fs.writeFile(fullPath, content, 'utf-8');
+    return { success: true };
+  } catch (e) {
+    return { success: false, msg: (e as any).message || String(e) };
+  }
 });
 
 ipcBridge.shell.openFile.provider(async (path) => {
