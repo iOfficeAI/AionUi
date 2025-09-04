@@ -223,6 +223,8 @@ ipcBridge.conversation.create.provider(async ({ type, extra, name, model }): Pro
           ]);
         } catch (error) {
           // Don't throw - just log the error so the conversation remains in the list
+          console.error(`[ACP] Failed to start ${extra.backend} conversation:`, error);
+          console.error(`[ACP] Backend: ${extra.backend}, CLI Path: ${extra.cliPath}, Workspace: ${workspace}`);
         }
       }, 100);
 
@@ -237,8 +239,37 @@ ipcBridge.conversation.create.provider(async ({ type, extra, name, model }): Pro
         extra: conversation.extra,
         status: conversation.status,
       };
+    } else {
+      // Handle other enabled backends (qwen, claude, etc.) as generic gemini-style conversations
+      const conversation = await createGeminiAgent(model, extra.workspace, extra.defaultFiles, extra.webSearchEngine);
+      if (name) {
+        conversation.name = name;
+      }
+      // Override conversation type to match the selected backend
+      conversation.type = type as any;
+
+      WorkerManage.buildConversation(conversation);
+      await ProcessChat.get('chat.history').then((history) => {
+        // 区分真正的空历史和读取失败
+        let safeHistory: TChatConversation[];
+        if (Array.isArray(history)) {
+          safeHistory = history;
+        } else if (history === null || history === undefined) {
+          // 全新用户或首次使用，创建空的历史列表
+          safeHistory = [];
+        } else {
+          // 其他异常情况（比如解析错误），为安全起见不保存
+          return;
+        }
+
+        // 检查是否已存在
+        if (safeHistory.some((h) => h.id === conversation.id)) return;
+
+        // 安全地添加新会话
+        ProcessChat.set('chat.history', [...safeHistory, conversation]);
+      });
+      return conversation;
     }
-    throw new Error('Unsupported conversation type');
   } catch (e) {
     return null;
   }
@@ -490,11 +521,70 @@ ipcBridge.acpConversation.detectCliPath.provider(async ({ backend }) => {
   const { execSync } = await import('child_process');
   const fs = await import('fs');
 
-  if (backend !== 'claude' && backend !== 'gemini') {
+  // Import ACP backends configuration to check supported backends
+  const { isValidAcpBackend } = await import('@/common/acpTypes');
+
+  if (!isValidAcpBackend(backend)) {
     return { success: false, msg: `Unsupported backend: ${backend}` };
   }
 
   const isWindows = process.platform === 'win32';
+
+  // For qwen, try to detect available CLI paths
+  if (backend === 'qwen') {
+    // Method 1: Try npx version (shorter timeout to avoid blocking)
+    try {
+      const npxCommand = isWindows ? 'npx.cmd' : 'npx';
+      execSync(`${npxCommand} @qwen-code/qwen-code --version`, { encoding: 'utf-8', stdio: 'pipe', timeout: 5000 });
+      return { success: true, data: { path: 'npx @qwen-code/qwen-code' } };
+    } catch (qwenNpxError) {
+      // Npx command not available
+    }
+
+    // Method 2: Try global qwen-code command
+    try {
+      execSync('qwen-code --version', { encoding: 'utf-8', stdio: 'pipe', timeout: 3000 });
+      return { success: true, data: { path: 'qwen-code' } };
+    } catch (qwenCodeError) {
+      // Global qwen-code command not available
+    }
+
+    // Method 3: Try global 'qwen' command (but verify it's really Qwen, not Gemini)
+    try {
+      execSync('qwen --version', { encoding: 'utf-8', stdio: 'pipe', timeout: 3000 });
+
+      const whichOutput = execSync('which qwen', { encoding: 'utf-8', stdio: 'pipe', timeout: 2000 }).trim();
+
+      // Critical verification: check if this is actually Gemini CLI disguised as Qwen
+      try {
+        const fileContent = execSync(`head -20 ${whichOutput}`, { encoding: 'utf-8', stdio: 'pipe', timeout: 2000 });
+
+        if (fileContent.includes('Google LLC') || fileContent.includes('gemini.js')) {
+          return { success: true, data: { path: 'qwen' } };
+        } else {
+          return { success: true, data: { path: 'qwen' } };
+        }
+      } catch (verifyError) {
+        // If we can't verify, be cautious and don't use it
+        return { success: false };
+      }
+    } catch (qwenGlobalError) {
+      // Global qwen command not available
+    }
+
+    // Method 4: Check if there's a global @qwen-code/qwen-code installation
+    try {
+      const globalList = execSync('npm list -g @qwen-code/qwen-code --depth=0', { encoding: 'utf-8', stdio: 'pipe', timeout: 3000 });
+      if (globalList.includes('@qwen-code/qwen-code')) {
+        // Global installation found but binary not accessible
+      }
+    } catch (globalCheckError) {
+      // No global installation found
+    }
+
+    // No Qwen CLI paths detected
+    return { success: false };
+  }
 
   // First, try to test if the command works directly (handles aliases)
   try {
@@ -549,15 +639,11 @@ ipcBridge.acpConversation.detectCliPath.provider(async ({ backend }) => {
       }
 
       if (aliasedCommand) {
-        console.log(`[detectCliPath] Detected alias: ${backend} -> ${aliasedCommand}`);
-
         // Test if the aliased command works
         try {
           execSync(`${aliasedCommand} --version`, { encoding: 'utf-8', stdio: 'pipe', timeout: 5000 });
-          console.log(`[detectCliPath] Alias command works: ${aliasedCommand}`);
           return { success: true, data: { path: aliasedCommand } };
         } catch (aliasTestError) {
-          console.log(`[detectCliPath] Alias command failed: ${aliasTestError.message}`);
           // Continue with fallback logic
         }
       }
@@ -586,6 +672,20 @@ ipcBridge.acpConversation.detectCliPath.provider(async ({ backend }) => {
               } catch (npxError) {
                 // npx also failed
               }
+            } else if (backend === 'qwen' && content.includes('npx')) {
+              // Try npx approach for qwen with common package names
+              const isWindows = process.platform === 'win32';
+              const npxCommand = isWindows ? 'npx.cmd' : 'npx';
+              const qwenPackages = ['@qwen-code/qwen-code', 'qwen-code-cli', 'qwen-cli'];
+
+              for (const packageName of qwenPackages) {
+                try {
+                  execSync(`${npxCommand} ${packageName} --version`, { encoding: 'utf-8', stdio: 'pipe', timeout: 10000 });
+                  return { success: true, data: { path: `npx ${packageName}` } };
+                } catch (npxError) {
+                  // Try next package
+                }
+              }
             }
           }
         } catch (readError) {
@@ -606,6 +706,20 @@ ipcBridge.acpConversation.detectCliPath.provider(async ({ backend }) => {
         return { success: true, data: { path: 'npx @google/gemini-cli' } };
       } catch (npxError) {
         // All methods failed
+      }
+    } else if (backend === 'qwen') {
+      // Last resort: try npx for qwen with common package names
+      const isWindows = process.platform === 'win32';
+      const npxCommand = isWindows ? 'npx.cmd' : 'npx';
+      const qwenPackages = ['@qwen-code/qwen-code', 'qwen-code-cli', 'qwen-cli'];
+
+      for (const packageName of qwenPackages) {
+        try {
+          execSync(`${npxCommand} ${packageName} --version`, { encoding: 'utf-8', stdio: 'pipe', timeout: 10000 });
+          return { success: true, data: { path: `npx ${packageName}` } };
+        } catch (npxError) {
+          // Try next package
+        }
       }
     }
 
@@ -731,13 +845,14 @@ ipcBridge.googleAuth.login.provider(async ({ proxy }) => {
       }
     } catch (_error) {
       // Even if we can't get the email, login was successful
+      return { success: true };
     }
     return { success: true, data: { account: '' } };
   }
   return { success: false };
 });
 
-ipcBridge.googleAuth.logout.provider(async ({}) => {
+ipcBridge.googleAuth.logout.provider(async () => {
   return clearCachedCredentialFile();
 });
 
@@ -793,20 +908,9 @@ ipcBridge.mode.getModelConfig.provider(async () => {
       if (!data) return [];
 
       // Handle migration from old IModel format to new IProvider format
-      console.log('[DEBUG] Model config migration - raw data:', data.length, 'providers');
-      return data.map((v: any, index: number) => {
-        console.log(`[DEBUG] Provider ${index}:`, {
-          name: v.name,
-          platform: v.platform,
-          hasUseModel: 'useModel' in v,
-          hasSelectedModel: 'selectedModel' in v,
-          useModel: v.useModel,
-          selectedModel: v.selectedModel,
-        });
-
+      return data.map((v: any, _index: number) => {
         // Check if this is old format (has 'selectedModel' field) vs new format (has 'useModel')
         if ('selectedModel' in v && !('useModel' in v)) {
-          console.log(`[DEBUG] Migrating provider ${v.name}: selectedModel -> useModel`);
           // Migrate from old format
           return {
             ...v,
@@ -818,7 +922,6 @@ ipcBridge.mode.getModelConfig.provider(async () => {
           // Note: we don't delete selectedModel here as this is read-only migration
         }
 
-        console.log(`[DEBUG] Provider ${v.name} already in correct format or mixed format`);
         // Already in new format or unknown format, just ensure ID exists
         return {
           ...v,

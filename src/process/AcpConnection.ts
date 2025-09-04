@@ -92,126 +92,122 @@ export class AcpConnection {
 
     this.backend = backend;
 
-    // Add process spawn error handling
-    let spawnError: Error | null = null;
+    switch (backend) {
+      case 'claude':
+        await this.connectClaude(cliPath, workingDir);
+        break;
 
-    if (backend === 'claude') {
-      // Use npm package version of Claude Code ACP with patch support
-      const claudeAcpPath = path.join(__dirname, '..', '..', 'node_modules', '@zed-industries', 'claude-code-acp', 'dist', 'index.js');
+      case 'gemini':
+        await this.connectGemini(cliPath, workingDir);
+        break;
 
-      const args = [claudeAcpPath];
-      if (cliPath) {
-        args.push('--claude-path', cliPath);
-      }
+      case 'qwen':
+        await this.connectQwen(cliPath, workingDir);
+        break;
 
-      // Clean environment
-      const cleanEnv = { ...process.env };
-      delete cleanEnv.NODE_OPTIONS;
-      delete cleanEnv.NODE_INSPECT;
-      delete cleanEnv.NODE_DEBUG;
+      default:
+        throw new Error(`Unsupported backend: ${backend}`);
+    }
+  }
 
-      this.child = spawn('node', args, {
-        cwd: workingDir,
-        stdio: ['pipe', 'pipe', 'pipe'],
-        env: cleanEnv,
-      });
-    } else if (backend === 'gemini') {
-      // Use Gemini CLI
-      if (!cliPath) {
-        throw new Error('Gemini CLI path is required for gemini backend');
-      }
+  private async connectClaude(cliPath?: string, workingDir: string = process.cwd()): Promise<void> {
+    // Use npm package version of Claude Code ACP with patch support
+    const claudeAcpPath = path.join(__dirname, '..', '..', 'node_modules', '@zed-industries', 'claude-code-acp', 'dist', 'index.js');
 
-      // Set up environment variables for Gemini authentication
-      const env: Record<string, string | undefined> = {
-        ...process.env,
-      };
-
-      // Try to get proxy configuration for OAuth check
-      const { ProcessConfig } = await import('@/process/initStorage');
-      const proxy = await ProcessConfig.get('gemini.config')
-        .then((config: any) => config?.proxy || '')
-        .catch(() => '');
-
-      try {
-        // Priority 1: Use existing Google OAuth authentication from GeminiSettings
-        const { getOauthInfoWithCache, AuthType, loginWithOauth, Config } = await import('@office-ai/aioncli-core');
-
-        const oauthInfo = await getOauthInfoWithCache(proxy);
-
-        if (oauthInfo && oauthInfo.email) {
-          // Use existing Google OAuth authentication from GeminiSettings
-          // Gemini CLI will use cached credentials automatically
-        } else {
-          // Priority 2: Check for API Key from ModeSettings
-          const modelConfig = await ProcessConfig.get('model.config').catch((): null => null);
-
-          if (modelConfig && Array.isArray(modelConfig)) {
-            const geminiModels = modelConfig.filter((m: any) => m.platform === 'gemini' && m.apiKey);
-
-            if (geminiModels.length > 0) {
-              // Use API Key from ModeSettings
-              env.GEMINI_API_KEY = geminiModels[0].apiKey;
-            }
-          }
-
-          // Priority 3: If no API Key from ModeSettings, trigger Google OAuth login
-          if (!env.GEMINI_API_KEY) {
-            const config = new Config({
-              proxy,
-              sessionId: '',
-              targetDir: '',
-              debugMode: false,
-              cwd: '',
-              model: '',
-            });
-
-            const client = await loginWithOauth(AuthType.LOGIN_WITH_GOOGLE, config);
-
-            if (client) {
-              // OAuth login successful, Gemini CLI will use cached credentials
-              const newOauthInfo = await getOauthInfoWithCache(proxy);
-
-              if (newOauthInfo && newOauthInfo.email) {
-                // Successfully authenticated with Google OAuth
-              } else {
-                throw new Error('[ACP-AUTH-003] Google 登录后无法获取有效认证信息');
-              }
-            } else {
-              throw new Error('[ACP-AUTH-004] Google 登录失败或被取消');
-            }
-          }
-        }
-      } catch (oauthError: any) {
-        throw new Error('[ACP-AUTH-002] 无法获取 Gemini 认证信息: 请在 GeminiSettings 中登录或在 ModeSettings 中配置 API Key');
-      }
-
-      // Handle npx command format properly
-      let spawnCommand: string;
-      let spawnArgs: string[];
-
-      if (cliPath.startsWith('npx ')) {
-        // For "npx @google/gemini-cli", split into command and arguments
-        const parts = cliPath.split(' ');
-        const isWindows = process.platform === 'win32';
-        spawnCommand = isWindows ? 'npx.cmd' : 'npx'; // Use npx.cmd on Windows
-        spawnArgs = [...parts.slice(1), '--experimental-acp']; // ['@google/gemini-cli', '--experimental-acp']
-      } else {
-        // For regular paths like '/usr/local/bin/gemini'
-        spawnCommand = cliPath;
-        spawnArgs = ['--experimental-acp'];
-      }
-
-      this.child = spawn(spawnCommand, spawnArgs, {
-        cwd: workingDir,
-        stdio: ['pipe', 'pipe', 'pipe'],
-        env,
-      });
-    } else {
-      throw new Error(`Unsupported backend: ${backend}`);
+    const args = [claudeAcpPath];
+    if (cliPath) {
+      args.push('--claude-path', cliPath);
     }
 
-    this.child.stderr?.on('data', (data) => {
-      const _errorOutput = data.toString();
+    // Clean environment
+    const cleanEnv = { ...process.env };
+    delete cleanEnv.NODE_OPTIONS;
+    delete cleanEnv.NODE_INSPECT;
+    delete cleanEnv.NODE_DEBUG;
+
+    this.child = spawn('node', args, {
+      cwd: workingDir,
+      stdio: ['pipe', 'pipe', 'pipe'],
+      env: cleanEnv,
+    });
+
+    await this.setupChildProcessHandlers('claude');
+  }
+
+  private async connectGemini(cliPath?: string, workingDir: string = process.cwd()): Promise<void> {
+    if (!cliPath) {
+      throw new Error('Gemini CLI path is required for gemini backend');
+    }
+
+    // Clean environment - let Gemini CLI handle its own authentication
+    const env: Record<string, string | undefined> = {
+      ...process.env,
+    };
+
+    // Handle npx command format properly
+    let spawnCommand: string;
+    let spawnArgs: string[];
+
+    if (cliPath.startsWith('npx ')) {
+      // For "npx @google/gemini-cli", split into command and arguments
+      const parts = cliPath.split(' ');
+      const isWindows = process.platform === 'win32';
+      spawnCommand = isWindows ? 'npx.cmd' : 'npx'; // Use npx.cmd on Windows
+      spawnArgs = [...parts.slice(1), '--experimental-acp']; // ['@google/gemini-cli', '--experimental-acp']
+    } else {
+      // For regular paths like '/usr/local/bin/gemini'
+      spawnCommand = cliPath;
+      spawnArgs = ['--experimental-acp'];
+    }
+
+    this.child = spawn(spawnCommand, spawnArgs, {
+      cwd: workingDir,
+      stdio: ['pipe', 'pipe', 'pipe'],
+      env,
+    });
+
+    await this.setupChildProcessHandlers('gemini');
+  }
+
+  private async connectQwen(cliPath?: string, workingDir: string = process.cwd()): Promise<void> {
+    if (!cliPath) {
+      throw new Error('Qwen Code CLI path is required for qwen backend');
+    }
+
+    // Clean environment - let Qwen CLI handle its own authentication
+    const env: Record<string, string | undefined> = {
+      ...process.env,
+    };
+
+    // Handle command format
+    let spawnCommand: string;
+    let spawnArgs: string[];
+
+    if (cliPath.startsWith('npx ')) {
+      // For "npx @qwen-code/qwen-code", split into command and arguments
+      const parts = cliPath.split(' ');
+      const isWindows = process.platform === 'win32';
+      spawnCommand = isWindows ? 'npx.cmd' : 'npx'; // Use npx.cmd on Windows
+      spawnArgs = [...parts.slice(1), '--experimental-acp']; // ['@qwen-code/qwen-code', '--experimental-acp']
+    } else {
+      // For regular paths like '/usr/local/bin/qwen'
+      spawnCommand = cliPath;
+      spawnArgs = ['--experimental-acp'];
+    }
+
+    this.child = spawn(spawnCommand, spawnArgs, {
+      cwd: workingDir,
+      stdio: ['pipe', 'pipe', 'pipe'],
+      env,
+    });
+
+    await this.setupChildProcessHandlers('qwen');
+  }
+
+  private async setupChildProcessHandlers(backend: string): Promise<void> {
+    let spawnError: Error | null = null;
+
+    this.child.stderr?.on('data', (_data) => {
       // Error output handled by parent process
     });
 
@@ -578,34 +574,5 @@ export class AcpConnection {
 
   getInitializeResponse(): any {
     return this.initializeResponse;
-  }
-
-  // Test API key validity
-  static async testApiKey(apiKey: string): Promise<boolean> {
-    try {
-      const testPayload = {
-        contents: [
-          {
-            parts: [{ text: 'Hello' }],
-          },
-        ],
-      };
-
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(testPayload),
-      });
-
-      if (response.ok) {
-        return true;
-      } else {
-        return false;
-      }
-    } catch (error) {
-      return false;
-    }
   }
 }
