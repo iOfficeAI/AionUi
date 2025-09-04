@@ -112,43 +112,22 @@ const Guid: React.FC = () => {
   const [files, setFiles] = useState<string[]>([]);
   const [dir, setDir] = useState<string>('');
   const [currentModel, _setCurrentModel] = useState<TProviderWithModel>();
+  // 恢复原始逻辑：conversationType 区分使用方式，不是后端类型
+  // 但是要根据配置动态决定默认值
   const [conversationType, setConversationType] = useState<'gemini' | 'acp'>('gemini');
   const [showAcpSetup, setShowAcpSetup] = useState(false);
-  const [acpConfig, setAcpConfig] = useState<{ backend: AcpBackend; cliPath?: string; workingDir: string } | null>(null);
+  const [acpConfig, setAcpConfig] = useState<{
+    backend: AcpBackend;
+    cliPath?: string;
+    workingDir: string;
+  } | null>(null);
   const setCurrentModel = async (modelInfo: TProviderWithModel) => {
     await ConfigStorage.set('gemini.defaultModel', modelInfo.useModel);
     _setCurrentModel(modelInfo);
   };
   const navigate = useNavigate();
   const handleSend = async () => {
-    if (conversationType === 'gemini') {
-      if (!currentModel) return;
-      const conversation = await ipcBridge.conversation.create.invoke({
-        type: 'gemini',
-        name: input,
-        model: currentModel,
-        extra: {
-          defaultFiles: files,
-          workspace: dir,
-          webSearchEngine: isGoogleAuth ? 'google' : 'default',
-        },
-      });
-      await ipcBridge.geminiConversation.sendMessage.invoke({
-        input:
-          files.length > 0
-            ? files
-                .map((v) => v.split(/[\\/]/).pop() || '')
-                .map((v) => `@${v}`)
-                .join(' ') +
-              ' ' +
-              input
-            : input,
-        conversation_id: conversation.id,
-        msg_id: uuid(),
-      });
-
-      navigate(`/conversation/${conversation.id}`);
-    } else {
+    if (conversationType === 'acp') {
       // ACP conversation type
       if (!acpConfig) {
         setShowAcpSetup(true);
@@ -196,6 +175,37 @@ const Guid: React.FC = () => {
           alert('Failed to create ACP conversation. Please check your ACP configuration and ensure the CLI is installed.');
         }
       }
+    } else {
+      // Direct Gemini conversation
+      if (!currentModel) return;
+
+      const conversation = await ipcBridge.conversation.create.invoke({
+        type: conversationType as any, // Should be 'gemini'
+        name: input,
+        model: currentModel,
+        extra: {
+          defaultFiles: files,
+          workspace: dir,
+          webSearchEngine: conversationType === 'gemini' && isGoogleAuth ? 'google' : 'default',
+        },
+      });
+
+      // Send message for Gemini conversation
+      await ipcBridge.geminiConversation.sendMessage.invoke({
+        input:
+          files.length > 0
+            ? files
+                .map((v) => v.split(/[\\/]/).pop() || '')
+                .map((v) => `@${v}`)
+                .join(' ') +
+              ' ' +
+              input
+            : input,
+        conversation_id: conversation.id,
+        msg_id: uuid(),
+      });
+
+      navigate(`/conversation/${conversation.id}`);
     }
   };
   const sendMessageHandler = () => {
@@ -294,7 +304,7 @@ const Guid: React.FC = () => {
               </span>
             </Dropdown>
 
-            {conversationType === 'gemini' ? (
+            {conversationType !== 'acp' ? (
               <Dropdown
                 trigger='hover'
                 droplist={
@@ -328,7 +338,7 @@ const Guid: React.FC = () => {
               </Button>
             )}
           </div>
-          <Button shape='circle' type='primary' loading={loading} disabled={conversationType === 'gemini' ? !currentModel : !acpConfig} icon={<ArrowUp theme='outline' size='14' fill='white' strokeWidth={2} />} onClick={handleSend} />
+          <Button shape='circle' type='primary' loading={loading} disabled={conversationType === 'acp' ? !acpConfig : !currentModel} icon={<ArrowUp theme='outline' size='14' fill='white' strokeWidth={2} />} onClick={handleSend} />
         </div>
       </div>
 
@@ -341,7 +351,9 @@ const Guid: React.FC = () => {
           onCancel={() => setShowAcpSetup(false)}
           onNavigateToSettings={() => {
             setShowAcpSetup(false);
-            navigate('/settings/gemini');
+            // Navigate to appropriate settings page based on current backend
+            // For now, navigate to model settings which covers all backends
+            navigate('/settings/model');
           }}
         />
       )}
