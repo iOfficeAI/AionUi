@@ -45,7 +45,8 @@
       "Bash(npx eslint:*)",
       "Bash(cat:*)",
       "WebFetch(domain:github.com)",
-      "WebFetch(domain:api.github.com)"
+      "WebFetch(domain:api.github.com)",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "ask": []

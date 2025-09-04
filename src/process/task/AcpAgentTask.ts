@@ -16,6 +16,7 @@ import type { AcpBackend, AcpPermissionRequest, AcpSessionUpdate } from '../AcpC
 import { AcpConnection } from '../AcpConnection';
 import { addMessage, addOrUpdateMessage } from '../message';
 import { ProcessChat } from '../initStorage';
+import { AcpErrorType, createAcpError, type AcpResult } from '@/common/acpTypes';
 
 export interface AcpAgentConfig {
   id: string;
@@ -171,10 +172,13 @@ export class AcpAgentTask extends EventEmitter {
   }
 
   // 发送消息到ACP服务器
-  async sendMessage(data: { content: string; files?: string[]; msg_id?: string }): Promise<{ success: boolean; msg?: string }> {
+  async sendMessage(data: { content: string; files?: string[]; msg_id?: string }): Promise<AcpResult> {
     try {
       if (!this.connection.isConnected || !this.connection.hasActiveSession) {
-        throw new Error('ACP connection not ready');
+        return {
+          success: false,
+          error: createAcpError(AcpErrorType.CONNECTION_NOT_READY, 'ACP connection not ready', true),
+        };
       }
 
       // Update modify time for user activity
@@ -231,7 +235,7 @@ export class AcpAgentTask extends EventEmitter {
       this.currentAssistantMsgId = null;
       this.statusMessageId = null;
 
-      return { success: true };
+      return { success: true, data: null };
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
 
@@ -240,16 +244,40 @@ export class AcpAgentTask extends EventEmitter {
         if (this.backend === 'qwen') {
           const enhancedMsg = `Qwen ACP Internal Error: This usually means authentication failed or ` + `the Qwen CLI has compatibility issues. Please try: 1) Restart the application ` + `2) Use 'npx @qwen-code/qwen-code' instead of global qwen 3) Check if you have valid Qwen credentials.`;
           this.emitErrorMessage(enhancedMsg);
-          return { success: false, msg: enhancedMsg };
+          return {
+            success: false,
+            error: createAcpError(AcpErrorType.AUTHENTICATION_FAILED, enhancedMsg, false),
+          };
         }
       }
 
+      // Classify error types based on message content
+      let errorType: AcpErrorType = AcpErrorType.UNKNOWN;
+      let retryable = false;
+
+      if (errorMsg.includes('authentication') || errorMsg.includes('认证失败') || errorMsg.includes('[ACP-AUTH-')) {
+        errorType = AcpErrorType.AUTHENTICATION_FAILED;
+        retryable = false;
+      } else if (errorMsg.includes('timeout') || errorMsg.includes('Timeout') || errorMsg.includes('timed out')) {
+        errorType = AcpErrorType.TIMEOUT;
+        retryable = true;
+      } else if (errorMsg.includes('permission') || errorMsg.includes('Permission')) {
+        errorType = AcpErrorType.PERMISSION_DENIED;
+        retryable = false;
+      } else if (errorMsg.includes('connection') || errorMsg.includes('Connection')) {
+        errorType = AcpErrorType.NETWORK_ERROR;
+        retryable = true;
+      }
+
       this.emitErrorMessage(errorMsg);
-      return { success: false, msg: errorMsg };
+      return {
+        success: false,
+        error: createAcpError(errorType, errorMsg, retryable),
+      };
     }
   }
 
-  async confirmMessage(data: { confirmKey: string; msg_id: string; callId: string }): Promise<{ success: boolean; msg?: string }> {
+  async confirmMessage(data: { confirmKey: string; msg_id: string; callId: string }): Promise<AcpResult> {
     try {
       // Handle permission confirmation
       // callId is the requestId used to store the pending permission
@@ -257,13 +285,19 @@ export class AcpAgentTask extends EventEmitter {
         const { resolve } = this.pendingPermissions.get(data.callId)!;
         this.pendingPermissions.delete(data.callId);
         resolve({ optionId: data.confirmKey });
-        return { success: true };
+        return { success: true, data: null };
       }
 
-      return { success: false, msg: `Permission request not found for callId: ${data.callId}` };
+      return {
+        success: false,
+        error: createAcpError(AcpErrorType.UNKNOWN, `Permission request not found for callId: ${data.callId}`, false),
+      };
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      return { success: false, msg: errorMsg };
+      return {
+        success: false,
+        error: createAcpError(AcpErrorType.UNKNOWN, errorMsg, false),
+      };
     }
   }
 
