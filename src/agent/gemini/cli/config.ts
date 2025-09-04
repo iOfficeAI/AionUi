@@ -14,6 +14,7 @@ import type { Settings } from './settings';
 
 import type { Extension } from './extension';
 import { annotateActiveExtensions } from './extension';
+import { getCurrentGeminiAgent } from '../index';
 
 // Simple console logger for now - replace with actual logger if available
 const logger = {
@@ -175,7 +176,7 @@ export async function loadCliConfig({ workspace, settings, extensions, sessionId
     }
   }
 
-  return new Config({
+  const config = new Config({
     sessionId,
     embeddingModel: DEFAULT_GEMINI_EMBEDDING_MODEL,
     // sandbox: sandboxConfig,
@@ -225,6 +226,34 @@ export async function loadCliConfig({ workspace, settings, extensions, sessionId
     summarizeToolOutput: settings.summarizeToolOutput,
     ideMode,
   });
+
+  // Register multi-key fallback handler
+  const flashFallbackHandler = async (
+    currentModel: string,
+    fallbackModel: string,
+    error?: unknown
+  ): Promise<boolean> => {
+    const agent = getCurrentGeminiAgent();
+    const apiKeyManager = agent?.getApiKeyManager();
+    
+    if (!apiKeyManager?.hasMultipleKeys()) {
+      return true; // Single key mode, accept fallback
+    }
+
+    // Try to rotate to next key
+    const hasMoreKeys = apiKeyManager.rotateKey();
+    if (hasMoreKeys) {
+      console.log(`[MultiKey] Rotated API key, retrying with ${currentModel}`);
+      return false; // Prevent fallback, retry with new key
+    }
+
+    console.log(`[MultiKey] All keys exhausted, falling back to ${fallbackModel}`);
+    return true; // Accept fallback
+  };
+
+  config.setFlashFallbackHandler(flashFallbackHandler);
+  
+  return config;
 }
 
 function mergeMcpServers(settings: Settings, extensions: Extension[]) {
