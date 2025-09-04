@@ -422,7 +422,6 @@ const rebuildChatHistoryIndex = async () => {
     console.error('[Storage] Error rebuilding chat history index:', error);
   }
 };
-
 const initStorage = async () => {
   // 1. 先执行数据迁移（在任何目录创建之前）
   await migrateLegacyData();
