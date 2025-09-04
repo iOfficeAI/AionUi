@@ -27,7 +27,7 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
         <Form.Item label={t('settings.platformName')} required rules={[{ required: true }]} field={'name'} disabled={data?.platform !== 'custom'}>
           <Input></Input>
         </Form.Item>
-        <Form.Item label={t('settings.baseUrl')} required rules={[{ required: true }]} field={'baseUrl'} disabled>
+        <Form.Item label={t('settings.baseUrl')} required={data?.platform !== 'gemini'} rules={[{ required: data?.platform !== 'gemini' }]} field={'baseUrl'} disabled>
           <Input></Input>
         </Form.Item>
         <Form.Item label={t('settings.apiKey')} required rules={[{ required: true }]} field={'apiKey'}>

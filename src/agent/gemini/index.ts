@@ -110,13 +110,21 @@ export class GeminiAgent {
     // Initialize multi-key manager for supported auth types
     this.initializeMultiKeySupport();
 
+    // Get the current API key to use (either from multi-key manager or original)
+    const getCurrentApiKey = () => {
+      if (this.apiKeyManager && this.apiKeyManager.hasMultipleKeys()) {
+        return process.env[this.apiKeyManager.getStatus().envKey] || this.model.apiKey;
+      }
+      return this.model.apiKey;
+    };
+
     if (this.authType === AuthType.USE_GEMINI) {
-      fallbackValue('GEMINI_API_KEY', this.model.apiKey);
+      fallbackValue('GEMINI_API_KEY', getCurrentApiKey());
       fallbackValue('GOOGLE_GEMINI_BASE_URL', this.model.baseUrl);
       return;
     }
     if (this.authType === AuthType.USE_VERTEX_AI) {
-      fallbackValue('GOOGLE_API_KEY', this.model.apiKey);
+      fallbackValue('GOOGLE_API_KEY', getCurrentApiKey());
       process.env.GOOGLE_GENAI_USE_VERTEXAI = 'true';
       return;
     }
@@ -126,7 +134,7 @@ export class GeminiAgent {
     }
     if (this.authType === AuthType.USE_OPENAI) {
       fallbackValue('OPENAI_BASE_URL', this.model.baseUrl);
-      fallbackValue('OPENAI_API_KEY', this.model.apiKey);
+      fallbackValue('OPENAI_API_KEY', getCurrentApiKey());
     }
   }
 
