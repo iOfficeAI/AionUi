@@ -562,7 +562,6 @@ ipcBridge.acpConversation.detectCliPath.provider(async ({ backend }) => {
         }
       }
     }
-
     // Test if the detected path actually works
     try {
       execSync(`${cliPath} --version`, { encoding: 'utf-8', stdio: 'pipe', timeout: 5000 });
