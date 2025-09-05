@@ -19,7 +19,8 @@
     "website": "官网",
     "version": "版本号",
     "contact": "联系我们",
-    "github": "Github"
+    "github": "Github",
+    "loading": "请稍候..."
   },
   "conversation": {
     "welcome": {

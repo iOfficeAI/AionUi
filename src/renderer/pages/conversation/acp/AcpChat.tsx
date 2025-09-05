@@ -29,4 +29,4 @@ const AcpChat: React.FC<{
   );
 };
 
-export default HOC(MessageListProvider, { value: [] })(AcpChat);
+export default HOC(MessageListProvider)(AcpChat);

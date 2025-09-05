@@ -19,7 +19,8 @@
     "website": "官網",
     "version": "版本號",
     "contact": "聯絡我們",
-    "github": "Github"
+    "github": "Github",
+    "loading": "請稍候..."
   },
   "conversation": {
     "welcome": {

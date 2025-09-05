@@ -397,6 +397,13 @@ ipcBridge.geminiConversation.sendMessage.provider(async ({ conversation_id, file
 
 // ACP 专用的 sendMessage provider
 ipcBridge.acpConversation.sendMessage.provider(async ({ conversation_id, files, ...other }) => {
+  console.log('[ACP-BRIDGE] Received message:', {
+    conversation_id,
+    input: other.input?.substring(0, 50) + '...',
+    msg_id: other.msg_id,
+    loading_id: other.loading_id,
+    files_count: files?.length || 0,
+  });
   let task = WorkerManage.getTaskById(conversation_id);
   if (!task) {
     // Try to find the conversation in chat history and recreate the task
@@ -444,8 +451,14 @@ ipcBridge.acpConversation.sendMessage.provider(async ({ conversation_id, files, 
 
   // Support ACP tasks only
   if ((task as any).type === 'acp') {
+    console.log('[ACP-BRIDGE] Calling task.sendMessage with:', {
+      content: other.input?.substring(0, 30) + '...',
+      msg_id: other.msg_id,
+      loading_id: other.loading_id,
+    });
+
     return (task as unknown as AcpAgentTask)
-      .sendMessage({ content: other.input, files, msg_id: other.msg_id })
+      .sendMessage({ content: other.input, files, msg_id: other.msg_id, loading_id: other.loading_id })
       .then((result) => {
         if (result.success === true) {
           return { success: true };
