@@ -29,8 +29,8 @@
       "uploadFile": "Upload Files",
       "linkFolder": "Open Folder",
       "newConversation": "New Chat",
-      "multiAgentDetected": "Detected {{agents}} installed",
-      "multiAgentModeEnabled": "Entering multi-agent mode (*￣▽￣*)"
+      "multiAgentDetected": "✅CLI tools detected✅",
+      "multiAgentModeEnabled": "Entering multi-agent mode"
     },
     "history": {
       "today": "Today",
