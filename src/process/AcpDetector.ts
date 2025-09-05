@@ -5,6 +5,7 @@
  */
 
 import type { AcpBackend } from '@/common/acpTypes';
+import { getEnabledAcpBackends } from '@/common/acpTypes';
 
 interface DetectedAgent {
   backend: AcpBackend;
@@ -32,7 +33,9 @@ class AcpDetector {
     const isWindows = process.platform === 'win32';
     const whichCommand = isWindows ? 'where' : 'which';
 
-    const acpCommands = ['claude', 'qwen', 'gemini'];
+    // 从配置中获取要检测的ACP后端（仅启用的）
+    const enabledBackends = getEnabledAcpBackends();
+    const acpCommands = enabledBackends.map((backend) => backend.id);
     const detected: DetectedAgent[] = [];
 
     // 并行检测所有命令
@@ -44,9 +47,12 @@ class AcpDetector {
           timeout: 1000,
         });
 
+        // 从配置中获取对应的名称
+        const backendConfig = enabledBackends.find((backend) => backend.id === command);
+
         return {
           backend: command as AcpBackend,
-          name: command === 'claude' ? 'Claude' : command === 'qwen' ? 'Qwen Code' : 'Google Gemini',
+          name: backendConfig?.name || command,
           cliPath: command,
         };
       } catch {

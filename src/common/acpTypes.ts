@@ -94,27 +94,28 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
 };
 
 // 仅启用的后端配置
-export const ACP_BACKENDS: Record<string, AcpBackendConfig> = Object.fromEntries(Object.entries(ACP_BACKENDS_ALL).filter(([_, config]) => config.enabled));
+export const ACP_ENABLED_BACKENDS: Record<string, AcpBackendConfig> = Object.fromEntries(Object.entries(ACP_BACKENDS_ALL).filter(([_, config]) => config.enabled));
 
 // 当前启用的后端类型
-export type AcpBackend = keyof typeof ACP_BACKENDS;
+export type AcpBackend = keyof typeof ACP_ENABLED_BACKENDS;
 export type AcpBackendId = AcpBackend; // 向后兼容
 
 // 工具函数
 export function isValidAcpBackend(backend: string): backend is AcpBackend {
-  return backend in ACP_BACKENDS;
+  return backend in ACP_ENABLED_BACKENDS;
 }
 
 export function getAcpBackendConfig(backend: AcpBackend): AcpBackendConfig {
-  return ACP_BACKENDS[backend];
+  return ACP_ENABLED_BACKENDS[backend];
 }
 
-export function getAllAcpBackends(): AcpBackendConfig[] {
-  return Object.values(ACP_BACKENDS);
+// 获取所有启用的后端配置
+export function getEnabledAcpBackends(): AcpBackendConfig[] {
+  return Object.values(ACP_ENABLED_BACKENDS);
 }
 
 // 获取所有后端配置（包括禁用的）
-export function getAllAcpBackendsIncludingDisabled(): AcpBackendConfig[] {
+export function getAllAcpBackends(): AcpBackendConfig[] {
   return Object.values(ACP_BACKENDS_ALL);
 }
 
