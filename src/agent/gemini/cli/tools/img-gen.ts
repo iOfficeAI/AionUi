@@ -10,8 +10,9 @@ import type { Config, ToolResult, ToolInvocation, ToolLocation, ToolCallConfirma
 import { BaseDeclarativeTool, BaseToolInvocation, Kind, getErrorMessage, ToolErrorType } from '@office-ai/aioncli-core';
 import * as fs from 'fs';
 import { jsonrepair } from 'jsonrepair';
-import OpenAI from 'openai';
 import * as path from 'path';
+import type OpenAI from 'openai';
+import { ClientFactory, type RotatingClient } from '@/common/ClientFactory';
 
 /**
  * Safely parse JSON string with jsonrepair fallback
@@ -34,7 +35,7 @@ function safeJsonParse<T = unknown>(jsonString: string, fallbackValue: T): T {
   }
 }
 
-const REQUEST_TIMEOUT_MS = 120000; // 2 minutes for image generation
+const API_TIMEOUT_MS = 120000; // 2 minutes for image generation API calls
 
 export interface ImageGenerationToolParams {
   /**
@@ -245,8 +246,8 @@ IMPORTANT: When user provides multiple images (like @img1.jpg @img2.png), ALWAYS
 }
 
 class ImageGenerationInvocation extends BaseToolInvocation<ImageGenerationToolParams, ToolResult> {
-  private openai: OpenAI | null = null;
-  private currentModel: string | null = null;
+  private rotatingClient: RotatingClient;
+  private currentModel: string;
 
   constructor(
     private readonly config: Config,
@@ -255,6 +256,14 @@ class ImageGenerationInvocation extends BaseToolInvocation<ImageGenerationToolPa
     private readonly proxy?: string
   ) {
     super(params);
+
+    // Initialize the rotating client using factory
+    this.currentModel = this.imageGenerationModel.useModel;
+
+    this.rotatingClient = ClientFactory.createRotatingClient(this.imageGenerationModel, {
+      proxy: this.proxy,
+      rotatingOptions: { maxRetries: 3, retryDelay: 1000 },
+    });
   }
 
   private parseImageUris(imageUris: string | string[]): string[] {
@@ -341,40 +350,6 @@ Please ensure the image file exists and has a valid image extension (.jpg, .png,
     }
   }
 
-  private async initializeOpenAI(): Promise<void> {
-    if (this.openai) {
-      return;
-    }
-
-    const apiKey = this.imageGenerationModel.apiKey;
-
-    if (!apiKey) {
-      throw new Error(`OPENROUTER_API_KEY not found. Please configure API key in model settings.`);
-    }
-
-    // Clean API key
-    const cleanedApiKey = apiKey.replace(/[\s\r\n\t]/g, '').trim();
-
-    this.currentModel = this.imageGenerationModel.useModel;
-    const openaiConfig: any = {
-      baseURL: this.imageGenerationModel.baseUrl,
-      apiKey: cleanedApiKey,
-      defaultHeaders: {
-        'HTTP-Referer': 'https://www.aionui.com',
-        'X-Title': 'AionUi',
-      },
-    };
-
-    // 添加代理配置（如果提供）
-    if (this.proxy) {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const HttpsProxyAgent = require('https-proxy-agent');
-      openaiConfig.httpAgent = new HttpsProxyAgent(this.proxy);
-    }
-
-    this.openai = new OpenAI(openaiConfig);
-  }
-
   async execute(signal: AbortSignal, updateOutput?: (output: string) => void): Promise<ToolResult> {
     if (signal.aborted) {
       return {
@@ -384,20 +359,6 @@ Please ensure the image file exists and has a valid image extension (.jpg, .png,
     }
 
     try {
-      await this.initializeOpenAI();
-
-      if (!this.openai) {
-        const errorMsg = 'Failed to initialize OpenAI client';
-        return {
-          llmContent: `Error: ${errorMsg}`,
-          returnDisplay: errorMsg,
-          error: {
-            message: errorMsg,
-            type: ToolErrorType.EXECUTION_FAILED,
-          },
-        };
-      }
-
       updateOutput?.('Initializing image generation...');
 
       // Build message content with explicit operation type for better AI understanding
@@ -470,14 +431,14 @@ Please ensure the image file exists and has a valid image extension (.jpg, .png,
 
       updateOutput?.('Sending request to AI service...');
 
-      const completion = await this.openai.chat.completions.create(
+      const completion = await (this.rotatingClient as any).createChatCompletion(
         {
           model: this.currentModel,
           messages: messages,
         },
         {
           signal,
-          timeout: REQUEST_TIMEOUT_MS,
+          timeout: API_TIMEOUT_MS,
         }
       );
 

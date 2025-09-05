@@ -14,6 +14,7 @@ import type { Settings } from './settings';
 
 import type { Extension } from './extension';
 import { annotateActiveExtensions } from './extension';
+import { getCurrentGeminiAgent } from '../index';
 
 // Simple console logger for now - replace with actual logger if available
 const logger = {
@@ -175,7 +176,7 @@ export async function loadCliConfig({ workspace, settings, extensions, sessionId
     }
   }
 
-  return new Config({
+  const config = new Config({
     sessionId,
     embeddingModel: DEFAULT_GEMINI_EMBEDDING_MODEL,
     // sandbox: sandboxConfig,
@@ -225,6 +226,32 @@ export async function loadCliConfig({ workspace, settings, extensions, sessionId
     summarizeToolOutput: settings.summarizeToolOutput,
     ideMode,
   });
+
+  const flashFallbackHandler = async (_currentModel: string, _fallbackModel: string, _error?: unknown): Promise<string | boolean> => {
+    try {
+      const agent = getCurrentGeminiAgent();
+      const apiKeyManager = agent?.getApiKeyManager();
+
+      if (!apiKeyManager?.hasMultipleKeys()) {
+        return true;
+      }
+
+      const hasMoreKeys = apiKeyManager.rotateKey();
+
+      if (hasMoreKeys) {
+        return true;
+      }
+
+      return false;
+    } catch (e) {
+      console.error(`[FlashFallback] Handler error:`, e);
+      return true;
+    }
+  };
+
+  config.setFlashFallbackHandler(flashFallbackHandler);
+
+  return config;
 }
 
 function mergeMcpServers(settings: Settings, extensions: Extension[]) {
