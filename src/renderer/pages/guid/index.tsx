@@ -323,11 +323,17 @@ const Guid: React.FC = () => {
     <ConfigProvider getPopupContainer={() => guidContainerRef.current || document.body}>
       <div ref={guidContainerRef} className='h-full flex-center flex-col px-100px' style={{ position: 'relative' }}>
         <p className='text-2xl font-semibold text-gray-900 mb-8'>{t('conversation.welcome.title')}</p>
-        <div className='w-full bg-white b-solid border border-#E5E6EB  rd-20px  focus-within:shadow-[0px_2px_20px_rgba(77,60,234,0.1)] transition-all duration-200 overflow-hidden p-16px'>
+        <div
+          className='bg-white b-solid border border-#E5E6EB  rd-20px  focus-within:shadow-[0px_2px_20px_rgba(77,60,234,0.1)] transition-all duration-200 overflow-hidden p-16px'
+          style={{
+            width: 'clamp(400px, calc(100% - 80px), 720px)',
+            margin: '0 auto',
+          }}
+        >
           <Input.TextArea
-            rows={5}
+            rows={4}
             placeholder={t('conversation.welcome.placeholder')}
-            className='text-16px focus:b-none rounded-xl !bg-white !b-none !resize-none'
+            className='text-16px focus:b-none rounded-xl !bg-white !b-none !resize-none !p-0'
             value={input}
             onChange={(v) => setInput(v)}
             onCompositionStartCapture={() => {
