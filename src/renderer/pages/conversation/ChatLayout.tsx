@@ -4,6 +4,10 @@ import { Layout as ArcoLayout } from '@arco-design/web-react';
 import { ExpandLeft, ExpandRight } from '@icon-park/react';
 import React, { useState } from 'react';
 
+import ClaudeLogo from '@/renderer/assets/logos/claude.svg';
+import GeminiLogo from '@/renderer/assets/logos/gemini.svg';
+import QwenLogo from '@/renderer/assets/logos/qwen.svg';
+
 const addEventListener = <K extends keyof DocumentEventMap>(key: K, handler: (e: DocumentEventMap[K]) => void): (() => void) => {
   document.addEventListener(key, handler);
   return () => {
@@ -65,25 +69,34 @@ const ChatLayout: React.FC<{
   title?: React.ReactNode;
   sider: React.ReactNode;
   siderTitle?: React.ReactNode;
+  backend?: string;
 }> = (props) => {
   const [rightSiderCollapsed, setRightSiderCollapsed] = useState(false);
 
   const { siderWidth, dragContext } = useSiderWidthWithDray(266);
+  const { backend } = props;
 
   return (
     <ArcoLayout className={'size-full'}>
       <ArcoLayout.Content>
-        <ArcoLayout.Header className={'flex items-center justify-between p-16px gap-16px h-56px !bg-#F7F8FA'}>
+        <ArcoLayout.Header className={'flex items-center justify-between p-16px gap-16px h-96px !bg-#F7F8FA'}>
           <FlexFullContainer className='h-full'>
             <span className=' ml-16px font-bold text-16px inline-block overflow-hidden text-ellipsis whitespace-nowrap w-full max-w-60%'>{props.title}</span>
+            {backend && (
+              <div className='  ml-16px flex items-center gap-2 bg-[#f2f3f5] w-fit rounded-full px-[8px] py-[2px]'>
+                <img src={backend === 'claude' ? ClaudeLogo : backend === 'gemini' ? GeminiLogo : backend === 'qwen' ? QwenLogo : ''} alt={`${backend} logo`} width={16} height={16} style={{ objectFit: 'contain' }} />
+                <span className='font-medium'>{backend}</span>
+              </div>
+            )}
           </FlexFullContainer>
+
           {rightSiderCollapsed && (
             <div className='flex items-center gap-16px'>
               <ExpandRight onClick={() => setRightSiderCollapsed(false)} className='cursor-pointer flex' theme='outline' size='24' fill='#86909C' strokeWidth={3} />
             </div>
           )}
         </ArcoLayout.Header>
-        <ArcoLayout.Content className={'h-[calc(100%-66px)] bg-#F9FAFB'}>{props.children}</ArcoLayout.Content>
+        <ArcoLayout.Content className={'h-[calc(100%-106px)] bg-#F9FAFB'}>{props.children}</ArcoLayout.Content>
       </ArcoLayout.Content>
 
       <ArcoLayout.Sider width={siderWidth} collapsedWidth={0} collapsed={rightSiderCollapsed} className={'!bg-#F7F8FA relative'}>
@@ -94,7 +107,7 @@ const ChatLayout: React.FC<{
           <div className='flex-1'>{props.siderTitle}</div>
           <ExpandLeft theme='outline' size='24' fill='#86909C' className='cursor-pointer' strokeWidth={3} onClick={() => setRightSiderCollapsed(true)} />
         </ArcoLayout.Header>
-        <ArcoLayout.Content className={'h-[calc(100%-66px)] bg-#F9FAFB'}>{props.sider}</ArcoLayout.Content>
+        <ArcoLayout.Content className={'h-[calc(100%-106px)] bg-#F9FAFB'}>{props.sider}</ArcoLayout.Content>
       </ArcoLayout.Sider>
     </ArcoLayout>
   );

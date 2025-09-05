@@ -5,6 +5,7 @@
  */
 
 import { storage } from '@office-ai/platform';
+import type { AcpBackend } from './acpTypes';
 
 /**
  * @description 聊天相关的存储
@@ -25,6 +26,14 @@ export interface IConfigStorageRefer {
     authType: string;
     proxy: string;
     GOOGLE_GEMINI_BASE_URL?: string;
+  };
+  'acp.config': {
+    [backend in AcpBackend]?: {
+      authMethodId?: string;
+      authToken?: string;
+      lastAuthTime?: number;
+      cliPath?: string;
+    };
   };
   'model.config': IProvider[];
   language: string;
@@ -54,14 +63,24 @@ interface IChatConversation<T, Extra> {
   status?: 'pending' | 'running' | 'finished' | undefined;
 }
 
-export type TChatConversation = IChatConversation<
-  'gemini',
-  {
-    workspace: string;
-    customWorkspace?: boolean; // true 用户指定工作目录 false 系统默认工作目录
-    webSearchEngine?: 'google' | 'default'; // 搜索引擎配置
-  }
->;
+export type TChatConversation =
+  | IChatConversation<
+      'gemini',
+      {
+        workspace: string;
+        customWorkspace?: boolean; // true 用户指定工作目录 false 系统默认工作目录
+        webSearchEngine?: 'google' | 'default'; // 搜索引擎配置
+      }
+    >
+  | IChatConversation<
+      'acp',
+      {
+        workspace?: string;
+        backend: AcpBackend;
+        cliPath?: string;
+        customWorkspace?: boolean;
+      }
+    >;
 
 export type IChatConversationRefer = {
   'chat.history': TChatConversation[];

@@ -19,15 +19,18 @@
     "website": "官网",
     "version": "版本号",
     "contact": "联系我们",
-    "github": "Github"
+    "github": "Github",
+    "loading": "请稍候..."
   },
   "conversation": {
     "welcome": {
-      "title": "你好，有什么可以帮你的？",
+      "title": "Hi，今天有什么安排？",
       "placeholder": "发消息、上传文件或打开文件夹...",
       "uploadFile": "上传文件",
       "linkFolder": "打开文件夹",
-      "newConversation": "新对话"
+      "newConversation": "新对话",
+      "multiAgentDetected": "✅检测到您已安装CLI工具✅ ",
+      "multiAgentModeEnabled": "已进入多智能体模式"
     },
     "history": {
       "today": "今天",
@@ -102,5 +105,10 @@
     "canceledExecution": "已取消执行",
     "openLinkFailed": "打开链接失败",
     "imageGenerationModelDetected": "检测到图片模型，已自动开启图片工具，设置为默认模型：{{platform}}:{{model}}"
+  },
+  "acp": {
+    "auth": {
+      "failed": "{{backend}} 认证失败：\n\n{{error}}\n\n请检查本地CLI工具的认证状态"
+    }
   }
 }

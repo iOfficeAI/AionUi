@@ -20,5 +20,5 @@
       "@worker/*": ["./src/worker/*"]
     }
   },
-  "include": ["src/**/*", "uno.config.ts"]
+  "include": ["src/**/*", "uno.config.ts", "src/renderer/types.d.ts"]
 }
