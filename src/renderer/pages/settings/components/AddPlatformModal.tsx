@@ -236,7 +236,7 @@ const AddPlatformModal = ModalHOC<{
         <Form.Item hidden={platform !== 'custom'} label={t('settings.platformName')} required rules={[{ required: true }]} field={'name'} initialValue={'gemini'}>
           <Input></Input>
         </Form.Item>
-        <Form.Item label='API Key' required rules={[{ required: true }]} field={'apiKey'}>
+        <Form.Item label='API Key' required rules={[{ required: true }]} field={'apiKey'} extra={<div style={{ fontSize: '11px', color: '#999', marginTop: '4px', lineHeight: '1.4' }}>{t('settings.multiApiKeyTip')}</div>}>
           <Input
             onBlur={() => {
               modelListState.mutate();

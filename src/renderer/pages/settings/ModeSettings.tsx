@@ -11,6 +11,12 @@ import AddPlatformModal from './components/AddPlatformModal';
 import EditModeModal from './components/EditModeModal';
 import SettingContainer from './components/SettingContainer';
 
+// Calculate API Key count
+const getApiKeyCount = (apiKey: string): number => {
+  if (!apiKey) return 0;
+  return apiKey.split(/[,\n]/).filter((k) => k.trim().length > 0).length;
+};
+
 const ModelSettings: React.FC = () => {
   const { t } = useTranslation();
   const [cacheKey, setCacheKey] = useState('model.config');
@@ -106,7 +112,7 @@ const ModelSettings: React.FC = () => {
                   {platform.name}
                   <div className='flex items-center gap-10px' onClick={(e) => e.stopPropagation()}>
                     <span className='text-12px'>
-                      {t('settings.modelCount')}（{platform.model.length}）
+                      {t('settings.modelCount')}（{platform.model.length}）| {t('settings.apiKeyCount')}（{getApiKeyCount(platform.apiKey)}）
                     </span>
                     <Button
                       size='mini'

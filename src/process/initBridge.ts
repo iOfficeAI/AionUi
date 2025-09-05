@@ -237,9 +237,15 @@ ipcBridge.googleAuth.logout.provider(async ({}) => {
 });
 
 ipcBridge.mode.fetchModelList.provider(async function fetchModelList({ base_url, api_key, try_fix }): Promise<{ success: boolean; msg?: string; data?: { mode: Array<string>; fix_base_url?: string } }> {
+  // 如果是多key（包含逗号或回车），只取第一个key来获取模型列表
+  let actualApiKey = api_key;
+  if (api_key && (api_key.includes(',') || api_key.includes('\n'))) {
+    actualApiKey = api_key.split(/[,\n]/)[0].trim();
+  }
+
   const openai = new OpenAI({
     baseURL: base_url,
-    apiKey: api_key,
+    apiKey: actualApiKey,
   });
 
   try {
