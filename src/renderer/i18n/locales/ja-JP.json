@@ -19,7 +19,8 @@
     "website": "公式サイト",
     "version": "バージョン",
     "contact": "お問い合わせ",
-    "github": "Github"
+    "github": "Github",
+    "loading": "お待ちください..."
   },
   "conversation": {
     "welcome": {

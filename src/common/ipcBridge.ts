@@ -85,6 +85,7 @@ interface ISendMessageParams {
   msg_id: string;
   conversation_id: string;
   files?: string[];
+  loading_id?: string; // ID of loading message to replace
 }
 
 interface IConfirmGeminiMessageParams {

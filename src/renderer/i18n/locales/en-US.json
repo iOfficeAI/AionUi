@@ -19,7 +19,8 @@
     "website": "Website",
     "version": "Version",
     "contact": "Contact",
-    "github": "Github"
+    "github": "Github",
+    "loading": "Please wait..."
   },
   "conversation": {
     "welcome": {

@@ -14,7 +14,7 @@ import { AcpAdapter } from '../../adapter/AcpAdapter';
 import { AcpConfigManager } from '../AcpConfig';
 import type { AcpBackend, AcpPermissionRequest, AcpSessionUpdate } from '../AcpConnection';
 import { AcpConnection } from '../AcpConnection';
-import { addMessage, addOrUpdateMessage } from '../message';
+import { addMessage, addOrUpdateMessage, updateMessage } from '../message';
 import { ProcessChat } from '../initStorage';
 import { AcpErrorType, createAcpError, type AcpResult } from '@/common/acpTypes';
 
@@ -68,6 +68,9 @@ export class AcpAgentTask extends EventEmitter {
 
   // Fixed IDs for status messages to prevent duplication
   private statusMessageId: string | null = null;
+
+  // Loading message ID for ACP response waiting
+  private loadingMessageId: string | null = null;
 
   constructor(config: AcpAgentConfig) {
     super();
@@ -172,7 +175,10 @@ export class AcpAgentTask extends EventEmitter {
   }
 
   // 发送消息到ACP服务器
-  async sendMessage(data: { content: string; files?: string[]; msg_id?: string }): Promise<AcpResult> {
+  async sendMessage(data: { content: string; files?: string[]; msg_id?: string; loading_id?: string }): Promise<AcpResult> {
+    // Capture the send timestamp for proper message ordering
+    const sendTimestamp = Date.now();
+
     try {
       if (!this.connection.isConnected || !this.connection.hasActiveSession) {
         return {
@@ -180,6 +186,9 @@ export class AcpAgentTask extends EventEmitter {
           error: createAcpError(AcpErrorType.CONNECTION_NOT_READY, 'ACP connection not ready', true),
         };
       }
+
+      // Save user message to chat history only after successful processing
+      // This will be done after the message is successfully sent
 
       // Update modify time for user activity
       this.modifyTime = Date.now();
@@ -203,35 +212,32 @@ export class AcpAgentTask extends EventEmitter {
         });
       }
 
-      // Persist user message to chat history and emit to UI (following GeminiAgentTask pattern)
-      if (data.msg_id) {
-        const userMessage: TMessage = {
-          id: data.msg_id,
-          type: 'text',
-          position: 'right',
-          conversation_id: this.id,
-          content: {
-            content: data.content, // Store original content in UI
-          },
-          createdAt: Date.now(),
-        };
-        // Persist to chat history
-        addMessage(this.id, userMessage);
-
-        // Also emit to UI for immediate display
-        const userResponseMessage = {
-          conversation_id: this.id,
-          msg_id: data.msg_id,
-          type: 'user_content',
-          data: data.content, // Show original content in UI
-        };
-        ipcBridge.acpConversation.responseStream.emit(userResponseMessage);
+      // Set loading message ID from frontend if provided
+      if (data.loading_id) {
+        this.loadingMessageId = data.loading_id;
       }
 
       // Send processed content to ACP service to avoid @ symbol confusion
       await this.connection.sendPrompt(processedContent);
 
-      // Clear message IDs for new conversation turn
+      // Save user message to chat history ONLY after successful sending
+      if (data.msg_id && data.content) {
+        const userMessage: TMessage = {
+          id: data.msg_id,
+          msg_id: data.msg_id,
+          type: 'text',
+          position: 'right',
+          conversation_id: this.id,
+          content: {
+            content: data.content,
+          },
+          createdAt: sendTimestamp,
+        };
+        addMessage(this.id, userMessage);
+        // User message saved to persistent storage
+      }
+
+      // Clear message IDs for new conversation turn (but keep loading ID)
       this.currentAssistantMsgId = null;
       this.statusMessageId = null;
 
@@ -333,6 +339,15 @@ export class AcpAgentTask extends EventEmitter {
       // Create new message ID if this is the first chunk of this type
       if (!this.currentAssistantMsgId) {
         this.currentAssistantMsgId = uuid();
+
+        // If there's a loading message, replace it with first chunk
+        if (this.loadingMessageId) {
+          // Replace the loading message but keep the assistant message ID separate from loading ID
+          // This ensures AI reply has its own unique msg_id, not the loading message ID
+          this.replaceLoadingMessage(text);
+          this.loadingMessageId = null;
+          return; // Don't emit a new message, we've replaced the loading one
+        }
       }
       msgId = this.currentAssistantMsgId;
     } else {
@@ -434,6 +449,54 @@ export class AcpAgentTask extends EventEmitter {
     };
 
     this.emitMessage(permissionMessage);
+  }
+
+  private replaceLoadingMessage(text: string): void {
+    if (!this.loadingMessageId || !this.currentAssistantMsgId) {
+      return;
+    }
+
+    // Emit replacement message to UI - use loading message ID for replacement
+    // but the content will get the assistant message ID for future chunks
+    const responseMessage = {
+      conversation_id: this.id,
+      msg_id: this.loadingMessageId, // Use loading ID to find and replace the loading message
+      type: 'content',
+      data: text,
+      isLoadingReplacement: true, // Special flag to indicate this should replace loading content
+      assistantMsgId: this.currentAssistantMsgId, // Pass assistant ID for UI to update message properly
+    };
+
+    ipcBridge.acpConversation.responseStream.emit(responseMessage);
+
+    // Create the replacement message for persistent storage
+    const replacementMessage: TMessage = {
+      id: this.currentAssistantMsgId, // Use assistant message ID
+      msg_id: this.currentAssistantMsgId, // Set msg_id for proper composition
+      type: 'text',
+      position: 'left',
+      conversation_id: this.id,
+      content: {
+        content: text,
+      },
+      createdAt: Date.now(),
+    };
+
+    // Update the message in persistent storage - remove loading message and add replacement
+    updateMessage(this.id, (messages: TMessage[]) => {
+      // Find the loading message to get its timestamp
+      const loadingMessage = messages.find((msg) => msg.id === this.loadingMessageId);
+      const loadingTimestamp = loadingMessage?.createdAt;
+
+      // Update replacement message with original loading message timestamp
+      if (loadingTimestamp) {
+        replacementMessage.createdAt = loadingTimestamp;
+      }
+
+      // Remove the loading message and add the replacement
+      const filteredMessages = messages.filter((msg) => msg.id !== this.loadingMessageId);
+      return [...filteredMessages, replacementMessage];
+    });
   }
 
   private emitErrorMessage(error: string): void {
