@@ -19,15 +19,18 @@
     "website": "Website",
     "version": "Version",
     "contact": "Contact",
-    "github": "Github"
+    "github": "Github",
+    "loading": "Please wait..."
   },
   "conversation": {
     "welcome": {
-      "title": "Hi, what can I help with?",
+      "title": "Hi, what's your plan for today?",
       "placeholder": "Send a message, upload files, or open a folder...",
       "uploadFile": "Upload Files",
       "linkFolder": "Open Folder",
-      "newConversation": "New Chat"
+      "newConversation": "New Chat",
+      "multiAgentDetected": "✅CLI tools detected✅",
+      "multiAgentModeEnabled": "Entering multi-agent mode"
     },
     "history": {
       "today": "Today",
@@ -102,5 +105,10 @@
     "canceledExecution": "Execution canceled",
     "openLinkFailed": "Failed to open link",
     "imageGenerationModelDetected": "Image model detected, image tool has been automatically enabled. Default model: {{platform}}:{{model}}"
+  },
+  "acp": {
+    "auth": {
+      "failed": "{{backend}} authentication failed:\n\n{{error}}\n\nPlease check your local CLI tool authentication status"
+    }
   }
 }
