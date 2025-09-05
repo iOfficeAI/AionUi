@@ -8,7 +8,7 @@ import { mkdirSync as _mkdirSync, existsSync, readFileSync, readdirSync } from '
 import fs from 'fs/promises';
 import path from 'path';
 import { application } from '../common/ipcBridge';
-import type { IChatConversationRefer, IConfigStorageRefer, IEnvStorageRefer } from '../common/storage';
+import type { IChatConversationRefer, IConfigStorageRefer, IEnvStorageRefer, TChatConversation } from '../common/storage';
 import { ChatMessageStorage, ChatStorage, ConfigStorage, EnvStorage } from '../common/storage';
 import { copyDirectoryRecursively, getConfigPath, getDataPath, getTempPath, verifyDirectoryFiles } from './utils';
 
@@ -295,29 +295,160 @@ const conversationHistoryProxy = (options: typeof _chatMessageFile, dir: string)
 const chatMessageFile = conversationHistoryProxy(_chatMessageFile, cacheDir);
 
 // 重建聊天历史索引的函数
+// 根据特定conversation ID恢复单个对话
+export const recoverConversationById = async (conversationId: string): Promise<TChatConversation | null> => {
+  const cacheDir = getSystemDir().cacheDir;
+  try {
+    // 直接根据ID构建文件路径
+    const filePath = path.join(cacheDir, 'aionui-chat-history', `${conversationId}.txt`);
+    if (!existsSync(filePath)) {
+      return null;
+    }
+
+    const storage = buildMessageListStorage(conversationId, cacheDir);
+    const messages = await storage.toJson();
+
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return null;
+    }
+
+    // 获取文件统计信息用于时间戳
+    const stats = await fs.stat(filePath);
+
+    return buildConversationFromMessages(messages, conversationId, stats);
+  } catch (error) {
+    console.warn(`[Storage] Error recovering conversation ${conversationId}:`, error);
+    return null;
+  }
+};
+
+// 从消息数组构建对话对象
+const buildConversationFromMessages = (messages: any[], conversationId: string, stats: any): TChatConversation => {
+  const firstMessage = messages[0];
+  const lastMessage = messages[messages.length - 1];
+
+  // 检测对话类型：查找ACP相关的消息类型
+  const acpStatusMessage = messages.find((msg) => msg.type === 'acp_status');
+  const hasAcpMessages = messages.some((msg) => msg.type === 'acp_status' || msg.type === 'acp_permission' || (msg.type === 'error' && msg.data?.role === 'system'));
+
+  // 根据实际消息内容确定类型
+  const conversationType = hasAcpMessages ? 'acp' : 'gemini';
+
+  // 从ACP状态消息中提取真实的backend，没有就返回null
+  let acpBackend: string | undefined;
+  if (conversationType === 'acp' && acpStatusMessage?.content?.backend) {
+    acpBackend = acpStatusMessage.content.backend;
+  }
+
+  // 从消息中提取workspace信息
+  let workspace: string | undefined;
+  if (conversationType === 'acp') {
+    // ACP对话可能有workspace
+    const acpPermissionMessage = messages.find((msg) => msg.type === 'acp_permission');
+    if (acpPermissionMessage?.content?.workspace) {
+      workspace = acpPermissionMessage.content.workspace;
+    } else if (acpStatusMessage?.content?.workspace) {
+      workspace = acpStatusMessage.content.workspace;
+    }
+  } else {
+    // Gemini对话应该有workspace
+    const firstUserMessage = messages.find((msg) => msg.position === 'right');
+    if (firstUserMessage?.data?.workspace) {
+      workspace = firstUserMessage.data.workspace;
+    }
+  }
+
+  // 尝试从消息中提取真实的时间戳
+  let createTime = stats.birthtimeMs || stats.ctimeMs;
+  let modifyTime = stats.mtimeMs;
+
+  if (firstMessage?.createTime) {
+    createTime = firstMessage.createTime;
+  } else if (firstMessage?.createdAt) {
+    createTime = firstMessage.createdAt;
+  }
+
+  if (lastMessage?.createTime) {
+    modifyTime = Math.max(modifyTime, lastMessage.createTime);
+  } else if (lastMessage?.createdAt) {
+    modifyTime = Math.max(modifyTime, lastMessage.createdAt);
+  }
+
+  // 提取对话名称，严格优先使用用户的第一条消息
+  let conversationName = 'Untitled';
+  const userMessage = messages.find((msg) => msg.position === 'right');
+  if (userMessage?.content?.content) {
+    conversationName = userMessage.content.content.substring(0, 50).replace(/\n/g, ' ').trim();
+  }
+
+  if (conversationType === 'acp') {
+    // 对于ACP，backend是必需的
+    if (!acpBackend) {
+      console.warn(`[Storage] ACP conversation ${conversationId} missing backend information`);
+      return null as any; // 无法恢复没有backend的ACP对话
+    }
+
+    return {
+      id: conversationId,
+      name: conversationName,
+      type: 'acp' as const,
+      createTime,
+      modifyTime,
+      model: {
+        id: `acp-model`,
+        platform: 'acp' as const,
+        name: 'ACP',
+        baseUrl: '',
+        apiKey: '',
+        useModel: acpBackend, // 使用实际的backend
+      },
+      extra: {
+        workspace: workspace || '', // 使用实际的workspace
+        backend: acpBackend as any,
+      },
+      status: 'finished' as const,
+    };
+  } else {
+    return {
+      id: conversationId,
+      name: conversationName,
+      type: 'gemini' as const,
+      createTime,
+      modifyTime,
+      model: {
+        id: `gemini-model`,
+        platform: 'gemini' as const,
+        name: 'GEMINI',
+        baseUrl: '',
+        apiKey: '',
+        useModel: 'gemini-1.5-pro', // Gemini的model是固定的
+      },
+      extra: {
+        workspace: workspace || '', // 使用实际的workspace
+      },
+      status: 'finished' as const,
+    };
+  }
+};
+
 const rebuildChatHistoryIndex = async () => {
   try {
     const chatHistoryDir = path.join(cacheDir, 'aionui-chat-history');
     if (!existsSync(chatHistoryDir)) {
-      console.log('[Storage] No chat history directory found, skipping rebuild');
       return;
     }
 
     // 读取所有对话文件
     const files = readdirSync(chatHistoryDir).filter((f) => f.endsWith('.txt') && !f.startsWith('backup'));
-    console.log(`[Storage] Found ${files.length} conversation files`);
 
     // 读取当前索引
     const currentHistory = (await _chatFile.get('chat.history')) || [];
-    console.log(`[Storage] Current index has ${currentHistory.length} entries`);
 
     // 如果数量相当，不需要重建
     if (Math.abs(files.length - currentHistory.length) <= 1) {
-      console.log('[Storage] Chat history index appears to be up to date');
       return;
     }
 
-    console.log('[Storage] Rebuilding chat history index...');
     const rebuiltHistory: any[] = [];
 
     for (const file of files) {
@@ -331,80 +462,11 @@ const rebuildChatHistoryIndex = async () => {
         const messages = await storage.toJson();
 
         if (Array.isArray(messages) && messages.length > 0) {
-          // 从第一条消息推断对话信息
-          const firstMessage = messages[0];
-          const lastMessage = messages[messages.length - 1];
-          const conversationType = firstMessage?.conversation_id?.includes('acp') ? 'acp' : 'gemini';
-
-          // 尝试从消息中提取真实的时间戳
-          let createTime = stats.birthtimeMs || stats.ctimeMs;
-          let modifyTime = stats.mtimeMs;
-
-          // 如果消息有时间戳，优先使用消息时间戳
-          if (firstMessage?.createTime) {
-            createTime = firstMessage.createTime;
-          } else if (firstMessage?.createdAt) {
-            createTime = firstMessage.createdAt;
-          } else {
-            // 对于没有时间戳的旧消息，尝试从用户消息或文件时间推测
-            const userMessage = messages.find((msg) => msg.position === 'right' && (msg.createdAt || msg.createTime));
-            if (userMessage?.createdAt) {
-              createTime = userMessage.createdAt;
-            } else if (userMessage?.createTime) {
-              createTime = userMessage.createTime;
-            } else {
-              // 最后的回退：使用文件系统时间，但调整为更合理的历史时间
-              // 如果文件很新但内容看起来是历史对话，向前推移时间
-              const fileAge = Date.now() - (stats.birthtimeMs || stats.ctimeMs);
-              if (fileAge < 7 * 24 * 60 * 60 * 1000) {
-                // 文件创建不到7天
-                // 根据文件名字符分布推测创建时间（简单的散列）
-                const hashValue = conversationId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-                const dayOffset = (hashValue % 30) + 1; // 1-30天前
-                createTime = Date.now() - dayOffset * 24 * 60 * 60 * 1000;
-              } else {
-                createTime = stats.birthtimeMs || stats.ctimeMs;
-              }
-            }
+          // 使用通用的构建函数
+          const conversation = buildConversationFromMessages(messages, conversationId, stats);
+          if (conversation) {
+            rebuiltHistory.push(conversation);
           }
-
-          if (lastMessage?.createTime) {
-            modifyTime = Math.max(modifyTime, lastMessage.createTime);
-          } else if (lastMessage?.createdAt) {
-            modifyTime = Math.max(modifyTime, lastMessage.createdAt);
-          }
-
-          // 提取对话名称，优先使用用户的第一条消息
-          let conversationName = 'Untitled';
-          const userMessage = messages.find((msg) => msg.position === 'right' || msg.type === 'text');
-          if (userMessage?.content?.content) {
-            conversationName = userMessage.content.content.substring(0, 50).replace(/\n/g, ' ').trim();
-          } else if (firstMessage?.content?.content) {
-            conversationName = firstMessage.content.content.substring(0, 50).replace(/\n/g, ' ').trim();
-          }
-
-          const conversation = {
-            id: conversationId,
-            name: conversationName,
-            type: conversationType,
-            createTime,
-            modifyTime,
-            model: {
-              id: `${conversationType}-model`,
-              platform: conversationType,
-              name: conversationType.toUpperCase(),
-              baseUrl: '',
-              apiKey: '',
-              useModel: conversationType === 'acp' ? 'claude' : 'gemini-1.5-pro',
-            },
-            extra: {
-              workspace: conversationType === 'acp' ? process.cwd() : '',
-              backend: conversationType === 'acp' ? 'claude' : undefined,
-            },
-            status: 'finished' as const,
-          };
-
-          rebuiltHistory.push(conversation);
         }
       } catch (fileError) {
         console.warn(`[Storage] Error processing file ${file}:`, fileError);
@@ -413,8 +475,6 @@ const rebuildChatHistoryIndex = async () => {
 
     // 按修改时间排序
     rebuiltHistory.sort((a, b) => b.modifyTime - a.modifyTime);
-
-    console.log(`[Storage] Rebuilt index with ${rebuiltHistory.length} conversations`);
 
     // 保存重建的索引
     await _chatFile.set('chat.history', rebuiltHistory);

@@ -15,7 +15,7 @@ import path from 'path';
 import { ipcBridge } from '../common';
 import { acpDetector } from './AcpDetector';
 import { createGeminiAgent } from './initAgent';
-import { getSystemDir, ProcessChat, ProcessChatMessage, ProcessConfig, ProcessEnv } from './initStorage';
+import { getSystemDir, ProcessChat, ProcessChatMessage, ProcessConfig, ProcessEnv, recoverConversationById } from './initStorage';
 import { nextTickToLocalFinish } from './message';
 import type { AcpAgentConfig } from './task/AcpAgentTask';
 import { AcpAgentTask } from './task/AcpAgentTask';
@@ -305,8 +305,16 @@ ipcBridge.conversation.get.provider(async ({ id }) => {
       return history?.find((item) => item.id === id);
     })
     .then(async (conversation) => {
+      // 如果在chat.history中找不到，直接根据ID查找文件并恢复
       if (!conversation) {
-        return null;
+        conversation = await recoverConversationById(id);
+        if (!conversation) {
+          return null;
+        }
+        // 将恢复的对话添加到chat.history中
+        const currentHistory = (await ProcessChat.get('chat.history')) || [];
+        currentHistory.push(conversation);
+        await ProcessChat.set('chat.history', currentHistory);
       }
 
       let task = WorkerManage.getTaskById(id);
