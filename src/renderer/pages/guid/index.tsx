@@ -14,7 +14,7 @@ import GeminiLogo from '@/renderer/assets/logos/gemini.svg';
 import QwenLogo from '@/renderer/assets/logos/qwen.svg';
 import { geminiModeList } from '@/renderer/hooks/useModeModeList';
 import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
-import { Button, ConfigProvider, Dropdown, Input, Menu, Message, Radio, Space, Tooltip } from '@arco-design/web-react';
+import { Button, ConfigProvider, Dropdown, Input, Menu, Radio, Space, Tooltip } from '@arco-design/web-react';
 import { ArrowUp, Plus } from '@icon-park/react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -111,7 +111,6 @@ const useModelList = () => {
 const Guid: React.FC = () => {
   const { t } = useTranslation();
   const guidContainerRef = useRef<HTMLDivElement>(null);
-  const [message, contextHolder] = Message.useMessage();
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [files, setFiles] = useState<string[]>([]);
@@ -139,23 +138,6 @@ const Guid: React.FC = () => {
   useEffect(() => {
     if (availableAgentsData) {
       setAvailableAgents(availableAgentsData);
-
-      // 检测是否有多个ACP智能体（不包括内置的Gemini）
-      const acpAgents = availableAgentsData.filter((agent) => agent.backend !== 'gemini');
-      if (acpAgents.length > 1) {
-        const agentNames = acpAgents.map((agent) => agent.name).join('，');
-        message.success({
-          content: (
-            <div style={{ lineHeight: '1.5' }}>
-              <div>{t('conversation.welcome.multiAgentDetected', { agents: agentNames })}</div>
-              <div style={{ fontWeight: 'bold', marginTop: '4px' }}>{t('conversation.welcome.multiAgentModeEnabled')}</div>
-            </div>
-          ),
-          duration: 3000,
-          showIcon: false,
-          className: 'multi-agent-message',
-        });
-      }
     }
   }, [availableAgentsData]);
 
@@ -340,7 +322,6 @@ const Guid: React.FC = () => {
   return (
     <ConfigProvider getPopupContainer={() => guidContainerRef.current || document.body}>
       <div ref={guidContainerRef} className='h-full flex-center flex-col px-100px' style={{ position: 'relative' }}>
-        {contextHolder}
         <p className='text-2xl font-semibold text-gray-900 mb-8'>{t('conversation.welcome.title')}</p>
         <div className='w-full bg-white b-solid border border-#E5E6EB  rd-20px  focus-within:shadow-[0px_2px_20px_rgba(77,60,234,0.1)] transition-all duration-200 overflow-hidden p-16px'>
           <Input.TextArea

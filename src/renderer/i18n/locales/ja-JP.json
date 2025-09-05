@@ -29,8 +29,8 @@
       "uploadFile": "ファイルを追加",
       "linkFolder": "フォルダを追加",
       "newConversation": "新しいチャット",
-      "multiAgentDetected": "{{agents}}がインストールされていることを検出しました",
-      "multiAgentModeEnabled": "マルチエージェントモードに入ります (*￣▽￣*)"
+      "multiAgentDetected": "✅CLIツールが検出されました✅",
+      "multiAgentModeEnabled": "マルチエージェントモードに入ります"
     },
     "history": {
       "today": "今日",
