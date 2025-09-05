@@ -29,8 +29,8 @@
       "uploadFile": "上传文件",
       "linkFolder": "打开文件夹",
       "newConversation": "新对话",
-      "multiAgentDetected": "检测到您已安装{{agents}}",
-      "multiAgentModeEnabled": "已进入多智能体模式 (*￣▽￣*)"
+      "multiAgentDetected": "✅检测到您已安装CLI工具✅ ",
+      "multiAgentModeEnabled": "已进入多智能体模式"
     },
     "history": {
       "today": "今天",
