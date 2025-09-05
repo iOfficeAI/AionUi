@@ -4,10 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React from 'react';
-import { Badge, Typography } from '@arco-design/web-react';
 import type { IMessageAcpStatus } from '@/common/chatLib';
+import { Badge, Typography } from '@arco-design/web-react';
 import classNames from 'classnames';
+import React from 'react';
 
 const { Text } = Typography;
 
@@ -60,9 +60,8 @@ const MessageAcpStatus: React.FC<MessageAcpStatusProps> = ({ message }) => {
       })}
     >
       <div className='flex items-center gap-2'>
-        <span className='text-lg'>{getBackendIcon()}</span>
         <Text style={{ fontWeight: 'bold' }} className='capitalize'>
-          {backend} ACP
+          {backend}
         </Text>
       </div>
 
