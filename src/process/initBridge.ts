@@ -328,7 +328,6 @@ ipcBridge.conversation.get.provider(async ({ id }) => {
             backend: conversation.extra?.backend || 'claude',
             cliPath: conversation.extra?.cliPath,
             workingDir: conversation.extra?.workspace || process.cwd(),
-            // Preserve original conversation metadata
             createTime: conversation.createTime,
             modifyTime: conversation.modifyTime,
             extra: conversation.extra,
@@ -336,10 +335,6 @@ ipcBridge.conversation.get.provider(async ({ id }) => {
           };
 
           const newTask = new AcpAgentTask(config);
-
-          // ACP messages are handled directly in AcpAgentTask
-
-          // Add to WorkerManage
           WorkerManage.addTask(conversation.id, newTask);
           task = newTask;
         } catch (error) {
