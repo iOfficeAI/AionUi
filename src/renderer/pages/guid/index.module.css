@@ -1,0 +1,34 @@
+/* Guid页面的模块化样式 */
+
+/* Space容器rounded-full样式 */
+.roundedSpace {
+  border-radius: 9999px !important;
+  overflow: hidden;
+}
+
+/* Radio按钮组rounded-full样式 */
+.roundedRadioGroup {
+  border-radius: 9999px !important;
+  overflow: hidden;
+}
+
+.roundedRadioGroup :global(.arco-radio-group-type-button) {
+  border-radius: 9999px !important;
+  overflow: hidden;
+}
+
+.roundedRadioGroup :global(.arco-radio-button) {
+  border-radius: 9999px !important;
+}
+
+.roundedRadioGroup :global(.arco-radio-button:first-child) {
+  border-radius: 9999px !important;
+}
+
+.roundedRadioGroup :global(.arco-radio-button:last-child) {
+  border-radius: 9999px !important;
+}
+
+.roundedRadioGroup :global(.arco-radio-button:only-child) {
+  border-radius: 9999px !important;
+}

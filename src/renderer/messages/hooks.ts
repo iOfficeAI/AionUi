@@ -37,7 +37,18 @@ export const useMessageLstCache = (key: string) => {
     ChatMessageStorage.get(key).then((cache) => {
       if (cache) {
         if (Array.isArray(cache)) {
-          update(() => cache);
+          update((currentList) => {
+            // If there are already messages in the list (from initial message),
+            // merge them with cache instead of replacing
+            if (currentList && currentList.length > 0) {
+              // Check if cache has newer messages we don't have
+              const currentIds = new Set(currentList.map((m) => m.id));
+              const newMessages = cache.filter((m) => !currentIds.has(m.id));
+              return [...cache, ...currentList.filter((m) => !cache.some((c) => c.id === m.id))];
+            }
+            // Sort messages by createdAt to ensure correct order
+            return cache.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0));
+          });
         }
       }
     });
@@ -51,4 +62,4 @@ export const beforeUpdateMessageList = (fn: (list: TMessage[]) => TMessage[]) =>
   };
 };
 
-export { ChatKeyProvider, MessageListProvider, useChatKey, useMessageList };
+export { ChatKeyProvider, MessageListProvider, useChatKey, useMessageList, useUpdateMessageList };

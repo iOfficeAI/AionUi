@@ -19,15 +19,18 @@
     "website": "官網",
     "version": "版本號",
     "contact": "聯絡我們",
-    "github": "Github"
+    "github": "Github",
+    "loading": "請稍候..."
   },
   "conversation": {
     "welcome": {
-      "title": "嗨，我能為你做什麼？",
+      "title": "Hi，今天有什麼安排？",
       "placeholder": "發送訊息、上傳檔案或開啟資料夾...",
       "uploadFile": "上傳檔案",
       "linkFolder": "開啟資料夾",
-      "newConversation": "新對話"
+      "newConversation": "新對話",
+      "multiAgentDetected": "✅檢測到您已安裝CLI工具✅",
+      "multiAgentModeEnabled": "已進入多智能體模式"
     },
     "history": {
       "today": "今天",
@@ -102,5 +105,10 @@
     "canceledExecution": "已取消執行",
     "openLinkFailed": "無法開啟連結",
     "imageGenerationModelDetected": "檢測到圖片模型，已自動開啟圖片工具，設置為默認模型：{{platform}}:{{model}}"
+  },
+  "acp": {
+    "auth": {
+      "failed": "{{backend}} 認證失敗：\n\n{{error}}\n\n請檢查本地CLI工具的認證狀態"
+    }
   }
 }

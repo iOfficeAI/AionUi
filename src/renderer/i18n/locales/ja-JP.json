@@ -19,15 +19,18 @@
     "website": "公式サイト",
     "version": "バージョン",
     "contact": "お問い合わせ",
-    "github": "Github"
+    "github": "Github",
+    "loading": "お待ちください..."
   },
   "conversation": {
     "welcome": {
-      "title": "こんにちは、何かお手伝いしましょうか？",
+      "title": "Hi、今日の予定は何ですか？",
       "placeholder": "メッセージの送信、ファイルの追加、またはフォルダーの追加...",
       "uploadFile": "ファイルを追加",
       "linkFolder": "フォルダを追加",
-      "newConversation": "新しいチャット"
+      "newConversation": "新しいチャット",
+      "multiAgentDetected": "✅CLIツールが検出されました✅",
+      "multiAgentModeEnabled": "マルチエージェントモードに入ります"
     },
     "history": {
       "today": "今日",
@@ -102,5 +105,10 @@
     "canceledExecution": "実行がキャンセルされました",
     "openLinkFailed": "リンクを開けませんでした",
     "imageGenerationModelDetected": "画像モデルが検出されました。画像ツールが自動的に有効になりました。デフォルトモデル：{{platform}}:{{model}}"
+  },
+  "acp": {
+    "auth": {
+      "failed": "{{backend}} 認証が失敗しました：\n\n{{error}}\n\nローカルCLIツールの認証状態を確認してください"
+    }
   }
 }
