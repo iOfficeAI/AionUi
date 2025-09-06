@@ -1,6 +1,36 @@
 import { ApiKeyManager } from './ApiKeyManager';
 import type { AuthType } from '@office-ai/aioncli-core';
 
+// Unified interface for chat completion across different providers
+export interface UnifiedChatCompletionParams {
+  model: string;
+  messages: any; // Allow flexible message formats for compatibility
+}
+
+export interface UnifiedChatCompletionResponse {
+  id: string;
+  object: string;
+  created: number;
+  model: string;
+  choices: Array<{
+    index: number;
+    message: {
+      role: string;
+      content: string;
+      images?: Array<{
+        type: 'image_url';
+        image_url: { url: string };
+      }>;
+    };
+    finish_reason: string;
+  }>;
+  usage?: {
+    prompt_tokens: number;
+    completion_tokens: number;
+    total_tokens: number;
+  };
+}
+
 export interface RotatingApiClientOptions {
   maxRetries?: number;
   retryDelay?: number;

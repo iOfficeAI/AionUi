@@ -13,6 +13,7 @@ import { jsonrepair } from 'jsonrepair';
 import * as path from 'path';
 import type OpenAI from 'openai';
 import { ClientFactory, type RotatingClient } from '@/common/ClientFactory';
+import type { UnifiedChatCompletionResponse } from '@/common/RotatingApiClient';
 
 /**
  * Safely parse JSON string with jsonrepair fallback
@@ -39,7 +40,7 @@ const API_TIMEOUT_MS = 120000; // 2 minutes for image generation API calls
 
 export interface ImageGenerationToolParams {
   /**
-   * The text prompt describing what to generate or how to modify the image
+   * The text prompt in English describing what to generate or how to modify the image
    */
   prompt: string;
 
@@ -138,10 +139,12 @@ export class ImageGenerationTool extends BaseDeclarativeTool<ImageGenerationTool
       `AI image generation and analysis tool using OpenRouter API.
 
 Primary Functions:
-- Generate new images from text descriptions
+- Generate new images from English text descriptions
 - Analyze and describe existing images (alternative to built-in vision)
-- Edit/modify existing images with text prompts
+- Edit/modify existing images with English text prompts
 - Support multiple image processing and comparison
+
+IMPORTANT: All prompts must be in English for optimal results.
 
 When to Use:
 - When the current model lacks image analysis capabilities
@@ -168,7 +171,7 @@ IMPORTANT: When user provides multiple images (like @img1.jpg @img2.png), ALWAYS
         properties: {
           prompt: {
             type: Type.STRING,
-            description: 'The text prompt that must clearly specify the operation type: "Generate image: [description]" for creating new images, "Analyze image: [what to analyze]" for image recognition/analysis, or "Edit image: [modifications]" for image editing. Always start with the operation type.',
+            description: 'The text prompt in English that must clearly specify the operation type: "Generate image: [English description]" for creating new images, "Analyze image: [what to analyze in English]" for image recognition/analysis, or "Edit image: [modifications in English]" for image editing. Always start with the operation type and use English for the entire prompt.',
           },
           image_uris: {
             type: Type.ARRAY,
@@ -431,10 +434,10 @@ Please ensure the image file exists and has a valid image extension (.jpg, .png,
 
       updateOutput?.('Sending request to AI service...');
 
-      const completion = await (this.rotatingClient as any).createChatCompletion(
+      const completion: UnifiedChatCompletionResponse = await this.rotatingClient.createChatCompletion(
         {
           model: this.currentModel,
-          messages: messages,
+          messages: messages as any, // 必要的类型兼容：OpenAI原生格式
         },
         {
           signal,
@@ -449,7 +452,7 @@ Please ensure the image file exists and has a valid image extension (.jpg, .png,
         usage: completion.usage,
         response: {
           content: responseContent && responseContent.length > 100 ? responseContent.substring(0, 100) + '...' : responseContent,
-          images: (completion.choices[0]?.message as any)?.images?.length || 0,
+          images: completion.choices[0]?.message?.images?.length || 0,
         },
       });
 
@@ -469,7 +472,7 @@ Please ensure the image file exists and has a valid image extension (.jpg, .png,
       updateOutput?.('Processing AI response...');
 
       const responseText = choice.message.content || 'Image generated successfully.';
-      const images = (choice.message as any).images;
+      const images = choice.message.images;
 
       if (!images || images.length === 0) {
         // No images generated, return text response
@@ -491,7 +494,7 @@ Please ensure the image file exists and has a valid image extension (.jpg, .png,
           returnDisplay: {
             img_url: imagePath,
             relative_path: relativeImagePath,
-          } as unknown as any,
+          } as any, // 图片返回格式，前端UI需要的特定结构
         };
       }
 
