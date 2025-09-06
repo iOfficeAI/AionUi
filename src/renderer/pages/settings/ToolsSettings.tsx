@@ -14,14 +14,14 @@ const ToolsSettings: React.FC = () => {
     return (data || [])
       .filter((v) => {
         const filteredModels = v.model.filter((model) => {
-          return model.toLocaleLowerCase().includes('image');
+          return model.toLowerCase().includes('image');
         });
         return filteredModels.length > 0;
       })
       .map((v) => ({
         ...v,
         model: v.model.filter((model) => {
-          return model.toLocaleLowerCase().includes('image');
+          return model.toLowerCase().includes('image');
         }),
       }));
   }, [data]);
