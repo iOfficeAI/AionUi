@@ -81,18 +81,26 @@ const ToolsSettings: React.FC = () => {
             <Form className={'mt-10px'}>
               <Form.Item label={t('settings.imageGenerationModel')}>
                 {imageGenerationModelList.length > 0 ? (
-                  <Select value={imageGenerationModel?.useModel}>
+                  <Select 
+                    value={imageGenerationModel?.useModel}
+                    onChange={(value, option) => {
+                      // value 现在是 platform.id|model 格式
+                      const [platformId, modelName] = value.split('|');
+                      const platform = imageGenerationModelList
+                        .find(p => p.id === platformId);
+                      if (platform) {
+                        handleImageGenerationModelChange({ ...platform, useModel: modelName });
+                      }
+                    }}
+                  >
                     {imageGenerationModelList.map(({ model, ...platform }) => {
                       return (
                         <Select.OptGroup label={platform.name} key={platform.id}>
                           {model.map((model) => {
                             return (
                               <Select.Option
-                                onClick={() => {
-                                  handleImageGenerationModelChange({ ...platform, useModel: model });
-                                }}
-                                key={platform.platform + model}
-                                value={model}
+                                key={platform.id + model}
+                                value={platform.id + '|' + model}
                               >
                                 {model}
                               </Select.Option>

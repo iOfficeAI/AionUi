@@ -2,6 +2,7 @@ import { GoogleGenAI } from '@google/genai';
 import { AuthType } from '@office-ai/aioncli-core';
 import type { RotatingApiClientOptions } from '../RotatingApiClient';
 import { RotatingApiClient } from '../RotatingApiClient';
+import { OpenAI2GeminiConverter, type OpenAIChatCompletionParams, type OpenAIChatCompletionResponse } from './OpenAI2GeminiConverter';
 
 export interface GeminiClientConfig {
   model?: string;
@@ -11,6 +12,7 @@ export interface GeminiClientConfig {
 
 export class GeminiRotatingClient extends RotatingApiClient<GoogleGenAI> {
   private readonly config: GeminiClientConfig;
+  private readonly converter: OpenAI2GeminiConverter;
 
   constructor(apiKeys: string, config: GeminiClientConfig = {}, options: RotatingApiClientOptions = {}) {
     const createClient = (apiKey: string) => {
@@ -27,6 +29,9 @@ export class GeminiRotatingClient extends RotatingApiClient<GoogleGenAI> {
 
     super(apiKeys, AuthType.USE_GEMINI, createClient, options);
     this.config = config;
+    this.converter = new OpenAI2GeminiConverter({
+      defaultModel: config.model || 'gemini-1.5-flash',
+    });
   }
 
   protected getCurrentApiKey(): string | undefined {
@@ -55,4 +60,27 @@ export class GeminiRotatingClient extends RotatingApiClient<GoogleGenAI> {
       return model;
     });
   }
+
+  // OpenAI-compatible createChatCompletion method for unified interface
+  async createChatCompletion(
+    params: OpenAIChatCompletionParams, 
+    options?: { signal?: AbortSignal; timeout?: number }
+  ): Promise<OpenAIChatCompletionResponse> {
+    // Handle request cancellation
+    if (options?.signal?.aborted) {
+      throw new Error('Request was aborted');
+    }
+    
+    return this.executeWithRetry(async (client) => {
+      // Convert OpenAI format to Gemini format using converter
+      const geminiRequest = this.converter.convertRequest(params);
+      
+      // Call Gemini API
+      const geminiResponse = await client.models.generateContent(geminiRequest);
+      
+      // Convert Gemini response back to OpenAI format using converter
+      return this.converter.convertResponse(geminiResponse, params.model);
+    });
+  }
+
 }
