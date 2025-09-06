@@ -26,6 +26,14 @@
 
 ## 🚀 **What Can AionUi Do?**
 
+### 🤖 **Multi-Agent Mode**
+
+_Seamlessly integrate multiple terminal AI agents - Gemini CLI, Claude Code, Qwen Code and more_
+
+<p align="center">
+  <img src="./resources/multi-agent.gif" alt="Multi-Agent Mode Demo" width="800">
+</p>
+
 ### 🎨 **AI Image Generation & Editing**
 
 _Intelligent image generation, editing, and recognition powered by Gemini 2.5 Flash Image Preview - the most advanced image model, with support for other leading AI image models_
@@ -34,14 +42,14 @@ _Intelligent image generation, editing, and recognition powered by Gemini 2.5 Fl
   <img src="./resources/Image_Generation.gif" alt="AI Image Generation Demo" width="800">
 </p>
 
-> 💡 **Need help setting up free image generation?** [Follow the tutorial to configure free image generation models](https://github.com/iOfficeAI/AionUi/wiki/OpenRouter-Setup-and-Image-Generation) - Complete step-by-step guide for OpenRouter setup and free Gemini 2.5 Flash Image Preview configuration.
+> 💡 **Need help setting up free image generation?** [Follow the tutorial to configure image generation models](https://github.com/iOfficeAI/AionUi/wiki/OpenRouter-Setup-and-Image-Generation) - Complete step-by-step guide for OpenRouter setup and free Gemini 2.5 Flash Image Preview configuration.
 
 ### 📁 **Organizing Your Files**
 
 _Batch renaming, auto organization, smart classification, file merging_
 
 <p align="center">
-  <img src="./resources/sort_out_folder.gif" alt="File Management Demo" width="800">
+  <img src="https://github.com/iOfficeAI/AionUi/wiki/assets/gifs/file-management/file-organization.gif" alt="File Management Demo" width="800">
 </p>
 
 ### 📊 **Make Excel Smarter**
@@ -78,6 +86,8 @@ Want to explore more features? Keep reading to discover what else AionUi can hel
   - [💬 Better Chat Experience](#-better-chat-experience)
   - [🗂️ File Management Made Simple](#-file-management-made-simple)
   - [⚡ Development Efficiency Boost](#-development-efficiency-boost)
+  - [🤖 Multi-Agent Integration](#-multi-agent-integration)
+  - [🔄 Multi-API Key Rotation Service](#-multi-api-key-rotation-service)
   - [🎨 AI Image Generation & Editing](#-ai-image-generation--editing)
   - [🔧 Settings Are Simple](#-settings-are-simple)
 - [🚀 Quick Start](#-quick-start)
@@ -136,6 +146,22 @@ AionUi provides a modern interface for users who need better workflow efficiency
 - **Code Rendering** - Code blocks display more beautifully, format clearer
 - **Tool Scheduling** - Automatically select most suitable tools, no manual selection needed
 
+### 🤖 **Multi-Agent Integration**
+
+- **Multi-Terminal Agent Support** - Seamlessly integrate with various terminal AI agents (Gemini CLI, Claude Code, Qwen Code, etc.)
+- **Dynamic CLI Detection** - Automatic backend discovery and CLI path detection
+- **Secure Authentication** - OAuth support and secure authentication flows
+- **Real-time Monitoring** - Live connection status and backend health monitoring
+- **Unified Interface** - All terminal AI agents accessible through the same chat interface
+
+### 🔄 **Multi-API Key Rotation Service**
+
+- **Multi-Key Rotation** - Automatic rotation of multiple API keys for enhanced reliability
+- **Intelligent Error Recovery** - Time-based blacklisting (90s) with automatic retry mechanisms
+- **High Availability** - Seamless failover between API keys to prevent service interruptions
+- **Rate Limit Handling** - Smart retry logic that respects API rate limits and quotas
+- **Performance Optimization** - Reduced downtime and improved API call success rates
+
 ### 🎨 **AI Image Generation & Editing**
 
 - **Smart Image Generation** - Powered by Gemini 2.5 Flash Image Preview, the most advanced image model
@@ -167,7 +193,12 @@ Ready to try AionUi? Download the latest version for your platform from our rele
 
 - Node.js >= 16.0.0
 - npm >= 8.0.0
-- Google Gemini API Key ([Get your API key here](https://aistudio.google.com/app/apikey))
+- At least one AI service API key or authentication configuration:
+  - **Gemini**: [Get Gemini API key](https://aistudio.google.com/app/apikey)
+  - **OpenAI**: [Get OpenAI API key](https://platform.openai.com/api-keys)
+  - **ModelScope**: [Get ModelScope API key](https://modelscope.cn/my/myaccesstoken)
+  - **OpenRouter**: [Get OpenRouter API key](https://openrouter.ai/keys)
+  - **Terminal AI Agents**: Gemini CLI, Claude Code, Qwen Code, etc.
 
 ### 🔧 Installation
 
@@ -184,10 +215,14 @@ Ready to try AionUi? Download the latest version for your platform from our rele
    npm install
    ```
 
-3. **Configure API Key**
+3. **Configure Authentication**
    - Open the application and go to Settings
-   - Enter your Google Gemini API Key
-   - Supports multiple authentication methods: Gemini API Key, Vertex AI, Personal Authentication
+   - Configure at least one AI service authentication:
+     - **Gemini**: API Key, Vertex AI, or OAuth Personal Authentication
+     - **OpenAI**: API Key or custom endpoints
+     - **ModelScope**: API Key
+     - **OpenRouter**: API Key
+     - **Terminal AI Agents**: Install and configure Claude Code, Qwen Code, etc.
 
 4. **Start the application**
    ```bash
@@ -254,10 +289,13 @@ AionUI/
   - **OpenAI**: Creative writing, content creation
   - **ModelScope**: Chinese understanding, localization tasks
   - **OpenRouter**: Cost optimization, model comparison
+- **Multi-Terminal Agent Workflows**: Leverage different terminal AI agents for specialized tasks
+  - **Unified Integration**: Seamless integration with Gemini CLI, Claude Code, Qwen Code, and other terminal AI agents
+  - **High Availability**: Automatic failover between multiple API keys for uninterrupted service
 
 ## 🔧 Configuration
 
-### 🔑 API Configuration
+### 🔑 API Key & Authentication Configuration
 
 Supports multiple authentication methods and platforms:
 
@@ -271,6 +309,21 @@ Supports multiple authentication methods and platforms:
    - **ModelScope**: Support Alibaba Cloud ModelScope platform
    - **OpenRouter**: Support OpenRouter aggregation platform
    - **Custom Platform**: Support custom API endpoints and models
+
+3. **Multi-API Key Configuration**:
+   - **Key Rotation**: Configure multiple API keys for automatic rotation
+   - **Error Recovery**: 90-second blacklisting with automatic retry
+   - **High Availability**: Seamless failover between available keys
+   - **Rate Limit Handling**: Smart retry logic for optimal performance
+
+### 🤖 Multi-Terminal Agent Configuration
+
+Integration with external terminal AI agents:
+
+- **Gemini CLI**: Built-in support for Gemini CLI (AionUi's core)
+- **Claude Code**: Support for Claude Code terminal agent
+- **Qwen Code**: Support for Qwen Code terminal agent
+- **Dynamic Detection**: Automatic discovery of available terminal AI agents
 
 ### 🌐 Proxy Configuration
 
