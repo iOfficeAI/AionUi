@@ -6,7 +6,7 @@
 
 import type { TProviderWithModel } from '@/common/storage';
 import { Type } from '@google/genai';
-import type { Config, ToolResult, ToolInvocation, ToolLocation, ToolCallConfirmationDetails } from '@office-ai/aioncli-core';
+import type { Config, ToolResult, ToolInvocation, ToolLocation, ToolCallConfirmationDetails, ToolResultDisplay } from '@office-ai/aioncli-core';
 import { BaseDeclarativeTool, BaseToolInvocation, Kind, getErrorMessage, ToolErrorType } from '@office-ai/aioncli-core';
 import * as fs from 'fs';
 import { jsonrepair } from 'jsonrepair';
@@ -14,6 +14,7 @@ import * as path from 'path';
 import type OpenAI from 'openai';
 import { ClientFactory, type RotatingClient } from '@/common/ClientFactory';
 import type { UnifiedChatCompletionResponse } from '@/common/RotatingApiClient';
+import { IMAGE_EXTENSIONS, MIME_TYPE_MAP, MIME_TO_EXT_MAP, DEFAULT_IMAGE_EXTENSION } from '@/common/constants/mediaTypes';
 
 /**
  * Safely parse JSON string with jsonrepair fallback
@@ -38,6 +39,22 @@ function safeJsonParse<T = unknown>(jsonString: string, fallbackValue: T): T {
 
 const API_TIMEOUT_MS = 120000; // 2 minutes for image generation API calls
 
+// Define specific types for image generation
+interface ImageGenerationResult {
+  img_url: string;
+  relative_path: string;
+}
+
+interface ImageContent {
+  type: 'image_url';
+  image_url: {
+    url: string;
+    detail: 'auto' | 'low' | 'high';
+  };
+}
+
+type ImageExtension = (typeof IMAGE_EXTENSIONS)[number];
+
 export interface ImageGenerationToolParams {
   /**
    * The text prompt in English describing what to generate or how to modify the image
@@ -47,15 +64,14 @@ export interface ImageGenerationToolParams {
   /**
    * Optional: Array of paths to existing local image files or HTTP/HTTPS URLs to edit/modify
    * Examples: ["test.jpg", "https://example.com/img.png", "abc.png"]
-   * For single image, use array format: ["test.jpg"]
+   * Note: May be received as a JSON string from the model
    */
-  image_uris?: string[];
+  image_uris?: string[] | string;
 }
 
 function isImageFile(filePath: string): boolean {
-  const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp', '.tiff', '.svg'];
   const ext = path.extname(filePath).toLowerCase();
-  return imageExtensions.includes(ext);
+  return IMAGE_EXTENSIONS.includes(ext as ImageExtension);
 }
 
 function isHttpUrl(str: string): boolean {
@@ -64,7 +80,7 @@ function isHttpUrl(str: string): boolean {
 
 async function fileToBase64(filePath: string): Promise<string> {
   try {
-    const fileBuffer = fs.readFileSync(filePath);
+    const fileBuffer = await fs.promises.readFile(filePath);
     return fileBuffer.toString('base64');
   } catch (error) {
     throw new Error(`Failed to read image file: ${error instanceof Error ? error.message : String(error)}`);
@@ -73,38 +89,16 @@ async function fileToBase64(filePath: string): Promise<string> {
 
 function getImageMimeType(filePath: string): string {
   const ext = path.extname(filePath).toLowerCase();
-  const mimeMap: Record<string, string> = {
-    '.jpg': 'image/jpeg',
-    '.jpeg': 'image/jpeg',
-    '.png': 'image/png',
-    '.gif': 'image/gif',
-    '.webp': 'image/webp',
-    '.bmp': 'image/bmp',
-    '.tiff': 'image/tiff',
-    '.svg': 'image/svg+xml',
-  };
-  return mimeMap[ext] || 'image/png';
+  return MIME_TYPE_MAP[ext] || MIME_TYPE_MAP[DEFAULT_IMAGE_EXTENSION];
 }
 
 function getFileExtensionFromDataUrl(dataUrl: string): string {
   const mimeTypeMatch = dataUrl.match(/^data:image\/([^;]+);base64,/);
   if (mimeTypeMatch && mimeTypeMatch[1]) {
     const mimeType = mimeTypeMatch[1].toLowerCase();
-
-    const mimeToExtMap: Record<string, string> = {
-      jpeg: '.jpg',
-      jpg: '.jpg',
-      png: '.png',
-      gif: '.gif',
-      webp: '.webp',
-      bmp: '.bmp',
-      tiff: '.tiff',
-      'svg+xml': '.svg',
-    };
-
-    return mimeToExtMap[mimeType] || `.${mimeType}`;
+    return MIME_TO_EXT_MAP[mimeType] || DEFAULT_IMAGE_EXTENSION;
   }
-  return '.png';
+  return DEFAULT_IMAGE_EXTENSION;
 }
 
 async function saveGeneratedImage(base64Data: string, config: Config): Promise<string> {
@@ -118,7 +112,7 @@ async function saveGeneratedImage(base64Data: string, config: Config): Promise<s
   const imageBuffer = Buffer.from(base64WithoutPrefix, 'base64');
 
   try {
-    fs.writeFileSync(filePath, imageBuffer);
+    await fs.promises.writeFile(filePath, imageBuffer);
     return filePath;
   } catch (error) {
     throw new Error(`Failed to save image: ${error instanceof Error ? error.message : String(error)}`);
@@ -194,9 +188,11 @@ IMPORTANT: When user provides multiple images (like @img1.jpg @img2.png), ALWAYS
     }
 
     // Validate image_uris if provided
+    console.debug('[ImageGen] Validating image_uris:', JSON.stringify(params.image_uris));
     if (params.image_uris) {
       let imageUris: string[];
 
+      // Handle JSON string format from model
       if (typeof params.image_uris === 'string') {
         const parsed = safeJsonParse<string[]>(params.image_uris, null);
         imageUris = Array.isArray(parsed) ? parsed : [params.image_uris];
@@ -229,7 +225,9 @@ IMPORTANT: When user provides multiple images (like @img1.jpg @img2.png), ALWAYS
             actualImagePath = path.resolve(workspaceDir, imageUri);
           }
 
-          if (!fs.existsSync(actualImagePath)) {
+          try {
+            fs.accessSync(actualImagePath);
+          } catch {
             return `Image file does not exist: ${actualImagePath}`;
           }
 
@@ -269,16 +267,16 @@ class ImageGenerationInvocation extends BaseToolInvocation<ImageGenerationToolPa
     });
   }
 
-  private parseImageUris(imageUris: string | string[]): string[] {
-    if (typeof imageUris === 'string') {
-      const parsed = safeJsonParse<string[]>(imageUris, null);
-      return Array.isArray(parsed) ? parsed : [imageUris];
-    }
-    return Array.isArray(imageUris) ? imageUris : [];
-  }
-
   private getImageUris(): string[] {
-    return this.params.image_uris ? this.parseImageUris(this.params.image_uris) : [];
+    if (!this.params.image_uris) return [];
+
+    // Handle JSON string format from model
+    if (typeof this.params.image_uris === 'string') {
+      const parsed = safeJsonParse<string[]>(this.params.image_uris, null);
+      return Array.isArray(parsed) ? parsed : [this.params.image_uris];
+    }
+
+    return Array.isArray(this.params.image_uris) ? this.params.image_uris : [];
   }
 
   getDescription(): string {
@@ -303,7 +301,8 @@ class ImageGenerationInvocation extends BaseToolInvocation<ImageGenerationToolPa
     return false;
   }
 
-  private async processImageUri(imageUri: string): Promise<{ type: 'image_url'; image_url: { url: string; detail: 'auto' | 'low' | 'high' } } | null> {
+  private async processImageUri(imageUri: string): Promise<ImageContent | null> {
+    console.debug('[ImageGen] Processing image URI:', JSON.stringify(imageUri));
     if (isHttpUrl(imageUri)) {
       return {
         type: 'image_url',
@@ -330,25 +329,25 @@ class ImageGenerationInvocation extends BaseToolInvocation<ImageGenerationToolPa
       }
 
       // 检查文件是否存在且为图片文件
-      if (fs.existsSync(fullPath) && isImageFile(fullPath)) {
-        const base64Data = await fileToBase64(fullPath);
-        const mimeType = getImageMimeType(fullPath);
-        return {
-          type: 'image_url',
-          image_url: {
-            url: `data:${mimeType};base64,${base64Data}`,
-            detail: 'auto',
-          },
-        };
-      } else {
-        // 如果拼接工作目录后还是找不到，提供详细的错误信息
+      try {
+        await fs.promises.access(fullPath);
+        if (isImageFile(fullPath)) {
+          const base64Data = await fileToBase64(fullPath);
+          const mimeType = getImageMimeType(fullPath);
+          return {
+            type: 'image_url',
+            image_url: {
+              url: `data:${mimeType};base64,${base64Data}`,
+              detail: 'auto',
+            },
+          };
+        }
+      } catch {
+        // 文件不存在，提供详细的错误信息
         const workspaceDir = this.config.getWorkingDir();
         const possiblePaths = [imageUri, path.join(workspaceDir, imageUri)].filter((p, i, arr) => arr.indexOf(p) === i); // 去重
 
-        throw new Error(`Image file not found. Searched paths:
-${possiblePaths.map((p) => `- ${p}`).join('\n')}
-
-Please ensure the image file exists and has a valid image extension (.jpg, .png, .gif, .webp, etc.)`);
+        throw new Error(`Image file not found. Searched paths:\n${possiblePaths.map((p) => `- ${p}`).join('\n')}\n\n` + 'Please ensure the image file exists and has a valid image extension (.jpg, .png, .gif, .webp, etc.)');
       }
     }
   }
@@ -388,29 +387,40 @@ Please ensure the image file exists and has a valid image extension (.jpg, .png,
         updateOutput?.(`Processing ${imageUris.length} image(s)...`);
 
         // Process images in parallel for better performance
-        const imageProcessingPromises = imageUris.map(async (uri, _index) => {
-          try {
-            return await this.processImageUri(uri);
-          } catch (error) {
-            console.warn(`[ImageGen] Failed to process image (${uri}):`, error);
-            return null;
+        const imageResults = await Promise.allSettled(imageUris.map((uri) => this.processImageUri(uri)));
+
+        const successful: ImageContent[] = [];
+        const errors: string[] = [];
+
+        imageResults.forEach((result, index) => {
+          if (result.status === 'fulfilled' && result.value) {
+            successful.push(result.value);
+          } else {
+            const error = result.status === 'rejected' ? result.reason : 'Unknown error';
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            errors.push(`Image ${index + 1} (${imageUris[index]}): ${errorMessage}`);
           }
         });
-
-        const imageContents = await Promise.all(imageProcessingPromises);
 
         // Add successfully processed images to content
-        imageContents.forEach((imageContent) => {
-          if (imageContent) {
-            contentParts.push(imageContent);
-          }
+        successful.forEach((imageContent) => {
+          contentParts.push(imageContent);
         });
 
-        const successfulImages = imageContents.filter((content) => content !== null).length;
-        if (successfulImages === 0) {
-          throw new Error(`Failed to process any of the ${imageUris.length} provided image(s)`);
-        } else if (successfulImages < imageUris.length) {
-          console.warn(`[ImageGen] Successfully processed ${successfulImages}/${imageUris.length} images`);
+        if (successful.length === 0) {
+          return {
+            llmContent: `Error: Failed to process any images. Errors:\n${errors.join('\n')}`,
+            returnDisplay: `Error: Failed to process images:\n${errors.join('\n')}`,
+            error: {
+              message: `Failed to process ${imageUris.length} images`,
+              type: ToolErrorType.EXECUTION_FAILED,
+            },
+          };
+        }
+
+        // If some images failed, show warning but continue
+        if (errors.length > 0) {
+          updateOutput?.(`Warning: ${errors.length}/${imageUris.length} images failed to process`);
         }
       }
 
@@ -494,7 +504,7 @@ Please ensure the image file exists and has a valid image extension (.jpg, .png,
           returnDisplay: {
             img_url: imagePath,
             relative_path: relativeImagePath,
-          } as any, // 图片返回格式，前端UI需要的特定结构
+          } as unknown as ToolResultDisplay,
         };
       }
 
@@ -520,6 +530,8 @@ Please ensure the image file exists and has a valid image extension (.jpg, .png,
       } else if (errorMessage.includes('timeout') || errorMessage.includes('timed out')) {
         errorType = ToolErrorType.EXECUTION_FAILED;
       } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+        errorType = ToolErrorType.EXECUTION_FAILED;
+      } else if (errorMessage.includes('not found') || errorMessage.includes('ENOENT')) {
         errorType = ToolErrorType.EXECUTION_FAILED;
       }
 
