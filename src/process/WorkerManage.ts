@@ -42,9 +42,6 @@ const buildConversation = (conversation: TChatConversation) => {
       const task = new AcpAgentManager({ ...conversation.extra, conversation_id: conversation.id });
       taskList.push({ id: conversation.id, task });
       return task;
-      // For ACP tasks, they are created directly in initBridge.ts
-      // We just need to add them to the taskList when they're passed here
-      return null; // ACP tasks are handled differently
     }
     default: {
       // Type assertion to help TypeScript understand that conversation has a type property
