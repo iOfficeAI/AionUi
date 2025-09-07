@@ -193,8 +193,36 @@ ipcBridge.acpConversation.sendMessage.provider(async ({ conversation_id, files, 
     loading_id: other.loading_id,
     files_count: files?.length || 0,
   });
-  const task = WorkerManage.getTaskById(conversation_id) as AcpAgentManager;
-  if (!task) return { success: false, msg: 'conversation not found' };
+  let task = WorkerManage.getTaskById(conversation_id) as AcpAgentManager;
+  if (!task) {
+    // 任务不存在，尝试重建ACP任务管理器
+    const conversation = await ProcessChat.get('chat.history').then((history) => {
+      return history?.find((item) => item.id === conversation_id);
+    });
+
+    if (!conversation) {
+      return { success: false, msg: 'conversation not found' };
+    }
+
+    if (conversation.type !== 'acp') {
+      return { success: false, msg: 'unsupported conversation type for ACP provider' };
+    }
+
+    // 重建ACP任务管理器
+    task = WorkerManage.buildConversation(conversation) as AcpAgentManager;
+    if (!task) {
+      return { success: false, msg: 'failed to rebuild ACP task manager' };
+    }
+
+    // 等待ACP连接建立完成，但不阻塞用户消息发送
+    try {
+      await task.bootstrap;
+      console.log('[ACP-BRIDGE] ACP connection established, ready to send user message');
+    } catch (error) {
+      console.error('[ACP-BRIDGE] Failed to establish ACP connection:', error);
+      return { success: false, msg: 'failed to establish ACP connection' };
+    }
+  }
   if (task.type !== 'acp') return { success: false, msg: 'unsupported task type for ACP provider' };
   await copyFilesToDirectory(task.workspace, files);
 
