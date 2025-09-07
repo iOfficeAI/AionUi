@@ -406,6 +406,7 @@ export class AcpAgent extends EventEmitter {
       msg_id: this.loadingMessageId, // Use loading ID to find and replace the loading message
       type: 'content',
       data: text,
+      createdAt: Date.now(),
       isLoadingReplacement: true, // Special flag to indicate this should replace loading content
       assistantMsgId: this.currentAssistantMsgId, // Pass assistant ID for UI to update message properly
     };
