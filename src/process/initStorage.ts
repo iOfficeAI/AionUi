@@ -200,7 +200,6 @@ const JsonFileBuilder = <S extends Record<string, any>>(path: string) => {
       return setJson(data);
     },
     async get<K extends keyof S>(key: K): Promise<S[K]> {
-      console.log('------file.get-->>>>>>>>>', key, file);
       const data = await toJson();
       return Promise.resolve(data[key]);
     },
