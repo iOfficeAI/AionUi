@@ -4,10 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
-import { Button, Card, Typography, Radio, Message } from '@arco-design/web-react';
 import type { IMessageAcpPermission } from '@/common/chatLib';
 import { acpConversation } from '@/common/ipcBridge';
+import { Button, Card, Message, Radio, Typography } from '@arco-design/web-react';
+import React, { useState } from 'react';
 
 const { Text } = Typography;
 
@@ -33,60 +33,59 @@ const getKindDescription = (kind?: string): string => {
 
 const MessageAcpPermission: React.FC<MessageAcpPermissionProps> = ({ message }) => {
   const { options = [], requestId, toolCall } = message.content || {};
-  
-  
+
   // 根据 toolCall 信息智能生成标题和描述
   const getToolInfo = () => {
     if (!toolCall?.rawInput) {
       return {
         title: 'Permission Request',
         description: 'The agent is requesting permission for an action.',
-        icon: '🔐'
+        icon: '🔐',
       };
     }
-    
+
     const { command, description: toolDesc } = toolCall.rawInput;
-    
+
     // 根据命令类型智能判断图标和描述
     if (command?.includes('open')) {
       return {
         title: toolDesc || 'File Access Request',
         description: `Open file: ${command}`,
-        icon: '📂'
+        icon: '📂',
       };
     } else if (command?.includes('read')) {
       return {
         title: toolDesc || 'Read File Permission',
         description: `Read operation: ${command}`,
-        icon: '📖'
+        icon: '📖',
       };
     } else if (command?.includes('write') || command?.includes('save')) {
       return {
         title: toolDesc || 'Write File Permission',
         description: `Write operation: ${command}`,
-        icon: '✏️'
+        icon: '✏️',
       };
     } else if (command?.includes('rm') || command?.includes('delete')) {
       return {
         title: toolDesc || 'Delete Permission',
         description: `Delete operation: ${command}`,
-        icon: '🗑️'
+        icon: '🗑️',
       };
     } else if (command) {
       return {
         title: toolDesc || 'Execute Command',
         description: `Command: ${command}`,
-        icon: '⚡'
+        icon: '⚡',
       };
     }
-    
+
     return {
       title: toolDesc || 'Permission Request',
       description: 'The agent is requesting permission for an action.',
-      icon: '🔐'
+      icon: '🔐',
     };
   };
-  
+
   const { title, description, icon } = getToolInfo();
 
   const [selectedOption, setSelectedOption] = useState(options[0]?.optionId || '');
@@ -104,7 +103,7 @@ const MessageAcpPermission: React.FC<MessageAcpPermissionProps> = ({ message }) 
         conversation_id: message.conversation_id,
         callId: requestId,
       };
-      
+
       const result = await acpConversation.confirmMessage.invoke(invokeData);
 
       if (result.success) {
@@ -153,32 +152,18 @@ const MessageAcpPermission: React.FC<MessageAcpPermissionProps> = ({ message }) 
 
         <div>
           <Text className='block mb-2 text-sm font-medium'>Choose an option:</Text>
-          <Radio.Group 
-            value={selectedOption} 
-            onChange={setSelectedOption} 
-            disabled={hasResponded} 
-            direction='vertical'
-            className='w-full'
-          >
+          <Radio.Group value={selectedOption} onChange={setSelectedOption} disabled={hasResponded} direction='vertical' className='w-full'>
             {options && options.length > 0 ? (
               options.map((option, index) => {
                 // 优先使用 ACP 官方协议标准的 name 字段，向后兼容 title
                 const optionName = option.name || option.title || `Option ${index + 1}`;
                 const optionDescription = option.description || getKindDescription(option.kind);
-                
+
                 return (
-                  <Radio 
-                    key={option.optionId} 
-                    value={option.optionId} 
-                    style={{ marginBottom: '12px', display: 'flex', alignItems: 'flex-start' }}
-                  >
+                  <Radio key={option.optionId} value={option.optionId} style={{ marginBottom: '12px', display: 'flex', alignItems: 'flex-start' }}>
                     <div style={{ marginLeft: '4px' }}>
                       <div style={{ fontWeight: 500 }}>{optionName}</div>
-                      {optionDescription && (
-                        <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>
-                          {optionDescription}
-                        </div>
-                      )}
+                      {optionDescription && <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>{optionDescription}</div>}
                     </div>
                   </Radio>
                 );

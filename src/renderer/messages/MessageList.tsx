@@ -9,12 +9,12 @@ import classNames from 'classnames';
 import React, { useEffect, useRef } from 'react';
 import HOC from '../utils/HOC';
 import { useMessageList } from './hooks';
+import MessageAcpPermission from './MessageAcpPermission';
+import MessageAcpStatus from './MessageAcpStatus';
 import MessageTips from './MessageTips';
 import MessageToolCall from './MessageToolCall';
 import MessageToolGroup from './MessageToolGroup';
 import MessageText from './MessagetText';
-import MessageAcpStatus from './MessageAcpStatus';
-import MessageAcpPermission from './MessageAcpPermission';
 
 const MessageItem: React.FC<{ message: TMessage }> = HOC((props) => {
   const { message } = props as { message: TMessage };

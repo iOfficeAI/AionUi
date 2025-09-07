@@ -97,7 +97,7 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
 export const ACP_ENABLED_BACKENDS: Record<string, AcpBackendConfig> = Object.fromEntries(Object.entries(ACP_BACKENDS_ALL).filter(([_, config]) => config.enabled));
 
 // 当前启用的后端类型
-export type AcpBackend = keyof typeof ACP_ENABLED_BACKENDS;
+export type AcpBackend = keyof typeof ACP_BACKENDS_ALL;
 export type AcpBackendId = AcpBackend; // 向后兼容
 
 // 工具函数

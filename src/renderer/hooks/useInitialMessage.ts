@@ -3,9 +3,8 @@
  * This is a more elegant solution that could replace the current implementation
  */
 
-import { useState, useEffect, useRef, useCallback } from 'react';
 import { uuid } from '@/common/utils';
-import type { TMessage } from '@/common/chatLib';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
 type InitialMessageState = 'idle' | 'waiting_auth' | 'sending' | 'sent' | 'failed';
 

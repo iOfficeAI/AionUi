@@ -1,6 +1,5 @@
 import { ipcBridge } from '@/common';
 import type { AcpBackend } from '@/common/acpTypes';
-import { isRetryableError } from '@/common/acpTypes';
 import { transformMessage, type TMessage } from '@/common/chatLib';
 // import type { TModelWithConversation } from '@/common/storage';
 import { uuid } from '@/common/utils';
@@ -230,7 +229,6 @@ const AcpSendBox: React.FC<{
         // Already sending, skip duplicate
         return;
       }
-
       const storageKey = `acp_initial_message_${conversation_id}`;
       const storedMessage = sessionStorage.getItem(storageKey);
 

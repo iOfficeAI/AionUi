@@ -11,6 +11,7 @@ export const mainConfig: Configuration = {
     index: './src/index.ts',
     worker: './src/worker/index.ts',
     gemini: './src/worker/gemini.ts',
+    acp: './src/worker/acp.ts',
   },
   output: {
     filename: '[name].js',

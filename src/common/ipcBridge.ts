@@ -95,14 +95,14 @@ interface IConfirmGeminiMessageParams {
   callId: string;
 }
 
-interface IConfirmAcpMessageParams {
+export interface IConfirmAcpMessageParams {
   confirmKey: string;
   msg_id: string;
   conversation_id: string;
   callId: string;
 }
 
-interface ICreateConversationParams {
+export interface ICreateConversationParams {
   type: 'gemini' | 'acp';
   name?: string;
   model: TProviderWithModel;
