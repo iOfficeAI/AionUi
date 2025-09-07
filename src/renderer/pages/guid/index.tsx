@@ -213,16 +213,16 @@ const Guid: React.FC = () => {
           msg_id: uuid(),
         });
 
-        // // For ACP, we need to wait for the connection to be ready before sending the message
-        // // Store the initial message and let the conversation page handle it when ready
-        // // Navigate immediately and let the conversation page handle the initial message
-        // const initialMessage = {
-        //   input,
-        //   files: files.length > 0 ? files : undefined,
-        // };
+        // For ACP, we need to wait for the connection to be ready before sending the message
+        // Store the initial message and let the conversation page handle it when ready
+        // Navigate immediately and let the conversation page handle the initial message
+        const initialMessage = {
+          input,
+          files: files.length > 0 ? files : undefined,
+        };
 
-        // // Store initial message in sessionStorage to be picked up by the conversation page
-        // sessionStorage.setItem(`acp_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
+        // Store initial message in sessionStorage to be picked up by the conversation page
+        sessionStorage.setItem(`acp_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
 
         navigate(`/conversation/${conversation.id}`);
       } catch (error: any) {
