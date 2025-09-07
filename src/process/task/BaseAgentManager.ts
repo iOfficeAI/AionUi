@@ -7,12 +7,12 @@
 import { ForkTask } from '@/worker/fork/ForkTask';
 import path from 'path';
 
-type AgentType = 'gemini';
+type AgentType = 'gemini' | 'acp';
 
 /**
  * @description agent任务基础类
  * */
-class BaseAgentTask<Data> extends ForkTask<{
+class BaseAgentManager<Data> extends ForkTask<{
   type: AgentType;
   data: Data;
 }> {
@@ -48,4 +48,4 @@ class BaseAgentTask<Data> extends ForkTask<{
   }
 }
 
-export default BaseAgentTask;
+export default BaseAgentManager;

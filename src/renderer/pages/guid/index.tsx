@@ -143,7 +143,7 @@ const Guid: React.FC = () => {
 
   const handleSend = async () => {
     // 默认情况使用 Gemini（参考 main 分支的纯粹逻辑）
-    if (!selectedAgent) {
+    if (!selectedAgent || selectedAgent === 'gemini') {
       if (!currentModel) return;
       try {
         const conversation = await ipcBridge.conversation.create.invoke({
@@ -170,7 +170,6 @@ const Guid: React.FC = () => {
           conversation_id: conversation.id,
           msg_id: uuid(),
         });
-
         navigate(`/conversation/${conversation.id}`);
       } catch (error: any) {
         console.error('Failed to create or send Gemini message:', error);
@@ -178,45 +177,6 @@ const Guid: React.FC = () => {
         throw error; // Re-throw to prevent input clearing
       }
       return;
-    }
-
-    // 选择了 agent 的情况
-    if (selectedAgent === 'gemini') {
-      // 使用内置 Gemini
-      if (!currentModel) return;
-
-      try {
-        const conversation = await ipcBridge.conversation.create.invoke({
-          type: 'gemini',
-          name: input,
-          model: currentModel,
-          extra: {
-            defaultFiles: files,
-            workspace: dir,
-            webSearchEngine: isGoogleAuth ? 'google' : 'default',
-          },
-        });
-
-        await ipcBridge.geminiConversation.sendMessage.invoke({
-          input:
-            files.length > 0
-              ? files
-                  .map((v) => v.split(/[\\/]/).pop() || '')
-                  .map((v) => `@${v}`)
-                  .join(' ') +
-                ' ' +
-                input
-              : input,
-          conversation_id: conversation.id,
-          msg_id: uuid(),
-        });
-
-        navigate(`/conversation/${conversation.id}`);
-      } catch (error: any) {
-        console.error('Failed to create or send Gemini message:', error);
-        alert(`Failed to create Gemini conversation: ${error.message || error}`);
-        throw error; // Re-throw to prevent input clearing
-      }
     } else {
       // ACP conversation type
       const agentInfo = availableAgents?.find((a) => a.backend === selectedAgent);
@@ -226,22 +186,7 @@ const Guid: React.FC = () => {
       }
 
       // 如果没有工作目录，使用默认目录（参考 AcpSetup 逻辑）
-      let workingDir = dir;
-      if (!workingDir) {
-        try {
-          // 首先尝试从系统信息获取工作目录
-          const systemInfo = await ipcBridge.application.systemInfo.invoke();
-          if (systemInfo && systemInfo.workDir) {
-            workingDir = systemInfo.workDir;
-          } else {
-            // 如果系统信息中没有，从 gemini.config 获取
-            const geminiConfig = await ConfigStorage.get('gemini.config');
-            workingDir = (geminiConfig as any)?.workDir || '';
-          }
-        } catch {
-          workingDir = '';
-        }
-      }
+      const workingDir = dir;
 
       try {
         const conversation = await ipcBridge.conversation.create.invoke({
@@ -261,16 +206,23 @@ const Guid: React.FC = () => {
           return;
         }
 
-        // For ACP, we need to wait for the connection to be ready before sending the message
-        // Store the initial message and let the conversation page handle it when ready
-        // Navigate immediately and let the conversation page handle the initial message
-        const initialMessage = {
+        ipcBridge.acpConversation.sendMessage.invoke({
           input,
           files: files.length > 0 ? files : undefined,
-        };
+          conversation_id: conversation.id,
+          msg_id: uuid(),
+        });
 
-        // Store initial message in sessionStorage to be picked up by the conversation page
-        sessionStorage.setItem(`acp_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
+        // // For ACP, we need to wait for the connection to be ready before sending the message
+        // // Store the initial message and let the conversation page handle it when ready
+        // // Navigate immediately and let the conversation page handle the initial message
+        // const initialMessage = {
+        //   input,
+        //   files: files.length > 0 ? files : undefined,
+        // };
+
+        // // Store initial message in sessionStorage to be picked up by the conversation page
+        // sessionStorage.setItem(`acp_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
 
         navigate(`/conversation/${conversation.id}`);
       } catch (error: any) {

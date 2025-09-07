@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { TMessage, IMessageText, IMessageToolGroup } from '@/common/chatLib';
-import type { AcpSessionUpdate, AcpBackend } from '../process/AcpConnection';
+import type { IMessageText, IMessageToolGroup, TMessage } from '@/common/chatLib';
 import { uuid } from '@/common/utils';
+import type { AcpBackend, AcpSessionUpdate } from '../../process/AcpConnection';
 
 interface AcpMessage {
   type: 'assistant' | 'user' | 'tool_call' | 'tool_result' | 'thought';

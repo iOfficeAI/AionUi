@@ -113,6 +113,7 @@ const FileBuilder = (file: string) => {
     });
   };
   return {
+    path: file,
     write(data: string) {
       return pushStack(() => WriteFile(file, data));
     },
@@ -199,6 +200,7 @@ const JsonFileBuilder = <S extends Record<string, any>>(path: string) => {
       return setJson(data);
     },
     async get<K extends keyof S>(key: K): Promise<S[K]> {
+      console.log('------file.get-->>>>>>>>>', key, file);
       const data = await toJson();
       return Promise.resolve(data[key]);
     },
@@ -394,14 +396,6 @@ const buildConversationFromMessages = (messages: any[], conversationId: string, 
       type: 'acp' as const,
       createTime,
       modifyTime,
-      model: {
-        id: `acp-model`,
-        platform: 'acp' as const,
-        name: 'ACP',
-        baseUrl: '',
-        apiKey: '',
-        useModel: acpBackend, // 使用实际的backend
-      },
       extra: {
         workspace: workspace || '', // 使用实际的workspace
         backend: acpBackend as any,

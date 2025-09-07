@@ -5,13 +5,14 @@
  */
 
 import type { TChatConversation } from '@/common/storage';
-import type AgentBaseTask from './task/BaseAgentTask';
+import AcpAgentManager from './task/AcpAgentManager';
+// import type { AcpAgentTask } from './task/AcpAgentTask';
+import type AgentBaseTask from './task/BaseAgentManager';
 import { GeminiAgentManager } from './task/GeminiAgentManager';
-import type { AcpAgentTask } from './task/AcpAgentTask';
 
 const taskList: {
   id: string;
-  task: AgentBaseTask<any> | AcpAgentTask;
+  task: AgentBaseTask<any>;
 }[] = [];
 
 const getTaskById = (id: string) => {
@@ -38,6 +39,9 @@ const buildConversation = (conversation: TChatConversation) => {
       return task;
     }
     case 'acp': {
+      const task = new AcpAgentManager({ ...conversation.extra, conversation_id: conversation.id });
+      taskList.push({ id: conversation.id, task });
+      return task;
       // For ACP tasks, they are created directly in initBridge.ts
       // We just need to add them to the taskList when they're passed here
       return null; // ACP tasks are handled differently
@@ -67,7 +71,7 @@ const clear = () => {
   taskList.length = 0;
 };
 
-const addTask = (id: string, task: AgentBaseTask<any> | AcpAgentTask) => {
+const addTask = (id: string, task: AgentBaseTask<{}>) => {
   const existing = taskList.find((item) => item.id === id);
   if (existing) {
     existing.task = task;
@@ -77,7 +81,7 @@ const addTask = (id: string, task: AgentBaseTask<any> | AcpAgentTask) => {
 };
 
 const listTasks = () => {
-  return taskList.map((t) => ({ id: t.id, type: (t.task as any).type }));
+  return taskList.map((t) => ({ id: t.id, type: t.task.type }));
 };
 
 const WorkerManage = {

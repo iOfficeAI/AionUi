@@ -4,43 +4,36 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ipcBridge } from '@/common';
+import { AcpAdapter } from '@/agent/acp/AcpAdapter';
+import { AcpErrorType, createAcpError, type AcpResult } from '@/common/acpTypes';
 import type { TMessage } from '@/common/chatLib';
-import { transformMessage } from '@/common/chatLib';
+import type { IResponseMessage } from '@/common/ipcBridge';
 import type { TProviderWithModel } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import { EventEmitter } from 'events';
-import { AcpAdapter } from '../../adapter/AcpAdapter';
-import { AcpConfigManager } from '../AcpConfig';
-import type { AcpBackend, AcpPermissionRequest, AcpSessionUpdate } from '../AcpConnection';
-import { AcpConnection } from '../AcpConnection';
-import { addMessage, addOrUpdateMessage, updateMessage } from '../message';
-import { ProcessChat } from '../initStorage';
-import { AcpErrorType, createAcpError, type AcpResult } from '@/common/acpTypes';
+import type { AcpBackend, AcpPermissionRequest, AcpSessionUpdate } from './AcpConnection';
+import { AcpConnection } from './AcpConnection';
 
 export interface AcpAgentConfig {
   id: string;
-  name: string;
   backend: AcpBackend;
   cliPath?: string;
   workingDir: string;
   // Optional fields for restoring existing conversations
-  createTime?: number;
-  modifyTime?: number;
   extra?: {
+    // extra not use
     workspace?: string;
     backend: AcpBackend;
     cliPath?: string;
     customWorkspace?: boolean;
   };
-  model?: TProviderWithModel;
+  onStreamEvent(data: IResponseMessage): void;
+  onReplaceLoadingMessage(data: { id: string; msg_id: string; text: string }): void;
 }
 
 // ACP agent任务类
-export class AcpAgentTask extends EventEmitter {
-  public id: string;
-  public name: string;
-  public type = 'acp' as const;
+export class AcpAgent extends EventEmitter {
+  id: string;
   public backend: AcpBackend;
   public workspace: string;
   public status: 'pending' | 'running' | 'finished' = 'pending';
@@ -54,7 +47,7 @@ export class AcpAgentTask extends EventEmitter {
     cliPath?: string;
     customWorkspace?: boolean;
   };
-  public model: TProviderWithModel;
+  public model: TProviderWithModel; // model not use
 
   private connection: AcpConnection;
 
@@ -71,60 +64,29 @@ export class AcpAgentTask extends EventEmitter {
 
   // Loading message ID for ACP response waiting
   private loadingMessageId: string | null = null;
+  private onStreamEvent: (data: IResponseMessage) => void;
+  private onReplaceLoadingMessage: (data: { id: string; msg_id: string; text: string }) => void;
 
   constructor(config: AcpAgentConfig) {
     super();
-
     this.id = config.id;
-    this.name = config.name;
     this.backend = config.backend;
     this.workspace = config.workingDir;
     this.cliPath = config.cliPath;
+    this.onStreamEvent = config.onStreamEvent;
+    this.onReplaceLoadingMessage = config.onReplaceLoadingMessage;
 
-    // Initialize TChatConversation required fields
-    // Use provided times if restoring, otherwise create new
-    this.createTime = config.createTime || Date.now();
-    this.modifyTime = config.modifyTime || Date.now();
     this.extra = config.extra || {
       workspace: config.workingDir,
       backend: config.backend,
       cliPath: config.cliPath,
       customWorkspace: false, // Default to system workspace
     };
-    this.model = config.model || {
-      id: `acp-${config.backend}`,
-      platform: 'acp',
-      name: `${config.backend.toUpperCase()} ACP`,
-      baseUrl: '',
-      apiKey: '',
-      useModel: config.backend,
-    };
 
     this.connection = new AcpConnection();
     this.adapter = new AcpAdapter(this.id, this.backend);
 
     this.setupConnectionHandlers();
-  }
-
-  private async loadSavedConfig(): Promise<void> {
-    try {
-      // Skip saving CLI path for now to avoid blocking
-      if (this.cliPath) {
-        // Using provided CLI path
-      } else {
-        // Load saved CLI path if not provided in config
-        try {
-          const savedCliPath = (await Promise.race([AcpConfigManager.getCliPath(this.backend), new Promise((_, reject) => setTimeout(() => reject(new Error('GetCliPath timeout')), 1000))])) as string | undefined;
-          if (savedCliPath) {
-            this.cliPath = savedCliPath;
-          }
-        } catch (error) {
-          // Skipping CLI path check due to storage timeout
-        }
-      }
-    } catch (error) {
-      // Don't throw - just continue with what we have
-    }
   }
 
   private setupConnectionHandlers(): void {
@@ -140,8 +102,6 @@ export class AcpAgentTask extends EventEmitter {
   // 启动ACP连接和会话
   async start(): Promise<void> {
     try {
-      await this.loadSavedConfig();
-
       this.status = 'running';
       this.emitStatusMessage('connecting', `Connecting to ${this.backend}...`);
 
@@ -177,7 +137,6 @@ export class AcpAgentTask extends EventEmitter {
   // 发送消息到ACP服务器
   async sendMessage(data: { content: string; files?: string[]; msg_id?: string; loading_id?: string }): Promise<AcpResult> {
     // Capture the send timestamp for proper message ordering
-    const sendTimestamp = Date.now();
 
     try {
       if (!this.connection.isConnected || !this.connection.hasActiveSession) {
@@ -219,23 +178,6 @@ export class AcpAgentTask extends EventEmitter {
 
       // Send processed content to ACP service to avoid @ symbol confusion
       await this.connection.sendPrompt(processedContent);
-
-      // Save user message to chat history ONLY after successful sending
-      if (data.msg_id && data.content) {
-        const userMessage: TMessage = {
-          id: data.msg_id,
-          msg_id: data.msg_id,
-          type: 'text',
-          position: 'right',
-          conversation_id: this.id,
-          content: {
-            content: data.content,
-          },
-          createdAt: sendTimestamp,
-        };
-        addMessage(this.id, userMessage);
-        // User message saved to persistent storage
-      }
 
       // Clear message IDs for new conversation turn (but keep loading ID)
       this.currentAssistantMsgId = null;
@@ -458,6 +400,7 @@ export class AcpAgentTask extends EventEmitter {
 
     // Emit replacement message to UI - use loading message ID for replacement
     // but the content will get the assistant message ID for future chunks
+    //@todo
     const responseMessage = {
       conversation_id: this.id,
       msg_id: this.loadingMessageId, // Use loading ID to find and replace the loading message
@@ -467,36 +410,13 @@ export class AcpAgentTask extends EventEmitter {
       assistantMsgId: this.currentAssistantMsgId, // Pass assistant ID for UI to update message properly
     };
 
-    ipcBridge.acpConversation.responseStream.emit(responseMessage);
+    this.onStreamEvent(responseMessage);
+    // ipcBridge.acpConversation.responseStream.emit(responseMessage);
 
+    this.onReplaceLoadingMessage({ id: this.currentAssistantMsgId, msg_id: this.currentAssistantMsgId, text });
     // Create the replacement message for persistent storage
-    const replacementMessage: TMessage = {
-      id: this.currentAssistantMsgId, // Use assistant message ID
-      msg_id: this.currentAssistantMsgId, // Set msg_id for proper composition
-      type: 'text',
-      position: 'left',
-      conversation_id: this.id,
-      content: {
-        content: text,
-      },
-      createdAt: Date.now(),
-    };
 
     // Update the message in persistent storage - remove loading message and add replacement
-    updateMessage(this.id, (messages: TMessage[]) => {
-      // Find the loading message to get its timestamp
-      const loadingMessage = messages.find((msg) => msg.id === this.loadingMessageId);
-      const loadingTimestamp = loadingMessage?.createdAt;
-
-      // Update replacement message with original loading message timestamp
-      if (loadingTimestamp) {
-        replacementMessage.createdAt = loadingTimestamp;
-      }
-
-      // Remove the loading message and add the replacement
-      const filteredMessages = messages.filter((msg) => msg.id !== this.loadingMessageId);
-      return [...filteredMessages, replacementMessage];
-    });
   }
 
   private emitErrorMessage(error: string): void {
@@ -544,7 +464,7 @@ export class AcpAgentTask extends EventEmitter {
     this.modifyTime = Date.now();
 
     // Update conversation in chat history
-    this.updateChatHistory();
+    // this.updateChatHistory();
 
     // Create response message based on the message type, following GeminiAgentTask pattern
     const responseMessage: any = {
@@ -586,11 +506,9 @@ export class AcpAgentTask extends EventEmitter {
         responseMessage.data = typeof message.content === 'string' ? message.content : JSON.stringify(message.content);
     }
 
-    // Emit to ACP response stream for real-time UI updates
-    ipcBridge.acpConversation.responseStream.emit(responseMessage);
+    this.onStreamEvent(responseMessage);
 
     // Persist message to chat history (following GeminiAgentTask pattern)
-    addOrUpdateMessage(this.id, transformMessage(responseMessage));
   }
 
   // Methods to maintain compatibility with existing task interface
@@ -643,20 +561,20 @@ export class AcpAgentTask extends EventEmitter {
     }
   }
 
-  private async updateChatHistory(): Promise<void> {
-    try {
-      const history = await ProcessChat.get('chat.history');
+  // private async updateChatHistory(): Promise<void> { // 通用逻辑
+  //   try {
+  //     const history = await ProcessChat.get('chat.history');
 
-      if (history) {
-        const conversationIndex = history.findIndex((conv: any) => conv.id === this.id);
+  //     if (history) {
+  //       const conversationIndex = history.findIndex((conv: any) => conv.id === this.id);
 
-        if (conversationIndex >= 0) {
-          const updatedHistory = history.map((conv: any) => (conv.id === this.id ? { ...conv, modifyTime: this.modifyTime } : conv));
-          await ProcessChat.set('chat.history', updatedHistory);
-        }
-      }
-    } catch (error) {
-      // Failed to update chat history
-    }
-  }
+  //       if (conversationIndex >= 0) {
+  //         const updatedHistory = history.map((conv: any) => (conv.id === this.id ? { ...conv, modifyTime: this.modifyTime } : conv));
+  //         await ProcessChat.set('chat.history', updatedHistory);
+  //       }
+  //     }
+  //   } catch (error) {
+  //     // Failed to update chat history
+  //   }
+  // }
 }

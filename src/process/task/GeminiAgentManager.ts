@@ -10,10 +10,10 @@ import { transformMessage } from '@/common/chatLib';
 import type { TProviderWithModel } from '@/common/storage';
 import { ProcessConfig } from '@/process/initStorage';
 import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '../message';
-import BaseAgentTask from './BaseAgentTask';
+import BaseAgentManager from './BaseAgentManager';
 
 // gemini agent管理器类
-export class GeminiAgentManager extends BaseAgentTask<{
+export class GeminiAgentManager extends BaseAgentManager<{
   workspace: string;
   model: TProviderWithModel;
   imageGenerationModel?: TProviderWithModel;
