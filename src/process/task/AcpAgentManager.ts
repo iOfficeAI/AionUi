@@ -38,27 +38,27 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
         backend: data.backend,
         cliPath: cliPath,
         workingDir: data.workspace,
-        onStreamEvent(data) {
+        onStreamEvent: (data) => {
           ipcBridge.acpConversation.responseStream.emit(data);
           data.conversation_id = this.conversation_id;
           const message = transformMessage(data);
           addOrUpdateMessage(this.conversation_id, message);
         },
-        onReplaceLoadingMessage(data) {
+        onReplaceLoadingMessage: (data) => {
           const replacementMessage: TMessage = {
             id: data.id, // Use assistant message ID
             msg_id: data.msg_id, // Set msg_id for proper composition
             type: 'text',
             position: 'left',
-            conversation_id: this.id,
+            conversation_id: this.conversation_id,
             content: {
               content: data.text,
             },
             createdAt: Date.now(),
           };
-          updateMessage(this.id, (messages: TMessage[]) => {
+          updateMessage(this.conversation_id, (messages: TMessage[]) => {
             // Find the loading message to get its timestamp
-            const loadingMessage = messages.find((msg) => msg.id === this.loadingMessageId);
+            const loadingMessage = messages.find((msg) => msg.id === this.agent.loadingMessageId);
             const loadingTimestamp = loadingMessage?.createdAt;
 
             // Update replacement message with original loading message timestamp
@@ -67,7 +67,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
             }
 
             // Remove the loading message and add the replacement
-            const filteredMessages = messages.filter((msg) => msg.id !== this.loadingMessageId);
+            const filteredMessages = messages.filter((msg) => msg.id !== this.agent.loadingMessageId);
             return [...filteredMessages, replacementMessage];
           });
         },

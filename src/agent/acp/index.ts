@@ -27,8 +27,8 @@ export interface AcpAgentConfig {
     cliPath?: string;
     customWorkspace?: boolean;
   };
-  onStreamEvent(data: IResponseMessage): void;
-  onReplaceLoadingMessage(data: { id: string; msg_id: string; text: string }): void;
+  onStreamEvent: (data: IResponseMessage) => void;
+  onReplaceLoadingMessage: (data: { id: string; msg_id: string; text: string }) => void;
 }
 
 // ACP agent任务类
@@ -63,7 +63,7 @@ export class AcpAgent extends EventEmitter {
   private statusMessageId: string | null = null;
 
   // Loading message ID for ACP response waiting
-  private loadingMessageId: string | null = null;
+  loadingMessageId: string | null = null;
   private onStreamEvent: (data: IResponseMessage) => void;
   private onReplaceLoadingMessage: (data: { id: string; msg_id: string; text: string }) => void;
 
