@@ -1,7 +1,7 @@
 {
   "name": "AionUi",
   "productName": "AionUi",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "My Electron application description",
   "main": ".webpack/main",
   "scripts": {
