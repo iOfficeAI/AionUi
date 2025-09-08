@@ -96,7 +96,7 @@
     "darkMode": "ダーク",
     "tools": "ツール設定",
     "imageGenerationModel": "画像モデル",
-    "imageGenerationGuide": "無料画像モデル設定ガイド",
+    "imageGenerationGuide": "画像モデル設定ガイド",
     "noAvailable": "利用可能な画像モデルがありません。先に設定してください。"
   },
   "messages": {

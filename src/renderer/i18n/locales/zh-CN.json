@@ -96,7 +96,7 @@
     "darkMode": "深色",
     "tools": "工具配置",
     "imageGenerationModel": "图像模型",
-    "imageGenerationGuide": "免费图像模型配置指南",
+    "imageGenerationGuide": "图像模型配置指南",
     "noAvailable": "暂无可用图像模型，请先配置。"
   },
   "messages": {

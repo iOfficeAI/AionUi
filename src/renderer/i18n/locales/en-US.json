@@ -96,7 +96,7 @@
     "darkMode": "Dark",
     "tools": "Tools Settings",
     "imageGenerationModel": "Image Model",
-    "imageGenerationGuide": "Free Image Model Setup Guide",
+    "imageGenerationGuide": "Image Model Setup Guide",
     "noAvailable": "No available image models, please configure first."
   },
   "messages": {
