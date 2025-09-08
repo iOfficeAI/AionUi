@@ -86,6 +86,7 @@
     "multiApiKeyTip": "💡 如需新增多個 API Key 實現自動輪詢，請稍後到平台編輯界面配置",
     "multiApiKeyEditTip": "支援多個 API Key，每行一個，系統將自動輪詢使用",
     "apiKeyPlaceholder": "請輸入 API Key，多個 Key 請每行一個",
+    "addModelPlaceholder": "請選擇或輸入模型ID",
     "customOpenAI": "自定義(相容OpenAI)",
     "proxyHttpOnly": "僅支持 http/https 協議",
     "baseUrlAutoFix": "base_url 自動修復為：{{base_url}}",
