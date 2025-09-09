@@ -681,11 +681,48 @@ ipcBridge.googleAuth.logout.provider(async () => {
   return clearCachedCredentialFile();
 });
 
-ipcBridge.mode.fetchModelList.provider(async function fetchModelList({ base_url, api_key, try_fix }): Promise<{ success: boolean; msg?: string; data?: { mode: Array<string>; fix_base_url?: string } }> {
+ipcBridge.mode.fetchModelList.provider(async function fetchModelList({ base_url, api_key, try_fix, platform }): Promise<{ success: boolean; msg?: string; data?: { mode: Array<string>; fix_base_url?: string } }> {
   // 如果是多key（包含逗号或回车），只取第一个key来获取模型列表
   let actualApiKey = api_key;
   if (api_key && (api_key.includes(',') || api_key.includes('\n'))) {
     actualApiKey = api_key.split(/[,\n]/)[0].trim();
+  }
+
+  // 如果是 Gemini 平台，使用 Gemini API 协议
+  if (platform?.includes('gemini')) {
+    try {
+      // 使用自定义 base_url 或默认的 Gemini endpoint
+      const geminiUrl = base_url ? `${base_url}/models?key=${encodeURIComponent(actualApiKey)}` : `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(actualApiKey)}`;
+
+      const response = await fetch(geminiUrl);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      if (!data.models || !Array.isArray(data.models)) {
+        throw new Error('Invalid response format');
+      }
+
+      // 提取模型名称，移除 "models/" 前缀
+      const modelList = data.models.map((model: { name: string }) => {
+        const name = model.name;
+        return name.startsWith('models/') ? name.substring(7) : name;
+      });
+
+      return { success: true, data: { mode: modelList } };
+    } catch (e: any) {
+      // 对于 Gemini 平台，API 调用失败时回退到默认模型列表
+      if (platform?.includes('gemini')) {
+        console.warn('Failed to fetch Gemini models via API, falling back to default list:', e.message);
+        // 导入默认的 Gemini 模型列表
+        const defaultGeminiModels = ['gemini-2.5-pro', 'gemini-2.5-flash'];
+        return { success: true, data: { mode: defaultGeminiModels } };
+      }
+      return { success: false, msg: e.message || e.toString() };
+    }
   }
 
   const openai = new OpenAI({
