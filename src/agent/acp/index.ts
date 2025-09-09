@@ -80,13 +80,6 @@ export class AcpAgent {
     try {
       this.emitStatusMessage('connecting', `Connecting to ${this.extra.backend}...`);
 
-      // 在连接之前检查并刷新认证
-      if (this.extra.backend === 'qwen') {
-        await this.ensureQwenAuth();
-      } else if (this.extra.backend === 'claude') {
-        await this.ensureClaudeAuth();
-      }
-
       await Promise.race([
         this.connection.connect(this.extra.backend, this.extra.cliPath, this.extra.workspace),
         new Promise((_, reject) =>
@@ -97,7 +90,10 @@ export class AcpAgent {
       ]);
       this.emitStatusMessage('connected', `Connected to ${this.extra.backend} ACP server`);
       await this.performAuthentication();
-      await this.connection.newSession(this.extra.workspace);
+      // 避免重复创建会话：仅当尚无活动会话时再创建
+      if (!this.connection.hasActiveSession) {
+        await this.connection.newSession(this.extra.workspace);
+      }
       this.emitStatusMessage('session_active', `Active session created with ${this.extra.backend}`);
     } catch (error) {
       this.emitStatusMessage('error', `Failed to start ${this.extra.backend}: ${error instanceof Error ? error.message : String(error)}`);
@@ -500,17 +496,31 @@ export class AcpAgent {
         return;
       }
 
-      // Check if CLI is already authenticated by trying to create a session
+      // 先尝试直接创建session以判断是否已鉴权
       try {
         await this.connection.newSession(this.extra.workspace);
         this.emitStatusMessage('authenticated', `${this.extra.backend} CLI is already authenticated and ready`);
         return;
-      } catch (error) {
-        // CLI requires authentication
+      } catch (_err) {
+        // 需要鉴权，进行条件化“预热”尝试
       }
 
-      // If CLI requires authentication, guide user to authenticate manually
-      this.emitStatusMessage('error', `${this.extra.backend} CLI needs authentication. Please run '${this.extra.backend} login' in terminal first, then reconnect.`);
+      // 条件化预热：仅在需要鉴权时尝试调用后端CLI登录以刷新token
+      if (this.extra.backend === 'qwen') {
+        await this.ensureQwenAuth();
+      } else if (this.extra.backend === 'claude') {
+        await this.ensureClaudeAuth();
+      }
+
+      // 预热后重试创建session
+      try {
+        await this.connection.newSession(this.extra.workspace);
+        this.emitStatusMessage('authenticated', `${this.extra.backend} CLI authentication refreshed and ready`);
+        return;
+      } catch (error) {
+        // If still failing,引导用户手动登录
+        this.emitStatusMessage('error', `${this.extra.backend} CLI needs authentication. Please run '${this.extra.backend} login' in terminal first, then reconnect.`);
+      }
     } catch (error) {
       this.emitStatusMessage('error', `Authentication check failed. Please ensure ${this.extra.backend} CLI is properly installed and authenticated.`);
     }
