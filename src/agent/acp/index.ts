@@ -79,6 +79,14 @@ export class AcpAgent {
   async start(): Promise<void> {
     try {
       this.emitStatusMessage('connecting', `Connecting to ${this.extra.backend}...`);
+
+      // 在连接之前检查并刷新认证
+      if (this.extra.backend === 'qwen') {
+        await this.ensureQwenAuth();
+      } else if (this.extra.backend === 'claude') {
+        await this.ensureClaudeAuth();
+      }
+
       await Promise.race([
         this.connection.connect(this.extra.backend, this.extra.cliPath, this.extra.workspace),
         new Promise((_, reject) =>
@@ -415,6 +423,66 @@ export class AcpAgent {
   // Add kill method for compatibility with WorkerManage
   kill(): void {
     this.stop();
+  }
+
+  private async ensureBackendAuth(backend: AcpBackend, loginArg: string): Promise<void> {
+    try {
+      this.emitStatusMessage('connecting', `Checking ${backend} authentication...`);
+
+      // 使用配置的 CLI 路径调用 login 命令
+      const { spawn } = await import('child_process');
+
+      if (!this.extra.cliPath) {
+        throw new Error(`No CLI path configured for ${backend} backend`);
+      }
+
+      // 使用与 AcpConnection 相同的命令解析逻辑
+      let command: string;
+      let args: string[];
+
+      if (this.extra.cliPath.startsWith('npx ')) {
+        // For "npx @qwen-code/qwen-code" or "npx @anthropic-ai/claude-code"
+        const parts = this.extra.cliPath.split(' ');
+        const isWindows = process.platform === 'win32';
+        command = isWindows ? 'npx.cmd' : 'npx';
+        args = [...parts.slice(1), loginArg];
+      } else {
+        // For regular paths like '/usr/local/bin/qwen' or '/usr/local/bin/claude'
+        command = this.extra.cliPath;
+        args = [loginArg];
+      }
+
+      const loginProcess = spawn(command, args, {
+        stdio: 'pipe', // 避免干扰用户界面
+        timeout: 30000,
+      });
+
+      await new Promise<void>((resolve, reject) => {
+        loginProcess.on('close', (code) => {
+          if (code === 0) {
+            console.log(`${backend} authentication refreshed`);
+            resolve();
+          } else {
+            reject(new Error(`${backend} login failed with code ${code}`));
+          }
+        });
+
+        loginProcess.on('error', reject);
+      });
+    } catch (error) {
+      console.warn(`${backend} auth refresh failed, will try to connect anyway:`, error);
+      // 不抛出错误，让连接尝试继续
+    }
+  }
+
+  private async ensureQwenAuth(): Promise<void> {
+    if (this.extra.backend !== 'qwen') return;
+    await this.ensureBackendAuth('qwen', 'login');
+  }
+
+  private async ensureClaudeAuth(): Promise<void> {
+    if (this.extra.backend !== 'claude') return;
+    await this.ensureBackendAuth('claude', '/login');
   }
 
   private async performAuthentication(): Promise<void> {
