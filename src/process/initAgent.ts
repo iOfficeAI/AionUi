@@ -7,7 +7,7 @@
 import type { TChatConversation, TProviderWithModel } from '@/common/storage';
 import fs from 'fs/promises';
 import path from 'path';
-import type { ICreateConversationParams } from '../common/ipcBridge';
+import type { ICreateConversationParams } from '@/common/ipcBridge';
 import { getSystemDir } from './initStorage';
 import { generateHashWithFullName } from './utils';
 
@@ -44,13 +44,13 @@ export const createGeminiAgent = async (model: TProviderWithModel, workspace?: s
 
 export const createAcpAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
   const { extra } = options;
-  const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(`acp-temp-${Date.now()}`, extra.workspace, extra.defaultFiles);
+  const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(`${extra.backend}-temp-${Date.now()}`, extra.workspace, extra.defaultFiles);
   return {
     type: 'acp',
     extra: { workspace: workspace, customWorkspace, backend: extra.backend, cliPath: extra.cliPath },
     createTime: Date.now(),
     modifyTime: Date.now(),
     name: workspace,
-    id: generateHashWithFullName(`${extra.backend}-acp-${workspace}`),
+    id: generateHashWithFullName(workspace),
   };
 };

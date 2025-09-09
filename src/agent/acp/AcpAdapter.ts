@@ -4,14 +4,68 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IMessageText, IMessageToolGroup, TMessage } from '@/common/chatLib';
+import type { IMessageText, IMessageToolCall, IMessageToolGroup, TMessage } from '@/common/chatLib';
 import { uuid } from '@/common/utils';
-import type { AcpBackend, AcpSessionUpdate } from '../../process/AcpConnection';
+import type { AcpBackend } from '@/common/acpTypes';
 
-interface AcpMessage {
-  type: 'assistant' | 'user' | 'tool_call' | 'tool_result' | 'thought';
-  content: any;
-  id?: string;
+export const JSONRPC_VERSION = '2.0' as const;
+
+export interface AcpRequest {
+  jsonrpc: typeof JSONRPC_VERSION;
+  id: number;
+  method: string;
+  params?: any;
+}
+
+export interface AcpResponse {
+  jsonrpc: typeof JSONRPC_VERSION;
+  id: number;
+  result?: any;
+  error?: {
+    code: number;
+    message: string;
+  };
+}
+
+export interface AcpNotification {
+  jsonrpc: typeof JSONRPC_VERSION;
+  method: string;
+  params?: any;
+}
+
+export type AcpMessage = AcpRequest | AcpNotification | AcpResponse | AcpSessionUpdate;
+
+export interface AcpSessionUpdate {
+  sessionId: string;
+  update: {
+    sessionUpdate: 'agent_message_chunk' | 'agent_thought_chunk' | 'tool_call';
+    content: {
+      type: 'text';
+      text: string;
+    };
+    toolCallId?: string;
+    status?: string;
+    title?: string;
+    kind?: string;
+  };
+}
+
+export interface AcpPermissionRequest {
+  sessionId: string;
+  options: Array<{
+    optionId: string;
+    name: string;
+    kind: 'allow_once' | 'allow_always' | 'reject_once' | 'reject_always';
+    // 以下字段为向后兼容，不是官方协议标准
+    description?: string;
+    title?: string;
+  }>;
+  toolCall: {
+    toolCallId: string;
+    status: string;
+    title: string;
+    kind: string;
+  };
 }
 
 interface AcpToolCall {
@@ -45,36 +99,23 @@ export class AcpAdapter {
    */
   convertSessionUpdate(sessionUpdate: AcpSessionUpdate): TMessage[] {
     const messages: TMessage[] = [];
-
     // Handle the new session update format from Gemini ACP
-    if ('update' in sessionUpdate) {
-      const update = (sessionUpdate as any).update;
-
-      // Handle different update types
-      if (update.sessionUpdate === 'agent_message_chunk' && update.content) {
-        const message = this.convertSessionUpdateChunk(update);
-        if (message) {
-          messages.push(message);
-        }
-      } else if (update.sessionUpdate === 'agent_thought_chunk' && update.content) {
-        const message = this.convertThoughtChunk(update);
-        if (message) {
-          messages.push(message);
-        }
+    const update = sessionUpdate.update;
+    if (update.sessionUpdate === 'agent_message_chunk' && update.content) {
+      const message = this.convertSessionUpdateChunk(update);
+      if (message) {
+        messages.push(message);
       }
-
-      return messages;
-    }
-
-    // Handle the legacy format with messages array
-    if (!sessionUpdate.messages) {
-      return messages;
-    }
-
-    for (const acpMessage of sessionUpdate.messages) {
-      const convertedMessage = this.convertSingleMessage(acpMessage);
-      if (convertedMessage) {
-        messages.push(convertedMessage);
+      console.log('convertSessionUpdate message', message);
+    } else if (update.sessionUpdate === 'agent_thought_chunk' && update.content) {
+      const message = this.convertThoughtChunk(update);
+      if (message) {
+        messages.push(message);
+      }
+    } else if (update.sessionUpdate === 'tool_call' && update.content) {
+      const message = this.convertToolCall(sessionUpdate);
+      if (message) {
+        messages.push(message);
       }
     }
 
@@ -84,7 +125,7 @@ export class AcpAdapter {
   /**
    * Convert ACP session update chunk to AionUI message
    */
-  private convertSessionUpdateChunk(update: any): TMessage | null {
+  private convertSessionUpdateChunk(update: AcpSessionUpdate['update']): TMessage | null {
     const baseMessage = {
       id: uuid(),
       conversation_id: this.conversationId,
@@ -108,7 +149,7 @@ export class AcpAdapter {
   /**
    * Convert ACP thought chunk to AionUI message
    */
-  private convertThoughtChunk(update: any): TMessage | null {
+  private convertThoughtChunk(update: AcpSessionUpdate['update']): TMessage | null {
     const baseMessage = {
       id: uuid(),
       conversation_id: this.conversationId,
@@ -133,64 +174,64 @@ export class AcpAdapter {
   /**
    * Convert a single ACP message to AionUI message format
    */
-  private convertSingleMessage(acpMessage: AcpMessage): TMessage | null {
-    const baseMessage = {
-      id: acpMessage.id || uuid(),
-      conversation_id: this.conversationId,
-      createdAt: Date.now(),
-      position: 'left' as const,
-    };
-
-    switch (acpMessage.type) {
-      case 'assistant':
-        if (typeof acpMessage.content === 'string') {
-          return {
-            ...baseMessage,
-            type: 'text',
-            content: {
-              content: acpMessage.content,
-            },
-          } as IMessageText;
-        } else if (acpMessage.content.tool_calls) {
-          // Handle tool calls from assistant
-          return this.convertToolCalls(acpMessage.content.tool_calls, baseMessage);
-        }
-        break;
-
-      case 'tool_call':
-        return this.convertToolCall(acpMessage.content, baseMessage);
-
-      case 'tool_result':
-        return this.convertToolResult(acpMessage.content, baseMessage);
-
-      case 'thought':
-        // Convert thoughts to tips messages
-        return {
-          ...baseMessage,
-          type: 'tips',
-          position: 'center',
-          content: {
-            content: acpMessage.content,
-            type: 'warning',
-          },
-        };
-
-      case 'user':
-        return {
-          ...baseMessage,
-          type: 'text',
-          position: 'right',
-          content: {
-            content: acpMessage.content,
-          },
-        } as IMessageText;
-
-      default:
-        return null;
-    }
-
-    return null;
-  }
+  // private convertSingleMessage(acpMessage: AcpMessage): TMessage | null {
+  //   const baseMessage = {
+  //     id: acpMessage.id || uuid(),
+  //     conversation_id: this.conversationId,
+  //     createdAt: Date.now(),
+  //     position: 'left' as const,
+  //   };
+  //
+  //   switch (acpMessage.type) {
+  //     case 'assistant':
+  //       if (typeof acpMessage.content === 'string') {
+  //         return {
+  //           ...baseMessage,
+  //           type: 'text',
+  //           content: {
+  //             content: acpMessage.content,
+  //           },
+  //         } as IMessageText;
+  //       } else if (acpMessage.content.tool_calls) {
+  //         // Handle tool calls from assistant
+  //         return this.convertToolCalls(acpMessage.content.tool_calls, baseMessage);
+  //       }
+  //       break;
+  //
+  //     case 'tool_call':
+  //       return this.convertToolCall(acpMessage.content, baseMessage);
+  //
+  //     case 'tool_result':
+  //       return this.convertToolResult(acpMessage.content, baseMessage);
+  //
+  //     case 'thought':
+  //       // Convert thoughts to tips messages
+  //       return {
+  //         ...baseMessage,
+  //         type: 'tips',
+  //         position: 'center',
+  //         content: {
+  //           content: acpMessage.content,
+  //           type: 'warning',
+  //         },
+  //       };
+  //
+  //     case 'user':
+  //       return {
+  //         ...baseMessage,
+  //         type: 'text',
+  //         position: 'right',
+  //         content: {
+  //           content: acpMessage.content,
+  //         },
+  //       } as IMessageText;
+  //
+  //     default:
+  //       return null;
+  //   }
+  //
+  //   return null;
+  // }
 
   /**
    * Convert ACP tool calls to AionUI tool_group message
@@ -216,19 +257,21 @@ export class AcpAdapter {
   /**
    * Convert ACP single tool call to AionUI tool_call message
    */
-  private convertToolCall(content: any, baseMessage: any): TMessage {
-    const args = typeof content.arguments === 'string' ? this.parseToolArguments(content.arguments) : content.arguments || {};
-
+  private convertToolCall(content: AcpSessionUpdate): TMessage {
+    const baseMessage = {
+      id: uuid(),
+      conversation_id: this.conversationId,
+      position: 'left' as const,
+    };
     return {
       ...baseMessage,
       type: 'tool_call',
       content: {
-        callId: content.id || uuid(),
-        name: content.function?.name || content.name || 'unknown',
-        args,
-        status: 'success',
+        callId: content.update.toolCallId,
+        name: content.update.kind,
+        status: content,
       },
-    };
+    } as unknown as IMessageToolCall;
   }
 
   /**

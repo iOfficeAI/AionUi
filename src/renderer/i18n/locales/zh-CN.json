@@ -109,6 +109,9 @@
   "acp": {
     "auth": {
       "failed": "{{backend}} 认证失败：\n\n{{error}}\n\n请检查本地CLI工具的认证状态"
+    },
+    "sendbox": {
+      "placeholder": "发送消息到 {{backend}}..."
     }
   }
 }

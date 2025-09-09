@@ -185,6 +185,7 @@ export type IMessageAcpPermission = IMessage<
     requestId: string;
     sessionId?: string;
     toolCall?: {
+      title: string;
       toolCallId: string;
       rawInput: {
         command?: string;

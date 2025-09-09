@@ -8,6 +8,8 @@ import { parseError, uuid } from '@/common/utils';
 import { ProcessConfig } from '../initStorage';
 import { addMessage, addOrUpdateMessage, nextTickToLocalFinish, updateMessage } from '../message';
 import BaseAgentManager from './BaseAgentManager';
+import { t } from 'i18next';
+import i18n from '@renderer/i18n';
 
 interface AcpAgentManagerData {
   workspace?: string;
@@ -21,12 +23,14 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
   workspace: string;
   agent: AcpAgent;
   bootstrap: Promise<AcpAgent>;
+
   constructor(data: AcpAgentManagerData) {
     super('acp', data);
     this.conversation_id = data.conversation_id;
     this.workspace = data.workspace;
     this.initAgent(data);
   }
+
   initAgent(data: AcpAgentManagerData) {
     this.bootstrap = ProcessConfig.get('acp.config').then((config) => {
       let cliPath = data.cliPath;
@@ -54,20 +58,17 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
             content: {
               content: data.text,
             },
-            createdAt: Date.now(),
           };
+          ipcBridge.acpConversation.responseStream.emit({
+            type: 'content',
+            conversation_id: this.conversation_id,
+            msg_id: data.msg_id,
+            data: data.text,
+            isLoadingReplacement: true,
+          });
+
           updateMessage(this.conversation_id, (messages: TMessage[]) => {
-            // Find the loading message to get its timestamp
-            const loadingMessage = messages.find((msg) => msg.id === this.agent.loadingMessageId);
-            const loadingTimestamp = loadingMessage?.createdAt;
-
-            // Update replacement message with original loading message timestamp
-            if (loadingTimestamp) {
-              replacementMessage.createdAt = loadingTimestamp;
-            }
-
-            // Remove the loading message and add the replacement
-            const filteredMessages = messages.filter((msg) => msg.id !== this.agent.loadingMessageId);
+            const filteredMessages = messages.filter((msg) => msg.msg_id !== data.loadingMessageId);
             return [...filteredMessages, replacementMessage];
           });
         },
@@ -75,9 +76,15 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
       return this.agent.start().then(() => this.agent);
     });
   }
-  async sendMessage(data: { content: string; files?: string[]; msg_id?: string; loading_id?: string }): Promise<{ success: boolean; msg?: string; message?: string }> {
+
+  async sendMessage(data: { content: string; files?: string[]; msg_id?: string }): Promise<{
+    success: boolean;
+    msg?: string;
+    message?: string;
+  }> {
     try {
       await this.bootstrap;
+      const loading_id = uuid();
       // Save user message to chat history ONLY after successful sending
       if (data.msg_id && data.content) {
         const userMessage: TMessage = {
@@ -92,8 +99,23 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
           createdAt: Date.now(),
         };
         addMessage(this.conversation_id, userMessage);
+        const userResponseMessage: IResponseMessage = {
+          type: 'user_content',
+          conversation_id: this.conversation_id,
+          msg_id: data.msg_id,
+          data: userMessage.content.content,
+        };
+        ipcBridge.acpConversation.responseStream.emit(userResponseMessage);
       }
-      return await this.agent.sendMessage(data);
+      // 同时通知前端更新 UI
+      const loadingResponseMessage: IResponseMessage = {
+        type: 'content',
+        conversation_id: this.conversation_id,
+        msg_id: loading_id,
+        data: i18n.t('common.loading'),
+      };
+      ipcBridge.acpConversation.responseStream.emit(loadingResponseMessage);
+      return await this.agent.sendMessage({ ...data, loading_id });
     } catch (e) {
       const message: IResponseMessage = {
         type: 'error',
@@ -110,6 +132,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
       });
     }
   }
+
   async confirmMessage(data: Omit<IConfirmAcpMessageParams, 'conversation_id'>) {
     await this.bootstrap;
     this.agent.confirmMessage(data);
