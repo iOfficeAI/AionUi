@@ -109,6 +109,9 @@
   "acp": {
     "auth": {
       "failed": "{{backend}} 認証が失敗しました：\n\n{{error}}\n\nローカルCLIツールの認証状態を確認してください"
+    },
+    "sendbox": {
+      "placeholder": "{{backend}}にメッセージを送信..."
     }
   }
 }

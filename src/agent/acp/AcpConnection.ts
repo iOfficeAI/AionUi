@@ -8,58 +8,8 @@ import type { AcpBackend } from '@/common/acpTypes';
 import type { ChildProcess } from 'child_process';
 import { spawn } from 'child_process';
 import path from 'path';
-
-// JSON-RPC 协议版本 - ACP 规范要求使用 2.0
-const JSONRPC_VERSION = '2.0' as const;
-
-interface AcpRequest {
-  jsonrpc: typeof JSONRPC_VERSION;
-  id: number;
-  method: string;
-  params?: any;
-}
-
-interface AcpResponse {
-  jsonrpc: typeof JSONRPC_VERSION;
-  id: number;
-  result?: any;
-  error?: {
-    code: number;
-    message: string;
-  };
-}
-
-interface AcpNotification {
-  jsonrpc: typeof JSONRPC_VERSION;
-  method: string;
-  params?: any;
-}
-
-type AcpMessage = AcpRequest | AcpResponse | AcpNotification;
-
-export interface AcpSessionUpdate {
-  sessionId: string;
-  messages?: Array<{
-    type: 'assistant' | 'user' | 'tool_call' | 'tool_result';
-    content: any;
-  }>;
-}
-
-export interface AcpPermissionRequest {
-  options: Array<{
-    optionId: string;
-    name: string;
-    kind: 'allow_once' | 'allow_always' | 'reject_once' | 'reject_always';
-    // 以下字段为向后兼容，不是官方协议标准
-    description?: string;
-    title?: string;
-  }>;
-  title?: string;
-  description?: string;
-}
-
-// Re-export from common types for backward compatibility
-export type { AcpBackend } from '@/common/acpTypes';
+import type { AcpMessage, AcpNotification, AcpPermissionRequest, AcpRequest, AcpResponse, AcpSessionUpdate } from '@/agent/acp/AcpAdapter';
+import { JSONRPC_VERSION } from '@/agent/acp/AcpAdapter';
 
 interface PendingRequest {
   resolve: (value: any) => void;
@@ -82,7 +32,9 @@ export class AcpConnection {
 
   // Event handlers
   public onSessionUpdate: (data: AcpSessionUpdate) => void = () => {};
-  public onPermissionRequest: (data: AcpPermissionRequest) => Promise<{ optionId: string }> = async () => ({ optionId: 'allow' });
+  public onPermissionRequest: (data: AcpPermissionRequest) => Promise<{
+    optionId: string;
+  }> = async () => ({ optionId: 'allow' });
 
   async connect(backend: AcpBackend, cliPath?: string, workingDir: string = process.cwd()): Promise<void> {
     // Disconnect existing connection to prevent process leaks
@@ -248,6 +200,7 @@ export class AcpConnection {
         if (line.trim()) {
           try {
             const message = JSON.parse(line) as AcpMessage;
+            console.log('AcpMessage==>', JSON.stringify(message));
             this.handleMessage(message);
           } catch (error) {
             // Ignore parsing errors for non-JSON messages
@@ -466,7 +419,9 @@ export class AcpConnection {
     this.onSessionUpdate(params);
   }
 
-  private async handlePermissionRequest(params: AcpPermissionRequest): Promise<{ outcome: { outcome: string; optionId: string } }> {
+  private async handlePermissionRequest(params: AcpPermissionRequest): Promise<{
+    outcome: { outcome: string; optionId: string };
+  }> {
     // 暂停所有 session/prompt 请求的超时计时器
     this.pauseSessionPromptTimeouts();
 
@@ -541,6 +496,8 @@ export class AcpConnection {
     if (!this.sessionId) {
       throw new Error('No active ACP session');
     }
+
+    console.log('Sending ACP session...', prompt);
 
     return await this.sendRequest('session/prompt', {
       sessionId: this.sessionId,

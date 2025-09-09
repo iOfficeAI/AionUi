@@ -13,7 +13,6 @@ import fs from 'fs/promises';
 import OpenAI from 'openai';
 import path from 'path';
 import { ipcBridge } from '../common';
-import { acpDetector } from './AcpDetector';
 import { createAcpAgent, createGeminiAgent } from './initAgent';
 import { getSystemDir, ProcessChat, ProcessChatMessage, ProcessConfig, ProcessEnv, recoverConversationById } from './initStorage';
 import { nextTickToLocalFinish } from './message';
@@ -21,6 +20,7 @@ import type AcpAgentManager from './task/AcpAgentManager';
 import type { GeminiAgentManager } from './task/GeminiAgentManager';
 import { copyDirectoryRecursively, copyFilesToDirectory, generateHashWithFullName, readDirectoryRecursive } from './utils';
 import WorkerManage from './WorkerManage';
+import { acpDetector } from '@/agent/acp/AcpDetector';
 logger.config({ print: true });
 
 ipcBridge.dialog.showOpen.provider((options) => {
@@ -186,13 +186,6 @@ ipcBridge.geminiConversation.sendMessage.provider(async ({ conversation_id, file
 
 // ACP 专用的 sendMessage provider
 ipcBridge.acpConversation.sendMessage.provider(async ({ conversation_id, files, ...other }) => {
-  console.log('[ACP-BRIDGE] Received message:', {
-    conversation_id,
-    input: other.input?.substring(0, 50) + '...',
-    msg_id: other.msg_id,
-    loading_id: other.loading_id,
-    files_count: files?.length || 0,
-  });
   let task = WorkerManage.getTaskById(conversation_id) as AcpAgentManager;
   if (!task) {
     // 任务不存在，尝试重建ACP任务管理器
@@ -217,23 +210,14 @@ ipcBridge.acpConversation.sendMessage.provider(async ({ conversation_id, files, 
     // 等待ACP连接建立完成，但不阻塞用户消息发送
     try {
       await task.bootstrap;
-      console.log('[ACP-BRIDGE] ACP connection established, ready to send user message');
     } catch (error) {
-      console.error('[ACP-BRIDGE] Failed to establish ACP connection:', error);
       return { success: false, msg: 'failed to establish ACP connection' };
     }
   }
   if (task.type !== 'acp') return { success: false, msg: 'unsupported task type for ACP provider' };
   await copyFilesToDirectory(task.workspace, files);
-
-  console.log('[ACP-BRIDGE] Calling task.sendMessage with:', {
-    content: other.input?.substring(0, 30) + '...',
-    msg_id: other.msg_id,
-    loading_id: other.loading_id,
-  });
-
   return task
-    .sendMessage({ content: other.input, files, msg_id: other.msg_id, loading_id: other.loading_id })
+    .sendMessage({ content: other.input, files, msg_id: other.msg_id })
     .then(() => {
       return { success: true };
     })

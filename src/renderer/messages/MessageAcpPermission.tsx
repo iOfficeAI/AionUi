@@ -108,12 +108,11 @@ const MessageAcpPermission: React.FC<MessageAcpPermissionProps> = ({ message }) 
 
       if (result.success) {
         setHasResponded(true);
-        Message.success('Permission response sent');
       } else {
-        Message.error(`Failed to send response: ${result.msg}`);
+        // Handle failure case - could add error display here
       }
     } catch (error) {
-      Message.error('Failed to send response');
+      // Handle error case - could add error logging here
     } finally {
       setIsResponding(false);
     }
