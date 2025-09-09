@@ -14,14 +14,14 @@ const ToolsSettings: React.FC = () => {
     return (data || [])
       .filter((v) => {
         const filteredModels = v.model.filter((model) => {
-          return model.toLocaleLowerCase().includes('image');
+          return model.toLowerCase().includes('image');
         });
         return filteredModels.length > 0;
       })
       .map((v) => ({
         ...v,
         model: v.model.filter((model) => {
-          return model.toLocaleLowerCase().includes('image');
+          return model.toLowerCase().includes('image');
         }),
       }));
   }, [data]);
@@ -81,19 +81,23 @@ const ToolsSettings: React.FC = () => {
             <Form className={'mt-10px'}>
               <Form.Item label={t('settings.imageGenerationModel')}>
                 {imageGenerationModelList.length > 0 ? (
-                  <Select value={imageGenerationModel?.useModel}>
+                  <Select
+                    value={imageGenerationModel?.useModel}
+                    onChange={(value, option) => {
+                      // value 现在是 platform.id|model 格式
+                      const [platformId, modelName] = value.split('|');
+                      const platform = imageGenerationModelList.find((p) => p.id === platformId);
+                      if (platform) {
+                        handleImageGenerationModelChange({ ...platform, useModel: modelName });
+                      }
+                    }}
+                  >
                     {imageGenerationModelList.map(({ model, ...platform }) => {
                       return (
                         <Select.OptGroup label={platform.name} key={platform.id}>
                           {model.map((model) => {
                             return (
-                              <Select.Option
-                                onClick={() => {
-                                  handleImageGenerationModelChange({ ...platform, useModel: model });
-                                }}
-                                key={platform.platform + model}
-                                value={model}
-                              >
+                              <Select.Option key={platform.id + model} value={platform.id + '|' + model}>
                                 {model}
                               </Select.Option>
                             );
@@ -109,7 +113,7 @@ const ToolsSettings: React.FC = () => {
             </Form>
             <div className='mt-3 text-sm text-gray-500'>
               <span className='mr-1'>👉</span>
-              <a href='https://github.com/iOfficeAI/AionUi/wiki/OpenRouter-Setup-and-Image-Generation' target='_blank' rel='noopener noreferrer' className='text-blue-500 hover:text-blue-600 underline'>
+              <a href='https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide' target='_blank' rel='noopener noreferrer' className='text-blue-500 hover:text-blue-600 underline'>
                 {t('settings.imageGenerationGuide')}
               </a>
             </div>
