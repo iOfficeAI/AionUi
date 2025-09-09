@@ -101,6 +101,7 @@ export class AcpAgent {
     this.connection.disconnect();
     this.emitStatusMessage('disconnected', `Disconnected from ${this.extra.backend}`);
   }
+
   // 发送消息到ACP服务器
   async sendMessage(data: { content: string; files?: string[]; msg_id?: string; loading_id?: string }): Promise<AcpResult> {
     try {
@@ -385,6 +386,11 @@ export class AcpAgent {
           responseMessage.data = message.content.content;
         }
         break;
+      case 'tool_call': {
+        responseMessage.type = 'tool_call';
+        responseMessage.data = message.content.name;
+        break;
+      }
       default:
         responseMessage.type = 'content';
         responseMessage.data = typeof message.content === 'string' ? message.content : JSON.stringify(message.content);

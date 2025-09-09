@@ -28,12 +28,12 @@ const ChatConversation: React.FC<{
     }
   }, [conversation]);
 
-  const siderTitle = useMemo(() => {
+  const sliderTitle = useMemo(() => {
     return <span className='text-16px font-bold color-#111827'>{t('conversation.workspace.title')}</span>;
   }, [conversation]);
 
   return (
-    <ChatLayout title={conversation.name} backend={conversation.type === 'acp' ? conversation?.extra?.backend : undefined} siderTitle={siderTitle} sider={<ChatSider conversation={conversation} />}>
+    <ChatLayout title={conversation.name} backend={conversation.type === 'acp' ? conversation?.extra?.backend : undefined} siderTitle={sliderTitle} sider={<ChatSider conversation={conversation} />}>
       {conversationNode}
     </ChatLayout>
   );

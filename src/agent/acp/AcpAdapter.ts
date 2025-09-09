@@ -106,7 +106,6 @@ export class AcpAdapter {
       if (message) {
         messages.push(message);
       }
-      console.log('convertSessionUpdate message', message);
     } else if (update.sessionUpdate === 'agent_thought_chunk' && update.content) {
       const message = this.convertThoughtChunk(update);
       if (message) {

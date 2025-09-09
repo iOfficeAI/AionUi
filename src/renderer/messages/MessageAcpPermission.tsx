@@ -6,7 +6,7 @@
 
 import type { IMessageAcpPermission } from '@/common/chatLib';
 import { acpConversation } from '@/common/ipcBridge';
-import { Button, Card, Message, Radio, Typography } from '@arco-design/web-react';
+import { Radio, Typography } from '@arco-design/web-react';
 import React, { useState } from 'react';
 
 const { Text } = Typography;
@@ -85,15 +85,12 @@ const MessageAcpPermission: React.FC<MessageAcpPermissionProps> = ({ message }) 
       icon: '🔐',
     };
   };
-
   const { title, description, icon } = getToolInfo();
-
-  const [selectedOption, setSelectedOption] = useState(options[0]?.optionId || '');
   const [isResponding, setIsResponding] = useState(false);
   const [hasResponded, setHasResponded] = useState(false);
 
-  const handleResponse = async () => {
-    if (!selectedOption || hasResponded) return;
+  const handleResponse = async (selectedOption: string) => {
+    if (hasResponded) return;
 
     setIsResponding(true);
     try {
@@ -119,67 +116,33 @@ const MessageAcpPermission: React.FC<MessageAcpPermissionProps> = ({ message }) 
   };
 
   return (
-    <Card
-      className='acp-permission-message max-w-md'
-      title={
-        <div className='flex items-center gap-2'>
-          <span>{icon}</span>
-          <Text style={{ fontWeight: 'bold' }}>{title}</Text>
-        </div>
-      }
-      extra={
-        hasResponded && (
-          <Text type='success' className='text-sm'>
-            ✓ Responded
-          </Text>
-        )
-      }
-    >
-      <div className='space-y-4'>
-        <div>
-          {description && (
-            <div className='bg-gray-50 rounded-lg p-3 mb-3'>
-              <Text className='text-sm font-mono text-gray-700'>{description}</Text>
-            </div>
+    <div>
+      <div>
+        <Text className='block mb-2 text-sm font-medium'>{title}</Text>
+        <Radio.Group
+          onChange={(value) => {
+            handleResponse(value).then(() => {});
+          }}
+          disabled={hasResponded}
+          direction='vertical'
+          className='w-full'
+        >
+          {options && options.length > 0 ? (
+            options.map((option, index) => {
+              const optionName = option.name || option.title || `Option ${index + 1}`;
+              // const optionDescription = option.description || getKindDescription(option.kind);
+              return (
+                <Radio key={option.optionId} value={option.optionId}>
+                  {optionName}
+                </Radio>
+              );
+            })
+          ) : (
+            <Text type='secondary'>No options available</Text>
           )}
-          {toolCall?.toolCallId && (
-            <Text type='secondary' className='text-xs'>
-              Tool Call ID: {toolCall.toolCallId}
-            </Text>
-          )}
-        </div>
-
-        <div>
-          <Text className='block mb-2 text-sm font-medium'>Choose an option:</Text>
-          <Radio.Group value={selectedOption} onChange={setSelectedOption} disabled={hasResponded} direction='vertical' className='w-full'>
-            {options && options.length > 0 ? (
-              options.map((option, index) => {
-                // 优先使用 ACP 官方协议标准的 name 字段，向后兼容 title
-                const optionName = option.name || option.title || `Option ${index + 1}`;
-                const optionDescription = option.description || getKindDescription(option.kind);
-
-                return (
-                  <Radio key={option.optionId} value={option.optionId} style={{ marginBottom: '12px', display: 'flex', alignItems: 'flex-start' }}>
-                    <div style={{ marginLeft: '4px' }}>
-                      <div style={{ fontWeight: 500 }}>{optionName}</div>
-                      {optionDescription && <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '2px' }}>{optionDescription}</div>}
-                    </div>
-                  </Radio>
-                );
-              })
-            ) : (
-              <Text type='secondary'>No options available</Text>
-            )}
-          </Radio.Group>
-        </div>
-
-        <div className='flex justify-end pt-2'>
-          <Button type='primary' size='small' onClick={handleResponse} loading={isResponding} disabled={hasResponded || !selectedOption}>
-            {hasResponded ? 'Response Sent' : 'Send Response'}
-          </Button>
-        </div>
+        </Radio.Group>
       </div>
-    </Card>
+    </div>
   );
 };
 
