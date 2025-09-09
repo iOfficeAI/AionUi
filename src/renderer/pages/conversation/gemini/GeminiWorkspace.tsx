@@ -33,12 +33,13 @@ const GeminiWorkspace: React.FC<{
   const refreshWorkspace = () => {
     setLoading(true);
     const startTime = Date.now();
-    
+
     // 根据 eventPrefix 选择对应的 getWorkspace 方法
-    const getWorkspaceMethod = eventPrefix === 'acp' 
-      ? ipcBridge.acpConversation.getWorkspace // 使用 ACP 专用的 getWorkspace
-      : ipcBridge.geminiConversation.getWorkspace;
-    
+    const getWorkspaceMethod =
+      eventPrefix === 'acp'
+        ? ipcBridge.acpConversation.getWorkspace // 使用 ACP 专用的 getWorkspace
+        : ipcBridge.geminiConversation.getWorkspace;
+
     getWorkspaceMethod
       .invoke({ workspace: workspace })
       .then((res) => {
@@ -67,6 +68,14 @@ const GeminiWorkspace: React.FC<{
   useEffect(() => {
     return ipcBridge.geminiConversation.responseStream.on((data) => {
       if (data.type === 'tool_group' || data.type === 'tool_call') {
+        refreshWorkspace();
+      }
+    });
+  }, [workspace]);
+
+  useEffect(() => {
+    return ipcBridge.acpConversation.responseStream.on((data) => {
+      if (data.type === 'tool_call') {
         refreshWorkspace();
       }
     });

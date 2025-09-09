@@ -273,7 +273,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         id: uuid(),
         type: 'acp_permission',
         msg_id: message.msg_id,
-        position: 'center',
+        position: 'left',
         conversation_id: message.conversation_id,
         content: message.data,
       };
