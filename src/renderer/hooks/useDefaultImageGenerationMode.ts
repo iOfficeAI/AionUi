@@ -16,6 +16,21 @@ const useDefaultImageGenerationMode = (defaultSetting = true) => {
       }
       throw new Error('No image generation model found');
     } catch (e) {
+      // 优先选择 Gemini 平台的图像模型
+      for (const platform of modelListWithImage) {
+        const { model, ...other } = platform;
+        if (other.platform === 'gemini' && (!other.baseUrl || other.baseUrl.trim() === '')) {
+          for (const m of model) {
+            if (m.includes('gemini') && m.includes('image')) {
+              await ConfigStorage.set('tools.imageGenerationModel', { useModel: m, ...other, switch: true });
+              message.info(t('messages.imageGenerationModelDetected', { platform: other.platform, model: m }));
+              return;
+            }
+          }
+        }
+      }
+
+      // 如果没有找到 Gemini 图像模型，回退到 OpenRouter 免费图像模型
       for (const platform of modelListWithImage) {
         const { model, ...other } = platform;
         for (const m of model) {
