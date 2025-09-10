@@ -129,3 +129,6 @@ out/
 debug.log
 test-*.js
 diagnose-*.js
+
+.gemini/
+gha-creds-*.json
