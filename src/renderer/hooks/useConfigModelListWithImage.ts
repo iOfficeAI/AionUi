@@ -14,7 +14,7 @@ const useConfigModelListWithImage = () => {
         // 原生 Google Gemini 平台（baseUrl 为空）至少要有 gemini-2.5-flash-image-preview
         const hasGeminiImage = platform.model.some((m) => m.includes('gemini') && m.includes('image'));
         if (!hasGeminiImage) {
-          platform.model = platform.model.concat(['models/gemini-2.5-flash-image-preview']);
+          platform.model = platform.model.concat(['gemini-2.5-flash-image-preview']);
         }
       } else if (platform.platform === 'OpenRouter' && platform.baseUrl && platform.baseUrl.includes('openrouter.ai')) {
         // 官方 OpenRouter 平台（baseUrl 包含 openrouter.ai）至少要有免费图像模型

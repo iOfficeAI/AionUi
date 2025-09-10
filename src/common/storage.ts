@@ -72,14 +72,17 @@ export type TChatConversation =
         webSearchEngine?: 'google' | 'default'; // 搜索引擎配置
       }
     >
-  | IChatConversation<
-      'acp',
-      {
-        workspace?: string;
-        backend: AcpBackend;
-        cliPath?: string;
-        customWorkspace?: boolean;
-      }
+  | Omit<
+      IChatConversation<
+        'acp',
+        {
+          workspace?: string;
+          backend: AcpBackend;
+          cliPath?: string;
+          customWorkspace?: boolean;
+        }
+      >,
+      'model'
     >;
 
 export type IChatConversationRefer = {

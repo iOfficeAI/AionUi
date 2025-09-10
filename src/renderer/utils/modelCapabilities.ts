@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IProvider, ModelCapability, ModelType } from '@/common/storage';
+import type { IProvider, ModelType } from '@/common/storage';
 
 // 能力判断缓存
 const modelCapabilitiesCache = new Map<string, boolean | undefined>();
@@ -111,7 +111,7 @@ const getProviderCapabilityRule = (provider: string, type: ModelType): boolean |
 export const hasModelCapability = (model: IProvider, type: ModelType): boolean | undefined => {
   // 生成缓存键（包含 capabilities 版本以避免缓存过期）
   const capabilitiesHash = model.capabilities ? JSON.stringify(model.capabilities) : '';
-  const cacheKey = `${model.id}-${model.name}-${model.platform}-${type}-${capabilitiesHash}`;
+  const cacheKey = `${model.id}-${model.platform}-${type}-${capabilitiesHash}`;
 
   // 检查缓存
   if (modelCapabilitiesCache.has(cacheKey)) {

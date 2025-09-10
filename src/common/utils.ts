@@ -9,3 +9,9 @@ export const uuid = (length = 8) => {
     .toString(36)
     .substring(2, 2 + length);
 };
+
+export const parseError = (error: any): string => {
+  if (typeof error === 'string') return error;
+  if (error instanceof Error) return error.message;
+  return error.msg || error.message || JSON.stringify(error);
+};

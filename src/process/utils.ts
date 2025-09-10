@@ -134,3 +134,12 @@ export async function verifyDirectoryFiles(dir1: string, dir2: string): Promise<
     return false;
   }
 }
+
+export const copyFilesToDirectory = async (dir: string, files?: string[]) => {
+  if (!files) return Promise.resolve();
+  for (const file of files) {
+    const fileName = path.basename(file);
+    const destPath = path.join(dir, fileName);
+    await fs.copyFile(file, destPath);
+  }
+};

@@ -11,6 +11,7 @@ import { getProviderAuthType } from '@/common/utils/platformAuthType';
 import type { CompletedToolCall, Config, GeminiClient, ServerGeminiStreamEvent, ToolCall, ToolCallRequestInfo } from '@office-ai/aioncli-core';
 import { AuthType, CoreToolScheduler, sessionId } from '@office-ai/aioncli-core';
 import { execSync } from 'child_process';
+import { ApiKeyManager } from '../../common/ApiKeyManager';
 import { handleAtCommand } from './cli/atCommandProcessor';
 import { loadCliConfig, loadHierarchicalGeminiMemory } from './cli/config';
 import type { Extension } from './cli/extension';
@@ -20,7 +21,6 @@ import { loadSettings } from './cli/settings';
 import { ConversationToolConfig } from './cli/tools/conversation-tool-config';
 import { mapToDisplay } from './cli/useReactToolScheduler';
 import { getPromptCount, handleCompletedTools, processGeminiStreamEvents, startNewPrompt } from './utils';
-import { ApiKeyManager } from '../../common/ApiKeyManager';
 
 // Global registry for current agent instance (used by flashFallbackHandler)
 let currentGeminiAgent: GeminiAgent | null = null;
