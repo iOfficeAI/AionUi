@@ -35,20 +35,105 @@ export interface AcpNotification {
 
 export type AcpMessage = AcpRequest | AcpNotification | AcpResponse | AcpSessionUpdate;
 
-export interface AcpSessionUpdate {
+// Base interface for all session updates
+interface BaseSessionUpdate {
   sessionId: string;
+}
+
+// Agent message chunk update
+interface AgentMessageChunkUpdate extends BaseSessionUpdate {
   update: {
-    sessionUpdate: 'agent_message_chunk' | 'agent_thought_chunk' | 'tool_call';
+    sessionUpdate: 'agent_message_chunk';
+    content: {
+      type: 'text' | 'image';
+      text?: string;
+      data?: string;
+      mimeType?: string;
+      uri?: string;
+    };
+  };
+}
+
+// Agent thought chunk update
+interface AgentThoughtChunkUpdate extends BaseSessionUpdate {
+  update: {
+    sessionUpdate: 'agent_thought_chunk';
     content: {
       type: 'text';
       text: string;
     };
-    toolCallId?: string;
-    status?: string;
-    title?: string;
-    kind?: string;
   };
 }
+
+// Tool call update
+interface ToolCallUpdate extends BaseSessionUpdate {
+  update: {
+    sessionUpdate: 'tool_call';
+    toolCallId: string;
+    status: 'pending' | 'in_progress';
+    title: string;
+    kind: 'read' | 'edit' | 'execute';
+    rawInput?: any;
+    content?: Array<{
+      type: 'content' | 'diff';
+      content?: {
+        type: 'text';
+        text: string;
+      };
+      path?: string;
+      oldText?: string | null;
+      newText?: string;
+    }>;
+    locations?: Array<{
+      path: string;
+    }>;
+  };
+}
+
+// Tool call update (status change)
+interface ToolCallUpdateStatus extends BaseSessionUpdate {
+  update: {
+    sessionUpdate: 'tool_call_update';
+    toolCallId: string;
+    status: 'completed' | 'failed';
+    content?: Array<{
+      type: 'content';
+      content: {
+        type: 'text';
+        text: string;
+      };
+    }>;
+  };
+}
+
+// Plan update
+interface PlanUpdate extends BaseSessionUpdate {
+  update: {
+    sessionUpdate: 'plan';
+    entries: Array<{
+      content: string;
+      status: 'pending' | 'in_progress' | 'completed';
+      priority?: 'low' | 'medium' | 'high';
+    }>;
+  };
+}
+
+// Available commands update
+interface AvailableCommandsUpdate extends BaseSessionUpdate {
+  update: {
+    sessionUpdate: 'available_commands_update';
+    availableCommands: Array<{
+      name: string;
+      description: string;
+      input?: {
+        hint?: string;
+      } | null;
+    }>;
+  };
+}
+
+// Union type for all session updates
+export type AcpSessionUpdate = AgentMessageChunkUpdate | AgentThoughtChunkUpdate | ToolCallUpdate | ToolCallUpdateStatus | PlanUpdate | AvailableCommandsUpdate;
 
 export interface AcpPermissionRequest {
   sessionId: string;
@@ -111,8 +196,8 @@ export class AcpAdapter {
       if (message) {
         messages.push(message);
       }
-    } else if (update.sessionUpdate === 'tool_call' && update.content) {
-      const message = this.convertToolCall(sessionUpdate);
+    } else if (update.sessionUpdate === 'tool_call') {
+      const message = this.convertToolCall(sessionUpdate as ToolCallUpdate);
       if (message) {
         messages.push(message);
       }
@@ -124,7 +209,7 @@ export class AcpAdapter {
   /**
    * Convert ACP session update chunk to AionUI message
    */
-  private convertSessionUpdateChunk(update: AcpSessionUpdate['update']): TMessage | null {
+  private convertSessionUpdateChunk(update: AgentMessageChunkUpdate['update']): TMessage | null {
     const baseMessage = {
       id: uuid(),
       conversation_id: this.conversationId,
@@ -148,7 +233,7 @@ export class AcpAdapter {
   /**
    * Convert ACP thought chunk to AionUI message
    */
-  private convertThoughtChunk(update: AcpSessionUpdate['update']): TMessage | null {
+  private convertThoughtChunk(update: AgentThoughtChunkUpdate['update']): TMessage | null {
     const baseMessage = {
       id: uuid(),
       conversation_id: this.conversationId,
@@ -256,7 +341,7 @@ export class AcpAdapter {
   /**
    * Convert ACP single tool call to AionUI tool_call message
    */
-  private convertToolCall(content: AcpSessionUpdate): TMessage {
+  private convertToolCall(content: ToolCallUpdate): TMessage {
     const baseMessage = {
       id: uuid(),
       conversation_id: this.conversationId,
