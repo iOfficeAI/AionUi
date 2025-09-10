@@ -23,7 +23,7 @@ const useDefaultImageGenerationMode = (defaultSetting = true) => {
           for (const m of model) {
             if (m.includes('gemini') && m.includes('image')) {
               await ConfigStorage.set('tools.imageGenerationModel', { useModel: m, ...other, switch: true });
-              message.info(t('messages.imageGenerationModelDetected', { platform: other.platform, model: m }));
+              // message.info(t('messages.imageGenerationModelDetected', { platform: other.platform, model: m }));
               return;
             }
           }
@@ -36,18 +36,18 @@ const useDefaultImageGenerationMode = (defaultSetting = true) => {
         for (const m of model) {
           if (other.platform.includes('OpenRouter') && m.includes('image') && m.includes('free')) {
             await ConfigStorage.set('tools.imageGenerationModel', { useModel: m, ...other, switch: true });
-            message.info(t('messages.imageGenerationModelDetected', { platform: other.platform, model: m }));
+            // message.info(t('messages.imageGenerationModelDetected', { platform: other.platform, model: m }));
             return;
           }
         }
       }
     }
   };
-  useEffect(() => {
-    if (modelListWithImage?.length > 0 && defaultSetting) {
-      updateDefaultImageGenerationMode();
-    }
-  }, [modelListWithImage, defaultSetting]);
+  // useEffect(() => {
+  //   if (modelListWithImage?.length > 0 && defaultSetting) {
+  //     updateDefaultImageGenerationMode();
+  //   }
+  // }, [modelListWithImage, defaultSetting]);
   return { contextHolder, updateDefaultImageGenerationMode };
 };
 
