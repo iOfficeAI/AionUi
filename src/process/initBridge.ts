@@ -14,13 +14,14 @@ import OpenAI from 'openai';
 import path from 'path';
 import { ipcBridge } from '../common';
 import { createAcpAgent, createGeminiAgent } from './initAgent';
-import { getSystemDir, ProcessChat, ProcessChatMessage, ProcessConfig, ProcessEnv, recoverConversationById } from './initStorage';
+import { getSystemDir, ProcessChat, ProcessChatMessage, ProcessConfig, ProcessEnv } from './initStorage';
 import { nextTickToLocalFinish } from './message';
 import type AcpAgentManager from './task/AcpAgentManager';
 import type { GeminiAgentManager } from './task/GeminiAgentManager';
 import { copyDirectoryRecursively, copyFilesToDirectory, generateHashWithFullName, readDirectoryRecursive } from './utils';
 import WorkerManage from './WorkerManage';
 import { acpDetector } from '@/agent/acp/AcpDetector';
+
 logger.config({ print: true });
 
 ipcBridge.dialog.showOpen.provider((options) => {
@@ -124,23 +125,15 @@ ipcBridge.conversation.reset.provider(async ({ id }) => {
     WorkerManage.kill(id);
   } else WorkerManage.clear();
 });
-
 ipcBridge.conversation.get.provider(async ({ id }) => {
   return ProcessChat.get('chat.history')
     .then((history) => {
-      return history?.find((item) => item.id === id);
+      return history.find((item) => item.id === id);
     })
-    .then(async (conversation) => {
-      // 如果在chat.history中找不到，直接根据ID查找文件并恢复 // @todo
-      if (!conversation) {
-        conversation = await recoverConversationById(id);
-        if (!conversation) {
-          return null;
-        }
-        // 将恢复的对话添加到chat.history中
-        const currentHistory = (await ProcessChat.get('chat.history')) || [];
-        currentHistory.push(conversation);
-        await ProcessChat.set('chat.history', currentHistory);
+    .then((conversation) => {
+      if (conversation) {
+        const task = WorkerManage.getTaskById(id);
+        conversation.status = task?.status;
       }
       return conversation;
     });
