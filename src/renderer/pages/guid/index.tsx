@@ -371,9 +371,7 @@ const Guid: React.FC = () => {
                     </Menu>
                   }
                 >
-                  <Button icon={<Plus theme='outline' size='14' strokeWidth={2} fill='#333' />} shape='round'>
-                    {currentModel ? currentModel.useModel : 'Select Model'}
-                  </Button>
+                  <Button shape='round'>{currentModel ? currentModel.useModel : 'Select Model'}</Button>
                 </Dropdown>
               )}
             </div>
