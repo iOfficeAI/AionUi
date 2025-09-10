@@ -46,7 +46,7 @@ export class AcpConnection {
 
     switch (backend) {
       case 'claude':
-        await this.connectClaude(cliPath, workingDir);
+        await this.connectClaude(workingDir);
         break;
 
       case 'gemini':
@@ -62,15 +62,10 @@ export class AcpConnection {
     }
   }
 
-  private async connectClaude(cliPath?: string, workingDir: string = process.cwd()): Promise<void> {
+  private async connectClaude(workingDir: string = process.cwd()): Promise<void> {
     // Use npm package version of Claude Code ACP with patch support
     const claudeAcpPath = path.join(__dirname, '..', '..', 'node_modules', '@zed-industries', 'claude-code-acp', 'dist', 'index.js');
-    console.log('================>claudeAcpPath', claudeAcpPath);
     const args = [claudeAcpPath];
-    if (cliPath) {
-      args.push('--claude-path', cliPath);
-    }
-
     // Clean environment
     const cleanEnv = { ...process.env };
     delete cleanEnv.NODE_OPTIONS;
