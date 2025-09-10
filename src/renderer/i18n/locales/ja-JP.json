@@ -29,7 +29,6 @@
       "uploadFile": "ファイルを追加",
       "linkFolder": "フォルダを追加",
       "newConversation": "新しいチャット",
-      "multiAgentDetected": "✅CLIツールが検出されました✅",
       "multiAgentModeEnabled": "マルチエージェントモードに入ります"
     },
     "history": {
