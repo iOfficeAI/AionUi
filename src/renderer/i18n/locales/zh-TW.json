@@ -29,7 +29,6 @@
       "uploadFile": "上傳檔案",
       "linkFolder": "開啟資料夾",
       "newConversation": "新對話",
-      "multiAgentDetected": "✅檢測到您已安裝CLI工具✅",
       "multiAgentModeEnabled": "已進入多智能體模式"
     },
     "history": {
@@ -110,6 +109,9 @@
   "acp": {
     "auth": {
       "failed": "{{backend}} 認證失敗：\n\n{{error}}\n\n請檢查本地CLI工具的認證狀態"
+    },
+    "sendbox": {
+      "placeholder": "發送訊息到 {{backend}}..."
     }
   }
 }

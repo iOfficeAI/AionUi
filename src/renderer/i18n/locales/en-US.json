@@ -29,7 +29,6 @@
       "uploadFile": "Upload Files",
       "linkFolder": "Open Folder",
       "newConversation": "New Chat",
-      "multiAgentDetected": "✅CLI tools detected✅",
       "multiAgentModeEnabled": "Entering multi-agent mode"
     },
     "history": {
@@ -110,6 +109,9 @@
   "acp": {
     "auth": {
       "failed": "{{backend}} authentication failed:\n\n{{error}}\n\nPlease check your local CLI tool authentication status"
+    },
+    "sendbox": {
+      "placeholder": "Send message to {{backend}}..."
     }
   }
 }

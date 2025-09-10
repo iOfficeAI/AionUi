@@ -67,7 +67,7 @@ export const mode = {
 
 // ACP对话相关接口 - 使用独立的sendMessage和responseStream
 const acpSendMessage = bridge.buildProvider<IBridgeResponse<{}>, ISendMessageParams>('acp.send.message');
-const acpResponseStream = bridge.buildEmitter<IResponseMessage>('acp.response.stream');
+const acpResponseStream = bridge.buildEmitter<ACPResponseMessage>('acp.response.stream');
 
 export const acpConversation = {
   sendMessage: acpSendMessage,
@@ -95,14 +95,14 @@ interface IConfirmGeminiMessageParams {
   callId: string;
 }
 
-interface IConfirmAcpMessageParams {
+export interface IConfirmAcpMessageParams {
   confirmKey: string;
   msg_id: string;
   conversation_id: string;
   callId: string;
 }
 
-interface ICreateConversationParams {
+export interface ICreateConversationParams {
   type: 'gemini' | 'acp';
   name?: string;
   model: TProviderWithModel;
@@ -129,6 +129,9 @@ export interface IResponseMessage {
   data: any;
   msg_id: string;
   conversation_id: string;
+}
+export interface ACPResponseMessage extends IResponseMessage {
+  isLoadingReplacement?: boolean;
 }
 
 interface IBridgeResponse<D = {}> {

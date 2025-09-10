@@ -4,134 +4,72 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ipcBridge } from '@/common';
+import type { AcpPermissionRequest, AcpSessionUpdate } from '@/agent/acp/AcpAdapter';
+import { AcpAdapter } from '@/agent/acp/AcpAdapter';
+import { AcpErrorType, createAcpError } from '@/common/acpTypes';
+import type { AcpBackend, AcpResult } from '@/common/acpTypes';
 import type { TMessage } from '@/common/chatLib';
-import { transformMessage } from '@/common/chatLib';
-import type { TProviderWithModel } from '@/common/storage';
+import type { IResponseMessage } from '@/common/ipcBridge';
 import { uuid } from '@/common/utils';
-import { EventEmitter } from 'events';
-import { AcpAdapter } from '../../adapter/AcpAdapter';
-import { AcpConfigManager } from '../AcpConfig';
-import type { AcpBackend, AcpPermissionRequest, AcpSessionUpdate } from '../AcpConnection';
-import { AcpConnection } from '../AcpConnection';
-import { addMessage, addOrUpdateMessage, updateMessage } from '../message';
-import { ProcessChat } from '../initStorage';
-import { AcpErrorType, createAcpError, type AcpResult } from '@/common/acpTypes';
+import { AcpConnection } from './AcpConnection';
 
 export interface AcpAgentConfig {
   id: string;
-  name: string;
   backend: AcpBackend;
   cliPath?: string;
   workingDir: string;
-  // Optional fields for restoring existing conversations
-  createTime?: number;
-  modifyTime?: number;
   extra?: {
     workspace?: string;
     backend: AcpBackend;
     cliPath?: string;
     customWorkspace?: boolean;
   };
-  model?: TProviderWithModel;
+  onStreamEvent: (data: IResponseMessage) => void;
+  onReplaceLoadingMessage: (data: { id: string; msg_id: string; text: string; loadingMessageId?: string }) => void;
 }
 
 // ACP agent任务类
-export class AcpAgentTask extends EventEmitter {
-  public id: string;
-  public name: string;
-  public type = 'acp' as const;
-  public backend: AcpBackend;
-  public workspace: string;
-  public status: 'pending' | 'running' | 'finished' = 'pending';
-
-  // TChatConversation required fields
-  public createTime: number;
-  public modifyTime: number;
-  public extra: {
+export class AcpAgent {
+  private readonly id: string;
+  private extra: {
     workspace?: string;
     backend: AcpBackend;
     cliPath?: string;
     customWorkspace?: boolean;
   };
-  public model: TProviderWithModel;
-
   private connection: AcpConnection;
-
   private adapter: AcpAdapter;
-
-  private cliPath?: string;
   private pendingPermissions = new Map<string, { resolve: (response: any) => void; reject: (error: any) => void }>();
-
   // Message accumulation for streaming chunks
   private currentAssistantMsgId: string | null = null;
-
   // Fixed IDs for status messages to prevent duplication
   private statusMessageId: string | null = null;
-
   // Loading message ID for ACP response waiting
-  private loadingMessageId: string | null = null;
+  public loadingMessageId: string | null = null;
+  private readonly onStreamEvent: (data: IResponseMessage) => void;
+  private readonly onReplaceLoadingMessage: (data: { id: string; msg_id: string; text: string; loadingMessageId: string }) => void;
 
   constructor(config: AcpAgentConfig) {
-    super();
-
     this.id = config.id;
-    this.name = config.name;
-    this.backend = config.backend;
-    this.workspace = config.workingDir;
-    this.cliPath = config.cliPath;
-
-    // Initialize TChatConversation required fields
-    // Use provided times if restoring, otherwise create new
-    this.createTime = config.createTime || Date.now();
-    this.modifyTime = config.modifyTime || Date.now();
+    this.onStreamEvent = config.onStreamEvent;
+    this.onReplaceLoadingMessage = config.onReplaceLoadingMessage;
     this.extra = config.extra || {
       workspace: config.workingDir,
       backend: config.backend,
       cliPath: config.cliPath,
       customWorkspace: false, // Default to system workspace
     };
-    this.model = config.model || {
-      id: `acp-${config.backend}`,
-      platform: 'acp',
-      name: `${config.backend.toUpperCase()} ACP`,
-      baseUrl: '',
-      apiKey: '',
-      useModel: config.backend,
-    };
 
     this.connection = new AcpConnection();
-    this.adapter = new AcpAdapter(this.id, this.backend);
+    this.adapter = new AcpAdapter(this.id, this.extra.backend);
 
     this.setupConnectionHandlers();
-  }
-
-  private async loadSavedConfig(): Promise<void> {
-    try {
-      // Skip saving CLI path for now to avoid blocking
-      if (this.cliPath) {
-        // Using provided CLI path
-      } else {
-        // Load saved CLI path if not provided in config
-        try {
-          const savedCliPath = (await Promise.race([AcpConfigManager.getCliPath(this.backend), new Promise((_, reject) => setTimeout(() => reject(new Error('GetCliPath timeout')), 1000))])) as string | undefined;
-          if (savedCliPath) {
-            this.cliPath = savedCliPath;
-          }
-        } catch (error) {
-          // Skipping CLI path check due to storage timeout
-        }
-      }
-    } catch (error) {
-      // Don't throw - just continue with what we have
-    }
   }
 
   private setupConnectionHandlers(): void {
     this.connection.onSessionUpdate = (data: AcpSessionUpdate) => {
       this.handleSessionUpdate(data);
     };
-
     this.connection.onPermissionRequest = (data: AcpPermissionRequest) => {
       return this.handlePermissionRequest(data);
     };
@@ -140,45 +78,36 @@ export class AcpAgentTask extends EventEmitter {
   // 启动ACP连接和会话
   async start(): Promise<void> {
     try {
-      await this.loadSavedConfig();
-
-      this.status = 'running';
-      this.emitStatusMessage('connecting', `Connecting to ${this.backend}...`);
+      this.emitStatusMessage('connecting', `Connecting to ${this.extra.backend}...`);
 
       await Promise.race([
-        this.connection.connect(this.backend, this.cliPath, this.workspace),
+        this.connection.connect(this.extra.backend, this.extra.cliPath, this.extra.workspace),
         new Promise((_, reject) =>
           setTimeout(() => {
             reject(new Error('Connection timeout after 30 seconds'));
           }, 30000)
         ),
       ]);
-      this.emitStatusMessage('connected', `Connected to ${this.backend} ACP server`);
-
-      // Authenticate based on available methods
+      this.emitStatusMessage('connected', `Connected to ${this.extra.backend} ACP server`);
       await this.performAuthentication();
-
-      // Create new session
-      await this.connection.newSession(this.workspace);
-      this.emitStatusMessage('session_active', `Active session created with ${this.backend}`);
+      // 避免重复创建会话：仅当尚无活动会话时再创建
+      if (!this.connection.hasActiveSession) {
+        await this.connection.newSession(this.extra.workspace);
+      }
+      this.emitStatusMessage('session_active', `Active session created with ${this.extra.backend}`);
     } catch (error) {
-      this.status = 'finished';
-      this.emitStatusMessage('error', `Failed to start ${this.backend}: ${error instanceof Error ? error.message : String(error)}`);
+      this.emitStatusMessage('error', `Failed to start ${this.extra.backend}: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
   }
 
   async stop(): Promise<void> {
-    this.status = 'finished';
     this.connection.disconnect();
-    this.emitStatusMessage('disconnected', `Disconnected from ${this.backend}`);
+    this.emitStatusMessage('disconnected', `Disconnected from ${this.extra.backend}`);
   }
 
   // 发送消息到ACP服务器
   async sendMessage(data: { content: string; files?: string[]; msg_id?: string; loading_id?: string }): Promise<AcpResult> {
-    // Capture the send timestamp for proper message ordering
-    const sendTimestamp = Date.now();
-
     try {
       if (!this.connection.isConnected || !this.connection.hasActiveSession) {
         return {
@@ -186,13 +115,9 @@ export class AcpAgentTask extends EventEmitter {
           error: createAcpError(AcpErrorType.CONNECTION_NOT_READY, 'ACP connection not ready', true),
         };
       }
-
       // Save user message to chat history only after successful processing
       // This will be done after the message is successfully sent
-
       // Update modify time for user activity
-      this.modifyTime = Date.now();
-
       // Smart processing for ACP file references to avoid @filename confusion
       let processedContent = data.content;
 
@@ -220,23 +145,6 @@ export class AcpAgentTask extends EventEmitter {
       // Send processed content to ACP service to avoid @ symbol confusion
       await this.connection.sendPrompt(processedContent);
 
-      // Save user message to chat history ONLY after successful sending
-      if (data.msg_id && data.content) {
-        const userMessage: TMessage = {
-          id: data.msg_id,
-          msg_id: data.msg_id,
-          type: 'text',
-          position: 'right',
-          conversation_id: this.id,
-          content: {
-            content: data.content,
-          },
-          createdAt: sendTimestamp,
-        };
-        addMessage(this.id, userMessage);
-        // User message saved to persistent storage
-      }
-
       // Clear message IDs for new conversation turn (but keep loading ID)
       this.currentAssistantMsgId = null;
       this.statusMessageId = null;
@@ -247,7 +155,7 @@ export class AcpAgentTask extends EventEmitter {
 
       // Special handling for Internal error
       if (errorMsg.includes('Internal error')) {
-        if (this.backend === 'qwen') {
+        if (this.extra.backend === 'qwen') {
           const enhancedMsg = `Qwen ACP Internal Error: This usually means authentication failed or ` + `the Qwen CLI has compatibility issues. Please try: 1) Restart the application ` + `2) Use 'npx @qwen-code/qwen-code' instead of global qwen 3) Check if you have valid Qwen credentials.`;
           this.emitErrorMessage(enhancedMsg);
           return {
@@ -309,86 +217,28 @@ export class AcpAgentTask extends EventEmitter {
 
   private handleSessionUpdate(data: AcpSessionUpdate): void {
     try {
-      // Handle the new session update format from Gemini ACP
-      if ('update' in data) {
-        const update = (data as any).update;
-
-        if (update.sessionUpdate === 'agent_message_chunk' && update.content) {
-          this.handleMessageChunk(update.content.text, 'assistant');
-        } else if (update.sessionUpdate === 'agent_thought_chunk' && update.content) {
-          this.handleMessageChunk(update.content.text, 'thought');
-        }
-
-        return;
-      }
-
-      // Handle legacy format
       const messages = this.adapter.convertSessionUpdate(data);
-      for (const message of messages) {
-        this.emitMessage(message);
+
+      for (let i = 0; i < messages.length; i++) {
+        const message = messages[i];
+
+        if (message.type === 'text') {
+          // 如果是第一个文本分片且还没有 currentAssistantMsgId
+          if (!this.currentAssistantMsgId && this.loadingMessageId) {
+            // 创建 assistant message ID
+            this.currentAssistantMsgId = uuid();
+            // 替换 loading 消息为第一个分片内容
+            this.replaceLoadingMessage(message.content.content);
+          } else {
+            this.emitMessage(message);
+          }
+        } else {
+          // 非文本消息直接发送
+          this.emitMessage(message);
+        }
       }
     } catch (error) {
       this.emitErrorMessage(`Failed to process session update: ${error instanceof Error ? error.message : String(error)}`);
-    }
-  }
-
-  private handleMessageChunk(text: string, type: 'assistant' | 'thought'): void {
-    let msgId: string;
-
-    if (type === 'assistant') {
-      // Create new message ID if this is the first chunk of this type
-      if (!this.currentAssistantMsgId) {
-        this.currentAssistantMsgId = uuid();
-
-        // If there's a loading message, replace it with first chunk
-        if (this.loadingMessageId) {
-          // Replace the loading message but keep the assistant message ID separate from loading ID
-          // This ensures AI reply has its own unique msg_id, not the loading message ID
-          this.replaceLoadingMessage(text);
-          this.loadingMessageId = null;
-          return; // Don't emit a new message, we've replaced the loading one
-        }
-      }
-      msgId = this.currentAssistantMsgId;
-    } else {
-      // For thought messages, always create a new ID for each distinct thought
-      // This prevents different thought chunks from being merged together
-      msgId = uuid();
-    }
-
-    // Emit message chunk with consistent msg_id for composition
-    this.emitMessageChunk(text, type, msgId);
-  }
-
-  private emitMessageChunk(text: string, type: 'assistant' | 'thought', msgId: string): void {
-    const baseMessage = {
-      id: msgId,
-      msg_id: msgId, // Important: msg_id for composeMessage logic
-      conversation_id: this.id,
-      createdAt: Date.now(),
-    };
-
-    if (type === 'assistant') {
-      const message = {
-        ...baseMessage,
-        type: 'text' as const,
-        position: 'left' as const,
-        content: {
-          content: text,
-        },
-      };
-      this.emitMessage(message);
-    } else if (type === 'thought') {
-      const message = {
-        ...baseMessage,
-        type: 'tips' as const,
-        position: 'center' as const,
-        content: {
-          content: text,
-          type: 'warning' as const,
-        },
-      };
-      this.emitMessage(message);
     }
   }
 
@@ -429,7 +279,7 @@ export class AcpAgentTask extends EventEmitter {
       position: 'center',
       createdAt: Date.now(),
       content: {
-        backend: this.backend,
+        backend: this.extra.backend,
         status,
         message,
       },
@@ -455,47 +305,11 @@ export class AcpAgentTask extends EventEmitter {
     if (!this.loadingMessageId || !this.currentAssistantMsgId) {
       return;
     }
-
-    // Emit replacement message to UI - use loading message ID for replacement
-    // but the content will get the assistant message ID for future chunks
-    const responseMessage = {
-      conversation_id: this.id,
-      msg_id: this.loadingMessageId, // Use loading ID to find and replace the loading message
-      type: 'content',
-      data: text,
-      isLoadingReplacement: true, // Special flag to indicate this should replace loading content
-      assistantMsgId: this.currentAssistantMsgId, // Pass assistant ID for UI to update message properly
-    };
-
-    ipcBridge.acpConversation.responseStream.emit(responseMessage);
-
-    // Create the replacement message for persistent storage
-    const replacementMessage: TMessage = {
-      id: this.currentAssistantMsgId, // Use assistant message ID
-      msg_id: this.currentAssistantMsgId, // Set msg_id for proper composition
-      type: 'text',
-      position: 'left',
-      conversation_id: this.id,
-      content: {
-        content: text,
-      },
-      createdAt: Date.now(),
-    };
-
-    // Update the message in persistent storage - remove loading message and add replacement
-    updateMessage(this.id, (messages: TMessage[]) => {
-      // Find the loading message to get its timestamp
-      const loadingMessage = messages.find((msg) => msg.id === this.loadingMessageId);
-      const loadingTimestamp = loadingMessage?.createdAt;
-
-      // Update replacement message with original loading message timestamp
-      if (loadingTimestamp) {
-        replacementMessage.createdAt = loadingTimestamp;
-      }
-
-      // Remove the loading message and add the replacement
-      const filteredMessages = messages.filter((msg) => msg.id !== this.loadingMessageId);
-      return [...filteredMessages, replacementMessage];
+    this.onReplaceLoadingMessage({
+      id: this.currentAssistantMsgId,
+      msg_id: this.loadingMessageId,
+      text,
+      loadingMessageId: this.loadingMessageId, // 传递 loading message ID
     });
   }
 
@@ -540,16 +354,11 @@ export class AcpAgentTask extends EventEmitter {
   }
 
   private emitMessage(message: TMessage): void {
-    // Update modify time when new messages are emitted
-    this.modifyTime = Date.now();
-
-    // Update conversation in chat history
-    this.updateChatHistory();
-
     // Create response message based on the message type, following GeminiAgentTask pattern
     const responseMessage: any = {
       conversation_id: this.id,
-      msg_id: message.id,
+      id: message.id,
+      msg_id: this.loadingMessageId,
     };
 
     // Map TMessage types to backend response types
@@ -581,22 +390,22 @@ export class AcpAgentTask extends EventEmitter {
           responseMessage.data = message.content.content;
         }
         break;
+      case 'tool_call': {
+        responseMessage.type = 'tool_call';
+        responseMessage.data = message.content.name;
+        break;
+      }
       default:
         responseMessage.type = 'content';
         responseMessage.data = typeof message.content === 'string' ? message.content : JSON.stringify(message.content);
     }
-
-    // Emit to ACP response stream for real-time UI updates
-    ipcBridge.acpConversation.responseStream.emit(responseMessage);
-
-    // Persist message to chat history (following GeminiAgentTask pattern)
-    addOrUpdateMessage(this.id, transformMessage(responseMessage));
+    this.onStreamEvent(responseMessage);
   }
 
-  // Methods to maintain compatibility with existing task interface
   postMessagePromise(action: string, data: any): Promise<any> {
     switch (action) {
       case 'send.message':
+        console.log('postMessagePromise', data);
         return this.sendMessage(data);
       case 'stop.stream':
         return this.stop();
@@ -618,45 +427,102 @@ export class AcpAgentTask extends EventEmitter {
     this.stop();
   }
 
+  private async ensureBackendAuth(backend: AcpBackend, loginArg: string): Promise<void> {
+    try {
+      this.emitStatusMessage('connecting', `Checking ${backend} authentication...`);
+
+      // 使用配置的 CLI 路径调用 login 命令
+      const { spawn } = await import('child_process');
+
+      if (!this.extra.cliPath) {
+        throw new Error(`No CLI path configured for ${backend} backend`);
+      }
+
+      // 使用与 AcpConnection 相同的命令解析逻辑
+      let command: string;
+      let args: string[];
+
+      if (this.extra.cliPath.startsWith('npx ')) {
+        // For "npx @qwen-code/qwen-code" or "npx @anthropic-ai/claude-code"
+        const parts = this.extra.cliPath.split(' ');
+        const isWindows = process.platform === 'win32';
+        command = isWindows ? 'npx.cmd' : 'npx';
+        args = [...parts.slice(1), loginArg];
+      } else {
+        // For regular paths like '/usr/local/bin/qwen' or '/usr/local/bin/claude'
+        command = this.extra.cliPath;
+        args = [loginArg];
+      }
+
+      const loginProcess = spawn(command, args, {
+        stdio: 'pipe', // 避免干扰用户界面
+        timeout: 30000,
+      });
+
+      await new Promise<void>((resolve, reject) => {
+        loginProcess.on('close', (code) => {
+          if (code === 0) {
+            console.log(`${backend} authentication refreshed`);
+            resolve();
+          } else {
+            reject(new Error(`${backend} login failed with code ${code}`));
+          }
+        });
+
+        loginProcess.on('error', reject);
+      });
+    } catch (error) {
+      console.warn(`${backend} auth refresh failed, will try to connect anyway:`, error);
+      // 不抛出错误，让连接尝试继续
+    }
+  }
+
+  private async ensureQwenAuth(): Promise<void> {
+    if (this.extra.backend !== 'qwen') return;
+    await this.ensureBackendAuth('qwen', 'login');
+  }
+
+  private async ensureClaudeAuth(): Promise<void> {
+    if (this.extra.backend !== 'claude') return;
+    await this.ensureBackendAuth('claude', '/login');
+  }
+
   private async performAuthentication(): Promise<void> {
     try {
       const initResponse = await this.connection.getInitializeResponse();
       if (!initResponse?.authMethods?.length) {
         // No auth methods available - CLI should handle authentication itself
-        this.emitStatusMessage('authenticated', `${this.backend} CLI is ready. Authentication is handled by the CLI itself.`);
+        this.emitStatusMessage('authenticated', `${this.extra.backend} CLI is ready. Authentication is handled by the CLI itself.`);
         return;
       }
 
-      // Check if CLI is already authenticated by trying to create a session
+      // 先尝试直接创建session以判断是否已鉴权
       try {
-        await this.connection.newSession(this.workspace);
-        this.emitStatusMessage('authenticated', `${this.backend} CLI is already authenticated and ready`);
+        await this.connection.newSession(this.extra.workspace);
+        this.emitStatusMessage('authenticated', `${this.extra.backend} CLI is already authenticated and ready`);
+        return;
+      } catch (_err) {
+        // 需要鉴权，进行条件化“预热”尝试
+      }
+
+      // 条件化预热：仅在需要鉴权时尝试调用后端CLI登录以刷新token
+      if (this.extra.backend === 'qwen') {
+        await this.ensureQwenAuth();
+      } else if (this.extra.backend === 'claude') {
+        await this.ensureClaudeAuth();
+      }
+
+      // 预热后重试创建session
+      try {
+        await this.connection.newSession(this.extra.workspace);
+        this.emitStatusMessage('authenticated', `${this.extra.backend} CLI authentication refreshed and ready`);
         return;
       } catch (error) {
-        // CLI requires authentication
-      }
-
-      // If CLI requires authentication, guide user to authenticate manually
-      this.emitStatusMessage('error', `${this.backend} CLI needs authentication. Please run '${this.backend} login' in terminal first, then reconnect.`);
-    } catch (error) {
-      this.emitStatusMessage('error', `Authentication check failed. Please ensure ${this.backend} CLI is properly installed and authenticated.`);
-    }
-  }
-
-  private async updateChatHistory(): Promise<void> {
-    try {
-      const history = await ProcessChat.get('chat.history');
-
-      if (history) {
-        const conversationIndex = history.findIndex((conv: any) => conv.id === this.id);
-
-        if (conversationIndex >= 0) {
-          const updatedHistory = history.map((conv: any) => (conv.id === this.id ? { ...conv, modifyTime: this.modifyTime } : conv));
-          await ProcessChat.set('chat.history', updatedHistory);
-        }
+        // If still failing,引导用户手动登录
+        this.emitStatusMessage('error', `${this.extra.backend} CLI needs authentication. Please run '${this.extra.backend} login' in terminal first, then reconnect.`);
       }
     } catch (error) {
-      // Failed to update chat history
+      this.emitStatusMessage('error', `Authentication check failed. Please ensure ${this.extra.backend} CLI is properly installed and authenticated.`);
     }
   }
 }

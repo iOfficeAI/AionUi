@@ -1,6 +1,5 @@
 import { ipcBridge } from '@/common';
 import type { AcpBackend } from '@/common/acpTypes';
-import { isRetryableError } from '@/common/acpTypes';
 import { transformMessage, type TMessage } from '@/common/chatLib';
 // import type { TModelWithConversation } from '@/common/storage';
 import { uuid } from '@/common/utils';
@@ -36,7 +35,6 @@ const useAcpMessage = (conversation_id: string) => {
       if (conversation_id !== message.conversation_id) {
         return;
       }
-
       switch (message.type) {
         case 'thought':
           setThought(message.data);
@@ -56,7 +54,7 @@ const useAcpMessage = (conversation_id: string) => {
             setThought({ subject: '', description: '' });
 
             // Handle loading replacement specially
-            if ((message as any).isLoadingReplacement) {
+            if (message.isLoadingReplacement) {
               // Use our custom replacement function to avoid concatenation
               replaceLoadingMessage(message);
             } else {
@@ -123,39 +121,25 @@ const useAcpMessage = (conversation_id: string) => {
     };
   }, [conversation_id]);
 
-  // Create a custom function to replace loading content without concatenation
   const replaceLoadingMessage = (message: any) => {
     updateMessageList((list: TMessage[]) => {
-      let found = false;
-      const newList = list.map((msg: TMessage) => {
-        if (msg.id === message.msg_id) {
-          found = true;
-          // Successfully found and replacing loading message
-          // Use assistant message ID for proper future composition
-          const replacementMessage = {
+      return list.map((msg: TMessage) => {
+        if (msg.msg_id === message.msg_id) {
+          return {
             ...msg,
             id: message.assistantMsgId || message.msg_id, // Use assistant ID if provided
-            msg_id: message.assistantMsgId || message.msg_id, // Use assistant ID for future chunk composition
             content: {
               content: message.data,
             },
-            status: undefined, // Clear pending status
+            status: undefined,
           } as TMessage;
-
-          return replacementMessage;
         }
         return msg;
       });
-
-      if (!found) {
-        console.warn('[ACP-FRONTEND] Loading message not found for replacement:', message.msg_id);
-      }
-
-      return newList;
     });
   };
 
-  return { thought, setThought, running, replaceLoadingMessage, acpStatus };
+  return { thought, setThought, running, acpStatus };
 };
 
 const EMPTY_ARRAY: string[] = [];
@@ -202,11 +186,10 @@ const AcpSendBox: React.FC<{
   conversation_id: string;
   backend: AcpBackend;
 }> = ({ conversation_id, backend }) => {
-  const { thought, running, replaceLoadingMessage, acpStatus } = useAcpMessage(conversation_id);
+  const { thought, running, acpStatus } = useAcpMessage(conversation_id);
   const { t } = useTranslation();
 
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
-  const [initialMessageSent, setInitialMessageSent] = useState(false);
   const sendingInitialMessageRef = useRef(false); // Prevent duplicate sends
   const addOrUpdateMessage = useAddOrUpdateMessage(); // Move this here so it's available in useEffect
   const addOrUpdateMessageRef = useRef(addOrUpdateMessage);
@@ -214,7 +197,7 @@ const AcpSendBox: React.FC<{
 
   // Check for and send initial message from guid page when ACP is authenticated
   useEffect(() => {
-    if (initialMessageSent || !acpStatus || sendingInitialMessageRef.current) {
+    if (!acpStatus || sendingInitialMessageRef.current) {
       return;
     }
 
@@ -223,6 +206,7 @@ const AcpSendBox: React.FC<{
       // Waiting for ACP to complete full authentication and session setup
       return;
     }
+    sendingInitialMessageRef.current = true; // Reset flag on error
 
     const sendInitialMessage = async () => {
       // Double-check to prevent race conditions
@@ -230,17 +214,12 @@ const AcpSendBox: React.FC<{
         // Already sending, skip duplicate
         return;
       }
-
       const storageKey = `acp_initial_message_${conversation_id}`;
       const storedMessage = sessionStorage.getItem(storageKey);
 
       if (!storedMessage) {
         return;
       }
-
-      // Mark as sending to prevent duplicate sends
-      sendingInitialMessageRef.current = true;
-
       try {
         const initialMessage = JSON.parse(storedMessage);
         const { input, files } = initialMessage;
@@ -291,11 +270,9 @@ const AcpSendBox: React.FC<{
           loading_id,
         });
 
-        // Check result
         if (result && result.success === true) {
           // Initial message sent successfully
           sessionStorage.removeItem(storageKey);
-          setInitialMessageSent(true);
         } else {
           // Handle send failure
           console.error('[ACP-FRONTEND] Failed to send initial message:', result);
@@ -318,13 +295,12 @@ const AcpSendBox: React.FC<{
       } catch (error) {
         console.error('Error sending initial message:', error);
         sessionStorage.removeItem(storageKey);
-        setInitialMessageSent(true);
         sendingInitialMessageRef.current = false; // Reset flag on error
       }
     };
 
-    sendInitialMessage();
-  }, [conversation_id, backend, acpStatus, initialMessageSent]);
+    sendInitialMessage().then(() => {});
+  }, [conversation_id, backend, acpStatus]);
 
   const onSendHandler = async (message: string) => {
     const msg_id = uuid();
@@ -335,34 +311,18 @@ const AcpSendBox: React.FC<{
     }
 
     // Create user message first for correct order
-    const userMessage: TMessage = {
-      id: msg_id,
-      msg_id: msg_id,
-      conversation_id,
-      type: 'text',
-      position: 'right',
-      content: {
-        content: message,
-      },
-      createdAt: Date.now(),
-    };
-    addOrUpdateMessage(userMessage, true); // Add user message first
-
-    // Then show loading message for instant feedback
-    const loadingMessage: TMessage = {
-      id: loading_id,
-      msg_id: loading_id,
-      conversation_id,
-      type: 'text',
-      position: 'left',
-      content: {
-        content: t('common.loading'),
-      },
-      createdAt: Date.now() + 1, // Slightly later timestamp to ensure correct order
-    };
-
-    addOrUpdateMessage(loadingMessage, true); // Use add=true to append to end
-
+    // const userMessage: TMessage = {
+    //   id: msg_id,
+    //   msg_id: msg_id,
+    //   conversation_id,
+    //   type: 'text',
+    //   position: 'right',
+    //   content: {
+    //     content: message,
+    //   },
+    //   createdAt: Date.now(),
+    // };
+    // addOrUpdateMessage(userMessage, true); // Add user message first
     // Send message via ACP with loading ID so backend can replace it
     try {
       await ipcBridge.acpConversation.sendMessage.invoke({
@@ -374,7 +334,6 @@ const AcpSendBox: React.FC<{
       });
     } catch (error: any) {
       const errorMsg = error?.message || error.toString();
-
       // Check if it's an ACP authentication error
       const isAuthError = errorMsg.includes('[ACP-AUTH-') || errorMsg.includes('authentication failed') || errorMsg.includes('认证失败');
 
@@ -438,7 +397,7 @@ const AcpSendBox: React.FC<{
         onChange={setContent}
         loading={running}
         disabled={false}
-        placeholder={`Send message to ${backend}...`}
+        placeholder={t('acp.sendbox.placeholder', { backend, defaultValue: `Send message to {{backend}}...` })}
         onStop={() => {
           return ipcBridge.conversation.stop.invoke({ conversation_id }).then(() => {});
         }}
