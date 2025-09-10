@@ -34,7 +34,7 @@ const availableModelsCache = new Map<string, string[]>();
  */
 const getAvailableModels = (provider: IProvider): string[] => {
   // 生成缓存键，包含模型列表以检测变化
-  const cacheKey = `${provider.id}-${provider.name}-${(provider.model || []).join(',')}`;
+  const cacheKey = `${provider.id}-${(provider.model || []).join(',')}`;
 
   // 检查缓存
   if (availableModelsCache.has(cacheKey)) {
