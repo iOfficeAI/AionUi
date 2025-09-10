@@ -8,6 +8,7 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
   const { t } = useTranslation();
   const { data } = props;
   const [form] = Form.useForm();
+
   useEffect(() => {
     if (data) {
       form.setFieldsValue(data);
@@ -24,8 +25,8 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
       }}
     >
       <Form form={form}>
-        <Form.Item label={t('settings.platformName')} required rules={[{ required: true }]} field={'name'} disabled={data?.platform !== 'custom'}>
-          <Input></Input>
+        <Form.Item label={t('settings.platformName')} required rules={[{ required: true }]} field={'name'}>
+          <Input />
         </Form.Item>
         <Form.Item label={t('settings.baseUrl')} required={data?.platform !== 'gemini'} rules={[{ required: data?.platform !== 'gemini' }]} field={'baseUrl'} disabled>
           <Input></Input>
