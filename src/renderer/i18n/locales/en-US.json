@@ -29,7 +29,6 @@
       "uploadFile": "Upload Files",
       "linkFolder": "Open Folder",
       "newConversation": "New Chat",
-      "multiAgentDetected": "✅CLI tools detected✅",
       "multiAgentModeEnabled": "Entering multi-agent mode"
     },
     "history": {

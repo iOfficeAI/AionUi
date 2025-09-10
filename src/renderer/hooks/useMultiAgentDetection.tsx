@@ -22,7 +22,6 @@ export const useMultiAgentDetection = () => {
             message.success({
               content: (
                 <div style={{ lineHeight: '1.5' }}>
-                  <div>{t('conversation.welcome.multiAgentDetected')}</div>
                   <div style={{ fontWeight: 'bold', marginTop: '4px' }}>{t('conversation.welcome.multiAgentModeEnabled')}</div>
                 </div>
               ),
