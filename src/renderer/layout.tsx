@@ -10,7 +10,6 @@ import { MenuFold, MenuUnfold } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useRef, useState } from 'react';
 import { Outlet } from 'react-router-dom';
-import useDefaultImageGenerationMode from './hooks/useDefaultImageGenerationMode';
 import { useMultiAgentDetection } from './hooks/useMultiAgentDetection';
 
 const useDebug = () => {
@@ -46,7 +45,6 @@ const Layout: React.FC<{
 }> = ({ sider }) => {
   const [collapsed, setCollapsed] = useState(false);
   const { onClick } = useDebug();
-  const { contextHolder } = useDefaultImageGenerationMode();
   const { contextHolder: multiAgentContextHolder } = useMultiAgentDetection();
   return (
     <ArcoLayout className={'size-full layout'}>
@@ -93,7 +91,6 @@ const Layout: React.FC<{
       </ArcoLayout.Sider>
       <ArcoLayout.Content className={'bg-#F9FAFB layout-content'}>
         <Outlet></Outlet>
-        {contextHolder}
         {multiAgentContextHolder}
       </ArcoLayout.Content>
     </ArcoLayout>
