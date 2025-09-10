@@ -86,6 +86,7 @@
     "multiApiKeyTip": "💡 To add multiple API Keys for auto-rotation, configure in platform edit later",
     "multiApiKeyEditTip": "Support multiple API Keys, one per line, system will auto-rotate",
     "apiKeyPlaceholder": "Enter API Key(s), one per line for multiple keys",
+    "addModelPlaceholder": "Select or enter model ID",
     "customOpenAI": "Custom (OpenAI Compatible)",
     "proxyHttpOnly": "Only support http/https protocol",
     "baseUrlAutoFix": "base_url auto fix to: {{base_url}}",
@@ -96,7 +97,7 @@
     "darkMode": "Dark",
     "tools": "Tools Settings",
     "imageGenerationModel": "Image Model",
-    "imageGenerationGuide": "Free Image Model Setup Guide",
+    "imageGenerationGuide": "Image Model Setup Guide",
     "noAvailable": "No available image models, please configure first."
   },
   "messages": {

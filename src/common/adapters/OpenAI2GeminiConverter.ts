@@ -11,12 +11,23 @@ export interface OpenAIChatCompletionParams {
   model: string;
   messages: Array<{
     role: string;
-    content: string | Array<{
-      type: string;
-      text?: string;
-      image_url?: { url: string; detail?: string };
-    }>;
+    content:
+      | string
+      | Array<{
+          type: string;
+          text?: string;
+          image_url?: { url: string; detail?: string };
+        }>;
   }>;
+  tools?: Array<{
+    type: 'function';
+    function: {
+      name: string;
+      description?: string;
+      parameters?: any;
+    };
+  }>;
+  tool_choice?: 'auto' | 'none' | { type: 'function'; function: { name: string } };
 }
 
 export interface OpenAIChatCompletionResponse {
@@ -55,6 +66,13 @@ export interface GeminiRequest {
       };
     }>;
   }>;
+  tools?: Array<{
+    functionDeclarations: Array<{
+      name: string;
+      description?: string;
+      parameters?: any;
+    }>;
+  }>;
 }
 
 /**
@@ -90,12 +108,12 @@ export class OpenAI2GeminiConverter implements ProtocolConverter<OpenAIChatCompl
           parts.push({ text: part.text });
         } else if (part.type === 'image_url' && part.image_url?.url) {
           const imageUrl = part.image_url.url;
-          
+
           if (imageUrl.startsWith('data:')) {
             // Handle base64 data URLs
             const [mimeInfo, base64Data] = imageUrl.split(',');
             const mimeType = mimeInfo.match(/data:(.*?);base64/)?.[1] || 'image/png';
-            
+
             parts.push({
               inlineData: {
                 mimeType,
@@ -112,23 +130,29 @@ export class OpenAI2GeminiConverter implements ProtocolConverter<OpenAIChatCompl
     }
 
     // Use image generation model if request seems to be for image generation
-    const isImageGeneration = parts.some(part => 
-      part.text && (
-        part.text.toLowerCase().includes('generate image') ||
-        part.text.toLowerCase().includes('create image') ||
-        part.text.toLowerCase().includes('draw') ||
-        part.text.toLowerCase().includes('make image')
-      )
-    );
+    const isImageGeneration = parts.some((part) => part.text && (part.text.toLowerCase().includes('generate image') || part.text.toLowerCase().includes('create image') || part.text.toLowerCase().includes('draw') || part.text.toLowerCase().includes('make image')));
 
-    const model = isImageGeneration 
-      ? 'gemini-2.5-flash-image-preview'
-      : this.config.defaultModel || params.model;
+    const model = isImageGeneration ? 'gemini-2.5-flash-image-preview' : this.config.defaultModel || params.model;
 
-    return {
+    const request: GeminiRequest = {
       model,
       contents: [{ parts }],
     };
+
+    // Add tools if present in OpenAI request
+    if (params.tools && params.tools.length > 0) {
+      request.tools = [
+        {
+          functionDeclarations: params.tools.map((tool) => ({
+            name: tool.function.name,
+            description: tool.function.description,
+            parameters: tool.function.parameters, // Keep as native object, don't stringify
+          })),
+        },
+      ];
+    }
+
+    return request;
   }
 
   /**
@@ -137,7 +161,7 @@ export class OpenAI2GeminiConverter implements ProtocolConverter<OpenAIChatCompl
   convertResponse(geminiResponse: any, requestedModel: string): OpenAIChatCompletionResponse {
     const candidates = geminiResponse.candidates || [];
     const candidate = candidates[0];
-    
+
     if (!candidate) {
       return {
         id: `gemini-${Date.now()}`,
@@ -203,11 +227,16 @@ export class OpenAI2GeminiConverter implements ProtocolConverter<OpenAIChatCompl
    */
   private mapFinishReason(geminiReason?: string): string {
     switch (geminiReason) {
-      case 'STOP': return 'stop';
-      case 'MAX_TOKENS': return 'length';
-      case 'SAFETY': return 'content_filter';
-      case 'RECITATION': return 'content_filter';
-      default: return 'stop';
+      case 'STOP':
+        return 'stop';
+      case 'MAX_TOKENS':
+        return 'length';
+      case 'SAFETY':
+        return 'content_filter';
+      case 'RECITATION':
+        return 'content_filter';
+      default:
+        return 'stop';
     }
   }
 }
