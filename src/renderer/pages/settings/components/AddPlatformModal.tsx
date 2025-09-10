@@ -247,6 +247,7 @@ const AddPlatformModal = ModalHOC<{
           <Select
             loading={modelListState.isLoading}
             showSearch
+            allowCreate
             suffixIcon={
               <Search
                 onClick={(e) => {

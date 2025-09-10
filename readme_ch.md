@@ -26,6 +26,14 @@
 
 ## 🚀 **AionUi 可以做什么？**
 
+### 🤖 **多代理模式**
+
+_无缝集成多个终端 AI 代理 - Gemini CLI、Claude Code、Qwen Code 等_
+
+<p align="center">
+  <img src="./resources/multi-agent.gif" alt="多代理模式演示" width="800">
+</p>
+
 ### 🎨 **AI 图像生成与编辑**
 
 _智能图像生成、编辑和识别，由 Gemini 2.5 Flash Image Preview 驱动 - 最先进的图像模型，同时支持其他领先的AI图像模型_
@@ -41,7 +49,7 @@ _智能图像生成、编辑和识别，由 Gemini 2.5 Flash Image Preview 驱�
 _批量重命名、自动整理、智能分类、文件合并_
 
 <p align="center">
-  <img src="./resources/sort_out_folder.gif" alt="文件管理演示" width="800">
+  <img src="https://github.com/iOfficeAI/AionUi/wiki/assets/gifs/file-management/file-organization.gif" alt="File Management Demo" width="800">
 </p>
 
 ### 📊 **让 Excel 更智能**
@@ -78,6 +86,8 @@ _开多个对话、任务不混乱、记忆独立、效率翻倍_
   - [💬 更好的聊天体验](#-更好的聊天体验)
   - [🗂️ 文件管理更简单](#-文件管理更简单)
   - [⚡ 开发效率提升](#-开发效率提升)
+  - [🤖 多 Agent 集成](#-多-agent-集成)
+  - [🔄 多 API Key 轮换服务](#-多-api-key-轮换服务)
   - [🎨 AI 图像生成与编辑](#-ai-图像生成与编辑)
   - [🔧 设置很简单](#-设置很简单)
 - [🚀 快速开始](#-快速开始)
@@ -135,6 +145,22 @@ AionUi 为需要更好工作流效率的用户提供了现代界面，同时**�
 - **代码渲染** - 代码块显示更美观，格式更清晰
 - **工具调度** - 自动选择最合适的工具，不用手动选择
 
+### 🤖 **多 Agent 集成**
+
+- **多终端代理支持** - 无缝集成多种终端 AI 代理（Gemini CLI、Claude Code、Qwen Code 等）
+- **动态 CLI 检测** - 自动后端发现和 CLI 路径检测
+- **安全认证** - OAuth 支持和安全认证流程
+- **实时监控** - 实时连接状态和后端健康监控
+- **统一界面** - 所有终端 AI 代理通过相同的聊天界面访问
+
+### 🔄 **多 API Key 轮换服务**
+
+- **多 Key 轮换** - 多个 API Key 的自动轮换以提高可靠性
+- **智能错误恢复** - 基于时间的黑名单机制（90秒）和自动重试
+- **高可用性** - 在 API Key 之间无缝故障转移，防止服务中断
+- **速率限制处理** - 智能重试逻辑，尊重 API 速率限制和配额
+- **性能优化** - 减少停机时间，提高 API 调用成功率
+
 ### 🎨 **AI 图像生成与编辑**
 
 - **智能图像生成** - 由 Gemini 2.5 Flash Image Preview 驱动，最先进的图像模型
@@ -166,7 +192,12 @@ AionUi 为需要更好工作流效率的用户提供了现代界面，同时**�
 
 - Node.js >= 16.0.0
 - npm >= 8.0.0
-- Google Gemini API 密钥 ([获取您的 API 密钥](https://aistudio.google.com/app/apikey))
+- 至少一个 AI 服务的 API 密钥或认证配置：
+  - **Gemini**: [获取 Gemini API 密钥](https://aistudio.google.com/app/apikey)
+  - **OpenAI**: [获取 OpenAI API 密钥](https://platform.openai.com/api-keys)
+  - **ModelScope**: [获取 ModelScope API 密钥](https://modelscope.cn/my/myaccesstoken)
+  - **OpenRouter**: [获取 OpenRouter API 密钥](https://openrouter.ai/keys)
+  - **终端 AI 代理**: Gemini CLI、Claude Code、Qwen Code 等
 
 ### 🔧 安装
 
@@ -183,10 +214,14 @@ AionUi 为需要更好工作流效率的用户提供了现代界面，同时**�
    npm install
    ```
 
-3. **配置 API 密钥**
+3. **配置认证信息**
    - 打开应用程序并进入设置
-   - 输入您的 Google Gemini API 密钥
-   - 支持多种认证方式：Gemini API 密钥、Vertex AI、个人认证
+   - 配置至少一个 AI 服务的认证信息：
+     - **Gemini**: API 密钥、Vertex AI 或 OAuth 个人认证
+     - **OpenAI**: API 密钥或自定义端点
+     - **ModelScope**: API 密钥
+     - **OpenRouter**: API 密钥
+     - **终端 AI 代理**: 安装并配置 Claude Code、Qwen Code 等
 
 4. **启动应用程序**
    ```bash
@@ -253,10 +288,13 @@ AionUI/
   - **OpenAI**: 创意写作、内容创作
   - **ModelScope**: 中文理解、本地化任务
   - **OpenRouter**: 成本优化、模型对比
+- **多终端代理工作流**: 利用不同的终端 AI 代理处理专业任务
+  - **统一集成**: 与 Gemini CLI、Claude Code、Qwen Code 等终端 AI 代理无缝集成
+  - **高可用性**: 多个 API Key 之间的自动故障转移，确保服务不中断
 
 ## 🔧 配置
 
-### 🔑 API 配置
+### 🔑 API Key 及认证配置
 
 支持多种认证方式和平台：
 
@@ -270,6 +308,21 @@ AionUI/
    - **ModelScope**: 支持阿里云 ModelScope 平台
    - **OpenRouter**: 支持 OpenRouter 聚合平台
    - **自定义平台**: 支持自定义 API 端点和模型
+
+3. **多 API Key 配置**:
+   - **Key 轮换**: 配置多个 API Key 进行自动轮换
+   - **错误恢复**: 90秒黑名单机制和自动重试
+   - **高可用性**: 在可用 Key 之间无缝故障转移
+   - **速率限制处理**: 智能重试逻辑以获得最佳性能
+
+### 🤖 多终端代理配置
+
+集成外部终端 AI 代理：
+
+- **Gemini CLI**: 内置支持 Gemini CLI（AionUi 核心）
+- **Claude Code**: 支持 Claude Code 终端代理
+- **Qwen Code**: 支持 Qwen Code 终端代理
+- **动态检测**: 自动发现可用的终端 AI 代理
 
 ### 🌐 代理配置
 

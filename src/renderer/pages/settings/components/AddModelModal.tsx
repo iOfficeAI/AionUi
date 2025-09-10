@@ -29,7 +29,7 @@ const AddModelModal = ModalHOC<{ data?: IProvider; onSubmit: (model: IProvider) 
         onSubmit(updatedData);
       }}
     >
-      <Select showSearch options={optionsList} loading={isLoading} onChange={setModel} value={model}></Select>
+      <Select showSearch options={optionsList} loading={isLoading} onChange={setModel} value={model} allowCreate placeholder={t('settings.addModelPlaceholder')}></Select>
     </Modal>
   );
 });
