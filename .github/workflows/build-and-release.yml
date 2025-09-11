@@ -132,14 +132,56 @@ jobs:
       if: runner.os == 'Linux'
       run: |
         sudo apt-get update
-        sudo apt-get install -y libnss3-dev libatk-bridge2.0-dev libdrm2 libgtk-3-dev libgbm-dev dpkg fakeroot || echo "Some Linux dependencies failed, continuing..."
+        # 更新包列表并安装所需依赖
+        sudo apt-get install -y \
+          libnss3-dev \
+          libatk-bridge2.0-dev \
+          libdrm2 \
+          libgtk-3-dev \
+          libgbm-dev \
+          fakeroot \
+          dpkg-dev \
+          rpm \
+          libnss3 \
+          libgconf-2-4 \
+          libxtst6 \
+          libxrandr2 \
+          libasound2-dev \
+          libpangocairo-1.0-0 \
+          libatk1.0-dev \
+          libcairo-gobject2 \
+          libgtk-3-0 \
+          libgdk-pixbuf2.0-dev || echo "Some Linux dependencies failed, continuing..."
+        
+        # 验证 fakeroot 和 dpkg 是否正确安装
+        which fakeroot || echo "fakeroot not found"
+        which dpkg || echo "dpkg not found"
+        fakeroot --version || echo "fakeroot version check failed"
+        dpkg --version || echo "dpkg version check failed"
         
     - name: Install Windows dependencies
       if: runner.os == 'Windows'
       run: echo "Windows dependencies check passed"
         
     - name: Build application
-      run: ${{ matrix.build_command }}
+      run: |
+        # 尝试构建应用
+        if ! ${{ matrix.build_command }}; then
+          echo "Build failed, checking if it's a dependency issue..."
+          
+          # 如果是 Linux 平台，检查依赖
+          if [[ "${{ runner.os }}" == "Linux" ]]; then
+            echo "Checking Linux dependencies..."
+            fakeroot --version || (echo "fakeroot missing, installing..." && sudo apt-get install -y fakeroot)
+            dpkg --version || (echo "dpkg missing, installing..." && sudo apt-get install -y dpkg-dev)
+            
+            # 重试构建
+            echo "Retrying build after dependency check..."
+            ${{ matrix.build_command }}
+          else
+            exit 1
+          fi
+        fi
       continue-on-error: true  # 即使构建失败也继续执行后续步骤
       env:
         # Architecture for package naming

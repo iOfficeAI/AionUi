@@ -103,6 +103,9 @@ module.exports = {
     new MakerDeb(
       {
         options: {
+          name: 'aionui',
+          productName: 'AionUi',
+          genericName: 'AI Chat Interface',
           maintainer: 'aionui',
           homepage: 'https://aionui.com',
           icon: path.resolve(__dirname, 'resources/app.png'),
@@ -111,6 +114,9 @@ module.exports = {
           section: 'utils',
           priority: 'optional',
           depends: [],
+          recommends: [],
+          suggests: [],
+          bin: 'AionUi',
         },
       },
       ['linux']
