@@ -111,6 +111,11 @@ jobs:
         npm config set python python3.11
         npm install --global windows-build-tools || echo "Windows build tools already available"
         
+    - name: Install macOS-specific dependencies
+      if: startsWith(matrix.platform, 'macos')
+      run: |
+        npm install appdmg@^0.6.6
+        
     - name: Install system dependencies (Linux)
       if: startsWith(matrix.platform, 'linux')
       run: |
