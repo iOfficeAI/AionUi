@@ -36,9 +36,12 @@ if (process.env.appleId && process.env.appleIdPassword) {
 }
 console.log('---forge.config', osxSign, osxNotarize);
 
+// NPX-based approach eliminates the need for complex dependency packaging
+// No longer need to copy and manage ACP bridge dependencies
+
 module.exports = {
   packagerConfig: {
-    asar: true,
+    asar: true, // Required by AutoUnpackNativesPlugin
     executableName: 'AionUi', // 确保与实际二进制文件名一致
     tmpdir: path.resolve(__dirname, '../tmp'), // 指定临时目录
     extraResource: [path.resolve(__dirname, 'public')],
