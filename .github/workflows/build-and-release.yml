@@ -115,8 +115,17 @@ jobs:
     - name: Install macOS dependencies
       if: runner.os == 'macOS'
       run: |
+        # Clean all native module builds and gyp cache
         rm -rf node_modules/fs-xattr/build || true
+        rm -rf node_modules/.bin || true
         rm -rf ~/.electron-gyp || true
+        rm -rf ~/.node-gyp || true
+        
+        # Force rebuild fs-xattr for the correct architecture
+        npm uninstall fs-xattr || true
+        npm install fs-xattr --build-from-source --target_arch=${{ matrix.arch }} || echo "fs-xattr install failed, continuing..."
+        
+        # Install appdmg
         npm install appdmg@^0.6.6 --build-from-source || echo "appdmg install failed, continuing..."
         
     - name: Install Linux dependencies
