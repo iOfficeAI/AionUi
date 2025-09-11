@@ -112,25 +112,22 @@ jobs:
       run: |
         echo "Using pre-installed Windows build tools"
         
-    - name: Install platform dependencies (no platform detection, just install what might be needed)
+    - name: Install macOS dependencies
+      if: runner.os == 'macOS'
       run: |
-        # macOS: 安装可能需要的依赖
-        if [[ "$RUNNER_OS" == "macOS" ]]; then
-          rm -rf node_modules/fs-xattr/build || true
-          rm -rf ~/.electron-gyp || true
-          npm install appdmg@^0.6.6 --build-from-source || echo "appdmg install failed, continuing..."
-        fi
+        rm -rf node_modules/fs-xattr/build || true
+        rm -rf ~/.electron-gyp || true
+        npm install appdmg@^0.6.6 --build-from-source || echo "appdmg install failed, continuing..."
         
-        # Linux: 安装可能需要的依赖
-        if [[ "$RUNNER_OS" == "Linux" ]]; then
-          sudo apt-get update
-          sudo apt-get install -y libnss3-dev libatk-bridge2.0-dev libdrm2 libgtk-3-dev libgbm-dev dpkg fakeroot || echo "Some Linux dependencies failed, continuing..."
-        fi
+    - name: Install Linux dependencies
+      if: runner.os == 'Linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libnss3-dev libatk-bridge2.0-dev libdrm2 libgtk-3-dev libgbm-dev dpkg fakeroot || echo "Some Linux dependencies failed, continuing..."
         
-        # Windows: 安装可能需要的依赖
-        if [[ "$RUNNER_OS" == "Windows" ]]; then
-          echo "Windows dependencies check passed"
-        fi
+    - name: Install Windows dependencies
+      if: runner.os == 'Windows'
+      run: echo "Windows dependencies check passed"
         
     - name: Build application
       run: ${{ matrix.build_command }}

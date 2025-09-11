@@ -1,23 +1,9 @@
+import { MakerDeb } from '@electron-forge/maker-deb';
 import { MakerDMG } from '@electron-forge/maker-dmg';
 import { MakerZIP } from '@electron-forge/maker-zip';
-
-// 按需加载策略：尝试加载，失败就跳过，不做平台检测
-let MakerDeb = null;
-let MakerSquirrel = null;
-
-try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  MakerDeb = require('@electron-forge/maker-deb').MakerDeb;
-} catch {
-  // 依赖缺失，跳过 Linux DEB 打包
-}
-
-try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  MakerSquirrel = require('@electron-forge/maker-squirrel').MakerSquirrel;
-} catch {
-  // 依赖缺失，跳过 Windows 安装包
-}
+// Import MakerSquirrel conditionally to avoid issues on non-Windows
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const MakerSquirrel = process.platform === 'win32' ? require('@electron-forge/maker-squirrel').MakerSquirrel : null;
 import { AutoUnpackNativesPlugin } from '@electron-forge/plugin-auto-unpack-natives';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { WebpackPlugin } from '@electron-forge/plugin-webpack';
@@ -31,11 +17,15 @@ const apkName = 'AionUi_' + packageJson.version + '_' + (process.env.arch || pro
 
 // Removed custom outDir to maintain compatibility with macOS signing
 
+// Temporarily disable signing for CI/CD debugging
 let osxSign;
-if (process.env.identity) {
+let osxNotarize;
+
+// Only enable signing if explicitly requested and not in CI
+if (process.env.identity && process.env.CI !== 'true') {
   osxSign = {
     identity: process.env.identity,
-    optionsForFile: (_filePath) => {
+    optionsForFile: (_filePath: string) => {
       return {
         hardenedRuntime: true,
         entitlements: path.resolve(__dirname, 'entitlements.plist'),
@@ -44,8 +34,7 @@ if (process.env.identity) {
   };
 }
 
-let osxNotarize;
-if (process.env.appleId && process.env.appleIdPassword) {
+if (process.env.appleId && process.env.appleIdPassword && process.env.CI !== 'true') {
   osxNotarize = {
     appleId: process.env.appleId,
     appleIdPassword: process.env.appleIdPassword,
@@ -111,20 +100,16 @@ module.exports = {
     ),
 
     // Linux-specific makers
-    ...(MakerDeb
-      ? [
-          new MakerDeb(
-            {
-              options: {
-                icon: path.resolve(__dirname, 'resources/app.png'),
-                description: 'AionUi for agent',
-                categories: ['Office'],
-              },
-            },
-            ['linux']
-          ),
-        ]
-      : []),
+    new MakerDeb(
+      {
+        options: {
+          icon: path.resolve(__dirname, 'resources/app.png'),
+          description: 'AionUi for agent',
+          categories: ['Office'],
+        },
+      },
+      ['linux']
+    ),
   ],
   plugins: [
     {
