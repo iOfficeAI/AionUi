@@ -13,7 +13,15 @@ import { mainConfig } from './config/webpack/webpack.config';
 import { rendererConfig } from './config/webpack/webpack.renderer.config';
 import packageJson from './package.json';
 
-const apkName = 'AionUi_' + packageJson.version + process.env.arch;
+const apkName = 'AionUi_' + packageJson.version + '_' + (process.env.arch || process.arch);
+
+// Platform-specific output directory to avoid conflicts in CI/CD
+const getOutDir = () => {
+  if (process.env.OUT_DIR) {
+    return process.env.OUT_DIR;
+  }
+  return 'out';
+};
 
 let osxSign;
 if (process.env.identity) {
@@ -42,6 +50,7 @@ console.log('---forge.config', osxSign, osxNotarize);
 // No longer need to copy and manage ACP bridge dependencies
 
 module.exports = {
+  outDir: getOutDir(),
   packagerConfig: {
     asar: true, // Required by AutoUnpackNativesPlugin
     executableName: 'AionUi', // 确保与实际二进制文件名一致
