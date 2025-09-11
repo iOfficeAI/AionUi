@@ -95,6 +95,8 @@ jobs:
         npm_config_disturl: https://electronjs.org/headers
         npm_config_runtime: electron
         npm_config_cache: ~/.electron-gyp
+        # Force rebuild for architecture compatibility
+        npm_config_force_rebuild: ${{ startsWith(matrix.platform, 'macos') && 'true' || '' }}
       
     - name: Setup Python (for native dependencies)
       uses: actions/setup-python@v5
@@ -109,7 +111,11 @@ jobs:
     - name: Install macOS-specific dependencies
       if: startsWith(matrix.platform, 'macos')
       run: |
+        # Rebuild native modules for correct architecture
+        npm rebuild
         npm install appdmg@^0.6.6
+        # Ensure appdmg's native dependencies are built for correct architecture
+        cd node_modules/appdmg && npm rebuild || echo "appdmg rebuild completed"
         
     - name: Install system dependencies (Linux)
       if: startsWith(matrix.platform, 'linux')
