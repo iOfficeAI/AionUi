@@ -1,7 +1,9 @@
 import { MakerDeb } from '@electron-forge/maker-deb';
 import { MakerDMG } from '@electron-forge/maker-dmg';
-import { MakerSquirrel } from '@electron-forge/maker-squirrel';
 import { MakerZIP } from '@electron-forge/maker-zip';
+// Import MakerSquirrel conditionally to avoid loading electron-winstaller on Linux
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const MakerSquirrel = process.platform === 'win32' ? require('@electron-forge/maker-squirrel').MakerSquirrel : null;
 import { AutoUnpackNativesPlugin } from '@electron-forge/plugin-auto-unpack-natives';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { WebpackPlugin } from '@electron-forge/plugin-webpack';
@@ -17,7 +19,7 @@ let osxSign;
 if (process.env.identity) {
   osxSign = {
     identity: process.env.identity,
-    optionsForFile: (filePath) => {
+    optionsForFile: (_filePath) => {
       return {
         hardenedRuntime: true,
         entitlements: path.resolve(__dirname, 'entitlements.plist'),
@@ -58,20 +60,24 @@ module.exports = {
   },
   rebuildConfig: {},
   makers: [
-    // Windows-specific makers
-    new MakerSquirrel(
-      {
-        name: 'AionUi', // 必须与 package.json 的 name 一致
-        authors: 'aionui', // 任意名称
-        setupExe: apkName + '.exe',
-        // 禁用自动更新
-        remoteReleases: '',
-        // loadingGif: path.resolve(__dirname, "resources/install.gif"),
-        iconUrl: path.resolve(__dirname, 'resources/app.ico'),
-        setupIcon: path.resolve(__dirname, 'resources/app.ico'),
-      },
-      ['win32']
-    ),
+    // Windows-specific makers (only on Windows)
+    ...(MakerSquirrel
+      ? [
+          new MakerSquirrel(
+            {
+              name: 'AionUi', // 必须与 package.json 的 name 一致
+              authors: 'aionui', // 任意名称
+              setupExe: apkName + '.exe',
+              // 禁用自动更新
+              remoteReleases: '',
+              // loadingGif: path.resolve(__dirname, "resources/install.gif"),
+              iconUrl: path.resolve(__dirname, 'resources/app.ico'),
+              setupIcon: path.resolve(__dirname, 'resources/app.ico'),
+            },
+            ['win32']
+          ),
+        ]
+      : []),
 
     // Cross-platform ZIP maker
     new MakerZIP({}, ['darwin', 'win32']),
