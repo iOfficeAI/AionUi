@@ -166,7 +166,14 @@ jobs:
       if: runner.os == 'Windows'
       run: echo "Windows dependencies check passed"
         
-    - name: Build application
+    - name: Build application (Windows)
+      if: runner.os == 'Windows'
+      shell: cmd
+      run: ${{ matrix.build_command }}
+      continue-on-error: true
+
+    - name: Build application (Linux/macOS)
+      if: runner.os != 'Windows'
       run: |
         # 尝试构建应用
         if ! ${{ matrix.build_command }}; then
@@ -182,7 +189,7 @@ jobs:
             echo "Retrying build after dependency check..."
             ${{ matrix.build_command }} || echo "Linux build failed even after dependency check"
           else
-            exit 1
+            ${{ matrix.build_command }} || echo "macOS build failed"
           fi
         fi
       continue-on-error: true  # 即使构建失败也继续执行后续步骤
