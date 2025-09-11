@@ -58,34 +58,47 @@ module.exports = {
   },
   rebuildConfig: {},
   makers: [
-    new MakerSquirrel({
-      name: 'AionUi', // 必须与 package.json 的 name 一致
-      authors: 'aionui', // 任意名称
-      setupExe: apkName + '.exe',
-      // 禁用自动更新
-      remoteReleases: '',
-      // loadingGif: path.resolve(__dirname, "resources/install.gif"),
-      iconUrl: path.resolve(__dirname, 'resources/app.ico'),
-      setupIcon: path.resolve(__dirname, 'resources/app.ico'),
-    }),
-    new MakerZIP({}, ['darwin', 'win32']),
-    // macOS 安装包
-    new MakerDMG({
-      name: apkName,
-      format: 'ULFO',
-      overwrite: true,
-      iconSize: 80,
-      icon: path.resolve(__dirname, 'resources/app.icns'),
-    }),
-    // new MakerPKG({}),
-    // new MakerRpm({}),
-    new MakerDeb({
-      options: {
-        icon: path.resolve(__dirname, 'resources/app.png'),
-        description: 'AionUi for agent',
-        categories: ['Office'],
+    // Windows-specific makers
+    new MakerSquirrel(
+      {
+        name: 'AionUi', // 必须与 package.json 的 name 一致
+        authors: 'aionui', // 任意名称
+        setupExe: apkName + '.exe',
+        // 禁用自动更新
+        remoteReleases: '',
+        // loadingGif: path.resolve(__dirname, "resources/install.gif"),
+        iconUrl: path.resolve(__dirname, 'resources/app.ico'),
+        setupIcon: path.resolve(__dirname, 'resources/app.ico'),
       },
-    }),
+      ['win32']
+    ),
+
+    // Cross-platform ZIP maker
+    new MakerZIP({}, ['darwin', 'win32']),
+
+    // macOS-specific makers
+    new MakerDMG(
+      {
+        name: apkName,
+        format: 'ULFO',
+        overwrite: true,
+        iconSize: 80,
+        icon: path.resolve(__dirname, 'resources/app.icns'),
+      },
+      ['darwin']
+    ),
+
+    // Linux-specific makers
+    new MakerDeb(
+      {
+        options: {
+          icon: path.resolve(__dirname, 'resources/app.png'),
+          description: 'AionUi for agent',
+          categories: ['Office'],
+        },
+      },
+      ['linux']
+    ),
   ],
   plugins: [
     {
