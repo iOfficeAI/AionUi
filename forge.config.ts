@@ -137,23 +137,13 @@ module.exports = {
       try {
         execSync('which dpkg && which fakeroot', { stdio: 'ignore' });
         console.log('Adding DEB maker - dpkg and fakeroot found');
+        // 使用简化的配置，根据 GitHub issue #2176 的解决方案
         linuxMakers.push(
           new MakerDeb({
             options: {
-              name: 'aionui',
-              productName: 'AionUi',
-              genericName: 'AI Chat Interface',
               maintainer: 'aionui',
+              description: packageJson.description,
               homepage: 'https://aionui.com',
-              icon: path.resolve(__dirname, 'resources/app.png'),
-              description: 'Transform your command-line AI agent into a modern, efficient AI Chat interface.',
-              categories: ['Office'],
-              section: 'utils',
-              priority: 'optional',
-              depends: [],
-              recommends: [],
-              suggests: [],
-              bin: 'AionUi',
             },
           })
         );
