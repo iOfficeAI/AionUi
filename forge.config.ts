@@ -1,6 +1,8 @@
 import { MakerDeb } from '@electron-forge/maker-deb';
 import { MakerDMG } from '@electron-forge/maker-dmg';
+import { MakerRpm } from '@electron-forge/maker-rpm';
 import { MakerZIP } from '@electron-forge/maker-zip';
+import { MakerWix } from '@electron-forge/maker-wix';
 // Import MakerSquirrel conditionally to avoid issues on non-Windows
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const MakerSquirrel = process.platform === 'win32' ? require('@electron-forge/maker-squirrel').MakerSquirrel : null;
@@ -56,12 +58,17 @@ module.exports = {
     osxNotarize,
     win32metadata: {
       CompanyName: 'aionui',
-      FileDescription: 'ai agent for GUI',
-      OriginalFilename: apkName + '.exe',
+      FileDescription: 'AI Agent Desktop Interface',
+      OriginalFilename: 'AionUi.exe', // 简化文件名
       ProductName: 'AionUi',
       InternalName: 'AionUi',
+      FileVersion: packageJson.version,
+      ProductVersion: packageJson.version,
     },
     icon: path.resolve(__dirname, 'resources/app'), // 应用图标路径
+    // Windows 特定配置
+    platform: process.env.npm_config_target_platform || process.platform,
+    arch: process.env.npm_config_target_arch || process.env.arch || process.arch,
   },
   rebuildConfig: {},
   makers: [
@@ -75,14 +82,35 @@ module.exports = {
               setupExe: apkName + '.exe',
               // 禁用自动更新
               remoteReleases: '',
+              noMsi: true, // 禁用 MSI 安装程序
               // loadingGif: path.resolve(__dirname, "resources/install.gif"),
               iconUrl: path.resolve(__dirname, 'resources/app.ico'),
               setupIcon: path.resolve(__dirname, 'resources/app.ico'),
+              // 添加更多 Windows 特定设置
+              certificateFile: undefined, // 暂时禁用代码签名
+              certificatePassword: undefined,
+              // 修复安装路径问题
+              setupMsi: undefined,
             },
             ['win32']
           ),
         ]
       : []),
+
+    // Windows MSI installer (WiX) - alternative to Squirrel
+    new MakerWix(
+      {
+        name: 'AionUi',
+        description: 'AI Agent Desktop Interface',
+        exe: 'AionUi',
+        manufacturer: 'aionui',
+        version: packageJson.version,
+        ui: {
+          chooseDirectory: true,
+        },
+      },
+      ['win32']
+    ),
 
     // Cross-platform ZIP maker
     new MakerZIP({}, ['darwin', 'win32']),
@@ -99,28 +127,65 @@ module.exports = {
       ['darwin']
     ),
 
-    // Linux-specific makers
-    new MakerDeb(
-      {
-        options: {
-          name: 'aionui',
-          productName: 'AionUi',
-          genericName: 'AI Chat Interface',
-          maintainer: 'aionui',
-          homepage: 'https://aionui.com',
-          icon: path.resolve(__dirname, 'resources/app.png'),
-          description: 'Transform your command-line AI agent into a modern, efficient AI Chat interface.',
-          categories: ['Office'],
-          section: 'utils',
-          priority: 'optional',
-          depends: [],
-          recommends: [],
-          suggests: [],
-          bin: 'AionUi',
-        },
-      },
-      ['linux']
-    ),
+    // Linux makers - 只在相应工具可用时启用
+    ...(function () {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { execSync } = require('child_process');
+      const linuxMakers = [];
+
+      // 检查是否有 dpkg 和 fakeroot (DEB maker)
+      try {
+        execSync('which dpkg && which fakeroot', { stdio: 'ignore' });
+        console.log('Adding DEB maker - dpkg and fakeroot found');
+        linuxMakers.push(
+          new MakerDeb({
+            options: {
+              name: 'aionui',
+              productName: 'AionUi',
+              genericName: 'AI Chat Interface',
+              maintainer: 'aionui',
+              homepage: 'https://aionui.com',
+              icon: path.resolve(__dirname, 'resources/app.png'),
+              description: 'Transform your command-line AI agent into a modern, efficient AI Chat interface.',
+              categories: ['Office'],
+              section: 'utils',
+              priority: 'optional',
+              depends: [],
+              recommends: [],
+              suggests: [],
+              bin: 'AionUi',
+            },
+          })
+        );
+      } catch (e) {
+        console.log('Skipping DEB maker - dpkg or fakeroot not found');
+      }
+
+      // 检查是否有 rpmbuild (RPM maker)
+      try {
+        execSync('which rpmbuild', { stdio: 'ignore' });
+        console.log('Adding RPM maker - rpmbuild found');
+        linuxMakers.push(
+          new MakerRpm({
+            options: {
+              name: 'aionui',
+              productName: 'AionUi',
+              genericName: 'AI Chat Interface',
+              homepage: 'https://aionui.com',
+              icon: path.resolve(__dirname, 'resources/app.png'),
+              description: 'Transform your command-line AI agent into a modern, efficient AI Chat interface.',
+              categories: ['Office'],
+              requires: [],
+              bin: 'AionUi',
+            },
+          })
+        );
+      } catch (e) {
+        console.log('Skipping RPM maker - rpmbuild not found');
+      }
+
+      return linuxMakers;
+    })(),
   ],
   plugins: [
     {
