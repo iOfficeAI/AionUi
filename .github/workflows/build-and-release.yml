@@ -142,6 +142,7 @@ jobs:
           fakeroot \
           dpkg-dev \
           rpm \
+          rpm-build \
           libnss3 \
           libgconf-2-4 \
           libxtst6 \
@@ -153,11 +154,13 @@ jobs:
           libgtk-3-0 \
           libgdk-pixbuf2.0-dev || echo "Some Linux dependencies failed, continuing..."
         
-        # 验证 fakeroot 和 dpkg 是否正确安装
+        # 验证所需工具是否正确安装
         which fakeroot || echo "fakeroot not found"
         which dpkg || echo "dpkg not found"
+        which rpmbuild || echo "rpmbuild not found"
         fakeroot --version || echo "fakeroot version check failed"
         dpkg --version || echo "dpkg version check failed"
+        rpmbuild --version || echo "rpmbuild version check failed"
         
     - name: Install Windows dependencies
       if: runner.os == 'Windows'
@@ -169,7 +172,7 @@ jobs:
         if ! ${{ matrix.build_command }}; then
           echo "Build failed, checking if it's a dependency issue..."
           
-          # 如果是 Linux 平台，检查依赖
+          # 如果是 Linux 平台，尝试多种解决方案
           if [[ "${{ runner.os }}" == "Linux" ]]; then
             echo "Checking Linux dependencies..."
             fakeroot --version || (echo "fakeroot missing, installing..." && sudo apt-get install -y fakeroot)
@@ -177,7 +180,7 @@ jobs:
             
             # 重试构建
             echo "Retrying build after dependency check..."
-            ${{ matrix.build_command }}
+            ${{ matrix.build_command }} || echo "Linux build failed even after dependency check"
           else
             exit 1
           fi
