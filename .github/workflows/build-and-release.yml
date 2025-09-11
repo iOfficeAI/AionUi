@@ -91,13 +91,10 @@ jobs:
     - name: Install dependencies
       run: npm ci
       env:
-        npm_config_target_platform: ${{ matrix.platform == 'windows' && 'win32' || '' }}
         npm_config_target_arch: ${{ matrix.arch }}
         npm_config_disturl: https://electronjs.org/headers
         npm_config_runtime: electron
         npm_config_cache: ~/.electron-gyp
-        # macOS specific: ensure appdmg can find system dependencies
-        npm_config_python: ${{ startsWith(matrix.platform, 'macos') && 'python3' || '' }}
       
     - name: Setup Python (for native dependencies)
       uses: actions/setup-python@v5
@@ -107,9 +104,9 @@ jobs:
     - name: Setup Windows build environment
       if: matrix.platform == 'windows'
       run: |
-        npm config set msvs_version 2022
-        npm config set python python3.11
-        npm install --global windows-build-tools || echo "Windows build tools already available"
+        # Use VS 2022 build tools that come pre-installed on windows-2022 runner
+        call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat" || echo "Using default build environment"
+      shell: cmd
         
     - name: Install macOS-specific dependencies
       if: startsWith(matrix.platform, 'macos')
