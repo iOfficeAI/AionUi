@@ -199,13 +199,18 @@ jobs:
         cd ..
         ls -la *.zip *.tar.gz
         
-    - name: Upload source archives
+    - name: Upload ZIP source archive
       uses: actions/upload-artifact@v4
       with:
-        name: source-archives
-        path: |
-          AionUi-*.zip
-          AionUi-*.tar.gz
+        name: source-zip
+        path: AionUi-*.zip
+        retention-days: 30
+        
+    - name: Upload TAR.GZ source archive
+      uses: actions/upload-artifact@v4
+      with:
+        name: source-tarball
+        path: AionUi-*.tar.gz
         retention-days: 30
 
   # 发布到 GitHub Releases
