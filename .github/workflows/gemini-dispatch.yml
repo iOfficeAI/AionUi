@@ -1,6 +1,8 @@
 name: '🔀 Gemini Dispatch'
 
 on:
+  push:
+    branches: [main, gemini-cli]
   pull_request_review_comment:
     types:
       - 'created'
@@ -10,6 +12,7 @@ on:
   pull_request:
     types:
       - 'opened'
+    branches: [main, gemini-cli]
   issues:
     types:
       - 'opened'
