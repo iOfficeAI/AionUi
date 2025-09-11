@@ -104,9 +104,7 @@ jobs:
     - name: Setup Windows build environment
       if: matrix.platform == 'windows'
       run: |
-        # Use VS 2022 build tools that come pre-installed on windows-2022 runner
-        call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvars64.bat" || echo "Using default build environment"
-      shell: cmd
+        echo "Using pre-installed Windows build tools"
         
     - name: Install macOS-specific dependencies
       if: startsWith(matrix.platform, 'macos')
