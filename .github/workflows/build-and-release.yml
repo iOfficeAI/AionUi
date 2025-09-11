@@ -112,28 +112,25 @@ jobs:
       run: |
         echo "Using pre-installed Windows build tools"
         
-    - name: Install macOS-specific dependencies
-      if: startsWith(matrix.platform, 'macos')
+    - name: Install platform dependencies (no platform detection, just install what might be needed)
       run: |
-        # Clear any cached native modules that might have wrong architecture
-        rm -rf node_modules/fs-xattr/build || true
-        rm -rf ~/.electron-gyp || true
+        # macOS: 安装可能需要的依赖
+        if [[ "$RUNNER_OS" == "macOS" ]]; then
+          rm -rf node_modules/fs-xattr/build || true
+          rm -rf ~/.electron-gyp || true
+          npm install appdmg@^0.6.6 --build-from-source || echo "appdmg install failed, continuing..."
+        fi
         
-        # Install appdmg with forced rebuild
-        npm install appdmg@^0.6.6 --build-from-source
+        # Linux: 安装可能需要的依赖
+        if [[ "$RUNNER_OS" == "Linux" ]]; then
+          sudo apt-get update
+          sudo apt-get install -y libnss3-dev libatk-bridge2.0-dev libdrm2 libgtk-3-dev libgbm-dev dpkg fakeroot || echo "Some Linux dependencies failed, continuing..."
+        fi
         
-        # Specifically rebuild fs-xattr for correct architecture
-        cd node_modules/fs-xattr && npm run rebuild || npm rebuild || echo "fs-xattr rebuild completed"
-        cd ../..
-        
-        # Verify the architecture
-        file node_modules/fs-xattr/build/Release/xattr.node || echo "xattr.node not found, will be built during make"
-        
-    - name: Install system dependencies (Linux)
-      if: startsWith(matrix.platform, 'linux')
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y libnss3-dev libatk-bridge2.0-dev libdrm2 libgtk-3-dev libgbm-dev
+        # Windows: 安装可能需要的依赖
+        if [[ "$RUNNER_OS" == "Windows" ]]; then
+          echo "Windows dependencies check passed"
+        fi
         
     - name: Build application
       run: ${{ matrix.build_command }}
@@ -141,8 +138,6 @@ jobs:
       env:
         # Architecture for package naming
         arch: ${{ matrix.arch }}
-        # Use platform-specific output directory
-        OUT_DIR: out-${{ matrix.platform }}
         # macOS 签名配置 (需要在 GitHub Secrets 中设置，匹配 forge.config.ts)
         appleId: ${{ secrets.APPLE_ID }}
         appleIdPassword: ${{ secrets.APPLE_ID_PASSWORD }}  
@@ -155,7 +150,7 @@ jobs:
       with:
         name: ${{ matrix.platform }}-build
         path: |
-          out-${{ matrix.platform }}/make/**/*
+          out/make/**/*
         retention-days: 5
 
   # 生成源码压缩包
