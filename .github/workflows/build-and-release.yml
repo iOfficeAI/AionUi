@@ -141,6 +141,8 @@ jobs:
       env:
         # Architecture for package naming
         arch: ${{ matrix.arch }}
+        # Use platform-specific output directory
+        OUT_DIR: out-${{ matrix.platform }}
         # macOS 签名配置 (需要在 GitHub Secrets 中设置，匹配 forge.config.ts)
         appleId: ${{ secrets.APPLE_ID }}
         appleIdPassword: ${{ secrets.APPLE_ID_PASSWORD }}  
@@ -149,10 +151,11 @@ jobs:
         
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
+      if: success() || failure()  # Upload even if build failed to debug
       with:
         name: ${{ matrix.platform }}-build
         path: |
-          out/make/**/*
+          out-${{ matrix.platform }}/make/**/*
         retention-days: 5
 
   # 生成源码压缩包
