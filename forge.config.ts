@@ -103,9 +103,14 @@ module.exports = {
     new MakerDeb(
       {
         options: {
+          maintainer: 'aionui',
+          homepage: 'https://aionui.com',
           icon: path.resolve(__dirname, 'resources/app.png'),
-          description: 'AionUi for agent',
+          description: 'Transform your command-line AI agent into a modern, efficient AI Chat interface.',
           categories: ['Office'],
+          section: 'utils',
+          priority: 'optional',
+          depends: [],
         },
       },
       ['linux']
