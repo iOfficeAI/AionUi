@@ -95,8 +95,11 @@ jobs:
         npm_config_disturl: https://electronjs.org/headers
         npm_config_runtime: electron
         npm_config_cache: ~/.electron-gyp
-        # Force rebuild for architecture compatibility
-        npm_config_force_rebuild: ${{ startsWith(matrix.platform, 'macos') && 'true' || '' }}
+        # Set architecture explicitly for macOS
+        TARGET_ARCH: ${{ matrix.arch }}
+        ARCHS: ${{ matrix.arch }}
+        # Skip optional dependencies that might cause architecture issues
+        npm_config_optional: false
       
     - name: Setup Python (for native dependencies)
       uses: actions/setup-python@v5
@@ -111,11 +114,19 @@ jobs:
     - name: Install macOS-specific dependencies
       if: startsWith(matrix.platform, 'macos')
       run: |
-        # Rebuild native modules for correct architecture
-        npm rebuild
-        npm install appdmg@^0.6.6
-        # Ensure appdmg's native dependencies are built for correct architecture
-        cd node_modules/appdmg && npm rebuild || echo "appdmg rebuild completed"
+        # Clear any cached native modules that might have wrong architecture
+        rm -rf node_modules/fs-xattr/build || true
+        rm -rf ~/.electron-gyp || true
+        
+        # Install appdmg with forced rebuild
+        npm install appdmg@^0.6.6 --build-from-source
+        
+        # Specifically rebuild fs-xattr for correct architecture
+        cd node_modules/fs-xattr && npm run rebuild || npm rebuild || echo "fs-xattr rebuild completed"
+        cd ../..
+        
+        # Verify the architecture
+        file node_modules/fs-xattr/build/Release/xattr.node || echo "xattr.node not found, will be built during make"
         
     - name: Install system dependencies (Linux)
       if: startsWith(matrix.platform, 'linux')
