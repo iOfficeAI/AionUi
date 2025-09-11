@@ -1,6 +1,11 @@
 # 简单的提交信息格式检查
 commit_regex='^(feat|fix|docs|style|refactor|test|chore)(\(.+\))?: .{1,50}'
 
+# 跳过合并提交的验证
+if head -n 1 "$1" | grep -qE '^Merge (branch|pull request)'; then
+    exit 0
+fi
+
 if ! grep -qE "$commit_regex" "$1"; then
     echo "❌ 提交信息格式不正确！"
     echo "请使用以下格式："
