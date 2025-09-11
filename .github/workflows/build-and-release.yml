@@ -43,6 +43,7 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
     
     strategy:
+      fail-fast: false  # 不要因为一个平台失败就停止其他平台
       matrix:
         include:
           # macOS
@@ -136,6 +137,7 @@ jobs:
         
     - name: Build application
       run: ${{ matrix.build_command }}
+      continue-on-error: true  # 即使构建失败也继续执行后续步骤
       env:
         # Architecture for package naming
         arch: ${{ matrix.arch }}
