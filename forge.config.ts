@@ -1,21 +1,25 @@
-// Import MakerDeb conditionally
+// Import MakerDeb conditionally - only on Linux platforms
 let MakerDeb = null;
 try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  MakerDeb = require('@electron-forge/maker-deb').MakerDeb;
+  if (process.platform === 'linux' || process.env.npm_config_target_platform === 'linux') {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    MakerDeb = require('@electron-forge/maker-deb').MakerDeb;
+  }
 } catch (error) {
   console.warn('MakerDeb not available:', error.message);
 }
 import { MakerDMG } from '@electron-forge/maker-dmg';
 import { MakerZIP } from '@electron-forge/maker-zip';
-// Import MakerSquirrel conditionally to avoid loading electron-winstaller on Linux
+// Import MakerSquirrel conditionally to avoid loading electron-winstaller on non-Windows
 let MakerSquirrel = null;
 try {
+  // Try to load MakerSquirrel, but gracefully handle failures
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   MakerSquirrel = require('@electron-forge/maker-squirrel').MakerSquirrel;
 } catch (error) {
   // MakerSquirrel not available, will skip Windows makers
   console.warn('MakerSquirrel not available:', error.message);
+  // On non-Windows platforms, this is expected behavior
 }
 import { AutoUnpackNativesPlugin } from '@electron-forge/plugin-auto-unpack-natives';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
@@ -30,7 +34,8 @@ const apkName = 'AionUi_' + packageJson.version + '_' + (process.env.arch || pro
 
 // Platform-specific output directory to avoid conflicts in CI/CD
 const getOutDir = () => {
-  if (process.env.OUT_DIR) {
+  // Only use custom outDir in CI/CD environments
+  if (process.env.OUT_DIR && process.env.CI === 'true') {
     return process.env.OUT_DIR;
   }
   return 'out';
