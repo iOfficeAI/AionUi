@@ -1,9 +1,22 @@
-import { MakerDeb } from '@electron-forge/maker-deb';
+// Import MakerDeb conditionally
+let MakerDeb = null;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  MakerDeb = require('@electron-forge/maker-deb').MakerDeb;
+} catch (error) {
+  console.warn('MakerDeb not available:', error.message);
+}
 import { MakerDMG } from '@electron-forge/maker-dmg';
 import { MakerZIP } from '@electron-forge/maker-zip';
 // Import MakerSquirrel conditionally to avoid loading electron-winstaller on Linux
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const MakerSquirrel = process.platform === 'win32' ? require('@electron-forge/maker-squirrel').MakerSquirrel : null;
+let MakerSquirrel = null;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  MakerSquirrel = require('@electron-forge/maker-squirrel').MakerSquirrel;
+} catch (error) {
+  // MakerSquirrel not available, will skip Windows makers
+  console.warn('MakerSquirrel not available:', error.message);
+}
 import { AutoUnpackNativesPlugin } from '@electron-forge/plugin-auto-unpack-natives';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { WebpackPlugin } from '@electron-forge/plugin-webpack';
@@ -104,16 +117,20 @@ module.exports = {
     ),
 
     // Linux-specific makers
-    new MakerDeb(
-      {
-        options: {
-          icon: path.resolve(__dirname, 'resources/app.png'),
-          description: 'AionUi for agent',
-          categories: ['Office'],
-        },
-      },
-      ['linux']
-    ),
+    ...(MakerDeb
+      ? [
+          new MakerDeb(
+            {
+              options: {
+                icon: path.resolve(__dirname, 'resources/app.png'),
+                description: 'AionUi for agent',
+                categories: ['Office'],
+              },
+            },
+            ['linux']
+          ),
+        ]
+      : []),
   ],
   plugins: [
     {
