@@ -58,15 +58,25 @@ jobs:
             
           # Windows
           - platform: 'windows'
-            os: 'windows-latest'
+            os: 'windows-2022'
             arch: 'x64'
             build_command: 'npm run build-win'
             
           # Linux
-          - platform: 'linux'
+          - platform: 'linux-x64'
             os: 'ubuntu-latest'
             arch: 'x64'
-            build_command: 'npm run build-deb'
+            build_command: 'npm run build-linux:x64'
+            
+          - platform: 'linux-arm64'
+            os: 'ubuntu-latest'
+            arch: 'arm64'
+            build_command: 'npm run build-linux:arm64'
+            
+          - platform: 'linux-armv7l'
+            os: 'ubuntu-latest'
+            arch: 'armv7l'
+            build_command: 'npm run build-linux:armv7l'
 
     steps:
     - name: Checkout code
@@ -80,14 +90,27 @@ jobs:
         
     - name: Install dependencies
       run: npm ci
+      env:
+        npm_config_target_platform: ${{ matrix.platform == 'windows' && 'win32' || '' }}
+        npm_config_target_arch: ${{ matrix.arch }}
+        npm_config_disturl: https://electronjs.org/headers
+        npm_config_runtime: electron
+        npm_config_cache: ~/.electron-gyp
       
     - name: Setup Python (for native dependencies)
       uses: actions/setup-python@v5
       with:
         python-version: '3.11'
+
+    - name: Setup Windows build environment
+      if: matrix.platform == 'windows'
+      run: |
+        npm config set msvs_version 2022
+        npm config set python python3.11
+        npm install --global windows-build-tools || echo "Windows build tools already available"
         
     - name: Install system dependencies (Linux)
-      if: matrix.platform == 'linux'
+      if: startsWith(matrix.platform, 'linux')
       run: |
         sudo apt-get update
         sudo apt-get install -y libnss3-dev libatk-bridge2.0-dev libdrm2 libgtk-3-dev libgbm-dev
@@ -95,6 +118,8 @@ jobs:
     - name: Build application
       run: ${{ matrix.build_command }}
       env:
+        # Architecture for package naming
+        arch: ${{ matrix.arch }}
         # macOS 签名配置 (需要在 GitHub Secrets 中设置，匹配 forge.config.ts)
         appleId: ${{ secrets.APPLE_ID }}
         appleIdPassword: ${{ secrets.APPLE_ID_PASSWORD }}  
