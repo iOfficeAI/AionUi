@@ -8,6 +8,7 @@ import type { AcpBackend } from '@/common/acpTypes';
 import type { ChildProcess } from 'child_process';
 import { spawn } from 'child_process';
 import path from 'path';
+import fs from 'fs';
 import type { AcpMessage, AcpNotification, AcpPermissionRequest, AcpRequest, AcpResponse, AcpSessionUpdate } from '@/agent/acp/AcpAdapter';
 import { JSONRPC_VERSION } from '@/agent/acp/AcpAdapter';
 
@@ -63,16 +64,22 @@ export class AcpConnection {
   }
 
   private async connectClaude(workingDir: string = process.cwd()): Promise<void> {
-    // Use npm package version of Claude Code ACP with patch support
-    const claudeAcpPath = path.join(__dirname, '..', '..', 'node_modules', '@zed-industries', 'claude-code-acp', 'dist', 'index.js');
-    const args = [claudeAcpPath];
+    // Use NPX to run Claude Code ACP bridge directly from npm registry
+    // This eliminates dependency packaging issues and simplifies deployment
+    console.error('[ACP] Using NPX approach for Claude ACP bridge');
+
     // Clean environment
     const cleanEnv = { ...process.env };
     delete cleanEnv.NODE_OPTIONS;
     delete cleanEnv.NODE_INSPECT;
     delete cleanEnv.NODE_DEBUG;
 
-    this.child = spawn('node', args, {
+    // Use npx to run the Claude ACP bridge directly from npm registry
+    const isWindows = process.platform === 'win32';
+    const spawnCommand = isWindows ? 'npx.cmd' : 'npx';
+    const spawnArgs = ['@zed-industries/claude-code-acp'];
+
+    this.child = spawn(spawnCommand, spawnArgs, {
       cwd: workingDir,
       stdio: ['pipe', 'pipe', 'pipe'],
       env: cleanEnv,
@@ -155,7 +162,7 @@ export class AcpConnection {
     let spawnError: Error | null = null;
 
     this.child.stderr?.on('data', (data) => {
-      // Error output handled by parent process
+      console.error(`[ACP ${backend} STDERR]:`, data.toString());
     });
 
     this.child.on('error', (error) => {
@@ -163,6 +170,7 @@ export class AcpConnection {
     });
 
     this.child.on('exit', (code, signal) => {
+      console.error(`[ACP ${backend}] Process exited with code: ${code}, signal: ${signal}`);
       if (code !== 0) {
         if (!spawnError) {
           spawnError = new Error(`${backend} ACP process failed with exit code: ${code}`);
