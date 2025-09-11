@@ -6,12 +6,14 @@ on:
   pull_request:
     branches:
       - 'main'
+      - 'gemini-cli'
       - 'release/**/*'
     paths:
       - '.github/workflows/gemini-scheduled-triage.yml'
   push:
     branches:
       - 'main'
+      - 'gemini-cli'
       - 'release/**/*'
     paths:
       - '.github/workflows/gemini-scheduled-triage.yml'
