@@ -50,12 +50,12 @@ jobs:
           - platform: 'macos-intel'
             os: 'macos-latest'
             arch: 'x64'
-            build_command: 'npm run build-mac:x64'
+            build_command: 'npx electron-forge make --platform=darwin --arch=x64'
             
           - platform: 'macos-apple-silicon'  
             os: 'macos-latest'
             arch: 'arm64'
-            build_command: 'npm run build-mac:arm64'
+            build_command: 'npx electron-forge make --platform=darwin --arch=arm64'
             
           # Windows
           - platform: 'windows'
