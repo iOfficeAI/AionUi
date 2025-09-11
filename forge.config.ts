@@ -1,25 +1,22 @@
-// Import MakerDeb conditionally - only on Linux platforms
-let MakerDeb = null;
-try {
-  if (process.platform === 'linux' || process.env.npm_config_target_platform === 'linux') {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    MakerDeb = require('@electron-forge/maker-deb').MakerDeb;
-  }
-} catch (error) {
-  console.warn('MakerDeb not available:', error.message);
-}
 import { MakerDMG } from '@electron-forge/maker-dmg';
 import { MakerZIP } from '@electron-forge/maker-zip';
-// Import MakerSquirrel conditionally to avoid loading electron-winstaller on non-Windows
+
+// 按需加载策略：尝试加载，失败就跳过，不做平台检测
+let MakerDeb = null;
 let MakerSquirrel = null;
+
 try {
-  // Try to load MakerSquirrel, but gracefully handle failures
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  MakerDeb = require('@electron-forge/maker-deb').MakerDeb;
+} catch {
+  // 依赖缺失，跳过 Linux DEB 打包
+}
+
+try {
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   MakerSquirrel = require('@electron-forge/maker-squirrel').MakerSquirrel;
-} catch (error) {
-  // MakerSquirrel not available, will skip Windows makers
-  console.warn('MakerSquirrel not available:', error.message);
-  // On non-Windows platforms, this is expected behavior
+} catch {
+  // 依赖缺失，跳过 Windows 安装包
 }
 import { AutoUnpackNativesPlugin } from '@electron-forge/plugin-auto-unpack-natives';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
@@ -32,14 +29,7 @@ import packageJson from './package.json';
 
 const apkName = 'AionUi_' + packageJson.version + '_' + (process.env.arch || process.arch);
 
-// Platform-specific output directory to avoid conflicts in CI/CD
-const getOutDir = () => {
-  // Only use custom outDir in CI/CD environments
-  if (process.env.OUT_DIR && process.env.CI === 'true') {
-    return process.env.OUT_DIR;
-  }
-  return 'out';
-};
+// Removed custom outDir to maintain compatibility with macOS signing
 
 let osxSign;
 if (process.env.identity) {
@@ -68,7 +58,6 @@ console.log('---forge.config', osxSign, osxNotarize);
 // No longer need to copy and manage ACP bridge dependencies
 
 module.exports = {
-  outDir: getOutDir(),
   packagerConfig: {
     asar: true, // Required by AutoUnpackNativesPlugin
     executableName: 'AionUi', // 确保与实际二进制文件名一致
