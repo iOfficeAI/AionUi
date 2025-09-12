@@ -93,6 +93,20 @@ jobs:
       uses: microsoft/setup-msbuild@v2
       with:
         vs-version: '17.0'
+        
+    # macOS 构建环境设置 (electron-builder 方式)
+    - name: Setup macOS environment (macOS only)
+      if: matrix.platform == 'macos'
+      run: |
+        echo "Setting up macOS build environment for electron-builder"
+        echo "Apple ID configured: ${{ secrets.APPLE_ID != '' }}"
+        echo "Team ID configured: ${{ secrets.TEAM_ID != '' }}"
+        echo "Identity configured: ${{ secrets.IDENTITY != '' }}"
+        if [ -n "${{ secrets.IDENTITY }}" ]; then
+          echo "Code signing will be enabled"
+        else
+          echo "Code signing will be skipped (no identity provided)"
+        fi
 
     - name: Install Linux dependencies
       if: matrix.platform == 'linux'
@@ -105,11 +119,13 @@ jobs:
       env:
         # App ID configuration
         APP_ID: ${{ secrets.APP_ID }}
-        # macOS 签名配置 (需要在 GitHub Secrets 中设置，保持与forge.config.ts一致的变量名)
+        # macOS 签名配置 (参考 forge.config.ts 中的环境变量名)
         appleId: ${{ secrets.APPLE_ID }}
         appleIdPassword: ${{ secrets.APPLE_ID_PASSWORD }}  
         teamId: ${{ secrets.TEAM_ID }}
         identity: ${{ secrets.IDENTITY }}
+        # electron-builder 中的签名证书配置
+        CSC_IDENTITY_AUTO_DISCOVERY: ${{ secrets.IDENTITY != '' }}
         # Native dependency compilation
         npm_config_build_from_source: true
         npm_config_cache: ${{ runner.temp }}/.npm
@@ -127,6 +143,12 @@ jobs:
         # GitHub token for electron-builder publishing
         GH_TOKEN: ${{ secrets.GH_TOKEN }}
         
+    # macOS 构建完成清理
+    - name: Clean up macOS build (macOS only)
+      if: matrix.platform == 'macos' && always()
+      run: |
+        echo "macOS build completed"
+    
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       if: success() || failure()
