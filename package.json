@@ -52,7 +52,6 @@
     "@vercel/webpack-asset-relocator-loader": "1.7.3",
     "css-loader": "^6.11.0",
     "electron": "^37.3.1",
-    "electron-winstaller": "^5.4.0",
     "eslint": "^8.57.1",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-import": "^2.32.0",
@@ -106,6 +105,9 @@
     "remark-math": "^6.0.0",
     "swr": "^2.3.6",
     "zod": "^3.23.8"
+  },
+  "optionalDependencies": {
+    "electron-winstaller": "^5.4.0"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [

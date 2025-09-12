@@ -172,9 +172,9 @@ jobs:
             node -p 'process.arch'
             echo '=== Installing Required Packaging Tools ==='
             apt-get update
-            apt-get install -y --no-install-recommends dpkg fakeroot
+            apt-get install -y --no-install-recommends dpkg-dev fakeroot rpm
             echo '=== Installing Node Dependencies ==='
-            npm install
+            npm install --omit=optional
             echo '=== Building Application ==='
             npx electron-forge make --platform=linux --arch=${{ matrix.arch }}
           "
@@ -182,11 +182,18 @@ jobs:
         
     - name: Build application (Make - Linux x64)
       if: runner.os == 'Linux' && matrix.arch == 'x64'
-      run: ${{ matrix.build_command }}
+      run: |
+        # Clear any forge cache that might cause issues
+        rm -rf .webpack || true
+        rm -rf out || true
+        # Run the build command
+        ${{ matrix.build_command }}
       continue-on-error: true
       env:
         # Architecture for package naming
         arch: ${{ matrix.arch }}
+        # Force useDocker: false in environment
+        ELECTRON_FORGE_DOCKER: false
         
     - name: Build application (Non-Linux)
       if: runner.os != 'Linux'
