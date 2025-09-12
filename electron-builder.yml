@@ -87,8 +87,8 @@ linux:
   synopsis: ${description}
   description: ${description}
 
-# Native dependency handling
-npmRebuild: true
+# Native dependency handling - skip rebuilds in CI to avoid compilation issues
+npmRebuild: false
 buildDependenciesFromSource: false
 
 # ASAR configuration for production
