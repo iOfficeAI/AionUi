@@ -124,12 +124,10 @@ module.exports = {
     },
   ],
   plugins: [
-    // Temporarily disable auto-unpack natives to debug packaging issues
-    // {
-    //   name: '@electron-forge/plugin-auto-unpack-natives',
-    //   config: {},
-    // },
-    // new AutoUnpackNativesPlugin({}),
+    new AutoUnpackNativesPlugin({
+      // 配置需要处理的 native 依赖
+      include: ['node-pty'],
+    }),
     new WebpackPlugin({
       mainConfig,
       renderer: {

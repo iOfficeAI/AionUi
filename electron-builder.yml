@@ -75,18 +75,25 @@ mac:
 # Linux configuration
 linux:
   target:
-    - target: rpm
-      arch: [x64, arm64, armv7l]
     - target: deb
-      arch: [x64, arm64, armv7l]
+      arch: [x64, arm64]
+    - target: AppImage
+      arch: [x64, arm64]
   icon: resources/app.png
   artifactName: ${productName}-${version}-${os}-${arch}.${ext}
   category: Utility
   maintainer: aionui
   vendor: aionui
+  synopsis: ${description}
+  description: ${description}
 
-# Disable native module rebuilding to avoid cross-compilation issues
-npmRebuild: false
+# Native dependency handling
+npmRebuild: true
+buildDependenciesFromSource: false
+
+# ASAR configuration for production
+asarUnpack:
+  - "**/node_modules/node-pty/**/*"
 
 # CI/CD optimizations
 compression: normal
