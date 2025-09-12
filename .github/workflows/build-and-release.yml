@@ -2,7 +2,7 @@ name: Build and Release
 
 on:
   push:
-    branches: [ main, dev ]  # 添加dev分支支持
+    branches: [ main, dev, fix-linux-packaging ]  # 添加 Linux 打包修复分支
     tags: [ 'v*' ]
   pull_request:
     branches: [ main ]
@@ -40,7 +40,7 @@ jobs:
     name: Build ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
     needs: code-quality
-    if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
+    if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/fix-linux-packaging'
     
     strategy:
       fail-fast: false  # 不要因为一个平台失败就停止其他平台
@@ -82,6 +82,12 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
+      
+    - name: Set up QEMU for ARM cross-compilation
+      if: runner.os == 'Linux' && (matrix.arch == 'arm64' || matrix.arch == 'armv7l')
+      uses: docker/setup-qemu-action@v3
+      with:
+        platforms: arm,arm64
       
     - name: Setup Node.js
       uses: actions/setup-node@v4
@@ -132,67 +138,15 @@ jobs:
       if: runner.os == 'Linux'
       run: |
         sudo apt-get update
-        # 更新包列表并安装所需依赖
-        sudo apt-get install -y \
-          libnss3-dev \
-          libatk-bridge2.0-dev \
-          libdrm2 \
-          libgtk-3-dev \
-          libgbm-dev \
-          fakeroot \
-          dpkg-dev \
-          rpm \
-          rpm-build \
-          libnss3 \
-          libgconf-2-4 \
-          libxtst6 \
-          libxrandr2 \
-          libasound2-dev \
-          libpangocairo-1.0-0 \
-          libatk1.0-dev \
-          libcairo-gobject2 \
-          libgtk-3-0 \
-          libgdk-pixbuf2.0-dev || echo "Some Linux dependencies failed, continuing..."
-        
-        # 验证所需工具是否正确安装
-        which fakeroot || echo "fakeroot not found"
-        which dpkg || echo "dpkg not found"
-        which rpmbuild || echo "rpmbuild not found"
-        fakeroot --version || echo "fakeroot version check failed"
-        dpkg --version || echo "dpkg version check failed"
-        rpmbuild --version || echo "rpmbuild version check failed"
+        sudo apt-get install -y fakeroot dpkg-dev rpm
         
     - name: Install Windows dependencies
       if: runner.os == 'Windows'
       run: echo "Windows dependencies check passed"
         
-    - name: Build application (Windows)
-      if: runner.os == 'Windows'
-      shell: cmd
+    - name: Build application
       run: ${{ matrix.build_command }}
       continue-on-error: true
-
-    - name: Build application (Linux/macOS)
-      if: runner.os != 'Windows'
-      run: |
-        # 尝试构建应用
-        if ! ${{ matrix.build_command }}; then
-          echo "Build failed, checking if it's a dependency issue..."
-          
-          # 如果是 Linux 平台，尝试多种解决方案
-          if [[ "${{ runner.os }}" == "Linux" ]]; then
-            echo "Checking Linux dependencies..."
-            fakeroot --version || (echo "fakeroot missing, installing..." && sudo apt-get install -y fakeroot)
-            dpkg --version || (echo "dpkg missing, installing..." && sudo apt-get install -y dpkg-dev)
-            
-            # 重试构建
-            echo "Retrying build after dependency check..."
-            ${{ matrix.build_command }} || echo "Linux build failed even after dependency check"
-          else
-            ${{ matrix.build_command }} || echo "macOS build failed"
-          fi
-        fi
-      continue-on-error: true  # 即使构建失败也继续执行后续步骤
       env:
         # Architecture for package naming
         arch: ${{ matrix.arch }}
@@ -215,7 +169,7 @@ jobs:
   source-archive:
     name: Create Source Archives
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
+    if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/fix-linux-packaging'
     
     steps:
     - name: Checkout code
