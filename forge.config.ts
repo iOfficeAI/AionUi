@@ -125,19 +125,7 @@ module.exports = {
       ['darwin']
     ),
 
-    // Linux makers - 使用官方推荐的纯对象格式
-    {
-      name: '@electron-forge/maker-deb',
-      platforms: ['linux'],
-      config: {
-        options: {
-          maintainer: 'aionui',
-          description: packageJson.description,
-          // 禁用Docker避免Docker-in-Docker权限问题
-          useDocker: false,
-        },
-      },
-    },
+    // Linux makers - rpm优先，然后deb
     {
       name: '@electron-forge/maker-rpm',
       platforms: ['linux'],
@@ -145,8 +133,16 @@ module.exports = {
         options: {
           name: 'aionui',
           description: packageJson.description,
-          // 禁用Docker避免Docker-in-Docker权限问题
-          useDocker: false,
+        },
+      },
+    },
+    {
+      name: '@electron-forge/maker-deb',
+      platforms: ['linux'],
+      config: {
+        options: {
+          maintainer: 'aionui',
+          description: packageJson.description,
         },
       },
     },

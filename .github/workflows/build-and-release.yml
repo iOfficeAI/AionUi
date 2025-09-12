@@ -104,46 +104,154 @@ jobs:
           out/make/**/*
         retention-days: 5
 
-  # 其他平台构建
-  build:
-    name: Build ${{ matrix.platform }}
-    runs-on: ${{ matrix.os }}
+  # Windows x64 构建 (独立job)
+  build-windows-x64:
+    name: Build Windows x64
+    runs-on: windows-2022
     needs: code-quality
     if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/fix-linux-packaging'
     
-    strategy:
-      fail-fast: false  # 不要因为一个平台失败就停止其他平台
-      matrix:
-        include:
-            
-          # Windows
-          - platform: 'windows'
-            os: 'windows-2022'
-            arch: 'x64'
-            build_command: 'npm run build-win'
-            
-          # Linux
-          - platform: 'linux-x64'
-            os: 'ubuntu-latest'
-            arch: 'x64'
-            build_command: 'npm run build-linux:x64'
-            
-          - platform: 'linux-arm64'
-            os: 'ubuntu-latest'
-            arch: 'arm64'
-            build_command: 'npm run build-linux:arm64'
-            
-          - platform: 'linux-armv7l'
-            os: 'ubuntu-latest'
-            arch: 'armv7l'
-            build_command: 'npm run build-linux:armv7l'
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      env:
+        npm_config_target_arch: x64
+        npm_config_disturl: https://electronjs.org/headers
+        npm_config_runtime: electron
+        npm_config_cache: ~/.electron-gyp
+        TARGET_ARCH: x64
+        ARCHS: x64
+        
+    - name: Build Windows x64
+      run: npm run build-win
+      env:
+        arch: x64
+        
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      if: success() || failure()
+      with:
+        name: windows-x64-build
+        path: |
+          out/make/**/*
+        retention-days: 5
 
+  # Windows arm64 构建 (独立job)  
+  build-windows-arm64:
+    name: Build Windows arm64
+    runs-on: windows-2022
+    needs: code-quality
+    if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/fix-linux-packaging'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      env:
+        npm_config_target_arch: arm64
+        npm_config_disturl: https://electronjs.org/headers
+        npm_config_runtime: electron
+        npm_config_cache: ~/.electron-gyp
+        TARGET_ARCH: arm64
+        ARCHS: arm64
+        
+    - name: Build Windows arm64
+      run: npx electron-forge make --platform=win32 --arch=arm64
+      env:
+        arch: arm64
+        
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      if: success() || failure()
+      with:
+        name: windows-arm64-build
+        path: |
+          out/make/**/*
+        retention-days: 5
+
+  # Linux x64 构建 (独立job)
+  build-linux-x64:
+    name: Build Linux x64
+    runs-on: ubuntu-latest
+    needs: code-quality
+    if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/fix-linux-packaging'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        
+    - name: Install Dependencies
+      run: npm ci
+      env:
+        npm_config_target_arch: x64
+        npm_config_disturl: https://electronjs.org/headers
+        npm_config_runtime: electron
+        npm_config_cache: ~/.electron-gyp
+        TARGET_ARCH: x64
+        ARCHS: x64
+      
+    - name: Setup Python (for native dependencies)
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install Linux dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y fakeroot dpkg-dev rpm
+        
+    - name: Build Linux x64
+      run: npm run build-linux:x64
+      continue-on-error: true
+      env:
+        arch: x64
+        ELECTRON_FORGE_DOCKER: false
+        
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      if: success() || failure()
+      with:
+        name: linux-x64-build
+        path: |
+          out/make/**/*
+          out/AionUi-*/**/*
+        retention-days: 5
+
+  # Linux arm64 构建 (独立job)
+  build-linux-arm64:
+    name: Build Linux arm64
+    runs-on: ubuntu-latest
+    needs: code-quality
+    if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/fix-linux-packaging'
+    
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
       
     - name: Set up QEMU for ARM cross-compilation
-      if: runner.os == 'Linux' && (matrix.arch == 'arm64' || matrix.arch == 'armv7l')
       uses: docker/setup-qemu-action@v3
       with:
         platforms: arm,arm64
@@ -154,83 +262,15 @@ jobs:
         node-version: '20'
         cache: 'npm'
         
-    - name: Install Dependencies (Windows & macOS)
-      if: runner.os == 'Windows' || runner.os == 'macOS'
-      run: npm ci
-      env:
-        npm_config_target_arch: ${{ matrix.arch }}
-        npm_config_disturl: https://electronjs.org/headers
-        npm_config_runtime: electron
-        npm_config_cache: ~/.electron-gyp
-        TARGET_ARCH: ${{ matrix.arch }}
-        ARCHS: ${{ matrix.arch }}
-        
-    - name: Install Dependencies (Linux x64)
-      if: runner.os == 'Linux' && matrix.arch == 'x64'
-      run: npm ci
-      env:
-        npm_config_target_arch: ${{ matrix.arch }}
-        npm_config_disturl: https://electronjs.org/headers
-        npm_config_runtime: electron
-        npm_config_cache: ~/.electron-gyp
-        TARGET_ARCH: ${{ matrix.arch }}
-        ARCHS: ${{ matrix.arch }}
-      
-    - name: Setup Python (for native dependencies)
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-
-    - name: Setup Windows build environment
-      if: matrix.platform == 'windows'
-      run: |
-        echo "Using pre-installed Windows build tools"
-        
-    - name: Install macOS dependencies
-      if: runner.os == 'macOS'
-      run: |
-        # Clean all native module builds and gyp cache
-        rm -rf node_modules/fs-xattr/build || true
-        rm -rf node_modules/.bin || true
-        rm -rf ~/.electron-gyp || true
-        rm -rf ~/.node-gyp || true
-        
-        # Force rebuild fs-xattr for the correct architecture
-        npm uninstall fs-xattr || true
-        npm install fs-xattr --build-from-source --target_arch=${{ matrix.arch }} || echo "fs-xattr install failed, continuing..."
-        
-        # Install appdmg
-        npm install appdmg@^0.6.6 --build-from-source || echo "appdmg install failed, continuing..."
-        
-    - name: Install Linux dependencies
-      if: runner.os == 'Linux'
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y fakeroot dpkg-dev rpm
-        
-    - name: Install Windows dependencies
-      if: runner.os == 'Windows'
-      run: echo "Windows dependencies check passed"
-        
     - name: Build application in ARM Docker Container
-      if: runner.os == 'Linux' && (matrix.arch == 'arm64' || matrix.arch == 'armv7l')
       run: |
-        # Choose the correct Docker image based on target architecture
-        if [ "${{ matrix.arch }}" = "arm64" ]; then
-          DOCKER_IMAGE="arm64v8/node:20"
-          DOCKER_ARCH="aarch64"
-        else
-          DOCKER_IMAGE="arm32v7/node:20"
-          DOCKER_ARCH="armv7l"
-        fi
+        DOCKER_IMAGE="arm64v8/node:20"
+        echo "Building for arm64 using $DOCKER_IMAGE"
         
-        echo "Building for ${{ matrix.arch }} using $DOCKER_IMAGE"
-        
-        # Run build in ARM Docker container
         docker run --rm \
           -v "$GITHUB_WORKSPACE":/workspace \
           -w /workspace \
-          --platform linux/${{ matrix.arch == 'arm64' && 'arm64' || 'arm/v7' }} \
+          --platform linux/arm64 \
           $DOCKER_IMAGE \
           /bin/bash -c "
             set -e
@@ -255,47 +295,89 @@ jobs:
             npm install --omit=optional
             
             echo '=== Building Application ==='
-            npx electron-forge make --platform=linux --arch=${{ matrix.arch }} --verbose
+            npx electron-forge make --platform=linux --arch=arm64 --verbose
           "
       continue-on-error: true
         
-    - name: Build application (Make - Linux x64)
-      if: runner.os == 'Linux' && matrix.arch == 'x64'
-      run: |
-        # Clear any forge cache that might cause issues
-        rm -rf .webpack || true
-        rm -rf out || true
-        # Run the build command
-        ${{ matrix.build_command }}
-      continue-on-error: true
-      env:
-        # Architecture for package naming
-        arch: ${{ matrix.arch }}
-        # Force useDocker: false in environment
-        ELECTRON_FORGE_DOCKER: false
-        
-    - name: Build application (Non-Linux)
-      if: runner.os != 'Linux'
-      run: ${{ matrix.build_command }}
-      continue-on-error: true
-      env:
-        # Architecture for package naming
-        arch: ${{ matrix.arch }}
-        # macOS 签名配置 (需要在 GitHub Secrets 中设置，匹配 forge.config.ts)
-        appleId: ${{ secrets.APPLE_ID }}
-        appleIdPassword: ${{ secrets.APPLE_ID_PASSWORD }}  
-        teamId: ${{ secrets.TEAM_ID }}
-        identity: ${{ secrets.IDENTITY }}
-        
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
-      if: success() || failure()  # Upload even if build failed to debug
+      if: success() || failure()
       with:
-        name: ${{ matrix.platform }}-build
+        name: linux-arm64-build
         path: |
           out/make/**/*
           out/AionUi-*/**/*
         retention-days: 5
+
+  # Linux armv7l 构建 (独立job)
+  build-linux-armv7l:
+    name: Build Linux armv7l
+    runs-on: ubuntu-latest
+    needs: code-quality
+    if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/fix-linux-packaging'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up QEMU for ARM cross-compilation
+      uses: docker/setup-qemu-action@v3
+      with:
+        platforms: arm,arm64
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        
+    - name: Build application in ARM Docker Container
+      run: |
+        DOCKER_IMAGE="arm32v7/node:20"
+        echo "Building for armv7l using $DOCKER_IMAGE"
+        
+        docker run --rm \
+          -v "$GITHUB_WORKSPACE":/workspace \
+          -w /workspace \
+          --platform linux/arm/v7 \
+          $DOCKER_IMAGE \
+          /bin/bash -c "
+            set -e
+            echo '=== Container Environment Check ==='
+            uname -m
+            node -p 'process.arch'
+            echo '=== Installing Required Packaging Tools ==='
+            apt-get update
+            apt-get install -y --reinstall --no-install-recommends dpkg-dev fakeroot rpm build-essential
+            
+            # --- 终极修复：用一个直通脚本替换 fakeroot ---
+            echo '=== Final Fix: Disabling fakeroot by replacing it with a pass-through script ==='
+            # 创建一个脚本来覆盖原始的 fakeroot，因为我们已经是 root 用户，不需要它
+            echo '#!/bin/sh\nexec \"\$@\"' > /usr/local/bin/fakeroot
+            chmod +x /usr/local/bin/fakeroot
+            echo 'fakeroot has been replaced. Verifying...'
+            # 验证新的 fakeroot 在 PATH 路径的最前面
+            which fakeroot 
+            echo '================================================================================='
+            
+            echo '=== Installing Node Dependencies ==='
+            npm install --omit=optional
+            
+            echo '=== Building Application ==='
+            npx electron-forge make --platform=linux --arch=armv7l --verbose
+          "
+      continue-on-error: true
+        
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      if: success() || failure()
+      with:
+        name: linux-armv7l-build
+        path: |
+          out/make/**/*
+          out/AionUi-*/**/*
+        retention-days: 5
+
 
   # 生成源码压缩包
   source-archive:
@@ -361,7 +443,7 @@ jobs:
   release:
     name: Create Release
     runs-on: ubuntu-latest
-    needs: [build-macos-intel, build-macos-arm, build, source-archive]
+    needs: [build-macos-intel, build-macos-arm, build-windows-x64, build-windows-arm64, build-linux-x64, build-linux-arm64, build-linux-armv7l, source-archive]
     if: startsWith(github.ref, 'refs/tags/v')
     
     steps:
