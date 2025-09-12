@@ -17,43 +17,19 @@ const apkName = 'AionUi_' + packageJson.version + '_' + (process.env.arch || pro
 
 // Removed custom outDir to maintain compatibility with macOS signing
 
-// Temporarily disable signing for CI/CD debugging
-let osxSign;
-let osxNotarize;
-
-// Only enable signing if explicitly requested and not in CI
-if (process.env.identity && process.env.CI !== 'true') {
-  osxSign = {
-    identity: process.env.identity,
-    optionsForFile: (_filePath: string) => {
-      return {
-        hardenedRuntime: true,
-        entitlements: path.resolve(__dirname, 'entitlements.plist'),
-      };
-    },
-  };
-}
-
-if (process.env.appleId && process.env.appleIdPassword && process.env.CI !== 'true') {
-  osxNotarize = {
-    appleId: process.env.appleId,
-    appleIdPassword: process.env.appleIdPassword,
-    teamId: process.env.teamId,
-  };
-}
-console.log('---forge.config', osxSign, osxNotarize);
+// Forge is only used for compilation in hybrid setup
+// Signing and notarization handled by electron-builder
 
 // NPX-based approach eliminates the need for complex dependency packaging
 // No longer need to copy and manage ACP bridge dependencies
 
 module.exports = {
   packagerConfig: {
-    asar: true, // Required by AutoUnpackNativesPlugin
-    executableName: 'AionUi', // 确保与实际二进制文件名一致
-    tmpdir: path.resolve(__dirname, '../tmp'), // 指定临时目录
+    asar: false, // Disable asar in Forge (handled by electron-builder)
+    executableName: 'AionUi',
+    out: path.resolve(__dirname, 'out'),
+    tmpdir: path.resolve(__dirname, '../AionUi-tmp'),
     extraResource: [path.resolve(__dirname, 'public')],
-    osxSign,
-    osxNotarize,
     win32metadata: {
       CompanyName: 'aionui',
       FileDescription: 'AI Agent Desktop Interface',
@@ -148,11 +124,12 @@ module.exports = {
     },
   ],
   plugins: [
-    {
-      name: '@electron-forge/plugin-auto-unpack-natives',
-      config: {},
-    },
-    new AutoUnpackNativesPlugin({}),
+    // Temporarily disable auto-unpack natives to debug packaging issues
+    // {
+    //   name: '@electron-forge/plugin-auto-unpack-natives',
+    //   config: {},
+    // },
+    // new AutoUnpackNativesPlugin({}),
     new WebpackPlugin({
       mainConfig,
       renderer: {

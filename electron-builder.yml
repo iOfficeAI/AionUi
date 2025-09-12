@@ -1,0 +1,99 @@
+appId: com.aionui.app
+productName: AionUi
+copyright: Copyright © 2024 AionUi
+
+# Note: Main entry point is defined in package.json
+
+# ASAR configuration for production
+asar:
+  smartUnpack: true
+
+directories:
+  output: out
+  buildResources: resources
+
+files:
+  - .webpack/**/*
+  - public/**/*
+  - package.json
+  - '!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}'
+  - '!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}'
+  - '!**/node_modules/*.d.ts'
+  - '!**/node_modules/.bin'
+  - '!**/{.DS_Store,.git,.gitignore,.gitattributes}'
+  - '!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}'
+  - '!**/{appveyor.yml,.travis.yml,circle.yml}'
+  - '!**/{npm-debug.log,yarn.lock,.yarn-metadata.json,yarn-error.log}'
+  - '!**/node_modules/@img/**'
+  - '!**/node_modules/@img/sharp-*/**'
+  - '!**/node_modules/@emnapi/**'
+
+extraResources:
+  - from: public
+    to: .
+
+# Windows configuration
+win:
+  target:
+    - target: nsis
+      arch: [x64, arm64]
+    - target: msi
+      arch: [x64, arm64]
+    - target: zip
+      arch: [x64, arm64]
+  icon: resources/app.ico
+  artifactName: ${productName}-${version}-${os}-${arch}.${ext}
+
+# NSIS installer configuration
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: ${productName}
+  uninstallDisplayName: ${productName}
+
+# macOS configuration
+mac:
+  target:
+    - target: dmg
+      arch: [x64, arm64]
+    - target: zip
+      arch: [x64, arm64]
+  icon: resources/app.icns
+  artifactName: ${productName}-${version}-${os}-${arch}.${ext}
+  category: public.app-category.productivity
+  hardenedRuntime: false
+  gatekeeperAssess: false
+  entitlements: entitlements.plist
+  notarize: false
+  identity: null
+
+# Code signing and notarization (temporarily disabled)
+# afterSign: scripts/afterSign.js
+
+# Linux configuration
+linux:
+  target:
+    - target: rpm
+      arch: [x64, arm64, armv7l]
+    - target: deb
+      arch: [x64, arm64, armv7l]
+  icon: resources/app.png
+  artifactName: ${productName}-${version}-${os}-${arch}.${ext}
+  category: Utility
+  maintainer: aionui
+  vendor: aionui
+
+# Disable native module rebuilding to avoid cross-compilation issues
+npmRebuild: false
+
+# CI/CD optimizations
+compression: normal
+removePackageScripts: true
+
+# Publish configuration for CI/CD
+publish:
+  provider: github
+  owner: ${env.GITHUB_REPOSITORY_OWNER:-aionui}
+  repo: ${env.GITHUB_REPOSITORY_NAME:-AionUi}
