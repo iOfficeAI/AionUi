@@ -127,21 +127,17 @@ module.exports = {
       ['darwin']
     ),
 
-    // Linux makers - 禁用Docker以支持QEMU交叉编译
+    // Linux makers - 在ARM Docker容器中恢复默认Docker行为
     new MakerDeb({
       options: {
         maintainer: 'aionui',
         description: packageJson.description,
-        // 关键：禁用Docker，直接在QEMU环境下构建
-        useDocker: false,
       },
     }),
     new MakerRpm({
       options: {
         name: 'aionui',
         description: packageJson.description,
-        // 关键：禁用Docker，直接在QEMU环境下构建
-        useDocker: false,
       },
     }),
   ],
