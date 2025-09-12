@@ -35,8 +35,11 @@ try {
   fs.writeFileSync(packageJsonPath, JSON.stringify(updatedPackageJson, null, 2) + '\n');
 
   // 4. 运行 electron-builder
-  console.log(`🚀 Running electron-builder ${builderArgs}...`);
-  execSync(`npx electron-builder ${builderArgs}`, { stdio: 'inherit' });
+  // 在非release环境下禁用发布以避免GH_TOKEN错误
+  const isRelease = process.env.GITHUB_REF && process.env.GITHUB_REF.startsWith('refs/tags/v');
+  const publishArg = isRelease ? '' : '--publish=never';
+  console.log(`🚀 Running electron-builder ${builderArgs} ${publishArg}...`);
+  execSync(`npx electron-builder ${builderArgs} ${publishArg}`, { stdio: 'inherit' });
 
   // 5. 恢复 main 字段
   console.log('🔄 Restoring main entry...');
