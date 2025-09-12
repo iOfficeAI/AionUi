@@ -7,9 +7,9 @@ exports.default = async function afterSign(context) {
     return;
   }
 
-  // Skip notarization in CI or if credentials are not provided
-  if (process.env.CI === 'true' || !process.env.appleId || !process.env.appleIdPassword) {
-    console.log('Skipping notarization - missing credentials or in CI environment');
+  // Skip notarization if credentials are not provided
+  if (!process.env.appleId || !process.env.appleIdPassword) {
+    console.log('Skipping notarization - missing Apple ID credentials');
     return;
   }
 

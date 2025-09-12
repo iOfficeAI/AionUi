@@ -63,14 +63,16 @@ mac:
   icon: resources/app.icns
   artifactName: ${productName}-${version}-${os}-${arch}.${ext}
   category: public.app-category.productivity
-  hardenedRuntime: false
+  # 动态签名配置，参考 forge.config.ts 的逻辑
+  hardenedRuntime: true
   gatekeeperAssess: false
   entitlements: entitlements.plist
-  notarize: false
-  identity: null
+  entitlementsInherit: entitlements.plist
+  # identity 从环境变量获取，electron-builder 会自动处理
+  # notarize 通过 afterSign 脚本处理
 
-# Code signing and notarization (temporarily disabled)
-# afterSign: scripts/afterSign.js
+# Code signing and notarization
+afterSign: scripts/afterSign.js
 
 # Linux configuration
 linux:
