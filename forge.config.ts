@@ -127,17 +127,21 @@ module.exports = {
       ['darwin']
     ),
 
-    // Linux makers - 在ARM Docker容器中恢复默认Docker行为
+    // Linux makers - 禁用Docker解决CI/CD权限问题
     new MakerDeb({
       options: {
         maintainer: 'aionui',
         description: packageJson.description,
+        // 禁用Docker避免Docker-in-Docker权限问题
+        useDocker: false,
       },
     }),
     new MakerRpm({
       options: {
         name: 'aionui',
         description: packageJson.description,
+        // 禁用Docker避免Docker-in-Docker权限问题
+        useDocker: false,
       },
     }),
   ],
