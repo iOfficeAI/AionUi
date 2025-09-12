@@ -72,15 +72,12 @@ jobs:
     - name: Install dependencies
       run: npm ci
       
-    - name: Rebuild native dependencies (for Windows only)
+    - name: Setup Windows native dependencies (for Windows only)
       if: matrix.platform == 'windows'
       run: |
-        npm config set target_platform win32
-        npm config set target_arch x64
-        npm config set runtime electron
-        npm config set cache ${{ runner.temp }}/.npm
-        npm rebuild node-pty --build-from-source || echo "Build from source failed, trying prebuilt"
-        npx electron-rebuild -f -w node-pty
+        npm config set msvs_version 2022
+        npm install --global windows-build-tools --vs2022 || echo "windows-build-tools installation skipped"
+        npm install --global node-gyp
       
     - name: Setup Python (for native dependencies)
       uses: actions/setup-python@v5
@@ -92,6 +89,8 @@ jobs:
       run: |
         npm config set msvs_version 2022
         npm config set node_gyp $(npm prefix -g)/node_modules/node-gyp/bin/node-gyp.js
+        echo "Setting Windows SDK version for ConPty support"
+        echo "WindowsTargetPlatformVersion=10.0.19041.0" >> $env:GITHUB_ENV
         
     - name: Setup MSBuild (for Windows only)
       if: matrix.platform == 'windows'
@@ -120,11 +119,13 @@ jobs:
         npm_config_cache: ${{ runner.temp }}/.npm
         ELECTRON_CACHE: ${{ runner.temp }}/.cache/electron
         ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/.cache/electron-builder
-        # Windows-specific node-pty build flags
+        # Windows-specific build flags  
+        MSVS_VERSION: 2022
         npm_config_msvs_version: 2022
         npm_config_disturl: https://electronjs.org/headers
         npm_config_runtime: electron
-        npm_config_node_gyp: ${{ runner.temp }}/.npm/node_modules/node-gyp/bin/node-gyp.js
+        WindowsTargetPlatformVersion: 10.0.19041.0
+        _WIN32_WINNT: 0x0A00
         # CI 环境标识
         CI: true
         
