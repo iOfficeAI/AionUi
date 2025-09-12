@@ -95,13 +95,8 @@ jobs:
         node-version: '20'
         cache: 'npm'
         
-    - name: Install Cross-compilation Tools (Linux ARM)
-      if: runner.os == 'Linux' && (matrix.arch == 'arm64' || matrix.arch == 'armv7l')
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y --no-install-recommends gcc-arm-linux-gnueabihf binutils-arm-linux-gnueabihf
-        
-    - name: Install dependencies
+    - name: Install dependencies (Non-ARM Linux)
+      if: runner.os != 'Linux' || matrix.arch == 'x64'
       run: npm ci
       env:
         npm_config_target_arch: ${{ matrix.arch }}
@@ -113,24 +108,6 @@ jobs:
         ARCHS: ${{ matrix.arch }}
         # Skip optional dependencies that might cause architecture issues
         npm_config_optional: false
-        
-    - name: 🕵️ Diagnose Build Environment (Linux ARM)
-      if: runner.os == 'Linux' && (matrix.arch == 'arm64' || matrix.arch == 'armv7l')
-      run: |
-        echo "--- System Architecture ---"
-        uname -m
-        echo "--- Debian Architecture ---"
-        dpkg --print-architecture
-        echo "--- Node.js Process Architecture ---"
-        node -p "process.arch"
-        echo "--- File type of dpkg-deb tool ---"
-        file /usr/bin/dpkg-deb
-        echo "--- Version of fakeroot ---"
-        fakeroot --version
-        echo "--- Environment Variables ---"
-        echo "TARGET_ARCH: $TARGET_ARCH"
-        echo "matrix.arch: ${{ matrix.arch }}"
-        echo "npm_config_target_arch: $npm_config_target_arch"
       
     - name: Setup Python (for native dependencies)
       uses: actions/setup-python@v5
@@ -168,13 +145,37 @@ jobs:
       if: runner.os == 'Windows'
       run: echo "Windows dependencies check passed"
         
-    - name: Build application (Package Only - Testing)
+    - name: Build application in ARM Docker Container
       if: runner.os == 'Linux' && (matrix.arch == 'arm64' || matrix.arch == 'armv7l')
-      run: npx electron-forge package --platform=linux --arch=${{ matrix.arch }}
+      run: |
+        # Choose the correct Docker image based on target architecture
+        if [ "${{ matrix.arch }}" = "arm64" ]; then
+          DOCKER_IMAGE="arm64v8/node:20"
+          DOCKER_ARCH="aarch64"
+        else
+          DOCKER_IMAGE="arm32v7/node:20"
+          DOCKER_ARCH="armv7l"
+        fi
+        
+        echo "Building for ${{ matrix.arch }} using $DOCKER_IMAGE"
+        
+        # Run build in ARM Docker container
+        docker run --rm \
+          -v "$GITHUB_WORKSPACE":/workspace \
+          -w /workspace \
+          --platform linux/${{ matrix.arch == 'arm64' && 'arm64' || 'arm/v7' }} \
+          $DOCKER_IMAGE \
+          /bin/bash -c "
+            set -e
+            echo '=== Container Environment Check ==='
+            uname -m
+            node -p 'process.arch'
+            echo '=== Installing Dependencies ==='
+            npm ci --ignore-scripts
+            echo '=== Building Application ==='
+            npx electron-forge make --platform=linux --arch=${{ matrix.arch }}
+          "
       continue-on-error: true
-      env:
-        # Architecture for package naming
-        arch: ${{ matrix.arch }}
         
     - name: Build application (Make - Linux x64)
       if: runner.os == 'Linux' && matrix.arch == 'x64'
