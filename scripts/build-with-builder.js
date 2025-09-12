@@ -12,25 +12,37 @@ const builderArgs = args.slice(1).join(' ');
 const packageJsonPath = path.resolve(__dirname, '../package.json');
 
 try {
-  // 1. 运行 Forge 打包
+  // 1. 确保 main 字段正确用于 Forge
+  console.log('🔧 Ensuring main entry is correct for Forge...');
+  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+  const originalMain = packageJson.main;
+  
+  // 确保 Forge 能找到正确的 main 入口
+  if (packageJson.main !== '.webpack/main') {
+    packageJson.main = '.webpack/main';
+    fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n');
+    console.log('📝 Reset main entry to .webpack/main for Forge');
+  }
+
+  // 2. 运行 Forge 打包
   console.log('📦 Running Forge package...');
   execSync('npm run package', { stdio: 'inherit' });
 
-  // 2. 更新 main 字段
+  // 3. 更新 main 字段用于 electron-builder
   console.log(`🔧 Updating main entry for ${arch}...`);
-  const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-  const originalMain = packageJson.main;
-  packageJson.main = `.webpack/${arch}/main/index.js`;
-  fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
+  const updatedPackageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+  updatedPackageJson.main = `.webpack/${arch}/main/index.js`;
+  fs.writeFileSync(packageJsonPath, JSON.stringify(updatedPackageJson, null, 2) + '\n');
 
-  // 3. 运行 electron-builder
+  // 4. 运行 electron-builder
   console.log(`🚀 Running electron-builder ${builderArgs}...`);
   execSync(`npx electron-builder ${builderArgs}`, { stdio: 'inherit' });
 
-  // 4. 恢复 main 字段
+  // 5. 恢复 main 字段
   console.log('🔄 Restoring main entry...');
-  packageJson.main = originalMain;
-  fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n');
+  const finalPackageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+  finalPackageJson.main = '.webpack/main';  // 确保恢复到正确的默认值
+  fs.writeFileSync(packageJsonPath, JSON.stringify(finalPackageJson, null, 2) + '\n');
 
   console.log('✅ Build completed successfully!');
 } catch (error) {
