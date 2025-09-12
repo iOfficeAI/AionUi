@@ -25,7 +25,9 @@ const apkName = 'AionUi_' + packageJson.version + '_' + (process.env.arch || pro
 
 module.exports = {
   packagerConfig: {
-    asar: false, // Disable asar in Forge (handled by electron-builder)
+    asar: {
+      unpack: '**/node_modules/node-pty/**/*',
+    }, // Enable asar with node-pty unpacking for AutoUnpackNativesPlugin
     executableName: 'AionUi',
     out: path.resolve(__dirname, 'out'),
     tmpdir: path.resolve(__dirname, '../AionUi-tmp'),
