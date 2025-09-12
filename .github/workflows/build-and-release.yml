@@ -239,7 +239,8 @@ jobs:
             node -p 'process.arch'
             echo '=== Installing Required Packaging Tools ==='
             apt-get update
-            apt-get install -y --no-install-recommends dpkg-dev fakeroot rpm
+            # 使用 --reinstall 强制重新安装，并添加 build-essential
+            apt-get install -y --reinstall --no-install-recommends dpkg-dev fakeroot rpm build-essential
             echo '=== Installing Node Dependencies ==='
             npm install --omit=optional
             echo '=== Building Application ==='
