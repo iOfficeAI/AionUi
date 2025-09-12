@@ -1,6 +1,4 @@
-import { MakerDeb } from '@electron-forge/maker-deb';
 import { MakerDMG } from '@electron-forge/maker-dmg';
-import { MakerRpm } from '@electron-forge/maker-rpm';
 import { MakerZIP } from '@electron-forge/maker-zip';
 import { MakerWix } from '@electron-forge/maker-wix';
 // Import MakerSquirrel conditionally to avoid issues on non-Windows
@@ -127,9 +125,11 @@ module.exports = {
       ['darwin']
     ),
 
-    // Linux makers - 禁用Docker并限制到Linux平台
-    new MakerDeb(
-      {
+    // Linux makers - 使用官方推荐的纯对象格式
+    {
+      name: '@electron-forge/maker-deb',
+      platforms: ['linux'],
+      config: {
         options: {
           maintainer: 'aionui',
           description: packageJson.description,
@@ -137,10 +137,11 @@ module.exports = {
           useDocker: false,
         },
       },
-      ['linux']
-    ),
-    new MakerRpm(
-      {
+    },
+    {
+      name: '@electron-forge/maker-rpm',
+      platforms: ['linux'],
+      config: {
         options: {
           name: 'aionui',
           description: packageJson.description,
@@ -148,8 +149,7 @@ module.exports = {
           useDocker: false,
         },
       },
-      ['linux']
-    ),
+    },
   ],
   plugins: [
     {
