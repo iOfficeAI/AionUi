@@ -27,6 +27,7 @@ files:
   - '!**/node_modules/@img/**'
   - '!**/node_modules/@img/sharp-*/**'
   - '!**/node_modules/@emnapi/**'
+  - '!**/node_modules/@anthropic-ai/claude-code/vendor/**'
 
 extraResources:
   - from: public
@@ -81,19 +82,20 @@ linux:
       arch: [x64, arm64]
     - target: AppImage
       arch: [x64, arm64]
-  icon: resources/app
+  icon: resources/app.png
   artifactName: ${productName}-${version}-${os}-${arch}.${ext}
   category: Utility
   maintainer: aionui
   vendor: aionui
   synopsis: ${description}
   description: ${description}
-  # 确保 desktop 文件包含图标信息
+  # Desktop entry configuration
   desktop:
-    Name: AionUi
-    Comment: ${description}
-    Icon: aionui
-    Categories: Office;Utility;
+    entry:
+      Name: AionUi
+      Comment: ${description}
+      Icon: aionui
+      Categories: Office;Utility;
 
 # Native dependency handling - skip rebuilds in CI to avoid compilation issues
 npmRebuild: false
@@ -102,6 +104,7 @@ buildDependenciesFromSource: false
 # ASAR configuration for production
 asarUnpack:
   - "**/node_modules/node-pty/**/*"
+  - "!**/node_modules/@anthropic-ai/claude-code/vendor/**/*"
 
 # CI/CD optimizations
 compression: normal
