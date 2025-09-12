@@ -124,8 +124,8 @@ jobs:
         appleIdPassword: ${{ secrets.APPLE_ID_PASSWORD }}  
         teamId: ${{ secrets.TEAM_ID }}
         identity: ${{ secrets.IDENTITY }}
-        # electron-builder 中的签名证书配置
-        CSC_IDENTITY_AUTO_DISCOVERY: ${{ secrets.IDENTITY != '' }}
+        # electron-builder 签名控制
+        CSC_IDENTITY_AUTO_DISCOVERY: false
         # Native dependency compilation
         npm_config_build_from_source: true
         npm_config_cache: ${{ runner.temp }}/.npm

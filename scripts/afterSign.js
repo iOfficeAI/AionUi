@@ -1,9 +1,23 @@
 const { notarize } = require('@electron/notarize');
+const { execSync } = require('child_process');
 
 exports.default = async function afterSign(context) {
   const { electronPlatformName, appOutDir } = context;
   
   if (electronPlatformName !== 'darwin') {
+    return;
+  }
+
+  const appName = context.packager.appInfo.productFilename;
+  const appBundleId = context.packager.appInfo.id;
+  const appPath = `${appOutDir}/${appName}.app`;
+
+  // Check if app is actually signed before attempting notarization
+  try {
+    execSync(`codesign --verify --verbose "${appPath}"`, { stdio: 'pipe' });
+    console.log(`App ${appName} is properly code signed`);
+  } catch (error) {
+    console.log(`App ${appName} is not code signed, skipping notarization`);
     return;
   }
 
@@ -13,15 +27,12 @@ exports.default = async function afterSign(context) {
     return;
   }
 
-  const appName = context.packager.appInfo.productFilename;
-  const appBundleId = context.packager.appInfo.id;
-
   console.log(`Starting notarization for ${appName} (${appBundleId})...`);
 
   try {
     await notarize({
       appBundleId,
-      appPath: `${appOutDir}/${appName}.app`,
+      appPath: appPath,
       appleId: process.env.appleId,
       appleIdPassword: process.env.appleIdPassword,
       teamId: process.env.teamId,
