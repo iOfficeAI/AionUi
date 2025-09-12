@@ -124,6 +124,8 @@ jobs:
         _WIN32_WINNT: 0x0A00
         # CI 环境标识
         CI: true
+        # GitHub token for electron-builder publishing
+        GH_TOKEN: ${{ secrets.GH_TOKEN }}
         
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
@@ -131,7 +133,12 @@ jobs:
       with:
         name: ${{ matrix.artifact-name }}
         path: |
-          out/**/*
+          out/*.exe
+          out/*.msi
+          out/*.dmg
+          out/*.zip
+          out/*.deb
+          out/*.AppImage
         retention-days: 5
 
 
@@ -219,7 +226,7 @@ jobs:
         draft: false
         prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') }}
       env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
   # 自动更新版本 (可选)
   update-version:
@@ -232,7 +239,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
-        token: ${{ secrets.GITHUB_TOKEN }}
+        token: ${{ secrets.GH_TOKEN }}
         
     - name: Setup Node.js
       uses: actions/setup-node@v4
