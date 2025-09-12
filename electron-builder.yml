@@ -64,13 +64,12 @@ mac:
   artifactName: ${productName}-${version}-${os}-${arch}.${ext}
   category: public.app-category.productivity
   # 动态签名配置，参考 forge.config.ts 的逻辑
-  # 只在有 identity 环境变量时启用签名相关配置
+  # identity 从环境变量获取，不在配置文件中设置
   hardenedRuntime: true
   gatekeeperAssess: false
   entitlements: entitlements.plist
   entitlementsInherit: entitlements.plist
-  # identity 和 notarize 通过环境变量和 afterSign 脚本动态控制
-  identity: null
+  # identity 通过环境变量控制，notarize 通过 afterSign 脚本处理
 
 # Code signing and notarization
 afterSign: scripts/afterSign.js
