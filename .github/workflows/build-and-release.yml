@@ -72,6 +72,10 @@ jobs:
     - name: Install dependencies
       run: npm ci
       
+    - name: Setup Windows native dependencies (for Windows only)
+      if: matrix.platform == 'windows'
+      run: |
+        npm install --global node-gyp
       
     - name: Setup Python (for native dependencies)
       uses: actions/setup-python@v5
