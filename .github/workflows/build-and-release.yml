@@ -239,18 +239,32 @@ jobs:
             node -p 'process.arch'
             echo '=== Installing Required Packaging Tools ==='
             apt-get update
-            # 使用 --reinstall 强制重新安装，并添加 build-essential
             apt-get install -y --reinstall --no-install-recommends dpkg-dev fakeroot rpm build-essential
+            
+            # --- 增强诊断与修复步骤 ---
+            echo '=== Diagnosis and PATH Fix Step ==='
+            echo \"Current PATH is: \$PATH\"
+            echo '---'
+            echo 'Checking for dpkg-deb (the actual required tool)...'
+            if ! which dpkg-deb; then
+              echo 'CRITICAL: dpkg-deb command not found even after install!'
+              exit 1
+            fi
+            echo \"dpkg-deb found at: \$(which dpkg-deb)\"
+            echo '---'
+            echo 'Forcefully creating symlink to fix potential PATH issues...'
+            # 创建一个符号链接到 /usr/local/bin (这通常在 PATH 的最前面)
+            # 这可以解决 maker-deb 可能在寻找一个名为 dpkg-dev 的可执行文件的奇怪行为
+            ln -sf \$(which dpkg-deb) /usr/local/bin/dpkg-dev
+            echo 'Symlink created. Verifying...'
+            which dpkg-dev && echo 'SUCCESS: dpkg-dev is now on the PATH!' || (echo 'ERROR: Failed to create symlink for dpkg-dev!' && exit 1)
+            echo '====================================='
+            
             echo '=== Installing Node Dependencies ==='
             npm install --omit=optional
+            
             echo '=== Building Application ==='
-            # Verify makers are working properly in container
-            echo 'Verifying packaging tools:'
-            which dpkg-dev && echo 'dpkg-dev: OK' || echo 'dpkg-dev: MISSING'
-            which fakeroot && echo 'fakeroot: OK' || echo 'fakeroot: MISSING'
-            which rpmbuild && echo 'rpmbuild: OK' || echo 'rpmbuild: MISSING'
-            # Build with explicit platform and architecture
-            ELECTRON_FORGE_DOCKER=false npx electron-forge make --platform=linux --arch=${{ matrix.arch }} --verbose
+            npx electron-forge make --platform=linux --arch=${{ matrix.arch }} --verbose
           "
       continue-on-error: true
         
