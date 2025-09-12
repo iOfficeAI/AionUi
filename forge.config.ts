@@ -46,7 +46,14 @@ module.exports = {
     platform: process.env.npm_config_target_platform || process.platform,
     arch: process.env.npm_config_target_arch || process.env.arch || process.arch,
   },
-  rebuildConfig: {},
+  rebuildConfig: {
+    // 在 Windows CI 环境下，跳过所有原生模块的重建
+    ...(process.env.CI === 'true' && process.platform === 'win32'
+      ? {
+          onlyModules: [], // 一个空数组意味着"不要重建任何模块"
+        }
+      : {}),
+  },
   makers: [
     // Windows-specific makers (only on Windows)
     ...(MakerSquirrel
