@@ -241,24 +241,15 @@ jobs:
             apt-get update
             apt-get install -y --reinstall --no-install-recommends dpkg-dev fakeroot rpm build-essential
             
-            # --- 增强诊断与修复步骤 ---
-            echo '=== Diagnosis and PATH Fix Step ==='
-            echo \"Current PATH is: \$PATH\"
-            echo '---'
-            echo 'Checking for dpkg-deb (the actual required tool)...'
-            if ! which dpkg-deb; then
-              echo 'CRITICAL: dpkg-deb command not found even after install!'
-              exit 1
-            fi
-            echo \"dpkg-deb found at: \$(which dpkg-deb)\"
-            echo '---'
-            echo 'Forcefully creating symlink to fix potential PATH issues...'
-            # 创建一个符号链接到 /usr/local/bin (这通常在 PATH 的最前面)
-            # 这可以解决 maker-deb 可能在寻找一个名为 dpkg-dev 的可执行文件的奇怪行为
-            ln -sf \$(which dpkg-deb) /usr/local/bin/dpkg-dev
-            echo 'Symlink created. Verifying...'
-            which dpkg-dev && echo 'SUCCESS: dpkg-dev is now on the PATH!' || (echo 'ERROR: Failed to create symlink for dpkg-dev!' && exit 1)
-            echo '====================================='
+            # --- 终极修复：用一个直通脚本替换 fakeroot ---
+            echo '=== Final Fix: Disabling fakeroot by replacing it with a pass-through script ==='
+            # 创建一个脚本来覆盖原始的 fakeroot，因为我们已经是 root 用户，不需要它
+            echo '#!/bin/sh\nexec \"\$@\"' > /usr/local/bin/fakeroot
+            chmod +x /usr/local/bin/fakeroot
+            echo 'fakeroot has been replaced. Verifying...'
+            # 验证新的 fakeroot 在 PATH 路径的最前面
+            which fakeroot 
+            echo '================================================================================='
             
             echo '=== Installing Node Dependencies ==='
             npm install --omit=optional
