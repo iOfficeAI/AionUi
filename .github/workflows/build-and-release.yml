@@ -35,7 +35,76 @@ jobs:
     - name: Run Prettier check
       run: npm run format:check || echo "Prettier formatting issues detected but not blocking build"
 
-  # 构建应用
+  # macOS Intel 构建 (独立job避免架构冲突)
+  build-macos-intel:
+    name: Build macOS Intel
+    runs-on: macos-latest  
+    needs: code-quality
+    if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/fix-linux-packaging'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        
+    - name: Build for Intel (x64) under Rosetta 2
+      run: |
+        # 强制在 x86_64 架构下运行避免原生模块冲突
+        arch -x86_64 zsh << 'EOF'
+        set -e
+        echo "Running under $(uname -m) architecture..."
+        npm ci
+        npx electron-forge make --platform=darwin --arch=x64
+        EOF
+        
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      if: success() || failure()
+      with:
+        name: macos-intel-build
+        path: |
+          out/make/**/*
+        retention-days: 5
+
+  # macOS Apple Silicon 构建 (独立job)
+  build-macos-arm:
+    name: Build macOS Apple Silicon  
+    runs-on: macos-latest
+    needs: code-quality
+    if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/fix-linux-packaging'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        
+    - name: Build for Apple Silicon (arm64) Natively
+      run: |
+        set -e
+        echo "Running under $(uname -m) architecture..."
+        npm ci
+        npx electron-forge make --platform=darwin --arch=arm64
+        
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      if: success() || failure()
+      with:
+        name: macos-apple-silicon-build
+        path: |
+          out/make/**/*
+        retention-days: 5
+
+  # 其他平台构建
   build:
     name: Build ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
@@ -46,16 +115,6 @@ jobs:
       fail-fast: false  # 不要因为一个平台失败就停止其他平台
       matrix:
         include:
-          # macOS
-          - platform: 'macos-intel'
-            os: 'macos-latest'
-            arch: 'x64'
-            build_command: 'npx electron-forge make --platform=darwin --arch=x64'
-            
-          - platform: 'macos-apple-silicon'  
-            os: 'macos-latest'
-            arch: 'arm64'
-            build_command: 'npx electron-forge make --platform=darwin --arch=arm64'
             
           # Windows
           - platform: 'windows'
@@ -95,19 +154,27 @@ jobs:
         node-version: '20'
         cache: 'npm'
         
-    - name: Install dependencies (Non-ARM Linux)
-      if: runner.os != 'Linux' || matrix.arch == 'x64'
+    - name: Install Dependencies (Windows & macOS)
+      if: runner.os == 'Windows' || runner.os == 'macOS'
       run: npm ci
       env:
         npm_config_target_arch: ${{ matrix.arch }}
         npm_config_disturl: https://electronjs.org/headers
         npm_config_runtime: electron
         npm_config_cache: ~/.electron-gyp
-        # Set architecture explicitly for macOS
         TARGET_ARCH: ${{ matrix.arch }}
         ARCHS: ${{ matrix.arch }}
-        # Skip optional dependencies that might cause architecture issues
-        npm_config_optional: false
+        
+    - name: Install Dependencies (Linux x64)
+      if: runner.os == 'Linux' && matrix.arch == 'x64'
+      run: npm ci
+      env:
+        npm_config_target_arch: ${{ matrix.arch }}
+        npm_config_disturl: https://electronjs.org/headers
+        npm_config_runtime: electron
+        npm_config_cache: ~/.electron-gyp
+        TARGET_ARCH: ${{ matrix.arch }}
+        ARCHS: ${{ matrix.arch }}
       
     - name: Setup Python (for native dependencies)
       uses: actions/setup-python@v5
@@ -176,7 +243,13 @@ jobs:
             echo '=== Installing Node Dependencies ==='
             npm install --omit=optional
             echo '=== Building Application ==='
-            npx electron-forge make --platform=linux --arch=${{ matrix.arch }}
+            # Verify makers are working properly in container
+            echo 'Verifying packaging tools:'
+            which dpkg-dev && echo 'dpkg-dev: OK' || echo 'dpkg-dev: MISSING'
+            which fakeroot && echo 'fakeroot: OK' || echo 'fakeroot: MISSING'
+            which rpmbuild && echo 'rpmbuild: OK' || echo 'rpmbuild: MISSING'
+            # Build with explicit platform and architecture
+            ELECTRON_FORGE_DOCKER=false npx electron-forge make --platform=linux --arch=${{ matrix.arch }} --verbose
           "
       continue-on-error: true
         
@@ -282,7 +355,7 @@ jobs:
   release:
     name: Create Release
     runs-on: ubuntu-latest
-    needs: [build, source-archive]
+    needs: [build-macos-intel, build-macos-arm, build, source-archive]
     if: startsWith(github.ref, 'refs/tags/v')
     
     steps:
