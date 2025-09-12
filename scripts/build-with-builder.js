@@ -30,7 +30,7 @@ try {
   // 4. 恢复 main 字段
   console.log('🔄 Restoring main entry...');
   packageJson.main = originalMain;
-  fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
+  fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n');
 
   console.log('✅ Build completed successfully!');
 } catch (error) {
@@ -38,7 +38,7 @@ try {
   try {
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
     packageJson.main = '.webpack/main';
-    fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2));
+    fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n');
   } catch (e) {
     console.error('Failed to restore package.json:', e.message);
   }

@@ -113,6 +113,9 @@
   "optionalDependencies": {
     "electron-winstaller": "^5.4.0"
   },
+  "electronRebuild": {
+    "electronVersion": "^37.3.1"
+  },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [
       "eslint --fix",

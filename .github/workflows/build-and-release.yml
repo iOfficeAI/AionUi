@@ -81,7 +81,7 @@ jobs:
       if: matrix.platform == 'linux'
       run: |
         sudo apt-get update
-        sudo apt-get install -y fakeroot dpkg-dev rpm build-essential
+        sudo apt-get install -y build-essential fakeroot dpkg-dev rpm libnss3-dev libatk-bridge2.0-dev libdrm2 libxkbcommon-dev libxss1 libatspi2.0-dev libgtk-3-dev libxrandr2 libasound2-dev
         
     - name: Build with electron-builder
       run: ${{ matrix.command }}
@@ -93,6 +93,13 @@ jobs:
         appleIdPassword: ${{ secrets.APPLE_ID_PASSWORD }}  
         teamId: ${{ secrets.TEAM_ID }}
         identity: ${{ secrets.IDENTITY }}
+        # Native dependency compilation
+        npm_config_build_from_source: true
+        npm_config_cache: ${{ runner.temp }}/.npm
+        ELECTRON_CACHE: ${{ runner.temp }}/.cache/electron
+        ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/.cache/electron-builder
+        # CI 环境标识
+        CI: true
         
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
@@ -100,7 +107,7 @@ jobs:
       with:
         name: ${{ matrix.artifact-name }}
         path: |
-          dist/**/*
+          out/**/*
         retention-days: 5
 
 
