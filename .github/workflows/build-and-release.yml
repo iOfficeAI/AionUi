@@ -170,8 +170,11 @@ jobs:
             echo '=== Container Environment Check ==='
             uname -m
             node -p 'process.arch'
-            echo '=== Installing Dependencies ==='
-            npm ci --ignore-scripts
+            echo '=== Installing Required Packaging Tools ==='
+            apt-get update
+            apt-get install -y --no-install-recommends dpkg fakeroot
+            echo '=== Installing Node Dependencies ==='
+            npm install
             echo '=== Building Application ==='
             npx electron-forge make --platform=linux --arch=${{ matrix.arch }}
           "
