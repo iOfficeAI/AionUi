@@ -46,6 +46,7 @@ interface GeminiAgent2Options {
   imageGenerationModel?: TProviderWithModel;
   webSearchEngine?: 'google' | 'default';
   yoloMode?: boolean;
+  GOOGLE_CLOUD_PROJECT?: string;
   onStreamEvent: (event: { type: string; data: any; msg_id: string }) => void;
 }
 
@@ -57,6 +58,7 @@ export class GeminiAgent {
   private imageGenerationModel: TProviderWithModel | null = null;
   private webSearchEngine: 'google' | 'default' | null = null;
   private yoloMode: boolean = false;
+  private googleCloudProject: string | null = null;
   private geminiClient: GeminiClient | null = null;
   private authType: AuthType | null = null;
   private scheduler: CoreToolScheduler | null = null;
@@ -73,6 +75,7 @@ export class GeminiAgent {
     this.imageGenerationModel = options.imageGenerationModel;
     this.webSearchEngine = options.webSearchEngine || 'default';
     this.yoloMode = options.yoloMode || false;
+    this.googleCloudProject = options.GOOGLE_CLOUD_PROJECT;
     // 使用统一的工具函数获取认证类型
     this.authType = getProviderAuthType(options.model);
     this.onStreamEvent = options.onStreamEvent;
@@ -123,7 +126,7 @@ export class GeminiAgent {
       return;
     }
     if (this.authType === AuthType.LOGIN_WITH_GOOGLE) {
-      fallbackValue('GOOGLE_CLOUD_PROJECT', '', env.GOOGLE_CLOUD_PROJECT);
+      fallbackValue('GOOGLE_CLOUD_PROJECT', this.googleCloudProject || '', env.GOOGLE_CLOUD_PROJECT);
       return;
     }
     if (this.authType === AuthType.USE_OPENAI) {

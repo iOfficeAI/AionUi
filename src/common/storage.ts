@@ -26,6 +26,7 @@ export interface IConfigStorageRefer {
     authType: string;
     proxy: string;
     GOOGLE_GEMINI_BASE_URL?: string;
+    GOOGLE_CLOUD_PROJECT?: string;
   };
   'acp.config': {
     [backend in AcpBackend]?: {
