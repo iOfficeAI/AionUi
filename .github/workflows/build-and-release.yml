@@ -251,12 +251,34 @@ jobs:
     name: Create Release
     runs-on: ubuntu-latest
     needs: [build, source-archive]
-    if: startsWith(github.ref, 'refs/tags/v')
+    if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/dev'
     
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
       
+    - name: Get version for dev branch release
+      id: version
+      run: |
+        if [[ "${{ github.ref }}" == "refs/heads/dev" ]]; then
+          VERSION=$(node -p "require('./package.json').version")
+          echo "tag_name=v$VERSION" >> $GITHUB_OUTPUT
+          echo "is_dev_release=true" >> $GITHUB_OUTPUT
+        else
+          echo "tag_name=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          echo "is_dev_release=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Create git tag for dev branch
+      if: steps.version.outputs.is_dev_release == 'true'
+      run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+        git tag ${{ steps.version.outputs.tag_name }}
+        git push origin ${{ steps.version.outputs.tag_name }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+
     - name: Download all build artifacts
       uses: actions/download-artifact@v4
       with:
@@ -265,6 +287,7 @@ jobs:
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
+        tag_name: ${{ steps.version.outputs.tag_name }}
         files: build-artifacts/**/*
         generate_release_notes: true
         draft: false
