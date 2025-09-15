@@ -46,14 +46,15 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: 'macos'
-            os: 'macos-latest'
-            command: 'npm run dist:mac'
-            artifact-name: 'macos-build'
-          - platform: 'windows'
-            os: 'windows-2022'
-            command: 'npm run dist:win'
-            artifact-name: 'windows-build'
+          # 暂时只构建Linux进行快速验证
+          # - platform: 'macos'
+          #   os: 'macos-latest'
+          #   command: 'npm run dist:mac'
+          #   artifact-name: 'macos-build'
+          # - platform: 'windows'
+          #   os: 'windows-2022'
+          #   command: 'npm run dist:win'
+          #   artifact-name: 'windows-build'
           - platform: 'linux'
             os: 'ubuntu-latest'
             command: 'npm run dist:linux'
