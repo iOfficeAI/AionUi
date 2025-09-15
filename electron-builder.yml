@@ -16,18 +16,30 @@ files:
   - .webpack/**/*
   - public/**/*
   - package.json
+  # 排除开发和测试文件
   - '!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}'
   - '!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}'
+  - '!**/node_modules/*/{*.test.js,*.spec.js,*.test.ts,*.spec.ts}'
   - '!**/node_modules/*.d.ts'
   - '!**/node_modules/.bin'
+  - '!**/node_modules/*/{docs,documentation,doc}'
+  # 排除系统文件
   - '!**/{.DS_Store,.git,.gitignore,.gitattributes}'
   - '!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}'
   - '!**/{appveyor.yml,.travis.yml,circle.yml}'
   - '!**/{npm-debug.log,yarn.lock,.yarn-metadata.json,yarn-error.log}'
+  # 排除大型第三方包的非必需部分
   - '!**/node_modules/@img/**'
   - '!**/node_modules/@img/sharp-*/**'
   - '!**/node_modules/@emnapi/**'
   - '!**/node_modules/@anthropic-ai/claude-code/vendor/**'
+  # 排除 Webpack 相关的 source maps 和开发文件
+  - '!**/*.map'
+  - '!**/.webpack/**/*.map'
+  - '!**/webpack-stats.json'
+  # 排除大量的语法高亮语言包 (仅保留常用语言)
+  - '!**/.webpack/**/react-syntax-highlighter_languages_highlight_*'
+  - '.webpack/**/react-syntax-highlighter_languages_highlight_{javascript,typescript,python,java,cpp,c,html,css,json,xml,yaml,shell,bash,dockerfile,sql,markdown,go,rust,php}'
 
 extraResources:
   - from: public
@@ -79,9 +91,9 @@ afterSign: scripts/afterSign.js
 linux:
   target:
     - target: deb
-      arch: [x64, arm64]
+      arch: [x64, arm64, armv7l, armhf]
     - target: AppImage
-      arch: [x64, arm64]
+      arch: [x64, arm64, armv7l, armhf]
   icon: resources/app.png
   artifactName: ${productName}-${version}-${os}-${arch}.${ext}
   category: Utility
@@ -100,15 +112,20 @@ linux:
 # Native dependency handling - skip rebuilds in CI to avoid compilation issues
 npmRebuild: false
 buildDependenciesFromSource: false
+# 减小包体积配置
+nodeGypRebuild: false
+nativeRebuilds: false
 
 # ASAR configuration for production
 asarUnpack:
   - "**/node_modules/node-pty/**/*"
   - "!**/node_modules/@anthropic-ai/claude-code/vendor/**/*"
 
-# CI/CD optimizations
-compression: normal
+# CI/CD optimizations  
+compression: maximum
 removePackageScripts: true
+electronDownload:
+  cache: ${env.ELECTRON_CACHE}
 
 # Publish configuration for CI/CD (only for tagged releases)
 publish:
