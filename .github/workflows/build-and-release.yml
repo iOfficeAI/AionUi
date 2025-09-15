@@ -315,7 +315,14 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         tag_name: ${{ steps.version.outputs.tag_name }}
-        files: build-artifacts/**/*
+        files: |
+          build-artifacts/**/*.exe
+          build-artifacts/**/*.msi
+          build-artifacts/**/*.dmg
+          build-artifacts/**/*.deb
+          build-artifacts/**/*.AppImage
+          build-artifacts/**/*.zip
+          build-artifacts/**/*.tar.gz
         generate_release_notes: true
         draft: false
         prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') }}
