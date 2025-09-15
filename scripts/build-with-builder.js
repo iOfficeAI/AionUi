@@ -17,6 +17,22 @@ try {
   const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
   const originalMain = packageJson.main;
   
+  // 添加进程退出监听器确保恢复
+  const restoreMain = () => {
+    try {
+      const currentPackageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
+      currentPackageJson.main = '.webpack/main';
+      fs.writeFileSync(packageJsonPath, JSON.stringify(currentPackageJson, null, 2) + '\n');
+      console.log('🔄 Main entry restored on exit');
+    } catch (e) {
+      console.error('Failed to restore on exit:', e.message);
+    }
+  };
+  
+  process.on('SIGINT', restoreMain);
+  process.on('SIGTERM', restoreMain);
+  process.on('exit', restoreMain);
+  
   // 确保 Forge 能找到正确的 main 入口
   if (packageJson.main !== '.webpack/main') {
     packageJson.main = '.webpack/main';

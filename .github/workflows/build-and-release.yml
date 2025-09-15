@@ -7,8 +7,6 @@ permissions:
 
 on:
   push:
-    branches: [ main, dev ]
-  pull_request:
     branches: [ main ]
 
 jobs:
@@ -44,7 +42,7 @@ jobs:
     name: Build ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
     needs: code-quality
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
+    if: github.ref == 'refs/heads/main'
     
     strategy:
       fail-fast: false
@@ -193,12 +191,12 @@ jobs:
 
 
 
-  # 自动创建tag（dev分支推送时）
+  # 自动创建tag（main分支推送时）
   create-tag:
-    name: Create Tag from Dev Branch
+    name: Create Tag from Main Branch
     runs-on: ubuntu-latest
     needs: [build]
-    if: github.ref == 'refs/heads/dev'
+    if: github.ref == 'refs/heads/main'
     outputs:
       tag_name: ${{ steps.create_tag.outputs.tag_name }}
     
@@ -212,14 +210,20 @@ jobs:
       id: create_tag
       run: |
         VERSION=$(node -p "require('./package.json').version")
-        TAG_NAME="v$VERSION-dev-$(date +%Y%m%d)-$(git rev-parse --short HEAD)"
+        TAG_NAME="v$VERSION"
         echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
         
-        git config user.name "github-actions[bot]"
-        git config user.email "github-actions[bot]@users.noreply.github.com"
-        git tag $TAG_NAME
-        git remote set-url origin https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git
-        git push origin $TAG_NAME
+        # 检查tag是否已存在
+        if git tag -l | grep -q "^$TAG_NAME$"; then
+          echo "Tag $TAG_NAME already exists, skipping tag creation"
+        else
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag $TAG_NAME
+          git remote set-url origin https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git
+          git push origin $TAG_NAME
+          echo "Created and pushed tag: $TAG_NAME"
+        fi
         
         echo "✅ Created tag: $TAG_NAME"
       env:
@@ -242,7 +246,7 @@ jobs:
       run: |
         # 使用create-tag job创建的tag名称
         echo "tag_name=${{ needs.create-tag.outputs.tag_name }}" >> $GITHUB_OUTPUT
-        echo "is_dev_release=true" >> $GITHUB_OUTPUT
+        echo "is_dev_release=false" >> $GITHUB_OUTPUT
 
     - name: Download all build artifacts
       uses: actions/download-artifact@v4
@@ -261,62 +265,8 @@ jobs:
           build-artifacts/**/*.AppImage
           build-artifacts/**/*.zip
         generate_release_notes: true
-        draft: true
-        prerelease: ${{ contains(steps.version.outputs.tag_name, '-dev-') || contains(steps.version.outputs.tag_name, 'beta') || contains(steps.version.outputs.tag_name, 'alpha') }}
+        draft: true  # 保持draft模式，手动发布时机可控
+        prerelease: ${{ contains(steps.version.outputs.tag_name, 'beta') || contains(steps.version.outputs.tag_name, 'alpha') }}
       env:
         GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
-  # 自动更新版本 (可选)
-  update-version:
-    name: Update Version
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && !startsWith(github.ref, 'refs/tags/v')
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-        token: ${{ secrets.GH_TOKEN }}
-        
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-        cache: 'npm'
-        
-    - name: Install dependencies
-      run: npm ci
-      
-    - name: Bump version
-      id: version
-      run: |
-        # 获取当前版本
-        CURRENT_VERSION=$(node -p "require('./package.json').version")
-        echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
-        
-        # 检查是否需要版本升级 (基于提交信息)
-        if git log --format=%B -1 | grep -E "^(feat|fix|BREAKING CHANGE)" > /dev/null; then
-          if git log --format=%B -1 | grep "BREAKING CHANGE" > /dev/null; then
-            NEW_VERSION=$(npm version major --no-git-tag-version)
-          elif git log --format=%B -1 | grep "^feat" > /dev/null; then
-            NEW_VERSION=$(npm version minor --no-git-tag-version)
-          else
-            NEW_VERSION=$(npm version patch --no-git-tag-version)
-          fi
-          
-          echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
-          echo "should_release=true" >> $GITHUB_OUTPUT
-        else
-          echo "should_release=false" >> $GITHUB_OUTPUT
-        fi
-        
-    - name: Commit version bump
-      if: steps.version.outputs.should_release == 'true'
-      run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-        git add package.json package-lock.json
-        git commit -m "chore: bump version to ${{ steps.version.outputs.new_version }}"
-        git tag ${{ steps.version.outputs.new_version }}
-        git push origin main --tags
