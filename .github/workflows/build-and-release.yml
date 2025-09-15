@@ -40,7 +40,7 @@ jobs:
     name: Build ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
     needs: code-quality
-    if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/fix-linux-packaging' || github.ref == 'refs/heads/electron-builder-hybrid'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/fix-linux-packaging' || github.ref == 'refs/heads/electron-builder-hybrid' || (startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-dev-'))
     
     strategy:
       fail-fast: false
@@ -193,7 +193,7 @@ jobs:
   source-archive:
     name: Create Source Archives
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/v') || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/fix-linux-packaging' || github.ref == 'refs/heads/electron-builder-hybrid'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/fix-linux-packaging' || github.ref == 'refs/heads/electron-builder-hybrid' || (startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-dev-'))
     
     steps:
     - name: Checkout code
@@ -268,7 +268,7 @@ jobs:
       id: create_tag
       run: |
         VERSION=$(node -p "require('./package.json').version")
-        TAG_NAME="v$VERSION-dev-$(date +%Y%m%d-%H%M%S)"
+        TAG_NAME="v$VERSION-dev-$(date +%Y%m%d)-$(git rev-parse --short HEAD)"
         echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
         
         git config user.name "github-actions[bot]"
