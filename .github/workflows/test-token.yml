@@ -1,0 +1,38 @@
+name: Test GH_TOKEN Permissions
+
+on:
+  workflow_dispatch:  # 手动触发
+
+jobs:
+  test-token:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Test GH_TOKEN permissions
+      run: |
+        echo "Testing GH_TOKEN permissions..."
+        
+        # 测试基本API访问
+        echo "1. Testing basic API access:"
+        curl -H "Authorization: token $GH_TOKEN" \
+             -H "Accept: application/vnd.github.v3+json" \
+             https://api.github.com/user || echo "❌ Basic API failed"
+        
+        # 测试仓库访问
+        echo "2. Testing repository access:"
+        curl -H "Authorization: token $GH_TOKEN" \
+             -H "Accept: application/vnd.github.v3+json" \
+             https://api.github.com/repos/iOfficeAI/AionUi || echo "❌ Repo access failed"
+        
+        # 测试Release创建权限
+        echo "3. Testing release permissions:"
+        curl -H "Authorization: token $GH_TOKEN" \
+             -H "Accept: application/vnd.github.v3+json" \
+             https://api.github.com/repos/iOfficeAI/AionUi/releases || echo "❌ Release access failed"
+        
+        # 测试token scopes
+        echo "4. Testing token scopes:"
+        curl -I -H "Authorization: token $GH_TOKEN" \
+             -H "Accept: application/vnd.github.v3+json" \
+             https://api.github.com/user 2>/dev/null | grep -i "x-oauth-scopes" || echo "❌ Cannot read scopes"
+      env:
+        GH_TOKEN: ${{ secrets.GH_TOKEN }}
