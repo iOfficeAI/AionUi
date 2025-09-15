@@ -1,0 +1,272 @@
+name: Build and Release
+
+permissions:
+  contents: write
+  issues: read
+  pull-requests: read
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  # 代码质量检查
+  code-quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Run TypeScript check
+      run: npx tsc --noEmit
+      
+    - name: Run ESLint
+      run: npm run lint || echo "ESLint warnings detected but not blocking build"
+      
+    - name: Run Prettier check
+      run: npm run format:check || echo "Prettier formatting issues detected but not blocking build"
+
+  # 使用electron-builder进行跨平台构建
+  build:
+    name: Build ${{ matrix.platform }}
+    runs-on: ${{ matrix.os }}
+    needs: code-quality
+    if: github.ref == 'refs/heads/main'
+    
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: 'macos'
+            os: 'macos-latest'
+            command: 'npm run dist:mac'
+            artifact-name: 'macos-build'
+          - platform: 'windows'
+            os: 'windows-2022'
+            command: 'npm run dist:win'
+            artifact-name: 'windows-build'
+          - platform: 'linux'
+            os: 'ubuntu-latest'
+            command: 'npm run dist:linux'
+            artifact-name: 'linux-build'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Setup Windows native dependencies (for Windows only)
+      if: matrix.platform == 'windows'
+      run: |
+        npm install --global node-gyp
+      
+    - name: Setup Python (for native dependencies)
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        
+    - name: Setup Windows build environment (for Windows only)
+      if: matrix.platform == 'windows'
+      run: |
+        echo "Setting Windows SDK version for ConPty support"
+        echo "WindowsTargetPlatformVersion=10.0.19041.0" >> $env:GITHUB_ENV
+        
+    - name: Setup MSBuild (for Windows only)
+      if: matrix.platform == 'windows'
+      uses: microsoft/setup-msbuild@v2
+      with:
+        vs-version: '17.0'
+        
+    # macOS 代码签名证书安装
+    - name: Setup macOS code signing (macOS only)
+      if: matrix.platform == 'macos'
+      env:
+        BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+        P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+        KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD || 'temp-keychain-password' }}
+      run: |
+        if [ -n "$BUILD_CERTIFICATE_BASE64" ]; then
+          echo "Installing code signing certificate..."
+          
+          # 创建证书文件
+          echo $BUILD_CERTIFICATE_BASE64 | base64 --decode > certificate.p12
+          
+          # 创建临时钥匙串
+          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          security default-keychain -s build.keychain
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          
+          # 导入证书
+          security import certificate.p12 -k build.keychain -P "$P12_PASSWORD" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
+          
+          # 清理证书文件
+          rm certificate.p12
+          
+          echo "Certificate imported successfully"
+        else
+          echo "No certificate provided - building unsigned application"
+          echo "To enable code signing, add BUILD_CERTIFICATE_BASE64 and P12_PASSWORD secrets"
+        fi
+
+    - name: Install Linux dependencies
+      if: matrix.platform == 'linux'
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential fakeroot dpkg-dev rpm libnss3-dev libatk-bridge2.0-dev libdrm2 libxkbcommon-dev libxss1 libatspi2.0-dev libgtk-3-dev libxrandr2 libasound2-dev
+        
+    - name: Build with electron-builder
+      run: ${{ matrix.command }}
+      env:
+        # App ID configuration
+        APP_ID: ${{ secrets.APP_ID }}
+        # macOS 签名配置 (参考 forge.config.ts 中的环境变量名)
+        appleId: ${{ secrets.APPLE_ID }}
+        appleIdPassword: ${{ secrets.APPLE_ID_PASSWORD }}  
+        teamId: ${{ secrets.TEAM_ID }}
+        identity: ${{ secrets.IDENTITY }}
+        # electron-builder 签名配置
+        CSC_NAME: ${{ secrets.IDENTITY }}
+        CSC_IDENTITY_AUTO_DISCOVERY: false
+        # Native dependency compilation
+        npm_config_build_from_source: true
+        npm_config_cache: ${{ runner.temp }}/.npm
+        ELECTRON_CACHE: ${{ runner.temp }}/.cache/electron
+        ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/.cache/electron-builder
+        # Windows-specific build flags  
+        MSVS_VERSION: 2022
+        GYP_MSVS_VERSION: 2022
+        npm_config_disturl: https://electronjs.org/headers
+        npm_config_runtime: electron
+        WindowsTargetPlatformVersion: 10.0.19041.0
+        _WIN32_WINNT: 0x0A00
+        # CI 环境标识
+        CI: true
+        # GitHub token for electron-builder publishing
+        GH_TOKEN: ${{ secrets.GH_TOKEN }}
+        
+    # macOS 钥匙串清理
+    - name: Clean up keychain (macOS only)
+      if: matrix.platform == 'macos' && always()
+      run: |
+        if security list-keychains | grep -q build.keychain; then
+          security delete-keychain build.keychain
+          echo "Temporary keychain deleted"
+        fi
+    
+    - name: Upload build artifacts  
+      uses: actions/upload-artifact@v4
+      if: success()
+      with:
+        name: ${{ matrix.artifact-name }}
+        path: |
+          out/*.exe
+          out/*.msi  
+          out/*.dmg
+          out/*.deb
+          out/*.AppImage
+          out/AionUi-*-win32-*.zip
+          out/AionUi-*-mac-*.zip
+        if-no-files-found: warn
+        retention-days: 7
+
+
+
+  # 自动创建tag（main分支推送时）
+  create-tag:
+    name: Create Tag from Main Branch
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.ref == 'refs/heads/main'
+    outputs:
+      tag_name: ${{ steps.create_tag.outputs.tag_name }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        token: ${{ secrets.GH_TOKEN }}
+        
+    - name: Create and push tag
+      id: create_tag
+      run: |
+        VERSION=$(node -p "require('./package.json').version")
+        TAG_NAME="v$VERSION"
+        echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+        
+        # 检查tag是否已存在
+        if git tag -l | grep -q "^$TAG_NAME$"; then
+          echo "Tag $TAG_NAME already exists, skipping tag creation"
+        else
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag $TAG_NAME
+          git remote set-url origin https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git
+          git push origin $TAG_NAME
+          echo "Created and pushed tag: $TAG_NAME"
+        fi
+        
+        echo "✅ Created tag: $TAG_NAME"
+      env:
+        GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+  # 发布到 GitHub Releases（需要审批）
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: [build, create-tag]
+    if: always() && needs.create-tag.result == 'success'
+    environment: release
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Get version for release
+      id: version
+      run: |
+        # 使用create-tag job创建的tag名称
+        echo "tag_name=${{ needs.create-tag.outputs.tag_name }}" >> $GITHUB_OUTPUT
+        echo "is_dev_release=false" >> $GITHUB_OUTPUT
+
+    - name: Download all build artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: build-artifacts
+        
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ steps.version.outputs.tag_name }}
+        files: |
+          build-artifacts/**/*.exe
+          build-artifacts/**/*.msi
+          build-artifacts/**/*.dmg
+          build-artifacts/**/*.deb
+          build-artifacts/**/*.AppImage
+          build-artifacts/**/*.zip
+        generate_release_notes: true
+        draft: true  # 保持draft模式，手动发布时机可控
+        prerelease: ${{ contains(steps.version.outputs.tag_name, 'beta') || contains(steps.version.outputs.tag_name, 'alpha') }}
+      env:
+        GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
