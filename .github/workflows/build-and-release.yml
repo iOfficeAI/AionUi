@@ -40,7 +40,7 @@ jobs:
     name: Build ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
     needs: code-quality
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/fix-linux-packaging' || github.ref == 'refs/heads/electron-builder-hybrid' || (startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-dev-'))
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/fix-linux-packaging' || github.ref == 'refs/heads/electron-builder-hybrid' || (startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-dev-'))
     
     strategy:
       fail-fast: false
@@ -193,7 +193,7 @@ jobs:
   source-archive:
     name: Create Source Archives
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/fix-linux-packaging' || github.ref == 'refs/heads/electron-builder-hybrid' || (startsWith(github.ref, 'refs/tags/v') && !contains(github.ref, '-dev-'))
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/fix-linux-packaging' || github.ref == 'refs/heads/electron-builder-hybrid' || (startsWith(github.ref, 'refs/tags/v') && !contains(github.ref_name, '-dev-'))
     
     steps:
     - name: Checkout code
@@ -235,18 +235,13 @@ jobs:
         cd ..
         ls -la *.zip *.tar.gz
         
-    - name: Upload ZIP source archive
+    - name: Upload source archives
       uses: actions/upload-artifact@v4
       with:
-        name: source-zip
-        path: AionUi-*.zip
-        retention-days: 30
-        
-    - name: Upload TAR.GZ source archive
-      uses: actions/upload-artifact@v4
-      with:
-        name: source-tarball
-        path: AionUi-*.tar.gz
+        name: source-archives-${{ steps.version.outputs.version }}
+        path: |
+          AionUi-*.zip
+          AionUi-*.tar.gz
         retention-days: 30
 
   # 自动创建tag（dev分支推送时）
@@ -262,7 +257,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
       with:
-        token: ${{ secrets.PAT_TOKEN || secrets.GH_TOKEN }}
+        token: ${{ secrets.GH_TOKEN }}
         
     - name: Create and push tag
       id: create_tag
@@ -325,7 +320,7 @@ jobs:
           build-artifacts/**/*.tar.gz
         generate_release_notes: true
         draft: false
-        prerelease: ${{ contains(github.ref, 'beta') || contains(github.ref, 'alpha') }}
+        prerelease: ${{ contains(steps.version.outputs.tag_name, '-dev-') || contains(steps.version.outputs.tag_name, 'beta') || contains(steps.version.outputs.tag_name, 'alpha') }}
       env:
         GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
