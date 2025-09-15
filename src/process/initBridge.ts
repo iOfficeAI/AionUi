@@ -429,6 +429,13 @@ ipcBridge.mode.fetchModelList.provider(async function fetchModelList({ base_url,
     actualApiKey = api_key.split(/[,\n]/)[0].trim();
   }
 
+  // 如果是 Vertex AI 平台，直接返回 Vertex AI 支持的模型列表
+  if (platform?.includes('vertex-ai')) {
+    console.log('Using Vertex AI model list');
+    const vertexAIModels = ['gemini-2.5-pro', 'gemini-2.5-flash'];
+    return { success: true, data: { mode: vertexAIModels } };
+  }
+
   // 如果是 Gemini 平台，使用 Gemini API 协议
   if (platform?.includes('gemini')) {
     try {

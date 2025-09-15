@@ -14,12 +14,12 @@ export class GeminiRotatingClient extends RotatingApiClient<GoogleGenAI> {
   private readonly config: GeminiClientConfig;
   private readonly converter: OpenAI2GeminiConverter;
 
-  constructor(apiKeys: string, config: GeminiClientConfig = {}, options: RotatingApiClientOptions = {}) {
+  constructor(apiKeys: string, config: GeminiClientConfig = {}, options: RotatingApiClientOptions = {}, authType: AuthType = AuthType.USE_GEMINI) {
     const createClient = (apiKey: string) => {
       const cleanedApiKey = apiKey.replace(/[\s\r\n\t]/g, '').trim();
       const clientConfig: any = {
         apiKey: cleanedApiKey === '' ? undefined : cleanedApiKey,
-        vertexai: false,
+        vertexai: authType === AuthType.USE_VERTEX_AI,
       };
       if (config.baseURL) {
         clientConfig.baseURL = config.baseURL;
@@ -27,7 +27,7 @@ export class GeminiRotatingClient extends RotatingApiClient<GoogleGenAI> {
       return new GoogleGenAI(clientConfig);
     };
 
-    super(apiKeys, AuthType.USE_GEMINI, createClient, options);
+    super(apiKeys, authType, createClient, options);
     this.config = config;
     this.converter = new OpenAI2GeminiConverter({
       defaultModel: config.model || 'gemini-1.5-flash',
@@ -62,25 +62,21 @@ export class GeminiRotatingClient extends RotatingApiClient<GoogleGenAI> {
   }
 
   // OpenAI-compatible createChatCompletion method for unified interface
-  async createChatCompletion(
-    params: OpenAIChatCompletionParams, 
-    options?: { signal?: AbortSignal; timeout?: number }
-  ): Promise<OpenAIChatCompletionResponse> {
+  async createChatCompletion(params: OpenAIChatCompletionParams, options?: { signal?: AbortSignal; timeout?: number }): Promise<OpenAIChatCompletionResponse> {
     // Handle request cancellation
     if (options?.signal?.aborted) {
       throw new Error('Request was aborted');
     }
-    
+
     return this.executeWithRetry(async (client) => {
       // Convert OpenAI format to Gemini format using converter
       const geminiRequest = this.converter.convertRequest(params);
-      
+
       // Call Gemini API
       const geminiResponse = await client.models.generateContent(geminiRequest);
-      
+
       // Convert Gemini response back to OpenAI format using converter
       return this.converter.convertResponse(geminiResponse, params.model);
     });
   }
-
 }
