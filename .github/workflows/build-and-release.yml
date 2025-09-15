@@ -286,6 +286,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build, source-archive, create-tag]
     if: always() && needs.create-tag.result == 'success'
+    environment: release
     
     steps:
     - name: Checkout code
