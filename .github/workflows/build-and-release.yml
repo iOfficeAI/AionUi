@@ -172,19 +172,21 @@ jobs:
           echo "Temporary keychain deleted"
         fi
     
-    - name: Upload build artifacts
+    - name: Upload build artifacts  
       uses: actions/upload-artifact@v4
-      if: success() || failure()
+      if: success()
       with:
         name: ${{ matrix.artifact-name }}
         path: |
           out/*.exe
-          out/*.msi
+          out/*.msi  
           out/*.dmg
-          out/*.zip
           out/*.deb
           out/*.AppImage
-        retention-days: 5
+          out/AionUi-*-win32-*.zip
+          out/AionUi-*-mac-*.zip
+        if-no-files-found: warn
+        retention-days: 7
 
 
   # 生成源码压缩包
