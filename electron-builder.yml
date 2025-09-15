@@ -91,9 +91,9 @@ afterSign: scripts/afterSign.js
 linux:
   target:
     - target: deb
-      arch: [x64, arm64, armv7l, armhf]
+      arch: [x64, arm64, armv7l]
     - target: AppImage
-      arch: [x64, arm64, armv7l, armhf]
+      arch: [x64, arm64, armv7l]
   icon: resources/app.png
   artifactName: ${productName}-${version}-${os}-${arch}.${ext}
   category: Utility
@@ -114,7 +114,6 @@ npmRebuild: false
 buildDependenciesFromSource: false
 # 减小包体积配置
 nodeGypRebuild: false
-nativeRebuilds: false
 
 # ASAR configuration for production
 asarUnpack:
