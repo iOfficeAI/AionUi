@@ -50,8 +50,8 @@ win:
   target:
     - target: nsis
       arch: [x64, arm64]
-    - target: msi
-      arch: [x64, arm64]
+#    - target: msi
+#      arch: [x64, arm64]
     - target: zip
       arch: [x64, arm64]
   # icon: resources/app.ico  # Temporarily disabled - current ico is 32x32, need 256x256+
