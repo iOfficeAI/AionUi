@@ -54,7 +54,17 @@ export class ClientFactory {
           ...(options.baseConfig as GeminiClientConfig),
         };
 
-        return new GeminiRotatingClient(provider.apiKey, clientConfig, rotatingOptions);
+        return new GeminiRotatingClient(provider.apiKey, clientConfig, rotatingOptions, authType);
+      }
+
+      case AuthType.USE_VERTEX_AI: {
+        const clientConfig: GeminiClientConfig = {
+          model: provider.useModel,
+          // Note: Don't set baseURL for Vertex AI - it uses Google's built-in endpoints
+          ...(options.baseConfig as GeminiClientConfig),
+        };
+
+        return new GeminiRotatingClient(provider.apiKey, clientConfig, rotatingOptions, authType);
       }
 
       default: {
