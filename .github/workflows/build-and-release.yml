@@ -192,66 +192,12 @@ jobs:
         retention-days: 7
 
 
-  # 生成源码压缩包
-  source-archive:
-    name: Create Source Archives
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Get version from package.json
-      id: version
-      run: |
-        VERSION=$(node -p "require('./package.json').version")
-        echo "version=$VERSION" >> $GITHUB_OUTPUT
-        
-    - name: Create source archives
-      run: |
-        # Create temporary directory for clean source
-        mkdir -p source-temp
-        
-        # Copy source files excluding unnecessary directories
-        rsync -av \
-          --exclude='.git' \
-          --exclude='node_modules' \
-          --exclude='out' \
-          --exclude='.webpack' \
-          --exclude='dist' \
-          --exclude='.nyc_output' \
-          --exclude='coverage' \
-          --exclude='*.log' \
-          --exclude='.DS_Store' \
-          --exclude='Thumbs.db' \
-          ./ source-temp/AionUi-${{ steps.version.outputs.version }}/
-        
-        cd source-temp
-        
-        # Create ZIP archive
-        zip -r ../AionUi-${{ steps.version.outputs.version }}-source.zip AionUi-${{ steps.version.outputs.version }}/
-        
-        # Create tar.gz archive
-        tar -czf ../AionUi-${{ steps.version.outputs.version }}-source.tar.gz AionUi-${{ steps.version.outputs.version }}/
-        
-        cd ..
-        ls -la *.zip *.tar.gz
-        
-    - name: Upload source archives
-      uses: actions/upload-artifact@v4
-      with:
-        name: source-archives-${{ steps.version.outputs.version }}
-        path: |
-          AionUi-*.zip
-          AionUi-*.tar.gz
-        retention-days: 30
 
   # 自动创建tag（dev分支推送时）
   create-tag:
     name: Create Tag from Dev Branch
     runs-on: ubuntu-latest
-    needs: [build, source-archive]
+    needs: [build]
     if: github.ref == 'refs/heads/dev'
     outputs:
       tag_name: ${{ steps.create_tag.outputs.tag_name }}
@@ -283,7 +229,7 @@ jobs:
   release:
     name: Create Release
     runs-on: ubuntu-latest
-    needs: [build, source-archive, create-tag]
+    needs: [build, create-tag]
     if: always() && needs.create-tag.result == 'success'
     environment: release
     
@@ -314,7 +260,6 @@ jobs:
           build-artifacts/**/*.deb
           build-artifacts/**/*.AppImage
           build-artifacts/**/*.zip
-          build-artifacts/**/*.tar.gz
         generate_release_notes: true
         draft: true
         prerelease: ${{ contains(steps.version.outputs.tag_name, '-dev-') || contains(steps.version.outputs.tag_name, 'beta') || contains(steps.version.outputs.tag_name, 'alpha') }}
