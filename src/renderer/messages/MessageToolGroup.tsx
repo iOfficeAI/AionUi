@@ -191,17 +191,34 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
           return (
             <ConfirmationDetails
               content={content}
-              onConfirm={(outcome) => {
-                ipcBridge.geminiConversation.confirmMessage
-                  .invoke({
-                    confirmKey: outcome,
-                    msg_id: message.id,
-                    callId: callId,
-                    conversation_id: message.conversation_id,
-                  })
-                  .then((res) => {
-                    console.log('------onConfirm.res>:', res);
-                  });
+              onConfirm={async (outcome) => {
+                try {
+                  const conv = await ipcBridge.conversation.get.invoke({ id: message.conversation_id });
+                  if (conv?.type === 'acp') {
+                    await ipcBridge.acpConversation.confirmMessage.invoke({
+                      confirmKey: outcome,
+                      msg_id: message.id,
+                      callId,
+                      conversation_id: message.conversation_id,
+                    });
+                  } else if (conv?.type === 'codex') {
+                    await ipcBridge.codexConversation.confirmMessage.invoke({
+                      confirmKey: outcome,
+                      msg_id: message.id,
+                      callId,
+                      conversation_id: message.conversation_id,
+                    });
+                  } else {
+                    await ipcBridge.geminiConversation.confirmMessage.invoke({
+                      confirmKey: outcome,
+                      msg_id: message.id,
+                      callId,
+                      conversation_id: message.conversation_id,
+                    });
+                  }
+                } catch (e) {
+                  console.error('Confirm failed:', e);
+                }
               }}
             ></ConfirmationDetails>
           );

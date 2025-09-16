@@ -14,11 +14,15 @@ const ChatSider: React.FC<{
   if (conversation?.type === 'gemini') {
     return <GeminiWorkspace workspace={conversation.extra.workspace} customWorkspace={conversation.extra.customWorkspace}></GeminiWorkspace>;
   }
-  
+
   if (conversation?.type === 'acp' && conversation.extra?.workspace) {
     return <GeminiWorkspace workspace={conversation.extra.workspace} customWorkspace={conversation.extra.customWorkspace} eventPrefix='acp'></GeminiWorkspace>;
   }
-  
+
+  if (conversation?.type === 'codex' && conversation.extra?.workspace) {
+    return <GeminiWorkspace workspace={conversation.extra.workspace} customWorkspace={conversation.extra.customWorkspace} eventPrefix='codex'></GeminiWorkspace>;
+  }
+
   return <div></div>;
 };
 

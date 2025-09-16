@@ -15,7 +15,7 @@ import { useTranslation } from 'react-i18next';
 const GeminiWorkspace: React.FC<{
   workspace: string;
   customWorkspace?: boolean;
-  eventPrefix?: 'gemini' | 'acp';
+  eventPrefix?: 'gemini' | 'acp' | 'codex';
 }> = ({ workspace, customWorkspace, eventPrefix = 'gemini' }) => {
   const { t } = useTranslation();
   const [selected, setSelected] = useState<string[]>([]);
@@ -35,10 +35,10 @@ const GeminiWorkspace: React.FC<{
     const startTime = Date.now();
 
     // 根据 eventPrefix 选择对应的 getWorkspace 方法
-    const getWorkspaceMethod =
-      eventPrefix === 'acp'
-        ? ipcBridge.acpConversation.getWorkspace // 使用 ACP 专用的 getWorkspace
-        : ipcBridge.geminiConversation.getWorkspace;
+    let getWorkspaceMethod: typeof ipcBridge.geminiConversation.getWorkspace | typeof ipcBridge.acpConversation.getWorkspace | typeof ipcBridge.codexConversation.getWorkspace;
+    if (eventPrefix === 'acp') getWorkspaceMethod = ipcBridge.acpConversation.getWorkspace;
+    else if (eventPrefix === 'codex') getWorkspaceMethod = ipcBridge.codexConversation.getWorkspace;
+    else getWorkspaceMethod = ipcBridge.geminiConversation.getWorkspace;
 
     getWorkspaceMethod
       .invoke({ workspace: workspace })
@@ -76,6 +76,14 @@ const GeminiWorkspace: React.FC<{
   useEffect(() => {
     return ipcBridge.acpConversation.responseStream.on((data) => {
       if (data.type === 'tool_call') {
+        refreshWorkspace();
+      }
+    });
+  }, [workspace]);
+
+  useEffect(() => {
+    return ipcBridge.codexConversation.responseStream.on((data) => {
+      if (data.type === 'tool_call' || data.type === 'tool_group') {
         refreshWorkspace();
       }
     });
