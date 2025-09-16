@@ -6,6 +6,7 @@ import SendBox from '@/renderer/components/sendbox';
 import { getSendBoxDraftHook } from '@/renderer/hooks/useSendBoxDraft';
 import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
+import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileService';
 import { Button, Tag } from '@arco-design/web-react';
 import { Plus } from '@icon-park/react';
 import classNames from 'classnames';
@@ -120,11 +121,27 @@ const GeminiSendBox: React.FC<{
 
   const addMessage = useAddOrUpdateMessage();
 
+  // 处理拖拽或粘贴的文件
+  const handleFilesAdded = useCallback(
+    (files: FileMetadata[]) => {
+      // 直接使用文件路径（现在总是有效的）
+      const filePaths = files.map((file) => file.path);
+      setUploadFile([...uploadFile, ...filePaths]);
+    },
+    [uploadFile, setUploadFile]
+  );
+
   const onSendHandler = async (message: string) => {
     if (!model?.useModel) return;
     const msg_id = uuid();
     if (atPath.length || uploadFile.length) {
-      message = uploadFile.map((p) => '@' + p.split(/[\\/]/).pop()).join(' ') + ' ' + atPath.map((p) => '@' + p).join(' ') + ' ' + message;
+      const cleanUploadFiles = uploadFile.map((p) => {
+        const fileName = p.split(/[\\/]/).pop() || '';
+        // 去掉 AionUI 时间戳后缀
+        return '@' + fileName.replace(/_aionui_\d{13}(\.\w+)?$/, '$1');
+      });
+      const cleanAtPaths = atPath.map((p) => '@' + p);
+      message = cleanUploadFiles.join(' ') + ' ' + cleanAtPaths.join(' ') + ' ' + message;
     }
     addMessage(
       {
@@ -189,6 +206,9 @@ const GeminiSendBox: React.FC<{
         className={classNames('z-10 ', {
           'mt-0px': !!thought.subject,
         })}
+        onFilesAdded={handleFilesAdded}
+        supportedExts={allSupportedExts}
+        componentId={`gemini-${conversation_id}`}
         tools={
           <>
             <Button
@@ -225,7 +245,11 @@ const GeminiSendBox: React.FC<{
                     setUploadFile(uploadFile.filter((v) => v !== path));
                   }}
                 >
-                  {path.split('/').pop()}
+                  {(() => {
+                    const fileName = path.split('/').pop() || '';
+                    // 去掉 AionUI 时间戳后缀 (例如: package_aionui_1758015777592.json -> package.json)
+                    return fileName.replace(/_aionui_\d{13}(\.\w+)?$/, '$1');
+                  })()}
                 </Tag>
               );
             })}

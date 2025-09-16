@@ -137,9 +137,31 @@ export async function verifyDirectoryFiles(dir1: string, dir2: string): Promise<
 
 export const copyFilesToDirectory = async (dir: string, files?: string[]) => {
   if (!files) return Promise.resolve();
+
+  const { getSystemDir } = await import('./initStorage');
+  const { cacheDir } = getSystemDir();
+  const tempDir = path.join(cacheDir, 'temp');
+
   for (const file of files) {
-    const fileName = path.basename(file);
+    let fileName = path.basename(file);
+
+    // 如果是临时文件，去掉 AionUI 时间戳后缀
+    if (file.startsWith(tempDir)) {
+      // 去掉 AionUI 时间戳后缀 (例如: package_aionui_1758016286689.json -> package.json)
+      fileName = fileName.replace(/_aionui_\d{13}(\.\w+)?$/, '$1');
+    }
+
     const destPath = path.join(dir, fileName);
     await fs.copyFile(file, destPath);
+
+    // 如果是临时文件，复制完成后删除
+    if (file.startsWith(tempDir)) {
+      try {
+        await fs.unlink(file);
+        console.log(`Cleaned up temp file: ${file}`);
+      } catch (error) {
+        console.warn(`Failed to cleanup temp file ${file}:`, error);
+      }
+    }
   }
 };

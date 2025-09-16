@@ -1,12 +1,12 @@
 import { ipcBridge } from '@/common';
 import type { AcpBackend } from '@/common/acpTypes';
 import { transformMessage, type TMessage } from '@/common/chatLib';
-// import type { TModelWithConversation } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import SendBox from '@/renderer/components/sendbox';
 import { getSendBoxDraftHook } from '@/renderer/hooks/useSendBoxDraft';
 import { useAddOrUpdateMessage, useUpdateMessageList } from '@/renderer/messages/hooks';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
+import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileService';
 import { Button, Tag } from '@arco-design/web-react';
 import { Plus } from '@icon-park/react';
 import classNames from 'classnames';
@@ -195,6 +195,17 @@ const AcpSendBox: React.FC<{
   const addOrUpdateMessageRef = useRef(addOrUpdateMessage);
   addOrUpdateMessageRef.current = addOrUpdateMessage;
 
+  // 处理拖拽或粘贴的文件
+  const handleFilesAdded = useCallback(
+    (files: FileMetadata[]) => {
+      // 直接使用文件路径（现在总是有效的）
+      const filePaths = files.map((file) => file.path);
+      // 通过闭包获取当前的 uploadFile，这样在快速操作时也能获取最新值
+      setUploadFile([...uploadFile, ...filePaths]);
+    },
+    [uploadFile, setUploadFile] // 保持原有依赖，确保总是能获取最新状态
+  );
+
   // Check for and send initial message from guid page when ACP is authenticated
   useEffect(() => {
     if (!acpStatus || sendingInitialMessageRef.current) {
@@ -307,7 +318,13 @@ const AcpSendBox: React.FC<{
     const loading_id = uuid();
 
     if (atPath.length || uploadFile.length) {
-      message = uploadFile.map((p) => '@' + p.split(/[\\/]/).pop()).join(' ') + ' ' + atPath.map((p) => '@' + p).join(' ') + ' ' + message;
+      const cleanUploadFiles = uploadFile.map((p) => {
+        const fileName = p.split(/[\\/]/).pop() || '';
+        // 去掉 AionUI 时间戳后缀
+        return '@' + fileName.replace(/_aionui_\d{13}(\.\w+)?$/, '$1');
+      });
+      const cleanAtPaths = atPath.map((p) => '@' + p);
+      message = cleanUploadFiles.join(' ') + ' ' + cleanAtPaths.join(' ') + ' ' + message;
     }
 
     // Create user message first for correct order
@@ -404,6 +421,9 @@ const AcpSendBox: React.FC<{
         className={classNames('z-10 ', {
           'mt-0px': !!thought.subject,
         })}
+        onFilesAdded={handleFilesAdded}
+        supportedExts={allSupportedExts}
+        componentId={`acp-${conversation_id}`}
         tools={
           <>
             <Button

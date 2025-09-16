@@ -6,8 +6,12 @@
 
 import { Button, Input, Message } from '@arco-design/web-react';
 import { ArrowUp } from '@icon-park/react';
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import { PasteService } from '../services/PasteService';
+import type { FileMetadata } from '../services/FileService';
+import { allSupportedExts } from '../services/FileService';
+import { useDragUpload } from '../hooks/useDragUpload';
 
 const constVoid = (): void => undefined;
 
@@ -22,13 +26,46 @@ const SendBox: React.FC<{
   tools?: React.ReactNode;
   prefix?: React.ReactNode;
   placeholder?: string;
-}> = ({ onSend, onStop, prefix, className, loading, tools, disabled, placeholder, value: input = '', onChange: setInput = constVoid }) => {
+  onFilesAdded?: (files: FileMetadata[]) => void;
+  supportedExts?: string[];
+  componentId?: string;
+}> = ({ onSend, onStop, prefix, className, loading, tools, disabled, placeholder, value: input = '', onChange: setInput = constVoid, onFilesAdded, supportedExts = allSupportedExts, componentId = 'default' }) => {
   const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
 
-  const [message, context] = Message.useMessage();
+  // 使用拖拽 hook
+  const { isFileDragging, dragHandlers } = useDragUpload({
+    supportedExts,
+    onFilesAdded,
+  });
 
+  const [message, context] = Message.useMessage();
   const isComposing = useRef(false);
+
+  // 粘贴服务集成
+  useEffect(() => {
+    PasteService.init();
+    PasteService.registerHandler(componentId, handlePaste);
+
+    return () => {
+      PasteService.unregisterHandler(componentId);
+    };
+  }, [componentId]);
+
+  // 粘贴事件处理
+  const handlePaste = useCallback(
+    async (event: ClipboardEvent) => {
+      if (!onFilesAdded) return false;
+
+      return await PasteService.handlePaste(event, supportedExts, onFilesAdded, setInput, input);
+    },
+    [supportedExts, onFilesAdded, setInput, input]
+  );
+
+  // 焦点处理
+  const handleFocus = useCallback(() => {
+    PasteService.setLastFocusedComponent(componentId);
+  }, [componentId]);
 
   const sendMessageHandler = () => {
     if (loading || isLoading) {
@@ -58,7 +95,7 @@ const SendBox: React.FC<{
 
   return (
     <div className={`mb-16px  ${className}`}>
-      <div className='p-16px b-#E5E6EB b bg-white b-solid rd-20px  focus-within:shadow-[0px_2px_20px_rgba(77,60,234,0.1)] '>
+      <div className={`relative p-16px b-#E5E6EB b bg-white b-solid rd-20px  focus-within:shadow-[0px_2px_20px_rgba(77,60,234,0.1)] ${isFileDragging ? 'bg-blue-50 b-blue-300 b-dashed' : ''}`} {...dragHandlers}>
         {prefix}
         {context}
         <Input.TextArea
@@ -69,6 +106,7 @@ const SendBox: React.FC<{
           onChange={(v) => {
             setInput(v);
           }}
+          onFocus={handleFocus}
           onCompositionStartCapture={() => {
             isComposing.current = true;
           }}

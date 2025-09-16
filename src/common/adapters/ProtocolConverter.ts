@@ -7,7 +7,7 @@
 /**
  * Generic protocol converter interface for transforming requests and responses
  * between different AI service protocols.
- * 
+ *
  * @template TInput - Input request format (e.g., OpenAI ChatCompletionCreateParams)
  * @template TOutput - Output request format (e.g., Gemini GenerateContentRequest)
  * @template TResponse - Final response format (e.g., OpenAI ChatCompletion)
