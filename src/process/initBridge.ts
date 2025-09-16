@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { acpDetector } from '@/agent/acp/AcpDetector';
 import type { IProvider, TChatConversation } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import { AuthType, clearCachedCredentialFile, Config, getOauthInfoWithCache, loginWithOauth } from '@office-ai/aioncli-core';
@@ -13,14 +14,13 @@ import fs from 'fs/promises';
 import OpenAI from 'openai';
 import path from 'path';
 import { ipcBridge } from '../common';
-import { createAcpAgent, createGeminiAgent } from './initAgent';
+import { createAcpAgent, createCodexAgent, createGeminiAgent } from './initAgent';
 import { getSystemDir, ProcessChat, ProcessChatMessage, ProcessConfig, ProcessEnv } from './initStorage';
 import { nextTickToLocalFinish } from './message';
 import type AcpAgentManager from './task/AcpAgentManager';
 import type { GeminiAgentManager } from './task/GeminiAgentManager';
 import { copyDirectoryRecursively, copyFilesToDirectory, generateHashWithFullName, readDirectoryRecursive } from './utils';
 import WorkerManage from './WorkerManage';
-import { acpDetector } from '@/agent/acp/AcpDetector';
 
 logger.config({ print: true });
 
@@ -81,6 +81,7 @@ ipcBridge.conversation.create.provider(async (params): Promise<TChatConversation
   const buildConversation = async () => {
     if (type === 'gemini') return createGeminiAgent(model, extra.workspace, extra.defaultFiles, extra.webSearchEngine);
     if (type === 'acp') return createAcpAgent(params);
+    if (type === 'codex') return createCodexAgent(params);
     throw new Error('Invalid conversation type');
   };
   try {
@@ -219,6 +220,42 @@ ipcBridge.acpConversation.sendMessage.provider(async ({ conversation_id, files, 
     });
 });
 
+// Codex 专用的 sendMessage provider
+ipcBridge.codexConversation.sendMessage.provider(async ({ conversation_id, files, ...other }) => {
+  const task = WorkerManage.getTaskById(conversation_id) as any;
+  if (!task) {
+    // 尝试从历史重建任务
+    const conversation = await ProcessChat.get('chat.history').then((history) => history?.find((item) => item.id === conversation_id));
+    if (!conversation || conversation.type !== 'codex') {
+      return { success: false, msg: 'conversation not found' };
+    }
+    const rebuilt = WorkerManage.buildConversation(conversation);
+    if (!rebuilt) return { success: false, msg: 'failed to rebuild codex task' };
+  }
+
+  const codexTask: any = WorkerManage.getTaskById(conversation_id);
+  if (!codexTask || codexTask.type !== 'codex') return { success: false, msg: 'unsupported task type for Codex provider' };
+  await copyFilesToDirectory(codexTask.workspace, files);
+
+  return codexTask
+    .sendMessage({ content: other.input, files, msg_id: other.msg_id })
+    .then(() => ({ success: true }))
+    .catch((err: { message: any }) => ({ success: false, msg: err?.message || String(err) }));
+});
+
+// Codex 确认消息（占位实现，用于更新前端状态）
+ipcBridge.codexConversation.confirmMessage.provider(async ({ confirmKey, msg_id, conversation_id, callId }) => {
+  const task = WorkerManage.getTaskById(conversation_id) as any;
+  if (!task) return { success: false, msg: 'conversation not found' };
+  if (task.type !== 'codex') return { success: false, msg: 'not support' };
+  try {
+    await task.confirmMessage({ confirmKey, msg_id, callId });
+    return { success: true };
+  } catch (e: any) {
+    return { success: false, msg: e?.message || String(e) };
+  }
+});
+
 ipcBridge.geminiConversation.confirmMessage.provider(async ({ confirmKey, msg_id, conversation_id, callId }) => {
   const task = WorkerManage.getTaskById(conversation_id) as GeminiAgentManager;
   if (!task) return { success: false, msg: 'conversation not found' };
@@ -298,7 +335,7 @@ ipcBridge.acpConversation.detectCliPath.provider(async ({ backend }) => {
 ipcBridge.conversation.stop.provider(async ({ conversation_id }) => {
   const task = WorkerManage.getTaskById(conversation_id);
   if (!task) return { success: true, msg: 'conversation not found' };
-  if (task.type !== 'gemini' && task.type !== 'acp') return { success: false, msg: 'not support' };
+  if (task.type !== 'gemini' && task.type !== 'acp' && task.type !== 'codex') return { success: false, msg: 'not support' };
   return task.stop().then(() => ({ success: true }));
 });
 
@@ -378,6 +415,43 @@ ipcBridge.acpConversation.getWorkspace.provider(async ({ workspace }) => {
     return result;
   } catch (error) {
     return [];
+  }
+});
+
+// Codex 的 getWorkspace 复用 ACP 的实现
+ipcBridge.codexConversation.getWorkspace.provider(async ({ workspace }) => {
+  try {
+    const fs = await import('fs');
+    const path = await import('path');
+    if (!fs.existsSync(workspace)) return [] as any[];
+    const buildFileTree = (dirPath: string, basePath: string = dirPath): any[] => {
+      const result: any[] = [];
+      const items = fs.readdirSync(dirPath);
+      for (const item of items) {
+        if (item.startsWith('.')) continue;
+        if (item === 'node_modules') continue;
+        const itemPath = path.join(dirPath, item);
+        const relativePath = path.relative(basePath, itemPath);
+        const stat = fs.statSync(itemPath);
+        if (stat.isDirectory()) {
+          const children = buildFileTree(itemPath, basePath);
+          if (children.length > 0) {
+            result.push({ name: item, path: relativePath, isDir: true, isFile: false, children });
+          }
+        } else {
+          result.push({ name: item, path: relativePath, isDir: false, isFile: true });
+        }
+      }
+      return result.sort((a, b) => {
+        if (a.isDir && b.isFile) return -1;
+        if (a.isFile && b.isDir) return 1;
+        return a.name.localeCompare(b.name);
+      });
+    };
+    const files = buildFileTree(workspace);
+    return [{ name: path.basename(workspace), path: workspace, isDir: true, isFile: false, children: files }];
+  } catch {
+    return [] as any[];
   }
 });
 

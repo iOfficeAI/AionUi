@@ -12,6 +12,7 @@ import { uuid } from '@/common/utils';
 import ClaudeLogo from '@/renderer/assets/logos/claude.svg';
 import GeminiLogo from '@/renderer/assets/logos/gemini.svg';
 import QwenLogo from '@/renderer/assets/logos/qwen.svg';
+import CodexLogo from '@/renderer/assets/logos/codex.svg';
 import { geminiModeList } from '@/renderer/hooks/useModeModeList';
 import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
 import { Button, ConfigProvider, Dropdown, Input, Menu, Radio, Space, Tooltip } from '@arco-design/web-react';
@@ -116,8 +117,9 @@ const Guid: React.FC = () => {
   const [files, setFiles] = useState<string[]>([]);
   const [dir, setDir] = useState<string>('');
   const [currentModel, _setCurrentModel] = useState<TProviderWithModel>();
-  const [selectedAgent, setSelectedAgent] = useState<AcpBackend | null>('gemini');
-  const [availableAgents, setAvailableAgents] = useState<Array<{ backend: AcpBackend; name: string; cliPath?: string }>>();
+  // 支持在初始化页展示 Codex（MCP）选项，先做 UI 占位
+  const [selectedAgent, setSelectedAgent] = useState<AcpBackend | 'codex' | null>('gemini');
+  const [availableAgents, setAvailableAgents] = useState<Array<{ backend: AcpBackend | 'codex'; name: string; cliPath?: string }>>();
   const setCurrentModel = async (modelInfo: TProviderWithModel) => {
     await ConfigStorage.set('gemini.defaultModel', modelInfo.useModel);
     _setCurrentModel(modelInfo);
@@ -137,7 +139,9 @@ const Guid: React.FC = () => {
   // 更新本地状态
   useEffect(() => {
     if (availableAgentsData) {
-      setAvailableAgents(availableAgentsData);
+      // 追加 Codex 入口（acp 检测结果不包含 codex，这里固定添加）
+      const enhanced = [...availableAgentsData, { backend: 'codex' as const, name: 'Codex' }];
+      setAvailableAgents(enhanced);
     }
   }, [availableAgentsData]);
 
@@ -175,6 +179,36 @@ const Guid: React.FC = () => {
         console.error('Failed to create or send Gemini message:', error);
         alert(`Failed to create Gemini conversation: ${error.message || error}`);
         throw error; // Re-throw to prevent input clearing
+      }
+      return;
+    } else if (selectedAgent === 'codex') {
+      // 创建 Codex 会话并保存初始消息，由对话页负责发送
+      try {
+        const conversation = await ipcBridge.conversation.create.invoke({
+          type: 'codex',
+          name: input,
+          model: currentModel!, // not used by codex, but required by type
+          extra: {
+            defaultFiles: files,
+            workspace: dir,
+          },
+        });
+
+        if (!conversation || !conversation.id) {
+          alert('Failed to create Codex conversation. Please ensure the Codex CLI is installed and accessible in PATH.');
+          return;
+        }
+        // 交给对话页发送，避免事件丢失
+        const initialMessage = {
+          input,
+          files: files.length > 0 ? files : undefined,
+        };
+        sessionStorage.setItem(`codex_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
+        navigate(`/conversation/${conversation.id}`);
+      } catch (error: any) {
+        console.error('Failed to create or send Codex message:', error);
+        alert(`Failed to create Codex conversation: ${error.message || error}`);
+        throw error;
       }
       return;
     } else {
@@ -387,12 +421,12 @@ const Guid: React.FC = () => {
               className={styles.roundedRadioGroup}
               value={selectedAgent}
               onChange={(value) => {
-                setSelectedAgent(value as AcpBackend);
+                setSelectedAgent(value as AcpBackend | 'codex');
               }}
               options={availableAgents.map((agent) => ({
                 label: (
                   <div className='flex items-center gap-2'>
-                    <img src={agent.backend === 'claude' ? ClaudeLogo : agent.backend === 'gemini' ? GeminiLogo : agent.backend === 'qwen' ? QwenLogo : ''} alt={`${agent.backend} logo`} width={16} height={16} style={{ objectFit: 'contain' }} />
+                    <img src={agent.backend === 'claude' ? ClaudeLogo : agent.backend === 'gemini' ? GeminiLogo : agent.backend === 'qwen' ? QwenLogo : agent.backend === 'codex' ? CodexLogo : ''} alt={`${agent.backend} logo`} width={16} height={16} style={{ objectFit: 'contain' }} />
                     <span className='font-medium'>{agent.name}</span>
                   </div>
                 ),

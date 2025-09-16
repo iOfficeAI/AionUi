@@ -80,6 +80,17 @@ export const acpConversation = {
   // clearAllCache: bridge.buildProvider<IBridgeResponse<{ details?: any }>, void>('acp.clear.all.cache'),
 };
 
+// Codex 对话相关接口（MCP 直连，会与 ACP/Gemini 并存）
+const codexSendMessage = bridge.buildProvider<IBridgeResponse<{}>, ISendMessageParams>('codex.send.message');
+const codexResponseStream = bridge.buildEmitter<IResponseMessage>('codex.response.stream');
+
+export const codexConversation = {
+  sendMessage: codexSendMessage,
+  confirmMessage: bridge.buildProvider<IBridgeResponse, IConfirmAcpMessageParams>('codex.input.confirm.message'),
+  responseStream: codexResponseStream,
+  getWorkspace: bridge.buildProvider<IDirOrFile[], { workspace: string }>('codex.get-workspace'),
+};
+
 interface ISendMessageParams {
   input: string;
   msg_id: string;
@@ -103,7 +114,7 @@ export interface IConfirmAcpMessageParams {
 }
 
 export interface ICreateConversationParams {
-  type: 'gemini' | 'acp';
+  type: 'gemini' | 'acp' | 'codex';
   name?: string;
   model: TProviderWithModel;
   extra: { workspace?: string; defaultFiles?: string[]; backend?: AcpBackend; cliPath?: string; webSearchEngine?: 'google' | 'default' };

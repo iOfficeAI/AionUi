@@ -163,7 +163,7 @@ export type IMessageToolGroup = IMessage<
 export type IMessageAcpStatus = IMessage<
   'acp_status',
   {
-    backend: AcpBackend;
+    backend: string; // allow codex as well
     status: 'connecting' | 'connected' | 'authenticated' | 'session_active' | 'disconnected' | 'error';
     message: string;
   }
