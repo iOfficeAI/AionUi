@@ -58,6 +58,10 @@ export class AcpConnection {
         await this.connectQwen(cliPath, workingDir);
         break;
 
+      case 'iflow':
+        await this.connectIflow(cliPath, workingDir);
+        break;
+
       default:
         throw new Error(`Unsupported backend: ${backend}`);
     }
@@ -156,6 +160,41 @@ export class AcpConnection {
     });
 
     await this.setupChildProcessHandlers('qwen');
+  }
+
+  private async connectIflow(cliPath?: string, workingDir: string = process.cwd()): Promise<void> {
+    if (!cliPath) {
+      throw new Error('iFlow CLI path is required for iflow backend');
+    }
+
+    // Clean environment - let iFlow CLI handle its own authentication
+    const env: Record<string, string | undefined> = {
+      ...process.env,
+    };
+
+    // Handle command format
+    let spawnCommand: string;
+    let spawnArgs: string[];
+
+    if (cliPath.startsWith('npx ')) {
+      // For "npx iflow", split into command and arguments
+      const parts = cliPath.split(' ');
+      const isWindows = process.platform === 'win32';
+      spawnCommand = isWindows ? 'npx.cmd' : 'npx'; // Use npx.cmd on Windows
+      spawnArgs = [...parts.slice(1), '--experimental-acp']; // ['iflow', '--experimental-acp']
+    } else {
+      // For regular paths like '/usr/local/bin/iflow'
+      spawnCommand = cliPath;
+      spawnArgs = ['--experimental-acp'];
+    }
+
+    this.child = spawn(spawnCommand, spawnArgs, {
+      cwd: workingDir,
+      stdio: ['pipe', 'pipe', 'pipe'],
+      env,
+    });
+
+    await this.setupChildProcessHandlers('iflow');
   }
 
   private async setupChildProcessHandlers(backend: string): Promise<void> {
