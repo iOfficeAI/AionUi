@@ -16,6 +16,7 @@ export type AcpBackendAll =
   | 'claude' // Claude ACP
   | 'gemini' // Google Gemini ACP
   | 'qwen' // Qwen Code ACP
+  | 'iflow' // iFlow CLI ACP
   | 'openai' // OpenAI ACP (未来支持)
   | 'anthropic' // Anthropic ACP (未来支持)
   | 'cohere' // Cohere ACP (未来支持)
@@ -58,6 +59,14 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     authRequired: true,
     supportedFeatures: ['text', 'files', 'tools'],
     enabled: true, // ✅ 已验证支持：Qwen CLI v0.0.10+ 支持 --experimental-acp
+  },
+  iflow: {
+    id: 'iflow',
+    name: 'iFlow CLI',
+    cliCommand: 'iflow',
+    authRequired: true,
+    supportedFeatures: ['text', 'files', 'tools'],
+    enabled: true,
   },
   openai: {
     id: 'openai',
