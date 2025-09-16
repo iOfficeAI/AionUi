@@ -20,7 +20,15 @@ const buildWorkspaceWidthFiles = async (defaultWorkspaceName: string, workspace?
   }
   if (defaultFiles) {
     for (const file of defaultFiles) {
-      const fileName = path.basename(file);
+      let fileName = path.basename(file);
+
+      // 如果是临时文件，去掉 AionUI 时间戳后缀
+      const { cacheDir } = getSystemDir();
+      const tempDir = path.join(cacheDir, 'temp');
+      if (file.startsWith(tempDir)) {
+        fileName = fileName.replace(/_aionui_\d{13}(\.\w+)?$/, '$1');
+      }
+
       const destPath = path.join(workspace, fileName);
       await fs.copyFile(file, destPath);
     }
