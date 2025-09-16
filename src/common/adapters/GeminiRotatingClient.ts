@@ -62,25 +62,21 @@ export class GeminiRotatingClient extends RotatingApiClient<GoogleGenAI> {
   }
 
   // OpenAI-compatible createChatCompletion method for unified interface
-  async createChatCompletion(
-    params: OpenAIChatCompletionParams, 
-    options?: { signal?: AbortSignal; timeout?: number }
-  ): Promise<OpenAIChatCompletionResponse> {
+  async createChatCompletion(params: OpenAIChatCompletionParams, options?: { signal?: AbortSignal; timeout?: number }): Promise<OpenAIChatCompletionResponse> {
     // Handle request cancellation
     if (options?.signal?.aborted) {
       throw new Error('Request was aborted');
     }
-    
+
     return this.executeWithRetry(async (client) => {
       // Convert OpenAI format to Gemini format using converter
       const geminiRequest = this.converter.convertRequest(params);
-      
+
       // Call Gemini API
       const geminiResponse = await client.models.generateContent(geminiRequest);
-      
+
       // Convert Gemini response back to OpenAI format using converter
       return this.converter.convertResponse(geminiResponse, params.model);
     });
   }
-
 }
