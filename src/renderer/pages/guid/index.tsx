@@ -12,6 +12,7 @@ import { uuid } from '@/common/utils';
 import ClaudeLogo from '@/renderer/assets/logos/claude.svg';
 import GeminiLogo from '@/renderer/assets/logos/gemini.svg';
 import QwenLogo from '@/renderer/assets/logos/qwen.svg';
+import IflowLogo from '@/renderer/assets/logos/iflow.svg';
 import { geminiModeList } from '@/renderer/hooks/useModeModeList';
 import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
 import { Button, ConfigProvider, Dropdown, Input, Menu, Radio, Space, Tooltip } from '@arco-design/web-react';
@@ -384,7 +385,7 @@ const Guid: React.FC = () => {
               options={availableAgents.map((agent) => ({
                 label: (
                   <div className='flex items-center gap-2'>
-                    <img src={agent.backend === 'claude' ? ClaudeLogo : agent.backend === 'gemini' ? GeminiLogo : agent.backend === 'qwen' ? QwenLogo : ''} alt={`${agent.backend} logo`} width={16} height={16} style={{ objectFit: 'contain' }} />
+                    <img src={agent.backend === 'claude' ? ClaudeLogo : agent.backend === 'gemini' ? GeminiLogo : agent.backend === 'qwen' ? QwenLogo : agent.backend === 'iflow' ? IflowLogo : ''} alt={`${agent.backend} logo`} width={16} height={16} style={{ objectFit: 'contain' }} />
                     <span className='font-medium'>{agent.name}</span>
                   </div>
                 ),
