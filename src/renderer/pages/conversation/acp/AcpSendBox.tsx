@@ -1,11 +1,13 @@
 import { ipcBridge } from '@/common';
 import type { AcpBackend } from '@/common/acpTypes';
-import { transformMessage, type TMessage } from '@/common/chatLib';
+import { type TMessage, transformMessage } from '@/common/chatLib';
+import type { IResponseMessage } from '@/common/ipcBridge';
 // import type { TModelWithConversation } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import SendBox from '@/renderer/components/sendbox';
+import ShimmerText from '@/renderer/components/ShimmerText';
 import { getSendBoxDraftHook } from '@/renderer/hooks/useSendBoxDraft';
-import { useAddOrUpdateMessage, useUpdateMessageList } from '@/renderer/messages/hooks';
+import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { Button, Tag } from '@arco-design/web-react';
 import { Plus } from '@icon-park/react';
@@ -22,19 +24,20 @@ const useAcpSendBoxDraft = getSendBoxDraftHook('acp', {
 
 const useAcpMessage = (conversation_id: string) => {
   const addOrUpdateMessage = useAddOrUpdateMessage();
-  const updateMessageList = useUpdateMessageList();
   const [running, setRunning] = useState(false);
   const [thought, setThought] = useState({
     description: '',
     subject: '',
   });
   const [acpStatus, setAcpStatus] = useState<'connecting' | 'connected' | 'authenticated' | 'session_active' | 'disconnected' | 'error' | null>(null);
+  const [aiProcessing, setAiProcessing] = useState(false); // New loading state for AI response
 
-  useEffect(() => {
-    return ipcBridge.acpConversation.responseStream.on(async (message) => {
+  const handleResponseMessage = useCallback(
+    async (message: IResponseMessage) => {
       if (conversation_id !== message.conversation_id) {
         return;
       }
+      const transformedMessage = transformMessage(message);
       switch (message.type) {
         case 'thought':
           setThought(message.data);
@@ -43,110 +46,67 @@ const useAcpMessage = (conversation_id: string) => {
           setRunning(true);
           break;
         case 'finish':
-          {
-            setRunning(false);
-            setThought({ subject: '', description: '' });
-          }
+          setRunning(false);
+          setThought({ subject: '', description: '' });
+          break;
+        case 'ai_end_turn':
+          // End AI processing state
+          setAiProcessing(false);
           break;
         case 'content':
-          {
-            // Clear thought when final answer arrives
-            setThought({ subject: '', description: '' });
-
-            // Handle loading replacement specially
-            if (message.isLoadingReplacement) {
-              // Use our custom replacement function to avoid concatenation
-              replaceLoadingMessage(message);
-            } else {
-              // Normal message processing
-              addOrUpdateMessage(transformMessage(message));
-            }
-          }
-          break;
-        case 'user_content':
-          {
-            addOrUpdateMessage(transformMessage(message));
-          }
+          // Clear thought when final answer arrives
+          setThought({ subject: '', description: '' });
+          addOrUpdateMessage(transformedMessage);
           break;
         case 'acp_status':
-          {
-            // Update ACP status
-            if (message.data && message.data.status) {
-              setAcpStatus(message.data.status);
-              // Reset running state when authentication is complete
-              if (message.data.status === 'authenticated' || message.data.status === 'session_active') {
-                setRunning(false);
-              }
+          // Update ACP status
+          if (message.data?.status) {
+            setAcpStatus(message.data.status);
+            // Reset running state when authentication is complete
+            if (['authenticated', 'session_active'].includes(message.data.status)) {
+              setRunning(false);
             }
-            addOrUpdateMessage(transformMessage(message));
           }
+          addOrUpdateMessage(transformedMessage);
           break;
-        case 'error':
-          {
-            addOrUpdateMessage(transformMessage(message));
-          }
+        case 'user_content':
+          addOrUpdateMessage(transformedMessage);
           break;
         case 'acp_permission':
-          {
-            addOrUpdateMessage(transformMessage(message));
-          }
+          addOrUpdateMessage(transformedMessage);
+          break;
+        case 'error':
+          // Stop AI processing state when error occurs
+          setAiProcessing(false);
+          addOrUpdateMessage(transformedMessage);
           break;
         default:
-          {
-            addOrUpdateMessage(transformMessage(message));
-          }
+          addOrUpdateMessage(transformedMessage);
           break;
       }
-    });
-  }, [conversation_id]);
+    },
+    [conversation_id, addOrUpdateMessage, setThought, setRunning, setAiProcessing, setAcpStatus]
+  );
 
+  useEffect(() => {
+    return ipcBridge.acpConversation.responseStream.on(handleResponseMessage);
+  }, [handleResponseMessage]);
+
+  // Reset state when conversation changes
   useEffect(() => {
     setRunning(false);
     setThought({ subject: '', description: '' });
-
-    // Don't automatically set running to true based on conversation status
-    // Let the response stream handle the running state properly
-    ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
-      if (!res) return;
-      // Only set running if there's actually an active operation happening
-      // The response stream will handle setting running state for actual operations
-    });
+    setAcpStatus(null);
+    setAiProcessing(false);
   }, [conversation_id]);
 
-  // Add cleanup effect to reset running state when component unmounts or conversation changes
-  useEffect(() => {
-    return () => {
-      setRunning(false);
-      setThought({ subject: '', description: '' });
-    };
-  }, [conversation_id]);
-
-  const replaceLoadingMessage = (message: any) => {
-    updateMessageList((list: TMessage[]) => {
-      return list.map((msg: TMessage) => {
-        if (msg.msg_id === message.msg_id) {
-          return {
-            ...msg,
-            id: message.assistantMsgId || message.msg_id, // Use assistant ID if provided
-            content: {
-              content: message.data,
-            },
-            status: undefined,
-          } as TMessage;
-        }
-        return msg;
-      });
-    });
-  };
-
-  return { thought, setThought, running, acpStatus };
+  return { thought, setThought, running, acpStatus, aiProcessing, setAiProcessing };
 };
 
 const EMPTY_ARRAY: string[] = [];
 
 const useSendBoxDraft = (conversation_id: string) => {
   const { data, mutate } = useAcpSendBoxDraft(conversation_id);
-
   const atPath = data?.atPath ?? EMPTY_ARRAY;
   const uploadFile = data?.uploadFile ?? EMPTY_ARRAY;
   const content = data?.content ?? '';
@@ -186,34 +146,27 @@ const AcpSendBox: React.FC<{
   conversation_id: string;
   backend: AcpBackend;
 }> = ({ conversation_id, backend }) => {
-  const { thought, running, acpStatus } = useAcpMessage(conversation_id);
+  const { thought, running, acpStatus, aiProcessing, setAiProcessing } = useAcpMessage(conversation_id);
   const { t } = useTranslation();
-
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
   const sendingInitialMessageRef = useRef(false); // Prevent duplicate sends
   const addOrUpdateMessage = useAddOrUpdateMessage(); // Move this here so it's available in useEffect
   const addOrUpdateMessageRef = useRef(addOrUpdateMessage);
   addOrUpdateMessageRef.current = addOrUpdateMessage;
-
-  // Check for and send initial message from guid page when ACP is authenticated
   useEffect(() => {
-    if (!acpStatus || sendingInitialMessageRef.current) {
+    if (!acpStatus) {
       return;
     }
-
-    // Only proceed when ACP has active session (full authentication and agent ready)
     if (acpStatus !== 'session_active') {
-      // Waiting for ACP to complete full authentication and session setup
       return;
     }
-    sendingInitialMessageRef.current = true; // Reset flag on error
 
     const sendInitialMessage = async () => {
-      // Double-check to prevent race conditions
+      // Check flag at the actual execution time
       if (sendingInitialMessageRef.current) {
-        // Already sending, skip duplicate
         return;
       }
+      sendingInitialMessageRef.current = true;
       const storageKey = `acp_initial_message_${conversation_id}`;
       const storedMessage = sessionStorage.getItem(storageKey);
 
@@ -223,43 +176,10 @@ const AcpSendBox: React.FC<{
       try {
         const initialMessage = JSON.parse(storedMessage);
         const { input, files } = initialMessage;
-
-        // ACP is authenticated, proceed with sending
-
-        // Generate IDs for messages
         const msg_id = uuid();
-        const loading_id = uuid();
 
-        // Create user message
-        const userMessage: TMessage = {
-          id: msg_id,
-          msg_id: msg_id,
-          conversation_id,
-          type: 'text',
-          position: 'right',
-          content: {
-            content: input,
-          },
-          createdAt: Date.now(),
-        };
-
-        // Create loading message
-        const loadingMessage: TMessage = {
-          id: loading_id,
-          msg_id: loading_id,
-          conversation_id,
-          type: 'text',
-          position: 'left',
-          content: {
-            content: t('common.loading'),
-          },
-          createdAt: Date.now() + 1,
-        };
-
-        // Add messages to UI
-        addOrUpdateMessageRef.current(userMessage, true);
-        addOrUpdateMessageRef.current(loadingMessage, true);
-        // Messages added to UI
+        // Start AI processing loading state (user message will be added via backend response)
+        setAiProcessing(true);
 
         // Send the message
         const result = await ipcBridge.acpConversation.sendMessage.invoke({
@@ -267,7 +187,6 @@ const AcpSendBox: React.FC<{
           msg_id,
           conversation_id,
           files,
-          loading_id,
         });
 
         if (result && result.success === true) {
@@ -291,11 +210,13 @@ const AcpSendBox: React.FC<{
           };
           addOrUpdateMessageRef.current(errorMessage, true);
           sendingInitialMessageRef.current = false; // Reset flag on failure
+          setAiProcessing(false); // Stop loading state on failure
         }
       } catch (error) {
         console.error('Error sending initial message:', error);
         sessionStorage.removeItem(storageKey);
         sendingInitialMessageRef.current = false; // Reset flag on error
+        setAiProcessing(false); // Stop loading state on error
       }
     };
 
@@ -304,36 +225,24 @@ const AcpSendBox: React.FC<{
 
   const onSendHandler = async (message: string) => {
     const msg_id = uuid();
-    const loading_id = uuid();
-
+    setContent('');
     if (atPath.length || uploadFile.length) {
       message = uploadFile.map((p) => '@' + p.split(/[\\/]/).pop()).join(' ') + ' ' + atPath.map((p) => '@' + p).join(' ') + ' ' + message;
     }
 
-    // Create user message first for correct order
-    // const userMessage: TMessage = {
-    //   id: msg_id,
-    //   msg_id: msg_id,
-    //   conversation_id,
-    //   type: 'text',
-    //   position: 'right',
-    //   content: {
-    //     content: message,
-    //   },
-    //   createdAt: Date.now(),
-    // };
-    // addOrUpdateMessage(userMessage, true); // Add user message first
-    // Send message via ACP with loading ID so backend can replace it
+    // Start AI processing loading state
+    setAiProcessing(true);
+
+    // Send message via ACP
     try {
       await ipcBridge.acpConversation.sendMessage.invoke({
         input: message,
         msg_id,
         conversation_id,
         files: uploadFile,
-        loading_id, // Pass loading ID to backend
       });
-    } catch (error: any) {
-      const errorMsg = error?.message || error.toString();
+    } catch (error: unknown) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
       // Check if it's an ACP authentication error
       const isAuthError = errorMsg.includes('[ACP-AUTH-') || errorMsg.includes('authentication failed') || errorMsg.includes('认证失败');
 
@@ -344,27 +253,26 @@ const AcpSendBox: React.FC<{
           msg_id: uuid(),
           conversation_id,
           type: 'error',
-          data: {
-            content: t('acp.auth.failed', {
-              backend,
-              error: errorMsg,
-              defaultValue: `${backend} authentication failed:\n\n{{error}}\n\nPlease check your local CLI tool authentication status`,
-            }),
-            role: 'system',
-          },
-          createTime: Date.now(),
+          data: t('acp.auth.failed', {
+            backend,
+            error: errorMsg,
+            defaultValue: `${backend} authentication failed:\n\n{{error}}\n\nPlease check your local CLI tool authentication status`,
+          }),
         };
 
         // Add error message to conversation
         ipcBridge.acpConversation.responseStream.emit(errorMessage);
 
+        // Stop loading state since AI won't respond
+        setAiProcessing(false);
         return; // Don't re-throw error, just show the message
       }
+      // Stop loading state for other errors too
+      setAiProcessing(false);
       throw error;
     }
 
     // Clear input content and selected files (similar to GeminiSendBox)
-    setContent('');
     emitter.emit('acp.selected.file.clear');
     if (uploadFile.length) {
       emitter.emit('acp.workspace.refresh');
@@ -391,6 +299,8 @@ const AcpSendBox: React.FC<{
           {thought.description}
         </div>
       ) : null}
+
+      {aiProcessing && <ShimmerText duration={2}>{t('common.loading', { defaultValue: 'Please wait...' })}</ShimmerText>}
 
       <SendBox
         value={content}
