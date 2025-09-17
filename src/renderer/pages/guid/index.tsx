@@ -322,7 +322,9 @@ const Guid: React.FC = () => {
                         })
                         .then((files) => {
                           if (isFile) {
-                            setFiles(files || []);
+                            if (files && files.length > 0) {
+                              setFiles((prev) => [...prev, ...files]);
+                            }
                             setDir('');
                           } else {
                             setFiles([]);
