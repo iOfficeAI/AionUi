@@ -23,6 +23,7 @@ if (process.platform === 'darwin' || process.platform === 'linux') {
   fixPath();
 }
 
+// Handle Squirrel startup events (Windows installer)
 if (require('electron-squirrel-startup')) {
   app.quit();
 }
