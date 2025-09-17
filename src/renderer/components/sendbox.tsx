@@ -6,12 +6,13 @@
 
 import { Button, Input, Message } from '@arco-design/web-react';
 import { ArrowUp } from '@icon-park/react';
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import React, { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { PasteService } from '../services/PasteService';
 import type { FileMetadata } from '../services/FileService';
 import { allSupportedExts } from '../services/FileService';
 import { useDragUpload } from '../hooks/useDragUpload';
+import { usePasteService } from '../hooks/usePasteService';
+import { useCompositionInput } from '../hooks/useCompositionInput';
 
 const constVoid = (): void => undefined;
 
@@ -40,32 +41,18 @@ const SendBox: React.FC<{
   });
 
   const [message, context] = Message.useMessage();
-  const isComposing = useRef(false);
 
-  // 粘贴服务集成
-  useEffect(() => {
-    PasteService.init();
-    PasteService.registerHandler(componentId, handlePaste);
+  // 使用共享的输入法合成处理
+  const { compositionHandlers, createKeyDownHandler } = useCompositionInput();
 
-    return () => {
-      PasteService.unregisterHandler(componentId);
-    };
-  }, [componentId]);
-
-  // 粘贴事件处理
-  const handlePaste = useCallback(
-    async (event: ClipboardEvent) => {
-      if (!onFilesAdded) return false;
-
-      return await PasteService.handlePaste(event, supportedExts, onFilesAdded, setInput, input);
-    },
-    [supportedExts, onFilesAdded, setInput, input]
-  );
-
-  // 焦点处理
-  const handleFocus = useCallback(() => {
-    PasteService.setLastFocusedComponent(componentId);
-  }, [componentId]);
+  // 使用共享的PasteService集成
+  const { handleFocus } = usePasteService({
+    componentId,
+    supportedExts,
+    onFilesAdded,
+    setInput,
+    input,
+  });
 
   const sendMessageHandler = () => {
     if (loading || isLoading) {
@@ -107,20 +94,9 @@ const SendBox: React.FC<{
             setInput(v);
           }}
           onFocus={handleFocus}
-          onCompositionStartCapture={() => {
-            isComposing.current = true;
-          }}
+          {...compositionHandlers}
           autoSize={{ minRows: 1, maxRows: 10 }}
-          onCompositionEndCapture={() => {
-            isComposing.current = false;
-          }}
-          onKeyDown={(e) => {
-            if (isComposing.current) return;
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              sendMessageHandler();
-            }
-          }}
+          onKeyDown={createKeyDownHandler(sendMessageHandler)}
         ></Input.TextArea>
         <div className='flex items-center justify-between gap-2 '>
           <span>{tools}</span>
