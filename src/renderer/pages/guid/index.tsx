@@ -15,9 +15,11 @@ import QwenLogo from '@/renderer/assets/logos/qwen.svg';
 import IflowLogo from '@/renderer/assets/logos/iflow.svg';
 import { geminiModeList } from '@/renderer/hooks/useModeModeList';
 import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
-import { PasteService } from '@/renderer/services/PasteService';
 import { allSupportedExts, type FileMetadata, getCleanFileNames } from '@/renderer/services/FileService';
+import { formatFilesForMessage } from '@/renderer/hooks/useSendBoxFiles';
+import { usePasteService } from '@/renderer/hooks/usePasteService';
 import { useDragUpload } from '@/renderer/hooks/useDragUpload';
+import { useCompositionInput } from '@/renderer/hooks/useCompositionInput';
 import { Button, ConfigProvider, Dropdown, Input, Menu, Radio, Space, Tooltip } from '@arco-design/web-react';
 import { ArrowUp, Plus } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -146,23 +148,12 @@ const Guid: React.FC = () => {
     onFilesAdded: handleFilesAdded,
   });
 
-  // 粘贴事件处理
-  const handlePaste = useCallback(
-    async (event: ClipboardEvent) => {
-      return await PasteService.handlePaste(event, allSupportedExts, handleFilesAdded);
-    },
-    [handleFilesAdded]
-  );
-
-  // 注册粘贴服务
-  useEffect(() => {
-    PasteService.init();
-    PasteService.registerHandler(componentId, handlePaste);
-
-    return () => {
-      PasteService.unregisterHandler(componentId);
-    };
-  }, [componentId, handlePaste]);
+  // 使用共享的PasteService集成
+  const { handleFocus } = usePasteService({
+    componentId,
+    supportedExts: allSupportedExts,
+    onFilesAdded: handleFilesAdded,
+  });
 
   // 获取可用的 ACP agents - 基于全局标记位
   const { data: availableAgentsData } = useSWR('acp.agents.available', async () => {
@@ -198,14 +189,7 @@ const Guid: React.FC = () => {
         });
 
         await ipcBridge.geminiConversation.sendMessage.invoke({
-          input:
-            files.length > 0
-              ? getCleanFileNames(files)
-                  .map((v) => `@${v}`)
-                  .join(' ') +
-                ' ' +
-                input
-              : input,
+          input: files.length > 0 ? formatFilesForMessage(files) + ' ' + input : input,
           conversation_id: conversation.id,
           msg_id: uuid(),
         });
@@ -296,7 +280,8 @@ const Guid: React.FC = () => {
         setLoading(false);
       });
   };
-  const isComposing = useRef(false);
+  // 使用共享的输入法合成处理
+  const { compositionHandlers, createKeyDownHandler } = useCompositionInput();
   const { modelList, isGoogleAuth } = useModelList();
   const setDefaultModel = async () => {
     const useModel = await ConfigStorage.get('gemini.defaultModel');
@@ -322,29 +307,7 @@ const Guid: React.FC = () => {
           }}
           {...dragHandlers}
         >
-          <Input.TextArea
-            rows={4}
-            placeholder={t('conversation.welcome.placeholder')}
-            className='text-16px focus:b-none rounded-xl !bg-white !b-none !resize-none !p-0'
-            value={input}
-            onChange={(v) => setInput(v)}
-            onFocus={() => {
-              PasteService.setLastFocusedComponent(componentId);
-            }}
-            onCompositionStartCapture={() => {
-              isComposing.current = true;
-            }}
-            onCompositionEndCapture={() => {
-              isComposing.current = false;
-            }}
-            onKeyDown={(e) => {
-              if (isComposing.current) return;
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendMessageHandler();
-              }
-            }}
-          ></Input.TextArea>
+          <Input.TextArea rows={4} placeholder={t('conversation.welcome.placeholder')} className='text-16px focus:b-none rounded-xl !bg-white !b-none !resize-none !p-0' value={input} onChange={(v) => setInput(v)} onFocus={handleFocus} {...compositionHandlers} onKeyDown={createKeyDownHandler(sendMessageHandler)}></Input.TextArea>
           <div className='flex items-center justify-between '>
             <div className='flex items-center gap-10px'>
               <Dropdown

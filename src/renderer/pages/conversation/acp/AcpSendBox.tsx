@@ -6,7 +6,8 @@ import SendBox from '@/renderer/components/sendbox';
 import { getSendBoxDraftHook } from '@/renderer/hooks/useSendBoxDraft';
 import { useAddOrUpdateMessage, useUpdateMessageList } from '@/renderer/messages/hooks';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
-import { allSupportedExts, type FileMetadata, getCleanFileName, getCleanFileNames } from '@/renderer/services/FileService';
+import { allSupportedExts, getCleanFileName } from '@/renderer/services/FileService';
+import { useSendBoxFiles, createSetUploadFile } from '@/renderer/hooks/useSendBoxFiles';
 import { Button, Tag } from '@arco-design/web-react';
 import { Plus } from '@icon-park/react';
 import classNames from 'classnames';
@@ -158,15 +159,7 @@ const useSendBoxDraft = (conversation_id: string) => {
     [data, mutate]
   );
 
-  const setUploadFile = useCallback(
-    (uploadFile: string[] | ((prev: string[]) => string[])) => {
-      mutate((prev) => {
-        const newUploadFile = typeof uploadFile === 'function' ? uploadFile(prev?.uploadFile || []) : uploadFile;
-        return { ...prev, uploadFile: newUploadFile };
-      });
-    },
-    [data, mutate]
-  );
+  const setUploadFile = createSetUploadFile(mutate, data);
 
   const setContent = useCallback(
     (content: string) => {
@@ -199,16 +192,13 @@ const AcpSendBox: React.FC<{
   const addOrUpdateMessageRef = useRef(addOrUpdateMessage);
   addOrUpdateMessageRef.current = addOrUpdateMessage;
 
-  // 处理拖拽或粘贴的文件
-  const handleFilesAdded = useCallback(
-    (files: FileMetadata[]) => {
-      // 直接使用文件路径（现在总是有效的）
-      const filePaths = files.map((file) => file.path);
-      // 使用函数式更新，基于最新状态而不是闭包中的状态
-      setUploadFile((prevUploadFile) => [...prevUploadFile, ...filePaths]);
-    },
-    [setUploadFile] // 移除uploadFile依赖，避免闭包陷阱
-  );
+  // 使用共享的文件处理逻辑
+  const { handleFilesAdded, processMessageWithFiles, clearFiles } = useSendBoxFiles({
+    atPath,
+    uploadFile,
+    setAtPath,
+    setUploadFile,
+  });
 
   // Check for and send initial message from guid page when ACP is authenticated
   useEffect(() => {
@@ -321,11 +311,7 @@ const AcpSendBox: React.FC<{
     const msg_id = uuid();
     const loading_id = uuid();
 
-    if (atPath.length || uploadFile.length) {
-      const cleanUploadFiles = getCleanFileNames(uploadFile).map((fileName) => '@' + fileName);
-      const cleanAtPaths = atPath.map((p) => '@' + p);
-      message = cleanUploadFiles.join(' ') + ' ' + cleanAtPaths.join(' ') + ' ' + message;
-    }
+    message = processMessageWithFiles(message);
 
     // Create user message first for correct order
     // const userMessage: TMessage = {
@@ -386,8 +372,7 @@ const AcpSendBox: React.FC<{
     if (uploadFile.length) {
       emitter.emit('acp.workspace.refresh');
     }
-    setAtPath([]);
-    setUploadFile([]);
+    clearFiles();
   };
 
   useAddEventListener('acp.selected.file', setAtPath);
