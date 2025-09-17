@@ -308,7 +308,8 @@ export interface CurrentModeUpdate extends BaseSessionUpdate {
 }
 
 // Union type for all session updates
-export type AcpSessionUpdate = AgentMessageChunkUpdate | AgentThoughtChunkUpdate | ToolCallUpdate | ToolCallUpdateStatus | PlanUpdate | AvailableCommandsUpdate | UserMessageChunkUpdate | CurrentModeUpdate;
+export type AcpSessionUpdate = AgentMessageChunkUpdate | AgentThoughtChunkUpdate | ToolCallUpdate | ToolCallUpdateStatus | PlanUpdate | AvailableCommandsUpdate | UserMessageChunkUpdate;
+// | CurrentModeUpdate;
 
 // 当前的ACP权限请求接口
 export interface AcpPermissionRequest {

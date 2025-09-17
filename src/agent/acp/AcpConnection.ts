@@ -385,8 +385,14 @@ export class AcpConnection {
 
   private handleMessage(message: AcpMessage): void {
     try {
-      if ('id' in message && typeof message.id === 'number' && this.pendingRequests.has(message.id)) {
-        // This is a response
+      // 修复：优先检查是否为 request（有 method 字段），而不是仅基于 ID
+      if ('method' in message) {
+        // This is a request or notification
+        this.handleIncomingRequest(message).catch((_error) => {
+          // Handle request errors silently
+        });
+      } else if ('id' in message && typeof message.id === 'number' && this.pendingRequests.has(message.id)) {
+        // This is a response to a previous request
         const { resolve, reject } = this.pendingRequests.get(message.id)!;
         this.pendingRequests.delete(message.id);
 
@@ -400,11 +406,6 @@ export class AcpConnection {
           const errorMsg = message.error?.message || 'Unknown ACP error';
           reject(new Error(errorMsg));
         }
-      } else if ('method' in message) {
-        // This is a request or notification
-        this.handleIncomingRequest(message).catch((_error) => {
-          // Handle request errors silently
-        });
       } else {
         // Unknown message format, ignore
       }
