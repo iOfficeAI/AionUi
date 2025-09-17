@@ -218,8 +218,28 @@ export class AcpAgent {
   private async handlePermissionRequest(data: AcpPermissionRequest): Promise<{ optionId: string }> {
     return new Promise((resolve, reject) => {
       const requestId = data.toolCall.toolCallId; // 使用 toolCallId 作为 requestId
+
+      // 检查是否有重复的权限请求
+      if (this.pendingPermissions.has(requestId)) {
+        // 如果是重复请求，先清理旧的
+        const oldRequest = this.pendingPermissions.get(requestId);
+        if (oldRequest) {
+          oldRequest.reject(new Error('Replaced by new permission request'));
+        }
+        this.pendingPermissions.delete(requestId);
+      }
+
       this.pendingPermissions.set(requestId, { resolve, reject });
-      this.emitPermissionRequest(data); // 直接传递 AcpPermissionRequest
+
+      // 确保权限消息总是被发送，即使有异步问题
+      try {
+        this.emitPermissionRequest(data); // 直接传递 AcpPermissionRequest
+      } catch (error) {
+        this.pendingPermissions.delete(requestId);
+        reject(error);
+        return;
+      }
+
       setTimeout(() => {
         if (this.pendingPermissions.has(requestId)) {
           this.pendingPermissions.delete(requestId);
@@ -305,7 +325,39 @@ export class AcpAgent {
       content: data,
     };
 
-    // 暂时移除额外的工具调用逻辑，专注于权限消息
+    // 重要：将权限请求中的 toolCall 注册到 adapter 的 activeToolCalls 中
+    // 这样后续的 tool_call_update 事件就能找到对应的 tool call 了
+    if (data.toolCall) {
+      // 将权限请求中的 kind 映射到正确的类型
+      const mapKindToValidType = (kind?: string): 'read' | 'edit' | 'execute' => {
+        switch (kind) {
+          case 'read':
+            return 'read';
+          case 'edit':
+            return 'edit';
+          case 'execute':
+            return 'execute';
+          default:
+            return 'execute'; // 默认为 execute
+        }
+      };
+
+      const toolCallUpdate: ToolCallUpdate = {
+        sessionId: data.sessionId,
+        update: {
+          sessionUpdate: 'tool_call' as const,
+          toolCallId: data.toolCall.toolCallId,
+          status: (data.toolCall.status as any) || 'pending',
+          title: data.toolCall.title || 'Tool Call',
+          kind: mapKindToValidType(data.toolCall.kind),
+          content: data.toolCall.content || [],
+          locations: data.toolCall.locations || [],
+        },
+      };
+
+      // 创建 tool call 消息以注册到 activeToolCalls
+      this.adapter.convertSessionUpdate(toolCallUpdate);
+    }
 
     this.emitMessage(permissionMessage);
   }
