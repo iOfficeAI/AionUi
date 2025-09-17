@@ -206,7 +206,9 @@ const GeminiSendBox: React.FC<{
                     properties: ['openFile', 'multiSelections'],
                   })
                   .then((files) => {
-                    setUploadFile(files || []);
+                    if (files && files.length > 0) {
+                      setUploadFile((prev) => [...prev, ...files]);
+                    }
                   });
               }}
             ></Button>
