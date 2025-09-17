@@ -61,7 +61,6 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     name: 'iFlow CLI',
     cliCommand: 'iflow',
     authRequired: true,
-    supportedFeatures: ['text', 'files', 'tools'],
     enabled: true,
   },
   openai: {
