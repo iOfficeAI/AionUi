@@ -6,7 +6,7 @@ import SendBox from '@/renderer/components/sendbox';
 import { getSendBoxDraftHook } from '@/renderer/hooks/useSendBoxDraft';
 import { useAddOrUpdateMessage, useUpdateMessageList } from '@/renderer/messages/hooks';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
-import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileService';
+import { allSupportedExts, type FileMetadata, getCleanFileName, getCleanFileNames } from '@/renderer/services/FileService';
 import { Button, Tag } from '@arco-design/web-react';
 import { Plus } from '@icon-park/react';
 import classNames from 'classnames';
@@ -159,8 +159,11 @@ const useSendBoxDraft = (conversation_id: string) => {
   );
 
   const setUploadFile = useCallback(
-    (uploadFile: string[]) => {
-      mutate((prev) => ({ ...prev, uploadFile }));
+    (uploadFile: string[] | ((prev: string[]) => string[])) => {
+      mutate((prev) => {
+        const newUploadFile = typeof uploadFile === 'function' ? uploadFile(prev?.uploadFile || []) : uploadFile;
+        return { ...prev, uploadFile: newUploadFile };
+      });
     },
     [data, mutate]
   );
@@ -190,6 +193,7 @@ const AcpSendBox: React.FC<{
   const { t } = useTranslation();
 
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
+
   const sendingInitialMessageRef = useRef(false); // Prevent duplicate sends
   const addOrUpdateMessage = useAddOrUpdateMessage(); // Move this here so it's available in useEffect
   const addOrUpdateMessageRef = useRef(addOrUpdateMessage);
@@ -200,10 +204,10 @@ const AcpSendBox: React.FC<{
     (files: FileMetadata[]) => {
       // 直接使用文件路径（现在总是有效的）
       const filePaths = files.map((file) => file.path);
-      // 通过闭包获取当前的 uploadFile，这样在快速操作时也能获取最新值
-      setUploadFile([...uploadFile, ...filePaths]);
+      // 使用函数式更新，基于最新状态而不是闭包中的状态
+      setUploadFile((prevUploadFile) => [...prevUploadFile, ...filePaths]);
     },
-    [uploadFile, setUploadFile] // 保持原有依赖，确保总是能获取最新状态
+    [setUploadFile] // 移除uploadFile依赖，避免闭包陷阱
   );
 
   // Check for and send initial message from guid page when ACP is authenticated
@@ -318,11 +322,7 @@ const AcpSendBox: React.FC<{
     const loading_id = uuid();
 
     if (atPath.length || uploadFile.length) {
-      const cleanUploadFiles = uploadFile.map((p) => {
-        const fileName = p.split(/[\\/]/).pop() || '';
-        // 去掉 AionUI 时间戳后缀
-        return '@' + fileName.replace(/_aionui_\d{13}(\.\w+)?$/, '$1');
-      });
+      const cleanUploadFiles = getCleanFileNames(uploadFile).map((fileName) => '@' + fileName);
       const cleanAtPaths = atPath.map((p) => '@' + p);
       message = cleanUploadFiles.join(' ') + ' ' + cleanAtPaths.join(' ') + ' ' + message;
     }
@@ -454,7 +454,7 @@ const AcpSendBox: React.FC<{
                   setUploadFile(uploadFile.filter((v) => v !== path));
                 }}
               >
-                {path.split('/').pop()}
+                {getCleanFileName(path)}
               </Tag>
             ))}
             {atPath.map((path) => (
