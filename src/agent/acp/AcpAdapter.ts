@@ -139,8 +139,12 @@ export class AcpAdapter {
   }
 
   private createOrUpdateAcpToolCall(update: ToolCallUpdate): IMessageAcpToolCall | null {
+    const toolCallId = update.update.toolCallId;
+
+    // 使用 toolCallId 作为 msg_id，确保同一个工具调用的消息可以被合并
     const baseMessage = {
       id: uuid(),
+      msg_id: toolCallId, // 关键：使用 toolCallId 作为 msg_id
       conversation_id: this.conversationId,
       createdAt: Date.now(),
       position: 'left' as const,
@@ -152,14 +156,13 @@ export class AcpAdapter {
       content: update, // 直接使用 ToolCallUpdate 作为 content
     };
 
-    const toolCallId = update.update.toolCallId;
     this.activeToolCalls.set(toolCallId, acpToolCallMessage);
     return acpToolCallMessage;
   }
 
   /**
    * Update existing ACP tool call message
-   * Returns the updated message with the same ID so composeMessage can merge it
+   * Returns the updated message with the same msg_id so composeMessage can merge it
    */
   private updateAcpToolCall(update: ToolCallUpdateStatus): IMessageAcpToolCall | null {
     const toolCallData = update.update;
@@ -182,10 +185,12 @@ export class AcpAdapter {
       },
     };
 
-    // Create updated message with the SAME ID so composeMessage will merge it
+    // Create updated message with the SAME msg_id so composeMessage will merge it
     const updatedMessage: IMessageAcpToolCall = {
       ...existingMessage,
+      msg_id: toolCallId, // 确保 msg_id 一致，这样 composeMessage 会合并消息
       content: updatedContent,
+      createdAt: Date.now(), // 更新时间戳
     };
 
     // Update stored message
@@ -198,7 +203,7 @@ export class AcpAdapter {
       }, 60000); // Clean up after 1 minute
     }
 
-    // Return the updated message with same ID - composeMessage will merge it with existing
+    // Return the updated message with same msg_id - composeMessage will merge it with existing
     return updatedMessage;
   }
 
