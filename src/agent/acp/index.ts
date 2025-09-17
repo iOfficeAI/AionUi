@@ -405,7 +405,6 @@ export class AcpAgent {
   postMessagePromise(action: string, data: any): Promise<any> {
     switch (action) {
       case 'send.message':
-        console.log('postMessagePromise', data);
         return this.sendMessage(data);
       case 'stop.stream':
         return this.stop();

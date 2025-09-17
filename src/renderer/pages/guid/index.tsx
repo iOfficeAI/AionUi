@@ -16,7 +16,7 @@ import IflowLogo from '@/renderer/assets/logos/iflow.svg';
 import { geminiModeList } from '@/renderer/hooks/useModeModeList';
 import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
 import { PasteService } from '@/renderer/services/PasteService';
-import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileService';
+import { allSupportedExts, type FileMetadata, getCleanFileNames } from '@/renderer/services/FileService';
 import { useDragUpload } from '@/renderer/hooks/useDragUpload';
 import { Button, ConfigProvider, Dropdown, Input, Menu, Radio, Space, Tooltip } from '@arco-design/web-react';
 import { ArrowUp, Plus } from '@icon-park/react';
@@ -200,12 +200,7 @@ const Guid: React.FC = () => {
         await ipcBridge.geminiConversation.sendMessage.invoke({
           input:
             files.length > 0
-              ? files
-                  .map((v) => {
-                    const fileName = v.split(/[\\/]/).pop() || '';
-                    // 去掉 AionUI 时间戳后缀
-                    return fileName.replace(/_aionui_\d{13}(\.\w+)?$/, '$1');
-                  })
+              ? getCleanFileNames(files)
                   .map((v) => `@${v}`)
                   .join(' ') +
                 ' ' +
@@ -336,14 +331,6 @@ const Guid: React.FC = () => {
             onFocus={() => {
               PasteService.setLastFocusedComponent(componentId);
             }}
-            onPaste={async (e) => {
-              // 直接在 textarea 上处理粘贴事件，优先级更高
-              const handled = await handlePaste(e.nativeEvent);
-              if (handled) {
-                e.preventDefault();
-                e.stopPropagation();
-              }
-            }}
             onCompositionStartCapture={() => {
               isComposing.current = true;
             }}
@@ -389,7 +376,7 @@ const Guid: React.FC = () => {
                 <span className='flex items-center gap-4px cursor-pointer lh-[1]'>
                   <Button type='secondary' shape='circle' icon={<Plus theme='outline' size='14' strokeWidth={2} fill='#333' />}></Button>
                   {files.length > 0 && (
-                    <Tooltip className={'!max-w-max'} content={<span className='whitespace-break-spaces'>{files.join('\n')}</span>}>
+                    <Tooltip className={'!max-w-max'} content={<span className='whitespace-break-spaces'>{getCleanFileNames(files).join('\n')}</span>}>
                       <span>File({files.length})</span>
                     </Tooltip>
                   )}
