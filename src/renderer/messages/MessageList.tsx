@@ -11,6 +11,7 @@ import HOC from '../utils/HOC';
 import { useMessageList } from './hooks';
 import MessageAcpPermission from './MessageAcpPermission';
 import MessageAcpStatus from './MessageAcpStatus';
+import MessageAcpToolCall from './MessageAcpToolCall';
 import MessageTips from './MessageTips';
 import MessageToolCall from './MessageToolCall';
 import MessageToolGroup from './MessageToolGroup';
@@ -43,6 +44,8 @@ const MessageItem: React.FC<{ message: TMessage }> = HOC((props) => {
       return <MessageAcpStatus message={message}></MessageAcpStatus>;
     case 'acp_permission':
       return <MessageAcpPermission message={message}></MessageAcpPermission>;
+    case 'acp_tool_call':
+      return <MessageAcpToolCall message={message}></MessageAcpToolCall>;
     default:
       return <div>Unknown message type: {(message as any).type}</div>;
   }

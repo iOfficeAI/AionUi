@@ -7,6 +7,7 @@
 import type { AcpBackend } from './acpTypes';
 import type { IResponseMessage } from './ipcBridge';
 import { uuid } from './utils';
+import type { AcpPermissionRequest, ToolCallUpdate } from '@/common/acpTypes';
 
 /**
  * 安全的路径拼接函数，兼容Windows和Mac
@@ -52,7 +53,7 @@ export const joinPath = (basePath: string, relativePath: string): string => {
  * @description 跟对话相关的消息类型申明 及相关处理
  */
 
-type TMessageType = 'text' | 'tips' | 'tool_call' | 'tool_group' | 'acp_status' | 'acp_permission';
+type TMessageType = 'text' | 'tips' | 'tool_call' | 'tool_group' | 'acp_status' | 'acp_permission' | 'acp_tool_call';
 
 interface IMessage<T extends TMessageType, Content extends Record<string, any>> {
   /**
@@ -169,33 +170,11 @@ export type IMessageAcpStatus = IMessage<
   }
 >;
 
-export type IMessageAcpPermission = IMessage<
-  'acp_permission',
-  {
-    title?: string;
-    description?: string;
-    options: Array<{
-      optionId: string;
-      name: string;
-      kind: 'allow_once' | 'allow_always' | 'reject_once' | 'reject_always';
-      // 以下字段为向后兼容，不是 ACP 官方协议标准
-      description?: string;
-      title?: string;
-    }>;
-    requestId: string;
-    sessionId?: string;
-    toolCall?: {
-      title: string;
-      toolCallId: string;
-      rawInput: {
-        command?: string;
-        description?: string;
-      };
-    };
-  }
->;
+export type IMessageAcpPermission = IMessage<'acp_permission', AcpPermissionRequest>;
 
-export type TMessage = IMessageText | IMessageTips | IMessageToolCall | IMessageToolGroup | IMessageAcpStatus | IMessageAcpPermission;
+export type IMessageAcpToolCall = IMessage<'acp_tool_call', ToolCallUpdate>;
+
+export type TMessage = IMessageText | IMessageTips | IMessageToolCall | IMessageToolGroup | IMessageAcpStatus | IMessageAcpPermission | IMessageAcpToolCall;
 
 /**
  * @description 将后端返回的消息转换为前端消息
@@ -272,6 +251,16 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
       return {
         id: uuid(),
         type: 'acp_permission',
+        msg_id: message.msg_id,
+        position: 'left',
+        conversation_id: message.conversation_id,
+        content: message.data,
+      };
+    }
+    case 'acp_tool_call': {
+      return {
+        id: uuid(),
+        type: 'acp_tool_call',
         msg_id: message.msg_id,
         position: 'left',
         conversation_id: message.conversation_id,
