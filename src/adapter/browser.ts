@@ -42,6 +42,7 @@ if (win.electronAPI) {
       emit(name, data) {
         // 在WebUI模式下，文件选择请求也通过WebSocket发送到服务器统一处理
         // 保持与其他消息一致的回调机制
+        console.log('🚀 [Browser] Sending message:', name, data);
 
         if (ws.readyState === WebSocket.OPEN) {
           ws.send(JSON.stringify({ name, data }));
@@ -66,18 +67,7 @@ if (win.electronAPI) {
           try {
             const { name, data } = JSON.parse(event.data);
 
-            // 处理服务器端发来的文件选择请求
-            if (name === 'show-open-request') {
-              handleWebDirectorySelection(data)
-                .then((result) => {
-                  ws.send(JSON.stringify({ name: 'show-open-response', data: result }));
-                })
-                .catch((error) => {
-                  console.error('File selection error:', error);
-                });
-              return;
-            }
-
+            console.log('📨 [Browser] Received WebSocket message:', name, data);
             emitter.emit(name, data);
           } catch (e) {
             console.warn('❌ Invalid WebSocket message:', e);

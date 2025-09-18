@@ -330,18 +330,7 @@ export async function startWebServer(port: number, allowRemote = false): Promise
     res.json({ message: 'API endpoint - bridge integration working' });
   });
 
-  // WebSocket 连接处理
-  wss.on('connection', (ws, req) => {
-    const url = new URL(req.url || '', `http://localhost:${port}`);
-    const token = url.searchParams.get('token');
-
-    if (!token || !activeTokens.has(token)) {
-      ws.close(1008, 'Invalid token');
-      return;
-    }
-
-    ws.on('close', () => {});
-  });
+  // WebSocket connection will be handled by initWebAdapter
 
   // 启动服务器
   // 添加登出路由
