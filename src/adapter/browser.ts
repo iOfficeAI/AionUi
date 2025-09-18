@@ -35,8 +35,8 @@ if (win.electronAPI) {
   const token = (window as any).__SESSION_TOKEN__ || urlParams.get('token');
 
   if (token) {
-    const wsUrl = `ws://${window.location.hostname}:25808?token=${token}`;
-    const ws = new WebSocket(wsUrl);
+    const wsUrl = `ws://${window.location.hostname}:25808`;
+    const ws = new WebSocket(wsUrl, [token]);
 
     bridge.adapter({
       emit(name, data) {

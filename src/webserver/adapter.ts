@@ -8,14 +8,14 @@ import type { WebSocketServer } from 'ws';
 import { WebSocket } from 'ws';
 import { bridge } from '@office-ai/platform';
 
-let activeTokens: Set<string>;
+let isTokenValidFn: (token: string) => boolean;
 const connectedClients: Set<WebSocket> = new Set();
 
 /**
  * 初始化 Web 适配器 - 建立 WebSocket 与 bridge 的通信桥梁
  */
-export function initWebAdapter(wss: WebSocketServer, tokens: Set<string>): void {
-  activeTokens = tokens;
+export function initWebAdapter(wss: WebSocketServer, tokenValidator: (token: string) => boolean): void {
+  isTokenValidFn = tokenValidator;
 
   // 设置 bridge 适配器
   bridge.adapter({
@@ -33,12 +33,14 @@ export function initWebAdapter(wss: WebSocketServer, tokens: Set<string>): void 
     // 接收来自 web clients 的数据
     on(emitter) {
       wss.on('connection', (ws, req) => {
-        // Token 验证（在 index.ts 中已经完成，这里是双重保险）
+        // Token 验证 - 支持从Headers或URL获取
         const url = new URL(req.url || '', 'http://localhost');
-        const token = url.searchParams.get('token');
+        const token = req.headers['authorization']?.replace('Bearer ', '') ||
+                     req.headers['sec-websocket-protocol'] ||
+                     url.searchParams.get('token');
 
-        if (!token || !activeTokens.has(token)) {
-          ws.close(1008, 'Invalid token');
+        if (!token || !isTokenValidFn(token)) {
+          ws.close(1008, 'Invalid or expired token');
           return;
         }
 
