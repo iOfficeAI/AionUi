@@ -6,6 +6,8 @@ import SendBox from '@/renderer/components/sendbox';
 import { getSendBoxDraftHook } from '@/renderer/hooks/useSendBoxDraft';
 import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
+import { allSupportedExts, getCleanFileName } from '@/renderer/services/FileService';
+import { useSendBoxFiles, createSetUploadFile } from '@/renderer/hooks/useSendBoxFiles';
 import { Button, Tag } from '@arco-design/web-react';
 import { Plus } from '@icon-park/react';
 import classNames from 'classnames';
@@ -85,12 +87,7 @@ const useSendBoxDraft = (conversation_id: string) => {
     [data, mutate]
   );
 
-  const setUploadFile = useCallback(
-    (uploadFile: string[]) => {
-      mutate((prev) => ({ ...prev, uploadFile }));
-    },
-    [data, mutate]
-  );
+  const setUploadFile = createSetUploadFile(mutate, data);
 
   const setContent = useCallback(
     (content: string) => {
@@ -120,12 +117,18 @@ const GeminiSendBox: React.FC<{
 
   const addMessage = useAddOrUpdateMessage();
 
+  // 使用共享的文件处理逻辑
+  const { handleFilesAdded, processMessageWithFiles, clearFiles } = useSendBoxFiles({
+    atPath,
+    uploadFile,
+    setAtPath,
+    setUploadFile,
+  });
+
   const onSendHandler = async (message: string) => {
     if (!model?.useModel) return;
     const msg_id = uuid();
-    if (atPath.length || uploadFile.length) {
-      message = uploadFile.map((p) => '@' + p.split(/[\\/]/).pop()).join(' ') + ' ' + atPath.map((p) => '@' + p).join(' ') + ' ' + message;
-    }
+    message = processMessageWithFiles(message);
     addMessage(
       {
         id: msg_id,
@@ -148,8 +151,7 @@ const GeminiSendBox: React.FC<{
     if (uploadFile.length) {
       emitter.emit('gemini.workspace.refresh');
     }
-    setAtPath([]);
-    setUploadFile([]);
+    clearFiles();
   };
 
   useAddEventListener('gemini.selected.file', setAtPath);
@@ -189,6 +191,9 @@ const GeminiSendBox: React.FC<{
         className={classNames('z-10 ', {
           'mt-0px': !!thought.subject,
         })}
+        onFilesAdded={handleFilesAdded}
+        supportedExts={allSupportedExts}
+        componentId={`gemini-${conversation_id}`}
         tools={
           <>
             <Button
@@ -201,7 +206,9 @@ const GeminiSendBox: React.FC<{
                     properties: ['openFile', 'multiSelections'],
                   })
                   .then((files) => {
-                    setUploadFile(files || []);
+                    if (files && files.length > 0) {
+                      setUploadFile((prev) => [...prev, ...files]);
+                    }
                   });
               }}
             ></Button>
@@ -225,7 +232,7 @@ const GeminiSendBox: React.FC<{
                     setUploadFile(uploadFile.filter((v) => v !== path));
                   }}
                 >
-                  {path.split('/').pop()}
+                  {getCleanFileName(path)}
                 </Tag>
               );
             })}

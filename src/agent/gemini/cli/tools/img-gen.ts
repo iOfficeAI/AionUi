@@ -14,7 +14,7 @@ import * as path from 'path';
 import type OpenAI from 'openai';
 import { ClientFactory, type RotatingClient } from '@/common/ClientFactory';
 import type { UnifiedChatCompletionResponse } from '@/common/RotatingApiClient';
-import { IMAGE_EXTENSIONS, MIME_TYPE_MAP, MIME_TO_EXT_MAP, DEFAULT_IMAGE_EXTENSION } from '@/common/constants/mediaTypes';
+import { IMAGE_EXTENSIONS, MIME_TYPE_MAP, MIME_TO_EXT_MAP, DEFAULT_IMAGE_EXTENSION } from '@/common/constants';
 
 /**
  * Safely parse JSON string with jsonrepair fallback
