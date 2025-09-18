@@ -79,7 +79,8 @@ const syncToLocalFile = () => {
 };
 const nextTickSyncToLocalFile = debounce(syncToLocalFile);
 
-export const addMessage = (conversation_id: string, message: TMessage) => {
+export const addMessage = (conversation_id: string, message: TMessage | undefined) => {
+  if (!message) return; // Skip undefined messages
   pushCacheMessage(conversation_id, message, 'add');
   nextTickSyncToLocalFile();
 };
@@ -90,7 +91,8 @@ export const updateMessage = (conversation_id: string, message: (message: TMessa
   nextTickSyncToLocalFile();
 };
 
-export const addOrUpdateMessage = (conversation_id: string, message: TMessage) => {
+export const addOrUpdateMessage = (conversation_id: string, message: TMessage | undefined) => {
+  if (!message) return; // Skip undefined messages
   pushCacheMessage(conversation_id, message, 'compose');
   nextTickSyncToLocalFile();
 };

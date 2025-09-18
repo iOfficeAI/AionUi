@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { AcpBackend } from './acpTypes';
 import type { IResponseMessage } from './ipcBridge';
 import { uuid } from './utils';
 
@@ -174,6 +173,7 @@ export type IMessageAcpPermission = IMessage<
   {
     title?: string;
     description?: string;
+    agentType?: string; // Add agentType to support different agent types
     options: Array<{
       optionId: string;
       name: string;
@@ -200,7 +200,7 @@ export type TMessage = IMessageText | IMessageTips | IMessageToolCall | IMessage
 /**
  * @description 将后端返回的消息转换为前端消息
  * */
-export const transformMessage = (message: IResponseMessage): TMessage => {
+export const transformMessage = (message: IResponseMessage): TMessage | undefined => {
   switch (message.type) {
     case 'error': {
       return {
@@ -216,6 +216,35 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
       };
     }
     case 'content': {
+      // 安全地处理消息数据，确保它是字符串格式
+      let contentData = message.data;
+      if (typeof contentData !== 'string') {
+        if (contentData === null || contentData === undefined) {
+          return undefined; // 过滤掉空内容
+        } else if (typeof contentData === 'object') {
+          // 如果是空对象，过滤掉整个消息
+          if (Object.keys(contentData).length === 0) {
+            return undefined;
+          } else {
+            // 尝试提取有意义的内容
+            const extracted = contentData.content || contentData.message || contentData.text;
+            if (extracted) {
+              contentData = extracted;
+            } else {
+              // 如果没有有意义的内容，过滤掉整个消息
+              return undefined;
+            }
+          }
+        } else {
+          contentData = String(contentData);
+        }
+      }
+
+      // 如果最终内容为空字符串，也过滤掉
+      if (!contentData || contentData.trim() === '') {
+        return undefined;
+      }
+
       return {
         id: uuid(),
         type: 'text',
@@ -223,7 +252,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         position: 'left',
         conversation_id: message.conversation_id,
         content: {
-          content: message.data,
+          content: contentData,
         },
       };
     }
@@ -281,14 +310,36 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
     case 'start':
     case 'finish':
     case 'thought':
-      break;
-    default:
+      // These message types should not be displayed in UI
+      return undefined;
+    default: {
+      // 对于未知消息类型，也需要安全处理数据
+      let unknownData = message.data;
+      if (typeof unknownData !== 'string') {
+        if (unknownData === null || unknownData === undefined) {
+          return undefined;
+        } else if (typeof unknownData === 'object') {
+          if (Object.keys(unknownData).length === 0) {
+            return undefined;
+          }
+          const extracted = unknownData.content || unknownData.message || unknownData.text;
+          if (extracted) {
+            unknownData = extracted;
+          } else {
+            return undefined;
+          }
+        } else {
+          unknownData = String(unknownData);
+        }
+      }
+
       return {
         type: message.type,
-        content: message.data,
+        content: unknownData,
         position: 'left',
         id: uuid(),
       } as any;
+    }
   }
 };
 
@@ -297,7 +348,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
  * */
 export const composeMessage = (message: TMessage | undefined, list: TMessage[] | undefined): TMessage[] => {
   if (!message) return list || [];
-  if (!list?.length) return [message];
+  if (!list?.length) return message ? [message] : [];
   const last = list[list.length - 1];
 
   if (message.type === 'tool_group') {
@@ -323,7 +374,18 @@ export const composeMessage = (message: TMessage | undefined, list: TMessage[] |
 
   if (last.msg_id !== message.msg_id || last.type !== message.type) return list.concat(message);
   if (message.type === 'text' && last.type === 'text') {
-    message.content.content = last.content.content + message.content.content;
+    // 对于Codex流式消息，直接替换内容而不是拼接
+    // 如果新消息内容包含旧消息内容，说明是累积更新，直接替换
+    const lastContent = String(last.content.content || '');
+    const newContent = String(message.content.content || '');
+
+    if (newContent.includes(lastContent) || lastContent === 'loading...') {
+      // 新内容包含旧内容或旧内容是loading，直接替换
+      message.content.content = newContent;
+    } else {
+      // 否则进行拼接
+      message.content.content = lastContent + newContent;
+    }
   }
   Object.assign(last, message);
   return list;

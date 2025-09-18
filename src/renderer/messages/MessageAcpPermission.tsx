@@ -5,7 +5,7 @@
  */
 
 import type { IMessageAcpPermission } from '@/common/chatLib';
-import { acpConversation } from '@/common/ipcBridge';
+import { acpConversation, codexConversation } from '@/common/ipcBridge';
 import { Radio, Typography } from '@arco-design/web-react';
 import React, { useState } from 'react';
 
@@ -32,7 +32,7 @@ const getKindDescription = (kind?: string): string => {
 };
 
 const MessageAcpPermission: React.FC<MessageAcpPermissionProps> = ({ message }) => {
-  const { options = [], requestId, toolCall } = message.content || {};
+  const { options = [], requestId, toolCall, agentType } = message.content || {};
 
   // 根据 toolCall 信息智能生成标题和描述
   const getToolInfo = () => {
@@ -101,7 +101,9 @@ const MessageAcpPermission: React.FC<MessageAcpPermissionProps> = ({ message }) 
         callId: requestId,
       };
 
-      const result = await acpConversation.confirmMessage.invoke(invokeData);
+      // Choose the correct confirmMessage handler based on agentType
+      const conversationHandler = agentType === 'codex' ? codexConversation : acpConversation;
+      const result = await conversationHandler.confirmMessage.invoke(invokeData);
 
       if (result.success) {
         setHasResponded(true);

@@ -42,6 +42,12 @@ export class CodexMcpConnection {
   // Callbacks
   public onEvent: (evt: CodexEventEnvelope) => void = () => {};
 
+  // Permission request handling - similar to ACP's mechanism
+  private isPaused = false;
+  private pauseReason = '';
+  private pausedRequests: Array<{ method: string; params: any; resolve: any; reject: any; timeout: NodeJS.Timeout }> = [];
+  private permissionResolvers = new Map<string, { resolve: (approved: boolean) => void; reject: (error: Error) => void }>();
+
   async start(cliPath: string, cwd: string, args: string[] = []): Promise<void> {
     // Default to "codex mcp"
     const command = cliPath || 'codex';
@@ -90,14 +96,25 @@ export class CodexMcpConnection {
   async request(method: string, params?: any, timeoutMs = 15000): Promise<any> {
     const id = this.nextId++;
     const req: JsonRpcRequest = { jsonrpc: '2.0', id, method, params };
-    const line = JSON.stringify(req) + '\n';
 
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
         this.pending.delete(id);
+        // Also remove from paused requests if present
+        this.pausedRequests = this.pausedRequests.filter((r) => r.resolve !== resolve);
         reject(new Error(`Codex MCP request timed out: ${method}`));
       }, timeoutMs);
+
+      // If connection is paused, queue the request
+      if (this.isPaused) {
+        console.log(`🚫 [CodexMcpConnection] Request ${method} paused due to: ${this.pauseReason}`);
+        this.pausedRequests.push({ method, params, resolve, reject, timeout });
+        return;
+      }
+
+      // Normal request processing
       this.pending.set(id, { resolve, reject, timeout });
+      const line = JSON.stringify(req) + '\n';
       this.child?.stdin?.write(line);
     });
   }
@@ -126,7 +143,79 @@ export class CodexMcpConnection {
     // Event/Notification
     if ('method' in msg) {
       const env: CodexEventEnvelope = { method: msg.method, params: msg.params };
+
+      // Check for permission request events before forwarding
+      if (env.method === 'codex/event' && env.params?.msg?.type === 'apply_patch_approval_request') {
+        this.handlePermissionRequest(env.params.msg);
+        return;
+      }
+
       this.onEvent(env);
+    }
+  }
+
+  // Permission handling methods (similar to ACP)
+  private handlePermissionRequest(data: any): void {
+    const callId = data.call_id || 'unknown';
+
+    // Pause all future requests until permission is granted
+    this.isPaused = true;
+    this.pauseReason = `Waiting for file write permission (${callId})`;
+
+    console.log(`⏸️ [CodexMcpConnection] Paused due to permission request: ${callId}`);
+
+    // Forward the permission request to the agent manager
+    this.onEvent({
+      method: 'codex/event',
+      params: { msg: { ...data, type: 'apply_patch_approval_request' } },
+    });
+  }
+
+  // Public methods for permission control
+  public async waitForPermission(callId: string): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      this.permissionResolvers.set(callId, { resolve, reject });
+
+      // Auto-timeout after 30 seconds
+      setTimeout(() => {
+        if (this.permissionResolvers.has(callId)) {
+          this.permissionResolvers.delete(callId);
+          reject(new Error('Permission request timed out'));
+        }
+      }, 30000);
+    });
+  }
+
+  public resolvePermission(callId: string, approved: boolean): void {
+    const resolver = this.permissionResolvers.get(callId);
+    if (resolver) {
+      this.permissionResolvers.delete(callId);
+      resolver.resolve(approved);
+    }
+
+    // Resume paused requests
+    this.resumeRequests();
+  }
+
+  private resumeRequests(): void {
+    if (!this.isPaused) return;
+
+    console.log(`▶️ [CodexMcpConnection] Resuming ${this.pausedRequests.length} paused requests`);
+
+    this.isPaused = false;
+    this.pauseReason = '';
+
+    // Process all paused requests
+    const requests = [...this.pausedRequests];
+    this.pausedRequests = [];
+
+    for (const req of requests) {
+      const id = this.nextId++;
+      const jsonReq: JsonRpcRequest = { jsonrpc: '2.0', id, method: req.method, params: req.params };
+
+      this.pending.set(id, { resolve: req.resolve, reject: req.reject, timeout: req.timeout });
+      const line = JSON.stringify(jsonReq) + '\n';
+      this.child?.stdin?.write(line);
     }
   }
 }
