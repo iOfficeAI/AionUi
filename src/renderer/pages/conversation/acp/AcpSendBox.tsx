@@ -1,14 +1,15 @@
 import { ipcBridge } from '@/common';
 import type { AcpBackend } from '@/common/acpTypes';
-import { type TMessage, transformMessage } from '@/common/chatLib';
+import { transformMessage, type TMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
-// import type { TModelWithConversation } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import SendBox from '@/renderer/components/sendbox';
 import ShimmerText from '@/renderer/components/ShimmerText';
 import { getSendBoxDraftHook } from '@/renderer/hooks/useSendBoxDraft';
 import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
+import { allSupportedExts, getCleanFileName } from '@/renderer/services/FileService';
+import { useSendBoxFiles, createSetUploadFile } from '@/renderer/hooks/useSendBoxFiles';
 import { Button, Tag } from '@arco-design/web-react';
 import { Plus } from '@icon-park/react';
 import classNames from 'classnames';
@@ -118,12 +119,7 @@ const useSendBoxDraft = (conversation_id: string) => {
     [data, mutate]
   );
 
-  const setUploadFile = useCallback(
-    (uploadFile: string[]) => {
-      mutate((prev) => ({ ...prev, uploadFile }));
-    },
-    [data, mutate]
-  );
+  const setUploadFile = createSetUploadFile(mutate, data);
 
   const setContent = useCallback(
     (content: string) => {
@@ -149,10 +145,21 @@ const AcpSendBox: React.FC<{
   const { thought, running, acpStatus, aiProcessing, setAiProcessing } = useAcpMessage(conversation_id);
   const { t } = useTranslation();
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
+
   const sendingInitialMessageRef = useRef(false); // Prevent duplicate sends
   const addOrUpdateMessage = useAddOrUpdateMessage(); // Move this here so it's available in useEffect
   const addOrUpdateMessageRef = useRef(addOrUpdateMessage);
   addOrUpdateMessageRef.current = addOrUpdateMessage;
+
+  // 使用共享的文件处理逻辑
+  const { handleFilesAdded, processMessageWithFiles, clearFiles } = useSendBoxFiles({
+    atPath,
+    uploadFile,
+    setAtPath,
+    setUploadFile,
+  });
+
+  // Check for and send initial message from guid page when ACP is authenticated
   useEffect(() => {
     if (!acpStatus) {
       return;
@@ -225,10 +232,8 @@ const AcpSendBox: React.FC<{
 
   const onSendHandler = async (message: string) => {
     const msg_id = uuid();
-    setContent('');
-    if (atPath.length || uploadFile.length) {
-      message = uploadFile.map((p) => '@' + p.split(/[\\/]/).pop()).join(' ') + ' ' + atPath.map((p) => '@' + p).join(' ') + ' ' + message;
-    }
+
+    message = processMessageWithFiles(message);
 
     // Start AI processing loading state
     setAiProcessing(true);
@@ -277,8 +282,7 @@ const AcpSendBox: React.FC<{
     if (uploadFile.length) {
       emitter.emit('acp.workspace.refresh');
     }
-    setAtPath([]);
-    setUploadFile([]);
+    clearFiles();
   };
 
   useAddEventListener('acp.selected.file', setAtPath);
@@ -314,6 +318,9 @@ const AcpSendBox: React.FC<{
         className={classNames('z-10 ', {
           'mt-0px': !!thought.subject,
         })}
+        onFilesAdded={handleFilesAdded}
+        supportedExts={allSupportedExts}
+        componentId={`acp-${conversation_id}`}
         tools={
           <>
             <Button
@@ -326,7 +333,9 @@ const AcpSendBox: React.FC<{
                     properties: ['openFile', 'multiSelections'],
                   })
                   .then((files) => {
-                    setUploadFile(files || []);
+                    if (files && files.length > 0) {
+                      setUploadFile((prev) => [...prev, ...files]);
+                    }
                   });
               }}
             ></Button>
@@ -344,7 +353,7 @@ const AcpSendBox: React.FC<{
                   setUploadFile(uploadFile.filter((v) => v !== path));
                 }}
               >
-                {path.split('/').pop()}
+                {getCleanFileName(path)}
               </Tag>
             ))}
             {atPath.map((path) => (

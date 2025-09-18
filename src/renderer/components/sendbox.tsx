@@ -8,6 +8,11 @@ import { Button, Input, Message } from '@arco-design/web-react';
 import { ArrowUp } from '@icon-park/react';
 import React, { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { FileMetadata } from '../services/FileService';
+import { allSupportedExts } from '../services/FileService';
+import { useDragUpload } from '../hooks/useDragUpload';
+import { usePasteService } from '../hooks/usePasteService';
+import { useCompositionInput } from '../hooks/useCompositionInput';
 
 const constVoid = (): void => undefined;
 
@@ -22,13 +27,32 @@ const SendBox: React.FC<{
   tools?: React.ReactNode;
   prefix?: React.ReactNode;
   placeholder?: string;
-}> = ({ onSend, onStop, prefix, className, loading, tools, disabled, placeholder, value: input = '', onChange: setInput = constVoid }) => {
+  onFilesAdded?: (files: FileMetadata[]) => void;
+  supportedExts?: string[];
+  componentId?: string;
+}> = ({ onSend, onStop, prefix, className, loading, tools, disabled, placeholder, value: input = '', onChange: setInput = constVoid, onFilesAdded, supportedExts = allSupportedExts, componentId = 'default' }) => {
   const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
 
+  // 使用拖拽 hook
+  const { isFileDragging, dragHandlers } = useDragUpload({
+    supportedExts,
+    onFilesAdded,
+  });
+
   const [message, context] = Message.useMessage();
 
-  const isComposing = useRef(false);
+  // 使用共享的输入法合成处理
+  const { compositionHandlers, createKeyDownHandler } = useCompositionInput();
+
+  // 使用共享的PasteService集成
+  const { handleFocus } = usePasteService({
+    componentId,
+    supportedExts,
+    onFilesAdded,
+    setInput,
+    input,
+  });
 
   const sendMessageHandler = () => {
     if (loading || isLoading) {
@@ -58,7 +82,7 @@ const SendBox: React.FC<{
 
   return (
     <div className={`mb-16px  ${className}`}>
-      <div className='p-16px b-#E5E6EB b bg-white b-solid rd-20px  focus-within:shadow-[0px_2px_20px_rgba(77,60,234,0.1)] '>
+      <div className={`relative p-16px b-#E5E6EB b bg-white b-solid rd-20px  focus-within:shadow-[0px_2px_20px_rgba(77,60,234,0.1)] ${isFileDragging ? 'bg-blue-50 b-blue-300 b-dashed' : ''}`} {...dragHandlers}>
         {prefix}
         {context}
         <Input.TextArea
@@ -69,20 +93,10 @@ const SendBox: React.FC<{
           onChange={(v) => {
             setInput(v);
           }}
-          onCompositionStartCapture={() => {
-            isComposing.current = true;
-          }}
+          onFocus={handleFocus}
+          {...compositionHandlers}
           autoSize={{ minRows: 1, maxRows: 10 }}
-          onCompositionEndCapture={() => {
-            isComposing.current = false;
-          }}
-          onKeyDown={(e) => {
-            if (isComposing.current) return;
-            if (e.key === 'Enter' && !e.shiftKey) {
-              e.preventDefault();
-              sendMessageHandler();
-            }
-          }}
+          onKeyDown={createKeyDownHandler(sendMessageHandler)}
         ></Input.TextArea>
         <div className='flex items-center justify-between gap-2 '>
           <span>{tools}</span>
