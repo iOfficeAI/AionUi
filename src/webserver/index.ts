@@ -37,15 +37,18 @@ function createToken(expirationHours = 24): TokenInfo {
   const tokenInfo: TokenInfo = {
     token,
     createdAt: now,
-    expiresAt: now + (expirationHours * 60 * 60 * 1000)
+    expiresAt: now + expirationHours * 60 * 60 * 1000,
   };
   activeTokens.set(token, tokenInfo);
   return tokenInfo;
 }
 
-function isTokenValid(token: string): boolean {
+function isTokenValid(token: string, allowRemote: boolean = true): boolean {
   const tokenInfo = activeTokens.get(token);
   if (!tokenInfo) return false;
+
+  // 如果不是远程模式，token永不过期
+  if (!allowRemote) return true;
 
   if (Date.now() > tokenInfo.expiresAt) {
     activeTokens.delete(token);
@@ -111,7 +114,7 @@ export async function startWebServer(port: number, allowRemote = false): Promise
   // Token 验证中间件
   const validateToken = (req: express.Request, res: express.Response, next: express.NextFunction) => {
     const token = (req.query.token as string) || (req.headers['x-session-token'] as string);
-    if (!token || !isTokenValid(token)) {
+    if (!token || !isTokenValid(token, allowRemote)) {
       return res.status(403).json({ error: 'Invalid or expired session token' });
     }
     next();
@@ -120,7 +123,7 @@ export async function startWebServer(port: number, allowRemote = false): Promise
   // Cookie 验证中间件 - 用于静态资源保护
   const validateCookie = (_req: express.Request, res: express.Response, next: express.NextFunction) => {
     const sessionCookie = _req.cookies['aionui-session'];
-    if (!sessionCookie || !isTokenValid(sessionCookie)) {
+    if (!sessionCookie || !isTokenValid(sessionCookie, allowRemote)) {
       return res.status(403).send('Access Denied');
     }
     next();
@@ -135,7 +138,7 @@ export async function startWebServer(port: number, allowRemote = false): Promise
     try {
       const { token } = req.body;
 
-      if (!token || !isTokenValid(token)) {
+      if (!token || !isTokenValid(token, allowRemote)) {
         return res.status(401).json({ success: false, message: 'Invalid or expired access token' });
       }
 
@@ -160,7 +163,7 @@ export async function startWebServer(port: number, allowRemote = false): Promise
       const sessionCookie = req.cookies['aionui-session'];
 
       // 如果已有有效cookie，直接进入应用
-      if (sessionCookie && isTokenValid(sessionCookie)) {
+      if (sessionCookie && isTokenValid(sessionCookie, allowRemote)) {
         const htmlContent = fs.readFileSync(indexHtmlPath, 'utf8');
 
         // 注入token到HTML中，只在WebUI环境下设置
@@ -431,7 +434,7 @@ export async function startWebServer(port: number, allowRemote = false): Promise
       shell.openExternal(localUrl);
 
       // 初始化 Web 适配器
-      initWebAdapter(wss, isTokenValid);
+      initWebAdapter(wss, (token: string) => isTokenValid(token, allowRemote));
 
       resolve();
     });
