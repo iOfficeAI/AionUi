@@ -7,7 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { TMessage } from '@/common/chatLib';
 import { transformMessage } from '@/common/chatLib';
-import type { TProviderWithModel } from '@/common/storage';
+import type { TProviderWithModel, IMcpServer } from '@/common/storage';
 import { ProcessConfig } from '@/process/initStorage';
 import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '../message';
 import BaseAgentManager from './BaseAgentManager';
@@ -18,6 +18,7 @@ export class GeminiAgentManager extends BaseAgentManager<{
   model: TProviderWithModel;
   imageGenerationModel?: TProviderWithModel;
   webSearchEngine?: 'google' | 'default';
+  mcpServers?: Record<string, any>;
 }> {
   workspace: string;
   model: TProviderWithModel;
@@ -27,13 +28,14 @@ export class GeminiAgentManager extends BaseAgentManager<{
     this.workspace = data.workspace;
     this.conversation_id = data.conversation_id;
     this.model = model;
-    this.bootstrap = Promise.all([ProcessConfig.get('gemini.config'), this.getImageGenerationModel()]).then(([config, imageGenerationModel]) => {
+    this.bootstrap = Promise.all([ProcessConfig.get('gemini.config'), this.getImageGenerationModel(), this.getMcpServers()]).then(([config, imageGenerationModel, mcpServers]) => {
       return this.start({
         ...config,
         workspace: this.workspace,
         model: this.model,
         imageGenerationModel,
         webSearchEngine: data.webSearchEngine,
+        mcpServers,
       });
     });
   }
@@ -46,6 +48,34 @@ export class GeminiAgentManager extends BaseAgentManager<{
         return undefined;
       })
       .catch(() => Promise.resolve(undefined));
+  }
+
+  private async getMcpServers(): Promise<Record<string, any>> {
+    try {
+      const mcpServers = await ProcessConfig.get('mcp.config');
+      if (!mcpServers || !Array.isArray(mcpServers)) {
+        return {};
+      }
+
+      // 转换为 aioncli-core 期望的格式
+      const mcpConfig: Record<string, any> = {};
+      mcpServers
+        .filter((server: IMcpServer) => server.enabled && server.status === 'connected') // 只使用启用且连接成功的服务器
+        .forEach((server: IMcpServer) => {
+          mcpConfig[server.name] = {
+            command: server.transport.command,
+            args: server.transport.args || [],
+            env: server.transport.env || {},
+            description: server.description,
+          };
+        });
+
+      console.log('[GeminiAgentManager] Loaded MCP servers:', Object.keys(mcpConfig));
+      return mcpConfig;
+    } catch (error) {
+      console.warn('[GeminiAgentManager] Failed to load MCP servers:', error);
+      return {};
+    }
   }
   sendMessage(data: { input: string; msg_id: string }) {
     const message: TMessage = {
