@@ -206,7 +206,6 @@ export class AcpAgent {
 
       for (let i = 0; i < messages.length; i++) {
         const message = messages[i];
-
         // 所有消息都直接发送，不做复杂的替换逻辑
         this.emitMessage(message);
       }
@@ -439,11 +438,6 @@ export class AcpAgent {
           responseMessage.data = message.content.content;
         }
         break;
-      case 'tool_call': {
-        responseMessage.type = 'tool_call';
-        responseMessage.data = message.content.name;
-        break;
-      }
       case 'acp_tool_call': {
         responseMessage.type = 'acp_tool_call';
         responseMessage.data = message.content;
