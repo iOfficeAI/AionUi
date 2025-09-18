@@ -5,6 +5,7 @@
  */
 
 import type { IDirOrFile } from '@/common/ipcBridge';
+import { AIONUI_TIMESTAMP_REGEX } from '@/common/constants';
 import { app } from 'electron';
 import { existsSync } from 'fs';
 import fs from 'fs/promises';
@@ -148,7 +149,7 @@ export const copyFilesToDirectory = async (dir: string, files?: string[]) => {
     // 如果是临时文件，去掉 AionUI 时间戳后缀
     if (file.startsWith(tempDir)) {
       // 去掉 AionUI 时间戳后缀 (例如: package_aionui_1758016286689.json -> package.json)
-      fileName = fileName.replace(/_aionui_\d{13}(\.\w+)?$/, '$1');
+      fileName = fileName.replace(AIONUI_TIMESTAMP_REGEX, '$1');
     }
 
     const destPath = path.join(dir, fileName);

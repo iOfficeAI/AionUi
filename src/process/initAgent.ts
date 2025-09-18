@@ -5,6 +5,7 @@
  */
 
 import type { TChatConversation, TProviderWithModel } from '@/common/storage';
+import { AIONUI_TIMESTAMP_REGEX } from '@/common/constants';
 import fs from 'fs/promises';
 import path from 'path';
 import type { ICreateConversationParams } from '@/common/ipcBridge';
@@ -26,7 +27,7 @@ const buildWorkspaceWidthFiles = async (defaultWorkspaceName: string, workspace?
       const { cacheDir } = getSystemDir();
       const tempDir = path.join(cacheDir, 'temp');
       if (file.startsWith(tempDir)) {
-        fileName = fileName.replace(/_aionui_\d{13}(\.\w+)?$/, '$1');
+        fileName = fileName.replace(AIONUI_TIMESTAMP_REGEX, '$1');
       }
 
       const destPath = path.join(workspace, fileName);
