@@ -75,11 +75,11 @@ const GeminiWorkspace: React.FC<{
 
   useEffect(() => {
     return ipcBridge.acpConversation.responseStream.on((data) => {
-      if (data.type === 'tool_call') {
+      if (data.type === 'acp_tool_call') {
         refreshWorkspace();
       }
     });
-  }, [workspace]);
+  }, []);
 
   useAddEventListener(`${eventPrefix}.workspace.refresh`, () => refreshWorkspace(), [workspace, eventPrefix]);
 
