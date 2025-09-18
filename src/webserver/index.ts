@@ -13,19 +13,83 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import os from 'os';
 import fs from 'fs';
+import crypto from 'crypto';
 import { initWebAdapter } from './adapter';
 import directoryApi from './directoryApi';
 
-const activeTokens = new Set<string>();
+// Token管理
+interface TokenInfo {
+  token: string;
+  expiresAt: number;
+  createdAt: number;
+}
+
+const activeTokens = new Map<string, TokenInfo>();
+
+// Token工具函数
+function generateSecureToken(): string {
+  return crypto.randomBytes(32).toString('hex');
+}
+
+function createToken(expirationHours = 24): TokenInfo {
+  const token = generateSecureToken();
+  const now = Date.now();
+  const tokenInfo: TokenInfo = {
+    token,
+    createdAt: now,
+    expiresAt: now + (expirationHours * 60 * 60 * 1000)
+  };
+  activeTokens.set(token, tokenInfo);
+  return tokenInfo;
+}
+
+function isTokenValid(token: string): boolean {
+  const tokenInfo = activeTokens.get(token);
+  if (!tokenInfo) return false;
+
+  if (Date.now() > tokenInfo.expiresAt) {
+    activeTokens.delete(token);
+    return false;
+  }
+
+  return true;
+}
+
+function cleanupExpiredTokens(): void {
+  const now = Date.now();
+  for (const [token, tokenInfo] of activeTokens.entries()) {
+    if (now > tokenInfo.expiresAt) {
+      activeTokens.delete(token);
+    }
+  }
+}
 
 export async function startWebServer(port: number, allowRemote = false): Promise<void> {
   const app = express();
   const server = createServer(app);
   const wss = new WebSocketServer({ server });
 
-  // 生成会话令牌 (固定用于调试)
-  const sessionToken = '3e54493d-cbbb-4756-b09c-070eb8ef3d2f';
-  activeTokens.add(sessionToken);
+  // 生成随机会话令牌 (24小时有效期)
+  const tokenInfo = createToken(24);
+  const sessionToken = tokenInfo.token;
+
+  // 启动定期清理过期token的任务 (每小时执行一次)
+  const cleanupInterval = setInterval(cleanupExpiredTokens, 60 * 60 * 1000);
+
+  // 添加进程退出时的清理
+  process.on('exit', () => {
+    clearInterval(cleanupInterval);
+  });
+
+  process.on('SIGTERM', () => {
+    clearInterval(cleanupInterval);
+    process.exit(0);
+  });
+
+  process.on('SIGINT', () => {
+    clearInterval(cleanupInterval);
+    process.exit(0);
+  });
 
   // 基础中间件
   app.use(
@@ -47,16 +111,16 @@ export async function startWebServer(port: number, allowRemote = false): Promise
   // Token 验证中间件
   const validateToken = (req: express.Request, res: express.Response, next: express.NextFunction) => {
     const token = (req.query.token as string) || (req.headers['x-session-token'] as string);
-    if (!token || !activeTokens.has(token)) {
+    if (!token || !isTokenValid(token)) {
       return res.status(403).json({ error: 'Invalid or expired session token' });
     }
     next();
   };
 
   // Cookie 验证中间件 - 用于静态资源保护
-  const validateCookie = (req: express.Request, res: express.Response, next: express.NextFunction) => {
-    const sessionCookie = req.cookies['aionui-session'];
-    if (!sessionCookie || !activeTokens.has(sessionCookie)) {
+  const validateCookie = (_req: express.Request, res: express.Response, next: express.NextFunction) => {
+    const sessionCookie = _req.cookies['aionui-session'];
+    if (!sessionCookie || !isTokenValid(sessionCookie)) {
       return res.status(403).send('Access Denied');
     }
     next();
@@ -71,8 +135,8 @@ export async function startWebServer(port: number, allowRemote = false): Promise
     try {
       const { token } = req.body;
 
-      if (!token || !activeTokens.has(token)) {
-        return res.status(401).json({ success: false, message: 'Invalid access token' });
+      if (!token || !isTokenValid(token)) {
+        return res.status(401).json({ success: false, message: 'Invalid or expired access token' });
       }
 
       // 设置安全cookie
@@ -96,7 +160,7 @@ export async function startWebServer(port: number, allowRemote = false): Promise
       const sessionCookie = req.cookies['aionui-session'];
 
       // 如果已有有效cookie，直接进入应用
-      if (sessionCookie && activeTokens.has(sessionCookie)) {
+      if (sessionCookie && isTokenValid(sessionCookie)) {
         const htmlContent = fs.readFileSync(indexHtmlPath, 'utf8');
 
         // 注入token到HTML中，只在WebUI环境下设置
@@ -212,10 +276,6 @@ export async function startWebServer(port: number, allowRemote = false): Promise
         </head>
         <body>
           <div class="login-container">
-            <div class="logo">🤖</div>
-            <h1>AionUi WebUI</h1>
-            <p class="subtitle">Please enter your access token to continue</p>
-
             <form id="loginForm">
               <div class="input-group">
                 <label for="token">Access Token</label>
@@ -371,7 +431,7 @@ export async function startWebServer(port: number, allowRemote = false): Promise
       shell.openExternal(localUrl);
 
       // 初始化 Web 适配器
-      initWebAdapter(wss, activeTokens);
+      initWebAdapter(wss, isTokenValid);
 
       resolve();
     });
