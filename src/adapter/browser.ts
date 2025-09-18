@@ -42,7 +42,6 @@ if (win.electronAPI) {
       emit(name, data) {
         // 在WebUI模式下，文件选择请求也通过WebSocket发送到服务器统一处理
         // 保持与其他消息一致的回调机制
-        console.log('🚀 [Browser] Sending message:', name, data);
 
         if (ws.readyState === WebSocket.OPEN) {
           ws.send(JSON.stringify({ name, data }));
@@ -67,19 +66,36 @@ if (win.electronAPI) {
           try {
             const { name, data } = JSON.parse(event.data);
 
-            console.log('📨 [Browser] Received WebSocket message:', name, data);
+            // 处理服务器端发来的文件选择请求
+            if (name === 'show-open-request') {
+              handleWebDirectorySelection(data)
+                .then((result) => {
+                  // 直接通过 emitter 返回结果，让 bridge 系统处理回调
+                  const requestId = data.id;
+                  const callbackEventName = `subscribe.callback-show-open${requestId}`;
+                  emitter.emit(callbackEventName, result);
+                })
+                .catch((error) => {
+                  console.error('File selection error:', error);
+                  const requestId = data.id;
+                  const callbackEventName = `subscribe.callback-show-open${requestId}`;
+                  emitter.emit(callbackEventName, undefined);
+                });
+              return;
+            }
+
             emitter.emit(name, data);
           } catch (e) {
-            console.warn('❌ Invalid WebSocket message:', e);
+            // Handle JSON parsing errors silently
           }
         };
 
-        ws.onerror = (error) => {
-          console.error('WebSocket error:', error);
+        ws.onerror = () => {
+          // Handle WebSocket errors silently
         };
 
-        ws.onclose = (event) => {
-          console.warn('WebSocket closed:', event.reason);
+        ws.onclose = () => {
+          // Handle WebSocket close silently
         };
       },
     });
@@ -181,8 +197,7 @@ if (win.electronAPI) {
 
     // 初始化目录浏览器
     async function initDirectoryBrowser(container: Element, pathDisplay: Element, confirmBtn: Element, isFileSelection: boolean) {
-      let _currentPath = '';
-      let _selectedPath = '';
+      let selectedPath: string;
 
       async function loadDirectory(path = '') {
         try {
@@ -191,10 +206,8 @@ if (win.electronAPI) {
           const response = await fetch(`/api/directory/browse?path=${encodeURIComponent(path)}&showFiles=${showFiles}&token=${token}`);
           const data = await response.json();
 
-          _currentPath = data.currentPath;
           renderDirectory(data);
-        } catch (error) {
-          console.error('Failed to load directory:', error);
+        } catch (_error) {
           container.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">加载目录失败</div>';
         }
       }
@@ -257,7 +270,7 @@ if (win.electronAPI) {
           if (selectBtn) {
             selectBtn.addEventListener('click', (e) => {
               e.stopPropagation();
-              _selectedPath = path;
+              selectedPath = path;
               pathDisplay.textContent = path;
               confirmBtn.removeAttribute('disabled');
 

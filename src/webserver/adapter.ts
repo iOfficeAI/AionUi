@@ -7,8 +7,6 @@
 import type { WebSocketServer } from 'ws';
 import { WebSocket } from 'ws';
 import { bridge } from '@office-ai/platform';
-import { dialog } from 'electron';
-import { ipcBridge } from '../common';
 
 let activeTokens: Set<string>;
 const connectedClients: Set<WebSocket> = new Set();
@@ -17,20 +15,7 @@ const connectedClients: Set<WebSocket> = new Set();
  * 初始化 Web 适配器 - 建立 WebSocket 与 bridge 的通信桥梁
  */
 export function initWebAdapter(wss: WebSocketServer, tokens: Set<string>): void {
-  console.log('🔧 [Adapter] Initializing Web adapter...');
   activeTokens = tokens;
-
-  // 设置WebUI模式下的dialog.showOpen provider（与Electron模式保持一致）
-  ipcBridge.dialog.showOpen.provider((options) => {
-    return dialog
-      .showOpenDialog({
-        defaultPath: options?.defaultPath,
-        properties: options?.properties,
-      })
-      .then((res) => {
-        return res.filePaths;
-      });
-  });
 
   // 设置 bridge 适配器
   bridge.adapter({
@@ -47,32 +32,36 @@ export function initWebAdapter(wss: WebSocketServer, tokens: Set<string>): void 
 
     // 接收来自 web clients 的数据
     on(emitter) {
-      console.log('🔌 [Adapter] Setting up WebSocket connection handler...');
       wss.on('connection', (ws, req) => {
-        console.log('🌐 [Adapter] WebSocket client connected');
         // Token 验证（在 index.ts 中已经完成，这里是双重保险）
         const url = new URL(req.url || '', 'http://localhost');
         const token = url.searchParams.get('token');
 
         if (!token || !activeTokens.has(token)) {
-          console.log('❌ [Adapter] Invalid token');
           ws.close(1008, 'Invalid token');
           return;
         }
 
-        console.log('✅ [Adapter] Token validated, adding to connected clients');
         // 添加到活跃连接
         connectedClients.add(ws);
         // 处理消息
         ws.on('message', async (rawData) => {
           try {
             const { name, data } = JSON.parse(rawData.toString());
-            console.log('📨 [WebSocket] Received message:', name, data);
+
+            // 处理文件选择请求 - 转发给客户端弹窗处理
+            if (name === 'subscribe-show-open') {
+              // 判断是否为文件选择模式
+              const isFileMode = data && data.properties && (data.properties.includes('openFile') || data.properties.includes('multiSelections')) && !data.properties.includes('openDirectory');
+
+              // 发送文件选择请求给客户端
+              ws.send(JSON.stringify({ name: 'show-open-request', data: { ...data, isFileMode } }));
+              return;
+            }
 
             // 其他消息转发给 bridge 系统
             emitter.emit(name, data);
           } catch (error) {
-            console.warn('Invalid WebSocket message:', error);
             ws.send(
               JSON.stringify({
                 error: 'Invalid message format',
@@ -87,8 +76,7 @@ export function initWebAdapter(wss: WebSocketServer, tokens: Set<string>): void 
           connectedClients.delete(ws);
         });
 
-        ws.on('error', (error) => {
-          console.warn('WebSocket error:', error);
+        ws.on('error', () => {
           connectedClients.delete(ws);
         });
       });
