@@ -62,7 +62,7 @@ const ChatHistory: React.FC = ({ ...props }) => {
       // For ACP conversations, don't create new - let conversation.get handle task recreation if needed
       // This preserves the original conversation ID, createTime, and all metadata
     }
-    
+
     navigate(`/conversation/${conversation.id}`);
   };
 
@@ -70,7 +70,7 @@ const ChatHistory: React.FC = ({ ...props }) => {
 
   useEffect(() => {
     ChatStorage.get('chat.history')
-      .then((history) => {        
+      .then((history) => {
         if (history && Array.isArray(history) && history.length > 0) {
           const sortedHistory = history.sort((a, b) => (b.createTime - a.createTime < 0 ? -1 : 1));
           setChatHistory(sortedHistory);
