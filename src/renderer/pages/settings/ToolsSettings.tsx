@@ -3,6 +3,7 @@ import { Collapse, Form, Select, Switch } from '@arco-design/web-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useConfigModelListWithImage from '../../hooks/useConfigModelListWithImage';
+import McpManagement from './components/McpManagement';
 import SettingContainer from './components/SettingContainer';
 
 const ToolsSettings: React.FC = () => {
@@ -66,7 +67,8 @@ const ToolsSettings: React.FC = () => {
 
   return (
     <SettingContainer title={t('settings.tools')} bodyContainer>
-      <Collapse defaultActiveKey={['image-generation']}>
+      <Collapse defaultActiveKey={['image-generation', 'mcp-servers']}>
+        <McpManagement />
         <Collapse.Item
           className={' [&_div.arco-collapse-item-header-title]:flex-1'}
           header={
@@ -83,7 +85,7 @@ const ToolsSettings: React.FC = () => {
                 {imageGenerationModelList.length > 0 ? (
                   <Select
                     value={imageGenerationModel?.useModel}
-                    onChange={(value, option) => {
+                    onChange={(value) => {
                       // value 现在是 platform.id|model 格式
                       const [platformId, modelName] = value.split('|');
                       const platform = imageGenerationModelList.find((p) => p.id === platformId);

@@ -37,6 +37,7 @@ export interface IConfigStorageRefer {
     };
   };
   'model.config': IProvider[];
+  'mcp.config': IMcpServer[];
   language: string;
   theme: string;
   'gemini.defaultModel': string;
@@ -127,3 +128,44 @@ export interface IProvider {
 }
 
 export type TProviderWithModel = Omit<IProvider, 'model'> & { useModel: string };
+
+// MCP Server Configuration Types
+export type McpTransportType = 'stdio' | 'sse' | 'http';
+
+export interface IMcpServerTransportStdio {
+  type: 'stdio';
+  command: string;
+  args?: string[];
+  env?: Record<string, string>;
+}
+
+export interface IMcpServerTransportSSE {
+  type: 'sse';
+  url: string;
+}
+
+export interface IMcpServerTransportHTTP {
+  type: 'http';
+  url: string;
+}
+
+export type IMcpServerTransport = IMcpServerTransportStdio | IMcpServerTransportSSE | IMcpServerTransportHTTP;
+
+export interface IMcpServer {
+  id: string;
+  name: string;
+  description?: string;
+  enabled: boolean;
+  transport: IMcpServerTransport;
+  tools?: IMcpTool[];
+  status?: 'connected' | 'disconnected' | 'error' | 'testing';
+  lastConnected?: number;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface IMcpTool {
+  name: string;
+  description?: string;
+  inputSchema?: any;
+}
