@@ -8,7 +8,7 @@ import { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Message } from '@arco-design/web-react';
 import type { FileMetadata } from '../services/FileService';
-import { filterSupportedFiles, FileService } from '../services/FileService';
+import { isSupportedFile, FileService } from '../services/FileService';
 
 export interface UseDragUploadOptions {
   supportedExts?: string[];
@@ -67,14 +67,31 @@ export const useDragUpload = ({ supportedExts = [], onFilesAdded }: UseDragUploa
       if (!onFilesAdded) return;
 
       try {
-        // Process files through FileService (handles temporary file creation)
-        const processedFiles = await FileService.processDroppedFiles(e.nativeEvent.dataTransfer!.files);
+        const droppedFiles = e.nativeEvent.dataTransfer!.files;
 
-        // Filter supported files
-        const supportedFiles = filterSupportedFiles(processedFiles, supportedExts);
+        // 第一步：先校验文件类型，筛选出支持的文件
+        const validFiles: File[] = [];
 
-        if (supportedFiles.length > 0) {
-          onFilesAdded(supportedFiles);
+        for (let i = 0; i < droppedFiles.length; i++) {
+          const file = droppedFiles[i];
+          if (supportedExts.length === 0 || isSupportedFile(file.name, supportedExts)) {
+            validFiles.push(file);
+          }
+          // 注意：不支持的文件会被静默过滤，与原逻辑保持一致
+        }
+
+        // 第二步：只处理校验通过的文件
+        if (validFiles.length > 0) {
+          // 创建 FileList 对象给 processDroppedFiles
+          const validFileList = Object.assign(validFiles, {
+            length: validFiles.length,
+            item: (index: number) => validFiles[index] || null,
+          }) as unknown as FileList;
+          const processedFiles = await FileService.processDroppedFiles(validFileList);
+
+          if (processedFiles.length > 0) {
+            onFilesAdded(processedFiles);
+          }
         }
       } catch (err) {
         console.error('Failed to process dropped files:', err);

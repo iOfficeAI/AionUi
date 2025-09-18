@@ -5,6 +5,7 @@
  */
 
 import type { IProvider, TChatConversation } from '@/common/storage';
+import { AIONUI_TIMESTAMP_SEPARATOR } from '@/common/constants';
 import { uuid } from '@/common/utils';
 import { AuthType, clearCachedCredentialFile, Config, getOauthInfoWithCache, loginWithOauth } from '@office-ai/aioncli-core';
 import { logger } from '@office-ai/platform';
@@ -99,7 +100,7 @@ ipcBridge.fs.createTempFile.provider(async ({ fileName }) => {
       const timestamp = Date.now();
       const ext = path.extname(safeFileName);
       const name = path.basename(safeFileName, ext);
-      const tempFileName = `${name}_aionui_${timestamp}${ext}`;
+      const tempFileName = `${name}${AIONUI_TIMESTAMP_SEPARATOR}${timestamp}${ext}`;
       tempFilePath = path.join(tempDir, tempFileName);
     }
 
