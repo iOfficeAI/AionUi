@@ -7,23 +7,30 @@
 import type { WebSocketServer } from 'ws';
 import { WebSocket } from 'ws';
 import { bridge } from '@office-ai/platform';
+import { dialog } from 'electron';
+import { ipcBridge } from '../common';
 
 let activeTokens: Set<string>;
 const connectedClients: Set<WebSocket> = new Set();
-
-// 存储待处理的文件选择请求
-const pendingFileRequests = new Map<string, any>();
-
-// 存储bridge实例的引用
-let bridgeInstance: typeof bridge;
-
 
 /**
  * 初始化 Web 适配器 - 建立 WebSocket 与 bridge 的通信桥梁
  */
 export function initWebAdapter(wss: WebSocketServer, tokens: Set<string>): void {
+  console.log('🔧 [Adapter] Initializing Web adapter...');
   activeTokens = tokens;
-  bridgeInstance = bridge;
+
+  // 设置WebUI模式下的dialog.showOpen provider（与Electron模式保持一致）
+  ipcBridge.dialog.showOpen.provider((options) => {
+    return dialog
+      .showOpenDialog({
+        defaultPath: options?.defaultPath,
+        properties: options?.properties,
+      })
+      .then((res) => {
+        return res.filePaths;
+      });
+  });
 
   // 设置 bridge 适配器
   bridge.adapter({
@@ -40,53 +47,27 @@ export function initWebAdapter(wss: WebSocketServer, tokens: Set<string>): void 
 
     // 接收来自 web clients 的数据
     on(emitter) {
+      console.log('🔌 [Adapter] Setting up WebSocket connection handler...');
       wss.on('connection', (ws, req) => {
+        console.log('🌐 [Adapter] WebSocket client connected');
         // Token 验证（在 index.ts 中已经完成，这里是双重保险）
         const url = new URL(req.url || '', 'http://localhost');
         const token = url.searchParams.get('token');
 
         if (!token || !activeTokens.has(token)) {
+          console.log('❌ [Adapter] Invalid token');
           ws.close(1008, 'Invalid token');
           return;
         }
 
+        console.log('✅ [Adapter] Token validated, adding to connected clients');
         // 添加到活跃连接
         connectedClients.add(ws);
         // 处理消息
-        ws.on('message', (rawData) => {
+        ws.on('message', async (rawData) => {
           try {
             const { name, data } = JSON.parse(rawData.toString());
-
-            // 处理文件选择请求
-            if (name === 'subscribe-show-open') {
-              let requestId = data.id;
-              if (requestId && requestId.startsWith('show-open')) {
-                requestId = requestId.replace('show-open', '');
-              }
-
-              const isFileMode = data && data.properties && (data.properties.includes('openFile') || data.properties.includes('multiSelections')) && !data.properties.includes('openDirectory');
-
-              ws.send(JSON.stringify({ name: 'show-open-request', data: { ...data, isFileMode } }));
-
-              pendingFileRequests.set(requestId, {
-                originalData: data,
-                requestName: name,
-                timestamp: Date.now(),
-              });
-              return;
-            }
-
-            // 处理文件选择响应
-            if (name === 'show-open-response') {
-              for (const [requestId, requestInfo] of pendingFileRequests.entries()) {
-                const eventName = requestInfo.requestName.replace('subscribe-', '');
-                const callbackEventName = `subscribe.callback-${eventName}${requestId}`;
-                bridgeInstance.emit(callbackEventName, data);
-                pendingFileRequests.delete(requestId);
-                break;
-              }
-              return;
-            }
+            console.log('📨 [WebSocket] Received message:', name, data);
 
             // 其他消息转发给 bridge 系统
             emitter.emit(name, data);
