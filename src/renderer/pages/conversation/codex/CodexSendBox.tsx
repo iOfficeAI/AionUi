@@ -43,7 +43,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
       if (conversation_id !== message.conversation_id) return;
       if (message.type === 'start') setRunning(true);
       if (message.type === 'finish') setRunning(false);
-      if (message.type === 'content' || message.type === 'user_content' || message.type === 'error') {
+      if (message.type === 'content' || message.type === 'user_content' || message.type === 'error' || message.type === 'acp_permission') {
         addOrUpdateMessage(transformMessage(message));
       }
     });

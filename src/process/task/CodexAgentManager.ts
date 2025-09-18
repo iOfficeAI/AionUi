@@ -6,6 +6,8 @@ import type { IResponseMessage } from '@/common/ipcBridge';
 import { uuid } from '@/common/utils';
 import { addMessage, addOrUpdateMessage } from '../message';
 import BaseAgentManager from './BaseAgentManager';
+import fs from 'fs/promises';
+import path from 'path';
 
 interface CodexAgentManagerData {
   conversation_id: string;
@@ -18,8 +20,10 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
   agent: CodexMcpAgent;
   bootstrap: Promise<CodexMcpAgent>;
   private currentLoadingId: string | null = null;
+  private currentContent: string = ''; // 手动累积内容
   private cmdBuffers: Map<string, { stdout: string; stderr: string; combined: string }> = new Map();
   private patchBuffers: Map<string, string> = new Map();
+  private patchChanges: Map<string, Record<string, any>> = new Map();
   private pendingConfirmations: Set<string> = new Set();
 
   constructor(data: CodexAgentManagerData) {
@@ -41,7 +45,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
       .start()
       .then(async () => {
         this.emitStatus('connected', 'Connected to Codex MCP server');
-        const session = await this.agent.newSession(this.workspace);
+        await this.agent.newSession(this.workspace);
         this.emitStatus('session_active', 'Active session created with Codex');
         return this.agent;
       })
@@ -54,26 +58,46 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
   private handleAgentEvent(evt: { type: string; data: any }) {
     const type = evt.type;
 
+    // Debug: Log all events from Codex to understand what events are actually sent
+
     if (type === 'agent_message_delta') {
-      if (!this.currentLoadingId) this.currentLoadingId = uuid();
-      const message: IResponseMessage = {
+      if (!this.currentLoadingId) {
+        this.currentLoadingId = uuid();
+        this.currentContent = ''; // 重置累积内容
+      }
+
+      // 累积delta内容
+      const delta = evt.data?.delta || evt.data?.message || '';
+      this.currentContent += delta;
+
+      // 发送完整累积的内容，使用相同的msg_id确保替换loading
+      const deltaMessage: IResponseMessage = {
         type: 'content',
         conversation_id: this.conversation_id,
-        msg_id: this.currentLoadingId,
-        data: evt.data?.delta || evt.data?.message || '',
+        msg_id: this.currentLoadingId!,
+        data: this.currentContent,
       };
-      addOrUpdateMessage(this.conversation_id, transformMessage(message));
-      ipcBridge.codexConversation.responseStream.emit(message);
+
+      addOrUpdateMessage(this.conversation_id, transformMessage(deltaMessage));
+      ipcBridge.codexConversation.responseStream.emit(deltaMessage);
       return;
     }
 
     if (type === 'agent_message') {
       if (!this.currentLoadingId) this.currentLoadingId = uuid();
+      const messageContent = evt.data?.message || '';
+
+      // Check if Codex is asking for file write permission
+      if (this.isFileWriteRequest(messageContent)) {
+        this.handleFileWriteRequest(messageContent);
+        return; // Don't process as normal message
+      }
+
       const message: IResponseMessage = {
         type: 'content',
         conversation_id: this.conversation_id,
         msg_id: this.currentLoadingId,
-        data: evt.data?.message || '',
+        data: messageContent,
       };
       addOrUpdateMessage(this.conversation_id, transformMessage(message));
       ipcBridge.codexConversation.responseStream.emit(message);
@@ -81,15 +105,13 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
     }
 
     if (type === 'task_complete') {
-      // Reset loading id for next turn
-      this.currentLoadingId = null;
-      const finishMsg: IResponseMessage = {
-        type: 'finish',
-        conversation_id: this.conversation_id,
-        msg_id: uuid(),
-        data: {},
-      };
-      ipcBridge.codexConversation.responseStream.emit(finishMsg);
+      // 延迟重置，确保所有消息都使用同一个ID
+      setTimeout(() => {
+        this.currentLoadingId = null;
+        this.currentContent = '';
+      }, 100);
+
+      // 不再发送finish消息，避免UI显示空对象
       return;
     }
 
@@ -165,12 +187,68 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
       return;
     }
 
+    // tool: patch approval request - convert to standard ACP permission
+    if (type === 'apply_patch_approval_request') {
+      const callId = evt.data?.call_id || uuid();
+      const changes = evt.data?.changes || {};
+      this.patchChanges.set(callId, changes);
+      this.patchBuffers.set(callId, ''); // Initialize patch buffer
+      this.pendingConfirmations.add(callId); // Add to pending confirmations
+
+      const summary = this.summarizePatch(changes);
+      const fileCount = Object.keys(changes).length;
+
+      // Create ACP permission message directly like ACP does
+      const permissionMessage: TMessage = {
+        id: uuid(),
+        conversation_id: this.conversation_id,
+        type: 'acp_permission',
+        position: 'center',
+        createdAt: Date.now(),
+        content: {
+          title: 'File Write Permission',
+          description: `Codex wants to write ${fileCount} file(s) to your workspace`,
+          agentType: 'codex', // Add agent type to identify which confirmMessage handler to use
+          options: [
+            {
+              optionId: 'allow_once',
+              name: 'Allow',
+              kind: 'allow_once',
+              description: 'Allow this file operation',
+            },
+            {
+              optionId: 'reject_once',
+              name: 'Reject',
+              kind: 'reject_once',
+              description: 'Reject this file operation',
+            },
+          ],
+          requestId: callId,
+          toolCall: {
+            title: 'Write File',
+            toolCallId: callId,
+            rawInput: {
+              description: summary,
+            },
+          },
+        },
+      } as TMessage;
+
+      // Send permission message directly, like ACP does
+      addOrUpdateMessage(this.conversation_id, permissionMessage);
+      return;
+    }
+
     // tool: patch apply
     if (type === 'patch_apply_begin') {
       const callId = evt.data?.call_id || uuid();
       const auto = evt.data?.auto_approved ? 'true' : 'false';
       const summary = this.summarizePatch(evt.data?.changes);
+      // Cache both summary and raw changes for later application
       this.patchBuffers.set(callId, summary);
+      if (evt.data?.changes && typeof evt.data.changes === 'object') {
+        this.patchChanges.set(callId, evt.data.changes as Record<string, any>);
+      }
       // 对未自动批准的变更设置确认
       if (!evt.data?.auto_approved) this.pendingConfirmations.add(callId);
       this.emitToolGroup(callId, {
@@ -180,6 +258,10 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
         renderOutputAsMarkdown: true,
         resultDisplay: summary,
       });
+      // If auto-approved, immediately attempt to apply changes
+      if (evt.data?.auto_approved) {
+        this.applyPatchChanges(callId).catch((): void => void 0);
+      }
       return;
     }
 
@@ -196,6 +278,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
         resultDisplay: summary,
       });
       this.patchBuffers.delete(callId);
+      this.patchChanges.delete(callId);
       return;
     }
 
@@ -257,30 +340,29 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
 
     // reasoning deltas are omitted from UI for now (could be mapped to a dedicated stream later)
 
-    // Other events ignored for now
+    // Catch all unhandled events for debugging
+    console.warn(`❌ [CodexAgentManager] Unhandled event type: "${type}"`, evt.data);
   }
 
   async sendMessage(data: { content: string; files?: string[]; msg_id?: string }): Promise<{ success: boolean; msg?: string }> {
     await this.bootstrap;
     // User message will be added on renderer side to avoid duplication
 
-    // Emit start + loading indicator
+    // 初始化新的对话轮次
     this.currentLoadingId = uuid();
-    const startMsg: IResponseMessage = {
-      type: 'start',
-      conversation_id: this.conversation_id,
-      msg_id: this.currentLoadingId,
-      data: {},
-    };
-    const loadingMsg: IResponseMessage = {
+    this.currentContent = '';
+
+    // 不再发送开始信号，避免UI显示空对象
+
+    // 简化：直接使用addOrUpdateMessage添加loading消息
+    const loadingMessage: IResponseMessage = {
       type: 'content',
       conversation_id: this.conversation_id,
       msg_id: this.currentLoadingId,
       data: 'loading...',
     };
-    ipcBridge.codexConversation.responseStream.emit(startMsg);
-    addOrUpdateMessage(this.conversation_id, transformMessage(loadingMsg));
-    ipcBridge.codexConversation.responseStream.emit(loadingMsg);
+    addOrUpdateMessage(this.conversation_id, transformMessage(loadingMessage));
+    ipcBridge.codexConversation.responseStream.emit(loadingMessage);
 
     // Send prompt
     await this.agent.sendPrompt(data.content);
@@ -297,6 +379,59 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
     const outcome = String(data.confirmKey || 'cancel').toLowerCase();
     const isCancel = outcome.includes('cancel');
     this.pendingConfirmations.delete(callId);
+
+    // If this confirmation corresponds to a pending patch, handle it properly
+    if (this.patchBuffers.has(callId)) {
+      try {
+        // Resolve the permission in the MCP connection (like ACP does)
+        this.agent.resolvePermission(callId, !isCancel);
+
+        if (isCancel) {
+          const message: IResponseMessage = {
+            type: 'tool_group',
+            conversation_id: this.conversation_id,
+            msg_id: uuid(),
+            data: [
+              {
+                callId,
+                name: 'WriteFile',
+                description: 'User canceled execution',
+                status: 'Canceled',
+                renderOutputAsMarkdown: true,
+                resultDisplay: this.patchBuffers.get(callId) || '',
+              },
+            ],
+          } as any;
+          addOrUpdateMessage(this.conversation_id, transformMessage(message));
+          ipcBridge.codexConversation.responseStream.emit(message);
+        } else {
+          // Update UI to show approval
+          const message: IResponseMessage = {
+            type: 'tool_group',
+            conversation_id: this.conversation_id,
+            msg_id: uuid(),
+            data: [
+              {
+                callId,
+                name: 'WriteFile',
+                description: 'User approved - applying changes...',
+                status: 'Executing',
+                renderOutputAsMarkdown: true,
+                resultDisplay: this.patchBuffers.get(callId) || '',
+              },
+            ],
+          } as any;
+          addOrUpdateMessage(this.conversation_id, transformMessage(message));
+          ipcBridge.codexConversation.responseStream.emit(message);
+
+          // Actually apply the changes
+          await this.applyPatchChanges(callId);
+        }
+      } catch (error) {
+        console.error('Failed to send approval response:', error);
+      }
+      return;
+    }
 
     const message: IResponseMessage = {
       type: 'tool_group',
@@ -386,6 +521,268 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
       argsStr = '';
     }
     return argsStr ? `${server}.${tool}(${argsStr})` : `${server}.${tool}()`;
+  }
+
+  private isFileWriteRequest(message: string): boolean {
+    const patterns = [/我可以.*创建文件/i, /要我现在执行吗/i, /将.*写入.*文件/i, /create.*file.*write/i, /write.*to.*file/i, /执行.*命令/i, /going to create.*\.txt/i, /going to create.*file/i, /create.*and write/i, /write.*into it/i];
+    return patterns.some((pattern) => pattern.test(message));
+  }
+
+  private handleFileWriteRequest(message: string): void {
+    const callId = uuid();
+
+    // Extract file information from message
+    let fileName = 'file.txt';
+    let content = '';
+
+    // Try to extract filename (e.g., "333.txt", "11.txt")
+    const fileMatch = message.match(/(\w+\.\w+)/);
+    if (fileMatch) {
+      fileName = fileMatch[1];
+    }
+
+    // Try to extract content (e.g., echo content)
+    const contentMatch = message.match(/echo.*['"]([^'"]*)['"]/);
+    if (contentMatch) {
+      content = contentMatch[1];
+    }
+
+    // Create permission request
+    const permissionMessage: TMessage = {
+      id: uuid(),
+      conversation_id: this.conversation_id,
+      type: 'acp_permission',
+      position: 'center',
+      createdAt: Date.now(),
+      content: {
+        title: 'File Write Permission',
+        description: `Codex wants to create "${fileName}" in your workspace`,
+        agentType: 'codex',
+        options: [
+          {
+            optionId: 'allow_once',
+            name: 'Allow',
+            kind: 'allow_once',
+            description: 'Allow this file operation',
+          },
+          {
+            optionId: 'reject_once',
+            name: 'Reject',
+            kind: 'reject_once',
+            description: 'Reject this file operation',
+          },
+        ],
+        requestId: callId,
+        toolCall: {
+          title: 'Write File',
+          toolCallId: callId,
+          rawInput: {
+            description: `Create ${fileName} with content: ${content}`,
+          },
+        },
+      },
+    } as TMessage;
+
+    // Store file write info for later execution
+    this.patchChanges.set(callId, {
+      [fileName]: { content },
+    });
+    this.patchBuffers.set(callId, `Create file: ${fileName}\nContent: ${content}`);
+    this.pendingConfirmations.add(callId);
+
+    addOrUpdateMessage(this.conversation_id, permissionMessage);
+
+    // Also emit through stream like other messages
+    const streamMessage: IResponseMessage = {
+      type: 'acp_permission',
+      conversation_id: this.conversation_id,
+      msg_id: permissionMessage.id,
+      data: permissionMessage.content,
+    };
+    ipcBridge.codexConversation.responseStream.emit(streamMessage);
+  }
+
+  private async applyPatchChanges(callId: string): Promise<void> {
+    const summary = this.patchBuffers.get(callId) || '';
+    const changes = this.patchChanges.get(callId) || {};
+    const baseDir = this.workspace || process.cwd();
+
+    // Update UI to Executing
+    this.emitToolGroup(callId, {
+      name: 'WriteFile',
+      description: 'Applying patch to workspace...',
+      status: 'Executing',
+      renderOutputAsMarkdown: true,
+      resultDisplay: summary,
+    });
+
+    try {
+      const entries = Object.entries(changes);
+      for (const [relPath, change] of entries) {
+        const content = change?.content;
+        // Direct content write
+        if (typeof content === 'string') {
+          const fullPath = path.isAbsolute(relPath) ? relPath : path.join(baseDir, relPath);
+          const dir = path.dirname(fullPath);
+          await fs.mkdir(dir, { recursive: true });
+          await fs.writeFile(fullPath, content, 'utf-8');
+          continue;
+        }
+
+        // Unified diff application
+        if (typeof change?.unified_diff === 'string') {
+          const diffText = String(change.unified_diff);
+          const fullPath = path.isAbsolute(relPath) ? relPath : path.join(baseDir, relPath);
+
+          const { oldIsDevNull, newIsDevNull, hunks } = this.parseUnifiedDiff(diffText);
+
+          // Deletion
+          if (newIsDevNull) {
+            try {
+              await fs.rm(fullPath, { force: true });
+            } catch {
+              // Ignore deletion errors
+            }
+            continue;
+          }
+
+          // Read base content (empty if file not exists or oldIsDevNull)
+          let base = '';
+          if (!oldIsDevNull) {
+            try {
+              base = await fs.readFile(fullPath, 'utf-8');
+            } catch {
+              base = '';
+            }
+          }
+
+          const next = this.applyUnifiedDiffToContent(base, hunks);
+          const dir = path.dirname(fullPath);
+          await fs.mkdir(dir, { recursive: true });
+          await fs.writeFile(fullPath, next, 'utf-8');
+          continue;
+        }
+      }
+
+      // Success UI
+      this.emitToolGroup(callId, {
+        name: 'WriteFile',
+        description: 'Patch applied successfully',
+        status: 'Success',
+        renderOutputAsMarkdown: true,
+        resultDisplay: summary,
+      });
+    } catch (e: any) {
+      this.emitToolGroup(callId, {
+        name: 'WriteFile',
+        description: `Patch apply failed: ${e?.message || String(e)}`,
+        status: 'Error',
+        renderOutputAsMarkdown: true,
+        resultDisplay: summary,
+      });
+    } finally {
+      this.patchBuffers.delete(callId);
+      this.patchChanges.delete(callId);
+    }
+  }
+
+  // --- Unified diff helpers ---
+  private parseUnifiedDiff(diff: string): {
+    oldIsDevNull: boolean;
+    newIsDevNull: boolean;
+    hunks: Array<{
+      oldStart: number;
+      oldLines: number;
+      newStart: number;
+      newLines: number;
+      lines: Array<{ t: 'context' | 'add' | 'del'; s: string }>;
+    }>;
+  } {
+    const lines = diff.replace(/\r\n?/g, '\n').split('\n');
+    let idx = 0;
+    let oldIsDevNull = false;
+    let newIsDevNull = false;
+    // Optional headers
+    for (; idx < lines.length; idx++) {
+      const l = lines[idx];
+      if (l.startsWith('--- ')) {
+        if (l.includes('/dev/null')) oldIsDevNull = true;
+        continue;
+      }
+      if (l.startsWith('+++ ')) {
+        if (l.includes('/dev/null')) newIsDevNull = true;
+        idx++; // move past +++
+        break;
+      }
+      if (l.startsWith('@@ ')) break; // directly into hunks
+    }
+
+    const hunks: Array<{ oldStart: number; oldLines: number; newStart: number; newLines: number; lines: Array<{ t: 'context' | 'add' | 'del'; s: string }> }> = [];
+    while (idx < lines.length) {
+      const header = lines[idx++];
+      if (!header || !header.startsWith('@@')) break;
+      const m = /@@\s*-([0-9]+)(?:,([0-9]+))?\s*\+([0-9]+)(?:,([0-9]+))?\s*@@/.exec(header);
+      if (!m) continue;
+      const oldStart = parseInt(m[1], 10);
+      const oldLines = m[2] ? parseInt(m[2], 10) : 1;
+      const newStart = parseInt(m[3], 10);
+      const newLines = m[4] ? parseInt(m[4], 10) : 1;
+      const hunkLines: Array<{ t: 'context' | 'add' | 'del'; s: string }> = [];
+      while (idx < lines.length) {
+        const l = lines[idx];
+        if (l.startsWith('@@')) break;
+        idx++;
+        if (!l) continue;
+        const tag = l[0];
+        const text = l.slice(1);
+        if (tag === ' ') hunkLines.push({ t: 'context', s: text });
+        else if (tag === '+') hunkLines.push({ t: 'add', s: text });
+        else if (tag === '-') hunkLines.push({ t: 'del', s: text });
+        // lines starting with '\\' are metadata; ignore
+      }
+      hunks.push({ oldStart, oldLines, newStart, newLines, lines: hunkLines });
+    }
+    return { oldIsDevNull, newIsDevNull, hunks };
+  }
+
+  private applyUnifiedDiffToContent(base: string, hunks: Array<{ oldStart: number; oldLines: number; newStart: number; newLines: number; lines: Array<{ t: 'context' | 'add' | 'del'; s: string }> }>): string {
+    const baseLines = base.replace(/\r\n?/g, '\n').split('\n');
+    const out: string[] = [];
+    let cursor = 0; // index in baseLines
+
+    const pushRange = (from: number, toExclusive: number) => {
+      for (let i = from; i < toExclusive && i < baseLines.length; i++) out.push(baseLines[i]);
+    };
+
+    for (const h of hunks) {
+      const targetIdx = Math.max(0, h.oldStart - 1);
+      // copy untouched part
+      pushRange(cursor, targetIdx);
+      cursor = targetIdx;
+
+      for (const ln of h.lines) {
+        if (ln.t === 'context') {
+          // validate context
+          const baseLine = baseLines[cursor] ?? '';
+          if (baseLine !== ln.s) {
+            throw new Error('Context mismatch while applying diff');
+          }
+          out.push(baseLine);
+          cursor++;
+        } else if (ln.t === 'del') {
+          const baseLine = baseLines[cursor] ?? '';
+          if (baseLine !== ln.s) {
+            throw new Error('Deletion mismatch while applying diff');
+          }
+          cursor++; // skip (delete)
+        } else if (ln.t === 'add') {
+          out.push(ln.s);
+        }
+      }
+    }
+    // copy rest
+    pushRange(cursor, baseLines.length);
+    return out.join('\n');
   }
 }
 

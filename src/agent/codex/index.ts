@@ -74,11 +74,25 @@ export class CodexMcpAgent {
     });
   }
 
+  async sendApprovalResponse(callId: string, approved: boolean, changes: Record<string, any>): Promise<void> {
+    await this.conn?.request('apply_patch_approval_response', {
+      call_id: callId,
+      approved,
+      changes,
+    });
+  }
+
+  resolvePermission(callId: string, approved: boolean): void {
+    this.conn?.resolvePermission(callId, approved);
+  }
+
   private processCodexEvent(env: { method: string; params?: any }): void {
+    console.log('🔎 [CodexMcpAgent] Received raw event:', env);
     if (env.method !== 'codex/event') return;
     const msg = env.params?.msg;
     if (!msg) return;
 
+    console.log('📨 [CodexMcpAgent] Processing event:', { type: msg.type, data: msg });
     // Skeleton: forward as a normalized event envelope for future mapping
     this.onEvent({ type: msg.type || 'unknown', data: msg });
     if (msg.type === 'session_configured' && msg.session_id) {
