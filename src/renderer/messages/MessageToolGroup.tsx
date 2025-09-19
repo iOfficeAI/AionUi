@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { acpConversation, codexConversation } from '@/common/ipcBridge';
 import type { IMessageToolGroup } from '@/common/chatLib';
 import { Alert, Button, Radio, Tag } from '@arco-design/web-react';
 import { LoadingOne } from '@icon-park/react';
@@ -193,26 +194,40 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
               content={content}
               onConfirm={async (outcome) => {
                 try {
-                  const conv = await ipcBridge.conversation.get.invoke({ id: message.conversation_id });
-                  if (conv?.type === 'acp') {
-                    await ipcBridge.acpConversation.confirmMessage.invoke({
+                  // 优化：如果有 agentType 信息，直接使用，避免额外 API 调用
+                  const agentType = (content as any)?.agentType;
+
+                  let conversationHandler;
+                  if (agentType) {
+                    // 直接根据 agentType 选择处理器（来自 MessageAcpPermission 的优化）
+                    conversationHandler = agentType === 'codex' ? codexConversation : acpConversation;
+                  } else {
+                    // 后备方案：通过 conversation API 获取类型
+                    const conv = await ipcBridge.conversation.get.invoke({ id: message.conversation_id });
+                    if (conv?.type === 'acp') {
+                      conversationHandler = acpConversation;
+                    } else if (conv?.type === 'codex') {
+                      conversationHandler = codexConversation;
+                    } else {
+                      conversationHandler = ipcBridge.geminiConversation;
+                    }
+                  }
+
+                  // 改进的 callId 处理（来自 MessageAcpPermission 的优化）
+                  const effectiveCallId = (content as any)?.toolCall?.toolCallId || callId || message.id;
+
+                  if (conversationHandler === ipcBridge.geminiConversation) {
+                    await conversationHandler.confirmMessage.invoke({
                       confirmKey: outcome,
                       msg_id: message.id,
-                      callId,
-                      conversation_id: message.conversation_id,
-                    });
-                  } else if (conv?.type === 'codex') {
-                    await ipcBridge.codexConversation.confirmMessage.invoke({
-                      confirmKey: outcome,
-                      msg_id: message.id,
-                      callId,
+                      callId: effectiveCallId,
                       conversation_id: message.conversation_id,
                     });
                   } else {
-                    await ipcBridge.geminiConversation.confirmMessage.invoke({
+                    await conversationHandler.confirmMessage.invoke({
                       confirmKey: outcome,
                       msg_id: message.id,
-                      callId,
+                      callId: effectiveCallId,
                       conversation_id: message.conversation_id,
                     });
                   }
@@ -232,7 +247,6 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
           );
         }
 
-        const display = typeof resultDisplay === 'string' ? resultDisplay : JSON.stringify(resultDisplay);
         return (
           <Alert
             className={'!items-start !rd-8px !px-8px [&_div.arco-alert-content-wrapper]:max-w-[calc(100%-24px)]'}
