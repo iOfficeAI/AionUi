@@ -85,6 +85,8 @@ class PasteServiceClass {
       // The component's `onChange` handler will correctly update the state.
       return false;
     }
+    if (files && files.length > 0) {
+      const fileList: FileMetadata[] = [];
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         const filePath = (file as File & { path?: string }).path;
