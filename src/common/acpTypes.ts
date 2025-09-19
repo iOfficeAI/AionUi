@@ -28,7 +28,6 @@ export interface AcpBackendConfig {
   name: string;
   cliCommand?: string;
   defaultCliPath?: string;
-  supportedFeatures?: string[];
   authRequired?: boolean;
   enabled?: boolean; // 是否启用，用于控制后端的可用性
 }
@@ -40,7 +39,6 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     name: 'Claude',
     cliCommand: 'claude',
     authRequired: true,
-    supportedFeatures: ['text', 'files', 'tools'],
     enabled: true,
   },
   gemini: {
@@ -48,7 +46,6 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     name: 'Google Gemini',
     cliCommand: 'gemini',
     authRequired: true,
-    supportedFeatures: ['text', 'files', 'tools'],
     enabled: false,
   },
   qwen: {
@@ -57,7 +54,6 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     cliCommand: 'qwen',
     defaultCliPath: 'npx @qwen-code/qwen-code',
     authRequired: true,
-    supportedFeatures: ['text', 'files', 'tools'],
     enabled: true, // ✅ 已验证支持：Qwen CLI v0.0.10+ 支持 --experimental-acp
   },
   iflow: {
@@ -65,7 +61,6 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     name: 'iFlow CLI',
     cliCommand: 'iflow',
     authRequired: true,
-    supportedFeatures: ['text', 'files', 'tools'],
     enabled: true,
   },
   openai: {
@@ -73,7 +68,6 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     name: 'OpenAI GPT',
     cliCommand: 'openai-acp',
     authRequired: true,
-    supportedFeatures: ['text', 'files', 'tools'],
     enabled: false,
   },
   anthropic: {
@@ -81,7 +75,6 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     name: 'Anthropic',
     cliCommand: 'anthropic-acp',
     authRequired: true,
-    supportedFeatures: ['text', 'files', 'tools'],
     enabled: false,
   },
   cohere: {
@@ -89,7 +82,6 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     name: 'Cohere',
     cliCommand: 'cohere-acp',
     authRequired: true,
-    supportedFeatures: ['text', 'files', 'tools'],
     enabled: false,
   },
   custom: {
@@ -97,7 +89,6 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     name: 'Custom ACP',
     cliCommand: 'custom-acp',
     authRequired: true,
-    supportedFeatures: ['text', 'files', 'tools'],
     enabled: false,
   },
 };
@@ -168,4 +159,222 @@ export function createAcpError(type: AcpErrorType, message: string, retryable: b
 
 export function isRetryableError(error: AcpError): boolean {
   return error.retryable || error.type === AcpErrorType.CONNECTION_NOT_READY;
+}
+
+// ACP JSON-RPC Protocol Types
+export const JSONRPC_VERSION = '2.0' as const;
+
+export interface AcpRequest {
+  jsonrpc: typeof JSONRPC_VERSION;
+  id: number;
+  method: string;
+  params?: any;
+}
+
+export interface AcpResponse {
+  jsonrpc: typeof JSONRPC_VERSION;
+  id: number;
+  result?: any;
+  error?: {
+    code: number;
+    message: string;
+  };
+}
+
+export interface AcpNotification {
+  jsonrpc: typeof JSONRPC_VERSION;
+  method: string;
+  params?: any;
+}
+
+// Base interface for all session updates
+export interface BaseSessionUpdate {
+  sessionId: string;
+}
+
+// Agent message chunk update
+export interface AgentMessageChunkUpdate extends BaseSessionUpdate {
+  update: {
+    sessionUpdate: 'agent_message_chunk';
+    content: {
+      type: 'text' | 'image';
+      text?: string;
+      data?: string;
+      mimeType?: string;
+      uri?: string;
+    };
+  };
+}
+
+// Agent thought chunk update
+export interface AgentThoughtChunkUpdate extends BaseSessionUpdate {
+  update: {
+    sessionUpdate: 'agent_thought_chunk';
+    content: {
+      type: 'text';
+      text: string;
+    };
+  };
+}
+
+// Tool call update
+export interface ToolCallUpdate extends BaseSessionUpdate {
+  update: {
+    sessionUpdate: 'tool_call';
+    toolCallId: string;
+    status: 'pending' | 'in_progress' | 'completed' | 'failed';
+    title: string;
+    kind: 'read' | 'edit' | 'execute';
+    rawInput?: any;
+    content?: Array<{
+      type: 'content' | 'diff';
+      content?: {
+        type: 'text';
+        text: string;
+      };
+      path?: string;
+      oldText?: string | null;
+      newText?: string;
+    }>;
+    locations?: Array<{
+      path: string;
+    }>;
+  };
+}
+
+// Tool call update (status change)
+export interface ToolCallUpdateStatus extends BaseSessionUpdate {
+  update: {
+    sessionUpdate: 'tool_call_update';
+    toolCallId: string;
+    status: 'completed' | 'failed';
+    content?: Array<{
+      type: 'content';
+      content: {
+        type: 'text';
+        text: string;
+      };
+    }>;
+  };
+}
+
+// Plan update
+export interface PlanUpdate extends BaseSessionUpdate {
+  update: {
+    sessionUpdate: 'plan';
+    entries: Array<{
+      content: string;
+      status: 'pending' | 'in_progress' | 'completed';
+      priority?: 'low' | 'medium' | 'high';
+    }>;
+  };
+}
+
+// Available commands update
+export interface AvailableCommandsUpdate extends BaseSessionUpdate {
+  update: {
+    sessionUpdate: 'available_commands_update';
+    availableCommands: Array<{
+      name: string;
+      description: string;
+      input?: {
+        hint?: string;
+      } | null;
+    }>;
+  };
+}
+
+// User message chunk update
+export interface UserMessageChunkUpdate extends BaseSessionUpdate {
+  update: {
+    sessionUpdate: 'user_message_chunk';
+    content: {
+      type: 'text' | 'image';
+      text?: string;
+      data?: string;
+      mimeType?: string;
+      uri?: string;
+    };
+  };
+}
+
+// Current mode update
+export interface CurrentModeUpdate extends BaseSessionUpdate {
+  update: {
+    sessionUpdate: 'current_mode_update';
+    mode: string;
+    description?: string;
+  };
+}
+
+// Union type for all session updates
+export type AcpSessionUpdate = AgentMessageChunkUpdate | AgentThoughtChunkUpdate | ToolCallUpdate | ToolCallUpdateStatus | PlanUpdate | AvailableCommandsUpdate | UserMessageChunkUpdate;
+// | CurrentModeUpdate;
+
+// 当前的ACP权限请求接口
+export interface AcpPermissionRequest {
+  sessionId: string;
+  options: Array<{
+    optionId: string;
+    name: string;
+    kind: 'allow_once' | 'allow_always' | 'reject_once' | 'reject_always';
+  }>;
+  toolCall: {
+    toolCallId: string;
+    rawInput?: {
+      command?: string;
+      description?: string;
+      [key: string]: any;
+    };
+    status?: string;
+    title?: string;
+    kind?: string;
+    content?: any[];
+    locations?: any[];
+  };
+}
+
+// 历史兼容性类型 - 支持旧版本数据结构
+export interface LegacyAcpPermissionData {
+  // 可能的旧版本字段
+  options?: Array<{
+    optionId?: string;
+    name?: string;
+    kind?: string;
+    // 兼容可能的其他字段
+    [key: string]: any;
+  }>;
+  toolCall?: {
+    toolCallId?: string;
+    rawInput?: any;
+    title?: string;
+    kind?: string;
+    // 兼容可能的其他字段
+    [key: string]: any;
+  };
+  // 兼容完全不同的结构
+  [key: string]: any;
+}
+
+// 兼容性联合类型
+export type CompatibleAcpPermissionData = AcpPermissionRequest | LegacyAcpPermissionData;
+
+export type AcpMessage = AcpRequest | AcpNotification | AcpResponse | AcpSessionUpdate;
+
+// File Operation Request Types
+export interface AcpFileWriteRequest extends AcpRequest {
+  method: 'fs/write_text_file';
+  params: {
+    sessionId: string;
+    path: string;
+    content: string;
+  };
+}
+
+export interface AcpFileReadRequest extends AcpRequest {
+  method: 'fs/read_text_file';
+  params: {
+    sessionId: string;
+    path: string;
+  };
 }

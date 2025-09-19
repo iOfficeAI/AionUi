@@ -8,10 +8,8 @@ import { bridge } from '@office-ai/platform';
 import type { OpenDialogOptions } from 'electron';
 import type { AcpBackend } from './acpTypes';
 import type { IProvider, TChatConversation, TProviderWithModel } from './storage';
-
 // 发送消息
 const sendMessage = bridge.buildProvider<IBridgeResponse<{}>, ISendMessageParams>('chat.send.message');
-
 //接受消息
 const responseStream = bridge.buildEmitter<IResponseMessage>('chat.response.stream');
 
@@ -70,7 +68,7 @@ export const mode = {
 
 // ACP对话相关接口 - 使用独立的sendMessage和responseStream
 const acpSendMessage = bridge.buildProvider<IBridgeResponse<{}>, ISendMessageParams>('acp.send.message');
-const acpResponseStream = bridge.buildEmitter<ACPResponseMessage>('acp.response.stream');
+const acpResponseStream = bridge.buildEmitter<IResponseMessage>('acp.response.stream');
 
 export const acpConversation = {
   sendMessage: acpSendMessage,
@@ -88,7 +86,6 @@ interface ISendMessageParams {
   msg_id: string;
   conversation_id: string;
   files?: string[];
-  loading_id?: string; // ID of loading message to replace
 }
 
 interface IConfirmGeminiMessageParams {
@@ -141,9 +138,6 @@ export interface IResponseMessage {
   data: any;
   msg_id: string;
   conversation_id: string;
-}
-export interface ACPResponseMessage extends IResponseMessage {
-  isLoadingReplacement?: boolean;
 }
 
 interface IBridgeResponse<D = {}> {
