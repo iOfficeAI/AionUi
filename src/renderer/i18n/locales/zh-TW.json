@@ -107,7 +107,7 @@
     "mcpDeleteConfirm": "確定要刪除此MCP伺服器嗎？",
     "mcpImportFromJSON": "從JSON匯入",
     "mcpImportTitle": "匯入MCP配置",
-    "mcpImportPlaceholder": "請貼上MCP配置JSON...",
+    "mcpImportPlaceholder": "請從MCP服務介紹頁面中的服務配置資訊複製JSON（優先使用NPX或UVX配置），並貼上到下方輸入框中。",
     "mcpTestConnection": "測試連線",
     "mcpConnected": "已連線",
     "mcpDisconnected": "未連線",

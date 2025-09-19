@@ -107,7 +107,7 @@
     "mcpDeleteConfirm": "このMCPサーバーを削除してもよろしいですか？",
     "mcpImportFromJSON": "JSONからインポート",
     "mcpImportTitle": "MCP設定をインポート",
-    "mcpImportPlaceholder": "MCP設定JSONをここに貼り付けてください...",
+    "mcpImportPlaceholder": "MCPサービス紹介ページからJSON設定情報（NPXまたはUVX設定を優先）をコピーし、下の入力ボックスに貼り付けてください。",
     "mcpTestConnection": "接続テスト",
     "mcpConnected": "接続済み",
     "mcpDisconnected": "未接続",

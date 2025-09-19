@@ -107,7 +107,7 @@
     "mcpDeleteConfirm": "Are you sure you want to delete this MCP server?",
     "mcpImportFromJSON": "Import from JSON",
     "mcpImportTitle": "Import MCP Configuration",
-    "mcpImportPlaceholder": "Paste MCP configuration JSON here...",
+    "mcpImportPlaceholder": "Copy the JSON configuration from the MCP service introduction page (preferably NPX or UVX configuration) and paste it into the input box below.",
     "mcpTestConnection": "Test Connection",
     "mcpConnected": "Connected",
     "mcpDisconnected": "Disconnected",
