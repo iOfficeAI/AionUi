@@ -235,7 +235,34 @@ ipcBridge.codexConversation.sendMessage.provider(async ({ conversation_id, files
 
   const codexTask: any = WorkerManage.getTaskById(conversation_id);
   if (!codexTask || codexTask.type !== 'codex') return { success: false, msg: 'unsupported task type for Codex provider' };
-  await copyFilesToDirectory(codexTask.workspace, files);
+
+  // 处理文件路径：区分上传文件（绝对路径）和工作空间文件（相对路径）
+  if (files && files.length > 0) {
+    const processedFiles: string[] = [];
+    for (const file of files) {
+      if (path.isAbsolute(file)) {
+        // 上传的文件，直接使用绝对路径
+        processedFiles.push(file);
+      } else {
+        // 工作空间文件，转换为绝对路径
+        const absolutePath = path.join(codexTask.workspace, file);
+        try {
+          await fs.access(absolutePath); // 检查文件是否存在
+          processedFiles.push(absolutePath);
+          console.log(`📁 [initBridge] Found workspace file: ${file} -> ${absolutePath}`);
+        } catch (error) {
+          console.warn(`⚠️ [initBridge] Workspace file not found: ${file}, skipping`);
+        }
+      }
+    }
+
+    // 只复制上传的文件，工作空间文件已经在目标位置
+    const uploadedFiles = processedFiles.filter((f) => !f.startsWith(codexTask.workspace));
+    if (uploadedFiles.length > 0) {
+      await copyFilesToDirectory(codexTask.workspace, uploadedFiles);
+      console.log(`📁 [initBridge] Copied ${uploadedFiles.length} uploaded files to workspace`);
+    }
+  }
 
   return codexTask
     .sendMessage({ content: other.input, files, msg_id: other.msg_id })

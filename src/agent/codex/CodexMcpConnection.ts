@@ -28,6 +28,13 @@ export interface CodexEventEnvelope {
   params?: any;
 }
 
+export interface NetworkError {
+  type: 'cloudflare_blocked' | 'network_timeout' | 'connection_refused' | 'unknown';
+  originalError: string;
+  retryCount: number;
+  suggestedAction: string;
+}
+
 interface PendingReq {
   resolve: (v: any) => void;
   reject: (e: any) => void;
@@ -41,12 +48,19 @@ export class CodexMcpConnection {
 
   // Callbacks
   public onEvent: (evt: CodexEventEnvelope) => void = () => {};
+  public onNetworkError: (error: NetworkError) => void = () => {};
 
   // Permission request handling - similar to ACP's mechanism
   private isPaused = false;
   private pauseReason = '';
   private pausedRequests: Array<{ method: string; params: any; resolve: any; reject: any; timeout: NodeJS.Timeout }> = [];
   private permissionResolvers = new Map<string, { resolve: (approved: boolean) => void; reject: (error: Error) => void }>();
+
+  // Network error handling
+  private retryCount = 0;
+  private maxRetries = 3;
+  private retryDelay = 5000; // 5 seconds
+  private isNetworkError = false;
 
   async start(cliPath: string, cwd: string, args: string[] = []): Promise<void> {
     // Default to "codex mcp"
@@ -72,6 +86,7 @@ export class CodexMcpConnection {
         if (!line.trim()) continue;
         try {
           const msg = JSON.parse(line) as any;
+          // console.log('[Codex MCP]==============>', msg);
           this.handleIncoming(msg);
         } catch {
           // ignore
@@ -93,7 +108,7 @@ export class CodexMcpConnection {
     }
   }
 
-  async request(method: string, params?: any, timeoutMs = 15000): Promise<any> {
+  async request(method: string, params?: any, timeoutMs = 60000): Promise<any> {
     const id = this.nextId++;
     const req: JsonRpcRequest = { jsonrpc: '2.0', id, method, params };
 
@@ -135,8 +150,42 @@ export class CodexMcpConnection {
       if (!p) return;
       this.pending.delete(res.id);
       if (p.timeout) clearTimeout(p.timeout);
-      if (res.error) p.reject(new Error(res.error.message));
-      else p.resolve(res.result);
+
+      // Debug logging for error detection
+      console.log('🔍 [CodexMcpConnection] Response debug:', {
+        hasError: !!res.error,
+        hasResult: !!res.result,
+        resultHasError: !!(res.result && res.result.error),
+        errorMessage: res.error?.message,
+        resultError: res.result?.error,
+      });
+
+      if (res.error) {
+        const errorMsg = res.error.message || '';
+        console.log('🔍 [CodexMcpConnection] Checking res.error.message:', errorMsg);
+
+        // Check for network-related errors
+        if (this.isNetworkRelatedError(errorMsg)) {
+          console.log('✅ [CodexMcpConnection] Network error detected in res.error');
+          this.handleNetworkError(errorMsg, p);
+        } else {
+          console.log('❌ [CodexMcpConnection] Not recognized as network error in res.error');
+          p.reject(new Error(errorMsg));
+        }
+      } else if (res.result && res.result.error) {
+        const resultErrorMsg = String(res.result.error);
+        console.log('🔍 [CodexMcpConnection] Checking res.result.error:', resultErrorMsg.substring(0, 100));
+
+        if (this.isNetworkRelatedError(resultErrorMsg)) {
+          console.log('✅ [CodexMcpConnection] Network error detected in res.result.error');
+          this.handleNetworkError(resultErrorMsg, p);
+        } else {
+          console.log('❌ [CodexMcpConnection] Not recognized as network error in res.result.error');
+          p.reject(new Error(resultErrorMsg));
+        }
+      } else {
+        p.resolve(res.result);
+      }
       return;
     }
 
@@ -144,32 +193,28 @@ export class CodexMcpConnection {
     if ('method' in msg) {
       const env: CodexEventEnvelope = { method: msg.method, params: msg.params };
 
-      // Check for permission request events before forwarding
+      // Check for permission request events - pause requests but forward to handler
       if (env.method === 'codex/event' && env.params?.msg?.type === 'apply_patch_approval_request') {
-        this.handlePermissionRequest(env.params.msg);
-        return;
+        const callId = env.params.msg.call_id || 'unknown';
+        this.isPaused = true;
+        this.pauseReason = `Waiting for file write permission (${callId})`;
+        console.log(`⏸️ [CodexMcpConnection] Paused due to permission request: ${callId}`);
       }
 
+      // Handle elicitation requests - also pause for patch-approval
+      if (env.method === 'elicitation/create' && env.params?.codex_elicitation === 'patch-approval') {
+        const callId = env.params?.codex_call_id || 'unknown';
+        this.isPaused = true;
+        this.pauseReason = `Waiting for elicitation response (${callId})`;
+        console.log(`⏸️ [CodexMcpConnection] Paused due to elicitation request: ${callId}`);
+      }
+
+      // Always forward events to the handler - let transformMessage handle type-specific logic
       this.onEvent(env);
     }
   }
 
-  // Permission handling methods (similar to ACP)
-  private handlePermissionRequest(data: any): void {
-    const callId = data.call_id || 'unknown';
-
-    // Pause all future requests until permission is granted
-    this.isPaused = true;
-    this.pauseReason = `Waiting for file write permission (${callId})`;
-
-    console.log(`⏸️ [CodexMcpConnection] Paused due to permission request: ${callId}`);
-
-    // Forward the permission request to the agent manager
-    this.onEvent({
-      method: 'codex/event',
-      params: { msg: { ...data, type: 'apply_patch_approval_request' } },
-    });
-  }
+  // Permission control methods
 
   // Public methods for permission control
   public async waitForPermission(callId: string): Promise<boolean> {
@@ -217,5 +262,109 @@ export class CodexMcpConnection {
       const line = JSON.stringify(jsonReq) + '\n';
       this.child?.stdin?.write(line);
     }
+  }
+
+  // Network error detection and handling methods
+  private isNetworkRelatedError(errorMsg: string): boolean {
+    const networkErrorPatterns = ['unexpected status 403', 'Cloudflare', 'you have been blocked', 'chatgpt.com', 'network error', 'connection refused', 'timeout', 'ECONNREFUSED', 'ETIMEDOUT', 'DNS_PROBE_FINISHED_NXDOMAIN'];
+
+    const lowerErrorMsg = errorMsg.toLowerCase();
+    console.log('🔍 [CodexMcpConnection] Checking error patterns for:', lowerErrorMsg.substring(0, 200));
+
+    for (const pattern of networkErrorPatterns) {
+      if (lowerErrorMsg.includes(pattern.toLowerCase())) {
+        console.log(`✅ [CodexMcpConnection] Found network error pattern: "${pattern}"`);
+        return true;
+      }
+    }
+
+    console.log('❌ [CodexMcpConnection] No network error patterns found');
+    return false;
+  }
+
+  private handleNetworkError(errorMsg: string, pendingRequest: PendingReq): void {
+    const networkError = this.classifyNetworkError(errorMsg);
+
+    console.error(`🌐 [CodexMcpConnection] Network error detected:`, networkError);
+
+    // Emit network error for UI handling
+    this.onNetworkError(networkError);
+
+    // Decide whether to retry or fail immediately
+    if (this.retryCount < this.maxRetries && networkError.type !== 'cloudflare_blocked') {
+      this.scheduleRetry(pendingRequest, networkError);
+    } else {
+      // Max retries reached or unrecoverable error
+      this.isNetworkError = true;
+      pendingRequest.reject(new Error(`${networkError.type}: ${networkError.originalError}`));
+    }
+  }
+
+  private classifyNetworkError(errorMsg: string): NetworkError {
+    const lowerMsg = errorMsg.toLowerCase();
+
+    if (lowerMsg.includes('403') && lowerMsg.includes('cloudflare')) {
+      return {
+        type: 'cloudflare_blocked',
+        originalError: errorMsg,
+        retryCount: this.retryCount,
+        suggestedAction: 'cloudflare_blocked',
+      };
+    }
+
+    if (lowerMsg.includes('timeout') || lowerMsg.includes('etimedout')) {
+      return {
+        type: 'network_timeout',
+        originalError: errorMsg,
+        retryCount: this.retryCount,
+        suggestedAction: 'network_timeout',
+      };
+    }
+
+    if (lowerMsg.includes('connection refused') || lowerMsg.includes('econnrefused')) {
+      return {
+        type: 'connection_refused',
+        originalError: errorMsg,
+        retryCount: this.retryCount,
+        suggestedAction: 'connection_refused',
+      };
+    }
+
+    return {
+      type: 'unknown',
+      originalError: errorMsg,
+      retryCount: this.retryCount,
+      suggestedAction: 'unknown_error',
+    };
+  }
+
+  private scheduleRetry(pendingRequest: PendingReq, networkError: NetworkError): void {
+    this.retryCount++;
+
+    console.log(`🔄 [CodexMcpConnection] Scheduling retry ${this.retryCount}/${this.maxRetries} in ${this.retryDelay}ms`);
+
+    setTimeout(() => {
+      // Emit retry notification
+      this.onNetworkError({
+        ...networkError,
+        retryCount: this.retryCount,
+        suggestedAction: 'retry_attempt',
+      });
+
+      // For now, still reject since we can't easily replay the original request
+      // In a more sophisticated implementation, you'd store and replay the original request
+      pendingRequest.reject(new Error(`Network error after ${this.retryCount} retries: ${networkError.type}`));
+    }, this.retryDelay);
+  }
+
+  // Public method to reset network error state
+  public resetNetworkError(): void {
+    this.retryCount = 0;
+    this.isNetworkError = false;
+  }
+
+  // Public method to check if currently in network error state
+  public hasNetworkError(): boolean {
+    return this.isNetworkError;
   }
 }

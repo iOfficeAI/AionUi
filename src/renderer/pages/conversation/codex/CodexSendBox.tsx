@@ -68,13 +68,13 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
       content: { content: message },
       createdAt: Date.now(),
     };
-    addOrUpdateMessage(userMessage, true);
+    addOrUpdateMessage(userMessage, true); // 立即保存到存储，避免刷新丢失
 
     await ipcBridge.codexConversation.sendMessage.invoke({
       input: message,
       msg_id,
       conversation_id,
-      files: uploadFile,
+      files: [...uploadFile, ...atPath], // 包含上传文件和选中的工作空间文件
       loading_id,
     });
 
@@ -104,7 +104,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
         content: { content: input },
         createdAt: Date.now(),
       };
-      addOrUpdateMessage(userMessage, true);
+      addOrUpdateMessage(userMessage, true); // 立即保存初始消息到存储
 
       ipcBridge.codexConversation.sendMessage.invoke({ input, msg_id, conversation_id, files, loading_id }).finally(() => {
         sessionStorage.removeItem(storageKey);
