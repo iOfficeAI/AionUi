@@ -184,7 +184,7 @@ ipcBridge.conversation.create.provider(async (params): Promise<TChatConversation
         return ProcessChat.set('chat.history', [conversation]);
       } else {
         //相同工作目录重开一个对话，处理逻辑改为新增一条对话记录
-        return ProcessChat.set('chat.history', [...history.filter((h) => h.id === conversation.id), conversation]);
+        return ProcessChat.set('chat.history', [...history.filter((h) => h.id !== conversation.id), conversation]);
       }
     });
     return conversation;
