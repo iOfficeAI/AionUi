@@ -12,11 +12,13 @@ import { Empty, Input, Tree } from '@arco-design/web-react';
 import { Refresh, Search } from '@icon-park/react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-const GeminiWorkspace: React.FC<{
+interface GeminiWorkspaceProps {
   workspace: string;
   customWorkspace?: boolean;
   eventPrefix?: 'gemini' | 'acp';
-}> = ({ workspace, customWorkspace, eventPrefix = 'gemini' }) => {
+}
+
+const GeminiWorkspace: React.FC<GeminiWorkspaceProps> = ({ workspace, customWorkspace, eventPrefix = 'gemini' }) => {
   const { t } = useTranslation();
   const [selected, setSelected] = useState<string[]>([]);
   const [files, setFiles] = useState<IDirOrFile[]>([]);
@@ -30,18 +32,18 @@ const GeminiWorkspace: React.FC<{
     setSelected(files);
   });
 
-  const refreshWorkspace = () => {
+  const refreshWorkspace = (_eventPrefix: typeof eventPrefix, _workspace: string) => {
     setLoading(true);
     const startTime = Date.now();
 
     // 根据 eventPrefix 选择对应的 getWorkspace 方法
     const getWorkspaceMethod =
-      eventPrefix === 'acp'
+      _eventPrefix === 'acp'
         ? ipcBridge.acpConversation.getWorkspace // 使用 ACP 专用的 getWorkspace
         : ipcBridge.geminiConversation.getWorkspace;
 
     getWorkspaceMethod
-      .invoke({ workspace: workspace })
+      .invoke({ workspace: _workspace })
       .then((res) => {
         setFiles(res);
       })
@@ -61,27 +63,33 @@ const GeminiWorkspace: React.FC<{
 
   useEffect(() => {
     setFiles([]);
-    refreshWorkspace();
+    refreshWorkspace(eventPrefix, workspace);
     emitter.emit(`${eventPrefix}.selected.file`, []);
   }, [workspace, eventPrefix]);
 
   useEffect(() => {
-    return ipcBridge.geminiConversation.responseStream.on((data) => {
+    const handleGeminiResponse = (data: any) => {
       if (data.type === 'tool_group' || data.type === 'tool_call') {
-        refreshWorkspace();
+        refreshWorkspace(eventPrefix, workspace);
       }
-    });
-  }, [workspace]);
+    };
 
-  useEffect(() => {
-    return ipcBridge.acpConversation.responseStream.on((data) => {
-      if (data.type === 'tool_call') {
-        refreshWorkspace();
+    const handleAcpResponse = (data: any) => {
+      if (data.type === 'acp_tool_call') {
+        refreshWorkspace(eventPrefix, workspace);
       }
-    });
-  }, [workspace]);
+    };
 
-  useAddEventListener(`${eventPrefix}.workspace.refresh`, () => refreshWorkspace(), [workspace, eventPrefix]);
+    const unsubscribeGemini = ipcBridge.geminiConversation.responseStream.on(handleGeminiResponse);
+    const unsubscribeAcp = ipcBridge.acpConversation.responseStream.on(handleAcpResponse);
+
+    return () => {
+      unsubscribeGemini();
+      unsubscribeAcp();
+    };
+  }, [workspace, eventPrefix]);
+
+  useAddEventListener(`${eventPrefix}.workspace.refresh`, () => refreshWorkspace(eventPrefix, workspace), [workspace, eventPrefix]);
 
   // File search filter logic
   const filteredFiles = useMemo(() => {
@@ -115,7 +123,7 @@ const GeminiWorkspace: React.FC<{
     <div className='size-full flex flex-col'>
       <div className='px-16px pb-8px flex items-center justify-start gap-4px'>
         <span className='font-bold text-14px'>{t('common.file')}</span>
-        <Refresh className={loading ? 'loading lh-[1] flex' : 'flex'} theme='outline' fill='#333' onClick={refreshWorkspace} />
+        <Refresh className={loading ? 'loading lh-[1] flex' : 'flex'} theme='outline' fill='#333' onClick={() => refreshWorkspace(eventPrefix, workspace)} />
       </div>
       {hasOriginalFiles && (
         <div className='px-16px pb-8px'>
