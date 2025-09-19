@@ -30,6 +30,46 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
   private patchChanges: Map<string, Record<string, any>> = new Map();
   private pendingConfirmations: Set<string> = new Set();
 
+  /**
+   * 创建标准化的内容消息，确保data字段是有效的字符串
+   */
+  private createContentMessage(data: any, msgId?: string): IResponseMessage | null {
+    let contentData: string;
+
+    // 处理各种数据类型，确保得到有效的字符串内容
+    if (typeof data === 'string') {
+      contentData = data;
+    } else if (data === null || data === undefined) {
+      return null; // 过滤掉空内容
+    } else if (typeof data === 'object') {
+      // 如果是空对象，过滤掉整个消息
+      if (Object.keys(data).length === 0) {
+        return null;
+      }
+      // 尝试提取有意义的内容
+      const extracted = data.content || data.message || data.text;
+      if (extracted) {
+        contentData = String(extracted);
+      } else {
+        return null; // 如果没有有意义的内容，过滤掉
+      }
+    } else {
+      contentData = String(data);
+    }
+
+    // 如果最终内容为空字符串，也过滤掉
+    if (!contentData || contentData.trim() === '') {
+      return null;
+    }
+
+    return {
+      type: 'content',
+      conversation_id: this.conversation_id,
+      msg_id: msgId || uuid(),
+      data: contentData, // 保证这里的data是有效的字符串
+    };
+  }
+
   constructor(data: CodexAgentManagerData) {
     super('codex', data);
     this.conversation_id = data.conversation_id;
@@ -90,15 +130,11 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
       this.currentContent += delta;
 
       // 发送完整累积的内容，使用相同的msg_id确保替换loading
-      const deltaMessage: IResponseMessage = {
-        type: 'content',
-        conversation_id: this.conversation_id,
-        msg_id: this.currentLoadingId!,
-        data: this.currentContent,
-      };
-
-      addOrUpdateMessage(this.conversation_id, transformMessage(deltaMessage));
-      ipcBridge.codexConversation.responseStream.emit(deltaMessage);
+      const deltaMessage = this.createContentMessage(this.currentContent, this.currentLoadingId!);
+      if (deltaMessage) {
+        addOrUpdateMessage(this.conversation_id, transformMessage(deltaMessage));
+        ipcBridge.codexConversation.responseStream.emit(deltaMessage);
+      }
 
       // Set/reset timeout to auto-finalize message if no completion event is received
       if (this.deltaTimeout) {
@@ -147,14 +183,11 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
       // Use accumulated content if available, otherwise use the direct message
       const finalContent = this.currentContent || messageContent;
 
-      const message: IResponseMessage = {
-        type: 'content',
-        conversation_id: this.conversation_id,
-        msg_id: this.currentLoadingId,
-        data: finalContent,
-      };
-      addOrUpdateMessage(this.conversation_id, transformMessage(message));
-      ipcBridge.codexConversation.responseStream.emit(message);
+      const message = this.createContentMessage(finalContent, this.currentLoadingId);
+      if (message) {
+        addOrUpdateMessage(this.conversation_id, transformMessage(message));
+        ipcBridge.codexConversation.responseStream.emit(message);
+      }
       return;
     }
 
@@ -167,14 +200,11 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
 
       // If we have accumulated content but no final agent_message was sent, send it now
       if (this.currentContent && this.currentContent.trim() && this.currentLoadingId) {
-        const message: IResponseMessage = {
-          type: 'content',
-          conversation_id: this.conversation_id,
-          msg_id: this.currentLoadingId,
-          data: this.currentContent,
-        };
-        addOrUpdateMessage(this.conversation_id, transformMessage(message));
-        ipcBridge.codexConversation.responseStream.emit(message);
+        const message = this.createContentMessage(this.currentContent, this.currentLoadingId);
+        if (message) {
+          addOrUpdateMessage(this.conversation_id, transformMessage(message));
+          ipcBridge.codexConversation.responseStream.emit(message);
+        }
       }
 
       // Send finish signal to UI
@@ -589,14 +619,11 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
     // 不再发送开始信号，避免UI显示空对象
 
     // 简化：直接使用addOrUpdateMessage添加loading消息
-    const loadingMessage: IResponseMessage = {
-      type: 'content',
-      conversation_id: this.conversation_id,
-      msg_id: this.currentLoadingId,
-      data: t('common.loading'),
-    };
-    addOrUpdateMessage(this.conversation_id, transformMessage(loadingMessage));
-    ipcBridge.codexConversation.responseStream.emit(loadingMessage);
+    const loadingMessage = this.createContentMessage(t('common.loading'), this.currentLoadingId);
+    if (loadingMessage) {
+      addOrUpdateMessage(this.conversation_id, transformMessage(loadingMessage));
+      ipcBridge.codexConversation.responseStream.emit(loadingMessage);
+    }
 
     // 构建包含文件信息的提示
     let prompt = data.content;
@@ -1068,15 +1095,12 @@ User request: ${data.content}`;
 
     // If it's a Cloudflare block, provide specific service switching guidance
     if (error.type === 'cloudflare_blocked') {
-      const suggestionMessage: IResponseMessage = {
-        type: 'content',
-        conversation_id: this.conversation_id,
-        msg_id: uuid(),
-        data: `${t('codex.network.quick_switch_title')}\n\n${t('codex.network.quick_switch_content')}`,
-      };
+      const suggestionMessage = this.createContentMessage(`${t('codex.network.quick_switch_title')}\n\n${t('codex.network.quick_switch_content')}`);
 
-      addOrUpdateMessage(this.conversation_id, transformMessage(suggestionMessage));
-      ipcBridge.codexConversation.responseStream.emit(suggestionMessage);
+      if (suggestionMessage) {
+        addOrUpdateMessage(this.conversation_id, transformMessage(suggestionMessage));
+        ipcBridge.codexConversation.responseStream.emit(suggestionMessage);
+      }
     }
   }
 }
