@@ -66,14 +66,6 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
 
   private handleAgentEvent(evt: { type: string; data: any }) {
     const type = evt.type;
-    console.log(`🔥 [CodexAgentManager] DEBUG: handleAgentEvent called - CODE VERSION 2025-01-19`);
-    console.log(`🎯 [CodexAgentManager] handleAgentEvent called with type: "${type}"`);
-    console.log(`🔍 [CodexAgentManager] Event data:`, JSON.stringify(evt.data, null, 2));
-
-    // 特别追踪与消息内容相关的事件
-    if (type.includes('message') || type.includes('agent') || type.includes('task')) {
-      console.log(`📨 [CodexAgentManager] IMPORTANT EVENT - Type: ${type}, Data:`, evt.data);
-    }
 
     // Handle special message types that need custom processing
     if (type === 'agent_message_delta') {
@@ -91,7 +83,6 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
         this.currentLoadingId = uuid();
         this.currentContent = ''; // 重置累积内容
         this.currentRequestId = requestId;
-        console.log(`🆕 [CodexAgentManager] New message stream started, requestId: ${requestId}, loadingId: ${this.currentLoadingId}`);
       }
 
       // 累积delta内容
@@ -114,9 +105,6 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
         clearTimeout(this.deltaTimeout);
       }
       this.deltaTimeout = setTimeout(() => {
-        console.log(`⏰ [CodexAgentManager] Delta timeout triggered - auto-finalizing message`);
-        console.log(`⏰ [CodexAgentManager] Accumulated content length: ${this.currentContent?.length || 0}`);
-
         if (this.currentContent && this.currentContent.trim() && this.currentLoadingId) {
           // Send finish signal to UI
           const finishMessage: IResponseMessage = {
@@ -125,7 +113,6 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
             msg_id: this.currentLoadingId,
             data: {},
           };
-          console.log(`⏰ [CodexAgentManager] Auto-sending finish signal due to timeout`);
           ipcBridge.codexConversation.responseStream.emit(finishMessage);
         }
 
@@ -153,13 +140,9 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
       if (requestId !== this.currentRequestId || !this.currentLoadingId) {
         this.currentLoadingId = uuid();
         this.currentRequestId = requestId;
-        console.log(`🆕 [CodexAgentManager] New agent_message, requestId: ${requestId}, loadingId: ${this.currentLoadingId}`);
       }
 
       const messageContent = evt.data?.message || '';
-
-      console.log(`📝 [CodexAgentManager] Processing agent_message content: "${messageContent}"`);
-      console.log(`📝 [CodexAgentManager] Current accumulated content: "${this.currentContent}"`);
 
       // Use accumulated content if available, otherwise use the direct message
       const finalContent = this.currentContent || messageContent;
@@ -172,7 +155,6 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
       };
       addOrUpdateMessage(this.conversation_id, transformMessage(message));
       ipcBridge.codexConversation.responseStream.emit(message);
-      console.log(`📤 [CodexAgentManager] Sent agent_message to UI with loadingId: ${this.currentLoadingId}, content length: ${finalContent.length}`);
       return;
     }
 
@@ -183,14 +165,8 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
         this.deltaTimeout = null;
       }
 
-      console.log(`🏁 [CodexAgentManager] Task complete - checking for accumulated content`);
-      console.log(`🏁 [CodexAgentManager] currentContent length: ${this.currentContent?.length || 0}`);
-      console.log(`🏁 [CodexAgentManager] currentLoadingId: ${this.currentLoadingId}`);
-
       // If we have accumulated content but no final agent_message was sent, send it now
       if (this.currentContent && this.currentContent.trim() && this.currentLoadingId) {
-        console.log(`📤 [CodexAgentManager] Sending accumulated content on task_complete`);
-
         const message: IResponseMessage = {
           type: 'content',
           conversation_id: this.conversation_id,
@@ -208,7 +184,6 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
         msg_id: this.currentLoadingId || uuid(),
         data: {},
       };
-      console.log(`🏁 [CodexAgentManager] Sending finish signal`);
       ipcBridge.codexConversation.responseStream.emit(finishMessage);
 
       // 延迟重置，确保所有消息都使用同一个ID
@@ -301,16 +276,12 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
     // Handle permission requests through unified transformMessage
     if (type === 'apply_patch_approval_request' || type === 'elicitation/create') {
       const originalCallId = evt.data?.call_id || evt.data?.codex_call_id || uuid();
-      console.log(`📋 [CodexAgentManager] Processing permission request: ${type}, call_id: ${originalCallId}`);
 
       // Create unique ID combining message type and call_id to match UI expectation
       const uniqueRequestId = type === 'apply_patch_approval_request' ? `patch_${originalCallId}` : `elicitation_${originalCallId}`;
 
-      console.log(`🆔 [CodexAgentManager] Using unique requestId: ${uniqueRequestId}`);
-
       // Check if we've already processed this call_id to avoid duplicates
       if (this.pendingConfirmations.has(uniqueRequestId)) {
-        console.log(`🔄 [CodexAgentManager] Skipping duplicate permission request for uniqueRequestId: ${uniqueRequestId}`);
         return;
       }
 
@@ -323,8 +294,6 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
         this.patchChanges.set(uniqueRequestId, changes);
         this.patchBuffers.set(uniqueRequestId, this.summarizePatch(changes));
         this.pendingConfirmations.add(uniqueRequestId);
-
-        console.log(`📦 [CodexAgentManager] Stored patch data with uniqueRequestId: ${uniqueRequestId}`);
       }
 
       // Use unified transformMessage to handle the message
@@ -336,7 +305,6 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
       };
 
       const transformedMessage = transformMessage(responseMessage);
-      console.log(`🔄 [CodexAgentManager] transformMessage result:`, transformedMessage);
 
       if (transformedMessage) {
         addOrUpdateMessage(this.conversation_id, transformedMessage, true); // 立即保存权限消息
@@ -347,10 +315,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
           msg_id: transformedMessage.msg_id || responseMessage.msg_id,
           conversation_id: this.conversation_id,
         };
-        console.log(`📡 [CodexAgentManager] Emitting permission UI message:`, uiMessage);
         ipcBridge.codexConversation.responseStream.emit(uiMessage);
-      } else {
-        console.log(`❌ [CodexAgentManager] transformMessage returned null for:`, responseMessage);
       }
       return;
     }
@@ -481,7 +446,6 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
             if (!hasCompletion) {
               // 恢复权限确认状态
               this.pendingConfirmations.add(content.requestId);
-              console.log(`🔄 [CodexAgentManager] Restored pending permission: ${content.requestId}`);
 
               // 如果有相关的补丁数据，也恢复它
               if (content.toolCall && content.toolCall.rawInput) {
@@ -490,7 +454,6 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
                   if (changes) {
                     this.patchChanges.set(content.requestId, changes);
                     this.patchBuffers.set(content.requestId, this.summarizePatch(changes));
-                    console.log(`📦 [CodexAgentManager] Restored patch data for: ${content.requestId}`);
                   }
                 } catch (error) {
                   console.warn(`⚠️ [CodexAgentManager] Failed to restore patch data for ${content.requestId}:`, error);
@@ -500,8 +463,6 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
           }
         }
       }
-
-      console.log(`✅ [CodexAgentManager] Permission state restored. Pending: ${this.pendingConfirmations.size}`);
     } catch (error) {
       console.error('❌ [CodexAgentManager] Failed to restore pending permissions:', error);
     }
@@ -646,8 +607,6 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
       const isReadRequest = /(?:解析|读取|分析|查看|read|parse|analyze|view|check|examine)/i.test(data.content);
 
       if (isReadRequest) {
-        console.log(`🔍 [CodexAgentManager] Detected READ request, including file contents`);
-
         // 读取文件内容并包含在提示中
         const fileContents: string[] = [];
         for (const file of data.files) {
@@ -662,7 +621,6 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
             const content = await fs.readFile(filePath, 'utf-8');
             const fileName = path.basename(filePath);
             fileContents.push(`=== ${fileName} ===\n${content}\n=== END ${fileName} ===`);
-            console.log(`📖 [CodexAgentManager] Read file content: ${fileName} (${content.length} chars)`);
           } catch (error) {
             console.warn(`⚠️ [CodexAgentManager] Failed to read file: ${filePath}`, error);
             fileContents.push(`=== ${path.basename(filePath)} ===\n[File not readable or not found]\n=== END ${path.basename(filePath)} ===`);
@@ -683,55 +641,38 @@ User request: ${data.content}`;
         // 对于其他类型的请求，保持原有格式
         prompt = `[Context: The following files already exist in the workspace and can be read/analyzed: ${fileList}]\n\n${data.content}`;
       }
-
-      console.log(`📁 [CodexAgentManager] Including ${data.files.length} existing files in prompt: ${fileList}`);
-      console.log(`🔍 [CodexAgentManager] Detected ${isReadRequest ? 'READ' : 'WRITE'} request type`);
     }
 
     // Send prompt
-    console.log(`📤 [CodexAgentManager] Sending prompt to Codex:`, prompt);
     await this.agent.sendPrompt(prompt);
 
     return { success: true };
   }
 
   async confirmMessage(data: { confirmKey: string; msg_id: string; callId: string }): Promise<void> {
-    console.log(`🔔 [CodexAgentManager] confirmMessage called with:`, data);
-
     // 由于 Codex MCP 目前不支持外部暂停/继续，这里仅更新前端展示状态
     const callId = data.callId;
     if (!callId) {
-      console.log(`❌ [CodexAgentManager] No callId provided`);
       return;
     }
 
-    console.log(`📋 [CodexAgentManager] Checking pendingConfirmations for: ${callId}`);
-    console.log(`📋 [CodexAgentManager] Available pendingConfirmations:`, Array.from(this.pendingConfirmations));
-
     if (!this.pendingConfirmations.has(callId)) {
-      console.log(`❌ [CodexAgentManager] callId not found in pendingConfirmations`);
       return;
     }
 
     const outcome = String(data.confirmKey || 'cancel').toLowerCase();
     const isCancel = outcome.includes('cancel');
-    console.log(`📝 [CodexAgentManager] Permission decision: ${isCancel ? 'CANCEL' : 'APPROVE'}`);
 
     this.pendingConfirmations.delete(callId);
 
     // Extract original call_id from unique ID for MCP connection
     const originalCallId = callId.startsWith('patch_') ? callId.substring(6) : callId.startsWith('elicitation_') ? callId.substring(12) : callId;
-    console.log(`🔗 [CodexAgentManager] Original callId: ${originalCallId}`);
 
     // If this confirmation corresponds to a pending patch, handle it properly
-    console.log(`📦 [CodexAgentManager] Checking patchBuffers for: ${callId}`);
-    console.log(`📦 [CodexAgentManager] Available patchBuffers:`, Array.from(this.patchBuffers.keys()));
 
     if (this.patchBuffers.has(callId)) {
-      console.log(`✅ [CodexAgentManager] Found patch data, proceeding with permission resolution`);
       try {
         // Resolve the permission in the MCP connection with original call_id
-        console.log(`🔗 [CodexAgentManager] Calling resolvePermission with originalCallId: ${originalCallId}, approved: ${!isCancel}`);
         this.agent.resolvePermission(originalCallId, !isCancel);
 
         if (isCancel) {
@@ -779,10 +720,6 @@ User request: ${data.content}`;
         console.error('Failed to send approval response:', error);
       }
       return;
-    } else {
-      console.log(`❌ [CodexAgentManager] No patch data found for callId: ${callId}`);
-      console.log(`📦 [CodexAgentManager] Available patchBuffers:`, Array.from(this.patchBuffers.keys()));
-      console.log(`📦 [CodexAgentManager] Available patchChanges:`, Array.from(this.patchChanges.keys()));
     }
 
     const message: IResponseMessage = {
@@ -1086,8 +1023,6 @@ User request: ${data.content}`;
   }
 
   private handleNetworkError(error: NetworkError): void {
-    console.error('🌐 [CodexAgentManager] Network error:', error);
-
     // Emit network error as status message
     this.emitStatus('error', `Network Error: ${error.suggestedAction}`);
 
