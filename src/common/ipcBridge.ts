@@ -97,6 +97,7 @@ interface ISendMessageParams {
   msg_id: string;
   conversation_id: string;
   files?: string[];
+  loading_id?: string;
 }
 
 interface IConfirmGeminiMessageParams {
