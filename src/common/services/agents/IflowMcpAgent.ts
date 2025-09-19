@@ -44,7 +44,7 @@ export class IflowMcpAgent extends AbstractMcpAgent {
 
       for (const line of lines) {
         // 清除 ANSI 颜色代码
-        const cleanLine = line.replace(/\u001B\[[0-9;]*m/g, '').trim();
+        const cleanLine = line.replace(/\u001b\[[0-?]*[ -/]*[@-~]/g, '').trim();
         // 查找格式如: "✓ server-name: npx -y 12306-mcp (stdio) - Connected"
         const match = cleanLine.match(/✓\s+([^:]+):\s+([^(]+)\s+\(([^)]+)\)/);
         if (match) {

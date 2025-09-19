@@ -48,9 +48,11 @@ export class ClaudeMcpAgent extends AbstractMcpAgent {
         const lines = result.split('\n');
 
         for (const line of lines) {
-          const trimmedLine = line.trim();
+          // 清除 ANSI 颜色代码
+          const cleanLine = line.replace(/\x1b\[[0-9;]*m/g, '').trim();
           // 查找格式如: "12306-mcp: npx -y 12306-mcp - ✓ Connected"
-          const match = trimmedLine.match(/^([^:]+):\s+(.+?)\s+-\s+[✓✗]\s+(Connected|Disconnected)$/);
+          // 更宽松的匹配模式
+          const match = cleanLine.match(/^([^:]+):\s+(.+?)\s*-\s*[✓✗]\s*(Connected|Disconnected)/);
           if (match) {
             const [, name, commandStr, status] = match;
             const commandParts = commandStr.trim().split(/\s+/);
