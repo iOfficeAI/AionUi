@@ -1061,22 +1061,22 @@ User request: ${data.content}`;
       case 'cloudflare_blocked':
         // For Codex, we know it's always Codex service
         userMessage = t('codex.network.cloudflare_blocked_title', { service: 'Codex' });
-        recoveryActions = ['• 使用 VPN 或代理服务', '• 更换网络环境（如移动热点）', '• 等待 10-30 分钟后重试', '• 清除浏览器缓存和 Cookie', '• 切换到其他可用服务：ChatGPT、Claude、Qwen、Gemini'];
+        recoveryActions = t('codex.network.recovery_actions.cloudflare_blocked', { returnObjects: true }) as string[];
         break;
 
       case 'network_timeout':
         userMessage = t('codex.network.network_timeout_title');
-        recoveryActions = ['• 检查网络连接是否稳定', '• 重试连接操作', '• 切换到更稳定的网络环境', '• 检查防火墙设置'];
+        recoveryActions = t('codex.network.recovery_actions.network_timeout', { returnObjects: true }) as string[];
         break;
 
       case 'connection_refused':
         userMessage = t('codex.network.connection_refused_title');
-        recoveryActions = ['• 检查 Codex CLI 是否正确安装', '• 验证服务配置和API密钥', '• 重启应用程序', '• 检查本地端口是否被占用'];
+        recoveryActions = t('codex.network.recovery_actions.connection_refused', { returnObjects: true }) as string[];
         break;
 
       default:
         userMessage = t('codex.network.unknown_error_title');
-        recoveryActions = ['• 检查网络连接状态', '• 重试当前操作', '• 切换网络环境', '• 联系技术支持'];
+        recoveryActions = t('codex.network.recovery_actions.unknown', { returnObjects: true }) as string[];
     }
 
     // Create detailed error message for UI
