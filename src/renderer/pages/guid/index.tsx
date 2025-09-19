@@ -229,16 +229,8 @@ const Guid: React.FC = () => {
           return;
         }
 
-        ipcBridge.acpConversation.sendMessage.invoke({
-          input,
-          files: files.length > 0 ? files : undefined,
-          conversation_id: conversation.id,
-          msg_id: uuid(),
-        });
-
         // For ACP, we need to wait for the connection to be ready before sending the message
         // Store the initial message and let the conversation page handle it when ready
-        // Navigate immediately and let the conversation page handle the initial message
         const initialMessage = {
           input,
           files: files.length > 0 ? files : undefined,
