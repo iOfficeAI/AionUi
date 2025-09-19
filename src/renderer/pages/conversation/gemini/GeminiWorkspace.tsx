@@ -37,12 +37,12 @@ const GeminiWorkspace: React.FC<GeminiWorkspaceProps> = ({ workspace, customWork
     const startTime = Date.now();
 
     // 根据前缀选择对应的 getWorkspace 方法
-    const getWorkspaceMethod = prefix === 'acp' ? ipcBridge.acpConversation.getWorkspace : prefix === 'codex' ? ipcBridge.codexConversation.getWorkspace : ipcBridge.geminiConversation.getWorkspace;
+    const getWorkspaceMethod: typeof ipcBridge.geminiConversation.getWorkspace = prefix === 'acp' ? ipcBridge.acpConversation.getWorkspace : prefix === 'codex' ? ipcBridge.codexConversation.getWorkspace : ipcBridge.geminiConversation.getWorkspace;
 
     getWorkspaceMethod
       .invoke({ workspace: ws })
       .then((res) => setFiles(res))
-      .catch(() => void 0)
+      .catch((): void => void 0)
       .finally(() => {
         const elapsed = Date.now() - startTime;
         if (elapsed > 1000) setLoading(false);

@@ -17,7 +17,7 @@ interface MessageAcpPermissionProps {
 }
 
 const MessageAcpPermission: React.FC<MessageAcpPermissionProps> = React.memo(({ message }) => {
-  const { options = [], toolCall, agentType } = message.content || {};
+  const { options = [], toolCall, agentType } = (message.content as any) || {};
   const { t } = useTranslation();
 
   // 基于实际数据生成显示信息
@@ -104,7 +104,7 @@ const MessageAcpPermission: React.FC<MessageAcpPermissionProps> = React.memo(({ 
             <div className='mt-10px'>Choose an action:</div>
             <Radio.Group direction='vertical' size='mini' value={selected} onChange={setSelected}>
               {options && options.length > 0 ? (
-                options.map((option, index) => {
+                options.map((option: any, index: number) => {
                   const optionName = option?.name || `Option ${index + 1}`;
                   const optionId = option?.optionId || `option_${index}`;
                   return (

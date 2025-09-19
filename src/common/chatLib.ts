@@ -52,7 +52,7 @@ export const joinPath = (basePath: string, relativePath: string): string => {
  * @description 跟对话相关的消息类型申明 及相关处理
  */
 
-type TMessageType = 'text' | 'tips' | 'tool_call' | 'tool_group' | 'acp_status' | 'acp_permission' | 'codex_elicitation' | 'codex_patch_request';
+type TMessageType = 'text' | 'tips' | 'tool_call' | 'tool_group' | 'acp_status' | 'acp_permission' | 'acp_tool_call' | 'codex_elicitation' | 'codex_patch_request';
 interface IMessage<T extends TMessageType, Content extends Record<string, any>> {
   /**
    * 唯一ID
@@ -168,7 +168,21 @@ export type IMessageAcpStatus = IMessage<
   }
 >;
 
-export type IMessageAcpPermission = IMessage<'acp_permission', AcpPermissionRequest>;
+// Extended permission request with additional UI fields
+interface ExtendedAcpPermissionRequest extends Omit<AcpPermissionRequest, 'options'> {
+  title?: string;
+  description?: string;
+  agentType?: string;
+  requestId?: string;
+  options: Array<{
+    optionId: string;
+    name: string;
+    kind: 'allow_once' | 'allow_always' | 'reject_once' | 'reject_always';
+    description?: string;
+  }>;
+}
+
+export type IMessageAcpPermission = IMessage<'acp_permission', ExtendedAcpPermissionRequest>;
 
 export type IMessageAcpToolCall = IMessage<'acp_tool_call', ToolCallUpdate>;
 
@@ -331,17 +345,18 @@ export const transformMessage = (message: IResponseMessage): TMessage | undefine
           title: 'File Write Permission',
           description: `Codex wants to write ${Object.keys(patchData.changes || {}).length} file(s) to your workspace`,
           agentType: 'codex',
+          sessionId: '',
           options: [
             {
               optionId: 'allow_once',
               name: 'Allow',
-              kind: 'allow_once',
+              kind: 'allow_once' as const,
               description: 'Allow this file operation',
             },
             {
               optionId: 'reject_once',
               name: 'Reject',
-              kind: 'reject_once',
+              kind: 'reject_once' as const,
               description: 'Reject this file operation',
             },
           ],
@@ -353,7 +368,7 @@ export const transformMessage = (message: IResponseMessage): TMessage | undefine
               description: `Apply changes to ${Object.keys(patchData.changes || {}).length} file(s)`,
             },
           },
-        },
+        } as ExtendedAcpPermissionRequest,
       };
     }
     case 'elicitation/create': {
@@ -376,17 +391,18 @@ export const transformMessage = (message: IResponseMessage): TMessage | undefine
             title: 'File Write Permission',
             description: elicitationData.message || 'Codex wants to apply proposed code changes',
             agentType: 'codex',
+            sessionId: '',
             options: [
               {
                 optionId: 'allow_once',
                 name: 'Allow',
-                kind: 'allow_once',
+                kind: 'allow_once' as const,
                 description: 'Allow this file operation',
               },
               {
                 optionId: 'reject_once',
                 name: 'Reject',
-                kind: 'reject_once',
+                kind: 'reject_once' as const,
                 description: 'Reject this file operation',
               },
             ],
@@ -398,7 +414,7 @@ export const transformMessage = (message: IResponseMessage): TMessage | undefine
                 description: elicitationData.message,
               },
             },
-          },
+          } as ExtendedAcpPermissionRequest,
         };
       }
 
@@ -416,17 +432,18 @@ export const transformMessage = (message: IResponseMessage): TMessage | undefine
             title: 'File Read Permission',
             description: elicitationData.message || 'Codex wants to read files from your workspace',
             agentType: 'codex',
+            sessionId: '',
             options: [
               {
                 optionId: 'allow_once',
                 name: 'Allow',
-                kind: 'allow_once',
+                kind: 'allow_once' as const,
                 description: 'Allow reading files',
               },
               {
                 optionId: 'reject_once',
                 name: 'Reject',
-                kind: 'reject_once',
+                kind: 'reject_once' as const,
                 description: 'Reject file access',
               },
             ],
@@ -438,7 +455,7 @@ export const transformMessage = (message: IResponseMessage): TMessage | undefine
                 description: elicitationData.message,
               },
             },
-          },
+          } as ExtendedAcpPermissionRequest,
         };
       }
 
