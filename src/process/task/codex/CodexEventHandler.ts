@@ -7,12 +7,27 @@
 import { ipcBridge } from '@/common';
 import { transformMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
+import type { AcpPermissionRequest } from '@/common/acpTypes';
 import { uuid } from '@/common/utils';
 import { addOrUpdateMessage } from '../../message';
 import { CodexAgentEventType } from '@/common/codexTypes';
 import type { CodexAgentEvent } from '@/common/codexTypes';
 import { CodexMessageProcessor } from './CodexMessageProcessor';
 import { CodexToolHandlers } from './CodexToolHandlers';
+
+// Extended permission request with additional UI fields for Codex
+interface ExtendedAcpPermissionRequest extends Omit<AcpPermissionRequest, 'options'> {
+  title?: string;
+  description?: string;
+  agentType?: string;
+  requestId?: string;
+  options: Array<{
+    optionId: string;
+    name: string;
+    kind: 'allow_once' | 'allow_always' | 'reject_once' | 'reject_always';
+    description?: string;
+  }>;
+}
 
 export class CodexEventHandler {
   private messageProcessor: CodexMessageProcessor;
@@ -126,35 +141,145 @@ export class CodexEventHandler {
 
     // Store patch changes for later execution
     if (evt.data?.changes || evt.data?.codex_changes) {
-      // Store with unique ID for both permission handling and MCP connection
-      // Keep original ID mapping for MCP resolvePermission call
-      // Note: We would need to expose these methods or handle them differently
-      // this.patchChanges.set(uniqueRequestId, changes);
-      // this.patchBuffers.set(uniqueRequestId, this.summarizePatch(changes));
       this.toolHandlers.getPendingConfirmations().add(uniqueRequestId);
     }
 
-    // Use unified transformMessage to handle the message
-    const responseMessage: IResponseMessage = {
-      type: type,
-      data: evt.data,
-      msg_id: uuid(),
-      conversation_id: this.conversation_id,
-    };
+    // Transform Codex-specific message to standard format before calling transformMessage
+    const standardMessage = this.transformCodexPermissionToStandard(evt, uniqueRequestId);
 
-    const transformedMessage = transformMessage(responseMessage);
-
-    if (transformedMessage) {
-      addOrUpdateMessage(this.conversation_id, transformedMessage, true); // 立即保存权限消息
-      // Send the transformed message with correct type to UI
-      const uiMessage: IResponseMessage = {
-        type: transformedMessage.type as any,
-        data: transformedMessage.content,
-        msg_id: transformedMessage.msg_id || responseMessage.msg_id,
-        conversation_id: this.conversation_id,
-      };
-      ipcBridge.codexConversation.responseStream.emit(uiMessage);
+    if (standardMessage) {
+      const transformedMessage = transformMessage(standardMessage);
+      addOrUpdateMessage(this.conversation_id, transformedMessage, true);
+      ipcBridge.codexConversation.responseStream.emit(standardMessage);
     }
+  }
+
+  private transformCodexPermissionToStandard(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.APPLY_PATCH_APPROVAL_REQUEST } | { type: CodexAgentEventType.ELICITATION_CREATE }>, uniqueRequestId: string): IResponseMessage | null {
+    const eventData = evt.data as any;
+
+    if (evt.type === CodexAgentEventType.APPLY_PATCH_APPROVAL_REQUEST) {
+      return {
+        type: 'acp_permission',
+        msg_id: uuid(),
+        conversation_id: this.conversation_id,
+        data: {
+          title: 'File Write Permission',
+          description: eventData.message || 'Codex wants to apply proposed code changes',
+          agentType: 'codex',
+          sessionId: '',
+          options: [
+            {
+              optionId: 'allow_once',
+              name: 'Allow',
+              kind: 'allow_once' as const,
+              description: 'Allow this file operation',
+            },
+            {
+              optionId: 'reject_once',
+              name: 'Reject',
+              kind: 'reject_once' as const,
+              description: 'Reject this file operation',
+            },
+          ],
+          requestId: uniqueRequestId,
+          toolCall: {
+            title: 'Write File',
+            toolCallId: uniqueRequestId,
+            rawInput: {
+              description: eventData.message,
+            },
+          },
+        } as ExtendedAcpPermissionRequest,
+      };
+    }
+
+    if (evt.type === CodexAgentEventType.ELICITATION_CREATE) {
+      const elicitationData = eventData;
+
+      // Handle file write permission requests
+      if (elicitationData.codex_elicitation === 'file-write' || (elicitationData.message && elicitationData.message.toLowerCase().includes('write'))) {
+        return {
+          type: 'acp_permission',
+          msg_id: uuid(),
+          conversation_id: this.conversation_id,
+          data: {
+            title: 'File Write Permission',
+            description: elicitationData.message || 'Codex wants to apply proposed code changes',
+            agentType: 'codex',
+            sessionId: '',
+            options: [
+              {
+                optionId: 'allow_once',
+                name: 'Allow',
+                kind: 'allow_once' as const,
+                description: 'Allow this file operation',
+              },
+              {
+                optionId: 'reject_once',
+                name: 'Reject',
+                kind: 'reject_once' as const,
+                description: 'Reject this file operation',
+              },
+            ],
+            requestId: uniqueRequestId,
+            toolCall: {
+              title: 'Write File',
+              toolCallId: uniqueRequestId,
+              rawInput: {
+                description: elicitationData.message,
+              },
+            },
+          } as ExtendedAcpPermissionRequest,
+        };
+      }
+
+      // Handle file read permission requests
+      if (elicitationData.codex_elicitation === 'file-read' || (elicitationData.message && elicitationData.message.toLowerCase().includes('read'))) {
+        return {
+          type: 'acp_permission',
+          msg_id: uuid(),
+          conversation_id: this.conversation_id,
+          data: {
+            title: 'File Read Permission',
+            description: elicitationData.message || 'Codex wants to read files from your workspace',
+            agentType: 'codex',
+            sessionId: '',
+            options: [
+              {
+                optionId: 'allow_once',
+                name: 'Allow',
+                kind: 'allow_once' as const,
+                description: 'Allow reading files',
+              },
+              {
+                optionId: 'reject_once',
+                name: 'Reject',
+                kind: 'reject_once' as const,
+                description: 'Reject file access',
+              },
+            ],
+            requestId: uniqueRequestId,
+            toolCall: {
+              title: 'Read File',
+              toolCallId: uniqueRequestId,
+              rawInput: {
+                description: elicitationData.message,
+              },
+            },
+          } as ExtendedAcpPermissionRequest,
+        };
+      }
+
+      // For other elicitation types, create a generic content message
+      return {
+        type: 'content',
+        msg_id: uuid(),
+        conversation_id: this.conversation_id,
+        data: `Codex Elicitation: ${elicitationData.codex_elicitation} - ${elicitationData.message || 'No description'}`,
+      };
+    }
+
+    return null;
   }
 
   // Expose tool handlers for external access

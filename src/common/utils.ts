@@ -5,9 +5,20 @@
  */
 
 export const uuid = (length = 8) => {
-  return Math.random()
-    .toString(36)
-    .substring(2, 2 + length);
+  try {
+    // Prefer cryptographically strong randomness
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const crypto = require('crypto');
+    if (typeof crypto.randomUUID === 'function' && length >= 36) {
+      return crypto.randomUUID();
+    }
+    const bytes = crypto.randomBytes(Math.ceil(length / 2));
+    return bytes.toString('hex').slice(0, length);
+  } catch {
+    // Monotonic fallback without insecure randomness
+    const base = Date.now().toString(36);
+    return (base + base).slice(0, length);
+  }
 };
 
 export const parseError = (error: any): string => {

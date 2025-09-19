@@ -146,13 +146,10 @@ export class CodexMessageProcessor {
     if (!content.trim()) return null;
 
     return {
-      type: 'ai_content',
+      type: 'content', // Use standard content type instead of ai_content
       conversation_id: this.conversation_id,
       msg_id: loadingId,
-      data: {
-        content: content,
-        state: 'content',
-      },
+      data: content, // Simplified data format for standard content type
     };
   }
 
