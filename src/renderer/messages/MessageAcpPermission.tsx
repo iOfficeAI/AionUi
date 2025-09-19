@@ -6,8 +6,9 @@
 
 import type { IMessageAcpPermission } from '@/common/chatLib';
 import { acpConversation } from '@/common/ipcBridge';
-import { Radio, Typography } from '@arco-design/web-react';
+import { Button, Card, Radio, Typography } from '@arco-design/web-react';
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 const { Text } = Typography;
 
@@ -15,90 +16,51 @@ interface MessageAcpPermissionProps {
   message: IMessageAcpPermission;
 }
 
-// 辅助函数：根据 kind 获取描述
-const getKindDescription = (kind?: string): string => {
-  switch (kind) {
-    case 'allow_always':
-      return 'Grant permission for all future requests';
-    case 'allow_once':
-      return 'Grant permission for this request only';
-    case 'reject_once':
-      return 'Deny this request';
-    case 'reject_always':
-      return 'Deny all future requests';
-    default:
-      return '';
-  }
-};
+const MessageAcpPermission: React.FC<MessageAcpPermissionProps> = React.memo(({ message }) => {
+  const { options = [], toolCall } = message.content || {};
+  const { t } = useTranslation();
 
-const MessageAcpPermission: React.FC<MessageAcpPermissionProps> = ({ message }) => {
-  const { options = [], requestId, toolCall } = message.content || {};
-
-  // 根据 toolCall 信息智能生成标题和描述
+  // 基于实际数据生成显示信息
   const getToolInfo = () => {
-    if (!toolCall?.rawInput) {
+    if (!toolCall) {
       return {
         title: 'Permission Request',
-        description: 'The agent is requesting permission for an action.',
+        description: 'The agent is requesting permission.',
         icon: '🔐',
       };
     }
 
-    const { command, description: toolDesc } = toolCall.rawInput;
+    // 直接使用 toolCall 中的实际数据
+    const displayTitle = toolCall.title || toolCall.rawInput?.description || 'Permission Request';
 
-    // 根据命令类型智能判断图标和描述
-    if (command?.includes('open')) {
-      return {
-        title: toolDesc || 'File Access Request',
-        description: `Open file: ${command}`,
-        icon: '📂',
-      };
-    } else if (command?.includes('read')) {
-      return {
-        title: toolDesc || 'Read File Permission',
-        description: `Read operation: ${command}`,
-        icon: '📖',
-      };
-    } else if (command?.includes('write') || command?.includes('save')) {
-      return {
-        title: toolDesc || 'Write File Permission',
-        description: `Write operation: ${command}`,
-        icon: '✏️',
-      };
-    } else if (command?.includes('rm') || command?.includes('delete')) {
-      return {
-        title: toolDesc || 'Delete Permission',
-        description: `Delete operation: ${command}`,
-        icon: '🗑️',
-      };
-    } else if (command) {
-      return {
-        title: toolDesc || 'Execute Command',
-        description: `Command: ${command}`,
-        icon: '⚡',
-      };
-    }
+    // 简单的图标映射
+    const kindIcons: Record<string, string> = {
+      edit: '✏️',
+      read: '📖',
+      fetch: '🌐',
+      execute: '⚡',
+    };
 
     return {
-      title: toolDesc || 'Permission Request',
-      description: 'The agent is requesting permission for an action.',
-      icon: '🔐',
+      title: displayTitle,
+      icon: kindIcons[toolCall.kind || 'execute'] || '⚡',
     };
   };
-  const { title, description, icon } = getToolInfo();
+  const { title, icon } = getToolInfo();
+  const [selected, setSelected] = useState<string | null>(null);
   const [isResponding, setIsResponding] = useState(false);
   const [hasResponded, setHasResponded] = useState(false);
 
-  const handleResponse = async (selectedOption: string) => {
-    if (hasResponded) return;
+  const handleConfirm = async () => {
+    if (hasResponded || !selected) return;
 
     setIsResponding(true);
     try {
       const invokeData = {
-        confirmKey: selectedOption,
+        confirmKey: selected,
         msg_id: message.id,
         conversation_id: message.conversation_id,
-        callId: requestId,
+        callId: toolCall?.toolCallId || message.id, // 使用 toolCallId 或 message.id 作为 fallback
       };
 
       const result = await acpConversation.confirmMessage.invoke(invokeData);
@@ -107,43 +69,68 @@ const MessageAcpPermission: React.FC<MessageAcpPermissionProps> = ({ message }) 
         setHasResponded(true);
       } else {
         // Handle failure case - could add error display here
+        console.error('Failed to confirm permission:', result);
       }
     } catch (error) {
       // Handle error case - could add error logging here
+      console.error('Error confirming permission:', error);
     } finally {
       setIsResponding(false);
     }
   };
 
+  if (!toolCall) {
+    return null;
+  }
+
   return (
-    <div>
-      <div>
-        <Text className='block mb-2 text-sm font-medium'>{title}</Text>
-        <Radio.Group
-          onChange={(value) => {
-            handleResponse(value).then(() => {});
-          }}
-          disabled={hasResponded}
-          direction='vertical'
-          className='w-full'
-        >
-          {options && options.length > 0 ? (
-            options.map((option, index) => {
-              const optionName = option.name || option.title || `Option ${index + 1}`;
-              // const optionDescription = option.description || getKindDescription(option.kind);
-              return (
-                <Radio key={option.optionId} value={option.optionId}>
-                  {optionName}
-                </Radio>
-              );
-            })
-          ) : (
-            <Text type='secondary'>No options available</Text>
-          )}
-        </Radio.Group>
+    <Card className='mb-4' bordered={false} style={{ background: '#f8f9fa' }}>
+      <div className='space-y-4'>
+        {/* Header with icon and title */}
+        <div className='flex items-center space-x-2'>
+          <span className='text-2xl'>{icon}</span>
+          <Text className='block'>{title}</Text>
+        </div>
+        {(toolCall.rawInput?.command || toolCall.title) && (
+          <div>
+            <Text className='text-xs text-gray-500 mb-1'>Command:</Text>
+            <code className='text-xs bg-gray-100 p-2 rounded block text-gray-800 break-all'>{toolCall.rawInput?.command || toolCall.title}</code>
+          </div>
+        )}
+        {!hasResponded && (
+          <>
+            <div className='mt-10px'>Choose an action:</div>
+            <Radio.Group direction='vertical' size='mini' value={selected} onChange={setSelected}>
+              {options && options.length > 0 ? (
+                options.map((option, index) => {
+                  const optionName = option?.name || `Option ${index + 1}`;
+                  const optionId = option?.optionId || `option_${index}`;
+                  return (
+                    <Radio key={optionId} value={optionId}>
+                      {optionName}
+                    </Radio>
+                  );
+                })
+              ) : (
+                <Text type='secondary'>No options available</Text>
+              )}
+            </Radio.Group>
+            <div className='flex justify-start pl-20px'>
+              <Button type='primary' size='mini' disabled={!selected || isResponding} onClick={handleConfirm}>
+                {isResponding ? 'Processing...' : t('messages.confirm', { defaultValue: 'Confirm' })}
+              </Button>
+            </div>
+          </>
+        )}
+
+        {hasResponded && (
+          <div className='mt-10px p-2 bg-green-50 border border-green-200 rounded-md'>
+            <Text className='text-sm text-green-700'>✓ Response sent successfully</Text>
+          </div>
+        )}
       </div>
-    </div>
+    </Card>
   );
-};
+});
 
 export default MessageAcpPermission;
