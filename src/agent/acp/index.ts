@@ -4,10 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { AcpPermissionRequest, AcpSessionUpdate } from '@/agent/acp/AcpAdapter';
+import type { AcpPermissionRequest, AcpSessionUpdate, AcpBackend, AcpResult, ToolCallUpdate } from '@/common/acpTypes';
 import { AcpAdapter } from '@/agent/acp/AcpAdapter';
 import { AcpErrorType, createAcpError } from '@/common/acpTypes';
-import type { AcpBackend, AcpResult } from '@/common/acpTypes';
 import type { TMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import { uuid } from '@/common/utils';
@@ -25,7 +24,7 @@ export interface AcpAgentConfig {
     customWorkspace?: boolean;
   };
   onStreamEvent: (data: IResponseMessage) => void;
-  onReplaceLoadingMessage: (data: { id: string; msg_id: string; text: string; loadingMessageId?: string }) => void;
+  onSignalEvent?: (data: IResponseMessage) => void; // 新增：仅发送信号，不更新UI
 }
 
 // ACP agent任务类
@@ -40,19 +39,14 @@ export class AcpAgent {
   private connection: AcpConnection;
   private adapter: AcpAdapter;
   private pendingPermissions = new Map<string, { resolve: (response: any) => void; reject: (error: any) => void }>();
-  // Message accumulation for streaming chunks
-  private currentAssistantMsgId: string | null = null;
-  // Fixed IDs for status messages to prevent duplication
   private statusMessageId: string | null = null;
-  // Loading message ID for ACP response waiting
-  public loadingMessageId: string | null = null;
   private readonly onStreamEvent: (data: IResponseMessage) => void;
-  private readonly onReplaceLoadingMessage: (data: { id: string; msg_id: string; text: string; loadingMessageId: string }) => void;
+  private readonly onSignalEvent?: (data: IResponseMessage) => void;
 
   constructor(config: AcpAgentConfig) {
     this.id = config.id;
     this.onStreamEvent = config.onStreamEvent;
-    this.onReplaceLoadingMessage = config.onReplaceLoadingMessage;
+    this.onSignalEvent = config.onSignalEvent;
     this.extra = config.extra || {
       workspace: config.workingDir,
       backend: config.backend,
@@ -72,6 +66,12 @@ export class AcpAgent {
     };
     this.connection.onPermissionRequest = (data: AcpPermissionRequest) => {
       return this.handlePermissionRequest(data);
+    };
+    this.connection.onEndTurn = () => {
+      this.handleEndTurn();
+    };
+    this.connection.onFileOperation = (operation) => {
+      this.handleFileOperation(operation);
     };
   }
 
@@ -107,7 +107,7 @@ export class AcpAgent {
   }
 
   // 发送消息到ACP服务器
-  async sendMessage(data: { content: string; files?: string[]; msg_id?: string; loading_id?: string }): Promise<AcpResult> {
+  async sendMessage(data: { content: string; files?: string[]; msg_id?: string }): Promise<AcpResult> {
     try {
       if (!this.connection.isConnected || !this.connection.hasActiveSession) {
         return {
@@ -136,23 +136,11 @@ export class AcpAgent {
           }
         });
       }
-
-      // Set loading message ID from frontend if provided
-      if (data.loading_id) {
-        this.loadingMessageId = data.loading_id;
-      }
-
-      // Send processed content to ACP service to avoid @ symbol confusion
       await this.connection.sendPrompt(processedContent);
-
-      // Clear message IDs for new conversation turn (but keep loading ID)
-      this.currentAssistantMsgId = null;
       this.statusMessageId = null;
-
       return { success: true, data: null };
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-
       // Special handling for Internal error
       if (errorMsg.includes('Internal error')) {
         if (this.extra.backend === 'qwen') {
@@ -193,15 +181,12 @@ export class AcpAgent {
 
   async confirmMessage(data: { confirmKey: string; msg_id: string; callId: string }): Promise<AcpResult> {
     try {
-      // Handle permission confirmation
-      // callId is the requestId used to store the pending permission
       if (this.pendingPermissions.has(data.callId)) {
         const { resolve } = this.pendingPermissions.get(data.callId)!;
         this.pendingPermissions.delete(data.callId);
         resolve({ optionId: data.confirmKey });
         return { success: true, data: null };
       }
-
       return {
         success: false,
         error: createAcpError(AcpErrorType.UNKNOWN, `Permission request not found for callId: ${data.callId}`, false),
@@ -221,21 +206,8 @@ export class AcpAgent {
 
       for (let i = 0; i < messages.length; i++) {
         const message = messages[i];
-
-        if (message.type === 'text') {
-          // 如果是第一个文本分片且还没有 currentAssistantMsgId
-          if (!this.currentAssistantMsgId && this.loadingMessageId) {
-            // 创建 assistant message ID
-            this.currentAssistantMsgId = uuid();
-            // 替换 loading 消息为第一个分片内容
-            this.replaceLoadingMessage(message.content.content);
-          } else {
-            this.emitMessage(message);
-          }
-        } else {
-          // 非文本消息直接发送
-          this.emitMessage(message);
-        }
+        // 所有消息都直接发送，不做复杂的替换逻辑
+        this.emitMessage(message);
       }
     } catch (error) {
       this.emitErrorMessage(`Failed to process session update: ${error instanceof Error ? error.message : String(error)}`);
@@ -244,18 +216,29 @@ export class AcpAgent {
 
   private async handlePermissionRequest(data: AcpPermissionRequest): Promise<{ optionId: string }> {
     return new Promise((resolve, reject) => {
-      const requestId = uuid();
+      const requestId = data.toolCall.toolCallId; // 使用 toolCallId 作为 requestId
 
-      // Store the pending permission request
+      // 检查是否有重复的权限请求
+      if (this.pendingPermissions.has(requestId)) {
+        // 如果是重复请求，先清理旧的
+        const oldRequest = this.pendingPermissions.get(requestId);
+        if (oldRequest) {
+          oldRequest.reject(new Error('Replaced by new permission request'));
+        }
+        this.pendingPermissions.delete(requestId);
+      }
+
       this.pendingPermissions.set(requestId, { resolve, reject });
 
-      // Emit permission request message to UI
-      this.emitPermissionRequest({
-        ...data,
-        requestId,
-      });
+      // 确保权限消息总是被发送，即使有异步问题
+      try {
+        this.emitPermissionRequest(data); // 直接传递 AcpPermissionRequest
+      } catch (error) {
+        this.pendingPermissions.delete(requestId);
+        reject(error);
+        return;
+      }
 
-      // Auto-timeout after 30 seconds
       setTimeout(() => {
         if (this.pendingPermissions.has(requestId)) {
           this.pendingPermissions.delete(requestId);
@@ -263,6 +246,47 @@ export class AcpAgent {
         }
       }, 30000);
     });
+  }
+
+  private handleEndTurn(): void {
+    // 使用信号回调发送 end_turn 事件，不添加到消息列表
+    if (this.onSignalEvent) {
+      this.onSignalEvent({
+        type: 'ai_end_turn',
+        conversation_id: this.id,
+        msg_id: uuid(),
+        data: null,
+      });
+    }
+  }
+
+  private handleFileOperation(operation: { method: string; path: string; content?: string; sessionId: string }): void {
+    // 创建文件操作消息显示在UI中
+    const fileOperationMessage: TMessage = {
+      id: uuid(),
+      conversation_id: this.id,
+      type: 'text',
+      position: 'left',
+      createdAt: Date.now(),
+      content: {
+        content: this.formatFileOperationMessage(operation),
+      },
+    };
+
+    this.emitMessage(fileOperationMessage);
+  }
+
+  private formatFileOperationMessage(operation: { method: string; path: string; content?: string; sessionId: string }): string {
+    switch (operation.method) {
+      case 'fs/write_text_file': {
+        const content = operation.content || '';
+        return `📝 File written: \`${operation.path}\`\n\n\`\`\`\n${content}\n\`\`\``;
+      }
+      case 'fs/read_text_file':
+        return `📖 File read: \`${operation.path}\``;
+      default:
+        return `🔧 File operation: \`${operation.path}\``;
+    }
   }
 
   private emitStatusMessage(status: 'connecting' | 'connected' | 'authenticated' | 'session_active' | 'disconnected' | 'error', message: string): void {
@@ -288,9 +312,11 @@ export class AcpAgent {
     this.emitMessage(statusMessage);
   }
 
-  private emitPermissionRequest(data: any): void {
+  private emitPermissionRequest(data: AcpPermissionRequest): void {
+    // 创建权限消息
     const permissionMessage: TMessage = {
       id: uuid(),
+      msg_id: uuid(), // 添加唯一的 msg_id，防止消息合并
       conversation_id: this.id,
       type: 'acp_permission',
       position: 'center',
@@ -298,19 +324,41 @@ export class AcpAgent {
       content: data,
     };
 
-    this.emitMessage(permissionMessage);
-  }
+    // 重要：将权限请求中的 toolCall 注册到 adapter 的 activeToolCalls 中
+    // 这样后续的 tool_call_update 事件就能找到对应的 tool call 了
+    if (data.toolCall) {
+      // 将权限请求中的 kind 映射到正确的类型
+      const mapKindToValidType = (kind?: string): 'read' | 'edit' | 'execute' => {
+        switch (kind) {
+          case 'read':
+            return 'read';
+          case 'edit':
+            return 'edit';
+          case 'execute':
+            return 'execute';
+          default:
+            return 'execute'; // 默认为 execute
+        }
+      };
 
-  private replaceLoadingMessage(text: string): void {
-    if (!this.loadingMessageId || !this.currentAssistantMsgId) {
-      return;
+      const toolCallUpdate: ToolCallUpdate = {
+        sessionId: data.sessionId,
+        update: {
+          sessionUpdate: 'tool_call' as const,
+          toolCallId: data.toolCall.toolCallId,
+          status: (data.toolCall.status as any) || 'pending',
+          title: data.toolCall.title || 'Tool Call',
+          kind: mapKindToValidType(data.toolCall.kind),
+          content: data.toolCall.content || [],
+          locations: data.toolCall.locations || [],
+        },
+      };
+
+      // 创建 tool call 消息以注册到 activeToolCalls
+      this.adapter.convertSessionUpdate(toolCallUpdate);
     }
-    this.onReplaceLoadingMessage({
-      id: this.currentAssistantMsgId,
-      msg_id: this.loadingMessageId,
-      text,
-      loadingMessageId: this.loadingMessageId, // 传递 loading message ID
-    });
+
+    this.emitMessage(permissionMessage);
   }
 
   private emitErrorMessage(error: string): void {
@@ -358,7 +406,7 @@ export class AcpAgent {
     const responseMessage: any = {
       conversation_id: this.id,
       id: message.id,
-      msg_id: this.loadingMessageId,
+      msg_id: message.msg_id, // 使用消息自己的 msg_id
     };
 
     // Map TMessage types to backend response types
@@ -390,9 +438,9 @@ export class AcpAgent {
           responseMessage.data = message.content.content;
         }
         break;
-      case 'tool_call': {
-        responseMessage.type = 'tool_call';
-        responseMessage.data = message.content.name;
+      case 'acp_tool_call': {
+        responseMessage.type = 'acp_tool_call';
+        responseMessage.data = message.content;
         break;
       }
       default:
