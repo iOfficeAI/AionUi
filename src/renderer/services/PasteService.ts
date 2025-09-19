@@ -79,12 +79,8 @@ class PasteServiceClass {
       }
       return false; // 允许默认行为继续处理文本
     }
-    // 如果有文本但没有文件，允许默认文本粘贴行为
-    if (clipboardText && (!files || files.length === 0)) {
-      // By returning false, we let the default browser paste behavior take over.
-      // The component's `onChange` handler will correctly update the state.
-      return false;
-    }
+    if (files && files.length > 0) {
+      const fileList: FileMetadata[] = [];
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         const filePath = (file as File & { path?: string }).path;
