@@ -51,7 +51,7 @@ export const joinPath = (basePath: string, relativePath: string): string => {
  * @description 跟对话相关的消息类型申明 及相关处理
  */
 
-type TMessageType = 'text' | 'tips' | 'tool_call' | 'tool_group' | 'acp_status' | 'acp_permission';
+type TMessageType = 'text' | 'tips' | 'tool_call' | 'tool_group' | 'acp_status' | 'acp_permission' | 'codex_elicitation' | 'codex_patch_request';
 
 interface IMessage<T extends TMessageType, Content extends Record<string, any>> {
   /**
@@ -195,7 +195,28 @@ export type IMessageAcpPermission = IMessage<
   }
 >;
 
-export type TMessage = IMessageText | IMessageTips | IMessageToolCall | IMessageToolGroup | IMessageAcpStatus | IMessageAcpPermission;
+// Codex specific message types
+export type IMessageCodexElicitation = IMessage<
+  'codex_elicitation',
+  {
+    elicitationType: string; // e.g., 'patch-approval'
+    message: string;
+    requestedSchema: Record<string, any>;
+    codex_call_id: string;
+    codex_changes?: Record<string, any>;
+  }
+>;
+
+export type IMessageCodexPatchRequest = IMessage<
+  'codex_patch_request',
+  {
+    call_id: string;
+    changes: Record<string, any>;
+    description?: string;
+  }
+>;
+
+export type TMessage = IMessageText | IMessageTips | IMessageToolCall | IMessageToolGroup | IMessageAcpStatus | IMessageAcpPermission | IMessageCodexElicitation | IMessageCodexPatchRequest;
 
 /**
  * @description 将后端返回的消息转换为前端消息
@@ -305,6 +326,149 @@ export const transformMessage = (message: IResponseMessage): TMessage | undefine
         position: 'left',
         conversation_id: message.conversation_id,
         content: message.data,
+      };
+    }
+    case 'apply_patch_approval_request': {
+      // Transform Codex patch request to standard permission request
+      const patchData = message.data;
+      // Create unique ID combining message type and call_id to avoid conflicts
+      const uniqueRequestId = `patch_${patchData.call_id}`;
+
+      return {
+        id: uuid(),
+        type: 'acp_permission',
+        msg_id: message.msg_id,
+        position: 'center',
+        conversation_id: message.conversation_id,
+        content: {
+          title: 'File Write Permission',
+          description: `Codex wants to write ${Object.keys(patchData.changes || {}).length} file(s) to your workspace`,
+          agentType: 'codex',
+          options: [
+            {
+              optionId: 'allow_once',
+              name: 'Allow',
+              kind: 'allow_once',
+              description: 'Allow this file operation',
+            },
+            {
+              optionId: 'reject_once',
+              name: 'Reject',
+              kind: 'reject_once',
+              description: 'Reject this file operation',
+            },
+          ],
+          requestId: uniqueRequestId,
+          toolCall: {
+            title: 'Write File',
+            toolCallId: uniqueRequestId,
+            rawInput: {
+              description: `Apply changes to ${Object.keys(patchData.changes || {}).length} file(s)`,
+            },
+          },
+        },
+      };
+    }
+    case 'elicitation/create': {
+      // Handle Codex native elicitation requests
+      const elicitationData = message.data;
+
+      // Handle different types of elicitations
+      if (elicitationData.codex_elicitation === 'patch-approval') {
+        // Create unique ID combining message type and call_id to avoid conflicts
+        const uniqueRequestId = `elicitation_${elicitationData.codex_call_id}`;
+
+        // File write permission request
+        return {
+          id: uuid(),
+          type: 'acp_permission',
+          msg_id: message.msg_id,
+          position: 'center',
+          conversation_id: message.conversation_id,
+          content: {
+            title: 'File Write Permission',
+            description: elicitationData.message || 'Codex wants to apply proposed code changes',
+            agentType: 'codex',
+            options: [
+              {
+                optionId: 'allow_once',
+                name: 'Allow',
+                kind: 'allow_once',
+                description: 'Allow this file operation',
+              },
+              {
+                optionId: 'reject_once',
+                name: 'Reject',
+                kind: 'reject_once',
+                description: 'Reject this file operation',
+              },
+            ],
+            requestId: uniqueRequestId,
+            toolCall: {
+              title: 'Write File',
+              toolCallId: uniqueRequestId,
+              rawInput: {
+                description: elicitationData.message,
+              },
+            },
+          },
+        };
+      }
+
+      // Handle file read permission requests or other permission types
+      if (elicitationData.codex_elicitation === 'file-read' || (elicitationData.message && elicitationData.message.toLowerCase().includes('read'))) {
+        const uniqueRequestId = `elicitation_${elicitationData.codex_call_id}`;
+
+        return {
+          id: uuid(),
+          type: 'acp_permission',
+          msg_id: message.msg_id,
+          position: 'center',
+          conversation_id: message.conversation_id,
+          content: {
+            title: 'File Read Permission',
+            description: elicitationData.message || 'Codex wants to read files from your workspace',
+            agentType: 'codex',
+            options: [
+              {
+                optionId: 'allow_once',
+                name: 'Allow',
+                kind: 'allow_once',
+                description: 'Allow reading files',
+              },
+              {
+                optionId: 'reject_once',
+                name: 'Reject',
+                kind: 'reject_once',
+                description: 'Reject file access',
+              },
+            ],
+            requestId: uniqueRequestId,
+            toolCall: {
+              title: 'Read File',
+              toolCallId: uniqueRequestId,
+              rawInput: {
+                description: elicitationData.message,
+              },
+            },
+          },
+        };
+      }
+
+      // For other elicitation types, create a generic elicitation message
+      return {
+        id: uuid(),
+        type: 'codex_elicitation',
+        msg_id: message.msg_id,
+        position: 'center',
+        conversation_id: message.conversation_id,
+        content: {
+          elicitationType: elicitationData.codex_elicitation,
+          message: elicitationData.message,
+          requestedSchema: elicitationData.requestedSchema,
+          codex_call_id: elicitationData.codex_call_id,
+          codex_changes: elicitationData.codex_changes,
+        },
       };
     }
     case 'start':

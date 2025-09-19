@@ -113,5 +113,31 @@
     "sendbox": {
       "placeholder": "Send message to {{backend}}..."
     }
+  },
+  "codex": {
+    "network": {
+      "cloudflare_blocked": "Cloudflare protection blocked access to {{service}}. Suggestions: 1) Use VPN 2) Switch network 3) Retry later 4) Switch to other AI services",
+      "network_timeout": "Network timeout, automatically retrying connection...",
+      "connection_refused": "Connection refused, please check if Codex service is running properly.",
+      "unknown_error": "Network connection error, please check network settings.",
+      "retry_attempt": "Retrying attempt {{current}}...",
+      "cloudflare_blocked_title": "🚫 {{service}} service blocked by Cloudflare protection",
+      "network_timeout_title": "⏱️ Network connection timeout",
+      "connection_refused_title": "❌ Service connection refused",
+      "unknown_error_title": "🔌 Network connection error",
+      "recovery_suggestions": "**Suggested Solutions:**",
+      "technical_info": "**Technical Information:**",
+      "error_type": "Error Type",
+      "retry_count": "Retry Count",
+      "error_details": "Error Details",
+      "quick_switch_title": "💡 **Quick Switch Options:**",
+      "quick_switch_content": "When current service encounters network restrictions, you can:\n\n1. **Switch AI Assistant Immediately**: Select other available assistants from the left panel\n2. **Check Service Status**: Availability of different AI services may vary by region\n3. **Network Optimization**: Use stable network environment to improve connection success rate\n4. **Retry Later**: Network restrictions are usually temporary\n\n**Tip**: It's recommended to configure multiple AI services as alternatives to ensure work continuity."
+    },
+    "status": {
+      "connecting": "Connecting to Codex...",
+      "connected": "Connected to Codex MCP server",
+      "session_active": "Active session created with Codex",
+      "error_connect": "Failed to connect Codex: {{error}}"
+    }
   }
 }
