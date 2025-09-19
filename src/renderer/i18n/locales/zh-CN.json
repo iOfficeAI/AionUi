@@ -108,7 +108,9 @@
   },
   "acp": {
     "auth": {
-      "failed": "{{backend}} 认证失败：\n\n{{error}}\n\n请检查本地CLI工具的认证状态"
+      "failed": "{{backend}} 认证失败：\n\n{{error}}\n\n请检查本地CLI工具的认证状态",
+      "console_error": "ACP认证错误详情:",
+      "failed_confirm": "ACP {{backend}} 认证失败：\n\n{{error}}\n\n是否现在前往设置页面配置？"
     },
     "sendbox": {
       "placeholder": "发送消息到 {{backend}}..."
@@ -131,7 +133,13 @@
       "retry_count": "重试次数",
       "error_details": "错误详情",
       "quick_switch_title": "💡 **快速切换方案：**",
-      "quick_switch_content": "当前服务遇到网络限制时，您可以：\n\n1. **立即切换 AI 助手**：在左侧面板选择其他可用的助手\n2. **检查服务状态**：不同 AI 服务的可用性可能因地区而异\n3. **网络优化**：使用稳定的网络环境可以提高连接成功率\n4. **稍后重试**：网络限制通常是临时的\n\n**提示**：建议配置多个 AI 服务作为备选，确保工作连续性。"
+      "quick_switch_content": "当前服务遇到网络限制时，您可以：\n\n1. **立即切换 AI 助手**：在左侧面板选择其他可用的助手\n2. **检查服务状态**：不同 AI 服务的可用性可能因地区而异\n3. **网络优化**：使用稳定的网络环境可以提高连接成功率\n4. **稍后重试**：网络限制通常是临时的\n\n**提示**：建议配置多个 AI 服务作为备选，确保工作连续性。",
+      "recovery_actions": {
+        "cloudflare_blocked": ["• 使用 VPN 或代理服务", "• 更换网络环境（如移动热点）", "• 等待 10-30 分钟后重试", "• 清除浏览器缓存和 Cookie", "• 切换到其他可用服务：ChatGPT、Claude、Qwen、Gemini"],
+        "network_timeout": ["• 检查网络连接是否稳定", "• 重试连接操作", "• 切换到更稳定的网络环境", "• 检查防火墙设置"],
+        "connection_refused": ["• 检查 Codex CLI 是否正确安装", "• 验证服务配置和API密钥", "• 重启应用程序", "• 检查本地端口是否被占用"],
+        "unknown": ["• 检查网络连接状态", "• 重试当前操作", "• 切换网络环境", "• 联系技术支持"]
+      }
     },
     "status": {
       "connecting": "正在连接 Codex...",

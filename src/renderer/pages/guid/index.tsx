@@ -279,8 +279,8 @@ const Guid: React.FC = () => {
 
         // Check if it's an authentication error
         if (error?.message?.includes('[ACP-AUTH-')) {
-          console.error('ACP认证错误详情:', error.message);
-          const confirmed = window.confirm(`ACP ${selectedAgent} 认证失败：\n\n${error.message}\n\n是否现在前往设置页面配置？`);
+          console.error(t('acp.auth.console_error'), error.message);
+          const confirmed = window.confirm(t('acp.auth.failed_confirm', { backend: selectedAgent, error: error.message }));
           if (confirmed) {
             navigate('/settings/model');
           }
