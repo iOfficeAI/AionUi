@@ -96,7 +96,7 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
   protected readonly backend: AcpBackend;
   protected readonly timeout: number;
 
-  constructor(backend: AcpBackend, timeout: number = 15000) {
+  constructor(backend: AcpBackend, timeout: number = 30000) {
     this.backend = backend;
     this.timeout = timeout;
   }
@@ -138,7 +138,7 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
   /**
    * 测试Stdio连接的通用实现
    */
-  protected async testStdioConnection(transport: { command: string; args?: string[]; env?: Record<string, string> }): Promise<McpConnectionTestResult> {
+  protected async testStdioConnection(transport: { command: string; args?: string[]; env?: Record<string, string> }, retryCount: number = 0): Promise<McpConnectionTestResult> {
     try {
       const { spawn } = await import('child_process');
 
@@ -152,10 +152,12 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
         let errorData = '';
         let requestId = 1;
 
+        // 对于npx命令，给更多时间；对于本地命令，时间短一些
+        const timeoutDuration = transport.command === 'npx' ? 45000 : 20000;
         const timeout = setTimeout(() => {
           child.kill();
-          resolve({ success: false, error: 'Connection timeout' });
-        }, 10000);
+          resolve({ success: false, error: `Connection timeout after ${timeoutDuration/1000}s` });
+        }, timeoutDuration);
 
         const cleanup = () => {
           clearTimeout(timeout);
@@ -220,29 +222,65 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
         child.on('exit', (code) => {
           cleanup();
           if (code !== 0) {
-            resolve({ success: false, error: `Process exited with code ${code}. Error: ${errorData}` });
+            // 检测常见的 npm 缓存问题并自动修复
+            if (code === 190 && errorData.includes('ENOTEMPTY') && retryCount < 1) {
+              // 异步处理清理和重试，不阻塞当前Promise
+              setTimeout(async () => {
+                try {
+                  const { exec } = await import('child_process');
+                  const { promisify } = await import('util');
+                  const execAsync = promisify(exec);
+                  
+                  // 快速清理，设置超时
+                  await Promise.race([
+                    execAsync('npm cache clean --force && rm -rf ~/.npm/_npx'),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Cleanup timeout')), 10000))
+                  ]);
+                  
+                  // 重试连接
+                  const retryResult = await this.testStdioConnection(transport, retryCount + 1);
+                  resolve(retryResult);
+                } catch (cleanupError) {
+                  resolve({ 
+                    success: false, 
+                    error: `npm cache corruption detected. Auto-cleanup failed, please manually run: npm cache clean --force` 
+                  });
+                }
+              }, 100);
+              return;
+            }
+            
+            let error = `Process exited with code ${code}. Error: ${errorData}`;
+            if (code === 190 && errorData.includes('ENOTEMPTY')) {
+              error = `npm cache corruption detected. Please manually run: npm cache clean --force && rm -rf ~/.npm/_npx`;
+            }
+            
+            resolve({ success: false, error });
           } else {
             resolve({ success: false, error: 'Process exited without providing tools list' });
           }
         });
 
         child.on('spawn', () => {
-          const initRequest = {
-            jsonrpc: '2.0',
-            method: 'initialize',
-            id: requestId++,
-            params: {
-              protocolVersion: '2024-11-05',
-              capabilities: {
-                tools: {},
+          // 给 MCP 服务器一点时间启动
+          setTimeout(() => {
+            const initRequest = {
+              jsonrpc: '2.0',
+              method: 'initialize',
+              id: requestId++,
+              params: {
+                protocolVersion: '2024-11-05',
+                capabilities: {
+                  tools: {},
+                },
+                clientInfo: {
+                  name: 'AionUi',
+                  version: '1.0.0',
+                },
               },
-              clientInfo: {
-                name: 'AionUi',
-                version: '1.0.0',
-              },
-            },
-          };
-          child.stdin?.write(JSON.stringify(initRequest) + '\n');
+            };
+            child.stdin?.write(JSON.stringify(initRequest) + '\n');
+          }, 500); // 减少到500ms
         });
       });
     } catch (error) {
