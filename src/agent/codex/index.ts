@@ -165,9 +165,17 @@ export class CodexMcpAgent {
   private generateConversationId(): string {
     try {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
-      return require('crypto').randomUUID();
+      const crypto = require('crypto');
+      if (typeof crypto.randomUUID === 'function') {
+        return crypto.randomUUID();
+      }
+      const buf = crypto.randomBytes(8).toString('hex');
+      return `conv-${Date.now()}-${buf}`;
     } catch {
-      return `conv-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      // Final fallback without insecure randomness; keep it monotonic & unique-enough for session scoping
+      const ts = Date.now().toString(36);
+      const pid = typeof process !== 'undefined' && process.pid ? process.pid.toString(36) : 'p';
+      return `conv-${ts}-${pid}`;
     }
   }
 }
