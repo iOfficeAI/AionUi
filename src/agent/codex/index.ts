@@ -34,7 +34,6 @@ export class CodexMcpAgent {
     this.workingDir = cfg.workingDir;
     this.onEvent = cfg.onEvent;
     this.onNetworkError = cfg.onNetworkError;
-    console.log('🏗️ [CodexMcpAgent] Constructor: onEvent callback set:', typeof this.onEvent);
   }
 
   async start(): Promise<void> {
@@ -74,22 +73,15 @@ export class CodexMcpAgent {
   async sendPrompt(prompt: string): Promise<void> {
     const convId = this.conversationId || this.generateConversationId();
     this.conversationId = convId;
-    console.log(`📤 [CodexMcpAgent] Sending prompt to Codex MCP:`, { prompt, conversationId: convId });
 
-    try {
-      const result = await this.conn?.request(
-        'tools/call',
-        {
-          name: 'codex-reply',
-          arguments: { prompt, conversationId: convId },
-        },
-        60000
-      ); // 增加到60秒超时
-      console.log(`📥 [CodexMcpAgent] Codex MCP request result:`, result);
-    } catch (error) {
-      console.error(`❌ [CodexMcpAgent] Codex MCP request failed:`, error);
-      throw error;
-    }
+    await this.conn?.request(
+      'tools/call',
+      {
+        name: 'codex-reply',
+        arguments: { prompt, conversationId: convId },
+      },
+      60000
+    ); // 增加到60秒超时
   }
 
   async sendApprovalResponse(callId: string, approved: boolean, changes: Record<string, any>): Promise<void> {
@@ -105,21 +97,12 @@ export class CodexMcpAgent {
   }
 
   private processCodexEvent(env: { method: string; params?: any }): void {
-    console.log('🔎 [CodexMcpAgent] Received raw event:', env);
-    console.log('🔥 [CodexMcpAgent] DEBUG: processCodexEvent called - CODE VERSION 2025-01-19');
-
     // Handle codex/event messages (wrapped messages)
     if (env.method === 'codex/event') {
       const msg = env.params?.msg;
       if (!msg) {
-        console.log('❌ [CodexMcpAgent] No message in codex/event params');
         return;
       }
-
-      console.log('📨 [CodexMcpAgent] Processing codex/event:', { type: msg.type, data: msg });
-      console.log('🔧 [CodexMcpAgent] onEvent callback type:', typeof this.onEvent);
-      console.log('🔧 [CodexMcpAgent] onEvent callback available:', !!this.onEvent);
-      console.log('🔧 [CodexMcpAgent] About to check try-catch block');
 
       try {
         // Forward as a normalized event envelope for future mapping
@@ -128,11 +111,9 @@ export class CodexMcpAgent {
           ...msg,
           _meta: env.params?._meta, // Pass through meta information like requestId
         };
-        console.log('🚀 [CodexMcpAgent] Forwarding to onEvent:', { type: msg.type || 'unknown', data: enrichedData });
         this.onEvent({ type: msg.type || 'unknown', data: enrichedData });
-        console.log('✅ [CodexMcpAgent] Successfully called onEvent');
-      } catch (error) {
-        console.error('💥 [CodexMcpAgent] Error calling onEvent:', error);
+      } catch {
+        // Ignore errors in event processing
       }
 
       if (msg.type === 'session_configured' && msg.session_id) {
@@ -143,28 +124,17 @@ export class CodexMcpAgent {
 
     // Handle direct elicitation/create messages
     if (env.method === 'elicitation/create') {
-      console.log('📨 [CodexMcpAgent] Processing elicitation/create:', env.params);
-      console.log('🔧 [CodexMcpAgent] elicitation onEvent callback type:', typeof this.onEvent);
-      console.log('🔧 [CodexMcpAgent] elicitation onEvent callback available:', !!this.onEvent);
-
       try {
         // Forward the elicitation request directly
-        console.log('🚀 [CodexMcpAgent] Forwarding elicitation to onEvent:', { type: 'elicitation/create', data: env.params });
         this.onEvent({ type: 'elicitation/create', data: env.params });
-        console.log('✅ [CodexMcpAgent] Successfully called elicitation onEvent');
-      } catch (error) {
-        console.error('💥 [CodexMcpAgent] Error calling elicitation onEvent:', error);
+      } catch {
+        // Ignore errors in elicitation processing
       }
       return;
     }
-
-    // Log unhandled methods for debugging
-    console.log('❓ [CodexMcpAgent] Unhandled method:', env.method);
   }
 
   private handleNetworkError(error: NetworkError): void {
-    console.error('🌐 [CodexMcpAgent] Network error:', error);
-
     // Forward network error to the parent handler
     if (this.onNetworkError) {
       this.onNetworkError(error);
