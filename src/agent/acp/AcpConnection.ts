@@ -4,13 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { AcpBackend } from '@/common/acpTypes';
+import { JSONRPC_VERSION } from '@/common/acpTypes';
+import type { AcpBackend, AcpMessage, AcpNotification, AcpPermissionRequest, AcpRequest, AcpResponse, AcpSessionUpdate } from '@/common/acpTypes';
 import type { ChildProcess } from 'child_process';
 import { spawn } from 'child_process';
-import path from 'path';
-import fs from 'fs';
-import type { AcpMessage, AcpNotification, AcpPermissionRequest, AcpRequest, AcpResponse, AcpSessionUpdate } from '@/agent/acp/AcpAdapter';
-import { JSONRPC_VERSION } from '@/agent/acp/AcpAdapter';
 
 interface PendingRequest {
   resolve: (value: any) => void;
@@ -31,14 +28,14 @@ export class AcpConnection {
   private backend: AcpBackend | null = null;
   private initializeResponse: any = null;
 
-  // Event handlers
   public onSessionUpdate: (data: AcpSessionUpdate) => void = () => {};
   public onPermissionRequest: (data: AcpPermissionRequest) => Promise<{
     optionId: string;
   }> = async () => ({ optionId: 'allow' });
+  public onEndTurn: () => void = () => {}; // Handler for end_turn messages
+  public onFileOperation: (operation: { method: string; path: string; content?: string; sessionId: string }) => void = () => {};
 
   async connect(backend: AcpBackend, cliPath?: string, workingDir: string = process.cwd()): Promise<void> {
-    // Disconnect existing connection to prevent process leaks
     if (this.child) {
       this.disconnect();
     }
@@ -56,6 +53,10 @@ export class AcpConnection {
 
       case 'qwen':
         await this.connectQwen(cliPath, workingDir);
+        break;
+
+      case 'iflow':
+        await this.connectIflow(cliPath, workingDir);
         break;
 
       default:
@@ -156,6 +157,41 @@ export class AcpConnection {
     });
 
     await this.setupChildProcessHandlers('qwen');
+  }
+
+  private async connectIflow(cliPath?: string, workingDir: string = process.cwd()): Promise<void> {
+    if (!cliPath) {
+      throw new Error('iFlow CLI path is required for iflow backend');
+    }
+
+    // Clean environment - let iFlow CLI handle its own authentication
+    const env: Record<string, string | undefined> = {
+      ...process.env,
+    };
+
+    // Handle command format
+    let spawnCommand: string;
+    let spawnArgs: string[];
+
+    if (cliPath.startsWith('npx ')) {
+      // For "npx iflow", split into command and arguments
+      const parts = cliPath.split(' ');
+      const isWindows = process.platform === 'win32';
+      spawnCommand = isWindows ? 'npx.cmd' : 'npx'; // Use npx.cmd on Windows
+      spawnArgs = [...parts.slice(1), '--experimental-acp']; // ['iflow', '--experimental-acp']
+    } else {
+      // For regular paths like '/usr/local/bin/iflow'
+      spawnCommand = cliPath;
+      spawnArgs = ['--experimental-acp'];
+    }
+
+    this.child = spawn(spawnCommand, spawnArgs, {
+      cwd: workingDir,
+      stdio: ['pipe', 'pipe', 'pipe'],
+      env,
+    });
+
+    await this.setupChildProcessHandlers('iflow');
   }
 
   private async setupChildProcessHandlers(backend: string): Promise<void> {
@@ -349,22 +385,27 @@ export class AcpConnection {
 
   private handleMessage(message: AcpMessage): void {
     try {
-      if ('id' in message && typeof message.id === 'number' && this.pendingRequests.has(message.id)) {
-        // This is a response
+      // 修复：优先检查是否为 request（有 method 字段），而不是仅基于 ID
+      if ('method' in message) {
+        // This is a request or notification
+        this.handleIncomingRequest(message).catch((_error) => {
+          // Handle request errors silently
+        });
+      } else if ('id' in message && typeof message.id === 'number' && this.pendingRequests.has(message.id)) {
+        // This is a response to a previous request
         const { resolve, reject } = this.pendingRequests.get(message.id)!;
         this.pendingRequests.delete(message.id);
 
         if ('result' in message) {
+          // Check for end_turn message
+          if (message.result && typeof message.result === 'object' && message.result.stopReason === 'end_turn') {
+            this.onEndTurn();
+          }
           resolve(message.result);
         } else if ('error' in message) {
           const errorMsg = message.error?.message || 'Unknown ACP error';
           reject(new Error(errorMsg));
         }
-      } else if ('method' in message) {
-        // This is a request or notification
-        this.handleIncomingRequest(message).catch((_error) => {
-          // Handle request errors silently
-        });
       } else {
         // Unknown message format, ignore
       }
@@ -381,15 +422,28 @@ export class AcpConnection {
 
       switch (method) {
         case 'session/update':
-          this.handleSessionUpdate(params);
+          this.onSessionUpdate(params);
           break;
         case 'session/request_permission':
           result = await this.handlePermissionRequest(params);
           break;
         case 'fs/read_text_file':
+          // 通知UI文件读取操作
+          this.onFileOperation({
+            method: 'fs/read_text_file',
+            path: params.path,
+            sessionId: params.sessionId || '',
+          });
           result = await this.handleReadTextFile(params);
           break;
         case 'fs/write_text_file':
+          // 通知UI文件写入操作
+          this.onFileOperation({
+            method: 'fs/write_text_file',
+            path: params.path,
+            content: params.content,
+            sessionId: params.sessionId || '',
+          });
           result = await this.handleWriteTextFile(params);
           break;
         default:
@@ -418,23 +472,31 @@ export class AcpConnection {
     }
   }
 
-  private handleSessionUpdate(params: AcpSessionUpdate): void {
-    this.onSessionUpdate(params);
-  }
-
   private async handlePermissionRequest(params: AcpPermissionRequest): Promise<{
     outcome: { outcome: string; optionId: string };
   }> {
     // 暂停所有 session/prompt 请求的超时计时器
     this.pauseSessionPromptTimeouts();
-
     try {
       const response = await this.onPermissionRequest(params);
 
+      // 根据用户的选择决定outcome
+      const optionId = response.optionId;
+      const outcome = optionId.includes('reject') ? 'rejected' : 'selected';
+
       return {
         outcome: {
-          outcome: 'selected',
-          optionId: response.optionId,
+          outcome,
+          optionId: optionId,
+        },
+      };
+    } catch (error) {
+      // 处理超时或其他错误情况，默认拒绝
+      console.error('Permission request failed:', error);
+      return {
+        outcome: {
+          outcome: 'rejected',
+          optionId: 'reject_once', // 默认拒绝
         },
       };
     } finally {
@@ -500,7 +562,7 @@ export class AcpConnection {
       throw new Error('No active ACP session');
     }
 
-    console.log('Sending ACP session...', prompt);
+    // console.log('Sending ACP session...', prompt);
 
     return await this.sendRequest('session/prompt', {
       sessionId: this.sessionId,

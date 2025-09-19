@@ -13,7 +13,7 @@ interface InitialMessageData {
   files?: string[];
 }
 
-export const useInitialMessage = (conversationId: string, acpStatus: string | null, onSend: (msg_id: string, loading_id: string, input: string, files: string[]) => Promise<boolean>) => {
+export const useInitialMessage = (conversationId: string, acpStatus: string | null, onSend: (msg_id: string, input: string, files: string[]) => Promise<boolean>) => {
   const [state, setState] = useState<InitialMessageState>('idle');
   const [error, setError] = useState<string | null>(null);
   const processedRef = useRef(false);
@@ -43,12 +43,11 @@ export const useInitialMessage = (conversationId: string, acpStatus: string | nu
     try {
       const { input, files = [] }: InitialMessageData = JSON.parse(storedMessage);
 
-      // Generate IDs
+      // Generate ID
       const msg_id = uuid();
-      const loading_id = uuid();
 
       // Send message
-      const success = await onSend(msg_id, loading_id, input, files);
+      const success = await onSend(msg_id, input, files);
 
       if (success) {
         sessionStorage.removeItem(storageKey);
@@ -86,15 +85,13 @@ export const useInitialMessage = (conversationId: string, acpStatus: string | nu
  * const { state: initialMessageState, error: initialMessageError } = useInitialMessage(
  *   conversation_id,
  *   acpStatus,
- *   async (msg_id, loading_id, input, files) => {
+ *   async (msg_id, input, files) => {
  *     // Create and send messages
  *     const userMessage: TMessage = { ... };
- *     const loadingMessage: TMessage = { ... };
  *     addOrUpdateMessage(userMessage, true);
- *     addOrUpdateMessage(loadingMessage, true);
  *
  *     const result = await ipcBridge.acpConversation.sendMessage.invoke({
- *       input, msg_id, conversation_id, files, loading_id
+ *       input, msg_id, conversation_id, files
  *     });
  *
  *     return result?.success === true;

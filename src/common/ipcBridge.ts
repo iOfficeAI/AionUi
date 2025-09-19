@@ -8,10 +8,8 @@ import { bridge } from '@office-ai/platform';
 import type { OpenDialogOptions } from 'electron';
 import type { AcpBackend } from './acpTypes';
 import type { IProvider, TChatConversation, TProviderWithModel } from './storage';
-
 // 发送消息
 const sendMessage = bridge.buildProvider<IBridgeResponse<{}>, ISendMessageParams>('chat.send.message');
-
 //接受消息
 const responseStream = bridge.buildEmitter<IResponseMessage>('chat.response.stream');
 
@@ -51,6 +49,9 @@ export const dialog = {
 export const fs = {
   getFilesByDir: bridge.buildProvider<Array<IDirOrFile>, { dir: string }>('get-file-by-dir'), // 获取指定文件夹下所有文件夹和文件列表
   getImageBase64: bridge.buildProvider<string, { path: string }>('get-image-base64'), // 获取图片base64
+  createTempFile: bridge.buildProvider<string, { fileName: string }>('create-temp-file'), // 创建临时文件
+  writeFile: bridge.buildProvider<boolean, { path: string; data: Uint8Array }>('write-file'), // 写入文件
+  getFileMetadata: bridge.buildProvider<IFileMetadata, { path: string }>('get-file-metadata'), // 获取文件元数据
 };
 
 export const googleAuth = {
@@ -67,7 +68,7 @@ export const mode = {
 
 // ACP对话相关接口 - 使用独立的sendMessage和responseStream
 const acpSendMessage = bridge.buildProvider<IBridgeResponse<{}>, ISendMessageParams>('acp.send.message');
-const acpResponseStream = bridge.buildEmitter<ACPResponseMessage>('acp.response.stream');
+const acpResponseStream = bridge.buildEmitter<IResponseMessage>('acp.response.stream');
 
 export const acpConversation = {
   sendMessage: acpSendMessage,
@@ -96,7 +97,6 @@ interface ISendMessageParams {
   msg_id: string;
   conversation_id: string;
   files?: string[];
-  loading_id?: string; // ID of loading message to replace
 }
 
 interface IConfirmGeminiMessageParams {
@@ -135,14 +135,20 @@ export interface IDirOrFile {
   children?: Array<IDirOrFile>;
 }
 
+// 文件元数据接口
+export interface IFileMetadata {
+  name: string;
+  path: string;
+  size: number;
+  type: string;
+  lastModified: number;
+}
+
 export interface IResponseMessage {
   type: string;
   data: any;
   msg_id: string;
   conversation_id: string;
-}
-export interface ACPResponseMessage extends IResponseMessage {
-  isLoadingReplacement?: boolean;
 }
 
 interface IBridgeResponse<D = {}> {

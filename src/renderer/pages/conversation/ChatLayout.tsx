@@ -6,6 +6,7 @@ import React, { useState } from 'react';
 
 import ClaudeLogo from '@/renderer/assets/logos/claude.svg';
 import GeminiLogo from '@/renderer/assets/logos/gemini.svg';
+import IflowLogo from '@/renderer/assets/logos/iflow.svg';
 import QwenLogo from '@/renderer/assets/logos/qwen.svg';
 import CodexLogo from '@/renderer/assets/logos/codex.svg';
 
@@ -85,7 +86,7 @@ const ChatLayout: React.FC<{
             <span className=' ml-16px font-bold text-16px inline-block overflow-hidden text-ellipsis whitespace-nowrap w-full max-w-60%'>{props.title}</span>
             {backend && (
               <div className='  ml-16px flex items-center gap-2 bg-[#f2f3f5] w-fit rounded-full px-[8px] py-[2px]'>
-                <img src={backend === 'claude' ? ClaudeLogo : backend === 'gemini' ? GeminiLogo : backend === 'qwen' ? QwenLogo : backend === 'codex' ? CodexLogo : ''} alt={`${backend} logo`} width={16} height={16} style={{ objectFit: 'contain' }} />
+                <img src={backend === 'claude' ? ClaudeLogo : backend === 'gemini' ? GeminiLogo : backend === 'qwen' ? QwenLogo : backend === 'iflow' ? IflowLogo : backend === 'codex' ? CodexLogo : ''} alt={`${backend} logo`} width={16} height={16} style={{ objectFit: 'contain' }} />
                 <span className='font-medium'>{backend}</span>
               </div>
             )}

@@ -6,6 +6,7 @@
 
 import type { IResponseMessage } from './ipcBridge';
 import { uuid } from './utils';
+import type { AcpPermissionRequest, ToolCallUpdate } from '@/common/acpTypes';
 
 /**
  * 安全的路径拼接函数，兼容Windows和Mac
@@ -52,7 +53,6 @@ export const joinPath = (basePath: string, relativePath: string): string => {
  */
 
 type TMessageType = 'text' | 'tips' | 'tool_call' | 'tool_group' | 'acp_status' | 'acp_permission' | 'codex_elicitation' | 'codex_patch_request';
-
 interface IMessage<T extends TMessageType, Content extends Record<string, any>> {
   /**
    * 唯一ID
@@ -168,32 +168,9 @@ export type IMessageAcpStatus = IMessage<
   }
 >;
 
-export type IMessageAcpPermission = IMessage<
-  'acp_permission',
-  {
-    title?: string;
-    description?: string;
-    agentType?: string; // Add agentType to support different agent types
-    options: Array<{
-      optionId: string;
-      name: string;
-      kind: 'allow_once' | 'allow_always' | 'reject_once' | 'reject_always';
-      // 以下字段为向后兼容，不是 ACP 官方协议标准
-      description?: string;
-      title?: string;
-    }>;
-    requestId: string;
-    sessionId?: string;
-    toolCall?: {
-      title: string;
-      toolCallId: string;
-      rawInput: {
-        command?: string;
-        description?: string;
-      };
-    };
-  }
->;
+export type IMessageAcpPermission = IMessage<'acp_permission', AcpPermissionRequest>;
+
+export type IMessageAcpToolCall = IMessage<'acp_tool_call', ToolCallUpdate>;
 
 // Codex specific message types
 export type IMessageCodexElicitation = IMessage<
@@ -216,7 +193,7 @@ export type IMessageCodexPatchRequest = IMessage<
   }
 >;
 
-export type TMessage = IMessageText | IMessageTips | IMessageToolCall | IMessageToolGroup | IMessageAcpStatus | IMessageAcpPermission | IMessageCodexElicitation | IMessageCodexPatchRequest;
+export type TMessage = IMessageText | IMessageTips | IMessageToolCall | IMessageToolGroup | IMessageAcpStatus | IMessageAcpPermission | IMessageAcpToolCall | IMessageCodexElicitation | IMessageCodexPatchRequest;
 
 /**
  * @description 将后端返回的消息转换为前端消息
@@ -322,6 +299,16 @@ export const transformMessage = (message: IResponseMessage): TMessage | undefine
       return {
         id: uuid(),
         type: 'acp_permission',
+        msg_id: message.msg_id,
+        position: 'left',
+        conversation_id: message.conversation_id,
+        content: message.data,
+      };
+    }
+    case 'acp_tool_call': {
+      return {
+        id: uuid(),
+        type: 'acp_tool_call',
         msg_id: message.msg_id,
         position: 'left',
         conversation_id: message.conversation_id,

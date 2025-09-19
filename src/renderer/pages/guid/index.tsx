@@ -13,11 +13,17 @@ import ClaudeLogo from '@/renderer/assets/logos/claude.svg';
 import GeminiLogo from '@/renderer/assets/logos/gemini.svg';
 import QwenLogo from '@/renderer/assets/logos/qwen.svg';
 import CodexLogo from '@/renderer/assets/logos/codex.svg';
+import IflowLogo from '@/renderer/assets/logos/iflow.svg';
 import { geminiModeList } from '@/renderer/hooks/useModeModeList';
 import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
+import { allSupportedExts, type FileMetadata, getCleanFileNames } from '@/renderer/services/FileService';
+import { formatFilesForMessage } from '@/renderer/hooks/useSendBoxFiles';
+import { usePasteService } from '@/renderer/hooks/usePasteService';
+import { useDragUpload } from '@/renderer/hooks/useDragUpload';
+import { useCompositionInput } from '@/renderer/hooks/useCompositionInput';
 import { Button, ConfigProvider, Dropdown, Input, Menu, Radio, Space, Tooltip } from '@arco-design/web-react';
 import { ArrowUp, Plus } from '@icon-park/react';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import useSWR from 'swr';
@@ -126,6 +132,31 @@ const Guid: React.FC = () => {
   };
   const navigate = useNavigate();
 
+  // 粘贴功能集成
+  const componentId = 'guid-textarea';
+
+  // 处理粘贴的文件
+  const handleFilesAdded = useCallback((pastedFiles: FileMetadata[]) => {
+    // 直接使用文件路径（现在总是有效的）
+    const filePaths = pastedFiles.map((file) => file.path);
+
+    setFiles((prevFiles) => [...prevFiles, ...filePaths]);
+    setDir(''); // 清除文件夹选择
+  }, []);
+
+  // 使用拖拽 hook
+  const { isFileDragging, dragHandlers } = useDragUpload({
+    supportedExts: allSupportedExts,
+    onFilesAdded: handleFilesAdded,
+  });
+
+  // 使用共享的PasteService集成
+  const { handleFocus } = usePasteService({
+    componentId,
+    supportedExts: allSupportedExts,
+    onFilesAdded: handleFilesAdded,
+  });
+
   // 获取可用的 ACP agents - 基于全局标记位
   const { data: availableAgentsData } = useSWR('acp.agents.available', async () => {
     const result = await ipcBridge.acpConversation.getAvailableAgents.invoke();
@@ -162,15 +193,7 @@ const Guid: React.FC = () => {
         });
 
         await ipcBridge.geminiConversation.sendMessage.invoke({
-          input:
-            files.length > 0
-              ? files
-                  .map((v) => v.split(/[\\/]/).pop() || '')
-                  .map((v) => `@${v}`)
-                  .join(' ') +
-                ' ' +
-                input
-              : input,
+          input: files.length > 0 ? formatFilesForMessage(files) + ' ' + input : input,
           conversation_id: conversation.id,
           msg_id: uuid(),
         });
@@ -240,16 +263,8 @@ const Guid: React.FC = () => {
           return;
         }
 
-        ipcBridge.acpConversation.sendMessage.invoke({
-          input,
-          files: files.length > 0 ? files : undefined,
-          conversation_id: conversation.id,
-          msg_id: uuid(),
-        });
-
         // For ACP, we need to wait for the connection to be ready before sending the message
         // Store the initial message and let the conversation page handle it when ready
-        // Navigate immediately and let the conversation page handle the initial message
         const initialMessage = {
           input,
           files: files.length > 0 ? files : undefined,
@@ -291,7 +306,8 @@ const Guid: React.FC = () => {
         setLoading(false);
       });
   };
-  const isComposing = useRef(false);
+  // 使用共享的输入法合成处理
+  const { compositionHandlers, createKeyDownHandler } = useCompositionInput();
   const { modelList, isGoogleAuth } = useModelList();
   const setDefaultModel = async () => {
     const useModel = await ConfigStorage.get('gemini.defaultModel');
@@ -310,32 +326,14 @@ const Guid: React.FC = () => {
       <div ref={guidContainerRef} className='h-full flex-center flex-col px-100px' style={{ position: 'relative' }}>
         <p className='text-2xl font-semibold text-gray-900 mb-8'>{t('conversation.welcome.title')}</p>
         <div
-          className='bg-white b-solid border border-#E5E6EB  rd-20px  focus-within:shadow-[0px_2px_20px_rgba(77,60,234,0.1)] transition-all duration-200 overflow-hidden p-16px'
+          className={`bg-white b-solid border rd-20px focus-within:shadow-[0px_2px_20px_rgba(77,60,234,0.1)] transition-all duration-200 overflow-hidden p-16px ${isFileDragging ? 'bg-blue-50 border-blue-300 border-dashed' : 'border-#E5E6EB'}`}
           style={{
             width: 'clamp(400px, calc(100% - 80px), 720px)',
             margin: '0 auto',
           }}
+          {...dragHandlers}
         >
-          <Input.TextArea
-            rows={4}
-            placeholder={t('conversation.welcome.placeholder')}
-            className='text-16px focus:b-none rounded-xl !bg-white !b-none !resize-none !p-0'
-            value={input}
-            onChange={(v) => setInput(v)}
-            onCompositionStartCapture={() => {
-              isComposing.current = true;
-            }}
-            onCompositionEndCapture={() => {
-              isComposing.current = false;
-            }}
-            onKeyDown={(e) => {
-              if (isComposing.current) return;
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                sendMessageHandler();
-              }
-            }}
-          ></Input.TextArea>
+          <Input.TextArea rows={4} placeholder={t('conversation.welcome.placeholder')} className='text-16px focus:b-none rounded-xl !bg-white !b-none !resize-none !p-0' value={input} onChange={(v) => setInput(v)} onFocus={handleFocus} {...compositionHandlers} onKeyDown={createKeyDownHandler(sendMessageHandler)}></Input.TextArea>
           <div className='flex items-center justify-between '>
             <div className='flex items-center gap-10px'>
               <Dropdown
@@ -350,7 +348,9 @@ const Guid: React.FC = () => {
                         })
                         .then((files) => {
                           if (isFile) {
-                            setFiles(files || []);
+                            if (files && files.length > 0) {
+                              setFiles((prev) => [...prev, ...files]);
+                            }
                             setDir('');
                           } else {
                             setFiles([]);
@@ -367,7 +367,7 @@ const Guid: React.FC = () => {
                 <span className='flex items-center gap-4px cursor-pointer lh-[1]'>
                   <Button type='secondary' shape='circle' icon={<Plus theme='outline' size='14' strokeWidth={2} fill='#333' />}></Button>
                   {files.length > 0 && (
-                    <Tooltip className={'!max-w-max'} content={<span className='whitespace-break-spaces'>{files.join('\n')}</span>}>
+                    <Tooltip className={'!max-w-max'} content={<span className='whitespace-break-spaces'>{getCleanFileNames(files).join('\n')}</span>}>
                       <span>File({files.length})</span>
                     </Tooltip>
                   )}
@@ -426,7 +426,7 @@ const Guid: React.FC = () => {
               options={availableAgents.map((agent) => ({
                 label: (
                   <div className='flex items-center gap-2'>
-                    <img src={agent.backend === 'claude' ? ClaudeLogo : agent.backend === 'gemini' ? GeminiLogo : agent.backend === 'qwen' ? QwenLogo : agent.backend === 'codex' ? CodexLogo : ''} alt={`${agent.backend} logo`} width={16} height={16} style={{ objectFit: 'contain' }} />
+                    <img src={agent.backend === 'claude' ? ClaudeLogo : agent.backend === 'gemini' ? GeminiLogo : agent.backend === 'qwen' ? QwenLogo : agent.backend === 'codex' ? CodexLogo : agent.backend === 'iflow' ? IflowLogo : ''} alt={`${agent.backend} logo`} width={16} height={16} style={{ objectFit: 'contain' }} />
                     <span className='font-medium'>{agent.name}</span>
                   </div>
                 ),
