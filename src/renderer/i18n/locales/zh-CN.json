@@ -101,7 +101,6 @@
     "mcpSettings": "MCP工具配置",
     "mcpServerList": "MCP服务器",
     "mcpStatus": "状态",
-    "mcpTools": "工具",
     "mcpAddServer": "添加MCP服务器",
     "mcpEditServer": "编辑MCP服务器",
     "mcpDeleteServer": "删除MCP服务器",
@@ -133,9 +132,6 @@
     "mcpSyncError": "MCP配置同步失败",
     "mcpRemoveError": "MCP配置删除失败",
     "unknownError": "未知错误",
-    "mcpServerDescription": "描述",
-    "mcpTransportType": "传输类型",
-    "mcpCommand": "命令",
     "mcpNoDescription": "暂无描述"
   },
   "messages": {

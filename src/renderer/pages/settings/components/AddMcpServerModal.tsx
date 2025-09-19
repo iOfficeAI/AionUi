@@ -41,6 +41,34 @@ const AddMcpServerModal: React.FC<AddMcpServerModalProps> = ({ visible, server, 
     }
   }, [visible, server]);
 
+  // 当编辑现有服务器时，预填充JSON数据
+  useEffect(() => {
+    if (visible && server) {
+      // 将现有服务器配置转换为JSON格式
+      const serverConfig = {
+        mcpServers: {
+          [server.name]: {
+            description: server.description,
+            ...(server.transport.type === 'stdio'
+              ? {
+                  command: server.transport.command,
+                  args: server.transport.args || [],
+                  env: server.transport.env || {},
+                }
+              : {
+                  url: server.transport.url,
+                }),
+          },
+        },
+      };
+      setJsonInput(JSON.stringify(serverConfig, null, 2));
+      setIsImportMode(false); // 编辑模式下使用JSON模式
+    } else if (visible && !server) {
+      // 新建模式下清空JSON输入
+      setJsonInput('');
+    }
+  }, [visible, server]);
+
   const handleImportFromCLI = async () => {
     if (!selectedAgent) return;
 

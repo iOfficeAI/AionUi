@@ -101,7 +101,6 @@
     "mcpSettings": "MCPツール設定",
     "mcpServerList": "MCPサーバー",
     "mcpStatus": "ステータス",
-    "mcpTools": "ツール",
     "mcpAddServer": "MCPサーバーを追加",
     "mcpEditServer": "MCPサーバーを編集",
     "mcpDeleteServer": "MCPサーバーを削除",
@@ -133,9 +132,6 @@
     "mcpSyncError": "MCP配置の同期に失敗しました",
     "mcpRemoveError": "MCP配置の削除に失敗しました",
     "unknownError": "未知のエラー",
-    "mcpServerDescription": "説明",
-    "mcpTransportType": "トランスポートタツプ",
-    "mcpCommand": "コマンド",
     "mcpNoDescription": "説明なし"
   },
   "messages": {

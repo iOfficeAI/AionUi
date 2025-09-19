@@ -101,7 +101,6 @@
     "mcpSettings": "MCP Tools Configuration",
     "mcpServerList": "MCP Servers",
     "mcpStatus": "Status",
-    "mcpTools": "Tools",
     "mcpAddServer": "Add MCP Server",
     "mcpEditServer": "Edit MCP Server",
     "mcpDeleteServer": "Delete MCP Server",
@@ -133,9 +132,6 @@
     "mcpSyncError": "MCP configuration sync failed",
     "mcpRemoveError": "MCP configuration removal failed",
     "unknownError": "Unknown error",
-    "mcpServerDescription": "Description",
-    "mcpTransportType": "Transport Type",
-    "mcpCommand": "Command",
     "mcpNoDescription": "No description"
   },
   "messages": {
