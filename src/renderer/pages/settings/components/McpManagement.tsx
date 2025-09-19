@@ -346,39 +346,8 @@ const McpManagement: React.FC = () => {
                     className={'[&_div.arco-collapse-item-content-box]:py-3'}
                   >
                     <div className='space-y-3'>
-                      {server.description && (
-                        <div>
-                          <span className='text-sm text-gray-500'>{t('settings.mcpServerDescription')}: </span>
-                          <span>{server.description}</span>
-                        </div>
-                      )}
-
-                      <div>
-                        <span className='text-sm text-gray-500'>{t('settings.mcpTransportType')}: </span>
-                        <Tag>{server.transport.type.toUpperCase()}</Tag>
-                      </div>
-
-                      {server.transport.type === 'stdio' && (
-                        <div>
-                          <div className='text-sm text-gray-500 mb-1'>{t('settings.mcpCommand')}:</div>
-                          <code className='text-xs bg-gray-100 p-2 rounded block'>
-                            {server.transport.command} {server.transport.args?.join(' ')}
-                          </code>
-                        </div>
-                      )}
-
-                      {(server.transport.type === 'sse' || server.transport.type === 'http') && (
-                        <div>
-                          <span className='text-sm text-gray-500'>URL: </span>
-                          <code className='text-xs bg-gray-100 p-1 rounded'>{server.transport.url}</code>
-                        </div>
-                      )}
-
                       {server.tools && server.tools.length > 0 && (
                         <div>
-                          <div className='text-sm text-gray-500 mb-2'>
-                            {t('settings.mcpTools')} ({server.tools.length}):
-                          </div>
                           <div className='space-y-2'>
                             {server.tools.map((tool, index) => (
                               <div key={index} className='border border-gray-200 rounded p-3'>
