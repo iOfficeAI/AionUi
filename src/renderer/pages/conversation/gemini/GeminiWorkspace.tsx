@@ -12,11 +12,13 @@ import { Empty, Input, Tree } from '@arco-design/web-react';
 import { Refresh, Search } from '@icon-park/react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-const GeminiWorkspace: React.FC<{
+interface GeminiWorkspaceProps {
   workspace: string;
   customWorkspace?: boolean;
   eventPrefix?: 'gemini' | 'acp' | 'codex';
-}> = ({ workspace, customWorkspace, eventPrefix = 'gemini' }) => {
+}
+
+const GeminiWorkspace: React.FC<GeminiWorkspaceProps> = ({ workspace, customWorkspace, eventPrefix = 'gemini' }) => {
   const { t } = useTranslation();
   const [selected, setSelected] = useState<string[]>([]);
   const [files, setFiles] = useState<IDirOrFile[]>([]);
@@ -30,66 +32,42 @@ const GeminiWorkspace: React.FC<{
     setSelected(files);
   });
 
-  const refreshWorkspace = () => {
+  const refreshWorkspace = (prefix: typeof eventPrefix = eventPrefix, ws: string = workspace) => {
     setLoading(true);
     const startTime = Date.now();
 
-    // 根据 eventPrefix 选择对应的 getWorkspace 方法
-    let getWorkspaceMethod: typeof ipcBridge.geminiConversation.getWorkspace | typeof ipcBridge.acpConversation.getWorkspace | typeof ipcBridge.codexConversation.getWorkspace;
-    if (eventPrefix === 'acp') getWorkspaceMethod = ipcBridge.acpConversation.getWorkspace;
-    else if (eventPrefix === 'codex') getWorkspaceMethod = ipcBridge.codexConversation.getWorkspace;
-    else getWorkspaceMethod = ipcBridge.geminiConversation.getWorkspace;
+    // 根据前缀选择对应的 getWorkspace 方法
+    const getWorkspaceMethod = prefix === 'acp' ? ipcBridge.acpConversation.getWorkspace : prefix === 'codex' ? ipcBridge.codexConversation.getWorkspace : ipcBridge.geminiConversation.getWorkspace;
 
     getWorkspaceMethod
-      .invoke({ workspace: workspace })
-      .then((res) => {
-        setFiles(res);
-      })
-      .catch(() => {
-        // Silently handle getWorkspace errors
-      })
+      .invoke({ workspace: ws })
+      .then((res) => setFiles(res))
+      .catch(() => void 0)
       .finally(() => {
-        if (Date.now() - startTime > 1000) {
-          setLoading(false);
-        } else {
-          setTimeout(() => {
-            setLoading(false);
-          }, 1000);
-        }
+        const elapsed = Date.now() - startTime;
+        if (elapsed > 1000) setLoading(false);
+        else setTimeout(() => setLoading(false), 1000 - elapsed);
       });
   };
 
   useEffect(() => {
     setFiles([]);
-    refreshWorkspace();
+    refreshWorkspace(eventPrefix, workspace);
     emitter.emit(`${eventPrefix}.selected.file`, []);
   }, [workspace, eventPrefix]);
 
+  // 监听当前会话流，工具执行后刷新工作区
   useEffect(() => {
-    return ipcBridge.geminiConversation.responseStream.on((data) => {
+    const stream = eventPrefix === 'acp' ? ipcBridge.acpConversation.responseStream : eventPrefix === 'codex' ? ipcBridge.codexConversation.responseStream : ipcBridge.geminiConversation.responseStream;
+
+    return stream.on((data: any) => {
       if (data.type === 'tool_group' || data.type === 'tool_call') {
         refreshWorkspace();
       }
     });
-  }, [workspace]);
+  }, [eventPrefix, workspace]);
 
-  useEffect(() => {
-    return ipcBridge.acpConversation.responseStream.on((data) => {
-      if (data.type === 'tool_call') {
-        refreshWorkspace();
-      }
-    });
-  }, [workspace]);
-
-  useEffect(() => {
-    return ipcBridge.codexConversation.responseStream.on((data) => {
-      if (data.type === 'tool_call' || data.type === 'tool_group') {
-        refreshWorkspace();
-      }
-    });
-  }, [workspace]);
-
-  useAddEventListener(`${eventPrefix}.workspace.refresh`, () => refreshWorkspace(), [workspace, eventPrefix]);
+  useAddEventListener(`${eventPrefix}.workspace.refresh`, () => refreshWorkspace(eventPrefix, workspace), [workspace, eventPrefix]);
 
   // File search filter logic
   const filteredFiles = useMemo(() => {
@@ -123,7 +101,7 @@ const GeminiWorkspace: React.FC<{
     <div className='size-full flex flex-col'>
       <div className='px-16px pb-8px flex items-center justify-start gap-4px'>
         <span className='font-bold text-14px'>{t('common.file')}</span>
-        <Refresh className={loading ? 'loading lh-[1] flex' : 'flex'} theme='outline' fill='#333' onClick={refreshWorkspace} />
+        <Refresh className={loading ? 'loading lh-[1] flex' : 'flex'} theme='outline' fill='#333' onClick={() => refreshWorkspace(eventPrefix, workspace)} />
       </div>
       {hasOriginalFiles && (
         <div className='px-16px pb-8px'>
@@ -163,7 +141,6 @@ const GeminiWorkspace: React.FC<{
                 <span
                   className='flex items-center gap-4px group'
                   onClick={() => {
-                    return;
                     clearTimeout(timer);
                     timer = setTimeout(() => {
                       setSelected((list) => {
@@ -174,7 +151,6 @@ const GeminiWorkspace: React.FC<{
                         return newList;
                       });
                     }, 100);
-                    console.log('----click', timer, Date.now() - time);
                     time = Date.now();
                   }}
                   onDoubleClick={() => {

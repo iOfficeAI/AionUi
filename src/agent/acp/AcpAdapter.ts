@@ -4,168 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IMessageText, IMessageToolCall, IMessageToolGroup, TMessage } from '@/common/chatLib';
+import type { IMessageAcpToolCall, IMessageText, TMessage } from '@/common/chatLib';
 import { uuid } from '@/common/utils';
-import type { AcpBackend } from '@/common/acpTypes';
-
-export const JSONRPC_VERSION = '2.0' as const;
-
-export interface AcpRequest {
-  jsonrpc: typeof JSONRPC_VERSION;
-  id: number;
-  method: string;
-  params?: any;
-}
-
-export interface AcpResponse {
-  jsonrpc: typeof JSONRPC_VERSION;
-  id: number;
-  result?: any;
-  error?: {
-    code: number;
-    message: string;
-  };
-}
-
-export interface AcpNotification {
-  jsonrpc: typeof JSONRPC_VERSION;
-  method: string;
-  params?: any;
-}
-
-export type AcpMessage = AcpRequest | AcpNotification | AcpResponse | AcpSessionUpdate;
-
-// Base interface for all session updates
-interface BaseSessionUpdate {
-  sessionId: string;
-}
-
-// Agent message chunk update
-interface AgentMessageChunkUpdate extends BaseSessionUpdate {
-  update: {
-    sessionUpdate: 'agent_message_chunk';
-    content: {
-      type: 'text' | 'image';
-      text?: string;
-      data?: string;
-      mimeType?: string;
-      uri?: string;
-    };
-  };
-}
-
-// Agent thought chunk update
-interface AgentThoughtChunkUpdate extends BaseSessionUpdate {
-  update: {
-    sessionUpdate: 'agent_thought_chunk';
-    content: {
-      type: 'text';
-      text: string;
-    };
-  };
-}
-
-// Tool call update
-interface ToolCallUpdate extends BaseSessionUpdate {
-  update: {
-    sessionUpdate: 'tool_call';
-    toolCallId: string;
-    status: 'pending' | 'in_progress';
-    title: string;
-    kind: 'read' | 'edit' | 'execute';
-    rawInput?: any;
-    content?: Array<{
-      type: 'content' | 'diff';
-      content?: {
-        type: 'text';
-        text: string;
-      };
-      path?: string;
-      oldText?: string | null;
-      newText?: string;
-    }>;
-    locations?: Array<{
-      path: string;
-    }>;
-  };
-}
-
-// Tool call update (status change)
-interface ToolCallUpdateStatus extends BaseSessionUpdate {
-  update: {
-    sessionUpdate: 'tool_call_update';
-    toolCallId: string;
-    status: 'completed' | 'failed';
-    content?: Array<{
-      type: 'content';
-      content: {
-        type: 'text';
-        text: string;
-      };
-    }>;
-  };
-}
-
-// Plan update
-interface PlanUpdate extends BaseSessionUpdate {
-  update: {
-    sessionUpdate: 'plan';
-    entries: Array<{
-      content: string;
-      status: 'pending' | 'in_progress' | 'completed';
-      priority?: 'low' | 'medium' | 'high';
-    }>;
-  };
-}
-
-// Available commands update
-interface AvailableCommandsUpdate extends BaseSessionUpdate {
-  update: {
-    sessionUpdate: 'available_commands_update';
-    availableCommands: Array<{
-      name: string;
-      description: string;
-      input?: {
-        hint?: string;
-      } | null;
-    }>;
-  };
-}
-
-// Union type for all session updates
-export type AcpSessionUpdate = AgentMessageChunkUpdate | AgentThoughtChunkUpdate | ToolCallUpdate | ToolCallUpdateStatus | PlanUpdate | AvailableCommandsUpdate;
-
-export interface AcpPermissionRequest {
-  sessionId: string;
-  options: Array<{
-    optionId: string;
-    name: string;
-    kind: 'allow_once' | 'allow_always' | 'reject_once' | 'reject_always';
-    // 以下字段为向后兼容，不是官方协议标准
-    description?: string;
-    title?: string;
-  }>;
-  toolCall: {
-    toolCallId: string;
-    status: string;
-    title: string;
-    kind: string;
-  };
-}
-
-interface AcpToolCall {
-  id: string;
-  function: {
-    name: string;
-    arguments: string;
-  };
-}
-
-interface AcpToolResult {
-  toolCallId: string;
-  output: string;
-  success?: boolean;
-}
+import type { AcpBackend, AcpSessionUpdate, AgentMessageChunkUpdate, AgentThoughtChunkUpdate, AvailableCommandsUpdate, PlanUpdate, ToolCallUpdate, ToolCallUpdateStatus } from '@/common/acpTypes';
 
 /**
  * Adapter class to convert ACP messages to AionUI message format
@@ -173,6 +14,7 @@ interface AcpToolResult {
 export class AcpAdapter {
   private conversationId: string;
   private backend: AcpBackend;
+  private activeToolCalls: Map<string, IMessageAcpToolCall> = new Map();
 
   constructor(conversationId: string, backend: AcpBackend) {
     this.conversationId = conversationId;
@@ -184,23 +26,64 @@ export class AcpAdapter {
    */
   convertSessionUpdate(sessionUpdate: AcpSessionUpdate): TMessage[] {
     const messages: TMessage[] = [];
-    // Handle the new session update format from Gemini ACP
     const update = sessionUpdate.update;
-    if (update.sessionUpdate === 'agent_message_chunk' && update.content) {
-      const message = this.convertSessionUpdateChunk(update);
-      if (message) {
-        messages.push(message);
+
+    switch (update.sessionUpdate) {
+      case 'agent_message_chunk': {
+        if (update.content) {
+          const message = this.convertSessionUpdateChunk(update);
+          if (message) {
+            messages.push(message);
+          }
+        }
+        break;
       }
-    } else if (update.sessionUpdate === 'agent_thought_chunk' && update.content) {
-      const message = this.convertThoughtChunk(update);
-      if (message) {
-        messages.push(message);
+
+      case 'agent_thought_chunk': {
+        if (update.content) {
+          const message = this.convertThoughtChunk(update);
+          if (message) {
+            messages.push(message);
+          }
+        }
+        break;
       }
-    } else if (update.sessionUpdate === 'tool_call') {
-      const message = this.convertToolCall(sessionUpdate as ToolCallUpdate);
-      if (message) {
-        messages.push(message);
+
+      case 'tool_call': {
+        const toolCallMessage = this.createOrUpdateAcpToolCall(sessionUpdate as ToolCallUpdate);
+        if (toolCallMessage) {
+          messages.push(toolCallMessage);
+        }
+        break;
       }
+
+      case 'tool_call_update': {
+        const toolCallUpdateMessage = this.updateAcpToolCall(sessionUpdate as ToolCallUpdateStatus);
+        if (toolCallUpdateMessage) {
+          messages.push(toolCallUpdateMessage);
+        }
+        break;
+      }
+
+      case 'plan': {
+        const planMessage = this.convertPlanUpdate(sessionUpdate as PlanUpdate);
+        if (planMessage) {
+          messages.push(planMessage);
+        }
+        break;
+      }
+
+      case 'available_commands_update': {
+        const commandsMessage = this.convertAvailableCommandsUpdate(sessionUpdate as AvailableCommandsUpdate);
+        if (commandsMessage) {
+          messages.push(commandsMessage);
+        }
+        break;
+      }
+
+      default:
+        console.warn('Unknown session update type:', (update as any).sessionUpdate);
+        break;
     }
 
     return messages;
@@ -255,222 +138,142 @@ export class AcpAdapter {
     return null;
   }
 
-  /**
-   * Convert a single ACP message to AionUI message format
-   */
-  // private convertSingleMessage(acpMessage: AcpMessage): TMessage | null {
-  //   const baseMessage = {
-  //     id: acpMessage.id || uuid(),
-  //     conversation_id: this.conversationId,
-  //     createdAt: Date.now(),
-  //     position: 'left' as const,
-  //   };
-  //
-  //   switch (acpMessage.type) {
-  //     case 'assistant':
-  //       if (typeof acpMessage.content === 'string') {
-  //         return {
-  //           ...baseMessage,
-  //           type: 'text',
-  //           content: {
-  //             content: acpMessage.content,
-  //           },
-  //         } as IMessageText;
-  //       } else if (acpMessage.content.tool_calls) {
-  //         // Handle tool calls from assistant
-  //         return this.convertToolCalls(acpMessage.content.tool_calls, baseMessage);
-  //       }
-  //       break;
-  //
-  //     case 'tool_call':
-  //       return this.convertToolCall(acpMessage.content, baseMessage);
-  //
-  //     case 'tool_result':
-  //       return this.convertToolResult(acpMessage.content, baseMessage);
-  //
-  //     case 'thought':
-  //       // Convert thoughts to tips messages
-  //       return {
-  //         ...baseMessage,
-  //         type: 'tips',
-  //         position: 'center',
-  //         content: {
-  //           content: acpMessage.content,
-  //           type: 'warning',
-  //         },
-  //       };
-  //
-  //     case 'user':
-  //       return {
-  //         ...baseMessage,
-  //         type: 'text',
-  //         position: 'right',
-  //         content: {
-  //           content: acpMessage.content,
-  //         },
-  //       } as IMessageText;
-  //
-  //     default:
-  //       return null;
-  //   }
-  //
-  //   return null;
-  // }
+  private createOrUpdateAcpToolCall(update: ToolCallUpdate): IMessageAcpToolCall | null {
+    const toolCallId = update.update.toolCallId;
 
-  /**
-   * Convert ACP tool calls to AionUI tool_group message
-   */
-  private convertToolCalls(toolCalls: AcpToolCall[], baseMessage: any): IMessageToolGroup {
-    const tools = toolCalls.map((toolCall) => {
-      return {
-        callId: toolCall.id,
-        description: `Calling ${toolCall.function.name}`,
-        name: this.mapToolName(toolCall.function.name),
-        renderOutputAsMarkdown: true,
-        status: 'Executing' as const,
-      };
-    });
-
-    return {
-      ...baseMessage,
-      type: 'tool_group',
-      content: tools,
-    };
-  }
-
-  /**
-   * Convert ACP single tool call to AionUI tool_call message
-   */
-  private convertToolCall(content: ToolCallUpdate): TMessage {
+    // 使用 toolCallId 作为 msg_id，确保同一个工具调用的消息可以被合并
     const baseMessage = {
       id: uuid(),
+      msg_id: toolCallId, // 关键：使用 toolCallId 作为 msg_id
       conversation_id: this.conversationId,
+      createdAt: Date.now(),
       position: 'left' as const,
     };
-    return {
+
+    const acpToolCallMessage: IMessageAcpToolCall = {
       ...baseMessage,
-      type: 'tool_call',
-      content: {
-        callId: content.update.toolCallId,
-        name: content.update.kind,
-        status: content,
+      type: 'acp_tool_call',
+      content: update, // 直接使用 ToolCallUpdate 作为 content
+    };
+
+    this.activeToolCalls.set(toolCallId, acpToolCallMessage);
+    return acpToolCallMessage;
+  }
+
+  /**
+   * Update existing ACP tool call message
+   * Returns the updated message with the same msg_id so composeMessage can merge it
+   */
+  private updateAcpToolCall(update: ToolCallUpdateStatus): IMessageAcpToolCall | null {
+    const toolCallData = update.update;
+    const toolCallId = toolCallData.toolCallId;
+
+    // Get existing message
+    const existingMessage = this.activeToolCalls.get(toolCallId);
+    if (!existingMessage) {
+      console.warn(`No existing tool call found for ID: ${toolCallId}`);
+      return null;
+    }
+
+    // Update the ToolCallUpdate content with new status and content
+    const updatedContent: ToolCallUpdate = {
+      ...existingMessage.content,
+      update: {
+        ...existingMessage.content.update,
+        status: toolCallData.status,
+        content: toolCallData.content ? [...(existingMessage.content.update.content || []), ...toolCallData.content] : existingMessage.content.update.content,
       },
-    } as unknown as IMessageToolCall;
-  }
-
-  /**
-   * Convert ACP tool result to update existing tool_group message
-   */
-  private convertToolResult(content: AcpToolResult, baseMessage: any): TMessage | null {
-    // For tool results, we typically want to update an existing tool_group message
-    // rather than create a new message. This would need to be handled by the caller
-    // who maintains the message list state.
-
-    return {
-      ...baseMessage,
-      type: 'tool_group',
-      content: [
-        {
-          callId: content.toolCallId,
-          description: 'Tool execution result',
-          name: 'Shell' as const,
-          renderOutputAsMarkdown: true,
-          status: content.success !== false ? ('Success' as const) : ('Error' as const),
-          resultDisplay: content.output,
-        },
-      ],
-    };
-  }
-
-  /**
-   * Map ACP tool names to AionUI tool names
-   */
-  private mapToolName(acpToolName: string): IMessageToolGroup['content'][0]['name'] {
-    const toolNameMap: Record<string, IMessageToolGroup['content'][0]['name']> = {
-      bash: 'Shell',
-      shell: 'Shell',
-      write_file: 'WriteFile',
-      read_file: 'ReadFile',
-      edit_file: 'WriteFile',
-      search: 'GoogleSearch',
-      web_search: 'GoogleSearch',
-      generate_image: 'ImageGeneration',
-      create_image: 'ImageGeneration',
     };
 
-    return toolNameMap[acpToolName.toLowerCase()] || 'Shell';
-  }
+    // Create updated message with the SAME msg_id so composeMessage will merge it
+    const updatedMessage: IMessageAcpToolCall = {
+      ...existingMessage,
+      msg_id: toolCallId, // 确保 msg_id 一致，这样 composeMessage 会合并消息
+      content: updatedContent,
+      createdAt: Date.now(), // 更新时间戳
+    };
 
-  /**
-   * Parse tool arguments from string or return as-is if already parsed
-   */
-  private parseToolArguments(args: string | object): Record<string, any> {
-    if (typeof args === 'string') {
-      try {
-        return JSON.parse(args);
-      } catch (error) {
-        return { raw: args };
-      }
+    // Update stored message
+    this.activeToolCalls.set(toolCallId, updatedMessage);
+
+    // Clean up completed/failed tool calls after a delay to prevent memory leaks
+    if (toolCallData.status === 'completed' || toolCallData.status === 'failed') {
+      setTimeout(() => {
+        this.activeToolCalls.delete(toolCallId);
+      }, 60000); // Clean up after 1 minute
     }
-    return args as Record<string, any>;
+
+    // Return the updated message with same msg_id - composeMessage will merge it with existing
+    return updatedMessage;
   }
 
   /**
-   * Update the conversation ID for this adapter
+   * Convert plan update to AionUI message
    */
-  updateConversationId(conversationId: string): void {
-    this.conversationId = conversationId;
-  }
+  private convertPlanUpdate(update: PlanUpdate): TMessage | null {
+    const baseMessage = {
+      id: uuid(),
+      msg_id: uuid(), // 生成独立的 msg_id，避免与其他消息合并
+      conversation_id: this.conversationId,
+      createdAt: Date.now(),
+      position: 'left' as const,
+    };
 
-  /**
-   * Update the backend for this adapter
-   */
-  updateBackend(backend: AcpBackend): void {
-    this.backend = backend;
-  }
+    const planData = update.update;
+    if (planData.entries && planData.entries.length > 0) {
+      const planContent = planData.entries
+        .map((entry) => {
+          const statusIcon = entry.status === 'completed' ? '✅' : entry.status === 'in_progress' ? '🔄' : '⏳';
+          const priority = entry.priority ? ` [${entry.priority.toUpperCase()}]` : '';
+          return `${statusIcon} ${entry.content}${priority}`;
+        })
+        .join('\n');
 
-  /**
-   * Get backend-specific message formatting
-   */
-  getBackendSpecificFormatting(message: TMessage): TMessage {
-    // Apply any backend-specific formatting
-    switch (this.backend) {
-      case 'claude':
-        return this.formatForClaude(message);
-      case 'gemini':
-        return this.formatForGemini(message);
-      default:
-        return message;
-    }
-  }
-
-  private formatForClaude(message: TMessage): TMessage {
-    // Claude-specific message formatting
-    if (message.type === 'text' && message.position === 'left') {
-      // Add Claude branding or specific styling
       return {
-        ...message,
+        ...baseMessage,
+        type: 'text',
         content: {
-          ...message.content,
-          content: message.content.content,
+          content: `📋 **Plan Update**\n\n${planContent}`,
         },
-      };
+      } as IMessageText;
     }
-    return message;
+
+    return null;
   }
 
-  private formatForGemini(message: TMessage): TMessage {
-    // Gemini-specific message formatting
-    if (message.type === 'text' && message.position === 'left') {
-      // Add Gemini branding or specific styling
+  /**
+   * Convert available commands update to AionUI message
+   */
+  private convertAvailableCommandsUpdate(update: AvailableCommandsUpdate): TMessage | null {
+    const baseMessage = {
+      id: uuid(),
+      msg_id: uuid(), // 生成独立的 msg_id，避免与其他消息合并
+      conversation_id: this.conversationId,
+      createdAt: Date.now(),
+      position: 'left' as const,
+    };
+
+    const commandsData = update.update;
+    if (commandsData.availableCommands && commandsData.availableCommands.length > 0) {
+      const commandsList = commandsData.availableCommands
+        .map((command) => {
+          let line = `• **${command.name}**: ${command.description}`;
+          if (command.input?.hint) {
+            line += ` (${command.input.hint})`;
+          }
+          return line;
+        })
+        .join('\n');
+
       return {
-        ...message,
+        ...baseMessage,
+        type: 'text',
         content: {
-          ...message.content,
-          content: message.content.content,
+          content: `🛠️ **Available Commands**\n\n${commandsList}`,
         },
-      };
+      } as IMessageText;
     }
-    return message;
+
+    return null;
   }
 }
