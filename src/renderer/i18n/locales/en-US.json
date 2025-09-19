@@ -20,7 +20,10 @@
     "version": "Version",
     "contact": "Contact",
     "github": "Github",
-    "loading": "Please wait..."
+    "loading": "Please wait...",
+    "copy": "Copy",
+    "copySuccess": "Copied",
+    "copyFailed": "Copy failed"
   },
   "conversation": {
     "welcome": {
@@ -101,9 +104,9 @@
     "mcpSettings": "MCP Tools Configuration",
     "mcpServerList": "MCP Servers",
     "mcpStatus": "Status",
-    "mcpAddServer": "Add MCP Server",
-    "mcpEditServer": "Edit MCP Server",
-    "mcpDeleteServer": "Delete MCP Server",
+    "mcpAddServer": "Manual Add",
+    "mcpEditServer": "Edit",
+    "mcpDeleteServer": "Delete",
     "mcpDeleteConfirm": "Are you sure you want to delete this MCP server?",
     "mcpImportFromJSON": "Import from JSON",
     "mcpImportTitle": "Import MCP Configuration",

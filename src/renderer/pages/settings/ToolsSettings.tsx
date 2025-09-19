@@ -3,7 +3,7 @@ import { Collapse, Form, Select, Switch } from '@arco-design/web-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useConfigModelListWithImage from '../../hooks/useConfigModelListWithImage';
-import McpManagement from './components/McpManagement';
+import McpManagement from '@renderer/pages/settings/McpManagement';
 import SettingContainer from './components/SettingContainer';
 
 const ToolsSettings: React.FC = () => {
@@ -74,7 +74,12 @@ const ToolsSettings: React.FC = () => {
           header={
             <div className='flex items-center justify-between'>
               Image Generation
-              <Switch disabled={!imageGenerationModelList.length || !imageGenerationModel?.useModel} checked={imageGenerationModel?.switch} onChange={(checked) => handleImageGenerationModelChange({ switch: checked })} onClick={(e) => e.stopPropagation()}></Switch>
+              <Switch
+                disabled={!imageGenerationModelList.length || !imageGenerationModel?.useModel}
+                checked={imageGenerationModel?.switch}
+                onChange={(checked) => handleImageGenerationModelChange({ switch: checked })}
+                onClick={(e) => e.stopPropagation()}
+              ></Switch>
             </div>
           }
           name={'image-generation'}

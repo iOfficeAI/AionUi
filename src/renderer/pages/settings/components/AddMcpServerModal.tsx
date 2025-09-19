@@ -44,24 +44,31 @@ const AddMcpServerModal: React.FC<AddMcpServerModalProps> = ({ visible, server, 
   // 当编辑现有服务器时，预填充JSON数据
   useEffect(() => {
     if (visible && server) {
-      // 将现有服务器配置转换为JSON格式
-      const serverConfig = {
-        mcpServers: {
-          [server.name]: {
-            description: server.description,
-            ...(server.transport.type === 'stdio'
-              ? {
-                  command: server.transport.command,
-                  args: server.transport.args || [],
-                  env: server.transport.env || {},
-                }
-              : {
-                  url: server.transport.url,
-                }),
+      // 优先使用存储的originalJson，如果没有则生成JSON配置
+      if (server.originalJson) {
+        setJsonInput(server.originalJson);
+      } else {
+        // 兼容没有originalJson的旧数据，生成JSON配置
+        const serverConfig = {
+          mcpServers: {
+            [server.name]: {
+              description: server.description,
+              ...(server.transport.type === 'stdio'
+                ? {
+                    command: server.transport.command,
+                    args: server.transport.args || [],
+                    env: server.transport.env || {},
+                  }
+                : {
+                    type: server.transport.type,
+                    url: server.transport.url,
+                    ...(server.transport.headers && { headers: server.transport.headers }),
+                  }),
+            },
           },
-        },
-      };
-      setJsonInput(JSON.stringify(serverConfig, null, 2));
+        };
+        setJsonInput(JSON.stringify(serverConfig, null, 2));
+      }
       setIsImportMode(false); // 编辑模式下使用JSON模式
     } else if (visible && !server) {
       // 新建模式下清空JSON输入
@@ -106,13 +113,37 @@ const AddMcpServerModal: React.FC<AddMcpServerModalProps> = ({ visible, server, 
 
   const handleBatchImport = () => {
     if (onBatchImport && importableServers.length > 0) {
-      const serversToImport = importableServers.map((server) => ({
-        name: server.name,
-        description: server.description,
-        enabled: server.enabled,
-        transport: server.transport,
-        status: server.status as IMcpServer['status'],
-      }));
+      const serversToImport = importableServers.map((server) => {
+        // 为CLI导入的服务器生成标准的JSON格式
+        const serverConfig: any = {
+          description: server.description,
+        };
+
+        if (server.transport.type === 'stdio') {
+          serverConfig.command = server.transport.command;
+          if (server.transport.args?.length) {
+            serverConfig.args = server.transport.args;
+          }
+          if (server.transport.env && Object.keys(server.transport.env).length) {
+            serverConfig.env = server.transport.env;
+          }
+        } else {
+          serverConfig.type = server.transport.type;
+          serverConfig.url = server.transport.url;
+          if (server.transport.headers && Object.keys(server.transport.headers).length) {
+            serverConfig.headers = server.transport.headers;
+          }
+        }
+
+        return {
+          name: server.name,
+          description: server.description,
+          enabled: server.enabled,
+          transport: server.transport,
+          status: server.status as IMcpServer['status'],
+          originalJson: JSON.stringify({ mcpServers: { [server.name]: serverConfig } }, null, 2),
+        };
+      });
       onBatchImport(serversToImport);
       onCancel();
     }
@@ -145,15 +176,23 @@ const AddMcpServerModal: React.FC<AddMcpServerModalProps> = ({ visible, server, 
                 args: serverConfig.args || [],
                 env: serverConfig.env || {},
               }
-            : serverConfig.url?.includes('/sse')
+            : serverConfig.type === 'sse' || serverConfig.url?.includes('/sse')
               ? {
                   type: 'sse',
                   url: serverConfig.url,
+                  headers: serverConfig.headers,
                 }
-              : {
-                  type: 'http',
-                  url: serverConfig.url,
-                };
+              : serverConfig.type === 'streamable_http'
+                ? {
+                    type: 'streamable_http',
+                    url: serverConfig.url,
+                    headers: serverConfig.headers,
+                  }
+                : {
+                    type: 'http',
+                    url: serverConfig.url,
+                    headers: serverConfig.headers,
+                  };
 
           return {
             name: serverKey,
@@ -161,6 +200,7 @@ const AddMcpServerModal: React.FC<AddMcpServerModalProps> = ({ visible, server, 
             enabled: true,
             transport,
             status: 'disconnected' as const,
+            originalJson: JSON.stringify({ mcpServers: { [serverKey]: serverConfig } }, null, 2),
           };
         });
 
@@ -178,15 +218,23 @@ const AddMcpServerModal: React.FC<AddMcpServerModalProps> = ({ visible, server, 
             args: serverConfig.args || [],
             env: serverConfig.env || {},
           }
-        : serverConfig.url?.includes('/sse')
+        : serverConfig.type === 'sse' || serverConfig.url?.includes('/sse')
           ? {
               type: 'sse',
               url: serverConfig.url,
+              headers: serverConfig.headers,
             }
-          : {
-              type: 'http',
-              url: serverConfig.url,
-            };
+          : serverConfig.type === 'streamable_http'
+            ? {
+                type: 'streamable_http',
+                url: serverConfig.url,
+                headers: serverConfig.headers,
+              }
+            : {
+                type: 'http',
+                url: serverConfig.url,
+                headers: serverConfig.headers,
+              };
 
       onSubmit({
         name: firstServerKey,
@@ -194,6 +242,7 @@ const AddMcpServerModal: React.FC<AddMcpServerModalProps> = ({ visible, server, 
         enabled: true,
         transport,
         status: 'disconnected',
+        originalJson: jsonInput,
       });
     } catch (error) {
       console.error('Failed to parse JSON:', error);
@@ -361,7 +410,7 @@ const AddMcpServerModal: React.FC<AddMcpServerModalProps> = ({ visible, server, 
                   backdropFilter: 'blur(4px)',
                 }}
               >
-                {copyStatus === 'success' ? t('common.copySuccess') || '已复制' : copyStatus === 'error' ? t('common.copyFailed') || '复制失败' : t('common.copy') || '复制'}
+                {copyStatus === 'success' ? t('common.copySuccess') : copyStatus === 'error' ? t('common.copyFailed') : t('common.copy')}
               </Button>
             )}
           </div>

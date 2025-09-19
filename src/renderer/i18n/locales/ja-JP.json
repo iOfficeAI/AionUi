@@ -20,7 +20,10 @@
     "version": "バージョン",
     "contact": "お問い合わせ",
     "github": "Github",
-    "loading": "お待ちください..."
+    "loading": "お待ちください...",
+    "copy": "コピー",
+    "copySuccess": "コピーしました",
+    "copyFailed": "コピー失敗"
   },
   "conversation": {
     "welcome": {
@@ -101,9 +104,9 @@
     "mcpSettings": "MCPツール設定",
     "mcpServerList": "MCPサーバー",
     "mcpStatus": "ステータス",
-    "mcpAddServer": "MCPサーバーを追加",
-    "mcpEditServer": "MCPサーバーを編集",
-    "mcpDeleteServer": "MCPサーバーを削除",
+    "mcpAddServer": "手動追加",
+    "mcpEditServer": "編集",
+    "mcpDeleteServer": "削除",
     "mcpDeleteConfirm": "このMCPサーバーを削除してもよろしいですか？",
     "mcpImportFromJSON": "JSONからインポート",
     "mcpImportTitle": "MCP設定をインポート",
