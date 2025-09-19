@@ -20,7 +20,10 @@
     "version": "版本號",
     "contact": "聯絡我們",
     "github": "Github",
-    "loading": "請稍候..."
+    "loading": "請稍候...",
+    "copy": "複製",
+    "copySuccess": "已複製",
+    "copyFailed": "複製失敗"
   },
   "conversation": {
     "welcome": {
@@ -101,9 +104,9 @@
     "mcpSettings": "MCP工具配置",
     "mcpServerList": "MCP伺服器",
     "mcpStatus": "狀態",
-    "mcpAddServer": "新增MCP伺服器",
-    "mcpEditServer": "編輯MCP伺服器",
-    "mcpDeleteServer": "刪除MCP伺服器",
+    "mcpAddServer": "手動新增",
+    "mcpEditServer": "編輯",
+    "mcpDeleteServer": "刪除",
     "mcpDeleteConfirm": "確定要刪除此MCP伺服器嗎？",
     "mcpImportFromJSON": "從JSON匯入",
     "mcpImportTitle": "匯入MCP配置",

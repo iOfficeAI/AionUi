@@ -20,7 +20,10 @@
     "version": "版本号",
     "contact": "联系我们",
     "github": "Github",
-    "loading": "请稍候..."
+    "loading": "请稍候...",
+    "copy": "复制",
+    "copySuccess": "已复制",
+    "copyFailed": "复制失败"
   },
   "conversation": {
     "welcome": {
@@ -101,14 +104,15 @@
     "mcpSettings": "MCP工具配置",
     "mcpServerList": "MCP服务器",
     "mcpStatus": "状态",
-    "mcpAddServer": "添加MCP服务器",
-    "mcpEditServer": "编辑MCP服务器",
-    "mcpDeleteServer": "删除MCP服务器",
+    "mcpAddServer": "手动添加",
+    "mcpEditServer": "编辑",
+    "mcpDeleteServer": "删除",
     "mcpDeleteConfirm": "确定要删除此MCP服务器吗？",
     "mcpImportFromJSON": "从JSON导入",
     "mcpImportTitle": "导入MCP配置",
     "mcpImportPlaceholder": "请从MCP服务介绍页面中的服务配置信息复制JSON（优先使用NPX或UVX配置），并粘贴到下方输入框中。",
     "mcpTestConnection": "测试连接",
+    "mcpTestConnectionSuccess": "连接成功",
     "mcpConnected": "已连接",
     "mcpDisconnected": "未连接",
     "mcpError": "错误",

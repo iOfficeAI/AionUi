@@ -38,6 +38,7 @@ export interface IConfigStorageRefer {
   };
   'model.config': IProvider[];
   'mcp.config': IMcpServer[];
+  'mcp.agentInstallStatus': Record<string, string[]>;
   language: string;
   theme: string;
   'gemini.defaultModel': string;
@@ -142,14 +143,22 @@ export interface IMcpServerTransportStdio {
 export interface IMcpServerTransportSSE {
   type: 'sse';
   url: string;
+  headers?: Record<string, string>;
 }
 
 export interface IMcpServerTransportHTTP {
   type: 'http';
   url: string;
+  headers?: Record<string, string>;
 }
 
-export type IMcpServerTransport = IMcpServerTransportStdio | IMcpServerTransportSSE | IMcpServerTransportHTTP;
+export interface IMcpServerTransportStreamableHTTP {
+  type: 'streamable_http';
+  url: string;
+  headers?: Record<string, string>;
+}
+
+export type IMcpServerTransport = IMcpServerTransportStdio | IMcpServerTransportSSE | IMcpServerTransportHTTP | IMcpServerTransportStreamableHTTP;
 
 export interface IMcpServer {
   id: string;
@@ -162,6 +171,7 @@ export interface IMcpServer {
   lastConnected?: number;
   createdAt: number;
   updatedAt: number;
+  originalJson: string; // 存储原始JSON配置，用于编辑时的准确显示
 }
 
 export interface IMcpTool {
