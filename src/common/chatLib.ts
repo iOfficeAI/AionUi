@@ -228,35 +228,8 @@ export const transformMessage = (message: IResponseMessage): TMessage | undefine
       };
     }
     case 'content': {
-      // 安全地处理消息数据，确保它是字符串格式
-      let contentData = message.data;
-      if (typeof contentData !== 'string') {
-        if (contentData === null || contentData === undefined) {
-          return undefined; // 过滤掉空内容
-        } else if (typeof contentData === 'object') {
-          // 如果是空对象，过滤掉整个消息
-          if (Object.keys(contentData).length === 0) {
-            return undefined;
-          } else {
-            // 尝试提取有意义的内容
-            const extracted = contentData.content || contentData.message || contentData.text;
-            if (extracted) {
-              contentData = extracted;
-            } else {
-              // 如果没有有意义的内容，过滤掉整个消息
-              return undefined;
-            }
-          }
-        } else {
-          contentData = String(contentData);
-        }
-      }
-
-      // 如果最终内容为空字符串，也过滤掉
-      if (!contentData || contentData.trim() === '') {
-        return undefined;
-      }
-
+      // 假设传入的 message.data 已经是正确的字符串格式
+      // 各个 Agent Manager 应该在调用 transformMessage 之前确保数据格式正确
       return {
         id: uuid(),
         type: 'text',
@@ -264,7 +237,7 @@ export const transformMessage = (message: IResponseMessage): TMessage | undefine
         position: 'left',
         conversation_id: message.conversation_id,
         content: {
-          content: contentData,
+          content: message.data,
         },
       };
     }
