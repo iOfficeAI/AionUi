@@ -117,6 +117,10 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
     console.log('⚙️ [CodexAgentManager] Performing post-connection setup...');
 
     try {
+      // 输出连接诊断信息
+      const diagnostics = this.getDiagnostics();
+      console.log('🔍 [CodexAgentManager] Connection diagnostics before setup:', diagnostics);
+
       // MCP 初始化握手 - 现在有内置重试机制
       const result = await this.agent.newSession(this.workspace);
       console.log('✅ [CodexAgentManager] Session created with ID:', result.sessionId);
@@ -129,12 +133,32 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
     } catch (error) {
       console.error('❌ [CodexAgentManager] Post-connection setup failed:', error);
 
+      // 输出更详细的诊断信息
+      const diagnostics = this.getDiagnostics();
+      console.error('🔍 [CodexAgentManager] Connection diagnostics after failure:', diagnostics);
+
+      // 提供具体的错误信息和建议
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      let suggestions: string[] = [];
+
+      if (errorMessage.includes('timed out')) {
+        suggestions = ['Check if Codex CLI is installed: run "codex --version"', 'Verify authentication: run "codex auth status"', 'Check network connectivity', 'Try restarting the application'];
+      } else if (errorMessage.includes('command not found')) {
+        suggestions = ['Install Codex CLI: https://codex.com/install', 'Add Codex to your PATH environment variable', 'Restart your terminal/application after installation'];
+      } else if (errorMessage.includes('authentication')) {
+        suggestions = ['Run "codex auth" to authenticate with your account', 'Check if your authentication token is valid', 'Try logging out and logging back in'];
+      }
+
+      console.log('💡 [CodexAgentManager] Suggested troubleshooting steps:', suggestions);
+
       // 即使设置失败，也尝试继续运行，因为连接可能仍然有效
       console.log('🔄 [CodexAgentManager] Attempting to continue despite setup failure...');
       this.sessionManager.emitSessionEvent('session_partial', {
         workspace: this.workspace,
         agent_type: 'codex',
-        error: error instanceof Error ? error.message : String(error),
+        error: errorMessage,
+        diagnostics,
+        suggestions,
       });
 
       // 不抛出错误，让应用程序继续运行
@@ -227,7 +251,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
     }
 
     // Normalize call id back to server's codex_call_id
-    const origCallId = data.callId.startsWith('patch_') ? data.callId.substring(6) : data.callId.startsWith('elicitation_') ? data.callId.substring(12) : data.callId;
+    const origCallId = data.callId.startsWith('patch_') ? data.callId.substring(6) : data.callId.startsWith('elicitation_') ? data.callId.substring(12) : data.callId.startsWith('exec_') ? data.callId.substring(5) : data.callId;
 
     // Respond to elicitation (server expects JSON-RPC response)
     console.log('📨 [CodexAgentManager] Responding elicitation with decision:', decision, 'origCallId:', origCallId);
@@ -353,6 +377,18 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
     };
     ipcBridge.codexConversation.responseStream.emit(statusMessage);
     console.log('✅ [CodexAgentManager] Status message emitted');
+  }
+
+  getDiagnostics() {
+    const agentDiagnostics = (this.agent as any)?.conn?.getDiagnostics?.() || {};
+    const sessionInfo = this.sessionManager.getSessionInfo();
+
+    return {
+      agent: agentDiagnostics,
+      session: sessionInfo,
+      workspace: this.workspace,
+      conversation_id: this.conversation_id,
+    };
   }
 
   cleanup() {

@@ -46,6 +46,10 @@ const MessageItem: React.FC<{ message: TMessage }> = HOC((props) => {
       return <MessageAcpPermission message={message}></MessageAcpPermission>;
     case 'acp_tool_call':
       return <MessageAcpToolCall message={message}></MessageAcpToolCall>;
+    case 'codex_permission':
+      return <MessageAcpPermission message={message}></MessageAcpPermission>;
+    case 'codex_status':
+      return <MessageAcpStatus message={message}></MessageAcpStatus>;
     default:
       return <div>Unknown message type: {(message as any).type}</div>;
   }

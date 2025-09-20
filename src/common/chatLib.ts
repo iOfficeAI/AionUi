@@ -324,28 +324,6 @@ export const transformMessage = (message: IResponseMessage): TMessage | undefine
           content: message.data,
         };
       }
-      case 'codex_status': {
-        console.log('📊 [transformMessage] Processing Codex status message');
-        return {
-          id: uuid(),
-          type: 'codex_status',
-          msg_id: message.msg_id,
-          position: 'center',
-          conversation_id: message.conversation_id,
-          content: message.data,
-        };
-      }
-      case 'codex_permission': {
-        console.log('🔐 [transformMessage] Processing Codex permission message');
-        return {
-          id: uuid(),
-          type: 'codex_permission',
-          msg_id: message.msg_id,
-          position: 'left',
-          conversation_id: message.conversation_id,
-          content: message.data,
-        };
-      }
       case 'start':
       case 'finish':
       case 'thought':

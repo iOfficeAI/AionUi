@@ -65,4 +65,4 @@ export const APP_CLIENT_VERSION: string = (() => {
 })();
 
 // Codex MCP protocol version (server handshake)
-export const CODEX_MCP_PROTOCOL_VERSION = '1.0.0' as const;
+export const CODEX_MCP_PROTOCOL_VERSION = '2024-11-05' as const;

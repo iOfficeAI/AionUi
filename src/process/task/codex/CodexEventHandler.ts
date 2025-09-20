@@ -109,6 +109,12 @@ export class CodexEventHandler {
       return;
     }
 
+    // Handle exec approval requests
+    if (type === CodexAgentEventType.EXEC_APPROVAL_REQUEST) {
+      this.handleExecApprovalRequest(evt as any);
+      return;
+    }
+
     // Handle permission requests through unified transformMessage
     if (type === CodexAgentEventType.APPLY_PATCH_APPROVAL_REQUEST || type === CodexAgentEventType.ELICITATION_CREATE) {
       this.handlePermissionRequest(evt as any);
@@ -150,6 +156,62 @@ export class CodexEventHandler {
 
     // Catch all unhandled events for debugging
     console.warn(`❌ [CodexAgentManager] Unhandled event type: "${type}"`, (evt as any).data);
+  }
+
+  private handleExecApprovalRequest(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.EXEC_APPROVAL_REQUEST }>) {
+    const eventData = evt.data as any;
+    const callId = eventData.call_id || uuid();
+    const uniqueRequestId = `exec_${callId}`;
+
+    // Check if we've already processed this call_id to avoid duplicates
+    if (this.toolHandlers.getPendingConfirmations().has(uniqueRequestId)) {
+      return;
+    }
+
+    this.toolHandlers.getPendingConfirmations().add(uniqueRequestId);
+
+    // Create command approval request
+    const standardMessage: IResponseMessage = {
+      type: 'acp_permission',
+      msg_id: uuid(),
+      conversation_id: this.conversation_id,
+      data: {
+        title: 'Command Execution Permission',
+        description: eventData.reason || `Codex wants to execute command: ${Array.isArray(eventData.command) ? eventData.command.join(' ') : eventData.command}`,
+        agentType: 'codex',
+        sessionId: '',
+        options: [
+          {
+            optionId: 'allow_once',
+            name: 'Allow',
+            kind: 'allow_once' as const,
+            description: 'Allow this command execution',
+          },
+          {
+            optionId: 'reject_once',
+            name: 'Reject',
+            kind: 'reject_once' as const,
+            description: 'Reject this command execution',
+          },
+        ],
+        requestId: uniqueRequestId,
+        toolCall: {
+          title: 'Execute Command',
+          toolCallId: uniqueRequestId,
+          rawInput: {
+            command: eventData.command,
+            cwd: eventData.cwd,
+            reason: eventData.reason,
+          },
+        },
+      } as ExtendedAcpPermissionRequest,
+    };
+
+    const transformedMessage = transformMessage(standardMessage);
+    if (transformedMessage) {
+      addOrUpdateMessage(this.conversation_id, transformedMessage, true);
+      ipcBridge.codexConversation.responseStream.emit(standardMessage);
+    }
   }
 
   private handlePermissionRequest(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.APPLY_PATCH_APPROVAL_REQUEST } | { type: CodexAgentEventType.ELICITATION_CREATE }>) {
@@ -260,6 +322,45 @@ export class CodexEventHandler {
               title: 'Write File',
               toolCallId: uniqueRequestId,
               rawInput: {
+                description: elicitationData.message,
+              },
+            },
+          } as ExtendedAcpPermissionRequest,
+        };
+      }
+
+      // Handle exec approval requests
+      if (elicitationData.codex_elicitation === 'exec-approval') {
+        return {
+          type: 'acp_permission',
+          msg_id: uuid(),
+          conversation_id: this.conversation_id,
+          data: {
+            title: 'Command Execution Permission',
+            description: elicitationData.message || 'Codex wants to execute a command',
+            agentType: 'codex',
+            sessionId: '',
+            options: [
+              {
+                optionId: 'allow_once',
+                name: 'Allow',
+                kind: 'allow_once' as const,
+                description: 'Allow this command execution',
+              },
+              {
+                optionId: 'reject_once',
+                name: 'Reject',
+                kind: 'reject_once' as const,
+                description: 'Reject this command execution',
+              },
+            ],
+            requestId: uniqueRequestId,
+            toolCall: {
+              title: 'Execute Command',
+              toolCallId: uniqueRequestId,
+              rawInput: {
+                command: elicitationData.codex_command,
+                cwd: elicitationData.codex_cwd,
                 description: elicitationData.message,
               },
             },

@@ -9,19 +9,20 @@ export enum CodexAgentEventType {
   // Session and configuration events
   SESSION_CONFIGURED = 'session_configured',
   TASK_STARTED = 'task_started',
+  TASK_COMPLETE = 'task_complete',
 
-  // Message events
+  // Text & reasoning events
   AGENT_MESSAGE_DELTA = 'agent_message_delta',
   AGENT_MESSAGE = 'agent_message',
   USER_MESSAGE = 'user_message',
-  TASK_COMPLETE = 'task_complete',
-  STREAM_ERROR = 'stream_error',
-
-  // Reasoning events (internal, usually ignored)
-  AGENT_REASONING_DELTA = 'agent_reasoning_delta',
   AGENT_REASONING = 'agent_reasoning',
+  AGENT_REASONING_DELTA = 'agent_reasoning_delta',
   AGENT_REASONING_RAW_CONTENT = 'agent_reasoning_raw_content',
   AGENT_REASONING_RAW_CONTENT_DELTA = 'agent_reasoning_raw_content_delta',
+  AGENT_REASONING_SECTION_BREAK = 'agent_reasoning_section_break',
+
+  // Usage / telemetry
+  TOKEN_COUNT = 'token_count',
 
   // Command execution events
   EXEC_COMMAND_BEGIN = 'exec_command_begin',
@@ -31,32 +32,31 @@ export enum CodexAgentEventType {
 
   // Patch/file modification events
   APPLY_PATCH_APPROVAL_REQUEST = 'apply_patch_approval_request',
-  ELICITATION_CREATE = 'elicitation/create',
   PATCH_APPLY_BEGIN = 'patch_apply_begin',
   PATCH_APPLY_END = 'patch_apply_end',
+
+  // Elicitation & prompt approval
+  ELICITATION_CREATE = 'elicitation/create',
 
   // MCP tool events
   MCP_TOOL_CALL_BEGIN = 'mcp_tool_call_begin',
   MCP_TOOL_CALL_END = 'mcp_tool_call_end',
+  MCP_LIST_TOOLS_RESPONSE = 'mcp_list_tools_response',
 
   // Web search events
   WEB_SEARCH_BEGIN = 'web_search_begin',
   WEB_SEARCH_END = 'web_search_end',
 
-  // Token usage events
-  TOKEN_COUNT = 'token_count',
-
-  // Agent reasoning section break
-  AGENT_REASONING_SECTION_BREAK = 'agent_reasoning_section_break',
-
-  // Additional protocol events
+  // Conversation history & context
   TURN_DIFF = 'turn_diff',
   GET_HISTORY_ENTRY_RESPONSE = 'get_history_entry_response',
-  MCP_LIST_TOOLS_RESPONSE = 'mcp_list_tools_response',
   LIST_CUSTOM_PROMPTS_RESPONSE = 'list_custom_prompts_response',
   CONVERSATION_PATH = 'conversation_path',
   BACKGROUND_EVENT = 'background_event',
   TURN_ABORTED = 'turn_aborted',
+
+  // Error channel
+  STREAM_ERROR = 'stream_error',
 }
 
 // Base event interface for extensibility
@@ -70,6 +70,25 @@ export interface BaseCodexEventData {
   };
 }
 
+// Session / lifecycle events
+export interface SessionConfiguredData extends BaseCodexEventData {
+  session_id: string;
+  model?: string;
+  reasoning_effort?: 'minimal' | 'low' | 'medium' | 'high' | null;
+  history_log_id?: number;
+  history_entry_count?: number;
+  initial_messages?: unknown[] | null;
+  rollout_path?: string | null;
+}
+
+export interface TaskStartedData extends BaseCodexEventData {
+  model_context_window?: number | null;
+}
+
+export interface TaskCompleteData extends BaseCodexEventData {
+  last_agent_message?: string | null;
+}
+
 // Message event data interfaces
 export interface MessageDeltaData extends BaseCodexEventData {
   delta?: string;
@@ -78,6 +97,14 @@ export interface MessageDeltaData extends BaseCodexEventData {
 
 export interface MessageData extends BaseCodexEventData {
   message?: string;
+}
+
+export interface AgentReasoningData extends BaseCodexEventData {
+  text?: string;
+}
+
+export interface AgentReasoningDeltaData extends BaseCodexEventData {
+  delta: string;
 }
 
 export type InputMessageKind = 'plain' | 'user_instructions' | 'environment_context';
@@ -122,24 +149,31 @@ export interface ExecCommandEndData extends BaseCodexEventData {
 
 // Patch/file modification event data interfaces
 export interface PatchApprovalData extends BaseCodexEventData {
+  call_id?: string;
   codex_call_id?: string;
   changes?: Record<string, FileChange>;
   codex_changes?: Record<string, FileChange>;
   summary?: string;
   requiresConfirmation?: boolean;
+  reason?: string | null;
+  grant_root?: string | null;
 }
 
 export interface PatchApplyBeginData extends BaseCodexEventData {
+  call_id?: string;
   auto_approved?: boolean;
   changes?: Record<string, FileChange>;
   dryRun?: boolean;
 }
 
 export interface PatchApplyEndData extends BaseCodexEventData {
+  call_id?: string;
   success?: boolean;
   error?: string;
   appliedChanges?: string[];
   failedChanges?: string[];
+  stdout?: string;
+  stderr?: string;
 }
 
 // MCP tool event data interfaces
@@ -272,11 +306,15 @@ export interface TurnAbortedData extends BaseCodexEventData {
 export type CodexAgentEvent =
   | {
       type: CodexAgentEventType.SESSION_CONFIGURED;
-      data: BaseCodexEventData;
+      data: SessionConfiguredData;
     }
   | {
       type: CodexAgentEventType.TASK_STARTED;
-      data: BaseCodexEventData;
+      data: TaskStartedData;
+    }
+  | {
+      type: CodexAgentEventType.TASK_COMPLETE;
+      data: TaskCompleteData;
     }
   | {
       type: CodexAgentEventType.AGENT_MESSAGE_DELTA;
@@ -291,20 +329,16 @@ export type CodexAgentEvent =
       data: UserMessageData;
     }
   | {
-      type: CodexAgentEventType.TASK_COMPLETE;
-      data: BaseCodexEventData;
-    }
-  | {
       type: CodexAgentEventType.STREAM_ERROR;
       data: StreamErrorData;
     }
   | {
       type: CodexAgentEventType.AGENT_REASONING_DELTA;
-      data: BaseCodexEventData;
+      data: AgentReasoningDeltaData;
     }
   | {
       type: CodexAgentEventType.AGENT_REASONING;
-      data: BaseCodexEventData;
+      data: AgentReasoningData;
     }
   | { type: CodexAgentEventType.AGENT_REASONING_RAW_CONTENT; data: AgentReasoningRawContentData }
   | { type: CodexAgentEventType.AGENT_REASONING_RAW_CONTENT_DELTA; data: AgentReasoningRawContentDeltaData }
