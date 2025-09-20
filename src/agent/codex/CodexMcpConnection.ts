@@ -64,33 +64,139 @@ export class CodexMcpConnection {
   private isNetworkError = false;
 
   async start(cliPath: string, cwd: string, args: string[] = []): Promise<void> {
-    // Default to "codex mcp"
+    // Default to "codex mcp serve" to start MCP server
     const command = cliPath || 'codex';
-    const finalArgs = args.length ? args : ['mcp'];
+    const finalArgs = args.length ? args : ['mcp', 'serve'];
 
-    this.child = spawn(command, finalArgs, {
+    console.log('🚀 [CodexMcpConnection] Starting MCP connection:', {
+      command,
+      args: finalArgs,
       cwd,
-      stdio: ['pipe', 'pipe', 'pipe'],
     });
 
-    this.child.stderr?.on('data', (d) => {
-      // eslint-disable-next-line no-console
-      console.error('[Codex MCP STDERR]', d.toString());
-    });
+    return new Promise((resolve, reject) => {
+      try {
+        this.child = spawn(command, finalArgs, {
+          cwd,
+          stdio: ['pipe', 'pipe', 'pipe'],
+          env: {
+            ...process.env,
+            // Try environment variables to suppress interactive behavior
+            CODEX_NO_INTERACTIVE: '1',
+            CODEX_AUTO_CONTINUE: '1',
+          },
+        });
 
-    let buffer = '';
-    this.child.stdout?.on('data', (d) => {
-      buffer += d.toString();
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
-      for (const line of lines) {
-        if (!line.trim()) continue;
-        try {
-          const msg = JSON.parse(line) as any;
-          this.handleIncoming(msg);
-        } catch {
-          // ignore
-        }
+        // Set up error handling for child process
+        this.child.on('error', (error) => {
+          console.error('❌ [CodexMcpConnection] Child process error:', error);
+          reject(new Error(`Failed to start codex process: ${error.message}`));
+        });
+
+        this.child.on('exit', (code, signal) => {
+          console.warn('⚠️ [CodexMcpConnection] Child process exited:', { code, signal });
+          if (code !== 0 && code !== null) {
+            this.handleProcessExit(code, signal);
+          }
+        });
+
+        this.child.stderr?.on('data', (d) => {
+          const errorMsg = d.toString();
+          console.error('[Codex MCP STDERR]', errorMsg);
+
+          // Check for common startup errors
+          if (errorMsg.includes('command not found') || errorMsg.includes('not recognized')) {
+            reject(new Error(`Codex CLI not found. Please ensure 'codex' is installed and in PATH. Error: ${errorMsg}`));
+          } else if (errorMsg.includes('permission denied')) {
+            reject(new Error(`Permission denied when starting codex. Error: ${errorMsg}`));
+          } else if (errorMsg.includes('authentication') || errorMsg.includes('login')) {
+            reject(new Error(`Codex authentication required. Please run 'codex auth' first. Error: ${errorMsg}`));
+          }
+        });
+
+        let buffer = '';
+        let hasOutput = false;
+        let receivedJsonMessage = false;
+
+        this.child.stdout?.on('data', (d) => {
+          hasOutput = true;
+          buffer += d.toString();
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+          for (const line of lines) {
+            if (!line.trim()) continue;
+
+            // Check if this looks like a JSON-RPC message
+            if (line.trim().startsWith('{') && line.trim().endsWith('}')) {
+              try {
+                const msg = JSON.parse(line) as any;
+                console.log('📨 [CodexMcpConnection] Received JSON-RPC message:', msg);
+                receivedJsonMessage = true;
+                this.handleIncoming(msg);
+              } catch (parseError) {
+                console.warn('⚠️ [CodexMcpConnection] Failed to parse JSON message:', line, parseError);
+              }
+            } else {
+              // Handle non-JSON output (startup messages, announcements, etc.)
+              console.log('📋 [CodexMcpConnection] Codex output:', line);
+
+              // Handle interactive prompts by automatically sending Enter
+              if (line.includes('Press Enter to continue')) {
+                console.log('⏭️ [CodexMcpConnection] Auto-continuing through prompt...');
+                this.child?.stdin?.write('\n');
+              }
+
+              // Force enter MCP mode if we see CLI launch - but stop sending once we see API key passing
+              if (line.includes('Launching Codex CLI') && !receivedJsonMessage) {
+                console.log('🔄 [CodexMcpConnection] Detected CLI launch, sending Enter to continue...');
+                setTimeout(() => {
+                  if (!receivedJsonMessage) {
+                    this.child?.stdin?.write('\n');
+                  }
+                }, 1000);
+              }
+
+              // Detect when MCP server should be ready
+              if (line.includes('Passing CODEX_API_KEY')) {
+                console.log('🎯 [CodexMcpConnection] Codex CLI launched, MCP server should be starting...');
+                // Set a flag to indicate the server is starting and wait longer
+                setTimeout(() => {
+                  console.log('📡 [CodexMcpConnection] MCP server should be ready now');
+                  receivedJsonMessage = true; // Mark as ready for JSON communication
+                }, 5000); // Wait 5 seconds for server to be fully ready
+              }
+            }
+          }
+        });
+
+        // Wait for initial process startup
+        setTimeout(() => {
+          if (this.child && !this.child.killed) {
+            console.log('✅ [CodexMcpConnection] Process started successfully');
+
+            // If we have received JSON messages, we're ready
+            if (receivedJsonMessage) {
+              console.log('🎯 [CodexMcpConnection] JSON-RPC communication established');
+            } else {
+              console.log('📋 [CodexMcpConnection] Process started but no JSON-RPC yet, continuing...');
+            }
+
+            resolve();
+          } else {
+            reject(new Error('Codex process failed to start or was killed during startup'));
+          }
+        }, 3000); // Give 3 seconds for startup
+
+        // Fallback timeout
+        setTimeout(() => {
+          if (!hasOutput && this.child && !this.child.killed) {
+            console.warn('⚠️ [CodexMcpConnection] No output received from codex process, but continuing...');
+            resolve(); // Still resolve to allow the connection attempt
+          }
+        }, 6000); // 6 second fallback
+      } catch (error) {
+        console.error('❌ [CodexMcpConnection] Failed to spawn process:', error);
+        reject(error);
       }
     });
   }
@@ -134,13 +240,25 @@ export class CodexMcpConnection {
       // Normal request processing
       this.pending.set(id, { resolve, reject, timeout });
       const line = JSON.stringify(req) + '\n';
-      this.child?.stdin?.write(line);
+      console.log('📤 [CodexMcpConnection] Sending JSON-RPC:', line.trim());
+
+      if (this.child?.stdin) {
+        this.child.stdin.write(line);
+        // Force flush buffer
+        if ('flushSync' in this.child.stdin && typeof this.child.stdin.flushSync === 'function') {
+          this.child.stdin.flushSync();
+        }
+      } else {
+        reject(new Error('Child process stdin not available'));
+        return;
+      }
     });
   }
 
   notify(method: string, params?: any): void {
     const msg: JsonRpcRequest = { jsonrpc: JSONRPC_VERSION, method, params };
     const line = JSON.stringify(msg) + '\n';
+    console.log('📤 [CodexMcpConnection] Sending notification:', line.trim());
     this.child?.stdin?.write(line);
   }
 
@@ -373,5 +491,87 @@ export class CodexMcpConnection {
   // Public method to check if currently in network error state
   public hasNetworkError(): boolean {
     return this.isNetworkError;
+  }
+
+  // Public method to get connection diagnostics
+  public getDiagnostics(): {
+    isConnected: boolean;
+    childProcess: boolean;
+    pendingRequests: number;
+    elicitationCount: number;
+    isPaused: boolean;
+    retryCount: number;
+    hasNetworkError: boolean;
+  } {
+    return {
+      isConnected: this.child !== null && !this.child.killed,
+      childProcess: !!this.child,
+      pendingRequests: this.pending.size,
+      elicitationCount: this.elicitationMap.size,
+      isPaused: this.isPaused,
+      retryCount: this.retryCount,
+      hasNetworkError: this.isNetworkError,
+    };
+  }
+
+  // Simple ping test to check if connection is responsive
+  public async ping(timeout: number = 5000): Promise<boolean> {
+    try {
+      await this.request('ping', {}, timeout);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  // Wait for MCP server to be ready after startup
+  public async waitForServerReady(timeout: number = 30000): Promise<void> {
+    console.log('⏳ [CodexMcpConnection] Waiting for MCP server to be ready...');
+
+    return new Promise((resolve, reject) => {
+      const startTime = Date.now();
+
+      const checkReady = async () => {
+        try {
+          // Try to ping the server
+          const isReady = await this.ping(3000);
+          if (isReady) {
+            console.log('✅ [CodexMcpConnection] MCP server is ready');
+            resolve();
+            return;
+          }
+        } catch {
+          // Ping failed, continue waiting
+        }
+
+        // Check timeout
+        if (Date.now() - startTime > timeout) {
+          reject(new Error('Timeout waiting for MCP server to be ready'));
+          return;
+        }
+
+        // Wait and retry
+        setTimeout(checkReady, 2000);
+      };
+
+      // Start checking after a short delay
+      setTimeout(checkReady, 3000);
+    });
+  }
+
+  // Handle process exit
+  private handleProcessExit(code: number | null, signal: NodeJS.Signals | null): void {
+    console.error('💀 [CodexMcpConnection] Process exited unexpectedly:', { code, signal });
+
+    // Reject all pending requests
+    for (const [id, p] of this.pending) {
+      p.reject(new Error(`Codex process exited with code ${code}, signal ${signal}`));
+      if (p.timeout) clearTimeout(p.timeout);
+      this.pending.delete(id);
+    }
+
+    // Clear state
+    this.elicitationMap.clear();
+    this.child = null;
   }
 }

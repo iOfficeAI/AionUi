@@ -10,6 +10,7 @@ import { Plus } from '@icon-park/react';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TMessage } from '@/common/chatLib';
+import { CodexMessageTransformer } from '@/process/task/codex/CodexMessageTransformer';
 
 const useCodexSendBoxDraft = getSendBoxDraftHook('codex', {
   _type: 'codex',
@@ -43,20 +44,37 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
       if (conversation_id !== message.conversation_id) return;
       if (message.type === 'start') setRunning(true);
       if (message.type === 'finish') setRunning(false);
-      if (message.type === 'content' || message.type === 'user_content' || message.type === 'error' || message.type === 'acp_permission') {
+
+      // 处理消息
+      if (message.type === 'content' || message.type === 'user_content' || message.type === 'error') {
+        // 通用消息类型使用标准转换器
         addOrUpdateMessage(transformMessage(message));
+      } else if (CodexMessageTransformer.isCodexSpecificMessage(message.type)) {
+        // Codex 特定消息类型使用专用转换器
+        const transformedMessage = CodexMessageTransformer.transformCodexMessage(message);
+        if (transformedMessage) {
+          addOrUpdateMessage(transformedMessage);
+        }
       }
     });
   }, [conversation_id]);
 
-  useAddEventListener('codex.selected.file', setAtPath);
+  useAddEventListener('codex.selected.file', (files: string[]) => setAtPath(files));
 
   const onSendHandler = async (message: string) => {
     const msg_id = uuid();
     const loading_id = uuid();
 
-    if (atPath.length || uploadFile.length) {
-      message = uploadFile.map((p) => '@' + p.split(/[\\/]/).pop()).join(' ') + ' ' + atPath.map((p) => '@' + p).join(' ') + ' ' + message;
+    // 立即清空输入框和选择的文件，提升用户体验
+    setContent('');
+    emitter.emit('codex.selected.file.clear');
+    const currentAtPath = [...atPath];
+    const currentUploadFile = [...uploadFile];
+    setAtPath([]);
+    setUploadFile([]);
+
+    if (currentAtPath.length || currentUploadFile.length) {
+      message = currentUploadFile.map((p) => '@' + p.split(/[\\/]/).pop()).join(' ') + ' ' + currentAtPath.map((p) => '@' + p).join(' ') + ' ' + message;
     }
     // 前端先写入用户消息，避免导航/事件竞争导致看不到消息
     const userMessage: TMessage = {
@@ -74,14 +92,9 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
       input: message,
       msg_id,
       conversation_id,
-      files: [...uploadFile, ...atPath], // 包含上传文件和选中的工作空间文件
+      files: [...currentUploadFile, ...currentAtPath], // 包含上传文件和选中的工作空间文件
       loading_id,
     });
-
-    setContent('');
-    emitter.emit('codex.selected.file.clear');
-    setAtPath([]);
-    setUploadFile([]);
   };
 
   // 处理从引导页带过来的 initial message，确保页面加载后再发送

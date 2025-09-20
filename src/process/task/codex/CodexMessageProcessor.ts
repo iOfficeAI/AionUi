@@ -6,9 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { IResponseMessage } from '@/common/ipcBridge';
-import { transformMessage } from '@/common/chatLib';
 import { uuid } from '@/common/utils';
-import { addOrUpdateMessage } from '../../message';
 import type { CodexAgentEventType, CodexAgentEvent } from '@/common/codexTypes';
 
 export class CodexMessageProcessor {
@@ -42,14 +40,31 @@ export class CodexMessageProcessor {
       this.currentRequestId = requestId;
     }
 
-    // 累积delta内容
-    const delta = evt.data?.delta || evt.data?.message || '';
-    this.currentContent += delta;
+    // 累积 delta 内容，但要兼容 Codex 可能返回全量 message 的情况，避免重复追加
+    const rawDelta = typeof evt.data?.delta === 'string' ? evt.data.delta : undefined;
+    const fullMessage = typeof evt.data?.message === 'string' ? evt.data.message : '';
+
+    if (fullMessage) {
+      // 如果服务端提供了完整内容，直接采用，避免重复拼接
+      this.currentContent = fullMessage;
+    } else if (typeof rawDelta === 'string' && rawDelta.length) {
+      const hasExisting = !!this.currentContent;
+      const looksLikeFullReplay = hasExisting && rawDelta.length > this.currentContent.length && rawDelta.startsWith(this.currentContent);
+      const isExactRepeat = hasExisting && rawDelta === this.currentContent && rawDelta.length > 1;
+
+      if (looksLikeFullReplay) {
+        // Codex 可能把累计内容作为 delta 重新下发，此时覆盖即可
+        this.currentContent = rawDelta;
+      } else if (!isExactRepeat) {
+        // 常规增量场景，安全追加
+        this.currentContent += rawDelta;
+      }
+    }
 
     // 发送完整累积的内容，使用相同的msg_id确保替换loading
     const deltaMessage = this.createContentMessage(this.currentContent, this.currentLoadingId!);
     if (deltaMessage) {
-      addOrUpdateMessage(this.conversation_id, transformMessage(deltaMessage));
+      // 只通过stream发送，避免重复处理
       ipcBridge.codexConversation.responseStream.emit(deltaMessage);
     }
 
@@ -113,13 +128,8 @@ export class CodexMessageProcessor {
         content: typeof message.data === 'string' ? message.data.substring(0, 100) + '...' : message.data,
       });
 
-      const transformedMessage = transformMessage(message);
-      if (transformedMessage) {
-        addOrUpdateMessage(this.conversation_id, transformedMessage);
-        console.log('📡 [CodexMessageProcessor] Emitting message to UI');
-      } else {
-        console.warn('⚠️ [CodexMessageProcessor] transformMessage returned undefined');
-      }
+      // 只通过stream发送，避免重复处理
+      console.log('📡 [CodexMessageProcessor] Emitting message to UI');
       ipcBridge.codexConversation.responseStream.emit(message);
     } else {
       console.warn('⚠️ [CodexMessageProcessor] createContentMessage returned null');
@@ -137,7 +147,7 @@ export class CodexMessageProcessor {
     if (this.currentContent && this.currentContent.trim() && this.currentLoadingId) {
       const message = this.createContentMessage(this.currentContent, this.currentLoadingId);
       if (message) {
-        addOrUpdateMessage(this.conversation_id, transformMessage(message));
+        // 只通过stream发送，避免重复处理
         ipcBridge.codexConversation.responseStream.emit(message);
       }
     }
@@ -165,7 +175,7 @@ export class CodexMessageProcessor {
       msg_id: uuid(),
       data: evt.data?.message || 'Codex stream error',
     };
-    addOrUpdateMessage(this.conversation_id, transformMessage(errMsg));
+    // 只通过stream发送，避免重复处理
     ipcBridge.codexConversation.responseStream.emit(errMsg);
   }
 

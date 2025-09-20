@@ -41,14 +41,66 @@ export class CodexMcpAgent {
     this.conn = new CodexMcpConnection();
     this.conn.onEvent = (env) => this.processCodexEvent(env);
     this.conn.onNetworkError = (error) => this.handleNetworkError(error);
-    await this.conn.start(this.cliPath || 'codex', this.workingDir);
 
-    // MCP initialize handshake
-    await this.conn.request('initialize', {
-      protocolVersion: CODEX_MCP_PROTOCOL_VERSION,
-      capabilities: {},
-      clientInfo: { name: APP_CLIENT_NAME, version: APP_CLIENT_VERSION },
-    });
+    try {
+      console.log('🔌 [CodexMcpAgent] Starting MCP connection...');
+      await this.conn.start(this.cliPath || 'codex', this.workingDir);
+      console.log('✅ [CodexMcpAgent] MCP connection established');
+
+      // Wait for MCP server to be fully ready
+      console.log('⏳ [CodexMcpAgent] Waiting for MCP server to be ready...');
+      await this.conn.waitForServerReady(30000);
+      console.log('✅ [CodexMcpAgent] MCP server is ready');
+
+      // MCP initialize handshake with better error handling
+      console.log('🤝 [CodexMcpAgent] Starting initialize handshake...');
+
+      console.log('🔧 [CodexMcpAgent] Connection diagnostics before initialize:', (this.conn as any).getDiagnostics?.());
+
+      console.log('📤 [CodexMcpAgent] Sending initialize with protocol version:', CODEX_MCP_PROTOCOL_VERSION);
+
+      // Try different initialization approaches
+      try {
+        const initializeResult = await this.conn.request(
+          'initialize',
+          {
+            protocolVersion: CODEX_MCP_PROTOCOL_VERSION,
+            capabilities: {},
+            clientInfo: { name: APP_CLIENT_NAME, version: APP_CLIENT_VERSION },
+          },
+          15000
+        ); // Shorter timeout for faster fallback
+        console.log('✅ [CodexMcpAgent] Initialize handshake completed:', initializeResult);
+      } catch (initError) {
+        console.warn('⚠️ [CodexMcpAgent] Standard initialize failed, trying alternative...', initError);
+
+        try {
+          // Try without initialize - maybe Codex doesn't need it
+          console.log('🔄 [CodexMcpAgent] Trying to use MCP server without initialize...');
+          const testResult = await this.conn.request('tools/list', {}, 10000);
+          console.log('✅ [CodexMcpAgent] MCP server ready without initialize:', testResult);
+        } catch (testError) {
+          console.error('❌ [CodexMcpAgent] Tools list also failed:', testError);
+          throw new Error(`Codex MCP initialization failed: ${initError}. Tools list also failed: ${testError}`);
+        }
+      }
+    } catch (error) {
+      console.error('❌ [CodexMcpAgent] Start failed:', error);
+
+      // Provide more specific error messages
+      if (error instanceof Error) {
+        if (error.message.includes('timed out')) {
+          throw new Error('Codex initialization timed out. This may indicate:\n' + '1. Codex CLI is not responding\n' + '2. Network connectivity issues\n' + '3. Authentication problems\n' + 'Please check: codex auth status, network connection, and try again.');
+        } else if (error.message.includes('command not found')) {
+          throw new Error("Codex CLI not found. Please install Codex CLI and ensure it's in your PATH.");
+        } else if (error.message.includes('authentication')) {
+          throw new Error('Codex authentication required. Please run "codex auth" to authenticate.');
+        }
+      }
+
+      // Re-throw the original error if no specific handling applies
+      throw error;
+    }
   }
 
   async stop(): Promise<void> {

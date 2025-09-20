@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IMessageAcpStatus } from '@/common/chatLib';
+import type { IMessageAcpStatus, IMessageCodexStatus } from '@/common/chatLib';
 import { Badge, Typography } from '@arco-design/web-react';
 import classNames from 'classnames';
 import React from 'react';
@@ -12,7 +12,7 @@ import React from 'react';
 const { Text } = Typography;
 
 interface MessageAcpStatusProps {
-  message: IMessageAcpStatus;
+  message: IMessageAcpStatus | IMessageCodexStatus;
 }
 
 const MessageAcpStatus: React.FC<MessageAcpStatusProps> = ({ message }) => {
