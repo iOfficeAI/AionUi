@@ -47,3 +47,22 @@ export const MIME_TO_EXT_MAP: Record<string, string> = {
 
 /** 默认图片文件扩展名 */
 export const DEFAULT_IMAGE_EXTENSION = '.png';
+
+// ===== App / Protocol Metadata =====
+
+export const APP_CLIENT_NAME = 'AionUi';
+
+// Prefer reading package.json version; fallback to '0.0.0' when unavailable
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const APP_CLIENT_VERSION: string = (() => {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const pkg: any = require('../../package.json');
+    return typeof pkg?.version === 'string' ? pkg.version : '0.0.0';
+  } catch {
+    return '0.0.0';
+  }
+})();
+
+// Codex MCP protocol version (server handshake)
+export const CODEX_MCP_PROTOCOL_VERSION = '1.0.0' as const;

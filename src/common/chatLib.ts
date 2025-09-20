@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import type { AcpBackend } from './acpTypes';
 import type { IResponseMessage } from './ipcBridge';
 import { uuid } from './utils';
 import type { AcpPermissionRequest, ToolCallUpdate } from '@/common/acpTypes';
@@ -48,11 +49,43 @@ export const joinPath = (basePath: string, relativePath: string): string => {
   return result.replace(/\/+/g, '/'); // 将多个连续的斜杠替换为单个
 };
 
+// Normalize LLM text with awkward line breaks/zero‑width chars while preserving code blocks.
+function normalizeLLMText(raw: string): string {
+  if (!raw || typeof raw !== 'string') return raw as any;
+  const ZW = /[\u200B-\u200D\uFEFF]/g;
+  const chunks = raw
+    .replace(/[\r\t]+/g, (m) => (m.includes('\t') ? ' ' : ''))
+    .replace(ZW, '')
+    .split('```');
+  const out: string[] = [];
+  for (let i = 0; i < chunks.length; i++) {
+    let seg = chunks[i];
+    if (i % 2 === 1) {
+      out.push('```' + seg + '```');
+      continue;
+    }
+    // Join words split by stray newlines: "Div\nis\nibility" -> "Divisibility"
+    seg = seg.replace(/([A-Za-z])\s*\n\s*([a-z])/g, '$1$2');
+    // Join hyphen alone lines: "Power\n-\nof" -> "Power-of"
+    seg = seg.replace(/([A-Za-z])\s*\n\s*-\s*\n\s*([A-Za-z])/g, '$1-$2');
+    // Replace single newlines between non-terminal contexts with space
+    // Note: character class excludes terminal punctuation [.!?:;]
+    seg = seg.replace(/([^.!?:;])\n(?!\n|\s*[-*#\d])/g, '$1 ');
+    // Collapse excessive blank lines
+    seg = seg.replace(/\n{3,}/g, '\n\n');
+    // Normalize multiple spaces
+    seg = seg.replace(/ {2,}/g, ' ');
+    out.push(seg);
+  }
+  return out.join('');
+}
+
 /**
  * @description 跟对话相关的消息类型申明 及相关处理
  */
 
-type TMessageType = 'text' | 'tips' | 'tool_call' | 'tool_group' | 'acp_status' | 'acp_permission' | 'acp_tool_call';
+type TMessageType = 'text' | 'tips' | 'tool_call' | 'tool_group' | 'acp_status' | 'acp_permission' | 'acp_tool_call' | 'codex_status' | 'codex_permission';
+
 interface IMessage<T extends TMessageType, Content extends Record<string, any>> {
   /**
    * 唯一ID
@@ -162,7 +195,7 @@ export type IMessageToolGroup = IMessage<
 export type IMessageAcpStatus = IMessage<
   'acp_status',
   {
-    backend: string;
+    backend: AcpBackend;
     status: 'connecting' | 'connected' | 'authenticated' | 'session_active' | 'disconnected' | 'error';
     message: string;
   }
@@ -172,64 +205,184 @@ export type IMessageAcpPermission = IMessage<'acp_permission', AcpPermissionRequ
 
 export type IMessageAcpToolCall = IMessage<'acp_tool_call', ToolCallUpdate>;
 
-export type TMessage = IMessageText | IMessageTips | IMessageToolCall | IMessageToolGroup | IMessageAcpStatus | IMessageAcpPermission | IMessageAcpToolCall;
+export type IMessageCodexStatus = IMessage<
+  'codex_status',
+  {
+    status: string;
+    message: string;
+    sessionId?: string;
+    isConnected?: boolean;
+    hasActiveSession?: boolean;
+  }
+>;
+
+export type IMessageCodexPermission = IMessage<'codex_permission', Record<string, any>>;
+
+export type TMessage = IMessageText | IMessageTips | IMessageToolCall | IMessageToolGroup | IMessageAcpStatus | IMessageAcpPermission | IMessageAcpToolCall | IMessageCodexStatus | IMessageCodexPermission;
 
 /**
  * @description 将后端返回的消息转换为前端消息
  * */
-export const transformMessage = (message: IResponseMessage): TMessage => {
-  // 校验：过滤掉不应该显示的内部消息类型
-  if (message.type === 'start' || message.type === 'finish' || message.type === 'thought') {
-    throw new Error(`Internal message type '${message.type}' should not be passed to transformMessage`);
-  }
+export const transformMessage = (message: IResponseMessage): TMessage | undefined => {
+  console.log('🔄 [transformMessage] Processing message:', {
+    type: message.type,
+    msg_id: message.msg_id,
+    conversation_id: message.conversation_id,
+    dataType: typeof message.data,
+    dataContent: message.data,
+    fullMessage: message,
+  });
 
-  switch (message.type) {
-    case 'error': {
-      return {
-        id: uuid(),
-        type: 'tips',
-        msg_id: message.msg_id,
-        position: 'center',
-        conversation_id: message.conversation_id,
-        content: {
+  try {
+    switch (message.type) {
+      case 'error': {
+        console.log('🔴 [transformMessage] Processing error message');
+        return {
+          id: uuid(),
+          type: 'tips',
+          msg_id: message.msg_id,
+          position: 'center',
+          conversation_id: message.conversation_id,
+          content: {
+            content: message.data,
+            type: 'error',
+          },
+        };
+      }
+      case 'content': {
+        console.log('💬 [transformMessage] Processing content message');
+        return {
+          id: uuid(),
+          type: 'text',
+          msg_id: message.msg_id,
+          position: 'left',
+          conversation_id: message.conversation_id,
+          content: {
+            content: normalizeLLMText(message.data),
+          },
+        };
+      }
+      case 'user_content': {
+        return {
+          id: uuid(),
+          type: 'text',
+          msg_id: message.msg_id,
+          position: 'right',
+          conversation_id: message.conversation_id,
+          content: {
+            content: message.data,
+          },
+        };
+      }
+      case 'tool_call': {
+        return {
+          id: uuid(),
+          type: 'tool_call',
+          msg_id: message.msg_id,
+          conversation_id: message.conversation_id,
+          position: 'left',
           content: message.data,
-          type: 'error',
-        },
-      };
-    }
-    case 'content':
-    case 'user_content': {
-      return {
-        id: uuid(),
-        type: 'text',
-        msg_id: message.msg_id,
-        position: message.type === 'user_content' ? 'right' : 'left',
-        conversation_id: message.conversation_id,
-        content: {
+        };
+      }
+      case 'tool_group': {
+        return {
+          type: 'tool_group',
+          id: uuid(),
+          msg_id: message.msg_id,
+          conversation_id: message.conversation_id,
           content: message.data,
-        },
-      };
+        };
+      }
+      case 'acp_status': {
+        return {
+          id: uuid(),
+          type: 'acp_status',
+          msg_id: message.msg_id,
+          position: 'center',
+          conversation_id: message.conversation_id,
+          content: message.data,
+        };
+      }
+      case 'acp_permission': {
+        console.log('🔐 [transformMessage] Processing ACP permission message');
+        return {
+          id: uuid(),
+          type: 'acp_permission',
+          msg_id: message.msg_id,
+          position: 'left',
+          conversation_id: message.conversation_id,
+          content: message.data,
+        };
+      }
+      case 'acp_tool_call': {
+        return {
+          id: uuid(),
+          type: 'acp_tool_call',
+          msg_id: message.msg_id,
+          position: 'left',
+          conversation_id: message.conversation_id,
+          content: message.data,
+        };
+      }
+      case 'codex_status': {
+        console.log('📊 [transformMessage] Processing Codex status message');
+        return {
+          id: uuid(),
+          type: 'codex_status',
+          msg_id: message.msg_id,
+          position: 'center',
+          conversation_id: message.conversation_id,
+          content: message.data,
+        };
+      }
+      case 'codex_permission': {
+        console.log('🔐 [transformMessage] Processing Codex permission message');
+        return {
+          id: uuid(),
+          type: 'codex_permission',
+          msg_id: message.msg_id,
+          position: 'left',
+          conversation_id: message.conversation_id,
+          content: message.data,
+        };
+      }
+      case 'start':
+      case 'finish':
+      case 'thought':
+        return undefined;
+      default:
+        console.log('⚠️ [transformMessage] Unknown message type, using default transformation:', message.type);
+        return {
+          type: message.type,
+          content: message.data,
+          position: 'left',
+          id: uuid(),
+        } as any;
     }
-    case 'acp_permission': {
-      return {
-        id: uuid(),
-        type: 'acp_permission',
-        msg_id: message.msg_id,
-        position: 'left',
-        conversation_id: message.conversation_id,
-        content: message.data,
-      };
-    }
-    default: {
-      throw new Error(`Unsupported message type '${message.type}'. All non-standard message types should be pre-processed by respective AgentManagers.`);
-    }
+  } catch (error) {
+    console.error('❌ [transformMessage] Error processing message:', error);
+    console.error('❌ [transformMessage] Problematic message:', message);
+
+    // Return a safe error message instead of crashing
+    return {
+      id: uuid(),
+      type: 'tips',
+      msg_id: message.msg_id || uuid(),
+      position: 'center',
+      conversation_id: message.conversation_id || '',
+      content: {
+        content: `Message processing error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        type: 'error',
+      },
+    };
   }
 };
 
 /**
  * @description 将消息合并到消息列表中
  * */
-export const composeMessage = (message: TMessage, list: TMessage[] | undefined): TMessage[] => {
+export const composeMessage = (message: TMessage | undefined, list: TMessage[] | undefined): TMessage[] => {
+  if (!message) return list || [];
   if (!list?.length) return [message];
   const last = list[list.length - 1];
 
@@ -264,6 +417,9 @@ export const composeMessage = (message: TMessage, list: TMessage[] | undefined):
     if (newContent.includes(lastContent) || lastContent === 'loading...') {
       // 新内容包含旧内容或旧内容是loading，直接替换
       message.content.content = newContent;
+    } else if (lastContent.includes(newContent)) {
+      // New is a subset of last; keep last
+      message.content.content = lastContent;
     } else {
       // 否则进行拼接
       message.content.content = lastContent + newContent;

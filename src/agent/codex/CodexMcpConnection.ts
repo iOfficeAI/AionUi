@@ -6,18 +6,19 @@
 
 import type { ChildProcess } from 'child_process';
 import { spawn } from 'child_process';
+import { JSONRPC_VERSION } from '@/common/acpTypes';
 
 type JsonRpcId = number | string;
 
 interface JsonRpcRequest {
-  jsonrpc: '2.0';
+  jsonrpc: typeof JSONRPC_VERSION;
   id?: JsonRpcId;
   method: string;
   params?: any;
 }
 
 interface JsonRpcResponse {
-  jsonrpc: '2.0';
+  jsonrpc: typeof JSONRPC_VERSION;
   id: JsonRpcId;
   result?: any;
   error?: { code: number; message: string; data?: any };
@@ -45,6 +46,7 @@ export class CodexMcpConnection {
   private child: ChildProcess | null = null;
   private nextId = 0;
   private pending = new Map<JsonRpcId, PendingReq>();
+  private elicitationMap = new Map<string, JsonRpcId>(); // codex_call_id -> request id
 
   // Callbacks
   public onEvent: (evt: CodexEventEnvelope) => void = () => {};
@@ -104,17 +106,22 @@ export class CodexMcpConnection {
       if (p.timeout) clearTimeout(p.timeout);
       this.pending.delete(id);
     }
+    // Clear pending elicitations
+    this.elicitationMap.clear();
   }
 
-  async request(method: string, params?: any, timeoutMs = 60000): Promise<any> {
+  async request(method: string, params?: any, timeoutMs = 120000): Promise<any> {
     const id = this.nextId++;
-    const req: JsonRpcRequest = { jsonrpc: '2.0', id, method, params };
+    const req: JsonRpcRequest = { jsonrpc: JSONRPC_VERSION, id, method, params };
+
+    console.log(`🕒 [CodexMcpConnection] Request ${method} with timeout: ${timeoutMs}ms, id: ${id}`);
 
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
         this.pending.delete(id);
         // Also remove from paused requests if present
         this.pausedRequests = this.pausedRequests.filter((r) => r.resolve !== resolve);
+        console.error(`⏰ [CodexMcpConnection] Request ${method} timed out after ${timeoutMs}ms`);
         reject(new Error(`Codex MCP request timed out: ${method}`));
       }, timeoutMs);
 
@@ -132,13 +139,15 @@ export class CodexMcpConnection {
   }
 
   notify(method: string, params?: any): void {
-    const msg: JsonRpcRequest = { jsonrpc: '2.0', method, params };
+    const msg: JsonRpcRequest = { jsonrpc: JSONRPC_VERSION, method, params };
     const line = JSON.stringify(msg) + '\n';
     this.child?.stdin?.write(line);
   }
 
   private handleIncoming(msg: any): void {
     if (typeof msg !== 'object' || msg === null) return;
+
+    console.log('🔄 [CodexMcpConnection] Handling incoming message:', JSON.stringify(msg, null, 2));
 
     // Response
     if ('id' in msg && (msg.result !== undefined || msg.error !== undefined)) {
@@ -150,6 +159,7 @@ export class CodexMcpConnection {
 
       if (res.error) {
         const errorMsg = res.error.message || '';
+        console.log(`❌ [CodexMcpConnection] Response error for id ${res.id}:`, errorMsg);
 
         // Check for network-related errors
         if (this.isNetworkRelatedError(errorMsg)) {
@@ -159,6 +169,7 @@ export class CodexMcpConnection {
         }
       } else if (res.result && res.result.error) {
         const resultErrorMsg = String(res.result.error);
+        console.log(`❌ [CodexMcpConnection] Result error for id ${res.id}:`, resultErrorMsg);
 
         if (this.isNetworkRelatedError(resultErrorMsg)) {
           this.handleNetworkError(resultErrorMsg, p);
@@ -166,6 +177,7 @@ export class CodexMcpConnection {
           p.reject(new Error(resultErrorMsg));
         }
       } else {
+        console.log(`✅ [CodexMcpConnection] Response success for id ${res.id}`);
         p.resolve(res.result);
       }
       return;
@@ -177,17 +189,23 @@ export class CodexMcpConnection {
 
       // Check for permission request events - pause requests but forward to handler
       if (env.method === 'codex/event' && env.params?.msg?.type === 'apply_patch_approval_request') {
-        const _callId = env.params.msg.call_id || 'unknown';
         this.isPaused = true;
       }
 
-      // Handle elicitation requests - also pause for patch-approval
-      if (env.method === 'elicitation/create' && env.params?.codex_elicitation === 'patch-approval') {
-        const _callId = env.params?.codex_call_id || 'unknown';
+      // Handle elicitation requests - pause and record mapping from codex_call_id -> request id
+      if (env.method === 'elicitation/create' && 'id' in msg) {
+        console.log('🔐 [CodexMcpConnection] Received elicitation/create');
         this.isPaused = true;
+        const reqId = msg.id as JsonRpcId;
+        const codexCallId = env.params?.codex_call_id || env.params?.call_id;
+        if (codexCallId) {
+          this.elicitationMap.set(String(codexCallId), reqId);
+          console.log('💾 [CodexMcpConnection] Map elicitation call_id -> reqId', codexCallId, reqId);
+        }
       }
 
       // Always forward events to the handler - let transformMessage handle type-specific logic
+      console.log('📤 [CodexMcpConnection] Forwarding event to handler:', env.method);
       this.onEvent(env);
     }
   }
@@ -216,8 +234,27 @@ export class CodexMcpConnection {
       resolver.resolve(approved);
     }
 
+    // Send elicitation response for any pending elicitations
+    const decision = approved ? 'approved' : 'denied';
+    this.respondElicitation(callId, decision as any);
+
     // Resume paused requests
     this.resumeRequests();
+  }
+
+  public respondElicitation(callId: string, decision: 'approved' | 'approved_for_session' | 'denied' | 'abort'): void {
+    // Accept uniqueId formats like 'patch_<id>' / 'elicitation_<id>' as well
+    const normalized = callId.replace(/^patch_/, '').replace(/^elicitation_/, '');
+    const reqId = this.elicitationMap.get(normalized) || this.elicitationMap.get(callId);
+    if (reqId === undefined) {
+      console.warn('[CodexMcpConnection] No elicitation request id found for callId:', callId);
+      return;
+    }
+    const result = { decision };
+    const response = { jsonrpc: JSONRPC_VERSION, id: reqId, result } as any;
+    const line = JSON.stringify(response) + '\n';
+    this.child?.stdin?.write(line);
+    this.elicitationMap.delete(normalized);
   }
 
   private resumeRequests(): void {
@@ -231,7 +268,7 @@ export class CodexMcpConnection {
 
     for (const req of requests) {
       const id = this.nextId++;
-      const jsonReq: JsonRpcRequest = { jsonrpc: '2.0', id, method: req.method, params: req.params };
+      const jsonReq: JsonRpcRequest = { jsonrpc: JSONRPC_VERSION, id, method: req.method, params: req.params };
 
       this.pending.set(id, { resolve: req.resolve, reject: req.reject, timeout: req.timeout });
       const line = JSON.stringify(jsonReq) + '\n';

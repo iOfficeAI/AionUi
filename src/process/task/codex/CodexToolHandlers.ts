@@ -213,7 +213,7 @@ export class CodexToolHandlers {
     return entries
       .map(([file, change]) => {
         if (typeof change === 'object' && change !== null) {
-          const action = change.action || 'modify';
+          const action = (change as any).type || (change as any).action || 'modify';
           return `${action}: ${file}`;
         }
         return `modify: ${file}`;
@@ -242,6 +242,10 @@ export class CodexToolHandlers {
 
   getPatchChanges(callId: string): Record<string, any> | undefined {
     return this.patchChanges.get(callId);
+  }
+
+  storePatchChanges(callId: string, changes: Record<string, any>): void {
+    this.patchChanges.set(callId, changes);
   }
 
   cleanup() {

@@ -6,20 +6,28 @@
 
 // Codex Agent Event Types
 export enum CodexAgentEventType {
+  // Session and configuration events
+  SESSION_CONFIGURED = 'session_configured',
+  TASK_STARTED = 'task_started',
+
   // Message events
   AGENT_MESSAGE_DELTA = 'agent_message_delta',
   AGENT_MESSAGE = 'agent_message',
+  USER_MESSAGE = 'user_message',
   TASK_COMPLETE = 'task_complete',
   STREAM_ERROR = 'stream_error',
 
   // Reasoning events (internal, usually ignored)
   AGENT_REASONING_DELTA = 'agent_reasoning_delta',
   AGENT_REASONING = 'agent_reasoning',
+  AGENT_REASONING_RAW_CONTENT = 'agent_reasoning_raw_content',
+  AGENT_REASONING_RAW_CONTENT_DELTA = 'agent_reasoning_raw_content_delta',
 
   // Command execution events
   EXEC_COMMAND_BEGIN = 'exec_command_begin',
   EXEC_COMMAND_OUTPUT_DELTA = 'exec_command_output_delta',
   EXEC_COMMAND_END = 'exec_command_end',
+  EXEC_APPROVAL_REQUEST = 'exec_approval_request',
 
   // Patch/file modification events
   APPLY_PATCH_APPROVAL_REQUEST = 'apply_patch_approval_request',
@@ -34,6 +42,21 @@ export enum CodexAgentEventType {
   // Web search events
   WEB_SEARCH_BEGIN = 'web_search_begin',
   WEB_SEARCH_END = 'web_search_end',
+
+  // Token usage events
+  TOKEN_COUNT = 'token_count',
+
+  // Agent reasoning section break
+  AGENT_REASONING_SECTION_BREAK = 'agent_reasoning_section_break',
+
+  // Additional protocol events
+  TURN_DIFF = 'turn_diff',
+  GET_HISTORY_ENTRY_RESPONSE = 'get_history_entry_response',
+  MCP_LIST_TOOLS_RESPONSE = 'mcp_list_tools_response',
+  LIST_CUSTOM_PROMPTS_RESPONSE = 'list_custom_prompts_response',
+  CONVERSATION_PATH = 'conversation_path',
+  BACKGROUND_EVENT = 'background_event',
+  TURN_ABORTED = 'turn_aborted',
 }
 
 // Base event interface for extensibility
@@ -57,6 +80,14 @@ export interface MessageData extends BaseCodexEventData {
   message?: string;
 }
 
+export type InputMessageKind = 'plain' | 'user_instructions' | 'environment_context';
+
+export interface UserMessageData extends BaseCodexEventData {
+  message: string;
+  kind?: InputMessageKind;
+  images?: string[] | null;
+}
+
 export interface StreamErrorData extends BaseCodexEventData {
   message?: string;
   error?: string;
@@ -66,7 +97,10 @@ export interface StreamErrorData extends BaseCodexEventData {
 
 // Command execution event data interfaces
 export interface ExecCommandBeginData extends BaseCodexEventData {
-  command?: string | string[];
+  command?: string[] | string;
+  cwd?: string;
+  parsed_cmd?: ParsedCommand[];
+  // Back-compat
   workingDir?: string;
   env?: Record<string, string>;
 }
@@ -78,9 +112,12 @@ export interface ExecCommandOutputDeltaData extends BaseCodexEventData {
 }
 
 export interface ExecCommandEndData extends BaseCodexEventData {
+  stdout?: string;
+  stderr?: string;
+  aggregated_output?: string;
   exit_code?: number;
-  signal?: string;
-  duration?: number;
+  duration?: string | number;
+  formatted_output?: string;
 }
 
 // Patch/file modification event data interfaces
@@ -116,38 +153,64 @@ export interface McpToolCallEndData extends BaseCodexEventData {
   invocation?: McpInvocation;
   result?: any;
   error?: string;
-  duration?: number;
+  duration?: string | number;
 }
 
 // Web search event data interfaces
 export interface WebSearchBeginData extends BaseCodexEventData {
-  query?: string;
-  engine?: string;
-  options?: Record<string, any>;
+  call_id?: string;
 }
 
 export interface WebSearchEndData extends BaseCodexEventData {
+  call_id?: string;
   query?: string;
   results?: SearchResult[];
-  resultCount?: number;
-  duration?: number;
+}
+
+// Token count event data interface
+export interface TokenCountData extends BaseCodexEventData {
+  info?: {
+    total_token_usage?: {
+      input_tokens?: number;
+      cached_input_tokens?: number;
+      output_tokens?: number;
+      reasoning_output_tokens?: number;
+      total_tokens?: number;
+    };
+    last_token_usage?: {
+      input_tokens?: number;
+      cached_input_tokens?: number;
+      output_tokens?: number;
+      reasoning_output_tokens?: number;
+      total_tokens?: number;
+    };
+    model_context_window?: number;
+  };
 }
 
 // Supporting interfaces
-export interface FileChange {
-  action?: 'create' | 'modify' | 'delete' | 'rename';
-  content?: string;
-  oldPath?: string;
-  newPath?: string;
-  mode?: string;
-  size?: number;
-  checksum?: string;
-}
+export type FileChange =
+  | { type: 'add'; content: string }
+  | { type: 'delete'; content: string }
+  | { type: 'update'; unified_diff: string; move_path?: string | null }
+  | {
+      // Legacy/back‑compat
+      action?: 'create' | 'modify' | 'delete' | 'rename';
+      content?: string;
+      oldPath?: string;
+      newPath?: string;
+      mode?: string;
+      size?: number;
+      checksum?: string;
+    };
 
 export interface McpInvocation {
+  server?: string;
+  tool?: string;
+  arguments?: Record<string, any>;
+  // compat
   method?: string;
   name?: string;
-  arguments?: Record<string, any>;
   toolId?: string;
   serverId?: string;
 }
@@ -160,8 +223,61 @@ export interface SearchResult {
   metadata?: Record<string, any>;
 }
 
+export type ParsedCommand = { type: 'read'; cmd: string; name: string } | { type: 'list_files'; cmd: string; path?: string | null } | { type: 'search'; cmd: string; query?: string | null; path?: string | null } | { type: 'unknown'; cmd: string };
+
+export type ExecOutputStream = 'stdout' | 'stderr';
+
+export interface AgentReasoningRawContentData extends BaseCodexEventData {
+  text: string;
+}
+export interface AgentReasoningRawContentDeltaData extends BaseCodexEventData {
+  delta: string;
+}
+
+export interface ExecApprovalRequestData extends BaseCodexEventData {
+  call_id?: string;
+  command?: string[];
+  cwd?: string;
+  reason?: string | null;
+}
+
+export interface TurnDiffData extends BaseCodexEventData {
+  unified_diff: string;
+}
+
+export interface ConversationPathResponseData extends BaseCodexEventData {
+  conversation_id: string;
+  path: string;
+}
+
+export interface GetHistoryEntryResponseData extends BaseCodexEventData {
+  offset: number;
+  log_id: number;
+  entry?: any;
+}
+
+export interface McpListToolsResponseData extends BaseCodexEventData {
+  tools: Record<string, any>;
+}
+
+export interface ListCustomPromptsResponseData extends BaseCodexEventData {
+  custom_prompts: any[];
+}
+
+export interface TurnAbortedData extends BaseCodexEventData {
+  reason: 'interrupted' | 'replaced';
+}
+
 // Discriminated union for type-safe event handling
 export type CodexAgentEvent =
+  | {
+      type: CodexAgentEventType.SESSION_CONFIGURED;
+      data: BaseCodexEventData;
+    }
+  | {
+      type: CodexAgentEventType.TASK_STARTED;
+      data: BaseCodexEventData;
+    }
   | {
       type: CodexAgentEventType.AGENT_MESSAGE_DELTA;
       data: MessageDeltaData;
@@ -169,6 +285,10 @@ export type CodexAgentEvent =
   | {
       type: CodexAgentEventType.AGENT_MESSAGE;
       data: MessageData;
+    }
+  | {
+      type: CodexAgentEventType.USER_MESSAGE;
+      data: UserMessageData;
     }
   | {
       type: CodexAgentEventType.TASK_COMPLETE;
@@ -186,6 +306,8 @@ export type CodexAgentEvent =
       type: CodexAgentEventType.AGENT_REASONING;
       data: BaseCodexEventData;
     }
+  | { type: CodexAgentEventType.AGENT_REASONING_RAW_CONTENT; data: AgentReasoningRawContentData }
+  | { type: CodexAgentEventType.AGENT_REASONING_RAW_CONTENT_DELTA; data: AgentReasoningRawContentDeltaData }
   | {
       type: CodexAgentEventType.EXEC_COMMAND_BEGIN;
       data: ExecCommandBeginData;
@@ -198,6 +320,7 @@ export type CodexAgentEvent =
       type: CodexAgentEventType.EXEC_COMMAND_END;
       data: ExecCommandEndData;
     }
+  | { type: CodexAgentEventType.EXEC_APPROVAL_REQUEST; data: ExecApprovalRequestData }
   | {
       type: CodexAgentEventType.APPLY_PATCH_APPROVAL_REQUEST;
       data: PatchApprovalData;
@@ -229,7 +352,22 @@ export type CodexAgentEvent =
   | {
       type: CodexAgentEventType.WEB_SEARCH_END;
       data: WebSearchEndData;
-    };
+    }
+  | {
+      type: CodexAgentEventType.TOKEN_COUNT;
+      data: TokenCountData;
+    }
+  | {
+      type: CodexAgentEventType.AGENT_REASONING_SECTION_BREAK;
+      data: BaseCodexEventData;
+    }
+  | { type: CodexAgentEventType.TURN_DIFF; data: TurnDiffData }
+  | { type: CodexAgentEventType.GET_HISTORY_ENTRY_RESPONSE; data: GetHistoryEntryResponseData }
+  | { type: CodexAgentEventType.MCP_LIST_TOOLS_RESPONSE; data: McpListToolsResponseData }
+  | { type: CodexAgentEventType.LIST_CUSTOM_PROMPTS_RESPONSE; data: ListCustomPromptsResponseData }
+  | { type: CodexAgentEventType.CONVERSATION_PATH; data: ConversationPathResponseData }
+  | { type: CodexAgentEventType.BACKGROUND_EVENT; data: { message: string } }
+  | { type: CodexAgentEventType.TURN_ABORTED; data: TurnAbortedData };
 
 // Manager configuration interface
 export interface CodexAgentManagerData {
