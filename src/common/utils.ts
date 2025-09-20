@@ -6,19 +6,41 @@
 
 export const uuid = (length = 8) => {
   try {
-    // Prefer cryptographically strong randomness
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const crypto = require('crypto');
-    if (typeof crypto.randomUUID === 'function' && length >= 36) {
-      return crypto.randomUUID();
+    // Prefer Web Crypto API for browser compatibility
+    if (typeof window !== 'undefined' && window.crypto && window.crypto.randomUUID && length >= 36) {
+      return window.crypto.randomUUID();
     }
-    const bytes = crypto.randomBytes(Math.ceil(length / 2));
-    return bytes.toString('hex').slice(0, length);
+
+    // Use Web Crypto getRandomValues for browser environment
+    if (typeof window !== 'undefined' && window.crypto && window.crypto.getRandomValues) {
+      const bytes = new Uint8Array(Math.ceil(length / 2));
+      window.crypto.getRandomValues(bytes);
+      return Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0'))
+        .join('')
+        .slice(0, length);
+    }
+
+    // Node.js environment - use dynamic import to avoid webpack bundling
+    if (typeof process !== 'undefined' && process.versions && process.versions.node) {
+      try {
+        // Dynamic require to avoid webpack bundling issues
+        const cryptoModule = eval('require')('crypto');
+        if (typeof cryptoModule.randomUUID === 'function' && length >= 36) {
+          return cryptoModule.randomUUID();
+        }
+        const bytes = cryptoModule.randomBytes(Math.ceil(length / 2));
+        return bytes.toString('hex').slice(0, length);
+      } catch {
+        // Fall through to fallback
+      }
+    }
   } catch {
-    // Monotonic fallback without insecure randomness
-    const base = Date.now().toString(36);
-    return (base + base).slice(0, length);
+    // Fallback without crypto
   }
+
+  // Monotonic fallback without cryptographically secure randomness
+  const base = Date.now().toString(36);
+  return (base + base).slice(0, length);
 };
 
 export const parseError = (error: any): string => {

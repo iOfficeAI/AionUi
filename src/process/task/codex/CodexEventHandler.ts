@@ -10,8 +10,7 @@ import type { IResponseMessage } from '@/common/ipcBridge';
 import type { AcpPermissionRequest } from '@/common/acpTypes';
 import { uuid } from '@/common/utils';
 import { addOrUpdateMessage } from '../../message';
-import { CodexAgentEventType } from '@/common/codexTypes';
-import type { CodexAgentEvent } from '@/common/codexTypes';
+import { CodexAgentEventType, type CodexAgentEvent } from '@/common/codexTypes';
 import { CodexMessageProcessor } from './CodexMessageProcessor';
 import { CodexToolHandlers } from './CodexToolHandlers';
 
@@ -38,17 +37,30 @@ export class CodexEventHandler {
     this.toolHandlers = new CodexToolHandlers(conversation_id);
   }
 
-  handleEvent(evt: CodexAgentEvent) {
+  handleEvent(evt: CodexAgentEvent | { type: string; data: any }) {
     const type = evt.type;
+
+    // Handle session and configuration events
+    if (type === CodexAgentEventType.SESSION_CONFIGURED) {
+      console.log('🔧 [CodexEventHandler] Session configured:', evt.data);
+      // These are informational events, no UI action needed
+      return;
+    }
+
+    if (type === CodexAgentEventType.TASK_STARTED) {
+      console.log('🚀 [CodexEventHandler] Task started:', evt.data);
+      // These are informational events, no UI action needed
+      return;
+    }
 
     // Handle special message types that need custom processing
     if (type === CodexAgentEventType.AGENT_MESSAGE_DELTA) {
-      this.messageProcessor.processMessageDelta(evt);
+      this.messageProcessor.processMessageDelta(evt as any);
       return;
     }
 
     if (type === CodexAgentEventType.AGENT_MESSAGE) {
-      this.messageProcessor.processMessage(evt);
+      this.messageProcessor.processMessage(evt as any);
       return;
     }
 
@@ -63,63 +75,76 @@ export class CodexEventHandler {
       return;
     }
 
+    // Handle reasoning section breaks - ignore them as they're internal structure
+    if (type === CodexAgentEventType.AGENT_REASONING_SECTION_BREAK) {
+      // These are Codex's internal reasoning section breaks, not user-facing content
+      return;
+    }
+
+    // Handle token count events - could be useful for usage tracking
+    if (type === CodexAgentEventType.TOKEN_COUNT) {
+      console.log('📊 [CodexEventHandler] Token count:', evt.data);
+      // These are informational events for usage tracking
+      return;
+    }
+
     if (type === CodexAgentEventType.STREAM_ERROR) {
-      this.messageProcessor.processStreamError(evt);
+      this.messageProcessor.processStreamError(evt as any);
       return;
     }
 
     // Tool: exec command
     if (type === CodexAgentEventType.EXEC_COMMAND_BEGIN) {
-      this.toolHandlers.handleExecCommandBegin(evt);
+      this.toolHandlers.handleExecCommandBegin(evt as any);
       return;
     }
 
     if (type === CodexAgentEventType.EXEC_COMMAND_OUTPUT_DELTA) {
-      this.toolHandlers.handleExecCommandOutputDelta(evt);
+      this.toolHandlers.handleExecCommandOutputDelta(evt as any);
       return;
     }
 
     if (type === CodexAgentEventType.EXEC_COMMAND_END) {
-      this.toolHandlers.handleExecCommandEnd(evt);
+      this.toolHandlers.handleExecCommandEnd(evt as any);
       return;
     }
 
     // Handle permission requests through unified transformMessage
     if (type === CodexAgentEventType.APPLY_PATCH_APPROVAL_REQUEST || type === CodexAgentEventType.ELICITATION_CREATE) {
-      this.handlePermissionRequest(evt);
+      this.handlePermissionRequest(evt as any);
       return;
     }
 
     // Tool: patch apply
     if (type === CodexAgentEventType.PATCH_APPLY_BEGIN) {
-      this.toolHandlers.handlePatchApplyBegin(evt);
+      this.toolHandlers.handlePatchApplyBegin(evt as any);
       return;
     }
 
     if (type === CodexAgentEventType.PATCH_APPLY_END) {
-      this.toolHandlers.handlePatchApplyEnd(evt);
+      this.toolHandlers.handlePatchApplyEnd(evt as any);
       return;
     }
 
     // Tool: mcp tool
     if (type === CodexAgentEventType.MCP_TOOL_CALL_BEGIN) {
-      this.toolHandlers.handleMcpToolCallBegin(evt);
+      this.toolHandlers.handleMcpToolCallBegin(evt as any);
       return;
     }
 
     if (type === CodexAgentEventType.MCP_TOOL_CALL_END) {
-      this.toolHandlers.handleMcpToolCallEnd(evt);
+      this.toolHandlers.handleMcpToolCallEnd(evt as any);
       return;
     }
 
     // Tool: web search
     if (type === CodexAgentEventType.WEB_SEARCH_BEGIN) {
-      this.toolHandlers.handleWebSearchBegin(evt);
+      this.toolHandlers.handleWebSearchBegin(evt as any);
       return;
     }
 
     if (type === CodexAgentEventType.WEB_SEARCH_END) {
-      this.toolHandlers.handleWebSearchEnd(evt);
+      this.toolHandlers.handleWebSearchEnd(evt as any);
       return;
     }
 
@@ -142,6 +167,13 @@ export class CodexEventHandler {
     // Store patch changes for later execution
     if (evt.data?.changes || evt.data?.codex_changes) {
       this.toolHandlers.getPendingConfirmations().add(uniqueRequestId);
+
+      // Store the actual changes for later application
+      const changes = evt.data?.changes || evt.data?.codex_changes;
+      if (changes) {
+        console.log('💾 [CodexEventHandler] Storing patch changes for callId:', uniqueRequestId, 'changes:', Object.keys(changes));
+        this.toolHandlers.storePatchChanges(uniqueRequestId, changes);
+      }
     }
 
     // Transform Codex-specific message to standard format before calling transformMessage
@@ -149,8 +181,10 @@ export class CodexEventHandler {
 
     if (standardMessage) {
       const transformedMessage = transformMessage(standardMessage);
-      addOrUpdateMessage(this.conversation_id, transformedMessage, true);
-      ipcBridge.codexConversation.responseStream.emit(standardMessage);
+      if (transformedMessage) {
+        addOrUpdateMessage(this.conversation_id, transformedMessage, true);
+        ipcBridge.codexConversation.responseStream.emit(standardMessage);
+      }
     }
   }
 

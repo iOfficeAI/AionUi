@@ -20,6 +20,12 @@ export class CodexMessageProcessor {
   constructor(private conversation_id: string) {}
 
   processMessageDelta(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.AGENT_MESSAGE_DELTA }>) {
+    console.log('📝 [CodexMessageProcessor] Processing message delta:', {
+      delta: evt.data?.delta,
+      requestId: evt.data?._meta?.requestId || evt.data?.requestId,
+      currentLoadingId: this.currentLoadingId,
+    });
+
     // 提取requestId来分离不同的消息流
     const requestId = evt.data?._meta?.requestId || evt.data?.requestId;
 
@@ -53,7 +59,7 @@ export class CodexMessageProcessor {
     }
     this.deltaTimeout = setTimeout(() => {
       if (this.currentContent && this.currentContent.trim() && this.currentLoadingId) {
-        // Send finish signal to UI
+        // Send finish signal to UI - but don't pass through transformMessage as it's internal
         const finishMessage: IResponseMessage = {
           type: 'finish',
           conversation_id: this.conversation_id,
@@ -72,6 +78,13 @@ export class CodexMessageProcessor {
   }
 
   processMessage(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.AGENT_MESSAGE }>) {
+    console.log('✅ [CodexMessageProcessor] Processing final message:', {
+      message: evt.data?.message,
+      requestId: evt.data?._meta?.requestId || evt.data?.requestId,
+      currentContent: this.currentContent,
+      currentLoadingId: this.currentLoadingId,
+    });
+
     // Clear timeout since we're finalizing the message
     if (this.deltaTimeout) {
       clearTimeout(this.deltaTimeout);
@@ -94,8 +107,22 @@ export class CodexMessageProcessor {
 
     const message = this.createContentMessage(finalContent, this.currentLoadingId);
     if (message) {
-      addOrUpdateMessage(this.conversation_id, transformMessage(message));
+      console.log('💾 [CodexMessageProcessor] Adding message to conversation:', {
+        messageType: message.type,
+        conversation_id: this.conversation_id,
+        content: typeof message.data === 'string' ? message.data.substring(0, 100) + '...' : message.data,
+      });
+
+      const transformedMessage = transformMessage(message);
+      if (transformedMessage) {
+        addOrUpdateMessage(this.conversation_id, transformedMessage);
+        console.log('📡 [CodexMessageProcessor] Emitting message to UI');
+      } else {
+        console.warn('⚠️ [CodexMessageProcessor] transformMessage returned undefined');
+      }
       ipcBridge.codexConversation.responseStream.emit(message);
+    } else {
+      console.warn('⚠️ [CodexMessageProcessor] createContentMessage returned null');
     }
   }
 
@@ -115,7 +142,7 @@ export class CodexMessageProcessor {
       }
     }
 
-    // Send finish signal to UI
+    // Send finish signal to UI - but don't pass through transformMessage as it's internal
     const finishMessage: IResponseMessage = {
       type: 'finish',
       conversation_id: this.conversation_id,
