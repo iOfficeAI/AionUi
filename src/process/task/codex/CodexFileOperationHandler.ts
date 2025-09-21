@@ -28,25 +28,16 @@ export class CodexFileOperationHandler {
   private pendingOperations = new Map<string, { resolve: (result: any) => void; reject: (error: any) => void }>();
   private workingDirectory: string;
 
-  constructor(
-    private conversation_id: string,
-    workingDirectory?: string
-  ) {
-    this.workingDirectory = workingDirectory || process.cwd();
-    console.log('🔧 [CodexFileOperationHandler] Initialized with working directory:', this.workingDirectory);
+  constructor(workingDirectory: string, private messageProcessor: CodexMessageProcessor) {
+    this.workingDirectory = path.resolve(workingDirectory);
   }
 
   /**
    * 处理文件操作请求 - 参考 ACP 的 handleFileOperation
    */
   async handleFileOperation(operation: FileOperation): Promise<any> {
-    console.log('📁 [CodexFileOperationHandler] Handling file operation:', {
-      method: operation.method,
-      path: operation.path,
-      action: operation.action,
-    });
-
-    try {
+    // Validate inputs
+    if (!operation.filename && !operation.path) {
       switch (operation.method) {
         case 'fs/write_text_file':
         case 'file_write':
@@ -75,7 +66,6 @@ export class CodexFileOperationHandler {
     const fullPath = this.resolveFilePath(operation.path);
     const content = operation.content || '';
 
-    console.log('✏️ [CodexFileOperationHandler] Writing file:', fullPath);
 
     // 确保目录存在
     const dir = path.dirname(fullPath);
@@ -91,7 +81,6 @@ export class CodexFileOperationHandler {
       content: content,
     });
 
-    console.log('✅ [CodexFileOperationHandler] File written successfully:', fullPath);
   }
 
   /**
@@ -100,7 +89,6 @@ export class CodexFileOperationHandler {
   private async handleFileRead(operation: FileOperation): Promise<string> {
     const fullPath = this.resolveFilePath(operation.path);
 
-    console.log('📖 [CodexFileOperationHandler] Reading file:', fullPath);
 
     try {
       const content = await fs.readFile(fullPath, 'utf-8');
@@ -111,7 +99,6 @@ export class CodexFileOperationHandler {
         path: operation.path,
       });
 
-      console.log('✅ [CodexFileOperationHandler] File read successfully:', fullPath);
       return content;
     } catch (error) {
       if ((error as any).code === 'ENOENT') {
@@ -127,7 +114,6 @@ export class CodexFileOperationHandler {
   private async handleFileDelete(operation: FileOperation): Promise<void> {
     const fullPath = this.resolveFilePath(operation.path);
 
-    console.log('🗑️ [CodexFileOperationHandler] Deleting file:', fullPath);
 
     try {
       await fs.unlink(fullPath);
@@ -138,7 +124,6 @@ export class CodexFileOperationHandler {
         path: operation.path,
       });
 
-      console.log('✅ [CodexFileOperationHandler] File deleted successfully:', fullPath);
     } catch (error) {
       if ((error as any).code === 'ENOENT') {
         console.warn('⚠️ [CodexFileOperationHandler] File not found for deletion:', fullPath);
@@ -170,7 +155,6 @@ export class CodexFileOperationHandler {
    * 处理智能文件引用 - 参考 ACP 的 @filename 处理
    */
   processFileReferences(content: string, files?: string[]): string {
-    console.log('🔍 [CodexFileOperationHandler] Processing file references in content');
 
     if (!files || files.length === 0 || !content.includes('@')) {
       return content;
@@ -188,7 +172,6 @@ export class CodexFileOperationHandler {
       const atFilename = `@${filename}`;
       if (processedContent.includes(atFilename)) {
         processedContent = processedContent.replace(new RegExp(atFilename.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), filename);
-        console.log('🔄 [CodexFileOperationHandler] Replaced file reference:', atFilename, '→', filename);
       }
     });
 
@@ -208,7 +191,6 @@ export class CodexFileOperationHandler {
       data: formattedMessage,
     };
 
-    console.log('📤 [CodexFileOperationHandler] Emitting file operation message');
     addMessage(this.conversation_id, transformMessage(responseMessage));
     ipcBridge.codexConversation.responseStream.emit(responseMessage);
   }
@@ -254,7 +236,6 @@ export class CodexFileOperationHandler {
    * 批量应用文件更改 - 参考 ACP 和当前 CodexAgentManager 的 applyPatchChanges
    */
   async applyBatchChanges(changes: Record<string, any>): Promise<void> {
-    console.log('📦 [CodexFileOperationHandler] Applying batch changes:', Object.keys(changes));
 
     const operations: Promise<void>[] = [];
 
@@ -272,14 +253,12 @@ export class CodexFileOperationHandler {
     }
 
     await Promise.all(operations);
-    console.log('✅ [CodexFileOperationHandler] All batch changes applied successfully');
   }
 
   /**
    * 清理资源
    */
   cleanup(): void {
-    console.log('🧹 [CodexFileOperationHandler] Cleaning up...');
 
     // 拒绝所有待处理的操作
     for (const [operationId, { reject }] of this.pendingOperations) {

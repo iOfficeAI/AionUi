@@ -35,18 +35,15 @@ export class CodexSessionManager {
 
   constructor(private config: CodexSessionConfig) {
     this.timeout = config.timeout || 30000; // 30秒默认超时
-    console.log('🎯 [CodexSessionManager] Initialized for conversation:', config.conversation_id);
   }
 
   /**
    * 启动会话 - 参考 ACP 的 start() 方法
    */
   async startSession(): Promise<void> {
-    console.log('🚀 [CodexSessionManager] Starting session...');
 
     try {
       await this.performConnectionSequence();
-      console.log('✅ [CodexSessionManager] Session started successfully');
     } catch (error) {
       console.error('❌ [CodexSessionManager] Session start failed:', error);
       this.setStatus('error', `Failed to start session: ${error instanceof Error ? error.message : String(error)}`);
@@ -78,7 +75,6 @@ export class CodexSessionManager {
    * 建立连接
    */
   private async establishConnection(): Promise<void> {
-    console.log('🔌 [CodexSessionManager] Establishing connection...');
 
     return new Promise((resolve, reject) => {
       const timeoutId = setTimeout(() => {
@@ -89,7 +85,6 @@ export class CodexSessionManager {
       setTimeout(() => {
         clearTimeout(timeoutId);
         this.isConnected = true;
-        console.log('✅ [CodexSessionManager] Connection established');
         resolve();
       }, 1000);
     });
@@ -99,13 +94,11 @@ export class CodexSessionManager {
    * 执行认证 - 参考 ACP 的认证逻辑
    */
   private async performAuthentication(): Promise<void> {
-    console.log('🔐 [CodexSessionManager] Performing authentication...');
 
     // 这里可以添加具体的认证逻辑
     // 目前 Codex 通过 CLI 自身处理认证
     return new Promise((resolve) => {
       setTimeout(() => {
-        console.log('✅ [CodexSessionManager] Authentication completed');
         resolve();
       }, 500);
     });
@@ -115,7 +108,6 @@ export class CodexSessionManager {
    * 创建会话
    */
   private async createSession(): Promise<void> {
-    console.log('📋 [CodexSessionManager] Creating session...');
 
     return new Promise((resolve, reject) => {
       const timeoutId = setTimeout(() => {
@@ -126,7 +118,6 @@ export class CodexSessionManager {
         clearTimeout(timeoutId);
         this.sessionId = this.generateSessionId();
         this.hasActiveSession = true;
-        console.log('✅ [CodexSessionManager] Session created:', this.sessionId);
         resolve();
       }, 500);
     });
@@ -136,14 +127,12 @@ export class CodexSessionManager {
    * 停止会话
    */
   async stopSession(): Promise<void> {
-    console.log('🛑 [CodexSessionManager] Stopping session...');
 
     this.isConnected = false;
     this.hasActiveSession = false;
     this.sessionId = null;
     this.setStatus('disconnected', 'Session disconnected');
 
-    console.log('✅ [CodexSessionManager] Session stopped');
   }
 
   /**
@@ -151,12 +140,7 @@ export class CodexSessionManager {
    */
   checkSessionHealth(): boolean {
     const isHealthy = this.isConnected && this.hasActiveSession && this.status === 'session_active';
-    console.log('🏥 [CodexSessionManager] Session health check:', {
-      isConnected: this.isConnected,
-      hasActiveSession: this.hasActiveSession,
-      status: this.status,
-      healthy: isHealthy,
-    });
+    // Session health check
     return isHealthy;
   }
 
@@ -164,7 +148,6 @@ export class CodexSessionManager {
    * 重新连接会话
    */
   async reconnectSession(): Promise<void> {
-    console.log('🔄 [CodexSessionManager] Reconnecting session...');
 
     try {
       await this.stopSession();
@@ -180,7 +163,6 @@ export class CodexSessionManager {
    * 设置状态并发送通知 - 参考 ACP 的 emitStatusMessage
    */
   private setStatus(status: CodexSessionStatus, message: string): void {
-    console.log('📊 [CodexSessionManager] Status changed:', {
       from: this.status,
       to: status,
       message,
@@ -211,7 +193,6 @@ export class CodexSessionManager {
     addMessage(this.config.conversation_id, transformMessage(statusMessage));
     ipcBridge.codexConversation.responseStream.emit(statusMessage);
 
-    console.log('✅ [CodexSessionManager] Status message emitted');
   }
 
   /**
@@ -256,7 +237,6 @@ export class CodexSessionManager {
    * 发送会话事件
    */
   emitSessionEvent(eventType: string, data: unknown): void {
-    console.log('📡 [CodexSessionManager] Emitting session event:', {
       eventType,
       sessionId: this.sessionId,
       data: typeof data === 'object' ? Object.keys(data) : data,
@@ -300,11 +280,9 @@ export class CodexSessionManager {
    * 等待会话准备就绪 - 类似 ACP 的 bootstrap Promise
    */
   async waitForReady(timeout: number = 30000): Promise<void> {
-    console.log('⏳ [CodexSessionManager] Waiting for session ready...');
 
     return new Promise((resolve, reject) => {
       if (this.status === 'session_active') {
-        console.log('✅ [CodexSessionManager] Session already ready');
         resolve();
         return;
       }
@@ -313,7 +291,6 @@ export class CodexSessionManager {
         if (this.status === 'session_active') {
           clearInterval(checkInterval);
           clearTimeout(timeoutId);
-          console.log('✅ [CodexSessionManager] Session became ready');
           resolve();
         } else if (this.status === 'error') {
           clearInterval(checkInterval);
@@ -333,7 +310,6 @@ export class CodexSessionManager {
    * 清理资源
    */
   cleanup(): void {
-    console.log('🧹 [CodexSessionManager] Cleaning up...');
     this.stopSession().catch((err) => {
       console.warn('⚠️ [CodexSessionManager] Error during cleanup:', err);
     });

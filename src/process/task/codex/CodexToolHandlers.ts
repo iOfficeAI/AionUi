@@ -227,7 +227,6 @@ export class CodexToolHandlers {
     const changes = this.patchChanges.get(callId);
     if (changes) {
       // Apply changes logic would go here
-      console.log('Applying patch changes:', changes);
     }
   }
 

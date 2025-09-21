@@ -42,13 +42,11 @@ export class CodexEventHandler {
 
     // Handle session and configuration events
     if (type === CodexAgentEventType.SESSION_CONFIGURED) {
-      console.log('🔧 [CodexEventHandler] Session configured:', evt.data);
       // These are informational events, no UI action needed
       return;
     }
 
     if (type === CodexAgentEventType.TASK_STARTED) {
-      console.log('🚀 [CodexEventHandler] Task started:', evt.data);
       // These are informational events, no UI action needed
       return;
     }
@@ -83,7 +81,6 @@ export class CodexEventHandler {
 
     // Handle token count events - could be useful for usage tracking
     if (type === CodexAgentEventType.TOKEN_COUNT) {
-      console.log('📊 [CodexEventHandler] Token count:', evt.data);
       // These are informational events for usage tracking
       return;
     }
@@ -248,7 +245,6 @@ export class CodexEventHandler {
       // Store the actual changes for later application
       const changes = evt.data?.changes || evt.data?.codex_changes;
       if (changes) {
-        console.log('💾 [CodexEventHandler] Storing patch changes for callId:', uniqueRequestId, 'changes:', Object.keys(changes));
         this.toolHandlers.storePatchChanges(uniqueRequestId, changes);
       }
     }
