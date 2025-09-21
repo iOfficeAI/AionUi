@@ -38,7 +38,7 @@ export class CodexMessageTransformer {
             position: 'left',
             conversation_id: message.conversation_id,
             content: {
-              content: `💭 思考: ${message.data}`,
+              content: '',
             },
           };
         }
@@ -52,7 +52,7 @@ export class CodexMessageTransformer {
             position: 'left',
             conversation_id: message.conversation_id,
             content: {
-              content: `💭 ${message.data}`,
+              content: '',
             },
           };
         }
@@ -66,7 +66,7 @@ export class CodexMessageTransformer {
             position: 'left',
             conversation_id: message.conversation_id,
             content: {
-              content: `🔍 推理详情: ${message.data}`,
+              content: '',
             },
           };
         }
@@ -94,9 +94,27 @@ export class CodexMessageTransformer {
             position: 'left',
             conversation_id: message.conversation_id,
             content: {
-              content: '📍 ---',
+              content: '',
             },
           };
+        }
+
+        case 'acp_permission': {
+          console.log('🔐 [CodexMessageTransformer] Processing Codex ACP permission message');
+          // Check if this is actually a Codex permission request
+          if (message.data?.agentType === 'codex') {
+            console.log('🔄 [CodexMessageTransformer] Converting ACP permission to Codex permission');
+            return {
+              id: uuid(),
+              type: 'codex_permission',
+              msg_id: message.msg_id,
+              position: 'left',
+              conversation_id: message.conversation_id,
+              content: message.data,
+            };
+          }
+          // Return undefined for non-Codex ACP permissions
+          return undefined;
         }
 
         case 'codex_permission': {
@@ -120,6 +138,34 @@ export class CodexMessageTransformer {
             position: 'center',
             conversation_id: message.conversation_id,
             content: message.data,
+          };
+        }
+
+        case 'agent_message_delta': {
+          console.log('🔤 [CodexMessageTransformer] Processing agent message delta');
+          return {
+            id: uuid(),
+            type: 'text',
+            msg_id: message.msg_id || 'agent_message_delta',
+            position: 'left',
+            conversation_id: message.conversation_id,
+            content: {
+              content: message.data?.delta || '',
+            },
+          };
+        }
+
+        case 'agent_message': {
+          console.log('📝 [CodexMessageTransformer] Processing agent message');
+          return {
+            id: uuid(),
+            type: 'text',
+            msg_id: message.msg_id || 'agent_message',
+            position: 'left',
+            conversation_id: message.conversation_id,
+            content: {
+              content: message.data?.message || '',
+            },
           };
         }
 
@@ -152,7 +198,7 @@ export class CodexMessageTransformer {
    * @returns 是否为 Codex 特定类型
    */
   static isCodexSpecificMessage(messageType: string): boolean {
-    const codexTypes = ['agent_reasoning', 'agent_reasoning_delta', 'agent_reasoning_raw_content', 'agent_reasoning_raw_content_delta', 'agent_reasoning_section_break', 'codex_permission', 'codex_status'];
+    const codexTypes = ['agent_reasoning', 'agent_reasoning_delta', 'agent_reasoning_raw_content', 'agent_reasoning_raw_content_delta', 'agent_reasoning_section_break', 'acp_permission', 'codex_permission', 'codex_status', 'agent_message_delta', 'agent_message'];
     return codexTypes.includes(messageType);
   }
 }

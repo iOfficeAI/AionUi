@@ -392,6 +392,11 @@ export const composeMessage = (message: TMessage | undefined, list: TMessage[] |
     const lastContent = String(last.content.content || '');
     const newContent = String(message.content.content || '');
 
+    // 如果内容完全相同，跳过处理
+    if (lastContent === newContent) {
+      return list;
+    }
+
     if (newContent.includes(lastContent) || lastContent === 'loading...') {
       // 新内容包含旧内容或旧内容是loading，直接替换
       message.content.content = newContent;

@@ -146,6 +146,10 @@
       "connected": "已连接到 Codex MCP 服务器",
       "session_active": "已与 Codex 创建活跃会话",
       "error_connect": "连接 Codex 失败：{{error}}"
+    },
+    "thinking": {
+      "analyzing": "正在分析问题和制定解决方案...",
+      "composing": "正在整理回复内容..."
     }
   }
 }

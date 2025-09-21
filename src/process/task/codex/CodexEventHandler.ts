@@ -69,15 +69,15 @@ export class CodexEventHandler {
       return;
     }
 
-    // Handle reasoning deltas and reasoning messages - ignore them as they're internal Codex thoughts
+    // Handle reasoning deltas and reasoning messages - send them to UI for dynamic thinking display
     if (type === CodexAgentEventType.AGENT_REASONING_DELTA || type === CodexAgentEventType.AGENT_REASONING) {
-      // These are Codex's internal reasoning steps, not user-facing content
+      this.handleReasoningMessage(evt as any);
       return;
     }
 
-    // Handle reasoning section breaks - ignore them as they're internal structure
+    // Handle reasoning section breaks - send them to UI for dynamic thinking display
     if (type === CodexAgentEventType.AGENT_REASONING_SECTION_BREAK) {
-      // These are Codex's internal reasoning section breaks, not user-facing content
+      this.handleReasoningMessage(evt as any);
       return;
     }
 
@@ -156,6 +156,21 @@ export class CodexEventHandler {
 
     // Catch all unhandled events for debugging
     console.warn(`❌ [CodexAgentManager] Unhandled event type: "${type}"`, (evt as any).data);
+  }
+
+  private handleReasoningMessage(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.AGENT_REASONING_DELTA | CodexAgentEventType.AGENT_REASONING | CodexAgentEventType.AGENT_REASONING_SECTION_BREAK }>) {
+    const eventData = evt.data as any;
+
+    // Create a standard message format for reasoning content
+    const standardMessage: IResponseMessage = {
+      type: evt.type,
+      msg_id: uuid(),
+      conversation_id: this.conversation_id,
+      data: eventData.delta || eventData.text || eventData,
+    };
+
+    // Emit to frontend stream for processing by CodexSendBox
+    ipcBridge.codexConversation.responseStream.emit(standardMessage);
   }
 
   private handleExecApprovalRequest(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.EXEC_APPROVAL_REQUEST }>) {
