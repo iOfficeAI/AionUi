@@ -5,14 +5,15 @@
  */
 
 import { ipcBridge } from '@/common';
+import { transformMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import { uuid } from '@/common/utils';
 import type { CodexAgentEventType, CodexAgentEvent } from '@/common/codexTypes';
+import { addOrUpdateMessage } from '../../message';
 
 export class CodexMessageProcessor {
   private currentLoadingId: string | null = null;
   private currentContent: string = '';
-  private currentRequestId: number | null = null;
   private deltaTimeout: NodeJS.Timeout | null = null;
 
   constructor(private conversation_id: string) {}
@@ -27,8 +28,8 @@ export class CodexMessageProcessor {
     // 提取requestId来分离不同的消息流
     const requestId = evt.data?._meta?.requestId || evt.data?.requestId;
 
-    // 如果这是新的请求，重置累积状态
-    if (requestId !== this.currentRequestId || !this.currentLoadingId) {
+    // 只在没有当前loading ID时创建新的，不因requestId变化而重置
+    if (!this.currentLoadingId) {
       // Clear any existing timeout
       if (this.deltaTimeout) {
         clearTimeout(this.deltaTimeout);
@@ -37,7 +38,6 @@ export class CodexMessageProcessor {
 
       this.currentLoadingId = uuid();
       this.currentContent = ''; // 重置累积内容
-      this.currentRequestId = requestId;
     }
 
     // 累积 delta 内容，但要兼容 Codex 可能返回全量 message 的情况，避免重复追加
@@ -64,8 +64,15 @@ export class CodexMessageProcessor {
     // 发送完整累积的内容，使用相同的msg_id确保替换loading
     const deltaMessage = this.createContentMessage(this.currentContent, this.currentLoadingId!);
     if (deltaMessage) {
+      console.log('📤 [CodexMessageProcessor] Emitting delta message:', {
+        type: deltaMessage.type,
+        msg_id: deltaMessage.msg_id,
+        conversation_id: deltaMessage.conversation_id,
+        contentLength: typeof deltaMessage.data === 'string' ? deltaMessage.data.length : 0,
+      });
       // 只通过stream发送，避免重复处理
       ipcBridge.codexConversation.responseStream.emit(deltaMessage);
+      console.log('✅ [CodexMessageProcessor] Delta message emitted successfully');
     }
 
     // Set/reset timeout to auto-finalize message if no completion event is received
@@ -87,7 +94,6 @@ export class CodexMessageProcessor {
       // Reset state
       this.currentLoadingId = null;
       this.currentContent = '';
-      this.currentRequestId = null;
       this.deltaTimeout = null;
     }, 3000); // 3 second timeout
   }
@@ -106,13 +112,9 @@ export class CodexMessageProcessor {
       this.deltaTimeout = null;
     }
 
-    // 提取requestId确保与对应的delta消息关联
-    const requestId = evt.data?._meta?.requestId || evt.data?.requestId;
-
-    // 如果没有当前loading ID或requestId不匹配，创建新的
-    if (requestId !== this.currentRequestId || !this.currentLoadingId) {
+    // 只在没有当前loading ID时创建新的，保持消息连续性
+    if (!this.currentLoadingId) {
       this.currentLoadingId = uuid();
-      this.currentRequestId = requestId;
     }
 
     const messageContent = evt.data?.message || '';
@@ -128,7 +130,14 @@ export class CodexMessageProcessor {
         content: typeof message.data === 'string' ? message.data.substring(0, 100) + '...' : message.data,
       });
 
-      // 只通过stream发送，避免重复处理
+      // 先保存到后端存储
+      const transformedMessage = transformMessage(message);
+      if (transformedMessage) {
+        addOrUpdateMessage(this.conversation_id, transformedMessage, true);
+        console.log('✅ [CodexMessageProcessor] Message saved to storage');
+      }
+
+      // 然后发送到前端UI
       console.log('📡 [CodexMessageProcessor] Emitting message to UI');
       ipcBridge.codexConversation.responseStream.emit(message);
     } else {
@@ -147,7 +156,14 @@ export class CodexMessageProcessor {
     if (this.currentContent && this.currentContent.trim() && this.currentLoadingId) {
       const message = this.createContentMessage(this.currentContent, this.currentLoadingId);
       if (message) {
-        // 只通过stream发送，避免重复处理
+        // 先保存到后端存储
+        const transformedMessage = transformMessage(message);
+        if (transformedMessage) {
+          addOrUpdateMessage(this.conversation_id, transformedMessage, true);
+          console.log('✅ [CodexMessageProcessor] Final accumulated message saved to storage');
+        }
+
+        // 然后发送到前端UI
         ipcBridge.codexConversation.responseStream.emit(message);
       }
     }
@@ -180,14 +196,85 @@ export class CodexMessageProcessor {
   }
 
   private createContentMessage(content: string, loadingId: string): IResponseMessage | null {
-    if (!content.trim()) return null;
+    console.log('🔍 [CodexMessageProcessor] createContentMessage called with:', {
+      content: content.substring(0, 100) + (content.length > 100 ? '...' : ''),
+      contentLength: content.length,
+      trimmed: content.trim().substring(0, 100) + (content.trim().length > 100 ? '...' : ''),
+      loadingId,
+    });
+
+    if (!content.trim()) {
+      console.log('❌ [CodexMessageProcessor] Content is empty after trim, returning null');
+      return null;
+    }
+
+    // 过滤重复的格式化标记和准备消息
+    const filteredContent = this.filterInternalMarkers(content);
+
+    console.log('🔍 [CodexMessageProcessor] After filtering:', {
+      originalLength: content.length,
+      filteredLength: filteredContent.length,
+      filtered: filteredContent.substring(0, 100) + (filteredContent.length > 100 ? '...' : ''),
+      willReturnNull: !filteredContent.trim(),
+    });
+
+    if (!filteredContent.trim()) {
+      console.log('❌ [CodexMessageProcessor] Filtered content is empty, returning null');
+      return null;
+    }
 
     return {
       type: 'content', // Use standard content type instead of ai_content
       conversation_id: this.conversation_id,
       msg_id: loadingId,
-      data: content, // Simplified data format for standard content type
+      data: filteredContent, // 使用过滤后的内容
     };
+  }
+
+  private filterInternalMarkers(content: string): string {
+    // 定义需要过滤的模式
+    const filterPatterns = [
+      /^\*\*[Pp]reparing.*$/gim, // 过滤所有 "**Preparing..." 变体（包括 preparingfriendlyresponse）
+      /^[Pp]reparing\s+.*$/gim, // 过滤 "Preparing ..." 变体
+      /^\*\*[Cc]onsidering.*$/gim, // 过滤所有 "**Considering..." 变体
+      /^[Cc]onsidering\s+.*$/gim, // 过滤 "Considering ..." 变体
+      /^\*\*[Tt]hinking.*$/gim, // 过滤 "**Thinking..."
+      /^\*\*[Pp]rocessing.*$/gim, // 过滤 "**Processing..."
+      /^\*\*[Aa]nalyzing.*$/gim, // 过滤 "**Analyzing..."
+      /^\*\*[Ee]valuating.*$/gim, // 过滤 "**Evaluating..."
+      /^\*\*[Gg]enerating.*$/gim, // 过滤 "**Generating..."
+      /^\*\*[Ff]ormulating.*$/gim, // 过滤 "**Formulating..."
+      /^\*\*[Cc]rafting.*$/gim, // 过滤 "**Crafting..."
+      /^\*\*[Cc]reating.*$/gim, // 过滤 "**Creating..."
+      /^---+\s*$/gm, // 过滤纯横线分隔符
+      /^\s*\.\.\.\s*$/gm, // 过滤省略号行
+      /^\s*Loading\.\.\.\s*$/gim, // 过滤 "Loading..."
+      /^\s*Please\s+wait\.\.\.\s*$/gim, // 过滤 "Please wait..."
+      /^\*\*\w+ing\w*\s*$/gim, // 过滤所有以 "**" 开头的动词进行时形式
+      /^[A-Z][a-z]+ing\s+.*ambiguity.*$/gim, // 过滤类似 "Considering user input ambiguity" 的文本
+      /^[A-Z][a-z]+ing\s+.*input.*$/gim, // 过滤包含 "input" 的思考过程文本
+    ];
+
+    let filtered = content;
+
+    // 应用所有过滤模式
+    filterPatterns.forEach((pattern) => {
+      filtered = filtered.replace(pattern, '');
+    });
+
+    // 清理多余的空行（超过2个连续换行的情况）
+    filtered = filtered.replace(/\n{3,}/g, '\n\n');
+
+    // 清理开头和结尾的空白
+    filtered = filtered.trim();
+
+    console.log('🧹 [CodexMessageProcessor] Content filtering:', {
+      original: content.substring(0, 100) + '...',
+      filtered: filtered.substring(0, 100) + '...',
+      hasChanges: content !== filtered,
+    });
+
+    return filtered;
   }
 
   cleanup() {

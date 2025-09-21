@@ -147,5 +147,17 @@
     "vertexApiKey": "Vertex AI API キー",
     "workDir": "作業ディレクトリ",
     "yoloMode": "自動許可"
+  },
+  "codex": {
+    "status": {
+      "connecting": "Codex に接続中...",
+      "connected": "Codex MCP サーバーに接続しました",
+      "session_active": "Codex でアクティブセッションを作成しました",
+      "error_connect": "Codex への接続に失敗しました: {{error}}"
+    },
+    "thinking": {
+      "analyzing": "問題を分析し、解決策を策定しています...",
+      "composing": "回答内容を整理しています..."
+    }
   }
 }

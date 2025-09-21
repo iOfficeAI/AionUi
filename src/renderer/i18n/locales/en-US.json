@@ -146,6 +146,10 @@
       "connected": "Connected to Codex MCP server",
       "session_active": "Active session created with Codex",
       "error_connect": "Failed to connect Codex: {{error}}"
+    },
+    "thinking": {
+      "analyzing": "Analyzing the problem and formulating solutions...",
+      "composing": "Composing response content..."
     }
   }
 }

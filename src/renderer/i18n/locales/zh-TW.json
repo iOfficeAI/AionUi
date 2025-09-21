@@ -139,5 +139,17 @@
     "vertexApiKey": "Vertex AI",
     "workDir": "工作目錄",
     "yoloMode": "自動允許"
+  },
+  "codex": {
+    "status": {
+      "connecting": "正在連接 Codex...",
+      "connected": "已連接到 Codex MCP 伺服器",
+      "session_active": "已與 Codex 創建活躍會話",
+      "error_connect": "連接 Codex 失敗：{{error}}"
+    },
+    "thinking": {
+      "analyzing": "正在分析問題和制定解決方案...",
+      "composing": "正在整理回覆內容..."
+    }
   }
 }
