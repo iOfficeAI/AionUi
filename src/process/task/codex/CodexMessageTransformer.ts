@@ -19,18 +19,11 @@ export class CodexMessageTransformer {
    * @returns 转换后的 TMessage 或 undefined
    */
   static transformCodexMessage(message: IResponseMessage): TMessage | undefined {
-    console.log('🔄 [CodexMessageTransformer] Processing Codex message:', {
-      type: message.type,
-      msg_id: message.msg_id,
-      conversation_id: message.conversation_id,
-      dataType: typeof message.data,
-      dataContent: typeof message.data === 'string' ? message.data.substring(0, 100) + '...' : message.data,
-    });
+    // Processing Codex message
 
     try {
       switch (message.type) {
         case 'agent_reasoning': {
-          console.log('🧠 [CodexMessageTransformer] Processing agent reasoning message');
           return {
             id: uuid(),
             type: 'text',
@@ -44,7 +37,6 @@ export class CodexMessageTransformer {
         }
 
         case 'agent_reasoning_delta': {
-          console.log('🧠 [CodexMessageTransformer] Processing agent reasoning delta message');
           return {
             id: uuid(),
             type: 'text',
@@ -58,7 +50,6 @@ export class CodexMessageTransformer {
         }
 
         case 'agent_reasoning_raw_content': {
-          console.log('🧠 [CodexMessageTransformer] Processing agent reasoning raw content message');
           return {
             id: uuid(),
             type: 'text',
@@ -72,7 +63,6 @@ export class CodexMessageTransformer {
         }
 
         case 'agent_reasoning_raw_content_delta': {
-          console.log('🧠 [CodexMessageTransformer] Processing agent reasoning raw content delta message');
           return {
             id: uuid(),
             type: 'text',
@@ -86,7 +76,6 @@ export class CodexMessageTransformer {
         }
 
         case 'agent_reasoning_section_break': {
-          console.log('🧠 [CodexMessageTransformer] Processing agent reasoning section break message');
           return {
             id: uuid(),
             type: 'text',
@@ -100,10 +89,8 @@ export class CodexMessageTransformer {
         }
 
         case 'acp_permission': {
-          console.log('🔐 [CodexMessageTransformer] Processing Codex ACP permission message');
           // Check if this is actually a Codex permission request
           if (message.data?.agentType === 'codex') {
-            console.log('🔄 [CodexMessageTransformer] Converting ACP permission to Codex permission');
             return {
               id: uuid(),
               type: 'codex_permission',
@@ -118,7 +105,6 @@ export class CodexMessageTransformer {
         }
 
         case 'codex_permission': {
-          console.log('🔐 [CodexMessageTransformer] Processing Codex permission message');
           return {
             id: uuid(),
             type: 'codex_permission',
@@ -130,7 +116,6 @@ export class CodexMessageTransformer {
         }
 
         case 'codex_status': {
-          console.log('📊 [CodexMessageTransformer] Processing Codex status message');
           return {
             id: uuid(),
             type: 'codex_status',
@@ -142,7 +127,6 @@ export class CodexMessageTransformer {
         }
 
         case 'agent_message_delta': {
-          console.log('🔤 [CodexMessageTransformer] Processing agent message delta');
           return {
             id: uuid(),
             type: 'text',
@@ -156,7 +140,6 @@ export class CodexMessageTransformer {
         }
 
         case 'agent_message': {
-          console.log('📝 [CodexMessageTransformer] Processing agent message');
           return {
             id: uuid(),
             type: 'text',

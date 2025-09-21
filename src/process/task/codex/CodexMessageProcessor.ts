@@ -19,12 +19,6 @@ export class CodexMessageProcessor {
   constructor(private conversation_id: string) {}
 
   processMessageDelta(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.AGENT_MESSAGE_DELTA }>) {
-    console.log('📝 [CodexMessageProcessor] Processing message delta:', {
-      delta: evt.data?.delta,
-      requestId: evt.data?._meta?.requestId || evt.data?.requestId,
-      currentLoadingId: this.currentLoadingId,
-    });
-
     // 提取requestId来分离不同的消息流
     const requestId = evt.data?._meta?.requestId || evt.data?.requestId;
 
@@ -64,7 +58,6 @@ export class CodexMessageProcessor {
     // 发送完整累积的内容，使用相同的msg_id确保替换loading
     const deltaMessage = this.createContentMessage(this.currentContent, this.currentLoadingId!);
     if (deltaMessage) {
-      console.log('📤 [CodexMessageProcessor] Emitting delta message:', {
         type: deltaMessage.type,
         msg_id: deltaMessage.msg_id,
         conversation_id: deltaMessage.conversation_id,
@@ -72,7 +65,6 @@ export class CodexMessageProcessor {
       });
       // 只通过stream发送，避免重复处理
       ipcBridge.codexConversation.responseStream.emit(deltaMessage);
-      console.log('✅ [CodexMessageProcessor] Delta message emitted successfully');
     }
 
     // Set/reset timeout to auto-finalize message if no completion event is received
@@ -99,7 +91,6 @@ export class CodexMessageProcessor {
   }
 
   processMessage(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.AGENT_MESSAGE }>) {
-    console.log('✅ [CodexMessageProcessor] Processing final message:', {
       message: evt.data?.message,
       requestId: evt.data?._meta?.requestId || evt.data?.requestId,
       currentContent: this.currentContent,
@@ -124,7 +115,6 @@ export class CodexMessageProcessor {
 
     const message = this.createContentMessage(finalContent, this.currentLoadingId);
     if (message) {
-      console.log('💾 [CodexMessageProcessor] Adding message to conversation:', {
         messageType: message.type,
         conversation_id: this.conversation_id,
         content: typeof message.data === 'string' ? message.data.substring(0, 100) + '...' : message.data,
@@ -134,11 +124,9 @@ export class CodexMessageProcessor {
       const transformedMessage = transformMessage(message);
       if (transformedMessage) {
         addOrUpdateMessage(this.conversation_id, transformedMessage, true);
-        console.log('✅ [CodexMessageProcessor] Message saved to storage');
       }
 
       // 然后发送到前端UI
-      console.log('📡 [CodexMessageProcessor] Emitting message to UI');
       ipcBridge.codexConversation.responseStream.emit(message);
     } else {
       console.warn('⚠️ [CodexMessageProcessor] createContentMessage returned null');
@@ -160,7 +148,6 @@ export class CodexMessageProcessor {
         const transformedMessage = transformMessage(message);
         if (transformedMessage) {
           addOrUpdateMessage(this.conversation_id, transformedMessage, true);
-          console.log('✅ [CodexMessageProcessor] Final accumulated message saved to storage');
         }
 
         // 然后发送到前端UI
@@ -196,7 +183,6 @@ export class CodexMessageProcessor {
   }
 
   private createContentMessage(content: string, loadingId: string): IResponseMessage | null {
-    console.log('🔍 [CodexMessageProcessor] createContentMessage called with:', {
       content: content.substring(0, 100) + (content.length > 100 ? '...' : ''),
       contentLength: content.length,
       trimmed: content.trim().substring(0, 100) + (content.trim().length > 100 ? '...' : ''),
@@ -204,14 +190,12 @@ export class CodexMessageProcessor {
     });
 
     if (!content.trim()) {
-      console.log('❌ [CodexMessageProcessor] Content is empty after trim, returning null');
       return null;
     }
 
     // 过滤重复的格式化标记和准备消息
     const filteredContent = this.filterInternalMarkers(content);
 
-    console.log('🔍 [CodexMessageProcessor] After filtering:', {
       originalLength: content.length,
       filteredLength: filteredContent.length,
       filtered: filteredContent.substring(0, 100) + (filteredContent.length > 100 ? '...' : ''),
@@ -219,7 +203,6 @@ export class CodexMessageProcessor {
     });
 
     if (!filteredContent.trim()) {
-      console.log('❌ [CodexMessageProcessor] Filtered content is empty, returning null');
       return null;
     }
 
@@ -268,7 +251,6 @@ export class CodexMessageProcessor {
     // 清理开头和结尾的空白
     filtered = filtered.trim();
 
-    console.log('🧹 [CodexMessageProcessor] Content filtering:', {
       original: content.substring(0, 100) + '...',
       filtered: filtered.substring(0, 100) + '...',
       hasChanges: content !== filtered,

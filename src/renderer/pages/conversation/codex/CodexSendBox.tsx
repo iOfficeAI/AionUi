@@ -42,16 +42,12 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
 
   useEffect(() => {
     return ipcBridge.codexConversation.responseStream.on(async (message) => {
-      console.log('🔄 [CodexSendBox] Received message:', {
-        type: message.type,
-        msg_id: message.msg_id,
-        currentConversationId: conversation_id,
-        messageConversationId: message.conversation_id,
-        matches: conversation_id === message.conversation_id,
-        message: message,
+      // Received message
+      if (conversation_id !== message.conversation_id) {
+        message: message
+      });
       });
       if (conversation_id !== message.conversation_id) {
-        console.log('⚠️ [CodexSendBox] Conversation ID mismatch, ignoring message');
         return;
       }
       if (message.type === 'start') {
@@ -67,15 +63,12 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
       if (message.type === 'content' || message.type === 'user_content' || message.type === 'error') {
         // 通用消息类型使用标准转换器
         const transformedMessage = transformMessage(message);
-        console.log('Transformed message:', transformedMessage); // 添加日志
         addOrUpdateMessage(transformedMessage);
       } else if (message.type === 'acp_permission' && message.data?.agentType === 'codex') {
         // Codex-specific ACP permission requests
-        console.log('🔄 [CodexSendBox] Processing Codex-specific ACP permission message');
         try {
           // Use Codex-specific transformer for these messages
           const transformedMessage = CodexMessageTransformer.transformCodexMessage(message);
-          console.log('Codex permission transformed message:', transformedMessage);
           if (transformedMessage) {
             addOrUpdateMessage(transformedMessage);
           }
@@ -83,7 +76,6 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
           console.error('❌ [CodexSendBox] Error transforming Codex ACP permission message:', error);
           // Fallback to standard transformation
           const transformedMessage = transformMessage(message);
-          console.log('Fallback transformed message:', transformedMessage);
           if (transformedMessage) {
             addOrUpdateMessage(transformedMessage);
           }
@@ -91,7 +83,6 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
       } else if (CodexMessageTransformer.isCodexSpecificMessage(message.type)) {
         // Codex 特定消息类型使用专用转换器
         const transformedMessage = CodexMessageTransformer.transformCodexMessage(message);
-        console.log('Codex transformed message:', transformedMessage); // 添加日志
         if (transformedMessage) {
           addOrUpdateMessage(transformedMessage);
         }
@@ -100,11 +91,9 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
   }, [conversation_id]);
 
   useAddEventListener('codex.selected.file', (files: string[]) => {
-    console.log('🔄 [CodexSendBox] Received codex.selected.file event:', files);
     // Add a small delay to ensure state persistence and prevent flashing
     setTimeout(() => {
       setAtPath(files);
-      console.log('🔄 [CodexSendBox] atPath updated to:', files);
     }, 10);
   });
 
@@ -133,7 +122,6 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
       content: { content: message },
       createdAt: Date.now(),
     };
-    console.log('Sending user message:', userMessage); // 添加日志
     addOrUpdateMessage(userMessage, true); // 立即保存到存储，避免刷新丢失
 
     // Set waiting state when sending message
