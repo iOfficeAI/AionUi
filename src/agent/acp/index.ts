@@ -84,8 +84,8 @@ export class AcpAgent {
         this.connection.connect(this.extra.backend, this.extra.cliPath, this.extra.workspace),
         new Promise((_, reject) =>
           setTimeout(() => {
-            reject(new Error('Connection timeout after 30 seconds'));
-          }, 30000)
+            reject(new Error('Connection timeout after 70 seconds'));
+          }, 70000)
         ),
       ]);
       this.emitStatusMessage('connected', `Connected to ${this.extra.backend} ACP server`);
@@ -244,7 +244,7 @@ export class AcpAgent {
           this.pendingPermissions.delete(requestId);
           reject(new Error('Permission request timed out'));
         }
-      }, 30000);
+      }, 70000);
     });
   }
 
@@ -503,7 +503,7 @@ export class AcpAgent {
 
       const loginProcess = spawn(command, args, {
         stdio: 'pipe', // 避免干扰用户界面
-        timeout: 30000,
+        timeout: 70000,
       });
 
       await new Promise<void>((resolve, reject) => {
