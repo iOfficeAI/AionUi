@@ -10,6 +10,7 @@ import { transformMessage } from '@/common/chatLib';
 import { uuid } from '@/common/utils';
 import { addMessage } from '../../message';
 import { t } from 'i18next';
+import { randomBytes } from 'crypto';
 
 export type CodexSessionStatus = 'initializing' | 'connecting' | 'connected' | 'authenticated' | 'session_active' | 'error' | 'disconnected';
 
@@ -217,13 +218,44 @@ export class CodexSessionManager {
    * 生成会话ID
    */
   private generateSessionId(): string {
-    return `codex-session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    return `codex-session-${Date.now()}-${this.generateSecureRandomString(9)}`;
+  }
+
+  /**
+   * 生成加密安全的随机字符串
+   */
+  private generateSecureRandomString(length: number): string {
+    if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+      // 浏览器环境
+      const array = new Uint8Array(length);
+      crypto.getRandomValues(array);
+      return Array.from(array, (byte) => byte.toString(36).padStart(2, '0'))
+        .join('')
+        .substring(0, length);
+    } else if (typeof require !== 'undefined') {
+      // Node.js环境
+      try {
+        return randomBytes(Math.ceil(length / 2))
+          .toString('hex')
+          .substring(0, length);
+      } catch (e) {
+        // 回退方案
+        return Math.random()
+          .toString(36)
+          .substring(2, 2 + length);
+      }
+    } else {
+      // 回退方案
+      return Math.random()
+        .toString(36)
+        .substring(2, 2 + length);
+    }
   }
 
   /**
    * 发送会话事件
    */
-  emitSessionEvent(eventType: string, data: any): void {
+  emitSessionEvent(eventType: string, data: unknown): void {
     console.log('📡 [CodexSessionManager] Emitting session event:', {
       eventType,
       sessionId: this.sessionId,
