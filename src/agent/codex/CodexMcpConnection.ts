@@ -7,6 +7,7 @@
 import type { ChildProcess } from 'child_process';
 import { spawn } from 'child_process';
 import { JSONRPC_VERSION } from '@/common/acpTypes';
+import type { CodexEventParams } from '@/common/codexTypes';
 
 type JsonRpcId = number | string;
 
@@ -306,7 +307,7 @@ export class CodexMcpConnection {
       const env: CodexEventEnvelope = { method: msg.method, params: msg.params };
 
       // Check for permission request events - pause requests but forward to handler
-      if (env.method === 'codex/event' && typeof env.params === 'object' && env.params !== null && 'msg' in (env.params as any) && (env.params as any).msg?.type === 'apply_patch_approval_request') {
+      if (env.method === 'codex/event' && typeof env.params === 'object' && env.params !== null && 'msg' in (env.params as CodexEventParams) && (env.params as CodexEventParams).msg?.type === 'apply_patch_approval_request') {
         this.isPaused = true;
       }
 
@@ -315,7 +316,7 @@ export class CodexMcpConnection {
         console.log('🔐 [CodexMcpConnection] Received elicitation/create');
         this.isPaused = true;
         const reqId = msg.id as JsonRpcId;
-        const codexCallId = (env.params as any)?.codex_call_id || (env.params as any)?.call_id;
+        const codexCallId = (env.params as CodexEventParams)?.codex_call_id || (env.params as CodexEventParams)?.call_id;
         if (codexCallId) {
           this.elicitationMap.set(String(codexCallId), reqId);
           console.log('💾 [CodexMcpConnection] Map elicitation call_id -> reqId', codexCallId, reqId);

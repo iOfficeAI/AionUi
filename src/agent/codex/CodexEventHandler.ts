@@ -11,7 +11,7 @@ import type { AcpPermissionRequest } from '@/common/acpTypes';
 import { uuid } from '@/common/utils';
 import { addOrUpdateMessage } from '@/process/message';
 import { CodexAgentEventType } from '@/common/codexTypes';
-import type { ExecApprovalRequestData, AgentReasoningData, AgentReasoningDeltaData, BaseCodexEventData, PatchApprovalData, CodexAgentEvent } from '@/common/codexTypes';
+import type { ExecApprovalRequestData, AgentReasoningData, AgentReasoningDeltaData, BaseCodexEventData, PatchApprovalData, CodexAgentEvent, CodexEventParams } from '@/common/codexTypes';
 import { CodexMessageProcessor } from './CodexMessageProcessor';
 import { CodexToolHandlers } from './CodexToolHandlers';
 
@@ -217,7 +217,7 @@ export class CodexEventHandler {
   }
 
   private handlePermissionRequest(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.APPLY_PATCH_APPROVAL_REQUEST } | { type: CodexAgentEventType.ELICITATION_CREATE }>) {
-    const originalCallId = (evt.data as any)?.call_id || (evt.data as any)?.codex_call_id || uuid();
+    const originalCallId = (evt.data as CodexEventParams)?.call_id || (evt.data as CodexEventParams)?.codex_call_id || uuid();
     const type = evt.type;
 
     // Create unique ID combining message type and call_id to match UI expectation
@@ -229,11 +229,11 @@ export class CodexEventHandler {
     }
 
     // Store patch changes for later execution
-    if ((evt.data as any)?.changes || (evt.data as any)?.codex_changes) {
+    if ((evt.data as CodexEventParams)?.changes || (evt.data as CodexEventParams)?.codex_changes) {
       this.toolHandlers.getPendingConfirmations().add(uniqueRequestId);
 
       // Store the actual changes for later application
-      const changes = (evt.data as any)?.changes || (evt.data as any)?.codex_changes;
+      const changes = (evt.data as CodexEventParams)?.changes || (evt.data as CodexEventParams)?.codex_changes;
       if (changes) {
         this.toolHandlers.storePatchChanges(uniqueRequestId, changes);
       }

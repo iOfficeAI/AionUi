@@ -7,7 +7,7 @@
 import type { NetworkError, CodexEventEnvelope } from './CodexMcpConnection';
 import { CodexMcpConnection } from './CodexMcpConnection';
 import { APP_CLIENT_NAME, APP_CLIENT_VERSION, CODEX_MCP_PROTOCOL_VERSION } from '@/common/constants';
-import type { FileChange } from '@/common/codexTypes';
+import type { FileChange, CodexEventParams } from '@/common/codexTypes';
 import type { CodexEventHandler } from './CodexEventHandler';
 import type { CodexSessionManager } from './CodexSessionManager';
 import type { CodexFileOperationHandler } from './CodexFileOperationHandler';
@@ -226,7 +226,7 @@ export class CodexMcpAgent {
 
     // Handle codex/event messages (wrapped messages)
     if (env.method === 'codex/event') {
-      const params = (env.params || {}) as { msg?: any; _meta?: any };
+      const params = (env.params || {}) as CodexEventParams;
       const msg = params?.msg;
       if (!msg) {
         return;

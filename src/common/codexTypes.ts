@@ -95,6 +95,22 @@ export interface MessageDeltaData extends BaseCodexEventData {
   message?: string;
 }
 
+// JSON-RPC event parameter interfaces
+export interface CodexEventParams {
+  msg?: {
+    type: string;
+    [key: string]: unknown;
+  };
+  _meta?: {
+    requestId?: number;
+    [key: string]: unknown;
+  };
+  call_id?: string;
+  codex_call_id?: string;
+  changes?: Record<string, unknown>;
+  codex_changes?: Record<string, unknown>;
+}
+
 export interface MessageData extends BaseCodexEventData {
   message?: string;
 }

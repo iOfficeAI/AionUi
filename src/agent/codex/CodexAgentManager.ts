@@ -34,14 +34,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
   }
 
   private initAgent(data: CodexAgentManagerData) {
-    console.log('🔧 [CodexAgentManager] Initializing agent with config:', {
-      conversation_id: data.conversation_id,
-      cliPath: data.cliPath,
-      workingDir: data.workspace || process.cwd(),
-    });
-
     // 初始化各个管理器 - 参考 ACP 的架构
-    console.log('🏗️ [CodexAgentManager] Initializing managers...');
     const eventHandler = new CodexEventHandler(data.conversation_id);
     const sessionManager = new CodexSessionManager({
       conversation_id: data.conversation_id,
@@ -63,12 +56,9 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
       },
     });
 
-    console.log('🔌 [CodexAgentManager] Agent created, starting bootstrap...');
-
     // 使用 SessionManager 来管理连接状态 - 参考 ACP 的模式
     this.bootstrap = this.startWithSessionManagement()
       .then(async () => {
-        console.log('🎯 [CodexAgentManager] Agent ready for messages');
         return this.agent;
       })
       .catch((e) => {
@@ -82,8 +72,6 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
    * 使用会话管理器启动 - 参考 ACP 的启动流程
    */
   private async startWithSessionManagement(): Promise<void> {
-    console.log('🌟 [CodexAgentManager] Starting with session management...');
-
     // 1. 启动会话管理器
     await this.agent.getSessionManager().startSession();
 
@@ -96,23 +84,20 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
     // 4. 恢复权限状态
     await this.restorePermissionState();
 
-    console.log('✅ [CodexAgentManager] Session management startup completed');
+    // Session management startup completed
   }
 
   /**
    * 连接后设置 - 参考 ACP 的认证和会话创建
    */
   private async performPostConnectionSetup(): Promise<void> {
-    console.log('⚙️ [CodexAgentManager] Performing post-connection setup...');
-
     try {
-      // 输出连接诊断信息
+      // Get connection diagnostics
       const diagnostics = this.getDiagnostics();
-      console.log('🔍 [CodexAgentManager] Connection diagnostics before setup:', diagnostics);
 
       // MCP 初始化握手 - 现在有内置重试机制
       const result = await this.agent.newSession(this.workspace);
-      console.log('✅ [CodexAgentManager] Session created with ID:', result.sessionId);
+      // Session created successfully
 
       this.agent.getSessionManager().emitSessionEvent('session_created', {
         workspace: this.workspace,
@@ -138,10 +123,9 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
         suggestions = ['Run "codex auth" to authenticate with your account', 'Check if your authentication token is valid', 'Try logging out and logging back in'];
       }
 
-      console.log('💡 [CodexAgentManager] Suggested troubleshooting steps:', suggestions);
+      // Log troubleshooting suggestions for debugging
 
       // 即使设置失败，也尝试继续运行，因为连接可能仍然有效
-      console.log('🔄 [CodexAgentManager] Attempting to continue despite setup failure...');
       this.agent.getSessionManager().emitSessionEvent('session_partial', {
         workspace: this.workspace,
         agent_type: 'codex',
@@ -156,21 +140,11 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
   }
 
   async sendMessage(data: { content: string; files?: string[]; msg_id?: string }) {
-    console.log('🚀 [CodexAgentManager] sendMessage called with:', {
-      content: data.content.substring(0, 100) + (data.content.length > 100 ? '...' : ''),
-      files: data.files,
-      msg_id: data.msg_id,
-      conversation_id: this.conversation_id,
-    });
-
     try {
-      console.log('⏳ [CodexAgentManager] Waiting for bootstrap...');
       await this.bootstrap;
-      console.log('✅ [CodexAgentManager] Bootstrap completed');
 
       // Save user message to chat history only (renderer already inserts right-hand bubble)
       if (data.msg_id && data.content) {
-        console.log('💾 [CodexAgentManager] Saving user message to history');
         const userMessage: TMessage = {
           id: data.msg_id,
           msg_id: data.msg_id,
@@ -181,27 +155,37 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
           createdAt: Date.now(),
         };
         addMessage(this.conversation_id, userMessage);
-        console.log('✅ [CodexAgentManager] User message saved');
       }
 
-      console.log('📤 [CodexAgentManager] Sending prompt to agent...');
+      // Send prompt to agent
 
       // 处理文件引用 - 参考 ACP 的文件引用处理
       const processedContent = this.agent.getFileOperationHandler().processFileReferences(data.content, data.files);
-      if (processedContent !== data.content) {
-        console.log('🔄 [CodexAgentManager] Processed file references in content');
-      }
 
       const result = await this.agent.sendPrompt(processedContent);
-      console.log('✅ [CodexAgentManager] Prompt sent successfully');
       return result;
     } catch (e) {
       console.error('❌ [CodexAgentManager] Error in sendMessage:', e);
+
+      // Create more descriptive error message based on error type
+      let errorMessage = 'Failed to send message to Codex';
+      if (e instanceof Error) {
+        if (e.message.includes('timeout')) {
+          errorMessage = 'Request timed out. Please check your connection and try again.';
+        } else if (e.message.includes('authentication')) {
+          errorMessage = 'Authentication failed. Please verify your Codex credentials.';
+        } else if (e.message.includes('network')) {
+          errorMessage = 'Network error. Please check your internet connection.';
+        } else {
+          errorMessage = `Codex error: ${e.message}`;
+        }
+      }
+
       const message: IResponseMessage = {
         type: 'error',
         conversation_id: this.conversation_id,
         msg_id: data.msg_id || uuid(),
-        data: e instanceof Error ? e.message : String(e),
+        data: errorMessage,
       };
       addMessage(this.conversation_id, transformMessage(message));
       ipcBridge.codexConversation.responseStream.emit(message);
@@ -210,15 +194,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
   }
 
   async confirmMessage(data: { confirmKey: string; msg_id: string; callId: string }) {
-    console.log('✅ [CodexAgentManager] confirmMessage called with:', {
-      confirmKey: data.confirmKey,
-      msg_id: data.msg_id,
-      callId: data.callId,
-      conversation_id: this.conversation_id,
-    });
-
     await this.bootstrap;
-    console.log('🔧 [CodexAgentManager] Removing pending confirmation for callId:', data.callId);
     this.agent.getEventHandler().getToolHandlers().removePendingConfirmation(data.callId);
 
     // Map confirmKey to decision
@@ -229,21 +205,13 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
     // Apply patch changes if available and approved
     const changes = this.agent.getEventHandler().getToolHandlers().getPatchChanges(data.callId);
     if (changes && isApproved) {
-      console.log('📝 [CodexAgentManager] Applying patch changes for callId:', data.callId, 'changes:', Object.keys(changes));
       await this.applyPatchChanges(data.callId, changes);
-    } else {
-      console.log('⏭️ [CodexAgentManager] No changes to apply or action was not approved:', {
-        hasChanges: !!changes,
-        isApproved,
-        confirmKey: data.confirmKey,
-      });
     }
 
     // Normalize call id back to server's codex_call_id
     const origCallId = data.callId.startsWith('patch_') ? data.callId.substring(6) : data.callId.startsWith('elicitation_') ? data.callId.substring(12) : data.callId.startsWith('exec_') ? data.callId.substring(5) : data.callId;
 
     // Respond to elicitation (server expects JSON-RPC response)
-    console.log('📨 [CodexAgentManager] Responding elicitation with decision:', decision, 'origCallId:', origCallId);
     this.agent.respondElicitation(origCallId, decision);
 
     // Also resolve local pause gate to resume queued requests
@@ -252,8 +220,6 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
   }
 
   private async applyPatchChanges(callId: string, changes: Record<string, FileChange>): Promise<void> {
-    console.log('📦 [CodexAgentManager] Applying patch changes using file operation handler...');
-
     try {
       // 使用文件操作处理器来应用更改 - 参考 ACP 的批量操作
       await this.agent.getFileOperationHandler().applyBatchChanges(changes);
@@ -265,7 +231,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
         files: Object.keys(changes),
       });
 
-      console.log('✅ [CodexAgentManager] Patch changes applied successfully');
+      // Patch changes applied successfully
     } catch (error) {
       console.error('❌ [CodexAgentManager] Failed to apply patch changes:', error);
 
@@ -280,13 +246,6 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
   }
 
   private handleNetworkError(error: NetworkError): void {
-    console.error('🌐❌ [CodexAgentManager] Handling network error:', {
-      type: error.type,
-      retryCount: error.retryCount,
-      suggestedAction: error.suggestedAction,
-      originalError: error.originalError.substring(0, 200),
-    });
-
     // Emit network error as status message
     this.emitStatus('error', `Network Error: ${error.suggestedAction}`);
 
@@ -315,8 +274,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
         recoveryActions = t('codex.network.recovery_actions.unknown', { returnObjects: true }) as string[];
     }
 
-    console.log('📋 [CodexAgentManager] Generated user message:', userMessage);
-    console.log('🔧 [CodexAgentManager] Recovery actions:', recoveryActions);
+    // Generated user message and recovery actions for UI
 
     // Create detailed error message for UI
     const detailedMessage = `${userMessage}\n\n${t('codex.network.recovery_suggestions')}\n${recoveryActions.join('\n')}\n\n${t('codex.network.technical_info')}\n- ${t('codex.network.error_type')}：${error.type}\n- ${t('codex.network.retry_count')}：${error.retryCount}\n- ${t('codex.network.error_details')}：${error.originalError.substring(0, 200)}${error.originalError.length > 200 ? '...' : ''}`;
@@ -335,7 +293,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
       },
     };
 
-    console.log('📤 [CodexAgentManager] Emitting network error message to UI');
+    // Emit network error message to UI
     // Add to message history and emit to UI
     addMessage(this.conversation_id, transformMessage(networkErrorMessage));
     ipcBridge.codexConversation.responseStream.emit(networkErrorMessage);
@@ -344,16 +302,9 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
   private async restorePermissionState(): Promise<void> {
     // This method would restore any pending permission states from storage
     // Implementation would depend on how permissions are persisted
-    console.log('Restoring permission state for conversation:', this.conversation_id);
   }
 
   private emitStatus(status: 'connecting' | 'connected' | 'authenticated' | 'session_active' | 'error' | 'disconnected', message: string) {
-    console.log('📊 [CodexAgentManager] Emitting status:', {
-      status,
-      message,
-      conversation_id: this.conversation_id,
-    });
-
     const statusMessage: IResponseMessage = {
       type: 'codex_status',
       conversation_id: this.conversation_id,
@@ -364,7 +315,6 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
       },
     };
     ipcBridge.codexConversation.responseStream.emit(statusMessage);
-    console.log('✅ [CodexAgentManager] Status message emitted');
   }
 
   getDiagnostics() {
@@ -380,8 +330,6 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
   }
 
   cleanup() {
-    console.log('🧹 [CodexAgentManager] Starting cleanup...');
-
     // 清理所有管理器 - 参考 ACP 的清理模式
     this.agent.getEventHandler().cleanup();
     this.agent.getSessionManager().cleanup();
@@ -390,7 +338,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
     // 停止 agent
     this.agent?.stop?.();
 
-    console.log('✅ [CodexAgentManager] Cleanup completed');
+    // Cleanup completed
   }
 
   // Stop current Codex stream in-process (override ForkTask default which targets a worker)
