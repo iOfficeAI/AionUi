@@ -54,11 +54,12 @@ export class CodexMessageTransformer {
     try {
       switch (message.type) {
         case 'agent_reasoning': {
+          console.log('🤔 [CodexMessageTransformer] Creating thinking start message');
           // 使用固定的msg_id确保所有推理消息合并为一个
           return {
             id: uuid(),
             type: 'tips',
-            msg_id: 'codex_thinking_' + message.conversation_id,
+            msg_id: 'codex_thinking_global',
             position: 'center',
             conversation_id: message.conversation_id,
             content: {
@@ -74,18 +75,26 @@ export class CodexMessageTransformer {
         }
 
         case 'agent_reasoning_raw_content': {
+          console.log('💭 [CodexMessageTransformer] Creating thinking completion message');
           // 思考完成，使用相同的msg_id替换之前的思考消息
-          return {
+          const completionMessage = {
             id: uuid(),
-            type: 'tips',
-            msg_id: 'codex_thinking_' + message.conversation_id,
-            position: 'center',
+            type: 'tips' as const,
+            msg_id: 'codex_thinking_global',
+            position: 'center' as const,
             conversation_id: message.conversation_id,
             content: {
               content: t('codex.thinking.completed'),
-              type: 'success',
+              type: 'success' as const,
             },
           };
+
+          // Ensure completion message is visible for a minimum duration
+          setTimeout(() => {
+            console.log('💭 [CodexMessageTransformer] Thinking completion message display period ended');
+          }, 2000);
+
+          return completionMessage;
         }
 
         case 'agent_reasoning_raw_content_delta': {
@@ -130,7 +139,7 @@ export class CodexMessageTransformer {
           return {
             id: uuid(),
             type: 'codex_status',
-            msg_id: message.msg_id,
+            msg_id: 'codex_status_global', // 使用全局ID确保只显示最新状态
             position: 'center',
             conversation_id: message.conversation_id,
             content: message.data,

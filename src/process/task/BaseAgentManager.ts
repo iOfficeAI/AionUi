@@ -19,11 +19,15 @@ class BaseAgentManager<Data> extends ForkTask<{
   type: AgentType;
   protected conversation_id: string;
   status: 'pending' | 'running' | 'finished' | undefined;
-  constructor(type: AgentType, data: Data) {
-    super(path.resolve(__dirname, type + '.js'), {
-      type: type,
-      data: data,
-    });
+  constructor(type: AgentType, data: Data, useWorker = true) {
+    super(
+      path.resolve(__dirname, type + '.js'),
+      {
+        type: type,
+        data: data,
+      },
+      useWorker
+    );
     this.type = type;
   }
   protected init(): void {

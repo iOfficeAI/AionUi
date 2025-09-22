@@ -23,7 +23,8 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
   bootstrap: Promise<AcpAgent>;
 
   constructor(data: AcpAgentManagerData) {
-    super('acp', data);
+    // Do not fork a worker for ACP; we run the agent in-process now
+    super('acp', data, false);
     this.conversation_id = data.conversation_id;
     this.workspace = data.workspace;
     this.initAgent(data);
@@ -99,6 +100,20 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
           reject(e);
         });
       });
+    }
+  }
+
+  // Stop current streaming/task in-process (override ForkTask default which targets a worker)
+  stop() {
+    return this.agent?.stop?.() ?? Promise.resolve();
+  }
+
+  // Ensure we clean up agent resources on kill
+  kill() {
+    try {
+      this.agent?.stop?.();
+    } finally {
+      super.kill();
     }
   }
 
