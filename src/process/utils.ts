@@ -166,3 +166,50 @@ export const copyFilesToDirectory = async (dir: string, files?: string[]) => {
     }
   }
 };
+
+/**
+ * 处理文件列表：区分上传文件和工作空间文件，只复制需要复制的文件
+ * @param targetDir 目标工作空间目录
+ * @param files 文件列表（包含绝对路径的上传文件和相对路径的工作空间文件）
+ * @returns Promise<{processedFiles: string[], copiedCount: number}>
+ */
+export const processAndCopyFiles = async (targetDir: string, files?: string[]) => {
+  if (!files || files.length === 0) {
+    return { processedFiles: [], copiedCount: 0 };
+  }
+
+  const processedFiles: string[] = [];
+
+  // 处理文件路径：区分上传文件（绝对路径）和工作空间文件（相对路径）
+  for (const file of files) {
+    if (path.isAbsolute(file)) {
+      // 上传的文件，直接使用绝对路径
+      processedFiles.push(file);
+    } else {
+      // 工作空间文件，转换为绝对路径
+      const absolutePath = path.join(targetDir, file);
+      try {
+        await fs.access(absolutePath); // 检查文件是否存在
+        processedFiles.push(absolutePath);
+        console.log(`📁 [processAndCopyFiles] Found workspace file: ${file} -> ${absolutePath}`);
+      } catch (error) {
+        console.warn(`⚠️ [processAndCopyFiles] Workspace file not found: ${file}, skipping`);
+      }
+    }
+  }
+
+  // 只复制上传的文件，工作空间文件已经在目标位置
+  const uploadedFiles = processedFiles.filter((f) => !f.startsWith(targetDir));
+  let copiedCount = 0;
+
+  if (uploadedFiles.length > 0) {
+    await copyFilesToDirectory(targetDir, uploadedFiles);
+    copiedCount = uploadedFiles.length;
+    console.log(`📁 [processAndCopyFiles] Copied ${copiedCount} uploaded files to workspace`);
+  }
+
+  return {
+    processedFiles,
+    copiedCount,
+  };
+};
