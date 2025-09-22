@@ -278,7 +278,7 @@ export class CodexFileOperationHandler {
    */
   cleanup(): void {
     // 拒绝所有待处理的操作
-    for (const [operationId, { reject }] of this.pendingOperations) {
+    for (const [_operationId, { reject }] of this.pendingOperations) {
       reject(new Error('File operation handler is being cleaned up'));
     }
     this.pendingOperations.clear();

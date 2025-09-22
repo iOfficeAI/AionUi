@@ -13,13 +13,11 @@ import type { IResponseMessage } from '@/common/ipcBridge';
 import { uuid } from '@/common/utils';
 import { addMessage } from '@/process/message';
 import BaseAgentManager from '@/process/task/BaseAgentManager';
-import fs from 'fs/promises';
-import path from 'path';
 import { t } from 'i18next';
 import { CodexEventHandler } from './CodexEventHandler';
 import { CodexSessionManager } from './CodexSessionManager';
 import { CodexFileOperationHandler } from './CodexFileOperationHandler';
-import type { CodexAgentManagerData, CodexAgentEvent, FileChange } from '@/common/codexTypes';
+import type { CodexAgentManagerData, FileChange } from '@/common/codexTypes';
 
 class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
   workspace?: string;
