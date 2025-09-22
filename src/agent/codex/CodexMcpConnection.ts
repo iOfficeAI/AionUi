@@ -284,6 +284,16 @@ export class CodexMcpConnection {
         if (this.isNetworkRelatedError(errorMsg)) {
           this.handleNetworkError(errorMsg, p);
         } else {
+          // Emit error event to frontend before rejecting promise
+          this.onEvent({
+            method: 'codex/event',
+            params: {
+              msg: {
+                type: 'stream_error',
+                message: errorMsg,
+              },
+            },
+          });
           p.reject(new Error(errorMsg));
         }
       } else if (res.result && typeof res.result === 'object' && 'error' in (res.result as Record<string, unknown>)) {
@@ -293,6 +303,16 @@ export class CodexMcpConnection {
         if (this.isNetworkRelatedError(resultErrorMsg)) {
           this.handleNetworkError(resultErrorMsg, p);
         } else {
+          // Emit error event to frontend before rejecting promise
+          this.onEvent({
+            method: 'codex/event',
+            params: {
+              msg: {
+                type: 'stream_error',
+                message: resultErrorMsg,
+              },
+            },
+          });
           p.reject(new Error(resultErrorMsg));
         }
       } else {
