@@ -10,7 +10,7 @@ import { Plus } from '@icon-park/react';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TMessage } from '@/common/chatLib';
-import { CodexMessageTransformer } from '@/process/task/codex/CodexMessageTransformer';
+import { CodexMessageTransformer } from '@/process/agent/codex/CodexMessageTransformer';
 
 const useCodexSendBoxDraft = getSendBoxDraftHook('codex', {
   _type: 'codex',
