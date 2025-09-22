@@ -8,7 +8,7 @@ import { ipcBridge } from '@/common';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import { transformMessage } from '@/common/chatLib';
 import { uuid } from '@/common/utils';
-import { addMessage } from '../../message';
+import { addMessage } from '@/process/message';
 import fs from 'fs/promises';
 import path from 'path';
 

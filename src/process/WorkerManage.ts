@@ -6,7 +6,7 @@
 
 import type { TChatConversation } from '@/common/storage';
 import AcpAgentManager from './task/AcpAgentManager';
-import CodexAgentManager from './task/CodexAgentManager';
+import CodexAgentManager from '@/agent/codex/CodexAgentManager';
 // import type { AcpAgentTask } from './task/AcpAgentTask';
 import type AgentBaseTask from './task/BaseAgentManager';
 import { GeminiAgentManager } from './task/GeminiAgentManager';

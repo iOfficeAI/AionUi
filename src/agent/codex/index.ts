@@ -8,12 +8,17 @@ import type { NetworkError, CodexEventEnvelope } from './CodexMcpConnection';
 import { CodexMcpConnection } from './CodexMcpConnection';
 import { APP_CLIENT_NAME, APP_CLIENT_VERSION, CODEX_MCP_PROTOCOL_VERSION } from '@/common/constants';
 import type { CodexAgentEvent, FileChange } from '@/common/codexTypes';
+import type { CodexEventHandler } from './CodexEventHandler';
+import type { CodexSessionManager } from './CodexSessionManager';
+import type { CodexFileOperationHandler } from './CodexFileOperationHandler';
 
 export interface CodexAgentConfig {
   id: string;
   cliPath?: string; // e.g. 'codex' or absolute path
   workingDir: string;
-  onEvent: (evt: CodexAgentEvent | { type: string; data: unknown }) => void;
+  eventHandler: CodexEventHandler;
+  sessionManager: CodexSessionManager;
+  fileOperationHandler: CodexFileOperationHandler;
   onNetworkError?: (error: NetworkError) => void;
 }
 
@@ -25,7 +30,9 @@ export class CodexMcpAgent {
   private readonly id: string;
   private readonly cliPath?: string;
   private readonly workingDir: string;
-  private readonly onEvent: (evt: CodexAgentEvent | { type: string; data: unknown }) => void;
+  private readonly eventHandler: CodexEventHandler;
+  private readonly sessionManager: CodexSessionManager;
+  private readonly fileOperationHandler: CodexFileOperationHandler;
   private readonly onNetworkError?: (error: NetworkError) => void;
   private conn: CodexMcpConnection | null = null;
   private conversationId: string | null = null;
@@ -34,7 +41,9 @@ export class CodexMcpAgent {
     this.id = cfg.id;
     this.cliPath = cfg.cliPath;
     this.workingDir = cfg.workingDir;
-    this.onEvent = cfg.onEvent;
+    this.eventHandler = cfg.eventHandler;
+    this.sessionManager = cfg.sessionManager;
+    this.fileOperationHandler = cfg.fileOperationHandler;
     this.onNetworkError = cfg.onNetworkError;
   }
 
@@ -230,10 +239,10 @@ export class CodexMcpAgent {
           ...msg,
           _meta: params?._meta, // Pass through meta information like requestId
         };
-        console.log('📨 [CodexMcpAgent] Forwarding event to parent:', msg.type || 'unknown');
-        this.onEvent({ type: msg.type || 'unknown', data: enrichedData });
-      } catch {
-        // Ignore errors in event processing
+        console.log('📨 [CodexMcpAgent] Delegating event to eventHandler:', msg.type || 'unknown');
+        this.eventHandler.handleEvent({ type: msg.type || 'unknown', data: enrichedData });
+      } catch (error) {
+        console.error('❌ [CodexMcpAgent] Event handling failed:', error);
       }
 
       if (msg.type === 'session_configured' && msg.session_id) {
@@ -245,10 +254,11 @@ export class CodexMcpAgent {
     // Handle direct elicitation/create messages
     if (env.method === 'elicitation/create') {
       try {
-        // Forward the elicitation request directly
-        this.onEvent({ type: 'elicitation/create', data: env.params });
-      } catch {
-        // Ignore errors in elicitation processing
+        // Forward the elicitation request directly via eventHandler
+        console.log('📨 [CodexMcpAgent] Delegating elicitation to eventHandler');
+        this.eventHandler.handleEvent({ type: 'elicitation/create', data: env.params });
+      } catch (error) {
+        console.error('❌ [CodexMcpAgent] Elicitation handling failed:', error);
       }
       return;
     }
@@ -259,16 +269,20 @@ export class CodexMcpAgent {
     if (this.onNetworkError) {
       this.onNetworkError(error);
     } else {
-      // Fallback: emit as a regular event
-      this.onEvent({
-        type: 'network_error',
-        data: {
-          errorType: error.type,
-          message: error.suggestedAction,
-          originalError: error.originalError,
-          retryCount: error.retryCount,
-        },
-      });
+      // Fallback: delegate to event handler
+      try {
+        this.eventHandler.handleEvent({
+          type: 'network_error',
+          data: {
+            errorType: error.type,
+            message: error.suggestedAction,
+            originalError: error.originalError,
+            retryCount: error.retryCount,
+          },
+        });
+      } catch (handlingError) {
+        console.error('❌ [CodexMcpAgent] Network error handling failed:', handlingError);
+      }
     }
   }
 
@@ -312,5 +326,18 @@ export class CodexMcpAgent {
         hasNetworkError: false,
       }
     );
+  }
+
+  // Expose handler access for CodexAgentManager
+  public getEventHandler(): CodexEventHandler {
+    return this.eventHandler;
+  }
+
+  public getSessionManager(): CodexSessionManager {
+    return this.sessionManager;
+  }
+
+  public getFileOperationHandler(): CodexFileOperationHandler {
+    return this.fileOperationHandler;
   }
 }
