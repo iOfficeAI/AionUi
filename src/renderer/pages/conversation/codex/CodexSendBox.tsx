@@ -5,9 +5,11 @@ import SendBox from '@/renderer/components/sendbox';
 import { getSendBoxDraftHook } from '@/renderer/hooks/useSendBoxDraft';
 import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
+import { useLocalPaste } from '@/renderer/hooks/useLocalPaste';
+import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileService';
 import { Button, Tag } from '@arco-design/web-react';
 import { Plus } from '@icon-park/react';
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TMessage } from '@/common/chatLib';
 import { CodexMessageTransformer } from '@/agent/codex/CodexMessageTransformer';
@@ -140,6 +142,24 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
       }
     });
   }, [conversation_id]);
+
+  // 处理粘贴的文件 - Codex专用逻辑
+  const handleFilesAdded = useCallback(
+    (pastedFiles: FileMetadata[]) => {
+      // 将粘贴的文件添加到uploadFile中
+      const filePaths = pastedFiles.map((file) => file.path);
+      setUploadFile([...uploadFile, ...filePaths]);
+    },
+    [uploadFile, setUploadFile]
+  );
+
+  // 使用组件级的粘贴处理 - 替代全局componentId机制
+  useLocalPaste({
+    supportedExts: allSupportedExts,
+    onFilesAdded: handleFilesAdded,
+    setInput: setContent,
+    input: content,
+  });
 
   useAddEventListener('codex.selected.file', (files: string[]) => {
     // Add a small delay to ensure state persistence and prevent flashing
@@ -275,6 +295,8 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
         onStop={() => {
           return ipcBridge.conversation.stop.invoke({ conversation_id }).then(() => {});
         }}
+        onFilesAdded={handleFilesAdded}
+        supportedExts={allSupportedExts}
         prefix={
           <>
             {uploadFile.map((path) => (
