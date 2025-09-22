@@ -24,6 +24,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
   const addOrUpdateMessage = useAddOrUpdateMessage();
   const [running, setRunning] = useState(false);
   const [waitingForSession, setWaitingForSession] = useState(false);
+  const [isThinking, setIsThinking] = useState(false);
   const { content, setContent, atPath, setAtPath, uploadFile, setUploadFile } = (function useDraft() {
     const { data, mutate } = useCodexSendBoxDraft(conversation_id);
     const EMPTY: string[] = [];
@@ -53,6 +54,15 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
       if (message.type === 'finish') {
         setRunning(false);
         setWaitingForSession(false);
+        setIsThinking(false);
+      }
+
+      // 处理思考状态
+      if (message.type === 'agent_reasoning') {
+        setIsThinking(true);
+      }
+      if (message.type === 'agent_reasoning_raw_content') {
+        setIsThinking(false);
       }
 
       // 处理消息
@@ -191,6 +201,11 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
 
   return (
     <div className='max-w-800px w-full mx-auto flex flex-col'>
+      {isThinking && (
+        <div className='mb-8px'>
+          <span className='text-12px text-#999 px-8px py-4px bg-#f5f5f5 rounded-4px'>{t('codex.thinking.please_wait')}</span>
+        </div>
+      )}
       <SendBox
         value={waitingForSession ? t('codex.sendbox.waiting', { defaultValue: 'Please wait...' }) : content}
         onChange={(val) => {
