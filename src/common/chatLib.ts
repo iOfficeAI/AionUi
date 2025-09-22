@@ -224,19 +224,9 @@ export type TMessage = IMessageText | IMessageTips | IMessageToolCall | IMessage
  * @description 将后端返回的消息转换为前端消息
  * */
 export const transformMessage = (message: IResponseMessage): TMessage | undefined => {
-  console.log('🔄 [transformMessage] Processing message:', {
-    type: message.type,
-    msg_id: message.msg_id,
-    conversation_id: message.conversation_id,
-    dataType: typeof message.data,
-    dataContent: message.data,
-    fullMessage: message,
-  });
-
   try {
     switch (message.type) {
       case 'error': {
-        console.log('🔴 [transformMessage] Processing error message');
         return {
           id: uuid(),
           type: 'tips',
@@ -250,7 +240,6 @@ export const transformMessage = (message: IResponseMessage): TMessage | undefine
         };
       }
       case 'content': {
-        console.log('💬 [transformMessage] Processing content message');
         return {
           id: uuid(),
           type: 'text',
@@ -304,7 +293,6 @@ export const transformMessage = (message: IResponseMessage): TMessage | undefine
         };
       }
       case 'acp_permission': {
-        console.log('🔐 [transformMessage] Processing ACP permission message');
         return {
           id: uuid(),
           type: 'acp_permission',
@@ -329,7 +317,6 @@ export const transformMessage = (message: IResponseMessage): TMessage | undefine
       case 'thought':
         return undefined;
       default:
-        console.log('⚠️ [transformMessage] Unknown message type, using default transformation:', message.type);
         return {
           type: message.type,
           content: message.data,
@@ -338,9 +325,6 @@ export const transformMessage = (message: IResponseMessage): TMessage | undefine
         } as any;
     }
   } catch (error) {
-    console.error('❌ [transformMessage] Error processing message:', error);
-    console.error('❌ [transformMessage] Problematic message:', message);
-
     // Return a safe error message instead of crashing
     return {
       id: uuid(),

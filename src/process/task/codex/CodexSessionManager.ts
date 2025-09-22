@@ -41,7 +41,6 @@ export class CodexSessionManager {
    * 启动会话 - 参考 ACP 的 start() 方法
    */
   async startSession(): Promise<void> {
-
     try {
       await this.performConnectionSequence();
     } catch (error) {
@@ -75,7 +74,6 @@ export class CodexSessionManager {
    * 建立连接
    */
   private async establishConnection(): Promise<void> {
-
     return new Promise((resolve, reject) => {
       const timeoutId = setTimeout(() => {
         reject(new Error(`Connection timeout after ${this.timeout / 1000} seconds`));
@@ -94,7 +92,6 @@ export class CodexSessionManager {
    * 执行认证 - 参考 ACP 的认证逻辑
    */
   private async performAuthentication(): Promise<void> {
-
     // 这里可以添加具体的认证逻辑
     // 目前 Codex 通过 CLI 自身处理认证
     return new Promise((resolve) => {
@@ -108,7 +105,6 @@ export class CodexSessionManager {
    * 创建会话
    */
   private async createSession(): Promise<void> {
-
     return new Promise((resolve, reject) => {
       const timeoutId = setTimeout(() => {
         reject(new Error('Session creation timeout'));
@@ -127,12 +123,10 @@ export class CodexSessionManager {
    * 停止会话
    */
   async stopSession(): Promise<void> {
-
     this.isConnected = false;
     this.hasActiveSession = false;
     this.sessionId = null;
     this.setStatus('disconnected', 'Session disconnected');
-
   }
 
   /**
@@ -148,7 +142,6 @@ export class CodexSessionManager {
    * 重新连接会话
    */
   async reconnectSession(): Promise<void> {
-
     try {
       await this.stopSession();
       await new Promise((resolve) => setTimeout(resolve, 1000)); // 等待1秒
@@ -163,12 +156,6 @@ export class CodexSessionManager {
    * 设置状态并发送通知 - 参考 ACP 的 emitStatusMessage
    */
   private setStatus(status: CodexSessionStatus, message: string): void {
-      from: this.status,
-      to: status,
-      message,
-      conversation_id: this.config.conversation_id,
-    });
-
     this.status = status;
 
     // 使用固定ID的状态消息，实现更新而不是重复
@@ -192,7 +179,6 @@ export class CodexSessionManager {
     // 发送到 UI
     addMessage(this.config.conversation_id, transformMessage(statusMessage));
     ipcBridge.codexConversation.responseStream.emit(statusMessage);
-
   }
 
   /**
@@ -237,11 +223,6 @@ export class CodexSessionManager {
    * 发送会话事件
    */
   emitSessionEvent(eventType: string, data: unknown): void {
-      eventType,
-      sessionId: this.sessionId,
-      data: typeof data === 'object' ? Object.keys(data) : data,
-    });
-
     const eventMessage: IResponseMessage = {
       type: 'codex_session_event',
       conversation_id: this.config.conversation_id,
@@ -280,7 +261,6 @@ export class CodexSessionManager {
    * 等待会话准备就绪 - 类似 ACP 的 bootstrap Promise
    */
   async waitForReady(timeout: number = 30000): Promise<void> {
-
     return new Promise((resolve, reject) => {
       if (this.status === 'session_active') {
         resolve();

@@ -15,6 +15,7 @@ import path from 'path';
 export interface FileOperation {
   method: string;
   path: string;
+  filename?: string;
   content?: string;
   action?: 'create' | 'write' | 'delete' | 'read';
   metadata?: Record<string, any>;
@@ -28,7 +29,10 @@ export class CodexFileOperationHandler {
   private pendingOperations = new Map<string, { resolve: (result: any) => void; reject: (error: any) => void }>();
   private workingDirectory: string;
 
-  constructor(workingDirectory: string, private messageProcessor: CodexMessageProcessor) {
+  constructor(
+    workingDirectory: string,
+    private conversation_id: string
+  ) {
     this.workingDirectory = path.resolve(workingDirectory);
   }
 
@@ -38,6 +42,10 @@ export class CodexFileOperationHandler {
   async handleFileOperation(operation: FileOperation): Promise<any> {
     // Validate inputs
     if (!operation.filename && !operation.path) {
+      throw new Error('File operation requires either filename or path');
+    }
+
+    try {
       switch (operation.method) {
         case 'fs/write_text_file':
         case 'file_write':
@@ -66,7 +74,6 @@ export class CodexFileOperationHandler {
     const fullPath = this.resolveFilePath(operation.path);
     const content = operation.content || '';
 
-
     // 确保目录存在
     const dir = path.dirname(fullPath);
     await fs.mkdir(dir, { recursive: true });
@@ -80,7 +87,6 @@ export class CodexFileOperationHandler {
       path: operation.path,
       content: content,
     });
-
   }
 
   /**
@@ -88,7 +94,6 @@ export class CodexFileOperationHandler {
    */
   private async handleFileRead(operation: FileOperation): Promise<string> {
     const fullPath = this.resolveFilePath(operation.path);
-
 
     try {
       const content = await fs.readFile(fullPath, 'utf-8');
@@ -114,7 +119,6 @@ export class CodexFileOperationHandler {
   private async handleFileDelete(operation: FileOperation): Promise<void> {
     const fullPath = this.resolveFilePath(operation.path);
 
-
     try {
       await fs.unlink(fullPath);
 
@@ -123,7 +127,6 @@ export class CodexFileOperationHandler {
         method: 'fs/delete_file',
         path: operation.path,
       });
-
     } catch (error) {
       if ((error as any).code === 'ENOENT') {
         console.warn('⚠️ [CodexFileOperationHandler] File not found for deletion:', fullPath);
@@ -155,7 +158,6 @@ export class CodexFileOperationHandler {
    * 处理智能文件引用 - 参考 ACP 的 @filename 处理
    */
   processFileReferences(content: string, files?: string[]): string {
-
     if (!files || files.length === 0 || !content.includes('@')) {
       return content;
     }
@@ -236,7 +238,6 @@ export class CodexFileOperationHandler {
    * 批量应用文件更改 - 参考 ACP 和当前 CodexAgentManager 的 applyPatchChanges
    */
   async applyBatchChanges(changes: Record<string, any>): Promise<void> {
-
     const operations: Promise<void>[] = [];
 
     for (const [filePath, change] of Object.entries(changes)) {
@@ -259,7 +260,6 @@ export class CodexFileOperationHandler {
    * 清理资源
    */
   cleanup(): void {
-
     // 拒绝所有待处理的操作
     for (const [operationId, { reject }] of this.pendingOperations) {
       reject(new Error('File operation handler is being cleaned up'));

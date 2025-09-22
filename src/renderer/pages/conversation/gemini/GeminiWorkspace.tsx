@@ -53,8 +53,11 @@ const GeminiWorkspace: React.FC<GeminiWorkspaceProps> = ({ workspace, customWork
   useEffect(() => {
     setFiles([]);
     refreshWorkspace(eventPrefix, workspace);
-    emitter.emit(`${eventPrefix}.selected.file`, []);
-  }, [workspace, eventPrefix]);
+    // 只在workspace变化时清空选择，避免eventPrefix变化时的不必要清空
+    if (workspace) {
+      emitter.emit(`${eventPrefix}.selected.file`, []);
+    }
+  }, [workspace]);
 
   // 监听当前会话流，工具执行后刷新工作区
   useEffect(() => {
