@@ -17,7 +17,7 @@ interface MessageCodexPermissionProps {
 }
 
 const MessageCodexPermission: React.FC<MessageCodexPermissionProps> = React.memo(({ message }) => {
-  const { options = [], toolCall } = (message.content as any) || {};
+  const { options = [], toolCall } = message.content || {};
   const { t } = useTranslation();
 
   console.log('🔐 [MessageCodexPermission] Full message content:', {
@@ -55,10 +55,28 @@ const MessageCodexPermission: React.FC<MessageCodexPermissionProps> = React.memo
   };
   const { title, icon } = getToolInfo();
 
-  // 生成唯一的存储键，使用更稳定的标识符
-  const permissionId = toolCall?.toolCallId || message.msg_id || message.id;
-  const storageKey = `codex_permission_choice_${message.conversation_id}_${permissionId}`;
-  const responseKey = `codex_permission_responded_${message.conversation_id}_${permissionId}`;
+  // 生成全局唯一且稳定的权限ID，不依赖于conversation_id或message_id
+  const generateGlobalPermissionId = () => {
+    // 构建权限请求的特征字符串
+    const features = [toolCall?.kind || 'permission', toolCall?.title || '', toolCall?.rawInput?.command || '', JSON.stringify(options || [])];
+
+    const featureString = features.filter(Boolean).join('|');
+
+    // 生成稳定的哈希
+    let hash = 0;
+    for (let i = 0; i < featureString.length; i++) {
+      const char = featureString.charCodeAt(i);
+      hash = (hash << 5) - hash + char;
+      hash = hash & hash; // 32位整数
+    }
+
+    return `codex_perm_${Math.abs(hash)}`;
+  };
+
+  const permissionId = generateGlobalPermissionId();
+  // 使用全局key，不区分conversation，让相同权限请求在所有会话中共享状态
+  const storageKey = `codex_global_permission_choice_${permissionId}`;
+  const responseKey = `codex_global_permission_responded_${permissionId}`;
 
   console.log('🔐 [MessageCodexPermission] Component rendered with:', {
     messageId: message.id,
@@ -70,9 +88,24 @@ const MessageCodexPermission: React.FC<MessageCodexPermissionProps> = React.memo
     conversationId: message.conversation_id,
   });
 
-  const [selected, setSelected] = useState<string | null>(null);
+  // 立即从localStorage初始化状态，避免闪烁
+  const [selected, setSelected] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem(storageKey);
+    } catch {
+      return null;
+    }
+  });
+
   const [isResponding, setIsResponding] = useState(false);
-  const [hasResponded, setHasResponded] = useState(false);
+
+  const [hasResponded, setHasResponded] = useState<boolean>(() => {
+    try {
+      return localStorage.getItem(responseKey) === 'true';
+    } catch {
+      return false;
+    }
+  });
 
   // 清理旧的权限存储（超过7天的）
   const cleanupOldPermissionStorage = () => {
@@ -90,57 +123,36 @@ const MessageCodexPermission: React.FC<MessageCodexPermissionProps> = React.memo
     });
   };
 
-  // 在组件挂载时从 localStorage 恢复状态
+  // 组件挂载时清理旧存储
   useEffect(() => {
-    console.log('🔐 [MessageCodexPermission] useEffect triggered with dependencies:', {
+    console.log('🔐 [MessageCodexPermission] Component mounted:', {
       storageKey,
       responseKey,
       permissionId,
-      hasLocalStorage: typeof localStorage !== 'undefined',
+      initialSelected: selected,
+      initialHasResponded: hasResponded,
     });
 
-    try {
-      // 清理旧存储
-      cleanupOldPermissionStorage();
-
-      const savedChoice = localStorage.getItem(storageKey);
-      const savedResponse = localStorage.getItem(responseKey);
-
-      console.log('🔐 [MessageCodexPermission] Restoring state:', {
-        permissionId,
-        storageKey,
-        responseKey,
-        savedChoice,
-        savedResponse,
-        toolCall: toolCall?.title || toolCall?.rawInput?.description,
-        allLocalStorageKeys: Object.keys(localStorage).filter((k) => k.includes('codex_permission')),
-      });
-
-      if (savedChoice) {
-        console.log('🔐 [MessageCodexPermission] Setting saved choice:', savedChoice);
-        setSelected(savedChoice);
-      }
-
-      if (savedResponse === 'true') {
-        console.log('🔐 [MessageCodexPermission] Setting hasResponded to true');
-        setHasResponded(true);
-      }
-    } catch (error) {
-      console.error('🔐 [MessageCodexPermission] Error accessing localStorage:', error);
-    }
-  }, [storageKey, responseKey, permissionId]);
+    // 清理超过7天的旧权限存储
+    cleanupOldPermissionStorage();
+  }, [permissionId]); // 只在permissionId变化时执行
 
   // 保存选择状态到 localStorage
   const handleSelectionChange = (value: string) => {
+    console.log('🔐 [MessageCodexPermission] Handling selection change:', { value, storageKey });
     setSelected(value);
     try {
       localStorage.setItem(storageKey, value);
       localStorage.setItem(`${storageKey}_timestamp`, Date.now().toString());
-      console.log('🔐 [MessageCodexPermission] Saved choice:', {
+
+      // 立即验证保存结果
+      const verifyValue = localStorage.getItem(storageKey);
+      console.log('🔐 [MessageCodexPermission] Saved and verified choice:', {
         permissionId,
         storageKey,
         selectedValue: value,
-        verifyValue: localStorage.getItem(storageKey),
+        verifyValue,
+        saveSuccess: verifyValue === value,
       });
     } catch (error) {
       console.error('🔐 [MessageCodexPermission] Error saving choice to localStorage:', error);
@@ -167,11 +179,15 @@ const MessageCodexPermission: React.FC<MessageCodexPermissionProps> = React.memo
         try {
           localStorage.setItem(responseKey, 'true');
           localStorage.setItem(`${responseKey}_timestamp`, Date.now().toString());
-          console.log('🔐 [MessageCodexPermission] Saved response:', {
+
+          // 立即验证保存结果
+          const verifyResponse = localStorage.getItem(responseKey);
+          console.log('🔐 [MessageCodexPermission] Saved and verified response:', {
             permissionId,
             responseKey,
             selected,
-            verifyResponse: localStorage.getItem(responseKey),
+            verifyResponse,
+            saveSuccess: verifyResponse === 'true',
           });
         } catch (error) {
           console.error('🔐 [MessageCodexPermission] Error saving response to localStorage:', error);
@@ -212,7 +228,7 @@ const MessageCodexPermission: React.FC<MessageCodexPermissionProps> = React.memo
             <div className='mt-10px'>Choose an action:</div>
             <Radio.Group direction='vertical' size='mini' value={selected} onChange={handleSelectionChange}>
               {options && options.length > 0 ? (
-                options.map((option: any, index: number) => {
+                options.map((option, index) => {
                   const optionName = option?.name || `Option ${index + 1}`;
                   const optionId = option?.optionId || `option_${index}`;
                   return (
@@ -237,6 +253,42 @@ const MessageCodexPermission: React.FC<MessageCodexPermissionProps> = React.memo
           <div className='mt-10px p-2 bg-green-50 border border-green-200 rounded-md'>
             <Text className='text-sm text-green-700'>✓ Response sent successfully</Text>
           </div>
+        )}
+
+        {/* 调试信息面板 - 可以在生产环境中移除 */}
+        {process.env.NODE_ENV === 'development' && (
+          <details className='mt-2 text-xs text-gray-500'>
+            <summary className='cursor-pointer'>权限持久化调试</summary>
+            <div className='mt-1 p-2 bg-gray-50 rounded text-xs space-y-1'>
+              <div>
+                <strong>工具信息:</strong>
+              </div>
+              <div>• toolCallId: {toolCall?.toolCallId || 'null'}</div>
+              <div>• command: {toolCall?.rawInput?.command || 'null'}</div>
+              <div>• kind: {toolCall?.kind || 'null'}</div>
+              <div>
+                <strong>生成的稳定ID:</strong> {permissionId}
+              </div>
+              <div>
+                <strong>存储键:</strong>
+              </div>
+              <div>• choice: {storageKey}</div>
+              <div>• response: {responseKey}</div>
+              <div>
+                <strong>当前状态:</strong>
+              </div>
+              <div>• selected: {selected || 'null'}</div>
+              <div>• hasResponded: {hasResponded.toString()}</div>
+              <div>
+                <strong>localStorage实际值:</strong>
+              </div>
+              <div>• choice: {localStorage.getItem(storageKey) || 'null'}</div>
+              <div>• response: {localStorage.getItem(responseKey) || 'null'}</div>
+              <div>
+                <strong>会话ID:</strong> {message.conversation_id}
+              </div>
+            </div>
+          </details>
         )}
       </div>
     </Card>

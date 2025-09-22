@@ -4,15 +4,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { NetworkError } from './CodexMcpConnection';
+import type { NetworkError, CodexEventEnvelope } from './CodexMcpConnection';
 import { CodexMcpConnection } from './CodexMcpConnection';
 import { APP_CLIENT_NAME, APP_CLIENT_VERSION, CODEX_MCP_PROTOCOL_VERSION } from '@/common/constants';
+import type { CodexAgentEvent, FileChange } from '@/common/codexTypes';
 
 export interface CodexAgentConfig {
   id: string;
   cliPath?: string; // e.g. 'codex' or absolute path
   workingDir: string;
-  onEvent: (evt: { type: string; data: any }) => void;
+  onEvent: (evt: CodexAgentEvent | { type: string; data: unknown }) => void;
   onNetworkError?: (error: NetworkError) => void;
 }
 
@@ -24,7 +25,7 @@ export class CodexMcpAgent {
   private readonly id: string;
   private readonly cliPath?: string;
   private readonly workingDir: string;
-  private readonly onEvent: (evt: { type: string; data: any }) => void;
+  private readonly onEvent: (evt: CodexAgentEvent | { type: string; data: unknown }) => void;
   private readonly onNetworkError?: (error: NetworkError) => void;
   private conn: CodexMcpConnection | null = null;
   private conversationId: string | null = null;
@@ -55,7 +56,7 @@ export class CodexMcpAgent {
       // MCP initialize handshake with better error handling
       console.log('🤝 [CodexMcpAgent] Starting initialize handshake...');
 
-      console.log('🔧 [CodexMcpAgent] Connection diagnostics before initialize:', (this.conn as any).getDiagnostics?.());
+      console.log('🔧 [CodexMcpAgent] Connection diagnostics before initialize:', this.conn.getDiagnostics());
 
       console.log('📤 [CodexMcpAgent] Sending initialize with protocol version:', CODEX_MCP_PROTOCOL_VERSION);
 
@@ -194,7 +195,7 @@ export class CodexMcpAgent {
     }
   }
 
-  async sendApprovalResponse(callId: string, approved: boolean, changes: Record<string, any>): Promise<void> {
+  async sendApprovalResponse(callId: string, approved: boolean, changes: Record<string, FileChange>): Promise<void> {
     await this.conn?.request('apply_patch_approval_response', {
       call_id: callId,
       approved,
@@ -207,16 +208,17 @@ export class CodexMcpAgent {
   }
 
   respondElicitation(callId: string, decision: 'approved' | 'approved_for_session' | 'denied' | 'abort'): void {
-    (this.conn as any)?.respondElicitation?.(callId, decision);
+    this.conn?.respondElicitation(callId, decision);
   }
 
-  private processCodexEvent(env: { method: string; params?: any }): void {
+  private processCodexEvent(env: CodexEventEnvelope): void {
     console.log('⚡ [CodexMcpAgent] Processing codex event:', env.method);
     console.log('📋 [CodexMcpAgent] Event params:', JSON.stringify(env.params, null, 2));
 
     // Handle codex/event messages (wrapped messages)
     if (env.method === 'codex/event') {
-      const msg = env.params?.msg;
+      const params = (env.params || {}) as { msg?: any; _meta?: any };
+      const msg = params?.msg;
       if (!msg) {
         return;
       }
@@ -226,7 +228,7 @@ export class CodexMcpAgent {
         // Include _meta information from the original event for proper request tracking
         const enrichedData = {
           ...msg,
-          _meta: env.params?._meta, // Pass through meta information like requestId
+          _meta: params?._meta, // Pass through meta information like requestId
         };
         console.log('📨 [CodexMcpAgent] Forwarding event to parent:', msg.type || 'unknown');
         this.onEvent({ type: msg.type || 'unknown', data: enrichedData });
@@ -295,5 +297,20 @@ export class CodexMcpAgent {
       const pid = typeof process !== 'undefined' && process.pid ? process.pid.toString(36) : 'p';
       return `conv-${ts}-${pid}`;
     }
+  }
+
+  // Expose connection diagnostics for UI/manager without leaking internals
+  public getDiagnostics(): ReturnType<CodexMcpConnection['getDiagnostics']> {
+    return (
+      this.conn?.getDiagnostics() || {
+        isConnected: false,
+        childProcess: false,
+        pendingRequests: 0,
+        elicitationCount: 0,
+        isPaused: false,
+        retryCount: 0,
+        hasNetworkError: false,
+      }
+    );
   }
 }

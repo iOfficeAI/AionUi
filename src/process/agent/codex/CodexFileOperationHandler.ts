@@ -18,7 +18,7 @@ export interface FileOperation {
   filename?: string;
   content?: string;
   action?: 'create' | 'write' | 'delete' | 'read';
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**
@@ -26,7 +26,7 @@ export interface FileOperation {
  * 提供统一的文件读写、权限管理和操作反馈
  */
 export class CodexFileOperationHandler {
-  private pendingOperations = new Map<string, { resolve: (result: any) => void; reject: (error: any) => void }>();
+  private pendingOperations = new Map<string, { resolve: (result: unknown) => void; reject: (error: unknown) => void }>();
   private workingDirectory: string;
 
   constructor(
@@ -39,7 +39,7 @@ export class CodexFileOperationHandler {
   /**
    * 处理文件操作请求 - 参考 ACP 的 handleFileOperation
    */
-  async handleFileOperation(operation: FileOperation): Promise<any> {
+  async handleFileOperation(operation: FileOperation): Promise<unknown> {
     // Validate inputs
     if (!operation.filename && !operation.path) {
       throw new Error('File operation requires either filename or path');
@@ -106,7 +106,7 @@ export class CodexFileOperationHandler {
 
       return content;
     } catch (error) {
-      if ((error as any).code === 'ENOENT') {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
         throw new Error(`File not found: ${operation.path}`);
       }
       throw error;
@@ -128,7 +128,7 @@ export class CodexFileOperationHandler {
         path: operation.path,
       });
     } catch (error) {
-      if ((error as any).code === 'ENOENT') {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
         console.warn('⚠️ [CodexFileOperationHandler] File not found for deletion:', fullPath);
         return; // 文件不存在，视为成功
       }
@@ -237,23 +237,40 @@ export class CodexFileOperationHandler {
   /**
    * 批量应用文件更改 - 参考 ACP 和当前 CodexAgentManager 的 applyPatchChanges
    */
-  async applyBatchChanges(changes: Record<string, any>): Promise<void> {
+  async applyBatchChanges(changes: Record<string, import('@/common/codexTypes').FileChange>): Promise<void> {
     const operations: Promise<void>[] = [];
 
     for (const [filePath, change] of Object.entries(changes)) {
       if (typeof change === 'object' && change !== null) {
+        const action = this.getChangeAction(change as any);
+        const content = this.getChangeContent(change as any);
         const operation: FileOperation = {
-          method: change.action === 'delete' ? 'fs/delete_file' : 'fs/write_text_file',
+          method: action === 'delete' ? 'fs/delete_file' : 'fs/write_text_file',
           path: filePath,
-          content: change.content || '',
-          action: change.action || 'write',
+          content,
+          action,
         };
-
-        operations.push(this.handleFileOperation(operation));
+        operations.push(this.handleFileOperation(operation).then((): void => void 0));
       }
     }
 
     await Promise.all(operations);
+  }
+
+  private getChangeAction(change: import('@/common/codexTypes').FileChange): 'create' | 'write' | 'delete' {
+    if ('type' in change) {
+      if (change.type === 'add') return 'create';
+      if (change.type === 'delete') return 'delete';
+      if (change.type === 'update') return 'write';
+    }
+    // legacy/back-compat
+    if ('action' in (change as any) && (change as any).action) return (change as any).action;
+    return 'write';
+  }
+
+  private getChangeContent(change: import('@/common/codexTypes').FileChange): string {
+    if ('content' in (change as any) && typeof (change as any).content === 'string') return (change as any).content;
+    return '';
   }
 
   /**

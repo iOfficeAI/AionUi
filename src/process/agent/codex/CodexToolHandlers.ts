@@ -10,12 +10,12 @@ import type { IResponseMessage } from '@/common/ipcBridge';
 import { ipcBridge } from '@/common';
 import { uuid } from '@/common/utils';
 import { addOrUpdateMessage } from '../../message';
-import type { CodexAgentEventType, CodexAgentEvent } from '@/common/codexTypes';
+import type { CodexAgentEventType, CodexAgentEvent, FileChange, McpInvocation } from '@/common/codexTypes';
 
 export class CodexToolHandlers {
   private cmdBuffers: Map<string, { stdout: string; stderr: string; combined: string }> = new Map();
   private patchBuffers: Map<string, string> = new Map();
-  private patchChanges: Map<string, Record<string, any>> = new Map();
+  private patchChanges: Map<string, Record<string, FileChange>> = new Map();
   private pendingConfirmations: Set<string> = new Set();
 
   constructor(private conversation_id: string) {}
@@ -45,7 +45,8 @@ export class CodexToolHandlers {
         if (Buffer.isBuffer(chunk)) {
           chunk = chunk.toString('utf-8');
         } else {
-          chunk = Buffer.from(chunk as any, 'base64').toString('utf-8');
+          // Fallback: interpret as base64-encoded string if possible
+          chunk = Buffer.from(String(chunk), 'base64').toString('utf-8');
         }
       } catch {
         chunk = String(chunk);
@@ -89,7 +90,7 @@ export class CodexToolHandlers {
     // Cache both summary and raw changes for later application
     this.patchBuffers.set(callId, summary);
     if (evt.data?.changes && typeof evt.data.changes === 'object') {
-      this.patchChanges.set(callId, evt.data.changes as Record<string, any>);
+      this.patchChanges.set(callId, evt.data.changes as Record<string, FileChange>);
     }
     // 对未自动批准的变更设置确认
     if (!evt.data?.auto_approved) this.pendingConfirmations.add(callId);
@@ -139,8 +140,9 @@ export class CodexToolHandlers {
     const callId = evt.data?.call_id || uuid();
     const inv = evt.data?.invocation || {};
     const title = this.formatMcpInvocation(inv);
-    const result = evt.data?.result;
-    const isError = typeof result === 'object' && result && (result.Err !== undefined || result.is_error === true);
+    const result = evt.data?.result as unknown;
+    const resultObj: Record<string, unknown> | undefined = typeof result === 'object' && result !== null ? (result as Record<string, unknown>) : undefined;
+    const isError = !!resultObj && ('Err' in resultObj || resultObj['is_error'] === true);
     this.emitToolGroup(callId, {
       name: 'Shell',
       description: `${title} ${isError ? 'failed' : 'success'}`,
@@ -199,12 +201,12 @@ export class CodexToolHandlers {
     }
   }
 
-  private formatMcpInvocation(inv: Record<string, any>): string {
+  private formatMcpInvocation(inv: McpInvocation | Record<string, unknown>): string {
     const name = inv.method || inv.name || 'unknown';
     return `MCP Tool: ${name}`;
   }
 
-  private summarizePatch(changes: Record<string, any> | undefined): string {
+  private summarizePatch(changes: Record<string, FileChange> | undefined): string {
     if (!changes || typeof changes !== 'object') return 'No changes';
 
     const entries = Object.entries(changes);
@@ -213,7 +215,9 @@ export class CodexToolHandlers {
     return entries
       .map(([file, change]) => {
         if (typeof change === 'object' && change !== null) {
-          const action = (change as any).type || (change as any).action || 'modify';
+          let action: string = 'modify';
+          if ('type' in (change as any) && (change as any).type) action = String((change as any).type);
+          else if ('action' in (change as any) && (change as any).action) action = String((change as any).action);
           return `${action}: ${file}`;
         }
         return `modify: ${file}`;
@@ -239,11 +243,11 @@ export class CodexToolHandlers {
     this.pendingConfirmations.delete(callId);
   }
 
-  getPatchChanges(callId: string): Record<string, any> | undefined {
+  getPatchChanges(callId: string): Record<string, FileChange> | undefined {
     return this.patchChanges.get(callId);
   }
 
-  storePatchChanges(callId: string, changes: Record<string, any>): void {
+  storePatchChanges(callId: string, changes: Record<string, FileChange>): void {
     this.patchChanges.set(callId, changes);
   }
 

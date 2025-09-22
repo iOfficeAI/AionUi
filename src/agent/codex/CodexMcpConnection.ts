@@ -14,19 +14,19 @@ interface JsonRpcRequest {
   jsonrpc: typeof JSONRPC_VERSION;
   id?: JsonRpcId;
   method: string;
-  params?: any;
+  params?: unknown;
 }
 
 interface JsonRpcResponse {
   jsonrpc: typeof JSONRPC_VERSION;
   id: JsonRpcId;
-  result?: any;
-  error?: { code: number; message: string; data?: any };
+  result?: unknown;
+  error?: { code: number; message: string; data?: unknown };
 }
 
 export interface CodexEventEnvelope {
-  method: string; // e.g. "codex/event"
-  params?: any;
+  method: string; // e.g. "codex/event" or "elicitation/create"
+  params?: unknown;
 }
 
 export interface NetworkError {
@@ -37,8 +37,8 @@ export interface NetworkError {
 }
 
 interface PendingReq {
-  resolve: (v: any) => void;
-  reject: (e: any) => void;
+  resolve: (v: unknown) => void;
+  reject: (e: unknown) => void;
   timeout?: NodeJS.Timeout;
 }
 
@@ -54,7 +54,7 @@ export class CodexMcpConnection {
 
   // Permission request handling - similar to ACP's mechanism
   private isPaused = false;
-  private pausedRequests: Array<{ method: string; params: any; resolve: any; reject: any; timeout: NodeJS.Timeout }> = [];
+  private pausedRequests: Array<{ method: string; params: unknown; resolve: (v: unknown) => void; reject: (e: unknown) => void; timeout: NodeJS.Timeout }> = [];
   private permissionResolvers = new Map<string, { resolve: (approved: boolean) => void; reject: (error: Error) => void }>();
 
   // Network error handling
@@ -129,7 +129,7 @@ export class CodexMcpConnection {
             // Check if this looks like a JSON-RPC message
             if (line.trim().startsWith('{') && line.trim().endsWith('}')) {
               try {
-                const msg = JSON.parse(line) as any;
+                const msg = JSON.parse(line) as JsonRpcRequest | JsonRpcResponse;
                 console.log('📨 [CodexMcpConnection] Received JSON-RPC message:', msg);
                 receivedJsonMessage = true;
                 this.handleIncoming(msg);
@@ -216,13 +216,13 @@ export class CodexMcpConnection {
     this.elicitationMap.clear();
   }
 
-  async request(method: string, params?: any, timeoutMs = 120000): Promise<any> {
+  async request<T = unknown>(method: string, params?: unknown, timeoutMs = 120000): Promise<T> {
     const id = this.nextId++;
     const req: JsonRpcRequest = { jsonrpc: JSONRPC_VERSION, id, method, params };
 
     console.log(`🕒 [CodexMcpConnection] Request ${method} with timeout: ${timeoutMs}ms, id: ${id}`);
 
-    return new Promise((resolve, reject) => {
+    return new Promise<T>((resolve, reject) => {
       const timeout = setTimeout(() => {
         this.pending.delete(id);
         // Also remove from paused requests if present
@@ -255,20 +255,20 @@ export class CodexMcpConnection {
     });
   }
 
-  notify(method: string, params?: any): void {
+  notify(method: string, params?: unknown): void {
     const msg: JsonRpcRequest = { jsonrpc: JSONRPC_VERSION, method, params };
     const line = JSON.stringify(msg) + '\n';
     console.log('📤 [CodexMcpConnection] Sending notification:', line.trim());
     this.child?.stdin?.write(line);
   }
 
-  private handleIncoming(msg: any): void {
+  private handleIncoming(msg: JsonRpcRequest | JsonRpcResponse): void {
     if (typeof msg !== 'object' || msg === null) return;
 
     console.log('🔄 [CodexMcpConnection] Handling incoming message:', JSON.stringify(msg, null, 2));
 
     // Response
-    if ('id' in msg && (msg.result !== undefined || msg.error !== undefined)) {
+    if ('id' in msg && ('result' in (msg as JsonRpcResponse) || 'error' in (msg as JsonRpcResponse))) {
       const res = msg as JsonRpcResponse;
       const p = this.pending.get(res.id);
       if (!p) return;
@@ -285,8 +285,8 @@ export class CodexMcpConnection {
         } else {
           p.reject(new Error(errorMsg));
         }
-      } else if (res.result && res.result.error) {
-        const resultErrorMsg = String(res.result.error);
+      } else if (res.result && typeof res.result === 'object' && 'error' in (res.result as Record<string, unknown>)) {
+        const resultErrorMsg = String((res.result as Record<string, unknown>).error);
         console.log(`❌ [CodexMcpConnection] Result error for id ${res.id}:`, resultErrorMsg);
 
         if (this.isNetworkRelatedError(resultErrorMsg)) {
@@ -306,7 +306,7 @@ export class CodexMcpConnection {
       const env: CodexEventEnvelope = { method: msg.method, params: msg.params };
 
       // Check for permission request events - pause requests but forward to handler
-      if (env.method === 'codex/event' && env.params?.msg?.type === 'apply_patch_approval_request') {
+      if (env.method === 'codex/event' && typeof env.params === 'object' && env.params !== null && 'msg' in (env.params as any) && (env.params as any).msg?.type === 'apply_patch_approval_request') {
         this.isPaused = true;
       }
 
@@ -315,7 +315,7 @@ export class CodexMcpConnection {
         console.log('🔐 [CodexMcpConnection] Received elicitation/create');
         this.isPaused = true;
         const reqId = msg.id as JsonRpcId;
-        const codexCallId = env.params?.codex_call_id || env.params?.call_id;
+        const codexCallId = (env.params as any)?.codex_call_id || (env.params as any)?.call_id;
         if (codexCallId) {
           this.elicitationMap.set(String(codexCallId), reqId);
           console.log('💾 [CodexMcpConnection] Map elicitation call_id -> reqId', codexCallId, reqId);
@@ -353,8 +353,8 @@ export class CodexMcpConnection {
     }
 
     // Send elicitation response for any pending elicitations
-    const decision = approved ? 'approved' : 'denied';
-    this.respondElicitation(callId, decision as any);
+    const decision: 'approved' | 'denied' = approved ? 'approved' : 'denied';
+    this.respondElicitation(callId, decision);
 
     // Resume paused requests
     this.resumeRequests();
@@ -369,7 +369,7 @@ export class CodexMcpConnection {
       return;
     }
     const result = { decision };
-    const response = { jsonrpc: JSONRPC_VERSION, id: reqId, result } as any;
+    const response: JsonRpcResponse = { jsonrpc: JSONRPC_VERSION, id: reqId, result };
     const line = JSON.stringify(response) + '\n';
     this.child?.stdin?.write(line);
     this.elicitationMap.delete(normalized);

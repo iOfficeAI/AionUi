@@ -19,7 +19,7 @@ import { t } from 'i18next';
 import { CodexEventHandler } from '../agent/codex/CodexEventHandler';
 import { CodexSessionManager } from '../agent/codex/CodexSessionManager';
 import { CodexFileOperationHandler } from '../agent/codex/CodexFileOperationHandler';
-import type { CodexAgentManagerData, CodexAgentEvent } from '@/common/codexTypes';
+import type { CodexAgentManagerData, CodexAgentEvent, FileChange } from '@/common/codexTypes';
 
 class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
   workspace?: string;
@@ -256,14 +256,14 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
 
     // Respond to elicitation (server expects JSON-RPC response)
     console.log('📨 [CodexAgentManager] Responding elicitation with decision:', decision, 'origCallId:', origCallId);
-    (this.agent as any).respondElicitation?.(origCallId, decision);
+    this.agent.respondElicitation(origCallId, decision);
 
     // Also resolve local pause gate to resume queued requests
     this.agent.resolvePermission(origCallId, isApproved);
-    return { success: true } as any;
+    return;
   }
 
-  private async applyPatchChanges(callId: string, changes: Record<string, any>): Promise<void> {
+  private async applyPatchChanges(callId: string, changes: Record<string, FileChange>): Promise<void> {
     console.log('📦 [CodexAgentManager] Applying patch changes using file operation handler...');
 
     try {
@@ -359,7 +359,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
     console.log('Restoring permission state for conversation:', this.conversation_id);
   }
 
-  private emitStatus(status: string, message: string) {
+  private emitStatus(status: 'connecting' | 'connected' | 'authenticated' | 'session_active' | 'error' | 'disconnected', message: string) {
     console.log('📊 [CodexAgentManager] Emitting status:', {
       status,
       message,
@@ -367,12 +367,11 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
     });
 
     const statusMessage: IResponseMessage = {
-      type: 'acp_status',
+      type: 'codex_status',
       conversation_id: this.conversation_id,
       msg_id: uuid(),
       data: {
-        backend: 'codex' as any,
-        status: status as any,
+        status,
         message,
       },
     };
@@ -381,7 +380,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
   }
 
   getDiagnostics() {
-    const agentDiagnostics = (this.agent as any)?.conn?.getDiagnostics?.() || {};
+    const agentDiagnostics = this.agent.getDiagnostics();
     const sessionInfo = this.sessionManager.getSessionInfo();
 
     return {
@@ -408,13 +407,13 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
 
   // Stop current Codex stream in-process (override ForkTask default which targets a worker)
   stop() {
-    return (this.agent as any)?.stop?.() ?? Promise.resolve();
+    return this.agent?.stop?.() ?? Promise.resolve();
   }
 
   // Ensure we clean up agent resources on kill
   kill() {
     try {
-      (this.agent as any)?.stop?.();
+      this.agent?.stop?.();
     } finally {
       super.kill();
     }
