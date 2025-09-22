@@ -45,6 +45,9 @@ const SendBox: React.FC<{
   // 使用共享的输入法合成处理
   const { compositionHandlers, createKeyDownHandler } = useCompositionInput();
 
+  // 自动检测粘贴模式：ACP 和 Codex 使用专用模式避免文本重复
+  const pasteMode = componentId.includes('acp-') || componentId.includes('codex-') ? 'codex' : 'standard';
+
   // 使用共享的PasteService集成
   const { handleFocus } = usePasteService({
     componentId,
@@ -52,6 +55,7 @@ const SendBox: React.FC<{
     onFilesAdded,
     setInput,
     input,
+    mode: pasteMode,
   });
 
   const sendMessageHandler = () => {

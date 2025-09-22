@@ -16,9 +16,9 @@ import BaseAgentManager from './BaseAgentManager';
 import fs from 'fs/promises';
 import path from 'path';
 import { t } from 'i18next';
-import { CodexEventHandler } from './codex/CodexEventHandler';
-import { CodexSessionManager } from './codex/CodexSessionManager';
-import { CodexFileOperationHandler } from './codex/CodexFileOperationHandler';
+import { CodexEventHandler } from '../agent/codex/CodexEventHandler';
+import { CodexSessionManager } from '../agent/codex/CodexSessionManager';
+import { CodexFileOperationHandler } from '../agent/codex/CodexFileOperationHandler';
 import type { CodexAgentManagerData, CodexAgentEvent } from '@/common/codexTypes';
 
 class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
