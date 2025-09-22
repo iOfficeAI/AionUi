@@ -6,7 +6,7 @@
 
 import { Button, Input, Message } from '@arco-design/web-react';
 import { ArrowUp } from '@icon-park/react';
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { FileMetadata } from '../services/FileService';
 import { allSupportedExts } from '../services/FileService';
@@ -44,9 +44,6 @@ const SendBox: React.FC<{
 
   // 使用共享的输入法合成处理
   const { compositionHandlers, createKeyDownHandler } = useCompositionInput();
-
-  // 自动检测粘贴模式：ACP 和 Codex 使用专用模式避免文本重复
-  const pasteMode = componentId.includes('acp-') || componentId.includes('codex-') ? 'codex' : 'standard';
 
   // 使用共享的PasteService集成
   const { handleFocus } = usePasteService({
