@@ -8,6 +8,7 @@ import type { AcpBackend } from './acpTypes';
 import type { IResponseMessage } from './ipcBridge';
 import { uuid } from './utils';
 import type { AcpPermissionRequest, ToolCallUpdate } from '@/common/acpTypes';
+import type { CodexPermissionRequest } from '@/common/codexTypes';
 
 /**
  * 安全的路径拼接函数，兼容Windows和Mac
@@ -216,7 +217,7 @@ export type IMessageCodexStatus = IMessage<
   }
 >;
 
-export type IMessageCodexPermission = IMessage<'codex_permission', Record<string, any>>;
+export type IMessageCodexPermission = IMessage<'codex_permission', CodexPermissionRequest>;
 
 export type TMessage = IMessageText | IMessageTips | IMessageToolCall | IMessageToolGroup | IMessageAcpStatus | IMessageAcpPermission | IMessageAcpToolCall | IMessageCodexStatus | IMessageCodexPermission;
 

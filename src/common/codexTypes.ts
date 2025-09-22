@@ -119,7 +119,7 @@ export interface StreamErrorData extends BaseCodexEventData {
   message?: string;
   error?: string;
   code?: string;
-  details?: any;
+  details?: unknown;
 }
 
 // Command execution event data interfaces
@@ -153,6 +153,7 @@ export interface PatchApprovalData extends BaseCodexEventData {
   codex_call_id?: string;
   changes?: Record<string, FileChange>;
   codex_changes?: Record<string, FileChange>;
+  message?: string;
   summary?: string;
   requiresConfirmation?: boolean;
   reason?: string | null;
@@ -185,7 +186,7 @@ export interface McpToolCallBeginData extends BaseCodexEventData {
 
 export interface McpToolCallEndData extends BaseCodexEventData {
   invocation?: McpInvocation;
-  result?: any;
+  result?: unknown;
   error?: string;
   duration?: string | number;
 }
@@ -241,7 +242,7 @@ export type FileChange =
 export interface McpInvocation {
   server?: string;
   tool?: string;
-  arguments?: Record<string, any>;
+  arguments?: Record<string, unknown>;
   // compat
   method?: string;
   name?: string;
@@ -254,7 +255,7 @@ export interface SearchResult {
   url?: string;
   snippet?: string;
   score?: number;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 export type ParsedCommand = { type: 'read'; cmd: string; name: string } | { type: 'list_files'; cmd: string; path?: string | null } | { type: 'search'; cmd: string; query?: string | null; path?: string | null } | { type: 'unknown'; cmd: string };
@@ -287,15 +288,15 @@ export interface ConversationPathResponseData extends BaseCodexEventData {
 export interface GetHistoryEntryResponseData extends BaseCodexEventData {
   offset: number;
   log_id: number;
-  entry?: any;
+  entry?: unknown;
 }
 
 export interface McpListToolsResponseData extends BaseCodexEventData {
-  tools: Record<string, any>;
+  tools: Record<string, unknown>;
 }
 
 export interface ListCustomPromptsResponseData extends BaseCodexEventData {
-  custom_prompts: any[];
+  custom_prompts: unknown[];
 }
 
 export interface TurnAbortedData extends BaseCodexEventData {
@@ -359,10 +360,7 @@ export type CodexAgentEvent =
       type: CodexAgentEventType.APPLY_PATCH_APPROVAL_REQUEST;
       data: PatchApprovalData;
     }
-  | {
-      type: CodexAgentEventType.ELICITATION_CREATE;
-      data: PatchApprovalData;
-    }
+  | { type: CodexAgentEventType.ELICITATION_CREATE; data: ElicitationCreateData }
   | {
       type: CodexAgentEventType.PATCH_APPLY_BEGIN;
       data: PatchApplyBeginData;
@@ -412,3 +410,43 @@ export interface CodexAgentManagerData {
 
 // Helper type for extracting specific event types
 export type ExtractEventByType<T extends CodexAgentEventType> = Extract<CodexAgentEvent, { type: T }>;
+
+// ===== UI-facing permission request payloads for Codex =====
+
+export interface CodexPermissionOption {
+  optionId: string;
+  name: string;
+  kind: 'allow_once' | 'allow_always' | 'reject_once' | 'reject_always';
+  description?: string;
+}
+
+export interface CodexToolCallRawInput {
+  command?: string | string[];
+  cwd?: string;
+  description?: string;
+}
+
+export interface CodexToolCall {
+  title?: string;
+  toolCallId: string;
+  kind?: 'edit' | 'read' | 'fetch' | 'execute' | string;
+  rawInput?: CodexToolCallRawInput;
+}
+
+export interface CodexPermissionRequest {
+  title?: string;
+  description?: string;
+  agentType?: 'codex';
+  sessionId?: string;
+  requestId?: string;
+  options: CodexPermissionOption[];
+  toolCall?: CodexToolCall;
+}
+export interface ElicitationCreateData extends BaseCodexEventData {
+  codex_elicitation: string;
+  message?: string;
+  codex_command?: string | string[];
+  codex_cwd?: string;
+  codex_call_id?: string;
+  codex_changes?: Record<string, FileChange>;
+}

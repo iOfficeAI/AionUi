@@ -16,6 +16,7 @@ import OpenAI from 'openai';
 import path from 'path';
 import { ipcBridge } from '../common';
 import { createAcpAgent, createCodexAgent, createGeminiAgent } from './initAgent';
+import type CodexAgentManager from './task/CodexAgentManager';
 import { getSystemDir, ProcessChat, ProcessChatMessage, ProcessConfig, ProcessEnv } from './initStorage';
 import { nextTickToLocalFinish } from './message';
 import type AcpAgentManager from './task/AcpAgentManager';
@@ -312,7 +313,7 @@ ipcBridge.acpConversation.sendMessage.provider(async ({ conversation_id, files, 
 
 // Codex 专用的 sendMessage provider
 ipcBridge.codexConversation.sendMessage.provider(async ({ conversation_id, files, ...other }) => {
-  const task = WorkerManage.getTaskById(conversation_id) as any;
+  const task = WorkerManage.getTaskById(conversation_id) as CodexAgentManager | undefined;
   if (!task) {
     // 尝试从历史重建任务
     const conversation = await ProcessChat.get('chat.history').then((history) => history?.find((item) => item.id === conversation_id));
@@ -323,7 +324,7 @@ ipcBridge.codexConversation.sendMessage.provider(async ({ conversation_id, files
     if (!rebuilt) return { success: false, msg: 'failed to rebuild codex task' };
   }
 
-  const codexTask: any = WorkerManage.getTaskById(conversation_id);
+  const codexTask = WorkerManage.getTaskById(conversation_id) as CodexAgentManager | undefined;
   if (!codexTask || codexTask.type !== 'codex') return { success: false, msg: 'unsupported task type for Codex provider' };
 
   // 处理文件路径：区分上传文件（绝对路径）和工作空间文件（相对路径）
@@ -357,7 +358,7 @@ ipcBridge.codexConversation.sendMessage.provider(async ({ conversation_id, files
   return codexTask
     .sendMessage({ content: other.input, files, msg_id: other.msg_id })
     .then(() => ({ success: true }))
-    .catch((err: { message: any }) => ({ success: false, msg: err?.message || String(err) }));
+    .catch((err: unknown) => ({ success: false, msg: err instanceof Error ? err.message : String(err) }));
 });
 
 // 通用 confirmMessage 实现 - 自动根据 conversation 类型分发
@@ -368,7 +369,7 @@ ipcBridge.conversation.confirmMessage.provider(async ({ confirmKey, msg_id, conv
   try {
     // 根据 task 类型调用对应的 confirmMessage 方法
     if (task.type === 'codex') {
-      await (task as any).confirmMessage({ confirmKey, msg_id, callId });
+      await (task as CodexAgentManager).confirmMessage({ confirmKey, msg_id, callId });
       return { success: true };
     } else if (task.type === 'gemini') {
       await (task as GeminiAgentManager).confirmMessage({ confirmKey, msg_id, callId });
@@ -379,21 +380,21 @@ ipcBridge.conversation.confirmMessage.provider(async ({ confirmKey, msg_id, conv
     } else {
       return { success: false, msg: `Unsupported task type: ${task.type}` };
     }
-  } catch (e: any) {
-    return { success: false, msg: e?.message || String(e) };
+  } catch (e: unknown) {
+    return { success: false, msg: e instanceof Error ? e.message : String(e) };
   }
 });
 
 // 保留现有的特定 confirmMessage 实现以维持向后兼容性
 ipcBridge.codexConversation.confirmMessage.provider(async ({ confirmKey, msg_id, conversation_id, callId }) => {
-  const task = WorkerManage.getTaskById(conversation_id) as any;
+  const task = WorkerManage.getTaskById(conversation_id) as CodexAgentManager | undefined;
   if (!task) return { success: false, msg: 'conversation not found' };
   if (task.type !== 'codex') return { success: false, msg: 'not support' };
   try {
     await task.confirmMessage({ confirmKey, msg_id, callId });
     return { success: true };
-  } catch (e: any) {
-    return { success: false, msg: e?.message || String(e) };
+  } catch (e: unknown) {
+    return { success: false, msg: e instanceof Error ? e.message : String(e) };
   }
 });
 

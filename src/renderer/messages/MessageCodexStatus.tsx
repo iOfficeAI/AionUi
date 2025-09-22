@@ -17,8 +17,6 @@ interface MessageCodexStatusProps {
 
 const MessageCodexStatus: React.FC<MessageCodexStatusProps> = ({ message }) => {
   const { status, message: statusMessage } = message.content;
-  // Support backend property if it exists in the data
-  const backend = 'backend' in message.content ? (message.content as any).backend : undefined;
 
   const getStatusBadge = () => {
     switch (status) {
