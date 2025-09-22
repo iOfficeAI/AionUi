@@ -53,21 +53,21 @@ export class CodexMcpAgent {
     this.conn.onNetworkError = (error) => this.handleNetworkError(error);
 
     try {
-      console.log('🔌 [CodexMcpAgent] Starting MCP connection...');
+      // console.log('🔌 [CodexMcpAgent] Starting MCP connection...');
       await this.conn.start(this.cliPath || 'codex', this.workingDir);
-      console.log('✅ [CodexMcpAgent] MCP connection established');
+      // console.log('✅ [CodexMcpAgent] MCP connection established');
 
       // Wait for MCP server to be fully ready
-      console.log('⏳ [CodexMcpAgent] Waiting for MCP server to be ready...');
+      // console.log('⏳ [CodexMcpAgent] Waiting for MCP server to be ready...');
       await this.conn.waitForServerReady(30000);
-      console.log('✅ [CodexMcpAgent] MCP server is ready');
+      // console.log('✅ [CodexMcpAgent] MCP server is ready');
 
       // MCP initialize handshake with better error handling
-      console.log('🤝 [CodexMcpAgent] Starting initialize handshake...');
+      // console.log('🤝 [CodexMcpAgent] Starting initialize handshake...');
 
-      console.log('🔧 [CodexMcpAgent] Connection diagnostics before initialize:', this.conn.getDiagnostics());
+      // console.log('🔧 [CodexMcpAgent] Connection diagnostics before initialize:', this.conn.getDiagnostics());
 
-      console.log('📤 [CodexMcpAgent] Sending initialize with protocol version:', CODEX_MCP_PROTOCOL_VERSION);
+      // console.log('📤 [CodexMcpAgent] Sending initialize with protocol version:', CODEX_MCP_PROTOCOL_VERSION);
 
       // Try different initialization approaches
       try {
@@ -80,17 +80,11 @@ export class CodexMcpAgent {
           },
           15000
         ); // Shorter timeout for faster fallback
-        console.log('✅ [CodexMcpAgent] Initialize handshake completed:', initializeResult);
       } catch (initError) {
-        console.warn('⚠️ [CodexMcpAgent] Standard initialize failed, trying alternative...', initError);
-
         try {
           // Try without initialize - maybe Codex doesn't need it
-          console.log('🔄 [CodexMcpAgent] Trying to use MCP server without initialize...');
           const testResult = await this.conn.request('tools/list', {}, 10000);
-          console.log('✅ [CodexMcpAgent] MCP server ready without initialize:', testResult);
         } catch (testError) {
-          console.error('❌ [CodexMcpAgent] Tools list also failed:', testError);
           throw new Error(`Codex MCP initialization failed: ${initError}. Tools list also failed: ${testError}`);
         }
       }
@@ -128,8 +122,6 @@ export class CodexMcpAgent {
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
-        console.log(`🔄 [CodexMcpAgent] newSession attempt ${attempt}/${maxRetries} for conversation: ${convId}`);
-
         await this.conn?.request(
           'tools/call',
           {
@@ -143,11 +135,9 @@ export class CodexMcpAgent {
           600000
         ); // 10分钟超时
 
-        console.log(`✅ [CodexMcpAgent] newSession succeeded on attempt ${attempt}`);
         return { sessionId: convId };
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
-        console.log(`❌ [CodexMcpAgent] newSession attempt ${attempt}/${maxRetries} failed:`, lastError.message);
 
         if (attempt === maxRetries) {
           console.error(`🔥 [CodexMcpAgent] All ${maxRetries} attempts failed, giving up`);
@@ -156,7 +146,6 @@ export class CodexMcpAgent {
 
         // 指数退避：2s, 4s, 8s
         const delay = 2000 * Math.pow(2, attempt - 1);
-        console.log(`⏱️ [CodexMcpAgent] Waiting ${delay}ms before retry...`);
         await new Promise((resolve) => setTimeout(resolve, delay));
       }
     }
@@ -173,9 +162,6 @@ export class CodexMcpAgent {
     const convId = this.conversationId || this.generateConversationId();
     this.conversationId = convId;
 
-    console.log(`📤 [CodexMcpAgent] Sending prompt to conversation: ${convId}`);
-    console.log(`📝 [CodexMcpAgent] Prompt preview: ${prompt.substring(0, 100)}${prompt.length > 100 ? '...' : ''}`);
-
     try {
       await this.conn?.request(
         'tools/call',
@@ -185,15 +171,11 @@ export class CodexMcpAgent {
         },
         600000 // 10分钟超时，避免长任务中断
       );
-      console.log('✅ [CodexMcpAgent] sendPrompt request completed successfully');
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      console.log('⚠️ [CodexMcpAgent] sendPrompt request failed, but stream messages may still be arriving:', errorMsg);
 
       // 检查是否是超时错误
       if (errorMsg.includes('timed out')) {
-        console.log('🔄 [CodexMcpAgent] This appears to be a timeout, but Codex may still be processing and sending events');
-        console.log('🎯 [CodexMcpAgent] Continuing execution to allow stream processing...');
         // 不抛出错误，因为从日志看到 reasoning_delta 事件仍在正常到达
         return;
       }
@@ -221,9 +203,6 @@ export class CodexMcpAgent {
   }
 
   private processCodexEvent(env: CodexEventEnvelope): void {
-    console.log('⚡ [CodexMcpAgent] Processing codex event:', env.method);
-    console.log('📋 [CodexMcpAgent] Event params:', JSON.stringify(env.params, null, 2));
-
     // Handle codex/event messages (wrapped messages)
     if (env.method === 'codex/event') {
       const params = (env.params || {}) as CodexEventParams;
@@ -239,7 +218,6 @@ export class CodexMcpAgent {
           ...msg,
           _meta: params?._meta, // Pass through meta information like requestId
         };
-        console.log('📨 [CodexMcpAgent] Delegating event to eventHandler:', msg.type || 'unknown');
         this.eventHandler.handleEvent({ type: msg.type || 'unknown', data: enrichedData });
       } catch (error) {
         console.error('❌ [CodexMcpAgent] Event handling failed:', error);
@@ -255,7 +233,6 @@ export class CodexMcpAgent {
     if (env.method === 'elicitation/create') {
       try {
         // Forward the elicitation request directly via eventHandler
-        console.log('📨 [CodexMcpAgent] Delegating elicitation to eventHandler');
         this.eventHandler.handleEvent({ type: 'elicitation/create', data: env.params });
       } catch (error) {
         console.error('❌ [CodexMcpAgent] Elicitation handling failed:', error);
