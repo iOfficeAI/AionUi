@@ -5,7 +5,6 @@ import SendBox from '@/renderer/components/sendbox';
 import { getSendBoxDraftHook } from '@/renderer/hooks/useSendBoxDraft';
 import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
-import { useLocalPaste } from '@/renderer/hooks/useLocalPaste';
 import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileService';
 import { Button, Tag } from '@arco-design/web-react';
 import { Plus } from '@icon-park/react';
@@ -49,7 +48,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
   // 当会话ID变化时，清理已处理的全局消息记录
   useEffect(() => {
     processedGlobalMessages.current.clear();
-    console.log(`🧹 [CodexSendBox] Cleared processed global messages for conversation: ${conversation_id}`);
+    // console.log(`🧹 [CodexSendBox] Cleared processed global messages for conversation: ${conversation_id}`);
   }, [conversation_id]);
 
   useEffect(() => {
@@ -59,13 +58,13 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
         return;
       }
 
-      console.log(`📨 [CodexSendBox] Received message type: ${message.type}`, message);
+      // console.log(`📨 [CodexSendBox] Received message type: ${message.type}`, message);
       if (message.type === 'start') {
         setRunning(true);
         setWaitingForSession(true);
       }
       if (message.type === 'finish') {
-        console.log('🏁 [CodexSendBox] Conversation finished, clearing all states');
+        // console.log('🏁 [CodexSendBox] Conversation finished, clearing all states');
         setRunning(false);
         setWaitingForSession(false);
         setIsThinking(false);
@@ -73,11 +72,11 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
 
       // 处理思考状态
       if (message.type === 'agent_reasoning') {
-        console.log('🤔 [CodexSendBox] Starting thinking state');
+        // console.log('🤔 [CodexSendBox] Starting thinking state');
         setIsThinking(true);
       }
       if (message.type === 'agent_reasoning_raw_content') {
-        console.log('💭 [CodexSendBox] Thinking completed, updating status');
+        // console.log('💭 [CodexSendBox] Thinking completed, updating status');
         // Add a small delay to ensure the thinking completion message is visible
         setTimeout(() => {
           setIsThinking(false);
@@ -88,7 +87,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
       if (message.type === 'content' || message.type === 'user_content' || message.type === 'error') {
         // 收到内容消息时，确保清除思考状态（防止状态卡住）
         if (isThinking) {
-          console.log('📝 [CodexSendBox] Received content message, clearing thinking state');
+          // console.log('📝 [CodexSendBox] Received content message, clearing thinking state');
           setIsThinking(false);
         }
         // 通用消息类型使用标准转换器
@@ -113,7 +112,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
       } else if (CodexMessageTransformer.isCodexSpecificMessage(message.type)) {
         // 当收到agent_message时，确保清除思考状态
         if (message.type === 'agent_message' && isThinking) {
-          console.log('📝 [CodexSendBox] Received agent_message, clearing thinking state');
+          // console.log('📝 [CodexSendBox] Received agent_message, clearing thinking state');
           setIsThinking(false);
         }
 
@@ -128,13 +127,13 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
 
             // 如果这个全局状态消息已经处理过，跳过
             if (processedGlobalMessages.current.has(messageKey)) {
-              console.log(`🔄 [CodexSendBox] Skipping duplicate global status message: ${transformedMessage.msg_id}`);
+              // console.log(`🔄 [CodexSendBox] Skipping duplicate global status message: ${transformedMessage.msg_id}`);
               return;
             }
 
             // 标记为已处理
             processedGlobalMessages.current.add(messageKey);
-            console.log(`✅ [CodexSendBox] Processing new global status message: ${transformedMessage.msg_id}`);
+            // console.log(`✅ [CodexSendBox] Processing new global status message: ${transformedMessage.msg_id}`);
           }
 
           addOrUpdateMessage(transformedMessage);
@@ -153,13 +152,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
     [uploadFile, setUploadFile]
   );
 
-  // 使用组件级的粘贴处理 - 替代全局componentId机制
-  useLocalPaste({
-    supportedExts: allSupportedExts,
-    onFilesAdded: handleFilesAdded,
-    setInput: setContent,
-    input: content,
-  });
+  // 粘贴处理现在直接在 SendBox 组件中处理（通过 componentId 检测）
 
   useAddEventListener('codex.selected.file', (files: string[]) => {
     // Add a small delay to ensure state persistence and prevent flashing
@@ -219,79 +212,74 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
     const storageKey = `codex_initial_message_${conversation_id}`;
     const processedKey = `codex_initial_processed_${conversation_id}`;
 
-    const processInitialMessage = () => {
+    const processInitialMessage = async () => {
       const stored = sessionStorage.getItem(storageKey);
       if (!stored) return;
 
-      // 检查是否已经处理过，避免重复处理
+      // 双重检查锁定模式，防止竞态条件
       if (sessionStorage.getItem(processedKey)) {
-        console.log(`🔄 [CodexSendBox] Initial message already processed for conversation: ${conversation_id}`);
+        // console.log(`🔄 [CodexSendBox] Initial message already processed for conversation: ${conversation_id}`);
         return;
       }
 
-      try {
-        // 标记为已处理，避免重复
-        sessionStorage.setItem(processedKey, 'true');
+      // 立即标记为已处理，防止重复处理
+      sessionStorage.setItem(processedKey, 'true');
 
+      try {
         // Set waiting state when processing initial message
         setWaitingForSession(true);
 
         const { input, files = [] } = JSON.parse(stored) as { input: string; files?: string[] };
-        // 使用会话唯一的msg_id，但确保不重复处理
-        const msg_id = uuid();
+        // 使用固定的msg_id，基于conversation_id确保唯一性
+        const msg_id = `initial_${conversation_id}_${Date.now()}`;
         const loading_id = uuid();
 
-        // 先写入用户消息
-        const userMessage: TMessage = {
-          id: msg_id,
-          msg_id,
-          conversation_id,
-          type: 'text',
-          position: 'right',
-          content: { content: input },
-          createdAt: Date.now(),
-        };
-        addOrUpdateMessage(userMessage, true); // 立即保存初始消息到存储
+        // console.log(`✅ [CodexSendBox] Processing initial message for conversation: ${conversation_id}, input: "${input}"`);
 
-        console.log(`✅ [CodexSendBox] Processing initial message for conversation: ${conversation_id}`);
+        // 发送消息，让后端处理用户消息的添加（在连接建立后）
+        await ipcBridge.codexConversation.sendMessage.invoke({ input, msg_id, conversation_id, files, loading_id });
 
-        ipcBridge.codexConversation.sendMessage.invoke({ input, msg_id, conversation_id, files, loading_id }).finally(() => {
-          sessionStorage.removeItem(storageKey);
-          sessionStorage.removeItem(processedKey);
-          // Clear waiting state when done
-          setWaitingForSession(false);
-        });
-      } catch (err) {
-        console.error('Failed to process initial message:', err);
+        // 成功后移除初始消息存储
         sessionStorage.removeItem(storageKey);
+        // console.log(`🧹 [CodexSendBox] Initial message sent successfully and cleaned up for conversation: ${conversation_id}`);
+      } catch (err) {
+        // console.error('❌ [CodexSendBox] Failed to process initial message:', err);
+        // 发送失败时清理处理标记，允许重试
         sessionStorage.removeItem(processedKey);
-        // Clear waiting state on error
+      } finally {
+        // Clear waiting state
         setWaitingForSession(false);
       }
     };
 
-    // 只尝试一次，移除重试机制以避免重复
-    processInitialMessage();
-  }, [conversation_id]);
+    // 使用 setTimeout 确保在组件完全挂载后执行
+    const timer = setTimeout(() => {
+      processInitialMessage();
+    }, 100);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [conversation_id, addOrUpdateMessage]);
 
   return (
     <div className='max-w-800px w-full mx-auto flex flex-col'>
-      {isThinking && (
+      {(isThinking || waitingForSession) && (
         <div className='mb-8px'>
-          <span className='text-12px text-#999 px-8px py-4px bg-#f5f5f5 rounded-4px'>{t('codex.thinking.please_wait')}</span>
+          <span className='text-12px text-#999 px-8px py-4px bg-#f5f5f5 rounded-4px'>{isThinking ? t('codex.thinking.please_wait') : t('codex.sendbox.waiting', { defaultValue: 'Please wait...' })}</span>
         </div>
       )}
       <SendBox
-        value={waitingForSession ? t('codex.sendbox.waiting', { defaultValue: 'Please wait...' }) : content}
+        value={content}
         onChange={(val) => {
-          // Only allow content changes when not waiting for session
-          if (!waitingForSession) {
+          // Only allow content changes when not waiting for session or thinking
+          if (!waitingForSession && !isThinking) {
             setContent(val);
           }
         }}
         loading={running}
-        disabled={waitingForSession}
-        placeholder={waitingForSession ? t('codex.sendbox.waiting', { defaultValue: 'Please wait...' }) : t('acp.sendbox.placeholder', { backend: 'Codex', defaultValue: `Send message to Codex...` })}
+        disabled={waitingForSession || isThinking}
+        placeholder={waitingForSession || isThinking ? t('codex.sendbox.waiting', { defaultValue: 'Please wait...' }) : t('acp.sendbox.placeholder', { backend: 'Codex', defaultValue: `Send message to Codex...` })}
         onStop={() => {
           return ipcBridge.conversation.stop.invoke({ conversation_id }).then(() => {});
         }}

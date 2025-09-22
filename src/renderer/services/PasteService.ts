@@ -71,13 +71,14 @@ class PasteServiceClass {
     const clipboardText = event.clipboardData?.getData('text');
     const files = event.clipboardData?.files;
 
-    // Cherry Studio 的方式：先处理文本，后处理文件
-    // 如果有文本但没有文件，允许默认文本粘贴行为
+    // 处理纯文本粘贴
     if (clipboardText && (!files || files.length === 0)) {
       if (onTextAdded) {
+        // 通过回调设置文本，阻止默认行为避免重复
         onTextAdded(currentText ? currentText + clipboardText : clipboardText);
+        return true; // 阻止默认行为，避免重复粘贴
       }
-      return false; // 允许默认行为继续处理文本
+      return false; // 如果没有回调，允许默认行为
     }
     if (files && files.length > 0) {
       const fileList: FileMetadata[] = [];

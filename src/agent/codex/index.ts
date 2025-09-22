@@ -246,7 +246,7 @@ export class CodexMcpAgent {
       }
 
       if (msg.type === 'session_configured' && msg.session_id) {
-        this.conversationId = msg.session_id;
+        this.conversationId = String(msg.session_id);
       }
       return;
     }
