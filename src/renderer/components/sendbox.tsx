@@ -8,11 +8,11 @@ import { Button, Input, Message } from '@arco-design/web-react';
 import { ArrowUp } from '@icon-park/react';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { FileMetadata } from '../services/FileService';
-import { allSupportedExts } from '../services/FileService';
+import { useCompositionInput } from '../hooks/useCompositionInput';
 import { useDragUpload } from '../hooks/useDragUpload';
 import { usePasteService } from '../hooks/usePasteService';
-import { useCompositionInput } from '../hooks/useCompositionInput';
+import type { FileMetadata } from '../services/FileService';
+import { allSupportedExts } from '../services/FileService';
 
 const constVoid = (): void => undefined;
 
@@ -29,8 +29,7 @@ const SendBox: React.FC<{
   placeholder?: string;
   onFilesAdded?: (files: FileMetadata[]) => void;
   supportedExts?: string[];
-  componentId?: string;
-}> = ({ onSend, onStop, prefix, className, loading, tools, disabled, placeholder, value: input = '', onChange: setInput = constVoid, onFilesAdded, supportedExts = allSupportedExts, componentId = 'default' }) => {
+}> = ({ onSend, onStop, prefix, className, loading, tools, disabled, placeholder, value: input = '', onChange: setInput = constVoid, onFilesAdded, supportedExts = allSupportedExts }) => {
   const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -46,12 +45,9 @@ const SendBox: React.FC<{
   const { compositionHandlers, createKeyDownHandler } = useCompositionInput();
 
   // 使用共享的PasteService集成
-  const { handleFocus } = usePasteService({
-    componentId,
+  const { onPaste } = usePasteService({
     supportedExts,
     onFilesAdded,
-    setInput,
-    input,
   });
 
   const sendMessageHandler = () => {
@@ -93,7 +89,7 @@ const SendBox: React.FC<{
           onChange={(v) => {
             setInput(v);
           }}
-          onFocus={handleFocus}
+          onPaste={onPaste}
           {...compositionHandlers}
           autoSize={{ minRows: 1, maxRows: 10 }}
           onKeyDown={createKeyDownHandler(sendMessageHandler)}

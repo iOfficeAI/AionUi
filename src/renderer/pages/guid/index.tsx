@@ -10,17 +10,17 @@ import type { IProvider, TProviderWithModel } from '@/common/storage';
 import { ConfigStorage } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import ClaudeLogo from '@/renderer/assets/logos/claude.svg';
-import GeminiLogo from '@/renderer/assets/logos/gemini.svg';
-import QwenLogo from '@/renderer/assets/logos/qwen.svg';
 import CodexLogo from '@/renderer/assets/logos/codex.svg';
+import GeminiLogo from '@/renderer/assets/logos/gemini.svg';
 import IflowLogo from '@/renderer/assets/logos/iflow.svg';
-import { geminiModeList } from '@/renderer/hooks/useModeModeList';
-import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
-import { allSupportedExts, type FileMetadata, getCleanFileNames } from '@/renderer/services/FileService';
-import { formatFilesForMessage } from '@/renderer/hooks/useSendBoxFiles';
-import { usePasteService } from '@/renderer/hooks/usePasteService';
-import { useDragUpload } from '@/renderer/hooks/useDragUpload';
+import QwenLogo from '@/renderer/assets/logos/qwen.svg';
 import { useCompositionInput } from '@/renderer/hooks/useCompositionInput';
+import { useDragUpload } from '@/renderer/hooks/useDragUpload';
+import { geminiModeList } from '@/renderer/hooks/useModeModeList';
+import { usePasteService } from '@/renderer/hooks/usePasteService';
+import { formatFilesForMessage } from '@/renderer/hooks/useSendBoxFiles';
+import { allSupportedExts, type FileMetadata, getCleanFileNames } from '@/renderer/services/FileService';
+import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
 import { Button, ConfigProvider, Dropdown, Input, Menu, Radio, Space, Tooltip } from '@arco-design/web-react';
 import { ArrowUp, Plus } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -132,9 +132,6 @@ const Guid: React.FC = () => {
   };
   const navigate = useNavigate();
 
-  // 粘贴功能集成
-  const componentId = 'guid-textarea';
-
   // 处理粘贴的文件
   const handleFilesAdded = useCallback((pastedFiles: FileMetadata[]) => {
     // 直接使用文件路径（现在总是有效的）
@@ -151,8 +148,7 @@ const Guid: React.FC = () => {
   });
 
   // 使用共享的PasteService集成
-  const { handleFocus } = usePasteService({
-    componentId,
+  const { onPaste } = usePasteService({
     supportedExts: allSupportedExts,
     onFilesAdded: handleFilesAdded,
   });
@@ -333,7 +329,7 @@ const Guid: React.FC = () => {
           }}
           {...dragHandlers}
         >
-          <Input.TextArea rows={4} placeholder={t('conversation.welcome.placeholder')} className='text-16px focus:b-none rounded-xl !bg-white !b-none !resize-none !p-0' value={input} onChange={(v) => setInput(v)} onFocus={handleFocus} {...compositionHandlers} onKeyDown={createKeyDownHandler(sendMessageHandler)}></Input.TextArea>
+          <Input.TextArea rows={4} placeholder={t('conversation.welcome.placeholder')} className='text-16px focus:b-none rounded-xl !bg-white !b-none !resize-none !p-0' value={input} onChange={(v) => setInput(v)} onPaste={onPaste} {...compositionHandlers} onKeyDown={createKeyDownHandler(sendMessageHandler)}></Input.TextArea>
           <div className='flex items-center justify-between '>
             <div className='flex items-center gap-10px'>
               <Dropdown

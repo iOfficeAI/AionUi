@@ -1,17 +1,17 @@
+import { CodexMessageTransformer } from '@/agent/codex/CodexMessageTransformer';
 import { ipcBridge } from '@/common';
+import type { TMessage } from '@/common/chatLib';
 import { transformMessage } from '@/common/chatLib';
 import { uuid } from '@/common/utils';
 import SendBox from '@/renderer/components/sendbox';
 import { getSendBoxDraftHook } from '@/renderer/hooks/useSendBoxDraft';
 import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
-import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileService';
+import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { Button, Tag } from '@arco-design/web-react';
 import { Plus } from '@icon-park/react';
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { TMessage } from '@/common/chatLib';
-import { CodexMessageTransformer } from '@/agent/codex/CodexMessageTransformer';
 
 const useCodexSendBoxDraft = getSendBoxDraftHook('codex', {
   _type: 'codex',
@@ -151,8 +151,6 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
     },
     [uploadFile, setUploadFile]
   );
-
-  // 粘贴处理现在直接在 SendBox 组件中处理（通过 componentId 检测）
 
   useAddEventListener('codex.selected.file', (files: string[]) => {
     // Add a small delay to ensure state persistence and prevent flashing
