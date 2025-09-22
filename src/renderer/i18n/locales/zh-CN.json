@@ -117,6 +117,9 @@
     }
   },
   "codex": {
+    "sendbox": {
+      "waiting": "请稍候…"
+    },
     "network": {
       "cloudflare_blocked": "Cloudflare防护机制阻止了对{{service}}的访问。建议：1) 使用VPN 2) 更换网络 3) 稍后重试 4) 切换到其他AI服务",
       "network_timeout": "网络超时，正在自动重试连接...",
@@ -151,7 +154,8 @@
       "processing": "🤔 Codex 正在思考...",
       "completed": "💭 思考过程完成",
       "analyzing": "正在分析问题和制定解决方案...",
-      "composing": "正在整理回复内容..."
+      "composing": "正在整理回复内容...",
+      "please_wait": "请稍候…"
     }
   }
 }

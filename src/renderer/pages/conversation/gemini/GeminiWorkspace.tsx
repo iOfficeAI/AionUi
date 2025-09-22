@@ -137,25 +137,10 @@ const GeminiWorkspace: React.FC<GeminiWorkspaceProps> = ({ workspace, customWork
             }}
             multiple
             renderTitle={(node) => {
-              let timer: any;
               const path = node.dataRef.path;
-              let time = Date.now();
               return (
                 <span
                   className='flex items-center gap-4px group'
-                  onClick={() => {
-                    clearTimeout(timer);
-                    timer = setTimeout(() => {
-                      setSelected((list) => {
-                        let newList = [...list];
-                        if (list.some((key) => key === path)) newList = list.filter((key) => key !== path);
-                        else newList = [...list, path];
-                        emitter.emit(`${eventPrefix}.selected.file`, newList);
-                        return newList;
-                      });
-                    }, 100);
-                    time = Date.now();
-                  }}
                   onDoubleClick={() => {
                     if (path === workspace) {
                       // first node is workspace

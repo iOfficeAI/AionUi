@@ -10,6 +10,9 @@
     }
   },
   "codex": {
+    "sendbox": {
+      "waiting": "お待ちください…"
+    },
     "network": {
       "cloudflare_blocked": "Cloudflareの保護により{{service}}へのアクセスがブロックされました。対処: 1) VPN を利用 2) ネットワークを切替 3) 時間をおいて再試行 4) 別の AI サービスへ切替",
       "cloudflare_blocked_title": "🚫 Cloudflare の保護により {{service}} へのアクセスがブロック",
@@ -159,7 +162,8 @@
       "processing": "🤔 Codex が思考中...",
       "completed": "💭 思考過程完了",
       "analyzing": "問題を分析し、解決策を策定しています...",
-      "composing": "回答内容を整理しています..."
+      "composing": "回答内容を整理しています...",
+      "please_wait": "お待ちください…"
     }
   }
 }
