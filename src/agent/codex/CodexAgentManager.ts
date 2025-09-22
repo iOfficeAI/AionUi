@@ -11,39 +11,26 @@ import type { TMessage } from '@/common/chatLib';
 import { transformMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import { uuid } from '@/common/utils';
-import { addMessage } from '../message';
-import BaseAgentManager from './BaseAgentManager';
+import { addMessage } from '@/process/message';
+import BaseAgentManager from '@/process/task/BaseAgentManager';
 import fs from 'fs/promises';
 import path from 'path';
 import { t } from 'i18next';
-import { CodexEventHandler } from '../agent/codex/CodexEventHandler';
-import { CodexSessionManager } from '../agent/codex/CodexSessionManager';
-import { CodexFileOperationHandler } from '../agent/codex/CodexFileOperationHandler';
+import { CodexEventHandler } from './CodexEventHandler';
+import { CodexSessionManager } from './CodexSessionManager';
+import { CodexFileOperationHandler } from './CodexFileOperationHandler';
 import type { CodexAgentManagerData, CodexAgentEvent, FileChange } from '@/common/codexTypes';
 
 class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
   workspace?: string;
   agent: CodexMcpAgent;
   bootstrap: Promise<CodexMcpAgent>;
-  private eventHandler: CodexEventHandler;
-  private sessionManager: CodexSessionManager;
-  private fileOperationHandler: CodexFileOperationHandler;
 
   constructor(data: CodexAgentManagerData) {
     // Do not fork a worker for Codex; we run the agent in-process now
     super('codex', data, false);
     this.conversation_id = data.conversation_id;
     this.workspace = data.workspace;
-
-    // 初始化各个管理器 - 参考 ACP 的架构
-    console.log('🏗️ [CodexAgentManager] Initializing managers...');
-    this.eventHandler = new CodexEventHandler(data.conversation_id);
-    this.sessionManager = new CodexSessionManager({
-      conversation_id: data.conversation_id,
-      cliPath: data.cliPath,
-      workingDir: data.workspace || process.cwd(),
-    });
-    this.fileOperationHandler = new CodexFileOperationHandler(data.conversation_id, data.workspace);
 
     this.initAgent(data);
   }
@@ -55,20 +42,23 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
       workingDir: data.workspace || process.cwd(),
     });
 
+    // 初始化各个管理器 - 参考 ACP 的架构
+    console.log('🏗️ [CodexAgentManager] Initializing managers...');
+    const eventHandler = new CodexEventHandler(data.conversation_id);
+    const sessionManager = new CodexSessionManager({
+      conversation_id: data.conversation_id,
+      cliPath: data.cliPath,
+      workingDir: data.workspace || process.cwd(),
+    });
+    const fileOperationHandler = new CodexFileOperationHandler(data.conversation_id, data.workspace);
+
     this.agent = new CodexMcpAgent({
       id: data.conversation_id,
       cliPath: data.cliPath,
       workingDir: data.workspace || process.cwd(),
-      onEvent: (evt) => {
-        console.log('📨 [CodexAgentManager] Received event:', evt.type, evt.data ? '(with data)' : '(no data)');
-        console.log('🔍 [CodexAgentManager] Event details:', JSON.stringify(evt, null, 2));
-        try {
-          this.eventHandler.handleEvent(evt as CodexAgentEvent);
-          console.log('✅ [CodexAgentManager] Event handled successfully');
-        } catch (error) {
-          console.error('❌ [CodexAgentManager] Event handling failed:', error);
-        }
-      },
+      eventHandler,
+      sessionManager,
+      fileOperationHandler,
       onNetworkError: (error) => {
         console.error('🌐 [CodexAgentManager] Network error:', error);
         this.handleNetworkError(error);
@@ -85,7 +75,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
       })
       .catch((e) => {
         console.error('❌ [CodexAgentManager] Agent start failed:', e);
-        this.sessionManager.emitSessionEvent('bootstrap_failed', { error: e.message });
+        this.agent.getSessionManager().emitSessionEvent('bootstrap_failed', { error: e.message });
         throw e;
       });
   }
@@ -97,7 +87,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
     console.log('🌟 [CodexAgentManager] Starting with session management...');
 
     // 1. 启动会话管理器
-    await this.sessionManager.startSession();
+    await this.agent.getSessionManager().startSession();
 
     // 2. 启动 MCP Agent
     await this.agent.start();
@@ -126,7 +116,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
       const result = await this.agent.newSession(this.workspace);
       console.log('✅ [CodexAgentManager] Session created with ID:', result.sessionId);
 
-      this.sessionManager.emitSessionEvent('session_created', {
+      this.agent.getSessionManager().emitSessionEvent('session_created', {
         workspace: this.workspace,
         agent_type: 'codex',
         sessionId: result.sessionId,
@@ -154,7 +144,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
 
       // 即使设置失败，也尝试继续运行，因为连接可能仍然有效
       console.log('🔄 [CodexAgentManager] Attempting to continue despite setup failure...');
-      this.sessionManager.emitSessionEvent('session_partial', {
+      this.agent.getSessionManager().emitSessionEvent('session_partial', {
         workspace: this.workspace,
         agent_type: 'codex',
         error: errorMessage,
@@ -199,7 +189,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
       console.log('📤 [CodexAgentManager] Sending prompt to agent...');
 
       // 处理文件引用 - 参考 ACP 的文件引用处理
-      const processedContent = this.fileOperationHandler.processFileReferences(data.content, data.files);
+      const processedContent = this.agent.getFileOperationHandler().processFileReferences(data.content, data.files);
       if (processedContent !== data.content) {
         console.log('🔄 [CodexAgentManager] Processed file references in content');
       }
@@ -231,7 +221,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
 
     await this.bootstrap;
     console.log('🔧 [CodexAgentManager] Removing pending confirmation for callId:', data.callId);
-    this.eventHandler.getToolHandlers().removePendingConfirmation(data.callId);
+    this.agent.getEventHandler().getToolHandlers().removePendingConfirmation(data.callId);
 
     // Map confirmKey to decision
     const key = String(data.confirmKey || '').toLowerCase();
@@ -239,7 +229,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
     const decision: 'approved' | 'approved_for_session' | 'denied' | 'abort' = key.includes('approved_for_session') || key.includes('allow_always') ? 'approved_for_session' : isApproved ? 'approved' : key.includes('abort') ? 'abort' : 'denied';
 
     // Apply patch changes if available and approved
-    const changes = this.eventHandler.getToolHandlers().getPatchChanges(data.callId);
+    const changes = this.agent.getEventHandler().getToolHandlers().getPatchChanges(data.callId);
     if (changes && isApproved) {
       console.log('📝 [CodexAgentManager] Applying patch changes for callId:', data.callId, 'changes:', Object.keys(changes));
       await this.applyPatchChanges(data.callId, changes);
@@ -268,10 +258,10 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
 
     try {
       // 使用文件操作处理器来应用更改 - 参考 ACP 的批量操作
-      await this.fileOperationHandler.applyBatchChanges(changes);
+      await this.agent.getFileOperationHandler().applyBatchChanges(changes);
 
       // 发送成功事件
-      this.sessionManager.emitSessionEvent('patch_applied', {
+      this.agent.getSessionManager().emitSessionEvent('patch_applied', {
         callId,
         changeCount: Object.keys(changes).length,
         files: Object.keys(changes),
@@ -282,7 +272,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
       console.error('❌ [CodexAgentManager] Failed to apply patch changes:', error);
 
       // 发送失败事件
-      this.sessionManager.emitSessionEvent('patch_failed', {
+      this.agent.getSessionManager().emitSessionEvent('patch_failed', {
         callId,
         error: error instanceof Error ? error.message : String(error),
       });
@@ -381,7 +371,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
 
   getDiagnostics() {
     const agentDiagnostics = this.agent.getDiagnostics();
-    const sessionInfo = this.sessionManager.getSessionInfo();
+    const sessionInfo = this.agent.getSessionManager().getSessionInfo();
 
     return {
       agent: agentDiagnostics,
@@ -395,9 +385,9 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
     console.log('🧹 [CodexAgentManager] Starting cleanup...');
 
     // 清理所有管理器 - 参考 ACP 的清理模式
-    this.eventHandler.cleanup();
-    this.sessionManager.cleanup();
-    this.fileOperationHandler.cleanup();
+    this.agent.getEventHandler().cleanup();
+    this.agent.getSessionManager().cleanup();
+    this.agent.getFileOperationHandler().cleanup();
 
     // 停止 agent
     this.agent?.stop?.();

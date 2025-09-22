@@ -55,7 +55,6 @@ const SendBox: React.FC<{
     onFilesAdded,
     setInput,
     input,
-    mode: pasteMode,
   });
 
   const sendMessageHandler = () => {

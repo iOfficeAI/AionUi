@@ -9,7 +9,7 @@ import { transformMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import { uuid } from '@/common/utils';
 import type { CodexAgentEventType, CodexAgentEvent } from '@/common/codexTypes';
-import { addOrUpdateMessage } from '../../message';
+import { addOrUpdateMessage } from '@/process/message';
 
 export class CodexMessageProcessor {
   private currentLoadingId: string | null = null;

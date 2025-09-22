@@ -9,9 +9,9 @@ import { transformMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import type { AcpPermissionRequest } from '@/common/acpTypes';
 import { uuid } from '@/common/utils';
-import { addOrUpdateMessage } from '../../message';
+import { addOrUpdateMessage } from '@/process/message';
 import { CodexAgentEventType } from '@/common/codexTypes';
-import type { ExecApprovalRequestData, AgentReasoningData, AgentReasoningDeltaData, BaseCodexEventData, PatchApprovalData, type CodexAgentEvent } from '@/common/codexTypes';
+import type { ExecApprovalRequestData, AgentReasoningData, AgentReasoningDeltaData, BaseCodexEventData, PatchApprovalData, CodexAgentEvent } from '@/common/codexTypes';
 import { CodexMessageProcessor } from './CodexMessageProcessor';
 import { CodexToolHandlers } from './CodexToolHandlers';
 

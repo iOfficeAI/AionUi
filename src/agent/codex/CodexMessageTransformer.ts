@@ -64,7 +64,7 @@ export class CodexMessageTransformer {
             conversation_id: message.conversation_id,
             content: {
               content: t('codex.thinking.processing'),
-              type: 'warning',
+              type: 'success' as const,
             },
           };
         }
