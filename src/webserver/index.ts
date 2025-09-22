@@ -24,11 +24,44 @@ interface TokenInfo {
   createdAt: number;
 }
 
+// 用户凭证管理
+interface UserCredentials {
+  username: string;
+  password: string;
+  createdAt: number;
+}
+
 const activeTokens = new Map<string, TokenInfo>();
+let globalUserCredentials: UserCredentials | null = null;
 
 // Token工具函数
 function generateSecureToken(): string {
   return crypto.randomBytes(32).toString('hex');
+}
+
+// 生成随机用户名和密码
+function generateUserCredentials(): UserCredentials {
+  // 生成随机用户名 (6-8位字母数字组合)
+  const usernameLength = Math.floor(Math.random() * 3) + 6; // 6-8位
+  const usernameChars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let username = '';
+  for (let i = 0; i < usernameLength; i++) {
+    username += usernameChars.charAt(Math.floor(Math.random() * usernameChars.length));
+  }
+
+  // 生成随机密码 (8-12位字母数字组合)
+  const passwordLength = Math.floor(Math.random() * 5) + 8; // 8-12位
+  const passwordChars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
+  let password = '';
+  for (let i = 0; i < passwordLength; i++) {
+    password += passwordChars.charAt(Math.floor(Math.random() * passwordChars.length));
+  }
+
+  return {
+    username,
+    password,
+    createdAt: Date.now(),
+  };
 }
 
 function createToken(expirationHours = 24): TokenInfo {
@@ -72,7 +105,10 @@ export async function startWebServer(port: number, allowRemote = false): Promise
   const server = createServer(app);
   const wss = new WebSocketServer({ server });
 
-  // 生成随机会话令牌 (24小时有效期)
+  // 生成随机用户凭证
+  globalUserCredentials = generateUserCredentials();
+
+  // 生成会话令牌用于内部cookie管理
   const tokenInfo = createToken(24);
   const sessionToken = tokenInfo.token;
 
@@ -111,11 +147,11 @@ export async function startWebServer(port: number, allowRemote = false): Promise
     next();
   });
 
-  // Token 验证中间件
-  const validateToken = (req: express.Request, res: express.Response, next: express.NextFunction) => {
-    const token = (req.query.token as string) || (req.headers['x-session-token'] as string);
-    if (!token || !isTokenValid(token, allowRemote)) {
-      return res.status(403).json({ error: 'Invalid or expired session token' });
+  // API Token 验证中间件 (仅用于API端点)
+  const validateApiAccess = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    const sessionCookie = req.cookies['aionui-session'];
+    if (!sessionCookie || !isTokenValid(sessionCookie, allowRemote)) {
+      return res.status(403).json({ error: 'Access denied. Please login first.' });
     }
     next();
   };
@@ -133,17 +169,28 @@ export async function startWebServer(port: number, allowRemote = false): Promise
   const rendererPath = path.join(__dirname, '../../.webpack/renderer');
   const indexHtmlPath = path.join(rendererPath, 'main_window/index.html');
 
-  // 处理登录请求
+  // 处理登录请求 - 只支持用户名密码登录
   app.post('/login', (req, res) => {
     try {
-      const { token } = req.body;
+      const { username, password } = req.body;
 
-      if (!token || !isTokenValid(token, allowRemote)) {
-        return res.status(401).json({ success: false, message: 'Invalid or expired access token' });
+      // 验证用户名密码
+      if (!username || !password) {
+        return res.status(400).json({
+          success: false,
+          message: 'Username and password are required.',
+        });
+      }
+
+      if (!globalUserCredentials || username !== globalUserCredentials.username || password !== globalUserCredentials.password) {
+        return res.status(401).json({
+          success: false,
+          message: 'Invalid username or password.',
+        });
       }
 
       // 设置安全cookie
-      res.cookie('aionui-session', token, {
+      res.cookie('aionui-session', sessionToken, {
         httpOnly: true,
         secure: false, // 在开发环境下设为false，生产环境可设为true
         sameSite: 'strict',
@@ -208,10 +255,6 @@ export async function startWebServer(port: number, allowRemote = false): Promise
               max-width: 400px;
               text-align: center;
             }
-            .logo {
-              font-size: 48px;
-              margin-bottom: 20px;
-            }
             h1 {
               color: #333;
               margin-bottom: 10px;
@@ -232,7 +275,7 @@ export async function startWebServer(port: number, allowRemote = false): Promise
               color: #555;
               font-weight: 500;
             }
-            input[type="password"] {
+            input[type="password"], input[type="text"] {
               width: 100%;
               padding: 12px;
               border: 1px solid #ddd;
@@ -241,7 +284,7 @@ export async function startWebServer(port: number, allowRemote = false): Promise
               box-sizing: border-box;
               transition: border-color 0.3s;
             }
-            input[type="password"]:focus {
+            input[type="password"]:focus, input[type="text"]:focus {
               outline: none;
               border-color: #667eea;
               box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
@@ -279,28 +322,29 @@ export async function startWebServer(port: number, allowRemote = false): Promise
         </head>
         <body>
           <div class="login-container">
+            <h1>AionUi</h1>
+            <p class="subtitle">Please login with your credentials</p>
+
+            <!-- 用户名密码登录表单 -->
             <form id="loginForm">
               <div class="input-group">
-                <label for="token">Access Token</label>
-                <input type="password" id="token" name="token" placeholder="Enter access token" required>
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" placeholder="Enter username" required>
+              </div>
+              <div class="input-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" placeholder="Enter password" required>
               </div>
               <button type="submit" class="login-btn" id="loginBtn">Login</button>
-              <div id="message"></div>
             </form>
+
+            <div id="message"></div>
           </div>
 
           <script>
-            document.getElementById('loginForm').addEventListener('submit', async (e) => {
-              e.preventDefault();
-
-              const token = document.getElementById('token').value;
-              const loginBtn = document.getElementById('loginBtn');
+            async function handleLogin(username, password) {
               const message = document.getElementById('message');
-
-              if (!token) {
-                message.innerHTML = '<div class="error">Please enter access token</div>';
-                return;
-              }
+              const loginBtn = document.getElementById('loginBtn');
 
               loginBtn.disabled = true;
               loginBtn.textContent = 'Logging in...';
@@ -312,7 +356,7 @@ export async function startWebServer(port: number, allowRemote = false): Promise
                   headers: {
                     'Content-Type': 'application/json',
                   },
-                  body: JSON.stringify({ token }),
+                  body: JSON.stringify({ username, password }),
                 });
 
                 const result = await response.json();
@@ -331,10 +375,24 @@ export async function startWebServer(port: number, allowRemote = false): Promise
 
               loginBtn.disabled = false;
               loginBtn.textContent = 'Login';
+            }
+
+            // 登录表单提交
+            document.getElementById('loginForm').addEventListener('submit', async (e) => {
+              e.preventDefault();
+              const username = document.getElementById('username').value;
+              const password = document.getElementById('password').value;
+
+              if (!username || !password) {
+                document.getElementById('message').innerHTML = '<div class="error">Please enter both username and password</div>';
+                return;
+              }
+
+              await handleLogin(username, password);
             });
 
-            // 自动聚焦到token输入框
-            document.getElementById('token').focus();
+            // 默认聚焦到用户名输入框
+            document.getElementById('username').focus();
           </script>
         </body>
         </html>
@@ -389,7 +447,7 @@ export async function startWebServer(port: number, allowRemote = false): Promise
   // API 路由 - 已被全局验证保护
   app.use('/api/directory', directoryApi);
 
-  app.use('/api', validateToken, (_req, res) => {
+  app.use('/api', validateApiAccess, (_req, res) => {
     res.json({ message: 'API endpoint - bridge integration working' });
   });
 
@@ -408,7 +466,8 @@ export async function startWebServer(port: number, allowRemote = false): Promise
       const localUrl = `http://localhost:${port}`;
 
       console.log(`🚀 AionUi WebUI started on ${localUrl}`);
-      console.log(`🔑 Access Token: ${sessionToken}`);
+      console.log(`👤 Username: ${globalUserCredentials.username}`);
+      console.log(`🔐 Password: ${globalUserCredentials.password}`);
 
       if (allowRemote) {
         // 显示所有可用的网络地址
