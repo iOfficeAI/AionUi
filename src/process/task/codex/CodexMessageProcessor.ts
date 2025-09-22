@@ -19,9 +19,6 @@ export class CodexMessageProcessor {
   constructor(private conversation_id: string) {}
 
   processMessageDelta(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.AGENT_MESSAGE_DELTA }>) {
-    // 提取requestId来分离不同的消息流
-    const requestId = evt.data?._meta?.requestId || evt.data?.requestId;
-
     // 只在没有当前loading ID时创建新的，不因requestId变化而重置
     if (!this.currentLoadingId) {
       // Clear any existing timeout
@@ -40,29 +37,32 @@ export class CodexMessageProcessor {
 
     if (fullMessage) {
       // 如果服务端提供了完整内容，直接采用，避免重复拼接
-      this.currentContent = fullMessage;
+      this.currentContent = this.cleanDeltaContent(fullMessage);
     } else if (typeof rawDelta === 'string' && rawDelta.length) {
+      // 在累积之前先清理 delta 内容
+      const cleanedDelta = this.cleanDeltaContent(rawDelta);
+
+      // 如果清理后的内容为空，跳过这个 delta
+      if (!cleanedDelta) {
+        return;
+      }
+
       const hasExisting = !!this.currentContent;
-      const looksLikeFullReplay = hasExisting && rawDelta.length > this.currentContent.length && rawDelta.startsWith(this.currentContent);
-      const isExactRepeat = hasExisting && rawDelta === this.currentContent && rawDelta.length > 1;
+      const looksLikeFullReplay = hasExisting && cleanedDelta.length > this.currentContent.length && cleanedDelta.startsWith(this.currentContent);
+      const isExactRepeat = hasExisting && cleanedDelta === this.currentContent && cleanedDelta.length > 1;
 
       if (looksLikeFullReplay) {
         // Codex 可能把累计内容作为 delta 重新下发，此时覆盖即可
-        this.currentContent = rawDelta;
+        this.currentContent = cleanedDelta;
       } else if (!isExactRepeat) {
         // 常规增量场景，安全追加
-        this.currentContent += rawDelta;
+        this.currentContent += cleanedDelta;
       }
     }
 
     // 发送完整累积的内容，使用相同的msg_id确保替换loading
     const deltaMessage = this.createContentMessage(this.currentContent, this.currentLoadingId!);
     if (deltaMessage) {
-        type: deltaMessage.type,
-        msg_id: deltaMessage.msg_id,
-        conversation_id: deltaMessage.conversation_id,
-        contentLength: typeof deltaMessage.data === 'string' ? deltaMessage.data.length : 0,
-      });
       // 只通过stream发送，避免重复处理
       ipcBridge.codexConversation.responseStream.emit(deltaMessage);
     }
@@ -91,12 +91,6 @@ export class CodexMessageProcessor {
   }
 
   processMessage(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.AGENT_MESSAGE }>) {
-      message: evt.data?.message,
-      requestId: evt.data?._meta?.requestId || evt.data?.requestId,
-      currentContent: this.currentContent,
-      currentLoadingId: this.currentLoadingId,
-    });
-
     // Clear timeout since we're finalizing the message
     if (this.deltaTimeout) {
       clearTimeout(this.deltaTimeout);
@@ -115,11 +109,6 @@ export class CodexMessageProcessor {
 
     const message = this.createContentMessage(finalContent, this.currentLoadingId);
     if (message) {
-        messageType: message.type,
-        conversation_id: this.conversation_id,
-        content: typeof message.data === 'string' ? message.data.substring(0, 100) + '...' : message.data,
-      });
-
       // 先保存到后端存储
       const transformedMessage = transformMessage(message);
       if (transformedMessage) {
@@ -183,12 +172,6 @@ export class CodexMessageProcessor {
   }
 
   private createContentMessage(content: string, loadingId: string): IResponseMessage | null {
-      content: content.substring(0, 100) + (content.length > 100 ? '...' : ''),
-      contentLength: content.length,
-      trimmed: content.trim().substring(0, 100) + (content.trim().length > 100 ? '...' : ''),
-      loadingId,
-    });
-
     if (!content.trim()) {
       return null;
     }
@@ -196,13 +179,13 @@ export class CodexMessageProcessor {
     // 过滤重复的格式化标记和准备消息
     const filteredContent = this.filterInternalMarkers(content);
 
-      originalLength: content.length,
-      filteredLength: filteredContent.length,
-      filtered: filteredContent.substring(0, 100) + (filteredContent.length > 100 ? '...' : ''),
-      willReturnNull: !filteredContent.trim(),
-    });
-
     if (!filteredContent.trim()) {
+      return null;
+    }
+
+    // 额外检查：如果内容几乎全是换行符或空白字符，则过滤掉
+    const contentWithoutWhitespace = filteredContent.replace(/\s/g, '');
+    if (contentWithoutWhitespace.length === 0) {
       return null;
     }
 
@@ -212,6 +195,25 @@ export class CodexMessageProcessor {
       msg_id: loadingId,
       data: filteredContent, // 使用过滤后的内容
     };
+  }
+
+  private cleanDeltaContent(content: string): string {
+    if (!content || typeof content !== 'string') {
+      return '';
+    }
+
+    // 过滤只包含空白字符的内容
+    if (!content.trim()) {
+      return '';
+    }
+
+    return (
+      content
+        // 清理多余的连续换行符
+        .replace(/\n{3,}/g, '\n\n')
+        // 清理开头和结尾的空白
+        .trim()
+    );
   }
 
   private filterInternalMarkers(content: string): string {
@@ -245,16 +247,19 @@ export class CodexMessageProcessor {
       filtered = filtered.replace(pattern, '');
     });
 
-    // 清理多余的空行（超过2个连续换行的情况）
-    filtered = filtered.replace(/\n{3,}/g, '\n\n');
-
-    // 清理开头和结尾的空白
-    filtered = filtered.trim();
-
-      original: content.substring(0, 100) + '...',
-      filtered: filtered.substring(0, 100) + '...',
-      hasChanges: content !== filtered,
-    });
+    // 更强的换行和空行清理逻辑
+    filtered = filtered
+      // 清理只包含空白字符的行
+      .replace(/^\s*$/gm, '')
+      // 清理多余的连续换行符（超过1个的情况，更严格）
+      .replace(/\n{2,}/g, '\n')
+      // 清理行首和行尾的空白字符
+      .replace(/[ \t]+$/gm, '')
+      .replace(/^[ \t]+/gm, '')
+      // 再次清理可能产生的连续空行
+      .replace(/\n\s*\n/g, '\n')
+      // 清理开头和结尾的空白
+      .trim();
 
     return filtered;
   }

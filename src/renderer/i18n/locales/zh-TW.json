@@ -148,7 +148,9 @@
       "error_connect": "連接 Codex 失敗：{{error}}"
     },
     "thinking": {
-      "analyzing": "正在分析問題和制定解決方案...",
+      "processing": "🤔 Codex 正在思考...",
+      "completed": "💭 思考過程完成",
+      "analyzing": "正在分析問題並制定解決方案...",
       "composing": "正在整理回覆內容..."
     }
   }

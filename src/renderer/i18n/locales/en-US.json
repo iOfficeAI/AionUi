@@ -148,6 +148,8 @@
       "error_connect": "Failed to connect Codex: {{error}}"
     },
     "thinking": {
+      "processing": "🤔 Codex is thinking...",
+      "completed": "💭 Thinking process completed",
       "analyzing": "Analyzing the problem and formulating solutions...",
       "composing": "Composing response content..."
     }

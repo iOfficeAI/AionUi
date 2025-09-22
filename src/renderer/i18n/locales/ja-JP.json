@@ -156,6 +156,8 @@
       "error_connect": "Codex への接続に失敗しました: {{error}}"
     },
     "thinking": {
+      "processing": "🤔 Codex が思考中...",
+      "completed": "💭 思考過程完了",
       "analyzing": "問題を分析し、解決策を策定しています...",
       "composing": "回答内容を整理しています..."
     }

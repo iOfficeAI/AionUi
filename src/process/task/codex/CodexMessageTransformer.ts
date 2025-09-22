@@ -7,12 +7,42 @@
 import type { TMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import { uuid } from '@/common/utils';
+import { t } from 'i18next';
 
 /**
  * Codex 特定消息类型的转换器
  * 处理 Codex 推理过程相关的消息类型
  */
 export class CodexMessageTransformer {
+  /**
+   * 清理 Codex 消息内容中的多余换行符
+   */
+  private static cleanCodexContent(content: string): string {
+    if (!content || typeof content !== 'string') {
+      return '';
+    }
+
+    // 首先检查是否只包含空白字符（包括换行符）
+    if (!content.trim()) {
+      return '';
+    }
+
+    return (
+      content
+        // 清理多余的连续换行符（超过2个的情况）
+        .replace(/\n{3,}/g, '\n\n')
+        // 清理行首和行尾的空白字符
+        .replace(/[ \t]+$/gm, '')
+        .replace(/^[ \t]+/gm, '')
+        // 清理只包含空白字符的行
+        .replace(/^\s*$/gm, '')
+        // 再次清理可能产生的连续空行
+        .replace(/\n\s*\n\s*\n/g, '\n\n')
+        // 清理开头和结尾的空白
+        .trim()
+    );
+  }
+
   /**
    * 转换 Codex 特定的消息类型
    * @param message 原始消息
@@ -24,68 +54,49 @@ export class CodexMessageTransformer {
     try {
       switch (message.type) {
         case 'agent_reasoning': {
+          // 使用固定的msg_id确保所有推理消息合并为一个
           return {
             id: uuid(),
-            type: 'text',
-            msg_id: message.msg_id,
-            position: 'left',
+            type: 'tips',
+            msg_id: 'codex_thinking_' + message.conversation_id,
+            position: 'center',
             conversation_id: message.conversation_id,
             content: {
-              content: '',
+              content: t('codex.thinking.processing'),
+              type: 'warning',
             },
           };
         }
 
         case 'agent_reasoning_delta': {
-          return {
-            id: uuid(),
-            type: 'text',
-            msg_id: message.msg_id + '_reasoning_delta', // 确保推理delta消息有独特的ID
-            position: 'left',
-            conversation_id: message.conversation_id,
-            content: {
-              content: '',
-            },
-          };
+          // 推理delta消息暂时不显示，避免频繁更新
+          return undefined;
         }
 
         case 'agent_reasoning_raw_content': {
+          // 思考完成，使用相同的msg_id替换之前的思考消息
           return {
             id: uuid(),
-            type: 'text',
-            msg_id: message.msg_id,
-            position: 'left',
+            type: 'tips',
+            msg_id: 'codex_thinking_' + message.conversation_id,
+            position: 'center',
             conversation_id: message.conversation_id,
             content: {
-              content: '',
+              content: t('codex.thinking.completed'),
+              type: 'success',
             },
           };
         }
 
         case 'agent_reasoning_raw_content_delta': {
-          return {
-            id: uuid(),
-            type: 'text',
-            msg_id: message.msg_id,
-            position: 'left',
-            conversation_id: message.conversation_id,
-            content: {
-              content: message.data,
-            },
-          };
+          // 原始推理delta暂时不显示
+          return undefined;
         }
 
         case 'agent_reasoning_section_break': {
-          return {
-            id: uuid(),
-            type: 'text',
-            msg_id: message.msg_id,
-            position: 'left',
-            conversation_id: message.conversation_id,
-            content: {
-              content: '',
-            },
-          };
+          // 对于section break，返回undefined避免产生空DOM
+          // 如果需要显示分隔线，可以在这里添加特定的分隔线组件
+          return undefined;
         }
 
         case 'acp_permission': {
@@ -127,6 +138,10 @@ export class CodexMessageTransformer {
         }
 
         case 'agent_message_delta': {
+          const cleanedContent = this.cleanCodexContent(message.data?.delta || '');
+          if (!cleanedContent) {
+            return undefined;
+          }
           return {
             id: uuid(),
             type: 'text',
@@ -134,12 +149,16 @@ export class CodexMessageTransformer {
             position: 'left',
             conversation_id: message.conversation_id,
             content: {
-              content: message.data?.delta || '',
+              content: cleanedContent,
             },
           };
         }
 
         case 'agent_message': {
+          const cleanedContent = this.cleanCodexContent(message.data?.message || '');
+          if (!cleanedContent) {
+            return undefined;
+          }
           return {
             id: uuid(),
             type: 'text',
@@ -147,7 +166,7 @@ export class CodexMessageTransformer {
             position: 'left',
             conversation_id: message.conversation_id,
             content: {
-              content: message.data?.message || '',
+              content: cleanedContent,
             },
           };
         }

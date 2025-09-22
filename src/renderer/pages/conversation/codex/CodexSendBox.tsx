@@ -44,10 +44,6 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
     return ipcBridge.codexConversation.responseStream.on(async (message) => {
       // Received message
       if (conversation_id !== message.conversation_id) {
-        message: message
-      });
-      });
-      if (conversation_id !== message.conversation_id) {
         return;
       }
       if (message.type === 'start') {

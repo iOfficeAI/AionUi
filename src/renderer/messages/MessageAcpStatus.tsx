@@ -16,7 +16,8 @@ interface MessageAcpStatusProps {
 }
 
 const MessageAcpStatus: React.FC<MessageAcpStatusProps> = ({ message }) => {
-  const { backend, status, message: statusMessage } = message.content;
+  const { status, message: statusMessage } = message.content;
+  const backend = 'backend' in message.content ? message.content.backend : undefined;
 
   const getStatusBadge = () => {
     switch (status) {
@@ -59,11 +60,13 @@ const MessageAcpStatus: React.FC<MessageAcpStatusProps> = ({ message }) => {
         'bg-blue-50 border-blue-200 text-blue-700': !isError && !isSuccess,
       })}
     >
-      <div className='flex items-center gap-2'>
-        <Text style={{ fontWeight: 'bold' }} className='capitalize'>
-          {backend}
-        </Text>
-      </div>
+      {backend && (
+        <div className='flex items-center gap-2'>
+          <Text style={{ fontWeight: 'bold' }} className='capitalize'>
+            {backend}
+          </Text>
+        </div>
+      )}
 
       <div className='flex-1'>{getStatusBadge()}</div>
 
