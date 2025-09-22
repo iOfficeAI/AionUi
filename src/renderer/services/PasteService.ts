@@ -8,7 +8,7 @@ import { ipcBridge } from '@/common';
 import type { FileMetadata } from './FileService';
 import { getFileExtension } from './FileService';
 
-type PasteHandler = (event: ClipboardEvent) => Promise<boolean>;
+type PasteHandler = (event: React.ClipboardEvent | ClipboardEvent) => Promise<boolean>;
 
 // MIME 类型到文件扩展名的映射
 function getExtensionFromMimeType(mimeType: string): string {
@@ -67,17 +67,12 @@ class PasteServiceClass {
   };
 
   // 通用粘贴处理逻辑
-  async handlePaste(event: ClipboardEvent, supportedExts: string[], onFilesAdded: (files: FileMetadata[]) => void, onTextAdded?: (text: string) => void, currentText?: string): Promise<boolean> {
+  async handlePaste(event: React.ClipboardEvent | ClipboardEvent, supportedExts: string[], onFilesAdded: (files: FileMetadata[]) => void): Promise<boolean> {
     const clipboardText = event.clipboardData?.getData('text');
     const files = event.clipboardData?.files;
 
     // 处理纯文本粘贴
     if (clipboardText && (!files || files.length === 0)) {
-      if (onTextAdded) {
-        // 通过回调设置文本，阻止默认行为避免重复
-        onTextAdded(currentText ? currentText + clipboardText : clipboardText);
-        return true; // 阻止默认行为，避免重复粘贴
-      }
       return false; // 如果没有回调，允许默认行为
     }
     if (files && files.length > 0) {
