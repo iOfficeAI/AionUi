@@ -5,7 +5,7 @@
  */
 
 import type { IMessageAcpPermission, IMessageCodexPermission } from '@/common/chatLib';
-import { acpConversation, codexConversation } from '@/common/ipcBridge';
+import { conversation } from '@/common/ipcBridge';
 import { Button, Card, Radio, Typography } from '@arco-design/web-react';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -63,9 +63,8 @@ const MessageAcpPermission: React.FC<MessageAcpPermissionProps> = React.memo(({ 
         callId: toolCall?.toolCallId || message.id, // 使用 toolCallId 或 message.id 作为 fallback
       };
 
-      // Choose the correct confirmMessage handler based on agentType
-      const conversationHandler = agentType === 'codex' ? codexConversation : acpConversation;
-      const result = await conversationHandler.confirmMessage.invoke(invokeData);
+      // 使用通用的 confirmMessage，process 层会自动分发到正确的 handler
+      const result = await conversation.confirmMessage.invoke(invokeData);
 
       if (result.success) {
         setHasResponded(true);

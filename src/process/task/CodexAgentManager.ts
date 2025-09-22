@@ -30,7 +30,8 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
   private fileOperationHandler: CodexFileOperationHandler;
 
   constructor(data: CodexAgentManagerData) {
-    super('codex', data);
+    // Do not fork a worker for Codex; we run the agent in-process now
+    super('codex', data, false);
     this.conversation_id = data.conversation_id;
     this.workspace = data.workspace;
 
@@ -403,6 +404,20 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
     this.agent?.stop?.();
 
     console.log('✅ [CodexAgentManager] Cleanup completed');
+  }
+
+  // Stop current Codex stream in-process (override ForkTask default which targets a worker)
+  stop() {
+    return (this.agent as any)?.stop?.() ?? Promise.resolve();
+  }
+
+  // Ensure we clean up agent resources on kill
+  kill() {
+    try {
+      (this.agent as any)?.stop?.();
+    } finally {
+      super.kill();
+    }
   }
 }
 

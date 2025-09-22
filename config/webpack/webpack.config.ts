@@ -12,7 +12,6 @@ export const mainConfig: Configuration = {
     worker: './src/worker/index.ts',
     gemini: './src/worker/gemini.ts',
     acp: './src/worker/acp.ts',
-    codex: './src/worker/codex.ts',
   },
   output: {
     filename: '[name].js',

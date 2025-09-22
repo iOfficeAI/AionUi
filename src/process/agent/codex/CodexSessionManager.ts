@@ -6,9 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { IResponseMessage } from '@/common/ipcBridge';
-import { transformMessage } from '@/common/chatLib';
 import { uuid } from '@/common/utils';
-import { addMessage } from '../../message';
 import { t } from 'i18next';
 import { randomBytes } from 'crypto';
 
@@ -25,9 +23,11 @@ export interface CodexSessionConfig {
  * CodexSessionManager - 参考 ACP 的会话管理能力
  * 提供统一的连接状态管理、会话生命周期和状态通知
  */
+// 全局状态管理，确保所有 Codex 会话共享状态
+const globalStatusMessageId: string = 'codex_status_global';
+
 export class CodexSessionManager {
   private status: CodexSessionStatus = 'initializing';
-  private statusMessageId: string | null = null;
   private sessionId: string | null = null;
   private isConnected: boolean = false;
   private hasActiveSession: boolean = false;
@@ -157,16 +157,12 @@ export class CodexSessionManager {
    */
   private setStatus(status: CodexSessionStatus, message: string): void {
     this.status = status;
-
-    // 使用固定ID的状态消息，实现更新而不是重复
-    if (!this.statusMessageId) {
-      this.statusMessageId = uuid();
-    }
+    // 更新本地状态即可，全局ID已确保唯一性
 
     const statusMessage: IResponseMessage = {
       type: 'codex_status',
       conversation_id: this.config.conversation_id,
-      msg_id: this.statusMessageId,
+      msg_id: globalStatusMessageId, // 使用全局状态消息ID
       data: {
         status,
         message,
@@ -176,8 +172,8 @@ export class CodexSessionManager {
       },
     };
 
-    // 发送到 UI
-    addMessage(this.config.conversation_id, transformMessage(statusMessage));
+    // 只发送到当前会话，避免跨会话污染
+    // 不直接调用 addMessage，让 UI 层通过 responseStream 处理
     ipcBridge.codexConversation.responseStream.emit(statusMessage);
   }
 

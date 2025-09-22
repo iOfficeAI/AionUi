@@ -26,6 +26,7 @@ export const conversation = {
   remove: bridge.buildProvider<boolean, { id: string }>('remove-conversation'), // 删除对话
   reset: bridge.buildProvider<void, IResetConversationParams>('reset-conversation'), // 重置对话
   stop: bridge.buildProvider<IBridgeResponse<{}>, { conversation_id: string }>('chat.stop.stream'), // 停止会话
+  confirmMessage: bridge.buildProvider<IBridgeResponse, IConfirmGeminiMessageParams>('conversation.confirm.message'), // 通用确认消息
 };
 
 // gemini对话相关接口

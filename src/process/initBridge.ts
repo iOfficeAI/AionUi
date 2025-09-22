@@ -360,7 +360,31 @@ ipcBridge.codexConversation.sendMessage.provider(async ({ conversation_id, files
     .catch((err: { message: any }) => ({ success: false, msg: err?.message || String(err) }));
 });
 
-// Codex 确认消息（占位实现，用于更新前端状态）
+// 通用 confirmMessage 实现 - 自动根据 conversation 类型分发
+ipcBridge.conversation.confirmMessage.provider(async ({ confirmKey, msg_id, conversation_id, callId }) => {
+  const task = WorkerManage.getTaskById(conversation_id);
+  if (!task) return { success: false, msg: 'conversation not found' };
+
+  try {
+    // 根据 task 类型调用对应的 confirmMessage 方法
+    if (task.type === 'codex') {
+      await (task as any).confirmMessage({ confirmKey, msg_id, callId });
+      return { success: true };
+    } else if (task.type === 'gemini') {
+      await (task as GeminiAgentManager).confirmMessage({ confirmKey, msg_id, callId });
+      return { success: true };
+    } else if (task.type === 'acp') {
+      await (task as AcpAgentManager).confirmMessage({ confirmKey, msg_id, callId });
+      return { success: true };
+    } else {
+      return { success: false, msg: `Unsupported task type: ${task.type}` };
+    }
+  } catch (e: any) {
+    return { success: false, msg: e?.message || String(e) };
+  }
+});
+
+// 保留现有的特定 confirmMessage 实现以维持向后兼容性
 ipcBridge.codexConversation.confirmMessage.provider(async ({ confirmKey, msg_id, conversation_id, callId }) => {
   const task = WorkerManage.getTaskById(conversation_id) as any;
   if (!task) return { success: false, msg: 'conversation not found' };
@@ -463,7 +487,10 @@ ipcBridge.geminiConversation.getWorkspace.provider(async ({ workspace }) => {
 });
 
 // ACP 的 getWorkspace 实现
-ipcBridge.acpConversation.getWorkspace.provider(async ({ workspace }) => {
+/**
+ * 通用的工作空间文件树构建方法，供 ACP 和 Codex 共享使用
+ */
+const buildWorkspaceFileTree = async (workspace: string) => {
   try {
     const fs = await import('fs');
     const path = await import('path');
@@ -473,9 +500,9 @@ ipcBridge.acpConversation.getWorkspace.provider(async ({ workspace }) => {
       return [];
     }
 
-    // 读取目录内容
+    // 递归构建文件树
     const buildFileTree = (dirPath: string, basePath: string = dirPath): any[] => {
-      const result = [];
+      const result: any[] = [];
       const items = fs.readdirSync(dirPath);
 
       for (const item of items) {
@@ -518,8 +545,8 @@ ipcBridge.acpConversation.getWorkspace.provider(async ({ workspace }) => {
 
     const files = buildFileTree(workspace);
 
-    // 返回的格式需要与 gemini 保持一致
-    const result = [
+    // 返回根目录包装的结果
+    return [
       {
         name: path.basename(workspace),
         path: workspace,
@@ -528,48 +555,19 @@ ipcBridge.acpConversation.getWorkspace.provider(async ({ workspace }) => {
         children: files,
       },
     ];
-
-    return result;
   } catch (error) {
     return [];
   }
+};
+
+// ACP getWorkspace 使用通用方法
+ipcBridge.acpConversation.getWorkspace.provider(async ({ workspace }) => {
+  return await buildWorkspaceFileTree(workspace);
 });
 
-// Codex 的 getWorkspace 复用 ACP 的实现
+// Codex getWorkspace 使用通用方法
 ipcBridge.codexConversation.getWorkspace.provider(async ({ workspace }) => {
-  try {
-    const fs = await import('fs');
-    const path = await import('path');
-    if (!fs.existsSync(workspace)) return [] as any[];
-    const buildFileTree = (dirPath: string, basePath: string = dirPath): any[] => {
-      const result: any[] = [];
-      const items = fs.readdirSync(dirPath);
-      for (const item of items) {
-        if (item.startsWith('.')) continue;
-        if (item === 'node_modules') continue;
-        const itemPath = path.join(dirPath, item);
-        const relativePath = path.relative(basePath, itemPath);
-        const stat = fs.statSync(itemPath);
-        if (stat.isDirectory()) {
-          const children = buildFileTree(itemPath, basePath);
-          if (children.length > 0) {
-            result.push({ name: item, path: relativePath, isDir: true, isFile: false, children });
-          }
-        } else {
-          result.push({ name: item, path: relativePath, isDir: false, isFile: true });
-        }
-      }
-      return result.sort((a, b) => {
-        if (a.isDir && b.isFile) return -1;
-        if (a.isFile && b.isDir) return 1;
-        return a.name.localeCompare(b.name);
-      });
-    };
-    const files = buildFileTree(workspace);
-    return [{ name: path.basename(workspace), path: workspace, isDir: true, isFile: false, children: files }];
-  } catch {
-    return [] as any[];
-  }
+  return await buildWorkspaceFileTree(workspace);
 });
 
 ipcBridge.googleAuth.status.provider(async ({ proxy }) => {
