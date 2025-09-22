@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IMessageText, IMessageToolCall, IMessageToolGroup, IMessageAcpToolCall, TMessage } from '@/common/chatLib';
+import type { IMessageAcpToolCall, IMessageText, TMessage } from '@/common/chatLib';
 import { uuid } from '@/common/utils';
-import type { AcpBackend, AcpSessionUpdate, ToolCallUpdateStatus, AgentMessageChunkUpdate, AgentThoughtChunkUpdate, PlanUpdate, AvailableCommandsUpdate, ToolCallUpdate } from '@/common/acpTypes';
+import type { AcpBackend, AcpSessionUpdate, AgentMessageChunkUpdate, AgentThoughtChunkUpdate, AvailableCommandsUpdate, PlanUpdate, ToolCallUpdate, ToolCallUpdateStatus } from '@/common/acpTypes';
 
 /**
  * Adapter class to convert ACP messages to AionUI message format
@@ -207,30 +207,6 @@ export class AcpAdapter {
     return updatedMessage;
   }
 
-  private convertToolCallUpdate(update: ToolCallUpdateStatus): TMessage | null {
-    const baseMessage = {
-      id: uuid(),
-      conversation_id: this.conversationId,
-      createdAt: Date.now(),
-      position: 'left' as const,
-    };
-
-    const toolCallData = update.update;
-
-    // Create IMessageToolCall for tool call status updates
-    return {
-      ...baseMessage,
-      type: 'tool_call',
-      content: {
-        callId: toolCallData.toolCallId,
-        name: 'Unknown', // We don't have the original tool name in the update
-        args: {}, // We don't have the original args in the update
-        status: toolCallData.status === 'completed' ? 'success' : 'error',
-        error: toolCallData.status === 'failed' ? 'Tool call failed' : undefined,
-      },
-    } as IMessageToolCall;
-  }
-
   /**
    * Convert plan update to AionUI message
    */
@@ -299,146 +275,5 @@ export class AcpAdapter {
     }
 
     return null;
-  }
-
-  /**
-   * Convert ACP tool call to AionUI tool_call message
-   */
-  private convertToolCall(update: ToolCallUpdate): TMessage {
-    const baseMessage = {
-      id: uuid(),
-      conversation_id: this.conversationId,
-      createdAt: Date.now(),
-      position: 'left' as const,
-    };
-
-    const toolCallData = update.update;
-
-    // Map ACP kind to MessageToolCall compatible name
-    const toolName = this.mapAcpKindToToolName(toolCallData.kind);
-
-    // Extract and prepare arguments for MessageToolCall
-    const args = this.prepareToolArgs(toolCallData);
-
-    // Determine status based on tool call status
-    let status: 'success' | 'error' | undefined;
-    switch (toolCallData.status) {
-      case 'pending':
-      case 'in_progress':
-        status = undefined; // Still processing
-        break;
-      default:
-        status = undefined; // Will be updated by ToolCallUpdateStatus
-        break;
-    }
-
-    return {
-      ...baseMessage,
-      type: 'tool_call',
-      content: {
-        callId: toolCallData.toolCallId,
-        name: toolName,
-        args: args,
-        status: status,
-      },
-    } as IMessageToolCall;
-  }
-
-  /**
-   * Map ACP tool names to AionUI tool names
-   */
-  private mapToolName(acpToolName: string): IMessageToolGroup['content'][0]['name'] {
-    const toolNameMap: Record<string, IMessageToolGroup['content'][0]['name']> = {
-      bash: 'Shell',
-      shell: 'Shell',
-      write_file: 'WriteFile',
-      read_file: 'ReadFile',
-      edit_file: 'WriteFile',
-      search: 'GoogleSearch',
-      web_search: 'GoogleSearch',
-      generate_image: 'ImageGeneration',
-      create_image: 'ImageGeneration',
-    };
-
-    return toolNameMap[acpToolName.toLowerCase()] || 'Shell';
-  }
-
-  /**
-   * Map ACP tool kind to AionUI tool names
-   */
-  private mapToolKindToName(kind: string): IMessageToolGroup['content'][0]['name'] {
-    const kindMap: Record<string, IMessageToolGroup['content'][0]['name']> = {
-      read: 'ReadFile',
-      edit: 'WriteFile',
-      execute: 'Shell',
-    };
-
-    return kindMap[kind.toLowerCase()] || 'Shell';
-  }
-
-  /**
-   * Map ACP kind to MessageToolCall compatible tool names
-   */
-  private mapAcpKindToToolName(kind: string): string {
-    const kindMap: Record<string, string> = {
-      read: 'read_file',
-      edit: 'write_file',
-      execute: 'run_shell_command',
-    };
-
-    return kindMap[kind.toLowerCase()] || kind;
-  }
-
-  /**
-   * Prepare tool arguments for MessageToolCall component
-   */
-  private prepareToolArgs(toolCallData: ToolCallUpdate['update']): Record<string, any> {
-    const args: Record<string, any> = {};
-
-    // Extract arguments from rawInput
-    if (toolCallData.rawInput) {
-      Object.assign(args, toolCallData.rawInput);
-    }
-
-    // Extract file path from locations
-    if (toolCallData.locations && toolCallData.locations.length > 0) {
-      args.file_path = toolCallData.locations[0].path;
-      args.absolute_path = toolCallData.locations[0].path;
-    }
-
-    // Extract content for diff display
-    if (toolCallData.content && toolCallData.content.length > 0) {
-      const contentItem = toolCallData.content[0];
-      if (contentItem.type === 'diff') {
-        args.old_string = contentItem.oldText || '';
-        args.new_string = contentItem.newText || '';
-        if (contentItem.path) {
-          args.file_path = contentItem.path;
-        }
-      } else if (contentItem.content?.text) {
-        args.description = contentItem.content.text;
-      }
-    }
-
-    // Add title as description if available
-    if (toolCallData.title) {
-      args.description = args.description || toolCallData.title;
-    }
-
-    return args;
-  }
-
-  /**
-   * Parse tool arguments from string or return as-is if already parsed
-   */
-  private parseToolArguments(args: string | object): Record<string, any> {
-    if (typeof args === 'string') {
-      try {
-        return JSON.parse(args);
-      } catch (error) {
-        return { raw: args };
-      }
-    }
-    return args as Record<string, any>;
   }
 }

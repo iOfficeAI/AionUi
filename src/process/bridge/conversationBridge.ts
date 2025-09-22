@@ -29,8 +29,8 @@ export function initConversationBridge(): void {
         if (!history || !Array.isArray(history)) {
           return ProcessChat.set('chat.history', [conversation]);
         } else {
-          if (history.some((h) => h.id === conversation.id)) return;
-          return ProcessChat.set('chat.history', [...history, conversation]);
+          //相同工作目录重开一个对话，处理逻辑改为新增一条对话记录
+          return ProcessChat.set('chat.history', [...history.filter((h) => h.id !== conversation.id), conversation]);
         }
       });
       return conversation;
@@ -77,10 +77,9 @@ export function initConversationBridge(): void {
   });
 
   ipcBridge.conversation.stop.provider(async ({ conversation_id }) => {
-    const manager = WorkerManage.getTaskById(conversation_id);
-    if (manager && (manager.type === 'gemini' || manager.type === 'acp')) {
-      await manager.stop();
-    }
-    return { success: true };
+    const task = WorkerManage.getTaskById(conversation_id);
+    if (!task) return { success: true, msg: 'conversation not found' };
+    if (task.type !== 'gemini' && task.type !== 'acp') return { success: false, msg: 'not support' };
+    return task.stop().then(() => ({ success: true }));
   });
 }

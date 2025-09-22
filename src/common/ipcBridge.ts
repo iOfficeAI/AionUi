@@ -49,6 +49,9 @@ export const dialog = {
 export const fs = {
   getFilesByDir: bridge.buildProvider<Array<IDirOrFile>, { dir: string }>('get-file-by-dir'), // 获取指定文件夹下所有文件夹和文件列表
   getImageBase64: bridge.buildProvider<string, { path: string }>('get-image-base64'), // 获取图片base64
+  createTempFile: bridge.buildProvider<string, { fileName: string }>('create-temp-file'), // 创建临时文件
+  writeFile: bridge.buildProvider<boolean, { path: string; data: Uint8Array }>('write-file'), // 写入文件
+  getFileMetadata: bridge.buildProvider<IFileMetadata, { path: string }>('get-file-metadata'), // 获取文件元数据
 };
 
 export const googleAuth = {
@@ -127,6 +130,15 @@ export interface IDirOrFile {
   isDir: boolean;
   isFile: boolean;
   children?: Array<IDirOrFile>;
+}
+
+// 文件元数据接口
+export interface IFileMetadata {
+  name: string;
+  path: string;
+  size: number;
+  type: string;
+  lastModified: number;
 }
 
 export interface IResponseMessage {

@@ -12,7 +12,7 @@ import type { MCPServerConfig, BugCommandSettings, TelemetrySettings, AuthType }
 import { GEMINI_CONFIG_DIR as GEMINI_DIR, getErrorMessage } from '@office-ai/aioncli-core';
 import stripJsonComments from 'strip-json-comments';
 
-export const SETTINGS_DIRECTORY_NAME = '.qwen';
+export const SETTINGS_DIRECTORY_NAME = '.gemini';
 export const USER_SETTINGS_DIR = path.join(homedir(), SETTINGS_DIRECTORY_NAME);
 export const USER_SETTINGS_PATH = path.join(USER_SETTINGS_DIR, 'settings.json');
 export const DEFAULT_EXCLUDED_ENV_VARS = ['DEBUG', 'DEBUG_MODE'];
