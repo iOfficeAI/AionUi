@@ -163,7 +163,7 @@ export class CodexEventHandler {
     };
 
     // Emit to frontend stream for processing by CodexSendBox
-    ipcBridge.codexConversation.responseStream.emit(standardMessage);
+    ipcBridge.codexConversation.responseStream.emit(standardMessage); // UI实时更新
   }
 
   private handleExecApprovalRequest(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.EXEC_APPROVAL_REQUEST }>) {
@@ -217,8 +217,8 @@ export class CodexEventHandler {
 
     const transformedMessage = transformMessage(standardMessage);
     if (transformedMessage) {
-      addOrUpdateMessage(this.conversation_id, transformedMessage, true);
-      ipcBridge.codexConversation.responseStream.emit(standardMessage);
+      addOrUpdateMessage(this.conversation_id, transformedMessage, true); // 数据持久化
+      ipcBridge.codexConversation.responseStream.emit(standardMessage); // UI实时更新
     }
   }
 
@@ -251,8 +251,8 @@ export class CodexEventHandler {
     if (standardMessage) {
       const transformedMessage = transformMessage(standardMessage);
       if (transformedMessage) {
-        addOrUpdateMessage(this.conversation_id, transformedMessage, true);
-        ipcBridge.codexConversation.responseStream.emit(standardMessage);
+        addOrUpdateMessage(this.conversation_id, transformedMessage, true); // 数据持久化
+        ipcBridge.codexConversation.responseStream.emit(standardMessage); // UI实时更新
       }
     }
   }
