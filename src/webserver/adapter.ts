@@ -35,9 +35,7 @@ export function initWebAdapter(wss: WebSocketServer, tokenValidator: (token: str
       wss.on('connection', (ws, req) => {
         // Token 验证 - 支持从Headers或URL获取
         const url = new URL(req.url || '', 'http://localhost');
-        const token = req.headers['authorization']?.replace('Bearer ', '') ||
-                     req.headers['sec-websocket-protocol'] ||
-                     url.searchParams.get('token');
+        const token = req.headers['authorization']?.replace('Bearer ', '') || req.headers['sec-websocket-protocol'] || url.searchParams.get('token');
 
         if (!token || !isTokenValidFn(token)) {
           ws.close(1008, 'Invalid or expired token');

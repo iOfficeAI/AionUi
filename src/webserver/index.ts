@@ -10,19 +10,15 @@ import { WebSocketServer } from 'ws';
 import { shell } from 'electron';
 import path from 'path';
 import cors from 'cors';
-import cookieParser from 'cookie-parser';
 import os from 'os';
 import fs from 'fs';
-import crypto from 'crypto';
+import AionDatabase from '../database';
+import { AuthService } from '../auth/AuthService';
+import { AuthMiddleware } from '../auth/middleware';
 import { initWebAdapter } from './adapter';
 import directoryApi from './directoryApi';
 
-// Token管理
-interface TokenInfo {
-  token: string;
-  expiresAt: number;
-  createdAt: number;
-}
+// Express Request type extension is defined in src/types/express.d.ts
 
 // 用户凭证管理
 interface UserCredentials {
@@ -31,73 +27,11 @@ interface UserCredentials {
   createdAt: number;
 }
 
-const activeTokens = new Map<string, TokenInfo>();
 let globalUserCredentials: UserCredentials | null = null;
 
-// Token工具函数
-function generateSecureToken(): string {
-  return crypto.randomBytes(32).toString('hex');
-}
-
-// 生成随机用户名和密码
-function generateUserCredentials(): UserCredentials {
-  // 生成随机用户名 (6-8位字母数字组合)
-  const usernameLength = Math.floor(Math.random() * 3) + 6; // 6-8位
-  const usernameChars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let username = '';
-  for (let i = 0; i < usernameLength; i++) {
-    username += usernameChars.charAt(Math.floor(Math.random() * usernameChars.length));
-  }
-
-  // 生成随机密码 (8-12位字母数字组合)
-  const passwordLength = Math.floor(Math.random() * 5) + 8; // 8-12位
-  const passwordChars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
-  let password = '';
-  for (let i = 0; i < passwordLength; i++) {
-    password += passwordChars.charAt(Math.floor(Math.random() * passwordChars.length));
-  }
-
-  return {
-    username,
-    password,
-    createdAt: Date.now(),
-  };
-}
-
-function createToken(expirationHours = 24): TokenInfo {
-  const token = generateSecureToken();
-  const now = Date.now();
-  const tokenInfo: TokenInfo = {
-    token,
-    createdAt: now,
-    expiresAt: now + expirationHours * 60 * 60 * 1000,
-  };
-  activeTokens.set(token, tokenInfo);
-  return tokenInfo;
-}
-
-function isTokenValid(token: string, allowRemote: boolean = true): boolean {
-  const tokenInfo = activeTokens.get(token);
-  if (!tokenInfo) return false;
-
-  // 如果不是远程模式，token永不过期
-  if (!allowRemote) return true;
-
-  if (Date.now() > tokenInfo.expiresAt) {
-    activeTokens.delete(token);
-    return false;
-  }
-
-  return true;
-}
-
-function cleanupExpiredTokens(): void {
-  const now = Date.now();
-  for (const [token, tokenInfo] of activeTokens.entries()) {
-    if (now > tokenInfo.expiresAt) {
-      activeTokens.delete(token);
-    }
-  }
+// JWT Token 验证函数
+function isTokenValid(token: string): boolean {
+  return AuthService.verifyToken(token) !== null;
 }
 
 export async function startWebServer(port: number, allowRemote = false): Promise<void> {
@@ -105,61 +39,71 @@ export async function startWebServer(port: number, allowRemote = false): Promise
   const server = createServer(app);
   const wss = new WebSocketServer({ server });
 
-  // 生成随机用户凭证
-  globalUserCredentials = generateUserCredentials();
+  // 初始化数据库
+  const db = AionDatabase.getInstance();
 
-  // 生成会话令牌用于内部cookie管理
-  const tokenInfo = createToken(24);
-  const sessionToken = tokenInfo.token;
+  // 生成随机用户凭证（仅在没有用户时）
+  if (!db.hasUsers()) {
+    globalUserCredentials = AuthService.generateUserCredentials();
+    const hashedPassword = await AuthService.hashPassword(globalUserCredentials.password);
 
-  // 启动定期清理过期token的任务 (每小时执行一次)
-  const cleanupInterval = setInterval(cleanupExpiredTokens, 60 * 60 * 1000);
-
-  // 添加进程退出时的清理
-  process.on('exit', () => {
-    clearInterval(cleanupInterval);
-  });
-
-  process.on('SIGTERM', () => {
-    clearInterval(cleanupInterval);
-    process.exit(0);
-  });
-
-  process.on('SIGINT', () => {
-    clearInterval(cleanupInterval);
-    process.exit(0);
-  });
+    try {
+      db.createUser(globalUserCredentials.username, hashedPassword);
+      console.log('\n📋 =================================');
+      console.log('🔐 AION UI WEB ACCESS CREDENTIALS');
+      console.log('📋 =================================');
+      console.log(`👤 Username: ${globalUserCredentials.username}`);
+      console.log(`🔑 Password: ${globalUserCredentials.password}`);
+      console.log('📋 =================================');
+      console.log('⚠️  Please save these credentials safely!');
+      console.log('📋 =================================\n');
+    } catch (error) {
+      console.error('Failed to create initial user:', error);
+    }
+  }
 
   // 基础中间件
-  app.use(
-    cors({
-      origin: allowRemote ? true : `http://localhost:${port}`,
-      credentials: true,
-    })
-  );
-  app.use(express.json());
-  app.use(cookieParser());
+  app.use(express.json({ limit: '10mb' }));
+  app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-  // 安全头
-  app.use((req, res, next) => {
-    res.setHeader('X-Frame-Options', 'DENY');
-    res.setHeader('X-Content-Type-Options', 'nosniff');
-    next();
-  });
+  // 安全中间件
+  app.use(AuthMiddleware.securityHeadersMiddleware);
+  app.use(AuthMiddleware.requestLoggingMiddleware);
 
-  // API Token 验证中间件 (仅用于API端点)
+  // CORS 设置
+  if (allowRemote) {
+    app.use(
+      cors({
+        origin: true, // Allow all origins when remote is enabled
+        credentials: true,
+      })
+    );
+  } else {
+    app.use(
+      cors({
+        origin: [`http://localhost:${port}`, `http://127.0.0.1:${port}`],
+        credentials: true,
+      })
+    );
+  }
+
+  // JWT Token 验证中间件 (用于Bearer token)
   const validateApiAccess = (req: express.Request, res: express.Response, next: express.NextFunction) => {
-    const sessionCookie = req.cookies['aionui-session'];
-    if (!sessionCookie || !isTokenValid(sessionCookie, allowRemote)) {
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : req.cookies['aionui-session'];
+
+    if (!token || !isTokenValid(token)) {
       return res.status(403).json({ error: 'Access denied. Please login first.' });
     }
     next();
   };
 
   // Cookie 验证中间件 - 用于静态资源保护
-  const validateCookie = (_req: express.Request, res: express.Response, next: express.NextFunction) => {
-    const sessionCookie = _req.cookies['aionui-session'];
-    if (!sessionCookie || !isTokenValid(sessionCookie, allowRemote)) {
+  const validateCookie = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    const authHeader = req.headers.authorization;
+    const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : req.cookies['aionui-session'];
+
+    if (!token || !isTokenValid(token)) {
       return res.status(403).send('Access Denied');
     }
     next();
@@ -170,34 +114,55 @@ export async function startWebServer(port: number, allowRemote = false): Promise
   const indexHtmlPath = path.join(rendererPath, 'main_window/index.html');
 
   // 处理登录请求 - 只支持用户名密码登录
-  app.post('/login', (req, res) => {
+  app.post('/login', AuthMiddleware.rateLimitMiddleware('login'), AuthMiddleware.validateLoginInput, async (req, res) => {
     try {
       const { username, password } = req.body;
 
-      // 验证用户名密码
-      if (!username || !password) {
-        return res.status(400).json({
+      // Get user from database
+      const user = db.getUserByUsername(username);
+      if (!user) {
+        // Use constant time verification to prevent timing attacks
+        await AuthService.constantTimeVerify('dummy', 'dummy', true);
+        res.status(401).json({
           success: false,
-          message: 'Username and password are required.',
+          message: 'Invalid username or password',
         });
+        return;
       }
 
-      if (!globalUserCredentials || username !== globalUserCredentials.username || password !== globalUserCredentials.password) {
-        return res.status(401).json({
+      // Verify password with constant time
+      const isValidPassword = await AuthService.constantTimeVerify(password, user.password_hash, true);
+      if (!isValidPassword) {
+        res.status(401).json({
           success: false,
-          message: 'Invalid username or password.',
+          message: 'Invalid username or password',
         });
+        return;
       }
+
+      // Generate JWT token
+      const token = AuthService.generateToken(user);
+
+      // Update last login
+      db.updateLastLogin(user.id);
 
       // 设置安全cookie
-      res.cookie('aionui-session', sessionToken, {
+      res.cookie('aionui-session', token, {
         httpOnly: true,
         secure: false, // 在开发环境下设为false，生产环境可设为true
         sameSite: 'strict',
-        maxAge: 24 * 60 * 60 * 1000, // 24小时
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30天
       });
 
-      res.json({ success: true, message: 'Login successful' });
+      res.json({
+        success: true,
+        message: 'Login successful',
+        user: {
+          id: user.id,
+          username: user.username,
+        },
+        token,
+      });
     } catch (error) {
       console.error('Login error:', error);
       res.status(500).json({ success: false, message: 'Internal server error' });
@@ -207,10 +172,11 @@ export async function startWebServer(port: number, allowRemote = false): Promise
   // 特殊处理主页HTML - 检查cookie或显示登录页面
   app.get('/', (req, res) => {
     try {
-      const sessionCookie = req.cookies['aionui-session'];
+      const authHeader = req.headers.authorization;
+      const sessionCookie = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : req.cookies['aionui-session'];
 
       // 如果已有有效cookie，直接进入应用
-      if (sessionCookie && isTokenValid(sessionCookie, allowRemote)) {
+      if (sessionCookie && isTokenValid(sessionCookie)) {
         const htmlContent = fs.readFileSync(indexHtmlPath, 'utf8');
 
         // 注入token到HTML中，只在WebUI环境下设置
@@ -454,8 +420,136 @@ export async function startWebServer(port: number, allowRemote = false): Promise
   // WebSocket connection will be handled by initWebAdapter
 
   // 启动服务器
+  // API 路由
+  // Auth status endpoint
+  app.get('/api/auth/status', (_req, res) => {
+    try {
+      const hasUsers = db.hasUsers();
+      const userCount = db.getUserCount();
+
+      res.json({
+        success: true,
+        needsSetup: !hasUsers,
+        userCount,
+        isAuthenticated: false, // Will be determined by frontend based on token
+      });
+    } catch (error) {
+      console.error('Auth status error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error',
+      });
+    }
+  });
+
+  // Get current user (protected route)
+  app.get('/api/auth/user', AuthMiddleware.authenticateToken, (req, res) => {
+    res.json({
+      success: true,
+      user: req.user,
+    });
+  });
+
+  // Change password endpoint (protected route)
+  app.post('/api/auth/change-password', AuthMiddleware.authenticateToken, async (req, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+
+      if (!currentPassword || !newPassword) {
+        res.status(400).json({
+          success: false,
+          error: 'Current password and new password are required',
+        });
+        return;
+      }
+
+      // Validate new password strength
+      const passwordValidation = AuthService.validatePasswordStrength(newPassword);
+      if (!passwordValidation.isValid) {
+        res.status(400).json({
+          success: false,
+          error: 'New password does not meet security requirements',
+          details: passwordValidation.errors,
+        });
+        return;
+      }
+
+      // Get current user
+      const user = db.getUserById(req.user!.id);
+      if (!user) {
+        res.status(404).json({
+          success: false,
+          error: 'User not found',
+        });
+        return;
+      }
+
+      // Verify current password
+      const isValidPassword = await AuthService.verifyPassword(currentPassword, user.password_hash);
+      if (!isValidPassword) {
+        res.status(401).json({
+          success: false,
+          error: 'Current password is incorrect',
+        });
+        return;
+      }
+
+      // Hash new password
+      const newPasswordHash = await AuthService.hashPassword(newPassword);
+
+      // Update password
+      db.updateUserPassword(user.id, newPasswordHash);
+
+      res.json({
+        success: true,
+        message: 'Password changed successfully',
+      });
+    } catch (error) {
+      console.error('Change password error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error',
+      });
+    }
+  });
+
+  // Token refresh endpoint
+  app.post('/api/auth/refresh', (req, res) => {
+    try {
+      const { token } = req.body;
+
+      if (!token) {
+        res.status(400).json({
+          success: false,
+          error: 'Token is required',
+        });
+        return;
+      }
+
+      const newToken = AuthService.refreshToken(token);
+      if (!newToken) {
+        res.status(401).json({
+          success: false,
+          error: 'Invalid or expired token',
+        });
+        return;
+      }
+
+      res.json({
+        success: true,
+        token: newToken,
+      });
+    } catch (error) {
+      console.error('Token refresh error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error',
+      });
+    }
+  });
+
   // 添加登出路由
-  app.post('/logout', (_req, res) => {
+  app.post('/logout', AuthMiddleware.authenticateToken, (_req, res) => {
     res.clearCookie('aionui-session');
     res.json({ success: true, message: 'Logged out successfully' });
   });
@@ -493,12 +587,12 @@ export async function startWebServer(port: number, allowRemote = false): Promise
       shell.openExternal(localUrl);
 
       // 初始化 Web 适配器
-      initWebAdapter(wss, (token: string) => isTokenValid(token, allowRemote));
+      initWebAdapter(wss, (token: string) => isTokenValid(token));
 
       resolve();
     });
 
-    server.on('error', (err: any) => {
+    server.on('error', (err: NodeJS.ErrnoException) => {
       if (err.code === 'EADDRINUSE') {
         console.error(`❌ Port ${port} is already in use`);
         process.exit(1);
@@ -506,4 +600,46 @@ export async function startWebServer(port: number, allowRemote = false): Promise
       reject(err);
     });
   });
+}
+
+// Reset password command line utility
+export async function resetPassword(username?: string): Promise<void> {
+  try {
+    const db = AionDatabase.getInstance();
+
+    if (username) {
+      // Reset specific user password
+      const user = db.getUserByUsername(username);
+      if (!user) {
+        console.error(`❌ User '${username}' not found`);
+        return;
+      }
+
+      const newCredentials = AuthService.generateUserCredentials();
+      const hashedPassword = await AuthService.hashPassword(newCredentials.password);
+
+      db.updateUserPassword(user.id, hashedPassword);
+
+      console.log('\n📋 =================================');
+      console.log('🔄 PASSWORD RESET SUCCESSFUL');
+      console.log('📋 =================================');
+      console.log(`👤 Username: ${user.username}`);
+      console.log(`🔑 New Password: ${newCredentials.password}`);
+      console.log('📋 =================================');
+      console.log('⚠️  Please save the new password safely!');
+      console.log('📋 =================================\n');
+    } else {
+      // Show available users
+      const users = db.getUserCount();
+      if (users === 0) {
+        console.log('❌ No users found in the database');
+        return;
+      }
+
+      console.log(`📊 Found ${users} user(s) in the database`);
+      console.log('💡 Use: npm run reset-password <username>');
+    }
+  } catch (error) {
+    console.error('❌ Password reset failed:', error);
+  }
 }
