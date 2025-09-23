@@ -16,7 +16,7 @@ import OpenAI from 'openai';
 import path from 'path';
 import { ipcBridge } from '../common';
 import { createAcpAgent, createCodexAgent, createGeminiAgent } from './initAgent';
-import type CodexAgentManager from '@/agent/codex/CodexAgentManager';
+import type { CodexAgentManager } from '@/agent/codex';
 import { getSystemDir, ProcessChat, ProcessChatMessage, ProcessConfig, ProcessEnv } from './initStorage';
 import { nextTickToLocalFinish } from './message';
 import type AcpAgentManager from './task/AcpAgentManager';

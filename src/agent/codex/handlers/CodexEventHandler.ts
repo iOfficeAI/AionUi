@@ -7,11 +7,11 @@
 import type { AcpPermissionRequest } from '@/common/acpTypes';
 import { uuid } from '@/common/utils';
 import type { IResponseMessage } from '@/common/ipcBridge';
-import type { ICodexMessageEmitter } from './CodexMessageEmitter';
+import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
 import { CodexAgentEventType } from '@/common/codexTypes';
 import type { ExecApprovalRequestData, AgentReasoningData, AgentReasoningDeltaData, BaseCodexEventData, PatchApprovalData, CodexAgentEvent, CodexEventParams } from '@/common/codexTypes';
-import { CodexMessageProcessor } from './CodexMessageProcessor';
-import { CodexToolHandlers } from './CodexToolHandlers';
+import { CodexMessageProcessor } from '@/agent/codex/messaging/CodexMessageProcessor';
+import { CodexToolHandlers } from '@/agent/codex/tools/CodexToolHandlers';
 
 // Extended permission request with additional UI fields for Codex
 type ExtendedAcpPermissionRequest = Omit<AcpPermissionRequest, 'options'> & import('@/common/codexTypes').CodexPermissionRequest;

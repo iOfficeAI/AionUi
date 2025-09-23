@@ -7,8 +7,8 @@
 import type { IMessageToolGroup } from '@/common/chatLib';
 import { uuid } from '@/common/utils';
 import { CodexAgentEventType, type CodexAgentEvent, type FileChange, type McpInvocation } from '@/common/codexTypes';
-import { ToolRegistry, type EventDataMap } from './ToolRegistry';
-import type { ICodexMessageEmitter } from './CodexMessageEmitter';
+import { ToolRegistry, type EventDataMap } from '@/agent/codex/tools/ToolRegistry';
+import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
 
 export class CodexToolHandlers {
   private cmdBuffers: Map<string, { stdout: string; stderr: string; combined: string }> = new Map();
