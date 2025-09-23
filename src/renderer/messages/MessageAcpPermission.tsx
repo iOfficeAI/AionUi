@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IMessageAcpPermission, IMessageCodexPermission } from '@/common/chatLib';
-import { conversation } from '@/common/ipcBridge';
+import type { IMessageAcpPermission } from '@/common/chatLib';
+import { acpConversation } from '@/common/ipcBridge';
 import { Button, Card, Radio, Typography } from '@arco-design/web-react';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -13,11 +13,11 @@ import { useTranslation } from 'react-i18next';
 const { Text } = Typography;
 
 interface MessageAcpPermissionProps {
-  message: IMessageAcpPermission | IMessageCodexPermission;
+  message: IMessageAcpPermission;
 }
 
 const MessageAcpPermission: React.FC<MessageAcpPermissionProps> = React.memo(({ message }) => {
-  const { options = [], toolCall, agentType } = (message.content as any) || {};
+  const { options = [], toolCall } = message.content || {};
   const { t } = useTranslation();
 
   // 基于实际数据生成显示信息
@@ -63,8 +63,7 @@ const MessageAcpPermission: React.FC<MessageAcpPermissionProps> = React.memo(({ 
         callId: toolCall?.toolCallId || message.id, // 使用 toolCallId 或 message.id 作为 fallback
       };
 
-      // 使用通用的 confirmMessage，process 层会自动分发到正确的 handler
-      const result = await conversation.confirmMessage.invoke(invokeData);
+      const result = await acpConversation.confirmMessage.invoke(invokeData);
 
       if (result.success) {
         setHasResponded(true);
@@ -103,7 +102,7 @@ const MessageAcpPermission: React.FC<MessageAcpPermissionProps> = React.memo(({ 
             <div className='mt-10px'>Choose an action:</div>
             <Radio.Group direction='vertical' size='mini' value={selected} onChange={setSelected}>
               {options && options.length > 0 ? (
-                options.map((option: any, index: number) => {
+                options.map((option, index) => {
                   const optionName = option?.name || `Option ${index + 1}`;
                   const optionId = option?.optionId || `option_${index}`;
                   return (
