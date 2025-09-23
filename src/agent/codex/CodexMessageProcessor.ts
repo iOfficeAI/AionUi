@@ -186,7 +186,11 @@ export class CodexMessageProcessor {
       msg_id: msgId,
       data: message,
     };
-    // 只通过stream发送，避免重复处理
+    // 添加消息持久化和stream发送
+    const transformedMessage = transformMessage(errMsg);
+    if (transformedMessage) {
+      addOrUpdateMessage(this.conversation_id, transformedMessage);
+    }
     ipcBridge.codexConversation.responseStream.emit(errMsg);
   }
 
@@ -203,7 +207,11 @@ export class CodexMessageProcessor {
       data: message,
     };
 
-    // 直接通过stream发送，让前端的消息转换器处理
+    // 添加消息持久化和stream发送
+    const transformedMessage = transformMessage(errMsg);
+    if (transformedMessage) {
+      addOrUpdateMessage(this.conversation_id, transformedMessage);
+    }
     ipcBridge.codexConversation.responseStream.emit(errMsg);
   }
 
