@@ -7,7 +7,7 @@ permissions:
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, feat/mcp-integration ]  # 临时添加当前分支用于测试
 
 jobs:
   # 代码质量检查
@@ -42,24 +42,26 @@ jobs:
     name: Build ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
     needs: code-quality
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/feat/mcp-integration'
     
     strategy:
       fail-fast: false
       matrix:
         include:
-          - platform: 'macos'
+          # 临时只构建 macOS ARM64 用于测试
+          - platform: 'macos-arm64'
             os: 'macos-latest'
-            command: 'npm run dist:mac'
-            artifact-name: 'macos-build'
-          - platform: 'windows'
-            os: 'windows-2022'
-            command: 'npm run dist:win'
-            artifact-name: 'windows-build'
-          - platform: 'linux'
-            os: 'ubuntu-latest'
-            command: 'npm run dist:linux'
-            artifact-name: 'linux-build'
+            command: 'npm run build-mac:arm64'
+            artifact-name: 'macos-arm64-build'
+          # 暂时注释掉其他平台
+          # - platform: 'windows'
+          #   os: 'windows-2022'
+          #   command: 'npm run dist:win'
+          #   artifact-name: 'windows-build'
+          # - platform: 'linux'
+          #   os: 'ubuntu-latest'
+          #   command: 'npm run dist:linux'
+          #   artifact-name: 'linux-build'
     
     steps:
     - name: Checkout code
@@ -97,36 +99,37 @@ jobs:
         vs-version: '17.0'
         
     # macOS 代码签名证书安装
-    - name: Setup macOS code signing (macOS only)
-      if: matrix.platform == 'macos'
-      env:
-        BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
-        P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
-        KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD || 'temp-keychain-password' }}
-      run: |
-        if [ -n "$BUILD_CERTIFICATE_BASE64" ]; then
-          echo "Installing code signing certificate..."
-          
-          # 创建证书文件
-          echo $BUILD_CERTIFICATE_BASE64 | base64 --decode > certificate.p12
-          
-          # 创建临时钥匙串
-          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
-          security default-keychain -s build.keychain
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
-          
-          # 导入证书
-          security import certificate.p12 -k build.keychain -P "$P12_PASSWORD" -T /usr/bin/codesign
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
-          
-          # 清理证书文件
-          rm certificate.p12
-          
-          echo "Certificate imported successfully"
-        else
-          echo "No certificate provided - building unsigned application"
-          echo "To enable code signing, add BUILD_CERTIFICATE_BASE64 and P12_PASSWORD secrets"
-        fi
+    # 临时禁用签名用于测试 - 整个签名步骤都被注释
+    # - name: Setup macOS code signing (macOS only)
+    #   if: matrix.platform == 'macos'
+    #   env:
+    #     BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+    #     P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+    #     KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD || 'temp-keychain-password' }}
+    #   run: |
+    #     if [ -n "$BUILD_CERTIFICATE_BASE64" ]; then
+    #       echo "Installing code signing certificate..."
+    #       
+    #       # 创建证书文件
+    #       echo $BUILD_CERTIFICATE_BASE64 | base64 --decode > certificate.p12
+    #       
+    #       # 创建临时钥匙串
+    #       security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+    #       security default-keychain -s build.keychain
+    #       security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+    #       
+    #       # 导入证书
+    #       security import certificate.p12 -k build.keychain -P "$P12_PASSWORD" -T /usr/bin/codesign
+    #       security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
+    #       
+    #       # 清理证书文件
+    #       rm certificate.p12
+    #       
+    #       echo "Certificate imported successfully"
+    #     else
+    #       echo "No certificate provided - building unsigned application"
+    #       echo "To enable code signing, add BUILD_CERTIFICATE_BASE64 and P12_PASSWORD secrets"
+    #     fi
 
     - name: Install Linux dependencies
       if: matrix.platform == 'linux'
@@ -139,13 +142,13 @@ jobs:
       env:
         # App ID configuration
         APP_ID: ${{ secrets.APP_ID }}
-        # macOS 签名配置 (参考 forge.config.ts 中的环境变量名)
-        appleId: ${{ secrets.APPLE_ID }}
-        appleIdPassword: ${{ secrets.APPLE_ID_PASSWORD }}  
-        teamId: ${{ secrets.TEAM_ID }}
-        identity: ${{ secrets.IDENTITY }}
+        # 临时禁用 macOS 签名配置用于测试
+        # appleId: ${{ secrets.APPLE_ID }}
+        # appleIdPassword: ${{ secrets.APPLE_ID_PASSWORD }}  
+        # teamId: ${{ secrets.TEAM_ID }}
+        # identity: ${{ secrets.IDENTITY }}
         # electron-builder 签名配置
-        CSC_NAME: ${{ secrets.IDENTITY }}
+        # CSC_NAME: ${{ secrets.IDENTITY }}
         CSC_IDENTITY_AUTO_DISCOVERY: false
         # Native dependency compilation
         npm_config_build_from_source: true
