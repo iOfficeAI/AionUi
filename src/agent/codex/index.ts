@@ -112,6 +112,30 @@ export class CodexMcpAgent {
     this.conn = null;
   }
 
+  /**
+   * 检查是否为致命错误，不应该重试
+   */
+  private isFatalError(errorMessage: string): boolean {
+    const fatalErrorPatterns = [
+      "You've hit your usage limit", // 使用限制错误
+      'authentication failed', // 认证失败
+      'unauthorized', // 未授权
+      'forbidden', // 禁止访问
+      'invalid api key', // API key无效
+      'account suspended', // 账户被暂停
+    ];
+
+    const lowerErrorMsg = errorMessage.toLowerCase();
+
+    for (const pattern of fatalErrorPatterns) {
+      if (lowerErrorMsg.includes(pattern.toLowerCase())) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   async newSession(cwd?: string): Promise<{ sessionId: string }> {
     // Establish Codex conversation via MCP tool call; we will keep the generated ID locally
     const convId = this.conversationId || this.generateConversationId();
@@ -139,10 +163,21 @@ export class CodexMcpAgent {
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
 
+        // 检查是否为不可重试的错误类型
+        const errorMessage = lastError.message;
+        const isFatalError = this.isFatalError(errorMessage);
+
+        if (isFatalError) {
+          console.warn(`⚠️ [CodexMcpAgent] Fatal error detected, stopping retries: ${errorMessage}`);
+          break;
+        }
+
         if (attempt === maxRetries) {
           console.error(`🔥 [CodexMcpAgent] All ${maxRetries} attempts failed, giving up`);
           break;
         }
+
+        console.warn(`⚠️ [CodexMcpAgent] Attempt ${attempt}/${maxRetries} failed, retrying...`);
 
         // 指数退避：2s, 4s, 8s
         const delay = 2000 * Math.pow(2, attempt - 1);
@@ -180,7 +215,15 @@ export class CodexMcpAgent {
         return;
       }
 
-      // 对于非超时错误，仍然抛出
+      // 检查是否为致命错误
+      const isFatalError = this.isFatalError(errorMsg);
+      if (isFatalError) {
+        console.warn(`⚠️ [CodexMcpAgent] Fatal error in sendPrompt, not retrying: ${errorMsg}`);
+        // 对于致命错误，直接抛出，不进行重试
+        throw error;
+      }
+
+      // 对于非超时、非致命错误，仍然抛出
       console.error('❌ [CodexMcpAgent] sendPrompt encountered non-timeout error:', errorMsg);
       throw error;
     }

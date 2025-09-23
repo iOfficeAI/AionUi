@@ -80,6 +80,12 @@ export class CodexEventHandler {
       return;
     }
 
+    // Handle generic error events from Codex CLI
+    if (type === 'error') {
+      this.messageProcessor.processGenericError(evt as { type: 'error'; data: { message?: string } | string });
+      return;
+    }
+
     // Tool: exec command
     if (type === CodexAgentEventType.EXEC_COMMAND_BEGIN) {
       this.toolHandlers.handleExecCommandBegin(evt as Extract<CodexAgentEvent, { type: CodexAgentEventType.EXEC_COMMAND_BEGIN }>);

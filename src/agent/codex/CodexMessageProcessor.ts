@@ -161,14 +161,75 @@ export class CodexMessageProcessor {
   }
 
   processStreamError(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.STREAM_ERROR }>) {
+    const message = evt.data?.message || 'Codex stream error';
+    const errorHash = this.generateErrorHash(message);
+
+    // 检测消息类型：重试消息 vs 最终错误消息
+    const isRetryMessage = message.includes('retrying');
+    const isFinalError = !isRetryMessage && message.includes('error sending request');
+
+    let msgId: string;
+    if (isRetryMessage) {
+      // 所有重试消息使用同一个ID，这样会被合并更新
+      msgId = `stream_retry_${errorHash}`;
+    } else if (isFinalError) {
+      // 最终错误消息也使用重试消息的ID，这样会替换掉重试消息
+      msgId = `stream_retry_${errorHash}`;
+    } else {
+      // 其他错误使用唯一ID
+      msgId = `stream_error_${errorHash}`;
+    }
+
     const errMsg: IResponseMessage = {
       type: 'error',
       conversation_id: this.conversation_id,
-      msg_id: uuid(),
-      data: evt.data?.message || 'Codex stream error',
+      msg_id: msgId,
+      data: message,
     };
     // 只通过stream发送，避免重复处理
     ipcBridge.codexConversation.responseStream.emit(errMsg);
+  }
+
+  processGenericError(evt: { type: 'error'; data: { message?: string } | string }) {
+    const message = typeof evt.data === 'string' ? evt.data : evt.data?.message || 'Unknown error';
+
+    // 为相同的错误消息生成一致的msg_id以避免重复显示
+    const errorHash = this.generateErrorHash(message);
+
+    const errMsg: IResponseMessage = {
+      type: 'error',
+      conversation_id: this.conversation_id,
+      msg_id: `error_${errorHash}`,
+      data: message,
+    };
+
+    // 直接通过stream发送，让前端的消息转换器处理
+    ipcBridge.codexConversation.responseStream.emit(errMsg);
+  }
+
+  private generateErrorHash(message: string): string {
+    // 对于重试类型的错误消息，提取核心错误信息
+    const normalizedMessage = this.normalizeRetryMessage(message);
+
+    // 为相同的错误消息生成一致的简短hash
+    let hash = 0;
+    for (let i = 0; i < normalizedMessage.length; i++) {
+      const char = normalizedMessage.charCodeAt(i);
+      hash = (hash << 5) - hash + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    return Math.abs(hash).toString(36);
+  }
+
+  private normalizeRetryMessage(message: string): string {
+    // 如果是重试消息，提取核心错误信息，忽略重试次数和延迟时间
+    if (message.includes('retrying')) {
+      // 匹配 "retrying X/Y in Zms..." 模式并移除它
+      return message.replace(/;\s*retrying\s+\d+\/\d+\s+in\s+[\d.]+[ms]+[^;]*$/i, '');
+    }
+
+    // 其他类型的错误消息直接返回
+    return message;
   }
 
   private createContentMessage(content: string, loadingId: string): IResponseMessage | null {
@@ -211,33 +272,31 @@ export class CodexMessageProcessor {
       content
         // 清理多余的连续换行符
         .replace(/\n{3,}/g, '\n\n')
-        // 清理开头和结尾的空白
-        .trim()
+        // 注意：不要使用 .trim()，因为这会移除 delta 之间重要的空格
+        // 只清理尾部的多余换行符
+        .replace(/\n+$/, '')
     );
   }
 
   private filterInternalMarkers(content: string): string {
-    // 定义需要过滤的模式
+    // 定义需要过滤的模式 - 使用更精确的匹配，避免误删正常文本
     const filterPatterns = [
-      /^\*\*[Pp]reparing.*$/gim, // 过滤所有 "**Preparing..." 变体（包括 preparingfriendlyresponse）
-      /^[Pp]reparing\s+.*$/gim, // 过滤 "Preparing ..." 变体
-      /^\*\*[Cc]onsidering.*$/gim, // 过滤所有 "**Considering..." 变体
-      /^[Cc]onsidering\s+.*$/gim, // 过滤 "Considering ..." 变体
-      /^\*\*[Tt]hinking.*$/gim, // 过滤 "**Thinking..."
-      /^\*\*[Pp]rocessing.*$/gim, // 过滤 "**Processing..."
-      /^\*\*[Aa]nalyzing.*$/gim, // 过滤 "**Analyzing..."
-      /^\*\*[Ee]valuating.*$/gim, // 过滤 "**Evaluating..."
-      /^\*\*[Gg]enerating.*$/gim, // 过滤 "**Generating..."
-      /^\*\*[Ff]ormulating.*$/gim, // 过滤 "**Formulating..."
-      /^\*\*[Cc]rafting.*$/gim, // 过滤 "**Crafting..."
-      /^\*\*[Cc]reating.*$/gim, // 过滤 "**Creating..."
+      /^\*\*Preparing.*$/gim, // 过滤 "**Preparing..."
+      /^Preparing\s+.*$/gim, // 过滤独立的 "Preparing ..." 行
+      /^\*\*Considering.*$/gim, // 过滤 "**Considering..."
+      /^Considering\s+user\s+input.*$/gim, // 更精确地匹配 "Considering user input..."
+      /^\*\*Thinking.*$/gim, // 过滤 "**Thinking..."
+      /^\*\*Processing.*$/gim, // 过滤 "**Processing..."
+      /^\*\*Analyzing.*$/gim, // 过滤 "**Analyzing..."
+      /^\*\*Evaluating.*$/gim, // 过滤 "**Evaluating..."
+      /^\*\*Generating.*$/gim, // 过滤 "**Generating..."
+      /^\*\*Formulating.*$/gim, // 过滤 "**Formulating..."
+      /^\*\*Crafting.*$/gim, // 过滤 "**Crafting..."
+      /^\*\*Creating.*$/gim, // 过滤 "**Creating..."
       /^---+\s*$/gm, // 过滤纯横线分隔符
       /^\s*\.\.\.\s*$/gm, // 过滤省略号行
       /^\s*Loading\.\.\.\s*$/gim, // 过滤 "Loading..."
       /^\s*Please\s+wait\.\.\.\s*$/gim, // 过滤 "Please wait..."
-      /^\*\*\w+ing\w*\s*$/gim, // 过滤所有以 "**" 开头的动词进行时形式
-      /^[A-Z][a-z]+ing\s+.*ambiguity.*$/gim, // 过滤类似 "Considering user input ambiguity" 的文本
-      /^[A-Z][a-z]+ing\s+.*input.*$/gim, // 过滤包含 "input" 的思考过程文本
     ];
 
     let filtered = content;
@@ -247,17 +306,14 @@ export class CodexMessageProcessor {
       filtered = filtered.replace(pattern, '');
     });
 
-    // 更强的换行和空行清理逻辑
+    // 温和的清理逻辑，保留正常的文本空格
     filtered = filtered
       // 清理只包含空白字符的行
       .replace(/^\s*$/gm, '')
-      // 清理多余的连续换行符（超过1个的情况，更严格）
-      .replace(/\n{2,}/g, '\n')
-      // 清理行首和行尾的空白字符
-      .replace(/[ \t]+$/gm, '')
-      .replace(/^[ \t]+/gm, '')
-      // 再次清理可能产生的连续空行
-      .replace(/\n\s*\n/g, '\n')
+      // 清理多余的连续换行符（超过2个的情况）
+      .replace(/\n{3,}/g, '\n\n')
+      // 清理多余的连续空行
+      .replace(/\n\s*\n\s*\n/g, '\n\n')
       // 清理开头和结尾的空白
       .trim();
 

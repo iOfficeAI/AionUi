@@ -1,11 +1,11 @@
 import { CodexMessageTransformer } from '@/agent/codex/CodexMessageTransformer';
 import { ipcBridge } from '@/common';
 import type { TMessage } from '@/common/chatLib';
-import { transformMessage } from '@/common/chatLib';
+import { transformMessage, composeMessage } from '@/common/chatLib';
 import { uuid } from '@/common/utils';
 import SendBox from '@/renderer/components/sendbox';
 import { getSendBoxDraftHook } from '@/renderer/hooks/useSendBoxDraft';
-import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
+import { useAddOrUpdateMessage, useUpdateMessageList } from '@/renderer/messages/hooks';
 import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { Button, Tag } from '@arco-design/web-react';
@@ -20,9 +20,47 @@ const useCodexSendBoxDraft = getSendBoxDraftHook('codex', {
   uploadFile: [],
 });
 
+// Codex专用的消息合并函数，支持在整个列表中查找相同msg_id的消息
+const composeCodexMessage = (message: TMessage | undefined, list: TMessage[] | undefined): TMessage[] => {
+  if (!message) return list || [];
+  if (!list?.length) return [message];
+
+  // 查找整个列表中是否有相同msg_id和type的消息
+  const existingMessageIndex = list.findIndex((existingMsg) => existingMsg.msg_id === message.msg_id && existingMsg.type === message.type);
+
+  if (existingMessageIndex === -1) {
+    // 没有找到相同msg_id的消息，添加新消息
+    return list.concat(message);
+  }
+
+  // 找到了相同msg_id的消息，进行合并
+  const existingMessage = list[existingMessageIndex];
+
+  if (message.type === 'tips' && existingMessage.type === 'tips') {
+    // 对于tips类型消息（错误消息），直接替换内容
+    // 这样重试错误消息会更新现有的错误消息
+    Object.assign(existingMessage, message);
+    return list;
+  }
+
+  // 对于其他类型，使用原有的合并逻辑
+  return composeMessage(message, list);
+};
+
 const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
   const { t } = useTranslation();
   const addOrUpdateMessage = useAddOrUpdateMessage();
+  const updateMessageList = useUpdateMessageList();
+
+  // Codex专用的消息更新函数，使用自定义合并逻辑
+  const addOrUpdateCodexMessage = useCallback(
+    (message: TMessage, add = false) => {
+      updateMessageList((list: TMessage[]) => {
+        return add ? list.concat(message) : composeCodexMessage(message, list);
+      });
+    },
+    [updateMessageList]
+  );
   const [running, setRunning] = useState(false);
   const [waitingForSession, setWaitingForSession] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
@@ -136,7 +174,8 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
             // console.log(`✅ [CodexSendBox] Processing new global status message: ${transformedMessage.msg_id}`);
           }
 
-          addOrUpdateMessage(transformedMessage);
+          // 使用Codex专用的消息合并逻辑处理重复msg_id
+          addOrUpdateCodexMessage(transformedMessage, false);
         }
       }
     });
