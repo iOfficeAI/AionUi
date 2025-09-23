@@ -1,4 +1,4 @@
-import { CodexMessageTransformer } from '@/agent/codex/CodexMessageTransformer';
+import { CodexMessageTransformer } from '@/agent/codex';
 import { ipcBridge } from '@/common';
 import type { TMessage } from '@/common/chatLib';
 import { transformMessage, composeMessage } from '@/common/chatLib';

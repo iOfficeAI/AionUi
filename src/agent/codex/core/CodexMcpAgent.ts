@@ -4,13 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { NetworkError, CodexEventEnvelope } from './CodexMcpConnection';
-import { CodexMcpConnection } from './CodexMcpConnection';
+import type { NetworkError, CodexEventEnvelope } from '@/agent/codex/connection/CodexMcpConnection';
+import { CodexMcpConnection } from '@/agent/codex/connection/CodexMcpConnection';
 import { APP_CLIENT_NAME, APP_CLIENT_VERSION, CODEX_MCP_PROTOCOL_VERSION } from '@/common/constants';
 import type { FileChange, CodexEventParams } from '@/common/codexTypes';
-import type { CodexEventHandler } from './CodexEventHandler';
-import type { CodexSessionManager } from './CodexSessionManager';
-import type { CodexFileOperationHandler } from './CodexFileOperationHandler';
+import type { CodexEventHandler } from '@/agent/codex/handlers/CodexEventHandler';
+import type { CodexSessionManager } from '@/agent/codex/handlers/CodexSessionManager';
+import type { CodexFileOperationHandler } from '@/agent/codex/handlers/CodexFileOperationHandler';
 
 export interface CodexAgentConfig {
   id: string;

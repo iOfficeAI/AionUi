@@ -14,11 +14,11 @@ import { uuid } from '@/common/utils';
 import { addMessage } from '@/process/message';
 import BaseAgentManager from '@/process/task/BaseAgentManager';
 import { t } from 'i18next';
-import { CodexEventHandler } from './CodexEventHandler';
-import { CodexSessionManager } from './CodexSessionManager';
-import { CodexFileOperationHandler } from './CodexFileOperationHandler';
+import { CodexEventHandler } from '@/agent/codex/handlers/CodexEventHandler';
+import { CodexSessionManager } from '@/agent/codex/handlers/CodexSessionManager';
+import { CodexFileOperationHandler } from '@/agent/codex/handlers/CodexFileOperationHandler';
 import type { CodexAgentManagerData, FileChange } from '@/common/codexTypes';
-import type { ICodexMessageEmitter } from './CodexMessageEmitter';
+import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
 
 class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implements ICodexMessageEmitter {
   workspace?: string;
