@@ -13,12 +13,13 @@ import { Refresh, Search } from '@icon-park/react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 interface GeminiWorkspaceProps {
+  conversation_id: string;
   workspace: string;
   customWorkspace?: boolean;
   eventPrefix?: 'gemini' | 'acp';
 }
 
-const GeminiWorkspace: React.FC<GeminiWorkspaceProps> = ({ workspace, customWorkspace, eventPrefix = 'gemini' }) => {
+const GeminiWorkspace: React.FC<GeminiWorkspaceProps> = ({ conversation_id, workspace, customWorkspace, eventPrefix = 'gemini' }) => {
   const { t } = useTranslation();
   const [selected, setSelected] = useState<string[]>([]);
   const [files, setFiles] = useState<IDirOrFile[]>([]);
@@ -32,7 +33,7 @@ const GeminiWorkspace: React.FC<GeminiWorkspaceProps> = ({ workspace, customWork
     setSelected(files);
   });
 
-  const refreshWorkspace = (_eventPrefix: typeof eventPrefix, _workspace: string) => {
+  const refreshWorkspace = (_eventPrefix: typeof eventPrefix, _conversation_id: string) => {
     setLoading(true);
     const startTime = Date.now();
 
@@ -43,12 +44,13 @@ const GeminiWorkspace: React.FC<GeminiWorkspaceProps> = ({ workspace, customWork
         : ipcBridge.geminiConversation.getWorkspace;
 
     getWorkspaceMethod
-      .invoke({ workspace: _workspace })
+      .invoke({ conversation_id: _conversation_id })
       .then((res) => {
         setFiles(res);
       })
-      .catch(() => {
+      .catch((error) => {
         // Silently handle getWorkspace errors
+        console.error('!!!!!!!!!! Failed to get workspace !!!!!!!!!!:', error);
       })
       .finally(() => {
         if (Date.now() - startTime > 1000) {
@@ -63,20 +65,20 @@ const GeminiWorkspace: React.FC<GeminiWorkspaceProps> = ({ workspace, customWork
 
   useEffect(() => {
     setFiles([]);
-    refreshWorkspace(eventPrefix, workspace);
+    refreshWorkspace(eventPrefix, conversation_id);
     emitter.emit(`${eventPrefix}.selected.file`, []);
-  }, [workspace, eventPrefix]);
+  }, [conversation_id, eventPrefix]);
 
   useEffect(() => {
     const handleGeminiResponse = (data: any) => {
       if (data.type === 'tool_group' || data.type === 'tool_call') {
-        refreshWorkspace(eventPrefix, workspace);
+        refreshWorkspace(eventPrefix, conversation_id);
       }
     };
 
     const handleAcpResponse = (data: any) => {
       if (data.type === 'acp_tool_call') {
-        refreshWorkspace(eventPrefix, workspace);
+        refreshWorkspace(eventPrefix, conversation_id);
       }
     };
 
@@ -87,9 +89,9 @@ const GeminiWorkspace: React.FC<GeminiWorkspaceProps> = ({ workspace, customWork
       unsubscribeGemini();
       unsubscribeAcp();
     };
-  }, [workspace, eventPrefix]);
+  }, [conversation_id, eventPrefix]);
 
-  useAddEventListener(`${eventPrefix}.workspace.refresh`, () => refreshWorkspace(eventPrefix, workspace), [workspace, eventPrefix]);
+  useAddEventListener(`${eventPrefix}.workspace.refresh`, () => refreshWorkspace(eventPrefix, conversation_id), [conversation_id, eventPrefix]);
 
   // File search filter logic
   const filteredFiles = useMemo(() => {
