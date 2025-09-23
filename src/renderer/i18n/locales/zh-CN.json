@@ -157,5 +157,29 @@
       "composing": "正在整理回复内容...",
       "please_wait": "请稍候…"
     }
+  },
+  "tools": {
+    "shell": {
+      "displayName": "Shell命令",
+      "description": "执行Shell命令"
+    },
+    "fileOps": {
+      "displayName": "文件操作",
+      "description": "文件读写和修改"
+    },
+    "webSearch": {
+      "displayName": "网页搜索",
+      "description": "搜索网页内容"
+    },
+    "mcp": {
+      "generic": {
+        "displayName": "MCP工具: {{toolName}}",
+        "description": "MCP工具调用: {{toolName}}"
+      }
+    },
+    "unknown": {
+      "displayName": "未知工具",
+      "description": "未知工具类型"
+    }
   }
 }

@@ -157,5 +157,29 @@
       "composing": "Composing response content...",
       "please_wait": "Please wait…"
     }
+  },
+  "tools": {
+    "shell": {
+      "displayName": "Shell Command",
+      "description": "Execute shell commands"
+    },
+    "fileOps": {
+      "displayName": "File Operations",
+      "description": "File read, write and modification"
+    },
+    "webSearch": {
+      "displayName": "Web Search",
+      "description": "Search web content"
+    },
+    "mcp": {
+      "generic": {
+        "displayName": "MCP Tool: {{toolName}}",
+        "description": "MCP tool call: {{toolName}}"
+      }
+    },
+    "unknown": {
+      "displayName": "Unknown Tool",
+      "description": "Unknown tool type"
+    }
   }
 }
