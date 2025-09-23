@@ -31,14 +31,11 @@ export class CodexMessageTransformer {
       content
         // 清理多余的连续换行符（超过2个的情况）
         .replace(/\n{3,}/g, '\n\n')
-        // 清理行首和行尾的空白字符
-        .replace(/[ \t]+$/gm, '')
-        .replace(/^[ \t]+/gm, '')
-        // 清理只包含空白字符的行
+        // 只清理真正空白的行，保留正常的单词间空格
         .replace(/^\s*$/gm, '')
         // 再次清理可能产生的连续空行
         .replace(/\n\s*\n\s*\n/g, '\n\n')
-        // 清理开头和结尾的空白
+        // 只清理开头和结尾的空白，保留文本中间的空格
         .trim()
     );
   }
@@ -180,6 +177,20 @@ export class CodexMessageTransformer {
           };
         }
 
+        case 'error': {
+          return {
+            id: uuid(),
+            type: 'tips',
+            msg_id: message.msg_id,
+            position: 'center',
+            conversation_id: message.conversation_id,
+            content: {
+              content: message.data,
+              type: 'error',
+            },
+          };
+        }
+
         default:
           // 返回 undefined 表示这不是 Codex 特定的消息类型
           return undefined;
@@ -209,7 +220,7 @@ export class CodexMessageTransformer {
    * @returns 是否为 Codex 特定类型
    */
   static isCodexSpecificMessage(messageType: string): boolean {
-    const codexTypes = ['agent_reasoning', 'agent_reasoning_delta', 'agent_reasoning_raw_content', 'agent_reasoning_raw_content_delta', 'agent_reasoning_section_break', 'acp_permission', 'codex_permission', 'codex_status', 'agent_message_delta', 'agent_message'];
+    const codexTypes = ['agent_reasoning', 'agent_reasoning_delta', 'agent_reasoning_raw_content', 'agent_reasoning_raw_content_delta', 'agent_reasoning_section_break', 'acp_permission', 'codex_permission', 'codex_status', 'agent_message_delta', 'agent_message', 'error'];
     return codexTypes.includes(messageType);
   }
 }

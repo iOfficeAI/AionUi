@@ -167,6 +167,17 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
     } catch (e) {
       console.error('❌ [CodexAgentManager] Error in sendMessage:', e);
 
+      // 对于某些错误类型，避免重复错误消息处理
+      // 这些错误通常已经通过 MCP 连接的事件流处理过了
+      const errorMsg = e instanceof Error ? e.message : String(e);
+      const isUsageLimitError = errorMsg.toLowerCase().includes("you've hit your usage limit");
+
+      if (isUsageLimitError) {
+        // Usage limit 错误已经通过 MCP 事件流处理，避免重复发送
+        console.warn('⚠️ [CodexAgentManager] Usage limit error already handled via MCP events, not sending duplicate message');
+        throw e;
+      }
+
       // Create more descriptive error message based on error type
       let errorMessage = 'Failed to send message to Codex';
       if (e instanceof Error) {
