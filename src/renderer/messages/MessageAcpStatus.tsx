@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IMessageAcpStatus, IMessageCodexStatus } from '@/common/chatLib';
+import type { IMessageAcpStatus } from '@/common/chatLib';
 import { Badge, Typography } from '@arco-design/web-react';
 import classNames from 'classnames';
 import React from 'react';
@@ -12,12 +12,11 @@ import React from 'react';
 const { Text } = Typography;
 
 interface MessageAcpStatusProps {
-  message: IMessageAcpStatus | IMessageCodexStatus;
+  message: IMessageAcpStatus;
 }
 
 const MessageAcpStatus: React.FC<MessageAcpStatusProps> = ({ message }) => {
-  const { status, message: statusMessage } = message.content;
-  const backend = 'backend' in message.content ? message.content.backend : undefined;
+  const { backend, status, message: statusMessage } = message.content;
 
   const getStatusBadge = () => {
     switch (status) {
@@ -60,13 +59,11 @@ const MessageAcpStatus: React.FC<MessageAcpStatusProps> = ({ message }) => {
         'bg-blue-50 border-blue-200 text-blue-700': !isError && !isSuccess,
       })}
     >
-      {backend && (
-        <div className='flex items-center gap-2'>
-          <Text style={{ fontWeight: 'bold' }} className='capitalize'>
-            {backend}
-          </Text>
-        </div>
-      )}
+      <div className='flex items-center gap-2'>
+        <Text style={{ fontWeight: 'bold' }} className='capitalize'>
+          {backend}
+        </Text>
+      </div>
 
       <div className='flex-1'>{getStatusBadge()}</div>
 
