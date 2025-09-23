@@ -18,8 +18,9 @@ import { CodexEventHandler } from './CodexEventHandler';
 import { CodexSessionManager } from './CodexSessionManager';
 import { CodexFileOperationHandler } from './CodexFileOperationHandler';
 import type { CodexAgentManagerData, FileChange } from '@/common/codexTypes';
+import type { ICodexMessageEmitter } from './CodexMessageEmitter';
 
-class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
+class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implements ICodexMessageEmitter {
   workspace?: string;
   agent: CodexMcpAgent;
   bootstrap: Promise<CodexMcpAgent>;
@@ -34,8 +35,8 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
   }
 
   private initAgent(data: CodexAgentManagerData) {
-    // 初始化各个管理器 - 参考 ACP 的架构
-    const eventHandler = new CodexEventHandler(data.conversation_id);
+    // 初始化各个管理器 - 参考 ACP 的架构，传递消息发送器
+    const eventHandler = new CodexEventHandler(data.conversation_id, this);
     const sessionManager = new CodexSessionManager({
       conversation_id: data.conversation_id,
       cliPath: data.cliPath,
@@ -364,6 +365,21 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> {
     } finally {
       super.kill();
     }
+  }
+
+  // 实现 ICodexMessageEmitter 接口
+  emitMessage(message: IResponseMessage): void {
+    ipcBridge.codexConversation.responseStream.emit(message);
+  }
+
+  emitAndPersistMessage(message: IResponseMessage, persist: boolean = true): void {
+    if (persist) {
+      const transformedMessage = transformMessage(message);
+      if (transformedMessage) {
+        addMessage(this.conversation_id, transformedMessage);
+      }
+    }
+    ipcBridge.codexConversation.responseStream.emit(message);
   }
 }
 
