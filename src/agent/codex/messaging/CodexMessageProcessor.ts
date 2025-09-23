@@ -4,19 +4,19 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ipcBridge } from '@/common';
-import { transformMessage } from '@/common/chatLib';
-import type { IResponseMessage } from '@/common/ipcBridge';
 import { uuid } from '@/common/utils';
 import type { CodexAgentEventType, CodexAgentEvent } from '@/common/codexTypes';
-import { addOrUpdateMessage } from '@/process/message';
+import type { ICodexMessageEmitter } from './CodexMessageEmitter';
 
 export class CodexMessageProcessor {
   private currentLoadingId: string | null = null;
   private currentContent: string = '';
   private deltaTimeout: NodeJS.Timeout | null = null;
 
-  constructor(private conversation_id: string) {}
+  constructor(
+    private conversation_id: string,
+    private messageEmitter: ICodexMessageEmitter
+  ) {}
 
   processMessageDelta(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.AGENT_MESSAGE_DELTA }>) {
     // 只在没有当前loading ID时创建新的，不因requestId变化而重置
@@ -64,7 +64,7 @@ export class CodexMessageProcessor {
     const deltaMessage = this.createContentMessage(this.currentContent, this.currentLoadingId!);
     if (deltaMessage) {
       // 只通过stream发送，避免重复处理
-      ipcBridge.codexConversation.responseStream.emit(deltaMessage);
+      this.messageEmitter.emitMessage(deltaMessage);
     }
 
     // Set/reset timeout to auto-finalize message if no completion event is received
@@ -74,13 +74,13 @@ export class CodexMessageProcessor {
     this.deltaTimeout = setTimeout(() => {
       if (this.currentContent && this.currentContent.trim() && this.currentLoadingId) {
         // Send finish signal to UI - but don't pass through transformMessage as it's internal
-        const finishMessage: IResponseMessage = {
-          type: 'finish',
+        const finishMessage = {
+          type: 'finish' as const,
           conversation_id: this.conversation_id,
           msg_id: this.currentLoadingId,
           data: {},
         };
-        ipcBridge.codexConversation.responseStream.emit(finishMessage);
+        this.messageEmitter.emitMessage(finishMessage);
       }
 
       // Reset state
@@ -109,14 +109,8 @@ export class CodexMessageProcessor {
 
     const message = this.createContentMessage(finalContent, this.currentLoadingId);
     if (message) {
-      // 先保存到后端存储
-      const transformedMessage = transformMessage(message);
-      if (transformedMessage) {
-        addOrUpdateMessage(this.conversation_id, transformedMessage, true);
-      }
-
-      // 然后发送到前端UI
-      ipcBridge.codexConversation.responseStream.emit(message);
+      // 发送并持久化消息
+      this.messageEmitter.emitAndPersistMessage(message, true);
     } else {
       console.warn('⚠️ [CodexMessageProcessor] createContentMessage returned null');
     }
@@ -133,25 +127,19 @@ export class CodexMessageProcessor {
     if (this.currentContent && this.currentContent.trim() && this.currentLoadingId) {
       const message = this.createContentMessage(this.currentContent, this.currentLoadingId);
       if (message) {
-        // 先保存到后端存储
-        const transformedMessage = transformMessage(message);
-        if (transformedMessage) {
-          addOrUpdateMessage(this.conversation_id, transformedMessage, true);
-        }
-
-        // 然后发送到前端UI
-        ipcBridge.codexConversation.responseStream.emit(message);
+        // 发送并持久化消息
+        this.messageEmitter.emitAndPersistMessage(message, true);
       }
     }
 
     // Send finish signal to UI - but don't pass through transformMessage as it's internal
-    const finishMessage: IResponseMessage = {
-      type: 'finish',
+    const finishMessage = {
+      type: 'finish' as const,
       conversation_id: this.conversation_id,
       msg_id: this.currentLoadingId || uuid(),
       data: {},
     };
-    ipcBridge.codexConversation.responseStream.emit(finishMessage);
+    this.messageEmitter.emitMessage(finishMessage);
 
     // 延迟重置，确保所有消息都使用同一个ID
     setTimeout(() => {
@@ -180,18 +168,13 @@ export class CodexMessageProcessor {
       msgId = `stream_error_${errorHash}`;
     }
 
-    const errMsg: IResponseMessage = {
-      type: 'error',
+    const errMsg = {
+      type: 'error' as const,
       conversation_id: this.conversation_id,
       msg_id: msgId,
       data: message,
     };
-    // 添加消息持久化和stream发送
-    const transformedMessage = transformMessage(errMsg);
-    if (transformedMessage) {
-      addOrUpdateMessage(this.conversation_id, transformedMessage);
-    }
-    ipcBridge.codexConversation.responseStream.emit(errMsg);
+    this.messageEmitter.emitAndPersistMessage(errMsg);
   }
 
   processGenericError(evt: { type: 'error'; data: { message?: string } | string }) {
@@ -200,19 +183,14 @@ export class CodexMessageProcessor {
     // 为相同的错误消息生成一致的msg_id以避免重复显示
     const errorHash = this.generateErrorHash(message);
 
-    const errMsg: IResponseMessage = {
-      type: 'error',
+    const errMsg = {
+      type: 'error' as const,
       conversation_id: this.conversation_id,
       msg_id: `error_${errorHash}`,
       data: message,
     };
 
-    // 添加消息持久化和stream发送
-    const transformedMessage = transformMessage(errMsg);
-    if (transformedMessage) {
-      addOrUpdateMessage(this.conversation_id, transformedMessage);
-    }
-    ipcBridge.codexConversation.responseStream.emit(errMsg);
+    this.messageEmitter.emitAndPersistMessage(errMsg);
   }
 
   private generateErrorHash(message: string): string {
@@ -240,7 +218,7 @@ export class CodexMessageProcessor {
     return message;
   }
 
-  private createContentMessage(content: string, loadingId: string): IResponseMessage | null {
+  private createContentMessage(content: string, loadingId: string) {
     if (!content.trim()) {
       return null;
     }
@@ -259,7 +237,7 @@ export class CodexMessageProcessor {
     }
 
     return {
-      type: 'content', // Use standard content type instead of ai_content
+      type: 'content' as const, // Use standard content type instead of ai_content
       conversation_id: this.conversation_id,
       msg_id: loadingId,
       data: filteredContent, // 使用过滤后的内容

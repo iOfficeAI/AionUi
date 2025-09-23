@@ -4,12 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ipcBridge } from '@/common';
-import { transformMessage } from '@/common/chatLib';
-import type { IResponseMessage } from '@/common/ipcBridge';
 import type { AcpPermissionRequest } from '@/common/acpTypes';
 import { uuid } from '@/common/utils';
-import { addOrUpdateMessage } from '@/process/message';
+import type { IResponseMessage } from '@/common/ipcBridge';
+import type { ICodexMessageEmitter } from './CodexMessageEmitter';
 import { CodexAgentEventType } from '@/common/codexTypes';
 import type { ExecApprovalRequestData, AgentReasoningData, AgentReasoningDeltaData, BaseCodexEventData, PatchApprovalData, CodexAgentEvent, CodexEventParams } from '@/common/codexTypes';
 import { CodexMessageProcessor } from './CodexMessageProcessor';
@@ -21,10 +19,15 @@ type ExtendedAcpPermissionRequest = Omit<AcpPermissionRequest, 'options'> & impo
 export class CodexEventHandler {
   private messageProcessor: CodexMessageProcessor;
   private toolHandlers: CodexToolHandlers;
+  private messageEmitter: ICodexMessageEmitter;
 
-  constructor(private conversation_id: string) {
-    this.messageProcessor = new CodexMessageProcessor(conversation_id);
-    this.toolHandlers = new CodexToolHandlers(conversation_id);
+  constructor(
+    private conversation_id: string,
+    messageEmitter: ICodexMessageEmitter
+  ) {
+    this.messageEmitter = messageEmitter;
+    this.messageProcessor = new CodexMessageProcessor(conversation_id, messageEmitter);
+    this.toolHandlers = new CodexToolHandlers(conversation_id, messageEmitter);
   }
 
   handleEvent(evt: CodexAgentEvent | { type: string; data: unknown }) {
@@ -162,8 +165,8 @@ export class CodexEventHandler {
       data: (eventData as AgentReasoningDeltaData)?.delta || (eventData as AgentReasoningData)?.text || eventData || '',
     };
 
-    // Emit to frontend stream for processing by CodexSendBox
-    ipcBridge.codexConversation.responseStream.emit(standardMessage); // UI实时更新
+    // Transform and persist message, then emit to UI
+    this.messageEmitter.emitAndPersistMessage(standardMessage, true);
   }
 
   private handleExecApprovalRequest(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.EXEC_APPROVAL_REQUEST }>) {
@@ -215,11 +218,7 @@ export class CodexEventHandler {
       } as ExtendedAcpPermissionRequest,
     };
 
-    const transformedMessage = transformMessage(standardMessage);
-    if (transformedMessage) {
-      addOrUpdateMessage(this.conversation_id, transformedMessage, true); // 数据持久化
-      ipcBridge.codexConversation.responseStream.emit(standardMessage); // UI实时更新
-    }
+    this.messageEmitter.emitAndPersistMessage(standardMessage, true);
   }
 
   private handlePermissionRequest(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.APPLY_PATCH_APPROVAL_REQUEST } | { type: CodexAgentEventType.ELICITATION_CREATE }>) {
@@ -249,11 +248,7 @@ export class CodexEventHandler {
     const standardMessage = this.transformCodexPermissionToStandard(evt, uniqueRequestId);
 
     if (standardMessage) {
-      const transformedMessage = transformMessage(standardMessage);
-      if (transformedMessage) {
-        addOrUpdateMessage(this.conversation_id, transformedMessage, true); // 数据持久化
-        ipcBridge.codexConversation.responseStream.emit(standardMessage); // UI实时更新
-      }
+      this.messageEmitter.emitAndPersistMessage(standardMessage, true);
     }
   }
 

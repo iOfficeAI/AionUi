@@ -5,13 +5,10 @@
  */
 
 import type { IMessageToolGroup } from '@/common/chatLib';
-import { transformMessage } from '@/common/chatLib';
-import type { IResponseMessage } from '@/common/ipcBridge';
-import { ipcBridge } from '@/common';
 import { uuid } from '@/common/utils';
-import { addOrUpdateMessage } from '@/process/message';
 import { CodexAgentEventType, type CodexAgentEvent, type FileChange, type McpInvocation } from '@/common/codexTypes';
 import { ToolRegistry, type EventDataMap } from './ToolRegistry';
+import type { ICodexMessageEmitter } from './CodexMessageEmitter';
 
 export class CodexToolHandlers {
   private cmdBuffers: Map<string, { stdout: string; stderr: string; combined: string }> = new Map();
@@ -20,7 +17,10 @@ export class CodexToolHandlers {
   private pendingConfirmations: Set<string> = new Set();
   private toolRegistry: ToolRegistry;
 
-  constructor(private conversation_id: string) {
+  constructor(
+    private conversation_id: string,
+    private messageEmitter: ICodexMessageEmitter
+  ) {
     this.toolRegistry = new ToolRegistry();
   }
 
@@ -210,8 +210,8 @@ export class CodexToolHandlers {
     const toolDef = this.toolRegistry.resolveToolForEvent(eventType, eventData);
     const i18nParams = toolDef ? this.toolRegistry.getMcpToolI18nParams(toolDef) : {};
 
-    const toolGroupMessage: IResponseMessage = {
-      type: 'tool_group',
+    const toolGroupMessage = {
+      type: 'tool_group' as const,
       conversation_id: this.conversation_id,
       msg_id: uuid(),
       data: {
@@ -235,11 +235,7 @@ export class CodexToolHandlers {
       },
     };
 
-    const transformedMessage = transformMessage(toolGroupMessage);
-    if (transformedMessage) {
-      addOrUpdateMessage(this.conversation_id, transformedMessage);
-      ipcBridge.codexConversation.responseStream.emit(toolGroupMessage);
-    }
+    this.messageEmitter.emitAndPersistMessage(toolGroupMessage);
   }
 
   private formatMcpInvocation(inv: McpInvocation | Record<string, unknown>): string {
