@@ -229,6 +229,18 @@ export class CodexMcpConnection {
         // Also remove from paused requests if present
         this.pausedRequests = this.pausedRequests.filter((r) => r.resolve !== resolve);
         console.error(`⏰ [CodexMcpConnection] Request ${method} timed out after ${timeoutMs}ms`);
+
+        // Emit error event to frontend before rejecting promise
+        this.onEvent({
+          method: 'codex/event',
+          params: {
+            msg: {
+              type: 'stream_error',
+              message: `Request timed out: ${method} (${timeoutMs}ms)`,
+            },
+          },
+        });
+
         reject(new Error(`Codex MCP request timed out: ${method}`));
       }, timeoutMs);
 
@@ -360,6 +372,18 @@ export class CodexMcpConnection {
       setTimeout(() => {
         if (this.permissionResolvers.has(callId)) {
           this.permissionResolvers.delete(callId);
+
+          // Emit error event to frontend before rejecting promise
+          this.onEvent({
+            method: 'codex/event',
+            params: {
+              msg: {
+                type: 'stream_error',
+                message: `Permission request timed out: ${callId}`,
+              },
+            },
+          });
+
           reject(new Error('Permission request timed out'));
         }
       }, 30000);
@@ -444,6 +468,18 @@ export class CodexMcpConnection {
     } else {
       // Max retries reached or unrecoverable error
       this.isNetworkError = true;
+
+      // Emit error event to frontend before rejecting promise
+      this.onEvent({
+        method: 'codex/event',
+        params: {
+          msg: {
+            type: 'stream_error',
+            message: `${networkError.type}: ${networkError.originalError}`,
+          },
+        },
+      });
+
       pendingRequest.reject(new Error(`${networkError.type}: ${networkError.originalError}`));
     }
   }
@@ -499,6 +535,18 @@ export class CodexMcpConnection {
 
       // For now, still reject since we can't easily replay the original request
       // In a more sophisticated implementation, you'd store and replay the original request
+
+      // Emit error event to frontend before rejecting promise
+      this.onEvent({
+        method: 'codex/event',
+        params: {
+          msg: {
+            type: 'stream_error',
+            message: `Network error after ${this.retryCount} retries: ${networkError.type}`,
+          },
+        },
+      });
+
       pendingRequest.reject(new Error(`Network error after ${this.retryCount} retries: ${networkError.type}`));
     }, this.retryDelay);
   }
@@ -567,6 +615,17 @@ export class CodexMcpConnection {
 
         // Check timeout
         if (Date.now() - startTime > timeout) {
+          // Emit error event to frontend before rejecting promise
+          this.onEvent({
+            method: 'codex/event',
+            params: {
+              msg: {
+                type: 'stream_error',
+                message: `Timeout waiting for MCP server to be ready (${timeout}ms)`,
+              },
+            },
+          });
+
           reject(new Error('Timeout waiting for MCP server to be ready'));
           return;
         }
@@ -583,6 +642,17 @@ export class CodexMcpConnection {
   // Handle process exit
   private handleProcessExit(code: number | null, signal: NodeJS.Signals | null): void {
     console.error('💀 [CodexMcpConnection] Process exited unexpectedly:', { code, signal });
+
+    // Emit error event to frontend about process exit
+    this.onEvent({
+      method: 'codex/event',
+      params: {
+        msg: {
+          type: 'stream_error',
+          message: `Codex process exited unexpectedly (code: ${code}, signal: ${signal})`,
+        },
+      },
+    });
 
     // Reject all pending requests
     for (const [id, p] of this.pending) {

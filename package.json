@@ -83,7 +83,7 @@
     "@google/genai": "^1.16.0",
     "@icon-park/react": "^1.4.2",
     "@office-ai/aioncli-core": "^0.2.3",
-    "@office-ai/platform": "^0.3.15",
+    "@office-ai/platform": "^0.3.16",
     "@zed-industries/claude-code-acp": "^0.4.0",
     "classnames": "^2.5.1",
     "diff2html": "^3.4.52",
