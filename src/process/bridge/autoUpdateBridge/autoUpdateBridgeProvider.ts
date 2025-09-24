@@ -371,12 +371,31 @@ export class AutoUpdateBridgeProvider {
       // 生产环境中的实际安装和重启逻辑
       console.info('Installing update and restarting application', { sessionId });
       
-      // 导入 electron 的 app 模块
+      // 使用 electron-updater 进行自动更新
+      const { autoUpdater } = require('electron-updater');
       const { app } = require('electron');
       
-      // 重新启动应用
-      app.relaunch();
-      app.exit(0);
+      try {
+        // 配置electron-updater
+        autoUpdater.autoDownload = false; // 我们已经手动下载了
+        autoUpdater.autoInstallOnAppQuit = true;
+        
+        console.log('Starting installation process');
+        
+        // 获取下载的文件信息
+        const updateInfo = session.updateInfo;
+        
+        // 使用electron-updater安装更新
+        console.log('Calling autoUpdater.quitAndInstall()');
+        autoUpdater.quitAndInstall(false, true); // (isSilent, isForceRunAfter)
+        
+        return { success: true };
+      } catch (autoUpdaterError) {
+        console.error('electron-updater installation failed, trying manual installation:', autoUpdaterError);
+        
+        // electron-updater失败时的降级方案
+        return await this.fallbackInstallation(session);
+      }
       
       return { success: true };
     } catch (error) {
@@ -391,6 +410,212 @@ export class AutoUpdateBridgeProvider {
   // ===== Version Management Methods =====
 
   // ===== Private Helper Methods =====
+
+  /**
+   * 降级安装方案 - 当electron-updater失败时使用
+   */
+  private async fallbackInstallation(session: any): Promise<{ success: boolean; msg?: string }> {
+    const { shell } = require('electron');
+    const fs = require('fs');
+    
+    try {
+      const downloadPath = session.downloadPath;
+      if (!downloadPath || !fs.existsSync(downloadPath)) {
+        throw new Error('Downloaded update file not found');
+      }
+      
+      console.log('Using fallback installation for:', downloadPath);
+      
+      const platform = process.platform;
+      const fileExtension = downloadPath.split('.').pop()?.toLowerCase();
+      
+      switch (platform) {
+        case 'darwin': // macOS
+          if (fileExtension === 'dmg') {
+            await this.installDMGFile(downloadPath);
+            return { success: true };
+          }
+          break;
+          
+        case 'win32': // Windows
+          if (fileExtension === 'exe') {
+            await this.installEXEFile(downloadPath);
+            return { success: true };
+          }
+          break;
+          
+        case 'linux': // Linux
+          if (fileExtension === 'appimage') {
+            await this.installAppImageFile(downloadPath);
+            return { success: true };
+          } else if (fileExtension === 'deb') {
+            await this.installDebFile(downloadPath);
+            return { success: true };
+          }
+          break;
+          
+        default:
+          throw new Error(`Unsupported platform: ${platform}`);
+      }
+      
+      // 如果无法自动安装，提示用户手动安装
+      shell.showItemInFolder(downloadPath);
+      return {
+        success: false,
+        msg: `Please manually install the downloaded update file: ${downloadPath}`
+      };
+      
+    } catch (error) {
+      console.error('Fallback installation failed:', error);
+      return {
+        success: false,
+        msg: error instanceof Error ? error.message : 'Installation failed'
+      };
+    }
+  }
+
+  /**
+   * 安装DMG文件 (macOS)
+   */
+  private async installDMGFile(dmgPath: string): Promise<void> {
+    const { promisify } = require('util');
+    const { exec } = require('child_process');
+    const execAsync = promisify(exec);
+    const path = require('path');
+    const fs = require('fs');
+    
+    console.log('Starting DMG installation:', dmgPath);
+    
+    try {
+      // 1. 挂载DMG文件
+      const { stdout: mountOutput } = await execAsync(`hdiutil attach "${dmgPath}" -nobrowse -quiet`);
+      console.log('DMG mounted successfully');
+      
+      // 解析挂载点
+      const mountPoint = mountOutput.trim().split('\n').pop()?.split('\t').pop();
+      if (!mountPoint) {
+        throw new Error('Failed to find mount point');
+      }
+      
+      console.log('Mount point:', mountPoint);
+      
+      try {
+        // 2. 查找.app文件
+        const files = fs.readdirSync(mountPoint);
+        const appFile = files.find((file: string) => file.endsWith('.app'));
+        
+        if (!appFile) {
+          throw new Error('No .app file found in DMG');
+        }
+        
+        const sourcePath = path.join(mountPoint, appFile);
+        const targetPath = `/Applications/${appFile}`;
+        
+        console.log('Installing app:', { sourcePath, targetPath });
+        
+        // 3. 如果目标应用已存在，先删除
+        if (fs.existsSync(targetPath)) {
+          console.log('Removing existing application');
+          await execAsync(`rm -rf "${targetPath}"`);
+        }
+        
+        // 4. 复制新应用到Applications目录
+        console.log('Copying application to Applications folder');
+        await execAsync(`cp -R "${sourcePath}" "/Applications/"`);
+        
+        console.log('Application copied successfully');
+        
+      } finally {
+        // 5. 卸载DMG
+        try {
+          await execAsync(`hdiutil detach "${mountPoint}" -quiet`);
+          console.log('DMG unmounted successfully');
+        } catch (unmountError) {
+          console.warn('Failed to unmount DMG:', unmountError);
+          // 卸载失败不影响安装结果
+        }
+      }
+      
+    } catch (error) {
+      console.error('DMG installation failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 安装EXE文件 (Windows)
+   */
+  private async installEXEFile(exePath: string): Promise<void> {
+    const { promisify } = require('util');
+    const { exec } = require('child_process');
+    const execAsync = promisify(exec);
+    
+    console.log('Installing EXE file:', exePath);
+    
+    try {
+      // Windows安装器通常支持静默安装
+      await execAsync(`"${exePath}" /S`);
+      console.log('EXE installation completed');
+    } catch (error) {
+      // 如果静默安装失败，尝试普通安装
+      console.log('Silent installation failed, trying normal installation');
+      await execAsync(`"${exePath}"`);
+    }
+  }
+
+  /**
+   * 安装AppImage文件 (Linux)
+   */
+  private async installAppImageFile(appImagePath: string): Promise<void> {
+    const { promisify } = require('util');
+    const { exec } = require('child_process');
+    const execAsync = promisify(exec);
+    const path = require('path');
+    const fs = require('fs');
+    
+    console.log('Installing AppImage file:', appImagePath);
+    
+    try {
+      // 1. 将AppImage复制到用户的bin目录
+      const binDir = path.join(process.env.HOME || '/home/user', '.local', 'bin');
+      const fileName = path.basename(appImagePath);
+      const targetPath = path.join(binDir, fileName);
+      
+      // 确保目录存在
+      await execAsync(`mkdir -p "${binDir}"`);
+      
+      // 复制文件
+      await execAsync(`cp "${appImagePath}" "${targetPath}"`);
+      
+      // 设置执行权限
+      await execAsync(`chmod +x "${targetPath}"`);
+      
+      console.log('AppImage installation completed');
+    } catch (error) {
+      console.error('AppImage installation failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * 安装DEB文件 (Linux)
+   */
+  private async installDebFile(debPath: string): Promise<void> {
+    const { promisify } = require('util');
+    const { exec } = require('child_process');
+    const execAsync = promisify(exec);
+    
+    console.log('Installing DEB file:', debPath);
+    
+    try {
+      // 使用dpkg安装deb包
+      await execAsync(`sudo dpkg -i "${debPath}"`);
+      console.log('DEB installation completed');
+    } catch (error) {
+      console.error('DEB installation failed:', error);
+      throw error;
+    }
+  }
 
 
   /**
