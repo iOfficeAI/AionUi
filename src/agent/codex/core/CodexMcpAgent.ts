@@ -6,11 +6,15 @@
 
 import type { NetworkError, CodexEventEnvelope } from '@/agent/codex/connection/CodexMcpConnection';
 import { CodexMcpConnection } from '@/agent/codex/connection/CodexMcpConnection';
-import { APP_CLIENT_NAME, APP_CLIENT_VERSION, CODEX_MCP_PROTOCOL_VERSION } from '@/common/constants';
 import type { FileChange, CodexEventParams } from '@/common/codexTypes';
 import type { CodexEventHandler } from '@/agent/codex/handlers/CodexEventHandler';
 import type { CodexSessionManager } from '@/agent/codex/handlers/CodexSessionManager';
 import type { CodexFileOperationHandler } from '@/agent/codex/handlers/CodexFileOperationHandler';
+import { getConfiguredAppClientName, getConfiguredAppClientVersion, getConfiguredCodexMcpProtocolVersion } from './appConfig';
+
+const APP_CLIENT_NAME = getConfiguredAppClientName();
+const APP_CLIENT_VERSION = getConfiguredAppClientVersion();
+const CODEX_MCP_PROTOCOL_VERSION = getConfiguredCodexMcpProtocolVersion();
 
 export interface CodexAgentConfig {
   id: string;
@@ -60,8 +64,6 @@ export class CodexMcpAgent {
 
       // MCP initialize handshake with better error handling
 
-
-
       // Try different initialization approaches
       try {
         const _initializeResult = await this.conn.request(
@@ -82,7 +84,6 @@ export class CodexMcpAgent {
         }
       }
     } catch (error) {
-
       // Provide more specific error messages
       if (error instanceof Error) {
         if (error.message.includes('timed out')) {
@@ -166,7 +167,6 @@ export class CodexMcpAgent {
         if (attempt === maxRetries) {
           break;
         }
-
 
         // 指数退避：2s, 4s, 8s
         const delay = 2000 * Math.pow(2, attempt - 1);
