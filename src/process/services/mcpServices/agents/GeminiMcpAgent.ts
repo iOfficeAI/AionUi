@@ -8,7 +8,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import type { McpOperationResult } from '../McpProtocol';
 import { AbstractMcpAgent } from '../McpProtocol';
-import type { IMcpServer } from '@mcp/storage';
+import type { IMcpServer } from '../../../../common/storage';
 
 const execAsync = promisify(exec);
 
@@ -130,7 +130,7 @@ export class GeminiMcpAgent extends AbstractMcpAgent {
 
           // 添加参数
           if (server.transport.args?.length) {
-            const quotedArgs = server.transport.args.map((arg) => `"${arg}"`).join(' ');
+            const quotedArgs = server.transport.args.map((arg: string) => `"${arg}"`).join(' ');
             command += ` ${quotedArgs}`;
           }
 

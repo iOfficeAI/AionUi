@@ -5,7 +5,7 @@
  */
 
 import type { AcpBackend } from '../../../types/acpTypes';
-import type { IMcpServer } from '@mcp/storage';
+import type { IMcpServer } from '../../../common/storage';
 import { ClaudeMcpAgent } from './agents/ClaudeMcpAgent';
 import { QwenMcpAgent } from './agents/QwenMcpAgent';
 import { IflowMcpAgent } from './agents/IflowMcpAgent';

@@ -8,7 +8,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import type { McpOperationResult } from '../McpProtocol';
 import { AbstractMcpAgent } from '../McpProtocol';
-import type { IMcpServer } from '@mcp/storage';
+import type { IMcpServer } from '../../../../common/storage';
 
 const execAsync = promisify(exec);
 
@@ -140,7 +140,7 @@ export class IflowMcpAgent extends AbstractMcpAgent {
           if (server.transport.type === 'stdio' && 'command' in server.transport) {
             addCommand += ` "${server.transport.command}"`;
             if (server.transport.args && server.transport.args.length > 0) {
-              addCommand += ` ${server.transport.args.map((arg) => `"${arg}"`).join(' ')}`;
+              addCommand += ` ${server.transport.args.map((arg: string) => `"${arg}"`).join(' ')}`;
             }
             addCommand += ' --transport stdio';
 
