@@ -156,7 +156,7 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
         const timeoutDuration = transport.command === 'npx' ? 45000 : 20000;
         const timeout = setTimeout(() => {
           child.kill();
-          resolve({ success: false, error: `Connection timeout after ${timeoutDuration/1000}s` });
+          resolve({ success: false, error: `Connection timeout after ${timeoutDuration / 1000}s` });
         }, timeoutDuration);
 
         const cleanup = () => {
@@ -230,31 +230,28 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
                   const { exec } = await import('child_process');
                   const { promisify } = await import('util');
                   const execAsync = promisify(exec);
-                  
+
                   // 快速清理，设置超时
-                  await Promise.race([
-                    execAsync('npm cache clean --force && rm -rf ~/.npm/_npx'),
-                    new Promise((_, reject) => setTimeout(() => reject(new Error('Cleanup timeout')), 10000))
-                  ]);
-                  
+                  await Promise.race([execAsync('npm cache clean --force && rm -rf ~/.npm/_npx'), new Promise((_, reject) => setTimeout(() => reject(new Error('Cleanup timeout')), 10000))]);
+
                   // 重试连接
                   const retryResult = await this.testStdioConnection(transport, retryCount + 1);
                   resolve(retryResult);
                 } catch (cleanupError) {
-                  resolve({ 
-                    success: false, 
-                    error: `npm cache corruption detected. Auto-cleanup failed, please manually run: npm cache clean --force` 
+                  resolve({
+                    success: false,
+                    error: `npm cache corruption detected. Auto-cleanup failed, please manually run: npm cache clean --force`,
                   });
                 }
               }, 100);
               return;
             }
-            
+
             let error = `Process exited with code ${code}. Error: ${errorData}`;
             if (code === 190 && errorData.includes('ENOTEMPTY')) {
               error = `npm cache corruption detected. Please manually run: npm cache clean --force && rm -rf ~/.npm/_npx`;
             }
-            
+
             resolve({ success: false, error });
           } else {
             resolve({ success: false, error: 'Process exited without providing tools list' });

@@ -12,7 +12,10 @@ import { UPDATE_CONFIG } from '../common/update/updateConfig';
 export const VersionInfoSchema = z.object({
   current: z.string().regex(/^\d+\.\d+\.\d+.*$/, 'Invalid semver format'),
   latest: z.string().regex(/^\d+\.\d+\.\d+.*$/, 'Invalid semver format'),
-  minimumRequired: z.string().regex(/^\d+\.\d+\.\d+.*$/, 'Invalid semver format').optional(),
+  minimumRequired: z
+    .string()
+    .regex(/^\d+\.\d+\.\d+.*$/, 'Invalid semver format')
+    .optional(),
   releaseDate: z.string().datetime().optional(),
   releaseNotes: z.string().optional(),
   publishedAt: z.date().optional(),
@@ -59,7 +62,6 @@ export const UpdateSessionSchema = z.object({
 });
 
 export type UpdateSession = z.infer<typeof UpdateSessionSchema>;
-
 
 // ===== Update History =====
 
@@ -140,18 +142,22 @@ export type RollbackResult = z.infer<typeof RollbackResultSchema>;
 
 export const UpdateConfigurationSchema = z.object({
   enableManualCheck: z.boolean().default(true),
-  downloadOptions: z.object({
-    maxSpeed: z.number().min(0).optional(),
-    retryCount: z.number().min(0).max(10).default(3),
-    timeout: z.number().min(1000).default(30000),
-    resumable: z.boolean().default(true),
-  }).optional(),
-  installOptions: z.object({
-    silent: z.boolean().default(false),
-    restartAfterInstall: z.boolean().default(true),
-    backupCurrent: z.boolean().default(true),
-    validateSignature: z.boolean().default(true),
-  }).optional(),
+  downloadOptions: z
+    .object({
+      maxSpeed: z.number().min(0).optional(),
+      retryCount: z.number().min(0).max(10).default(3),
+      timeout: z.number().min(1000).default(30000),
+      resumable: z.boolean().default(true),
+    })
+    .optional(),
+  installOptions: z
+    .object({
+      silent: z.boolean().default(false),
+      restartAfterInstall: z.boolean().default(true),
+      backupCurrent: z.boolean().default(true),
+      validateSignature: z.boolean().default(true),
+    })
+    .optional(),
 });
 
 export type UpdateConfiguration = z.infer<typeof UpdateConfigurationSchema>;

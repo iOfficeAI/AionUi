@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { bridge } from '@office-ai/platform';
 import { autoUpdate, updateProgressStream } from '@/common/ipcBridge';
 import { autoUpdateBridgeProvider } from './autoUpdateBridgeProvider';
 
@@ -20,7 +21,6 @@ export function initAutoUpdateBridge(): void {
   autoUpdate.getVersionInfo.provider(async () => {
     return await autoUpdateBridgeProvider.getVersionInfo();
   });
-
 
   // 开始下载更新
   autoUpdate.downloadUpdate.provider(async (params) => {

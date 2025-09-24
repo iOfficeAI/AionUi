@@ -20,17 +20,17 @@ interface UpdateDialogProps {
    * 是否显示对话框
    */
   visible: boolean;
-  
+
   /**
    * 关闭对话框的回调
    */
   onClose: () => void;
-  
+
   /**
    * 对话框类型
    */
   type?: 'update-available' | 'force-update' | 'download-progress';
-  
+
   /**
    * 是否允许用户关闭对话框（强制更新时为 false）
    */
@@ -39,36 +39,15 @@ interface UpdateDialogProps {
 
 /**
  * UpdateDialog - 更新对话框组件
- * 
+ *
  * 用于显示更新相关的模态对话框
  */
-export const UpdateDialog: React.FC<UpdateDialogProps> = ({
-  visible,
-  onClose,
-  type = 'update-available',
-  closable = true,
-}) => {
+export const UpdateDialog: React.FC<UpdateDialogProps> = ({ visible, onClose, type = 'update-available', closable = true }) => {
   const { t } = useTranslation();
   const [isConfirming, setIsConfirming] = useState(false);
   const { buildPackageInfo } = useUpdateUtils();
-  
-  const {
-    state,
-    status,
-    hasUpdate,
-    isDownloading,
-    isDownloaded,
-    hasError,
-    currentVersion,
-    latestVersion,
-    isMajorUpdate,
-    version,
-    downloadSession,
-    error,
-    downloadUpdate,
-    installAndRestart,
-    checkForUpdates,
-  } = useAutoUpdate();
+
+  const { state, status, hasUpdate, isDownloading, isDownloaded, hasError, currentVersion, latestVersion, isMajorUpdate, version, downloadSession, error, downloadUpdate, installAndRestart, checkForUpdates } = useAutoUpdate();
 
   // 获取对话框标题
   const getDialogTitle = () => {
@@ -87,12 +66,12 @@ export const UpdateDialog: React.FC<UpdateDialogProps> = ({
     if (!version || !hasUpdate) return;
 
     setIsConfirming(true);
-    
+
     try {
       // 优先使用真实的包信息
       const realPackages = state.updateCheckResult?.availablePackages;
       let packageInfo;
-      
+
       if (realPackages && realPackages.length > 0) {
         // 使用第一个兼容的包
         packageInfo = realPackages[0];
@@ -120,16 +99,15 @@ export const UpdateDialog: React.FC<UpdateDialogProps> = ({
   // 处理安装并重启
   const handleInstallAndRestart = async () => {
     if (!downloadSession) return;
-    
+
     setIsConfirming(true);
-    
+
     try {
       await installAndRestart(downloadSession.sessionId);
     } finally {
       setIsConfirming(false);
     }
   };
-
 
   // 渲染更新可用内容
   const renderUpdateAvailableContent = () => {
@@ -140,21 +118,21 @@ export const UpdateDialog: React.FC<UpdateDialogProps> = ({
     return (
       <div>
         <Alert
-          type="info"
+          type='info'
           icon={<IconExclamationCircleFill />}
-          title={t('update.newVersionAvailable', { 
+          title={t('update.newVersionAvailable', {
             type: updateType,
-            version: latestVersion 
+            version: latestVersion,
           })}
-          className="mb-16px"
+          className='mb-16px'
         />
 
-        <Space direction="vertical" style={{ gap: '16px' }} className="w-full">
+        <Space direction='vertical' style={{ gap: '16px' }} className='w-full'>
           <div>
             <Text style={{ fontWeight: 'bold' }}>{t('update.currentVersion')}: </Text>
             <Text code>{currentVersion}</Text>
           </div>
-          
+
           <div>
             <Text style={{ fontWeight: 'bold' }}>{t('update.newVersion')}: </Text>
             <Text code>{latestVersion}</Text>
@@ -165,13 +143,13 @@ export const UpdateDialog: React.FC<UpdateDialogProps> = ({
               <Divider />
               <div>
                 <Title heading={6}>{t('update.releaseNotes')}</Title>
-                <Paragraph 
-                  style={{ 
-                    maxHeight: '200px', 
+                <Paragraph
+                  style={{
+                    maxHeight: '200px',
                     overflowY: 'auto',
                     backgroundColor: 'var(--color-fill-2)',
                     padding: '12px',
-                    borderRadius: '4px'
+                    borderRadius: '4px',
                   }}
                 >
                   {version.releaseNotes}
@@ -180,13 +158,7 @@ export const UpdateDialog: React.FC<UpdateDialogProps> = ({
             </>
           )}
 
-          {isMajorUpdate && (
-            <Alert
-              type="warning"
-              content={t('update.majorUpdateWarning')}
-              showIcon
-            />
-          )}
+          {isMajorUpdate && <Alert type='warning' content={t('update.majorUpdateWarning')} showIcon />}
         </Space>
       </div>
     );
@@ -196,30 +168,20 @@ export const UpdateDialog: React.FC<UpdateDialogProps> = ({
   const renderForceUpdateContent = () => {
     return (
       <div>
-        <Alert
-          type="error"
-          icon={<IconExclamationCircleFill />}
-          title={t('update.forceUpdateRequired')}
-          content={t('update.forceUpdateMessage')}
-          className="mb-16px"
-        />
+        <Alert type='error' icon={<IconExclamationCircleFill />} title={t('update.forceUpdateRequired')} content={t('update.forceUpdateMessage')} className='mb-16px' />
 
-        <Space direction="vertical" style={{ gap: '16px' }} className="w-full">
+        <Space direction='vertical' style={{ gap: '16px' }} className='w-full'>
           <div>
             <Text style={{ fontWeight: 'bold' }}>{t('update.currentVersion')}: </Text>
             <Text code>{currentVersion}</Text>
           </div>
-          
+
           <div>
             <Text style={{ fontWeight: 'bold' }}>{t('update.minimumVersion')}: </Text>
             <Text code>{latestVersion}</Text>
           </div>
 
-          <Alert
-            type="warning"
-            content={t('update.forceUpdateWarning')}
-            showIcon
-          />
+          <Alert type='warning' content={t('update.forceUpdateWarning')} showIcon />
         </Space>
       </div>
     );
@@ -230,20 +192,9 @@ export const UpdateDialog: React.FC<UpdateDialogProps> = ({
     if (hasError) {
       return (
         <div>
-          <Alert
-            type="error"
-            title={t('update.downloadError')}
-            content={error}
-            showIcon
-            className="mb-16px"
-          />
-          
-          <Button 
-            type="primary" 
-            icon={<IconRefresh />}
-            onClick={() => checkForUpdates(true)}
-            loading={isConfirming}
-          >
+          <Alert type='error' title={t('update.downloadError')} content={error} showIcon className='mb-16px' />
+
+          <Button type='primary' icon={<IconRefresh />} onClick={() => checkForUpdates(true)} loading={isConfirming}>
             {t('update.retry')}
           </Button>
         </div>
@@ -253,16 +204,8 @@ export const UpdateDialog: React.FC<UpdateDialogProps> = ({
     return (
       <div>
         <UpdateProgress showDetails />
-        
-        {isDownloaded && (
-          <Alert
-            type="success"
-            title={t('update.downloadCompleted')}
-            content={t('update.readyToInstall')}
-            showIcon
-            className="mt-16px"
-          />
-        )}
+
+        {isDownloaded && <Alert type='success' title={t('update.downloadCompleted')} content={t('update.readyToInstall')} showIcon className='mt-16px' />}
       </div>
     );
   };
@@ -284,79 +227,52 @@ export const UpdateDialog: React.FC<UpdateDialogProps> = ({
     if (type === 'download-progress') {
       if (isDownloaded && downloadSession) {
         return [
-          <Button key="later" onClick={onClose}>
+          <Button key='later' onClick={onClose}>
             {t('update.installLater')}
           </Button>,
-          <Button 
-            key="install" 
-            type="primary"
-            loading={isConfirming}
-            onClick={handleInstallAndRestart}
-          >
+          <Button key='install' type='primary' loading={isConfirming} onClick={handleInstallAndRestart}>
             {t('update.installAndRestart')}
-          </Button>
+          </Button>,
         ];
       }
-      
+
       if (isDownloading) {
         return [
-          <Button key="background" onClick={onClose}>
+          <Button key='background' onClick={onClose}>
             {t('update.downloadInBackground')}
-          </Button>
+          </Button>,
         ];
       }
 
       return [
-        <Button key="close" onClick={onClose}>
+        <Button key='close' onClick={onClose}>
           {t('common.close')}
-        </Button>
+        </Button>,
       ];
     }
 
     if (type === 'force-update') {
       return [
-        <Button 
-          key="download" 
-          type="primary"
-          icon={<IconDownload />}
-          loading={isConfirming}
-          onClick={handleDownload}
-        >
+        <Button key='download' type='primary' icon={<IconDownload />} loading={isConfirming} onClick={handleDownload}>
           {t('update.downloadNow')}
-        </Button>
+        </Button>,
       ];
     }
 
     // update-available
     return [
-      <Button key="later" onClick={onClose}>
+      <Button key='later' onClick={onClose}>
         {t('update.remindLater')}
       </Button>,
-      <Button 
-        key="download" 
-        type="primary"
-        icon={<IconDownload />}
-        loading={isConfirming}
-        onClick={handleDownload}
-      >
+      <Button key='download' type='primary' icon={<IconDownload />} loading={isConfirming} onClick={handleDownload}>
         {t('update.downloadNow')}
-      </Button>
+      </Button>,
     ];
   };
 
   return (
-    <Modal
-      title={getDialogTitle()}
-      visible={visible}
-      onCancel={closable ? onClose : undefined}
-      closable={closable}
-      maskClosable={closable}
-      footer={getFooterButtons()}
-      style={{ top: '20vh', width: 500 }}
-    >
-      <Spin loading={status === UpdateStatus.CHECKING}>
-        {getDialogContent()}
-      </Spin>
+    <Modal title={getDialogTitle()} visible={visible} onCancel={closable ? onClose : undefined} closable={closable} maskClosable={closable} footer={getFooterButtons()} style={{ top: '20vh', width: 500 }}>
+      <Spin loading={status === UpdateStatus.CHECKING}>{getDialogContent()}</Spin>
     </Modal>
   );
 };
