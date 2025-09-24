@@ -33,7 +33,7 @@ export const geminiConversation = {
   sendMessage: sendMessage,
   confirmMessage: bridge.buildProvider<IBridgeResponse, IConfirmGeminiMessageParams>('input.confirm.message'),
   responseStream: responseStream,
-  getWorkspace: bridge.buildProvider<IDirOrFile[], { conversation_id: string }>('gemini.get-workspace'),
+  getWorkspace: bridge.buildProvider<IDirOrFile[], { workspace: string }>('gemini.get-workspace'),
 };
 
 export const application = {
@@ -77,7 +77,7 @@ export const acpConversation = {
   detectCliPath: bridge.buildProvider<IBridgeResponse<{ path?: string }>, { backend: AcpBackend }>('acp.detect-cli-path'),
   getAvailableAgents: bridge.buildProvider<IBridgeResponse<Array<{ backend: AcpBackend; name: string; cliPath?: string }>>, void>('acp.get-available-agents'),
   checkEnv: bridge.buildProvider<{ env: Record<string, string> }, void>('acp.check.env'),
-  getWorkspace: bridge.buildProvider<IDirOrFile[], { conversation_id: string }>('acp.get-workspace'),
+  getWorkspace: bridge.buildProvider<IDirOrFile[], { workspace: string }>('acp.get-workspace'),
   // clearAllCache: bridge.buildProvider<IBridgeResponse<{ details?: any }>, void>('acp.clear.all.cache'),
 };
 
