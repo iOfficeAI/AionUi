@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import type { IMessageCodexStatus } from '@/common/chatLib';
 import { Badge, Typography } from '@arco-design/web-react';
 import classNames from 'classnames';
 import React from 'react';
@@ -11,36 +12,41 @@ import { useTranslation } from 'react-i18next';
 
 const { Text } = Typography;
 
-interface CodexStatusContent {
+interface MessageCodexStatusProps {
+  message: IMessageCodexStatus;
+}
+
+// Extend the basic codex status content to include optional backend property
+interface ICodexStatusContent {
   status: string;
   message: string;
+  sessionId?: string;
+  isConnected?: boolean;
+  hasActiveSession?: boolean;
   backend?: string;
 }
 
-interface CodexStatusMessageProps {
-  content: CodexStatusContent;
-}
-
-const CodexStatusMessage: React.FC<CodexStatusMessageProps> = ({ content }) => {
+const CodexStatusMessage: React.FC<MessageCodexStatusProps> = ({ message }) => {
   const { t } = useTranslation();
-  const { status, message: statusMessage, backend } = content;
+  const { status, message: statusMessage } = message.content as ICodexStatusContent;
+  const backend = (message.content as ICodexStatusContent).backend;
 
   const getStatusBadge = () => {
     switch (status) {
       case 'connecting':
-        return <Badge status='processing' text={t('codex.status.connecting', { defaultValue: 'Connecting' })} />;
+        return <Badge status='processing' text={t('codex.status.connecting')} />;
       case 'connected':
-        return <Badge status='success' text={t('codex.status.connected', { defaultValue: 'Connected' })} />;
+        return <Badge status='success' text={t('codex.status.connected')} />;
       case 'authenticated':
-        return <Badge status='success' text={t('codex.status.authenticated', { defaultValue: 'Authenticated' })} />;
+        return <Badge status='success' text={t('codex.status.authenticated')} />;
       case 'session_active':
-        return <Badge status='success' text={t('codex.status.session_active', { defaultValue: 'Session Active' })} />;
+        return <Badge status='success' text={t('codex.status.session_active')} />;
       case 'disconnected':
-        return <Badge status='default' text={t('codex.status.disconnected', { defaultValue: 'Disconnected' })} />;
+        return <Badge status='default' text={t('codex.status.disconnected')} />;
       case 'error':
-        return <Badge status='error' text={t('codex.status.error', { defaultValue: 'Error' })} />;
+        return <Badge status='error' text={t('codex.status.error')} />;
       default:
-        return <Badge status='default' text={t('codex.status.unknown', { defaultValue: 'Unknown' })} />;
+        return <Badge status='default' text={t('codex.status.unknown')} />;
     }
   };
 
@@ -75,9 +81,11 @@ const CodexStatusMessage: React.FC<CodexStatusMessageProps> = ({ content }) => {
 
       <div className='flex-1'>{getStatusBadge()}</div>
 
-      <div className='text-sm'>
-        <Text type='secondary'>{statusMessage}</Text>
-      </div>
+      {statusMessage && (
+        <div className='text-sm'>
+          <Text type='secondary'>{statusMessage}</Text>
+        </div>
+      )}
     </div>
   );
 };
