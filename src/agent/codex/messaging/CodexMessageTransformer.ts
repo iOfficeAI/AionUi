@@ -7,7 +7,6 @@
 import type { TMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import { uuid } from '@/common/utils';
-import { t } from 'i18next';
 
 /**
  * Codex 特定消息类型的转换器
@@ -51,19 +50,9 @@ export class CodexMessageTransformer {
     try {
       switch (message.type) {
         case 'agent_reasoning': {
-          console.log('🤔 [CodexMessageTransformer] Creating thinking start message');
-          // 使用固定的msg_id确保所有推理消息合并为一个
-          return {
-            id: uuid(),
-            type: 'tips',
-            msg_id: 'codex_thinking_global',
-            position: 'center',
-            conversation_id: message.conversation_id,
-            content: {
-              content: t('codex.thinking.processing'),
-              type: 'success' as const,
-            },
-          };
+          console.log('🤔 [CodexMessageTransformer] Agent reasoning started - handled by UI state, not persisted');
+          // Thinking状态由前端UI状态管理，不需要持久化存储
+          return undefined;
         }
 
         case 'agent_reasoning_delta': {
@@ -72,26 +61,9 @@ export class CodexMessageTransformer {
         }
 
         case 'agent_reasoning_raw_content': {
-          console.log('💭 [CodexMessageTransformer] Creating thinking completion message');
-          // 思考完成，使用相同的msg_id替换之前的思考消息
-          const completionMessage = {
-            id: uuid(),
-            type: 'tips' as const,
-            msg_id: 'codex_thinking_global',
-            position: 'center' as const,
-            conversation_id: message.conversation_id,
-            content: {
-              content: t('codex.thinking.completed'),
-              type: 'success' as const,
-            },
-          };
-
-          // Ensure completion message is visible for a minimum duration
-          setTimeout(() => {
-            console.log('💭 [CodexMessageTransformer] Thinking completion message display period ended');
-          }, 2000);
-
-          return completionMessage;
+          console.log('💭 [CodexMessageTransformer] Agent reasoning completed - handled by UI state, not persisted');
+          // Thinking完成状态由前端UI状态管理，不需要持久化存储
+          return undefined;
         }
 
         case 'agent_reasoning_raw_content_delta': {

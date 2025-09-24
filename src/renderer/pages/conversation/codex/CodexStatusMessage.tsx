@@ -7,6 +7,7 @@
 import { Badge, Typography } from '@arco-design/web-react';
 import classNames from 'classnames';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 const { Text } = Typography;
 
@@ -21,24 +22,25 @@ interface CodexStatusMessageProps {
 }
 
 const CodexStatusMessage: React.FC<CodexStatusMessageProps> = ({ content }) => {
+  const { t } = useTranslation();
   const { status, message: statusMessage, backend } = content;
 
   const getStatusBadge = () => {
     switch (status) {
       case 'connecting':
-        return <Badge status='processing' text='Connecting' />;
+        return <Badge status='processing' text={t('codex.status.connecting', { defaultValue: 'Connecting' })} />;
       case 'connected':
-        return <Badge status='success' text='Connected' />;
+        return <Badge status='success' text={t('codex.status.connected', { defaultValue: 'Connected' })} />;
       case 'authenticated':
-        return <Badge status='success' text='Authenticated' />;
+        return <Badge status='success' text={t('codex.status.authenticated', { defaultValue: 'Authenticated' })} />;
       case 'session_active':
-        return <Badge status='success' text='Session Active' />;
+        return <Badge status='success' text={t('codex.status.session_active', { defaultValue: 'Session Active' })} />;
       case 'disconnected':
-        return <Badge status='default' text='Disconnected' />;
+        return <Badge status='default' text={t('codex.status.disconnected', { defaultValue: 'Disconnected' })} />;
       case 'error':
-        return <Badge status='error' text='Error' />;
+        return <Badge status='error' text={t('codex.status.error', { defaultValue: 'Error' })} />;
       default:
-        return <Badge status='default' text='Unknown' />;
+        return <Badge status='default' text={t('codex.status.unknown', { defaultValue: 'Unknown' })} />;
     }
   };
 

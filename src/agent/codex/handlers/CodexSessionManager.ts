@@ -7,7 +7,6 @@
 import { ipcBridge } from '@/common';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import { uuid } from '@/common/utils';
-import { t } from 'i18next';
 import { randomBytes } from 'crypto';
 
 export type CodexSessionStatus = 'initializing' | 'connecting' | 'connected' | 'authenticated' | 'session_active' | 'error' | 'disconnected';
@@ -55,11 +54,11 @@ export class CodexSessionManager {
    */
   private async performConnectionSequence(): Promise<void> {
     // 1. 连接阶段
-    this.setStatus('connecting', t('codex.status.connecting'));
+    this.setStatus('connecting', 'Connecting to Codex...');
     await this.establishConnection();
 
     // 2. 认证阶段
-    this.setStatus('connected', t('codex.status.connected'));
+    this.setStatus('connected', 'Connected to Codex MCP server');
     await this.performAuthentication();
 
     // 3. 会话创建阶段
@@ -67,7 +66,7 @@ export class CodexSessionManager {
     await this.createSession();
 
     // 4. 会话激活
-    this.setStatus('session_active', t('codex.status.session_active'));
+    this.setStatus('session_active', 'Active session created with Codex');
   }
 
   /**

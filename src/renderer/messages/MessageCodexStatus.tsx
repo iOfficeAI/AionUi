@@ -8,6 +8,7 @@ import type { IMessageCodexStatus } from '@/common/chatLib';
 import { Badge, Typography } from '@arco-design/web-react';
 import classNames from 'classnames';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 const { Text } = Typography;
 
@@ -16,24 +17,25 @@ interface MessageCodexStatusProps {
 }
 
 const MessageCodexStatus: React.FC<MessageCodexStatusProps> = ({ message }) => {
-  const { status, message: statusMessage } = message.content;
+  const { t } = useTranslation();
+  const { status } = message.content;
 
   const getStatusBadge = () => {
     switch (status) {
       case 'connecting':
-        return <Badge status='processing' text='Connecting' />;
+        return <Badge status='processing' text={t('codex.status.connecting')} />;
       case 'connected':
-        return <Badge status='success' text='Connected' />;
+        return <Badge status='success' text={t('codex.status.connected')} />;
       case 'authenticated':
-        return <Badge status='success' text='Authenticated' />;
+        return <Badge status='success' text={t('codex.status.authenticated')} />;
       case 'session_active':
-        return <Badge status='success' text='Session Active' />;
+        return <Badge status='success' text={t('codex.status.session_active')} />;
       case 'disconnected':
-        return <Badge status='default' text='Disconnected' />;
+        return <Badge status='default' text={t('codex.status.disconnected')} />;
       case 'error':
-        return <Badge status='error' text='Error' />;
+        return <Badge status='error' text={t('codex.status.error')} />;
       default:
-        return <Badge status='default' text='Unknown' />;
+        return <Badge status='default' text={t('codex.status.unknown')} />;
     }
   };
 
@@ -53,10 +55,6 @@ const MessageCodexStatus: React.FC<MessageCodexStatusProps> = ({ message }) => {
       </div>
 
       <div className='flex-1'>{getStatusBadge()}</div>
-
-      <div className='text-sm'>
-        <Text type='secondary'>{statusMessage}</Text>
-      </div>
     </div>
   );
 };
