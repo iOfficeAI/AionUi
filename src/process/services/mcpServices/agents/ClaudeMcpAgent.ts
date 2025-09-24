@@ -11,7 +11,7 @@ import { join } from 'path';
 import { homedir } from 'os';
 import type { McpOperationResult } from '../McpProtocol';
 import { AbstractMcpAgent } from '../McpProtocol';
-import type { IMcpServer } from '@mcp/storage';
+import type { IMcpServer } from '../../../../common/storage';
 
 const execAsync = promisify(exec);
 
@@ -152,7 +152,7 @@ export class ClaudeMcpAgent extends AbstractMcpAgent {
             command += ' --';
             if (server.transport.args?.length) {
               // 对每个参数进行适当的引用，防止包含特殊字符的参数被误解析
-              const quotedArgs = server.transport.args.map((arg) => `"${arg}"`).join(' ');
+              const quotedArgs = server.transport.args.map((arg: string) => `"${arg}"`).join(' ');
               command += ` ${quotedArgs}`;
             }
           }
