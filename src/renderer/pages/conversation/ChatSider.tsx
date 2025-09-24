@@ -12,11 +12,11 @@ const ChatSider: React.FC<{
   conversation?: TChatConversation;
 }> = ({ conversation }) => {
   if (conversation?.type === 'gemini') {
-    return <GeminiWorkspace conversation_id={conversation.id} workspace={conversation.extra.workspace} customWorkspace={conversation.extra.customWorkspace}></GeminiWorkspace>;
+    return <GeminiWorkspace workspace={conversation.extra.workspace} customWorkspace={conversation.extra.customWorkspace}></GeminiWorkspace>;
   }
 
   if (conversation?.type === 'acp' && conversation.extra?.workspace) {
-    return <GeminiWorkspace conversation_id={conversation.id} workspace={conversation.extra.workspace} customWorkspace={conversation.extra.customWorkspace} eventPrefix='acp'></GeminiWorkspace>;
+    return <GeminiWorkspace workspace={conversation.extra.workspace} customWorkspace={conversation.extra.customWorkspace} eventPrefix='acp'></GeminiWorkspace>;
   }
 
   return <div></div>;

@@ -25,8 +25,6 @@ import { acpDetector } from '@/agent/acp/AcpDetector';
 
 logger.config({ print: true });
 
-const unsavedConversations = new Map<string, TChatConversation>();
-
 ipcBridge.dialog.showOpen.provider((options) => {
   return dialog
     .showOpenDialog({
@@ -181,7 +179,14 @@ ipcBridge.conversation.create.provider(async (params): Promise<TChatConversation
       conversation.name = name;
     }
     WorkerManage.buildConversation(conversation);
-    unsavedConversations.set(conversation.id, conversation);
+    await ProcessChat.get('chat.history').then((history) => {
+      if (!history || !Array.isArray(history)) {
+        return ProcessChat.set('chat.history', [conversation]);
+      } else {
+        //相同工作目录重开一个对话，处理逻辑改为新增一条对话记录
+        return ProcessChat.set('chat.history', [...history.filter((h) => h.id !== conversation.id), conversation]);
+      }
+    });
     return conversation;
   } catch (e) {
     return null;
@@ -249,18 +254,6 @@ ipcBridge.geminiConversation.sendMessage.provider(async ({ conversation_id, file
   const task = WorkerManage.getTaskById(conversation_id) as GeminiAgentManager;
   if (!task) return { success: false, msg: 'conversation not found' };
   if (task.type !== 'gemini') return { success: false, msg: 'unsupported task type for Gemini provider' };
-
-  const history = (await ProcessChat.get('chat.history')) || [];
-  const conversationExists = history.some((c: TChatConversation) => c.id === conversation_id);
-
-  if (!conversationExists) {
-    const conversationToSave = unsavedConversations.get(conversation_id);
-    if (conversationToSave) {
-      await ProcessChat.set('chat.history', [...history, conversationToSave]);
-      unsavedConversations.delete(conversation_id);
-    }
-  }
-
   await copyFilesToDirectory(task.workspace, files);
 
   // Support Gemini tasks only, ACP has its own provider
@@ -305,18 +298,6 @@ ipcBridge.acpConversation.sendMessage.provider(async ({ conversation_id, files, 
     }
   }
   if (task.type !== 'acp') return { success: false, msg: 'unsupported task type for ACP provider' };
-
-  const history = (await ProcessChat.get('chat.history')) || [];
-  const conversationExists = history.some((c: TChatConversation) => c.id === conversation_id);
-
-  if (!conversationExists) {
-    const conversationToSave = unsavedConversations.get(conversation_id);
-    if (conversationToSave) {
-      await ProcessChat.set('chat.history', [...history, conversationToSave]);
-      unsavedConversations.delete(conversation_id);
-    }
-  }
-
   await copyFilesToDirectory(task.workspace, files);
   return task
     .sendMessage({ content: other.input, files, msg_id: other.msg_id })
@@ -411,24 +392,15 @@ ipcBridge.conversation.stop.provider(async ({ conversation_id }) => {
   return task.stop().then(() => ({ success: true }));
 });
 
-ipcBridge.geminiConversation.getWorkspace.provider(async ({ conversation_id }) => {
-  const history = (await ProcessChat.get('chat.history')) || [];
-  const conversation = history.find((c) => c.id === conversation_id);
-  if (!conversation) {
-    return [];
-  }
-  const task = WorkerManage.buildConversation(conversation) as GeminiAgentManager;
+ipcBridge.geminiConversation.getWorkspace.provider(async ({ workspace }) => {
+  const task = WorkerManage.getTaskById(generateHashWithFullName(workspace));
   if (!task || task.type !== 'gemini') return [];
   return task.postMessagePromise('gemini.get.workspace', {});
 });
 
 // ACP 的 getWorkspace 实现
-ipcBridge.acpConversation.getWorkspace.provider(async ({ conversation_id }) => {
+ipcBridge.acpConversation.getWorkspace.provider(async ({ workspace }) => {
   try {
-    const task = WorkerManage.getTaskById(conversation_id) as AcpAgentManager;
-    if (!task) return [];
-    const workspace = task.workspace;
-
     const fs = await import('fs');
     const path = await import('path');
 
