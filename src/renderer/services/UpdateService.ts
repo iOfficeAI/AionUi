@@ -5,13 +5,7 @@
  */
 
 import { autoUpdate, updateProgressStream } from '@/common/ipcBridge';
-import type {
-  IUpdateCheckResult,
-  IVersionInfoData,
-  IDownloadUpdateParams,
-  IUpdateSessionData,
-  IUpdateProgressEvent
-} from '@/common/ipcBridge';
+import type { IUpdateCheckResult, IVersionInfoData, IDownloadUpdateParams, IUpdateSessionData, IUpdateProgressEvent } from '@/common/ipcBridge';
 
 /**
  * 更新状态枚举
@@ -23,7 +17,7 @@ export enum UpdateStatus {
   NOT_AVAILABLE = 'not_available',
   DOWNLOADING = 'downloading',
   DOWNLOADED = 'downloaded',
-  ERROR = 'error'
+  ERROR = 'error',
 }
 
 /**
@@ -42,12 +36,7 @@ export interface UpdateState {
 /**
  * 更新事件类型
  */
-export type UpdateEventType = 
-  | 'status-changed'
-  | 'version-info-updated'
-  | 'progress-updated'
-  | 'download-completed'
-  | 'error-occurred';
+export type UpdateEventType = 'status-changed' | 'version-info-updated' | 'progress-updated' | 'download-completed' | 'error-occurred';
 
 /**
  * 事件监听器
@@ -56,7 +45,7 @@ export type UpdateEventListener = (state: UpdateState) => void;
 
 /**
  * UpdateService - 渲染进程更新服务
- * 
+ *
  * 提供：
  * - 版本检查和更新状态管理
  * - 下载进度跟踪
@@ -64,7 +53,7 @@ export type UpdateEventListener = (state: UpdateState) => void;
  */
 export class UpdateService {
   private state: UpdateState = {
-    status: UpdateStatus.IDLE
+    status: UpdateStatus.IDLE,
   };
 
   private listeners: Map<UpdateEventType, Set<UpdateEventListener>> = new Map();
@@ -119,7 +108,7 @@ export class UpdateService {
   async getVersionInfo(): Promise<IVersionInfoData | null> {
     try {
       const result = await autoUpdate.getVersionInfo.invoke();
-      
+
       if (result.success && result.data) {
         this.state.version = result.data;
         this.emit('version-info-updated');
@@ -132,7 +121,6 @@ export class UpdateService {
       return null;
     }
   }
-
 
   /**
    * 下载更新
@@ -149,7 +137,7 @@ export class UpdateService {
       }
 
       const sessionId = result.data.sessionId;
-      
+
       // 获取会话信息
       const sessionResult = await autoUpdate.getDownloadSession.invoke({ sessionId });
       if (sessionResult.success && sessionResult.data) {
@@ -195,13 +183,13 @@ export class UpdateService {
   async cancelDownload(sessionId: string): Promise<boolean> {
     try {
       const result = await autoUpdate.cancelDownload.invoke({ sessionId });
-      
+
       if (result.success) {
         this.updateStatus(UpdateStatus.AVAILABLE);
         this.state.downloadSession = undefined;
         this.state.progress = undefined;
       }
-      
+
       return result.success;
     } catch (error) {
       console.error('Failed to cancel download:', error);
@@ -221,7 +209,6 @@ export class UpdateService {
       return false;
     }
   }
-
 
   // ===== 事件管理 =====
 
@@ -299,7 +286,7 @@ export class UpdateService {
         bytesDownloaded: event.bytesDownloaded,
         speed: event.speed,
         estimatedTimeRemaining: event.estimatedTimeRemaining,
-        error: event.error
+        error: event.error,
       };
     }
 
@@ -321,7 +308,6 @@ export class UpdateService {
     this.emit('progress-updated');
   }
 
-
   /**
    * 发送事件
    */
@@ -329,7 +315,7 @@ export class UpdateService {
     const listeners = this.listeners.get(eventType);
     if (listeners) {
       const state = this.getState();
-      listeners.forEach(listener => {
+      listeners.forEach((listener) => {
         try {
           listener(state);
         } catch (error) {

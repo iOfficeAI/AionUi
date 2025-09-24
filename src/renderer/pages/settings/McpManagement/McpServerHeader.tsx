@@ -37,14 +37,7 @@ const McpServerHeader: React.FC<McpServerHeaderProps> = ({ server, agentInstallS
       </div>
       <div className='flex items-center gap-2' onClick={(e) => e.stopPropagation()}>
         <McpAgentStatusDisplay serverName={server.name} agentInstallStatus={agentInstallStatus} isLoadingAgentStatus={isLoadingAgentStatus} />
-        <McpServerActions
-          server={server}
-          isTestingConnection={isTestingConnection}
-          onTestConnection={onTestConnection}
-          onEditServer={onEditServer}
-          onDeleteServer={onDeleteServer}
-          onToggleServer={onToggleServer}
-        />
+        <McpServerActions server={server} isTestingConnection={isTestingConnection} onTestConnection={onTestConnection} onEditServer={onEditServer} onDeleteServer={onDeleteServer} onToggleServer={onToggleServer} />
       </div>
     </div>
   );

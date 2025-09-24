@@ -11,7 +11,7 @@ import { formatBytes } from '../updateConfig';
 
 /**
  * Update Session Model
- * 
+ *
  * Tracks the state and progress of an ongoing update download and installation.
  * Provides real-time progress information and state management for update operations.
  */
@@ -24,7 +24,7 @@ export class UpdateSession {
     if (!validationResult.success) {
       throw new Error(`Invalid update session: ${validationResult.error.message}`);
     }
-    
+
     this.data = validationResult.data;
   }
 
@@ -33,11 +33,7 @@ export class UpdateSession {
   /**
    * Create a new UpdateSession for starting a download
    */
-  static create(params: {
-    sessionId: string;
-    updatePackage: UpdatePackage;
-    totalBytes?: number;
-  }): UpdateSession {
+  static create(params: { sessionId: string; updatePackage: UpdatePackage; totalBytes?: number }): UpdateSession {
     if (!params.sessionId || params.sessionId.trim() === '') {
       throw new Error('Session ID cannot be empty');
     }
@@ -162,10 +158,8 @@ export class UpdateSession {
    * Get elapsed time in milliseconds
    */
   getElapsedTime(): number {
-    const endTime = this.isActive() 
-      ? Date.now() 
-      : (this.data.completedAt || Date.now());
-    
+    const endTime = this.isActive() ? Date.now() : this.data.completedAt || Date.now();
+
     return endTime - this.data.startedAt;
   }
 
@@ -177,7 +171,7 @@ export class UpdateSession {
     if (elapsedSeconds <= 0) {
       return 0;
     }
-    
+
     return this.data.bytesDownloaded / elapsedSeconds;
   }
 
@@ -194,7 +188,7 @@ export class UpdateSession {
   getFormattedSpeed(): string {
     const speed = this.data.speed || this.getAverageSpeed();
     const speedKBps = speed / 1024;
-    
+
     if (speedKBps < 1024) {
       return `${speedKBps.toFixed(1)} KB/s`;
     } else {
@@ -253,9 +247,7 @@ export class UpdateSession {
       bytesDownloaded = this.data.totalBytes;
     }
 
-    const progress = this.data.totalBytes > 0 
-      ? (bytesDownloaded / this.data.totalBytes) * 100 
-      : 0;
+    const progress = this.data.totalBytes > 0 ? (bytesDownloaded / this.data.totalBytes) * 100 : 0;
 
     // Calculate estimated time remaining
     let estimatedTimeRemaining: number | undefined;
@@ -378,7 +370,7 @@ export class UpdateSession {
   getSummary(): string {
     const packageInfo = this.getUpdatePackage().getSummary();
     const statusInfo = this.getStatusInfo();
-    
+
     return `[${this.data.sessionId}] ${statusInfo} | ${packageInfo}`;
   }
 
@@ -403,13 +395,7 @@ export class UpdateSession {
    * Check equality with another UpdateSession
    */
   equals(other: UpdateSession): boolean {
-    return (
-      this.data.sessionId === other.data.sessionId &&
-      this.data.status === other.data.status &&
-      this.data.progress === other.data.progress &&
-      this.data.bytesDownloaded === other.data.bytesDownloaded &&
-      this.data.totalBytes === other.data.totalBytes
-    );
+    return this.data.sessionId === other.data.sessionId && this.data.status === other.data.status && this.data.progress === other.data.progress && this.data.bytesDownloaded === other.data.bytesDownloaded && this.data.totalBytes === other.data.totalBytes;
   }
 
   /**
@@ -425,19 +411,30 @@ export class UpdateSession {
     }
 
     const timeSinceLastUpdate = Date.now() - this.data.startedAt;
-    
+
     // Stalled if no update for more than 30 seconds
     if (timeSinceLastUpdate > 30000) {
       return 'stalled';
     }
 
     const currentSpeed = this.data.speed || this.getAverageSpeed();
-    
+
     // Slow if speed is less than 10 KB/s
     if (currentSpeed < 10 * 1024) {
       return 'slow';
     }
 
     return 'healthy';
+  }
+
+
+  /**
+   * Set the download path for completed downloads
+   */
+  withDownloadPath(downloadPath: string): UpdateSession {
+    return new UpdateSession({
+      ...this.data,
+      downloadPath,
+    });
   }
 }

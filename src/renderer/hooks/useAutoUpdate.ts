@@ -5,14 +5,14 @@
  */
 
 import { useCallback, useEffect, useState } from 'react';
-import { updateService, UpdateStatus, UpdateEventType } from '../services/UpdateService';
-import type { UpdateState, UpdateEventListener } from '../services/UpdateService';
+import { updateService, UpdateStatus } from '../services/UpdateService';
+import type { UpdateState, UpdateEventListener, UpdateEventType } from '../services/UpdateService';
 import type { IDownloadUpdateParams } from '@/common/ipcBridge';
 import { formatSpeed as formatSpeedFromConfig } from '../../common/update/updateConfig';
 
 /**
  * Auto-Update Hook
- * 
+ *
  * 提供更新功能集成：
  * - 状态管理和事件监听
  * - 版本检查和更新检测
@@ -29,15 +29,9 @@ export function useAutoUpdate() {
     };
 
     // 订阅所有更新事件
-    const eventTypes: UpdateEventType[] = [
-      'status-changed',
-      'version-info-updated',
-      'progress-updated',
-      'download-completed',
-      'error-occurred'
-    ];
+    const eventTypes: UpdateEventType[] = ['status-changed', 'version-info-updated', 'progress-updated', 'download-completed', 'error-occurred'];
 
-    eventTypes.forEach(eventType => {
+    eventTypes.forEach((eventType) => {
       updateService.addEventListener(eventType, handleStateChange);
     });
 
@@ -45,7 +39,7 @@ export function useAutoUpdate() {
     setState(updateService.getState());
 
     return () => {
-      eventTypes.forEach(eventType => {
+      eventTypes.forEach((eventType) => {
         updateService.removeEventListener(eventType, handleStateChange);
       });
     };
@@ -66,7 +60,6 @@ export function useAutoUpdate() {
   const getVersionInfo = useCallback(async () => {
     return await updateService.getVersionInfo();
   }, []);
-
 
   /**
    * 下载更新
@@ -103,7 +96,6 @@ export function useAutoUpdate() {
     return await updateService.installAndRestart(sessionId);
   }, []);
 
-
   // ===== 计算属性 =====
 
   /**
@@ -126,7 +118,6 @@ export function useAutoUpdate() {
    */
   const isDownloaded = state.status === UpdateStatus.DOWNLOADED;
 
-
   /**
    * 是否有错误
    */
@@ -140,16 +131,12 @@ export function useAutoUpdate() {
   /**
    * 格式化的下载速度
    */
-  const formattedSpeed = state.progress?.speed 
-    ? formatSpeedFromConfig(state.progress.speed)
-    : undefined;
+  const formattedSpeed = state.progress?.speed ? formatSpeedFromConfig(state.progress.speed) : undefined;
 
   /**
    * 格式化的剩余时间
    */
-  const formattedTimeRemaining = state.progress?.estimatedTimeRemaining
-    ? formatTimeRemaining(state.progress.estimatedTimeRemaining)
-    : undefined;
+  const formattedTimeRemaining = state.progress?.estimatedTimeRemaining ? formatTimeRemaining(state.progress.estimatedTimeRemaining) : undefined;
 
   /**
    * 当前版本
@@ -164,15 +151,13 @@ export function useAutoUpdate() {
   /**
    * 是否为重大版本更新
    */
-  const isMajorUpdate = state.version?.latest && state.version?.current
-    ? getMajorVersion(state.version.latest) > getMajorVersion(state.version.current)
-    : false;
+  const isMajorUpdate = state.version?.latest && state.version?.current ? getMajorVersion(state.version.latest) > getMajorVersion(state.version.current) : false;
 
   return {
     // 状态
     state,
     status: state.status,
-    
+
     // 计算属性
     hasUpdate,
     isChecking,
@@ -213,16 +198,16 @@ export function useAutoUpdate() {
  */
 function formatTimeRemaining(milliseconds: number): string {
   const seconds = Math.floor(milliseconds / 1000);
-  
+
   if (seconds < 60) {
     return `${seconds}s`;
   }
-  
+
   const minutes = Math.floor(seconds / 60);
   if (minutes < 60) {
     return `${minutes}m ${seconds % 60}s`;
   }
-  
+
   const hours = Math.floor(minutes / 60);
   return `${hours}h ${minutes % 60}m`;
 }

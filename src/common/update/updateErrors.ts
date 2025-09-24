@@ -32,7 +32,7 @@ export class UpdateError extends Error {
     } = {}
   ) {
     super(message);
-    
+
     this.name = 'UpdateError';
     this.type = type;
     this.code = options.code || type;
@@ -40,7 +40,7 @@ export class UpdateError extends Error {
     this.context = options.context;
     this.timestamp = Date.now();
     this.cause = options.cause;
-    
+
     // 保持正确的错误堆栈
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, UpdateError);
@@ -97,7 +97,7 @@ export class NetworkError extends UpdateError {
 export class DownloadError extends UpdateError {
   constructor(message: string, context?: Record<string, any>, cause?: Error) {
     super(UpdateErrorType.DOWNLOAD_ERROR, message, {
-      code: 'DOWNLOAD_ERROR', 
+      code: 'DOWNLOAD_ERROR',
       recoverable: true,
       context,
       cause,
@@ -195,28 +195,27 @@ export class UpdateErrorFactory {
     if (name.includes('timeout') || message.includes('timeout')) {
       return UpdateErrorType.TIMEOUT_ERROR;
     }
-    
-    if (name.includes('network') || message.includes('network') || 
-        message.includes('fetch') || message.includes('connection')) {
+
+    if (name.includes('network') || message.includes('network') || message.includes('fetch') || message.includes('connection')) {
       return UpdateErrorType.NETWORK_ERROR;
     }
-    
+
     if (message.includes('permission') || message.includes('access denied')) {
       return UpdateErrorType.PERMISSION_ERROR;
     }
-    
+
     if (message.includes('space') || message.includes('disk full')) {
       return UpdateErrorType.DISK_SPACE_ERROR;
     }
-    
+
     if (message.includes('checksum') || message.includes('hash') || message.includes('integrity')) {
       return UpdateErrorType.CHECKSUM_ERROR;
     }
-    
+
     if (message.includes('download') || message.includes('transfer')) {
       return UpdateErrorType.DOWNLOAD_ERROR;
     }
-    
+
     return UpdateErrorType.UNKNOWN_ERROR;
   }
 
@@ -224,12 +223,8 @@ export class UpdateErrorFactory {
    * 判断错误是否可恢复
    */
   private static isRecoverable(type: UpdateErrorType): boolean {
-    const recoverableTypes = [
-      UpdateErrorType.NETWORK_ERROR,
-      UpdateErrorType.DOWNLOAD_ERROR,
-      UpdateErrorType.TIMEOUT_ERROR,
-    ];
-    
+    const recoverableTypes = [UpdateErrorType.NETWORK_ERROR, UpdateErrorType.DOWNLOAD_ERROR, UpdateErrorType.TIMEOUT_ERROR];
+
     return recoverableTypes.includes(type);
   }
 }
@@ -290,7 +285,7 @@ export class RetryManager {
    * 延迟执行
    */
   private delay(ms: number): Promise<void> {
-    return new Promise(resolve => setTimeout(resolve, ms));
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   /**

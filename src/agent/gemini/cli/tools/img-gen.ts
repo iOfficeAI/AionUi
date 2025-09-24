@@ -247,7 +247,7 @@ IMPORTANT: When user provides multiple images (like @img1.jpg @img2.png), ALWAYS
 }
 
 class ImageGenerationInvocation extends BaseToolInvocation<ImageGenerationToolParams, ToolResult> {
-  private rotatingClient: RotatingClient;
+  private rotatingClient: RotatingClient | undefined;
   private currentModel: string;
 
   constructor(
@@ -260,11 +260,16 @@ class ImageGenerationInvocation extends BaseToolInvocation<ImageGenerationToolPa
 
     // Initialize the rotating client using factory
     this.currentModel = this.imageGenerationModel.useModel;
+  }
 
-    this.rotatingClient = ClientFactory.createRotatingClient(this.imageGenerationModel, {
-      proxy: this.proxy,
-      rotatingOptions: { maxRetries: 3, retryDelay: 1000 },
-    });
+  private async ensureClient(): Promise<RotatingClient> {
+    if (!this.rotatingClient) {
+      this.rotatingClient = await ClientFactory.createRotatingClient(this.imageGenerationModel, {
+        proxy: this.proxy,
+        rotatingOptions: { maxRetries: 3, retryDelay: 1000 },
+      });
+    }
+    return this.rotatingClient;
   }
 
   private getImageUris(): string[] {
@@ -444,7 +449,8 @@ class ImageGenerationInvocation extends BaseToolInvocation<ImageGenerationToolPa
 
       updateOutput?.('Sending request to AI service...');
 
-      const completion: UnifiedChatCompletionResponse = await this.rotatingClient.createChatCompletion(
+      const client = await this.ensureClient();
+      const completion: UnifiedChatCompletionResponse = await client.createChatCompletion(
         {
           model: this.currentModel,
           messages: messages as any, // 必要的类型兼容：OpenAI原生格式

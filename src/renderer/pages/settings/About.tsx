@@ -39,15 +39,11 @@ const About: React.FC = () => {
         <Form.Item label={t('common.contact')}>{link('https://x.com/WailiVery')}</Form.Item>
         <Form.Item label={t('common.github')}>{link('https://github.com/iOfficeAI/AionUi')}</Form.Item>
       </Form>
-      
+
       <Divider />
-      
-      <div className="mt-24px">
-        <UpdateStatus 
-          autoCheckOnMount={true}
-          showVersionInfo={false}
-          showDetailedProgress={true}
-        />
+
+      <div className='mt-24px'>
+        <UpdateStatus autoCheckOnMount={true} showVersionInfo={false} showDetailedProgress={true} />
       </div>
     </SettingContainer>
   );

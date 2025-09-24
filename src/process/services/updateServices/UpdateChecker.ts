@@ -6,20 +6,9 @@
 
 import { VersionInfo } from '@/common/update/models/VersionInfo';
 import { UpdatePackage } from '@/common/update/models/UpdatePackage';
-import { 
-  UPDATE_CONFIG, 
-  UpdateErrorType, 
-  PlatformType, 
-  ArchitectureType,
-  parseFilename,
-  generateFilenamePattern
-} from '@/common/update/updateConfig';
-import { 
-  UpdateError, 
-  NetworkError, 
-  UpdateErrorFactory, 
-  RetryManager 
-} from '@/common/update/updateErrors';
+import type { PlatformType, ArchitectureType } from '@/common/update/updateConfig';
+import { UPDATE_CONFIG, UpdateErrorType, parseFilename, generateFilenamePattern } from '@/common/update/updateConfig';
+import { UpdateError, NetworkError, UpdateErrorFactory, RetryManager } from '@/common/update/updateErrors';
 import * as semver from 'semver';
 
 /**
@@ -45,7 +34,7 @@ interface GitHubRelease {
   published_at: string;
   assets: Array<{
     name: string;
-    download_url: string;
+    browser_download_url: string;
     size: number;
     content_type?: string;
   }>;
@@ -55,7 +44,7 @@ interface GitHubRelease {
 
 /**
  * 优化后的更新检查服务
- * 
+ *
  * 改进点：
  * - 使用统一的配置管理
  * - 完善的错误处理和重试机制
@@ -70,11 +59,8 @@ export class UpdateChecker {
   private currentArch: ArchitectureType;
 
   constructor() {
-    this.retryManager = new RetryManager(
-      UPDATE_CONFIG.CACHE.MAX_RETRIES,
-      UPDATE_CONFIG.CACHE.RETRY_DELAY
-    );
-    
+    this.retryManager = new RetryManager(UPDATE_CONFIG.CACHE.MAX_RETRIES, UPDATE_CONFIG.CACHE.RETRY_DELAY);
+
     // 初始化平台信息
     this.currentPlatform = this.detectPlatform();
     this.currentArch = this.detectArchitecture();
@@ -85,9 +71,9 @@ export class UpdateChecker {
    */
   async checkForUpdates(force: boolean = false): Promise<UpdateCheckResult> {
     const cacheKey = 'update-check';
-    
+
     console.log('[UpdateChecker] Starting update check, force:', force);
-    
+
     try {
       // 检查缓存
       if (!force) {
@@ -104,21 +90,20 @@ export class UpdateChecker {
         return await this.performUpdateCheck();
       });
 
-      console.log('[UpdateChecker] Update check completed successfully:', { 
-        success: result.success, 
+      console.log('[UpdateChecker] Update check completed successfully:', {
+        success: result.success,
         isUpdateAvailable: result.isUpdateAvailable,
         currentVersion: result.versionInfo?.current,
-        latestVersion: result.versionInfo?.latest
+        latestVersion: result.versionInfo?.latest,
       });
 
       // 缓存结果
       this.setCachedResult(cacheKey, result);
-      
+
       return { ...result, cacheUsed: false };
-      
     } catch (error) {
       console.error('[UpdateChecker] Update check failed:', error);
-      
+
       const updateError = UpdateErrorFactory.fromError(error as Error, UpdateErrorType.UNKNOWN_ERROR, {
         operation: 'checkForUpdates',
         force,
@@ -133,7 +118,7 @@ export class UpdateChecker {
         lastCheckTime: Date.now(),
         cacheUsed: false,
       };
-      
+
       console.log('[UpdateChecker] Returning failed result:', failedResult);
       return failedResult;
     }
@@ -145,10 +130,10 @@ export class UpdateChecker {
   async getVersionInfo(): Promise<VersionInfo> {
     try {
       const currentVersion = await this.getCurrentVersion();
-      
+
       // 尝试获取最新的版本信息
       const checkResult = await this.checkForUpdates();
-      
+
       if (checkResult.success && checkResult.versionInfo) {
         return checkResult.versionInfo;
       } else {
@@ -167,26 +152,26 @@ export class UpdateChecker {
    */
   private async performUpdateCheck(): Promise<UpdateCheckResult> {
     const checkTime = Date.now();
-    
+
     // 获取当前版本信息
     const currentVersion = await this.getCurrentVersion();
-    
+
     // 从 GitHub API 获取最新版本信息
     const releaseInfo = await this.fetchLatestRelease();
-    
+
     if (!releaseInfo) {
       throw new UpdateError(UpdateErrorType.NETWORK_ERROR, 'Failed to fetch release information from GitHub');
     }
 
     // 解析版本信息
     const latestVersion = this.parseVersion(releaseInfo.tag_name);
-    
+
     // 检查是否有更新
     const isUpdateAvailable = semver.gt(latestVersion, currentVersion);
-    
+
     // 查找兼容的更新包
     const availablePackages = await this.findCompatiblePackages(releaseInfo);
-    
+
     // 构建版本信息对象
     const versionInfo = VersionInfo.create({
       current: currentVersion,
@@ -210,73 +195,61 @@ export class UpdateChecker {
    */
   private async fetchLatestRelease(): Promise<GitHubRelease | null> {
     const url = `${UPDATE_CONFIG.GITHUB.API_BASE}/repos/${UPDATE_CONFIG.GITHUB.REPO}/releases/latest`;
-    
+
     console.log('[UpdateChecker] Starting GitHub API request to:', url);
-    
+
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), UPDATE_CONFIG.GITHUB.TIMEOUT);
-      
+
       const response = await fetch(url, {
         headers: {
-          'Accept': 'application/vnd.github.v3+json',
+          Accept: 'application/vnd.github.v3+json',
           'User-Agent': UPDATE_CONFIG.GITHUB.USER_AGENT,
         },
         signal: controller.signal,
       });
 
       clearTimeout(timeoutId);
-      
+
       console.log('[UpdateChecker] GitHub API response status:', response.status);
 
       if (!response.ok) {
         const errorMsg = `GitHub API request failed: ${response.status} ${response.statusText}`;
         console.error('[UpdateChecker]', errorMsg);
-        throw new NetworkError(
-          errorMsg,
-          { url, status: response.status, statusText: response.statusText }
-        );
+        throw new NetworkError(errorMsg, { url, status: response.status, statusText: response.statusText });
       }
 
       const releaseData = await response.json();
       console.log('[UpdateChecker] GitHub API response data:', { tag_name: releaseData.tag_name, assets_count: releaseData.assets?.length });
-      
+
       // 验证必要字段
       if (!releaseData.tag_name || !releaseData.assets) {
         const errorMsg = 'Invalid release data from GitHub API';
         console.error('[UpdateChecker]', errorMsg, { releaseData });
-        throw new UpdateError(
-          UpdateErrorType.VALIDATION_ERROR,
-          errorMsg,
-          { code: 'INVALID_RELEASE_DATA', context: { releaseData } }
-        );
+        throw new UpdateError(UpdateErrorType.VALIDATION_ERROR, errorMsg, { code: 'INVALID_RELEASE_DATA', context: { releaseData } });
       }
 
       console.log('[UpdateChecker] Successfully fetched release data');
       return releaseData as GitHubRelease;
-      
     } catch (error) {
       console.error('[UpdateChecker] Error in fetchLatestRelease:', error);
-      
+
       if (error instanceof UpdateError) {
         throw error;
       }
-      
+
       // 处理网络错误
       if (error instanceof Error) {
         if (error.name === 'AbortError') {
           throw new UpdateError(UpdateErrorType.TIMEOUT_ERROR, 'Request timeout', {
-            context: { url, timeout: UPDATE_CONFIG.GITHUB.TIMEOUT }
+            context: { url, timeout: UPDATE_CONFIG.GITHUB.TIMEOUT },
           });
         }
-        
-        throw new NetworkError(
-          `Failed to fetch latest release: ${error.message}`,
-          { url, originalError: error.message },
-          error
-        );
+
+        throw new NetworkError(`Failed to fetch latest release: ${error.message}`, { url, originalError: error.message }, error);
       }
-      
+
       throw new UpdateError(UpdateErrorType.UNKNOWN_ERROR, 'Unknown error occurred while fetching release');
     }
   }
@@ -291,19 +264,19 @@ export class UpdateChecker {
       try {
         // 解析文件名获取平台信息
         const fileInfo = parseFilename(asset.name);
-        
+
         if (!fileInfo) continue;
 
         // 检查是否兼容当前平台
         if (fileInfo.platform === this.currentPlatform && fileInfo.arch === this.currentArch) {
           console.log(`[UpdateCheckerV2] Found compatible package: ${asset.name}`);
           console.log(`[UpdateCheckerV2] Real file size from GitHub API: ${(asset.size / (1024 * 1024)).toFixed(1)}MB`);
-          
+
           const updatePackage = new UpdatePackage({
             version: this.parseVersion(release.tag_name),
             platform: fileInfo.platform,
             arch: fileInfo.arch,
-            downloadUrl: asset.download_url,
+            downloadUrl: asset.browser_download_url,
             fileSize: asset.size, // 真实的 GitHub API 文件大小
             checksum: '', // 需要从其他地方获取或生成
             filename: asset.name,
@@ -330,21 +303,14 @@ export class UpdateChecker {
       // 使用 Electron app.getVersion() - 开发和生产环境都支持
       const { app } = await import('electron');
       const currentVersion = app.getVersion();
-      
+
       if (!currentVersion) {
-        throw new UpdateError(
-          UpdateErrorType.VALIDATION_ERROR,
-          'App version not available from Electron'
-        );
+        throw new UpdateError(UpdateErrorType.VALIDATION_ERROR, 'App version not available from Electron');
       }
 
       // 验证版本格式
       if (!semver.valid(currentVersion)) {
-        throw new UpdateError(
-          UpdateErrorType.VALIDATION_ERROR,
-          `Invalid version format from Electron: ${currentVersion}`,
-          { context: { version: currentVersion } }
-        );
+        throw new UpdateError(UpdateErrorType.VALIDATION_ERROR, `Invalid version format from Electron: ${currentVersion}`, { context: { version: currentVersion } });
       }
 
       return currentVersion;
@@ -352,15 +318,10 @@ export class UpdateChecker {
       if (error instanceof UpdateError) {
         throw error;
       }
-      
-      throw UpdateErrorFactory.fromError(
-        error as Error, 
-        UpdateErrorType.VALIDATION_ERROR,
-        { operation: 'getCurrentVersion' }
-      );
+
+      throw UpdateErrorFactory.fromError(error as Error, UpdateErrorType.VALIDATION_ERROR, { operation: 'getCurrentVersion' });
     }
   }
-
 
   /**
    * 解析版本字符串（优化后）
@@ -368,15 +329,11 @@ export class UpdateChecker {
   private parseVersion(versionString: string): string {
     // 移除可能的 'v' 前缀
     const cleaned = versionString.replace(/^v/, '');
-    
+
     if (!semver.valid(cleaned)) {
-      throw new UpdateError(
-        UpdateErrorType.VALIDATION_ERROR,
-        `Invalid version string: ${versionString}`,
-        { context: { original: versionString, cleaned } }
-      );
+      throw new UpdateError(UpdateErrorType.VALIDATION_ERROR, `Invalid version string: ${versionString}`, { context: { original: versionString, cleaned } });
     }
-    
+
     return cleaned;
   }
 
@@ -385,18 +342,14 @@ export class UpdateChecker {
    */
   private detectPlatform(): PlatformType {
     const platform = process.platform;
-    
+
     switch (platform) {
       case 'darwin':
       case 'win32':
       case 'linux':
         return platform;
       default:
-        throw new UpdateError(
-          UpdateErrorType.VALIDATION_ERROR,
-          `Unsupported platform: ${platform}`,
-          { context: { detectedPlatform: platform } }
-        );
+        throw new UpdateError(UpdateErrorType.VALIDATION_ERROR, `Unsupported platform: ${platform}`, { context: { detectedPlatform: platform } });
     }
   }
 
@@ -405,7 +358,7 @@ export class UpdateChecker {
    */
   private detectArchitecture(): ArchitectureType {
     const arch = process.arch;
-    
+
     switch (arch) {
       case 'x64':
       case 'arm64':
@@ -414,11 +367,7 @@ export class UpdateChecker {
       case 'arm':
         return 'armv7l';
       default:
-        throw new UpdateError(
-          UpdateErrorType.VALIDATION_ERROR,
-          `Unsupported architecture: ${arch}`,
-          { context: { detectedArch: arch } }
-        );
+        throw new UpdateError(UpdateErrorType.VALIDATION_ERROR, `Unsupported architecture: ${arch}`, { context: { detectedArch: arch } });
     }
   }
 
@@ -427,17 +376,17 @@ export class UpdateChecker {
    */
   private getCachedResult(key: string): UpdateCheckResult | null {
     const cached = this.cacheData.get(key);
-    
+
     if (!cached) return null;
-    
+
     const now = Date.now();
-    const isExpired = (now - cached.timestamp) > UPDATE_CONFIG.CACHE.EXPIRY_TIME;
-    
+    const isExpired = now - cached.timestamp > UPDATE_CONFIG.CACHE.EXPIRY_TIME;
+
     if (isExpired) {
       this.cacheData.delete(key);
       return null;
     }
-    
+
     return cached.result;
   }
 

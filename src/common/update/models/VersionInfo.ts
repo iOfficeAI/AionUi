@@ -10,7 +10,7 @@ import { VersionInfoSchema, type VersionInfo as IVersionInfo } from '../../../ty
 
 /**
  * Version Information Model
- * 
+ *
  * Encapsulates version information with business logic for comparison,
  * validation, and force update determination.
  */
@@ -23,7 +23,7 @@ export class VersionInfo {
     if (!validationResult.success) {
       throw new Error(`Invalid version info: ${validationResult.error.message}`);
     }
-    
+
     this.data = validationResult.data;
   }
 
@@ -32,13 +32,7 @@ export class VersionInfo {
   /**
    * Create VersionInfo from current package.json and remote version data
    */
-  static create(params: {
-    current: string;
-    latest: string;
-    minimumRequired?: string;
-    releaseDate?: string;
-    releaseNotes?: string;
-  }): VersionInfo {
+  static create(params: { current: string; latest: string; minimumRequired?: string; releaseDate?: string; releaseNotes?: string }): VersionInfo {
     // Validate version formats first
     if (!semver.valid(params.current)) {
       throw new Error(`Invalid current version format: ${params.current}`);
@@ -51,9 +45,7 @@ export class VersionInfo {
     }
 
     const isUpdateAvailable = semver.gt(params.latest, params.current);
-    const isForced = params.minimumRequired 
-      ? semver.lt(params.current, params.minimumRequired)
-      : false;
+    const isForced = params.minimumRequired ? semver.lt(params.current, params.minimumRequired) : false;
 
     return new VersionInfo({
       current: params.current,
@@ -117,7 +109,7 @@ export class VersionInfo {
     if (!this.data.minimumRequired) {
       return true; // No minimum requirement
     }
-    
+
     return semver.gte(this.data.current, this.data.minimumRequired);
   }
 
@@ -171,7 +163,7 @@ export class VersionInfo {
 
     const updateType = this.getUpdateType();
     const gap = semver.diff(this.data.current, this.data.latest);
-    
+
     return `${updateType} update available (${this.data.current} → ${this.data.latest})`;
   }
 
@@ -212,7 +204,7 @@ export class VersionInfo {
    */
   withLatestVersion(latest: string, releaseNotes?: string, releaseDate?: string): VersionInfo {
     const isUpdateAvailable = semver.gt(latest, this.data.current);
-    
+
     return new VersionInfo({
       ...this.data,
       latest,
@@ -227,7 +219,7 @@ export class VersionInfo {
    */
   withMinimumRequired(minimumRequired: string): VersionInfo {
     const isForced = semver.lt(this.data.current, minimumRequired);
-    
+
     return new VersionInfo({
       ...this.data,
       minimumRequired,
@@ -243,9 +235,7 @@ export class VersionInfo {
       ...this.data,
       current: newVersion,
       isUpdateAvailable: semver.gt(this.data.latest, newVersion),
-      isForced: this.data.minimumRequired 
-        ? semver.lt(newVersion, this.data.minimumRequired)
-        : false,
+      isForced: this.data.minimumRequired ? semver.lt(newVersion, this.data.minimumRequired) : false,
     });
   }
 
@@ -255,25 +245,13 @@ export class VersionInfo {
    * Get version info summary for logging
    */
   getSummary(): string {
-    return [
-      `Current: ${this.data.current}`,
-      `Latest: ${this.data.latest}`,
-      this.data.minimumRequired ? `Minimum: ${this.data.minimumRequired}` : null,
-      this.data.isUpdateAvailable ? '📥 Update available' : '✅ Up to date',
-      this.data.isForced ? '⚠️  Force update required' : null,
-    ].filter(Boolean).join(' | ');
+    return [`Current: ${this.data.current}`, `Latest: ${this.data.latest}`, this.data.minimumRequired ? `Minimum: ${this.data.minimumRequired}` : null, this.data.isUpdateAvailable ? '📥 Update available' : '✅ Up to date', this.data.isForced ? '⚠️  Force update required' : null].filter(Boolean).join(' | ');
   }
 
   /**
    * Check equality with another VersionInfo
    */
   equals(other: VersionInfo): boolean {
-    return (
-      this.data.current === other.data.current &&
-      this.data.latest === other.data.latest &&
-      this.data.minimumRequired === other.data.minimumRequired &&
-      this.data.isUpdateAvailable === other.data.isUpdateAvailable &&
-      this.data.isForced === other.data.isForced
-    );
+    return this.data.current === other.data.current && this.data.latest === other.data.latest && this.data.minimumRequired === other.data.minimumRequired && this.data.isUpdateAvailable === other.data.isUpdateAvailable && this.data.isForced === other.data.isForced;
   }
 }

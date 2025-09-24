@@ -215,7 +215,7 @@
     "timeout": "Timeout",
     "priority": {
       "low": "Low",
-      "normal": "Normal", 
+      "normal": "Normal",
       "high": "High",
       "urgent": "Urgent"
     }
@@ -241,7 +241,7 @@
     "updateAvailable": "Update Available",
     "newVersionAvailable": "{{type}} v{{version}} Available",
     "majorUpdate": "Major Update",
-    "minorUpdate": "Minor Update", 
+    "minorUpdate": "Minor Update",
     "download": "Download Update",
     "downloadRequired": "Download Now",
     "downloadNow": "Download Now",

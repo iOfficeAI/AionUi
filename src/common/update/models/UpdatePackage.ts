@@ -12,7 +12,7 @@ import { formatBytes } from '../updateConfig';
 
 /**
  * Update Package Model
- * 
+ *
  * Encapsulates update package information with download and installation logic.
  * Supports incremental updates for optimized download sizes.
  */
@@ -25,7 +25,7 @@ export class UpdatePackage {
     if (!validationResult.success) {
       throw new Error(`Invalid update package: ${validationResult.error.message}`);
     }
-    
+
     this.data = validationResult.data;
   }
 
@@ -34,17 +34,7 @@ export class UpdatePackage {
   /**
    * Create UpdatePackage from release information
    */
-  static create(params: {
-    version: string;
-    downloadUrl: string;
-    platform: PlatformType;
-    arch: ArchitectureType;
-    fileSize: number;
-    checksum: string;
-    isDelta?: boolean;
-    baseVersion?: string;
-    signature?: string;
-  }): UpdatePackage {
+  static create(params: { version: string; downloadUrl: string; platform: PlatformType; arch: ArchitectureType; fileSize: number; checksum: string; isDelta?: boolean; baseVersion?: string; signature?: string }): UpdatePackage {
     // Validate version format
     if (!semver.valid(params.version)) {
       throw new Error(`Invalid package version format: ${params.version}`);
@@ -90,15 +80,7 @@ export class UpdatePackage {
   /**
    * Create full update package (non-delta)
    */
-  static createFull(params: {
-    version: string;
-    downloadUrl: string;
-    platform: PlatformType;
-    arch: ArchitectureType;
-    fileSize: number;
-    checksum: string;
-    signature?: string;
-  }): UpdatePackage {
+  static createFull(params: { version: string; downloadUrl: string; platform: PlatformType; arch: ArchitectureType; fileSize: number; checksum: string; signature?: string }): UpdatePackage {
     return this.create({
       ...params,
       isDelta: false,
@@ -108,16 +90,7 @@ export class UpdatePackage {
   /**
    * Create delta update package (incremental)
    */
-  static createDelta(params: {
-    version: string;
-    baseVersion: string;
-    downloadUrl: string;
-    platform: PlatformType;
-    arch: ArchitectureType;
-    fileSize: number;
-    checksum: string;
-    signature?: string;
-  }): UpdatePackage {
+  static createDelta(params: { version: string; baseVersion: string; downloadUrl: string; platform: PlatformType; arch: ArchitectureType; fileSize: number; checksum: string; signature?: string }): UpdatePackage {
     return this.create({
       ...params,
       isDelta: true,
@@ -172,10 +145,7 @@ export class UpdatePackage {
     const normalizedPlatform = this.normalizePlatform(systemPlatform);
     const normalizedArch = this.normalizeArch(systemArch);
 
-    return (
-      this.data.platform === normalizedPlatform &&
-      this.data.arch === normalizedArch
-    );
+    return this.data.platform === normalizedPlatform && this.data.arch === normalizedArch;
   }
 
   /**
@@ -210,7 +180,7 @@ export class UpdatePackage {
     const platformExt = this.getPlatformExtension();
     const archSuffix = this.data.arch;
     const deltaPrefix = this.data.isDelta ? 'delta-' : '';
-    
+
     return `${deltaPrefix}update-${this.data.version}-${this.data.platform}-${archSuffix}.${platformExt}`;
   }
 
@@ -221,11 +191,11 @@ export class UpdatePackage {
     try {
       const crypto = await import('crypto');
       const fs = await import('fs');
-      
+
       return new Promise((resolve, reject) => {
         const hash = crypto.createHash('sha256');
         const stream = fs.createReadStream(filePath);
-        
+
         stream.on('data', (data) => hash.update(data));
         stream.on('end', () => {
           const computedChecksum = hash.digest('hex');
@@ -373,28 +343,15 @@ export class UpdatePackage {
     const packageType = this.data.isDelta ? '📦 Delta' : '📦 Full';
     const sizeFormatted = this.getFormattedSize();
     const deltaInfo = this.data.isDelta ? ` (from ${this.data.baseVersion})` : '';
-    
-    return [
-      `${packageType} v${this.data.version}${deltaInfo}`,
-      `${this.data.platform}-${this.data.arch}`,
-      sizeFormatted,
-      this.data.signature ? '🔒 Signed' : '⚠️  Unsigned',
-    ].join(' | ');
+
+    return [`${packageType} v${this.data.version}${deltaInfo}`, `${this.data.platform}-${this.data.arch}`, sizeFormatted, this.data.signature ? '🔒 Signed' : '⚠️  Unsigned'].join(' | ');
   }
 
   /**
    * Check equality with another UpdatePackage
    */
   equals(other: UpdatePackage): boolean {
-    return (
-      this.data.version === other.data.version &&
-      this.data.downloadUrl === other.data.downloadUrl &&
-      this.data.platform === other.data.platform &&
-      this.data.arch === other.data.arch &&
-      this.data.checksum === other.data.checksum &&
-      this.data.isDelta === other.data.isDelta &&
-      this.data.baseVersion === other.data.baseVersion
-    );
+    return this.data.version === other.data.version && this.data.downloadUrl === other.data.downloadUrl && this.data.platform === other.data.platform && this.data.arch === other.data.arch && this.data.checksum === other.data.checksum && this.data.isDelta === other.data.isDelta && this.data.baseVersion === other.data.baseVersion;
   }
 
   /**
@@ -403,20 +360,20 @@ export class UpdatePackage {
    */
   getDownloadPriority(): number {
     let score = 0;
-    
+
     // Delta packages get priority
     if (this.data.isDelta) {
       score -= 100;
     }
-    
+
     // Smaller packages get priority
     score += this.data.fileSize / 1024 / 1024; // MB
-    
+
     // Signed packages get slight priority
     if (this.data.signature) {
       score -= 10;
     }
-    
+
     return score;
   }
 }
