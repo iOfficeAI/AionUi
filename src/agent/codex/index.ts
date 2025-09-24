@@ -7,6 +7,8 @@
 // Core Management Layer
 export { default as CodexAgentManager } from './core/CodexAgentManager';
 export { CodexMcpAgent, type CodexAgentConfig } from './core/CodexMcpAgent';
+// Export the app configuration function for use in main process
+export { setAppConfig as setCodexAgentAppConfig } from './core/appConfig';
 
 // Connection Layer
 export { CodexMcpConnection, type CodexEventEnvelope, type NetworkError } from './connection/CodexMcpConnection';

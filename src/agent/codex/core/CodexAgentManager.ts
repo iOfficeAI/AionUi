@@ -20,6 +20,7 @@ import { CodexFileOperationHandler } from '@/agent/codex/handlers/CodexFileOpera
 import { CodexMessageTransformer } from '@/agent/codex/messaging/CodexMessageTransformer';
 import type { CodexAgentManagerData, FileChange } from '@/common/codexTypes';
 import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
+import { setAppConfig } from './appConfig';
 
 class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implements ICodexMessageEmitter {
   workspace?: string;
@@ -44,6 +45,26 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
       workingDir: data.workspace || process.cwd(),
     });
     const fileOperationHandler = new CodexFileOperationHandler(data.conversation_id, data.workspace);
+
+    // 设置 Codex Agent 的应用配置，使用 Electron API 在主进程中
+    (async () => {
+      try {
+        const electronModule = await import('electron');
+        const app = electronModule.app;
+        setAppConfig({
+          name: app.getName(),
+          version: app.getVersion(),
+          protocolVersion: '1.0.0', // 可以根据需要调整协议版本
+        });
+      } catch (error) {
+        // 如果不在主进程中，使用通用方法获取版本
+        setAppConfig({
+          name: 'AionUi',
+          version: getVersion(),
+          protocolVersion: '1.0.0',
+        });
+      }
+    })();
 
     this.agent = new CodexMcpAgent({
       id: data.conversation_id,
@@ -105,7 +126,6 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
         sessionId: result.sessionId,
       });
     } catch (error) {
-
       // 输出更详细的诊断信息
       const diagnostics = this.getDiagnostics();
 
@@ -163,7 +183,6 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
       const result = await this.agent.sendPrompt(processedContent);
       return result;
     } catch (e) {
-
       // 对于某些错误类型，避免重复错误消息处理
       // 这些错误通常已经通过 MCP 连接的事件流处理过了
       const errorMsg = e instanceof Error ? e.message : String(e);
@@ -227,7 +246,6 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
             ? data.callId.substring(5)
             : data.callId;
 
-
     // Respond to elicitation (server expects JSON-RPC response)
     this.agent.respondElicitation(origCallId, decision);
 
@@ -250,7 +268,6 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
       // Patch changes applied successfully
     } catch (error) {
-
       // 发送失败事件
       this.agent.getSessionManager().emitSessionEvent('patch_failed', {
         callId,
