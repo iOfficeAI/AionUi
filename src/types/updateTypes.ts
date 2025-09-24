@@ -55,6 +55,7 @@ export const UpdateSessionSchema = z.object({
   error: z.string().optional(),
   startedAt: z.number(),
   completedAt: z.number().optional(),
+  downloadPath: z.string().optional(), // 下载文件的本地路径
 });
 
 export type UpdateSession = z.infer<typeof UpdateSessionSchema>;
