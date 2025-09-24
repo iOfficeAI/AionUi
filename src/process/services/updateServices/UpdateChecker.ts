@@ -21,8 +21,6 @@ import {
   RetryManager 
 } from '@/common/update/updateErrors';
 import * as semver from 'semver';
-import * as path from 'path';
-import * as fs from 'fs/promises';
 
 /**
  * 更新检查结果接口
@@ -325,32 +323,31 @@ export class UpdateChecker {
   }
 
   /**
-   * 获取当前版本（优化后）
+   * 获取当前版本
    */
   private async getCurrentVersion(): Promise<string> {
     try {
-      const packageJsonPath = await this.findPackageJson();
-      const packageContent = await fs.readFile(packageJsonPath, 'utf-8');
-      const packageJson = JSON.parse(packageContent);
+      // 使用 Electron app.getVersion() - 开发和生产环境都支持
+      const { app } = await import('electron');
+      const currentVersion = app.getVersion();
       
-      if (!packageJson.version) {
+      if (!currentVersion) {
         throw new UpdateError(
           UpdateErrorType.VALIDATION_ERROR,
-          'Version not found in package.json',
-          { context: { packageJsonPath } }
+          'App version not available from Electron'
         );
       }
 
       // 验证版本格式
-      if (!semver.valid(packageJson.version)) {
+      if (!semver.valid(currentVersion)) {
         throw new UpdateError(
           UpdateErrorType.VALIDATION_ERROR,
-          `Invalid version format in package.json: ${packageJson.version}`,
-          { context: { version: packageJson.version, packageJsonPath } }
+          `Invalid version format from Electron: ${currentVersion}`,
+          { context: { version: currentVersion } }
         );
       }
 
-      return packageJson.version;
+      return currentVersion;
     } catch (error) {
       if (error instanceof UpdateError) {
         throw error;
@@ -364,36 +361,6 @@ export class UpdateChecker {
     }
   }
 
-  /**
-   * 查找 package.json 文件（优化后）
-   */
-  private async findPackageJson(): Promise<string> {
-    let currentDir = __dirname;
-    const maxDepth = 10; // 防止无限循环
-    let depth = 0;
-
-    while (depth < maxDepth) {
-      const packageJsonPath = path.join(currentDir, 'package.json');
-      
-      try {
-        await fs.access(packageJsonPath);
-        return packageJsonPath;
-      } catch {
-        // 继续向上查找
-        const parentDir = path.dirname(currentDir);
-        if (parentDir === currentDir) break; // 已到根目录
-        
-        currentDir = parentDir;
-        depth++;
-      }
-    }
-
-    throw new UpdateError(
-      UpdateErrorType.VALIDATION_ERROR,
-      'package.json not found',
-      { context: { searchStartDir: __dirname, maxDepth } }
-    );
-  }
 
   /**
    * 解析版本字符串（优化后）
