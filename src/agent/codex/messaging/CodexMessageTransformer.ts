@@ -50,7 +50,6 @@ export class CodexMessageTransformer {
     try {
       switch (message.type) {
         case 'agent_reasoning': {
-          console.log('🤔 [CodexMessageTransformer] Agent reasoning started - handled by UI state, not persisted');
           // Thinking状态由前端UI状态管理，不需要持久化存储
           return undefined;
         }
@@ -61,7 +60,6 @@ export class CodexMessageTransformer {
         }
 
         case 'agent_reasoning_raw_content': {
-          console.log('💭 [CodexMessageTransformer] Agent reasoning completed - handled by UI state, not persisted');
           // Thinking完成状态由前端UI状态管理，不需要持久化存储
           return undefined;
         }
@@ -168,8 +166,6 @@ export class CodexMessageTransformer {
           return undefined;
       }
     } catch (error) {
-      console.error('❌ [CodexMessageTransformer] Error processing Codex message:', error);
-      console.error('❌ [CodexMessageTransformer] Problematic message:', message);
 
       // 返回安全的错误消息
       return {

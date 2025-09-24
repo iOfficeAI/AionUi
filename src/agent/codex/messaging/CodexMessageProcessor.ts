@@ -112,7 +112,7 @@ export class CodexMessageProcessor {
       // 发送并持久化消息
       this.messageEmitter.emitAndPersistMessage(message, true);
     } else {
-      console.warn('⚠️ [CodexMessageProcessor] createContentMessage returned null');
+      // createContentMessage returned null
     }
 
     // Clear state after processing to prevent duplicate sends in processTaskComplete

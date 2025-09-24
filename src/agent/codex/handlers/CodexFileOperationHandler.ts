@@ -57,11 +57,9 @@ export class CodexFileOperationHandler {
         case 'file_delete':
           return await this.handleFileDelete(operation);
         default:
-          console.warn('⚠️ [CodexFileOperationHandler] Unknown file operation method:', operation.method);
           return this.handleGenericFileOperation(operation);
       }
     } catch (error) {
-      console.error('❌ [CodexFileOperationHandler] File operation failed:', error);
       this.emitErrorMessage(`File operation failed: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
@@ -129,7 +127,6 @@ export class CodexFileOperationHandler {
       });
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-        console.warn('⚠️ [CodexFileOperationHandler] File not found for deletion:', fullPath);
         return; // 文件不存在，视为成功
       }
       throw error;

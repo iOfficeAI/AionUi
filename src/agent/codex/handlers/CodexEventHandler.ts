@@ -146,8 +146,6 @@ export class CodexEventHandler {
       return;
     }
 
-    // Catch all unhandled events for debugging
-    console.warn(`❌ [CodexAgentManager] Unhandled event type: "${type}"`, (evt as { data?: unknown }).data);
   }
 
   private handleReasoningMessage(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.AGENT_REASONING_DELTA }> | Extract<CodexAgentEvent, { type: CodexAgentEventType.AGENT_REASONING }> | Extract<CodexAgentEvent, { type: CodexAgentEventType.AGENT_REASONING_SECTION_BREAK }>) {
@@ -165,212 +163,6 @@ export class CodexEventHandler {
     this.messageEmitter.emitAndPersistMessage(standardMessage, true);
   }
 
-  private handleExecApprovalRequest(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.EXEC_APPROVAL_REQUEST }>) {
-    // NOTE: This method is deprecated - all permission requests now go through handleUnifiedPermissionRequest
-    console.warn('⚠️ [CodexEventHandler] handleExecApprovalRequest called - this should not happen with unified handler');
-  }
-
-  private handlePermissionRequest(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.APPLY_PATCH_APPROVAL_REQUEST } | { type: CodexAgentEventType.ELICITATION_CREATE }>) {
-    const originalCallId = (evt.data as CodexEventParams)?.call_id || (evt.data as CodexEventParams)?.codex_call_id || uuid();
-    const type = evt.type;
-
-    // Debug logging to identify duplicate requests
-    console.log(`🔍 [CodexEventHandler] Permission request - Type: ${type}, CallId: ${originalCallId}, Data:`, evt.data);
-
-    // Create unique ID combining message type and call_id to match UI expectation
-    const uniqueRequestId = type === CodexAgentEventType.APPLY_PATCH_APPROVAL_REQUEST ? `patch_${originalCallId}` : `elicitation_${originalCallId}`;
-
-    // Check if we've already processed this call_id to avoid duplicates
-    if (this.toolHandlers.getPendingConfirmations().has(uniqueRequestId)) {
-      console.log(`⚠️ [CodexEventHandler] Duplicate permission request detected and blocked - ID: ${uniqueRequestId}`);
-      return;
-    }
-
-    // Store patch changes for later execution
-    if ((evt.data as CodexEventParams)?.changes || (evt.data as CodexEventParams)?.codex_changes) {
-      this.toolHandlers.getPendingConfirmations().add(uniqueRequestId);
-
-      // Store the actual changes for later application
-      const changes = (evt.data as CodexEventParams)?.changes || (evt.data as CodexEventParams)?.codex_changes;
-      if (changes) {
-        this.toolHandlers.storePatchChanges(uniqueRequestId, changes);
-      }
-    }
-
-    // Transform Codex-specific message to standard format before calling transformMessage
-    const standardMessage = this.transformCodexPermissionToStandard(evt, uniqueRequestId);
-
-    if (standardMessage) {
-      this.messageEmitter.emitAndPersistMessage(standardMessage, true);
-    }
-  }
-
-  private transformCodexPermissionToStandard(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.APPLY_PATCH_APPROVAL_REQUEST }> | Extract<CodexAgentEvent, { type: CodexAgentEventType.ELICITATION_CREATE }>, uniqueRequestId: string): IResponseMessage | null {
-    const eventData = evt.type === CodexAgentEventType.APPLY_PATCH_APPROVAL_REQUEST ? (evt.data as PatchApprovalData) : (evt.data as import('@/common/codexTypes').ElicitationCreateData);
-
-    if (evt.type === CodexAgentEventType.APPLY_PATCH_APPROVAL_REQUEST) {
-      return {
-        type: 'acp_permission',
-        msg_id: uniqueRequestId, // Use unique request ID to prevent duplicate messages
-        conversation_id: this.conversation_id,
-        data: {
-          title: 'File Write Permission',
-          description: eventData.message || 'Codex wants to apply proposed code changes',
-          agentType: 'codex',
-          sessionId: '',
-          options: [
-            {
-              optionId: 'allow_once',
-              name: 'Allow',
-              kind: 'allow_once' as const,
-              description: 'Allow this file operation',
-            },
-            {
-              optionId: 'reject_once',
-              name: 'Reject',
-              kind: 'reject_once' as const,
-              description: 'Reject this file operation',
-            },
-          ],
-          requestId: uniqueRequestId,
-          toolCall: {
-            title: 'Write File',
-            toolCallId: uniqueRequestId,
-            rawInput: {
-              description: eventData.message,
-            },
-          },
-        } as ExtendedAcpPermissionRequest,
-      };
-    }
-
-    if (evt.type === CodexAgentEventType.ELICITATION_CREATE) {
-      const elicitationData = eventData as import('@/common/codexTypes').ElicitationCreateData;
-
-      // Handle file write permission requests
-      if (elicitationData.codex_elicitation === 'file-write' || (elicitationData.message && elicitationData.message.toLowerCase().includes('write'))) {
-        return {
-          type: 'acp_permission',
-          msg_id: uniqueRequestId, // Use unique request ID to prevent duplicate messages
-          conversation_id: this.conversation_id,
-          data: {
-            title: 'File Write Permission',
-            description: elicitationData.message || 'Codex wants to apply proposed code changes',
-            agentType: 'codex',
-            sessionId: '',
-            options: [
-              {
-                optionId: 'allow_once',
-                name: 'Allow',
-                kind: 'allow_once' as const,
-                description: 'Allow this file operation',
-              },
-              {
-                optionId: 'reject_once',
-                name: 'Reject',
-                kind: 'reject_once' as const,
-                description: 'Reject this file operation',
-              },
-            ],
-            requestId: uniqueRequestId,
-            toolCall: {
-              title: 'Write File',
-              toolCallId: uniqueRequestId,
-              rawInput: {
-                description: elicitationData.message,
-              },
-            },
-          } as ExtendedAcpPermissionRequest,
-        };
-      }
-
-      // Handle exec approval requests
-      if (elicitationData.codex_elicitation === 'exec-approval') {
-        return {
-          type: 'acp_permission',
-          msg_id: uniqueRequestId, // Use unique request ID to prevent duplicate messages
-          conversation_id: this.conversation_id,
-          data: {
-            title: 'Command Execution Permission',
-            description: elicitationData.message || 'Codex wants to execute a command',
-            agentType: 'codex',
-            sessionId: '',
-            options: [
-              {
-                optionId: 'allow_once',
-                name: 'Allow',
-                kind: 'allow_once' as const,
-                description: 'Allow this command execution',
-              },
-              {
-                optionId: 'reject_once',
-                name: 'Reject',
-                kind: 'reject_once' as const,
-                description: 'Reject this command execution',
-              },
-            ],
-            requestId: uniqueRequestId,
-            toolCall: {
-              title: 'Execute Command',
-              toolCallId: uniqueRequestId,
-              rawInput: {
-                command: Array.isArray(elicitationData.codex_command) ? elicitationData.codex_command.join(' ') : elicitationData.codex_command,
-                cwd: elicitationData.codex_cwd,
-                description: elicitationData.message,
-              },
-            },
-          } as ExtendedAcpPermissionRequest,
-        };
-      }
-
-      // Handle file read permission requests
-      if (elicitationData.codex_elicitation === 'file-read' || (elicitationData.message && elicitationData.message.toLowerCase().includes('read'))) {
-        return {
-          type: 'acp_permission',
-          msg_id: uniqueRequestId, // Use unique request ID to prevent duplicate messages
-          conversation_id: this.conversation_id,
-          data: {
-            title: 'File Read Permission',
-            description: elicitationData.message || 'Codex wants to read files from your workspace',
-            agentType: 'codex',
-            sessionId: '',
-            options: [
-              {
-                optionId: 'allow_once',
-                name: 'Allow',
-                kind: 'allow_once' as const,
-                description: 'Allow reading files',
-              },
-              {
-                optionId: 'reject_once',
-                name: 'Reject',
-                kind: 'reject_once' as const,
-                description: 'Reject file access',
-              },
-            ],
-            requestId: uniqueRequestId,
-            toolCall: {
-              title: 'Read File',
-              toolCallId: uniqueRequestId,
-              rawInput: {
-                description: elicitationData.message,
-              },
-            },
-          } as ExtendedAcpPermissionRequest,
-        };
-      }
-
-      // For other elicitation types, create a generic content message
-      return {
-        type: 'content',
-        msg_id: uuid(),
-        conversation_id: this.conversation_id,
-        data: `Codex Elicitation: ${elicitationData.codex_elicitation} - ${elicitationData.message || 'No description'}`,
-      };
-    }
-
-    return null;
-  }
 
   /**
    * Unified permission request handler to prevent duplicates
@@ -396,7 +188,6 @@ export class CodexEventHandler {
 
     // Check if we've already processed this call_id to avoid duplicates
     if (this.toolHandlers.getPendingConfirmations().has(unifiedRequestId)) {
-      console.log(`⚠️ [CodexEventHandler] Duplicate permission request blocked - UnifiedId: ${unifiedRequestId}`);
       return;
     }
 
@@ -624,7 +415,6 @@ export class CodexEventHandler {
       this.messageEmitter.emitAndPersistMessage(standardMessage, true);
     } else {
       // For other elicitation types, create a generic content message (not a permission)
-      console.log(`ℹ️ [CodexEventHandler] Non-permission elicitation type: ${elicitationType}`);
     }
   }
 

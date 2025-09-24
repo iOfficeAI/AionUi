@@ -53,25 +53,18 @@ export class CodexMcpAgent {
     this.conn.onNetworkError = (error) => this.handleNetworkError(error);
 
     try {
-      // console.log('🔌 [CodexMcpAgent] Starting MCP connection...');
       await this.conn.start(this.cliPath || 'codex', this.workingDir);
-      // console.log('✅ [CodexMcpAgent] MCP connection established');
 
       // Wait for MCP server to be fully ready
-      // console.log('⏳ [CodexMcpAgent] Waiting for MCP server to be ready...');
       await this.conn.waitForServerReady(30000);
-      // console.log('✅ [CodexMcpAgent] MCP server is ready');
 
       // MCP initialize handshake with better error handling
-      // console.log('🤝 [CodexMcpAgent] Starting initialize handshake...');
 
-      // console.log('🔧 [CodexMcpAgent] Connection diagnostics before initialize:', this.conn.getDiagnostics());
 
-      // console.log('📤 [CodexMcpAgent] Sending initialize with protocol version:', CODEX_MCP_PROTOCOL_VERSION);
 
       // Try different initialization approaches
       try {
-        const initializeResult = await this.conn.request(
+        const _initializeResult = await this.conn.request(
           'initialize',
           {
             protocolVersion: CODEX_MCP_PROTOCOL_VERSION,
@@ -83,13 +76,12 @@ export class CodexMcpAgent {
       } catch (initError) {
         try {
           // Try without initialize - maybe Codex doesn't need it
-          const testResult = await this.conn.request('tools/list', {}, 10000);
+          const _testResult = await this.conn.request('tools/list', {}, 10000);
         } catch (testError) {
           throw new Error(`Codex MCP initialization failed: ${initError}. Tools list also failed: ${testError}`);
         }
       }
     } catch (error) {
-      console.error('❌ [CodexMcpAgent] Start failed:', error);
 
       // Provide more specific error messages
       if (error instanceof Error) {
@@ -168,16 +160,13 @@ export class CodexMcpAgent {
         const isFatalError = this.isFatalError(errorMessage);
 
         if (isFatalError) {
-          console.warn(`⚠️ [CodexMcpAgent] Fatal error detected, stopping retries: ${errorMessage}`);
           break;
         }
 
         if (attempt === maxRetries) {
-          console.error(`🔥 [CodexMcpAgent] All ${maxRetries} attempts failed, giving up`);
           break;
         }
 
-        console.warn(`⚠️ [CodexMcpAgent] Attempt ${attempt}/${maxRetries} failed, retrying...`);
 
         // 指数退避：2s, 4s, 8s
         const delay = 2000 * Math.pow(2, attempt - 1);
@@ -186,8 +175,6 @@ export class CodexMcpAgent {
     }
 
     // 如果所有重试都失败，但连接可能仍然有效，只记录错误而不抛出
-    console.warn(`⚠️ [CodexMcpAgent] newSession failed after ${maxRetries} attempts, but continuing with session: ${convId}`);
-    console.warn(`⚠️ [CodexMcpAgent] Last error:`, lastError?.message);
 
     // 返回会话 ID，让后续流程继续
     return { sessionId: convId };
@@ -218,13 +205,11 @@ export class CodexMcpAgent {
       // 检查是否为致命错误
       const isFatalError = this.isFatalError(errorMsg);
       if (isFatalError) {
-        console.warn(`⚠️ [CodexMcpAgent] Fatal error in sendPrompt, not retrying: ${errorMsg}`);
         // 对于致命错误，直接抛出，不进行重试
         throw error;
       }
 
       // 对于非超时、非致命错误，仍然抛出
-      console.error('❌ [CodexMcpAgent] sendPrompt encountered non-timeout error:', errorMsg);
       throw error;
     }
   }
@@ -263,8 +248,8 @@ export class CodexMcpAgent {
         };
 
         this.eventHandler.handleEvent({ type: msg.type || 'unknown', data: enrichedData });
-      } catch (error) {
-        console.error('❌ [CodexMcpAgent] Event handling failed:', error);
+      } catch {
+        // Event handling failed, continue processing
       }
 
       if (msg.type === 'session_configured' && msg.session_id) {
@@ -278,8 +263,8 @@ export class CodexMcpAgent {
       try {
         // Forward the elicitation request directly via eventHandler
         this.eventHandler.handleEvent({ type: 'elicitation/create', data: env.params });
-      } catch (error) {
-        console.error('❌ [CodexMcpAgent] Elicitation handling failed:', error);
+      } catch {
+        // Elicitation handling failed, continue processing
       }
       return;
     }
@@ -301,8 +286,8 @@ export class CodexMcpAgent {
             retryCount: error.retryCount,
           },
         });
-      } catch (handlingError) {
-        console.error('❌ [CodexMcpAgent] Network error handling failed:', handlingError);
+      } catch {
+        // Network error handling failed, continue processing
       }
     }
   }

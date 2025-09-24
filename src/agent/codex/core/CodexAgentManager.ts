@@ -53,7 +53,6 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
       sessionManager,
       fileOperationHandler,
       onNetworkError: (error) => {
-        console.error('🌐 [CodexAgentManager] Network error:', error);
         this.handleNetworkError(error);
       },
     });
@@ -64,7 +63,6 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
         return this.agent;
       })
       .catch((e) => {
-        console.error('❌ [CodexAgentManager] Agent start failed:', e);
         this.agent.getSessionManager().emitSessionEvent('bootstrap_failed', { error: e.message });
         throw e;
       });
@@ -95,7 +93,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
   private async performPostConnectionSetup(): Promise<void> {
     try {
       // Get connection diagnostics
-      const diagnostics = this.getDiagnostics();
+      const _diagnostics = this.getDiagnostics();
 
       // MCP 初始化握手 - 现在有内置重试机制
       const result = await this.agent.newSession(this.workspace);
@@ -107,11 +105,9 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
         sessionId: result.sessionId,
       });
     } catch (error) {
-      console.error('❌ [CodexAgentManager] Post-connection setup failed:', error);
 
       // 输出更详细的诊断信息
       const diagnostics = this.getDiagnostics();
-      console.error('🔍 [CodexAgentManager] Connection diagnostics after failure:', diagnostics);
 
       // 提供具体的错误信息和建议
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -167,7 +163,6 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
       const result = await this.agent.sendPrompt(processedContent);
       return result;
     } catch (e) {
-      console.error('❌ [CodexAgentManager] Error in sendMessage:', e);
 
       // 对于某些错误类型，避免重复错误消息处理
       // 这些错误通常已经通过 MCP 连接的事件流处理过了
@@ -176,7 +171,6 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
       if (isUsageLimitError) {
         // Usage limit 错误已经通过 MCP 事件流处理，避免重复发送
-        console.warn('⚠️ [CodexAgentManager] Usage limit error already handled via MCP events, not sending duplicate message');
         throw e;
       }
 
@@ -233,7 +227,6 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
             ? data.callId.substring(5)
             : data.callId;
 
-    console.log(`🔗 [CodexAgentManager] Permission response - ClientCallId: ${data.callId}, ServerCallId: ${origCallId}, Decision: ${decision}`);
 
     // Respond to elicitation (server expects JSON-RPC response)
     this.agent.respondElicitation(origCallId, decision);
@@ -257,7 +250,6 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
       // Patch changes applied successfully
     } catch (error) {
-      console.error('❌ [CodexAgentManager] Failed to apply patch changes:', error);
 
       // 发送失败事件
       this.agent.getSessionManager().emitSessionEvent('patch_failed', {
