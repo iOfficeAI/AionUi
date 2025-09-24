@@ -23,7 +23,8 @@
     "loading": "Please wait...",
     "copy": "Copy",
     "copySuccess": "Copied",
-    "copyFailed": "Copy failed"
+    "copyFailed": "Copy failed",
+    "close": "Close"
   },
   "conversation": {
     "welcome": {
@@ -98,6 +99,7 @@
     "lightMode": "Light",
     "darkMode": "Dark",
     "tools": "Tools Settings",
+    "mcp": "MCP Integration",
     "imageGenerationModel": "Image Model",
     "imageGenerationGuide": "Image Model Setup Guide",
     "noAvailable": "No available image models, please configure first.",
@@ -144,6 +146,80 @@
     "openLinkFailed": "Failed to open link",
     "imageGenerationModelDetected": "Image model detected, image tool has been automatically enabled. Default model: {{platform}}:{{model}}"
   },
+  "mcp": {
+    "integration": {
+      "title": "MCP Integration",
+      "description": "Manage Model Context Protocol servers and tools"
+    },
+    "servers": "Servers",
+    "tools": "Tools",
+    "executionHistory": "Execution History",
+    "addServer": "Add Server",
+    "connect": "Connect",
+    "disconnect": "Disconnect",
+    "refresh": "Refresh",
+    "settings": "Settings",
+    "delete": "Delete",
+    "deleteConfirm": "Delete Server",
+    "deleteMessage": "Are you sure you want to delete {{name}}?",
+    "execute": "Execute",
+    "approve": "Approve",
+    "reject": "Reject",
+    "executing": "Executing...",
+    "executingTool": "Executing tool...",
+    "parameters": "Parameters",
+    "parametersJson": "Parameters (JSON)",
+    "result": "Result",
+    "noParameters": "This tool has no parameters",
+    "noServers": "No MCP servers configured",
+    "noServersFound": "No servers found matching your criteria",
+    "noTools": "No tools available",
+    "noExecutions": "No execution history",
+    "searchServers": "Search servers...",
+    "searchTools": "Search tools...",
+    "filterByStatus": "Filter by status",
+    "transport": "Transport",
+    "lastCheck": "Last Check",
+    "capabilities": "Capabilities",
+    "noCapabilities": "No capabilities reported",
+    "never": "Never",
+    "justNow": "Just now",
+    "minutesAgo": "{{count}} minutes ago",
+    "hoursAgo": "{{count}} hours ago",
+    "daysAgo": "{{count}} days ago",
+    "connectedSince": "Connected since {{time}}",
+    "status": {
+      "all": "All",
+      "connected": "Connected",
+      "disconnected": "Disconnected",
+      "error": "Error",
+      "authenticating": "Authenticating"
+    },
+    "stats": {
+      "totalServers": "Total Servers",
+      "connectedServers": "Connected",
+      "totalTools": "Available Tools",
+      "executions": "Executions"
+    },
+    "execution": {
+      "completed": "Completed",
+      "failed": "Failed",
+      "running": "Running",
+      "cancelled": "Cancelled",
+      "pending": "Pending"
+    },
+    "executionSuccess": "Execution successful",
+    "executionFailed": "Execution failed",
+    "error": "MCP Error",
+    "advancedOptions": "Advanced Options",
+    "timeout": "Timeout",
+    "priority": {
+      "low": "Low",
+      "normal": "Normal", 
+      "high": "High",
+      "urgent": "Urgent"
+    }
+  },
   "acp": {
     "auth": {
       "failed": "{{backend}} authentication failed:\n\n{{error}}\n\nPlease check your local CLI tool authentication status"
@@ -151,5 +227,42 @@
     "sendbox": {
       "placeholder": "Send message to {{backend}}..."
     }
+  },
+  "update": {
+    "currentVersion": "Current Version",
+    "latestVersion": "Latest Version",
+    "newVersion": "New Version",
+    "minimumVersion": "Minimum Version",
+    "checkForUpdates": "Check for Updates",
+    "upToDate": "Up to Date",
+    "upToDateMessage": "You are using the latest version of AionUi",
+    "available": "{{type}} Available",
+    "availableMessage": "A new version is available, update recommended for the best experience",
+    "updateAvailable": "Update Available",
+    "newVersionAvailable": "{{type}} v{{version}} Available",
+    "majorUpdate": "Major Update",
+    "minorUpdate": "Minor Update", 
+    "download": "Download Update",
+    "downloadRequired": "Download Now",
+    "downloadNow": "Download Now",
+    "downloading": "Downloading...",
+    "downloadInProgress": "Downloading update, please wait",
+    "downloadProgress": "Download Progress",
+    "downloadCompleted": "Download Completed",
+    "downloadError": "Download Failed",
+    "downloadInBackground": "Download in Background",
+    "downloadSpeed": "Download Speed",
+    "timeRemaining": "Time Remaining",
+    "pause": "Pause",
+    "resume": "Resume",
+    "cancel": "Cancel",
+    "installAndRestart": "Install and Restart",
+    "installLater": "Install Later",
+    "readyToInstall": "Ready to Install",
+    "remindLater": "Remind Later",
+    "releaseNotes": "Release Notes",
+    "majorUpdateWarning": "This is a major version update that may contain breaking changes",
+    "error": "Update Error",
+    "retry": "Retry"
   }
 }

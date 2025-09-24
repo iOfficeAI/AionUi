@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { formatBytes } from '../../common/update/updateConfig';
 
 // ===== 文件类型支持配置 =====
 // 注意：当前为预先设计的架构，支持所有文件类型
@@ -111,15 +112,9 @@ export function getTextFromDropEvent(event: DragEvent): string {
   return event.dataTransfer?.getData('text/plain') || '';
 }
 
-// 格式化文件大小
+// 格式化文件大小（使用统一的formatBytes实现）
 export function formatFileSize(bytes: number): string {
-  if (bytes === 0) return '0 B';
-
-  const k = 1024;
-  const sizes = ['B', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-
-  return `${parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
+  return formatBytes(bytes, 2); // 保持2位精度以兼容之前的行为
 }
 
 /**

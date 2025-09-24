@@ -6,39 +6,42 @@
 
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { readFileSync, existsSync, writeFileSync } from 'fs';
+import { join } from 'path';
+import { homedir } from 'os';
 import type { McpOperationResult } from '../McpProtocol';
 import { AbstractMcpAgent } from '../McpProtocol';
-import type { IMcpServer } from '../../storage';
+import type { IMcpServer } from '@mcp/storage';
 
 const execAsync = promisify(exec);
 
 /**
- * Gemini CLI MCP代理实现
- * 注意：Gemini CLI 支持 stdio、SSE、HTTP 传输类型，支持 headers，不支持 streamable_http
+ * Qwen Code MCP代理实现
+ * 注意：Qwen CLI 目前只支持 stdio 传输类型，不支持 SSE/HTTP/streamable_http
  */
-export class GeminiMcpAgent extends AbstractMcpAgent {
+export class QwenMcpAgent extends AbstractMcpAgent {
   constructor() {
-    super('gemini');
+    super('qwen');
   }
 
   getSupportedTransports(): string[] {
-    return ['stdio', 'sse', 'http'];
+    return ['stdio'];
   }
 
   /**
-   * 检测Gemini CLI的MCP配置
+   * 检测Qwen Code的MCP配置
    */
   async detectMcpServers(_cliPath?: string): Promise<IMcpServer[]> {
     try {
-      // 尝试通过Gemini CLI命令获取MCP配置
-      const { stdout: result } = await execAsync('gemini mcp list', { timeout: this.timeout });
+      // 尝试通过Qwen CLI命令获取MCP配置
+      const { stdout: result } = await execAsync('qwen mcp list', { timeout: this.timeout });
 
       // 如果没有配置任何MCP服务器，返回空数组
       if (result.trim() === 'No MCP servers configured.' || !result.trim()) {
         return [];
       }
 
-      // 解析文本输出（假设格式与iFlow类似）
+      // 解析文本输出
       const mcpServers: IMcpServer[] = [];
       const lines = result.split('\n');
 
@@ -56,7 +59,7 @@ export class GeminiMcpAgent extends AbstractMcpAgent {
           const transportType = transport as 'stdio' | 'sse' | 'http';
 
           mcpServers.push({
-            id: `gemini_${name.trim()}`,
+            id: `qwen_${name.trim()}`,
             name: name.trim(),
             transport:
               transportType === 'stdio'
@@ -89,12 +92,12 @@ export class GeminiMcpAgent extends AbstractMcpAgent {
                       ? {
                           command: command,
                           args: args,
-                          description: `Detected from Gemini CLI`,
+                          description: `Detected from Qwen CLI`,
                         }
                       : {
                           url: commandStr.trim(),
                           type: transportType,
-                          description: `Detected from Gemini CLI`,
+                          description: `Detected from Qwen CLI`,
                         },
                 },
               },
@@ -107,73 +110,44 @@ export class GeminiMcpAgent extends AbstractMcpAgent {
 
       return mcpServers;
     } catch (error) {
-      console.warn('Failed to get Gemini MCP config:', error);
+      console.warn('Failed to get Qwen Code MCP config:', error);
     }
 
     return [];
   }
 
   /**
-   * 安装MCP服务器到Gemini agent
+   * 安装MCP服务器到Qwen Code agent
    */
   async installMcpServers(mcpServers: IMcpServer[]): Promise<McpOperationResult> {
     try {
       for (const server of mcpServers) {
         if (server.transport.type === 'stdio') {
-          // 使用Gemini CLI添加MCP服务器
-          // 格式: gemini mcp add -s user <name> <command> [args...] [options]
+          // 使用Qwen CLI添加MCP服务器
+          // 格式: qwen mcp add <name> <command> [args...]
+          const args = server.transport.args?.join(' ') || '';
           const envArgs = Object.entries(server.transport.env || {})
-            .map(([key, value]) => `-e ${key}=${value}`)
+            .map(([key, value]) => `--env ${key}=${value}`)
             .join(' ');
 
-          let command = `gemini mcp add -s user "${server.name}" "${server.transport.command}"`;
-
-          // 添加参数
-          if (server.transport.args?.length) {
-            const quotedArgs = server.transport.args.map((arg) => `"${arg}"`).join(' ');
-            command += ` ${quotedArgs}`;
+          let command = `qwen mcp add "${server.name}" "${server.transport.command}"`;
+          if (args) {
+            command += ` ${args}`;
           }
-
-          // 添加环境变量
           if (envArgs) {
             command += ` ${envArgs}`;
           }
 
-          // 添加描述（如果有）
-          if (server.description) {
-            command += ` --description "${server.description}"`;
-          }
+          // 添加作用域参数，优先使用user作用域
+          command += ' -s user';
 
           try {
             await execAsync(command, { timeout: 5000 });
           } catch (error) {
-            console.warn(`Failed to add MCP ${server.name} to Gemini:`, error);
-            // 继续处理其他服务器，不要因为一个失败就停止
+            console.warn(`Failed to add MCP ${server.name} to Qwen Code:`, error);
           }
-        } else if (server.transport.type === 'sse' || server.transport.type === 'http') {
-          // 处理 SSE/HTTP 传输类型
-          let command = `gemini mcp add -s user "${server.name}" "${server.transport.url}" --transport ${server.transport.type}`;
-
-          // 添加headers支持
-          if (server.transport.headers) {
-            for (const [key, value] of Object.entries(server.transport.headers)) {
-              command += ` -H "${key}: ${value}"`;
-            }
-          }
-
-          // 添加描述（如果有）
-          if (server.description) {
-            command += ` --description "${server.description}"`;
-          }
-
-          try {
-            await execAsync(command, { timeout: 5000 });
-          } catch (error) {
-            console.warn(`Failed to add MCP ${server.name} to Gemini:`, error);
-            // 继续处理其他服务器，不要因为一个失败就停止
-          }
-        } else if (server.transport.type === 'streamable_http') {
-          console.warn(`Skipping ${server.name}: Gemini CLI does not support streamable_http transport type`);
+        } else {
+          console.warn(`Skipping ${server.name}: Qwen CLI only supports stdio transport type`);
         }
       }
       return { success: true };
@@ -183,14 +157,14 @@ export class GeminiMcpAgent extends AbstractMcpAgent {
   }
 
   /**
-   * 从Gemini agent删除MCP服务器
+   * 从Qwen Code agent删除MCP服务器
    */
   async removeMcpServer(mcpServerName: string): Promise<McpOperationResult> {
     try {
-      // 使用Gemini CLI命令删除MCP服务器（尝试不同作用域）
+      // 使用Qwen CLI命令删除MCP服务器（尝试不同作用域）
       // 首先尝试project作用域，然后尝试user作用域
       try {
-        const removeCommand = `gemini mcp remove "${mcpServerName}" -s project`;
+        const removeCommand = `qwen mcp remove "${mcpServerName}" -s project`;
         const result = await execAsync(removeCommand, { timeout: 5000 });
 
         // 检查输出是否表示真正的成功删除
@@ -206,25 +180,38 @@ export class GeminiMcpAgent extends AbstractMcpAgent {
       } catch (projectError) {
         // project作用域失败，尝试user作用域
         try {
-          const removeCommand = `gemini mcp remove "${mcpServerName}" -s user`;
+          const removeCommand = `qwen mcp remove "${mcpServerName}" -s user`;
           const result = await execAsync(removeCommand, { timeout: 5000 });
 
           // 检查输出是否表示真正的成功删除
           if (result.stdout && result.stdout.includes('removed from user settings')) {
             return { success: true };
           } else if (result.stdout && result.stdout.includes('not found in user')) {
-            // 服务器不在user作用域中，但这也是成功的（服务器本来就不存在）
-            return { success: true };
+            // 服务器不在user作用域中，尝试配置文件
+            throw new Error('Server not found in user settings');
           } else {
             // 其他情况认为成功（向后兼容）
             return { success: true };
           }
         } catch (userError) {
-          // 如果服务器不存在，也认为是成功的
-          if (userError instanceof Error && (userError.message.includes('not found') || userError.message.includes('does not exist'))) {
-            return { success: true };
+          // CLI命令都失败，尝试直接操作配置文件作为后备
+          const configPath = join(homedir(), '.qwen', 'client_config.json');
+
+          if (!existsSync(configPath)) {
+            return { success: true }; // 配置文件不存在，认为已经删除
           }
-          return { success: false, error: userError instanceof Error ? userError.message : String(userError) };
+
+          try {
+            const config = JSON.parse(readFileSync(configPath, 'utf-8'));
+            if (config.mcpServers && config.mcpServers[mcpServerName]) {
+              delete config.mcpServers[mcpServerName];
+              writeFileSync(configPath, JSON.stringify(config, null, 2));
+            }
+            return { success: true };
+          } catch (fileError) {
+            console.warn(`Failed to update config file ${configPath}:`, fileError);
+            return { success: true }; // 如果配置文件操作失败，也认为成功
+          }
         }
       }
     } catch (error) {

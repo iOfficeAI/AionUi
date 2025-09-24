@@ -1,7 +1,7 @@
 {
   "name": "AionUi",
   "productName": "AionUi",
-  "version": "1.2.4",
+  "version": "0.1.4",
   "description": "Transform your command-line AI agent into a modern, efficient AI Chat interface.",
   "main": ".webpack/main",
   "scripts": {
@@ -22,6 +22,11 @@
     "lint:fix": "eslint --ext .ts,.tsx . --fix",
     "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
     "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:contract": "jest tests/contract",
+    "test:integration": "jest tests/integration",
     "prepare": "husky",
     "postinstall": "patch-package"
   },
@@ -46,9 +51,11 @@
     "@electron/notarize": "^3.1.0",
     "@svgr/webpack": "^8.1.0",
     "@types/html-to-text": "^9.0.4",
+    "@types/jest": "^30.0.0",
     "@types/node": "^24.3.1",
     "@types/react-dom": "^19.1.6",
     "@types/react-syntax-highlighter": "^15.5.13",
+    "@types/semver": "^7.7.1",
     "@typescript-eslint/eslint-plugin": "^6.21.0",
     "@typescript-eslint/parser": "^6.21.0",
     "@unocss/webpack": "^66.3.3",
@@ -63,6 +70,7 @@
     "eslint-plugin-prettier": "^5.5.4",
     "fork-ts-checker-webpack-plugin": "^7.3.0",
     "husky": "^9.1.7",
+    "jest": "^30.1.3",
     "jest-diff": "^30.0.4",
     "lint-staged": "^16.1.5",
     "mini-css-extract-plugin": "^2.9.2",
@@ -71,6 +79,7 @@
     "postcss-loader": "^8.1.1",
     "prettier": "^3.6.2",
     "style-loader": "^3.3.4",
+    "ts-jest": "^29.4.4",
     "ts-loader": "^9.5.2",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3",
@@ -90,6 +99,7 @@
     "classnames": "^2.5.1",
     "diff2html": "^3.4.52",
     "electron-squirrel-startup": "^1.0.1",
+    "electron-updater": "^6.6.2",
     "eventemitter3": "^5.0.1",
     "fix-path": "^4.0.0",
     "html-to-text": "^9.0.5",
@@ -108,9 +118,10 @@
     "remark-breaks": "^4.0.0",
     "remark-gfm": "^4.0.1",
     "remark-math": "^6.0.0",
+    "semver": "^7.7.2",
     "sharp": "^0.34.3",
     "swr": "^2.3.6",
-    "zod": "^3.23.8"
+    "zod": "^3.25.76"
   },
   "optionalDependencies": {
     "electron-winstaller": "^5.4.0"

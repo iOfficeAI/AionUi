@@ -100,8 +100,16 @@ GEMINI.md
 .vscode/launch.json
 .vscode/*.log
 
-# Claude Code settings (may contain sensitive information)
+# AI CLI tool configurations (may contain sensitive information)
 .claude/
+.qwen/
+.qwen/*/
+.specify/scripts/
+.gemini/
+.gemini/*/
+
+# Keep important project documentation
+!.specify/memory/constitution.md
 
 # Temporary and backup files
 *.tmp
@@ -132,3 +140,14 @@ diagnose-*.js
 
 .gemini/
 gha-creds-*.json
+
+# Spec-Kit working files
+specs/**/.DS_Store
+specs/**/temp/
+specs/**/tmp/
+specs/**/*.tmp
+specs/**/*.cache
+specs/**/draft-*
+specs/**/work-*
+.spec-cache/
+.tmp/

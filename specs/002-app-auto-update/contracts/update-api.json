@@ -1,0 +1,582 @@
+{
+  "title": "应用内自动更新 API 契约",
+  "version": "1.0.0",
+  "description": "定义应用内自动更新功能的所有 API 接口和数据结构",
+  
+  "interfaces": {
+    "IUpdateChecker": {
+      "description": "更新检查服务接口",
+      "methods": {
+        "checkForUpdates": {
+          "description": "检查可用更新",
+          "parameters": {
+            "force": {
+              "type": "boolean",
+              "description": "是否强制检查，忽略缓存",
+              "optional": true,
+              "default": false
+            }
+          },
+          "returns": {
+            "type": "Promise<UpdateCheckResult>",
+            "description": "更新检查结果"
+          }
+        },
+        "getVersionInfo": {
+          "description": "获取当前版本信息",
+          "parameters": {},
+          "returns": {
+            "type": "VersionInfo",
+            "description": "当前版本详情"
+          }
+        }
+      }
+    },
+
+    "IUpdateDownloader": {
+      "description": "更新下载服务接口",
+      "methods": {
+        "downloadUpdate": {
+          "description": "下载更新包",
+          "parameters": {
+            "updateInfo": {
+              "type": "UpdateInfo",
+              "description": "要下载的更新信息"
+            },
+            "options": {
+              "type": "DownloadOptions",
+              "description": "下载选项",
+              "optional": true
+            }
+          },
+          "returns": {
+            "type": "Promise<DownloadResult>",
+            "description": "下载结果"
+          }
+        },
+        "pauseDownload": {
+          "description": "暂停下载",
+          "parameters": {
+            "sessionId": {
+              "type": "string",
+              "description": "下载会话ID"
+            }
+          },
+          "returns": {
+            "type": "Promise<boolean>",
+            "description": "暂停是否成功"
+          }
+        },
+        "resumeDownload": {
+          "description": "恢复下载",
+          "parameters": {
+            "sessionId": {
+              "type": "string",
+              "description": "下载会话ID"
+            }
+          },
+          "returns": {
+            "type": "Promise<boolean>",
+            "description": "恢复是否成功"
+          }
+        },
+        "cancelDownload": {
+          "description": "取消下载",
+          "parameters": {
+            "sessionId": {
+              "type": "string",
+              "description": "下载会话ID"
+            }
+          },
+          "returns": {
+            "type": "Promise<boolean>",
+            "description": "取消是否成功"
+          }
+        }
+      }
+    },
+
+    "IUpdateInstaller": {
+      "description": "更新安装服务接口",
+      "methods": {
+        "installUpdate": {
+          "description": "安装更新",
+          "parameters": {
+            "updatePackage": {
+              "type": "UpdatePackage",
+              "description": "更新包信息"
+            },
+            "installOptions": {
+              "type": "InstallOptions",
+              "description": "安装选项",
+              "optional": true
+            }
+          },
+          "returns": {
+            "type": "Promise<InstallResult>",
+            "description": "安装结果"
+          }
+        },
+        "rollbackUpdate": {
+          "description": "回滚更新",
+          "parameters": {
+            "targetVersion": {
+              "type": "string",
+              "description": "回滚到的目标版本",
+              "optional": true
+            }
+          },
+          "returns": {
+            "type": "Promise<RollbackResult>",
+            "description": "回滚结果"
+          }
+        }
+      }
+    }
+  },
+
+  "types": {
+    "VersionInfo": {
+      "type": "object",
+      "required": ["current", "latest"],
+      "properties": {
+        "current": {
+          "type": "string",
+          "description": "当前版本号 (semver)",
+          "pattern": "^\\d+\\.\\d+\\.\\d+.*$"
+        },
+        "latest": {
+          "type": "string", 
+          "description": "最新版本号 (semver)",
+          "pattern": "^\\d+\\.\\d+\\.\\d+.*$"
+        },
+        "releaseDate": {
+          "type": "string",
+          "description": "发布日期 (ISO 8601)",
+          "format": "date-time"
+        },
+        "releaseNotes": {
+          "type": "string",
+          "description": "更新日志"
+        },
+        "isUpdateAvailable": {
+          "type": "boolean",
+          "description": "是否有更新可用"
+        },
+        "isForced": {
+          "type": "boolean", 
+          "description": "是否为强制更新"
+        },
+        "minimumVersion": {
+          "type": "string",
+          "description": "支持的最低版本",
+          "optional": true
+        }
+      }
+    },
+
+    "UpdateCheckResult": {
+      "type": "object",
+      "required": ["success", "versionInfo"],
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "description": "检查是否成功"
+        },
+        "versionInfo": {
+          "$ref": "#/types/VersionInfo",
+          "description": "版本信息"
+        },
+        "error": {
+          "type": "string",
+          "description": "错误信息",
+          "optional": true
+        },
+        "checkTime": {
+          "type": "number",
+          "description": "检查时间戳"
+        }
+      }
+    },
+
+    "UpdateInfo": {
+      "type": "object", 
+      "required": ["version", "platform", "downloadUrl", "fileSize", "checksum"],
+      "properties": {
+        "version": {
+          "type": "string",
+          "description": "目标版本号"
+        },
+        "platform": {
+          "type": "string",
+          "enum": ["win32", "darwin", "linux"],
+          "description": "目标平台"
+        },
+        "arch": {
+          "type": "string", 
+          "enum": ["x64", "arm64", "ia32"],
+          "description": "目标架构"
+        },
+        "downloadUrl": {
+          "type": "string",
+          "format": "uri",
+          "description": "下载地址"
+        },
+        "fileSize": {
+          "type": "number",
+          "minimum": 0,
+          "description": "文件大小（字节）"
+        },
+        "checksum": {
+          "type": "string",
+          "pattern": "^[a-fA-F0-9]{64}$",
+          "description": "SHA256 校验和"
+        },
+        "signature": {
+          "type": "string",
+          "description": "数字签名"
+        },
+        "isDelta": {
+          "type": "boolean",
+          "description": "是否为增量更新"
+        },
+        "baseVersion": {
+          "type": "string",
+          "description": "增量更新的基础版本",
+          "optional": true
+        }
+      }
+    },
+
+    "DownloadOptions": {
+      "type": "object",
+      "properties": {
+        "maxSpeed": {
+          "type": "number",
+          "description": "最大下载速度 (KB/s)",
+          "minimum": 0,
+          "optional": true
+        },
+        "retryCount": {
+          "type": "number",
+          "description": "重试次数",
+          "minimum": 0,
+          "maximum": 10,
+          "default": 3,
+          "optional": true
+        },
+        "timeout": {
+          "type": "number",
+          "description": "超时时间 (毫秒)",
+          "minimum": 1000,
+          "default": 30000,
+          "optional": true
+        },
+        "resumable": {
+          "type": "boolean",
+          "description": "支持断点续传",
+          "default": true,
+          "optional": true
+        }
+      }
+    },
+
+    "DownloadProgress": {
+      "type": "object",
+      "required": ["sessionId", "progress", "bytesDownloaded", "totalBytes"],
+      "properties": {
+        "sessionId": {
+          "type": "string",
+          "description": "下载会话ID"
+        },
+        "progress": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "下载进度百分比"
+        },
+        "bytesDownloaded": {
+          "type": "number",
+          "minimum": 0,
+          "description": "已下载字节数"
+        },
+        "totalBytes": {
+          "type": "number",
+          "minimum": 0,
+          "description": "总字节数"
+        },
+        "speed": {
+          "type": "number",
+          "minimum": 0,
+          "description": "下载速度 (bytes/s)"
+        },
+        "estimatedTimeRemaining": {
+          "type": "number",
+          "minimum": 0,
+          "description": "预计剩余时间 (秒)"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["downloading", "paused", "completed", "failed", "cancelled"],
+          "description": "下载状态"
+        }
+      }
+    },
+
+    "DownloadResult": {
+      "type": "object",
+      "required": ["success", "sessionId"],
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "description": "下载是否成功"
+        },
+        "sessionId": {
+          "type": "string",
+          "description": "下载会话ID"
+        },
+        "filePath": {
+          "type": "string",
+          "description": "下载文件路径",
+          "optional": true
+        },
+        "error": {
+          "type": "string",
+          "description": "错误信息",
+          "optional": true
+        },
+        "duration": {
+          "type": "number",
+          "description": "下载耗时 (毫秒)"
+        }
+      }
+    },
+
+    "InstallOptions": {
+      "type": "object",
+      "properties": {
+        "silent": {
+          "type": "boolean",
+          "description": "静默安装",
+          "default": false,
+          "optional": true
+        },
+        "restartAfterInstall": {
+          "type": "boolean",
+          "description": "安装后重启应用",
+          "default": true,
+          "optional": true
+        },
+        "backupCurrent": {
+          "type": "boolean",
+          "description": "备份当前版本",
+          "default": true,
+          "optional": true
+        },
+        "validateSignature": {
+          "type": "boolean",
+          "description": "验证数字签名",
+          "default": true,
+          "optional": true
+        }
+      }
+    },
+
+    "InstallResult": {
+      "type": "object",
+      "required": ["success"],
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "description": "安装是否成功"
+        },
+        "newVersion": {
+          "type": "string",
+          "description": "安装的新版本",
+          "optional": true
+        },
+        "error": {
+          "type": "string",
+          "description": "错误信息",
+          "optional": true
+        },
+        "needsRestart": {
+          "type": "boolean",
+          "description": "是否需要重启",
+          "default": true
+        },
+        "backupPath": {
+          "type": "string",
+          "description": "备份文件路径",
+          "optional": true
+        }
+      }
+    },
+
+    "RollbackResult": {
+      "type": "object",
+      "required": ["success"],
+      "properties": {
+        "success": {
+          "type": "boolean",
+          "description": "回滚是否成功"
+        },
+        "rolledBackVersion": {
+          "type": "string",
+          "description": "回滚到的版本",
+          "optional": true
+        },
+        "error": {
+          "type": "string",
+          "description": "错误信息",
+          "optional": true
+        }
+      }
+    }
+  },
+
+  "events": {
+    "updateCheckStarted": {
+      "description": "更新检查开始事件",
+      "payload": {
+        "type": "object",
+        "properties": {
+          "timestamp": {
+            "type": "number",
+            "description": "事件时间戳"
+          },
+          "forced": {
+            "type": "boolean",
+            "description": "是否为强制检查"
+          }
+        }
+      }
+    },
+
+    "updateCheckCompleted": {
+      "description": "更新检查完成事件",
+      "payload": {
+        "$ref": "#/types/UpdateCheckResult"
+      }
+    },
+
+    "downloadStarted": {
+      "description": "下载开始事件",
+      "payload": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string"
+          },
+          "updateInfo": {
+            "$ref": "#/types/UpdateInfo"
+          }
+        }
+      }
+    },
+
+    "downloadProgress": {
+      "description": "下载进度事件",
+      "payload": {
+        "$ref": "#/types/DownloadProgress"
+      }
+    },
+
+    "downloadCompleted": {
+      "description": "下载完成事件",
+      "payload": {
+        "$ref": "#/types/DownloadResult"
+      }
+    },
+
+    "installStarted": {
+      "description": "安装开始事件",
+      "payload": {
+        "type": "object",
+        "properties": {
+          "updatePackage": {
+            "$ref": "#/types/UpdateInfo"
+          },
+          "options": {
+            "$ref": "#/types/InstallOptions"
+          }
+        }
+      }
+    },
+
+    "installCompleted": {
+      "description": "安装完成事件", 
+      "payload": {
+        "$ref": "#/types/InstallResult"
+      }
+    },
+
+    "rollbackStarted": {
+      "description": "回滚开始事件",
+      "payload": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "description": "回滚原因"
+          },
+          "targetVersion": {
+            "type": "string",
+            "description": "目标版本",
+            "optional": true
+          }
+        }
+      }
+    },
+
+    "rollbackCompleted": {
+      "description": "回滚完成事件",
+      "payload": {
+        "$ref": "#/types/RollbackResult"
+      }
+    }
+  },
+
+  "errorCodes": {
+    "UPDATE_CHECK_FAILED": {
+      "code": "UC001",
+      "message": "更新检查失败",
+      "description": "网络错误或服务器响应异常"
+    },
+    "DOWNLOAD_FAILED": {
+      "code": "DL001", 
+      "message": "下载失败",
+      "description": "文件下载过程中发生错误"
+    },
+    "CHECKSUM_MISMATCH": {
+      "code": "DL002",
+      "message": "校验和不匹配",
+      "description": "下载文件校验和验证失败"
+    },
+    "SIGNATURE_INVALID": {
+      "code": "DL003",
+      "message": "数字签名无效",
+      "description": "更新包数字签名验证失败"
+    },
+    "INSUFFICIENT_SPACE": {
+      "code": "IN001",
+      "message": "磁盘空间不足",
+      "description": "没有足够的磁盘空间进行安装"
+    },
+    "PERMISSION_DENIED": {
+      "code": "IN002",
+      "message": "权限不足",
+      "description": "没有足够的权限执行安装"
+    },
+    "INSTALL_FAILED": {
+      "code": "IN003",
+      "message": "安装失败",
+      "description": "安装过程中发生未知错误"
+    },
+    "ROLLBACK_FAILED": {
+      "code": "RB001",
+      "message": "回滚失败",
+      "description": "无法回滚到之前版本"
+    }
+  }
+}

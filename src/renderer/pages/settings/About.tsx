@@ -1,9 +1,10 @@
 import { ipcBridge } from '@/common';
-import { Form } from '@arco-design/web-react';
+import { Form, Divider } from '@arco-design/web-react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import packageJson from '../../../../package.json';
 import SettingContainer from './components/SettingContainer';
+import UpdateStatus from '@renderer/pages/settings/update/UpdateStatus';
 
 const About: React.FC = () => {
   const { t } = useTranslation();
@@ -38,6 +39,16 @@ const About: React.FC = () => {
         <Form.Item label={t('common.contact')}>{link('https://x.com/WailiVery')}</Form.Item>
         <Form.Item label={t('common.github')}>{link('https://github.com/iOfficeAI/AionUi')}</Form.Item>
       </Form>
+      
+      <Divider />
+      
+      <div className="mt-24px">
+        <UpdateStatus 
+          autoCheckOnMount={true}
+          showVersionInfo={false}
+          showDetailedProgress={true}
+        />
+      </div>
     </SettingContainer>
   );
 };

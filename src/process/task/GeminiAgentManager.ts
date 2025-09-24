@@ -62,12 +62,15 @@ export class GeminiAgentManager extends BaseAgentManager<{
       mcpServers
         .filter((server: IMcpServer) => server.enabled && server.status === 'connected') // 只使用启用且连接成功的服务器
         .forEach((server: IMcpServer) => {
-          mcpConfig[server.name] = {
-            command: server.transport.command,
-            args: server.transport.args || [],
-            env: server.transport.env || {},
-            description: server.description,
-          };
+          // 只处理 stdio 类型的传输方式，因为 aioncli-core 只支持这种类型
+          if (server.transport.type === 'stdio') {
+            mcpConfig[server.name] = {
+              command: server.transport.command,
+              args: server.transport.args || [],
+              env: server.transport.env || {},
+              description: server.description,
+            };
+          }
         });
 
       console.log('[GeminiAgentManager] Loaded MCP servers:', Object.keys(mcpConfig));
