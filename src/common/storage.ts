@@ -5,7 +5,7 @@
  */
 
 import { storage } from '@office-ai/platform';
-import type { AcpBackend } from './acpTypes';
+import type { AcpBackend } from '@/types/acpTypes';
 
 /**
  * @description 聊天相关的存储

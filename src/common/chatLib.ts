@@ -4,10 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { AcpBackend } from './acpTypes';
+import type { AcpBackend } from '../types/acpTypes';
 import type { IResponseMessage } from './ipcBridge';
 import { uuid } from './utils';
-import type { AcpPermissionRequest, ToolCallUpdate } from '@/common/acpTypes';
+import type { AcpPermissionRequest, ToolCallUpdate } from '@/types/acpTypes';
 
 /**
  * 安全的路径拼接函数，兼容Windows和Mac

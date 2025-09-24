@@ -11,6 +11,7 @@ import { application } from '../common/ipcBridge';
 import type { IChatConversationRefer, IConfigStorageRefer, IEnvStorageRefer } from '../common/storage';
 import { ChatMessageStorage, ChatStorage, ConfigStorage, EnvStorage } from '../common/storage';
 import { copyDirectoryRecursively, getConfigPath, getDataPath, getTempPath, verifyDirectoryFiles } from './utils';
+import type { ArchitectureType, PlatformType } from '../common/update/updateConfig';
 
 const nodePath = path;
 
@@ -314,10 +315,7 @@ const initStorage = async () => {
   EnvStorage.interceptor(envFile);
 
   application.systemInfo.provider(async () => {
-    return {
-      cacheDir: cacheDir,
-      workDir: getSystemDir().workDir,
-    };
+    return getSystemDir();
   });
 };
 
@@ -333,6 +331,8 @@ export const getSystemDir = () => {
   return {
     cacheDir: cacheDir,
     workDir: dirConfig?.workDir || getDataPath(),
+    platform: process.platform as PlatformType,
+    arch: process.arch as ArchitectureType,
   };
 };
 

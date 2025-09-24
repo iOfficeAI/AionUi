@@ -11,7 +11,7 @@ import { join } from 'path';
 import { homedir } from 'os';
 import type { McpOperationResult } from '../McpProtocol';
 import { AbstractMcpAgent } from '../McpProtocol';
-import type { IMcpServer } from '../../storage';
+import type { IMcpServer } from '@mcp/storage';
 
 const execAsync = promisify(exec);
 

@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { AcpBackend } from '../acpTypes';
-import type { IMcpServer } from '../storage';
+import type { AcpBackend } from '../../../types/acpTypes';
+import type { IMcpServer } from '@mcp/storage';
 import { ClaudeMcpAgent } from './agents/ClaudeMcpAgent';
 import { QwenMcpAgent } from './agents/QwenMcpAgent';
 import { IflowMcpAgent } from './agents/IflowMcpAgent';

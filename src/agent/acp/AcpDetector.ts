@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { AcpBackend } from '@/common/acpTypes';
-import { getEnabledAcpBackends } from '@/common/acpTypes';
+import type { AcpBackend } from '@/types/acpTypes';
+import { getEnabledAcpBackends } from '@/types/acpTypes';
 
 interface DetectedAgent {
   backend: AcpBackend;
