@@ -11,6 +11,7 @@ import path from 'path';
 import type { ICreateConversationParams } from '@/common/ipcBridge';
 import { getSystemDir } from './initStorage';
 import { generateHashWithFullName } from './utils';
+import { uuid } from '@/common/utils';
 
 const buildWorkspaceWidthFiles = async (defaultWorkspaceName: string, workspace?: string, defaultFiles?: string[]) => {
   const customWorkspace = !!workspace;
@@ -47,7 +48,7 @@ export const createGeminiAgent = async (model: TProviderWithModel, workspace?: s
     createTime: Date.now(),
     modifyTime: Date.now(),
     name: newWorkspace,
-    id: generateHashWithFullName(newWorkspace),
+    id: uuid(),
   };
 };
 
@@ -60,6 +61,6 @@ export const createAcpAgent = async (options: ICreateConversationParams): Promis
     createTime: Date.now(),
     modifyTime: Date.now(),
     name: workspace,
-    id: generateHashWithFullName(workspace),
+    id: uuid(),
   };
 };
