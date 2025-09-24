@@ -114,6 +114,10 @@ export class CodexMessageProcessor {
     } else {
       console.warn('⚠️ [CodexMessageProcessor] createContentMessage returned null');
     }
+
+    // Clear state after processing to prevent duplicate sends in processTaskComplete
+    this.currentLoadingId = null;
+    this.currentContent = '';
   }
 
   processTaskComplete() {

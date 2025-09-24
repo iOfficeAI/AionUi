@@ -5,7 +5,7 @@
  */
 
 import { CodexMcpAgent } from '@/agent/codex';
-import type { NetworkError } from '@/agent/codex/CodexMcpConnection';
+import type { NetworkError } from '@/agent/codex/connection/CodexMcpConnection';
 import { ipcBridge } from '@/common';
 import type { TMessage } from '@/common/chatLib';
 import { transformMessage } from '@/common/chatLib';
@@ -17,6 +17,7 @@ import { t } from 'i18next';
 import { CodexEventHandler } from '@/agent/codex/handlers/CodexEventHandler';
 import { CodexSessionManager } from '@/agent/codex/handlers/CodexSessionManager';
 import { CodexFileOperationHandler } from '@/agent/codex/handlers/CodexFileOperationHandler';
+import { CodexMessageTransformer } from '@/agent/codex/messaging/CodexMessageTransformer';
 import type { CodexAgentManagerData, FileChange } from '@/common/codexTypes';
 import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
 
@@ -221,7 +222,18 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     }
 
     // Normalize call id back to server's codex_call_id
-    const origCallId = data.callId.startsWith('patch_') ? data.callId.substring(6) : data.callId.startsWith('elicitation_') ? data.callId.substring(12) : data.callId.startsWith('exec_') ? data.callId.substring(5) : data.callId;
+    // Handle the new unified permission_ prefix as well as legacy prefixes
+    const origCallId = data.callId.startsWith('permission_')
+      ? data.callId.substring(11) // Remove 'permission_' prefix
+      : data.callId.startsWith('patch_')
+        ? data.callId.substring(6)
+        : data.callId.startsWith('elicitation_')
+          ? data.callId.substring(12)
+          : data.callId.startsWith('exec_')
+            ? data.callId.substring(5)
+            : data.callId;
+
+    console.log(`🔗 [CodexAgentManager] Permission response - ClientCallId: ${data.callId}, ServerCallId: ${origCallId}, Decision: ${decision}`);
 
     // Respond to elicitation (server expects JSON-RPC response)
     this.agent.respondElicitation(origCallId, decision);
@@ -374,7 +386,15 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
   emitAndPersistMessage(message: IResponseMessage, persist: boolean = true): void {
     if (persist) {
-      const transformedMessage = transformMessage(message);
+      // Use Codex-specific transformer for Codex messages
+      let transformedMessage: TMessage | undefined;
+
+      if (CodexMessageTransformer.isCodexSpecificMessage(message.type)) {
+        transformedMessage = CodexMessageTransformer.transformCodexMessage(message);
+      } else {
+        transformedMessage = transformMessage(message);
+      }
+
       if (transformedMessage) {
         addMessage(this.conversation_id, transformedMessage);
       }

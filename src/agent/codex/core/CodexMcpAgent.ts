@@ -261,6 +261,7 @@ export class CodexMcpAgent {
           ...msg,
           _meta: params?._meta, // Pass through meta information like requestId
         };
+
         this.eventHandler.handleEvent({ type: msg.type || 'unknown', data: enrichedData });
       } catch (error) {
         console.error('❌ [CodexMcpAgent] Event handling failed:', error);

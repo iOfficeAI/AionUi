@@ -1,4 +1,4 @@
-import { CodexMessageTransformer } from '@/agent/codex';
+import { CodexMessageTransformer } from '@/agent/codex/messaging/CodexMessageTransformer';
 import { ipcBridge } from '@/common';
 import type { TMessage } from '@/common/chatLib';
 import { transformMessage, composeMessage } from '@/common/chatLib';
@@ -64,6 +64,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
   const [running, setRunning] = useState(false);
   const [waitingForSession, setWaitingForSession] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
+  const [codexStatus, setCodexStatus] = useState<string | null>(null);
 
   // 用于跟踪已处理的全局状态消息，避免重复
   const processedGlobalMessages = useRef(new Set<string>());
@@ -115,19 +116,19 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
       }
       if (message.type === 'agent_reasoning_raw_content') {
         // console.log('💭 [CodexSendBox] Thinking completed, updating status');
-        // Add a small delay to ensure the thinking completion message is visible
-        setTimeout(() => {
-          setIsThinking(false);
-        }, 1500); // Show completion state for 1.5 seconds
+        // Immediately clear thinking state when reasoning is completed
+        setIsThinking(false);
+      }
+      if (message.type === 'agent_message_delta') {
+        // Clear thinking state when agent starts responding with content
+        setIsThinking(false);
       }
 
       // 处理消息
       if (message.type === 'content' || message.type === 'user_content' || message.type === 'error') {
         // 收到内容消息时，确保清除思考状态（防止状态卡住）
-        if (isThinking) {
-          // console.log('📝 [CodexSendBox] Received content message, clearing thinking state');
-          setIsThinking(false);
-        }
+        // console.log('📝 [CodexSendBox] Received content message, clearing thinking state');
+        setIsThinking(false);
         // 通用消息类型使用标准转换器
         const transformedMessage = transformMessage(message);
         addOrUpdateMessage(transformedMessage);
@@ -148,8 +149,14 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
           }
         }
       } else if (CodexMessageTransformer.isCodexSpecificMessage(message.type)) {
+        // 处理状态消息
+        if (message.type === 'codex_status') {
+          const statusData = message.data as { status: string; message: string };
+          setCodexStatus(statusData.status);
+        }
+
         // 当收到agent_message时，确保清除思考状态
-        if (message.type === 'agent_message' && isThinking) {
+        if (message.type === 'agent_message') {
           // console.log('📝 [CodexSendBox] Received agent_message, clearing thinking state');
           setIsThinking(false);
         }
@@ -179,7 +186,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
         }
       }
     });
-  }, [conversation_id]);
+  }, [conversation_id, addOrUpdateMessage, addOrUpdateCodexMessage]);
 
   // 处理粘贴的文件 - Codex专用逻辑
   const handleFilesAdded = useCallback(
@@ -242,9 +249,12 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
     }
   };
 
-  // 处理从引导页带过来的 initial message，确保页面加载后再发送
+  // 处理从引导页带过来的 initial message，等待连接状态建立后再发送
   useEffect(() => {
-    if (!conversation_id) return;
+    if (!conversation_id || !codexStatus) return;
+
+    // 只有在连接状态为 session_active 时才发送初始化消息
+    if (codexStatus !== 'session_active') return;
 
     const storageKey = `codex_initial_message_${conversation_id}`;
     const processedKey = `codex_initial_processed_${conversation_id}`;
@@ -273,7 +283,19 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
 
         // console.log(`✅ [CodexSendBox] Processing initial message for conversation: ${conversation_id}, input: "${input}"`);
 
-        // 发送消息，让后端处理用户消息的添加（在连接建立后）
+        // 前端先写入用户消息，避免导航/事件竞争导致看不到消息
+        const userMessage: TMessage = {
+          id: msg_id,
+          msg_id,
+          conversation_id,
+          type: 'text',
+          position: 'right',
+          content: { content: input },
+          createdAt: Date.now(),
+        };
+        addOrUpdateMessage(userMessage, true); // 立即保存到存储，避免刷新丢失
+
+        // 发送消息到后端处理
         await ipcBridge.codexConversation.sendMessage.invoke({ input, msg_id, conversation_id, files, loading_id });
 
         // 成功后移除初始消息存储
@@ -289,15 +311,15 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
       }
     };
 
-    // 使用 setTimeout 确保在组件完全挂载后执行
+    // 小延迟确保状态消息已经完全处理
     const timer = setTimeout(() => {
       processInitialMessage();
-    }, 100);
+    }, 200);
 
     return () => {
       clearTimeout(timer);
     };
-  }, [conversation_id, addOrUpdateMessage]);
+  }, [conversation_id, codexStatus, addOrUpdateMessage]);
 
   return (
     <div className='max-w-800px w-full mx-auto flex flex-col'>

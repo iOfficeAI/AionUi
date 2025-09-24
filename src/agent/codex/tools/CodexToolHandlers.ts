@@ -9,6 +9,7 @@ import { uuid } from '@/common/utils';
 import { CodexAgentEventType, type CodexAgentEvent, type FileChange, type McpInvocation } from '@/common/codexTypes';
 import { ToolRegistry, type EventDataMap } from '@/agent/codex/tools/ToolRegistry';
 import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
+import type { IResponseMessage } from '@/common/ipcBridge';
 
 export class CodexToolHandlers {
   private cmdBuffers: Map<string, { stdout: string; stderr: string; combined: string }> = new Map();
@@ -210,29 +211,21 @@ export class CodexToolHandlers {
     const toolDef = this.toolRegistry.resolveToolForEvent(eventType, eventData);
     const i18nParams = toolDef ? this.toolRegistry.getMcpToolI18nParams(toolDef) : {};
 
-    const toolGroupMessage = {
-      type: 'tool_group' as const,
+    const toolContent: IMessageToolGroup['content'][number] = {
+      callId,
+      name: toolDef ? this.toolRegistry.getToolDisplayName(toolDef, i18nParams) : 'Unknown Tool',
+      description: toolDef ? this.toolRegistry.getToolDescription(toolDef, i18nParams) : '',
+      status: 'Executing',
+      renderOutputAsMarkdown: toolDef?.capabilities.supportsMarkdown || false,
+      resultDisplay: '',
+      ...tool,
+    };
+
+    const toolGroupMessage: IResponseMessage = {
+      type: 'tool_group',
       conversation_id: this.conversation_id,
       msg_id: uuid(),
-      data: {
-        callId,
-        tool: {
-          callId,
-          name: toolDef ? this.toolRegistry.getToolDisplayName(toolDef, i18nParams) : 'Unknown',
-          description: toolDef ? this.toolRegistry.getToolDescription(toolDef, i18nParams) : '',
-          status: 'Executing',
-          renderOutputAsMarkdown: toolDef?.capabilities.supportsMarkdown || false,
-          resultDisplay: '',
-
-          // Enhanced fields
-          category: toolDef?.category,
-          icon: toolDef?.icon,
-          capabilities: toolDef?.capabilities,
-          renderer: toolDef?.renderer,
-
-          ...tool,
-        },
-      },
+      data: [toolContent], // IResponseMessage expects data field, which will be used as content
     };
 
     this.messageEmitter.emitAndPersistMessage(toolGroupMessage);

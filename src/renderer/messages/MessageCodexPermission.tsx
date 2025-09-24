@@ -254,42 +254,6 @@ const MessageCodexPermission: React.FC<MessageCodexPermissionProps> = React.memo
             <Text className='text-sm text-green-700'>✓ Response sent successfully</Text>
           </div>
         )}
-
-        {/* 调试信息面板 - 可以在生产环境中移除 */}
-        {process.env.NODE_ENV === 'development' && (
-          <details className='mt-2 text-xs text-gray-500'>
-            <summary className='cursor-pointer'>权限持久化调试</summary>
-            <div className='mt-1 p-2 bg-gray-50 rounded text-xs space-y-1'>
-              <div>
-                <strong>工具信息:</strong>
-              </div>
-              <div>• toolCallId: {toolCall?.toolCallId || 'null'}</div>
-              <div>• command: {toolCall?.rawInput?.command || 'null'}</div>
-              <div>• kind: {toolCall?.kind || 'null'}</div>
-              <div>
-                <strong>生成的稳定ID:</strong> {permissionId}
-              </div>
-              <div>
-                <strong>存储键:</strong>
-              </div>
-              <div>• choice: {storageKey}</div>
-              <div>• response: {responseKey}</div>
-              <div>
-                <strong>当前状态:</strong>
-              </div>
-              <div>• selected: {selected || 'null'}</div>
-              <div>• hasResponded: {hasResponded.toString()}</div>
-              <div>
-                <strong>localStorage实际值:</strong>
-              </div>
-              <div>• choice: {localStorage.getItem(storageKey) || 'null'}</div>
-              <div>• response: {localStorage.getItem(responseKey) || 'null'}</div>
-              <div>
-                <strong>会话ID:</strong> {message.conversation_id}
-              </div>
-            </div>
-          </details>
-        )}
       </div>
     </Card>
   );

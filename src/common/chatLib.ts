@@ -146,7 +146,7 @@ export type IMessageToolGroup = IMessage<
   Array<{
     callId: string;
     description: string;
-    name: 'GoogleSearch' | 'Shell' | 'WriteFile' | 'ReadFile' | 'ImageGeneration';
+    name: string;
     renderOutputAsMarkdown: boolean;
     resultDisplay?:
       | string
