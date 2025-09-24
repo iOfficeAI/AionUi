@@ -15,11 +15,10 @@ import { useTranslation } from 'react-i18next';
 interface GeminiWorkspaceProps {
   conversation_id: string;
   workspace: string;
-  customWorkspace?: boolean;
   eventPrefix?: 'gemini' | 'acp';
 }
 
-const GeminiWorkspace: React.FC<GeminiWorkspaceProps> = ({ conversation_id, workspace, customWorkspace, eventPrefix = 'gemini' }) => {
+const ChatWorkspace: React.FC<GeminiWorkspaceProps> = ({ conversation_id, workspace, eventPrefix = 'gemini' }) => {
   const { t } = useTranslation();
   const [selected, setSelected] = useState<string[]>([]);
   const [files, setFiles] = useState<IDirOrFile[]>([]);
@@ -203,4 +202,4 @@ const GeminiWorkspace: React.FC<GeminiWorkspaceProps> = ({ conversation_id, work
   );
 };
 
-export default GeminiWorkspace;
+export default ChatWorkspace;

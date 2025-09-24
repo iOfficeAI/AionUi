@@ -20,16 +20,19 @@ interface AcpAgentManagerData {
 class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
   workspace: string;
   agent: AcpAgent;
-  bootstrap: Promise<AcpAgent>;
+  private bootstrap: Promise<AcpAgent> | undefined;
+  options: AcpAgentManagerData;
 
   constructor(data: AcpAgentManagerData) {
     super('acp', data);
     this.conversation_id = data.conversation_id;
     this.workspace = data.workspace;
-    this.initAgent(data);
+    this.options = data;
+    // this.initAgent(data);
   }
 
-  initAgent(data: AcpAgentManagerData) {
+  private initAgent(data: AcpAgentManagerData) {
+    if (this.bootstrap) return this.bootstrap;
     this.bootstrap = ProcessConfig.get('acp.config').then((config) => {
       let cliPath = data.cliPath;
       if (!cliPath && config[data.backend].cliPath) {
@@ -53,6 +56,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
       });
       return this.agent.start().then(() => this.agent);
     });
+    return this.bootstrap;
   }
 
   async sendMessage(data: { content: string; files?: string[]; msg_id?: string }): Promise<{
@@ -61,7 +65,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
     message?: string;
   }> {
     try {
-      await this.bootstrap;
+      await this.initAgent(this.options);
       // Save user message to chat history ONLY after successful sending
       if (data.msg_id && data.content) {
         const userMessage: TMessage = {

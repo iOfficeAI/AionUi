@@ -4,14 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { TChatConversation, TProviderWithModel } from '@/common/storage';
 import { AIONUI_TIMESTAMP_REGEX } from '@/common/constants';
+import type { ICreateConversationParams } from '@/common/ipcBridge';
+import type { TChatConversation, TProviderWithModel } from '@/common/storage';
+import { uuid } from '@/common/utils';
 import fs from 'fs/promises';
 import path from 'path';
-import type { ICreateConversationParams } from '@/common/ipcBridge';
 import { getSystemDir } from './initStorage';
-import { generateHashWithFullName } from './utils';
-import { uuid } from '@/common/utils';
 
 const buildWorkspaceWidthFiles = async (defaultWorkspaceName: string, workspace?: string, defaultFiles?: string[]) => {
   const customWorkspace = !!workspace;

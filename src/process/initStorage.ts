@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { existsSync, mkdirSync as _mkdirSync, readdirSync, readFileSync } from 'fs';
+import { mkdirSync as _mkdirSync, existsSync, readdirSync, readFileSync } from 'fs';
 import fs from 'fs/promises';
 import path from 'path';
 import { application } from '../common/ipcBridge';
@@ -214,6 +214,14 @@ const JsonFileBuilder = <S extends Record<string, any>>(path: string) => {
     getSync<K extends keyof S>(key: K): S[K] {
       const data = toJsonSync();
       return data[key];
+    },
+    update<K extends keyof S>(key: K, updateFn: (value: S[K], data: S) => Promise<S[K]>) {
+      return toJson().then((data) => {
+        return updateFn(data[key], data).then((value) => {
+          data[key] = value;
+          return setJson(data);
+        });
+      });
     },
     backup(fullName: string) {
       const dir = nodePath.dirname(fullName);

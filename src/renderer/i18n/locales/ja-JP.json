@@ -46,7 +46,8 @@
       "title": "ワークスペース",
       "empty": "ワークスペースが空です",
       "emptyDescription": "ファイルをアップロードするか、またはフォルダーを開くと、ここにファイルが表示されます",
-      "searchPlaceholder": "ファイルを検索..."
+      "searchPlaceholder": "ファイルを検索...",
+      "createNewConversation": "現在のワークスペースで新しいチャットを作成"
     },
     "chat": {
       "noModelSelected": "現在のセッションでモデルが選択されていないため、メッセージを送信できません"
