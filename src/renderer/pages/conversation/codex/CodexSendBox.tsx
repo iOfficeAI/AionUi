@@ -87,7 +87,6 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
   // 当会话ID变化时，清理已处理的全局消息记录
   useEffect(() => {
     processedGlobalMessages.current.clear();
-    // console.log(`🧹 [CodexSendBox] Cleared processed global messages for conversation: ${conversation_id}`);
   }, [conversation_id]);
 
   useEffect(() => {
@@ -97,13 +96,11 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
         return;
       }
 
-      // console.log(`📨 [CodexSendBox] Received message type: ${message.type}`, message);
       if (message.type === 'start') {
         setRunning(true);
         setWaitingForSession(true);
       }
       if (message.type === 'finish') {
-        // console.log('🏁 [CodexSendBox] Conversation finished, clearing all states');
         setRunning(false);
         setWaitingForSession(false);
         setIsThinking(false);
@@ -111,11 +108,9 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
 
       // 处理思考状态
       if (message.type === 'agent_reasoning') {
-        // console.log('🤔 [CodexSendBox] Starting thinking state');
         setIsThinking(true);
       }
       if (message.type === 'agent_reasoning_raw_content') {
-        // console.log('💭 [CodexSendBox] Thinking completed, updating status');
         // Immediately clear thinking state when reasoning is completed
         setIsThinking(false);
       }
@@ -127,7 +122,6 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
       // 处理消息
       if (message.type === 'content' || message.type === 'user_content' || message.type === 'error') {
         // 收到内容消息时，确保清除思考状态（防止状态卡住）
-        // console.log('📝 [CodexSendBox] Received content message, clearing thinking state');
         setIsThinking(false);
         // 通用消息类型使用标准转换器
         const transformedMessage = transformMessage(message);
@@ -141,7 +135,6 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
             addOrUpdateMessage(transformedMessage);
           }
         } catch (error) {
-          console.error('❌ [CodexSendBox] Error transforming Codex ACP permission message:', error);
           // Fallback to standard transformation
           const transformedMessage = transformMessage(message);
           if (transformedMessage) {
@@ -157,7 +150,6 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
 
         // 当收到agent_message时，确保清除思考状态
         if (message.type === 'agent_message') {
-          // console.log('📝 [CodexSendBox] Received agent_message, clearing thinking state');
           setIsThinking(false);
         }
 
@@ -172,13 +164,11 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
 
             // 如果这个全局状态消息已经处理过，跳过
             if (processedGlobalMessages.current.has(messageKey)) {
-              // console.log(`🔄 [CodexSendBox] Skipping duplicate global status message: ${transformedMessage.msg_id}`);
               return;
             }
 
             // 标记为已处理
             processedGlobalMessages.current.add(messageKey);
-            // console.log(`✅ [CodexSendBox] Processing new global status message: ${transformedMessage.msg_id}`);
           }
 
           // 使用Codex专用的消息合并逻辑处理重复msg_id
@@ -265,7 +255,6 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
 
       // 双重检查锁定模式，防止竞态条件
       if (sessionStorage.getItem(processedKey)) {
-        // console.log(`🔄 [CodexSendBox] Initial message already processed for conversation: ${conversation_id}`);
         return;
       }
 
@@ -281,7 +270,6 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
         const msg_id = `initial_${conversation_id}_${Date.now()}`;
         const loading_id = uuid();
 
-        // console.log(`✅ [CodexSendBox] Processing initial message for conversation: ${conversation_id}, input: "${input}"`);
 
         // 前端先写入用户消息，避免导航/事件竞争导致看不到消息
         const userMessage: TMessage = {
@@ -300,9 +288,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
 
         // 成功后移除初始消息存储
         sessionStorage.removeItem(storageKey);
-        // console.log(`🧹 [CodexSendBox] Initial message sent successfully and cleaned up for conversation: ${conversation_id}`);
       } catch (err) {
-        // console.error('❌ [CodexSendBox] Failed to process initial message:', err);
         // 发送失败时清理处理标记，允许重试
         sessionStorage.removeItem(processedKey);
       } finally {

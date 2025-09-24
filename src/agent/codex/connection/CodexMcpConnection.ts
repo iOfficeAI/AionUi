@@ -69,11 +69,6 @@ export class CodexMcpConnection {
     const command = cliPath || 'codex';
     const finalArgs = args.length ? args : ['mcp', 'serve'];
 
-    console.log('🚀 [CodexMcpConnection] Starting MCP connection:', {
-      command,
-      args: finalArgs,
-      cwd,
-    });
 
     return new Promise((resolve, reject) => {
       try {
@@ -90,12 +85,10 @@ export class CodexMcpConnection {
 
         // Set up error handling for child process
         this.child.on('error', (error) => {
-          console.error('❌ [CodexMcpConnection] Child process error:', error);
           reject(new Error(`Failed to start codex process: ${error.message}`));
         });
 
         this.child.on('exit', (code, signal) => {
-          console.warn('⚠️ [CodexMcpConnection] Child process exited:', { code, signal });
           if (code !== 0 && code !== null) {
             this.handleProcessExit(code, signal);
           }
@@ -103,7 +96,6 @@ export class CodexMcpConnection {
 
         this.child.stderr?.on('data', (d) => {
           const errorMsg = d.toString();
-          console.error('[Codex MCP STDERR]', errorMsg);
 
           // Check for common startup errors
           if (errorMsg.includes('command not found') || errorMsg.includes('not recognized')) {
@@ -131,25 +123,21 @@ export class CodexMcpConnection {
             if (line.trim().startsWith('{') && line.trim().endsWith('}')) {
               try {
                 const msg = JSON.parse(line) as JsonRpcRequest | JsonRpcResponse;
-                console.log('📨 [CodexMcpConnection] Received JSON-RPC message:', msg);
                 receivedJsonMessage = true;
                 this.handleIncoming(msg);
-              } catch (parseError) {
-                console.warn('⚠️ [CodexMcpConnection] Failed to parse JSON message:', line, parseError);
+              } catch {
+                // Ignore parsing errors for non-JSON output
               }
             } else {
               // Handle non-JSON output (startup messages, announcements, etc.)
-              console.log('📋 [CodexMcpConnection] Codex output:', line);
 
               // Handle interactive prompts by automatically sending Enter
               if (line.includes('Press Enter to continue')) {
-                console.log('⏭️ [CodexMcpConnection] Auto-continuing through prompt...');
                 this.child?.stdin?.write('\n');
               }
 
               // Force enter MCP mode if we see CLI launch - but stop sending once we see API key passing
               if (line.includes('Launching Codex CLI') && !receivedJsonMessage) {
-                console.log('🔄 [CodexMcpConnection] Detected CLI launch, sending Enter to continue...');
                 setTimeout(() => {
                   if (!receivedJsonMessage) {
                     this.child?.stdin?.write('\n');
@@ -159,10 +147,8 @@ export class CodexMcpConnection {
 
               // Detect when MCP server should be ready
               if (line.includes('Passing CODEX_API_KEY')) {
-                console.log('🎯 [CodexMcpConnection] Codex CLI launched, MCP server should be starting...');
                 // Set a flag to indicate the server is starting and wait longer
                 setTimeout(() => {
-                  console.log('📡 [CodexMcpConnection] MCP server should be ready now');
                   receivedJsonMessage = true; // Mark as ready for JSON communication
                 }, 5000); // Wait 5 seconds for server to be fully ready
               }
@@ -173,13 +159,12 @@ export class CodexMcpConnection {
         // Wait for initial process startup
         setTimeout(() => {
           if (this.child && !this.child.killed) {
-            console.log('✅ [CodexMcpConnection] Process started successfully');
 
             // If we have received JSON messages, we're ready
             if (receivedJsonMessage) {
-              console.log('🎯 [CodexMcpConnection] JSON-RPC communication established');
+              // JSON-RPC communication established
             } else {
-              console.log('📋 [CodexMcpConnection] Process started but no JSON-RPC yet, continuing...');
+              // Process started but no JSON-RPC yet, continuing...
             }
 
             resolve();
@@ -191,12 +176,10 @@ export class CodexMcpConnection {
         // Fallback timeout
         setTimeout(() => {
           if (!hasOutput && this.child && !this.child.killed) {
-            console.warn('⚠️ [CodexMcpConnection] No output received from codex process, but continuing...');
             resolve(); // Still resolve to allow the connection attempt
           }
         }, 6000); // 6 second fallback
       } catch (error) {
-        console.error('❌ [CodexMcpConnection] Failed to spawn process:', error);
         reject(error);
       }
     });
@@ -217,18 +200,16 @@ export class CodexMcpConnection {
     this.elicitationMap.clear();
   }
 
-  async request<T = unknown>(method: string, params?: unknown, timeoutMs = 120000): Promise<T> {
+  async request<T = unknown>(method: string, params?: unknown, timeoutMs = 200000): Promise<T> {
     const id = this.nextId++;
     const req: JsonRpcRequest = { jsonrpc: JSONRPC_VERSION, id, method, params };
 
-    console.log(`🕒 [CodexMcpConnection] Request ${method} with timeout: ${timeoutMs}ms, id: ${id}`);
 
     return new Promise<T>((resolve, reject) => {
       const timeout = setTimeout(() => {
         this.pending.delete(id);
         // Also remove from paused requests if present
         this.pausedRequests = this.pausedRequests.filter((r) => r.resolve !== resolve);
-        console.error(`⏰ [CodexMcpConnection] Request ${method} timed out after ${timeoutMs}ms`);
 
         // Emit error event to frontend before rejecting promise
         this.onEvent({
@@ -253,7 +234,6 @@ export class CodexMcpConnection {
       // Normal request processing
       this.pending.set(id, { resolve, reject, timeout });
       const line = JSON.stringify(req) + '\n';
-      console.log('📤 [CodexMcpConnection] Sending JSON-RPC:', line.trim());
 
       if (this.child?.stdin) {
         this.child.stdin.write(line);
@@ -271,14 +251,12 @@ export class CodexMcpConnection {
   notify(method: string, params?: unknown): void {
     const msg: JsonRpcRequest = { jsonrpc: JSONRPC_VERSION, method, params };
     const line = JSON.stringify(msg) + '\n';
-    console.log('📤 [CodexMcpConnection] Sending notification:', line.trim());
     this.child?.stdin?.write(line);
   }
 
   private handleIncoming(msg: JsonRpcRequest | JsonRpcResponse): void {
     if (typeof msg !== 'object' || msg === null) return;
 
-    console.log('🔄 [CodexMcpConnection] Handling incoming message:', JSON.stringify(msg, null, 2));
 
     // Response
     if ('id' in msg && ('result' in (msg as JsonRpcResponse) || 'error' in (msg as JsonRpcResponse))) {
@@ -290,7 +268,6 @@ export class CodexMcpConnection {
 
       if (res.error) {
         const errorMsg = res.error.message || '';
-        console.log(`❌ [CodexMcpConnection] Response error for id ${res.id}:`, errorMsg);
 
         // Check for network-related errors
         if (this.isNetworkRelatedError(errorMsg)) {
@@ -310,7 +287,6 @@ export class CodexMcpConnection {
         }
       } else if (res.result && typeof res.result === 'object' && 'error' in (res.result as Record<string, unknown>)) {
         const resultErrorMsg = String((res.result as Record<string, unknown>).error);
-        console.log(`❌ [CodexMcpConnection] Result error for id ${res.id}:`, resultErrorMsg);
 
         if (this.isNetworkRelatedError(resultErrorMsg)) {
           this.handleNetworkError(resultErrorMsg, p);
@@ -328,7 +304,6 @@ export class CodexMcpConnection {
           p.reject(new Error(resultErrorMsg));
         }
       } else {
-        console.log(`✅ [CodexMcpConnection] Response success for id ${res.id}`);
         p.resolve(res.result);
       }
       return;
@@ -345,18 +320,15 @@ export class CodexMcpConnection {
 
       // Handle elicitation requests - pause and record mapping from codex_call_id -> request id
       if (env.method === 'elicitation/create' && 'id' in msg) {
-        console.log('🔐 [CodexMcpConnection] Received elicitation/create');
         this.isPaused = true;
         const reqId = msg.id as JsonRpcId;
         const codexCallId = (env.params as CodexEventParams)?.codex_call_id || (env.params as CodexEventParams)?.call_id;
         if (codexCallId) {
           this.elicitationMap.set(String(codexCallId), reqId);
-          console.log('💾 [CodexMcpConnection] Map elicitation call_id -> reqId', codexCallId, reqId);
         }
       }
 
       // Always forward events to the handler - let transformMessage handle type-specific logic
-      console.log('📤 [CodexMcpConnection] Forwarding event to handler:', env.method);
       this.onEvent(env);
     }
   }
@@ -410,7 +382,6 @@ export class CodexMcpConnection {
     const normalized = callId.replace(/^patch_/, '').replace(/^elicitation_/, '');
     const reqId = this.elicitationMap.get(normalized) || this.elicitationMap.get(callId);
     if (reqId === undefined) {
-      console.warn('[CodexMcpConnection] No elicitation request id found for callId:', callId);
       return;
     }
     const result = { decision };
@@ -457,7 +428,6 @@ export class CodexMcpConnection {
   private handleNetworkError(errorMsg: string, pendingRequest: PendingReq): void {
     const networkError = this.classifyNetworkError(errorMsg);
 
-    console.error(`🌐 [CodexMcpConnection] Network error detected:`, networkError);
 
     // Emit network error for UI handling
     this.onNetworkError(networkError);
@@ -595,7 +565,6 @@ export class CodexMcpConnection {
 
   // Wait for MCP server to be ready after startup
   public async waitForServerReady(timeout: number = 30000): Promise<void> {
-    console.log('⏳ [CodexMcpConnection] Waiting for MCP server to be ready...');
 
     return new Promise((resolve, reject) => {
       const startTime = Date.now();
@@ -605,7 +574,6 @@ export class CodexMcpConnection {
           // Try to ping the server
           const isReady = await this.ping(3000);
           if (isReady) {
-            console.log('✅ [CodexMcpConnection] MCP server is ready');
             resolve();
             return;
           }
@@ -641,7 +609,6 @@ export class CodexMcpConnection {
 
   // Handle process exit
   private handleProcessExit(code: number | null, signal: NodeJS.Signals | null): void {
-    console.error('💀 [CodexMcpConnection] Process exited unexpectedly:', { code, signal });
 
     // Emit error event to frontend about process exit
     this.onEvent({

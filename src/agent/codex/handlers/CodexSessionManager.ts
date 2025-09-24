@@ -43,7 +43,6 @@ export class CodexSessionManager {
     try {
       await this.performConnectionSequence();
     } catch (error) {
-      console.error('❌ [CodexSessionManager] Session start failed:', error);
       this.setStatus('error', `Failed to start session: ${error instanceof Error ? error.message : String(error)}`);
       throw error;
     }
@@ -141,14 +140,9 @@ export class CodexSessionManager {
    * 重新连接会话
    */
   async reconnectSession(): Promise<void> {
-    try {
-      await this.stopSession();
-      await new Promise((resolve) => setTimeout(resolve, 1000)); // 等待1秒
-      await this.startSession();
-    } catch (error) {
-      console.error('❌ [CodexSessionManager] Reconnection failed:', error);
-      throw error;
-    }
+    await this.stopSession();
+    await new Promise((resolve) => setTimeout(resolve, 1000)); // 等待1秒
+    await this.startSession();
   }
 
   /**
@@ -285,8 +279,8 @@ export class CodexSessionManager {
    * 清理资源
    */
   cleanup(): void {
-    this.stopSession().catch((err) => {
-      console.warn('⚠️ [CodexSessionManager] Error during cleanup:', err);
+    this.stopSession().catch(() => {
+      // Error during cleanup, ignore
     });
   }
 

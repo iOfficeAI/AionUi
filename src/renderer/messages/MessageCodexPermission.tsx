@@ -20,12 +20,6 @@ const MessageCodexPermission: React.FC<MessageCodexPermissionProps> = React.memo
   const { options = [], toolCall } = message.content || {};
   const { t } = useTranslation();
 
-  console.log('🔐 [MessageCodexPermission] Full message content:', {
-    message,
-    content: message.content,
-    toolCall,
-    options,
-  });
 
   // 基于实际数据生成显示信息
   const getToolInfo = () => {
@@ -78,15 +72,6 @@ const MessageCodexPermission: React.FC<MessageCodexPermissionProps> = React.memo
   const storageKey = `codex_global_permission_choice_${permissionId}`;
   const responseKey = `codex_global_permission_responded_${permissionId}`;
 
-  console.log('🔐 [MessageCodexPermission] Component rendered with:', {
-    messageId: message.id,
-    msgId: message.msg_id,
-    toolCallId: toolCall?.toolCallId,
-    permissionId,
-    storageKey,
-    responseKey,
-    conversationId: message.conversation_id,
-  });
 
   // 立即从localStorage初始化状态，避免闪烁
   const [selected, setSelected] = useState<string | null>(() => {
@@ -125,13 +110,6 @@ const MessageCodexPermission: React.FC<MessageCodexPermissionProps> = React.memo
 
   // 组件挂载时清理旧存储
   useEffect(() => {
-    console.log('🔐 [MessageCodexPermission] Component mounted:', {
-      storageKey,
-      responseKey,
-      permissionId,
-      initialSelected: selected,
-      initialHasResponded: hasResponded,
-    });
 
     // 清理超过7天的旧权限存储
     cleanupOldPermissionStorage();
@@ -139,23 +117,15 @@ const MessageCodexPermission: React.FC<MessageCodexPermissionProps> = React.memo
 
   // 保存选择状态到 localStorage
   const handleSelectionChange = (value: string) => {
-    console.log('🔐 [MessageCodexPermission] Handling selection change:', { value, storageKey });
     setSelected(value);
     try {
       localStorage.setItem(storageKey, value);
       localStorage.setItem(`${storageKey}_timestamp`, Date.now().toString());
 
       // 立即验证保存结果
-      const verifyValue = localStorage.getItem(storageKey);
-      console.log('🔐 [MessageCodexPermission] Saved and verified choice:', {
-        permissionId,
-        storageKey,
-        selectedValue: value,
-        verifyValue,
-        saveSuccess: verifyValue === value,
-      });
-    } catch (error) {
-      console.error('🔐 [MessageCodexPermission] Error saving choice to localStorage:', error);
+      const _verifyValue = localStorage.getItem(storageKey);
+    } catch {
+      // Error saving to localStorage
     }
   };
 
@@ -181,24 +151,15 @@ const MessageCodexPermission: React.FC<MessageCodexPermissionProps> = React.memo
           localStorage.setItem(`${responseKey}_timestamp`, Date.now().toString());
 
           // 立即验证保存结果
-          const verifyResponse = localStorage.getItem(responseKey);
-          console.log('🔐 [MessageCodexPermission] Saved and verified response:', {
-            permissionId,
-            responseKey,
-            selected,
-            verifyResponse,
-            saveSuccess: verifyResponse === 'true',
-          });
-        } catch (error) {
-          console.error('🔐 [MessageCodexPermission] Error saving response to localStorage:', error);
+          const _verifyResponse = localStorage.getItem(responseKey);
+        } catch {
+          // Error saving response to localStorage
         }
       } else {
         // Handle failure case - could add error display here
-        console.error('Failed to confirm Codex permission:', result);
       }
     } catch (error) {
       // Handle error case - could add error logging here
-      console.error('Error confirming Codex permission:', error);
     } finally {
       setIsResponding(false);
     }

@@ -225,7 +225,6 @@ const Guid: React.FC = () => {
         sessionStorage.setItem(`codex_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
         navigate(`/conversation/${conversation.id}`);
       } catch (error: any) {
-        console.error('Failed to create or send Codex message:', error);
         alert(`Failed to create Codex conversation: ${error.message || error}`);
         throw error;
       }
