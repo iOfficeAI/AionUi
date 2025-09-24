@@ -6,17 +6,17 @@
 
 import type { TChatConversation } from '@/common/storage';
 import React from 'react';
-import GeminiWorkspace from './gemini/GeminiWorkspace';
+import ChatWorkspace from './ChatWorkspace';
 
 const ChatSider: React.FC<{
   conversation?: TChatConversation;
 }> = ({ conversation }) => {
   if (conversation?.type === 'gemini') {
-    return <GeminiWorkspace conversation_id={conversation.id} workspace={conversation.extra.workspace} customWorkspace={conversation.extra.customWorkspace}></GeminiWorkspace>;
+    return <ChatWorkspace conversation_id={conversation.id} workspace={conversation.extra.workspace}></ChatWorkspace>;
   }
 
   if (conversation?.type === 'acp' && conversation.extra?.workspace) {
-    return <GeminiWorkspace conversation_id={conversation.id} workspace={conversation.extra.workspace} customWorkspace={conversation.extra.customWorkspace} eventPrefix='acp'></GeminiWorkspace>;
+    return <ChatWorkspace conversation_id={conversation.id} workspace={conversation.extra.workspace} eventPrefix='acp'></ChatWorkspace>;
   }
 
   return <div></div>;
