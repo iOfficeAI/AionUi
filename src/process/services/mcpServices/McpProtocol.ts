@@ -128,10 +128,10 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
         case 'streamable_http':
           return this.testStreamableHttpConnection(server.transport);
         default:
-          return { success: false, error: 'Unsupported transport type' };
+          return Promise.resolve({ success: false, error: 'Unsupported transport type' });
       }
     } catch (error) {
-      return { success: false, error: error instanceof Error ? error.message : String(error) };
+      return Promise.resolve({ success: false, error: error instanceof Error ? error.message : String(error) });
     }
   }
 
@@ -194,7 +194,7 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
                   const tools = response.result.tools || [];
                   resolve({
                     success: true,
-                    tools: tools.map((tool: any) => ({
+                    tools: tools.map((tool: { name: string; description?: string }) => ({
                       name: tool.name,
                       description: tool.description,
                     })),
@@ -315,7 +315,7 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
   protected async testHttpConnection(transport: { url: string; headers?: Record<string, string> }): Promise<McpConnectionTestResult> {
     try {
       const { app } = await import('electron');
-      
+
       const initResponse = await fetch(transport.url, {
         method: 'POST',
         headers: {
@@ -374,7 +374,7 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
       const tools = toolsResult.result?.tools || [];
       return {
         success: true,
-        tools: tools.map((tool: any) => ({
+        tools: tools.map((tool: { name: string; description?: string }) => ({
           name: tool.name,
           description: tool.description,
         })),
@@ -390,7 +390,7 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
   protected async testStreamableHttpConnection(transport: { url: string; headers?: Record<string, string> }): Promise<McpConnectionTestResult> {
     try {
       const { app } = await import('electron');
-      
+
       const initResponse = await fetch(transport.url, {
         method: 'POST',
         headers: {
@@ -454,7 +454,7 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
       const tools = toolsResult.result?.tools || [];
       return {
         success: true,
-        tools: tools.map((tool: any) => ({
+        tools: tools.map((tool: { name: string; description?: string }) => ({
           name: tool.name,
           description: tool.description,
         })),
