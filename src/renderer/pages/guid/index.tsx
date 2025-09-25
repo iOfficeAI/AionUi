@@ -124,8 +124,8 @@ const Guid: React.FC = () => {
   const [dir, setDir] = useState<string>('');
   const [currentModel, _setCurrentModel] = useState<TProviderWithModel>();
   // 支持在初始化页展示 Codex（MCP）选项，先做 UI 占位
-  const [selectedAgent, setSelectedAgent] = useState<AcpBackend | 'codex' | null>('gemini');
-  const [availableAgents, setAvailableAgents] = useState<Array<{ backend: AcpBackend | 'codex'; name: string; cliPath?: string }>>();
+  const [selectedAgent, setSelectedAgent] = useState<AcpBackend | null>('gemini');
+  const [availableAgents, setAvailableAgents] = useState<Array<{ backend: AcpBackend; name: string; cliPath?: string }>>();
   const setCurrentModel = async (modelInfo: TProviderWithModel) => {
     await ConfigStorage.set('gemini.defaultModel', modelInfo.useModel);
     _setCurrentModel(modelInfo);
@@ -166,9 +166,7 @@ const Guid: React.FC = () => {
   // 更新本地状态
   useEffect(() => {
     if (availableAgentsData) {
-      // 追加 Codex 入口（acp 检测结果不包含 codex，这里固定添加）
-      const enhanced = [...availableAgentsData, { backend: 'codex' as const, name: 'Codex' }];
-      setAvailableAgents(enhanced);
+      setAvailableAgents(availableAgentsData);
     }
   }, [availableAgentsData]);
 
@@ -416,7 +414,7 @@ const Guid: React.FC = () => {
               className={styles.roundedRadioGroup}
               value={selectedAgent}
               onChange={(value) => {
-                setSelectedAgent(value as AcpBackend | 'codex');
+                setSelectedAgent(value as AcpBackend);
               }}
               options={availableAgents.map((agent) => ({
                 label: (
