@@ -20,7 +20,12 @@
     "version": "Version",
     "contact": "Contact",
     "github": "Github",
-    "loading": "Please wait..."
+    "loading": "Please wait...",
+    "retry": "Retry",
+    "reload": "Reload",
+    "technical_details": "Technical Details",
+    "error_details": "Error Details",
+    "troubleshooting": "Troubleshooting"
   },
   "conversation": {
     "welcome": {
@@ -156,6 +161,35 @@
       "analyzing": "Analyzing the problem and formulating solutions...",
       "composing": "Composing response content...",
       "please_wait": "Please wait…"
+    },
+    "error": {
+      "system_init_failed": "Failed to initialize Codex system",
+      "invalid_message_format": "Invalid message format",
+      "invalid_input": "Invalid input provided",
+      "session_timeout": "Session timed out, please retry",
+      "permission_denied": "Permission denied for this operation",
+      "context_error": "Error occurred in {{context}}, please refresh or retry.",
+      "generic": "Codex component encountered an exception, please try again later.",
+      "troubleshooting": "Troubleshooting Suggestions",
+      "suggestion_1": "Check if network connection is stable",
+      "suggestion_2": "Ensure Codex service is running properly",
+      "suggestion_3": "Try restarting the application",
+      "suggestion_4": "Clear browser cache and local storage"
+    },
+    "performance": {
+      "virtualization_enabled": "List virtualization is enabled for better performance",
+      "virtualization_disabled": "List virtualization is disabled, showing all items",
+      "debounce_enabled": "Input debouncing is enabled ({{delay}}ms delay)",
+      "debounce_disabled": "Input debouncing is disabled"
+    },
+    "config": {
+      "loaded": "Configuration loaded successfully",
+      "updated": "Configuration updated successfully",
+      "reset": "Configuration reset to defaults",
+      "validation_failed": "Configuration validation failed",
+      "import_success": "Configuration imported successfully",
+      "import_failed": "Failed to import configuration",
+      "export_success": "Configuration exported successfully"
     }
   },
   "tools": {

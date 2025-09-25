@@ -8,6 +8,7 @@ import type { ChildProcess } from 'child_process';
 import { spawn } from 'child_process';
 import { JSONRPC_VERSION } from '@/common/acpTypes';
 import type { CodexEventParams } from '@/common/codex/types';
+import { globalErrorService, fromNetworkError } from '../core/ErrorService';
 
 type JsonRpcId = number | string;
 
@@ -30,6 +31,7 @@ export interface CodexEventEnvelope {
   params?: unknown;
 }
 
+// Legacy NetworkError interface for backward compatibility
 export interface NetworkError {
   type: 'cloudflare_blocked' | 'network_timeout' | 'connection_refused' | 'unknown';
   originalError: string;
@@ -60,7 +62,6 @@ export class CodexMcpConnection {
 
   // Network error handling
   private retryCount = 0;
-  private maxRetries = 3;
   private retryDelay = 5000; // 5 seconds
   private isNetworkError = false;
 
@@ -422,69 +423,61 @@ export class CodexMcpConnection {
   }
 
   private handleNetworkError(errorMsg: string, pendingRequest: PendingReq): void {
-    const networkError = this.classifyNetworkError(errorMsg);
+    // Create standardized error using error service
+    const codexError = fromNetworkError(errorMsg, {
+      source: 'CodexMcpConnection',
+      retryCount: this.retryCount,
+    });
+
+    // Process error through error service
+    const processedError = globalErrorService.handleError(codexError, 'CodexMcpConnection');
+
+    // Convert to legacy NetworkError format for backward compatibility
+    // The userMessage now contains an i18n key that should be translated by the UI layer
+    const networkError: NetworkError = {
+      type: this.getNetworkErrorType(processedError.code),
+      originalError: errorMsg,
+      retryCount: this.retryCount,
+      suggestedAction: processedError.userMessage || processedError.message,
+    };
 
     // Emit network error for UI handling
     this.onNetworkError(networkError);
 
-    // Decide whether to retry or fail immediately
-    if (this.retryCount < this.maxRetries && networkError.type !== 'cloudflare_blocked') {
+    // Decide whether to retry using error service logic
+    if (globalErrorService.shouldRetry(processedError)) {
       this.scheduleRetry(pendingRequest, networkError);
     } else {
       // Max retries reached or unrecoverable error
       this.isNetworkError = true;
 
       // Emit error event to frontend before rejecting promise
+      // Send the i18n key to the frontend for proper localization
       this.onEvent({
         method: 'codex/event',
         params: {
           msg: {
             type: 'stream_error',
-            message: `${networkError.type}: ${networkError.originalError}`,
+            message: processedError.userMessage || processedError.message,
           },
         },
       });
 
-      pendingRequest.reject(new Error(`${networkError.type}: ${networkError.originalError}`));
+      pendingRequest.reject(new Error(processedError.userMessage || processedError.message));
     }
   }
 
-  private classifyNetworkError(errorMsg: string): NetworkError {
-    const lowerMsg = errorMsg.toLowerCase();
-
-    if (lowerMsg.includes('403') && lowerMsg.includes('cloudflare')) {
-      return {
-        type: 'cloudflare_blocked',
-        originalError: errorMsg,
-        retryCount: this.retryCount,
-        suggestedAction: 'cloudflare_blocked',
-      };
+  private getNetworkErrorType(errorCode: string): NetworkError['type'] {
+    switch (errorCode) {
+      case 'CLOUDFLARE_BLOCKED':
+        return 'cloudflare_blocked';
+      case 'NETWORK_TIMEOUT':
+        return 'network_timeout';
+      case 'CONNECTION_REFUSED':
+        return 'connection_refused';
+      default:
+        return 'unknown';
     }
-
-    if (lowerMsg.includes('timeout') || lowerMsg.includes('etimedout')) {
-      return {
-        type: 'network_timeout',
-        originalError: errorMsg,
-        retryCount: this.retryCount,
-        suggestedAction: 'network_timeout',
-      };
-    }
-
-    if (lowerMsg.includes('connection refused') || lowerMsg.includes('econnrefused')) {
-      return {
-        type: 'connection_refused',
-        originalError: errorMsg,
-        retryCount: this.retryCount,
-        suggestedAction: 'connection_refused',
-      };
-    }
-
-    return {
-      type: 'unknown',
-      originalError: errorMsg,
-      retryCount: this.retryCount,
-      suggestedAction: 'unknown_error',
-    };
   }
 
   private scheduleRetry(pendingRequest: PendingReq, networkError: NetworkError): void {

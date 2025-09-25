@@ -9,3 +9,4 @@ export * from './eventTypes';
 export * from './eventData';
 export * from './permissionTypes';
 export * from './toolTypes';
+export * from './errorTypes';

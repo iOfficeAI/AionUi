@@ -34,6 +34,42 @@
       "connecting": "正在連線至 Codex...",
       "error_connect": "連線至 Codex 失敗：{{error}}",
       "session_active": "已與 Codex 建立有效工作階段"
+    },
+    "thinking": {
+      "processing": "🤔 Codex 正在思考...",
+      "completed": "💭 思考過程完成",
+      "analyzing": "正在分析問題和制定解決方案...",
+      "composing": "正在整理回覆內容...",
+      "please_wait": "請稍候…"
+    },
+    "error": {
+      "system_init_failed": "Codex 系統初始化失敗",
+      "invalid_message_format": "訊息格式無效",
+      "invalid_input": "輸入內容無效",
+      "session_timeout": "工作階段已逾時，請重試",
+      "permission_denied": "此操作被拒絕存取",
+      "context_error": "在{{context}}中發生錯誤，請重新整理或重試。",
+      "generic": "Codex 元件出現異常，請稍後重試。",
+      "troubleshooting": "疑難排解建議",
+      "suggestion_1": "檢查網路連線是否正常",
+      "suggestion_2": "確認 Codex 服務正在執行",
+      "suggestion_3": "嘗試重新啟動應用程式",
+      "suggestion_4": "清除瀏覽器快取和本機儲存"
+    },
+    "performance": {
+      "virtualization_enabled": "清單虛擬化已啟用以提升效能",
+      "virtualization_disabled": "清單虛擬化已停用，顯示所有項目",
+      "debounce_enabled": "輸入防抖已啟用（{{delay}}毫秒延遲）",
+      "debounce_disabled": "輸入防抖已停用"
+    },
+    "config": {
+      "loaded": "設定載入成功",
+      "updated": "設定更新成功",
+      "reset": "設定已重設為預設值",
+      "validation_failed": "設定驗證失敗",
+      "import_success": "設定匯入成功",
+      "import_failed": "設定匯入失敗",
+      "export_success": "設定匯出成功"
     }
   },
   "common": {
@@ -48,6 +84,11 @@
     "edit": "編輯",
     "file": "檔案",
     "folder": "資料夾",
+    "retry": "重試",
+    "reload": "重新載入",
+    "technical_details": "技術詳情",
+    "error_details": "錯誤詳情",
+    "troubleshooting": "疑難排解",
     "github": "Github",
     "loading": "請稍候...",
     "save": "儲存",
@@ -142,20 +183,5 @@
     "vertexApiKey": "Vertex AI",
     "workDir": "工作目錄",
     "yoloMode": "自動允許"
-  },
-  "codex": {
-    "status": {
-      "connecting": "正在連接 Codex...",
-      "connected": "已連接到 Codex MCP 伺服器",
-      "session_active": "已與 Codex 創建活躍會話",
-      "error_connect": "連接 Codex 失敗：{{error}}"
-    },
-    "thinking": {
-      "processing": "🤔 Codex 正在思考...",
-      "completed": "💭 思考過程完成",
-      "analyzing": "正在分析問題並制定解決方案...",
-      "composing": "正在整理回覆內容...",
-      "please_wait": "請稍候…"
-    }
   }
 }

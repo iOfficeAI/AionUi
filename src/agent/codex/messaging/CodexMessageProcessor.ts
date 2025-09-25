@@ -7,6 +7,7 @@
 import { uuid } from '@/common/utils';
 import type { CodexAgentEventType, CodexAgentEvent } from '@/common/codex/types';
 import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
+import { globalErrorService, ERROR_CODES } from '@/agent/codex/core/ErrorService';
 
 export class CodexMessageProcessor {
   private currentLoadingId: string | null = null;
@@ -154,6 +155,19 @@ export class CodexMessageProcessor {
 
   processStreamError(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.STREAM_ERROR }>) {
     const message = evt.data?.message || 'Codex stream error';
+
+    // Use error service to create standardized error
+    const codexError = globalErrorService.createError(ERROR_CODES.NETWORK_UNKNOWN, message, {
+      context: 'CodexMessageProcessor.processStreamError',
+      technicalDetails: {
+        originalEvent: evt,
+        eventType: 'STREAM_ERROR',
+      },
+    });
+
+    // Process through error service for user-friendly message
+    const processedError = globalErrorService.handleError(codexError, 'stream_processing');
+
     const errorHash = this.generateErrorHash(message);
 
     // 检测消息类型：重试消息 vs 最终错误消息
@@ -176,7 +190,7 @@ export class CodexMessageProcessor {
       type: 'error' as const,
       conversation_id: this.conversation_id,
       msg_id: msgId,
-      data: message,
+      data: processedError.userMessage || message,
     };
     this.messageEmitter.emitAndPersistMessage(errMsg);
   }

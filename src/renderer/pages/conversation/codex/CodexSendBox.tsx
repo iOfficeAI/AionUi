@@ -270,7 +270,6 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
         const msg_id = `initial_${conversation_id}_${Date.now()}`;
         const loading_id = uuid();
 
-
         // 前端先写入用户消息，避免导航/事件竞争导致看不到消息
         const userMessage: TMessage = {
           id: msg_id,
