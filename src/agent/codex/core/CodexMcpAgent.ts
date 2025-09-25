@@ -321,17 +321,18 @@ export class CodexMcpAgent {
 
   // Expose connection diagnostics for UI/manager without leaking internals
   public getDiagnostics(): ReturnType<CodexMcpConnection['getDiagnostics']> {
-    return (
-      this.conn?.getDiagnostics() || {
-        isConnected: false,
-        childProcess: false,
-        pendingRequests: 0,
-        elicitationCount: 0,
-        isPaused: false,
-        retryCount: 0,
-        hasNetworkError: false,
-      }
-    );
+    const diagnostics = this.conn?.getDiagnostics();
+    if (diagnostics) return diagnostics;
+    return {
+      isConnected: false,
+      childProcess: false,
+      pendingRequests: 0,
+      elicitationCount: 0,
+      sessionApprovalsCount: 0,
+      isPaused: false,
+      retryCount: 0,
+      hasNetworkError: false,
+    };
   }
 
   // Expose handler access for CodexAgentManager
