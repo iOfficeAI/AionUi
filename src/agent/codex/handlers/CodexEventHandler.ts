@@ -12,6 +12,8 @@ import { CodexAgentEventType } from '@/common/codex/types';
 import type { ExecApprovalRequestData, AgentReasoningData, AgentReasoningDeltaData, BaseCodexEventData, PatchApprovalData, CodexAgentEvent, CodexEventParams } from '@/common/codex/types';
 import { CodexMessageProcessor } from '@/agent/codex/messaging/CodexMessageProcessor';
 import { CodexToolHandlers } from '@/agent/codex/tools/CodexToolHandlers';
+import { PermissionType } from '@/common/codex/types/permissionTypes';
+import { createPermissionOptionsForType, getPermissionDisplayInfo } from '@/common/codex/utils';
 
 // Extended permission request with additional UI fields for Codex
 type ExtendedAcpPermissionRequest = Omit<AcpPermissionRequest, 'options'> & import('@/common/codex/types').CodexPermissionRequest;
@@ -205,6 +207,8 @@ export class CodexEventHandler {
 
   private processExecApprovalRequest(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.EXEC_APPROVAL_REQUEST }>, unifiedRequestId: string) {
     const eventData = evt.data as ExecApprovalRequestData;
+    const displayInfo = getPermissionDisplayInfo(PermissionType.COMMAND_EXECUTION);
+    const options = createPermissionOptionsForType(PermissionType.COMMAND_EXECUTION);
 
     // Create command approval request
     const standardMessage: IResponseMessage = {
@@ -212,24 +216,11 @@ export class CodexEventHandler {
       msg_id: unifiedRequestId, // Use unified request ID to prevent duplicate messages
       conversation_id: this.conversation_id,
       data: {
-        title: 'Command Execution Permission',
-        description: eventData.reason || `Codex wants to execute command: ${Array.isArray(eventData.command) ? eventData.command.join(' ') : eventData.command}`,
+        title: displayInfo.titleKey,
+        description: eventData.reason || `${displayInfo.icon} Codex wants to execute command: ${Array.isArray(eventData.command) ? eventData.command.join(' ') : eventData.command}`,
         agentType: 'codex',
         sessionId: '',
-        options: [
-          {
-            optionId: 'allow_once',
-            name: 'Allow',
-            kind: 'allow_once' as const,
-            description: 'Allow this command execution',
-          },
-          {
-            optionId: 'reject_once',
-            name: 'Reject',
-            kind: 'reject_once' as const,
-            description: 'Reject this command execution',
-          },
-        ],
+        options: options,
         requestId: unifiedRequestId,
         toolCall: {
           title: 'Execute Command',
@@ -248,6 +239,8 @@ export class CodexEventHandler {
 
   private processApplyPatchRequest(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.APPLY_PATCH_APPROVAL_REQUEST }>, unifiedRequestId: string) {
     const eventData = evt.data as PatchApprovalData;
+    const displayInfo = getPermissionDisplayInfo(PermissionType.FILE_WRITE);
+    const options = createPermissionOptionsForType(PermissionType.FILE_WRITE);
 
     // Store patch changes for later execution
     if (eventData?.changes || eventData?.codex_changes) {
@@ -262,24 +255,11 @@ export class CodexEventHandler {
       msg_id: unifiedRequestId,
       conversation_id: this.conversation_id,
       data: {
-        title: 'File Write Permission',
-        description: eventData.message || 'Codex wants to apply proposed code changes',
+        title: displayInfo.titleKey,
+        description: eventData.message || `${displayInfo.icon} Codex wants to apply proposed code changes`,
         agentType: 'codex',
         sessionId: '',
-        options: [
-          {
-            optionId: 'allow_once',
-            name: 'Allow',
-            kind: 'allow_once' as const,
-            description: 'Allow this file operation',
-          },
-          {
-            optionId: 'reject_once',
-            name: 'Reject',
-            kind: 'reject_once' as const,
-            description: 'Reject this file operation',
-          },
-        ],
+        options: options,
         requestId: unifiedRequestId,
         toolCall: {
           title: 'Write File',
@@ -300,29 +280,19 @@ export class CodexEventHandler {
 
     // Handle different types of elicitations
     if (elicitationType === 'exec-approval') {
+      const displayInfo = getPermissionDisplayInfo(PermissionType.COMMAND_EXECUTION);
+      const options = createPermissionOptionsForType(PermissionType.COMMAND_EXECUTION);
+
       const standardMessage: IResponseMessage = {
         type: 'acp_permission',
         msg_id: unifiedRequestId,
         conversation_id: this.conversation_id,
         data: {
-          title: 'Command Execution Permission',
-          description: elicitationData.message || 'Codex wants to execute a command',
+          title: displayInfo.titleKey,
+          description: elicitationData.message || `${displayInfo.icon} Codex wants to execute a command`,
           agentType: 'codex',
           sessionId: '',
-          options: [
-            {
-              optionId: 'allow_once',
-              name: 'Allow',
-              kind: 'allow_once' as const,
-              description: 'Allow this command execution',
-            },
-            {
-              optionId: 'reject_once',
-              name: 'Reject',
-              kind: 'reject_once' as const,
-              description: 'Reject this command execution',
-            },
-          ],
+          options: options,
           requestId: unifiedRequestId,
           toolCall: {
             title: 'Execute Command',
@@ -339,29 +309,19 @@ export class CodexEventHandler {
       this.messageEmitter.emitAndPersistMessage(standardMessage, true);
     } else if (elicitationType === 'file-write' || (elicitationData.message && elicitationData.message.toLowerCase().includes('write'))) {
       // Handle file write permission requests
+      const displayInfo = getPermissionDisplayInfo(PermissionType.FILE_WRITE);
+      const options = createPermissionOptionsForType(PermissionType.FILE_WRITE);
+
       const standardMessage: IResponseMessage = {
         type: 'acp_permission',
         msg_id: unifiedRequestId,
         conversation_id: this.conversation_id,
         data: {
-          title: 'File Write Permission',
-          description: elicitationData.message || 'Codex wants to apply proposed code changes',
+          title: displayInfo.titleKey,
+          description: elicitationData.message || `${displayInfo.icon} Codex wants to apply proposed code changes`,
           agentType: 'codex',
           sessionId: '',
-          options: [
-            {
-              optionId: 'allow_once',
-              name: 'Allow',
-              kind: 'allow_once' as const,
-              description: 'Allow this file operation',
-            },
-            {
-              optionId: 'reject_once',
-              name: 'Reject',
-              kind: 'reject_once' as const,
-              description: 'Reject this file operation',
-            },
-          ],
+          options: options,
           requestId: unifiedRequestId,
           toolCall: {
             title: 'Write File',
@@ -376,29 +336,19 @@ export class CodexEventHandler {
       this.messageEmitter.emitAndPersistMessage(standardMessage, true);
     } else if (elicitationType === 'file-read' || (elicitationData.message && elicitationData.message.toLowerCase().includes('read'))) {
       // Handle file read permission requests
+      const displayInfo = getPermissionDisplayInfo(PermissionType.FILE_READ);
+      const options = createPermissionOptionsForType(PermissionType.FILE_READ);
+
       const standardMessage: IResponseMessage = {
         type: 'acp_permission',
         msg_id: unifiedRequestId,
         conversation_id: this.conversation_id,
         data: {
-          title: 'File Read Permission',
-          description: elicitationData.message || 'Codex wants to read files from your workspace',
+          title: displayInfo.titleKey,
+          description: elicitationData.message || `${displayInfo.icon} Codex wants to read files from your workspace`,
           agentType: 'codex',
           sessionId: '',
-          options: [
-            {
-              optionId: 'allow_once',
-              name: 'Allow',
-              kind: 'allow_once' as const,
-              description: 'Allow this file read operation',
-            },
-            {
-              optionId: 'reject_once',
-              name: 'Reject',
-              kind: 'reject_once' as const,
-              description: 'Reject this file read operation',
-            },
-          ],
+          options: options,
           requestId: unifiedRequestId,
           toolCall: {
             title: 'Read File',
