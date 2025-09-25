@@ -139,7 +139,7 @@ const FileBuilder = (file: string) => {
 const JsonFileBuilder = <S extends Record<string, unknown>>(path: string) => {
   const file = FileBuilder(path);
   const encode = (data: unknown) => {
-    return btoa(encodeURIComponent(data));
+    return btoa(encodeURIComponent(String(data)));
   };
 
   const decode = (base64: string) => {
@@ -261,7 +261,7 @@ const chatFile = {
 
     return data;
   },
-  set<K extends keyof IChatConversationRefer>(key: K, value: IChatConversationRefer[K]) {
+  async set<K extends keyof IChatConversationRefer>(key: K, value: IChatConversationRefer[K]) {
     return _chatFile.set(key, value);
   },
 };
@@ -277,12 +277,12 @@ const buildMessageListStorage = (conversation_id: string, dir: string) => {
 const conversationHistoryProxy = (options: typeof _chatMessageFile, dir: string) => {
   return {
     ...options,
-    set(key: string, data: unknown) {
+    async set(key: string, data: any) {
       const conversation_id = key;
       const storage = buildMessageListStorage(conversation_id, dir);
       return storage.setJson(data);
     },
-    async get(key: string): Promise<unknown[]> {
+    async get(key: string): Promise<any[]> {
       const conversation_id = key;
       const storage = buildMessageListStorage(conversation_id, dir);
       const data = await storage.toJson();
