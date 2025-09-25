@@ -61,6 +61,7 @@ export interface ConfirmationData {
 
 /**
  * Common hook to handle message confirmation for both tool groups and codex permissions
+ * 用于处理工具组和codex权限的消息确认的通用钩子
  */
 export const useConfirmationHandler = () => {
   const handleConfirmation = async (data: ConfirmationData): Promise<{ success: boolean; error?: string }> => {
@@ -68,7 +69,6 @@ export const useConfirmationHandler = () => {
       const result = await conversation.confirmMessage.invoke(data);
       return { success: true, error: undefined };
     } catch (error) {
-      console.error('Confirm failed:', error);
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   };
@@ -78,11 +78,13 @@ export const useConfirmationHandler = () => {
 
 /**
  * Hook to generate stable permission ID based on tool call characteristics
+ * 钩子根据工具调用特征生成稳定的权限ID
  */
 export const usePermissionIdGenerator = () => {
   const generateGlobalPermissionId = (toolCall?: { kind?: string; title?: string; rawInput?: { command?: string | string[] } }) => {
-    // 构建权限请求的特征字符串
-    const features = [toolCall?.kind || 'permission', toolCall?.title || '', toolCall?.rawInput?.command || ''];
+    // 基于权限类型生成稳定的ID，而不是具体的命令内容
+    // 这样相同类型的权限请求会有相同的ID
+    const features = [toolCall?.kind || 'permission', toolCall?.title || ''];
 
     const featureString = features.filter(Boolean).join('|');
 
@@ -94,7 +96,9 @@ export const usePermissionIdGenerator = () => {
       hash = hash & hash; // 32位整数
     }
 
-    return `codex_perm_${Math.abs(hash)}`;
+    const permissionId = `codex_perm_${Math.abs(hash)}`;
+
+    return permissionId;
   };
 
   return { generateGlobalPermissionId };

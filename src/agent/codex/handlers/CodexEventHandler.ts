@@ -194,25 +194,27 @@ export class CodexEventHandler {
     // Mark this request as being processed
     this.toolHandlers.getPendingConfirmations().add(unifiedRequestId);
 
-    // Route to appropriate handler based on event type
+    // Route to appropriate handler based on event type (async processing)
     if (type === CodexAgentEventType.EXEC_APPROVAL_REQUEST) {
-      this.processExecApprovalRequest(evt as Extract<CodexAgentEvent, { type: CodexAgentEventType.EXEC_APPROVAL_REQUEST }>, unifiedRequestId);
+      this.processExecApprovalRequest(evt as Extract<CodexAgentEvent, { type: CodexAgentEventType.EXEC_APPROVAL_REQUEST }>, unifiedRequestId).catch(console.error);
     } else if (type === CodexAgentEventType.APPLY_PATCH_APPROVAL_REQUEST) {
-      this.processApplyPatchRequest(evt as Extract<CodexAgentEvent, { type: CodexAgentEventType.APPLY_PATCH_APPROVAL_REQUEST }>, unifiedRequestId);
+      this.processApplyPatchRequest(evt as Extract<CodexAgentEvent, { type: CodexAgentEventType.APPLY_PATCH_APPROVAL_REQUEST }>, unifiedRequestId).catch(console.error);
     } else {
       // ELICITATION_CREATE
-      this.processElicitationRequest(evt as Extract<CodexAgentEvent, { type: CodexAgentEventType.ELICITATION_CREATE }>, unifiedRequestId);
+      this.processElicitationRequest(evt as Extract<CodexAgentEvent, { type: CodexAgentEventType.ELICITATION_CREATE }>, unifiedRequestId).catch(console.error);
     }
   }
 
-  private processExecApprovalRequest(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.EXEC_APPROVAL_REQUEST }>, unifiedRequestId: string) {
+  private async processExecApprovalRequest(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.EXEC_APPROVAL_REQUEST }>, unifiedRequestId: string) {
     const eventData = evt.data as ExecApprovalRequestData;
+    const callId = eventData?.call_id || uuid();
+
     const displayInfo = getPermissionDisplayInfo(PermissionType.COMMAND_EXECUTION);
     const options = createPermissionOptionsForType(PermissionType.COMMAND_EXECUTION);
 
     // Create command approval request
     const standardMessage: IResponseMessage = {
-      type: 'acp_permission',
+      type: 'codex_permission',
       msg_id: unifiedRequestId, // Use unified request ID to prevent duplicate messages
       conversation_id: this.conversation_id,
       data: {
@@ -224,21 +226,25 @@ export class CodexEventHandler {
         requestId: unifiedRequestId,
         toolCall: {
           title: 'Execute Command',
-          toolCallId: unifiedRequestId,
+          toolCallId: callId, // Use actual call_id instead of unifiedRequestId
+          kind: 'execute',
           rawInput: {
             command: Array.isArray(eventData.command) ? eventData.command.join(' ') : eventData.command ? String(eventData.command) : undefined,
             cwd: eventData.cwd,
             reason: eventData.reason ?? undefined,
           },
         },
-      } as ExtendedAcpPermissionRequest,
+      } as any,
     };
 
+    console.log('📝 Creating codex_permission message for exec approval:', standardMessage);
     this.messageEmitter.emitAndPersistMessage(standardMessage, true);
   }
 
-  private processApplyPatchRequest(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.APPLY_PATCH_APPROVAL_REQUEST }>, unifiedRequestId: string) {
+  private async processApplyPatchRequest(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.APPLY_PATCH_APPROVAL_REQUEST }>, unifiedRequestId: string) {
     const eventData = evt.data as PatchApprovalData;
+    const callId = eventData?.call_id || (eventData as CodexEventParams)?.codex_call_id || uuid();
+
     const displayInfo = getPermissionDisplayInfo(PermissionType.FILE_WRITE);
     const options = createPermissionOptionsForType(PermissionType.FILE_WRITE);
 
@@ -251,7 +257,7 @@ export class CodexEventHandler {
     }
 
     const standardMessage: IResponseMessage = {
-      type: 'acp_permission',
+      type: 'codex_permission',
       msg_id: unifiedRequestId,
       conversation_id: this.conversation_id,
       data: {
@@ -263,20 +269,23 @@ export class CodexEventHandler {
         requestId: unifiedRequestId,
         toolCall: {
           title: 'Write File',
-          toolCallId: unifiedRequestId,
+          toolCallId: callId, // Use actual call_id instead of unifiedRequestId
+          kind: 'write',
           rawInput: {
             description: eventData.message,
           },
         },
-      } as ExtendedAcpPermissionRequest,
+      } as any,
     };
 
+    console.log('📝 Creating codex_permission message for apply patch:', standardMessage);
     this.messageEmitter.emitAndPersistMessage(standardMessage, true);
   }
 
-  private processElicitationRequest(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.ELICITATION_CREATE }>, unifiedRequestId: string) {
+  private async processElicitationRequest(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.ELICITATION_CREATE }>, unifiedRequestId: string) {
     const elicitationData = evt.data as import('@/common/codex/types').ElicitationCreateData;
     const elicitationType = elicitationData.codex_elicitation;
+    const callId = elicitationData?.codex_call_id || uuid();
 
     // Handle different types of elicitations
     if (elicitationType === 'exec-approval') {
@@ -284,7 +293,7 @@ export class CodexEventHandler {
       const options = createPermissionOptionsForType(PermissionType.COMMAND_EXECUTION);
 
       const standardMessage: IResponseMessage = {
-        type: 'acp_permission',
+        type: 'codex_permission',
         msg_id: unifiedRequestId,
         conversation_id: this.conversation_id,
         data: {
@@ -296,7 +305,8 @@ export class CodexEventHandler {
           requestId: unifiedRequestId,
           toolCall: {
             title: 'Execute Command',
-            toolCallId: unifiedRequestId,
+            toolCallId: callId, // Use actual call_id instead of unifiedRequestId
+            kind: 'execute',
             rawInput: {
               command: Array.isArray(elicitationData.codex_command) ? elicitationData.codex_command.join(' ') : elicitationData.codex_command,
               cwd: elicitationData.codex_cwd,
@@ -306,6 +316,7 @@ export class CodexEventHandler {
         } as any,
       };
 
+      console.log('📝 Creating codex_permission message for exec-approval:', standardMessage);
       this.messageEmitter.emitAndPersistMessage(standardMessage, true);
     } else if (elicitationType === 'file-write' || (elicitationData.message && elicitationData.message.toLowerCase().includes('write'))) {
       // Handle file write permission requests
@@ -313,7 +324,7 @@ export class CodexEventHandler {
       const options = createPermissionOptionsForType(PermissionType.FILE_WRITE);
 
       const standardMessage: IResponseMessage = {
-        type: 'acp_permission',
+        type: 'codex_permission',
         msg_id: unifiedRequestId,
         conversation_id: this.conversation_id,
         data: {
@@ -325,7 +336,8 @@ export class CodexEventHandler {
           requestId: unifiedRequestId,
           toolCall: {
             title: 'Write File',
-            toolCallId: unifiedRequestId,
+            toolCallId: callId, // Use actual call_id instead of unifiedRequestId
+            kind: 'write',
             rawInput: {
               description: elicitationData.message,
             },
@@ -333,6 +345,7 @@ export class CodexEventHandler {
         } as any,
       };
 
+      console.log('📝 Creating codex_permission message for file-write:', standardMessage);
       this.messageEmitter.emitAndPersistMessage(standardMessage, true);
     } else if (elicitationType === 'file-read' || (elicitationData.message && elicitationData.message.toLowerCase().includes('read'))) {
       // Handle file read permission requests
@@ -340,7 +353,7 @@ export class CodexEventHandler {
       const options = createPermissionOptionsForType(PermissionType.FILE_READ);
 
       const standardMessage: IResponseMessage = {
-        type: 'acp_permission',
+        type: 'codex_permission',
         msg_id: unifiedRequestId,
         conversation_id: this.conversation_id,
         data: {
@@ -352,7 +365,8 @@ export class CodexEventHandler {
           requestId: unifiedRequestId,
           toolCall: {
             title: 'Read File',
-            toolCallId: unifiedRequestId,
+            toolCallId: callId, // Use actual call_id instead of unifiedRequestId
+            kind: 'read',
             rawInput: {
               description: elicitationData.message,
             },
@@ -360,8 +374,10 @@ export class CodexEventHandler {
         } as any,
       };
 
+      console.log('📝 Creating codex_permission message for file-read:', standardMessage);
       this.messageEmitter.emitAndPersistMessage(standardMessage, true);
     } else {
+      console.log('⚠️ Unknown elicitation type:', elicitationType);
       // For other elicitation types, create a generic content message (not a permission)
     }
   }

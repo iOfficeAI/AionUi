@@ -28,6 +28,7 @@ export enum PermissionSeverity {
 /**
  * 权限决策类型映射
  * 将UI选项映射到后端决策逻辑
+ * 参考 Codex 源码 approved approved_for_session denied abort
  */
 export const PERMISSION_DECISION_MAP = {
   allow_once: 'approved',

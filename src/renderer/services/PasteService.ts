@@ -67,12 +67,18 @@ class PasteServiceClass {
   };
 
   // 通用粘贴处理逻辑
-  async handlePaste(event: React.ClipboardEvent | ClipboardEvent, supportedExts: string[], onFilesAdded: (files: FileMetadata[]) => void): Promise<boolean> {
+  async handlePaste(event: React.ClipboardEvent | ClipboardEvent, supportedExts: string[], onFilesAdded: (files: FileMetadata[]) => void, onTextPaste?: (text: string) => void): Promise<boolean> {
     const clipboardText = event.clipboardData?.getData('text');
     const files = event.clipboardData?.files;
 
     // 处理纯文本粘贴
     if (clipboardText && (!files || files.length === 0)) {
+      if (onTextPaste) {
+        // 清理文本中多余的换行符，特别是末尾的换行符
+        const cleanedText = clipboardText.replace(/\n\s*$/, '');
+        onTextPaste(cleanedText);
+        return true; // 已处理，阻止默认行为
+      }
       return false; // 如果没有回调，允许默认行为
     }
     if (files && files.length > 0) {

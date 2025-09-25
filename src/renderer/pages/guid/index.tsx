@@ -148,9 +148,13 @@ const Guid: React.FC = () => {
   });
 
   // 使用共享的PasteService集成
-  const { onPaste } = usePasteService({
+  const { onPaste, onFocus } = usePasteService({
     supportedExts: allSupportedExts,
     onFilesAdded: handleFilesAdded,
+    onTextPaste: (text: string) => {
+      // 处理清理后的文本粘贴
+      setInput(text);
+    },
   });
 
   // 获取可用的 ACP agents - 基于全局标记位
@@ -326,7 +330,7 @@ const Guid: React.FC = () => {
           }}
           {...dragHandlers}
         >
-          <Input.TextArea rows={4} placeholder={t('conversation.welcome.placeholder')} className='text-16px focus:b-none rounded-xl !bg-white !b-none !resize-none !p-0' value={input} onChange={(v) => setInput(v)} onPaste={onPaste} {...compositionHandlers} onKeyDown={createKeyDownHandler(sendMessageHandler)}></Input.TextArea>
+          <Input.TextArea rows={4} placeholder={t('conversation.welcome.placeholder')} className='text-16px focus:b-none rounded-xl !bg-white !b-none !resize-none !p-0' value={input} onChange={(v) => setInput(v)} onPaste={onPaste} onFocus={onFocus} {...compositionHandlers} onKeyDown={createKeyDownHandler(sendMessageHandler)}></Input.TextArea>
           <div className='flex items-center justify-between '>
             <div className='flex items-center gap-10px'>
               <Dropdown
