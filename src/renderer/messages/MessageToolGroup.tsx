@@ -15,7 +15,7 @@ import { useTranslation } from 'react-i18next';
 import Diff2Html from '../components/Diff2Html';
 import LocalImageView from '../components/LocalImageView';
 import MarkdownView from '../components/Markdown';
-import { handleConfirmation } from './utils/confirmationUtils';
+import { useConfirmationHandler } from './hooks';
 
 interface IMessageToolGroupProps {
   message: IMessageToolGroup;
@@ -181,6 +181,7 @@ const ToolResultDisplay: React.FC<{
 
 const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
   const { t } = useTranslation();
+  const { handleConfirmation } = useConfirmationHandler();
   console.log('----->message', message);
   return (
     <div>
