@@ -20,7 +20,11 @@ import { CodexFileOperationHandler } from '@/agent/codex/handlers/CodexFileOpera
 import { CodexMessageTransformer } from '@/agent/codex/messaging/CodexMessageTransformer';
 import type { CodexAgentManagerData, FileChange } from '@/common/codex/types';
 import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
-import { setAppConfig } from './appConfig';
+import { setAppConfig, getConfiguredAppClientName, getConfiguredAppClientVersion, getConfiguredCodexMcpProtocolVersion } from './appConfig';
+
+const APP_CLIENT_NAME = getConfiguredAppClientName();
+const APP_CLIENT_VERSION = getConfiguredAppClientVersion();
+const CODEX_MCP_PROTOCOL_VERSION = getConfiguredCodexMcpProtocolVersion();
 
 class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implements ICodexMessageEmitter {
   workspace?: string;
@@ -48,20 +52,20 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
     // 设置 Codex Agent 的应用配置，使用 Electron API 在主进程中
     (async () => {
-      const electronModule = await import('electron');
-      const app = electronModule.app;
       try {
+        const electronModule = await import('electron');
+        const app = electronModule.app;
         setAppConfig({
           name: app.getName(),
           version: app.getVersion(),
-          protocolVersion: '1.0.0', // 可以根据需要调整协议版本
+          protocolVersion: CODEX_MCP_PROTOCOL_VERSION,
         });
       } catch (error) {
         // 如果不在主进程中，使用通用方法获取版本
         setAppConfig({
-          name: 'AionUi',
-          version: app.getVersion(),
-          protocolVersion: '1.0.0',
+          name: APP_CLIENT_NAME,
+          version: APP_CLIENT_VERSION,
+          protocolVersion: CODEX_MCP_PROTOCOL_VERSION,
         });
       }
     })();

@@ -26,7 +26,7 @@ interface ICodexStatusContent {
   backend?: string;
 }
 
-const CodexStatusMessage: React.FC<MessageCodexStatusProps> = ({ message }) => {
+const MessageCodexStatus: React.FC<MessageCodexStatusProps> = ({ message }) => {
   const { t } = useTranslation();
   const { status, message: statusMessage } = message.content as ICodexStatusContent;
   const backend = (message.content as ICodexStatusContent).backend;
@@ -90,4 +90,4 @@ const CodexStatusMessage: React.FC<MessageCodexStatusProps> = ({ message }) => {
   );
 };
 
-export default CodexStatusMessage;
+export default MessageCodexStatus;
