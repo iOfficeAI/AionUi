@@ -7,7 +7,6 @@
 import { initAcpBridge } from './acpBridge';
 import { initApplicationBridge } from './applicationBridge';
 import { initAuthBridge } from './authBridge';
-import { initAutoUpdateBridge } from './autoUpdateBridge/autoUpdateBridge';
 import { initConversationBridge } from './conversationBridge';
 import { initDialogBridge } from './dialogBridge';
 import { initFsBridge } from './fsBridge';
@@ -28,8 +27,7 @@ export function initAllBridges(): void {
   initAuthBridge();
   initModelBridge();
   initMcpBridge();
-  initAutoUpdateBridge();
 }
 
 // 导出初始化函数供单独使用
-export { initAcpBridge, initApplicationBridge, initAuthBridge, initAutoUpdateBridge, initConversationBridge, initDialogBridge, initFsBridge, initMcpBridge, initModelBridge, initShellBridge };
+export { initAcpBridge, initApplicationBridge, initAuthBridge, initConversationBridge, initDialogBridge, initFsBridge, initMcpBridge, initModelBridge, initShellBridge };

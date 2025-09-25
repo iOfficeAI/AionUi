@@ -11,7 +11,9 @@ import { application } from '../common/ipcBridge';
 import type { IChatConversationRefer, IConfigStorageRefer, IEnvStorageRefer } from '../common/storage';
 import { ChatMessageStorage, ChatStorage, ConfigStorage, EnvStorage } from '../common/storage';
 import { copyDirectoryRecursively, getConfigPath, getDataPath, getTempPath, verifyDirectoryFiles } from './utils';
-import type { ArchitectureType, PlatformType } from '../common/update/updateConfig';
+// Platform and architecture types (moved from deleted updateConfig)
+type PlatformType = 'win32' | 'darwin' | 'linux';
+type ArchitectureType = 'x64' | 'arm64' | 'ia32' | 'arm';
 
 const nodePath = path;
 
@@ -95,19 +97,19 @@ const CopyFile = (src: string, dest: string) => {
 };
 
 const FileBuilder = (file: string) => {
-  const stack: (() => Promise<any>)[] = [];
+  const stack: (() => Promise<unknown>)[] = [];
   let isRunning = false;
   const run = () => {
     if (isRunning || !stack.length) return;
     isRunning = true;
-    stack
+    void stack
       .shift()?.()
       .finally(() => {
         isRunning = false;
         run();
       });
   };
-  const pushStack = <R extends any>(fn: () => Promise<R>) => {
+  const pushStack = <R>(fn: () => Promise<R>) => {
     return new Promise<R>((resolve, reject) => {
       stack.push(() => fn().then(resolve).catch(reject));
       run();
@@ -134,9 +136,9 @@ const FileBuilder = (file: string) => {
   };
 };
 
-const JsonFileBuilder = <S extends Record<string, any>>(path: string) => {
+const JsonFileBuilder = <S extends Record<string, unknown>>(path: string) => {
   const file = FileBuilder(path);
-  const encode = (data: any) => {
+  const encode = (data: unknown) => {
     return btoa(encodeURIComponent(data));
   };
 
@@ -175,7 +177,7 @@ const JsonFileBuilder = <S extends Record<string, any>>(path: string) => {
     }
   };
 
-  const setJson = async (data: any): Promise<any> => {
+  const setJson = (data: unknown): Promise<void> => {
     try {
       return file.write(encode(JSON.stringify(data)));
     } catch (e) {
@@ -197,7 +199,7 @@ const JsonFileBuilder = <S extends Record<string, any>>(path: string) => {
     toJsonSync,
     async set<K extends keyof S>(key: K, value: S[K]) {
       const data = await toJson();
-      data[key] = value as any;
+      data[key] = value;
       return setJson(data);
     },
     async get<K extends keyof S>(key: K): Promise<S[K]> {
@@ -259,7 +261,7 @@ const chatFile = {
 
     return data;
   },
-  async set<K extends keyof IChatConversationRefer>(key: K, value: IChatConversationRefer[K]) {
+  set<K extends keyof IChatConversationRefer>(key: K, value: IChatConversationRefer[K]) {
     return _chatFile.set(key, value);
   },
 };
@@ -275,12 +277,12 @@ const buildMessageListStorage = (conversation_id: string, dir: string) => {
 const conversationHistoryProxy = (options: typeof _chatMessageFile, dir: string) => {
   return {
     ...options,
-    async set(key: string, data: any) {
+    set(key: string, data: unknown) {
       const conversation_id = key;
       const storage = buildMessageListStorage(conversation_id, dir);
       return storage.setJson(data);
     },
-    async get(key: string): Promise<any[]> {
+    async get(key: string): Promise<unknown[]> {
       const conversation_id = key;
       const storage = buildMessageListStorage(conversation_id, dir);
       const data = await storage.toJson();
@@ -314,8 +316,8 @@ const initStorage = async () => {
   ChatMessageStorage.interceptor(chatMessageFile);
   EnvStorage.interceptor(envFile);
 
-  application.systemInfo.provider(async () => {
-    return getSystemDir();
+  application.systemInfo.provider(() => {
+    return Promise.resolve(getSystemDir());
   });
 };
 
