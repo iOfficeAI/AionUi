@@ -135,6 +135,14 @@ export class UpdatePackage {
     return this.data.signature;
   }
 
+  get filename(): string | undefined {
+    return this.data.filename;
+  }
+
+  get contentType(): string | undefined {
+    return this.data.contentType;
+  }
+
   // ===== Business Logic Methods =====
 
   /**

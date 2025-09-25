@@ -52,7 +52,6 @@ export function initAutoUpdateBridge(): void {
     return await autoUpdateBridgeProvider.installAndRestart(sessionId);
   });
 
-
   // 初始化 Auto-Update Bridge Provider
   autoUpdateBridgeProvider.initialize().catch((error) => {
     console.error('Failed to initialize Auto-Update Bridge Provider:', error);

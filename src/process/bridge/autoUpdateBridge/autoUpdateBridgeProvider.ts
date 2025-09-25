@@ -169,7 +169,7 @@ export class AutoUpdateBridgeProvider {
       this.emitProgressEvent(session);
 
       // 开始实际下载（异步执行，不阻塞响应）
-      this.startDownload(session).catch((error) => {
+      this.startDownload(session).catch((error: Error) => {
         console.error('Download process failed:', error);
         // 错误处理已在startDownload内部完成
       });
@@ -374,28 +374,47 @@ export class AutoUpdateBridgeProvider {
       // 生产环境中的实际安装和重启逻辑
       console.info('Installing update and restarting application', { sessionId });
 
-      // 使用 electron-updater 进行自动更新
+      // 简化的安装重启逻辑
+      console.log('Starting install and restart process');
 
-      try {
-        // 配置electron-updater
-        autoUpdater.autoDownload = false; // 我们已经手动下载了
-        autoUpdater.autoInstallOnAppQuit = true;
+      // 获取下载的文件路径
+      const downloadPath = session.downloadPath;
+      if (!downloadPath || !fs.existsSync(downloadPath)) {
+        throw new Error('Downloaded update file not found');
+      }
 
-        console.log('Starting installation process');
+      console.log('Downloaded file found at:', downloadPath);
 
-        // 获取下载的文件信息
-        const updateInfo = session.updateInfo;
+      // 根据平台执行不同的安装逻辑
+      const platform = process.platform;
 
-        // 使用electron-updater安装更新
-        console.log('Calling autoUpdater.quitAndInstall()');
-        autoUpdater.quitAndInstall(false, true); // (isSilent, isForceRunAfter)
+      if (platform === 'darwin') {
+        // macOS: 打开 DMG 文件
+        console.log('Opening DMG file for macOS installation');
+        await shell.openPath(downloadPath);
 
+        // 提示用户手动完成安装
+        return {
+          success: true,
+          msg: 'Update package opened. Please drag the application to Applications folder and restart.',
+        };
+      } else if (platform === 'win32') {
+        // Windows: 执行安装程序
+        console.log('Executing Windows installer');
+        const execAsync = promisify(exec);
+        await execAsync(`"${downloadPath}" /S`);
+
+        // Windows 安装程序通常会自动重启应用
         return { success: true };
-      } catch (autoUpdaterError) {
-        console.error('electron-updater installation failed, trying manual installation:', autoUpdaterError);
+      } else {
+        // Linux: 打开安装包
+        console.log('Opening update package for Linux');
+        await shell.openPath(downloadPath);
 
-        // electron-updater失败时的降级方案
-        return await this.fallbackInstallation(session);
+        return {
+          success: true,
+          msg: 'Update package opened. Please install manually and restart the application.',
+        };
       }
 
       return { success: true };
@@ -408,226 +427,25 @@ export class AutoUpdateBridgeProvider {
     }
   }
 
-  // ===== Version Management Methods =====
-
   // ===== Private Helper Methods =====
 
   /**
-   * 降级安装方案 - 当electron-updater失败时使用
-   */
-  private async fallbackInstallation(session: any): Promise<{ success: boolean; msg?: string }> {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-
-    try {
-      const downloadPath = session.downloadPath;
-      if (!downloadPath || !fs.existsSync(downloadPath)) {
-        throw new Error('Downloaded update file not found');
-      }
-
-      console.log('Using fallback installation for:', downloadPath);
-
-      const platform = process.platform;
-      const fileExtension = downloadPath.split('.').pop()?.toLowerCase();
-
-      switch (platform) {
-        case 'darwin': // macOS
-          if (fileExtension === 'dmg') {
-            await this.installDMGFile(downloadPath);
-            return { success: true };
-          }
-          break;
-
-        case 'win32': // Windows
-          if (fileExtension === 'exe') {
-            await this.installEXEFile(downloadPath);
-            return { success: true };
-          }
-          break;
-
-        case 'linux': // Linux
-          if (fileExtension === 'appimage') {
-            await this.installAppImageFile(downloadPath);
-            return { success: true };
-          } else if (fileExtension === 'deb') {
-            await this.installDebFile(downloadPath);
-            return { success: true };
-          }
-          break;
-
-        default:
-          throw new Error(`Unsupported platform: ${platform}`);
-      }
-
-      // 如果无法自动安装，提示用户手动安装
-      shell.showItemInFolder(downloadPath);
-      return {
-        success: false,
-        msg: `Please manually install the downloaded update file: ${downloadPath}`,
-      };
-    } catch (error) {
-      console.error('Fallback installation failed:', error);
-      return {
-        success: false,
-        msg: error instanceof Error ? error.message : 'Installation failed',
-      };
-    }
-  }
-
-  /**
-   * 安装DMG文件 (macOS)
-   */
-  private async installDMGFile(dmgPath: string): Promise<void> {
-    const execAsync = promisify(exec);
-
-    console.log('Starting DMG installation:', dmgPath);
-
-    try {
-      // 1. 挂载DMG文件
-      const { stdout: mountOutput } = await execAsync(`hdiutil attach "${dmgPath}" -nobrowse -quiet`);
-      console.log('DMG mounted successfully');
-
-      // 解析挂载点
-      const mountPoint = mountOutput.trim().split('\n').pop()?.split('\t').pop();
-      if (!mountPoint) {
-        throw new Error('Failed to find mount point');
-      }
-
-      console.log('Mount point:', mountPoint);
-
-      try {
-        // 2. 查找.app文件
-        const files = fs.readdirSync(mountPoint);
-        const appFile = files.find((file: string) => file.endsWith('.app'));
-
-        if (!appFile) {
-          throw new Error('No .app file found in DMG');
-        }
-
-        const sourcePath = path.join(mountPoint, appFile);
-        const targetPath = `/Applications/${appFile}`;
-
-        console.log('Installing app:', { sourcePath, targetPath });
-
-        // 3. 如果目标应用已存在，先删除
-        if (fs.existsSync(targetPath)) {
-          console.log('Removing existing application');
-          await execAsync(`rm -rf "${targetPath}"`);
-        }
-
-        // 4. 复制新应用到Applications目录
-        console.log('Copying application to Applications folder');
-        await execAsync(`cp -R "${sourcePath}" "/Applications/"`);
-
-        console.log('Application copied successfully');
-      } finally {
-        // 5. 卸载DMG
-        try {
-          await execAsync(`hdiutil detach "${mountPoint}" -quiet`);
-          console.log('DMG unmounted successfully');
-        } catch (unmountError) {
-          console.warn('Failed to unmount DMG:', unmountError);
-          // 卸载失败不影响安装结果
-        }
-      }
-    } catch (error) {
-      console.error('DMG installation failed:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * 安装EXE文件 (Windows)
-   */
-  private async installEXEFile(exePath: string): Promise<void> {
-    const execAsync = promisify(exec);
-
-    console.log('Installing EXE file:', exePath);
-
-    try {
-      // Windows安装器通常支持静默安装
-      await execAsync(`"${exePath}" /S`);
-      console.log('EXE installation completed');
-    } catch (error) {
-      // 如果静默安装失败，尝试普通安装
-      console.log('Silent installation failed, trying normal installation');
-      await execAsync(`"${exePath}"`);
-    }
-  }
-
-  /**
-   * 安装AppImage文件 (Linux)
-   */
-  private async installAppImageFile(appImagePath: string): Promise<void> {
-    const execAsync = promisify(exec);
-
-    console.log('Installing AppImage file:', appImagePath);
-
-    try {
-      // 1. 将AppImage复制到用户的bin目录
-      const binDir = path.join(process.env.HOME || '/home/user', '.local', 'bin');
-      const fileName = path.basename(appImagePath);
-      const targetPath = path.join(binDir, fileName);
-
-      // 确保目录存在
-      await execAsync(`mkdir -p "${binDir}"`);
-
-      // 复制文件
-      await execAsync(`cp "${appImagePath}" "${targetPath}"`);
-
-      // 设置执行权限
-      await execAsync(`chmod +x "${targetPath}"`);
-
-      console.log('AppImage installation completed');
-    } catch (error) {
-      console.error('AppImage installation failed:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * 安装DEB文件 (Linux)
-   */
-  private async installDebFile(debPath: string): Promise<void> {
-    const execAsync = promisify(exec);
-
-    console.log('Installing DEB file:', debPath);
-
-    try {
-      // 使用dpkg安装deb包
-      await execAsync(`sudo dpkg -i "${debPath}"`);
-      console.log('DEB installation completed');
-    } catch (error) {
-      console.error('DEB installation failed:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * 开始下载
+   * Start the actual download process
    */
   private async startDownload(session: UpdateSession): Promise<void> {
-
     try {
-      // 确定下载目录和文件路径
-      const downloadsDir = app.getPath('downloads');
-      const updateInfo = session.updateInfo;
-      const fileName = updateInfo.filename || `AionUi-update-${updateInfo.version}.${this.getFileExtensionForPlatform()}`;
-      const downloadPath = path.join(downloadsDir, fileName);
+      const updateInfo = session.getUpdatePackage();
+      const fileName = updateInfo.filename || updateInfo.getExpectedFilename();
+      const downloadsDir = path.join(app.getPath('downloads'), 'AionUi-Updates');
 
-      console.log('Starting real download:', {
-        url: updateInfo.downloadUrl,
-        downloadPath,
-        fileSize: updateInfo.fileSize,
-      });
-
-      // 创建下载目录（如果不存在）
-      const dir = path.dirname(downloadPath);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
+      // 确保下载目录存在
+      if (!fs.existsSync(downloadsDir)) {
+        fs.mkdirSync(downloadsDir, { recursive: true });
       }
 
-      // 开始真实下载
+      const downloadPath = path.join(downloadsDir, fileName);
+
+      // 开始下载
       await this.downloadFile(updateInfo.downloadUrl, downloadPath, session.sessionId);
 
       // 下载完成后，更新session的downloadPath
@@ -641,40 +459,33 @@ export class AutoUpdateBridgeProvider {
       console.log('Download completed successfully:', downloadPath);
     } catch (error) {
       console.error('Download failed:', error);
-
-      // 更新session为失败状态
+      // Update session with error
       const currentSession = this.updateSessions.get(session.sessionId);
       if (currentSession) {
-        const failedSession = currentSession.fail(error instanceof Error ? error.message : 'Download failed');
+        const errorMessage = error instanceof Error ? error.message : 'Download failed';
+        const failedSession = currentSession.fail(errorMessage);
         this.updateSessions.set(session.sessionId, failedSession);
         this.emitProgressEvent(failedSession);
       }
+      throw error;
     }
   }
 
   /**
-   * 实际下载文件
+   * Download file from URL
    */
   private downloadFile(url: string, downloadPath: string, sessionId: string): Promise<void> {
     return new Promise((resolve, reject) => {
-
       const file = fs.createWriteStream(downloadPath);
       let downloadedBytes = 0;
 
-      const request = https.get(url, (response: any) => {
-        // 处理重定向
+      const request = https.get(url, (response) => {
+        // Handle redirects
         if (response.statusCode === 301 || response.statusCode === 302) {
           const redirectUrl = response.headers.location;
-          file.close(); // 关闭当前文件流
+          file.close();
           if (redirectUrl) {
-            console.log(`Following redirect from ${url} to ${redirectUrl}`);
-            // 递归调用处理重定向
-            this.downloadFile(redirectUrl, downloadPath, sessionId)
-              .then(resolve)
-              .catch(reject);
-            return;
-          } else {
-            reject(new Error(`Redirect response without location header: HTTP ${response.statusCode}`));
+            this.downloadFile(redirectUrl, downloadPath, sessionId).then(resolve).catch(reject);
             return;
           }
         }
@@ -685,14 +496,14 @@ export class AutoUpdateBridgeProvider {
         }
 
         const totalBytes = parseInt(response.headers['content-length'] || '0', 10);
-        
+
         // 用实际的文件大小更新session的totalBytes
         const currentSession = this.updateSessions.get(sessionId);
         if (currentSession && totalBytes > 0 && totalBytes !== currentSession.totalBytes) {
           console.log(`Updating download size from ${(currentSession.totalBytes / (1024 * 1024)).toFixed(1)}MB to ${(totalBytes / (1024 * 1024)).toFixed(1)}MB`);
           const updatedSession = UpdateSession.fromJSON({
             ...currentSession.toJSON(),
-            totalBytes: totalBytes
+            totalBytes: totalBytes,
           });
           this.updateSessions.set(sessionId, updatedSession);
         }
@@ -712,6 +523,16 @@ export class AutoUpdateBridgeProvider {
 
         response.on('end', () => {
           file.end();
+
+          // 确保最终状态正确设置
+          const finalSession = this.updateSessions.get(sessionId);
+          if (finalSession) {
+            // 确保 bytesDownloaded 等于 totalBytes
+            const completedSession = finalSession.updateProgress(finalSession.totalBytes).complete();
+            this.updateSessions.set(sessionId, completedSession);
+            this.emitProgressEvent(completedSession);
+          }
+
           resolve();
         });
 
@@ -728,8 +549,8 @@ export class AutoUpdateBridgeProvider {
         reject(error);
       });
 
-      // 设置更长的超时时间：10分钟（对于大文件）
-      request.setTimeout(600000, () => {
+      request.setTimeout(600000); // 10 minutes timeout
+      request.on('timeout', () => {
         request.destroy();
         file.destroy();
         fs.unlink(downloadPath, () => {});
@@ -739,48 +560,21 @@ export class AutoUpdateBridgeProvider {
   }
 
   /**
-   * 根据平台获取文件扩展名
-   */
-  private getFileExtensionForPlatform(): string {
-    const platform = process.platform;
-    switch (platform) {
-      case 'darwin':
-        return 'dmg';
-      case 'win32':
-        return 'exe';
-      case 'linux':
-        return 'AppImage';
-      default:
-        return 'bin';
-    }
-  }
-
-  /**
-   * 发送进度事件
+   * Emit progress event to renderer
    */
   private emitProgressEvent(session: UpdateSession): void {
-    const event: IUpdateProgressEvent = {
+    const progressData: IUpdateProgressEvent = {
       sessionId: session.sessionId,
       status: session.status,
       progress: session.progress,
       bytesDownloaded: session.bytesDownloaded,
       totalBytes: session.totalBytes,
-      speed: session.speed,
+      speed: session.speed || 0,
       estimatedTimeRemaining: session.estimatedTimeRemaining,
-      error: session.error,
     };
 
-    console.debug('Emitting progress event', {
-      sessionId: session.sessionId,
-      progress: session.progress,
-      status: session.status,
-    });
-
-    // 发送事件到渲染进程
-    updateProgressStream.emit(event);
+    updateProgressStream.emit(progressData);
   }
-
-
 }
 
 // Singleton instance

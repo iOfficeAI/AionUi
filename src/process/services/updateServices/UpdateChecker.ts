@@ -72,29 +72,18 @@ export class UpdateChecker {
   async checkForUpdates(force: boolean = false): Promise<UpdateCheckResult> {
     const cacheKey = 'update-check';
 
-    console.log('[UpdateChecker] Starting update check, force:', force);
-
     try {
       // 检查缓存
       if (!force) {
         const cachedResult = this.getCachedResult(cacheKey);
         if (cachedResult) {
-          console.log('[UpdateChecker] Using cached result');
           return { ...cachedResult, cacheUsed: true };
         }
       }
 
       // 执行检查（带重试机制）
-      console.log('[UpdateChecker] Performing update check with retry mechanism');
       const result = await this.retryManager.execute(async () => {
         return await this.performUpdateCheck();
-      });
-
-      console.log('[UpdateChecker] Update check completed successfully:', {
-        success: result.success,
-        isUpdateAvailable: result.isUpdateAvailable,
-        currentVersion: result.versionInfo?.current,
-        latestVersion: result.versionInfo?.latest,
       });
 
       // 缓存结果
@@ -119,7 +108,6 @@ export class UpdateChecker {
         cacheUsed: false,
       };
 
-      console.log('[UpdateChecker] Returning failed result:', failedResult);
       return failedResult;
     }
   }
@@ -196,23 +184,22 @@ export class UpdateChecker {
   private async fetchLatestRelease(): Promise<GitHubRelease | null> {
     const url = `${UPDATE_CONFIG.GITHUB.API_BASE}/repos/${UPDATE_CONFIG.GITHUB.REPO}/releases/latest`;
 
-    console.log('[UpdateChecker] Starting GitHub API request to:', url);
-
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), UPDATE_CONFIG.GITHUB.TIMEOUT);
 
+      // 构建请求头
+      const headers: Record<string, string> = {
+        Accept: 'application/vnd.github.v3+json',
+        'User-Agent': UPDATE_CONFIG.GITHUB.USER_AGENT,
+      };
+
       const response = await fetch(url, {
-        headers: {
-          Accept: 'application/vnd.github.v3+json',
-          'User-Agent': UPDATE_CONFIG.GITHUB.USER_AGENT,
-        },
+        headers,
         signal: controller.signal,
       });
 
       clearTimeout(timeoutId);
-
-      console.log('[UpdateChecker] GitHub API response status:', response.status);
 
       if (!response.ok) {
         const errorMsg = `GitHub API request failed: ${response.status} ${response.statusText}`;
@@ -221,7 +208,6 @@ export class UpdateChecker {
       }
 
       const releaseData = await response.json();
-      console.log('[UpdateChecker] GitHub API response data:', { tag_name: releaseData.tag_name, assets_count: releaseData.assets?.length });
 
       // 验证必要字段
       if (!releaseData.tag_name || !releaseData.assets) {
@@ -230,7 +216,6 @@ export class UpdateChecker {
         throw new UpdateError(UpdateErrorType.VALIDATION_ERROR, errorMsg, { code: 'INVALID_RELEASE_DATA', context: { releaseData } });
       }
 
-      console.log('[UpdateChecker] Successfully fetched release data');
       return releaseData as GitHubRelease;
     } catch (error) {
       console.error('[UpdateChecker] Error in fetchLatestRelease:', error);
@@ -269,9 +254,6 @@ export class UpdateChecker {
 
         // 检查是否兼容当前平台
         if (fileInfo.platform === this.currentPlatform && fileInfo.arch === this.currentArch) {
-          console.log(`[UpdateCheckerV2] Found compatible package: ${asset.name}`);
-          console.log(`[UpdateCheckerV2] Real file size from GitHub API: ${(asset.size / (1024 * 1024)).toFixed(1)}MB`);
-
           const updatePackage = new UpdatePackage({
             version: this.parseVersion(release.tag_name),
             platform: fileInfo.platform,
@@ -315,6 +297,7 @@ export class UpdateChecker {
 
       return currentVersion;
     } catch (error) {
+      console.error('[UpdateChecker] Error getting current version:', error);
       if (error instanceof UpdateError) {
         throw error;
       }
