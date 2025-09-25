@@ -84,9 +84,14 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
     };
   })();
 
-  // 当会话ID变化时，清理已处理的全局消息记录
+  // 当会话ID变化时，清理所有状态避免状态污染
   useEffect(() => {
     processedGlobalMessages.current.clear();
+    // 重置所有运行状态，避免切换会话时状态污染
+    setRunning(false);
+    setWaitingForSession(false);
+    setIsThinking(false);
+    setCodexStatus(null);
   }, [conversation_id]);
 
   useEffect(() => {
