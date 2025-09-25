@@ -81,6 +81,7 @@ const nextTickSyncToLocalFile = debounce(syncToLocalFile);
 
 export const addMessage = (conversation_id: string, message: TMessage) => {
   pushCacheMessage(conversation_id, message, 'add');
+  nextTickSyncToLocalFile();
 };
 
 export const updateMessage = (conversation_id: string, message: (message: TMessage[]) => TMessage[]) => {
@@ -91,6 +92,7 @@ export const updateMessage = (conversation_id: string, message: (message: TMessa
 
 export const addOrUpdateMessage = (conversation_id: string, message: TMessage) => {
   pushCacheMessage(conversation_id, message, 'compose');
+  nextTickSyncToLocalFile();
 };
 
 export const nextTickToLocalFinish = (fn: () => void) => {

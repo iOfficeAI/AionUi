@@ -15,7 +15,6 @@ import { useTranslation } from 'react-i18next';
 import Diff2Html from '../components/Diff2Html';
 import LocalImageView from '../components/LocalImageView';
 import MarkdownView from '../components/Markdown';
-import { useConfirmationHandler } from './hooks';
 
 interface IMessageToolGroupProps {
   message: IMessageToolGroup;
@@ -181,38 +180,28 @@ const ToolResultDisplay: React.FC<{
 
 const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
   const { t } = useTranslation();
-  const { handleConfirmation } = useConfirmationHandler();
 
   return (
     <div>
       {message.content.map((content) => {
         const { status, callId, name, description, resultDisplay, confirmationDetails } = content;
-
-        // 修复历史会话中卡住的工具状态：如果消息创建时间超过5分钟且还在执行状态，标记为取消
-        const messageAge = Date.now() - (message.createdAt || 0);
-        const isStaleExecution = messageAge > 5 * 60 * 1000 && (status === 'Executing' || status === 'Confirming');
-        const effectiveStatus = isStaleExecution ? 'Canceled' : status;
-        const isLoading = effectiveStatus !== 'Success' && effectiveStatus !== 'Error' && effectiveStatus !== 'Canceled';
+        const isLoading = status !== 'Success' && status !== 'Error' && status !== 'Canceled';
         // status === "Confirming" &&
         if (confirmationDetails) {
           return (
             <ConfirmationDetails
               content={content}
-              onConfirm={async (outcome) => {
-                try {
-                  // 改进的 callId 处理（来自 MessageAcpPermission 的优化）
-                  const effectiveCallId = (content as any)?.toolCall?.toolCallId || callId || message.id;
-
-                  // 使用通用的 confirmMessage，process 层会自动分发到正确的 handler
-                  await handleConfirmation({
+              onConfirm={(outcome) => {
+                ipcBridge.geminiConversation.confirmMessage
+                  .invoke({
                     confirmKey: outcome,
                     msg_id: message.id,
-                    callId: effectiveCallId,
+                    callId: callId,
                     conversation_id: message.conversation_id,
+                  })
+                  .then((res) => {
+                    console.log('------onConfirm.res>:', res);
                   });
-                } catch (e) {
-                  console.error('Confirm failed:', e);
-                }
               }}
             ></ConfirmationDetails>
           );
@@ -226,17 +215,18 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
           );
         }
 
+        const display = typeof resultDisplay === 'string' ? resultDisplay : JSON.stringify(resultDisplay);
         return (
           <Alert
             className={'!items-start !rd-8px !px-8px [&_div.arco-alert-content-wrapper]:max-w-[calc(100%-24px)]'}
             key={callId}
-            type={effectiveStatus === 'Error' ? 'error' : effectiveStatus === 'Success' ? 'success' : effectiveStatus === 'Canceled' ? 'warning' : 'info'}
+            type={status === 'Error' ? 'error' : status === 'Success' ? 'success' : status === 'Canceled' ? 'warning' : 'info'}
             icon={isLoading && <LoadingOne theme='outline' size='12' fill='#333' className='loading lh-[1] flex' />}
             content={
               <div>
                 <Tag className={'mr-4px'}>
                   {name}
-                  {effectiveStatus === 'Canceled' ? `(${t('messages.canceledExecution')})` : ''}
+                  {status === 'Canceled' ? `(${t('messages.canceledExecution')})` : ''}
                 </Tag>
                 <div className='text-12px color-#666'>{description}</div>
                 <div className='overflow-auto'>
