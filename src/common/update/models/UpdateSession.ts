@@ -110,6 +110,10 @@ export class UpdateSession {
     return this.data.error;
   }
 
+  get downloadPath(): string | undefined {
+    return this.data.downloadPath;
+  }
+
   // ===== Computed Properties =====
 
   /**
@@ -426,7 +430,6 @@ export class UpdateSession {
 
     return 'healthy';
   }
-
 
   /**
    * Set the download path for completed downloads

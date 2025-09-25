@@ -43,7 +43,7 @@ const About: React.FC = () => {
       <Divider />
 
       <div className='mt-24px'>
-        <UpdateStatus autoCheckOnMount={true} showVersionInfo={false} showDetailedProgress={true} />
+        <UpdateStatus autoCheckOnMount={false} showVersionInfo={true} showDetailedProgress={true} />
       </div>
     </SettingContainer>
   );
