@@ -53,19 +53,19 @@ export class CodexSessionManager {
    */
   private async performConnectionSequence(): Promise<void> {
     // 1. 连接阶段
-    this.setStatus('connecting', 'Connecting to Codex...');
+    this.setStatus('connecting', '');
     await this.establishConnection();
 
     // 2. 认证阶段
-    this.setStatus('connected', 'Connected to Codex MCP server');
+    this.setStatus('connected', '');
     await this.performAuthentication();
 
     // 3. 会话创建阶段
-    this.setStatus('authenticated', 'Authentication completed');
+    this.setStatus('authenticated', '');
     await this.createSession();
 
     // 4. 会话激活
-    this.setStatus('session_active', 'Active session created with Codex');
+    this.setStatus('session_active', '');
   }
 
   /**
