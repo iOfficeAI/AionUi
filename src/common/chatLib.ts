@@ -315,7 +315,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
     case 'start':
     case 'finish':
     case 'thought':
-      return undefined;
+      break;
     default:
       return {
         type: message.type,

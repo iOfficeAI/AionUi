@@ -78,6 +78,44 @@
       "import_success": "設定のインポートが成功しました",
       "import_failed": "設定のインポートに失敗しました",
       "export_success": "設定のエクスポートが成功しました"
+    },
+    "permissions": {
+      "allow_once": "今回のみ許可",
+      "allow_always": "常に許可",
+      "reject_once": "今回のみ拒否",
+      "reject_always": "常に拒否",
+      "allow_once_desc": "この要求のみ権限を付与",
+      "allow_always_desc": "同種の要求に常に権限を付与",
+      "reject_once_desc": "この要求のみ拒否",
+      "reject_always_desc": "同種の要求を常に拒否",
+      "titles": {
+        "command_execution": "コマンド実行権限",
+        "file_write": "ファイル書き込み権限",
+        "file_read": "ファイル読み取り権限"
+      },
+      "descriptions": {
+        "command_execution": "Codex がシステムコマンドの実行を要求",
+        "file_write": "Codex がファイルの変更または作成を要求",
+        "file_read": "Codex がファイル内容の読み取りを要求"
+      },
+      "command_execution": {
+        "allow_once_desc": "このコマンド実行のみ許可",
+        "allow_always_desc": "すべてのコマンド実行要求を常に許可",
+        "reject_once_desc": "このコマンド実行のみ拒否",
+        "reject_always_desc": "すべてのコマンド実行要求を常に拒否"
+      },
+      "file_write": {
+        "allow_once_desc": "このファイル書き込みのみ許可",
+        "allow_always_desc": "すべてのファイル書き込み要求を常に許可",
+        "reject_once_desc": "このファイル書き込みのみ拒否",
+        "reject_always_desc": "すべてのファイル書き込み要求を常に拒否"
+      },
+      "file_read": {
+        "allow_once_desc": "このファイル読み取りのみ許可",
+        "allow_always_desc": "すべてのファイル読み取り要求を常に許可",
+        "reject_once_desc": "このファイル読み取りのみ拒否",
+        "reject_always_desc": "すべてのファイル読み取り要求を常に拒否"
+      }
     }
   },
   "common": {

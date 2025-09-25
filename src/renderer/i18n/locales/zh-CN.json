@@ -190,6 +190,44 @@
       "import_success": "配置导入成功",
       "import_failed": "配置导入失败",
       "export_success": "配置导出成功"
+    },
+    "permissions": {
+      "allow_once": "仅此次允许",
+      "allow_always": "总是允许",
+      "reject_once": "仅此次拒绝",
+      "reject_always": "总是拒绝",
+      "allow_once_desc": "仅对此次请求给予权限",
+      "allow_always_desc": "对同类型请求总是给予权限",
+      "reject_once_desc": "仅拒绝此次请求",
+      "reject_always_desc": "对同类型请求总是拒绝",
+      "titles": {
+        "command_execution": "命令执行权限",
+        "file_write": "文件写入权限",
+        "file_read": "文件读取权限"
+      },
+      "descriptions": {
+        "command_execution": "Codex 请求执行系统命令",
+        "file_write": "Codex 请求修改或创建文件",
+        "file_read": "Codex 请求读取文件内容"
+      },
+      "command_execution": {
+        "allow_once_desc": "仅允许此次命令执行",
+        "allow_always_desc": "对所有命令执行请求总是允许",
+        "reject_once_desc": "仅拒绝此次命令执行",
+        "reject_always_desc": "对所有命令执行请求总是拒绝"
+      },
+      "file_write": {
+        "allow_once_desc": "仅允许此次文件写入",
+        "allow_always_desc": "对所有文件写入请求总是允许",
+        "reject_once_desc": "仅拒绝此次文件写入",
+        "reject_always_desc": "对所有文件写入请求总是拒绝"
+      },
+      "file_read": {
+        "allow_once_desc": "仅允许此次文件读取",
+        "allow_always_desc": "对所有文件读取请求总是允许",
+        "reject_once_desc": "仅拒绝此次文件读取",
+        "reject_always_desc": "对所有文件读取请求总是拒绝"
+      }
     }
   },
   "tools": {

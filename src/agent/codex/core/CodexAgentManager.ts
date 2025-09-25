@@ -21,6 +21,7 @@ import { CodexMessageTransformer } from '@/agent/codex/messaging/CodexMessageTra
 import type { CodexAgentManagerData, FileChange } from '@/common/codex/types';
 import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
 import { setAppConfig, getConfiguredAppClientName, getConfiguredAppClientVersion, getConfiguredCodexMcpProtocolVersion } from './appConfig';
+import { mapPermissionDecision } from '@/common/codex/utils';
 
 const APP_CLIENT_NAME = getConfiguredAppClientName();
 const APP_CLIENT_VERSION = getConfiguredAppClientVersion();
@@ -227,10 +228,9 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     await this.bootstrap;
     this.agent.getEventHandler().getToolHandlers().removePendingConfirmation(data.callId);
 
-    // Map confirmKey to decision
-    const key = String(data.confirmKey || '').toLowerCase();
-    const isApproved = key.includes('allow') || key.includes('proceed') || key.includes('approved');
-    const decision: 'approved' | 'approved_for_session' | 'denied' | 'abort' = key.includes('approved_for_session') || key.includes('allow_always') ? 'approved_for_session' : isApproved ? 'approved' : key.includes('abort') ? 'abort' : 'denied';
+    // Use standardized permission decision mapping
+    const decision = mapPermissionDecision(data.confirmKey as any) as 'approved' | 'approved_for_session' | 'denied' | 'abort';
+    const isApproved = decision === 'approved' || decision === 'approved_for_session';
 
     // Apply patch changes if available and approved
     const changes = this.agent.getEventHandler().getToolHandlers().getPatchChanges(data.callId);
@@ -249,6 +249,14 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
           : data.callId.startsWith('exec_')
             ? data.callId.substring(5)
             : data.callId;
+
+    // Log the permission decision for debugging
+    console.log('🔐 Permission Decision:', {
+      confirmKey: data.confirmKey,
+      mappedDecision: decision,
+      callId: origCallId,
+      isApproved,
+    });
 
     // Respond to elicitation (server expects JSON-RPC response)
     this.agent.respondElicitation(origCallId, decision);
