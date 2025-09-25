@@ -25,4 +25,4 @@ export { type ICodexMessageEmitter } from './messaging/CodexMessageEmitter';
 
 // Tools Layer
 export { CodexToolHandlers } from './tools/CodexToolHandlers';
-export { ToolRegistry, ToolCategory, OutputFormat, RendererType, type ToolDefinition, type ToolCapabilities, type ToolRenderer, type ToolAvailability, type McpToolInfo } from './tools/ToolRegistry';
+export { ToolRegistry, ToolCategory, OutputFormat, RendererType, type ToolDefinition, type ToolCapabilities, type ToolRenderer, type ToolAvailability, type McpToolInfo } from '@/common/codex/utils';
