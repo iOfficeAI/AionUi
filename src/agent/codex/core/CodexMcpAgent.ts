@@ -139,6 +139,18 @@ export class CodexMcpAgent {
 
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
+        await this.conn?.request(
+          'tools/call',
+          {
+            name: 'codex',
+            arguments: {
+              prompt: '',
+              cwd: cwd || this.workingDir,
+            },
+            config: { conversationId: convId },
+          },
+          600000
+        ); // 10分钟超时
         return { sessionId: convId };
       } catch (error) {
         lastError = error instanceof Error ? error : new Error(String(error));
