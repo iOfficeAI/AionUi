@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { CodexAgentEventType, type McpInvocation, type CodexAgentEvent } from '@/common/codexTypes';
+import { CodexAgentEventType, type McpInvocation, type CodexAgentEvent } from '@/common/codex/types';
 import i18n from '@/renderer/i18n';
 import { ToolCategory, OutputFormat, RendererType, ToolAvailability, ToolCapabilities, ToolRenderer, ToolDefinition, McpToolInfo, EventDataMap } from './types';
 

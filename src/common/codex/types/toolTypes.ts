@@ -3,6 +3,8 @@
  * Copyright 2025 AionUi (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
+import type { CodexAgentEventType } from './eventTypes';
+import type { CodexAgentEvent } from './eventData';
 
 // 工具类别枚举
 export enum ToolCategory {
@@ -81,3 +83,17 @@ export interface McpToolInfo {
   description?: string;
   inputSchema?: Record<string, unknown>;
 }
+
+// 事件数据类型定义 (using TypeScript's built-in Extract utility type)
+export type EventDataMap = {
+  [CodexAgentEventType.EXEC_COMMAND_BEGIN]: Extract<CodexAgentEvent, { type: CodexAgentEventType.EXEC_COMMAND_BEGIN }>['data'];
+  [CodexAgentEventType.EXEC_COMMAND_OUTPUT_DELTA]: Extract<CodexAgentEvent, { type: CodexAgentEventType.EXEC_COMMAND_OUTPUT_DELTA }>['data'];
+  [CodexAgentEventType.EXEC_COMMAND_END]: Extract<CodexAgentEvent, { type: CodexAgentEventType.EXEC_COMMAND_END }>['data'];
+  [CodexAgentEventType.APPLY_PATCH_APPROVAL_REQUEST]: Extract<CodexAgentEvent, { type: CodexAgentEventType.APPLY_PATCH_APPROVAL_REQUEST }>['data'];
+  [CodexAgentEventType.PATCH_APPLY_BEGIN]: Extract<CodexAgentEvent, { type: CodexAgentEventType.PATCH_APPLY_BEGIN }>['data'];
+  [CodexAgentEventType.PATCH_APPLY_END]: Extract<CodexAgentEvent, { type: CodexAgentEventType.PATCH_APPLY_END }>['data'];
+  [CodexAgentEventType.MCP_TOOL_CALL_BEGIN]: Extract<CodexAgentEvent, { type: CodexAgentEventType.MCP_TOOL_CALL_BEGIN }>['data'];
+  [CodexAgentEventType.MCP_TOOL_CALL_END]: Extract<CodexAgentEvent, { type: CodexAgentEventType.MCP_TOOL_CALL_END }>['data'];
+  [CodexAgentEventType.WEB_SEARCH_BEGIN]: Extract<CodexAgentEvent, { type: CodexAgentEventType.WEB_SEARCH_BEGIN }>['data'];
+  [CodexAgentEventType.WEB_SEARCH_END]: Extract<CodexAgentEvent, { type: CodexAgentEventType.WEB_SEARCH_END }>['data'];
+};

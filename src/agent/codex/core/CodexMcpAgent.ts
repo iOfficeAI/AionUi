@@ -6,7 +6,7 @@
 
 import type { NetworkError, CodexEventEnvelope } from '@/agent/codex/connection/CodexMcpConnection';
 import { CodexMcpConnection } from '@/agent/codex/connection/CodexMcpConnection';
-import type { FileChange, CodexEventParams } from '@/common/codexTypes';
+import type { FileChange, CodexEventParams } from '@/common/codex/types';
 import type { CodexEventHandler } from '@/agent/codex/handlers/CodexEventHandler';
 import type { CodexSessionManager } from '@/agent/codex/handlers/CodexSessionManager';
 import type { CodexFileOperationHandler } from '@/agent/codex/handlers/CodexFileOperationHandler';

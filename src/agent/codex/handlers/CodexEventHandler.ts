@@ -8,13 +8,13 @@ import type { AcpPermissionRequest } from '@/common/acpTypes';
 import { uuid } from '@/common/utils';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
-import { CodexAgentEventType } from '@/common/codexTypes';
-import type { ExecApprovalRequestData, AgentReasoningData, AgentReasoningDeltaData, BaseCodexEventData, PatchApprovalData, CodexAgentEvent, CodexEventParams } from '@/common/codexTypes';
+import { CodexAgentEventType } from '@/common/codex/types';
+import type { ExecApprovalRequestData, AgentReasoningData, AgentReasoningDeltaData, BaseCodexEventData, PatchApprovalData, CodexAgentEvent, CodexEventParams } from '@/common/codex/types';
 import { CodexMessageProcessor } from '@/agent/codex/messaging/CodexMessageProcessor';
 import { CodexToolHandlers } from '@/agent/codex/tools/CodexToolHandlers';
 
 // Extended permission request with additional UI fields for Codex
-type ExtendedAcpPermissionRequest = Omit<AcpPermissionRequest, 'options'> & import('@/common/codexTypes').CodexPermissionRequest;
+type ExtendedAcpPermissionRequest = Omit<AcpPermissionRequest, 'options'> & import('@/common/codex/types').CodexPermissionRequest;
 
 export class CodexEventHandler {
   private messageProcessor: CodexMessageProcessor;
@@ -145,7 +145,6 @@ export class CodexEventHandler {
       this.toolHandlers.handleWebSearchEnd(evt as Extract<CodexAgentEvent, { type: CodexAgentEventType.WEB_SEARCH_END }>);
       return;
     }
-
   }
 
   private handleReasoningMessage(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.AGENT_REASONING_DELTA }> | Extract<CodexAgentEvent, { type: CodexAgentEventType.AGENT_REASONING }> | Extract<CodexAgentEvent, { type: CodexAgentEventType.AGENT_REASONING_SECTION_BREAK }>) {
@@ -163,7 +162,6 @@ export class CodexEventHandler {
     this.messageEmitter.emitAndPersistMessage(standardMessage, true);
   }
 
-
   /**
    * Unified permission request handler to prevent duplicates
    * Handles both codex/event wrapped permissions and direct elicitation/create calls
@@ -180,7 +178,7 @@ export class CodexEventHandler {
       callId = patchData?.call_id || (patchData as CodexEventParams)?.codex_call_id || uuid();
     } else {
       // ELICITATION_CREATE
-      callId = (evt.data as import('@/common/codexTypes').ElicitationCreateData)?.codex_call_id || uuid();
+      callId = (evt.data as import('@/common/codex/types').ElicitationCreateData)?.codex_call_id || uuid();
     }
 
     // Create unified unique ID using call_id only (ignoring message type)
@@ -297,7 +295,7 @@ export class CodexEventHandler {
   }
 
   private processElicitationRequest(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.ELICITATION_CREATE }>, unifiedRequestId: string) {
-    const elicitationData = evt.data as import('@/common/codexTypes').ElicitationCreateData;
+    const elicitationData = evt.data as import('@/common/codex/types').ElicitationCreateData;
     const elicitationType = elicitationData.codex_elicitation;
 
     // Handle different types of elicitations

@@ -18,7 +18,7 @@ import { CodexEventHandler } from '@/agent/codex/handlers/CodexEventHandler';
 import { CodexSessionManager } from '@/agent/codex/handlers/CodexSessionManager';
 import { CodexFileOperationHandler } from '@/agent/codex/handlers/CodexFileOperationHandler';
 import { CodexMessageTransformer } from '@/agent/codex/messaging/CodexMessageTransformer';
-import type { CodexAgentManagerData, FileChange } from '@/common/codexTypes';
+import type { CodexAgentManagerData, FileChange } from '@/common/codex/types';
 import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
 import { setAppConfig } from './appConfig';
 
@@ -48,9 +48,9 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
     // 设置 Codex Agent 的应用配置，使用 Electron API 在主进程中
     (async () => {
+      const electronModule = await import('electron');
+      const app = electronModule.app;
       try {
-        const electronModule = await import('electron');
-        const app = electronModule.app;
         setAppConfig({
           name: app.getName(),
           version: app.getVersion(),
@@ -60,7 +60,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
         // 如果不在主进程中，使用通用方法获取版本
         setAppConfig({
           name: 'AionUi',
-          version: getVersion(),
+          version: app.getVersion(),
           protocolVersion: '1.0.0',
         });
       }

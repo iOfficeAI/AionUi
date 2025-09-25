@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { CodexAgentEventType, type CodexAgentEvent, type McpInvocation } from '@/common/codexTypes';
+import type { CodexAgentEventType, CodexAgentEvent, McpInvocation } from '@/common/codex/types';
 
 // 工具类别枚举
 export enum ToolCategory {

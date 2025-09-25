@@ -5,7 +5,7 @@
  */
 
 import { uuid } from '@/common/utils';
-import type { CodexAgentEventType, CodexAgentEvent } from '@/common/codexTypes';
+import type { CodexAgentEventType, CodexAgentEvent } from '@/common/codex/types';
 import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
 
 export class CodexMessageProcessor {
