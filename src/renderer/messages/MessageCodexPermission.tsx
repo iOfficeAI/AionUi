@@ -8,7 +8,7 @@ import type { IMessageCodexPermission } from '@/common/chatLib';
 import { Button, Card, Radio, Typography } from '@arco-design/web-react';
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useConfirmationHandler, usePermissionIdGenerator, useToolIcon, usePermissionState, usePermissionStorageCleanup } from './hooks';
+import { useConfirmationHandler, usePermissionIdGenerator, useToolIcon, usePermissionState, usePermissionStorageCleanup } from '@/common/codex/utils/permissionUtils';
 
 const { Text } = Typography;
 
