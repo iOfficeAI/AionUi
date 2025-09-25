@@ -5,10 +5,10 @@
  */
 
 import type { IMessageCodexPermission } from '@/common/chatLib';
-import { conversation } from '@/common/ipcBridge';
 import { Button, Card, Radio, Typography } from '@arco-design/web-react';
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { handleConfirmation, generateGlobalPermissionId, getToolIcon, getPermissionStorageKeys, cleanupOldPermissionStorage } from './utils/confirmationUtils';
 
 const { Text } = Typography;
 
@@ -20,13 +20,11 @@ const MessageCodexPermission: React.FC<MessageCodexPermissionProps> = React.memo
   const { options = [], toolCall } = message.content || {};
   const { t } = useTranslation();
 
-
   // 基于实际数据生成显示信息
   const getToolInfo = () => {
     if (!toolCall) {
       return {
         title: 'Permission Request',
-        description: 'Codex is requesting permission.',
         icon: '🔐',
       };
     }
@@ -34,44 +32,16 @@ const MessageCodexPermission: React.FC<MessageCodexPermissionProps> = React.memo
     // 直接使用 toolCall 中的实际数据
     const displayTitle = toolCall.title || toolCall.rawInput?.description || 'Permission Request';
 
-    // 简单的图标映射
-    const kindIcons: Record<string, string> = {
-      edit: '✏️',
-      read: '📖',
-      fetch: '🌐',
-      execute: '⚡',
-    };
-
     return {
       title: displayTitle,
-      icon: kindIcons[toolCall.kind || 'execute'] || '⚡',
+      icon: getToolIcon(toolCall.kind),
     };
   };
   const { title, icon } = getToolInfo();
 
-  // 生成全局唯一且稳定的权限ID，不依赖于conversation_id或message_id
-  const generateGlobalPermissionId = () => {
-    // 构建权限请求的特征字符串
-    const features = [toolCall?.kind || 'permission', toolCall?.title || '', toolCall?.rawInput?.command || '', JSON.stringify(options || [])];
-
-    const featureString = features.filter(Boolean).join('|');
-
-    // 生成稳定的哈希
-    let hash = 0;
-    for (let i = 0; i < featureString.length; i++) {
-      const char = featureString.charCodeAt(i);
-      hash = (hash << 5) - hash + char;
-      hash = hash & hash; // 32位整数
-    }
-
-    return `codex_perm_${Math.abs(hash)}`;
-  };
-
-  const permissionId = generateGlobalPermissionId();
+  const permissionId = generateGlobalPermissionId(toolCall);
   // 使用全局key，不区分conversation，让相同权限请求在所有会话中共享状态
-  const storageKey = `codex_global_permission_choice_${permissionId}`;
-  const responseKey = `codex_global_permission_responded_${permissionId}`;
-
+  const { storageKey, responseKey } = getPermissionStorageKeys(permissionId);
 
   // 立即从localStorage初始化状态，避免闪烁
   const [selected, setSelected] = useState<string | null>(() => {
@@ -92,25 +62,8 @@ const MessageCodexPermission: React.FC<MessageCodexPermissionProps> = React.memo
     }
   });
 
-  // 清理旧的权限存储（超过7天的）
-  const cleanupOldPermissionStorage = () => {
-    const now = Date.now();
-    const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
-
-    Object.keys(localStorage).forEach((key) => {
-      if (key.startsWith('codex_permission_choice_') || key.startsWith('codex_permission_responded_')) {
-        const timestamp = localStorage.getItem(`${key}_timestamp`);
-        if (timestamp && parseInt(timestamp) < sevenDaysAgo) {
-          localStorage.removeItem(key);
-          localStorage.removeItem(`${key}_timestamp`);
-        }
-      }
-    });
-  };
-
   // 组件挂载时清理旧存储
   useEffect(() => {
-
     // 清理超过7天的旧权限存储
     cleanupOldPermissionStorage();
   }, [permissionId]); // 只在permissionId变化时执行
@@ -134,7 +87,7 @@ const MessageCodexPermission: React.FC<MessageCodexPermissionProps> = React.memo
 
     setIsResponding(true);
     try {
-      const invokeData = {
+      const confirmationData = {
         confirmKey: selected,
         msg_id: message.id,
         conversation_id: message.conversation_id,
@@ -142,7 +95,7 @@ const MessageCodexPermission: React.FC<MessageCodexPermissionProps> = React.memo
       };
 
       // 使用通用的 confirmMessage，process 层会自动分发到正确的 handler
-      const result = await conversation.confirmMessage.invoke(invokeData);
+      const result = await handleConfirmation(confirmationData);
 
       if (result.success) {
         setHasResponded(true);

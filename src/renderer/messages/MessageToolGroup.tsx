@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ipcBridge, conversation } from '@/common';
+import { ipcBridge } from '@/common';
 import type { IMessageToolGroup } from '@/common/chatLib';
 import { Alert, Button, Radio, Tag } from '@arco-design/web-react';
 import { LoadingOne } from '@icon-park/react';
@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next';
 import Diff2Html from '../components/Diff2Html';
 import LocalImageView from '../components/LocalImageView';
 import MarkdownView from '../components/Markdown';
+import { handleConfirmation } from './utils/confirmationUtils';
 
 interface IMessageToolGroupProps {
   message: IMessageToolGroup;
@@ -197,7 +198,7 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
                   const effectiveCallId = (content as any)?.toolCall?.toolCallId || callId || message.id;
 
                   // 使用通用的 confirmMessage，process 层会自动分发到正确的 handler
-                  await conversation.confirmMessage.invoke({
+                  await handleConfirmation({
                     confirmKey: outcome,
                     msg_id: message.id,
                     callId: effectiveCallId,
