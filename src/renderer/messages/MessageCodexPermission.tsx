@@ -8,7 +8,7 @@ import type { IMessageCodexPermission } from '@/common/chatLib';
 import { Button, Card, Radio, Typography } from '@arco-design/web-react';
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { handleConfirmation, generateGlobalPermissionId, getToolIcon, getPermissionStorageKeys, cleanupOldPermissionStorage } from './utils/confirmationUtils';
+import { useConfirmationHandler, usePermissionIdGenerator, useToolIcon, usePermissionStorageKeys, usePermissionState, usePermissionStorageCleanup } from './hooks';
 
 const { Text } = Typography;
 
@@ -19,6 +19,11 @@ interface MessageCodexPermissionProps {
 const MessageCodexPermission: React.FC<MessageCodexPermissionProps> = React.memo(({ message }) => {
   const { options = [], toolCall } = message.content || {};
   const { t } = useTranslation();
+
+  const { generateGlobalPermissionId } = usePermissionIdGenerator();
+  const { getToolIcon } = useToolIcon();
+  const { handleConfirmation } = useConfirmationHandler();
+  const { cleanupOldPermissionStorage } = usePermissionStorageCleanup();
 
   // 基于实际数据生成显示信息
   const getToolInfo = () => {
@@ -41,26 +46,11 @@ const MessageCodexPermission: React.FC<MessageCodexPermissionProps> = React.memo
 
   const permissionId = generateGlobalPermissionId(toolCall);
   // 使用全局key，不区分conversation，让相同权限请求在所有会话中共享状态
-  const { storageKey, responseKey } = getPermissionStorageKeys(permissionId);
+  const { storageKey, responseKey } = usePermissionStorageKeys(permissionId);
 
-  // 立即从localStorage初始化状态，避免闪烁
-  const [selected, setSelected] = useState<string | null>(() => {
-    try {
-      return localStorage.getItem(storageKey);
-    } catch {
-      return null;
-    }
-  });
+  const { selected, setSelected, hasResponded, setHasResponded } = usePermissionState(storageKey, responseKey);
 
   const [isResponding, setIsResponding] = useState(false);
-
-  const [hasResponded, setHasResponded] = useState<boolean>(() => {
-    try {
-      return localStorage.getItem(responseKey) === 'true';
-    } catch {
-      return false;
-    }
-  });
 
   // 组件挂载时清理旧存储
   useEffect(() => {
