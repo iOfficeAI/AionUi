@@ -136,7 +136,7 @@ const FileBuilder = (file: string) => {
   };
 };
 
-const JsonFileBuilder = <S extends Record<string, unknown>>(path: string) => {
+const JsonFileBuilder = <S extends Record<string, any>>(path: string) => {
   const file = FileBuilder(path);
   const encode = (data: unknown) => {
     return btoa(encodeURIComponent(String(data)));
@@ -177,9 +177,10 @@ const JsonFileBuilder = <S extends Record<string, unknown>>(path: string) => {
     }
   };
 
-  const setJson = (data: unknown): Promise<void> => {
+  const setJson = async (data: any): Promise<any> => {
     try {
-      return file.write(encode(JSON.stringify(data)));
+      await file.write(encode(JSON.stringify(data)));
+      return data;
     } catch (e) {
       return Promise.reject(e);
     }
@@ -197,10 +198,11 @@ const JsonFileBuilder = <S extends Record<string, unknown>>(path: string) => {
     toJson,
     setJson,
     toJsonSync,
-    async set<K extends keyof S>(key: K, value: S[K]) {
+    async set<K extends keyof S>(key: K, value: S[K]): Promise<S[K]> {
       const data = await toJson();
       data[key] = value;
-      return setJson(data);
+      await setJson(data);
+      return value;
     },
     async get<K extends keyof S>(key: K): Promise<S[K]> {
       const data = await toJson();
@@ -261,7 +263,7 @@ const chatFile = {
 
     return data;
   },
-  async set<K extends keyof IChatConversationRefer>(key: K, value: IChatConversationRefer[K]) {
+  async set<K extends keyof IChatConversationRefer>(key: K, value: IChatConversationRefer[K]): Promise<IChatConversationRefer[K]> {
     return _chatFile.set(key, value);
   },
 };
