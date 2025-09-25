@@ -182,12 +182,17 @@ const ToolResultDisplay: React.FC<{
 const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
   const { t } = useTranslation();
   const { handleConfirmation } = useConfirmationHandler();
-  console.log('----->message', message);
+
   return (
     <div>
       {message.content.map((content) => {
         const { status, callId, name, description, resultDisplay, confirmationDetails } = content;
-        const isLoading = status !== 'Success' && status !== 'Error' && status !== 'Canceled';
+
+        // 修复历史会话中卡住的工具状态：如果消息创建时间超过5分钟且还在执行状态，标记为取消
+        const messageAge = Date.now() - (message.createdAt || 0);
+        const isStaleExecution = messageAge > 5 * 60 * 1000 && (status === 'Executing' || status === 'Confirming');
+        const effectiveStatus = isStaleExecution ? 'Canceled' : status;
+        const isLoading = effectiveStatus !== 'Success' && effectiveStatus !== 'Error' && effectiveStatus !== 'Canceled';
         // status === "Confirming" &&
         if (confirmationDetails) {
           return (
@@ -225,13 +230,13 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
           <Alert
             className={'!items-start !rd-8px !px-8px [&_div.arco-alert-content-wrapper]:max-w-[calc(100%-24px)]'}
             key={callId}
-            type={status === 'Error' ? 'error' : status === 'Success' ? 'success' : status === 'Canceled' ? 'warning' : 'info'}
+            type={effectiveStatus === 'Error' ? 'error' : effectiveStatus === 'Success' ? 'success' : effectiveStatus === 'Canceled' ? 'warning' : 'info'}
             icon={isLoading && <LoadingOne theme='outline' size='12' fill='#333' className='loading lh-[1] flex' />}
             content={
               <div>
                 <Tag className={'mr-4px'}>
                   {name}
-                  {status === 'Canceled' ? `(${t('messages.canceledExecution')})` : ''}
+                  {effectiveStatus === 'Canceled' ? `(${t('messages.canceledExecution')})` : ''}
                 </Tag>
                 <div className='text-12px color-#666'>{description}</div>
                 <div className='overflow-auto'>
