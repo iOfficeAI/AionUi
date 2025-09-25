@@ -354,7 +354,7 @@ const Guid: React.FC = () => {
                         <>
                           {/* 暂无可用模型提示 */}
                           <Menu.Item key='no-models' className='px-12px py-12px text-gray-500 text-14px text-center flex justify-center items-center' disabled>
-                            暂无可用模型
+                            {t('settings.noAvailableModels')}
                           </Menu.Item>
                           {/* Add Model 选项 */}
                           <Menu.Item key='add-model' className='text-12px text-gray-500' onClick={() => navigate('/settings/model')}>
