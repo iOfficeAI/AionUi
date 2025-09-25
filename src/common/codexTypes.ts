@@ -5,4 +5,4 @@
  */
 
 // Export all codex types from the modular structure for backward compatibility
-export * from './codex';
+export * from './codex/types';
