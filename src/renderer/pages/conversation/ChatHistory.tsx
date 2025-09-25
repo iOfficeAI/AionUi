@@ -8,13 +8,13 @@ import { ipcBridge } from '@/common';
 import type { TChatConversation } from '@/common/storage';
 import { ChatStorage } from '@/common/storage';
 import FlexFullContainer from '@/renderer/components/FlexFullContainer';
+import { addEventListener } from '@/renderer/utils/emitter';
 import { Empty, Popconfirm } from '@arco-design/web-react';
 import { DeleteOne, MessageOne } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
-import { emitter } from '../../utils/emitter';
 
 const diffDay = (time1: number, time2: number) => {
   const date1 = new Date(time1);
@@ -114,10 +114,7 @@ const ChatHistory: React.FC = () => {
         });
     };
     refresh();
-    emitter.on('chat.history.refresh', refresh);
-    return () => {
-      emitter.off('chat.history.refresh', refresh);
-    };
+    return addEventListener('chat.history.refresh', refresh);
   }, [isConversation]);
 
   const handleRemoveConversation = (id: string) => {
