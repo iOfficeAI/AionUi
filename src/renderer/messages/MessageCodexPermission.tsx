@@ -48,6 +48,14 @@ const MessageCodexPermission: React.FC<MessageCodexPermissionProps> = React.memo
   // 使用全局key，不区分conversation，让相同权限请求在所有会话中共享状态
   const { storageKey, responseKey } = usePermissionStorageKeys(permissionId);
 
+  // Debug: log permission ID generation
+  console.log('🔑 Permission ID generated:', {
+    permissionId,
+    toolCall,
+    storageKey,
+    existingChoice: localStorage.getItem(storageKey),
+  });
+
   const { selected, setSelected, hasResponded, setHasResponded } = usePermissionState(storageKey, responseKey);
 
   const [isResponding, setIsResponding] = useState(false);
@@ -133,8 +141,9 @@ const MessageCodexPermission: React.FC<MessageCodexPermissionProps> = React.memo
             <Radio.Group direction='vertical' size='mini' value={selected} onChange={handleSelectionChange}>
               {options && options.length > 0 ? (
                 options.map((option, index) => {
-                  const optionName = option?.name || `Option ${index + 1}`;
                   const optionId = option?.optionId || `option_${index}`;
+                  // Translate the option name using the i18n key
+                  const optionName = option?.name ? t(option.name, { defaultValue: option.name }) : `Option ${index + 1}`;
                   return (
                     <Radio key={optionId} value={optionId}>
                       {optionName}

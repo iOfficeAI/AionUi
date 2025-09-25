@@ -70,6 +70,44 @@
       "import_success": "設定匯入成功",
       "import_failed": "設定匯入失敗",
       "export_success": "設定匯出成功"
+    },
+    "permissions": {
+      "allow_once": "僅此次允許",
+      "allow_always": "總是允許",
+      "reject_once": "僅此次拒絕",
+      "reject_always": "總是拒絕",
+      "allow_once_desc": "僅對此次請求給予權限",
+      "allow_always_desc": "對同類型請求總是給予權限",
+      "reject_once_desc": "僅拒絕此次請求",
+      "reject_always_desc": "對同類型請求總是拒絕",
+      "titles": {
+        "command_execution": "指令執行權限",
+        "file_write": "檔案寫入權限",
+        "file_read": "檔案讀取權限"
+      },
+      "descriptions": {
+        "command_execution": "Codex 請求執行系統指令",
+        "file_write": "Codex 請求修改或建立檔案",
+        "file_read": "Codex 請求讀取檔案內容"
+      },
+      "command_execution": {
+        "allow_once_desc": "僅允許此次指令執行",
+        "allow_always_desc": "對所有指令執行請求總是允許",
+        "reject_once_desc": "僅拒絕此次指令執行",
+        "reject_always_desc": "對所有指令執行請求總是拒絕"
+      },
+      "file_write": {
+        "allow_once_desc": "僅允許此次檔案寫入",
+        "allow_always_desc": "對所有檔案寫入請求總是允許",
+        "reject_once_desc": "僅拒絕此次檔案寫入",
+        "reject_always_desc": "對所有檔案寫入請求總是拒絕"
+      },
+      "file_read": {
+        "allow_once_desc": "僅允許此次檔案讀取",
+        "allow_always_desc": "對所有檔案讀取請求總是允許",
+        "reject_once_desc": "僅拒絕此次檔案讀取",
+        "reject_always_desc": "對所有檔案讀取請求總是拒絕"
+      }
     }
   },
   "common": {

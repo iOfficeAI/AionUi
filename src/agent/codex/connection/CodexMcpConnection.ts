@@ -379,11 +379,21 @@ export class CodexMcpConnection {
     const normalized = callId.replace(/^patch_/, '').replace(/^elicitation_/, '');
     const reqId = this.elicitationMap.get(normalized) || this.elicitationMap.get(callId);
     if (reqId === undefined) {
+      console.log('🚫 No reqId found for callId:', { callId, normalized, availableKeys: Array.from(this.elicitationMap.keys()) });
       return;
     }
     const result = { decision };
     const response: JsonRpcResponse = { jsonrpc: JSONRPC_VERSION, id: reqId, result };
     const line = JSON.stringify(response) + '\n';
+
+    console.log('📤 Sending to Codex CLI:', {
+      callId,
+      normalized,
+      reqId,
+      decision,
+      response: line.trim(),
+    });
+
     this.child?.stdin?.write(line);
     this.elicitationMap.delete(normalized);
   }

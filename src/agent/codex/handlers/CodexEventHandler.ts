@@ -13,7 +13,7 @@ import type { ExecApprovalRequestData, AgentReasoningData, AgentReasoningDeltaDa
 import { CodexMessageProcessor } from '@/agent/codex/messaging/CodexMessageProcessor';
 import { CodexToolHandlers } from '@/agent/codex/tools/CodexToolHandlers';
 import { PermissionType } from '@/common/codex/types/permissionTypes';
-import { createPermissionOptionsForType, getPermissionDisplayInfo } from '@/common/codex/utils';
+import { createPermissionOptionsForType, getPermissionDisplayInfo, mapPermissionDecision } from '@/common/codex/utils';
 
 // Extended permission request with additional UI fields for Codex
 type ExtendedAcpPermissionRequest = Omit<AcpPermissionRequest, 'options'> & import('@/common/codex/types').CodexPermissionRequest;

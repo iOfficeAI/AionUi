@@ -190,6 +190,44 @@
       "import_success": "Configuration imported successfully",
       "import_failed": "Failed to import configuration",
       "export_success": "Configuration exported successfully"
+    },
+    "permissions": {
+      "allow_once": "Allow Once",
+      "allow_always": "Allow Always",
+      "reject_once": "Reject Once",
+      "reject_always": "Reject Always",
+      "allow_once_desc": "Grant permission for this request only",
+      "allow_always_desc": "Always grant permission for similar requests",
+      "reject_once_desc": "Reject this request only",
+      "reject_always_desc": "Always reject similar requests",
+      "titles": {
+        "command_execution": "Command Execution Permission",
+        "file_write": "File Write Permission",
+        "file_read": "File Read Permission"
+      },
+      "descriptions": {
+        "command_execution": "Codex requests to execute system commands",
+        "file_write": "Codex requests to modify or create files",
+        "file_read": "Codex requests to read file contents"
+      },
+      "command_execution": {
+        "allow_once_desc": "Allow this command execution only",
+        "allow_always_desc": "Always allow all command execution requests",
+        "reject_once_desc": "Reject this command execution only",
+        "reject_always_desc": "Always reject all command execution requests"
+      },
+      "file_write": {
+        "allow_once_desc": "Allow this file write only",
+        "allow_always_desc": "Always allow all file write requests",
+        "reject_once_desc": "Reject this file write only",
+        "reject_always_desc": "Always reject all file write requests"
+      },
+      "file_read": {
+        "allow_once_desc": "Allow this file read only",
+        "allow_always_desc": "Always allow all file read requests",
+        "reject_once_desc": "Reject this file read only",
+        "reject_always_desc": "Always reject all file read requests"
+      }
     }
   },
   "tools": {
