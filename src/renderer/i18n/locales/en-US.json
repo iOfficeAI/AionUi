@@ -104,6 +104,7 @@
     "configGuide": "configuration guide",
     "configGuideSuffix": ".",
     "needHelpTooltip": "If you need help, please check",
+    "noAvailableModels": "No available models",
     "appDescription": "Free, local, open-source GUI app for Gemini CLI",
     "helpDocumentation": "Help Documentation",
     "updateLog": "Update Log",
