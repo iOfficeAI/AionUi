@@ -6,7 +6,7 @@
 
 import type { IMessageToolGroup } from '@/common/chatLib';
 import { uuid } from '@/common/utils';
-import { CodexAgentEventType, type CodexAgentEvent, type FileChange, type McpInvocation } from '@/common/codexTypes';
+import { CodexAgentEventType, type CodexAgentEvent, type FileChange, type McpInvocation } from '@/common/codex/types';
 import { ToolRegistry, type EventDataMap } from '@/agent/codex/tools/ToolRegistry';
 import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
 import type { IResponseMessage } from '@/common/ipcBridge';

@@ -7,7 +7,7 @@
 import type { ChildProcess } from 'child_process';
 import { spawn } from 'child_process';
 import { JSONRPC_VERSION } from '@/common/acpTypes';
-import type { CodexEventParams } from '@/common/codexTypes';
+import type { CodexEventParams } from '@/common/codex/types';
 
 type JsonRpcId = number | string;
 
@@ -68,7 +68,6 @@ export class CodexMcpConnection {
     // Default to "codex mcp serve" to start MCP server
     const command = cliPath || 'codex';
     const finalArgs = args.length ? args : ['mcp', 'serve'];
-
 
     return new Promise((resolve, reject) => {
       try {
@@ -159,7 +158,6 @@ export class CodexMcpConnection {
         // Wait for initial process startup
         setTimeout(() => {
           if (this.child && !this.child.killed) {
-
             // If we have received JSON messages, we're ready
             if (receivedJsonMessage) {
               // JSON-RPC communication established
@@ -203,7 +201,6 @@ export class CodexMcpConnection {
   async request<T = unknown>(method: string, params?: unknown, timeoutMs = 200000): Promise<T> {
     const id = this.nextId++;
     const req: JsonRpcRequest = { jsonrpc: JSONRPC_VERSION, id, method, params };
-
 
     return new Promise<T>((resolve, reject) => {
       const timeout = setTimeout(() => {
@@ -256,7 +253,6 @@ export class CodexMcpConnection {
 
   private handleIncoming(msg: JsonRpcRequest | JsonRpcResponse): void {
     if (typeof msg !== 'object' || msg === null) return;
-
 
     // Response
     if ('id' in msg && ('result' in (msg as JsonRpcResponse) || 'error' in (msg as JsonRpcResponse))) {
@@ -428,7 +424,6 @@ export class CodexMcpConnection {
   private handleNetworkError(errorMsg: string, pendingRequest: PendingReq): void {
     const networkError = this.classifyNetworkError(errorMsg);
 
-
     // Emit network error for UI handling
     this.onNetworkError(networkError);
 
@@ -565,7 +560,6 @@ export class CodexMcpConnection {
 
   // Wait for MCP server to be ready after startup
   public async waitForServerReady(timeout: number = 30000): Promise<void> {
-
     return new Promise((resolve, reject) => {
       const startTime = Date.now();
 
@@ -609,7 +603,6 @@ export class CodexMcpConnection {
 
   // Handle process exit
   private handleProcessExit(code: number | null, signal: NodeJS.Signals | null): void {
-
     // Emit error event to frontend about process exit
     this.onEvent({
       method: 'codex/event',

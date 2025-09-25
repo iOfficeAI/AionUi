@@ -234,7 +234,7 @@ export class CodexFileOperationHandler {
   /**
    * 批量应用文件更改 - 参考 ACP 和当前 CodexAgentManager 的 applyPatchChanges
    */
-  async applyBatchChanges(changes: Record<string, import('@/common/codexTypes').FileChange>): Promise<void> {
+  async applyBatchChanges(changes: Record<string, import('@/common/codex/types').FileChange>): Promise<void> {
     const operations: Promise<void>[] = [];
 
     for (const [filePath, change] of Object.entries(changes)) {
@@ -254,7 +254,7 @@ export class CodexFileOperationHandler {
     await Promise.all(operations);
   }
 
-  private getChangeAction(change: import('@/common/codexTypes').FileChange): 'create' | 'write' | 'delete' {
+  private getChangeAction(change: import('@/common/codex/types').FileChange): 'create' | 'write' | 'delete' {
     if ('type' in change) {
       if (change.type === 'add') return 'create';
       if (change.type === 'delete') return 'delete';
@@ -265,7 +265,7 @@ export class CodexFileOperationHandler {
     return 'write';
   }
 
-  private getChangeContent(change: import('@/common/codexTypes').FileChange): string {
+  private getChangeContent(change: import('@/common/codex/types').FileChange): string {
     if ('content' in (change as any) && typeof (change as any).content === 'string') return (change as any).content;
     return '';
   }

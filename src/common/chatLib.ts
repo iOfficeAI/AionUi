@@ -8,7 +8,7 @@ import type { AcpBackend } from './acpTypes';
 import type { IResponseMessage } from './ipcBridge';
 import { uuid } from './utils';
 import type { AcpPermissionRequest, ToolCallUpdate } from '@/common/acpTypes';
-import type { CodexPermissionRequest } from '@/common/codexTypes';
+import type { CodexPermissionRequest } from '@/common/codex/types';
 
 /**
  * 安全的路径拼接函数，兼容Windows和Mac
