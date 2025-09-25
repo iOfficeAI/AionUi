@@ -237,7 +237,7 @@ const MessageCodexPermission: React.FC<MessageCodexPermissionProps> = React.memo
         <div className='space-y-4 p-2'>
           <div className='flex items-center space-x-2'>
             <span className='text-2xl'>⚡</span>
-            <Text className='block text-sm text-gray-600'>{t('messages.auto_handling_permission', { defaultValue: 'Auto-handling permission based on previous "Always" choice...' })}</Text>
+            <Text className='block text-sm text-gray-600'>{t('messages.auto_handling_permission', { defaultValue: '' })}</Text>
           </div>
         </div>
       </Card>
@@ -266,10 +266,10 @@ const MessageCodexPermission: React.FC<MessageCodexPermissionProps> = React.memo
           <Text className='block'>{title}</Text>
           <span className='text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded'>Codex</span>
         </div>
-        {(toolCall.rawInput?.command || toolCall.title) && (
+        {toolCall.title && (
           <div>
             <Text className='text-xs text-gray-500 mb-1'>Command:</Text>
-            <code className='text-xs bg-gray-100 p-2 rounded block text-gray-800 break-all'>{toolCall.rawInput?.command || toolCall.title}</code>
+            <code className='text-xs bg-gray-100 p-2 rounded block text-gray-800 break-all'>{toolCall.title}</code>
           </div>
         )}
         {!hasResponded && (

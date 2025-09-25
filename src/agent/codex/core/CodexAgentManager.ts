@@ -34,7 +34,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
   constructor(data: CodexAgentManagerData) {
     // Do not fork a worker for Codex; we run the agent in-process now
-    super('codex', data, false);
+    super('codex', data);
     this.conversation_id = data.conversation_id;
     this.workspace = data.workspace;
 

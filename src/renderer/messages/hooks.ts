@@ -5,7 +5,7 @@
  */
 
 import { conversation } from '@/common/ipcBridge';
-import type { TMessage, IMessageCodexPermission } from '@/common/chatLib';
+import type { TMessage } from '@/common/chatLib';
 import { composeMessage } from '@/common/chatLib';
 import { ChatMessageStorage } from '@/common/storage';
 import { useEffect, useState } from 'react';
