@@ -45,39 +45,58 @@ export class IflowMcpAgent extends AbstractMcpAgent {
       for (const line of lines) {
         // 清除 ANSI 颜色代码
         const cleanLine = line.replace(/\u001b\[[0-?]*[ -/]*[@-~]/g, '').trim();
-        // 查找格式如: "✓ server-name: npx -y 12306-mcp (stdio) - Connected"
-        const match = cleanLine.match(/✓\s+([^:]+):\s+([^(]+)\s+\(([^)]+)\)/);
+        // 查找格式如: "✓ Bazi: npx bazi-mcp (stdio) - Connected"
+        const match = cleanLine.match(/[✓✗]\s+([^:]+):\s+(.+?)\s+\(([^)]+)\)\s*-\s*(Connected|Disconnected)/);
         if (match) {
-          const [, name, commandStr, transport] = match;
+          const [, name, commandStr, transport, status] = match;
           const commandParts = commandStr.trim().split(/\s+/);
           const command = commandParts[0];
           const args = commandParts.slice(1);
 
           const transportType = transport as 'stdio' | 'sse' | 'http';
 
+          // 构建transport对象
+          const transportObj: any =
+            transportType === 'stdio'
+              ? {
+                  type: 'stdio',
+                  command: command,
+                  args: args,
+                  env: {},
+                }
+              : transportType === 'sse'
+                ? {
+                    type: 'sse',
+                    url: commandStr.trim(),
+                  }
+                : {
+                    type: 'http',
+                    url: commandStr.trim(),
+                  };
+
+          // 尝试获取tools信息（仅对已连接的stdio服务器）
+          let tools: Array<{ name: string; description?: string }> = [];
+          if (status === 'Connected' && transportType === 'stdio') {
+            try {
+              const testResult = await this.testStdioConnection({
+                command: command,
+                args: args,
+                env: {},
+              });
+              tools = testResult.tools || [];
+            } catch (error) {
+              console.warn(`Failed to get tools for ${name.trim()}:`, error);
+              // 如果获取tools失败，继续使用空数组
+            }
+          }
+
           mcpServers.push({
             id: `iflow_${name.trim()}`,
             name: name.trim(),
-            transport:
-              transportType === 'stdio'
-                ? {
-                    type: 'stdio',
-                    command: command,
-                    args: args,
-                    env: {},
-                  }
-                : transportType === 'sse'
-                  ? {
-                      type: 'sse',
-                      url: commandStr.trim(),
-                    }
-                  : {
-                      type: 'http',
-                      url: commandStr.trim(),
-                    },
-            tools: [],
+            transport: transportObj,
+            tools: tools,
             enabled: true,
-            status: 'connected' as const,
+            status: status === 'Connected' ? 'connected' : 'disconnected',
             createdAt: Date.now(),
             updatedAt: Date.now(),
             description: '',
@@ -190,24 +209,24 @@ export class IflowMcpAgent extends AbstractMcpAgent {
   async removeMcpServer(mcpServerName: string): Promise<McpOperationResult> {
     try {
       // 使用iFlow CLI remove命令删除MCP服务器（尝试不同作用域）
-      // 首先尝试project作用域，然后尝试user作用域
+      // 首先尝试user作用域（与安装时保持一致），然后尝试project作用域
       try {
-        const removeCommand = `iflow mcp remove "${mcpServerName}" -s project`;
-        const { stdout } = await execAsync(removeCommand, { timeout: 5000 });
-
-        // 检查输出是否包含"not found"，如果是则继续尝试user作用域
-        if (stdout && stdout.includes('not found')) {
-          throw new Error('Server not found in project settings');
-        }
-
+        const removeCommand = `iflow mcp remove "${mcpServerName}" -s user`;
+        await execAsync(removeCommand, { timeout: 5000 });
         return { success: true };
-      } catch (projectError) {
-        // project作用域失败，尝试user作用域
+      } catch (userError) {
+        // user作用域失败，尝试project作用域
         try {
-          const removeCommand = `iflow mcp remove "${mcpServerName}" -s user`;
-          await execAsync(removeCommand, { timeout: 5000 });
+          const removeCommand = `iflow mcp remove "${mcpServerName}" -s project`;
+          const { stdout } = await execAsync(removeCommand, { timeout: 5000 });
+
+          // 检查输出是否包含"not found"，如果是则继续尝试user作用域
+          if (stdout && stdout.includes('not found')) {
+            throw new Error('Server not found in project settings');
+          }
+
           return { success: true };
-        } catch (userError) {
+        } catch (projectError) {
           // 如果服务器不存在，也认为是成功的
           if (userError instanceof Error && (userError.message.includes('not found') || userError.message.includes('does not exist'))) {
             return { success: true };

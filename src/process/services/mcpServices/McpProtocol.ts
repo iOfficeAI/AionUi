@@ -116,7 +116,7 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
   /**
    * 测试MCP服务器连接的通用实现
    */
-  async testMcpConnection(server: IMcpServer): Promise<McpConnectionTestResult> {
+  testMcpConnection(server: IMcpServer): Promise<McpConnectionTestResult> {
     try {
       switch (server.transport.type) {
         case 'stdio':
@@ -260,7 +260,8 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
 
         child.on('spawn', () => {
           // 给 MCP 服务器一点时间启动
-          setTimeout(() => {
+          setTimeout(async () => {
+            const { app } = await import('electron');
             const initRequest = {
               jsonrpc: '2.0',
               method: 'initialize',
@@ -271,8 +272,8 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
                   tools: {},
                 },
                 clientInfo: {
-                  name: 'AionUi',
-                  version: '1.0.0',
+                  name: app.getName(),
+                  version: app.getVersion(),
                 },
               },
             };
@@ -313,6 +314,8 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
    */
   protected async testHttpConnection(transport: { url: string; headers?: Record<string, string> }): Promise<McpConnectionTestResult> {
     try {
+      const { app } = await import('electron');
+      
       const initResponse = await fetch(transport.url, {
         method: 'POST',
         headers: {
@@ -329,8 +332,8 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
               tools: {},
             },
             clientInfo: {
-              name: 'AionUi',
-              version: '1.0.0',
+              name: app.getName(),
+              version: app.getVersion(),
             },
           },
         }),
@@ -386,6 +389,8 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
    */
   protected async testStreamableHttpConnection(transport: { url: string; headers?: Record<string, string> }): Promise<McpConnectionTestResult> {
     try {
+      const { app } = await import('electron');
+      
       const initResponse = await fetch(transport.url, {
         method: 'POST',
         headers: {
@@ -403,8 +408,8 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
               tools: {},
             },
             clientInfo: {
-              name: 'AionUi',
-              version: '1.0.0',
+              name: app.getName(),
+              version: app.getVersion(),
             },
           },
         }),
@@ -457,52 +462,5 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
     } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : String(error) };
     }
-  }
-
-  /**
-   * 解析MCP服务器配置的通用方法
-   */
-  protected parseMcpServersConfig(mcpServers: Record<string, any>, source: AcpBackend): IMcpServer[] {
-    const servers: IMcpServer[] = [];
-    const now = Date.now();
-
-    for (const [name, config] of Object.entries(mcpServers)) {
-      try {
-        const transport = config.command
-          ? {
-              type: 'stdio' as const,
-              command: config.command,
-              args: config.args || [],
-              env: config.env || {},
-            }
-          : config.url?.includes('/sse')
-            ? {
-                type: 'sse' as const,
-                url: config.url,
-                headers: config.headers,
-              }
-            : {
-                type: 'http' as const,
-                url: config.url,
-                headers: config.headers,
-              };
-
-        servers.push({
-          id: `${source}_${name}_${now}`,
-          name: `${name} (${source})`,
-          description: config.description || `Imported from ${source}`,
-          enabled: true,
-          transport,
-          status: 'disconnected',
-          createdAt: now,
-          updatedAt: now,
-          originalJson: JSON.stringify({ mcpServers: { [name]: config } }, null, 2),
-        });
-      } catch (error) {
-        // Silently ignore parse errors
-      }
-    }
-
-    return servers;
   }
 }

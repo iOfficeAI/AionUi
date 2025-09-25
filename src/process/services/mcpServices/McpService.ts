@@ -36,7 +36,7 @@ export class McpService {
   }
 
   /**
-   * 从检测到的ACP agents中获取MCP配置
+   * 从检测到的ACP agents中获取MCP配置（并发版本）
    */
   async getAgentMcpConfigs(
     agents: Array<{
@@ -45,8 +45,12 @@ export class McpService {
       cliPath?: string;
     }>
   ): Promise<DetectedMcpServer[]> {
-    // 并发执行所有agent的MCP检测
+    const startTime = performance.now();
+
+    // 并发执行所有agent的MCP检测 - 这是关键优化！
     const promises = agents.map(async (agent) => {
+      const agentStartTime = performance.now();
+
       try {
         const agentInstance = this.getAgent(agent.backend);
         if (!agentInstance) {
@@ -54,20 +58,28 @@ export class McpService {
         }
 
         const servers = await agentInstance.detectMcpServers(agent.cliPath);
+        const elapsedMs = (performance.now() - agentStartTime).toFixed(2);
+
         if (servers.length > 0) {
           return {
             source: agent.backend,
             servers,
           };
+        } else {
         }
         return null;
       } catch (error) {
+        const elapsedMs = (performance.now() - agentStartTime).toFixed(2);
         return null;
       }
     });
 
     const results = await Promise.all(promises);
-    return results.filter((result): result is DetectedMcpServer => result !== null);
+    const filteredResults = results.filter((result): result is DetectedMcpServer => result !== null);
+
+    const totalElapsedMs = (performance.now() - startTime).toFixed(2);
+
+    return filteredResults;
   }
 
   /**
@@ -77,7 +89,7 @@ export class McpService {
     // 使用第一个可用的agent进行连接测试，因为测试逻辑在基类中是通用的
     const firstAgent = this.agents.values().next().value;
     if (firstAgent) {
-      return firstAgent.testMcpConnection(server);
+      return await firstAgent.testMcpConnection(server);
     }
     return { success: false, error: 'No agent available for connection testing' };
   }
@@ -130,6 +142,7 @@ export class McpService {
     const results = await Promise.all(promises);
 
     const allSuccess = results.every((r) => r.success);
+
     return { success: allSuccess, results };
   }
 

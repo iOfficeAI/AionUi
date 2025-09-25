@@ -43,7 +43,12 @@ const McpAgentStatusDisplay: React.FC<McpAgentStatusDisplayProps> = ({ serverNam
         agentInstallStatus[serverName]?.map((agent, index) => {
           const LogoComponent = getAgentLogo(agent);
           return LogoComponent ? (
-            <div key={agent} className='w-6 h-6 rounded-full bg-white border-2 border-white shadow-sm' style={{ zIndex: agentInstallStatus[serverName].length - index }} title={agent}>
+            <div
+              key={agent}
+              className='w-6 h-6 rounded-full bg-white border-2 border-white shadow-sm'
+              style={{ zIndex: agentInstallStatus[serverName].length - index }}
+              title={agent}
+            >
               <img src={LogoComponent} alt={agent} className='w-full h-full rounded-full w-[14px] h-[14px]' />
             </div>
           ) : (
