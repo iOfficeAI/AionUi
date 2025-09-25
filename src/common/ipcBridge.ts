@@ -8,8 +8,6 @@ import { bridge } from '@office-ai/platform';
 import type { OpenDialogOptions } from 'electron';
 import type { AcpBackend } from '../types/acpTypes';
 import type { IProvider, TChatConversation, TProviderWithModel, IMcpServer } from './storage';
-import type { VersionInfo, UpdatePackage, UpdateSession, DownloadProgress } from '../types/updateTypes';
-import type { ArchitectureType, PlatformType } from './update/updateConfig';
 // 发送消息
 const sendMessage = bridge.buildProvider<IBridgeResponse<{}>, ISendMessageParams>('chat.send.message');
 //接受消息
@@ -41,7 +39,7 @@ export const geminiConversation = {
 export const application = {
   restart: bridge.buildProvider<void, void>('restart-app'), // 重启应用
   openDevTools: bridge.buildProvider<void, void>('open-dev-tools'), // 打开开发者工具
-  systemInfo: bridge.buildProvider<{ cacheDir: string; workDir: string; platform: PlatformType; arch: ArchitectureType }, void>('system.info'), // 获取系统信息
+  systemInfo: bridge.buildProvider<{ cacheDir: string; workDir: string; platform: string; arch: string }, void>('system.info'), // 获取系统信息
   updateSystemInfo: bridge.buildProvider<IBridgeResponse, { cacheDir: string; workDir: string }>('system.update-info'), // 更新系统信息
 };
 
@@ -155,66 +153,3 @@ interface IBridgeResponse<D = {}> {
   data?: D;
   msg?: string;
 }
-
-// ===== Auto-Update Related Interfaces =====
-
-export const autoUpdate = {
-  // 手动更新检查
-  checkForUpdates: bridge.buildProvider<IBridgeResponse<IUpdateCheckResult>, { force?: boolean }>('update.checkForUpdates'),
-
-  // 获取当前版本信息
-  getVersionInfo: bridge.buildProvider<IBridgeResponse<IVersionInfoData>, void>('update.getVersionInfo'),
-
-  // 开始下载更新
-  downloadUpdate: bridge.buildProvider<IBridgeResponse<{ sessionId: string }>, IDownloadUpdateParams>('update.downloadUpdate'),
-
-  // 暂停下载
-  pauseDownload: bridge.buildProvider<IBridgeResponse<{}>, { sessionId: string }>('update.pauseDownload'),
-
-  // 恢复下载
-  resumeDownload: bridge.buildProvider<IBridgeResponse<{}>, { sessionId: string }>('update.resumeDownload'),
-
-  // 取消下载
-  cancelDownload: bridge.buildProvider<IBridgeResponse<{}>, { sessionId: string }>('update.cancelDownload'),
-
-  // 获取下载会话信息
-  getDownloadSession: bridge.buildProvider<IBridgeResponse<IUpdateSessionData>, { sessionId: string }>('update.getDownloadSession'),
-
-  // 安装更新并重启
-  installAndRestart: bridge.buildProvider<IBridgeResponse<{}>, { sessionId: string }>('update.installAndRestart'),
-};
-
-// 更新进度事件流
-export const updateProgressStream = bridge.buildEmitter<IUpdateProgressEvent>('update.progress');
-
-// ===== Auto-Update Interface Types =====
-
-// 更新检查结果（扩展内部UpdateCheckResult）
-export interface IUpdateCheckResult {
-  success: boolean;
-  isUpdateAvailable: boolean;
-  versionInfo?: VersionInfo;
-  availablePackages?: UpdatePackage[];
-  error?: string;
-  lastCheckTime: number;
-  cacheUsed: boolean;
-}
-
-// 版本信息数据（使用VersionInfo类型）
-export type IVersionInfoData = VersionInfo;
-
-// 更新包数据（使用UpdatePackage类型）
-export type IUpdatePackageData = UpdatePackage;
-
-// 下载更新参数
-export interface IDownloadUpdateParams {
-  packageInfo: IUpdatePackageData;
-  versionInfo: IVersionInfoData;
-  skipUserConfirmation?: boolean;
-}
-
-// 更新会话数据（使用UpdateSession类型）
-export type IUpdateSessionData = UpdateSession;
-
-// 更新进度事件（使用DownloadProgress类型）
-export type IUpdateProgressEvent = DownloadProgress;

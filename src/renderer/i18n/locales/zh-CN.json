@@ -153,42 +153,5 @@
     "sendbox": {
       "placeholder": "发送消息到 {{backend}}..."
     }
-  },
-  "update": {
-    "currentVersion": "当前版本",
-    "latestVersion": "最新版本",
-    "newVersion": "新版本",
-    "minimumVersion": "最低版本",
-    "checkForUpdates": "检查更新",
-    "upToDate": "已是最新版本",
-    "upToDateMessage": "您使用的是最新版本的AionUi",
-    "available": "发现{{type}}",
-    "availableMessage": "有新版本可用，建议更新以获得最佳体验",
-    "updateAvailable": "有可用更新",
-    "newVersionAvailable": "发现{{type}} v{{version}}",
-    "majorUpdate": "重大更新",
-    "minorUpdate": "常规更新",
-    "download": "下载更新",
-    "downloadRequired": "立即下载",
-    "downloadNow": "立即下载",
-    "downloading": "下载中...",
-    "downloadInProgress": "正在下载更新，请耐心等待",
-    "downloadProgress": "下载进度",
-    "downloadCompleted": "下载完成",
-    "downloadError": "下载失败",
-    "downloadInBackground": "后台下载",
-    "downloadSpeed": "下载速度",
-    "timeRemaining": "剩余时间",
-    "pause": "暂停",
-    "resume": "恢复",
-    "cancel": "取消",
-    "installAndRestart": "安装并重启",
-    "installLater": "稍后安装",
-    "readyToInstall": "准备安装",
-    "remindLater": "稍后提醒",
-    "releaseNotes": "更新说明",
-    "majorUpdateWarning": "这是一个重大版本更新，可能包含不兼容的更改",
-    "error": "更新出错",
-    "retry": "重试"
   }
 }

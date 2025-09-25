@@ -152,42 +152,5 @@
     "sendbox": {
       "placeholder": "{{backend}}にメッセージを送信..."
     }
-  },
-  "update": {
-    "currentVersion": "現在のバージョン",
-    "latestVersion": "最新バージョン",
-    "newVersion": "新しいバージョン",
-    "minimumVersion": "最小バージョン",
-    "checkForUpdates": "アップデートを確認",
-    "upToDate": "最新バージョン",
-    "upToDateMessage": "AionUiの最新バージョンをお使いです",
-    "available": "{{type}}があります",
-    "availableMessage": "新しいバージョンが利用可能です。最適な体験のためにアップデートをお勧めします",
-    "updateAvailable": "アップデート利用可能",
-    "newVersionAvailable": "{{type}} v{{version}}が利用可能",
-    "majorUpdate": "メジャーアップデート",
-    "minorUpdate": "マイナーアップデート",
-    "download": "アップデートをダウンロード",
-    "downloadRequired": "今すぐダウンロード",
-    "downloadNow": "今すぐダウンロード",
-    "downloading": "ダウンロード中...",
-    "downloadInProgress": "必須アップデートをダウンロード中です。お待ちください",
-    "downloadProgress": "ダウンロード進行状況",
-    "downloadCompleted": "ダウンロード完了",
-    "downloadError": "ダウンロード失敗",
-    "downloadInBackground": "バックグラウンドでダウンロード",
-    "downloadSpeed": "ダウンロード速度",
-    "timeRemaining": "残り時間",
-    "pause": "一時停止",
-    "resume": "再開",
-    "cancel": "キャンセル",
-    "installAndRestart": "インストールして再起動",
-    "installLater": "後でインストール",
-    "readyToInstall": "インストール準備完了",
-    "remindLater": "後で通知",
-    "releaseNotes": "リリースノート",
-    "majorUpdateWarning": "これは重大なバージョンアップデートで、互換性のない変更が含まれる可能性があります",
-    "error": "アップデートエラー",
-    "retry": "再試行"
   }
 }

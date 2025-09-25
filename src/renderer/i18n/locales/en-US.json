@@ -227,42 +227,5 @@
     "sendbox": {
       "placeholder": "Send message to {{backend}}..."
     }
-  },
-  "update": {
-    "currentVersion": "Current Version",
-    "latestVersion": "Latest Version",
-    "newVersion": "New Version",
-    "minimumVersion": "Minimum Version",
-    "checkForUpdates": "Check for Updates",
-    "upToDate": "Up to Date",
-    "upToDateMessage": "You are using the latest version of AionUi",
-    "available": "{{type}} Available",
-    "availableMessage": "A new version is available, update recommended for the best experience",
-    "updateAvailable": "Update Available",
-    "newVersionAvailable": "{{type}} v{{version}} Available",
-    "majorUpdate": "Major Update",
-    "minorUpdate": "Minor Update",
-    "download": "Download Update",
-    "downloadRequired": "Download Now",
-    "downloadNow": "Download Now",
-    "downloading": "Downloading...",
-    "downloadInProgress": "Downloading update, please wait",
-    "downloadProgress": "Download Progress",
-    "downloadCompleted": "Download Completed",
-    "downloadError": "Download Failed",
-    "downloadInBackground": "Download in Background",
-    "downloadSpeed": "Download Speed",
-    "timeRemaining": "Time Remaining",
-    "pause": "Pause",
-    "resume": "Resume",
-    "cancel": "Cancel",
-    "installAndRestart": "Install and Restart",
-    "installLater": "Install Later",
-    "readyToInstall": "Ready to Install",
-    "remindLater": "Remind Later",
-    "releaseNotes": "Release Notes",
-    "majorUpdateWarning": "This is a major version update that may contain breaking changes",
-    "error": "Update Error",
-    "retry": "Retry"
   }
 }
