@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-// Export all codex types for backward compatibility
+// Export all codex types from the modular structure
 export * from './eventTypes';
+export * from './eventData';
 export * from './permissionTypes';
