@@ -42,6 +42,42 @@
       "connecting": "Codex に接続中...",
       "error_connect": "Codex への接続に失敗しました：{{error}}",
       "session_active": "Codex とアクティブなセッションを作成しました"
+    },
+    "thinking": {
+      "processing": "🤔 Codex が思考中...",
+      "completed": "💭 思考過程完了",
+      "analyzing": "問題を分析し、解決策を策定しています...",
+      "composing": "回答内容を整理しています...",
+      "please_wait": "お待ちください…"
+    },
+    "error": {
+      "system_init_failed": "Codex システムの初期化に失敗しました",
+      "invalid_message_format": "メッセージフォーマットが無効です",
+      "invalid_input": "入力内容が無効です",
+      "session_timeout": "セッションがタイムアウトしました。再試行してください",
+      "permission_denied": "この操作はアクセス拒否されました",
+      "context_error": "{{context}}でエラーが発生しました。ページを更新するか再試行してください。",
+      "generic": "Codex コンポーネントで異常が発生しました。しばらくしてから再試行してください。",
+      "troubleshooting": "トラブルシューティング提案",
+      "suggestion_1": "ネットワーク接続が正常か確認",
+      "suggestion_2": "Codex サービスが実行されているか確認",
+      "suggestion_3": "アプリケーションの再起動を試す",
+      "suggestion_4": "ブラウザキャッシュとローカルストレージをクリア"
+    },
+    "performance": {
+      "virtualization_enabled": "パフォーマンス向上のため、リスト仮想化が有効になりました",
+      "virtualization_disabled": "リスト仮想化が無効になり、すべての項目を表示します",
+      "debounce_enabled": "入力デバウンスが有効です（{{delay}}ms 遅延）",
+      "debounce_disabled": "入力デバウンスが無効です"
+    },
+    "config": {
+      "loaded": "設定の読み込みが成功しました",
+      "updated": "設定の更新が成功しました",
+      "reset": "設定をデフォルト値にリセットしました",
+      "validation_failed": "設定の検証に失敗しました",
+      "import_success": "設定のインポートが成功しました",
+      "import_failed": "設定のインポートに失敗しました",
+      "export_success": "設定のエクスポートが成功しました"
     }
   },
   "common": {
@@ -54,14 +90,19 @@
     "contact": "お問い合わせ",
     "delete": "削除",
     "edit": "編集",
+    "error_details": "エラー詳細",
     "file": "ファイル",
     "folder": "フォルダ",
     "github": "Github",
     "loading": "お待ちください...",
+    "reload": "再読み込み",
+    "retry": "再試行",
     "save": "保存",
     "send": "送信",
     "settings": "設定",
     "system": "システム",
+    "technical_details": "技術詳細",
+    "troubleshooting": "トラブルシューティング",
     "upload": "アップロード",
     "version": "バージョン",
     "website": "公式サイト",
@@ -150,20 +191,5 @@
     "vertexApiKey": "Vertex AI API キー",
     "workDir": "作業ディレクトリ",
     "yoloMode": "自動許可"
-  },
-  "codex": {
-    "status": {
-      "connecting": "Codex に接続中...",
-      "connected": "Codex MCP サーバーに接続しました",
-      "session_active": "Codex でアクティブセッションを作成しました",
-      "error_connect": "Codex への接続に失敗しました: {{error}}"
-    },
-    "thinking": {
-      "processing": "🤔 Codex が思考中...",
-      "completed": "💭 思考過程完了",
-      "analyzing": "問題を分析し、解決策を策定しています...",
-      "composing": "回答内容を整理しています...",
-      "please_wait": "お待ちください…"
-    }
   }
 }

@@ -20,7 +20,12 @@
     "version": "版本号",
     "contact": "联系我们",
     "github": "Github",
-    "loading": "请稍候..."
+    "loading": "请稍候...",
+    "retry": "重试",
+    "reload": "重新加载",
+    "technical_details": "技术详情",
+    "error_details": "错误详情",
+    "troubleshooting": "故障排除"
   },
   "conversation": {
     "welcome": {
@@ -156,6 +161,35 @@
       "analyzing": "正在分析问题和制定解决方案...",
       "composing": "正在整理回复内容...",
       "please_wait": "请稍候…"
+    },
+    "error": {
+      "system_init_failed": "Codex 系统初始化失败",
+      "invalid_message_format": "消息格式无效",
+      "invalid_input": "输入内容无效",
+      "session_timeout": "会话已超时，请重试",
+      "permission_denied": "此操作被拒绝访问",
+      "context_error": "在{{context}}中发生错误，请刷新或重试。",
+      "generic": "Codex 组件出现异常，请稍后重试。",
+      "troubleshooting": "故障排除建议",
+      "suggestion_1": "检查网络连接是否正常",
+      "suggestion_2": "确认 Codex 服务正在运行",
+      "suggestion_3": "尝试重新启动应用程序",
+      "suggestion_4": "清除浏览器缓存和本地存储"
+    },
+    "performance": {
+      "virtualization_enabled": "列表虚拟化已启用以提高性能",
+      "virtualization_disabled": "列表虚拟化已禁用，显示所有项目",
+      "debounce_enabled": "输入防抖已启用（{{delay}}毫秒延迟）",
+      "debounce_disabled": "输入防抖已禁用"
+    },
+    "config": {
+      "loaded": "配置加载成功",
+      "updated": "配置更新成功",
+      "reset": "配置已重置为默认值",
+      "validation_failed": "配置验证失败",
+      "import_success": "配置导入成功",
+      "import_failed": "配置导入失败",
+      "export_success": "配置导出成功"
     }
   },
   "tools": {

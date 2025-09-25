@@ -166,7 +166,6 @@ export class CodexMessageTransformer {
           return undefined;
       }
     } catch (error) {
-
       // 返回安全的错误消息
       return {
         id: uuid(),

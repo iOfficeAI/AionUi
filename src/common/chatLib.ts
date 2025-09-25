@@ -224,120 +224,105 @@ export type TMessage = IMessageText | IMessageTips | IMessageToolCall | IMessage
 /**
  * @description 将后端返回的消息转换为前端消息
  * */
-export const transformMessage = (message: IResponseMessage): TMessage | undefined => {
-  try {
-    switch (message.type) {
-      case 'error': {
-        return {
-          id: uuid(),
-          type: 'tips',
-          msg_id: message.msg_id,
-          position: 'center',
-          conversation_id: message.conversation_id,
-          content: {
-            content: message.data,
-            type: 'error',
-          },
-        };
-      }
-      case 'content': {
-        return {
-          id: uuid(),
-          type: 'text',
-          msg_id: message.msg_id,
-          position: 'left',
-          conversation_id: message.conversation_id,
-          content: {
-            content: normalizeLLMText(message.data),
-          },
-        };
-      }
-      case 'user_content': {
-        return {
-          id: uuid(),
-          type: 'text',
-          msg_id: message.msg_id,
-          position: 'right',
-          conversation_id: message.conversation_id,
-          content: {
-            content: message.data,
-          },
-        };
-      }
-      case 'tool_call': {
-        return {
-          id: uuid(),
-          type: 'tool_call',
-          msg_id: message.msg_id,
-          conversation_id: message.conversation_id,
-          position: 'left',
+export const transformMessage = (message: IResponseMessage): TMessage => {
+  switch (message.type) {
+    case 'error': {
+      return {
+        id: uuid(),
+        type: 'tips',
+        msg_id: message.msg_id,
+        position: 'center',
+        conversation_id: message.conversation_id,
+        content: {
           content: message.data,
-        };
-      }
-      case 'tool_group': {
-        return {
-          type: 'tool_group',
-          id: uuid(),
-          msg_id: message.msg_id,
-          conversation_id: message.conversation_id,
-          content: message.data,
-        };
-      }
-      case 'acp_status': {
-        return {
-          id: uuid(),
-          type: 'acp_status',
-          msg_id: message.msg_id,
-          position: 'center',
-          conversation_id: message.conversation_id,
-          content: message.data,
-        };
-      }
-      case 'acp_permission': {
-        return {
-          id: uuid(),
-          type: 'acp_permission',
-          msg_id: message.msg_id,
-          position: 'left',
-          conversation_id: message.conversation_id,
-          content: message.data,
-        };
-      }
-      case 'acp_tool_call': {
-        return {
-          id: uuid(),
-          type: 'acp_tool_call',
-          msg_id: message.msg_id,
-          position: 'left',
-          conversation_id: message.conversation_id,
-          content: message.data,
-        };
-      }
-      case 'start':
-      case 'finish':
-      case 'thought':
-        return undefined;
-      default:
-        return {
-          type: message.type,
-          content: message.data,
-          position: 'left',
-          id: uuid(),
-        } as any;
+          type: 'error',
+        },
+      };
     }
-  } catch (error) {
-    // Return a safe error message instead of crashing
-    return {
-      id: uuid(),
-      type: 'tips',
-      msg_id: message.msg_id || uuid(),
-      position: 'center',
-      conversation_id: message.conversation_id || '',
-      content: {
-        content: `Message processing error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        type: 'error',
-      },
-    };
+    case 'content': {
+      return {
+        id: uuid(),
+        type: 'text',
+        msg_id: message.msg_id,
+        position: 'left',
+        conversation_id: message.conversation_id,
+        content: {
+          content: normalizeLLMText(message.data),
+        },
+      };
+    }
+    case 'user_content': {
+      return {
+        id: uuid(),
+        type: 'text',
+        msg_id: message.msg_id,
+        position: 'right',
+        conversation_id: message.conversation_id,
+        content: {
+          content: message.data,
+        },
+      };
+    }
+    case 'tool_call': {
+      return {
+        id: uuid(),
+        type: 'tool_call',
+        msg_id: message.msg_id,
+        conversation_id: message.conversation_id,
+        position: 'left',
+        content: message.data,
+      };
+    }
+    case 'tool_group': {
+      return {
+        type: 'tool_group',
+        id: uuid(),
+        msg_id: message.msg_id,
+        conversation_id: message.conversation_id,
+        content: message.data,
+      };
+    }
+    case 'acp_status': {
+      return {
+        id: uuid(),
+        type: 'acp_status',
+        msg_id: message.msg_id,
+        position: 'center',
+        conversation_id: message.conversation_id,
+        content: message.data,
+      };
+    }
+    case 'acp_permission': {
+      return {
+        id: uuid(),
+        type: 'acp_permission',
+        msg_id: message.msg_id,
+        position: 'left',
+        conversation_id: message.conversation_id,
+        content: message.data,
+      };
+    }
+    case 'acp_tool_call': {
+      return {
+        id: uuid(),
+        type: 'acp_tool_call',
+        msg_id: message.msg_id,
+        position: 'left',
+        conversation_id: message.conversation_id,
+        content: message.data,
+      };
+    }
+    case 'start':
+    case 'finish':
+    case 'thought':
+      return undefined;
+    default:
+      return {
+        type: message.type,
+        content: message.data,
+        position: 'left',
+        id: uuid(),
+      } as any;
   }
 };
 
@@ -372,26 +357,27 @@ export const composeMessage = (message: TMessage | undefined, list: TMessage[] |
 
   if (last.msg_id !== message.msg_id || last.type !== message.type) return list.concat(message);
   if (message.type === 'text' && last.type === 'text') {
-    // 对于Codex流式消息，直接替换内容而不是拼接
-    // 如果新消息内容包含旧消息内容，说明是累积更新，直接替换
-    const lastContent = String(last.content.content || '');
-    const newContent = String(message.content.content || '');
+    message.content.content = last.content.content + message.content.content;
+    // // 对于Codex流式消息，直接替换内容而不是拼接
+    // // 如果新消息内容包含旧消息内容，说明是累积更新，直接替换
+    // const lastContent = String(last.content.content || '');
+    // const newContent = String(message.content.content || '');
 
-    // 如果内容完全相同，跳过处理
-    if (lastContent === newContent) {
-      return list;
-    }
+    // // 如果内容完全相同，跳过处理
+    // if (lastContent === newContent) {
+    //   return list;
+    // }
 
-    if (newContent.includes(lastContent) || lastContent === 'loading...') {
-      // 新内容包含旧内容或旧内容是loading，直接替换
-      message.content.content = newContent;
-    } else if (lastContent.includes(newContent)) {
-      // New is a subset of last; keep last
-      message.content.content = lastContent;
-    } else {
-      // 否则进行拼接
-      message.content.content = lastContent + newContent;
-    }
+    // if (newContent.includes(lastContent) || lastContent === 'loading...') {
+    //   // 新内容包含旧内容或旧内容是loading，直接替换
+    //   message.content.content = newContent;
+    // } else if (lastContent.includes(newContent)) {
+    //   // New is a subset of last; keep last
+    //   message.content.content = lastContent;
+    // } else {
+    //   // 否则进行拼接
+    //   message.content.content = lastContent + newContent;
+    // }
   }
   Object.assign(last, message);
   return list;
