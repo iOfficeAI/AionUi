@@ -38,27 +38,37 @@ const McpManagement: React.FC = () => {
 
   // 保存 agentInstallStatus 到存储
   const saveAgentInstallStatus = (status: Record<string, string[]>) => {
-    ConfigStorage.set('mcp.agentInstallStatus', status);
+    void ConfigStorage.set('mcp.agentInstallStatus', status).catch(() => {
+      // Handle storage error silently
+    });
     setAgentInstallStatus(status);
   };
   const [message, messageContext] = Message.useMessage();
 
   useEffect(() => {
     // 加载 MCP 服务器配置
-    ConfigStorage.get('mcp.config').then((data) => {
-      if (data) {
-        setMcpServers(data);
-        // 初始加载后检查安装状态
-        debouncedCheckAgentInstallStatus(data);
-      }
-    });
+    void ConfigStorage.get('mcp.config')
+      .then((data) => {
+        if (data) {
+          setMcpServers(data);
+          // 初始加载后检查安装状态
+          debouncedCheckAgentInstallStatus(data);
+        }
+      })
+      .catch(() => {
+        // Handle loading error silently
+      });
 
     // 加载 agent 安装状态
-    ConfigStorage.get('mcp.agentInstallStatus').then((status) => {
-      if (status && typeof status === 'object') {
-        setAgentInstallStatus(status as Record<string, string[]>);
-      }
-    });
+    void ConfigStorage.get('mcp.agentInstallStatus')
+      .then((status) => {
+        if (status && typeof status === 'object') {
+          setAgentInstallStatus(status as Record<string, string[]>);
+        }
+      })
+      .catch(() => {
+        // Handle loading error silently
+      });
   }, []);
 
   // 检查每个MCP服务器在哪些agent中安装了
@@ -81,12 +91,16 @@ const McpManagement: React.FC = () => {
         return;
       }
 
-      const installStatus: Record<string, string[]> = {};
+      // 基于当前状态创建新状态，避免重置其他服务器的状态
+      const installStatus: Record<string, string[]> = { ...agentInstallStatus };
 
       // 只为启用的服务器初始化安装状态
       servers.forEach((server) => {
         if (server.enabled) {
           installStatus[server.name] = [];
+        } else {
+          // 如果服务器被禁用，从状态中移除
+          delete installStatus[server.name];
         }
       });
 
@@ -124,7 +138,9 @@ const McpManagement: React.FC = () => {
   };
 
   const saveMcpServers = (servers: IMcpServer[]) => {
-    ConfigStorage.set('mcp.config', servers);
+    void ConfigStorage.set('mcp.config', servers).catch(() => {
+      // Handle storage error silently
+    });
     setMcpServers(servers);
     // 保存后重新检查agent安装状态
     debouncedCheckAgentInstallStatus(servers);
@@ -279,11 +295,15 @@ const McpManagement: React.FC = () => {
       // 操作成功后刷新安装状态 - 使用当前最新的服务器状态
       setTimeout(() => {
         // 重新获取最新的服务器配置
-        ConfigStorage.get('mcp.config').then((latestServers) => {
-          if (latestServers) {
-            debouncedCheckAgentInstallStatus(latestServers);
-          }
-        });
+        void ConfigStorage.get('mcp.config')
+          .then((latestServers) => {
+            if (latestServers) {
+              debouncedCheckAgentInstallStatus(latestServers);
+            }
+          })
+          .catch(() => {
+            // Handle loading error silently
+          });
       }, 1000);
     } else {
       const failedKey = operation === 'sync' ? 'mcpSyncFailed' : 'mcpRemoveFailed';
@@ -378,7 +398,9 @@ const McpManagement: React.FC = () => {
     const updateServerStatus = (status: IMcpServer['status'], additionalData?: Partial<IMcpServer>) => {
       setMcpServers((currentServers) => {
         const updatedServers = currentServers.map((s) => (s.id === server.id ? { ...s, status, updatedAt: Date.now(), ...additionalData } : s));
-        ConfigStorage.set('mcp.config', updatedServers);
+        void ConfigStorage.set('mcp.config', updatedServers).catch(() => {
+          // Handle storage error silently
+        });
         return updatedServers;
       });
     };
