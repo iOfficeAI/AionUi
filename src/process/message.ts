@@ -33,7 +33,7 @@ const debounce = (fn: () => void) => {
       fn();
       clearTimeout(timer);
       timer = null;
-    }, 50); // 减少防抖延迟，从100ms减到50ms
+    }, 100);
   };
 };
 
@@ -79,15 +79,8 @@ const syncToLocalFile = () => {
 };
 const nextTickSyncToLocalFile = debounce(syncToLocalFile);
 
-export const addMessage = (conversation_id: string, message: TMessage | undefined, immediate = false) => {
-  if (!message) return; // Skip undefined messages
+export const addMessage = (conversation_id: string, message: TMessage) => {
   pushCacheMessage(conversation_id, message, 'add');
-  if (immediate) {
-    // 立即同步，不使用防抖
-    syncToLocalFile();
-  } else {
-    nextTickSyncToLocalFile();
-  }
 };
 
 export const updateMessage = (conversation_id: string, message: (message: TMessage[]) => TMessage[]) => {
@@ -96,15 +89,8 @@ export const updateMessage = (conversation_id: string, message: (message: TMessa
   nextTickSyncToLocalFile();
 };
 
-export const addOrUpdateMessage = (conversation_id: string, message: TMessage | undefined, immediate = false) => {
-  if (!message) return; // Skip undefined messages
+export const addOrUpdateMessage = (conversation_id: string, message: TMessage) => {
   pushCacheMessage(conversation_id, message, 'compose');
-  if (immediate) {
-    // 立即同步，不使用防抖
-    syncToLocalFile();
-  } else {
-    nextTickSyncToLocalFile();
-  }
 };
 
 export const nextTickToLocalFinish = (fn: () => void) => {
