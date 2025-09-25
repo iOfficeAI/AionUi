@@ -6,9 +6,6 @@
 
 import { exec } from 'child_process';
 import { promisify } from 'util';
-import { readFileSync, existsSync, writeFileSync } from 'fs';
-import { join } from 'path';
-import { homedir } from 'os';
 import type { McpOperationResult } from '../McpProtocol';
 import { AbstractMcpAgent } from '../McpProtocol';
 import type { IMcpServer } from '../../../../common/storage';
@@ -33,100 +30,79 @@ export class ClaudeMcpAgent extends AbstractMcpAgent {
    */
   async detectMcpServers(_cliPath?: string): Promise<IMcpServer[]> {
     try {
-      // 方法1: 尝试使用Claude Code CLI命令获取MCP配置
-      // 使用较短的超时时间，避免因MCP服务器健康检查而卡住
-      try {
-        const { stdout: result } = await execAsync('claude mcp list', { timeout: 5000 });
+      // 使用Claude Code CLI命令获取MCP配置
+      const { stdout: result } = await execAsync('claude mcp list', { timeout: this.timeout });
 
-        // 如果没有配置任何MCP服务器，返回空数组
-        if (result.includes('No MCP servers configured') || !result.trim()) {
-          return [];
-        }
+      // 如果没有配置任何MCP服务器，返回空数组
+      if (result.includes('No MCP servers configured') || !result.trim()) {
+        return [];
+      }
 
-        // 解析文本输出
-        const mcpServers: IMcpServer[] = [];
-        const lines = result.split('\n');
+      // 解析文本输出
+      const mcpServers: IMcpServer[] = [];
+      const lines = result.split('\n');
 
-        for (const line of lines) {
-          // 清除 ANSI 颜色代码
-          const cleanLine = line.replace(/\x1b\[[0-9;]*m/g, '').trim();
-          // 查找格式如: "12306-mcp: npx -y 12306-mcp - ✓ Connected"
-          // 更宽松的匹配模式
-          const match = cleanLine.match(/^([^:]+):\s+(.+?)\s*-\s*[✓✗]\s*(Connected|Disconnected)/);
-          if (match) {
-            const [, name, commandStr, status] = match;
-            const commandParts = commandStr.trim().split(/\s+/);
-            const command = commandParts[0];
-            const args = commandParts.slice(1);
+      for (const line of lines) {
+        // 清除 ANSI 颜色代码
+        const cleanLine = line.replace(/\x1b\[[0-9;]*m/g, '').trim();
+        // 查找格式如: "Bazi: npx bazi-mcp - ✓ Connected"
+        const match = cleanLine.match(/^([^:]+):\s+(.+?)\s*-\s*[✓✗]\s*(Connected|Disconnected)/);
+        if (match) {
+          const [, name, commandStr, status] = match;
+          const commandParts = commandStr.trim().split(/\s+/);
+          const command = commandParts[0];
+          const args = commandParts.slice(1);
 
-            mcpServers.push({
-              id: `claude_${name.trim()}`,
-              name: name.trim(),
-              transport: {
-                type: 'stdio',
-                command: command,
-                args: args,
-                env: {},
-              },
-              tools: [],
-              enabled: true,
-              status: status === 'Connected' ? 'connected' : 'disconnected',
-              createdAt: Date.now(),
-              updatedAt: Date.now(),
-              description: '',
-              originalJson: JSON.stringify(
-                {
-                  mcpServers: {
-                    [name.trim()]: {
-                      command: command,
-                      args: args,
-                      description: `Detected from Claude CLI`,
-                    },
+          // 构建transport对象
+          const transportObj = {
+            type: 'stdio' as const,
+            command: command,
+            args: args,
+            env: {},
+          };
+
+          // 尝试获取tools信息（仅对已连接的stdio服务器）
+          let tools: Array<{ name: string; description?: string }> = [];
+          if (status === 'Connected') {
+            try {
+              const testResult = await this.testStdioConnection(transportObj);
+              tools = testResult.tools || [];
+            } catch (error) {
+              console.warn(`Failed to get tools for ${name.trim()}:`, error);
+              // 如果获取tools失败，继续使用空数组
+            }
+          }
+
+          mcpServers.push({
+            id: `claude_${name.trim()}`,
+            name: name.trim(),
+            transport: transportObj,
+            tools: tools,
+            enabled: true,
+            status: status === 'Connected' ? 'connected' : 'disconnected',
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+            description: '',
+            originalJson: JSON.stringify(
+              {
+                mcpServers: {
+                  [name.trim()]: {
+                    command: command,
+                    args: args,
+                    description: `Detected from Claude CLI`,
                   },
                 },
-                null,
-                2
-              ),
-            });
-          }
-        }
-
-        if (mcpServers.length > 0) {
-          return mcpServers;
-        }
-      } catch (cliError) {
-        // 如果CLI命令超时或失败，记录详细错误信息
-        if (cliError instanceof Error) {
-          if (cliError.message.includes('timeout') || (cliError as any).code === 143) {
-            console.warn('Claude Code CLI command timed out (likely due to MCP server health check hanging)');
-          } else {
-            console.warn('Claude Code CLI not available or failed:', cliError.message);
-          }
-        } else {
-          console.warn('Claude Code CLI not available or failed:', cliError);
+              },
+              null,
+              2
+            ),
+          });
         }
       }
 
-      // 方法2: 回退到读取Claude Desktop配置文件
-      const home = homedir();
-      const configPaths = [
-        join(home, 'Library', 'Application Support', 'Claude', 'claude_desktop_config.json'), // macOS
-        join(home, 'AppData', 'Roaming', 'Claude', 'claude_desktop_config.json'), // Windows
-        join(home, '.config', 'claude', 'claude_desktop_config.json'), // Linux
-      ];
-
-      for (const configPath of configPaths) {
-        if (existsSync(configPath)) {
-          const configContent = readFileSync(configPath, 'utf-8');
-          const config = JSON.parse(configContent);
-
-          if (config.mcpServers) {
-            return this.parseMcpServersConfig(config.mcpServers, 'claude');
-          }
-        }
-      }
+      return mcpServers;
     } catch (error) {
-      console.warn('Failed to get Claude MCP config:', error);
+      console.warn('Failed to get Claude Code MCP config:', error);
     }
 
     return [];
@@ -183,37 +159,25 @@ export class ClaudeMcpAgent extends AbstractMcpAgent {
    */
   async removeMcpServer(mcpServerName: string): Promise<McpOperationResult> {
     try {
-      // 使用Claude CLI命令删除MCP服务器
-      const removeCommand = `claude mcp remove -s user "${mcpServerName}"`;
-
+      // 使用Claude CLI命令删除MCP服务器（尝试不同作用域）
+      // 首先尝试user作用域（与安装时保持一致），然后尝试project作用域
       try {
+        const removeCommand = `claude mcp remove -s user "${mcpServerName}"`;
         await execAsync(removeCommand, { timeout: 5000 });
         return { success: true };
-      } catch (cliError) {
-        // CLI命令失败，尝试直接操作配置文件作为后备方案
-        const home = homedir();
-        const configPaths = [
-          join(home, 'Library', 'Application Support', 'Claude', 'claude_desktop_config.json'), // macOS
-          join(home, 'AppData', 'Roaming', 'Claude', 'claude_desktop_config.json'), // Windows
-          join(home, '.config', 'claude', 'claude_desktop_config.json'), // Linux
-        ];
-
-        for (const configPath of configPaths) {
-          if (existsSync(configPath)) {
-            try {
-              const config = JSON.parse(readFileSync(configPath, 'utf-8'));
-              if (config.mcpServers && config.mcpServers[mcpServerName]) {
-                delete config.mcpServers[mcpServerName];
-                writeFileSync(configPath, JSON.stringify(config, null, 2));
-              }
-              return { success: true };
-            } catch (fileError) {
-              console.warn(`Failed to update config file ${configPath}:`, fileError);
-            }
+      } catch (userError) {
+        // user作用域失败，尝试project作用域
+        try {
+          const removeCommand = `claude mcp remove -s project "${mcpServerName}"`;
+          await execAsync(removeCommand, { timeout: 5000 });
+          return { success: true };
+        } catch (projectError) {
+          // 如果服务器不存在，也认为是成功的
+          if (userError instanceof Error && (userError.message.includes('not found') || userError.message.includes('does not exist'))) {
+            return { success: true };
           }
+          return { success: false, error: userError instanceof Error ? userError.message : String(userError) };
         }
-
-        return { success: true }; // 如果配置文件都不存在，认为已经删除
       }
     } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : String(error) };

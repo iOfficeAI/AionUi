@@ -48,39 +48,58 @@ export class QwenMcpAgent extends AbstractMcpAgent {
       for (const line of lines) {
         // 清除 ANSI 颜色代码
         const cleanLine = line.replace(/\u001b\[[0-?]*[ -/]*[@-~]/g, '').trim();
-        // 查找格式如: "✓ server-name: npx -y 12306-mcp (stdio) - Connected"
-        const match = cleanLine.match(/✓\s+([^:]+):\s+([^(]+)\s+\(([^)]+)\)/);
+        // 查找格式如: "✓ filesystem: npx @modelcontextprotocol/server-filesystem /path (stdio) - Connected"
+        const match = cleanLine.match(/[✓✗]\s+([^:]+):\s+(.+?)\s+\(([^)]+)\)\s*-\s*(Connected|Disconnected)/);
         if (match) {
-          const [, name, commandStr, transport] = match;
+          const [, name, commandStr, transport, status] = match;
           const commandParts = commandStr.trim().split(/\s+/);
           const command = commandParts[0];
           const args = commandParts.slice(1);
 
           const transportType = transport as 'stdio' | 'sse' | 'http';
 
+          // 构建transport对象
+          const transportObj: any =
+            transportType === 'stdio'
+              ? {
+                  type: 'stdio',
+                  command: command,
+                  args: args,
+                  env: {},
+                }
+              : transportType === 'sse'
+                ? {
+                    type: 'sse',
+                    url: commandStr.trim(),
+                  }
+                : {
+                    type: 'http',
+                    url: commandStr.trim(),
+                  };
+
+          // 尝试获取tools信息（仅对已连接的stdio服务器）
+          let tools: Array<{ name: string; description?: string }> = [];
+          if (status === 'Connected' && transportType === 'stdio') {
+            try {
+              const testResult = await this.testStdioConnection({
+                command: command,
+                args: args,
+                env: {},
+              });
+              tools = testResult.tools || [];
+            } catch (error) {
+              console.warn(`Failed to get tools for ${name.trim()}:`, error);
+              // 如果获取tools失败，继续使用空数组
+            }
+          }
+
           mcpServers.push({
             id: `qwen_${name.trim()}`,
             name: name.trim(),
-            transport:
-              transportType === 'stdio'
-                ? {
-                    type: 'stdio',
-                    command: command,
-                    args: args,
-                    env: {},
-                  }
-                : transportType === 'sse'
-                  ? {
-                      type: 'sse',
-                      url: commandStr.trim(),
-                    }
-                  : {
-                      type: 'http',
-                      url: commandStr.trim(),
-                    },
-            tools: [],
+            transport: transportObj,
+            tools: tools,
             enabled: true,
-            status: 'connected' as const,
+            status: status === 'Connected' ? 'connected' : 'disconnected',
             createdAt: Date.now(),
             updatedAt: Date.now(),
             description: '',
@@ -162,38 +181,38 @@ export class QwenMcpAgent extends AbstractMcpAgent {
   async removeMcpServer(mcpServerName: string): Promise<McpOperationResult> {
     try {
       // 使用Qwen CLI命令删除MCP服务器（尝试不同作用域）
-      // 首先尝试project作用域，然后尝试user作用域
+      // 首先尝试user作用域（与安装时保持一致），然后尝试project作用域
       try {
-        const removeCommand = `qwen mcp remove "${mcpServerName}" -s project`;
+        const removeCommand = `qwen mcp remove "${mcpServerName}" -s user`;
         const result = await execAsync(removeCommand, { timeout: 5000 });
 
         // 检查输出是否表示真正的成功删除
-        if (result.stdout && result.stdout.includes('removed from project settings')) {
+        if (result.stdout && result.stdout.includes('removed from user settings')) {
           return { success: true };
-        } else if (result.stdout && result.stdout.includes('not found in project')) {
-          // 服务器不在project作用域中，尝试user作用域
-          throw new Error('Server not found in project settings');
+        } else if (result.stdout && result.stdout.includes('not found in user')) {
+          // 服务器不在user作用域中，尝试project作用域
+          throw new Error('Server not found in user settings');
         } else {
           // 其他情况认为成功（向后兼容）
           return { success: true };
         }
-      } catch (projectError) {
-        // project作用域失败，尝试user作用域
+      } catch (userError) {
+        // user作用域失败，尝试project作用域
         try {
-          const removeCommand = `qwen mcp remove "${mcpServerName}" -s user`;
+          const removeCommand = `qwen mcp remove "${mcpServerName}" -s project`;
           const result = await execAsync(removeCommand, { timeout: 5000 });
 
           // 检查输出是否表示真正的成功删除
-          if (result.stdout && result.stdout.includes('removed from user settings')) {
+          if (result.stdout && result.stdout.includes('removed from project settings')) {
             return { success: true };
-          } else if (result.stdout && result.stdout.includes('not found in user')) {
-            // 服务器不在user作用域中，尝试配置文件
-            throw new Error('Server not found in user settings');
+          } else if (result.stdout && result.stdout.includes('not found in project')) {
+            // 服务器不在project作用域中，尝试配置文件
+            throw new Error('Server not found in project settings');
           } else {
             // 其他情况认为成功（向后兼容）
             return { success: true };
           }
-        } catch (userError) {
+        } catch (projectError) {
           // CLI命令都失败，尝试直接操作配置文件作为后备
           const configPath = join(homedir(), '.qwen', 'client_config.json');
 
