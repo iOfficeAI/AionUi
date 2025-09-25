@@ -45,9 +45,13 @@ const SendBox: React.FC<{
   const { compositionHandlers, createKeyDownHandler } = useCompositionInput();
 
   // 使用共享的PasteService集成
-  const { onPaste } = usePasteService({
+  const { onPaste, onFocus } = usePasteService({
     supportedExts,
     onFilesAdded,
+    onTextPaste: (text: string) => {
+      // 处理清理后的文本粘贴，替换整个输入内容
+      setInput(text);
+    },
   });
 
   const sendMessageHandler = () => {
@@ -90,6 +94,7 @@ const SendBox: React.FC<{
             setInput(v);
           }}
           onPaste={onPaste}
+          onFocus={onFocus}
           {...compositionHandlers}
           autoSize={{ minRows: 1, maxRows: 10 }}
           onKeyDown={createKeyDownHandler(sendMessageHandler)}

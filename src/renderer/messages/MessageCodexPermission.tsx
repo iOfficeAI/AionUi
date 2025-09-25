@@ -8,7 +8,7 @@ import type { IMessageCodexPermission } from '@/common/chatLib';
 import { Button, Card, Radio, Typography } from '@arco-design/web-react';
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useConfirmationHandler, usePermissionIdGenerator, useToolIcon, usePermissionStorageKeys, usePermissionState, usePermissionStorageCleanup } from './hooks';
+import { useConfirmationHandler, usePermissionIdGenerator, useToolIcon, usePermissionState, usePermissionStorageCleanup } from './hooks';
 
 const { Text } = Typography;
 
@@ -45,20 +45,64 @@ const MessageCodexPermission: React.FC<MessageCodexPermissionProps> = React.memo
   const { title, icon } = getToolInfo();
 
   const permissionId = generateGlobalPermissionId(toolCall);
-  // 使用全局key，不区分conversation，让相同权限请求在所有会话中共享状态
-  const { storageKey, responseKey } = usePermissionStorageKeys(permissionId);
 
-  // Debug: log permission ID generation
-  console.log('🔑 Permission ID generated:', {
-    permissionId,
-    toolCall,
-    storageKey,
-    existingChoice: localStorage.getItem(storageKey),
-  });
+  // 全局权限选择key（基于权限类型）
+  const globalPermissionKey = `codex_global_permission_choice_${permissionId}`;
 
-  const { selected, setSelected, hasResponded, setHasResponded } = usePermissionState(storageKey, responseKey);
+  // 具体权限请求响应key（基于具体的callId）
+  const specificResponseKey = `codex_permission_responded_${toolCall?.toolCallId || message.id}`;
+
+  // 使用正确的keys：全局权限选择 + 具体请求响应
+  const { selected, setSelected, hasResponded, setHasResponded } = usePermissionState(globalPermissionKey, specificResponseKey);
 
   const [isResponding, setIsResponding] = useState(false);
+
+  // Check if we have an "always" permission stored and should auto-handle
+  const [shouldAutoHandle, setShouldAutoHandle] = useState<string | null>(() => {
+    try {
+      const storedChoice = localStorage.getItem(globalPermissionKey);
+      if (storedChoice === 'allow_always' || storedChoice === 'reject_always') {
+        const alreadyResponded = localStorage.getItem(specificResponseKey) === 'true';
+        if (!alreadyResponded) {
+          return storedChoice;
+        }
+      }
+    } catch (error) {
+      // localStorage error
+    }
+    return null;
+  });
+
+  // 立即自动处理"always"权限（在渲染之前）
+  useEffect(() => {
+    if (shouldAutoHandle && !hasResponded) {
+      setSelected(shouldAutoHandle);
+      setHasResponded(true);
+      setIsResponding(true);
+
+      // 立即更新响应状态到 localStorage
+      localStorage.setItem(specificResponseKey, 'true');
+      localStorage.setItem(`${specificResponseKey}_timestamp`, Date.now().toString());
+
+      const confirmationData = {
+        confirmKey: shouldAutoHandle,
+        msg_id: message.id,
+        conversation_id: message.conversation_id,
+        callId: toolCall?.toolCallId || message.id,
+      };
+
+      handleConfirmation(confirmationData)
+        .then(() => {
+          setShouldAutoHandle(null); // Clear the auto-handle flag
+        })
+        .catch((error) => {
+          // Handle error silently
+        })
+        .finally(() => {
+          setIsResponding(false);
+        });
+    }
+  }, []); // Run only once on mount
 
   // 组件挂载时清理旧存储
   useEffect(() => {
@@ -66,17 +110,80 @@ const MessageCodexPermission: React.FC<MessageCodexPermissionProps> = React.memo
     cleanupOldPermissionStorage();
   }, [permissionId]); // 只在permissionId变化时执行
 
+  // 备用检查：组件挂载时检查是否有 always 权限（如果第一个没有捕获）
+  useEffect(() => {
+    const checkAndAutoHandle = async () => {
+      if (hasResponded) return;
+
+      try {
+        const storedChoice = localStorage.getItem(globalPermissionKey);
+
+        if (storedChoice === 'allow_always') {
+          setSelected('allow_always');
+          setHasResponded(true); // 立即标记为已响应，避免显示UI
+          setIsResponding(true);
+
+          // 立即更新响应状态到 localStorage
+          localStorage.setItem(specificResponseKey, 'true');
+          localStorage.setItem(`${specificResponseKey}_timestamp`, Date.now().toString());
+
+          const confirmationData = {
+            confirmKey: 'allow_always',
+            msg_id: message.id,
+            conversation_id: message.conversation_id,
+            callId: toolCall?.toolCallId || message.id,
+          };
+
+          try {
+            const result = await handleConfirmation(confirmationData);
+          } catch (confirmError) {
+            // 即使确认失败，也保持已响应状态，避免重复显示UI
+          }
+          setIsResponding(false);
+        } else if (storedChoice === 'reject_always') {
+          setSelected('reject_always');
+          setHasResponded(true); // 立即标记为已响应
+          setIsResponding(true);
+
+          // 立即更新响应状态到 localStorage
+          localStorage.setItem(specificResponseKey, 'true');
+          localStorage.setItem(`${specificResponseKey}_timestamp`, Date.now().toString());
+
+          const confirmationData = {
+            confirmKey: 'reject_always',
+            msg_id: message.id,
+            conversation_id: message.conversation_id,
+            callId: toolCall?.toolCallId || message.id,
+          };
+
+          try {
+            const result = await handleConfirmation(confirmationData);
+          } catch (confirmError) {
+            // Handle error silently
+          }
+          setIsResponding(false);
+        }
+      } catch (error) {
+        setIsResponding(false);
+      }
+    };
+
+    // 使用 setTimeout 确保在组件完全渲染后执行
+    const timer = setTimeout(checkAndAutoHandle, 10);
+    return () => clearTimeout(timer);
+  }, [permissionId, hasResponded, globalPermissionKey, specificResponseKey, message.id, message.conversation_id, toolCall?.toolCallId, handleConfirmation]);
+
   // 保存选择状态到 localStorage
   const handleSelectionChange = (value: string) => {
     setSelected(value);
     try {
-      localStorage.setItem(storageKey, value);
-      localStorage.setItem(`${storageKey}_timestamp`, Date.now().toString());
+      localStorage.setItem(globalPermissionKey, value);
+      localStorage.setItem(`${globalPermissionKey}_timestamp`, Date.now().toString());
 
-      // 立即验证保存结果
-      const _verifyValue = localStorage.getItem(storageKey);
-    } catch {
-      // Error saving to localStorage
+      // Verify save was successful
+      const savedValue = localStorage.getItem(globalPermissionKey);
+    } catch (error) {
+      // Handle error silently
     }
   };
 
@@ -98,11 +205,11 @@ const MessageCodexPermission: React.FC<MessageCodexPermissionProps> = React.memo
       if (result.success) {
         setHasResponded(true);
         try {
-          localStorage.setItem(responseKey, 'true');
-          localStorage.setItem(`${responseKey}_timestamp`, Date.now().toString());
+          localStorage.setItem(specificResponseKey, 'true');
+          localStorage.setItem(`${specificResponseKey}_timestamp`, Date.now().toString());
 
-          // 立即验证保存结果
-          const _verifyResponse = localStorage.getItem(responseKey);
+          // Verify save was successful
+          localStorage.getItem(specificResponseKey);
         } catch {
           // Error saving response to localStorage
         }
@@ -118,6 +225,36 @@ const MessageCodexPermission: React.FC<MessageCodexPermissionProps> = React.memo
 
   if (!toolCall) {
     return null;
+  }
+
+  // Don't render UI if already responded or if auto-handling
+  const shouldShowAutoHandling = shouldAutoHandle && !hasResponded;
+  const shouldShowFullUI = !hasResponded && !shouldAutoHandle;
+
+  if (shouldShowAutoHandling) {
+    return (
+      <Card className='mb-4' bordered={false} style={{ background: '#f0f8ff' }}>
+        <div className='space-y-4 p-2'>
+          <div className='flex items-center space-x-2'>
+            <span className='text-2xl'>⚡</span>
+            <Text className='block text-sm text-gray-600'>{t('messages.auto_handling_permission', { defaultValue: 'Auto-handling permission based on previous "Always" choice...' })}</Text>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
+  if (!shouldShowFullUI) {
+    return (
+      <Card className='mb-4' bordered={false} style={{ background: '#f0fff0' }}>
+        <div className='space-y-4 p-2'>
+          <div className='flex items-center space-x-2'>
+            <span className='text-2xl'>✅</span>
+            <Text className='block text-sm text-green-700'>{t('messages.permission_already_handled', { defaultValue: 'Permission already handled' })}</Text>
+          </div>
+        </div>
+      </Card>
+    );
   }
 
   return (
