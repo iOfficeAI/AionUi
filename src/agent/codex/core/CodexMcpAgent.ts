@@ -327,7 +327,6 @@ export class CodexMcpAgent {
       childProcess: false,
       pendingRequests: 0,
       elicitationCount: 0,
-      sessionApprovalsCount: 0,
       isPaused: false,
       retryCount: 0,
       hasNetworkError: false,

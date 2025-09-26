@@ -50,9 +50,6 @@ export class CodexMcpConnection {
   private nextId = 0;
   private pending = new Map<JsonRpcId, PendingReq>();
   private elicitationMap = new Map<string, JsonRpcId>(); // codex_call_id -> request id
-  private sessionApprovals = new Map<string, 'approved_for_session'>(); // Track session approvals for auto-response by permission type
-  private callIdToPermissionType = new Map<string, string>(); // Map callId to permission type for session storage
-  private autoApprovedCallIds = new Set<string>(); // Track callIds that were auto-approved to filter out their tool execution events
 
   // Callbacks
   public onEvent: (evt: CodexEventEnvelope) => void = () => {};
@@ -202,11 +199,8 @@ export class CodexMcpConnection {
       if (p.timeout) clearTimeout(p.timeout);
       this.pending.delete(id);
     }
-    // Clear pending elicitations and session approvals
+    // Clear pending elicitations
     this.elicitationMap.clear();
-    this.sessionApprovals.clear();
-    this.callIdToPermissionType.clear();
-    this.autoApprovedCallIds.clear();
   }
 
   async request<T = unknown>(method: string, params?: unknown, timeoutMs = 200000): Promise<T> {
@@ -329,26 +323,8 @@ export class CodexMcpConnection {
             if (codexCallId) {
               const callIdStr = String(codexCallId);
 
-              // Generate permission type key based on message type
-              const permissionTypeKey = this.getPermissionTypeKey(msgType);
-
-              // Check if we have a session approval for this type of request
-              const hasSessionApproval = this.sessionApprovals.has(permissionTypeKey);
-
-              if (hasSessionApproval) {
-                // Auto-respond immediately with approved_for_session
-                const result = { decision: 'approved_for_session' };
-                const response: JsonRpcResponse = { jsonrpc: JSONRPC_VERSION, id: reqId, result };
-                const line = JSON.stringify(response) + '\n';
-                this.child?.stdin?.write(line);
-
-                // Don't pause or send to UI for session-approved requests
-                return; // Skip forwarding this event to UI
-              } else {
-                this.elicitationMap.set(callIdStr, reqId);
-                this.callIdToPermissionType.set(callIdStr, permissionTypeKey);
-                this.isPaused = true;
-              }
+              this.elicitationMap.set(callIdStr, reqId);
+              this.isPaused = true;
             } else {
               this.isPaused = true;
             }
@@ -363,53 +339,10 @@ export class CodexMcpConnection {
         if (codexCallId) {
           const callIdStr = String(codexCallId);
 
-          // Generate permission type key for elicitation
-          const permissionTypeKey = this.getPermissionTypeKey('elicitation');
-
-          // Check if we have a session approval for this elicitation type
-          const hasSessionApproval = this.sessionApprovals.has(permissionTypeKey);
-
-          if (hasSessionApproval) {
-            // Auto-respond immediately with approved_for_session
-            const result = { decision: 'approved_for_session' };
-            const response: JsonRpcResponse = { jsonrpc: JSONRPC_VERSION, id: reqId, result };
-            const line = JSON.stringify(response) + '\n';
-            this.child?.stdin?.write(line);
-
-            // Track this callId as auto-approved to filter out subsequent tool execution events
-            this.autoApprovedCallIds.add(callIdStr);
-
-            // Don't pause or send to UI for session-approved requests
-            return; // Skip forwarding this event to UI
-          } else {
-            this.elicitationMap.set(callIdStr, reqId);
-            this.callIdToPermissionType.set(callIdStr, permissionTypeKey);
-            this.isPaused = true;
-          }
+          this.elicitationMap.set(callIdStr, reqId);
+          this.isPaused = true;
         } else {
           this.isPaused = true;
-        }
-      }
-
-      // Check if this is a tool execution event for an auto-approved request
-      if (env.method === 'codex/event' && typeof env.params === 'object' && env.params !== null && 'msg' in (env.params as CodexEventParams)) {
-        const msgType = (env.params as CodexEventParams).msg?.type;
-        const callId = (env.params as CodexEventParams).msg?.call_id || (env.params as CodexEventParams).call_id;
-
-        // Filter out tool execution events for auto-approved requests
-        if (callId && this.autoApprovedCallIds.has(String(callId))) {
-          const toolExecutionTypes = ['exec_command_begin', 'exec_command_output_delta', 'exec_command_end', 'patch_apply_begin', 'patch_apply_end', 'mcp_tool_call_begin', 'mcp_tool_call_end', 'web_search_begin', 'web_search_end'];
-
-          if (toolExecutionTypes.includes(msgType)) {
-            // Clean up autoApprovedCallIds for completion events to prevent memory leaks
-            const completionTypes = ['exec_command_end', 'patch_apply_end', 'mcp_tool_call_end', 'web_search_end'];
-            if (completionTypes.includes(msgType)) {
-              this.autoApprovedCallIds.delete(String(callId));
-            }
-
-            // Skip forwarding tool execution events for auto-approved requests
-            return;
-          }
         }
       }
 
@@ -475,20 +408,8 @@ export class CodexMcpConnection {
 
     this.child?.stdin?.write(line);
 
-    // For 'approved_for_session', store in sessionApprovals for auto-response
-    if (decision === 'approved_for_session') {
-      const permissionType = this.callIdToPermissionType.get(normalized);
-      if (permissionType) {
-        this.sessionApprovals.set(permissionType, 'approved_for_session');
-      } else {
-        // Fallback: store with callId if permission type not found
-        this.sessionApprovals.set(normalized, 'approved_for_session');
-      }
-    }
-
-    // Always clean up elicitationMap and callIdToPermissionType after responding
+    // Clean up elicitationMap after responding
     this.elicitationMap.delete(normalized);
-    this.callIdToPermissionType.delete(normalized);
   }
 
   private resumeRequests(): void {
@@ -629,7 +550,6 @@ export class CodexMcpConnection {
     childProcess: boolean;
     pendingRequests: number;
     elicitationCount: number;
-    sessionApprovalsCount: number;
     isPaused: boolean;
     retryCount: number;
     hasNetworkError: boolean;
@@ -639,7 +559,6 @@ export class CodexMcpConnection {
       childProcess: !!this.child,
       pendingRequests: this.pending.size,
       elicitationCount: this.elicitationMap.size,
-      sessionApprovalsCount: this.sessionApprovals.size,
       isPaused: this.isPaused,
       retryCount: this.retryCount,
       hasNetworkError: this.isNetworkError,
@@ -721,26 +640,6 @@ export class CodexMcpConnection {
 
     // Clear state
     this.elicitationMap.clear();
-    this.sessionApprovals.clear();
-    this.callIdToPermissionType.clear();
-    this.autoApprovedCallIds.clear();
     this.child = null;
-  }
-
-  /**
-   * Generate a permission type key based on message type for session approval matching
-   */
-  private getPermissionTypeKey(msgType: string): string {
-    // Map message types to consistent permission type keys
-    switch (msgType) {
-      case 'exec_approval_request':
-        return 'permission_execute';
-      case 'apply_patch_approval_request':
-        return 'permission_edit';
-      case 'elicitation':
-        return 'permission_general';
-      default:
-        return `permission_${msgType}`;
-    }
   }
 }
