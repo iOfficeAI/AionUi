@@ -223,7 +223,7 @@ export class CodexEventHandler {
         agentType: 'codex',
         sessionId: '',
         options: options,
-        requestId: unifiedRequestId,
+        requestId: callId,
         toolCall: {
           title: 'Execute Command',
           toolCallId: callId, // Use actual call_id instead of unifiedRequestId
@@ -266,7 +266,7 @@ export class CodexEventHandler {
         agentType: 'codex',
         sessionId: '',
         options: options,
-        requestId: unifiedRequestId,
+        requestId: callId,
         toolCall: {
           title: 'Write File',
           toolCallId: callId, // Use actual call_id instead of unifiedRequestId
@@ -302,7 +302,7 @@ export class CodexEventHandler {
           agentType: 'codex',
           sessionId: '',
           options: options,
-          requestId: unifiedRequestId,
+          requestId: callId,
           toolCall: {
             title: 'Execute Command',
             toolCallId: callId, // Use actual call_id instead of unifiedRequestId
@@ -333,7 +333,7 @@ export class CodexEventHandler {
           agentType: 'codex',
           sessionId: '',
           options: options,
-          requestId: unifiedRequestId,
+          requestId: callId,
           toolCall: {
             title: 'Write File',
             toolCallId: callId, // Use actual call_id instead of unifiedRequestId
@@ -362,7 +362,7 @@ export class CodexEventHandler {
           agentType: 'codex',
           sessionId: '',
           options: options,
-          requestId: unifiedRequestId,
+          requestId: callId,
           toolCall: {
             title: 'Read File',
             toolCallId: callId, // Use actual call_id instead of unifiedRequestId
