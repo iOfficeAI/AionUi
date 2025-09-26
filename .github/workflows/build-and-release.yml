@@ -211,7 +211,7 @@ jobs:
       run: |
         VERSION=$(node -p "require('./package.json').version")
         BRANCH_NAME="${{ github.ref_name }}"
-        
+
         # 根据分支添加标识
         if [[ "$BRANCH_NAME" == "dev" ]]; then
           TAG_NAME="v$VERSION-test"
@@ -220,36 +220,34 @@ jobs:
           TAG_NAME="v$VERSION"
           echo "🚀 Production release: $TAG_NAME"
         fi
-        
+
         echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
-        
+
         # 检查远程tag是否已存在
         if git ls-remote --tags origin | grep -q "refs/tags/$TAG_NAME$"; then
           echo "⚠️ Tag $TAG_NAME already exists, auto-incrementing version..."
-          
+
           # 解析版本号（假设格式为 v1.2.3）
           if [[ $VERSION =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
             MAJOR=${BASH_REMATCH[1]}
             MINOR=${BASH_REMATCH[2]}
             PATCH=${BASH_REMATCH[3]}
-            
-            # 递增patch版本
+
+            # 递增patch版本并添加commit ID
             NEW_PATCH=$((PATCH + 1))
             NEW_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}"
-            
-            # 获取commit ID用于预发布标识
             COMMIT_SHORT=$(git rev-parse --short HEAD)
-            TAG_NAME="v${NEW_VERSION}-dev-${COMMIT_SHORT}"
-            
-            echo "🚀 Auto-incremented to development version: $TAG_NAME"
-            echo "📝 This represents development work towards v${NEW_VERSION}"
+
+            TAG_NAME="v${NEW_VERSION}-${COMMIT_SHORT}"
+            echo "🚀 Auto-incremented with commit ID: $TAG_NAME"
+            echo "📝 This represents work towards v${NEW_VERSION}"
           else
-            # 兜底方案：如果版本号格式不匹配，使用原来的逻辑
+            # 兜底方案：如果版本号格式不匹配，使用commit ID
             COMMIT_SHORT=$(git rev-parse --short HEAD)
-            TAG_NAME="${TAG_NAME}-${COMMIT_SHORT}"
+            TAG_NAME="v${VERSION}-${COMMIT_SHORT}"
             echo "⚠️ Fallback: creating tag with commit ID: $TAG_NAME"
           fi
-          
+
           # 更新输出变量
           echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
         fi
