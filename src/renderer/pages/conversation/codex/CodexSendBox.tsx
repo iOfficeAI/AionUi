@@ -65,6 +65,8 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
   const [waitingForSession, setWaitingForSession] = useState(false);
   const [isThinking, setIsThinking] = useState(false);
   const [codexStatus, setCodexStatus] = useState<string | null>(null);
+  const [thought, setThought] = useState<{ subject: string; description: string } | null>(null);
+  const thoughtRef = useRef<{ accumulatedDescription: string }>({ accumulatedDescription: '' });
 
   // 用于跟踪已处理的全局状态消息，避免重复
   const processedGlobalMessages = useRef(new Set<string>());
@@ -111,23 +113,44 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
         setIsThinking(false);
       }
 
-      // 处理思考状态
-      if (message.type === 'agent_reasoning') {
+      // 处理思考状态和内容，实现流式累积效果
+      if (message.type === 'agent_reasoning' || message.type === 'agent_reasoning_delta') {
         setIsThinking(true);
-      }
-      if (message.type === 'agent_reasoning_raw_content') {
+        // 更新思考内容，累积显示
+        const deltaContent = (message.data as any)?.delta || (message.data as any)?.text || message.data || '';
+        if (deltaContent) {
+          thoughtRef.current.accumulatedDescription += deltaContent;
+          setThought({
+            subject: 'Thinking',
+            description: thoughtRef.current.accumulatedDescription,
+          });
+        }
+      } else if (message.type === 'agent_reasoning_raw_content' || message.type === 'agent_reasoning_raw_content_delta') {
         // Immediately clear thinking state when reasoning is completed
         setIsThinking(false);
-      }
-      if (message.type === 'agent_message_delta') {
+        // 清除思考内容
+        thoughtRef.current.accumulatedDescription = '';
+        setThought(null);
+      } else if (message.type === 'agent_reasoning_section_break') {
+        // 保持思考状态，但可以更新显示
+        thoughtRef.current.accumulatedDescription += '\nProcessing next step...';
+        setThought({
+          subject: 'Processing',
+          description: thoughtRef.current.accumulatedDescription,
+        });
+      } else if (message.type === 'agent_message_delta') {
         // Clear thinking state when agent starts responding with content
         setIsThinking(false);
+        // 清除思考内容
+        thoughtRef.current.accumulatedDescription = '';
+        setThought(null);
       }
-
-      // 处理消息
-      if (message.type === 'content' || message.type === 'user_content' || message.type === 'error') {
+      // 处理其他消息类型
+      else if (message.type === 'content' || message.type === 'user_content' || message.type === 'error') {
         // 收到内容消息时，确保清除思考状态（防止状态卡住）
         setIsThinking(false);
+        // 清除思考内容
+        setThought(null);
         // 通用消息类型使用标准转换器
         const transformedMessage = transformMessage(message);
         addOrUpdateMessage(transformedMessage);
@@ -316,6 +339,20 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
       {(isThinking || waitingForSession) && (
         <div className='mb-8px'>
           <span className='text-12px text-#999 px-8px py-4px bg-#f5f5f5 rounded-4px'>{isThinking ? t('codex.thinking.please_wait') : t('codex.sendbox.waiting', { defaultValue: 'Please wait...' })}</span>
+        </div>
+      )}
+      {thought && (
+        <div
+          className='px-10px py-10px rd-20px text-14px pb-40px  lh-20px color-#86909C mb-8px'
+          style={{
+            background: 'linear-gradient(90deg, #F0F3FF 0%, #F2F2F2 100%)',
+            transform: 'translateY(36px)',
+          }}
+        >
+          <Tag color='arcoblue' size='small' className={'float-left mr-4px'}>
+            {thought.subject}
+          </Tag>
+          {thought.description}
         </div>
       )}
       <SendBox

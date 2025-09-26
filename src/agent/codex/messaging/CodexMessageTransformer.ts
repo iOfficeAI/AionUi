@@ -26,12 +26,7 @@ export class CodexMessageTransformer {
       return '';
     }
 
-    return (
-      content
-        .replace(/^\s*$/gm, '')
-        // 只清理开头和结尾的空白，保留文本中间的空格
-        .trim()
-    );
+    return content;
   }
 
   /**
@@ -44,32 +39,6 @@ export class CodexMessageTransformer {
 
     try {
       switch (message.type) {
-        case 'agent_reasoning': {
-          // Thinking状态由前端UI状态管理，不需要持久化存储
-          return undefined;
-        }
-
-        case 'agent_reasoning_delta': {
-          // 推理delta消息暂时不显示，避免频繁更新
-          return undefined;
-        }
-
-        case 'agent_reasoning_raw_content': {
-          // Thinking完成状态由前端UI状态管理，不需要持久化存储
-          return undefined;
-        }
-
-        case 'agent_reasoning_raw_content_delta': {
-          // 原始推理delta暂时不显示
-          return undefined;
-        }
-
-        case 'agent_reasoning_section_break': {
-          // 对于section break，返回undefined避免产生空DOM
-          // 如果需要显示分隔线，可以在这里添加特定的分隔线组件
-          return undefined;
-        }
-
         case 'acp_permission': {
           // Check if this is actually a Codex permission request
           if (message.data?.agentType === 'codex') {

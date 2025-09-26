@@ -122,7 +122,6 @@ export class CodexMcpConnection {
           hasOutput = true;
           buffer += d.toString();
           const lines = buffer.split('\n');
-          console.log('lines---->', lines);
           buffer = lines.pop() || '';
           for (const line of lines) {
             if (!line.trim()) continue;
@@ -213,7 +212,6 @@ export class CodexMcpConnection {
   async request<T = unknown>(method: string, params?: unknown, timeoutMs = 200000): Promise<T> {
     const id = this.nextId++;
     const req: JsonRpcRequest = { jsonrpc: JSONRPC_VERSION, id, method, params };
-    console.log('CodexMcpConnection request:', req);
     return new Promise<T>((resolve, reject) => {
       const timeout = setTimeout(() => {
         this.pending.delete(id);
@@ -338,7 +336,6 @@ export class CodexMcpConnection {
               const hasSessionApproval = this.sessionApprovals.has(permissionTypeKey);
 
               if (hasSessionApproval) {
-                // console.log('⚡ Auto-responding with session approval for', msgType, ':', { codexCallId, reqId });
                 // Auto-respond immediately with approved_for_session
                 const result = { decision: 'approved_for_session' };
                 const response: JsonRpcResponse = { jsonrpc: JSONRPC_VERSION, id: reqId, result };
@@ -346,10 +343,8 @@ export class CodexMcpConnection {
                 this.child?.stdin?.write(line);
 
                 // Don't pause or send to UI for session-approved requests
-                // console.log('🚀 Auto-approved request, not sending to UI');
                 return; // Skip forwarding this event to UI
               } else {
-                // console.log('🔗 Setting elicitation mapping for', msgType, ':', { codexCallId, reqId });
                 this.elicitationMap.set(callIdStr, reqId);
                 this.callIdToPermissionType.set(callIdStr, permissionTypeKey);
                 this.isPaused = true;
@@ -375,7 +370,6 @@ export class CodexMcpConnection {
           const hasSessionApproval = this.sessionApprovals.has(permissionTypeKey);
 
           if (hasSessionApproval) {
-            // console.log('⚡ Auto-responding with session approval for elicitation/create:', { codexCallId, reqId });
             // Auto-respond immediately with approved_for_session
             const result = { decision: 'approved_for_session' };
             const response: JsonRpcResponse = { jsonrpc: JSONRPC_VERSION, id: reqId, result };
@@ -386,10 +380,8 @@ export class CodexMcpConnection {
             this.autoApprovedCallIds.add(callIdStr);
 
             // Don't pause or send to UI for session-approved requests
-            // console.log('🚀 Auto-approved elicitation, not sending to UI');
             return; // Skip forwarding this event to UI
           } else {
-            // console.log('🔗 Setting elicitation mapping for elicitation/create:', { codexCallId, reqId });
             this.elicitationMap.set(callIdStr, reqId);
             this.callIdToPermissionType.set(callIdStr, permissionTypeKey);
             this.isPaused = true;
@@ -475,7 +467,6 @@ export class CodexMcpConnection {
     const normalized = callId.replace(/^patch_/, '').replace(/^elicitation_/, '');
     const reqId = this.elicitationMap.get(normalized) || this.elicitationMap.get(callId);
     if (reqId === undefined) {
-      // console.log('🚫 No reqId found for callId:', { callId, normalized, availableKeys: Array.from(this.elicitationMap.keys()) });
       return;
     }
     const result = { decision };
