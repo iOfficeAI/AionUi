@@ -112,66 +112,22 @@ const MessageCodexPermission: React.FC<MessageCodexPermissionProps> = React.memo
 
   // 备用检查：组件挂载时检查是否有 always 权限（如果第一个没有捕获）
   useEffect(() => {
-    const checkAndAutoHandle = async () => {
+    const checkStoredChoice = () => {
       if (hasResponded) return;
 
       try {
         const storedChoice = localStorage.getItem(globalPermissionKey);
-
-        if (storedChoice === 'allow_always') {
-          setSelected('allow_always');
-          setHasResponded(true); // 立即标记为已响应，避免显示UI
-          setIsResponding(true);
-
-          // 立即更新响应状态到 localStorage
-          localStorage.setItem(specificResponseKey, 'true');
-          localStorage.setItem(`${specificResponseKey}_timestamp`, Date.now().toString());
-
-          const confirmationData = {
-            confirmKey: 'allow_always',
-            msg_id: message.id,
-            conversation_id: message.conversation_id,
-            callId: toolCall?.toolCallId || message.id,
-          };
-
-          try {
-            const result = await handleConfirmation(confirmationData);
-          } catch (confirmError) {
-            // 即使确认失败，也保持已响应状态，避免重复显示UI
-          }
-          setIsResponding(false);
-        } else if (storedChoice === 'reject_always') {
-          setSelected('reject_always');
-          setHasResponded(true); // 立即标记为已响应
-          setIsResponding(true);
-
-          // 立即更新响应状态到 localStorage
-          localStorage.setItem(specificResponseKey, 'true');
-          localStorage.setItem(`${specificResponseKey}_timestamp`, Date.now().toString());
-
-          const confirmationData = {
-            confirmKey: 'reject_always',
-            msg_id: message.id,
-            conversation_id: message.conversation_id,
-            callId: toolCall?.toolCallId || message.id,
-          };
-
-          try {
-            const result = await handleConfirmation(confirmationData);
-          } catch (confirmError) {
-            // Handle error silently
-          }
-          setIsResponding(false);
+        // 只设置选中状态，不自动确认
+        if (storedChoice && !selected) {
+          setSelected(storedChoice);
         }
       } catch (error) {
-        setIsResponding(false);
+        // Handle error silently
       }
     };
 
-    // 使用 setTimeout 确保在组件完全渲染后执行
-    const timer = setTimeout(checkAndAutoHandle, 10);
-    return () => clearTimeout(timer);
-  }, [permissionId, hasResponded, globalPermissionKey, specificResponseKey, message.id, message.conversation_id, toolCall?.toolCallId, handleConfirmation]);
+    checkStoredChoice();
+  }, [permissionId, hasResponded, globalPermissionKey, selected]);
 
   // 保存选择状态到 localStorage
   const handleSelectionChange = (value: string) => {
