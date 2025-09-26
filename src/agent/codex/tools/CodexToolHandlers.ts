@@ -48,17 +48,23 @@ export class CodexToolHandlers {
     if (!callId) return;
     const stream = evt.data?.stream || 'stdout';
     let chunk = evt.data?.chunk;
-    if (typeof chunk !== 'string') {
-      try {
-        if (Buffer.isBuffer(chunk)) {
-          chunk = chunk.toString('utf-8');
-        } else {
-          // Fallback: interpret as base64-encoded string if possible
-          chunk = Buffer.from(String(chunk), 'base64').toString('utf-8');
+
+    // Handle base64-encoded chunks from Codex
+    if (typeof chunk === 'string') {
+      // Check if it's a valid base64 string before attempting to decode
+      if (this.isValidBase64(chunk)) {
+        try {
+          // Decode base64 - Codex sends base64-encoded strings
+          chunk = Buffer.from(chunk, 'base64').toString('utf-8');
+        } catch {
+          // If base64 decoding fails, use the original string
         }
-      } catch {
-        chunk = String(chunk);
       }
+      // If not base64, use the string as-is
+    } else if (Buffer.isBuffer(chunk)) {
+      chunk = chunk.toString('utf-8');
+    } else {
+      chunk = String(chunk);
     }
     const buf = this.cmdBuffers.get(callId) || { stdout: '', stderr: '', combined: '' };
     if (stream === 'stderr') buf.stderr += chunk;
@@ -286,5 +292,16 @@ export class CodexToolHandlers {
     this.patchBuffers.clear();
     this.patchChanges.clear();
     this.pendingConfirmations.clear();
+  }
+
+  private isValidBase64(str: string): boolean {
+    if (!str || str.length === 0) return false;
+
+    // Base64 strings should have length divisible by 4 (with padding)
+    if (str.length % 4 !== 0) return false;
+
+    // Check if it contains only valid base64 characters
+    const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/;
+    return base64Regex.test(str);
   }
 }
