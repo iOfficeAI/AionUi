@@ -21,7 +21,7 @@ import { getSystemDir, ProcessChat, ProcessChatMessage, ProcessConfig, ProcessEn
 import { nextTickToLocalFinish } from './message';
 import type AcpAgentManager from './task/AcpAgentManager';
 import type { GeminiAgentManager } from './task/GeminiAgentManager';
-import { copyDirectoryRecursively, copyFilesToDirectory, generateHashWithFullName, readDirectoryRecursive, processAndCopyFiles } from './utils';
+import { copyDirectoryRecursively, copyFilesToDirectory, generateHashWithFullName, readDirectoryRecursive } from './utils';
 import WorkerManage from './WorkerManage';
 
 logger.config({ print: true });
@@ -327,9 +327,6 @@ ipcBridge.codexConversation.sendMessage.provider(async ({ conversation_id, files
   const codexTask = WorkerManage.getTaskById(conversation_id) as CodexAgentManager | undefined;
   if (!codexTask || codexTask.type !== 'codex') return { success: false, msg: 'unsupported task type for Codex provider' };
 
-  // 处理文件路径：区分上传文件（绝对路径）和工作空间文件（相对路径）
-  await processAndCopyFiles(codexTask.workspace, files);
-
   return codexTask
     .sendMessage({ content: other.input, files, msg_id: other.msg_id })
     .then(() => ({ success: true }))
@@ -343,7 +340,7 @@ ipcBridge.conversation.confirmMessage.provider(async ({ confirmKey, msg_id, conv
 
   try {
     // 根据 task 类型调用对应的 confirmMessage 方法
-    if (task.type === 'codex') {
+    if (task?.type === 'codex') {
       await (task as CodexAgentManager).confirmMessage({ confirmKey, msg_id, callId });
       return { success: true };
     } else if (task.type === 'gemini') {
