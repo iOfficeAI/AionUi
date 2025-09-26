@@ -8,7 +8,7 @@ import { ipcBridge } from '@/common';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import { transformMessage } from '@/common/chatLib';
 import { uuid } from '@/common/utils';
-import { addMessage } from '@/process/message';
+import { addMessage, addOrUpdateMessage } from '@/process/message';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -190,7 +190,7 @@ export class CodexFileOperationHandler {
       data: formattedMessage,
     };
 
-    addMessage(this.conversation_id, transformMessage(responseMessage));
+    addOrUpdateMessage(this.conversation_id, transformMessage(responseMessage));
     ipcBridge.codexConversation.responseStream.emit(responseMessage);
   }
 
@@ -227,7 +227,7 @@ export class CodexFileOperationHandler {
       data: error,
     };
 
-    addMessage(this.conversation_id, transformMessage(errorMessage));
+    addOrUpdateMessage(this.conversation_id, transformMessage(errorMessage));
     ipcBridge.codexConversation.responseStream.emit(errorMessage);
   }
 
