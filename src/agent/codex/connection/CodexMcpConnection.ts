@@ -123,6 +123,8 @@ export class CodexMcpConnection {
           for (const line of lines) {
             if (!line.trim()) continue;
 
+            console.log('codex line ===>', line);
+
             // Check if this looks like a JSON-RPC message
             if (line.trim().startsWith('{') && line.trim().endsWith('}')) {
               try {

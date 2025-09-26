@@ -154,21 +154,6 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
         // 通用消息类型使用标准转换器
         const transformedMessage = transformMessage(message);
         addOrUpdateMessage(transformedMessage);
-      } else if (message.type === 'acp_permission' && message.data?.agentType === 'codex') {
-        // Codex-specific ACP permission requests
-        try {
-          // Use Codex-specific transformer for these messages
-          const transformedMessage = CodexMessageTransformer.transformCodexMessage(message);
-          if (transformedMessage) {
-            addOrUpdateMessage(transformedMessage);
-          }
-        } catch (error) {
-          // Fallback to standard transformation
-          const transformedMessage = transformMessage(message);
-          if (transformedMessage) {
-            addOrUpdateMessage(transformedMessage);
-          }
-        }
       } else if (CodexMessageTransformer.isCodexSpecificMessage(message.type)) {
         // 处理状态消息
         if (message.type === 'codex_status') {

@@ -39,22 +39,6 @@ export class CodexMessageTransformer {
 
     try {
       switch (message.type) {
-        case 'acp_permission': {
-          // Check if this is actually a Codex permission request
-          if (message.data?.agentType === 'codex') {
-            return {
-              id: uuid(),
-              type: 'codex_permission',
-              msg_id: message.msg_id,
-              position: 'left',
-              conversation_id: message.conversation_id,
-              content: message.data,
-            };
-          }
-          // Return undefined for non-Codex ACP permissions
-          return undefined;
-        }
-
         case 'codex_permission': {
           return {
             id: uuid(),
@@ -76,41 +60,6 @@ export class CodexMessageTransformer {
             content: message.data,
           };
         }
-
-        case 'agent_message_delta': {
-          const cleanedContent = this.cleanCodexContent(message.data?.delta || '');
-          if (!cleanedContent) {
-            return undefined;
-          }
-          return {
-            id: uuid(),
-            type: 'text',
-            msg_id: message.msg_id || 'agent_message_delta',
-            position: 'left',
-            conversation_id: message.conversation_id,
-            content: {
-              content: cleanedContent,
-            },
-          };
-        }
-
-        case 'agent_message': {
-          const cleanedContent = this.cleanCodexContent(message.data?.message || '');
-          if (!cleanedContent) {
-            return undefined;
-          }
-          return {
-            id: uuid(),
-            type: 'text',
-            msg_id: message.msg_id || 'agent_message',
-            position: 'left',
-            conversation_id: message.conversation_id,
-            content: {
-              content: cleanedContent,
-            },
-          };
-        }
-
         case 'error': {
           return {
             id: uuid(),
@@ -151,7 +100,7 @@ export class CodexMessageTransformer {
    * @returns 是否为 Codex 特定类型
    */
   static isCodexSpecificMessage(messageType: string): boolean {
-    const codexTypes = ['agent_reasoning', 'agent_reasoning_delta', 'agent_reasoning_raw_content', 'agent_reasoning_raw_content_delta', 'agent_reasoning_section_break', 'acp_permission', 'codex_permission', 'codex_status', 'agent_message_delta', 'agent_message', 'error'];
+    const codexTypes = ['agent_reasoning_delta', 'agent_reasoning_raw_content', 'agent_reasoning_raw_content_delta', 'agent_reasoning_section_break', 'acp_permission', 'codex_permission', 'codex_status', 'agent_message_delta', 'error'];
     return codexTypes.includes(messageType);
   }
 }
