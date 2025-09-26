@@ -31,6 +31,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
   workspace?: string;
   agent: CodexMcpAgent;
   bootstrap: Promise<CodexMcpAgent>;
+  private isFirstMessage: boolean = true;
 
   constructor(data: CodexAgentManagerData) {
     // Do not fork a worker for Codex; we run the agent in-process now
@@ -121,15 +122,8 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
       // Get connection diagnostics
       const _diagnostics = this.getDiagnostics();
 
-      // MCP 初始化握手 - 现在有内置重试机制
-      const result = await this.agent.newSession(this.workspace);
-      // Session created successfully
-
-      this.agent.getSessionManager().emitSessionEvent('session_created', {
-        workspace: this.workspace,
-        agent_type: 'codex',
-        sessionId: result.sessionId,
-      });
+      // 延迟会话创建到第一条用户消息时，避免空 prompt 问题
+      // Session will be created with first user message - no session event sent here
     } catch (error) {
       // 输出更详细的诊断信息
       const diagnostics = this.getDiagnostics();
@@ -180,13 +174,22 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
         addMessage(this.conversation_id, userMessage);
       }
 
-      // Send prompt to agent
-
       // 处理文件引用 - 参考 ACP 的文件引用处理
       const processedContent = this.agent.getFileOperationHandler().processFileReferences(data.content, data.files);
 
-      const result = await this.agent.sendPrompt(processedContent);
-      return result;
+      // 如果是第一条消息，通过 newSession 发送以避免双消息问题
+      if (this.isFirstMessage) {
+        this.isFirstMessage = false;
+        const result = await this.agent.newSession(this.workspace, processedContent);
+
+        // Session created successfully - Codex will send session_configured event automatically
+
+        return result;
+      } else {
+        // 后续消息使用正常的 sendPrompt
+        const result = await this.agent.sendPrompt(processedContent);
+        return result;
+      }
     } catch (e) {
       // 对于某些错误类型，避免重复错误消息处理
       // 这些错误通常已经通过 MCP 连接的事件流处理过了
