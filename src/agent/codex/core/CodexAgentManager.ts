@@ -11,7 +11,7 @@ import type { TMessage } from '@/common/chatLib';
 import { transformMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import { uuid } from '@/common/utils';
-import { addMessage } from '@/process/message';
+import { addMessage, addOrUpdateMessage } from '@/process/message';
 import BaseAgentManager from '@/process/task/BaseAgentManager';
 import { t } from 'i18next';
 import { CodexEventHandler } from '@/agent/codex/handlers/CodexEventHandler';
@@ -335,7 +335,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
     // Emit network error message to UI
     // Add to message history and emit to UI
-    addMessage(this.conversation_id, transformMessage(networkErrorMessage));
+    addOrUpdateMessage(this.conversation_id, transformMessage(networkErrorMessage));
     ipcBridge.codexConversation.responseStream.emit(networkErrorMessage);
   }
 
@@ -457,7 +457,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
       }
 
       if (transformedMessage) {
-        addMessage(this.conversation_id, transformedMessage);
+        addOrUpdateMessage(this.conversation_id, transformedMessage);
       }
     }
     ipcBridge.codexConversation.responseStream.emit(message);

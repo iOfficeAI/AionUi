@@ -12,12 +12,6 @@ import type { IResponseMessage } from '@/common/ipcBridge';
  */
 export interface ICodexMessageEmitter {
   /**
-   * 发送消息到UI
-   * @param message 要发送的消息
-   */
-  emitMessage(message: IResponseMessage): void;
-
-  /**
    * 发送消息并持久化
    * @param message 要发送的消息
    * @param persist 是否需要持久化，默认true

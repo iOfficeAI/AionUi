@@ -4,19 +4,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { AcpPermissionRequest } from '@/common/acpTypes';
 import { uuid } from '@/common/utils';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
+import type { AgentReasoningData, AgentReasoningDeltaData, BaseCodexEventData, CodexAgentEvent, CodexEventParams, ExecApprovalRequestData, PatchApprovalData } from '@/common/codex/types';
 import { CodexAgentEventType } from '@/common/codex/types';
-import type { ExecApprovalRequestData, AgentReasoningData, AgentReasoningDeltaData, BaseCodexEventData, PatchApprovalData, CodexAgentEvent, CodexEventParams } from '@/common/codex/types';
 import { CodexMessageProcessor } from '@/agent/codex/messaging/CodexMessageProcessor';
 import { CodexToolHandlers } from '@/agent/codex/tools/CodexToolHandlers';
 import { PermissionType } from '@/common/codex/types/permissionTypes';
-import { createPermissionOptionsForType, getPermissionDisplayInfo, mapPermissionDecision } from '@/common/codex/utils';
-
-// Extended permission request with additional UI fields for Codex
-type ExtendedAcpPermissionRequest = Omit<AcpPermissionRequest, 'options'> & import('@/common/codex/types').CodexPermissionRequest;
+import { createPermissionOptionsForType, getPermissionDisplayInfo } from '@/common/codex/utils';
 
 export class CodexEventHandler {
   private messageProcessor: CodexMessageProcessor;
@@ -36,6 +32,12 @@ export class CodexEventHandler {
   handleEvent(evt: CodexAgentEvent | { type: string; data: unknown }) {
     const type = evt.type;
 
+    //这两类消息因为有delta 类型数据，所以直接忽略。
+    if ([CodexAgentEventType.AGENT_REASONING, CodexAgentEventType.AGENT_MESSAGE].includes(type as CodexAgentEventType)) {
+      // These are informational events, no UI action needed
+      return;
+    }
+
     // Handle session and configuration events
     if (type === CodexAgentEventType.SESSION_CONFIGURED) {
       // These are informational events, no UI action needed
@@ -50,14 +52,14 @@ export class CodexEventHandler {
 
     // Handle special message types that need custom processing
     if (type === CodexAgentEventType.AGENT_MESSAGE_DELTA) {
-      this.messageProcessor.processMessageDelta(evt as Extract<CodexAgentEvent, { type: CodexAgentEventType.AGENT_MESSAGE_DELTA }>);
-      return;
-    }
-
-    if (type === CodexAgentEventType.AGENT_MESSAGE) {
-      this.messageProcessor.processMessage(evt as Extract<CodexAgentEvent, { type: CodexAgentEventType.AGENT_MESSAGE }>);
-      // After processing the final agent message, automatically signal task completion
-      this.messageProcessor.processTaskComplete();
+      this.messageProcessor.processMessageDelta(
+        evt as Extract<
+          CodexAgentEvent,
+          {
+            type: CodexAgentEventType.AGENT_MESSAGE_DELTA;
+          }
+        >
+      );
       return;
     }
 
@@ -67,14 +69,29 @@ export class CodexEventHandler {
     }
 
     // Handle reasoning deltas and reasoning messages - send them to UI for dynamic thinking display
-    if (type === CodexAgentEventType.AGENT_REASONING_DELTA || type === CodexAgentEventType.AGENT_REASONING) {
-      this.handleReasoningMessage(evt as Extract<CodexAgentEvent, { type: CodexAgentEventType.AGENT_REASONING_DELTA } | { type: CodexAgentEventType.AGENT_REASONING }>);
+    if (type === CodexAgentEventType.AGENT_REASONING_DELTA) {
+      this.handleReasoningMessage(
+        evt as Extract<
+          CodexAgentEvent,
+          | {
+              type: CodexAgentEventType.AGENT_REASONING_DELTA;
+            }
+          | { type: CodexAgentEventType.AGENT_REASONING }
+        >
+      );
       return;
     }
 
     // Handle reasoning section breaks - send them to UI for dynamic thinking display
     if (type === CodexAgentEventType.AGENT_REASONING_SECTION_BREAK) {
-      this.handleReasoningMessage(evt as Extract<CodexAgentEvent, { type: CodexAgentEventType.AGENT_REASONING_SECTION_BREAK }>);
+      this.handleReasoningMessage(
+        evt as Extract<
+          CodexAgentEvent,
+          {
+            type: CodexAgentEventType.AGENT_REASONING_SECTION_BREAK;
+          }
+        >
+      );
       return;
     }
 
@@ -85,7 +102,14 @@ export class CodexEventHandler {
     }
 
     if (type === CodexAgentEventType.STREAM_ERROR) {
-      this.messageProcessor.processStreamError(evt as Extract<CodexAgentEvent, { type: CodexAgentEventType.STREAM_ERROR }>);
+      this.messageProcessor.processStreamError(
+        evt as Extract<
+          CodexAgentEvent,
+          {
+            type: CodexAgentEventType.STREAM_ERROR;
+          }
+        >
+      );
       return;
     }
 
@@ -97,61 +121,154 @@ export class CodexEventHandler {
 
     // Tool: exec command
     if (type === CodexAgentEventType.EXEC_COMMAND_BEGIN) {
-      this.toolHandlers.handleExecCommandBegin(evt as Extract<CodexAgentEvent, { type: CodexAgentEventType.EXEC_COMMAND_BEGIN }>);
+      this.toolHandlers.handleExecCommandBegin(
+        evt as Extract<
+          CodexAgentEvent,
+          {
+            type: CodexAgentEventType.EXEC_COMMAND_BEGIN;
+          }
+        >
+      );
       return;
     }
 
     if (type === CodexAgentEventType.EXEC_COMMAND_OUTPUT_DELTA) {
-      this.toolHandlers.handleExecCommandOutputDelta(evt as Extract<CodexAgentEvent, { type: CodexAgentEventType.EXEC_COMMAND_OUTPUT_DELTA }>);
+      this.toolHandlers.handleExecCommandOutputDelta(
+        evt as Extract<
+          CodexAgentEvent,
+          {
+            type: CodexAgentEventType.EXEC_COMMAND_OUTPUT_DELTA;
+          }
+        >
+      );
       return;
     }
 
     if (type === CodexAgentEventType.EXEC_COMMAND_END) {
-      this.toolHandlers.handleExecCommandEnd(evt as Extract<CodexAgentEvent, { type: CodexAgentEventType.EXEC_COMMAND_END }>);
+      this.toolHandlers.handleExecCommandEnd(
+        evt as Extract<
+          CodexAgentEvent,
+          {
+            type: CodexAgentEventType.EXEC_COMMAND_END;
+          }
+        >
+      );
       return;
     }
 
     // Handle ALL permission-related requests through unified handler
     if (type === CodexAgentEventType.EXEC_APPROVAL_REQUEST || type === CodexAgentEventType.APPLY_PATCH_APPROVAL_REQUEST || type === CodexAgentEventType.ELICITATION_CREATE) {
-      this.handleUnifiedPermissionRequest(evt as Extract<CodexAgentEvent, { type: CodexAgentEventType.EXEC_APPROVAL_REQUEST }> | Extract<CodexAgentEvent, { type: CodexAgentEventType.APPLY_PATCH_APPROVAL_REQUEST }> | Extract<CodexAgentEvent, { type: CodexAgentEventType.ELICITATION_CREATE }>);
+      this.handleUnifiedPermissionRequest(
+        evt as
+          | Extract<
+              CodexAgentEvent,
+              {
+                type: CodexAgentEventType.EXEC_APPROVAL_REQUEST;
+              }
+            >
+          | Extract<
+              CodexAgentEvent,
+              {
+                type: CodexAgentEventType.APPLY_PATCH_APPROVAL_REQUEST;
+              }
+            >
+          | Extract<CodexAgentEvent, { type: CodexAgentEventType.ELICITATION_CREATE }>
+      );
       return;
     }
 
     // Tool: patch apply
     if (type === CodexAgentEventType.PATCH_APPLY_BEGIN) {
-      this.toolHandlers.handlePatchApplyBegin(evt as Extract<CodexAgentEvent, { type: CodexAgentEventType.PATCH_APPLY_BEGIN }>);
+      this.toolHandlers.handlePatchApplyBegin(
+        evt as Extract<
+          CodexAgentEvent,
+          {
+            type: CodexAgentEventType.PATCH_APPLY_BEGIN;
+          }
+        >
+      );
       return;
     }
 
     if (type === CodexAgentEventType.PATCH_APPLY_END) {
-      this.toolHandlers.handlePatchApplyEnd(evt as Extract<CodexAgentEvent, { type: CodexAgentEventType.PATCH_APPLY_END }>);
+      this.toolHandlers.handlePatchApplyEnd(
+        evt as Extract<
+          CodexAgentEvent,
+          {
+            type: CodexAgentEventType.PATCH_APPLY_END;
+          }
+        >
+      );
       return;
     }
 
     // Tool: mcp tool
     if (type === CodexAgentEventType.MCP_TOOL_CALL_BEGIN) {
-      this.toolHandlers.handleMcpToolCallBegin(evt as Extract<CodexAgentEvent, { type: CodexAgentEventType.MCP_TOOL_CALL_BEGIN }>);
+      this.toolHandlers.handleMcpToolCallBegin(
+        evt as Extract<
+          CodexAgentEvent,
+          {
+            type: CodexAgentEventType.MCP_TOOL_CALL_BEGIN;
+          }
+        >
+      );
       return;
     }
 
     if (type === CodexAgentEventType.MCP_TOOL_CALL_END) {
-      this.toolHandlers.handleMcpToolCallEnd(evt as Extract<CodexAgentEvent, { type: CodexAgentEventType.MCP_TOOL_CALL_END }>);
+      this.toolHandlers.handleMcpToolCallEnd(
+        evt as Extract<
+          CodexAgentEvent,
+          {
+            type: CodexAgentEventType.MCP_TOOL_CALL_END;
+          }
+        >
+      );
       return;
     }
 
     // Tool: web search
     if (type === CodexAgentEventType.WEB_SEARCH_BEGIN) {
-      this.toolHandlers.handleWebSearchBegin(evt as Extract<CodexAgentEvent, { type: CodexAgentEventType.WEB_SEARCH_BEGIN }>);
+      this.toolHandlers.handleWebSearchBegin(
+        evt as Extract<
+          CodexAgentEvent,
+          {
+            type: CodexAgentEventType.WEB_SEARCH_BEGIN;
+          }
+        >
+      );
       return;
     }
 
     if (type === CodexAgentEventType.WEB_SEARCH_END) {
-      this.toolHandlers.handleWebSearchEnd(evt as Extract<CodexAgentEvent, { type: CodexAgentEventType.WEB_SEARCH_END }>);
+      this.toolHandlers.handleWebSearchEnd(
+        evt as Extract<
+          CodexAgentEvent,
+          {
+            type: CodexAgentEventType.WEB_SEARCH_END;
+          }
+        >
+      );
       return;
     }
   }
 
-  private handleReasoningMessage(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.AGENT_REASONING_DELTA }> | Extract<CodexAgentEvent, { type: CodexAgentEventType.AGENT_REASONING }> | Extract<CodexAgentEvent, { type: CodexAgentEventType.AGENT_REASONING_SECTION_BREAK }>) {
+  private handleReasoningMessage(
+    evt:
+      | Extract<
+          CodexAgentEvent,
+          {
+            type: CodexAgentEventType.AGENT_REASONING_DELTA;
+          }
+        >
+      | Extract<CodexAgentEvent, { type: CodexAgentEventType.AGENT_REASONING }>
+      | Extract<
+          CodexAgentEvent,
+          {
+            type: CodexAgentEventType.AGENT_REASONING_SECTION_BREAK;
+          }
+        >
+  ) {
     const eventData = evt.data as AgentReasoningDeltaData | AgentReasoningData | BaseCodexEventData | undefined;
 
     // 为推理消息使用固定的msg_id，确保所有推理消息都被合并到同一条消息中
@@ -175,7 +292,22 @@ export class CodexEventHandler {
    * Unified permission request handler to prevent duplicates
    * Handles both codex/event wrapped permissions and direct elicitation/create calls
    */
-  private handleUnifiedPermissionRequest(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.EXEC_APPROVAL_REQUEST }> | Extract<CodexAgentEvent, { type: CodexAgentEventType.APPLY_PATCH_APPROVAL_REQUEST }> | Extract<CodexAgentEvent, { type: CodexAgentEventType.ELICITATION_CREATE }>) {
+  private handleUnifiedPermissionRequest(
+    evt:
+      | Extract<
+          CodexAgentEvent,
+          {
+            type: CodexAgentEventType.EXEC_APPROVAL_REQUEST;
+          }
+        >
+      | Extract<CodexAgentEvent, { type: CodexAgentEventType.APPLY_PATCH_APPROVAL_REQUEST }>
+      | Extract<
+          CodexAgentEvent,
+          {
+            type: CodexAgentEventType.ELICITATION_CREATE;
+          }
+        >
+  ) {
     const type = evt.type;
 
     // Extract call_id from different event types
@@ -203,16 +335,48 @@ export class CodexEventHandler {
 
     // Route to appropriate handler based on event type (async processing)
     if (type === CodexAgentEventType.EXEC_APPROVAL_REQUEST) {
-      this.processExecApprovalRequest(evt as Extract<CodexAgentEvent, { type: CodexAgentEventType.EXEC_APPROVAL_REQUEST }>, unifiedRequestId).catch(console.error);
+      this.processExecApprovalRequest(
+        evt as Extract<
+          CodexAgentEvent,
+          {
+            type: CodexAgentEventType.EXEC_APPROVAL_REQUEST;
+          }
+        >,
+        unifiedRequestId
+      ).catch(console.error);
     } else if (type === CodexAgentEventType.APPLY_PATCH_APPROVAL_REQUEST) {
-      this.processApplyPatchRequest(evt as Extract<CodexAgentEvent, { type: CodexAgentEventType.APPLY_PATCH_APPROVAL_REQUEST }>, unifiedRequestId).catch(console.error);
+      this.processApplyPatchRequest(
+        evt as Extract<
+          CodexAgentEvent,
+          {
+            type: CodexAgentEventType.APPLY_PATCH_APPROVAL_REQUEST;
+          }
+        >,
+        unifiedRequestId
+      ).catch(console.error);
     } else {
       // ELICITATION_CREATE
-      this.processElicitationRequest(evt as Extract<CodexAgentEvent, { type: CodexAgentEventType.ELICITATION_CREATE }>, unifiedRequestId).catch(console.error);
+      this.processElicitationRequest(
+        evt as Extract<
+          CodexAgentEvent,
+          {
+            type: CodexAgentEventType.ELICITATION_CREATE;
+          }
+        >,
+        unifiedRequestId
+      ).catch(console.error);
     }
   }
 
-  private async processExecApprovalRequest(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.EXEC_APPROVAL_REQUEST }>, unifiedRequestId: string) {
+  private async processExecApprovalRequest(
+    evt: Extract<
+      CodexAgentEvent,
+      {
+        type: CodexAgentEventType.EXEC_APPROVAL_REQUEST;
+      }
+    >,
+    unifiedRequestId: string
+  ) {
     const eventData = evt.data as ExecApprovalRequestData;
     const callId = eventData?.call_id || uuid();
 
@@ -247,7 +411,15 @@ export class CodexEventHandler {
     this.messageEmitter.emitAndPersistMessage(standardMessage, true);
   }
 
-  private async processApplyPatchRequest(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.APPLY_PATCH_APPROVAL_REQUEST }>, unifiedRequestId: string) {
+  private async processApplyPatchRequest(
+    evt: Extract<
+      CodexAgentEvent,
+      {
+        type: CodexAgentEventType.APPLY_PATCH_APPROVAL_REQUEST;
+      }
+    >,
+    unifiedRequestId: string
+  ) {
     const eventData = evt.data as PatchApprovalData;
     const callId = eventData?.call_id || (eventData as CodexEventParams)?.codex_call_id || uuid();
 
@@ -287,7 +459,15 @@ export class CodexEventHandler {
     this.messageEmitter.emitAndPersistMessage(standardMessage, true);
   }
 
-  private async processElicitationRequest(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.ELICITATION_CREATE }>, unifiedRequestId: string) {
+  private async processElicitationRequest(
+    evt: Extract<
+      CodexAgentEvent,
+      {
+        type: CodexAgentEventType.ELICITATION_CREATE;
+      }
+    >,
+    unifiedRequestId: string
+  ) {
     const elicitationData = evt.data as import('@/common/codex/types').ElicitationCreateData;
     const elicitationType = elicitationData.codex_elicitation;
     const callId = elicitationData?.codex_call_id || uuid();
