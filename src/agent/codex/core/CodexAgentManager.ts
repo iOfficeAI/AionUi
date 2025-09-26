@@ -253,14 +253,6 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
             ? data.callId.substring(5)
             : data.callId;
 
-    // Log the permission decision for debugging
-    console.log('🔐 Permission Decision:', {
-      confirmKey: data.confirmKey,
-      mappedDecision: decision,
-      callId: origCallId,
-      isApproved,
-    });
-
     // Respond to elicitation (server expects JSON-RPC response)
     this.agent.respondElicitation(origCallId, decision);
 
@@ -421,8 +413,6 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
    */
   private async handleAutoPermissionDecision(message: IResponseMessage): Promise<void> {
     const data = message.data as { callId: string; decision: 'approved' | 'denied'; isApproved: boolean; storedChoice: string };
-
-    console.log('🤖 Handling auto permission decision:', data);
 
     if (!data.callId || !data.decision) {
       return;

@@ -17,6 +17,8 @@ export class CodexToolHandlers {
   private patchChanges: Map<string, Record<string, FileChange>> = new Map();
   private pendingConfirmations: Set<string> = new Set();
   private toolRegistry: ToolRegistry;
+  private activeToolGroups: Map<string, string> = new Map(); // callId -> msg_id mapping
+  private shellCommandsMsgId: string | null = null; // 所有shell命令共享的msg_id
 
   constructor(
     private conversation_id: string,
@@ -227,14 +229,39 @@ export class CodexToolHandlers {
       ...tool,
     };
 
+    // 检查是否为shell命令执行事件
+    const isShellCommand = eventType === CodexAgentEventType.EXEC_COMMAND_BEGIN || eventType === CodexAgentEventType.EXEC_COMMAND_OUTPUT_DELTA || eventType === CodexAgentEventType.EXEC_COMMAND_END;
+
+    let msgId: string;
+
+    if (isShellCommand) {
+      // 所有shell命令使用同一个msg_id，实现消息合并
+      if (!this.shellCommandsMsgId) {
+        this.shellCommandsMsgId = uuid();
+      }
+      msgId = this.shellCommandsMsgId;
+    } else {
+      // 非shell命令使用原有的callId映射逻辑
+      msgId = this.activeToolGroups.get(callId);
+      if (!msgId) {
+        msgId = uuid();
+        this.activeToolGroups.set(callId, msgId);
+      }
+    }
+
     const toolGroupMessage: IResponseMessage = {
       type: 'tool_group',
       conversation_id: this.conversation_id,
-      msg_id: uuid(),
+      msg_id: msgId, // 使用相同的msg_id确保消息合并
       data: [toolContent], // IResponseMessage expects data field, which will be used as content
     };
 
     this.messageEmitter.emitAndPersistMessage(toolGroupMessage);
+
+    // 如果是非shell命令的最终状态，清理映射
+    if (!isShellCommand && ['Success', 'Error', 'Canceled'].includes(toolContent.status)) {
+      this.activeToolGroups.delete(callId);
+    }
   }
 
   private formatMcpInvocation(inv: McpInvocation | Record<string, unknown>): string {
@@ -292,6 +319,8 @@ export class CodexToolHandlers {
     this.patchBuffers.clear();
     this.patchChanges.clear();
     this.pendingConfirmations.clear();
+    this.activeToolGroups.clear();
+    this.shellCommandsMsgId = null;
   }
 
   private isValidBase64(str: string): boolean {

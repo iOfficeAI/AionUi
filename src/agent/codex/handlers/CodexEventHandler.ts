@@ -22,6 +22,7 @@ export class CodexEventHandler {
   private messageProcessor: CodexMessageProcessor;
   private toolHandlers: CodexToolHandlers;
   private messageEmitter: ICodexMessageEmitter;
+  private reasoningMsgId: string | null = null; // 用于推理消息的固定msg_id
 
   constructor(
     private conversation_id: string,
@@ -42,7 +43,8 @@ export class CodexEventHandler {
     }
 
     if (type === CodexAgentEventType.TASK_STARTED) {
-      // These are informational events, no UI action needed
+      // 新任务开始时重置推理消息ID
+      this.reasoningMsgId = null;
       return;
     }
 
@@ -152,10 +154,15 @@ export class CodexEventHandler {
   private handleReasoningMessage(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.AGENT_REASONING_DELTA }> | Extract<CodexAgentEvent, { type: CodexAgentEventType.AGENT_REASONING }> | Extract<CodexAgentEvent, { type: CodexAgentEventType.AGENT_REASONING_SECTION_BREAK }>) {
     const eventData = evt.data as AgentReasoningDeltaData | AgentReasoningData | BaseCodexEventData | undefined;
 
+    // 为推理消息使用固定的msg_id，确保所有推理消息都被合并到同一条消息中
+    if (!this.reasoningMsgId) {
+      this.reasoningMsgId = uuid();
+    }
+
     // Create a standard message format for reasoning content
     const standardMessage: IResponseMessage = {
       type: evt.type,
-      msg_id: uuid(),
+      msg_id: this.reasoningMsgId, // 使用固定的msg_id确保消息合并
       conversation_id: this.conversation_id,
       data: (eventData as AgentReasoningDeltaData)?.delta || (eventData as AgentReasoningData)?.text || eventData || '',
     };
@@ -237,7 +244,6 @@ export class CodexEventHandler {
       } as any,
     };
 
-    console.log('📝 Creating codex_permission message for exec approval:', standardMessage);
     this.messageEmitter.emitAndPersistMessage(standardMessage, true);
   }
 
@@ -278,7 +284,6 @@ export class CodexEventHandler {
       } as any,
     };
 
-    console.log('📝 Creating codex_permission message for apply patch:', standardMessage);
     this.messageEmitter.emitAndPersistMessage(standardMessage, true);
   }
 
@@ -316,7 +321,6 @@ export class CodexEventHandler {
         } as any,
       };
 
-      console.log('📝 Creating codex_permission message for exec-approval:', standardMessage);
       this.messageEmitter.emitAndPersistMessage(standardMessage, true);
     } else if (elicitationType === 'file-write' || (elicitationData.message && elicitationData.message.toLowerCase().includes('write'))) {
       // Handle file write permission requests
@@ -345,7 +349,6 @@ export class CodexEventHandler {
         } as any,
       };
 
-      console.log('📝 Creating codex_permission message for file-write:', standardMessage);
       this.messageEmitter.emitAndPersistMessage(standardMessage, true);
     } else if (elicitationType === 'file-read' || (elicitationData.message && elicitationData.message.toLowerCase().includes('read'))) {
       // Handle file read permission requests
@@ -374,10 +377,8 @@ export class CodexEventHandler {
         } as any,
       };
 
-      console.log('📝 Creating codex_permission message for file-read:', standardMessage);
       this.messageEmitter.emitAndPersistMessage(standardMessage, true);
     } else {
-      console.log('⚠️ Unknown elicitation type:', elicitationType);
       // For other elicitation types, create a generic content message (not a permission)
     }
   }
@@ -390,5 +391,6 @@ export class CodexEventHandler {
   cleanup() {
     this.messageProcessor.cleanup();
     this.toolHandlers.cleanup();
+    this.reasoningMsgId = null; // 清理推理消息ID
   }
 }
