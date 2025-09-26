@@ -274,11 +274,9 @@ export class CodexMessageProcessor {
 
     return (
       content
-        // 清理多余的连续换行符
-        .replace(/\n{3,}/g, '\n\n')
-        // 注意：不要使用 .trim()，因为这会移除 delta 之间重要的空格
-        // 只清理尾部的多余换行符
-        .replace(/\n+$/, '')
+        .replace(/^\s*$/gm, '')
+        // 只清理开头和结尾的空白，保留文本中间的空格
+        .trim()
     );
   }
 

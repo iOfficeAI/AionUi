@@ -3,7 +3,7 @@
  * Copyright 2025 AionUi (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
-
+import { useTranslation } from 'react-i18next';
 import type { CodexError, ErrorCode } from '@/common/codex/types/errorTypes';
 import { ERROR_CODES } from '@/common/codex/types/errorTypes';
 
@@ -30,7 +30,7 @@ export class CodexErrorService {
 
   handleError(error: CodexError, context?: string): CodexError {
     const processedError = { ...error };
-
+    const { t } = useTranslation();
     if (context) {
       processedError.context = context;
     }
@@ -38,31 +38,31 @@ export class CodexErrorService {
     // Store the i18n key for user-friendly messages instead of hardcoded English text
     switch (error.code) {
       case ERROR_CODES.CLOUDFLARE_BLOCKED:
-        processedError.userMessage = 'codex.network.cloudflare_blocked';
+        processedError.userMessage = t('codex.network.cloudflare_blocked');
         break;
       case ERROR_CODES.NETWORK_TIMEOUT:
-        processedError.userMessage = 'codex.network.network_timeout';
+        processedError.userMessage = t('codex.network.network_timeout');
         break;
       case ERROR_CODES.NETWORK_REFUSED:
-        processedError.userMessage = 'codex.network.connection_refused';
+        processedError.userMessage = t('codex.network.connection_refused');
         break;
       case ERROR_CODES.SESSION_TIMEOUT:
-        processedError.userMessage = 'codex.error.session_timeout';
+        processedError.userMessage = t('codex.error.session_timeout');
         break;
       case ERROR_CODES.SYSTEM_INIT_FAILED:
-        processedError.userMessage = 'codex.error.system_init_failed';
+        processedError.userMessage = t('codex.error.system_init_failed');
         break;
       case ERROR_CODES.INVALID_MESSAGE_FORMAT:
-        processedError.userMessage = 'codex.error.invalid_message_format';
+        processedError.userMessage = t('codex.error.invalid_message_format');
         break;
       case ERROR_CODES.INVALID_INPUT:
-        processedError.userMessage = 'codex.error.invalid_input';
+        processedError.userMessage = t('codex.error.invalid_input');
         break;
       case ERROR_CODES.PERMISSION_DENIED:
-        processedError.userMessage = 'codex.error.permission_denied';
+        processedError.userMessage = t('codex.error.permission_denied');
         break;
       default:
-        processedError.userMessage = 'codex.error.generic';
+        processedError.userMessage = t('codex.error.generic');
     }
 
     return processedError;

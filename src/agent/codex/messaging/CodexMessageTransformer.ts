@@ -28,12 +28,7 @@ export class CodexMessageTransformer {
 
     return (
       content
-        // 清理多余的连续换行符（超过2个的情况）
-        .replace(/\n{3,}/g, '\n\n')
-        // 只清理真正空白的行，保留正常的单词间空格
         .replace(/^\s*$/gm, '')
-        // 再次清理可能产生的连续空行
-        .replace(/\n\s*\n\s*\n/g, '\n\n')
         // 只清理开头和结尾的空白，保留文本中间的空格
         .trim()
     );
