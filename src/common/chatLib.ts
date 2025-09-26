@@ -239,24 +239,13 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         },
       };
     }
-    case 'content': {
-      return {
-        id: uuid(),
-        type: 'text',
-        msg_id: message.msg_id,
-        position: 'left',
-        conversation_id: message.conversation_id,
-        content: {
-          content: normalizeLLMText(message.data),
-        },
-      };
-    }
+    case 'content':
     case 'user_content': {
       return {
         id: uuid(),
         type: 'text',
         msg_id: message.msg_id,
-        position: 'right',
+        position: 'left',
         conversation_id: message.conversation_id,
         content: {
           content: message.data,
@@ -316,13 +305,9 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
     case 'finish':
     case 'thought':
       break;
-    default:
-      return {
-        type: message.type,
-        content: message.data,
-        position: 'left',
-        id: uuid(),
-      } as any;
+    default: {
+      throw new Error(`Unsupported message type '${message.type}'. All non-standard message types should be pre-processed by respective AgentManagers.`);
+    }
   }
 };
 
@@ -357,27 +342,7 @@ export const composeMessage = (message: TMessage | undefined, list: TMessage[] |
 
   if (last.msg_id !== message.msg_id || last.type !== message.type) return list.concat(message);
   if (message.type === 'text' && last.type === 'text') {
-    // message.content.content = last.content.content + message.content.content;
-    // 对于Codex流式消息，直接替换内容而不是拼接
-    // 如果新消息内容包含旧消息内容，说明是累积更新，直接替换
-    const lastContent = String(last.content.content || '');
-    const newContent = String(message.content.content || '');
-
-    // 如果内容完全相同，跳过处理
-    if (lastContent === newContent) {
-      return list;
-    }
-
-    if (newContent.includes(lastContent) || lastContent === 'loading...') {
-      // 新内容包含旧内容或旧内容是loading，直接替换
-      message.content.content = newContent;
-    } else if (lastContent.includes(newContent)) {
-      // New is a subset of last; keep last
-      message.content.content = lastContent;
-    } else {
-      // 否则进行拼接
-      message.content.content = lastContent + newContent;
-    }
+    message.content.content = last.content.content + message.content.content;
   }
   Object.assign(last, message);
   return list;
