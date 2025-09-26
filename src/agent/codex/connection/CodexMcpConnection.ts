@@ -71,19 +71,34 @@ export class CodexMcpConnection {
   async start(cliPath: string, cwd: string, args: string[] = []): Promise<void> {
     // Default to "codex mcp serve" to start MCP server
     const command = cliPath || 'codex';
-    const finalArgs = args.length ? args : ['mcp', 'serve'];
 
+    const cleanEnv = { ...process.env };
+    delete cleanEnv.NODE_OPTIONS;
+    delete cleanEnv.NODE_INSPECT;
+    delete cleanEnv.NODE_DEBUG;
+
+    const isWindows = process.platform === 'win32';
+    const spawnCommand = isWindows ? 'npx.cmd' : 'npx';
+    const finalArgs = args.length ? args : ['mcp', 'serve'];
+    console.log('🚀 [CodexMcpConnection] Starting MCP connection:', {
+      command,
+      args: finalArgs,
+      cwd,
+      isWindows,
+      spawnCommand,
+      cliPath,
+    });
     return new Promise((resolve, reject) => {
       try {
-        this.child = spawn(command, finalArgs, {
+        this.child = spawn(cliPath, finalArgs, {
           cwd,
           stdio: ['pipe', 'pipe', 'pipe'],
           env: {
             ...process.env,
-            // Try environment variables to suppress interactive behavior
             CODEX_NO_INTERACTIVE: '1',
             CODEX_AUTO_CONTINUE: '1',
           },
+          shell: isWindows,
         });
 
         // Set up error handling for child process
@@ -118,6 +133,7 @@ export class CodexMcpConnection {
           hasOutput = true;
           buffer += d.toString();
           const lines = buffer.split('\n');
+          console.log('lines---->', lines);
           buffer = lines.pop() || '';
           for (const line of lines) {
             if (!line.trim()) continue;
@@ -208,7 +224,7 @@ export class CodexMcpConnection {
   async request<T = unknown>(method: string, params?: unknown, timeoutMs = 200000): Promise<T> {
     const id = this.nextId++;
     const req: JsonRpcRequest = { jsonrpc: JSONRPC_VERSION, id, method, params };
-
+    console.log('CodexMcpConnection request:', req);
     return new Promise<T>((resolve, reject) => {
       const timeout = setTimeout(() => {
         this.pending.delete(id);
