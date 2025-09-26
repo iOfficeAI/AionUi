@@ -272,12 +272,7 @@ export class CodexMessageProcessor {
       return '';
     }
 
-    return (
-      content
-        .replace(/^\s*$/gm, '')
-        // 只清理开头和结尾的空白，保留文本中间的空格
-        .trim()
-    );
+    return content;
   }
 
   private filterInternalMarkers(content: string): string {
