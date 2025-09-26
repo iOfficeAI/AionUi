@@ -129,7 +129,7 @@ export class CodexMcpAgent {
     return false;
   }
 
-  async newSession(cwd?: string): Promise<{ sessionId: string }> {
+  async newSession(cwd?: string, initialPrompt?: string): Promise<{ sessionId: string }> {
     // Establish Codex conversation via MCP tool call; we will keep the generated ID locally
     const convId = this.conversationId || this.generateConversationId();
     this.conversationId = convId;
@@ -144,7 +144,7 @@ export class CodexMcpAgent {
           {
             name: 'codex',
             arguments: {
-              prompt: '',
+              prompt: initialPrompt || '',
               cwd: cwd || this.workingDir,
             },
             config: { conversationId: convId },
