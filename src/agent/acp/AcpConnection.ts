@@ -6,7 +6,7 @@
 
 import { JSONRPC_VERSION } from '@/common/acpTypes';
 import type { AcpBackend, AcpMessage, AcpNotification, AcpPermissionRequest, AcpRequest, AcpResponse, AcpSessionUpdate } from '@/common/acpTypes';
-import type { ChildProcess } from 'child_process';
+import type { ChildProcess, SpawnOptions } from 'child_process';
 import { spawn } from 'child_process';
 
 interface PendingRequest {
@@ -35,6 +35,48 @@ export class AcpConnection {
   public onEndTurn: () => void = () => {}; // Handler for end_turn messages
   public onFileOperation: (operation: { method: string; path: string; content?: string; sessionId: string }) => void = () => {};
 
+  // 通用的spawn配置生成方法
+  private createGenericSpawnConfig(backend: string, cliPath: string, workingDir: string) {
+    const isWindows = process.platform === 'win32';
+    const env = {
+      ...process.env,
+    };
+
+    let spawnCommand: string;
+    let spawnArgs: string[];
+
+    if (cliPath.startsWith('npx ')) {
+      // For "npx @package/name", split into command and arguments
+      const parts = cliPath.split(' ');
+      spawnCommand = isWindows ? 'npx.cmd' : 'npx';
+      spawnArgs = [...parts.slice(1), '--experimental-acp'];
+    } else {
+      // For regular paths like '/usr/local/bin/cli'
+      spawnCommand = cliPath;
+      spawnArgs = ['--experimental-acp'];
+    }
+
+    const options: SpawnOptions = {
+      cwd: workingDir,
+      stdio: ['pipe', 'pipe', 'pipe'],
+      env,
+      shell: isWindows,
+    };
+
+    return {
+      command: spawnCommand,
+      args: spawnArgs,
+      options,
+    };
+  }
+
+  // 通用的后端连接方法
+  private async connectGenericBackend(backend: 'gemini' | 'qwen' | 'iflow', cliPath: string, workingDir: string): Promise<void> {
+    const config = this.createGenericSpawnConfig(backend, cliPath, workingDir);
+    this.child = spawn(config.command, config.args, config.options);
+    await this.setupChildProcessHandlers(backend);
+  }
+
   async connect(backend: AcpBackend, cliPath?: string, workingDir: string = process.cwd()): Promise<void> {
     if (this.child) {
       this.disconnect();
@@ -48,15 +90,12 @@ export class AcpConnection {
         break;
 
       case 'gemini':
-        await this.connectGemini(cliPath, workingDir);
-        break;
-
       case 'qwen':
-        await this.connectQwen(cliPath, workingDir);
-        break;
-
       case 'iflow':
-        await this.connectIflow(cliPath, workingDir);
+        if (!cliPath) {
+          throw new Error(`${backend} CLI path is required for ${backend} backend`);
+        }
+        await this.connectGenericBackend(backend, cliPath, workingDir);
         break;
 
       default:
@@ -84,114 +123,10 @@ export class AcpConnection {
       cwd: workingDir,
       stdio: ['pipe', 'pipe', 'pipe'],
       env: cleanEnv,
+      shell: isWindows,
     });
 
     await this.setupChildProcessHandlers('claude');
-  }
-
-  private async connectGemini(cliPath?: string, workingDir: string = process.cwd()): Promise<void> {
-    if (!cliPath) {
-      throw new Error('Gemini CLI path is required for gemini backend');
-    }
-
-    // Clean environment - let Gemini CLI handle its own authentication
-    const env: Record<string, string | undefined> = {
-      ...process.env,
-    };
-
-    // Handle npx command format properly
-    let spawnCommand: string;
-    let spawnArgs: string[];
-
-    if (cliPath.startsWith('npx ')) {
-      // For "npx @google/gemini-cli", split into command and arguments
-      const parts = cliPath.split(' ');
-      const isWindows = process.platform === 'win32';
-      spawnCommand = isWindows ? 'npx.cmd' : 'npx'; // Use npx.cmd on Windows
-      spawnArgs = [...parts.slice(1), '--experimental-acp']; // ['@google/gemini-cli', '--experimental-acp']
-    } else {
-      // For regular paths like '/usr/local/bin/gemini'
-      spawnCommand = cliPath;
-      spawnArgs = ['--experimental-acp'];
-    }
-
-    this.child = spawn(spawnCommand, spawnArgs, {
-      cwd: workingDir,
-      stdio: ['pipe', 'pipe', 'pipe'],
-      env,
-    });
-
-    await this.setupChildProcessHandlers('gemini');
-  }
-
-  private async connectQwen(cliPath?: string, workingDir: string = process.cwd()): Promise<void> {
-    if (!cliPath) {
-      throw new Error('Qwen Code CLI path is required for qwen backend');
-    }
-
-    // Clean environment - let Qwen CLI handle its own authentication
-    const env: Record<string, string | undefined> = {
-      ...process.env,
-    };
-
-    // Handle command format
-    let spawnCommand: string;
-    let spawnArgs: string[];
-
-    if (cliPath.startsWith('npx ')) {
-      // For "npx @qwen-code/qwen-code", split into command and arguments
-      const parts = cliPath.split(' ');
-      const isWindows = process.platform === 'win32';
-      spawnCommand = isWindows ? 'npx.cmd' : 'npx'; // Use npx.cmd on Windows
-      spawnArgs = [...parts.slice(1), '--experimental-acp']; // ['@qwen-code/qwen-code', '--experimental-acp']
-    } else {
-      // For regular paths like '/usr/local/bin/qwen'
-      spawnCommand = cliPath;
-      spawnArgs = ['--experimental-acp'];
-    }
-
-    this.child = spawn(spawnCommand, spawnArgs, {
-      cwd: workingDir,
-      stdio: ['pipe', 'pipe', 'pipe'],
-      env,
-    });
-
-    await this.setupChildProcessHandlers('qwen');
-  }
-
-  private async connectIflow(cliPath?: string, workingDir: string = process.cwd()): Promise<void> {
-    if (!cliPath) {
-      throw new Error('iFlow CLI path is required for iflow backend');
-    }
-
-    // Clean environment - let iFlow CLI handle its own authentication
-    const env: Record<string, string | undefined> = {
-      ...process.env,
-    };
-
-    // Handle command format
-    let spawnCommand: string;
-    let spawnArgs: string[];
-
-    if (cliPath.startsWith('npx ')) {
-      // For "npx iflow", split into command and arguments
-      const parts = cliPath.split(' ');
-      const isWindows = process.platform === 'win32';
-      spawnCommand = isWindows ? 'npx.cmd' : 'npx'; // Use npx.cmd on Windows
-      spawnArgs = [...parts.slice(1), '--experimental-acp']; // ['iflow', '--experimental-acp']
-    } else {
-      // For regular paths like '/usr/local/bin/iflow'
-      spawnCommand = cliPath;
-      spawnArgs = ['--experimental-acp'];
-    }
-
-    this.child = spawn(spawnCommand, spawnArgs, {
-      cwd: workingDir,
-      stdio: ['pipe', 'pipe', 'pipe'],
-      env,
-    });
-
-    await this.setupChildProcessHandlers('iflow');
   }
 
   private async setupChildProcessHandlers(backend: string): Promise<void> {
@@ -253,8 +188,8 @@ export class AcpConnection {
       this.initialize(),
       new Promise((_, reject) =>
         setTimeout(() => {
-          reject(new Error('Initialize timeout after 20 seconds'));
-        }, 20000)
+          reject(new Error('Initialize timeout after 60 seconds'));
+        }, 60000)
       ),
     ]);
   }
@@ -270,7 +205,7 @@ export class AcpConnection {
 
     return new Promise((resolve, reject) => {
       // Use longer timeout for session/prompt requests as they involve LLM processing
-      const timeoutDuration = method === 'session/prompt' ? 120000 : 15000; // 2 minutes for prompts, 15s for others
+      const timeoutDuration = method === 'session/prompt' ? 120000 : 60000; // 2 minutes for prompts, 1 minute for others
       const startTime = Date.now();
 
       const createTimeoutHandler = () => {
@@ -369,8 +304,12 @@ export class AcpConnection {
 
   private sendMessage(message: AcpRequest | AcpNotification): void {
     if (this.child?.stdin) {
-      const jsonString = JSON.stringify(message) + '\n';
-      this.child.stdin.write(jsonString);
+      const jsonString = JSON.stringify(message);
+      // Windows 可能需要 \r\n 换行符
+      const lineEnding = process.platform === 'win32' ? '\r\n' : '\n';
+      const fullMessage = jsonString + lineEnding;
+
+      this.child.stdin.write(fullMessage);
     } else {
       // Child process not available, cannot send message
     }
@@ -378,8 +317,12 @@ export class AcpConnection {
 
   private sendResponseMessage(response: AcpResponse): void {
     if (this.child?.stdin) {
-      const jsonString = JSON.stringify(response) + '\n';
-      this.child.stdin.write(jsonString);
+      const jsonString = JSON.stringify(response);
+      // Windows 可能需要 \r\n 换行符
+      const lineEnding = process.platform === 'win32' ? '\r\n' : '\n';
+      const fullMessage = jsonString + lineEnding;
+
+      this.child.stdin.write(fullMessage);
     }
   }
 
