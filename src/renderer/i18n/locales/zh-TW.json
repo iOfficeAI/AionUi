@@ -29,7 +29,8 @@
       "uploadFile": "上傳檔案",
       "linkFolder": "開啟資料夾",
       "newConversation": "新對話",
-      "multiAgentModeEnabled": "已進入多智能體模式"
+      "multiAgentModeEnabled": "已進入多智能體模式",
+      "selectModel": "選擇模型"
     },
     "history": {
       "today": "今天",
@@ -46,7 +47,8 @@
       "title": "工作空間",
       "empty": "空的",
       "emptyDescription": "上傳檔案或開啟資料夾後，檔案將顯示在這裡",
-      "searchPlaceholder": "搜尋檔案..."
+      "searchPlaceholder": "搜尋檔案...",
+      "createNewConversation": "當前空間創建新對話"
     },
     "chat": {
       "noModelSelected": "當前會話未選擇模型，無法發送訊息"
@@ -97,7 +99,19 @@
     "tools": "工具配置",
     "imageGenerationModel": "圖像模型",
     "imageGenerationGuide": "圖像模型配置指南",
-    "noAvailable": "暫無可用圖像模型，請先配置。"
+    "noAvailable": "暫無可用圖像模型，請先配置。",
+    "noConfiguredModels": "暫無已配置的模型",
+    "needHelpConfigGuide": "需要幫助？查看詳細的",
+    "configGuide": "配置指南",
+    "configGuideSuffix": "。",
+    "needHelpTooltip": "如需幫助，請查看",
+    "noAvailableModels": "暫無可用模型",
+    "appDescription": "Free, local, open-source GUI app for Gemini CLI",
+    "helpDocumentation": "幫助文檔",
+    "updateLog": "更新日誌",
+    "feedback": "意見反饋",
+    "contactMe": "聯繫我",
+    "officialWebsite": "官網"
   },
   "messages": {
     "conversationInProgress": "目前正在進行對話...",

@@ -11,15 +11,15 @@ import { ConfigStorage } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import ClaudeLogo from '@/renderer/assets/logos/claude.svg';
 import GeminiLogo from '@/renderer/assets/logos/gemini.svg';
-import QwenLogo from '@/renderer/assets/logos/qwen.svg';
 import IflowLogo from '@/renderer/assets/logos/iflow.svg';
-import { geminiModeList } from '@/renderer/hooks/useModeModeList';
-import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
-import { allSupportedExts, type FileMetadata, getCleanFileNames } from '@/renderer/services/FileService';
-import { formatFilesForMessage } from '@/renderer/hooks/useSendBoxFiles';
-import { usePasteService } from '@/renderer/hooks/usePasteService';
-import { useDragUpload } from '@/renderer/hooks/useDragUpload';
+import QwenLogo from '@/renderer/assets/logos/qwen.svg';
 import { useCompositionInput } from '@/renderer/hooks/useCompositionInput';
+import { useDragUpload } from '@/renderer/hooks/useDragUpload';
+import { geminiModeList } from '@/renderer/hooks/useModeModeList';
+import { usePasteService } from '@/renderer/hooks/usePasteService';
+import { formatFilesForMessage } from '@/renderer/hooks/useSendBoxFiles';
+import { allSupportedExts, type FileMetadata, getCleanFileNames } from '@/renderer/services/FileService';
+import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
 import { Button, ConfigProvider, Dropdown, Input, Menu, Radio, Space, Tooltip } from '@arco-design/web-react';
 import { ArrowUp, Plus } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -350,28 +350,49 @@ const Guid: React.FC = () => {
                   trigger='hover'
                   droplist={
                     <Menu selectedKeys={currentModel ? [currentModel.id + currentModel.useModel] : []}>
-                      {(modelList || []).map((provider) => {
-                        const availableModels = getAvailableModels(provider);
-                        return (
-                          <Menu.ItemGroup title={provider.name} key={provider.id}>
-                            {availableModels.map((modelName) => (
-                              <Menu.Item
-                                key={provider.id + modelName}
-                                className={currentModel?.id + currentModel?.useModel === provider.id + modelName ? '!bg-#f2f3f5' : ''}
-                                onClick={() => {
-                                  setCurrentModel({ ...provider, useModel: modelName });
-                                }}
-                              >
-                                {modelName}
-                              </Menu.Item>
-                            ))}
-                          </Menu.ItemGroup>
-                        );
-                      })}
+                      {!modelList || modelList.length === 0 ? (
+                        <>
+                          {/* 暂无可用模型提示 */}
+                          <Menu.Item key='no-models' className='px-12px py-12px text-gray-500 text-14px text-center flex justify-center items-center' disabled>
+                            {t('settings.noAvailableModels')}
+                          </Menu.Item>
+                          {/* Add Model 选项 */}
+                          <Menu.Item key='add-model' className='text-12px text-gray-500' onClick={() => navigate('/settings/model')}>
+                            <Plus theme='outline' size='12' />
+                            {t('settings.addModel')}
+                          </Menu.Item>
+                        </>
+                      ) : (
+                        <>
+                          {(modelList || []).map((provider) => {
+                            const availableModels = getAvailableModels(provider);
+                            return (
+                              <Menu.ItemGroup title={provider.name} key={provider.id}>
+                                {availableModels.map((modelName) => (
+                                  <Menu.Item
+                                    key={provider.id + modelName}
+                                    className={currentModel?.id + currentModel?.useModel === provider.id + modelName ? '!bg-#f2f3f5' : ''}
+                                    onClick={() => {
+                                      setCurrentModel({ ...provider, useModel: modelName });
+                                    }}
+                                  >
+                                    {modelName}
+                                  </Menu.Item>
+                                ))}
+                              </Menu.ItemGroup>
+                            );
+                          })}
+                          {/* Add Model 选项 */}
+                          <Menu.Item key='add-model' className='text-12px text-gray-500' onClick={() => navigate('/settings/model')}>
+                            <Plus theme='outline' size='12' />
+                            {t('settings.addModel')}
+                          </Menu.Item>
+                        </>
+                      )}
                     </Menu>
                   }
                 >
-                  <Button shape='round'>{currentModel ? currentModel.useModel : 'Select Model'}</Button>
+                  <Button shape='round'>{currentModel ? currentModel.useModel : t('conversation.welcome.selectModel')}</Button>
                 </Dropdown>
               )}
             </div>

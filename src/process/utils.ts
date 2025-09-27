@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IDirOrFile } from '@/common/ipcBridge';
 import { AIONUI_TIMESTAMP_REGEX } from '@/common/constants';
+import type { IDirOrFile } from '@/common/ipcBridge';
 import { app } from 'electron';
 import { existsSync } from 'fs';
 import fs from 'fs/promises';
