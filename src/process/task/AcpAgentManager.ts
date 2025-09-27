@@ -28,10 +28,9 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
     this.conversation_id = data.conversation_id;
     this.workspace = data.workspace;
     this.options = data;
-    // this.initAgent(data);
   }
 
-  private initAgent(data: AcpAgentManagerData) {
+  initAgent(data: AcpAgentManagerData = this.options) {
     if (this.bootstrap) return this.bootstrap;
     this.bootstrap = ProcessConfig.get('acp.config').then((config) => {
       let cliPath = data.cliPath;

@@ -181,7 +181,11 @@ ipcBridge.conversation.create.provider(async (params): Promise<TChatConversation
     if (id) {
       conversation.id = id;
     }
-    WorkerManage.buildConversation(conversation);
+    const task = WorkerManage.buildConversation(conversation);
+    if (task.type === 'acp') {
+      //@todo
+      (task as AcpAgentManager).initAgent();
+    }
     await ProcessChat.update('chat.history', async (history) => {
       return [...(history || []).filter((item) => item.id !== conversation.id), conversation];
     });
