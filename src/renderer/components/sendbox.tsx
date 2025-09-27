@@ -6,13 +6,13 @@
 
 import { Button, Input, Message } from '@arco-design/web-react';
 import { ArrowUp } from '@icon-park/react';
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { FileMetadata } from '../services/FileService';
-import { allSupportedExts } from '../services/FileService';
+import { useCompositionInput } from '../hooks/useCompositionInput';
 import { useDragUpload } from '../hooks/useDragUpload';
 import { usePasteService } from '../hooks/usePasteService';
-import { useCompositionInput } from '../hooks/useCompositionInput';
+import type { FileMetadata } from '../services/FileService';
+import { allSupportedExts } from '../services/FileService';
 
 const constVoid = (): void => undefined;
 
