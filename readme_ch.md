@@ -8,23 +8,19 @@
   <img src="https://img.shields.io/badge/license-Apache--2.0-32CD32?style=flat-square&logo=apache&logoColor=white" alt="License">
   &nbsp;
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6C757D?style=flat-square&logo=linux&logoColor=white" alt="Platform">
-  &nbsp;
-  <img src="https://img.shields.io/badge/Electron-37.2.0-007ACC?style=flat-square&logo=electron&logoColor=white" alt="Electron">
-  &nbsp;
-  <img src="https://img.shields.io/badge/React-19.1.0-FF6B35?style=flat-square&logo=react&logoColor=white" alt="React">
 </p>
 
 ---
 
 <p align="center">
-  <strong>将命令行体验转换为现代、高效的 AI 聊天界面。</strong>
+  <strong>将命令行体验转换为现代、高效的 AI 聊天界面</strong>
 </p>
 
 <p align="center">
-  <a href="./readme.md">English</a> | <strong>简体中文</strong> | <a href="./readme_jp.md">日本語</a> |<a href="https://www.aionui.com" target="_blank">官网</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <a href="./readme.md">English</a> | <strong>简体中文</strong> | <a href="./readme_jp.md">日本語</a> | <a href="https://www.aionui.com" target="_blank">官网</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
 </p>
 
-## 🚀 **AionUi 可以做什么？**
+## 🎯 **AionUi 用例展示**
 
 ### 🤖 **多代理模式**
 
@@ -36,23 +32,21 @@ _无缝集成多个终端 AI 代理 - Gemini CLI、Claude Code、Qwen Code 等_
 
 ### 🎨 **AI 图像生成与编辑**
 
-_智能图像生成、编辑和识别，由 Gemini 2.5 Flash Image Preview 驱动 - 最先进的图像模型，同时支持其他领先的AI图像模型_
+_智能图像生成、编辑和识别，由 Gemini 2.5 Flash Image Preview 驱动_
 
 <p align="center">
   <img src="./resources/Image_Generation.gif" alt="AI 图像生成演示" width="800">
 </p>
 
-> 💡 **需要帮助设置免费图像生成？** [按照教程配置免费图像生成模型](https://github.com/iOfficeAI/AionUi/wiki/OpenRouter-Setup-and-Image-Generation) - OpenRouter 设置和免费 Gemini 2.5 Flash Image Preview 配置的完整分步指南。
-
-### 📁 **整理您的文件**
+### 📁 **智能文件管理**
 
 _批量重命名、自动整理、智能分类、文件合并_
 
 <p align="center">
-  <img src="https://github.com/iOfficeAI/AionUi/wiki/assets/gifs/file-management/file-organization.gif" alt="File Management Demo" width="800">
+  <img src="https://github.com/iOfficeAI/AionUi/wiki/assets/gifs/file-management/file-organization.gif" alt="文件管理演示" width="800">
 </p>
 
-### 📊 **让 Excel 更智能**
+### 📊 **Excel 智能处理**
 
 _AI 帮你创建、整理、分析、美化 Excel 文件_
 
@@ -60,7 +54,7 @@ _AI 帮你创建、整理、分析、美化 Excel 文件_
   <img src="./resources/generate_xlsx.gif" alt="Excel 处理演示" width="800">
 </p>
 
-### 💬 **同时处理多个任务**
+### 💬 **多任务并行处理**
 
 _开多个对话、任务不混乱、记忆独立、效率翻倍_
 
@@ -68,45 +62,15 @@ _开多个对话、任务不混乱、记忆独立、效率翻倍_
   <img src="./resources/multichat-side-by-side.gif" alt="对话管理演示" width="800">
 </p>
 
----
-
-**这只是 AionUi 能力的冰山一角！** 🚀
-
-想要探索更多功能？继续往下看，你会发现 AionUi 还能帮你：
-
-- 🎯 写代码、写文档、分析数据
-- 🗂️ 学习新知识、解答问题、翻译文本
-- ⚡ 以及更多日常工作和学习场景
-
 ## 📋 目录
 
 - [🤔 为什么需要 AionUi？](#-为什么需要-aionui)
-- [🚀 AionUi 可以做什么？](#-aionui-可以做什么？)
+- [🎯 AionUi 用例展示](#-aionui-用例展示)
 - [✨ 核心功能](#-核心功能)
-  - [💬 更好的聊天体验](#-更好的聊天体验)
-  - [🗂️ 文件管理更简单](#-文件管理更简单)
-  - [⚡ 开发效率提升](#-开发效率提升)
-  - [🤖 多 Agent 集成](#-多-agent-集成)
-  - [🔄 多 API Key 轮换服务](#-多-api-key-轮换服务)
-  - [🎨 AI 图像生成与编辑](#-ai-图像生成与编辑)
-  - [🔧 设置很简单](#-设置很简单)
 - [🚀 快速开始](#-快速开始)
-  - [📥 下载](#-下载)
-  - [📋 系统要求](#-系统要求)
-  - [🔧 安装](#-安装)
-  - [🏗️ 构建应用](#️-构建应用)
-- [🛠️ 技术栈](#️-技术栈)
-- [📁 项目结构](#-项目结构)
-- [🎯 使用场景](#-使用场景)
-- [🔧 配置](#-配置)
-  - [🔑 API 配置](#-api-配置)
-  - [🌐 代理配置](#-代理配置)
-- [🚀 未来畅想](#-未来畅想)
-  - [🤖 多种 AI 助手](#-多种-ai-助手)
-  - [🔄 灵活的 AI 模型选择](#-灵活的-ai-模型选择)
-  - [🎯 让 AI 智能体触手可及](#-让-ai-智能体触手可及)
+- [📚 详细文档](#-详细文档)
+- [🤝 社区与支持](#-社区与支持)
 - [📄 许可证](#-许可证)
-- [🤝 贡献](#-贡献)
 
 ---
 
@@ -173,7 +137,7 @@ AionUi 为需要更好工作流效率的用户提供了现代界面，同时**�
 
 - **多平台支持** - 支持 Gemini、OpenAI、ModelScope、OpenRouter 等
 - **灵活配置** - 每个平台可以配置多个模型，支持自定义地址
-- **登录方便** - 支持 Google 账号登录，不用记 API 密钥
+- **登录方便** - 支持 Google 账号登录或 API Key 认证，灵活选择
 - **自动修复** - 自动检测并修复配置问题，不用手动调试
 
 ## 🚀 快速开始
@@ -188,183 +152,44 @@ AionUi 为需要更好工作流效率的用户提供了现代界面，同时**�
   </a>
 </p>
 
-### 📋 系统要求
+### 🔧 简单安装
 
-- Node.js >= 16.0.0
-- npm >= 8.0.0
-- 至少一个 AI 服务的 API 密钥或认证配置：
-  - **Gemini**: [获取 Gemini API 密钥](https://aistudio.google.com/app/apikey)
-  - **OpenAI**: [获取 OpenAI API 密钥](https://platform.openai.com/api-keys)
-  - **ModelScope**: [获取 ModelScope API 密钥](https://modelscope.cn/my/myaccesstoken)
-  - **OpenRouter**: [获取 OpenRouter API 密钥](https://openrouter.ai/keys)
-  - **终端 AI 代理**: Gemini CLI、Claude Code、Qwen Code 等
+1. **下载并安装** AionUi 应用程序
+2. **配置 AI 服务** - 支持 Google 账号登录或 API Key 认证
+3. **开始使用** - 立即体验现代 AI 聊天界面
 
-### 🔧 安装
+> 💡 **需要详细配置指南？** 查看我们的 [完整安装教程](https://github.com/iOfficeAI/AionUi/wiki/Getting-Started-Chinese)
 
-1. **克隆仓库**
+## 📚 详细文档
 
-   ```bash
-    git clone https://github.com/iOfficeAI/AionUi.git
-    cd AionUi
-   ```
+### 🚀 快速入门
 
-2. **安装依赖**
+- [📖 完整安装指南](https://github.com/iOfficeAI/AionUi/wiki/Getting-Started-Chinese) - 从下载到配置的详细步骤
+- [⚙️ LLM 配置指南](https://github.com/iOfficeAI/AionUi/wiki/LLM-Configuration-Chinese) - 多平台 AI 模型配置
+- [🤖 多代理模式设置](https://github.com/iOfficeAI/AionUi/wiki/ACP-Setup-Chinese) - 集成终端 AI 代理
+- [🎨 图像生成配置](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide-Chinese) - AI 图像生成设置教程
 
-   ```bash
-   npm install
-   ```
+### 🎯 使用案例
 
-3. **配置认证信息**
-   - 打开应用程序并进入设置
-   - 配置至少一个 AI 服务的认证信息：
-     - **Gemini**: API 密钥、Vertex AI 或 OAuth 个人认证
-     - **OpenAI**: API 密钥或自定义端点
-     - **ModelScope**: API 密钥
-     - **OpenRouter**: API 密钥
-     - **终端 AI 代理**: 安装并配置 Claude Code、Qwen Code 等
+- [📁 文件管理](https://github.com/iOfficeAI/AionUi/wiki/file-management) - 智能文件整理
+- [📊 Excel 处理](https://github.com/iOfficeAI/AionUi/wiki/excel-processing) - AI 驱动的数据处理
+- [🎨 图像生成](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide-Chinese) - AI 图像创作
+- [📚 更多使用案例](https://github.com/iOfficeAI/AionUi/wiki/Use-Cases-Overview-Chinese)
 
-4. **启动应用程序**
-   ```bash
-   npm start
-   ```
+### ❓ 支持与帮助
 
-### 🏗️ 构建应用
+- [❓ 常见问题](https://github.com/iOfficeAI/AionUi/wiki/FAQ-Chinese) - 问题解答和故障排除
+- [🔧 配置与使用教程](https://github.com/iOfficeAI/AionUi/wiki/Configuration-Guides-Chinese) - 完整配置文档
 
-```bash
-# 构建 macOS 版本
-npm run build-mac --arch=arm64  # Apple Silicon
-npm run build-mac --arch=x64    # Intel
+## 🤝 社区与支持
 
-# 构建 Windows 版本
-npm run build-win
+### 💬 社区交流
 
-# 构建所有平台
-npm run build
-```
+- [💬 GitHub Discussions](https://github.com/iOfficeAI/AionUi/discussions) - 分享使用心得，获取帮助
+- [🐛 报告问题](https://github.com/iOfficeAI/AionUi/issues) - 反馈 Bug 或功能请求
+- [📦 发布更新](https://github.com/iOfficeAI/AionUi/releases) - 获取最新版本
 
-## 🛠️ 技术栈
-
-- **桌面应用**: Electron 37.2.0
-- **前端框架**: React 19.1.0
-- **UI 组件库**: Arco Design Web React
-- **AI 引擎**: Google Gemini CLI Core
-- **样式框架**: UnoCSS
-- **构建工具**: Webpack + TypeScript
-- **图标库**: IconPark React
-
-## 📁 项目结构
-
-```
-AionUI/
-├── src/
-│   ├── adapter/          # 适配器层
-│   ├── agent/           # AI 代理
-│   │   └── gemini/      # Gemini AI 集成
-│   ├── common/          # 通用模块
-│   ├── process/         # 主进程
-│   ├── renderer/        # 渲染进程
-│   │   ├── components/  # UI 组件
-│   │   ├── conversation/# 对话相关
-│   │   └── messages/    # 消息处理
-│   └── worker/          # 工作进程
-├── config/              # 配置文件
-├── public/              # 静态资源
-└── package.json
-```
-
-## 🎯 使用场景
-
-- **代码开发**: 代码审查、重构建议、错误修复
-- **文档编写**: 自动文档生成、报告摘要
-- **数据分析**: 数据可视化、分析报告
-- **项目管理**: 任务规划、进度跟踪
-- **学习助手**: 知识问答、概念解释
-- **日常办公**: 邮件写作、会议记录、工作总结
-- **学习提升**: 外语学习、技能培训、知识整理
-- **创意工作**: 文案创作、头脑风暴、灵感收集
-- **AI 图像生成**: 使用 AI 工具创建、编辑和增强图像
-- **多模型协作**: 根据任务特点选择最适合的 AI 模型
-  - **Gemini**: 代码生成、技术文档、图像生成与编辑
-  - **OpenAI**: 创意写作、内容创作
-  - **ModelScope**: 中文理解、本地化任务
-  - **OpenRouter**: 成本优化、模型对比
-- **多终端代理工作流**: 利用不同的终端 AI 代理处理专业任务
-  - **统一集成**: 与 Gemini CLI、Claude Code、Qwen Code 等终端 AI 代理无缝集成
-  - **高可用性**: 多个 API Key 之间的自动故障转移，确保服务不中断
-
-## 🔧 配置
-
-### 🔑 API Key 及认证配置
-
-支持多种认证方式和平台：
-
-1. **Gemini 平台**:
-   - Gemini API 密钥: 直接使用 Gemini API
-   - Vertex AI: 使用 Google Cloud Vertex AI
-   - 个人认证: OAuth 个人认证
-
-2. **其他平台**:
-   - **OpenAI 兼容**: 支持任何兼容 OpenAI API 的服务
-   - **ModelScope**: 支持阿里云 ModelScope 平台
-   - **OpenRouter**: 支持 OpenRouter 聚合平台
-   - **自定义平台**: 支持自定义 API 端点和模型
-
-3. **多 API Key 配置**:
-   - **Key 轮换**: 配置多个 API Key 进行自动轮换
-   - **错误恢复**: 90秒黑名单机制和自动重试
-   - **高可用性**: 在可用 Key 之间无缝故障转移
-   - **速率限制处理**: 智能重试逻辑以获得最佳性能
-
-### 🤖 多终端代理配置
-
-集成外部终端 AI 代理：
-
-- **Gemini CLI**: 内置支持 Gemini CLI（AionUi 核心）
-- **Claude Code**: 支持 Claude Code 终端代理
-- **Qwen Code**: 支持 Qwen Code 终端代理
-- **动态检测**: 自动发现可用的终端 AI 代理
-
-### 🌐 代理配置
-
-支持 HTTP 代理配置，适用于网络受限环境。
-
-## 🚀 未来畅想
-
-我们设想 AionUi 将发展成为一个**通用智能体平台**，让普通用户也能使用强大的 AI 智能体来处理日常工作：
-
-### 🤖 **多种 AI 助手**
-
-- **终端助手**：从 Gemini CLI 开始，以后还会支持更多终端工具
-- **浏览器助手**：集成开源的网页自动化工具，帮你处理网页任务
-- **统一界面**：所有 AI 助手都用同一个简单的聊天界面
-- **轻松发现**：新推出的 AI 助手可以轻松找到并使用
-
-### 🔄 **灵活的 AI 模型选择**
-
-- **多模型支持**：可以用 Gemini、Claude、GPT 等各种 AI 模型
-- **随时切换**：想用哪个模型就用哪个，不用改变工作方式
-- **独立配置**：每个模型都有独立的设置，互不干扰
-- **智能推荐**：根据任务自动推荐最合适的 AI 模型
-- **成本对比**：帮你选择性价比最高的模型
-
-### 🎯 **让 AI 智能体触手可及**
-
-我们的目标是让 AI 智能体变得简单易用，让普通用户也能轻松上手。我们相信：
-
-- **简单就是美**：复杂的 AI 功能，用起来应该很简单
-- **AI 要懂用户**：不需要用户去适应 AI，而是 AI 来适应用户
-- **开源更透明**：优先使用开源的智能体，让大家都能看到代码
-- **聊天最自然**：用聊天的方式就能完成复杂的工作
-
-AionUi 旨在弥合强大 AI 能力与日常可用性之间的差距，让复杂的 AI 智能体像与朋友聊天一样简单易用。
-
----
-
-## 📄 许可证
-
-本项目采用 [Apache-2.0](LICENSE) 许可证。
-
-## 🤝 贡献
+### 🤝 贡献代码
 
 欢迎提交 Issue 和 Pull Request！
 
@@ -375,6 +200,22 @@ AionUi 旨在弥合强大 AI 能力与日常可用性之间的差距，让复杂
 5. 打开 Pull Request
 
 ---
+
+## 📄 许可证
+
+本项目采用 [Apache-2.0](LICENSE) 许可证。
+
+---
+
+## 👥 贡献者
+
+感谢所有为 AionUi 做出贡献的开发者们！
+
+<p align="center">
+  <a href="https://github.com/iOfficeAI/AionUi/graphs/contributors">
+    <img src="https://contrib.rocks/image?repo=iOfficeAI/AionUi&max=20" alt="Contributors" />
+  </a>
+</p>
 
 ## 📊 Star 历史
 
