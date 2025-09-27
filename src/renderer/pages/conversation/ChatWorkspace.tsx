@@ -12,13 +12,13 @@ import { Empty, Input, Tree } from '@arco-design/web-react';
 import { Refresh, Search } from '@icon-park/react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-interface GeminiWorkspaceProps {
+interface WorkspaceProps {
   workspace: string;
   conversation_id: string;
   eventPrefix?: 'gemini' | 'acp';
 }
 
-const ChatWorkspace: React.FC<GeminiWorkspaceProps> = ({ conversation_id, workspace, eventPrefix = 'gemini' }) => {
+const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, eventPrefix = 'gemini' }) => {
   const { t } = useTranslation();
   const [selected, setSelected] = useState<string[]>([]);
   const [files, setFiles] = useState<IDirOrFile[]>([]);
