@@ -183,7 +183,7 @@ ipcBridge.conversation.create.provider(async (params): Promise<TChatConversation
     }
     WorkerManage.buildConversation(conversation);
     await ProcessChat.update('chat.history', async (history) => {
-      return [...history.filter((item) => item.id !== conversation.id), conversation];
+      return [...(history || []).filter((item) => item.id !== conversation.id), conversation];
     });
     return conversation;
   } catch (e) {
@@ -281,7 +281,6 @@ ipcBridge.acpConversation.sendMessage.provider(async ({ conversation_id, files, 
     return { success: false, msg: 'failed to establish ACP connection' };
   }
   if (task.type !== 'acp') return { success: false, msg: 'unsupported task type for ACP provider' };
-
   await copyFilesToDirectory(task.workspace, files);
 
   return task

@@ -13,8 +13,8 @@ import { Refresh, Search } from '@icon-park/react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 interface GeminiWorkspaceProps {
-  conversation_id: string;
   workspace: string;
+  conversation_id: string;
   eventPrefix?: 'gemini' | 'acp';
 }
 
@@ -32,7 +32,7 @@ const ChatWorkspace: React.FC<GeminiWorkspaceProps> = ({ conversation_id, worksp
     setSelected(files);
   });
 
-  const refreshWorkspace = (_eventPrefix: typeof eventPrefix, _conversation_id: string) => {
+  const refreshWorkspace = (_eventPrefix: typeof eventPrefix, conversation_id: string) => {
     setLoading(true);
     const startTime = Date.now();
 
@@ -43,13 +43,12 @@ const ChatWorkspace: React.FC<GeminiWorkspaceProps> = ({ conversation_id, worksp
         : ipcBridge.geminiConversation.getWorkspace;
 
     getWorkspaceMethod
-      .invoke({ conversation_id: _conversation_id })
+      .invoke({ conversation_id })
       .then((res) => {
         setFiles(res);
       })
-      .catch((error) => {
+      .catch(() => {
         // Silently handle getWorkspace errors
-        console.error('!!!!!!!!!! Failed to get workspace !!!!!!!!!!:', error);
       })
       .finally(() => {
         if (Date.now() - startTime > 1000) {
@@ -90,7 +89,7 @@ const ChatWorkspace: React.FC<GeminiWorkspaceProps> = ({ conversation_id, worksp
     };
   }, [conversation_id, eventPrefix]);
 
-  useAddEventListener(`${eventPrefix}.workspace.refresh`, () => refreshWorkspace(eventPrefix, conversation_id), [conversation_id, eventPrefix]);
+  useAddEventListener(`${eventPrefix}.workspace.refresh`, () => refreshWorkspace(eventPrefix, workspace), [workspace, eventPrefix]);
 
   // File search filter logic
   const filteredFiles = useMemo(() => {
