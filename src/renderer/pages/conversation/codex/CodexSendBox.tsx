@@ -114,31 +114,21 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
       }
 
       // 处理思考状态和内容，实现流式累积效果
-      if (message.type === 'agent_reasoning' || message.type === 'agent_reasoning_delta') {
+      if (message.type === 'agent_reasoning_delta' || message.type === 'agent_reasoning_raw_content_delta') {
         setIsThinking(true);
         // 更新思考内容，累积显示
         const deltaContent = (message.data as any)?.delta || (message.data as any)?.text || message.data || '';
+        thoughtRef.current.accumulatedDescription += deltaContent;
         if (deltaContent) {
-          thoughtRef.current.accumulatedDescription += deltaContent;
           setThought({
             subject: 'Thinking',
             description: thoughtRef.current.accumulatedDescription,
           });
+          thoughtRef.current.accumulatedDescription = '';
         }
-      } else if (message.type === 'agent_reasoning_raw_content' || message.type === 'agent_reasoning_raw_content_delta') {
-        // Immediately clear thinking state when reasoning is completed
-        setIsThinking(false);
-        // 清除思考内容
-        thoughtRef.current.accumulatedDescription = '';
-        setThought(null);
-      } else if (message.type === 'agent_reasoning_section_break') {
-        // 保持思考状态，但可以更新显示
-        thoughtRef.current.accumulatedDescription += '\nProcessing next step...';
-        setThought({
-          subject: 'Processing',
-          description: thoughtRef.current.accumulatedDescription,
-        });
-      } else if (message.type === 'agent_message_delta') {
+      }
+
+      if (message.type === 'agent_message_delta') {
         // Clear thinking state when agent starts responding with content
         setIsThinking(false);
         // 清除思考内容
@@ -330,8 +320,10 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
         <div
           className='px-10px py-10px rd-20px text-14px pb-40px  lh-20px color-#86909C mb-8px'
           style={{
+            maxHeight: '100px',
+            overflow: 'scroll',
             background: 'linear-gradient(90deg, #F0F3FF 0%, #F2F2F2 100%)',
-            transform: 'translateY(36px)',
+            marginBottom: '-36px',
           }}
         >
           <Tag color='arcoblue' size='small' className={'float-left mr-4px'}>

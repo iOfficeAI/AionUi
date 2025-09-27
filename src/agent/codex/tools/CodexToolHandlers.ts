@@ -83,25 +83,6 @@ export class CodexToolHandlers {
     );
   }
 
-  handleExecCommandEnd(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.EXEC_COMMAND_END }>) {
-    const callId = evt.data?.call_id;
-    if (!callId) return;
-    const code = typeof evt.data?.exit_code === 'number' ? evt.data.exit_code : -1;
-    const buf = this.cmdBuffers.get(callId) || { stdout: '', stderr: '', combined: '' };
-    const status = code === 0 ? 'Success' : 'Error';
-    this.emitToolGroup(
-      callId,
-      CodexAgentEventType.EXEC_COMMAND_END,
-      {
-        description: `Command finished with exit code ${code}`,
-        status,
-        resultDisplay: buf.combined,
-      },
-      evt.data
-    );
-    this.cmdBuffers.delete(callId);
-  }
-
   // Patch handlers
   handlePatchApplyBegin(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.PATCH_APPLY_BEGIN }>) {
     const callId = evt.data?.call_id || uuid();
