@@ -320,22 +320,6 @@ export class CodexMcpConnection {
         const msgType = (env.params as CodexEventParams).msg?.type;
         const callId = (env.params as CodexEventParams).msg?.call_id || (env.params as CodexEventParams).call_id;
 
-        // Filter out tool execution events for auto-approved requests
-        if (callId && this.autoApprovedCallIds.has(String(callId))) {
-          const toolExecutionTypes = ['exec_command_begin', 'exec_command_output_delta', 'exec_command_end', 'patch_apply_begin', 'patch_apply_end', 'mcp_tool_call_begin', 'mcp_tool_call_end', 'web_search_begin', 'web_search_end'];
-
-          if (toolExecutionTypes.includes(msgType)) {
-            // Clean up autoApprovedCallIds for completion events to prevent memory leaks
-            const completionTypes = ['exec_command_end', 'patch_apply_end', 'mcp_tool_call_end', 'web_search_end'];
-            if (completionTypes.includes(msgType)) {
-              this.autoApprovedCallIds.delete(String(callId));
-            }
-
-            // Skip forwarding tool execution events for auto-approved requests
-            return;
-          }
-        }
-
         if (msgType === 'apply_patch_approval_request' || msgType === 'exec_approval_request') {
           if ('id' in msg) {
             const reqId = msg.id as JsonRpcId;

@@ -4,11 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ipcBridge } from '@/common';
-import type { IResponseMessage } from '@/common/ipcBridge';
-import { transformMessage } from '@/common/chatLib';
 import { uuid } from '@/common/utils';
-import { addMessage, addOrUpdateMessage } from '@/process/message';
+import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -31,7 +28,8 @@ export class CodexFileOperationHandler {
 
   constructor(
     workingDirectory: string,
-    private conversation_id: string
+    private conversation_id: string,
+    private messageEmitter: ICodexMessageEmitter
   ) {
     this.workingDirectory = path.resolve(workingDirectory);
   }
@@ -183,15 +181,12 @@ export class CodexFileOperationHandler {
   private emitFileOperationMessage(operation: FileOperation): void {
     const formattedMessage = this.formatFileOperationMessage(operation);
 
-    const responseMessage: IResponseMessage = {
+    this.messageEmitter.emitAndPersistMessage({
       type: 'content',
       conversation_id: this.conversation_id,
       msg_id: uuid(),
       data: formattedMessage,
-    };
-
-    addOrUpdateMessage(this.conversation_id, transformMessage(responseMessage));
-    ipcBridge.codexConversation.responseStream.emit(responseMessage);
+    });
   }
 
   /**
@@ -220,15 +215,12 @@ export class CodexFileOperationHandler {
    * 发送错误消息
    */
   private emitErrorMessage(error: string): void {
-    const errorMessage: IResponseMessage = {
+    this.messageEmitter.emitAndPersistMessage({
       type: 'error',
       conversation_id: this.conversation_id,
       msg_id: uuid(),
       data: error,
-    };
-
-    addOrUpdateMessage(this.conversation_id, transformMessage(errorMessage));
-    ipcBridge.codexConversation.responseStream.emit(errorMessage);
+    });
   }
 
   /**

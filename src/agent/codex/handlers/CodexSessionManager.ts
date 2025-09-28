@@ -4,9 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ipcBridge } from '@/common';
-import type { IResponseMessage } from '@/common/ipcBridge';
 import { uuid } from '@/common/utils';
+import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
 import { randomBytes } from 'crypto';
 
 export type CodexSessionStatus = 'initializing' | 'connecting' | 'connected' | 'authenticated' | 'session_active' | 'error' | 'disconnected';
@@ -32,7 +31,10 @@ export class CodexSessionManager {
   private hasActiveSession: boolean = false;
   private timeout: number;
 
-  constructor(private config: CodexSessionConfig) {
+  constructor(
+    private config: CodexSessionConfig,
+    private messageEmitter: ICodexMessageEmitter
+  ) {
     this.timeout = config.timeout || 30000; // 30秒默认超时
   }
 
@@ -152,7 +154,7 @@ export class CodexSessionManager {
     this.status = status;
     // 更新本地状态即可，全局ID已确保唯一性
 
-    const statusMessage: IResponseMessage = {
+    this.messageEmitter.emitAndPersistMessage({
       type: 'codex_status',
       conversation_id: this.config.conversation_id,
       msg_id: globalStatusMessageId, // 使用全局状态消息ID
@@ -163,11 +165,7 @@ export class CodexSessionManager {
         isConnected: this.isConnected,
         hasActiveSession: this.hasActiveSession,
       },
-    };
-
-    // 只发送到当前会话，避免跨会话污染
-    // 不直接调用 addMessage，让 UI 层通过 responseStream 处理
-    ipcBridge.codexConversation.responseStream.emit(statusMessage);
+    });
   }
 
   /**
@@ -212,7 +210,7 @@ export class CodexSessionManager {
    * 发送会话事件
    */
   emitSessionEvent(eventType: string, data: unknown): void {
-    const eventMessage: IResponseMessage = {
+    this.messageEmitter.emitAndPersistMessage({
       type: 'codex_session_event',
       conversation_id: this.config.conversation_id,
       msg_id: uuid(),
@@ -222,9 +220,7 @@ export class CodexSessionManager {
         timestamp: Date.now(),
         payload: data,
       },
-    };
-
-    ipcBridge.codexConversation.responseStream.emit(eventMessage);
+    });
   }
 
   /**

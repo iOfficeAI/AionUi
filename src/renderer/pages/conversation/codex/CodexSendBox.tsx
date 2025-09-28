@@ -114,7 +114,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
       }
 
       // 处理思考状态和内容，实现流式累积效果
-      if (message.type === 'agent_reasoning_delta' || message.type === 'agent_reasoning_raw_content_delta') {
+      if (['agent_reasoning_delta', 'agent_reasoning_raw_content_delta'].includes(message.type)) {
         setIsThinking(true);
         // 更新思考内容，累积显示
         const deltaContent = (message.data as any)?.delta || (message.data as any)?.text || message.data || '';
@@ -125,17 +125,13 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
             description: thoughtRef.current.accumulatedDescription,
           });
         }
-      } else if (message.type === 'agent_reasoning_raw_content' || message.type === 'agent_reasoning_raw_content_delta') {
+      } else if (message.type === 'agent_reasoning_section_break') {
         // Immediately clear thinking state when reasoning is completed
         setIsThinking(false);
         // 清除思考内容
         thoughtRef.current.accumulatedDescription = '';
-        setThought(null);
-      } else if (message.type === 'agent_reasoning_section_break') {
-        // 保持思考状态，但可以更新显示
-        thoughtRef.current.accumulatedDescription += '\nProcessing next step...';
         setThought({
-          subject: 'Processing',
+          subject: '',
           description: thoughtRef.current.accumulatedDescription,
         });
       } else if (message.type === 'agent_message_delta') {
