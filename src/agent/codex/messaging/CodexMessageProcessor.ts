@@ -22,7 +22,7 @@ export class CodexMessageProcessor {
   ) {}
 
   processTaskStart() {
-    this.reasoningMsgId = uuid();
+    this.currentLoadingId = uuid();
     this.reasoningMsgId = uuid();
   }
 
