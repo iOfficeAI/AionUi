@@ -38,8 +38,6 @@ const composeCodexMessage = (message: TMessage | undefined, list: TMessage[] | u
   const existingMessage = list[existingMessageIndex];
 
   if (message.type === 'tips' && existingMessage.type === 'tips') {
-    // 对于tips类型消息（错误消息），直接替换内容
-    // 这样重试错误消息会更新现有的错误消息
     Object.assign(existingMessage, message);
     return list;
   }
@@ -63,8 +61,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
     [updateMessageList]
   );
   const [running, setRunning] = useState(false);
-  const [waitingForSession, setWaitingForSession] = useState(false);
-  const [isThinking, setIsThinking] = useState(false);
+  const [aiProcessing, setAiProcessing] = useState(false); // New loading state for AI response
   const [codexStatus, setCodexStatus] = useState<string | null>(null);
   const [thought, setThought] = useState<{ subject: string; description: string } | null>(null);
 
@@ -91,8 +88,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
     processedGlobalMessages.current.clear();
     // 重置所有运行状态，避免切换会话时状态污染
     setRunning(false);
-    setWaitingForSession(false);
-    setIsThinking(false);
+    setAiProcessing(false);
     setCodexStatus(null);
   }, [conversation_id]);
 
@@ -101,22 +97,15 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
       if (conversation_id !== message.conversation_id) {
         return;
       }
-
-      if (message.type === 'start') {
-        setRunning(true);
-        setWaitingForSession(true);
-      }
-      if (message.type === 'finish') {
-        setRunning(false);
-        setWaitingForSession(false);
-        setIsThinking(false);
-      }
       if (message.type === 'thought') {
         setThought(message.data);
       }
+      if (message.type === 'task_complete') {
+        setThought(message.data);
+        setAiProcessing(false);
+      }
       if (message.type === 'content' || message.type === 'user_content' || message.type === 'error') {
         // 收到内容消息时，确保清除思考状态（防止状态卡住）
-        setIsThinking(false);
         // 清除思考内容
         setThought(null);
         // 通用消息类型使用标准转换器
@@ -127,11 +116,6 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
         if (message.type === 'codex_status') {
           const statusData = message.data as { status: string; message: string };
           setCodexStatus(statusData.status);
-        }
-
-        // 当收到agent_message时，确保清除思考状态
-        if (message.type === 'agent_message') {
-          setIsThinking(false);
         }
 
         // Codex 特定消息类型使用专用转换器
@@ -178,8 +162,6 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
 
   const onSendHandler = async (message: string) => {
     const msg_id = uuid();
-    const loading_id = uuid();
-
     // 立即清空输入框和选择的文件，提升用户体验
     setContent('');
     emitter.emit('codex.selected.file.clear');
@@ -202,21 +184,17 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
       createdAt: Date.now(),
     };
     addOrUpdateMessage(userMessage, true); // 立即保存到存储，避免刷新丢失
-
-    // Set waiting state when sending message
-    setWaitingForSession(true);
-
+    setAiProcessing(true);
     try {
       await ipcBridge.codexConversation.sendMessage.invoke({
         input: message,
         msg_id,
         conversation_id,
         files: [...currentUploadFile, ...currentAtPath], // 包含上传文件和选中的工作空间文件
-        loading_id,
       });
     } finally {
       // Clear waiting state when done
-      setWaitingForSession(false);
+      setAiProcessing(false);
     }
   };
 
@@ -244,7 +222,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
 
       try {
         // Set waiting state when processing initial message
-        setWaitingForSession(true);
+        setAiProcessing(true);
 
         const { input, files = [] } = JSON.parse(stored) as { input: string; files?: string[] };
         // 使用固定的msg_id，基于conversation_id确保唯一性
@@ -273,7 +251,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
         sessionStorage.removeItem(processedKey);
       } finally {
         // Clear waiting state
-        setWaitingForSession(false);
+        setAiProcessing(false);
       }
     };
 
@@ -289,7 +267,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
 
   return (
     <div className='max-w-800px w-full mx-auto flex flex-col'>
-      {(isThinking || waitingForSession) && <ShimmerText duration={2}>{t('common.loading', { defaultValue: 'Please wait...' })}</ShimmerText>}
+      {aiProcessing && <ShimmerText duration={2}>{t('common.loading', { defaultValue: 'Please wait...' })}</ShimmerText>}
       {thought && (
         <div
           className='px-10px py-10px rd-20px text-14px pb-40px  lh-20px color-#86909C mb-8px'
@@ -310,14 +288,14 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
         value={content}
         onChange={(val) => {
           // Only allow content changes when not waiting for session or thinking
-          if (!waitingForSession && !isThinking) {
+          if (!aiProcessing) {
             setContent(val);
           }
         }}
         loading={running}
-        disabled={waitingForSession || isThinking}
+        disabled={aiProcessing}
         placeholder={
-          waitingForSession || isThinking
+          aiProcessing
             ? 'Please wait...'
             : t('acp.sendbox.placeholder', {
                 backend: 'Codex',

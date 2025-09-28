@@ -48,11 +48,8 @@ const useAcpMessage = (conversation_id: string) => {
           break;
         case 'finish':
           setRunning(false);
-          setThought({ subject: '', description: '' });
-          break;
-        case 'ai_end_turn':
-          // End AI processing state
           setAiProcessing(false);
+          setThought({ subject: '', description: '' });
           break;
         case 'content':
           // Clear thought when final answer arrives

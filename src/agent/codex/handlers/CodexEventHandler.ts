@@ -74,19 +74,9 @@ export class CodexEventHandler {
       return;
     }
 
-    // Handle reasoning section breaks - send them to UI for dynamic thinking display
-    //
     if (type === CodexAgentEventType.AGENT_REASONING_SECTION_BREAK) {
       // 原始数据如下，暂时不知道应该怎么使用,先忽略
       // {"jsonrpc":"2.0","method":"codex/event","params":{"_meta":{"requestId":2},"id":"2","msg":{"type":"agent_reasoning_section_break"}}}
-      // this.messageProcessor.handleReasoningMessage(
-      //   evt as Extract<
-      //     CodexAgentEvent,
-      //     {
-      //       type: CodexAgentEventType.AGENT_REASONING_SECTION_BREAK;
-      //     }
-      //   >
-      // );
       return;
     }
 

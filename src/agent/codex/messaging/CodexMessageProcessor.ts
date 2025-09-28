@@ -29,6 +29,16 @@ export class CodexMessageProcessor {
   processTaskComplete() {
     this.currentLoadingId = null;
     this.reasoningMsgId = null;
+
+    this.messageEmitter.emitAndPersistMessage(
+      {
+        type: 'finish',
+        msg_id: uuid(),
+        conversation_id: this.conversation_id,
+        data: null,
+      },
+      false
+    );
   }
 
   handleReasoningMessage(
