@@ -13,7 +13,6 @@ export class CodexMessageProcessor {
   private currentLoadingId: string | null = null;
   private deltaTimeout: NodeJS.Timeout | null = null;
   private reasoningMsgId: string | null = null;
-
   private currentReason: string = '';
 
   constructor(
@@ -24,6 +23,7 @@ export class CodexMessageProcessor {
   processTaskStart() {
     this.currentLoadingId = uuid();
     this.reasoningMsgId = uuid();
+    this.currentReason = '';
   }
 
   processReasonSectionBreak() {
@@ -33,6 +33,7 @@ export class CodexMessageProcessor {
   processTaskComplete() {
     this.currentLoadingId = null;
     this.reasoningMsgId = null;
+    this.currentReason = '';
 
     this.messageEmitter.emitAndPersistMessage(
       {
