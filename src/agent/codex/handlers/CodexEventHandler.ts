@@ -144,6 +144,30 @@ export class CodexEventHandler {
       return;
     }
 
+    if (type === CodexAgentEventType.EXEC_COMMAND_BEGIN) {
+      this.toolHandlers.handleExecCommandBegin(
+        evt as Extract<
+          CodexAgentEvent,
+          {
+            type: CodexAgentEventType.EXEC_COMMAND_BEGIN;
+          }
+        >
+      );
+      return;
+    }
+
+    if (type === CodexAgentEventType.EXEC_COMMAND_OUTPUT_DELTA) {
+      this.toolHandlers.handleExecCommandOutputDelta(
+        evt as Extract<
+          CodexAgentEvent,
+          {
+            type: CodexAgentEventType.EXEC_COMMAND_OUTPUT_DELTA;
+          }
+        >
+      );
+      return;
+    }
+
     // Tool: mcp tool
     if (type === CodexAgentEventType.MCP_TOOL_CALL_BEGIN) {
       this.toolHandlers.handleMcpToolCallBegin(
