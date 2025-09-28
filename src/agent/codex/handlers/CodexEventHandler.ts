@@ -62,7 +62,7 @@ export class CodexEventHandler {
 
     // Handle reasoning deltas and reasoning messages - send them to UI for dynamic thinking display
     if (type === CodexAgentEventType.AGENT_REASONING_DELTA) {
-      this.handleReasoningMessage(
+      this.messageProcessor.handleReasoningMessage(
         evt as Extract<
           CodexAgentEvent,
           | {
@@ -76,7 +76,7 @@ export class CodexEventHandler {
 
     // Handle reasoning section breaks - send them to UI for dynamic thinking display
     if (type === CodexAgentEventType.AGENT_REASONING_SECTION_BREAK) {
-      this.handleReasoningMessage(
+      this.messageProcessor.handleReasoningMessage(
         evt as Extract<
           CodexAgentEvent,
           {
