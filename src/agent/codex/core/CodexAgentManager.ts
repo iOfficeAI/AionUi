@@ -17,10 +17,9 @@ import { t } from 'i18next';
 import { CodexEventHandler } from '@/agent/codex/handlers/CodexEventHandler';
 import { CodexSessionManager } from '@/agent/codex/handlers/CodexSessionManager';
 import { CodexFileOperationHandler } from '@/agent/codex/handlers/CodexFileOperationHandler';
-import { CodexMessageTransformer } from '@/agent/codex/messaging/CodexMessageTransformer';
 import type { CodexAgentManagerData, FileChange } from '@/common/codex/types';
 import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
-import { setAppConfig, getConfiguredAppClientName, getConfiguredAppClientVersion, getConfiguredCodexMcpProtocolVersion } from '../../../common/utils/appConfig';
+import { getConfiguredAppClientName, getConfiguredAppClientVersion, getConfiguredCodexMcpProtocolVersion, setAppConfig } from '../../../common/utils/appConfig';
 import { mapPermissionDecision } from '@/common/codex/utils';
 
 const APP_CLIENT_NAME = getConfiguredAppClientName();
@@ -395,13 +394,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
       }
 
       // Use Codex-specific transformer for Codex messages
-      let transformedMessage: TMessage | undefined;
-
-      if (CodexMessageTransformer.isCodexSpecificMessage(message.type)) {
-        transformedMessage = CodexMessageTransformer.transformCodexMessage(message);
-      } else {
-        transformedMessage = transformMessage(message);
-      }
+      const transformedMessage: TMessage = transformMessage(message);
 
       if (transformedMessage) {
         addOrUpdateMessage(this.conversation_id, transformedMessage);

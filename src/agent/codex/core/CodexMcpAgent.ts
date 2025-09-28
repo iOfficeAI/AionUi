@@ -6,7 +6,7 @@
 
 import type { NetworkError, CodexEventEnvelope } from '@/agent/codex/connection/CodexMcpConnection';
 import { CodexMcpConnection } from '@/agent/codex/connection/CodexMcpConnection';
-import type { FileChange, CodexEventParams } from '@/common/codex/types';
+import type { FileChange, CodexEventParams, CodexJsonRpcEvent } from '@/common/codex/types';
 import type { CodexEventHandler } from '@/agent/codex/handlers/CodexEventHandler';
 import type { CodexSessionManager } from '@/agent/codex/handlers/CodexSessionManager';
 import type { CodexFileOperationHandler } from '@/agent/codex/handlers/CodexFileOperationHandler';
@@ -239,14 +239,8 @@ export class CodexMcpAgent {
       }
 
       try {
-        // Forward as a normalized event envelope for future mapping
-        // Include _meta information from the original event for proper request tracking
-        const enrichedData = {
-          ...msg,
-          _meta: params?._meta, // Pass through meta information like requestId
-        };
-
-        this.eventHandler.handleEvent({ type: msg.type || 'unknown', data: enrichedData });
+        // Pass the original env object directly since it's already CodexJsonRpcEvent structure
+        this.eventHandler.handleEvent(env as CodexJsonRpcEvent);
       } catch {
         // Event handling failed, continue processing
       }
@@ -257,16 +251,16 @@ export class CodexMcpAgent {
       return;
     }
 
-    // Handle direct elicitation/create messages
-    if (env.method === 'elicitation/create') {
-      try {
-        // Forward the elicitation request directly via eventHandler
-        this.eventHandler.handleEvent({ type: 'elicitation/create', data: env.params });
-      } catch {
-        // Elicitation handling failed, continue processing
-      }
-      return;
-    }
+    // // Handle direct elicitation/create messages
+    // if (env.method === 'elicitation/create') {
+    //   try {
+    //     // Forward the elicitation request directly via eventHandler
+    //     this.eventHandler.handleEvent({ type: 'elicitation/create', data: env.params });
+    //   } catch {
+    //     // Elicitation handling failed, continue processing
+    //   }
+    //   return;
+    // }
   }
 
   private handleNetworkError(error: NetworkError): void {
@@ -276,15 +270,29 @@ export class CodexMcpAgent {
     } else {
       // Fallback: delegate to event handler
       try {
-        this.eventHandler.handleEvent({
-          type: 'network_error',
-          data: {
-            errorType: error.type,
-            message: error.suggestedAction,
-            originalError: error.originalError,
-            retryCount: error.retryCount,
+        // Create a CodexJsonRpcEvent structure for network errors
+        const networkErrorEvent = {
+          jsonrpc: '2.0' as const,
+          method: 'codex/event' as const,
+          params: {
+            _meta: {
+              requestId: Date.now(),
+              timestamp: Date.now(),
+              source: 'network',
+            },
+            id: `network_error_${Date.now()}`,
+            msg: {
+              type: 'stream_error' as const,
+              message: error.suggestedAction,
+              error: error.originalError?.toString(),
+              details: {
+                errorType: error.type,
+                retryCount: error.retryCount,
+              },
+            },
           },
-        });
+        };
+        this.eventHandler.handleEvent(networkErrorEvent);
       } catch {
         // Network error handling failed, continue processing
       }
