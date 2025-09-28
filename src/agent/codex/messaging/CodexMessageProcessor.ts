@@ -31,24 +31,6 @@ export class CodexMessageProcessor {
     this.currentLoadingId = null;
     this.currentContent = '';
     this.reasoningMsgId = null;
-
-    // // If we have accumulated content but no final agent_message was sent, send it now
-    // if (this.currentContent && this.currentContent.trim() && this.currentLoadingId) {
-    //   const message = this.createContentMessage(this.currentContent, this.currentLoadingId);
-    //   if (message) {
-    //     // 发送并持久化消息
-    //     this.messageEmitter.emitAndPersistMessage(message, true);
-    //   }
-    // }
-    //
-    // // Send finish signal to UI - but don't pass through transformMessage as it's internal
-    // const finishMessage = {
-    //   type: 'finish' as const,
-    //   conversation_id: this.conversation_id,
-    //   msg_id: this.currentLoadingId || uuid(),
-    //   data: {},
-    // };
-    // this.messageEmitter.emitAndPersistMessage(finishMessage, false);
   }
 
   handleReasoningMessage(
