@@ -48,13 +48,14 @@ export class CodexMessageProcessor {
         >
   ) {
     const eventData = evt.data as AgentReasoningDeltaData | AgentReasoningData | BaseCodexEventData | undefined;
+    this.currentReason = this.currentReason + (eventData as AgentReasoningDeltaData)?.delta || (eventData as AgentReasoningData)?.text || '';
     this.messageEmitter.emitAndPersistMessage(
       {
         type: 'thought',
         msg_id: this.reasoningMsgId, // 使用固定的msg_id确保消息合并
         conversation_id: this.conversation_id,
         data: {
-          description: this.currentReason + (eventData as AgentReasoningDeltaData)?.delta || (eventData as AgentReasoningData)?.text || '',
+          description: this.currentReason,
           subject: '',
         },
       },
