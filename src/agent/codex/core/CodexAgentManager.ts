@@ -20,7 +20,7 @@ import { CodexFileOperationHandler } from '@/agent/codex/handlers/CodexFileOpera
 import { CodexMessageTransformer } from '@/agent/codex/messaging/CodexMessageTransformer';
 import type { CodexAgentManagerData, FileChange } from '@/common/codex/types';
 import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
-import { setAppConfig, getConfiguredAppClientName, getConfiguredAppClientVersion, getConfiguredCodexMcpProtocolVersion } from './appConfig';
+import { setAppConfig, getConfiguredAppClientName, getConfiguredAppClientVersion, getConfiguredCodexMcpProtocolVersion } from '../../../common/utils/appConfig';
 import { mapPermissionDecision } from '@/common/codex/utils';
 
 const APP_CLIENT_NAME = getConfiguredAppClientName();
