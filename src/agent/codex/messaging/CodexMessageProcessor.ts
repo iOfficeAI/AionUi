@@ -5,10 +5,9 @@
  */
 
 import { uuid } from '@/common/utils';
-import { CodexAgentEventType } from '@/common/codex/types';
-import type { CodexAgentEvent, AgentReasoningDeltaData, AgentReasoningData } from '@/common/codex/types';
+import type { CodexEventMsg } from '@/common/codex/types';
 import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
-import { globalErrorService, ERROR_CODES } from '@/agent/codex/core/ErrorService';
+import { ERROR_CODES, globalErrorService } from '@/agent/codex/core/ErrorService';
 
 export class CodexMessageProcessor {
   private currentLoadingId: string | null = null;
@@ -47,30 +46,13 @@ export class CodexMessageProcessor {
     );
   }
 
-  handleReasoningMessage(
-    evt:
-      | Extract<
-          CodexAgentEvent,
-          {
-            type: CodexAgentEventType.AGENT_REASONING_DELTA;
-          }
-        >
-      | Extract<CodexAgentEvent, { type: CodexAgentEventType.AGENT_REASONING }>
-      | Extract<
-          CodexAgentEvent,
-          {
-            type: CodexAgentEventType.AGENT_REASONING_SECTION_BREAK;
-          }
-        >
-  ) {
-    const eventData = evt.data as AgentReasoningDeltaData | AgentReasoningData | Record<string, never> | undefined;
-
-    // 根据事件类型处理不同的数据结构
+  handleReasoningMessage(msg: Extract<CodexEventMsg, { type: 'agent_reasoning_delta' }> | Extract<CodexEventMsg, { type: 'agent_reasoning' }> | Extract<CodexEventMsg, { type: 'agent_reasoning_section_break' }>) {
+    // 根据事件类型处理不同的数据结构 - TypeScript 自动类型缩窄
     let deltaText = '';
-    if (evt.type === CodexAgentEventType.AGENT_REASONING_DELTA) {
-      deltaText = (eventData as AgentReasoningDeltaData)?.delta ?? '';
-    } else if (evt.type === CodexAgentEventType.AGENT_REASONING) {
-      deltaText = (eventData as AgentReasoningData)?.text ?? '';
+    if (msg.type === 'agent_reasoning_delta') {
+      deltaText = msg.delta ?? '';
+    } else if (msg.type === 'agent_reasoning') {
+      deltaText = msg.text ?? '';
     }
     // AGENT_REASONING_SECTION_BREAK 不添加内容，只是重置当前reasoning
 
@@ -89,8 +71,8 @@ export class CodexMessageProcessor {
     );
   }
 
-  processMessageDelta(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.AGENT_MESSAGE_DELTA }>) {
-    const rawDelta = evt.data.delta;
+  processMessageDelta(msg: Extract<CodexEventMsg, { type: 'agent_message_delta' }>) {
+    const rawDelta = msg.delta;
     const deltaMessage = {
       type: 'content' as const,
       conversation_id: this.conversation_id,
@@ -100,14 +82,14 @@ export class CodexMessageProcessor {
     this.messageEmitter.emitAndPersistMessage(deltaMessage);
   }
 
-  processStreamError(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.STREAM_ERROR }>) {
-    const message = evt.data.message || 'Codex stream error';
+  processStreamError(msg: Extract<CodexEventMsg, { type: 'stream_error' }>) {
+    const message = msg.message || 'Codex stream error';
 
     // Use error service to create standardized error
     const codexError = globalErrorService.createError(ERROR_CODES.NETWORK_UNKNOWN, message, {
       context: 'CodexMessageProcessor.processStreamError',
       technicalDetails: {
-        originalEvent: evt,
+        originalEvent: msg,
         eventType: 'STREAM_ERROR',
       },
     });
