@@ -6,7 +6,7 @@
 
 import type { IMessageToolGroup } from '@/common/chatLib';
 import { uuid } from '@/common/utils';
-import { CodexAgentEventType, type CodexAgentEvent, type FileChange, type McpInvocation } from '@/common/codex/types';
+import { CodexAgentEventType, type FileChange, type McpInvocation, type CodexEventMsg } from '@/common/codex/types';
 import { ToolRegistry, type EventDataMap } from '@/common/codex/utils';
 import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
 import type { IResponseMessage } from '@/common/ipcBridge';
@@ -28,9 +28,9 @@ export class CodexToolHandlers {
   }
 
   // Command execution handlers
-  handleExecCommandBegin(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.EXEC_COMMAND_BEGIN }>) {
-    const callId = evt.data.call_id;
-    const cmd = Array.isArray(evt.data.command) ? evt.data.command.join(' ') : String(evt.data.command);
+  handleExecCommandBegin(msg: Extract<CodexEventMsg, { type: 'exec_command_begin' }>) {
+    const callId = msg.call_id;
+    const cmd = Array.isArray(msg.command) ? msg.command.join(' ') : String(msg.command);
     this.cmdBuffers.set(callId, { stdout: '', stderr: '', combined: '' });
     // 试点启用确认流：先置为 Confirming
     this.pendingConfirmations.add(callId);
@@ -41,14 +41,14 @@ export class CodexToolHandlers {
         description: `Running: ${cmd}`,
         status: 'Confirming',
       },
-      evt.data
+      msg
     );
   }
 
-  handleExecCommandOutputDelta(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.EXEC_COMMAND_OUTPUT_DELTA }>) {
-    const callId = evt.data.call_id;
-    const stream = evt.data.stream;
-    let chunk = evt.data.chunk;
+  handleExecCommandOutputDelta(msg: Extract<CodexEventMsg, { type: 'exec_command_output_delta' }>) {
+    const callId = msg.call_id;
+    const stream = msg.stream;
+    let chunk = msg.chunk;
     // Handle base64-encoded chunks from Codex
     // Check if it's a valid base64 string before attempting to decode
     if (this.isValidBase64(chunk)) {
@@ -72,42 +72,43 @@ export class CodexToolHandlers {
         status: 'Executing',
         resultDisplay: buf.combined,
       },
-      evt.data
+      msg
     );
   }
 
   // Patch handlers
-  handlePatchApplyBegin(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.PATCH_APPLY_BEGIN }>) {
-    const callId = evt.data.call_id || uuid();
-    const auto = evt.data.auto_approved ? 'true' : 'false';
-    const summary = this.summarizePatch(evt.data.changes);
+  handlePatchApplyBegin(msg: Extract<CodexEventMsg, { type: 'patch_apply_begin' }>) {
+    const callId = msg.call_id || uuid();
+    const auto = msg.auto_approved ? 'true' : 'false';
+    const summary = this.summarizePatch(msg.changes);
     // Cache both summary and raw changes for later application
     this.patchBuffers.set(callId, summary);
-    if (evt.data.changes && typeof evt.data.changes === 'object') {
-      this.patchChanges.set(callId, evt.data.changes as Record<string, FileChange>);
+    if (msg.changes && typeof msg.changes === 'object') {
+      // msg.changes 已经有正确的类型定义，无需类型断言
+      this.patchChanges.set(callId, msg.changes);
     }
     // 对未自动批准的变更设置确认
-    if (!evt.data.auto_approved) this.pendingConfirmations.add(callId);
+    if (!msg.auto_approved) this.pendingConfirmations.add(callId);
     this.emitToolGroup(
       callId,
       CodexAgentEventType.PATCH_APPLY_BEGIN,
       {
         description: `apply_patch auto_approved=${auto}`,
-        status: evt.data.auto_approved ? 'Executing' : 'Confirming',
+        status: msg.auto_approved ? 'Executing' : 'Confirming',
         resultDisplay: summary,
       },
-      evt.data
+      msg
     );
     // If auto-approved, immediately attempt to apply changes
-    if (evt.data.auto_approved) {
+    if (msg.auto_approved) {
       this.applyPatchChanges(callId).catch((): void => void 0);
     }
   }
 
-  handlePatchApplyEnd(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.PATCH_APPLY_END }>) {
-    const callId = evt.data.call_id;
+  handlePatchApplyEnd(msg: Extract<CodexEventMsg, { type: 'patch_apply_end' }>) {
+    const callId = msg.call_id;
     if (!callId) return;
-    const ok = !!evt.data.success;
+    const ok = !!msg.success;
     const summary = this.patchBuffers.get(callId) || '';
     this.emitToolGroup(
       callId,
@@ -117,16 +118,18 @@ export class CodexToolHandlers {
         status: ok ? 'Success' : 'Error',
         resultDisplay: summary,
       },
-      evt.data
+      msg
     );
     this.patchBuffers.delete(callId);
     this.patchChanges.delete(callId);
   }
 
   // MCP tool handlers
-  handleMcpToolCallBegin(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.MCP_TOOL_CALL_BEGIN }>) {
-    const callId = evt.data.call_id || uuid();
-    const inv = evt.data.invocation || {};
+  handleMcpToolCallBegin(msg: Extract<CodexEventMsg, { type: 'mcp_tool_call_begin' }>) {
+    // MCP events don't have call_id, generate one based on tool name
+    const inv = msg.invocation || {};
+    const toolName = inv.tool || inv.name || inv.method || 'unknown';
+    const callId = `mcp_${toolName}_${uuid()}`;
     const title = this.formatMcpInvocation(inv);
     this.emitToolGroup(
       callId,
@@ -135,17 +138,26 @@ export class CodexToolHandlers {
         description: `${title} (beginning)`,
         status: 'Executing',
       },
-      evt.data
+      msg
     );
   }
 
-  handleMcpToolCallEnd(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.MCP_TOOL_CALL_END }>) {
-    const callId = evt.data.call_id || uuid();
-    const inv = evt.data.invocation || {};
+  handleMcpToolCallEnd(msg: Extract<CodexEventMsg, { type: 'mcp_tool_call_end' }>) {
+    // MCP events don't have call_id, generate one based on tool name
+    const inv = msg.invocation || {};
+    const toolName = inv.tool || inv.name || inv.method || 'unknown';
+    const callId = `mcp_${toolName}_${uuid()}`;
     const title = this.formatMcpInvocation(inv);
-    const result = evt.data.result as unknown;
-    const resultObj: Record<string, unknown> | undefined = typeof result === 'object' && result !== null ? (result as Record<string, unknown>) : undefined;
-    const isError = !!resultObj && ('Err' in resultObj || resultObj['is_error'] === true);
+    const result = msg.result;
+
+    // 类型安全的错误检查，使用 in 操作符进行类型保护
+    const isError = (() => {
+      if (typeof result === 'object' && result !== null) {
+        return 'Err' in result || ('is_error' in result && result.is_error === true);
+      }
+      return false;
+    })();
+
     this.emitToolGroup(
       callId,
       CodexAgentEventType.MCP_TOOL_CALL_END,
@@ -154,13 +166,13 @@ export class CodexToolHandlers {
         status: isError ? 'Error' : 'Success',
         resultDisplay: typeof result === 'string' ? result : JSON.stringify(result, null, 2),
       },
-      evt.data
+      msg
     );
   }
 
   // Web search handlers
-  handleWebSearchBegin(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.WEB_SEARCH_BEGIN }>) {
-    const callId = evt.data.call_id || uuid();
+  handleWebSearchBegin(msg: Extract<CodexEventMsg, { type: 'web_search_begin' }>) {
+    const callId = msg.call_id || uuid();
     this.emitToolGroup(
       callId,
       CodexAgentEventType.WEB_SEARCH_BEGIN,
@@ -168,13 +180,13 @@ export class CodexToolHandlers {
         description: 'Searching web...',
         status: 'Executing',
       },
-      evt.data
+      msg
     );
   }
 
-  handleWebSearchEnd(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.WEB_SEARCH_END }>) {
-    const callId = evt.data.call_id || uuid();
-    const query = evt.data.query || '';
+  handleWebSearchEnd(msg: Extract<CodexEventMsg, { type: 'web_search_end' }>) {
+    const callId = msg.call_id || uuid();
+    const query = msg.query || '';
     this.emitToolGroup(
       callId,
       CodexAgentEventType.WEB_SEARCH_END,
@@ -182,7 +194,7 @@ export class CodexToolHandlers {
         description: `Web search completed: ${query}`,
         status: 'Success',
       },
-      evt.data
+      msg
     );
   }
 
@@ -251,8 +263,12 @@ export class CodexToolHandlers {
       .map(([file, change]) => {
         if (typeof change === 'object' && change !== null) {
           let action: string = 'modify';
-          if ('type' in (change as any) && (change as any).type) action = String((change as any).type);
-          else if ('action' in (change as any) && (change as any).action) action = String((change as any).action);
+          // FileChange 有明确的 type 结构，直接使用类型安全的访问
+          if ('type' in change && typeof change.type === 'string') {
+            action = change.type;
+          } else if ('action' in change && typeof change.action === 'string') {
+            action = change.action;
+          }
           return `${action}: ${file}`;
         }
         return `modify: ${file}`;
