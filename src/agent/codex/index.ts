@@ -24,5 +24,5 @@ export { CodexMessageTransformer } from './messaging/CodexMessageTransformer';
 export { type ICodexMessageEmitter } from './messaging/CodexMessageEmitter';
 
 // Tools Layer
-export { CodexToolHandlers } from './tools/CodexToolHandlers';
+export { CodexToolHandlers } from './handlers/CodexToolHandlers';
 export { ToolRegistry, ToolCategory, OutputFormat, RendererType, type ToolDefinition, type ToolCapabilities, type ToolRenderer, type ToolAvailability, type McpToolInfo } from '@/common/codex/utils';
