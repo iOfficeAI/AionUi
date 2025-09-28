@@ -5,9 +5,10 @@
  */
 
 import { uuid } from '@/common/utils';
-import type { CodexAgentEventType, CodexAgentEvent } from '@/common/codex/types';
+import type { CodexAgentEventType, CodexAgentEvent, AgentReasoningDeltaData, AgentReasoningData, BaseCodexEventData } from '@/common/codex/types';
 import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
 import { globalErrorService, ERROR_CODES } from '@/agent/codex/core/ErrorService';
+import type { IResponseMessage } from '@/common/ipcBridge';
 
 export class CodexMessageProcessor {
   private currentLoadingId: string | null = null;
@@ -18,6 +19,41 @@ export class CodexMessageProcessor {
     private conversation_id: string,
     private messageEmitter: ICodexMessageEmitter
   ) {}
+
+  handleReasoningMessage(
+    evt:
+      | Extract<
+          CodexAgentEvent,
+          {
+            type: CodexAgentEventType.AGENT_REASONING_DELTA;
+          }
+        >
+      | Extract<CodexAgentEvent, { type: CodexAgentEventType.AGENT_REASONING }>
+      | Extract<
+          CodexAgentEvent,
+          {
+            type: CodexAgentEventType.AGENT_REASONING_SECTION_BREAK;
+          }
+        >
+  ) {
+    const eventData = evt.data as AgentReasoningDeltaData | AgentReasoningData | BaseCodexEventData | undefined;
+
+    // 为推理消息使用固定的msg_id，确保所有推理消息都被合并到同一条消息中
+    if (!this.currentLoadingId) {
+      this.currentLoadingId = uuid();
+    }
+
+    // Create a standard message format for reasoning content
+    const standardMessage: IResponseMessage = {
+      type: evt.type,
+      msg_id: this.currentLoadingId, // 使用固定的msg_id确保消息合并
+      conversation_id: this.conversation_id,
+      data: (eventData as AgentReasoningDeltaData)?.delta || (eventData as AgentReasoningData)?.text || eventData || '',
+    };
+
+    // Transform and persist message, then emit to UI
+    this.messageEmitter.emitAndPersistMessage(standardMessage, true);
+  }
 
   processMessageDelta(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.AGENT_MESSAGE_DELTA }>) {
     // 只在没有当前loading ID时创建新的，不因requestId变化而重置
@@ -60,12 +96,6 @@ export class CodexMessageProcessor {
       data: {},
     };
     this.messageEmitter.emitAndPersistMessage(finishMessage, false);
-
-    // 延迟重置，确保所有消息都使用同一个ID
-    setTimeout(() => {
-      this.currentLoadingId = null;
-      this.currentContent = '';
-    }, 100);
   }
 
   processStreamError(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.STREAM_ERROR }>) {
