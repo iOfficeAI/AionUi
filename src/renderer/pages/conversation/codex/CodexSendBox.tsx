@@ -66,7 +66,6 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
   const [isThinking, setIsThinking] = useState(false);
   const [codexStatus, setCodexStatus] = useState<string | null>(null);
   const [thought, setThought] = useState<{ subject: string; description: string } | null>(null);
-  const thoughtRef = useRef<{ accumulatedDescription: string }>({ accumulatedDescription: '' });
 
   // 用于跟踪已处理的全局状态消息，避免重复
   const processedGlobalMessages = useRef(new Set<string>());
@@ -98,7 +97,6 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
 
   useEffect(() => {
     return ipcBridge.codexConversation.responseStream.on(async (message) => {
-      // Received message
       if (conversation_id !== message.conversation_id) {
         return;
       }
@@ -112,37 +110,10 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
         setWaitingForSession(false);
         setIsThinking(false);
       }
-
-      // 处理思考状态和内容，实现流式累积效果
-      if (['agent_reasoning_delta', 'agent_reasoning_raw_content_delta'].includes(message.type)) {
-        setIsThinking(true);
-        // 更新思考内容，累积显示
-        const deltaContent = (message.data as any)?.delta || (message.data as any)?.text || message.data || '';
-        thoughtRef.current.accumulatedDescription += deltaContent;
-        if (deltaContent) {
-          setThought({
-            subject: 'Thinking',
-            description: thoughtRef.current.accumulatedDescription,
-          });
-        }
-      } else if (message.type === 'agent_reasoning_section_break') {
-        // Immediately clear thinking state when reasoning is completed
-        setIsThinking(false);
-        // 清除思考内容
-        thoughtRef.current.accumulatedDescription = '';
-        setThought({
-          subject: '',
-          description: thoughtRef.current.accumulatedDescription,
-        });
-      } else if (message.type === 'agent_message_delta') {
-        // Clear thinking state when agent starts responding with content
-        setIsThinking(false);
-        // 清除思考内容
-        thoughtRef.current.accumulatedDescription = '';
-        setThought(null);
+      if (message.type === 'thought') {
+        setThought(message.data);
       }
-      // 处理其他消息类型
-      else if (message.type === 'content' || message.type === 'user_content' || message.type === 'error') {
+      if (message.type === 'content' || message.type === 'user_content' || message.type === 'error') {
         // 收到内容消息时，确保清除思考状态（防止状态卡住）
         setIsThinking(false);
         // 清除思考内容
