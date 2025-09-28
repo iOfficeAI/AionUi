@@ -29,8 +29,8 @@ export class CodexToolHandlers {
 
   // Command execution handlers
   handleExecCommandBegin(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.EXEC_COMMAND_BEGIN }>) {
-    const callId = evt.data?.call_id || uuid();
-    const cmd = Array.isArray(evt.data?.command) ? evt.data.command.join(' ') : String(evt.data?.command || 'command');
+    const callId = evt.data.call_id;
+    const cmd = Array.isArray(evt.data.command) ? evt.data.command.join(' ') : String(evt.data.command);
     this.cmdBuffers.set(callId, { stdout: '', stderr: '', combined: '' });
     // 试点启用确认流：先置为 Confirming
     this.pendingConfirmations.add(callId);
@@ -46,27 +46,18 @@ export class CodexToolHandlers {
   }
 
   handleExecCommandOutputDelta(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.EXEC_COMMAND_OUTPUT_DELTA }>) {
-    const callId = evt.data?.call_id;
-    if (!callId) return;
-    const stream = evt.data?.stream || 'stdout';
-    let chunk = evt.data?.chunk;
-
+    const callId = evt.data.call_id;
+    const stream = evt.data.stream;
+    let chunk = evt.data.chunk;
     // Handle base64-encoded chunks from Codex
-    if (typeof chunk === 'string') {
-      // Check if it's a valid base64 string before attempting to decode
-      if (this.isValidBase64(chunk)) {
-        try {
-          // Decode base64 - Codex sends base64-encoded strings
-          chunk = Buffer.from(chunk, 'base64').toString('utf-8');
-        } catch {
-          // If base64 decoding fails, use the original string
-        }
+    // Check if it's a valid base64 string before attempting to decode
+    if (this.isValidBase64(chunk)) {
+      try {
+        // Decode base64 - Codex sends base64-encoded strings
+        chunk = Buffer.from(chunk, 'base64').toString('utf-8');
+      } catch {
+        // If base64 decoding fails, use the original string
       }
-      // If not base64, use the string as-is
-    } else if (Buffer.isBuffer(chunk)) {
-      chunk = chunk.toString('utf-8');
-    } else {
-      chunk = String(chunk);
     }
     const buf = this.cmdBuffers.get(callId) || { stdout: '', stderr: '', combined: '' };
     if (stream === 'stderr') buf.stderr += chunk;
@@ -87,36 +78,36 @@ export class CodexToolHandlers {
 
   // Patch handlers
   handlePatchApplyBegin(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.PATCH_APPLY_BEGIN }>) {
-    const callId = evt.data?.call_id || uuid();
-    const auto = evt.data?.auto_approved ? 'true' : 'false';
-    const summary = this.summarizePatch(evt.data?.changes);
+    const callId = evt.data.call_id || uuid();
+    const auto = evt.data.auto_approved ? 'true' : 'false';
+    const summary = this.summarizePatch(evt.data.changes);
     // Cache both summary and raw changes for later application
     this.patchBuffers.set(callId, summary);
-    if (evt.data?.changes && typeof evt.data.changes === 'object') {
+    if (evt.data.changes && typeof evt.data.changes === 'object') {
       this.patchChanges.set(callId, evt.data.changes as Record<string, FileChange>);
     }
     // 对未自动批准的变更设置确认
-    if (!evt.data?.auto_approved) this.pendingConfirmations.add(callId);
+    if (!evt.data.auto_approved) this.pendingConfirmations.add(callId);
     this.emitToolGroup(
       callId,
       CodexAgentEventType.PATCH_APPLY_BEGIN,
       {
         description: `apply_patch auto_approved=${auto}`,
-        status: evt.data?.auto_approved ? 'Executing' : 'Confirming',
+        status: evt.data.auto_approved ? 'Executing' : 'Confirming',
         resultDisplay: summary,
       },
       evt.data
     );
     // If auto-approved, immediately attempt to apply changes
-    if (evt.data?.auto_approved) {
+    if (evt.data.auto_approved) {
       this.applyPatchChanges(callId).catch((): void => void 0);
     }
   }
 
   handlePatchApplyEnd(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.PATCH_APPLY_END }>) {
-    const callId = evt.data?.call_id;
+    const callId = evt.data.call_id;
     if (!callId) return;
-    const ok = !!evt.data?.success;
+    const ok = !!evt.data.success;
     const summary = this.patchBuffers.get(callId) || '';
     this.emitToolGroup(
       callId,
@@ -134,8 +125,8 @@ export class CodexToolHandlers {
 
   // MCP tool handlers
   handleMcpToolCallBegin(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.MCP_TOOL_CALL_BEGIN }>) {
-    const callId = evt.data?.call_id || uuid();
-    const inv = evt.data?.invocation || {};
+    const callId = evt.data.call_id || uuid();
+    const inv = evt.data.invocation || {};
     const title = this.formatMcpInvocation(inv);
     this.emitToolGroup(
       callId,
@@ -149,10 +140,10 @@ export class CodexToolHandlers {
   }
 
   handleMcpToolCallEnd(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.MCP_TOOL_CALL_END }>) {
-    const callId = evt.data?.call_id || uuid();
-    const inv = evt.data?.invocation || {};
+    const callId = evt.data.call_id || uuid();
+    const inv = evt.data.invocation || {};
     const title = this.formatMcpInvocation(inv);
-    const result = evt.data?.result as unknown;
+    const result = evt.data.result as unknown;
     const resultObj: Record<string, unknown> | undefined = typeof result === 'object' && result !== null ? (result as Record<string, unknown>) : undefined;
     const isError = !!resultObj && ('Err' in resultObj || resultObj['is_error'] === true);
     this.emitToolGroup(
@@ -169,7 +160,7 @@ export class CodexToolHandlers {
 
   // Web search handlers
   handleWebSearchBegin(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.WEB_SEARCH_BEGIN }>) {
-    const callId = evt.data?.call_id || uuid();
+    const callId = evt.data.call_id || uuid();
     this.emitToolGroup(
       callId,
       CodexAgentEventType.WEB_SEARCH_BEGIN,
@@ -182,8 +173,8 @@ export class CodexToolHandlers {
   }
 
   handleWebSearchEnd(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.WEB_SEARCH_END }>) {
-    const callId = evt.data?.call_id || uuid();
-    const query = evt.data?.query || '';
+    const callId = evt.data.call_id || uuid();
+    const query = evt.data.query || '';
     this.emitToolGroup(
       callId,
       CodexAgentEventType.WEB_SEARCH_END,

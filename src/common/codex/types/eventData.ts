@@ -6,19 +6,30 @@
 
 import type { CodexAgentEventType } from './eventTypes';
 
-// Base event interface for extensibility
-export interface BaseCodexEventData {
-  call_id?: string;
-  requestId?: number;
-  _meta?: {
-    requestId?: number;
-    timestamp?: number;
-    source?: string;
+// JSON-RPC 消息的完整结构
+export interface CodexJsonRpcEvent {
+  jsonrpc: '2.0';
+  method: 'codex/event';
+  params: {
+    _meta: {
+      requestId: number;
+      timestamp?: number;
+      source?: string;
+    };
+    id: string;
+    msg: CodexEventMessage;
   };
 }
 
+// params.msg 的结构 - 这是实际的事件数据
+export interface CodexEventMessage {
+  type: string;
+  [key: string]: unknown;
+}
+
 // Session / lifecycle events
-export interface SessionConfiguredData extends BaseCodexEventData {
+export interface SessionConfiguredData extends CodexEventMessage {
+  type: 'session_configured';
   session_id: string;
   model?: string;
   reasoning_effort?: 'minimal' | 'low' | 'medium' | 'high' | null;
@@ -28,18 +39,20 @@ export interface SessionConfiguredData extends BaseCodexEventData {
   rollout_path?: string | null;
 }
 
-export interface TaskStartedData extends BaseCodexEventData {
-  model_context_window?: number | null;
+export interface TaskStartedData extends CodexEventMessage {
+  type: 'task_started';
+  model_context_window: number;
 }
 
-export interface TaskCompleteData extends BaseCodexEventData {
-  last_agent_message?: string | null;
+export interface TaskCompleteData extends CodexEventMessage {
+  type: 'task_complete';
+  last_agent_message: string;
 }
 
 // Message event data interfaces
-export interface MessageDeltaData extends BaseCodexEventData {
-  delta?: string;
-  message?: string;
+export interface MessageDeltaData extends CodexEventMessage {
+  type: 'agent_message_delta';
+  delta: string;
 }
 
 // JSON-RPC event parameter interfaces
@@ -58,27 +71,32 @@ export interface CodexEventParams {
   codex_changes?: Record<string, unknown>;
 }
 
-export interface MessageData extends BaseCodexEventData {
-  message?: string;
+export interface MessageData extends CodexEventMessage {
+  type: 'agent_message';
+  message: string;
 }
 
-export interface AgentReasoningData extends BaseCodexEventData {
-  text?: string;
+export interface AgentReasoningData extends CodexEventMessage {
+  type: 'agent_reasoning';
+  text: string;
 }
 
-export interface AgentReasoningDeltaData extends BaseCodexEventData {
+export interface AgentReasoningDeltaData extends CodexEventMessage {
+  type: 'agent_reasoning_delta';
   delta: string;
 }
 
 export type InputMessageKind = 'plain' | 'user_instructions' | 'environment_context';
 
-export interface UserMessageData extends BaseCodexEventData {
+export interface UserMessageData extends CodexEventMessage {
+  type: 'user_message';
   message: string;
   kind?: InputMessageKind;
   images?: string[] | null;
 }
 
-export interface StreamErrorData extends BaseCodexEventData {
+export interface StreamErrorData extends CodexEventMessage {
+  type: 'stream_error';
   message?: string;
   error?: string;
   code?: string;
@@ -86,32 +104,35 @@ export interface StreamErrorData extends BaseCodexEventData {
 }
 
 // Command execution event data interfaces
-export interface ExecCommandBeginData extends BaseCodexEventData {
-  command?: string[] | string;
-  cwd?: string;
+export interface ExecCommandBeginData extends CodexEventMessage {
+  type: 'exec_command_begin';
+  call_id: string;
+  command: string[];
+  cwd: string;
   parsed_cmd?: ParsedCommand[];
-  // Back-compat
-  workingDir?: string;
-  env?: Record<string, string>;
 }
 
-export interface ExecCommandOutputDeltaData extends BaseCodexEventData {
-  stream?: 'stdout' | 'stderr';
-  chunk?: string | Buffer;
-  encoding?: string;
+export interface ExecCommandOutputDeltaData extends CodexEventMessage {
+  type: 'exec_command_output_delta';
+  call_id: string;
+  stream: 'stdout' | 'stderr';
+  chunk: string;
 }
 
-export interface ExecCommandEndData extends BaseCodexEventData {
-  stdout?: string;
-  stderr?: string;
-  aggregated_output?: string;
-  exit_code?: number;
-  duration?: string | number;
+export interface ExecCommandEndData extends CodexEventMessage {
+  type: 'exec_command_end';
+  call_id: string;
+  stdout: string;
+  stderr: string;
+  aggregated_output: string;
+  exit_code: number;
+  duration?: { secs: number; nanos: number };
   formatted_output?: string;
 }
 
 // Patch/file modification event data interfaces
-export interface PatchApprovalData extends BaseCodexEventData {
+export interface PatchApprovalData extends CodexEventMessage {
+  type: 'apply_patch_approval_request';
   call_id?: string;
   codex_call_id?: string;
   changes?: Record<string, FileChange>;
@@ -123,14 +144,16 @@ export interface PatchApprovalData extends BaseCodexEventData {
   grant_root?: string | null;
 }
 
-export interface PatchApplyBeginData extends BaseCodexEventData {
+export interface PatchApplyBeginData extends CodexEventMessage {
+  type: 'patch_apply_begin';
   call_id?: string;
   auto_approved?: boolean;
   changes?: Record<string, FileChange>;
   dryRun?: boolean;
 }
 
-export interface PatchApplyEndData extends BaseCodexEventData {
+export interface PatchApplyEndData extends CodexEventMessage {
+  type: 'patch_apply_end';
   call_id?: string;
   success?: boolean;
   error?: string;
@@ -141,13 +164,15 @@ export interface PatchApplyEndData extends BaseCodexEventData {
 }
 
 // MCP tool event data interfaces
-export interface McpToolCallBeginData extends BaseCodexEventData {
+export interface McpToolCallBeginData extends CodexEventMessage {
+  type: 'mcp_tool_call_begin';
   invocation?: McpInvocation;
   toolName?: string;
   serverName?: string;
 }
 
-export interface McpToolCallEndData extends BaseCodexEventData {
+export interface McpToolCallEndData extends CodexEventMessage {
+  type: 'mcp_tool_call_end';
   invocation?: McpInvocation;
   result?: unknown;
   error?: string;
@@ -155,18 +180,21 @@ export interface McpToolCallEndData extends BaseCodexEventData {
 }
 
 // Web search event data interfaces
-export interface WebSearchBeginData extends BaseCodexEventData {
+export interface WebSearchBeginData extends CodexEventMessage {
+  type: 'web_search_begin';
   call_id?: string;
 }
 
-export interface WebSearchEndData extends BaseCodexEventData {
+export interface WebSearchEndData extends CodexEventMessage {
+  type: 'web_search_end';
   call_id?: string;
   query?: string;
   results?: SearchResult[];
 }
 
 // Token count event data interface
-export interface TokenCountData extends BaseCodexEventData {
+export interface TokenCountData extends CodexEventMessage {
+  type: 'token_count';
   info?: {
     total_token_usage?: {
       input_tokens?: number;
@@ -223,46 +251,53 @@ export interface SearchResult {
 
 export type ParsedCommand = { type: 'read'; cmd: string; name: string } | { type: 'list_files'; cmd: string; path?: string | null } | { type: 'search'; cmd: string; query?: string | null; path?: string | null } | { type: 'unknown'; cmd: string };
 
-export type ExecOutputStream = 'stdout' | 'stderr';
-
-export interface AgentReasoningRawContentData extends BaseCodexEventData {
+export interface AgentReasoningRawContentData extends CodexEventMessage {
+  type: 'agent_reasoning_raw_content';
   text: string;
 }
-export interface AgentReasoningRawContentDeltaData extends BaseCodexEventData {
+export interface AgentReasoningRawContentDeltaData extends CodexEventMessage {
+  type: 'agent_reasoning_raw_content_delta';
   delta: string;
 }
 
-export interface ExecApprovalRequestData extends BaseCodexEventData {
-  call_id?: string;
-  command?: string[];
-  cwd?: string;
-  reason?: string | null;
+export interface ExecApprovalRequestData extends CodexEventMessage {
+  type: 'exec_approval_request';
+  call_id: string;
+  command: string[];
+  cwd: string;
+  reason: string | null;
 }
 
-export interface TurnDiffData extends BaseCodexEventData {
+export interface TurnDiffData extends CodexEventMessage {
+  type: 'turn_diff';
   unified_diff: string;
 }
 
-export interface ConversationPathResponseData extends BaseCodexEventData {
+export interface ConversationPathResponseData extends CodexEventMessage {
+  type: 'conversation_path';
   conversation_id: string;
   path: string;
 }
 
-export interface GetHistoryEntryResponseData extends BaseCodexEventData {
+export interface GetHistoryEntryResponseData extends CodexEventMessage {
+  type: 'get_history_entry_response';
   offset: number;
   log_id: number;
   entry?: unknown;
 }
 
-export interface McpListToolsResponseData extends BaseCodexEventData {
+export interface McpListToolsResponseData extends CodexEventMessage {
+  type: 'mcp_list_tools_response';
   tools: Record<string, unknown>;
 }
 
-export interface ListCustomPromptsResponseData extends BaseCodexEventData {
+export interface ListCustomPromptsResponseData extends CodexEventMessage {
+  type: 'list_custom_prompts_response';
   custom_prompts: unknown[];
 }
 
-export interface TurnAbortedData extends BaseCodexEventData {
+export interface TurnAbortedData extends CodexEventMessage {
+  type: 'turn_aborted';
   reason: 'interrupted' | 'replaced';
 }
 
@@ -354,7 +389,7 @@ export type CodexAgentEvent =
     }
   | {
       type: CodexAgentEventType.AGENT_REASONING_SECTION_BREAK;
-      data: BaseCodexEventData;
+      data: Record<string, never>; // Section break event carries no data
     }
   | { type: CodexAgentEventType.TURN_DIFF; data: TurnDiffData }
   | { type: CodexAgentEventType.GET_HISTORY_ENTRY_RESPONSE; data: GetHistoryEntryResponseData }
@@ -371,10 +406,8 @@ export interface CodexAgentManagerData {
   cliPath?: string;
 }
 
-// Helper type for extracting specific event types
-export type ExtractEventByType<T extends CodexAgentEventType> = Extract<CodexAgentEvent, { type: T }>;
-
-export interface ElicitationCreateData extends BaseCodexEventData {
+export interface ElicitationCreateData extends CodexEventMessage {
+  type: 'elicitation_create';
   codex_elicitation: string;
   message?: string;
   codex_command?: string | string[];

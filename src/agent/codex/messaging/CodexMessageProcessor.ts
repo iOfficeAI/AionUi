@@ -5,7 +5,8 @@
  */
 
 import { uuid } from '@/common/utils';
-import type { CodexAgentEventType, CodexAgentEvent, AgentReasoningDeltaData, AgentReasoningData, BaseCodexEventData } from '@/common/codex/types';
+import { CodexAgentEventType } from '@/common/codex/types';
+import type { CodexAgentEvent, AgentReasoningDeltaData, AgentReasoningData } from '@/common/codex/types';
 import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
 import { globalErrorService, ERROR_CODES } from '@/agent/codex/core/ErrorService';
 
@@ -62,8 +63,18 @@ export class CodexMessageProcessor {
           }
         >
   ) {
-    const eventData = evt.data as AgentReasoningDeltaData | AgentReasoningData | BaseCodexEventData | undefined;
-    this.currentReason = this.currentReason + (eventData as AgentReasoningDeltaData)?.delta || (eventData as AgentReasoningData)?.text || '';
+    const eventData = evt.data as AgentReasoningDeltaData | AgentReasoningData | Record<string, never> | undefined;
+
+    // 根据事件类型处理不同的数据结构
+    let deltaText = '';
+    if (evt.type === CodexAgentEventType.AGENT_REASONING_DELTA) {
+      deltaText = (eventData as AgentReasoningDeltaData)?.delta ?? '';
+    } else if (evt.type === CodexAgentEventType.AGENT_REASONING) {
+      deltaText = (eventData as AgentReasoningData)?.text ?? '';
+    }
+    // AGENT_REASONING_SECTION_BREAK 不添加内容，只是重置当前reasoning
+
+    this.currentReason = this.currentReason + deltaText;
     this.messageEmitter.emitAndPersistMessage(
       {
         type: 'thought',
@@ -79,7 +90,7 @@ export class CodexMessageProcessor {
   }
 
   processMessageDelta(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.AGENT_MESSAGE_DELTA }>) {
-    const rawDelta = typeof evt.data?.delta === 'string' ? evt.data.delta : '';
+    const rawDelta = evt.data.delta;
     const deltaMessage = {
       type: 'content' as const,
       conversation_id: this.conversation_id,
@@ -90,7 +101,7 @@ export class CodexMessageProcessor {
   }
 
   processStreamError(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.STREAM_ERROR }>) {
-    const message = evt.data?.message || 'Codex stream error';
+    const message = evt.data.message || 'Codex stream error';
 
     // Use error service to create standardized error
     const codexError = globalErrorService.createError(ERROR_CODES.NETWORK_UNKNOWN, message, {
@@ -132,7 +143,7 @@ export class CodexMessageProcessor {
   }
 
   processGenericError(evt: { type: 'error'; data: { message?: string } | string }) {
-    const message = typeof evt.data === 'string' ? evt.data : evt.data?.message || 'Unknown error';
+    const message = typeof evt.data === 'string' ? evt.data : evt.data.message || 'Unknown error';
 
     // 为相同的错误消息生成一致的msg_id以避免重复显示
     const errorHash = this.generateErrorHash(message);
