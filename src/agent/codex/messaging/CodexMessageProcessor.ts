@@ -11,7 +11,6 @@ import { globalErrorService, ERROR_CODES } from '@/agent/codex/core/ErrorService
 
 export class CodexMessageProcessor {
   private currentLoadingId: string | null = null;
-  private currentContent: string = '';
   private deltaTimeout: NodeJS.Timeout | null = null;
   private reasoningMsgId: string | null = null;
 
@@ -29,7 +28,6 @@ export class CodexMessageProcessor {
 
   processTaskComplete() {
     this.currentLoadingId = null;
-    this.currentContent = '';
     this.reasoningMsgId = null;
   }
 
@@ -66,7 +64,12 @@ export class CodexMessageProcessor {
 
   processMessageDelta(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.AGENT_MESSAGE_DELTA }>) {
     const rawDelta = typeof evt.data?.delta === 'string' ? evt.data.delta : '';
-    const deltaMessage = this.createContentMessage(rawDelta, this.currentLoadingId!);
+    const deltaMessage = {
+      type: 'content' as const,
+      conversation_id: this.conversation_id,
+      msg_id: this.currentLoadingId,
+      data: rawDelta,
+    };
     this.messageEmitter.emitAndPersistMessage(deltaMessage);
   }
 
@@ -151,15 +154,6 @@ export class CodexMessageProcessor {
 
     // 其他类型的错误消息直接返回
     return message;
-  }
-
-  private createContentMessage(content: string, loadingId: string) {
-    return {
-      type: 'content' as const, // Use standard content type instead of ai_content
-      conversation_id: this.conversation_id,
-      msg_id: loadingId,
-      data: content, // 使用过滤后的内容
-    };
   }
 
   cleanup() {
