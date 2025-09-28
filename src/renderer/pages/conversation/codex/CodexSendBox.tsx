@@ -100,7 +100,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
       if (message.type === 'thought') {
         setThought(message.data);
       }
-      if (message.type === 'task_complete') {
+      if (message.type === 'finish') {
         setThought(message.data);
         setAiProcessing(false);
       }
