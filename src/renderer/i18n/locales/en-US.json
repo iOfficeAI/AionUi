@@ -122,9 +122,7 @@
     }
   },
   "codex": {
-    "sendbox": {
-      "waiting": "Please wait…"
-    },
+    "sendbox": {},
     "network": {
       "cloudflare_blocked": "Cloudflare protection blocked access to {{service}}. Suggestions: 1) Use VPN 2) Switch network 3) Retry later 4) Switch to other AI services",
       "network_timeout": "Network timeout, automatically retrying connection...",
@@ -159,8 +157,7 @@
       "processing": "🤔 Codex is thinking...",
       "completed": "💭 Thinking process completed",
       "analyzing": "Analyzing the problem and formulating solutions...",
-      "composing": "Composing response content...",
-      "please_wait": "Please wait…"
+      "composing": "Composing response content..."
     },
     "error": {
       "system_init_failed": "Failed to initialize Codex system",

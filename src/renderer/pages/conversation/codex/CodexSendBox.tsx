@@ -12,6 +12,7 @@ import { Button, Tag } from '@arco-design/web-react';
 import { Plus } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import ShimmerText from '@renderer/components/ShimmerText';
 
 const useCodexSendBoxDraft = getSendBoxDraftHook('codex', {
   _type: 'codex',
@@ -288,11 +289,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
 
   return (
     <div className='max-w-800px w-full mx-auto flex flex-col'>
-      {(isThinking || waitingForSession) && (
-        <div className='mb-8px'>
-          <span className='text-12px text-#999 px-8px py-4px bg-#f5f5f5 rounded-4px'>{isThinking ? t('codex.thinking.please_wait') : t('codex.sendbox.waiting', { defaultValue: 'Please wait...' })}</span>
-        </div>
-      )}
+      {(isThinking || waitingForSession) && <ShimmerText duration={2}>{t('common.loading', { defaultValue: 'Please wait...' })}</ShimmerText>}
       {thought && (
         <div
           className='px-10px py-10px rd-20px text-14px pb-40px  lh-20px color-#86909C mb-8px'
@@ -321,7 +318,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
         disabled={waitingForSession || isThinking}
         placeholder={
           waitingForSession || isThinking
-            ? t('codex.sendbox.waiting', { defaultValue: 'Please wait...' })
+            ? 'Please wait...'
             : t('acp.sendbox.placeholder', {
                 backend: 'Codex',
                 defaultValue: `Send message to Codex...`,
