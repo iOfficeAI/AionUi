@@ -18,7 +18,6 @@ export class CodexEventHandler {
   private messageProcessor: CodexMessageProcessor;
   private toolHandlers: CodexToolHandlers;
   private messageEmitter: ICodexMessageEmitter;
-  private reasoningMsgId: string | null = null; // 用于推理消息的固定msg_id
 
   constructor(
     private conversation_id: string,
@@ -34,19 +33,16 @@ export class CodexEventHandler {
 
     //这两类消息因为有delta 类型数据，所以直接忽略。
     if ([CodexAgentEventType.AGENT_REASONING, CodexAgentEventType.AGENT_MESSAGE].includes(type as CodexAgentEventType)) {
-      // These are informational events, no UI action needed
       return;
     }
-
+    if ([CodexAgentEventType.TASK_STARTED, CodexAgentEventType.TASK_COMPLETE].includes(type as CodexAgentEventType)) {
+      //todo 暂时忽略此消息
+      // this.messageProcessor.processTaskComplete();
+      return;
+    }
     // Handle session and configuration events
     if (type === CodexAgentEventType.SESSION_CONFIGURED) {
       // These are informational events, no UI action needed
-      return;
-    }
-
-    if (type === CodexAgentEventType.TASK_STARTED) {
-      // 新任务开始时重置推理消息ID
-      this.reasoningMsgId = null;
       return;
     }
 
@@ -63,14 +59,9 @@ export class CodexEventHandler {
       return;
     }
 
-    if (type === CodexAgentEventType.TASK_COMPLETE) {
-      this.messageProcessor.processTaskComplete();
-      return;
-    }
-
     // Handle reasoning deltas and reasoning messages - send them to UI for dynamic thinking display
     if (type === CodexAgentEventType.AGENT_REASONING_DELTA) {
-      this.handleReasoningMessage(
+      this.messageProcessor.handleReasoningMessage(
         evt as Extract<
           CodexAgentEvent,
           | {
@@ -84,7 +75,7 @@ export class CodexEventHandler {
 
     // Handle reasoning section breaks - send them to UI for dynamic thinking display
     if (type === CodexAgentEventType.AGENT_REASONING_SECTION_BREAK) {
-      this.handleReasoningMessage(
+      this.messageProcessor.handleReasoningMessage(
         evt as Extract<
           CodexAgentEvent,
           {
@@ -214,41 +205,6 @@ export class CodexEventHandler {
       );
       return;
     }
-  }
-
-  private handleReasoningMessage(
-    evt:
-      | Extract<
-          CodexAgentEvent,
-          {
-            type: CodexAgentEventType.AGENT_REASONING_DELTA;
-          }
-        >
-      | Extract<CodexAgentEvent, { type: CodexAgentEventType.AGENT_REASONING }>
-      | Extract<
-          CodexAgentEvent,
-          {
-            type: CodexAgentEventType.AGENT_REASONING_SECTION_BREAK;
-          }
-        >
-  ) {
-    const eventData = evt.data as AgentReasoningDeltaData | AgentReasoningData | BaseCodexEventData | undefined;
-
-    // 为推理消息使用固定的msg_id，确保所有推理消息都被合并到同一条消息中
-    if (!this.reasoningMsgId) {
-      this.reasoningMsgId = uuid();
-    }
-
-    // Create a standard message format for reasoning content
-    const standardMessage: IResponseMessage = {
-      type: evt.type,
-      msg_id: this.reasoningMsgId, // 使用固定的msg_id确保消息合并
-      conversation_id: this.conversation_id,
-      data: (eventData as AgentReasoningDeltaData)?.delta || (eventData as AgentReasoningData)?.text || eventData || '',
-    };
-
-    // Transform and persist message, then emit to UI
-    this.messageEmitter.emitAndPersistMessage(standardMessage, true);
   }
 
   /**
@@ -534,6 +490,5 @@ export class CodexEventHandler {
   cleanup() {
     this.messageProcessor.cleanup();
     this.toolHandlers.cleanup();
-    this.reasoningMsgId = null; // 清理推理消息ID
   }
 }
