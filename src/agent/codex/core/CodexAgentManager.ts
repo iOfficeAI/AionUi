@@ -20,7 +20,7 @@ import { CodexFileOperationHandler } from '@/agent/codex/handlers/CodexFileOpera
 import { CodexMessageTransformer } from '@/agent/codex/messaging/CodexMessageTransformer';
 import type { CodexAgentManagerData, FileChange } from '@/common/codex/types';
 import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
-import { setAppConfig, getConfiguredAppClientName, getConfiguredAppClientVersion, getConfiguredCodexMcpProtocolVersion } from './appConfig';
+import { setAppConfig, getConfiguredAppClientName, getConfiguredAppClientVersion, getConfiguredCodexMcpProtocolVersion } from '../../../common/utils/appConfig';
 import { mapPermissionDecision } from '@/common/codex/utils';
 
 const APP_CLIENT_NAME = getConfiguredAppClientName();
@@ -395,49 +395,6 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
       this.agent?.stop?.();
     } finally {
       super.kill();
-    }
-  }
-
-  // 实现 ICodexMessageEmitter 接口
-  emitMessage(message: IResponseMessage): void {
-    // Handle auto permission decisions before emitting
-    if (message.type === 'codex_auto_permission_decision') {
-      this.handleAutoPermissionDecision(message);
-      return; // Don't emit this internal message to UI
-    }
-
-    ipcBridge.codexConversation.responseStream.emit(message);
-  }
-
-  /**
-   * Handle auto permission decisions from EventHandler
-   * This processes the decision, applies any patch changes, and responds to the server
-   * 处理自动权限决策，应用补丁更改，并响应服务器
-   */
-  private async handleAutoPermissionDecision(message: IResponseMessage): Promise<void> {
-    const data = message.data as { callId: string; decision: 'approved' | 'denied'; isApproved: boolean; storedChoice: string };
-
-    if (!data.callId || !data.decision) {
-      return;
-    }
-
-    try {
-      await this.bootstrap;
-
-      // Remove pending confirmation
-      this.agent.getEventHandler().getToolHandlers().removePendingConfirmation(`permission_${data.callId}`);
-
-      // Apply patch changes if available and approved
-      const changes = this.agent.getEventHandler().getToolHandlers().getPatchChanges(`permission_${data.callId}`);
-      if (changes && data.isApproved) {
-        await this.applyPatchChanges(`permission_${data.callId}`, changes);
-      }
-
-      // Send simple approved/denied decision to Codex CLI (not approved_for_session)
-      this.agent.respondElicitation(data.callId, data.decision as 'approved' | 'approved_for_session' | 'denied' | 'abort');
-      this.agent.resolvePermission(data.callId, data.isApproved);
-    } catch (error) {
-      console.error('Auto permission handling failed:', error);
     }
   }
 
