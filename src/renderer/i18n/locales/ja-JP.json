@@ -144,8 +144,14 @@
     "workspace": "ワークスペース"
   },
   "conversation": {
-    "chat": {
-      "noModelSelected": "現在のセッションでモデルが選択されていないため、メッセージを送信できません"
+    "welcome": {
+      "title": "Hi、今日の予定は何ですか？",
+      "placeholder": "メッセージの送信、ファイルの追加、またはフォルダーの追加...",
+      "uploadFile": "ファイルを追加",
+      "linkFolder": "フォルダを追加",
+      "newConversation": "新しいチャット",
+      "multiAgentModeEnabled": "マルチエージェントモードに入ります",
+      "selectModel": "モデルを選択"
     },
     "history": {
       "cancelDelete": "いいえ",
@@ -170,15 +176,11 @@
       "empty": "ワークスペースが空です",
       "emptyDescription": "ファイルをアップロードするか、またはフォルダーを開くと、ここにファイルが表示されます",
       "searchPlaceholder": "ファイルを検索...",
-      "title": "ワークスペース"
+      "createNewConversation": "現在のワークスペースで新しいチャットを作成"
+    },
+    "chat": {
+      "noModelSelected": "現在のセッションでモデルが選択されていないため、メッセージを送信できません"
     }
-  },
-  "messages": {
-    "canceledExecution": "実行がキャンセルされました",
-    "confirm": "確認",
-    "conversationInProgress": "現在、会話中です...",
-    "imageGenerationModelDetected": "画像モデルが検出されました。画像ツールが自動的に有効になりました。デフォルトモデル：{{platform}}:{{model}}",
-    "openLinkFailed": "リンクを開けませんでした"
   },
   "settings": {
     "about": "私たちについて",
@@ -222,9 +224,35 @@
     "system": "システム設定",
     "theme": "テーマ",
     "tools": "ツール設定",
-    "updateConfirm": "確認変更",
-    "vertexApiKey": "Vertex AI API キー",
-    "workDir": "作業ディレクトリ",
-    "yoloMode": "自動許可"
+    "imageGenerationModel": "画像モデル",
+    "imageGenerationGuide": "画像モデル設定ガイド",
+    "noAvailable": "利用可能な画像モデルがありません。先に設定してください。",
+    "noConfiguredModels": "設定されたモデルがありません",
+    "needHelpConfigGuide": "ヘルプが必要ですか？詳細な",
+    "configGuide": "設定ガイド",
+    "configGuideSuffix": "をご覧ください。",
+    "needHelpTooltip": "ヘルプが必要な場合は、",
+    "noAvailableModels": "利用可能なモデルがありません",
+    "appDescription": "Free, local, open-source GUI app for Gemini CLI",
+    "helpDocumentation": "ヘルプドキュメント",
+    "updateLog": "アップデートログ",
+    "feedback": "フィードバック",
+    "contactMe": "お問い合わせ",
+    "officialWebsite": "公式サイト"
+  },
+  "messages": {
+    "conversationInProgress": "現在、会話中です...",
+    "confirm": "確認",
+    "canceledExecution": "実行がキャンセルされました",
+    "openLinkFailed": "リンクを開けませんでした",
+    "imageGenerationModelDetected": "画像モデルが検出されました。画像ツールが自動的に有効になりました。デフォルトモデル：{{platform}}:{{model}}"
+  },
+  "acp": {
+    "auth": {
+      "failed": "{{backend}} 認証が失敗しました：\n\n{{error}}\n\nローカルCLIツールの認証状態を確認してください"
+    },
+    "sendbox": {
+      "placeholder": "{{backend}}にメッセージを送信..."
+    }
   }
 }
