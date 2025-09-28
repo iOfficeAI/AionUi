@@ -110,11 +110,6 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
     // 3. 执行认证和会话创建
     await this.performPostConnectionSetup();
-
-    // 4. 恢复权限状态
-    await this.restorePermissionState();
-
-    // Session management startup completed
   }
 
   /**
@@ -337,11 +332,6 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     // Add to message history and emit to UI
     addOrUpdateMessage(this.conversation_id, transformMessage(networkErrorMessage));
     ipcBridge.codexConversation.responseStream.emit(networkErrorMessage);
-  }
-
-  private async restorePermissionState(): Promise<void> {
-    // This method would restore any pending permission states from storage
-    // Implementation would depend on how permissions are persisted
   }
 
   private emitStatus(status: 'connecting' | 'connected' | 'authenticated' | 'session_active' | 'error' | 'disconnected', message: string) {

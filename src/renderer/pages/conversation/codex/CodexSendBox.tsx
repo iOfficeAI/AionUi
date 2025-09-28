@@ -1,16 +1,15 @@
-import { CodexMessageTransformer } from '@/agent/codex/messaging/CodexMessageTransformer';
 import { ipcBridge } from '@/common';
 import type { TMessage } from '@/common/chatLib';
-import { transformMessage, composeMessage } from '@/common/chatLib';
+import { transformMessage } from '@/common/chatLib';
 import { uuid } from '@/common/utils';
 import SendBox from '@/renderer/components/sendbox';
 import { getSendBoxDraftHook } from '@/renderer/hooks/useSendBoxDraft';
-import { useAddOrUpdateMessage, useUpdateMessageList } from '@/renderer/messages/hooks';
+import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
 import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { Button, Tag } from '@arco-design/web-react';
 import { Plus } from '@icon-park/react';
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import ShimmerText from '@renderer/components/ShimmerText';
 
@@ -21,52 +20,15 @@ const useCodexSendBoxDraft = getSendBoxDraftHook('codex', {
   uploadFile: [],
 });
 
-// Codex专用的消息合并函数，支持在整个列表中查找相同msg_id的消息
-const composeCodexMessage = (message: TMessage | undefined, list: TMessage[] | undefined): TMessage[] => {
-  if (!message) return list || [];
-  if (!list?.length) return [message];
-
-  // 查找整个列表中是否有相同msg_id和type的消息
-  const existingMessageIndex = list.findIndex((existingMsg) => existingMsg.msg_id === message.msg_id && existingMsg.type === message.type);
-
-  if (existingMessageIndex === -1) {
-    // 没有找到相同msg_id的消息，添加新消息
-    return list.concat(message);
-  }
-
-  // 找到了相同msg_id的消息，进行合并
-  const existingMessage = list[existingMessageIndex];
-
-  if (message.type === 'tips' && existingMessage.type === 'tips') {
-    Object.assign(existingMessage, message);
-    return list;
-  }
-
-  // 对于其他类型，使用原有的合并逻辑
-  return composeMessage(message, list);
-};
-
 const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
   const { t } = useTranslation();
   const addOrUpdateMessage = useAddOrUpdateMessage();
-  const updateMessageList = useUpdateMessageList();
 
-  // Codex专用的消息更新函数，使用自定义合并逻辑
-  const addOrUpdateCodexMessage = useCallback(
-    (message: TMessage, add = false) => {
-      updateMessageList((list: TMessage[]) => {
-        return add ? list.concat(message) : composeCodexMessage(message, list);
-      });
-    },
-    [updateMessageList]
-  );
   const [running, setRunning] = useState(false);
   const [aiProcessing, setAiProcessing] = useState(false); // New loading state for AI response
   const [codexStatus, setCodexStatus] = useState<string | null>(null);
   const [thought, setThought] = useState<{ subject: string; description: string } | null>(null);
 
-  // 用于跟踪已处理的全局状态消息，避免重复
-  const processedGlobalMessages = useRef(new Set<string>());
   const { content, setContent, atPath, setAtPath, uploadFile, setUploadFile } = (function useDraft() {
     const { data, mutate } = useCodexSendBoxDraft(conversation_id);
     const EMPTY: string[] = [];
@@ -85,7 +47,6 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
 
   // 当会话ID变化时，清理所有状态避免状态污染
   useEffect(() => {
-    processedGlobalMessages.current.clear();
     // 重置所有运行状态，避免切换会话时状态污染
     setRunning(false);
     setAiProcessing(false);
@@ -97,51 +58,33 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
       if (conversation_id !== message.conversation_id) {
         return;
       }
-      if (message.type === 'thought') {
-        setThought(message.data);
-      }
-      if (message.type === 'finish') {
-        setThought(message.data);
-        setAiProcessing(false);
-      }
-      if (message.type === 'content' || message.type === 'user_content' || message.type === 'error') {
-        // 收到内容消息时，确保清除思考状态（防止状态卡住）
-        // 清除思考内容
-        setThought(null);
-        // 通用消息类型使用标准转换器
-        const transformedMessage = transformMessage(message);
-        addOrUpdateMessage(transformedMessage);
-      } else if (CodexMessageTransformer.isCodexSpecificMessage(message.type)) {
-        // 处理状态消息
-        if (message.type === 'codex_status') {
+      switch (message.type) {
+        case 'thought':
+          setThought(message.data);
+          break;
+        case 'finish':
+          setThought(message.data);
+          setAiProcessing(false);
+          break;
+        case 'content':
+        case 'codex_permission': {
+          setThought(null);
+          // 通用消息类型使用标准转换器
+          const transformedMessage = transformMessage(message);
+          addOrUpdateMessage(transformedMessage);
+          break;
+        }
+        case 'codex_status': {
           const statusData = message.data as { status: string; message: string };
           setCodexStatus(statusData.status);
+          break;
         }
-
-        // Codex 特定消息类型使用专用转换器
-        const transformedMessage = CodexMessageTransformer.transformCodexMessage(message);
-        if (transformedMessage) {
-          // 对于全局状态消息，检查是否已经处理过相同的消息
-          const isGlobalStatusMessage = ['codex_thinking_global', 'codex_status_global'].includes(transformedMessage.msg_id);
-
-          if (isGlobalStatusMessage) {
-            const messageKey = `${transformedMessage.msg_id}_${JSON.stringify(transformedMessage.content)}`;
-
-            // 如果这个全局状态消息已经处理过，跳过
-            if (processedGlobalMessages.current.has(messageKey)) {
-              return;
-            }
-
-            // 标记为已处理
-            processedGlobalMessages.current.add(messageKey);
-          }
-
-          // 使用Codex专用的消息合并逻辑处理重复msg_id
-          addOrUpdateCodexMessage(transformedMessage, false);
-        }
+        default:
+          setRunning(false);
+          setThought(null);
       }
     });
-  }, [conversation_id, addOrUpdateMessage, addOrUpdateCodexMessage]);
+  }, [conversation_id, addOrUpdateMessage]);
 
   // 处理粘贴的文件 - Codex专用逻辑
   const handleFilesAdded = useCallback(

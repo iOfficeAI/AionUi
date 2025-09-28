@@ -301,6 +301,26 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         content: message.data,
       };
     }
+    case 'codex_status': {
+      return {
+        id: uuid(),
+        type: 'codex_status',
+        msg_id: message.msg_id,
+        position: 'center',
+        conversation_id: message.conversation_id,
+        content: message.data,
+      };
+    }
+    case 'codex_permission': {
+      return {
+        id: uuid(),
+        type: 'codex_permission',
+        msg_id: message.msg_id,
+        position: 'left',
+        conversation_id: message.conversation_id,
+        content: message.data,
+      };
+    }
     case 'start':
     case 'finish':
     case 'thought':

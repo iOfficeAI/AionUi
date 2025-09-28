@@ -58,7 +58,7 @@ const MessageCodexPermission: React.FC<MessageCodexPermissionProps> = React.memo
   const [isResponding, setIsResponding] = useState(false);
 
   // Check if we have an "always" permission stored and should auto-handle
-  const [shouldAutoHandle, setShouldAutoHandle] = useState<string | null>(() => {
+  const [shouldAutoHandle] = useState<string | null>(() => {
     try {
       const storedChoice = localStorage.getItem(globalPermissionKey);
       if (storedChoice === 'allow_always' || storedChoice === 'reject_always') {
@@ -72,37 +72,6 @@ const MessageCodexPermission: React.FC<MessageCodexPermissionProps> = React.memo
     }
     return null;
   });
-
-  // 立即自动处理"always"权限（在渲染之前）
-  useEffect(() => {
-    if (shouldAutoHandle && !hasResponded) {
-      setSelected(shouldAutoHandle);
-      setHasResponded(true);
-      setIsResponding(true);
-
-      // 立即更新响应状态到 localStorage
-      localStorage.setItem(specificResponseKey, 'true');
-      localStorage.setItem(`${specificResponseKey}_timestamp`, Date.now().toString());
-
-      const confirmationData = {
-        confirmKey: shouldAutoHandle,
-        msg_id: message.id,
-        conversation_id: message.conversation_id,
-        callId: toolCall?.toolCallId || message.id,
-      };
-
-      handleConfirmation(confirmationData)
-        .then(() => {
-          setShouldAutoHandle(null); // Clear the auto-handle flag
-        })
-        .catch((error) => {
-          // Handle error silently
-        })
-        .finally(() => {
-          setIsResponding(false);
-        });
-    }
-  }, []); // Run only once on mount
 
   // 组件挂载时清理旧存储
   useEffect(() => {
@@ -135,9 +104,6 @@ const MessageCodexPermission: React.FC<MessageCodexPermissionProps> = React.memo
     try {
       localStorage.setItem(globalPermissionKey, value);
       localStorage.setItem(`${globalPermissionKey}_timestamp`, Date.now().toString());
-
-      // Verify save was successful
-      const savedValue = localStorage.getItem(globalPermissionKey);
     } catch (error) {
       // Handle error silently
     }
@@ -179,13 +145,8 @@ const MessageCodexPermission: React.FC<MessageCodexPermissionProps> = React.memo
     }
   };
 
-  if (!toolCall) {
-    return null;
-  }
-
   // Don't render UI if already responded or if auto-handling
   const shouldShowAutoHandling = shouldAutoHandle && !hasResponded;
-  const shouldShowFullUI = !hasResponded && !shouldAutoHandle;
 
   if (shouldShowAutoHandling) {
     return (
@@ -194,19 +155,6 @@ const MessageCodexPermission: React.FC<MessageCodexPermissionProps> = React.memo
           <div className='flex items-center space-x-2'>
             <span className='text-2xl'>⚡</span>
             <Text className='block text-sm text-gray-600'>{t('messages.auto_handling_permission', { defaultValue: '' })}</Text>
-          </div>
-        </div>
-      </Card>
-    );
-  }
-
-  if (!shouldShowFullUI) {
-    return (
-      <Card className='mb-4' bordered={false} style={{ background: '#f0fff0' }}>
-        <div className='space-y-4 p-2'>
-          <div className='flex items-center space-x-2'>
-            <span className='text-2xl'>✅</span>
-            <Text className='block text-sm text-green-700'>{t('messages.permission_already_handled', { defaultValue: 'Permission already handled' })}</Text>
           </div>
         </div>
       </Card>

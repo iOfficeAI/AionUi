@@ -202,12 +202,12 @@ export class CodexToolHandlers {
   private emitToolGroup(callId: string, eventType: CodexAgentEventType, tool: Partial<IMessageToolGroup['content'][number]>, eventData?: EventDataMap[keyof EventDataMap]) {
     const toolDef = this.toolRegistry.resolveToolForEvent(eventType, eventData);
     const i18nParams = toolDef ? this.toolRegistry.getMcpToolI18nParams(toolDef) : {};
-
+    // console.log("eventData------_>", eventData);
     const toolContent: IMessageToolGroup['content'][number] = {
       callId,
       name: toolDef ? this.toolRegistry.getToolDisplayName(toolDef, i18nParams) : 'Unknown Tool',
       description: toolDef ? this.toolRegistry.getToolDescription(toolDef, i18nParams) : '',
-      status: 'Executing',
+      status: 'Success',
       renderOutputAsMarkdown: toolDef?.capabilities.supportsMarkdown || false,
       resultDisplay: '',
       ...tool,
