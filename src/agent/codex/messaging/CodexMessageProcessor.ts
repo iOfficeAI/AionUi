@@ -5,7 +5,7 @@
  */
 
 import { uuid } from '@/common/utils';
-import type { CodexAgentEventType, CodexAgentEvent } from '@/common/codex/types';
+import type { CodexAgentEventType, CodexAgentEvent, AgentReasoningDeltaData, AgentReasoningData, BaseCodexEventData } from '@/common/codex/types';
 import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
 import { globalErrorService, ERROR_CODES } from '@/agent/codex/core/ErrorService';
 
@@ -13,59 +13,79 @@ export class CodexMessageProcessor {
   private currentLoadingId: string | null = null;
   private currentContent: string = '';
   private deltaTimeout: NodeJS.Timeout | null = null;
+  private reasoningMsgId: string | null = null;
+
+  private currentReason: string = '';
 
   constructor(
     private conversation_id: string,
     private messageEmitter: ICodexMessageEmitter
   ) {}
 
-  processMessageDelta(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.AGENT_MESSAGE_DELTA }>) {
-    // 只在没有当前loading ID时创建新的，不因requestId变化而重置
-    if (!this.currentLoadingId) {
-      // Clear any existing timeout
-      if (this.deltaTimeout) {
-        clearTimeout(this.deltaTimeout);
-        this.deltaTimeout = null;
-      }
-
-      this.currentLoadingId = uuid();
-      this.currentContent = ''; // 重置累积内容
-    }
-    const rawDelta = typeof evt.data?.delta === 'string' ? evt.data.delta : '';
-    const deltaMessage = this.createContentMessage(rawDelta, this.currentLoadingId!);
-    this.messageEmitter.emitAndPersistMessage(deltaMessage);
+  processTaskStart() {
+    this.reasoningMsgId = uuid();
+    this.reasoningMsgId = uuid();
   }
 
   processTaskComplete() {
-    // Clear timeout since we're finalizing the task
-    if (this.deltaTimeout) {
-      clearTimeout(this.deltaTimeout);
-      this.deltaTimeout = null;
-    }
+    this.currentLoadingId = null;
+    this.currentContent = '';
+    this.reasoningMsgId = null;
 
-    // If we have accumulated content but no final agent_message was sent, send it now
-    if (this.currentContent && this.currentContent.trim() && this.currentLoadingId) {
-      const message = this.createContentMessage(this.currentContent, this.currentLoadingId);
-      if (message) {
-        // 发送并持久化消息
-        this.messageEmitter.emitAndPersistMessage(message, true);
-      }
-    }
+    // // If we have accumulated content but no final agent_message was sent, send it now
+    // if (this.currentContent && this.currentContent.trim() && this.currentLoadingId) {
+    //   const message = this.createContentMessage(this.currentContent, this.currentLoadingId);
+    //   if (message) {
+    //     // 发送并持久化消息
+    //     this.messageEmitter.emitAndPersistMessage(message, true);
+    //   }
+    // }
+    //
+    // // Send finish signal to UI - but don't pass through transformMessage as it's internal
+    // const finishMessage = {
+    //   type: 'finish' as const,
+    //   conversation_id: this.conversation_id,
+    //   msg_id: this.currentLoadingId || uuid(),
+    //   data: {},
+    // };
+    // this.messageEmitter.emitAndPersistMessage(finishMessage, false);
+  }
 
-    // Send finish signal to UI - but don't pass through transformMessage as it's internal
-    const finishMessage = {
-      type: 'finish' as const,
-      conversation_id: this.conversation_id,
-      msg_id: this.currentLoadingId || uuid(),
-      data: {},
-    };
-    this.messageEmitter.emitAndPersistMessage(finishMessage, false);
+  handleReasoningMessage(
+    evt:
+      | Extract<
+          CodexAgentEvent,
+          {
+            type: CodexAgentEventType.AGENT_REASONING_DELTA;
+          }
+        >
+      | Extract<CodexAgentEvent, { type: CodexAgentEventType.AGENT_REASONING }>
+      | Extract<
+          CodexAgentEvent,
+          {
+            type: CodexAgentEventType.AGENT_REASONING_SECTION_BREAK;
+          }
+        >
+  ) {
+    const eventData = evt.data as AgentReasoningDeltaData | AgentReasoningData | BaseCodexEventData | undefined;
+    this.messageEmitter.emitAndPersistMessage(
+      {
+        type: 'thought',
+        msg_id: this.reasoningMsgId, // 使用固定的msg_id确保消息合并
+        conversation_id: this.conversation_id,
+        data: {
+          description: this.currentReason + (eventData as AgentReasoningDeltaData)?.delta || (eventData as AgentReasoningData)?.text || '',
+          subject: '',
+        },
+      },
+      false
+    );
+  }
 
-    // 延迟重置，确保所有消息都使用同一个ID
-    setTimeout(() => {
-      this.currentLoadingId = null;
-      this.currentContent = '';
-    }, 100);
+  processMessageDelta(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.AGENT_MESSAGE_DELTA }>) {
+    const rawDelta = typeof evt.data?.delta === 'string' ? evt.data.delta : '';
+    const deltaMessage = this.createContentMessage(rawDelta, this.currentLoadingId!);
+    this.messageEmitter.emitAndPersistMessage(deltaMessage);
   }
 
   processStreamError(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.STREAM_ERROR }>) {

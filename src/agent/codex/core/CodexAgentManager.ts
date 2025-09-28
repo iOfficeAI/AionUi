@@ -317,14 +317,11 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
         recoveryActions = t('codex.network.recovery_actions.unknown', { returnObjects: true }) as string[];
     }
 
-    // Generated user message and recovery actions for UI
-
-    // Create detailed error message for UI
     const detailedMessage = `${userMessage}\n\n${t('codex.network.recovery_suggestions')}\n${recoveryActions.join('\n')}\n\n${t('codex.network.technical_info')}\n- ${t('codex.network.error_type')}：${error.type}\n- ${t('codex.network.retry_count')}：${error.retryCount}\n- ${t('codex.network.error_details')}：${error.originalError.substring(0, 200)}${error.originalError.length > 200 ? '...' : ''}`;
 
     // Emit network error message to UI
     const networkErrorMessage: IResponseMessage = {
-      type: 'network_error',
+      type: 'tips',
       conversation_id: this.conversation_id,
       msg_id: uuid(),
       data: {

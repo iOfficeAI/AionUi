@@ -6,7 +6,7 @@
 
 import { uuid } from '@/common/utils';
 import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
-import type { AgentReasoningData, AgentReasoningDeltaData, BaseCodexEventData, CodexAgentEvent, CodexEventParams, ExecApprovalRequestData, PatchApprovalData } from '@/common/codex/types';
+import type { CodexAgentEvent, CodexEventParams, ExecApprovalRequestData, PatchApprovalData } from '@/common/codex/types';
 import { CodexAgentEventType } from '@/common/codex/types';
 import { CodexMessageProcessor } from '@/agent/codex/messaging/CodexMessageProcessor';
 import { CodexToolHandlers } from '@/agent/codex/handlers/CodexToolHandlers';
@@ -17,7 +17,6 @@ export class CodexEventHandler {
   private messageProcessor: CodexMessageProcessor;
   private toolHandlers: CodexToolHandlers;
   private messageEmitter: ICodexMessageEmitter;
-  private reasoningMsgId?: string;
 
   constructor(
     private conversation_id: string,
@@ -35,14 +34,16 @@ export class CodexEventHandler {
     if ([CodexAgentEventType.AGENT_REASONING, CodexAgentEventType.AGENT_MESSAGE].includes(type as CodexAgentEventType)) {
       return;
     }
-    if ([CodexAgentEventType.TASK_STARTED, CodexAgentEventType.TASK_COMPLETE].includes(type as CodexAgentEventType)) {
-      //todo 暂时忽略此消息
-      // this.messageProcessor.processTaskComplete();
+    if ([CodexAgentEventType.SESSION_CONFIGURED, CodexAgentEventType.TOKEN_COUNT].includes(type as CodexAgentEventType)) {
       return;
     }
-    // Handle session and configuration events
-    if (type === CodexAgentEventType.SESSION_CONFIGURED) {
-      // These are informational events, no UI action needed
+
+    if (type === CodexAgentEventType.TASK_STARTED) {
+      this.messageProcessor.processTaskComplete();
+      return;
+    }
+    if (type === CodexAgentEventType.TASK_COMPLETE) {
+      this.messageProcessor.processTaskComplete();
       return;
     }
 
@@ -83,12 +84,6 @@ export class CodexEventHandler {
           }
         >
       );
-      return;
-    }
-
-    // Handle token count events - could be useful for usage tracking
-    if (type === CodexAgentEventType.TOKEN_COUNT) {
-      // These are informational events for usage tracking
       return;
     }
 
@@ -205,41 +200,6 @@ export class CodexEventHandler {
       );
       return;
     }
-  }
-
-  private handleReasoningMessage(
-    evt:
-      | Extract<
-          CodexAgentEvent,
-          {
-            type: CodexAgentEventType.AGENT_REASONING_DELTA;
-          }
-        >
-      | Extract<CodexAgentEvent, { type: CodexAgentEventType.AGENT_REASONING }>
-      | Extract<
-          CodexAgentEvent,
-          {
-            type: CodexAgentEventType.AGENT_REASONING_SECTION_BREAK;
-          }
-        >
-  ) {
-    const eventData = evt.data as AgentReasoningDeltaData | AgentReasoningData | BaseCodexEventData | undefined;
-
-    // 为推理消息使用固定的msg_id，确保所有推理消息都被合并到同一条消息中
-    if (!this.reasoningMsgId) {
-      this.reasoningMsgId = uuid();
-    }
-
-    // 推理消息不需要持久化，只用于实时显示
-    this.messageEmitter.emitAndPersistMessage(
-      {
-        type: evt.type,
-        msg_id: this.reasoningMsgId, // 使用固定的msg_id确保消息合并
-        conversation_id: this.conversation_id,
-        data: (eventData as AgentReasoningDeltaData)?.delta || (eventData as AgentReasoningData)?.text || eventData || '',
-      },
-      false
-    );
   }
 
   /**
