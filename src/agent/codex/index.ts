@@ -20,7 +20,6 @@ export { CodexFileOperationHandler, type FileOperation } from './handlers/CodexF
 
 // Messaging Layer
 export { CodexMessageProcessor } from './messaging/CodexMessageProcessor';
-export { CodexMessageTransformer } from './messaging/CodexMessageTransformer';
 export { type ICodexMessageEmitter } from './messaging/CodexMessageEmitter';
 
 // Tools Layer
