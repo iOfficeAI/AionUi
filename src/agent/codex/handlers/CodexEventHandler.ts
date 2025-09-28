@@ -10,7 +10,7 @@ import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageE
 import type { AgentReasoningData, AgentReasoningDeltaData, BaseCodexEventData, CodexAgentEvent, CodexEventParams, ExecApprovalRequestData, PatchApprovalData } from '@/common/codex/types';
 import { CodexAgentEventType } from '@/common/codex/types';
 import { CodexMessageProcessor } from '@/agent/codex/messaging/CodexMessageProcessor';
-import { CodexToolHandlers } from '@/agent/codex/tools/CodexToolHandlers';
+import { CodexToolHandlers } from '@/agent/codex/handlers/CodexToolHandlers';
 import { PermissionType } from '@/common/codex/types/permissionTypes';
 import { createPermissionOptionsForType, getPermissionDisplayInfo } from '@/common/codex/utils';
 
