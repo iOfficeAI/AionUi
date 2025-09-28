@@ -119,43 +119,6 @@ export class CodexEventHandler {
       return;
     }
 
-    // Tool: exec command
-    if (type === CodexAgentEventType.EXEC_COMMAND_BEGIN) {
-      this.toolHandlers.handleExecCommandBegin(
-        evt as Extract<
-          CodexAgentEvent,
-          {
-            type: CodexAgentEventType.EXEC_COMMAND_BEGIN;
-          }
-        >
-      );
-      return;
-    }
-
-    if (type === CodexAgentEventType.EXEC_COMMAND_OUTPUT_DELTA) {
-      this.toolHandlers.handleExecCommandOutputDelta(
-        evt as Extract<
-          CodexAgentEvent,
-          {
-            type: CodexAgentEventType.EXEC_COMMAND_OUTPUT_DELTA;
-          }
-        >
-      );
-      return;
-    }
-
-    if (type === CodexAgentEventType.EXEC_COMMAND_END) {
-      this.toolHandlers.handleExecCommandEnd(
-        evt as Extract<
-          CodexAgentEvent,
-          {
-            type: CodexAgentEventType.EXEC_COMMAND_END;
-          }
-        >
-      );
-      return;
-    }
-
     // Handle ALL permission-related requests through unified handler
     if (type === CodexAgentEventType.EXEC_APPROVAL_REQUEST || type === CodexAgentEventType.APPLY_PATCH_APPROVAL_REQUEST || type === CodexAgentEventType.ELICITATION_CREATE) {
       this.handleUnifiedPermissionRequest(
