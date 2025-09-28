@@ -245,7 +245,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         id: uuid(),
         type: 'text',
         msg_id: message.msg_id,
-        position: 'left',
+        position: message.type === 'content' ? 'left' : 'right',
         conversation_id: message.conversation_id,
         content: {
           content: message.data,

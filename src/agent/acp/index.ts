@@ -252,7 +252,7 @@ export class AcpAgent {
     // 使用信号回调发送 end_turn 事件，不添加到消息列表
     if (this.onSignalEvent) {
       this.onSignalEvent({
-        type: 'ai_end_turn',
+        type: 'finish',
         conversation_id: this.id,
         msg_id: uuid(),
         data: null,
