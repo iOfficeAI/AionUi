@@ -216,16 +216,14 @@ const MessageCodexPermission: React.FC<MessageCodexPermissionProps> = React.memo
   return (
     <Card className='mb-4' bordered={false} style={{ background: '#f8f9fa' }}>
       <div className='space-y-4'>
-        {/* Header with icon and title */}
         <div className='flex items-center space-x-2'>
           <span className='text-2xl'>{icon}</span>
           <Text className='block'>{title}</Text>
-          <span className='text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded'>Codex</span>
         </div>
-        {toolCall.title && (
+        {(toolCall.rawInput?.command || toolCall.title) && (
           <div>
             <Text className='text-xs text-gray-500 mb-1'>Command:</Text>
-            <code className='text-xs bg-gray-100 p-2 rounded block text-gray-800 break-all'>{toolCall.title}</code>
+            <code className='text-xs bg-gray-100 p-2 rounded block text-gray-800 break-all'>{toolCall.rawInput?.command || toolCall.title}</code>
           </div>
         )}
         {!hasResponded && (
