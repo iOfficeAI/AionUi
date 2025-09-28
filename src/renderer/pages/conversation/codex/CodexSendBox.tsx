@@ -319,7 +319,14 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
         }}
         loading={running}
         disabled={waitingForSession || isThinking}
-        placeholder={waitingForSession || isThinking ? t('codex.sendbox.waiting', { defaultValue: 'Please wait...' }) : t('acp.sendbox.placeholder', { backend: 'Codex', defaultValue: `Send message to Codex...` })}
+        placeholder={
+          waitingForSession || isThinking
+            ? t('codex.sendbox.waiting', { defaultValue: 'Please wait...' })
+            : t('acp.sendbox.placeholder', {
+                backend: 'Codex',
+                defaultValue: `Send message to Codex...`,
+              })
+        }
         onStop={() => {
           return ipcBridge.conversation.stop.invoke({ conversation_id }).then(() => {});
         }}
