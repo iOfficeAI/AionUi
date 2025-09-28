@@ -27,55 +27,6 @@ export class CodexToolHandlers {
     this.toolRegistry = new ToolRegistry();
   }
 
-  // Command execution handlers
-  handleExecCommandBegin(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.EXEC_COMMAND_BEGIN }>) {
-    const callId = evt.data.call_id;
-    const cmd = Array.isArray(evt.data.command) ? evt.data.command.join(' ') : String(evt.data.command);
-    this.cmdBuffers.set(callId, { stdout: '', stderr: '', combined: '' });
-    // 试点启用确认流：先置为 Confirming
-    this.pendingConfirmations.add(callId);
-    this.emitToolGroup(
-      callId,
-      CodexAgentEventType.EXEC_COMMAND_BEGIN,
-      {
-        description: `Running: ${cmd}`,
-        status: 'Confirming',
-      },
-      evt.data
-    );
-  }
-
-  handleExecCommandOutputDelta(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.EXEC_COMMAND_OUTPUT_DELTA }>) {
-    const callId = evt.data.call_id;
-    const stream = evt.data.stream;
-    let chunk = evt.data.chunk;
-    // Handle base64-encoded chunks from Codex
-    // Check if it's a valid base64 string before attempting to decode
-    if (this.isValidBase64(chunk)) {
-      try {
-        // Decode base64 - Codex sends base64-encoded strings
-        chunk = Buffer.from(chunk, 'base64').toString('utf-8');
-      } catch {
-        // If base64 decoding fails, use the original string
-      }
-    }
-    const buf = this.cmdBuffers.get(callId) || { stdout: '', stderr: '', combined: '' };
-    if (stream === 'stderr') buf.stderr += chunk;
-    else buf.stdout += chunk;
-    buf.combined += chunk;
-    this.cmdBuffers.set(callId, buf);
-    this.emitToolGroup(
-      callId,
-      CodexAgentEventType.EXEC_COMMAND_OUTPUT_DELTA,
-      {
-        description: `Streaming output (${stream})...`,
-        status: 'Executing',
-        resultDisplay: buf.combined,
-      },
-      evt.data
-    );
-  }
-
   // Patch handlers
   handlePatchApplyBegin(evt: Extract<CodexAgentEvent, { type: CodexAgentEventType.PATCH_APPLY_BEGIN }>) {
     const callId = evt.data.call_id || uuid();
@@ -190,19 +141,19 @@ export class CodexToolHandlers {
   private emitToolGroup(callId: string, eventType: CodexAgentEventType, tool: Partial<IMessageToolGroup['content'][number]>, eventData?: EventDataMap[keyof EventDataMap]) {
     const toolDef = this.toolRegistry.resolveToolForEvent(eventType, eventData);
     const i18nParams = toolDef ? this.toolRegistry.getMcpToolI18nParams(toolDef) : {};
-
+    // console.log("eventData------_>", eventData);
     const toolContent: IMessageToolGroup['content'][number] = {
       callId,
       name: toolDef ? this.toolRegistry.getToolDisplayName(toolDef, i18nParams) : 'Unknown Tool',
       description: toolDef ? this.toolRegistry.getToolDescription(toolDef, i18nParams) : '',
-      status: 'Executing',
+      status: 'Success',
       renderOutputAsMarkdown: toolDef?.capabilities.supportsMarkdown || false,
       resultDisplay: '',
       ...tool,
     };
 
     // 检查是否为shell命令执行事件
-    const isShellCommand = eventType === CodexAgentEventType.EXEC_COMMAND_BEGIN || eventType === CodexAgentEventType.EXEC_COMMAND_OUTPUT_DELTA || eventType === CodexAgentEventType.EXEC_COMMAND_END;
+    const isShellCommand = eventType === CodexAgentEventType.EXEC_COMMAND_BEGIN || eventType === CodexAgentEventType.EXEC_COMMAND_OUTPUT_DELTA;
 
     let msgId: string;
 
