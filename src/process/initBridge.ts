@@ -448,7 +448,7 @@ ipcBridge.geminiConversation.getWorkspace.provider(async ({ conversation_id }) =
 });
 
 // ACP 的 getWorkspace 实现
-const buildWorkspaceFileTree = async (conversation_id) => {
+const buildWorkspaceFileTree = async (conversation_id: string) => {
   try {
     const task = (await WorkerManage.getTaskByIdRollbackBuild(conversation_id)) as AcpAgentManager;
     if (!task) return [];
@@ -528,8 +528,8 @@ ipcBridge.acpConversation.getWorkspace.provider(async ({ conversation_id }) => {
 });
 
 // Codex getWorkspace 使用通用方法
-ipcBridge.codexConversation.getWorkspace.provider(async ({ workspace }) => {
-  return await buildWorkspaceFileTree(workspace);
+ipcBridge.codexConversation.getWorkspace.provider(async ({ conversation_id }) => {
+  return await buildWorkspaceFileTree(conversation_id);
 });
 
 ipcBridge.googleAuth.status.provider(async ({ proxy }) => {

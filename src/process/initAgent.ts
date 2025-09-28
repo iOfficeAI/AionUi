@@ -73,6 +73,6 @@ export const createCodexAgent = async (options: ICreateConversationParams): Prom
     createTime: Date.now(),
     modifyTime: Date.now(),
     name: workspace,
-    id: generateHashWithFullName(workspace),
+    id: uuid(),
   } as any;
 };
