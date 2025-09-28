@@ -4,13 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { TChatConversation, TProviderWithModel } from '@/common/storage';
 import { AIONUI_TIMESTAMP_REGEX } from '@/common/constants';
+import type { ICreateConversationParams } from '@/common/ipcBridge';
+import type { TChatConversation, TProviderWithModel } from '@/common/storage';
+import { uuid } from '@/common/utils';
 import fs from 'fs/promises';
 import path from 'path';
-import type { ICreateConversationParams } from '@/common/ipcBridge';
 import { getSystemDir } from './initStorage';
-import { generateHashWithFullName } from './utils';
 
 const buildWorkspaceWidthFiles = async (defaultWorkspaceName: string, workspace?: string, defaultFiles?: string[]) => {
   const customWorkspace = !!workspace;
@@ -47,7 +47,7 @@ export const createGeminiAgent = async (model: TProviderWithModel, workspace?: s
     createTime: Date.now(),
     modifyTime: Date.now(),
     name: newWorkspace,
-    id: generateHashWithFullName(newWorkspace),
+    id: uuid(),
   };
 };
 
@@ -60,7 +60,7 @@ export const createAcpAgent = async (options: ICreateConversationParams): Promis
     createTime: Date.now(),
     modifyTime: Date.now(),
     name: workspace,
-    id: generateHashWithFullName(workspace),
+    id: uuid(),
   };
 };
 

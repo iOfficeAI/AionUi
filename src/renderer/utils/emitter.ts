@@ -18,6 +18,7 @@ interface EventTypes {
   'codex.selected.file': [string[]];
   'codex.selected.file.clear': void;
   'codex.workspace.refresh': void;
+  'chat.history.refresh': void;
 }
 
 export const emitter = new EventEmitter<EventTypes>();

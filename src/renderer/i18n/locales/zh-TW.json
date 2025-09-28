@@ -136,8 +136,14 @@
     "workspace": "工作空間"
   },
   "conversation": {
-    "chat": {
-      "noModelSelected": "當前會話未選擇模型，無法發送訊息"
+    "welcome": {
+      "title": "Hi，今天有什麼安排？",
+      "placeholder": "發送訊息、上傳檔案或開啟資料夾...",
+      "uploadFile": "上傳檔案",
+      "linkFolder": "開啟資料夾",
+      "newConversation": "新對話",
+      "multiAgentModeEnabled": "已進入多智能體模式",
+      "selectModel": "選擇模型"
     },
     "history": {
       "cancelDelete": "取消",
@@ -162,15 +168,11 @@
       "empty": "空的",
       "emptyDescription": "上傳檔案或開啟資料夾後，檔案將顯示在這裡",
       "searchPlaceholder": "搜尋檔案...",
-      "title": "工作空間"
+      "createNewConversation": "當前空間創建新對話"
+    },
+    "chat": {
+      "noModelSelected": "當前會話未選擇模型，無法發送訊息"
     }
-  },
-  "messages": {
-    "canceledExecution": "已取消執行",
-    "confirm": "確認",
-    "conversationInProgress": "目前正在進行對話...",
-    "imageGenerationModelDetected": "檢測到圖片模型，已自動開啟圖片工具，設置為默認模型：{{platform}}:{{model}}",
-    "openLinkFailed": "無法開啟連結"
   },
   "settings": {
     "about": "關於我們",
@@ -214,9 +216,35 @@
     "system": "系統設定",
     "theme": "主題",
     "tools": "工具配置",
-    "updateConfirm": "確認修改",
-    "vertexApiKey": "Vertex AI",
-    "workDir": "工作目錄",
-    "yoloMode": "自動允許"
+    "imageGenerationModel": "圖像模型",
+    "imageGenerationGuide": "圖像模型配置指南",
+    "noAvailable": "暫無可用圖像模型，請先配置。",
+    "noConfiguredModels": "暫無已配置的模型",
+    "needHelpConfigGuide": "需要幫助？查看詳細的",
+    "configGuide": "配置指南",
+    "configGuideSuffix": "。",
+    "needHelpTooltip": "如需幫助，請查看",
+    "noAvailableModels": "暫無可用模型",
+    "appDescription": "Free, local, open-source GUI app for Gemini CLI",
+    "helpDocumentation": "幫助文檔",
+    "updateLog": "更新日誌",
+    "feedback": "意見反饋",
+    "contactMe": "聯繫我",
+    "officialWebsite": "官網"
+  },
+  "messages": {
+    "conversationInProgress": "目前正在進行對話...",
+    "confirm": "確認",
+    "canceledExecution": "已取消執行",
+    "openLinkFailed": "無法開啟連結",
+    "imageGenerationModelDetected": "檢測到圖片模型，已自動開啟圖片工具，設置為默認模型：{{platform}}:{{model}}"
+  },
+  "acp": {
+    "auth": {
+      "failed": "{{backend}} 認證失敗：\n\n{{error}}\n\n請檢查本地CLI工具的認證狀態"
+    },
+    "sendbox": {
+      "placeholder": "發送訊息到 {{backend}}..."
+    }
   }
 }

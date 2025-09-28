@@ -42,7 +42,10 @@ export default forkTask(async ({ data }, pipe) => {
     deferred.with(agent.send(event.input, event.msg_id));
   });
   pipe.on('gemini.get.workspace', async (_, deferred) => {
-    await agent.bootstrap;
+    if (!data.workspace) {
+      deferred.with(Promise.resolve([]));
+      return;
+    }
     deferred.with(readDirectoryRecursive(data.workspace, path.join(data.workspace, '/'), agent.config.getFileService()).then((res) => (res ? [res] : [])));
   });
 

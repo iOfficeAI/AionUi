@@ -11,9 +11,9 @@
  */
 
 import { uuid } from '@/renderer/utils/common';
-import { Pipe } from './pipe';
 import type { UtilityProcess } from 'electron';
 import { utilityProcess } from 'electron';
+import { Pipe } from './pipe';
 
 export class ForkTask<Data> extends Pipe {
   protected path = '';
@@ -72,8 +72,7 @@ export class ForkTask<Data> extends Pipe {
     return this.postMessagePromise('start', data);
   }
   // 向子进程发送消息并等待回调
-  postMessagePromise(type: string, data: any) {
-    if (!this.fcp) return Promise.reject(new Error('fork task not enabled'));
+  protected postMessagePromise(type: string, data: any) {
     return new Promise<any>((resolve, reject) => {
       const pipeId = uuid(8);
       // console.log("---------发送消息>", this.callbackKey(pipeId), type, data);

@@ -12,13 +12,13 @@ import { Empty, Input, Tree } from '@arco-design/web-react';
 import { Refresh, Search } from '@icon-park/react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-interface GeminiWorkspaceProps {
+interface WorkspaceProps {
   workspace: string;
-  customWorkspace?: boolean;
+  conversation_id: string;
   eventPrefix?: 'gemini' | 'acp' | 'codex';
 }
 
-const GeminiWorkspace: React.FC<GeminiWorkspaceProps> = ({ workspace, customWorkspace, eventPrefix = 'gemini' }) => {
+const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, eventPrefix = 'gemini' }) => {
   const { t } = useTranslation();
   const [selected, setSelected] = useState<string[]>([]);
   const [files, setFiles] = useState<IDirOrFile[]>([]);
@@ -32,43 +32,64 @@ const GeminiWorkspace: React.FC<GeminiWorkspaceProps> = ({ workspace, customWork
     setSelected(files);
   });
 
-  const refreshWorkspace = (prefix: typeof eventPrefix = eventPrefix, ws: string = workspace) => {
+  const refreshWorkspace = (_eventPrefix: typeof eventPrefix, conversation_id: string) => {
     setLoading(true);
     const startTime = Date.now();
 
-    // 根据前缀选择对应的 getWorkspace 方法
-    const getWorkspaceMethod: typeof ipcBridge.geminiConversation.getWorkspace = prefix === 'acp' ? ipcBridge.acpConversation.getWorkspace : prefix === 'codex' ? ipcBridge.codexConversation.getWorkspace : ipcBridge.geminiConversation.getWorkspace;
+    // 根据 eventPrefix 选择对应的 getWorkspace 方法
+    const getWorkspaceMethod =
+      _eventPrefix === 'acp'
+        ? ipcBridge.acpConversation.getWorkspace
+        : _eventPrefix === 'codex'
+          ? ipcBridge.codexConversation.getWorkspace // 使用 ACP 专用的 getWorkspace
+          : ipcBridge.geminiConversation.getWorkspace;
 
     getWorkspaceMethod
-      .invoke({ workspace: ws })
-      .then((res) => setFiles(res))
-      .catch((): void => void 0)
+      .invoke({ conversation_id })
+      .then((res) => {
+        setFiles(res);
+      })
+      .catch(() => {
+        // Silently handle getWorkspace errors
+      })
       .finally(() => {
-        const elapsed = Date.now() - startTime;
-        if (elapsed > 1000) setLoading(false);
-        else setTimeout(() => setLoading(false), 1000 - elapsed);
+        if (Date.now() - startTime > 1000) {
+          setLoading(false);
+        } else {
+          setTimeout(() => {
+            setLoading(false);
+          }, 1000);
+        }
       });
   };
 
   useEffect(() => {
     setFiles([]);
-    refreshWorkspace(eventPrefix, workspace);
-    // 只在workspace变化时清空选择，避免eventPrefix变化时的不必要清空
-    if (workspace) {
-      emitter.emit(`${eventPrefix}.selected.file`, []);
-    }
-  }, [workspace]);
+    refreshWorkspace(eventPrefix, conversation_id);
+    emitter.emit(`${eventPrefix}.selected.file`, []);
+  }, [conversation_id, eventPrefix]);
 
-  // 监听当前会话流，工具执行后刷新工作区
   useEffect(() => {
-    const stream = eventPrefix === 'acp' ? ipcBridge.acpConversation.responseStream : eventPrefix === 'codex' ? ipcBridge.codexConversation.responseStream : ipcBridge.geminiConversation.responseStream;
-
-    return stream.on((data: any) => {
+    const handleGeminiResponse = (data: any) => {
       if (data.type === 'tool_group' || data.type === 'tool_call') {
-        refreshWorkspace();
+        refreshWorkspace(eventPrefix, conversation_id);
       }
-    });
-  }, [eventPrefix, workspace]);
+    };
+
+    const handleAcpResponse = (data: any) => {
+      if (data.type === 'acp_tool_call') {
+        refreshWorkspace(eventPrefix, conversation_id);
+      }
+    };
+
+    const unsubscribeGemini = ipcBridge.geminiConversation.responseStream.on(handleGeminiResponse);
+    const unsubscribeAcp = ipcBridge.acpConversation.responseStream.on(handleAcpResponse);
+
+    return () => {
+      unsubscribeGemini();
+      unsubscribeAcp();
+    };
+  }, [conversation_id, eventPrefix]);
 
   useAddEventListener(`${eventPrefix}.workspace.refresh`, () => refreshWorkspace(eventPrefix, workspace), [workspace, eventPrefix]);
 
@@ -137,10 +158,27 @@ const GeminiWorkspace: React.FC<GeminiWorkspaceProps> = ({ workspace, customWork
             }}
             multiple
             renderTitle={(node) => {
+              let timer: any;
               const path = node.dataRef.path;
+              let time = Date.now();
               return (
                 <span
                   className='flex items-center gap-4px group'
+                  onClick={() => {
+                    return;
+                    clearTimeout(timer);
+                    timer = setTimeout(() => {
+                      setSelected((list) => {
+                        let newList = [...list];
+                        if (list.some((key) => key === path)) newList = list.filter((key) => key !== path);
+                        else newList = [...list, path];
+                        emitter.emit(`${eventPrefix}.selected.file`, newList);
+                        return newList;
+                      });
+                    }, 100);
+                    console.log('----click', timer, Date.now() - time);
+                    time = Date.now();
+                  }}
                   onDoubleClick={() => {
                     if (path === workspace) {
                       // first node is workspace
@@ -165,4 +203,4 @@ const GeminiWorkspace: React.FC<GeminiWorkspaceProps> = ({ workspace, customWork
   );
 };
 
-export default GeminiWorkspace;
+export default ChatWorkspace;

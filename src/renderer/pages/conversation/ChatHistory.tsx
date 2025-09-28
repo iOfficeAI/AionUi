@@ -8,6 +8,7 @@ import { ipcBridge } from '@/common';
 import type { TChatConversation } from '@/common/storage';
 import { ChatStorage } from '@/common/storage';
 import FlexFullContainer from '@/renderer/components/FlexFullContainer';
+import { addEventListener } from '@/renderer/utils/emitter';
 import { Empty, Popconfirm } from '@arco-design/web-react';
 import { DeleteOne, MessageOne } from '@icon-park/react';
 import classNames from 'classnames';
@@ -46,41 +47,74 @@ const useTimeline = () => {
   };
 };
 
-const ChatHistory: React.FC = ({ ...props }) => {
+const useScrollIntoView = (id: string) => {
+  useEffect(() => {
+    if (!id) return;
+    const el = document.getElementById('c-' + id);
+    if (!el) return;
+
+    const findScrollParent = (node: HTMLElement | null): HTMLElement | null => {
+      let p = node?.parentElement;
+      while (p) {
+        const style = window.getComputedStyle(p);
+        const overflowY = style.overflowY;
+        if (overflowY === 'auto' || overflowY === 'scroll') return p;
+        p = p.parentElement;
+      }
+      return null;
+    };
+
+    const container = findScrollParent(el);
+
+    const isOutOfView = (): boolean => {
+      const elRect = el.getBoundingClientRect();
+      if (!container) {
+        const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+        return elRect.top < 0 || elRect.bottom > viewportHeight;
+      }
+      const cRect = container.getBoundingClientRect();
+      return elRect.top < cRect.top || elRect.bottom > cRect.bottom;
+    };
+
+    if (isOutOfView()) {
+      el.scrollIntoView({ block: 'nearest', behavior: 'auto' });
+    }
+  }, [id]);
+};
+
+const ChatHistory: React.FC = () => {
   const [chatHistory, setChatHistory] = useState<TChatConversation[]>([]);
   const { id } = useParams();
-  const navigate = useNavigate();
   const { t } = useTranslation();
-  const handleSelect = (conversation: TChatConversation) => {
-    if (conversation.type === 'gemini') {
-      ipcBridge.conversation.create.invoke({
-        type: 'gemini',
-        model: conversation.model,
-        extra: { workspace: conversation.extra.workspace },
-      });
-    } else if (conversation.type === 'acp') {
-      // For ACP conversations, don't create new - let conversation.get handle task recreation if needed
-      // This preserves the original conversation ID, createTime, and all metadata
-    }
+  const navigate = useNavigate();
 
+  useScrollIntoView(id);
+
+  const handleSelect = (conversation: TChatConversation) => {
+    // ipcBridge.conversation.createWithConversation.invoke({ conversation }).then(() => {
     navigate(`/conversation/${conversation.id}`);
+    // });
   };
 
   const isConversation = !!id;
 
   useEffect(() => {
-    ChatStorage.get('chat.history')
-      .then((history) => {
-        if (history && Array.isArray(history) && history.length > 0) {
-          const sortedHistory = history.sort((a, b) => (b.createTime - a.createTime < 0 ? -1 : 1));
-          setChatHistory(sortedHistory);
-        } else {
+    const refresh = () => {
+      ChatStorage.get('chat.history')
+        .then((history) => {
+          if (history && Array.isArray(history) && history.length > 0) {
+            const sortedHistory = history.sort((a, b) => (b.createTime - a.createTime < 0 ? -1 : 1));
+            setChatHistory(sortedHistory);
+          } else {
+            setChatHistory([]);
+          }
+        })
+        .catch(() => {
           setChatHistory([]);
-        }
-      })
-      .catch(() => {
-        setChatHistory([]);
-      });
+        });
+    };
+    refresh();
+    return addEventListener('chat.history.refresh', refresh);
   }, [isConversation]);
 
   const handleRemoveConversation = (id: string) => {
@@ -144,6 +178,7 @@ const ChatHistory: React.FC = ({ ...props }) => {
       </div>
     );
   };
+
   return (
     <FlexFullContainer>
       <div
