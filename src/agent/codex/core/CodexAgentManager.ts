@@ -45,12 +45,15 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
   private initAgent(data: CodexAgentManagerData) {
     // 初始化各个管理器 - 参考 ACP 的架构，传递消息发送器
     const eventHandler = new CodexEventHandler(data.conversation_id, this);
-    const sessionManager = new CodexSessionManager({
-      conversation_id: data.conversation_id,
-      cliPath: data.cliPath,
-      workingDir: data.workspace || process.cwd(),
-    });
-    const fileOperationHandler = new CodexFileOperationHandler(data.conversation_id, data.workspace);
+    const sessionManager = new CodexSessionManager(
+      {
+        conversation_id: data.conversation_id,
+        cliPath: data.cliPath,
+        workingDir: data.workspace || process.cwd(),
+      },
+      this
+    );
+    const fileOperationHandler = new CodexFileOperationHandler(data.workspace || process.cwd(), data.conversation_id, this);
 
     // 设置 Codex Agent 的应用配置，使用 Electron API 在主进程中
     (async () => {

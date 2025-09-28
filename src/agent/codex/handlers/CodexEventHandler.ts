@@ -5,7 +5,6 @@
  */
 
 import { uuid } from '@/common/utils';
-import type { IResponseMessage } from '@/common/ipcBridge';
 import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
 import type { AgentReasoningData, AgentReasoningDeltaData, BaseCodexEventData, CodexAgentEvent, CodexEventParams, ExecApprovalRequestData, PatchApprovalData } from '@/common/codex/types';
 import { CodexAgentEventType } from '@/common/codex/types';
@@ -239,16 +238,16 @@ export class CodexEventHandler {
       this.reasoningMsgId = uuid();
     }
 
-    // Create a standard message format for reasoning content
-    const standardMessage: IResponseMessage = {
-      type: evt.type,
-      msg_id: this.reasoningMsgId, // 使用固定的msg_id确保消息合并
-      conversation_id: this.conversation_id,
-      data: (eventData as AgentReasoningDeltaData)?.delta || (eventData as AgentReasoningData)?.text || eventData || '',
-    };
-
-    // Transform and persist message, then emit to UI
-    this.messageEmitter.emitAndPersistMessage(standardMessage, true);
+    // 推理消息不需要持久化，只用于实时显示
+    this.messageEmitter.emitAndPersistMessage(
+      {
+        type: evt.type,
+        msg_id: this.reasoningMsgId, // 使用固定的msg_id确保消息合并
+        conversation_id: this.conversation_id,
+        data: (eventData as AgentReasoningDeltaData)?.delta || (eventData as AgentReasoningData)?.text || eventData || '',
+      },
+      false
+    );
   }
 
   /**
@@ -298,6 +297,7 @@ export class CodexEventHandler {
 
     // Route to appropriate handler based on event type (async processing)
     if (type === CodexAgentEventType.EXEC_APPROVAL_REQUEST) {
+      // 请求批准命令执行
       this.processExecApprovalRequest(
         evt as Extract<
           CodexAgentEvent,
@@ -308,6 +308,7 @@ export class CodexEventHandler {
         unifiedRequestId
       ).catch(console.error);
     } else if (type === CodexAgentEventType.APPLY_PATCH_APPROVAL_REQUEST) {
+      // 请求批准应用代码补丁
       this.processApplyPatchRequest(
         evt as Extract<
           CodexAgentEvent,
@@ -318,7 +319,7 @@ export class CodexEventHandler {
         unifiedRequestId
       ).catch(console.error);
     } else {
-      // ELICITATION_CREATE
+      // 请求批准启发式操作
       this.processElicitationRequest(
         evt as Extract<
           CodexAgentEvent,
@@ -346,32 +347,33 @@ export class CodexEventHandler {
     const displayInfo = getPermissionDisplayInfo(PermissionType.COMMAND_EXECUTION);
     const options = createPermissionOptionsForType(PermissionType.COMMAND_EXECUTION);
 
-    // Create command approval request
-    const standardMessage: IResponseMessage = {
-      type: 'codex_permission',
-      msg_id: unifiedRequestId, // Use unified request ID to prevent duplicate messages
-      conversation_id: this.conversation_id,
-      data: {
-        title: displayInfo.titleKey,
-        description: eventData.reason || `${displayInfo.icon} Codex wants to execute command: ${Array.isArray(eventData.command) ? eventData.command.join(' ') : eventData.command}`,
-        agentType: 'codex',
-        sessionId: '',
-        options: options,
-        requestId: callId,
-        toolCall: {
-          title: 'Execute Command',
-          toolCallId: callId, // Use actual call_id instead of unifiedRequestId
-          kind: 'execute',
-          rawInput: {
-            command: Array.isArray(eventData.command) ? eventData.command.join(' ') : eventData.command ? String(eventData.command) : undefined,
-            cwd: eventData.cwd,
-            reason: eventData.reason ?? undefined,
+    // 权限请求需要持久化
+    this.messageEmitter.emitAndPersistMessage(
+      {
+        type: 'codex_permission',
+        msg_id: unifiedRequestId, // Use unified request ID to prevent duplicate messages
+        conversation_id: this.conversation_id,
+        data: {
+          title: displayInfo.titleKey,
+          description: eventData.reason || `${displayInfo.icon} Codex wants to execute command: ${Array.isArray(eventData.command) ? eventData.command.join(' ') : eventData.command}`,
+          agentType: 'codex',
+          sessionId: '',
+          options: options,
+          requestId: callId,
+          toolCall: {
+            title: 'Execute Command',
+            toolCallId: callId, // Use actual call_id instead of unifiedRequestId
+            kind: 'execute',
+            rawInput: {
+              command: Array.isArray(eventData.command) ? eventData.command.join(' ') : eventData.command ? String(eventData.command) : undefined,
+              cwd: eventData.cwd,
+              reason: eventData.reason ?? undefined,
+            },
           },
-        },
-      } as any,
-    };
-
-    this.messageEmitter.emitAndPersistMessage(standardMessage, true);
+        } as any,
+      },
+      true
+    );
   }
 
   private async processApplyPatchRequest(
@@ -397,29 +399,30 @@ export class CodexEventHandler {
       }
     }
 
-    const standardMessage: IResponseMessage = {
-      type: 'codex_permission',
-      msg_id: unifiedRequestId,
-      conversation_id: this.conversation_id,
-      data: {
-        title: displayInfo.titleKey,
-        description: eventData.message || `${displayInfo.icon} Codex wants to apply proposed code changes`,
-        agentType: 'codex',
-        sessionId: '',
-        options: options,
-        requestId: callId,
-        toolCall: {
-          title: 'Write File',
-          toolCallId: callId, // Use actual call_id instead of unifiedRequestId
-          kind: 'write',
-          rawInput: {
-            description: eventData.message,
+    this.messageEmitter.emitAndPersistMessage(
+      {
+        type: 'codex_permission',
+        msg_id: unifiedRequestId,
+        conversation_id: this.conversation_id,
+        data: {
+          title: displayInfo.titleKey,
+          description: eventData.message || `${displayInfo.icon} Codex wants to apply proposed code changes`,
+          agentType: 'codex',
+          sessionId: '',
+          options: options,
+          requestId: callId,
+          toolCall: {
+            title: 'Write File',
+            toolCallId: callId, // Use actual call_id instead of unifiedRequestId
+            kind: 'write',
+            rawInput: {
+              description: eventData.message,
+            },
           },
-        },
-      } as any,
-    };
-
-    this.messageEmitter.emitAndPersistMessage(standardMessage, true);
+        } as any,
+      },
+      true
+    );
   }
 
   private async processElicitationRequest(
@@ -440,87 +443,90 @@ export class CodexEventHandler {
       const displayInfo = getPermissionDisplayInfo(PermissionType.COMMAND_EXECUTION);
       const options = createPermissionOptionsForType(PermissionType.COMMAND_EXECUTION);
 
-      const standardMessage: IResponseMessage = {
-        type: 'codex_permission',
-        msg_id: unifiedRequestId,
-        conversation_id: this.conversation_id,
-        data: {
-          title: displayInfo.titleKey,
-          description: elicitationData.message || `${displayInfo.icon} Codex wants to execute a command`,
-          agentType: 'codex',
-          sessionId: '',
-          options: options,
-          requestId: callId,
-          toolCall: {
-            title: 'Execute Command',
-            toolCallId: callId, // Use actual call_id instead of unifiedRequestId
-            kind: 'execute',
-            rawInput: {
-              command: Array.isArray(elicitationData.codex_command) ? elicitationData.codex_command.join(' ') : elicitationData.codex_command,
-              cwd: elicitationData.codex_cwd,
-              description: elicitationData.message,
+      this.messageEmitter.emitAndPersistMessage(
+        {
+          type: 'codex_permission',
+          msg_id: unifiedRequestId,
+          conversation_id: this.conversation_id,
+          data: {
+            title: displayInfo.titleKey,
+            description: elicitationData.message || `${displayInfo.icon} Codex wants to execute a command`,
+            agentType: 'codex',
+            sessionId: '',
+            options: options,
+            requestId: callId,
+            toolCall: {
+              title: 'Execute Command',
+              toolCallId: callId, // Use actual call_id instead of unifiedRequestId
+              kind: 'execute',
+              rawInput: {
+                command: Array.isArray(elicitationData.codex_command) ? elicitationData.codex_command.join(' ') : elicitationData.codex_command,
+                cwd: elicitationData.codex_cwd,
+                description: elicitationData.message,
+              },
             },
-          },
-        } as any,
-      };
-
-      this.messageEmitter.emitAndPersistMessage(standardMessage, true);
+          } as any,
+        },
+        true
+      );
     } else if (elicitationType === 'file-write' || (elicitationData.message && elicitationData.message.toLowerCase().includes('write'))) {
       // Handle file write permission requests
       const displayInfo = getPermissionDisplayInfo(PermissionType.FILE_WRITE);
       const options = createPermissionOptionsForType(PermissionType.FILE_WRITE);
 
-      const standardMessage: IResponseMessage = {
-        type: 'codex_permission',
-        msg_id: unifiedRequestId,
-        conversation_id: this.conversation_id,
-        data: {
-          title: displayInfo.titleKey,
-          description: elicitationData.message || `${displayInfo.icon} Codex wants to apply proposed code changes`,
-          agentType: 'codex',
-          sessionId: '',
-          options: options,
-          requestId: callId,
-          toolCall: {
-            title: 'Write File',
-            toolCallId: callId, // Use actual call_id instead of unifiedRequestId
-            kind: 'write',
-            rawInput: {
-              description: elicitationData.message,
+      this.messageEmitter.emitAndPersistMessage(
+        {
+          type: 'codex_permission',
+          msg_id: unifiedRequestId,
+          conversation_id: this.conversation_id,
+          data: {
+            title: displayInfo.titleKey,
+            description: elicitationData.message || `${displayInfo.icon} Codex wants to apply proposed code changes`,
+            agentType: 'codex',
+            sessionId: '',
+            options: options,
+            requestId: callId,
+            toolCall: {
+              title: 'Write File',
+              toolCallId: callId, // Use actual call_id instead of unifiedRequestId
+              kind: 'write',
+              rawInput: {
+                description: elicitationData.message,
+              },
             },
-          },
-        } as any,
-      };
-
-      this.messageEmitter.emitAndPersistMessage(standardMessage, true);
+          } as any,
+        },
+        true
+      );
     } else if (elicitationType === 'file-read' || (elicitationData.message && elicitationData.message.toLowerCase().includes('read'))) {
       // Handle file read permission requests
       const displayInfo = getPermissionDisplayInfo(PermissionType.FILE_READ);
       const options = createPermissionOptionsForType(PermissionType.FILE_READ);
 
-      const standardMessage: IResponseMessage = {
-        type: 'codex_permission',
-        msg_id: unifiedRequestId,
-        conversation_id: this.conversation_id,
-        data: {
-          title: displayInfo.titleKey,
-          description: elicitationData.message || `${displayInfo.icon} Codex wants to read files from your workspace`,
-          agentType: 'codex',
-          sessionId: '',
-          options: options,
-          requestId: callId,
-          toolCall: {
-            title: 'Read File',
-            toolCallId: callId, // Use actual call_id instead of unifiedRequestId
-            kind: 'read',
-            rawInput: {
-              description: elicitationData.message,
+      this.messageEmitter.emitAndPersistMessage(
+        {
+          type: 'codex_permission',
+          msg_id: unifiedRequestId,
+          conversation_id: this.conversation_id,
+          data: {
+            title: displayInfo.titleKey,
+            description: elicitationData.message || `${displayInfo.icon} Codex wants to read files from your workspace`,
+            agentType: 'codex',
+            sessionId: '',
+            options: options,
+            requestId: callId,
+            toolCall: {
+              title: 'Read File',
+              toolCallId: callId, // Use actual call_id instead of unifiedRequestId
+              kind: 'read',
+              rawInput: {
+                description: elicitationData.message,
+              },
             },
-          },
-        } as any,
-      };
-
-      this.messageEmitter.emitAndPersistMessage(standardMessage, true);
+          } as any,
+        },
+        true
+      );
     } else {
       // For other elicitation types, create a generic content message (not a permission)
     }
