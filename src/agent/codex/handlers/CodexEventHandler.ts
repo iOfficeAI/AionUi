@@ -9,7 +9,7 @@ import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageE
 import type { AgentReasoningData, AgentReasoningDeltaData, BaseCodexEventData, CodexAgentEvent, CodexEventParams, ExecApprovalRequestData, PatchApprovalData } from '@/common/codex/types';
 import { CodexAgentEventType } from '@/common/codex/types';
 import { CodexMessageProcessor } from '@/agent/codex/messaging/CodexMessageProcessor';
-import { CodexToolHandlers } from '@/agent/codex/tools/CodexToolHandlers';
+import { CodexToolHandlers } from '@/agent/codex/handlers/CodexToolHandlers';
 import { PermissionType } from '@/common/codex/types/permissionTypes';
 import { createPermissionOptionsForType, getPermissionDisplayInfo } from '@/common/codex/utils';
 
@@ -17,7 +17,7 @@ export class CodexEventHandler {
   private messageProcessor: CodexMessageProcessor;
   private toolHandlers: CodexToolHandlers;
   private messageEmitter: ICodexMessageEmitter;
-  private reasoningMsgId: string | null = null; // 用于推理消息的固定msg_id
+  private reasoningMsgId?: string;
 
   constructor(
     private conversation_id: string,
@@ -33,19 +33,16 @@ export class CodexEventHandler {
 
     //这两类消息因为有delta 类型数据，所以直接忽略。
     if ([CodexAgentEventType.AGENT_REASONING, CodexAgentEventType.AGENT_MESSAGE].includes(type as CodexAgentEventType)) {
-      // These are informational events, no UI action needed
       return;
     }
-
+    if ([CodexAgentEventType.TASK_STARTED, CodexAgentEventType.TASK_COMPLETE].includes(type as CodexAgentEventType)) {
+      //todo 暂时忽略此消息
+      // this.messageProcessor.processTaskComplete();
+      return;
+    }
     // Handle session and configuration events
     if (type === CodexAgentEventType.SESSION_CONFIGURED) {
       // These are informational events, no UI action needed
-      return;
-    }
-
-    if (type === CodexAgentEventType.TASK_STARTED) {
-      // 新任务开始时重置推理消息ID
-      this.reasoningMsgId = null;
       return;
     }
 
@@ -62,14 +59,9 @@ export class CodexEventHandler {
       return;
     }
 
-    if (type === CodexAgentEventType.TASK_COMPLETE) {
-      this.messageProcessor.processTaskComplete();
-      return;
-    }
-
     // Handle reasoning deltas and reasoning messages - send them to UI for dynamic thinking display
     if (type === CodexAgentEventType.AGENT_REASONING_DELTA) {
-      this.handleReasoningMessage(
+      this.messageProcessor.handleReasoningMessage(
         evt as Extract<
           CodexAgentEvent,
           | {
@@ -83,7 +75,7 @@ export class CodexEventHandler {
 
     // Handle reasoning section breaks - send them to UI for dynamic thinking display
     if (type === CodexAgentEventType.AGENT_REASONING_SECTION_BREAK) {
-      this.handleReasoningMessage(
+      this.messageProcessor.handleReasoningMessage(
         evt as Extract<
           CodexAgentEvent,
           {
@@ -540,6 +532,5 @@ export class CodexEventHandler {
   cleanup() {
     this.messageProcessor.cleanup();
     this.toolHandlers.cleanup();
-    this.reasoningMsgId = null; // 清理推理消息ID
   }
 }

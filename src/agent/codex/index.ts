@@ -8,7 +8,7 @@
 export { default as CodexAgentManager } from './core/CodexAgentManager';
 export { CodexMcpAgent, type CodexAgentConfig } from './core/CodexMcpAgent';
 // Export the app configuration function for use in main process
-export { setAppConfig as setCodexAgentAppConfig } from './core/appConfig';
+export { setAppConfig as setCodexAgentAppConfig } from '../../common/utils/appConfig';
 
 // Connection Layer
 export { CodexMcpConnection, type CodexEventEnvelope, type NetworkError } from './connection/CodexMcpConnection';
@@ -24,5 +24,5 @@ export { CodexMessageTransformer } from './messaging/CodexMessageTransformer';
 export { type ICodexMessageEmitter } from './messaging/CodexMessageEmitter';
 
 // Tools Layer
-export { CodexToolHandlers } from './tools/CodexToolHandlers';
+export { CodexToolHandlers } from './handlers/CodexToolHandlers';
 export { ToolRegistry, ToolCategory, OutputFormat, RendererType, type ToolDefinition, type ToolCapabilities, type ToolRenderer, type ToolAvailability, type McpToolInfo } from '@/common/codex/utils';
