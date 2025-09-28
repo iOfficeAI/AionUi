@@ -20,7 +20,7 @@ const ChatSider: React.FC<{
   }
 
   if (conversation?.type === 'codex' && conversation.extra?.workspace) {
-    return <GeminiWorkspace workspace={conversation.extra.workspace} customWorkspace={conversation.extra.customWorkspace} eventPrefix='codex'></GeminiWorkspace>;
+    return <ChatWorkspace conversation_id={conversation.id} workspace={conversation.extra.workspace} eventPrefix='codex'></ChatWorkspace>;
   }
 
   return <div></div>;

@@ -38,8 +38,8 @@ export class CodexToolHandlers {
       callId,
       CodexAgentEventType.EXEC_COMMAND_BEGIN,
       {
-        description: `Running: ${cmd}`,
-        status: 'Confirming',
+        description: cmd,
+        status: 'Success',
       },
       msg
     );
@@ -68,8 +68,8 @@ export class CodexToolHandlers {
       callId,
       CodexAgentEventType.EXEC_COMMAND_OUTPUT_DELTA,
       {
-        description: `Streaming output (${stream})...`,
-        status: 'Executing',
+        description: stream,
+        status: 'Success',
         resultDisplay: buf.combined,
       },
       msg

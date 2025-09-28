@@ -8,11 +8,19 @@ import FlexFullContainer from '@renderer/components/FlexFullContainer';
 import MessageList from '@renderer/messages/MessageList';
 import { MessageListProvider, useMessageLstCache } from '@renderer/messages/hooks';
 import HOC from '@renderer/utils/HOC';
-import React from 'react';
+import React, { useEffect } from 'react';
 import CodexSendBox from './CodexSendBox';
+import LocalImageView from '../../../components/LocalImageView';
 
-const CodexChat: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
+const CodexChat: React.FC<{
+  conversation_id: string;
+  workspace: string;
+}> = ({ conversation_id, workspace }) => {
   useMessageLstCache(conversation_id);
+  const updateLocalImage = LocalImageView.useUpdateLocalImage();
+  useEffect(() => {
+    updateLocalImage({ root: workspace });
+  }, [workspace]);
   return (
     <div className='h-full flex flex-col px-20px'>
       <FlexFullContainer>

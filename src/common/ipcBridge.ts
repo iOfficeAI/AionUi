@@ -92,7 +92,7 @@ export const codexConversation = {
   sendMessage: codexSendMessage,
   confirmMessage: bridge.buildProvider<IBridgeResponse, IConfirmAcpMessageParams>('codex.input.confirm.message'),
   responseStream: codexResponseStream,
-  getWorkspace: bridge.buildProvider<IDirOrFile[], { conversation_id: string; workspace: string }>('codex.get-workspace'),
+  getWorkspace: bridge.buildProvider<IDirOrFile[], { conversation_id: string }>('codex.get-workspace'),
 };
 
 interface ISendMessageParams {

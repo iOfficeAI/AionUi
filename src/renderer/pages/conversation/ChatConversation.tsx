@@ -88,7 +88,7 @@ const ChatConversation: React.FC<{
       case 'acp':
         return <AcpChat key={conversation.id} conversation_id={conversation.id} workspace={conversation.extra?.workspace} backend={conversation.extra?.backend || 'claude'}></AcpChat>;
       case 'codex':
-        return <CodexChat key={conversation.id} conversation_id={conversation.id} />;
+        return <CodexChat key={conversation.id} conversation_id={conversation.id} workspace={conversation.extra?.workspace} />;
       default:
         return null;
     }
