@@ -4,10 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { CodexAgentEventType } from './eventTypes';
-
-// JSON-RPC 消息的完整结构
-export interface CodexJsonRpcEvent {
+// JSON-RPC 消息的泛型结构 - 使用 CodexEventMsg 自动推断类型
+export interface CodexJsonRpcEvent<T extends CodexEventMsg['type'] = CodexEventMsg['type']> {
   jsonrpc: '2.0';
   method: 'codex/event';
   params: {
@@ -17,19 +15,47 @@ export interface CodexJsonRpcEvent {
       source?: string;
     };
     id: string;
-    msg: CodexEventMessage;
+    msg: Extract<CodexEventMsg, { type: T }>; // 直接从 CodexEventMsg 提取类型
   };
 }
 
-// params.msg 的结构 - 这是实际的事件数据
-export interface CodexEventMessage {
-  type: string;
-  [key: string]: unknown;
-}
+// 精准的事件消息类型，直接对应 params.msg
+export type CodexEventMsg =
+  | ({ type: 'session_configured' } & SessionConfiguredData)
+  | ({ type: 'task_started' } & TaskStartedData)
+  | ({ type: 'task_complete' } & TaskCompleteData)
+  | ({ type: 'agent_message_delta' } & MessageDeltaData)
+  | ({ type: 'agent_message' } & MessageData)
+  | ({ type: 'user_message' } & UserMessageData)
+  | ({ type: 'stream_error' } & StreamErrorData)
+  | ({ type: 'agent_reasoning_delta' } & AgentReasoningDeltaData)
+  | ({ type: 'agent_reasoning' } & AgentReasoningData)
+  | ({ type: 'agent_reasoning_raw_content' } & AgentReasoningRawContentData)
+  | ({ type: 'agent_reasoning_raw_content_delta' } & AgentReasoningRawContentDeltaData)
+  | ({ type: 'exec_command_begin' } & ExecCommandBeginData)
+  | ({ type: 'exec_command_output_delta' } & ExecCommandOutputDeltaData)
+  | ({ type: 'exec_command_end' } & ExecCommandEndData)
+  | ({ type: 'exec_approval_request' } & ExecApprovalRequestData)
+  | ({ type: 'apply_patch_approval_request' } & PatchApprovalData)
+  | ({ type: 'elicitation/create' } & ElicitationCreateData)
+  | ({ type: 'patch_apply_begin' } & PatchApplyBeginData)
+  | ({ type: 'patch_apply_end' } & PatchApplyEndData)
+  | ({ type: 'mcp_tool_call_begin' } & McpToolCallBeginData)
+  | ({ type: 'mcp_tool_call_end' } & McpToolCallEndData)
+  | ({ type: 'web_search_begin' } & WebSearchBeginData)
+  | ({ type: 'web_search_end' } & WebSearchEndData)
+  | ({ type: 'token_count' } & TokenCountData)
+  | { type: 'agent_reasoning_section_break' }
+  | ({ type: 'turn_diff' } & TurnDiffData)
+  | ({ type: 'get_history_entry_response' } & GetHistoryEntryResponseData)
+  | ({ type: 'mcp_list_tools_response' } & McpListToolsResponseData)
+  | ({ type: 'list_custom_prompts_response' } & ListCustomPromptsResponseData)
+  | ({ type: 'conversation_path' } & ConversationPathResponseData)
+  | { type: 'background_event'; message: string }
+  | ({ type: 'turn_aborted' } & TurnAbortedData);
 
 // Session / lifecycle events
-export interface SessionConfiguredData extends CodexEventMessage {
-  type: 'session_configured';
+export interface SessionConfiguredData {
   session_id: string;
   model?: string;
   reasoning_effort?: 'minimal' | 'low' | 'medium' | 'high' | null;
@@ -39,19 +65,16 @@ export interface SessionConfiguredData extends CodexEventMessage {
   rollout_path?: string | null;
 }
 
-export interface TaskStartedData extends CodexEventMessage {
-  type: 'task_started';
+export interface TaskStartedData {
   model_context_window: number;
 }
 
-export interface TaskCompleteData extends CodexEventMessage {
-  type: 'task_complete';
+export interface TaskCompleteData {
   last_agent_message: string;
 }
 
 // Message event data interfaces
-export interface MessageDeltaData extends CodexEventMessage {
-  type: 'agent_message_delta';
+export interface MessageDeltaData {
   delta: string;
 }
 
@@ -71,32 +94,27 @@ export interface CodexEventParams {
   codex_changes?: Record<string, unknown>;
 }
 
-export interface MessageData extends CodexEventMessage {
-  type: 'agent_message';
+export interface MessageData {
   message: string;
 }
 
-export interface AgentReasoningData extends CodexEventMessage {
-  type: 'agent_reasoning';
+export interface AgentReasoningData {
   text: string;
 }
 
-export interface AgentReasoningDeltaData extends CodexEventMessage {
-  type: 'agent_reasoning_delta';
+export interface AgentReasoningDeltaData {
   delta: string;
 }
 
 export type InputMessageKind = 'plain' | 'user_instructions' | 'environment_context';
 
-export interface UserMessageData extends CodexEventMessage {
-  type: 'user_message';
+export interface UserMessageData {
   message: string;
   kind?: InputMessageKind;
   images?: string[] | null;
 }
 
-export interface StreamErrorData extends CodexEventMessage {
-  type: 'stream_error';
+export interface StreamErrorData {
   message?: string;
   error?: string;
   code?: string;
@@ -104,23 +122,20 @@ export interface StreamErrorData extends CodexEventMessage {
 }
 
 // Command execution event data interfaces
-export interface ExecCommandBeginData extends CodexEventMessage {
-  type: 'exec_command_begin';
+export interface ExecCommandBeginData {
   call_id: string;
   command: string[];
   cwd: string;
   parsed_cmd?: ParsedCommand[];
 }
 
-export interface ExecCommandOutputDeltaData extends CodexEventMessage {
-  type: 'exec_command_output_delta';
+export interface ExecCommandOutputDeltaData {
   call_id: string;
   stream: 'stdout' | 'stderr';
   chunk: string;
 }
 
-export interface ExecCommandEndData extends CodexEventMessage {
-  type: 'exec_command_end';
+export interface ExecCommandEndData {
   call_id: string;
   stdout: string;
   stderr: string;
@@ -131,8 +146,7 @@ export interface ExecCommandEndData extends CodexEventMessage {
 }
 
 // Patch/file modification event data interfaces
-export interface PatchApprovalData extends CodexEventMessage {
-  type: 'apply_patch_approval_request';
+export interface PatchApprovalData {
   call_id?: string;
   codex_call_id?: string;
   changes?: Record<string, FileChange>;
@@ -144,16 +158,14 @@ export interface PatchApprovalData extends CodexEventMessage {
   grant_root?: string | null;
 }
 
-export interface PatchApplyBeginData extends CodexEventMessage {
-  type: 'patch_apply_begin';
+export interface PatchApplyBeginData {
   call_id?: string;
   auto_approved?: boolean;
   changes?: Record<string, FileChange>;
   dryRun?: boolean;
 }
 
-export interface PatchApplyEndData extends CodexEventMessage {
-  type: 'patch_apply_end';
+export interface PatchApplyEndData {
   call_id?: string;
   success?: boolean;
   error?: string;
@@ -164,15 +176,13 @@ export interface PatchApplyEndData extends CodexEventMessage {
 }
 
 // MCP tool event data interfaces
-export interface McpToolCallBeginData extends CodexEventMessage {
-  type: 'mcp_tool_call_begin';
+export interface McpToolCallBeginData {
   invocation?: McpInvocation;
   toolName?: string;
   serverName?: string;
 }
 
-export interface McpToolCallEndData extends CodexEventMessage {
-  type: 'mcp_tool_call_end';
+export interface McpToolCallEndData {
   invocation?: McpInvocation;
   result?: unknown;
   error?: string;
@@ -180,21 +190,18 @@ export interface McpToolCallEndData extends CodexEventMessage {
 }
 
 // Web search event data interfaces
-export interface WebSearchBeginData extends CodexEventMessage {
-  type: 'web_search_begin';
+export interface WebSearchBeginData {
   call_id?: string;
 }
 
-export interface WebSearchEndData extends CodexEventMessage {
-  type: 'web_search_end';
+export interface WebSearchEndData {
   call_id?: string;
   query?: string;
   results?: SearchResult[];
 }
 
 // Token count event data interface
-export interface TokenCountData extends CodexEventMessage {
-  type: 'token_count';
+export interface TokenCountData {
   info?: {
     total_token_usage?: {
       input_tokens?: number;
@@ -251,154 +258,46 @@ export interface SearchResult {
 
 export type ParsedCommand = { type: 'read'; cmd: string; name: string } | { type: 'list_files'; cmd: string; path?: string | null } | { type: 'search'; cmd: string; query?: string | null; path?: string | null } | { type: 'unknown'; cmd: string };
 
-export interface AgentReasoningRawContentData extends CodexEventMessage {
-  type: 'agent_reasoning_raw_content';
+export interface AgentReasoningRawContentData {
   text: string;
 }
-export interface AgentReasoningRawContentDeltaData extends CodexEventMessage {
-  type: 'agent_reasoning_raw_content_delta';
+export interface AgentReasoningRawContentDeltaData {
   delta: string;
 }
 
-export interface ExecApprovalRequestData extends CodexEventMessage {
-  type: 'exec_approval_request';
+export interface ExecApprovalRequestData {
   call_id: string;
   command: string[];
   cwd: string;
   reason: string | null;
 }
 
-export interface TurnDiffData extends CodexEventMessage {
-  type: 'turn_diff';
+export interface TurnDiffData {
   unified_diff: string;
 }
 
-export interface ConversationPathResponseData extends CodexEventMessage {
-  type: 'conversation_path';
+export interface ConversationPathResponseData {
   conversation_id: string;
   path: string;
 }
 
-export interface GetHistoryEntryResponseData extends CodexEventMessage {
-  type: 'get_history_entry_response';
+export interface GetHistoryEntryResponseData {
   offset: number;
   log_id: number;
   entry?: unknown;
 }
 
-export interface McpListToolsResponseData extends CodexEventMessage {
-  type: 'mcp_list_tools_response';
+export interface McpListToolsResponseData {
   tools: Record<string, unknown>;
 }
 
-export interface ListCustomPromptsResponseData extends CodexEventMessage {
-  type: 'list_custom_prompts_response';
+export interface ListCustomPromptsResponseData {
   custom_prompts: unknown[];
 }
 
-export interface TurnAbortedData extends CodexEventMessage {
-  type: 'turn_aborted';
+export interface TurnAbortedData {
   reason: 'interrupted' | 'replaced';
 }
-
-// Discriminated union for type-safe event handling
-export type CodexAgentEvent =
-  | {
-      type: CodexAgentEventType.SESSION_CONFIGURED;
-      data: SessionConfiguredData;
-    }
-  | {
-      type: CodexAgentEventType.TASK_STARTED;
-      data: TaskStartedData;
-    }
-  | {
-      type: CodexAgentEventType.TASK_COMPLETE;
-      data: TaskCompleteData;
-    }
-  | {
-      type: CodexAgentEventType.AGENT_MESSAGE_DELTA;
-      data: MessageDeltaData;
-    }
-  | {
-      type: CodexAgentEventType.AGENT_MESSAGE;
-      data: MessageData;
-    }
-  | {
-      type: CodexAgentEventType.USER_MESSAGE;
-      data: UserMessageData;
-    }
-  | {
-      type: CodexAgentEventType.STREAM_ERROR;
-      data: StreamErrorData;
-    }
-  | {
-      type: CodexAgentEventType.AGENT_REASONING_DELTA;
-      data: AgentReasoningDeltaData;
-    }
-  | {
-      type: CodexAgentEventType.AGENT_REASONING;
-      data: AgentReasoningData;
-    }
-  | { type: CodexAgentEventType.AGENT_REASONING_RAW_CONTENT; data: AgentReasoningRawContentData }
-  | { type: CodexAgentEventType.AGENT_REASONING_RAW_CONTENT_DELTA; data: AgentReasoningRawContentDeltaData }
-  | {
-      type: CodexAgentEventType.EXEC_COMMAND_BEGIN;
-      data: ExecCommandBeginData;
-    }
-  | {
-      type: CodexAgentEventType.EXEC_COMMAND_OUTPUT_DELTA;
-      data: ExecCommandOutputDeltaData;
-    }
-  | {
-      type: CodexAgentEventType.EXEC_COMMAND_END;
-      data: ExecCommandEndData;
-    }
-  | { type: CodexAgentEventType.EXEC_APPROVAL_REQUEST; data: ExecApprovalRequestData }
-  | {
-      type: CodexAgentEventType.APPLY_PATCH_APPROVAL_REQUEST;
-      data: PatchApprovalData;
-    }
-  | { type: CodexAgentEventType.ELICITATION_CREATE; data: ElicitationCreateData }
-  | {
-      type: CodexAgentEventType.PATCH_APPLY_BEGIN;
-      data: PatchApplyBeginData;
-    }
-  | {
-      type: CodexAgentEventType.PATCH_APPLY_END;
-      data: PatchApplyEndData;
-    }
-  | {
-      type: CodexAgentEventType.MCP_TOOL_CALL_BEGIN;
-      data: McpToolCallBeginData;
-    }
-  | {
-      type: CodexAgentEventType.MCP_TOOL_CALL_END;
-      data: McpToolCallEndData;
-    }
-  | {
-      type: CodexAgentEventType.WEB_SEARCH_BEGIN;
-      data: WebSearchBeginData;
-    }
-  | {
-      type: CodexAgentEventType.WEB_SEARCH_END;
-      data: WebSearchEndData;
-    }
-  | {
-      type: CodexAgentEventType.TOKEN_COUNT;
-      data: TokenCountData;
-    }
-  | {
-      type: CodexAgentEventType.AGENT_REASONING_SECTION_BREAK;
-      data: Record<string, never>; // Section break event carries no data
-    }
-  | { type: CodexAgentEventType.TURN_DIFF; data: TurnDiffData }
-  | { type: CodexAgentEventType.GET_HISTORY_ENTRY_RESPONSE; data: GetHistoryEntryResponseData }
-  | { type: CodexAgentEventType.MCP_LIST_TOOLS_RESPONSE; data: McpListToolsResponseData }
-  | { type: CodexAgentEventType.LIST_CUSTOM_PROMPTS_RESPONSE; data: ListCustomPromptsResponseData }
-  | { type: CodexAgentEventType.CONVERSATION_PATH; data: ConversationPathResponseData }
-  | { type: CodexAgentEventType.BACKGROUND_EVENT; data: { message: string } }
-  | { type: CodexAgentEventType.TURN_ABORTED; data: TurnAbortedData };
-
 // Manager configuration interface
 export interface CodexAgentManagerData {
   conversation_id: string;
@@ -406,8 +305,7 @@ export interface CodexAgentManagerData {
   cliPath?: string;
 }
 
-export interface ElicitationCreateData extends CodexEventMessage {
-  type: 'elicitation_create';
+export interface ElicitationCreateData {
   codex_elicitation: string;
   message?: string;
   codex_command?: string | string[];

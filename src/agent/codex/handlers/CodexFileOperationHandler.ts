@@ -6,6 +6,7 @@
 
 import { uuid } from '@/common/utils';
 import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
+import type { FileChange } from '@/common/codex/types';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -23,8 +24,8 @@ export interface FileOperation {
  * 提供统一的文件读写、权限管理和操作反馈
  */
 export class CodexFileOperationHandler {
-  private pendingOperations = new Map<string, { resolve: (result: unknown) => void; reject: (error: unknown) => void }>();
-  private workingDirectory: string;
+  private readonly pendingOperations = new Map<string, { resolve: (result: unknown) => void; reject: (error: unknown) => void }>();
+  private readonly workingDirectory: string;
 
   constructor(
     workingDirectory: string,
@@ -102,7 +103,7 @@ export class CodexFileOperationHandler {
 
       return content;
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
         throw new Error(`File not found: ${operation.path}`);
       }
       throw error;
@@ -124,7 +125,7 @@ export class CodexFileOperationHandler {
         path: operation.path,
       });
     } catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      if (error && typeof error === 'object' && 'code' in error && error.code === 'ENOENT') {
         return; // 文件不存在，视为成功
       }
       throw error;
@@ -226,13 +227,13 @@ export class CodexFileOperationHandler {
   /**
    * 批量应用文件更改 - 参考 ACP 和当前 CodexAgentManager 的 applyPatchChanges
    */
-  async applyBatchChanges(changes: Record<string, import('@/common/codex/types').FileChange>): Promise<void> {
+  async applyBatchChanges(changes: Record<string, FileChange>): Promise<void> {
     const operations: Promise<void>[] = [];
 
     for (const [filePath, change] of Object.entries(changes)) {
       if (typeof change === 'object' && change !== null) {
-        const action = this.getChangeAction(change as any);
-        const content = this.getChangeContent(change as any);
+        const action = this.getChangeAction(change);
+        const content = this.getChangeContent(change);
         const operation: FileOperation = {
           method: action === 'delete' ? 'fs/delete_file' : 'fs/write_text_file',
           path: filePath,
@@ -246,19 +247,30 @@ export class CodexFileOperationHandler {
     await Promise.all(operations);
   }
 
-  private getChangeAction(change: import('@/common/codex/types').FileChange): 'create' | 'write' | 'delete' {
-    if ('type' in change) {
-      if (change.type === 'add') return 'create';
-      if (change.type === 'delete') return 'delete';
-      if (change.type === 'update') return 'write';
+  private getChangeAction(change: FileChange): 'create' | 'write' | 'delete' {
+    // 现代 FileChange 结构检查
+    if (typeof change === 'object' && change !== null && 'type' in change) {
+      const type = change.type;
+      if (type === 'add') return 'create';
+      if (type === 'delete') return 'delete';
+      if (type === 'update') return 'write';
     }
-    // legacy/back-compat
-    if ('action' in (change as any) && (change as any).action) return (change as any).action;
+
+    // 兼容旧格式 - 类型安全的检查
+    if (typeof change === 'object' && change !== null && 'action' in change) {
+      const action = change.action;
+      if (action === 'create' || action === 'modify' || action === 'delete' || action === 'rename') {
+        return action === 'create' ? 'create' : action === 'delete' ? 'delete' : 'write';
+      }
+    }
+
     return 'write';
   }
 
-  private getChangeContent(change: import('@/common/codex/types').FileChange): string {
-    if ('content' in (change as any) && typeof (change as any).content === 'string') return (change as any).content;
+  private getChangeContent(change: FileChange): string {
+    if (typeof change === 'object' && change !== null && 'content' in change && typeof change.content === 'string') {
+      return change.content;
+    }
     return '';
   }
 
