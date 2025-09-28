@@ -39,7 +39,7 @@ export class CodexEventHandler {
     }
 
     if (type === CodexAgentEventType.TASK_STARTED) {
-      this.messageProcessor.processTaskComplete();
+      this.messageProcessor.processTaskStart();
       return;
     }
     if (type === CodexAgentEventType.TASK_COMPLETE) {
