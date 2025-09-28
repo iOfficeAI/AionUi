@@ -127,42 +127,5 @@ export function fromSystemError(code: string, message: string, context?: string)
   });
 }
 
-/**
- * Utility function to resolve internationalized error messages
- * This should be called from React components that have access to the i18n instance
- *
- * @example
- * ```typescript
- * import { useTranslation } from 'react-i18next';
- * import { resolveErrorMessage } from '@/agent/codex/core/ErrorService';
- *
- * function MyComponent() {
- *   const { t } = useTranslation();
- *
- *   const handleError = (error: CodexError) => {
- *     const localizedMessage = resolveErrorMessage(error, t);
- *     // Display localizedMessage to user
- *   };
- * }
- * ```
- */
-export function resolveErrorMessage(error: CodexError, t: (key: string, options?: any) => string, fallbackMessage?: string): string {
-  // If userMessage looks like an i18n key, translate it
-  if (error.userMessage && error.userMessage.includes('.')) {
-    try {
-      const translated = t(error.userMessage);
-      // If translation returns the key unchanged, it means the key wasn't found
-      if (translated !== error.userMessage) {
-        return translated;
-      }
-    } catch (e) {
-      // Translation failed, use fallback
-    }
-  }
-
-  // Fallback to original message or provided fallback
-  return fallbackMessage || error.userMessage || error.message;
-}
-
 // Global instance
 export const globalErrorService = new CodexErrorService();
