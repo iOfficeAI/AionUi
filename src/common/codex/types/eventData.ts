@@ -37,7 +37,6 @@ export type CodexEventMsg =
   | ({ type: 'exec_command_end' } & ExecCommandEndData)
   | ({ type: 'exec_approval_request' } & ExecApprovalRequestData)
   | ({ type: 'apply_patch_approval_request' } & PatchApprovalData)
-  | ({ type: 'elicitation/create' } & ElicitationCreateData)
   | ({ type: 'patch_apply_begin' } & PatchApplyBeginData)
   | ({ type: 'patch_apply_end' } & PatchApplyEndData)
   | ({ type: 'mcp_tool_call_begin' } & McpToolCallBeginData)

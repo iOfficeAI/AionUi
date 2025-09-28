@@ -6,8 +6,7 @@
 
 import { uuid } from '@/common/utils';
 import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
-import type { CodexJsonRpcEvent, CodexEventMsg } from '@/common/codex/types';
-import { CodexAgentEventType } from '@/common/codex/types';
+import type { CodexEventMsg, CodexJsonRpcEvent } from '@/common/codex/types';
 import { CodexMessageProcessor } from '@/agent/codex/messaging/CodexMessageProcessor';
 import { CodexToolHandlers } from '@/agent/codex/handlers/CodexToolHandlers';
 import { PermissionType } from '@/common/codex/types/permissionTypes';
@@ -41,7 +40,6 @@ export class CodexEventHandler {
     if (type === 'session_configured' || type === 'token_count') {
       return;
     }
-
     if (type === 'task_started') {
       this.messageProcessor.processTaskStart();
       return;
@@ -93,10 +91,6 @@ export class CodexEventHandler {
       return;
     }
 
-    if (type === 'elicitation/create') {
-      return;
-    }
-
     if (this.isMessageType(msg, 'exec_command_begin')) {
       this.toolHandlers.handleExecCommandBegin(msg);
       return;
@@ -134,7 +128,16 @@ export class CodexEventHandler {
    * Unified permission request handler to prevent duplicates
    * Handles both codex/event wrapped permissions and direct elicitation/create calls
    */
-  private handleUnifiedPermissionRequest(msg: Extract<CodexEventMsg, { type: 'exec_approval_request' }> | Extract<CodexEventMsg, { type: 'apply_patch_approval_request' }> | Extract<CodexEventMsg, { type: 'elicitation/create' }>) {
+  private handleUnifiedPermissionRequest(
+    msg:
+      | Extract<
+          CodexEventMsg,
+          {
+            type: 'exec_approval_request';
+          }
+        >
+      | Extract<CodexEventMsg, { type: 'apply_patch_approval_request' }>
+  ) {
     const type = msg.type;
 
     // Extract call_id from different event types - TypeScript will narrow the type automatically
@@ -143,10 +146,12 @@ export class CodexEventHandler {
       callId = msg.call_id || uuid();
     } else if (type === 'apply_patch_approval_request') {
       callId = msg.call_id || uuid();
-    } else {
-      // ELICITATION_CREATE
-      callId = msg.codex_call_id || uuid();
     }
+
+    // else {
+    //   // ELICITATION_CREATE
+    //   callId = msg.codex_call_id || uuid();
+    // }
 
     // Create unified unique ID using call_id only (ignoring message type)
     const unifiedRequestId = `permission_${callId}`;
@@ -167,13 +172,23 @@ export class CodexEventHandler {
     } else if (type === 'apply_patch_approval_request') {
       // 请求批准应用代码补丁
       this.processApplyPatchRequest(msg, unifiedRequestId).catch(console.error);
-    } else {
-      // 请求批准启发式操作
-      this.processElicitationRequest(msg, unifiedRequestId).catch(console.error);
     }
+
+    // else {
+    //   // 请求批准启发式操作
+    //   this.processElicitationRequest(msg, unifiedRequestId).catch(console.error);
+    // }
   }
 
-  private async processExecApprovalRequest(msg: Extract<CodexEventMsg, { type: 'exec_approval_request' }>, unifiedRequestId: string) {
+  private async processExecApprovalRequest(
+    msg: Extract<
+      CodexEventMsg,
+      {
+        type: 'exec_approval_request';
+      }
+    >,
+    unifiedRequestId: string
+  ) {
     const callId = msg.call_id || uuid();
 
     const displayInfo = getPermissionDisplayInfo(PermissionType.COMMAND_EXECUTION);
@@ -208,7 +223,15 @@ export class CodexEventHandler {
     );
   }
 
-  private async processApplyPatchRequest(msg: Extract<CodexEventMsg, { type: 'apply_patch_approval_request' }>, unifiedRequestId: string) {
+  private async processApplyPatchRequest(
+    msg: Extract<
+      CodexEventMsg,
+      {
+        type: 'apply_patch_approval_request';
+      }
+    >,
+    unifiedRequestId: string
+  ) {
     const callId = msg.call_id || uuid();
 
     const displayInfo = getPermissionDisplayInfo(PermissionType.FILE_WRITE);
@@ -248,103 +271,111 @@ export class CodexEventHandler {
     );
   }
 
-  private async processElicitationRequest(msg: Extract<CodexEventMsg, { type: 'elicitation/create' }>, unifiedRequestId: string) {
-    const elicitationType = msg.codex_elicitation;
-    const callId = msg.codex_call_id || uuid();
-
-    // Handle different types of elicitations
-    if (elicitationType === 'exec-approval') {
-      const displayInfo = getPermissionDisplayInfo(PermissionType.COMMAND_EXECUTION);
-      const options = createPermissionOptionsForType(PermissionType.COMMAND_EXECUTION);
-
-      this.messageEmitter.emitAndPersistMessage(
-        {
-          type: 'codex_permission',
-          msg_id: unifiedRequestId,
-          conversation_id: this.conversation_id,
-          data: {
-            title: displayInfo.titleKey,
-            description: msg.message || `${displayInfo.icon} Codex wants to execute a command`,
-            agentType: 'codex',
-            sessionId: '',
-            options: options,
-            requestId: callId,
-            toolCall: {
-              title: 'Execute Command',
-              toolCallId: callId, // Use actual call_id instead of unifiedRequestId
-              kind: 'execute',
-              rawInput: {
-                command: Array.isArray(msg.codex_command) ? msg.codex_command.join(' ') : msg.codex_command,
-                cwd: msg.codex_cwd,
-                description: msg.message,
-              },
-            },
-          },
-        },
-        true
-      );
-    } else if (elicitationType === 'file-write' || (msg.message && msg.message.toLowerCase().includes('write'))) {
-      // Handle file write permission requests
-      const displayInfo = getPermissionDisplayInfo(PermissionType.FILE_WRITE);
-      const options = createPermissionOptionsForType(PermissionType.FILE_WRITE);
-
-      this.messageEmitter.emitAndPersistMessage(
-        {
-          type: 'codex_permission',
-          msg_id: unifiedRequestId,
-          conversation_id: this.conversation_id,
-          data: {
-            title: displayInfo.titleKey,
-            description: msg.message || `${displayInfo.icon} Codex wants to apply proposed code changes`,
-            agentType: 'codex',
-            sessionId: '',
-            options: options,
-            requestId: callId,
-            toolCall: {
-              title: 'Write File',
-              toolCallId: callId, // Use actual call_id instead of unifiedRequestId
-              kind: 'write',
-              rawInput: {
-                description: msg.message,
-              },
-            },
-          },
-        },
-        true
-      );
-    } else if (elicitationType === 'file-read' || (msg.message && msg.message.toLowerCase().includes('read'))) {
-      // Handle file read permission requests
-      const displayInfo = getPermissionDisplayInfo(PermissionType.FILE_READ);
-      const options = createPermissionOptionsForType(PermissionType.FILE_READ);
-
-      this.messageEmitter.emitAndPersistMessage(
-        {
-          type: 'codex_permission',
-          msg_id: unifiedRequestId,
-          conversation_id: this.conversation_id,
-          data: {
-            title: displayInfo.titleKey,
-            description: msg.message || `${displayInfo.icon} Codex wants to read files from your workspace`,
-            agentType: 'codex',
-            sessionId: '',
-            options: options,
-            requestId: callId,
-            toolCall: {
-              title: 'Read File',
-              toolCallId: callId, // Use actual call_id instead of unifiedRequestId
-              kind: 'read',
-              rawInput: {
-                description: msg.message,
-              },
-            },
-          },
-        },
-        true
-      );
-    } else {
-      // For other elicitation types, create a generic content message (not a permission)
-    }
-  }
+  // private async processElicitationRequest(
+  //   msg: Extract<
+  //     CodexEventMsg,
+  //     {
+  //       type: 'elicitation/create';
+  //     }
+  //   >,
+  //   unifiedRequestId: string
+  // ) {
+  //   const elicitationType = msg.codex_elicitation;
+  //   const callId = msg.codex_call_id || uuid();
+  //
+  //   // Handle different types of elicitations
+  //   if (elicitationType === 'exec-approval') {
+  //     const displayInfo = getPermissionDisplayInfo(PermissionType.COMMAND_EXECUTION);
+  //     const options = createPermissionOptionsForType(PermissionType.COMMAND_EXECUTION);
+  //
+  //     this.messageEmitter.emitAndPersistMessage(
+  //       {
+  //         type: 'codex_permission',
+  //         msg_id: unifiedRequestId,
+  //         conversation_id: this.conversation_id,
+  //         data: {
+  //           title: displayInfo.titleKey,
+  //           description: msg.message || `${displayInfo.icon} Codex wants to execute a command`,
+  //           agentType: 'codex',
+  //           sessionId: '',
+  //           options: options,
+  //           requestId: callId,
+  //           toolCall: {
+  //             title: 'Execute Command',
+  //             toolCallId: callId, // Use actual call_id instead of unifiedRequestId
+  //             kind: 'execute',
+  //             rawInput: {
+  //               command: Array.isArray(msg.codex_command) ? msg.codex_command.join(' ') : msg.codex_command,
+  //               cwd: msg.codex_cwd,
+  //               description: msg.message,
+  //             },
+  //           },
+  //         },
+  //       },
+  //       true
+  //     );
+  //   } else if (elicitationType === 'file-write' || (msg.message && msg.message.toLowerCase().includes('write'))) {
+  //     // Handle file write permission requests
+  //     const displayInfo = getPermissionDisplayInfo(PermissionType.FILE_WRITE);
+  //     const options = createPermissionOptionsForType(PermissionType.FILE_WRITE);
+  //
+  //     this.messageEmitter.emitAndPersistMessage(
+  //       {
+  //         type: 'codex_permission',
+  //         msg_id: unifiedRequestId,
+  //         conversation_id: this.conversation_id,
+  //         data: {
+  //           title: displayInfo.titleKey,
+  //           description: msg.message || `${displayInfo.icon} Codex wants to apply proposed code changes`,
+  //           agentType: 'codex',
+  //           sessionId: '',
+  //           options: options,
+  //           requestId: callId,
+  //           toolCall: {
+  //             title: 'Write File',
+  //             toolCallId: callId, // Use actual call_id instead of unifiedRequestId
+  //             kind: 'write',
+  //             rawInput: {
+  //               description: msg.message,
+  //             },
+  //           },
+  //         },
+  //       },
+  //       true
+  //     );
+  //   } else if (elicitationType === 'file-read' || (msg.message && msg.message.toLowerCase().includes('read'))) {
+  //     // Handle file read permission requests
+  //     const displayInfo = getPermissionDisplayInfo(PermissionType.FILE_READ);
+  //     const options = createPermissionOptionsForType(PermissionType.FILE_READ);
+  //
+  //     this.messageEmitter.emitAndPersistMessage(
+  //       {
+  //         type: 'codex_permission',
+  //         msg_id: unifiedRequestId,
+  //         conversation_id: this.conversation_id,
+  //         data: {
+  //           title: displayInfo.titleKey,
+  //           description: msg.message || `${displayInfo.icon} Codex wants to read files from your workspace`,
+  //           agentType: 'codex',
+  //           sessionId: '',
+  //           options: options,
+  //           requestId: callId,
+  //           toolCall: {
+  //             title: 'Read File',
+  //             toolCallId: callId, // Use actual call_id instead of unifiedRequestId
+  //             kind: 'read',
+  //             rawInput: {
+  //               description: msg.message,
+  //             },
+  //           },
+  //         },
+  //       },
+  //       true
+  //     );
+  //   } else {
+  //     // For other elicitation types, create a generic content message (not a permission)
+  //   }
+  // }
 
   // Expose tool handlers for external access
   getToolHandlers(): CodexToolHandlers {
