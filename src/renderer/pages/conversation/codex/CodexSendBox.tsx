@@ -62,7 +62,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
         case 'thought':
           setThought(message.data);
           break;
-        case 'task_complete':
+        case 'finish':
           setThought(message.data);
           setAiProcessing(false);
           break;
