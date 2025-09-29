@@ -308,7 +308,7 @@
       "command": "命令：",
       "working_directory": "工作目录：",
       "exit_code": "退出码：{{code}}",
-      "duration": "持续时间：{{seconds}}秒",
+      "duration": "持续时间：{{seconds}}",
       "auto_approved": "自动批准",
       "manual_approval": "手动批准"
     },

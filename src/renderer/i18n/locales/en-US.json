@@ -308,7 +308,7 @@
       "command": "Command:",
       "working_directory": "Working directory:",
       "exit_code": "Exit: {{code}}",
-      "duration": "Duration: {{seconds}}s",
+      "duration": "Duration: {{seconds}}",
       "auto_approved": "Auto-approved",
       "manual_approval": "Manual approval"
     },

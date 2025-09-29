@@ -306,7 +306,7 @@
       "command": "指令：",
       "working_directory": "工作目錄：",
       "exit_code": "結束碼：{{code}}",
-      "duration": "持續時間：{{seconds}}秒",
+      "duration": "持續時間：{{seconds}}",
       "auto_approved": "自動核准",
       "manual_approval": "手動核准"
     },

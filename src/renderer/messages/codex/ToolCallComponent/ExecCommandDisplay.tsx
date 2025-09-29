@@ -44,9 +44,13 @@ const ExecCommandDisplay: React.FC<{ content: ExecCommandUpdate }> = ({ content 
       );
     }
     if (subtype === 'exec_command_end' && 'duration' in data && data.duration) {
+      // Calculate total duration: secs + nanos/1,000,000,000
+      const totalSeconds = data.duration.secs + (data.duration.nanos || 0) / 1_000_000_000;
+      const formattedDuration = totalSeconds < 1 ? `${Math.round(totalSeconds * 1000)}ms` : `${totalSeconds.toFixed(2)}s`;
+
       tags.push(
         <Tag key='duration' color='blue'>
-          {t('tools.labels.duration', { seconds: data.duration.secs })}
+          {t('tools.labels.duration', { seconds: formattedDuration })}
         </Tag>
       );
     }
