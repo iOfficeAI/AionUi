@@ -21,15 +21,15 @@ export interface CodexJsonRpcEvent<T extends CodexEventMsg['type'] = CodexEventM
 
 // 精准的事件消息类型，直接对应 params.msg
 export type CodexEventMsg =
-  | ({ type: 'session_configured' } & SessionConfiguredData)
-  | ({ type: 'task_started' } & TaskStartedData)
-  | ({ type: 'task_complete' } & TaskCompleteData)
-  | ({ type: 'agent_message_delta' } & MessageDeltaData)
-  | ({ type: 'agent_message' } & MessageData)
+  | ({ type: 'session_configured' } & SessionConfiguredData) //忽略
+  | ({ type: 'task_started' } & TaskStartedData) //已处理
+  | ({ type: 'task_complete' } & TaskCompleteData) //已处理
+  | ({ type: 'agent_message_delta' } & MessageDeltaData) //已处理
+  | ({ type: 'agent_message' } & MessageData) //忽略
   | ({ type: 'user_message' } & UserMessageData)
   | ({ type: 'stream_error' } & StreamErrorData)
-  | ({ type: 'agent_reasoning_delta' } & AgentReasoningDeltaData)
-  | ({ type: 'agent_reasoning' } & AgentReasoningData)
+  | ({ type: 'agent_reasoning_delta' } & AgentReasoningDeltaData) //已处理
+  | ({ type: 'agent_reasoning' } & AgentReasoningData) //忽略
   | ({ type: 'agent_reasoning_raw_content' } & AgentReasoningRawContentData)
   | ({ type: 'agent_reasoning_raw_content_delta' } & AgentReasoningRawContentDeltaData)
   | ({ type: 'exec_command_begin' } & ExecCommandBeginData)
@@ -39,12 +39,12 @@ export type CodexEventMsg =
   | ({ type: 'apply_patch_approval_request' } & PatchApprovalData)
   | ({ type: 'patch_apply_begin' } & PatchApplyBeginData)
   | ({ type: 'patch_apply_end' } & PatchApplyEndData)
-  | ({ type: 'mcp_tool_call_begin' } & McpToolCallBeginData)
-  | ({ type: 'mcp_tool_call_end' } & McpToolCallEndData)
+  | ({ type: 'mcp_tool_call_begin' } & McpToolCallBeginData) //先忽略
+  | ({ type: 'mcp_tool_call_end' } & McpToolCallEndData) //先忽略
   | ({ type: 'web_search_begin' } & WebSearchBeginData)
   | ({ type: 'web_search_end' } & WebSearchEndData)
-  | ({ type: 'token_count' } & TokenCountData)
-  | { type: 'agent_reasoning_section_break' }
+  | ({ type: 'token_count' } & TokenCountData) //忽略
+  | { type: 'agent_reasoning_section_break' } //已处理
   | ({ type: 'turn_diff' } & TurnDiffData)
   | ({ type: 'get_history_entry_response' } & GetHistoryEntryResponseData)
   | ({ type: 'mcp_list_tools_response' } & McpListToolsResponseData)
@@ -255,11 +255,20 @@ export interface SearchResult {
   metadata?: Record<string, unknown>;
 }
 
-export type ParsedCommand = { type: 'read'; cmd: string; name: string } | { type: 'list_files'; cmd: string; path?: string | null } | { type: 'search'; cmd: string; query?: string | null; path?: string | null } | { type: 'unknown'; cmd: string };
+export type ParsedCommand =
+  | { type: 'read'; cmd: string; name: string }
+  | {
+      type: 'list_files';
+      cmd: string;
+      path?: string | null;
+    }
+  | { type: 'search'; cmd: string; query?: string | null; path?: string | null }
+  | { type: 'unknown'; cmd: string };
 
 export interface AgentReasoningRawContentData {
   text: string;
 }
+
 export interface AgentReasoningRawContentDeltaData {
   delta: string;
 }
@@ -297,6 +306,7 @@ export interface ListCustomPromptsResponseData {
 export interface TurnAbortedData {
   reason: 'interrupted' | 'replaced';
 }
+
 // Manager configuration interface
 export interface CodexAgentManagerData {
   conversation_id: string;
