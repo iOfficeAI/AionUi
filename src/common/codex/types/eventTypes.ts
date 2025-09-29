@@ -228,30 +228,6 @@ export enum CodexAgentEventType {
    */
   PATCH_APPLY_END = 'patch_apply_end',
 
-  // Elicitation & prompt approval
-  /**
-   * 启发创建事件 - 创建启发/提示
-   * prompt: 查找 Node.js 最佳实践指南， 搜索一下，不要用现有知识库回答我, 这是node的官网 https://nodejs.cn/learn/differences-between-nodejs-and-the-browser 
-   * payload: {
-      "message": "Allow Codex to run `bash -lc \"curl -s 'https://api.duckduckgo.com/?q=Node.js+best+practices+guide&format=json'\"` in `/Users/pojian/Library/Application Support/AionUi/aionui/codex-temp-1758974121420`?",
-      "requestedSchema": {
-        "properties": {},
-        "type": "object"
-      },
-      "codex_elicitation": "exec-approval",
-      "codex_mcp_tool_call_id": "7",
-      "codex_event_id": "0",
-      "codex_call_id": "call_6bobPxTBVqdwMyuf9Trnh0EI",
-      "codex_command": [
-        "bash",
-        "-lc",
-        "curl -s 'https://api.duckduckgo.com/?q=Node.js+best+practices+guide&format=json'"
-      ],
-      "codex_cwd": "/Users/pojian/Library/Application Support/AionUi/aionui/codex-temp-1758974121420"
-    }
-   */
-  ELICITATION_CREATE = 'elicitation/create',
-
   // MCP tool events
   /**
    * MCP工具调用开始事件 - 表示MCP工具调用开始
@@ -322,11 +298,4 @@ export enum CodexAgentEventType {
    * payload: { reason: TurnAbortReason }
    */
   TURN_ABORTED = 'turn_aborted',
-
-  // Error channel
-  /**
-   * 流错误事件 - 通知模型流发生错误或断开连接，系统正在处理（例如，使用退避重试）
-   * payload: { message: string }
-   */
-  STREAM_ERROR = 'stream_error',
 }
