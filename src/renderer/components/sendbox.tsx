@@ -49,8 +49,21 @@ const SendBox: React.FC<{
     supportedExts,
     onFilesAdded,
     onTextPaste: (text: string) => {
-      // 处理清理后的文本粘贴，替换整个输入内容
-      setInput(text);
+      // 处理清理后的文本粘贴，在当前光标位置插入文本而不是替换整个内容
+      const textarea = document.activeElement as HTMLTextAreaElement;
+      if (textarea && textarea.tagName === 'TEXTAREA') {
+        const cursorPosition = textarea.selectionStart;
+        const currentValue = textarea.value;
+        const newValue = currentValue.slice(0, cursorPosition) + text + currentValue.slice(cursorPosition);
+        setInput(newValue);
+        // 设置光标到插入文本后的位置
+        setTimeout(() => {
+          textarea.setSelectionRange(cursorPosition + text.length, cursorPosition + text.length);
+        }, 0);
+      } else {
+        // 如果无法获取光标位置，回退到追加到末尾的行为
+        setInput(input + text);
+      }
     },
   });
 

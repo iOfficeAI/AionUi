@@ -205,10 +205,9 @@ export interface ConfirmationData {
 export const useConfirmationHandler = () => {
   const handleConfirmation = async (data: ConfirmationData): Promise<{ success: boolean; error?: string }> => {
     try {
-      const result = await conversation.confirmMessage.invoke(data);
+      await conversation.confirmMessage.invoke(data);
       return { success: true, error: undefined };
     } catch (error) {
-      console.error('Confirm failed:', error);
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   };
@@ -221,20 +220,34 @@ export const useConfirmationHandler = () => {
  */
 export const usePermissionIdGenerator = () => {
   const generateGlobalPermissionId = (toolCall?: { kind?: string; title?: string; rawInput?: { command?: string | string[] } }) => {
-    // 构建权限请求的特征字符串
-    const features = [toolCall?.kind || 'permission', toolCall?.title || '', toolCall?.rawInput?.command || ''];
+    // 主要基于 kind 来区分不同类型的权限，确保不同类型有不同的ID
+    const kind = toolCall?.kind || 'permission';
 
-    const featureString = features.filter(Boolean).join('|');
+    // 为不同的权限类型生成不同的ID
+    switch (kind) {
+      case 'write':
+        return 'codex_perm_file_write';
+      case 'execute':
+        return 'codex_perm_command_execute';
+      case 'read':
+        return 'codex_perm_file_read';
+      case 'fetch':
+        return 'codex_perm_web_fetch';
+      default: {
+        // 对于未知类型，使用原来的哈希算法
+        const features = [kind, toolCall?.title || '', toolCall?.rawInput?.command || ''];
+        const featureString = features.filter(Boolean).join('|');
 
-    // 生成稳定的哈希
-    let hash = 0;
-    for (let i = 0; i < featureString.length; i++) {
-      const char = featureString.charCodeAt(i);
-      hash = (hash << 5) - hash + char;
-      hash = hash & hash; // 32位整数
+        let hash = 0;
+        for (let i = 0; i < featureString.length; i++) {
+          const char = featureString.charCodeAt(i);
+          hash = (hash << 5) - hash + char;
+          hash = hash & hash; // 32位整数
+        }
+
+        return `codex_perm_${Math.abs(hash)}`;
+      }
     }
-
-    return `codex_perm_${Math.abs(hash)}`;
   };
 
   return { generateGlobalPermissionId };
@@ -247,6 +260,7 @@ export const useToolIcon = () => {
   const getToolIcon = (kind?: string): string => {
     const kindIcons: Record<string, string> = {
       edit: '✏️',
+      write: '📝',
       read: '📖',
       fetch: '🌐',
       execute: '⚡',

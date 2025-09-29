@@ -41,8 +41,8 @@ export type CodexEventMsg =
   | ({ type: 'patch_apply_end' } & PatchApplyEndData)
   | ({ type: 'mcp_tool_call_begin' } & McpToolCallBeginData) //先忽略
   | ({ type: 'mcp_tool_call_end' } & McpToolCallEndData) //先忽略
-  | ({ type: 'web_search_begin' } & WebSearchBeginData)
-  | ({ type: 'web_search_end' } & WebSearchEndData)
+  | ({ type: 'web_search_begin' } & WebSearchBeginData) //已处理
+  | ({ type: 'web_search_end' } & WebSearchEndData) //已处理
   | ({ type: 'token_count' } & TokenCountData) //忽略
   | { type: 'agent_reasoning_section_break' } //已处理
   | ({ type: 'turn_diff' } & TurnDiffData)

@@ -254,17 +254,6 @@ export class CodexMcpAgent {
       }
       return;
     }
-
-    // // Handle direct elicitation/create messages
-    // if (env.method === 'elicitation/create') {
-    //   try {
-    //     // Forward the elicitation request directly via eventHandler
-    //     this.eventHandler.handleEvent({ type: 'elicitation/create', data: env.params });
-    //   } catch {
-    //     // Elicitation handling failed, continue processing
-    //   }
-    //   return;
-    // }
   }
 
   private handleNetworkError(error: NetworkError): void {

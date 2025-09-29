@@ -123,7 +123,8 @@
     "confirm": "确认",
     "canceledExecution": "已取消执行",
     "openLinkFailed": "打开链接失败",
-    "imageGenerationModelDetected": "检测到图片模型，已自动开启图片工具，设置为默认模型：{{platform}}:{{model}}"
+    "imageGenerationModelDetected": "检测到图片模型，已自动开启图片工具，设置为默认模型：{{platform}}:{{model}}",
+    "auto_handling_permissions": "自动处理权限请求：{{request}}"
   },
   "acp": {
     "auth": {
