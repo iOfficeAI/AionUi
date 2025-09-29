@@ -12,6 +12,7 @@ import { Plus } from '@icon-park/react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import ShimmerText from '@renderer/components/ShimmerText';
+import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/ThoughtDisplay';
 
 const useCodexSendBoxDraft = getSendBoxDraftHook('codex', {
   _type: 'codex',
@@ -27,7 +28,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
   const [running, setRunning] = useState(false);
   const [aiProcessing, setAiProcessing] = useState(false); // New loading state for AI response
   const [codexStatus, setCodexStatus] = useState<string | null>(null);
-  const [thought, setThought] = useState<{ subject: string; description: string } | null>(null);
+  const [thought, setThought] = useState<ThoughtData | null>(null);
 
   const { content, setContent, atPath, setAtPath, uploadFile, setUploadFile } = (function useDraft() {
     const { data, mutate } = useCodexSendBoxDraft(conversation_id);
@@ -217,22 +218,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
   return (
     <div className='max-w-800px w-full mx-auto flex flex-col'>
       {aiProcessing && <ShimmerText duration={2}>{t('common.loading', { defaultValue: 'Please wait...' })}</ShimmerText>}
-      {thought && (
-        <div
-          className='px-10px py-10px rd-20px text-14px pb-40px  lh-20px color-#86909C mb-8px'
-          style={{
-            maxHeight: '100px',
-            overflow: 'scroll',
-            background: 'linear-gradient(90deg, #F0F3FF 0%, #F2F2F2 100%)',
-            marginBottom: '-36px',
-          }}
-        >
-          <Tag color='arcoblue' size='small' className={'float-left mr-4px'}>
-            {thought.subject}
-          </Tag>
-          {thought.description}
-        </div>
-      )}
+      {thought && <ThoughtDisplay thought={thought} style='compact' />}
       <SendBox
         value={content}
         onChange={(val) => {

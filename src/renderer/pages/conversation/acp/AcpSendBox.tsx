@@ -5,6 +5,7 @@ import type { IResponseMessage } from '@/common/ipcBridge';
 import { uuid } from '@/common/utils';
 import SendBox from '@/renderer/components/sendbox';
 import ShimmerText from '@/renderer/components/ShimmerText';
+import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/ThoughtDisplay';
 import { getSendBoxDraftHook } from '@/renderer/hooks/useSendBoxDraft';
 import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/useSendBoxFiles';
 import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
@@ -26,7 +27,7 @@ const useAcpSendBoxDraft = getSendBoxDraftHook('acp', {
 const useAcpMessage = (conversation_id: string) => {
   const addOrUpdateMessage = useAddOrUpdateMessage();
   const [running, setRunning] = useState(false);
-  const [thought, setThought] = useState({
+  const [thought, setThought] = useState<ThoughtData>({
     description: '',
     subject: '',
   });
@@ -286,20 +287,7 @@ const AcpSendBox: React.FC<{
 
   return (
     <div className='max-w-800px w-full mx-auto flex flex-col'>
-      {thought.subject ? (
-        <div
-          className=' px-10px py-10px rd-20px text-14px pb-40px lh-20px color-#86909C'
-          style={{
-            background: 'linear-gradient(90deg, #F0F3FF 0%, #F2F2F2 100%)',
-            transform: 'translateY(36px)',
-          }}
-        >
-          <Tag color='arcoblue' size='small' className={'float-left mr-4px'}>
-            {thought.subject}
-          </Tag>
-          {thought.description}
-        </div>
-      ) : null}
+      <ThoughtDisplay thought={thought} />
 
       {aiProcessing && <ShimmerText duration={2}>{t('common.loading', { defaultValue: 'Please wait...' })}</ShimmerText>}
 
@@ -312,9 +300,7 @@ const AcpSendBox: React.FC<{
         onStop={() => {
           return ipcBridge.conversation.stop.invoke({ conversation_id }).then(() => {});
         }}
-        className={classNames('z-10 ', {
-          'mt-0px': !!thought.subject,
-        })}
+        className='z-10'
         onFilesAdded={handleFilesAdded}
         supportedExts={allSupportedExts}
         tools={
