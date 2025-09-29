@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import type { ExecApprovalRequestData, ApplyPatchApprovalRequestData } from './eventData';
+
 // ===== UI-facing permission request payloads for Codex =====
 
 /**
@@ -58,12 +60,15 @@ export interface CodexToolCall {
   rawInput?: CodexToolCallRawInput;
 }
 
-export interface CodexPermissionRequest {
+// Base interface for all permission requests
+export interface BaseCodexPermissionRequest {
   title?: string;
   description?: string;
   agentType?: 'codex';
   sessionId?: string;
   requestId?: string;
   options: CodexPermissionOption[];
-  toolCall?: CodexToolCall;
 }
+
+// Union type for different permission request subtypes
+export type CodexPermissionRequest = (BaseCodexPermissionRequest & { subtype: 'exec_approval_request'; data: ExecApprovalRequestData }) | (BaseCodexPermissionRequest & { subtype: 'apply_patch_approval_request'; data: ApplyPatchApprovalRequestData });

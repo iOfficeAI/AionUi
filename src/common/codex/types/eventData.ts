@@ -145,9 +145,9 @@ export interface ExecCommandEndData {
 
 // Patch/file modification event data interfaces
 export interface PatchApprovalData {
-  call_id?: string;
+  call_id: string;
+  changes: Record<string, FileChange>;
   codex_call_id?: string;
-  changes?: Record<string, FileChange>;
   codex_changes?: Record<string, FileChange>;
   message?: string;
   summary?: string;
@@ -221,6 +221,11 @@ export interface TokenCountData {
 
 // Supporting interfaces
 export type FileChange =
+  // Current format from actual logs
+  | { add: { content: string } }
+  | { delete: { content: string } }
+  | { update: { unified_diff: string; move_path?: string | null } }
+  // Legacy format with explicit type field
   | { type: 'add'; content: string }
   | { type: 'delete'; content: string }
   | { type: 'update'; unified_diff: string; move_path?: string | null }
@@ -305,6 +310,9 @@ export interface ListCustomPromptsResponseData {
 export interface TurnAbortedData {
   reason: 'interrupted' | 'replaced';
 }
+
+// Type aliases for better naming consistency
+export type ApplyPatchApprovalRequestData = PatchApprovalData;
 
 // Manager configuration interface
 export interface CodexAgentManagerData {
