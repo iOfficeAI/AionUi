@@ -181,7 +181,7 @@ export class AcpAdapter {
       update: {
         ...existingMessage.content.update,
         status: toolCallData.status,
-        content: toolCallData.content ? [...(existingMessage.content.update.content || []), ...toolCallData.content] : existingMessage.content.update.content,
+        content: toolCallData.content || existingMessage.content.update.content,
       },
     };
 
