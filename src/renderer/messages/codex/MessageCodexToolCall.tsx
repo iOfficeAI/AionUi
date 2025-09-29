@@ -6,11 +6,11 @@
 
 import type { IMessageCodexToolCall, CodexToolCallUpdate } from '@/common/chatLib';
 import React from 'react';
-import ExecCommandDisplay from './codex/ExecCommandDisplay';
-import WebSearchDisplay from './codex/WebSearchDisplay';
-import PatchDisplay from './codex/PatchDisplay';
-import McpToolDisplay from './codex/McpToolDisplay';
-import GenericDisplay from './codex/GenericDisplay';
+import ExecCommandDisplay from './ToolCallComponent/ExecCommandDisplay';
+import WebSearchDisplay from './ToolCallComponent/WebSearchDisplay';
+import PatchDisplay from './ToolCallComponent/PatchDisplay';
+import McpToolDisplay from './ToolCallComponent/McpToolDisplay';
+import GenericDisplay from './ToolCallComponent/GenericDisplay';
 
 type ExecCommandContent = Extract<CodexToolCallUpdate, { subtype: 'exec_command_begin' | 'exec_command_output_delta' | 'exec_command_end' }>;
 type WebSearchContent = Extract<CodexToolCallUpdate, { subtype: 'web_search_begin' | 'web_search_end' }>;

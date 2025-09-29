@@ -24,8 +24,6 @@ export const useAddOrUpdateMessage = () => {
       while (beforeUpdateMessageListStack.length) {
         newList = beforeUpdateMessageListStack.shift()(newList);
       }
-
-      console.log('useAddOrUpdateMessage====>', newList);
       return newList;
     });
   };
