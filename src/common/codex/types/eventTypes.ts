@@ -200,6 +200,8 @@ export enum CodexAgentEventType {
 
   /**
    * 补丁应用开始事件 - 通知代理即将应用代码补丁。镜像 `ExecCommandBegin`，以便前端可以显示进度指示器
+   * tips: codex 运行在 sandbox_mode=read-only 模式下，无法直接写入文件，不会触发 patch_apply_begin → patch_apply_end 流程。
+   *       ~/.codex/config.toml 中 修改配置，sandbox_mode = "workspace-write" apply_patch = true
    * prompt: 帮我创建一个文件 hello.txt , 内容为 ’hello codex‘
    * payload: {
       type: 'patch_apply_begin',
@@ -274,15 +276,16 @@ export enum CodexAgentEventType {
   // Web search events
   /**
    * 网络搜索开始事件 - 表示网络搜索开始
-   * prompt: 查找 Node.js 最佳实践指南， 搜索一下，不要用现有知识库回答我, 这是node的官网 https://nodejs.cn/learn/differences-between-nodejs-and-the-browser
-   * payload: { type: 'web_search_begin', call_id: 'ws-1' }
+   * tips：web_serach 的能力需要手动设置开启，~/.codex/config.toml 中 添加 web_search = true
+   * prompt: 查找 TypeScript 5.0 的新功能， 不要用现有知识库回答我，去官网搜索最新资料
+   * payload: {"type":"web_search_begin","call_id":"ws_010bdd5c4db8ef410168da04c74a648196b7e30cb864885b26"}
    */
   WEB_SEARCH_BEGIN = 'web_search_begin',
 
   /**
    * 网络搜索结束事件 - 表示网络搜索结束
-   * prompt: 查找 Node.js 最佳实践指南， 搜索一下，不要用现有知识库回答我, 这是node的官网 https://nodejs.cn/learn/differences-between-nodejs-and-the-browser
-   * payload: { type: 'web_search_end', call_id: 'ws-1', query: 'https://nodejs.cn/learn/differences-between-nodejs-and-the-browser ' },
+   * prompt: 查找 TypeScript 5.0 的新功能， 不要用现有知识库回答我，去官网搜索最新资料
+   * payload: {"type":"web_search_end","call_id":"ws_010bdd5c4db8ef410168da04c74a648196b7e30cb864885b26","query":"TypeScript 5.0 whats new site:devblogs.microsoft.com/typescript"}
    */
   WEB_SEARCH_END = 'web_search_end',
 
@@ -295,6 +298,7 @@ export enum CodexAgentEventType {
 
   /**
    * 获取历史条目响应事件 - GetHistoryEntryRequest 的响应
+   * prompt: 查看当前会话的历史记录
    * payload: { offset: number, log_id: number, entry: HistoryEntry | null }
    */
   GET_HISTORY_ENTRY_RESPONSE = 'get_history_entry_response',

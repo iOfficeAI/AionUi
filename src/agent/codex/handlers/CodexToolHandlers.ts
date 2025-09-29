@@ -126,16 +126,21 @@ export class CodexToolHandlers {
     }
     // 对未自动批准的变更设置确认
     if (!msg.auto_approved) this.pendingConfirmations.add(callId);
-    this.emitToolGroup(
-      callId,
-      CodexAgentEventType.PATCH_APPLY_BEGIN,
-      {
-        description: `apply_patch auto_approved=${auto}`,
-        status: msg.auto_approved ? 'Executing' : 'Confirming',
-        resultDisplay: summary,
-      },
-      msg
-    );
+    // Use new CodexToolCall approach with subtype and original data
+    this.emitCodexToolCall(callId, {
+      status: msg.auto_approved ? 'executing' : 'pending',
+      kind: 'execute',
+      subtype: 'patch_apply_begin',
+      data: msg,
+      description: `apply_patch auto_approved=${auto}`,
+      startTime: Date.now(),
+      content: [
+        {
+          type: 'output',
+          output: summary,
+        },
+      ],
+    });
     // If auto-approved, immediately attempt to apply changes
     if (msg.auto_approved) {
       this.applyPatchChanges(callId).catch((): void => void 0);
@@ -147,16 +152,24 @@ export class CodexToolHandlers {
     if (!callId) return;
     const ok = !!msg.success;
     const summary = this.patchBuffers.get(callId) || '';
-    this.emitToolGroup(
-      callId,
-      CodexAgentEventType.PATCH_APPLY_END,
-      {
-        description: ok ? 'Patch applied successfully' : 'Patch apply failed',
-        status: ok ? 'Success' : 'Error',
-        resultDisplay: summary,
-      },
-      msg
-    );
+    // Use new CodexToolCall approach with subtype and original data
+    this.emitCodexToolCall(callId, {
+      status: ok ? 'success' : 'error',
+      kind: 'execute',
+      subtype: 'patch_apply_end',
+      data: msg,
+      description: ok ? 'Patch applied successfully' : 'Patch apply failed',
+      endTime: Date.now(),
+      content: [
+        {
+          type: 'output',
+          output: summary,
+        },
+      ],
+    });
+
+    // Clean up resources
+    this.pendingConfirmations.delete(callId);
     this.patchBuffers.delete(callId);
     this.patchChanges.delete(callId);
   }
@@ -168,15 +181,19 @@ export class CodexToolHandlers {
     const toolName = inv.tool || inv.name || inv.method || 'unknown';
     const callId = `mcp_${toolName}_${uuid()}`;
     const title = this.formatMcpInvocation(inv);
-    this.emitToolGroup(
-      callId,
-      CodexAgentEventType.MCP_TOOL_CALL_BEGIN,
-      {
-        description: `${title} (beginning)`,
-        status: 'Executing',
-      },
-      msg
-    );
+
+    // Add to pending confirmations
+    this.pendingConfirmations.add(callId);
+
+    // Use new CodexToolCall approach with subtype and original data
+    this.emitCodexToolCall(callId, {
+      status: 'executing',
+      kind: 'execute',
+      subtype: 'mcp_tool_call_begin',
+      data: msg,
+      description: `${title} (beginning)`,
+      startTime: Date.now(),
+    });
   }
 
   handleMcpToolCallEnd(msg: Extract<CodexEventMsg, { type: 'mcp_tool_call_end' }>) {
@@ -195,44 +212,59 @@ export class CodexToolHandlers {
       return false;
     })();
 
-    this.emitToolGroup(
-      callId,
-      CodexAgentEventType.MCP_TOOL_CALL_END,
-      {
-        description: `${title} ${isError ? 'failed' : 'success'}`,
-        status: isError ? 'Error' : 'Success',
-        resultDisplay: typeof result === 'string' ? result : JSON.stringify(result, null, 2),
-      },
-      msg
-    );
+    // Use new CodexToolCall approach with subtype and original data
+    this.emitCodexToolCall(callId, {
+      status: isError ? 'error' : 'success',
+      kind: 'execute',
+      subtype: 'mcp_tool_call_end',
+      data: msg,
+      description: `${title} ${isError ? 'failed' : 'success'}`,
+      endTime: Date.now(),
+      content: [
+        {
+          type: 'output',
+          output: typeof result === 'string' ? result : JSON.stringify(result, null, 2),
+        },
+      ],
+    });
+
+    // Clean up resources
+    this.pendingConfirmations.delete(callId);
   }
 
   // Web search handlers
   handleWebSearchBegin(msg: Extract<CodexEventMsg, { type: 'web_search_begin' }>) {
-    const callId = msg.call_id || uuid();
-    this.emitToolGroup(
-      callId,
-      CodexAgentEventType.WEB_SEARCH_BEGIN,
-      {
-        description: 'Searching web...',
-        status: 'Executing',
-      },
-      msg
-    );
+    const callId = msg.call_id;
+    this.cmdBuffers.set(callId, { stdout: '', stderr: '', combined: '' });
+    // 试点启用确认流：先置为 Confirming
+    this.pendingConfirmations.add(callId);
+    // Use new CodexToolCall approach with subtype and original data
+    this.emitCodexToolCall(callId, {
+      status: 'pending',
+      kind: 'execute',
+      subtype: 'web_search_begin',
+      data: msg,
+      description: callId,
+      startTime: Date.now(),
+    });
   }
 
   handleWebSearchEnd(msg: Extract<CodexEventMsg, { type: 'web_search_end' }>) {
     const callId = msg.call_id || uuid();
     const query = msg.query || '';
-    this.emitToolGroup(
-      callId,
-      CodexAgentEventType.WEB_SEARCH_END,
-      {
-        description: `Web search completed: ${query}`,
-        status: 'Success',
-      },
-      msg
-    );
+    // Use new CodexToolCall approach with subtype and original data
+    this.emitCodexToolCall(callId, {
+      status: 'success',
+      kind: 'execute',
+      subtype: 'web_search_end',
+      data: msg,
+      description: `Web search completed: ${query}`,
+      endTime: Date.now(),
+    });
+
+    // Clean up buffers
+    this.pendingConfirmations.delete(callId);
+    this.cmdBuffers.delete(callId);
   }
 
   // New emit function for CodexToolCall
@@ -264,44 +296,6 @@ export class CodexToolHandlers {
     // Clean up mapping if tool call is completed
     if (['success', 'error', 'canceled'].includes(update.status || '')) {
       this.activeToolCalls.delete(callId);
-    }
-  }
-
-  // Utility methods
-  private emitToolGroup(callId: string, eventType: CodexAgentEventType, tool: Partial<IMessageToolGroup['content'][number]>, eventData?: EventDataMap[keyof EventDataMap]) {
-    const toolDef = this.toolRegistry.resolveToolForEvent(eventType, eventData);
-    const i18nParams = toolDef ? this.toolRegistry.getMcpToolI18nParams(toolDef) : {};
-    const toolContent: IMessageToolGroup['content'][number] = {
-      callId,
-      name: toolDef ? this.toolRegistry.getToolDisplayName(toolDef, i18nParams) : 'Unknown Tool',
-      description: toolDef ? this.toolRegistry.getToolDescription(toolDef, i18nParams) : '',
-      status: 'Success',
-      renderOutputAsMarkdown: toolDef?.capabilities.supportsMarkdown || false,
-      resultDisplay: '',
-      ...tool,
-    };
-
-    let msgId: string;
-
-    // 使用 callId 映射来确保同一个命令的所有阶段使用相同的 msg_id
-    msgId = this.activeToolGroups.get(callId);
-    if (!msgId) {
-      msgId = uuid();
-      this.activeToolGroups.set(callId, msgId);
-    }
-
-    const toolGroupMessage: IResponseMessage = {
-      type: 'tool_group',
-      conversation_id: this.conversation_id,
-      msg_id: msgId, // 使用相同的msg_id确保消息合并
-      data: [toolContent], // IResponseMessage expects data field, which will be used as content
-    };
-
-    this.messageEmitter.emitAndPersistMessage(toolGroupMessage);
-
-    // 如果是最终状态，清理映射
-    if (['Success', 'Error', 'Canceled'].includes(toolContent.status)) {
-      this.activeToolGroups.delete(callId);
     }
   }
 
