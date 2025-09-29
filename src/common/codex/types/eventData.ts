@@ -31,11 +31,11 @@ export type CodexEventMsg =
   | ({ type: 'agent_reasoning' } & AgentReasoningData) //忽略
   | ({ type: 'agent_reasoning_raw_content' } & AgentReasoningRawContentData)
   | ({ type: 'agent_reasoning_raw_content_delta' } & AgentReasoningRawContentDeltaData)
-  | ({ type: 'exec_command_begin' } & ExecCommandBeginData)
-  | ({ type: 'exec_command_output_delta' } & ExecCommandOutputDeltaData)
-  | ({ type: 'exec_command_end' } & ExecCommandEndData)
-  | ({ type: 'exec_approval_request' } & ExecApprovalRequestData)
-  | ({ type: 'apply_patch_approval_request' } & PatchApprovalData)
+  | ({ type: 'exec_command_begin' } & ExecCommandBeginData) //已处理
+  | ({ type: 'exec_command_output_delta' } & ExecCommandOutputDeltaData) //已处理
+  | ({ type: 'exec_command_end' } & ExecCommandEndData) //已处理
+  | ({ type: 'exec_approval_request' } & ExecApprovalRequestData) //已处理
+  | ({ type: 'apply_patch_approval_request' } & PatchApprovalData) //已处理
   | ({ type: 'patch_apply_begin' } & PatchApplyBeginData)
   | ({ type: 'patch_apply_end' } & PatchApplyEndData)
   | ({ type: 'mcp_tool_call_begin' } & McpToolCallBeginData) //先忽略

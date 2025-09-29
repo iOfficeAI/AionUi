@@ -3,7 +3,6 @@
  * Copyright 2025 AionUi (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  */
-import { useTranslation } from 'react-i18next';
 import type { CodexError, ErrorCode } from '@/common/codex/types/errorTypes';
 import { ERROR_CODES } from '@/common/codex/types/errorTypes';
 
@@ -28,44 +27,10 @@ export class CodexErrorService {
     return error;
   }
 
-  handleError(error: CodexError, context?: string): CodexError {
-    const processedError = { ...error };
-    const { t } = useTranslation();
-    if (context) {
-      processedError.context = context;
-    }
-
-    // Store the i18n key for user-friendly messages instead of hardcoded English text
-    switch (error.code) {
-      case ERROR_CODES.CLOUDFLARE_BLOCKED:
-        processedError.userMessage = t('codex.network.cloudflare_blocked');
-        break;
-      case ERROR_CODES.NETWORK_TIMEOUT:
-        processedError.userMessage = t('codex.network.network_timeout');
-        break;
-      case ERROR_CODES.NETWORK_REFUSED:
-        processedError.userMessage = t('codex.network.connection_refused');
-        break;
-      case ERROR_CODES.SESSION_TIMEOUT:
-        processedError.userMessage = t('codex.error.session_timeout');
-        break;
-      case ERROR_CODES.SYSTEM_INIT_FAILED:
-        processedError.userMessage = t('codex.error.system_init_failed');
-        break;
-      case ERROR_CODES.INVALID_MESSAGE_FORMAT:
-        processedError.userMessage = t('codex.error.invalid_message_format');
-        break;
-      case ERROR_CODES.INVALID_INPUT:
-        processedError.userMessage = t('codex.error.invalid_input');
-        break;
-      case ERROR_CODES.PERMISSION_DENIED:
-        processedError.userMessage = t('codex.error.permission_denied');
-        break;
-      default:
-        processedError.userMessage = t('codex.error.generic');
-    }
-
-    return processedError;
+  handleError(error: CodexError): CodexError {
+    // Don't set userMessage here - let components handle translation based on error.code
+    // The error.code will be used by React components to get the appropriate translation
+    return { ...error };
   }
 
   shouldRetry(error: CodexError): boolean {
