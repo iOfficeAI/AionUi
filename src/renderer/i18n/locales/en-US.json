@@ -212,10 +212,22 @@
       "allow_always_desc": "Always grant permission for similar requests",
       "reject_once_desc": "Reject this request only",
       "reject_always_desc": "Always reject similar requests",
+      "processing": "Processing...",
+      "response_sent": "Response sent successfully",
+      "choose_action": "Choose an action:",
       "titles": {
+        "exec_approval_request": "Execute Command Permission",
+        "apply_patch_approval_request": "Apply File Changes Permission",
         "command_execution": "Command Execution Permission",
         "file_write": "File Write Permission",
         "file_read": "File Read Permission"
+      },
+      "labels": {
+        "command": "Command:",
+        "directory": "Directory:",
+        "reason": "Reason:",
+        "files_to_modify": "Files to modify",
+        "summary": "Summary:"
       },
       "descriptions": {
         "command_execution": "Codex requests to execute system commands",
@@ -264,6 +276,46 @@
     "unknown": {
       "displayName": "Unknown Tool",
       "description": "Unknown tool type"
+    },
+    "status": {
+      "pending": "Pending",
+      "executing": "Executing",
+      "success": "Success",
+      "error": "Error",
+      "canceled": "Canceled"
+    },
+    "titles": {
+      "web_search_started": "Web Search Started",
+      "web_search_completed": "Web Search Completed",
+      "web_search": "Web Search",
+      "applying_patch": "Applying Patch",
+      "patch_applied": "Patch Applied",
+      "file_patch": "File Patch",
+      "mcp_tool_starting": "MCP Tool: {{toolName}} (starting)",
+      "mcp_tool": "MCP Tool: {{toolName}}",
+      "execute_command": "Execute: {{command}}",
+      "command_output": "Command Output",
+      "command_completed": "Command Completed",
+      "shell_command": "Shell Command"
+    },
+    "labels": {
+      "search_query": "Search Query:",
+      "file_changes": "File Changes:",
+      "tool_details": "Tool Details:",
+      "tool": "Tool",
+      "arguments": "Arguments:",
+      "result": "Result:",
+      "command": "Command:",
+      "working_directory": "Working directory:",
+      "exit_code": "Exit: {{code}}",
+      "duration": "Duration: {{seconds}}s",
+      "auto_approved": "Auto-approved",
+      "manual_approval": "Manual approval"
+    },
+    "actions": {
+      "create": "create",
+      "modify": "modify",
+      "delete": "delete"
     }
   }
 }
