@@ -314,7 +314,7 @@
       "command": "コマンド：",
       "working_directory": "作業ディレクトリ：",
       "exit_code": "終了コード：{{code}}",
-      "duration": "実行時間：{{seconds}}秒",
+      "duration": "実行時間：{{seconds}}",
       "auto_approved": "自動承認",
       "manual_approval": "手動承認"
     },
