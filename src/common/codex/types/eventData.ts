@@ -320,6 +320,7 @@ export interface CodexAgentManagerData {
   workspace?: string;
   cliPath?: string;
   sandboxMode?: 'read-only' | 'workspace-write' | 'danger-full-access';
+  webSearchEnabled?: boolean;
 }
 
 export interface ElicitationCreateData {

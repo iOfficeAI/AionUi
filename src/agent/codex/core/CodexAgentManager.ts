@@ -82,6 +82,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
       sessionManager,
       fileOperationHandler,
       sandboxMode: data.sandboxMode || 'workspace-write', // Enable file writing within workspace by default
+      webSearchEnabled: data.webSearchEnabled ?? true, // Enable web search by default
       onNetworkError: (error) => {
         this.handleNetworkError(error);
       },
@@ -118,7 +119,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
   private async performPostConnectionSetup(): Promise<void> {
     try {
       // Get connection diagnostics
-      const _diagnostics = this.getDiagnostics();
+      this.getDiagnostics();
 
       // 延迟会话创建到第一条用户消息时，避免空 prompt 问题
       // Session will be created with first user message - no session event sent here
