@@ -63,7 +63,7 @@ export class CodexMcpAgent {
     this.conn.onError = (error) => this.handleError(error);
 
     try {
-      const args = ['--sandbox', this.sandboxMode, 'mcp', 'serve'];
+      const args = ['mcp', 'serve'];
       await this.conn.start(this.cliPath || 'codex', this.workingDir, args);
 
       // Wait for MCP server to be fully ready
@@ -153,6 +153,7 @@ export class CodexMcpAgent {
             arguments: {
               prompt: initialPrompt || '',
               cwd: cwd || this.workingDir,
+              sandbox: this.sandboxMode, // 强制指定沙盒模式
               config: {
                 tools: {
                   web_search_request: this.webSearchEnabled,
