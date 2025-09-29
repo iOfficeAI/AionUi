@@ -212,10 +212,22 @@
       "allow_always_desc": "对同类型请求总是给予权限",
       "reject_once_desc": "仅拒绝此次请求",
       "reject_always_desc": "对同类型请求总是拒绝",
+      "processing": "处理中...",
+      "response_sent": "响应发送成功",
+      "choose_action": "请选择操作：",
       "titles": {
+        "exec_approval_request": "命令执行权限",
+        "apply_patch_approval_request": "文件修改权限",
         "command_execution": "命令执行权限",
         "file_write": "文件写入权限",
         "file_read": "文件读取权限"
+      },
+      "labels": {
+        "command": "命令：",
+        "directory": "目录：",
+        "reason": "原因：",
+        "files_to_modify": "要修改的文件",
+        "summary": "摘要："
       },
       "descriptions": {
         "command_execution": "Codex 请求执行系统命令",
@@ -264,6 +276,46 @@
     "unknown": {
       "displayName": "未知工具",
       "description": "未知工具类型"
+    },
+    "status": {
+      "pending": "等待中",
+      "executing": "执行中",
+      "success": "成功",
+      "error": "错误",
+      "canceled": "已取消"
+    },
+    "titles": {
+      "web_search_started": "网页搜索已开始",
+      "web_search_completed": "网页搜索已完成",
+      "web_search": "网页搜索",
+      "applying_patch": "正在应用补丁",
+      "patch_applied": "补丁已应用",
+      "file_patch": "文件补丁",
+      "mcp_tool_starting": "MCP工具：{{toolName}}（启动中）",
+      "mcp_tool": "MCP工具：{{toolName}}",
+      "execute_command": "执行：{{command}}",
+      "command_output": "命令输出",
+      "command_completed": "命令已完成",
+      "shell_command": "Shell命令"
+    },
+    "labels": {
+      "search_query": "搜索查询：",
+      "file_changes": "文件更改：",
+      "tool_details": "工具详细信息：",
+      "tool": "工具",
+      "arguments": "参数：",
+      "result": "结果：",
+      "command": "命令：",
+      "working_directory": "工作目录：",
+      "exit_code": "退出码：{{code}}",
+      "duration": "持续时间：{{seconds}}秒",
+      "auto_approved": "自动批准",
+      "manual_approval": "手动批准"
+    },
+    "actions": {
+      "create": "创建",
+      "modify": "修改",
+      "delete": "删除"
     }
   }
 }

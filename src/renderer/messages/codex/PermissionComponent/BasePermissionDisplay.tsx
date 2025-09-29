@@ -160,7 +160,7 @@ const BasePermissionDisplay: React.FC<BasePermissionDisplayProps> = React.memo((
 
         {!hasResponded && (
           <>
-            <div className='mt-10px'>Choose an action:</div>
+            <div className='mt-10px'>{t('codex.permissions.choose_action')}</div>
             <Radio.Group direction='vertical' size='mini' value={selected} onChange={handleSelectionChange}>
               {options && options.length > 0 ? (
                 options.map((option, index) => {
@@ -179,7 +179,7 @@ const BasePermissionDisplay: React.FC<BasePermissionDisplayProps> = React.memo((
             </Radio.Group>
             <div className='flex justify-start pl-20px'>
               <Button type='primary' size='mini' disabled={!selected || isResponding} onClick={handleConfirm}>
-                {isResponding ? 'Processing...' : t('messages.confirm', { defaultValue: 'Confirm' })}
+                {isResponding ? t('codex.permissions.processing') : t('messages.confirm', { defaultValue: 'Confirm' })}
               </Button>
             </div>
           </>
@@ -187,7 +187,7 @@ const BasePermissionDisplay: React.FC<BasePermissionDisplayProps> = React.memo((
 
         {hasResponded && (
           <div className='mt-10px p-2 bg-green-50 border border-green-200 rounded-md'>
-            <Text className='text-sm text-green-700'>✓ Response sent successfully</Text>
+            <Text className='text-sm text-green-700'>✓ {t('codex.permissions.response_sent')}</Text>
           </div>
         )}
       </div>

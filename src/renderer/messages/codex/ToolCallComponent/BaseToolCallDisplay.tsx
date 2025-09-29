@@ -7,20 +7,23 @@
 import { Card, Tag } from '@arco-design/web-react';
 import type { ReactNode } from 'react';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 export const StatusTag: React.FC<{ status: string }> = ({ status }) => {
+  const { t } = useTranslation();
+
   const getTagProps = () => {
     switch (status) {
       case 'pending':
-        return { color: 'blue', text: 'Pending' };
+        return { color: 'blue', text: t('tools.status.pending') };
       case 'executing':
-        return { color: 'orange', text: 'Executing' };
+        return { color: 'orange', text: t('tools.status.executing') };
       case 'success':
-        return { color: 'green', text: 'Success' };
+        return { color: 'green', text: t('tools.status.success') };
       case 'error':
-        return { color: 'red', text: 'Error' };
+        return { color: 'red', text: t('tools.status.error') };
       case 'canceled':
-        return { color: 'gray', text: 'Canceled' };
+        return { color: 'gray', text: t('tools.status.canceled') };
       default:
         return { color: 'gray', text: status };
     }
