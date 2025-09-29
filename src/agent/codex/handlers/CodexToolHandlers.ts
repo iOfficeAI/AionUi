@@ -285,7 +285,6 @@ export class CodexToolHandlers {
       data: {
         toolCallId: callId,
         status: 'pending',
-        title: 'Tool Call',
         kind: 'execute',
         ...update,
       } as CodexToolCallUpdate,
