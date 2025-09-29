@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IMessageToolGroup } from '@/common/chatLib';
+import type { IMessageToolGroup, CodexToolCallUpdate } from '@/common/chatLib';
 import { uuid } from '@/common/utils';
 import { CodexAgentEventType, type FileChange, type McpInvocation, type CodexEventMsg } from '@/common/codex/types';
 import { ToolRegistry, type EventDataMap } from '@/common/codex/utils';
@@ -18,7 +18,7 @@ export class CodexToolHandlers {
   private pendingConfirmations: Set<string> = new Set();
   private toolRegistry: ToolRegistry;
   private activeToolGroups: Map<string, string> = new Map(); // callId -> msg_id mapping
-  private shellCommandsMsgId: string | null = null; // 所有shell命令共享的msg_id
+  private activeToolCalls: Map<string, string> = new Map(); // callId -> msg_id mapping for tool calls
 
   constructor(
     private conversation_id: string,
@@ -34,15 +34,16 @@ export class CodexToolHandlers {
     this.cmdBuffers.set(callId, { stdout: '', stderr: '', combined: '' });
     // 试点启用确认流：先置为 Confirming
     this.pendingConfirmations.add(callId);
-    this.emitToolGroup(
-      callId,
-      CodexAgentEventType.EXEC_COMMAND_BEGIN,
-      {
-        description: cmd,
-        status: 'Success',
-      },
-      msg
-    );
+
+    // Use new CodexToolCall approach with subtype and original data
+    this.emitCodexToolCall(callId, {
+      status: 'pending',
+      kind: 'execute',
+      subtype: 'exec_command_begin',
+      data: msg,
+      description: cmd,
+      startTime: Date.now(),
+    });
   }
 
   handleExecCommandOutputDelta(msg: Extract<CodexEventMsg, { type: 'exec_command_output_delta' }>) {
@@ -64,16 +65,52 @@ export class CodexToolHandlers {
     else buf.stdout += chunk;
     buf.combined += chunk;
     this.cmdBuffers.set(callId, buf);
-    this.emitToolGroup(
-      callId,
-      CodexAgentEventType.EXEC_COMMAND_OUTPUT_DELTA,
-      {
-        description: stream,
-        status: 'Success',
-        resultDisplay: buf.combined,
-      },
-      msg
-    );
+
+    // Use new CodexToolCall approach with subtype and original data
+    this.emitCodexToolCall(callId, {
+      status: 'executing',
+      kind: 'execute',
+      subtype: 'exec_command_output_delta',
+      data: msg,
+      content: [
+        {
+          type: 'output',
+          output: buf.combined,
+        },
+      ],
+    });
+  }
+
+  handleExecCommandEnd(msg: Extract<CodexEventMsg, { type: 'exec_command_end' }>) {
+    const callId = msg.call_id;
+    const exitCode = msg.exit_code;
+
+    // 获取累积的输出，优先使用缓存的数据，回退到消息中的数据
+    const buf = this.cmdBuffers.get(callId);
+    const finalOutput = buf?.combined || msg.aggregated_output || '';
+
+    // 确定最终状态：exit_code 0 为成功，其他为错误
+    const isSuccess = exitCode === 0;
+    const status = isSuccess ? 'success' : 'error';
+
+    // Use new CodexToolCall approach with subtype and original data
+    this.emitCodexToolCall(callId, {
+      status,
+      kind: 'execute',
+      subtype: 'exec_command_end',
+      data: msg,
+      endTime: Date.now(),
+      content: [
+        {
+          type: 'output',
+          output: finalOutput,
+        },
+      ],
+    });
+
+    // 清理资源
+    this.pendingConfirmations.delete(callId);
+    this.cmdBuffers.delete(callId);
   }
 
   // Patch handlers
@@ -198,11 +235,42 @@ export class CodexToolHandlers {
     );
   }
 
+  // New emit function for CodexToolCall
+  private emitCodexToolCall(callId: string, update: Partial<CodexToolCallUpdate>) {
+    let msgId: string;
+
+    // Use callId mapping to ensure all phases of the same tool call use the same msg_id
+    msgId = this.activeToolCalls.get(callId);
+    if (!msgId) {
+      msgId = uuid();
+      this.activeToolCalls.set(callId, msgId);
+    }
+
+    const toolCallMessage: IResponseMessage = {
+      type: 'codex_tool_call',
+      conversation_id: this.conversation_id,
+      msg_id: msgId,
+      data: {
+        toolCallId: callId,
+        status: 'pending',
+        title: 'Tool Call',
+        kind: 'execute',
+        ...update,
+      } as CodexToolCallUpdate,
+    };
+
+    this.messageEmitter.emitAndPersistMessage(toolCallMessage);
+
+    // Clean up mapping if tool call is completed
+    if (['success', 'error', 'canceled'].includes(update.status || '')) {
+      this.activeToolCalls.delete(callId);
+    }
+  }
+
   // Utility methods
   private emitToolGroup(callId: string, eventType: CodexAgentEventType, tool: Partial<IMessageToolGroup['content'][number]>, eventData?: EventDataMap[keyof EventDataMap]) {
     const toolDef = this.toolRegistry.resolveToolForEvent(eventType, eventData);
     const i18nParams = toolDef ? this.toolRegistry.getMcpToolI18nParams(toolDef) : {};
-    // console.log("eventData------_>", eventData);
     const toolContent: IMessageToolGroup['content'][number] = {
       callId,
       name: toolDef ? this.toolRegistry.getToolDisplayName(toolDef, i18nParams) : 'Unknown Tool',
@@ -213,24 +281,13 @@ export class CodexToolHandlers {
       ...tool,
     };
 
-    // 检查是否为shell命令执行事件
-    const isShellCommand = eventType === CodexAgentEventType.EXEC_COMMAND_BEGIN || eventType === CodexAgentEventType.EXEC_COMMAND_OUTPUT_DELTA || eventType === CodexAgentEventType.EXEC_COMMAND_END;
-
     let msgId: string;
 
-    if (isShellCommand) {
-      // 所有shell命令使用同一个msg_id，实现消息合并
-      if (!this.shellCommandsMsgId) {
-        this.shellCommandsMsgId = uuid();
-      }
-      msgId = this.shellCommandsMsgId;
-    } else {
-      // 非shell命令使用原有的callId映射逻辑
-      msgId = this.activeToolGroups.get(callId);
-      if (!msgId) {
-        msgId = uuid();
-        this.activeToolGroups.set(callId, msgId);
-      }
+    // 使用 callId 映射来确保同一个命令的所有阶段使用相同的 msg_id
+    msgId = this.activeToolGroups.get(callId);
+    if (!msgId) {
+      msgId = uuid();
+      this.activeToolGroups.set(callId, msgId);
     }
 
     const toolGroupMessage: IResponseMessage = {
@@ -242,8 +299,8 @@ export class CodexToolHandlers {
 
     this.messageEmitter.emitAndPersistMessage(toolGroupMessage);
 
-    // 如果是非shell命令的最终状态，清理映射
-    if (!isShellCommand && ['Success', 'Error', 'Canceled'].includes(toolContent.status)) {
+    // 如果是最终状态，清理映射
+    if (['Success', 'Error', 'Canceled'].includes(toolContent.status)) {
       this.activeToolGroups.delete(callId);
     }
   }
@@ -308,7 +365,7 @@ export class CodexToolHandlers {
     this.patchChanges.clear();
     this.pendingConfirmations.clear();
     this.activeToolGroups.clear();
-    this.shellCommandsMsgId = null;
+    this.activeToolCalls.clear();
   }
 
   private isValidBase64(str: string): boolean {
