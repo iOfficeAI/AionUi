@@ -387,13 +387,10 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
   emitAndPersistMessage(message: IResponseMessage, persist: boolean = true): void {
     if (persist) {
-      // Skip persistence for status messages - they should only be displayed in UI
-      if (message.type === 'codex_status' || message.type === 'codex_status') {
-        // Only emit to UI, don't persist to message history
+      if (message.type === 'codex_status') {
         ipcBridge.codexConversation.responseStream.emit(message);
         return;
       }
-
       // Use Codex-specific transformer for Codex messages
       const transformedMessage: TMessage = transformMessage(message);
       if (transformedMessage) {
