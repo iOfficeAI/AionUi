@@ -9,7 +9,7 @@ import type { IResponseMessage } from './ipcBridge';
 import { uuid } from './utils';
 import type { AcpPermissionRequest, ToolCallUpdate } from '@/common/acpTypes';
 import type { CodexPermissionRequest } from '@/common/codex/types';
-import type { ExecCommandBeginData, ExecCommandOutputDeltaData, ExecCommandEndData, PatchApplyBeginData, PatchApplyEndData, McpToolCallBeginData, McpToolCallEndData, WebSearchBeginData, WebSearchEndData } from '@/common/codex/types/eventData';
+import type { ExecCommandBeginData, ExecCommandOutputDeltaData, ExecCommandEndData, PatchApplyBeginData, PatchApplyEndData, McpToolCallBeginData, McpToolCallEndData, WebSearchBeginData, WebSearchEndData, ExecApprovalRequestData, ApplyPatchApprovalRequestData } from '@/common/codex/types/eventData';
 
 /**
  * 安全的路径拼接函数，兼容Windows和Mac

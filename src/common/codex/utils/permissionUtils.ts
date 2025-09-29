@@ -13,7 +13,7 @@ import { PermissionType, PermissionSeverity, PERMISSION_DECISION_MAP } from '../
  * 基础权限选项配置
  * 提供四种标准的权限决策选项
  */
-export const BASE_PERMISSION_OPTIONS: ReadonlyArray<CodexPermissionOption> = [
+const BASE_PERMISSION_OPTIONS: ReadonlyArray<CodexPermissionOption> = [
   {
     optionId: 'allow_once',
     name: 'codex.permissions.allow_once',
@@ -59,7 +59,7 @@ interface PermissionConfig {
  * 预定义的权限配置
  * 为不同类型的权限请求提供标准化配置
  */
-export const PERMISSION_CONFIGS: Record<PermissionType, PermissionConfig> = {
+const PERMISSION_CONFIGS: Record<PermissionType, PermissionConfig> = {
   [PermissionType.COMMAND_EXECUTION]: {
     titleKey: 'codex.permissions.titles.command_execution',
     descriptionKey: 'codex.permissions.descriptions.command_execution',
@@ -97,7 +97,7 @@ function createPermissionOptions(permissionType: PermissionType): CodexPermissio
 /**
  * 获取权限配置
  */
-export function getPermissionConfig(type: PermissionType): PermissionConfig {
+function getPermissionConfig(type: PermissionType): PermissionConfig {
   return PERMISSION_CONFIGS[type];
 }
 
@@ -130,67 +130,6 @@ export function getPermissionDisplayInfo(type: PermissionType) {
   };
 }
 
-/**
- * 根据严重级别获取推荐的默认选项
- */
-export function getRecommendedDefaultOption(severity: PermissionSeverity): string {
-  switch (severity) {
-    case PermissionSeverity.LOW:
-      return 'allow_once';
-    case PermissionSeverity.MEDIUM:
-      return 'reject_once';
-    case PermissionSeverity.HIGH:
-    case PermissionSeverity.CRITICAL:
-      return 'reject_always';
-    default:
-      return 'reject_once';
-  }
-}
-
-/**
- * 检查选项是否为允许类型
- */
-export function isAllowOption(optionId: string): boolean {
-  return optionId === 'allow_once' || optionId === 'allow_always';
-}
-
-/**
- * 检查选项是否为拒绝类型
- */
-export function isRejectOption(optionId: string): boolean {
-  return optionId === 'reject_once' || optionId === 'reject_always';
-}
-
-/**
- * 检查选项是否为持久性选项（影响后续相同类型请求）
- */
-export function isPersistentOption(optionId: string): boolean {
-  return optionId === 'allow_always' || optionId === 'reject_always';
-}
-
-/**
- * 验证权限选项ID是否有效
- */
-export function isValidPermissionOption(optionId: string): boolean {
-  return ['allow_once', 'allow_always', 'reject_once', 'reject_always'].includes(optionId);
-}
-
-/**
- * 获取权限选项的严重级别
- */
-export function getOptionSeverity(optionId: string): PermissionSeverity | null {
-  const option = BASE_PERMISSION_OPTIONS.find((opt) => opt.optionId === optionId);
-  return option?.severity || null;
-}
-
-/**
- * 根据权限类型获取默认推荐选项
- */
-export function getDefaultOptionForPermissionType(permissionType: PermissionType): string {
-  const config = getPermissionConfig(permissionType);
-  return getRecommendedDefaultOption(config.severity);
-}
-
 // Shared interface for confirmation data
 export interface ConfirmationData {
   confirmKey: string;
@@ -213,73 +152,6 @@ export const useConfirmationHandler = () => {
   };
 
   return { handleConfirmation };
-};
-
-/**
- * Hook to generate stable permission ID based on tool call characteristics
- */
-export const usePermissionIdGenerator = () => {
-  const generateGlobalPermissionId = (toolCall?: { kind?: string; title?: string; rawInput?: { command?: string | string[] } }) => {
-    // 主要基于 kind 来区分不同类型的权限，确保不同类型有不同的ID
-    const kind = toolCall?.kind || 'permission';
-
-    // 为不同的权限类型生成不同的ID
-    switch (kind) {
-      case 'write':
-        return 'codex_perm_file_write';
-      case 'execute':
-        return 'codex_perm_command_execute';
-      case 'read':
-        return 'codex_perm_file_read';
-      case 'fetch':
-        return 'codex_perm_web_fetch';
-      default: {
-        // 对于未知类型，使用原来的哈希算法
-        const features = [kind, toolCall?.title || '', toolCall?.rawInput?.command || ''];
-        const featureString = features.filter(Boolean).join('|');
-
-        let hash = 0;
-        for (let i = 0; i < featureString.length; i++) {
-          const char = featureString.charCodeAt(i);
-          hash = (hash << 5) - hash + char;
-          hash = hash & hash; // 32位整数
-        }
-
-        return `codex_perm_${Math.abs(hash)}`;
-      }
-    }
-  };
-
-  return { generateGlobalPermissionId };
-};
-
-/**
- * Hook to get appropriate icon based on tool kind
- */
-export const useToolIcon = () => {
-  const getToolIcon = (kind?: string): string => {
-    const kindIcons: Record<string, string> = {
-      edit: '✏️',
-      write: '📝',
-      read: '📖',
-      fetch: '🌐',
-      execute: '⚡',
-    };
-
-    return kindIcons[kind || 'execute'] || '⚡';
-  };
-
-  return { getToolIcon };
-};
-
-/**
- * Hook to manage permission storage keys
- */
-export const usePermissionStorageKeys = (permissionId: string) => {
-  const storageKey = `codex_global_permission_choice_${permissionId}`;
-  const responseKey = `codex_global_permission_responded_${permissionId}`;
-
-  return { storageKey, responseKey };
 };
 
 /**
