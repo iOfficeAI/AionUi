@@ -211,7 +211,7 @@ export class CodexSessionManager {
    */
   emitSessionEvent(eventType: string, data: unknown): void {
     this.messageEmitter.emitAndPersistMessage({
-      type: 'codex_session_event',
+      type: 'codex_status',
       conversation_id: this.config.conversation_id,
       msg_id: uuid(),
       data: {
