@@ -53,7 +53,7 @@ export class CodexMcpConnection {
 
   // Callbacks
   public onEvent: (evt: CodexEventEnvelope) => void = () => {};
-  public onNetworkError: (error: NetworkError) => void = () => {};
+  public onError: (error: { message: string; type?: 'network' | 'stream' | 'timeout' | 'process'; details?: unknown }) => void = () => {};
 
   // Permission request handling - similar to ACP's mechanism
   private isPaused = false;
@@ -206,15 +206,11 @@ export class CodexMcpConnection {
         // Also remove from paused requests if present
         this.pausedRequests = this.pausedRequests.filter((r) => r.resolve !== resolve);
 
-        // Emit error event to frontend before rejecting promise
-        this.onEvent({
-          method: 'codex/event',
-          params: {
-            msg: {
-              type: 'stream_error',
-              message: `Request timed out: ${method} (${timeoutMs}ms)`,
-            },
-          },
+        // Emit error to frontend before rejecting promise
+        this.onError({
+          message: `Request timed out: ${method} (${timeoutMs}ms)`,
+          type: 'timeout',
+          details: { method, timeoutMs },
         });
 
         reject(new Error(`Codex MCP request timed out: ${method}`));
@@ -267,15 +263,11 @@ export class CodexMcpConnection {
         if (this.isNetworkRelatedError(errorMsg)) {
           this.handleNetworkError(errorMsg, p);
         } else {
-          // Emit error event to frontend before rejecting promise
-          this.onEvent({
-            method: 'codex/event',
-            params: {
-              msg: {
-                type: 'stream_error',
-                message: errorMsg,
-              },
-            },
+          // Emit error to frontend before rejecting promise
+          this.onError({
+            message: errorMsg,
+            type: 'stream',
+            details: { source: 'jsonrpc_error' },
           });
           p.reject(new Error(errorMsg));
         }
@@ -285,15 +277,11 @@ export class CodexMcpConnection {
         if (this.isNetworkRelatedError(resultErrorMsg)) {
           this.handleNetworkError(resultErrorMsg, p);
         } else {
-          // Emit error event to frontend before rejecting promise
-          this.onEvent({
-            method: 'codex/event',
-            params: {
-              msg: {
-                type: 'stream_error',
-                message: resultErrorMsg,
-              },
-            },
+          // Emit error to frontend before rejecting promise
+          this.onError({
+            message: resultErrorMsg,
+            type: 'stream',
+            details: { source: 'result_error' },
           });
           p.reject(new Error(resultErrorMsg));
         }
@@ -310,7 +298,7 @@ export class CodexMcpConnection {
       // Handle all permission request events - pause and record mapping
       if (env.method === 'codex/event' && typeof env.params === 'object' && env.params !== null && 'msg' in (env.params as CodexEventParams)) {
         const msgType = (env.params as CodexEventParams).msg?.type;
-        const callId = (env.params as CodexEventParams).msg?.call_id || (env.params as CodexEventParams).call_id;
+        const _callId = (env.params as CodexEventParams).msg?.call_id || (env.params as CodexEventParams).call_id;
 
         if (msgType === 'apply_patch_approval_request' || msgType === 'exec_approval_request') {
           if ('id' in msg) {
@@ -359,15 +347,11 @@ export class CodexMcpConnection {
         if (this.permissionResolvers.has(callId)) {
           this.permissionResolvers.delete(callId);
 
-          // Emit error event to frontend before rejecting promise
-          this.onEvent({
-            method: 'codex/event',
-            params: {
-              msg: {
-                type: 'stream_error',
-                message: `Permission request timed out: ${callId}`,
-              },
-            },
+          // Emit error to frontend before rejecting promise
+          this.onError({
+            message: `Permission request timed out: ${callId}`,
+            type: 'timeout',
+            details: { callId },
           });
 
           reject(new Error('Permission request timed out'));
@@ -461,9 +445,6 @@ export class CodexMcpConnection {
       suggestedAction: processedError.userMessage || processedError.message,
     };
 
-    // Emit network error for UI handling
-    this.onNetworkError(networkError);
-
     // Decide whether to retry using error service logic
     if (globalErrorService.shouldRetry(processedError)) {
       this.scheduleRetry(pendingRequest, networkError);
@@ -471,15 +452,15 @@ export class CodexMcpConnection {
       // Max retries reached or unrecoverable error
       this.isNetworkError = true;
 
-      // Emit error event to frontend before rejecting promise
-      // Send the i18n key to the frontend for proper localization
-      this.onEvent({
-        method: 'codex/event',
-        params: {
-          msg: {
-            type: 'stream_error',
-            message: processedError.userMessage || processedError.message,
-          },
+      // Emit error to frontend before rejecting promise
+      this.onError({
+        message: processedError.userMessage || processedError.message,
+        type: 'network',
+        details: {
+          errorCode: processedError.code,
+          retryCount: this.retryCount,
+          originalError: errorMsg,
+          networkErrorType: networkError.type,
         },
       });
 
@@ -504,24 +485,18 @@ export class CodexMcpConnection {
     this.retryCount++;
 
     setTimeout(() => {
-      // Emit retry notification
-      this.onNetworkError({
-        ...networkError,
-        retryCount: this.retryCount,
-        suggestedAction: 'retry_attempt',
-      });
-
       // For now, still reject since we can't easily replay the original request
       // In a more sophisticated implementation, you'd store and replay the original request
 
-      // Emit error event to frontend before rejecting promise
-      this.onEvent({
-        method: 'codex/event',
-        params: {
-          msg: {
-            type: 'stream_error',
-            message: `Network error after ${this.retryCount} retries: ${networkError.type}`,
-          },
+      // Emit error to frontend before rejecting promise
+      this.onError({
+        message: `Network error after ${this.retryCount} retries: ${networkError.type}`,
+        type: 'network',
+        details: {
+          retryCount: this.retryCount,
+          networkErrorType: networkError.type,
+          originalError: networkError.originalError,
+          isRetryFailure: true,
         },
       });
 
@@ -590,15 +565,11 @@ export class CodexMcpConnection {
 
         // Check timeout
         if (Date.now() - startTime > timeout) {
-          // Emit error event to frontend before rejecting promise
-          this.onEvent({
-            method: 'codex/event',
-            params: {
-              msg: {
-                type: 'stream_error',
-                message: `Timeout waiting for MCP server to be ready (${timeout}ms)`,
-              },
-            },
+          // Emit error to frontend before rejecting promise
+          this.onError({
+            message: `Timeout waiting for MCP server to be ready (${timeout}ms)`,
+            type: 'timeout',
+            details: { timeout },
           });
 
           reject(new Error('Timeout waiting for MCP server to be ready'));
@@ -616,15 +587,11 @@ export class CodexMcpConnection {
 
   // Handle process exit
   private handleProcessExit(code: number | null, signal: NodeJS.Signals | null): void {
-    // Emit error event to frontend about process exit
-    this.onEvent({
-      method: 'codex/event',
-      params: {
-        msg: {
-          type: 'stream_error',
-          message: `Codex process exited unexpectedly (code: ${code}, signal: ${signal})`,
-        },
-      },
+    // Emit error to frontend about process exit
+    this.onError({
+      message: `Codex process exited unexpectedly (code: ${code}, signal: ${signal})`,
+      type: 'process',
+      details: { exitCode: code, signal },
     });
 
     // Reject all pending requests
