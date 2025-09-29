@@ -93,7 +93,7 @@ export class CodexMessageProcessor {
     });
 
     // Process through error service for user-friendly message
-    const processedError = globalErrorService.handleError(codexError, 'stream_processing');
+    const processedError = globalErrorService.handleError(codexError);
 
     const errorHash = this.generateErrorHash(message);
 
@@ -113,11 +113,15 @@ export class CodexMessageProcessor {
       msgId = `stream_error_${errorHash}`;
     }
 
+    // Use error code for structured error handling
+    // The data will contain error code info that can be translated on frontend
+    const errorData = processedError.code ? `ERROR_${processedError.code}: ${message}` : processedError.userMessage || message;
+
     const errMsg = {
       type: 'error' as const,
       conversation_id: this.conversation_id,
       msg_id: msgId,
-      data: processedError.userMessage || message,
+      data: errorData,
     };
     this.messageEmitter.emitAndPersistMessage(errMsg);
   }
