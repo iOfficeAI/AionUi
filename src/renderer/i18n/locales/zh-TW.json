@@ -77,10 +77,22 @@
       "allow_always_desc": "對同類型請求總是給予權限",
       "reject_once_desc": "僅拒絕此次請求",
       "reject_always_desc": "對同類型請求總是拒絕",
+      "processing": "處理中...",
+      "response_sent": "回應已成功發送",
+      "choose_action": "請選擇操作：",
       "titles": {
+        "exec_approval_request": "指令執行權限",
+        "apply_patch_approval_request": "檔案修改權限",
         "command_execution": "指令執行權限",
         "file_write": "檔案寫入權限",
         "file_read": "檔案讀取權限"
+      },
+      "labels": {
+        "command": "指令：",
+        "directory": "目錄：",
+        "reason": "原因：",
+        "files_to_modify": "要修改的檔案",
+        "summary": "摘要："
       },
       "descriptions": {
         "command_execution": "Codex 請求執行系統指令",
@@ -239,6 +251,70 @@
     "openLinkFailed": "無法開啟連結",
     "imageGenerationModelDetected": "檢測到圖片模型，已自動開啟圖片工具，設置為默認模型：{{platform}}:{{model}}",
     "auto_handling_permissions": "自動處理權限請求：{{request}}"
+  },
+  "tools": {
+    "shell": {
+      "displayName": "Shell指令",
+      "description": "執行Shell指令"
+    },
+    "fileOps": {
+      "displayName": "檔案操作",
+      "description": "檔案讀寫和修改"
+    },
+    "webSearch": {
+      "displayName": "網頁搜尋",
+      "description": "搜尋網頁內容"
+    },
+    "mcp": {
+      "generic": {
+        "displayName": "MCP工具：{{toolName}}",
+        "description": "MCP工具呼叫：{{toolName}}"
+      }
+    },
+    "unknown": {
+      "displayName": "未知工具",
+      "description": "未知工具類型"
+    },
+    "status": {
+      "pending": "等待中",
+      "executing": "執行中",
+      "success": "成功",
+      "error": "錯誤",
+      "canceled": "已取消"
+    },
+    "titles": {
+      "web_search_started": "網頁搜尋已開始",
+      "web_search_completed": "網頁搜尋已完成",
+      "web_search": "網頁搜尋",
+      "applying_patch": "正在套用修補程式",
+      "patch_applied": "修補程式已套用",
+      "file_patch": "檔案修補程式",
+      "mcp_tool_starting": "MCP工具：{{toolName}}（啟動中）",
+      "mcp_tool": "MCP工具：{{toolName}}",
+      "execute_command": "執行：{{command}}",
+      "command_output": "指令輸出",
+      "command_completed": "指令已完成",
+      "shell_command": "Shell指令"
+    },
+    "labels": {
+      "search_query": "搜尋查詢：",
+      "file_changes": "檔案變更：",
+      "tool_details": "工具詳細資訊：",
+      "tool": "工具",
+      "arguments": "參數：",
+      "result": "結果：",
+      "command": "指令：",
+      "working_directory": "工作目錄：",
+      "exit_code": "結束碼：{{code}}",
+      "duration": "持續時間：{{seconds}}",
+      "auto_approved": "自動核准",
+      "manual_approval": "手動核准"
+    },
+    "actions": {
+      "create": "建立",
+      "modify": "修改",
+      "delete": "刪除"
+    }
   },
   "acp": {
     "auth": {

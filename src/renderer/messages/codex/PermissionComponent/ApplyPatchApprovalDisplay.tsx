@@ -7,6 +7,7 @@
 import type { BaseCodexPermissionRequest, ApplyPatchApprovalRequestData } from '@/common/codex/types';
 import { Typography } from '@arco-design/web-react';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import BasePermissionDisplay from './BasePermissionDisplay';
 
 const { Text } = Typography;
@@ -19,6 +20,7 @@ interface ApplyPatchApprovalDisplayProps {
 
 const ApplyPatchApprovalDisplay: React.FC<ApplyPatchApprovalDisplayProps> = React.memo(({ content, messageId, conversationId }) => {
   const { title, data } = content;
+  const { t } = useTranslation();
 
   // 基于 apply_patch_approval 类型生成权限信息
   const getPatchInfo = () => {
@@ -28,7 +30,7 @@ const ApplyPatchApprovalDisplay: React.FC<ApplyPatchApprovalDisplayProps> = Reac
     const hasMoreFiles = Object.keys(changes).length > 3;
 
     return {
-      title: title || 'Apply File Changes Permission',
+      title: title ? t(title) : t('codex.permissions.titles.apply_patch_approval_request'),
       icon: '📝',
       changes,
       fileCount,
@@ -45,7 +47,9 @@ const ApplyPatchApprovalDisplay: React.FC<ApplyPatchApprovalDisplayProps> = Reac
     <BasePermissionDisplay content={content} messageId={messageId} conversationId={conversationId} icon={patchInfo.icon} title={patchInfo.title}>
       {/* Files to be changed */}
       <div>
-        <Text className='text-xs text-gray-500 mb-1'>Files to modify ({patchInfo.fileCount}):</Text>
+        <Text className='text-xs text-gray-500 mb-1'>
+          {t('codex.permissions.labels.files_to_modify')} ({patchInfo.fileCount}):
+        </Text>
         <div className='text-xs bg-gray-100 p-2 rounded text-gray-800'>
           {patchInfo.fileNames.map((fileName, index) => (
             <div key={index} className='break-all'>
@@ -59,7 +63,7 @@ const ApplyPatchApprovalDisplay: React.FC<ApplyPatchApprovalDisplayProps> = Reac
       {/* Summary */}
       {patchInfo.summary && (
         <div>
-          <Text className='text-xs text-gray-500 mb-1'>Summary:</Text>
+          <Text className='text-xs text-gray-500 mb-1'>{t('codex.permissions.labels.summary')}</Text>
           <Text className='text-sm text-gray-700'>{patchInfo.summary}</Text>
         </div>
       )}
@@ -67,7 +71,7 @@ const ApplyPatchApprovalDisplay: React.FC<ApplyPatchApprovalDisplayProps> = Reac
       {/* Reason */}
       {patchInfo.reason && (
         <div>
-          <Text className='text-xs text-gray-500 mb-1'>Reason:</Text>
+          <Text className='text-xs text-gray-500 mb-1'>{t('codex.permissions.labels.reason')}</Text>
           <Text className='text-sm text-gray-700'>{patchInfo.reason}</Text>
         </div>
       )}

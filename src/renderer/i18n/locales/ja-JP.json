@@ -85,10 +85,22 @@
       "allow_always_desc": "同種の要求に常に権限を付与",
       "reject_once_desc": "この要求のみ拒否",
       "reject_always_desc": "同種の要求を常に拒否",
+      "processing": "処理中...",
+      "response_sent": "レスポンスを正常に送信しました",
+      "choose_action": "アクションを選択してください：",
       "titles": {
+        "exec_approval_request": "コマンド実行権限",
+        "apply_patch_approval_request": "ファイル変更権限",
         "command_execution": "コマンド実行権限",
         "file_write": "ファイル書き込み権限",
         "file_read": "ファイル読み取り権限"
+      },
+      "labels": {
+        "command": "コマンド：",
+        "directory": "ディレクトリ：",
+        "reason": "理由：",
+        "files_to_modify": "変更するファイル",
+        "summary": "要約："
       },
       "descriptions": {
         "command_execution": "Codex がシステムコマンドの実行を要求",
@@ -247,6 +259,70 @@
     "openLinkFailed": "リンクを開けませんでした",
     "imageGenerationModelDetected": "画像モデルが検出されました。画像ツールが自動的に有効になりました。デフォルトモデル：{{platform}}:{{model}}",
     "auto_handling_permissions": "自動ハンドリング許可要求：{{request}}"
+  },
+  "tools": {
+    "shell": {
+      "displayName": "Shellコマンド",
+      "description": "Shellコマンドを実行"
+    },
+    "fileOps": {
+      "displayName": "ファイル操作",
+      "description": "ファイル読み書きと変更"
+    },
+    "webSearch": {
+      "displayName": "ウェブ検索",
+      "description": "ウェブコンテンツを検索"
+    },
+    "mcp": {
+      "generic": {
+        "displayName": "MCPツール：{{toolName}}",
+        "description": "MCPツール呼び出し：{{toolName}}"
+      }
+    },
+    "unknown": {
+      "displayName": "不明なツール",
+      "description": "不明なツールタイプ"
+    },
+    "status": {
+      "pending": "待機中",
+      "executing": "実行中",
+      "success": "成功",
+      "error": "エラー",
+      "canceled": "キャンセル済み"
+    },
+    "titles": {
+      "web_search_started": "ウェブ検索を開始しました",
+      "web_search_completed": "ウェブ検索が完了しました",
+      "web_search": "ウェブ検索",
+      "applying_patch": "パッチを適用中",
+      "patch_applied": "パッチが適用されました",
+      "file_patch": "ファイルパッチ",
+      "mcp_tool_starting": "MCPツール：{{toolName}}（開始中）",
+      "mcp_tool": "MCPツール：{{toolName}}",
+      "execute_command": "実行：{{command}}",
+      "command_output": "コマンド出力",
+      "command_completed": "コマンドが完了しました",
+      "shell_command": "Shellコマンド"
+    },
+    "labels": {
+      "search_query": "検索クエリ：",
+      "file_changes": "ファイル変更：",
+      "tool_details": "ツール詳細：",
+      "tool": "ツール",
+      "arguments": "引数：",
+      "result": "結果：",
+      "command": "コマンド：",
+      "working_directory": "作業ディレクトリ：",
+      "exit_code": "終了コード：{{code}}",
+      "duration": "実行時間：{{seconds}}",
+      "auto_approved": "自動承認",
+      "manual_approval": "手動承認"
+    },
+    "actions": {
+      "create": "作成",
+      "modify": "変更",
+      "delete": "削除"
+    }
   },
   "acp": {
     "auth": {

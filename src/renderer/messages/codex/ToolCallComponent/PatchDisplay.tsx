@@ -7,29 +7,31 @@
 import type { CodexToolCallUpdate } from '@/common/chatLib';
 import { Tag } from '@arco-design/web-react';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import BaseToolCallDisplay from './BaseToolCallDisplay';
 
 type PatchUpdate = Extract<CodexToolCallUpdate, { subtype: 'patch_apply_begin' | 'patch_apply_end' }>;
 
 const PatchDisplay: React.FC<{ content: PatchUpdate }> = ({ content }) => {
   const { toolCallId, title, status, description, subtype, data } = content;
+  const { t } = useTranslation();
 
   const getDisplayTitle = () => {
     if (title) return title;
 
     switch (subtype) {
       case 'patch_apply_begin':
-        return 'Applying Patch';
+        return t('tools.titles.applying_patch');
       case 'patch_apply_end':
-        return 'Patch Applied';
+        return t('tools.titles.patch_applied');
       default:
-        return 'File Patch';
+        return t('tools.titles.file_patch');
     }
   };
 
   const getAdditionalTags = () => {
     if (subtype === 'patch_apply_begin' && 'auto_approved' in data && data.auto_approved !== undefined) {
-      return <Tag color={data.auto_approved ? 'green' : 'orange'}>{data.auto_approved ? 'Auto-approved' : 'Manual approval'}</Tag>;
+      return <Tag color={data.auto_approved ? 'green' : 'orange'}>{data.auto_approved ? t('tools.labels.auto_approved') : t('tools.labels.manual_approval')}</Tag>;
     }
     return null;
   };
@@ -61,12 +63,12 @@ const PatchDisplay: React.FC<{ content: PatchUpdate }> = ({ content }) => {
       {/* Display file changes if available */}
       {changeSummary && changeSummary.length > 0 && (
         <div className='text-sm mb-2'>
-          <div className='text-xs text-gray-500 mb-1'>File Changes:</div>
+          <div className='text-xs text-gray-500 mb-1'>{t('tools.labels.file_changes')}</div>
           <div className='bg-gray-50 p-2 rounded text-sm'>
             {changeSummary.map(({ file, action }, index) => (
               <div key={index} className='flex items-center gap-2'>
                 <Tag size='small' color={action === 'create' ? 'green' : action === 'delete' ? 'red' : 'blue'}>
-                  {action}
+                  {t(`tools.actions.${action}`, { defaultValue: action })}
                 </Tag>
                 <span className='font-mono text-xs'>{file}</span>
               </div>

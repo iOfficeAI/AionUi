@@ -6,23 +6,25 @@
 
 import type { CodexToolCallUpdate } from '@/common/chatLib';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import BaseToolCallDisplay from './BaseToolCallDisplay';
 
 type WebSearchUpdate = Extract<CodexToolCallUpdate, { subtype: 'web_search_begin' | 'web_search_end' }>;
 
 const WebSearchDisplay: React.FC<{ content: WebSearchUpdate }> = ({ content }) => {
   const { toolCallId, title, status, description, subtype, data } = content;
+  const { t } = useTranslation();
 
   const getDisplayTitle = () => {
     if (title) return title;
 
     switch (subtype) {
       case 'web_search_begin':
-        return 'Web Search Started';
+        return t('tools.titles.web_search_started');
       case 'web_search_end':
-        return 'query' in data && data.query ? `Web Search: ${data.query}` : 'Web Search Completed';
+        return 'query' in data && data.query ? `${t('tools.titles.web_search')}: ${data.query}` : t('tools.titles.web_search_completed');
       default:
-        return 'Web Search';
+        return t('tools.titles.web_search');
     }
   };
 
@@ -31,7 +33,7 @@ const WebSearchDisplay: React.FC<{ content: WebSearchUpdate }> = ({ content }) =
       {/* Display query if available */}
       {subtype === 'web_search_end' && 'query' in data && data.query && (
         <div className='text-sm mb-2'>
-          <div className='text-xs text-gray-500 mb-1'>Search Query:</div>
+          <div className='text-xs text-gray-500 mb-1'>{t('tools.labels.search_query')}</div>
           <div className='bg-blue-50 text-blue-800 p-2 rounded text-sm'>{data.query}</div>
         </div>
       )}
