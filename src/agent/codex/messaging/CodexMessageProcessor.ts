@@ -82,14 +82,12 @@ export class CodexMessageProcessor {
     this.messageEmitter.emitAndPersistMessage(deltaMessage);
   }
 
-  processStreamError(msg: Extract<CodexEventMsg, { type: 'stream_error' }>) {
-    const message = msg.message || 'Codex stream error';
-
+  processStreamError(message: string) {
     // Use error service to create standardized error
     const codexError = globalErrorService.createError(ERROR_CODES.NETWORK_UNKNOWN, message, {
       context: 'CodexMessageProcessor.processStreamError',
       technicalDetails: {
-        originalEvent: msg,
+        originalMessage: message,
         eventType: 'STREAM_ERROR',
       },
     });

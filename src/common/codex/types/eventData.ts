@@ -27,7 +27,6 @@ export type CodexEventMsg =
   | ({ type: 'agent_message_delta' } & MessageDeltaData) //已处理
   | ({ type: 'agent_message' } & MessageData) //忽略
   | ({ type: 'user_message' } & UserMessageData)
-  | ({ type: 'stream_error' } & StreamErrorData)
   | ({ type: 'agent_reasoning_delta' } & AgentReasoningDeltaData) //已处理
   | ({ type: 'agent_reasoning' } & AgentReasoningData) //忽略
   | ({ type: 'agent_reasoning_raw_content' } & AgentReasoningRawContentData)

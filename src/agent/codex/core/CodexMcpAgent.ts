@@ -57,7 +57,7 @@ export class CodexMcpAgent {
   async start(): Promise<void> {
     this.conn = new CodexMcpConnection();
     this.conn.onEvent = (env) => this.processCodexEvent(env);
-    this.conn.onNetworkError = (error) => this.handleNetworkError(error);
+    this.conn.onError = (error) => this.handleError(error);
 
     try {
       const args = ['--sandbox', this.sandboxMode, 'mcp', 'serve'];
@@ -256,39 +256,48 @@ export class CodexMcpAgent {
     }
   }
 
-  private handleNetworkError(error: NetworkError): void {
-    // Forward network error to the parent handler
-    if (this.onNetworkError) {
-      this.onNetworkError(error);
-    } else {
-      // Fallback: delegate to event handler
-      try {
-        // Create a CodexJsonRpcEvent structure for network errors
-        const networkErrorEvent = {
-          jsonrpc: '2.0' as const,
-          method: 'codex/event' as const,
-          params: {
-            _meta: {
-              requestId: Date.now(),
-              timestamp: Date.now(),
-              source: 'network',
-            },
-            id: `network_error_${Date.now()}`,
-            msg: {
-              type: 'stream_error' as const,
-              message: error.suggestedAction,
-              error: error.originalError?.toString(),
-              details: {
-                errorType: error.type,
-                retryCount: error.retryCount,
-              },
-            },
-          },
-        };
-        this.eventHandler.handleEvent(networkErrorEvent);
-      } catch {
-        // Network error handling failed, continue processing
+  private handleError(error: { message: string; type?: 'network' | 'stream' | 'timeout' | 'process'; details?: unknown }): void {
+    // 统一错误处理，直接调用 MessageProcessor 的错误处理方法
+    try {
+      if (error.type === 'network') {
+        // 网络错误特殊处理，如果有外部处理器则优先使用
+        if (this.onNetworkError) {
+          const networkError = this.convertToLegacyNetworkError(error);
+          this.onNetworkError(networkError);
+        } else {
+          // 网络错误也通过流错误处理
+          const errorMessage = `Network Error: ${error.message}`;
+          this.eventHandler.getMessageProcessor().processStreamError(errorMessage);
+        }
+      } else {
+        // 其他错误类型统一处理
+        this.eventHandler.getMessageProcessor().processStreamError(error.message);
       }
+    } catch {
+      // Error handling failed, continue processing
+    }
+  }
+
+  private convertToLegacyNetworkError(error: { message: string; type?: string; details?: any }): NetworkError {
+    const details = error.details || {};
+    return {
+      type: this.mapNetworkErrorType(details.networkErrorType || 'unknown'),
+      originalError: details.originalError || error.message,
+      retryCount: details.retryCount || 0,
+      suggestedAction: error.message,
+    };
+  }
+
+  private mapNetworkErrorType(type: string): NetworkError['type'] {
+    switch (type) {
+      case 'cloudflare_blocked':
+        return 'cloudflare_blocked';
+      case 'network_timeout':
+        return 'network_timeout';
+      case 'connection_refused':
+        return 'connection_refused';
+      default:
+        return 'unknown';
     }
   }
 
