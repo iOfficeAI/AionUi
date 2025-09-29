@@ -66,14 +66,7 @@ export class CodexEventHandler {
       this.messageProcessor.processReasonSectionBreak();
       return;
     }
-
-    if (this.isMessageType(msg, 'stream_error')) {
-      this.messageProcessor.processStreamError(msg);
-      return;
-    }
-
     // Note: Generic error events are now handled as stream_error type
-
     // Handle ALL permission-related requests through unified handler
     if (this.isMessageType(msg, 'exec_approval_request') || this.isMessageType(msg, 'apply_patch_approval_request')) {
       this.handleUnifiedPermissionRequest(msg);
@@ -385,6 +378,11 @@ export class CodexEventHandler {
   // Expose tool handlers for external access
   getToolHandlers(): CodexToolHandlers {
     return this.toolHandlers;
+  }
+
+  // Expose message processor for external access
+  getMessageProcessor(): CodexMessageProcessor {
+    return this.messageProcessor;
   }
 
   // Type guard functions for intelligent type inference
