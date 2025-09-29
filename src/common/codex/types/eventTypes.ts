@@ -201,19 +201,20 @@ export enum CodexAgentEventType {
   /**
    * 补丁应用开始事件 - 通知代理即将应用代码补丁。镜像 `ExecCommandBegin`，以便前端可以显示进度指示器
    * tips: codex 运行在 sandbox_mode=read-only 模式下，无法直接写入文件，不会触发 patch_apply_begin → patch_apply_end 流程。
-   *       ~/.codex/config.toml 中 修改配置，sandbox_mode = "workspace-write" apply_patch = true
+   *      需要在 ~/.codex/config.toml 中 修改配置，sandbox_mode = "workspace-write" apply_patch = true
    * prompt: 帮我创建一个文件 hello.txt , 内容为 ’hello codex‘
    * payload: {
-      type: 'patch_apply_begin',
-      call_id: 'patch-7',
-      auto_approved: false,
-      changes: { 
-        'src/app.ts': { 
-          type: 'update', 
-          unified_diff: '--- a\n+++ b\n+line\n' 
-          } 
-      },
-    }
+      "type": "patch_apply_begin",
+          "call_id": "call_3tChlyDszdHuQRQTWnuZ8Jvb",
+          "auto_approved": false,
+          "changes": {
+            "/Users/pojian/Library/Application Support/AionUi/aionui/codex-temp-1759144414815/note.txt": {
+            "add": {
+              "content": "This file was created via apply_patch.\nValue: 100.\n"
+            }
+          }
+        }
+      }
    */
   PATCH_APPLY_BEGIN = 'patch_apply_begin',
 
@@ -221,11 +222,11 @@ export enum CodexAgentEventType {
    * 补丁应用结束事件 - 通知补丁应用已完成
    * prompt:  帮我创建一个文件 hello.txt , 内容为 ’hello codex‘
    * payload: {
-      type: 'patch_apply_end',
-      call_id: 'patch-7',
-      stdout: 'Applied 1 file',
-      stderr: '',
-      success: true,
+      "type": "patch_apply_end",
+      "call_id": "call_3tChlyDszdHuQRQTWnuZ8Jvb",
+      "stdout": "Success. Updated the following files:\nA note.txt\n",
+      "stderr": "",
+      "success": true
     }
    */
   PATCH_APPLY_END = 'patch_apply_end',
@@ -254,21 +255,31 @@ export enum CodexAgentEventType {
    * 网络搜索开始事件 - 表示网络搜索开始
    * tips：web_serach 的能力需要手动设置开启，~/.codex/config.toml 中 添加 web_search = true
    * prompt: 查找 TypeScript 5.0 的新功能， 不要用现有知识库回答我，去官网搜索最新资料
-   * payload: {"type":"web_search_begin","call_id":"ws_010bdd5c4db8ef410168da04c74a648196b7e30cb864885b26"}
+   * payload: {
+   *  "type":"web_search_begin",
+   *  "call_id":"ws_010bdd5c4db8ef410168da04c74a648196b7e30cb864885b26"
+   * }
    */
   WEB_SEARCH_BEGIN = 'web_search_begin',
 
   /**
    * 网络搜索结束事件 - 表示网络搜索结束
    * prompt: 查找 TypeScript 5.0 的新功能， 不要用现有知识库回答我，去官网搜索最新资料
-   * payload: {"type":"web_search_end","call_id":"ws_010bdd5c4db8ef410168da04c74a648196b7e30cb864885b26","query":"TypeScript 5.0 whats new site:devblogs.microsoft.com/typescript"}
+   * payload: {
+   *  "type":"web_search_end",
+   *  "call_id":"ws_010bdd5c4db8ef410168da04c74a648196b7e30cb864885b26",
+   *  "query":"TypeScript 5.0 whats new site:devblogs.microsoft.com/typescript"
+   * }
    */
   WEB_SEARCH_END = 'web_search_end',
 
   // Conversation history & context
   /**
    * 转换差异事件 - 表示转换之间的差异
-   * payload: { unified_diff: string }
+   * payload: {
+      "type": "turn_diff",
+      "unified_diff": "diff --git a//Users/pojian/Library/Application Support/AionUi/aionui/codex-temp-1759144414815/note.txt b//Users/pojian/Library/Application Support/AionUi/aionui/codex-temp-1759144414815/note.txt\ndeleted file mode 100644\nindex 0e41a7013f44bd0616e236b68c0b18f80d707ac4..0000000000000000000000000000000000000000\n--- a//Users/pojian/Library/Application Support/AionUi/aionui/codex-temp-1759144414815/note.txt\n+++ /dev/null\n@@ -1,2 +0,0 @@\n-This file was created via apply_patch.\n-Value: 100.\n"
+    }
    */
   TURN_DIFF = 'turn_diff',
 

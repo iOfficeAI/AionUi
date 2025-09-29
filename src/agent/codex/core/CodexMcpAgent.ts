@@ -25,6 +25,7 @@ export interface CodexAgentConfig {
   fileOperationHandler: CodexFileOperationHandler;
   onNetworkError?: (error: NetworkError) => void;
   sandboxMode?: 'read-only' | 'workspace-write' | 'danger-full-access'; // Filesystem sandbox mode
+  webSearchEnabled?: boolean; // Enable web search functionality
 }
 
 /**
@@ -40,6 +41,7 @@ export class CodexMcpAgent {
   private readonly fileOperationHandler: CodexFileOperationHandler;
   private readonly onNetworkError?: (error: NetworkError) => void;
   private readonly sandboxMode: 'read-only' | 'workspace-write' | 'danger-full-access';
+  private readonly webSearchEnabled: boolean;
   private conn: CodexMcpConnection | null = null;
   private conversationId: string | null = null;
 
@@ -52,6 +54,7 @@ export class CodexMcpAgent {
     this.fileOperationHandler = cfg.fileOperationHandler;
     this.onNetworkError = cfg.onNetworkError;
     this.sandboxMode = cfg.sandboxMode || 'workspace-write'; // Default to workspace-write for file operations
+    this.webSearchEnabled = cfg.webSearchEnabled ?? true; // Default to enabled (true)
   }
 
   async start(): Promise<void> {
@@ -70,7 +73,7 @@ export class CodexMcpAgent {
 
       // Try different initialization approaches
       try {
-        const _initializeResult = await this.conn.request(
+        await this.conn.request(
           'initialize',
           {
             protocolVersion: CODEX_MCP_PROTOCOL_VERSION,
@@ -82,7 +85,7 @@ export class CodexMcpAgent {
       } catch (initError) {
         try {
           // Try without initialize - maybe Codex doesn't need it
-          const _testResult = await this.conn.request('tools/list', {}, 10000);
+          await this.conn.request('tools/list', {}, 10000);
         } catch (testError) {
           throw new Error(`Codex MCP initialization failed: ${initError}. Tools list also failed: ${testError}`);
         }
@@ -150,6 +153,11 @@ export class CodexMcpAgent {
             arguments: {
               prompt: initialPrompt || '',
               cwd: cwd || this.workingDir,
+              config: {
+                tools: {
+                  web_search_request: this.webSearchEnabled,
+                },
+              },
             },
             config: { conversationId: convId },
           },
