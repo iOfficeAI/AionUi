@@ -9,6 +9,7 @@ import type { IResponseMessage } from './ipcBridge';
 import { uuid } from './utils';
 import type { AcpPermissionRequest, ToolCallUpdate } from '@/common/acpTypes';
 import type { CodexPermissionRequest } from '@/common/codex/types';
+import type { ExecCommandBeginData, ExecCommandOutputDeltaData, ExecCommandEndData, PatchApplyBeginData, PatchApplyEndData, McpToolCallBeginData, McpToolCallEndData, WebSearchBeginData, WebSearchEndData } from '@/common/codex/types/eventData';
 
 /**
  * 安全的路径拼接函数，兼容Windows和Mac
@@ -85,7 +86,7 @@ function normalizeLLMText(raw: string): string {
  * @description 跟对话相关的消息类型申明 及相关处理
  */
 
-type TMessageType = 'text' | 'tips' | 'tool_call' | 'tool_group' | 'acp_status' | 'acp_permission' | 'acp_tool_call' | 'codex_status' | 'codex_permission';
+type TMessageType = 'text' | 'tips' | 'tool_call' | 'tool_group' | 'acp_status' | 'acp_permission' | 'acp_tool_call' | 'codex_status' | 'codex_permission' | 'codex_tool_call';
 
 interface IMessage<T extends TMessageType, Content extends Record<string, any>> {
   /**
@@ -219,7 +220,75 @@ export type IMessageCodexStatus = IMessage<
 
 export type IMessageCodexPermission = IMessage<'codex_permission', CodexPermissionRequest>;
 
-export type TMessage = IMessageText | IMessageTips | IMessageToolCall | IMessageToolGroup | IMessageAcpStatus | IMessageAcpPermission | IMessageAcpToolCall | IMessageCodexStatus | IMessageCodexPermission;
+// Base interface for all tool call updates
+interface BaseCodexToolCallUpdate {
+  toolCallId: string;
+  status: 'pending' | 'executing' | 'success' | 'error' | 'canceled';
+  title?: string; // Optional - can be derived from data or kind
+  kind: 'execute' | 'patch' | 'mcp' | 'web_search';
+
+  // UI display data
+  description?: string;
+  content?: Array<{
+    type: 'text' | 'diff' | 'output';
+    text?: string;
+    output?: string;
+    filePath?: string;
+    oldText?: string;
+    newText?: string;
+  }>;
+
+  // Timing
+  startTime?: number;
+  endTime?: number;
+}
+
+// Specific subtypes using the original event data structures
+export type CodexToolCallUpdate =
+  | (BaseCodexToolCallUpdate & {
+      subtype: 'exec_command_begin';
+      data: ExecCommandBeginData;
+    })
+  | (BaseCodexToolCallUpdate & {
+      subtype: 'exec_command_output_delta';
+      data: ExecCommandOutputDeltaData;
+    })
+  | (BaseCodexToolCallUpdate & {
+      subtype: 'exec_command_end';
+      data: ExecCommandEndData;
+    })
+  | (BaseCodexToolCallUpdate & {
+      subtype: 'patch_apply_begin';
+      data: PatchApplyBeginData;
+    })
+  | (BaseCodexToolCallUpdate & {
+      subtype: 'patch_apply_end';
+      data: PatchApplyEndData;
+    })
+  | (BaseCodexToolCallUpdate & {
+      subtype: 'mcp_tool_call_begin';
+      data: McpToolCallBeginData;
+    })
+  | (BaseCodexToolCallUpdate & {
+      subtype: 'mcp_tool_call_end';
+      data: McpToolCallEndData;
+    })
+  | (BaseCodexToolCallUpdate & {
+      subtype: 'web_search_begin';
+      data: WebSearchBeginData;
+    })
+  | (BaseCodexToolCallUpdate & {
+      subtype: 'web_search_end';
+      data: WebSearchEndData;
+    })
+  | (BaseCodexToolCallUpdate & {
+      subtype: 'generic';
+      data?: any; // For generic updates that don't map to specific events
+    });
+
+export type IMessageCodexToolCall = IMessage<'codex_tool_call', CodexToolCallUpdate>;
+
+export type TMessage = IMessageText | IMessageTips | IMessageToolCall | IMessageToolGroup | IMessageAcpStatus | IMessageAcpPermission | IMessageAcpToolCall | IMessageCodexStatus | IMessageCodexPermission | IMessageCodexToolCall;
 
 /**
  * @description 将后端返回的消息转换为前端消息
@@ -321,6 +390,16 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         content: message.data,
       };
     }
+    case 'codex_tool_call': {
+      return {
+        id: uuid(),
+        type: 'codex_tool_call',
+        msg_id: message.msg_id,
+        position: 'left',
+        conversation_id: message.conversation_id,
+        content: message.data,
+      };
+    }
     case 'start':
     case 'finish':
     case 'thought':
@@ -357,6 +436,21 @@ export const composeMessage = (message: TMessage | undefined, list: TMessage[] |
       message.content = tools;
       list.push(message);
     }
+    return list;
+  }
+
+  // Handle codex_tool_call message merging
+  if (message.type === 'codex_tool_call') {
+    for (let i = 0, len = list.length; i < len; i++) {
+      const msg = list[i];
+      if (msg.type === 'codex_tool_call' && msg.content.toolCallId === message.content.toolCallId) {
+        // Update existing tool call with new data
+        Object.assign(msg.content, message.content);
+        return list;
+      }
+    }
+    // If no existing tool call found, add new one
+    list.push(message);
     return list;
   }
 

@@ -101,6 +101,11 @@ export class CodexEventHandler {
       return;
     }
 
+    if (this.isMessageType(msg, 'exec_command_end')) {
+      this.toolHandlers.handleExecCommandEnd(msg);
+      return;
+    }
+
     // Tool: mcp tool
     if (this.isMessageType(msg, 'mcp_tool_call_begin')) {
       this.toolHandlers.handleMcpToolCallBegin(msg);

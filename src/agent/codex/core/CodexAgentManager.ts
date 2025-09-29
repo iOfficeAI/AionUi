@@ -81,6 +81,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
       eventHandler,
       sessionManager,
       fileOperationHandler,
+      sandboxMode: data.sandboxMode || 'workspace-write', // Enable file writing within workspace by default
       onNetworkError: (error) => {
         this.handleNetworkError(error);
       },
@@ -395,7 +396,6 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
       // Use Codex-specific transformer for Codex messages
       const transformedMessage: TMessage = transformMessage(message);
-
       if (transformedMessage) {
         addOrUpdateMessage(this.conversation_id, transformedMessage);
       }

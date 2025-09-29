@@ -79,9 +79,15 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
           setCodexStatus(statusData.status);
           break;
         }
-        default:
+        default: {
           setRunning(false);
           setThought(null);
+          // 处理其他消息类型，包括 tool_group
+          const transformedMessage = transformMessage(message);
+          if (transformedMessage) {
+            addOrUpdateMessage(transformedMessage);
+          }
+        }
       }
     });
   }, [conversation_id, addOrUpdateMessage]);

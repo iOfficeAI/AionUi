@@ -312,6 +312,7 @@ export interface CodexAgentManagerData {
   conversation_id: string;
   workspace?: string;
   cliPath?: string;
+  sandboxMode?: 'read-only' | 'workspace-write' | 'danger-full-access';
 }
 
 export interface ElicitationCreateData {

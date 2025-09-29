@@ -87,7 +87,6 @@ export class CodexMcpConnection {
           shell: isWindows,
         });
 
-        // Set up error handling for child process
         this.child.on('error', (error) => {
           reject(new Error(`Failed to start codex process: ${error.message}`));
         });
@@ -101,13 +100,14 @@ export class CodexMcpConnection {
         this.child.stderr?.on('data', (d) => {
           const errorMsg = d.toString();
 
-          // Check for common startup errors
           if (errorMsg.includes('command not found') || errorMsg.includes('not recognized')) {
             reject(new Error(`Codex CLI not found. Please ensure 'codex' is installed and in PATH. Error: ${errorMsg}`));
           } else if (errorMsg.includes('permission denied')) {
             reject(new Error(`Permission denied when starting codex. Error: ${errorMsg}`));
           } else if (errorMsg.includes('authentication') || errorMsg.includes('login')) {
             reject(new Error(`Codex authentication required. Please run 'codex auth' first. Error: ${errorMsg}`));
+          } else if (errorMsg.includes('unknown flag') || errorMsg.includes('invalid option') || errorMsg.includes('unrecognized')) {
+            reject(new Error(`Invalid Codex CLI arguments. Error: ${errorMsg}`));
           }
         });
 
@@ -162,21 +162,13 @@ export class CodexMcpConnection {
           }
         });
 
-        // Wait for initial process startup
         setTimeout(() => {
           if (this.child && !this.child.killed) {
-            // If we have received JSON messages, we're ready
-            if (receivedJsonMessage) {
-              // JSON-RPC communication established
-            } else {
-              // Process started but no JSON-RPC yet, continuing...
-            }
-
             resolve();
           } else {
             reject(new Error('Codex process failed to start or was killed during startup'));
           }
-        }, 3000); // Give 3 seconds for startup
+        }, 5000);
 
         // Fallback timeout
         setTimeout(() => {

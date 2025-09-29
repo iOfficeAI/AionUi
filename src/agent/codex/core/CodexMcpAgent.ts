@@ -24,6 +24,7 @@ export interface CodexAgentConfig {
   sessionManager: CodexSessionManager;
   fileOperationHandler: CodexFileOperationHandler;
   onNetworkError?: (error: NetworkError) => void;
+  sandboxMode?: 'read-only' | 'workspace-write' | 'danger-full-access'; // Filesystem sandbox mode
 }
 
 /**
@@ -38,6 +39,7 @@ export class CodexMcpAgent {
   private readonly sessionManager: CodexSessionManager;
   private readonly fileOperationHandler: CodexFileOperationHandler;
   private readonly onNetworkError?: (error: NetworkError) => void;
+  private readonly sandboxMode: 'read-only' | 'workspace-write' | 'danger-full-access';
   private conn: CodexMcpConnection | null = null;
   private conversationId: string | null = null;
 
@@ -49,6 +51,7 @@ export class CodexMcpAgent {
     this.sessionManager = cfg.sessionManager;
     this.fileOperationHandler = cfg.fileOperationHandler;
     this.onNetworkError = cfg.onNetworkError;
+    this.sandboxMode = cfg.sandboxMode || 'workspace-write'; // Default to workspace-write for file operations
   }
 
   async start(): Promise<void> {
@@ -57,7 +60,8 @@ export class CodexMcpAgent {
     this.conn.onNetworkError = (error) => this.handleNetworkError(error);
 
     try {
-      await this.conn.start(this.cliPath || 'codex', this.workingDir);
+      const args = ['--sandbox', this.sandboxMode, 'mcp', 'serve'];
+      await this.conn.start(this.cliPath || 'codex', this.workingDir, args);
 
       // Wait for MCP server to be fully ready
       await this.conn.waitForServerReady(30000);

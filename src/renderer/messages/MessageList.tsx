@@ -13,6 +13,7 @@ import MessageAcpPermission from './MessageAcpPermission';
 import MessageAcpStatus from './MessageAcpStatus';
 import MessageCodexPermission from './MessageCodexPermission';
 import MessageCodexStatus from './MessageCodexStatus';
+import MessageCodexToolCall from './MessageCodexToolCall';
 import MessageAcpToolCall from './MessageAcpToolCall';
 import MessageTips from './MessageTips';
 import MessageToolCall from './MessageToolCall';
@@ -52,6 +53,8 @@ const MessageItem: React.FC<{ message: TMessage }> = HOC((props) => {
       return <MessageCodexPermission message={message}></MessageCodexPermission>;
     case 'codex_status':
       return <MessageCodexStatus message={message}></MessageCodexStatus>;
+    case 'codex_tool_call':
+      return <MessageCodexToolCall message={message}></MessageCodexToolCall>;
     default:
       return <div>Unknown message type: {(message as any).type}</div>;
   }
