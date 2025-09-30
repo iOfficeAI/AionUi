@@ -202,7 +202,7 @@ export enum CodexAgentEventType {
    * 补丁应用开始事件 - 通知代理即将应用代码补丁。镜像 `ExecCommandBegin`，以便前端可以显示进度指示器
    * tips: codex 运行在 sandbox_mode=read-only 模式下，无法直接写入文件，不会触发 patch_apply_begin → patch_apply_end 流程。
    *      需要在 ~/.codex/config.toml 中 修改配置，sandbox_mode = "workspace-write" apply_patch = true
-   * prompt: 帮我创建一个文件 hello.txt , 内容为 ’hello codex‘
+   * prompt: 用命令 apply_patch <<'PATCH' … PATCH 写入一个文件，内容和文件名你自由发挥
    * payload: {
       "type": "patch_apply_begin",
           "call_id": "call_3tChlyDszdHuQRQTWnuZ8Jvb",
@@ -220,7 +220,7 @@ export enum CodexAgentEventType {
 
   /**
    * 补丁应用结束事件 - 通知补丁应用已完成
-   * prompt:  帮我创建一个文件 hello.txt , 内容为 ’hello codex‘
+   * prompt:  用命令 apply_patch <<'PATCH' … PATCH 写入一个文件，内容和文件名你自由发挥
    * payload: {
       "type": "patch_apply_end",
       "call_id": "call_3tChlyDszdHuQRQTWnuZ8Jvb",
@@ -276,9 +276,10 @@ export enum CodexAgentEventType {
   // Conversation history & context
   /**
    * 转换差异事件 - 表示转换之间的差异
+   * prompt: 用命令 apply_patch <<'PATCH' … PATCH 写入一个文件，内容和文件名你自由发挥
    * payload: {
       "type": "turn_diff",
-      "unified_diff": "diff --git a//Users/pojian/Library/Application Support/AionUi/aionui/codex-temp-1759144414815/note.txt b//Users/pojian/Library/Application Support/AionUi/aionui/codex-temp-1759144414815/note.txt\ndeleted file mode 100644\nindex 0e41a7013f44bd0616e236b68c0b18f80d707ac4..0000000000000000000000000000000000000000\n--- a//Users/pojian/Library/Application Support/AionUi/aionui/codex-temp-1759144414815/note.txt\n+++ /dev/null\n@@ -1,2 +0,0 @@\n-This file was created via apply_patch.\n-Value: 100.\n"
+      "unified_diff": "diff --git a//Users/pojian/Library/Application Support/AionUi/aionui/codex-temp-1759197123355/freestyle.txt b//Users/pojian/Library/Application Support/AionUi/aionui/codex-temp-1759197123355/freestyle.txt\nnew file mode 100644\nindex 0000000000000000000000000000000000000000..151e31d7a6627e3fb0df2e49b3c0c179f96e46cc\n--- /dev/null\n+++ b//Users/pojian/Library/Application Support/AionUi/aionui/codex-temp-1759197123355/freestyle.txt\n@@ -0,0 +1,2 @@\n+This file was created via apply_patch.\n+Line two says hello.\n"
     }
    */
   TURN_DIFF = 'turn_diff',

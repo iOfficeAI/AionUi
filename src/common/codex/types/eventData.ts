@@ -36,15 +36,15 @@ export type CodexEventMsg =
   | ({ type: 'exec_command_end' } & ExecCommandEndData) //已处理
   | ({ type: 'exec_approval_request' } & ExecApprovalRequestData) //已处理
   | ({ type: 'apply_patch_approval_request' } & PatchApprovalData) //已处理
-  | ({ type: 'patch_apply_begin' } & PatchApplyBeginData)
-  | ({ type: 'patch_apply_end' } & PatchApplyEndData)
+  | ({ type: 'patch_apply_begin' } & PatchApplyBeginData) //已处理
+  | ({ type: 'patch_apply_end' } & PatchApplyEndData) //已处理
   | ({ type: 'mcp_tool_call_begin' } & McpToolCallBeginData) //先忽略
   | ({ type: 'mcp_tool_call_end' } & McpToolCallEndData) //先忽略
   | ({ type: 'web_search_begin' } & WebSearchBeginData) //已处理
   | ({ type: 'web_search_end' } & WebSearchEndData) //已处理
   | ({ type: 'token_count' } & TokenCountData) //忽略
   | { type: 'agent_reasoning_section_break' } //已处理
-  | ({ type: 'turn_diff' } & TurnDiffData)
+  | ({ type: 'turn_diff' } & TurnDiffData) //忽略
   | ({ type: 'get_history_entry_response' } & GetHistoryEntryResponseData)
   | ({ type: 'mcp_list_tools_response' } & McpListToolsResponseData)
   | ({ type: 'list_custom_prompts_response' } & ListCustomPromptsResponseData)
