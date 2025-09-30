@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { acpDetector } from '@/agent/acp/AcpDetector';
 import { initAcpBridge } from './acpBridge';
 import { initApplicationBridge } from './applicationBridge';
 import { initAuthBridge } from './authBridge';
@@ -27,6 +28,17 @@ export function initAllBridges(): void {
   initAuthBridge();
   initModelBridge();
   initMcpBridge();
+}
+
+/**
+ * 初始化ACP检测器
+ */
+export async function initializeAcpDetector(): Promise<void> {
+  try {
+    await acpDetector.initialize();
+  } catch (error) {
+    console.error('[ACP] Failed to initialize detector:', error);
+  }
 }
 
 // 导出初始化函数供单独使用

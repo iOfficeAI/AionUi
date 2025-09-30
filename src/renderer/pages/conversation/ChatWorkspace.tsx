@@ -12,13 +12,13 @@ import { Empty, Input, Tree } from '@arco-design/web-react';
 import { Refresh, Search } from '@icon-park/react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-interface GeminiWorkspaceProps {
+interface WorkspaceProps {
   workspace: string;
-  customWorkspace?: boolean;
+  conversation_id: string;
   eventPrefix?: 'gemini' | 'acp';
 }
 
-const GeminiWorkspace: React.FC<GeminiWorkspaceProps> = ({ workspace, customWorkspace, eventPrefix = 'gemini' }) => {
+const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, eventPrefix = 'gemini' }) => {
   const { t } = useTranslation();
   const [selected, setSelected] = useState<string[]>([]);
   const [files, setFiles] = useState<IDirOrFile[]>([]);
@@ -32,7 +32,7 @@ const GeminiWorkspace: React.FC<GeminiWorkspaceProps> = ({ workspace, customWork
     setSelected(files);
   });
 
-  const refreshWorkspace = (_eventPrefix: typeof eventPrefix, _workspace: string) => {
+  const refreshWorkspace = (_eventPrefix: typeof eventPrefix, conversation_id: string) => {
     setLoading(true);
     const startTime = Date.now();
 
@@ -43,7 +43,7 @@ const GeminiWorkspace: React.FC<GeminiWorkspaceProps> = ({ workspace, customWork
         : ipcBridge.geminiConversation.getWorkspace;
 
     getWorkspaceMethod
-      .invoke({ workspace: _workspace })
+      .invoke({ conversation_id })
       .then((res) => {
         setFiles(res);
       })
@@ -63,20 +63,20 @@ const GeminiWorkspace: React.FC<GeminiWorkspaceProps> = ({ workspace, customWork
 
   useEffect(() => {
     setFiles([]);
-    refreshWorkspace(eventPrefix, workspace);
+    refreshWorkspace(eventPrefix, conversation_id);
     emitter.emit(`${eventPrefix}.selected.file`, []);
-  }, [workspace, eventPrefix]);
+  }, [conversation_id, eventPrefix]);
 
   useEffect(() => {
     const handleGeminiResponse = (data: any) => {
       if (data.type === 'tool_group' || data.type === 'tool_call') {
-        refreshWorkspace(eventPrefix, workspace);
+        refreshWorkspace(eventPrefix, conversation_id);
       }
     };
 
     const handleAcpResponse = (data: any) => {
       if (data.type === 'acp_tool_call') {
-        refreshWorkspace(eventPrefix, workspace);
+        refreshWorkspace(eventPrefix, conversation_id);
       }
     };
 
@@ -87,7 +87,7 @@ const GeminiWorkspace: React.FC<GeminiWorkspaceProps> = ({ workspace, customWork
       unsubscribeGemini();
       unsubscribeAcp();
     };
-  }, [workspace, eventPrefix]);
+  }, [conversation_id, eventPrefix]);
 
   useAddEventListener(`${eventPrefix}.workspace.refresh`, () => refreshWorkspace(eventPrefix, workspace), [workspace, eventPrefix]);
 
@@ -201,4 +201,4 @@ const GeminiWorkspace: React.FC<GeminiWorkspaceProps> = ({ workspace, customWork
   );
 };
 
-export default GeminiWorkspace;
+export default ChatWorkspace;

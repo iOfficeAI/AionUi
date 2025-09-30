@@ -9,7 +9,7 @@ import fixPath from 'fix-path';
 import { initMainAdapterWithWindow } from './adapter/main';
 import { ipcBridge } from './common';
 import './process';
-import { initializeAcpDetector } from './process/initBridge';
+import { initializeAcpDetector } from './process/bridge';
 import WorkerManage from './process/WorkerManage';
 // @ts-ignore - electron-squirrel-startup doesn't have types
 import electronSquirrelStartup from 'electron-squirrel-startup';
