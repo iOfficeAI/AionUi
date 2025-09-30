@@ -15,6 +15,9 @@ interface EventTypes {
   'acp.selected.file': [string[]];
   'acp.selected.file.clear': void;
   'acp.workspace.refresh': void;
+  'codex.selected.file': [string[]];
+  'codex.selected.file.clear': void;
+  'codex.workspace.refresh': void;
   'chat.history.refresh': void;
 }
 

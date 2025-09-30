@@ -7,7 +7,7 @@
 import { ForkTask } from '@/worker/fork/ForkTask';
 import path from 'path';
 
-type AgentType = 'gemini' | 'acp';
+type AgentType = 'gemini' | 'acp' | 'codex';
 
 /**
  * @description agent任务基础类

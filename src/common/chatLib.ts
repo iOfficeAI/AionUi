@@ -8,6 +8,8 @@ import type { AcpBackend } from './acpTypes';
 import type { IResponseMessage } from './ipcBridge';
 import { uuid } from './utils';
 import type { AcpPermissionRequest, ToolCallUpdate } from '@/common/acpTypes';
+import type { CodexPermissionRequest } from '@/common/codex/types';
+import type { ExecCommandBeginData, ExecCommandOutputDeltaData, ExecCommandEndData, PatchApplyBeginData, PatchApplyEndData, McpToolCallBeginData, McpToolCallEndData, WebSearchBeginData, WebSearchEndData, ExecApprovalRequestData, ApplyPatchApprovalRequestData, TurnDiffData } from '@/common/codex/types/eventData';
 
 /**
  * 安全的路径拼接函数，兼容Windows和Mac
@@ -49,11 +51,42 @@ export const joinPath = (basePath: string, relativePath: string): string => {
   return result.replace(/\/+/g, '/'); // 将多个连续的斜杠替换为单个
 };
 
+// Normalize LLM text with awkward line breaks/zero‑width chars while preserving code blocks.
+function normalizeLLMText(raw: string): string {
+  if (!raw || typeof raw !== 'string') return raw as any;
+  const ZW = /[\u200B-\u200D\uFEFF]/g;
+  const chunks = raw
+    .replace(/[\r\t]+/g, (m) => (m.includes('\t') ? ' ' : ''))
+    .replace(ZW, '')
+    .split('```');
+  const out: string[] = [];
+  for (let i = 0; i < chunks.length; i++) {
+    let seg = chunks[i];
+    if (i % 2 === 1) {
+      out.push('```' + seg + '```');
+      continue;
+    }
+    // Join words split by stray newlines: "Div\nis\nibility" -> "Divisibility"
+    seg = seg.replace(/([A-Za-z])\s*\n\s*([a-z])/g, '$1$2');
+    // Join hyphen alone lines: "Power\n-\nof" -> "Power-of"
+    seg = seg.replace(/([A-Za-z])\s*\n\s*-\s*\n\s*([A-Za-z])/g, '$1-$2');
+    // Replace single newlines between non-terminal contexts with space
+    // Note: character class excludes terminal punctuation [.!?:;]
+    seg = seg.replace(/([^.!?:;])\n(?!\n|\s*[-*#\d])/g, '$1 ');
+    // Collapse excessive blank lines
+    seg = seg.replace(/\n{3,}/g, '\n\n');
+    // Normalize multiple spaces
+    seg = seg.replace(/ {2,}/g, ' ');
+    out.push(seg);
+  }
+  return out.join('');
+}
+
 /**
  * @description 跟对话相关的消息类型申明 及相关处理
  */
 
-type TMessageType = 'text' | 'tips' | 'tool_call' | 'tool_group' | 'acp_status' | 'acp_permission' | 'acp_tool_call';
+type TMessageType = 'text' | 'tips' | 'tool_call' | 'tool_group' | 'acp_status' | 'acp_permission' | 'acp_tool_call' | 'codex_status' | 'codex_permission' | 'codex_tool_call';
 
 interface IMessage<T extends TMessageType, Content extends Record<string, any>> {
   /**
@@ -114,7 +147,7 @@ export type IMessageToolGroup = IMessage<
   Array<{
     callId: string;
     description: string;
-    name: 'GoogleSearch' | 'Shell' | 'WriteFile' | 'ReadFile' | 'ImageGeneration';
+    name: string;
     renderOutputAsMarkdown: boolean;
     resultDisplay?:
       | string
@@ -174,7 +207,92 @@ export type IMessageAcpPermission = IMessage<'acp_permission', AcpPermissionRequ
 
 export type IMessageAcpToolCall = IMessage<'acp_tool_call', ToolCallUpdate>;
 
-export type TMessage = IMessageText | IMessageTips | IMessageToolCall | IMessageToolGroup | IMessageAcpStatus | IMessageAcpPermission | IMessageAcpToolCall;
+export type IMessageCodexStatus = IMessage<
+  'codex_status',
+  {
+    status: string;
+    message: string;
+    sessionId?: string;
+    isConnected?: boolean;
+    hasActiveSession?: boolean;
+  }
+>;
+
+export type IMessageCodexPermission = IMessage<'codex_permission', CodexPermissionRequest>;
+
+// Base interface for all tool call updates
+interface BaseCodexToolCallUpdate {
+  toolCallId: string;
+  status: 'pending' | 'executing' | 'success' | 'error' | 'canceled';
+  title?: string; // Optional - can be derived from data or kind
+  kind: 'execute' | 'patch' | 'mcp' | 'web_search';
+
+  // UI display data
+  description?: string;
+  content?: Array<{
+    type: 'text' | 'diff' | 'output';
+    text?: string;
+    output?: string;
+    filePath?: string;
+    oldText?: string;
+    newText?: string;
+  }>;
+
+  // Timing
+  startTime?: number;
+  endTime?: number;
+}
+
+// Specific subtypes using the original event data structures
+export type CodexToolCallUpdate =
+  | (BaseCodexToolCallUpdate & {
+      subtype: 'exec_command_begin';
+      data: ExecCommandBeginData;
+    })
+  | (BaseCodexToolCallUpdate & {
+      subtype: 'exec_command_output_delta';
+      data: ExecCommandOutputDeltaData;
+    })
+  | (BaseCodexToolCallUpdate & {
+      subtype: 'exec_command_end';
+      data: ExecCommandEndData;
+    })
+  | (BaseCodexToolCallUpdate & {
+      subtype: 'patch_apply_begin';
+      data: PatchApplyBeginData;
+    })
+  | (BaseCodexToolCallUpdate & {
+      subtype: 'patch_apply_end';
+      data: PatchApplyEndData;
+    })
+  | (BaseCodexToolCallUpdate & {
+      subtype: 'mcp_tool_call_begin';
+      data: McpToolCallBeginData;
+    })
+  | (BaseCodexToolCallUpdate & {
+      subtype: 'mcp_tool_call_end';
+      data: McpToolCallEndData;
+    })
+  | (BaseCodexToolCallUpdate & {
+      subtype: 'web_search_begin';
+      data: WebSearchBeginData;
+    })
+  | (BaseCodexToolCallUpdate & {
+      subtype: 'web_search_end';
+      data: WebSearchEndData;
+    })
+  | (BaseCodexToolCallUpdate & {
+      subtype: 'turn_diff';
+      data: TurnDiffData;
+    })
+  | (BaseCodexToolCallUpdate & {
+      subtype: 'generic';
+      data?: any; // For generic updates that don't map to specific events
+    });
+
+export type IMessageCodexToolCall = IMessage<'codex_tool_call', CodexToolCallUpdate>;
+
+export type TMessage = IMessageText | IMessageTips | IMessageToolCall | IMessageToolGroup | IMessageAcpStatus | IMessageAcpPermission | IMessageAcpToolCall | IMessageCodexStatus | IMessageCodexPermission | IMessageCodexToolCall;
 
 /**
  * @description 将后端返回的消息转换为前端消息
@@ -194,24 +312,13 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         },
       };
     }
-    case 'content': {
-      return {
-        id: uuid(),
-        type: 'text',
-        msg_id: message.msg_id,
-        position: 'left',
-        conversation_id: message.conversation_id,
-        content: {
-          content: message.data,
-        },
-      };
-    }
+    case 'content':
     case 'user_content': {
       return {
         id: uuid(),
         type: 'text',
         msg_id: message.msg_id,
-        position: 'right',
+        position: message.type === 'content' ? 'left' : 'right',
         conversation_id: message.conversation_id,
         content: {
           content: message.data,
@@ -267,17 +374,43 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         content: message.data,
       };
     }
+    case 'codex_status': {
+      return {
+        id: uuid(),
+        type: 'codex_status',
+        msg_id: message.msg_id,
+        position: 'center',
+        conversation_id: message.conversation_id,
+        content: message.data,
+      };
+    }
+    case 'codex_permission': {
+      return {
+        id: uuid(),
+        type: 'codex_permission',
+        msg_id: message.msg_id,
+        position: 'left',
+        conversation_id: message.conversation_id,
+        content: message.data,
+      };
+    }
+    case 'codex_tool_call': {
+      return {
+        id: uuid(),
+        type: 'codex_tool_call',
+        msg_id: message.msg_id,
+        position: 'left',
+        conversation_id: message.conversation_id,
+        content: message.data,
+      };
+    }
     case 'start':
     case 'finish':
     case 'thought':
       break;
-    default:
-      return {
-        type: message.type,
-        content: message.data,
-        position: 'left',
-        id: uuid(),
-      } as any;
+    default: {
+      throw new Error(`Unsupported message type '${message.type}'. All non-standard message types should be pre-processed by respective AgentManagers.`);
+    }
   }
 };
 
@@ -307,6 +440,21 @@ export const composeMessage = (message: TMessage | undefined, list: TMessage[] |
       message.content = tools;
       list.push(message);
     }
+    return list;
+  }
+
+  // Handle codex_tool_call message merging
+  if (message.type === 'codex_tool_call') {
+    for (let i = 0, len = list.length; i < len; i++) {
+      const msg = list[i];
+      if (msg.type === 'codex_tool_call' && msg.content.toolCallId === message.content.toolCallId) {
+        // Update existing tool call with new data
+        Object.assign(msg.content, message.content);
+        return list;
+      }
+    }
+    // If no existing tool call found, add new one
+    list.push(message);
     return list;
   }
 

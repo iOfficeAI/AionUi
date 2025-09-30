@@ -180,7 +180,7 @@ const ToolResultDisplay: React.FC<{
 
 const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
   const { t } = useTranslation();
-  console.log('----->message', message);
+
   return (
     <div>
       {message.content.map((content) => {

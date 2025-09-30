@@ -15,7 +15,8 @@ import fs from 'fs/promises';
 import OpenAI from 'openai';
 import path from 'path';
 import { ipcBridge } from '../common';
-import { createAcpAgent, createGeminiAgent } from './initAgent';
+import { createAcpAgent, createCodexAgent, createGeminiAgent } from './initAgent';
+import type { CodexAgentManager } from '@/agent/codex';
 import { getSystemDir, ProcessChat, ProcessChatMessage, ProcessConfig, ProcessEnv } from './initStorage';
 import { nextTickToLocalFinish } from './message';
 import type AcpAgentManager from './task/AcpAgentManager';
@@ -171,6 +172,7 @@ ipcBridge.conversation.create.provider(async (params): Promise<TChatConversation
   const buildConversation = async () => {
     if (type === 'gemini') return createGeminiAgent(model, extra.workspace, extra.defaultFiles, extra.webSearchEngine);
     if (type === 'acp') return createAcpAgent(params);
+    if (type === 'codex') return createCodexAgent(params);
     throw new Error('Invalid conversation type');
   };
   try {
@@ -297,6 +299,55 @@ ipcBridge.acpConversation.sendMessage.provider(async ({ conversation_id, files, 
     });
 });
 
+// Codex 专用的 sendMessage provider
+ipcBridge.codexConversation.sendMessage.provider(async ({ conversation_id, files, ...other }) => {
+  const task = (await WorkerManage.getTaskByIdRollbackBuild(conversation_id)) as CodexAgentManager | undefined;
+  if (!task) return { success: false, msg: 'conversation not found' };
+  if (task.type !== 'codex') return { success: false, msg: 'unsupported task type for Codex provider' };
+  await copyFilesToDirectory(task.workspace, files);
+  return task
+    .sendMessage({ content: other.input, files, msg_id: other.msg_id })
+    .then(() => ({ success: true }))
+    .catch((err: unknown) => ({ success: false, msg: err instanceof Error ? err.message : String(err) }));
+});
+
+// 通用 confirmMessage 实现 - 自动根据 conversation 类型分发
+ipcBridge.conversation.confirmMessage.provider(async ({ confirmKey, msg_id, conversation_id, callId }) => {
+  const task = WorkerManage.getTaskById(conversation_id);
+  if (!task) return { success: false, msg: 'conversation not found' };
+
+  try {
+    // 根据 task 类型调用对应的 confirmMessage 方法
+    if (task?.type === 'codex') {
+      await (task as CodexAgentManager).confirmMessage({ confirmKey, msg_id, callId });
+      return { success: true };
+    } else if (task.type === 'gemini') {
+      await (task as GeminiAgentManager).confirmMessage({ confirmKey, msg_id, callId });
+      return { success: true };
+    } else if (task.type === 'acp') {
+      await (task as AcpAgentManager).confirmMessage({ confirmKey, msg_id, callId });
+      return { success: true };
+    } else {
+      return { success: false, msg: `Unsupported task type: ${task.type}` };
+    }
+  } catch (e: unknown) {
+    return { success: false, msg: e instanceof Error ? e.message : String(e) };
+  }
+});
+
+// 保留现有的特定 confirmMessage 实现以维持向后兼容性
+ipcBridge.codexConversation.confirmMessage.provider(async ({ confirmKey, msg_id, conversation_id, callId }) => {
+  const task = WorkerManage.getTaskById(conversation_id) as CodexAgentManager | undefined;
+  if (!task) return { success: false, msg: 'conversation not found' };
+  if (task.type !== 'codex') return { success: false, msg: 'not support' };
+  try {
+    await task.confirmMessage({ confirmKey, msg_id, callId });
+    return { success: true };
+  } catch (e: unknown) {
+    return { success: false, msg: e instanceof Error ? e.message : String(e) };
+  }
+});
+
 ipcBridge.geminiConversation.confirmMessage.provider(async ({ confirmKey, msg_id, conversation_id, callId }) => {
   const task = WorkerManage.getTaskById(conversation_id) as GeminiAgentManager;
   if (!task) return { success: false, msg: 'conversation not found' };
@@ -376,7 +427,11 @@ ipcBridge.acpConversation.detectCliPath.provider(async ({ backend }) => {
 ipcBridge.conversation.stop.provider(async ({ conversation_id }) => {
   const task = WorkerManage.getTaskById(conversation_id);
   if (!task) return { success: true, msg: 'conversation not found' };
-  if (task.type !== 'gemini' && task.type !== 'acp') return { success: false, msg: 'not support' };
+  if (task.type !== 'gemini' && task.type !== 'acp' && task.type !== 'codex')
+    return {
+      success: false,
+      msg: 'not support',
+    };
   return task.stop().then(() => ({ success: true }));
 });
 
@@ -387,7 +442,7 @@ ipcBridge.geminiConversation.getWorkspace.provider(async ({ conversation_id }) =
 });
 
 // ACP 的 getWorkspace 实现
-ipcBridge.acpConversation.getWorkspace.provider(async ({ conversation_id }) => {
+const buildWorkspaceFileTree = async (conversation_id: string) => {
   try {
     const task = (await WorkerManage.getTaskByIdRollbackBuild(conversation_id)) as AcpAgentManager;
     if (!task) return [];
@@ -401,9 +456,9 @@ ipcBridge.acpConversation.getWorkspace.provider(async ({ conversation_id }) => {
       return [];
     }
 
-    // 读取目录内容
+    // 递归构建文件树
     const buildFileTree = (dirPath: string, basePath: string = dirPath): any[] => {
-      const result = [];
+      const result: any[] = [];
       const items = fs.readdirSync(dirPath);
 
       for (const item of items) {
@@ -446,8 +501,8 @@ ipcBridge.acpConversation.getWorkspace.provider(async ({ conversation_id }) => {
 
     const files = buildFileTree(workspace);
 
-    // 返回的格式需要与 gemini 保持一致
-    const result = [
+    // 返回根目录包装的结果
+    return [
       {
         name: path.basename(workspace),
         path: workspace,
@@ -456,11 +511,19 @@ ipcBridge.acpConversation.getWorkspace.provider(async ({ conversation_id }) => {
         children: files,
       },
     ];
-
-    return result;
   } catch (error) {
     return [];
   }
+};
+
+// ACP getWorkspace 使用通用方法
+ipcBridge.acpConversation.getWorkspace.provider(async ({ conversation_id }) => {
+  return await buildWorkspaceFileTree(conversation_id);
+});
+
+// Codex getWorkspace 使用通用方法
+ipcBridge.codexConversation.getWorkspace.provider(async ({ conversation_id }) => {
+  return await buildWorkspaceFileTree(conversation_id);
 });
 
 ipcBridge.googleAuth.status.provider(async ({ proxy }) => {
@@ -504,7 +567,11 @@ ipcBridge.googleAuth.logout.provider(async () => {
   return clearCachedCredentialFile();
 });
 
-ipcBridge.mode.fetchModelList.provider(async function fetchModelList({ base_url, api_key, try_fix, platform }): Promise<{ success: boolean; msg?: string; data?: { mode: Array<string>; fix_base_url?: string } }> {
+ipcBridge.mode.fetchModelList.provider(async function fetchModelList({ base_url, api_key, try_fix, platform }): Promise<{
+  success: boolean;
+  msg?: string;
+  data?: { mode: Array<string>; fix_base_url?: string };
+}> {
   // 如果是多key（包含逗号或回车），只取第一个key来获取模型列表
   let actualApiKey = api_key;
   if (api_key && (api_key.includes(',') || api_key.includes('\n'))) {

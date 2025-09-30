@@ -26,6 +26,12 @@ const useFormatContent = (content: string) => {
 
 const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
   const { data, json } = useFormatContent(message.content.content);
+
+  // 过滤空内容，避免渲染空DOM
+  if (!message.content.content || (typeof message.content.content === 'string' && !message.content.content.trim())) {
+    return null;
+  }
+
   return (
     <div className={classNames('rd-8px  rd-tr-2px  [&>p:first-child]:mt-0px [&>p:last-child]:mb-0px max-w-80%', { 'bg-#E9EFFF p-8px': message.position === 'right' })}>
       <MarkdownView codeStyle={{ marginLeft: 16, marginTop: 4, marginBlock: 4 }}>{json ? `\`\`\`json\n${JSON.stringify(data, null, 2)}\n\`\`\`` : data}</MarkdownView>
