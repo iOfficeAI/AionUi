@@ -56,11 +56,6 @@ export class AcpConnection {
       spawnArgs = ['--experimental-acp'];
     }
 
-    // Add sandbox argument for gemini/qwen/iflow CLI (boolean flag)
-    if (backend === 'gemini' || backend === 'qwen' || backend === 'iflow') {
-      spawnArgs.push('--sandbox');
-    }
-
     const options: SpawnOptions = {
       cwd: workingDir,
       stdio: ['pipe', 'pipe', 'pipe'],
