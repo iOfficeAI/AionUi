@@ -11,15 +11,15 @@ import type { TMessage } from '@/common/chatLib';
 import { transformMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import { uuid } from '@/common/utils';
-import { addMessage, addOrUpdateMessage } from '@/process/message';
-import BaseAgentManager from '@/process/task/BaseAgentManager';
+import { addMessage, addOrUpdateMessage } from '@process/message';
+import BaseAgentManager from '@process/task/BaseAgentManager';
 import { t } from 'i18next';
 import { CodexEventHandler } from '@/agent/codex/handlers/CodexEventHandler';
 import { CodexSessionManager } from '@/agent/codex/handlers/CodexSessionManager';
 import { CodexFileOperationHandler } from '@/agent/codex/handlers/CodexFileOperationHandler';
 import type { CodexAgentManagerData, FileChange } from '@/common/codex/types';
 import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
-import { getConfiguredAppClientName, getConfiguredAppClientVersion, getConfiguredCodexMcpProtocolVersion, setAppConfig } from '../../../common/utils/appConfig';
+import { getConfiguredAppClientName, getConfiguredAppClientVersion, getConfiguredCodexMcpProtocolVersion, setAppConfig } from '../../common/utils/appConfig';
 import { mapPermissionDecision } from '@/common/codex/utils';
 
 const APP_CLIENT_NAME = getConfiguredAppClientName();
