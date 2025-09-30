@@ -155,7 +155,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
             showLine
             selectedKeys={selected}
             treeData={filteredFiles}
-            autoExpandParent
+            autoExpandParent={false}
             fieldNames={{
               children: 'children',
               title: 'name',
@@ -187,9 +187,10 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
                   onDoubleClick={() => {
                     if (path === workspace) {
                       // first node is workspace
-                      return ipcBridge.shell.openFile.invoke(path);
+                      void ipcBridge.shell.openFile.invoke(path);
+                      return;
                     }
-                    ipcBridge.shell.openFile.invoke(workspace + '/' + path);
+                    void ipcBridge.shell.openFile.invoke(workspace + '/' + path);
                   }}
                 >
                   {node.title}
