@@ -45,7 +45,7 @@ interface PendingReq {
   timeout?: NodeJS.Timeout;
 }
 
-export class CodexMcpConnection {
+export class CodexConnection {
   private child: ChildProcess | null = null;
   private nextId = 0;
   private pending = new Map<JsonRpcId, PendingReq>();
@@ -429,7 +429,7 @@ export class CodexMcpConnection {
   private handleNetworkError(errorMsg: string, pendingRequest: PendingReq): void {
     // Create standardized error using error service
     const codexError = fromNetworkError(errorMsg, {
-      source: 'CodexMcpConnection',
+      source: 'CodexConnection',
       retryCount: this.retryCount,
     });
 
