@@ -298,6 +298,22 @@ export class CodexToolHandlers {
     }
   }
 
+  // Turn diff handler
+  handleTurnDiff(msg: Extract<CodexEventMsg, { type: 'turn_diff' }>) {
+    // Generate a unique call ID for turn_diff since it doesn't have one
+    const callId = `turn_diff_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
+
+    this.emitCodexToolCall(callId, {
+      status: 'success',
+      kind: 'patch', // Turn diff shows file changes, so use patch kind
+      subtype: 'turn_diff',
+      data: msg,
+      description: 'File changes summary',
+      startTime: Date.now(),
+      endTime: Date.now(),
+    });
+  }
+
   private formatMcpInvocation(inv: McpInvocation | Record<string, unknown>): string {
     const name = inv.method || inv.name || 'unknown';
     return `MCP Tool: ${name}`;
