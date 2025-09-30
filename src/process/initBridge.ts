@@ -301,21 +301,11 @@ ipcBridge.acpConversation.sendMessage.provider(async ({ conversation_id, files, 
 
 // Codex 专用的 sendMessage provider
 ipcBridge.codexConversation.sendMessage.provider(async ({ conversation_id, files, ...other }) => {
-  const task = WorkerManage.getTaskById(conversation_id) as CodexAgentManager | undefined;
-  if (!task) {
-    // 尝试从历史重建任务
-    const conversation = await ProcessChat.get('chat.history').then((history) => history?.find((item) => item.id === conversation_id));
-    if (!conversation || conversation.type !== 'codex') {
-      return { success: false, msg: 'conversation not found' };
-    }
-    const rebuilt = WorkerManage.buildConversation(conversation);
-    if (!rebuilt) return { success: false, msg: 'failed to rebuild codex task' };
-  }
-
-  const codexTask = WorkerManage.getTaskById(conversation_id) as CodexAgentManager | undefined;
-  if (!codexTask || codexTask.type !== 'codex') return { success: false, msg: 'unsupported task type for Codex provider' };
-
-  return codexTask
+  const task = (await WorkerManage.getTaskByIdRollbackBuild(conversation_id)) as CodexAgentManager | undefined;
+  if (!task) return { success: false, msg: 'conversation not found' };
+  if (task.type !== 'codex') return { success: false, msg: 'unsupported task type for Codex provider' };
+  await copyFilesToDirectory(task.workspace, files);
+  return task
     .sendMessage({ content: other.input, files, msg_id: other.msg_id })
     .then(() => ({ success: true }))
     .catch((err: unknown) => ({ success: false, msg: err instanceof Error ? err.message : String(err) }));
@@ -437,7 +427,11 @@ ipcBridge.acpConversation.detectCliPath.provider(async ({ backend }) => {
 ipcBridge.conversation.stop.provider(async ({ conversation_id }) => {
   const task = WorkerManage.getTaskById(conversation_id);
   if (!task) return { success: true, msg: 'conversation not found' };
-  if (task.type !== 'gemini' && task.type !== 'acp' && task.type !== 'codex') return { success: false, msg: 'not support' };
+  if (task.type !== 'gemini' && task.type !== 'acp' && task.type !== 'codex')
+    return {
+      success: false,
+      msg: 'not support',
+    };
   return task.stop().then(() => ({ success: true }));
 });
 
@@ -573,7 +567,11 @@ ipcBridge.googleAuth.logout.provider(async () => {
   return clearCachedCredentialFile();
 });
 
-ipcBridge.mode.fetchModelList.provider(async function fetchModelList({ base_url, api_key, try_fix, platform }): Promise<{ success: boolean; msg?: string; data?: { mode: Array<string>; fix_base_url?: string } }> {
+ipcBridge.mode.fetchModelList.provider(async function fetchModelList({ base_url, api_key, try_fix, platform }): Promise<{
+  success: boolean;
+  msg?: string;
+  data?: { mode: Array<string>; fix_base_url?: string };
+}> {
   // 如果是多key（包含逗号或回车），只取第一个key来获取模型列表
   let actualApiKey = api_key;
   if (api_key && (api_key.includes(',') || api_key.includes('\n'))) {
