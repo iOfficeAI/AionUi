@@ -1,28 +1,31 @@
-import { useCallback, useEffect } from 'react';
-import { PasteService } from '@/renderer/services/PasteService';
 import type { FileMetadata } from '@/renderer/services/FileService';
+import { PasteService } from '@/renderer/services/PasteService';
+import { useCallback, useEffect, useRef } from 'react';
+import { uuid } from '../utils/common';
 
 interface UsePasteServiceProps {
-  componentId: string;
   supportedExts: string[];
   onFilesAdded?: (files: FileMetadata[]) => void;
-  setInput?: (value: string) => void;
-  input?: string;
+  onTextPaste?: (text: string) => void;
 }
 
 /**
- * 共享的PasteService集成hook
- * 消除SendBox组件和GUID页面中的PasteService集成重复代码
+ * 通用的PasteService集成hook
+ * 为所有组件提供统一的粘贴处理功能
  */
-export const usePasteService = ({ componentId, supportedExts, onFilesAdded, setInput, input }: UsePasteServiceProps) => {
-  // 粘贴事件处理
+export const usePasteService = ({ supportedExts, onFilesAdded, onTextPaste }: UsePasteServiceProps) => {
+  const componentId = useRef('paste-service-' + uuid(4)).current;
+  // 统一的粘贴事件处理
   const handlePaste = useCallback(
-    async (event: ClipboardEvent) => {
-      if (!onFilesAdded) return false;
-
-      return await PasteService.handlePaste(event, supportedExts, onFilesAdded, setInput, input);
+    async (event: React.ClipboardEvent) => {
+      const handled = await PasteService.handlePaste(event, supportedExts, onFilesAdded || (() => {}), onTextPaste);
+      if (handled) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      return handled;
     },
-    [supportedExts, onFilesAdded, setInput, input]
+    [supportedExts, onFilesAdded, onTextPaste]
   );
 
   // 焦点处理
@@ -30,7 +33,7 @@ export const usePasteService = ({ componentId, supportedExts, onFilesAdded, setI
     PasteService.setLastFocusedComponent(componentId);
   }, [componentId]);
 
-  // PasteService集成
+  // 注册粘贴处理器
   useEffect(() => {
     PasteService.init();
     PasteService.registerHandler(componentId, handlePaste);
@@ -41,6 +44,7 @@ export const usePasteService = ({ componentId, supportedExts, onFilesAdded, setI
   }, [componentId, handlePaste]);
 
   return {
-    handleFocus,
+    onFocus: handleFocus,
+    onPaste: handlePaste,
   };
 };

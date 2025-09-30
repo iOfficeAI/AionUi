@@ -86,6 +86,17 @@ export type TChatConversation =
         }
       >,
       'model'
+    >
+  | Omit<
+      IChatConversation<
+        'codex',
+        {
+          workspace?: string;
+          cliPath?: string;
+          customWorkspace?: boolean;
+        }
+      >,
+      'model'
     >;
 
 export type IChatConversationRefer = {

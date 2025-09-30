@@ -172,7 +172,7 @@ const JsonFileBuilder = <S extends Record<string, any>>(path: string) => {
 
       return parsed;
     } catch (e) {
-      console.error(`[Storage] Error reading/parsing file ${path}:`, e);
+      // console.error(`[Storage] Error reading/parsing file ${path}:`, e);
       return {} as S;
     }
   };

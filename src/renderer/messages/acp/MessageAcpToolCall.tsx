@@ -8,8 +8,8 @@ import type { IMessageAcpToolCall } from '@/common/chatLib';
 import { Card, Tag } from '@arco-design/web-react';
 import { diffStringsUnified } from 'jest-diff';
 import React from 'react';
-import Diff2Html from '../components/Diff2Html';
-import MarkdownView from '../components/Markdown';
+import Diff2Html from '../../components/Diff2Html';
+import MarkdownView from '../../components/Markdown';
 
 const StatusTag: React.FC<{ status: string }> = ({ status }) => {
   const getTagProps = () => {
