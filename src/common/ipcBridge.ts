@@ -28,6 +28,7 @@ export const conversation = {
   remove: bridge.buildProvider<boolean, { id: string }>('remove-conversation'), // 删除对话
   reset: bridge.buildProvider<void, IResetConversationParams>('reset-conversation'), // 重置对话
   stop: bridge.buildProvider<IBridgeResponse<{}>, { conversation_id: string }>('chat.stop.stream'), // 停止会话
+  confirmMessage: bridge.buildProvider<IBridgeResponse, IConfirmGeminiMessageParams>('conversation.confirm.message'), // 通用确认消息
 };
 
 // gemini对话相关接口
@@ -91,11 +92,23 @@ export const mcpService = {
   removeMcpFromAgents: bridge.buildProvider<IBridgeResponse<{ success: boolean; results: Array<{ agent: string; success: boolean; error?: string }> }>, { mcpServerName: string; agents: Array<{ backend: AcpBackend; name: string; cliPath?: string }> }>('mcp.remove-from-agents'),
 };
 
+// Codex 对话相关接口（MCP 直连，会与 ACP/Gemini 并存）
+const codexSendMessage = bridge.buildProvider<IBridgeResponse<{}>, ISendMessageParams>('codex.send.message');
+const codexResponseStream = bridge.buildEmitter<IResponseMessage>('codex.response.stream');
+
+export const codexConversation = {
+  sendMessage: codexSendMessage,
+  confirmMessage: bridge.buildProvider<IBridgeResponse, IConfirmAcpMessageParams>('codex.input.confirm.message'),
+  responseStream: codexResponseStream,
+  getWorkspace: bridge.buildProvider<IDirOrFile[], { conversation_id: string }>('codex.get-workspace'),
+};
+
 interface ISendMessageParams {
   input: string;
   msg_id: string;
   conversation_id: string;
   files?: string[];
+  loading_id?: string;
 }
 
 interface IConfirmGeminiMessageParams {
@@ -113,7 +126,7 @@ export interface IConfirmAcpMessageParams {
 }
 
 export interface ICreateConversationParams {
-  type: 'gemini' | 'acp';
+  type: 'gemini' | 'acp' | 'codex';
   id?: string;
   name?: string;
   model: TProviderWithModel;

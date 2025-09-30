@@ -9,7 +9,6 @@
     "sourceMap": true,
     "baseUrl": ".",
     "outDir": "dist",
-    "moduleResolution": "node",
     "resolveJsonModule": true,
     "jsx": "react",
     "types": ["unocss"],

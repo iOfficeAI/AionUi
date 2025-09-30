@@ -63,3 +63,21 @@ export const createAcpAgent = async (options: ICreateConversationParams): Promis
     id: uuid(),
   };
 };
+
+export const createCodexAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
+  const { extra } = options;
+  const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(`codex-temp-${Date.now()}`, extra.workspace, extra.defaultFiles);
+  return {
+    type: 'codex',
+    extra: {
+      workspace: workspace,
+      customWorkspace,
+      cliPath: extra.cliPath,
+      sandboxMode: 'workspace-write', // 默认为读写权限
+    },
+    createTime: Date.now(),
+    modifyTime: Date.now(),
+    name: workspace,
+    id: uuid(),
+  } as any;
+};

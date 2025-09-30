@@ -6,6 +6,7 @@
 
 import type { TChatConversation } from '@/common/storage';
 import AcpAgentManager from './task/AcpAgentManager';
+import { CodexAgentManager } from '@/agent/codex';
 // import type { AcpAgentTask } from './task/AcpAgentTask';
 import { ProcessChat } from './initStorage';
 import type AgentBaseTask from './task/BaseAgentManager';
@@ -42,6 +43,11 @@ const buildConversation = (conversation: TChatConversation) => {
     }
     case 'acp': {
       const task = new AcpAgentManager({ ...conversation.extra, conversation_id: conversation.id });
+      taskList.push({ id: conversation.id, task });
+      return task;
+    }
+    case 'codex': {
+      const task = new CodexAgentManager({ ...conversation.extra, conversation_id: conversation.id });
       taskList.push({ id: conversation.id, task });
       return task;
     }

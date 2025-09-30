@@ -15,7 +15,7 @@ import { useTranslation } from 'react-i18next';
 interface WorkspaceProps {
   workspace: string;
   conversation_id: string;
-  eventPrefix?: 'gemini' | 'acp';
+  eventPrefix?: 'gemini' | 'acp' | 'codex';
 }
 
 const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, eventPrefix = 'gemini' }) => {
@@ -39,8 +39,10 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
     // 根据 eventPrefix 选择对应的 getWorkspace 方法
     const getWorkspaceMethod =
       _eventPrefix === 'acp'
-        ? ipcBridge.acpConversation.getWorkspace // 使用 ACP 专用的 getWorkspace
-        : ipcBridge.geminiConversation.getWorkspace;
+        ? ipcBridge.acpConversation.getWorkspace
+        : _eventPrefix === 'codex'
+          ? ipcBridge.codexConversation.getWorkspace // 使用 ACP 专用的 getWorkspace
+          : ipcBridge.geminiConversation.getWorkspace;
 
     getWorkspaceMethod
       .invoke({ conversation_id })
@@ -73,23 +75,28 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
         refreshWorkspace(eventPrefix, conversation_id);
       }
     };
-
     const handleAcpResponse = (data: any) => {
       if (data.type === 'acp_tool_call') {
         refreshWorkspace(eventPrefix, conversation_id);
       }
     };
-
+    const handleCodexResponse = (data: any) => {
+      if (data.type === 'codex_tool_call') {
+        refreshWorkspace(eventPrefix, conversation_id);
+      }
+    };
     const unsubscribeGemini = ipcBridge.geminiConversation.responseStream.on(handleGeminiResponse);
     const unsubscribeAcp = ipcBridge.acpConversation.responseStream.on(handleAcpResponse);
+    const unsubscribeCodex = ipcBridge.codexConversation.responseStream.on(handleCodexResponse);
 
     return () => {
       unsubscribeGemini();
       unsubscribeAcp();
+      unsubscribeCodex();
     };
   }, [conversation_id, eventPrefix]);
 
-  useAddEventListener(`${eventPrefix}.workspace.refresh`, () => refreshWorkspace(eventPrefix, workspace), [workspace, eventPrefix]);
+  useAddEventListener(`${eventPrefix}.workspace.refresh`, () => refreshWorkspace(eventPrefix, conversation_id), [workspace, eventPrefix]);
 
   // File search filter logic
   const filteredFiles = useMemo(() => {
@@ -123,7 +130,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
     <div className='size-full flex flex-col'>
       <div className='px-16px pb-8px flex items-center justify-start gap-4px'>
         <span className='font-bold text-14px'>{t('common.file')}</span>
-        <Refresh className={loading ? 'loading lh-[1] flex' : 'flex'} theme='outline' fill='#333' onClick={() => refreshWorkspace(eventPrefix, workspace)} />
+        <Refresh className={loading ? 'loading lh-[1] flex' : 'flex'} theme='outline' fill='#333' onClick={() => refreshWorkspace(eventPrefix, conversation_id)} />
       </div>
       {hasOriginalFiles && (
         <div className='px-16px pb-8px'>

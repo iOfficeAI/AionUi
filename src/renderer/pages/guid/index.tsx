@@ -10,6 +10,7 @@ import type { IProvider, TProviderWithModel } from '@/common/storage';
 import { ConfigStorage } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import ClaudeLogo from '@/renderer/assets/logos/claude.svg';
+import CodexLogo from '@/renderer/assets/logos/codex.svg';
 import GeminiLogo from '@/renderer/assets/logos/gemini.svg';
 import IflowLogo from '@/renderer/assets/logos/iflow.svg';
 import QwenLogo from '@/renderer/assets/logos/qwen.svg';
@@ -122,6 +123,7 @@ const Guid: React.FC = () => {
   const [files, setFiles] = useState<string[]>([]);
   const [dir, setDir] = useState<string>('');
   const [currentModel, _setCurrentModel] = useState<TProviderWithModel>();
+  // 支持在初始化页展示 Codex（MCP）选项，先做 UI 占位
   const [selectedAgent, setSelectedAgent] = useState<AcpBackend | null>('gemini');
   const [availableAgents, setAvailableAgents] = useState<Array<{ backend: AcpBackend; name: string; cliPath?: string }>>();
   const setCurrentModel = async (modelInfo: TProviderWithModel) => {
@@ -129,9 +131,6 @@ const Guid: React.FC = () => {
     _setCurrentModel(modelInfo);
   };
   const navigate = useNavigate();
-
-  // 粘贴功能集成
-  const componentId = 'guid-textarea';
 
   // 处理粘贴的文件
   const handleFilesAdded = useCallback((pastedFiles: FileMetadata[]) => {
@@ -149,10 +148,13 @@ const Guid: React.FC = () => {
   });
 
   // 使用共享的PasteService集成
-  const { handleFocus } = usePasteService({
-    componentId,
+  const { onPaste, onFocus } = usePasteService({
     supportedExts: allSupportedExts,
     onFilesAdded: handleFilesAdded,
+    onTextPaste: (text: string) => {
+      // 处理清理后的文本粘贴
+      setInput(text);
+    },
   });
 
   // 获取可用的 ACP agents - 基于全局标记位
@@ -200,6 +202,35 @@ const Guid: React.FC = () => {
         throw error; // Re-throw to prevent input clearing
       }
       return;
+    } else if (selectedAgent === 'codex') {
+      // 创建 Codex 会话并保存初始消息，由对话页负责发送
+      try {
+        const conversation = await ipcBridge.conversation.create.invoke({
+          type: 'codex',
+          name: input,
+          model: currentModel!, // not used by codex, but required by type
+          extra: {
+            defaultFiles: files,
+            workspace: dir,
+          },
+        });
+
+        if (!conversation || !conversation.id) {
+          alert('Failed to create Codex conversation. Please ensure the Codex CLI is installed and accessible in PATH.');
+          return;
+        }
+        // 交给对话页发送，避免事件丢失
+        const initialMessage = {
+          input,
+          files: files.length > 0 ? files : undefined,
+        };
+        sessionStorage.setItem(`codex_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
+        navigate(`/conversation/${conversation.id}`);
+      } catch (error: any) {
+        alert(`Failed to create Codex conversation: ${error.message || error}`);
+        throw error;
+      }
+      return;
     } else {
       // ACP conversation type
       const agentInfo = availableAgents?.find((a) => a.backend === selectedAgent);
@@ -245,8 +276,8 @@ const Guid: React.FC = () => {
 
         // Check if it's an authentication error
         if (error?.message?.includes('[ACP-AUTH-')) {
-          console.error('ACP认证错误详情:', error.message);
-          const confirmed = window.confirm(`ACP ${selectedAgent} 认证失败：\n\n${error.message}\n\n是否现在前往设置页面配置？`);
+          console.error(t('acp.auth.console_error'), error.message);
+          const confirmed = window.confirm(t('acp.auth.failed_confirm', { backend: selectedAgent, error: error.message }));
           if (confirmed) {
             navigate('/settings/model');
           }
@@ -299,7 +330,7 @@ const Guid: React.FC = () => {
           }}
           {...dragHandlers}
         >
-          <Input.TextArea rows={4} placeholder={t('conversation.welcome.placeholder')} className='text-16px focus:b-none rounded-xl !bg-white !b-none !resize-none !p-0' value={input} onChange={(v) => setInput(v)} onFocus={handleFocus} {...compositionHandlers} onKeyDown={createKeyDownHandler(sendMessageHandler)}></Input.TextArea>
+          <Input.TextArea rows={4} placeholder={t('conversation.welcome.placeholder')} className='text-16px focus:b-none rounded-xl !bg-white !b-none !resize-none !p-0' value={input} onChange={(v) => setInput(v)} onPaste={onPaste} onFocus={onFocus} {...compositionHandlers} onKeyDown={createKeyDownHandler(sendMessageHandler)}></Input.TextArea>
           <div className='flex items-center justify-between '>
             <div className='flex items-center gap-10px'>
               <Dropdown
@@ -413,7 +444,7 @@ const Guid: React.FC = () => {
               options={availableAgents.map((agent) => ({
                 label: (
                   <div className='flex items-center gap-2'>
-                    <img src={agent.backend === 'claude' ? ClaudeLogo : agent.backend === 'gemini' ? GeminiLogo : agent.backend === 'qwen' ? QwenLogo : agent.backend === 'iflow' ? IflowLogo : ''} alt={`${agent.backend} logo`} width={16} height={16} style={{ objectFit: 'contain' }} />
+                    <img src={agent.backend === 'claude' ? ClaudeLogo : agent.backend === 'gemini' ? GeminiLogo : agent.backend === 'qwen' ? QwenLogo : agent.backend === 'codex' ? CodexLogo : agent.backend === 'iflow' ? IflowLogo : ''} alt={`${agent.backend} logo`} width={16} height={16} style={{ objectFit: 'contain' }} />
                     <span className='font-medium'>{agent.name}</span>
                   </div>
                 ),
