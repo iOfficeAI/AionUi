@@ -44,7 +44,7 @@ export type CodexEventMsg =
   | ({ type: 'web_search_end' } & WebSearchEndData) //已处理
   | ({ type: 'token_count' } & TokenCountData) //忽略
   | { type: 'agent_reasoning_section_break' } //已处理
-  | ({ type: 'turn_diff' } & TurnDiffData) //忽略
+  | ({ type: 'turn_diff' } & TurnDiffData) // 已处理
   | ({ type: 'get_history_entry_response' } & GetHistoryEntryResponseData)
   | ({ type: 'mcp_list_tools_response' } & McpListToolsResponseData)
   | ({ type: 'list_custom_prompts_response' } & ListCustomPromptsResponseData)

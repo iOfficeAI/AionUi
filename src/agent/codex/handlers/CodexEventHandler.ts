@@ -120,6 +120,12 @@ export class CodexEventHandler {
       this.toolHandlers.handleWebSearchEnd(msg);
       return;
     }
+
+    // Tool: turn diff
+    if (this.isMessageType(msg, 'turn_diff')) {
+      this.toolHandlers.handleTurnDiff(msg);
+      return;
+    }
   }
 
   /**
