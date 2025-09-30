@@ -4,15 +4,16 @@ import type { TProviderWithModel } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import SendBox from '@/renderer/components/sendbox';
 import { getSendBoxDraftHook } from '@/renderer/hooks/useSendBoxDraft';
+import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/useSendBoxFiles';
 import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
-import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { allSupportedExts, getCleanFileName } from '@/renderer/services/FileService';
-import { useSendBoxFiles, createSetUploadFile } from '@/renderer/hooks/useSendBoxFiles';
+import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { Button, Tag } from '@arco-design/web-react';
 import { Plus } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/ThoughtDisplay';
 
 const useGeminiSendBoxDraft = getSendBoxDraftHook('gemini', {
   _type: 'gemini',
@@ -24,7 +25,7 @@ const useGeminiSendBoxDraft = getSendBoxDraftHook('gemini', {
 const useGeminiMessage = (conversation_id: string) => {
   const addMessage = useAddOrUpdateMessage();
   const [running, setRunning] = useState(false);
-  const [thought, setThought] = useState({
+  const [thought, setThought] = useState<ThoughtData>({
     description: '',
     subject: '',
   });
@@ -158,24 +159,7 @@ const GeminiSendBox: React.FC<{
 
   return (
     <div className='max-w-800px w-full  mx-auto flex flex-col'>
-      {thought.subject ? (
-        <div
-          className=' px-10px py-10px rd-20px text-14px pb-40px  lh-20px color-#86909C'
-          style={{
-            background: 'linear-gradient(90deg, #F0F3FF 0%, #F2F2F2 100%)',
-            transform: 'translateY(36px)',
-          }}
-        >
-          <Tag color='arcoblue' size='small' className={'float-left mr-4px'}>
-            {thought.subject}
-          </Tag>
-          {/* <FlexFullContainer> */}
-          {/* <div className="text-nowrap overflow-hidden text-ellipsis"> */}
-          {thought.description}
-          {/* </div> */}
-          {/* </FlexFullContainer> */}
-        </div>
-      ) : null}
+      <ThoughtDisplay thought={thought} />
 
       <SendBox
         value={content}
@@ -188,12 +172,9 @@ const GeminiSendBox: React.FC<{
             console.log('stopStream');
           });
         }}
-        className={classNames('z-10 ', {
-          'mt-0px': !!thought.subject,
-        })}
+        className='z-10'
         onFilesAdded={handleFilesAdded}
         supportedExts={allSupportedExts}
-        componentId={`gemini-${conversation_id}`}
         tools={
           <>
             <Button

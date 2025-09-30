@@ -18,17 +18,19 @@ import { Pipe } from './pipe';
 export class ForkTask<Data> extends Pipe {
   protected path = '';
   protected data: Data;
-  protected fcp: UtilityProcess;
+  protected fcp: UtilityProcess | undefined;
   private killFn: () => void;
-  constructor(path: string, data: Data) {
+  private enableFork: boolean;
+  constructor(path: string, data: Data, enableFork = true) {
     super(true);
     this.path = path;
     this.data = data;
+    this.enableFork = enableFork;
     this.killFn = () => {
       this.kill();
     };
     process.on('exit', this.killFn);
-    this.init();
+    if (this.enableFork) this.init();
   }
   kill() {
     if (this.fcp) {
@@ -65,6 +67,7 @@ export class ForkTask<Data> extends Pipe {
     this.fcp = fcp;
   }
   start() {
+    if (!this.enableFork) return Promise.resolve();
     const { data } = this;
     return this.postMessagePromise('start', data);
   }
@@ -86,6 +89,7 @@ export class ForkTask<Data> extends Pipe {
   }
   // 向子进程发送回调
   postMessage(type: string, data: any, extPrams: Record<string, any> = {}) {
+    if (!this.fcp) throw new Error('fork task not enabled');
     this.fcp.postMessage({ type, data, ...extPrams });
   }
 }

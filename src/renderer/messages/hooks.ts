@@ -49,5 +49,4 @@ export const beforeUpdateMessageList = (fn: (list: TMessage[]) => TMessage[]) =>
     beforeUpdateMessageListStack.splice(beforeUpdateMessageListStack.indexOf(fn), 1);
   };
 };
-
 export { ChatKeyProvider, MessageListProvider, useChatKey, useMessageList, useUpdateMessageList };
