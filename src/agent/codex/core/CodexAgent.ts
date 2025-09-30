@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { NetworkError, CodexEventEnvelope } from '@/agent/codex/connection/CodexMcpConnection';
-import { CodexMcpConnection } from '@/agent/codex/connection/CodexMcpConnection';
+import type { NetworkError, CodexEventEnvelope } from '@/agent/codex/connection/CodexConnection';
+import { CodexConnection } from '@/agent/codex/connection/CodexConnection';
 import type { FileChange, CodexEventParams, CodexJsonRpcEvent } from '@/common/codex/types';
 import type { CodexEventHandler } from '@/agent/codex/handlers/CodexEventHandler';
 import type { CodexSessionManager } from '@/agent/codex/handlers/CodexSessionManager';
@@ -32,7 +32,7 @@ export interface CodexAgentConfig {
  * Minimal Codex MCP Agent skeleton.
  * Not wired into UI flows yet; provides a starting point for protocol fusion.
  */
-export class CodexMcpAgent {
+export class CodexAgent {
   private readonly id: string;
   private readonly cliPath?: string;
   private readonly workingDir: string;
@@ -42,7 +42,7 @@ export class CodexMcpAgent {
   private readonly onNetworkError?: (error: NetworkError) => void;
   private readonly sandboxMode: 'read-only' | 'workspace-write' | 'danger-full-access';
   private readonly webSearchEnabled: boolean;
-  private conn: CodexMcpConnection | null = null;
+  private conn: CodexConnection | null = null;
   private conversationId: string | null = null;
 
   constructor(cfg: CodexAgentConfig) {
@@ -58,7 +58,7 @@ export class CodexMcpAgent {
   }
 
   async start(): Promise<void> {
-    this.conn = new CodexMcpConnection();
+    this.conn = new CodexConnection();
     this.conn.onEvent = (env) => this.processCodexEvent(env);
     this.conn.onError = (error) => this.handleError(error);
 
@@ -338,7 +338,7 @@ export class CodexMcpAgent {
   }
 
   // Expose connection diagnostics for UI/manager without leaking internals
-  public getDiagnostics(): ReturnType<CodexMcpConnection['getDiagnostics']> {
+  public getDiagnostics(): ReturnType<CodexConnection['getDiagnostics']> {
     const diagnostics = this.conn?.getDiagnostics();
     if (diagnostics) return diagnostics;
     return {
