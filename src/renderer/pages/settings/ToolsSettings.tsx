@@ -1,5 +1,6 @@
 import { ConfigStorage, type IConfigStorageRefer } from '@/common/storage';
-import { Collapse, Form, Select, Switch } from '@arco-design/web-react';
+import { Collapse, Form, Select, Switch, Tooltip } from '@arco-design/web-react';
+import { Help } from '@icon-park/react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useConfigModelListWithImage from '../../hooks/useConfigModelListWithImage';
@@ -109,16 +110,26 @@ const ToolsSettings: React.FC = () => {
                     })}
                   </Select>
                 ) : (
-                  <div className='text-gray-400'>{t('settings.noAvailable')}</div>
+                  <div className='text-gray-400 flex items-center'>
+                    {t('settings.noAvailable')}
+                    <Tooltip
+                      content={
+                        <div>
+                          {t('settings.needHelpTooltip')}
+                          <a href='https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide' target='_blank' rel='noopener noreferrer' className='text-blue-600 hover:text-blue-800 underline ml-4px' onClick={(e) => e.stopPropagation()}>
+                            {t('settings.configGuide')}
+                          </a>
+                        </div>
+                      }
+                    >
+                      <a href='https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide' target='_blank' rel='noopener noreferrer' className='ml-8px text-blue-600 hover:text-blue-800 cursor-pointer' onClick={(e) => e.stopPropagation()}>
+                        <Help theme='outline' size='14' />
+                      </a>
+                    </Tooltip>
+                  </div>
                 )}
               </Form.Item>
             </Form>
-            <div className='mt-3 text-sm text-gray-500'>
-              <span className='mr-1'>👉</span>
-              <a href='https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide' target='_blank' rel='noopener noreferrer' className='text-blue-500 hover:text-blue-600 underline'>
-                {t('settings.imageGenerationGuide')}
-              </a>
-            </div>
           </div>
         </Collapse.Item>
       </Collapse>

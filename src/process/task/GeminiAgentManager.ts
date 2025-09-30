@@ -29,6 +29,7 @@ export class GeminiAgentManager extends BaseAgentManager<{
     this.conversation_id = data.conversation_id;
     this.model = model;
     this.bootstrap = Promise.all([ProcessConfig.get('gemini.config'), this.getImageGenerationModel(), this.getMcpServers()]).then(([config, imageGenerationModel, mcpServers]) => {
+      console.log('gemini.config.bootstrap', config, imageGenerationModel);
       return this.start({
         ...config,
         workspace: this.workspace,
@@ -132,5 +133,8 @@ export class GeminiAgentManager extends BaseAgentManager<{
   // 发送tools用户确认的消息
   async confirmMessage(data: { confirmKey: string; msg_id: string; callId: string }) {
     return this.postMessagePromise(data.callId, data.confirmKey);
+  }
+  getWorkspace() {
+    return this.bootstrap.then(() => this.postMessagePromise('gemini.get.workspace', {}));
   }
 }

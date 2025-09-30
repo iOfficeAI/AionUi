@@ -9,11 +9,12 @@ import { ipcBridge } from '../../common';
 import { createAcpAgent, createGeminiAgent } from '../initAgent';
 import { ProcessChat, ProcessChatMessage } from '../initStorage';
 import { nextTickToLocalFinish } from '../message';
+import type AcpAgentManager from '../task/AcpAgentManager';
 import WorkerManage from '../WorkerManage';
 
 export function initConversationBridge(): void {
   ipcBridge.conversation.create.provider(async (params): Promise<TChatConversation> => {
-    const { type, extra, name, model } = params;
+    const { type, extra, name, model, id } = params;
     const buildConversation = async () => {
       if (type === 'gemini') return createGeminiAgent(model, extra.workspace, extra.defaultFiles, extra.webSearchEngine);
       if (type === 'acp') return createAcpAgent(params);
@@ -24,7 +25,14 @@ export function initConversationBridge(): void {
       if (name) {
         conversation.name = name;
       }
-      WorkerManage.buildConversation(conversation);
+      if (id) {
+        conversation.id = id;
+      }
+      const task = WorkerManage.buildConversation(conversation);
+      if (task.type === 'acp') {
+        //@todo
+        (task as AcpAgentManager).initAgent();
+      }
       await ProcessChat.get('chat.history').then((history) => {
         if (!history || !Array.isArray(history)) {
           return ProcessChat.set('chat.history', [conversation]);
@@ -37,6 +45,28 @@ export function initConversationBridge(): void {
     } catch (e) {
       return null;
     }
+  });
+
+  ipcBridge.conversation.getAssociateConversation.provider(async ({ conversation_id }) => {
+    const history = await ProcessChat.get('chat.history');
+    if (!history) return [];
+    const currentConversation = history.find((item) => item.id === conversation_id);
+    if (!currentConversation || !currentConversation.extra.workspace) return [];
+    return history.filter((item) => item.extra.workspace === currentConversation.extra.workspace);
+  });
+
+  ipcBridge.conversation.createWithConversation.provider(async ({ conversation }) => {
+    conversation.createTime = Date.now();
+    conversation.modifyTime = Date.now();
+    WorkerManage.buildConversation(conversation);
+    ProcessChat.get('chat.history').then((history) => {
+      if (!history || !Array.isArray(history)) {
+        return ProcessChat.set('chat.history', [conversation]);
+      } else {
+        return ProcessChat.set('chat.history', [...history.filter((item) => item.id !== conversation.id), conversation]);
+      }
+    });
+    return conversation;
   });
 
   ipcBridge.conversation.remove.provider(async ({ id }) => {
@@ -70,7 +100,7 @@ export function initConversationBridge(): void {
       .then((conversation) => {
         if (conversation) {
           const task = WorkerManage.getTaskById(id);
-          conversation.status = task?.status;
+          conversation.status = task?.status || 'finished';
         }
         return conversation;
       });

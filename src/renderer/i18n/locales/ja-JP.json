@@ -33,7 +33,8 @@
       "uploadFile": "ファイルを追加",
       "linkFolder": "フォルダを追加",
       "newConversation": "新しいチャット",
-      "multiAgentModeEnabled": "マルチエージェントモードに入ります"
+      "multiAgentModeEnabled": "マルチエージェントモードに入ります",
+      "selectModel": "モデルを選択"
     },
     "history": {
       "today": "今日",
@@ -50,7 +51,8 @@
       "title": "ワークスペース",
       "empty": "ワークスペースが空です",
       "emptyDescription": "ファイルをアップロードするか、またはフォルダーを開くと、ここにファイルが表示されます",
-      "searchPlaceholder": "ファイルを検索..."
+      "searchPlaceholder": "ファイルを検索...",
+      "createNewConversation": "現在のワークスペースで新しいチャットを作成"
     },
     "chat": {
       "noModelSelected": "現在のセッションでモデルが選択されていないため、メッセージを送信できません"
@@ -136,7 +138,19 @@
     "mcpSyncError": "MCP配置の同期に失敗しました",
     "mcpRemoveError": "MCP配置の削除に失敗しました",
     "unknownError": "未知のエラー",
-    "mcpNoDescription": "説明なし"
+    "mcpNoDescription": "説明なし",
+    "noConfiguredModels": "設定されたモデルがありません",
+    "needHelpConfigGuide": "ヘルプが必要ですか？詳細な",
+    "configGuide": "設定ガイド",
+    "configGuideSuffix": "をご覧ください。",
+    "needHelpTooltip": "ヘルプが必要な場合は、",
+    "noAvailableModels": "利用可能なモデルがありません",
+    "appDescription": "Free, local, open-source GUI app for Gemini CLI",
+    "helpDocumentation": "ヘルプドキュメント",
+    "updateLog": "アップデートログ",
+    "feedback": "フィードバック",
+    "contactMe": "お問い合わせ",
+    "officialWebsite": "公式サイト"
   },
   "messages": {
     "conversationInProgress": "現在、会話中です...",

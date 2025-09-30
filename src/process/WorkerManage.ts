@@ -7,6 +7,7 @@
 import type { TChatConversation } from '@/common/storage';
 import AcpAgentManager from './task/AcpAgentManager';
 // import type { AcpAgentTask } from './task/AcpAgentTask';
+import { ProcessChat } from './initStorage';
 import type AgentBaseTask from './task/BaseAgentManager';
 import { GeminiAgentManager } from './task/GeminiAgentManager';
 
@@ -21,6 +22,7 @@ const getTaskById = (id: string) => {
 
 const buildConversation = (conversation: TChatConversation) => {
   const task = getTaskById(conversation.id);
+
   if (task) {
     return task;
   }
@@ -49,6 +51,15 @@ const buildConversation = (conversation: TChatConversation) => {
       return null;
     }
   }
+};
+
+const getTaskByIdRollbackBuild = async (id: string): Promise<AgentBaseTask<any>> => {
+  const task = taskList.find((item) => item.id === id)?.task;
+  if (task) return Promise.resolve(task);
+  const list = await ProcessChat.get('chat.history');
+  const conversation = (list || []).find((item) => item.id === id);
+  if (!conversation) return Promise.reject(new Error('Conversation not found'));
+  return buildConversation(conversation);
 };
 
 const kill = (id: string) => {
@@ -84,6 +95,7 @@ const listTasks = () => {
 const WorkerManage = {
   buildConversation,
   getTaskById,
+  getTaskByIdRollbackBuild,
   addTask,
   listTasks,
   kill,
