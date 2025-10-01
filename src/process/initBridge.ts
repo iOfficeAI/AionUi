@@ -5,6 +5,7 @@
  */
 
 import { acpDetector } from '@/agent/acp/AcpDetector';
+import type { CodexAgentManager } from '@/agent/codex';
 import { AIONUI_TIMESTAMP_SEPARATOR } from '@/common/constants';
 import type { IProvider, TChatConversation } from '@/common/storage';
 import { uuid } from '@/common/utils';
@@ -14,9 +15,9 @@ import { app, dialog, shell } from 'electron';
 import fs from 'fs/promises';
 import OpenAI from 'openai';
 import path from 'path';
+import { GeminiAgent } from '../agent/gemini';
 import { ipcBridge } from '../common';
 import { createAcpAgent, createCodexAgent, createGeminiAgent } from './initAgent';
-import type { CodexAgentManager } from '@/agent/codex';
 import { getSystemDir, ProcessChat, ProcessChatMessage, ProcessConfig, ProcessEnv } from './initStorage';
 import { nextTickToLocalFinish } from './message';
 import type AcpAgentManager from './task/AcpAgentManager';
@@ -244,6 +245,29 @@ ipcBridge.conversation.get.provider(async ({ id }) => {
     });
 });
 
+const buildLastAbortController = (() => {
+  let lastGetWorkspaceAbortController = new AbortController();
+  return () => {
+    lastGetWorkspaceAbortController.abort();
+    return (lastGetWorkspaceAbortController = new AbortController());
+  };
+})();
+
+ipcBridge.conversation.getWorkspace.provider(async ({ workspace, search, path }) => {
+  const fileService = GeminiAgent.buildFileServer(workspace);
+  return await readDirectoryRecursive(path, {
+    root: workspace,
+    fileService,
+    abortController: buildLastAbortController(),
+    search: {
+      text: search,
+      onProcess(result) {
+        ipcBridge.conversation.responseSearchWorkSpace.invoke(result);
+      },
+    },
+  }).then((res) => (res ? [res] : []));
+});
+
 ipcBridge.application.restart.provider(async () => {
   // 清理所有工作进程
   WorkerManage.clear();
@@ -433,97 +457,6 @@ ipcBridge.conversation.stop.provider(async ({ conversation_id }) => {
       msg: 'not support',
     };
   return task.stop().then(() => ({ success: true }));
-});
-
-ipcBridge.geminiConversation.getWorkspace.provider(async ({ conversation_id }) => {
-  const task = (await WorkerManage.getTaskByIdRollbackBuild(conversation_id)) as GeminiAgentManager;
-  if (!task || task.type !== 'gemini') return [];
-  return task.getWorkspace();
-});
-
-// ACP 的 getWorkspace 实现
-const buildWorkspaceFileTree = async (conversation_id: string) => {
-  try {
-    const task = (await WorkerManage.getTaskByIdRollbackBuild(conversation_id)) as AcpAgentManager;
-    if (!task) return [];
-    const workspace = task.workspace;
-
-    const fs = await import('fs');
-    const path = await import('path');
-
-    // 检查目录是否存在
-    if (!fs.existsSync(workspace)) {
-      return [];
-    }
-
-    // 递归构建文件树
-    const buildFileTree = (dirPath: string, basePath: string = dirPath): any[] => {
-      const result: any[] = [];
-      const items = fs.readdirSync(dirPath);
-
-      for (const item of items) {
-        // 跳过隐藏文件和系统文件
-        if (item.startsWith('.')) continue;
-        if (item === 'node_modules') continue;
-
-        const itemPath = path.join(dirPath, item);
-        const relativePath = path.relative(basePath, itemPath);
-        const stat = fs.statSync(itemPath);
-
-        if (stat.isDirectory()) {
-          const children = buildFileTree(itemPath, basePath);
-          if (children.length > 0) {
-            result.push({
-              name: item,
-              path: relativePath,
-              isDir: true,
-              isFile: false,
-              children,
-            });
-          }
-        } else {
-          result.push({
-            name: item,
-            path: relativePath,
-            isDir: false,
-            isFile: true,
-          });
-        }
-      }
-
-      return result.sort((a, b) => {
-        // 目录优先，然后按名称排序
-        if (a.isDir && b.isFile) return -1;
-        if (a.isFile && b.isDir) return 1;
-        return a.name.localeCompare(b.name);
-      });
-    };
-
-    const files = buildFileTree(workspace);
-
-    // 返回根目录包装的结果
-    return [
-      {
-        name: path.basename(workspace),
-        path: workspace,
-        isDir: true,
-        isFile: false,
-        children: files,
-      },
-    ];
-  } catch (error) {
-    return [];
-  }
-};
-
-// ACP getWorkspace 使用通用方法
-ipcBridge.acpConversation.getWorkspace.provider(async ({ conversation_id }) => {
-  return await buildWorkspaceFileTree(conversation_id);
-});
-
-// Codex getWorkspace 使用通用方法
-ipcBridge.codexConversation.getWorkspace.provider(async ({ conversation_id }) => {
-  return await buildWorkspaceFileTree(conversation_id);
 });
 
 ipcBridge.googleAuth.status.provider(async ({ proxy }) => {
