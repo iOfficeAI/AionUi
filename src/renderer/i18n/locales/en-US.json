@@ -20,7 +20,12 @@
     "version": "Version",
     "contact": "Contact",
     "github": "Github",
-    "loading": "Please wait..."
+    "loading": "Please wait...",
+    "retry": "Retry",
+    "reload": "Reload",
+    "technical_details": "Technical Details",
+    "error_details": "Error Details",
+    "troubleshooting": "Troubleshooting"
   },
   "conversation": {
     "welcome": {
@@ -48,7 +53,8 @@
       "empty": "It's empty",
       "emptyDescription": "Files will appear here after uploading files or opening a folder",
       "searchPlaceholder": "Search files...",
-      "createNewConversation": "Create new chat in current workspace"
+      "createNewConversation": "Create new chat in current workspace",
+      "search.empty": "The search result is empty"
     },
     "chat": {
       "noModelSelected": "No model selected for current session, cannot send message"
@@ -118,14 +124,199 @@
     "confirm": "Confirm",
     "canceledExecution": "Execution canceled",
     "openLinkFailed": "Failed to open link",
-    "imageGenerationModelDetected": "Image model detected, image tool has been automatically enabled. Default model: {{platform}}:{{model}}"
+    "imageGenerationModelDetected": "Image model detected, image tool has been automatically enabled. Default model: {{platform}}:{{model}}",
+    "auto_handling_permissions": "Auto handling permission request: {{request}}"
   },
   "acp": {
     "auth": {
-      "failed": "{{backend}} authentication failed:\n\n{{error}}\n\nPlease check your local CLI tool authentication status"
+      "failed": "{{backend}} authentication failed:\n\n{{error}}\n\nPlease check your local CLI tool authentication status",
+      "console_error": "ACP authentication error details:",
+      "failed_confirm": "ACP {{backend}} authentication failed:\n\n{{error}}\n\nWould you like to go to settings page to configure now?"
     },
     "sendbox": {
       "placeholder": "Send message to {{backend}}..."
+    }
+  },
+  "codex": {
+    "sendbox": {},
+    "network": {
+      "cloudflare_blocked": "Cloudflare protection blocked access to {{service}}. Suggestions: 1) Use VPN 2) Switch network 3) Retry later 4) Switch to other AI services",
+      "network_timeout": "Network timeout, automatically retrying connection...",
+      "connection_refused": "Connection refused, please check if Codex service is running properly.",
+      "unknown_error": "Network connection error, please check network settings.",
+      "retry_attempt": "Retrying attempt {{current}}...",
+      "cloudflare_blocked_title": "🚫 {{service}} service blocked by Cloudflare protection",
+      "network_timeout_title": "⏱️ Network connection timeout",
+      "connection_refused_title": "❌ Service connection refused",
+      "unknown_error_title": "🔌 Network connection error",
+      "recovery_suggestions": "**Suggested Solutions:**",
+      "technical_info": "**Technical Information:**",
+      "error_type": "Error Type",
+      "retry_count": "Retry Count",
+      "error_details": "Error Details",
+      "quick_switch_title": "💡 **Quick Switch Options:**",
+      "quick_switch_content": "When current service encounters network restrictions, you can:\n\n1. **Switch AI Assistant Immediately**: Select other available assistants from the left panel\n2. **Check Service Status**: Availability of different AI services may vary by region\n3. **Network Optimization**: Use stable network environment to improve connection success rate\n4. **Retry Later**: Network restrictions are usually temporary\n\n**Tip**: It's recommended to configure multiple AI services as alternatives to ensure work continuity.",
+      "recovery_actions": {
+        "cloudflare_blocked": ["• Use VPN or proxy service", "• Switch network environment (like mobile hotspot)", "• Wait 10-30 minutes and retry", "• Clear browser cache and cookies", "• Switch to other available services: ChatGPT, Claude, Qwen, Gemini"],
+        "network_timeout": ["• Check if network connection is stable", "• Retry connection operation", "• Switch to more stable network environment", "• Check firewall settings"],
+        "connection_refused": ["• Check if Codex CLI is properly installed", "• Verify service configuration and API keys", "• Restart application", "• Check if local ports are occupied"],
+        "unknown": ["• Check network connection status", "• Retry current operation", "• Switch network environment", "• Contact technical support"]
+      }
+    },
+    "status": {
+      "connecting": "Connecting to Codex...",
+      "connected": "Connected to Codex MCP server",
+      "session_active": "Active session created with Codex",
+      "error_connect": "Failed to connect Codex: {{error}}"
+    },
+    "thinking": {
+      "processing": "🤔 Codex is thinking...",
+      "completed": "💭 Thinking process completed",
+      "analyzing": "Analyzing the problem and formulating solutions...",
+      "composing": "Composing response content..."
+    },
+    "error": {
+      "system_init_failed": "Failed to initialize Codex system",
+      "invalid_message_format": "Invalid message format",
+      "invalid_input": "Invalid input provided",
+      "session_timeout": "Session timed out, please retry",
+      "permission_denied": "Permission denied for this operation",
+      "context_error": "Error occurred in {{context}}, please refresh or retry.",
+      "generic": "Codex component encountered an exception, please try again later.",
+      "troubleshooting": "Troubleshooting Suggestions",
+      "suggestion_1": "Check if network connection is stable",
+      "suggestion_2": "Ensure Codex service is running properly",
+      "suggestion_3": "Try restarting the application",
+      "suggestion_4": "Clear browser cache and local storage"
+    },
+    "performance": {
+      "virtualization_enabled": "List virtualization is enabled for better performance",
+      "virtualization_disabled": "List virtualization is disabled, showing all items",
+      "debounce_enabled": "Input debouncing is enabled ({{delay}}ms delay)",
+      "debounce_disabled": "Input debouncing is disabled"
+    },
+    "config": {
+      "loaded": "Configuration loaded successfully",
+      "updated": "Configuration updated successfully",
+      "reset": "Configuration reset to defaults",
+      "validation_failed": "Configuration validation failed",
+      "import_success": "Configuration imported successfully",
+      "import_failed": "Failed to import configuration",
+      "export_success": "Configuration exported successfully"
+    },
+    "permissions": {
+      "allow_once": "Allow Once",
+      "allow_always": "Allow Always",
+      "reject_once": "Reject Once",
+      "reject_always": "Reject Always",
+      "allow_once_desc": "Grant permission for this request only",
+      "allow_always_desc": "Always grant permission for similar requests",
+      "reject_once_desc": "Reject this request only",
+      "reject_always_desc": "Always reject similar requests",
+      "processing": "Processing...",
+      "response_sent": "Response sent successfully",
+      "choose_action": "Choose an action:",
+      "titles": {
+        "exec_approval_request": "Execute Command Permission",
+        "apply_patch_approval_request": "Apply File Changes Permission",
+        "command_execution": "Command Execution Permission",
+        "file_write": "File Write Permission",
+        "file_read": "File Read Permission"
+      },
+      "labels": {
+        "command": "Command:",
+        "directory": "Directory:",
+        "reason": "Reason:",
+        "files_to_modify": "Files to modify",
+        "summary": "Summary:"
+      },
+      "descriptions": {
+        "command_execution": "Codex requests to execute system commands",
+        "file_write": "Codex requests to modify or create files",
+        "file_read": "Codex requests to read file contents"
+      },
+      "command_execution": {
+        "allow_once_desc": "Allow this command execution only",
+        "allow_always_desc": "Always allow all command execution requests",
+        "reject_once_desc": "Reject this command execution only",
+        "reject_always_desc": "Always reject all command execution requests"
+      },
+      "file_write": {
+        "allow_once_desc": "Allow this file write only",
+        "allow_always_desc": "Always allow all file write requests",
+        "reject_once_desc": "Reject this file write only",
+        "reject_always_desc": "Always reject all file write requests"
+      },
+      "file_read": {
+        "allow_once_desc": "Allow this file read only",
+        "allow_always_desc": "Always allow all file read requests",
+        "reject_once_desc": "Reject this file read only",
+        "reject_always_desc": "Always reject all file read requests"
+      }
+    }
+  },
+  "tools": {
+    "shell": {
+      "displayName": "Shell Command",
+      "description": "Execute shell commands"
+    },
+    "fileOps": {
+      "displayName": "File Operations",
+      "description": "File read, write and modification"
+    },
+    "webSearch": {
+      "displayName": "Web Search",
+      "description": "Search web content"
+    },
+    "mcp": {
+      "generic": {
+        "displayName": "MCP Tool: {{toolName}}",
+        "description": "MCP tool call: {{toolName}}"
+      }
+    },
+    "unknown": {
+      "displayName": "Unknown Tool",
+      "description": "Unknown tool type"
+    },
+    "status": {
+      "pending": "Pending",
+      "executing": "Executing",
+      "success": "Success",
+      "error": "Error",
+      "canceled": "Canceled"
+    },
+    "titles": {
+      "web_search_started": "Web Search Started",
+      "web_search_completed": "Web Search Completed",
+      "web_search": "Web Search",
+      "applying_patch": "Applying Patch",
+      "patch_applied": "Patch Applied",
+      "file_patch": "File Patch",
+      "mcp_tool_starting": "MCP Tool: {{toolName}} (starting)",
+      "mcp_tool": "MCP Tool: {{toolName}}",
+      "execute_command": "Execute: {{command}}",
+      "command_output": "Command Output",
+      "command_completed": "Command Completed",
+      "shell_command": "Shell Command"
+    },
+    "labels": {
+      "search_query": "Search Query:",
+      "file_changes": "File Changes:",
+      "tool_details": "Tool Details:",
+      "tool": "Tool",
+      "arguments": "Arguments:",
+      "result": "Result:",
+      "command": "Command:",
+      "working_directory": "Working directory:",
+      "exit_code": "Exit: {{code}}",
+      "duration": "Duration: {{seconds}}",
+      "auto_approved": "Auto-approved",
+      "manual_approval": "Manual approval"
+    },
+    "actions": {
+      "create": "create",
+      "modify": "modify",
+      "delete": "delete"
     }
   }
 }

@@ -5,8 +5,15 @@
  */
 
 const uuid = (len = 4) => {
-  const index = Math.floor(Math.random() * 10);
-  return (Math.random() * 1e16).toString(16).substring(index, index + len);
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const crypto = require('crypto');
+    const bytes = crypto.randomBytes(Math.ceil(len / 2));
+    return bytes.toString('hex').slice(0, len);
+  } catch {
+    const ts = Date.now().toString(16);
+    return ts.slice(-len).padStart(len, '0');
+  }
 };
 
 const callbackKey = (key: string) => key + '.callback';

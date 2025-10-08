@@ -19,6 +19,12 @@ type Draft =
       content: string;
       atPath: string[];
       uploadFile: string[];
+    }
+  | {
+      _type: 'codex';
+      content: string;
+      atPath: string[];
+      uploadFile: string[];
     };
 
 /**
@@ -31,6 +37,7 @@ type SendBoxDraftStore = {
 const store: SendBoxDraftStore = {
   gemini: new Map(),
   acp: new Map(),
+  codex: new Map(),
 };
 
 const setDraft = <K extends TChatConversation['type']>(type: K, conversation_id: string, draft: Extract<Draft, { _type: K }> | undefined) => {
@@ -50,6 +57,13 @@ const setDraft = <K extends TChatConversation['type']>(type: K, conversation_id:
         store.acp.delete(conversation_id);
       }
       break;
+    case 'codex':
+      if (draft) {
+        store.codex.set(conversation_id, draft as Extract<Draft, { _type: 'codex' }>);
+      } else {
+        store.codex.delete(conversation_id);
+      }
+      break;
     default:
       break;
   }
@@ -62,6 +76,8 @@ const getDraft = <K extends TChatConversation['type']>(type: K, conversation_id:
       return store.gemini.get(conversation_id) as Extract<Draft, { _type: K }>;
     case 'acp':
       return store.acp.get(conversation_id) as Extract<Draft, { _type: K }>;
+    case 'codex':
+      return store.codex.get(conversation_id) as Extract<Draft, { _type: K }>;
     default:
       return undefined;
   }

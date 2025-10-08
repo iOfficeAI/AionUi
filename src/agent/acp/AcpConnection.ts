@@ -38,9 +38,9 @@ export class AcpConnection {
   // 通用的spawn配置生成方法
   private createGenericSpawnConfig(backend: string, cliPath: string, workingDir: string) {
     const isWindows = process.platform === 'win32';
-    const env = {
-      ...process.env,
-    };
+    const env = { ...process.env };
+
+    // No additional environment variables needed for sandbox - CLI handles this
 
     let spawnCommand: string;
     let spawnArgs: string[];

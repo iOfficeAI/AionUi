@@ -5,3 +5,4 @@
  */
 
 export * as ipcBridge from './ipcBridge';
+export { conversation } from './ipcBridge';

@@ -17,6 +17,7 @@ export type AcpBackendAll =
   | 'gemini' // Google Gemini ACP
   | 'qwen' // Qwen Code ACP
   | 'iflow' // iFlow CLI ACP
+  | 'codex' // OpenAI Codex MCP
   | 'openai' // OpenAI ACP (未来支持)
   | 'anthropic' // Anthropic ACP (未来支持)
   | 'cohere' // Cohere ACP (未来支持)
@@ -62,6 +63,13 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     cliCommand: 'iflow',
     authRequired: true,
     enabled: true,
+  },
+  codex: {
+    id: 'codex',
+    name: 'Codex ',
+    cliCommand: 'codex',
+    authRequired: false,
+    enabled: true, // ✅ 已验证支持：Codex CLI v0.4.0+ 支持 acp 模式
   },
   openai: {
     id: 'openai',
