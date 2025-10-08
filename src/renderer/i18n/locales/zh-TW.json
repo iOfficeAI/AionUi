@@ -1,26 +1,143 @@
 {
+  "codex": {
+    "sendbox": {},
+    "network": {
+      "cloudflare_blocked": "Cloudflare 保護導致無法存取 {{service}}。建議：1）使用 VPN 2）切換網路 3）稍後重試 4）切換至其他 AI 服務",
+      "cloudflare_blocked_title": "🚫 由於 Cloudflare 保護，{{service}} 服務被封鎖",
+      "connection_refused": "連線被拒絕，請確認 Codex 服務是否正常運行。",
+      "connection_refused_title": "❌ 服務連線被拒絕",
+      "error_details": "錯誤詳情",
+      "error_type": "錯誤類型",
+      "network_timeout": "網路逾時，正在自動重試連線...",
+      "network_timeout_title": "⏱️ 網路連線逾時",
+      "quick_switch_content": "當前服務遇到網路限制時，你可以：\n\n1. **立即切換 AI 助手**：從左側面板選擇其他可用助手\n2. **檢查服務狀態**：不同地區的服務可用性可能不同\n3. **網路優化**：使用穩定的網路環境以提升連線成功率\n4. **稍後重試**：網路限制通常是暫時的\n\n**提示**：建議配置多個備用的 AI 服務以確保工作不中斷。",
+      "quick_switch_title": "💡 **快速切換選項：**",
+      "recovery_suggestions": "**建議解法：**",
+      "retry_attempt": "正在重試第 {{current}} 次...",
+      "retry_count": "重試次數",
+      "technical_info": "**技術資訊：**",
+      "unknown_error": "發生網路連線錯誤，請檢查網路設定。",
+      "unknown_error_title": "🔌 網路連線錯誤"
+    },
+    "status": {
+      "connected": "已連線至 Codex MCP 伺服器",
+      "connecting": "正在連線至 Codex...",
+      "error_connect": "連線至 Codex 失敗：{{error}}",
+      "session_active": "已與 Codex 建立有效工作階段"
+    },
+    "thinking": {
+      "processing": "🤔 Codex 正在思考...",
+      "completed": "💭 思考過程完成",
+      "analyzing": "正在分析問題和制定解決方案...",
+      "composing": "正在整理回覆內容..."
+    },
+    "error": {
+      "system_init_failed": "Codex 系統初始化失敗",
+      "invalid_message_format": "訊息格式無效",
+      "invalid_input": "輸入內容無效",
+      "session_timeout": "工作階段已逾時，請重試",
+      "permission_denied": "此操作被拒絕存取",
+      "context_error": "在{{context}}中發生錯誤，請重新整理或重試。",
+      "generic": "Codex 元件出現異常，請稍後重試。",
+      "troubleshooting": "疑難排解建議",
+      "suggestion_1": "檢查網路連線是否正常",
+      "suggestion_2": "確認 Codex 服務正在執行",
+      "suggestion_3": "嘗試重新啟動應用程式",
+      "suggestion_4": "清除瀏覽器快取和本機儲存"
+    },
+    "performance": {
+      "virtualization_enabled": "清單虛擬化已啟用以提升效能",
+      "virtualization_disabled": "清單虛擬化已停用，顯示所有項目",
+      "debounce_enabled": "輸入防抖已啟用（{{delay}}毫秒延遲）",
+      "debounce_disabled": "輸入防抖已停用"
+    },
+    "config": {
+      "loaded": "設定載入成功",
+      "updated": "設定更新成功",
+      "reset": "設定已重設為預設值",
+      "validation_failed": "設定驗證失敗",
+      "import_success": "設定匯入成功",
+      "import_failed": "設定匯入失敗",
+      "export_success": "設定匯出成功"
+    },
+    "permissions": {
+      "allow_once": "僅此次允許",
+      "allow_always": "總是允許",
+      "reject_once": "僅此次拒絕",
+      "reject_always": "總是拒絕",
+      "allow_once_desc": "僅對此次請求給予權限",
+      "allow_always_desc": "對同類型請求總是給予權限",
+      "reject_once_desc": "僅拒絕此次請求",
+      "reject_always_desc": "對同類型請求總是拒絕",
+      "processing": "處理中...",
+      "response_sent": "回應已成功發送",
+      "choose_action": "請選擇操作：",
+      "titles": {
+        "exec_approval_request": "指令執行權限",
+        "apply_patch_approval_request": "檔案修改權限",
+        "command_execution": "指令執行權限",
+        "file_write": "檔案寫入權限",
+        "file_read": "檔案讀取權限"
+      },
+      "labels": {
+        "command": "指令：",
+        "directory": "目錄：",
+        "reason": "原因：",
+        "files_to_modify": "要修改的檔案",
+        "summary": "摘要："
+      },
+      "descriptions": {
+        "command_execution": "Codex 請求執行系統指令",
+        "file_write": "Codex 請求修改或建立檔案",
+        "file_read": "Codex 請求讀取檔案內容"
+      },
+      "command_execution": {
+        "allow_once_desc": "僅允許此次指令執行",
+        "allow_always_desc": "對所有指令執行請求總是允許",
+        "reject_once_desc": "僅拒絕此次指令執行",
+        "reject_always_desc": "對所有指令執行請求總是拒絕"
+      },
+      "file_write": {
+        "allow_once_desc": "僅允許此次檔案寫入",
+        "allow_always_desc": "對所有檔案寫入請求總是允許",
+        "reject_once_desc": "僅拒絕此次檔案寫入",
+        "reject_always_desc": "對所有檔案寫入請求總是拒絕"
+      },
+      "file_read": {
+        "allow_once_desc": "僅允許此次檔案讀取",
+        "allow_always_desc": "對所有檔案讀取請求總是允許",
+        "reject_once_desc": "僅拒絕此次檔案讀取",
+        "reject_always_desc": "對所有檔案讀取請求總是拒絕"
+      }
+    }
+  },
   "common": {
-    "send": "發送",
+    "about": "關於我們",
+    "add": "新增",
+    "attach": "附件",
+    "back": "返回聊天",
     "cancel": "取消",
-    "save": "儲存",
-    "delete": "刪除",
     "confirm": "確認",
+    "contact": "聯絡我們",
+    "delete": "刪除",
+    "edit": "編輯",
     "file": "檔案",
     "folder": "資料夾",
-    "upload": "上傳",
-    "attach": "附件",
-    "workspace": "工作空間",
+    "retry": "重試",
+    "reload": "重新載入",
+    "technical_details": "技術詳情",
+    "error_details": "錯誤詳情",
+    "troubleshooting": "疑難排解",
+    "github": "Github",
+    "loading": "請稍候...",
+    "save": "儲存",
+    "send": "發送",
     "settings": "設定",
     "system": "系統",
-    "about": "關於我們",
-    "back": "返回聊天",
-    "add": "新增",
-    "edit": "編輯",
-    "website": "官網",
+    "upload": "上傳",
     "version": "版本號",
-    "contact": "聯絡我們",
-    "github": "Github",
-    "loading": "請稍候..."
+    "website": "官網",
+    "workspace": "工作空間"
   },
   "conversation": {
     "welcome": {
@@ -33,73 +150,69 @@
       "selectModel": "選擇模型"
     },
     "history": {
-      "today": "今天",
-      "yesterday": "昨天",
-      "recent7Days": "近7天",
+      "cancelDelete": "取消",
+      "confirmDelete": "確定",
+      "deleteConfirm": "確定要刪除此對話嗎？",
+      "deleteTitle": "刪除對話",
       "earlier": "更早",
       "noHistory": "暫無對話記錄",
-      "deleteTitle": "刪除對話",
-      "deleteConfirm": "確定要刪除此對話嗎？",
-      "confirmDelete": "確定",
-      "cancelDelete": "取消"
+      "recent7Days": "近7天",
+      "today": "今天",
+      "yesterday": "昨天"
     },
     "workspace": {
-      "title": "工作空間",
       "empty": "空的",
       "emptyDescription": "上傳檔案或開啟資料夾後，檔案將顯示在這裡",
       "searchPlaceholder": "搜尋檔案...",
-      "createNewConversation": "當前空間創建新對話"
+      "createNewConversation": "當前空間創建新對話",
+      "search.empty": "搜索結果為空"
     },
     "chat": {
       "noModelSelected": "當前會話未選擇模型，無法發送訊息"
     }
   },
   "settings": {
-    "authMethod": "驗證",
-    "geminiApiKey": "Gemini API 金鑰",
-    "vertexApiKey": "Vertex AI",
-    "personalAuth": "Google 帳號",
-    "googleLogin": "Google 登入",
-    "googleLogout": "登出",
-    "openai": "OpenAI",
-    "proxyConfig": "代理",
-    "yoloMode": "自動允許",
-    "geminiBaseUrl": "Gemini API Base URL",
-    "cacheDir": "緩存目錄",
-    "workDir": "工作目錄",
-    "language": "語言",
-    "gemini": "Gemini 設定",
-    "model": "模型配置",
-    "system": "系統設定",
     "about": "關於我們",
     "addModel": "新增模型",
-    "editModel": "編輯模型",
-    "modelPlatform": "模型平台",
-    "platformName": "平台名稱",
-    "modelName": "模型名稱",
-    "baseUrl": "base url",
-    "apiKey": "API Key",
-    "deleteModelConfirm": "是否刪除該模型？",
-    "deleteAllModelConfirm": "是否刪除所有模型？",
-    "modelCount": "模型",
-    "apiKeyCount": "API Key",
-    "pleaseEnterBaseUrlAndApiKey": "請輸入base url和api key",
-    "multiApiKeyTip": "💡 如需新增多個 API Key 實現自動輪詢，請稍後到平台編輯界面配置",
-    "multiApiKeyEditTip": "支援多個 API Key，每行一個，系統將自動輪詢使用",
-    "apiKeyPlaceholder": "請輸入 API Key，多個 Key 請每行一個",
     "addModelPlaceholder": "請選擇或輸入模型ID",
-    "customOpenAI": "自定義(相容OpenAI)",
-    "proxyHttpOnly": "僅支持 http/https 協議",
+    "apiKey": "API Key",
+    "apiKeyCount": "API Key",
+    "apiKeyPlaceholder": "請輸入 API Key，多個 Key 請每行一個",
+    "authMethod": "驗證",
+    "baseUrl": "base url",
     "baseUrlAutoFix": "base_url 自動修復為：{{base_url}}",
-    "updateConfirm": "確認修改",
-    "restartConfirm": "修改後將重啟應用，是否繼續？",
-    "theme": "主題",
-    "lightMode": "淺色",
+    "cacheDir": "緩存目錄",
+    "customOpenAI": "自定義(相容OpenAI)",
     "darkMode": "深色",
-    "tools": "工具配置",
-    "imageGenerationModel": "圖像模型",
+    "deleteAllModelConfirm": "是否刪除所有模型？",
+    "deleteModelConfirm": "是否刪除該模型？",
+    "editModel": "編輯模型",
+    "gemini": "Gemini 設定",
+    "geminiApiKey": "Gemini API 金鑰",
+    "geminiBaseUrl": "Gemini API Base URL",
+    "googleLogin": "Google 登入",
+    "googleLogout": "登出",
     "imageGenerationGuide": "圖像模型配置指南",
+    "imageGenerationModel": "圖像模型",
+    "language": "語言",
+    "lightMode": "淺色",
+    "model": "模型配置",
+    "modelCount": "模型",
+    "modelName": "模型名稱",
+    "modelPlatform": "模型平台",
+    "multiApiKeyEditTip": "支援多個 API Key，每行一個，系統將自動輪詢使用",
+    "multiApiKeyTip": "💡 如需新增多個 API Key 實現自動輪詢，請稍後到平台編輯界面配置",
     "noAvailable": "暫無可用圖像模型，請先配置。",
+    "openai": "OpenAI",
+    "personalAuth": "Google 帳號",
+    "platformName": "平台名稱",
+    "pleaseEnterBaseUrlAndApiKey": "請輸入base url和api key",
+    "proxyConfig": "代理",
+    "proxyHttpOnly": "僅支持 http/https 協議",
+    "restartConfirm": "修改後將重啟應用，是否繼續？",
+    "system": "系統設定",
+    "theme": "主題",
+    "tools": "工具配置",
     "noConfiguredModels": "暫無已配置的模型",
     "needHelpConfigGuide": "需要幫助？查看詳細的",
     "configGuide": "配置指南",
@@ -118,7 +231,72 @@
     "confirm": "確認",
     "canceledExecution": "已取消執行",
     "openLinkFailed": "無法開啟連結",
-    "imageGenerationModelDetected": "檢測到圖片模型，已自動開啟圖片工具，設置為默認模型：{{platform}}:{{model}}"
+    "imageGenerationModelDetected": "檢測到圖片模型，已自動開啟圖片工具，設置為默認模型：{{platform}}:{{model}}",
+    "auto_handling_permissions": "自動處理權限請求：{{request}}"
+  },
+  "tools": {
+    "shell": {
+      "displayName": "Shell指令",
+      "description": "執行Shell指令"
+    },
+    "fileOps": {
+      "displayName": "檔案操作",
+      "description": "檔案讀寫和修改"
+    },
+    "webSearch": {
+      "displayName": "網頁搜尋",
+      "description": "搜尋網頁內容"
+    },
+    "mcp": {
+      "generic": {
+        "displayName": "MCP工具：{{toolName}}",
+        "description": "MCP工具呼叫：{{toolName}}"
+      }
+    },
+    "unknown": {
+      "displayName": "未知工具",
+      "description": "未知工具類型"
+    },
+    "status": {
+      "pending": "等待中",
+      "executing": "執行中",
+      "success": "成功",
+      "error": "錯誤",
+      "canceled": "已取消"
+    },
+    "titles": {
+      "web_search_started": "網頁搜尋已開始",
+      "web_search_completed": "網頁搜尋已完成",
+      "web_search": "網頁搜尋",
+      "applying_patch": "正在套用修補程式",
+      "patch_applied": "修補程式已套用",
+      "file_patch": "檔案修補程式",
+      "mcp_tool_starting": "MCP工具：{{toolName}}（啟動中）",
+      "mcp_tool": "MCP工具：{{toolName}}",
+      "execute_command": "執行：{{command}}",
+      "command_output": "指令輸出",
+      "command_completed": "指令已完成",
+      "shell_command": "Shell指令"
+    },
+    "labels": {
+      "search_query": "搜尋查詢：",
+      "file_changes": "檔案變更：",
+      "tool_details": "工具詳細資訊：",
+      "tool": "工具",
+      "arguments": "參數：",
+      "result": "結果：",
+      "command": "指令：",
+      "working_directory": "工作目錄：",
+      "exit_code": "結束碼：{{code}}",
+      "duration": "持續時間：{{seconds}}",
+      "auto_approved": "自動核准",
+      "manual_approval": "手動核准"
+    },
+    "actions": {
+      "create": "建立",
+      "modify": "修改",
+      "delete": "刪除"
+    }
   },
   "acp": {
     "auth": {

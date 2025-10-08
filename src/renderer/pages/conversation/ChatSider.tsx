@@ -19,6 +19,10 @@ const ChatSider: React.FC<{
     return <ChatWorkspace conversation_id={conversation.id} workspace={conversation.extra.workspace} eventPrefix='acp'></ChatWorkspace>;
   }
 
+  if (conversation?.type === 'codex' && conversation.extra?.workspace) {
+    return <ChatWorkspace conversation_id={conversation.id} workspace={conversation.extra.workspace} eventPrefix='codex'></ChatWorkspace>;
+  }
+
   return <div></div>;
 };
 
