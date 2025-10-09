@@ -40,7 +40,7 @@ export class GeminiAgentManager extends BaseAgentManager<{
       });
     });
   }
-  private async getImageGenerationModel(): Promise<TProviderWithModel | undefined> {
+  private getImageGenerationModel(): Promise<TProviderWithModel | undefined> {
     return ProcessConfig.get('tools.imageGenerationModel')
       .then((imageGenerationModel) => {
         if (imageGenerationModel && imageGenerationModel.switch) {
@@ -74,7 +74,6 @@ export class GeminiAgentManager extends BaseAgentManager<{
           }
         });
 
-      console.log('[GeminiAgentManager] Loaded MCP servers:', Object.keys(mcpConfig));
       return mcpConfig;
     } catch (error) {
       console.warn('[GeminiAgentManager] Failed to load MCP servers:', error);
@@ -131,7 +130,7 @@ export class GeminiAgentManager extends BaseAgentManager<{
     });
   }
   // 发送tools用户确认的消息
-  async confirmMessage(data: { confirmKey: string; msg_id: string; callId: string }) {
+  confirmMessage(data: { confirmKey: string; msg_id: string; callId: string }) {
     return this.postMessagePromise(data.callId, data.confirmKey);
   }
   getWorkspace() {
