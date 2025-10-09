@@ -43,15 +43,18 @@ export class IflowMcpAgent extends AbstractMcpAgent {
       const lines = result.split('\n');
 
       for (const line of lines) {
-        // 清除 ANSI 颜色代码
-        const cleanLine = line.replace(/\u001b\[[0-?]*[ -/]*[@-~]/g, '').trim();
-        // 查找格式如: "✓ Bazi: npx bazi-mcp (stdio) - Connected"
-        const match = cleanLine.match(/[✓✗]\s+([^:]+):\s+(.+?)\s+\(([^)]+)\)\s*-\s*(Connected|Disconnected)/);
+        // 清除 ANSI 颜色代码 (支持多种格式)
+        const cleanLine = line.replace(/\u001b\[[0-9;]*m/g, '').replace(/\[[0-9;]*m/g, '').trim(); // eslint-disable-line no-control-regex
+        // 查找格式如: "✓ Bazi: npx bazi-mcp (stdio) - Connected" 或 "✓ Bazi: npx bazi-mcp (stdio) - 已连接"
+        const match = cleanLine.match(/[✓✗]\s+([^:]+):\s+(.+?)\s+\(([^)]+)\)\s*-\s*(Connected|Disconnected|已连接|已断开)/);
         if (match) {
-          const [, name, commandStr, transport, status] = match;
+          const [, name, commandStr, transport, statusRaw] = match;
           const commandParts = commandStr.trim().split(/\s+/);
           const command = commandParts[0];
           const args = commandParts.slice(1);
+
+          // 将中文状态映射为英文
+          const status = statusRaw === '已连接' ? 'Connected' : statusRaw === '已断开' ? 'Disconnected' : statusRaw;
 
           const transportType = transport as 'stdio' | 'sse' | 'http';
 
@@ -126,7 +129,7 @@ export class IflowMcpAgent extends AbstractMcpAgent {
 
       return mcpServers;
     } catch (error) {
-      console.warn('Failed to get iFlow CLI MCP config:', error);
+      console.warn('[IflowMcpAgent] Failed to get iFlow CLI MCP config:', error);
     }
     return [];
   }

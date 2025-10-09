@@ -41,12 +41,7 @@ const McpServerActions: React.FC<McpServerActionsProps> = ({ server, isTestingCo
         <Button size='mini' icon={<SettingOne size={'14'} />} />
       </Dropdown>
 
-      <Switch
-        checked={server.enabled}
-        onChange={(checked) => onToggleServer(server.id, checked)}
-        size='small'
-        disabled={server.status === 'disconnected' || server.status === 'error'}
-      />
+      <Switch checked={server.enabled} onChange={(checked) => onToggleServer(server.id, checked)} size='small' disabled={server.status === 'testing'} />
     </>
   );
 };

@@ -95,10 +95,35 @@ export interface IMcpProtocol {
 export abstract class AbstractMcpAgent implements IMcpProtocol {
   protected readonly backend: AcpBackend | 'aionui';
   protected readonly timeout: number;
+  private operationQueue: Promise<any> = Promise.resolve();
 
   constructor(backend: AcpBackend | 'aionui', timeout: number = 30000) {
     this.backend = backend;
     this.timeout = timeout;
+  }
+
+  /**
+   * 确保操作串行执行的互斥锁
+   */
+  protected withLock<T>(operation: () => Promise<T>): Promise<T> {
+    const currentQueue = this.operationQueue;
+    const operationName = operation.name || 'anonymous operation';
+
+    // 创建一个新的 Promise，它会等待前一个操作完成
+    const newOperation = currentQueue
+      .then(() => operation())
+      .catch((error) => {
+        console.warn(`[${this.backend} MCP] ${operationName} failed:`, error);
+        // 即使操作失败，也要继续执行队列中的下一个操作
+        throw error;
+      });
+
+    // 更新队列（忽略错误，确保队列继续）
+    this.operationQueue = newOperation.catch(() => {
+      // Empty catch to prevent unhandled rejection
+    });
+
+    return newOperation;
   }
 
   abstract detectMcpServers(cliPath?: string): Promise<IMcpServer[]>;

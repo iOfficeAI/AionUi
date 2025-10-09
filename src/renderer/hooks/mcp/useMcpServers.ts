@@ -23,11 +23,27 @@ export const useMcpServers = () => {
   }, []);
 
   // 保存MCP服务器配置
-  const saveMcpServers = useCallback((servers: IMcpServer[]) => {
-    void ConfigStorage.set('mcp.config', servers).catch(() => {
+  const saveMcpServers = useCallback(async (serversOrUpdater: IMcpServer[] | ((prev: IMcpServer[]) => IMcpServer[])) => {
+    let updatedServers: IMcpServer[];
+
+    // 支持函数式更新
+    if (typeof serversOrUpdater === 'function') {
+      setMcpServers((prev) => {
+        updatedServers = serversOrUpdater(prev);
+        return updatedServers;
+      });
+    } else {
+      updatedServers = serversOrUpdater;
+      setMcpServers(updatedServers);
+    }
+
+    // 然后保存到存储
+    try {
+      await ConfigStorage.set('mcp.config', updatedServers);
+    } catch (error) {
+      console.error('Failed to save MCP servers:', error);
       // Handle storage error silently
-    });
-    setMcpServers(servers);
+    }
   }, []);
 
   return {

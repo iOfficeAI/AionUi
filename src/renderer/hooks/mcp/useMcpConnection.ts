@@ -8,7 +8,7 @@ import type { IMcpServer } from '@/common/storage';
  * MCP连接测试管理Hook
  * 处理MCP服务器的连接测试和状态更新
  */
-export const useMcpConnection = (mcpServers: IMcpServer[], setMcpServers: (servers: IMcpServer[]) => void, message: any) => {
+export const useMcpConnection = (mcpServers: IMcpServer[], setMcpServers: (serversOrUpdater: IMcpServer[] | ((prev: IMcpServer[]) => IMcpServer[])) => void, message: any) => {
   const { t } = useTranslation();
   const [testingServers, setTestingServers] = useState<Record<string, boolean>>({});
 
@@ -17,13 +17,18 @@ export const useMcpConnection = (mcpServers: IMcpServer[], setMcpServers: (serve
     async (server: IMcpServer) => {
       setTestingServers((prev) => ({ ...prev, [server.id]: true }));
 
-      // 更新服务器状态为测试中
+      // 更新服务器状态 - 使用函数式更新，避免闭包问题
       const updateServerStatus = (status: IMcpServer['status'], additionalData?: Partial<IMcpServer>) => {
-        setMcpServers(mcpServers.map((s) => (s.id === server.id ? { ...s, status, updatedAt: Date.now(), ...additionalData } : s)));
+        // 使用函数式更新，确保基于最新状态
+        setMcpServers((prevServers) => {
+          const updatedServers = prevServers.map((s) => (s.id === server.id ? { ...s, status, updatedAt: Date.now(), ...additionalData } : s));
 
-        const updatedServers = mcpServers.map((s) => (s.id === server.id ? { ...s, status, updatedAt: Date.now(), ...additionalData } : s));
-        void ConfigStorage.set('mcp.config', updatedServers).catch(() => {
-          // Handle storage error silently
+          // 保存到存储
+          void ConfigStorage.set('mcp.config', updatedServers).catch(() => {
+            // Handle storage error silently
+          });
+
+          return updatedServers;
         });
       };
 
@@ -63,7 +68,7 @@ export const useMcpConnection = (mcpServers: IMcpServer[], setMcpServers: (serve
         setTestingServers((prev) => ({ ...prev, [server.id]: false }));
       }
     },
-    [mcpServers, setMcpServers, message, t]
+    [setMcpServers, message, t]
   );
 
   return {

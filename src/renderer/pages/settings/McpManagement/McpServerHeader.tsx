@@ -28,16 +28,7 @@ const getStatusIcon = (status?: IMcpServer['status']) => {
   }
 };
 
-const McpServerHeader: React.FC<McpServerHeaderProps> = ({
-  server,
-  agentInstallStatus,
-  isLoadingAgentStatus,
-  isTestingConnection,
-  onTestConnection,
-  onEditServer,
-  onDeleteServer,
-  onToggleServer,
-}) => {
+const McpServerHeader: React.FC<McpServerHeaderProps> = ({ server, agentInstallStatus, isLoadingAgentStatus, isTestingConnection, onTestConnection, onEditServer, onDeleteServer, onToggleServer }) => {
   return (
     <div className='flex items-center justify-between'>
       <div className='flex items-center gap-2'>
@@ -46,14 +37,7 @@ const McpServerHeader: React.FC<McpServerHeaderProps> = ({
       </div>
       <div className='flex items-center gap-2' onClick={(e) => e.stopPropagation()}>
         <McpAgentStatusDisplay serverName={server.name} agentInstallStatus={agentInstallStatus} isLoadingAgentStatus={isLoadingAgentStatus} />
-        <McpServerActions
-          server={server}
-          isTestingConnection={isTestingConnection}
-          onTestConnection={onTestConnection}
-          onEditServer={onEditServer}
-          onDeleteServer={onDeleteServer}
-          onToggleServer={onToggleServer}
-        />
+        <McpServerActions server={server} isTestingConnection={isTestingConnection} onTestConnection={onTestConnection} onEditServer={onEditServer} onDeleteServer={onDeleteServer} onToggleServer={onToggleServer} />
       </div>
     </div>
   );

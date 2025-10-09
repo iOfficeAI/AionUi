@@ -103,31 +103,18 @@ export class AionuiMcpAgent extends AbstractMcpAgent {
   }
 
   /**
-   * 从 AionUi 配置中删除 MCP 服务器
+   * 从 AionUi 配置中移除 MCP 服务器
+   *
+   * 注意：AionUi 的 MCP 配置由前端（renderer 层）统一管理
+   * 这里不做任何操作，因为：
+   * 1. Toggle 关闭时：前端已经设置 enabled: false，不需要后端再次修改
+   * 2. 删除服务器时：前端已经从配置中删除，不需要后端再次删除
+   *
+   * AionuiMcpAgent 只负责读取配置（detectMcpServers）和添加配置（installMcpServers），
+   * 不应该在 remove 流程中修改配置，避免与前端的配置管理产生冲突
    */
-  async removeMcpServer(mcpServerName: string): Promise<McpOperationResult> {
-    try {
-      // 读取当前配置
-      const currentConfig = (await ProcessConfig.get('mcp.config')) || [];
-      const existingServers = Array.isArray(currentConfig) ? currentConfig : [];
-
-      // 过滤掉要删除的服务器
-      const filteredServers = existingServers.filter((server: IMcpServer) => server.name !== mcpServerName);
-
-      // 如果没有任何变化，说明服务器不存在（也算成功）
-      if (filteredServers.length === existingServers.length) {
-        console.log(`[AionuiMcpAgent] MCP server '${mcpServerName}' not found, nothing to remove`);
-        return { success: true };
-      }
-
-      // 保存更新后的配置
-      await ProcessConfig.set('mcp.config', filteredServers);
-
-      console.log(`[AionuiMcpAgent] Removed MCP server: ${mcpServerName}`);
-      return { success: true };
-    } catch (error) {
-      console.error('[AionuiMcpAgent] Failed to remove MCP server:', error);
-      return { success: false, error: error instanceof Error ? error.message : String(error) };
-    }
+  removeMcpServer(mcpServerName: string): Promise<McpOperationResult> {
+    console.log(`[AionuiMcpAgent] Skip removing '${mcpServerName}' - config managed by renderer`);
+    return Promise.resolve({ success: true });
   }
 }
