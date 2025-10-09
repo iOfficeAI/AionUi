@@ -10,14 +10,20 @@ import { ClaudeMcpAgent } from './agents/ClaudeMcpAgent';
 import { QwenMcpAgent } from './agents/QwenMcpAgent';
 import { IflowMcpAgent } from './agents/IflowMcpAgent';
 import { GeminiMcpAgent } from './agents/GeminiMcpAgent';
+import { AionuiMcpAgent } from './agents/AionuiMcpAgent';
+import { CodexMcpAgent } from './agents/CodexMcpAgent';
 import type { IMcpProtocol, DetectedMcpServer, McpConnectionTestResult, McpSyncResult } from './McpProtocol';
 
 /**
  * MCP服务 - 负责协调各个Agent的MCP操作协议
  * 新架构：只定义协议，具体实现由各个Agent类完成
+ *
+ * Agent 类型说明：
+ * - AcpBackend ('claude', 'qwen', 'iflow', 'gemini', 'codex'等): 支持的 ACP 后端
+ * - 'aionui': @office-ai/aioncli-core (AionUi 本地管理的 Gemini 实现)
  */
 export class McpService {
-  private agents: Map<AcpBackend, IMcpProtocol>;
+  private agents: Map<AcpBackend | 'aionui', IMcpProtocol>;
 
   constructor() {
     this.agents = new Map([
@@ -25,13 +31,15 @@ export class McpService {
       ['qwen', new QwenMcpAgent()],
       ['iflow', new IflowMcpAgent()],
       ['gemini', new GeminiMcpAgent()],
+      ['aionui', new AionuiMcpAgent()], // AionUi 本地 @office-ai/aioncli-core
+      ['codex', new CodexMcpAgent()],
     ]);
   }
 
   /**
    * 获取特定backend的agent实例
    */
-  private getAgent(backend: AcpBackend): IMcpProtocol | undefined {
+  private getAgent(backend: AcpBackend | 'aionui'): IMcpProtocol | undefined {
     return this.agents.get(backend);
   }
 
@@ -45,12 +53,8 @@ export class McpService {
       cliPath?: string;
     }>
   ): Promise<DetectedMcpServer[]> {
-    const startTime = performance.now();
-
     // 并发执行所有agent的MCP检测 - 这是关键优化！
     const promises = agents.map(async (agent) => {
-      const agentStartTime = performance.now();
-
       try {
         const agentInstance = this.getAgent(agent.backend);
         if (!agentInstance) {
@@ -58,28 +62,21 @@ export class McpService {
         }
 
         const servers = await agentInstance.detectMcpServers(agent.cliPath);
-        const elapsedMs = (performance.now() - agentStartTime).toFixed(2);
 
         if (servers.length > 0) {
           return {
-            source: agent.backend,
+            source: agent.backend as AcpBackend | 'aionui',
             servers,
           };
-        } else {
         }
         return null;
       } catch (error) {
-        const elapsedMs = (performance.now() - agentStartTime).toFixed(2);
         return null;
       }
     });
 
     const results = await Promise.all(promises);
-    const filteredResults = results.filter((result): result is DetectedMcpServer => result !== null);
-
-    const totalElapsedMs = (performance.now() - startTime).toFixed(2);
-
-    return filteredResults;
+    return results.filter((result): result is DetectedMcpServer => result !== null);
   }
 
   /**

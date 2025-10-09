@@ -28,7 +28,7 @@ export interface McpConnectionTestResult {
  * MCP检测结果接口
  */
 export interface DetectedMcpServer {
-  source: AcpBackend;
+  source: AcpBackend | 'aionui';
   servers: IMcpServer[];
 }
 
@@ -86,17 +86,17 @@ export interface IMcpProtocol {
    * 获取agent后端类型
    * @returns agent后端类型
    */
-  getBackendType(): AcpBackend;
+  getBackendType(): AcpBackend | 'aionui';
 }
 
 /**
  * MCP协议抽象基类
  */
 export abstract class AbstractMcpAgent implements IMcpProtocol {
-  protected readonly backend: AcpBackend;
+  protected readonly backend: AcpBackend | 'aionui';
   protected readonly timeout: number;
 
-  constructor(backend: AcpBackend, timeout: number = 30000) {
+  constructor(backend: AcpBackend | 'aionui', timeout: number = 30000) {
     this.backend = backend;
     this.timeout = timeout;
   }
@@ -109,7 +109,7 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
 
   abstract getSupportedTransports(): string[];
 
-  getBackendType(): AcpBackend {
+  getBackendType(): AcpBackend | 'aionui' {
     return this.backend;
   }
 
@@ -138,7 +138,14 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
   /**
    * 测试Stdio连接的通用实现
    */
-  protected async testStdioConnection(transport: { command: string; args?: string[]; env?: Record<string, string> }, retryCount: number = 0): Promise<McpConnectionTestResult> {
+  protected async testStdioConnection(
+    transport: {
+      command: string;
+      args?: string[];
+      env?: Record<string, string>;
+    },
+    retryCount: number = 0
+  ): Promise<McpConnectionTestResult> {
     try {
       const { spawn } = await import('child_process');
 
