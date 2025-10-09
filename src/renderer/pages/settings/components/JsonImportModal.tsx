@@ -1,6 +1,6 @@
 import type { IMcpServer, IMcpServerTransport, IMcpTool } from '@/common/storage';
-import { Button, Modal } from '@arco-design/web-react';
-import React, { useState } from 'react';
+import { Button, Modal, Message } from '@arco-design/web-react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import CodeMirror from '@uiw/react-codemirror';
 import { json } from '@codemirror/lang-json';
@@ -13,10 +13,43 @@ interface JsonImportModalProps {
   onBatchImport?: (servers: Omit<IMcpServer, 'id' | 'createdAt' | 'updatedAt'>[]) => void;
 }
 
+interface ValidationResult {
+  isValid: boolean;
+  errorMessage?: string;
+}
+
 const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCancel, onSubmit, onBatchImport }) => {
   const { t } = useTranslation();
   const [jsonInput, setJsonInput] = useState('');
   const [copyStatus, setCopyStatus] = useState<'idle' | 'success' | 'error'>('idle');
+
+  /**
+   * 简单的JSON语法校验
+   */
+  const validateJson = useCallback((input: string): ValidationResult => {
+    if (!input.trim()) {
+      return { isValid: true }; // 空值视为有效，允许清空
+    }
+
+    try {
+      JSON.parse(input);
+      return { isValid: true };
+    } catch (error) {
+      if (error instanceof SyntaxError) {
+        return {
+          isValid: false,
+          errorMessage: error.message,
+        };
+      }
+      return {
+        isValid: false,
+        errorMessage: 'Invalid JSON format',
+      };
+    }
+  }, []);
+
+  // 实时校验
+  const validation = useMemo(() => validateJson(jsonInput), [jsonInput, validateJson]);
 
   // 当编辑现有服务器时，预填充JSON数据
   React.useEffect(() => {
@@ -59,6 +92,7 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
 
       if (Array.isArray(mcpServers)) {
         // TODO: 支持数组格式的导入
+        Message.warning('Array format not supported yet');
         console.warn('Array format not supported yet');
         return;
       }
@@ -153,7 +187,10 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
       onCancel();
     } catch (error) {
       console.error('Failed to parse JSON:', error);
-      // TODO: 显示错误提示
+      Message.error({
+        content: error instanceof Error ? error.message : 'Failed to parse JSON configuration',
+        duration: 5000,
+      });
       return;
     }
   };
@@ -169,7 +206,7 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
         <Button key='cancel' onClick={onCancel}>
           {t('common.cancel')}
         </Button>,
-        <Button key='submit' type='primary' onClick={handleSubmit}>
+        <Button key='submit' type='primary' onClick={handleSubmit} disabled={!validation.isValid}>
           {t('common.save')}
         </Button>,
       ]}
@@ -200,9 +237,11 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
             }}
             style={{
               fontSize: '13px',
-              border: '1px solid #d9d9d9',
+              border: validation.isValid || !jsonInput.trim() ? '1px solid #d9d9d9' : '1px solid #f53f3f',
               borderRadius: '6px',
+              overflow: 'hidden',
             }}
+            className='[&_.cm-editor]:rounded-[6px]'
           />
           {jsonInput && (
             <Button
@@ -247,6 +286,9 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
             </Button>
           )}
         </div>
+
+        {/* JSON 格式错误提示 */}
+        {!validation.isValid && jsonInput.trim() && <div className='mt-2 text-sm text-red-600'>{t('settings.mcpJsonFormatError') || 'JSON format error'}</div>}
       </div>
     </Modal>
   );

@@ -120,6 +120,7 @@
     "mcpImportFromJSON": "Import from JSON",
     "mcpImportTitle": "Import MCP Configuration",
     "mcpImportPlaceholder": "Copy the JSON configuration from the MCP service introduction page (preferably NPX or UVX configuration) and paste it into the input box below.",
+    "mcpJsonFormatError": "JSON format error",
     "mcpTestConnection": "Test Connection",
     "mcpConnected": "Connected",
     "mcpDisconnected": "Disconnected",
