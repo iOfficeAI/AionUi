@@ -247,7 +247,8 @@
     "updateLog": "更新日誌",
     "feedback": "意見反饋",
     "contactMe": "聯繫我",
-    "officialWebsite": "官網"
+    "officialWebsite": "官網",
+    "mcpTestConnection": "檢測MCP可用狀態"
   },
   "messages": {
     "conversationInProgress": "目前正在進行對話...",

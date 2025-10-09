@@ -255,7 +255,8 @@
     "updateLog": "アップデートログ",
     "feedback": "フィードバック",
     "contactMe": "お問い合わせ",
-    "officialWebsite": "公式サイト"
+    "officialWebsite": "公式サイト",
+    "mcpTestConnection": "MCP可用状態を検出"
   },
   "messages": {
     "conversationInProgress": "現在、会話中です...",
