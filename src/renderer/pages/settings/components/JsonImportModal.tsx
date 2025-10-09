@@ -1,6 +1,6 @@
 import type { IMcpServer, IMcpServerTransport, IMcpTool } from '@/common/storage';
-import { Button, Modal, Message } from '@arco-design/web-react';
-import React, { useState, useMemo, useCallback } from 'react';
+import { Button, Modal } from '@arco-design/web-react';
+import React, { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import CodeMirror from '@uiw/react-codemirror';
 import { json } from '@codemirror/lang-json';
@@ -22,6 +22,7 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
   const { t } = useTranslation();
   const [jsonInput, setJsonInput] = useState('');
   const [copyStatus, setCopyStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [validation, setValidation] = useState<ValidationResult>({ isValid: true });
 
   /**
    * JSON语法校验
@@ -42,8 +43,10 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
     }
   }, []);
 
-  // 实时语法校验
-  const validation = useMemo(() => validateJsonSyntax(jsonInput), [jsonInput, validateJsonSyntax]);
+  // 监听 jsonInput 变化，实时更新校验结果
+  React.useEffect(() => {
+    setValidation(validateJsonSyntax(jsonInput));
+  }, [jsonInput, validateJsonSyntax]);
 
   // 当编辑现有服务器时，预填充JSON数据
   React.useEffect(() => {
@@ -86,14 +89,13 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
 
     if (Array.isArray(mcpServers)) {
       // TODO: 支持数组格式的导入
-      Message.warning('Array format not supported yet');
       console.warn('Array format not supported yet');
       return;
     }
 
     const serverKeys = Object.keys(mcpServers);
     if (serverKeys.length === 0) {
-      Message.error('No MCP server found in configuration');
+      console.warn('No MCP server found in configuration');
       return;
     }
 
