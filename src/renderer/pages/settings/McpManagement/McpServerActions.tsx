@@ -1,5 +1,5 @@
 import { Button, Dropdown, Menu, Switch } from '@arco-design/web-react';
-import { DeleteFour, SettingOne, Wifi, Write } from '@icon-park/react';
+import { DeleteFour, SettingOne, Refresh, Write } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { IMcpServer } from '@/common/storage';
@@ -18,7 +18,7 @@ const McpServerActions: React.FC<McpServerActionsProps> = ({ server, isTestingCo
 
   return (
     <>
-      <Button size='mini' icon={<Wifi size={'14'} />} title={t('settings.mcpTestConnection')} loading={isTestingConnection} onClick={() => onTestConnection(server)} />
+      <Button size='mini' icon={<Refresh size={'14'} />} title={t('settings.mcpTestConnection')} loading={isTestingConnection} onClick={() => onTestConnection(server)} />
       <Dropdown
         trigger='hover'
         droplist={
