@@ -104,6 +104,8 @@ GEMINI.md
 .claude/
 .qwen/
 .qwen/*/
+.iflow/
+.iflow/*/
 .specify/scripts/
 .gemini/
 .gemini/*/
