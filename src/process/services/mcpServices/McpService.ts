@@ -45,6 +45,9 @@ export class McpService {
 
   /**
    * 从检测到的ACP agents中获取MCP配置（并发版本）
+   *
+   * 注意：此方法还会额外检测原生 Gemini CLI 的 MCP 配置，
+   * 即使它在 ACP 配置中是禁用的（因为 fork 的 Gemini 用于 ACP）
    */
   async getAgentMcpConfigs(
     agents: Array<{
@@ -53,15 +56,49 @@ export class McpService {
       cliPath?: string;
     }>
   ): Promise<DetectedMcpServer[]> {
-    // 并发执行所有agent的MCP检测 - 这是关键优化！
-    const promises = agents.map(async (agent) => {
+    // 创建完整的检测列表，包含 ACP agents 和额外的 MCP-only agents
+    const allAgentsToCheck = [...agents];
+
+    // 检查是否需要添加原生 Gemini CLI（如果它不在 ACP agents 中）
+    const hasNativeGemini = agents.some((a) => a.backend === 'gemini' && a.cliPath === 'gemini');
+    if (!hasNativeGemini) {
+      // 检查系统中是否安装了原生 Gemini CLI
       try {
+        const { execSync } = await import('child_process');
+        const isWindows = process.platform === 'win32';
+        const whichCommand = isWindows ? 'where' : 'which';
+        execSync(`${whichCommand} gemini`, { encoding: 'utf-8', stdio: 'pipe', timeout: 1000 });
+
+        // 如果找到了原生 Gemini CLI，添加到检测列表
+        allAgentsToCheck.push({
+          backend: 'gemini' as AcpBackend,
+          name: 'Google Gemini CLI',
+          cliPath: 'gemini',
+        });
+        console.log('[McpService] Added native Gemini CLI for MCP detection');
+      } catch {
+        // 原生 Gemini CLI 未安装，跳过
+      }
+    }
+
+    // 并发执行所有agent的MCP检测
+    const promises = allAgentsToCheck.map(async (agent) => {
+      try {
+        // 跳过 fork 的 Gemini（backend='gemini' 且 cliPath=undefined）
+        // fork 的 Gemini 的 MCP 配置应该由 AionuiMcpAgent 管理
+        if (agent.backend === 'gemini' && !agent.cliPath) {
+          console.log(`[McpService] Skipping fork Gemini (ACP only, MCP managed by AionuiMcpAgent)`);
+          return null;
+        }
+
         const agentInstance = this.getAgent(agent.backend);
         if (!agentInstance) {
+          console.warn(`[McpService] No agent instance for backend: ${agent.backend}`);
           return null;
         }
 
         const servers = await agentInstance.detectMcpServers(agent.cliPath);
+        console.log(`[McpService] Detected ${servers.length} MCP servers for ${agent.backend} (cliPath: ${agent.cliPath || 'default'})`);
 
         if (servers.length > 0) {
           return {
@@ -71,6 +108,7 @@ export class McpService {
         }
         return null;
       } catch (error) {
+        console.warn(`[McpService] Failed to detect MCP servers for ${agent.backend}:`, error);
         return null;
       }
     });
