@@ -24,32 +24,26 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
   const [copyStatus, setCopyStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
   /**
-   * 简单的JSON语法校验
+   * JSON语法校验
    */
-  const validateJson = useCallback((input: string): ValidationResult => {
+  const validateJsonSyntax = useCallback((input: string): ValidationResult => {
     if (!input.trim()) {
-      return { isValid: true }; // 空值视为有效，允许清空
+      return { isValid: true }; // 空值视为有效
     }
 
     try {
       JSON.parse(input);
       return { isValid: true };
     } catch (error) {
-      if (error instanceof SyntaxError) {
-        return {
-          isValid: false,
-          errorMessage: error.message,
-        };
-      }
       return {
         isValid: false,
-        errorMessage: 'Invalid JSON format',
+        errorMessage: error instanceof SyntaxError ? error.message : 'Invalid JSON format',
       };
     }
   }, []);
 
-  // 实时校验
-  const validation = useMemo(() => validateJson(jsonInput), [jsonInput, validateJson]);
+  // 实时语法校验
+  const validation = useMemo(() => validateJsonSyntax(jsonInput), [jsonInput, validateJsonSyntax]);
 
   // 当编辑现有服务器时，预填充JSON数据
   React.useEffect(() => {
@@ -86,113 +80,106 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
   }, [visible, server]);
 
   const handleSubmit = () => {
-    try {
-      const config = JSON.parse(jsonInput);
-      const mcpServers = config.mcpServers || config;
+    // 语法校验已经通过了（按钮禁用逻辑保证），直接解析
+    const config = JSON.parse(jsonInput);
+    const mcpServers = config.mcpServers || config;
 
-      if (Array.isArray(mcpServers)) {
-        // TODO: 支持数组格式的导入
-        Message.warning('Array format not supported yet');
-        console.warn('Array format not supported yet');
-        return;
-      }
+    if (Array.isArray(mcpServers)) {
+      // TODO: 支持数组格式的导入
+      Message.warning('Array format not supported yet');
+      console.warn('Array format not supported yet');
+      return;
+    }
 
-      const serverKeys = Object.keys(mcpServers);
-      if (serverKeys.length === 0) {
-        throw new Error('No MCP server found in configuration');
-      }
+    const serverKeys = Object.keys(mcpServers);
+    if (serverKeys.length === 0) {
+      Message.error('No MCP server found in configuration');
+      return;
+    }
 
-      // 如果有多个服务器，使用批量导入
-      if (serverKeys.length > 1 && onBatchImport) {
-        const serversToImport = serverKeys.map((serverKey) => {
-          const serverConfig = mcpServers[serverKey];
-          const transport: IMcpServerTransport = serverConfig.command
+    // 如果有多个服务器，使用批量导入
+    if (serverKeys.length > 1 && onBatchImport) {
+      const serversToImport = serverKeys.map((serverKey) => {
+        const serverConfig = mcpServers[serverKey];
+        const transport: IMcpServerTransport = serverConfig.command
+          ? {
+              type: 'stdio',
+              command: serverConfig.command,
+              args: serverConfig.args || [],
+              env: serverConfig.env || {},
+            }
+          : serverConfig.type === 'sse' || serverConfig.url?.includes('/sse')
             ? {
-                type: 'stdio',
-                command: serverConfig.command,
-                args: serverConfig.args || [],
-                env: serverConfig.env || {},
+                type: 'sse',
+                url: serverConfig.url,
+                headers: serverConfig.headers,
               }
-            : serverConfig.type === 'sse' || serverConfig.url?.includes('/sse')
+            : serverConfig.type === 'streamable_http'
               ? {
-                  type: 'sse',
+                  type: 'streamable_http',
                   url: serverConfig.url,
                   headers: serverConfig.headers,
                 }
-              : serverConfig.type === 'streamable_http'
-                ? {
-                    type: 'streamable_http',
-                    url: serverConfig.url,
-                    headers: serverConfig.headers,
-                  }
-                : {
-                    type: 'http',
-                    url: serverConfig.url,
-                    headers: serverConfig.headers,
-                  };
+              : {
+                  type: 'http',
+                  url: serverConfig.url,
+                  headers: serverConfig.headers,
+                };
 
-          return {
-            name: serverKey,
-            description: serverConfig.description || `Imported from JSON`,
-            enabled: true,
-            transport,
-            status: 'disconnected' as const,
-            tools: [] as IMcpTool[], // JSON导入时初始化为空数组，后续可通过连接测试获取
-            originalJson: JSON.stringify({ mcpServers: { [serverKey]: serverConfig } }, null, 2),
-          };
-        });
+        return {
+          name: serverKey,
+          description: serverConfig.description || `Imported from JSON`,
+          enabled: true,
+          transport,
+          status: 'disconnected' as const,
+          tools: [] as IMcpTool[], // JSON导入时初始化为空数组，后续可通过连接测试获取
+          originalJson: JSON.stringify({ mcpServers: { [serverKey]: serverConfig } }, null, 2),
+        };
+      });
 
-        onBatchImport(serversToImport);
-        onCancel();
-        return;
-      }
+      onBatchImport(serversToImport);
+      onCancel();
+      return;
+    }
 
-      // 单个服务器导入
-      const firstServerKey = serverKeys[0];
-      const serverConfig = mcpServers[firstServerKey];
-      const transport: IMcpServerTransport = serverConfig.command
+    // 单个服务器导入
+    const firstServerKey = serverKeys[0];
+    const serverConfig = mcpServers[firstServerKey];
+    const transport: IMcpServerTransport = serverConfig.command
+      ? {
+          type: 'stdio',
+          command: serverConfig.command,
+          args: serverConfig.args || [],
+          env: serverConfig.env || {},
+        }
+      : serverConfig.type === 'sse' || serverConfig.url?.includes('/sse')
         ? {
-            type: 'stdio',
-            command: serverConfig.command,
-            args: serverConfig.args || [],
-            env: serverConfig.env || {},
+            type: 'sse',
+            url: serverConfig.url,
+            headers: serverConfig.headers,
           }
-        : serverConfig.type === 'sse' || serverConfig.url?.includes('/sse')
+        : serverConfig.type === 'streamable_http'
           ? {
-              type: 'sse',
+              type: 'streamable_http',
               url: serverConfig.url,
               headers: serverConfig.headers,
             }
-          : serverConfig.type === 'streamable_http'
-            ? {
-                type: 'streamable_http',
-                url: serverConfig.url,
-                headers: serverConfig.headers,
-              }
-            : {
-                type: 'http',
-                url: serverConfig.url,
-                headers: serverConfig.headers,
-              };
+          : {
+              type: 'http',
+              url: serverConfig.url,
+              headers: serverConfig.headers,
+            };
 
-      onSubmit({
-        name: firstServerKey,
-        description: serverConfig.description || 'Imported from JSON',
-        enabled: true,
-        transport,
-        status: 'disconnected',
-        tools: [] as IMcpTool[], // JSON导入时初始化为空数组，后续可通过连接测试获取
-        originalJson: jsonInput,
-      });
-      onCancel();
-    } catch (error) {
-      console.error('Failed to parse JSON:', error);
-      Message.error({
-        content: error instanceof Error ? error.message : 'Failed to parse JSON configuration',
-        duration: 5000,
-      });
-      return;
-    }
+    onSubmit({
+      name: firstServerKey,
+      description: serverConfig.description || 'Imported from JSON',
+      enabled: true,
+      transport,
+      status: 'disconnected',
+      tools: [] as IMcpTool[], // JSON导入时初始化为空数组，后续可通过连接测试获取
+      originalJson: jsonInput,
+    });
+    onCancel();
   };
 
   if (!visible) return null;
