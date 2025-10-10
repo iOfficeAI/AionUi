@@ -73,7 +73,7 @@ class AcpDetector {
     if (detected.length > 0) {
       detected.unshift({
         backend: 'gemini' as AcpBackend,
-        name: 'Gemini',
+        name: 'Gemini CLI',
         cliPath: undefined,
       });
     }

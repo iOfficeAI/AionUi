@@ -37,14 +37,14 @@ export interface AcpBackendConfig {
 export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
   claude: {
     id: 'claude',
-    name: 'Claude',
+    name: 'Claude Code',
     cliCommand: 'claude',
     authRequired: true,
     enabled: true,
   },
   gemini: {
     id: 'gemini',
-    name: 'Google Gemini',
+    name: 'Google CLI',
     cliCommand: 'gemini',
     authRequired: true,
     enabled: false,
