@@ -17,6 +17,14 @@ export const rendererConfig: Configuration = {
       '@process': path.resolve(__dirname, '../../src/process'),
       '@worker': path.resolve(__dirname, '../../src/worker'),
     },
+    fallback: {
+      'crypto': false,
+      'node:crypto': false,
+    },
+  },
+  externals: {
+    'node:crypto': 'commonjs2 crypto',
+    'crypto': 'commonjs2 crypto',
   },
   optimization: {
     realContentHash: true,
