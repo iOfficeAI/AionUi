@@ -24,12 +24,50 @@ interface UserCredentials {
 
 export class AuthService {
   private static readonly SALT_ROUNDS = 12;
-  private static readonly JWT_SECRET = process.env.JWT_SECRET || this.generateSecretKey();
+  private static jwtSecret: string | null = null;
   private static readonly TOKEN_EXPIRY = '30d'; // 30 days
 
   private static generateSecretKey(): string {
     // Generate a strong secret key if not provided
     return crypto.randomBytes(64).toString('hex');
+  }
+
+  // Get or create JWT secret (persistent across restarts)
+  public static getJwtSecret(): string {
+    if (this.jwtSecret) {
+      return this.jwtSecret;
+    }
+
+    // Try to get from environment variable
+    if (process.env.JWT_SECRET) {
+      this.jwtSecret = process.env.JWT_SECRET;
+      return this.jwtSecret;
+    }
+
+    // Try to get from database
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const AionDatabase = require('../database').default;
+      const db = AionDatabase.getInstance();
+
+      // Try to get existing secret from database
+      const existingSecret = db.getConfig('jwt_secret');
+      if (existingSecret) {
+        this.jwtSecret = existingSecret;
+        return this.jwtSecret;
+      }
+
+      // Generate new secret and save to database
+      const newSecret = this.generateSecretKey();
+      db.setConfig('jwt_secret', newSecret);
+      this.jwtSecret = newSecret;
+      return this.jwtSecret;
+    } catch (error) {
+      console.error('Failed to get/save JWT secret:', error);
+      // Fallback: generate temporary secret (not persistent)
+      this.jwtSecret = this.generateSecretKey();
+      return this.jwtSecret;
+    }
   }
 
   // Password hashing with strong security
@@ -48,7 +86,7 @@ export class AuthService {
       username: user.username,
     };
 
-    return jwt.sign(payload, this.JWT_SECRET, {
+    return jwt.sign(payload, this.getJwtSecret(), {
       expiresIn: this.TOKEN_EXPIRY,
       issuer: 'aionui',
       audience: 'aionui-webui',
@@ -57,7 +95,7 @@ export class AuthService {
 
   public static verifyToken(token: string): TokenPayload | null {
     try {
-      const decoded = jwt.verify(token, this.JWT_SECRET, {
+      const decoded = jwt.verify(token, this.getJwtSecret(), {
         issuer: 'aionui',
         audience: 'aionui-webui',
       }) as TokenPayload;
@@ -82,6 +120,17 @@ export class AuthService {
     });
   }
 
+  // Generate random password only
+  public static generateRandomPassword(): string {
+    const passwordLength = Math.floor(Math.random() * 5) + 12; // 12-16 chars
+    const passwordChars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
+    let password = '';
+    for (let i = 0; i < passwordLength; i++) {
+      password += passwordChars.charAt(Math.floor(Math.random() * passwordChars.length));
+    }
+    return password;
+  }
+
   // Generate secure random credentials for initial setup
   public static generateUserCredentials(): UserCredentials {
     // Generate random username (6-8 characters, alphanumeric)
@@ -92,17 +141,9 @@ export class AuthService {
       username += usernameChars.charAt(Math.floor(Math.random() * usernameChars.length));
     }
 
-    // Generate random password (12-16 characters with mixed case, numbers, and symbols)
-    const passwordLength = Math.floor(Math.random() * 5) + 12; // 12-16 chars
-    const passwordChars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
-    let password = '';
-    for (let i = 0; i < passwordLength; i++) {
-      password += passwordChars.charAt(Math.floor(Math.random() * passwordChars.length));
-    }
-
     return {
       username,
-      password,
+      password: this.generateRandomPassword(),
       createdAt: Date.now(),
     };
   }

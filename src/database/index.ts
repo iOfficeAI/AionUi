@@ -80,6 +80,13 @@ class AionDatabase {
         FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
       );
 
+      CREATE TABLE IF NOT EXISTS config (
+        key TEXT PRIMARY KEY,
+        value TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+
       CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
       CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
     `);
@@ -135,6 +142,11 @@ class AionDatabase {
     const stmt = this.db.prepare('SELECT COUNT(*) as count FROM users');
     const result = stmt.get() as { count: number };
     return result.count;
+  }
+
+  public getAllUsers(): User[] {
+    const stmt = this.db.prepare('SELECT * FROM users ORDER BY created_at ASC');
+    return stmt.all() as User[];
   }
 
   // Session operations
@@ -197,6 +209,24 @@ class AionDatabase {
   // Transaction support
   public transaction<T>(fn: () => T): T {
     return this.db.transaction(fn)();
+  }
+
+  // Config operations
+  public getConfig(key: string): string | null {
+    const stmt = this.db.prepare('SELECT value FROM config WHERE key = ?');
+    const result = stmt.get(key) as { value: string } | undefined;
+    return result?.value || null;
+  }
+
+  public setConfig(key: string, value: string): void {
+    const stmt = this.db.prepare(`
+      INSERT INTO config (key, value, updated_at)
+      VALUES (?, ?, CURRENT_TIMESTAMP)
+      ON CONFLICT(key) DO UPDATE SET
+        value = excluded.value,
+        updated_at = CURRENT_TIMESTAMP
+    `);
+    stmt.run(key, value);
   }
 }
 

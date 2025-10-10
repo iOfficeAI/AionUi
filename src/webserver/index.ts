@@ -10,6 +10,7 @@ import { WebSocketServer } from 'ws';
 import { shell } from 'electron';
 import path from 'path';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import os from 'os';
 import fs from 'fs';
 import AionDatabase from '../database';
@@ -42,8 +43,9 @@ export async function startWebServer(port: number, allowRemote = false): Promise
   // 初始化数据库
   const db = AionDatabase.getInstance();
 
-  // 生成随机用户凭证（仅在没有用户时）
+  // 生成随机用户凭证
   if (!db.hasUsers()) {
+    // 首次启动：创建新用户
     globalUserCredentials = AuthService.generateUserCredentials();
     const hashedPassword = await AuthService.hashPassword(globalUserCredentials.password);
 
@@ -60,11 +62,39 @@ export async function startWebServer(port: number, allowRemote = false): Promise
     } catch (error) {
       console.error('Failed to create initial user:', error);
     }
+  } else {
+    // 数据库已有用户：自动重置密码以显示明文凭证
+    const users = db.getAllUsers();
+    if (users.length > 0) {
+      const user = users[0]; // 使用第一个用户
+      globalUserCredentials = {
+        username: user.username,
+        password: AuthService.generateRandomPassword(),
+        createdAt: Date.now(),
+      };
+      const hashedPassword = await AuthService.hashPassword(globalUserCredentials.password);
+
+      try {
+        db.updateUserPassword(user.id, hashedPassword);
+
+        console.log('\n📋 =================================');
+        console.log('🔐 WEB ACCESS CREDENTIALS');
+        console.log('📋 =================================');
+        console.log(`👤 Username: ${globalUserCredentials.username}`);
+        console.log(`🔑 Password: ${globalUserCredentials.password}`);
+        console.log('📋 =================================');
+        console.log('⚠️  Please save these credentials safely!');
+        console.log('📋 =================================\n');
+      } catch (error) {
+        console.error('Failed to reset password:', error);
+      }
+    }
   }
 
   // 基础中间件
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+  app.use(cookieParser());
 
   // 安全中间件
   app.use(AuthMiddleware.securityHeadersMiddleware);
@@ -174,6 +204,12 @@ export async function startWebServer(port: number, allowRemote = false): Promise
     try {
       const authHeader = req.headers.authorization;
       const sessionCookie = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : req.cookies['aionui-session'];
+
+      // 如果有 cookie 但验证失败，清除它
+      if (sessionCookie && !isTokenValid(sessionCookie)) {
+        res.clearCookie('aionui-session');
+        // 不要 return，继续显示登录页
+      }
 
       // 如果已有有效cookie，直接进入应用
       if (sessionCookie && isTokenValid(sessionCookie)) {
@@ -367,6 +403,11 @@ export async function startWebServer(port: number, allowRemote = false): Promise
       console.error('Error serving index.html:', error);
       res.status(500).send('Internal Server Error');
     }
+  });
+
+  // 处理 favicon 请求
+  app.get('/favicon.ico', (_req, res) => {
+    res.status(204).end(); // No Content
   });
 
   // 处理子路径路由 (React Router)
@@ -637,7 +678,6 @@ export async function resetPassword(username?: string): Promise<void> {
       }
 
       console.log(`📊 Found ${users} user(s) in the database`);
-      console.log('💡 Use: npm run reset-password <username>');
     }
   } catch (error) {
     console.error('❌ Password reset failed:', error);
