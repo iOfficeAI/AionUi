@@ -19,8 +19,8 @@ const getStatusIcon = (status?: IMcpServer['status']) => {
   switch (status) {
     case 'connected':
       return <Check fill={'#00b42a'} className={'h-[24px] items-center'} />;
-    case 'testing':
-      return <Loading fill={'#165dff'} className={'h-[24px]'} />;
+    // case 'testing':
+    //   return <Loading fill={'#165dff'} className={'h-[24px]'} />;
     case 'error':
       return <CloseSmall fill={'#f53f3f'} className={'h-[24px]'} />;
     default:
