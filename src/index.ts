@@ -68,6 +68,16 @@ ipcBridge.application.openDevTools.provider(async () => {
 // Some APIs can only be used after this event occurs.
 app.on('ready', async () => {
   if (isWebUIMode) {
+    // Create a hidden window to prevent network service crashes in WebUI mode
+    const hiddenWindow = new BrowserWindow({
+      show: false,
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true,
+      },
+    });
+    hiddenWindow.loadURL('about:blank');
+
     await startWebServer(25808, isRemoteMode);
   } else {
     createWindow();

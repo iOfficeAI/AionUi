@@ -148,8 +148,11 @@ export class AuthMiddleware {
     // Referrer policy
     res.header('Referrer-Policy', 'strict-origin-when-cross-origin');
 
-    // Content Security Policy
-    res.header('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self';");
+    // Content Security Policy (relaxed in development for webpack-dev-server)
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    const cspPolicy = isDevelopment ? "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' ws: wss:;" : "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self';";
+
+    res.header('Content-Security-Policy', cspPolicy);
 
     next();
   }
