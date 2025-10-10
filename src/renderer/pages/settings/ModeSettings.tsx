@@ -1,7 +1,7 @@
 import { ipcBridge } from '@/common';
 import type { IProvider } from '@/common/storage';
 import { Button, Collapse, Divider, Message, Popconfirm } from '@arco-design/web-react';
-import { DeleteFour, Minus, Plus, Write } from '@icon-park/react';
+import { DeleteFour, Info, Minus, Plus, Write } from '@icon-park/react';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
@@ -90,79 +90,93 @@ const ModelSettings: React.FC = () => {
       {editModalContext}
       {addModelModalContext}
       {messageContext}
-      {(data || []).map((platform, index) => {
-        const key = platform.id;
-        return (
-          <Collapse
-            activeKey={collapseKey[key] ? ['1'] : []}
-            onChange={() => {
-              setCollapseKey({ ...collapseKey, [key]: !collapseKey[key] });
-            }}
-            style={{ maxWidth: 1180 }}
-            className={'mb-20px'}
-            key={key}
-          >
-            <Collapse.Item
-              header={
-                <div className='flex items-center justify-between'>
-                  {platform.name}
-                  <div className='flex items-center gap-10px' onClick={(e) => e.stopPropagation()}>
-                    <span className='text-12px'>
-                      {t('settings.modelCount')}（{platform.model.length}）| {t('settings.apiKeyCount')}（{getApiKeyCount(platform.apiKey)}）
-                    </span>
-                    <Button
-                      size='mini'
-                      icon={<Plus size={'14'} className=''></Plus>}
-                      onClick={(e) => {
-                        addModelModalCtrl.open({ data: platform });
-                      }}
-                    ></Button>
-                    <Popconfirm
-                      title={t('settings.deleteAllModelConfirm')}
-                      onOk={() => {
-                        removePlatform(platform.id);
-                      }}
-                    >
-                      <Button size='mini' icon={<Minus size={'14'} />}></Button>
-                    </Popconfirm>
-                    <Button
-                      size='mini'
-                      icon={<Write size={'14'}></Write>}
-                      onClick={(e) => {
-                        editModalCtrl.open({ data: platform });
-                      }}
-                    ></Button>
-                  </div>
-                </div>
-              }
-              name='1'
-              className={'[&_div.arco-collapse-item-content-box]:py-10px [&_div.arco-collapse-item-header-title]:flex-1'}
+      {!data || data.length === 0 ? (
+        <div className='flex flex-col items-center justify-center py-20px'>
+          <Info theme='outline' size='48' className='text-gray-400 mb-16px' />
+          <h3 className='text-18px font-medium text-gray-700 mb-8px'>{t('settings.noConfiguredModels')}</h3>
+          <p className='text-14px text-gray-500 text-center'>
+            {t('settings.needHelpConfigGuide')}
+            <a href='https://github.com/iOfficeAI/AionUi/wiki/LLM-Configuration' target='_blank' rel='noopener noreferrer' className='text-blue-600 hover:text-blue-800 underline ml-4px'>
+              {t('settings.configGuide')}
+            </a>
+            {t('settings.configGuideSuffix')}
+          </p>
+        </div>
+      ) : (
+        (data || []).map((platform, index) => {
+          const key = platform.id;
+          return (
+            <Collapse
+              activeKey={collapseKey[key] ? ['1'] : []}
+              onChange={() => {
+                setCollapseKey({ ...collapseKey, [key]: !collapseKey[key] });
+              }}
+              style={{ maxWidth: 1180 }}
+              className={'mb-20px'}
+              key={key}
             >
-              {platform.model.map((model, index, arr) => {
-                return (
-                  <div key={model}>
-                    <div className='flex items-center justify-between'>
-                      <span>{model}</span>
+              <Collapse.Item
+                header={
+                  <div className='flex items-center justify-between'>
+                    {platform.name}
+                    <div className='flex items-center gap-10px' onClick={(e) => e.stopPropagation()}>
+                      <span className='text-12px'>
+                        {t('settings.modelCount')}（{platform.model.length}）| {t('settings.apiKeyCount')}（{getApiKeyCount(platform.apiKey)}）
+                      </span>
+                      <Button
+                        size='mini'
+                        icon={<Plus size={'14'} className=''></Plus>}
+                        onClick={(e) => {
+                          addModelModalCtrl.open({ data: platform });
+                        }}
+                      ></Button>
                       <Popconfirm
-                        title={t('settings.deleteModelConfirm')}
+                        title={t('settings.deleteAllModelConfirm')}
                         onOk={() => {
-                          const newModels = platform.model.filter((item) => item !== model);
-                          updatePlatform({ ...platform, model: newModels }, () => {
-                            setCacheKey('model.config' + Date.now());
-                          });
+                          removePlatform(platform.id);
                         }}
                       >
-                        <Button icon={<DeleteFour theme='outline' size='20' strokeWidth={2} />}></Button>
+                        <Button size='mini' icon={<Minus size={'14'} />}></Button>
                       </Popconfirm>
+                      <Button
+                        size='mini'
+                        icon={<Write size={'14'}></Write>}
+                        onClick={(e) => {
+                          editModalCtrl.open({ data: platform });
+                        }}
+                      ></Button>
                     </div>
-                    {index < arr.length - 1 && <Divider className='!my-10px'></Divider>}
                   </div>
-                );
-              })}
-            </Collapse.Item>
-          </Collapse>
-        );
-      })}
+                }
+                name='1'
+                className={'[&_div.arco-collapse-item-content-box]:py-10px [&_div.arco-collapse-item-header-title]:flex-1'}
+              >
+                {platform.model.map((model, index, arr) => {
+                  return (
+                    <div key={model}>
+                      <div className='flex items-center justify-between'>
+                        <span>{model}</span>
+                        <Popconfirm
+                          title={t('settings.deleteModelConfirm')}
+                          onOk={() => {
+                            const newModels = platform.model.filter((item) => item !== model);
+                            updatePlatform({ ...platform, model: newModels }, () => {
+                              setCacheKey('model.config' + Date.now());
+                            });
+                          }}
+                        >
+                          <Button icon={<DeleteFour theme='outline' size='20' strokeWidth={2} />}></Button>
+                        </Popconfirm>
+                      </div>
+                      {index < arr.length - 1 && <Divider className='!my-10px'></Divider>}
+                    </div>
+                  );
+                })}
+              </Collapse.Item>
+            </Collapse>
+          );
+        })
+      )}
     </SettingContainer>
   );
 };

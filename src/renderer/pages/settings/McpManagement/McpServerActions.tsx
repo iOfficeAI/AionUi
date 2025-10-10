@@ -1,24 +1,21 @@
 import { Button, Dropdown, Menu, Switch } from '@arco-design/web-react';
-import { DeleteFour, SettingOne, Wifi, Write } from '@icon-park/react';
+import { DeleteFour, SettingOne, Write } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { IMcpServer } from '@/common/storage';
 
 interface McpServerActionsProps {
   server: IMcpServer;
-  isTestingConnection: boolean;
-  onTestConnection: (server: IMcpServer) => void;
   onEditServer: (server: IMcpServer) => void;
   onDeleteServer: (serverId: string) => void;
   onToggleServer: (serverId: string, enabled: boolean) => void;
 }
 
-const McpServerActions: React.FC<McpServerActionsProps> = ({ server, isTestingConnection, onTestConnection, onEditServer, onDeleteServer, onToggleServer }) => {
+const McpServerActions: React.FC<McpServerActionsProps> = ({ server, onEditServer, onDeleteServer, onToggleServer }) => {
   const { t } = useTranslation();
 
   return (
     <>
-      <Button size='mini' icon={<Wifi size={'14'} />} title={t('settings.mcpTestConnection')} loading={isTestingConnection} onClick={() => onTestConnection(server)} />
       <Dropdown
         trigger='hover'
         droplist={
@@ -41,12 +38,7 @@ const McpServerActions: React.FC<McpServerActionsProps> = ({ server, isTestingCo
         <Button size='mini' icon={<SettingOne size={'14'} />} />
       </Dropdown>
 
-      <Switch
-        checked={server.enabled}
-        onChange={(checked) => onToggleServer(server.id, checked)}
-        size='small'
-        disabled={server.status === 'disconnected' || server.status === 'error'}
-      />
+      <Switch checked={server.enabled} onChange={(checked) => onToggleServer(server.id, checked)} size='small' disabled={server.status === 'testing'} />
     </>
   );
 };

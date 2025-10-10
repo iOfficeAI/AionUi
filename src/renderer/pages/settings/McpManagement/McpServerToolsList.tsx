@@ -1,5 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { Tooltip } from '@arco-design/web-react';
 import type { IMcpServer } from '@/common/storage';
 
 interface McpServerToolsListProps {
@@ -24,7 +25,9 @@ const McpServerToolsList: React.FC<McpServerToolsListProps> = ({ server }) => {
                   <div className='font-medium text-sm text-blue-600 break-words'>{tool.name}</div>
                 </div>
                 <div className='flex-1 min-w-0'>
-                  <div className='text-xs text-gray-600 break-words'>{tool.description || t('settings.mcpNoDescription')}</div>
+                  <Tooltip content={tool.description || t('settings.mcpNoDescription')}>
+                    <div className='text-xs text-gray-600 line-clamp-1 cursor-pointer'>{tool.description || t('settings.mcpNoDescription')}</div>
+                  </Tooltip>
                 </div>
               </div>
             </div>

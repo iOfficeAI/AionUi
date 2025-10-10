@@ -1,13 +1,15 @@
-import { Check, CloseOne, CloseSmall, Loading } from '@icon-park/react';
-import React from 'react';
 import type { IMcpServer } from '@/common/storage';
+import { Button } from '@arco-design/web-react';
+import { Check, CloseOne, CloseSmall, LoadingOne, Refresh } from '@icon-park/react';
+import React from 'react';
+import { useTranslation } from 'react-i18next';
 import McpAgentStatusDisplay from './McpAgentStatusDisplay';
 import McpServerActions from './McpServerActions';
 
 interface McpServerHeaderProps {
   server: IMcpServer;
   agentInstallStatus: Record<string, string[]>;
-  isLoadingAgentStatus: boolean;
+  isServerLoading: (serverName: string) => boolean;
   isTestingConnection: boolean;
   onTestConnection: (server: IMcpServer) => void;
   onEditServer: (server: IMcpServer) => void;
@@ -18,42 +20,29 @@ interface McpServerHeaderProps {
 const getStatusIcon = (status?: IMcpServer['status']) => {
   switch (status) {
     case 'connected':
-      return <Check style={{ color: '#00b42a' }} className={'h-[24px] items-center'} />;
+      return <Check fill={'#00b42a'} className={'h-[24px] items-center'} />;
     case 'testing':
-      return <Loading style={{ color: '#165dff' }} className={'h-[24px]'} />;
+      return <LoadingOne fill={'#165dff'} className={'h-[24px]'} />;
     case 'error':
-      return <CloseSmall style={{ color: '#f53f3f' }} className={'h-[24px]'} />;
+      return <CloseSmall fill={'#f53f3f'} className={'h-[24px]'} />;
     default:
-      return <CloseOne style={{ color: '#86909c' }} className={'h-[24px]'} />;
+      return <CloseOne fill={'#86909c'} className={'h-[24px]'} />;
   }
 };
 
-const McpServerHeader: React.FC<McpServerHeaderProps> = ({
-  server,
-  agentInstallStatus,
-  isLoadingAgentStatus,
-  isTestingConnection,
-  onTestConnection,
-  onEditServer,
-  onDeleteServer,
-  onToggleServer,
-}) => {
+const McpServerHeader: React.FC<McpServerHeaderProps> = ({ server, agentInstallStatus, isServerLoading, isTestingConnection, onTestConnection, onEditServer, onDeleteServer, onToggleServer }) => {
+  const { t } = useTranslation();
+
   return (
     <div className='flex items-center justify-between'>
       <div className='flex items-center gap-2'>
         <span>{server.name}</span>
         <span className='flex items-center mt-8px'>{getStatusIcon(server.status)}</span>
+        <Button size='mini' icon={<Refresh size={'14'} />} title={t('settings.mcpTestConnection')} loading={isTestingConnection} onClick={() => onTestConnection(server)} />
       </div>
       <div className='flex items-center gap-2' onClick={(e) => e.stopPropagation()}>
-        <McpAgentStatusDisplay serverName={server.name} agentInstallStatus={agentInstallStatus} isLoadingAgentStatus={isLoadingAgentStatus} />
-        <McpServerActions
-          server={server}
-          isTestingConnection={isTestingConnection}
-          onTestConnection={onTestConnection}
-          onEditServer={onEditServer}
-          onDeleteServer={onDeleteServer}
-          onToggleServer={onToggleServer}
-        />
+        <McpAgentStatusDisplay serverName={server.name} agentInstallStatus={agentInstallStatus} isLoadingAgentStatus={isServerLoading(server.name)} />
+        <McpServerActions server={server} onEditServer={onEditServer} onDeleteServer={onDeleteServer} onToggleServer={onToggleServer} />
       </div>
     </div>
   );

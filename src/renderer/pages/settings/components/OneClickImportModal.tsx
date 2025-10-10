@@ -162,8 +162,7 @@ const OneClickImportModal: React.FC<OneClickImportModalProps> = ({ visible, onCa
                     <div className='font-medium'>{server.name}</div>
                     {server.description && <div className='text-sm text-gray-500'>{server.description}</div>}
                     <div className='text-xs text-gray-400 mt-1'>
-                      {server.transport.type.toUpperCase()}:{' '}
-                      {server.transport.type === 'stdio' ? `${server.transport.command} ${server.transport.args?.join(' ')}` : server.transport.url}
+                      {server.transport.type.toUpperCase()}: {server.transport.type === 'stdio' ? `${server.transport.command} ${server.transport.args?.join(' ')}` : server.transport.url}
                     </div>
                   </div>
                 </div>

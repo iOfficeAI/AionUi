@@ -133,7 +133,7 @@ const AddPlatformModal = ModalHOC<{
 
   useEffect(() => {
     if (platform?.includes('gemini')) {
-      modelListState.mutate();
+      void modelListState.mutate();
     }
   }, [platform]);
 
@@ -187,13 +187,7 @@ const AddPlatformModal = ModalHOC<{
             }}
           ></Select>
         </Form.Item>
-        <Form.Item
-          hidden={platform !== 'custom' && platform !== 'gemini'}
-          label='base url'
-          required={platform !== 'gemini'}
-          rules={[{ required: platform !== 'gemini' }]}
-          field={'baseUrl'}
-        >
+        <Form.Item hidden={platform !== 'custom' && platform !== 'gemini'} label='base url' required={platform !== 'gemini'} rules={[{ required: platform !== 'gemini' }]} field={'baseUrl'}>
           {platform === 'custom' ? (
             <Select
               showSearch
@@ -242,27 +236,14 @@ const AddPlatformModal = ModalHOC<{
         <Form.Item hidden={platform !== 'custom'} label={t('settings.platformName')} required rules={[{ required: true }]} field={'name'} initialValue={'gemini'}>
           <Input></Input>
         </Form.Item>
-        <Form.Item
-          label='API Key'
-          required
-          rules={[{ required: true }]}
-          field={'apiKey'}
-          extra={<div style={{ fontSize: '11px', color: '#999', marginTop: '4px', lineHeight: '1.4' }}>{t('settings.multiApiKeyTip')}</div>}
-        >
+        <Form.Item label='API Key' required rules={[{ required: true }]} field={'apiKey'} extra={<div style={{ fontSize: '11px', color: '#999', marginTop: '4px', lineHeight: '1.4' }}>{t('settings.multiApiKeyTip')}</div>}>
           <Input
             onBlur={() => {
-              modelListState.mutate();
+              void modelListState.mutate();
             }}
           ></Input>
         </Form.Item>
-        <Form.Item
-          label={t('settings.modelName')}
-          field={'model'}
-          required
-          rules={[{ required: true }]}
-          validateStatus={modelListState.error ? 'error' : 'success'}
-          help={modelListState.error}
-        >
+        <Form.Item label={t('settings.modelName')} field={'model'} required rules={[{ required: true }]} validateStatus={modelListState.error ? 'error' : 'success'} help={modelListState.error}>
           <Select
             loading={modelListState.isLoading}
             showSearch
@@ -275,7 +256,7 @@ const AddPlatformModal = ModalHOC<{
                     message.warning(t('settings.pleaseEnterBaseUrlAndApiKey'));
                     return;
                   }
-                  modelListState.mutate();
+                  void modelListState.mutate();
                 }}
                 className='flex'
               />
