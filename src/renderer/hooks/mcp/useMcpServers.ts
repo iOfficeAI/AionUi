@@ -17,8 +17,8 @@ export const useMcpServers = () => {
           setMcpServers(data);
         }
       })
-      .catch(() => {
-        // Handle loading error silently
+      .catch((error) => {
+        console.error('[useMcpServers] Failed to load MCP config:', error);
       });
   }, []);
 

@@ -1,6 +1,8 @@
 import type { IMcpServer } from '@/common/storage';
-import { Check, CloseOne, CloseSmall, LoadingOne } from '@icon-park/react';
+import { Button } from '@arco-design/web-react';
+import { Check, CloseOne, CloseSmall, LoadingOne, Refresh } from '@icon-park/react';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import McpAgentStatusDisplay from './McpAgentStatusDisplay';
 import McpServerActions from './McpServerActions';
 
@@ -29,15 +31,18 @@ const getStatusIcon = (status?: IMcpServer['status']) => {
 };
 
 const McpServerHeader: React.FC<McpServerHeaderProps> = ({ server, agentInstallStatus, isServerLoading, isTestingConnection, onTestConnection, onEditServer, onDeleteServer, onToggleServer }) => {
+  const { t } = useTranslation();
+
   return (
     <div className='flex items-center justify-between'>
       <div className='flex items-center gap-2'>
         <span>{server.name}</span>
         <span className='flex items-center mt-8px'>{getStatusIcon(server.status)}</span>
+        <Button size='mini' icon={<Refresh size={'14'} />} title={t('settings.mcpTestConnection')} loading={isTestingConnection} onClick={() => onTestConnection(server)} />
       </div>
       <div className='flex items-center gap-2' onClick={(e) => e.stopPropagation()}>
         <McpAgentStatusDisplay serverName={server.name} agentInstallStatus={agentInstallStatus} isLoadingAgentStatus={isServerLoading(server.name)} />
-        <McpServerActions server={server} isTestingConnection={isTestingConnection} onTestConnection={onTestConnection} onEditServer={onEditServer} onDeleteServer={onDeleteServer} onToggleServer={onToggleServer} />
+        <McpServerActions server={server} onEditServer={onEditServer} onDeleteServer={onDeleteServer} onToggleServer={onToggleServer} />
       </div>
     </div>
   );

@@ -97,15 +97,11 @@ export class GeminiMcpAgent extends AbstractMcpAgent {
                         url: commandStr.trim(),
                       };
 
-              // 尝试获取tools信息（仅对已连接的stdio服务器）
+              // 尝试获取tools信息（对所有已连接的服务器）
               let tools: Array<{ name: string; description?: string }> = [];
-              if (status === 'Connected' && transportType === 'stdio') {
+              if (status === 'Connected') {
                 try {
-                  const testResult = await this.testStdioConnection({
-                    command: command,
-                    args: args,
-                    env: {},
-                  });
+                  const testResult = await this.testMcpConnection(transportObj);
                   tools = testResult.tools || [];
                 } catch (error) {
                   console.warn(`[GeminiMcpAgent] Failed to get tools for ${name.trim()}:`, error);

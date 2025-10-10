@@ -12,7 +12,7 @@ import { IflowMcpAgent } from './agents/IflowMcpAgent';
 import { GeminiMcpAgent } from './agents/GeminiMcpAgent';
 import { AionuiMcpAgent } from './agents/AionuiMcpAgent';
 import { CodexMcpAgent } from './agents/CodexMcpAgent';
-import type { IMcpProtocol, DetectedMcpServer, McpConnectionTestResult, McpSyncResult } from './McpProtocol';
+import type { IMcpProtocol, DetectedMcpServer, McpConnectionTestResult, McpSyncResult, McpSource } from './McpProtocol';
 
 /**
  * MCP服务 - 负责协调各个Agent的MCP操作协议
@@ -23,7 +23,7 @@ import type { IMcpProtocol, DetectedMcpServer, McpConnectionTestResult, McpSyncR
  * - 'aionui': @office-ai/aioncli-core (AionUi 本地管理的 Gemini 实现)
  */
 export class McpService {
-  private agents: Map<AcpBackend | 'aionui', IMcpProtocol>;
+  private agents: Map<McpSource, IMcpProtocol>;
 
   constructor() {
     this.agents = new Map([
@@ -39,7 +39,7 @@ export class McpService {
   /**
    * 获取特定backend的agent实例
    */
-  private getAgent(backend: AcpBackend | 'aionui'): IMcpProtocol | undefined {
+  private getAgent(backend: McpSource): IMcpProtocol | undefined {
     return this.agents.get(backend);
   }
 
@@ -102,7 +102,7 @@ export class McpService {
 
         if (servers.length > 0) {
           return {
-            source: agent.backend as AcpBackend | 'aionui',
+            source: agent.backend as McpSource,
             servers,
           };
         }
