@@ -47,6 +47,6 @@ export function initAuthBridge(): void {
   });
 
   ipcBridge.googleAuth.logout.provider(async () => {
-    return clearCachedCredentialFile();
+    return await clearCachedCredentialFile();
   });
 }
