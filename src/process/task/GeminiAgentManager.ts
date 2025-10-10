@@ -7,7 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { TMessage } from '@/common/chatLib';
 import { transformMessage } from '@/common/chatLib';
-import type { TProviderWithModel } from '@/common/storage';
+import type { TProviderWithModel, IMcpServer } from '@/common/storage';
 import { ProcessConfig } from '@/process/initStorage';
 import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '../message';
 import BaseAgentManager from './BaseAgentManager';
@@ -18,6 +18,7 @@ export class GeminiAgentManager extends BaseAgentManager<{
   model: TProviderWithModel;
   imageGenerationModel?: TProviderWithModel;
   webSearchEngine?: 'google' | 'default';
+  mcpServers?: Record<string, any>;
 }> {
   workspace: string;
   model: TProviderWithModel;
@@ -27,7 +28,7 @@ export class GeminiAgentManager extends BaseAgentManager<{
     this.workspace = data.workspace;
     this.conversation_id = data.conversation_id;
     this.model = model;
-    this.bootstrap = Promise.all([ProcessConfig.get('gemini.config'), this.getImageGenerationModel()]).then(([config, imageGenerationModel]) => {
+    this.bootstrap = Promise.all([ProcessConfig.get('gemini.config'), this.getImageGenerationModel(), this.getMcpServers()]).then(([config, imageGenerationModel, mcpServers]) => {
       console.log('gemini.config.bootstrap', config, imageGenerationModel);
       return this.start({
         ...config,
@@ -35,10 +36,11 @@ export class GeminiAgentManager extends BaseAgentManager<{
         model: this.model,
         imageGenerationModel,
         webSearchEngine: data.webSearchEngine,
+        mcpServers,
       });
     });
   }
-  private async getImageGenerationModel(): Promise<TProviderWithModel | undefined> {
+  private getImageGenerationModel(): Promise<TProviderWithModel | undefined> {
     return ProcessConfig.get('tools.imageGenerationModel')
       .then((imageGenerationModel) => {
         if (imageGenerationModel && imageGenerationModel.switch) {
@@ -47,6 +49,36 @@ export class GeminiAgentManager extends BaseAgentManager<{
         return undefined;
       })
       .catch(() => Promise.resolve(undefined));
+  }
+
+  private async getMcpServers(): Promise<Record<string, any>> {
+    try {
+      const mcpServers = await ProcessConfig.get('mcp.config');
+      if (!mcpServers || !Array.isArray(mcpServers)) {
+        return {};
+      }
+
+      // 转换为 aioncli-core 期望的格式
+      const mcpConfig: Record<string, any> = {};
+      mcpServers
+        .filter((server: IMcpServer) => server.enabled && server.status === 'connected') // 只使用启用且连接成功的服务器
+        .forEach((server: IMcpServer) => {
+          // 只处理 stdio 类型的传输方式，因为 aioncli-core 只支持这种类型
+          if (server.transport.type === 'stdio') {
+            mcpConfig[server.name] = {
+              command: server.transport.command,
+              args: server.transport.args || [],
+              env: server.transport.env || {},
+              description: server.description,
+            };
+          }
+        });
+
+      return mcpConfig;
+    } catch (error) {
+      console.warn('[GeminiAgentManager] Failed to load MCP servers:', error);
+      return {};
+    }
   }
   sendMessage(data: { input: string; msg_id: string }) {
     const message: TMessage = {
@@ -98,10 +130,7 @@ export class GeminiAgentManager extends BaseAgentManager<{
     });
   }
   // 发送tools用户确认的消息
-  async confirmMessage(data: { confirmKey: string; msg_id: string; callId: string }) {
+  confirmMessage(data: { confirmKey: string; msg_id: string; callId: string }) {
     return this.postMessagePromise(data.callId, data.confirmKey);
-  }
-  getWorkspace() {
-    return this.bootstrap.then(() => this.postMessagePromise('gemini.get.workspace', {}));
   }
 }
