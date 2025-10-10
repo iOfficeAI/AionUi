@@ -32,7 +32,10 @@ export class ClaudeMcpAgent extends AbstractMcpAgent {
     const detectOperation = async () => {
       try {
         // 使用Claude Code CLI命令获取MCP配置
-        const { stdout: result } = await execAsync('claude mcp list', { timeout: this.timeout });
+        const { stdout: result } = await execAsync('claude mcp list', {
+          timeout: this.timeout,
+          env: { ...process.env, NODE_OPTIONS: '' }, // 清除调试选项，避免调试器附加
+        });
 
         // 如果没有配置任何MCP服务器，返回空数组
         if (result.includes('No MCP servers configured') || !result.trim()) {
@@ -158,7 +161,10 @@ export class ClaudeMcpAgent extends AbstractMcpAgent {
             }
 
             try {
-              await execAsync(command, { timeout: 5000 });
+              await execAsync(command, {
+                timeout: 5000,
+                env: { ...process.env, NODE_OPTIONS: '' }, // 清除调试选项，避免调试器附加
+              });
               console.log(`[ClaudeMcpAgent] Added MCP server: ${server.name}`);
             } catch (error) {
               console.warn(`Failed to add MCP ${server.name} to Claude Code:`, error);
@@ -192,7 +198,10 @@ export class ClaudeMcpAgent extends AbstractMcpAgent {
         for (const scope of scopes) {
           try {
             const removeCommand = `claude mcp remove -s ${scope} "${mcpServerName}"`;
-            const result = await execAsync(removeCommand, { timeout: 5000 });
+            const result = await execAsync(removeCommand, {
+              timeout: 5000,
+              env: { ...process.env, NODE_OPTIONS: '' }, // 清除调试选项，避免调试器附加
+            });
 
             // 检查是否成功删除
             if (result.stdout && result.stdout.includes('removed')) {
