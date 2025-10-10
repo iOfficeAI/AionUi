@@ -1,9 +1,0 @@
-{
-  "mcpServers": {
-    "Bazi": {
-      "command": "npx",
-      "args": ["bazi-mcp"],
-      "description": "Imported from JSON"
-    }
-  }
-}

@@ -23,6 +23,7 @@ const AddMcpServerModal: React.FC<AddMcpServerModalProps> = ({ visible, server, 
       const loadAgents = async () => {
         try {
           const response = await acpConversation.getAvailableAgents.invoke();
+
           if (response.success && response.data) {
             const agents = response.data.map((agent) => ({ backend: agent.backend, name: agent.name }));
 
@@ -34,9 +35,11 @@ const AddMcpServerModal: React.FC<AddMcpServerModalProps> = ({ visible, server, 
             } else if (importMode === 'oneclick') {
               setShowOneClickModal(true);
             }
+          } else {
+            setShowJsonModal(true);
           }
         } catch (error) {
-          console.error('Failed to load agents:', error);
+          console.error('[AddMcpServerModal] Failed to load agents:', error);
           setShowJsonModal(true);
         }
       };
@@ -44,6 +47,10 @@ const AddMcpServerModal: React.FC<AddMcpServerModalProps> = ({ visible, server, 
     } else if (visible && server) {
       // 编辑现有服务器时直接显示JSON模态框
       setShowJsonModal(true);
+    } else if (!visible) {
+      // 当 modal 关闭时，重置状态
+      setShowJsonModal(false);
+      setShowOneClickModal(false);
     }
   }, [visible, server, importMode]);
 

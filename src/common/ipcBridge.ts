@@ -7,6 +7,7 @@
 import { bridge } from '@office-ai/platform';
 import type { OpenDialogOptions } from 'electron';
 import type { AcpBackend } from '../types/acpTypes';
+import type { McpSource } from '../process/services/mcpServices/McpProtocol';
 import type { IProvider, TChatConversation, TProviderWithModel, IMcpServer } from './storage';
 // 发送消息
 const sendMessage = bridge.buildProvider<IBridgeResponse<{}>, ISendMessageParams>('chat.send.message');
@@ -22,10 +23,13 @@ export const shell = {
 //通用会话能力
 export const conversation = {
   create: bridge.buildProvider<TChatConversation, ICreateConversationParams>('create-conversation'), // 创建对话
+  createWithConversation: bridge.buildProvider<TChatConversation, { conversation: TChatConversation }>('create-conversation-with-conversation'), // 通过历史会话创建新对话
   get: bridge.buildProvider<TChatConversation, { id: string }>('get-conversation'), // 获取对话信息
+  getAssociateConversation: bridge.buildProvider<TChatConversation[], { conversation_id: string }>('get-associated-conversation'), // 获取关联对话
   remove: bridge.buildProvider<boolean, { id: string }>('remove-conversation'), // 删除对话
   reset: bridge.buildProvider<void, IResetConversationParams>('reset-conversation'), // 重置对话
   stop: bridge.buildProvider<IBridgeResponse<{}>, { conversation_id: string }>('chat.stop.stream'), // 停止会话
+  confirmMessage: bridge.buildProvider<IBridgeResponse, IConfirmGeminiMessageParams>('conversation.confirm.message'), // 通用确认消息
 };
 
 // gemini对话相关接口
@@ -33,7 +37,7 @@ export const geminiConversation = {
   sendMessage: sendMessage,
   confirmMessage: bridge.buildProvider<IBridgeResponse, IConfirmGeminiMessageParams>('input.confirm.message'),
   responseStream: responseStream,
-  getWorkspace: bridge.buildProvider<IDirOrFile[], { workspace: string }>('gemini.get-workspace'),
+  getWorkspace: bridge.buildProvider<IDirOrFile[], { conversation_id: string }>('gemini.get-workspace'),
 };
 
 export const application = {
@@ -77,16 +81,27 @@ export const acpConversation = {
   detectCliPath: bridge.buildProvider<IBridgeResponse<{ path?: string }>, { backend: AcpBackend }>('acp.detect-cli-path'),
   getAvailableAgents: bridge.buildProvider<IBridgeResponse<Array<{ backend: AcpBackend; name: string; cliPath?: string }>>, void>('acp.get-available-agents'),
   checkEnv: bridge.buildProvider<{ env: Record<string, string> }, void>('acp.check.env'),
-  getWorkspace: bridge.buildProvider<IDirOrFile[], { workspace: string }>('acp.get-workspace'),
+  getWorkspace: bridge.buildProvider<IDirOrFile[], { conversation_id: string }>('acp.get-workspace'),
   // clearAllCache: bridge.buildProvider<IBridgeResponse<{ details?: any }>, void>('acp.clear.all.cache'),
 };
 
 // MCP 服务相关接口
 export const mcpService = {
-  getAgentMcpConfigs: bridge.buildProvider<IBridgeResponse<Array<{ source: AcpBackend; servers: IMcpServer[] }>>, Array<{ backend: AcpBackend; name: string; cliPath?: string }>>('mcp.get-agent-configs'),
+  getAgentMcpConfigs: bridge.buildProvider<IBridgeResponse<Array<{ source: McpSource; servers: IMcpServer[] }>>, Array<{ backend: AcpBackend; name: string; cliPath?: string }>>('mcp.get-agent-configs'),
   testMcpConnection: bridge.buildProvider<IBridgeResponse<{ success: boolean; tools?: Array<{ name: string; description?: string }>; error?: string }>, IMcpServer>('mcp.test-connection'),
   syncMcpToAgents: bridge.buildProvider<IBridgeResponse<{ success: boolean; results: Array<{ agent: string; success: boolean; error?: string }> }>, { mcpServers: IMcpServer[]; agents: Array<{ backend: AcpBackend; name: string; cliPath?: string }> }>('mcp.sync-to-agents'),
   removeMcpFromAgents: bridge.buildProvider<IBridgeResponse<{ success: boolean; results: Array<{ agent: string; success: boolean; error?: string }> }>, { mcpServerName: string; agents: Array<{ backend: AcpBackend; name: string; cliPath?: string }> }>('mcp.remove-from-agents'),
+};
+
+// Codex 对话相关接口（MCP 直连，会与 ACP/Gemini 并存）
+const codexSendMessage = bridge.buildProvider<IBridgeResponse<{}>, ISendMessageParams>('codex.send.message');
+const codexResponseStream = bridge.buildEmitter<IResponseMessage>('codex.response.stream');
+
+export const codexConversation = {
+  sendMessage: codexSendMessage,
+  confirmMessage: bridge.buildProvider<IBridgeResponse, IConfirmAcpMessageParams>('codex.input.confirm.message'),
+  responseStream: codexResponseStream,
+  getWorkspace: bridge.buildProvider<IDirOrFile[], { conversation_id: string }>('codex.get-workspace'),
 };
 
 interface ISendMessageParams {
@@ -94,6 +109,7 @@ interface ISendMessageParams {
   msg_id: string;
   conversation_id: string;
   files?: string[];
+  loading_id?: string;
 }
 
 interface IConfirmGeminiMessageParams {
@@ -111,7 +127,8 @@ export interface IConfirmAcpMessageParams {
 }
 
 export interface ICreateConversationParams {
-  type: 'gemini' | 'acp';
+  type: 'gemini' | 'acp' | 'codex';
+  id?: string;
   name?: string;
   model: TProviderWithModel;
   extra: { workspace?: string; defaultFiles?: string[]; backend?: AcpBackend; cliPath?: string; webSearchEngine?: 'google' | 'default' };

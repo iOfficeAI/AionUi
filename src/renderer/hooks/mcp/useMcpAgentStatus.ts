@@ -9,7 +9,7 @@ import type { IMcpServer } from '@/common/storage';
  */
 export const useMcpAgentStatus = () => {
   const [agentInstallStatus, setAgentInstallStatus] = useState<Record<string, string[]>>({});
-  const [isLoadingAgentStatus, setIsLoadingAgentStatus] = useState(false);
+  const [loadingServers, setLoadingServers] = useState<Set<string>>(new Set());
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastCheckTimeRef = useRef<number>(0);
   const agentConfigsCacheRef = useRef<Array<{ source: string; servers: Array<{ name: string }> }> | null>(null);
@@ -95,8 +95,14 @@ export const useMcpAgentStatus = () => {
         return;
       }
 
-      // 避免在加载过程中清空状态造成闪烁
-      setIsLoadingAgentStatus(true);
+      // 设置加载状态 - 如果指定了目标服务器则只标记该服务器，否则标记所有启用的服务器
+      const serversToLoad = targetServerName ? [targetServerName] : servers.filter((s) => s.enabled).map((s) => s.name);
+      setLoadingServers((prev) => {
+        const newSet = new Set(prev);
+        serversToLoad.forEach((name) => newSet.add(name));
+        return newSet;
+      });
+
       try {
         // 先获取agents信息，然后基于结果获取MCP配置（无法真正并行，因为第二个依赖第一个的结果）
         const agentsResponse = await acpConversation.getAvailableAgents.invoke();
@@ -125,7 +131,12 @@ export const useMcpAgentStatus = () => {
       } catch (error) {
         // 出错时保持当前状态，避免闪烁
       } finally {
-        setIsLoadingAgentStatus(false);
+        // 清除加载状态
+        setLoadingServers((prev) => {
+          const newSet = new Set(prev);
+          serversToLoad.forEach((name) => newSet.delete(name));
+          return newSet;
+        });
       }
     },
     [agentInstallStatus, processAgentConfigs, saveAgentInstallStatus]
@@ -149,6 +160,9 @@ export const useMcpAgentStatus = () => {
 
   // 仅检查单个服务器的安装状态（不执行连接测试等其他操作）
   const checkSingleServerInstallStatus = useCallback(async (serverName: string) => {
+    // 设置加载状态
+    setLoadingServers((prev) => new Set(prev).add(serverName));
+
     try {
       // 获取可用的agents
       const agentsResponse = await acpConversation.getAvailableAgents.invoke();
@@ -189,13 +203,29 @@ export const useMcpAgentStatus = () => {
       });
     } catch (error) {
       // 检查失败时静默处理
+    } finally {
+      // 清除加载状态
+      setLoadingServers((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(serverName);
+        return newSet;
+      });
     }
   }, []);
+
+  // 检查特定服务器是否正在加载
+  const isServerLoading = useCallback(
+    (serverName: string) => {
+      return loadingServers.has(serverName);
+    },
+    [loadingServers]
+  );
 
   return {
     agentInstallStatus,
     setAgentInstallStatus,
-    isLoadingAgentStatus,
+    loadingServers,
+    isServerLoading,
     checkAgentInstallStatus,
     debouncedCheckAgentInstallStatus,
     checkSingleServerInstallStatus,

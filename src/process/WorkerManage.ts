@@ -6,7 +6,9 @@
 
 import type { TChatConversation } from '@/common/storage';
 import AcpAgentManager from './task/AcpAgentManager';
+import { CodexAgentManager } from '@/agent/codex';
 // import type { AcpAgentTask } from './task/AcpAgentTask';
+import { ProcessChat } from './initStorage';
 import type AgentBaseTask from './task/BaseAgentManager';
 import { GeminiAgentManager } from './task/GeminiAgentManager';
 
@@ -21,6 +23,7 @@ const getTaskById = (id: string) => {
 
 const buildConversation = (conversation: TChatConversation) => {
   const task = getTaskById(conversation.id);
+
   if (task) {
     return task;
   }
@@ -43,12 +46,26 @@ const buildConversation = (conversation: TChatConversation) => {
       taskList.push({ id: conversation.id, task });
       return task;
     }
+    case 'codex': {
+      const task = new CodexAgentManager({ ...conversation.extra, conversation_id: conversation.id });
+      taskList.push({ id: conversation.id, task });
+      return task;
+    }
     default: {
       // Type assertion to help TypeScript understand that conversation has a type property
       const unknownConversation = conversation as TChatConversation;
       return null;
     }
   }
+};
+
+const getTaskByIdRollbackBuild = async (id: string): Promise<AgentBaseTask<any>> => {
+  const task = taskList.find((item) => item.id === id)?.task;
+  if (task) return Promise.resolve(task);
+  const list = await ProcessChat.get('chat.history');
+  const conversation = (list || []).find((item) => item.id === id);
+  if (!conversation) return Promise.reject(new Error('Conversation not found'));
+  return buildConversation(conversation);
 };
 
 const kill = (id: string) => {
@@ -84,6 +101,7 @@ const listTasks = () => {
 const WorkerManage = {
   buildConversation,
   getTaskById,
+  getTaskByIdRollbackBuild,
   addTask,
   listTasks,
   kill,

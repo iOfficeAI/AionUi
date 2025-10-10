@@ -86,6 +86,17 @@ export type TChatConversation =
         }
       >,
       'model'
+    >
+  | Omit<
+      IChatConversation<
+        'codex',
+        {
+          workspace?: string;
+          cliPath?: string;
+          customWorkspace?: boolean;
+        }
+      >,
+      'model'
     >;
 
 export type IChatConversationRefer = {
@@ -164,10 +175,10 @@ export interface IMcpServer {
   id: string;
   name: string;
   description?: string;
-  enabled: boolean;
+  enabled: boolean; // 是否已安装到 CLI agents（控制 Switch 状态）
   transport: IMcpServerTransport;
   tools?: IMcpTool[];
-  status?: 'connected' | 'disconnected' | 'error' | 'testing';
+  status?: 'connected' | 'disconnected' | 'error' | 'testing'; // 连接状态（同时表示服务可用性）
   lastConnected?: number;
   createdAt: number;
   updatedAt: number;
