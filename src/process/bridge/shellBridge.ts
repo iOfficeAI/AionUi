@@ -9,14 +9,15 @@ import { ipcBridge } from '../../common';
 
 export function initShellBridge(): void {
   ipcBridge.shell.openFile.provider(async (path) => {
-    shell.openPath(path);
+    await shell.openPath(path);
   });
 
-  ipcBridge.shell.showItemInFolder.provider(async (path) => {
+  ipcBridge.shell.showItemInFolder.provider((path) => {
     shell.showItemInFolder(path);
+    return Promise.resolve();
   });
 
-  ipcBridge.shell.openExternal.provider(async (url) => {
+  ipcBridge.shell.openExternal.provider((url) => {
     return shell.openExternal(url);
   });
 }

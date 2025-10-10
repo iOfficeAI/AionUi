@@ -17,7 +17,7 @@ import WorkerManage from '../WorkerManage';
 export function initConversationBridge(): void {
   ipcBridge.conversation.create.provider(async (params): Promise<TChatConversation> => {
     const { type, extra, name, model, id } = params;
-    const buildConversation = async () => {
+    const buildConversation = () => {
       if (type === 'gemini') return createGeminiAgent(model, extra.workspace, extra.defaultFiles, extra.webSearchEngine);
       if (type === 'acp') return createAcpAgent(params);
       if (type === 'codex') return createCodexAgent(params);
@@ -34,15 +34,11 @@ export function initConversationBridge(): void {
       const task = WorkerManage.buildConversation(conversation);
       if (task.type === 'acp') {
         //@todo
-        (task as AcpAgentManager).initAgent();
+        void (task as AcpAgentManager).initAgent();
       }
-      await ProcessChat.get('chat.history').then((history) => {
-        if (!history || !Array.isArray(history)) {
-          return ProcessChat.set('chat.history', [conversation]);
-        } else {
-          //相同工作目录重开一个对话，处理逻辑改为新增一条对话记录
-          return ProcessChat.set('chat.history', [...history.filter((h) => h.id !== conversation.id), conversation]);
-        }
+      await ProcessChat.update('chat.history', (history) => {
+        const filtered = (history || []).filter((item) => item.id !== conversation.id);
+        return Promise.resolve([...filtered, conversation]);
       });
       return conversation;
     } catch (e) {
@@ -62,58 +58,50 @@ export function initConversationBridge(): void {
     conversation.createTime = Date.now();
     conversation.modifyTime = Date.now();
     WorkerManage.buildConversation(conversation);
-    ProcessChat.get('chat.history').then((history) => {
-      if (!history || !Array.isArray(history)) {
-        return ProcessChat.set('chat.history', [conversation]);
-      } else {
-        return ProcessChat.set('chat.history', [...history.filter((item) => item.id !== conversation.id), conversation]);
-      }
+    await ProcessChat.update('chat.history', (history) => {
+      const filtered = history.filter((item) => item.id !== conversation.id);
+      return Promise.resolve([...filtered, conversation]);
     });
     return conversation;
   });
 
-  ipcBridge.conversation.remove.provider(async ({ id }) => {
-    return ProcessChat.get('chat.history').then((history) => {
-      try {
-        WorkerManage.kill(id);
-        if (!history) return;
-        ProcessChat.set(
-          'chat.history',
-          history.filter((item) => item.id !== id)
-        );
-        nextTickToLocalFinish(() => ProcessChatMessage.backup(id));
-        return true;
-      } catch (e) {
-        return false;
-      }
-    });
+  ipcBridge.conversation.remove.provider(({ id }) => {
+    return ProcessChat.update('chat.history', (history) => {
+      WorkerManage.kill(id);
+      nextTickToLocalFinish(() => ProcessChatMessage.backup(id));
+      return Promise.resolve(history.filter((item) => item.id !== id));
+    })
+      .then(() => true)
+      .catch(() => false);
   });
 
-  ipcBridge.conversation.reset.provider(async ({ id }) => {
+  ipcBridge.conversation.reset.provider(({ id }) => {
     if (id) {
       WorkerManage.kill(id);
-    } else WorkerManage.clear();
+    } else {
+      WorkerManage.clear();
+    }
+    return Promise.resolve();
   });
 
   ipcBridge.conversation.get.provider(async ({ id }) => {
-    return ProcessChat.get('chat.history')
-      .then((history) => {
-        return history.find((item) => item.id === id);
-      })
-      .then((conversation) => {
-        if (conversation) {
-          const task = WorkerManage.getTaskById(id);
-          conversation.status = task?.status || 'finished';
-        }
-        return conversation;
-      });
+    const history = await ProcessChat.get('chat.history');
+    const conversation = history.find((item) => item.id === id);
+    if (conversation) {
+      const task = WorkerManage.getTaskById(id);
+      conversation.status = task?.status || 'finished';
+    }
+    return conversation;
   });
 
   ipcBridge.conversation.stop.provider(async ({ conversation_id }) => {
     const task = WorkerManage.getTaskById(conversation_id);
     if (!task) return { success: true, msg: 'conversation not found' };
-    if (task.type !== 'gemini' && task.type !== 'acp' && task.type !== 'codex') return { success: false, msg: 'not support' };
-    return task.stop().then(() => ({ success: true }));
+    if (task.type !== 'gemini' && task.type !== 'acp' && task.type !== 'codex') {
+      return { success: false, msg: 'not support' };
+    }
+    await task.stop();
+    return { success: true };
   });
 
   // 通用 confirmMessage 实现 - 自动根据 conversation 类型分发
@@ -159,8 +147,9 @@ export const buildWorkspaceFileTree = async (conversation_id: string) => {
     }
 
     // 递归构建文件树
-    const buildFileTree = (dirPath: string, basePath: string = dirPath): any[] => {
-      const result: any[] = [];
+    type FileTreeNode = { name: string; path: string; isDir: boolean; isFile: boolean; children?: FileTreeNode[] };
+    const buildFileTree = (dirPath: string, basePath: string = dirPath): FileTreeNode[] => {
+      const result: FileTreeNode[] = [];
       const items = fs.readdirSync(dirPath);
 
       for (const item of items) {
