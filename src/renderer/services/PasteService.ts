@@ -8,7 +8,7 @@ import { ipcBridge } from '@/common';
 import type { FileMetadata } from './FileService';
 import { getFileExtension } from './FileService';
 
-type PasteHandler = (event: ClipboardEvent) => Promise<boolean>;
+type PasteHandler = (event: React.ClipboardEvent | ClipboardEvent) => Promise<boolean>;
 
 // MIME 类型到文件扩展名的映射
 function getExtensionFromMimeType(mimeType: string): string {
@@ -67,17 +67,19 @@ class PasteServiceClass {
   };
 
   // 通用粘贴处理逻辑
-  async handlePaste(event: ClipboardEvent, supportedExts: string[], onFilesAdded: (files: FileMetadata[]) => void, onTextAdded?: (text: string) => void, currentText?: string): Promise<boolean> {
+  async handlePaste(event: React.ClipboardEvent | ClipboardEvent, supportedExts: string[], onFilesAdded: (files: FileMetadata[]) => void, onTextPaste?: (text: string) => void): Promise<boolean> {
     const clipboardText = event.clipboardData?.getData('text');
     const files = event.clipboardData?.files;
 
-    // Cherry Studio 的方式：先处理文本，后处理文件
-    // 如果有文本但没有文件，允许默认文本粘贴行为
+    // 处理纯文本粘贴
     if (clipboardText && (!files || files.length === 0)) {
-      if (onTextAdded) {
-        onTextAdded(currentText ? currentText + clipboardText : clipboardText);
+      if (onTextPaste) {
+        // 清理文本中多余的换行符，特别是末尾的换行符
+        const cleanedText = clipboardText.replace(/\n\s*$/, '');
+        onTextPaste(cleanedText);
+        return true; // 已处理，阻止默认行为
       }
-      return false; // 允许默认行为继续处理文本
+      return false; // 如果没有回调，允许默认行为
     }
     if (files && files.length > 0) {
       const fileList: FileMetadata[] = [];

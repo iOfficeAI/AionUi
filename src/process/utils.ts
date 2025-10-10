@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IDirOrFile } from '@/common/ipcBridge';
 import { AIONUI_TIMESTAMP_REGEX } from '@/common/constants';
+import type { IDirOrFile } from '@/common/ipcBridge';
 import { app } from 'electron';
 import { existsSync } from 'fs';
 import fs from 'fs/promises';
@@ -37,41 +37,107 @@ export const generateHashWithFullName = (fullName: string): string => {
 };
 
 // 递归读取目录内容，返回树状结构
-export async function readDirectoryRecursive(dirPath: string, root = dirPath + '/', fileService?: any): Promise<IDirOrFile> {
+export async function readDirectoryRecursive(
+  dirPath: string,
+  options?: {
+    root?: string;
+    abortController?: AbortController;
+    fileService?: { shouldGitIgnoreFile(path: string): boolean };
+    maxDepth?: number;
+    search?: {
+      text: string;
+      onProcess?(result: { file: number; dir: number; match?: IDirOrFile }): void;
+      process?: { file: number; dir: number };
+    };
+  }
+): Promise<IDirOrFile> {
+  const { root = dirPath, maxDepth = 1, fileService, search, abortController } = options || {};
+  const { text: searchText, onProcess: onSearchProcess = () => {}, process = { file: 0, dir: 1 } } = search || {};
+
+  const matchSearch = searchText ? (fullPath: string) => fullPath.includes(searchText) : (_: string) => false;
+
+  const checkStatus = () => {
+    if (abortController.signal.aborted) throw new Error('readDirectoryRecursive aborted!');
+  };
+
   const stats = await fs.stat(dirPath);
   if (!stats.isDirectory()) {
     return null;
   }
   const result: IDirOrFile = {
     name: path.basename(dirPath),
-    path: dirPath.replace(root, ''),
+    fullPath: dirPath,
+    relativePath: path.relative(root, dirPath),
     isDir: true,
     isFile: false,
     children: [],
   };
+  let searchResult = matchSearch(result.name);
+  onSearchProcess({
+    ...process,
+    match: searchResult ? result : undefined,
+  });
+  if (maxDepth === 0 || searchResult) return result;
+  checkStatus();
   const items = await fs.readdir(dirPath);
+  checkStatus();
+
   for (const item of items) {
+    checkStatus();
     if (item === 'node_modules') continue;
     const itemPath = path.join(dirPath, item);
-    const itemStats = await fs.stat(itemPath);
-
     if (fileService && fileService.shouldGitIgnoreFile(itemPath)) continue;
+
+    const itemStats = await fs.stat(itemPath);
     if (itemStats.isDirectory()) {
-      const child = await readDirectoryRecursive(itemPath, root, fileService);
-      if (child) result.children.push(child);
+      process.dir += 1;
+      const child = await readDirectoryRecursive(itemPath, {
+        ...options,
+        maxDepth: searchText ? maxDepth : maxDepth - 1,
+        root,
+        search: {
+          ...search,
+          process,
+          onProcess(searchResult) {
+            if (searchResult.match) {
+              if (!result.children.find((v) => v.fullPath === searchResult.match.fullPath)) {
+                result.children.push(searchResult.match);
+              }
+              onSearchProcess({ ...process, match: result });
+            }
+          },
+        },
+      });
+      if (child && !searchText) {
+        result.children.push(child);
+      }
     } else {
-      result.children.push({
+      const children = {
         name: item,
-        path: itemPath.replace(root, ''),
+        relativePath: path.relative(root, itemPath),
+        fullPath: itemPath,
         isDir: false,
         isFile: true,
+      };
+      if (!searchText) {
+        result.children.push(children);
+        continue;
+      }
+      searchResult = matchSearch(children.name);
+      if (searchResult) {
+        result.children.push(children);
+      }
+      process.file += 1;
+      onSearchProcess({
+        ...process,
+        match: searchResult ? result : undefined,
       });
     }
   }
-  result.children.sort((a: any, b: any) => {
+  result.children.sort((a, b) => {
     if (a.isDir && !b.isDir) return -1;
     if (!a.isDir && b.isDir) return 1;
-    return 0;
+    return a.name.localeCompare(b.name);
   });
   return result;
 }
