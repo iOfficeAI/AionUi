@@ -6,8 +6,9 @@
 
 import { bridge } from '@office-ai/platform';
 import type { OpenDialogOptions } from 'electron';
-import type { AcpBackend } from './acpTypes';
-import type { IProvider, TChatConversation, TProviderWithModel } from './storage';
+import type { AcpBackend } from '../types/acpTypes';
+import type { McpSource } from '../process/services/mcpServices/McpProtocol';
+import type { IProvider, TChatConversation, TProviderWithModel, IMcpServer } from './storage';
 // 发送消息
 const sendMessage = bridge.buildProvider<IBridgeResponse<{}>, ISendMessageParams>('chat.send.message');
 //接受消息
@@ -29,6 +30,8 @@ export const conversation = {
   reset: bridge.buildProvider<void, IResetConversationParams>('reset-conversation'), // 重置对话
   stop: bridge.buildProvider<IBridgeResponse<{}>, { conversation_id: string }>('chat.stop.stream'), // 停止会话
   confirmMessage: bridge.buildProvider<IBridgeResponse, IConfirmGeminiMessageParams>('conversation.confirm.message'), // 通用确认消息
+  getWorkspace: bridge.buildProvider<IDirOrFile[], { conversation_id: string; workspace: string; path: string; search?: string }>('conversation.get-workspace'),
+  responseSearchWorkSpace: bridge.buildProvider<void, { file: number; dir: number; match?: IDirOrFile }>('conversation.response.search.workspace'),
 };
 
 // gemini对话相关接口
@@ -36,13 +39,12 @@ export const geminiConversation = {
   sendMessage: sendMessage,
   confirmMessage: bridge.buildProvider<IBridgeResponse, IConfirmGeminiMessageParams>('input.confirm.message'),
   responseStream: responseStream,
-  getWorkspace: bridge.buildProvider<IDirOrFile[], { conversation_id: string }>('gemini.get-workspace'),
 };
 
 export const application = {
   restart: bridge.buildProvider<void, void>('restart-app'), // 重启应用
   openDevTools: bridge.buildProvider<void, void>('open-dev-tools'), // 打开开发者工具
-  systemInfo: bridge.buildProvider<{ cacheDir: string; workDir: string }, void>('system.info'), // 获取系统信息
+  systemInfo: bridge.buildProvider<{ cacheDir: string; workDir: string; platform: string; arch: string }, void>('system.info'), // 获取系统信息
   updateSystemInfo: bridge.buildProvider<IBridgeResponse, { cacheDir: string; workDir: string }>('system.update-info'), // 更新系统信息
 };
 
@@ -50,7 +52,7 @@ export const dialog = {
   showOpen: bridge.buildProvider<string[] | undefined, { defaultPath?: string; properties?: OpenDialogOptions['properties'] } | undefined>('show-open'), // 打开文件/文件夹选择窗口
 };
 export const fs = {
-  getFilesByDir: bridge.buildProvider<Array<IDirOrFile>, { dir: string }>('get-file-by-dir'), // 获取指定文件夹下所有文件夹和文件列表
+  getFilesByDir: bridge.buildProvider<Array<IDirOrFile>, { dir: string; root: string }>('get-file-by-dir'), // 获取指定文件夹下所有文件夹和文件列表
   getImageBase64: bridge.buildProvider<string, { path: string }>('get-image-base64'), // 获取图片base64
   createTempFile: bridge.buildProvider<string, { fileName: string }>('create-temp-file'), // 创建临时文件
   writeFile: bridge.buildProvider<boolean, { path: string; data: Uint8Array }>('write-file'), // 写入文件
@@ -80,8 +82,15 @@ export const acpConversation = {
   detectCliPath: bridge.buildProvider<IBridgeResponse<{ path?: string }>, { backend: AcpBackend }>('acp.detect-cli-path'),
   getAvailableAgents: bridge.buildProvider<IBridgeResponse<Array<{ backend: AcpBackend; name: string; cliPath?: string }>>, void>('acp.get-available-agents'),
   checkEnv: bridge.buildProvider<{ env: Record<string, string> }, void>('acp.check.env'),
-  getWorkspace: bridge.buildProvider<IDirOrFile[], { conversation_id: string }>('acp.get-workspace'),
   // clearAllCache: bridge.buildProvider<IBridgeResponse<{ details?: any }>, void>('acp.clear.all.cache'),
+};
+
+// MCP 服务相关接口
+export const mcpService = {
+  getAgentMcpConfigs: bridge.buildProvider<IBridgeResponse<Array<{ source: McpSource; servers: IMcpServer[] }>>, Array<{ backend: AcpBackend; name: string; cliPath?: string }>>('mcp.get-agent-configs'),
+  testMcpConnection: bridge.buildProvider<IBridgeResponse<{ success: boolean; tools?: Array<{ name: string; description?: string }>; error?: string }>, IMcpServer>('mcp.test-connection'),
+  syncMcpToAgents: bridge.buildProvider<IBridgeResponse<{ success: boolean; results: Array<{ agent: string; success: boolean; error?: string }> }>, { mcpServers: IMcpServer[]; agents: Array<{ backend: AcpBackend; name: string; cliPath?: string }> }>('mcp.sync-to-agents'),
+  removeMcpFromAgents: bridge.buildProvider<IBridgeResponse<{ success: boolean; results: Array<{ agent: string; success: boolean; error?: string }> }>, { mcpServerName: string; agents: Array<{ backend: AcpBackend; name: string; cliPath?: string }> }>('mcp.remove-from-agents'),
 };
 
 // Codex 对话相关接口（MCP 直连，会与 ACP/Gemini 并存）
@@ -92,7 +101,6 @@ export const codexConversation = {
   sendMessage: codexSendMessage,
   confirmMessage: bridge.buildProvider<IBridgeResponse, IConfirmAcpMessageParams>('codex.input.confirm.message'),
   responseStream: codexResponseStream,
-  getWorkspace: bridge.buildProvider<IDirOrFile[], { conversation_id: string }>('codex.get-workspace'),
 };
 
 interface ISendMessageParams {
@@ -134,7 +142,8 @@ interface IResetConversationParams {
 // 获取文件夹或文件列表
 export interface IDirOrFile {
   name: string;
-  path: string;
+  fullPath: string;
+  relativePath: string;
   isDir: boolean;
   isFile: boolean;
   children?: Array<IDirOrFile>;

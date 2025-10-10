@@ -1,12 +1,4 @@
 {
-  "acp": {
-    "auth": {
-      "failed": "{{backend}} 認證失敗：\n\n{{error}}\n\n請檢查本地CLI工具的認證狀態"
-    },
-    "sendbox": {
-      "placeholder": "發送訊息到 {{backend}}..."
-    }
-  },
   "codex": {
     "sendbox": {},
     "network": {
@@ -168,19 +160,12 @@
       "today": "今天",
       "yesterday": "昨天"
     },
-    "welcome": {
-      "linkFolder": "開啟資料夾",
-      "multiAgentModeEnabled": "已進入多智能體模式",
-      "newConversation": "新對話",
-      "placeholder": "發送訊息、上傳檔案或開啟資料夾...",
-      "title": "Hi，今天有什麼安排？",
-      "uploadFile": "上傳檔案"
-    },
     "workspace": {
       "empty": "空的",
       "emptyDescription": "上傳檔案或開啟資料夾後，檔案將顯示在這裡",
       "searchPlaceholder": "搜尋檔案...",
-      "createNewConversation": "當前空間創建新對話"
+      "createNewConversation": "當前空間創建新對話",
+      "search.empty": "搜索結果為空"
     },
     "chat": {
       "noModelSelected": "當前會話未選擇模型，無法發送訊息"
@@ -228,6 +213,11 @@
     "system": "系統設定",
     "theme": "主題",
     "tools": "工具配置",
+    "mcp": "MCP 集成",
+    "mcpSettings": "MCP 工具配置",
+    "mcpImportFromJSON": "從 JSON 導入",
+    "mcpImportPlaceholder": "從 MCP 服務介紹頁面複製 JSON 配置（最好是 NPX 或 UVX 配置），並粘貼到下面的輸入框中。",
+    "mcpJsonFormatError": "JSON 格式錯誤",
     "imageGenerationModel": "圖像模型",
     "imageGenerationGuide": "圖像模型配置指南",
     "noAvailable": "暫無可用圖像模型，請先配置。",
@@ -242,7 +232,39 @@
     "updateLog": "更新日誌",
     "feedback": "意見反饋",
     "contactMe": "聯繫我",
-    "officialWebsite": "官網"
+    "officialWebsite": "官網",
+    "mcpTestConnection": "檢測MCP可用狀態",
+    "mcpTestConnectionSuccess": "連線測試成功",
+    "mcpServerList": "MCP 伺服器",
+    "mcpStatus": "狀態",
+    "mcpAddServer": "手動新增",
+    "mcpEditServer": "編輯",
+    "mcpDeleteServer": "刪除",
+    "mcpDeleteConfirm": "確定要刪除此 MCP 伺服器嗎？",
+    "mcpImportTitle": "匯入 MCP 配置",
+    "mcpConnected": "已連線",
+    "mcpDisconnected": "已中斷",
+    "mcpError": "錯誤",
+    "mcpTesting": "測試中",
+    "mcpOneKeyImport": "從 CLI 匯入",
+    "mcpImportFromCLI": "掃描MCP工具",
+    "mcpSelectCLI": "選擇 CLI",
+    "mcpNoServersFound": "未找到 MCP 伺服器",
+    "mcpImportSuccess": "匯入成功",
+    "mcpImportFailed": "匯入失敗",
+    "mcpJsonInvalid": "無效的 JSON 格式",
+    "mcpSyncStarted": "正在將 MCP 配置新增到 {{count}} 個智慧體...",
+    "mcpRemoveStarted": "正在從 {{count}} 個智慧體中移除 MCP 配置...",
+    "mcpSyncPartialFailed": "MCP 配置同步部分失敗：{{errors}}",
+    "mcpRemovePartialFailed": "MCP 配置移除部分失敗：{{errors}}",
+    "mcpSyncFailed": "MCP 配置同步失敗：{{error}}",
+    "mcpRemoveFailed": "MCP 配置移除失敗：{{error}}",
+    "mcpDeletedWithCleanup": "MCP 伺服器已刪除並清理配置",
+    "mcpDeleted": "MCP 伺服器已刪除",
+    "mcpDeleteError": "刪除 MCP 配置時出錯",
+    "mcpSyncError": "MCP 配置同步失敗",
+    "mcpRemoveError": "MCP 配置移除失敗",
+    "mcpNoDescription": "暫無描述"
   },
   "messages": {
     "conversationInProgress": "目前正在進行對話...",
@@ -251,6 +273,80 @@
     "openLinkFailed": "無法開啟連結",
     "imageGenerationModelDetected": "檢測到圖片模型，已自動開啟圖片工具，設置為默認模型：{{platform}}:{{model}}",
     "auto_handling_permissions": "自動處理權限請求：{{request}}"
+  },
+  "mcp": {
+    "integration": {
+      "title": "MCP 整合",
+      "description": "管理模型上下文協議伺服器和工具"
+    },
+    "servers": "伺服器",
+    "tools": "工具",
+    "executionHistory": "執行歷程",
+    "addServer": "新增伺服器",
+    "connect": "連線",
+    "disconnect": "中斷連線",
+    "refresh": "重新整理",
+    "settings": "設定",
+    "delete": "刪除",
+    "deleteConfirm": "刪除伺服器",
+    "deleteMessage": "確定要刪除 {{name}} 嗎？",
+    "execute": "執行",
+    "approve": "核准",
+    "reject": "拒絕",
+    "executing": "執行中...",
+    "executingTool": "執行工具中...",
+    "parameters": "參數",
+    "parametersJson": "參數 (JSON)",
+    "result": "結果",
+    "noParameters": "此工具沒有參數",
+    "noServers": "未配置 MCP 伺服器",
+    "noServersFound": "未找到符合條件的伺服器",
+    "noTools": "無可用工具",
+    "noExecutions": "無執行歷程",
+    "searchServers": "搜尋伺服器...",
+    "searchTools": "搜尋工具...",
+    "filterByStatus": "按狀態篩選",
+    "transport": "傳輸方式",
+    "lastCheck": "最後檢查",
+    "capabilities": "功能",
+    "noCapabilities": "未報告功能",
+    "never": "從未",
+    "justNow": "剛剛",
+    "minutesAgo": "{{count}} 分鐘前",
+    "hoursAgo": "{{count}} 小時前",
+    "daysAgo": "{{count}} 天前",
+    "connectedSince": "已連線 {{time}}",
+    "status": {
+      "all": "全部",
+      "connected": "已連線",
+      "disconnected": "已中斷",
+      "error": "錯誤",
+      "authenticating": "認證中"
+    },
+    "stats": {
+      "totalServers": "伺服器總數",
+      "connectedServers": "已連線",
+      "totalTools": "可用工具",
+      "executions": "執行次數"
+    },
+    "execution": {
+      "completed": "已完成",
+      "failed": "失敗",
+      "running": "執行中",
+      "cancelled": "已取消",
+      "pending": "待處理"
+    },
+    "executionSuccess": "執行成功",
+    "executionFailed": "執行失敗",
+    "error": "MCP 錯誤",
+    "advancedOptions": "進階選項",
+    "timeout": "逾時",
+    "priority": {
+      "low": "低",
+      "normal": "一般",
+      "high": "高",
+      "urgent": "緊急"
+    }
   },
   "tools": {
     "shell": {

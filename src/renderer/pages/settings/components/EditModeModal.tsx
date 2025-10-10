@@ -4,7 +4,7 @@ import { Form, Input, Modal } from '@arco-design/web-react';
 import React, { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
-const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): void }>(({ modalProps, modalCtrl, ...props }) => {
+const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): void }>(({ modalProps, modalCtrl: _modalCtrl, ...props }) => {
   const { t } = useTranslation();
   const { data } = props;
   const [form] = Form.useForm();
@@ -19,7 +19,7 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
       title={t('settings.editModel')}
       {...modalProps}
       onOk={() => {
-        form.validate().then((values) => {
+        void form.validate().then((values) => {
           props.onChange({ ...(data || {}), ...values });
         });
       }}
