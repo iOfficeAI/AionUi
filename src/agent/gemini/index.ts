@@ -9,7 +9,7 @@ import type { TProviderWithModel } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import { getProviderAuthType } from '@/common/utils/platformAuthType';
 import type { CompletedToolCall, Config, GeminiClient, ServerGeminiStreamEvent, ToolCall, ToolCallRequestInfo } from '@office-ai/aioncli-core';
-import { AuthType, CoreToolScheduler, sessionId } from '@office-ai/aioncli-core';
+import { AuthType, CoreToolScheduler, FileDiscoveryService, sessionId } from '@office-ai/aioncli-core';
 import { execSync } from 'child_process';
 import { ApiKeyManager } from '../../common/ApiKeyManager';
 import { handleAtCommand } from './cli/atCommandProcessor';
@@ -68,6 +68,9 @@ export class GeminiAgent {
   private toolConfig: ConversationToolConfig; // 对话级别的工具配置
   private apiKeyManager: ApiKeyManager | null = null; // 多API Key管理器
   bootstrap: Promise<void>;
+  static buildFileServer(workspace: string) {
+    return new FileDiscoveryService(workspace);
+  }
   constructor(options: GeminiAgent2Options) {
     this.workspace = options.workspace;
     this.proxy = options.proxy;

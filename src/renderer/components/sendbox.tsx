@@ -6,13 +6,13 @@
 
 import { Button, Input, Message } from '@arco-design/web-react';
 import { ArrowUp } from '@icon-park/react';
-import React, { useRef, useState } from 'react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { FileMetadata } from '../services/FileService';
-import { allSupportedExts } from '../services/FileService';
+import { useCompositionInput } from '../hooks/useCompositionInput';
 import { useDragUpload } from '../hooks/useDragUpload';
 import { usePasteService } from '../hooks/usePasteService';
-import { useCompositionInput } from '../hooks/useCompositionInput';
+import type { FileMetadata } from '../services/FileService';
+import { allSupportedExts } from '../services/FileService';
 
 const constVoid = (): void => undefined;
 
@@ -29,8 +29,7 @@ const SendBox: React.FC<{
   placeholder?: string;
   onFilesAdded?: (files: FileMetadata[]) => void;
   supportedExts?: string[];
-  componentId?: string;
-}> = ({ onSend, onStop, prefix, className, loading, tools, disabled, placeholder, value: input = '', onChange: setInput = constVoid, onFilesAdded, supportedExts = allSupportedExts, componentId = 'default' }) => {
+}> = ({ onSend, onStop, prefix, className, loading, tools, disabled, placeholder, value: input = '', onChange: setInput = constVoid, onFilesAdded, supportedExts = allSupportedExts }) => {
   const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -46,12 +45,26 @@ const SendBox: React.FC<{
   const { compositionHandlers, createKeyDownHandler } = useCompositionInput();
 
   // 使用共享的PasteService集成
-  const { handleFocus } = usePasteService({
-    componentId,
+  const { onPaste, onFocus } = usePasteService({
     supportedExts,
     onFilesAdded,
-    setInput,
-    input,
+    onTextPaste: (text: string) => {
+      // 处理清理后的文本粘贴，在当前光标位置插入文本而不是替换整个内容
+      const textarea = document.activeElement as HTMLTextAreaElement;
+      if (textarea && textarea.tagName === 'TEXTAREA') {
+        const cursorPosition = textarea.selectionStart;
+        const currentValue = textarea.value;
+        const newValue = currentValue.slice(0, cursorPosition) + text + currentValue.slice(cursorPosition);
+        setInput(newValue);
+        // 设置光标到插入文本后的位置
+        setTimeout(() => {
+          textarea.setSelectionRange(cursorPosition + text.length, cursorPosition + text.length);
+        }, 0);
+      } else {
+        // 如果无法获取光标位置，回退到追加到末尾的行为
+        setInput(input + text);
+      }
+    },
   });
 
   const sendMessageHandler = () => {
@@ -93,7 +106,8 @@ const SendBox: React.FC<{
           onChange={(v) => {
             setInput(v);
           }}
-          onFocus={handleFocus}
+          onPaste={onPaste}
+          onFocus={onFocus}
           {...compositionHandlers}
           autoSize={{ minRows: 1, maxRows: 10 }}
           onKeyDown={createKeyDownHandler(sendMessageHandler)}
