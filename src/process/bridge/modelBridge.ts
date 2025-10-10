@@ -107,7 +107,7 @@ export function initModelBridge(): void {
       });
   });
 
-  ipcBridge.mode.getModelConfig.provider(async () => {
+  ipcBridge.mode.getModelConfig.provider(() => {
     return ProcessConfig.get('model.config')
       .then((data) => {
         if (!data) return [];
