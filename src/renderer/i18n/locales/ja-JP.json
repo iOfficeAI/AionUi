@@ -257,6 +257,7 @@
     "contactMe": "お問い合わせ",
     "officialWebsite": "公式サイト",
     "mcpTestConnection": "MCP可用状態を検出",
+    "mcpTestConnectionSuccess": "接続テスト成功",
     "mcpServerList": "MCP サーバー",
     "mcpStatus": "ステータス",
     "mcpAddServer": "手動追加",

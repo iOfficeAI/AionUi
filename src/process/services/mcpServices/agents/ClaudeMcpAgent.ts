@@ -45,7 +45,12 @@ export class ClaudeMcpAgent extends AbstractMcpAgent {
 
         for (const line of lines) {
           // 清除 ANSI 颜色代码 (支持多种格式)
-          const cleanLine = line.replace(/\u001b\[[0-9;]*m/g, '').replace(/\[[0-9;]*m/g, '').trim(); // eslint-disable-line no-control-regex
+          /* eslint-disable no-control-regex */
+          const cleanLine = line
+            .replace(/\u001b\[[0-9;]*m/g, '')
+            .replace(/\[[0-9;]*m/g, '')
+            .trim();
+          /* eslint-enable no-control-regex */
 
           // 查找格式如: "12306-mcp: npx -y 12306-mcp - ✓ Connected" 或 "12306-mcp: npx -y 12306-mcp - ✗ Failed to connect"
           // 支持多种状态文本
@@ -128,7 +133,8 @@ export class ClaudeMcpAgent extends AbstractMcpAgent {
       try {
         for (const server of mcpServers) {
           if (server.transport.type === 'stdio') {
-            // 使用Claude Code CLI添加MCP服务器
+            // 使用Claude Code CLI添加MCP服务器到user scope（全局配置）
+            // AionUi是全局工具，MCP配置应该对所有项目可用
             // 格式: claude mcp add -s user <name> <command> -- [args...] [env_options]
             const envArgs = Object.entries(server.transport.env || {})
               .map(([key, value]) => `-e ${key}=${value}`)
@@ -179,41 +185,39 @@ export class ClaudeMcpAgent extends AbstractMcpAgent {
     const removeOperation = async () => {
       try {
         // 使用Claude CLI命令删除MCP服务器（尝试不同作用域）
-        // 首先尝试user作用域（与安装时保持一致），然后尝试project作用域
-        try {
-          const removeCommand = `claude mcp remove -s user "${mcpServerName}"`;
-          const result = await execAsync(removeCommand, { timeout: 5000 });
+        // 按顺序尝试: user (AionUi默认) -> local -> project
+        // user scope优先，因为AionUi安装时使用user scope
+        const scopes = ['user', 'local', 'project'] as const;
 
-          if (result.stdout && result.stdout.includes('removed')) {
-            console.log(`[ClaudeMcpAgent] Removed MCP server: ${mcpServerName}`);
-            return { success: true };
-          } else if (result.stdout && result.stdout.includes('not found')) {
-            // 尝试 project scope
-            throw new Error('Server not found in user scope');
-          } else {
-            return { success: true };
-          }
-        } catch (userError) {
-          // user作用域失败，尝试project作用域
+        for (const scope of scopes) {
           try {
-            const removeCommand = `claude mcp remove -s project "${mcpServerName}"`;
+            const removeCommand = `claude mcp remove -s ${scope} "${mcpServerName}"`;
             const result = await execAsync(removeCommand, { timeout: 5000 });
 
+            // 检查是否成功删除
             if (result.stdout && result.stdout.includes('removed')) {
-              console.log(`[ClaudeMcpAgent] Removed MCP server from project: ${mcpServerName}`);
-              return { success: true };
-            } else {
-              // 服务器不存在，也认为成功
+              console.log(`[ClaudeMcpAgent] Removed MCP server from ${scope} scope: ${mcpServerName}`);
               return { success: true };
             }
-          } catch (projectError) {
-            // 如果服务器不存在，也认为是成功的
-            if (userError instanceof Error && (userError.message.includes('not found') || userError.message.includes('does not exist'))) {
-              return { success: true };
+
+            // 如果没有"removed"消息但也没有错误，可能服务器不存在于该作用域
+            // 继续尝试下一个作用域
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+
+            // 如果是"未找到"错误，继续尝试下一个作用域
+            if (errorMessage.includes('not found') || errorMessage.includes('does not exist')) {
+              continue;
             }
-            return { success: false, error: userError instanceof Error ? userError.message : String(userError) };
+
+            // 其他错误，记录但继续尝试
+            console.warn(`[ClaudeMcpAgent] Failed to remove from ${scope} scope:`, errorMessage);
           }
         }
+
+        // 如果所有作用域都尝试完了，认为删除成功（服务器可能本来就不存在）
+        console.log(`[ClaudeMcpAgent] MCP server ${mcpServerName} not found in any scope (may already be removed)`);
+        return { success: true };
       } catch (error) {
         return { success: false, error: error instanceof Error ? error.message : String(error) };
       }

@@ -61,7 +61,12 @@ export class GeminiMcpAgent extends AbstractMcpAgent {
 
           for (const line of lines) {
             // 清除 ANSI 颜色代码 (支持多种格式)
-            const cleanLine = line.replace(/\u001b\[[0-9;]*m/g, '').replace(/\[[0-9;]*m/g, '').trim(); // eslint-disable-line no-control-regex
+            /* eslint-disable no-control-regex */
+            const cleanLine = line
+              .replace(/\u001b\[[0-9;]*m/g, '')
+              .replace(/\[[0-9;]*m/g, '')
+              .trim();
+            /* eslint-enable no-control-regex */
 
             // 查找格式如: "✓ 12306-mcp: npx -y 12306-mcp (stdio) - Connected"
             const match = cleanLine.match(/[✓✗]\s+([^:]+):\s+(.+?)\s+\(([^)]+)\)\s*-\s*(Connected|Disconnected)/);
