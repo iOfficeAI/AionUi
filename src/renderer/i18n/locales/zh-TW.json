@@ -249,6 +249,7 @@
     "contactMe": "聯繫我",
     "officialWebsite": "官網",
     "mcpTestConnection": "檢測MCP可用狀態",
+    "mcpTestConnectionSuccess": "連線測試成功",
     "mcpServerList": "MCP 伺服器",
     "mcpStatus": "狀態",
     "mcpAddServer": "手動新增",

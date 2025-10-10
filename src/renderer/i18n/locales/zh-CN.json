@@ -123,6 +123,7 @@
     "contactMe": "联系我",
     "officialWebsite": "官网",
     "mcpTestConnection": "检测MCP可用状态",
+    "mcpTestConnectionSuccess": "连接测试成功",
     "mcpServerList": "MCP 服务器",
     "mcpStatus": "状态",
     "mcpAddServer": "手动添加",
