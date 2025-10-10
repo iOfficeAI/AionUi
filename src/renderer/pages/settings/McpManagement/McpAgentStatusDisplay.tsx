@@ -1,11 +1,11 @@
+import ClaudeLogo from '@/renderer/assets/logos/claude.svg';
+import CodexLogo from '@/renderer/assets/logos/codex.svg';
+import GeminiLogo from '@/renderer/assets/logos/gemini.svg';
+import IflowLogo from '@/renderer/assets/logos/iflow.svg';
+import QwenLogo from '@/renderer/assets/logos/qwen.svg';
 import { Tag } from '@arco-design/web-react';
 import { Loading } from '@icon-park/react';
 import React from 'react';
-import ClaudeLogo from '@/renderer/assets/logos/claude.svg';
-import GeminiLogo from '@/renderer/assets/logos/gemini.svg';
-import QwenLogo from '@/renderer/assets/logos/qwen.svg';
-import IflowLogo from '@/renderer/assets/logos/iflow.svg';
-import CodexLogo from '@/renderer/assets/logos/codex.svg';
 
 interface McpAgentStatusDisplayProps {
   serverName: string;
@@ -41,7 +41,7 @@ const McpAgentStatusDisplay: React.FC<McpAgentStatusDisplayProps> = ({ serverNam
   return (
     <div className='flex items-center -space-x-1'>
       {isLoadingAgentStatus && !agentInstallStatus[serverName] ? (
-        <Loading style={{ color: '#165dff' }} className={'h-[16px] w-[16px]'} />
+        <Loading fill={'#165dff'} className={'h-[16px] w-[16px]'} />
       ) : (
         agentInstallStatus[serverName]?.map((agent, index) => {
           const LogoComponent = getAgentLogo(agent);

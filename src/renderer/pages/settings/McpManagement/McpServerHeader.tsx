@@ -1,6 +1,6 @@
+import type { IMcpServer } from '@/common/storage';
 import { Check, CloseOne, CloseSmall, Loading } from '@icon-park/react';
 import React from 'react';
-import type { IMcpServer } from '@/common/storage';
 import McpAgentStatusDisplay from './McpAgentStatusDisplay';
 import McpServerActions from './McpServerActions';
 
@@ -18,13 +18,13 @@ interface McpServerHeaderProps {
 const getStatusIcon = (status?: IMcpServer['status']) => {
   switch (status) {
     case 'connected':
-      return <Check style={{ color: '#00b42a' }} className={'h-[24px] items-center'} />;
+      return <Check fill={'#00b42a'} className={'h-[24px] items-center'} />;
     case 'testing':
-      return <Loading style={{ color: '#165dff' }} className={'h-[24px]'} />;
+      return <Loading fill={'#165dff'} className={'h-[24px]'} />;
     case 'error':
-      return <CloseSmall style={{ color: '#f53f3f' }} className={'h-[24px]'} />;
+      return <CloseSmall fill={'#f53f3f'} className={'h-[24px]'} />;
     default:
-      return <CloseOne style={{ color: '#86909c' }} className={'h-[24px]'} />;
+      return <CloseOne fill={'#86909c'} className={'h-[24px]'} />;
   }
 };
 
