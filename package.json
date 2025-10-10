@@ -91,6 +91,7 @@
     "@arco-design/web-react": "^2.66.1",
     "@google/genai": "^1.16.0",
     "@icon-park/react": "^1.4.2",
+    "@modelcontextprotocol/sdk": "^1.20.0",
     "@office-ai/aioncli-core": "^0.2.3",
     "@office-ai/platform": "^0.3.16",
     "@uiw/codemirror-extensions-langs": "^4.25.1",

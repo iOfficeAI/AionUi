@@ -83,17 +83,18 @@ export class CodexMcpAgent extends AbstractMcpAgent {
             }
           }
 
-          // 尝试获取tools信息（通过测试连接）
+          // 尝试获取tools信息（对所有服务器类型）
           let tools: Array<{ name: string; description?: string }> = [];
           try {
-            const testResult = await this.testStdioConnection({
+            const testResult = await this.testMcpConnection({
+              type: 'stdio',
               command: command,
               args: args,
               env: env,
             });
             tools = testResult.tools || [];
           } catch (error) {
-            console.warn(`Failed to get tools for ${name}:`, error);
+            console.warn(`[CodexMcpAgent] Failed to get tools for ${name}:`, error);
           }
 
           mcpServers.push({

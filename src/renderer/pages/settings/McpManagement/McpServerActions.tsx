@@ -1,24 +1,21 @@
 import { Button, Dropdown, Menu, Switch } from '@arco-design/web-react';
-import { DeleteFour, SettingOne, Refresh, Write } from '@icon-park/react';
+import { DeleteFour, SettingOne, Write } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { IMcpServer } from '@/common/storage';
 
 interface McpServerActionsProps {
   server: IMcpServer;
-  isTestingConnection: boolean;
-  onTestConnection: (server: IMcpServer) => void;
   onEditServer: (server: IMcpServer) => void;
   onDeleteServer: (serverId: string) => void;
   onToggleServer: (serverId: string, enabled: boolean) => void;
 }
 
-const McpServerActions: React.FC<McpServerActionsProps> = ({ server, isTestingConnection, onTestConnection, onEditServer, onDeleteServer, onToggleServer }) => {
+const McpServerActions: React.FC<McpServerActionsProps> = ({ server, onEditServer, onDeleteServer, onToggleServer }) => {
   const { t } = useTranslation();
 
   return (
     <>
-      <Button size='mini' icon={<Refresh size={'14'} />} title={t('settings.mcpTestConnection')} loading={isTestingConnection} onClick={() => onTestConnection(server)} />
       <Dropdown
         trigger='hover'
         droplist={

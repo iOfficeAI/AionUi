@@ -76,11 +76,11 @@ export class ClaudeMcpAgent extends AbstractMcpAgent {
               env: {},
             };
 
-            // 尝试获取tools信息（仅对已连接的stdio服务器）
+            // 尝试获取tools信息（对所有已连接的服务器）
             let tools: Array<{ name: string; description?: string }> = [];
             if (isConnected) {
               try {
-                const testResult = await this.testStdioConnection(transportObj);
+                const testResult = await this.testMcpConnection(transportObj);
                 tools = testResult.tools || [];
               } catch (error) {
                 console.warn(`[ClaudeMcpAgent] Failed to get tools for ${name.trim()}:`, error);
