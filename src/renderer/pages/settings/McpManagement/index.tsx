@@ -12,10 +12,10 @@ const McpManagement: React.FC = () => {
   const [message, messageContext] = Message.useMessage();
 
   // 使用自定义hooks管理各种状态和操作
-  const { mcpServers, setMcpServers, saveMcpServers } = useMcpServers();
-  const { agentInstallStatus, setAgentInstallStatus, isLoadingAgentStatus, checkSingleServerInstallStatus } = useMcpAgentStatus();
+  const { mcpServers, saveMcpServers } = useMcpServers();
+  const { agentInstallStatus, setAgentInstallStatus, isServerLoading, checkSingleServerInstallStatus } = useMcpAgentStatus();
   const { syncMcpToAgents, removeMcpFromAgents } = useMcpOperations(mcpServers, message);
-  const { testingServers, handleTestMcpConnection } = useMcpConnection(mcpServers, setMcpServers, message);
+  const { testingServers, handleTestMcpConnection } = useMcpConnection(mcpServers, saveMcpServers, message);
   const { showMcpModal, editingMcpServer, deleteConfirmVisible, serverToDelete, mcpCollapseKey, showAddMcpModal, showEditMcpModal, hideMcpModal, showDeleteConfirm, hideDeleteConfirm, toggleServerCollapse } = useMcpModal();
   const { handleAddMcpServer, handleBatchImportMcpServers, handleEditMcpServer, handleDeleteMcpServer, handleToggleMcpServer } = useMcpServerCRUD(mcpServers, saveMcpServers, syncMcpToAgents, removeMcpFromAgents, checkSingleServerInstallStatus, setAgentInstallStatus, message);
 
@@ -150,7 +150,7 @@ const McpManagement: React.FC = () => {
         }
         name={'mcp-servers'}
       >
-        <div>{mcpServers.length === 0 ? <div className='text-center py-8 text-gray-500'>{t('settings.mcpNoServersFound')}</div> : mcpServers.map((server) => <McpServerItem key={server.id} server={server} isCollapsed={mcpCollapseKey[server.id] || false} agentInstallStatus={agentInstallStatus} isLoadingAgentStatus={isLoadingAgentStatus} isTestingConnection={testingServers[server.id] || false} onToggleCollapse={() => toggleServerCollapse(server.id)} onTestConnection={handleTestMcpConnection} onEditServer={showEditMcpModal} onDeleteServer={showDeleteConfirm} onToggleServer={handleToggleMcpServer} />)}</div>
+        <div>{mcpServers.length === 0 ? <div className='text-center py-8 text-gray-500'>{t('settings.mcpNoServersFound')}</div> : mcpServers.map((server) => <McpServerItem key={server.id} server={server} isCollapsed={mcpCollapseKey[server.id] || false} agentInstallStatus={agentInstallStatus} isServerLoading={isServerLoading} isTestingConnection={testingServers[server.id] || false} onToggleCollapse={() => toggleServerCollapse(server.id)} onTestConnection={handleTestMcpConnection} onEditServer={showEditMcpModal} onDeleteServer={showDeleteConfirm} onToggleServer={handleToggleMcpServer} />)}</div>
       </Collapse.Item>
 
       <AddMcpServerModal visible={showMcpModal} server={editingMcpServer} onCancel={hideMcpModal} onSubmit={editingMcpServer ? (serverData) => wrappedHandleEditMcpServer(editingMcpServer, serverData) : wrappedHandleAddMcpServer} onBatchImport={wrappedHandleBatchImportMcpServers} importMode={importMode} />

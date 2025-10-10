@@ -4,7 +4,7 @@ import GeminiLogo from '@/renderer/assets/logos/gemini.svg';
 import IflowLogo from '@/renderer/assets/logos/iflow.svg';
 import QwenLogo from '@/renderer/assets/logos/qwen.svg';
 import { Tag } from '@arco-design/web-react';
-import { Loading } from '@icon-park/react';
+import { LoadingOne } from '@icon-park/react';
 import React from 'react';
 
 interface McpAgentStatusDisplayProps {
@@ -33,15 +33,13 @@ const getAgentLogo = (agent: string) => {
 
 const McpAgentStatusDisplay: React.FC<McpAgentStatusDisplayProps> = ({ serverName, agentInstallStatus, isLoadingAgentStatus }) => {
   const hasAgents = agentInstallStatus[serverName] && agentInstallStatus[serverName].length > 0;
-
   if (!hasAgents && !isLoadingAgentStatus) {
     return null;
   }
-
   return (
     <div className='flex items-center -space-x-1'>
-      {isLoadingAgentStatus && !agentInstallStatus[serverName] ? (
-        <Loading fill={'#165dff'} className={'h-[16px] w-[16px]'} />
+      {isLoadingAgentStatus ? (
+        <LoadingOne fill={'#165dff'} className={'h-[16px] w-[16px]'} />
       ) : (
         agentInstallStatus[serverName]?.map((agent, index) => {
           const LogoComponent = getAgentLogo(agent);
