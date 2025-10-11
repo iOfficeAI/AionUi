@@ -6,20 +6,13 @@
 
 import type { Request, Response, NextFunction } from 'express';
 import { AuthService } from './AuthService';
-import type { User } from '../database';
 import AionDatabase from '../database';
+import { RateLimitStore } from './RateLimitStore';
 
 // Express Request type extension is defined in src/types/express.d.ts
 
-interface RateLimitStore {
-  [key: string]: {
-    count: number;
-    resetTime: number;
-  };
-}
-
 export class AuthMiddleware {
-  private static rateLimitStore: RateLimitStore = {};
+  private static rateLimitStore: RateLimitStore = new RateLimitStore();
   private static readonly RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
   private static readonly MAX_LOGIN_ATTEMPTS = 5;
   private static readonly MAX_REGISTER_ATTEMPTS = 3;
@@ -80,27 +73,24 @@ export class AuthMiddleware {
       const key = AuthService.createRateLimitKey(ip, action);
       const now = Date.now();
 
-      // Clean up expired entries
-      this.cleanupExpiredRateLimits(now);
-
       const limit = action === 'login' ? this.MAX_LOGIN_ATTEMPTS : this.MAX_REGISTER_ATTEMPTS;
-      const current = this.rateLimitStore[key];
+      const current = this.rateLimitStore.get(key);
 
       if (!current) {
-        this.rateLimitStore[key] = {
+        this.rateLimitStore.set(key, {
           count: 1,
           resetTime: now + this.RATE_LIMIT_WINDOW,
-        };
+        });
         next();
         return;
       }
 
       if (now > current.resetTime) {
         // Reset the counter
-        this.rateLimitStore[key] = {
+        this.rateLimitStore.set(key, {
           count: 1,
           resetTime: now + this.RATE_LIMIT_WINDOW,
-        };
+        });
         next();
         return;
       }
@@ -116,6 +106,7 @@ export class AuthMiddleware {
       }
 
       current.count++;
+      this.rateLimitStore.set(key, current);
       next();
     };
   }
@@ -241,26 +232,9 @@ export class AuthMiddleware {
     next();
   }
 
-  // Cleanup expired rate limit entries
-  private static cleanupExpiredRateLimits(now: number): void {
-    Object.keys(this.rateLimitStore).forEach((key) => {
-      if (this.rateLimitStore[key].resetTime < now) {
-        delete this.rateLimitStore[key];
-      }
-    });
-  }
-
   // Clear rate limit for IP (useful for testing or admin reset)
   public static clearRateLimit(ip: string, action?: string): void {
-    if (action) {
-      const key = AuthService.createRateLimitKey(ip, action);
-      delete this.rateLimitStore[key];
-    } else {
-      // Clear all rate limits for this IP
-      Object.keys(this.rateLimitStore)
-        .filter((key) => key.includes(ip))
-        .forEach((key) => delete this.rateLimitStore[key]);
-    }
+    this.rateLimitStore.clearByIp(ip, action);
   }
 }
 

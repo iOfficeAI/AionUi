@@ -8,32 +8,71 @@ import type { WebSocketServer } from 'ws';
 import { WebSocket } from 'ws';
 import { bridge } from '@office-ai/platform';
 
+// Token 验证函数 / Token validation function
 let isTokenValidFn: (token: string) => boolean;
-const connectedClients: Set<WebSocket> = new Set();
+
+// 已连接的客户端映射 / Connected clients map
+const connectedClients: Map<WebSocket, { token: string; lastPing: number }> = new Map();
+
+// 心跳检测配置 / Heartbeat configuration
+const HEARTBEAT_INTERVAL = 30000; // 30秒发送一次心跳 / Send heartbeat every 30 seconds
+const HEARTBEAT_TIMEOUT = 60000; // 60秒无响应断开连接 / Disconnect after 60 seconds without response
 
 /**
  * 初始化 Web 适配器 - 建立 WebSocket 与 bridge 的通信桥梁
+ * Initialize Web Adapter - Bridge communication between WebSocket and platform bridge
  */
 export function initWebAdapter(wss: WebSocketServer, tokenValidator: (token: string) => boolean): void {
   isTokenValidFn = tokenValidator;
 
-  // 设置 bridge 适配器
+  // 启动心跳检测定时器 / Start heartbeat timer
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const heartbeatTimer = setInterval(() => {
+    const now = Date.now();
+    connectedClients.forEach((clientInfo, ws) => {
+      // 检查客户端是否超时 / Check if client timed out
+      if (now - clientInfo.lastPing > HEARTBEAT_TIMEOUT) {
+        console.log('[WebSocket] Client heartbeat timeout, closing connection');
+        ws.close(1008, 'Heartbeat timeout');
+        connectedClients.delete(ws);
+        return;
+      }
+
+      // 验证 token 是否仍然有效 / Validate if token is still valid
+      if (!isTokenValidFn(clientInfo.token)) {
+        console.log('[WebSocket] Token expired, closing connection');
+        ws.send(JSON.stringify({ name: 'auth-expired', data: { message: 'Token expired, please login again' } }));
+        ws.close(1008, 'Token expired');
+        connectedClients.delete(ws);
+        return;
+      }
+
+      // 发送心跳 ping / Send heartbeat ping
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ name: 'ping', data: { timestamp: now } }));
+      }
+    });
+  }, HEARTBEAT_INTERVAL);
+
+  // 设置 bridge 适配器 / Setup bridge adapter
   bridge.adapter({
-    // 从 main process 向 web clients 发送数据
+    // 从主进程向 Web 客户端发送数据 / Send data from main process to web clients
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     emit(name: string, data: any) {
       const message = JSON.stringify({ name, data });
 
-      connectedClients.forEach((ws) => {
+      connectedClients.forEach((_clientInfo, ws) => {
         if (ws.readyState === WebSocket.OPEN) {
           ws.send(message);
         }
       });
     },
 
-    // 接收来自 web clients 的数据
+    // 接收来自 Web 客户端的数据 / Receive data from web clients
     on(emitter) {
       wss.on('connection', (ws, req) => {
-        // Token 验证 - 支持从Headers或URL获取
+        // Token 验证 - 支持从 Headers 或 URL 获取
+        // Token validation - support from Headers or URL
         const url = new URL(req.url || '', 'http://localhost');
         const token = req.headers['authorization']?.replace('Bearer ', '') || req.headers['sec-websocket-protocol'] || url.searchParams.get('token');
 
@@ -42,12 +81,24 @@ export function initWebAdapter(wss: WebSocketServer, tokenValidator: (token: str
           return;
         }
 
-        // 添加到活跃连接
-        connectedClients.add(ws);
-        // 处理消息
+        // 添加到活跃连接，保存 token 和最后心跳时间
+        // Add to active connections, save token and last ping time
+        connectedClients.set(ws, { token, lastPing: Date.now() });
+
+        // 处理消息 / Handle messages
         ws.on('message', async (rawData) => {
           try {
             const { name, data } = JSON.parse(rawData.toString());
+
+            // 处理心跳响应 - 更新最后心跳时间
+            // Handle pong response - update last ping time
+            if (name === 'pong') {
+              const clientInfo = connectedClients.get(ws);
+              if (clientInfo) {
+                clientInfo.lastPing = Date.now();
+              }
+              return;
+            }
 
             // 处理文件选择请求 - 转发给客户端弹窗处理
             if (name === 'subscribe-show-open') {
@@ -92,12 +143,13 @@ export function getConnectedClientsCount(): number {
 }
 
 /**
- * 向所有连接的客户端发送消息
+ * 向所有连接的客户端发送消息 / Broadcast message to all connected clients
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function broadcastToClients(name: string, data: any): void {
   const message = JSON.stringify({ name, data });
 
-  connectedClients.forEach((ws) => {
+  connectedClients.forEach((clientInfo, ws) => {
     if (ws.readyState === WebSocket.OPEN) {
       ws.send(message);
     }
