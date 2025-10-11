@@ -18,17 +18,11 @@ import { AuthService } from '../auth/AuthService';
 import { AuthMiddleware } from '../auth/middleware';
 import { initWebAdapter } from './adapter';
 import directoryApi from './directoryApi';
+import { initCLI } from '../cli';
 
 // Express Request type extension is defined in src/types/express.d.ts
 
-// 用户凭证管理
-interface UserCredentials {
-  username: string;
-  password: string;
-  createdAt: number;
-}
-
-let globalUserCredentials: UserCredentials | null = null;
+const DEFAULT_ADMIN_USERNAME = 'admin';
 
 // JWT Token 验证函数
 function isTokenValid(token: string): boolean {
@@ -42,52 +36,18 @@ export async function startWebServer(port: number, allowRemote = false): Promise
 
   // 初始化数据库
   const db = AionDatabase.getInstance();
+  let initialCredentials: { username: string; password: string } | null = null;
 
-  // 生成随机用户凭证
   if (!db.hasUsers()) {
-    // 首次启动：创建新用户
-    globalUserCredentials = AuthService.generateUserCredentials();
-    const hashedPassword = await AuthService.hashPassword(globalUserCredentials.password);
+    const username = DEFAULT_ADMIN_USERNAME;
+    const password = AuthService.generateRandomPassword();
 
     try {
-      db.createUser(globalUserCredentials.username, hashedPassword);
-      console.log('\n📋 =================================');
-      console.log('🔐 AION UI WEB ACCESS CREDENTIALS');
-      console.log('📋 =================================');
-      console.log(`👤 Username: ${globalUserCredentials.username}`);
-      console.log(`🔑 Password: ${globalUserCredentials.password}`);
-      console.log('📋 =================================');
-      console.log('⚠️  Please save these credentials safely!');
-      console.log('📋 =================================\n');
+      const hashedPassword = await AuthService.hashPassword(password);
+      db.createUser(username, hashedPassword);
+      initialCredentials = { username, password };
     } catch (error) {
-      console.error('Failed to create initial user:', error);
-    }
-  } else {
-    // 数据库已有用户：自动重置密码以显示明文凭证
-    const users = db.getAllUsers();
-    if (users.length > 0) {
-      const user = users[0]; // 使用第一个用户
-      globalUserCredentials = {
-        username: user.username,
-        password: AuthService.generateRandomPassword(),
-        createdAt: Date.now(),
-      };
-      const hashedPassword = await AuthService.hashPassword(globalUserCredentials.password);
-
-      try {
-        db.updateUserPassword(user.id, hashedPassword);
-
-        console.log('\n📋 =================================');
-        console.log('🔐 WEB ACCESS CREDENTIALS');
-        console.log('📋 =================================');
-        console.log(`👤 Username: ${globalUserCredentials.username}`);
-        console.log(`🔑 Password: ${globalUserCredentials.password}`);
-        console.log('📋 =================================');
-        console.log('⚠️  Please save these credentials safely!');
-        console.log('📋 =================================\n');
-      } catch (error) {
-        console.error('Failed to reset password:', error);
-      }
+      console.error('❌ 创建默认管理员账户失败:', error);
     }
   }
 
@@ -215,19 +175,9 @@ export async function startWebServer(port: number, allowRemote = false): Promise
       if (sessionCookie && isTokenValid(sessionCookie)) {
         const htmlContent = fs.readFileSync(indexHtmlPath, 'utf8');
 
-        // 注入token到HTML中，只在WebUI环境下设置
-        const modifiedHtml = htmlContent.replace(
-          '</head>',
-          `<script>
-            // 只在WebUI模式下设置token
-            if (!window.electronAPI) {
-              window.__SESSION_TOKEN__ = '${sessionCookie}';
-            }
-          </script></head>`
-        );
-
+        // 直接返回 HTML，token 通过 httpOnly cookie 传递，更安全
         res.setHeader('Content-Type', 'text/html');
-        res.send(modifiedHtml);
+        res.send(htmlContent);
         return;
       }
 
@@ -413,20 +363,11 @@ export async function startWebServer(port: number, allowRemote = false): Promise
   // 处理子路径路由 (React Router)
   app.get(/^\/(?!api|static|main_window).*/, validateCookie, (req, res) => {
     try {
-      const token = req.cookies['aionui-session'];
       const htmlContent = fs.readFileSync(indexHtmlPath, 'utf8');
 
-      const modifiedHtml = htmlContent.replace(
-        '</head>',
-        `<script>
-          if (!window.electronAPI) {
-            window.__SESSION_TOKEN__ = '${token}';
-          }
-        </script></head>`
-      );
-
+      // 直接返回 HTML，token 通过 httpOnly cookie 传递
       res.setHeader('Content-Type', 'text/html');
-      res.send(modifiedHtml);
+      res.send(htmlContent);
     } catch (error) {
       console.error('Error serving SPA route:', error);
       res.status(500).send('Internal Server Error');
@@ -601,8 +542,19 @@ export async function startWebServer(port: number, allowRemote = false): Promise
       const localUrl = `http://localhost:${port}`;
 
       console.log(`🚀 AionUi WebUI started on ${localUrl}`);
-      console.log(`👤 Username: ${globalUserCredentials.username}`);
-      console.log(`🔐 Password: ${globalUserCredentials.password}`);
+
+      if (initialCredentials) {
+        console.log('👤 已创建默认管理员账户（首次启动）');
+        console.log(`   Username: ${initialCredentials.username}`);
+        console.log(`   Password: ${initialCredentials.password}`);
+        console.log('⚠️  请立即登录 WebUI 并在“修改密码”中更新此密码。');
+      } else {
+        const primaryUser = db.getAllUsers()[0];
+        if (primaryUser) {
+          console.log(`🔐 已检测到管理员账户：${primaryUser.username}`);
+        }
+        console.log('⚠️  如需重置密码，请使用命令行 /resetpass 或 WebUI 中的“修改密码”功能。');
+      }
 
       if (allowRemote) {
         // 显示所有可用的网络地址
@@ -629,6 +581,17 @@ export async function startWebServer(port: number, allowRemote = false): Promise
 
       // 初始化 Web 适配器
       initWebAdapter(wss, (token: string) => isTokenValid(token));
+
+      // 启动命令行接口（仅在 macOS 和 Linux 上）
+      // 延迟启动，避免与初始化日志冲突
+      if (process.platform !== 'win32' && process.stdin.isTTY) {
+        setTimeout(() => {
+          console.log('\n💻 Starting interactive command line interface...');
+          console.log('   Type /help to see available commands\n');
+          const cli = initCLI();
+          cli.start();
+        }, 2000); // 延迟 2 秒启动
+      }
 
       resolve();
     });
