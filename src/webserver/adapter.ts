@@ -7,9 +7,7 @@
 import type { WebSocketServer } from 'ws';
 import { WebSocket } from 'ws';
 import { bridge } from '@office-ai/platform';
-
-// Token 验证函数 / Token validation function
-let isTokenValidFn: (token: string) => boolean;
+import { AuthService } from '../auth/AuthService';
 
 // 已连接的客户端映射 / Connected clients map
 const connectedClients: Map<WebSocket, { token: string; lastPing: number }> = new Map();
@@ -22,9 +20,7 @@ const HEARTBEAT_TIMEOUT = 60000; // 60秒无响应断开连接 / Disconnect afte
  * 初始化 Web 适配器 - 建立 WebSocket 与 bridge 的通信桥梁
  * Initialize Web Adapter - Bridge communication between WebSocket and platform bridge
  */
-export function initWebAdapter(wss: WebSocketServer, tokenValidator: (token: string) => boolean): void {
-  isTokenValidFn = tokenValidator;
-
+export function initWebAdapter(wss: WebSocketServer): void {
   // 启动心跳检测定时器 / Start heartbeat timer
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const heartbeatTimer = setInterval(() => {
@@ -38,8 +34,8 @@ export function initWebAdapter(wss: WebSocketServer, tokenValidator: (token: str
         return;
       }
 
-      // 验证 token 是否仍然有效 / Validate if token is still valid
-      if (!isTokenValidFn(clientInfo.token)) {
+      // 验证 WebSocket token 是否仍然有效 / Validate if WebSocket token is still valid
+      if (!AuthService.verifyWebSocketToken(clientInfo.token)) {
         console.log('[WebSocket] Token expired, closing connection');
         ws.send(JSON.stringify({ name: 'auth-expired', data: { message: 'Token expired, please login again' } }));
         ws.close(1008, 'Token expired');
@@ -76,7 +72,16 @@ export function initWebAdapter(wss: WebSocketServer, tokenValidator: (token: str
         const url = new URL(req.url || '', 'http://localhost');
         const token = req.headers['authorization']?.replace('Bearer ', '') || req.headers['sec-websocket-protocol'] || url.searchParams.get('token');
 
-        if (!token || !isTokenValidFn(token)) {
+        if (!token) {
+          console.warn('[WebSocket] Connection rejected: No token provided');
+          ws.close(1008, 'No token provided');
+          return;
+        }
+
+        // 验证 WebSocket token（使用专用的验证方法）
+        // Verify WebSocket token (using dedicated verification method)
+        if (!AuthService.verifyWebSocketToken(token)) {
+          console.warn('[WebSocket] Connection rejected: Invalid or expired WebSocket token');
           ws.close(1008, 'Invalid or expired token');
           return;
         }

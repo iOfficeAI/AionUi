@@ -158,23 +158,73 @@ export async function startWebServer(port: number, allowRemote = false): Promise
     }
   });
 
+  // 生成临时 WebSocket Token（短期有效，仅用于 WebSocket 连接）
+  // Generate temporary WebSocket token (short-lived, only for WebSocket connection)
+  app.get('/api/ws-token', (req, res) => {
+    try {
+      // 从 httpOnly cookie 中验证 session token
+      // Verify session token from httpOnly cookie
+      const sessionToken = req.cookies['aionui-session'];
+
+      if (!sessionToken || !isTokenValid(sessionToken)) {
+        return res.status(401).json({
+          success: false,
+          message: 'Unauthorized: Invalid or missing session',
+        });
+      }
+
+      // 验证 token 并获取用户信息
+      // Verify token and get user info
+      const decoded = AuthService.verifyToken(sessionToken);
+      if (!decoded) {
+        return res.status(401).json({
+          success: false,
+          message: 'Unauthorized: Invalid session token',
+        });
+      }
+
+      // 生成短期 WebSocket token（5分钟有效）
+      // Generate short-lived WebSocket token (valid for 5 minutes)
+      const wsToken = AuthService.generateWebSocketToken(
+        { id: decoded.userId, username: decoded.username },
+        '5m' // 5分钟过期
+      );
+
+      res.json({
+        success: true,
+        wsToken,
+        expiresIn: 300, // 5分钟 = 300秒
+      });
+    } catch (error) {
+      console.error('WebSocket token generation error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Internal server error',
+      });
+    }
+  });
+
   // 特殊处理主页HTML - 检查cookie或显示登录页面
   app.get('/', (req, res) => {
     try {
+      // 禁用缓存，确保每次都检查最新的认证状态 / Disable cache to ensure fresh auth check
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+
       const authHeader = req.headers.authorization;
       const sessionCookie = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : req.cookies['aionui-session'];
 
-      // 如果有 cookie 但验证失败，清除它
+      // 如果有 cookie 但验证失败，清除它并强制显示登录页 / Clear invalid cookie and show login page
       if (sessionCookie && !isTokenValid(sessionCookie)) {
         res.clearCookie('aionui-session');
-        // 不要 return，继续显示登录页
+        // 不要 return，继续显示登录页 / Continue to show login page
       }
 
-      // 如果已有有效cookie，直接进入应用
+      // 如果已有有效cookie，直接进入应用 / If valid cookie exists, enter app directly
       if (sessionCookie && isTokenValid(sessionCookie)) {
         const htmlContent = fs.readFileSync(indexHtmlPath, 'utf8');
 
-        // 直接返回 HTML，token 通过 httpOnly cookie 传递，更安全
         res.setHeader('Content-Type', 'text/html');
         res.send(htmlContent);
         return;
@@ -578,8 +628,9 @@ export async function startWebServer(port: number, allowRemote = false): Promise
       // 自动打开浏览器
       shell.openExternal(localUrl);
 
-      // 初始化 Web 适配器
-      initWebAdapter(wss, (token: string) => isTokenValid(token));
+      // 初始化 Web 适配器（WebSocket 使用临时 token）
+      // Initialize Web Adapter (WebSocket uses temporary token)
+      initWebAdapter(wss);
 
       resolve();
     });

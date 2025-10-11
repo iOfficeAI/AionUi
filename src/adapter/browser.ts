@@ -10,19 +10,6 @@ import { bridge, logger } from '@office-ai/platform';
 const win: any = window;
 
 /**
- * 从 cookie 中读取 token（更安全，避免 XSS）
- * Read token from cookie (more secure, avoid XSS)
- */
-function getCookie(name: string): string | null {
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) {
-    return parts.pop()?.split(';').shift() || null;
-  }
-  return null;
-}
-
-/**
  * Web目录选择处理函数 / Web directory selection handler
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -222,36 +209,88 @@ async function initDirectoryBrowser(container: Element, pathDisplay: Element, co
 }
 
 /**
- * 适配electron的API到浏览器中,建立renderer和main的通信桥梁, 与preload.ts中的注入对应
- * Adapt Electron API to browser, establish communication bridge between renderer and main
+ * 获取 WebSocket Token 并建立连接
+ * Fetch WebSocket token and establish connection
  */
-if (win.electronAPI) {
-  // Electron 环境 - 使用 IPC 通信 / Electron environment - use IPC communication
-  bridge.adapter({
-    emit(name, data) {
-      win.electronAPI.emit(name, data);
-    },
-    on(emitter) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      win.electronAPI.on((event: any) => {
-        try {
-          const { value } = event;
-          const { name, data } = JSON.parse(value);
-          emitter.emit(name, data);
-        } catch (e) {
-          console.warn('JSON parsing error:', e);
-        }
-      });
-    },
-  });
-} else {
-  // Web 环境 - 使用 WebSocket 通信 / Web environment - use WebSocket communication
+async function initializeWebSocket() {
+  try {
+    // 从 API 获取临时 WebSocket token（5分钟有效）
+    // Fetch temporary WebSocket token from API (valid for 5 minutes)
+    const response = await fetch('/api/ws-token', {
+      credentials: 'same-origin', // 自动发送 httpOnly cookie
+    });
 
-  const token = getCookie('aionui-session');
+    if (!response.ok) {
+      console.error('[WebSocket] Failed to obtain WebSocket token');
+      // 如果无法获取 token，可能是未登录，重定向到登录页
+      window.location.href = '/';
+      return;
+    }
 
-  if (token) {
+    const { wsToken, expiresIn } = await response.json();
+
+    if (!wsToken) {
+      console.error('[WebSocket] No WebSocket token received');
+      window.location.href = '/';
+      return;
+    }
+
+    // 使用临时 token 建立 WebSocket 连接
+    // Establish WebSocket connection with temporary token
     const wsUrl = `ws://${window.location.hostname}:25808`;
-    const ws = new WebSocket(wsUrl, [token]);
+    const ws = new WebSocket(wsUrl, [wsToken]);
+
+    // 在 token 过期前刷新（提前 30 秒刷新）
+    // Refresh token before expiration (refresh 30 seconds early)
+    const refreshInterval = (expiresIn - 30) * 1000;
+    let refreshTimer: number | null = null;
+
+    const scheduleTokenRefresh = () => {
+      if (refreshTimer) {
+        clearTimeout(refreshTimer);
+      }
+      refreshTimer = window.setTimeout(async () => {
+        try {
+          // 重新获取 token 并重建连接
+          // Fetch new token and reconnect
+          ws.close(1000, 'Token refresh');
+          await initializeWebSocket();
+        } catch (error) {
+          console.error('[WebSocket] Token refresh failed:', error);
+        }
+      }, refreshInterval);
+    };
+
+    // 连接成功后安排 token 刷新
+    // Schedule token refresh after connection established
+    ws.addEventListener('open', () => {
+      console.log('[WebSocket] Connection established');
+      scheduleTokenRefresh();
+    });
+
+    // 处理 WebSocket 连接错误（如 token 无效）/ Handle WebSocket connection errors (e.g., invalid token)
+    ws.addEventListener('error', () => {
+      console.error('[WebSocket] Connection failed');
+      if (refreshTimer) {
+        clearTimeout(refreshTimer);
+      }
+      document.cookie = 'aionui-session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 1000);
+    });
+
+    ws.addEventListener('close', (event) => {
+      if (refreshTimer) {
+        clearTimeout(refreshTimer);
+      }
+      // 如果是正常关闭（用于刷新），不做处理
+      if (event.code === 1000 && event.reason === 'Token refresh') {
+        return;
+      }
+      // 其他情况视为异常关闭
+      console.warn('[WebSocket] Connection closed unexpectedly');
+    });
 
     bridge.adapter({
       emit(name, data) {
@@ -336,7 +375,40 @@ if (win.electronAPI) {
         };
       },
     });
+  } catch (error) {
+    console.error('[WebSocket] Initialization failed:', error);
+    // 初始化失败，重定向到登录页
+    window.location.href = '/';
   }
+}
+
+/**
+ * 适配electron的API到浏览器中,建立renderer和main的通信桥梁, 与preload.ts中的注入对应
+ * Adapt Electron API to browser, establish communication bridge between renderer and main
+ */
+if (win.electronAPI) {
+  // Electron 环境 - 使用 IPC 通信 / Electron environment - use IPC communication
+  bridge.adapter({
+    emit(name, data) {
+      win.electronAPI.emit(name, data);
+    },
+    on(emitter) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      win.electronAPI.on((event: any) => {
+        try {
+          const { value } = event;
+          const { name, data } = JSON.parse(value);
+          emitter.emit(name, data);
+        } catch (e) {
+          console.warn('JSON parsing error:', e);
+        }
+      });
+    },
+  });
+} else {
+  // Web 环境 - 使用 WebSocket 通信 / Web environment - use WebSocket communication
+  // 启动 WebSocket 连接 / Initialize WebSocket connection
+  initializeWebSocket();
 }
 
 logger.provider({
