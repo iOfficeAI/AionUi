@@ -32,3 +32,41 @@
 .roundedRadioGroup :global(.arco-radio-button:only-child) {
   border-radius: 9999px !important;
 }
+
+/* 未选中按钮透明度 */
+.roundedRadioGroup :global(.arco-radio-button:not(.arco-radio-checked)) {
+  opacity: 0.5;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.roundedRadioGroup :global(.arco-radio-button:not(.arco-radio-checked):hover) {
+  opacity: 0.7;
+}
+
+/* Plus 按钮旋转动画 */
+.plusButtonRotate {
+  transition: transform 0.15s ease-in-out !important;
+  transform: rotate(45deg) !important;
+}
+
+/* 打字机光标闪烁效果 */
+@keyframes blink {
+  0%, 49% {
+    opacity: 1;
+  }
+  50%, 100% {
+    opacity: 0;
+  }
+}
+
+.typewriterCursor::after {
+  content: '|';
+  animation: blink 1s infinite;
+  margin-left: 2px;
+}
+
+/* 浅色占位符 */
+.lightPlaceholder :global(textarea::placeholder) {
+  color: #c9cdd4 !important;
+  opacity: 1 !important;
+}
