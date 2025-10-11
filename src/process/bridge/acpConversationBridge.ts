@@ -9,7 +9,6 @@ import { ipcBridge } from '../../common';
 import { copyFilesToDirectory } from '../utils';
 import WorkerManage from '../WorkerManage';
 import type AcpAgentManager from '../task/AcpAgentManager';
-import { buildWorkspaceFileTree } from './conversationBridge';
 
 export function initAcpConversationBridge(): void {
   // ACP 专用的 sendMessage provider
@@ -71,11 +70,6 @@ export function initAcpConversationBridge(): void {
     }
 
     return Promise.resolve({ success: false, msg: `${backend} CLI not found. Please install it and ensure it's accessible.` });
-  });
-
-  // ACP getWorkspace 使用通用方法
-  ipcBridge.acpConversation.getWorkspace.provider(async ({ conversation_id }) => {
-    return await buildWorkspaceFileTree(conversation_id);
   });
 
   // 新的ACP检测接口 - 基于全局标记位

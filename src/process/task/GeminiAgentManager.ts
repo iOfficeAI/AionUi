@@ -133,7 +133,4 @@ export class GeminiAgentManager extends BaseAgentManager<{
   confirmMessage(data: { confirmKey: string; msg_id: string; callId: string }) {
     return this.postMessagePromise(data.callId, data.confirmKey);
   }
-  getWorkspace() {
-    return this.bootstrap.then(() => this.postMessagePromise('gemini.get.workspace', {}));
-  }
 }

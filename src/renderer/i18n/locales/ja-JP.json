@@ -176,19 +176,12 @@
       "today": "今日",
       "yesterday": "昨日"
     },
-    "welcome": {
-      "linkFolder": "フォルダを追加",
-      "multiAgentModeEnabled": "マルチエージェントモードに入ります",
-      "newConversation": "新しいチャット",
-      "placeholder": "メッセージの送信、ファイルの追加、またはフォルダーの追加...",
-      "title": "Hi、今日の予定は何ですか？",
-      "uploadFile": "ファイルを追加"
-    },
     "workspace": {
       "empty": "ワークスペースが空です",
       "emptyDescription": "ファイルをアップロードするか、またはフォルダーを開くと、ここにファイルが表示されます",
       "searchPlaceholder": "ファイルを検索...",
-      "createNewConversation": "現在のワークスペースで新しいチャットを作成"
+      "createNewConversation": "現在のワークスペースで新しいチャットを作成",
+      "search.empty": "検索結果は空です"
     },
     "chat": {
       "noModelSelected": "現在のセッションでモデルが選択されていないため、メッセージを送信できません"

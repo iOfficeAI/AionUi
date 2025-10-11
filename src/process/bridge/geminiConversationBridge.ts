@@ -36,10 +36,4 @@ export function initGeminiConversationBridge(): void {
       return { success: false, msg: err };
     }
   });
-
-  ipcBridge.geminiConversation.getWorkspace.provider(async ({ conversation_id }) => {
-    const task = (await WorkerManage.getTaskByIdRollbackBuild(conversation_id)) as GeminiAgentManager;
-    if (!task || task.type !== 'gemini') return [];
-    return task.getWorkspace();
-  });
 }
