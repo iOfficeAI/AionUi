@@ -8,9 +8,12 @@ import { mkdirSync as _mkdirSync, existsSync, readdirSync, readFileSync } from '
 import fs from 'fs/promises';
 import path from 'path';
 import { application } from '../common/ipcBridge';
-import type { IChatConversationRefer, IConfigStorageRefer, IEnvStorageRefer } from '../common/storage';
+import type { IChatConversationRefer, IConfigStorageRefer, IEnvStorageRefer, IMcpServer } from '../common/storage';
 import { ChatMessageStorage, ChatStorage, ConfigStorage, EnvStorage } from '../common/storage';
 import { copyDirectoryRecursively, getConfigPath, getDataPath, getTempPath, verifyDirectoryFiles } from './utils';
+// Platform and architecture types (moved from deleted updateConfig)
+type PlatformType = 'win32' | 'darwin' | 'linux';
+type ArchitectureType = 'x64' | 'arm64' | 'ia32' | 'arm';
 
 const nodePath = path;
 
@@ -94,19 +97,19 @@ const CopyFile = (src: string, dest: string) => {
 };
 
 const FileBuilder = (file: string) => {
-  const stack: (() => Promise<any>)[] = [];
+  const stack: (() => Promise<unknown>)[] = [];
   let isRunning = false;
   const run = () => {
     if (isRunning || !stack.length) return;
     isRunning = true;
-    stack
+    void stack
       .shift()?.()
       .finally(() => {
         isRunning = false;
         run();
       });
   };
-  const pushStack = <R extends any>(fn: () => Promise<R>) => {
+  const pushStack = <R>(fn: () => Promise<R>) => {
     return new Promise<R>((resolve, reject) => {
       stack.push(() => fn().then(resolve).catch(reject));
       run();
@@ -135,8 +138,8 @@ const FileBuilder = (file: string) => {
 
 const JsonFileBuilder = <S extends Record<string, any>>(path: string) => {
   const file = FileBuilder(path);
-  const encode = (data: any) => {
-    return btoa(encodeURIComponent(data));
+  const encode = (data: unknown) => {
+    return btoa(encodeURIComponent(String(data)));
   };
 
   const decode = (base64: string) => {
@@ -176,7 +179,8 @@ const JsonFileBuilder = <S extends Record<string, any>>(path: string) => {
 
   const setJson = async (data: any): Promise<any> => {
     try {
-      return file.write(encode(JSON.stringify(data)));
+      await file.write(encode(JSON.stringify(data)));
+      return data;
     } catch (e) {
       return Promise.reject(e);
     }
@@ -194,10 +198,11 @@ const JsonFileBuilder = <S extends Record<string, any>>(path: string) => {
     toJson,
     setJson,
     toJsonSync,
-    async set<K extends keyof S>(key: K, value: S[K]) {
+    async set<K extends keyof S>(key: K, value: S[K]): Promise<S[K]> {
       const data = await toJson();
-      data[key] = value as any;
-      return setJson(data);
+      data[key] = value;
+      await setJson(data);
+      return value;
     },
     async get<K extends keyof S>(key: K): Promise<S[K]> {
       const data = await toJson();
@@ -266,8 +271,8 @@ const chatFile = {
 
     return data;
   },
-  async set<K extends keyof IChatConversationRefer>(key: K, value: IChatConversationRefer[K]) {
-    return _chatFile.set(key, value);
+  async set<K extends keyof IChatConversationRefer>(key: K, value: IChatConversationRefer[K]): Promise<IChatConversationRefer[K]> {
+    return await _chatFile.set(key, value);
   },
 };
 
@@ -285,7 +290,7 @@ const conversationHistoryProxy = (options: typeof _chatMessageFile, dir: string)
     async set(key: string, data: any) {
       const conversation_id = key;
       const storage = buildMessageListStorage(conversation_id, dir);
-      return storage.setJson(data);
+      return await storage.setJson(data);
     },
     async get(key: string): Promise<any[]> {
       const conversation_id = key;
@@ -303,7 +308,39 @@ const conversationHistoryProxy = (options: typeof _chatMessageFile, dir: string)
 
 const chatMessageFile = conversationHistoryProxy(_chatMessageFile, cacheDir);
 
+/**
+ * 创建默认的 MCP 服务器配置
+ */
+const getDefaultMcpServers = (): IMcpServer[] => {
+  const now = Date.now();
+  const defaultConfig = {
+    mcpServers: {
+      'chrome-devtools': {
+        command: 'npx',
+        args: ['-y', 'chrome-devtools-mcp@latest'],
+      },
+    },
+  };
+
+  return Object.entries(defaultConfig.mcpServers).map(([name, config], index) => ({
+    id: `mcp_default_${now}_${index}`,
+    name,
+    description: `Default MCP server: ${name}`,
+    enabled: false, // 默认不启用，让用户手动开启
+    transport: {
+      type: 'stdio' as const,
+      command: config.command,
+      args: config.args,
+    },
+    createdAt: now,
+    updatedAt: now,
+    originalJson: JSON.stringify({ [name]: config }, null, 2),
+  }));
+};
+
 const initStorage = async () => {
+  console.log('[AionUi] Starting storage initialization...');
+
   // 1. 先执行数据迁移（在任何目录创建之前）
   await migrateLegacyData();
 
@@ -321,11 +358,24 @@ const initStorage = async () => {
   ChatMessageStorage.interceptor(chatMessageFile);
   EnvStorage.interceptor(envFile);
 
-  application.systemInfo.provider(async () => {
-    return {
-      cacheDir: cacheDir,
-      workDir: getSystemDir().workDir,
-    };
+  // 4. 初始化 MCP 配置（为所有用户提供默认配置）
+  try {
+    const existingMcpConfig = await configFile.get('mcp.config').catch((): undefined => undefined);
+
+    // 仅当配置不存在或为空时，写入默认值（适用于新用户和老用户）
+    if (!existingMcpConfig || !Array.isArray(existingMcpConfig) || existingMcpConfig.length === 0) {
+      const defaultServers = getDefaultMcpServers();
+      await configFile.set('mcp.config', defaultServers);
+      console.log('[AionUi] Default MCP servers initialized');
+    }
+  } catch (error) {
+    console.error('[AionUi] Failed to initialize default MCP servers:', error);
+  }
+
+  console.log('[AionUi] Storage initialization complete');
+
+  application.systemInfo.provider(() => {
+    return Promise.resolve(getSystemDir());
   });
 };
 
@@ -341,6 +391,8 @@ export const getSystemDir = () => {
   return {
     cacheDir: cacheDir,
     workDir: dirConfig?.workDir || getDataPath(),
+    platform: process.platform as PlatformType,
+    arch: process.arch as ArchitectureType,
   };
 };
 
