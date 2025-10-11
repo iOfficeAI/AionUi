@@ -8,6 +8,9 @@
   "settings": {},
   "plugins": ["@typescript-eslint", "prettier"],
   "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "project": ["./tsconfig.json"]
+  },
   "rules": {
     "prettier/prettier": "error",
     "import/no-unresolved": "off",
@@ -66,6 +69,20 @@
     "@typescript-eslint/no-unnecessary-type-constraint": "warn",
     "no-constant-condition": "warn",
     "no-empty-pattern": "warn",
-    "import/no-named-as-default-member": "warn"
-  }
+    "import/no-named-as-default-member": "warn",
+    "@typescript-eslint/no-floating-promises": "error",
+    "@typescript-eslint/await-thenable": "error",
+    "require-await": "error"
+  },
+  "overrides": [
+    {
+      "files": ["*.js", "jest.config.js"],
+      "parser": "espree",
+      "rules": {
+        "@typescript-eslint/no-floating-promises": "off",
+        "@typescript-eslint/await-thenable": "off",
+        "require-await": "off"
+      }
+    }
+  ]
 }

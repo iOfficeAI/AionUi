@@ -15,7 +15,7 @@ export default forkTask(async ({ data }, pipe) => {
     ...data,
     onStreamEvent(event) {
       if (event.type === 'tool_group') {
-        event.data = event.data.map((tool: any) => {
+        event.data = (event.data as any[]).map((tool: any) => {
           const { confirmationDetails, ...other } = tool;
           if (confirmationDetails) {
             const { onConfirm, ...details } = confirmationDetails;
