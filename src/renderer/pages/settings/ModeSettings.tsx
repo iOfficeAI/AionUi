@@ -29,14 +29,20 @@ const ModelSettings: React.FC = () => {
   const [message, messageContext] = Message.useMessage();
 
   const saveModelConfig = (newData: IProvider[], success?: () => void) => {
-    ipcBridge.mode.saveModelConfig.invoke(newData).then((data) => {
-      if (data.success) {
-        setCacheKey('model.config' + Date.now());
-        success?.();
-      } else {
-        message.error(data.msg);
-      }
-    });
+    ipcBridge.mode.saveModelConfig
+      .invoke(newData)
+      .then((data) => {
+        if (data.success) {
+          setCacheKey('model.config' + Date.now());
+          success?.();
+        } else {
+          message.error(data.msg);
+        }
+      })
+      .catch((error) => {
+        console.error('Failed to save model config:', error);
+        message.error('Failed to save model configuration');
+      });
   };
 
   const updatePlatform = (platform: IProvider, success: () => void) => {

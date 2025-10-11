@@ -35,7 +35,7 @@ const useAcpMessage = (conversation_id: string) => {
   const [aiProcessing, setAiProcessing] = useState(false); // New loading state for AI response
 
   const handleResponseMessage = useCallback(
-    async (message: IResponseMessage) => {
+    (message: IResponseMessage) => {
       if (conversation_id !== message.conversation_id) {
         return;
       }
@@ -225,7 +225,9 @@ const AcpSendBox: React.FC<{
       }
     };
 
-    sendInitialMessage().then(() => {});
+    sendInitialMessage().catch((error) => {
+      console.error('Failed to send initial message:', error);
+    });
   }, [conversation_id, backend, acpStatus]);
 
   const onSendHandler = async (message: string) => {
@@ -318,6 +320,9 @@ const AcpSendBox: React.FC<{
                     if (files && files.length > 0) {
                       setUploadFile((prev) => [...prev, ...files]);
                     }
+                  })
+                  .catch((error) => {
+                    console.error('Failed to open file dialog:', error);
                   });
               }}
             ></Button>

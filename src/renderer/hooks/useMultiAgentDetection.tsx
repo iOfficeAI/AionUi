@@ -37,7 +37,9 @@ export const useMultiAgentDetection = () => {
       }
     };
 
-    checkMultiAgentMode();
+    checkMultiAgentMode().catch((error) => {
+      console.error('Multi-agent detection failed:', error);
+    });
   }, []); // 空依赖数组确保只在组件初始化时执行一次
 
   return { contextHolder };

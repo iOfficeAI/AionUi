@@ -130,7 +130,9 @@ const Guid: React.FC = () => {
   const [typewriterPlaceholder, setTypewriterPlaceholder] = useState('');
   const [isTyping, setIsTyping] = useState(true);
   const setCurrentModel = async (modelInfo: TProviderWithModel) => {
-    await ConfigStorage.set('gemini.defaultModel', modelInfo.useModel);
+    await ConfigStorage.set('gemini.defaultModel', modelInfo.useModel).catch((error) => {
+      console.error('Failed to save default model:', error);
+    });
     _setCurrentModel(modelInfo);
   };
   const navigate = useNavigate();
@@ -193,12 +195,17 @@ const Guid: React.FC = () => {
           },
         });
 
-        await ipcBridge.geminiConversation.sendMessage.invoke({
-          input: files.length > 0 ? formatFilesForMessage(files) + ' ' + input : input,
-          conversation_id: conversation.id,
-          msg_id: uuid(),
-        });
-        navigate(`/conversation/${conversation.id}`);
+        await ipcBridge.geminiConversation.sendMessage
+          .invoke({
+            input: files.length > 0 ? formatFilesForMessage(files) + ' ' + input : input,
+            conversation_id: conversation.id,
+            msg_id: uuid(),
+          })
+          .catch((error) => {
+            console.error('Failed to send message:', error);
+            throw error;
+          });
+        await navigate(`/conversation/${conversation.id}`);
       } catch (error: any) {
         console.error('Failed to create or send Gemini message:', error);
         alert(`Failed to create Gemini conversation: ${error.message || error}`);
@@ -228,7 +235,7 @@ const Guid: React.FC = () => {
           files: files.length > 0 ? files : undefined,
         };
         sessionStorage.setItem(`codex_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
-        navigate(`/conversation/${conversation.id}`);
+        await navigate(`/conversation/${conversation.id}`);
       } catch (error: any) {
         alert(`Failed to create Codex conversation: ${error.message || error}`);
         throw error;
@@ -273,7 +280,7 @@ const Guid: React.FC = () => {
         // Store initial message in sessionStorage to be picked up by the conversation page
         sessionStorage.setItem(`acp_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
 
-        navigate(`/conversation/${conversation.id}`);
+        await navigate(`/conversation/${conversation.id}`);
       } catch (error: any) {
         console.error('Failed to create ACP conversation:', error);
 
@@ -282,7 +289,7 @@ const Guid: React.FC = () => {
           console.error(t('acp.auth.console_error'), error.message);
           const confirmed = window.confirm(t('acp.auth.failed_confirm', { backend: selectedAgent, error: error.message }));
           if (confirmed) {
-            navigate('/settings/model');
+            await navigate('/settings/model');
           }
         } else {
           alert(`Failed to create ${selectedAgent} ACP conversation. Please check your ACP configuration and ensure the CLI is installed.`);
@@ -319,7 +326,9 @@ const Guid: React.FC = () => {
     });
   };
   useEffect(() => {
-    setDefaultModel();
+    setDefaultModel().catch((error) => {
+      console.error('Failed to set default model:', error);
+    });
   }, [modelList]);
 
   // 打字机效果
@@ -388,6 +397,9 @@ const Guid: React.FC = () => {
                             setFiles([]);
                             setDir(files?.[0] || '');
                           }
+                        })
+                        .catch((error) => {
+                          console.error('Failed to open file/directory dialog:', error);
                         });
                     }}
                   >
@@ -439,7 +451,9 @@ const Guid: React.FC = () => {
                                     key={provider.id + modelName}
                                     className={currentModel?.id + currentModel?.useModel === provider.id + modelName ? '!bg-#f2f3f5' : ''}
                                     onClick={() => {
-                                      setCurrentModel({ ...provider, useModel: modelName });
+                                      setCurrentModel({ ...provider, useModel: modelName }).catch((error) => {
+                                        console.error('Failed to set current model:', error);
+                                      });
                                     }}
                                   >
                                     {modelName}
@@ -462,7 +476,18 @@ const Guid: React.FC = () => {
                 </Dropdown>
               )}
             </div>
-            <Button shape='circle' type='primary' loading={loading} disabled={(!selectedAgent || selectedAgent === 'gemini') && !currentModel} icon={<ArrowUp theme='outline' size='14' fill='white' strokeWidth={2} />} onClick={handleSend} />
+            <Button
+              shape='circle'
+              type='primary'
+              loading={loading}
+              disabled={(!selectedAgent || selectedAgent === 'gemini') && !currentModel}
+              icon={<ArrowUp theme='outline' size='14' fill='white' strokeWidth={2} />}
+              onClick={() => {
+                handleSend().catch((error) => {
+                  console.error('Failed to send message:', error);
+                });
+              }}
+            />
           </div>
         </div>
 

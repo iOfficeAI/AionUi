@@ -67,7 +67,7 @@ function cleanupExpiredTokens(): void {
   }
 }
 
-export async function startWebServer(port: number, allowRemote = false): Promise<void> {
+export function startWebServer(port: number, allowRemote = false): Promise<void> {
   const app = express();
   const server = createServer(app);
   const wss = new WebSocketServer({ server });
@@ -77,7 +77,16 @@ export async function startWebServer(port: number, allowRemote = false): Promise
   const sessionToken = tokenInfo.token;
 
   // 启动定期清理过期token的任务 (每小时执行一次)
-  const cleanupInterval = setInterval(cleanupExpiredTokens, 60 * 60 * 1000);
+  const cleanupInterval = setInterval(
+    () => {
+      try {
+        cleanupExpiredTokens();
+      } catch (error) {
+        console.error('Error during token cleanup:', error);
+      }
+    },
+    60 * 60 * 1000
+  );
 
   // 添加进程退出时的清理
   process.on('exit', () => {
@@ -431,7 +440,9 @@ export async function startWebServer(port: number, allowRemote = false): Promise
       console.log(`🎯 Opening browser automatically...`);
 
       // 自动打开浏览器
-      shell.openExternal(localUrl);
+      shell.openExternal(localUrl).catch((error) => {
+        console.error('Failed to open browser:', error);
+      });
 
       // 初始化 Web 适配器
       initWebAdapter(wss, (token: string) => isTokenValid(token, allowRemote));

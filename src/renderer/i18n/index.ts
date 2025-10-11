@@ -37,12 +37,21 @@ i18n
       order: ['localStorage', 'navigator'],
       caches: ['localStorage'],
     },
+  })
+  .catch((error) => {
+    console.error('Failed to initialize i18n:', error);
   });
 
-ConfigStorage.get('language').then((language) => {
-  if (language) {
-    i18n.changeLanguage(language);
-  }
-});
+ConfigStorage.get('language')
+  .then((language) => {
+    if (language) {
+      i18n.changeLanguage(language).catch((error) => {
+        console.error('Failed to change language:', error);
+      });
+    }
+  })
+  .catch((error) => {
+    console.error('Failed to load language setting:', error);
+  });
 
 export default i18n;

@@ -264,7 +264,9 @@ const MarkdownView: React.FC<{
                   e.stopPropagation();
                   if (!props.href) return;
                   try {
-                    ipcBridge.shell.openExternal.invoke(props.href);
+                    ipcBridge.shell.openExternal.invoke(props.href).catch((error) => {
+                      console.error(t('messages.openLinkFailed'), error);
+                    });
                   } catch (error) {
                     console.error(t('messages.openLinkFailed'), error);
                   }

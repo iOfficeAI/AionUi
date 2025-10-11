@@ -56,7 +56,9 @@ export class ForkTask<Data> extends Pipe {
         const deferred = this.deferred(e.pipeId);
         if (e.pipeId) {
           // 如果存在回调，则将回调信息发送到子进程
-          deferred.pipe(this.postMessage.bind(this));
+          Promise.resolve(deferred.pipe(this.postMessage.bind(this))).catch((error) => {
+            console.error('Failed to pipe message:', error);
+          });
         }
         return this.emit(e.type, e.data, deferred);
       }

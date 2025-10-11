@@ -72,7 +72,9 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
           protocolVersion: CODEX_MCP_PROTOCOL_VERSION,
         });
       }
-    })();
+    })().catch((error) => {
+      console.error('Failed to set app config:', error);
+    });
 
     this.agent = new CodexAgent({
       id: data.conversation_id,
@@ -90,7 +92,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
     // 使用 SessionManager 来管理连接状态 - 参考 ACP 的模式
     this.bootstrap = this.startWithSessionManagement()
-      .then(async () => {
+      .then(() => {
         return this.agent;
       })
       .catch((e) => {
@@ -110,13 +112,13 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     await this.agent.start();
 
     // 3. 执行认证和会话创建
-    await this.performPostConnectionSetup();
+    this.performPostConnectionSetup();
   }
 
   /**
    * 连接后设置 - 参考 ACP 的认证和会话创建
    */
-  private async performPostConnectionSetup(): Promise<void> {
+  private performPostConnectionSetup(): void {
     try {
       // Get connection diagnostics
       this.getDiagnostics();
@@ -367,7 +369,9 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     this.agent.getFileOperationHandler().cleanup();
 
     // 停止 agent
-    this.agent?.stop?.();
+    this.agent?.stop?.().catch((error) => {
+      console.error('Failed to stop Codex agent during cleanup:', error);
+    });
 
     // Cleanup completed
   }
@@ -380,7 +384,9 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
   // Ensure we clean up agent resources on kill
   kill() {
     try {
-      this.agent?.stop?.();
+      this.agent?.stop?.().catch((error) => {
+        console.error('Failed to stop Codex agent during kill:', error);
+      });
     } finally {
       super.kill();
     }

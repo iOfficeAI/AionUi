@@ -33,13 +33,17 @@ export const useMessageLstCache = (key: string) => {
   const update = useUpdateMessageList();
   useEffect(() => {
     if (!key) return;
-    ChatMessageStorage.get(key).then((cache) => {
-      if (cache) {
-        if (Array.isArray(cache)) {
-          update(() => cache);
+    void ChatMessageStorage.get(key)
+      .then((cache) => {
+        if (cache) {
+          if (Array.isArray(cache)) {
+            update(() => cache);
+          }
         }
-      }
-    });
+      })
+      .catch((error) => {
+        console.error('Failed to load message cache:', error);
+      });
   }, [key]);
 };
 

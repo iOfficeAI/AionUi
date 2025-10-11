@@ -17,7 +17,9 @@ const useDebug = () => {
   const timer = useRef<any>(null);
   const onClick = () => {
     const open = () => {
-      ipcBridge.application.openDevTools.invoke();
+      ipcBridge.application.openDevTools.invoke().catch((error) => {
+        console.error('Failed to open dev tools:', error);
+      });
       setCount(0);
     };
     if (count >= 3) {

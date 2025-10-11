@@ -72,6 +72,9 @@ const syncToLocalFile = () => {
         nextTickCallback.shift()();
       }
     })
+    .catch((error) => {
+      console.error('Failed to sync messages to local file:', error);
+    })
     .finally(() => {
       isSyncing = false;
       debounce(syncToLocalFile)();
