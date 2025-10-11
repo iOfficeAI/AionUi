@@ -6,12 +6,14 @@
 
 import type { CodexAgentManager } from '@/agent/codex';
 import type { TChatConversation } from '@/common/storage';
+import { GeminiAgent } from '@/agent/gemini';
 import { ipcBridge } from '../../common';
 import { createAcpAgent, createCodexAgent, createGeminiAgent } from '../initAgent';
 import { ProcessChat, ProcessChatMessage } from '../initStorage';
 import { nextTickToLocalFinish } from '../message';
 import type AcpAgentManager from '../task/AcpAgentManager';
 import type { GeminiAgentManager } from '../task/GeminiAgentManager';
+import { readDirectoryRecursive } from '../utils';
 import WorkerManage from '../WorkerManage';
 
 export function initConversationBridge(): void {
@@ -94,6 +96,29 @@ export function initConversationBridge(): void {
     return conversation;
   });
 
+  const buildLastAbortController = (() => {
+    let lastGetWorkspaceAbortController = new AbortController();
+    return () => {
+      lastGetWorkspaceAbortController.abort();
+      return (lastGetWorkspaceAbortController = new AbortController());
+    };
+  })();
+
+  ipcBridge.conversation.getWorkspace.provider(async ({ workspace, search, path }) => {
+    const fileService = GeminiAgent.buildFileServer(workspace);
+    return await readDirectoryRecursive(path, {
+      root: workspace,
+      fileService,
+      abortController: buildLastAbortController(),
+      search: {
+        text: search,
+        onProcess(result) {
+          void ipcBridge.conversation.responseSearchWorkSpace.invoke(result);
+        },
+      },
+    }).then((res) => (res ? [res] : []));
+  });
+
   ipcBridge.conversation.stop.provider(async ({ conversation_id }) => {
     const task = WorkerManage.getTaskById(conversation_id);
     if (!task) return { success: true, msg: 'conversation not found' };
@@ -128,81 +153,3 @@ export function initConversationBridge(): void {
     }
   });
 }
-
-/**
- * 构建工作区文件树（通用方法，用于 ACP 和 Codex）
- */
-export const buildWorkspaceFileTree = async (conversation_id: string) => {
-  try {
-    const task = (await WorkerManage.getTaskByIdRollbackBuild(conversation_id)) as AcpAgentManager | CodexAgentManager;
-    if (!task) return [];
-    const workspace = task.workspace;
-
-    const fs = await import('fs');
-    const path = await import('path');
-
-    // 检查目录是否存在
-    if (!fs.existsSync(workspace)) {
-      return [];
-    }
-
-    // 递归构建文件树
-    type FileTreeNode = { name: string; path: string; isDir: boolean; isFile: boolean; children?: FileTreeNode[] };
-    const buildFileTree = (dirPath: string, basePath: string = dirPath): FileTreeNode[] => {
-      const result: FileTreeNode[] = [];
-      const items = fs.readdirSync(dirPath);
-
-      for (const item of items) {
-        // 跳过隐藏文件和系统文件
-        if (item.startsWith('.')) continue;
-        if (item === 'node_modules') continue;
-
-        const itemPath = path.join(dirPath, item);
-        const relativePath = path.relative(basePath, itemPath);
-        const stat = fs.statSync(itemPath);
-
-        if (stat.isDirectory()) {
-          const children = buildFileTree(itemPath, basePath);
-          if (children.length > 0) {
-            result.push({
-              name: item,
-              path: relativePath,
-              isDir: true,
-              isFile: false,
-              children,
-            });
-          }
-        } else {
-          result.push({
-            name: item,
-            path: relativePath,
-            isDir: false,
-            isFile: true,
-          });
-        }
-      }
-
-      return result.sort((a, b) => {
-        // 目录优先，然后按名称排序
-        if (a.isDir && b.isFile) return -1;
-        if (a.isFile && b.isDir) return 1;
-        return a.name.localeCompare(b.name);
-      });
-    };
-
-    const files = buildFileTree(workspace);
-
-    // 返回根目录包装的结果
-    return [
-      {
-        name: path.basename(workspace),
-        path: workspace,
-        isDir: true,
-        isFile: false,
-        children: files,
-      },
-    ];
-  } catch (error) {
-    return [];
-  }
-};

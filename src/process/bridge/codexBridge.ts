@@ -8,7 +8,6 @@ import type { CodexAgentManager } from '@/agent/codex';
 import { ipcBridge } from '@/common';
 import { copyFilesToDirectory } from '../utils';
 import WorkerManage from '../WorkerManage';
-import { buildWorkspaceFileTree } from './conversationBridge';
 
 /**
  * 初始化 Codex 相关的 IPC 桥接
@@ -37,10 +36,5 @@ export function initCodexBridge(): void {
     } catch (e: unknown) {
       return { success: false, msg: e instanceof Error ? e.message : String(e) };
     }
-  });
-
-  // Codex getWorkspace 使用通用方法
-  ipcBridge.codexConversation.getWorkspace.provider(async ({ conversation_id }) => {
-    return await buildWorkspaceFileTree(conversation_id);
   });
 }
