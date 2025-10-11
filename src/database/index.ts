@@ -7,6 +7,7 @@
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import crypto from 'crypto';
 
 export interface User {
   id: number;
@@ -85,13 +86,26 @@ class AionDatabase {
     this.saveToDisk();
   }
 
-  public updateUserPassword(userId: number, newPasswordHash: string): void {
+  public updateUserPassword(userId: number, newPasswordHash: string, invalidateAllTokens = true): void {
     const user = this.getUserById(userId);
     if (!user) {
       return;
     }
 
     user.password_hash = newPasswordHash;
+
+    // 如果需要使所有旧 Token 失效，则清除用户的所有会话并更换 JWT Secret
+    // Invalidate all old tokens by clearing sessions and regenerating JWT secret
+    if (invalidateAllTokens) {
+      // 删除该用户的所有会话 / Delete all user sessions
+      this.data.sessions = this.data.sessions.filter((session) => session.user_id !== userId);
+
+      // 重新生成 JWT Secret，使所有旧 Token 立即失效
+      // Regenerate JWT Secret to invalidate all old tokens immediately
+      const newJwtSecret = crypto.randomBytes(64).toString('hex');
+      this.data.config['jwt_secret'] = newJwtSecret;
+    }
+
     this.saveToDisk();
   }
 
