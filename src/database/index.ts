@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import Database from 'better-sqlite3';
+import fs from 'fs';
 import path from 'path';
 import os from 'os';
 
@@ -13,7 +13,7 @@ export interface User {
   username: string;
   password_hash: string;
   created_at: string;
-  last_login: string;
+  last_login: string | null;
 }
 
 export interface Session {
@@ -24,34 +24,25 @@ export interface Session {
   updated_at: string;
 }
 
+interface DatabaseSchema {
+  users: User[];
+  sessions: Session[];
+  config: Record<string, string>;
+  meta: {
+    nextUserId: number;
+  };
+}
+
 class AionDatabase {
-  private db: Database.Database;
   private static instance: AionDatabase;
+  private readonly dbPath: string;
+  private data: DatabaseSchema;
 
-  constructor(dbPath?: string) {
-    // Default path that works in both Electron and CLI contexts
-    let defaultPath: string;
-
-    try {
-      // Try to use Electron's app.getPath if available
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const { app } = require('electron');
-      defaultPath = path.join(app.getPath('userData'), 'aion.db');
-    } catch (error) {
-      // Fallback for CLI context
-      defaultPath = path.join(os.homedir(), '.aionui', 'aion.db');
-
-      // Ensure directory exists
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const fs = require('fs');
-      const dir = path.dirname(defaultPath);
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true });
-      }
-    }
-
-    this.db = new Database(dbPath || defaultPath);
-    this.initTables();
+  private constructor(dbPath?: string) {
+    this.dbPath = dbPath || this.resolveDefaultPath();
+    this.ensureDirectory();
+    this.data = this.loadFromDisk();
+    this.saveToDisk();
   }
 
   public static getInstance(dbPath?: string): AionDatabase {
@@ -61,172 +52,205 @@ class AionDatabase {
     return AionDatabase.instance;
   }
 
-  private initTables() {
-    this.db.exec(`
-      CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        last_login DATETIME
-      );
-
-      CREATE TABLE IF NOT EXISTS sessions (
-        id TEXT PRIMARY KEY,
-        user_id INTEGER NOT NULL,
-        title TEXT NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
-      );
-
-      CREATE TABLE IF NOT EXISTS config (
-        key TEXT PRIMARY KEY,
-        value TEXT NOT NULL,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-      );
-
-      CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
-      CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
-    `);
-  }
-
   // User operations
   public createUser(username: string, passwordHash: string): User {
-    const stmt = this.db.prepare(`
-      INSERT INTO users (username, password_hash)
-      VALUES (?, ?)
-    `);
+    const user: User = {
+      id: this.data.meta.nextUserId++,
+      username,
+      password_hash: passwordHash,
+      created_at: new Date().toISOString(),
+      last_login: null,
+    };
 
-    const result = stmt.run(username, passwordHash);
-
-    return this.getUserById(result.lastInsertRowid as number)!;
+    this.data.users.push(user);
+    this.saveToDisk();
+    return this.getUserById(user.id)!;
   }
 
   public getUserById(id: number): User | null {
-    const stmt = this.db.prepare('SELECT * FROM users WHERE id = ?');
-    return stmt.get(id) as User | null;
+    return this.data.users.find((user) => user.id === id) || null;
   }
 
   public getUserByUsername(username: string): User | null {
-    const stmt = this.db.prepare('SELECT * FROM users WHERE username = ?');
-    return stmt.get(username) as User | null;
+    return this.data.users.find((user) => user.username === username) || null;
   }
 
   public updateLastLogin(userId: number): void {
-    const stmt = this.db.prepare(`
-      UPDATE users
-      SET last_login = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `);
-    stmt.run(userId);
+    const user = this.getUserById(userId);
+    if (!user) {
+      return;
+    }
+
+    user.last_login = new Date().toISOString();
+    this.saveToDisk();
   }
 
   public updateUserPassword(userId: number, newPasswordHash: string): void {
-    const stmt = this.db.prepare(`
-      UPDATE users
-      SET password_hash = ?
-      WHERE id = ?
-    `);
-    stmt.run(newPasswordHash, userId);
+    const user = this.getUserById(userId);
+    if (!user) {
+      return;
+    }
+
+    user.password_hash = newPasswordHash;
+    this.saveToDisk();
   }
 
   public hasUsers(): boolean {
-    const stmt = this.db.prepare('SELECT COUNT(*) as count FROM users');
-    const result = stmt.get() as { count: number };
-    return result.count > 0;
+    return this.data.users.length > 0;
   }
 
   public getUserCount(): number {
-    const stmt = this.db.prepare('SELECT COUNT(*) as count FROM users');
-    const result = stmt.get() as { count: number };
-    return result.count;
+    return this.data.users.length;
   }
 
   public getAllUsers(): User[] {
-    const stmt = this.db.prepare('SELECT * FROM users ORDER BY created_at ASC');
-    return stmt.all() as User[];
+    return [...this.data.users].sort((a, b) => a.created_at.localeCompare(b.created_at));
   }
 
   // Session operations
   public createSession(userId: number, title: string, sessionId?: string): Session {
-    const id = sessionId || this.generateSessionId();
-    const stmt = this.db.prepare(`
-      INSERT INTO sessions (id, user_id, title)
-      VALUES (?, ?, ?)
-    `);
+    const session: Session = {
+      id: sessionId || this.generateSessionId(),
+      user_id: userId,
+      title,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
 
-    stmt.run(id, userId, title);
-    return this.getSessionById(id)!;
+    this.data.sessions.push(session);
+    this.saveToDisk();
+    return this.getSessionById(session.id)!;
   }
 
   public getSessionById(id: string): Session | null {
-    const stmt = this.db.prepare('SELECT * FROM sessions WHERE id = ?');
-    return stmt.get(id) as Session | null;
+    return this.data.sessions.find((session) => session.id === id) || null;
   }
 
   public getSessionsByUserId(userId: number): Session[] {
-    const stmt = this.db.prepare(`
-      SELECT * FROM sessions
-      WHERE user_id = ?
-      ORDER BY updated_at DESC
-    `);
-    return stmt.all(userId) as Session[];
+    return this.data.sessions.filter((session) => session.user_id === userId).sort((a, b) => b.updated_at.localeCompare(a.updated_at));
   }
 
   public updateSessionTitle(sessionId: string, title: string): void {
-    const stmt = this.db.prepare(`
-      UPDATE sessions
-      SET title = ?, updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `);
-    stmt.run(title, sessionId);
+    const session = this.getSessionById(sessionId);
+    if (!session) {
+      return;
+    }
+
+    session.title = title;
+    session.updated_at = new Date().toISOString();
+    this.saveToDisk();
   }
 
   public deleteSession(sessionId: string): void {
-    const stmt = this.db.prepare('DELETE FROM sessions WHERE id = ?');
-    stmt.run(sessionId);
+    const index = this.data.sessions.findIndex((session) => session.id === sessionId);
+    if (index === -1) {
+      return;
+    }
+
+    this.data.sessions.splice(index, 1);
+    this.saveToDisk();
   }
 
   public updateSessionTimestamp(sessionId: string): void {
-    const stmt = this.db.prepare(`
-      UPDATE sessions
-      SET updated_at = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `);
-    stmt.run(sessionId);
-  }
+    const session = this.getSessionById(sessionId);
+    if (!session) {
+      return;
+    }
 
-  private generateSessionId(): string {
-    return Date.now().toString(36) + Math.random().toString(36).substr(2);
+    session.updated_at = new Date().toISOString();
+    this.saveToDisk();
   }
 
   public close(): void {
-    this.db.close();
+    this.saveToDisk();
   }
 
-  // Transaction support
   public transaction<T>(fn: () => T): T {
-    return this.db.transaction(fn)();
+    const snapshot = JSON.parse(JSON.stringify(this.data)) as DatabaseSchema;
+    try {
+      const result = fn();
+      this.saveToDisk();
+      return result;
+    } catch (error) {
+      this.data = snapshot;
+      this.saveToDisk();
+      throw error;
+    }
   }
 
   // Config operations
   public getConfig(key: string): string | null {
-    const stmt = this.db.prepare('SELECT value FROM config WHERE key = ?');
-    const result = stmt.get(key) as { value: string } | undefined;
-    return result?.value || null;
+    return this.data.config[key] ?? null;
   }
 
   public setConfig(key: string, value: string): void {
-    const stmt = this.db.prepare(`
-      INSERT INTO config (key, value, updated_at)
-      VALUES (?, ?, CURRENT_TIMESTAMP)
-      ON CONFLICT(key) DO UPDATE SET
-        value = excluded.value,
-        updated_at = CURRENT_TIMESTAMP
-    `);
-    stmt.run(key, value);
+    this.data.config[key] = value;
+    this.saveToDisk();
+  }
+
+  private generateSessionId(): string {
+    return `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`;
+  }
+
+  private resolveDefaultPath(): string {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const { app } = require('electron');
+      return path.join(app.getPath('userData'), 'aion.json');
+    } catch (_error) {
+      return path.join(os.homedir(), '.aionui', 'aion.json');
+    }
+  }
+
+  private ensureDirectory(): void {
+    const dir = path.dirname(this.dbPath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+  }
+
+  private loadFromDisk(): DatabaseSchema {
+    if (!fs.existsSync(this.dbPath)) {
+      return this.createEmptySchema();
+    }
+
+    try {
+      const raw = fs.readFileSync(this.dbPath, 'utf8');
+      const parsed = JSON.parse(raw) as Partial<DatabaseSchema>;
+      return {
+        users: parsed.users ?? [],
+        sessions: parsed.sessions ?? [],
+        config: parsed.config ?? {},
+        meta: {
+          nextUserId: parsed.meta?.nextUserId && parsed.meta.nextUserId > 0 ? parsed.meta.nextUserId : this.computeNextUserId(parsed.users ?? []),
+        },
+      };
+    } catch (error) {
+      console.error('Failed to load database file, recreating:', error);
+      return this.createEmptySchema();
+    }
+  }
+
+  private saveToDisk(): void {
+    fs.writeFileSync(this.dbPath, JSON.stringify(this.data, null, 2), 'utf8');
+  }
+
+  private createEmptySchema(): DatabaseSchema {
+    return {
+      users: [],
+      sessions: [],
+      config: {},
+      meta: {
+        nextUserId: 1,
+      },
+    };
+  }
+
+  private computeNextUserId(users: User[]): number {
+    if (users.length === 0) {
+      return 1;
+    }
+    return Math.max(...users.map((user) => user.id)) + 1;
   }
 }
 
