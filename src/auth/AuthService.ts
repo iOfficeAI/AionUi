@@ -7,6 +7,7 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
+import type { StringValue } from 'ms';
 import type { User } from '../database';
 
 interface TokenPayload {
@@ -93,6 +94,26 @@ export class AuthService {
     });
   }
 
+  /**
+   * 生成短期 WebSocket Token（用于 WebSocket 连接认证）
+   * Generate short-lived WebSocket token (for WebSocket connection authentication)
+   * @param user - 用户信息 / User information
+   * @param expiresIn - 过期时间（默认 5 分钟）/ Expiration time (default 5 minutes)
+   * @returns JWT token string
+   */
+  public static generateWebSocketToken(user: Pick<User, 'id' | 'username'>, expiresIn?: StringValue | number): string {
+    const payload: TokenPayload = {
+      userId: user.id,
+      username: user.username,
+    };
+
+    return jwt.sign(payload, this.getJwtSecret(), {
+      expiresIn: expiresIn || '5m',
+      issuer: 'aionui',
+      audience: 'aionui-websocket', // 不同的 audience，标识这是 WebSocket token
+    });
+  }
+
   public static verifyToken(token: string): TokenPayload | null {
     try {
       const decoded = jwt.verify(token, this.getJwtSecret(), {
@@ -103,6 +124,26 @@ export class AuthService {
       return decoded;
     } catch (error) {
       console.error('Token verification failed:', error);
+      return null;
+    }
+  }
+
+  /**
+   * 验证 WebSocket Token
+   * Verify WebSocket token
+   * @param token - JWT token string
+   * @returns Token payload if valid, null otherwise
+   */
+  public static verifyWebSocketToken(token: string): TokenPayload | null {
+    try {
+      const decoded = jwt.verify(token, this.getJwtSecret(), {
+        issuer: 'aionui',
+        audience: 'aionui-websocket',
+      }) as TokenPayload;
+
+      return decoded;
+    } catch (error) {
+      console.error('WebSocket token verification failed:', error);
       return null;
     }
   }
