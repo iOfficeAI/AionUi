@@ -18,7 +18,6 @@ import { AuthService } from '../auth/AuthService';
 import { AuthMiddleware } from '../auth/middleware';
 import { initWebAdapter } from './adapter';
 import directoryApi from './directoryApi';
-import { initCLI } from '../cli';
 
 // Express Request type extension is defined in src/types/express.d.ts
 
@@ -581,17 +580,6 @@ export async function startWebServer(port: number, allowRemote = false): Promise
 
       // 初始化 Web 适配器
       initWebAdapter(wss, (token: string) => isTokenValid(token));
-
-      // 启动命令行接口（仅在 macOS 和 Linux 上）
-      // 延迟启动，避免与初始化日志冲突
-      if (process.platform !== 'win32' && process.stdin.isTTY) {
-        setTimeout(() => {
-          console.log('\n💻 Starting interactive command line interface...');
-          console.log('   Type /help to see available commands\n');
-          const cli = initCLI();
-          cli.start();
-        }, 2000); // 延迟 2 秒启动
-      }
 
       resolve();
     });
