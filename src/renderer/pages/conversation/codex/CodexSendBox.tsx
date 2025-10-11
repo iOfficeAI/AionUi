@@ -55,7 +55,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
   }, [conversation_id]);
 
   useEffect(() => {
-    return ipcBridge.codexConversation.responseStream.on(async (message) => {
+    return ipcBridge.codexConversation.responseStream.on((message) => {
       if (conversation_id !== message.conversation_id) {
         return;
       }
@@ -207,7 +207,9 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
 
     // 小延迟确保状态消息已经完全处理
     const timer = setTimeout(() => {
-      processInitialMessage();
+      processInitialMessage().catch((error) => {
+        console.error('Failed to process initial message:', error);
+      });
     }, 200);
 
     return () => {
@@ -281,7 +283,12 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
               shape='circle'
               icon={<Plus theme='outline' size='14' strokeWidth={2} fill='#333' />}
               onClick={() => {
-                ipcBridge.dialog.showOpen.invoke({ properties: ['openFile', 'multiSelections'] }).then((files) => setUploadFile(files || []));
+                ipcBridge.dialog.showOpen
+                  .invoke({ properties: ['openFile', 'multiSelections'] })
+                  .then((files) => setUploadFile(files || []))
+                  .catch((error) => {
+                    console.error('Failed to open file dialog:', error);
+                  });
               }}
             ></Button>
           </>

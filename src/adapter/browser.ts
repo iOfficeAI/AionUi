@@ -101,7 +101,7 @@ if (win.electronAPI) {
     });
 
     // Web目录选择处理函数
-    async function handleWebDirectorySelection(options: any): Promise<string[] | undefined> {
+    const handleWebDirectorySelection = (options: any): Promise<string[] | undefined> => {
       return new Promise((resolve) => {
         // 创建目录选择模态框
         const modal = createDirectorySelectionModal(options, (result) => {
@@ -109,10 +109,10 @@ if (win.electronAPI) {
         });
         document.body.appendChild(modal);
       });
-    }
+    };
 
     // 创建文件/目录选择模态框
-    function createDirectorySelectionModal(options: any, onSelect: (paths: string[] | undefined) => void) {
+    const createDirectorySelectionModal = (options: any, onSelect: (paths: string[] | undefined) => void) => {
       // 检查是否为文件选择模式 - 使用自定义字段判断或从properties自动推断
       let isFileSelection = options.isFileMode === true;
 
@@ -193,13 +193,13 @@ if (win.electronAPI) {
       });
 
       return modal;
-    }
+    };
 
     // 初始化目录浏览器
-    async function initDirectoryBrowser(container: Element, pathDisplay: Element, confirmBtn: Element, isFileSelection: boolean) {
+    const initDirectoryBrowser = (container: Element, pathDisplay: Element, confirmBtn: Element, isFileSelection: boolean) => {
       let selectedPath: string;
 
-      async function loadDirectory(path = '') {
+      const loadDirectory = async (path = '') => {
         try {
           const token = new URLSearchParams(window.location.search).get('token');
           const showFiles = isFileSelection ? 'true' : 'false';
@@ -210,9 +210,9 @@ if (win.electronAPI) {
         } catch (_error) {
           container.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">加载目录失败</div>';
         }
-      }
+      };
 
-      function renderDirectory(data: any) {
+      const renderDirectory = (data: any) => {
         let html = '';
 
         // 返回上级目录按钮
@@ -252,7 +252,7 @@ if (win.electronAPI) {
             e.preventDefault();
             // 只有目录（包括父目录）可以导航
             if (type === 'parent' || (type === 'directory' && !isFileSelection)) {
-              loadDirectory(path);
+              loadDirectory(path).catch((error) => console.error('Failed to load directory:', error));
             } else if (type === 'directory' && isFileSelection) {
               // 在文件选择模式下，双击目录进入
             }
@@ -262,7 +262,7 @@ if (win.electronAPI) {
           if (isFileSelection && type === 'directory') {
             item.addEventListener('dblclick', (e) => {
               e.preventDefault();
-              loadDirectory(path);
+              loadDirectory(path).catch((error) => console.error('Failed to load directory:', error));
             });
           }
 
@@ -280,11 +280,11 @@ if (win.electronAPI) {
             });
           }
         });
-      }
+      };
 
       // 加载初始目录
-      loadDirectory();
-    }
+      loadDirectory().catch((error) => console.error('Failed to load initial directory:', error));
+    };
   }
 }
 

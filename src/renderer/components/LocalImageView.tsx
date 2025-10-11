@@ -28,10 +28,16 @@ const LocalImageView: React.FC<{
 
   useEffect(() => {
     setLoading(true);
-    ipcBridge.fs.getImageBase64.invoke({ path: absolutePath }).then((base64) => {
-      setUrl(base64);
-      setLoading(false);
-    });
+    ipcBridge.fs.getImageBase64
+      .invoke({ path: absolutePath })
+      .then((base64) => {
+        setUrl(base64);
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.error('Failed to load image:', error);
+        setLoading(false);
+      });
   }, [absolutePath]);
   if (loading)
     return (

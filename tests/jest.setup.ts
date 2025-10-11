@@ -10,6 +10,7 @@ export {};
 
 // Extend global types for testing
 declare global {
+  // eslint-disable-next-line no-var
   var electronAPI: any;
 }
 
@@ -18,6 +19,6 @@ declare global {
   ipcRenderer: {
     invoke: () => Promise.resolve(),
     on: () => {},
-    removeAllListeners: () => {}
-  }
+    removeAllListeners: () => {},
+  },
 };

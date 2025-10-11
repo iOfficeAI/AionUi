@@ -9,7 +9,7 @@
 // 2. 子进程管理，需要根据不同的agent处理不同的agent任务，同时所有子进程具备相同的通信机制
 import { GeminiAgent } from '@/agent/gemini';
 import { forkTask } from './utils';
-export default forkTask(async ({ data }, pipe) => {
+export default forkTask(({ data }, pipe) => {
   pipe.log('gemini.init', data);
   const agent = new GeminiAgent({
     ...data,
@@ -34,7 +34,8 @@ export default forkTask(async ({ data }, pipe) => {
     },
   });
   pipe.on('stop.stream', (_, deferred) => {
-    deferred.with(agent.stop());
+    agent.stop();
+    deferred.with(Promise.resolve());
   });
   pipe.on('send.message', (event: { input: string; msg_id: string }, deferred) => {
     deferred.with(agent.send(event.input, event.msg_id));

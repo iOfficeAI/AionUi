@@ -65,7 +65,7 @@ export class CodexConnection {
   private retryDelay = 5000; // 5 seconds
   private isNetworkError = false;
 
-  async start(cliPath: string, cwd: string, args: string[] = []): Promise<void> {
+  start(cliPath: string, cwd: string, args: string[] = []): Promise<void> {
     // Default to "codex mcp serve" to start MCP server
     const cleanEnv = { ...process.env };
     delete cleanEnv.NODE_OPTIONS;
@@ -182,7 +182,7 @@ export class CodexConnection {
     });
   }
 
-  async stop(): Promise<void> {
+  stop(): Promise<void> {
     if (this.child) {
       this.child.kill();
       this.child = null;
@@ -195,9 +195,10 @@ export class CodexConnection {
     }
     // Clear pending elicitations
     this.elicitationMap.clear();
+    return Promise.resolve();
   }
 
-  async request<T = unknown>(method: string, params?: unknown, timeoutMs = 200000): Promise<T> {
+  request<T = unknown>(method: string, params?: unknown, timeoutMs = 200000): Promise<T> {
     const id = this.nextId++;
     const req: JsonRpcRequest = { jsonrpc: JSONRPC_VERSION, id, method, params };
     return new Promise<T>((resolve, reject) => {
@@ -338,7 +339,7 @@ export class CodexConnection {
   // Permission control methods
 
   // Public methods for permission control
-  public async waitForPermission(callId: string): Promise<boolean> {
+  public waitForPermission(callId: string): Promise<boolean> {
     return new Promise((resolve, reject) => {
       this.permissionResolvers.set(callId, { resolve, reject });
 
@@ -537,47 +538,57 @@ export class CodexConnection {
   }
 
   // Simple ping test to check if connection is responsive
-  public async ping(timeout: number = 5000): Promise<boolean> {
-    try {
-      await this.request('ping', {}, timeout);
-      return true;
-    } catch {
-      return false;
-    }
+  public ping(timeout: number = 5000): Promise<boolean> {
+    return this.request('ping', {}, timeout)
+      .then(() => true)
+      .catch(() => false);
   }
 
   // Wait for MCP server to be ready after startup
-  public async waitForServerReady(timeout: number = 30000): Promise<void> {
+  public waitForServerReady(timeout: number = 30000): Promise<void> {
     return new Promise((resolve, reject) => {
       const startTime = Date.now();
 
-      const checkReady = async () => {
-        try {
-          // Try to ping the server
-          const isReady = await this.ping(3000);
-          if (isReady) {
-            resolve();
-            return;
-          }
-        } catch {
-          // Ping failed, continue waiting
-        }
+      const checkReady = () => {
+        // Try to ping the server
+        this.ping(3000)
+          .then((isReady) => {
+            if (isReady) {
+              resolve();
+              return;
+            }
 
-        // Check timeout
-        if (Date.now() - startTime > timeout) {
-          // Emit error to frontend before rejecting promise
-          this.onError({
-            message: `Timeout waiting for MCP server to be ready (${timeout}ms)`,
-            type: 'timeout',
-            details: { timeout },
+            // Check timeout
+            if (Date.now() - startTime > timeout) {
+              // Emit error to frontend before rejecting promise
+              this.onError({
+                message: `Timeout waiting for MCP server to be ready (${timeout}ms)`,
+                type: 'timeout',
+                details: { timeout },
+              });
+
+              reject(new Error('Timeout waiting for MCP server to be ready'));
+              return;
+            }
+
+            // Wait and retry
+            setTimeout(checkReady, 2000);
+          })
+          .catch(() => {
+            // Ping failed, continue waiting
+            if (Date.now() - startTime > timeout) {
+              this.onError({
+                message: `Timeout waiting for MCP server to be ready (${timeout}ms)`,
+                type: 'timeout',
+                details: { timeout },
+              });
+
+              reject(new Error('Timeout waiting for MCP server to be ready'));
+              return;
+            }
+
+            setTimeout(checkReady, 2000);
           });
-
-          reject(new Error('Timeout waiting for MCP server to be ready'));
-          return;
-        }
-
-        // Wait and retry
-        setTimeout(checkReady, 2000);
       };
 
       // Start checking after a short delay

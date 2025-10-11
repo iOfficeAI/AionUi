@@ -31,7 +31,7 @@ export class AcpConnection {
   public onSessionUpdate: (data: AcpSessionUpdate) => void = () => {};
   public onPermissionRequest: (data: AcpPermissionRequest) => Promise<{
     optionId: string;
-  }> = async () => ({ optionId: 'allow' });
+  }> = () => Promise.resolve({ optionId: 'allow' }); // Returns a resolved Promise for interface consistency
   public onEndTurn: () => void = () => {}; // Handler for end_turn messages
   public onFileOperation: (operation: { method: string; path: string; content?: string; sessionId: string }) => void = () => {};
 
@@ -194,7 +194,7 @@ export class AcpConnection {
     ]);
   }
 
-  private async sendRequest(method: string, params?: any): Promise<any> {
+  private sendRequest(method: string, params?: any): Promise<any> {
     const id = this.nextRequestId++;
     const message: AcpRequest = {
       jsonrpc: JSONRPC_VERSION,

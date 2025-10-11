@@ -3,7 +3,7 @@ import useSWR from 'swr';
 import { ipcBridge } from '../../common';
 
 const useConfigModelListWithImage = () => {
-  const { data } = useSWR('configModelListWithImage', async () => {
+  const { data } = useSWR('configModelListWithImage', () => {
     return ipcBridge.mode.getModelConfig.invoke();
   });
 

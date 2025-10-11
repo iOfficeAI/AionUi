@@ -101,9 +101,10 @@ export class AcpAgent {
     }
   }
 
-  async stop(): Promise<void> {
+  stop(): Promise<void> {
     this.connection.disconnect();
     this.emitStatusMessage('disconnected', `Disconnected from ${this.extra.backend}`);
+    return Promise.resolve();
   }
 
   // 发送消息到ACP服务器
@@ -179,24 +180,24 @@ export class AcpAgent {
     }
   }
 
-  async confirmMessage(data: { confirmKey: string; msg_id: string; callId: string }): Promise<AcpResult> {
+  confirmMessage(data: { confirmKey: string; msg_id: string; callId: string }): Promise<AcpResult> {
     try {
       if (this.pendingPermissions.has(data.callId)) {
         const { resolve } = this.pendingPermissions.get(data.callId)!;
         this.pendingPermissions.delete(data.callId);
         resolve({ optionId: data.confirmKey });
-        return { success: true, data: null };
+        return Promise.resolve({ success: true, data: null });
       }
-      return {
+      return Promise.resolve({
         success: false,
         error: createAcpError(AcpErrorType.UNKNOWN, `Permission request not found for callId: ${data.callId}`, false),
-      };
+      });
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      return {
+      return Promise.resolve({
         success: false,
         error: createAcpError(AcpErrorType.UNKNOWN, errorMsg, false),
-      };
+      });
     }
   }
 
@@ -214,7 +215,7 @@ export class AcpAgent {
     }
   }
 
-  private async handlePermissionRequest(data: AcpPermissionRequest): Promise<{ optionId: string }> {
+  private handlePermissionRequest(data: AcpPermissionRequest): Promise<{ optionId: string }> {
     return new Promise((resolve, reject) => {
       const requestId = data.toolCall.toolCallId; // 使用 toolCallId 作为 requestId
 
@@ -471,7 +472,9 @@ export class AcpAgent {
 
   // Add kill method for compatibility with WorkerManage
   kill(): void {
-    this.stop();
+    this.stop().catch((error) => {
+      console.error('Error stopping ACP agent:', error);
+    });
   }
 
   private async ensureBackendAuth(backend: AcpBackend, loginArg: string): Promise<void> {
