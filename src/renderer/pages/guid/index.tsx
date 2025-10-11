@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { AcpBackend } from '@/common/acpTypes';
+import type { AcpBackend } from '@/types/acpTypes';
 import type { IProvider, TProviderWithModel } from '@/common/storage';
 import { ConfigStorage } from '@/common/storage';
 import { uuid } from '@/common/utils';
@@ -126,6 +126,9 @@ const Guid: React.FC = () => {
   // 支持在初始化页展示 Codex（MCP）选项，先做 UI 占位
   const [selectedAgent, setSelectedAgent] = useState<AcpBackend | null>('gemini');
   const [availableAgents, setAvailableAgents] = useState<Array<{ backend: AcpBackend; name: string; cliPath?: string }>>();
+  const [isPlusDropdownOpen, setIsPlusDropdownOpen] = useState(false);
+  const [typewriterPlaceholder, setTypewriterPlaceholder] = useState('');
+  const [isTyping, setIsTyping] = useState(true);
   const setCurrentModel = async (modelInfo: TProviderWithModel) => {
     await ConfigStorage.set('gemini.defaultModel', modelInfo.useModel);
     _setCurrentModel(modelInfo);
@@ -318,6 +321,37 @@ const Guid: React.FC = () => {
   useEffect(() => {
     setDefaultModel();
   }, [modelList]);
+
+  // 打字机效果
+  useEffect(() => {
+    const fullText = t('conversation.welcome.placeholder');
+    let currentIndex = 0;
+    const typingSpeed = 80; // 每个字符的打字速度（毫秒）
+
+    const typeNextChar = () => {
+      if (currentIndex <= fullText.length) {
+        // 在打字过程中添加光标
+        setTypewriterPlaceholder(fullText.slice(0, currentIndex) + (currentIndex < fullText.length ? '|' : ''));
+        currentIndex++;
+      }
+    };
+
+    // 初始延迟，让用户看到页面加载完成
+    const initialDelay = setTimeout(() => {
+      const intervalId = setInterval(() => {
+        typeNextChar();
+        if (currentIndex > fullText.length) {
+          clearInterval(intervalId);
+          setIsTyping(false); // 打字完成
+          setTypewriterPlaceholder(fullText); // 移除光标
+        }
+      }, typingSpeed);
+
+      return () => clearInterval(intervalId);
+    }, 300);
+
+    return () => clearTimeout(initialDelay);
+  }, [t]);
   return (
     <ConfigProvider getPopupContainer={() => guidContainerRef.current || document.body}>
       <div ref={guidContainerRef} className='h-full flex-center flex-col px-100px' style={{ position: 'relative' }}>
@@ -330,11 +364,12 @@ const Guid: React.FC = () => {
           }}
           {...dragHandlers}
         >
-          <Input.TextArea rows={4} placeholder={t('conversation.welcome.placeholder')} className='text-16px focus:b-none rounded-xl !bg-white !b-none !resize-none !p-0' value={input} onChange={(v) => setInput(v)} onPaste={onPaste} onFocus={onFocus} {...compositionHandlers} onKeyDown={createKeyDownHandler(sendMessageHandler)}></Input.TextArea>
+          <Input.TextArea rows={3} placeholder={typewriterPlaceholder || t('conversation.welcome.placeholder')} className={`text-16px focus:b-none rounded-xl !bg-white !b-none !resize-none !p-0 ${styles.lightPlaceholder}`} value={input} onChange={(v) => setInput(v)} onPaste={onPaste} onFocus={onFocus} {...compositionHandlers} onKeyDown={createKeyDownHandler(sendMessageHandler)}></Input.TextArea>
           <div className='flex items-center justify-between '>
             <div className='flex items-center gap-10px'>
               <Dropdown
                 trigger='hover'
+                onVisibleChange={setIsPlusDropdownOpen}
                 droplist={
                   <Menu
                     onClickMenuItem={(key) => {
@@ -362,7 +397,7 @@ const Guid: React.FC = () => {
                 }
               >
                 <span className='flex items-center gap-4px cursor-pointer lh-[1]'>
-                  <Button type='secondary' shape='circle' icon={<Plus theme='outline' size='14' strokeWidth={2} fill='#333' />}></Button>
+                  <Button type='secondary' shape='circle' className={isPlusDropdownOpen ? styles.plusButtonRotate : ''} icon={<Plus theme='outline' size='14' strokeWidth={2} fill='#333' />}></Button>
                   {files.length > 0 && (
                     <Tooltip className={'!max-w-max'} content={<span className='whitespace-break-spaces'>{getCleanFileNames(files).join('\n')}</span>}>
                       <span>File({files.length})</span>

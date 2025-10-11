@@ -193,7 +193,7 @@ jobs:
 
   # 自动创建tag（main分支推送时）
   create-tag:
-    name: Create Tag from Main Branch
+    name: Create Tag from Branch
     runs-on: ubuntu-latest
     needs: [build]
     if: github.ref == 'refs/heads/main'
@@ -211,19 +211,48 @@ jobs:
       run: |
         VERSION=$(node -p "require('./package.json').version")
         TAG_NAME="v$VERSION"
+        echo "🚀 Production release: $TAG_NAME"
         echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
-        
-        # 检查tag是否已存在
-        if git tag -l | grep -q "^$TAG_NAME$"; then
-          echo "Tag $TAG_NAME already exists, skipping tag creation"
-        else
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git tag $TAG_NAME
-          git remote set-url origin https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git
-          git push origin $TAG_NAME
-          echo "Created and pushed tag: $TAG_NAME"
+
+        # 检查远程tag是否已存在
+        if git ls-remote --tags origin | grep -q "refs/tags/$TAG_NAME$"; then
+          echo "⚠️ Tag $TAG_NAME already exists, auto-incrementing version..."
+
+          # 解析版本号（假设格式为 v1.2.3）
+          if [[ $VERSION =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            MAJOR=${BASH_REMATCH[1]}
+            MINOR=${BASH_REMATCH[2]}
+            PATCH=${BASH_REMATCH[3]}
+
+            # 递增patch版本并添加commit ID
+            NEW_PATCH=$((PATCH + 1))
+            NEW_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}"
+            COMMIT_SHORT=$(git rev-parse --short HEAD)
+
+            TAG_NAME="v${NEW_VERSION}-${COMMIT_SHORT}"
+            echo "🚀 Auto-incremented with commit ID: $TAG_NAME"
+            echo "📝 This represents work towards v${NEW_VERSION}"
+          else
+            # 兜底方案：如果版本号格式不匹配，使用commit ID
+            COMMIT_SHORT=$(git rev-parse --short HEAD)
+            TAG_NAME="v${VERSION}-${COMMIT_SHORT}"
+            echo "⚠️ Fallback: creating tag with commit ID: $TAG_NAME"
+          fi
+
+          # 更新输出变量
+          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
         fi
+        
+        # 配置git用户信息
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        
+        # 创建并推送tag（使用最终确定的TAG_NAME）
+        echo "Creating tag: $TAG_NAME"
+        git tag $TAG_NAME
+        git remote set-url origin https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git
+        git push origin $TAG_NAME
+        echo "✅ Successfully created and pushed tag: $TAG_NAME"
         
         echo "✅ Created tag: $TAG_NAME"
       env:
@@ -244,9 +273,9 @@ jobs:
     - name: Get version for release
       id: version
       run: |
-        # 使用create-tag job创建的tag名称
-        echo "tag_name=${{ needs.create-tag.outputs.tag_name }}" >> $GITHUB_OUTPUT
-        echo "is_dev_release=false" >> $GITHUB_OUTPUT
+        TAG_NAME="${{ needs.create-tag.outputs.tag_name }}"
+        echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+        echo "🚀 Creating stable release: $TAG_NAME"
 
     - name: Download all build artifacts
       uses: actions/download-artifact@v4
@@ -266,7 +295,7 @@ jobs:
           build-artifacts/**/*.zip
         generate_release_notes: true
         draft: true  # 保持draft模式，手动发布时机可控
-        prerelease: ${{ contains(steps.version.outputs.tag_name, 'beta') || contains(steps.version.outputs.tag_name, 'alpha') }}
+        prerelease: ${{ contains(steps.version.outputs.tag_name, 'beta') || contains(steps.version.outputs.tag_name, 'alpha') || contains(steps.version.outputs.tag_name, 'rc') }}
       env:
         GH_TOKEN: ${{ secrets.GH_TOKEN }}
 

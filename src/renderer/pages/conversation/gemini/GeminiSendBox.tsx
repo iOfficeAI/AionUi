@@ -10,7 +10,6 @@ import { allSupportedExts, getCleanFileName } from '@/renderer/services/FileServ
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { Button, Tag } from '@arco-design/web-react';
 import { Plus } from '@icon-park/react';
-import classNames from 'classnames';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/ThoughtDisplay';
@@ -31,11 +30,11 @@ const useGeminiMessage = (conversation_id: string) => {
   });
 
   useEffect(() => {
-    return ipcBridge.geminiConversation.responseStream.on(async (message) => {
+    return ipcBridge.geminiConversation.responseStream.on((message) => {
       if (conversation_id !== message.conversation_id) {
         return;
       }
-      console.log('responseStream.message', message);
+      // console.log('responseStream.message', message);
       switch (message.type) {
         case 'thought':
           setThought(message.data);
@@ -61,7 +60,7 @@ const useGeminiMessage = (conversation_id: string) => {
   useEffect(() => {
     setRunning(false);
     setThought({ subject: '', description: '' });
-    ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
+    void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
       if (!res) return;
       if (res.status === 'running') {
         setRunning(true);
@@ -182,7 +181,7 @@ const GeminiSendBox: React.FC<{
               shape='circle'
               icon={<Plus theme='outline' size='14' strokeWidth={2} fill='#333' />}
               onClick={() => {
-                ipcBridge.dialog.showOpen
+                void ipcBridge.dialog.showOpen
                   .invoke({
                     properties: ['openFile', 'multiSelections'],
                   })
