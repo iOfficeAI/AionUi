@@ -133,7 +133,7 @@ const AddPlatformModal = ModalHOC<{
 
   useEffect(() => {
     if (platform?.includes('gemini')) {
-      modelListState.mutate();
+      void modelListState.mutate();
     }
   }, [platform]);
 
@@ -239,7 +239,7 @@ const AddPlatformModal = ModalHOC<{
         <Form.Item label='API Key' required rules={[{ required: true }]} field={'apiKey'} extra={<div style={{ fontSize: '11px', color: '#999', marginTop: '4px', lineHeight: '1.4' }}>{t('settings.multiApiKeyTip')}</div>}>
           <Input
             onBlur={() => {
-              modelListState.mutate();
+              void modelListState.mutate();
             }}
           ></Input>
         </Form.Item>
@@ -256,7 +256,7 @@ const AddPlatformModal = ModalHOC<{
                     message.warning(t('settings.pleaseEnterBaseUrlAndApiKey'));
                     return;
                   }
-                  modelListState.mutate();
+                  void modelListState.mutate();
                 }}
                 className='flex'
               />
