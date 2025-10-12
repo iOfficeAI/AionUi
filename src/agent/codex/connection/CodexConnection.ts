@@ -65,14 +65,14 @@ export class CodexConnection {
   private retryDelay = 5000; // 5 seconds
   private isNetworkError = false;
 
-  async start(cliPath: string, cwd: string, args: string[] = []): Promise<void> {
-    // Default to "codex mcp serve" to start MCP server
+  start(cliPath: string, cwd: string, args: string[] = []): Promise<void> {
+    // Default to "codex mcp-server" to start MCP server
     const cleanEnv = { ...process.env };
     delete cleanEnv.NODE_OPTIONS;
     delete cleanEnv.NODE_INSPECT;
     delete cleanEnv.NODE_DEBUG;
     const isWindows = process.platform === 'win32';
-    const finalArgs = args.length ? args : ['mcp', 'serve'];
+    const finalArgs = args.length ? args : ['mcp-server'];
 
     return new Promise((resolve, reject) => {
       try {
@@ -182,7 +182,7 @@ export class CodexConnection {
     });
   }
 
-  async stop(): Promise<void> {
+  stop(): void {
     if (this.child) {
       this.child.kill();
       this.child = null;
@@ -197,7 +197,7 @@ export class CodexConnection {
     this.elicitationMap.clear();
   }
 
-  async request<T = unknown>(method: string, params?: unknown, timeoutMs = 200000): Promise<T> {
+  request<T = unknown>(method: string, params?: unknown, timeoutMs = 200000): Promise<T> {
     const id = this.nextId++;
     const req: JsonRpcRequest = { jsonrpc: JSONRPC_VERSION, id, method, params };
     return new Promise<T>((resolve, reject) => {
@@ -338,7 +338,7 @@ export class CodexConnection {
   // Permission control methods
 
   // Public methods for permission control
-  public async waitForPermission(callId: string): Promise<boolean> {
+  public waitForPermission(callId: string): Promise<boolean> {
     return new Promise((resolve, reject) => {
       this.permissionResolvers.set(callId, { resolve, reject });
 
@@ -547,7 +547,7 @@ export class CodexConnection {
   }
 
   // Wait for MCP server to be ready after startup
-  public async waitForServerReady(timeout: number = 30000): Promise<void> {
+  public waitForServerReady(timeout: number = 30000): Promise<void> {
     return new Promise((resolve, reject) => {
       const startTime = Date.now();
 
