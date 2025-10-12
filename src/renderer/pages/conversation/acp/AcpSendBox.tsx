@@ -1,5 +1,5 @@
 import { ipcBridge } from '@/common';
-import type { AcpBackend } from '@/common/acpTypes';
+import type { AcpBackend } from '@/types/acpTypes';
 import { transformMessage, type TMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import { uuid } from '@/common/utils';

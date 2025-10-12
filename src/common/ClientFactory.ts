@@ -21,7 +21,7 @@ export interface ClientOptions {
 export type RotatingClient = OpenAIRotatingClient | GeminiRotatingClient;
 
 export class ClientFactory {
-  static createRotatingClient(provider: TProviderWithModel, options: ClientOptions = {}): RotatingClient {
+  static async createRotatingClient(provider: TProviderWithModel, options: ClientOptions = {}): Promise<RotatingClient> {
     const authType = getProviderAuthType(provider);
     const rotatingOptions = options.rotatingOptions || { maxRetries: 3, retryDelay: 1000 };
 
@@ -39,8 +39,7 @@ export class ClientFactory {
 
         // 添加代理配置（如果提供）
         if (options.proxy) {
-          // eslint-disable-next-line @typescript-eslint/no-var-requires
-          const HttpsProxyAgent = require('https-proxy-agent');
+          const { HttpsProxyAgent } = await import('https-proxy-agent');
           clientConfig.httpAgent = new HttpsProxyAgent(options.proxy);
         }
 
@@ -81,8 +80,7 @@ export class ClientFactory {
 
         // 添加代理配置（如果提供）
         if (options.proxy) {
-          // eslint-disable-next-line @typescript-eslint/no-var-requires
-          const HttpsProxyAgent = require('https-proxy-agent');
+          const { HttpsProxyAgent } = await import('https-proxy-agent');
           clientConfig.httpAgent = new HttpsProxyAgent(options.proxy);
         }
 

@@ -5,7 +5,7 @@
  */
 
 import { storage } from '@office-ai/platform';
-import type { AcpBackend } from './acpTypes';
+import type { AcpBackend } from '@/types/acpTypes';
 
 /**
  * @description 聊天相关的存储
@@ -37,6 +37,8 @@ export interface IConfigStorageRefer {
     };
   };
   'model.config': IProvider[];
+  'mcp.config': IMcpServer[];
+  'mcp.agentInstallStatus': Record<string, string[]>;
   language: string;
   theme: string;
   'gemini.defaultModel': string;
@@ -138,3 +140,53 @@ export interface IProvider {
 }
 
 export type TProviderWithModel = Omit<IProvider, 'model'> & { useModel: string };
+
+// MCP Server Configuration Types
+export type McpTransportType = 'stdio' | 'sse' | 'http';
+
+export interface IMcpServerTransportStdio {
+  type: 'stdio';
+  command: string;
+  args?: string[];
+  env?: Record<string, string>;
+}
+
+export interface IMcpServerTransportSSE {
+  type: 'sse';
+  url: string;
+  headers?: Record<string, string>;
+}
+
+export interface IMcpServerTransportHTTP {
+  type: 'http';
+  url: string;
+  headers?: Record<string, string>;
+}
+
+export interface IMcpServerTransportStreamableHTTP {
+  type: 'streamable_http';
+  url: string;
+  headers?: Record<string, string>;
+}
+
+export type IMcpServerTransport = IMcpServerTransportStdio | IMcpServerTransportSSE | IMcpServerTransportHTTP | IMcpServerTransportStreamableHTTP;
+
+export interface IMcpServer {
+  id: string;
+  name: string;
+  description?: string;
+  enabled: boolean; // 是否已安装到 CLI agents（控制 Switch 状态）
+  transport: IMcpServerTransport;
+  tools?: IMcpTool[];
+  status?: 'connected' | 'disconnected' | 'error' | 'testing'; // 连接状态（同时表示服务可用性）
+  lastConnected?: number;
+  createdAt: number;
+  updatedAt: number;
+  originalJson: string; // 存储原始JSON配置，用于编辑时的准确显示
+}
+
+export interface IMcpTool {
+  name: string;
+  description?: string;
+  inputSchema?: any;
+}

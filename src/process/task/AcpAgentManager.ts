@@ -1,6 +1,6 @@
 import { AcpAgent } from '@/agent/acp';
 import { ipcBridge } from '@/common';
-import type { AcpBackend } from '@/common/acpTypes';
+import type { AcpBackend } from '@/types/acpTypes';
 import type { TMessage } from '@/common/chatLib';
 import { transformMessage } from '@/common/chatLib';
 import type { IConfirmAcpMessageParams, IResponseMessage } from '@/common/ipcBridge';

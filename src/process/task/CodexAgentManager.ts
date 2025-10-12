@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { CodexMcpAgent } from '@/agent/codex';
-import type { NetworkError } from '@/agent/codex/connection/CodexMcpConnection';
+import { CodexAgent } from '@/agent/codex';
+import type { NetworkError } from '@/agent/codex/connection/CodexConnection';
 import { ipcBridge } from '@/common';
 import type { TMessage } from '@/common/chatLib';
 import { transformMessage } from '@/common/chatLib';
@@ -28,8 +28,8 @@ const CODEX_MCP_PROTOCOL_VERSION = getConfiguredCodexMcpProtocolVersion();
 
 class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implements ICodexMessageEmitter {
   workspace?: string;
-  agent: CodexMcpAgent;
-  bootstrap: Promise<CodexMcpAgent>;
+  agent: CodexAgent;
+  bootstrap: Promise<CodexAgent>;
   private isFirstMessage: boolean = true;
 
   constructor(data: CodexAgentManagerData) {
@@ -74,7 +74,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
       }
     })();
 
-    this.agent = new CodexMcpAgent({
+    this.agent = new CodexAgent({
       id: data.conversation_id,
       cliPath: data.cliPath,
       workingDir: data.workspace || process.cwd(),
