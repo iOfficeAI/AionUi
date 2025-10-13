@@ -5,7 +5,12 @@ import { presetExtra } from 'unocss-preset-extra';
 export default defineConfig({
   envMode: 'build',
   presets: [presetMini(), presetExtra(), presetWind3()], //
-  transformers: [transformerVariantGroup(), transformerDirectives()],
+  transformers: [
+    transformerVariantGroup(),
+    // transformerDirectives only supports "pre" enforce in webpack integration
+    // Keep it for build-time support, webpack will ignore it during dev
+    transformerDirectives({ enforce: 'pre' } as any),
+  ],
   content: {
     pipeline: {
       include: ['src/**/*.{ts,tsx,vue,css}'],

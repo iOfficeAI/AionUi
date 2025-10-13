@@ -20,32 +20,32 @@ export const Logo = () => {
     React.createElement(
       Text,
       { bold: true },
-      React.createElement(Text, { color: 'cyan' }, '   _    _             '),
-      React.createElement(Text, { color: 'blue' }, '  _   _ ___ ')
+      React.createElement(Text, { color: 'cyan' }, '    _    _              '),
+      React.createElement(Text, { color: 'blue' }, ' _   _  ___ ')
     ),
     React.createElement(
       Text,
       { bold: true },
-      React.createElement(Text, { color: 'cyan' }, '  / \\  (_) ___  _ __  '),
-      React.createElement(Text, { color: 'blue' }, ' | | | |_ _|')
+      React.createElement(Text, { color: 'cyan' }, '  /  \\  (_) ___  _ __  '),
+      React.createElement(Text, { color: 'blue' }, ' | | | ||_ _|')
     ),
     React.createElement(
       Text,
       { bold: true },
-      React.createElement(Text, { color: 'cyan' }, ' / _ \\ | |/ _ \\| \'_ \\ '),
-      React.createElement(Text, { color: 'blue' }, '| | | || | ')
+      React.createElement(Text, { color: 'cyan' }, ' /  _ \\ | |/ _ \\| \'_ \\ '),
+      React.createElement(Text, { color: 'blue' }, ' | | | | | | ')
     ),
     React.createElement(
       Text,
       { bold: true },
-      React.createElement(Text, { color: 'cyan' }, '/ ___ \\| | (_) | | | |'),
-      React.createElement(Text, { color: 'blue' }, '| |_| || | ')
+      React.createElement(Text, { color: 'cyan' }, '/  ___ \\| | (_) | | | |'),
+      React.createElement(Text, { color: 'blue' }, ' | |_| | | | ')
     ),
     React.createElement(
       Text,
       { bold: true },
       React.createElement(Text, { color: 'cyan' }, '\\_/   \\_\\_|\\___/|_| |_|'),
-      React.createElement(Text, { color: 'blue' }, ' \\___/|___|')
+      React.createElement(Text, { color: 'blue' }, ' \\__ __/|___|')
     )
   );
 };

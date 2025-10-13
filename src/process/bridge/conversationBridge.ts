@@ -9,8 +9,7 @@ import type { TChatConversation } from '@/common/storage';
 import { GeminiAgent } from '@/agent/gemini';
 import { ipcBridge } from '../../common';
 import { createAcpAgent, createCodexAgent, createGeminiAgent } from '../initAgent';
-import { ProcessChat, ProcessChatMessage } from '../initStorage';
-import { nextTickToLocalFinish } from '../message';
+import { getDatabase } from '../database/export';
 import type AcpAgentManager from '../task/AcpAgentManager';
 import type { GeminiAgentManager } from '../task/GeminiAgentManager';
 import { readDirectoryRecursive } from '../utils';
@@ -38,10 +37,18 @@ export function initConversationBridge(): void {
         //@todo
         void (task as AcpAgentManager).initAgent();
       }
-      await ProcessChat.update('chat.history', (history) => {
-        const filtered = (history || []).filter((item) => item.id !== conversation.id);
-        return Promise.resolve([...filtered, conversation]);
-      });
+
+      // 使用数据库 API 保存对话
+      const db = getDatabase();
+      const existingResult = db.getConversation(conversation.id);
+      if (existingResult.success && existingResult.data) {
+        // 更新现有对话
+        db.updateConversation(conversation.id, conversation);
+      } else {
+        // 创建新对话
+        db.createConversation(conversation);
+      }
+
       return conversation;
     } catch (e) {
       return null;
@@ -49,32 +56,47 @@ export function initConversationBridge(): void {
   });
 
   ipcBridge.conversation.getAssociateConversation.provider(async ({ conversation_id }) => {
-    const history = await ProcessChat.get('chat.history');
-    if (!history) return [];
-    const currentConversation = history.find((item) => item.id === conversation_id);
-    if (!currentConversation || !currentConversation.extra.workspace) return [];
-    return history.filter((item) => item.extra.workspace === currentConversation.extra.workspace);
+    const db = getDatabase();
+    const result = db.getConversation(conversation_id);
+    if (!result.success || !result.data || !result.data.extra.workspace) return [];
+
+    const currentWorkspace = result.data.extra.workspace;
+    const allConversations = db.getUserConversations(undefined, 0, 1000);
+    if (!allConversations.data) return [];
+
+    return allConversations.data.filter((item) => item.extra.workspace === currentWorkspace);
   });
 
   ipcBridge.conversation.createWithConversation.provider(async ({ conversation }) => {
     conversation.createTime = Date.now();
     conversation.modifyTime = Date.now();
     WorkerManage.buildConversation(conversation);
-    await ProcessChat.update('chat.history', (history) => {
-      const filtered = history.filter((item) => item.id !== conversation.id);
-      return Promise.resolve([...filtered, conversation]);
-    });
+
+    // 使用数据库 API 保存对话
+    const db = getDatabase();
+    const existingResult = db.getConversation(conversation.id);
+    if (existingResult.success && existingResult.data) {
+      db.updateConversation(conversation.id, conversation);
+    } else {
+      db.createConversation(conversation);
+    }
+
     return conversation;
   });
 
   ipcBridge.conversation.remove.provider(({ id }) => {
-    return ProcessChat.update('chat.history', (history) => {
+    try {
       WorkerManage.kill(id);
-      nextTickToLocalFinish(() => ProcessChatMessage.backup(id));
-      return Promise.resolve(history.filter((item) => item.id !== id));
-    })
-      .then(() => true)
-      .catch(() => false);
+
+      // 使用数据库 API 删除对话
+      const db = getDatabase();
+      const result = db.deleteConversation(id);
+
+      return Promise.resolve(result.success);
+    } catch (error) {
+      console.error('[conversationBridge] Error removing conversation:', error);
+      return Promise.resolve(false);
+    }
   });
 
   ipcBridge.conversation.reset.provider(({ id }) => {
@@ -87,13 +109,17 @@ export function initConversationBridge(): void {
   });
 
   ipcBridge.conversation.get.provider(async ({ id }) => {
-    const history = await ProcessChat.get('chat.history');
-    const conversation = history.find((item) => item.id === id);
-    if (conversation) {
+    const db = getDatabase();
+    const result = db.getConversation(id);
+
+    if (result.success && result.data) {
+      const conversation = result.data;
       const task = WorkerManage.getTaskById(id);
       conversation.status = task?.status || 'finished';
+      return conversation;
     }
-    return conversation;
+
+    return undefined;
   });
 
   const buildLastAbortController = (() => {

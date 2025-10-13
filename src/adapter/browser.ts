@@ -237,12 +237,18 @@ async function initializeWebSocket() {
 
     // 使用临时 token 建立 WebSocket 连接
     // Establish WebSocket connection with temporary token
-    const wsUrl = `ws://${window.location.hostname}:25808`;
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const resolvedHost =
+      window.location.host ||
+      `${window.location.hostname || 'localhost'}${window.location.port ? `:${window.location.port}` : ':25808'}`;
+    const wsUrl = `${wsProtocol}://${resolvedHost}`;
     const ws = new WebSocket(wsUrl, [wsToken]);
 
     // 在 token 过期前刷新（提前 30 秒刷新）
     // Refresh token before expiration (refresh 30 seconds early)
-    const refreshInterval = (expiresIn - 30) * 1000;
+    const tokenTtlSeconds = typeof expiresIn === 'number' && Number.isFinite(expiresIn) ? expiresIn : 300;
+    const refreshLeadSeconds = 30;
+    const refreshIntervalMs = Math.max((tokenTtlSeconds - refreshLeadSeconds) * 1000, 10_000);
     let refreshTimer: number | null = null;
 
     const scheduleTokenRefresh = () => {
@@ -258,7 +264,7 @@ async function initializeWebSocket() {
         } catch (error) {
           console.error('[WebSocket] Token refresh failed:', error);
         }
-      }, refreshInterval);
+      }, refreshIntervalMs);
     };
 
     // 连接成功后安排 token 刷新
@@ -409,6 +415,47 @@ if (win.electronAPI) {
   // Web 环境 - 使用 WebSocket 通信 / Web environment - use WebSocket communication
   // 启动 WebSocket 连接 / Initialize WebSocket connection
   initializeWebSocket();
+
+  // 为 WebUI 模式注册 storage interceptor，通过 bridge 转发到后端 SQLite 数据库
+  // Register storage interceptors for WebUI mode to forward requests to SQLite via bridge
+  import('../common/storage').then(({ ChatStorage, ChatMessageStorage, ConfigStorage, EnvStorage }) => {
+    // 使用新的 SQLite API
+    ChatStorage.interceptor({
+      get: (key: string) => {
+        if (key === 'chat.history') {
+          return bridge.invoke('conversations.list', { page: 0, pageSize: 1000 }).then((result: any) => result.data || []);
+        }
+        return Promise.resolve(undefined);
+      },
+      set: (key: string, data: any) => {
+        console.warn('[Browser] ChatStorage.set is deprecated, use conversation.create/update API instead');
+        return Promise.resolve(data);
+      },
+    });
+
+    ChatMessageStorage.interceptor({
+      get: (key: string) => {
+        // key is conversation_id
+        return bridge.invoke('messages.list', { conversationId: key, page: 0, pageSize: 1000 }).then((result: any) => result.data || []);
+      },
+      set: (key: string, data: any) => {
+        console.warn('[Browser] ChatMessageStorage.set is deprecated, use message.update API instead');
+        return Promise.resolve(data);
+      },
+    });
+
+    ConfigStorage.interceptor({
+      get: (key: string) => bridge.invoke('config.get', key).then((result: any) => result.data),
+      set: (key: string, data: any) => bridge.invoke('config.set', { key, data }).then(() => data),
+    });
+
+    EnvStorage.interceptor({
+      get: (key: string) => bridge.invoke('config.get', `env.${key}`).then((result: any) => result.data),
+      set: (key: string, data: any) => bridge.invoke('config.set', { key: `env.${key}`, data }).then(() => data),
+    });
+
+    console.log('[Browser] ✓ Storage interceptors registered (using SQLite API)');
+  });
 }
 
 logger.provider({

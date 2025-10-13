@@ -17,6 +17,7 @@ import { initGeminiConversationBridge } from './geminiConversationBridge';
 import { initMcpBridge } from './mcpBridge';
 import { initModelBridge } from './modelBridge';
 import { initShellBridge } from './shellBridge';
+import { initStorageBridge } from './storageBridge';
 
 /**
  * 初始化所有IPC桥接模块
@@ -34,6 +35,7 @@ export function initAllBridges(): void {
   initModelBridge();
   initMcpBridge();
   initDatabaseBridge();
+  initStorageBridge();
 }
 
 /**
@@ -49,4 +51,4 @@ export async function initializeAcpDetector(): Promise<void> {
 
 // 导出初始化函数供单独使用
 export { initAcpConversationBridge, initApplicationBridge, initAuthBridge, initCodexBridge, initConversationBridge };
-export { initDatabaseBridge, initDialogBridge, initFsBridge, initGeminiConversationBridge, initMcpBridge, initModelBridge, initShellBridge };
+export { initDatabaseBridge, initDialogBridge, initFsBridge, initGeminiConversationBridge, initMcpBridge, initModelBridge, initShellBridge, initStorageBridge };
