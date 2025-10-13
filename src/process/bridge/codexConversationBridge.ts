@@ -10,9 +10,9 @@ import { copyFilesToDirectory } from '../utils';
 import WorkerManage from '../WorkerManage';
 
 /**
- * 初始化 Codex 相关的 IPC 桥接
+ * 初始化 Codex 对话相关的 IPC 桥接
  */
-export function initCodexBridge(): void {
+export function initCodexConversationBridge(): void {
   // Codex 专用的 sendMessage provider
   ipcBridge.codexConversation.sendMessage.provider(async ({ conversation_id, files, ...other }) => {
     const task = (await WorkerManage.getTaskByIdRollbackBuild(conversation_id)) as CodexAgentManager | undefined;
