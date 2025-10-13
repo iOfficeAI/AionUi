@@ -384,22 +384,9 @@ const initStorage = async () => {
     const _imageStorage = getImageStorage();
     console.log('[AionUi] Image storage initialized');
 
-    // NOTE: File-to-database migration is temporarily disabled
-    // We're testing the database with live message writes first
-    // Uncomment the code below when ready to migrate historical data:
-    //
-    // const { migrateFileStorageToDatabase, getMigrationStatus } = await import('./database/export');
-    // const migrationStatus = await getMigrationStatus();
-    // if (!migrationStatus.completed) {
-    //   console.log('[AionUi] Running database migration from file storage...');
-    //   const migrationResult = await migrateFileStorageToDatabase();
-    //   if (migrationResult.success) {
-    //     console.log('[AionUi] Database migration completed successfully');
-    //     console.log('[AionUi] Migration stats:', migrationResult.stats);
-    //   } else {
-    //     console.error('[AionUi] Database migration completed with errors:', migrationResult.errors);
-    //   }
-    // }
+    // NOTE: Data migration from file storage to database is handled automatically
+    // via lazy migration in conversationBridge.ts and databaseBridge.ts
+    // Historical conversations are migrated on-demand when accessed
   } catch (error) {
     console.error('[AionUi] Failed to initialize database:', error);
     console.error('[AionUi] Continuing with file-based storage only');
