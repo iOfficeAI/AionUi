@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '../../common';
-import { getDatabase } from '../database/export';
+import { getDatabase } from '@process/database';
 import { addOrUpdateMessage } from '../message';
 import { ProcessChat, ProcessChatMessage } from '../initStorage';
 import type { TChatConversation } from '@/common/storage';
@@ -34,8 +34,6 @@ async function migrateConversationToDatabase(conversation: TChatConversation): P
     try {
       const messages = await ProcessChatMessage.get(conversation.id);
       if (messages && messages.length > 0) {
-        console.log(`[DatabaseBridge Migration] Migrating ${messages.length} messages for conversation ${conversation.id}`);
-
         for (const message of messages) {
           const insertResult = db.insertMessage(message);
           if (!insertResult.success) {
@@ -52,24 +50,11 @@ async function migrateConversationToDatabase(conversation: TChatConversation): P
 }
 
 export function initDatabaseBridge(): void {
-  console.log('[DatabaseBridge] Initializing database bridge...');
-
   // Get conversation messages from database
   ipcBridge.database.getConversationMessages.provider(({ conversation_id, page = 0, pageSize = 10000 }) => {
     try {
-      console.log(`[DatabaseBridge] Getting messages for conversation: ${conversation_id}, page: ${page}, pageSize: ${pageSize}`);
       const db = getDatabase();
       const result = db.getConversationMessages(conversation_id, page, pageSize);
-
-      console.log(`[DatabaseBridge] Found ${result.data?.length || 0} messages for conversation ${conversation_id}`);
-      if (result.data && result.data.length > 0) {
-        console.log(`[DatabaseBridge] First message:`, {
-          id: result.data[0].id,
-          type: result.data[0].type,
-          conversation_id: result.data[0].conversation_id,
-          contentPreview: JSON.stringify(result.data[0].content).substring(0, 100),
-        });
-      }
       return Promise.resolve(result.data || []);
     } catch (error) {
       console.error('[DatabaseBridge] Error getting conversation messages:', error);
@@ -94,8 +79,6 @@ export function initDatabaseBridge(): void {
 
       // If database has fewer conversations than file storage, we need to migrate
       if (fileConversations.length > dbConversations.length) {
-        console.log(`[DatabaseBridge] Lazy migrating conversations: ${fileConversations.length} in files, ${dbConversations.length} in database`);
-
         // Migrate all file-based conversations in background
         void Promise.all(fileConversations.map((conv) => migrateConversationToDatabase(conv)));
 
@@ -121,6 +104,4 @@ export function initDatabaseBridge(): void {
       return Promise.resolve(false);
     }
   });
-
-  console.log('[DatabaseBridge] Database bridge initialized successfully');
 }
