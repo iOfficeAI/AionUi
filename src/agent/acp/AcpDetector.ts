@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { execSync } from 'child_process';
 import type { AcpBackend } from '@/types/acpTypes';
 import { getEnabledAcpBackends } from '@/types/acpTypes';
 
@@ -29,7 +30,6 @@ class AcpDetector {
     console.log('[ACP] Starting agent detection...');
     const startTime = Date.now();
 
-    const { execSync } = await import('child_process');
     const isWindows = process.platform === 'win32';
     const whichCommand = isWindows ? 'where' : 'which';
 

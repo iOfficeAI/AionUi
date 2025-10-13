@@ -10,6 +10,7 @@ import { app } from 'electron';
 import { existsSync } from 'fs';
 import fs from 'fs/promises';
 import path from 'path';
+import { getSystemDir } from './initStorage';
 export const getTempPath = () => {
   const rootPath = app.getPath('temp');
   return path.join(rootPath, 'aionui');
@@ -205,7 +206,6 @@ export async function verifyDirectoryFiles(dir1: string, dir2: string): Promise<
 export const copyFilesToDirectory = async (dir: string, files?: string[]) => {
   if (!files) return Promise.resolve();
 
-  const { getSystemDir } = await import('./initStorage');
   const { cacheDir } = getSystemDir();
   const tempDir = path.join(cacheDir, 'temp');
 
