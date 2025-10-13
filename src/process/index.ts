@@ -6,13 +6,12 @@
 
 import { app } from 'electron';
 import initStorage from './initStorage';
+import './initBridge';
 
 app
   .whenReady()
   .then(async () => {
     await initStorage();
-    // Import initBridge after storage is initialized
-    await import('./initBridge');
   })
   .catch((error) => {
     console.error('Failed to initialize application:', error);

@@ -2,11 +2,10 @@ import { AcpAgent } from '@/agent/acp';
 import { ipcBridge } from '@/common';
 import type { AcpBackend } from '@/types/acpTypes';
 import type { TMessage } from '@/common/chatLib';
-import { transformMessage } from '@/common/chatLib';
 import type { IConfirmAcpMessageParams, IResponseMessage } from '@/common/ipcBridge';
 import { parseError, uuid } from '@/common/utils';
 import { ProcessConfig } from '../initStorage';
-import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '../message';
+import { addMessage, nextTickToLocalFinish } from '../message';
 import { getDatabase } from '../database/export';
 import BaseAgentManager from './BaseAgentManager';
 
@@ -44,15 +43,13 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
         cliPath: cliPath,
         workingDir: data.workspace,
         onStreamEvent: (data) => {
-          ipcBridge.acpConversation.responseStream.emit(data);
+          // Only emit to frontend - frontend will handle transformation and persistence
           data.conversation_id = this.conversation_id;
-          const message = transformMessage(data);
-          if (message) {
-            addOrUpdateMessage(this.conversation_id, message);
-          }
+          ipcBridge.acpConversation.responseStream.emit(data);
         },
         onSignalEvent: (data) => {
           // 仅发送信号到前端，不更新消息列表
+          data.conversation_id = this.conversation_id;
           ipcBridge.acpConversation.responseStream.emit(data);
 
           // Handle finish event: sync FTS index after conversation ends
@@ -108,7 +105,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
         msg_id: data.msg_id || uuid(),
         data: parseError(e),
       };
-      addMessage(this.conversation_id, transformMessage(message));
+      // Emit to frontend - frontend will handle transformation and persistence
       ipcBridge.acpConversation.responseStream.emit(message);
       return new Promise((_, reject) => {
         nextTickToLocalFinish(() => {

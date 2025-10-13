@@ -16,14 +16,12 @@ export const addMessage = (conversation_id: string, message: TMessage): void => 
   // Use async IIFE to handle async operations
   void (async () => {
     try {
-      console.log('[Message] Adding message to database:', message.id, message.type);
       const db = getDatabase();
 
       // Ensure conversation exists in database
       await ensureConversationExists(db, conversation_id);
 
       const result = db.insertMessage(message);
-      console.log('[Message] Message added successfully:', result.success);
       if (!result.success) {
         console.error('[Message] Insert failed:', result.error);
         console.error('[Message] Message data:', JSON.stringify(message, null, 2));
@@ -101,8 +99,6 @@ async function ensureConversationExists(db: ReturnType<typeof getDatabase>, conv
     return; // Conversation already exists
   }
 
-  console.log(`[Message] Conversation ${conversation_id} not found in database, creating...`);
-
   // Load conversation from file storage
   const history = await ProcessChat.get('chat.history');
   const conversation = history.find((c) => c.id === conversation_id);
@@ -114,9 +110,7 @@ async function ensureConversationExists(db: ReturnType<typeof getDatabase>, conv
 
   // Create conversation in database
   const result = db.createConversation(conversation);
-  if (result.success) {
-    console.log(`[Message] Conversation ${conversation_id} created in database`);
-  } else {
+  if (!result.success) {
     console.error(`[Message] Failed to create conversation in database:`, result.error);
   }
 }
@@ -140,7 +134,6 @@ export const addOrUpdateMessage = (conversation_id: string, message: TMessage): 
   // Use async IIFE to handle async operations
   void (async () => {
     try {
-      console.log(`[Message] Add or update message: conv=${conversation_id}, msg=${message.id}, type=${message.type}`);
       const db = getDatabase();
 
       // Ensure conversation exists in database
@@ -153,48 +146,53 @@ export const addOrUpdateMessage = (conversation_id: string, message: TMessage): 
 
       if (message.type === 'text' && message.msg_id) {
         // Text messages: Direct database query and update (avoids loading all messages)
-        console.log(`[Message] Processing text message: msg_id=${message.msg_id}, content_length=${(message as IMessageText).content.content.length}`);
-
         const existing = db.getMessageByMsgId(conversation_id, message.msg_id);
-        console.log(`[Message] Query result: success=${existing.success}, found=${!!existing.data}`);
 
         if (existing.success && existing.data) {
-          // Message exists - accumulate content for streaming
+          // Message exists - check if this is a final complete message or streaming delta
           const existingMsg = existing.data as IMessageText;
           const incomingMsg = message as IMessageText;
-          const existingLength = existingMsg.content.content.length;
-          const incomingLength = incomingMsg.content.content.length;
-          const newContent = existingMsg.content.content + incomingMsg.content.content;
 
-          console.log(`[Message] Accumulating: existing=${existingLength} chars, incoming=${incomingLength} chars, total=${newContent.length} chars`);
+          // Check for _isFinalMessage flag to distinguish complete messages from deltas
+          const isFinalMessage = (message as any)._isFinalMessage === true;
 
-          const updatedMessage: IMessageText = {
-            ...existingMsg,
-            content: { content: newContent },
-            createdAt: message.createdAt || existingMsg.createdAt,
-          };
+          if (isFinalMessage) {
+            // Final complete message - replace content entirely
+            const updatedMessage: IMessageText = {
+              ...existingMsg,
+              content: { content: incomingMsg.content.content }, // Replace, not accumulate
+              createdAt: message.createdAt || existingMsg.createdAt,
+            };
 
-          // Always skip FTS update for text messages during streaming
-          // FTS will be updated asynchronously after conversation ends
-          // This prevents performance degradation for very long texts (10000+ chars)
-          const skipFts = true;
-
-          const updateResult = db.updateMessage(existingMsg.id, updatedMessage, { skipFtsUpdate: skipFts });
-          if (!updateResult.success) {
-            console.error('[Message] Text update failed:', updateResult.error);
+            // Update FTS for final message (skipFtsUpdate: false)
+            const updateResult = db.updateMessage(existingMsg.id, updatedMessage, { skipFtsUpdate: false });
+            if (!updateResult.success) {
+              console.error('[Message] Final text update failed:', updateResult.error);
+            }
           } else {
-            console.log(`[Message] ✓ Text message updated: ${existingMsg.id}, new total: ${newContent.length} chars (FTS deferred)`);
+            // Streaming delta - accumulate content
+            const newContent = existingMsg.content.content + incomingMsg.content.content;
+
+            const updatedMessage: IMessageText = {
+              ...existingMsg,
+              content: { content: newContent },
+              createdAt: message.createdAt || existingMsg.createdAt,
+            };
+
+            // Skip FTS update for text messages during streaming
+            // FTS will be updated when final message arrives
+            const skipFts = true;
+
+            const updateResult = db.updateMessage(existingMsg.id, updatedMessage, { skipFtsUpdate: skipFts });
+            if (!updateResult.success) {
+              console.error('[Message] Text update failed:', updateResult.error);
+            }
           }
         } else {
           // New text message - insert
-          const incomingMsg = message as IMessageText;
-          console.log(`[Message] Inserting new text message: ${incomingMsg.content.content.length} chars`);
-
           const insertResult = db.insertMessage(message);
           if (!insertResult.success) {
             console.error('[Message] Text insert failed:', insertResult.error);
-          } else {
-            console.log(`[Message] ✓ New text message inserted: ${message.id}`);
           }
         }
       } else if (message.type === 'tool_group' || message.type === 'tool_call' || message.type === 'codex_tool_call' || message.type === 'acp_tool_call') {
@@ -217,8 +215,6 @@ export const addOrUpdateMessage = (conversation_id: string, message: TMessage): 
             const insertResult = db.insertMessage(newMsg);
             if (!insertResult.success) {
               console.error('[Message] Insert failed:', insertResult.error);
-            } else {
-              console.log('[Message] New message inserted:', newMsg.type);
             }
           }
         } else {
@@ -231,8 +227,6 @@ export const addOrUpdateMessage = (conversation_id: string, message: TMessage): 
               const updateResult = db.updateMessage(composed.id, composed);
               if (!updateResult.success) {
                 console.error('[Message] Update failed:', updateResult.error);
-              } else {
-                console.log('[Message] Message updated:', composed.type);
               }
             }
           }
@@ -247,16 +241,12 @@ export const addOrUpdateMessage = (conversation_id: string, message: TMessage): 
             const updateResult = db.updateMessage(existing.data.id, message);
             if (!updateResult.success) {
               console.error('[Message] Update failed:', updateResult.error);
-            } else {
-              console.log('[Message] Message updated:', message.type);
             }
           } else {
             // Insert new
             const insertResult = db.insertMessage(message);
             if (!insertResult.success) {
               console.error('[Message] Insert failed:', insertResult.error);
-            } else {
-              console.log('[Message] New message inserted:', message.type);
             }
           }
         } else {
@@ -264,8 +254,6 @@ export const addOrUpdateMessage = (conversation_id: string, message: TMessage): 
           const insertResult = db.insertMessage(message);
           if (!insertResult.success) {
             console.error('[Message] Insert failed:', insertResult.error);
-          } else {
-            console.log('[Message] New message inserted:', message.type);
           }
         }
       }

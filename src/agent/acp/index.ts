@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { spawn } from 'child_process';
 import type { AcpPermissionRequest, AcpSessionUpdate, AcpBackend, AcpResult, ToolCallUpdate } from '@/types/acpTypes';
 import { AcpAdapter } from '@/agent/acp/AcpAdapter';
 import { AcpErrorType, createAcpError } from '@/types/acpTypes';
@@ -485,8 +486,6 @@ export class AcpAgent {
       this.emitStatusMessage('connecting', `Checking ${backend} authentication...`);
 
       // 使用配置的 CLI 路径调用 login 命令
-      const { spawn } = await import('child_process');
-
       if (!this.extra.cliPath) {
         throw new Error(`No CLI path configured for ${backend} backend`);
       }

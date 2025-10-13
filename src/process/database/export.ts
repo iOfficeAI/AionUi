@@ -11,7 +11,6 @@
 
 export { AionDatabase, getDatabase, closeDatabase } from './index';
 export { ImageStorage, getImageStorage } from './imageStorage';
-export { migrateFileStorageToDatabase, getMigrationStatus, exportDatabaseToJSON, importDatabaseFromJSON, rollbackMigration } from './migration';
 export { runMigrations, rollbackMigrations, getMigrationHistory, isMigrationApplied, type IMigration } from './migrations';
 
 export type {
