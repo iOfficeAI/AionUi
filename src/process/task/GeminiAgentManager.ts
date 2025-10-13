@@ -29,7 +29,6 @@ export class GeminiAgentManager extends BaseAgentManager<{
     this.conversation_id = data.conversation_id;
     this.model = model;
     this.bootstrap = Promise.all([ProcessConfig.get('gemini.config'), this.getImageGenerationModel(), this.getMcpServers()]).then(([config, imageGenerationModel, mcpServers]) => {
-      console.log('gemini.config.bootstrap', config, imageGenerationModel);
       return this.start({
         ...config,
         workspace: this.workspace,
