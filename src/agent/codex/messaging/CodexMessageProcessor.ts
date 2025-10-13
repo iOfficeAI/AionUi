@@ -52,15 +52,11 @@ export class CodexMessageProcessor {
     let deltaText = '';
     if (msg.type === 'agent_reasoning_delta') {
       deltaText = msg.delta ?? '';
-      console.log(`[CodexMessageProcessor] Reasoning delta: "${deltaText}"`);
     } else if (msg.type === 'agent_reasoning') {
       deltaText = msg.text ?? '';
-      console.log(`[CodexMessageProcessor] Reasoning text: "${deltaText}"`);
     }
     // AGENT_REASONING_SECTION_BREAK 不添加内容，只是重置当前reasoning
-
     this.currentReason = this.currentReason + deltaText;
-    console.log(`[CodexMessageProcessor] Emitting thought message, total length: ${this.currentReason.length}`);
     this.messageEmitter.emitAndPersistMessage(
       {
         type: 'thought',
@@ -91,7 +87,6 @@ export class CodexMessageProcessor {
   processFinalMessage(msg: Extract<CodexEventMsg, { type: 'agent_message' }>) {
     // agent_message 包含完整的最终消息内容
     // 只持久化到数据库，不发送到前端（前端已通过 delta 流式显示）
-    console.log(`[CodexMessageProcessor] Processing final message: ${msg.message.length} chars`);
 
     const transformedMessage = {
       id: this.currentLoadingId || uuid(),
@@ -106,7 +101,6 @@ export class CodexMessageProcessor {
 
     // 直接调用数据库存储，跳过 emit
     addOrUpdateMessage(this.conversation_id, transformedMessage as any);
-    console.log(`[CodexMessageProcessor] Final message persisted successfully`);
   }
 
   processStreamError(message: string) {

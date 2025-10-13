@@ -179,13 +179,13 @@ export function initConversationBridge(): void {
       const result = db.deleteConversation(id);
       if (!result.success) {
         console.error('[conversationBridge] Failed to delete conversation from database:', result.error);
-        return false;
+        return Promise.resolve(false);
       }
 
-      return true;
+      return Promise.resolve(true);
     } catch (error) {
       console.error('[conversationBridge] Failed to remove conversation:', error);
-      return false;
+      return Promise.resolve(false);
     }
   });
 
