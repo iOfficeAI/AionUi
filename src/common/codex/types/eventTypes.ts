@@ -234,13 +234,55 @@ export enum CodexAgentEventType {
   // MCP tool events
   /**
    * MCP工具调用开始事件 - 表示MCP工具调用开始
-   * payload: { call_id: string, invocation: McpInvocation }
+   * tips: 需要先安装 codex mcp add 12306-mcp，12306-mcp 是一个 MCP 服务器, 更多MCP可查考 https://modelscope.cn/mcp?page=1 , 安装完成通过 codex mcp list 查看是否安装成功
+   * prompt: 帮我查询 2025-10-10 从深圳到广州的高铁票
+   * payload: {
+      "type": "mcp_tool_call_begin",
+      "call_id": "call_2ZBKJbPYIBgm5qo2mzRpqi1U",
+        "invocation": {
+        "server": "12306-mcp",
+        "tool": "get-tickets",
+        "arguments": {
+          "date": "2025-10-10",
+          "fromStation": "SZQ",
+          "toStation": "GZQ"
+        }
+      }
+    }
    */
   MCP_TOOL_CALL_BEGIN = 'mcp_tool_call_begin',
 
   /**
    * MCP工具调用结束事件 - 表示MCP工具调用结束
-   * payload: { call_id: string, invocation: McpInvocation, duration: string, result: Result<CallToolResult, string> }
+   * 
+   * prompt: 帮我查询 2025-10-10 从深圳到广州的高铁票
+   * payload: {
+    "type": "mcp_tool_call_end",
+      "call_id": "call_VNRuLW1UoklIAK3QTL5iE47l",
+      "invocation": {
+        "server": "12306-mcp",
+        "tool": "get-tickets",
+        "arguments": {
+          "date": "2025-10-10",
+          "fromStation": "SZQ",
+          "toStation": "GZQ"
+          }
+        },
+        "duration": {
+          "secs": 0,
+          "nanos": 874102541
+        },
+        "result": {
+          "Ok": {
+          "content": [
+            {
+            "text": "车次|出发站 -> 到达站|出发时间 -> 到达时间|历时\nG834 深圳北(telecode:IOQ) -> 广州南(telecode:IZQ) 06:10 -> 06:46 历时：00:36\n-……",
+            "type": "text"
+            }
+          ]
+        }
+      }
+    }
    */
   MCP_TOOL_CALL_END = 'mcp_tool_call_end',
 
