@@ -375,23 +375,15 @@ const initStorage = async () => {
 
   // 5. 初始化数据库（better-sqlite3）
   try {
-    // Initialize database
-    const _db = getDatabase();
-    console.log('[AionUi] Database initialized');
-
-    // Initialize image storage
-    const _imageStorage = getImageStorage();
-    console.log('[AionUi] Image storage initialized');
+    getDatabase();
+    getImageStorage();
 
     // NOTE: Data migration from file storage to database is handled automatically
     // via lazy migration in conversationBridge.ts and databaseBridge.ts
     // Historical conversations are migrated on-demand when accessed
   } catch (error) {
-    console.error('[AionUi] Failed to initialize database:', error);
-    console.error('[AionUi] Continuing with file-based storage only');
+    console.error('[InitStorage] Database initialization failed, falling back to file-based storage:', error);
   }
-
-  console.log('[AionUi] Storage initialization complete');
 
   application.systemInfo.provider(() => {
     return Promise.resolve(getSystemDir());
