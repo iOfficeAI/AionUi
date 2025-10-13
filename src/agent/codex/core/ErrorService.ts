@@ -66,7 +66,7 @@ export function fromNetworkError(originalError: string | Error, options: { sourc
     code = ERROR_CODES.NETWORK_REFUSED;
     userMessageKey = 'codex.network.connection_refused';
   } else {
-    code = ERROR_CODES.NETWORK_UNKNOWN;
+    code = ERROR_CODES.UNKNOWN_ERROR;
     userMessageKey = 'codex.network.unknown_error';
   }
 
