@@ -14,6 +14,13 @@ import { useTranslation } from 'react-i18next';
 import ShimmerText from '@renderer/components/ShimmerText';
 import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/ThoughtDisplay';
 
+interface CodexDraftData {
+  _type: 'codex';
+  atPath: string[];
+  content: string;
+  uploadFile: string[];
+}
+
 const useCodexSendBoxDraft = getSendBoxDraftHook('codex', {
   _type: 'codex',
   atPath: [],
@@ -40,9 +47,9 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
       atPath,
       uploadFile,
       content,
-      setAtPath: (val: string[]) => mutate((prev) => ({ ...(prev as any), atPath: val })),
-      setUploadFile: (val: string[]) => mutate((prev) => ({ ...(prev as any), uploadFile: val })),
-      setContent: (val: string) => mutate((prev) => ({ ...(prev as any), content: val })),
+      setAtPath: (val: string[]) => mutate((prev) => ({ ...(prev as CodexDraftData), atPath: val })),
+      setUploadFile: (val: string[]) => mutate((prev) => ({ ...(prev as CodexDraftData), uploadFile: val })),
+      setContent: (val: string) => mutate((prev) => ({ ...(prev as CodexDraftData), content: val })),
     };
   })();
 
@@ -55,7 +62,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
   }, [conversation_id]);
 
   useEffect(() => {
-    return ipcBridge.codexConversation.responseStream.on(async (message) => {
+    return ipcBridge.codexConversation.responseStream.on((message) => {
       if (conversation_id !== message.conversation_id) {
         return;
       }
@@ -78,6 +85,11 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
         case 'codex_status': {
           const statusData = message.data as { status: string; message: string };
           setCodexStatus(statusData.status);
+          // 将状态消息添加到 MessageList 中显示
+          const transformedMessage = transformMessage(message);
+          if (transformedMessage) {
+            addOrUpdateMessage(transformedMessage);
+          }
           break;
         }
         default: {
@@ -207,7 +219,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
 
     // 小延迟确保状态消息已经完全处理
     const timer = setTimeout(() => {
-      processInitialMessage();
+      void processInitialMessage();
     }, 200);
 
     return () => {
@@ -281,7 +293,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
               shape='circle'
               icon={<Plus theme='outline' size='14' strokeWidth={2} fill='#333' />}
               onClick={() => {
-                ipcBridge.dialog.showOpen.invoke({ properties: ['openFile', 'multiSelections'] }).then((files) => setUploadFile(files || []));
+                void ipcBridge.dialog.showOpen.invoke({ properties: ['openFile', 'multiSelections'] }).then((files) => setUploadFile(files || []));
               }}
             ></Button>
           </>
