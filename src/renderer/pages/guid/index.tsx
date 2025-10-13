@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { AcpBackend } from '@/common/acpTypes';
+import type { AcpBackend } from '@/types/acpTypes';
 import type { IProvider, TProviderWithModel } from '@/common/storage';
 import { ConfigStorage } from '@/common/storage';
 import { uuid } from '@/common/utils';
@@ -126,8 +126,13 @@ const Guid: React.FC = () => {
   // 支持在初始化页展示 Codex（MCP）选项，先做 UI 占位
   const [selectedAgent, setSelectedAgent] = useState<AcpBackend | null>('gemini');
   const [availableAgents, setAvailableAgents] = useState<Array<{ backend: AcpBackend; name: string; cliPath?: string }>>();
+  const [isPlusDropdownOpen, setIsPlusDropdownOpen] = useState(false);
+  const [typewriterPlaceholder, setTypewriterPlaceholder] = useState('');
+  const [isTyping, setIsTyping] = useState(true);
   const setCurrentModel = async (modelInfo: TProviderWithModel) => {
-    await ConfigStorage.set('gemini.defaultModel', modelInfo.useModel);
+    await ConfigStorage.set('gemini.defaultModel', modelInfo.useModel).catch((error) => {
+      console.error('Failed to save default model:', error);
+    });
     _setCurrentModel(modelInfo);
   };
   const navigate = useNavigate();
@@ -190,12 +195,17 @@ const Guid: React.FC = () => {
           },
         });
 
-        await ipcBridge.geminiConversation.sendMessage.invoke({
-          input: files.length > 0 ? formatFilesForMessage(files) + ' ' + input : input,
-          conversation_id: conversation.id,
-          msg_id: uuid(),
-        });
-        navigate(`/conversation/${conversation.id}`);
+        await ipcBridge.geminiConversation.sendMessage
+          .invoke({
+            input: files.length > 0 ? formatFilesForMessage(files) + ' ' + input : input,
+            conversation_id: conversation.id,
+            msg_id: uuid(),
+          })
+          .catch((error) => {
+            console.error('Failed to send message:', error);
+            throw error;
+          });
+        await navigate(`/conversation/${conversation.id}`);
       } catch (error: any) {
         console.error('Failed to create or send Gemini message:', error);
         alert(`Failed to create Gemini conversation: ${error.message || error}`);
@@ -225,7 +235,7 @@ const Guid: React.FC = () => {
           files: files.length > 0 ? files : undefined,
         };
         sessionStorage.setItem(`codex_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
-        navigate(`/conversation/${conversation.id}`);
+        await navigate(`/conversation/${conversation.id}`);
       } catch (error: any) {
         alert(`Failed to create Codex conversation: ${error.message || error}`);
         throw error;
@@ -270,7 +280,7 @@ const Guid: React.FC = () => {
         // Store initial message in sessionStorage to be picked up by the conversation page
         sessionStorage.setItem(`acp_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
 
-        navigate(`/conversation/${conversation.id}`);
+        await navigate(`/conversation/${conversation.id}`);
       } catch (error: any) {
         console.error('Failed to create ACP conversation:', error);
 
@@ -279,7 +289,7 @@ const Guid: React.FC = () => {
           console.error(t('acp.auth.console_error'), error.message);
           const confirmed = window.confirm(t('acp.auth.failed_confirm', { backend: selectedAgent, error: error.message }));
           if (confirmed) {
-            navigate('/settings/model');
+            await navigate('/settings/model');
           }
         } else {
           alert(`Failed to create ${selectedAgent} ACP conversation. Please check your ACP configuration and ensure the CLI is installed.`);
@@ -316,8 +326,41 @@ const Guid: React.FC = () => {
     });
   };
   useEffect(() => {
-    setDefaultModel();
+    setDefaultModel().catch((error) => {
+      console.error('Failed to set default model:', error);
+    });
   }, [modelList]);
+
+  // 打字机效果
+  useEffect(() => {
+    const fullText = t('conversation.welcome.placeholder');
+    let currentIndex = 0;
+    const typingSpeed = 80; // 每个字符的打字速度（毫秒）
+
+    const typeNextChar = () => {
+      if (currentIndex <= fullText.length) {
+        // 在打字过程中添加光标
+        setTypewriterPlaceholder(fullText.slice(0, currentIndex) + (currentIndex < fullText.length ? '|' : ''));
+        currentIndex++;
+      }
+    };
+
+    // 初始延迟，让用户看到页面加载完成
+    const initialDelay = setTimeout(() => {
+      const intervalId = setInterval(() => {
+        typeNextChar();
+        if (currentIndex > fullText.length) {
+          clearInterval(intervalId);
+          setIsTyping(false); // 打字完成
+          setTypewriterPlaceholder(fullText); // 移除光标
+        }
+      }, typingSpeed);
+
+      return () => clearInterval(intervalId);
+    }, 300);
+
+    return () => clearTimeout(initialDelay);
+  }, [t]);
   return (
     <ConfigProvider getPopupContainer={() => guidContainerRef.current || document.body}>
       <div ref={guidContainerRef} className='h-full flex-center flex-col px-100px' style={{ position: 'relative' }}>
@@ -330,11 +373,12 @@ const Guid: React.FC = () => {
           }}
           {...dragHandlers}
         >
-          <Input.TextArea rows={4} placeholder={t('conversation.welcome.placeholder')} className='text-16px focus:b-none rounded-xl !bg-white !b-none !resize-none !p-0' value={input} onChange={(v) => setInput(v)} onPaste={onPaste} onFocus={onFocus} {...compositionHandlers} onKeyDown={createKeyDownHandler(sendMessageHandler)}></Input.TextArea>
+          <Input.TextArea rows={3} placeholder={typewriterPlaceholder || t('conversation.welcome.placeholder')} className={`text-16px focus:b-none rounded-xl !bg-white !b-none !resize-none !p-0 ${styles.lightPlaceholder}`} value={input} onChange={(v) => setInput(v)} onPaste={onPaste} onFocus={onFocus} {...compositionHandlers} onKeyDown={createKeyDownHandler(sendMessageHandler)}></Input.TextArea>
           <div className='flex items-center justify-between '>
             <div className='flex items-center gap-10px'>
               <Dropdown
                 trigger='hover'
+                onVisibleChange={setIsPlusDropdownOpen}
                 droplist={
                   <Menu
                     onClickMenuItem={(key) => {
@@ -353,6 +397,9 @@ const Guid: React.FC = () => {
                             setFiles([]);
                             setDir(files?.[0] || '');
                           }
+                        })
+                        .catch((error) => {
+                          console.error('Failed to open file/directory dialog:', error);
                         });
                     }}
                   >
@@ -362,7 +409,7 @@ const Guid: React.FC = () => {
                 }
               >
                 <span className='flex items-center gap-4px cursor-pointer lh-[1]'>
-                  <Button type='secondary' shape='circle' icon={<Plus theme='outline' size='14' strokeWidth={2} fill='#333' />}></Button>
+                  <Button type='secondary' shape='circle' className={isPlusDropdownOpen ? styles.plusButtonRotate : ''} icon={<Plus theme='outline' size='14' strokeWidth={2} fill='#333' />}></Button>
                   {files.length > 0 && (
                     <Tooltip className={'!max-w-max'} content={<span className='whitespace-break-spaces'>{getCleanFileNames(files).join('\n')}</span>}>
                       <span>File({files.length})</span>
@@ -404,7 +451,9 @@ const Guid: React.FC = () => {
                                     key={provider.id + modelName}
                                     className={currentModel?.id + currentModel?.useModel === provider.id + modelName ? '!bg-#f2f3f5' : ''}
                                     onClick={() => {
-                                      setCurrentModel({ ...provider, useModel: modelName });
+                                      setCurrentModel({ ...provider, useModel: modelName }).catch((error) => {
+                                        console.error('Failed to set current model:', error);
+                                      });
                                     }}
                                   >
                                     {modelName}
@@ -427,7 +476,18 @@ const Guid: React.FC = () => {
                 </Dropdown>
               )}
             </div>
-            <Button shape='circle' type='primary' loading={loading} disabled={(!selectedAgent || selectedAgent === 'gemini') && !currentModel} icon={<ArrowUp theme='outline' size='14' fill='white' strokeWidth={2} />} onClick={handleSend} />
+            <Button
+              shape='circle'
+              type='primary'
+              loading={loading}
+              disabled={(!selectedAgent || selectedAgent === 'gemini') && !currentModel}
+              icon={<ArrowUp theme='outline' size='14' fill='white' strokeWidth={2} />}
+              onClick={() => {
+                handleSend().catch((error) => {
+                  console.error('Failed to send message:', error);
+                });
+              }}
+            />
           </div>
         </div>
 

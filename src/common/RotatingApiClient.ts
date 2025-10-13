@@ -121,7 +121,7 @@ export abstract class RotatingApiClient<T> {
     return status === 401 || status === 429 || status === 503 || (status >= 500 && status < 600);
   }
 
-  protected async delay(ms: number): Promise<void> {
+  protected delay(ms: number): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 

@@ -5,10 +5,10 @@
  */
 
 import type { ChildProcess } from 'child_process';
-import { spawn } from 'child_process';
-import { JSONRPC_VERSION } from '@/common/acpTypes';
+import { spawn, execSync } from 'child_process';
 import type { CodexEventParams } from '@/common/codex/types';
 import { globalErrorService, fromNetworkError } from '../core/ErrorService';
+import { JSONRPC_VERSION } from '@/types/acpTypes';
 
 type JsonRpcId = number | string;
 
@@ -45,7 +45,7 @@ interface PendingReq {
   timeout?: NodeJS.Timeout;
 }
 
-export class CodexMcpConnection {
+export class CodexConnection {
   private child: ChildProcess | null = null;
   private nextId = 0;
   private pending = new Map<JsonRpcId, PendingReq>();
@@ -65,14 +65,62 @@ export class CodexMcpConnection {
   private retryDelay = 5000; // 5 seconds
   private isNetworkError = false;
 
-  async start(cliPath: string, cwd: string, args: string[] = []): Promise<void> {
-    // Default to "codex mcp serve" to start MCP server
+  /**
+   * 检测 Codex 版本并返回相应的 MCP 启动命令
+   * Detect Codex version and return appropriate MCP command
+   * @param cliPath - Codex CLI 路径 / Path to Codex CLI
+   * @returns 启动 MCP 服务器的命令参数数组 / Array of command arguments for starting MCP server
+   */
+  private detectMcpCommand(cliPath: string): string[] {
+    try {
+      // 尝试获取 Codex 版本 / Try to get Codex version
+      const versionOutput = execSync(`${cliPath} --version`, {
+        encoding: 'utf8',
+        timeout: 5000,
+        stdio: ['pipe', 'pipe', 'ignore'],
+      }).trim();
+
+      // 提取版本号（例如从 "codex version 0.39.0" 中提取 "0.39.0"）
+      // Extract version number (e.g., "0.39.0" from "codex version 0.39.0")
+      const versionMatch = versionOutput.match(/(\d+)\.(\d+)\.(\d+)/);
+      if (versionMatch) {
+        const [, major, minor] = versionMatch;
+        const majorVer = parseInt(major, 10);
+        const minorVer = parseInt(minor, 10);
+
+        // 版本 0.40.0 及以上使用 "mcp-server"
+        // 版本 0.39.x 及以下使用 "mcp serve"
+        // Version 0.40.0 and above use "mcp-server"
+        // Version 0.39.x and below use "mcp serve"
+        if (majorVer > 0 || (majorVer === 0 && minorVer >= 40)) {
+          console.log(`[CodexConnection] 检测到 Codex ${versionOutput}，使用 'mcp-server' 命令 / Detected Codex ${versionOutput}, using 'mcp-server' command`);
+          return ['mcp-server'];
+        } else {
+          console.log(`[CodexConnection] 检测到 Codex ${versionOutput}，使用 'mcp serve' 命令 / Detected Codex ${versionOutput}, using 'mcp serve' command`);
+          return ['mcp', 'serve'];
+        }
+      }
+
+      // 如果版本检测失败，默认使用 mcp-server（适用于新版本）
+      // If version detection fails, try mcp-server first (for newer versions)
+      console.warn('[CodexConnection] 无法解析 Codex 版本，默认使用 mcp-server / Could not parse Codex version, defaulting to mcp-server');
+      return ['mcp-server'];
+    } catch (error) {
+      // 如果版本命令执行失败，默认使用 mcp-server（新版本）
+      // If version command fails, default to mcp-server (newer versions)
+      console.warn('[CodexConnection] Codex 版本检测失败，默认使用 mcp-server / Failed to detect Codex version, defaulting to mcp-server:', error);
+      return ['mcp-server'];
+    }
+  }
+
+  start(cliPath: string, cwd: string, args: string[] = []): Promise<void> {
+    // 根据 Codex 版本自动检测合适的 MCP 命令 / Auto-detect appropriate MCP command based on Codex version
     const cleanEnv = { ...process.env };
     delete cleanEnv.NODE_OPTIONS;
     delete cleanEnv.NODE_INSPECT;
     delete cleanEnv.NODE_DEBUG;
     const isWindows = process.platform === 'win32';
-    const finalArgs = args.length ? args : ['mcp', 'serve'];
+    const finalArgs = args.length ? args : this.detectMcpCommand(cliPath);
 
     return new Promise((resolve, reject) => {
       try {
@@ -182,7 +230,7 @@ export class CodexMcpConnection {
     });
   }
 
-  async stop(): Promise<void> {
+  stop(): Promise<void> {
     if (this.child) {
       this.child.kill();
       this.child = null;
@@ -195,9 +243,10 @@ export class CodexMcpConnection {
     }
     // Clear pending elicitations
     this.elicitationMap.clear();
+    return Promise.resolve();
   }
 
-  async request<T = unknown>(method: string, params?: unknown, timeoutMs = 200000): Promise<T> {
+  request<T = unknown>(method: string, params?: unknown, timeoutMs = 200000): Promise<T> {
     const id = this.nextId++;
     const req: JsonRpcRequest = { jsonrpc: JSONRPC_VERSION, id, method, params };
     return new Promise<T>((resolve, reject) => {
@@ -338,7 +387,7 @@ export class CodexMcpConnection {
   // Permission control methods
 
   // Public methods for permission control
-  public async waitForPermission(callId: string): Promise<boolean> {
+  public waitForPermission(callId: string): Promise<boolean> {
     return new Promise((resolve, reject) => {
       this.permissionResolvers.set(callId, { resolve, reject });
 
@@ -429,7 +478,7 @@ export class CodexMcpConnection {
   private handleNetworkError(errorMsg: string, pendingRequest: PendingReq): void {
     // Create standardized error using error service
     const codexError = fromNetworkError(errorMsg, {
-      source: 'CodexMcpConnection',
+      source: 'CodexConnection',
       retryCount: this.retryCount,
     });
 
@@ -537,47 +586,57 @@ export class CodexMcpConnection {
   }
 
   // Simple ping test to check if connection is responsive
-  public async ping(timeout: number = 5000): Promise<boolean> {
-    try {
-      await this.request('ping', {}, timeout);
-      return true;
-    } catch {
-      return false;
-    }
+  public ping(timeout: number = 5000): Promise<boolean> {
+    return this.request('ping', {}, timeout)
+      .then(() => true)
+      .catch(() => false);
   }
 
   // Wait for MCP server to be ready after startup
-  public async waitForServerReady(timeout: number = 30000): Promise<void> {
+  public waitForServerReady(timeout: number = 30000): Promise<void> {
     return new Promise((resolve, reject) => {
       const startTime = Date.now();
 
-      const checkReady = async () => {
-        try {
-          // Try to ping the server
-          const isReady = await this.ping(3000);
-          if (isReady) {
-            resolve();
-            return;
-          }
-        } catch {
-          // Ping failed, continue waiting
-        }
+      const checkReady = () => {
+        // Try to ping the server
+        this.ping(3000)
+          .then((isReady) => {
+            if (isReady) {
+              resolve();
+              return;
+            }
 
-        // Check timeout
-        if (Date.now() - startTime > timeout) {
-          // Emit error to frontend before rejecting promise
-          this.onError({
-            message: `Timeout waiting for MCP server to be ready (${timeout}ms)`,
-            type: 'timeout',
-            details: { timeout },
+            // Check timeout
+            if (Date.now() - startTime > timeout) {
+              // Emit error to frontend before rejecting promise
+              this.onError({
+                message: `Timeout waiting for MCP server to be ready (${timeout}ms)`,
+                type: 'timeout',
+                details: { timeout },
+              });
+
+              reject(new Error('Timeout waiting for MCP server to be ready'));
+              return;
+            }
+
+            // Wait and retry
+            setTimeout(checkReady, 2000);
+          })
+          .catch(() => {
+            // Ping failed, continue waiting
+            if (Date.now() - startTime > timeout) {
+              this.onError({
+                message: `Timeout waiting for MCP server to be ready (${timeout}ms)`,
+                type: 'timeout',
+                details: { timeout },
+              });
+
+              reject(new Error('Timeout waiting for MCP server to be ready'));
+              return;
+            }
+
+            setTimeout(checkReady, 2000);
           });
-
-          reject(new Error('Timeout waiting for MCP server to be ready'));
-          return;
-        }
-
-        // Wait and retry
-        setTimeout(checkReady, 2000);
       };
 
       // Start checking after a short delay

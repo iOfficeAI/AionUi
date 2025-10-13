@@ -4,13 +4,19 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { NetworkError, CodexEventEnvelope } from '@/agent/codex/connection/CodexMcpConnection';
-import { CodexMcpConnection } from '@/agent/codex/connection/CodexMcpConnection';
+import type { NetworkError, CodexEventEnvelope } from '@/agent/codex/connection/CodexConnection';
+import { CodexConnection } from '@/agent/codex/connection/CodexConnection';
 import type { FileChange, CodexEventParams, CodexJsonRpcEvent } from '@/common/codex/types';
 import type { CodexEventHandler } from '@/agent/codex/handlers/CodexEventHandler';
 import type { CodexSessionManager } from '@/agent/codex/handlers/CodexSessionManager';
 import type { CodexFileOperationHandler } from '@/agent/codex/handlers/CodexFileOperationHandler';
 import { getConfiguredAppClientName, getConfiguredAppClientVersion, getConfiguredCodexMcpProtocolVersion } from '../../../common/utils/appConfig';
+
+interface LegacyNetworkErrorDetails {
+  networkErrorType?: string;
+  originalError?: string;
+  retryCount?: number;
+}
 
 const APP_CLIENT_NAME = getConfiguredAppClientName();
 const APP_CLIENT_VERSION = getConfiguredAppClientVersion();
@@ -32,7 +38,7 @@ export interface CodexAgentConfig {
  * Minimal Codex MCP Agent skeleton.
  * Not wired into UI flows yet; provides a starting point for protocol fusion.
  */
-export class CodexMcpAgent {
+export class CodexAgent {
   private readonly id: string;
   private readonly cliPath?: string;
   private readonly workingDir: string;
@@ -42,7 +48,7 @@ export class CodexMcpAgent {
   private readonly onNetworkError?: (error: NetworkError) => void;
   private readonly sandboxMode: 'read-only' | 'workspace-write' | 'danger-full-access';
   private readonly webSearchEnabled: boolean;
-  private conn: CodexMcpConnection | null = null;
+  private conn: CodexConnection | null = null;
   private conversationId: string | null = null;
 
   constructor(cfg: CodexAgentConfig) {
@@ -58,13 +64,13 @@ export class CodexMcpAgent {
   }
 
   async start(): Promise<void> {
-    this.conn = new CodexMcpConnection();
+    this.conn = new CodexConnection();
     this.conn.onEvent = (env) => this.processCodexEvent(env);
     this.conn.onError = (error) => this.handleError(error);
 
     try {
-      const args = ['mcp', 'serve'];
-      await this.conn.start(this.cliPath || 'codex', this.workingDir, args);
+      // 让 CodexConnection 根据版本自动检测合适的命令 / Let CodexConnection auto-detect the appropriate command based on version
+      await this.conn.start(this.cliPath || 'codex', this.workingDir);
 
       // Wait for MCP server to be fully ready
       await this.conn.waitForServerReady(30000);
@@ -287,7 +293,7 @@ export class CodexMcpAgent {
     }
   }
 
-  private convertToLegacyNetworkError(error: { message: string; type?: string; details?: any }): NetworkError {
+  private convertToLegacyNetworkError(error: { message: string; type?: string; details?: LegacyNetworkErrorDetails }): NetworkError {
     const details = error.details || {};
     return {
       type: this.mapNetworkErrorType(details.networkErrorType || 'unknown'),
@@ -338,7 +344,7 @@ export class CodexMcpAgent {
   }
 
   // Expose connection diagnostics for UI/manager without leaking internals
-  public getDiagnostics(): ReturnType<CodexMcpConnection['getDiagnostics']> {
+  public getDiagnostics(): ReturnType<CodexConnection['getDiagnostics']> {
     const diagnostics = this.conn?.getDiagnostics();
     if (diagnostics) return diagnostics;
     return {

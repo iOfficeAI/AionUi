@@ -201,6 +201,9 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
                   })
                   .then((res) => {
                     console.log('------onConfirm.res>:', res);
+                  })
+                  .catch((error) => {
+                    console.error('Failed to confirm message:', error);
                   });
               }}
             ></ConfirmationDetails>

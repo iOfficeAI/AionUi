@@ -92,7 +92,9 @@ const ChatHistory: React.FC = () => {
 
   const handleSelect = (conversation: TChatConversation) => {
     // ipcBridge.conversation.createWithConversation.invoke({ conversation }).then(() => {
-    navigate(`/conversation/${conversation.id}`);
+    Promise.resolve(navigate(`/conversation/${conversation.id}`)).catch((error) => {
+      console.error('Navigation failed:', error);
+    });
     // });
   };
 
@@ -118,12 +120,19 @@ const ChatHistory: React.FC = () => {
   }, [isConversation]);
 
   const handleRemoveConversation = (id: string) => {
-    ipcBridge.conversation.remove.invoke({ id }).then((success) => {
-      if (success) {
-        setChatHistory(chatHistory.filter((item) => item.id !== id));
-        navigate('/');
-      }
-    });
+    ipcBridge.conversation.remove
+      .invoke({ id })
+      .then((success) => {
+        if (success) {
+          setChatHistory(chatHistory.filter((item) => item.id !== id));
+          Promise.resolve(navigate('/')).catch((error) => {
+            console.error('Navigation failed:', error);
+          });
+        }
+      })
+      .catch((error) => {
+        console.error('Failed to remove conversation:', error);
+      });
   };
 
   const formatTimeline = useTimeline();

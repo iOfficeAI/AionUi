@@ -94,14 +94,18 @@ export const getSendBoxDraftHook = <K extends TChatConversation['type']>(type: K
 
     const mutateDraft = useCallback(
       (draft: (k: Extract<Draft, { _type: K }>) => typeof k | undefined): void => {
-        swrRet.mutate(
-          (prev) => {
-            const newDraft = draft(prev ?? initialValue);
-            setDraft(type, conversation_id, newDraft);
-            return newDraft;
-          },
-          { revalidate: false }
-        );
+        swrRet
+          .mutate(
+            (prev) => {
+              const newDraft = draft(prev ?? initialValue);
+              setDraft(type, conversation_id, newDraft);
+              return newDraft;
+            },
+            { revalidate: false }
+          )
+          .catch((error) => {
+            console.error('Failed to mutate draft:', error);
+          });
       },
       [conversation_id]
     );

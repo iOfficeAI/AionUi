@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { AcpBackend } from '@/common/acpTypes';
-import { getEnabledAcpBackends } from '@/common/acpTypes';
+import type { AcpBackend } from '@/types/acpTypes';
+import { getEnabledAcpBackends } from '@/types/acpTypes';
 
 interface DetectedAgent {
   backend: AcpBackend;
@@ -39,25 +39,27 @@ class AcpDetector {
     const detected: DetectedAgent[] = [];
 
     // 并行检测所有命令
-    const detectionPromises = acpCommands.map(async (command) => {
-      try {
-        execSync(`${whichCommand} ${command}`, {
-          encoding: 'utf-8',
-          stdio: 'pipe',
-          timeout: 1000,
-        });
+    const detectionPromises = acpCommands.map((command) => {
+      return Promise.resolve().then(() => {
+        try {
+          execSync(`${whichCommand} ${command}`, {
+            encoding: 'utf-8',
+            stdio: 'pipe',
+            timeout: 1000,
+          });
 
-        // 从配置中获取对应的名称
-        const backendConfig = enabledBackends.find((backend) => backend.id === command);
+          // 从配置中获取对应的名称
+          const backendConfig = enabledBackends.find((backend) => backend.id === command);
 
-        return {
-          backend: command as AcpBackend,
-          name: backendConfig?.name || command,
-          cliPath: command,
-        };
-      } catch {
-        return null;
-      }
+          return {
+            backend: command as AcpBackend,
+            name: backendConfig?.name || command,
+            cliPath: command,
+          };
+        } catch {
+          return null;
+        }
+      });
     });
 
     const results = await Promise.allSettled(detectionPromises);
@@ -73,7 +75,7 @@ class AcpDetector {
     if (detected.length > 0) {
       detected.unshift({
         backend: 'gemini' as AcpBackend,
-        name: 'Gemini',
+        name: 'Gemini CLI',
         cliPath: undefined,
       });
     }

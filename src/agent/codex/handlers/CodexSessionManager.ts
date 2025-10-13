@@ -73,7 +73,7 @@ export class CodexSessionManager {
   /**
    * 建立连接
    */
-  private async establishConnection(): Promise<void> {
+  private establishConnection(): Promise<void> {
     return new Promise((resolve, reject) => {
       const timeoutId = setTimeout(() => {
         reject(new Error(`Connection timeout after ${this.timeout / 1000} seconds`));
@@ -91,7 +91,7 @@ export class CodexSessionManager {
   /**
    * 执行认证 - 参考 ACP 的认证逻辑
    */
-  private async performAuthentication(): Promise<void> {
+  private performAuthentication(): Promise<void> {
     // 这里可以添加具体的认证逻辑
     // 目前 Codex 通过 CLI 自身处理认证
     return new Promise((resolve) => {
@@ -104,7 +104,7 @@ export class CodexSessionManager {
   /**
    * 创建会话
    */
-  private async createSession(): Promise<void> {
+  private createSession(): Promise<void> {
     return new Promise((resolve, reject) => {
       const timeoutId = setTimeout(() => {
         reject(new Error('Session creation timeout'));
@@ -122,11 +122,12 @@ export class CodexSessionManager {
   /**
    * 停止会话
    */
-  async stopSession(): Promise<void> {
+  stopSession(): Promise<void> {
     this.isConnected = false;
     this.hasActiveSession = false;
     this.sessionId = null;
     this.setStatus('disconnected', 'Session disconnected');
+    return Promise.resolve();
   }
 
   /**
@@ -245,7 +246,7 @@ export class CodexSessionManager {
   /**
    * 等待会话准备就绪 - 类似 ACP 的 bootstrap Promise
    */
-  async waitForReady(timeout: number = 30000): Promise<void> {
+  waitForReady(timeout: number = 30000): Promise<void> {
     return new Promise((resolve, reject) => {
       if (this.status === 'session_active') {
         resolve();
