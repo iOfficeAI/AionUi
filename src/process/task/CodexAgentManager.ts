@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { CodexMcpAgent } from '@/agent/codex';
-import type { NetworkError } from '@/agent/codex/connection/CodexMcpConnection';
+import { CodexAgent } from '@/agent/codex';
+import type { NetworkError } from '@/agent/codex/connection/CodexConnection';
 import { ipcBridge } from '@/common';
 import type { TMessage } from '@/common/chatLib';
 import { transformMessage } from '@/common/chatLib';
@@ -28,8 +28,8 @@ const CODEX_MCP_PROTOCOL_VERSION = getConfiguredCodexMcpProtocolVersion();
 
 class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implements ICodexMessageEmitter {
   workspace?: string;
-  agent: CodexMcpAgent;
-  bootstrap: Promise<CodexMcpAgent>;
+  agent: CodexAgent;
+  bootstrap: Promise<CodexAgent>;
   private isFirstMessage: boolean = true;
 
   constructor(data: CodexAgentManagerData) {
@@ -55,7 +55,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     const fileOperationHandler = new CodexFileOperationHandler(data.workspace || process.cwd(), data.conversation_id, this);
 
     // 设置 Codex Agent 的应用配置，使用 Electron API 在主进程中
-    (async () => {
+    void (async () => {
       try {
         const electronModule = await import('electron');
         const app = electronModule.app;
@@ -72,9 +72,11 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
           protocolVersion: CODEX_MCP_PROTOCOL_VERSION,
         });
       }
-    })();
+    })().catch((error) => {
+      console.error('Failed to set app config:', error);
+    });
 
-    this.agent = new CodexMcpAgent({
+    this.agent = new CodexAgent({
       id: data.conversation_id,
       cliPath: data.cliPath,
       workingDir: data.workspace || process.cwd(),
@@ -90,7 +92,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
     // 使用 SessionManager 来管理连接状态 - 参考 ACP 的模式
     this.bootstrap = this.startWithSessionManagement()
-      .then(async () => {
+      .then(() => {
         return this.agent;
       })
       .catch((e) => {
@@ -110,16 +112,16 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     await this.agent.start();
 
     // 3. 执行认证和会话创建
-    await this.performPostConnectionSetup();
+    this.performPostConnectionSetup();
   }
 
   /**
    * 连接后设置 - 参考 ACP 的认证和会话创建
    */
-  private async performPostConnectionSetup(): Promise<void> {
+  private performPostConnectionSetup(): void {
     try {
       // Get connection diagnostics
-      this.getDiagnostics();
+      void this.getDiagnostics();
 
       // 延迟会话创建到第一条用户消息时，避免空 prompt 问题
       // Session will be created with first user message - no session event sent here
@@ -331,7 +333,10 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
     // Emit network error message to UI
     // Add to message history and emit to UI
-    addOrUpdateMessage(this.conversation_id, transformMessage(networkErrorMessage));
+    const errorMessage = transformMessage(networkErrorMessage);
+    if (errorMessage) {
+      addOrUpdateMessage(this.conversation_id, errorMessage);
+    }
     ipcBridge.codexConversation.responseStream.emit(networkErrorMessage);
   }
 
@@ -345,7 +350,8 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
         message,
       },
     };
-    ipcBridge.codexConversation.responseStream.emit(statusMessage);
+    // Use emitAndPersistMessage to ensure status messages are both emitted and persisted
+    this.emitAndPersistMessage(statusMessage);
   }
 
   getDiagnostics() {
@@ -367,7 +373,9 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     this.agent.getFileOperationHandler().cleanup();
 
     // 停止 agent
-    this.agent?.stop?.();
+    this.agent?.stop?.().catch((error) => {
+      console.error('Failed to stop Codex agent during cleanup:', error);
+    });
 
     // Cleanup completed
   }
@@ -380,7 +388,9 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
   // Ensure we clean up agent resources on kill
   kill() {
     try {
-      this.agent?.stop?.();
+      this.agent?.stop?.().catch((error) => {
+        console.error('Failed to stop Codex agent during kill:', error);
+      });
     } finally {
       super.kill();
     }
@@ -388,14 +398,10 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
   emitAndPersistMessage(message: IResponseMessage, persist: boolean = true): void {
     if (persist) {
-      if (message.type === 'codex_status') {
-        ipcBridge.codexConversation.responseStream.emit(message);
-        return;
-      }
       // Use Codex-specific transformer for Codex messages
       const transformedMessage: TMessage = transformMessage(message);
       if (transformedMessage) {
-        addOrUpdateMessage(this.conversation_id, transformedMessage);
+        void addOrUpdateMessage(this.conversation_id, transformedMessage);
       }
     }
     ipcBridge.codexConversation.responseStream.emit(message);

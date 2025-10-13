@@ -20,7 +20,9 @@ const Sider: React.FC = () => {
           <div
             className='flex items-center justify-start gap-10px px-12px py-8px hover:bg-#f3f4f6 rd-0.5rem mb-8px cursor-pointer group'
             onClick={() => {
-              navigate('/guid');
+              Promise.resolve(navigate('/guid')).catch((error) => {
+                console.error('Navigation failed:', error);
+              });
             }}
           >
             <Plus theme='outline' size='24' fill='#333' className='flex' />
@@ -31,8 +33,15 @@ const Sider: React.FC = () => {
       )}
       <div
         onClick={() => {
-          if (isSettings) return navigate('/guid');
-          navigate('/settings');
+          if (isSettings) {
+            Promise.resolve(navigate('/guid')).catch((error) => {
+              console.error('Navigation failed:', error);
+            });
+            return;
+          }
+          Promise.resolve(navigate('/settings')).catch((error) => {
+            console.error('Navigation failed:', error);
+          });
         }}
         className='flex items-center justify-start gap-10px px-12px py-8px hover:bg-#f3f4f6 rd-0.5rem mb-8px cursor-pointer'
       >

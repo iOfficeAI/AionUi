@@ -1,7 +1,7 @@
 import { AcpAgent } from '../agent/acp';
 import { forkTask } from './utils';
 
-export default forkTask(async ({ data }, pipe) => {
+export default forkTask(({ data }, pipe) => {
   const agent = new AcpAgent({
     ...data,
     onStreamEvent(data) {

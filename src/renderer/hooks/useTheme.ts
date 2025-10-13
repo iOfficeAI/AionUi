@@ -54,9 +54,13 @@ const useTheme = (): [Theme, (theme: Theme) => Promise<void>] => {
   // Initialize theme state from the early initialization
   useEffect(() => {
     if (initialThemePromise) {
-      initialThemePromise.then((initialTheme) => {
-        setThemeState(initialTheme);
-      });
+      initialThemePromise
+        .then((initialTheme) => {
+          setThemeState(initialTheme);
+        })
+        .catch((error) => {
+          console.error('Failed to initialize theme:', error);
+        });
     }
   }, []);
 

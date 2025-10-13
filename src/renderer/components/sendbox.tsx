@@ -88,9 +88,14 @@ const SendBox: React.FC<{
 
   const stopHandler = () => {
     if (!onStop) return;
-    onStop().then(() => {
-      setIsLoading(false);
-    });
+    onStop()
+      .then(() => {
+        setIsLoading(false);
+      })
+      .catch((error) => {
+        console.error('Failed to stop operation:', error);
+        setIsLoading(false);
+      });
   };
 
   return (

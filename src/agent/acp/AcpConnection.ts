@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { JSONRPC_VERSION } from '@/common/acpTypes';
-import type { AcpBackend, AcpMessage, AcpNotification, AcpPermissionRequest, AcpRequest, AcpResponse, AcpSessionUpdate } from '@/common/acpTypes';
+import { JSONRPC_VERSION } from '@/types/acpTypes';
+import type { AcpBackend, AcpMessage, AcpNotification, AcpPermissionRequest, AcpRequest, AcpResponse, AcpSessionUpdate } from '@/types/acpTypes';
 import type { ChildProcess, SpawnOptions } from 'child_process';
 import { spawn } from 'child_process';
 
@@ -31,7 +31,7 @@ export class AcpConnection {
   public onSessionUpdate: (data: AcpSessionUpdate) => void = () => {};
   public onPermissionRequest: (data: AcpPermissionRequest) => Promise<{
     optionId: string;
-  }> = async () => ({ optionId: 'allow' });
+  }> = () => Promise.resolve({ optionId: 'allow' }); // Returns a resolved Promise for interface consistency
   public onEndTurn: () => void = () => {}; // Handler for end_turn messages
   public onFileOperation: (operation: { method: string; path: string; content?: string; sessionId: string }) => void = () => {};
 
@@ -174,7 +174,7 @@ export class AcpConnection {
         if (line.trim()) {
           try {
             const message = JSON.parse(line) as AcpMessage;
-            // console.log('AcpMessage==>', JSON.stringify(message));
+            console.log('AcpMessage==>', JSON.stringify(message));
             this.handleMessage(message);
           } catch (error) {
             // Ignore parsing errors for non-JSON messages
@@ -194,7 +194,7 @@ export class AcpConnection {
     ]);
   }
 
-  private async sendRequest(method: string, params?: any): Promise<any> {
+  private sendRequest(method: string, params?: any): Promise<any> {
     const id = this.nextRequestId++;
     const message: AcpRequest = {
       jsonrpc: JSONRPC_VERSION,

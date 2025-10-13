@@ -4,6 +4,7 @@ import { Help } from '@icon-park/react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useConfigModelListWithImage from '../../hooks/useConfigModelListWithImage';
+import McpManagement from '@renderer/pages/settings/McpManagement';
 import SettingContainer from './components/SettingContainer';
 
 const ToolsSettings: React.FC = () => {
@@ -28,10 +29,14 @@ const ToolsSettings: React.FC = () => {
   }, [data]);
 
   useEffect(() => {
-    ConfigStorage.get('tools.imageGenerationModel').then((data) => {
-      if (!data) return;
-      setImageGenerationModel(data);
-    });
+    ConfigStorage.get('tools.imageGenerationModel')
+      .then((data) => {
+        if (!data) return;
+        setImageGenerationModel(data);
+      })
+      .catch((error) => {
+        console.error('Failed to load image generation model config:', error);
+      });
   }, []);
 
   // Sync imageGenerationModel apiKey when provider apiKey changes
@@ -49,25 +54,32 @@ const ToolsSettings: React.FC = () => {
       };
 
       setImageGenerationModel(updatedModel);
-      ConfigStorage.set('tools.imageGenerationModel', updatedModel);
+      ConfigStorage.set('tools.imageGenerationModel', updatedModel).catch((error) => {
+        console.error('Failed to save image generation model config:', error);
+      });
     } else if (!currentProvider) {
       // Provider was deleted, clear the setting
       setImageGenerationModel(undefined);
-      ConfigStorage.remove('tools.imageGenerationModel');
+      ConfigStorage.remove('tools.imageGenerationModel').catch((error) => {
+        console.error('Failed to remove image generation model config:', error);
+      });
     }
   }, [data, imageGenerationModel?.id, imageGenerationModel?.apiKey]);
 
   const handleImageGenerationModelChange = (value: Partial<IConfigStorageRefer['tools.imageGenerationModel']>) => {
     setImageGenerationModel((prev) => {
       const newImageGenerationModel = { ...prev, ...value };
-      ConfigStorage.set('tools.imageGenerationModel', newImageGenerationModel);
+      ConfigStorage.set('tools.imageGenerationModel', newImageGenerationModel).catch((error) => {
+        console.error('Failed to update image generation model config:', error);
+      });
       return newImageGenerationModel;
     });
   };
 
   return (
     <SettingContainer title={t('settings.tools')} bodyContainer>
-      <Collapse defaultActiveKey={['image-generation']}>
+      <Collapse defaultActiveKey={['image-generation', 'mcp-servers']}>
+        <McpManagement />
         <Collapse.Item
           className={' [&_div.arco-collapse-item-header-title]:flex-1'}
           header={
@@ -84,7 +96,7 @@ const ToolsSettings: React.FC = () => {
                 {imageGenerationModelList.length > 0 ? (
                   <Select
                     value={imageGenerationModel?.useModel}
-                    onChange={(value, option) => {
+                    onChange={(value) => {
                       // value 现在是 platform.id|model 格式
                       const [platformId, modelName] = value.split('|');
                       const platform = imageGenerationModelList.find((p) => p.id === platformId);

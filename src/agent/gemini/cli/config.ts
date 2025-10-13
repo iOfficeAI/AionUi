@@ -59,7 +59,7 @@ export interface CliArgs {
 // This function is now a thin wrapper around the server's implementation.
 // It's kept in the CLI for now as App.tsx directly calls it for memory refresh.
 // TODO: Consider if App.tsx should get memory via a server call or if Config should refresh itself.
-export async function loadHierarchicalGeminiMemory(currentWorkingDirectory: string, includeDirectoriesToReadGemini: readonly string[] = [], debugMode: boolean, fileService: FileDiscoveryService, settings: Settings, extensionContextFilePaths: string[] = [], memoryImportFormat: 'flat' | 'tree' = 'tree', fileFilteringOptions?: FileFilteringOptions): Promise<{ memoryContent: string; fileCount: number }> {
+export function loadHierarchicalGeminiMemory(currentWorkingDirectory: string, includeDirectoriesToReadGemini: readonly string[] = [], debugMode: boolean, fileService: FileDiscoveryService, settings: Settings, extensionContextFilePaths: string[] = [], memoryImportFormat: 'flat' | 'tree' = 'tree', fileFilteringOptions?: FileFilteringOptions): Promise<{ memoryContent: string; fileCount: number }> {
   // FIX: Use real, canonical paths for a reliable comparison to handle symlinks.
   const realCwd = fs.realpathSync(path.resolve(currentWorkingDirectory));
   const realHome = fs.realpathSync(path.resolve(homedir()));
@@ -79,7 +79,7 @@ export async function loadHierarchicalGeminiMemory(currentWorkingDirectory: stri
 
 import type { ConversationToolConfig } from './tools/conversation-tool-config';
 
-export async function loadCliConfig({ workspace, settings, extensions, sessionId, proxy, model, conversationToolConfig, yoloMode }: { workspace: string; settings: Settings; extensions: Extension[]; sessionId: string; proxy?: string; model?: string; conversationToolConfig: ConversationToolConfig; yoloMode?: boolean }): Promise<Config> {
+export async function loadCliConfig({ workspace, settings, extensions, sessionId, proxy, model, conversationToolConfig, yoloMode, mcpServers }: { workspace: string; settings: Settings; extensions: Extension[]; sessionId: string; proxy?: string; model?: string; conversationToolConfig: ConversationToolConfig; yoloMode?: boolean; mcpServers?: Record<string, unknown> }): Promise<Config> {
   const argv: Partial<CliArgs> = {
     yolo: yoloMode,
   };
@@ -88,7 +88,7 @@ export async function loadCliConfig({ workspace, settings, extensions, sessionId
   const memoryImportFormat = settings.memoryImportFormat || 'tree';
   const ideMode = settings.ideMode ?? false;
 
-  const ideModeFeature = (argv.ideModeFeature ?? settings.ideModeFeature ?? false) && !process.env.SANDBOX;
+  const _ideModeFeature = (argv.ideModeFeature ?? settings.ideModeFeature ?? false) && !process.env.SANDBOX;
 
   const allExtensions = annotateActiveExtensions(extensions, argv.extensions || []);
 
@@ -126,7 +126,7 @@ export async function loadCliConfig({ workspace, settings, extensions, sessionId
   // Call the (now wrapper) loadHierarchicalGeminiMemory which calls the server's version
   const { memoryContent, fileCount } = await loadHierarchicalGeminiMemory(workspace, [], debugMode, fileService, settings, extensionContextFilePaths, memoryImportFormat, fileFiltering);
 
-  let mcpServers = mergeMcpServers(settings, activeExtensions);
+  let mcpServersConfig = mergeMcpServers(settings, activeExtensions, mcpServers);
 
   // 使用对话级别的工具配置
   const toolConfig = conversationToolConfig.getConfig();
@@ -138,14 +138,14 @@ export async function loadCliConfig({ workspace, settings, extensions, sessionId
     if (settings.allowMCPServers) {
       const allowedNames = new Set(settings.allowMCPServers.filter(Boolean));
       if (allowedNames.size > 0) {
-        mcpServers = Object.fromEntries(Object.entries(mcpServers).filter(([key]) => allowedNames.has(key)));
+        mcpServersConfig = Object.fromEntries(Object.entries(mcpServersConfig).filter(([key]) => allowedNames.has(key)));
       }
     }
 
     if (settings.excludeMCPServers) {
       const excludedNames = new Set(settings.excludeMCPServers.filter(Boolean));
       if (excludedNames.size > 0) {
-        mcpServers = Object.fromEntries(Object.entries(mcpServers).filter(([key]) => !excludedNames.has(key)));
+        mcpServersConfig = Object.fromEntries(Object.entries(mcpServersConfig).filter(([key]) => !excludedNames.has(key)));
       }
     }
   }
@@ -153,8 +153,8 @@ export async function loadCliConfig({ workspace, settings, extensions, sessionId
   if (argv.allowedMcpServerNames) {
     const allowedNames = new Set(argv.allowedMcpServerNames.filter(Boolean));
     if (allowedNames.size > 0) {
-      mcpServers = Object.fromEntries(
-        Object.entries(mcpServers).filter(([key, server]) => {
+      mcpServersConfig = Object.fromEntries(
+        Object.entries(mcpServersConfig).filter(([key, server]) => {
           const isAllowed = allowedNames.has(key);
           if (!isAllowed) {
             blockedMcpServers.push({
@@ -167,12 +167,12 @@ export async function loadCliConfig({ workspace, settings, extensions, sessionId
       );
     } else {
       blockedMcpServers.push(
-        ...Object.entries(mcpServers).map(([key, server]) => ({
+        ...Object.entries(mcpServersConfig).map(([key, server]) => ({
           name: key,
           extensionName: server.extensionName || '',
         }))
       );
-      mcpServers = {};
+      mcpServersConfig = {};
     }
   }
 
@@ -190,7 +190,7 @@ export async function loadCliConfig({ workspace, settings, extensions, sessionId
     toolDiscoveryCommand: settings.toolDiscoveryCommand,
     toolCallCommand: settings.toolCallCommand,
     mcpServerCommand: settings.mcpServerCommand,
-    mcpServers,
+    mcpServers: mcpServersConfig,
     userMemory: memoryContent,
     geminiMdFileCount: fileCount,
     approvalMode: argv.yolo || false ? ApprovalMode.YOLO : ApprovalMode.DEFAULT,
@@ -254,8 +254,10 @@ export async function loadCliConfig({ workspace, settings, extensions, sessionId
   return config;
 }
 
-function mergeMcpServers(settings: Settings, extensions: Extension[]) {
+function mergeMcpServers(settings: Settings, extensions: Extension[], uiMcpServers?: Record<string, unknown>) {
   const mcpServers = { ...(settings.mcpServers || {}) };
+
+  // 添加来自 extensions 的 MCP 服务器
   for (const extension of extensions) {
     Object.entries(extension.config.mcpServers || {}).forEach(([key, server]) => {
       if (mcpServers[key]) {
@@ -268,6 +270,18 @@ function mergeMcpServers(settings: Settings, extensions: Extension[]) {
       };
     });
   }
+
+  // 添加来自 UI 配置的 MCP 服务器（优先级最高）
+  if (uiMcpServers) {
+    Object.entries(uiMcpServers).forEach(([key, server]) => {
+      if (mcpServers[key]) {
+        logger.warn(`Overriding existing MCP config for server with key "${key}" with UI configuration.`);
+      }
+      mcpServers[key] = server;
+      console.log(`[MCP] Added UI-configured server: ${key}`);
+    });
+  }
+
   return mcpServers;
 }
 

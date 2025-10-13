@@ -146,13 +146,13 @@ export class CodexEventHandler {
 
     // Route to appropriate handler based on event type
     if (msg.type === 'exec_approval_request') {
-      this.processExecApprovalRequest(msg, unifiedRequestId).catch(console.error);
+      this.processExecApprovalRequest(msg, unifiedRequestId);
     } else {
-      this.processApplyPatchRequest(msg, unifiedRequestId).catch(console.error);
+      this.processApplyPatchRequest(msg, unifiedRequestId);
     }
   }
 
-  private async processExecApprovalRequest(
+  private processExecApprovalRequest(
     msg: Extract<
       CodexEventMsg,
       {
@@ -187,7 +187,7 @@ export class CodexEventHandler {
     );
   }
 
-  private async processApplyPatchRequest(
+  private processApplyPatchRequest(
     msg: Extract<
       CodexEventMsg,
       {

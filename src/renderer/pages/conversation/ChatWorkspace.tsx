@@ -75,14 +75,14 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
   );
 
   const refreshWorkspace = useCallback(() => {
-    loadWorkspace(workspace).then((files) => {
+    void loadWorkspace(workspace).then((files) => {
       setShowSearch(files.length > 0 && files[0]?.children?.length > 0);
     });
   }, [workspace, loadWorkspace]);
 
   const onSearch = useDebounce(
     (value: string) => {
-      loadWorkspace(workspace, value);
+      void loadWorkspace(workspace, value);
     },
     200,
     [workspace, loadWorkspace]
@@ -95,17 +95,17 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
   }, [conversation_id, eventPrefix, refreshWorkspace]);
 
   useEffect(() => {
-    const handleGeminiResponse = (data: any) => {
+    const handleGeminiResponse = (data: { type: string }) => {
       if (data.type === 'tool_group' || data.type === 'tool_call') {
         refreshWorkspace();
       }
     };
-    const handleAcpResponse = (data: any) => {
+    const handleAcpResponse = (data: { type: string }) => {
       if (data.type === 'acp_tool_call') {
         refreshWorkspace();
       }
     };
-    const handleCodexResponse = (data: any) => {
+    const handleCodexResponse = (data: { type: string }) => {
       if (data.type === 'codex_tool_call') {
         refreshWorkspace();
       }
@@ -124,8 +124,9 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
   useAddEventListener(`${eventPrefix}.workspace.refresh`, () => refreshWorkspace(), [refreshWorkspace]);
 
   useEffect(() => {
-    return ipcBridge.conversation.responseSearchWorkSpace.provider(async (data) => {
+    return ipcBridge.conversation.responseSearchWorkSpace.provider((data) => {
       if (data.match) setFiles([data.match]);
+      return Promise.resolve();
     });
   }, []);
 
@@ -184,7 +185,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
                 <span
                   className='flex items-center gap-4px group'
                   onDoubleClick={() => {
-                    ipcBridge.shell.openFile.invoke(path);
+                    void ipcBridge.shell.openFile.invoke(path);
                   }}
                 >
                   {node.title}
@@ -196,7 +197,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
               setSelected(newKeys);
               emitter.emit(`${eventPrefix}.selected.file`, newKeys);
             }}
-            loadMore={async (treeNode) => {
+            loadMore={(treeNode) => {
               const path = treeNode.props.dataRef.fullPath;
               return ipcBridge.conversation.getWorkspace.invoke({ conversation_id, workspace, path }).then((res) => {
                 treeNode.props.dataRef.children = res[0].children;

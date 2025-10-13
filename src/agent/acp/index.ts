@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { AcpPermissionRequest, AcpSessionUpdate, AcpBackend, AcpResult, ToolCallUpdate } from '@/common/acpTypes';
+import type { AcpPermissionRequest, AcpSessionUpdate, AcpBackend, AcpResult, ToolCallUpdate } from '@/types/acpTypes';
 import { AcpAdapter } from '@/agent/acp/AcpAdapter';
-import { AcpErrorType, createAcpError } from '@/common/acpTypes';
+import { AcpErrorType, createAcpError } from '@/types/acpTypes';
 import type { TMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import { uuid } from '@/common/utils';
@@ -101,9 +101,10 @@ export class AcpAgent {
     }
   }
 
-  async stop(): Promise<void> {
+  stop(): Promise<void> {
     this.connection.disconnect();
     this.emitStatusMessage('disconnected', `Disconnected from ${this.extra.backend}`);
+    return Promise.resolve();
   }
 
   // 发送消息到ACP服务器
@@ -115,6 +116,11 @@ export class AcpAgent {
           error: createAcpError(AcpErrorType.CONNECTION_NOT_READY, 'ACP connection not ready', true),
         };
       }
+
+      // Reset message tracking for new AI response
+      // This ensures streaming chunks share the same msg_id for accumulation
+      this.adapter.resetMessageTracking();
+
       // Save user message to chat history only after successful processing
       // This will be done after the message is successfully sent
       // Update modify time for user activity
@@ -179,24 +185,24 @@ export class AcpAgent {
     }
   }
 
-  async confirmMessage(data: { confirmKey: string; msg_id: string; callId: string }): Promise<AcpResult> {
+  confirmMessage(data: { confirmKey: string; msg_id: string; callId: string }): Promise<AcpResult> {
     try {
       if (this.pendingPermissions.has(data.callId)) {
         const { resolve } = this.pendingPermissions.get(data.callId)!;
         this.pendingPermissions.delete(data.callId);
         resolve({ optionId: data.confirmKey });
-        return { success: true, data: null };
+        return Promise.resolve({ success: true, data: null });
       }
-      return {
+      return Promise.resolve({
         success: false,
         error: createAcpError(AcpErrorType.UNKNOWN, `Permission request not found for callId: ${data.callId}`, false),
-      };
+      });
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      return {
+      return Promise.resolve({
         success: false,
         error: createAcpError(AcpErrorType.UNKNOWN, errorMsg, false),
-      };
+      });
     }
   }
 
@@ -214,7 +220,7 @@ export class AcpAgent {
     }
   }
 
-  private async handlePermissionRequest(data: AcpPermissionRequest): Promise<{ optionId: string }> {
+  private handlePermissionRequest(data: AcpPermissionRequest): Promise<{ optionId: string }> {
     return new Promise((resolve, reject) => {
       const requestId = data.toolCall.toolCallId; // 使用 toolCallId 作为 requestId
 
@@ -313,17 +319,6 @@ export class AcpAgent {
   }
 
   private emitPermissionRequest(data: AcpPermissionRequest): void {
-    // 创建权限消息
-    const permissionMessage: TMessage = {
-      id: uuid(),
-      msg_id: uuid(), // 添加唯一的 msg_id，防止消息合并
-      conversation_id: this.id,
-      type: 'acp_permission',
-      position: 'center',
-      createdAt: Date.now(),
-      content: data,
-    };
-
     // 重要：将权限请求中的 toolCall 注册到 adapter 的 activeToolCalls 中
     // 这样后续的 tool_call_update 事件就能找到对应的 tool call 了
     if (data.toolCall) {
@@ -358,7 +353,16 @@ export class AcpAgent {
       this.adapter.convertSessionUpdate(toolCallUpdate);
     }
 
-    this.emitMessage(permissionMessage);
+    // 使用 onSignalEvent 而不是 emitMessage，这样消息不会被持久化到数据库
+    // Permission request 是临时交互消息，一旦用户做出选择就失去意义
+    if (this.onSignalEvent) {
+      this.onSignalEvent({
+        type: 'acp_permission',
+        conversation_id: this.id,
+        msg_id: uuid(),
+        data: data,
+      });
+    }
   }
 
   private emitErrorMessage(error: string): void {
@@ -471,7 +475,9 @@ export class AcpAgent {
 
   // Add kill method for compatibility with WorkerManage
   kill(): void {
-    this.stop();
+    this.stop().catch((error) => {
+      console.error('Error stopping ACP agent:', error);
+    });
   }
 
   private async ensureBackendAuth(backend: AcpBackend, loginArg: string): Promise<void> {

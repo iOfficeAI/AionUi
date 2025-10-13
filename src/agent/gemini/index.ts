@@ -47,7 +47,8 @@ interface GeminiAgent2Options {
   webSearchEngine?: 'google' | 'default';
   yoloMode?: boolean;
   GOOGLE_CLOUD_PROJECT?: string;
-  onStreamEvent: (event: { type: string; data: any; msg_id: string }) => void;
+  mcpServers?: Record<string, unknown>;
+  onStreamEvent: (event: { type: string; data: unknown; msg_id: string }) => void;
 }
 
 export class GeminiAgent {
@@ -59,12 +60,13 @@ export class GeminiAgent {
   private webSearchEngine: 'google' | 'default' | null = null;
   private yoloMode: boolean = false;
   private googleCloudProject: string | null = null;
+  private mcpServers: Record<string, unknown> = {};
   private geminiClient: GeminiClient | null = null;
   private authType: AuthType | null = null;
   private scheduler: CoreToolScheduler | null = null;
   private trackedCalls: ToolCall[] = [];
   private abortController: AbortController | null = null;
-  private onStreamEvent: (event: { type: string; data: any; msg_id: string }) => void;
+  private onStreamEvent: (event: { type: string; data: unknown; msg_id: string }) => void;
   private toolConfig: ConversationToolConfig; // 对话级别的工具配置
   private apiKeyManager: ApiKeyManager | null = null; // 多API Key管理器
   bootstrap: Promise<void>;
@@ -79,6 +81,7 @@ export class GeminiAgent {
     this.webSearchEngine = options.webSearchEngine || 'default';
     this.yoloMode = options.yoloMode || false;
     this.googleCloudProject = options.GOOGLE_CLOUD_PROJECT;
+    this.mcpServers = options.mcpServers || {};
     // 使用统一的工具函数获取认证类型
     this.authType = getProviderAuthType(options.model);
     this.onStreamEvent = options.onStreamEvent;
@@ -202,6 +205,7 @@ export class GeminiAgent {
       model: this.model.useModel,
       conversationToolConfig: this.toolConfig,
       yoloMode,
+      mcpServers: this.mcpServers,
     });
     await this.config.initialize();
 
@@ -219,7 +223,7 @@ export class GeminiAgent {
   private initToolScheduler(settings: Settings) {
     this.scheduler = new CoreToolScheduler({
       toolRegistry: this.config.getToolRegistry(),
-      onAllToolCallsComplete: async (completedToolCalls: CompletedToolCall[]) => {
+      onAllToolCallsComplete: (completedToolCalls: CompletedToolCall[]) => {
         try {
           if (completedToolCalls.length > 0) {
             const refreshMemory = async () => {
@@ -228,7 +232,7 @@ export class GeminiAgent {
               config.setUserMemory(memoryContent);
               config.setGeminiMdFileCount(fileCount);
             };
-            const response = await handleCompletedTools(completedToolCalls, this.geminiClient, refreshMemory);
+            const response = handleCompletedTools(completedToolCalls, this.geminiClient, refreshMemory);
             if (response.length > 0) {
               const geminiTools = completedToolCalls.filter((tc) => {
                 const isTerminalState = tc.status === 'success' || tc.status === 'error' || tc.status === 'cancelled';
@@ -292,7 +296,7 @@ export class GeminiAgent {
     });
   }
 
-  private async handleMessage(stream: AsyncGenerator<ServerGeminiStreamEvent, any, any>, msg_id: string, abortController: AbortController): Promise<any> {
+  private handleMessage(stream: AsyncGenerator<ServerGeminiStreamEvent, any, any>, msg_id: string, abortController: AbortController): Promise<any> {
     const toolCallRequests: ToolCallRequestInfo[] = [];
 
     return processGeminiStreamEvents(stream, this.config, (data) => {
@@ -305,9 +309,9 @@ export class GeminiAgent {
         msg_id,
       });
     })
-      .then(() => {
+      .then(async () => {
         if (toolCallRequests.length > 0) {
-          this.scheduler.schedule(toolCallRequests, abortController.signal);
+          await this.scheduler.schedule(toolCallRequests, abortController.signal);
         }
       })
       .catch((e) => {
@@ -319,7 +323,7 @@ export class GeminiAgent {
       });
   }
 
-  async submitQuery(
+  submitQuery(
     query: any,
     msg_id: string,
     abortController: AbortController,
@@ -327,7 +331,7 @@ export class GeminiAgent {
       prompt_id?: string;
       isContinuation?: boolean;
     }
-  ) {
+  ): string | undefined {
     try {
       let prompt_id = options?.prompt_id;
       if (!prompt_id) {
@@ -387,7 +391,7 @@ export class GeminiAgent {
     }
     return this.submitQuery(processedQuery, msg_id, abortController);
   }
-  async stop() {
+  stop(): void {
     this.abortController?.abort();
   }
 }
