@@ -222,7 +222,6 @@ export class GeminiAgent {
   // 初始化调度工具
   private initToolScheduler(settings: Settings) {
     this.scheduler = new CoreToolScheduler({
-      toolRegistry: this.config.getToolRegistry(),
       onAllToolCallsComplete: async (completedToolCalls: CompletedToolCall[]) => {
         try {
           if (completedToolCalls.length > 0) {

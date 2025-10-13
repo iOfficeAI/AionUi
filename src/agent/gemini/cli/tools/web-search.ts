@@ -7,7 +7,7 @@
 import type { GroundingMetadata } from '@google/genai';
 import { Type } from '@google/genai';
 import type { GeminiClient, ToolResult, ToolInvocation, ToolLocation, ToolCallConfirmationDetails } from '@office-ai/aioncli-core';
-import { BaseDeclarativeTool, BaseToolInvocation, Kind, getErrorMessage, ToolErrorType } from '@office-ai/aioncli-core';
+import { BaseDeclarativeTool, BaseToolInvocation, Kind, getErrorMessage, ToolErrorType, DEFAULT_GEMINI_FLASH_MODEL } from '@office-ai/aioncli-core';
 import { getResponseText } from './utils';
 
 interface GroundingChunkWeb {
@@ -119,7 +119,7 @@ class WebSearchInvocation extends BaseToolInvocation<WebSearchToolParams, WebSea
     try {
       updateOutput?.(`Searching the web for: "${this.params.query}"`);
 
-      const response = await this.geminiClient.generateContent([{ role: 'user', parts: [{ text: this.params.query }] }], { tools: [{ googleSearch: {} }] }, signal);
+      const response = await this.geminiClient.generateContent([{ role: 'user', parts: [{ text: this.params.query }] }], { tools: [{ googleSearch: {} }] }, signal, DEFAULT_GEMINI_FLASH_MODEL);
 
       const responseText = getResponseText(response);
       const groundingMetadata = response.candidates?.[0]?.groundingMetadata;
