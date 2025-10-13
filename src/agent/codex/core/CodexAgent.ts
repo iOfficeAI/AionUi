@@ -69,8 +69,8 @@ export class CodexAgent {
     this.conn.onError = (error) => this.handleError(error);
 
     try {
-      const args = ['mcp-server'];
-      await this.conn.start(this.cliPath || 'codex', this.workingDir, args);
+      // 让 CodexConnection 根据版本自动检测合适的命令 / Let CodexConnection auto-detect the appropriate command based on version
+      await this.conn.start(this.cliPath || 'codex', this.workingDir);
 
       // Wait for MCP server to be fully ready
       await this.conn.waitForServerReady(30000);
