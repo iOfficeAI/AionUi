@@ -106,17 +106,27 @@ export function initConversationBridge(): void {
 
   ipcBridge.conversation.getWorkspace.provider(async ({ workspace, search, path }) => {
     const fileService = GeminiAgent.buildFileServer(workspace);
-    return await readDirectoryRecursive(path, {
-      root: workspace,
-      fileService,
-      abortController: buildLastAbortController(),
-      search: {
-        text: search,
-        onProcess(result) {
-          void ipcBridge.conversation.responseSearchWorkSpace.invoke(result);
+    try {
+      return await readDirectoryRecursive(path, {
+        root: workspace,
+        fileService,
+        abortController: buildLastAbortController(),
+        search: {
+          text: search,
+          onProcess(result) {
+            void ipcBridge.conversation.responseSearchWorkSpace.invoke(result);
+          },
         },
-      },
-    }).then((res) => (res ? [res] : []));
+      }).then((res) => (res ? [res] : []));
+    } catch (error) {
+      // 捕获 abort 错误，避免 unhandled rejection
+      // Catch abort errors to avoid unhandled rejection
+      if (error instanceof Error && error.message.includes('aborted')) {
+        console.log('[Workspace] Read directory aborted:', error.message);
+        return [];
+      }
+      throw error;
+    }
   });
 
   ipcBridge.conversation.stop.provider(async ({ conversation_id }) => {
