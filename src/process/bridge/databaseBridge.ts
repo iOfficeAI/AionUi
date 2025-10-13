@@ -7,47 +7,9 @@
 import { ipcBridge } from '../../common';
 import { getDatabase } from '@process/database';
 import { addOrUpdateMessage } from '../message';
-import { ProcessChat, ProcessChatMessage } from '../initStorage';
+import { ProcessChat } from '../initStorage';
 import type { TChatConversation } from '@/common/storage';
-
-/**
- * Migrate a conversation from file storage to database
- */
-async function migrateConversationToDatabase(conversation: TChatConversation): Promise<void> {
-  try {
-    const db = getDatabase();
-
-    // Check if already in database
-    const existing = db.getConversation(conversation.id);
-    if (existing.success && existing.data) {
-      return;
-    }
-
-    // Create conversation in database
-    const result = db.createConversation(conversation);
-    if (!result.success) {
-      console.error('[DatabaseBridge Migration] Failed to migrate conversation:', result.error);
-      return;
-    }
-
-    // Migrate messages if they exist in file storage
-    try {
-      const messages = await ProcessChatMessage.get(conversation.id);
-      if (messages && messages.length > 0) {
-        for (const message of messages) {
-          const insertResult = db.insertMessage(message);
-          if (!insertResult.success) {
-            console.error('[DatabaseBridge Migration] Failed to migrate message:', insertResult.error);
-          }
-        }
-      }
-    } catch (error) {
-      console.warn('[DatabaseBridge Migration] No messages to migrate:', error);
-    }
-  } catch (error) {
-    console.error('[DatabaseBridge Migration] Failed to migrate conversation:', error);
-  }
-}
+import { migrateConversationToDatabase } from './migrationUtils';
 
 export function initDatabaseBridge(): void {
   // Get conversation messages from database
