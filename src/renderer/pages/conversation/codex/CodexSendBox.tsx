@@ -14,6 +14,13 @@ import { useTranslation } from 'react-i18next';
 import ShimmerText from '@renderer/components/ShimmerText';
 import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/ThoughtDisplay';
 
+interface CodexDraftData {
+  _type: 'codex';
+  atPath: string[];
+  content: string;
+  uploadFile: string[];
+}
+
 const useCodexSendBoxDraft = getSendBoxDraftHook('codex', {
   _type: 'codex',
   atPath: [],
@@ -40,9 +47,9 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
       atPath,
       uploadFile,
       content,
-      setAtPath: (val: string[]) => mutate((prev) => ({ ...(prev as any), atPath: val })),
-      setUploadFile: (val: string[]) => mutate((prev) => ({ ...(prev as any), uploadFile: val })),
-      setContent: (val: string) => mutate((prev) => ({ ...(prev as any), content: val })),
+      setAtPath: (val: string[]) => mutate((prev) => ({ ...(prev as CodexDraftData), atPath: val })),
+      setUploadFile: (val: string[]) => mutate((prev) => ({ ...(prev as CodexDraftData), uploadFile: val })),
+      setContent: (val: string) => mutate((prev) => ({ ...(prev as CodexDraftData), content: val })),
     };
   })();
 
@@ -78,6 +85,11 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
         case 'codex_status': {
           const statusData = message.data as { status: string; message: string };
           setCodexStatus(statusData.status);
+          // 将状态消息添加到 MessageList 中显示
+          const transformedMessage = transformMessage(message);
+          if (transformedMessage) {
+            addOrUpdateMessage(transformedMessage);
+          }
           break;
         }
         default: {

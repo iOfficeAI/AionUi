@@ -55,7 +55,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     const fileOperationHandler = new CodexFileOperationHandler(data.workspace || process.cwd(), data.conversation_id, this);
 
     // 设置 Codex Agent 的应用配置，使用 Electron API 在主进程中
-    (async () => {
+    void (async () => {
       try {
         const electronModule = await import('electron');
         const app = electronModule.app;
@@ -121,7 +121,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
   private performPostConnectionSetup(): void {
     try {
       // Get connection diagnostics
-      this.getDiagnostics();
+      void this.getDiagnostics();
 
       // 延迟会话创建到第一条用户消息时，避免空 prompt 问题
       // Session will be created with first user message - no session event sent here
@@ -350,7 +350,8 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
         message,
       },
     };
-    ipcBridge.codexConversation.responseStream.emit(statusMessage);
+    // Use emitAndPersistMessage to ensure status messages are both emitted and persisted
+    this.emitAndPersistMessage(statusMessage);
   }
 
   getDiagnostics() {
@@ -397,14 +398,10 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
   emitAndPersistMessage(message: IResponseMessage, persist: boolean = true): void {
     if (persist) {
-      if (message.type === 'codex_status') {
-        ipcBridge.codexConversation.responseStream.emit(message);
-        return;
-      }
       // Use Codex-specific transformer for Codex messages
       const transformedMessage: TMessage = transformMessage(message);
       if (transformedMessage) {
-        addOrUpdateMessage(this.conversation_id, transformedMessage);
+        void addOrUpdateMessage(this.conversation_id, transformedMessage);
       }
     }
     ipcBridge.codexConversation.responseStream.emit(message);
