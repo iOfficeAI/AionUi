@@ -6,10 +6,9 @@
 
 import { ipcBridge } from '@/common';
 import type { TMessage } from '@/common/chatLib';
-import { transformMessage } from '@/common/chatLib';
 import type { TProviderWithModel, IMcpServer } from '@/common/storage';
 import { ProcessConfig } from '@/process/initStorage';
-import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '../message';
+import { addMessage, nextTickToLocalFinish } from '../message';
 import { getDatabase } from '../database/export';
 import BaseAgentManager from './BaseAgentManager';
 
@@ -30,7 +29,6 @@ export class GeminiAgentManager extends BaseAgentManager<{
     this.conversation_id = data.conversation_id;
     this.model = model;
     this.bootstrap = Promise.all([ProcessConfig.get('gemini.config'), this.getImageGenerationModel(), this.getMcpServers()]).then(([config, imageGenerationModel, mcpServers]) => {
-      console.log('gemini.config.bootstrap', config, imageGenerationModel);
       return this.start({
         ...config,
         workspace: this.workspace,
@@ -115,13 +113,6 @@ export class GeminiAgentManager extends BaseAgentManager<{
     super.init();
     // 接受来子进程的对话消息
     this.on('gemini.message', (data) => {
-      // Log ALL gemini messages for debugging
-      console.log('==========================================');
-      console.log('[GeminiAgentManager] Received message from backend:');
-      console.log('  Type:', data.type);
-      console.log('  Full data:', JSON.stringify(data, null, 2));
-      console.log('==========================================');
-
       if (data.type === 'finish') {
         this.status = 'finished';
 
@@ -129,29 +120,16 @@ export class GeminiAgentManager extends BaseAgentManager<{
         // This ensures search index is up-to-date after streaming completes
         setTimeout(() => {
           const db = getDatabase();
-          console.log(`[GeminiAgentManager] Syncing FTS for conversation: ${this.conversation_id}`);
           db.syncConversationFts(this.conversation_id);
         }, 2000); // 2 second delay to avoid blocking finish event
       }
       if (data.type === 'start') {
         this.status = 'running';
       }
-      ipcBridge.geminiConversation.responseStream.emit({
-        ...data,
-        conversation_id: this.conversation_id,
-      });
+      // Emit to frontend - frontend will handle transformation and persistence
+      // This avoids double transformation and double persistence
       data.conversation_id = this.conversation_id;
-      const message = transformMessage(data);
-      if (message) {
-        console.log('[GeminiAgentManager] ✓ Transformed message:');
-        console.log('  Message type:', message.type);
-        console.log('  Message id:', message.id);
-        console.log('  Message msg_id:', message.msg_id);
-        console.log('  Message content:', JSON.stringify(message.content, null, 2));
-        addOrUpdateMessage(this.conversation_id, message);
-      } else {
-        console.log('[GeminiAgentManager] ✗ Message not transformed (likely start/finish/thought)');
-      }
+      ipcBridge.geminiConversation.responseStream.emit(data);
     });
   }
   // 发送tools用户确认的消息

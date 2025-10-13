@@ -11,6 +11,7 @@ import { application } from '../common/ipcBridge';
 import type { IChatConversationRefer, IConfigStorageRefer, IEnvStorageRefer, IMcpServer } from '../common/storage';
 import { ChatMessageStorage, ChatStorage, ConfigStorage, EnvStorage } from '../common/storage';
 import { copyDirectoryRecursively, getConfigPath, getDataPath, getTempPath, verifyDirectoryFiles } from './utils';
+import { getDatabase, getImageStorage } from './database/export';
 // Platform and architecture types (moved from deleted updateConfig)
 type PlatformType = 'win32' | 'darwin' | 'linux';
 type ArchitectureType = 'x64' | 'arm64' | 'ia32' | 'arm';
@@ -352,34 +353,31 @@ const initStorage = async () => {
     mkdirSync(getDataPath());
   }
 
-  // 3. 初始化数据库（better-sqlite3）- 必须在存储拦截器之前初始化
+  // 3. 初始化 MCP 配置（为所有用户提供默认配置）
   try {
-    const { getDatabase, getImageStorage, migrateFileStorageToDatabase, getMigrationStatus } = await import('./database/export');
+    const existingMcpConfig = await configFile.get('mcp.config').catch((): undefined => undefined);
 
-    // Initialize database
+    // 仅当配置不存在或为空时，写入默认值（适用于新用户和老用户）
+    if (!existingMcpConfig || !Array.isArray(existingMcpConfig) || existingMcpConfig.length === 0) {
+      const defaultServers = getDefaultMcpServers();
+      await configFile.set('mcp.config', defaultServers);
+      console.log('[AionUi] Default MCP servers initialized');
+    }
+  } catch (error) {
+    console.error('[AionUi] Failed to initialize default MCP servers:', error);
+  }
+
+  // 4. 初始化数据库（better-sqlite3）
+  try {
     const _db = getDatabase();
+    const _imageStorage = getImageStorage();
     console.log('[AionUi] Database initialized');
 
-    // Initialize image storage
-    const _imageStorage = getImageStorage();
-    console.log('[AionUi] Image storage initialized');
+    // NOTE: Data migration from file storage to database is handled automatically
+    // via lazy migration in conversationBridge.ts and databaseBridge.ts
+    // Historical conversations are migrated on-demand when accessed
 
-    // Auto-migration: Migrate file storage to database on first run
-    const migrationStatus = getMigrationStatus();
-    if (!migrationStatus.completed) {
-      console.log('[AionUi] Running database migration from file storage...');
-      const migrationResult = await migrateFileStorageToDatabase();
-      if (migrationResult.success) {
-        console.log('[AionUi] ✓ Database migration completed successfully');
-        console.log('[AionUi] Migration stats:', migrationResult.stats);
-      } else {
-        console.error('[AionUi] ✗ Database migration completed with errors:', migrationResult.errors);
-      }
-    } else {
-      console.log('[AionUi] Database migration already completed (date:', new Date(migrationStatus.date || 0).toLocaleString(), ')');
-    }
-
-    // 4. 设置数据库存储拦截器
+    // 设置数据库存储拦截器（优先使用 SQLite）
     ConfigStorage.interceptor({
       get: async (key: string) => {
         const result = _db.getConfig(key);
@@ -429,23 +427,8 @@ const initStorage = async () => {
     });
 
     console.log('[AionUi] ✓ Storage interceptors configured to use SQLite');
-
-    // 5. 初始化 MCP 配置（为所有用户提供默认配置）
-    try {
-      const existingMcpConfig = _db.getConfig('mcp.config');
-
-      // 仅当配置不存在或为空时，写入默认值
-      if (!existingMcpConfig.data || !Array.isArray(existingMcpConfig.data) || existingMcpConfig.data.length === 0) {
-        const defaultServers = getDefaultMcpServers();
-        _db.setConfig('mcp.config', defaultServers);
-        console.log('[AionUi] ✓ Default MCP servers initialized');
-      }
-    } catch (error) {
-      console.error('[AionUi] Failed to initialize default MCP servers:', error);
-    }
   } catch (error) {
-    console.error('[AionUi] Failed to initialize database:', error);
-    console.error('[AionUi] Falling back to file-based storage');
+    console.error('[InitStorage] Database initialization failed, falling back to file-based storage:', error);
 
     // Fallback to file storage
     ConfigStorage.interceptor(configFile);
@@ -453,8 +436,6 @@ const initStorage = async () => {
     ChatMessageStorage.interceptor(chatMessageFile);
     EnvStorage.interceptor(envFile);
   }
-
-  console.log('[AionUi] Storage initialization complete');
 
   application.systemInfo.provider(() => {
     return Promise.resolve(getSystemDir());

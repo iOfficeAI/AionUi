@@ -8,6 +8,7 @@ import { uuid } from '@/common/utils';
 import type { CodexEventMsg } from '@/common/codex/types';
 import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
 import { ERROR_CODES, globalErrorService } from '@/agent/codex/core/ErrorService';
+import { addOrUpdateMessage } from '@/process/message';
 
 export class CodexMessageProcessor {
   private currentLoadingId: string | null = null;
@@ -55,7 +56,6 @@ export class CodexMessageProcessor {
       deltaText = msg.text ?? '';
     }
     // AGENT_REASONING_SECTION_BREAK 不添加内容，只是重置当前reasoning
-
     this.currentReason = this.currentReason + deltaText;
     this.messageEmitter.emitAndPersistMessage(
       {
@@ -64,7 +64,7 @@ export class CodexMessageProcessor {
         conversation_id: this.conversation_id,
         data: {
           description: this.currentReason,
-          subject: '',
+          subject: 'Thinking',
         },
       },
       false
@@ -79,7 +79,28 @@ export class CodexMessageProcessor {
       msg_id: this.currentLoadingId,
       data: rawDelta,
     };
-    this.messageEmitter.emitAndPersistMessage(deltaMessage);
+    // 仅发送到前端，不持久化（persist: false）
+    // 最终消息会通过 agent_message 事件持久化
+    this.messageEmitter.emitAndPersistMessage(deltaMessage, false);
+  }
+
+  processFinalMessage(msg: Extract<CodexEventMsg, { type: 'agent_message' }>) {
+    // agent_message 包含完整的最终消息内容
+    // 只持久化到数据库，不发送到前端（前端已通过 delta 流式显示）
+
+    const transformedMessage = {
+      id: this.currentLoadingId || uuid(),
+      msg_id: this.currentLoadingId,
+      type: 'text' as const,
+      position: 'left' as const,
+      conversation_id: this.conversation_id,
+      content: { content: msg.message },
+      createdAt: Date.now(),
+      _isFinalMessage: true, // 标记为最终完整消息，用于替换而非累积
+    };
+
+    // 直接调用数据库存储，跳过 emit
+    addOrUpdateMessage(this.conversation_id, transformedMessage as any);
   }
 
   processStreamError(message: string) {

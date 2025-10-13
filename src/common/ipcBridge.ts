@@ -106,6 +106,8 @@ export const codexConversation = {
 // Database operations
 export const database = {
   getConversationMessages: bridge.buildProvider<import('@/common/chatLib').TMessage[], { conversation_id: string; page?: number; pageSize?: number }>('database.get-conversation-messages'),
+  getUserConversations: bridge.buildProvider<import('@/common/storage').TChatConversation[], { page?: number; pageSize?: number }>('database.get-user-conversations'),
+  addOrUpdateMessage: bridge.buildProvider<boolean, { conversation_id: string; message: import('@/common/chatLib').TMessage }>('database.add-or-update-message'),
 };
 
 interface ISendMessageParams {

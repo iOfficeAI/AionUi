@@ -10,6 +10,7 @@ import { app } from 'electron';
 import { existsSync } from 'fs';
 import fs from 'fs/promises';
 import path from 'path';
+import { getSystemDir } from './initStorage';
 export const getTempPath = () => {
   const rootPath = app.getPath('temp');
   return path.join(rootPath, 'aionui');
@@ -205,29 +206,47 @@ export async function verifyDirectoryFiles(dir1: string, dir2: string): Promise<
 export const copyFilesToDirectory = async (dir: string, files?: string[]) => {
   if (!files) return Promise.resolve();
 
-  const { getSystemDir } = await import('./initStorage');
   const { cacheDir } = getSystemDir();
   const tempDir = path.join(cacheDir, 'temp');
 
   for (const file of files) {
-    let fileName = path.basename(file);
+    // 确保文件路径是绝对路径
+    const absoluteFilePath = path.isAbsolute(file) ? file : path.resolve(file);
+
+    // 检查源文件是否存在
+    try {
+      await fs.access(absoluteFilePath);
+    } catch (error) {
+      console.warn(`[AionUi] Source file does not exist, skipping: ${absoluteFilePath}`);
+      console.warn(`[AionUi] Original path: ${file}`);
+      // 跳过不存在的文件，而不是抛出错误
+      continue;
+    }
+
+    let fileName = path.basename(absoluteFilePath);
 
     // 如果是临时文件，去掉 AionUI 时间戳后缀
-    if (file.startsWith(tempDir)) {
+    if (absoluteFilePath.startsWith(tempDir)) {
       // 去掉 AionUI 时间戳后缀 (例如: package_aionui_1758016286689.json -> package.json)
       fileName = fileName.replace(AIONUI_TIMESTAMP_REGEX, '$1');
     }
 
     const destPath = path.join(dir, fileName);
-    await fs.copyFile(file, destPath);
+
+    try {
+      await fs.copyFile(absoluteFilePath, destPath);
+    } catch (error) {
+      console.error(`[AionUi] Failed to copy file from ${absoluteFilePath} to ${destPath}:`, error);
+      // 继续处理其他文件，而不是完全失败
+    }
 
     // 如果是临时文件，复制完成后删除
-    if (file.startsWith(tempDir)) {
+    if (absoluteFilePath.startsWith(tempDir)) {
       try {
-        await fs.unlink(file);
-        console.log(`Cleaned up temp file: ${file}`);
+        await fs.unlink(absoluteFilePath);
+        console.log(`Cleaned up temp file: ${absoluteFilePath}`);
       } catch (error) {
-        console.warn(`Failed to cleanup temp file ${file}:`, error);
+        console.warn(`Failed to cleanup temp file ${absoluteFilePath}:`, error);
       }
     }
   }

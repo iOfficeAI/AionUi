@@ -8,6 +8,7 @@ import { JSONRPC_VERSION } from '@/types/acpTypes';
 import type { AcpBackend, AcpMessage, AcpNotification, AcpPermissionRequest, AcpRequest, AcpResponse, AcpSessionUpdate } from '@/types/acpTypes';
 import type { ChildProcess, SpawnOptions } from 'child_process';
 import { spawn } from 'child_process';
+import { promises as fs } from 'fs';
 
 interface PendingRequest {
   resolve: (value: any) => void;
@@ -449,7 +450,6 @@ export class AcpConnection {
   }
 
   private async handleReadTextFile(params: { path: string }): Promise<{ content: string }> {
-    const { promises: fs } = await import('fs');
     try {
       const content = await fs.readFile(params.path, 'utf-8');
       return { content };
@@ -459,7 +459,6 @@ export class AcpConnection {
   }
 
   private async handleWriteTextFile(params: { path: string; content: string }): Promise<null> {
-    const { promises: fs } = await import('fs');
     try {
       await fs.writeFile(params.path, params.content, 'utf-8');
       return null;

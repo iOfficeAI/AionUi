@@ -4,14 +4,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { app } from 'electron';
 import { CodexAgent } from '@/agent/codex';
 import type { NetworkError } from '@/agent/codex/connection/CodexConnection';
 import { ipcBridge } from '@/common';
 import type { TMessage } from '@/common/chatLib';
-import { transformMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import { uuid } from '@/common/utils';
-import { addMessage, addOrUpdateMessage } from '@process/message';
+import { addMessage } from '@process/message';
 import BaseAgentManager from '@process/task/BaseAgentManager';
 import { t } from 'i18next';
 import { CodexEventHandler } from '@/agent/codex/handlers/CodexEventHandler';
@@ -55,26 +55,20 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     const fileOperationHandler = new CodexFileOperationHandler(data.workspace || process.cwd(), data.conversation_id, this);
 
     // 设置 Codex Agent 的应用配置，使用 Electron API 在主进程中
-    void (async () => {
-      try {
-        const electronModule = await import('electron');
-        const app = electronModule.app;
-        setAppConfig({
-          name: app.getName(),
-          version: app.getVersion(),
-          protocolVersion: CODEX_MCP_PROTOCOL_VERSION,
-        });
-      } catch (error) {
-        // 如果不在主进程中，使用通用方法获取版本
-        setAppConfig({
-          name: APP_CLIENT_NAME,
-          version: APP_CLIENT_VERSION,
-          protocolVersion: CODEX_MCP_PROTOCOL_VERSION,
-        });
-      }
-    })().catch((error) => {
-      console.error('Failed to set app config:', error);
-    });
+    try {
+      setAppConfig({
+        name: app.getName(),
+        version: app.getVersion(),
+        protocolVersion: CODEX_MCP_PROTOCOL_VERSION,
+      });
+    } catch (error) {
+      // 如果不在主进程中，使用通用方法获取版本
+      setAppConfig({
+        name: APP_CLIENT_NAME,
+        version: APP_CLIENT_VERSION,
+        protocolVersion: CODEX_MCP_PROTOCOL_VERSION,
+      });
+    }
 
     this.agent = new CodexAgent({
       id: data.conversation_id,
@@ -222,7 +216,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
         msg_id: data.msg_id || uuid(),
         data: errorMessage,
       };
-      addMessage(this.conversation_id, transformMessage(message));
+      // Emit to frontend - frontend will handle transformation and persistence
       ipcBridge.codexConversation.responseStream.emit(message);
       throw e;
     }
@@ -332,11 +326,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     };
 
     // Emit network error message to UI
-    // Add to message history and emit to UI
-    const errorMessage = transformMessage(networkErrorMessage);
-    if (errorMessage) {
-      addOrUpdateMessage(this.conversation_id, errorMessage);
-    }
+    // Frontend will handle transformation and persistence
     ipcBridge.codexConversation.responseStream.emit(networkErrorMessage);
   }
 
@@ -397,13 +387,13 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
   }
 
   emitAndPersistMessage(message: IResponseMessage, persist: boolean = true): void {
-    if (persist) {
-      // Use Codex-specific transformer for Codex messages
-      const transformedMessage: TMessage = transformMessage(message);
-      if (transformedMessage) {
-        void addOrUpdateMessage(this.conversation_id, transformedMessage);
-      }
-    }
+    // Always emit to frontend first - frontend will handle transformation and persistence
+    // This avoids double transformation and double persistence
+    message.conversation_id = this.conversation_id;
+
+    // Add persist flag to message metadata so frontend knows whether to persist
+    (message as any)._shouldPersist = persist;
+
     ipcBridge.codexConversation.responseStream.emit(message);
   }
 }

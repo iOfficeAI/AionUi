@@ -27,7 +27,7 @@ bridge.adapter({
     ipcMain.handle(ADAPTER_BRIDGE_EVENT_KEY, (event, info) => {
       const { name, data } = JSON.parse(info) as any;
       // console.log('>>>>>>>>adapter.on', name, data);
-      emitter.emit(name, data);
+      return Promise.resolve(emitter.emit(name, data));
     });
   },
 });
