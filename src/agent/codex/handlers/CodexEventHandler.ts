@@ -33,8 +33,14 @@ export class CodexEventHandler {
   private processCodexEvent(msg: CodexEventMsg) {
     const type = msg.type;
 
-    //这两类消息因为有delta 类型数据，所以直接忽略。
-    if (type === 'agent_reasoning' || type === 'agent_message') {
+    //agent_reasoning 因为有 agent_reasoning_delta，所以忽略
+    if (type === 'agent_reasoning') {
+      return;
+    }
+
+    // agent_message 是完整消息，用于最终持久化（但不发送到前端，避免重复显示）
+    if (type === 'agent_message') {
+      this.messageProcessor.processFinalMessage(msg);
       return;
     }
     if (type === 'session_configured' || type === 'token_count') {

@@ -6,7 +6,6 @@
 
 import { ipcBridge } from '@/common';
 import type { TChatConversation } from '@/common/storage';
-import { ChatStorage } from '@/common/storage';
 import FlexFullContainer from '@/renderer/components/FlexFullContainer';
 import { addEventListener } from '@/renderer/utils/emitter';
 import { Empty, Popconfirm } from '@arco-design/web-react';
@@ -102,7 +101,9 @@ const ChatHistory: React.FC = () => {
 
   useEffect(() => {
     const refresh = () => {
-      ChatStorage.get('chat.history')
+      // Get conversations from database instead of file storage
+      ipcBridge.database.getUserConversations
+        .invoke({ page: 0, pageSize: 10000 })
         .then((history) => {
           if (history && Array.isArray(history) && history.length > 0) {
             const sortedHistory = history.sort((a, b) => (b.createTime - a.createTime < 0 ? -1 : 1));
@@ -111,7 +112,8 @@ const ChatHistory: React.FC = () => {
             setChatHistory([]);
           }
         })
-        .catch(() => {
+        .catch((error) => {
+          console.error('[ChatHistory] Failed to load conversations from database:', error);
           setChatHistory([]);
         });
     };
