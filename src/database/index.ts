@@ -4,10 +4,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import fs from 'fs';
-import path from 'path';
-import os from 'os';
+/**
+ * Authentication Database Adapter
+ *
+ * This file provides compatibility layer for the authentication system
+ * by wrapping the SQLite database (src/process/database) with the old API.
+ *
+ * 认证数据库适配器
+ */
+
 import crypto from 'crypto';
+import { getDatabase, type IAuthUserRow, type IAuthSessionRow } from '../process/database/export';
 
 export interface User {
   id: number;
@@ -25,246 +32,283 @@ export interface Session {
   updated_at: string;
 }
 
-interface DatabaseSchema {
-  users: User[];
-  sessions: Session[];
-  config: Record<string, string>;
-  meta: {
-    nextUserId: number;
-  };
-}
+const toIsoString = (timestamp: number): string => new Date(timestamp).toISOString();
+
+const toIsoStringOrNull = (timestamp: number | null): string | null => {
+  return timestamp == null ? null : new Date(timestamp).toISOString();
+};
+
+const mapAuthUser = (row: IAuthUserRow): User => ({
+  id: row.id,
+  username: row.username,
+  password_hash: row.password_hash,
+  created_at: toIsoString(row.created_at),
+  last_login: toIsoStringOrNull(row.last_login),
+});
+
+const mapAuthSession = (row: IAuthSessionRow): Session => ({
+  id: row.id,
+  user_id: row.user_id,
+  title: row.title,
+  created_at: toIsoString(row.created_at),
+  updated_at: toIsoString(row.updated_at),
+});
 
 class AionDatabase {
   private static instance: AionDatabase;
-  private readonly dbPath: string;
-  private data: DatabaseSchema;
 
-  private constructor(dbPath?: string) {
-    this.dbPath = dbPath || this.resolveDefaultPath();
-    this.ensureDirectory();
-    this.data = this.loadFromDisk();
-    this.saveToDisk();
+  private constructor() {
+    // Initialize SQLite database through getDatabase()
   }
 
-  public static getInstance(dbPath?: string): AionDatabase {
+  public static getInstance(): AionDatabase {
     if (!AionDatabase.instance) {
-      AionDatabase.instance = new AionDatabase(dbPath);
+      AionDatabase.instance = new AionDatabase();
     }
     return AionDatabase.instance;
   }
 
-  // User operations
+  // ==================== User operations (用户操作) ====================
+
+  /**
+   * Create a new user (创建新用户)
+   */
   public createUser(username: string, passwordHash: string): User {
-    const user: User = {
-      id: this.data.meta.nextUserId++,
-      username,
-      password_hash: passwordHash,
-      created_at: new Date().toISOString(),
-      last_login: null,
-    };
+    const db = getDatabase();
 
-    this.data.users.push(user);
-    this.saveToDisk();
-    return this.getUserById(user.id)!;
+    const result = db.createAuthUser(username, passwordHash);
+
+    if (!result.success || !result.data) {
+      throw new Error('Failed to create user');
+    }
+
+    return mapAuthUser(result.data);
   }
 
+  /**
+   * Get user by ID (根据ID获取用户)
+   */
   public getUserById(id: number): User | null {
-    return this.data.users.find((user) => user.id === id) || null;
+    const db = getDatabase();
+    const result = db.getAuthUser(id);
+
+    if (!result.success || !result.data) {
+      return null;
+    }
+
+    return mapAuthUser(result.data);
   }
 
+  /**
+   * Get user by username (根据用户名获取用户)
+   */
   public getUserByUsername(username: string): User | null {
-    return this.data.users.find((user) => user.username === username) || null;
+    const db = getDatabase();
+    const result = db.getAuthUserByUsername(username);
+
+    if (!result.success || !result.data) {
+      return null;
+    }
+
+    return mapAuthUser(result.data);
   }
 
+  /**
+   * Update user's last login time (更新用户最后登录时间)
+   */
   public updateLastLogin(userId: number): void {
-    const user = this.getUserById(userId);
-    if (!user) {
-      return;
-    }
-
-    user.last_login = new Date().toISOString();
-    this.saveToDisk();
+    const db = getDatabase();
+    db.updateAuthUserLastLogin(userId);
   }
 
+  /**
+   * Update user password (更新用户密码)
+   */
   public updateUserPassword(userId: number, newPasswordHash: string, invalidateAllTokens = true): void {
-    const user = this.getUserById(userId);
-    if (!user) {
-      return;
-    }
+    const db = getDatabase();
 
-    user.password_hash = newPasswordHash;
+    db.transaction(() => {
+      const updateResult = db.updateAuthUserPassword(userId, newPasswordHash);
+      if (!updateResult.success) {
+        throw new Error(updateResult.error || 'Failed to update user password');
+      }
 
-    // 如果需要使所有旧 Token 失效，则清除用户的所有会话并更换 JWT Secret
-    // Invalidate all old tokens by clearing sessions and regenerating JWT secret
-    if (invalidateAllTokens) {
-      // 删除该用户的所有会话 / Delete all user sessions
-      this.data.sessions = this.data.sessions.filter((session) => session.user_id !== userId);
+      if (!invalidateAllTokens) {
+        return;
+      }
 
-      // 重新生成 JWT Secret，使所有旧 Token 立即失效
-      // Regenerate JWT Secret to invalidate all old tokens immediately
       const newJwtSecret = crypto.randomBytes(64).toString('hex');
-      this.data.config['jwt_secret'] = newJwtSecret;
-    }
+      const configResult = db.setConfig('jwt_secret', newJwtSecret);
+      if (!configResult.success) {
+        throw new Error(configResult.error || 'Failed to update JWT secret');
+      }
 
-    this.saveToDisk();
+      const deleteResult = db.deleteAuthSessionsByUserId(userId);
+      if (!deleteResult.success) {
+        throw new Error(deleteResult.error || 'Failed to invalidate user sessions');
+      }
+    });
   }
 
+  /**
+   * Check if any users exist (检查是否存在用户)
+   */
   public hasUsers(): boolean {
-    return this.data.users.length > 0;
+    const db = getDatabase();
+    const result = db.hasAuthUsers();
+    return result.success && result.data === true;
   }
 
+  /**
+   * Get total user count (获取用户总数)
+   */
   public getUserCount(): number {
-    return this.data.users.length;
+    const db = getDatabase();
+    const result = db.getAllAuthUsers();
+    if (!result.success || !result.data) {
+      return 0;
+    }
+    return result.data.length;
   }
 
+  /**
+   * Get all users (获取所有用户)
+   */
   public getAllUsers(): User[] {
-    return [...this.data.users].sort((a, b) => a.created_at.localeCompare(b.created_at));
+    const db = getDatabase();
+    const result = db.getAllAuthUsers();
+
+    if (!result.success || !result.data) {
+      return [];
+    }
+
+    return result.data.map(mapAuthUser);
   }
 
-  // Session operations
+  // ==================== Session operations (会话操作) ====================
+
+  /**
+   * Create a new session (创建新会话)
+   */
   public createSession(userId: number, title: string, sessionId?: string): Session {
-    const session: Session = {
-      id: sessionId || this.generateSessionId(),
-      user_id: userId,
-      title,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
+    const db = getDatabase();
+    const id = sessionId || this.generateSessionId();
 
-    this.data.sessions.push(session);
-    this.saveToDisk();
-    return this.getSessionById(session.id)!;
+    const result = db.createAuthSession(id, userId, title);
+
+    if (!result.success || !result.data) {
+      throw new Error('Failed to create session');
+    }
+
+    // Get the created session
+    const sessionResult = db.getAuthSession(id);
+    if (!sessionResult.success || !sessionResult.data) {
+      throw new Error('Failed to retrieve created session');
+    }
+
+    const sessionData = sessionResult.data;
+
+    return mapAuthSession(sessionData);
   }
 
+  /**
+   * Get session by ID (根据ID获取会话)
+   */
   public getSessionById(id: string): Session | null {
-    return this.data.sessions.find((session) => session.id === id) || null;
+    const db = getDatabase();
+    const result = db.getAuthSession(id);
+
+    if (!result.success || !result.data) {
+      return null;
+    }
+
+    return mapAuthSession(result.data);
   }
 
+  /**
+   * Get all sessions for a user (获取用户的所有会话)
+   */
   public getSessionsByUserId(userId: number): Session[] {
-    return this.data.sessions.filter((session) => session.user_id === userId).sort((a, b) => b.updated_at.localeCompare(a.updated_at));
+    const db = getDatabase();
+    const result = db.getAuthSessionsByUserId(userId);
+
+    if (!result.success || !result.data) {
+      return [];
+    }
+
+    return result.data.map(mapAuthSession);
   }
 
+  /**
+   * Update session title (更新会话标题)
+   */
   public updateSessionTitle(sessionId: string, title: string): void {
-    const session = this.getSessionById(sessionId);
-    if (!session) {
-      return;
-    }
-
-    session.title = title;
-    session.updated_at = new Date().toISOString();
-    this.saveToDisk();
+    const db = getDatabase();
+    db.updateAuthSessionTitle(sessionId, title);
   }
 
+  /**
+   * Delete session (删除会话)
+   */
   public deleteSession(sessionId: string): void {
-    const index = this.data.sessions.findIndex((session) => session.id === sessionId);
-    if (index === -1) {
-      return;
-    }
-
-    this.data.sessions.splice(index, 1);
-    this.saveToDisk();
+    const db = getDatabase();
+    db.deleteAuthSession(sessionId);
   }
 
+  /**
+   * Update session timestamp (更新会话时间戳)
+   */
   public updateSessionTimestamp(sessionId: string): void {
-    const session = this.getSessionById(sessionId);
-    if (!session) {
-      return;
-    }
-
-    session.updated_at = new Date().toISOString();
-    this.saveToDisk();
+    const db = getDatabase();
+    db.updateAuthSessionTimestamp(sessionId);
   }
 
+  /**
+   * Close database connection (关闭数据库连接)
+   */
   public close(): void {
-    this.saveToDisk();
+    // SQLite database handles its own closing
   }
 
+  /**
+   * Execute function in transaction (在事务中执行函数)
+   */
   public transaction<T>(fn: () => T): T {
-    const snapshot = JSON.parse(JSON.stringify(this.data)) as DatabaseSchema;
-    try {
-      const result = fn();
-      this.saveToDisk();
-      return result;
-    } catch (error) {
-      this.data = snapshot;
-      this.saveToDisk();
-      throw error;
-    }
+    // For now, execute directly - proper transaction support would require DB changes
+    return fn();
   }
 
-  // Config operations
+  // ==================== Config operations (配置操作) ====================
+
+  /**
+   * Get config value (获取配置值)
+   */
   public getConfig(key: string): string | null {
-    return this.data.config[key] ?? null;
+    const db = getDatabase();
+    const result = db.getConfig(key);
+
+    if (!result.success || !result.data) {
+      return null;
+    }
+
+    return result.data as string;
   }
 
+  /**
+   * Set config value (设置配置值)
+   */
   public setConfig(key: string, value: string): void {
-    this.data.config[key] = value;
-    this.saveToDisk();
+    const db = getDatabase();
+    db.setConfig(key, value);
   }
 
+  // ==================== Helper methods (辅助方法) ====================
+
+  /**
+   * Generate unique session ID (生成唯一会话ID)
+   */
   private generateSessionId(): string {
     return `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`;
-  }
-
-  private resolveDefaultPath(): string {
-    try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const { app } = require('electron');
-      return path.join(app.getPath('userData'), 'aion.json');
-    } catch (_error) {
-      return path.join(os.homedir(), '.aionui', 'aion.json');
-    }
-  }
-
-  private ensureDirectory(): void {
-    const dir = path.dirname(this.dbPath);
-    if (!fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-    }
-  }
-
-  private loadFromDisk(): DatabaseSchema {
-    if (!fs.existsSync(this.dbPath)) {
-      return this.createEmptySchema();
-    }
-
-    try {
-      const raw = fs.readFileSync(this.dbPath, 'utf8');
-      const parsed = JSON.parse(raw) as Partial<DatabaseSchema>;
-      return {
-        users: parsed.users ?? [],
-        sessions: parsed.sessions ?? [],
-        config: parsed.config ?? {},
-        meta: {
-          nextUserId: parsed.meta?.nextUserId && parsed.meta.nextUserId > 0 ? parsed.meta.nextUserId : this.computeNextUserId(parsed.users ?? []),
-        },
-      };
-    } catch (error) {
-      console.error('Failed to load database file, recreating:', error);
-      return this.createEmptySchema();
-    }
-  }
-
-  private saveToDisk(): void {
-    fs.writeFileSync(this.dbPath, JSON.stringify(this.data, null, 2), 'utf8');
-  }
-
-  private createEmptySchema(): DatabaseSchema {
-    return {
-      users: [],
-      sessions: [],
-      config: {},
-      meta: {
-        nextUserId: 1,
-      },
-    };
-  }
-
-  private computeNextUserId(users: User[]): number {
-    if (users.length === 0) {
-      return 1;
-    }
-    return Math.max(...users.map((user) => user.id)) + 1;
   }
 }
 

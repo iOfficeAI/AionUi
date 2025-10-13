@@ -105,6 +105,28 @@ export interface IMessageRow {
 }
 
 /**
+ * Auth user stored in database (兼容旧系统的 number 类型 user_id)
+ */
+export interface IAuthUserRow {
+  id: number;
+  username: string;
+  password_hash: string;
+  created_at: number;
+  last_login: number | null;
+}
+
+/**
+ * Auth session stored in database (兼容旧系统的 session 结构)
+ */
+export interface IAuthSessionRow {
+  id: string;
+  user_id: number;
+  title: string;
+  created_at: number;
+  updated_at: number;
+}
+
+/**
  * Provider stored in database (序列化后的格式)
  */
 export interface IProviderRow {

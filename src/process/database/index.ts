@@ -6,11 +6,38 @@
 
 import Database from 'better-sqlite3';
 import path from 'path';
-import { getConfigPath } from '../utils';
 import { initSchema, getDatabaseVersion, setDatabaseVersion, CURRENT_DB_VERSION } from './schema';
 import { runMigrations as executeMigrations, getMigrationHistory, isMigrationApplied } from './migrations';
-import type { IUser, IImageMetadata, IQueryResult, IPaginatedResult, TChatConversation, TMessage, IProvider, IMcpServer, IConversationRow, IMessageRow, IProviderRow, IMcpServerRow, IConfigRow } from './types';
+import type { IUser, IImageMetadata, IQueryResult, IPaginatedResult, TChatConversation, TMessage, IProvider, IMcpServer, IConversationRow, IMessageRow, IAuthUserRow, IAuthSessionRow, IProviderRow, IMcpServerRow, IConfigRow } from './types';
 import { conversationToRow, rowToConversation, messageToRow, rowToMessage, providerToRow, rowToProvider, mcpServerToRow, rowToMcpServer } from './types';
+
+/** Resolve final SQLite file path.
+ * Priority:
+ * 1. Explicit argument
+ * 2. Environment variable AIONUI_DB_PATH
+ * 3. Project root directory (./aionui.db)
+ *
+ * 解析 SQLite 数据库文件路径，优先级：
+ * 1. 显式参数
+ * 2. 环境变量 AIONUI_DB_PATH
+ * 3. 项目根目录 (./aionui.db)
+ */
+const resolveDatabasePath = (explicitPath?: string): string => {
+  // 1. Explicit argument
+  if (explicitPath && explicitPath.trim() !== '') {
+    const candidate = explicitPath.trim();
+    return path.isAbsolute(candidate) ? candidate : path.resolve(candidate);
+  }
+
+  // 2. Environment variable
+  if (process.env.AIONUI_DB_PATH && process.env.AIONUI_DB_PATH.trim() !== '') {
+    const candidate = process.env.AIONUI_DB_PATH.trim();
+    return path.isAbsolute(candidate) ? candidate : path.resolve(candidate);
+  }
+
+  // 3. Default: Project root directory
+  return path.join(process.cwd(), 'aionui.db');
+};
 
 /**
  * Main database class for AionUi
@@ -21,7 +48,7 @@ export class AionDatabase {
   private defaultUserId = 'system_default_user';
 
   constructor(dbPath?: string) {
-    const finalPath = dbPath || path.join(getConfigPath(), 'aionui.db');
+    const finalPath = resolveDatabasePath(dbPath);
     console.log(`[Database] Initializing database at: ${finalPath}`);
 
     this.db = new Database(finalPath);
@@ -71,6 +98,14 @@ export class AionDatabase {
   close(): void {
     this.db.close();
     console.log('[Database] Connection closed');
+  }
+
+  /**
+   * Execute operations inside a transaction
+   */
+  transaction<T>(fn: () => T): T {
+    const wrapped = this.db.transaction(fn);
+    return wrapped();
   }
 
   /**
@@ -937,7 +972,245 @@ export class AionDatabase {
   }
 
   /**
-   * Get database statistics
+   * ==================
+   * Auth User operations (认证用户操作)
+   * ==================
+   */
+
+  /**
+   * 创建认证用户
+   * Create auth user
+   */
+  createAuthUser(username: string, passwordHash: string): IQueryResult<IAuthUserRow> {
+    try {
+      const now = Date.now();
+      const result = this.db
+        .prepare(
+          `
+        INSERT INTO auth_users (username, password_hash, created_at, last_login)
+        VALUES (?, ?, ?, NULL)
+      `
+        )
+        .run(username, passwordHash, now);
+
+      const id = Number(result.lastInsertRowid);
+
+      return {
+        success: true,
+        data: {
+          id,
+          username,
+          password_hash: passwordHash,
+          created_at: now,
+          last_login: null,
+        },
+      };
+    } catch (error) {
+      return { success: false, error: (error as Error).message };
+    }
+  }
+
+  /**
+   * 根据ID获取认证用户
+   * Get auth user by ID
+   */
+  getAuthUser(id: number): IQueryResult<IAuthUserRow | null> {
+    try {
+      const row = this.db.prepare('SELECT * FROM auth_users WHERE id = ?').get(id) as IAuthUserRow | undefined;
+
+      return { success: true, data: row || null };
+    } catch (error) {
+      return { success: false, error: (error as Error).message, data: null };
+    }
+  }
+
+  /**
+   * 根据用户名获取认证用户
+   * Get auth user by username
+   */
+  getAuthUserByUsername(username: string): IQueryResult<IAuthUserRow | null> {
+    try {
+      const row = this.db.prepare('SELECT * FROM auth_users WHERE username = ?').get(username) as IAuthUserRow | undefined;
+
+      return { success: true, data: row || null };
+    } catch (error) {
+      return { success: false, error: (error as Error).message, data: null };
+    }
+  }
+
+  /**
+   * 获取所有认证用户
+   * Get all auth users
+   */
+  getAllAuthUsers(): IQueryResult<IAuthUserRow[]> {
+    try {
+      const rows = this.db.prepare('SELECT * FROM auth_users ORDER BY created_at ASC').all() as IAuthUserRow[];
+
+      return { success: true, data: rows };
+    } catch (error) {
+      return { success: false, error: (error as Error).message, data: [] };
+    }
+  }
+
+  /**
+   * 更新认证用户最后登录时间
+   * Update auth user last login time
+   */
+  updateAuthUserLastLogin(id: number): IQueryResult<boolean> {
+    try {
+      const now = Date.now();
+      this.db.prepare('UPDATE auth_users SET last_login = ? WHERE id = ?').run(now, id);
+
+      return { success: true, data: true };
+    } catch (error) {
+      return { success: false, error: (error as Error).message, data: false };
+    }
+  }
+
+  /**
+   * 更新认证用户密码
+   * Update auth user password
+   */
+  updateAuthUserPassword(id: number, newPasswordHash: string): IQueryResult<boolean> {
+    try {
+      this.db.prepare('UPDATE auth_users SET password_hash = ? WHERE id = ?').run(newPasswordHash, id);
+
+      return { success: true, data: true };
+    } catch (error) {
+      return { success: false, error: (error as Error).message, data: false };
+    }
+  }
+
+  /**
+   * 检查是否存在认证用户
+   * Check if auth users exist
+   */
+  hasAuthUsers(): IQueryResult<boolean> {
+    try {
+      const result = this.db.prepare('SELECT COUNT(*) as count FROM auth_users').get() as { count: number };
+
+      return { success: true, data: result.count > 0 };
+    } catch (error) {
+      return { success: false, error: (error as Error).message, data: false };
+    }
+  }
+
+  /**
+   * ==================
+   * Auth Session operations (认证会话操作)
+   * ==================
+   */
+
+  /**
+   * 创建认证会话
+   * Create auth session
+   */
+  createAuthSession(id: string, userId: number, title: string): IQueryResult<boolean> {
+    try {
+      const now = Date.now();
+      this.db
+        .prepare(
+          `
+        INSERT INTO auth_sessions (id, user_id, title, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?)
+      `
+        )
+        .run(id, userId, title, now, now);
+
+      return { success: true, data: true };
+    } catch (error) {
+      return { success: false, error: (error as Error).message, data: false };
+    }
+  }
+
+  /**
+   * 根据ID获取认证会话
+   * Get auth session by ID
+   */
+  getAuthSession(id: string): IQueryResult<IAuthSessionRow | null> {
+    try {
+      const row = this.db.prepare('SELECT * FROM auth_sessions WHERE id = ?').get(id) as IAuthSessionRow | undefined;
+
+      return { success: true, data: row || null };
+    } catch (error) {
+      return { success: false, error: (error as Error).message, data: null };
+    }
+  }
+
+  /**
+   * 根据用户ID获取所有认证会话
+   * Get all auth sessions by user ID
+   */
+  getAuthSessionsByUserId(userId: number): IQueryResult<IAuthSessionRow[]> {
+    try {
+      const rows = this.db.prepare('SELECT * FROM auth_sessions WHERE user_id = ? ORDER BY updated_at DESC').all(userId) as IAuthSessionRow[];
+
+      return { success: true, data: rows };
+    } catch (error) {
+      return { success: false, error: (error as Error).message, data: [] };
+    }
+  }
+
+  /**
+   * 更新认证会话标题
+   * Update auth session title
+   */
+  updateAuthSessionTitle(id: string, title: string): IQueryResult<boolean> {
+    try {
+      const now = Date.now();
+      this.db.prepare('UPDATE auth_sessions SET title = ?, updated_at = ? WHERE id = ?').run(title, now, id);
+
+      return { success: true, data: true };
+    } catch (error) {
+      return { success: false, error: (error as Error).message, data: false };
+    }
+  }
+
+  /**
+   * 更新认证会话时间戳
+   * Update auth session timestamp
+   */
+  updateAuthSessionTimestamp(id: string): IQueryResult<boolean> {
+    try {
+      const now = Date.now();
+      this.db.prepare('UPDATE auth_sessions SET updated_at = ? WHERE id = ?').run(now, id);
+
+      return { success: true, data: true };
+    } catch (error) {
+      return { success: false, error: (error as Error).message, data: false };
+    }
+  }
+
+  /**
+   * 删除认证会话
+   * Delete auth session
+   */
+  deleteAuthSession(id: string): IQueryResult<boolean> {
+    try {
+      this.db.prepare('DELETE FROM auth_sessions WHERE id = ?').run(id);
+
+      return { success: true, data: true };
+    } catch (error) {
+      return { success: false, error: (error as Error).message, data: false };
+    }
+  }
+
+  /**
+   * 删除用户的所有认证会话
+   * Delete all auth sessions for a user
+   */
+  deleteAuthSessionsByUserId(userId: number): IQueryResult<number> {
+    try {
+      const result = this.db.prepare('DELETE FROM auth_sessions WHERE user_id = ?').run(userId);
+
+      return { success: true, data: result.changes };
+    } catch (error) {
+      return { success: false, error: (error as Error).message, data: 0 };
+    }
+  }
+
+  /**
+   * Get database statistics (获取数据库统计信息)
    */
   getStats(): {
     users: number;
@@ -946,6 +1219,8 @@ export class AionDatabase {
     images: number;
     providers: number;
     mcpServers: number;
+    authUsers: number;
+    authSessions: number;
   } {
     return {
       users: (this.db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number }).count,
@@ -954,6 +1229,8 @@ export class AionDatabase {
       images: (this.db.prepare('SELECT COUNT(*) as count FROM images').get() as { count: number }).count,
       providers: (this.db.prepare('SELECT COUNT(*) as count FROM providers').get() as { count: number }).count,
       mcpServers: (this.db.prepare('SELECT COUNT(*) as count FROM mcp_servers').get() as { count: number }).count,
+      authUsers: (this.db.prepare('SELECT COUNT(*) as count FROM auth_users').get() as { count: number }).count,
+      authSessions: (this.db.prepare('SELECT COUNT(*) as count FROM auth_sessions').get() as { count: number }).count,
     };
   }
 }

@@ -8,6 +8,7 @@
 
 import { loadDatabase, saveDatabase, generatePassword, hashPassword } from './db.mjs';
 import { spawn } from 'child_process';
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
@@ -103,12 +104,26 @@ export function listUsers() {
  */
 export function startWebUI() {
   try {
+    const storageRoot = path.join(PROJECT_ROOT, '.aionui');
+    if (!fs.existsSync(storageRoot)) {
+      fs.mkdirSync(storageRoot, { recursive: true });
+    }
+
+    const dbPath = path.join(storageRoot, 'aionui.db');
+
+    // Force the dev-server run to reuse a project-local SQLite file for easier user management.
+    const env = {
+      ...process.env,
+      AIONUI_DB_PATH: dbPath,
+    };
+
     // 在项目根目录运行 npm run start:webui
     // Run npm run start:webui in project root directory
     const child = spawn('npm', ['run', 'start:webui'], {
       cwd: PROJECT_ROOT,
       stdio: 'inherit', // 直接继承父进程的 stdio，这样可以看到完整输出
       shell: true,
+      env,
     });
 
     child.on('error', (error) => {

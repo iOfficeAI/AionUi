@@ -352,29 +352,9 @@ const initStorage = async () => {
     mkdirSync(getDataPath());
   }
 
-  // 3. 初始化存储系统
-  ConfigStorage.interceptor(configFile);
-  ChatStorage.interceptor(chatFile);
-  ChatMessageStorage.interceptor(chatMessageFile);
-  EnvStorage.interceptor(envFile);
-
-  // 4. 初始化 MCP 配置（为所有用户提供默认配置）
+  // 3. 初始化数据库（better-sqlite3）- 必须在存储拦截器之前初始化
   try {
-    const existingMcpConfig = await configFile.get('mcp.config').catch((): undefined => undefined);
-
-    // 仅当配置不存在或为空时，写入默认值（适用于新用户和老用户）
-    if (!existingMcpConfig || !Array.isArray(existingMcpConfig) || existingMcpConfig.length === 0) {
-      const defaultServers = getDefaultMcpServers();
-      await configFile.set('mcp.config', defaultServers);
-      console.log('[AionUi] Default MCP servers initialized');
-    }
-  } catch (error) {
-    console.error('[AionUi] Failed to initialize default MCP servers:', error);
-  }
-
-  // 5. 初始化数据库（better-sqlite3）
-  try {
-    const { getDatabase, getImageStorage } = await import('./database/export');
+    const { getDatabase, getImageStorage, migrateFileStorageToDatabase, getMigrationStatus } = await import('./database/export');
 
     // Initialize database
     const _db = getDatabase();
@@ -384,25 +364,94 @@ const initStorage = async () => {
     const _imageStorage = getImageStorage();
     console.log('[AionUi] Image storage initialized');
 
-    // NOTE: File-to-database migration is temporarily disabled
-    // We're testing the database with live message writes first
-    // Uncomment the code below when ready to migrate historical data:
-    //
-    // const { migrateFileStorageToDatabase, getMigrationStatus } = await import('./database/export');
-    // const migrationStatus = await getMigrationStatus();
-    // if (!migrationStatus.completed) {
-    //   console.log('[AionUi] Running database migration from file storage...');
-    //   const migrationResult = await migrateFileStorageToDatabase();
-    //   if (migrationResult.success) {
-    //     console.log('[AionUi] Database migration completed successfully');
-    //     console.log('[AionUi] Migration stats:', migrationResult.stats);
-    //   } else {
-    //     console.error('[AionUi] Database migration completed with errors:', migrationResult.errors);
-    //   }
-    // }
+    // Auto-migration: Migrate file storage to database on first run
+    const migrationStatus = getMigrationStatus();
+    if (!migrationStatus.completed) {
+      console.log('[AionUi] Running database migration from file storage...');
+      const migrationResult = await migrateFileStorageToDatabase();
+      if (migrationResult.success) {
+        console.log('[AionUi] ✓ Database migration completed successfully');
+        console.log('[AionUi] Migration stats:', migrationResult.stats);
+      } else {
+        console.error('[AionUi] ✗ Database migration completed with errors:', migrationResult.errors);
+      }
+    } else {
+      console.log('[AionUi] Database migration already completed (date:', new Date(migrationStatus.date || 0).toLocaleString(), ')');
+    }
+
+    // 4. 设置数据库存储拦截器
+    ConfigStorage.interceptor({
+      get: async (key: string) => {
+        const result = _db.getConfig(key);
+        return result.data;
+      },
+      set: async (key: string, data: any) => {
+        _db.setConfig(key, data);
+        return data;
+      },
+    });
+
+    ChatStorage.interceptor({
+      get: async (key: string) => {
+        if (key === 'chat.history') {
+          const result = _db.getUserConversations(undefined, 0, 1000);
+          return result.data || [];
+        }
+        return undefined;
+      },
+      set: async (key: string, data: any) => {
+        console.log('[AionUi] ChatStorage.set is deprecated, use database API instead');
+        return data;
+      },
+    });
+
+    ChatMessageStorage.interceptor({
+      get: async (key: string) => {
+        // key is conversation_id
+        const result = _db.getConversationMessages(key, 0, 1000);
+        return result.data || [];
+      },
+      set: async (key: string, data: any) => {
+        console.log('[AionUi] ChatMessageStorage.set is deprecated, use database API instead');
+        return data;
+      },
+    });
+
+    EnvStorage.interceptor({
+      get: async (key: string) => {
+        const result = _db.getConfig(`env.${key}`);
+        return result.data;
+      },
+      set: async (key: string, data: any) => {
+        _db.setConfig(`env.${key}`, data);
+        return data;
+      },
+    });
+
+    console.log('[AionUi] ✓ Storage interceptors configured to use SQLite');
+
+    // 5. 初始化 MCP 配置（为所有用户提供默认配置）
+    try {
+      const existingMcpConfig = _db.getConfig('mcp.config');
+
+      // 仅当配置不存在或为空时，写入默认值
+      if (!existingMcpConfig.data || !Array.isArray(existingMcpConfig.data) || existingMcpConfig.data.length === 0) {
+        const defaultServers = getDefaultMcpServers();
+        _db.setConfig('mcp.config', defaultServers);
+        console.log('[AionUi] ✓ Default MCP servers initialized');
+      }
+    } catch (error) {
+      console.error('[AionUi] Failed to initialize default MCP servers:', error);
+    }
   } catch (error) {
     console.error('[AionUi] Failed to initialize database:', error);
-    console.error('[AionUi] Continuing with file-based storage only');
+    console.error('[AionUi] Falling back to file-based storage');
+
+    // Fallback to file storage
+    ConfigStorage.interceptor(configFile);
+    ChatStorage.interceptor(chatFile);
+    ChatMessageStorage.interceptor(chatMessageFile);
+    EnvStorage.interceptor(envFile);
   }
 
   console.log('[AionUi] Storage initialization complete');
