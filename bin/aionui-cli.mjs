@@ -12,7 +12,7 @@
 
 import React from 'react';
 import { render, Box, Text, useInput, useApp } from 'ink';
-import { resetPassword, listUsers, showHelp, getUserCount } from './cli/commands.mjs';
+import { resetPassword, listUsers, showHelp, getUserCount, startWebUI } from './cli/commands.mjs';
 import { Logo, WelcomeMessage, StatusBar, renderOutput } from './cli/components.mjs';
 
 /**
@@ -79,6 +79,18 @@ const AionCLI = () => {
 
     // 路由到对应的命令处理器 / Route to corresponding command handler
     switch (cmd) {
+      case 'start':
+        // 启动 WebUI 会接管终端，所以直接退出 CLI
+        // Starting WebUI will take over terminal, so exit CLI
+        result = startWebUI();
+        if (result === null) {
+          // 成功启动，退出 CLI
+          // Successfully started, exit CLI
+          exit();
+          return;
+        }
+        break;
+
       case 'resetpass':
         if (args.length === 0) {
           result = {
