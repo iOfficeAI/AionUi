@@ -8,10 +8,9 @@ import { CodexAgent } from '@/agent/codex';
 import type { NetworkError } from '@/agent/codex/connection/CodexConnection';
 import { ipcBridge } from '@/common';
 import type { TMessage } from '@/common/chatLib';
-import { transformMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import { uuid } from '@/common/utils';
-import { addMessage, addOrUpdateMessage } from '@process/message';
+import { addMessage } from '@process/message';
 import BaseAgentManager from '@process/task/BaseAgentManager';
 import { t } from 'i18next';
 import { CodexEventHandler } from '@/agent/codex/handlers/CodexEventHandler';
@@ -222,7 +221,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
         msg_id: data.msg_id || uuid(),
         data: errorMessage,
       };
-      addMessage(this.conversation_id, transformMessage(message));
+      // Emit to frontend - frontend will handle transformation and persistence
       ipcBridge.codexConversation.responseStream.emit(message);
       throw e;
     }
@@ -332,11 +331,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     };
 
     // Emit network error message to UI
-    // Add to message history and emit to UI
-    const errorMessage = transformMessage(networkErrorMessage);
-    if (errorMessage) {
-      addOrUpdateMessage(this.conversation_id, errorMessage);
-    }
+    // Frontend will handle transformation and persistence
     ipcBridge.codexConversation.responseStream.emit(networkErrorMessage);
   }
 
@@ -397,13 +392,13 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
   }
 
   emitAndPersistMessage(message: IResponseMessage, persist: boolean = true): void {
-    if (persist) {
-      // Use Codex-specific transformer for Codex messages
-      const transformedMessage: TMessage = transformMessage(message);
-      if (transformedMessage) {
-        void addOrUpdateMessage(this.conversation_id, transformedMessage);
-      }
-    }
+    // Always emit to frontend first - frontend will handle transformation and persistence
+    // This avoids double transformation and double persistence
+    message.conversation_id = this.conversation_id;
+
+    // Add persist flag to message metadata so frontend knows whether to persist
+    (message as any)._shouldPersist = persist;
+
     ipcBridge.codexConversation.responseStream.emit(message);
   }
 }

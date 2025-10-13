@@ -35,7 +35,10 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
   const [running, setRunning] = useState(false);
   const [aiProcessing, setAiProcessing] = useState(false); // New loading state for AI response
   const [codexStatus, setCodexStatus] = useState<string | null>(null);
-  const [thought, setThought] = useState<ThoughtData | null>(null);
+  const [thought, setThought] = useState<ThoughtData>({
+    description: '',
+    subject: '',
+  });
 
   const { content, setContent, atPath, setAtPath, uploadFile, setUploadFile } = (function useDraft() {
     const { data, mutate } = useCodexSendBoxDraft(conversation_id);
@@ -59,6 +62,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
     setRunning(false);
     setAiProcessing(false);
     setCodexStatus(null);
+    setThought({ subject: '', description: '' });
   }, [conversation_id]);
 
   useEffect(() => {
@@ -66,6 +70,10 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
       if (conversation_id !== message.conversation_id) {
         return;
       }
+
+      // Check if this message should be persisted (set by backend)
+      const shouldPersist = (message as any)._shouldPersist !== false;
+
       switch (message.type) {
         case 'thought':
           setThought(message.data);
@@ -76,28 +84,30 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
           break;
         case 'content':
         case 'codex_permission': {
-          setThought(null);
-          // 通用消息类型使用标准转换器
+          setThought({ subject: '', description: '' });
+          // Transform and persist message
           const transformedMessage = transformMessage(message);
-          addOrUpdateMessage(transformedMessage);
+          if (transformedMessage && shouldPersist) {
+            addOrUpdateMessage(transformedMessage);
+          }
           break;
         }
         case 'codex_status': {
           const statusData = message.data as { status: string; message: string };
           setCodexStatus(statusData.status);
-          // 将状态消息添加到 MessageList 中显示
+          // Transform and persist status message
           const transformedMessage = transformMessage(message);
-          if (transformedMessage) {
+          if (transformedMessage && shouldPersist) {
             addOrUpdateMessage(transformedMessage);
           }
           break;
         }
         default: {
           setRunning(false);
-          setThought(null);
-          // 处理其他消息类型，包括 tool_group
+          setThought({ subject: '', description: '' });
+          // Transform and persist other message types
           const transformedMessage = transformMessage(message);
-          if (transformedMessage) {
+          if (transformedMessage && shouldPersist) {
             addOrUpdateMessage(transformedMessage);
           }
         }
