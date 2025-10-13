@@ -59,10 +59,11 @@ export const WelcomeMessage = () => {
     Box,
     { flexDirection: 'column', marginBottom: 1 },
     React.createElement(Text, { bold: true, color: 'white' }, 'Tips for getting started:'),
-    React.createElement(Text, { color: 'gray' }, '1. Reset user password with /resetpass <username>'),
-    React.createElement(Text, { color: 'gray' }, '2. List all users with /users'),
-    React.createElement(Text, { color: 'gray' }, '3. Type /help for more information'),
-    React.createElement(Text, { color: 'gray' }, '4. Press Ctrl+C to exit')
+    React.createElement(Text, { color: 'green' }, '1. Start AionUi WebUI with /start'),
+    React.createElement(Text, { color: 'gray' }, '2. Reset user password with /resetpass <username>'),
+    React.createElement(Text, { color: 'gray' }, '3. List all users with /users'),
+    React.createElement(Text, { color: 'gray' }, '4. Type /help for more information'),
+    React.createElement(Text, { color: 'gray' }, '5. Press Ctrl+C to exit')
   );
 };
 

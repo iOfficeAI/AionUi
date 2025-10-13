@@ -7,6 +7,13 @@
  */
 
 import { loadDatabase, saveDatabase, generatePassword, hashPassword } from './db.mjs';
+import { spawn } from 'child_process';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const PROJECT_ROOT = path.resolve(__dirname, '../..');
 
 /**
  * 重置用户密码
@@ -91,6 +98,42 @@ export function listUsers() {
 }
 
 /**
+ * 启动 WebUI 开发服务器
+ * Start WebUI development server
+ */
+export function startWebUI() {
+  try {
+    // 在项目根目录运行 npm run start:webui
+    // Run npm run start:webui in project root directory
+    const child = spawn('npm', ['run', 'start:webui'], {
+      cwd: PROJECT_ROOT,
+      stdio: 'inherit', // 直接继承父进程的 stdio，这样可以看到完整输出
+      shell: true,
+    });
+
+    child.on('error', (error) => {
+      console.error(`Failed to start WebUI: ${error.message}`);
+      process.exit(1);
+    });
+
+    child.on('exit', (code) => {
+      if (code !== 0 && code !== null) {
+        process.exit(code);
+      }
+    });
+
+    // 由于启动是异步的，不返回消息，直接让子进程接管
+    // Since startup is async, don't return messages, let child process take over
+    return null;
+  } catch (error) {
+    return {
+      success: false,
+      messages: [{ type: 'error', text: `Error starting WebUI: ${error.message}` }],
+    };
+  }
+}
+
+/**
  * 显示帮助信息
  * Show help information
  */
@@ -99,6 +142,7 @@ export function showHelp() {
     success: true,
     messages: [
       { type: 'info', text: 'Available commands:' },
+      { type: 'plain', text: '  /start                - Start AionUi WebUI (npm run start:webui)' },
       { type: 'plain', text: '  /resetpass <username> - Reset user password' },
       { type: 'plain', text: '  /users                - List all users' },
       { type: 'plain', text: '  /help                 - Show this help' },

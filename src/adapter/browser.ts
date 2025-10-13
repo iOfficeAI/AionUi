@@ -15,7 +15,7 @@ const win: any = window;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function handleWebDirectorySelection(options: any): Promise<string[] | undefined> {
   return new Promise((resolve) => {
-    // 创建目录选择模态框 / Create directory selection modal
+    // 创建目录选择模态框
     const modal = createDirectorySelectionModal(options, (result) => {
       resolve(result);
     });
