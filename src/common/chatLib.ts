@@ -9,7 +9,7 @@ import type { IResponseMessage } from './ipcBridge';
 import { uuid } from './utils';
 import type { AcpPermissionRequest, ToolCallUpdate } from '@/types/acpTypes';
 import type { CodexPermissionRequest } from '@/common/codex/types';
-import type { ExecCommandBeginData, ExecCommandOutputDeltaData, ExecCommandEndData, PatchApplyBeginData, PatchApplyEndData, McpToolCallBeginData, McpToolCallEndData, WebSearchBeginData, WebSearchEndData, ExecApprovalRequestData, ApplyPatchApprovalRequestData, TurnDiffData } from '@/common/codex/types/eventData';
+import type { ExecCommandBeginData, ExecCommandOutputDeltaData, ExecCommandEndData, PatchApplyBeginData, PatchApplyEndData, McpToolCallBeginData, McpToolCallEndData, WebSearchBeginData, WebSearchEndData, TurnDiffData } from '@/common/codex/types/eventData';
 
 /**
  * 安全的路径拼接函数，兼容Windows和Mac
@@ -52,7 +52,8 @@ export const joinPath = (basePath: string, relativePath: string): string => {
 };
 
 // Normalize LLM text with awkward line breaks/zero‑width chars while preserving code blocks.
-function normalizeLLMText(raw: string): string {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function _normalizeLLMText(raw: string): string {
   if (!raw || typeof raw !== 'string') return raw as any;
   const ZW = /[\u200B-\u200D\uFEFF]/g;
   const chunks = raw
@@ -292,6 +293,7 @@ export type CodexToolCallUpdate =
 
 export type IMessageCodexToolCall = IMessage<'codex_tool_call', CodexToolCallUpdate>;
 
+// eslint-disable-next-line max-len
 export type TMessage = IMessageText | IMessageTips | IMessageToolCall | IMessageToolGroup | IMessageAcpStatus | IMessageAcpPermission | IMessageAcpToolCall | IMessageCodexStatus | IMessageCodexPermission | IMessageCodexToolCall;
 
 /**
@@ -425,14 +427,17 @@ export const composeMessage = (message: TMessage | undefined, list: TMessage[] |
   if (message.type === 'tool_group') {
     const tools = message.content.slice();
     for (let i = 0, len = list.length; i < len; i++) {
-      const message = list[i];
-      if (message.type === 'tool_group') {
-        if (!message.content.length) continue;
-        message.content.forEach((tool) => {
+      const existingMessage = list[i];
+      if (existingMessage.type === 'tool_group') {
+        if (!existingMessage.content.length) continue;
+        // Create a new content array with merged tool data
+        existingMessage.content = existingMessage.content.map((tool) => {
           const newToolIndex = tools.findIndex((t) => t.callId === tool.callId);
-          if (newToolIndex === -1) return;
-          Object.assign(tool, tools[newToolIndex]);
+          if (newToolIndex === -1) return tool;
+          // Create new object instead of mutating original
+          const merged = { ...tool, ...tools[newToolIndex] };
           tools.splice(newToolIndex, 1);
+          return merged;
         });
       }
     }
@@ -443,13 +448,46 @@ export const composeMessage = (message: TMessage | undefined, list: TMessage[] |
     return list;
   }
 
+  // Handle Gemini tool_call message merging
+  if (message.type === 'tool_call') {
+    for (let i = 0, len = list.length; i < len; i++) {
+      const msg = list[i];
+      if (msg.type === 'tool_call' && msg.content.callId === message.content.callId) {
+        // Create new object instead of mutating original
+        const merged = { ...msg.content, ...message.content };
+        list[i] = { ...msg, content: merged };
+        return list;
+      }
+    }
+    // If no existing tool call found, add new one
+    list.push(message);
+    return list;
+  }
+
   // Handle codex_tool_call message merging
   if (message.type === 'codex_tool_call') {
     for (let i = 0, len = list.length; i < len; i++) {
       const msg = list[i];
       if (msg.type === 'codex_tool_call' && msg.content.toolCallId === message.content.toolCallId) {
-        // Update existing tool call with new data
-        Object.assign(msg.content, message.content);
+        // Create new object instead of mutating original
+        const merged = { ...msg.content, ...message.content };
+        list[i] = { ...msg, content: merged };
+        return list;
+      }
+    }
+    // If no existing tool call found, add new one
+    list.push(message);
+    return list;
+  }
+
+  // Handle acp_tool_call message merging (same logic as codex_tool_call)
+  if (message.type === 'acp_tool_call') {
+    for (let i = 0, len = list.length; i < len; i++) {
+      const msg = list[i];
+      if (msg.type === 'acp_tool_call' && msg.content.update?.toolCallId === message.content.update?.toolCallId) {
+        // Create new object instead of mutating original
+        const merged = { ...msg.content, ...message.content };
+        list[i] = { ...msg, content: merged };
         return list;
       }
     }

@@ -103,6 +103,11 @@ export const codexConversation = {
   responseStream: codexResponseStream,
 };
 
+// Database operations
+export const database = {
+  getConversationMessages: bridge.buildProvider<import('@/common/chatLib').TMessage[], { conversation_id: string; page?: number; pageSize?: number }>('database.get-conversation-messages'),
+};
+
 interface ISendMessageParams {
   input: string;
   msg_id: string;

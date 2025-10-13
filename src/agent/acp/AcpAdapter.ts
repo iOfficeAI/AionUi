@@ -15,10 +15,29 @@ export class AcpAdapter {
   private conversationId: string;
   private backend: AcpBackend;
   private activeToolCalls: Map<string, IMessageAcpToolCall> = new Map();
+  private currentMessageId: string | null = null; // Track current message for streaming chunks
 
   constructor(conversationId: string, backend: AcpBackend) {
     this.conversationId = conversationId;
     this.backend = backend;
+  }
+
+  /**
+   * Reset message tracking for new message
+   * Should be called when a new AI response starts
+   */
+  resetMessageTracking() {
+    this.currentMessageId = uuid();
+  }
+
+  /**
+   * Get current message ID for streaming chunks
+   */
+  private getCurrentMessageId(): string {
+    if (!this.currentMessageId) {
+      this.currentMessageId = uuid();
+    }
+    return this.currentMessageId;
   }
 
   /**
@@ -46,6 +65,8 @@ export class AcpAdapter {
             messages.push(message);
           }
         }
+        // Reset message tracking for next agent_message_chunk
+        this.resetMessageTracking();
         break;
       }
 
@@ -54,6 +75,8 @@ export class AcpAdapter {
         if (toolCallMessage) {
           messages.push(toolCallMessage);
         }
+        // Reset message tracking so next agent_message_chunk gets new msg_id
+        this.resetMessageTracking();
         break;
       }
 
@@ -62,6 +85,8 @@ export class AcpAdapter {
         if (toolCallUpdateMessage) {
           messages.push(toolCallUpdateMessage);
         }
+        // Reset message tracking so next agent_message_chunk gets new msg_id
+        this.resetMessageTracking();
         break;
       }
 
@@ -70,6 +95,8 @@ export class AcpAdapter {
         if (planMessage) {
           messages.push(planMessage);
         }
+        // Reset message tracking so next agent_message_chunk gets new msg_id
+        this.resetMessageTracking();
         break;
       }
 
@@ -78,6 +105,8 @@ export class AcpAdapter {
         if (commandsMessage) {
           messages.push(commandsMessage);
         }
+        // Reset message tracking so next agent_message_chunk gets new msg_id
+        this.resetMessageTracking();
         break;
       }
 
@@ -93,8 +122,11 @@ export class AcpAdapter {
    * Convert ACP session update chunk to AionUI message
    */
   private convertSessionUpdateChunk(update: AgentMessageChunkUpdate['update']): TMessage | null {
+    const msgId = this.getCurrentMessageId(); // Use consistent msg_id for streaming chunks
+
     const baseMessage = {
-      id: uuid(),
+      id: uuid(), // Each chunk still gets unique id (for deduplication in composeMessage)
+      msg_id: msgId, // But shares msg_id to enable accumulation
       conversation_id: this.conversationId,
       createdAt: Date.now(),
       position: 'left' as const,

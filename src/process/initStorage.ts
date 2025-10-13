@@ -372,6 +372,39 @@ const initStorage = async () => {
     console.error('[AionUi] Failed to initialize default MCP servers:', error);
   }
 
+  // 5. 初始化数据库（better-sqlite3）
+  try {
+    const { getDatabase, getImageStorage } = await import('./database/export');
+
+    // Initialize database
+    const _db = getDatabase();
+    console.log('[AionUi] Database initialized');
+
+    // Initialize image storage
+    const _imageStorage = getImageStorage();
+    console.log('[AionUi] Image storage initialized');
+
+    // NOTE: File-to-database migration is temporarily disabled
+    // We're testing the database with live message writes first
+    // Uncomment the code below when ready to migrate historical data:
+    //
+    // const { migrateFileStorageToDatabase, getMigrationStatus } = await import('./database/export');
+    // const migrationStatus = await getMigrationStatus();
+    // if (!migrationStatus.completed) {
+    //   console.log('[AionUi] Running database migration from file storage...');
+    //   const migrationResult = await migrateFileStorageToDatabase();
+    //   if (migrationResult.success) {
+    //     console.log('[AionUi] Database migration completed successfully');
+    //     console.log('[AionUi] Migration stats:', migrationResult.stats);
+    //   } else {
+    //     console.error('[AionUi] Database migration completed with errors:', migrationResult.errors);
+    //   }
+    // }
+  } catch (error) {
+    console.error('[AionUi] Failed to initialize database:', error);
+    console.error('[AionUi] Continuing with file-based storage only');
+  }
+
   console.log('[AionUi] Storage initialization complete');
 
   application.systemInfo.provider(() => {
