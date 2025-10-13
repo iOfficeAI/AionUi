@@ -10,6 +10,7 @@ import { transformMessage } from '@/common/chatLib';
 import type { TProviderWithModel, IMcpServer } from '@/common/storage';
 import { ProcessConfig } from '@/process/initStorage';
 import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '../message';
+import { getDatabase } from '../database/export';
 import BaseAgentManager from './BaseAgentManager';
 
 // gemini agent管理器类
@@ -114,8 +115,23 @@ export class GeminiAgentManager extends BaseAgentManager<{
     super.init();
     // 接受来子进程的对话消息
     this.on('gemini.message', (data) => {
+      // Log ALL gemini messages for debugging
+      console.log('==========================================');
+      console.log('[GeminiAgentManager] Received message from backend:');
+      console.log('  Type:', data.type);
+      console.log('  Full data:', JSON.stringify(data, null, 2));
+      console.log('==========================================');
+
       if (data.type === 'finish') {
         this.status = 'finished';
+
+        // Sync FTS index after conversation finishes (delayed, non-blocking)
+        // This ensures search index is up-to-date after streaming completes
+        setTimeout(() => {
+          const db = getDatabase();
+          console.log(`[GeminiAgentManager] Syncing FTS for conversation: ${this.conversation_id}`);
+          db.syncConversationFts(this.conversation_id);
+        }, 2000); // 2 second delay to avoid blocking finish event
       }
       if (data.type === 'start') {
         this.status = 'running';
@@ -126,7 +142,16 @@ export class GeminiAgentManager extends BaseAgentManager<{
       });
       data.conversation_id = this.conversation_id;
       const message = transformMessage(data);
-      addOrUpdateMessage(this.conversation_id, message);
+      if (message) {
+        console.log('[GeminiAgentManager] ✓ Transformed message:');
+        console.log('  Message type:', message.type);
+        console.log('  Message id:', message.id);
+        console.log('  Message msg_id:', message.msg_id);
+        console.log('  Message content:', JSON.stringify(message.content, null, 2));
+        addOrUpdateMessage(this.conversation_id, message);
+      } else {
+        console.log('[GeminiAgentManager] ✗ Message not transformed (likely start/finish/thought)');
+      }
     });
   }
   // 发送tools用户确认的消息

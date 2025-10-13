@@ -333,7 +333,10 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
     // Emit network error message to UI
     // Add to message history and emit to UI
-    addOrUpdateMessage(this.conversation_id, transformMessage(networkErrorMessage));
+    const errorMessage = transformMessage(networkErrorMessage);
+    if (errorMessage) {
+      addOrUpdateMessage(this.conversation_id, errorMessage);
+    }
     ipcBridge.codexConversation.responseStream.emit(networkErrorMessage);
   }
 

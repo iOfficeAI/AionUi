@@ -7,6 +7,7 @@ import type { IConfirmAcpMessageParams, IResponseMessage } from '@/common/ipcBri
 import { parseError, uuid } from '@/common/utils';
 import { ProcessConfig } from '../initStorage';
 import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '../message';
+import { getDatabase } from '../database/export';
 import BaseAgentManager from './BaseAgentManager';
 
 interface AcpAgentManagerData {
@@ -46,11 +47,23 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
           ipcBridge.acpConversation.responseStream.emit(data);
           data.conversation_id = this.conversation_id;
           const message = transformMessage(data);
-          addOrUpdateMessage(this.conversation_id, message);
+          if (message) {
+            addOrUpdateMessage(this.conversation_id, message);
+          }
         },
         onSignalEvent: (data) => {
           // 仅发送信号到前端，不更新消息列表
           ipcBridge.acpConversation.responseStream.emit(data);
+
+          // Handle finish event: sync FTS index after conversation ends
+          if (data.type === 'finish') {
+            // Delay FTS sync to avoid blocking finish event
+            setTimeout(() => {
+              const db = getDatabase();
+              console.log(`[AcpAgentManager] Syncing FTS for conversation: ${this.conversation_id}`);
+              db.syncConversationFts(this.conversation_id);
+            }, 2000); // 2 second delay
+          }
         },
       });
       return this.agent.start().then(() => this.agent);

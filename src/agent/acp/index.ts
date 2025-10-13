@@ -116,6 +116,11 @@ export class AcpAgent {
           error: createAcpError(AcpErrorType.CONNECTION_NOT_READY, 'ACP connection not ready', true),
         };
       }
+
+      // Reset message tracking for new AI response
+      // This ensures streaming chunks share the same msg_id for accumulation
+      this.adapter.resetMessageTracking();
+
       // Save user message to chat history only after successful processing
       // This will be done after the message is successfully sent
       // Update modify time for user activity
@@ -314,17 +319,6 @@ export class AcpAgent {
   }
 
   private emitPermissionRequest(data: AcpPermissionRequest): void {
-    // 创建权限消息
-    const permissionMessage: TMessage = {
-      id: uuid(),
-      msg_id: uuid(), // 添加唯一的 msg_id，防止消息合并
-      conversation_id: this.id,
-      type: 'acp_permission',
-      position: 'center',
-      createdAt: Date.now(),
-      content: data,
-    };
-
     // 重要：将权限请求中的 toolCall 注册到 adapter 的 activeToolCalls 中
     // 这样后续的 tool_call_update 事件就能找到对应的 tool call 了
     if (data.toolCall) {
@@ -359,7 +353,16 @@ export class AcpAgent {
       this.adapter.convertSessionUpdate(toolCallUpdate);
     }
 
-    this.emitMessage(permissionMessage);
+    // 使用 onSignalEvent 而不是 emitMessage，这样消息不会被持久化到数据库
+    // Permission request 是临时交互消息，一旦用户做出选择就失去意义
+    if (this.onSignalEvent) {
+      this.onSignalEvent({
+        type: 'acp_permission',
+        conversation_id: this.id,
+        msg_id: uuid(),
+        data: data,
+      });
+    }
   }
 
   private emitErrorMessage(error: string): void {
