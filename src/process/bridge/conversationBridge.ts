@@ -9,59 +9,13 @@ import type { TChatConversation } from '@/common/storage';
 import { GeminiAgent } from '@/agent/gemini';
 import { ipcBridge } from '../../common';
 import { createAcpAgent, createCodexAgent, createGeminiAgent } from '../initAgent';
-import { ProcessChat, ProcessChatMessage } from '../initStorage';
+import { ProcessChat } from '../initStorage';
 import type AcpAgentManager from '../task/AcpAgentManager';
 import type { GeminiAgentManager } from '../task/GeminiAgentManager';
 import { readDirectoryRecursive } from '../utils';
 import WorkerManage from '../WorkerManage';
 import { getDatabase } from '@process/database';
-
-/**
- * Migrate a conversation from file storage to database
- * This is a lazy migration - only migrate when needed
- */
-async function migrateConversationToDatabase(conversation: TChatConversation): Promise<void> {
-  try {
-    const db = getDatabase();
-
-    // Check if already in database
-    const existing = db.getConversation(conversation.id);
-    if (existing.success && existing.data) {
-      // Already migrated, just update modifyTime
-      db.updateConversation(conversation.id, { modifyTime: Date.now() });
-      return;
-    }
-
-    // Create conversation in database
-    const result = db.createConversation(conversation);
-    if (!result.success) {
-      console.error('[Migration] Failed to migrate conversation:', result.error);
-      return;
-    }
-
-    // Migrate messages if they exist in file storage
-    try {
-      const messages = await ProcessChatMessage.get(conversation.id);
-      if (messages && messages.length > 0) {
-        console.log(`[Migration] Migrating ${messages.length} messages for conversation ${conversation.id}`);
-
-        // Batch insert messages
-        for (const message of messages) {
-          const insertResult = db.insertMessage(message);
-          if (!insertResult.success) {
-            console.error('[Migration] Failed to migrate message:', insertResult.error);
-          }
-        }
-
-        console.log(`[Migration] Successfully migrated conversation ${conversation.id}`);
-      }
-    } catch (error) {
-      console.warn('[Migration] No messages to migrate or error occurred:', error);
-    }
-  } catch (error) {
-    console.error('[Migration] Failed to migrate conversation:', error);
-  }
-}
+import { migrateConversationToDatabase } from './migrationUtils';
 
 export function initConversationBridge(): void {
   ipcBridge.conversation.create.provider(async (params): Promise<TChatConversation> => {
