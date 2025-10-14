@@ -387,12 +387,21 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
   }
 
   emitAndPersistMessage(message: IResponseMessage, persist: boolean = true): void {
-    // Always emit to frontend first - frontend will handle transformation and persistence
-    // This avoids double transformation and double persistence
+    // Two message types with different handling:
+    // 1. Delta messages (persist: false): only emit to frontend for UI display, no persistence
+    // 2. Other messages (persist: true): emit to frontend for both display and persistence
+    //
+    // Note: Final messages (agent_message) are handled directly by CodexMessageProcessor
+    // via addOrUpdateMessage(), they bypass this method entirely
     message.conversation_id = this.conversation_id;
 
-    // Add persist flag to message metadata so frontend knows whether to persist
-    (message as any)._shouldPersist = persist;
+    // Only emit if this message should be shown in UI
+    // Delta messages: emit for streaming display (persist: false still emits!)
+    // Status/error messages: emit for display and persistence (persist: true)
+    if (persist === false) {
+      // Delta message: emit for UI only, mark as non-persistable
+      (message as any)._skipPersist = true;
+    }
 
     ipcBridge.codexConversation.responseStream.emit(message);
   }

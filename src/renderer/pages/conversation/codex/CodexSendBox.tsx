@@ -71,8 +71,8 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
         return;
       }
 
-      // Check if this message should be persisted (set by backend)
-      const shouldPersist = (message as any)._shouldPersist !== false;
+      // Check if this is a delta message (should not persist to database)
+      const skipPersist = (message as any)._skipPersist === true;
 
       switch (message.type) {
         case 'thought':
@@ -85,10 +85,18 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
         case 'content':
         case 'codex_permission': {
           setThought({ subject: '', description: '' });
-          // Transform and persist message
+          // Transform message
           const transformedMessage = transformMessage(message);
-          if (transformedMessage && shouldPersist) {
-            addOrUpdateMessage(transformedMessage);
+          if (transformedMessage) {
+            // Delta messages: only update UI (skipPersist: true)
+            // Other messages: update UI and persist to database
+            if (skipPersist) {
+              // Only update UI state, do not persist to database
+              addOrUpdateMessage(transformedMessage, false, false);
+            } else {
+              // Update UI and persist to database
+              addOrUpdateMessage(transformedMessage);
+            }
           }
           break;
         }
@@ -97,7 +105,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
           setCodexStatus(statusData.status);
           // Transform and persist status message
           const transformedMessage = transformMessage(message);
-          if (transformedMessage && shouldPersist) {
+          if (transformedMessage) {
             addOrUpdateMessage(transformedMessage);
           }
           break;
@@ -107,7 +115,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
           setThought({ subject: '', description: '' });
           // Transform and persist other message types
           const transformedMessage = transformMessage(message);
-          if (transformedMessage && shouldPersist) {
+          if (transformedMessage) {
             addOrUpdateMessage(transformedMessage);
           }
         }

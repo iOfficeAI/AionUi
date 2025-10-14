@@ -9,14 +9,14 @@ import path from 'path';
 import { getConfigPath } from '../utils';
 import { initSchema, getDatabaseVersion, setDatabaseVersion, CURRENT_DB_VERSION } from './schema';
 import { runMigrations as executeMigrations, getMigrationHistory, isMigrationApplied } from './migrations';
-import type { IUser, IImageMetadata, IQueryResult, IPaginatedResult, TChatConversation, TMessage, IProvider, IMcpServer, IConversationRow, IMessageRow, IProviderRow, IMcpServerRow, IConfigRow } from './types';
+import type { IUser, IQueryResult, IPaginatedResult, TChatConversation, TMessage, IProvider, IMcpServer, IConversationRow, IMessageRow, IProviderRow, IMcpServerRow, IConfigRow } from './types';
 import { conversationToRow, rowToConversation, messageToRow, rowToMessage, providerToRow, rowToProvider, mcpServerToRow, rowToMcpServer } from './types';
 
 /**
  * Main database class for AionUi
  * Uses better-sqlite3 for fast, synchronous SQLite operations
  */
-export class AionDatabase {
+export class AionUIDatabase {
   private db: Database.Database;
   private defaultUserId = 'system_default_user';
 
@@ -54,7 +54,11 @@ export class AionDatabase {
   /**
    * Get migration history
    */
-  getMigrationHistory(): Array<{ version: number; name: string; timestamp: number }> {
+  getMigrationHistory(): Array<{
+    version: number;
+    name: string;
+    timestamp: number;
+  }> {
     return getMigrationHistory(this.db);
   }
 
@@ -193,16 +197,19 @@ export class AionDatabase {
     try {
       const finalUserId = userId || this.defaultUserId;
 
-      const countResult = this.db.prepare('SELECT COUNT(*) as count FROM conversations WHERE user_id = ?').get(finalUserId) as { count: number };
+      const countResult = this.db.prepare('SELECT COUNT(*) as count FROM conversations WHERE user_id = ?').get(finalUserId) as {
+        count: number;
+      };
 
       const rows = this.db
         .prepare(
           `
-        SELECT * FROM conversations
-        WHERE user_id = ?
-        ORDER BY updated_at DESC
-        LIMIT ? OFFSET ?
-      `
+            SELECT *
+            FROM conversations
+            WHERE user_id = ?
+            ORDER BY updated_at DESC LIMIT ?
+            OFFSET ?
+          `
         )
         .all(finalUserId, pageSize, page * pageSize) as IConversationRow[];
 
@@ -235,12 +242,20 @@ export class AionDatabase {
         };
       }
 
-      const updated = { ...existing.data, ...updates, modifyTime: Date.now() } as TChatConversation;
+      const updated = {
+        ...existing.data,
+        ...updates,
+        modifyTime: Date.now(),
+      } as TChatConversation;
       const row = conversationToRow(updated, this.defaultUserId);
 
       const stmt = this.db.prepare(`
         UPDATE conversations
-        SET name = ?, extra = ?, model = ?, status = ?, updated_at = ?
+        SET name       = ?,
+            extra      = ?,
+            model      = ?,
+            status     = ?,
+            updated_at = ?
         WHERE id = ?
       `);
 
@@ -347,16 +362,19 @@ export class AionDatabase {
 
   getConversationMessages(conversationId: string, page = 0, pageSize = 100): IPaginatedResult<TMessage> {
     try {
-      const countResult = this.db.prepare('SELECT COUNT(*) as count FROM messages WHERE conversation_id = ?').get(conversationId) as { count: number };
+      const countResult = this.db.prepare('SELECT COUNT(*) as count FROM messages WHERE conversation_id = ?').get(conversationId) as {
+        count: number;
+      };
 
       const rows = this.db
         .prepare(
           `
-        SELECT * FROM messages
-        WHERE conversation_id = ?
-        ORDER BY created_at ASC
-        LIMIT ? OFFSET ?
-      `
+            SELECT *
+            FROM messages
+            WHERE conversation_id = ?
+            ORDER BY created_at ASC LIMIT ?
+            OFFSET ?
+          `
         )
         .all(conversationId, pageSize, page * pageSize) as IMessageRow[];
 
@@ -401,7 +419,10 @@ export class AionDatabase {
       // Update main table
       const stmt = this.db.prepare(`
         UPDATE messages
-        SET type = ?, content = ?, position = ?, status = ?
+        SET type     = ?,
+            content  = ?,
+            position = ?,
+            status   = ?
         WHERE id = ?
       `);
 
@@ -543,10 +564,11 @@ export class AionDatabase {
   getMessageByMsgId(conversationId: string, msgId: string): IQueryResult<TMessage | null> {
     try {
       const stmt = this.db.prepare(`
-        SELECT * FROM messages
-        WHERE conversation_id = ? AND msg_id = ?
-        ORDER BY created_at DESC
-        LIMIT 1
+        SELECT *
+        FROM messages
+        WHERE conversation_id = ?
+          AND msg_id = ?
+        ORDER BY created_at DESC LIMIT 1
       `);
 
       const row = stmt.get(conversationId, msgId) as IMessageRow | undefined;
@@ -575,7 +597,7 @@ export class AionDatabase {
       let sql = `
         SELECT m.*, fts.rank
         FROM messages_fts fts
-        JOIN messages m ON m.rowid = fts.rowid
+               JOIN messages m ON m.rowid = fts.rowid
         WHERE messages_fts MATCH ?
       `;
 
@@ -701,7 +723,8 @@ export class AionDatabase {
     try {
       const now = Date.now();
       const stmt = this.db.prepare(`
-        INSERT OR REPLACE INTO configs (key, value, updated_at)
+        INSERT
+        OR REPLACE INTO configs (key, value, updated_at)
         VALUES (?, ?, ?)
       `);
 
@@ -791,7 +814,8 @@ export class AionDatabase {
       const row = providerToRow(provider, userId || this.defaultUserId);
 
       const stmt = this.db.prepare(`
-        INSERT INTO providers (id, user_id, platform, name, base_url, api_key, models, capabilities, context_limit, created_at, updated_at)
+        INSERT INTO providers (id, user_id, platform, name, base_url, api_key, models, capabilities, context_limit,
+                               created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
@@ -837,7 +861,8 @@ export class AionDatabase {
       const row = mcpServerToRow(server, userId || this.defaultUserId);
 
       const stmt = this.db.prepare(`
-        INSERT INTO mcp_servers (id, user_id, name, description, enabled, transport, tools, status, last_connected, created_at, updated_at, original_json)
+        INSERT INTO mcp_servers (id, user_id, name, description, enabled, transport, tools, status, last_connected,
+                                 created_at, updated_at, original_json)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
@@ -874,53 +899,12 @@ export class AionDatabase {
 
   /**
    * ==================
-   * Image metadata operations
+   * Image metadata operations (removed)
    * ==================
    */
+  // Images are stored in filesystem and referenced via message.resultDisplay
 
-  createImageMetadata(image: IImageMetadata): IQueryResult<IImageMetadata> {
-    try {
-      const stmt = this.db.prepare(`
-        INSERT INTO images (id, message_id, conversation_id, file_path, file_hash, file_size, mime_type, width, height, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `);
-
-      stmt.run(image.id, image.message_id, image.conversation_id, image.file_path, image.file_hash, image.file_size, image.mime_type, image.width, image.height, image.created_at);
-
-      return {
-        success: true,
-        data: image,
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  }
-
-  getImageByHash(hash: string): IQueryResult<IImageMetadata> {
-    try {
-      const image = this.db.prepare('SELECT * FROM images WHERE file_hash = ?').get(hash) as IImageMetadata | undefined;
-
-      if (!image) {
-        return {
-          success: false,
-          error: 'Image not found',
-        };
-      }
-
-      return {
-        success: true,
-        data: image,
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  }
+  // Image storage removed - images are stored in filesystem and referenced via message.resultDisplay
 
   /**
    * ==================
@@ -948,22 +932,42 @@ export class AionDatabase {
     mcpServers: number;
   } {
     return {
-      users: (this.db.prepare('SELECT COUNT(*) as count FROM users').get() as { count: number }).count,
+      users: (
+        this.db.prepare('SELECT COUNT(*) as count FROM users').get() as {
+          count: number;
+        }
+      ).count,
       conversations: (this.db.prepare('SELECT COUNT(*) as count FROM conversations').get() as { count: number }).count,
-      messages: (this.db.prepare('SELECT COUNT(*) as count FROM messages').get() as { count: number }).count,
-      images: (this.db.prepare('SELECT COUNT(*) as count FROM images').get() as { count: number }).count,
-      providers: (this.db.prepare('SELECT COUNT(*) as count FROM providers').get() as { count: number }).count,
-      mcpServers: (this.db.prepare('SELECT COUNT(*) as count FROM mcp_servers').get() as { count: number }).count,
+      messages: (
+        this.db.prepare('SELECT COUNT(*) as count FROM messages').get() as {
+          count: number;
+        }
+      ).count,
+      images: (
+        this.db.prepare('SELECT COUNT(*) as count FROM images').get() as {
+          count: number;
+        }
+      ).count,
+      providers: (
+        this.db.prepare('SELECT COUNT(*) as count FROM providers').get() as {
+          count: number;
+        }
+      ).count,
+      mcpServers: (
+        this.db.prepare('SELECT COUNT(*) as count FROM mcp_servers').get() as {
+          count: number;
+        }
+      ).count,
     };
   }
 }
 
 // Export singleton instance
-let dbInstance: AionDatabase | null = null;
+let dbInstance: AionUIDatabase | null = null;
 
-export function getDatabase(dbPath?: string): AionDatabase {
+export function getDatabase(dbPath?: string): AionUIDatabase {
   if (!dbInstance) {
-    dbInstance = new AionDatabase(dbPath);
+    dbInstance = new AionUIDatabase(dbPath);
   }
   return dbInstance;
 }

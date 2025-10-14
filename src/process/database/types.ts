@@ -27,21 +27,7 @@ export interface IUser {
   updated_at: number;
 }
 
-/**
- * Image metadata (图片元数据，文件存储在文件系统)
- */
-export interface IImageMetadata {
-  id: string;
-  message_id?: string; // 关联的消息ID
-  conversation_id?: string; // 关联的会话ID
-  file_path: string; // 文件系统路径
-  file_hash: string; // SHA256哈希，用于去重
-  file_size: number;
-  mime_type: string;
-  width?: number;
-  height?: number;
-  created_at: number;
-}
+// Image metadata removed - images are stored in filesystem and referenced via message.resultDisplay
 
 /**
  * ======================
