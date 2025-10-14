@@ -35,7 +35,10 @@ const LocalImageView: React.FC<{
         setLoading(false);
       })
       .catch((error) => {
-        console.error('Failed to load image:', error);
+        console.error('[LocalImageView] Failed to load image:', {
+          path: absolutePath,
+          error,
+        });
         setLoading(false);
       });
   }, [absolutePath]);

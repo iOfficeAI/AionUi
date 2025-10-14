@@ -149,44 +149,26 @@ export const addOrUpdateMessage = (conversation_id: string, message: TMessage): 
         const existing = db.getMessageByMsgId(conversation_id, message.msg_id);
 
         if (existing.success && existing.data) {
-          // Message exists - check if this is a final complete message or streaming delta
+          // Message exists - REPLACE content (not accumulate)
+          //
+          // Three agent message patterns all require replacement, not accumulation:
+          // 1. Gemini/ACP: Frontend receives deltas, accumulates via composeMessage, sends complete message
+          // 2. Codex: Backend sends deltas to frontend (display only), then sends complete message (_isFinalMessage: true) directly to storage
+          //
+          // In all cases, the message arriving here is already complete and should replace the existing content.
           const existingMsg = existing.data as IMessageText;
           const incomingMsg = message as IMessageText;
 
-          // Check for _isFinalMessage flag to distinguish complete messages from deltas
-          const isFinalMessage = (message as any)._isFinalMessage === true;
+          const updatedMessage: IMessageText = {
+            ...existingMsg,
+            content: { content: incomingMsg.content.content }, // Replace, not accumulate
+            createdAt: message.createdAt || existingMsg.createdAt,
+          };
 
-          if (isFinalMessage) {
-            // Final complete message - replace content entirely
-            const updatedMessage: IMessageText = {
-              ...existingMsg,
-              content: { content: incomingMsg.content.content }, // Replace, not accumulate
-              createdAt: message.createdAt || existingMsg.createdAt,
-            };
-
-            // Update FTS for final message (skipFtsUpdate: false)
-            const updateResult = db.updateMessage(existingMsg.id, updatedMessage, { skipFtsUpdate: false });
-            if (!updateResult.success) {
-              console.error('[Message] Final text update failed:', updateResult.error);
-            }
-          } else {
-            // Streaming delta - accumulate content
-            const newContent = existingMsg.content.content + incomingMsg.content.content;
-
-            const updatedMessage: IMessageText = {
-              ...existingMsg,
-              content: { content: newContent },
-              createdAt: message.createdAt || existingMsg.createdAt,
-            };
-
-            // Skip FTS update for text messages during streaming
-            // FTS will be updated when final message arrives
-            const skipFts = true;
-
-            const updateResult = db.updateMessage(existingMsg.id, updatedMessage, { skipFtsUpdate: skipFts });
-            if (!updateResult.success) {
-              console.error('[Message] Text update failed:', updateResult.error);
-            }
+          // Skip FTS update during streaming (will be synced when conversation finishes)
+          const updateResult = db.updateMessage(existingMsg.id, updatedMessage, { skipFtsUpdate: true });
+          if (!updateResult.success) {
+            console.error('[Message] Text update failed:', updateResult.error);
           }
         } else {
           // New text message - insert

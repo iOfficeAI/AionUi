@@ -18,8 +18,15 @@ const beforeUpdateMessageListStack: Array<(list: TMessage[]) => TMessage[]> = []
 
 export const useAddOrUpdateMessage = () => {
   const update = useUpdateMessageList();
-  return (message: TMessage, add = false) => {
-    // Update UI state
+  return (message: TMessage, add = false, persist = true) => {
+    // Log for debugging
+    if (message.type === 'text' && message.msg_id) {
+      const textMessage = message as any;
+      const contentPreview = textMessage?.content?.content?.substring?.(0, 50) || '';
+      console.log(`[Frontend] addOrUpdateMessage called: msg_id=${message.msg_id}, content_preview="${contentPreview}", add=${add}, persist=${persist}`);
+    }
+
+    // Always update UI state
     update((list) => {
       let newList = add ? list.concat(message) : composeMessage(message, list).slice();
       while (beforeUpdateMessageListStack.length) {
@@ -28,8 +35,10 @@ export const useAddOrUpdateMessage = () => {
       return newList;
     });
 
-    // Persist to database via IPC
-    if (message && message.conversation_id) {
+    // Persist to database via IPC only if persist flag is true
+    // For Codex delta messages: persist=false (only UI update, backend handles final message persistence)
+    // For other messages: persist=true (normal flow)
+    if (persist && message && message.conversation_id) {
       void ipcBridge.database.addOrUpdateMessage.invoke({
         conversation_id: message.conversation_id,
         message: message,
@@ -42,7 +51,6 @@ export const useMessageLstCache = (key: string) => {
   const update = useUpdateMessageList();
   useEffect(() => {
     if (!key) return;
-    console.log(`[useMessageLstCache] Loading messages for conversation: ${key}`);
     void ipcBridge.database.getConversationMessages
       .invoke({
         conversation_id: key,
@@ -50,9 +58,7 @@ export const useMessageLstCache = (key: string) => {
         pageSize: 10000, // Load all messages (up to 10k per conversation)
       })
       .then((messages) => {
-        console.log(`[useMessageLstCache] Received ${messages?.length || 0} messages for conversation ${key}`);
         if (messages && Array.isArray(messages)) {
-          console.log(`[useMessageLstCache] First message:`, messages[0]);
           update(() => messages);
         }
       })

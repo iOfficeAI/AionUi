@@ -73,27 +73,8 @@ export function initSchema(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_messages_conversation_created ON messages(conversation_id, created_at);
   `);
 
-  // Images table (图片元数据表，文件存储在文件系统)
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS images (
-      id TEXT PRIMARY KEY,
-      message_id TEXT,
-      conversation_id TEXT,
-      file_path TEXT NOT NULL UNIQUE,
-      file_hash TEXT NOT NULL,
-      file_size INTEGER NOT NULL,
-      mime_type TEXT NOT NULL,
-      width INTEGER,
-      height INTEGER,
-      created_at INTEGER NOT NULL,
-      FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE CASCADE,
-      FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_images_message_id ON images(message_id);
-    CREATE INDEX IF NOT EXISTS idx_images_conversation_id ON images(conversation_id);
-    CREATE INDEX IF NOT EXISTS idx_images_file_hash ON images(file_hash);
-  `);
+  // Images are stored in the filesystem and referenced via message.resultDisplay
+  // No separate images table needed
 
   // Configs table (配置表 - key-value存储)
   db.exec(`
