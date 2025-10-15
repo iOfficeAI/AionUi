@@ -11,34 +11,7 @@ import { initSchema, getDatabaseVersion, setDatabaseVersion, CURRENT_DB_VERSION 
 import { runMigrations as executeMigrations, getMigrationHistory, isMigrationApplied } from './migrations';
 import type { IUser, IQueryResult, IPaginatedResult, TChatConversation, TMessage, IConversationRow, IMessageRow } from './types';
 import { conversationToRow, rowToConversation, messageToRow, rowToMessage } from './types';
-
-/** Resolve final SQLite file path.
- * Priority:
- * 1. Explicit argument
- * 2. Environment variable AIONUI_DB_PATH
- * 3. Project root directory (./aionui.db)
- *
- * 解析 SQLite 数据库文件路径，优先级：
- * 1. 显式参数
- * 2. 环境变量 AIONUI_DB_PATH
- * 3. 项目根目录 (./aionui.db)
- */
-const resolveDatabasePath = (explicitPath?: string): string => {
-  // 1. Explicit argument
-  if (explicitPath && explicitPath.trim() !== '') {
-    const candidate = explicitPath.trim();
-    return path.isAbsolute(candidate) ? candidate : path.resolve(candidate);
-  }
-
-  // 2. Environment variable
-  if (process.env.AIONUI_DB_PATH && process.env.AIONUI_DB_PATH.trim() !== '') {
-    const candidate = process.env.AIONUI_DB_PATH.trim();
-    return path.isAbsolute(candidate) ? candidate : path.resolve(candidate);
-  }
-
-  // 3. Default: Project root directory
-  return path.join(process.cwd(), 'aionui.db');
-};
+import { getDataPath } from '@process/utils';
 
 /**
  * Main database class for AionUi
@@ -48,8 +21,8 @@ export class AionUIDatabase {
   private db: Database.Database;
   private defaultUserId = 'system_default_user';
 
-  constructor(dbPath?: string) {
-    const finalPath = resolveDatabasePath(dbPath);
+  constructor() {
+    const finalPath = path.join(getDataPath(), 'aionui.db');
     console.log(`[Database] Initializing database at: ${finalPath}`);
 
     this.db = new Database(finalPath);
@@ -686,9 +659,9 @@ export class AionUIDatabase {
 // Export singleton instance
 let dbInstance: AionUIDatabase | null = null;
 
-export function getDatabase(dbPath?: string): AionUIDatabase {
+export function getDatabase(): AionUIDatabase {
   if (!dbInstance) {
-    dbInstance = new AionUIDatabase(dbPath);
+    dbInstance = new AionUIDatabase();
   }
   return dbInstance;
 }
