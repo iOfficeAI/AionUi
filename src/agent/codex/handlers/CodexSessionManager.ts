@@ -45,7 +45,7 @@ export class CodexSessionManager {
     try {
       await this.performConnectionSequence();
     } catch (error) {
-      this.setStatus('error', `Failed to start session: ${error instanceof Error ? error.message : String(error)}`);
+      this.setStatus('error');
       throw error;
     }
   }
@@ -55,19 +55,19 @@ export class CodexSessionManager {
    */
   private async performConnectionSequence(): Promise<void> {
     // 1. 连接阶段
-    this.setStatus('connecting', '');
+    this.setStatus('connecting');
     await this.establishConnection();
 
     // 2. 认证阶段
-    this.setStatus('connected', '');
+    this.setStatus('connected');
     await this.performAuthentication();
 
     // 3. 会话创建阶段
-    this.setStatus('authenticated', '');
+    this.setStatus('authenticated');
     await this.createSession();
 
     // 4. 会话激活
-    this.setStatus('session_active', '');
+    this.setStatus('session_active');
   }
 
   /**
@@ -126,7 +126,7 @@ export class CodexSessionManager {
     this.isConnected = false;
     this.hasActiveSession = false;
     this.sessionId = null;
-    this.setStatus('disconnected', 'Session disconnected');
+    this.setStatus('disconnected');
     return Promise.resolve();
   }
 
@@ -151,17 +151,17 @@ export class CodexSessionManager {
   /**
    * 设置状态并发送通知 - 参考 ACP 的 emitStatusMessage
    */
-  private setStatus(status: CodexSessionStatus, message: string): void {
+  private setStatus(status: CodexSessionStatus): void {
     this.status = status;
     // 更新本地状态即可，全局ID已确保唯一性
 
     this.messageEmitter.emitAndPersistMessage({
-      type: 'codex_status',
+      type: 'agent_status',
       conversation_id: this.config.conversation_id,
       msg_id: globalStatusMessageId, // 使用全局状态消息ID
       data: {
+        backend: 'codex',
         status,
-        message,
         sessionId: this.sessionId,
         isConnected: this.isConnected,
         hasActiveSession: this.hasActiveSession,
@@ -212,10 +212,12 @@ export class CodexSessionManager {
    */
   emitSessionEvent(eventType: string, data: unknown): void {
     this.messageEmitter.emitAndPersistMessage({
-      type: 'codex_status',
+      type: 'agent_status',
       conversation_id: this.config.conversation_id,
       msg_id: uuid(),
       data: {
+        backend: 'codex',
+        status: eventType as any, // Session event type as status
         eventType,
         sessionId: this.sessionId,
         timestamp: Date.now(),

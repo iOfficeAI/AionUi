@@ -11,7 +11,7 @@ import { ipcBridge } from '../../common';
 import { createAcpAgent, createCodexAgent, createGeminiAgent } from '../initAgent';
 import type AcpAgentManager from '../task/AcpAgentManager';
 import type { GeminiAgentManager } from '../task/GeminiAgentManager';
-import { readDirectoryRecursive } from '../utils';
+import { copyFilesToDirectory, readDirectoryRecursive } from '../utils';
 import WorkerManage from '../WorkerManage';
 import { getDatabase } from '@process/database';
 
@@ -176,6 +176,36 @@ export function initConversationBridge(): void {
     }
     await task.stop();
     return { success: true };
+  });
+
+  // 通用 sendMessage 实现 - 自动根据 conversation 类型分发
+  ipcBridge.conversation.sendMessage.provider(async ({ conversation_id, files, ...other }) => {
+    const task = (await WorkerManage.getTaskByIdRollbackBuild(conversation_id)) as GeminiAgentManager | AcpAgentManager | CodexAgentManager | undefined;
+
+    if (!task) {
+      return { success: false, msg: 'conversation not found' };
+    }
+
+    // 复制文件到工作空间
+    await copyFilesToDirectory(task.workspace, files);
+
+    try {
+      // 根据 task 类型调用对应的 sendMessage 方法
+      if (task.type === 'gemini') {
+        await (task as GeminiAgentManager).sendMessage(other);
+        return { success: true };
+      } else if (task.type === 'acp') {
+        await (task as AcpAgentManager).sendMessage({ content: other.input, files, msg_id: other.msg_id });
+        return { success: true };
+      } else if (task.type === 'codex') {
+        await (task as CodexAgentManager).sendMessage({ content: other.input, files, msg_id: other.msg_id });
+        return { success: true };
+      } else {
+        return { success: false, msg: `Unsupported task type: ${task.type}` };
+      }
+    } catch (err: unknown) {
+      return { success: false, msg: err instanceof Error ? err.message : String(err) };
+    }
   });
 
   // 通用 confirmMessage 实现 - 自动根据 conversation 类型分发

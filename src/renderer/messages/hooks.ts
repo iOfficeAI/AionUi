@@ -19,7 +19,6 @@ const beforeUpdateMessageListStack: Array<(list: TMessage[]) => TMessage[]> = []
 export const useAddOrUpdateMessage = () => {
   const update = useUpdateMessageList();
   return (message: TMessage, add = false) => {
-    // Update UI state
     update((list) => {
       let newList = add ? list.concat(message) : composeMessage(message, list).slice();
       while (beforeUpdateMessageListStack.length) {
@@ -27,14 +26,6 @@ export const useAddOrUpdateMessage = () => {
       }
       return newList;
     });
-
-    // Persist to database via IPC
-    if (message && message.conversation_id) {
-      void ipcBridge.database.addOrUpdateMessage.invoke({
-        conversation_id: message.conversation_id,
-        message: message,
-      });
-    }
   };
 };
 
@@ -42,7 +33,6 @@ export const useMessageLstCache = (key: string) => {
   const update = useUpdateMessageList();
   useEffect(() => {
     if (!key) return;
-    console.log(`[useMessageLstCache] Loading messages for conversation: ${key}`);
     void ipcBridge.database.getConversationMessages
       .invoke({
         conversation_id: key,
@@ -50,9 +40,7 @@ export const useMessageLstCache = (key: string) => {
         pageSize: 10000, // Load all messages (up to 10k per conversation)
       })
       .then((messages) => {
-        console.log(`[useMessageLstCache] Received ${messages?.length || 0} messages for conversation ${key}`);
         if (messages && Array.isArray(messages)) {
-          console.log(`[useMessageLstCache] First message:`, messages[0]);
           update(() => messages);
         }
       })

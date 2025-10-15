@@ -8,15 +8,22 @@ import { mkdirSync as _mkdirSync, existsSync, readdirSync, readFileSync } from '
 import fs from 'fs/promises';
 import path from 'path';
 import { application } from '../common/ipcBridge';
-import type { IMcpServer } from '../common/storage';
+import type { IChatConversationRefer, IConfigStorageRefer, IEnvStorageRefer, IMcpServer } from '../common/storage';
 import { ChatMessageStorage, ChatStorage, ConfigStorage, EnvStorage } from '../common/storage';
 import { copyDirectoryRecursively, getConfigPath, getDataPath, getTempPath, verifyDirectoryFiles } from './utils';
-import { getDatabase, getImageStorage } from './database/export';
+import { getDatabase } from './database/export';
 // Platform and architecture types (moved from deleted updateConfig)
 type PlatformType = 'win32' | 'darwin' | 'linux';
 type ArchitectureType = 'x64' | 'arm64' | 'ia32' | 'arm';
 
 const nodePath = path;
+
+const STORAGE_PATH = {
+  config: 'aionui-config.txt',
+  chatMessage: 'aionui-chat-message.txt',
+  chat: 'aionui-chat.txt',
+  env: '.aionui-env',
+};
 
 const getHomePage = getConfigPath;
 
@@ -232,8 +239,78 @@ const JsonFileBuilder = <S extends Record<string, any>>(path: string) => {
   };
 };
 
+const envFile = JsonFileBuilder<IEnvStorageRefer>(path.join(getHomePage(), STORAGE_PATH.env));
+
+const dirConfig = envFile.getSync('aionui.dir');
+
+const cacheDir = dirConfig?.cacheDir || getHomePage();
+
+const configFile = JsonFileBuilder<IConfigStorageRefer>(path.join(cacheDir, STORAGE_PATH.config));
+const _chatMessageFile = JsonFileBuilder(path.join(cacheDir, STORAGE_PATH.chatMessage));
+const _chatFile = JsonFileBuilder<IChatConversationRefer>(path.join(cacheDir, STORAGE_PATH.chat));
+
+// 创建带字段迁移的聊天历史代理
+const chatFile = {
+  ..._chatFile,
+  async get<K extends keyof IChatConversationRefer>(key: K): Promise<IChatConversationRefer[K]> {
+    const data = await _chatFile.get(key);
+
+    // 特别处理 chat.history 的字段迁移
+    if (key === 'chat.history' && Array.isArray(data)) {
+      return data.map((conversation: any) => {
+        // 迁移 model 字段：selectedModel -> useModel
+        if (conversation.model && 'selectedModel' in conversation.model && !('useModel' in conversation.model)) {
+          conversation.model = {
+            ...conversation.model,
+            useModel: conversation.model.selectedModel,
+          };
+          delete conversation.model.selectedModel;
+        }
+        return conversation;
+      }) as IChatConversationRefer[K];
+    }
+
+    return data;
+  },
+  async set<K extends keyof IChatConversationRefer>(key: K, value: IChatConversationRefer[K]): Promise<IChatConversationRefer[K]> {
+    return await _chatFile.set(key, value);
+  },
+};
+
+const buildMessageListStorage = (conversation_id: string, dir: string) => {
+  const fullName = path.join(dir, 'aionui-chat-history', conversation_id + '.txt');
+  if (!existsSync(fullName)) {
+    mkdirSync(path.join(dir, 'aionui-chat-history'));
+  }
+  return JsonFileBuilder(path.join(dir, 'aionui-chat-history', conversation_id + '.txt'));
+};
+
+const conversationHistoryProxy = (options: typeof _chatMessageFile, dir: string) => {
+  return {
+    ...options,
+    async set(key: string, data: any) {
+      const conversation_id = key;
+      const storage = buildMessageListStorage(conversation_id, dir);
+      return await storage.setJson(data);
+    },
+    async get(key: string): Promise<any[]> {
+      const conversation_id = key;
+      const storage = buildMessageListStorage(conversation_id, dir);
+      const data = await storage.toJson();
+      if (Array.isArray(data)) return data;
+      return [];
+    },
+    backup(conversation_id: string) {
+      const storage = buildMessageListStorage(conversation_id, dir);
+      return storage.backup(path.join(dir, 'aionui-chat-history', 'backup', conversation_id + '_' + Date.now() + '.txt'));
+    },
+  };
+};
+
+const chatMessageFile = conversationHistoryProxy(_chatMessageFile, cacheDir);
+
 /**
- * 创建默认的 MCP 服务器配置 / Build default MCP server configuration
+ * 创建默认的 MCP 服务器配置
  */
 const getDefaultMcpServers = (): IMcpServer[] => {
   const now = Date.now();
@@ -276,78 +353,36 @@ const initStorage = async () => {
     mkdirSync(getDataPath());
   }
 
-  // 3. 初始化数据库（better-sqlite3）
+  // 3. 初始化存储系统
+  ConfigStorage.interceptor(configFile);
+  ChatStorage.interceptor(chatFile);
+  ChatMessageStorage.interceptor(chatMessageFile);
+  EnvStorage.interceptor(envFile);
+
+  // 4. 初始化 MCP 配置（为所有用户提供默认配置）
   try {
-    const _db = getDatabase();
-    const _imageStorage = getImageStorage();
-    console.log('[AionUi] Database initialized');
+    const existingMcpConfig = await configFile.get('mcp.config').catch((): undefined => undefined);
 
-    // 4. 初始化 MCP 配置（为所有用户提供默认配置）
-    try {
-      const existingMcpConfig = _db.getConfig('mcp.config');
-
-      // 仅当配置不存在或为空时，写入默认值（适用于新用户和老用户）
-      if (!existingMcpConfig.success || !existingMcpConfig.data || !Array.isArray(existingMcpConfig.data) || existingMcpConfig.data.length === 0) {
-        const defaultServers = getDefaultMcpServers();
-        _db.setConfig('mcp.config', defaultServers);
-        console.log('[AionUi] Default MCP servers initialized');
-      }
-    } catch (error) {
-      console.error('[AionUi] Failed to initialize default MCP servers:', error);
+    // 仅当配置不存在或为空时，写入默认值（适用于新用户和老用户）
+    if (!existingMcpConfig || !Array.isArray(existingMcpConfig) || existingMcpConfig.length === 0) {
+      const defaultServers = getDefaultMcpServers();
+      await configFile.set('mcp.config', defaultServers);
+      console.log('[AionUi] Default MCP servers initialized');
     }
-
-    // 设置数据库存储拦截器（优先使用 SQLite）
-    ConfigStorage.interceptor({
-      get: (key: string) => {
-        const result = _db.getConfig(key);
-        return Promise.resolve(result.data);
-      },
-      set: (key: string, data: any) => {
-        _db.setConfig(key, data);
-        return Promise.resolve(data);
-      },
-    });
-
-    ChatStorage.interceptor({
-      get: (key: string) => {
-        if (key === 'chat.history') {
-          const result = _db.getUserConversations(undefined, 0, 1000);
-          return Promise.resolve(result.data || []);
-        }
-        return Promise.resolve(undefined);
-      },
-      set: (key: string, data: any) => {
-        console.log('[AionUi] ChatStorage.set is deprecated, use database API instead');
-        return Promise.resolve(data);
-      },
-    });
-
-    ChatMessageStorage.interceptor({
-      get: (key: string) => {
-        const result = _db.getConversationMessages(key, 0, 1000);
-        return Promise.resolve(result.data || []);
-      },
-      set: (key: string, data: any) => {
-        console.log('[AionUi] ChatMessageStorage.set is deprecated, use database API instead');
-        return Promise.resolve(data);
-      },
-    });
-
-    EnvStorage.interceptor({
-      get: (key: string) => {
-        const result = _db.getConfig(`env.${key}`);
-        return Promise.resolve(result.data);
-      },
-      set: (key: string, data: any) => {
-        _db.setConfig(`env.${key}`, data);
-        return Promise.resolve(data);
-      },
-    });
-
-    console.log('[AionUi] ✓ Storage interceptors configured to use SQLite');
   } catch (error) {
-    console.error('[InitStorage] Database initialization failed:', error);
-    throw error;
+    console.error('[AionUi] Failed to initialize default MCP servers:', error);
+  }
+
+  // 5. 初始化数据库（better-sqlite3）
+  try {
+    getDatabase();
+
+    // NOTE: Data migration from file storage to database is handled automatically
+    // via lazy migration in conversationBridge.ts and databaseBridge.ts
+    // Historical conversations are migrated on-demand when accessed
+    // Images are stored directly in the workspace filesystem and referenced via message.resultDisplay
+  } catch (error) {
+    console.error('[InitStorage] Database initialization failed, falling back to file-based storage:', error);
   }
 
   application.systemInfo.provider(() => {
@@ -355,57 +390,21 @@ const initStorage = async () => {
   });
 };
 
-const getDbInstance = () => getDatabase();
+export const ProcessConfig = configFile;
 
-export const ProcessConfig = {
-  get<T = unknown>(key: string): Promise<T | undefined> {
-    const result = getDbInstance().getConfig(key);
-    if (!result.success) {
-      return Promise.resolve(undefined);
-    }
-    return Promise.resolve(result.data as T);
-  },
-  set<T = unknown>(key: string, value: T): Promise<T> {
-    getDbInstance().setConfig(key, value as any);
-    return Promise.resolve(value);
-  },
-};
+export const ProcessChat = chatFile;
 
-export const ProcessEnv = {
-  get<T = unknown>(key: string): Promise<T | undefined> {
-    const result = getDbInstance().getConfig(`env.${key}`);
-    if (!result.success) {
-      return Promise.resolve(undefined);
-    }
-    return Promise.resolve(result.data as T);
-  },
-  set<T = unknown>(key: string, value: T): Promise<T> {
-    getDbInstance().setConfig(`env.${key}`, value as any);
-    return Promise.resolve(value);
-  },
-};
+export const ProcessChatMessage = chatMessageFile;
+
+export const ProcessEnv = envFile;
 
 export const getSystemDir = () => {
-  try {
-    const db = getDatabase();
-    const envConfig = db.getConfig('env.aionui.dir');
-    const dir = envConfig.success ? (envConfig.data as { cacheDir?: string; workDir?: string } | undefined) : undefined;
-
-    return {
-      cacheDir: dir?.cacheDir || getConfigPath(),
-      workDir: dir?.workDir || getDataPath(),
-      platform: process.platform as PlatformType,
-      arch: process.arch as ArchitectureType,
-    };
-  } catch (error) {
-    console.warn('[AionUi] Failed to resolve system directory from database:', error);
-    return {
-      cacheDir: getConfigPath(),
-      workDir: getDataPath(),
-      platform: process.platform as PlatformType,
-      arch: process.arch as ArchitectureType,
-    };
-  }
+  return {
+    cacheDir: cacheDir,
+    workDir: dirConfig?.workDir || getDataPath(),
+    platform: process.platform as PlatformType,
+    arch: process.arch as ArchitectureType,
+  };
 };
 
 export default initStorage;

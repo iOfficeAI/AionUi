@@ -4,10 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { AcpBackend } from '../types/acpTypes';
 import type { IResponseMessage } from './ipcBridge';
 import { uuid } from './utils';
-import type { AcpPermissionRequest, ToolCallUpdate } from '@/types/acpTypes';
+import type { AcpBackend, AcpPermissionRequest, ToolCallUpdate } from '@/types/acpTypes';
 import type { CodexPermissionRequest } from '@/common/codex/types';
 import type { ExecCommandBeginData, ExecCommandOutputDeltaData, ExecCommandEndData, PatchApplyBeginData, PatchApplyEndData, McpToolCallBeginData, McpToolCallEndData, WebSearchBeginData, WebSearchEndData, TurnDiffData } from '@/common/codex/types/eventData';
 
@@ -51,43 +50,11 @@ export const joinPath = (basePath: string, relativePath: string): string => {
   return result.replace(/\/+/g, '/'); // 将多个连续的斜杠替换为单个
 };
 
-// Normalize LLM text with awkward line breaks/zero‑width chars while preserving code blocks.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function _normalizeLLMText(raw: string): string {
-  if (!raw || typeof raw !== 'string') return raw as any;
-  const ZW = /[\u200B-\u200D\uFEFF]/g;
-  const chunks = raw
-    .replace(/[\r\t]+/g, (m) => (m.includes('\t') ? ' ' : ''))
-    .replace(ZW, '')
-    .split('```');
-  const out: string[] = [];
-  for (let i = 0; i < chunks.length; i++) {
-    let seg = chunks[i];
-    if (i % 2 === 1) {
-      out.push('```' + seg + '```');
-      continue;
-    }
-    // Join words split by stray newlines: "Div\nis\nibility" -> "Divisibility"
-    seg = seg.replace(/([A-Za-z])\s*\n\s*([a-z])/g, '$1$2');
-    // Join hyphen alone lines: "Power\n-\nof" -> "Power-of"
-    seg = seg.replace(/([A-Za-z])\s*\n\s*-\s*\n\s*([A-Za-z])/g, '$1-$2');
-    // Replace single newlines between non-terminal contexts with space
-    // Note: character class excludes terminal punctuation [.!?:;]
-    seg = seg.replace(/([^.!?:;])\n(?!\n|\s*[-*#\d])/g, '$1 ');
-    // Collapse excessive blank lines
-    seg = seg.replace(/\n{3,}/g, '\n\n');
-    // Normalize multiple spaces
-    seg = seg.replace(/ {2,}/g, ' ');
-    out.push(seg);
-  }
-  return out.join('');
-}
-
 /**
  * @description 跟对话相关的消息类型申明 及相关处理
  */
 
-type TMessageType = 'text' | 'tips' | 'tool_call' | 'tool_group' | 'acp_status' | 'acp_permission' | 'acp_tool_call' | 'codex_status' | 'codex_permission' | 'codex_tool_call';
+type TMessageType = 'text' | 'tips' | 'tool_call' | 'tool_group' | 'agent_status' | 'acp_permission' | 'acp_tool_call' | 'codex_permission' | 'codex_tool_call';
 
 interface IMessage<T extends TMessageType, Content extends Record<string, any>> {
   /**
@@ -195,29 +162,22 @@ export type IMessageToolGroup = IMessage<
   }>
 >;
 
-export type IMessageAcpStatus = IMessage<
-  'acp_status',
+// Unified agent status message type for all ACP-based agents (Claude, Qwen, Codex, etc.)
+export type IMessageAgentStatus = IMessage<
+  'agent_status',
   {
-    backend: AcpBackend;
+    backend: AcpBackend; // Agent identifier: 'claude', 'qwen', 'codex', etc.
     status: 'connecting' | 'connected' | 'authenticated' | 'session_active' | 'disconnected' | 'error';
-    message: string;
+    // Optional legacy fields for backward compatibility
+    sessionId?: string;
+    isConnected?: boolean;
+    hasActiveSession?: boolean;
   }
 >;
 
 export type IMessageAcpPermission = IMessage<'acp_permission', AcpPermissionRequest>;
 
 export type IMessageAcpToolCall = IMessage<'acp_tool_call', ToolCallUpdate>;
-
-export type IMessageCodexStatus = IMessage<
-  'codex_status',
-  {
-    status: string;
-    message: string;
-    sessionId?: string;
-    isConnected?: boolean;
-    hasActiveSession?: boolean;
-  }
->;
 
 export type IMessageCodexPermission = IMessage<'codex_permission', CodexPermissionRequest>;
 
@@ -294,7 +254,7 @@ export type CodexToolCallUpdate =
 export type IMessageCodexToolCall = IMessage<'codex_tool_call', CodexToolCallUpdate>;
 
 // eslint-disable-next-line max-len
-export type TMessage = IMessageText | IMessageTips | IMessageToolCall | IMessageToolGroup | IMessageAcpStatus | IMessageAcpPermission | IMessageAcpToolCall | IMessageCodexStatus | IMessageCodexPermission | IMessageCodexToolCall;
+export type TMessage = IMessageText | IMessageTips | IMessageToolCall | IMessageToolGroup | IMessageAgentStatus | IMessageAcpPermission | IMessageAcpToolCall | IMessageCodexPermission | IMessageCodexToolCall;
 
 /**
  * @description 将后端返回的消息转换为前端消息
@@ -346,10 +306,10 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         content: message.data,
       };
     }
-    case 'acp_status': {
+    case 'agent_status': {
       return {
         id: uuid(),
-        type: 'acp_status',
+        type: 'agent_status',
         msg_id: message.msg_id,
         position: 'center',
         conversation_id: message.conversation_id,
@@ -372,16 +332,6 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         type: 'acp_tool_call',
         msg_id: message.msg_id,
         position: 'left',
-        conversation_id: message.conversation_id,
-        content: message.data,
-      };
-    }
-    case 'codex_status': {
-      return {
-        id: uuid(),
-        type: 'codex_status',
-        msg_id: message.msg_id,
-        position: 'center',
         conversation_id: message.conversation_id,
         content: message.data,
       };
@@ -431,7 +381,7 @@ export const composeMessage = (message: TMessage | undefined, list: TMessage[] |
       if (existingMessage.type === 'tool_group') {
         if (!existingMessage.content.length) continue;
         // Create a new content array with merged tool data
-        existingMessage.content = existingMessage.content.map((tool) => {
+        const newContent = existingMessage.content.map((tool) => {
           const newToolIndex = tools.findIndex((t) => t.callId === tool.callId);
           if (newToolIndex === -1) return tool;
           // Create new object instead of mutating original
@@ -439,6 +389,9 @@ export const composeMessage = (message: TMessage | undefined, list: TMessage[] |
           tools.splice(newToolIndex, 1);
           return merged;
         });
+        // Create a new message object instead of mutating the existing one
+        // This ensures database update detection works correctly
+        list[i] = { ...existingMessage, content: newContent };
       }
     }
     if (tools.length) {
