@@ -8,7 +8,6 @@ import { uuid } from '@/common/utils';
 import type { CodexEventMsg } from '@/common/codex/types';
 import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
 import { ERROR_CODES, globalErrorService } from '@/agent/codex/core/ErrorService';
-import { addOrUpdateMessage } from '@/process/message';
 
 export class CodexMessageProcessor {
   private currentLoadingId: string | null = null;
@@ -98,8 +97,8 @@ export class CodexMessageProcessor {
       createdAt: Date.now(),
     };
 
-    // Directly persist to database, skip frontend emission
-    addOrUpdateMessage(this.conversation_id, transformedMessage as any);
+    // Use messageEmitter to persist, maintaining architecture separation
+    this.messageEmitter.persistMessage(transformedMessage as any);
   }
 
   processStreamError(message: string) {

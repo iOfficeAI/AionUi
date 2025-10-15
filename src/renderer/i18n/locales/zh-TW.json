@@ -19,12 +19,6 @@
       "unknown_error": "發生網路連線錯誤，請檢查網路設定。",
       "unknown_error_title": "🔌 網路連線錯誤"
     },
-    "status": {
-      "connected": "已連線至 Codex MCP 伺服器",
-      "connecting": "正在連線至 Codex...",
-      "error_connect": "連線至 Codex 失敗：{{error}}",
-      "session_active": "已與 Codex 建立有效工作階段"
-    },
     "thinking": {
       "processing": "🤔 Codex 正在思考...",
       "completed": "💭 思考過程完成",
@@ -418,6 +412,15 @@
     },
     "sendbox": {
       "placeholder": "發送訊息到 {{backend}}..."
+    },
+    "status": {
+      "connecting": "正在連線至 {{agent}}...",
+      "connected": "已連線至 {{agent}}",
+      "authenticated": "已通過 {{agent}} 身份驗證",
+      "session_active": "{{agent}} 工作階段進行中",
+      "disconnected": "已與 {{agent}} 中斷連線",
+      "error": "連線錯誤",
+      "unknown": "未知狀態"
     }
   }
 }

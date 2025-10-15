@@ -6,9 +6,11 @@
 
 import { ipcBridge } from '@/common';
 import type { TMessage } from '@/common/chatLib';
+import { transformMessage } from '@/common/chatLib';
+import type { IResponseMessage } from '@/common/ipcBridge';
 import type { TProviderWithModel, IMcpServer } from '@/common/storage';
 import { ProcessConfig } from '@/process/initStorage';
-import { addMessage, nextTickToLocalFinish } from '../message';
+import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '../message';
 import { getDatabase } from '../database/export';
 import BaseAgentManager from './BaseAgentManager';
 
@@ -127,7 +129,6 @@ export class GeminiAgentManager extends BaseAgentManager<{
       // console.log('gemini.message', data);
       if (data.type === 'finish') {
         this.status = 'finished';
-
         // Sync FTS index after conversation finishes (delayed, non-blocking)
         // This ensures search index is up-to-date after streaming completes
         setTimeout(() => {
@@ -138,9 +139,17 @@ export class GeminiAgentManager extends BaseAgentManager<{
       if (data.type === 'start') {
         this.status = 'running';
       }
-      // Emit to frontend - frontend will handle transformation and persistence
-      // This avoids double transformation and double persistence
+
+      // Backend handles persistence before emitting to frontend
       data.conversation_id = this.conversation_id;
+      // Transform and persist message (skip transient UI state messages)
+      if (data.type !== 'start' && data.type !== 'finish' && data.type !== 'thought') {
+        const tMessage = transformMessage(data as IResponseMessage);
+        if (tMessage) {
+          addOrUpdateMessage(this.conversation_id, tMessage);
+        }
+      }
+      // Emit to frontend for UI display only
       ipcBridge.geminiConversation.responseStream.emit(data);
     });
   }

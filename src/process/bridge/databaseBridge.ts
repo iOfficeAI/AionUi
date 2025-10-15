@@ -6,7 +6,6 @@
 
 import { ipcBridge } from '../../common';
 import { getDatabase } from '@process/database';
-import { addOrUpdateMessage } from '../message';
 import { ProcessChat } from '../initStorage';
 import type { TChatConversation } from '@/common/storage';
 import { migrateConversationToDatabase } from './migrationUtils';
@@ -53,17 +52,6 @@ export function initDatabaseBridge(): void {
     } catch (error) {
       console.error('[DatabaseBridge] Error getting user conversations:', error);
       return [];
-    }
-  });
-
-  // Add or update a message in the database
-  ipcBridge.database.addOrUpdateMessage.provider(({ conversation_id, message }) => {
-    try {
-      addOrUpdateMessage(conversation_id, message);
-      return Promise.resolve(true);
-    } catch (error) {
-      console.error('[DatabaseBridge] Error adding/updating message:', error);
-      return Promise.resolve(false);
     }
   });
 }

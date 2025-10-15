@@ -251,6 +251,15 @@
     },
     "sendbox": {
       "placeholder": "Send message to {{backend}}..."
+    },
+    "status": {
+      "connecting": "Connecting to {{agent}}...",
+      "connected": "Connected to {{agent}}",
+      "authenticated": "Authenticated with {{agent}}",
+      "session_active": "Active session with {{agent}}",
+      "disconnected": "Disconnected from {{agent}}",
+      "error": "Connection error",
+      "unknown": "Unknown status"
     }
   },
   "codex": {
@@ -278,12 +287,6 @@
         "connection_refused": ["• Check if Codex CLI is properly installed", "• Verify service configuration and API keys", "• Restart application", "• Check if local ports are occupied"],
         "unknown": ["• Check network connection status", "• Retry current operation", "• Switch network environment", "• Contact technical support"]
       }
-    },
-    "status": {
-      "connecting": "Connecting to Codex...",
-      "connected": "Connected to Codex MCP server",
-      "session_active": "Active session created with Codex",
-      "error_connect": "Failed to connect Codex: {{error}}"
     },
     "thinking": {
       "processing": "🤔 Codex is thinking...",
