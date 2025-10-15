@@ -12,9 +12,7 @@
 │  │   better-sqlite3            │   │
 │  │   - 账户系统                 │   │
 │  │   - 聊天记录持久化           │   │
-│  │   - 配置信息                 │   │
-│  │   - MCP服务器配置            │   │
-│  │   - 图片元数据              │   │
+│  │   - 配置信息 (db_version)    │   │
 │  └─────────────────────────────┘   │
 │              ↕ IPC                  │
 └─────────────────────────────────────┘
@@ -30,7 +28,7 @@
 ┌─────────────────────────────────────┐
 │         文件系统 (File System)       │
 │                                     │
-│  - 图片文件 (images/)               │
+│  - 图片文件 (message.resultDisplay) │
 │  - 大文件附件                       │
 │  - 数据库文件 (aionui.db)           │
 └─────────────────────────────────────┘
@@ -44,19 +42,16 @@
 
 - `TChatConversation` - 会话类型
 - `TMessage` - 消息类型
-- `IProvider` - 提供商配置
-- `IMcpServer` - MCP服务器配置
 
 ### ✅ 自动迁移
 
 首次启动时，系统会自动将文件存储的数据迁移到数据库，无需手动操作。
 
-### ✅ 图片存储优化
+### ✅ 图片存储
 
-- 图片文件存储在文件系统 (`userData/images/`)
-- 数据库只存储元数据（路径、hash、尺寸等）
-- SHA256 hash去重，相同图片只存储一份
-- 支持常见格式：JPG, PNG, GIF, WebP, BMP
+- 图片文件存储在文件系统中
+- 通过message.resultDisplay字段引用图片路径
+- 不在数据库中存储图片元数据
 
 ### ✅ 高性能
 
@@ -70,7 +65,7 @@
 ### 主进程 (Main Process)
 
 ```typescript
-import { getDatabase, getImageStorage } from '@/process/database/export';
+import { getDatabase } from '@/process/database/export';
 
 // 获取数据库实例
 const db = getDatabase();
@@ -108,11 +103,6 @@ db.insertMessage(message);
 // 查询会话的消息（分页）
 const messages = db.getConversationMessages('conv_123', 0, 50);
 console.log(messages.data); // TMessage[]
-
-// 保存图片
-const imageStorage = getImageStorage();
-const imageBuffer = await fs.readFile('/path/to/image.png');
-const imageResult = await imageStorage.saveImage(imageBuffer, 'msg_123', 'conv_123');
 ```
 
 ### 渲染进程 (Renderer Process)
@@ -230,40 +220,15 @@ await importDatabaseFromJSON(data);
 
 #### 配置操作
 
-- `setConfig(key, value)` - 设置配置
+- `setConfig(key, value)` - 设置配置（主要用于数据库版本跟踪）
 - `getConfig<T>(key)` - 获取配置
 - `getAllConfigs()` - 获取所有配置
 - `deleteConfig(key)` - 删除配置
 
-#### 提供商操作
-
-- `createProvider(provider, userId?)` - 创建提供商
-- `getUserProviders(userId?)` - 获取用户的所有提供商
-
-#### MCP服务器操作
-
-- `createMcpServer(server, userId?)` - 创建MCP服务器
-- `getUserMcpServers(userId?)` - 获取用户的所有MCP服务器
-
-#### 图片元数据操作
-
-- `createImageMetadata(image)` - 创建图片元数据
-- `getImageByHash(hash)` - 通过hash获取图片元数据
-
 #### 工具方法
 
-- `getStats()` - 获取数据库统计信息
+- `getStats()` - 获取数据库统计信息（返回: users, conversations, messages）
 - `vacuum()` - 清理数据库，回收空间
-
-### ImageStorage 主要方法
-
-- `saveImage(buffer, messageId?, conversationId?)` - 保存图片
-- `saveImageFromPath(filePath, messageId?, conversationId?)` - 从文件路径保存图片
-- `getImage(imageId)` - 获取图片Buffer
-- `getImagePath(hash)` - 获取图片文件路径
-- `deleteImage(hash)` - 删除图片
-- `cleanupOrphanedImages()` - 清理孤立图片
-- `getStorageSize()` - 获取存储大小
 
 ### IPC Bridge 方法
 
@@ -338,10 +303,10 @@ const isV2Applied = db.isMigrationApplied(2);
 
 #### 当前迁移列表
 
-- **v1**: 初始Schema（用户、会话、消息、图片、配置、提供商、MCP服务器）
+- **v1**: 初始Schema（用户、会话、消息、配置）
 - **v2**: 添加性能索引（复合索引优化查询）
 - **v3**: 添加全文搜索支持（FTS5虚拟表）
-- **v4**: 添加用户偏好设置表
+- **v4**: 清理冗余表（移除providers、mcp_servers表）
 
 ### 如何添加新迁移
 

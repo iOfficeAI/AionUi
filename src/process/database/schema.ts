@@ -76,7 +76,7 @@ export function initSchema(db: Database.Database): void {
   // Images are stored in the filesystem and referenced via message.resultDisplay
   // No separate images table needed
 
-  // Configs table (配置表 - key-value存储)
+  // Configs table (配置表 - key-value存储，用于数据库版本跟踪)
   db.exec(`
     CREATE TABLE IF NOT EXISTS configs (
       key TEXT PRIMARY KEY,
@@ -85,50 +85,6 @@ export function initSchema(db: Database.Database): void {
     );
 
     CREATE INDEX IF NOT EXISTS idx_configs_updated_at ON configs(updated_at);
-  `);
-
-  // Providers table (提供商配置表 - 存储IProvider)
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS providers (
-      id TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL,
-      platform TEXT NOT NULL,
-      name TEXT NOT NULL,
-      base_url TEXT NOT NULL,
-      api_key TEXT NOT NULL,
-      models TEXT NOT NULL,
-      capabilities TEXT,
-      context_limit INTEGER,
-      created_at INTEGER NOT NULL,
-      updated_at INTEGER NOT NULL,
-      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_providers_user_id ON providers(user_id);
-    CREATE INDEX IF NOT EXISTS idx_providers_platform ON providers(platform);
-  `);
-
-  // MCP Servers table (MCP服务器配置表 - 存储IMcpServer)
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS mcp_servers (
-      id TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL,
-      name TEXT NOT NULL,
-      description TEXT,
-      enabled INTEGER DEFAULT 0,
-      transport TEXT NOT NULL,
-      tools TEXT,
-      status TEXT CHECK(status IN ('connected', 'disconnected', 'error', 'testing')),
-      last_connected INTEGER,
-      created_at INTEGER NOT NULL,
-      updated_at INTEGER NOT NULL,
-      original_json TEXT NOT NULL,
-      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_mcp_servers_user_id ON mcp_servers(user_id);
-    CREATE INDEX IF NOT EXISTS idx_mcp_servers_enabled ON mcp_servers(enabled);
-    CREATE INDEX IF NOT EXISTS idx_mcp_servers_name ON mcp_servers(name);
   `);
 
   // Create default system user if not exists

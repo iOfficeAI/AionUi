@@ -9,8 +9,8 @@ import path from 'path';
 import { getConfigPath } from '../utils';
 import { initSchema, getDatabaseVersion, setDatabaseVersion, CURRENT_DB_VERSION } from './schema';
 import { runMigrations as executeMigrations, getMigrationHistory, isMigrationApplied } from './migrations';
-import type { IUser, IQueryResult, IPaginatedResult, TChatConversation, TMessage, IProvider, IMcpServer, IConversationRow, IMessageRow, IProviderRow, IMcpServerRow, IConfigRow } from './types';
-import { conversationToRow, rowToConversation, messageToRow, rowToMessage, providerToRow, rowToProvider, mcpServerToRow, rowToMcpServer } from './types';
+import type { IUser, IQueryResult, IPaginatedResult, TChatConversation, TMessage, IConversationRow, IMessageRow, IConfigRow } from './types';
+import { conversationToRow, rowToConversation, messageToRow, rowToMessage } from './types';
 
 /**
  * Main database class for AionUi
@@ -793,100 +793,6 @@ export class AionUIDatabase {
 
   /**
    * ==================
-   * Provider operations
-   * ==================
-   */
-
-  createProvider(provider: IProvider, userId?: string): IQueryResult<IProvider> {
-    try {
-      const row = providerToRow(provider, userId || this.defaultUserId);
-
-      const stmt = this.db.prepare(`
-        INSERT INTO providers (id, user_id, platform, name, base_url, api_key, models, capabilities, context_limit,
-                               created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `);
-
-      stmt.run(row.id, row.user_id, row.platform, row.name, row.base_url, row.api_key, row.models, row.capabilities, row.context_limit, row.created_at, row.updated_at);
-
-      return {
-        success: true,
-        data: provider,
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  }
-
-  getUserProviders(userId?: string): IQueryResult<IProvider[]> {
-    try {
-      const finalUserId = userId || this.defaultUserId;
-      const rows = this.db.prepare('SELECT * FROM providers WHERE user_id = ?').all(finalUserId) as IProviderRow[];
-
-      return {
-        success: true,
-        data: rows.map(rowToProvider),
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  }
-
-  /**
-   * ==================
-   * MCP Server operations
-   * ==================
-   */
-
-  createMcpServer(server: IMcpServer, userId?: string): IQueryResult<IMcpServer> {
-    try {
-      const row = mcpServerToRow(server, userId || this.defaultUserId);
-
-      const stmt = this.db.prepare(`
-        INSERT INTO mcp_servers (id, user_id, name, description, enabled, transport, tools, status, last_connected,
-                                 created_at, updated_at, original_json)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `);
-
-      stmt.run(row.id, row.user_id, row.name, row.description, row.enabled ? 1 : 0, row.transport, row.tools, row.status, row.last_connected, row.created_at, row.updated_at, row.original_json);
-
-      return {
-        success: true,
-        data: server,
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  }
-
-  getUserMcpServers(userId?: string): IQueryResult<IMcpServer[]> {
-    try {
-      const finalUserId = userId || this.defaultUserId;
-      const rows = this.db.prepare('SELECT * FROM mcp_servers WHERE user_id = ?').all(finalUserId) as IMcpServerRow[];
-
-      return {
-        success: true,
-        data: rows.map(rowToMcpServer),
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  }
-
-  /**
-   * ==================
    * Image metadata operations (removed)
    * ==================
    */
@@ -914,9 +820,6 @@ export class AionUIDatabase {
     users: number;
     conversations: number;
     messages: number;
-    images: number;
-    providers: number;
-    mcpServers: number;
   } {
     return {
       users: (
@@ -927,21 +830,6 @@ export class AionUIDatabase {
       conversations: (this.db.prepare('SELECT COUNT(*) as count FROM conversations').get() as { count: number }).count,
       messages: (
         this.db.prepare('SELECT COUNT(*) as count FROM messages').get() as {
-          count: number;
-        }
-      ).count,
-      images: (
-        this.db.prepare('SELECT COUNT(*) as count FROM images').get() as {
-          count: number;
-        }
-      ).count,
-      providers: (
-        this.db.prepare('SELECT COUNT(*) as count FROM providers').get() as {
-          count: number;
-        }
-      ).count,
-      mcpServers: (
-        this.db.prepare('SELECT COUNT(*) as count FROM mcp_servers').get() as {
           count: number;
         }
       ).count,
