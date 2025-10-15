@@ -7,6 +7,7 @@
 import type { TMessage, IMessageText } from '@/common/chatLib';
 import { composeMessage } from '@/common/chatLib';
 import { getDatabase } from './database/export';
+import { ProcessChat } from './initStorage';
 
 /**
  * Add a new message to the database
@@ -91,15 +92,27 @@ export const updateMessage = (conversation_id: string, transform: (messages: TMe
  * Ensure conversation exists in database
  * If not, load from file storage and create it
  */
-function ensureConversationExists(db: ReturnType<typeof getDatabase>, conversation_id: string): Promise<void> {
+async function ensureConversationExists(db: ReturnType<typeof getDatabase>, conversation_id: string): Promise<void> {
   // Check if conversation exists in database
   const existingConv = db.getConversation(conversation_id);
   if (existingConv.success && existingConv.data) {
-    return Promise.resolve();
+    return; // Conversation already exists
   }
 
-  console.error(`[Message] Conversation ${conversation_id} not found in database`);
-  return Promise.resolve();
+  // Load conversation from file storage
+  const history = await ProcessChat.get('chat.history');
+  const conversation = history.find((c) => c.id === conversation_id);
+
+  if (!conversation) {
+    console.error(`[Message] Conversation ${conversation_id} not found in file storage either`);
+    return;
+  }
+
+  // Create conversation in database
+  const result = db.createConversation(conversation);
+  if (!result.success) {
+    console.error(`[Message] Failed to create conversation in database:`, result.error);
+  }
 }
 
 /**
