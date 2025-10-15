@@ -76,46 +76,20 @@ const migration_v2: IMigration = {
 };
 
 /**
- * Migration v2 -> v3: Add full-text search support
- * Architecture: Application-managed FTS index (no triggers)
+ * Migration v2 -> v3: Add full-text search support [REMOVED]
  *
- * Design rationale:
- * - FTS5 table stores message_id and content copy
- * - No triggers (avoids "unsafe use of virtual table" errors)
- * - FTS index updated directly in insertMessage/updateMessage/deleteMessage methods
- * - Better performance, better control, no recursion issues
+ * Note: FTS functionality has been removed as it's not currently needed.
+ * Will be re-implemented when search functionality is added to the UI.
  */
 const migration_v3: IMigration = {
   version: 3,
-  name: 'Add full-text search (application-managed)',
-  up: (db) => {
-    db.exec(`
-      -- Create FTS5 virtual table for message content search
-      -- message_id: UNINDEXED (for reference only, not searchable)
-      -- content: Full-text indexed
-      CREATE VIRTUAL TABLE IF NOT EXISTS messages_fts USING fts5(
-        message_id UNINDEXED,
-        content,
-        tokenize = 'porter unicode61'
-      );
-
-      -- Create index on message_id for fast lookups when deleting/updating
-      -- Note: FTS5 doesn't support traditional indexes, but we can use message_id for joins
-    `);
-
-    // Populate FTS table with existing messages
-    const stmt = db.prepare('SELECT rowid, id, content FROM messages');
-    const messages = stmt.all() as Array<{ rowid: number; id: string; content: string }>;
-
-    const insertFts = db.prepare('INSERT INTO messages_fts(rowid, message_id, content) VALUES (?, ?, ?)');
-
-    for (const msg of messages) {
-      insertFts.run(msg.rowid, msg.id, msg.content);
-    }
-
-    console.log(`[Migration v3] Added full-text search (application-managed), indexed ${messages.length} messages`);
+  name: 'Add full-text search (skipped)',
+  up: (_db) => {
+    // FTS removed - will be re-added when search functionality is implemented
+    console.log('[Migration v3] FTS support skipped (removed, will be added back later)');
   },
   down: (db) => {
+    // Clean up FTS table if it exists from older versions
     db.exec(`
       DROP TABLE IF EXISTS messages_fts;
     `);
@@ -167,9 +141,29 @@ const migration_v4: IMigration = {
 };
 
 /**
+ * Migration v4 -> v5: Remove FTS table
+ * Cleanup for FTS removal - ensures all databases have consistent schema
+ */
+const migration_v5: IMigration = {
+  version: 5,
+  name: 'Remove FTS table',
+  up: (db) => {
+    // Remove FTS table created by old v3 migration
+    db.exec(`
+      DROP TABLE IF EXISTS messages_fts;
+    `);
+    console.log('[Migration v5] Removed FTS table (cleanup for FTS removal)');
+  },
+  down: (_db) => {
+    // If rolling back, we don't recreate FTS table (it's deprecated)
+    console.log('[Migration v5] Rolled back: FTS table remains removed (deprecated feature)');
+  },
+};
+
+/**
  * All migrations in order
  */
-export const ALL_MIGRATIONS: IMigration[] = [migration_v1, migration_v2, migration_v3, migration_v4];
+export const ALL_MIGRATIONS: IMigration[] = [migration_v1, migration_v2, migration_v3, migration_v4, migration_v5];
 
 /**
  * Get migrations needed to upgrade from one version to another

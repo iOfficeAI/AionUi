@@ -7,7 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { TChatConversation } from '@/common/storage';
 import FlexFullContainer from '@/renderer/components/FlexFullContainer';
-import { addEventListener } from '@/renderer/utils/emitter';
+import { addEventListener, emitter } from '@/renderer/utils/emitter';
 import { Empty, Popconfirm } from '@arco-design/web-react';
 import { DeleteOne, MessageOne } from '@icon-park/react';
 import classNames from 'classnames';
@@ -126,7 +126,8 @@ const ChatHistory: React.FC = () => {
       .invoke({ id })
       .then((success) => {
         if (success) {
-          setChatHistory(chatHistory.filter((item) => item.id !== id));
+          // Trigger refresh to reload from database
+          emitter.emit('chat.history.refresh');
           Promise.resolve(navigate('/')).catch((error) => {
             console.error('Navigation failed:', error);
           });

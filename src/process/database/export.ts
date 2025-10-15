@@ -20,16 +20,12 @@ export type {
   // Business types (re-exported for convenience)
   TChatConversation,
   TMessage,
-  IProvider,
-  IMcpServer,
   IConfigStorageRefer,
   // Database row types (for advanced usage)
   IConversationRow,
   IMessageRow,
-  IProviderRow,
-  IMcpServerRow,
   IConfigRow,
 } from './types';
 
 // Re-export conversion functions
-export { conversationToRow, rowToConversation, messageToRow, rowToMessage, providerToRow, rowToProvider, mcpServerToRow, rowToMcpServer } from './types';
+export { conversationToRow, rowToConversation, messageToRow, rowToMessage } from './types';

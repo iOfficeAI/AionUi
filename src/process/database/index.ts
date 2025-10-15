@@ -9,7 +9,7 @@ import path from 'path';
 import { getConfigPath } from '../utils';
 import { initSchema, getDatabaseVersion, setDatabaseVersion, CURRENT_DB_VERSION } from './schema';
 import { runMigrations as executeMigrations, getMigrationHistory, isMigrationApplied } from './migrations';
-import type { IUser, IQueryResult, IPaginatedResult, TChatConversation, TMessage, IConversationRow, IMessageRow, IConfigRow } from './types';
+import type { IUser, IQueryResult, IPaginatedResult, TChatConversation, TMessage, IConversationRow, IMessageRow } from './types';
 import { conversationToRow, rowToConversation, messageToRow, rowToMessage } from './types';
 
 /**
@@ -294,57 +294,16 @@ export class AionUIDatabase {
     try {
       const row = messageToRow(message);
 
-      // Insert into main table
       const stmt = this.db.prepare(`
         INSERT INTO messages (id, conversation_id, msg_id, type, content, position, status, created_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
-      const result = stmt.run(row.id, row.conversation_id, row.msg_id, row.type, row.content, row.position, row.status, row.created_at);
-
-      // Sync FTS index (application-managed, no triggers)
-      try {
-        const ftsStmt = this.db.prepare(`
-          INSERT INTO messages_fts(rowid, message_id, content)
-          VALUES (?, ?, ?)
-        `);
-        ftsStmt.run(result.lastInsertRowid, row.id, row.content);
-      } catch (ftsError) {
-        // FTS update failed, but main insert succeeded - log and continue
-        console.warn('[Database] FTS index update failed for message insert:', ftsError);
-      }
+      stmt.run(row.id, row.conversation_id, row.msg_id, row.type, row.content, row.position, row.status, row.created_at);
 
       return {
         success: true,
         data: message,
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  }
-
-  insertMessages(messages: TMessage[]): IQueryResult<number> {
-    try {
-      const insert = this.db.prepare(`
-        INSERT INTO messages (id, conversation_id, msg_id, type, content, position, status, created_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `);
-
-      const insertMany = this.db.transaction((messages: TMessage[]) => {
-        for (const message of messages) {
-          const row = messageToRow(message);
-          insert.run(row.id, row.conversation_id, row.msg_id, row.type, row.content, row.position, row.status, row.created_at);
-        }
-      });
-
-      insertMany(messages);
-
-      return {
-        success: true,
-        data: messages.length,
       };
     } catch (error: any) {
       return {
@@ -395,22 +354,11 @@ export class AionUIDatabase {
    * Update a message in the database
    * @param messageId - Message ID to update
    * @param message - Updated message data
-   * @param options - Update options
-   *   - skipFtsUpdate: Skip FTS index update (useful for streaming messages)
    */
-  updateMessage(messageId: string, message: TMessage, options?: { skipFtsUpdate?: boolean }): IQueryResult<boolean> {
+  updateMessage(messageId: string, message: TMessage): IQueryResult<boolean> {
     try {
       const row = messageToRow(message);
-      const skipFts = options?.skipFtsUpdate ?? false;
 
-      // Get rowid first for FTS update (only if needed)
-      let rowidRow: { rowid: number } | undefined;
-      if (!skipFts) {
-        const getRowid = this.db.prepare('SELECT rowid FROM messages WHERE id = ?');
-        rowidRow = getRowid.get(messageId) as { rowid: number } | undefined;
-      }
-
-      // Update main table
       const stmt = this.db.prepare(`
         UPDATE messages
         SET type     = ?,
@@ -421,25 +369,6 @@ export class AionUIDatabase {
       `);
 
       const result = stmt.run(row.type, row.content, row.position, row.status, messageId);
-
-      // Sync FTS index (application-managed, no triggers)
-      // Skip for streaming messages to improve performance
-      if (!skipFts && rowidRow && result.changes > 0) {
-        try {
-          // FTS5 doesn't support UPDATE, use DELETE + INSERT
-          const ftsDelete = this.db.prepare('DELETE FROM messages_fts WHERE rowid = ?');
-          ftsDelete.run(rowidRow.rowid);
-
-          const ftsInsert = this.db.prepare(`
-            INSERT INTO messages_fts(rowid, message_id, content)
-            VALUES (?, ?, ?)
-          `);
-          ftsInsert.run(rowidRow.rowid, messageId, row.content);
-        } catch (ftsError) {
-          // FTS update failed, but main update succeeded - log and continue
-          console.warn('[Database] FTS index update failed for message update:', ftsError);
-        }
-      }
 
       return {
         success: true,
@@ -453,56 +382,10 @@ export class AionUIDatabase {
     }
   }
 
-  /**
-   * Update FTS index for a specific message
-   * Used to sync FTS after streaming is complete
-   */
-  updateMessageFtsIndex(messageId: string): IQueryResult<boolean> {
-    try {
-      // Get message data
-      const getMessage = this.db.prepare('SELECT rowid, content FROM messages WHERE id = ?');
-      const msgRow = getMessage.get(messageId) as { rowid: number; content: string } | undefined;
-
-      if (!msgRow) {
-        return { success: false, error: 'Message not found' };
-      }
-
-      // Update FTS index
-      const ftsDelete = this.db.prepare('DELETE FROM messages_fts WHERE rowid = ?');
-      ftsDelete.run(msgRow.rowid);
-
-      const ftsInsert = this.db.prepare(`
-        INSERT INTO messages_fts(rowid, message_id, content)
-        VALUES (?, ?, ?)
-      `);
-      ftsInsert.run(msgRow.rowid, messageId, msgRow.content);
-
-      return { success: true, data: true };
-    } catch (error: any) {
-      return { success: false, error: error.message };
-    }
-  }
-
   deleteMessage(messageId: string): IQueryResult<boolean> {
     try {
-      // Get rowid first for FTS deletion
-      const getRowid = this.db.prepare('SELECT rowid FROM messages WHERE id = ?');
-      const rowidRow = getRowid.get(messageId) as { rowid: number } | undefined;
-
-      // Delete from main table
       const stmt = this.db.prepare('DELETE FROM messages WHERE id = ?');
       const result = stmt.run(messageId);
-
-      // Sync FTS index (application-managed, no triggers)
-      if (rowidRow && result.changes > 0) {
-        try {
-          const ftsDelete = this.db.prepare('DELETE FROM messages_fts WHERE rowid = ?');
-          ftsDelete.run(rowidRow.rowid);
-        } catch (ftsError) {
-          // FTS delete failed, but main delete succeeded - log and continue
-          console.warn('[Database] FTS index update failed for message delete:', ftsError);
-        }
-      }
 
       return {
         success: true,
@@ -518,26 +401,8 @@ export class AionUIDatabase {
 
   deleteConversationMessages(conversationId: string): IQueryResult<number> {
     try {
-      // Get all rowids for FTS deletion
-      const getRowids = this.db.prepare('SELECT rowid FROM messages WHERE conversation_id = ?');
-      const rows = getRowids.all(conversationId) as Array<{ rowid: number }>;
-
-      // Delete from main table
       const stmt = this.db.prepare('DELETE FROM messages WHERE conversation_id = ?');
       const result = stmt.run(conversationId);
-
-      // Sync FTS index (application-managed, no triggers)
-      if (rows.length > 0 && result.changes > 0) {
-        try {
-          const ftsDelete = this.db.prepare('DELETE FROM messages_fts WHERE rowid = ?');
-          for (const row of rows) {
-            ftsDelete.run(row.rowid);
-          }
-        } catch (ftsError) {
-          // FTS delete failed, but main delete succeeded - log and continue
-          console.warn('[Database] FTS index update failed for conversation messages delete:', ftsError);
-        }
-      }
 
       return {
         success: true,
@@ -580,260 +445,10 @@ export class AionUIDatabase {
   }
 
   /**
-   * Search messages using full-text search
-   * @param query - Search query (supports FTS5 syntax)
-   * @param conversationId - Optional: Limit search to specific conversation
-   * @param limit - Maximum number of results (default: 50)
-   * @returns Array of matching messages with search rank
-   */
-  searchMessages(query: string, conversationId?: string, limit = 50): IQueryResult<TMessage[]> {
-    try {
-      let sql = `
-        SELECT m.*, fts.rank
-        FROM messages_fts fts
-               JOIN messages m ON m.rowid = fts.rowid
-        WHERE messages_fts MATCH ?
-      `;
-
-      const params: any[] = [query];
-
-      if (conversationId) {
-        sql += ' AND m.conversation_id = ?';
-        params.push(conversationId);
-      }
-
-      sql += ' ORDER BY fts.rank LIMIT ?';
-      params.push(limit);
-
-      const stmt = this.db.prepare(sql);
-      const rows = stmt.all(...params) as IMessageRow[];
-
-      return {
-        success: true,
-        data: rows.map((row) => rowToMessage(row)),
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  }
-
-  /**
-   * Rebuild FTS index from scratch
-   * Useful for data recovery or after manual database changes
-   */
-  rebuildFtsIndex(): IQueryResult<number> {
-    try {
-      // Clear existing FTS data
-      this.db.prepare('DELETE FROM messages_fts').run();
-
-      // Rebuild from messages table
-      const messages = this.db.prepare('SELECT rowid, id, content FROM messages').all() as Array<{
-        rowid: number;
-        id: string;
-        content: string;
-      }>;
-
-      const insertFts = this.db.prepare('INSERT INTO messages_fts(rowid, message_id, content) VALUES (?, ?, ?)');
-
-      for (const msg of messages) {
-        insertFts.run(msg.rowid, msg.id, msg.content);
-      }
-      return {
-        success: true,
-        data: messages.length,
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  }
-
-  /**
-   * Batch update FTS index for a conversation
-   * Used to sync FTS after streaming messages are complete
-   * @param conversationId - Optional: sync specific conversation, or all if omitted
-   */
-  syncConversationFts(conversationId?: string): IQueryResult<number> {
-    try {
-      let sql = 'SELECT rowid, id, content FROM messages';
-      const params: any[] = [];
-
-      if (conversationId) {
-        sql += ' WHERE conversation_id = ?';
-        params.push(conversationId);
-      }
-
-      const messages = this.db.prepare(sql).all(...params) as Array<{
-        rowid: number;
-        id: string;
-        content: string;
-      }>;
-
-      // Use DELETE+INSERT for each message
-      const ftsDelete = this.db.prepare('DELETE FROM messages_fts WHERE rowid = ?');
-      const ftsInsert = this.db.prepare('INSERT INTO messages_fts(rowid, message_id, content) VALUES (?, ?, ?)');
-
-      let synced = 0;
-      for (const msg of messages) {
-        try {
-          ftsDelete.run(msg.rowid);
-          ftsInsert.run(msg.rowid, msg.id, msg.content);
-          synced++;
-        } catch (error) {
-          // Skip individual errors, continue with next message
-          console.warn(`[Database] Failed to sync FTS for message ${msg.id}:`, error);
-        }
-      }
-      return {
-        success: true,
-        data: synced,
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  }
-
-  /**
-   * ==================
-   * Config operations
-   * ==================
-   */
-
-  setConfig<K extends keyof any>(key: K, value: any): IQueryResult<boolean> {
-    try {
-      const now = Date.now();
-      const stmt = this.db.prepare(`
-        INSERT
-        OR REPLACE INTO configs (key, value, updated_at)
-        VALUES (?, ?, ?)
-      `);
-
-      stmt.run(String(key), JSON.stringify(value), now);
-
-      return {
-        success: true,
-        data: true,
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  }
-
-  getConfig<T = any>(key: string): IQueryResult<T> {
-    try {
-      const row = this.db.prepare('SELECT value FROM configs WHERE key = ?').get(key) as IConfigRow | undefined;
-
-      if (!row) {
-        return {
-          success: false,
-          error: 'Config not found',
-        };
-      }
-
-      return {
-        success: true,
-        data: JSON.parse(row.value) as T,
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  }
-
-  getAllConfigs(): IQueryResult<Record<string, any>> {
-    try {
-      const rows = this.db.prepare('SELECT key, value FROM configs').all() as IConfigRow[];
-
-      const configs: Record<string, any> = {};
-      for (const row of rows) {
-        configs[row.key] = JSON.parse(row.value);
-      }
-
-      return {
-        success: true,
-        data: configs,
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  }
-
-  deleteConfig(key: string): IQueryResult<boolean> {
-    try {
-      const stmt = this.db.prepare('DELETE FROM configs WHERE key = ?');
-      const result = stmt.run(key);
-
-      return {
-        success: true,
-        data: result.changes > 0,
-      };
-    } catch (error: any) {
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  }
-
-  /**
-   * ==================
-   * Image metadata operations (removed)
-   * ==================
-   */
-  // Images are stored in filesystem and referenced via message.resultDisplay
-
-  // Image storage removed - images are stored in filesystem and referenced via message.resultDisplay
-
-  /**
-   * ==================
-   * Utility operations
-   * ==================
-   */
-
-  /**
    * Vacuum database to reclaim space
    */
   vacuum(): void {
     this.db.exec('VACUUM');
-  }
-
-  /**
-   * Get database statistics
-   */
-  getStats(): {
-    users: number;
-    conversations: number;
-    messages: number;
-  } {
-    return {
-      users: (
-        this.db.prepare('SELECT COUNT(*) as count FROM users').get() as {
-          count: number;
-        }
-      ).count,
-      conversations: (this.db.prepare('SELECT COUNT(*) as count FROM conversations').get() as { count: number }).count,
-      messages: (
-        this.db.prepare('SELECT COUNT(*) as count FROM messages').get() as {
-          count: number;
-        }
-      ).count,
-    };
   }
 }
 
