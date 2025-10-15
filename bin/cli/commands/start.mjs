@@ -66,6 +66,12 @@ export const startCommand = {
         NODE_OPTIONS: '--no-deprecation',
       };
 
+      // Windows: 跳过原生模块重建，避免 Python 依赖
+      // Windows: Skip native module rebuild to avoid Python dependency
+      if (isWindows) {
+        env.ELECTRON_REBUILD_SKIP = '1';
+      }
+
       // 启动 WebUI 开发服务器 / Launch WebUI dev server
       // 所有平台统一使用 npx electron-forge（跨平台兼容）
       // Use npx electron-forge on all platforms for consistency
