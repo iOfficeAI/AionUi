@@ -33,7 +33,8 @@
     "test:contract": "jest tests/contract",
     "test:integration": "jest tests/integration",
     "prepare": "husky",
-    "postinstall": "patch-package"
+    "postinstall": "patch-package && npm run setup:cli",
+    "setup:cli": "node scripts/setup-cli.js"
   },
   "keywords": [],
   "author": {

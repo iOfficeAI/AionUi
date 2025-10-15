@@ -36,21 +36,61 @@ export const startCommand = {
         AIONUI_DB_PATH: dbPath,
       };
 
+      // 检查是否在项目目录 / Check if in project directory
+      const packageJsonPath = path.join(PROJECT_ROOT, 'package.json');
+      if (!fs.existsSync(packageJsonPath)) {
+        context.ui.addOutput({
+          type: 'error',
+          text: 'Error: Cannot find package.json. Make sure you are in the AionUi project directory.',
+        });
+        return;
+      }
+
+      context.ui.addOutput({
+        type: 'success',
+        text: '🚀 Starting AionUi WebUI...',
+      });
+
+      context.ui.addOutput({
+        type: 'info',
+        text: `📁 Project root: ${PROJECT_ROOT}`,
+      });
+
+      context.ui.addOutput({
+        type: 'info',
+        text: `💾 Database: ${dbPath}`,
+      });
+
+      // Windows 需要使用 cmd.exe 或 npm.cmd / Windows requires cmd.exe or npm.cmd
+      const isWindows = process.platform === 'win32';
+      const npmCommand = isWindows ? 'npm.cmd' : 'npm';
+
       // 启动 WebUI 开发服务器 / Launch WebUI dev server
-      const child = spawn('npm', ['run', 'start:webui'], {
+      const child = spawn(npmCommand, ['run', 'start:webui'], {
         cwd: PROJECT_ROOT,
         stdio: 'inherit',
-        shell: true,
+        shell: isWindows ? true : false,
         env,
       });
 
       child.on('error', (error) => {
-        console.error(`Failed to start WebUI: ${error.message}`);
+        context.ui.addOutput({
+          type: 'error',
+          text: `Failed to start WebUI: ${error.message}`,
+        });
+        context.ui.addOutput({
+          type: 'info',
+          text: 'Try running manually: npm run start:webui',
+        });
         process.exit(1);
       });
 
       child.on('exit', (code) => {
         if (code !== 0 && code !== null) {
+          context.ui.addOutput({
+            type: 'error',
+            text: `WebUI exited with code ${code}`,
+          });
           process.exit(code);
         }
       });
