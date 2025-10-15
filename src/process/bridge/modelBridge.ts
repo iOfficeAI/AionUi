@@ -8,7 +8,7 @@ import type { IProvider } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import OpenAI from 'openai';
 import { ipcBridge } from '../../common';
-import { getDatabase } from '../database/export';
+import { ProcessConfig } from '../initStorage';
 
 export function initModelBridge(): void {
   ipcBridge.mode.fetchModelList.provider(async function fetchModelList({ base_url, api_key, try_fix, platform }): Promise<{ success: boolean; msg?: string; data?: { mode: Array<string>; fix_base_url?: string } }> {
@@ -97,48 +97,46 @@ export function initModelBridge(): void {
     }
   });
 
-  ipcBridge.mode.saveModelConfig.provider(async (models) => {
-    try {
-      const db = getDatabase();
-      db.setConfig('model.config', models);
-      return { success: true };
-    } catch (e: any) {
-      return { success: false, msg: e.message || e.toString() };
-    }
+  ipcBridge.mode.saveModelConfig.provider((models) => {
+    return ProcessConfig.set('model.config', models)
+      .then(() => {
+        return { success: true };
+      })
+      .catch((e) => {
+        return { success: false, msg: e.message || e.toString() };
+      });
   });
 
-  ipcBridge.mode.getModelConfig.provider(async () => {
-    try {
-      const db = getDatabase();
-      const result = db.getConfig('model.config');
-      const data = result.data;
+  ipcBridge.mode.getModelConfig.provider(() => {
+    return ProcessConfig.get('model.config')
+      .then((data) => {
+        if (!data) return [];
 
-      if (!data) return [];
+        // Handle migration from old IModel format to new IProvider format
+        return data.map((v: any, _index: number) => {
+          // Check if this is old format (has 'selectedModel' field) vs new format (has 'useModel')
+          if ('selectedModel' in v && !('useModel' in v)) {
+            // Migrate from old format
+            return {
+              ...v,
+              useModel: v.selectedModel, // Rename selectedModel to useModel
+              id: v.id || uuid(),
+              capabilities: v.capabilities || [], // Add missing capabilities field
+              contextLimit: v.contextLimit, // Keep existing contextLimit if present
+            };
+            // Note: we don't delete selectedModel here as this is read-only migration
+          }
 
-      // Handle migration from old IModel format to new IProvider format
-      return (data as any[]).map((v: any, _index: number) => {
-        // Check if this is old format (has 'selectedModel' field) vs new format (has 'useModel')
-        if ('selectedModel' in v && !('useModel' in v)) {
-          // Migrate from old format
+          // Already in new format or unknown format, just ensure ID exists
           return {
             ...v,
-            useModel: v.selectedModel, // Rename selectedModel to useModel
             id: v.id || uuid(),
-            capabilities: v.capabilities || [], // Add missing capabilities field
-            contextLimit: v.contextLimit, // Keep existing contextLimit if present
+            useModel: v.useModel || v.selectedModel || '', // Fallback for edge cases
           };
-          // Note: we don't delete selectedModel here as this is read-only migration
-        }
-
-        // Already in new format or unknown format, just ensure ID exists
-        return {
-          ...v,
-          id: v.id || uuid(),
-          useModel: v.useModel || v.selectedModel || '', // Fallback for edge cases
-        };
+        });
+      })
+      .catch(() => {
+        return [] as IProvider[];
       });
-    } catch (e) {
-      return [] as IProvider[];
-    }
   });
 }
