@@ -31,6 +31,4 @@ export function initWebAdapter(wss: WebSocketServer): void {
       });
     },
   });
-
-  console.log('[WebAdapter] ✓ Web adapter initialized successfully');
 }
