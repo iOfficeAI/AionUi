@@ -7,7 +7,6 @@ import type { IConfirmMessageParams, IResponseMessage } from '@/common/ipcBridge
 import { parseError, uuid } from '@/common/utils';
 import { ProcessConfig } from '../initStorage';
 import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '../message';
-import { getDatabase } from '../database/export';
 import BaseAgentManager from './BaseAgentManager';
 
 interface AcpAgentManagerData {
@@ -44,34 +43,17 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
         cliPath: cliPath,
         workingDir: data.workspace,
         onStreamEvent: (data) => {
-          // Backend handles persistence before emitting to frontend
-          data.conversation_id = this.conversation_id;
-
-          // Transform and persist message (skip transient UI state messages)
-          if (data.type !== 'start' && data.type !== 'finish' && data.type !== 'thought') {
+          if (data.type !== 'thought') {
             const tMessage = transformMessage(data as IResponseMessage);
             if (tMessage) {
-              addOrUpdateMessage(this.conversation_id, tMessage);
+              addOrUpdateMessage(data.conversation_id, tMessage);
             }
           }
-
-          // Emit to frontend for UI display only
           ipcBridge.acpConversation.responseStream.emit(data);
         },
         onSignalEvent: (data) => {
           // 仅发送信号到前端，不更新消息列表
-          data.conversation_id = this.conversation_id;
           ipcBridge.acpConversation.responseStream.emit(data);
-
-          // Handle finish event: sync FTS index after conversation ends
-          if (data.type === 'finish') {
-            // Delay FTS sync to avoid blocking finish event
-            setTimeout(() => {
-              const db = getDatabase();
-              console.log(`[AcpAgentManager] Syncing FTS for conversation: ${this.conversation_id}`);
-              db.syncConversationFts(this.conversation_id);
-            }, 2000); // 2 second delay
-          }
         },
       });
       return this.agent.start().then(() => this.agent);
