@@ -242,13 +242,136 @@ export const loginStyles = `
     cursor: not-allowed;
   }
 
-  /* 消息提示 */
+  /* 语言切换按钮 / Language toggle button */
+  .lang-toggle {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background: white;
+    cursor: pointer;
+    font-size: 13px;
+    transition: all 0.3s;
+    z-index: 10;
+  }
+
+  .lang-toggle:hover {
+    border-color: #667eea;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.15);
+  }
+
+  .lang-text {
+    color: #999;
+    font-weight: 500;
+    transition: color 0.3s;
+  }
+
+  .lang-text.active {
+    color: #667eea;
+    font-weight: 600;
+  }
+
+  .lang-divider {
+    color: #ddd;
+  }
+
+  /* 密码可见性切换按钮 / Password visibility toggle */
+  .toggle-password {
+    position: absolute;
+    right: 16px;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    color: #999;
+    transition: color 0.3s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .toggle-password:hover {
+    color: #667eea;
+  }
+
+  .eye-icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  /* 记住用户名复选框 / Remember username checkbox */
+  .form-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 24px;
+    margin-top: -8px;
+  }
+
+  .form-checkbox input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: #667eea;
+  }
+
+  .form-checkbox label {
+    font-size: 14px;
+    color: #666;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  /* 登录按钮加载状态 / Login button loading state */
+  .login-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .btn-spinner {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .spinner {
+    width: 16px;
+    height: 16px;
+    animation: spin 1s linear infinite;
+  }
+
+  .spinner-circle {
+    stroke-dasharray: 50;
+    stroke-dashoffset: 25;
+    stroke-linecap: round;
+    fill: none;
+  }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  /* 消息提示 / Message box */
   .message-box {
     margin-top: 16px;
     padding: 12px 16px;
     border-radius: 8px;
     font-size: 14px;
     display: none;
+    font-weight: 500;
   }
 
   .message-box.show {
@@ -268,15 +391,15 @@ export const loginStyles = `
   }
 
   .message-error {
-    background-color: #fee;
-    color: #c33;
-    border: 1px solid #fcc;
+    background-color: #fef2f2;
+    color: #dc2626;
+    border: 1px solid #fecaca;
   }
 
   .message-success {
-    background-color: #efe;
-    color: #3c3;
-    border: 1px solid #cfc;
+    background-color: #f0fdf4;
+    color: #16a34a;
+    border: 1px solid #bbf7d0;
   }
 
   /* 底部信息 */
