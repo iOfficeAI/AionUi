@@ -22,8 +22,6 @@ export class AionUIDatabase {
 
   constructor(dbPath?: string) {
     const finalPath = dbPath || path.join(getConfigPath(), 'aionui.db');
-    console.log(`[Database] Initializing database at: ${finalPath}`);
-
     this.db = new Database(finalPath);
     this.initialize();
   }
@@ -35,12 +33,9 @@ export class AionUIDatabase {
       // Check and run migrations if needed
       const currentVersion = getDatabaseVersion(this.db);
       if (currentVersion < CURRENT_DB_VERSION) {
-        console.log(`[Database] Migrating from version ${currentVersion} to ${CURRENT_DB_VERSION}`);
         this.runMigrations(currentVersion, CURRENT_DB_VERSION);
         setDatabaseVersion(this.db, CURRENT_DB_VERSION);
       }
-
-      console.log('[Database] Initialization complete');
     } catch (error) {
       console.error('[Database] Initialization failed:', error);
       throw error;
@@ -74,7 +69,6 @@ export class AionUIDatabase {
    */
   close(): void {
     this.db.close();
-    console.log('[Database] Connection closed');
   }
 
   /**
@@ -647,9 +641,6 @@ export class AionUIDatabase {
       for (const msg of messages) {
         insertFts.run(msg.rowid, msg.id, msg.content);
       }
-
-      console.log(`[Database] Rebuilt FTS index: ${messages.length} messages indexed`);
-
       return {
         success: true,
         data: messages.length,
@@ -698,9 +689,6 @@ export class AionUIDatabase {
           console.warn(`[Database] Failed to sync FTS for message ${msg.id}:`, error);
         }
       }
-
-      console.log(`[Database] Synced FTS for ${synced}/${messages.length} messages`);
-
       return {
         success: true,
         data: synced,
@@ -917,7 +905,6 @@ export class AionUIDatabase {
    */
   vacuum(): void {
     this.db.exec('VACUUM');
-    console.log('[Database] Vacuum completed');
   }
 
   /**
