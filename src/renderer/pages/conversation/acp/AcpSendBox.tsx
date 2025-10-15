@@ -57,8 +57,8 @@ const useAcpMessage = (conversation_id: string) => {
           setThought({ subject: '', description: '' });
           addOrUpdateMessage(transformedMessage);
           break;
-        case 'acp_status':
-          // Update ACP status
+        case 'agent_status':
+          // Update ACP/Agent status
           if (message.data?.status) {
             setAcpStatus(message.data.status);
             // Reset running state when authentication is complete

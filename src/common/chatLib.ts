@@ -4,10 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { AcpBackend } from '../types/acpTypes';
 import type { IResponseMessage } from './ipcBridge';
 import { uuid } from './utils';
-import type { AcpPermissionRequest, ToolCallUpdate } from '@/types/acpTypes';
+import type { AcpBackend, AcpPermissionRequest, ToolCallUpdate } from '@/types/acpTypes';
 import type { CodexPermissionRequest } from '@/common/codex/types';
 import type { ExecCommandBeginData, ExecCommandOutputDeltaData, ExecCommandEndData, PatchApplyBeginData, PatchApplyEndData, McpToolCallBeginData, McpToolCallEndData, WebSearchBeginData, WebSearchEndData, TurnDiffData } from '@/common/codex/types/eventData';
 
@@ -55,7 +54,7 @@ export const joinPath = (basePath: string, relativePath: string): string => {
  * @description 跟对话相关的消息类型申明 及相关处理
  */
 
-type TMessageType = 'text' | 'tips' | 'tool_call' | 'tool_group' | 'acp_status' | 'acp_permission' | 'acp_tool_call' | 'codex_status' | 'codex_permission' | 'codex_tool_call';
+type TMessageType = 'text' | 'tips' | 'tool_call' | 'tool_group' | 'agent_status' | 'acp_permission' | 'acp_tool_call' | 'codex_permission' | 'codex_tool_call';
 
 interface IMessage<T extends TMessageType, Content extends Record<string, any>> {
   /**
@@ -163,29 +162,22 @@ export type IMessageToolGroup = IMessage<
   }>
 >;
 
-export type IMessageAcpStatus = IMessage<
-  'acp_status',
+// Unified agent status message type for all ACP-based agents (Claude, Qwen, Codex, etc.)
+export type IMessageAgentStatus = IMessage<
+  'agent_status',
   {
-    backend: AcpBackend;
+    backend: AcpBackend; // Agent identifier: 'claude', 'qwen', 'codex', etc.
     status: 'connecting' | 'connected' | 'authenticated' | 'session_active' | 'disconnected' | 'error';
-    message: string;
+    // Optional legacy fields for backward compatibility
+    sessionId?: string;
+    isConnected?: boolean;
+    hasActiveSession?: boolean;
   }
 >;
 
 export type IMessageAcpPermission = IMessage<'acp_permission', AcpPermissionRequest>;
 
 export type IMessageAcpToolCall = IMessage<'acp_tool_call', ToolCallUpdate>;
-
-export type IMessageCodexStatus = IMessage<
-  'codex_status',
-  {
-    status: string;
-    message: string;
-    sessionId?: string;
-    isConnected?: boolean;
-    hasActiveSession?: boolean;
-  }
->;
 
 export type IMessageCodexPermission = IMessage<'codex_permission', CodexPermissionRequest>;
 
@@ -262,7 +254,7 @@ export type CodexToolCallUpdate =
 export type IMessageCodexToolCall = IMessage<'codex_tool_call', CodexToolCallUpdate>;
 
 // eslint-disable-next-line max-len
-export type TMessage = IMessageText | IMessageTips | IMessageToolCall | IMessageToolGroup | IMessageAcpStatus | IMessageAcpPermission | IMessageAcpToolCall | IMessageCodexStatus | IMessageCodexPermission | IMessageCodexToolCall;
+export type TMessage = IMessageText | IMessageTips | IMessageToolCall | IMessageToolGroup | IMessageAgentStatus | IMessageAcpPermission | IMessageAcpToolCall | IMessageCodexPermission | IMessageCodexToolCall;
 
 /**
  * @description 将后端返回的消息转换为前端消息
@@ -314,10 +306,10 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         content: message.data,
       };
     }
-    case 'acp_status': {
+    case 'agent_status': {
       return {
         id: uuid(),
-        type: 'acp_status',
+        type: 'agent_status',
         msg_id: message.msg_id,
         position: 'center',
         conversation_id: message.conversation_id,
@@ -340,16 +332,6 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         type: 'acp_tool_call',
         msg_id: message.msg_id,
         position: 'left',
-        conversation_id: message.conversation_id,
-        content: message.data,
-      };
-    }
-    case 'codex_status': {
-      return {
-        id: uuid(),
-        type: 'codex_status',
-        msg_id: message.msg_id,
-        position: 'center',
         conversation_id: message.conversation_id,
         content: message.data,
       };

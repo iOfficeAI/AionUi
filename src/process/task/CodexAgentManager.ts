@@ -9,6 +9,7 @@ import { CodexAgent } from '@/agent/codex';
 import type { NetworkError } from '@/agent/codex/connection/CodexConnection';
 import { ipcBridge } from '@/common';
 import type { TMessage } from '@/common/chatLib';
+import { transformMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import { uuid } from '@/common/utils';
 import { addMessage } from '@process/message';
@@ -282,7 +283,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
   private handleNetworkError(error: NetworkError): void {
     // Emit network error as status message
-    this.emitStatus('error', `Network Error: ${error.suggestedAction}`);
+    this.emitStatus('error');
 
     // Create a user-friendly error message based on error type
     let userMessage = '';
@@ -330,14 +331,14 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     ipcBridge.codexConversation.responseStream.emit(networkErrorMessage);
   }
 
-  private emitStatus(status: 'connecting' | 'connected' | 'authenticated' | 'session_active' | 'error' | 'disconnected', message: string) {
+  private emitStatus(status: 'connecting' | 'connected' | 'authenticated' | 'session_active' | 'error' | 'disconnected') {
     const statusMessage: IResponseMessage = {
-      type: 'codex_status',
+      type: 'agent_status',
       conversation_id: this.conversation_id,
       msg_id: uuid(),
       data: {
+        backend: 'codex', // Agent identifier from AcpBackend type
         status,
-        message,
       },
     };
     // Use emitAndPersistMessage to ensure status messages are both emitted and persisted
@@ -387,23 +388,24 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
   }
 
   emitAndPersistMessage(message: IResponseMessage, persist: boolean = true): void {
-    // Two message types with different handling:
-    // 1. Delta messages (persist: false): only emit to frontend for UI display, no persistence
-    // 2. Other messages (persist: true): emit to frontend for both display and persistence
-    //
-    // Note: Final messages (agent_message) are handled directly by CodexMessageProcessor
-    // via addOrUpdateMessage(), they bypass this method entirely
     message.conversation_id = this.conversation_id;
 
-    // Only emit if this message should be shown in UI
-    // Delta messages: emit for streaming display (persist: false still emits!)
-    // Status/error messages: emit for display and persistence (persist: true)
-    if (persist === false) {
-      // Delta message: emit for UI only, mark as non-persistable
-      (message as any)._skipPersist = true;
+    // Backend handles persistence if needed
+    if (persist) {
+      const tMessage = transformMessage(message);
+      if (tMessage) {
+        addMessage(this.conversation_id, tMessage);
+      }
     }
 
+    // Always emit to frontend for UI display
     ipcBridge.codexConversation.responseStream.emit(message);
+  }
+
+  persistMessage(message: TMessage): void {
+    // Direct persistence to database without emitting to frontend
+    // Used for final messages where frontend has already displayed content via deltas
+    addMessage(this.conversation_id, message);
   }
 }
 
