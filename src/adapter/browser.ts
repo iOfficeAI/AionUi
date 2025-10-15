@@ -13,7 +13,7 @@ const win: any = window;
  * Web目录选择处理函数 / Web directory selection handler
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function handleWebDirectorySelection(options: any): Promise<string[] | undefined> {
+function handleWebDirectorySelection(options: any): Promise<string[] | undefined> {
   return new Promise((resolve) => {
     // 创建目录选择模态框
     const modal = createDirectorySelectionModal(options, (result) => {
@@ -86,7 +86,7 @@ function createDirectorySelectionModal(options: any, onSelect: (paths: string[] 
   modal.appendChild(dialog);
 
   // 初始化目录浏览器 / Initialize directory browser
-  initDirectoryBrowser(dialog.querySelector('#directoryBrowser')!, dialog.querySelector('#selectedPath')!, dialog.querySelector('#confirmBtn')!, isFileSelection);
+  void initDirectoryBrowser(dialog.querySelector('#directoryBrowser')!, dialog.querySelector('#selectedPath')!, dialog.querySelector('#confirmBtn')!, isFileSelection);
 
   // 事件处理 / Event handling
   dialog.querySelector('#closeBtn')!.addEventListener('click', () => {
@@ -115,7 +115,7 @@ function createDirectorySelectionModal(options: any, onSelect: (paths: string[] 
 /**
  * 初始化目录浏览器 / Initialize directory browser
  */
-async function initDirectoryBrowser(container: Element, pathDisplay: Element, confirmBtn: Element, isFileSelection: boolean) {
+function initDirectoryBrowser(container: Element, pathDisplay: Element, confirmBtn: Element, isFileSelection: boolean) {
   let _selectedPath: string;
 
   async function loadDirectory(path = '') {
@@ -174,7 +174,7 @@ async function initDirectoryBrowser(container: Element, pathDisplay: Element, co
         e.preventDefault();
         // 只有目录（包括父目录）可以导航 / Only directories (including parent) can be navigated
         if (type === 'parent' || (type === 'directory' && !isFileSelection)) {
-          loadDirectory(path!);
+          void loadDirectory(path!);
         } else if (type === 'directory' && isFileSelection) {
           // 在文件选择模式下，双击目录进入 / In file selection mode, double-click to enter directory
         }
@@ -184,7 +184,7 @@ async function initDirectoryBrowser(container: Element, pathDisplay: Element, co
       if (isFileSelection && type === 'directory') {
         item.addEventListener('dblclick', (e) => {
           e.preventDefault();
-          loadDirectory(path!);
+          void loadDirectory(path!);
         });
       }
 
@@ -205,7 +205,7 @@ async function initDirectoryBrowser(container: Element, pathDisplay: Element, co
   }
 
   // 加载初始目录 / Load initial directory
-  loadDirectory();
+  void loadDirectory();
 }
 
 /**
@@ -238,9 +238,7 @@ async function initializeWebSocket() {
     // 使用临时 token 建立 WebSocket 连接
     // Establish WebSocket connection with temporary token
     const wsProtocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
-    const resolvedHost =
-      window.location.host ||
-      `${window.location.hostname || 'localhost'}${window.location.port ? `:${window.location.port}` : ':25808'}`;
+    const resolvedHost = window.location.host || `${window.location.hostname || 'localhost'}${window.location.port ? `:${window.location.port}` : ':25808'}`;
     const wsUrl = `${wsProtocol}://${resolvedHost}`;
     const ws = new WebSocket(wsUrl, [wsToken]);
 
@@ -414,11 +412,11 @@ if (win.electronAPI) {
 } else {
   // Web 环境 - 使用 WebSocket 通信 / Web environment - use WebSocket communication
   // 启动 WebSocket 连接 / Initialize WebSocket connection
-  initializeWebSocket();
+  void initializeWebSocket();
 
   // 为 WebUI 模式注册 storage interceptor，通过 bridge 转发到后端 SQLite 数据库
   // Register storage interceptors for WebUI mode to forward requests to SQLite via bridge
-  import('../common/storage').then(({ ChatStorage, ChatMessageStorage, ConfigStorage, EnvStorage }) => {
+  void import('../common/storage').then(({ ChatStorage, ChatMessageStorage, ConfigStorage, EnvStorage }) => {
     // 使用新的 SQLite API
     ChatStorage.interceptor({
       get: (key: string) => {
@@ -453,8 +451,6 @@ if (win.electronAPI) {
       get: (key: string) => bridge.invoke('config.get', `env.${key}`).then((result: any) => result.data),
       set: (key: string, data: any) => bridge.invoke('config.set', { key: `env.${key}`, data }).then(() => data),
     });
-
-    console.log('[Browser] ✓ Storage interceptors registered (using SQLite API)');
   });
 }
 

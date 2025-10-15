@@ -1,0 +1,33 @@
+/**
+ * @license
+ * Copyright 2025 AionUi (aionui.com)
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import type { Express, Request, Response } from 'express';
+import { TokenMiddleware } from '../../auth/middleware/TokenMiddleware';
+import directoryApi from '../directoryApi';
+
+/**
+ * 注册 API 路由
+ * Register API routes
+ */
+export function registerApiRoutes(app: Express): void {
+  const validateApiAccess = TokenMiddleware.validateToken({ responseType: 'json' });
+
+  /**
+   * 目录 API - Directory API
+   * /api/directory/*
+   */
+  app.use('/api/directory', directoryApi);
+
+  /**
+   * 通用 API 端点 - Generic API endpoint
+   * GET /api
+   */
+  app.use('/api', validateApiAccess, (_req: Request, res: Response) => {
+    res.json({ message: 'API endpoint - bridge integration working' });
+  });
+}
+
+export default registerApiRoutes;

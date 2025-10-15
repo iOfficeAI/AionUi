@@ -24,7 +24,8 @@ export function initSchema(db: Database.Database): void {
       password_hash TEXT NOT NULL,
       avatar_path TEXT,
       created_at INTEGER NOT NULL,
-      updated_at INTEGER NOT NULL
+      updated_at INTEGER NOT NULL,
+      last_login INTEGER
     );
 
     CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
@@ -148,33 +149,6 @@ export function initSchema(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_mcp_servers_user_id ON mcp_servers(user_id);
     CREATE INDEX IF NOT EXISTS idx_mcp_servers_enabled ON mcp_servers(enabled);
     CREATE INDEX IF NOT EXISTS idx_mcp_servers_name ON mcp_servers(name);
-  `);
-
-  // Auth Sessions table (认证会话表 - 存储用户会话)
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS auth_sessions (
-      id TEXT PRIMARY KEY,
-      user_id INTEGER NOT NULL,
-      title TEXT NOT NULL,
-      created_at INTEGER NOT NULL,
-      updated_at INTEGER NOT NULL
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_auth_sessions_user_id ON auth_sessions(user_id);
-    CREATE INDEX IF NOT EXISTS idx_auth_sessions_updated_at ON auth_sessions(updated_at DESC);
-  `);
-
-  // Auth Users table (认证用户表 - 存储认证用户，兼容旧系统的 number 类型 user_id)
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS auth_users (
-      id INTEGER PRIMARY KEY,
-      username TEXT UNIQUE NOT NULL,
-      password_hash TEXT NOT NULL,
-      created_at INTEGER NOT NULL,
-      last_login INTEGER
-    );
-
-    CREATE UNIQUE INDEX IF NOT EXISTS idx_auth_users_username ON auth_users(username);
   `);
 
   // Create default system user if not exists

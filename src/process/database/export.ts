@@ -28,8 +28,6 @@ export type {
   // Database row types (for advanced usage)
   IConversationRow,
   IMessageRow,
-  IAuthUserRow,
-  IAuthSessionRow,
   IProviderRow,
   IMcpServerRow,
   IConfigRow,

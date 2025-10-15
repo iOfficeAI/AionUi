@@ -4,12 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { User } from '../database';
+import type { AuthUser } from '../auth/repository/UserRepository';
 
 declare global {
   namespace Express {
     interface Request {
-      user?: Pick<User, 'id' | 'username'>;
+      user?: Pick<AuthUser, 'id' | 'username'>;
+      cookies?: Record<string, string>;
     }
   }
 }
