@@ -34,24 +34,3 @@ export function initWebAdapter(wss: WebSocketServer): void {
 
   console.log('[WebAdapter] ✓ Web adapter initialized successfully');
 }
-
-/**
- * 获取当前连接的客户端数量
- * Get connected client count (for backward compatibility)
- */
-export function getConnectedClientsCount(): number {
-  // This function is kept for backward compatibility
-  // In the new architecture, you should access this through WebSocketManager instance
-  return 0;
-}
-
-/**
- * 向所有连接的客户端发送消息
- * Broadcast message to all connected clients (for backward compatibility)
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function broadcastToClients(_name: string, _data: any): void {
-  // This function is kept for backward compatibility
-  // In the new architecture, you should access this through WebSocketManager instance
-  console.warn('[WebAdapter] broadcastToClients is deprecated, use WebSocketManager.broadcast instead');
-}
