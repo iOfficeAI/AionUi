@@ -11,7 +11,6 @@ import type { IResponseMessage } from '@/common/ipcBridge';
 import type { TProviderWithModel, IMcpServer } from '@/common/storage';
 import { ProcessConfig } from '@/process/initStorage';
 import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '../message';
-import { getDatabase } from '../database/export';
 import BaseAgentManager from './BaseAgentManager';
 
 // gemini agent管理器类
@@ -129,21 +128,13 @@ export class GeminiAgentManager extends BaseAgentManager<{
       // console.log('gemini.message', data);
       if (data.type === 'finish') {
         this.status = 'finished';
-        // Sync FTS index after conversation finishes (delayed, non-blocking)
-        // This ensures search index is up-to-date after streaming completes
-        setTimeout(() => {
-          const db = getDatabase();
-          db.syncConversationFts(this.conversation_id);
-        }, 2000); // 2 second delay to avoid blocking finish event
       }
       if (data.type === 'start') {
         this.status = 'running';
       }
-
-      // Backend handles persistence before emitting to frontend
       data.conversation_id = this.conversation_id;
       // Transform and persist message (skip transient UI state messages)
-      if (data.type !== 'start' && data.type !== 'finish' && data.type !== 'thought') {
+      if (data.type !== 'thought') {
         const tMessage = transformMessage(data as IResponseMessage);
         if (tMessage) {
           addOrUpdateMessage(this.conversation_id, tMessage);

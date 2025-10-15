@@ -88,12 +88,11 @@ export function useReactToolScheduler(onComplete: (tools: CompletedToolCall[]) =
   const scheduler = useMemo(
     () =>
       new CoreToolScheduler({
-        toolRegistry: config.getToolRegistry(),
+        config,
         outputUpdateHandler,
         onAllToolCallsComplete: allToolCallsCompleteHandler,
         onToolCallsUpdate: toolCallsUpdateHandler,
         getPreferredEditor,
-        config,
         onEditorClose,
       }),
     [config, outputUpdateHandler, allToolCallsCompleteHandler, toolCallsUpdateHandler, getPreferredEditor, onEditorClose]

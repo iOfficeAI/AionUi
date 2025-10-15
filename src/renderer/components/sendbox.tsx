@@ -62,7 +62,7 @@ const SendBox: React.FC<{
         }, 0);
       } else {
         // 如果无法获取光标位置，回退到追加到末尾的行为
-        setInput(input + text);
+        setInput(text);
       }
     },
   });
@@ -86,16 +86,13 @@ const SendBox: React.FC<{
       });
   };
 
-  const stopHandler = () => {
+  const stopHandler = async () => {
     if (!onStop) return;
-    onStop()
-      .then(() => {
-        setIsLoading(false);
-      })
-      .catch((error) => {
-        console.error('Failed to stop operation:', error);
-        setIsLoading(false);
-      });
+    try {
+      await onStop();
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
