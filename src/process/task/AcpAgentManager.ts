@@ -33,9 +33,9 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
 
   initAgent(data: AcpAgentManagerData = this.options) {
     if (this.bootstrap) return this.bootstrap;
-    this.bootstrap = ProcessConfig.get('acp.config').then((config: any) => {
+    this.bootstrap = ProcessConfig.get('acp.config').then((config) => {
       let cliPath = data.cliPath;
-      if (!cliPath && config[data.backend]?.cliPath) {
+      if (!cliPath && config[data.backend].cliPath) {
         cliPath = config[data.backend].cliPath;
       }
       this.agent = new AcpAgent({

@@ -40,7 +40,7 @@ export class GeminiAgentManager extends BaseAgentManager<{
     this.model = model;
     this.bootstrap = Promise.all([ProcessConfig.get('gemini.config'), this.getImageGenerationModel(), this.getMcpServers()]).then(([config, imageGenerationModel, mcpServers]) => {
       return this.start({
-        ...(config as any),
+        ...config,
         workspace: this.workspace,
         model: this.model,
         imageGenerationModel,
@@ -52,9 +52,9 @@ export class GeminiAgentManager extends BaseAgentManager<{
 
   private getImageGenerationModel(): Promise<TProviderWithModel | undefined> {
     return ProcessConfig.get('tools.imageGenerationModel')
-      .then((imageGenerationModel: any) => {
+      .then((imageGenerationModel) => {
         if (imageGenerationModel && imageGenerationModel.switch) {
-          return imageGenerationModel as TProviderWithModel;
+          return imageGenerationModel;
         }
         return undefined;
       })
