@@ -47,10 +47,13 @@ module.exports = {
     arch: process.env.npm_config_target_arch || process.env.arch || process.arch,
   },
   rebuildConfig: {
-    // 在 Windows CI 环境下，跳过所有原生模块的重建
-    ...(process.env.CI === 'true' && process.platform === 'win32'
+    // 在 Windows 下跳过所有原生模块的重建（避免 Python 依赖）
+    // Skip all native module rebuilds on Windows (avoid Python dependency)
+    // 原生模块已经在 npm install 时正确编译
+    // Native modules are already compiled during npm install
+    ...(process.platform === 'win32'
       ? {
-          onlyModules: [], // 一个空数组意味着"不要重建任何模块"
+          onlyModules: [], // 空数组 = 不重建任何模块
         }
       : {}),
   },
