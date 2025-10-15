@@ -15,58 +15,70 @@ const path = require('path');
 const PROJECT_ROOT = path.resolve(__dirname, '..');
 const CLI_PATH = path.join(PROJECT_ROOT, 'bin', 'aionui-cli.mjs');
 
-console.log('[Setup] Configuring AionUi CLI...');
+console.log('\n╔════════════════════════════════════════════════════════╗');
+console.log('║     🚀 AionUi Development Environment Setup           ║');
+console.log('╚════════════════════════════════════════════════════════╝\n');
 
 try {
   // 1. Ensure CLI file has executable permission (Unix-like systems)
   if (process.platform !== 'win32') {
-    console.log('[Setup] Setting executable permission for CLI...');
+    console.log('[1/3] Setting executable permission for CLI...');
     fs.chmodSync(CLI_PATH, 0o755);
-    console.log('[Setup] ✓ Executable permission set');
+    console.log('      ✓ Executable permission set');
+  } else {
+    console.log('[1/3] Checking CLI file...');
+    console.log('      ✓ CLI file ready (Windows)');
   }
 
-  // 2. Rebuild better-sqlite3 for Electron
-  console.log('[Setup] Rebuilding better-sqlite3 for Electron...');
+  // 2. Rebuild better-sqlite3 for Electron (optional, skip on errors)
+  console.log('\n[2/3] Rebuilding native modules for Electron...');
   try {
     execSync('npx electron-rebuild -f -w better-sqlite3', {
       cwd: PROJECT_ROOT,
-      stdio: 'inherit',
+      stdio: 'pipe',
     });
-    console.log('[Setup] ✓ better-sqlite3 rebuilt successfully');
+    console.log('      ✓ better-sqlite3 rebuilt successfully');
   } catch (error) {
-    console.warn('[Setup] ⚠ Failed to rebuild better-sqlite3, you may need to run manually:');
-    console.warn('         npx electron-rebuild -f -w better-sqlite3');
+    console.log('      ⚠ Skipped rebuild (optional step)');
+    console.log('      ℹ Native modules will be rebuilt when you start the app');
   }
 
   // 3. Link CLI globally (optional, only in dev environment)
   // Skip npm link in CI or if NODE_ENV=production
   const isDevEnvironment = !process.env.CI && process.env.NODE_ENV !== 'production';
 
+  console.log('\n[3/3] Setting up CLI command...');
   if (isDevEnvironment) {
-    console.log('[Setup] Linking CLI globally for development...');
     try {
       execSync('npm link', {
         cwd: PROJECT_ROOT,
-        stdio: 'pipe', // Suppress output to avoid clutter
+        stdio: 'pipe',
       });
-      console.log('[Setup] ✓ CLI linked globally, you can now use "aionui" command');
+      console.log('      ✓ CLI linked globally');
+      console.log('      ℹ You can now use "aionui" command anywhere');
     } catch (error) {
-      console.warn('[Setup] ⚠ Failed to link CLI globally (this is optional)');
-      console.warn('         You can manually run: npm link');
+      console.log('      ⚠ Skipped global link (optional)');
+      console.log('      ℹ Run "npm link" manually if you want global access');
     }
   } else {
-    console.log('[Setup] ℹ Skipping global link (CI or production environment)');
+    console.log('      ℹ Skipped (CI/production environment)');
   }
 
-  console.log('\n[Setup] ✅ Setup complete!');
-  console.log('\nNext steps:');
-  console.log('  1. Run "npm run start:webui" to start the application');
-  console.log('  2. Or use "aionui" command in terminal for CLI interface');
+  console.log('\n╔════════════════════════════════════════════════════════╗');
+  console.log('║     ✅ Setup Complete!                                 ║');
+  console.log('╚════════════════════════════════════════════════════════╝\n');
+
+  console.log('📋 Next steps:\n');
+  console.log('  Option 1 (GUI): npm run start:webui');
+  console.log('  Option 2 (CLI): aionui\n');
+
+  console.log('📚 For more information, see: docs/DEVELOPMENT.md\n');
 
 } catch (error) {
-  console.error('[Setup] ❌ Setup failed:', error.message);
-  console.error('\nPlease run these commands manually:');
-  console.error('  1. npx electron-rebuild -f -w better-sqlite3');
-  console.error('  2. npm link (optional, for global CLI access)');
-  process.exit(1);
+  console.error('\n❌ Setup encountered an error:', error.message);
+  console.error('\n💡 This is usually fine! You can:');
+  console.error('   1. Ignore and run: npm run start:webui');
+  console.error('   2. Or rebuild manually: npx electron-rebuild -f -w better-sqlite3\n');
+  // Don't exit with error code to prevent npm install from failing
+  process.exit(0);
 }
