@@ -30,12 +30,6 @@ export const startCommand = {
 
       const dbPath = resolveDbPath();
 
-      // 设置环境变量 / Set environment variables
-      const env = {
-        ...process.env,
-        AIONUI_DB_PATH: dbPath,
-      };
-
       // 检查是否在项目目录 / Check if in project directory
       const packageJsonPath = path.join(PROJECT_ROOT, 'package.json');
       if (!fs.existsSync(packageJsonPath)) {
@@ -61,15 +55,24 @@ export const startCommand = {
         text: `💾 Database: ${dbPath}`,
       });
 
-      // Windows 需要使用 cmd.exe 或 npm.cmd / Windows requires cmd.exe or npm.cmd
       const isWindows = process.platform === 'win32';
-      const npmCommand = isWindows ? 'npm.cmd' : 'npm';
+
+      // 设置环境变量 / Set environment variables
+      // 统一使用 electron-forge，避免跨平台 shell 语法问题
+      // Use electron-forge directly to avoid cross-platform shell syntax issues
+      const env = {
+        ...process.env,
+        AIONUI_DB_PATH: dbPath,
+        NODE_OPTIONS: '--no-deprecation',
+      };
 
       // 启动 WebUI 开发服务器 / Launch WebUI dev server
-      const child = spawn(npmCommand, ['run', 'start:webui'], {
+      // 所有平台统一使用 npx electron-forge（跨平台兼容）
+      // Use npx electron-forge on all platforms for consistency
+      const child = spawn('npx', ['electron-forge', 'start', '--', '--webui'], {
         cwd: PROJECT_ROOT,
         stdio: 'inherit',
-        shell: isWindows ? true : false,
+        shell: isWindows,
         env,
       });
 
