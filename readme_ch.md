@@ -24,7 +24,7 @@
 
 ### 🤖 **多代理模式**
 
-_无缝集成多个终端 AI 代理 - Gemini CLI、Claude Code、Qwen Code 等_
+_无缝集成多个终端 AI 代理 - Gemini CLI、Claude Code、Qwen Code、Codex 等_
 
 <p align="center">
   <img src="./resources/multi-agent.gif" alt="多代理模式演示" width="800">
@@ -111,11 +111,20 @@ AionUi 为需要更好工作流效率的用户提供了现代界面，同时**�
 
 ### 🤖 **多 Agent 集成**
 
-- **多终端代理支持** - 无缝集成多种终端 AI 代理（Gemini CLI、Claude Code、Qwen Code 等）
+- **多终端代理支持** - 无缝集成多种终端 AI 代理（Gemini CLI、Claude Code、Qwen Code、Codex 等）
 - **动态 CLI 检测** - 自动后端发现和 CLI 路径检测
 - **安全认证** - OAuth 支持和安全认证流程
 - **实时监控** - 实时连接状态和后端健康监控
 - **统一界面** - 所有终端 AI 代理通过相同的聊天界面访问
+
+### 🔌 **MCP 工具管理**
+
+- **MCP 服务器配置** - 添加、编辑和管理模型上下文协议服务器
+- **多种导入方式** - 从 JSON 配置导入或 CLI 一键设置
+- **工具发现** - 自动发现并列出 MCP 服务器提供的可用工具
+- **连接测试** - 实时测试 MCP 服务器连接和健康状态
+- **多代理同步** - 在不同 AI 代理间同步 MCP 配置
+- **工具管理** - 启用/禁用工具、查看参数和工具描述
 
 ### 🔄 **多 API Key 轮换服务**
 
@@ -167,6 +176,7 @@ AionUi 为需要更好工作流效率的用户提供了现代界面，同时**�
 - [📖 完整安装指南](https://github.com/iOfficeAI/AionUi/wiki/Getting-Started-Chinese) - 从下载到配置的详细步骤
 - [⚙️ LLM 配置指南](https://github.com/iOfficeAI/AionUi/wiki/LLM-Configuration-Chinese) - 多平台 AI 模型配置
 - [🤖 多代理模式设置](https://github.com/iOfficeAI/AionUi/wiki/ACP-Setup-Chinese) - 集成终端 AI 代理
+- [🔌 MCP 工具配置](https://github.com/iOfficeAI/AionUi/wiki/MCP-Configuration-Guide-Chinese) - 模型上下文协议服务器设置
 - [🎨 图像生成配置](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide-Chinese) - AI 图像生成设置教程
 
 ### 🎯 使用案例
