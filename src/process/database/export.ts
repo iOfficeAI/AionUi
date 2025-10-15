@@ -9,14 +9,12 @@
  * Use this file to import database functionality throughout the app
  */
 
-export { AionDatabase, getDatabase, closeDatabase } from './index';
-export { ImageStorage, getImageStorage } from './imageStorage';
+export { AionUIDatabase, getDatabase, closeDatabase } from './index';
 export { runMigrations, rollbackMigrations, getMigrationHistory, isMigrationApplied, type IMigration } from './migrations';
 
 export type {
   // Database-specific types
   IUser,
-  IImageMetadata,
   IQueryResult,
   IPaginatedResult,
   // Business types (re-exported for convenience)
