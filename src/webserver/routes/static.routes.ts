@@ -17,7 +17,9 @@ import { LoginPage } from '../views/pages/login';
  * Register static assets and page routes
  */
 export function registerStaticRoutes(app: Express): void {
-  const rendererPath = path.join(__dirname, '../../../.webpack/renderer');
+  // 使用 process.cwd() 而不是 __dirname，因为 webpack 打包后 __dirname 会指向错误的位置
+  // Use process.cwd() instead of __dirname because __dirname points to wrong location after webpack bundling
+  const rendererPath = path.join(process.cwd(), '.webpack/renderer');
   const indexHtmlPath = path.join(rendererPath, 'main_window/index.html');
 
   /**
