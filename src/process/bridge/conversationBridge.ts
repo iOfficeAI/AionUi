@@ -9,13 +9,11 @@ import type { TChatConversation } from '@/common/storage';
 import { GeminiAgent } from '@/agent/gemini';
 import { ipcBridge } from '../../common';
 import { createAcpAgent, createCodexAgent, createGeminiAgent } from '../initAgent';
-import { ProcessChat } from '../initStorage';
 import type AcpAgentManager from '../task/AcpAgentManager';
 import type { GeminiAgentManager } from '../task/GeminiAgentManager';
 import { readDirectoryRecursive } from '../utils';
 import WorkerManage from '../WorkerManage';
 import { getDatabase } from '@process/database';
-import { migrateConversationToDatabase } from './migrationUtils';
 
 export function initConversationBridge(): void {
   ipcBridge.conversation.create.provider(async (params): Promise<TChatConversation> => {
@@ -54,50 +52,25 @@ export function initConversationBridge(): void {
     }
   });
 
-  ipcBridge.conversation.getAssociateConversation.provider(async ({ conversation_id }) => {
+  ipcBridge.conversation.getAssociateConversation.provider(({ conversation_id }) => {
     try {
       const db = getDatabase();
 
-      // Try to get current conversation from database
-      let currentConversation: TChatConversation | undefined;
       const currentResult = db.getConversation(conversation_id);
 
-      if (currentResult.success && currentResult.data) {
-        currentConversation = currentResult.data;
-      } else {
-        // Not in database, try file storage
-        const history = await ProcessChat.get('chat.history');
-        currentConversation = history.find((item) => item.id === conversation_id);
-
-        // Lazy migrate in background
-        if (currentConversation) {
-          void migrateConversationToDatabase(currentConversation);
-        }
+      if (!currentResult.success || !currentResult.data || !currentResult.data.extra?.workspace) {
+        return Promise.resolve([]);
       }
 
-      if (!currentConversation || !currentConversation.extra?.workspace) {
-        return [];
-      }
+      const currentConversation = currentResult.data;
 
-      // Get all conversations from database (get first page with large limit to get all)
       const allResult = db.getUserConversations(undefined, 0, 10000);
-      let allConversations: TChatConversation[] = allResult.data || [];
+      const allConversations: TChatConversation[] = allResult.data || [];
 
-      // If database is empty or doesn't have enough conversations, merge with file storage
-      const history = await ProcessChat.get('chat.history');
-      if (allConversations.length < (history?.length || 0)) {
-        // Database doesn't have all conversations yet, use file storage
-        allConversations = history || [];
-
-        // Lazy migrate all conversations in background
-        void Promise.all(allConversations.map((conv) => migrateConversationToDatabase(conv)));
-      }
-
-      // Filter by workspace
-      return allConversations.filter((item) => item.extra?.workspace === currentConversation.extra.workspace);
+      return Promise.resolve(allConversations.filter((item) => item.extra?.workspace === currentConversation.extra.workspace));
     } catch (error) {
       console.error('[conversationBridge] Failed to get associate conversations:', error);
-      return [];
+      return Promise.resolve([]);
     }
   });
 
@@ -152,38 +125,23 @@ export function initConversationBridge(): void {
     return Promise.resolve();
   });
 
-  ipcBridge.conversation.get.provider(async ({ id }) => {
+  ipcBridge.conversation.get.provider(({ id }) => {
     try {
       const db = getDatabase();
 
-      // Try to get conversation from database first
       const result = db.getConversation(id);
       if (result.success && result.data) {
         // Found in database, update status and return
         const conversation = result.data;
         const task = WorkerManage.getTaskById(id);
         conversation.status = task?.status || 'finished';
-        return conversation;
+        return Promise.resolve(conversation);
       }
 
-      // Not in database, try to load from file storage and migrate
-      const history = await ProcessChat.get('chat.history');
-      const conversation = history.find((item) => item.id === id);
-      if (conversation) {
-        // Update status from running task
-        const task = WorkerManage.getTaskById(id);
-        conversation.status = task?.status || 'finished';
-
-        // Lazy migrate this conversation to database in background
-        void migrateConversationToDatabase(conversation);
-
-        return conversation;
-      }
-
-      return undefined;
+      return Promise.resolve(undefined);
     } catch (error) {
       console.error('[conversationBridge] Failed to get conversation:', error);
-      return undefined;
+      return Promise.resolve(undefined);
     }
   });
 

@@ -12,8 +12,31 @@
 
 import React from 'react';
 import { render, Box, Text, useInput, useApp } from 'ink';
-import { resetPassword, listUsers, showHelp, getUserCount, startWebUI } from './cli/commands.mjs';
+import { registry } from './cli/commands/registry.mjs';
 import { Logo, WelcomeMessage, StatusBar, renderOutput } from './cli/components.mjs';
+import { UserRepository, cleanup, dbManager, resolveDbPath } from './cli/database.mjs';
+import { CLI_CONFIG } from './cli/config.mjs';
+import { useCommandHistory } from './cli/hooks/useCommandHistory.mjs';
+
+/**
+ * 错误处理 / Global error handling
+ */
+process.on('unhandledRejection', (error) => {
+  cleanup();
+  process.exit(1);
+});
+
+process.on('uncaughtException', (error) => {
+  cleanup();
+  process.exit(1);
+});
+
+/**
+ * 进程退出时清理资源 / Cleanup on process exit
+ */
+process.on('exit', () => {
+  cleanup();
+});
 
 /**
  * AionUI CLI 主组件
@@ -25,12 +48,29 @@ const AionCLI = () => {
   const [isProcessing, setIsProcessing] = React.useState(false);
   const [showWelcome, setShowWelcome] = React.useState(true);
   const [userCount, setUserCount] = React.useState(0);
+  const [startTime] = React.useState(Date.now());
+  const [uptime, setUptime] = React.useState(0);
   const { exit } = useApp();
 
-  // 挂载时加载用户数量 / Load user count on mount
+  // 命令历史管理 / Command history management
+  const { navigateUp, navigateDown, addToHistory, getHistoryCount } = useCommandHistory(100);
+
+  // 挂载时加载用户数量和数据库路径 / Load user count and db path on mount
   React.useEffect(() => {
-    setUserCount(getUserCount());
+    try {
+      setUserCount(UserRepository.count());
+    } catch (error) {
+      console.error('Failed to load user count:', error.message);
+    }
   }, []);
+
+  // 更新运行时间 / Update uptime
+  React.useEffect(() => {
+    const timer = setInterval(() => {
+      setUptime(Math.floor((Date.now() - startTime) / 1000));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [startTime]);
 
   // 处理键盘输入 / Handle keyboard input
   useInput(async (char, key) => {
@@ -38,7 +78,26 @@ const AionCLI = () => {
 
     // Ctrl+C 退出 / Exit on Ctrl+C
     if (key.ctrl && char === 'c') {
+      cleanup();
       exit();
+      return;
+    }
+
+    // 上箭头:向上导航历史 / Up arrow: navigate up in history
+    if (key.upArrow) {
+      const historyCommand = navigateUp(input);
+      if (historyCommand !== null) {
+        setInput(historyCommand);
+      }
+      return;
+    }
+
+    // 下箭头:向下导航历史 / Down arrow: navigate down in history
+    if (key.downArrow) {
+      const historyCommand = navigateDown();
+      if (historyCommand !== null) {
+        setInput(historyCommand);
+      }
       return;
     }
 
@@ -46,6 +105,7 @@ const AionCLI = () => {
     if (key.return) {
       if (input.trim()) {
         setShowWelcome(false);
+        addToHistory(input.trim());  // 添加到历史 / Add to history
         await handleCommand(input.trim());
       }
       setInput('');
@@ -75,70 +135,62 @@ const AionCLI = () => {
     const cmd = parts[0].toLowerCase().replace(/^\//, '');
     const args = parts.slice(1);
 
-    let result;
+    try {
+      // 创建增强的命令执行上下文 / Create enhanced command execution context
+      const context = {
+        // 服务层 / Services
+        services: {
+          db: dbManager,
+          config: CLI_CONFIG,
+        },
 
-    // 路由到对应的命令处理器 / Route to corresponding command handler
-    switch (cmd) {
-      case 'start':
-        // 启动 WebUI 会接管终端，所以直接退出 CLI
-        // Starting WebUI will take over terminal, so exit CLI
-        result = startWebUI();
-        if (result === null) {
-          // 成功启动，退出 CLI
-          // Successfully started, exit CLI
-          exit();
-          return;
-        }
-        break;
+        // UI 交互层 / UI interaction
+        ui: {
+          addOutput: (item) => {
+            setOutput((prev) => [...prev, item]);
+          },
+          clear: () => {
+            setOutput([]);
+            setShowWelcome(true);
+          },
+          exit: () => {
+            cleanup();
+            exit();
+          },
+        },
 
-      case 'resetpass':
-        if (args.length === 0) {
-          result = {
-            success: false,
-            messages: [{ type: 'error', text: 'Usage: /resetpass <username>' }],
-          };
-        } else {
-          result = await resetPassword(args[0]);
-        }
-        break;
+        // 会话状态层 / Session state
+        session: {
+          setUserCount: (count) => setUserCount(count),
+          getUserCount: () => userCount,
+        },
 
-      case 'users':
-        result = listUsers();
-        if (result.userCount !== undefined) {
-          setUserCount(result.userCount);
-        }
-        break;
+        // 命令注册表（用于 help 命令）/ Command registry (for help command)
+        registry: registry,
+      };
 
-      case 'help':
-        result = showHelp();
-        break;
-
-      case 'clear':
-        setOutput([]);
-        setShowWelcome(true);
-        setIsProcessing(false);
-        return;
-
-      default:
-        result = {
-          success: false,
-          messages: [
-            { type: 'error', text: `Unknown command: ${cmd}` },
-            { type: 'hint', text: 'Type /help for available commands' },
-          ],
-        };
-    }
-
-    // 添加命令执行结果到输出 / Add command result to output
-    if (result && result.messages) {
-      setOutput((prev) => [...prev, ...result.messages]);
+      // 检查命令是否存在 / Check if command exists
+      if (!registry.has(cmd)) {
+        context.ui.addOutput({ type: 'error', text: `Unknown command: ${cmd}` });
+        context.ui.addOutput({ type: 'hint', text: 'Type /help for available commands' });
+      } else {
+        // 执行命令 / Execute command
+        await registry.execute(cmd, args, context);
+      }
+    } catch (error) {
+      setOutput((prev) => [
+        ...prev,
+        { type: 'error', text: `Command execution failed: ${error.message}` },
+        { type: 'hint', text: 'Please try again or type /help for usage' },
+      ]);
+      console.error('Command error:', error);
     }
 
     setIsProcessing(false);
   };
 
-  // 只显示最近的 12 条输出 / Only show last 12 output items
-  const displayOutput = output.slice(-12);
+  // 只显示最近的 N 条输出 / Only show last N output items
+  const displayOutput = output.slice(-CLI_CONFIG.OUTPUT_HISTORY_LIMIT);
 
   return React.createElement(
     Box,
@@ -165,7 +217,13 @@ const AionCLI = () => {
     ),
 
     // 状态栏 / Status bar
-    React.createElement(StatusBar, { userCount, processing: isProcessing })
+    React.createElement(StatusBar, {
+      userCount,
+      processing: isProcessing,
+      dbPath: resolveDbPath(),
+      uptime,
+      historyCount: getHistoryCount(),
+    })
   );
 };
 

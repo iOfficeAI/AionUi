@@ -8,14 +8,20 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import type { StringValue } from 'ms';
-import type { User } from '../database';
+import { getDatabase } from '../../process/database/export';
+import type { AuthUser } from '../repository/UserRepository';
+import { AUTH_CONFIG } from '../../config/constants';
 
 interface TokenPayload {
-  userId: number;
+  userId: string;
   username: string;
   iat?: number;
   exp?: number;
 }
+
+type RawTokenPayload = Omit<TokenPayload, 'userId'> & {
+  userId: string | number;
+};
 
 interface UserCredentials {
   username: string;
@@ -23,65 +29,94 @@ interface UserCredentials {
   createdAt: number;
 }
 
+/**
+ * 认证服务 - 提供密码哈希、Token 生成与验证等能力
+ * Authentication Service - handles password hashing, token issuance, and validation
+ */
 export class AuthService {
   private static readonly SALT_ROUNDS = 12;
   private static jwtSecret: string | null = null;
-  private static readonly TOKEN_EXPIRY = '30d'; // 30 days
+  private static readonly TOKEN_EXPIRY = AUTH_CONFIG.TOKEN.SESSION_EXPIRY;
 
+  /**
+   * 生成高强度的随机密钥
+   * Generate a high-entropy random secret key
+   */
   private static generateSecretKey(): string {
-    // Generate a strong secret key if not provided
+    // 始终使用随机数确保密钥不可预测 / Always rely on randomness for unpredictability
     return crypto.randomBytes(64).toString('hex');
   }
 
-  // Get or create JWT secret (persistent across restarts)
+  /**
+   * 获取或创建 JWT Secret，并缓存于内存
+   * Load or create the JWT secret and cache it in memory
+   */
   public static getJwtSecret(): string {
     if (this.jwtSecret) {
       return this.jwtSecret;
     }
 
-    // Try to get from environment variable
+    // 优先使用环境变量，方便部署覆盖 / Prefer env var for deploy-time override
     if (process.env.JWT_SECRET) {
       this.jwtSecret = process.env.JWT_SECRET;
       return this.jwtSecret;
     }
 
-    // Try to get from database
     try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const AionDatabase = require('../database').default;
-      const db = AionDatabase.getInstance();
-
-      // Try to get existing secret from database
+      const db = getDatabase();
       const existingSecret = db.getConfig('jwt_secret');
-      if (existingSecret) {
-        this.jwtSecret = existingSecret;
+      if (existingSecret.success && existingSecret.data) {
+        this.jwtSecret = existingSecret.data;
         return this.jwtSecret;
       }
 
-      // Generate new secret and save to database
       const newSecret = this.generateSecretKey();
       db.setConfig('jwt_secret', newSecret);
       this.jwtSecret = newSecret;
       return this.jwtSecret;
     } catch (error) {
       console.error('Failed to get/save JWT secret:', error);
-      // Fallback: generate temporary secret (not persistent)
       this.jwtSecret = this.generateSecretKey();
       return this.jwtSecret;
     }
   }
 
-  // Password hashing with strong security
-  public static async hashPassword(password: string): Promise<string> {
+  /**
+   * 通过旋转密钥的方式让所有现有 Token 失效
+   * Rotate the secret key to invalidate all existing tokens
+   */
+  public static invalidateAllTokens(): void {
+    try {
+      const db = getDatabase();
+      const newSecret = this.generateSecretKey();
+      db.setConfig('jwt_secret', newSecret);
+      this.jwtSecret = newSecret;
+    } catch (error) {
+      console.error('Failed to invalidate tokens:', error);
+    }
+  }
+
+  /**
+   * 使用 bcrypt 进行密码哈希
+   * Hash password using bcrypt
+   */
+  public static hashPassword(password: string): Promise<string> {
     return bcrypt.hash(password, this.SALT_ROUNDS);
   }
 
-  public static async verifyPassword(password: string, hash: string): Promise<boolean> {
+  /**
+   * 验证密码是否与存储的哈希匹配
+   * Verify whether the password matches the stored hash
+   */
+  public static verifyPassword(password: string, hash: string): Promise<boolean> {
     return bcrypt.compare(password, hash);
   }
 
-  // JWT token operations
-  public static generateToken(user: Pick<User, 'id' | 'username'>): string {
+  /**
+   * 生成 WebUI 使用的标准会话 Token
+   * Generate standard WebUI session token
+   */
+  public static generateToken(user: Pick<AuthUser, 'id' | 'username'>): string {
     const payload: TokenPayload = {
       userId: user.id,
       username: user.username,
@@ -101,27 +136,47 @@ export class AuthService {
    * @param expiresIn - 过期时间（默认 5 分钟）/ Expiration time (default 5 minutes)
    * @returns JWT token string
    */
-  public static generateWebSocketToken(user: Pick<User, 'id' | 'username'>, expiresIn?: StringValue | number): string {
+  public static generateWebSocketToken(user: Pick<AuthUser, 'id' | 'username'>, expiresIn?: StringValue | number): string {
     const payload: TokenPayload = {
       userId: user.id,
       username: user.username,
     };
 
     return jwt.sign(payload, this.getJwtSecret(), {
-      expiresIn: expiresIn || '5m',
+      expiresIn: expiresIn || AUTH_CONFIG.TOKEN.WEBSOCKET_EXPIRY,
       issuer: 'aionui',
       audience: 'aionui-websocket', // 不同的 audience，标识这是 WebSocket token
     });
   }
 
+  /**
+   * 将数据库中的用户 ID 统一转换为字符串格式
+   * Normalize database user id into a consistent string
+   *
+   * Note: In new architecture, all user IDs are already strings (e.g., "auth_1234567890_abc")
+   * This function simply ensures the ID is a string type.
+   * 注意：在新架构中，所有用户 ID 已经是字符串格式（如 "auth_1234567890_abc"）
+   * 此函数仅确保 ID 是字符串类型。
+   */
+  private static normalizeUserId(rawId: string | number): string {
+    return String(rawId);
+  }
+
+  /**
+   * 验证 WebUI 会话 Token 是否有效
+   * Verify standard WebUI session token validity
+   */
   public static verifyToken(token: string): TokenPayload | null {
     try {
       const decoded = jwt.verify(token, this.getJwtSecret(), {
         issuer: 'aionui',
         audience: 'aionui-webui',
-      }) as TokenPayload;
+      }) as RawTokenPayload;
 
-      return decoded;
+      return {
+        ...decoded,
+        userId: this.normalizeUserId(decoded.userId),
+      };
     } catch (error) {
       console.error('Token verification failed:', error);
       return null;
@@ -139,47 +194,83 @@ export class AuthService {
       const decoded = jwt.verify(token, this.getJwtSecret(), {
         issuer: 'aionui',
         audience: 'aionui-websocket',
-      }) as TokenPayload;
+      }) as RawTokenPayload;
 
-      return decoded;
+      return {
+        ...decoded,
+        userId: this.normalizeUserId(decoded.userId),
+      };
     } catch (error) {
       console.error('WebSocket token verification failed:', error);
       return null;
     }
   }
 
+  /**
+   * 刷新会话 Token（不检查原 Token 是否过期）
+   * Refresh a session token without enforcing expiry check
+   */
   public static refreshToken(token: string): string | null {
     const decoded = this.verifyToken(token);
     if (!decoded) {
       return null;
     }
 
-    // Generate new token without expiry check (since we're refreshing)
+    // 刷新时不重复检查有效期 / Skip expiry check when refreshing token
     return this.generateToken({
-      id: decoded.userId,
+      id: this.normalizeUserId(decoded.userId),
       username: decoded.username,
     });
   }
 
-  // Generate random password only
+  /**
+   * 生成符合复杂度要求的随机密码
+   * Generate a random password with required complexity
+   */
   public static generateRandomPassword(): string {
-    const passwordLength = Math.floor(Math.random() * 5) + 12; // 12-16 chars
-    const passwordChars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*';
-    let password = '';
-    for (let i = 0; i < passwordLength; i++) {
-      password += passwordChars.charAt(Math.floor(Math.random() * passwordChars.length));
+    const baseLength = 12;
+    const lengthVariance = 5;
+    const randomByte = crypto.randomBytes(1)[0];
+    const passwordLength = baseLength + (randomByte % lengthVariance);
+
+    const lowercase = 'abcdefghijklmnopqrstuvwxyz';
+    const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+    const digits = '0123456789';
+    const special = '!@#$%^&*';
+    const allChars = lowercase + uppercase + digits + special;
+
+    const ensureCategory = (chars: string) => chars[crypto.randomBytes(1)[0] % chars.length];
+
+    const passwordChars: string[] = [ensureCategory(lowercase), ensureCategory(uppercase), ensureCategory(digits), ensureCategory(special)];
+
+    const remainingLength = Math.max(passwordLength - passwordChars.length, 0);
+    const randomBytes = crypto.randomBytes(remainingLength);
+    for (let i = 0; i < remainingLength; i++) {
+      const index = randomBytes[i] % allChars.length;
+      passwordChars.push(allChars[index]);
     }
-    return password;
+
+    // 打乱字符顺序，避免类型排列固定 / Shuffle to avoid predictable category order
+    for (let i = passwordChars.length - 1; i > 0; i--) {
+      const j = crypto.randomBytes(1)[0] % (i + 1);
+      [passwordChars[i], passwordChars[j]] = [passwordChars[j], passwordChars[i]];
+    }
+
+    return passwordChars.join('');
   }
 
-  // Generate secure random credentials for initial setup
+  /**
+   * 生成初始引导时使用的随机凭证
+   * Generate random credentials for initial bootstrap
+   */
   public static generateUserCredentials(): UserCredentials {
-    // Generate random username (6-8 characters, alphanumeric)
-    const usernameLength = Math.floor(Math.random() * 3) + 6; // 6-8 chars
+    // 用户名长度控制在 6-8 位，便于记忆 / Username length fixed to 6-8 chars for memorability
+    const usernameLength = 6 + (crypto.randomBytes(1)[0] % 3); // 6-8 chars
     const usernameChars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    const usernameBytes = crypto.randomBytes(usernameLength);
     let username = '';
     for (let i = 0; i < usernameLength; i++) {
-      username += usernameChars.charAt(Math.floor(Math.random() * usernameChars.length));
+      username += usernameChars[usernameBytes[i] % usernameChars.length];
     }
 
     return {
@@ -189,7 +280,10 @@ export class AuthService {
     };
   }
 
-  // Password strength validation
+  /**
+   * 校验密码强度并返回错误提示
+   * Validate password strength and return messages
+   */
   public static validatePasswordStrength(password: string): {
     isValid: boolean;
     errors: string[];
@@ -220,7 +314,7 @@ export class AuthService {
       errors.push('Password must contain at least one special character');
     }
 
-    // Check for common patterns
+    // 检查重复字符或常见弱口令模式 / Guard against repeats or common patterns
     if (/(.)\1{2,}/.test(password)) {
       errors.push('Password should not contain repeated characters');
     }
@@ -235,7 +329,10 @@ export class AuthService {
     };
   }
 
-  // Username validation
+  /**
+   * 校验用户名是否符合格式要求
+   * Validate username format requirements
+   */
   public static validateUsername(username: string): {
     isValid: boolean;
     errors: string[];
@@ -264,19 +361,28 @@ export class AuthService {
     };
   }
 
-  // Generate secure session ID
+  /**
+   * 生成高强度的会话 ID
+   * Generate a high-entropy session identifier
+   */
   public static generateSessionId(): string {
     return crypto.randomBytes(32).toString('hex');
   }
 
-  // Rate limiting helpers
+  /**
+   * 构造速率限制的缓存键前缀
+   * Build cache key for rate limiting purposes
+   */
   public static createRateLimitKey(ip: string, action: string): string {
     return `ratelimit:${action}:${ip}`;
   }
 
-  // Timing attack protection
+  /**
+   * 常量时间比较，降低时序攻击风险
+   * Perform constant-time comparison to mitigate timing attacks
+   */
   public static async constantTimeVerify(provided: string, expected: string, hashProvided = false): Promise<boolean> {
-    // Ensure constant time comparison
+    // 强制执行固定时间对比 / Ensure constant-time comparison routine
     const start = process.hrtime.bigint();
 
     let result: boolean;

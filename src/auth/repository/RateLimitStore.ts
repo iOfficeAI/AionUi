@@ -48,7 +48,7 @@ export class RateLimitStore {
    * 获取指定键在时间窗口内的尝试次数
    * Get attempt count for a key within the time window
    */
-  public getCount(key: string, windowMs: number): number {
+  public getCount(key: string, _windowMs: number): number {
     const entry = this.store.get(key);
     if (!entry) return 0;
 
@@ -79,13 +79,13 @@ export class RateLimitStore {
     if (action) {
       // 清除该 IP 的特定操作限制
       // Clear specific action for this IP
-      const key = `${ip}:${action}`;
+      const key = `ratelimit:${action}:${ip}`;
       this.store.delete(key);
     } else {
       // 清除该 IP 的所有操作限制
       // Clear all actions for this IP
       for (const key of this.store.keys()) {
-        if (key.startsWith(`${ip}:`)) {
+        if (key.endsWith(`:${ip}`)) {
           this.store.delete(key);
         }
       }
@@ -96,7 +96,7 @@ export class RateLimitStore {
    * 清理过期的条目
    * Clean up expired entries
    */
-  public cleanup(windowMs: number): void {
+  public cleanup(_windowMs: number): void {
     const now = Date.now();
     for (const [key, entry] of this.store.entries()) {
       if (now > entry.resetTime) {

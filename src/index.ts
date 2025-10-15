@@ -81,7 +81,7 @@ app.on('ready', async () => {
         contextIsolation: true,
       },
     });
-    hiddenWindow.loadURL('about:blank');
+    await hiddenWindow.loadURL('about:blank');
 
     await startWebServer(25808, isRemoteMode);
   } else {

@@ -5,68 +5,38 @@
  */
 
 import type { Request, Response, NextFunction } from 'express';
-import { AuthService } from './AuthService';
-import AionDatabase from '../database';
-import { RateLimitStore } from './RateLimitStore';
+import { AuthService } from '../service/AuthService';
+import { RateLimitStore } from '../repository/RateLimitStore';
+import { createAuthMiddleware } from './TokenMiddleware';
+import { AUTH_CONFIG, SECURITY_CONFIG } from '../../config/constants';
 
 // Express Request type extension is defined in src/types/express.d.ts
+// Express Request 类型扩展定义在 src/types/express.d.ts
 
+/**
+ * 认证中间件类
+ * Authentication middleware class
+ */
 export class AuthMiddleware {
   private static rateLimitStore: RateLimitStore = new RateLimitStore();
-  private static readonly RATE_LIMIT_WINDOW = 15 * 60 * 1000; // 15 minutes
-  private static readonly MAX_LOGIN_ATTEMPTS = 5;
-  private static readonly MAX_REGISTER_ATTEMPTS = 3;
+  private static readonly RATE_LIMIT_WINDOW = AUTH_CONFIG.RATE_LIMIT.WINDOW_MS;
+  private static readonly MAX_LOGIN_ATTEMPTS = AUTH_CONFIG.RATE_LIMIT.LOGIN_MAX_ATTEMPTS;
+  private static readonly MAX_REGISTER_ATTEMPTS = AUTH_CONFIG.RATE_LIMIT.REGISTER_MAX_ATTEMPTS;
+  private static readonly jsonAuthMiddleware = createAuthMiddleware('json');
 
-  // JWT authentication middleware
-  public static async authenticateToken(req: Request, res: Response, next: NextFunction): Promise<void> {
-    try {
-      const authHeader = req.headers.authorization;
-      const token = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
-
-      if (!token) {
-        res.status(401).json({
-          success: false,
-          error: 'Access denied. No token provided.',
-        });
-        return;
-      }
-
-      const decoded = AuthService.verifyToken(token);
-      if (!decoded) {
-        res.status(403).json({
-          success: false,
-          error: 'Invalid or expired token.',
-        });
-        return;
-      }
-
-      // Verify user still exists in database
-      const db = AionDatabase.getInstance();
-      const user = db.getUserById(decoded.userId);
-      if (!user) {
-        res.status(401).json({
-          success: false,
-          error: 'User not found.',
-        });
-        return;
-      }
-
-      req.user = {
-        id: user.id,
-        username: user.username,
-      };
-
-      next();
-    } catch (error) {
-      console.error('Authentication error:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Internal server error.',
-      });
-    }
+  /**
+   * JWT 认证中间件
+   * JWT authentication middleware
+   */
+  public static authenticateToken(req: Request, res: Response, next: NextFunction): void {
+    AuthMiddleware.jsonAuthMiddleware(req, res, next);
   }
 
-  // Rate limiting middleware
+  /**
+   * 速率限制中间件
+   * Rate limiting middleware
+   * @param action - 操作类型（登录或注册）/ Action type (login or register)
+   */
   public static rateLimitMiddleware(action: 'login' | 'register') {
     return (req: Request, res: Response, next: NextFunction): void => {
       const ip = req.ip || req.connection.remoteAddress || 'unknown';
@@ -86,6 +56,7 @@ export class AuthMiddleware {
       }
 
       if (now > current.resetTime) {
+        // 重置计数器
         // Reset the counter
         this.rateLimitStore.set(key, {
           count: 1,
@@ -111,7 +82,10 @@ export class AuthMiddleware {
     };
   }
 
-  // CORS middleware for development
+  /**
+   * CORS 中间件（开发环境使用）
+   * CORS middleware for development
+   */
   public static corsMiddleware(req: Request, res: Response, next: NextFunction): void {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -125,36 +99,48 @@ export class AuthMiddleware {
     next();
   }
 
-  // Security headers middleware
+  /**
+   * 安全响应头中间件
+   * Security headers middleware
+   */
   public static securityHeadersMiddleware(req: Request, res: Response, next: NextFunction): void {
+    // 防止点击劫持
     // Prevent clickjacking
-    res.header('X-Frame-Options', 'DENY');
+    res.header('X-Frame-Options', SECURITY_CONFIG.HEADERS.FRAME_OPTIONS);
 
+    // 防止 MIME 类型嗅探
     // Prevent MIME type sniffing
-    res.header('X-Content-Type-Options', 'nosniff');
+    res.header('X-Content-Type-Options', SECURITY_CONFIG.HEADERS.CONTENT_TYPE_OPTIONS);
 
+    // 启用 XSS 保护
     // Enable XSS protection
-    res.header('X-XSS-Protection', '1; mode=block');
+    res.header('X-XSS-Protection', SECURITY_CONFIG.HEADERS.XSS_PROTECTION);
 
+    // Referrer 策略
     // Referrer policy
-    res.header('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.header('Referrer-Policy', SECURITY_CONFIG.HEADERS.REFERRER_POLICY);
 
+    // 内容安全策略（开发环境放宽限制以支持 webpack-dev-server）
     // Content Security Policy (relaxed in development for webpack-dev-server)
     const isDevelopment = process.env.NODE_ENV === 'development';
-    const cspPolicy = isDevelopment ? "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' ws: wss:;" : "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self';";
+    const cspPolicy = isDevelopment ? SECURITY_CONFIG.HEADERS.CSP_DEV : SECURITY_CONFIG.HEADERS.CSP_PROD;
 
     res.header('Content-Security-Policy', cspPolicy);
 
     next();
   }
 
-  // Request logging middleware
+  /**
+   * 请求日志中间件
+   * Request logging middleware
+   */
   public static requestLoggingMiddleware(req: Request, res: Response, next: NextFunction): void {
     const start = Date.now();
     const ip = req.ip || req.connection.remoteAddress || 'unknown';
 
     console.log(`[${new Date().toISOString()}] ${req.method} ${req.url} - ${ip}`);
 
+    // 记录响应时间
     // Log response time
     res.on('finish', () => {
       const duration = Date.now() - start;
@@ -164,7 +150,10 @@ export class AuthMiddleware {
     next();
   }
 
-  // Input validation middleware
+  /**
+   * 登录输入验证中间件
+   * Input validation middleware for login
+   */
   public static validateLoginInput(req: Request, res: Response, next: NextFunction): void {
     const { username, password } = req.body;
 
@@ -184,6 +173,7 @@ export class AuthMiddleware {
       return;
     }
 
+    // 基本长度检查
     // Basic length checks
     if (username.length > 32 || password.length > 128) {
       res.status(400).json({
@@ -196,6 +186,10 @@ export class AuthMiddleware {
     next();
   }
 
+  /**
+   * 注册输入验证中间件
+   * Input validation middleware for registration
+   */
   public static validateRegisterInput(req: Request, res: Response, next: NextFunction): void {
     const { username, password } = req.body;
 
@@ -207,6 +201,7 @@ export class AuthMiddleware {
       return;
     }
 
+    // 验证用户名
     // Validate username
     const usernameValidation = AuthService.validateUsername(username);
     if (!usernameValidation.isValid) {
@@ -218,6 +213,7 @@ export class AuthMiddleware {
       return;
     }
 
+    // 验证密码强度
     // Validate password strength
     const passwordValidation = AuthService.validatePasswordStrength(password);
     if (!passwordValidation.isValid) {
@@ -232,7 +228,12 @@ export class AuthMiddleware {
     next();
   }
 
-  // Clear rate limit for IP (useful for testing or admin reset)
+  /**
+   * 清除指定 IP 的速率限制（用于测试或管理员重置）
+   * Clear rate limit for IP (useful for testing or admin reset)
+   * @param ip - IP 地址 / IP address
+   * @param action - 操作类型（可选）/ Action type (optional)
+   */
   public static clearRateLimit(ip: string, action?: string): void {
     this.rateLimitStore.clearByIp(ip, action);
   }
