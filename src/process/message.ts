@@ -8,6 +8,7 @@ import type { TMessage, IMessageText } from '@/common/chatLib';
 import { composeMessage } from '@/common/chatLib';
 import { getDatabase } from './database/export';
 import { ProcessChat } from './initStorage';
+import { streamingBuffer } from './database/StreamingMessageBuffer';
 
 /**
  * Add a new message to the database
@@ -139,44 +140,16 @@ export const addOrUpdateMessage = (conversation_id: string, message: TMessage): 
       // Ensure conversation exists in database
       await ensureConversationExists(db, conversation_id);
 
-      // Strategy: Handle different message types differently for optimal database operations
-      // - text messages: Direct query by msg_id (most common, streaming updates)
-      // - tool_group/tool_call messages: Use composeMessage logic (complex merging by callId)
-      // - status messages: Usually don't need merging
-
       if (message.type === 'text' && message.msg_id) {
-        // Text messages: Direct database query and update (avoids loading all messages)
-        const existing = db.getMessageByMsgId(conversation_id, message.msg_id);
+        const incomingMsg = message as IMessageText;
+        const content = incomingMsg.content.content;
 
-        if (existing.success && existing.data) {
-          // Message exists - REPLACE content (not accumulate)
-          //
-          // Three agent message patterns all require replacement, not accumulation:
-          // 1. Gemini/ACP: Frontend receives deltas, accumulates via composeMessage, sends complete message
-          // 2. Codex: Backend sends deltas to frontend (display only), then sends complete message (_isFinalMessage: true) directly to storage
-          //
-          // In all cases, the message arriving here is already complete and should replace the existing content.
-          const existingMsg = existing.data as IMessageText;
-          const incomingMsg = message as IMessageText;
+        // Use message.id as buffer key (generate if needed)
+        const messageId = message.id || message.msg_id;
 
-          const updatedMessage: IMessageText = {
-            ...existingMsg,
-            content: { content: incomingMsg.content.content }, // Replace, not accumulate
-            createdAt: message.createdAt || existingMsg.createdAt,
-          };
-
-          // Skip FTS update during streaming (will be synced when conversation finishes)
-          const updateResult = db.updateMessage(existingMsg.id, updatedMessage, { skipFtsUpdate: true });
-          if (!updateResult.success) {
-            console.error('[Message] Text update failed:', updateResult.error);
-          }
-        } else {
-          // New text message - insert
-          const insertResult = db.insertMessage(message);
-          if (!insertResult.success) {
-            console.error('[Message] Text insert failed:', insertResult.error);
-          }
-        }
+        // Append to buffer (replace mode: each call has full content)
+        // Buffered writes: ~10x DB operations instead of 1000x
+        streamingBuffer.append(messageId, conversation_id, content);
       } else if (message.type === 'tool_group' || message.type === 'tool_call' || message.type === 'codex_tool_call' || message.type === 'acp_tool_call') {
         // Complex message types that need composeMessage logic
         // These are less frequent, so loading all messages of this type is acceptable

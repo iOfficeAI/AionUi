@@ -5,7 +5,7 @@
  */
 
 // 复用现有的业务类型定义
-import type { TChatConversation, IProvider, IMcpServer, IConfigStorageRefer } from '@/common/storage';
+import type { TChatConversation, IConfigStorageRefer } from '@/common/storage';
 import type { TMessage } from '@/common/chatLib';
 
 /**
@@ -92,42 +92,7 @@ export interface IMessageRow {
 }
 
 /**
- * Provider stored in database (序列化后的格式)
- */
-export interface IProviderRow {
-  id: string;
-  user_id: string;
-  platform: string;
-  name: string;
-  base_url: string;
-  api_key: string;
-  models: string; // JSON array string
-  capabilities?: string; // JSON array string
-  context_limit?: number;
-  created_at: number;
-  updated_at: number;
-}
-
-/**
- * MCP Server stored in database (序列化后的格式)
- */
-export interface IMcpServerRow {
-  id: string;
-  user_id: string;
-  name: string;
-  description?: string;
-  enabled: boolean;
-  transport: string; // JSON string of IMcpServerTransport
-  tools?: string; // JSON array string
-  status?: 'connected' | 'disconnected' | 'error' | 'testing';
-  last_connected?: number;
-  created_at: number;
-  updated_at: number;
-  original_json: string;
-}
-
-/**
- * Config stored in database (key-value)
+ * Config stored in database (key-value, 用于数据库版本跟踪)
  */
 export interface IConfigRow {
   key: string;
@@ -231,80 +196,6 @@ export function rowToMessage(row: IMessageRow): TMessage {
 }
 
 /**
- * Convert IProvider to database row
- */
-export function providerToRow(provider: IProvider, userId: string): IProviderRow {
-  return {
-    id: provider.id,
-    user_id: userId,
-    platform: provider.platform,
-    name: provider.name,
-    base_url: provider.baseUrl,
-    api_key: provider.apiKey,
-    models: JSON.stringify(provider.model),
-    capabilities: provider.capabilities ? JSON.stringify(provider.capabilities) : undefined,
-    context_limit: provider.contextLimit,
-    created_at: Date.now(),
-    updated_at: Date.now(),
-  };
-}
-
-/**
- * Convert database row to IProvider
- */
-export function rowToProvider(row: IProviderRow): IProvider {
-  return {
-    id: row.id,
-    platform: row.platform,
-    name: row.name,
-    baseUrl: row.base_url,
-    apiKey: row.api_key,
-    model: JSON.parse(row.models),
-    capabilities: row.capabilities ? JSON.parse(row.capabilities) : undefined,
-    contextLimit: row.context_limit,
-  };
-}
-
-/**
- * Convert IMcpServer to database row
- */
-export function mcpServerToRow(server: IMcpServer, userId: string): IMcpServerRow {
-  return {
-    id: server.id,
-    user_id: userId,
-    name: server.name,
-    description: server.description,
-    enabled: server.enabled,
-    transport: JSON.stringify(server.transport),
-    tools: server.tools ? JSON.stringify(server.tools) : undefined,
-    status: server.status,
-    last_connected: server.lastConnected,
-    created_at: server.createdAt,
-    updated_at: server.updatedAt,
-    original_json: server.originalJson,
-  };
-}
-
-/**
- * Convert database row to IMcpServer
- */
-export function rowToMcpServer(row: IMcpServerRow): IMcpServer {
-  return {
-    id: row.id,
-    name: row.name,
-    description: row.description,
-    enabled: row.enabled,
-    transport: JSON.parse(row.transport),
-    tools: row.tools ? JSON.parse(row.tools) : undefined,
-    status: row.status,
-    lastConnected: row.last_connected,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-    originalJson: row.original_json,
-  };
-}
-
-/**
  * ======================
  * 导出类型别名，方便使用
  * ======================
@@ -314,7 +205,5 @@ export type {
   // 复用的业务类型
   TChatConversation,
   TMessage,
-  IProvider,
-  IMcpServer,
   IConfigStorageRefer,
 };

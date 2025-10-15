@@ -208,7 +208,7 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
             value={jsonInput}
             height='300px'
             extensions={[json()]}
-            onChange={(value) => setJsonInput(value)}
+            onChange={(value: string) => setJsonInput(value)}
             placeholder={`{
   "mcpServers": {
     "weather": {

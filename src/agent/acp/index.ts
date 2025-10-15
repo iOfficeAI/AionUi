@@ -117,17 +117,8 @@ export class AcpAgent {
           error: createAcpError(AcpErrorType.CONNECTION_NOT_READY, 'ACP connection not ready', true),
         };
       }
-
-      // Reset message tracking for new AI response
-      // This ensures streaming chunks share the same msg_id for accumulation
       this.adapter.resetMessageTracking();
-
-      // Save user message to chat history only after successful processing
-      // This will be done after the message is successfully sent
-      // Update modify time for user activity
-      // Smart processing for ACP file references to avoid @filename confusion
       let processedContent = data.content;
-
       // Only process if there are actual files involved AND the message contains @ symbols
       if (data.files && data.files.length > 0 && processedContent.includes('@')) {
         // Get actual filenames from uploaded files
@@ -159,7 +150,6 @@ export class AcpAgent {
           };
         }
       }
-
       // Classify error types based on message content
       let errorType: AcpErrorType = AcpErrorType.UNKNOWN;
       let retryable = false;
