@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { app } from 'electron';
 import { CodexAgent } from '@/agent/codex';
 import type { NetworkError } from '@/agent/codex/connection/CodexConnection';
 import { ipcBridge } from '@/common';
@@ -56,20 +55,24 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     const fileOperationHandler = new CodexFileOperationHandler(data.workspace || process.cwd(), data.conversation_id, this);
 
     // 设置 Codex Agent 的应用配置，使用 Electron API 在主进程中
-    try {
-      setAppConfig({
-        name: app.getName(),
-        version: app.getVersion(),
-        protocolVersion: CODEX_MCP_PROTOCOL_VERSION,
-      });
-    } catch (error) {
-      // 如果不在主进程中，使用通用方法获取版本
-      setAppConfig({
-        name: APP_CLIENT_NAME,
-        version: APP_CLIENT_VERSION,
-        protocolVersion: CODEX_MCP_PROTOCOL_VERSION,
-      });
-    }
+    void (async () => {
+      try {
+        const electronModule = await import('electron');
+        const app = electronModule.app;
+        setAppConfig({
+          name: app.getName(),
+          version: app.getVersion(),
+          protocolVersion: CODEX_MCP_PROTOCOL_VERSION,
+        });
+      } catch (error) {
+        // 如果不在主进程中，使用通用方法获取版本
+        setAppConfig({
+          name: APP_CLIENT_NAME,
+          version: APP_CLIENT_VERSION,
+          protocolVersion: CODEX_MCP_PROTOCOL_VERSION,
+        });
+      }
+    })();
 
     this.agent = new CodexAgent({
       id: data.conversation_id,
@@ -327,7 +330,11 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     };
 
     // Emit network error message to UI
-    // Frontend will handle transformation and persistence
+    // Backend handles persistence before emitting to frontend
+    const tMessage = transformMessage(networkErrorMessage);
+    if (tMessage) {
+      addMessage(this.conversation_id, tMessage);
+    }
     ipcBridge.codexConversation.responseStream.emit(networkErrorMessage);
   }
 
