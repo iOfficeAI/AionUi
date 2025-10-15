@@ -223,7 +223,8 @@ export class GeminiAgent {
   private initToolScheduler(settings: Settings) {
     this.scheduler = new CoreToolScheduler({
       toolRegistry: this.config.getToolRegistry(),
-      onAllToolCallsComplete: (completedToolCalls: CompletedToolCall[]) => {
+      onAllToolCallsComplete: async (completedToolCalls: CompletedToolCall[]) => {
+        await Promise.resolve(); // Satisfy async requirement
         try {
           if (completedToolCalls.length > 0) {
             const refreshMemory = async () => {
