@@ -47,15 +47,10 @@ module.exports = {
     arch: process.env.npm_config_target_arch || process.env.arch || process.arch,
   },
   rebuildConfig: {
-    // 在 Windows 下跳过所有原生模块的重建（避免 Python 依赖）
-    // Skip all native module rebuilds on Windows (avoid Python dependency)
-    // 原生模块已经在 npm install 时正确编译
-    // Native modules are already compiled during npm install
-    ...(process.platform === 'win32'
-      ? {
-          onlyModules: [], // 空数组 = 不重建任何模块
-        }
-      : {}),
+    // Windows 用户需要预先安装构建工具和 Python
+    // Windows users need to install build tools and Python in advance
+    // 或者使用预编译的发行版本
+    // Or use pre-built release versions
   },
   makers: [
     // Windows-specific makers (only on Windows)
