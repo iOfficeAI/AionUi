@@ -26,8 +26,8 @@ const apkName = 'AionUi_' + packageJson.version + '_' + (process.env.arch || pro
 module.exports = {
   packagerConfig: {
     asar: {
-      unpack: '**/node_modules/node-pty/**/*',
-    }, // Enable asar with node-pty unpacking for AutoUnpackNativesPlugin
+      unpack: '{**/node_modules/node-pty/**/*,**/node_modules/bcrypt/**/*,**/node_modules/better-sqlite3/**/*}',
+    }, // Enable asar with node-pty, bcrypt, and better-sqlite3 unpacking for AutoUnpackNativesPlugin
     executableName: 'AionUi',
     out: path.resolve(__dirname, 'out'),
     tmpdir: path.resolve(__dirname, '../AionUi-tmp'),
@@ -135,7 +135,7 @@ module.exports = {
   plugins: [
     new AutoUnpackNativesPlugin({
       // 配置需要处理的 native 依赖
-      include: ['node-pty'],
+      include: ['node-pty', 'better-sqlite3'],
     }),
     new WebpackPlugin({
       mainConfig,
