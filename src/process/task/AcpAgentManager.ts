@@ -42,18 +42,18 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
         backend: data.backend,
         cliPath: cliPath,
         workingDir: data.workspace,
-        onStreamEvent: (data) => {
-          if (data.type !== 'thought') {
-            const tMessage = transformMessage(data as IResponseMessage);
+        onStreamEvent: (v) => {
+          if (v.type !== 'thought') {
+            const tMessage = transformMessage(v as IResponseMessage);
             if (tMessage) {
-              addOrUpdateMessage(data.conversation_id, tMessage);
+              addOrUpdateMessage(v.conversation_id, tMessage, data.backend);
             }
           }
-          ipcBridge.acpConversation.responseStream.emit(data);
+          ipcBridge.acpConversation.responseStream.emit(v);
         },
-        onSignalEvent: (data) => {
+        onSignalEvent: (v) => {
           // 仅发送信号到前端，不更新消息列表
-          ipcBridge.acpConversation.responseStream.emit(data);
+          ipcBridge.acpConversation.responseStream.emit(v);
         },
       });
       return this.agent.start().then(() => this.agent);
