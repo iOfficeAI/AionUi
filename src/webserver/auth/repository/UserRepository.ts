@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { getDatabase } from '../../process/database/export';
-import type { IUser, IQueryResult } from '../../process/database/types';
+import { getDatabase } from '@process/database/export';
+import type { IUser, IQueryResult } from '@process/database/types';
 
 /**
  * 认证用户类型，仅包含必要的认证字段

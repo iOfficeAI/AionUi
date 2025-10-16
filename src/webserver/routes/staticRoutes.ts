@@ -8,7 +8,7 @@ import type { Express, Request, Response } from 'express';
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
-import { TokenMiddleware } from '../../auth/middleware/TokenMiddleware';
+import { TokenMiddleware } from '@/webserver/auth/middleware/TokenMiddleware';
 import { AUTH_CONFIG } from '../config/constants';
 
 /**

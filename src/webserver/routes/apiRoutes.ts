@@ -5,7 +5,7 @@
  */
 
 import type { Express, Request, Response } from 'express';
-import { TokenMiddleware } from '../../auth/middleware/TokenMiddleware';
+import { TokenMiddleware } from '@/webserver/auth/middleware/TokenMiddleware';
 import directoryApi from '../directoryApi';
 
 /**

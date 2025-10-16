@@ -8,14 +8,14 @@ import express from 'express';
 import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
 import { shell } from 'electron';
-import { AuthService } from '../auth/service/AuthService';
-import { UserRepository } from '../auth/repository/UserRepository';
+import { AuthService } from '@/webserver/auth/service/AuthService';
+import { UserRepository } from '@/webserver/auth/repository/UserRepository';
 import { AUTH_CONFIG, SERVER_CONFIG } from './config/constants';
 import { initWebAdapter } from './adapter';
 import { setupBasicMiddleware, setupCors, setupErrorHandler } from './setup';
-import { registerAuthRoutes } from './routes/auth.routes';
-import { registerApiRoutes } from './routes/api.routes';
-import { registerStaticRoutes } from './routes/static.routes';
+import { registerAuthRoutes } from './routes/authRoutes';
+import { registerApiRoutes } from './routes/apiRoutes';
+import { registerStaticRoutes } from './routes/staticRoutes';
 
 // Express Request 类型扩展定义在 src/webserver/types/express.d.ts
 // Express Request type extension is defined in src/webserver/types/express.d.ts

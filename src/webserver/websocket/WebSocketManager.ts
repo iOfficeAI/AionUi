@@ -7,7 +7,7 @@
 import type { WebSocketServer } from 'ws';
 import { WebSocket } from 'ws';
 import type { IncomingMessage } from 'http';
-import { TokenMiddleware } from '../../auth/middleware/TokenMiddleware';
+import { TokenMiddleware } from '@/webserver/auth/middleware/TokenMiddleware';
 import { WEBSOCKET_CONFIG } from '../config/constants';
 import { SHOW_OPEN_REQUEST_EVENT } from '../../adapter/constant';
 

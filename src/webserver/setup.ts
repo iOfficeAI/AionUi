@@ -8,7 +8,7 @@ import type { Express } from 'express';
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import { AuthMiddleware } from '../auth/middleware/AuthMiddleware';
+import { AuthMiddleware } from '@/webserver/auth/middleware/AuthMiddleware';
 import { errorHandler } from './middleware/errorHandler';
 
 /**
