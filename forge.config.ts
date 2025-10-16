@@ -26,8 +26,8 @@ const apkName = 'AionUi_' + packageJson.version + '_' + (process.env.arch || pro
 module.exports = {
   packagerConfig: {
     asar: {
-      unpack: '{**/node_modules/node-pty/**/*,**/node_modules/bcrypt/**/*}',
-    }, // Enable asar with node-pty and bcrypt unpacking for AutoUnpackNativesPlugin
+      unpack: '**/node_modules/node-pty/**/*',
+    }, // Enable asar with node-pty unpacking for AutoUnpackNativesPlugin
     executableName: 'AionUi',
     out: path.resolve(__dirname, 'out'),
     tmpdir: path.resolve(__dirname, '../AionUi-tmp'),
@@ -47,10 +47,12 @@ module.exports = {
     arch: process.env.npm_config_target_arch || process.env.arch || process.arch,
   },
   rebuildConfig: {
-    // Windows 用户需要预先安装构建工具和 Python
-    // Windows users need to install build tools and Python in advance
-    // 或者使用预编译的发行版本
-    // Or use pre-built release versions
+    // 在 Windows CI 环境下，跳过所有原生模块的重建
+    ...(process.env.CI === 'true' && process.platform === 'win32'
+      ? {
+          onlyModules: [], // 一个空数组意味着"不要重建任何模块"
+        }
+      : {}),
   },
   makers: [
     // Windows-specific makers (only on Windows)

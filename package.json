@@ -4,13 +4,10 @@
   "version": "1.3.1",
   "description": "Transform your command-line AI agent into a modern, efficient AI Chat interface.",
   "main": ".webpack/main",
-  "bin": {
-    "aionui": "./bin/aionui-cli.mjs"
-  },
   "scripts": {
-    "start": "NODE_OPTIONS='--no-deprecation' electron-forge start",
-    "start:webui": "NODE_OPTIONS='--no-deprecation' electron-forge start -- --webui",
-    "start:webui:remote": "NODE_OPTIONS='--no-deprecation' electron-forge start -- --webui --remote",
+    "start": "electron-forge start",
+    "start:webui": "electron-forge start -- --webui",
+    "start:webui:remote": "electron-forge start -- --webui --remote",
     "resetpass": "electron scripts/resetpass.mjs",
     "package": "electron-forge package",
     "make": "electron-forge make",
@@ -33,9 +30,7 @@
     "test:coverage": "jest --coverage",
     "test:contract": "jest tests/contract",
     "test:integration": "jest tests/integration",
-    "prepare": "husky",
-    "postinstall": "patch-package",
-    "setup:dev": "node scripts/setup-cli.js"
+    "prepare": "husky"
   },
   "keywords": [],
   "author": {

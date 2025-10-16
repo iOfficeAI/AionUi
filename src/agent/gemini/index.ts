@@ -260,7 +260,6 @@ export class GeminiAgent {
             msg_id: uuid(),
           });
         }
-        return Promise.resolve();
       },
       onToolCallsUpdate: (updatedCoreToolCalls: ToolCall[]) => {
         try {
