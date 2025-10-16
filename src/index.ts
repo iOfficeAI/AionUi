@@ -31,9 +31,10 @@ if (electronSquirrelStartup) {
   app.quit();
 }
 
-// Check for --webui command line argument
-const isWebUIMode = process.argv.includes('--webui');
-const isRemoteMode = process.argv.includes('--remote');
+// Check for --webui command line argument (supports both Node args and Electron switches)
+const hasSwitch = (flag: string) => process.argv.includes(`--${flag}`) || app.commandLine.hasSwitch(flag);
+const isWebUIMode = hasSwitch('webui');
+const isRemoteMode = hasSwitch('remote');
 
 let mainWindow: BrowserWindow;
 const createWindow = (): void => {
