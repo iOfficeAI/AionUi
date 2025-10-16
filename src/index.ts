@@ -68,10 +68,7 @@ ipcBridge.application.openDevTools.provider(() => {
   return Promise.resolve();
 });
 
-// This method will be called when Electron has finished
-// initialization and is ready to create browser windows.
-// Some APIs can only be used after this event occurs.
-app.on('ready', async () => {
+const handleAppReady = async (): Promise<void> => {
   if (isWebUIMode) {
     await startWebServer(25808, isRemoteMode);
   } else {
@@ -80,7 +77,16 @@ app.on('ready', async () => {
 
   // 启动时初始化ACP检测器
   await initializeAcpDetector();
-});
+};
+
+// Ensure we don't miss the ready event when running in CLI/WebUI mode
+void app
+  .whenReady()
+  .then(handleAppReady)
+  .catch((error) => {
+    console.error('Failed to initialize main process:', error);
+    app.quit();
+  });
 
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits
