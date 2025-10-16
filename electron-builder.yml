@@ -44,6 +44,11 @@ files:
 extraResources:
   - from: public
     to: .
+  - from: .webpack/main/native_modules/build/Release
+    to: build/Release
+# Ensure native module metadata (e.g., proto descriptors) remain accessible
+  - from: .webpack/main/native_modules/protos
+    to: protos
 
 # Windows configuration
 win:
