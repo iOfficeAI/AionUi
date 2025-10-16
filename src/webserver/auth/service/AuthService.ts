@@ -8,7 +8,7 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import type { AuthUser } from '../repository/UserRepository';
 import { UserRepository } from '../repository/UserRepository';
-import { AUTH_CONFIG } from '../../webserver/config/constants';
+import { AUTH_CONFIG } from '../../config/constants';
 
 type BcryptAdapter = {
   hash(password: string, rounds: number): Promise<string>;
