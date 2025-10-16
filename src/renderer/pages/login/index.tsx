@@ -183,7 +183,6 @@ const LoginPage: React.FC = () => {
 
       <div className='login-page__card'>
         <label className='login-page__lang-select-wrapper' htmlFor='lang-select'>
-          <span className='login-page__lang-label'>{t('login.languageToggle')}</span>
           <select id='lang-select' className='login-page__lang-select' value={i18n.language} onChange={handleLanguageChange}>
             {supportedLanguages.map((lang) => (
               <option key={lang.code} value={lang.code}>
