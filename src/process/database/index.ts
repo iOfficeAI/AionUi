@@ -7,10 +7,10 @@
 import Database from 'better-sqlite3';
 import crypto from 'crypto';
 import path from 'path';
-import { initSchema, getDatabaseVersion, setDatabaseVersion, CURRENT_DB_VERSION } from './schema';
-import { runMigrations as executeMigrations, getMigrationHistory, isMigrationApplied } from './migrations';
-import type { IUser, IQueryResult, IPaginatedResult, TChatConversation, TMessage, IConversationRow, IMessageRow } from './types';
-import { conversationToRow, rowToConversation, messageToRow, rowToMessage } from './types';
+import { CURRENT_DB_VERSION, getDatabaseVersion, initSchema, setDatabaseVersion } from './schema';
+import { runMigrations as executeMigrations } from './migrations';
+import type { IConversationRow, IMessageRow, IPaginatedResult, IQueryResult, IUser, TChatConversation, TMessage } from './types';
+import { conversationToRow, messageToRow, rowToConversation, rowToMessage } from './types';
 import { getDataPath } from '@process/utils';
 
 /**
@@ -48,25 +48,6 @@ export class AionUIDatabase {
   private runMigrations(from: number, to: number): void {
     executeMigrations(this.db, from, to);
   }
-
-  /**
-   * Get migration history
-   */
-  getMigrationHistory(): Array<{
-    version: number;
-    name: string;
-    timestamp: number;
-  }> {
-    return getMigrationHistory(this.db);
-  }
-
-  /**
-   * Check if a specific migration has been applied
-   */
-  isMigrationApplied(version: number): boolean {
-    return isMigrationApplied(this.db, version);
-  }
-
   /**
    * Close database connection
    */
@@ -182,16 +163,6 @@ export class AionUIDatabase {
         data: null,
       };
     }
-  }
-
-  /**
-   * Get the default system user ID
-   * 获取默认系统用户 ID
-   *
-   * @returns Default user ID used for system operations
-   */
-  getDefaultUserId(): string {
-    return this.defaultUserId;
   }
 
   /**
@@ -647,33 +618,6 @@ export class AionUIDatabase {
   vacuum(): void {
     this.db.exec('VACUUM');
     console.log('[Database] Vacuum completed');
-  }
-
-  /**
-   * Get database statistics (获取数据库统计信息)
-   */
-  getStats(): {
-    users: number;
-    conversations: number;
-    messages: number;
-    images: number;
-    providers: number;
-    mcpServers: number;
-  } {
-    const count = (sql: string, ...params: unknown[]): number => {
-      const stmt = this.db.prepare(sql);
-      const row = stmt.get(...params) as { count: number };
-      return row.count;
-    };
-
-    return {
-      users: count('SELECT COUNT(*) as count FROM users'),
-      conversations: count('SELECT COUNT(*) as count FROM conversations'),
-      messages: count('SELECT COUNT(*) as count FROM messages'),
-      images: count('SELECT COUNT(*) as count FROM images'),
-      providers: count('SELECT COUNT(*) as count FROM providers'),
-      mcpServers: count('SELECT COUNT(*) as count FROM mcp_servers'),
-    };
   }
 }
 
