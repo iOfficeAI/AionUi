@@ -23,6 +23,7 @@ export function initSchema(db: Database.Database): void {
       email TEXT UNIQUE,
       password_hash TEXT NOT NULL,
       avatar_path TEXT,
+      jwt_secret TEXT,
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL,
       last_login INTEGER
@@ -135,4 +136,4 @@ export function setDatabaseVersion(db: Database.Database, version: number): void
  * Current database schema version
  * Update this when adding new migrations in migrations.ts
  */
-export const CURRENT_DB_VERSION = 5;
+export const CURRENT_DB_VERSION = 6;
