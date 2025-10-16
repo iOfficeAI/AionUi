@@ -15,7 +15,7 @@ export class AcpAdapter {
   private conversationId: string;
   private backend: AcpBackend;
   private activeToolCalls: Map<string, IMessageAcpToolCall> = new Map();
-  private currentMessageId: string | null = null; // Track current message for streaming chunks
+  private currentMessageId: string | null = uuid(); // Track current message for streaming chunks
 
   constructor(conversationId: string, backend: AcpBackend) {
     this.conversationId = conversationId;
@@ -123,7 +123,6 @@ export class AcpAdapter {
    */
   private convertSessionUpdateChunk(update: AgentMessageChunkUpdate['update']): TMessage | null {
     const msgId = this.getCurrentMessageId(); // Use consistent msg_id for streaming chunks
-
     const baseMessage = {
       id: uuid(), // Each chunk still gets unique id (for deduplication in composeMessage)
       msg_id: msgId, // But shares msg_id to enable accumulation

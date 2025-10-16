@@ -34,7 +34,6 @@ interface StreamBuffer {
 interface StreamingConfig {
   updateInterval?: number; // 更新间隔（毫秒）
   chunkBatchSize?: number; // 每多少个 chunk 更新一次
-  mode?: 'accumulate' | 'replace'; // 累积模式或替换模式
 }
 
 export class StreamingMessageBuffer {
@@ -43,7 +42,7 @@ export class StreamingMessageBuffer {
   // 默认配置
   private readonly UPDATE_INTERVAL = 300; // 300ms 更新一次
   private readonly CHUNK_BATCH_SIZE = 20; // 或累积 20 个 chunk
-  private readonly mode: 'accumulate' | 'replace' = 'replace'; // 默认替换模式
+  private readonly mode: 'accumulate' | 'replace' = 'accumulate'; // 默认替换模式
 
   constructor(private config?: StreamingConfig) {
     if (config?.updateInterval) {
@@ -52,21 +51,21 @@ export class StreamingMessageBuffer {
     if (config?.chunkBatchSize) {
       (this as any).CHUNK_BATCH_SIZE = config.chunkBatchSize;
     }
-    if (config?.mode) {
-      (this as any).mode = config.mode;
-    }
   }
 
   /**
    * 追加流式 chunk
    *
-   * @param messageId - 消息 ID
+   * @param id
+   * @param messageId - 合并消息唯一 ID
    * @param conversationId - 会话 ID
    * @param chunk - 文本片段
    *
    * 性能优化：批量写入而非每个 chunk 都写数据库
+   * @param mode
    */
-  append(messageId: string, conversationId: string, chunk: string): void {
+  append(id: string, messageId: string, conversationId: string, chunk: string, mode: 'accumulate' | 'replace'): void {
+    (this as any).mode = mode;
     let buffer = this.buffers.get(messageId);
 
     if (!buffer) {
@@ -102,11 +101,11 @@ export class StreamingMessageBuffer {
 
     if (shouldUpdate) {
       // 立即更新
-      this.flushBuffer(messageId, false);
+      this.flushBuffer(id, messageId, false);
     } else {
       // 设置延迟更新（防止消息流中断）
       buffer.updateTimer = setTimeout(() => {
-        this.flushBuffer(messageId, false);
+        this.flushBuffer(id, messageId, false);
       }, this.UPDATE_INTERVAL);
     }
   }
@@ -114,10 +113,11 @@ export class StreamingMessageBuffer {
   /**
    * 刷新缓冲区到数据库
    *
-   * @param messageId - 消息 ID
+   * @param id
+   * @param messageId - 合并消息唯一消息 ID
    * @param clearBuffer - 是否清理缓冲区（默认 false）
    */
-  private flushBuffer(messageId: string, clearBuffer = false): void {
+  private flushBuffer(id: string, messageId: string, clearBuffer = false): void {
     const buffer = this.buffers.get(messageId);
     if (!buffer) return;
 
@@ -125,7 +125,8 @@ export class StreamingMessageBuffer {
 
     try {
       const message: TMessage = {
-        id: messageId,
+        id: id,
+        msg_id: messageId,
         conversation_id: buffer.conversationId,
         type: 'text',
         content: { content: buffer.currentContent },
@@ -155,73 +156,6 @@ export class StreamingMessageBuffer {
     } catch (error) {
       console.error(`[StreamingBuffer] Failed to flush buffer for ${messageId}:`, error);
     }
-  }
-
-  /**
-   * 强制刷新指定消息（用于异常情况）
-   *
-   * @param messageId - 消息 ID
-   */
-  forceFlush(messageId: string): void {
-    this.flushBuffer(messageId, true);
-  }
-
-  /**
-   * 强制刷新所有缓冲区（用于应用退出等情况）
-   */
-  flushAll(): void {
-    for (const messageId of this.buffers.keys()) {
-      this.flushBuffer(messageId, true);
-    }
-  }
-
-  /**
-   * 强制刷新指定会话的所有缓冲区（用于会话结束时）
-   *
-   * @param conversationId - 会话 ID
-   */
-  flushConversation(conversationId: string): void {
-    for (const [messageId, buffer] of this.buffers.entries()) {
-      if (buffer.conversationId === conversationId) {
-        this.flushBuffer(messageId, true);
-      }
-    }
-  }
-
-  /**
-   * 获取当前缓冲区的内容（用于调试）
-   *
-   * @param messageId - 消息 ID
-   */
-  getBufferContent(messageId: string): string | undefined {
-    return this.buffers.get(messageId)?.currentContent;
-  }
-
-  /**
-   * 获取缓冲区统计信息（用于监控）
-   */
-  getStats(): {
-    activeBuffers: number;
-    totalChunks: number;
-    bufferDetails: Array<{
-      messageId: string;
-      chunkCount: number;
-      contentLength: number;
-      lastUpdate: number;
-    }>;
-  } {
-    const bufferDetails = Array.from(this.buffers.values()).map((buffer) => ({
-      messageId: buffer.messageId,
-      chunkCount: buffer.chunkCount,
-      contentLength: buffer.currentContent.length,
-      lastUpdate: buffer.lastDbUpdate,
-    }));
-
-    return {
-      activeBuffers: this.buffers.size,
-      totalChunks: bufferDetails.reduce((sum, b) => sum + b.chunkCount, 0),
-      bufferDetails,
-    };
   }
 }
 
