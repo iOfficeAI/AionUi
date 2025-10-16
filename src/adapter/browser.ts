@@ -31,98 +31,95 @@ if (win.electronAPI) {
   });
 } else {
   // Web 环境 - 使用 WebSocket 通信
-  const urlParams = new URLSearchParams(window.location.search);
-  const token = (window as any).__SESSION_TOKEN__ || urlParams.get('token');
+  // Token will be sent automatically via Cookie header by browser
+  const wsUrl = `ws://${window.location.hostname}:25808`;
+  const ws = new WebSocket(wsUrl);
 
-  if (token) {
-    const wsUrl = `ws://${window.location.hostname}:25808`;
-    const ws = new WebSocket(wsUrl, [token]);
+  bridge.adapter({
+    emit(name, data) {
+      // 在WebUI模式下，文件选择请求也通过WebSocket发送到服务器统一处理
+      // 保持与其他消息一致的回调机制
 
-    bridge.adapter({
-      emit(name, data) {
-        // 在WebUI模式下，文件选择请求也通过WebSocket发送到服务器统一处理
-        // 保持与其他消息一致的回调机制
-
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({ name, data }));
-        } else {
-          ws.addEventListener(
-            'open',
-            () => {
-              ws.send(JSON.stringify({ name, data }));
-            },
-            { once: true }
-          );
-        }
-      },
-      on(emitter) {
-        // 存储emitter以便在文件选择完成时使用
-        (window as any).__bridgeEmitter = emitter;
-
-        // 在WebUI环境下，让bridge系统自己处理callback事件，不需要手动干预
-        // 所有的callback事件都由bridge的Promise resolver自动处理
-
-        ws.onmessage = (event) => {
-          try {
-            const { name, data } = JSON.parse(event.data);
-
-            // 处理服务器端发来的文件选择请求
-            if (name === 'show-open-request') {
-              handleWebDirectorySelection(data)
-                .then((result) => {
-                  // 直接通过 emitter 返回结果，让 bridge 系统处理回调
-                  const requestId = data.id;
-                  const callbackEventName = `subscribe.callback-show-open${requestId}`;
-                  emitter.emit(callbackEventName, result);
-                })
-                .catch((error) => {
-                  console.error('File selection error:', error);
-                  const requestId = data.id;
-                  const callbackEventName = `subscribe.callback-show-open${requestId}`;
-                  emitter.emit(callbackEventName, undefined);
-                });
-              return;
-            }
-
-            emitter.emit(name, data);
-          } catch (e) {
-            // Handle JSON parsing errors silently
-          }
-        };
-
-        ws.onerror = () => {
-          // Handle WebSocket errors silently
-        };
-
-        ws.onclose = () => {
-          // Handle WebSocket close silently
-        };
-      },
-    });
-
-    // Web目录选择处理函数
-    const handleWebDirectorySelection = (options: any): Promise<string[] | undefined> => {
-      return new Promise((resolve) => {
-        // 创建目录选择模态框
-        const modal = createDirectorySelectionModal(options, (result) => {
-          resolve(result);
-        });
-        document.body.appendChild(modal);
-      });
-    };
-
-    // 创建文件/目录选择模态框
-    const createDirectorySelectionModal = (options: any, onSelect: (paths: string[] | undefined) => void) => {
-      // 检查是否为文件选择模式 - 使用自定义字段判断或从properties自动推断
-      let isFileSelection = options.isFileMode === true;
-
-      // 如果没有 isFileMode，从 properties 推断 (properties可能在options.data中)
-      const properties = options.properties || (options.data && options.data.properties);
-      if (!isFileSelection && properties) {
-        isFileSelection = properties.includes('openFile') && !properties.includes('openDirectory');
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ name, data }));
+      } else {
+        ws.addEventListener(
+          'open',
+          () => {
+            ws.send(JSON.stringify({ name, data }));
+          },
+          { once: true }
+        );
       }
-      const modal = document.createElement('div');
-      modal.style.cssText = `
+    },
+    on(emitter) {
+      // 存储emitter以便在文件选择完成时使用
+      (window as any).__bridgeEmitter = emitter;
+
+      // 在WebUI环境下，让bridge系统自己处理callback事件，不需要手动干预
+      // 所有的callback事件都由bridge的Promise resolver自动处理
+
+      ws.onmessage = (event) => {
+        try {
+          const { name, data } = JSON.parse(event.data);
+
+          // 处理服务器端发来的文件选择请求
+          if (name === 'show-open-request') {
+            handleWebDirectorySelection(data)
+              .then((result) => {
+                // 直接通过 emitter 返回结果，让 bridge 系统处理回调
+                const requestId = data.id;
+                const callbackEventName = `subscribe.callback-show-open${requestId}`;
+                emitter.emit(callbackEventName, result);
+              })
+              .catch((error) => {
+                console.error('File selection error:', error);
+                const requestId = data.id;
+                const callbackEventName = `subscribe.callback-show-open${requestId}`;
+                emitter.emit(callbackEventName, undefined);
+              });
+            return;
+          }
+
+          emitter.emit(name, data);
+        } catch (e) {
+          // Handle JSON parsing errors silently
+        }
+      };
+
+      ws.onerror = () => {
+        // Handle WebSocket errors silently
+      };
+
+      ws.onclose = () => {
+        // Handle WebSocket close silently
+      };
+    },
+  });
+
+  // Web目录选择处理函数
+  const handleWebDirectorySelection = (options: any): Promise<string[] | undefined> => {
+    return new Promise((resolve) => {
+      // 创建目录选择模态框
+      const modal = createDirectorySelectionModal(options, (result) => {
+        resolve(result);
+      });
+      document.body.appendChild(modal);
+    });
+  };
+
+  // 创建文件/目录选择模态框
+  const createDirectorySelectionModal = (options: any, onSelect: (paths: string[] | undefined) => void) => {
+    // 检查是否为文件选择模式 - 使用自定义字段判断或从properties自动推断
+    let isFileSelection = options.isFileMode === true;
+
+    // 如果没有 isFileMode，从 properties 推断 (properties可能在options.data中)
+    const properties = options.properties || (options.data && options.data.properties);
+    if (!isFileSelection && properties) {
+      isFileSelection = properties.includes('openFile') && !properties.includes('openDirectory');
+    }
+    const modal = document.createElement('div');
+    modal.style.cssText = `
         position: fixed;
         top: 0;
         left: 0;
@@ -135,8 +132,8 @@ if (win.electronAPI) {
         z-index: 10000;
       `;
 
-      const dialog = document.createElement('div');
-      dialog.style.cssText = `
+    const dialog = document.createElement('div');
+    dialog.style.cssText = `
         background: white;
         border-radius: 8px;
         width: 600px;
@@ -147,7 +144,7 @@ if (win.electronAPI) {
         box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
       `;
 
-      dialog.innerHTML = `
+    dialog.innerHTML = `
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
           <h3 style="margin: 0; color: #333;">${isFileSelection ? '📄 选择文件' : '📁 选择目录'}</h3>
           <button id="closeBtn" style="background: none; border: none; font-size: 20px; cursor: pointer;">×</button>
@@ -166,71 +163,71 @@ if (win.electronAPI) {
         </div>
       `;
 
-      modal.appendChild(dialog);
-
-      // 初始化目录浏览器
-      initDirectoryBrowser(dialog.querySelector('#directoryBrowser'), dialog.querySelector('#selectedPath'), dialog.querySelector('#confirmBtn'), isFileSelection);
-
-      // 事件处理
-      dialog.querySelector('#closeBtn').addEventListener('click', () => {
-        document.body.removeChild(modal);
-        onSelect(undefined);
-      });
-
-      dialog.querySelector('#cancelBtn').addEventListener('click', () => {
-        document.body.removeChild(modal);
-        onSelect(undefined);
-      });
-
-      dialog.querySelector('#confirmBtn').addEventListener('click', () => {
-        const selectedPath = dialog.querySelector('#selectedPath').textContent;
-        const expectedText = isFileSelection ? '请选择一个文件' : '请选择一个目录';
-
-        if (selectedPath && selectedPath !== expectedText) {
-          document.body.removeChild(modal);
-          onSelect([selectedPath]);
-        }
-      });
-
-      return modal;
-    };
+    modal.appendChild(dialog);
 
     // 初始化目录浏览器
-    const initDirectoryBrowser = (container: Element, pathDisplay: Element, confirmBtn: Element, isFileSelection: boolean) => {
-      let selectedPath: string;
+    initDirectoryBrowser(dialog.querySelector('#directoryBrowser'), dialog.querySelector('#selectedPath'), dialog.querySelector('#confirmBtn'), isFileSelection);
 
-      const loadDirectory = async (path = '') => {
-        try {
-          const token = new URLSearchParams(window.location.search).get('token');
-          const showFiles = isFileSelection ? 'true' : 'false';
-          const response = await fetch(`/api/directory/browse?path=${encodeURIComponent(path)}&showFiles=${showFiles}&token=${token}`);
-          const data = await response.json();
+    // 事件处理
+    dialog.querySelector('#closeBtn').addEventListener('click', () => {
+      document.body.removeChild(modal);
+      onSelect(undefined);
+    });
 
-          renderDirectory(data);
-        } catch (_error) {
-          container.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">加载目录失败</div>';
-        }
-      };
+    dialog.querySelector('#cancelBtn').addEventListener('click', () => {
+      document.body.removeChild(modal);
+      onSelect(undefined);
+    });
 
-      const renderDirectory = (data: any) => {
-        let html = '';
+    dialog.querySelector('#confirmBtn').addEventListener('click', () => {
+      const selectedPath = dialog.querySelector('#selectedPath').textContent;
+      const expectedText = isFileSelection ? '请选择一个文件' : '请选择一个目录';
 
-        // 返回上级目录按钮
-        if (data.canGoUp) {
-          html += `
+      if (selectedPath && selectedPath !== expectedText) {
+        document.body.removeChild(modal);
+        onSelect([selectedPath]);
+      }
+    });
+
+    return modal;
+  };
+
+  // 初始化目录浏览器
+  const initDirectoryBrowser = (container: Element, pathDisplay: Element, confirmBtn: Element, isFileSelection: boolean) => {
+    let selectedPath: string;
+
+    const loadDirectory = async (path = '') => {
+      try {
+        const token = new URLSearchParams(window.location.search).get('token');
+        const showFiles = isFileSelection ? 'true' : 'false';
+        const response = await fetch(`/api/directory/browse?path=${encodeURIComponent(path)}&showFiles=${showFiles}&token=${token}`);
+        const data = await response.json();
+
+        renderDirectory(data);
+      } catch (_error) {
+        container.innerHTML = '<div style="padding: 20px; text-align: center; color: #666;">加载目录失败</div>';
+      }
+    };
+
+    const renderDirectory = (data: any) => {
+      let html = '';
+
+      // 返回上级目录按钮
+      if (data.canGoUp) {
+        html += `
             <div class="dir-item" data-path="${data.parentPath}" data-type="parent" style="padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; display: flex; align-items: center;">
               <span style="margin-right: 10px;">📁</span>
               <span>..</span>
             </div>
           `;
-        }
+      }
 
-        // 目录和文件列表
-        data.items.forEach((item: any) => {
-          const icon = item.isDirectory ? '📁' : '📄';
-          const canSelect = isFileSelection ? item.isFile : item.isDirectory;
+      // 目录和文件列表
+      data.items.forEach((item: any) => {
+        const icon = item.isDirectory ? '📁' : '📄';
+        const canSelect = isFileSelection ? item.isFile : item.isDirectory;
 
-          html += `
+        html += `
             <div class="dir-item" data-path="${item.path}" data-type="${item.isDirectory ? 'directory' : 'file'}" style="padding: 10px; border-bottom: 1px solid #eee; cursor: pointer; display: flex; align-items: center; justify-content: space-between;">
               <div style="display: flex; align-items: center;">
                 <span style="margin-right: 10px;">${icon}</span>
@@ -239,53 +236,52 @@ if (win.electronAPI) {
               ${canSelect ? '<button class="select-btn" style="padding: 4px 8px; background: #007bff; color: white; border: none; border-radius: 3px; font-size: 12px;">选择</button>' : ''}
             </div>
           `;
+      });
+
+      container.innerHTML = html;
+
+      // 添加事件监听
+      container.querySelectorAll('.dir-item').forEach((item) => {
+        const path = item.getAttribute('data-path');
+        const type = item.getAttribute('data-type');
+
+        item.addEventListener('click', (e) => {
+          e.preventDefault();
+          // 只有目录（包括父目录）可以导航
+          if (type === 'parent' || (type === 'directory' && !isFileSelection)) {
+            loadDirectory(path).catch((error) => console.error('Failed to load directory:', error));
+          } else if (type === 'directory' && isFileSelection) {
+            // 在文件选择模式下，双击目录进入
+          }
         });
 
-        container.innerHTML = html;
-
-        // 添加事件监听
-        container.querySelectorAll('.dir-item').forEach((item) => {
-          const path = item.getAttribute('data-path');
-          const type = item.getAttribute('data-type');
-
-          item.addEventListener('click', (e) => {
+        // 在文件选择模式下，双击目录进入
+        if (isFileSelection && type === 'directory') {
+          item.addEventListener('dblclick', (e) => {
             e.preventDefault();
-            // 只有目录（包括父目录）可以导航
-            if (type === 'parent' || (type === 'directory' && !isFileSelection)) {
-              loadDirectory(path).catch((error) => console.error('Failed to load directory:', error));
-            } else if (type === 'directory' && isFileSelection) {
-              // 在文件选择模式下，双击目录进入
-            }
+            loadDirectory(path).catch((error) => console.error('Failed to load directory:', error));
           });
+        }
 
-          // 在文件选择模式下，双击目录进入
-          if (isFileSelection && type === 'directory') {
-            item.addEventListener('dblclick', (e) => {
-              e.preventDefault();
-              loadDirectory(path).catch((error) => console.error('Failed to load directory:', error));
-            });
-          }
+        const selectBtn = item.querySelector('.select-btn');
+        if (selectBtn) {
+          selectBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            selectedPath = path;
+            pathDisplay.textContent = path;
+            confirmBtn.removeAttribute('disabled');
 
-          const selectBtn = item.querySelector('.select-btn');
-          if (selectBtn) {
-            selectBtn.addEventListener('click', (e) => {
-              e.stopPropagation();
-              selectedPath = path;
-              pathDisplay.textContent = path;
-              confirmBtn.removeAttribute('disabled');
-
-              // 高亮选中的项目
-              container.querySelectorAll('.dir-item').forEach((i) => ((i as HTMLElement).style.background = ''));
-              (item as HTMLElement).style.background = '#e3f2fd';
-            });
-          }
-        });
-      };
-
-      // 加载初始目录
-      loadDirectory().catch((error) => console.error('Failed to load initial directory:', error));
+            // 高亮选中的项目
+            container.querySelectorAll('.dir-item').forEach((i) => ((i as HTMLElement).style.background = ''));
+            (item as HTMLElement).style.background = '#e3f2fd';
+          });
+        }
+      });
     };
-  }
+
+    // 加载初始目录
+    loadDirectory().catch((error) => console.error('Failed to load initial directory:', error));
+  };
 }
 
 logger.provider({
