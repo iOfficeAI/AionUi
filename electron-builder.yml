@@ -44,6 +44,11 @@ files:
 extraResources:
   - from: public
     to: .
+  - from: .webpack/main/native_modules/build/Release
+    to: build/Release
+# Ensure native module metadata (e.g., proto descriptors) remain accessible
+  - from: .webpack/main/native_modules/protos
+    to: protos
 
 # Windows configuration
 win:
@@ -118,6 +123,7 @@ nodeGypRebuild: false
 # ASAR configuration for production
 asarUnpack:
   - "**/node_modules/node-pty/**/*"
+  - "**/node_modules/better-sqlite3/**/*"
   - "!**/node_modules/@anthropic-ai/claude-code/vendor/**/*"
 
 # CI/CD optimizations  
