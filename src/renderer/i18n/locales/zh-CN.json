@@ -28,6 +28,32 @@
     "troubleshooting": "故障排除",
     "select": "选择"
   },
+  "login": {
+    "pageTitle": "AionUi - 登录",
+    "brand": "AionUi",
+    "subtitle": "欢迎回来，请登录您的账户",
+    "username": "用户名",
+    "usernamePlaceholder": "请输入用户名",
+    "password": "密码",
+    "passwordPlaceholder": "请输入密码",
+    "rememberUsername": "记住用户名",
+    "submit": "登录",
+    "submitting": "登录中...",
+    "success": "登录成功！正在跳转...",
+    "showPassword": "显示密码",
+    "hidePassword": "隐藏密码",
+    "languageToggle": "切换语言",
+    "footerPrimary": "命令行 AI 的现代化体验",
+    "footerSecondary": "高效且优雅",
+    "errors": {
+      "empty": "请输入用户名和密码",
+      "invalidCredentials": "用户名或密码错误",
+      "tooManyAttempts": "登录尝试过多，请稍后再试",
+      "networkError": "连接失败，请稍后重试",
+      "serverError": "服务器开小差了，请稍后重试",
+      "unknown": "登录失败，请稍后再试"
+    }
+  },
   "fileSelection": {
     "selectFile": "选择文件",
     "selectDirectory": "选择目录",

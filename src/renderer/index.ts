@@ -9,6 +9,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import '../adapter/browser';
 import Main from './main';
+import { AuthProvider } from './context/AuthContext';
 
 import { ConfigProvider } from '@arco-design/web-react';
 import '@arco-design/web-react/dist/css/arco.css';
@@ -40,4 +41,6 @@ const Config: React.FC<PropsWithChildren> = (props) => {
   );
 };
 
-root.render(React.createElement(HOC.Wrapper(Config)(Main)));
+const App = HOC.Wrapper(Config)(Main);
+
+root.render(React.createElement(AuthProvider, null, React.createElement(App)));

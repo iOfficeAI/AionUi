@@ -19,4 +19,7 @@ export const mainConfig: Configuration = {
     // path: path.resolve(__dirname, "../../main"),
   },
   ...rendererConfig,
+  externals: {
+    bcrypt: 'commonjs bcrypt'
+  },
 };

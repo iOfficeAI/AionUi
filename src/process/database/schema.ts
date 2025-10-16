@@ -23,8 +23,10 @@ export function initSchema(db: Database.Database): void {
       email TEXT UNIQUE,
       password_hash TEXT NOT NULL,
       avatar_path TEXT,
+      jwt_secret TEXT,
       created_at INTEGER NOT NULL,
-      updated_at INTEGER NOT NULL
+      updated_at INTEGER NOT NULL,
+      last_login INTEGER
     );
 
     CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
@@ -73,45 +75,17 @@ export function initSchema(db: Database.Database): void {
     CREATE INDEX IF NOT EXISTS idx_messages_conversation_created ON messages(conversation_id, created_at);
   `);
 
-  // Images are stored in the filesystem and referenced via message.resultDisplay
-  // No separate images table needed
-
-  // Configs table (配置表 - key-value存储，用于数据库版本跟踪)
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS configs (
-      key TEXT PRIMARY KEY,
-      value TEXT NOT NULL,
-      updated_at INTEGER NOT NULL
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_configs_updated_at ON configs(updated_at);
-  `);
-
-  // Create default system user if not exists
-  const defaultUserId = 'system_default_user';
-  const existingUser = db.prepare('SELECT id FROM users WHERE id = ?').get(defaultUserId);
-
-  if (!existingUser) {
-    const now = Date.now();
-    db.prepare(
-      `
-      INSERT INTO users (id, username, email, password_hash, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `
-    ).run(defaultUserId, 'default', 'default@aionui.local', '', now, now);
-    console.log('[Database] Default system user created');
-  }
-
   console.log('[Database] Schema initialized successfully');
 }
 
 /**
  * Get database version for migration tracking
+ * Uses SQLite's built-in user_version pragma
  */
 export function getDatabaseVersion(db: Database.Database): number {
   try {
-    const result = db.prepare("SELECT value FROM configs WHERE key = 'db_version'").get() as { value: string } | undefined;
-    return result ? parseInt(result.value) : 0;
+    const result = db.pragma('user_version', { simple: true }) as number;
+    return result;
   } catch {
     return 0;
   }
@@ -119,19 +93,14 @@ export function getDatabaseVersion(db: Database.Database): number {
 
 /**
  * Set database version
+ * Uses SQLite's built-in user_version pragma
  */
 export function setDatabaseVersion(db: Database.Database, version: number): void {
-  const now = Date.now();
-  db.prepare(
-    `
-    INSERT OR REPLACE INTO configs (key, value, updated_at)
-    VALUES ('db_version', ?, ?)
-  `
-  ).run(version.toString(), now);
+  db.pragma(`user_version = ${version}`);
 }
 
 /**
  * Current database schema version
  * Update this when adding new migrations in migrations.ts
  */
-export const CURRENT_DB_VERSION = 5;
+export const CURRENT_DB_VERSION = 6;
