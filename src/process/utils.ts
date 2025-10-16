@@ -7,7 +7,7 @@
 import { AIONUI_TIMESTAMP_REGEX } from '@/common/constants';
 import type { IDirOrFile } from '@/common/ipcBridge';
 import { app } from 'electron';
-import { existsSync } from 'fs';
+import { existsSync, mkdirSync } from 'fs';
 import fs from 'fs/promises';
 import path from 'path';
 import { getSystemDir } from './initStorage';
@@ -251,3 +251,10 @@ export const copyFilesToDirectory = async (dir: string, files?: string[]) => {
     }
   }
 };
+
+export function ensureDirectory(dirPath: string): void {
+  if (existsSync(dirPath)) {
+    return;
+  }
+  mkdirSync(dirPath, { recursive: true });
+}
