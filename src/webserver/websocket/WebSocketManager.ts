@@ -9,6 +9,7 @@ import { WebSocket } from 'ws';
 import type { IncomingMessage } from 'http';
 import { TokenMiddleware } from '../../auth/middleware/TokenMiddleware';
 import { WEBSOCKET_CONFIG } from '../../config/constants';
+import { SHOW_OPEN_REQUEST_EVENT } from '../../adapter/constant';
 
 interface ClientInfo {
   token: string;
@@ -102,6 +103,7 @@ export class WebSocketManager {
         }
 
         // Handle file selection request - forward to client
+        // 'subscribe-show-open' 由 bridge.buildProvider('show-open') 自动生成
         if (name === 'subscribe-show-open') {
           this.handleFileSelection(ws, data);
           return;
@@ -125,9 +127,11 @@ export class WebSocketManager {
    * Handle file selection request
    */
   private handleFileSelection(ws: WebSocket, data: any): void {
+    // 判断是否为文件选择模式
     const isFileMode = data && data.properties && (data.properties.includes('openFile') || data.properties.includes('multiSelections')) && !data.properties.includes('openDirectory');
 
-    ws.send(JSON.stringify({ name: 'show-open-request', data: { ...data, isFileMode } }));
+    // 发送文件选择请求给客户端
+    ws.send(JSON.stringify({ name: SHOW_OPEN_REQUEST_EVENT, data: { ...data, isFileMode } }));
   }
 
   /**
