@@ -118,6 +118,7 @@ nodeGypRebuild: false
 # ASAR configuration for production
 asarUnpack:
   - "**/node_modules/node-pty/**/*"
+  - "**/node_modules/better-sqlite3/**/*"
   - "!**/node_modules/@anthropic-ai/claude-code/vendor/**/*"
 
 # CI/CD optimizations  
