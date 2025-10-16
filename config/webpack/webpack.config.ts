@@ -20,10 +20,6 @@ export const mainConfig: Configuration = {
   },
   ...rendererConfig,
   externals: {
-    bcrypt: 'commonjs bcrypt',
-    jsonwebtoken: 'commonjs jsonwebtoken',
-    ink: 'commonjs ink',
-    react: 'commonjs react',
-    'react-devtools-core': 'commonjs react-devtools-core',
+    bcrypt: 'commonjs bcrypt'
   },
 };
