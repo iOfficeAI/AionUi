@@ -7,10 +7,9 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
-import type { StringValue } from 'ms';
 import type { AuthUser } from '../repository/UserRepository';
+import { UserRepository } from '../repository/UserRepository';
 import { AUTH_CONFIG } from '../../config/constants';
-import { ProcessConfig } from '../../process/initStorage';
 
 interface TokenPayload {
   userId: string;
@@ -51,8 +50,8 @@ export class AuthService {
    * 获取或创建 JWT Secret，并缓存于内存
    * Load or create the JWT secret and cache it in memory
    *
-   * 混合存储架构：jwt_secret 存储在 JSON 文件中
-   * Hybrid storage: jwt_secret is stored in JSON file
+   * JWT secret 存储在 users 表的 admin 用户中
+   * JWT secret is stored in the admin user's row in users table
    */
   public static getJwtSecret(): string {
     if (this.jwtSecret) {
@@ -66,19 +65,26 @@ export class AuthService {
     }
 
     try {
-      // 从 JSON 配置文件读取 jwt_secret
-      // Read jwt_secret from JSON config file
-      const existingSecret = ProcessConfig.getSync('jwt_secret' as any);
-      if (existingSecret) {
-        this.jwtSecret = existingSecret;
+      // 从数据库读取 admin 用户的 jwt_secret
+      // Read jwt_secret from admin user in database
+      const adminUser = UserRepository.findByUsername(AUTH_CONFIG.DEFAULT_USER.USERNAME);
+      if (adminUser && adminUser.jwt_secret) {
+        this.jwtSecret = adminUser.jwt_secret;
         return this.jwtSecret;
       }
 
-      // 生成新的 secret 并保存到 JSON 文件
-      // Generate new secret and save to JSON file
-      const newSecret = this.generateSecretKey();
-      void ProcessConfig.set('jwt_secret' as any, newSecret);
-      this.jwtSecret = newSecret;
+      // 生成新的 secret 并保存到 admin 用户
+      // Generate new secret and save to admin user
+      if (adminUser) {
+        const newSecret = this.generateSecretKey();
+        UserRepository.updateJwtSecret(adminUser.id, newSecret);
+        this.jwtSecret = newSecret;
+        return this.jwtSecret;
+      }
+
+      // Fallback: 如果 admin 用户不存在(不应该发生)
+      console.warn('[AuthService] Admin user not found, using temporary secret');
+      this.jwtSecret = this.generateSecretKey();
       return this.jwtSecret;
     } catch (error) {
       console.error('Failed to get/save JWT secret:', error);
@@ -89,12 +95,18 @@ export class AuthService {
 
   /**
    * 通过旋转密钥的方式让所有现有 Token 失效
-   * Rotate the ≈ key to invalidate all existing tokens
+   * Rotate the JWT secret to invalidate all existing tokens
    */
   public static invalidateAllTokens(): void {
     try {
+      const adminUser = UserRepository.findByUsername(AUTH_CONFIG.DEFAULT_USER.USERNAME);
+      if (!adminUser) {
+        console.warn('[AuthService] Admin user not found, cannot invalidate tokens');
+        return;
+      }
+
       const newSecret = this.generateSecretKey();
-      void ProcessConfig.set('jwt_secret' as any, newSecret);
+      UserRepository.updateJwtSecret(adminUser.id, newSecret);
       this.jwtSecret = newSecret;
     } catch (error) {
       console.error('Failed to invalidate tokens:', error);

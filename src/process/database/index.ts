@@ -312,6 +312,27 @@ export class AionUIDatabase {
   }
 
   /**
+   * Update user's JWT secret
+   * 更新用户的 JWT secret
+   */
+  updateUserJwtSecret(userId: string, jwtSecret: string): IQueryResult<boolean> {
+    try {
+      const now = Date.now();
+      this.db.prepare('UPDATE users SET jwt_secret = ?, updated_at = ? WHERE id = ?').run(jwtSecret, now, userId);
+      return {
+        success: true,
+        data: true,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message,
+        data: false,
+      };
+    }
+  }
+
+  /**
    * ==================
    * Conversation operations
    * ==================
