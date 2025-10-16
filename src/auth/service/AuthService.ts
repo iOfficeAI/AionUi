@@ -4,12 +4,62 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import type { AuthUser } from '../repository/UserRepository';
 import { UserRepository } from '../repository/UserRepository';
-import { AUTH_CONFIG } from '../../config/constants';
+import { AUTH_CONFIG } from '../../webserver/config/constants';
+
+type BcryptAdapter = {
+  hash(password: string, rounds: number): Promise<string>;
+  compare(password: string, hashed: string): Promise<boolean>;
+};
+
+const pbkdf2Hash = (password: string, salt: Buffer, iterations: number): Promise<Buffer> =>
+  new Promise((resolve, reject) => {
+    crypto.pbkdf2(password, salt, iterations, 32, 'sha256', (err, derived) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(derived);
+      }
+    });
+  });
+
+const bcryptAdapter: BcryptAdapter = (() => {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires,global-require
+    const native: typeof import('bcrypt') = require('bcrypt');
+    return {
+      hash: (password: string, rounds: number) => native.hash(password, rounds),
+      compare: (password: string, hashed: string) => native.compare(password, hashed),
+    };
+  } catch (nativeError) {
+    return {
+      hash: async (password: string) => {
+        const iterations = 120_000;
+        const salt = crypto.randomBytes(16);
+        const derived = await pbkdf2Hash(password, salt, iterations);
+        return `pbkdf2$${iterations}$${salt.toString('base64')}$${derived.toString('base64')}`;
+      },
+      compare: async (password: string, hashed: string) => {
+        if (hashed.startsWith('pbkdf2$')) {
+          const [, iterStr, saltB64, hashB64] = hashed.split('$');
+          const iterations = Number(iterStr);
+          if (!iterations || !saltB64 || !hashB64) {
+            return false;
+          }
+          const salt = Buffer.from(saltB64, 'base64');
+          const expected = Buffer.from(hashB64, 'base64');
+          const derived = await pbkdf2Hash(password, salt, iterations);
+          return crypto.timingSafeEqual(derived, expected);
+        }
+
+        return false;
+      },
+    };
+  }
+})();
 
 interface TokenPayload {
   userId: string;
@@ -118,7 +168,7 @@ export class AuthService {
    * Hash password using bcrypt
    */
   public static hashPassword(password: string): Promise<string> {
-    return bcrypt.hash(password, this.SALT_ROUNDS);
+    return bcryptAdapter.hash(password, this.SALT_ROUNDS);
   }
 
   /**
@@ -126,7 +176,7 @@ export class AuthService {
    * Verify whether the password matches the stored hash
    */
   public static verifyPassword(password: string, hash: string): Promise<boolean> {
-    return bcrypt.compare(password, hash);
+    return bcryptAdapter.compare(password, hash);
   }
 
   /**
@@ -175,6 +225,9 @@ export class AuthService {
         userId: this.normalizeUserId(decoded.userId),
       };
     } catch (error) {
+      if (error instanceof jwt.TokenExpiredError || error instanceof jwt.JsonWebTokenError || error instanceof jwt.NotBeforeError) {
+        return null;
+      }
       console.error('Token verification failed:', error);
       return null;
     }
@@ -387,7 +440,7 @@ export class AuthService {
 
     let result: boolean;
     if (hashProvided) {
-      result = await bcrypt.compare(provided, expected);
+      result = await bcryptAdapter.compare(provided, expected);
     } else {
       result = crypto.timingSafeEqual(Buffer.from(provided.padEnd(expected.length, '0')), Buffer.from(expected.padEnd(provided.length, '0')));
     }

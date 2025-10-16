@@ -8,7 +8,7 @@ import type { Request, Response, NextFunction } from 'express';
 import { AuthService } from '../service/AuthService';
 import { RateLimitStore } from '../repository/RateLimitStore';
 import { createAuthMiddleware } from './TokenMiddleware';
-import { AUTH_CONFIG, SECURITY_CONFIG } from '../../config/constants';
+import { AUTH_CONFIG, SECURITY_CONFIG } from '../../webserver/config/constants';
 
 // Express Request type extension is defined in src/types/express.d.ts
 // Express Request 类型扩展定义在 src/types/express.d.ts

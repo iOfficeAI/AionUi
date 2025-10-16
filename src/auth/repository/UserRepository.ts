@@ -56,12 +56,26 @@ export const UserRepository = {
    * @returns 是否存在用户 / Whether users exist
    */
   hasUsers(): boolean {
-    const db = getDatabase();
-    const result = db.hasUsers();
-    if (!result.success) {
-      throw new Error(result.error || 'Failed to determine user count');
+    const system = this.getSystemUser();
+    if (!system) {
+      return false;
     }
-    return Boolean(result.data);
+    const hash = system.password_hash || '';
+    return hash.startsWith('$2');
+  },
+
+  getSystemUser(): AuthUser | null {
+    const db = getDatabase();
+    const system = db.getSystemUser();
+    if (!system) {
+      return null;
+    }
+    return mapUser(system);
+  },
+
+  setSystemUserCredentials(username: string, passwordHash: string): void {
+    const db = getDatabase();
+    db.setSystemUserCredentials(username, passwordHash);
   },
 
   /**

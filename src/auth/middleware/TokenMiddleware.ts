@@ -8,7 +8,7 @@ import type { Request, Response, NextFunction } from 'express';
 import type { IncomingMessage } from 'http';
 import { AuthService } from '../service/AuthService';
 import { UserRepository } from '../repository/UserRepository';
-import { AUTH_CONFIG, SERVER_CONFIG } from '../../config/constants';
+import { AUTH_CONFIG, SERVER_CONFIG } from '../../webserver/config/constants';
 
 /**
  * Token 负载接口
