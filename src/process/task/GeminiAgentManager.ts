@@ -137,10 +137,10 @@ export class GeminiAgentManager extends BaseAgentManager<{
       if (data.type !== 'thought') {
         const tMessage = transformMessage(data as IResponseMessage);
         if (tMessage) {
-          addOrUpdateMessage(this.conversation_id, tMessage);
+          console.warn('[GeminiAgentManager] Received TMessage', tMessage);
+          addOrUpdateMessage(this.conversation_id, tMessage, 'gemini');
         }
       }
-      // Emit to frontend for UI display only
       ipcBridge.geminiConversation.responseStream.emit(data);
     });
   }

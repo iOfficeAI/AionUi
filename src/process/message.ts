@@ -9,6 +9,8 @@ import { composeMessage } from '@/common/chatLib';
 import { getDatabase } from './database/export';
 import { ProcessChat } from './initStorage';
 import { streamingBuffer } from './database/StreamingMessageBuffer';
+import type { AcpBackend } from '@/types/acpTypes';
+import { ACP_BACKENDS_ALL } from '@/types/acpTypes';
 
 /**
  * Add a new message to the database
@@ -120,7 +122,7 @@ async function ensureConversationExists(db: ReturnType<typeof getDatabase>, conv
  * Add or update a single message
  * If message exists (by id), update it; otherwise insert it
  */
-export const addOrUpdateMessage = (conversation_id: string, message: TMessage): void => {
+export const addOrUpdateMessage = (conversation_id: string, message: TMessage, backend?: AcpBackend): void => {
   // Validate message
   if (!message) {
     console.error('[Message] Cannot add or update undefined message');
@@ -136,20 +138,13 @@ export const addOrUpdateMessage = (conversation_id: string, message: TMessage): 
   void (async () => {
     try {
       const db = getDatabase();
-
       // Ensure conversation exists in database
       await ensureConversationExists(db, conversation_id);
-
       if (message.type === 'text' && message.msg_id) {
         const incomingMsg = message as IMessageText;
         const content = incomingMsg.content.content;
-
-        // Use message.id as buffer key (generate if needed)
-        const messageId = message.id || message.msg_id;
-
-        // Append to buffer (replace mode: each call has full content)
-        // Buffered writes: ~10x DB operations instead of 1000x
-        streamingBuffer.append(messageId, conversation_id, content);
+        const messageId = message.msg_id || '';
+        streamingBuffer.append(message.id, messageId, conversation_id, content, backend ? 'accumulate' : ACP_BACKENDS_ALL[backend].supportsStreaming ? 'accumulate' : 'replace');
       } else if (message.type === 'tool_group' || message.type === 'tool_call' || message.type === 'codex_tool_call' || message.type === 'acp_tool_call') {
         // Complex message types that need composeMessage logic
         // These are less frequent, so loading all messages of this type is acceptable
