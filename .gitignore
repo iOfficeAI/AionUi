@@ -82,11 +82,6 @@ typings/
 # DynamoDB Local files
 .dynamodb/
 
-# SQLite Database files
-*.db
-*.db-shm
-*.db-wal
-aionui.db*
 
 # Webpack
 .webpack/

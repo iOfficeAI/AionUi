@@ -11,6 +11,7 @@
     "start": "NODE_OPTIONS='--no-deprecation' electron-forge start",
     "start:webui": "NODE_OPTIONS='--no-deprecation' electron-forge start -- --webui",
     "start:webui:remote": "NODE_OPTIONS='--no-deprecation' electron-forge start -- --webui --remote",
+    "resetpass": "electron scripts/resetpass.mjs",
     "package": "electron-forge package",
     "make": "electron-forge make",
     "dist": "node scripts/build-with-builder.js",
