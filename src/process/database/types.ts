@@ -23,6 +23,7 @@ export interface IUser {
   email?: string;
   password_hash: string;
   avatar_path?: string;
+  jwt_secret?: string | null;
   created_at: number;
   updated_at: number;
   last_login?: number | null;
