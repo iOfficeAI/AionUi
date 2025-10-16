@@ -59,7 +59,7 @@ export interface CliArgs {
 // This function is now a thin wrapper around the server's implementation.
 // It's kept in the CLI for now as App.tsx directly calls it for memory refresh.
 // TODO: Consider if App.tsx should get memory via a server call or if Config should refresh itself.
-export async function loadHierarchicalGeminiMemory(currentWorkingDirectory: string, includeDirectoriesToReadGemini: readonly string[] = [], debugMode: boolean, fileService: FileDiscoveryService, settings: Settings, extensionContextFilePaths: string[] = [], memoryImportFormat: 'flat' | 'tree' = 'tree', fileFilteringOptions?: FileFilteringOptions): Promise<{ memoryContent: string; fileCount: number }> {
+export function loadHierarchicalGeminiMemory(currentWorkingDirectory: string, includeDirectoriesToReadGemini: readonly string[] = [], debugMode: boolean, fileService: FileDiscoveryService, settings: Settings, extensionContextFilePaths: string[] = [], memoryImportFormat: 'flat' | 'tree' = 'tree', fileFilteringOptions?: FileFilteringOptions): Promise<{ memoryContent: string; fileCount: number }> {
   // FIX: Use real, canonical paths for a reliable comparison to handle symlinks.
   const realCwd = fs.realpathSync(path.resolve(currentWorkingDirectory));
   const realHome = fs.realpathSync(path.resolve(homedir()));
@@ -74,7 +74,9 @@ export async function loadHierarchicalGeminiMemory(currentWorkingDirectory: stri
   }
 
   // Directly call the server function with the corrected path.
-  return loadServerHierarchicalMemory(effectiveCwd, includeDirectoriesToReadGemini, debugMode, fileService, extensionContextFilePaths, memoryImportFormat, fileFilteringOptions, settings.memoryDiscoveryMaxDirs);
+  // Fixed parameter order: added folderTrust parameter before memoryImportFormat
+  const folderTrust = true; // Default to true for workspace trust
+  return loadServerHierarchicalMemory(effectiveCwd, includeDirectoriesToReadGemini, debugMode, fileService, extensionContextFilePaths, folderTrust, memoryImportFormat, fileFilteringOptions, settings.memoryDiscoveryMaxDirs);
 }
 
 import type { ConversationToolConfig } from './tools/conversation-tool-config';
@@ -227,29 +229,29 @@ export async function loadCliConfig({ workspace, settings, extensions, sessionId
     ideMode,
   });
 
-  const flashFallbackHandler = async (_currentModel: string, _fallbackModel: string, _error?: unknown): Promise<string | boolean> => {
+  const fallbackModelHandler = async (_currentModel: string, _fallbackModel: string, _error?: unknown): Promise<'retry' | 'stop' | 'auth' | null> => {
     try {
       const agent = getCurrentGeminiAgent();
       const apiKeyManager = agent?.getApiKeyManager();
 
       if (!apiKeyManager?.hasMultipleKeys()) {
-        return true;
+        return 'retry';
       }
 
       const hasMoreKeys = apiKeyManager.rotateKey();
 
       if (hasMoreKeys) {
-        return true;
+        return 'retry';
       }
 
-      return false;
+      return 'stop';
     } catch (e) {
-      console.error(`[FlashFallback] Handler error:`, e);
-      return true;
+      console.error(`[FallbackHandler] Handler error:`, e);
+      return 'retry';
     }
   };
 
-  config.setFlashFallbackHandler(flashFallbackHandler);
+  config.setFallbackModelHandler(fallbackModelHandler);
 
   return config;
 }

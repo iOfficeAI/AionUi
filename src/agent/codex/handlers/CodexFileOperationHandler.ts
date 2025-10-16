@@ -135,9 +135,10 @@ export class CodexFileOperationHandler {
   /**
    * 处理通用文件操作
    */
-  private async handleGenericFileOperation(operation: FileOperation): Promise<void> {
+  private handleGenericFileOperation(operation: FileOperation): Promise<void> {
     // 发送通用操作反馈消息
     this.emitFileOperationMessage(operation);
+    return Promise.resolve();
   }
 
   /**

@@ -40,6 +40,9 @@ const DirInputItem: React.FC<{
                     if (data?.[0]) {
                       form.setFieldValue(props.field, data[0]);
                     }
+                  })
+                  .catch((error) => {
+                    console.error('Failed to open directory dialog:', error);
                   });
               }}
             />
@@ -82,7 +85,7 @@ const GeminiSettings: React.FC = (props) => {
       });
   };
 
-  const saveDirConfigValidate = async (values: { cacheDir: string; workDir: string }) => {
+  const saveDirConfigValidate = (values: { cacheDir: string; workDir: string }): Promise<unknown> => {
     return new Promise((resolve, reject) => {
       modal.confirm({
         title: t('settings.updateConfirm'),
@@ -126,10 +129,14 @@ const GeminiSettings: React.FC = (props) => {
       });
   };
   useEffect(() => {
-    ConfigStorage.get('gemini.config').then((data) => {
-      form.setFieldsValue(data);
-      loadGoogleAuthStatus(data?.proxy);
-    });
+    ConfigStorage.get('gemini.config')
+      .then((data) => {
+        form.setFieldsValue(data);
+        loadGoogleAuthStatus(data?.proxy);
+      })
+      .catch((error) => {
+        console.error('Failed to load Gemini config:', error);
+      });
   }, []);
   useEffect(() => {
     if (data) {
@@ -176,9 +183,14 @@ const GeminiSettings: React.FC = (props) => {
                       className={'ml-4px'}
                       onClick={() => {
                         setUserLoggedOut(true);
-                        ipcBridge.googleAuth.logout.invoke({}).then(() => {
-                          form.setFieldValue('googleAccount', '');
-                        });
+                        ipcBridge.googleAuth.logout
+                          .invoke({})
+                          .then(() => {
+                            form.setFieldValue('googleAccount', '');
+                          })
+                          .catch((error) => {
+                            console.error('Failed to logout from Google:', error);
+                          });
                       }}
                     >
                       {t('settings.googleLogout')}
@@ -194,6 +206,9 @@ const GeminiSettings: React.FC = (props) => {
                         .invoke({ proxy: form.getFieldValue('proxy') })
                         .then(() => {
                           loadGoogleAuthStatus(form.getFieldValue('proxy'));
+                        })
+                        .catch((error) => {
+                          console.error('Failed to login to Google:', error);
                         })
                         .finally(() => {
                           setGoogleAccountLoading(false);

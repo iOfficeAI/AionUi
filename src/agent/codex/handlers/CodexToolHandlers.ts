@@ -143,7 +143,7 @@ export class CodexToolHandlers {
     });
     // If auto-approved, immediately attempt to apply changes
     if (msg.auto_approved) {
-      this.applyPatchChanges(callId).catch((): void => void 0);
+      this.applyPatchChanges(callId);
     }
   }
 
@@ -342,7 +342,7 @@ export class CodexToolHandlers {
       .join('\n');
   }
 
-  private async applyPatchChanges(callId: string): Promise<void> {
+  private applyPatchChanges(callId: string): void {
     // This would contain the actual patch application logic
     // For now, we'll just mark it as successful
     const changes = this.patchChanges.get(callId);

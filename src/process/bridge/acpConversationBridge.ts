@@ -6,32 +6,11 @@
 
 import { acpDetector } from '@/agent/acp/AcpDetector';
 import { ipcBridge } from '../../common';
-import { copyFilesToDirectory } from '../utils';
 import WorkerManage from '../WorkerManage';
 import type AcpAgentManager from '../task/AcpAgentManager';
-import { buildWorkspaceFileTree } from './conversationBridge';
 
 export function initAcpConversationBridge(): void {
-  // ACP 专用的 sendMessage provider
-  ipcBridge.acpConversation.sendMessage.provider(async ({ conversation_id, files, ...other }) => {
-    const task = (await WorkerManage.getTaskByIdRollbackBuild(conversation_id)) as AcpAgentManager;
-    if (!task) {
-      // 任务不存在，则任务管理出现问题，需要排查，不进行异常处理
-      return { success: false, msg: 'failed to establish ACP connection' };
-    }
-    if (task.type !== 'acp') return { success: false, msg: 'unsupported task type for ACP provider' };
-    await copyFilesToDirectory(task.workspace, files);
-
-    return task
-      .sendMessage({ content: other.input, files, msg_id: other.msg_id })
-      .then(() => {
-        return { success: true };
-      })
-      .catch((err) => {
-        return { success: false, msg: err?.message || JSON.stringify(err) };
-      });
-  });
-
+  // ACP 专用的 confirmMessage provider (for backward compatibility with 'acp.input.confirm.message' channel)
   ipcBridge.acpConversation.confirmMessage.provider(async ({ confirmKey, msg_id, conversation_id, callId }) => {
     const task = WorkerManage.getTaskById(conversation_id) as AcpAgentManager;
     if (!task) {
@@ -71,11 +50,6 @@ export function initAcpConversationBridge(): void {
     }
 
     return Promise.resolve({ success: false, msg: `${backend} CLI not found. Please install it and ensure it's accessible.` });
-  });
-
-  // ACP getWorkspace 使用通用方法
-  ipcBridge.acpConversation.getWorkspace.provider(async ({ conversation_id }) => {
-    return await buildWorkspaceFileTree(conversation_id);
   });
 
   // 新的ACP检测接口 - 基于全局标记位

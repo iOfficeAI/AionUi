@@ -55,7 +55,6 @@ export class CodexMessageProcessor {
       deltaText = msg.text ?? '';
     }
     // AGENT_REASONING_SECTION_BREAK 不添加内容，只是重置当前reasoning
-
     this.currentReason = this.currentReason + deltaText;
     this.messageEmitter.emitAndPersistMessage(
       {
@@ -64,7 +63,7 @@ export class CodexMessageProcessor {
         conversation_id: this.conversation_id,
         data: {
           description: this.currentReason,
-          subject: '',
+          subject: 'Thinking',
         },
       },
       false
@@ -79,7 +78,27 @@ export class CodexMessageProcessor {
       msg_id: this.currentLoadingId,
       data: rawDelta,
     };
-    this.messageEmitter.emitAndPersistMessage(deltaMessage);
+    // Delta messages: only emit to frontend for streaming display, do NOT persist
+    // Frontend will accumulate deltas in memory for real-time UI updates
+    this.messageEmitter.emitAndPersistMessage(deltaMessage, false);
+  }
+
+  processFinalMessage(msg: Extract<CodexEventMsg, { type: 'agent_message' }>) {
+    // Final message: only persist to database, do NOT emit to frontend
+    // Frontend has already shown the content via deltas
+
+    const transformedMessage = {
+      id: this.currentLoadingId || uuid(),
+      msg_id: this.currentLoadingId,
+      type: 'text' as const,
+      position: 'left' as const,
+      conversation_id: this.conversation_id,
+      content: { content: msg.message },
+      createdAt: Date.now(),
+    };
+
+    // Use messageEmitter to persist, maintaining architecture separation
+    this.messageEmitter.persistMessage(transformedMessage as any);
   }
 
   processStreamError(message: string) {

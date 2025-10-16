@@ -12,6 +12,12 @@ import type { CodexSessionManager } from '@/agent/codex/handlers/CodexSessionMan
 import type { CodexFileOperationHandler } from '@/agent/codex/handlers/CodexFileOperationHandler';
 import { getConfiguredAppClientName, getConfiguredAppClientVersion, getConfiguredCodexMcpProtocolVersion } from '../../../common/utils/appConfig';
 
+interface LegacyNetworkErrorDetails {
+  networkErrorType?: string;
+  originalError?: string;
+  retryCount?: number;
+}
+
 const APP_CLIENT_NAME = getConfiguredAppClientName();
 const APP_CLIENT_VERSION = getConfiguredAppClientVersion();
 const CODEX_MCP_PROTOCOL_VERSION = getConfiguredCodexMcpProtocolVersion();
@@ -63,8 +69,8 @@ export class CodexAgent {
     this.conn.onError = (error) => this.handleError(error);
 
     try {
-      const args = ['mcp', 'serve'];
-      await this.conn.start(this.cliPath || 'codex', this.workingDir, args);
+      // 让 CodexConnection 根据版本自动检测合适的命令 / Let CodexConnection auto-detect the appropriate command based on version
+      await this.conn.start(this.cliPath || 'codex', this.workingDir);
 
       // Wait for MCP server to be fully ready
       await this.conn.waitForServerReady(30000);
@@ -287,7 +293,7 @@ export class CodexAgent {
     }
   }
 
-  private convertToLegacyNetworkError(error: { message: string; type?: string; details?: any }): NetworkError {
+  private convertToLegacyNetworkError(error: { message: string; type?: string; details?: LegacyNetworkErrorDetails }): NetworkError {
     const details = error.details || {};
     return {
       type: this.mapNetworkErrorType(details.networkErrorType || 'unknown'),

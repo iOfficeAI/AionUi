@@ -25,7 +25,14 @@
     "reload": "重新加载",
     "technical_details": "技术详情",
     "error_details": "错误详情",
-    "troubleshooting": "故障排除"
+    "troubleshooting": "故障排除",
+    "select": "选择"
+  },
+  "fileSelection": {
+    "selectFile": "选择文件",
+    "selectDirectory": "选择目录",
+    "pleaseSelectFile": "请选择一个文件",
+    "pleaseSelectDirectory": "请选择一个目录"
   },
   "conversation": {
     "welcome": {
@@ -53,7 +60,8 @@
       "empty": "工作空间为空",
       "emptyDescription": "上传文件或打开文件夹后，文件将显示在这里",
       "searchPlaceholder": "搜索文件...",
-      "createNewConversation": "当前空间创建新会话"
+      "createNewConversation": "当前空间创建新会话",
+      "search.empty": "搜索结果为空"
     },
     "chat": {
       "noModelSelected": "当前会话未选择模型，无法发送消息"
@@ -245,6 +253,15 @@
     },
     "sendbox": {
       "placeholder": "发送消息到 {{backend}}..."
+    },
+    "status": {
+      "connecting": "正在连接 {{agent}}...",
+      "connected": "已连接到 {{agent}}",
+      "authenticated": "已通过 {{agent}} 身份验证",
+      "session_active": "{{agent}} 会话活跃中",
+      "disconnected": "已与 {{agent}} 断开连接",
+      "error": "连接错误",
+      "unknown": "未知状态"
     }
   },
   "codex": {
@@ -272,12 +289,6 @@
         "connection_refused": ["• 检查 Codex CLI 是否正确安装", "• 验证服务配置和API密钥", "• 重启应用程序", "• 检查本地端口是否被占用"],
         "unknown": ["• 检查网络连接状态", "• 重试当前操作", "• 切换网络环境", "• 联系技术支持"]
       }
-    },
-    "status": {
-      "connecting": "正在连接 Codex...",
-      "connected": "已连接到 Codex MCP 服务器",
-      "session_active": "已与 Codex 创建活跃会话",
-      "error_connect": "连接 Codex 失败：{{error}}"
     },
     "thinking": {
       "processing": "🤔 Codex 正在思考...",

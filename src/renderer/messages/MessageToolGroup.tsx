@@ -8,7 +8,7 @@ import { ipcBridge } from '@/common';
 import type { IMessageToolGroup } from '@/common/chatLib';
 import { Alert, Button, Radio, Tag } from '@arco-design/web-react';
 import { LoadingOne } from '@icon-park/react';
-import { ToolConfirmationOutcome } from '@office-ai/aioncli-core/dist/src/tools/tools';
+import { ToolConfirmationOutcome } from '../types/tool-confirmation';
 import 'diff2html/bundles/css/diff2html.min.css';
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -201,6 +201,9 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
                   })
                   .then((res) => {
                     console.log('------onConfirm.res>:', res);
+                  })
+                  .catch((error) => {
+                    console.error('Failed to confirm message:', error);
                   });
               }}
             ></ConfirmationDetails>

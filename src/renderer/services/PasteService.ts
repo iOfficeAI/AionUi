@@ -68,6 +68,8 @@ class PasteServiceClass {
 
   // 通用粘贴处理逻辑
   async handlePaste(event: React.ClipboardEvent | ClipboardEvent, supportedExts: string[], onFilesAdded: (files: FileMetadata[]) => void, onTextPaste?: (text: string) => void): Promise<boolean> {
+    // 立即事件冒泡,避免全局监听器重复处理
+    event.stopPropagation();
     const clipboardText = event.clipboardData?.getData('text');
     const files = event.clipboardData?.files;
 
