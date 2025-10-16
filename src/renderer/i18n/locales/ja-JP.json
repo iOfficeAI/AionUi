@@ -159,6 +159,32 @@
     "workspace": "ワークスペース",
     "select": "選択"
   },
+  "login": {
+    "pageTitle": "AionUi - ログイン",
+    "brand": "AionUi",
+    "subtitle": "おかえりなさい。アカウントにサインインしてください",
+    "username": "ユーザー名",
+    "usernamePlaceholder": "ユーザー名を入力してください",
+    "password": "パスワード",
+    "passwordPlaceholder": "パスワードを入力してください",
+    "rememberUsername": "ユーザー名を記憶する",
+    "submit": "ログイン",
+    "submitting": "ログイン中...",
+    "success": "ログインに成功しました。リダイレクトします...",
+    "showPassword": "パスワードを表示",
+    "hidePassword": "パスワードを隠す",
+    "languageToggle": "言語を切り替える",
+    "footerPrimary": "コマンドラインAIをモダンに変革",
+    "footerSecondary": "効率的でエレガント",
+    "errors": {
+      "empty": "ユーザー名とパスワードを入力してください",
+      "invalidCredentials": "ユーザー名またはパスワードが正しくありません",
+      "tooManyAttempts": "試行回数が多すぎます。後でもう一度お試しください",
+      "networkError": "接続に失敗しました。後でもう一度お試しください",
+      "serverError": "サーバーで問題が発生しました。しばらく待ってから再試行してください",
+      "unknown": "ログインに失敗しました。後でもう一度お試しください"
+    }
+  },
   "fileSelection": {
     "selectFile": "ファイルを選択",
     "selectDirectory": "ディレクトリを選択",

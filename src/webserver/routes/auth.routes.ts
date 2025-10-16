@@ -8,7 +8,7 @@ import type { Express, Request, Response } from 'express';
 import { AuthService } from '../../auth/service/AuthService';
 import { AuthMiddleware } from '../../auth/middleware/AuthMiddleware';
 import { UserRepository } from '../../auth/repository/UserRepository';
-import { AUTH_CONFIG } from '../../config/constants';
+import { AUTH_CONFIG } from '../config/constants';
 import { TokenUtils } from '../../auth/middleware/TokenMiddleware';
 import { createAppError } from '../middleware/errorHandler';
 

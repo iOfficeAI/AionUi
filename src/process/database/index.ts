@@ -12,6 +12,7 @@ import { runMigrations as executeMigrations } from './migrations';
 import type { IConversationRow, IMessageRow, IPaginatedResult, IQueryResult, IUser, TChatConversation, TMessage } from './types';
 import { conversationToRow, messageToRow, rowToConversation, rowToMessage } from './types';
 import { getDataPath } from '@process/utils';
+import { ensureDirectory } from './utils';
 
 /**
  * Main database class for AionUi
@@ -19,12 +20,15 @@ import { getDataPath } from '@process/utils';
  */
 export class AionUIDatabase {
   private db: Database.Database;
-  private defaultUserId = 'system_default_user';
+  private readonly defaultUserId = 'system_default_user';
+  private readonly systemPasswordPlaceholder = '';
 
   constructor() {
     const finalPath = path.join(getDataPath(), 'aionui.db');
     console.log(`[Database] Initializing database at: ${finalPath}`);
 
+    const dir = path.dirname(finalPath);
+    ensureDirectory(dir);
     this.db = new Database(finalPath);
     this.initialize();
   }
@@ -39,6 +43,8 @@ export class AionUIDatabase {
         this.runMigrations(currentVersion, CURRENT_DB_VERSION);
         setDatabaseVersion(this.db, CURRENT_DB_VERSION);
       }
+
+      this.ensureSystemUser();
     } catch (error) {
       console.error('[Database] Initialization failed:', error);
       throw error;
@@ -48,19 +54,37 @@ export class AionUIDatabase {
   private runMigrations(from: number, to: number): void {
     executeMigrations(this.db, from, to);
   }
+
+  private ensureSystemUser(): void {
+    const now = Date.now();
+    this.db
+      .prepare(
+        `INSERT OR IGNORE INTO users (id, username, email, password_hash, avatar_path, created_at, updated_at, last_login, jwt_secret)
+         VALUES (?, ?, NULL, ?, NULL, ?, ?, NULL, NULL)`
+      )
+      .run(this.defaultUserId, this.defaultUserId, this.systemPasswordPlaceholder, now, now);
+  }
+
+  getSystemUser(): IUser | null {
+    const user = this.db.prepare('SELECT * FROM users WHERE id = ?').get(this.defaultUserId) as IUser | undefined;
+    return user ?? null;
+  }
+
+  setSystemUserCredentials(username: string, passwordHash: string): void {
+    const now = Date.now();
+    this.db
+      .prepare(
+        `UPDATE users
+         SET username = ?, password_hash = ?, updated_at = ?, created_at = COALESCE(created_at, ?)
+         WHERE id = ?`
+      )
+      .run(username, passwordHash, now, now, this.defaultUserId);
+  }
   /**
    * Close database connection
    */
   close(): void {
     this.db.close();
-  }
-
-  /**
-   * Execute operations inside a transaction
-   */
-  transaction<T>(fn: () => T): T {
-    const wrapped = this.db.transaction(fn);
-    return wrapped();
   }
 
   /**
@@ -81,7 +105,7 @@ export class AionUIDatabase {
    */
   createUser(username: string, email: string | undefined, passwordHash: string): IQueryResult<IUser> {
     try {
-      const userId = `auth_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`;
+      const userId = `user_${Date.now()}`;
       const now = Date.now();
 
       const stmt = this.db.prepare(`
@@ -173,8 +197,8 @@ export class AionUIDatabase {
    */
   getAllUsers(): IQueryResult<IUser[]> {
     try {
-      const stmt = this.db.prepare('SELECT * FROM users WHERE id != ? ORDER BY created_at ASC');
-      const rows = stmt.all(this.defaultUserId) as IUser[];
+      const stmt = this.db.prepare('SELECT * FROM users ORDER BY created_at ASC');
+      const rows = stmt.all() as IUser[];
 
       return {
         success: true,
@@ -197,8 +221,8 @@ export class AionUIDatabase {
    */
   getUserCount(): IQueryResult<number> {
     try {
-      const stmt = this.db.prepare('SELECT COUNT(*) as count FROM users WHERE id != ?');
-      const row = stmt.get(this.defaultUserId) as { count: number };
+      const stmt = this.db.prepare('SELECT COUNT(*) as count FROM users');
+      const row = stmt.get() as { count: number };
 
       return {
         success: true,

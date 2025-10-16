@@ -14,7 +14,7 @@ export const AUTH_CONFIG = {
   // TOKEN 配置（Token configuration）
   TOKEN: {
     // 会话 JWT 过期时间（Session JWT expiry duration）
-    SESSION_EXPIRY: '30d' as const,
+    SESSION_EXPIRY: '24h' as const,
     // WebSocket 临时 Token 过期时间（WebSocket token expiry duration）
     WEBSOCKET_EXPIRY: '5m' as const,
     // Cookie 最大存活时间（Cookie max-age in milliseconds）
@@ -66,16 +66,6 @@ export const WEBSOCKET_CONFIG = {
     // 正常关闭码（Normal close code）
     NORMAL_CLOSURE: 1000,
   },
-} as const;
-
-// 存储配置
-export const STORAGE_CONFIG = {
-  // 最大分页大小（Max page size）
-  MAX_PAGE_SIZE: 200,
-  // 会话默认分页大小（Default conversation page size）
-  DEFAULT_CONVERSATION_PAGE_SIZE: 50,
-  // 消息默认分页大小（Default message page size）
-  DEFAULT_MESSAGE_PAGE_SIZE: 100,
 } as const;
 
 // 服务器配置

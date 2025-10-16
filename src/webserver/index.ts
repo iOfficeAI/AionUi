@@ -10,7 +10,7 @@ import { WebSocketServer } from 'ws';
 import { shell } from 'electron';
 import { AuthService } from '../auth/service/AuthService';
 import { UserRepository } from '../auth/repository/UserRepository';
-import { AUTH_CONFIG, SERVER_CONFIG } from '../config/constants';
+import { AUTH_CONFIG, SERVER_CONFIG } from './config/constants';
 import { initWebAdapter } from './adapter';
 import { setupBasicMiddleware, setupCors, setupErrorHandler } from './setup';
 import { registerAuthRoutes } from './routes/auth.routes';
@@ -29,20 +29,26 @@ const DEFAULT_ADMIN_USERNAME = AUTH_CONFIG.DEFAULT_USER.USERNAME;
  * @returns 初始凭证（仅首次创建时）/ Initial credentials (only on first creation)
  */
 async function initializeDefaultAdmin(): Promise<{ username: string; password: string } | null> {
-  if (!UserRepository.hasUsers()) {
-    const username = DEFAULT_ADMIN_USERNAME;
-    const password = AuthService.generateRandomPassword();
+  const username = DEFAULT_ADMIN_USERNAME;
+  const systemUser = UserRepository.getSystemUser();
 
-    try {
-      const hashedPassword = await AuthService.hashPassword(password);
-      UserRepository.createUser(username, hashedPassword);
-      return { username, password };
-    } catch (error) {
-      console.error('❌ Failed to create default admin account:', error);
-      console.error('❌ 创建默认管理员账户失败:', error);
-    }
+  const needsSetup = !systemUser || systemUser.username !== username || !systemUser.password_hash || !systemUser.password_hash.startsWith('$2');
+
+  if (!needsSetup) {
+    return null;
   }
-  return null;
+
+  const password = AuthService.generateRandomPassword();
+
+  try {
+    const hashedPassword = await AuthService.hashPassword(password);
+    UserRepository.setSystemUserCredentials(username, hashedPassword);
+    return { username, password };
+  } catch (error) {
+    console.error('❌ Failed to initialize default admin account:', error);
+    console.error('❌ 初始化默认管理员账户失败:', error);
+    return null;
+  }
 }
 
 /**
@@ -133,35 +139,4 @@ export async function startWebServer(port: number, allowRemote = false): Promise
       reject(err);
     });
   });
-}
-
-/**
- * 重置用户密码（管理员工具）
- * Reset user password (admin utility)
- *
- * @param username 用户名（可选，默认为管理员）/ Username (optional, defaults to admin)
- */
-export async function resetPassword(username?: string): Promise<void> {
-  const targetUsername = username || DEFAULT_ADMIN_USERNAME;
-  const user = UserRepository.findByUsername(targetUsername);
-
-  if (!user) {
-    console.error(`❌ User not found / 用户不存在: ${targetUsername}`);
-    return;
-  }
-
-  const newPassword = AuthService.generateRandomPassword();
-  const hashedPassword = await AuthService.hashPassword(newPassword);
-
-  try {
-    UserRepository.updatePassword(user.id, hashedPassword);
-    console.log('\n' + '='.repeat(60));
-    console.log('✅ Password reset successful / 密码重置成功');
-    console.log('='.repeat(60));
-    console.log(`Username / 用户名: ${targetUsername}`);
-    console.log(`New Password / 新密码: ${newPassword}`);
-    console.log('='.repeat(60) + '\n');
-  } catch (error) {
-    console.error('❌ Failed to reset password / 密码重置失败:', error);
-  }
 }
