@@ -330,7 +330,7 @@ jobs:
           build-artifacts/**/*.AppImage
           build-artifacts/**/*.zip
         generate_release_notes: true
-        draft: ${{ needs.create-tag.outputs.is_dev == 'false' }}
+        draft: true
         prerelease: ${{ needs.create-tag.outputs.is_dev == 'true' || contains(steps.version.outputs.tag_name, 'beta') || contains(steps.version.outputs.tag_name, 'alpha') || contains(steps.version.outputs.tag_name, 'rc') }}
       env:
         GH_TOKEN: ${{ secrets.GH_TOKEN }}
