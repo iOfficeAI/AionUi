@@ -202,16 +202,39 @@ export const TokenMiddleware = {
 
   /** 从 WebSocket 请求中提取 token / Extract token from WebSocket request */
   extractWebSocketToken(req: IncomingMessage): string | null {
+    // 1. 从 Authorization header 提取
     const authHeader = req.headers['authorization'];
     if (typeof authHeader === 'string' && authHeader.startsWith('Bearer ')) {
       return authHeader.substring(7);
     }
 
+    // 2. 从 Cookie 提取 (WebUI 模式)
+    const cookieHeader = req.headers['cookie'];
+    if (typeof cookieHeader === 'string') {
+      const cookies = cookieHeader.split(';').reduce(
+        (acc, cookie) => {
+          const [key, value] = cookie.trim().split('=');
+          if (key && value) {
+            acc[key] = decodeURIComponent(value);
+          }
+          return acc;
+        },
+        {} as Record<string, string>
+      );
+
+      const cookieToken = cookies[AUTH_CONFIG.COOKIE.NAME];
+      if (cookieToken) {
+        return cookieToken;
+      }
+    }
+
+    // 3. 从 sec-websocket-protocol 提取
     const protocolHeader = req.headers['sec-websocket-protocol'];
     if (typeof protocolHeader === 'string' && protocolHeader.trim() !== '') {
       return protocolHeader.split(',')[0]?.trim() ?? null;
     }
 
+    // 4. 从 URL query 参数提取
     if (req.url) {
       const url = new URL(req.url, SERVER_CONFIG.BASE_URL);
       const token = url.searchParams.get('token');
