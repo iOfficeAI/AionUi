@@ -161,9 +161,36 @@ const migration_v5: IMigration = {
 };
 
 /**
+ * Migration v5 -> v6: Add jwt_secret column to users table
+ * Store JWT secret per user for better security and management
+ */
+const migration_v6: IMigration = {
+  version: 6,
+  name: 'Add jwt_secret to users table',
+  up: (db) => {
+    // Add jwt_secret column to users table
+    db.exec(`
+      ALTER TABLE users ADD COLUMN jwt_secret TEXT;
+    `);
+    console.log('[Migration v6] Added jwt_secret column to users table');
+  },
+  down: (db) => {
+    // SQLite doesn't support DROP COLUMN directly, need to recreate table
+    db.exec(`
+      CREATE TABLE users_backup AS SELECT id, username, email, password_hash, avatar_path, created_at, updated_at, last_login FROM users;
+      DROP TABLE users;
+      ALTER TABLE users_backup RENAME TO users;
+      CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
+      CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+    `);
+    console.log('[Migration v6] Rolled back: Removed jwt_secret column from users table');
+  },
+};
+
+/**
  * All migrations in order
  */
-export const ALL_MIGRATIONS: IMigration[] = [migration_v1, migration_v2, migration_v3, migration_v4, migration_v5];
+export const ALL_MIGRATIONS: IMigration[] = [migration_v1, migration_v2, migration_v3, migration_v4, migration_v5, migration_v6];
 
 /**
  * Get migrations needed to upgrade from one version to another

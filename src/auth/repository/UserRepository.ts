@@ -11,7 +11,7 @@ import type { IUser, IQueryResult } from '../../process/database/types';
  * 认证用户类型，仅包含必要的认证字段
  * Authentication user type containing only essential auth fields
  */
-export type AuthUser = Pick<IUser, 'id' | 'username' | 'password_hash' | 'created_at' | 'updated_at' | 'last_login'>;
+export type AuthUser = Pick<IUser, 'id' | 'username' | 'password_hash' | 'jwt_secret' | 'created_at' | 'updated_at' | 'last_login'>;
 
 /**
  * 解包数据库查询结果，失败时抛出异常
@@ -38,6 +38,7 @@ function mapUser(row: IUser): AuthUser {
     id: row.id,
     username: row.username,
     password_hash: row.password_hash,
+    jwt_secret: row.jwt_secret ?? null,
     created_at: row.created_at,
     updated_at: row.updated_at,
     last_login: row.last_login ?? null,
@@ -159,6 +160,20 @@ export const UserRepository = {
     const result = db.updateUserLastLogin(userId);
     if (!result.success) {
       throw new Error(result.error || 'Failed to update last login');
+    }
+  },
+
+  /**
+   * 更新用户的 JWT secret
+   * Update user's JWT secret
+   * @param userId - 用户 ID / User ID
+   * @param jwtSecret - JWT secret 字符串 / JWT secret string
+   */
+  updateJwtSecret(userId: string, jwtSecret: string): void {
+    const db = getDatabase();
+    const result = db.updateUserJwtSecret(userId, jwtSecret);
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to update JWT secret');
     }
   },
 };
