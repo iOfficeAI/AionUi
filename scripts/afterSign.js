@@ -1,4 +1,3 @@
-const { notarize } = require('@electron/notarize');
 const { execSync } = require('child_process');
 
 exports.default = async function afterSign(context) {
@@ -7,6 +6,9 @@ exports.default = async function afterSign(context) {
   if (electronPlatformName !== 'darwin') {
     return;
   }
+
+  // Lazy-load notarize because @electron/notarize is ESM-only
+  const { notarize } = await import('@electron/notarize');
 
   const appName = context.packager.appInfo.productFilename;
   const appBundleId = context.packager.appInfo.id;
