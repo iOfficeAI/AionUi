@@ -8,9 +8,9 @@ import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import type { StringValue } from 'ms';
-import { getDatabase } from '../../process/database/export';
 import type { AuthUser } from '../repository/UserRepository';
 import { AUTH_CONFIG } from '../../config/constants';
+import { ProcessConfig } from '../../process/initStorage';
 
 interface TokenPayload {
   userId: string;
@@ -50,6 +50,9 @@ export class AuthService {
   /**
    * 获取或创建 JWT Secret，并缓存于内存
    * Load or create the JWT secret and cache it in memory
+   *
+   * 混合存储架构：jwt_secret 存储在 JSON 文件中
+   * Hybrid storage: jwt_secret is stored in JSON file
    */
   public static getJwtSecret(): string {
     if (this.jwtSecret) {
@@ -63,15 +66,18 @@ export class AuthService {
     }
 
     try {
-      const db = getDatabase();
-      const existingSecret = db.getConfig('jwt_secret');
-      if (existingSecret.success && existingSecret.data) {
-        this.jwtSecret = existingSecret.data;
+      // 从 JSON 配置文件读取 jwt_secret
+      // Read jwt_secret from JSON config file
+      const existingSecret = ProcessConfig.getSync('jwt_secret' as any);
+      if (existingSecret) {
+        this.jwtSecret = existingSecret;
         return this.jwtSecret;
       }
 
+      // 生成新的 secret 并保存到 JSON 文件
+      // Generate new secret and save to JSON file
       const newSecret = this.generateSecretKey();
-      db.setConfig('jwt_secret', newSecret);
+      void ProcessConfig.set('jwt_secret' as any, newSecret);
       this.jwtSecret = newSecret;
       return this.jwtSecret;
     } catch (error) {
@@ -83,13 +89,12 @@ export class AuthService {
 
   /**
    * 通过旋转密钥的方式让所有现有 Token 失效
-   * Rotate the secret key to invalidate all existing tokens
+   * Rotate the ≈ key to invalidate all existing tokens
    */
   public static invalidateAllTokens(): void {
     try {
-      const db = getDatabase();
       const newSecret = this.generateSecretKey();
-      db.setConfig('jwt_secret', newSecret);
+      void ProcessConfig.set('jwt_secret' as any, newSecret);
       this.jwtSecret = newSecret;
     } catch (error) {
       console.error('Failed to invalidate tokens:', error);
@@ -130,26 +135,6 @@ export class AuthService {
   }
 
   /**
-   * 生成短期 WebSocket Token（用于 WebSocket 连接认证）
-   * Generate short-lived WebSocket token (for WebSocket connection authentication)
-   * @param user - 用户信息 / User information
-   * @param expiresIn - 过期时间（默认 5 分钟）/ Expiration time (default 5 minutes)
-   * @returns JWT token string
-   */
-  public static generateWebSocketToken(user: Pick<AuthUser, 'id' | 'username'>, expiresIn?: StringValue | number): string {
-    const payload: TokenPayload = {
-      userId: user.id,
-      username: user.username,
-    };
-
-    return jwt.sign(payload, this.getJwtSecret(), {
-      expiresIn: expiresIn || AUTH_CONFIG.TOKEN.WEBSOCKET_EXPIRY,
-      issuer: 'aionui',
-      audience: 'aionui-websocket', // 不同的 audience，标识这是 WebSocket token
-    });
-  }
-
-  /**
    * 将数据库中的用户 ID 统一转换为字符串格式
    * Normalize database user id into a consistent string
    *
@@ -186,6 +171,9 @@ export class AuthService {
   /**
    * 验证 WebSocket Token
    * Verify WebSocket token
+   *
+   * 复用 Web 登录 token (audience: aionui-webui)
+   *
    * @param token - JWT token string
    * @returns Token payload if valid, null otherwise
    */
@@ -193,7 +181,7 @@ export class AuthService {
     try {
       const decoded = jwt.verify(token, this.getJwtSecret(), {
         issuer: 'aionui',
-        audience: 'aionui-websocket',
+        audience: 'aionui-webui', // 使用与 Web 登录相同的 audience
       }) as RawTokenPayload;
 
       return {
