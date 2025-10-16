@@ -5,12 +5,14 @@
  */
 
 import Database from 'better-sqlite3';
+import crypto from 'crypto';
 import path from 'path';
-import { getConfigPath } from '../utils';
-import { initSchema, getDatabaseVersion, setDatabaseVersion, CURRENT_DB_VERSION } from './schema';
-import { runMigrations as executeMigrations, getMigrationHistory, isMigrationApplied } from './migrations';
-import type { IUser, IQueryResult, IPaginatedResult, TChatConversation, TMessage, IConversationRow, IMessageRow } from './types';
-import { conversationToRow, rowToConversation, messageToRow, rowToMessage } from './types';
+import { CURRENT_DB_VERSION, getDatabaseVersion, initSchema, setDatabaseVersion } from './schema';
+import { runMigrations as executeMigrations } from './migrations';
+import type { IConversationRow, IMessageRow, IPaginatedResult, IQueryResult, IUser, TChatConversation, TMessage } from './types';
+import { conversationToRow, messageToRow, rowToConversation, rowToMessage } from './types';
+import { getDataPath } from '@process/utils';
+import { ensureDirectory } from './utils';
 
 /**
  * Main database class for AionUi
@@ -18,10 +20,15 @@ import { conversationToRow, rowToConversation, messageToRow, rowToMessage } from
  */
 export class AionUIDatabase {
   private db: Database.Database;
-  private defaultUserId = 'system_default_user';
+  private readonly defaultUserId = 'system_default_user';
+  private readonly systemPasswordPlaceholder = '';
 
-  constructor(dbPath?: string) {
-    const finalPath = dbPath || path.join(getConfigPath(), 'aionui.db');
+  constructor() {
+    const finalPath = path.join(getDataPath(), 'aionui.db');
+    console.log(`[Database] Initializing database at: ${finalPath}`);
+
+    const dir = path.dirname(finalPath);
+    ensureDirectory(dir);
     this.db = new Database(finalPath);
     this.initialize();
   }
@@ -36,6 +43,8 @@ export class AionUIDatabase {
         this.runMigrations(currentVersion, CURRENT_DB_VERSION);
         setDatabaseVersion(this.db, CURRENT_DB_VERSION);
       }
+
+      this.ensureSystemUser();
     } catch (error) {
       console.error('[Database] Initialization failed:', error);
       throw error;
@@ -46,24 +55,31 @@ export class AionUIDatabase {
     executeMigrations(this.db, from, to);
   }
 
-  /**
-   * Get migration history
-   */
-  getMigrationHistory(): Array<{
-    version: number;
-    name: string;
-    timestamp: number;
-  }> {
-    return getMigrationHistory(this.db);
+  private ensureSystemUser(): void {
+    const now = Date.now();
+    this.db
+      .prepare(
+        `INSERT OR IGNORE INTO users (id, username, email, password_hash, avatar_path, created_at, updated_at, last_login, jwt_secret)
+         VALUES (?, ?, NULL, ?, NULL, ?, ?, NULL, NULL)`
+      )
+      .run(this.defaultUserId, this.defaultUserId, this.systemPasswordPlaceholder, now, now);
   }
 
-  /**
-   * Check if a specific migration has been applied
-   */
-  isMigrationApplied(version: number): boolean {
-    return isMigrationApplied(this.db, version);
+  getSystemUser(): IUser | null {
+    const user = this.db.prepare('SELECT * FROM users WHERE id = ?').get(this.defaultUserId) as IUser | undefined;
+    return user ?? null;
   }
 
+  setSystemUserCredentials(username: string, passwordHash: string): void {
+    const now = Date.now();
+    this.db
+      .prepare(
+        `UPDATE users
+         SET username = ?, password_hash = ?, updated_at = ?, created_at = COALESCE(created_at, ?)
+         WHERE id = ?`
+      )
+      .run(username, passwordHash, now, now, this.defaultUserId);
+  }
   /**
    * Close database connection
    */
@@ -74,20 +90,30 @@ export class AionUIDatabase {
   /**
    * ==================
    * User operations
+   * 用户操作
    * ==================
    */
 
+  /**
+   * Create a new user in the database
+   * 在数据库中创建新用户
+   *
+   * @param username - Username (unique identifier)
+   * @param email - User email (optional)
+   * @param passwordHash - Hashed password (use bcrypt)
+   * @returns Query result with created user data
+   */
   createUser(username: string, email: string | undefined, passwordHash: string): IQueryResult<IUser> {
     try {
       const userId = `user_${Date.now()}`;
       const now = Date.now();
 
       const stmt = this.db.prepare(`
-        INSERT INTO users (id, username, email, password_hash, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO users (id, username, email, password_hash, avatar_path, created_at, updated_at, last_login)
+        VALUES (?, ?, ?, ?, NULL, ?, ?, NULL)
       `);
 
-      stmt.run(userId, username, email, passwordHash, now, now);
+      stmt.run(userId, username, email ?? null, passwordHash, now, now);
 
       return {
         success: true,
@@ -98,6 +124,7 @@ export class AionUIDatabase {
           password_hash: passwordHash,
           created_at: now,
           updated_at: now,
+          last_login: null,
         },
       };
     } catch (error: any) {
@@ -108,6 +135,13 @@ export class AionUIDatabase {
     }
   }
 
+  /**
+   * Get user by user ID
+   * 通过用户 ID 获取用户信息
+   *
+   * @param userId - User ID to query
+   * @returns Query result with user data or error if not found
+   */
   getUser(userId: string): IQueryResult<IUser> {
     try {
       const user = this.db.prepare('SELECT * FROM users WHERE id = ?').get(userId) as IUser | undefined;
@@ -131,8 +165,166 @@ export class AionUIDatabase {
     }
   }
 
-  getDefaultUserId(): string {
-    return this.defaultUserId;
+  /**
+   * Get user by username (used for authentication)
+   * 通过用户名获取用户信息（用于身份验证）
+   *
+   * @param username - Username to query
+   * @returns Query result with user data or null if not found
+   */
+  getUserByUsername(username: string): IQueryResult<IUser | null> {
+    try {
+      const user = this.db.prepare('SELECT * FROM users WHERE username = ?').get(username) as IUser | undefined;
+
+      return {
+        success: true,
+        data: user ?? null,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message,
+        data: null,
+      };
+    }
+  }
+
+  /**
+   * Get all users (excluding system default user)
+   * 获取所有用户（排除系统默认用户）
+   *
+   * @returns Query result with array of all users ordered by creation time
+   */
+  getAllUsers(): IQueryResult<IUser[]> {
+    try {
+      const stmt = this.db.prepare('SELECT * FROM users ORDER BY created_at ASC');
+      const rows = stmt.all() as IUser[];
+
+      return {
+        success: true,
+        data: rows,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message,
+        data: [],
+      };
+    }
+  }
+
+  /**
+   * Get total count of users (excluding system default user)
+   * 获取用户总数（排除系统默认用户）
+   *
+   * @returns Query result with user count
+   */
+  getUserCount(): IQueryResult<number> {
+    try {
+      const stmt = this.db.prepare('SELECT COUNT(*) as count FROM users');
+      const row = stmt.get() as { count: number };
+
+      return {
+        success: true,
+        data: row.count,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message,
+        data: 0,
+      };
+    }
+  }
+
+  /**
+   * Check if any users exist in the database
+   * 检查数据库中是否存在用户
+   *
+   * @returns Query result with boolean indicating if users exist
+   */
+  hasUsers(): IQueryResult<boolean> {
+    const result = this.getUserCount();
+    if (!result.success) {
+      return {
+        success: false,
+        error: result.error,
+      };
+    }
+    return {
+      success: true,
+      data: (result.data ?? 0) > 0,
+    };
+  }
+
+  /**
+   * Update user's last login timestamp
+   * 更新用户的最后登录时间戳
+   *
+   * @param userId - User ID to update
+   * @returns Query result with success status
+   */
+  updateUserLastLogin(userId: string): IQueryResult<boolean> {
+    try {
+      const now = Date.now();
+      this.db.prepare('UPDATE users SET last_login = ?, updated_at = ? WHERE id = ?').run(now, now, userId);
+      return {
+        success: true,
+        data: true,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message,
+        data: false,
+      };
+    }
+  }
+
+  /**
+   * Update user's password hash
+   * 更新用户的密码哈希
+   *
+   * @param userId - User ID to update
+   * @param newPasswordHash - New hashed password (use bcrypt)
+   * @returns Query result with success status
+   */
+  updateUserPassword(userId: string, newPasswordHash: string): IQueryResult<boolean> {
+    try {
+      const now = Date.now();
+      this.db.prepare('UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?').run(newPasswordHash, now, userId);
+      return {
+        success: true,
+        data: true,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message,
+        data: false,
+      };
+    }
+  }
+
+  /**
+   * Update user's JWT secret
+   * 更新用户的 JWT secret
+   */
+  updateUserJwtSecret(userId: string, jwtSecret: string): IQueryResult<boolean> {
+    try {
+      const now = Date.now();
+      this.db.prepare('UPDATE users SET jwt_secret = ?, updated_at = ? WHERE id = ?').run(jwtSecret, now, userId);
+      return {
+        success: true,
+        data: true,
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message,
+        data: false,
+      };
+    }
   }
 
   /**
@@ -449,15 +641,16 @@ export class AionUIDatabase {
    */
   vacuum(): void {
     this.db.exec('VACUUM');
+    console.log('[Database] Vacuum completed');
   }
 }
 
 // Export singleton instance
 let dbInstance: AionUIDatabase | null = null;
 
-export function getDatabase(dbPath?: string): AionUIDatabase {
+export function getDatabase(): AionUIDatabase {
   if (!dbInstance) {
-    dbInstance = new AionUIDatabase(dbPath);
+    dbInstance = new AionUIDatabase();
   }
   return dbInstance;
 }

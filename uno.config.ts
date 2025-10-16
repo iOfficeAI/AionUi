@@ -5,7 +5,7 @@ import { presetExtra } from 'unocss-preset-extra';
 export default defineConfig({
   envMode: 'build',
   presets: [presetMini(), presetExtra(), presetWind3()], //
-  transformers: [transformerVariantGroup(), transformerDirectives()],
+  transformers: [transformerVariantGroup(), transformerDirectives({ enforce: 'pre' })],
   content: {
     pipeline: {
       include: ['src/**/*.{ts,tsx,vue,css}'],

@@ -28,14 +28,10 @@ const migration_v1: IMigration = {
     console.log('[Migration v1] Initial schema created by initSchema()');
   },
   down: (db) => {
-    // Drop all tables
+    // Drop all tables (only core tables now)
     db.exec(`
-      DROP TABLE IF EXISTS mcp_servers;
-      DROP TABLE IF EXISTS providers;
-      DROP TABLE IF EXISTS images;
       DROP TABLE IF EXISTS messages;
       DROP TABLE IF EXISTS conversations;
-      DROP TABLE IF EXISTS configs;
       DROP TABLE IF EXISTS users;
     `);
     console.log('[Migration v1] Rolled back: All tables dropped');
@@ -98,45 +94,17 @@ const migration_v3: IMigration = {
 };
 
 /**
- * Migration v3 -> v4: Add user preferences and settings
- * Example of adding new table
+ * Migration v3 -> v4: Removed (user_preferences table no longer needed)
  */
 const migration_v4: IMigration = {
   version: 4,
-  name: 'Add user preferences',
-  up: (db) => {
-    db.exec(`
-      -- Create user preferences table
-      CREATE TABLE IF NOT EXISTS user_preferences (
-        user_id TEXT NOT NULL,
-        key TEXT NOT NULL,
-        value TEXT NOT NULL,
-        updated_at INTEGER NOT NULL,
-        PRIMARY KEY (user_id, key),
-        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-      );
-
-      CREATE INDEX IF NOT EXISTS idx_user_preferences_user
-        ON user_preferences(user_id);
-
-      -- Add default preferences for existing users
-      INSERT INTO user_preferences (user_id, key, value, updated_at)
-      SELECT id, 'theme', '"auto"', strftime('%s', 'now') * 1000
-      FROM users
-      WHERE id NOT IN (SELECT user_id FROM user_preferences WHERE key = 'theme');
-
-      INSERT INTO user_preferences (user_id, key, value, updated_at)
-      SELECT id, 'language', '"en-US"', strftime('%s', 'now') * 1000
-      FROM users
-      WHERE id NOT IN (SELECT user_id FROM user_preferences WHERE key = 'language');
-    `);
-    console.log('[Migration v4] Added user preferences table');
+  name: 'Removed user_preferences table',
+  up: (_db) => {
+    // user_preferences table removed from schema
+    console.log('[Migration v4] Skipped (user_preferences table removed)');
   },
-  down: (db) => {
-    db.exec(`
-      DROP TABLE IF EXISTS user_preferences;
-    `);
-    console.log('[Migration v4] Rolled back: Removed user preferences table');
+  down: (_db) => {
+    console.log('[Migration v4] Rolled back: No-op (user_preferences table removed)');
   },
 };
 
@@ -161,9 +129,42 @@ const migration_v5: IMigration = {
 };
 
 /**
+ * Migration v5 -> v6: Add jwt_secret column to users table
+ * Store JWT secret per user for better security and management
+ */
+const migration_v6: IMigration = {
+  version: 6,
+  name: 'Add jwt_secret to users table',
+  up: (db) => {
+    // Check if jwt_secret column already exists
+    const tableInfo = db.prepare('PRAGMA table_info(users)').all() as Array<{ name: string }>;
+    const hasJwtSecret = tableInfo.some((col) => col.name === 'jwt_secret');
+
+    if (!hasJwtSecret) {
+      // Add jwt_secret column to users table
+      db.exec(`ALTER TABLE users ADD COLUMN jwt_secret TEXT;`);
+      console.log('[Migration v6] Added jwt_secret column to users table');
+    } else {
+      console.log('[Migration v6] jwt_secret column already exists, skipping');
+    }
+  },
+  down: (db) => {
+    // SQLite doesn't support DROP COLUMN directly, need to recreate table
+    db.exec(`
+      CREATE TABLE users_backup AS SELECT id, username, email, password_hash, avatar_path, created_at, updated_at, last_login FROM users;
+      DROP TABLE users;
+      ALTER TABLE users_backup RENAME TO users;
+      CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
+      CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+    `);
+    console.log('[Migration v6] Rolled back: Removed jwt_secret column from users table');
+  },
+};
+
+/**
  * All migrations in order
  */
-export const ALL_MIGRATIONS: IMigration[] = [migration_v1, migration_v2, migration_v3, migration_v4, migration_v5];
+export const ALL_MIGRATIONS: IMigration[] = [migration_v1, migration_v2, migration_v3, migration_v4, migration_v5, migration_v6];
 
 /**
  * Get migrations needed to upgrade from one version to another
@@ -208,15 +209,6 @@ export function runMigrations(db: Database.Database, fromVersion: number, toVers
         console.log(`[Migrations] Running migration v${migration.version}: ${migration.name}`);
         migration.up(db);
 
-        // Record migration in history
-        const now = Date.now();
-        db.prepare(
-          `
-          INSERT OR REPLACE INTO configs (key, value, updated_at)
-          VALUES (?, ?, ?)
-        `
-        ).run(`migration_v${migration.version}`, JSON.stringify({ version: migration.version, name: migration.name, timestamp: now }), now);
-
         console.log(`[Migrations] ✓ Migration v${migration.version} completed`);
       } catch (error) {
         console.error(`[Migrations] ✗ Migration v${migration.version} failed:`, error);
@@ -260,9 +252,6 @@ export function rollbackMigrations(db: Database.Database, fromVersion: number, t
         console.log(`[Migrations] Rolling back migration v${migration.version}: ${migration.name}`);
         migration.down(db);
 
-        // Remove migration record
-        db.prepare(`DELETE FROM configs WHERE key = ?`).run(`migration_v${migration.version}`);
-
         console.log(`[Migrations] ✓ Rollback v${migration.version} completed`);
       } catch (error) {
         console.error(`[Migrations] ✗ Rollback v${migration.version} failed:`, error);
@@ -282,32 +271,26 @@ export function rollbackMigrations(db: Database.Database, fromVersion: number, t
 
 /**
  * Get migration history
+ * Now simplified - just returns the current version
  */
 export function getMigrationHistory(db: Database.Database): Array<{ version: number; name: string; timestamp: number }> {
-  const rows = db.prepare(`SELECT key, value FROM configs WHERE key LIKE 'migration_v%'`).all() as Array<{ key: string; value: string }>;
+  const currentVersion = db.pragma('user_version', { simple: true }) as number;
 
-  return rows
-    .map((row) => {
-      try {
-        const data = JSON.parse(row.value);
-        return {
-          version: data.version,
-          name: data.name,
-          timestamp: data.timestamp,
-        };
-      } catch {
-        return null;
-      }
-    })
-    .filter((item): item is { version: number; name: string; timestamp: number } => item !== null)
-    .sort((a, b) => a.version - b.version);
+  // Return a simple array with just the current version
+  return [
+    {
+      version: currentVersion,
+      name: `Current schema version`,
+      timestamp: Date.now(),
+    },
+  ];
 }
 
 /**
  * Check if a specific migration has been applied
+ * Now simplified - checks if current version >= target version
  */
 export function isMigrationApplied(db: Database.Database, version: number): boolean {
-  const result = db.prepare(`SELECT value FROM configs WHERE key = ?`).get(`migration_v${version}`) as { value: string } | undefined;
-
-  return !!result;
+  const currentVersion = db.pragma('user_version', { simple: true }) as number;
+  return currentVersion >= version;
 }

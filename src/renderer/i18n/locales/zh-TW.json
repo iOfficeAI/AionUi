@@ -134,6 +134,32 @@
     "workspace": "工作空間",
     "select": "選擇"
   },
+  "login": {
+    "pageTitle": "AionUi - 登入",
+    "brand": "AionUi",
+    "subtitle": "歡迎回來，請登入您的帳號",
+    "username": "使用者名稱",
+    "usernamePlaceholder": "請輸入使用者名稱",
+    "password": "密碼",
+    "passwordPlaceholder": "請輸入密碼",
+    "rememberUsername": "記住使用者名稱",
+    "submit": "登入",
+    "submitting": "登入中...",
+    "success": "登入成功！準備跳轉...",
+    "showPassword": "顯示密碼",
+    "hidePassword": "隱藏密碼",
+    "languageToggle": "切換語言",
+    "footerPrimary": "命令列 AI 的現代化體驗",
+    "footerSecondary": "高效且優雅",
+    "errors": {
+      "empty": "請輸入使用者名稱與密碼",
+      "invalidCredentials": "使用者名稱或密碼錯誤",
+      "tooManyAttempts": "登入嘗試過多，請稍後再試",
+      "networkError": "連線失敗，請稍後再試",
+      "serverError": "伺服器發生錯誤，請稍後再試",
+      "unknown": "登入失敗，請稍後再試"
+    }
+  },
   "fileSelection": {
     "selectFile": "選擇檔案",
     "selectDirectory": "選擇目錄",
