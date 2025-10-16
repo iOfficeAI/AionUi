@@ -131,7 +131,14 @@
     "upload": "上傳",
     "version": "版本號",
     "website": "官網",
-    "workspace": "工作空間"
+    "workspace": "工作空間",
+    "select": "選擇"
+  },
+  "fileSelection": {
+    "selectFile": "選擇檔案",
+    "selectDirectory": "選擇目錄",
+    "pleaseSelectFile": "請選擇一個檔案",
+    "pleaseSelectDirectory": "請選擇一個目錄"
   },
   "conversation": {
     "welcome": {

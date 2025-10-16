@@ -156,7 +156,14 @@
     "upload": "アップロード",
     "version": "バージョン",
     "website": "公式サイト",
-    "workspace": "ワークスペース"
+    "workspace": "ワークスペース",
+    "select": "選択"
+  },
+  "fileSelection": {
+    "selectFile": "ファイルを選択",
+    "selectDirectory": "ディレクトリを選択",
+    "pleaseSelectFile": "ファイルを選択してください",
+    "pleaseSelectDirectory": "ディレクトリを選択してください"
   },
   "conversation": {
     "welcome": {
