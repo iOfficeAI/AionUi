@@ -29,7 +29,14 @@
     "reload": "Reload",
     "technical_details": "Technical Details",
     "error_details": "Error Details",
-    "troubleshooting": "Troubleshooting"
+    "troubleshooting": "Troubleshooting",
+    "select": "Select"
+  },
+  "fileSelection": {
+    "selectFile": "Select File",
+    "selectDirectory": "Select Directory",
+    "pleaseSelectFile": "Please select a file",
+    "pleaseSelectDirectory": "Please select a directory"
   },
   "conversation": {
     "welcome": {

@@ -25,7 +25,14 @@
     "reload": "重新加载",
     "technical_details": "技术详情",
     "error_details": "错误详情",
-    "troubleshooting": "故障排除"
+    "troubleshooting": "故障排除",
+    "select": "选择"
+  },
+  "fileSelection": {
+    "selectFile": "选择文件",
+    "selectDirectory": "选择目录",
+    "pleaseSelectFile": "请选择一个文件",
+    "pleaseSelectDirectory": "请选择一个目录"
   },
   "conversation": {
     "welcome": {

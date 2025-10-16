@@ -7,6 +7,7 @@
 import type { WebSocketServer } from 'ws';
 import { WebSocket } from 'ws';
 import { bridge } from '@office-ai/platform';
+import { SHOW_OPEN_REQUEST_EVENT } from '../adapter/constant';
 
 let isTokenValidFn: (token: string) => boolean;
 const connectedClients: Set<WebSocket> = new Set();
@@ -50,12 +51,13 @@ export function initWebAdapter(wss: WebSocketServer, tokenValidator: (token: str
             const { name, data } = JSON.parse(rawData.toString());
 
             // 处理文件选择请求 - 转发给客户端弹窗处理
+            // 'subscribe-show-open' 由 bridge.buildProvider('show-open') 自动生成
             if (name === 'subscribe-show-open') {
               // 判断是否为文件选择模式
               const isFileMode = data && data.properties && (data.properties.includes('openFile') || data.properties.includes('multiSelections')) && !data.properties.includes('openDirectory');
 
               // 发送文件选择请求给客户端
-              ws.send(JSON.stringify({ name: 'show-open-request', data: { ...data, isFileMode } }));
+              ws.send(JSON.stringify({ name: SHOW_OPEN_REQUEST_EVENT, data: { ...data, isFileMode } }));
               return;
             }
 
