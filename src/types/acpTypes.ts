@@ -17,11 +17,7 @@ export type AcpBackendAll =
   | 'gemini' // Google Gemini ACP
   | 'qwen' // Qwen Code ACP
   | 'iflow' // iFlow CLI ACP
-  | 'codex' // OpenAI Codex MCP
-  | 'openai' // OpenAI ACP (未来支持)
-  | 'anthropic' // Anthropic ACP (未来支持)
-  | 'cohere' // Cohere ACP (未来支持)
-  | 'custom'; // 自定义 ACP 实现
+  | 'codex'; // OpenAI Codex MCP
 
 // 后端配置接口
 export interface AcpBackendConfig {
@@ -31,6 +27,7 @@ export interface AcpBackendConfig {
   defaultCliPath?: string;
   authRequired?: boolean;
   enabled?: boolean; // 是否启用，用于控制后端的可用性
+  supportsStreaming?: boolean; // 是否支持流式输出
 }
 
 // 所有后端配置 - 包括暂时禁用的
@@ -41,6 +38,7 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     cliCommand: 'claude',
     authRequired: true,
     enabled: true,
+    supportsStreaming: false,
   },
   gemini: {
     id: 'gemini',
@@ -48,6 +46,7 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     cliCommand: 'gemini',
     authRequired: true,
     enabled: false,
+    supportsStreaming: true,
   },
   qwen: {
     id: 'qwen',
@@ -56,6 +55,7 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     defaultCliPath: 'npx @qwen-code/qwen-code',
     authRequired: true,
     enabled: true, // ✅ 已验证支持：Qwen CLI v0.0.10+ 支持 --experimental-acp
+    supportsStreaming: true,
   },
   iflow: {
     id: 'iflow',
@@ -63,6 +63,7 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     cliCommand: 'iflow',
     authRequired: true,
     enabled: true,
+    supportsStreaming: false,
   },
   codex: {
     id: 'codex',
@@ -70,34 +71,7 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     cliCommand: 'codex',
     authRequired: false,
     enabled: true, // ✅ 已验证支持：Codex CLI v0.4.0+ 支持 acp 模式
-  },
-  openai: {
-    id: 'openai',
-    name: 'OpenAI GPT',
-    cliCommand: 'openai-acp',
-    authRequired: true,
-    enabled: false,
-  },
-  anthropic: {
-    id: 'anthropic',
-    name: 'Anthropic',
-    cliCommand: 'anthropic-acp',
-    authRequired: true,
-    enabled: false,
-  },
-  cohere: {
-    id: 'cohere',
-    name: 'Cohere',
-    cliCommand: 'cohere-acp',
-    authRequired: true,
-    enabled: false,
-  },
-  custom: {
-    id: 'custom',
-    name: 'Custom ACP',
-    cliCommand: 'custom-acp',
-    authRequired: true,
-    enabled: false,
+    supportsStreaming: false,
   },
 };
 
