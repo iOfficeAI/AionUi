@@ -30,51 +30,121 @@ if (win.electronAPI) {
     },
   });
 } else {
-  // Web 环境 - 使用 WebSocket 通信
-  // Token will be sent automatically via Cookie header by browser
-  const wsUrl = `ws://${window.location.hostname}:25808`;
-  const ws = new WebSocket(wsUrl);
+  // Web 环境 - 使用 WebSocket 通信，并在登录后自动补上已获取 Cookie 的连接
+  // Web runtime bridge: ensure the socket reconnects after login so session cookie can be sent
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const defaultHost = `${window.location.hostname}:25808`;
+  const socketUrl = `${protocol}//${window.location.host || defaultHost}`;
+
+  type QueuedMessage = { name: string; data: unknown };
+
+  let socket: WebSocket | null = null;
+  let emitterRef: { emit: (name: string, data: unknown) => void } | null = null;
+  let reconnectTimer: number | null = null;
+  let reconnectDelay = 500;
+
+  const messageQueue: QueuedMessage[] = [];
+
+  // 1.发送队列中积压的消息，确保在重新建立连接后不会丢事件
+  const flushQueue = () => {
+    if (!socket || socket.readyState !== WebSocket.OPEN) {
+      return;
+    }
+
+    while (messageQueue.length > 0) {
+      const queued = messageQueue.shift();
+      if (queued) {
+        socket.send(JSON.stringify(queued));
+      }
+    }
+  };
+
+  // 2.简单的指数退避重连，等待服务端在登录成功后接受新连接
+  const scheduleReconnect = () => {
+    if (reconnectTimer !== null) {
+      return;
+    }
+
+    reconnectTimer = window.setTimeout(() => {
+      reconnectTimer = null;
+      reconnectDelay = Math.min(reconnectDelay * 2, 8000);
+      connect();
+    }, reconnectDelay);
+  };
+
+  // 3.建立 WebSocket 连接（或复用已有的 OPEN/CONNECTING 状态）
+  const connect = () => {
+    if (socket && (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING)) {
+      return;
+    }
+
+    try {
+      socket = new WebSocket(socketUrl);
+    } catch (error) {
+      scheduleReconnect();
+      return;
+    }
+
+    socket.addEventListener('open', () => {
+      reconnectDelay = 500;
+      flushQueue();
+    });
+
+    socket.addEventListener('message', (event: MessageEvent) => {
+      if (!emitterRef) {
+        return;
+      }
+
+      try {
+        const payload = JSON.parse(event.data as string) as { name: string; data: unknown };
+        emitterRef.emit(payload.name, payload.data);
+      } catch (error) {
+        // Ignore malformed payloads
+      }
+    });
+
+    socket.addEventListener('close', () => {
+      socket = null;
+      scheduleReconnect();
+    });
+
+    socket.addEventListener('error', () => {
+      socket?.close();
+    });
+  };
+
+  // 4.确保在发送/订阅前已经发起连接
+  const ensureSocket = () => {
+    if (!socket || socket.readyState === WebSocket.CLOSED || socket.readyState === WebSocket.CLOSING) {
+      connect();
+    }
+  };
 
   bridge.adapter({
     emit(name, data) {
-      // 在WebUI模式下，文件选择请求也通过WebSocket发送到服务器统一处理
-      // 保持与其他消息一致的回调机制
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ name, data }));
-      } else {
-        ws.addEventListener(
-          'open',
-          () => {
-            ws.send(JSON.stringify({ name, data }));
-          },
-          { once: true }
-        );
+      const message: QueuedMessage = { name, data };
+
+      ensureSocket();
+
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        try {
+          socket.send(JSON.stringify(message));
+          return;
+        } catch (error) {
+          scheduleReconnect();
+        }
       }
+
+      messageQueue.push(message);
     },
     on(emitter) {
-      // 存储emitter以便在文件选择完成时使用
+      emitterRef = emitter;
       (window as any).__bridgeEmitter = emitter;
-
-      // 在WebUI环境下，让bridge系统自己处理callback事件，不需要手动干预
-      // 所有的callback事件都由bridge的Promise resolver自动处理
-      ws.onmessage = (event) => {
-        try {
-          const { name, data } = JSON.parse(event.data);
-          emitter.emit(name, data);
-        } catch (e) {
-          // Handle JSON parsing errors silently
-        }
-      };
-
-      ws.onerror = () => {
-        // Handle WebSocket errors silently
-      };
-
-      ws.onclose = () => {
-        // Handle WebSocket close silently
-      };
+      ensureSocket();
     },
   });
+
+  connect();
 }
 
 logger.provider({
