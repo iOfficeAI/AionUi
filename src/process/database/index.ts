@@ -7,10 +7,10 @@
 import Database from 'better-sqlite3';
 import crypto from 'crypto';
 import path from 'path';
-import { initSchema, getDatabaseVersion, setDatabaseVersion, CURRENT_DB_VERSION } from './schema';
-import { runMigrations as executeMigrations, getMigrationHistory, isMigrationApplied } from './migrations';
-import type { IUser, IQueryResult, IPaginatedResult, TChatConversation, TMessage, IConversationRow, IMessageRow } from './types';
-import { conversationToRow, rowToConversation, messageToRow, rowToMessage } from './types';
+import { CURRENT_DB_VERSION, getDatabaseVersion, initSchema, setDatabaseVersion } from './schema';
+import { runMigrations as executeMigrations } from './migrations';
+import type { IConversationRow, IMessageRow, IPaginatedResult, IQueryResult, IUser, TChatConversation, TMessage } from './types';
+import { conversationToRow, messageToRow, rowToConversation, rowToMessage } from './types';
 import { getDataPath } from '@process/utils';
 
 /**
