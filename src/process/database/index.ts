@@ -11,8 +11,7 @@ import { CURRENT_DB_VERSION, getDatabaseVersion, initSchema, setDatabaseVersion 
 import { runMigrations as executeMigrations } from './migrations';
 import type { IConversationRow, IMessageRow, IPaginatedResult, IQueryResult, IUser, TChatConversation, TMessage } from './types';
 import { conversationToRow, messageToRow, rowToConversation, rowToMessage } from './types';
-import { getDataPath } from '@process/utils';
-import { ensureDirectory } from './utils';
+import { ensureDirectory, getDataPath } from '@process/utils';
 
 /**
  * Main database class for AionUi
