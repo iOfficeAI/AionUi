@@ -6,13 +6,13 @@
 
 import type { TMessage } from '@/common/chatLib';
 import { composeMessage } from '@/common/chatLib';
-import { ChatMessageStorage } from '@/common/storage';
+import { ipcBridge } from '@/common';
 import { useEffect } from 'react';
 import { createContext } from '../utils/createContext';
 
 const [useMessageList, MessageListProvider, useUpdateMessageList] = createContext([] as TMessage[]);
 
-const [useChatKey, ChatKeyProvider, useUpdateChatKey] = createContext('');
+const [useChatKey, ChatKeyProvider] = createContext('');
 
 const beforeUpdateMessageListStack: Array<(list: TMessage[]) => TMessage[]> = [];
 
@@ -33,13 +33,20 @@ export const useMessageLstCache = (key: string) => {
   const update = useUpdateMessageList();
   useEffect(() => {
     if (!key) return;
-    ChatMessageStorage.get(key).then((cache) => {
-      if (cache) {
-        if (Array.isArray(cache)) {
-          update(() => cache);
+    void ipcBridge.database.getConversationMessages
+      .invoke({
+        conversation_id: key,
+        page: 0,
+        pageSize: 10000, // Load all messages (up to 10k per conversation)
+      })
+      .then((messages) => {
+        if (messages && Array.isArray(messages)) {
+          update(() => messages);
         }
-      }
-    });
+      })
+      .catch((error) => {
+        console.error('[useMessageLstCache] Failed to load messages from database:', error);
+      });
   }, [key]);
 };
 

@@ -109,7 +109,7 @@ export const processGeminiFunctionCalls = async (config: Config, functionCalls: 
   });
 };
 
-export const handleCompletedTools = async (completedToolCallsFromScheduler: CompletedToolCall[], geminiClient: any, performMemoryRefresh: () => void) => {
+export const handleCompletedTools = (completedToolCallsFromScheduler: CompletedToolCall[], geminiClient: any, performMemoryRefresh: () => void) => {
   const completedAndReadyToSubmitTools = completedToolCallsFromScheduler.filter((tc) => {
     const isTerminalState = tc.status === 'success' || tc.status === 'error' || tc.status === 'cancelled';
     if (isTerminalState) {

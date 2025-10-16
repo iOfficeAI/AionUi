@@ -38,8 +38,8 @@ export type CodexEventMsg =
   | ({ type: 'apply_patch_approval_request' } & PatchApprovalData) //已处理
   | ({ type: 'patch_apply_begin' } & PatchApplyBeginData) //已处理
   | ({ type: 'patch_apply_end' } & PatchApplyEndData) //已处理
-  | ({ type: 'mcp_tool_call_begin' } & McpToolCallBeginData) //先忽略
-  | ({ type: 'mcp_tool_call_end' } & McpToolCallEndData) //先忽略
+  | ({ type: 'mcp_tool_call_begin' } & McpToolCallBeginData) //已处理
+  | ({ type: 'mcp_tool_call_end' } & McpToolCallEndData) //已处理
   | ({ type: 'web_search_begin' } & WebSearchBeginData) //已处理
   | ({ type: 'web_search_end' } & WebSearchEndData) //已处理
   | ({ type: 'token_count' } & TokenCountData) //忽略

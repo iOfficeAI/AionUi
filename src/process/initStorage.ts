@@ -11,6 +11,7 @@ import { application } from '../common/ipcBridge';
 import type { IChatConversationRefer, IConfigStorageRefer, IEnvStorageRefer, IMcpServer } from '../common/storage';
 import { ChatMessageStorage, ChatStorage, ConfigStorage, EnvStorage } from '../common/storage';
 import { copyDirectoryRecursively, getConfigPath, getDataPath, getTempPath, verifyDirectoryFiles } from './utils';
+import { getDatabase } from './database/export';
 // Platform and architecture types (moved from deleted updateConfig)
 type PlatformType = 'win32' | 'darwin' | 'linux';
 type ArchitectureType = 'x64' | 'arm64' | 'ia32' | 'arm';
@@ -372,7 +373,17 @@ const initStorage = async () => {
     console.error('[AionUi] Failed to initialize default MCP servers:', error);
   }
 
-  console.log('[AionUi] Storage initialization complete');
+  // 5. 初始化数据库（better-sqlite3）
+  try {
+    getDatabase();
+
+    // NOTE: Data migration from file storage to database is handled automatically
+    // via lazy migration in conversationBridge.ts and databaseBridge.ts
+    // Historical conversations are migrated on-demand when accessed
+    // Images are stored directly in the workspace filesystem and referenced via message.resultDisplay
+  } catch (error) {
+    console.error('[InitStorage] Database initialization failed, falling back to file-based storage:', error);
+  }
 
   application.systemInfo.provider(() => {
     return Promise.resolve(getSystemDir());

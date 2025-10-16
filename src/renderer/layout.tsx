@@ -10,6 +10,7 @@ import { MenuFold, MenuUnfold } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useRef, useState } from 'react';
 import { Outlet } from 'react-router-dom';
+import { useDirectorySelection } from './hooks/useDirectorySelection';
 import { useMultiAgentDetection } from './hooks/useMultiAgentDetection';
 
 const useDebug = () => {
@@ -17,7 +18,9 @@ const useDebug = () => {
   const timer = useRef<any>(null);
   const onClick = () => {
     const open = () => {
-      ipcBridge.application.openDevTools.invoke();
+      ipcBridge.application.openDevTools.invoke().catch((error) => {
+        console.error('Failed to open dev tools:', error);
+      });
       setCount(0);
     };
     if (count >= 3) {
@@ -46,6 +49,7 @@ const Layout: React.FC<{
   const [collapsed, setCollapsed] = useState(false);
   const { onClick } = useDebug();
   const { contextHolder: multiAgentContextHolder } = useMultiAgentDetection();
+  const { contextHolder: directorySelectionContextHolder } = useDirectorySelection();
   return (
     <ArcoLayout className={'size-full layout'}>
       <ArcoLayout.Sider
@@ -92,6 +96,7 @@ const Layout: React.FC<{
       <ArcoLayout.Content className={'bg-#F9FAFB layout-content'}>
         <Outlet></Outlet>
         {multiAgentContextHolder}
+        {directorySelectionContextHolder}
       </ArcoLayout.Content>
     </ArcoLayout>
   );

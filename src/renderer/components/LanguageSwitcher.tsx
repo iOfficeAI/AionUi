@@ -7,8 +7,12 @@ const LanguageSwitcher: React.FC = () => {
   const { i18n } = useTranslation();
 
   const handleLanguageChange = (value: string) => {
-    ConfigStorage.set('language', value);
-    i18n.changeLanguage(value);
+    ConfigStorage.set('language', value).catch((error) => {
+      console.error('Failed to save language preference:', error);
+    });
+    i18n.changeLanguage(value).catch((error) => {
+      console.error('Failed to change language:', error);
+    });
   };
 
   return (

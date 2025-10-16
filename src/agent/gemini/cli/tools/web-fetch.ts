@@ -6,7 +6,7 @@
 
 import { Type } from '@google/genai';
 import type { GeminiClient, Config, ToolResult, ToolInvocation, ToolLocation, ToolCallConfirmationDetails } from '@office-ai/aioncli-core';
-import { BaseDeclarativeTool, BaseToolInvocation, Kind, getErrorMessage, ToolErrorType } from '@office-ai/aioncli-core';
+import { BaseDeclarativeTool, BaseToolInvocation, Kind, getErrorMessage, ToolErrorType, DEFAULT_GEMINI_FLASH_MODEL } from '@office-ai/aioncli-core';
 import { getResponseText } from './utils';
 import { convert } from 'html-to-text';
 
@@ -151,7 +151,7 @@ I have fetched the content from ${this.params.url}. Please use the following con
 ${textContent}
 ---`;
 
-      const result = await this.geminiClient.generateContent([{ role: 'user', parts: [{ text: processPrompt }] }], {}, signal);
+      const result = await this.geminiClient.generateContent([{ role: 'user', parts: [{ text: processPrompt }] }], {}, signal, DEFAULT_GEMINI_FLASH_MODEL);
       const resultText = getResponseText(result) || '';
       return {
         llmContent: resultText,

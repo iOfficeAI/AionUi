@@ -7,6 +7,15 @@
     },
     "sendbox": {
       "placeholder": "{{backend}}にメッセージを送信..."
+    },
+    "status": {
+      "connecting": "{{agent}} に接続中...",
+      "connected": "{{agent}} に接続しました",
+      "authenticated": "{{agent}} 認証が完了しました",
+      "session_active": "{{agent}} セッション実行中",
+      "disconnected": "{{agent}} から切断されました",
+      "error": "接続エラー",
+      "unknown": "不明な状態"
     }
   },
   "codex": {
@@ -34,12 +43,6 @@
       "technical_info": "**技術情報：**",
       "unknown_error": "ネットワーク接続エラーです。ネットワーク設定を確認してください。",
       "unknown_error_title": "🔌 ネットワーク接続エラー"
-    },
-    "status": {
-      "connected": "Codex MCP サーバーに接続しました",
-      "connecting": "Codex に接続中...",
-      "error_connect": "Codex への接続に失敗しました：{{error}}",
-      "session_active": "Codex とアクティブなセッションを作成しました"
     },
     "thinking": {
       "processing": "🤔 Codex が思考中...",
@@ -153,7 +156,14 @@
     "upload": "アップロード",
     "version": "バージョン",
     "website": "公式サイト",
-    "workspace": "ワークスペース"
+    "workspace": "ワークスペース",
+    "select": "選択"
+  },
+  "fileSelection": {
+    "selectFile": "ファイルを選択",
+    "selectDirectory": "ディレクトリを選択",
+    "pleaseSelectFile": "ファイルを選択してください",
+    "pleaseSelectDirectory": "ディレクトリを選択してください"
   },
   "conversation": {
     "welcome": {
@@ -176,19 +186,12 @@
       "today": "今日",
       "yesterday": "昨日"
     },
-    "welcome": {
-      "linkFolder": "フォルダを追加",
-      "multiAgentModeEnabled": "マルチエージェントモードに入ります",
-      "newConversation": "新しいチャット",
-      "placeholder": "メッセージの送信、ファイルの追加、またはフォルダーの追加...",
-      "title": "Hi、今日の予定は何ですか？",
-      "uploadFile": "ファイルを追加"
-    },
     "workspace": {
       "empty": "ワークスペースが空です",
       "emptyDescription": "ファイルをアップロードするか、またはフォルダーを開くと、ここにファイルが表示されます",
       "searchPlaceholder": "ファイルを検索...",
-      "createNewConversation": "現在のワークスペースで新しいチャットを作成"
+      "createNewConversation": "現在のワークスペースで新しいチャットを作成",
+      "search.empty": "検索結果は空です"
     },
     "chat": {
       "noModelSelected": "現在のセッションでモデルが選択されていないため、メッセージを送信できません"
@@ -441,6 +444,15 @@
     },
     "sendbox": {
       "placeholder": "{{backend}}にメッセージを送信..."
+    },
+    "status": {
+      "connecting": "{{agent}} に接続中...",
+      "connected": "{{agent}} に接続しました",
+      "authenticated": "{{agent}} 認証が完了しました",
+      "session_active": "{{agent}} セッション実行中",
+      "disconnected": "{{agent}} から切断されました",
+      "error": "接続エラー",
+      "unknown": "不明な状態"
     }
   }
 }

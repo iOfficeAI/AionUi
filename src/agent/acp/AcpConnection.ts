@@ -8,6 +8,7 @@ import { JSONRPC_VERSION } from '@/types/acpTypes';
 import type { AcpBackend, AcpMessage, AcpNotification, AcpPermissionRequest, AcpRequest, AcpResponse, AcpSessionUpdate } from '@/types/acpTypes';
 import type { ChildProcess, SpawnOptions } from 'child_process';
 import { spawn } from 'child_process';
+import { promises as fs } from 'fs';
 
 interface PendingRequest {
   resolve: (value: any) => void;
@@ -31,7 +32,7 @@ export class AcpConnection {
   public onSessionUpdate: (data: AcpSessionUpdate) => void = () => {};
   public onPermissionRequest: (data: AcpPermissionRequest) => Promise<{
     optionId: string;
-  }> = async () => ({ optionId: 'allow' });
+  }> = () => Promise.resolve({ optionId: 'allow' }); // Returns a resolved Promise for interface consistency
   public onEndTurn: () => void = () => {}; // Handler for end_turn messages
   public onFileOperation: (operation: { method: string; path: string; content?: string; sessionId: string }) => void = () => {};
 
@@ -174,7 +175,7 @@ export class AcpConnection {
         if (line.trim()) {
           try {
             const message = JSON.parse(line) as AcpMessage;
-            // console.log('AcpMessage==>', JSON.stringify(message));
+            console.log('AcpMessage==>', JSON.stringify(message));
             this.handleMessage(message);
           } catch (error) {
             // Ignore parsing errors for non-JSON messages
@@ -194,7 +195,7 @@ export class AcpConnection {
     ]);
   }
 
-  private async sendRequest(method: string, params?: any): Promise<any> {
+  private sendRequest(method: string, params?: any): Promise<any> {
     const id = this.nextRequestId++;
     const message: AcpRequest = {
       jsonrpc: JSONRPC_VERSION,
@@ -449,7 +450,6 @@ export class AcpConnection {
   }
 
   private async handleReadTextFile(params: { path: string }): Promise<{ content: string }> {
-    const { promises: fs } = await import('fs');
     try {
       const content = await fs.readFile(params.path, 'utf-8');
       return { content };
@@ -459,7 +459,6 @@ export class AcpConnection {
   }
 
   private async handleWriteTextFile(params: { path: string; content: string }): Promise<null> {
-    const { promises: fs } = await import('fs');
     try {
       await fs.writeFile(params.path, params.content, 'utf-8');
       return null;

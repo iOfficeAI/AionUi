@@ -101,7 +101,7 @@ function getFileExtensionFromDataUrl(dataUrl: string): string {
   return DEFAULT_IMAGE_EXTENSION;
 }
 
-async function saveGeneratedImage(base64Data: string, config: Config): Promise<string> {
+async function saveGeneratedImage(base64Data: string, config: Config, messageId?: string, conversationId?: string): Promise<string> {
   const workspaceDir = config.getWorkingDir();
   const timestamp = Date.now();
   const fileExtension = getFileExtensionFromDataUrl(base64Data);
@@ -112,9 +112,13 @@ async function saveGeneratedImage(base64Data: string, config: Config): Promise<s
   const imageBuffer = Buffer.from(base64WithoutPrefix, 'base64');
 
   try {
+    // Save image to file system (in workspace)
+    // The file path will be saved in the message's resultDisplay and persisted to database automatically
     await fs.promises.writeFile(filePath, imageBuffer);
+
     return filePath;
   } catch (error) {
+    console.error('[ImageGen] Failed to save image file:', error);
     throw new Error(`Failed to save image: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
@@ -188,7 +192,6 @@ IMPORTANT: When user provides multiple images (like @img1.jpg @img2.png), ALWAYS
     }
 
     // Validate image_uris if provided
-    console.debug('[ImageGen] Validating image_uris:', JSON.stringify(params.image_uris));
     if (params.image_uris) {
       let imageUris: string[];
 
@@ -307,7 +310,6 @@ class ImageGenerationInvocation extends BaseToolInvocation<ImageGenerationToolPa
   }
 
   private async processImageUri(imageUri: string): Promise<ImageContent | null> {
-    console.debug('[ImageGen] Processing image URI:', JSON.stringify(imageUri));
     if (isHttpUrl(imageUri)) {
       return {
         type: 'image_url',
@@ -436,17 +438,6 @@ class ImageGenerationInvocation extends BaseToolInvocation<ImageGenerationToolPa
         },
       ];
 
-      // Log API call input with image information
-      const imageDataUrls = contentParts.filter((part) => part.type === 'image_url').map((part) => part.image_url?.url?.substring(0, 50) + '...');
-
-      console.debug('[ImageGen] API call input', {
-        model: this.currentModel,
-        prompt: this.params.prompt.length > 100 ? this.params.prompt.substring(0, 100) + '...' : this.params.prompt,
-        image_uris: imageUris.length > 0 ? imageUris : 'none',
-        image_count: imageUris.length,
-        processed_images: imageDataUrls.length,
-      });
-
       updateOutput?.('Sending request to AI service...');
 
       const client = await this.ensureClient();
@@ -460,17 +451,6 @@ class ImageGenerationInvocation extends BaseToolInvocation<ImageGenerationToolPa
           timeout: API_TIMEOUT_MS,
         }
       );
-
-      // Log API call output for debugging
-      const responseContent = completion.choices[0]?.message?.content;
-      console.debug('[ImageGen] API call output', {
-        model: completion.model,
-        usage: completion.usage,
-        response: {
-          content: responseContent && responseContent.length > 100 ? responseContent.substring(0, 100) + '...' : responseContent,
-          images: completion.choices[0]?.message?.images?.length || 0,
-        },
-      });
 
       const choice = completion.choices[0];
       if (!choice) {
@@ -502,16 +482,28 @@ class ImageGenerationInvocation extends BaseToolInvocation<ImageGenerationToolPa
 
       if (firstImage.type === 'image_url' && firstImage.image_url?.url) {
         updateOutput?.('Saving generated image...');
-        const imagePath = await saveGeneratedImage(firstImage.image_url.url, this.config);
+
+        // Get conversation_id from config session
+        const sessionId = this.config.getSessionId();
+        const conversationId = sessionId?.split('########')[0]; // Extract conversation_id from session_id
+
+        const imagePath = await saveGeneratedImage(
+          firstImage.image_url.url,
+          this.config,
+          undefined, // messageId - will be set when message is composed
+          conversationId
+        );
         const relativeImagePath = path.relative(this.config.getWorkingDir(), imagePath);
 
-        return {
+        const result = {
           llmContent: `${responseText}\n\nGenerated image saved to: ${imagePath}`,
           returnDisplay: {
             img_url: imagePath,
             relative_path: relativeImagePath,
           } as unknown as ToolResultDisplay,
         };
+
+        return result;
       }
 
       // Fallback to text response

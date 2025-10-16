@@ -29,10 +29,14 @@ const ToolsSettings: React.FC = () => {
   }, [data]);
 
   useEffect(() => {
-    ConfigStorage.get('tools.imageGenerationModel').then((data) => {
-      if (!data) return;
-      setImageGenerationModel(data);
-    });
+    ConfigStorage.get('tools.imageGenerationModel')
+      .then((data) => {
+        if (!data) return;
+        setImageGenerationModel(data);
+      })
+      .catch((error) => {
+        console.error('Failed to load image generation model config:', error);
+      });
   }, []);
 
   // Sync imageGenerationModel apiKey when provider apiKey changes
@@ -50,18 +54,24 @@ const ToolsSettings: React.FC = () => {
       };
 
       setImageGenerationModel(updatedModel);
-      ConfigStorage.set('tools.imageGenerationModel', updatedModel);
+      ConfigStorage.set('tools.imageGenerationModel', updatedModel).catch((error) => {
+        console.error('Failed to save image generation model config:', error);
+      });
     } else if (!currentProvider) {
       // Provider was deleted, clear the setting
       setImageGenerationModel(undefined);
-      ConfigStorage.remove('tools.imageGenerationModel');
+      ConfigStorage.remove('tools.imageGenerationModel').catch((error) => {
+        console.error('Failed to remove image generation model config:', error);
+      });
     }
   }, [data, imageGenerationModel?.id, imageGenerationModel?.apiKey]);
 
   const handleImageGenerationModelChange = (value: Partial<IConfigStorageRefer['tools.imageGenerationModel']>) => {
     setImageGenerationModel((prev) => {
       const newImageGenerationModel = { ...prev, ...value };
-      ConfigStorage.set('tools.imageGenerationModel', newImageGenerationModel);
+      ConfigStorage.set('tools.imageGenerationModel', newImageGenerationModel).catch((error) => {
+        console.error('Failed to update image generation model config:', error);
+      });
       return newImageGenerationModel;
     });
   };

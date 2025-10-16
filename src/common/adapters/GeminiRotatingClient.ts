@@ -50,9 +50,9 @@ export class GeminiRotatingClient extends RotatingApiClient<GoogleGenAI> {
 
   // Basic method for Gemini operations - can be extended as needed
   async generateContent(prompt: string, config?: any): Promise<any> {
-    return this.executeWithRetry(async (client) => {
+    return await this.executeWithRetry(async (client) => {
       // client is GoogleGenAI, we need client.models to get the content generator
-      const model = client.models.generateContent({
+      const model = await client.models.generateContent({
         model: this.config.model || 'gemini-1.5-flash',
         contents: [{ role: 'user', parts: [{ text: prompt }] }],
         ...config,
@@ -68,7 +68,7 @@ export class GeminiRotatingClient extends RotatingApiClient<GoogleGenAI> {
       throw new Error('Request was aborted');
     }
 
-    return this.executeWithRetry(async (client) => {
+    return await this.executeWithRetry(async (client) => {
       // Convert OpenAI format to Gemini format using converter
       const geminiRequest = this.converter.convertRequest(params);
 

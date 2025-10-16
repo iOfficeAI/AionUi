@@ -8,8 +8,9 @@ import { acpDetector } from '@/agent/acp/AcpDetector';
 import { initAcpConversationBridge } from './acpConversationBridge';
 import { initApplicationBridge } from './applicationBridge';
 import { initAuthBridge } from './authBridge';
-import { initCodexBridge } from './codexBridge';
+import { initCodexConversationBridge } from './codexConversationBridge';
 import { initConversationBridge } from './conversationBridge';
+import { initDatabaseBridge } from './databaseBridge';
 import { initDialogBridge } from './dialogBridge';
 import { initFsBridge } from './fsBridge';
 import { initGeminiConversationBridge } from './geminiConversationBridge';
@@ -28,10 +29,11 @@ export function initAllBridges(): void {
   initApplicationBridge();
   initGeminiConversationBridge();
   initAcpConversationBridge();
-  initCodexBridge();
+  initCodexConversationBridge();
   initAuthBridge();
   initModelBridge();
   initMcpBridge();
+  initDatabaseBridge();
 }
 
 /**
@@ -46,5 +48,5 @@ export async function initializeAcpDetector(): Promise<void> {
 }
 
 // 导出初始化函数供单独使用
-export { initAcpConversationBridge, initApplicationBridge, initAuthBridge, initCodexBridge, initConversationBridge };
-export { initDialogBridge, initFsBridge, initGeminiConversationBridge, initMcpBridge, initModelBridge, initShellBridge };
+export { initAcpConversationBridge, initApplicationBridge, initAuthBridge, initCodexConversationBridge, initConversationBridge };
+export { initDatabaseBridge, initDialogBridge, initFsBridge, initGeminiConversationBridge, initMcpBridge, initModelBridge, initShellBridge };

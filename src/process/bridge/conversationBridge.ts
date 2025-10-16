@@ -6,13 +6,16 @@
 
 import type { CodexAgentManager } from '@/agent/codex';
 import type { TChatConversation } from '@/common/storage';
+import { GeminiAgent } from '@/agent/gemini';
 import { ipcBridge } from '../../common';
 import { createAcpAgent, createCodexAgent, createGeminiAgent } from '../initAgent';
-import { ProcessChat, ProcessChatMessage } from '../initStorage';
-import { nextTickToLocalFinish } from '../message';
+import { ProcessChat } from '../initStorage';
 import type AcpAgentManager from '../task/AcpAgentManager';
 import type { GeminiAgentManager } from '../task/GeminiAgentManager';
+import { copyFilesToDirectory, readDirectoryRecursive } from '../utils';
 import WorkerManage from '../WorkerManage';
+import { getDatabase } from '@process/database';
+import { migrateConversationToDatabase } from './migrationUtils';
 
 export function initConversationBridge(): void {
   ipcBridge.conversation.create.provider(async (params): Promise<TChatConversation> => {
@@ -36,43 +39,108 @@ export function initConversationBridge(): void {
         //@todo
         void (task as AcpAgentManager).initAgent();
       }
-      await ProcessChat.update('chat.history', (history) => {
-        const filtered = (history || []).filter((item) => item.id !== conversation.id);
-        return Promise.resolve([...filtered, conversation]);
-      });
+
+      // Save to database only
+      const db = getDatabase();
+      const result = db.createConversation(conversation);
+      if (!result.success) {
+        console.error('[conversationBridge] Failed to create conversation in database:', result.error);
+      }
+
       return conversation;
     } catch (e) {
+      console.error('[conversationBridge] Failed to create conversation:', e);
       return null;
     }
   });
 
   ipcBridge.conversation.getAssociateConversation.provider(async ({ conversation_id }) => {
-    const history = await ProcessChat.get('chat.history');
-    if (!history) return [];
-    const currentConversation = history.find((item) => item.id === conversation_id);
-    if (!currentConversation || !currentConversation.extra.workspace) return [];
-    return history.filter((item) => item.extra.workspace === currentConversation.extra.workspace);
+    try {
+      const db = getDatabase();
+
+      // Try to get current conversation from database
+      let currentConversation: TChatConversation | undefined;
+      const currentResult = db.getConversation(conversation_id);
+
+      if (currentResult.success && currentResult.data) {
+        currentConversation = currentResult.data;
+      } else {
+        // Not in database, try file storage
+        const history = await ProcessChat.get('chat.history');
+        currentConversation = history.find((item) => item.id === conversation_id);
+
+        // Lazy migrate in background
+        if (currentConversation) {
+          void migrateConversationToDatabase(currentConversation);
+        }
+      }
+
+      if (!currentConversation || !currentConversation.extra?.workspace) {
+        return [];
+      }
+
+      // Get all conversations from database (get first page with large limit to get all)
+      const allResult = db.getUserConversations(undefined, 0, 10000);
+      let allConversations: TChatConversation[] = allResult.data || [];
+
+      // If database is empty or doesn't have enough conversations, merge with file storage
+      const history = await ProcessChat.get('chat.history');
+      if (allConversations.length < (history?.length || 0)) {
+        // Database doesn't have all conversations yet, use file storage
+        allConversations = history || [];
+
+        // Lazy migrate all conversations in background
+        void Promise.all(allConversations.map((conv) => migrateConversationToDatabase(conv)));
+      }
+
+      // Filter by workspace
+      return allConversations.filter((item) => item.extra?.workspace === currentConversation.extra.workspace);
+    } catch (error) {
+      console.error('[conversationBridge] Failed to get associate conversations:', error);
+      return [];
+    }
   });
 
-  ipcBridge.conversation.createWithConversation.provider(async ({ conversation }) => {
-    conversation.createTime = Date.now();
-    conversation.modifyTime = Date.now();
-    WorkerManage.buildConversation(conversation);
-    await ProcessChat.update('chat.history', (history) => {
-      const filtered = history.filter((item) => item.id !== conversation.id);
-      return Promise.resolve([...filtered, conversation]);
-    });
-    return conversation;
+  ipcBridge.conversation.createWithConversation.provider(({ conversation }) => {
+    try {
+      conversation.createTime = Date.now();
+      conversation.modifyTime = Date.now();
+      WorkerManage.buildConversation(conversation);
+
+      // Save to database only
+      const db = getDatabase();
+      const result = db.createConversation(conversation);
+      if (!result.success) {
+        console.error('[conversationBridge] Failed to create conversation in database:', result.error);
+      }
+
+      return Promise.resolve(conversation);
+    } catch (error) {
+      console.error('[conversationBridge] Failed to create conversation with conversation:', error);
+      return Promise.resolve(conversation);
+    }
   });
 
   ipcBridge.conversation.remove.provider(({ id }) => {
-    return ProcessChat.update('chat.history', (history) => {
+    try {
+      // Kill the running task if exists
       WorkerManage.kill(id);
-      nextTickToLocalFinish(() => ProcessChatMessage.backup(id));
-      return Promise.resolve(history.filter((item) => item.id !== id));
-    })
-      .then(() => true)
-      .catch(() => false);
+
+      // Delete from database only
+      const db = getDatabase();
+
+      // Delete conversation from database (will cascade delete messages due to foreign key)
+      const result = db.deleteConversation(id);
+      if (!result.success) {
+        console.error('[conversationBridge] Failed to delete conversation from database:', result.error);
+        return Promise.resolve(false);
+      }
+
+      return Promise.resolve(true);
+    } catch (error) {
+      console.error('[conversationBridge] Failed to remove conversation:', error);
+      return Promise.resolve(false);
+    }
   });
 
   ipcBridge.conversation.reset.provider(({ id }) => {
@@ -85,13 +153,71 @@ export function initConversationBridge(): void {
   });
 
   ipcBridge.conversation.get.provider(async ({ id }) => {
-    const history = await ProcessChat.get('chat.history');
-    const conversation = history.find((item) => item.id === id);
-    if (conversation) {
-      const task = WorkerManage.getTaskById(id);
-      conversation.status = task?.status || 'finished';
+    try {
+      const db = getDatabase();
+
+      // Try to get conversation from database first
+      const result = db.getConversation(id);
+      if (result.success && result.data) {
+        // Found in database, update status and return
+        const conversation = result.data;
+        const task = WorkerManage.getTaskById(id);
+        conversation.status = task?.status || 'finished';
+        return conversation;
+      }
+
+      // Not in database, try to load from file storage and migrate
+      const history = await ProcessChat.get('chat.history');
+      const conversation = history.find((item) => item.id === id);
+      if (conversation) {
+        // Update status from running task
+        const task = WorkerManage.getTaskById(id);
+        conversation.status = task?.status || 'finished';
+
+        // Lazy migrate this conversation to database in background
+        void migrateConversationToDatabase(conversation);
+
+        return conversation;
+      }
+
+      return undefined;
+    } catch (error) {
+      console.error('[conversationBridge] Failed to get conversation:', error);
+      return undefined;
     }
-    return conversation;
+  });
+
+  const buildLastAbortController = (() => {
+    let lastGetWorkspaceAbortController = new AbortController();
+    return () => {
+      lastGetWorkspaceAbortController.abort();
+      return (lastGetWorkspaceAbortController = new AbortController());
+    };
+  })();
+
+  ipcBridge.conversation.getWorkspace.provider(async ({ workspace, search, path }) => {
+    const fileService = GeminiAgent.buildFileServer(workspace);
+    try {
+      return await readDirectoryRecursive(path, {
+        root: workspace,
+        fileService,
+        abortController: buildLastAbortController(),
+        search: {
+          text: search,
+          onProcess(result) {
+            void ipcBridge.conversation.responseSearchWorkSpace.invoke(result);
+          },
+        },
+      }).then((res) => (res ? [res] : []));
+    } catch (error) {
+      // 捕获 abort 错误，避免 unhandled rejection
+      // Catch abort errors to avoid unhandled rejection
+      if (error instanceof Error && error.message.includes('aborted')) {
+        console.log('[Workspace] Read directory aborted:', error.message);
+        return [];
+      }
+      throw error;
+    }
   });
 
   ipcBridge.conversation.stop.provider(async ({ conversation_id }) => {
@@ -102,6 +228,36 @@ export function initConversationBridge(): void {
     }
     await task.stop();
     return { success: true };
+  });
+
+  // 通用 sendMessage 实现 - 自动根据 conversation 类型分发
+  ipcBridge.conversation.sendMessage.provider(async ({ conversation_id, files, ...other }) => {
+    const task = (await WorkerManage.getTaskByIdRollbackBuild(conversation_id)) as GeminiAgentManager | AcpAgentManager | CodexAgentManager | undefined;
+
+    if (!task) {
+      return { success: false, msg: 'conversation not found' };
+    }
+
+    // 复制文件到工作空间
+    await copyFilesToDirectory(task.workspace, files);
+
+    try {
+      // 根据 task 类型调用对应的 sendMessage 方法
+      if (task.type === 'gemini') {
+        await (task as GeminiAgentManager).sendMessage(other);
+        return { success: true };
+      } else if (task.type === 'acp') {
+        await (task as AcpAgentManager).sendMessage({ content: other.input, files, msg_id: other.msg_id });
+        return { success: true };
+      } else if (task.type === 'codex') {
+        await (task as CodexAgentManager).sendMessage({ content: other.input, files, msg_id: other.msg_id });
+        return { success: true };
+      } else {
+        return { success: false, msg: `Unsupported task type: ${task.type}` };
+      }
+    } catch (err: unknown) {
+      return { success: false, msg: err instanceof Error ? err.message : String(err) };
+    }
   });
 
   // 通用 confirmMessage 实现 - 自动根据 conversation 类型分发
@@ -128,81 +284,3 @@ export function initConversationBridge(): void {
     }
   });
 }
-
-/**
- * 构建工作区文件树（通用方法，用于 ACP 和 Codex）
- */
-export const buildWorkspaceFileTree = async (conversation_id: string) => {
-  try {
-    const task = (await WorkerManage.getTaskByIdRollbackBuild(conversation_id)) as AcpAgentManager | CodexAgentManager;
-    if (!task) return [];
-    const workspace = task.workspace;
-
-    const fs = await import('fs');
-    const path = await import('path');
-
-    // 检查目录是否存在
-    if (!fs.existsSync(workspace)) {
-      return [];
-    }
-
-    // 递归构建文件树
-    type FileTreeNode = { name: string; path: string; isDir: boolean; isFile: boolean; children?: FileTreeNode[] };
-    const buildFileTree = (dirPath: string, basePath: string = dirPath): FileTreeNode[] => {
-      const result: FileTreeNode[] = [];
-      const items = fs.readdirSync(dirPath);
-
-      for (const item of items) {
-        // 跳过隐藏文件和系统文件
-        if (item.startsWith('.')) continue;
-        if (item === 'node_modules') continue;
-
-        const itemPath = path.join(dirPath, item);
-        const relativePath = path.relative(basePath, itemPath);
-        const stat = fs.statSync(itemPath);
-
-        if (stat.isDirectory()) {
-          const children = buildFileTree(itemPath, basePath);
-          if (children.length > 0) {
-            result.push({
-              name: item,
-              path: relativePath,
-              isDir: true,
-              isFile: false,
-              children,
-            });
-          }
-        } else {
-          result.push({
-            name: item,
-            path: relativePath,
-            isDir: false,
-            isFile: true,
-          });
-        }
-      }
-
-      return result.sort((a, b) => {
-        // 目录优先，然后按名称排序
-        if (a.isDir && b.isFile) return -1;
-        if (a.isFile && b.isDir) return 1;
-        return a.name.localeCompare(b.name);
-      });
-    };
-
-    const files = buildFileTree(workspace);
-
-    // 返回根目录包装的结果
-    return [
-      {
-        name: path.basename(workspace),
-        path: workspace,
-        isDir: true,
-        isFile: false,
-        children: files,
-      },
-    ];
-  } catch (error) {
-    return [];
-  }
-};

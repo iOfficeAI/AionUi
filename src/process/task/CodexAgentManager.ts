@@ -11,7 +11,7 @@ import type { TMessage } from '@/common/chatLib';
 import { transformMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import { uuid } from '@/common/utils';
-import { addMessage, addOrUpdateMessage } from '@process/message';
+import { addMessage } from '@process/message';
 import BaseAgentManager from '@process/task/BaseAgentManager';
 import { t } from 'i18next';
 import { CodexEventHandler } from '@/agent/codex/handlers/CodexEventHandler';
@@ -55,7 +55,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     const fileOperationHandler = new CodexFileOperationHandler(data.workspace || process.cwd(), data.conversation_id, this);
 
     // 设置 Codex Agent 的应用配置，使用 Electron API 在主进程中
-    (async () => {
+    void (async () => {
       try {
         const electronModule = await import('electron');
         const app = electronModule.app;
@@ -90,7 +90,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
     // 使用 SessionManager 来管理连接状态 - 参考 ACP 的模式
     this.bootstrap = this.startWithSessionManagement()
-      .then(async () => {
+      .then(() => {
         return this.agent;
       })
       .catch((e) => {
@@ -110,16 +110,16 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     await this.agent.start();
 
     // 3. 执行认证和会话创建
-    await this.performPostConnectionSetup();
+    this.performPostConnectionSetup();
   }
 
   /**
    * 连接后设置 - 参考 ACP 的认证和会话创建
    */
-  private async performPostConnectionSetup(): Promise<void> {
+  private performPostConnectionSetup(): void {
     try {
       // Get connection diagnostics
-      this.getDiagnostics();
+      void this.getDiagnostics();
 
       // 延迟会话创建到第一条用户消息时，避免空 prompt 问题
       // Session will be created with first user message - no session event sent here
@@ -220,7 +220,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
         msg_id: data.msg_id || uuid(),
         data: errorMessage,
       };
-      addMessage(this.conversation_id, transformMessage(message));
+      // Emit to frontend - frontend will handle transformation and persistence
       ipcBridge.codexConversation.responseStream.emit(message);
       throw e;
     }
@@ -286,7 +286,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
   private handleNetworkError(error: NetworkError): void {
     // Emit network error as status message
-    this.emitStatus('error', `Network Error: ${error.suggestedAction}`);
+    this.emitStatus('error');
 
     // Create a user-friendly error message based on error type
     let userMessage = '';
@@ -330,22 +330,26 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     };
 
     // Emit network error message to UI
-    // Add to message history and emit to UI
-    addOrUpdateMessage(this.conversation_id, transformMessage(networkErrorMessage));
+    // Backend handles persistence before emitting to frontend
+    const tMessage = transformMessage(networkErrorMessage);
+    if (tMessage) {
+      addMessage(this.conversation_id, tMessage);
+    }
     ipcBridge.codexConversation.responseStream.emit(networkErrorMessage);
   }
 
-  private emitStatus(status: 'connecting' | 'connected' | 'authenticated' | 'session_active' | 'error' | 'disconnected', message: string) {
+  private emitStatus(status: 'connecting' | 'connected' | 'authenticated' | 'session_active' | 'error' | 'disconnected') {
     const statusMessage: IResponseMessage = {
-      type: 'codex_status',
+      type: 'agent_status',
       conversation_id: this.conversation_id,
       msg_id: uuid(),
       data: {
+        backend: 'codex', // Agent identifier from AcpBackend type
         status,
-        message,
       },
     };
-    ipcBridge.codexConversation.responseStream.emit(statusMessage);
+    // Use emitAndPersistMessage to ensure status messages are both emitted and persisted
+    this.emitAndPersistMessage(statusMessage);
   }
 
   getDiagnostics() {
@@ -367,7 +371,9 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     this.agent.getFileOperationHandler().cleanup();
 
     // 停止 agent
-    this.agent?.stop?.();
+    this.agent?.stop?.().catch((error) => {
+      console.error('Failed to stop Codex agent during cleanup:', error);
+    });
 
     // Cleanup completed
   }
@@ -380,25 +386,33 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
   // Ensure we clean up agent resources on kill
   kill() {
     try {
-      this.agent?.stop?.();
+      this.agent?.stop?.().catch((error) => {
+        console.error('Failed to stop Codex agent during kill:', error);
+      });
     } finally {
       super.kill();
     }
   }
 
   emitAndPersistMessage(message: IResponseMessage, persist: boolean = true): void {
+    message.conversation_id = this.conversation_id;
+
+    // Backend handles persistence if needed
     if (persist) {
-      if (message.type === 'codex_status') {
-        ipcBridge.codexConversation.responseStream.emit(message);
-        return;
-      }
-      // Use Codex-specific transformer for Codex messages
-      const transformedMessage: TMessage = transformMessage(message);
-      if (transformedMessage) {
-        addOrUpdateMessage(this.conversation_id, transformedMessage);
+      const tMessage = transformMessage(message);
+      if (tMessage) {
+        addMessage(this.conversation_id, tMessage);
       }
     }
+
+    // Always emit to frontend for UI display
     ipcBridge.codexConversation.responseStream.emit(message);
+  }
+
+  persistMessage(message: TMessage): void {
+    // Direct persistence to database without emitting to frontend
+    // Used for final messages where frontend has already displayed content via deltas
+    addMessage(this.conversation_id, message);
   }
 }
 

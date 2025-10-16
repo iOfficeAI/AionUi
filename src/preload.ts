@@ -12,13 +12,18 @@ import { ADAPTER_BRIDGE_EVENT_KEY } from './adapter/constant';
  * */
 contextBridge.exposeInMainWorld('electronAPI', {
   emit: (name: string, data: any) => {
-    ipcRenderer.invoke(
-      ADAPTER_BRIDGE_EVENT_KEY,
-      JSON.stringify({
-        name: name,
-        data: data,
-      })
-    );
+    return ipcRenderer
+      .invoke(
+        ADAPTER_BRIDGE_EVENT_KEY,
+        JSON.stringify({
+          name: name,
+          data: data,
+        })
+      )
+      .catch((error) => {
+        console.error('IPC invoke error:', error);
+        throw error;
+      });
   },
   on: (callback: any) => {
     const handler = (event: any, value: any) => {

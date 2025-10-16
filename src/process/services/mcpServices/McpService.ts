@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { execSync } from 'child_process';
 import type { AcpBackend } from '../../../types/acpTypes';
 import type { IMcpServer } from '../../../common/storage';
 import { ClaudeMcpAgent } from './agents/ClaudeMcpAgent';
@@ -64,7 +65,6 @@ export class McpService {
     if (!hasNativeGemini) {
       // 检查系统中是否安装了原生 Gemini CLI
       try {
-        const { execSync } = await import('child_process');
         const isWindows = process.platform === 'win32';
         const whichCommand = isWindows ? 'where' : 'which';
         execSync(`${whichCommand} gemini`, { encoding: 'utf-8', stdio: 'pipe', timeout: 1000 });
