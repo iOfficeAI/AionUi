@@ -48,10 +48,6 @@ extraResources:
     to: .webpack
     filter:
       - '**/native_modules/**/*'
-  # Copy renderer files for webui mode (exclude source maps and heavy files)
-  - from: .webpack
-    to: .webpack
-    filter:
       - '**/renderer/**/*'
       - '!**/*.map'
 
@@ -126,11 +122,9 @@ buildDependenciesFromSource: false
 # 减小包体积配置
 nodeGypRebuild: false
 
-# ASAR configuration for production
+# ASAR configuration for production - unpack native modules
 asarUnpack:
-  - "**/node_modules/node-pty/**/*"
-  - "**/node_modules/better-sqlite3/**/*"
-  - "**/.webpack/**/native_modules/**/*"
+  - "**/node_modules/{node-pty,bcrypt,better-sqlite3}/**/*"
   - "!**/node_modules/@anthropic-ai/claude-code/vendor/**/*"
 
 # CI/CD optimizations  

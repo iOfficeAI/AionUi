@@ -42,7 +42,9 @@ try {
 
   // 2. 运行 Forge 打包
   console.log('📦 Running Forge package...');
-  execSync('npm run package', { stdio: 'inherit' });
+  // Pass target architecture to Forge via environment variable
+  const forgeEnv = { ...process.env, ELECTRON_BUILDER_ARCH: arch };
+  execSync('npm run package', { stdio: 'inherit', env: forgeEnv });
 
   // 3. 更新 main 字段用于 electron-builder
   console.log(`🔧 Updating main entry for ${arch}...`);
