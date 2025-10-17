@@ -37,7 +37,7 @@ jobs:
       - name: Run Prettier check
         run: npm run format:check || echo "Prettier formatting issues detected but not blocking build"
 
-  # 使用electron-builder进行跨平台构建
+  # Use electron-builder for cross-platform build
   build:
     name: Build ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
