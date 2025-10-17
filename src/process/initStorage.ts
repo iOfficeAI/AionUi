@@ -372,15 +372,9 @@ const initStorage = async () => {
   } catch (error) {
     console.error('[AionUi] Failed to initialize default MCP servers:', error);
   }
-
   // 5. 初始化数据库（better-sqlite3）
   try {
     getDatabase();
-
-    // NOTE: Data migration from file storage to database is handled automatically
-    // via lazy migration in conversationBridge.ts and databaseBridge.ts
-    // Historical conversations are migrated on-demand when accessed
-    // Images are stored directly in the workspace filesystem and referenced via message.resultDisplay
   } catch (error) {
     console.error('[InitStorage] Database initialization failed, falling back to file-based storage:', error);
   }
