@@ -48,9 +48,6 @@ extraResources:
     to: .webpack
     filter:
       - '**/native_modules/**/*'
-# Ensure native module metadata (e.g., proto descriptors) remain accessible
-  - from: .webpack/main/native_modules/protos
-    to: protos
 
 # Windows configuration
 win:
