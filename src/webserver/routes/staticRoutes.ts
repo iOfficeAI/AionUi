@@ -16,21 +16,54 @@ import { AUTH_CONFIG } from '../config/constants';
  * Register static assets and page routes
  */
 const resolveRendererPath = () => {
+  const searchedPaths: string[] = [];
+
+  // 1. 生产环境：检查 resources/.webpack/{arch}/renderer (通过 extraResources 复制)
   if (process.resourcesPath) {
-    const staticRoot = path.join(process.resourcesPath, 'app.asar.unpacked', '.webpack', 'renderer');
-    const indexHtml = path.join(staticRoot, 'main_window', 'index.html');
-    if (fs.existsSync(indexHtml)) {
-      return { indexHtml, staticRoot } as const;
+    const arch = process.arch; // 'x64', 'arm64', etc.
+
+    // Try with architecture-specific path
+    const archRoot = path.join(process.resourcesPath, '.webpack', arch, 'renderer');
+    const archIndex = path.join(archRoot, 'main_window', 'index.html');
+    searchedPaths.push(archRoot);
+    if (fs.existsSync(archIndex)) {
+      return { indexHtml: archIndex, staticRoot: archRoot } as const;
+    }
+
+    // Try without architecture-specific path (legacy/development)
+    const extraResourcesRoot = path.join(process.resourcesPath, '.webpack', 'renderer');
+    const extraResourcesIndex = path.join(extraResourcesRoot, 'main_window', 'index.html');
+    searchedPaths.push(extraResourcesRoot);
+    if (fs.existsSync(extraResourcesIndex)) {
+      return { indexHtml: extraResourcesIndex, staticRoot: extraResourcesRoot } as const;
+    }
+
+    // Try app.asar.unpacked (fallback for native modules)
+    const asarUnpackedRoot = path.join(process.resourcesPath, 'app.asar.unpacked', '.webpack', arch, 'renderer');
+    const asarUnpackedIndex = path.join(asarUnpackedRoot, 'main_window', 'index.html');
+    searchedPaths.push(asarUnpackedRoot);
+    if (fs.existsSync(asarUnpackedIndex)) {
+      return { indexHtml: asarUnpackedIndex, staticRoot: asarUnpackedRoot } as const;
     }
   }
 
-  const fallbackRoot = path.join(process.cwd(), '.webpack', 'renderer');
-  const fallbackIndex = path.join(fallbackRoot, 'main_window', 'index.html');
-  if (fs.existsSync(fallbackIndex)) {
-    return { indexHtml: fallbackIndex, staticRoot: fallbackRoot } as const;
+  // 2. 开发环境：从当前工作目录读取
+  const devRoot = path.join(process.cwd(), '.webpack', 'renderer');
+  const devIndex = path.join(devRoot, 'main_window', 'index.html');
+  searchedPaths.push(devRoot);
+  if (fs.existsSync(devIndex)) {
+    return { indexHtml: devIndex, staticRoot: devRoot } as const;
   }
 
-  throw new Error('Renderer assets not found. Ensure .webpack/renderer/main_window/index.html exists.');
+  // 3. 使用 __dirname 相对路径（适用于某些特殊打包场景）
+  const dirnameRoot = path.join(__dirname, '..', '..', '..', '.webpack', 'renderer');
+  const dirnameIndex = path.join(dirnameRoot, 'main_window', 'index.html');
+  searchedPaths.push(dirnameRoot);
+  if (fs.existsSync(dirnameIndex)) {
+    return { indexHtml: dirnameIndex, staticRoot: dirnameRoot } as const;
+  }
+
+  throw new Error('Renderer assets not found. Searched paths:\n' + searchedPaths.map((p, i) => `  ${i + 1}. ${p}`).join('\n'));
 };
 
 export function registerStaticRoutes(app: Express): void {
