@@ -14,6 +14,7 @@ import { rendererConfig } from './config/webpack/webpack.renderer.config';
 import packageJson from './package.json';
 
 const apkName = 'AionUi_' + packageJson.version + '_' + (process.env.arch || process.arch);
+const skipNativeRebuild = process.env.FORGE_SKIP_NATIVE_REBUILD === 'true';
 
 // Removed custom outDir to maintain compatibility with macOS signing
 
@@ -51,6 +52,11 @@ module.exports = {
     ...(process.env.CI === 'true' && process.platform === 'win32'
       ? {
           onlyModules: [], // 一个空数组意味着"不要重建任何模块"
+        }
+      : {}),
+    ...(skipNativeRebuild
+      ? {
+          onlyModules: [], // 开发启动时跳过原生模块重建，避免环境检查
         }
       : {}),
   },
