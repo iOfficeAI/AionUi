@@ -44,8 +44,10 @@ files:
 extraResources:
   - from: public
     to: .
-  - from: .webpack/main/native_modules/build/Release
-    to: build/Release
+  - from: .webpack
+    to: .webpack
+    filter:
+      - '**/native_modules/**/*'
 # Ensure native module metadata (e.g., proto descriptors) remain accessible
   - from: .webpack/main/native_modules/protos
     to: protos
@@ -124,6 +126,7 @@ nodeGypRebuild: false
 asarUnpack:
   - "**/node_modules/node-pty/**/*"
   - "**/node_modules/better-sqlite3/**/*"
+  - "**/.webpack/**/native_modules/**/*"
   - "!**/node_modules/@anthropic-ai/claude-code/vendor/**/*"
 
 # CI/CD optimizations  
