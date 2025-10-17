@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import AppLoader from '../../components/AppLoader';
 import { useAuth } from '../../context/AuthContext';
+import loginLogo from '@renderer/assets/logos/app.png';
 import './LoginPage.css';
 
 type MessageState = {
@@ -182,7 +183,7 @@ const LoginPage: React.FC = () => {
       </div>
 
       <div className='login-page__card'>
-        <label className='login-page__lang-select-wrapper' htmlFor='lang-select'>
+        {/* <label className='login-page__lang-select-wrapper' htmlFor='lang-select'>
           <select id='lang-select' className='login-page__lang-select' value={i18n.language} onChange={handleLanguageChange}>
             {supportedLanguages.map((lang) => (
               <option key={lang.code} value={lang.code}>
@@ -190,21 +191,11 @@ const LoginPage: React.FC = () => {
               </option>
             ))}
           </select>
-        </label>
+        </label> */}
 
         <div className='login-page__header'>
           <div className='login-page__logo'>
-            <svg viewBox='0 0 100 100' role='img' aria-label={t('login.brand')}>
-              <defs>
-                <linearGradient id='login-logo-gradient' x1='0%' y1='0%' x2='100%' y2='100%'>
-                  <stop offset='0%' stopColor='#667eea' stopOpacity='1' />
-                  <stop offset='100%' stopColor='#764ba2' stopOpacity='1' />
-                </linearGradient>
-              </defs>
-              <circle cx='50' cy='50' r='45' fill='url(#login-logo-gradient)' />
-              <path d='M 30 50 L 45 35 L 60 50 L 45 65 Z' fill='white' opacity={0.9} />
-              <circle cx='70' cy='35' r='8' fill='white' opacity={0.8} />
-            </svg>
+            <img src={loginLogo} alt={t('login.brand')} />
           </div>
           <h1 className='login-page__title'>{t('login.brand')}</h1>
           <p className='login-page__subtitle'>{t('login.subtitle')}</p>

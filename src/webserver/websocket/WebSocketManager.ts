@@ -62,13 +62,11 @@ export class WebSocketManager {
    */
   private validateConnection(ws: WebSocket, token: string | null): boolean {
     if (!token) {
-      console.warn('[WebSocketManager] Connection rejected: No token provided');
       ws.close(WEBSOCKET_CONFIG.CLOSE_CODES.POLICY_VIOLATION, 'No token provided');
       return false;
     }
 
     if (!TokenMiddleware.validateWebSocketToken(token)) {
-      console.warn('[WebSocketManager] Connection rejected: Invalid or expired WebSocket token');
       ws.close(WEBSOCKET_CONFIG.CLOSE_CODES.POLICY_VIOLATION, 'Invalid or expired token');
       return false;
     }
