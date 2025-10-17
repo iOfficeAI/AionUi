@@ -48,6 +48,12 @@ extraResources:
     to: .webpack
     filter:
       - '**/native_modules/**/*'
+  # Copy renderer files for webui mode (exclude source maps and heavy files)
+  - from: .webpack
+    to: .webpack
+    filter:
+      - '**/renderer/**/*'
+      - '!**/*.map'
 
 # Windows configuration
 win:
