@@ -16,27 +16,21 @@ import { AUTH_CONFIG } from '../config/constants';
  * Register static assets and page routes
  */
 const resolveRendererPath = () => {
-  // Packaged build: resources/index.html
   if (process.resourcesPath) {
-    const packagedIndex = path.join(process.resourcesPath, 'index.html');
-    if (fs.existsSync(packagedIndex)) {
-      return {
-        indexHtml: packagedIndex,
-        staticRoot: process.resourcesPath,
-      } as const;
+    const staticRoot = path.join(process.resourcesPath, 'app.asar.unpacked', '.webpack', 'renderer');
+    const indexHtml = path.join(staticRoot, 'main_window', 'index.html');
+    if (fs.existsSync(indexHtml)) {
+      return { indexHtml, staticRoot } as const;
     }
   }
 
-  // Development build: .webpack/renderer/index.html
-  const devIndex = path.join(process.cwd(), '.webpack', 'renderer', 'index.html');
-  if (fs.existsSync(devIndex)) {
-    return {
-      indexHtml: devIndex,
-      staticRoot: path.join(process.cwd(), '.webpack', 'renderer'),
-    } as const;
+  const fallbackRoot = path.join(process.cwd(), '.webpack', 'renderer');
+  const fallbackIndex = path.join(fallbackRoot, 'main_window', 'index.html');
+  if (fs.existsSync(fallbackIndex)) {
+    return { indexHtml: fallbackIndex, staticRoot: fallbackRoot } as const;
   }
 
-  throw new Error('Renderer assets not found. Expected index.html in packaged resources or dev renderer output.');
+  throw new Error('Renderer assets not found. Ensure .webpack/renderer/main_window/index.html exists.');
 };
 
 export function registerStaticRoutes(app: Express): void {
