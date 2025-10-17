@@ -86,13 +86,8 @@ export function registerStaticRoutes(app: Express): void {
    * 静态资源
    * Static assets
    */
-  const cssFile = path.join(staticRoot, 'main_window.css');
-  if (fs.existsSync(cssFile)) {
-    app.get('/main_window.css', (_req, res) => {
-      res.setHeader('Content-Type', 'text/css');
-      res.sendFile(cssFile);
-    });
-  }
+  // 直接挂载编译输出目录，让 webpack 在写出文件后即可被访问
+  app.use(express.static(staticRoot));
 
   const mainWindowDir = path.join(staticRoot, 'main_window');
   if (fs.existsSync(mainWindowDir) && fs.statSync(mainWindowDir).isDirectory()) {
