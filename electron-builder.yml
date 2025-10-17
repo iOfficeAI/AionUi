@@ -92,6 +92,7 @@ mac:
   # identity 通过环境变量控制，notarize 通过 afterSign 脚本处理
 
 # Code signing and notarization
+afterPack: scripts/afterPack.js
 afterSign: scripts/afterSign.js
 
 # Linux configuration
