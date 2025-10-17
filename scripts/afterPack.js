@@ -1,4 +1,5 @@
 const { execFileSync } = require('child_process');
+const { Arch } = require('builder-util');
 const fs = require('fs');
 const path = require('path');
 
@@ -6,8 +7,31 @@ const path = require('path');
  * Ensure architecture-specific native modules (better-sqlite3) are rebuilt for Linux bundles.
  * This runs after electron-builder finishes packaging each target architecture.
  */
+const resolveArch = (archValue) => {
+  if (typeof archValue === 'string') {
+    return archValue;
+  }
+  const enumValue = Arch[archValue];
+  if (typeof enumValue === 'string') {
+    return enumValue;
+  }
+  switch (archValue) {
+    case Arch.x64:
+      return 'x64';
+    case Arch.arm64:
+      return 'arm64';
+    case Arch.armv7l:
+      return 'armv7l';
+    case Arch.ia32:
+      return 'ia32';
+    default:
+      return process.arch;
+  }
+};
+
 module.exports = async function afterPack(context) {
   const { arch, electronPlatformName, appOutDir, packager } = context;
+  const targetArch = resolveArch(arch);
 
   if (electronPlatformName !== 'linux') {
     return;
@@ -33,8 +57,8 @@ module.exports = async function afterPack(context) {
 
   const env = {
     ...process.env,
-    npm_config_arch: arch,
-    npm_config_target_arch: arch,
+    npm_config_arch: targetArch,
+    npm_config_target_arch: targetArch,
     npm_config_platform: 'linux',
     npm_config_target_platform: 'linux',
     npm_config_runtime: 'electron',
@@ -52,7 +76,7 @@ module.exports = async function afterPack(context) {
         '--runtime=electron',
         `--target=${electronVersion}`,
         '--platform=linux',
-        `--arch=${arch}`,
+        `--arch=${targetArch}`,
         '--force',
       ],
       {
@@ -73,7 +97,7 @@ module.exports = async function afterPack(context) {
         'better-sqlite3',
         '--force',
         '--platform=linux',
-        `--arch=${arch}`,
+        `--arch=${targetArch}`,
       ],
       {
         cwd: path.resolve(__dirname, '..'),
@@ -87,7 +111,7 @@ module.exports = async function afterPack(context) {
   };
 
   try {
-    console.log(`[afterPack] Downloading prebuilt better-sqlite3 for linux-${arch}`);
+    console.log(`[afterPack] Downloading prebuilt better-sqlite3 for linux-${targetArch}`);
     runPrebuildInstall();
   } catch (error) {
     console.warn('[afterPack] prebuild-install failed, attempting local rebuild...', error.message);
@@ -96,22 +120,24 @@ module.exports = async function afterPack(context) {
 
   const binaryPath = path.join(moduleRoot, 'build', 'Release', 'better_sqlite3.node');
   if (!fs.existsSync(binaryPath)) {
-    throw new Error(`[afterPack] Failed to produce better_sqlite3.node for linux-${arch}`);
+    throw new Error(`[afterPack] Failed to produce better_sqlite3.node for linux-${targetArch}`);
   }
 
   // Keep `.webpack` native_modules in sync for runtime lookups
   const webpackRoot = path.join(appOutDir, 'resources', '.webpack');
   const candidateDirs = [
     path.join(webpackRoot, 'main', 'native_modules', 'build', 'Release'),
-    path.join(webpackRoot, arch, 'main', 'native_modules', 'build', 'Release'),
+    path.join(webpackRoot, targetArch, 'main', 'native_modules', 'build', 'Release'),
   ];
 
   for (const dir of candidateDirs) {
-    if (fs.existsSync(dir)) {
-      fs.mkdirSync(dir, { recursive: true });
-      fs.copyFileSync(binaryPath, path.join(dir, 'better_sqlite3.node'));
+    const parent = path.dirname(dir);
+    if (!fs.existsSync(parent)) {
+      continue;
     }
+    fs.mkdirSync(dir, { recursive: true });
+    fs.copyFileSync(binaryPath, path.join(dir, 'better_sqlite3.node'));
   }
 
-  console.log(`[afterPack] better-sqlite3 prepared for linux-${arch}`);
+  console.log(`[afterPack] better-sqlite3 prepared for linux-${targetArch}`);
 };
