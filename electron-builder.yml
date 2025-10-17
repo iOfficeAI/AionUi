@@ -44,12 +44,15 @@ files:
 extraResources:
   - from: public
     to: .
-  - from: .webpack
-    to: .webpack
+  - from: .webpack/${arch}/renderer
+    to: .webpack/renderer
     filter:
-      - '**/native_modules/**/*'
-      - '**/renderer/**/*'
+      - '**/*'
       - '!**/*.map'
+  - from: .webpack/${arch}/native_modules
+    to: .webpack/native_modules
+    filter:
+      - '**/*'
 
 # Windows configuration
 win:
