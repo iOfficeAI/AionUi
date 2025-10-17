@@ -16,24 +16,16 @@ import { AUTH_CONFIG } from '../config/constants';
  * Register static assets and page routes
  */
 const resolveRendererPath = () => {
-  const arch = process.arch;
-  // 1. Production: resources/.webpack/{arch}/renderer (copied via extraResources)
-  if (process.resourcesPath) {
-    const prodRoot = path.join(process.resourcesPath, '.webpack', arch, 'renderer');
-    const prodIndex = path.join(prodRoot, 'main_window', 'index.html');
-    if (fs.existsSync(prodIndex)) {
-      return { indexHtml: prodIndex, staticRoot: prodRoot } as const;
-    }
+  // Unified path for both development and production
+  const baseRoot = process.resourcesPath ? path.join(process.resourcesPath, '.webpack', 'renderer') : path.join(process.cwd(), '.webpack', 'renderer');
+
+  const indexHtml = path.join(baseRoot, 'main_window', 'index.html');
+
+  if (fs.existsSync(indexHtml)) {
+    return { indexHtml, staticRoot: baseRoot } as const;
   }
 
-  // 2. Development: cwd/.webpack/{arch}/renderer
-  const devRoot = path.join(process.cwd(), '.webpack', arch, 'renderer');
-  const devIndex = path.join(devRoot, 'main_window', 'index.html');
-  if (fs.existsSync(devIndex)) {
-    return { indexHtml: devIndex, staticRoot: devRoot } as const;
-  }
-
-  throw new Error(`Renderer assets not found at .webpack/${arch}/renderer/main_window/index.html\n` + `Searched: ${process.resourcesPath ? path.join(process.resourcesPath, '.webpack', arch, 'renderer') : path.join(process.cwd(), '.webpack', arch, 'renderer')}`);
+  throw new Error(`Renderer assets not found at ${indexHtml}`);
 };
 
 export function registerStaticRoutes(app: Express): void {
