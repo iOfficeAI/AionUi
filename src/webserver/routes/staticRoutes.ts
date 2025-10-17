@@ -111,10 +111,10 @@ export function registerStaticRoutes(app: Express): void {
    * React Syntax Highlighter 语言包
    * React Syntax Highlighter language packs
    */
-  if (fs.existsSync(rendererPath)) {
+  if (fs.existsSync(staticRoot)) {
     app.use(
       '/react-syntax-highlighter_languages_highlight_',
-      express.static(rendererPath, {
+      express.static(staticRoot, {
         setHeaders: (res, filePath) => {
           if (filePath.includes('react-syntax-highlighter_languages_highlight_')) {
             res.setHeader('Content-Type', 'application/javascript');
