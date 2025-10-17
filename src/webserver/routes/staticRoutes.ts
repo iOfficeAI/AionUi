@@ -16,27 +16,32 @@ import { AUTH_CONFIG } from '../config/constants';
  * Register static assets and page routes
  */
 const resolveRendererPath = () => {
-  const candidates: string[] = [];
-
-  const resourcesPath = process.resourcesPath;
-  if (resourcesPath) {
-    candidates.push(path.join(resourcesPath, 'app.asar.unpacked', '.webpack', 'renderer'));
-    candidates.push(path.join(resourcesPath, '.webpack', 'renderer'));
+  // Packaged build: resources/index.html
+  if (process.resourcesPath) {
+    const packagedIndex = path.join(process.resourcesPath, 'index.html');
+    if (fs.existsSync(packagedIndex)) {
+      return {
+        indexHtml: packagedIndex,
+        staticRoot: process.resourcesPath,
+      } as const;
+    }
   }
 
-  candidates.push(path.join(process.cwd(), '.webpack/renderer'));
-  candidates.push(path.resolve(__dirname, '../../../.webpack/renderer'));
-
-  const match = candidates.find((candidate) => fs.existsSync(path.join(candidate, 'main_window/index.html')));
-  if (!match) {
-    throw new Error(`Renderer assets not found. Checked: ${candidates.join(', ')}`);
+  // Development build: .webpack/renderer/index.html
+  const devIndex = path.join(process.cwd(), '.webpack', 'renderer', 'index.html');
+  if (fs.existsSync(devIndex)) {
+    return {
+      indexHtml: devIndex,
+      staticRoot: path.join(process.cwd(), '.webpack', 'renderer'),
+    } as const;
   }
-  return match;
+
+  throw new Error('Renderer assets not found. Expected index.html in packaged resources or dev renderer output.');
 };
 
 export function registerStaticRoutes(app: Express): void {
-  const rendererPath = resolveRendererPath();
-  const indexHtmlPath = path.join(rendererPath, 'main_window', 'index.html');
+  const { staticRoot, indexHtml } = resolveRendererPath();
+  const indexHtmlPath = indexHtml;
 
   const serveApplication = (req: Request, res: Response) => {
     try {
@@ -84,24 +89,40 @@ export function registerStaticRoutes(app: Express): void {
    * 静态资源
    * Static assets
    */
-  app.use('/main_window.css', express.static(path.join(rendererPath, 'main_window.css')));
-  app.use('/main_window', express.static(path.join(rendererPath, 'main_window')));
-  app.use('/static', express.static(path.join(rendererPath, 'static')));
+  const cssFile = path.join(staticRoot, 'main_window.css');
+  if (fs.existsSync(cssFile)) {
+    app.get('/main_window.css', (_req, res) => {
+      res.setHeader('Content-Type', 'text/css');
+      res.sendFile(cssFile);
+    });
+  }
+
+  const mainWindowDir = path.join(staticRoot, 'main_window');
+  if (fs.existsSync(mainWindowDir) && fs.statSync(mainWindowDir).isDirectory()) {
+    app.use('/main_window', express.static(mainWindowDir));
+  }
+
+  const staticDir = path.join(staticRoot, 'static');
+  if (fs.existsSync(staticDir) && fs.statSync(staticDir).isDirectory()) {
+    app.use('/static', express.static(staticDir));
+  }
 
   /**
    * React Syntax Highlighter 语言包
    * React Syntax Highlighter language packs
    */
-  app.use(
-    '/react-syntax-highlighter_languages_highlight_',
-    express.static(rendererPath, {
-      setHeaders: (res, filePath) => {
-        if (filePath.includes('react-syntax-highlighter_languages_highlight_')) {
-          res.setHeader('Content-Type', 'application/javascript');
-        }
-      },
-    })
-  );
+  if (fs.existsSync(staticRoot)) {
+    app.use(
+      '/react-syntax-highlighter_languages_highlight_',
+      express.static(staticRoot, {
+        setHeaders: (res, filePath) => {
+          if (filePath.includes('react-syntax-highlighter_languages_highlight_')) {
+            res.setHeader('Content-Type', 'application/javascript');
+          }
+        },
+      })
+    );
+  }
 }
 
 export default registerStaticRoutes;
