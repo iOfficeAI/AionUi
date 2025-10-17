@@ -27,7 +27,7 @@ const skipNativeRebuild = process.env.FORGE_SKIP_NATIVE_REBUILD === 'true';
 module.exports = {
   packagerConfig: {
     asar: {
-      unpack: '{**/node_modules/node-pty/**/*,**/node_modules/bcrypt/**/*,**/node_modules/better-sqlite3/**/*}',
+      unpack: '**/node_modules/{node-pty,bcrypt,better-sqlite3}/**/*',
     }, // Enable asar with node-pty, bcrypt, and better-sqlite3 unpacking for AutoUnpackNativesPlugin
     executableName: 'AionUi',
     out: path.resolve(__dirname, 'out'),
@@ -45,7 +45,9 @@ module.exports = {
     icon: path.resolve(__dirname, 'resources/app'), // 应用图标路径
     // Windows 特定配置
     platform: process.env.npm_config_target_platform || process.platform,
-    arch: process.env.npm_config_target_arch || process.env.arch || process.arch,
+    // Use target arch from build script, not host arch
+    // This ensures .webpack/{target-arch}/ matches the final package architecture
+    arch: process.env.ELECTRON_BUILDER_ARCH || process.env.npm_config_target_arch || process.env.arch || process.arch,
   },
   rebuildConfig: {
     // 在 Windows CI 环境下，跳过所有原生模块的重建
