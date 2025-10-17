@@ -5,9 +5,9 @@
   "description": "Transform your command-line AI agent into a modern, efficient AI Chat interface.",
   "main": ".webpack/main",
   "scripts": {
-    "start": "electron-forge start",
-    "start:webui": "electron-forge start -- --webui",
-    "start:webui:remote": "electron-forge start -- --webui --remote",
+    "start": "cross-env FORGE_SKIP_NATIVE_REBUILD=true electron-forge start",
+    "start:webui": "cross-env FORGE_SKIP_NATIVE_REBUILD=true electron-forge start -- --webui",
+    "start:webui:remote": "cross-env FORGE_SKIP_NATIVE_REBUILD=true electron-forge start -- --webui --remote",
     "resetpass": "electron scripts/resetpass.mjs",
     "package": "electron-forge package",
     "make": "electron-forge make",
