@@ -7,10 +7,21 @@ const path = require('path');
  * Ensure architecture-specific native modules (better-sqlite3) are rebuilt for Linux bundles.
  * This runs after electron-builder finishes packaging each target architecture.
  */
-const resolveArch = (archValue) => {
+const resolveArch = (input) => {
+  let archValue = input;
+
   if (typeof archValue === 'string') {
-    return archValue;
+    if (Arch[archValue] !== undefined) {
+      return archValue;
+    }
+    const numeric = Number(archValue);
+    if (!Number.isNaN(numeric)) {
+      archValue = numeric;
+    } else {
+      return archValue;
+    }
   }
+
   const enumValue = Arch[archValue];
   if (typeof enumValue === 'string') {
     return enumValue;
@@ -125,16 +136,22 @@ module.exports = async function afterPack(context) {
 
   // Keep `.webpack` native_modules in sync for runtime lookups
   const webpackRoot = path.join(appOutDir, 'resources', '.webpack');
-  const candidateDirs = [
-    path.join(webpackRoot, 'main', 'native_modules', 'build', 'Release'),
-    path.join(webpackRoot, targetArch, 'main', 'native_modules', 'build', 'Release'),
-  ];
+  const candidateDirs = new Set();
+
+  candidateDirs.add(path.join(webpackRoot, 'main', 'native_modules', 'build', 'Release'));
+
+  if (fs.existsSync(webpackRoot)) {
+    for (const entry of fs.readdirSync(webpackRoot, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue;
+      candidateDirs.add(
+        path.join(webpackRoot, entry.name, 'main', 'native_modules', 'build', 'Release')
+      );
+    }
+  }
 
   for (const dir of candidateDirs) {
     const parent = path.dirname(dir);
-    if (!fs.existsSync(parent)) {
-      continue;
-    }
+    if (!fs.existsSync(parent)) continue;
     fs.mkdirSync(dir, { recursive: true });
     fs.copyFileSync(binaryPath, path.join(dir, 'better_sqlite3.node'));
   }

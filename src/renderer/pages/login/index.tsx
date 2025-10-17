@@ -176,11 +176,11 @@ const LoginPage: React.FC = () => {
 
   return (
     <div className='login-page'>
-      <div className='login-page__background' aria-hidden='true'>
+      {/* <div className='login-page__background' aria-hidden='true'>
         <div className='login-page__background-circle login-page__background-circle--lg' />
         <div className='login-page__background-circle login-page__background-circle--md' />
         <div className='login-page__background-circle login-page__background-circle--sm' />
-      </div>
+      </div> */}
 
       <div className='login-page__card'>
         {/* <label className='login-page__lang-select-wrapper' htmlFor='lang-select'>
