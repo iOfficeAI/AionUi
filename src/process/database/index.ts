@@ -243,17 +243,21 @@ export class AionUIDatabase {
    * @returns Query result with boolean indicating if users exist
    */
   hasUsers(): IQueryResult<boolean> {
-    const result = this.getUserCount();
-    if (!result.success) {
+    try {
+      // 只统计已设置密码的账户，排除尚未完成初始化的占位行
+      // Count only accounts with a non-empty password to ignore placeholder entries
+      const stmt = this.db.prepare(`SELECT COUNT(*) as count FROM users WHERE password_hash IS NOT NULL AND TRIM(password_hash) != ''`);
+      const row = stmt.get() as { count: number };
+      return {
+        success: true,
+        data: row.count > 0,
+      };
+    } catch (error: any) {
       return {
         success: false,
-        error: result.error,
+        error: error.message,
       };
     }
-    return {
-      success: true,
-      data: (result.data ?? 0) > 0,
-    };
   }
 
   /**

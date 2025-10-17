@@ -56,12 +56,14 @@ export const UserRepository = {
    * @returns 是否存在用户 / Whether users exist
    */
   hasUsers(): boolean {
-    const system = this.getSystemUser();
-    if (!system) {
-      return false;
+    const db = getDatabase();
+    const result = db.hasUsers();
+    if (!result.success) {
+      throw new Error(result.error || 'Failed to check users');
     }
-    const hash = system.password_hash || '';
-    return hash.startsWith('$2');
+    // 数据层已经过滤掉未设置密码的占位用户
+    // Database layer already ignores placeholder rows without passwords
+    return Boolean(result.data);
   },
 
   getSystemUser(): AuthUser | null {
