@@ -36,7 +36,7 @@ const resolveRendererPath = () => {
 
 export function registerStaticRoutes(app: Express): void {
   const rendererPath = resolveRendererPath();
-  const indexHtmlPath = path.join(rendererPath, 'main_window/index.html');
+  const indexHtmlPath = path.join(rendererPath, 'main_window', 'index.html');
 
   const serveApplication = (req: Request, res: Response) => {
     try {
