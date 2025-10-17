@@ -15,10 +15,27 @@ import { AUTH_CONFIG } from '../config/constants';
  * 注册静态资源和页面路由
  * Register static assets and page routes
  */
+const resolveRendererPath = () => {
+  const candidates: string[] = [];
+
+  const resourcesPath = process.resourcesPath;
+  if (resourcesPath) {
+    candidates.push(path.join(resourcesPath, 'app.asar.unpacked', '.webpack', 'renderer'));
+    candidates.push(path.join(resourcesPath, '.webpack', 'renderer'));
+  }
+
+  candidates.push(path.join(process.cwd(), '.webpack/renderer'));
+  candidates.push(path.resolve(__dirname, '../../../.webpack/renderer'));
+
+  const match = candidates.find((candidate) => fs.existsSync(path.join(candidate, 'main_window/index.html')));
+  if (!match) {
+    throw new Error(`Renderer assets not found. Checked: ${candidates.join(', ')}`);
+  }
+  return match;
+};
+
 export function registerStaticRoutes(app: Express): void {
-  // 使用 process.cwd() 而不是 __dirname，因为 webpack 打包后 __dirname 会指向错误的位置
-  // Use process.cwd() instead of __dirname because __dirname points to wrong location after webpack bundling
-  const rendererPath = path.join(process.cwd(), '.webpack/renderer');
+  const rendererPath = resolveRendererPath();
   const indexHtmlPath = path.join(rendererPath, 'main_window/index.html');
 
   const serveApplication = (req: Request, res: Response) => {
