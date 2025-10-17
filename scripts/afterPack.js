@@ -134,30 +134,5 @@ module.exports = async function afterPack(context) {
     throw new Error(`[afterPack] Failed to produce better_sqlite3.node for linux-${targetArch}`);
   }
 
-  // Keep `.webpack` native_modules in sync for runtime lookups
-  const webpackRoot = path.join(appOutDir, 'resources', '.webpack');
-  const asarWebpackRoot = path.join(appOutDir, 'resources', 'app.asar.unpacked', '.webpack');
-  const relativeTargets = new Set(['main/native_modules/build/Release']);
-
-  if (fs.existsSync(webpackRoot)) {
-    for (const entry of fs.readdirSync(webpackRoot, { withFileTypes: true })) {
-      if (!entry.isDirectory()) continue;
-      relativeTargets.add(`${entry.name}/main/native_modules/build/Release`);
-    }
-  }
-
-  for (const rel of relativeTargets) {
-    const sourceDir = path.join(webpackRoot, rel);
-    const destDir = path.join(asarWebpackRoot, rel);
-
-    if (fs.existsSync(path.dirname(sourceDir))) {
-      fs.mkdirSync(sourceDir, { recursive: true });
-      fs.copyFileSync(binaryPath, path.join(sourceDir, 'better_sqlite3.node'));
-    }
-
-    fs.mkdirSync(destDir, { recursive: true });
-    fs.copyFileSync(binaryPath, path.join(destDir, 'better_sqlite3.node'));
-  }
-
   console.log(`[afterPack] better-sqlite3 prepared for linux-${targetArch}`);
 };
