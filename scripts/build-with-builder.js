@@ -288,6 +288,26 @@ try {
     console.log(`✅ Created .webpack/main from ${actualArch}`);
   }
 
+  // 3.5. 确保 .webpack/renderer 目录存在（桌面模式需要）
+  console.log(`📁 Ensuring .webpack/renderer exists for desktop mode...`);
+  const webpackRendererDir = path.resolve(__dirname, '../.webpack/renderer');
+  const actualRendererSrc = useArchSpecificSource ? path.join(actualArchDir, 'renderer') : path.join(webpackSrcDir, 'renderer');
+
+  if (!fs.existsSync(webpackRendererDir) || actualArch !== 'renderer') {
+    if (process.platform === 'win32') {
+      if (fs.existsSync(webpackRendererDir)) {
+        execSync(`rmdir /s /q "${webpackRendererDir}"`, { stdio: 'inherit' });
+      }
+      execSync(`xcopy "${actualRendererSrc}" "${webpackRendererDir}" /E /I /H /Y /Q`, { stdio: 'inherit' });
+    } else {
+      if (fs.existsSync(webpackRendererDir)) {
+        execSync(`rm -rf "${webpackRendererDir}"`, { stdio: 'inherit' });
+      }
+      execSync(`cp -r "${actualRendererSrc}" "${webpackRendererDir}"`, { stdio: 'inherit' });
+    }
+    console.log(`✅ Created .webpack/renderer from ${actualArch}`);
+  }
+
   // 4. 运行 electron-builder
   // 在非release环境下禁用发布以避免GH_TOKEN错误
   const isRelease = process.env.GITHUB_REF && process.env.GITHUB_REF.startsWith('refs/tags/v');

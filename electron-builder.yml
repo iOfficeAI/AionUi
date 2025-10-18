@@ -13,8 +13,8 @@ directories:
   buildResources: resources
 
 files:
-  - .webpack/**/*
-  - '!.webpack/**/renderer/**'  # 排除 renderer 文件，通过 extraResources 处理
+  - .webpack/main/**/*  # 只包含 main 目录（桌面模式需要）
+  - .webpack/renderer/**/*  # 包含 renderer 目录（桌面模式需要）
   - public/**/*
   - package.json
   # 排除开发和测试文件
