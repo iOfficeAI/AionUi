@@ -138,16 +138,10 @@ jobs:
 
       - name: Rebuild native modules for Electron
         run: |
-          if [ "${{ matrix.platform }}" == "windows" ]; then
-            npx electron-rebuild --only better-sqlite3,bcrypt --force
-          else
-            npx electron-rebuild --only better-sqlite3,bcrypt,node-pty --force
-          fi
+          # Note: electron-builder will handle native module compilation for each target arch
+          # We skip pre-rebuild here to avoid x64-only compilation
+          echo "Skipping pre-rebuild - electron-builder will compile for each target architecture"
         shell: bash
-        env:
-          npm_config_msvs_version: 2022
-          GYP_MSVS_VERSION: 2022
-          WindowsTargetPlatformVersion: 10.0.19041.0
 
       - name: Build with electron-builder
         run: ${{ matrix.command }}
@@ -174,6 +168,7 @@ jobs:
           GYP_MSVS_VERSION: 2022
           npm_config_disturl: https://electronjs.org/headers
           npm_config_runtime: electron
+          npm_config_target_arch: ${{ matrix.arch }}
           WindowsTargetPlatformVersion: 10.0.19041.0
           _WIN32_WINNT: 0x0A00
           # CI 环境标识

@@ -120,9 +120,10 @@ linux:
       Icon: aionui
       Categories: Office;Utility;
 
-# Native dependency handling - skip rebuilds in CI to avoid compilation issues
-npmRebuild: false
-buildDependenciesFromSource: false
+# Native dependency handling
+# Enable per-architecture native module compilation for cross-platform builds
+npmRebuild: true
+buildDependenciesFromSource: true
 # 减小包体积配置
 nodeGypRebuild: false
 
