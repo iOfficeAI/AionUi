@@ -168,7 +168,8 @@ try {
       execSync(`xcopy "${sourceDir}" "${webpackArchDir}" /E /I /H /Y`, { stdio: 'inherit' });
     } else {
       // Unix: 创建软链接（更快）
-      // 源路径：Forge 可能生成 .webpack/${actualArch}/renderer 或 .webpack/renderer
+      // 源路径：Forge 可能生成 .webpack/${actualArch}/xxx 或 .webpack/xxx
+      const mainSrc = useArchSpecificSource ? path.join(actualArchDir, 'main') : path.join(webpackSrcDir, 'main');
       const rendererSrc = useArchSpecificSource
         ? path.join(actualArchDir, 'renderer')
         : path.join(webpackSrcDir, 'renderer');
@@ -176,13 +177,24 @@ try {
         ? path.join(actualArchDir, 'native_modules')
         : path.join(webpackSrcDir, 'native_modules');
 
+      const mainDest = path.join(webpackArchDir, 'main');
       const rendererDest = path.join(webpackArchDir, 'renderer');
       const nativeModulesDest = path.join(webpackArchDir, 'native_modules');
 
       fs.mkdirSync(webpackArchDir, { recursive: true });
 
+      // Link main directory
+      if (fs.existsSync(mainSrc)) {
+        const absMainSrc = path.resolve(mainSrc);
+        const absMainDest = path.resolve(mainDest);
+        execSync(`ln -sf "${absMainSrc}" "${absMainDest}"`, { stdio: 'inherit' });
+        console.log(`✅ Linked main: ${absMainSrc} -> ${absMainDest}`);
+      } else {
+        console.warn(`⚠️  Main source not found at ${mainSrc}`);
+      }
+
+      // Link renderer directory
       if (fs.existsSync(rendererSrc)) {
-        // 使用绝对路径创建软链接
         const absRendererSrc = path.resolve(rendererSrc);
         const absRendererDest = path.resolve(rendererDest);
         execSync(`ln -sf "${absRendererSrc}" "${absRendererDest}"`, { stdio: 'inherit' });
@@ -191,6 +203,7 @@ try {
         console.warn(`⚠️  Renderer source not found at ${rendererSrc}`);
       }
 
+      // Link native_modules directory
       if (fs.existsSync(nativeModulesSrc)) {
         const absNativeModulesSrc = path.resolve(nativeModulesSrc);
         const absNativeModulesDest = path.resolve(nativeModulesDest);
