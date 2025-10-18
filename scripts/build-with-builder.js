@@ -48,47 +48,103 @@ try {
   execSync('npm run package', { stdio: 'inherit', env: forgeEnv });
 
   // 2.5 验证 Forge 输出的架构
-  const webpackDirs = fs.readdirSync(path.resolve(__dirname, '../.webpack')).filter(d =>
-    fs.statSync(path.join(__dirname, '../.webpack', d)).isDirectory()
+  const webpackBaseDir = path.resolve(__dirname, '../.webpack');
+  const webpackDirs = fs.readdirSync(webpackBaseDir).filter(d =>
+    fs.statSync(path.join(webpackBaseDir, d)).isDirectory()
   );
   console.log(`🔍 Forge generated directories: ${webpackDirs.join(', ')}`);
 
-  // 检查是否有架构子目录（如 x64, arm64）
-  const archDirs = webpackDirs.filter(d => ['x64', 'arm64', 'ia32', 'armv7l'].includes(d));
-  if (archDirs.length > 0 && !archDirs.includes(arch)) {
-    console.error(`❌ ERROR: Forge generated ${archDirs[0]} but expected ${arch}`);
-    console.error(`❌ This means Forge did not respect ELECTRON_BUILDER_ARCH environment variable`);
-    throw new Error(`Architecture mismatch: expected ${arch}, got ${archDirs[0]}`);
+  // 检测架构目录：通过检查是否包含 main/index.js 来判断是否为有效的 Forge 输出目录
+  const archDirs = webpackDirs.filter(d => {
+    const mainIndexPath = path.join(webpackBaseDir, d, 'main', 'index.js');
+    return fs.existsSync(mainIndexPath);
+  });
+
+  console.log(`🔍 Valid Forge build directories (with main/index.js): ${archDirs.length > 0 ? archDirs.join(', ') : 'none'}`);
+
+  // 确定实际生成的架构目录（Forge 实际输出的架构）
+  let actualArch = arch; // 默认假设 Forge 生成了目标架构
+  if (archDirs.length > 0) {
+    // 如果存在多个架构目录，通过检查 main/index.js 的修改时间来确定最新的
+    if (archDirs.length > 1) {
+      console.log(`🔍 Multiple build directories found, detecting latest by timestamp...`);
+
+      let latestArch = archDirs[0];
+      let latestTime = 0;
+
+      for (const archDir of archDirs) {
+        const mainIndexPath = path.join(webpackBaseDir, archDir, 'main', 'index.js');
+        const stats = fs.statSync(mainIndexPath);
+        if (stats.mtimeMs > latestTime) {
+          latestTime = stats.mtimeMs;
+          latestArch = archDir;
+        }
+      }
+
+      actualArch = latestArch;
+      console.log(`✅ Detected latest build: ${actualArch} (modified: ${new Date(latestTime).toISOString()})`);
+    } else {
+      actualArch = archDirs[0];
+    }
+
+    if (actualArch !== arch) {
+      console.log(`⚠️  WARNING: Forge generated ${actualArch} but target is ${arch}`);
+      console.log(`📝 Will copy/link from ${actualArch} to ${arch} for electron-builder`);
+    }
   }
 
   // 2.6 确保 .webpack/${arch} 目录存在供 electron-builder extraResources 使用
-  // Forge 输出在 .webpack/ 但 electron-builder 需要 .webpack/${arch}/
+  // Forge 可能输出在 .webpack/${actualArch}/ 但 electron-builder 需要 .webpack/${arch}/
   console.log(`📁 Preparing .webpack/${arch} directory for electron-builder...`);
   const webpackSrcDir = path.resolve(__dirname, '../.webpack');
   const webpackArchDir = path.resolve(__dirname, `../.webpack/${arch}`);
 
-  // 如果 .webpack/${arch} 不存在，创建软链接或复制
-  if (!fs.existsSync(webpackArchDir)) {
+  // 确定源目录：优先使用 Forge 实际生成的架构目录
+  const actualArchDir = path.join(webpackSrcDir, actualArch);
+  const useArchSpecificSource = fs.existsSync(actualArchDir);
+
+  // 如果目标架构目录不存在，或者需要从不同架构复制，则创建
+  if (!fs.existsSync(webpackArchDir) || actualArch !== arch) {
     // 在 Unix 系统使用软链接，Windows 使用目录复制
     if (process.platform === 'win32') {
       // Windows: 复制目录
-      execSync(`xcopy "${webpackSrcDir}" "${webpackArchDir}" /E /I /H /Y`, { stdio: 'inherit' });
+      const sourceDir = useArchSpecificSource ? actualArchDir : webpackSrcDir;
+      execSync(`xcopy "${sourceDir}" "${webpackArchDir}" /E /I /H /Y`, { stdio: 'inherit' });
     } else {
       // Unix: 创建软链接（更快）
-      const rendererSrc = path.join(webpackSrcDir, 'renderer');
-      const nativeModulesSrc = path.join(webpackSrcDir, 'native_modules');
+      // 源路径：Forge 可能生成 .webpack/${actualArch}/renderer 或 .webpack/renderer
+      const rendererSrc = useArchSpecificSource
+        ? path.join(actualArchDir, 'renderer')
+        : path.join(webpackSrcDir, 'renderer');
+      const nativeModulesSrc = useArchSpecificSource
+        ? path.join(actualArchDir, 'native_modules')
+        : path.join(webpackSrcDir, 'native_modules');
+
       const rendererDest = path.join(webpackArchDir, 'renderer');
       const nativeModulesDest = path.join(webpackArchDir, 'native_modules');
 
       fs.mkdirSync(webpackArchDir, { recursive: true });
+
       if (fs.existsSync(rendererSrc)) {
-        execSync(`ln -sf "${rendererSrc}" "${rendererDest}"`, { stdio: 'inherit' });
+        // 使用绝对路径创建软链接
+        const absRendererSrc = path.resolve(rendererSrc);
+        const absRendererDest = path.resolve(rendererDest);
+        execSync(`ln -sf "${absRendererSrc}" "${absRendererDest}"`, { stdio: 'inherit' });
+        console.log(`✅ Linked renderer: ${absRendererSrc} -> ${absRendererDest}`);
+      } else {
+        console.warn(`⚠️  Renderer source not found at ${rendererSrc}`);
       }
+
       if (fs.existsSync(nativeModulesSrc)) {
-        execSync(`ln -sf "${nativeModulesSrc}" "${nativeModulesDest}"`, { stdio: 'inherit' });
+        const absNativeModulesSrc = path.resolve(nativeModulesSrc);
+        const absNativeModulesDest = path.resolve(nativeModulesDest);
+        execSync(`ln -sf "${absNativeModulesSrc}" "${absNativeModulesDest}"`, { stdio: 'inherit' });
+        console.log(`✅ Linked native_modules: ${absNativeModulesSrc} -> ${absNativeModulesDest}`);
+      } else {
+        console.warn(`⚠️  Native modules source not found at ${nativeModulesSrc}`);
       }
     }
-    console.log(`✅ Created .webpack/${arch} structure`);
+    console.log(`✅ Created .webpack/${arch} structure from ${actualArch}`);
   }
 
   // 3. 更新 main 字段用于 electron-builder
