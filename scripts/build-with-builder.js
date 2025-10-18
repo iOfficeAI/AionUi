@@ -130,7 +130,7 @@ try {
   console.log(`🔍 Valid Forge build directories (with main/index.js): ${archDirs.length > 0 ? archDirs.join(', ') : 'none'}`);
 
   // 确定实际生成的架构目录（Forge 实际输出的架构）
-  let actualArch = arch; // 默认假设 Forge 生成了目标架构
+  let actualArch = buildMachineArch; // 默认假设 Forge 生成了构建机器的架构
   if (archDirs.length > 0) {
     // 如果存在多个架构目录，通过检查 main/index.js 的修改时间来确定最新的
     if (archDirs.length > 1) {
