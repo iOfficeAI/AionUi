@@ -14,6 +14,7 @@ directories:
 
 files:
   - .webpack/**/*
+  - '!.webpack/**/renderer/**'  # 排除 renderer 文件，通过 extraResources 处理
   - public/**/*
   - package.json
   # 排除开发和测试文件
