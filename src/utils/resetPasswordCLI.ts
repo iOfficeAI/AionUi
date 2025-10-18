@@ -31,38 +31,49 @@ const log = {
   highlight: (msg: string) => console.log(`${colors.cyan}${colors.bright}${msg}${colors.reset}`),
 };
 
-// Dynamic bcrypt loading with fallback
-// 动态加载bcrypt,带有fallback
-const getBcrypt = (): typeof import('bcrypt') | null => {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    return require('bcrypt');
-  } catch (error) {
-    return null;
-  }
+// Bcrypt adapter type
+type BcryptAdapter = {
+  hash(password: string, rounds: number): Promise<string>;
 };
 
-// Hash password using bcrypt or fallback to pbkdf2
-// 使用bcrypt或降级到pbkdf2来哈希密码
-async function hashPassword(password: string): Promise<string> {
-  const bcrypt = getBcrypt();
-
-  if (bcrypt) {
-    // Use native bcrypt if available
-    return bcrypt.hash(password, 10);
-  }
-
-  // Fallback to pbkdf2 (same as AuthService)
-  log.warning('bcrypt not available, using pbkdf2 fallback');
-  const iterations = 120_000;
-  const salt = crypto.randomBytes(16);
-  const derived = await new Promise<Buffer>((resolve, reject) => {
-    crypto.pbkdf2(password, salt, iterations, 32, 'sha256', (err, key) => {
-      if (err) reject(err);
-      else resolve(key);
+// Helper function for pbkdf2 hashing
+const pbkdf2Hash = (password: string, salt: Buffer, iterations: number): Promise<Buffer> =>
+  new Promise((resolve, reject) => {
+    crypto.pbkdf2(password, salt, iterations, 32, 'sha256', (err, derived) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(derived);
+      }
     });
   });
-  return `pbkdf2$${iterations}$${salt.toString('base64')}$${derived.toString('base64')}`;
+
+// Dynamic bcrypt loading with fallback (same pattern as AuthService)
+// 动态加载bcrypt并降级到pbkdf2 (与AuthService相同的模式)
+const bcryptAdapter: BcryptAdapter = (() => {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires,global-require
+    const native: typeof import('bcrypt') = require('bcrypt');
+    return {
+      hash: (password: string, rounds: number) => native.hash(password, rounds),
+    };
+  } catch (nativeError) {
+    log.warning('bcrypt not available, using pbkdf2 fallback');
+    return {
+      hash: async (password: string) => {
+        const iterations = 120_000;
+        const salt = crypto.randomBytes(16);
+        const derived = await pbkdf2Hash(password, salt, iterations);
+        return `pbkdf2$${iterations}$${salt.toString('base64')}$${derived.toString('base64')}`;
+      },
+    };
+  }
+})();
+
+// Hash password using bcrypt adapter
+// 使用bcrypt适配器哈希密码
+function hashPassword(password: string): Promise<string> {
+  return bcryptAdapter.hash(password, 10);
 }
 
 // 生成随机密码 / Generate random password
@@ -146,8 +157,9 @@ export async function resetPasswordCLI(username: string): Promise<void> {
     log.info('   2. You will be redirected to login page');
     log.info('   3. Login with the new password above');
     console.log('');
-  } catch (error: any) {
-    log.error(`Error: ${error.message}`);
+  } catch (error: unknown) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    log.error(`Error: ${errorMessage}`);
     console.error(error);
     process.exit(1);
   } finally {
