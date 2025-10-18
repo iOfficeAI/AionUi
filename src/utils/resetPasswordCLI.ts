@@ -1,19 +1,16 @@
-#!/usr/bin/env node
 /**
  * @license
  * Copyright 2025 AionUi (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  *
- * 重置密码脚本 / Reset Password Script
- *
- * Usage: node scripts/resetpass.mjs [username]
- * Default username: admin
+ * Reset password CLI utility for packaged applications
+ * 打包应用的密码重置命令行工具
  */
 
 import crypto from 'crypto';
-import Database from 'better-sqlite3';
 import bcrypt from 'bcrypt';
-import os from 'os';
+import Database from 'better-sqlite3';
+import { getDataPath, ensureDirectory } from '@process/utils';
 import path from 'path';
 
 // 颜色输出 / Color output
@@ -28,15 +25,15 @@ const colors = {
 };
 
 const log = {
-  info: (msg) => console.log(`${colors.blue}ℹ${colors.reset} ${msg}`),
-  success: (msg) => console.log(`${colors.green}✓${colors.reset} ${msg}`),
-  error: (msg) => console.log(`${colors.red}✗${colors.reset} ${msg}`),
-  warning: (msg) => console.log(`${colors.yellow}⚠${colors.reset} ${msg}`),
-  highlight: (msg) => console.log(`${colors.cyan}${colors.bright}${msg}${colors.reset}`),
+  info: (msg: string) => console.log(`${colors.blue}ℹ${colors.reset} ${msg}`),
+  success: (msg: string) => console.log(`${colors.green}✓${colors.reset} ${msg}`),
+  error: (msg: string) => console.log(`${colors.red}✗${colors.reset} ${msg}`),
+  warning: (msg: string) => console.log(`${colors.yellow}⚠${colors.reset} ${msg}`),
+  highlight: (msg: string) => console.log(`${colors.cyan}${colors.bright}${msg}${colors.reset}`),
 };
 
 // 生成随机密码 / Generate random password
-function generatePassword() {
+function generatePassword(): string {
   const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   let password = '';
   for (let i = 0; i < 12; i++) {
@@ -45,77 +42,61 @@ function generatePassword() {
   return password;
 }
 
-// 获取 Electron userData 路径 / Get Electron userData path
-function getElectronUserDataPath() {
-  const home = os.homedir();
-  const platform = process.platform;
-  const appName = 'AionUi';
+/**
+ * Reset password for a user (CLI mode, works in packaged apps)
+ * 重置用户密码（CLI模式,在打包应用中可用）
+ *
+ * @param username - Username to reset password for
+ */
+export async function resetPasswordCLI(username: string): Promise<void> {
+  let db: Database.Database | null = null;
 
-  switch (platform) {
-    case 'darwin':
-      return path.join(home, 'Library', 'Application Support', appName);
-    case 'win32':
-      return path.join(process.env.APPDATA || path.join(home, 'AppData', 'Roaming'), appName);
-    case 'linux':
-      return path.join(process.env.XDG_CONFIG_HOME || path.join(home, '.config'), appName);
-    default:
-      throw new Error(`Unsupported platform: ${platform}`);
-  }
-}
-
-// 获取数据库路径 / Get database path
-function getDbPath() {
-  // 从环境变量读取 / Read from environment variable
-  if (process.env.AIONUI_DB_PATH) {
-    return process.env.AIONUI_DB_PATH;
-  }
-
-  // 默认路径: userData/aionui/aionui.db
-  // Default path: userData/aionui/aionui.db
-  const userDataPath = getElectronUserDataPath();
-  return path.join(userDataPath, 'aionui', 'aionui.db');
-}
-
-async function resetPassword() {
   try {
-    // 获取用户名参数 / Get username argument
-    const username = process.argv[2] || 'admin';
-
     log.info('Starting password reset...');
     log.info(`Target user: ${username}`);
 
-    // 连接数据库 / Connect to database
-    const dbPath = getDbPath();
+    // Get database path using the same logic as the main app
+    const dbPath = path.join(getDataPath(), 'aionui.db');
     log.info(`Database path: ${dbPath}`);
 
-    const db = new Database(dbPath);
+    // Ensure directory exists
+    const dir = path.dirname(dbPath);
+    ensureDirectory(dir);
 
-    // 查找用户 / Find user
-    const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
+    // Connect to database
+    db = new Database(dbPath);
+
+    // Find user
+    const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username) as { id: string; username: string; password_hash: string; jwt_secret: string | null } | undefined;
 
     if (!user) {
       log.error(`User '${username}' not found in database`);
-      db.close();
+      log.info('');
+      log.info('Available users:');
+      const allUsers = db.prepare('SELECT username FROM users').all() as { username: string }[];
+      if (allUsers.length === 0) {
+        log.info('  (no users found)');
+      } else {
+        allUsers.forEach((u) => log.info(`  - ${u.username}`));
+      }
       process.exit(1);
     }
 
     log.info(`Found user: ${user.username} (ID: ${user.id})`);
 
-    // 生成新密码 / Generate new password
+    // Generate new password
     const newPassword = generatePassword();
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-    // 更新密码 / Update password
+    // Update password
     const now = Date.now();
     db.prepare('UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?').run(hashedPassword, now, user.id);
 
-    // 生成并更新 JWT Secret / Generate and update JWT secret
+    // Generate and update JWT Secret
     const newJwtSecret = crypto.randomBytes(64).toString('hex');
     db.prepare('UPDATE users SET jwt_secret = ?, updated_at = ? WHERE id = ?').run(newJwtSecret, now, user.id);
 
-    db.close();
-
-    // 显示结果 / Display result
+    // Display result
     console.log('');
     log.success('Password reset successfully!');
     console.log('');
@@ -132,12 +113,14 @@ async function resetPassword() {
     log.info('   2. You will be redirected to login page');
     log.info('   3. Login with the new password above');
     console.log('');
-  } catch (error) {
+  } catch (error: any) {
     log.error(`Error: ${error.message}`);
     console.error(error);
     process.exit(1);
+  } finally {
+    // Close database connection
+    if (db) {
+      db.close();
+    }
   }
 }
-
-// 运行脚本 / Run script
-resetPassword();
