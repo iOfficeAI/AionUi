@@ -8,7 +8,6 @@
  */
 
 import crypto from 'crypto';
-import bcrypt from 'bcrypt';
 import Database from 'better-sqlite3';
 import { getDataPath, ensureDirectory } from '@process/utils';
 import path from 'path';
@@ -31,6 +30,40 @@ const log = {
   warning: (msg: string) => console.log(`${colors.yellow}⚠${colors.reset} ${msg}`),
   highlight: (msg: string) => console.log(`${colors.cyan}${colors.bright}${msg}${colors.reset}`),
 };
+
+// Dynamic bcrypt loading with fallback
+// 动态加载bcrypt,带有fallback
+const getBcrypt = (): typeof import('bcrypt') | null => {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    return require('bcrypt');
+  } catch (error) {
+    return null;
+  }
+};
+
+// Hash password using bcrypt or fallback to pbkdf2
+// 使用bcrypt或降级到pbkdf2来哈希密码
+async function hashPassword(password: string): Promise<string> {
+  const bcrypt = getBcrypt();
+
+  if (bcrypt) {
+    // Use native bcrypt if available
+    return bcrypt.hash(password, 10);
+  }
+
+  // Fallback to pbkdf2 (same as AuthService)
+  log.warning('bcrypt not available, using pbkdf2 fallback');
+  const iterations = 120_000;
+  const salt = crypto.randomBytes(16);
+  const derived = await new Promise<Buffer>((resolve, reject) => {
+    crypto.pbkdf2(password, salt, iterations, 32, 'sha256', (err, key) => {
+      if (err) reject(err);
+      else resolve(key);
+    });
+  });
+  return `pbkdf2$${iterations}$${salt.toString('base64')}$${derived.toString('base64')}`;
+}
 
 // 生成随机密码 / Generate random password
 function generatePassword(): string {
@@ -86,7 +119,7 @@ export async function resetPasswordCLI(username: string): Promise<void> {
 
     // Generate new password
     const newPassword = generatePassword();
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const hashedPassword = await hashPassword(newPassword);
 
     // Update password
     const now = Date.now();
