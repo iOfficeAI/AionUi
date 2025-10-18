@@ -266,12 +266,27 @@ try {
     }
   }
 
-  // 3. 更新 main 字段用于 electron-builder
-  // 使用 Forge 实际编译的架构作为主入口（确保文件存在）
-  console.log(`🔧 Updating main entry for ${actualArch}...`);
-  const updatedPackageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-  updatedPackageJson.main = `.webpack/${actualArch}/main/index.js`;
-  fs.writeFileSync(packageJsonPath, JSON.stringify(updatedPackageJson, null, 2) + '\n');
+  // 3. 确保 .webpack/main 目录存在（package.json 中的 main 字段需要它）
+  // package.json 的 main 字段保持为 ".webpack/main"，不做修改
+  // 通过复制确保这个路径在打包后的应用中存在
+  console.log(`📁 Ensuring .webpack/main exists for package.json main entry...`);
+  const webpackMainDir = path.resolve(__dirname, '../.webpack/main');
+  const actualMainSrc = useArchSpecificSource ? path.join(actualArchDir, 'main') : path.join(webpackSrcDir, 'main');
+
+  if (!fs.existsSync(webpackMainDir) || actualArch !== 'main') {
+    if (process.platform === 'win32') {
+      if (fs.existsSync(webpackMainDir)) {
+        execSync(`rmdir /s /q "${webpackMainDir}"`, { stdio: 'inherit' });
+      }
+      execSync(`xcopy "${actualMainSrc}" "${webpackMainDir}" /E /I /H /Y /Q`, { stdio: 'inherit' });
+    } else {
+      if (fs.existsSync(webpackMainDir)) {
+        execSync(`rm -rf "${webpackMainDir}"`, { stdio: 'inherit' });
+      }
+      execSync(`cp -r "${actualMainSrc}" "${webpackMainDir}"`, { stdio: 'inherit' });
+    }
+    console.log(`✅ Created .webpack/main from ${actualArch}`);
+  }
 
   // 4. 运行 electron-builder
   // 在非release环境下禁用发布以避免GH_TOKEN错误
@@ -280,23 +295,8 @@ try {
   console.log(`🚀 Running electron-builder ${builderArgs} ${publishArg}...`);
   execSync(`npx electron-builder ${builderArgs} ${publishArg}`, { stdio: 'inherit' });
 
-  // 5. 恢复 main 字段
-  console.log('🔄 Restoring main entry...');
-  const finalPackageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-  finalPackageJson.main = '.webpack/main';  // 确保恢复到正确的默认值
-  fs.writeFileSync(packageJsonPath, JSON.stringify(finalPackageJson, null, 2) + '\n');
-
   console.log('✅ Build completed successfully!');
 } catch (error) {
-  // 出错时也要恢复 main 字段
-  try {
-    const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-    packageJson.main = '.webpack/main';
-    fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n');
-  } catch (e) {
-    console.error('Failed to restore package.json:', e.message);
-  }
-  
   console.error('❌ Build failed:', error.message);
   process.exit(1);
 }
