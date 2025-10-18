@@ -6,8 +6,64 @@ const path = require('path');
 
 // 获取构建参数
 const args = process.argv.slice(2);
-const arch = args[0] === 'auto' ? process.arch : args[0] || process.arch;
+
+// 从 electron-builder.yml 读取目标架构配置（简单的文本解析，避免依赖 js-yaml）
+function getTargetArchFromConfig(platform) {
+  try {
+    const configPath = path.resolve(__dirname, '../electron-builder.yml');
+    const content = fs.readFileSync(configPath, 'utf8');
+
+    // 查找平台配置块（如 "linux:"）
+    const platformRegex = new RegExp(`^${platform}:\\s*$`, 'm');
+    const platformMatch = content.match(platformRegex);
+    if (!platformMatch) {
+      return null;
+    }
+
+    // 提取平台配置块（从 "linux:" 到下一个顶级键或文件末尾）
+    // 顶级键的特征：行首无缩进 + 键名 + 冒号
+    const platformStartIndex = platformMatch.index;
+    const afterPlatform = content.slice(platformStartIndex + platformMatch[0].length);
+    const nextPlatformMatch = afterPlatform.match(/^[a-zA-Z][a-zA-Z0-9]*:/m);
+    const platformBlock = nextPlatformMatch
+      ? content.slice(platformStartIndex, platformStartIndex + platformMatch[0].length + nextPlatformMatch.index)
+      : content.slice(platformStartIndex);
+
+    // 查找 arch: [ xxx ] 或 arch: [xxx, yyy] 模式（支持多种格式）
+    // 示例：arch: [ arm64 ] 或 arch: [x64, arm64] 或 arch: [ x64, arm64 ]
+    const archMatch = platformBlock.match(/arch:\s*\[\s*([a-z0-9_]+)/i);
+    if (archMatch) {
+      return archMatch[1].trim();
+    }
+
+    return null;
+  } catch (error) {
+    console.warn(`⚠️  Failed to read target arch from electron-builder.yml: ${error.message}`);
+    return null;
+  }
+}
+
+// 确定目标架构
 const builderArgs = args.slice(1).join(' ');
+let arch;
+if (args[0] === 'auto') {
+  // auto 模式：尝试从 electron-builder.yml 推断目标架构
+  let detectedPlatform = null;
+  if (builderArgs.includes('--linux')) detectedPlatform = 'linux';
+  else if (builderArgs.includes('--mac')) detectedPlatform = 'mac';
+  else if (builderArgs.includes('--win')) detectedPlatform = 'win';
+
+  const configArch = detectedPlatform ? getTargetArchFromConfig(detectedPlatform) : null;
+  arch = configArch || process.arch;
+
+  if (configArch) {
+    console.log(`🔍 Detected target architecture from electron-builder.yml: ${arch}`);
+  } else {
+    console.log(`🔍 Using build machine architecture: ${arch}`);
+  }
+} else {
+  arch = args[0] || process.arch;
+}
 
 const packageJsonPath = path.resolve(__dirname, '../package.json');
 
