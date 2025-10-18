@@ -41,12 +41,27 @@ try {
   }
 
   // 2. 运行 Forge 打包
-  console.log('📦 Running Forge package...');
+  console.log(`📦 Running Forge package for ${arch}...`);
+  console.log(`🔍 Setting ELECTRON_BUILDER_ARCH=${arch}`);
   // Pass target architecture to Forge via environment variable
   const forgeEnv = { ...process.env, ELECTRON_BUILDER_ARCH: arch };
   execSync('npm run package', { stdio: 'inherit', env: forgeEnv });
 
-  // 2.5 确保 .webpack/${arch} 目录存在供 electron-builder extraResources 使用
+  // 2.5 验证 Forge 输出的架构
+  const webpackDirs = fs.readdirSync(path.resolve(__dirname, '../.webpack')).filter(d =>
+    fs.statSync(path.join(__dirname, '../.webpack', d)).isDirectory()
+  );
+  console.log(`🔍 Forge generated directories: ${webpackDirs.join(', ')}`);
+
+  // 检查是否有架构子目录（如 x64, arm64）
+  const archDirs = webpackDirs.filter(d => ['x64', 'arm64', 'ia32', 'armv7l'].includes(d));
+  if (archDirs.length > 0 && !archDirs.includes(arch)) {
+    console.error(`❌ ERROR: Forge generated ${archDirs[0]} but expected ${arch}`);
+    console.error(`❌ This means Forge did not respect ELECTRON_BUILDER_ARCH environment variable`);
+    throw new Error(`Architecture mismatch: expected ${arch}, got ${archDirs[0]}`);
+  }
+
+  // 2.6 确保 .webpack/${arch} 目录存在供 electron-builder extraResources 使用
   // Forge 输出在 .webpack/ 但 electron-builder 需要 .webpack/${arch}/
   console.log(`📁 Preparing .webpack/${arch} directory for electron-builder...`);
   const webpackSrcDir = path.resolve(__dirname, '../.webpack');
