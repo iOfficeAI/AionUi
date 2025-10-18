@@ -167,7 +167,7 @@ try {
       const sourceDir = useArchSpecificSource ? actualArchDir : webpackSrcDir;
       execSync(`xcopy "${sourceDir}" "${webpackArchDir}" /E /I /H /Y`, { stdio: 'inherit' });
     } else {
-      // Unix: 创建软链接（更快）
+      // Unix: 复制目录（而不是软链接，因为 asar 不支持软链接）
       // 源路径：Forge 可能生成 .webpack/${actualArch}/xxx 或 .webpack/xxx
       const mainSrc = useArchSpecificSource ? path.join(actualArchDir, 'main') : path.join(webpackSrcDir, 'main');
       const rendererSrc = useArchSpecificSource
@@ -183,32 +183,32 @@ try {
 
       fs.mkdirSync(webpackArchDir, { recursive: true });
 
-      // Link main directory
+      // Copy main directory
       if (fs.existsSync(mainSrc)) {
         const absMainSrc = path.resolve(mainSrc);
         const absMainDest = path.resolve(mainDest);
-        execSync(`ln -sf "${absMainSrc}" "${absMainDest}"`, { stdio: 'inherit' });
-        console.log(`✅ Linked main: ${absMainSrc} -> ${absMainDest}`);
+        execSync(`cp -r "${absMainSrc}" "${absMainDest}"`, { stdio: 'inherit' });
+        console.log(`✅ Copied main: ${absMainSrc} -> ${absMainDest}`);
       } else {
         console.warn(`⚠️  Main source not found at ${mainSrc}`);
       }
 
-      // Link renderer directory
+      // Copy renderer directory (for extraResources)
       if (fs.existsSync(rendererSrc)) {
         const absRendererSrc = path.resolve(rendererSrc);
         const absRendererDest = path.resolve(rendererDest);
-        execSync(`ln -sf "${absRendererSrc}" "${absRendererDest}"`, { stdio: 'inherit' });
-        console.log(`✅ Linked renderer: ${absRendererSrc} -> ${absRendererDest}`);
+        execSync(`cp -r "${absRendererSrc}" "${absRendererDest}"`, { stdio: 'inherit' });
+        console.log(`✅ Copied renderer: ${absRendererSrc} -> ${absRendererDest}`);
       } else {
         console.warn(`⚠️  Renderer source not found at ${rendererSrc}`);
       }
 
-      // Link native_modules directory
+      // Copy native_modules directory (for extraResources)
       if (fs.existsSync(nativeModulesSrc)) {
         const absNativeModulesSrc = path.resolve(nativeModulesSrc);
         const absNativeModulesDest = path.resolve(nativeModulesDest);
-        execSync(`ln -sf "${absNativeModulesSrc}" "${absNativeModulesDest}"`, { stdio: 'inherit' });
-        console.log(`✅ Linked native_modules: ${absNativeModulesSrc} -> ${absNativeModulesDest}`);
+        execSync(`cp -r "${absNativeModulesSrc}" "${absNativeModulesDest}"`, { stdio: 'inherit' });
+        console.log(`✅ Copied native_modules: ${absNativeModulesSrc} -> ${absNativeModulesDest}`);
       } else {
         console.warn(`⚠️  Native modules source not found at ${nativeModulesSrc}`);
       }
