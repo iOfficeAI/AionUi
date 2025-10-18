@@ -102,9 +102,9 @@ afterSign: scripts/afterSign.js
 linux:
   target:
     - target: deb
-      arch: [ arm64 ]
-  #    - target: AppImage
-  #      arch: [x64, arm64, armv7l]
+      arch: [ x64, arm64, armv7l ]
+    - target: AppImage
+      arch: [ x64, arm64, armv7l ]
   icon: resources/app.png
   artifactName: ${productName}-${version}-${os}-${arch}.${ext}
   category: Utility
