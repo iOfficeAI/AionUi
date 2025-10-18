@@ -106,10 +106,12 @@ try {
   }
 
   // 2. 运行 Forge 打包
-  console.log(`📦 Running Forge package for ${arch}...`);
-  console.log(`🔍 Setting ELECTRON_BUILDER_ARCH=${arch}`);
+  // Forge 会根据构建机器的架构编译，我们传递第一个目标架构作为提示
+  const forgeTargetArch = targetArches[0];
+  console.log(`📦 Running Forge package for ${forgeTargetArch}...`);
+  console.log(`🔍 Setting ELECTRON_BUILDER_ARCH=${forgeTargetArch}`);
   // Pass target architecture to Forge via environment variable
-  const forgeEnv = { ...process.env, ELECTRON_BUILDER_ARCH: arch };
+  const forgeEnv = { ...process.env, ELECTRON_BUILDER_ARCH: forgeTargetArch };
   execSync('npm run package', { stdio: 'inherit', env: forgeEnv });
 
   // 2.5 验证 Forge 输出的架构
