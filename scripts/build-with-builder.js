@@ -46,6 +46,36 @@ try {
   const forgeEnv = { ...process.env, ELECTRON_BUILDER_ARCH: arch };
   execSync('npm run package', { stdio: 'inherit', env: forgeEnv });
 
+  // 2.5 确保 .webpack/${arch} 目录存在供 electron-builder extraResources 使用
+  // Forge 输出在 .webpack/ 但 electron-builder 需要 .webpack/${arch}/
+  console.log(`📁 Preparing .webpack/${arch} directory for electron-builder...`);
+  const webpackSrcDir = path.resolve(__dirname, '../.webpack');
+  const webpackArchDir = path.resolve(__dirname, `../.webpack/${arch}`);
+
+  // 如果 .webpack/${arch} 不存在，创建软链接或复制
+  if (!fs.existsSync(webpackArchDir)) {
+    // 在 Unix 系统使用软链接，Windows 使用目录复制
+    if (process.platform === 'win32') {
+      // Windows: 复制目录
+      execSync(`xcopy "${webpackSrcDir}" "${webpackArchDir}" /E /I /H /Y`, { stdio: 'inherit' });
+    } else {
+      // Unix: 创建软链接（更快）
+      const rendererSrc = path.join(webpackSrcDir, 'renderer');
+      const nativeModulesSrc = path.join(webpackSrcDir, 'native_modules');
+      const rendererDest = path.join(webpackArchDir, 'renderer');
+      const nativeModulesDest = path.join(webpackArchDir, 'native_modules');
+
+      fs.mkdirSync(webpackArchDir, { recursive: true });
+      if (fs.existsSync(rendererSrc)) {
+        execSync(`ln -sf "${rendererSrc}" "${rendererDest}"`, { stdio: 'inherit' });
+      }
+      if (fs.existsSync(nativeModulesSrc)) {
+        execSync(`ln -sf "${nativeModulesSrc}" "${nativeModulesDest}"`, { stdio: 'inherit' });
+      }
+    }
+    console.log(`✅ Created .webpack/${arch} structure`);
+  }
+
   // 3. 更新 main 字段用于 electron-builder
   console.log(`🔧 Updating main entry for ${arch}...`);
   const updatedPackageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
