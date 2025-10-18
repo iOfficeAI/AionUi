@@ -134,7 +134,13 @@ jobs:
           sudo apt-get install -y build-essential python3 python3-pip pkg-config libsqlite3-dev fakeroot dpkg-dev rpm libnss3-dev libatk-bridge2.0-dev libdrm2 libxkbcommon-dev libxss1 libatspi2.0-dev libgtk-3-dev libxrandr2 libasound2-dev
 
       - name: Rebuild native modules for Electron
-        run: npx electron-rebuild --only better-sqlite3,bcrypt,node-pty --force
+        run: |
+          if [ "${{ matrix.platform }}" == "windows" ]; then
+            npx electron-rebuild --only better-sqlite3,bcrypt --force
+          else
+            npx electron-rebuild --only better-sqlite3,bcrypt,node-pty --force
+          fi
+        shell: bash
         env:
           npm_config_msvs_version: 2022
           GYP_MSVS_VERSION: 2022
