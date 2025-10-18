@@ -121,10 +121,8 @@ linux:
       Categories: Office;Utility;
 
 # Native dependency handling
-# node-pty uses prebuilt binaries from @lydell/node-pty-* packages, no rebuild needed
-# Only bcrypt and better-sqlite3 need to be rebuilt for target architectures
-# We handle selective rebuild in beforeBuild hook (see scripts/beforeBuild.js)
-npmRebuild: false
+# Enable npmRebuild to trigger beforeBuild hook for selective module rebuilding
+npmRebuild: true
 buildDependenciesFromSource: false
 # 减小包体积配置
 nodeGypRebuild: false
