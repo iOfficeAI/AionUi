@@ -121,11 +121,14 @@ linux:
       Categories: Office;Utility;
 
 # Native dependency handling
-# Enable per-architecture native module compilation for cross-platform builds
-npmRebuild: true
-buildDependenciesFromSource: true
+# node-pty uses prebuilt binaries from @lydell/node-pty-* packages, no rebuild needed
+# Only bcrypt and better-sqlite3 need to be rebuilt for target architectures
+# We handle selective rebuild in beforeBuild hook (see scripts/beforeBuild.js)
+npmRebuild: false
+buildDependenciesFromSource: false
 # 减小包体积配置
 nodeGypRebuild: false
+beforeBuild: scripts/beforeBuild.js
 
 # ASAR configuration for production - unpack native modules
 asarUnpack:
