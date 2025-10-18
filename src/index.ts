@@ -21,7 +21,7 @@ declare const MAIN_WINDOW_WEBPACK_ENTRY: string;
 declare const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string;
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
-// 修复 macOS 和 Linux 下 GUI 应用的 PATH 环境变量，使其与命令行一致
+// 修复 macOS 和 Linux 下 GUI 应用的 PATH 环境变量,使其与命令行一致
 if (process.platform === 'darwin' || process.platform === 'linux') {
   fixPath();
 }
@@ -31,10 +31,12 @@ if (electronSquirrelStartup) {
   app.quit();
 }
 
-// Check for --webui command line argument (supports both Node args and Electron switches)
 const hasSwitch = (flag: string) => process.argv.includes(`--${flag}`) || app.commandLine.hasSwitch(flag);
+const hasCommand = (cmd: string) => process.argv.includes(cmd);
+
 const isWebUIMode = hasSwitch('webui');
 const isRemoteMode = hasSwitch('remote');
+const isResetPasswordMode = hasCommand('reset-password');
 
 let mainWindow: BrowserWindow;
 const createWindow = (): void => {
@@ -70,14 +72,30 @@ ipcBridge.application.openDevTools.provider(() => {
 });
 
 const handleAppReady = async (): Promise<void> => {
-  if (isWebUIMode) {
+  if (isResetPasswordMode) {
+    // Handle password reset without creating window
+    try {
+      const username = process.argv[process.argv.indexOf('reset-password') + 1] || 'admin';
+
+      // Import resetpass logic
+      const { resetPasswordCLI } = await import('./utils/resetPasswordCLI');
+      await resetPasswordCLI(username);
+
+      app.quit();
+    } catch (error) {
+      console.error('Failed to reset password:', error);
+      app.exit(1);
+    }
+  } else if (isWebUIMode) {
     await startWebServer(25808, isRemoteMode);
   } else {
     createWindow();
   }
 
-  // 启动时初始化ACP检测器
-  await initializeAcpDetector();
+  // 启动时初始化ACP检测器 (skip in reset-password mode)
+  if (!isResetPasswordMode) {
+    await initializeAcpDetector();
+  }
 };
 
 // Ensure we don't miss the ready event when running in CLI/WebUI mode

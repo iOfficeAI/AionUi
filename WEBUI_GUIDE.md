@@ -365,6 +365,77 @@ aionui --webui
 
 ---
 
+## Reset Admin Password
+
+If you forgot your admin password in WebUI mode, you can reset it using the `reset-password` command.
+
+### Using reset-password Command
+
+**IMPORTANT:** The reset-password command resets the password and generates a new random one. All existing JWT tokens will be invalidated.
+
+**Windows:**
+
+```cmd
+# Using full path
+"C:\Program Files\AionUi\AionUi.exe" reset-password
+
+# Or for a specific user
+"C:\Program Files\AionUi\AionUi.exe" reset-password username
+```
+
+**macOS:**
+
+```bash
+# Using full path
+/Applications/AionUi.app/Contents/MacOS/AionUi reset-password
+
+# Or for a specific user
+/Applications/AionUi.app/Contents/MacOS/AionUi reset-password username
+```
+
+**Linux:**
+
+```bash
+# Using system path
+aionui reset-password
+
+# Or for a specific user
+aionui reset-password username
+
+# Or using full path
+/opt/AionUi/aionui reset-password
+```
+
+### What happens when you run reset-password:
+
+1. The command connects to the database
+2. Finds the specified user (default: `admin`)
+3. Generates a new random 12-character password
+4. Updates the password hash in the database
+5. Rotates the JWT secret (invalidating all previous tokens)
+6. Displays the new password in the terminal
+
+### After running reset-password:
+
+1. The command will display your new password - **copy it immediately**
+2. Refresh your browser (Cmd+R or Ctrl+R)
+3. You will be redirected to the login page
+4. Login with the new password shown in the terminal
+
+### Development Environment Only
+
+If you're in a development environment with Node.js, you can also use:
+
+```bash
+# In the project directory
+npm run reset-password
+
+# Or for a specific user
+npm run reset-password username
+```
+
+---
+
 ## Additional Resources
 
 - [Main README](./readme.md)
