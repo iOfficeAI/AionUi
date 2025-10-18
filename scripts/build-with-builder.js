@@ -8,7 +8,7 @@ const path = require('path');
 const args = process.argv.slice(2);
 
 // 从 electron-builder.yml 读取目标架构配置（简单的文本解析，避免依赖 js-yaml）
-function getTargetArchFromConfig(platform) {
+function getTargetArchesFromConfig(platform) {
   try {
     const configPath = path.resolve(__dirname, '../electron-builder.yml');
     const content = fs.readFileSync(configPath, 'utf8');
@@ -17,7 +17,7 @@ function getTargetArchFromConfig(platform) {
     const platformRegex = new RegExp(`^${platform}:\\s*$`, 'm');
     const platformMatch = content.match(platformRegex);
     if (!platformMatch) {
-      return null;
+      return [];
     }
 
     // 提取平台配置块（从 "linux:" 到下一个顶级键或文件末尾）
@@ -29,40 +29,49 @@ function getTargetArchFromConfig(platform) {
       ? content.slice(platformStartIndex, platformStartIndex + platformMatch[0].length + nextPlatformMatch.index)
       : content.slice(platformStartIndex);
 
-    // 查找 arch: [ xxx ] 或 arch: [xxx, yyy] 模式（支持多种格式）
+    // 查找所有 arch: [ xxx ] 或 arch: [xxx, yyy] 模式
     // 示例：arch: [ arm64 ] 或 arch: [x64, arm64] 或 arch: [ x64, arm64 ]
-    const archMatch = platformBlock.match(/arch:\s*\[\s*([a-z0-9_]+)/i);
-    if (archMatch) {
-      return archMatch[1].trim();
+    const archMatches = platformBlock.matchAll(/arch:\s*\[\s*([a-z0-9_, ]+)\s*\]/gi);
+    const allArches = new Set();
+
+    for (const match of archMatches) {
+      // 分割多个架构（如 "x64, arm64"）
+      const arches = match[1]
+        .split(',')
+        .map((a) => a.trim())
+        .filter((a) => a);
+      arches.forEach((a) => allArches.add(a));
     }
 
-    return null;
+    return Array.from(allArches);
   } catch (error) {
-    console.warn(`⚠️  Failed to read target arch from electron-builder.yml: ${error.message}`);
-    return null;
+    console.warn(`⚠️  Failed to read target arches from electron-builder.yml: ${error.message}`);
+    return [];
   }
 }
 
-// 确定目标架构
+// 确定目标架构（单个或多个）
 const builderArgs = args.slice(1).join(' ');
-let arch;
+let targetArches = []; // 所有需要构建的架构
+let buildMachineArch = process.arch; // 构建机器的架构
+
 if (args[0] === 'auto') {
-  // auto 模式：尝试从 electron-builder.yml 推断目标架构
+  // auto 模式：从 electron-builder.yml 读取所有目标架构
   let detectedPlatform = null;
   if (builderArgs.includes('--linux')) detectedPlatform = 'linux';
   else if (builderArgs.includes('--mac')) detectedPlatform = 'mac';
   else if (builderArgs.includes('--win')) detectedPlatform = 'win';
 
-  const configArch = detectedPlatform ? getTargetArchFromConfig(detectedPlatform) : null;
-  arch = configArch || process.arch;
+  const configArches = detectedPlatform ? getTargetArchesFromConfig(detectedPlatform) : [];
+  targetArches = configArches.length > 0 ? configArches : [buildMachineArch];
 
-  if (configArch) {
-    console.log(`🔍 Detected target architecture from electron-builder.yml: ${arch}`);
+  if (configArches.length > 0) {
+    console.log(`🔍 Detected target architectures from electron-builder.yml: ${targetArches.join(', ')}`);
   } else {
-    console.log(`🔍 Using build machine architecture: ${arch}`);
+    console.log(`🔍 Using build machine architecture: ${buildMachineArch}`);
   }
 } else {
-  arch = args[0] || process.arch;
+  targetArches = [args[0] || buildMachineArch];
 }
 
 const packageJsonPath = path.resolve(__dirname, '../package.json');
@@ -142,30 +151,68 @@ try {
     } else {
       actualArch = archDirs[0];
     }
-
-    if (actualArch !== arch) {
-      console.log(`⚠️  WARNING: Forge generated ${actualArch} but target is ${arch}`);
-      console.log(`📝 Will copy/link from ${actualArch} to ${arch} for electron-builder`);
-    }
   }
 
-  // 2.6 确保 .webpack/${arch} 目录存在供 electron-builder extraResources 使用
-  // Forge 可能输出在 .webpack/${actualArch}/ 但 electron-builder 需要 .webpack/${arch}/
-  console.log(`📁 Preparing .webpack/${arch} directory for electron-builder...`);
+  // 2.6 确保所有目标架构的 .webpack/${arch} 目录都存在供 electron-builder 使用
+  // Forge 可能输出在 .webpack/${actualArch}/ 但 electron-builder 需要 .webpack/${targetArch}/
   const webpackSrcDir = path.resolve(__dirname, '../.webpack');
-  const webpackArchDir = path.resolve(__dirname, `../.webpack/${arch}`);
-
-  // 确定源目录：优先使用 Forge 实际生成的架构目录
   const actualArchDir = path.join(webpackSrcDir, actualArch);
   const useArchSpecificSource = fs.existsSync(actualArchDir);
 
-  // 如果目标架构目录不存在，或者需要从不同架构复制，则创建
-  if (!fs.existsSync(webpackArchDir) || actualArch !== arch) {
-    // 在 Unix 系统使用软链接，Windows 使用目录复制
+  // 为每个目标架构创建目录结构
+  for (const targetArch of targetArches) {
+    console.log(`📁 Preparing .webpack/${targetArch} directory for electron-builder...`);
+    const webpackArchDir = path.resolve(__dirname, `../.webpack/${targetArch}`);
+
+    // 如果目标架构目录不存在，或者需要从不同架构复制，则创建
+    if (!fs.existsSync(webpackArchDir) || actualArch !== targetArch) {
+      if (actualArch !== targetArch) {
+        console.log(`⚠️  Cross-arch build: Forge generated ${actualArch} but target is ${targetArch}`);
+        console.log(`📝 Will copy from ${actualArch} to ${targetArch}`);
+      }
+    // 复制必要的子目录（main, renderer, native_modules）
     if (process.platform === 'win32') {
-      // Windows: 复制目录
-      const sourceDir = useArchSpecificSource ? actualArchDir : webpackSrcDir;
-      execSync(`xcopy "${sourceDir}" "${webpackArchDir}" /E /I /H /Y`, { stdio: 'inherit' });
+      // Windows: 使用 xcopy 或 robocopy 复制子目录
+      const mainSrc = useArchSpecificSource ? path.join(actualArchDir, 'main') : path.join(webpackSrcDir, 'main');
+      const rendererSrc = useArchSpecificSource
+        ? path.join(actualArchDir, 'renderer')
+        : path.join(webpackSrcDir, 'renderer');
+      const nativeModulesSrc = useArchSpecificSource
+        ? path.join(actualArchDir, 'native_modules')
+        : path.join(webpackSrcDir, 'native_modules');
+
+      const mainDest = path.join(webpackArchDir, 'main');
+      const rendererDest = path.join(webpackArchDir, 'renderer');
+      const nativeModulesDest = path.join(webpackArchDir, 'native_modules');
+
+      // 创建目标目录
+      if (!fs.existsSync(webpackArchDir)) {
+        fs.mkdirSync(webpackArchDir, { recursive: true });
+      }
+
+      // Copy main directory
+      if (fs.existsSync(mainSrc)) {
+        execSync(`xcopy "${mainSrc}" "${mainDest}" /E /I /H /Y /Q`, { stdio: 'inherit' });
+        console.log(`✅ Copied main: ${mainSrc} -> ${mainDest}`);
+      } else {
+        console.warn(`⚠️  Main source not found at ${mainSrc}`);
+      }
+
+      // Copy renderer directory
+      if (fs.existsSync(rendererSrc)) {
+        execSync(`xcopy "${rendererSrc}" "${rendererDest}" /E /I /H /Y /Q`, { stdio: 'inherit' });
+        console.log(`✅ Copied renderer: ${rendererSrc} -> ${rendererDest}`);
+      } else {
+        console.warn(`⚠️  Renderer source not found at ${rendererSrc}`);
+      }
+
+      // Copy native_modules directory
+      if (fs.existsSync(nativeModulesSrc)) {
+        execSync(`xcopy "${nativeModulesSrc}" "${nativeModulesDest}" /E /I /H /Y /Q`, { stdio: 'inherit' });
+        console.log(`✅ Copied native_modules: ${nativeModulesSrc} -> ${nativeModulesDest}`);
+      } else {
+        console.warn(`⚠️  Native modules source not found at ${nativeModulesSrc}`);
+      }
     } else {
       // Unix: 复制目录（而不是软链接，因为 asar 不支持软链接）
       // 源路径：Forge 可能生成 .webpack/${actualArch}/xxx 或 .webpack/xxx
@@ -213,13 +260,15 @@ try {
         console.warn(`⚠️  Native modules source not found at ${nativeModulesSrc}`);
       }
     }
-    console.log(`✅ Created .webpack/${arch} structure from ${actualArch}`);
+      console.log(`✅ Created .webpack/${targetArch} structure from ${actualArch}`);
+    }
   }
 
   // 3. 更新 main 字段用于 electron-builder
-  console.log(`🔧 Updating main entry for ${arch}...`);
+  // 使用 Forge 实际编译的架构作为主入口（确保文件存在）
+  console.log(`🔧 Updating main entry for ${actualArch}...`);
   const updatedPackageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-  updatedPackageJson.main = `.webpack/${arch}/main/index.js`;
+  updatedPackageJson.main = `.webpack/${actualArch}/main/index.js`;
   fs.writeFileSync(packageJsonPath, JSON.stringify(updatedPackageJson, null, 2) + '\n');
 
   // 4. 运行 electron-builder
