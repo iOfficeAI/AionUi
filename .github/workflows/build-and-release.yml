@@ -51,14 +51,17 @@ jobs:
             os: 'macos-latest'
             command: 'npm run dist:mac'
             artifact-name: 'macos-build'
+            arch: 'arm64'  # macOS builds for both x64 and arm64
           - platform: 'windows'
             os: 'windows-2022'
             command: 'npm run dist:win'
             artifact-name: 'windows-build'
+            arch: 'x64'  # Windows builds for both x64 and arm64
           - platform: 'linux'
             os: 'ubuntu-latest'
             command: 'npm run dist:linux'
             artifact-name: 'linux-build'
+            arch: 'arm64'  # Linux builds for arm64 only
     
     steps:
       - name: Checkout code
@@ -149,6 +152,8 @@ jobs:
       - name: Build with electron-builder
         run: ${{ matrix.command }}
         env:
+          # Target architecture for Forge
+          npm_config_arch: ${{ matrix.arch }}
           # App ID configuration
           APP_ID: ${{ secrets.APP_ID }}
           # macOS 签名配置 (参考 forge.config.ts 中的环境变量名)
