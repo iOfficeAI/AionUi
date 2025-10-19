@@ -8,6 +8,14 @@ const fs = require('fs');
 const path = require('path');
 
 /**
+ * Get npx command for the current platform
+ * Windows requires npx.cmd, others use npx
+ */
+function getNpxCommand() {
+  return process.platform === 'win32' ? 'npx.cmd' : 'npx';
+}
+
+/**
  * Normalize architecture names
  */
 function normalizeArch(arch) {
@@ -78,7 +86,8 @@ function rebuildWithElectronRebuild(options) {
   const targetArch = normalizeArch(arch);
   const env = buildEnvironment(platform, targetArch, electronVersion);
 
-  const rebuildCmd = `npx electron-rebuild --only ${modules.join(',')} --force --arch ${targetArch} --electron-version ${electronVersion}`;
+  const npxCmd = getNpxCommand();
+  const rebuildCmd = `${npxCmd} electron-rebuild --only ${modules.join(',')} --force --arch ${targetArch} --electron-version ${electronVersion}`;
 
   execSync(rebuildCmd, {
     stdio: 'inherit',
@@ -114,11 +123,13 @@ function rebuildSingleModule(options) {
   env.npm_config_platform = platform;
   env.npm_config_target_platform = platform;
 
+  const npxCmd = getNpxCommand();
+
   // Try prebuild-install first (faster)
   try {
     env.npm_config_build_from_source = 'false';
     execFileSync(
-      'npx',
+      npxCmd,
       [
         '--yes',
         'prebuild-install',
@@ -143,7 +154,7 @@ function rebuildSingleModule(options) {
   try {
     env.npm_config_build_from_source = 'true';
     execFileSync(
-      'npx',
+      npxCmd,
       [
         '--yes',
         'electron-rebuild',
