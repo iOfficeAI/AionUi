@@ -20,8 +20,8 @@ export const mainConfig: Configuration = {
   },
   ...rendererConfig,
   externals: {
-    'bcrypt': 'commonjs2 bcrypt',
-    'better-sqlite3': 'commonjs2 better-sqlite3',
-    'node-pty': 'commonjs2 node-pty',
+    'bcrypt': 'commonjs bcrypt',
+    'better-sqlite3': 'commonjs better-sqlite3',
+    'node-pty': 'commonjs node-pty',
   },
 };

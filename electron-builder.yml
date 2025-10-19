@@ -59,11 +59,11 @@ extraResources:
 win:
   target:
     - target: nsis
-      arch: [ x64, arm64 ]
+      arch: [ arm64 ]
     #    - target: msi
     #      arch: [x64, arm64]
-    - target: zip
-      arch: [ x64, arm64 ]
+  #    - target: zip
+  #      arch: [ x64, arm64 ]
   # icon: resources/app.ico  # Temporarily disabled - current ico is 32x32, need 256x256+
   artifactName: ${productName}-${version}-${os}-${arch}.${ext}
 
@@ -80,9 +80,9 @@ nsis:
 mac:
   target:
     - target: dmg
-      arch: [ x64, arm64 ]
-    - target: zip
-      arch: [ x64, arm64 ]
+      arch: [ arm64 ]
+  #    - target: zip
+  #      arch: [ x64, arm64 ]
   icon: resources/app.icns
   artifactName: ${productName}-${version}-${os}-${arch}.${ext}
   category: public.app-category.productivity
@@ -102,9 +102,9 @@ afterSign: scripts/afterSign.js
 linux:
   target:
     - target: deb
-      arch: [ x64, arm64, armv7l ]
-    - target: AppImage
-      arch: [ x64, arm64, armv7l ]
+      arch: [ arm64 ]
+  #    - target: AppImage
+  #      arch: [ x64, arm64, armv7l ]
   icon: resources/app.png
   artifactName: ${productName}-${version}-${os}-${arch}.${ext}
   category: Utility
