@@ -89,7 +89,8 @@ module.exports = async function afterPack(context) {
       arch: targetArch,
       electronVersion,
       projectRoot: path.resolve(__dirname, '..'),
-      forceRebuild: true, // Always rebuild from source in cross-compilation
+      buildArch: buildArch, // Pass build architecture for cross-compile detection
+      forceRebuild: true, // Prefer source rebuild, but allow prebuild-install for unsupported cross-compile
     });
 
     if (success) {

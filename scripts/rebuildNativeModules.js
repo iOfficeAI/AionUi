@@ -97,6 +97,25 @@ function rebuildWithElectronRebuild(options) {
 }
 
 /**
+ * Check if cross-compilation from source is supported
+ */
+function canCrossCompileFromSource(buildArch, targetArch, platform) {
+  // macOS can cross-compile between x64 and arm64
+  if (platform === 'darwin') {
+    return true;
+  }
+
+  // Windows x64 can cross-compile to arm64 with proper toolchain
+  if (platform === 'win32' && buildArch === 'x64' && targetArch === 'arm64') {
+    return true;
+  }
+
+  // Linux cannot reliably cross-compile without ARM64 toolchain
+  // Must use prebuild-install for cross-arch builds
+  return buildArch === targetArch;
+}
+
+/**
  * Rebuild a single module using prebuild-install (faster for prebuilt binaries)
  * Falls back to electron-rebuild if prebuild-install fails
  *
@@ -108,6 +127,7 @@ function rebuildWithElectronRebuild(options) {
  * @param {string} options.electronVersion - Electron version
  * @param {string} [options.projectRoot] - Project root for fallback rebuild
  * @param {boolean} [options.forceRebuild] - Force rebuild from source (skip prebuild-install)
+ * @param {string} [options.buildArch] - Build machine architecture (for cross-compilation detection)
  */
 function rebuildSingleModule(options) {
   const {
@@ -118,45 +138,70 @@ function rebuildSingleModule(options) {
     electronVersion,
     projectRoot = path.resolve(__dirname, '..'),
     forceRebuild = false,
+    buildArch = process.arch,
   } = options;
 
   const targetArch = normalizeArch(arch);
+  const normalizedBuildArch = normalizeArch(buildArch);
+  const isCrossCompile = normalizedBuildArch !== targetArch;
+
   const env = buildEnvironment(platform, targetArch, electronVersion);
   env.npm_config_platform = platform;
   env.npm_config_target_platform = platform;
 
   const npxCmd = getNpxCommand();
 
-  // Skip prebuild-install if forceRebuild is true (e.g., cross-compilation)
-  if (!forceRebuild) {
-    // Try prebuild-install first (faster)
+  // For Linux cross-compilation, ALWAYS use prebuild-install
+  // because electron-rebuild cannot cross-compile without ARM64 toolchain
+  const mustUsePrebuild = platform === 'linux' && isCrossCompile;
+
+  if (mustUsePrebuild) {
+    console.log(`     Linux cross-compilation detected (${normalizedBuildArch} → ${targetArch}), using prebuild-install...`);
+  }
+
+  // Try prebuild-install first (required for Linux cross-compile)
+  if (!forceRebuild || mustUsePrebuild) {
     try {
       env.npm_config_build_from_source = 'false';
-      execFileSync(
-        npxCmd,
-        [
-          '--yes',
-          'prebuild-install',
-          '--runtime=electron',
-          `--target=${electronVersion}`,
-          `--platform=${platform}`,
-          `--arch=${targetArch}`,
-          '--force',
-        ],
-        {
-          cwd: moduleRoot,
-          env,
-          stdio: 'pipe', // Suppress output
-          shell: true, // Required for Windows .cmd files
-        }
-      );
+      const prebuildArgs = [
+        '--yes',
+        'prebuild-install',
+        '--runtime=electron',
+        `--target=${electronVersion}`,
+        `--platform=${platform}`,
+        `--arch=${targetArch}`,
+        '--force',
+      ];
+
+      console.log(`     Running: ${npxCmd} ${prebuildArgs.join(' ')}`);
+
+      execFileSync(npxCmd, prebuildArgs, {
+        cwd: moduleRoot,
+        env,
+        stdio: 'inherit', // Show output for debugging
+        shell: true,
+      });
+
+      console.log(`     ✓ prebuild-install succeeded`);
       return true;
     } catch (error) {
-      // Silently fall back to rebuild
+      if (mustUsePrebuild) {
+        // For Linux cross-compile, prebuild-install MUST succeed
+        console.error(`     ✗ prebuild-install failed and cross-compilation from source not supported`);
+        console.error(`     Error: ${error.message}`);
+        return false;
+      }
+      // For other cases, fall back to rebuild
+      console.log(`     prebuild-install failed, falling back to electron-rebuild...`);
     }
   }
 
   // Use electron-rebuild to build from source
+  if (!canCrossCompileFromSource(normalizedBuildArch, targetArch, platform)) {
+    console.error(`     ✗ Cross-compilation from ${normalizedBuildArch} to ${targetArch} not supported on ${platform}`);
+    return false;
+  }
+
   try {
     env.npm_config_build_from_source = 'true';
     execFileSync(
@@ -174,7 +219,7 @@ function rebuildSingleModule(options) {
         cwd: projectRoot,
         env,
         stdio: 'inherit',
-        shell: true, // Required for Windows .cmd files
+        shell: true,
       }
     );
     return true;
@@ -287,4 +332,5 @@ module.exports = {
   rebuildWithElectronRebuild,
   rebuildSingleModule,
   verifyModuleBinary,
+  canCrossCompileFromSource,
 };
