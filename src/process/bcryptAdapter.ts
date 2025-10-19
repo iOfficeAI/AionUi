@@ -94,39 +94,32 @@ function loadBcrypt(): typeof import('bcrypt') | null {
         const appPath = app.getAppPath();
         console.log('[BcryptAdapter] App path:', appPath);
 
-        // Try different possible locations for unpacked modules
-        const possiblePaths = [
-          // Standard ASAR unpacked location
-          path.join(path.dirname(appPath), 'app.asar.unpacked', 'node_modules', 'bcrypt'),
-          // Alternative: if app.asar is in resources
-          path.join(appPath.replace('app.asar', 'app.asar.unpacked'), 'node_modules', 'bcrypt'),
-          // Direct node_modules (non-ASAR build)
-          path.join(appPath, 'node_modules', 'bcrypt'),
-        ];
+        // Add app.asar.unpacked/node_modules to module search paths
+        const unpackedNodeModules = path.join(path.dirname(appPath), 'app.asar.unpacked', 'node_modules');
 
-        for (const modulePath of possiblePaths) {
-          try {
-            console.log('[BcryptAdapter] Trying to load from:', modulePath);
-            // eslint-disable-next-line @typescript-eslint/no-var-requires
-            let nativeModule: any = require(modulePath);
+        // Temporarily modify module.paths to include unpacked directory
+        const originalPaths = [...(module as any).paths];
+        (module as any).paths.unshift(unpackedNodeModules);
 
-            // Handle Webpack wrapper
-            if (nativeModule.default && typeof nativeModule.default === 'object') {
-              nativeModule = nativeModule.default;
-            }
+        try {
+          console.log('[BcryptAdapter] Trying to load from unpacked node_modules:', unpackedNodeModules);
+          // eslint-disable-next-line @typescript-eslint/no-var-requires
+          let nativeModule: any = require('bcrypt');
 
-            bcryptModule = nativeModule;
-            console.log('[BcryptAdapter] Successfully loaded bcrypt from:', modulePath);
-            return bcryptModule;
-          } catch (e) {
-            // Continue to next path
-            console.log('[BcryptAdapter] Not found at:', modulePath);
+          // Handle Webpack wrapper
+          if (nativeModule.default && typeof nativeModule.default === 'object') {
+            nativeModule = nativeModule.default;
           }
-        }
 
-        console.warn('[BcryptAdapter] Failed to load bcrypt from any known location. Tried:', possiblePaths.join(', '));
+          bcryptModule = nativeModule;
+          console.log('[BcryptAdapter] Successfully loaded bcrypt from unpacked');
+          return bcryptModule;
+        } finally {
+          // Restore original paths
+          (module as any).paths = originalPaths;
+        }
       } catch (fallbackError) {
-        console.error('[BcryptAdapter] All fallback paths failed:', fallbackError);
+        console.error('[BcryptAdapter] Failed to load from unpacked:', fallbackError);
       }
     }
 
