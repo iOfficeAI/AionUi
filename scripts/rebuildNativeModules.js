@@ -97,6 +97,25 @@ function rebuildWithElectronRebuild(options) {
 }
 
 /**
+ * Check if cross-compilation from source is supported
+ */
+function canCrossCompileFromSource(buildArch, targetArch, platform) {
+  // macOS can cross-compile between x64 and arm64
+  if (platform === 'darwin') {
+    return true;
+  }
+
+  // Windows x64 can cross-compile to arm64 with proper toolchain
+  if (platform === 'win32' && buildArch === 'x64' && targetArch === 'arm64') {
+    return true;
+  }
+
+  // Linux cannot reliably cross-compile without ARM64 toolchain
+  // Must use prebuild-install for cross-arch builds
+  return buildArch === targetArch;
+}
+
+/**
  * Rebuild a single module using prebuild-install (faster for prebuilt binaries)
  * Falls back to electron-rebuild if prebuild-install fails
  *
@@ -108,6 +127,7 @@ function rebuildWithElectronRebuild(options) {
  * @param {string} options.electronVersion - Electron version
  * @param {string} [options.projectRoot] - Project root for fallback rebuild
  * @param {boolean} [options.forceRebuild] - Force rebuild from source (skip prebuild-install)
+ * @param {string} [options.buildArch] - Build machine architecture (for cross-compilation detection)
  */
 function rebuildSingleModule(options) {
   const {
@@ -118,45 +138,70 @@ function rebuildSingleModule(options) {
     electronVersion,
     projectRoot = path.resolve(__dirname, '..'),
     forceRebuild = false,
+    buildArch = process.arch,
   } = options;
 
   const targetArch = normalizeArch(arch);
+  const normalizedBuildArch = normalizeArch(buildArch);
+  const isCrossCompile = normalizedBuildArch !== targetArch;
+
   const env = buildEnvironment(platform, targetArch, electronVersion);
   env.npm_config_platform = platform;
   env.npm_config_target_platform = platform;
 
   const npxCmd = getNpxCommand();
 
-  // Skip prebuild-install if forceRebuild is true (e.g., cross-compilation)
-  if (!forceRebuild) {
-    // Try prebuild-install first (faster)
+  // For Linux cross-compilation, ALWAYS use prebuild-install
+  // because electron-rebuild cannot cross-compile without ARM64 toolchain
+  const mustUsePrebuild = platform === 'linux' && isCrossCompile;
+
+  if (mustUsePrebuild) {
+    console.log(`     Linux cross-compilation detected (${normalizedBuildArch} → ${targetArch}), using prebuild-install...`);
+  }
+
+  // Try prebuild-install first (required for Linux cross-compile)
+  if (!forceRebuild || mustUsePrebuild) {
     try {
       env.npm_config_build_from_source = 'false';
-      execFileSync(
-        npxCmd,
-        [
-          '--yes',
-          'prebuild-install',
-          '--runtime=electron',
-          `--target=${electronVersion}`,
-          `--platform=${platform}`,
-          `--arch=${targetArch}`,
-          '--force',
-        ],
-        {
-          cwd: moduleRoot,
-          env,
-          stdio: 'pipe', // Suppress output
-          shell: true, // Required for Windows .cmd files
-        }
-      );
+      const prebuildArgs = [
+        '--yes',
+        'prebuild-install',
+        '--runtime=electron',
+        `--target=${electronVersion}`,
+        `--platform=${platform}`,
+        `--arch=${targetArch}`,
+        '--force',
+      ];
+
+      console.log(`     Running: ${npxCmd} ${prebuildArgs.join(' ')}`);
+
+      execFileSync(npxCmd, prebuildArgs, {
+        cwd: moduleRoot,
+        env,
+        stdio: 'inherit', // Show output for debugging
+        shell: true,
+      });
+
+      console.log(`     ✓ prebuild-install succeeded`);
       return true;
     } catch (error) {
-      // Silently fall back to rebuild
+      if (mustUsePrebuild) {
+        // For Linux cross-compile, prebuild-install MUST succeed
+        console.error(`     ✗ prebuild-install failed and cross-compilation from source not supported`);
+        console.error(`     Error: ${error.message}`);
+        return false;
+      }
+      // For other cases, fall back to rebuild
+      console.log(`     prebuild-install failed, falling back to electron-rebuild...`);
     }
   }
 
   // Use electron-rebuild to build from source
+  if (!canCrossCompileFromSource(normalizedBuildArch, targetArch, platform)) {
+    console.error(`     ✗ Cross-compilation from ${normalizedBuildArch} to ${targetArch} not supported on ${platform}`);
+    return false;
+  }
+
   try {
     env.npm_config_build_from_source = 'true';
     execFileSync(
@@ -174,7 +219,7 @@ function rebuildSingleModule(options) {
         cwd: projectRoot,
         env,
         stdio: 'inherit',
-        shell: true, // Required for Windows .cmd files
+        shell: true,
       }
     );
     return true;
@@ -210,6 +255,32 @@ function findBcryptBindings(moduleRoot) {
 }
 
 /**
+ * Recursively search for .node files in a directory
+ */
+function findNodeFiles(dir, maxDepth = 3, currentDepth = 0) {
+  if (currentDepth >= maxDepth || !fs.existsSync(dir)) {
+    return [];
+  }
+
+  const results = [];
+  try {
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        results.push(...findNodeFiles(fullPath, maxDepth, currentDepth + 1));
+      } else if (entry.isFile() && entry.name.endsWith('.node')) {
+        results.push(fullPath);
+      }
+    }
+  } catch (error) {
+    // Ignore permission errors
+  }
+
+  return results;
+}
+
+/**
  * Verify native module binary exists
  */
 function verifyModuleBinary(moduleRoot, moduleName) {
@@ -219,27 +290,38 @@ function verifyModuleBinary(moduleRoot, moduleName) {
     ],
     'bcrypt': [
       path.join(moduleRoot, 'lib', 'binding', 'napi-v3', 'bcrypt_lib.node'),
+      path.join(moduleRoot, 'lib', 'binding', 'napi-v4', 'bcrypt_lib.node'),
       path.join(moduleRoot, 'build', 'Release', 'bcrypt_lib.node'),
       // Check for any bcrypt_lib.node under lib/binding/
       ...findBcryptBindings(moduleRoot),
     ],
     'node-pty': [
       path.join(moduleRoot, 'build', 'Release', 'pty.node'),
+      path.join(moduleRoot, 'build', 'Release', 'conpty.node'),
+      path.join(moduleRoot, 'build', 'Release', 'conpty_console_list.node'),
     ],
   };
 
   const pathsToCheck = binaryPathsToCheck[moduleName] || [];
 
+  // First check known paths
   for (const binaryPath of pathsToCheck) {
     if (fs.existsSync(binaryPath)) {
+      console.log(`     Debug: Found binary at ${binaryPath}`);
       return true;
     }
   }
 
-  // Debug: log what we're looking for
-  console.log(`     Debug: Binary not found in expected locations:`);
-  pathsToCheck.forEach(p => console.log(`       - ${p}`));
+  // If not found, search recursively
+  console.log(`     Debug: Binary not found in expected locations, searching recursively...`);
+  const foundFiles = findNodeFiles(moduleRoot);
+  if (foundFiles.length > 0) {
+    console.log(`     Debug: Found .node files:`);
+    foundFiles.forEach(f => console.log(`       - ${f}`));
+    return true;
+  }
 
+  console.log(`     Debug: No .node files found in ${moduleRoot}`);
   return false;
 }
 
@@ -250,4 +332,5 @@ module.exports = {
   rebuildWithElectronRebuild,
   rebuildSingleModule,
   verifyModuleBinary,
+  canCrossCompileFromSource,
 };
