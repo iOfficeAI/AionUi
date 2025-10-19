@@ -99,7 +99,6 @@ linux:
 npmRebuild: false
 buildDependenciesFromSource: false
 nodeGypRebuild: false
-beforeBuild: scripts/beforeBuild.js
 
 asarUnpack:
   - "**/node_modules/better-sqlite3/**/*"
