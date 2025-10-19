@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import Database from 'better-sqlite3';
+import type Database from 'better-sqlite3';
 import crypto from 'crypto';
 import path from 'path';
 import { CURRENT_DB_VERSION, getDatabaseVersion, initSchema, setDatabaseVersion } from './schema';
@@ -12,6 +12,7 @@ import { runMigrations as executeMigrations } from './migrations';
 import type { IConversationRow, IMessageRow, IPaginatedResult, IQueryResult, IUser, TChatConversation, TMessage } from './types';
 import { conversationToRow, messageToRow, rowToConversation, rowToMessage } from './types';
 import { ensureDirectory, getDataPath } from '@process/utils';
+import { createDatabase } from './sqliteAdapter';
 
 /**
  * Main database class for AionUi
@@ -28,7 +29,7 @@ export class AionUIDatabase {
 
     const dir = path.dirname(finalPath);
     ensureDirectory(dir);
-    this.db = new Database(finalPath);
+    this.db = createDatabase(finalPath);
     this.initialize();
   }
 

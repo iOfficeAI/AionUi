@@ -9,57 +9,10 @@ import crypto from 'crypto';
 import type { AuthUser } from '../repository/UserRepository';
 import { UserRepository } from '../repository/UserRepository';
 import { AUTH_CONFIG } from '../../config/constants';
+import { getBcryptAdapterSingleton } from '@process/bcryptAdapter';
 
-type BcryptAdapter = {
-  hash(password: string, rounds: number): Promise<string>;
-  compare(password: string, hashed: string): Promise<boolean>;
-};
-
-const pbkdf2Hash = (password: string, salt: Buffer, iterations: number): Promise<Buffer> =>
-  new Promise((resolve, reject) => {
-    crypto.pbkdf2(password, salt, iterations, 32, 'sha256', (err, derived) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(derived);
-      }
-    });
-  });
-
-const bcryptAdapter: BcryptAdapter = (() => {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires,global-require
-    const native: typeof import('bcrypt') = require('bcrypt');
-    return {
-      hash: (password: string, rounds: number) => native.hash(password, rounds),
-      compare: (password: string, hashed: string) => native.compare(password, hashed),
-    };
-  } catch (nativeError) {
-    return {
-      hash: async (password: string) => {
-        const iterations = 120_000;
-        const salt = crypto.randomBytes(16);
-        const derived = await pbkdf2Hash(password, salt, iterations);
-        return `pbkdf2$${iterations}$${salt.toString('base64')}$${derived.toString('base64')}`;
-      },
-      compare: async (password: string, hashed: string) => {
-        if (hashed.startsWith('pbkdf2$')) {
-          const [, iterStr, saltB64, hashB64] = hashed.split('$');
-          const iterations = Number(iterStr);
-          if (!iterations || !saltB64 || !hashB64) {
-            return false;
-          }
-          const salt = Buffer.from(saltB64, 'base64');
-          const expected = Buffer.from(hashB64, 'base64');
-          const derived = await pbkdf2Hash(password, salt, iterations);
-          return crypto.timingSafeEqual(derived, expected);
-        }
-
-        return false;
-      },
-    };
-  }
-})();
+// Get bcrypt adapter (handles ASAR packaging issues)
+const bcryptAdapter = getBcryptAdapterSingleton();
 
 interface TokenPayload {
   userId: string;
