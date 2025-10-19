@@ -25,7 +25,7 @@ module.exports = async function afterPack(context) {
 
   console.log(`   ⚠️  Cross-compilation detected, will rebuild native modules`);
 
-  console.log(`🔧 Checking native modules (linux-${targetArch})...`);
+  console.log(`\n🔧 Checking native modules (${electronPlatformName}-${targetArch})...`);
   console.log(`   appOutDir: ${appOutDir}`);
 
   const electronVersion =
