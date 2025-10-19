@@ -33,6 +33,33 @@ module.exports = {
     out: path.resolve(__dirname, 'out'),
     tmpdir: path.resolve(__dirname, '../AionUi-tmp'),
     extraResource: [path.resolve(__dirname, 'public')],
+    hooks: {
+      packageAfterCopy: async (_config, buildPath, _electronVersion, _platform, _arch) => {
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const fs = require('fs');
+        // eslint-disable-next-line @typescript-eslint/no-var-requires
+        const path = require('path');
+
+        // Copy webpack externals to packaged app
+        const externals = ['better-sqlite3', 'bcrypt', 'node-pty', '@mapbox', 'detect-libc', 'prebuild-install', 'node-gyp-build', 'bindings'];
+        const srcNodeModules = path.join(__dirname, 'node_modules');
+        const destNodeModules = path.join(buildPath, 'node_modules');
+
+        if (!fs.existsSync(destNodeModules)) {
+          fs.mkdirSync(destNodeModules, { recursive: true });
+        }
+
+        for (const moduleName of externals) {
+          const src = path.join(srcNodeModules, moduleName);
+          const dest = path.join(destNodeModules, moduleName);
+
+          if (fs.existsSync(src)) {
+            console.log(`📦 Copying ${moduleName} to packaged app...`);
+            fs.cpSync(src, dest, { recursive: true });
+          }
+        }
+      },
+    },
     win32metadata: {
       CompanyName: 'aionui',
       FileDescription: 'AI Agent Desktop Interface',
