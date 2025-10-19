@@ -32,11 +32,15 @@ function normalizeArch(arch) {
  * Get modules to rebuild based on platform
  */
 function getModulesToRebuild(platform) {
-  // Windows: Skip node-pty (uses prebuilt binaries, cross-compilation fails)
-  // macOS/Linux: Include node-pty
-  return platform === 'win32' || platform === 'windows'
-    ? ['better-sqlite3', 'bcrypt']
-    : ['better-sqlite3', 'bcrypt', 'node-pty'];
+  // Windows: Skip node-pty (cross-compilation fails with missing conpty API types)
+  // Linux: Skip node-pty (no ARM64 prebuilds available, cross-compilation requires ARM64 toolchain)
+  // macOS: Include node-pty (can cross-compile between x64 and arm64)
+  if (platform === 'win32' || platform === 'windows') {
+    return ['better-sqlite3', 'bcrypt'];
+  } else if (platform === 'linux') {
+    return ['better-sqlite3', 'bcrypt'];
+  }
+  return ['better-sqlite3', 'bcrypt', 'node-pty'];
 }
 
 /**
@@ -156,7 +160,20 @@ function rebuildSingleModule(options) {
   const mustUsePrebuild = platform === 'linux' && isCrossCompile;
 
   if (mustUsePrebuild) {
-    console.log(`     Linux cross-compilation detected (${normalizedBuildArch} → ${targetArch}), using prebuild-install...`);
+    console.log(`     Linux cross-compilation detected (${normalizedBuildArch} → ${targetArch})`);
+
+    // Check if module already has prebuilds (e.g., bcrypt uses node-gyp-build with prebuilds/)
+    const prebuildsDir = path.join(moduleRoot, 'prebuilds', `${platform}-${targetArch}`);
+    if (fs.existsSync(prebuildsDir)) {
+      const files = fs.readdirSync(prebuildsDir);
+      const hasNodeFile = files.some((f) => f.endsWith('.node'));
+      if (hasNodeFile) {
+        console.log(`     ✓ Found existing prebuilds in ${prebuildsDir}, skipping rebuild`);
+        return true;
+      }
+    }
+
+    console.log(`     No existing prebuilds found, trying prebuild-install...`);
   }
 
   // Try prebuild-install first (required for Linux cross-compile)
