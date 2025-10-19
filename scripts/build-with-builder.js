@@ -11,11 +11,49 @@ const path = require('path');
 
 // Parse command line arguments
 const args = process.argv.slice(2);
-const builderArgs = args.join(' ');
+const builderArgs = args.filter(arg => arg !== 'auto').join(' ');
+
+// Get target architecture from electron-builder.yml
+function getTargetArchFromConfig(platform) {
+  try {
+    const configPath = path.resolve(__dirname, '../electron-builder.yml');
+    const content = fs.readFileSync(configPath, 'utf8');
+
+    const platformRegex = new RegExp(`^${platform}:\\s*$`, 'm');
+    const platformMatch = content.match(platformRegex);
+    if (!platformMatch) return null;
+
+    const platformStartIndex = platformMatch.index;
+    const afterPlatform = content.slice(platformStartIndex + platformMatch[0].length);
+    const nextPlatformMatch = afterPlatform.match(/^[a-zA-Z][a-zA-Z0-9]*:/m);
+    const platformBlock = nextPlatformMatch
+      ? content.slice(platformStartIndex, platformStartIndex + platformMatch[0].length + nextPlatformMatch.index)
+      : content.slice(platformStartIndex);
+
+    const archMatch = platformBlock.match(/arch:\s*\[\s*([a-z0-9_]+)/i);
+    return archMatch ? archMatch[1].trim() : null;
+  } catch (error) {
+    return null;
+  }
+}
 
 // Determine target architecture
 const buildMachineArch = process.arch;
-const targetArch = args.find(arg => ['x64', 'arm64', 'ia32', 'armv7l'].includes(arg)) || buildMachineArch;
+let targetArch;
+
+if (args[0] === 'auto') {
+  // Auto mode: detect from electron-builder.yml
+  let detectedPlatform = null;
+  if (builderArgs.includes('--linux')) detectedPlatform = 'linux';
+  else if (builderArgs.includes('--mac')) detectedPlatform = 'mac';
+  else if (builderArgs.includes('--win')) detectedPlatform = 'win';
+
+  const configArch = detectedPlatform ? getTargetArchFromConfig(detectedPlatform) : null;
+  targetArch = configArch || buildMachineArch;
+} else {
+  // Explicit architecture or default to build machine
+  targetArch = args.find(arg => ['x64', 'arm64', 'ia32', 'armv7l'].includes(arg)) || buildMachineArch;
+}
 
 console.log(`🔨 Building for architecture: ${targetArch}`);
 console.log(`📋 Builder arguments: ${builderArgs || '(none)'}`);
