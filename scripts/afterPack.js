@@ -2,7 +2,7 @@ const { Arch } = require('builder-util');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const { normalizeArch, rebuildSingleModule, verifyModuleBinary } = require('./rebuildNativeModules');
+const { normalizeArch, rebuildSingleModule, verifyModuleBinary, getModulesToRebuild } = require('./rebuildNativeModules');
 
 /**
  * afterPack hook for electron-builder
@@ -66,7 +66,10 @@ module.exports = async function afterPack(context) {
   const nodeModulesDir = path.join(resourcesDir, 'app.asar.unpacked', 'node_modules');
 
   // Modules that need to be rebuilt for cross-compilation
-  const modulesToRebuild = ['better-sqlite3', 'bcrypt', 'node-pty'];
+  // Use platform-specific module list (Windows skips node-pty due to cross-compilation issues)
+  const modulesToRebuild = getModulesToRebuild(electronPlatformName);
+  console.log(`   Modules to rebuild: ${modulesToRebuild.join(', ')}`);
+
   const failedModules = [];
 
   for (const moduleName of modulesToRebuild) {
