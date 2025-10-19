@@ -37,30 +37,23 @@ export function getBetterSqlite3(): typeof Database {
         const appPath = app.getAppPath();
         console.log('[SQLiteAdapter] App path:', appPath);
 
-        // Try different possible locations for unpacked modules
-        const possiblePaths = [
-          // Standard ASAR unpacked location
-          path.join(path.dirname(appPath), 'app.asar.unpacked', 'node_modules', 'better-sqlite3'),
-          // Alternative: if app.asar is in resources
-          path.join(appPath.replace('app.asar', 'app.asar.unpacked'), 'node_modules', 'better-sqlite3'),
-          // Direct node_modules (non-ASAR build)
-          path.join(appPath, 'node_modules', 'better-sqlite3'),
-        ];
+        // Add app.asar.unpacked/node_modules to module search paths
+        const unpackedNodeModules = path.join(path.dirname(appPath), 'app.asar.unpacked', 'node_modules');
 
-        for (const modulePath of possiblePaths) {
-          try {
-            console.log('[SQLiteAdapter] Trying to load from:', modulePath);
-            // eslint-disable-next-line @typescript-eslint/no-var-requires
-            betterSqlite3Module = require(modulePath);
-            console.log('[SQLiteAdapter] Successfully loaded better-sqlite3 from:', modulePath);
-            return betterSqlite3Module;
-          } catch (e) {
-            // Continue to next path
-            console.log('[SQLiteAdapter] Not found at:', modulePath);
-          }
+        // Temporarily modify module.paths to include unpacked directory
+        const originalPaths = [...(module as any).paths];
+        (module as any).paths.unshift(unpackedNodeModules);
+
+        try {
+          console.log('[SQLiteAdapter] Trying to load from unpacked node_modules:', unpackedNodeModules);
+          // eslint-disable-next-line @typescript-eslint/no-var-requires
+          betterSqlite3Module = require('better-sqlite3');
+          console.log('[SQLiteAdapter] Successfully loaded better-sqlite3 from unpacked');
+          return betterSqlite3Module;
+        } finally {
+          // Restore original paths
+          (module as any).paths = originalPaths;
         }
-
-        throw new Error('Failed to load better-sqlite3 from any known location. Tried: ' + possiblePaths.join(', '));
       } catch (fallbackError) {
         console.error('[SQLiteAdapter] All fallback paths failed:', fallbackError);
         throw fallbackError;
