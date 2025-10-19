@@ -1,52 +1,24 @@
-const { execFileSync } = require('child_process');
 const { Arch } = require('builder-util');
 const fs = require('fs');
 const path = require('path');
+const { normalizeArch, rebuildSingleModule, verifyModuleBinary } = require('./rebuildNativeModules');
 
 /**
- * Ensure architecture-specific native modules (better-sqlite3) are rebuilt for Linux bundles.
- * This runs after electron-builder finishes packaging each target architecture.
+ * afterPack hook for electron-builder
+ * Ensures native modules are correctly rebuilt in packaged app (Linux only)
+ * Other platforms are handled by beforeBuild hook
  */
-const resolveArch = (input) => {
-  let archValue = input;
-
-  if (typeof archValue === 'string') {
-    if (Arch[archValue] !== undefined) {
-      return archValue;
-    }
-    const numeric = Number(archValue);
-    if (!Number.isNaN(numeric)) {
-      archValue = numeric;
-    } else {
-      return archValue;
-    }
-  }
-
-  const enumValue = Arch[archValue];
-  if (typeof enumValue === 'string') {
-    return enumValue;
-  }
-  switch (archValue) {
-    case Arch.x64:
-      return 'x64';
-    case Arch.arm64:
-      return 'arm64';
-    case Arch.armv7l:
-      return 'armv7l';
-    case Arch.ia32:
-      return 'ia32';
-    default:
-      return process.arch;
-  }
-};
 
 module.exports = async function afterPack(context) {
   const { arch, electronPlatformName, appOutDir, packager } = context;
-  const targetArch = resolveArch(arch);
+  const targetArch = normalizeArch(typeof arch === 'string' ? arch : Arch[arch] || process.arch);
 
+  // Only rebuild for Linux (beforeBuild handles other platforms)
   if (electronPlatformName !== 'linux') {
     return;
   }
+
+  console.log(`🔧 Rebuilding packaged modules (linux-${targetArch})...`);
 
   const electronVersion =
     packager?.info?.electronVersion ??
@@ -62,77 +34,20 @@ module.exports = async function afterPack(context) {
   );
 
   if (!fs.existsSync(moduleRoot)) {
-    console.warn(`[afterPack] better-sqlite3 module not found at ${moduleRoot}`);
+    console.warn(`⚠️  better-sqlite3 not found in packaged app`);
     return;
   }
 
-  const env = {
-    ...process.env,
-    npm_config_arch: targetArch,
-    npm_config_target_arch: targetArch,
-    npm_config_platform: 'linux',
-    npm_config_target_platform: 'linux',
-    npm_config_runtime: 'electron',
-    npm_config_target: electronVersion,
-    npm_config_disturl: 'https://electronjs.org/headers',
-    npm_config_build_from_source: 'false',
-  };
+  const success = rebuildSingleModule({
+    moduleName: 'better-sqlite3',
+    moduleRoot,
+    platform: 'linux',
+    arch: targetArch,
+    electronVersion,
+    projectRoot: path.resolve(__dirname, '..'),
+  });
 
-  const runPrebuildInstall = () => {
-    execFileSync(
-      'npx',
-      [
-        '--yes',
-        'prebuild-install',
-        '--runtime=electron',
-        `--target=${electronVersion}`,
-        '--platform=linux',
-        `--arch=${targetArch}`,
-        '--force',
-      ],
-      {
-        cwd: moduleRoot,
-        env,
-        stdio: 'inherit',
-      }
-    );
-  };
-
-  const runElectronRebuild = () => {
-    execFileSync(
-      'npx',
-      [
-        '--yes',
-        'electron-rebuild',
-        '--only',
-        'better-sqlite3',
-        '--force',
-        '--platform=linux',
-        `--arch=${targetArch}`,
-      ],
-      {
-        cwd: path.resolve(__dirname, '..'),
-        env: {
-          ...env,
-          npm_config_build_from_source: 'true',
-        },
-        stdio: 'inherit',
-      }
-    );
-  };
-
-  try {
-    console.log(`[afterPack] Downloading prebuilt better-sqlite3 for linux-${targetArch}`);
-    runPrebuildInstall();
-  } catch (error) {
-    console.warn('[afterPack] prebuild-install failed, attempting local rebuild...', error.message);
-    runElectronRebuild();
+  if (!success || !verifyModuleBinary(moduleRoot, 'better-sqlite3')) {
+    throw new Error(`Failed to rebuild better-sqlite3 for linux-${targetArch}`);
   }
-
-  const binaryPath = path.join(moduleRoot, 'build', 'Release', 'better_sqlite3.node');
-  if (!fs.existsSync(binaryPath)) {
-    throw new Error(`[afterPack] Failed to produce better_sqlite3.node for linux-${targetArch}`);
-  }
-
-  console.log(`[afterPack] better-sqlite3 prepared for linux-${targetArch}`);
 };

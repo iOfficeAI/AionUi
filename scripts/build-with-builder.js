@@ -1,321 +1,95 @@
 #!/usr/bin/env node
 
+/**
+ * Simplified build script for AionUi
+ * Coordinates Electron Forge (webpack) and electron-builder (packaging)
+ */
+
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-// 获取构建参数
+// Parse command line arguments
 const args = process.argv.slice(2);
+const builderArgs = args.join(' ');
 
-// 从 electron-builder.yml 读取目标架构配置（简单的文本解析，避免依赖 js-yaml）
-function getTargetArchesFromConfig(platform) {
-  try {
-    const configPath = path.resolve(__dirname, '../electron-builder.yml');
-    const content = fs.readFileSync(configPath, 'utf8');
+// Determine target architecture
+const buildMachineArch = process.arch;
+const targetArch = args.find(arg => ['x64', 'arm64', 'ia32', 'armv7l'].includes(arg)) || buildMachineArch;
 
-    // 查找平台配置块（如 "linux:"）
-    const platformRegex = new RegExp(`^${platform}:\\s*$`, 'm');
-    const platformMatch = content.match(platformRegex);
-    if (!platformMatch) {
-      return [];
-    }
-
-    // 提取平台配置块（从 "linux:" 到下一个顶级键或文件末尾）
-    // 顶级键的特征：行首无缩进 + 键名 + 冒号
-    const platformStartIndex = platformMatch.index;
-    const afterPlatform = content.slice(platformStartIndex + platformMatch[0].length);
-    const nextPlatformMatch = afterPlatform.match(/^[a-zA-Z][a-zA-Z0-9]*:/m);
-    const platformBlock = nextPlatformMatch
-      ? content.slice(platformStartIndex, platformStartIndex + platformMatch[0].length + nextPlatformMatch.index)
-      : content.slice(platformStartIndex);
-
-    // 查找所有 arch: [ xxx ] 或 arch: [xxx, yyy] 模式
-    // 示例：arch: [ arm64 ] 或 arch: [x64, arm64] 或 arch: [ x64, arm64 ]
-    const archMatches = platformBlock.matchAll(/arch:\s*\[\s*([a-z0-9_, ]+)\s*\]/gi);
-    const allArches = new Set();
-
-    for (const match of archMatches) {
-      // 分割多个架构（如 "x64, arm64"）
-      const arches = match[1]
-        .split(',')
-        .map((a) => a.trim())
-        .filter((a) => a);
-      arches.forEach((a) => allArches.add(a));
-    }
-
-    return Array.from(allArches);
-  } catch (error) {
-    console.warn(`⚠️  Failed to read target arches from electron-builder.yml: ${error.message}`);
-    return [];
-  }
-}
-
-// 确定目标架构（单个或多个）
-const builderArgs = args.slice(1).join(' ');
-let targetArches = []; // 所有需要构建的架构
-let buildMachineArch = process.arch; // 构建机器的架构
-
-if (args[0] === 'auto') {
-  // auto 模式：从 electron-builder.yml 读取所有目标架构
-  let detectedPlatform = null;
-  if (builderArgs.includes('--linux')) detectedPlatform = 'linux';
-  else if (builderArgs.includes('--mac')) detectedPlatform = 'mac';
-  else if (builderArgs.includes('--win')) detectedPlatform = 'win';
-
-  const configArches = detectedPlatform ? getTargetArchesFromConfig(detectedPlatform) : [];
-  targetArches = configArches.length > 0 ? configArches : [buildMachineArch];
-
-  if (configArches.length > 0) {
-    console.log(`🔍 Detected target architectures from electron-builder.yml: ${targetArches.join(', ')}`);
-  } else {
-    console.log(`🔍 Using build machine architecture: ${buildMachineArch}`);
-  }
-} else {
-  targetArches = [args[0] || buildMachineArch];
-}
+console.log(`🔨 Building for architecture: ${targetArch}`);
+console.log(`📋 Builder arguments: ${builderArgs || '(none)'}`);
 
 const packageJsonPath = path.resolve(__dirname, '../package.json');
 
 try {
-  // 1. 确保 main 字段正确用于 Forge
-  console.log('🔧 Ensuring main entry is correct for Forge...');
+  // 1. Ensure package.json main entry is correct for Forge
   const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-  const originalMain = packageJson.main;
-  
-  // 添加进程退出监听器确保恢复
-  const restoreMain = () => {
-    try {
-      const currentPackageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
-      currentPackageJson.main = '.webpack/main';
-      fs.writeFileSync(packageJsonPath, JSON.stringify(currentPackageJson, null, 2) + '\n');
-      console.log('🔄 Main entry restored on exit');
-    } catch (e) {
-      console.error('Failed to restore on exit:', e.message);
-    }
-  };
-  
-  process.on('SIGINT', restoreMain);
-  process.on('SIGTERM', restoreMain);
-  process.on('exit', restoreMain);
-  
-  // 确保 Forge 能找到正确的 main 入口
   if (packageJson.main !== '.webpack/main') {
     packageJson.main = '.webpack/main';
     fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n');
-    console.log('📝 Reset main entry to .webpack/main for Forge');
   }
 
-  // 2. 运行 Forge 打包
-  // Forge 会根据构建机器的架构编译，我们传递第一个目标架构作为提示
-  const forgeTargetArch = targetArches[0];
-  console.log(`📦 Running Forge package for ${forgeTargetArch}...`);
-  console.log(`🔍 Setting ELECTRON_BUILDER_ARCH=${forgeTargetArch}`);
-  // Pass target architecture to Forge via environment variable
-  const forgeEnv = { ...process.env, ELECTRON_BUILDER_ARCH: forgeTargetArch };
-  execSync('npm run package', { stdio: 'inherit', env: forgeEnv });
-
-  // 2.5 验证 Forge 输出的架构
-  const webpackBaseDir = path.resolve(__dirname, '../.webpack');
-  const webpackDirs = fs.readdirSync(webpackBaseDir).filter(d =>
-    fs.statSync(path.join(webpackBaseDir, d)).isDirectory()
-  );
-  console.log(`🔍 Forge generated directories: ${webpackDirs.join(', ')}`);
-
-  // 检测架构目录：通过检查是否包含 main/index.js 来判断是否为有效的 Forge 输出目录
-  const archDirs = webpackDirs.filter(d => {
-    const mainIndexPath = path.join(webpackBaseDir, d, 'main', 'index.js');
-    return fs.existsSync(mainIndexPath);
+  // 2. Run Forge to build webpack bundles
+  console.log(`📦 Building ${targetArch}...`);
+  execSync('npm run package', {
+    stdio: 'inherit',
+    env: { ...process.env, ELECTRON_BUILDER_ARCH: targetArch }
   });
 
-  console.log(`🔍 Valid Forge build directories (with main/index.js): ${archDirs.length > 0 ? archDirs.join(', ') : 'none'}`);
+  // 3. Verify Forge output
+  const webpackDir = path.resolve(__dirname, '../.webpack');
+  if (!fs.existsSync(webpackDir)) {
+    throw new Error('Forge did not generate .webpack directory');
+  }
 
-  // 确定实际生成的架构目录（Forge 实际输出的架构）
-  let actualArch = buildMachineArch; // 默认假设 Forge 生成了构建机器的架构
-  if (archDirs.length > 0) {
-    // 如果存在多个架构目录，通过检查 main/index.js 的修改时间来确定最新的
-    if (archDirs.length > 1) {
-      console.log(`🔍 Multiple build directories found, detecting latest by timestamp...`);
+  // Find the architecture-specific output or use default
+  const possibleDirs = [
+    path.join(webpackDir, targetArch),
+    path.join(webpackDir, buildMachineArch),
+    webpackDir
+  ];
 
-      let latestArch = archDirs[0];
-      let latestTime = 0;
-
-      for (const archDir of archDirs) {
-        const mainIndexPath = path.join(webpackBaseDir, archDir, 'main', 'index.js');
-        const stats = fs.statSync(mainIndexPath);
-        if (stats.mtimeMs > latestTime) {
-          latestTime = stats.mtimeMs;
-          latestArch = archDir;
-        }
-      }
-
-      actualArch = latestArch;
-      console.log(`✅ Detected latest build: ${actualArch} (modified: ${new Date(latestTime).toISOString()})`);
-    } else {
-      actualArch = archDirs[0];
+  let sourceDir = webpackDir;
+  for (const dir of possibleDirs) {
+    if (fs.existsSync(path.join(dir, 'main'))) {
+      sourceDir = dir;
+      break;
     }
   }
 
-  // 2.6 确保所有目标架构的 .webpack/${arch} 目录都存在供 electron-builder 使用
-  // Forge 可能输出在 .webpack/${actualArch}/ 但 electron-builder 需要 .webpack/${targetArch}/
-  const webpackSrcDir = path.resolve(__dirname, '../.webpack');
-  const actualArchDir = path.join(webpackSrcDir, actualArch);
-  const useArchSpecificSource = fs.existsSync(actualArchDir);
+  // 4. Ensure required directories exist for electron-builder
+  const ensureDir = (srcDir, destDir, name) => {
+    const src = path.join(srcDir, name);
+    const dest = path.join(webpackDir, name);
 
-  // 为每个目标架构创建目录结构
-  for (const targetArch of targetArches) {
-    console.log(`📁 Preparing .webpack/${targetArch} directory for electron-builder...`);
-    const webpackArchDir = path.resolve(__dirname, `../.webpack/${targetArch}`);
-
-    // 如果目标架构目录不存在，或者需要从不同架构复制，则创建
-    if (!fs.existsSync(webpackArchDir) || actualArch !== targetArch) {
-      if (actualArch !== targetArch) {
-        console.log(`⚠️  Cross-arch build: Forge generated ${actualArch} but target is ${targetArch}`);
-        console.log(`📝 Will copy from ${actualArch} to ${targetArch}`);
-      }
-    // 复制必要的子目录（main, renderer, native_modules）
-    if (process.platform === 'win32') {
-      // Windows: 使用 xcopy 或 robocopy 复制子目录
-      const mainSrc = useArchSpecificSource ? path.join(actualArchDir, 'main') : path.join(webpackSrcDir, 'main');
-      const rendererSrc = useArchSpecificSource
-        ? path.join(actualArchDir, 'renderer')
-        : path.join(webpackSrcDir, 'renderer');
-      const nativeModulesSrc = useArchSpecificSource
-        ? path.join(actualArchDir, 'native_modules')
-        : path.join(webpackSrcDir, 'native_modules');
-
-      const mainDest = path.join(webpackArchDir, 'main');
-      const rendererDest = path.join(webpackArchDir, 'renderer');
-      const nativeModulesDest = path.join(webpackArchDir, 'native_modules');
-
-      // 创建目标目录
-      if (!fs.existsSync(webpackArchDir)) {
-        fs.mkdirSync(webpackArchDir, { recursive: true });
+    if (fs.existsSync(src) && src !== dest) {
+      if (fs.existsSync(dest)) {
+        fs.rmSync(dest, { recursive: true, force: true });
       }
 
-      // Copy main directory
-      if (fs.existsSync(mainSrc)) {
-        execSync(`xcopy "${mainSrc}" "${mainDest}" /E /I /H /Y /Q`, { stdio: 'inherit' });
-        console.log(`✅ Copied main: ${mainSrc} -> ${mainDest}`);
+      if (process.platform === 'win32') {
+        execSync(`xcopy "${src}" "${dest}" /E /I /H /Y /Q`, { stdio: 'inherit' });
       } else {
-        console.warn(`⚠️  Main source not found at ${mainSrc}`);
-      }
-
-      // Copy renderer directory
-      if (fs.existsSync(rendererSrc)) {
-        execSync(`xcopy "${rendererSrc}" "${rendererDest}" /E /I /H /Y /Q`, { stdio: 'inherit' });
-        console.log(`✅ Copied renderer: ${rendererSrc} -> ${rendererDest}`);
-      } else {
-        console.warn(`⚠️  Renderer source not found at ${rendererSrc}`);
-      }
-
-      // Copy native_modules directory
-      if (fs.existsSync(nativeModulesSrc)) {
-        execSync(`xcopy "${nativeModulesSrc}" "${nativeModulesDest}" /E /I /H /Y /Q`, { stdio: 'inherit' });
-        console.log(`✅ Copied native_modules: ${nativeModulesSrc} -> ${nativeModulesDest}`);
-      } else {
-        console.warn(`⚠️  Native modules source not found at ${nativeModulesSrc}`);
-      }
-    } else {
-      // Unix: 复制目录（而不是软链接，因为 asar 不支持软链接）
-      // 源路径：Forge 可能生成 .webpack/${actualArch}/xxx 或 .webpack/xxx
-      const mainSrc = useArchSpecificSource ? path.join(actualArchDir, 'main') : path.join(webpackSrcDir, 'main');
-      const rendererSrc = useArchSpecificSource
-        ? path.join(actualArchDir, 'renderer')
-        : path.join(webpackSrcDir, 'renderer');
-      const nativeModulesSrc = useArchSpecificSource
-        ? path.join(actualArchDir, 'native_modules')
-        : path.join(webpackSrcDir, 'native_modules');
-
-      const mainDest = path.join(webpackArchDir, 'main');
-      const rendererDest = path.join(webpackArchDir, 'renderer');
-      const nativeModulesDest = path.join(webpackArchDir, 'native_modules');
-
-      fs.mkdirSync(webpackArchDir, { recursive: true });
-
-      // Copy main directory
-      if (fs.existsSync(mainSrc)) {
-        const absMainSrc = path.resolve(mainSrc);
-        const absMainDest = path.resolve(mainDest);
-        execSync(`cp -r "${absMainSrc}" "${absMainDest}"`, { stdio: 'inherit' });
-        console.log(`✅ Copied main: ${absMainSrc} -> ${absMainDest}`);
-      } else {
-        console.warn(`⚠️  Main source not found at ${mainSrc}`);
-      }
-
-      // Copy renderer directory (for extraResources)
-      if (fs.existsSync(rendererSrc)) {
-        const absRendererSrc = path.resolve(rendererSrc);
-        const absRendererDest = path.resolve(rendererDest);
-        execSync(`cp -r "${absRendererSrc}" "${absRendererDest}"`, { stdio: 'inherit' });
-        console.log(`✅ Copied renderer: ${absRendererSrc} -> ${absRendererDest}`);
-      } else {
-        console.warn(`⚠️  Renderer source not found at ${rendererSrc}`);
-      }
-
-      // Copy native_modules directory (for extraResources)
-      if (fs.existsSync(nativeModulesSrc)) {
-        const absNativeModulesSrc = path.resolve(nativeModulesSrc);
-        const absNativeModulesDest = path.resolve(nativeModulesDest);
-        execSync(`cp -r "${absNativeModulesSrc}" "${absNativeModulesDest}"`, { stdio: 'inherit' });
-        console.log(`✅ Copied native_modules: ${absNativeModulesSrc} -> ${absNativeModulesDest}`);
-      } else {
-        console.warn(`⚠️  Native modules source not found at ${nativeModulesSrc}`);
+        execSync(`cp -r "${src}" "${dest}"`, { stdio: 'inherit' });
       }
     }
-      console.log(`✅ Created .webpack/${targetArch} structure from ${actualArch}`);
-    }
+  };
+
+  ensureDir(sourceDir, webpackDir, 'main');
+  ensureDir(sourceDir, webpackDir, 'renderer');
+  if (sourceDir !== webpackDir && fs.existsSync(path.join(sourceDir, 'native_modules'))) {
+    ensureDir(sourceDir, webpackDir, 'native_modules');
   }
 
-  // 3. 确保 .webpack/main 目录存在（package.json 中的 main 字段需要它）
-  // package.json 的 main 字段保持为 ".webpack/main"，不做修改
-  // 通过复制确保这个路径在打包后的应用中存在
-  console.log(`📁 Ensuring .webpack/main exists for package.json main entry...`);
-  const webpackMainDir = path.resolve(__dirname, '../.webpack/main');
-  const actualMainSrc = useArchSpecificSource ? path.join(actualArchDir, 'main') : path.join(webpackSrcDir, 'main');
-
-  if (!fs.existsSync(webpackMainDir) || actualArch !== 'main') {
-    if (process.platform === 'win32') {
-      if (fs.existsSync(webpackMainDir)) {
-        execSync(`rmdir /s /q "${webpackMainDir}"`, { stdio: 'inherit' });
-      }
-      execSync(`xcopy "${actualMainSrc}" "${webpackMainDir}" /E /I /H /Y /Q`, { stdio: 'inherit' });
-    } else {
-      if (fs.existsSync(webpackMainDir)) {
-        execSync(`rm -rf "${webpackMainDir}"`, { stdio: 'inherit' });
-      }
-      execSync(`cp -r "${actualMainSrc}" "${webpackMainDir}"`, { stdio: 'inherit' });
-    }
-    console.log(`✅ Created .webpack/main from ${actualArch}`);
-  }
-
-  // 3.5. 确保 .webpack/renderer 目录存在（桌面模式需要）
-  console.log(`📁 Ensuring .webpack/renderer exists for desktop mode...`);
-  const webpackRendererDir = path.resolve(__dirname, '../.webpack/renderer');
-  const actualRendererSrc = useArchSpecificSource ? path.join(actualArchDir, 'renderer') : path.join(webpackSrcDir, 'renderer');
-
-  if (!fs.existsSync(webpackRendererDir) || actualArch !== 'renderer') {
-    if (process.platform === 'win32') {
-      if (fs.existsSync(webpackRendererDir)) {
-        execSync(`rmdir /s /q "${webpackRendererDir}"`, { stdio: 'inherit' });
-      }
-      execSync(`xcopy "${actualRendererSrc}" "${webpackRendererDir}" /E /I /H /Y /Q`, { stdio: 'inherit' });
-    } else {
-      if (fs.existsSync(webpackRendererDir)) {
-        execSync(`rm -rf "${webpackRendererDir}"`, { stdio: 'inherit' });
-      }
-      execSync(`cp -r "${actualRendererSrc}" "${webpackRendererDir}"`, { stdio: 'inherit' });
-    }
-    console.log(`✅ Created .webpack/renderer from ${actualArch}`);
-  }
-
-  // 4. 运行 electron-builder
-  // 在非release环境下禁用发布以避免GH_TOKEN错误
+  // 5. Run electron-builder
   const isRelease = process.env.GITHUB_REF && process.env.GITHUB_REF.startsWith('refs/tags/v');
   const publishArg = isRelease ? '' : '--publish=never';
-  console.log(`🚀 Running electron-builder ${builderArgs} ${publishArg}...`);
+
+  console.log(`🚀 Packaging...`);
   execSync(`npx electron-builder ${builderArgs} ${publishArg}`, { stdio: 'inherit' });
 
-  console.log('✅ Build completed successfully!');
+  console.log('✅ Build completed!');
 } catch (error) {
   console.error('❌ Build failed:', error.message);
   process.exit(1);

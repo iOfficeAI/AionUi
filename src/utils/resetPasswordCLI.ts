@@ -8,8 +8,10 @@
  */
 
 import crypto from 'crypto';
-import Database from 'better-sqlite3';
+import type Database from 'better-sqlite3';
 import { getDataPath, ensureDirectory } from '@process/utils';
+import { createDatabase } from '@process/database/sqliteAdapter';
+import { getBcryptAdapterSingleton } from '@process/bcryptAdapter';
 import path from 'path';
 
 // 颜色输出 / Color output
@@ -31,52 +33,8 @@ const log = {
   highlight: (msg: string) => console.log(`${colors.cyan}${colors.bright}${msg}${colors.reset}`),
 };
 
-// Bcrypt adapter type
-type BcryptAdapter = {
-  hash(password: string, rounds: number): Promise<string>;
-};
-
-// Helper function for pbkdf2 hashing
-const pbkdf2Hash = (password: string, salt: Buffer, iterations: number): Promise<Buffer> =>
-  new Promise((resolve, reject) => {
-    crypto.pbkdf2(password, salt, iterations, 32, 'sha256', (err, derived) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve(derived);
-      }
-    });
-  });
-
-// Dynamic bcrypt loading with fallback (same pattern as AuthService)
-// 动态加载bcrypt并降级到pbkdf2 (与AuthService相同的模式)
-const bcryptAdapter: BcryptAdapter = (() => {
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires,global-require
-    let nativeModule: any = require('bcrypt');
-
-    // Handle Webpack commonjs wrapper (.default)
-    // Webpack may wrap the module with { default: actualModule }
-    if (nativeModule.default && typeof nativeModule.default === 'object') {
-      nativeModule = nativeModule.default;
-    }
-
-    const native: typeof import('bcrypt') = nativeModule;
-    return {
-      hash: (password: string, rounds: number) => native.hash(password, rounds),
-    };
-  } catch (nativeError) {
-    log.warning('bcrypt not available, using pbkdf2 fallback');
-    return {
-      hash: async (password: string) => {
-        const iterations = 120_000;
-        const salt = crypto.randomBytes(16);
-        const derived = await pbkdf2Hash(password, salt, iterations);
-        return `pbkdf2$${iterations}$${salt.toString('base64')}$${derived.toString('base64')}`;
-      },
-    };
-  }
-})();
+// Get bcrypt adapter (handles ASAR packaging issues)
+const bcryptAdapter = getBcryptAdapterSingleton();
 
 // Hash password using bcrypt adapter
 // 使用bcrypt适配器哈希密码
@@ -116,7 +74,7 @@ export async function resetPasswordCLI(username: string): Promise<void> {
     ensureDirectory(dir);
 
     // Connect to database
-    db = new Database(dbPath);
+    db = createDatabase(dbPath);
 
     // Find user
     const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username) as { id: string; username: string; password_hash: string; jwt_secret: string | null } | undefined;
