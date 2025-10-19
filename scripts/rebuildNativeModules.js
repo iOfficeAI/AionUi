@@ -169,6 +169,15 @@ function rebuildSingleModule(options) {
       const hasNodeFile = files.some((f) => f.endsWith('.node'));
       if (hasNodeFile) {
         console.log(`     ✓ Found existing prebuilds in ${prebuildsDir}, skipping rebuild`);
+
+        // Delete build/Release/ to prevent node-gyp-build from loading wrong architecture
+        // node-gyp-build checks build/Release/ BEFORE prebuilds/, so we must remove it
+        const buildDir = path.join(moduleRoot, 'build');
+        if (fs.existsSync(buildDir)) {
+          console.log(`     Removing build/ directory to force use of prebuilds/`);
+          fs.rmSync(buildDir, { recursive: true, force: true });
+        }
+
         return true;
       }
     }
