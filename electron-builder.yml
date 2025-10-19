@@ -96,7 +96,7 @@ linux:
       Icon: aionui
       Categories: Office;Utility;
 
-npmRebuild: true
+npmRebuild: false
 buildDependenciesFromSource: false
 nodeGypRebuild: false
 beforeBuild: scripts/beforeBuild.js
