@@ -63,41 +63,53 @@ module.exports = async function afterPack(context) {
     return;
   }
 
-  const moduleRoot = path.join(resourcesDir, 'app.asar.unpacked', 'node_modules', 'better-sqlite3');
+  const nodeModulesDir = path.join(resourcesDir, 'app.asar.unpacked', 'node_modules');
 
-  if (!fs.existsSync(moduleRoot)) {
-    console.warn(`⚠️  better-sqlite3 not found, skipping rebuild`);
-    console.warn(`   Expected at: ${moduleRoot}`);
-    return;
+  // Modules that need to be rebuilt for cross-compilation
+  const modulesToRebuild = ['better-sqlite3', 'bcrypt', 'node-pty'];
+  const failedModules = [];
+
+  for (const moduleName of modulesToRebuild) {
+    const moduleRoot = path.join(nodeModulesDir, moduleName);
+
+    if (!fs.existsSync(moduleRoot)) {
+      console.warn(`   ⚠️  ${moduleName} not found, skipping`);
+      continue;
+    }
+
+    console.log(`   ✓ Found ${moduleName}, rebuilding for ${targetArch}...`);
+
+    const success = rebuildSingleModule({
+      moduleName,
+      moduleRoot,
+      platform: electronPlatformName,
+      arch: targetArch,
+      electronVersion,
+      projectRoot: path.resolve(__dirname, '..'),
+    });
+
+    if (success) {
+      console.log(`     ✓ Rebuild completed`);
+    } else {
+      console.error(`     ✗ Rebuild failed`);
+      failedModules.push(moduleName);
+      continue;
+    }
+
+    const verified = verifyModuleBinary(moduleRoot, moduleName);
+    if (verified) {
+      console.log(`     ✓ Binary verification passed`);
+    } else {
+      console.error(`     ✗ Binary verification failed`);
+      failedModules.push(moduleName);
+    }
+
+    console.log(''); // Empty line between modules
   }
 
-  console.log(`   ✓ Found better-sqlite3, rebuilding for ${targetArch}...\n`);
-
-  const success = rebuildSingleModule({
-    moduleName: 'better-sqlite3',
-    moduleRoot,
-    platform: electronPlatformName,
-    arch: targetArch,
-    electronVersion,
-    projectRoot: path.resolve(__dirname, '..'),
-  });
-
-  if (success) {
-    console.log(`   ✓ Rebuild completed`);
-  } else {
-    console.error(`   ✗ Rebuild failed`);
+  if (failedModules.length > 0) {
+    throw new Error(`Failed to rebuild modules for ${electronPlatformName}-${targetArch}: ${failedModules.join(', ')}`);
   }
 
-  const verified = verifyModuleBinary(moduleRoot, 'better-sqlite3');
-  if (verified) {
-    console.log(`   ✓ Binary verification passed`);
-  } else {
-    console.error(`   ✗ Binary verification failed`);
-  }
-
-  if (!success || !verified) {
-    throw new Error(`Failed to rebuild better-sqlite3 for ${electronPlatformName}-${targetArch}`);
-  }
-
-  console.log(`\n✅ Native modules rebuilt successfully for ${targetArch}\n`);
+  console.log(`✅ All native modules rebuilt successfully for ${targetArch}\n`);
 };
