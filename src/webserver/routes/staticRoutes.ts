@@ -8,6 +8,7 @@ import type { Express, Request, Response } from 'express';
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
+import { app } from 'electron';
 import { TokenMiddleware } from '@/webserver/auth/middleware/TokenMiddleware';
 import { AUTH_CONFIG } from '../config/constants';
 
@@ -16,8 +17,18 @@ import { AUTH_CONFIG } from '../config/constants';
  * Register static assets and page routes
  */
 const resolveRendererPath = () => {
-  // Unified path for both development and production
-  const baseRoot = process.resourcesPath ? path.join(process.resourcesPath, '.webpack', 'renderer') : path.join(process.cwd(), '.webpack', 'renderer');
+  // In development: use app path (project directory)
+  // In production: use resources path (packaged app)
+  let baseRoot: string;
+
+  if (app.isPackaged && process.resourcesPath) {
+    // Production: packaged app
+    baseRoot = path.join(process.resourcesPath, '.webpack', 'renderer');
+  } else {
+    // Development: use app path or cwd
+    const appPath = app.getAppPath();
+    baseRoot = path.join(appPath, '.webpack', 'renderer');
+  }
 
   const indexHtml = path.join(baseRoot, 'main_window', 'index.html');
 
