@@ -6,13 +6,10 @@
 
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
+import bcrypt from 'bcrypt';
 import type { AuthUser } from '../repository/UserRepository';
 import { UserRepository } from '../repository/UserRepository';
 import { AUTH_CONFIG } from '../../config/constants';
-import { getBcryptAdapterSingleton } from '@process/bcryptAdapter';
-
-// Get bcrypt adapter (handles ASAR packaging issues)
-const bcryptAdapter = getBcryptAdapterSingleton();
 
 interface TokenPayload {
   userId: string;
@@ -121,7 +118,7 @@ export class AuthService {
    * Hash password using bcrypt
    */
   public static hashPassword(password: string): Promise<string> {
-    return bcryptAdapter.hash(password, this.SALT_ROUNDS);
+    return bcrypt.hash(password, this.SALT_ROUNDS);
   }
 
   /**
@@ -129,7 +126,7 @@ export class AuthService {
    * Verify whether the password matches the stored hash
    */
   public static verifyPassword(password: string, hash: string): Promise<boolean> {
-    return bcryptAdapter.compare(password, hash);
+    return bcrypt.compare(password, hash);
   }
 
   /**
@@ -393,7 +390,7 @@ export class AuthService {
 
     let result: boolean;
     if (hashProvided) {
-      result = await bcryptAdapter.compare(provided, expected);
+      result = await bcrypt.compare(provided, expected);
     } else {
       result = crypto.timingSafeEqual(Buffer.from(provided.padEnd(expected.length, '0')), Buffer.from(expected.padEnd(provided.length, '0')));
     }
