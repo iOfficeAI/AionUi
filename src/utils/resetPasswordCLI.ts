@@ -53,7 +53,15 @@ const pbkdf2Hash = (password: string, salt: Buffer, iterations: number): Promise
 const bcryptAdapter: BcryptAdapter = (() => {
   try {
     // eslint-disable-next-line @typescript-eslint/no-var-requires,global-require
-    const native: typeof import('bcrypt') = require('bcrypt');
+    let nativeModule: any = require('bcrypt');
+
+    // Handle Webpack commonjs wrapper (.default)
+    // Webpack may wrap the module with { default: actualModule }
+    if (nativeModule.default && typeof nativeModule.default === 'object') {
+      nativeModule = nativeModule.default;
+    }
+
+    const native: typeof import('bcrypt') = nativeModule;
     return {
       hash: (password: string, rounds: number) => native.hash(password, rounds),
     };
