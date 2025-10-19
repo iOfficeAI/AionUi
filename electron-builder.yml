@@ -14,6 +14,14 @@ files:
   - .webpack/renderer/**/*
   - public/**/*
   - package.json
+  - node_modules/better-sqlite3/**/*
+  - node_modules/bcrypt/**/*
+  - node_modules/node-pty/**/*
+  - node_modules/@mapbox/**/*
+  - node_modules/detect-libc/**/*
+  - node_modules/prebuild-install/**/*
+  - node_modules/node-gyp-build/**/*
+  - node_modules/bindings/**/*
   # Exclude dev/test files
   - '!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}'
   - '!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}'
@@ -94,7 +102,14 @@ nodeGypRebuild: false
 beforeBuild: scripts/beforeBuild.js
 
 asarUnpack:
-  - "**/.webpack/main/native_modules/**/*"
+  - "**/node_modules/better-sqlite3/**/*"
+  - "**/node_modules/bcrypt/**/*"
+  - "**/node_modules/node-pty/**/*"
+  - "**/node_modules/@mapbox/**/*"
+  - "**/node_modules/detect-libc/**/*"
+  - "**/node_modules/prebuild-install/**/*"
+  - "**/node_modules/node-gyp-build/**/*"
+  - "**/node_modules/bindings/**/*"
 
 compression: maximum
 removePackageScripts: true
