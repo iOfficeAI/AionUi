@@ -143,7 +143,7 @@ module.exports = {
   plugins: [
     new AutoUnpackNativesPlugin({
       // 配置需要处理的 native 依赖
-      include: ['node-pty', 'better-sqlite3'],
+      include: ['node-pty', 'better-sqlite3', 'bcrypt'],
     }),
     new WebpackPlugin({
       mainConfig,
