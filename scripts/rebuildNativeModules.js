@@ -178,17 +178,62 @@ function rebuildSingleModule(options) {
 }
 
 /**
+ * Find bcrypt binding files (handles different NAPI versions)
+ */
+function findBcryptBindings(moduleRoot) {
+  const bindingDir = path.join(moduleRoot, 'lib', 'binding');
+  if (!fs.existsSync(bindingDir)) {
+    return [];
+  }
+
+  const results = [];
+  try {
+    const napiDirs = fs.readdirSync(bindingDir);
+    for (const dir of napiDirs) {
+      const binaryPath = path.join(bindingDir, dir, 'bcrypt_lib.node');
+      if (fs.existsSync(binaryPath)) {
+        results.push(binaryPath);
+      }
+    }
+  } catch (error) {
+    // Ignore errors
+  }
+
+  return results;
+}
+
+/**
  * Verify native module binary exists
  */
 function verifyModuleBinary(moduleRoot, moduleName) {
-  const binaryPaths = {
-    'better-sqlite3': path.join(moduleRoot, 'build', 'Release', 'better_sqlite3.node'),
-    'bcrypt': path.join(moduleRoot, 'lib', 'binding', 'napi-v3', 'bcrypt_lib.node'),
-    'node-pty': path.join(moduleRoot, 'build', 'Release', 'pty.node'),
+  const binaryPathsToCheck = {
+    'better-sqlite3': [
+      path.join(moduleRoot, 'build', 'Release', 'better_sqlite3.node'),
+    ],
+    'bcrypt': [
+      path.join(moduleRoot, 'lib', 'binding', 'napi-v3', 'bcrypt_lib.node'),
+      path.join(moduleRoot, 'build', 'Release', 'bcrypt_lib.node'),
+      // Check for any bcrypt_lib.node under lib/binding/
+      ...findBcryptBindings(moduleRoot),
+    ],
+    'node-pty': [
+      path.join(moduleRoot, 'build', 'Release', 'pty.node'),
+    ],
   };
 
-  const binaryPath = binaryPaths[moduleName];
-  return binaryPath && fs.existsSync(binaryPath);
+  const pathsToCheck = binaryPathsToCheck[moduleName] || [];
+
+  for (const binaryPath of pathsToCheck) {
+    if (fs.existsSync(binaryPath)) {
+      return true;
+    }
+  }
+
+  // Debug: log what we're looking for
+  console.log(`     Debug: Binary not found in expected locations:`);
+  pathsToCheck.forEach(p => console.log(`       - ${p}`));
+
+  return false;
 }
 
 module.exports = {
