@@ -210,6 +210,32 @@ function findBcryptBindings(moduleRoot) {
 }
 
 /**
+ * Recursively search for .node files in a directory
+ */
+function findNodeFiles(dir, maxDepth = 3, currentDepth = 0) {
+  if (currentDepth >= maxDepth || !fs.existsSync(dir)) {
+    return [];
+  }
+
+  const results = [];
+  try {
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    for (const entry of entries) {
+      const fullPath = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        results.push(...findNodeFiles(fullPath, maxDepth, currentDepth + 1));
+      } else if (entry.isFile() && entry.name.endsWith('.node')) {
+        results.push(fullPath);
+      }
+    }
+  } catch (error) {
+    // Ignore permission errors
+  }
+
+  return results;
+}
+
+/**
  * Verify native module binary exists
  */
 function verifyModuleBinary(moduleRoot, moduleName) {
@@ -219,27 +245,38 @@ function verifyModuleBinary(moduleRoot, moduleName) {
     ],
     'bcrypt': [
       path.join(moduleRoot, 'lib', 'binding', 'napi-v3', 'bcrypt_lib.node'),
+      path.join(moduleRoot, 'lib', 'binding', 'napi-v4', 'bcrypt_lib.node'),
       path.join(moduleRoot, 'build', 'Release', 'bcrypt_lib.node'),
       // Check for any bcrypt_lib.node under lib/binding/
       ...findBcryptBindings(moduleRoot),
     ],
     'node-pty': [
       path.join(moduleRoot, 'build', 'Release', 'pty.node'),
+      path.join(moduleRoot, 'build', 'Release', 'conpty.node'),
+      path.join(moduleRoot, 'build', 'Release', 'conpty_console_list.node'),
     ],
   };
 
   const pathsToCheck = binaryPathsToCheck[moduleName] || [];
 
+  // First check known paths
   for (const binaryPath of pathsToCheck) {
     if (fs.existsSync(binaryPath)) {
+      console.log(`     Debug: Found binary at ${binaryPath}`);
       return true;
     }
   }
 
-  // Debug: log what we're looking for
-  console.log(`     Debug: Binary not found in expected locations:`);
-  pathsToCheck.forEach(p => console.log(`       - ${p}`));
+  // If not found, search recursively
+  console.log(`     Debug: Binary not found in expected locations, searching recursively...`);
+  const foundFiles = findNodeFiles(moduleRoot);
+  if (foundFiles.length > 0) {
+    console.log(`     Debug: Found .node files:`);
+    foundFiles.forEach(f => console.log(`       - ${f}`));
+    return true;
+  }
 
+  console.log(`     Debug: No .node files found in ${moduleRoot}`);
   return false;
 }
 
