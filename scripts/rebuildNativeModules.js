@@ -107,6 +107,7 @@ function rebuildWithElectronRebuild(options) {
  * @param {string} options.arch - Target architecture
  * @param {string} options.electronVersion - Electron version
  * @param {string} [options.projectRoot] - Project root for fallback rebuild
+ * @param {boolean} [options.forceRebuild] - Force rebuild from source (skip prebuild-install)
  */
 function rebuildSingleModule(options) {
   const {
@@ -116,6 +117,7 @@ function rebuildSingleModule(options) {
     arch,
     electronVersion,
     projectRoot = path.resolve(__dirname, '..'),
+    forceRebuild = false,
   } = options;
 
   const targetArch = normalizeArch(arch);
@@ -125,32 +127,36 @@ function rebuildSingleModule(options) {
 
   const npxCmd = getNpxCommand();
 
-  // Try prebuild-install first (faster)
-  try {
-    env.npm_config_build_from_source = 'false';
-    execFileSync(
-      npxCmd,
-      [
-        '--yes',
-        'prebuild-install',
-        '--runtime=electron',
-        `--target=${electronVersion}`,
-        `--platform=${platform}`,
-        `--arch=${targetArch}`,
-        '--force',
-      ],
-      {
-        cwd: moduleRoot,
-        env,
-        stdio: 'pipe', // Suppress output
-      }
-    );
-    return true;
-  } catch (error) {
-    // Silently fall back to rebuild
+  // Skip prebuild-install if forceRebuild is true (e.g., cross-compilation)
+  if (!forceRebuild) {
+    // Try prebuild-install first (faster)
+    try {
+      env.npm_config_build_from_source = 'false';
+      execFileSync(
+        npxCmd,
+        [
+          '--yes',
+          'prebuild-install',
+          '--runtime=electron',
+          `--target=${electronVersion}`,
+          `--platform=${platform}`,
+          `--arch=${targetArch}`,
+          '--force',
+        ],
+        {
+          cwd: moduleRoot,
+          env,
+          stdio: 'pipe', // Suppress output
+          shell: true, // Required for Windows .cmd files
+        }
+      );
+      return true;
+    } catch (error) {
+      // Silently fall back to rebuild
+    }
   }
 
-  // Fall back to electron-rebuild
+  // Use electron-rebuild to build from source
   try {
     env.npm_config_build_from_source = 'true';
     execFileSync(
@@ -168,6 +174,7 @@ function rebuildSingleModule(options) {
         cwd: projectRoot,
         env,
         stdio: 'inherit',
+        shell: true, // Required for Windows .cmd files
       }
     );
     return true;
