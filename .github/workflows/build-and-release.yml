@@ -138,19 +138,10 @@ jobs:
 
       - name: Rebuild native modules for Electron
         run: |
-          # Rebuild for build machine architecture first (Forge needs this)
-          if [ "${{ matrix.platform }}" == "windows" ]; then
-            echo "Windows: Rebuilding bcrypt and better-sqlite3 for build machine"
-            npx electron-rebuild --only better-sqlite3,bcrypt --force
-          else
-            echo "macOS/Linux: Rebuilding bcrypt, better-sqlite3, and node-pty for build machine"
-            npx electron-rebuild --only better-sqlite3,bcrypt,node-pty --force
-          fi
+          # Skip pre-rebuild - beforeBuild hook will handle architecture-specific rebuilding
+          # Pre-rebuild would overwrite beforeBuild's ARM64 modules with x64 modules
+          echo "Skipping pre-rebuild - beforeBuild hook will rebuild for each target architecture"
         shell: bash
-        env:
-          npm_config_msvs_version: 2022
-          GYP_MSVS_VERSION: 2022
-          WindowsTargetPlatformVersion: 10.0.19041.0
 
       - name: Build with electron-builder
         run: ${{ matrix.command }}
