@@ -9,9 +9,9 @@
 
 import crypto from 'crypto';
 import type Database from 'better-sqlite3';
+import BetterSqlite3 from 'better-sqlite3';
+import bcrypt from 'bcrypt';
 import { getDataPath, ensureDirectory } from '@process/utils';
-import { createDatabase } from '@process/database/sqliteAdapter';
-import { getBcryptAdapterSingleton } from '@process/bcryptAdapter';
 import path from 'path';
 
 // 颜色输出 / Color output
@@ -33,13 +33,10 @@ const log = {
   highlight: (msg: string) => console.log(`${colors.cyan}${colors.bright}${msg}${colors.reset}`),
 };
 
-// Get bcrypt adapter (handles ASAR packaging issues)
-const bcryptAdapter = getBcryptAdapterSingleton();
-
-// Hash password using bcrypt adapter
-// 使用bcrypt适配器哈希密码
-function hashPassword(password: string): Promise<string> {
-  return bcryptAdapter.hash(password, 10);
+// Hash password using bcrypt
+// 使用 bcrypt 哈希密码
+async function hashPassword(password: string): Promise<string> {
+  return await bcrypt.hash(password, 10);
 }
 
 // 生成随机密码 / Generate random password
@@ -74,7 +71,7 @@ export async function resetPasswordCLI(username: string): Promise<void> {
     ensureDirectory(dir);
 
     // Connect to database
-    db = createDatabase(dbPath);
+    db = new BetterSqlite3(dbPath);
 
     // Find user
     const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username) as { id: string; username: string; password_hash: string; jwt_secret: string | null } | undefined;
