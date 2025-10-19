@@ -27,8 +27,8 @@ const skipNativeRebuild = process.env.FORGE_SKIP_NATIVE_REBUILD === 'true';
 module.exports = {
   packagerConfig: {
     asar: {
-      unpack: '**/node_modules/{node-pty,bcrypt,better-sqlite3}/**/*',
-    }, // Enable asar with node-pty, bcrypt, and better-sqlite3 unpacking for AutoUnpackNativesPlugin
+      unpack: '**/node_modules/{node-pty,bcrypt,better-sqlite3,@mapbox,detect-libc,prebuild-install,node-gyp-build,bindings}/**/*',
+    }, // Enable asar with native modules and their dependencies unpacking
     executableName: 'AionUi',
     out: path.resolve(__dirname, 'out'),
     tmpdir: path.resolve(__dirname, '../AionUi-tmp'),
