@@ -19,7 +19,7 @@ module.exports = async function afterPack(context) {
 
   const isCrossCompile = buildArch !== targetArch;
   const forceRebuild = process.env.FORCE_NATIVE_REBUILD === 'true';
-  const needsSameArchRebuild = electronPlatformName === 'win32'; // Windows binaries need rebuild even on same arch to match Electron's ABI
+  const needsSameArchRebuild = electronPlatformName === 'win32' || electronPlatformName === 'linux'; // Windows/Linux need rebuild to match Electron ABI / Windows 与 Linux 需重建以匹配 Electron ABI
   // Windows 同架构也需要重建，确保原生模块使用与 Electron ABI 一致的版本
 
   if (!isCrossCompile && !needsSameArchRebuild && !forceRebuild) {
