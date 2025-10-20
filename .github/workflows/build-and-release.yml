@@ -76,6 +76,14 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Print runner architecture
+        if: matrix.platform == 'windows'
+        run: |
+          REM Print Windows runner architecture for verification (打印 Windows Runner 架构，方便确认环境)
+          echo "PROCESSOR_ARCHITECTURE=%PROCESSOR_ARCHITECTURE%"
+          echo "PROCESSOR_ARCHITEW6432=%PROCESSOR_ARCHITEW6432%"
+          systeminfo | findstr /B /C:"System Type"
+
       - name: Setup Windows native dependencies (for Windows only)
         if: matrix.platform == 'windows'
         run: |
