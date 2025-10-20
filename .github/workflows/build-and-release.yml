@@ -54,9 +54,9 @@ jobs:
             arch: 'arm64'  # macOS builds for both x64 and arm64
           - platform: 'windows'
             os: 'windows-2022'
-            command: ''
-            artifact-name: 'windows-build'
-            arch: 'multi'  # Windows job builds x64 and arm64 sequentially
+            command: 'node scripts/build-with-builder.js x64 --win --x64'
+            artifact-name: 'windows-build-x64'
+            arch: 'x64'  # Windows builds x64 only for now
           - platform: 'linux'
             os: 'ubuntu-latest'
             command: 'npm run dist:linux'
@@ -158,7 +158,7 @@ jobs:
           echo "Skipping pre-rebuild - beforeBuild hook will rebuild for each target architecture"
         shell: bash
 
-      - name: Build Windows x64 package
+      - name: Build with electron-builder (Windows)
         if: matrix.platform == 'windows'
         shell: cmd
         run: |
@@ -167,40 +167,6 @@ jobs:
           # Target arch / 目标架构
           npm_config_arch: x64
           npm_config_target_arch: x64
-          # Native module compilation / 原生模块编译
-          npm_config_runtime: electron
-          npm_config_disturl: https://electronjs.org/headers
-          npm_config_build_from_source: true
-          npm_config_cache: ${{ runner.temp }}/.npm
-          ELECTRON_CACHE: ${{ runner.temp }}/.cache/electron
-          ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/.cache/electron-builder
-          # Signing & IDs / 签名与应用 ID 配置
-          APP_ID: ${{ secrets.APP_ID }}
-          appleId: ${{ secrets.APPLE_ID }}
-          appleIdPassword: ${{ secrets.APPLE_ID_PASSWORD }}
-          teamId: ${{ secrets.TEAM_ID }}
-          identity: ${{ secrets.IDENTITY }}
-          CSC_NAME: ${{ secrets.IDENTITY }}
-          CSC_IDENTITY_AUTO_DISCOVERY: false
-          # Windows build flags / Windows 构建参数
-          MSVS_VERSION: 2022
-          GYP_MSVS_VERSION: 2022
-          WindowsTargetPlatformVersion: 10.0.19041.0
-          _WIN32_WINNT: 0x0A00
-          # CI flag & GitHub token / CI 标识与 GitHub Token
-          CI: true
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-
-      - name: Build Windows arm64 package
-        if: matrix.platform == 'windows'
-        shell: cmd
-        run: |
-          call "%ProgramFiles(x86)%\Microsoft Visual Studio\2022\BuildTools\VC\Auxiliary\Build\vcvarsall.bat" amd64_arm64
-          node scripts/build-with-builder.js arm64 --win --arm64
-        env:
-          # Target arch / 目标架构
-          npm_config_arch: arm64
-          npm_config_target_arch: arm64
           # Native module compilation / 原生模块编译
           npm_config_runtime: electron
           npm_config_disturl: https://electronjs.org/headers
@@ -250,6 +216,7 @@ jobs:
           npm_config_disturl: https://electronjs.org/headers
           npm_config_runtime: electron
           npm_config_target_arch: ${{ matrix.arch }}
+          FORCE_NATIVE_REBUILD: ${{ matrix.platform == 'linux' && 'true' || '' }}
           # CI flag & GitHub token / CI 标识与 GitHub Token
           CI: true
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
