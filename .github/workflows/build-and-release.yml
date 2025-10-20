@@ -47,21 +47,21 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: 'macos'
-            os: 'macos-latest'
-            command: 'npm run dist:mac'
-            artifact-name: 'macos-build'
-            arch: 'arm64'  # macOS builds for both x64 and arm64
+          # - platform: 'macos'
+          #   os: 'macos-latest'
+          #   command: 'npm run dist:mac'
+          #   artifact-name: 'macos-build'
+          #   arch: 'arm64'  # macOS builds for both x64 and arm64
           - platform: 'windows'
             os: 'windows-2022'
             command: 'node scripts/build-with-builder.js x64 --win --x64'
             artifact-name: 'windows-build-x64'
             arch: 'x64'  # Windows builds x64 only for now
-          - platform: 'linux'
-            os: 'ubuntu-latest'
-            command: 'npm run dist:linux'
-            artifact-name: 'linux-build'
-            arch: 'arm64'  # Linux builds for arm64 only
+          # - platform: 'linux'
+          #   os: 'ubuntu-latest'
+          #   command: 'npm run dist:linux'
+          #   artifact-name: 'linux-build'
+          #   arch: 'arm64'  # Linux builds for arm64 only
     
     steps:
       - name: Checkout code
@@ -75,6 +75,14 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Get Electron version
+        id: electron-version
+        shell: bash
+        run: |
+          ELECTRON_VERSION=$(node -p "require('./package.json').devDependencies.electron.replace(/[\^~]/g, '')")
+          echo "version=$ELECTRON_VERSION" >> $GITHUB_OUTPUT
+          echo "Electron version: $ELECTRON_VERSION"
 
       - name: Print runner architecture
         if: matrix.platform == 'windows'
@@ -152,11 +160,22 @@ jobs:
           sudo apt-get install -y build-essential python3 python3-pip pkg-config libsqlite3-dev fakeroot dpkg-dev rpm libnss3-dev libatk-bridge2.0-dev libdrm2 libxkbcommon-dev libxss1 libatspi2.0-dev libgtk-3-dev libxrandr2 libasound2-dev
 
       - name: Rebuild native modules for Electron
+        if: matrix.platform == 'windows'
+        shell: pwsh
         run: |
-          # Skip pre-rebuild - beforeBuild hook will handle architecture-specific rebuilding
-          # Pre-rebuild would overwrite beforeBuild's ARM64 modules with x64 modules
-          echo "Skipping pre-rebuild - beforeBuild hook will rebuild for each target architecture"
-        shell: bash
+          $electronVersion = "${{ steps.electron-version.outputs.version }}"
+          $arch = "${{ matrix.arch }}"
+          Write-Host "Rebuilding native modules for Electron $electronVersion ($arch)"
+          npx electron-rebuild --only better-sqlite3,bcrypt --force --arch $arch --version $electronVersion
+        env:
+          npm_config_runtime: electron
+          npm_config_target: ${{ steps.electron-version.outputs.version }}
+          npm_config_arch: ${{ matrix.arch }}
+          npm_config_target_arch: ${{ matrix.arch }}
+          npm_config_disturl: https://electronjs.org/headers
+          npm_config_build_from_source: true
+          MSVS_VERSION: 2022
+          GYP_MSVS_VERSION: 2022
 
       - name: Build with electron-builder (Windows)
         if: matrix.platform == 'windows'
@@ -169,6 +188,7 @@ jobs:
           npm_config_target_arch: x64
           # Native module compilation / 原生模块编译
           npm_config_runtime: electron
+          npm_config_target: ${{ steps.electron-version.outputs.version }}
           npm_config_disturl: https://electronjs.org/headers
           npm_config_build_from_source: true
           npm_config_cache: ${{ runner.temp }}/.npm
@@ -215,6 +235,7 @@ jobs:
           # Electron headers download / Electron 头文件下载源
           npm_config_disturl: https://electronjs.org/headers
           npm_config_runtime: electron
+          npm_config_target: ${{ steps.electron-version.outputs.version }}
           npm_config_target_arch: ${{ matrix.arch }}
           FORCE_NATIVE_REBUILD: ${{ matrix.platform == 'linux' && 'true' || '' }}
           # CI flag & GitHub token / CI 标识与 GitHub Token
