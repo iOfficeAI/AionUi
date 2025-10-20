@@ -17,19 +17,10 @@ import { AUTH_CONFIG } from '../config/constants';
  * Register static assets and page routes
  */
 const resolveRendererPath = () => {
-  // In development: use app path (project directory)
-  // In production: use resources path (packaged app)
-  let baseRoot: string;
-
-  if (app.isPackaged && process.resourcesPath) {
-    // Production: packaged app
-    baseRoot = path.join(process.resourcesPath, '.webpack', 'renderer');
-  } else {
-    // Development: use app path or cwd
-    const appPath = app.getAppPath();
-    baseRoot = path.join(appPath, '.webpack', 'renderer');
-  }
-
+  // Webpack assets are always inside app.asar in production or project directory in development
+  // app.getAppPath() returns the correct path for both cases
+  const appPath = app.getAppPath();
+  const baseRoot = path.join(appPath, '.webpack', 'renderer');
   const indexHtml = path.join(baseRoot, 'main_window', 'index.html');
 
   if (fs.existsSync(indexHtml)) {
