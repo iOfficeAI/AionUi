@@ -115,7 +115,7 @@ jobs:
 
       # macOS 代码签名证书安装
       - name: Setup macOS code signing (macOS only)
-        if: matrix.platform == 'macos'
+        if: false  # Temporarily disable signing to speed up builds / 暂时关闭签名以加快构建
         env:
           BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
           P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
