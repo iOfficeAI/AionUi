@@ -17,13 +17,21 @@ module.exports = async function afterPack(context) {
   console.log(`\n🔧 afterPack hook started`);
   console.log(`   Platform: ${electronPlatformName}, Build arch: ${buildArch}, Target arch: ${targetArch}`);
 
-  // Skip if not cross-compiling
-  if (buildArch === targetArch) {
-    console.log(`   ✓ Same architecture, no rebuild needed\n`);
+  const isCrossCompile = buildArch !== targetArch;
+  const forceRebuild = process.env.FORCE_NATIVE_REBUILD === 'true';
+  const needsSameArchRebuild = electronPlatformName === 'win32'; // Windows binaries need rebuild even on same arch to match Electron's ABI
+  // Windows 同架构也需要重建，确保原生模块使用与 Electron ABI 一致的版本
+
+  if (!isCrossCompile && !needsSameArchRebuild && !forceRebuild) {
+    console.log(`   ✓ Same architecture, rebuild skipped (set FORCE_NATIVE_REBUILD=true to override)\n`);
     return;
   }
 
-  console.log(`   ⚠️  Cross-compilation detected, will rebuild native modules`);
+  if (isCrossCompile) {
+    console.log(`   ⚠️  Cross-compilation detected, will rebuild native modules`);
+  } else if (needsSameArchRebuild || forceRebuild) {
+    console.log(`   ℹ️  Rebuilding native modules for platform requirements (force=${forceRebuild})`);
+  }
 
   console.log(`\n🔧 Checking native modules (${electronPlatformName}-${targetArch})...`);
   console.log(`   appOutDir: ${appOutDir}`);
