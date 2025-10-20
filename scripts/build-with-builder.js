@@ -11,7 +11,9 @@ const path = require('path');
 
 // Parse command line arguments
 const args = process.argv.slice(2);
-const builderArgs = args.filter(arg => arg !== 'auto').join(' ');
+const builderArgs = args
+  .filter(arg => arg !== 'auto' && !['x64', 'arm64', 'ia32', 'armv7l'].includes(arg))
+  .join(' ');
 
 // Get target architecture from electron-builder.yml
 function getTargetArchFromConfig(platform) {
