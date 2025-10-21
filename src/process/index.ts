@@ -5,6 +5,11 @@
  */
 
 import { app } from 'electron';
+import { initHeadlessMode } from '../utils/initHeadlessMode';
+
+// Initialize headless mode before accessing app properties
+// 在访问 app 属性之前初始化 headless 模式
+initHeadlessMode();
 
 // Force node-gyp-build to skip build/ directory and use prebuilds/ only in production
 // This prevents loading wrong architecture binaries from development environment
