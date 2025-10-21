@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import './utils/configureChromium';
 import { app, BrowserWindow } from 'electron';
 import fixPath from 'fix-path';
 import { initMainAdapterWithWindow } from './adapter/main';
