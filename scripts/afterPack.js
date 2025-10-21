@@ -19,8 +19,8 @@ module.exports = async function afterPack(context) {
 
   const isCrossCompile = buildArch !== targetArch;
   const forceRebuild = process.env.FORCE_NATIVE_REBUILD === 'true';
-  const needsSameArchRebuild = electronPlatformName === 'win32' || electronPlatformName === 'linux'; // Windows/Linux need rebuild to match Electron ABI / Windows 与 Linux 需重建以匹配 Electron ABI
-  // Windows 同架构也需要重建，确保原生模块使用与 Electron ABI 一致的版本
+  const needsSameArchRebuild = electronPlatformName === 'win32'; // 只有 Windows 需要同架构重建以匹配 Electron ABI | Only Windows needs same-arch rebuild to match Electron ABI 
+  // Linux 使用预编译二进制，避免 GLIBC 版本依赖 | Linux uses prebuilt binaries which are GLIBC-independent
 
   if (!isCrossCompile && !needsSameArchRebuild && !forceRebuild) {
     console.log(`   ✓ Same architecture, rebuild skipped (set FORCE_NATIVE_REBUILD=true to override)\n`);
@@ -98,7 +98,7 @@ module.exports = async function afterPack(context) {
       electronVersion,
       projectRoot: path.resolve(__dirname, '..'),
       buildArch: buildArch, // Pass build architecture for cross-compile detection
-      forceRebuild: true, // Prefer source rebuild, but allow prebuild-install for unsupported cross-compile
+      forceRebuild: electronPlatformName === 'win32', // Windows: force rebuild from source; Linux: prefer prebuilt binaries
     });
 
     if (success) {
