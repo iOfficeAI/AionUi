@@ -228,7 +228,7 @@ jobs:
           CSC_NAME: ${{ secrets.IDENTITY }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
           # Native dependency compilation / 原生依赖编译缓存
-          npm_config_build_from_source: true
+          # Prefer prebuilt binaries for better compatibility (especially on Linux)
           npm_config_cache: ${{ runner.temp }}/.npm
           ELECTRON_CACHE: ${{ runner.temp }}/.cache/electron
           ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/.cache/electron-builder
@@ -237,7 +237,6 @@ jobs:
           npm_config_runtime: electron
           npm_config_target: ${{ steps.electron-version.outputs.version }}
           npm_config_target_arch: ${{ matrix.arch }}
-          FORCE_NATIVE_REBUILD: ${{ matrix.platform == 'linux' && 'true' || '' }}
           # CI flag & GitHub token / CI 标识与 GitHub Token
           CI: true
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
