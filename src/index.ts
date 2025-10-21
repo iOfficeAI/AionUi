@@ -40,14 +40,15 @@ const isResetPasswordMode = hasCommand('reset-password');
 // 检测无 DISPLAY 的 Linux 环境 / Detect headless Linux environment (no DISPLAY)
 const isHeadlessLinux = process.platform === 'linux' && !process.env.DISPLAY;
 
-if (isWebUIMode && isHeadlessLinux) {
-  // Linux 上的无头 WebUI 模式需要使用 Chromium 无头开关 / Headless WebUI mode on Linux needs Chromium headless switches
+if ((isWebUIMode || isResetPasswordMode) && isHeadlessLinux) {
+  // Headless Linux mode for WebUI/CLI requires Chromium headless flags
+  // 在无 DISPLAY 的 Linux 环境下运行 WebUI 或 CLI，需要启用 Chromium 无头模式
   app.commandLine.appendSwitch('headless');
   app.commandLine.appendSwitch('disable-gpu');
   app.commandLine.appendSwitch('disable-software-rasterizer');
   app.commandLine.appendSwitch('no-sandbox');
   app.disableHardwareAcceleration();
-  console.log('[AionUi] Running WebUI in headless Linux mode (no DISPLAY detected)');
+  console.log('[AionUi] Running in headless Linux mode (no DISPLAY detected)');
 }
 
 let mainWindow: BrowserWindow;
