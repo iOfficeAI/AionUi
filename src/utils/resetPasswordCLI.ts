@@ -73,6 +73,20 @@ export async function resetPasswordCLI(username: string): Promise<void> {
     // Connect to database
     db = new BetterSqlite3(dbPath);
 
+    // Check if users table exists
+    const tableExists = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='users'").get() as { name: string } | undefined;
+
+    if (!tableExists) {
+      log.error('Database is not initialized yet');
+      log.info('');
+      log.info('Please run AionUi at least once to initialize the database:');
+      log.info('  aionui --webui');
+      log.info('');
+      log.info('Then you can reset the password using:');
+      log.info('  aionui reset-password <username>');
+      process.exit(1);
+    }
+
     // Find user
     const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username) as { id: string; username: string; password_hash: string; jwt_secret: string | null } | undefined;
 
