@@ -8,6 +8,8 @@ import express from 'express';
 import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
 import { shell } from 'electron';
+import { execSync } from 'child_process';
+import { networkInterfaces } from 'os';
 import { AuthService } from '@/webserver/auth/service/AuthService';
 import { UserRepository } from '@/webserver/auth/repository/UserRepository';
 import { AUTH_CONFIG, SERVER_CONFIG } from './config/constants';
@@ -21,6 +23,78 @@ import { registerStaticRoutes } from './routes/staticRoutes';
 // Express Request type extension is defined in src/webserver/types/express.d.ts
 
 const DEFAULT_ADMIN_USERNAME = AUTH_CONFIG.DEFAULT_USER.USERNAME;
+
+/**
+ * 获取局域网 IP 地址
+ * Get LAN IP address using os.networkInterfaces()
+ */
+function getLanIP(): string | null {
+  const nets = networkInterfaces();
+  for (const name of Object.keys(nets)) {
+    const netInfo = nets[name];
+    if (!netInfo) continue;
+
+    for (const net of netInfo) {
+      // 跳过内部地址（127.0.0.1）和 IPv6
+      // Skip internal addresses (127.0.0.1) and IPv6
+      const isIPv4 = net.family === 'IPv4';
+      const isNotInternal = !net.internal;
+      if (isIPv4 && isNotInternal) {
+        return net.address;
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * 获取公网 IP 地址（仅 Linux 无桌面环境）
+ * Get public IP address (Linux headless only)
+ */
+function getPublicIP(): string | null {
+  // 只在 Linux 无桌面环境下尝试获取公网 IP
+  // Only try to get public IP on Linux headless environment
+  const isLinuxHeadless = process.platform === 'linux' && !process.env.DISPLAY;
+  if (!isLinuxHeadless) {
+    return null;
+  }
+
+  try {
+    // 使用 curl 获取公网 IP（有 2 秒超时）
+    // Use curl to get public IP (with 2 second timeout)
+    const publicIP = execSync('curl -s --max-time 2 ifconfig.me || curl -s --max-time 2 api.ipify.org', {
+      encoding: 'utf8',
+      timeout: 3000,
+    }).trim();
+
+    // 验证是否为有效的 IPv4 地址
+    // Validate IPv4 address format
+    if (publicIP && /^(\d{1,3}\.){3}\d{1,3}$/.test(publicIP)) {
+      return publicIP;
+    }
+  } catch {
+    // Ignore errors (firewall, network issues, etc.)
+  }
+
+  return null;
+}
+
+/**
+ * 获取服务器 IP 地址（优先公网 IP，其次局域网 IP）
+ * Get server IP address (prefer public IP, fallback to LAN IP)
+ */
+function getServerIP(): string | null {
+  // 1. Linux 无桌面环境：尝试获取公网 IP
+  // Linux headless: try to get public IP
+  const publicIP = getPublicIP();
+  if (publicIP) {
+    return publicIP;
+  }
+
+  // 2. 所有平台：获取局域网 IP（包括 Windows/Mac/Linux）
+  // All platforms: get LAN IP (Windows/Mac/Linux)
+  return getLanIP();
+}
 
 /**
  * 初始化默认管理员账户（如果不存在）
@@ -134,17 +208,27 @@ export async function startWebServer(port: number, allowRemote = false): Promise
     server.listen(port, () => {
       const localUrl = `http://localhost:${port}`;
 
+      // 尝试获取服务器 IP（Linux 无桌面环境获取公网 IP，其他环境获取局域网 IP）
+      // Try to get server IP (public IP for Linux headless, LAN IP for others)
+      const serverIP = getServerIP();
+      const displayUrl = serverIP ? `http://${serverIP}:${port}` : localUrl;
+
       // 显示初始凭证（如果是首次启动）
       // Display initial credentials (if first time)
       if (initialCredentials) {
-        displayInitialCredentials(initialCredentials, localUrl);
+        displayInitialCredentials(initialCredentials, displayUrl);
       } else {
-        console.log(`\n🚀 AionUI Web Server running at / 运行于: ${localUrl}\n`);
+        if (serverIP && serverIP !== 'localhost') {
+          console.log(`\n   🚀 Local access / 本地访问: ${localUrl}`);
+          console.log(`   🚀 Network access / 网络访问: ${displayUrl}\n`);
+        }
       }
 
-      // 自动打开浏览器
-      // Auto-open browser
-      void shell.openExternal(localUrl);
+      // 自动打开浏览器（仅在有桌面环境时）
+      // Auto-open browser (only when desktop environment is available)
+      if (process.env.DISPLAY || process.platform !== 'linux') {
+        void shell.openExternal(localUrl);
+      }
 
       // 初始化 WebSocket 适配器
       // Initialize WebSocket adapter
