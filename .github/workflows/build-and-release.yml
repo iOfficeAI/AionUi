@@ -52,16 +52,16 @@ jobs:
           #   command: 'npm run dist:mac'
           #   artifact-name: 'macos-build'
           #   arch: 'arm64'  # macOS builds for both x64 and arm64
-          - platform: 'windows'
-            os: 'windows-2022'
-            command: 'node scripts/build-with-builder.js x64 --win --x64'
-            artifact-name: 'windows-build-x64'
-            arch: 'x64'  # Windows builds x64 only for now
-          # - platform: 'linux'
-          #   os: 'ubuntu-latest'
-          #   command: 'npm run dist:linux'
-          #   artifact-name: 'linux-build'
-          #   arch: 'arm64'  # Linux builds for arm64 only
+          # - platform: 'windows'
+          #   os: 'windows-2022'
+          #   command: 'node scripts/build-with-builder.js x64 --win --x64'
+          #   artifact-name: 'windows-build-x64'
+          #   arch: 'x64'  # Windows builds x64 only for now
+          - platform: 'linux'
+            os: 'ubuntu-latest'
+            command: 'npm run dist:linux'
+            artifact-name: 'linux-build'
+            arch: 'x64'  # Linux builds for x64
     
     steps:
       - name: Checkout code
@@ -228,7 +228,7 @@ jobs:
           CSC_NAME: ${{ secrets.IDENTITY }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
           # Native dependency compilation / 原生依赖编译缓存
-          npm_config_build_from_source: true
+          # Prefer prebuilt binaries for better compatibility (especially on Linux)
           npm_config_cache: ${{ runner.temp }}/.npm
           ELECTRON_CACHE: ${{ runner.temp }}/.cache/electron
           ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/.cache/electron-builder
@@ -237,7 +237,6 @@ jobs:
           npm_config_runtime: electron
           npm_config_target: ${{ steps.electron-version.outputs.version }}
           npm_config_target_arch: ${{ matrix.arch }}
-          FORCE_NATIVE_REBUILD: ${{ matrix.platform == 'linux' && 'true' || '' }}
           # CI flag & GitHub token / CI 标识与 GitHub Token
           CI: true
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
