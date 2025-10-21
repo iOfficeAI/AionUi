@@ -52,16 +52,16 @@ jobs:
           #   command: 'npm run dist:mac'
           #   artifact-name: 'macos-build'
           #   arch: 'arm64'  # macOS builds for both x64 and arm64
-          - platform: 'windows'
-            os: 'windows-2022'
-            command: 'node scripts/build-with-builder.js x64 --win --x64'
-            artifact-name: 'windows-build-x64'
-            arch: 'x64'  # Windows builds x64 only for now
-          # - platform: 'linux'
-          #   os: 'ubuntu-latest'
-          #   command: 'npm run dist:linux'
-          #   artifact-name: 'linux-build'
-          #   arch: 'arm64'  # Linux builds for arm64 only
+          # - platform: 'windows'
+          #   os: 'windows-2022'
+          #   command: 'node scripts/build-with-builder.js x64 --win --x64'
+          #   artifact-name: 'windows-build-x64'
+          #   arch: 'x64'  # Windows builds x64 only for now
+          - platform: 'linux'
+            os: 'ubuntu-latest'
+            command: 'npm run dist:linux'
+            artifact-name: 'linux-build'
+            arch: 'x64'  # Linux builds for x64
     
     steps:
       - name: Checkout code
