@@ -56,7 +56,12 @@ jobs:
             os: 'windows-2022'
             command: 'node scripts/build-with-builder.js x64 --win --x64'
             artifact-name: 'windows-build-x64'
-            arch: 'x64'  # Windows builds x64 only for now
+            arch: 'x64'  # Windows x64 build
+          - platform: 'windows'
+            os: 'windows-2022'
+            command: 'node scripts/build-with-builder.js arm64 --win --arm64'
+            artifact-name: 'windows-build-arm64'
+            arch: 'arm64'  # Windows arm64 build
           - platform: 'linux'
             os: 'ubuntu-latest'
             command: 'npm run dist:linux'
@@ -98,8 +103,8 @@ jobs:
         run: |
           npm install --global node-gyp
 
-      - name: Install MSVC ARM64 toolchain (Windows only)
-        if: matrix.platform == 'windows'
+      - name: Install MSVC ARM64 toolchain (Windows ARM64 only)
+        if: matrix.platform == 'windows' && matrix.arch == 'arm64'
         shell: pwsh
         run: |
           choco install visualstudio2022buildtools --yes --params "'--add Microsoft.VisualStudio.Component.VC.Tools.ARM64 --add Microsoft.VisualStudio.Component.Windows11SDK.22000 --includeRecommended --includeOptional'"
@@ -181,11 +186,11 @@ jobs:
         if: matrix.platform == 'windows'
         shell: cmd
         run: |
-          node scripts/build-with-builder.js x64 --win --x64
+          ${{ matrix.command }}
         env:
           # Target arch / 目标架构
-          npm_config_arch: x64
-          npm_config_target_arch: x64
+          npm_config_arch: ${{ matrix.arch }}
+          npm_config_target_arch: ${{ matrix.arch }}
           # Native module compilation / 原生模块编译
           npm_config_runtime: electron
           npm_config_target: ${{ steps.electron-version.outputs.version }}
