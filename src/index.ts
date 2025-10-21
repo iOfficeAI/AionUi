@@ -39,6 +39,7 @@ const isRemoteMode = hasSwitch('remote');
 const isResetPasswordMode = hasCommand('reset-password');
 // 检测无 DISPLAY 的 Linux 环境 / Detect headless Linux environment (no DISPLAY)
 const isHeadlessLinux = process.platform === 'linux' && !process.env.DISPLAY;
+const isRootUser = typeof process.getuid === 'function' && process.getuid() === 0; // Detect root user on POSIX / 检测 POSIX 环境下的 root 用户
 
 if ((isWebUIMode || isResetPasswordMode) && isHeadlessLinux) {
   // Headless Linux mode for WebUI/CLI requires Chromium headless flags
@@ -46,9 +47,15 @@ if ((isWebUIMode || isResetPasswordMode) && isHeadlessLinux) {
   app.commandLine.appendSwitch('headless');
   app.commandLine.appendSwitch('disable-gpu');
   app.commandLine.appendSwitch('disable-software-rasterizer');
-  app.commandLine.appendSwitch('no-sandbox');
+  if (isRootUser) {
+    // Chromium forbids root without --no-sandbox, append automatically / Chromium 禁止 root 用户启用 sandbox，这里自动追加 --no-sandbox
+    app.commandLine.appendSwitch('no-sandbox');
+  }
   app.disableHardwareAcceleration();
   console.log('[AionUi] Running in headless Linux mode (no DISPLAY detected)');
+  if (isRootUser) {
+    console.log('[AionUi] Detected root user - sandbox disabled automatically / 检测到 root 用户，已自动禁用 sandbox');
+  }
 }
 
 let mainWindow: BrowserWindow;
