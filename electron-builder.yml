@@ -50,9 +50,8 @@ extraResources:
     to: .
 
 win:
-  target:
-    - target: nsis
-      arch: [x64, arm64]
+  target: nsis
+  # arch controlled by build script via ELECTRON_BUILDER_ARCH environment variable
   artifactName: ${productName}-${version}-${os}-${arch}.${ext}
 
 nsis:
