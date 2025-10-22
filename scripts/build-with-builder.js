@@ -126,8 +126,11 @@ try {
   const isRelease = process.env.GITHUB_REF && process.env.GITHUB_REF.startsWith('refs/tags/v');
   const publishArg = isRelease ? '' : '--publish=never';
 
+  // Add explicit arch flag to ensure single architecture build
+  const archFlag = `--${targetArch}`;
+
   console.log(`🚀 Packaging...`);
-  execSync(`npx electron-builder ${builderArgs} ${publishArg}`, { stdio: 'inherit' });
+  execSync(`npx electron-builder ${builderArgs} ${archFlag} ${publishArg}`, { stdio: 'inherit' });
 
   console.log('✅ Build completed!');
 } catch (error) {
