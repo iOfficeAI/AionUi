@@ -6,7 +6,6 @@
 
 import type { NextFunction, Request, Response } from 'express';
 import rateLimit from 'express-rate-limit';
-import csrf from 'csurf';
 import { CSRF_COOKIE_NAME, CSRF_HEADER_NAME, SECURITY_CONFIG } from '@/webserver/config/constants';
 
 /**
@@ -71,21 +70,7 @@ export const authenticatedActionLimiter = rateLimit({
 });
 
 /**
- * 基于 cookie 的 CSRF 保护，允许 WebUI 从 cookie 读取 token
- */
-export const csrfCookieProtection = csrf({
-  cookie: {
-    key: CSRF_COOKIE_NAME,
-    sameSite: SECURITY_CONFIG.CSRF.COOKIE_OPTIONS.sameSite,
-    secure: SECURITY_CONFIG.CSRF.COOKIE_OPTIONS.secure,
-    httpOnly: SECURITY_CONFIG.CSRF.COOKIE_OPTIONS.httpOnly,
-    path: SECURITY_CONFIG.CSRF.COOKIE_OPTIONS.path,
-  },
-  ignoreMethods: ['GET', 'HEAD', 'OPTIONS'],
-});
-
-/**
- * 将 CSRF token 写回 cookie 与响应头
+ * 将 CSRF token 写回 cookie 与响应头（配合 csurf 中间件使用）
  */
 export function attachCsrfToken(req: Request, res: Response, next: NextFunction): void {
   if (typeof req.csrfToken === 'function') {
@@ -107,3 +92,5 @@ export function createRateLimiter(options: Parameters<typeof rateLimit>[0]) {
     ...options,
   });
 }
+
+export const csrfCookieOptions = SECURITY_CONFIG.CSRF.COOKIE_OPTIONS;
