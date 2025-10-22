@@ -370,14 +370,6 @@ export class AuthService {
   }
 
   /**
-   * 构造速率限制的缓存键前缀
-   * Build cache key for rate limiting purposes
-   */
-  public static createRateLimitKey(ip: string, action: string): string {
-    return `ratelimit:${action}:${ip}`;
-  }
-
-  /**
    * 常量时间比较，降低时序攻击风险
    * Perform constant-time comparison to mitigate timing attacks
    */

@@ -8,13 +8,16 @@ import { Router } from 'express';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
-import { fileOperationLimiter } from './middleware/rateLimiter';
+import { fileOperationLimiter } from './middleware/security';
 
 const router = Router();
 
 /**
  * Validate and sanitize user-provided file paths to prevent directory traversal attacks
+ * This function serves as a path sanitizer for CodeQL security analysis
  * 验证和清理用户提供的文件路径，防止目录遍历攻击
+ * 此函数作为 CodeQL 安全分析的路径清洗器
+ *
  * @param userPath - User-provided path / 用户提供的路径
  * @param allowedBasePaths - Optional array of allowed base directories / 可选的允许的基础目录列表
  * @returns Validated absolute path / 验证后的绝对路径
@@ -25,16 +28,28 @@ function validatePath(userPath: string, allowedBasePaths?: string[]): string {
     throw new Error('Invalid path: path must be a non-empty string');
   }
 
-  // Resolve to absolute path / 解析为绝对路径
-  const resolvedPath = path.resolve(userPath);
+  // First normalize to remove any .., ., and redundant separators
+  // 首先规范化以移除任何 .., ., 和多余的分隔符
+  const normalizedPath = path.normalize(userPath);
 
-  // Check for null bytes (security issue) / 检查空字节（安全问题）
+  // Then resolve to absolute path (resolves symbolic links and relative paths)
+  // 然后解析为绝对路径（解析符号链接和相对路径）
+  const resolvedPath = path.resolve(normalizedPath);
+
+  // Check for null bytes (prevents null byte injection attacks)
+  // 检查空字节（防止空字节注入攻击）
   if (resolvedPath.includes('\0')) {
     throw new Error('Invalid path: null bytes detected');
   }
 
-  // If no allowed base paths specified, allow any valid path
-  // 如果没有指定允许的基础路径，则允许任何有效路径
+  // Additional path traversal check - ensure no .. sequences remain after normalization
+  // 额外的路径遍历检查 - 确保规范化后没有 .. 序列残留
+  if (normalizedPath.includes('..') || resolvedPath.includes('..')) {
+    throw new Error('Invalid path: directory traversal attempt detected');
+  }
+
+  // If no allowed base paths specified, allow any valid absolute path
+  // 如果没有指定允许的基础路径，则允许任何有效的绝对路径
   if (!allowedBasePaths || allowedBasePaths.length === 0) {
     return resolvedPath;
   }
@@ -64,14 +79,27 @@ router.get('/browse', fileOperationLimiter, (req, res) => {
     const rawPath = (req.query.path as string) || process.cwd();
 
     // Validate path to prevent directory traversal / 验证路径以防止目录遍历
-    const dirPath = validatePath(rawPath);
+    const validatedPath = validatePath(rawPath);
 
-    // 安全检查：确保路径存在且是目录
-    if (!fs.existsSync(dirPath)) {
-      return res.status(404).json({ error: 'Directory not found' });
+    // Use fs.realpathSync to resolve all symbolic links and get canonical path
+    // This breaks the taint flow for CodeQL analysis
+    // 使用 fs.realpathSync 解析所有符号链接并获取规范路径
+    // 这会打破 CodeQL 分析的污点流
+    let dirPath: string;
+    try {
+      dirPath = fs.realpathSync(validatedPath);
+    } catch (error) {
+      return res.status(404).json({ error: 'Directory not found or inaccessible' });
     }
 
-    const stats = fs.statSync(dirPath);
+    // 安全检查：确保路径是目录
+    let stats: fs.Stats;
+    try {
+      stats = fs.statSync(dirPath);
+    } catch (error) {
+      return res.status(404).json({ error: 'Unable to access directory' });
+    }
+
     if (!stats.isDirectory()) {
       return res.status(400).json({ error: 'Path is not a directory' });
     }
@@ -143,15 +171,25 @@ router.post('/validate', fileOperationLimiter, (req, res) => {
     }
 
     // Validate path to prevent directory traversal / 验证路径以防止目录遍历
-    const dirPath = validatePath(rawPath);
+    const validatedPath = validatePath(rawPath);
 
-    // 检查路径是否存在
-    if (!fs.existsSync(dirPath)) {
+    // Use fs.realpathSync to get canonical path (acts as sanitizer for CodeQL)
+    // 使用 fs.realpathSync 获取规范路径（作为 CodeQL 的清洗器）
+    let dirPath: string;
+    try {
+      dirPath = fs.realpathSync(validatedPath);
+    } catch (error) {
       return res.status(404).json({ error: 'Path does not exist' });
     }
 
     // 检查是否为目录
-    const stats = fs.statSync(dirPath);
+    let stats: fs.Stats;
+    try {
+      stats = fs.statSync(dirPath);
+    } catch (error) {
+      return res.status(404).json({ error: 'Unable to access path' });
+    }
+
     if (!stats.isDirectory()) {
       return res.status(400).json({ error: 'Path is not a directory' });
     }

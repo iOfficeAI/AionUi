@@ -11,7 +11,7 @@ import { UserRepository } from '@/webserver/auth/repository/UserRepository';
 import { AUTH_CONFIG } from '../config/constants';
 import { TokenUtils } from '@/webserver/auth/middleware/TokenMiddleware';
 import { createAppError } from '../middleware/errorHandler';
-import { authRateLimiter, authenticatedActionLimiter } from '../middleware/rateLimiter';
+import { authRateLimiter, authenticatedActionLimiter, apiRateLimiter } from '../middleware/security';
 
 /**
  * 注册认证相关路由
@@ -92,7 +92,9 @@ export function registerAuthRoutes(app: Express): void {
    * 获取认证状态 - Get authentication status
    * GET /api/auth/status
    */
-  app.get('/api/auth/status', (_req: Request, res: Response) => {
+  // Rate limit auth status endpoint to prevent enumeration
+  // 为认证状态端点添加速率限制以防止枚举攻击
+  app.get('/api/auth/status', apiRateLimiter, (_req: Request, res: Response) => {
     try {
       const hasUsers = UserRepository.hasUsers();
       const userCount = UserRepository.countUsers();
@@ -116,7 +118,9 @@ export function registerAuthRoutes(app: Express): void {
    * 获取当前用户信息 - Get current user (protected route)
    * GET /api/auth/user
    */
-  app.get('/api/auth/user', AuthMiddleware.authenticateToken, (req: Request, res: Response) => {
+  // Add rate limiting for authenticated user info endpoint
+  // 为已认证用户信息端点添加速率限制
+  app.get('/api/auth/user', AuthMiddleware.authenticateToken, authenticatedActionLimiter, (req: Request, res: Response) => {
     res.json({
       success: true,
       user: req.user,
@@ -235,7 +239,9 @@ export function registerAuthRoutes(app: Express): void {
    * 注意：现在 WebSocket 直接复用主 token，此接口返回主 token 以保持向后兼容
    * Note: WebSocket now reuses the main token, this endpoint returns the main token for backward compatibility
    */
-  app.get('/api/ws-token', (req: Request, res: Response, next) => {
+  // Rate limit WebSocket token endpoint
+  // 为 WebSocket token 端点添加速率限制
+  app.get('/api/ws-token', authenticatedActionLimiter, (req: Request, res: Response, next) => {
     try {
       const sessionToken = TokenUtils.extractFromRequest(req);
 

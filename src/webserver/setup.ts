@@ -10,7 +10,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { AuthMiddleware } from '@/webserver/auth/middleware/AuthMiddleware';
 import { errorHandler } from './middleware/errorHandler';
-import { csrfProtection } from './middleware/csrfProtection';
+import { csrfProtection } from './middleware/security';
 
 /**
  * 配置基础中间件
