@@ -7,6 +7,7 @@
 import type { Express, Request, Response } from 'express';
 import { TokenMiddleware } from '@/webserver/auth/middleware/TokenMiddleware';
 import directoryApi from '../directoryApi';
+import { apiRateLimiter } from '../middleware/rateLimiter';
 
 /**
  * 注册 API 路由
@@ -19,13 +20,13 @@ export function registerApiRoutes(app: Express): void {
    * 目录 API - Directory API
    * /api/directory/*
    */
-  app.use('/api/directory', directoryApi);
+  app.use('/api/directory', validateApiAccess, apiRateLimiter, directoryApi);
 
   /**
    * 通用 API 端点 - Generic API endpoint
    * GET /api
    */
-  app.use('/api', validateApiAccess, (_req: Request, res: Response) => {
+  app.use('/api', validateApiAccess, apiRateLimiter, (_req: Request, res: Response) => {
     res.json({ message: 'API endpoint - bridge integration working' });
   });
 }

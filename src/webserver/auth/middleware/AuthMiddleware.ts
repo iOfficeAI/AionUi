@@ -6,9 +6,8 @@
 
 import type { Request, Response, NextFunction } from 'express';
 import { AuthService } from '../service/AuthService';
-import { RateLimitStore } from '../repository/RateLimitStore';
 import { createAuthMiddleware } from './TokenMiddleware';
-import { AUTH_CONFIG, SECURITY_CONFIG } from '../../config/constants';
+import { SECURITY_CONFIG } from '../../config/constants';
 
 // Express Request type extension is defined in src/types/express.d.ts
 // Express Request 类型扩展定义在 src/types/express.d.ts
@@ -18,10 +17,6 @@ import { AUTH_CONFIG, SECURITY_CONFIG } from '../../config/constants';
  * Authentication middleware class
  */
 export class AuthMiddleware {
-  private static rateLimitStore: RateLimitStore = new RateLimitStore();
-  private static readonly RATE_LIMIT_WINDOW = AUTH_CONFIG.RATE_LIMIT.WINDOW_MS;
-  private static readonly MAX_LOGIN_ATTEMPTS = AUTH_CONFIG.RATE_LIMIT.LOGIN_MAX_ATTEMPTS;
-  private static readonly MAX_REGISTER_ATTEMPTS = AUTH_CONFIG.RATE_LIMIT.REGISTER_MAX_ATTEMPTS;
   private static readonly jsonAuthMiddleware = createAuthMiddleware('json');
 
   /**
@@ -30,56 +25,6 @@ export class AuthMiddleware {
    */
   public static authenticateToken(req: Request, res: Response, next: NextFunction): void {
     AuthMiddleware.jsonAuthMiddleware(req, res, next);
-  }
-
-  /**
-   * 速率限制中间件
-   * Rate limiting middleware
-   * @param action - 操作类型（登录或注册）/ Action type (login or register)
-   */
-  public static rateLimitMiddleware(action: 'login' | 'register') {
-    return (req: Request, res: Response, next: NextFunction): void => {
-      const ip = req.ip || req.connection.remoteAddress || 'unknown';
-      const key = AuthService.createRateLimitKey(ip, action);
-      const now = Date.now();
-
-      const limit = action === 'login' ? this.MAX_LOGIN_ATTEMPTS : this.MAX_REGISTER_ATTEMPTS;
-      const current = this.rateLimitStore.get(key);
-
-      if (!current) {
-        this.rateLimitStore.set(key, {
-          count: 1,
-          resetTime: now + this.RATE_LIMIT_WINDOW,
-        });
-        next();
-        return;
-      }
-
-      if (now > current.resetTime) {
-        // 重置计数器
-        // Reset the counter
-        this.rateLimitStore.set(key, {
-          count: 1,
-          resetTime: now + this.RATE_LIMIT_WINDOW,
-        });
-        next();
-        return;
-      }
-
-      if (current.count >= limit) {
-        const resetIn = Math.ceil((current.resetTime - now) / 1000 / 60); // minutes
-        res.status(429).json({
-          success: false,
-          error: `Too many ${action} attempts. Try again in ${resetIn} minutes.`,
-          retryAfter: resetIn * 60, // seconds
-        });
-        return;
-      }
-
-      current.count++;
-      this.rateLimitStore.set(key, current);
-      next();
-    };
   }
 
   /**
@@ -226,16 +171,6 @@ export class AuthMiddleware {
     }
 
     next();
-  }
-
-  /**
-   * 清除指定 IP 的速率限制（用于测试或管理员重置）
-   * Clear rate limit for IP (useful for testing or admin reset)
-   * @param ip - IP 地址 / IP address
-   * @param action - 操作类型（可选）/ Action type (optional)
-   */
-  public static clearRateLimit(ip: string, action?: string): void {
-    this.rateLimitStore.clearByIp(ip, action);
   }
 }
 

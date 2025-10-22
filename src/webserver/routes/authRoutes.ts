@@ -11,6 +11,7 @@ import { UserRepository } from '@/webserver/auth/repository/UserRepository';
 import { AUTH_CONFIG } from '../config/constants';
 import { TokenUtils } from '@/webserver/auth/middleware/TokenMiddleware';
 import { createAppError } from '../middleware/errorHandler';
+import { authRateLimiter, authenticatedActionLimiter } from '../middleware/rateLimiter';
 
 /**
  * 注册认证相关路由
@@ -21,7 +22,9 @@ export function registerAuthRoutes(app: Express): void {
    * 用户登录 - Login endpoint
    * POST /login
    */
-  app.post('/login', AuthMiddleware.rateLimitMiddleware('login'), AuthMiddleware.validateLoginInput, async (req: Request, res: Response) => {
+  // Login attempts are strictly rate limited to defend against brute force
+  // 登录尝试严格限流，防止暴力破解
+  app.post('/login', authRateLimiter, AuthMiddleware.validateLoginInput, async (req: Request, res: Response) => {
     try {
       const { username, password } = req.body;
 
@@ -78,7 +81,9 @@ export function registerAuthRoutes(app: Express): void {
    * 用户登出 - Logout endpoint
    * POST /logout
    */
-  app.post('/logout', AuthMiddleware.authenticateToken, (_req: Request, res: Response) => {
+  // Authenticated endpoints reuse shared limiter keyed by user/IP
+  // 已登录接口复用按用户/IP 计数的限流器
+  app.post('/logout', AuthMiddleware.authenticateToken, authenticatedActionLimiter, (_req: Request, res: Response) => {
     res.clearCookie(AUTH_CONFIG.COOKIE.NAME);
     res.json({ success: true, message: 'Logged out successfully' });
   });
@@ -122,7 +127,7 @@ export function registerAuthRoutes(app: Express): void {
    * 修改密码 - Change password endpoint (protected route)
    * POST /api/auth/change-password
    */
-  app.post('/api/auth/change-password', AuthMiddleware.authenticateToken, async (req: Request, res: Response) => {
+  app.post('/api/auth/change-password', AuthMiddleware.authenticateToken, authenticatedActionLimiter, async (req: Request, res: Response) => {
     try {
       const { currentPassword, newPassword } = req.body;
 
@@ -189,7 +194,7 @@ export function registerAuthRoutes(app: Express): void {
    * Token 刷新 - Token refresh endpoint
    * POST /api/auth/refresh
    */
-  app.post('/api/auth/refresh', (req: Request, res: Response) => {
+  app.post('/api/auth/refresh', authenticatedActionLimiter, (req: Request, res: Response) => {
     try {
       const { token } = req.body;
 

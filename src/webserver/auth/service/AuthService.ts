@@ -233,8 +233,7 @@ export class AuthService {
   public static generateRandomPassword(): string {
     const baseLength = 12;
     const lengthVariance = 5;
-    const randomByte = crypto.randomBytes(1)[0];
-    const passwordLength = baseLength + (randomByte % lengthVariance);
+    const passwordLength = baseLength + crypto.randomInt(0, lengthVariance);
 
     const lowercase = 'abcdefghijklmnopqrstuvwxyz';
     const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
@@ -242,20 +241,19 @@ export class AuthService {
     const special = '!@#$%^&*';
     const allChars = lowercase + uppercase + digits + special;
 
-    const ensureCategory = (chars: string) => chars[crypto.randomBytes(1)[0] % chars.length];
+    const ensureCategory = (chars: string) => chars[crypto.randomInt(0, chars.length)];
 
     const passwordChars: string[] = [ensureCategory(lowercase), ensureCategory(uppercase), ensureCategory(digits), ensureCategory(special)];
 
     const remainingLength = Math.max(passwordLength - passwordChars.length, 0);
-    const randomBytes = crypto.randomBytes(remainingLength);
     for (let i = 0; i < remainingLength; i++) {
-      const index = randomBytes[i] % allChars.length;
+      const index = crypto.randomInt(0, allChars.length);
       passwordChars.push(allChars[index]);
     }
 
     // 打乱字符顺序，避免类型排列固定 / Shuffle to avoid predictable category order
     for (let i = passwordChars.length - 1; i > 0; i--) {
-      const j = crypto.randomBytes(1)[0] % (i + 1);
+      const j = crypto.randomInt(0, i + 1);
       [passwordChars[i], passwordChars[j]] = [passwordChars[j], passwordChars[i]];
     }
 
@@ -268,12 +266,11 @@ export class AuthService {
    */
   public static generateUserCredentials(): UserCredentials {
     // 用户名长度控制在 6-8 位，便于记忆 / Username length fixed to 6-8 chars for memorability
-    const usernameLength = 6 + (crypto.randomBytes(1)[0] % 3); // 6-8 chars
+    const usernameLength = crypto.randomInt(6, 9); // 6-8 chars
     const usernameChars = 'abcdefghijklmnopqrstuvwxyz0123456789';
-    const usernameBytes = crypto.randomBytes(usernameLength);
     let username = '';
     for (let i = 0; i < usernameLength; i++) {
-      username += usernameChars[usernameBytes[i] % usernameChars.length];
+      username += usernameChars[crypto.randomInt(0, usernameChars.length)];
     }
 
     return {
