@@ -70,12 +70,18 @@ export const authenticatedActionLimiter = rateLimit({
 });
 
 /**
- * 将 CSRF token 写回 cookie 与响应头（配合 csurf 中间件使用）
+ * Attach CSRF token to response for client-side usage
+ * csrf-csrf automatically handles cookie setting via doubleCsrfProtection
+ * This middleware just ensures the token is available in response headers
+ *
+ * 将 CSRF token 添加到响应中供客户端使用
+ * csrf-csrf 通过 doubleCsrfProtection 自动处理 cookie 设置
+ * 此中间件只是确保 token 在响应头中可用
  */
 export function attachCsrfToken(req: Request, res: Response, next: NextFunction): void {
+  // csrf-csrf uses req.csrfToken() method to get the token
   if (typeof req.csrfToken === 'function') {
     const token = req.csrfToken();
-    res.cookie(CSRF_COOKIE_NAME, token, SECURITY_CONFIG.CSRF.COOKIE_OPTIONS);
     res.setHeader(CSRF_HEADER_NAME, token);
     res.locals.csrfToken = token;
   }
