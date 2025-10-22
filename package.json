@@ -112,7 +112,6 @@
     "classnames": "^2.5.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
-    "csrf-csrf": "^4.0.3",
     "diff2html": "^3.4.52",
     "electron-squirrel-startup": "^1.0.1",
     "electron-updater": "^6.6.2",
@@ -140,6 +139,7 @@
     "semver": "^7.7.2",
     "sharp": "^0.34.3",
     "swr": "^2.3.6",
+    "tiny-csrf": "^1.1.6",
     "ws": "^8.18.3",
     "zod": "^3.25.76"
   },

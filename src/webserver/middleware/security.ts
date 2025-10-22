@@ -71,15 +71,13 @@ export const authenticatedActionLimiter = rateLimit({
 
 /**
  * Attach CSRF token to response for client-side usage
- * csrf-csrf automatically handles cookie setting via doubleCsrfProtection
- * This middleware just ensures the token is available in response headers
+ * tiny-csrf provides req.csrfToken() method to generate tokens
  *
  * 将 CSRF token 添加到响应中供客户端使用
- * csrf-csrf 通过 doubleCsrfProtection 自动处理 cookie 设置
- * 此中间件只是确保 token 在响应头中可用
+ * tiny-csrf 提供 req.csrfToken() 方法来生成 token
  */
 export function attachCsrfToken(req: Request, res: Response, next: NextFunction): void {
-  // csrf-csrf uses req.csrfToken() method to get the token
+  // tiny-csrf provides req.csrfToken() method
   if (typeof req.csrfToken === 'function') {
     const token = req.csrfToken();
     res.setHeader(CSRF_HEADER_NAME, token);
@@ -98,5 +96,3 @@ export function createRateLimiter(options: Parameters<typeof rateLimit>[0]) {
     ...options,
   });
 }
-
-export const csrfCookieOptions = SECURITY_CONFIG.CSRF.COOKIE_OPTIONS;

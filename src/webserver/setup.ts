@@ -8,22 +8,14 @@ import type { Express } from 'express';
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import { doubleCsrf } from 'csrf-csrf';
+import csrf from 'tiny-csrf';
 import { AuthMiddleware } from '@/webserver/auth/middleware/AuthMiddleware';
 import { errorHandler } from './middleware/errorHandler';
-import { csrfCookieOptions, attachCsrfToken } from './middleware/security';
-import { CSRF_COOKIE_NAME } from './config/constants';
+import { attachCsrfToken } from './middleware/security';
 
-// Initialize csrf-csrf with Double Submit Cookie pattern
-// 使用双重提交 Cookie 模式初始化 CSRF 保护
-const { doubleCsrfProtection } = doubleCsrf({
-  getSecret: () => process.env.CSRF_SECRET || 'default-csrf-secret-change-in-production',
-  cookieName: CSRF_COOKIE_NAME,
-  cookieOptions: csrfCookieOptions,
-  size: 64,
-  ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
-  getSessionIdentifier: (req) => req.ip || req.socket.remoteAddress || 'unknown',
-});
+// CSRF secret must be exactly 32 characters for AES-256-CBC
+// CSRF 密钥必须正好 32 个字符以用于 AES-256-CBC
+const CSRF_SECRET = process.env.CSRF_SECRET || '12345678901234567890123456789012';
 
 /**
  * 配置基础中间件
@@ -35,18 +27,20 @@ export function setupBasicMiddleware(app: Express): void {
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-  // CSRF Protection Chain (Double Submit Cookie Pattern):
-  // 1. cookieParser() - Parses cookies containing CSRF tokens
-  // 2. doubleCsrfProtection - Validates tokens on POST/PUT/DELETE/PATCH requests
-  // 3. attachCsrfToken - Sends tokens to client in response headers
-  //
-  // CSRF 保护链（双重提交 Cookie 模式）：
-  // 1. cookieParser() - 解析包含 CSRF token 的 cookie
-  // 2. doubleCsrfProtection - 验证 POST/PUT/DELETE/PATCH 请求的 token
-  // 3. attachCsrfToken - 在响应头中向客户端发送 token
-  app.use(cookieParser()); // Required dependency for CSRF validation
-  app.use(doubleCsrfProtection); // CSRF validation middleware from csrf-csrf package
-  app.use(attachCsrfToken); // Token distribution middleware
+  // CSRF Protection using tiny-csrf (CodeQL compliant)
+  // Must be applied after cookieParser and before routes
+  // CSRF 保护使用 tiny-csrf（符合 CodeQL 要求）
+  // 必须在 cookieParser 之后、路由之前应用
+  app.use(cookieParser('cookie-parser-secret'));
+  app.use(
+    csrf(
+      CSRF_SECRET,
+      ['POST', 'PUT', 'DELETE', 'PATCH'], // Protected methods
+      [], // No excluded URLs
+      [] // No service worker URLs
+    )
+  );
+  app.use(attachCsrfToken); // Attach token to response headers
 
   // 安全中间件
   // Security middleware
