@@ -5,29 +5,16 @@
  */
 
 import type { NextFunction, Request, Response } from 'express';
-import rateLimit, { type Options as RateLimitOptions, type RateLimitRequestHandler } from 'express-rate-limit';
+import rateLimit from 'express-rate-limit';
 import csrf from 'csurf';
 import { CSRF_COOKIE_NAME, CSRF_HEADER_NAME, SECURITY_CONFIG } from '@/webserver/config/constants';
 
 /**
- * 创建带默认配置的限流器
- */
-function createLimiter(options: RateLimitOptions): RateLimitRequestHandler {
-  return rateLimit({
-    standardHeaders: true,
-    legacyHeaders: false,
-    ...options,
-  });
-}
-
-export function createRateLimiter(options: RateLimitOptions): RateLimitRequestHandler {
-  return createLimiter(options);
-}
-
-/**
  * 登录/注册等敏感操作的限流
  */
-export const authRateLimiter = createLimiter({
+export const authRateLimiter = rateLimit({
+  standardHeaders: true,
+  legacyHeaders: false,
   windowMs: 15 * 60 * 1000,
   max: 5,
   message: {
@@ -40,7 +27,9 @@ export const authRateLimiter = createLimiter({
 /**
  * 一般 API 请求限流
  */
-export const apiRateLimiter = createLimiter({
+export const apiRateLimiter = rateLimit({
+  standardHeaders: true,
+  legacyHeaders: false,
   windowMs: 60 * 1000,
   max: 60,
   message: {
@@ -51,7 +40,9 @@ export const apiRateLimiter = createLimiter({
 /**
  * 文件浏览等操作限流
  */
-export const fileOperationLimiter = createLimiter({
+export const fileOperationLimiter = rateLimit({
+  standardHeaders: true,
+  legacyHeaders: false,
   windowMs: 60 * 1000,
   max: 30,
   message: {
@@ -62,7 +53,9 @@ export const fileOperationLimiter = createLimiter({
 /**
  * 已认证用户的敏感操作限流（优先按用户 ID，其次按 IP）
  */
-export const authenticatedActionLimiter = createLimiter({
+export const authenticatedActionLimiter = rateLimit({
+  standardHeaders: true,
+  legacyHeaders: false,
   windowMs: 60 * 1000,
   max: 20,
   message: {
@@ -121,5 +114,16 @@ export function csrfProtection(req: Request, res: Response, next: NextFunction):
     }
     setCsrfToken(req, res);
     next();
+  });
+}
+
+/**
+ * 供静态路由使用的通用限流器工厂
+ */
+export function createRateLimiter(options: Parameters<typeof rateLimit>[0]) {
+  return rateLimit({
+    standardHeaders: true,
+    legacyHeaders: false,
+    ...options,
   });
 }
