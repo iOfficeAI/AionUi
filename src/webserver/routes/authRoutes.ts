@@ -83,7 +83,7 @@ export function registerAuthRoutes(app: Express): void {
    */
   // Authenticated endpoints reuse shared limiter keyed by user/IP
   // 已登录接口复用按用户/IP 计数的限流器
-  app.post('/logout', AuthMiddleware.authenticateToken, authenticatedActionLimiter, (_req: Request, res: Response) => {
+  app.post('/logout', apiRateLimiter, AuthMiddleware.authenticateToken, authenticatedActionLimiter, (_req: Request, res: Response) => {
     res.clearCookie(AUTH_CONFIG.COOKIE.NAME);
     res.json({ success: true, message: 'Logged out successfully' });
   });
@@ -120,7 +120,7 @@ export function registerAuthRoutes(app: Express): void {
    */
   // Add rate limiting for authenticated user info endpoint
   // 为已认证用户信息端点添加速率限制
-  app.get('/api/auth/user', AuthMiddleware.authenticateToken, authenticatedActionLimiter, (req: Request, res: Response) => {
+  app.get('/api/auth/user', apiRateLimiter, AuthMiddleware.authenticateToken, authenticatedActionLimiter, (req: Request, res: Response) => {
     res.json({
       success: true,
       user: req.user,
@@ -131,7 +131,7 @@ export function registerAuthRoutes(app: Express): void {
    * 修改密码 - Change password endpoint (protected route)
    * POST /api/auth/change-password
    */
-  app.post('/api/auth/change-password', AuthMiddleware.authenticateToken, authenticatedActionLimiter, async (req: Request, res: Response) => {
+  app.post('/api/auth/change-password', apiRateLimiter, AuthMiddleware.authenticateToken, authenticatedActionLimiter, async (req: Request, res: Response) => {
     try {
       const { currentPassword, newPassword } = req.body;
 
@@ -198,7 +198,7 @@ export function registerAuthRoutes(app: Express): void {
    * Token 刷新 - Token refresh endpoint
    * POST /api/auth/refresh
    */
-  app.post('/api/auth/refresh', authenticatedActionLimiter, (req: Request, res: Response) => {
+  app.post('/api/auth/refresh', apiRateLimiter, authenticatedActionLimiter, (req: Request, res: Response) => {
     try {
       const { token } = req.body;
 
@@ -241,7 +241,7 @@ export function registerAuthRoutes(app: Express): void {
    */
   // Rate limit WebSocket token endpoint
   // 为 WebSocket token 端点添加速率限制
-  app.get('/api/ws-token', authenticatedActionLimiter, (req: Request, res: Response, next) => {
+  app.get('/api/ws-token', apiRateLimiter, authenticatedActionLimiter, (req: Request, res: Response, next) => {
     try {
       const sessionToken = TokenUtils.extractFromRequest(req);
 

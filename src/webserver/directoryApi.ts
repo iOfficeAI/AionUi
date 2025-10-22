@@ -10,6 +10,18 @@ import fs from 'fs';
 import os from 'os';
 import { fileOperationLimiter } from './middleware/security';
 
+// Allow browsing within the running workspace and the current user's home directory only
+// 仅允许在工作目录与当前用户主目录中浏览
+const DEFAULT_ALLOWED_DIRECTORIES = [process.cwd(), os.homedir()]
+  .map((dir) => {
+    try {
+      return fs.realpathSync(dir);
+    } catch {
+      return path.resolve(dir);
+    }
+  })
+  .filter((dir, index, arr) => dir && arr.indexOf(dir) === index);
+
 const router = Router();
 
 /**
@@ -23,14 +35,17 @@ const router = Router();
  * @returns Validated absolute path / 验证后的绝对路径
  * @throws Error if path is invalid or outside allowed directories / 如果路径无效或在允许目录之外则抛出错误
  */
-function validatePath(userPath: string, allowedBasePaths?: string[]): string {
+function validatePath(userPath: string, allowedBasePaths = DEFAULT_ALLOWED_DIRECTORIES): string {
   if (!userPath || typeof userPath !== 'string') {
     throw new Error('Invalid path: path must be a non-empty string');
   }
 
+  const trimmedPath = userPath.trim();
+  const expandedPath = trimmedPath.startsWith('~') ? path.join(os.homedir(), trimmedPath.slice(1)) : trimmedPath;
+
   // First normalize to remove any .., ., and redundant separators
   // 首先规范化以移除任何 .., ., 和多余的分隔符
-  const normalizedPath = path.normalize(userPath);
+  const normalizedPath = path.normalize(expandedPath);
 
   // Then resolve to absolute path (resolves symbolic links and relative paths)
   // 然后解析为绝对路径（解析符号链接和相对路径）
@@ -42,23 +57,30 @@ function validatePath(userPath: string, allowedBasePaths?: string[]): string {
     throw new Error('Invalid path: null bytes detected');
   }
 
-  // Additional path traversal check - ensure no .. sequences remain after normalization
-  // 额外的路径遍历检查 - 确保规范化后没有 .. 序列残留
-  if (normalizedPath.includes('..') || resolvedPath.includes('..')) {
-    throw new Error('Invalid path: directory traversal attempt detected');
-  }
-
   // If no allowed base paths specified, allow any valid absolute path
   // 如果没有指定允许的基础路径，则允许任何有效的绝对路径
-  if (!allowedBasePaths || allowedBasePaths.length === 0) {
-    return resolvedPath;
+  const sanitizedBasePaths = allowedBasePaths
+    .map((basePath) => basePath && basePath.trim())
+    .filter((basePath): basePath is string => Boolean(basePath))
+    .map((basePath) => {
+      const resolvedBase = path.resolve(basePath);
+      try {
+        return fs.realpathSync(resolvedBase);
+      } catch {
+        return resolvedBase;
+      }
+    })
+    .filter((basePath, index, arr) => arr.indexOf(basePath) === index);
+
+  if (sanitizedBasePaths.length === 0) {
+    throw new Error('Invalid configuration: no allowed base directories defined');
   }
 
   // Ensure resolved path is within one of the allowed base directories
   // 确保解析后的路径在允许的基础目录之一内
-  const isAllowed = allowedBasePaths.some((basePath) => {
-    const resolvedBase = path.resolve(basePath);
-    return resolvedPath === resolvedBase || resolvedPath.startsWith(resolvedBase + path.sep);
+  const isAllowed = sanitizedBasePaths.some((basePath) => {
+    const relative = path.relative(basePath, resolvedPath);
+    return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative));
   });
 
   if (!isAllowed) {
