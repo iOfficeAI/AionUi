@@ -36,7 +36,7 @@ export function setupBasicMiddleware(app: Express): void {
     csrf(
       CSRF_SECRET,
       ['POST', 'PUT', 'DELETE', 'PATCH'], // Protected methods
-      [], // No excluded URLs
+      ['/login'], // Excluded URLs - login endpoint runs before CSRF token is available
       [] // No service worker URLs
     )
   );
