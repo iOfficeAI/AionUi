@@ -44,19 +44,19 @@ export class OpenAIRotatingClient extends RotatingApiClient<OpenAI> {
 
   // Convenience methods for common OpenAI operations
   async createChatCompletion(params: OpenAI.Chat.Completions.ChatCompletionCreateParams, options?: OpenAI.RequestOptions): Promise<OpenAI.Chat.Completions.ChatCompletion> {
-    return this.executeWithRetry(async (client) => {
+    return await this.executeWithRetry((client) => {
       return client.chat.completions.create(params, options) as Promise<OpenAI.Chat.Completions.ChatCompletion>;
     });
   }
 
   async createImage(params: OpenAI.Images.ImageGenerateParams, options?: OpenAI.RequestOptions): Promise<OpenAI.Images.ImagesResponse> {
-    return this.executeWithRetry(async (client) => {
+    return await this.executeWithRetry((client) => {
       return client.images.generate(params, options) as Promise<OpenAI.Images.ImagesResponse>;
     });
   }
 
   async createEmbedding(params: OpenAI.Embeddings.EmbeddingCreateParams, options?: OpenAI.RequestOptions): Promise<OpenAI.Embeddings.CreateEmbeddingResponse> {
-    return this.executeWithRetry(async (client) => {
+    return await this.executeWithRetry((client) => {
       return client.embeddings.create(params, options);
     });
   }

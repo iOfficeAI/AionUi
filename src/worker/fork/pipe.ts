@@ -74,7 +74,9 @@ export class Pipe {
           if (type) {
             const deferred = this.deferred(pipeId);
             if (pipeId) {
-              deferred.pipe(this.call.bind(this));
+              deferred.pipe(this.call.bind(this)).catch((error: Error) => {
+                console.error('Failed to pipe deferred call:', error);
+              });
             }
             this.emit(type, data, deferred);
           }

@@ -65,7 +65,9 @@ export const useInitialMessage = (conversationId: string, acpStatus: string | nu
   }, [conversationId, acpStatus, onSend]);
 
   useEffect(() => {
-    processInitialMessage();
+    processInitialMessage().catch((error) => {
+      console.error('Failed to process initial message:', error);
+    });
   }, [processInitialMessage]);
 
   return {
@@ -74,7 +76,9 @@ export const useInitialMessage = (conversationId: string, acpStatus: string | nu
     retry: () => {
       processedRef.current = false;
       setError(null);
-      processInitialMessage();
+      processInitialMessage().catch((error) => {
+        console.error('Failed to retry initial message:', error);
+      });
     },
   };
 };

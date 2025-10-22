@@ -7,7 +7,7 @@ permissions:
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, dev ]
 
 jobs:
   # 代码质量检查
@@ -16,33 +16,32 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-        cache: 'npm'
-        
-    - name: Install dependencies
-      run: npm ci
-      
-    - name: Run TypeScript check
-      run: npx tsc --noEmit
-      
-    - name: Run ESLint
-      run: npm run lint || echo "ESLint warnings detected but not blocking build"
-      
-    - name: Run Prettier check
-      run: npm run format:check || echo "Prettier formatting issues detected but not blocking build"
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-  # 使用electron-builder进行跨平台构建
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run TypeScript check
+        run: npx tsc --noEmit
+
+      - name: Run ESLint
+        run: npm run lint || echo "ESLint warnings detected but not blocking build"
+
+      - name: Run Prettier check
+        run: npm run format:check || echo "Prettier formatting issues detected but not blocking build"
+
   build:
     name: Build ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
     needs: code-quality
-    if: github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
     
     strategy:
       fail-fast: false
@@ -52,250 +51,368 @@ jobs:
             os: 'macos-latest'
             command: 'npm run dist:mac'
             artifact-name: 'macos-build'
+            arch: 'arm64'  # macOS builds for both x64 and arm64
           - platform: 'windows'
             os: 'windows-2022'
-            command: 'npm run dist:win'
-            artifact-name: 'windows-build'
+            command: 'node scripts/build-with-builder.js x64 --win --x64'
+            artifact-name: 'windows-build-x64'
+            arch: 'x64'  # Windows x64 build
+          - platform: 'windows'
+            os: 'windows-2022'
+            command: 'node scripts/build-with-builder.js arm64 --win --arm64'
+            artifact-name: 'windows-build-arm64'
+            arch: 'arm64'  # Windows arm64 build
           - platform: 'linux'
             os: 'ubuntu-latest'
             command: 'npm run dist:linux'
             artifact-name: 'linux-build'
+            arch: 'x64'  # Linux builds for x64
     
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20'
-        cache: 'npm'
-        
-    - name: Install dependencies
-      run: npm ci
-      
-    - name: Setup Windows native dependencies (for Windows only)
-      if: matrix.platform == 'windows'
-      run: |
-        npm install --global node-gyp
-      
-    - name: Setup Python (for native dependencies)
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.11'
-        
-    - name: Setup Windows build environment (for Windows only)
-      if: matrix.platform == 'windows'
-      run: |
-        echo "Setting Windows SDK version for ConPty support"
-        echo "WindowsTargetPlatformVersion=10.0.19041.0" >> $env:GITHUB_ENV
-        
-    - name: Setup MSBuild (for Windows only)
-      if: matrix.platform == 'windows'
-      uses: microsoft/setup-msbuild@v2
-      with:
-        vs-version: '17.0'
-        
-    # macOS 代码签名证书安装
-    - name: Setup macOS code signing (macOS only)
-      if: matrix.platform == 'macos'
-      env:
-        BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
-        P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
-        KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD || 'temp-keychain-password' }}
-      run: |
-        if [ -n "$BUILD_CERTIFICATE_BASE64" ]; then
-          echo "Installing code signing certificate..."
-          
-          # 创建证书文件
-          echo $BUILD_CERTIFICATE_BASE64 | base64 --decode > certificate.p12
-          
-          # 创建临时钥匙串
-          security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
-          security default-keychain -s build.keychain
-          security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
-          
-          # 导入证书
-          security import certificate.p12 -k build.keychain -P "$P12_PASSWORD" -T /usr/bin/codesign
-          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
-          
-          # 清理证书文件
-          rm certificate.p12
-          
-          echo "Certificate imported successfully"
-        else
-          echo "No certificate provided - building unsigned application"
-          echo "To enable code signing, add BUILD_CERTIFICATE_BASE64 and P12_PASSWORD secrets"
-        fi
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Install Linux dependencies
-      if: matrix.platform == 'linux'
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y build-essential fakeroot dpkg-dev rpm libnss3-dev libatk-bridge2.0-dev libdrm2 libxkbcommon-dev libxss1 libatspi2.0-dev libgtk-3-dev libxrandr2 libasound2-dev
-        
-    - name: Build with electron-builder
-      run: ${{ matrix.command }}
-      env:
-        # App ID configuration
-        APP_ID: ${{ secrets.APP_ID }}
-        # macOS 签名配置 (参考 forge.config.ts 中的环境变量名)
-        appleId: ${{ secrets.APPLE_ID }}
-        appleIdPassword: ${{ secrets.APPLE_ID_PASSWORD }}  
-        teamId: ${{ secrets.TEAM_ID }}
-        identity: ${{ secrets.IDENTITY }}
-        # electron-builder 签名配置
-        CSC_NAME: ${{ secrets.IDENTITY }}
-        CSC_IDENTITY_AUTO_DISCOVERY: false
-        # Native dependency compilation
-        npm_config_build_from_source: true
-        npm_config_cache: ${{ runner.temp }}/.npm
-        ELECTRON_CACHE: ${{ runner.temp }}/.cache/electron
-        ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/.cache/electron-builder
-        # Windows-specific build flags  
-        MSVS_VERSION: 2022
-        GYP_MSVS_VERSION: 2022
-        npm_config_disturl: https://electronjs.org/headers
-        npm_config_runtime: electron
-        WindowsTargetPlatformVersion: 10.0.19041.0
-        _WIN32_WINNT: 0x0A00
-        # CI 环境标识
-        CI: true
-        # GitHub token for electron-builder publishing
-        GH_TOKEN: ${{ secrets.GH_TOKEN }}
-        
-    # macOS 钥匙串清理
-    - name: Clean up keychain (macOS only)
-      if: matrix.platform == 'macos' && always()
-      run: |
-        if security list-keychains | grep -q build.keychain; then
-          security delete-keychain build.keychain
-          echo "Temporary keychain deleted"
-        fi
-    
-    - name: Upload build artifacts  
-      uses: actions/upload-artifact@v4
-      if: success()
-      with:
-        name: ${{ matrix.artifact-name }}
-        path: |
-          out/*.exe
-          out/*.msi  
-          out/*.dmg
-          out/*.deb
-          out/*.AppImage
-          out/AionUi-*-win32-*.zip
-          out/AionUi-*-mac-*.zip
-        if-no-files-found: warn
-        retention-days: 7
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Get Electron version
+        id: electron-version
+        shell: bash
+        run: |
+          ELECTRON_VERSION=$(node -p "require('./package.json').devDependencies.electron.replace(/[\^~]/g, '')")
+          echo "version=$ELECTRON_VERSION" >> $GITHUB_OUTPUT
+          echo "Electron version: $ELECTRON_VERSION"
+
+      - name: Print runner architecture
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          # Print Windows runner architecture
+          Write-Host "PROCESSOR_ARCHITECTURE=$env:PROCESSOR_ARCHITECTURE"
+          Write-Host "PROCESSOR_ARCHITEW6432=$env:PROCESSOR_ARCHITEW6432"
+          systeminfo | Select-String "^System Type"
+
+      - name: Setup Windows native dependencies (for Windows only)
+        if: matrix.platform == 'windows'
+        run: |
+          npm install --global node-gyp
+
+      - name: Install MSVC ARM64 toolchain (Windows ARM64 only)
+        if: matrix.platform == 'windows' && matrix.arch == 'arm64'
+        shell: pwsh
+        run: |
+          choco install visualstudio2022buildtools --yes --params "'--add Microsoft.VisualStudio.Component.VC.Tools.ARM64 --add Microsoft.VisualStudio.Component.Windows11SDK.22000 --includeRecommended --includeOptional'"
+
+      - name: Setup Python (for native dependencies)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Setup Windows build environment (for Windows only)
+        if: matrix.platform == 'windows'
+        run: |
+          echo "Setting Windows SDK version for ConPty support"
+          echo "WindowsTargetPlatformVersion=10.0.19041.0" >> $env:GITHUB_ENV
+
+      - name: Setup MSBuild (for Windows only)
+        if: matrix.platform == 'windows'
+        uses: microsoft/setup-msbuild@v2
+        with:
+          vs-version: '17.0'
+
+      # macOS 代码签名证书安装
+      - name: Setup macOS code signing (macOS only)
+        if:  matrix.platform == 'macos'  # Temporarily disable signing to speed up builds / 暂时关闭签名以加快构建
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD || 'temp-keychain-password' }}
+        run: |
+          if [ -n "$BUILD_CERTIFICATE_BASE64" ]; then
+            echo "Installing code signing certificate..."
+          
+            # 创建证书文件
+            echo $BUILD_CERTIFICATE_BASE64 | base64 --decode > certificate.p12
+          
+            # 创建临时钥匙串
+            security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+            security default-keychain -s build.keychain
+            security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+          
+            # 导入证书
+            security import certificate.p12 -k build.keychain -P "$P12_PASSWORD" -T /usr/bin/codesign
+            security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
+          
+            # 清理证书文件
+            rm certificate.p12
+          
+            echo "Certificate imported successfully"
+          else
+            echo "No certificate provided - building unsigned application"
+            echo "To enable code signing, add BUILD_CERTIFICATE_BASE64 and P12_PASSWORD secrets"
+          fi
+
+      - name: Install Linux dependencies
+        if: matrix.platform == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential python3 python3-pip pkg-config libsqlite3-dev fakeroot dpkg-dev rpm libnss3-dev libatk-bridge2.0-dev libdrm2 libxkbcommon-dev libxss1 libatspi2.0-dev libgtk-3-dev libxrandr2 libasound2-dev
+
+      - name: Rebuild native modules for Electron
+        if: matrix.platform == 'windows'
+        shell: pwsh
+        run: |
+          $electronVersion = "${{ steps.electron-version.outputs.version }}"
+          $arch = "${{ matrix.arch }}"
+          Write-Host "Rebuilding native modules for Electron $electronVersion ($arch)"
+          npx electron-rebuild --only better-sqlite3,bcrypt --force --arch $arch --version $electronVersion
+        env:
+          npm_config_runtime: electron
+          npm_config_target: ${{ steps.electron-version.outputs.version }}
+          npm_config_arch: ${{ matrix.arch }}
+          npm_config_target_arch: ${{ matrix.arch }}
+          npm_config_disturl: https://electronjs.org/headers
+          npm_config_build_from_source: true
+          MSVS_VERSION: 2022
+          GYP_MSVS_VERSION: 2022
+
+      - name: Build with electron-builder (Windows)
+        if: matrix.platform == 'windows'
+        shell: cmd
+        run: |
+          ${{ matrix.command }}
+        env:
+          # Target arch / 目标架构
+          npm_config_arch: ${{ matrix.arch }}
+          npm_config_target_arch: ${{ matrix.arch }}
+          # Native module compilation / 原生模块编译
+          npm_config_runtime: electron
+          npm_config_target: ${{ steps.electron-version.outputs.version }}
+          npm_config_disturl: https://electronjs.org/headers
+          npm_config_build_from_source: true
+          npm_config_cache: ${{ runner.temp }}/.npm
+          ELECTRON_CACHE: ${{ runner.temp }}/.cache/electron
+          ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/.cache/electron-builder
+          # Signing & IDs / 签名与应用 ID 配置
+          APP_ID: ${{ secrets.APP_ID }}
+          appleId: ${{ secrets.APPLE_ID }}
+          appleIdPassword: ${{ secrets.APPLE_ID_PASSWORD }}
+          teamId: ${{ secrets.TEAM_ID }}
+          identity: ${{ secrets.IDENTITY }}
+          CSC_NAME: ${{ secrets.IDENTITY }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+          # Windows build flags / Windows 构建参数
+          MSVS_VERSION: 2022
+          GYP_MSVS_VERSION: 2022
+          WindowsTargetPlatformVersion: 10.0.19041.0
+          _WIN32_WINNT: 0x0A00
+          # CI flag & GitHub token / CI 标识与 GitHub Token
+          CI: true
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      - name: Build with electron-builder (non-Windows)
+        if: matrix.platform != 'windows'
+        run: ${{ matrix.command }}
+        env:
+          # Target architecture / 目标架构
+          npm_config_arch: ${{ matrix.arch }}
+          # App ID configuration / 应用 ID 配置
+          APP_ID: ${{ secrets.APP_ID }}
+          # macOS signing configuration / macOS 签名配置
+          appleId: ${{ secrets.APPLE_ID }}
+          appleIdPassword: ${{ secrets.APPLE_ID_PASSWORD }}
+          teamId: ${{ secrets.TEAM_ID }}
+          identity: ${{ secrets.IDENTITY }}
+          # electron-builder signing configuration / electron-builder 签名配置
+          CSC_NAME: ${{ secrets.IDENTITY }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+          # Native dependency compilation / 原生依赖编译缓存
+          # Prefer prebuilt binaries for better compatibility (especially on Linux)
+          npm_config_cache: ${{ runner.temp }}/.npm
+          ELECTRON_CACHE: ${{ runner.temp }}/.cache/electron
+          ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/.cache/electron-builder
+          # Electron headers download / Electron 头文件下载源
+          npm_config_disturl: https://electronjs.org/headers
+          npm_config_runtime: electron
+          npm_config_target: ${{ steps.electron-version.outputs.version }}
+          npm_config_target_arch: ${{ matrix.arch }}
+          # CI flag & GitHub token / CI 标识与 GitHub Token
+          CI: true
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      # macOS 钥匙串清理
+      - name: Clean up keychain (macOS only)
+        if: matrix.platform == 'macos' && always()
+        run: |
+          if security list-keychains | grep -q build.keychain; then
+            security delete-keychain build.keychain
+            echo "Temporary keychain deleted"
+          fi
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: ${{ matrix.artifact-name }}
+          path: |
+            out/*.exe
+            out/*.msi  
+            out/*.dmg
+            out/*.deb
+            out/*.AppImage
+            out/AionUi-*-win32-*.zip
+            out/AionUi-*-mac-*.zip
+          if-no-files-found: warn
+          retention-days: 7
 
 
 
-  # 自动创建tag（main分支推送时）
+  # 自动创建tag（main/dev分支推送时）
   create-tag:
     name: Create Tag from Branch
     runs-on: ubuntu-latest
-    needs: [build]
-    if: github.ref == 'refs/heads/main'
+    needs: [ build ]
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
     outputs:
       tag_name: ${{ steps.create_tag.outputs.tag_name }}
+      is_dev: ${{ steps.create_tag.outputs.is_dev }}
     
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      with:
-        token: ${{ secrets.GH_TOKEN }}
-        
-    - name: Create and push tag
-      id: create_tag
-      run: |
-        VERSION=$(node -p "require('./package.json').version")
-        TAG_NAME="v$VERSION"
-        echo "🚀 Production release: $TAG_NAME"
-        echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_TOKEN }}
 
-        # 检查远程tag是否已存在
-        if git ls-remote --tags origin | grep -q "refs/tags/$TAG_NAME$"; then
-          echo "⚠️ Tag $TAG_NAME already exists, auto-incrementing version..."
-
-          # 解析版本号（假设格式为 v1.2.3）
-          if [[ $VERSION =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
-            MAJOR=${BASH_REMATCH[1]}
-            MINOR=${BASH_REMATCH[2]}
-            PATCH=${BASH_REMATCH[3]}
-
-            # 递增patch版本并添加commit ID
-            NEW_PATCH=$((PATCH + 1))
-            NEW_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}"
-            COMMIT_SHORT=$(git rev-parse --short HEAD)
-
-            TAG_NAME="v${NEW_VERSION}-${COMMIT_SHORT}"
-            echo "🚀 Auto-incremented with commit ID: $TAG_NAME"
-            echo "📝 This represents work towards v${NEW_VERSION}"
+      - name: Create and push tag
+        id: create_tag
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          COMMIT_SHORT=$(git rev-parse --short HEAD)
+          BRANCH_NAME=${GITHUB_REF#refs/heads/}
+          
+          # 根据分支确定 tag 格式
+          if [ "$BRANCH_NAME" = "dev" ]; then
+            TAG_NAME="v${VERSION}-dev-${COMMIT_SHORT}"
+            IS_DEV="true"
+            echo "🔧 Development release: $TAG_NAME"
           else
-            # 兜底方案：如果版本号格式不匹配，使用commit ID
-            COMMIT_SHORT=$(git rev-parse --short HEAD)
-            TAG_NAME="v${VERSION}-${COMMIT_SHORT}"
-            echo "⚠️ Fallback: creating tag with commit ID: $TAG_NAME"
+            TAG_NAME="v$VERSION"
+            IS_DEV="false"
+            echo "🚀 Production release: $TAG_NAME"
           fi
-
-          # 更新输出变量
+          
           echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
-        fi
-        
-        # 配置git用户信息
-        git config user.name "github-actions[bot]"
-        git config user.email "github-actions[bot]@users.noreply.github.com"
-        
-        # 创建并推送tag（使用最终确定的TAG_NAME）
-        echo "Creating tag: $TAG_NAME"
-        git tag $TAG_NAME
-        git remote set-url origin https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git
-        git push origin $TAG_NAME
-        echo "✅ Successfully created and pushed tag: $TAG_NAME"
-        
-        echo "✅ Created tag: $TAG_NAME"
-      env:
-        GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          echo "is_dev=$IS_DEV" >> $GITHUB_OUTPUT
+          
+          # 检查远程tag是否已存在
+          if git ls-remote --tags origin | grep -q "refs/tags/$TAG_NAME$"; then
+            if [ "$IS_DEV" = "false" ]; then
+              # Main 分支：需要递增版本并修改 package.json
+              echo "⚠️ Tag $TAG_NAME already exists, auto-incrementing version..."
+          
+              if [[ $VERSION =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+                MAJOR=${BASH_REMATCH[1]}
+                MINOR=${BASH_REMATCH[2]}
+                PATCH=${BASH_REMATCH[3]}
+                NEW_PATCH=$((PATCH + 1))
+                NEW_VERSION="${MAJOR}.${MINOR}.${NEW_PATCH}"
+          
+                echo "📝 Updating package.json version to $NEW_VERSION"
+          
+                # 更新 package.json 版本号
+                npm version $NEW_VERSION --no-git-tag-version
+          
+                # 配置git用户信息
+                git config user.name "github-actions[bot]"
+                git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+                # 提交版本更新
+                git add package.json package-lock.json
+                git commit -m "chore: bump version to $NEW_VERSION"
+                git remote set-url origin https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git
+                git push origin $BRANCH_NAME
+          
+                # 获取新的 commit ID
+                COMMIT_SHORT=$(git rev-parse --short HEAD)
+                TAG_NAME="v${NEW_VERSION}-${COMMIT_SHORT}"
+          
+                echo "🚀 New tag with updated version: $TAG_NAME"
+                echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+              else
+                TAG_NAME="v${VERSION}-${COMMIT_SHORT}"
+                echo "⚠️ Fallback: creating tag with commit ID: $TAG_NAME"
+                echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+              fi
+            else
+              # Dev 分支 tag 已存在则失败（不应该发生）
+              echo "⚠️ Dev tag $TAG_NAME already exists, this shouldn't happen"
+              exit 1
+            fi
+          fi
+          
+          # 配置git用户信息（如果前面没配置）
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # 创建并推送tag
+          echo "Creating tag: $TAG_NAME"
+          git tag $TAG_NAME
+          git remote set-url origin https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git
+          git push origin $TAG_NAME
+          echo "✅ Successfully created and pushed tag: $TAG_NAME"
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
-  # 发布到 GitHub Releases（需要审批）
+  # 发布到 GitHub Releases
   release:
     name: Create Release
     runs-on: ubuntu-latest
-    needs: [build, create-tag]
+    needs: [ build, create-tag ]
     if: always() && needs.create-tag.result == 'success'
-    environment: release
+    environment: ${{ needs.create-tag.outputs.is_dev == 'true' && 'dev-release' || 'release' }}
     
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-      
-    - name: Get version for release
-      id: version
-      run: |
-        TAG_NAME="${{ needs.create-tag.outputs.tag_name }}"
-        echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
-        echo "🚀 Creating stable release: $TAG_NAME"
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Download all build artifacts
-      uses: actions/download-artifact@v4
-      with:
-        path: build-artifacts
-        
-    - name: Create Release
-      uses: softprops/action-gh-release@v1
-      with:
-        tag_name: ${{ steps.version.outputs.tag_name }}
-        files: |
-          build-artifacts/**/*.exe
-          build-artifacts/**/*.msi
-          build-artifacts/**/*.dmg
-          build-artifacts/**/*.deb
-          build-artifacts/**/*.AppImage
-          build-artifacts/**/*.zip
-        generate_release_notes: true
-        draft: true  # 保持draft模式，手动发布时机可控
-        prerelease: ${{ contains(steps.version.outputs.tag_name, 'beta') || contains(steps.version.outputs.tag_name, 'alpha') || contains(steps.version.outputs.tag_name, 'rc') }}
-      env:
-        GH_TOKEN: ${{ secrets.GH_TOKEN }}
+      - name: Get version for release
+        id: version
+        run: |
+          TAG_NAME="${{ needs.create-tag.outputs.tag_name }}"
+          IS_DEV="${{ needs.create-tag.outputs.is_dev }}"
+          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+          
+          if [ "$IS_DEV" = "true" ]; then
+            echo "🔧 Creating development release: $TAG_NAME"
+          else
+            echo "🚀 Creating stable release: $TAG_NAME"
+          fi
 
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: build-artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.version.outputs.tag_name }}
+          name: ${{ needs.create-tag.outputs.is_dev == 'true' && format('Development Build {0}', steps.version.outputs.tag_name) || steps.version.outputs.tag_name }}
+          files: |
+            build-artifacts/**/*.exe
+            build-artifacts/**/*.msi
+            build-artifacts/**/*.dmg
+            build-artifacts/**/*.deb
+            build-artifacts/**/*.AppImage
+            build-artifacts/**/*.zip
+          generate_release_notes: true
+          draft: true
+          prerelease: ${{ needs.create-tag.outputs.is_dev == 'true' || contains(steps.version.outputs.tag_name, 'beta') || contains(steps.version.outputs.tag_name, 'alpha') || contains(steps.version.outputs.tag_name, 'rc') }}
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}

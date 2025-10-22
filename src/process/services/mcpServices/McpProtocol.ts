@@ -4,6 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { app } from 'electron';
+import { exec } from 'child_process';
+import { promisify } from 'util';
 import type { AcpBackendAll } from '@/types/acpTypes';
 import { JSONRPC_VERSION } from '@/types/acpTypes';
 import type { IMcpServer } from '@/common/storage';
@@ -189,7 +192,7 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
     let mcpClient: Client | null = null;
 
     try {
-      const { app } = await import('electron');
+      // app imported statically
 
       // 创建 Stdio 传输层
       const stdioTransport = new StdioClientTransport({
@@ -230,8 +233,8 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
       // 检测 npm 缓存问题并自动修复
       if (errorMessage.includes('ENOTEMPTY') && retryCount < 1) {
         try {
-          const { exec } = await import('child_process');
-          const { promisify } = await import('util');
+          // exec imported statically
+          // promisify imported statically
           const execAsync = promisify(exec);
 
           // 清理 npm 缓存并重试
@@ -270,7 +273,7 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
     let mcpClient: Client | null = null;
 
     try {
-      const { app } = await import('electron');
+      // app imported statically
 
       // 创建 SSE 传输层
       const sseTransport = new SSEClientTransport(new URL(transport.url));
@@ -323,7 +326,7 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
    */
   protected async testHttpConnection(transport: { url: string; headers?: Record<string, string> }): Promise<McpConnectionTestResult> {
     try {
-      const { app } = await import('electron');
+      // app imported statically
 
       const initResponse = await fetch(transport.url, {
         method: 'POST',
@@ -401,7 +404,7 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
     let mcpClient: Client | null = null;
 
     try {
-      const { app } = await import('electron');
+      // app imported statically
 
       // 创建 Streamable HTTP 传输层
       const streamableHttpTransport = new StreamableHTTPClientTransport(new URL(transport.url));

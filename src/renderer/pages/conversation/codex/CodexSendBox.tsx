@@ -35,7 +35,10 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
   const [running, setRunning] = useState(false);
   const [aiProcessing, setAiProcessing] = useState(false); // New loading state for AI response
   const [codexStatus, setCodexStatus] = useState<string | null>(null);
-  const [thought, setThought] = useState<ThoughtData | null>(null);
+  const [thought, setThought] = useState<ThoughtData>({
+    description: '',
+    subject: '',
+  });
 
   const { content, setContent, atPath, setAtPath, uploadFile, setUploadFile } = (function useDraft() {
     const { data, mutate } = useCodexSendBoxDraft(conversation_id);
@@ -59,6 +62,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
     setRunning(false);
     setAiProcessing(false);
     setCodexStatus(null);
+    setThought({ subject: '', description: '' });
   }, [conversation_id]);
 
   useEffect(() => {
@@ -66,6 +70,9 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
       if (conversation_id !== message.conversation_id) {
         return;
       }
+
+      // All messages from Backend are already persisted via emitAndPersistMessage
+      // Frontend only needs to update UI
       switch (message.type) {
         case 'thought':
           setThought(message.data);
@@ -76,16 +83,16 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
           break;
         case 'content':
         case 'codex_permission': {
-          setThought(null);
-          // 通用消息类型使用标准转换器
+          setThought({ subject: '', description: '' });
           const transformedMessage = transformMessage(message);
-          addOrUpdateMessage(transformedMessage);
+          if (transformedMessage) {
+            addOrUpdateMessage(transformedMessage);
+          }
           break;
         }
-        case 'codex_status': {
+        case 'agent_status': {
           const statusData = message.data as { status: string; message: string };
           setCodexStatus(statusData.status);
-          // 将状态消息添加到 MessageList 中显示
           const transformedMessage = transformMessage(message);
           if (transformedMessage) {
             addOrUpdateMessage(transformedMessage);
@@ -94,8 +101,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
         }
         default: {
           setRunning(false);
-          setThought(null);
-          // 处理其他消息类型，包括 tool_group
+          setThought({ subject: '', description: '' });
           const transformedMessage = transformMessage(message);
           if (transformedMessage) {
             addOrUpdateMessage(transformedMessage);
@@ -219,7 +225,9 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
 
     // 小延迟确保状态消息已经完全处理
     const timer = setTimeout(() => {
-      void processInitialMessage();
+      processInitialMessage().catch((error) => {
+        console.error('Failed to process initial message:', error);
+      });
     }, 200);
 
     return () => {
@@ -293,7 +301,12 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
               shape='circle'
               icon={<Plus theme='outline' size='14' strokeWidth={2} fill='#333' />}
               onClick={() => {
-                void ipcBridge.dialog.showOpen.invoke({ properties: ['openFile', 'multiSelections'] }).then((files) => setUploadFile(files || []));
+                ipcBridge.dialog.showOpen
+                  .invoke({ properties: ['openFile', 'multiSelections'] })
+                  .then((files) => setUploadFile(files || []))
+                  .catch((error) => {
+                    console.error('Failed to open file dialog:', error);
+                  });
               }}
             ></Button>
           </>

@@ -2,9 +2,6 @@ appId: com.aionui.app
 productName: AionUi
 copyright: Copyright © 2024 AionUi
 
-# Note: Main entry point is defined in package.json
-
-# ASAR configuration for production
 asar:
   smartUnpack: true
 
@@ -13,31 +10,38 @@ directories:
   buildResources: resources
 
 files:
-  - .webpack/**/*
+  - .webpack/main/**/*
+  - .webpack/renderer/**/*
   - public/**/*
   - package.json
-  # 排除开发和测试文件
+  - node_modules/better-sqlite3/**/*
+  - node_modules/bcrypt/**/*
+  - node_modules/node-pty/**/*
+  - node_modules/@mapbox/**/*
+  - node_modules/detect-libc/**/*
+  - node_modules/prebuild-install/**/*
+  - node_modules/node-gyp-build/**/*
+  - node_modules/bindings/**/*
+  # Exclude dev/test files
   - '!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}'
   - '!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}'
   - '!**/node_modules/*/{*.test.js,*.spec.js,*.test.ts,*.spec.ts}'
   - '!**/node_modules/*.d.ts'
   - '!**/node_modules/.bin'
   - '!**/node_modules/*/{docs,documentation,doc}'
-  # 排除系统文件
+  # Exclude system files
   - '!**/{.DS_Store,.git,.gitignore,.gitattributes}'
   - '!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}'
   - '!**/{appveyor.yml,.travis.yml,circle.yml}'
   - '!**/{npm-debug.log,yarn.lock,.yarn-metadata.json,yarn-error.log}'
-  # 排除大型第三方包的非必需部分
-  - '!**/node_modules/@img/**'
+  # Exclude large packages
+  - '!**/node_modules/{@img,@emnapi}/**'
   - '!**/node_modules/@img/sharp-*/**'
-  - '!**/node_modules/@emnapi/**'
   - '!**/node_modules/@anthropic-ai/claude-code/vendor/**'
-  # 排除 Webpack 相关的 source maps 和开发文件
+  # Exclude webpack source maps
   - '!**/*.map'
-  - '!**/.webpack/**/*.map'
   - '!**/webpack-stats.json'
-  # 排除大量的语法高亮语言包 (仅保留常用语言)
+  # Exclude syntax highlighter languages (keep common ones)
   - '!**/.webpack/**/react-syntax-highlighter_languages_highlight_*'
   - '.webpack/**/react-syntax-highlighter_languages_highlight_{javascript,typescript,python,java,cpp,c,html,css,json,xml,yaml,shell,bash,dockerfile,sql,markdown,go,rust,php}'
 
@@ -45,7 +49,6 @@ extraResources:
   - from: public
     to: .
 
-# Windows configuration
 win:
   target:
     - target: nsis
@@ -57,7 +60,6 @@ win:
   # icon: resources/app.ico  # Temporarily disabled - current ico is 32x32, need 256x256+
   artifactName: ${productName}-${version}-${os}-${arch}.${ext}
 
-# NSIS installer configuration
 nsis:
   oneClick: false
   allowToChangeInstallationDirectory: true
@@ -66,34 +68,29 @@ nsis:
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
 
-# macOS configuration
 mac:
   target:
     - target: dmg
-      arch: [x64, arm64]
+      arch: [arm64]
     - target: zip
-      arch: [x64, arm64]
+      arch: [arm64]
   icon: resources/app.icns
   artifactName: ${productName}-${version}-${os}-${arch}.${ext}
   category: public.app-category.productivity
-  # 动态签名配置，参考 forge.config.ts 的逻辑
-  # identity 从环境变量获取，不在配置文件中设置
   hardenedRuntime: true
   gatekeeperAssess: false
   entitlements: entitlements.plist
   entitlementsInherit: entitlements.plist
-  # identity 通过环境变量控制，notarize 通过 afterSign 脚本处理
 
-# Code signing and notarization
+afterPack: scripts/afterPack.js
 afterSign: scripts/afterSign.js
 
-# Linux configuration
 linux:
   target:
     - target: deb
-      arch: [x64, arm64, armv7l]
+      arch: [x64, arm64] # armv7l
     - target: AppImage
-      arch: [x64, arm64, armv7l]
+      arch: [x64, arm64]
   icon: resources/app.png
   artifactName: ${productName}-${version}-${os}-${arch}.${ext}
   category: Utility
@@ -101,7 +98,6 @@ linux:
   vendor: aionui
   synopsis: ${description}
   description: ${description}
-  # Desktop entry configuration
   desktop:
     entry:
       Name: AionUi
@@ -109,27 +105,27 @@ linux:
       Icon: aionui
       Categories: Office;Utility;
 
-# Native dependency handling - skip rebuilds in CI to avoid compilation issues
 npmRebuild: false
 buildDependenciesFromSource: false
-# 减小包体积配置
 nodeGypRebuild: false
 
-# ASAR configuration for production
 asarUnpack:
+  - "**/node_modules/better-sqlite3/**/*"
+  - "**/node_modules/bcrypt/**/*"
   - "**/node_modules/node-pty/**/*"
-  - "!**/node_modules/@anthropic-ai/claude-code/vendor/**/*"
+  - "**/node_modules/@mapbox/**/*"
+  - "**/node_modules/detect-libc/**/*"
+  - "**/node_modules/prebuild-install/**/*"
+  - "**/node_modules/node-gyp-build/**/*"
+  - "**/node_modules/bindings/**/*"
 
-# CI/CD optimizations  
 compression: maximum
 removePackageScripts: true
 electronDownload:
   cache: ${env.ELECTRON_CACHE}
 
-# Publish configuration for CI/CD (only for tagged releases)
 publish:
   provider: github
   owner: ${env.GITHUB_REPOSITORY_OWNER:-aionui}
   repo: ${env.GITHUB_REPOSITORY_NAME:-AionUi}
-  # Only publish when GH_TOKEN is available (tagged releases)
   publishAutoUpdate: false

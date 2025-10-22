@@ -22,7 +22,7 @@ const useGeminiSendBoxDraft = getSendBoxDraftHook('gemini', {
 });
 
 const useGeminiMessage = (conversation_id: string) => {
-  const addMessage = useAddOrUpdateMessage();
+  const addOrUpdateMessage = useAddOrUpdateMessage();
   const [running, setRunning] = useState(false);
   const [thought, setThought] = useState<ThoughtData>({
     description: '',
@@ -50,12 +50,13 @@ const useGeminiMessage = (conversation_id: string) => {
           break;
         default:
           {
-            addMessage(transformMessage(message));
+            // Backend handles persistence, Frontend only updates UI
+            addOrUpdateMessage(transformMessage(message));
           }
           break;
       }
     });
-  }, [conversation_id]);
+  }, [conversation_id, addOrUpdateMessage]);
 
   useEffect(() => {
     setRunning(false);
@@ -115,7 +116,7 @@ const GeminiSendBox: React.FC<{
 
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
 
-  const addMessage = useAddOrUpdateMessage();
+  const addOrUpdateMessage = useAddOrUpdateMessage();
 
   // 使用共享的文件处理逻辑
   const { handleFilesAdded, processMessageWithFiles, clearFiles } = useSendBoxFiles({
@@ -129,7 +130,8 @@ const GeminiSendBox: React.FC<{
     if (!model?.useModel) return;
     const msg_id = uuid();
     message = processMessageWithFiles(message);
-    addMessage(
+    // User message: Display in UI immediately (Backend will persist when receiving from IPC)
+    addOrUpdateMessage(
       {
         id: msg_id,
         type: 'text',
@@ -138,6 +140,7 @@ const GeminiSendBox: React.FC<{
         content: {
           content: message,
         },
+        createdAt: Date.now(),
       },
       true
     );

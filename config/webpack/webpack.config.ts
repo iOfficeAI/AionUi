@@ -19,4 +19,9 @@ export const mainConfig: Configuration = {
     // path: path.resolve(__dirname, "../../main"),
   },
   ...rendererConfig,
+  externals: {
+    'bcrypt': 'commonjs bcrypt',
+    'better-sqlite3': 'commonjs better-sqlite3',
+    'node-pty': 'commonjs node-pty',
+  },
 };

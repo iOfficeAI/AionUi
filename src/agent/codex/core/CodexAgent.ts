@@ -114,9 +114,8 @@ export class CodexAgent {
   }
 
   async stop(): Promise<void> {
-    this.conn?.stop();
+    await this.conn?.stop();
     this.conn = null;
-    await Promise.resolve(); // Add an await to satisfy the require-await rule
   }
 
   /**

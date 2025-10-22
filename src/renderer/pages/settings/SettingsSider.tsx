@@ -50,7 +50,9 @@ const SettingsSider: React.FC = () => {
               '!bg-#E5E7F0 ': isSelected,
             })}
             onClick={() => {
-              navigate(`/settings/${item.path}`);
+              Promise.resolve(navigate(`/settings/${item.path}`)).catch((error) => {
+                console.error('Navigation failed:', error);
+              });
             }}
           >
             {React.cloneElement(item.icon, {

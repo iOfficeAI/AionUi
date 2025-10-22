@@ -321,6 +321,7 @@ export enum CodexAgentEventType {
    * prompt: 用命令 apply_patch <<'PATCH' … PATCH 写入一个文件，内容和文件名你自由发挥
    * payload: {
       "type": "turn_diff",
+      // eslint-disable-next-line max-len
       "unified_diff": "diff --git a//Users/pojian/Library/Application Support/AionUi/aionui/codex-temp-1759197123355/freestyle.txt b//Users/pojian/Library/Application Support/AionUi/aionui/codex-temp-1759197123355/freestyle.txt\nnew file mode 100644\nindex 0000000000000000000000000000000000000000..151e31d7a6627e3fb0df2e49b3c0c179f96e46cc\n--- /dev/null\n+++ b//Users/pojian/Library/Application Support/AionUi/aionui/codex-temp-1759197123355/freestyle.txt\n@@ -0,0 +1,2 @@\n+This file was created via apply_patch.\n+Line two says hello.\n"
     }
    */

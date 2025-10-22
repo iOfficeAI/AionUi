@@ -7,6 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { TMessage } from '@/common/chatLib';
 import { transformMessage } from '@/common/chatLib';
+import type { IResponseMessage } from '@/common/ipcBridge';
 import type { TProviderWithModel, IMcpServer } from '@/common/storage';
 import { ProcessConfig } from '@/process/initStorage';
 import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '../message';
@@ -23,7 +24,15 @@ export class GeminiAgentManager extends BaseAgentManager<{
   workspace: string;
   model: TProviderWithModel;
   private bootstrap: Promise<void>;
-  constructor(data: { workspace: string; conversation_id: string; webSearchEngine?: 'google' | 'default' }, model: TProviderWithModel) {
+
+  constructor(
+    data: {
+      workspace: string;
+      conversation_id: string;
+      webSearchEngine?: 'google' | 'default';
+    },
+    model: TProviderWithModel
+  ) {
     super('gemini', { ...data, model });
     this.workspace = data.workspace;
     this.conversation_id = data.conversation_id;
@@ -39,6 +48,7 @@ export class GeminiAgentManager extends BaseAgentManager<{
       });
     });
   }
+
   private getImageGenerationModel(): Promise<TProviderWithModel | undefined> {
     return ProcessConfig.get('tools.imageGenerationModel')
       .then((imageGenerationModel) => {
@@ -79,6 +89,7 @@ export class GeminiAgentManager extends BaseAgentManager<{
       return {};
     }
   }
+
   sendMessage(data: { input: string; msg_id: string }) {
     const message: TMessage = {
       id: data.msg_id,
@@ -109,25 +120,31 @@ export class GeminiAgentManager extends BaseAgentManager<{
       })
       .then(() => super.sendMessage(data));
   }
+
   init() {
     super.init();
     // 接受来子进程的对话消息
     this.on('gemini.message', (data) => {
+      // console.log('gemini.message', data);
       if (data.type === 'finish') {
         this.status = 'finished';
       }
       if (data.type === 'start') {
         this.status = 'running';
       }
-      ipcBridge.geminiConversation.responseStream.emit({
-        ...data,
-        conversation_id: this.conversation_id,
-      });
       data.conversation_id = this.conversation_id;
-      const message = transformMessage(data);
-      addOrUpdateMessage(this.conversation_id, message);
+      // Transform and persist message (skip transient UI state messages)
+      if (data.type !== 'thought') {
+        const tMessage = transformMessage(data as IResponseMessage);
+        if (tMessage) {
+          console.warn('[GeminiAgentManager] Received TMessage', tMessage);
+          addOrUpdateMessage(this.conversation_id, tMessage, 'gemini');
+        }
+      }
+      ipcBridge.geminiConversation.responseStream.emit(data);
     });
   }
+
   // 发送tools用户确认的消息
   confirmMessage(data: { confirmKey: string; msg_id: string; callId: string }) {
     return this.postMessagePromise(data.callId, data.confirmKey);

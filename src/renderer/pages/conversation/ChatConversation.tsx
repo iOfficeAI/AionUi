@@ -33,7 +33,9 @@ const AssociatedConversation: React.FC<{ conversation_id: string }> = ({ convers
       droplist={
         <Menu
           onClickMenuItem={(key) => {
-            navigate(`/conversation/${key}`);
+            Promise.resolve(navigate(`/conversation/${key}`)).catch((error) => {
+              console.error('Navigation failed:', error);
+            });
           }}
         >
           {list.map((conversation) => {
@@ -63,10 +65,17 @@ const AddNewConversation: React.FC<{ conversation: TChatConversation }> = ({ con
       <span
         onClick={() => {
           const id = uuid();
-          ipcBridge.conversation.createWithConversation.invoke({ conversation: { ...conversation, id, createTime: Date.now(), modifyTime: Date.now() } }).then(() => {
-            navigate(`/conversation/${id}`);
-            emitter.emit('chat.history.refresh');
-          });
+          ipcBridge.conversation.createWithConversation
+            .invoke({ conversation: { ...conversation, id, createTime: Date.now(), modifyTime: Date.now() } })
+            .then(() => {
+              Promise.resolve(navigate(`/conversation/${id}`)).catch((error) => {
+                console.error('Navigation failed:', error);
+              });
+              emitter.emit('chat.history.refresh');
+            })
+            .catch((error) => {
+              console.error('Failed to create conversation:', error);
+            });
         }}
       >
         <Plus theme='filled' size='17' fill='#333' strokeWidth={2} strokeLinejoin='miter' strokeLinecap='square' />
@@ -109,7 +118,7 @@ const ChatConversation: React.FC<{
   }, [conversation]);
 
   return (
-    <ChatLayout title={conversation?.name} backend={conversation?.type === 'acp' ? conversation?.extra?.backend : conversation.type === 'codex' ? 'codex' : undefined} siderTitle={sliderTitle} sider={<ChatSider conversation={conversation} />}>
+    <ChatLayout title={conversation?.name} backend={conversation?.type === 'acp' ? conversation?.extra?.backend : conversation?.type === 'codex' ? 'codex' : undefined} siderTitle={sliderTitle} sider={<ChatSider conversation={conversation} />}>
       {conversationNode}
     </ChatLayout>
   );
