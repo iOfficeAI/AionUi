@@ -20,13 +20,13 @@ export function registerApiRoutes(app: Express): void {
    * 目录 API - Directory API
    * /api/directory/*
    */
-  app.use('/api/directory', validateApiAccess, apiRateLimiter, directoryApi);
+  app.use('/api/directory', apiRateLimiter, validateApiAccess, directoryApi);
 
   /**
    * 通用 API 端点 - Generic API endpoint
    * GET /api
    */
-  app.use('/api', validateApiAccess, apiRateLimiter, (_req: Request, res: Response) => {
+  app.use('/api', apiRateLimiter, validateApiAccess, (_req: Request, res: Response) => {
     res.json({ message: 'API endpoint - bridge integration working' });
   });
 }

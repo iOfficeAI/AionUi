@@ -47,26 +47,73 @@ export function setupBasicMiddleware(app: Express): void {
  * 配置 CORS（跨域资源共享）
  * Configure CORS based on server mode
  */
-export function setupCors(app: Express, port: number, allowRemote: boolean): void {
-  if (allowRemote) {
-    // 远程模式：允许所有来源
-    // Remote mode: allow all origins
-    app.use(
-      cors({
-        origin: true,
-        credentials: true,
-      })
-    );
-  } else {
-    // 本地模式：仅允许 localhost
-    // Local mode: allow localhost only
-    app.use(
-      cors({
-        origin: [`http://localhost:${port}`, `http://127.0.0.1:${port}`],
-        credentials: true,
-      })
-    );
+function normalizeOrigin(origin: string): string | null {
+  try {
+    const url = new URL(origin);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+      return null;
+    }
+    const portSuffix = url.port ? `:${url.port}` : '';
+    return `${url.protocol}//${url.hostname}${portSuffix}`;
+  } catch (error) {
+    return null;
   }
+}
+
+function getConfiguredOrigins(port: number, allowRemote: boolean): Set<string> {
+  const baseOrigins = new Set<string>([`http://localhost:${port}`, `http://127.0.0.1:${port}`]);
+
+  if (process.env.SERVER_BASE_URL) {
+    const normalizedBase = normalizeOrigin(process.env.SERVER_BASE_URL);
+    if (normalizedBase) {
+      baseOrigins.add(normalizedBase);
+    }
+  }
+
+  const extraOrigins = (process.env.AIONUI_ALLOWED_ORIGINS || '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean)
+    .map((origin) => normalizeOrigin(origin))
+    .filter((origin): origin is string => Boolean(origin));
+
+  extraOrigins.forEach((origin) => baseOrigins.add(origin));
+
+  if (allowRemote && baseOrigins.size === 2 && extraOrigins.length === 0) {
+    console.warn('[security] Remote access enabled but no additional CORS origins configured. Requests from other origins will be blocked. Set AIONUI_ALLOWED_ORIGINS to a comma-separated list if cross-origin access is required.');
+  }
+
+  return baseOrigins;
+}
+
+export function setupCors(app: Express, port: number, allowRemote: boolean): void {
+  const allowedOrigins = getConfiguredOrigins(port, allowRemote);
+
+  app.use(
+    cors({
+      credentials: true,
+      origin(origin, callback) {
+        if (!origin) {
+          // Requests like curl or same-origin don't send an Origin header
+          callback(null, true);
+          return;
+        }
+
+        if (origin === 'null') {
+          callback(null, true);
+          return;
+        }
+
+        const normalizedOrigin = normalizeOrigin(origin);
+        if (normalizedOrigin && allowedOrigins.has(normalizedOrigin)) {
+          callback(null, true);
+          return;
+        }
+
+        callback(null, false);
+      },
+    })
+  );
 }
 
 /**
