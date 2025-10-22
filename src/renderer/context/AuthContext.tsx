@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { withCsrfHeader } from '@/webserver/middleware/csrfClient';
 
 declare global {
   interface Window {
@@ -47,6 +48,8 @@ async function fetchCurrentUser(signal?: AbortSignal): Promise<AuthUser | null> 
     const response = await fetch(AUTH_USER_ENDPOINT, {
       method: 'GET',
       credentials: 'include',
+      // Ensure every request carries CSRF token header / 确保请求附带 CSRF Token 头
+      headers: withCsrfHeader(),
       signal,
     });
 
@@ -114,9 +117,9 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
 
       const response = await fetch('/login', {
         method: 'POST',
-        headers: {
+        headers: withCsrfHeader({
           'Content-Type': 'application/json',
-        },
+        }),
         credentials: 'include',
         body: JSON.stringify({ username, password, remember }),
       });
@@ -169,6 +172,8 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     try {
       await fetch('/logout', {
         method: 'POST',
+        // Logout also needs CSRF token / 登出同样需要 CSRF Token
+        headers: withCsrfHeader(),
         credentials: 'include',
       });
     } catch (error) {
