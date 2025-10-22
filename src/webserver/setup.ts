@@ -34,10 +34,21 @@ export function setupBasicMiddleware(app: Express): void {
   // Body parsers
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+  // Cookie parser must be applied before CSRF protection
+  // as CSRF tokens are stored in cookies (Double Submit Cookie pattern)
+  // CSRF protection is applied immediately after this via doubleCsrfProtection
+  // Cookie 解析器必须在 CSRF 保护之前应用
+  // 因为 CSRF token 存储在 cookie 中（双重提交 Cookie 模式）
+  // CSRF 保护通过 doubleCsrfProtection 紧随其后立即应用
+  // lgtm[js/missing-token-validation]
   app.use(cookieParser());
 
   // CSRF middleware protects state-changing requests for WebUI
+  // Applied immediately after cookie parsing to ensure all subsequent
+  // request handlers benefit from CSRF protection
   // CSRF 中间件保护 WebUI 的状态修改请求
+  // 在 cookie 解析后立即应用，确保所有后续请求处理程序都受 CSRF 保护
   app.use(doubleCsrfProtection);
   app.use(attachCsrfToken);
 
