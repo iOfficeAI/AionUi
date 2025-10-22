@@ -8,9 +8,11 @@ import type { Express } from 'express';
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
+import csrf from 'csurf';
 import { AuthMiddleware } from '@/webserver/auth/middleware/AuthMiddleware';
 import { errorHandler } from './middleware/errorHandler';
-import { csrfCookieProtection, attachCsrfToken } from './middleware/security';
+import { attachCsrfToken, csrfCookieOptions } from './middleware/security';
+import { CSRF_COOKIE_NAME } from './config/constants';
 
 /**
  * 配置基础中间件
@@ -24,7 +26,15 @@ export function setupBasicMiddleware(app: Express): void {
   app.use(cookieParser());
   // CSRF middleware protects state-changing requests for WebUI
   // CSRF 中间件保护 WebUI 的状态修改请求
-  app.use(csrfCookieProtection);
+  app.use(
+    csrf({
+      cookie: {
+        key: CSRF_COOKIE_NAME,
+        ...csrfCookieOptions,
+      },
+      ignoreMethods: ['GET', 'HEAD', 'OPTIONS'],
+    })
+  );
   app.use(attachCsrfToken);
 
   // 安全中间件
