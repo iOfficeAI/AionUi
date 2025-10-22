@@ -8,11 +8,22 @@ import type { Express } from 'express';
 import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
-import csrf from 'csurf';
+import { doubleCsrf } from 'csrf-csrf';
 import { AuthMiddleware } from '@/webserver/auth/middleware/AuthMiddleware';
 import { errorHandler } from './middleware/errorHandler';
-import { attachCsrfToken, csrfCookieOptions } from './middleware/security';
+import { csrfCookieOptions, attachCsrfToken } from './middleware/security';
 import { CSRF_COOKIE_NAME } from './config/constants';
+
+// Initialize csrf-csrf with Double Submit Cookie pattern
+// 使用双重提交 Cookie 模式初始化 CSRF 保护
+const { doubleCsrfProtection } = doubleCsrf({
+  getSecret: () => process.env.CSRF_SECRET || 'default-csrf-secret-change-in-production',
+  cookieName: CSRF_COOKIE_NAME,
+  cookieOptions: csrfCookieOptions,
+  size: 64,
+  ignoredMethods: ['GET', 'HEAD', 'OPTIONS'],
+  getSessionIdentifier: (req) => req.ip || req.socket.remoteAddress || 'unknown',
+});
 
 /**
  * 配置基础中间件
@@ -24,17 +35,10 @@ export function setupBasicMiddleware(app: Express): void {
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
   app.use(cookieParser());
+
   // CSRF middleware protects state-changing requests for WebUI
   // CSRF 中间件保护 WebUI 的状态修改请求
-  app.use(
-    csrf({
-      cookie: {
-        key: CSRF_COOKIE_NAME,
-        ...csrfCookieOptions,
-      },
-      ignoreMethods: ['GET', 'HEAD', 'OPTIONS'],
-    })
-  );
+  app.use(doubleCsrfProtection);
   app.use(attachCsrfToken);
 
   // 安全中间件
