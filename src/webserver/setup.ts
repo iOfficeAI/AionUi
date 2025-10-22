@@ -35,22 +35,18 @@ export function setupBasicMiddleware(app: Express): void {
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-  // Cookie parser must be applied before CSRF protection
-  // as CSRF tokens are stored in cookies (Double Submit Cookie pattern)
-  // CSRF protection is applied immediately after this via doubleCsrfProtection
-  // Cookie 解析器必须在 CSRF 保护之前应用
-  // 因为 CSRF token 存储在 cookie 中（双重提交 Cookie 模式）
-  // CSRF 保护通过 doubleCsrfProtection 紧随其后立即应用
-  // lgtm[js/missing-token-validation]
-  app.use(cookieParser());
-
-  // CSRF middleware protects state-changing requests for WebUI
-  // Applied immediately after cookie parsing to ensure all subsequent
-  // request handlers benefit from CSRF protection
-  // CSRF 中间件保护 WebUI 的状态修改请求
-  // 在 cookie 解析后立即应用，确保所有后续请求处理程序都受 CSRF 保护
-  app.use(doubleCsrfProtection);
-  app.use(attachCsrfToken);
+  // CSRF Protection Chain (Double Submit Cookie Pattern):
+  // 1. cookieParser() - Parses cookies containing CSRF tokens
+  // 2. doubleCsrfProtection - Validates tokens on POST/PUT/DELETE/PATCH requests
+  // 3. attachCsrfToken - Sends tokens to client in response headers
+  //
+  // CSRF 保护链（双重提交 Cookie 模式）：
+  // 1. cookieParser() - 解析包含 CSRF token 的 cookie
+  // 2. doubleCsrfProtection - 验证 POST/PUT/DELETE/PATCH 请求的 token
+  // 3. attachCsrfToken - 在响应头中向客户端发送 token
+  app.use(cookieParser()); // Required dependency for CSRF validation
+  app.use(doubleCsrfProtection); // CSRF validation middleware from csrf-csrf package
+  app.use(attachCsrfToken); // Token distribution middleware
 
   // 安全中间件
   // Security middleware
