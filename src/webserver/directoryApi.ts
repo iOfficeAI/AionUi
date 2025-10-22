@@ -109,7 +109,8 @@ router.get('/browse', fileOperationLimiter, (req, res) => {
     // 这会打破 CodeQL 分析的污点流
     let dirPath: string;
     try {
-      dirPath = fs.realpathSync(validatedPath);
+      const canonicalPath = fs.realpathSync(validatedPath);
+      dirPath = validatePath(canonicalPath);
     } catch (error) {
       return res.status(404).json({ error: 'Directory not found or inaccessible' });
     }
@@ -134,7 +135,7 @@ router.get('/browse', fileOperationLimiter, (req, res) => {
       .readdirSync(dirPath)
       .filter((name) => !name.startsWith('.')) // 过滤隐藏文件/目录
       .map((name) => {
-        const itemPath = path.join(dirPath, name);
+        const itemPath = validatePath(path.join(dirPath, name), [dirPath]);
         try {
           const itemStats = fs.statSync(itemPath);
           const isDirectory = itemStats.isDirectory();
@@ -199,7 +200,8 @@ router.post('/validate', fileOperationLimiter, (req, res) => {
     // 使用 fs.realpathSync 获取规范路径（作为 CodeQL 的清洗器）
     let dirPath: string;
     try {
-      dirPath = fs.realpathSync(validatedPath);
+      const canonicalPath = fs.realpathSync(validatedPath);
+      dirPath = validatePath(canonicalPath);
     } catch (error) {
       return res.status(404).json({ error: 'Path does not exist' });
     }
