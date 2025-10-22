@@ -8,7 +8,6 @@ import { Button, Modal, Spin } from '@arco-design/web-react';
 import { IconFile, IconFolder, IconUp } from '@arco-design/web-react/icon';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { withCsrfHeader } from '@/webserver/middleware/csrfClient';
 
 interface DirectoryItem {
   name: string;
@@ -47,8 +46,6 @@ const DirectorySelectionModal: React.FC<DirectorySelectionModalProps> = ({ visib
         const response = await fetch(`/api/directory/browse?path=${encodeURIComponent(path)}&showFiles=${showFiles}&token=${token}`, {
           method: 'GET',
           credentials: 'include',
-          // Attach CSRF token to directory browsing request / 为目录浏览请求附带 CSRF Token
-          headers: withCsrfHeader(),
         });
         const data = await response.json();
         setDirectoryData(data);
