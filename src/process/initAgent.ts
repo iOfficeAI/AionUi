@@ -21,17 +21,36 @@ const buildWorkspaceWidthFiles = async (defaultWorkspaceName: string, workspace?
   }
   if (defaultFiles) {
     for (const file of defaultFiles) {
-      let fileName = path.basename(file);
+      // 确保文件路径是绝对路径
+      const absoluteFilePath = path.isAbsolute(file) ? file : path.resolve(file);
+
+      // 检查源文件是否存在
+      try {
+        await fs.access(absoluteFilePath);
+      } catch (error) {
+        console.warn(`[AionUi] Source file does not exist, skipping: ${absoluteFilePath}`);
+        console.warn(`[AionUi] Original path: ${file}`);
+        // 跳过不存在的文件，而不是抛出错误
+        continue;
+      }
+
+      let fileName = path.basename(absoluteFilePath);
 
       // 如果是临时文件，去掉 AionUI 时间戳后缀
       const { cacheDir } = getSystemDir();
       const tempDir = path.join(cacheDir, 'temp');
-      if (file.startsWith(tempDir)) {
+      if (absoluteFilePath.startsWith(tempDir)) {
         fileName = fileName.replace(AIONUI_TIMESTAMP_REGEX, '$1');
       }
 
       const destPath = path.join(workspace, fileName);
-      await fs.copyFile(file, destPath);
+
+      try {
+        await fs.copyFile(absoluteFilePath, destPath);
+      } catch (error) {
+        console.error(`[AionUi] Failed to copy file from ${absoluteFilePath} to ${destPath}:`, error);
+        // 继续处理其他文件，而不是完全失败
+      }
     }
   }
   return { workspace, customWorkspace };

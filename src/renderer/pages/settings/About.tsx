@@ -56,7 +56,7 @@ const About: React.FC = () => {
           <Typography.Text className='text-14px text-gray-600 mb-6px text-center'>{t('settings.appDescription')}</Typography.Text>
           <div className='flex items-center justify-center gap-6px'>
             <span className='px-8px py-2px rounded-6px text-12px bg-gray-100 text-gray-700'>v{packageJson.version}</span>
-            <div className='text-black cursor-pointer hover:text-gray-600 transition-colors' onClick={() => openLink('https://github.com/iOfficeAI/AionUi')}>
+            <div className='text-black cursor-pointer hover:text-gray-600 transition-colors' onClick={() => openLink('https://github.com/iOfficeAI/AionUi').catch((error) => console.error('Failed to open link:', error))}>
               <Github theme='outline' size='20' />
             </div>
           </div>
@@ -74,7 +74,7 @@ const About: React.FC = () => {
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                openLink(item.url);
+                openLink(item.url).catch((error) => console.error('Failed to open link:', error));
               }}
             >
               <Typography.Text className='text-14px text-gray-700'>{item.title}</Typography.Text>

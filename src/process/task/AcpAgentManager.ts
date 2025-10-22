@@ -3,7 +3,7 @@ import { ipcBridge } from '@/common';
 import type { AcpBackend } from '@/types/acpTypes';
 import type { TMessage } from '@/common/chatLib';
 import { transformMessage } from '@/common/chatLib';
-import type { IConfirmAcpMessageParams, IResponseMessage } from '@/common/ipcBridge';
+import type { IConfirmMessageParams, IResponseMessage } from '@/common/ipcBridge';
 import { parseError, uuid } from '@/common/utils';
 import { ProcessConfig } from '../initStorage';
 import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '../message';
@@ -42,15 +42,18 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
         backend: data.backend,
         cliPath: cliPath,
         workingDir: data.workspace,
-        onStreamEvent: (data) => {
-          ipcBridge.acpConversation.responseStream.emit(data);
-          data.conversation_id = this.conversation_id;
-          const message = transformMessage(data);
-          addOrUpdateMessage(this.conversation_id, message);
+        onStreamEvent: (v) => {
+          if (v.type !== 'thought') {
+            const tMessage = transformMessage(v as IResponseMessage);
+            if (tMessage) {
+              addOrUpdateMessage(v.conversation_id, tMessage, data.backend);
+            }
+          }
+          ipcBridge.acpConversation.responseStream.emit(v);
         },
-        onSignalEvent: (data) => {
+        onSignalEvent: (v) => {
           // 仅发送信号到前端，不更新消息列表
-          ipcBridge.acpConversation.responseStream.emit(data);
+          ipcBridge.acpConversation.responseStream.emit(v);
         },
       });
       return this.agent.start().then(() => this.agent);
@@ -95,7 +98,14 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
         msg_id: data.msg_id || uuid(),
         data: parseError(e),
       };
-      addMessage(this.conversation_id, transformMessage(message));
+
+      // Backend handles persistence before emitting to frontend
+      const tMessage = transformMessage(message);
+      if (tMessage) {
+        addOrUpdateMessage(this.conversation_id, tMessage);
+      }
+
+      // Emit to frontend for UI display only
       ipcBridge.acpConversation.responseStream.emit(message);
       return new Promise((_, reject) => {
         nextTickToLocalFinish(() => {
@@ -105,7 +115,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
     }
   }
 
-  async confirmMessage(data: Omit<IConfirmAcpMessageParams, 'conversation_id'>) {
+  async confirmMessage(data: Omit<IConfirmMessageParams, 'conversation_id'>) {
     await this.bootstrap;
     await this.agent.confirmMessage(data);
   }

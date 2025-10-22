@@ -10,9 +10,8 @@ import React, { useEffect, useRef } from 'react';
 import HOC from '../utils/HOC';
 import { useMessageList } from './hooks';
 import MessageAcpPermission from '@renderer/messages/acp/MessageAcpPermission';
-import MessageAcpStatus from '@renderer/messages/acp/MessageAcpStatus';
+import MessageAgentStatus from '@renderer/messages/MessageAgentStatus';
 import MessageCodexPermission from './codex/MessageCodexPermission';
-import MessageCodexStatus from './codex/MessageCodexStatus';
 import MessageCodexToolCall from './codex/MessageCodexToolCall';
 import MessageAcpToolCall from '@renderer/messages/acp/MessageAcpToolCall';
 import MessageTips from './MessageTips';
@@ -43,16 +42,14 @@ const MessageItem: React.FC<{ message: TMessage }> = HOC((props) => {
       return <MessageToolCall message={message}></MessageToolCall>;
     case 'tool_group':
       return <MessageToolGroup message={message}></MessageToolGroup>;
-    case 'acp_status':
-      return <MessageAcpStatus message={message}></MessageAcpStatus>;
+    case 'agent_status':
+      return <MessageAgentStatus message={message}></MessageAgentStatus>;
     case 'acp_permission':
       return <MessageAcpPermission message={message}></MessageAcpPermission>;
     case 'acp_tool_call':
       return <MessageAcpToolCall message={message}></MessageAcpToolCall>;
     case 'codex_permission':
       return <MessageCodexPermission message={message}></MessageCodexPermission>;
-    case 'codex_status':
-      return <MessageCodexStatus message={message}></MessageCodexStatus>;
     case 'codex_tool_call':
       return <MessageCodexToolCall message={message}></MessageCodexToolCall>;
     default:

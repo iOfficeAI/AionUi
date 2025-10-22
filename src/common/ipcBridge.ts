@@ -9,10 +9,6 @@ import type { OpenDialogOptions } from 'electron';
 import type { AcpBackend } from '../types/acpTypes';
 import type { McpSource } from '../process/services/mcpServices/McpProtocol';
 import type { IProvider, TChatConversation, TProviderWithModel, IMcpServer } from './storage';
-// 发送消息
-const sendMessage = bridge.buildProvider<IBridgeResponse<{}>, ISendMessageParams>('chat.send.message');
-//接受消息
-const responseStream = bridge.buildEmitter<IResponseMessage>('chat.response.stream');
 
 export const shell = {
   openFile: bridge.buildProvider<void, string>('open-file'), // 使用系统默认程序打开文件
@@ -29,16 +25,18 @@ export const conversation = {
   remove: bridge.buildProvider<boolean, { id: string }>('remove-conversation'), // 删除对话
   reset: bridge.buildProvider<void, IResetConversationParams>('reset-conversation'), // 重置对话
   stop: bridge.buildProvider<IBridgeResponse<{}>, { conversation_id: string }>('chat.stop.stream'), // 停止会话
-  confirmMessage: bridge.buildProvider<IBridgeResponse, IConfirmGeminiMessageParams>('conversation.confirm.message'), // 通用确认消息
+  sendMessage: bridge.buildProvider<IBridgeResponse<{}>, ISendMessageParams>('chat.send.message'), // 发送消息（统一接口）
+  confirmMessage: bridge.buildProvider<IBridgeResponse, IConfirmMessageParams>('conversation.confirm.message'), // 通用确认消息
+  responseStream: bridge.buildEmitter<IResponseMessage>('chat.response.stream'), // 接收消息（统一接口）
   getWorkspace: bridge.buildProvider<IDirOrFile[], { conversation_id: string; workspace: string; path: string; search?: string }>('conversation.get-workspace'),
   responseSearchWorkSpace: bridge.buildProvider<void, { file: number; dir: number; match?: IDirOrFile }>('conversation.response.search.workspace'),
 };
 
-// gemini对话相关接口
+// Gemini对话相关接口 - 复用统一的conversation接口
 export const geminiConversation = {
-  sendMessage: sendMessage,
-  confirmMessage: bridge.buildProvider<IBridgeResponse, IConfirmGeminiMessageParams>('input.confirm.message'),
-  responseStream: responseStream,
+  sendMessage: conversation.sendMessage,
+  confirmMessage: bridge.buildProvider<IBridgeResponse, IConfirmMessageParams>('input.confirm.message'),
+  responseStream: conversation.responseStream,
 };
 
 export const application = {
@@ -71,14 +69,11 @@ export const mode = {
   getModelConfig: bridge.buildProvider<IProvider[], void>('mode.get-model-config'),
 };
 
-// ACP对话相关接口 - 使用独立的sendMessage和responseStream
-const acpSendMessage = bridge.buildProvider<IBridgeResponse<{}>, ISendMessageParams>('acp.send.message');
-const acpResponseStream = bridge.buildEmitter<IResponseMessage>('acp.response.stream');
-
+// ACP对话相关接口 - 复用统一的conversation接口
 export const acpConversation = {
-  sendMessage: acpSendMessage,
-  confirmMessage: bridge.buildProvider<IBridgeResponse, IConfirmAcpMessageParams>('acp.input.confirm.message'),
-  responseStream: acpResponseStream,
+  sendMessage: conversation.sendMessage,
+  confirmMessage: bridge.buildProvider<IBridgeResponse, IConfirmMessageParams>('acp.input.confirm.message'),
+  responseStream: conversation.responseStream,
   detectCliPath: bridge.buildProvider<IBridgeResponse<{ path?: string }>, { backend: AcpBackend }>('acp.detect-cli-path'),
   getAvailableAgents: bridge.buildProvider<IBridgeResponse<Array<{ backend: AcpBackend; name: string; cliPath?: string }>>, void>('acp.get-available-agents'),
   checkEnv: bridge.buildProvider<{ env: Record<string, string> }, void>('acp.check.env'),
@@ -93,14 +88,17 @@ export const mcpService = {
   removeMcpFromAgents: bridge.buildProvider<IBridgeResponse<{ success: boolean; results: Array<{ agent: string; success: boolean; error?: string }> }>, { mcpServerName: string; agents: Array<{ backend: AcpBackend; name: string; cliPath?: string }> }>('mcp.remove-from-agents'),
 };
 
-// Codex 对话相关接口（MCP 直连，会与 ACP/Gemini 并存）
-const codexSendMessage = bridge.buildProvider<IBridgeResponse<{}>, ISendMessageParams>('codex.send.message');
-const codexResponseStream = bridge.buildEmitter<IResponseMessage>('codex.response.stream');
-
+// Codex 对话相关接口 - 复用统一的conversation接口
 export const codexConversation = {
-  sendMessage: codexSendMessage,
-  confirmMessage: bridge.buildProvider<IBridgeResponse, IConfirmAcpMessageParams>('codex.input.confirm.message'),
-  responseStream: codexResponseStream,
+  sendMessage: conversation.sendMessage,
+  confirmMessage: bridge.buildProvider<IBridgeResponse, IConfirmMessageParams>('codex.input.confirm.message'),
+  responseStream: conversation.responseStream,
+};
+
+// Database operations
+export const database = {
+  getConversationMessages: bridge.buildProvider<import('@/common/chatLib').TMessage[], { conversation_id: string; page?: number; pageSize?: number }>('database.get-conversation-messages'),
+  getUserConversations: bridge.buildProvider<import('@/common/storage').TChatConversation[], { page?: number; pageSize?: number }>('database.get-user-conversations'),
 };
 
 interface ISendMessageParams {
@@ -111,14 +109,8 @@ interface ISendMessageParams {
   loading_id?: string;
 }
 
-interface IConfirmGeminiMessageParams {
-  confirmKey: string;
-  msg_id: string;
-  conversation_id: string;
-  callId: string;
-}
-
-export interface IConfirmAcpMessageParams {
+// Unified confirm message params for all agents (Gemini, ACP, Codex)
+export interface IConfirmMessageParams {
   confirmKey: string;
   msg_id: string;
   conversation_id: string;

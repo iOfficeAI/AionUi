@@ -11,6 +11,7 @@ import { CodexAgentManager } from '@/agent/codex';
 import { ProcessChat } from './initStorage';
 import type AgentBaseTask from './task/BaseAgentManager';
 import { GeminiAgentManager } from './task/GeminiAgentManager';
+import { getDatabase } from './database/export';
 
 const taskList: {
   id: string;
@@ -62,10 +63,23 @@ const buildConversation = (conversation: TChatConversation) => {
 const getTaskByIdRollbackBuild = async (id: string): Promise<AgentBaseTask<any>> => {
   const task = taskList.find((item) => item.id === id)?.task;
   if (task) return Promise.resolve(task);
+  // Try to load from database first
+  const db = getDatabase();
+  const dbResult = db.getConversation(id);
+
+  if (dbResult.success && dbResult.data) {
+    return buildConversation(dbResult.data);
+  }
+
+  // Fallback to file storage
   const list = await ProcessChat.get('chat.history');
   const conversation = (list || []).find((item) => item.id === id);
-  if (!conversation) return Promise.reject(new Error('Conversation not found'));
-  return buildConversation(conversation);
+  if (conversation) {
+    return buildConversation(conversation);
+  }
+
+  console.error('[WorkerManage] Conversation not found in database or file storage:', id);
+  return Promise.reject(new Error('Conversation not found'));
 };
 
 const kill = (id: string) => {

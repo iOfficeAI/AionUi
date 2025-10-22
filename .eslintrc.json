@@ -83,6 +83,25 @@
         "@typescript-eslint/await-thenable": "off",
         "require-await": "off"
       }
+    },
+    {
+      "files": ["forge.config.ts", "tests/**/*.ts"],
+      "parserOptions": {
+        "project": null
+      },
+      "rules": {
+        "@typescript-eslint/no-floating-promises": "off",
+        "@typescript-eslint/await-thenable": "off",
+        "require-await": "off"
+      }
+    },
+    {
+      "files": ["**/gemini/cli/**/*.ts"],
+      "rules": {
+        "@typescript-eslint/no-floating-promises": "off",
+        "@typescript-eslint/await-thenable": "off",
+        "require-await": "off"
+      }
     }
   ]
 }

@@ -57,6 +57,13 @@ export const rules: Required<ModuleOptions>['rules'] = [
     },
   },
   {
+    test: /\.(png|jpe?g|gif|bmp|webp)$/i,
+    type: 'asset/resource',
+    generator: {
+      filename: 'static/images/[name][ext]',
+    },
+  },
+  {
     test: /\.json$/,
     type: 'json', // 使用 Webpack 5 内置的 JSON 解析
     parser: {

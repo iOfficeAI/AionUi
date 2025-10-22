@@ -14,6 +14,7 @@ import { rendererConfig } from './config/webpack/webpack.renderer.config';
 import packageJson from './package.json';
 
 const apkName = 'AionUi_' + packageJson.version + '_' + (process.env.arch || process.arch);
+const skipNativeRebuild = process.env.FORGE_SKIP_NATIVE_REBUILD === 'true';
 
 // Removed custom outDir to maintain compatibility with macOS signing
 
@@ -26,8 +27,8 @@ const apkName = 'AionUi_' + packageJson.version + '_' + (process.env.arch || pro
 module.exports = {
   packagerConfig: {
     asar: {
-      unpack: '**/node_modules/node-pty/**/*',
-    }, // Enable asar with node-pty unpacking for AutoUnpackNativesPlugin
+      unpack: '**/node_modules/{node-pty,bcrypt,better-sqlite3,@mapbox,detect-libc,prebuild-install,node-gyp-build,bindings}/**/*',
+    }, // Enable asar with native modules and their dependencies unpacking
     executableName: 'AionUi',
     out: path.resolve(__dirname, 'out'),
     tmpdir: path.resolve(__dirname, '../AionUi-tmp'),
@@ -44,13 +45,20 @@ module.exports = {
     icon: path.resolve(__dirname, 'resources/app'), // 应用图标路径
     // Windows 特定配置
     platform: process.env.npm_config_target_platform || process.platform,
-    arch: process.env.npm_config_target_arch || process.env.arch || process.arch,
+    // Use target arch from build script, not host arch
+    // This ensures .webpack/{target-arch}/ matches the final package architecture
+    arch: process.env.ELECTRON_BUILDER_ARCH || process.env.npm_config_target_arch || process.env.arch || process.arch,
   },
   rebuildConfig: {
     // 在 Windows CI 环境下，跳过所有原生模块的重建
     ...(process.env.CI === 'true' && process.platform === 'win32'
       ? {
           onlyModules: [], // 一个空数组意味着"不要重建任何模块"
+        }
+      : {}),
+    ...(skipNativeRebuild
+      ? {
+          onlyModules: [], // 开发启动时跳过原生模块重建，避免环境检查
         }
       : {}),
   },
@@ -135,7 +143,7 @@ module.exports = {
   plugins: [
     new AutoUnpackNativesPlugin({
       // 配置需要处理的 native 依赖
-      include: ['node-pty'],
+      include: ['node-pty', 'better-sqlite3', 'bcrypt'],
     }),
     new WebpackPlugin({
       mainConfig,

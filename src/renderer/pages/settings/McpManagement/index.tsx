@@ -3,6 +3,7 @@ import { Plus, Down } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import type { IMcpServer } from '@/common/storage';
+import { acpConversation } from '@/common/ipcBridge';
 import AddMcpServerModal from '../components/AddMcpServerModal';
 import McpServerItem from './McpServerItem';
 import { useMcpServers, useMcpAgentStatus, useMcpOperations, useMcpConnection, useMcpModal, useMcpServerCRUD } from '@/renderer/hooks/mcp';
@@ -72,7 +73,6 @@ const McpManagement: React.FC = () => {
   React.useEffect(() => {
     const loadAgents = async () => {
       try {
-        const { acpConversation } = await import('@/common/ipcBridge');
         const response = await acpConversation.getAvailableAgents.invoke();
         if (response.success && response.data) {
           setDetectedAgents(response.data.map((agent) => ({ backend: agent.backend, name: agent.name })));

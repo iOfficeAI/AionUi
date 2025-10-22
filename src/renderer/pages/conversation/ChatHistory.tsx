@@ -6,9 +6,8 @@
 
 import { ipcBridge } from '@/common';
 import type { TChatConversation } from '@/common/storage';
-import { ChatStorage } from '@/common/storage';
 import FlexFullContainer from '@/renderer/components/FlexFullContainer';
-import { addEventListener } from '@/renderer/utils/emitter';
+import { addEventListener, emitter } from '@/renderer/utils/emitter';
 import { Empty, Popconfirm } from '@arco-design/web-react';
 import { DeleteOne, MessageOne } from '@icon-park/react';
 import classNames from 'classnames';
@@ -92,7 +91,9 @@ const ChatHistory: React.FC = () => {
 
   const handleSelect = (conversation: TChatConversation) => {
     // ipcBridge.conversation.createWithConversation.invoke({ conversation }).then(() => {
-    navigate(`/conversation/${conversation.id}`);
+    Promise.resolve(navigate(`/conversation/${conversation.id}`)).catch((error) => {
+      console.error('Navigation failed:', error);
+    });
     // });
   };
 
@@ -100,7 +101,9 @@ const ChatHistory: React.FC = () => {
 
   useEffect(() => {
     const refresh = () => {
-      ChatStorage.get('chat.history')
+      // Get conversations from database instead of file storage
+      ipcBridge.database.getUserConversations
+        .invoke({ page: 0, pageSize: 10000 })
         .then((history) => {
           if (history && Array.isArray(history) && history.length > 0) {
             const sortedHistory = history.sort((a, b) => (b.createTime - a.createTime < 0 ? -1 : 1));
@@ -109,7 +112,8 @@ const ChatHistory: React.FC = () => {
             setChatHistory([]);
           }
         })
-        .catch(() => {
+        .catch((error) => {
+          console.error('[ChatHistory] Failed to load conversations from database:', error);
           setChatHistory([]);
         });
     };
@@ -118,12 +122,20 @@ const ChatHistory: React.FC = () => {
   }, [isConversation]);
 
   const handleRemoveConversation = (id: string) => {
-    ipcBridge.conversation.remove.invoke({ id }).then((success) => {
-      if (success) {
-        setChatHistory(chatHistory.filter((item) => item.id !== id));
-        navigate('/');
-      }
-    });
+    ipcBridge.conversation.remove
+      .invoke({ id })
+      .then((success) => {
+        if (success) {
+          // Trigger refresh to reload from database
+          emitter.emit('chat.history.refresh');
+          Promise.resolve(navigate('/')).catch((error) => {
+            console.error('Navigation failed:', error);
+          });
+        }
+      })
+      .catch((error) => {
+        console.error('Failed to remove conversation:', error);
+      });
   };
 
   const formatTimeline = useTimeline();

@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { execSync } from 'child_process';
 import type { AcpBackend } from '@/types/acpTypes';
 import { getEnabledAcpBackends } from '@/types/acpTypes';
 
@@ -29,7 +30,6 @@ class AcpDetector {
     console.log('[ACP] Starting agent detection...');
     const startTime = Date.now();
 
-    const { execSync } = await import('child_process');
     const isWindows = process.platform === 'win32';
     const whichCommand = isWindows ? 'where' : 'which';
 
@@ -39,25 +39,27 @@ class AcpDetector {
     const detected: DetectedAgent[] = [];
 
     // 并行检测所有命令
-    const detectionPromises = acpCommands.map(async (command) => {
-      try {
-        execSync(`${whichCommand} ${command}`, {
-          encoding: 'utf-8',
-          stdio: 'pipe',
-          timeout: 1000,
-        });
+    const detectionPromises = acpCommands.map((command) => {
+      return Promise.resolve().then(() => {
+        try {
+          execSync(`${whichCommand} ${command}`, {
+            encoding: 'utf-8',
+            stdio: 'pipe',
+            timeout: 1000,
+          });
 
-        // 从配置中获取对应的名称
-        const backendConfig = enabledBackends.find((backend) => backend.id === command);
+          // 从配置中获取对应的名称
+          const backendConfig = enabledBackends.find((backend) => backend.id === command);
 
-        return {
-          backend: command as AcpBackend,
-          name: backendConfig?.name || command,
-          cliPath: command,
-        };
-      } catch {
-        return null;
-      }
+          return {
+            backend: command as AcpBackend,
+            name: backendConfig?.name || command,
+            cliPath: command,
+          };
+        } catch {
+          return null;
+        }
+      });
     });
 
     const results = await Promise.allSettled(detectionPromises);

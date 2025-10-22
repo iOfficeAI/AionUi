@@ -7,6 +7,15 @@
     },
     "sendbox": {
       "placeholder": "{{backend}}にメッセージを送信..."
+    },
+    "status": {
+      "connecting": "{{agent}} に接続中...",
+      "connected": "{{agent}} に接続しました",
+      "authenticated": "{{agent}} 認証が完了しました",
+      "session_active": "{{agent}} セッション実行中",
+      "disconnected": "{{agent}} から切断されました",
+      "error": "接続エラー",
+      "unknown": "不明な状態"
     }
   },
   "codex": {
@@ -34,12 +43,6 @@
       "technical_info": "**技術情報：**",
       "unknown_error": "ネットワーク接続エラーです。ネットワーク設定を確認してください。",
       "unknown_error_title": "🔌 ネットワーク接続エラー"
-    },
-    "status": {
-      "connected": "Codex MCP サーバーに接続しました",
-      "connecting": "Codex に接続中...",
-      "error_connect": "Codex への接続に失敗しました：{{error}}",
-      "session_active": "Codex とアクティブなセッションを作成しました"
     },
     "thinking": {
       "processing": "🤔 Codex が思考中...",
@@ -153,7 +156,40 @@
     "upload": "アップロード",
     "version": "バージョン",
     "website": "公式サイト",
-    "workspace": "ワークスペース"
+    "workspace": "ワークスペース",
+    "select": "選択"
+  },
+  "login": {
+    "pageTitle": "AionUi - ログイン",
+    "brand": "AionUi",
+    "subtitle": "おかえりなさい。アカウントにサインインしてください",
+    "username": "ユーザー名",
+    "usernamePlaceholder": "ユーザー名を入力してください",
+    "password": "パスワード",
+    "passwordPlaceholder": "パスワードを入力してください",
+    "rememberUsername": "ユーザー名を記憶する",
+    "submit": "ログイン",
+    "submitting": "ログイン中...",
+    "success": "ログインに成功しました。リダイレクトします...",
+    "showPassword": "パスワードを表示",
+    "hidePassword": "パスワードを隠す",
+    "languageToggle": "言語を切り替える",
+    "footerPrimary": "コマンドラインAIをモダンに変革",
+    "footerSecondary": "効率的でエレガント",
+    "errors": {
+      "empty": "ユーザー名とパスワードを入力してください",
+      "invalidCredentials": "ユーザー名またはパスワードが正しくありません",
+      "tooManyAttempts": "試行回数が多すぎます。後でもう一度お試しください",
+      "networkError": "接続に失敗しました。後でもう一度お試しください",
+      "serverError": "サーバーで問題が発生しました。しばらく待ってから再試行してください",
+      "unknown": "ログインに失敗しました。後でもう一度お試しください"
+    }
+  },
+  "fileSelection": {
+    "selectFile": "ファイルを選択",
+    "selectDirectory": "ディレクトリを選択",
+    "pleaseSelectFile": "ファイルを選択してください",
+    "pleaseSelectDirectory": "ディレクトリを選択してください"
   },
   "conversation": {
     "welcome": {
@@ -434,6 +470,15 @@
     },
     "sendbox": {
       "placeholder": "{{backend}}にメッセージを送信..."
+    },
+    "status": {
+      "connecting": "{{agent}} に接続中...",
+      "connected": "{{agent}} に接続しました",
+      "authenticated": "{{agent}} 認証が完了しました",
+      "session_active": "{{agent}} セッション実行中",
+      "disconnected": "{{agent}} から切断されました",
+      "error": "接続エラー",
+      "unknown": "不明な状態"
     }
   }
 }

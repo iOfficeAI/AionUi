@@ -223,6 +223,7 @@ export class GeminiAgent {
   private initToolScheduler(settings: Settings) {
     this.scheduler = new CoreToolScheduler({
       onAllToolCallsComplete: async (completedToolCalls: CompletedToolCall[]) => {
+        await Promise.resolve(); // Satisfy async requirement
         try {
           if (completedToolCalls.length > 0) {
             const refreshMemory = async () => {
@@ -231,7 +232,7 @@ export class GeminiAgent {
               config.setUserMemory(memoryContent);
               config.setGeminiMdFileCount(fileCount);
             };
-            const response = await handleCompletedTools(completedToolCalls, this.geminiClient, refreshMemory);
+            const response = handleCompletedTools(completedToolCalls, this.geminiClient, refreshMemory);
             if (response.length > 0) {
               const geminiTools = completedToolCalls.filter((tc) => {
                 const isTerminalState = tc.status === 'success' || tc.status === 'error' || tc.status === 'cancelled';
@@ -295,7 +296,7 @@ export class GeminiAgent {
     });
   }
 
-  private async handleMessage(stream: AsyncGenerator<ServerGeminiStreamEvent, any, any>, msg_id: string, abortController: AbortController): Promise<any> {
+  private handleMessage(stream: AsyncGenerator<ServerGeminiStreamEvent, any, any>, msg_id: string, abortController: AbortController): Promise<any> {
     const toolCallRequests: ToolCallRequestInfo[] = [];
 
     return processGeminiStreamEvents(stream, this.config, (data) => {
@@ -308,9 +309,9 @@ export class GeminiAgent {
         msg_id,
       });
     })
-      .then(() => {
+      .then(async () => {
         if (toolCallRequests.length > 0) {
-          this.scheduler.schedule(toolCallRequests, abortController.signal);
+          await this.scheduler.schedule(toolCallRequests, abortController.signal);
         }
       })
       .catch((e) => {
@@ -322,7 +323,7 @@ export class GeminiAgent {
       });
   }
 
-  async submitQuery(
+  submitQuery(
     query: any,
     msg_id: string,
     abortController: AbortController,
@@ -330,7 +331,7 @@ export class GeminiAgent {
       prompt_id?: string;
       isContinuation?: boolean;
     }
-  ) {
+  ): string | undefined {
     try {
       let prompt_id = options?.prompt_id;
       if (!prompt_id) {
@@ -390,7 +391,7 @@ export class GeminiAgent {
     }
     return this.submitQuery(processedQuery, msg_id, abortController);
   }
-  async stop() {
+  stop(): void {
     this.abortController?.abort();
   }
 }

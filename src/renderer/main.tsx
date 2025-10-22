@@ -8,9 +8,16 @@ import React from 'react';
 import Layout from './layout';
 import Router from './router';
 import Sider from './sider';
+import { useAuth } from './context/AuthContext';
 
 const Main = () => {
-  return <Router layout={<Layout sider={<Sider></Sider>}></Layout>}></Router>;
+  const { ready } = useAuth();
+
+  if (!ready) {
+    return null;
+  }
+
+  return <Router layout={<Layout sider={<Sider></Sider>} />} />;
 };
 
 export default Main;
