@@ -56,7 +56,6 @@
     "@types/better-sqlite3": "^7.6.13",
     "@types/cookie-parser": "^1.4.9",
     "@types/cors": "^2.8.19",
-    "@types/csurf": "^1.11.4",
     "@types/html-to-text": "^9.0.4",
     "@types/node": "^24.3.1",
     "@types/react-dom": "^19.1.6",
@@ -113,7 +112,6 @@
     "classnames": "^2.5.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
-    "csurf": "^1.11.0",
     "diff2html": "^3.4.52",
     "electron-squirrel-startup": "^1.0.1",
     "electron-updater": "^6.6.2",
@@ -141,6 +139,7 @@
     "semver": "^7.7.2",
     "sharp": "^0.34.3",
     "swr": "^2.3.6",
+    "tiny-csrf": "^1.1.6",
     "ws": "^8.18.3",
     "zod": "^3.25.76"
   },

@@ -70,12 +70,16 @@ export const authenticatedActionLimiter = rateLimit({
 });
 
 /**
- * 将 CSRF token 写回 cookie 与响应头（配合 csurf 中间件使用）
+ * Attach CSRF token to response for client-side usage
+ * tiny-csrf provides req.csrfToken() method to generate tokens
+ *
+ * 将 CSRF token 添加到响应中供客户端使用
+ * tiny-csrf 提供 req.csrfToken() 方法来生成 token
  */
 export function attachCsrfToken(req: Request, res: Response, next: NextFunction): void {
+  // tiny-csrf provides req.csrfToken() method
   if (typeof req.csrfToken === 'function') {
     const token = req.csrfToken();
-    res.cookie(CSRF_COOKIE_NAME, token, SECURITY_CONFIG.CSRF.COOKIE_OPTIONS);
     res.setHeader(CSRF_HEADER_NAME, token);
     res.locals.csrfToken = token;
   }
@@ -92,5 +96,3 @@ export function createRateLimiter(options: Parameters<typeof rateLimit>[0]) {
     ...options,
   });
 }
-
-export const csrfCookieOptions = SECURITY_CONFIG.CSRF.COOKIE_OPTIONS;

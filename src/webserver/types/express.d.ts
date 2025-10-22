@@ -11,6 +11,7 @@ declare global {
     interface Request {
       user?: Pick<AuthUser, 'id' | 'username'>;
       cookies?: Record<string, string>;
+      csrfToken?: () => string;
     }
   }
 }
