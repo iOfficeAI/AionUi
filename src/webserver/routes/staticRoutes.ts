@@ -11,6 +11,7 @@ import fs from 'fs';
 import { app } from 'electron';
 import { TokenMiddleware } from '@/webserver/auth/middleware/TokenMiddleware';
 import { AUTH_CONFIG } from '../config/constants';
+import { createRateLimiter } from '../middleware/security';
 
 /**
  * 注册静态资源和页面路由
@@ -33,6 +34,14 @@ const resolveRendererPath = () => {
 export function registerStaticRoutes(app: Express): void {
   const { staticRoot, indexHtml } = resolveRendererPath();
   const indexHtmlPath = indexHtml;
+
+  // Create a lenient rate limiter for static page requests to prevent DDoS
+  // 为静态页面请求创建宽松的速率限制器以防止 DDoS 攻击
+  const pageRateLimiter = createRateLimiter({
+    windowMs: 60 * 1000, // 1 minute / 1分钟
+    max: 300, // 300 requests per minute (very lenient) / 每分钟300次请求（非常宽松）
+    message: 'Too many requests, please try again later',
+  });
 
   const serveApplication = (req: Request, res: Response) => {
     try {
@@ -59,7 +68,7 @@ export function registerStaticRoutes(app: Express): void {
    * Homepage
    * GET /
    */
-  app.get('/', serveApplication);
+  app.get('/', pageRateLimiter, serveApplication);
 
   /**
    * 处理 favicon 请求
@@ -74,7 +83,7 @@ export function registerStaticRoutes(app: Express): void {
    * 处理子路径路由 (React Router)
    * Handle SPA sub-routes (React Router)
    */
-  app.get(/^\/(?!api|static|main_window).*/, serveApplication);
+  app.get(/^\/(?!api|static|main_window).*/, pageRateLimiter, serveApplication);
 
   /**
    * 静态资源

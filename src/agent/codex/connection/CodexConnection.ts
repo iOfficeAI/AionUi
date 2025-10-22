@@ -93,22 +93,18 @@ export class CodexConnection {
         // Version 0.40.0 and above use "mcp-server"
         // Version 0.39.x and below use "mcp serve"
         if (majorVer > 0 || (majorVer === 0 && minorVer >= 40)) {
-          console.log(`[CodexConnection] 检测到 Codex ${versionOutput}，使用 'mcp-server' 命令 / Detected Codex ${versionOutput}, using 'mcp-server' command`);
           return ['mcp-server'];
         } else {
-          console.log(`[CodexConnection] 检测到 Codex ${versionOutput}，使用 'mcp serve' 命令 / Detected Codex ${versionOutput}, using 'mcp serve' command`);
           return ['mcp', 'serve'];
         }
       }
 
       // 如果版本检测失败，默认使用 mcp-server（适用于新版本）
       // If version detection fails, try mcp-server first (for newer versions)
-      console.warn('[CodexConnection] 无法解析 Codex 版本，默认使用 mcp-server / Could not parse Codex version, defaulting to mcp-server');
       return ['mcp-server'];
     } catch (error) {
       // 如果版本命令执行失败，默认使用 mcp-server（新版本）
       // If version command fails, default to mcp-server (newer versions)
-      console.warn('[CodexConnection] Codex 版本检测失败，默认使用 mcp-server / Failed to detect Codex version, defaulting to mcp-server:', error);
       return ['mcp-server'];
     }
   }
