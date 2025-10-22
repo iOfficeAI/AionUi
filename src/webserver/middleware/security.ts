@@ -73,7 +73,7 @@ export const authenticatedActionLimiter = rateLimit({
 /**
  * 基于 cookie 的 CSRF 保护，允许 WebUI 从 cookie 读取 token
  */
-const rawCsrfMiddleware = csrf({
+export const csrfCookieProtection = csrf({
   cookie: {
     key: CSRF_COOKIE_NAME,
     sameSite: SECURITY_CONFIG.CSRF.COOKIE_OPTIONS.sameSite,
@@ -87,38 +87,18 @@ const rawCsrfMiddleware = csrf({
 /**
  * 将 CSRF token 写回 cookie 与响应头
  */
-function setCsrfToken(req: Request, res: Response): void {
-  if (typeof req.csrfToken !== 'function') {
-    return;
+export function attachCsrfToken(req: Request, res: Response, next: NextFunction): void {
+  if (typeof req.csrfToken === 'function') {
+    const token = req.csrfToken();
+    res.cookie(CSRF_COOKIE_NAME, token, SECURITY_CONFIG.CSRF.COOKIE_OPTIONS);
+    res.setHeader(CSRF_HEADER_NAME, token);
+    res.locals.csrfToken = token;
   }
-  const token = req.csrfToken();
-  res.cookie(CSRF_COOKIE_NAME, token, SECURITY_CONFIG.CSRF.COOKIE_OPTIONS);
-  res.setHeader(CSRF_HEADER_NAME, token);
-  res.locals.csrfToken = token;
+  next();
 }
 
 /**
- * 综合 CSRF 中间件（对 Bearer Token 请求放行）
- */
-export function csrfProtection(req: Request, res: Response, next: NextFunction): void {
-  const authHeader = req.headers.authorization;
-  if (authHeader && typeof authHeader === 'string' && authHeader.toLowerCase().startsWith('bearer ')) {
-    next();
-    return;
-  }
-
-  rawCsrfMiddleware(req, res, (err?: unknown) => {
-    if (err) {
-      next(err);
-      return;
-    }
-    setCsrfToken(req, res);
-    next();
-  });
-}
-
-/**
- * 供静态路由使用的通用限流器工厂
+ * 供静态路由等场景使用的通用限流器工厂
  */
 export function createRateLimiter(options: Parameters<typeof rateLimit>[0]) {
   return rateLimit({
