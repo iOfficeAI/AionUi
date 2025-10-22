@@ -10,6 +10,7 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { AuthMiddleware } from '@/webserver/auth/middleware/AuthMiddleware';
 import { errorHandler } from './middleware/errorHandler';
+import { csrfProtection } from './middleware/csrfProtection';
 
 /**
  * 配置基础中间件
@@ -21,6 +22,9 @@ export function setupBasicMiddleware(app: Express): void {
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ extended: true, limit: '10mb' }));
   app.use(cookieParser());
+  // CSRF middleware protects state-changing requests for WebUI
+  // CSRF 中间件保护 WebUI 的状态修改请求
+  app.use(csrfProtection);
 
   // 安全中间件
   // Security middleware

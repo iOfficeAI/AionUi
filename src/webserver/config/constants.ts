@@ -4,6 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+// CSRF token cookie/header identifiers (shared by server & WebUI)
+// CSRF Token 的 Cookie / Header 名称（服务端与 WebUI 共享）
+export const CSRF_COOKIE_NAME = 'aionui-csrf-token';
+export const CSRF_HEADER_NAME = 'x-csrf-token';
 /**
  * 集中配置管理
  * Centralized configuration management
@@ -128,5 +132,16 @@ export const SECURITY_CONFIG = {
     CSP_DEV: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' ws: wss:;",
     // 生产环境 CSP（Content-Security-Policy for production）
     CSP_PROD: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self';",
+  },
+  CSRF: {
+    COOKIE_NAME: CSRF_COOKIE_NAME,
+    HEADER_NAME: CSRF_HEADER_NAME,
+    TOKEN_LENGTH: 32,
+    COOKIE_OPTIONS: {
+      httpOnly: false,
+      sameSite: 'strict' as const,
+      secure: false,
+      path: '/',
+    },
   },
 } as const;

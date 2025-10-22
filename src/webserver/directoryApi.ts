@@ -8,16 +8,63 @@ import { Router } from 'express';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
+import { fileOperationLimiter } from './middleware/rateLimiter';
 
 const router = Router();
 
 /**
+ * Validate and sanitize user-provided file paths to prevent directory traversal attacks
+ * 验证和清理用户提供的文件路径，防止目录遍历攻击
+ * @param userPath - User-provided path / 用户提供的路径
+ * @param allowedBasePaths - Optional array of allowed base directories / 可选的允许的基础目录列表
+ * @returns Validated absolute path / 验证后的绝对路径
+ * @throws Error if path is invalid or outside allowed directories / 如果路径无效或在允许目录之外则抛出错误
+ */
+function validatePath(userPath: string, allowedBasePaths?: string[]): string {
+  if (!userPath || typeof userPath !== 'string') {
+    throw new Error('Invalid path: path must be a non-empty string');
+  }
+
+  // Resolve to absolute path / 解析为绝对路径
+  const resolvedPath = path.resolve(userPath);
+
+  // Check for null bytes (security issue) / 检查空字节（安全问题）
+  if (resolvedPath.includes('\0')) {
+    throw new Error('Invalid path: null bytes detected');
+  }
+
+  // If no allowed base paths specified, allow any valid path
+  // 如果没有指定允许的基础路径，则允许任何有效路径
+  if (!allowedBasePaths || allowedBasePaths.length === 0) {
+    return resolvedPath;
+  }
+
+  // Ensure resolved path is within one of the allowed base directories
+  // 确保解析后的路径在允许的基础目录之一内
+  const isAllowed = allowedBasePaths.some((basePath) => {
+    const resolvedBase = path.resolve(basePath);
+    return resolvedPath === resolvedBase || resolvedPath.startsWith(resolvedBase + path.sep);
+  });
+
+  if (!isAllowed) {
+    throw new Error('Invalid path: access denied to directory outside allowed paths');
+  }
+
+  return resolvedPath;
+}
+
+/**
  * 获取目录列表
  */
-router.get('/browse', (req, res) => {
+// Rate limit directory browsing to mitigate brute-force scanning
+// 为目录浏览接口增加限流，避免暴力扫描
+router.get('/browse', fileOperationLimiter, (req, res) => {
   try {
     // 默认打开 AionUi 运行目录，而不是用户 home 目录
-    const dirPath = (req.query.path as string) || process.cwd();
+    const rawPath = (req.query.path as string) || process.cwd();
+
+    // Validate path to prevent directory traversal / 验证路径以防止目录遍历
+    const dirPath = validatePath(rawPath);
 
     // 安全检查：确保路径存在且是目录
     if (!fs.existsSync(dirPath)) {
@@ -85,13 +132,18 @@ router.get('/browse', (req, res) => {
 /**
  * 验证路径是否有效
  */
-router.post('/validate', (req, res) => {
+// Rate limit directory validation endpoint as well
+// 同样为目录验证接口增加限流
+router.post('/validate', fileOperationLimiter, (req, res) => {
   try {
-    const { path: dirPath } = req.body;
+    const { path: rawPath } = req.body;
 
-    if (!dirPath || typeof dirPath !== 'string') {
+    if (!rawPath || typeof rawPath !== 'string') {
       return res.status(400).json({ error: 'Path is required' });
     }
+
+    // Validate path to prevent directory traversal / 验证路径以防止目录遍历
+    const dirPath = validatePath(rawPath);
 
     // 检查路径是否存在
     if (!fs.existsSync(dirPath)) {
@@ -113,19 +165,22 @@ router.post('/validate', (req, res) => {
 
     res.json({
       valid: true,
-      path: path.resolve(dirPath),
+      path: dirPath,
       name: path.basename(dirPath),
     });
   } catch (error) {
     console.error('Path validation error:', error);
-    res.status(500).json({ error: 'Failed to validate path' });
+    const errorMessage = error instanceof Error ? error.message : 'Failed to validate path';
+    res.status(error instanceof Error && error.message.includes('access denied') ? 403 : 500).json({ error: errorMessage });
   }
 });
 
 /**
  * 获取常用目录快捷方式
  */
-router.get('/shortcuts', (_req, res) => {
+// Rate limit shortcut fetching to keep behavior consistent
+// 快捷目录获取接口也使用相同的限流策略
+router.get('/shortcuts', fileOperationLimiter, (_req, res) => {
   try {
     const shortcuts = [
       {
