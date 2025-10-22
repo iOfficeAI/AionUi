@@ -7,7 +7,7 @@
 import type { Express, Request, Response } from 'express';
 import { TokenMiddleware } from '@/webserver/auth/middleware/TokenMiddleware';
 import directoryApi from '../directoryApi';
-import { apiRateLimiter } from '../middleware/rateLimiter';
+import { apiRateLimiter } from '../middleware/security';
 
 /**
  * 注册 API 路由
