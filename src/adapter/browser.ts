@@ -164,6 +164,13 @@ if (win.electronAPI) {
     on(emitter) {
       emitterRef = emitter;
       (window as any).__bridgeEmitter = emitter;
+
+      // Expose callback emitter for bridge provider pattern
+      // Used by components to send responses back through WebSocket
+      (window as any).__emitBridgeCallback = (name: string, data: unknown) => {
+        emitter.emit(name, data);
+      };
+
       ensureSocket();
     },
   });

@@ -92,7 +92,8 @@ export class WebSocketManager {
   private setupMessageHandler(ws: WebSocket, onMessage: (name: string, data: any, ws: WebSocket) => void): void {
     ws.on('message', (rawData) => {
       try {
-        const { name, data } = JSON.parse(rawData.toString());
+        const parsed = JSON.parse(rawData.toString());
+        const { name, data } = parsed;
 
         // Handle pong response - update last ping time
         if (name === 'pong') {
@@ -101,7 +102,6 @@ export class WebSocketManager {
         }
 
         // Handle file selection request - forward to client
-        // 'subscribe-show-open' 由 bridge.buildProvider('show-open') 自动生成
         if (name === 'subscribe-show-open') {
           this.handleFileSelection(ws, data);
           return;
@@ -125,10 +125,14 @@ export class WebSocketManager {
    * Handle file selection request
    */
   private handleFileSelection(ws: WebSocket, data: any): void {
-    // 判断是否为文件选择模式
-    const isFileMode = data && data.properties && (data.properties.includes('openFile') || data.properties.includes('multiSelections')) && !data.properties.includes('openDirectory');
+    // Extract properties from nested data structure
+    const actualData = data.data || data;
+    const properties = actualData.properties;
 
-    // 发送文件选择请求给客户端
+    // Determine if this is file selection mode
+    const isFileMode = properties && properties.includes('openFile') && !properties.includes('openDirectory');
+
+    // Send file selection request to client with isFileMode flag
     ws.send(JSON.stringify({ name: SHOW_OPEN_REQUEST_EVENT, data: { ...data, isFileMode } }));
   }
 
