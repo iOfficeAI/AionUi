@@ -152,11 +152,16 @@ async function initializeDefaultAdmin(): Promise<{ username: string; password: s
  * 在控制台显示初始凭证信息
  * Display initial credentials in console
  */
-function displayInitialCredentials(credentials: { username: string; password: string }, localUrl: string): void {
+function displayInitialCredentials(credentials: { username: string; password: string }, localUrl: string, allowRemote: boolean, networkUrl?: string): void {
   console.log('\n' + '='.repeat(70));
   console.log('🎉 AionUI Web Server Started Successfully! / AionUI Web 服务器启动成功！');
   console.log('='.repeat(70));
   console.log(`\n📍 Local URL / 本地地址:    ${localUrl}`);
+
+  if (allowRemote && networkUrl && networkUrl !== localUrl) {
+    console.log(`📍 Network URL / 网络地址:  ${networkUrl}`);
+  }
+
   console.log('\n🔐 Initial Admin Credentials / 初始管理员凭证:');
   console.log(`   Username / 用户名: ${credentials.username}`);
   console.log(`   Password / 密码:   ${credentials.password}`);
@@ -216,18 +221,24 @@ export async function startWebServer(port: number, allowRemote = false): Promise
       // 显示初始凭证（如果是首次启动）
       // Display initial credentials (if first time)
       if (initialCredentials) {
-        displayInitialCredentials(initialCredentials, displayUrl);
+        displayInitialCredentials(initialCredentials, localUrl, allowRemote, displayUrl);
       } else {
-        if (serverIP && serverIP !== 'localhost') {
+        // Only show network access when --remote flag is enabled
+        if (allowRemote && serverIP && serverIP !== 'localhost') {
           console.log(`\n   🚀 Local access / 本地访问: ${localUrl}`);
           console.log(`   🚀 Network access / 网络访问: ${displayUrl}\n`);
+        } else {
+          console.log(`\n   🚀 WebUI started / WebUI 已启动: ${localUrl}\n`);
         }
       }
 
       // 自动打开浏览器（仅在有桌面环境时）
       // Auto-open browser (only when desktop environment is available)
+      // 当 allowRemote 为 true 时，优先打开局域网 IP
+      // When allowRemote is true, prefer to open LAN IP
       if (process.env.DISPLAY || process.platform !== 'linux') {
-        void shell.openExternal(localUrl);
+        const urlToOpen = allowRemote && serverIP ? displayUrl : localUrl;
+        void shell.openExternal(urlToOpen);
       }
 
       // 初始化 WebSocket 适配器

@@ -42,7 +42,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     needs: code-quality
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
-    
+
     strategy:
       fail-fast: false
       matrix:
@@ -51,22 +51,22 @@ jobs:
             os: 'macos-latest'
             command: 'npm run dist:mac'
             artifact-name: 'macos-build'
-            arch: 'arm64'  # macOS builds for both x64 and arm64
-          - platform: 'windows'
+            arch: 'arm64'
+          - platform: 'windows-x64'
             os: 'windows-2022'
             command: 'node scripts/build-with-builder.js x64 --win --x64'
             artifact-name: 'windows-build-x64'
-            arch: 'x64'  # Windows x64 build
-          - platform: 'windows'
+            arch: 'x64'
+          - platform: 'windows-arm64'
             os: 'windows-2022'
             command: 'node scripts/build-with-builder.js arm64 --win --arm64'
             artifact-name: 'windows-build-arm64'
-            arch: 'arm64'  # Windows arm64 build
+            arch: 'arm64'
           - platform: 'linux'
             os: 'ubuntu-latest'
             command: 'npm run dist:linux'
             artifact-name: 'linux-build'
-            arch: 'x64'  # Linux builds for x64
+            arch: 'x64,arm64'
     
     steps:
       - name: Checkout code
@@ -89,22 +89,26 @@ jobs:
           echo "version=$ELECTRON_VERSION" >> $GITHUB_OUTPUT
           echo "Electron version: $ELECTRON_VERSION"
 
-      - name: Print runner architecture
-        if: matrix.platform == 'windows'
-        shell: pwsh
+      - name: Print build configuration
+        shell: bash
         run: |
-          # Print Windows runner architecture
-          Write-Host "PROCESSOR_ARCHITECTURE=$env:PROCESSOR_ARCHITECTURE"
-          Write-Host "PROCESSOR_ARCHITEW6432=$env:PROCESSOR_ARCHITEW6432"
-          systeminfo | Select-String "^System Type"
+          echo "=========================================="
+          echo "BUILD CONFIGURATION"
+          echo "=========================================="
+          echo "Platform: ${{ matrix.platform }}"
+          echo "Target Architecture: ${{ matrix.arch }}"
+          echo "Build Command: ${{ matrix.command }}"
+          echo "Runner OS: ${{ runner.os }}"
+          echo "Runner Arch: ${{ runner.arch }}"
+          echo "=========================================="
 
       - name: Setup Windows native dependencies (for Windows only)
-        if: matrix.platform == 'windows'
+        if: startsWith(matrix.platform, 'windows')
         run: |
           npm install --global node-gyp
 
       - name: Install MSVC ARM64 toolchain (Windows ARM64 only)
-        if: matrix.platform == 'windows' && matrix.arch == 'arm64'
+        if: matrix.platform == 'windows-arm64'
         shell: pwsh
         run: |
           choco install visualstudio2022buildtools --yes --params "'--add Microsoft.VisualStudio.Component.VC.Tools.ARM64 --add Microsoft.VisualStudio.Component.Windows11SDK.22000 --includeRecommended --includeOptional'"
@@ -115,13 +119,13 @@ jobs:
           python-version: '3.11'
 
       - name: Setup Windows build environment (for Windows only)
-        if: matrix.platform == 'windows'
+        if: startsWith(matrix.platform, 'windows')
         run: |
           echo "Setting Windows SDK version for ConPty support"
           echo "WindowsTargetPlatformVersion=10.0.19041.0" >> $env:GITHUB_ENV
 
       - name: Setup MSBuild (for Windows only)
-        if: matrix.platform == 'windows'
+        if: startsWith(matrix.platform, 'windows')
         uses: microsoft/setup-msbuild@v2
         with:
           vs-version: '17.0'
@@ -165,7 +169,7 @@ jobs:
           sudo apt-get install -y build-essential python3 python3-pip pkg-config libsqlite3-dev fakeroot dpkg-dev rpm libnss3-dev libatk-bridge2.0-dev libdrm2 libxkbcommon-dev libxss1 libatspi2.0-dev libgtk-3-dev libxrandr2 libasound2-dev
 
       - name: Rebuild native modules for Electron
-        if: matrix.platform == 'windows'
+        if: startsWith(matrix.platform, 'windows')
         shell: pwsh
         run: |
           $electronVersion = "${{ steps.electron-version.outputs.version }}"
@@ -183,7 +187,7 @@ jobs:
           GYP_MSVS_VERSION: 2022
 
       - name: Build with electron-builder (Windows)
-        if: matrix.platform == 'windows'
+        if: startsWith(matrix.platform, 'windows')
         shell: cmd
         run: |
           ${{ matrix.command }}
@@ -217,7 +221,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
       - name: Build with electron-builder (non-Windows)
-        if: matrix.platform != 'windows'
+        if: "!startsWith(matrix.platform, 'windows')"
         run: ${{ matrix.command }}
         env:
           # Target architecture / 目标架构
@@ -255,6 +259,22 @@ jobs:
             echo "Temporary keychain deleted"
           fi
 
+      - name: List build artifacts
+        if: success()
+        shell: bash
+        run: |
+          echo "=========================================="
+          echo "BUILD ARTIFACTS"
+          echo "=========================================="
+          if [ -d "out" ]; then
+            ls -lh out/ || true
+            echo "=========================================="
+            echo "Total artifacts:"
+            find out/ -type f \( -name "*.exe" -o -name "*.msi" -o -name "*.dmg" -o -name "*.deb" -o -name "*.AppImage" -o -name "*.zip" \) -exec basename {} \; || true
+          else
+            echo "No out directory found!"
+          fi
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         if: success()
@@ -262,7 +282,7 @@ jobs:
           name: ${{ matrix.artifact-name }}
           path: |
             out/*.exe
-            out/*.msi  
+            out/*.msi
             out/*.dmg
             out/*.deb
             out/*.AppImage

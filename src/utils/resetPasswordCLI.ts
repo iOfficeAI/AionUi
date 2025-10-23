@@ -83,7 +83,7 @@ export async function resetPasswordCLI(username: string): Promise<void> {
       log.info('  aionui --webui');
       log.info('');
       log.info('Then you can reset the password using:');
-      log.info('  aionui reset-password <username>');
+      log.info('  aionui --resetpass <username>');
       process.exit(1);
     }
 
