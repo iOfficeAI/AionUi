@@ -1,7 +1,7 @@
 {
   "name": "AionUi",
   "productName": "AionUi",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "description": "Transform your command-line AI agent into a modern, efficient AI Chat interface.",
   "main": ".webpack/main",
   "scripts": {
@@ -9,7 +9,7 @@
     "cli": "cross-env FORGE_SKIP_NATIVE_REBUILD=true electron-forge start --",
     "webui": "npm run cli -- --webui",
     "webui:remote": "npm run cli -- --webui --remote",
-    "reset-password": "npm run cli -- reset-password",
+    "resetpass": "npm run cli -- --resetpass",
     "package": "electron-forge package",
     "make": "electron-forge make",
     "dist": "node scripts/build-with-builder.js",
