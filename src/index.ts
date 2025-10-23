@@ -37,7 +37,7 @@ const hasCommand = (cmd: string) => process.argv.includes(cmd);
 
 const isWebUIMode = hasSwitch('webui');
 const isRemoteMode = hasSwitch('remote');
-const isResetPasswordMode = hasCommand('reset-password');
+const isResetPasswordMode = hasCommand('--resetpass');
 
 let mainWindow: BrowserWindow;
 const createWindow = (): void => {
@@ -78,7 +78,7 @@ const handleAppReady = async (): Promise<void> => {
     try {
       // Get username argument, filtering out flags (--xxx)
       // 获取用户名参数，过滤掉标志（--xxx）
-      const resetPasswordIndex = process.argv.indexOf('reset-password');
+      const resetPasswordIndex = process.argv.indexOf('--resetpass');
       const argsAfterCommand = process.argv.slice(resetPasswordIndex + 1);
       const username = argsAfterCommand.find((arg) => !arg.startsWith('--')) || 'admin';
 
@@ -97,7 +97,7 @@ const handleAppReady = async (): Promise<void> => {
     createWindow();
   }
 
-  // 启动时初始化ACP检测器 (skip in reset-password mode)
+  // 启动时初始化ACP检测器 (skip in --resetpass mode)
   if (!isResetPasswordMode) {
     await initializeAcpDetector();
   }
