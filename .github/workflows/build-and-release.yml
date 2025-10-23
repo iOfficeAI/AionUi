@@ -89,13 +89,18 @@ jobs:
           echo "version=$ELECTRON_VERSION" >> $GITHUB_OUTPUT
           echo "Electron version: $ELECTRON_VERSION"
 
-      - name: Print runner architecture
+      - name: Print build configuration
         if: matrix.platform == 'windows'
         shell: pwsh
         run: |
-          # Print Windows runner architecture
-          Write-Host "PROCESSOR_ARCHITECTURE=$env:PROCESSOR_ARCHITECTURE"
-          Write-Host "PROCESSOR_ARCHITEW6432=$env:PROCESSOR_ARCHITEW6432"
+          # Print build configuration
+          Write-Host "=========================================="
+          Write-Host "BUILD CONFIGURATION"
+          Write-Host "=========================================="
+          Write-Host "Target Architecture: ${{ matrix.arch }}"
+          Write-Host "Build Command: ${{ matrix.command }}"
+          Write-Host "Runner Architecture: $env:PROCESSOR_ARCHITECTURE"
+          Write-Host "=========================================="
           systeminfo | Select-String "^System Type"
 
       - name: Setup Windows native dependencies (for Windows only)
@@ -255,6 +260,22 @@ jobs:
             echo "Temporary keychain deleted"
           fi
 
+      - name: List build artifacts
+        if: success()
+        shell: bash
+        run: |
+          echo "=========================================="
+          echo "BUILD ARTIFACTS"
+          echo "=========================================="
+          if [ -d "out" ]; then
+            ls -lh out/ || true
+            echo "=========================================="
+            echo "Total artifacts:"
+            find out/ -type f \( -name "*.exe" -o -name "*.msi" -o -name "*.dmg" -o -name "*.deb" -o -name "*.AppImage" -o -name "*.zip" \) -exec basename {} \; || true
+          else
+            echo "No out directory found!"
+          fi
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         if: success()
@@ -262,7 +283,7 @@ jobs:
           name: ${{ matrix.artifact-name }}
           path: |
             out/*.exe
-            out/*.msi  
+            out/*.msi
             out/*.dmg
             out/*.deb
             out/*.AppImage
