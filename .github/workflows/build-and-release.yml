@@ -38,35 +38,39 @@ jobs:
         run: npm run format:check || echo "Prettier formatting issues detected but not blocking build"
 
   build:
-    name: Build ${{ matrix.platform }}
+    name: Build ${{ matrix.display-name }}
     runs-on: ${{ matrix.os }}
     needs: code-quality
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
-    
+
     strategy:
       fail-fast: false
       matrix:
         include:
           - platform: 'macos'
+            display-name: 'macOS (arm64)'
             os: 'macos-latest'
             command: 'npm run dist:mac'
             artifact-name: 'macos-build'
-            arch: 'arm64'  # macOS builds for both x64 and arm64
+            arch: 'arm64'
           - platform: 'windows'
+            display-name: 'Windows (x64)'
             os: 'windows-2022'
             command: 'node scripts/build-with-builder.js x64 --win --x64'
             artifact-name: 'windows-build-x64'
-            arch: 'x64'  # Windows x64 build
+            arch: 'x64'
           - platform: 'windows'
+            display-name: 'Windows (arm64)'
             os: 'windows-2022'
             command: 'node scripts/build-with-builder.js arm64 --win --arm64'
             artifact-name: 'windows-build-arm64'
-            arch: 'arm64'  # Windows arm64 build
+            arch: 'arm64'
           - platform: 'linux'
+            display-name: 'Linux (x64)'
             os: 'ubuntu-latest'
             command: 'npm run dist:linux'
             artifact-name: 'linux-build'
-            arch: 'x64'  # Linux builds for x64
+            arch: 'x64'
     
     steps:
       - name: Checkout code
@@ -90,18 +94,18 @@ jobs:
           echo "Electron version: $ELECTRON_VERSION"
 
       - name: Print build configuration
-        if: matrix.platform == 'windows'
-        shell: pwsh
+        shell: bash
         run: |
-          # Print build configuration
-          Write-Host "=========================================="
-          Write-Host "BUILD CONFIGURATION"
-          Write-Host "=========================================="
-          Write-Host "Target Architecture: ${{ matrix.arch }}"
-          Write-Host "Build Command: ${{ matrix.command }}"
-          Write-Host "Runner Architecture: $env:PROCESSOR_ARCHITECTURE"
-          Write-Host "=========================================="
-          systeminfo | Select-String "^System Type"
+          echo "=========================================="
+          echo "BUILD CONFIGURATION"
+          echo "=========================================="
+          echo "Platform: ${{ matrix.platform }}"
+          echo "Target Architecture: ${{ matrix.arch }}"
+          echo "Display Name: ${{ matrix.display-name }}"
+          echo "Build Command: ${{ matrix.command }}"
+          echo "Runner OS: ${{ runner.os }}"
+          echo "Runner Arch: ${{ runner.arch }}"
+          echo "=========================================="
 
       - name: Setup Windows native dependencies (for Windows only)
         if: matrix.platform == 'windows'
