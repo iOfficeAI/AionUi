@@ -40,10 +40,8 @@ const DirectorySelectionModal: React.FC<DirectorySelectionModalProps> = ({ visib
     async (path = '') => {
       setLoading(true);
       try {
-        const urlParams = new URLSearchParams(window.location.search);
-        const token = (window as any).__SESSION_TOKEN__ || urlParams.get('token');
         const showFiles = isFileMode ? 'true' : 'false';
-        const response = await fetch(`/api/directory/browse?path=${encodeURIComponent(path)}&showFiles=${showFiles}&token=${token}`, {
+        const response = await fetch(`/api/directory/browse?path=${encodeURIComponent(path)}&showFiles=${showFiles}`, {
           method: 'GET',
           credentials: 'include',
         });
