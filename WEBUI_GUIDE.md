@@ -367,46 +367,46 @@ aionui --webui
 
 ## Reset Admin Password
 
-If you forgot your admin password in WebUI mode, you can reset it using the `reset-password` command.
+If you forgot your admin password in WebUI mode, you can reset it using the `--resetpass` command.
 
-### Using reset-password Command
+### Using --resetpass Command
 
-**IMPORTANT:** The reset-password command resets the password and generates a new random one. All existing JWT tokens will be invalidated.
+**IMPORTANT:** The --resetpass command resets the password and generates a new random one. All existing JWT tokens will be invalidated.
 
 **Windows:**
 
 ```cmd
 # Using full path
-"C:\Program Files\AionUi\AionUi.exe" reset-password
+"C:\Program Files\AionUi\AionUi.exe" --resetpass
 
 # Or for a specific user
-"C:\Program Files\AionUi\AionUi.exe" reset-password username
+"C:\Program Files\AionUi\AionUi.exe" --resetpass username
 ```
 
 **macOS:**
 
 ```bash
 # Using full path
-/Applications/AionUi.app/Contents/MacOS/AionUi reset-password
+/Applications/AionUi.app/Contents/MacOS/AionUi --resetpass
 
 # Or for a specific user
-/Applications/AionUi.app/Contents/MacOS/AionUi reset-password username
+/Applications/AionUi.app/Contents/MacOS/AionUi --resetpass username
 ```
 
 **Linux:**
 
 ```bash
 # Using system path
-aionui reset-password
+aionui --resetpass
 
 # Or for a specific user
-aionui reset-password username
+aionui --resetpass username
 
 # Or using full path
-/opt/AionUi/aionui reset-password
+/opt/AionUi/aionui --resetpass
 ```
 
-### What happens when you run reset-password:
+### What happens when you run --resetpass:
 
 1. The command connects to the database
 2. Finds the specified user (default: `admin`)
@@ -415,7 +415,7 @@ aionui reset-password username
 5. Rotates the JWT secret (invalidating all previous tokens)
 6. Displays the new password in the terminal
 
-### After running reset-password:
+### After running --resetpass:
 
 1. The command will display your new password - **copy it immediately**
 2. Refresh your browser (Cmd+R or Ctrl+R)
@@ -428,10 +428,10 @@ If you're in a development environment with Node.js, you can also use:
 
 ```bash
 # In the project directory
-npm run reset-password
+npm run --resetpass
 
 # Or for a specific user
-npm run reset-password username
+npm run --resetpass username
 ```
 
 ---

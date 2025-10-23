@@ -42,6 +42,7 @@ if (win.electronAPI) {
   let emitterRef: { emit: (name: string, data: unknown) => void } | null = null;
   let reconnectTimer: number | null = null;
   let reconnectDelay = 500;
+  let shouldReconnect = true; // Flag to control reconnection
 
   const messageQueue: QueuedMessage[] = [];
 
@@ -61,7 +62,7 @@ if (win.electronAPI) {
 
   // 2.简单的指数退避重连，等待服务端在登录成功后接受新连接
   const scheduleReconnect = () => {
-    if (reconnectTimer !== null) {
+    if (reconnectTimer !== null || !shouldReconnect) {
       return;
     }
 
@@ -97,6 +98,29 @@ if (win.electronAPI) {
 
       try {
         const payload = JSON.parse(event.data as string) as { name: string; data: unknown };
+
+        // Handle auth expiration - stop reconnecting and redirect to login
+        if (payload.name === 'auth-expired') {
+          console.warn('[WebSocket] Authentication expired, stopping reconnection');
+          shouldReconnect = false;
+
+          // Clear any pending reconnection timer
+          if (reconnectTimer !== null) {
+            window.clearTimeout(reconnectTimer);
+            reconnectTimer = null;
+          }
+
+          // Close the socket and redirect to login page
+          socket?.close();
+
+          // Redirect to login page after a short delay to show any UI feedback
+          setTimeout(() => {
+            window.location.href = '/login';
+          }, 1000);
+
+          return;
+        }
+
         emitterRef.emit(payload.name, payload.data);
       } catch (error) {
         // Ignore malformed payloads
@@ -145,6 +169,13 @@ if (win.electronAPI) {
   });
 
   connect();
+
+  // Expose reconnection control for login flow
+  (window as any).__websocketReconnect = () => {
+    shouldReconnect = true;
+    reconnectDelay = 500;
+    connect();
+  };
 }
 
 logger.provider({

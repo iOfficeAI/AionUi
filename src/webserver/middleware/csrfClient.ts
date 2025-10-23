@@ -63,3 +63,27 @@ export function withCsrfHeader(headers: HeadersInit = {}): HeadersInit {
 
   return headers;
 }
+
+// Attach CSRF token to request body for tiny-csrf compatibility
+// tiny-csrf expects token in req.body._csrf, not in headers
+// 将 CSRF Token 附加到请求体以兼容 tiny-csrf
+// tiny-csrf 期望从 req.body._csrf 读取 token，而不是从请求头
+export function withCsrfToken<T = unknown>(body: T): T & { _csrf?: string } {
+  const token = getCsrfToken();
+  if (!token) {
+    return body as T & { _csrf?: string };
+  }
+
+  // Handle different body types
+  if (body === null || body === undefined) {
+    return { _csrf: token } as T & { _csrf?: string };
+  }
+
+  if (typeof body === 'object' && !Array.isArray(body)) {
+    return { ...body, _csrf: token };
+  }
+
+  // For non-object bodies (string, FormData, etc.), return as-is
+  // The caller should handle adding _csrf manually for these cases
+  return body as T & { _csrf?: string };
+}

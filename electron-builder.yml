@@ -67,10 +67,13 @@ nsis:
   createStartMenuShortcut: true
   shortcutName: ${productName}
   uninstallDisplayName: ${productName}
+  artifactName: ${productName}-${version}-${os}-${arch}.${ext}
 
 mac:
   target:
     - target: dmg
+      arch: [arm64]
+    - target: zip
       arch: [arm64]
   icon: resources/app.icns
   artifactName: ${productName}-${version}-${os}-${arch}.${ext}
