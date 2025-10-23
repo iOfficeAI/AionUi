@@ -226,8 +226,11 @@ export async function startWebServer(port: number, allowRemote = false): Promise
 
       // 自动打开浏览器（仅在有桌面环境时）
       // Auto-open browser (only when desktop environment is available)
+      // 当 allowRemote 为 true 时，优先打开局域网 IP
+      // When allowRemote is true, prefer to open LAN IP
       if (process.env.DISPLAY || process.platform !== 'linux') {
-        void shell.openExternal(localUrl);
+        const urlToOpen = allowRemote && serverIP ? displayUrl : localUrl;
+        void shell.openExternal(urlToOpen);
       }
 
       // 初始化 WebSocket 适配器
