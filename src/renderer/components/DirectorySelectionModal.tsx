@@ -67,15 +67,15 @@ const DirectorySelectionModal: React.FC<DirectorySelectionModalProps> = ({ visib
   }, [visible, loadDirectory]);
 
   const handleItemClick = (item: DirectoryItem) => {
-    if (item.isDirectory && !isFileMode) {
+    if (item.isDirectory) {
       loadDirectory(item.path).catch((error) => console.error('Failed to load directory:', error));
     }
   };
 
-  const handleItemDoubleClick = (item: DirectoryItem) => {
-    if (item.isDirectory && isFileMode) {
-      loadDirectory(item.path).catch((error) => console.error('Failed to load directory:', error));
-    }
+  // Double-click behavior removed - single click now handles directory navigation
+  // 移除双击行为 - 单击现在处理目录导航
+  const handleItemDoubleClick = (_item: DirectoryItem) => {
+    // No-op: single click already handles navigation
   };
 
   const handleSelect = (path: string) => {
