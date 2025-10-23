@@ -9,7 +9,7 @@
     "cli": "cross-env FORGE_SKIP_NATIVE_REBUILD=true electron-forge start --",
     "webui": "npm run cli -- --webui",
     "webui:remote": "npm run cli -- --webui --remote",
-    "reset-password": "npm run cli -- reset-password",
+    "resetpass": "npm run cli -- --resetpass",
     "package": "electron-forge package",
     "make": "electron-forge make",
     "dist": "node scripts/build-with-builder.js",
