@@ -10,7 +10,7 @@ import { app } from 'electron';
 // 为 WebUI 和 CLI 模式配置 Chromium 命令行参数
 
 const isWebUI = process.argv.some((arg) => arg === '--webui' || arg === '-webui');
-const isResetPassword = process.argv.includes('reset-password');
+const isResetPassword = process.argv.includes('--resetpass');
 
 // Only configure flags for WebUI and reset-password modes
 // 仅为 WebUI 和重置密码模式配置参数
