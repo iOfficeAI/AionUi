@@ -104,7 +104,6 @@ linux:
     entry:
       Name: AionUi
       Comment: ${description}
-      Exec: AionUi %U
       Icon: aionui
       Categories: Office;Utility;
 
