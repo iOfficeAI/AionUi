@@ -40,10 +40,8 @@ const DirectorySelectionModal: React.FC<DirectorySelectionModalProps> = ({ visib
     async (path = '') => {
       setLoading(true);
       try {
-        const urlParams = new URLSearchParams(window.location.search);
-        const token = (window as any).__SESSION_TOKEN__ || urlParams.get('token');
         const showFiles = isFileMode ? 'true' : 'false';
-        const response = await fetch(`/api/directory/browse?path=${encodeURIComponent(path)}&showFiles=${showFiles}&token=${token}`, {
+        const response = await fetch(`/api/directory/browse?path=${encodeURIComponent(path)}&showFiles=${showFiles}`, {
           method: 'GET',
           credentials: 'include',
         });
@@ -67,15 +65,15 @@ const DirectorySelectionModal: React.FC<DirectorySelectionModalProps> = ({ visib
   }, [visible, loadDirectory]);
 
   const handleItemClick = (item: DirectoryItem) => {
-    if (item.isDirectory && !isFileMode) {
+    if (item.isDirectory) {
       loadDirectory(item.path).catch((error) => console.error('Failed to load directory:', error));
     }
   };
 
-  const handleItemDoubleClick = (item: DirectoryItem) => {
-    if (item.isDirectory && isFileMode) {
-      loadDirectory(item.path).catch((error) => console.error('Failed to load directory:', error));
-    }
+  // Double-click behavior removed - single click now handles directory navigation
+  // 移除双击行为 - 单击现在处理目录导航
+  const handleItemDoubleClick = (_item: DirectoryItem) => {
+    // No-op: single click already handles navigation
   };
 
   const handleSelect = (path: string) => {
