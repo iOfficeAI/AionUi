@@ -49,9 +49,9 @@ jobs:
         include:
           - platform: 'macos'
             os: 'macos-latest'
-            command: 'npm run dist:mac'
+            command: 'npm run build-mac'
             artifact-name: 'macos-build'
-            arch: 'arm64'
+            arch: 'x64,arm64'
           - platform: 'windows-x64'
             os: 'windows-2022'
             command: 'node scripts/build-with-builder.js x64 --win --x64'
