@@ -11,8 +11,15 @@ const path = require('path');
 
 // Parse command line arguments
 const args = process.argv.slice(2);
+const archList = ['x64', 'arm64', 'ia32', 'armv7l'];
 const builderArgs = args
-  .filter(arg => arg !== 'auto' && !['x64', 'arm64', 'ia32', 'armv7l'].includes(arg))
+  .filter(arg => {
+    // Filter out 'auto' and architecture flags (both --x64 and x64 formats)
+    if (arg === 'auto') return false;
+    if (archList.includes(arg)) return false;
+    if (arg.startsWith('--') && archList.includes(arg.slice(2))) return false;
+    return true;
+  })
   .join(' ');
 
 // Get target architecture from electron-builder.yml
@@ -42,8 +49,23 @@ function getTargetArchFromConfig(platform) {
 // Determine target architecture
 const buildMachineArch = process.arch;
 let targetArch;
+let multiArch = false;
 
-if (args[0] === 'auto') {
+// Check if multiple architectures are specified (support both --x64 and x64 formats)
+const archArgs = args
+  .filter(arg => {
+    if (archList.includes(arg)) return true;
+    if (arg.startsWith('--') && archList.includes(arg.slice(2))) return true;
+    return false;
+  })
+  .map(arg => arg.startsWith('--') ? arg.slice(2) : arg);
+
+if (archArgs.length > 1) {
+  // Multiple architectures specified - let electron-builder handle it
+  multiArch = true;
+  targetArch = archArgs[0]; // Use first arch for webpack build
+  console.log(`🔨 Multi-architecture build detected: ${archArgs.join(', ')}`);
+} else if (args[0] === 'auto') {
   // Auto mode: detect from electron-builder.yml
   let detectedPlatform = null;
   if (builderArgs.includes('--linux')) detectedPlatform = 'linux';
@@ -54,7 +76,7 @@ if (args[0] === 'auto') {
   targetArch = configArch || buildMachineArch;
 } else {
   // Explicit architecture or default to build machine
-  targetArch = args.find(arg => ['x64', 'arm64', 'ia32', 'armv7l'].includes(arg)) || buildMachineArch;
+  targetArch = archArgs[0] || buildMachineArch;
 }
 
 console.log(`🔨 Building for architecture: ${targetArch}`);
@@ -126,10 +148,18 @@ try {
   const isRelease = process.env.GITHUB_REF && process.env.GITHUB_REF.startsWith('refs/tags/v');
   const publishArg = isRelease ? '' : '--publish=never';
 
-  // Add explicit arch flag to ensure single architecture build
-  const archFlag = `--${targetArch}`;
+  // Add arch flags based on mode
+  let archFlag = '';
+  if (multiArch) {
+    // Multi-arch mode: pass all arch flags to electron-builder
+    archFlag = archArgs.map(arch => `--${arch}`).join(' ');
+    console.log(`🚀 Packaging for multiple architectures: ${archArgs.join(', ')}...`);
+  } else {
+    // Single arch mode: use the determined target arch
+    archFlag = `--${targetArch}`;
+    console.log(`🚀 Packaging for ${targetArch}...`);
+  }
 
-  console.log(`🚀 Packaging...`);
   execSync(`npx electron-builder ${builderArgs} ${archFlag} ${publishArg}`, { stdio: 'inherit' });
 
   console.log('✅ Build completed!');
