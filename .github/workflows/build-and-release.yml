@@ -83,6 +83,7 @@ jobs:
 
       - name: Rebuild native modules for Electron
         run: npx electron-builder install-app-deps
+        continue-on-error: ${{ startsWith(matrix.platform, 'windows') }}
         env:
           npm_config_runtime: electron
           npm_config_disturl: https://electronjs.org/headers
