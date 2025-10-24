@@ -49,8 +49,17 @@ export function initConversationBridge(): void {
 
       return conversation;
     } catch (e) {
+      const errorMessage = e instanceof Error ? e.message : String(e);
+      const errorStack = e instanceof Error ? e.stack : undefined;
       console.error('[conversationBridge] Failed to create conversation:', e);
-      return null;
+      console.error('[conversationBridge] Error details:', {
+        type: params.type,
+        hasModel: !!params.model,
+        hasWorkspace: !!params.extra?.workspace,
+        error: errorMessage,
+        stack: errorStack,
+      });
+      throw new Error(`Failed to create ${params.type} conversation: ${errorMessage}`);
     }
   });
 
