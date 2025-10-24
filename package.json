@@ -31,7 +31,8 @@
     "test:coverage": "jest --coverage",
     "test:contract": "jest tests/contract",
     "test:integration": "jest tests/integration",
-    "prepare": "husky"
+    "prepare": "husky",
+    "postinstall": "node -e \"process.env.CI !== 'true' && require('child_process').execSync('electron-builder install-app-deps', {stdio: 'inherit'})\""
   },
   "keywords": [],
   "author": {
