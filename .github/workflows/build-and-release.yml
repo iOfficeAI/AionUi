@@ -222,9 +222,16 @@ jobs:
 
       - name: Build with electron-builder (non-Windows)
         if: "!startsWith(matrix.platform, 'windows')"
-        timeout-minutes: 40
-        continue-on-error: ${{ matrix.platform == 'macos' }}
-        run: ${{ matrix.command }}
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 40
+          max_attempts: 2
+          retry_wait_seconds: 300
+          continue_on_error: ${{ matrix.platform == 'macos' }}
+          command: ${{ matrix.command }}
+          on_retry_command: |
+            echo "⚠️ 构建超时或失败，5 分钟后进行第 2 次尝试..."
+            echo "这可能是临时网络问题或 Apple 公证服务延迟"
         env:
           # Target architecture / 目标架构
           npm_config_arch: ${{ matrix.arch }}
@@ -321,12 +328,71 @@ jobs:
 
 
 
+  # 自动重试 workflow（当构建失败时）
+  auto-retry-workflow:
+    name: Auto Retry on Build Failure
+    runs-on: ubuntu-latest
+    needs: build
+    # 关键：只在首次失败时触发，避免无限循环
+    if: |
+      failure() &&
+      github.run_attempt == 1 &&
+      (github.event_name == 'push' || github.event_name == 'schedule')
+
+    steps:
+      - name: Log retry information
+        run: |
+          echo "=========================================="
+          echo "🔄 自动重试触发（首次失败）"
+          echo "=========================================="
+          echo "构建首次失败，准备自动重试..."
+          echo "当前尝试次数: ${{ github.run_attempt }}"
+          echo "等待策略: 1 小时后重试（给 Apple 公证服务处理时间）"
+          echo ""
+          echo "根据 Apple 官方说明，首次公证可能需要数小时甚至数天"
+          echo "参考: https://developer.apple.com/forums/thread/756867"
+          echo "=========================================="
+
+      - name: Wait before retry (1 hour for Apple notarization)
+        run: |
+          echo "⏳ 等待 1 小时后重试，给 Apple 公证服务处理时间..."
+          echo "开始时间: $(date)"
+          sleep 3600
+          echo "等待结束: $(date)"
+          echo "准备触发重试..."
+
+      - name: Trigger workflow rerun
+        run: |
+          echo "🔄 触发 workflow 完整重新运行（第 2 次尝试）..."
+
+          # 使用 re-run API（不是 rerun-failed-jobs，避免循环）
+          response=$(curl -X POST \
+            -H "Accept: application/vnd.github.v3+json" \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -w "\n%{http_code}" \
+            https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/rerun)
+
+          http_code=$(echo "$response" | tail -n1)
+
+          if [ "$http_code" = "201" ]; then
+            echo ""
+            echo "✅ 重试已成功触发"
+            echo "这将是第 2 次尝试"
+            echo "查看详情: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          else
+            echo ""
+            echo "❌ 重试触发失败，HTTP 状态码: $http_code"
+            echo "响应内容:"
+            echo "$response" | head -n-1
+            exit 1
+          fi
+
   # 自动创建tag（main/dev分支推送时）
   create-tag:
     name: Create Tag from Branch
     runs-on: ubuntu-latest
     needs: [ build ]
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
+    if: success() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
     outputs:
       tag_name: ${{ steps.create_tag.outputs.tag_name }}
       is_dev: ${{ steps.create_tag.outputs.is_dev }}
