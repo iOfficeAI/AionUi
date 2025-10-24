@@ -222,7 +222,16 @@ jobs:
 
       - name: Build with electron-builder (non-Windows)
         if: "!startsWith(matrix.platform, 'windows')"
-        run: ${{ matrix.command }}
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 40
+          max_attempts: 2
+          retry_wait_seconds: 300
+          continue_on_error: ${{ matrix.platform == 'macos' }}
+          command: ${{ matrix.command }}
+          on_retry_command: |
+            echo "⚠️ 构建超时或失败，5 分钟后进行第 2 次尝试..."
+            echo "这可能是临时网络问题或 Apple 公证服务延迟"
         env:
           # Target architecture / 目标架构
           npm_config_arch: ${{ matrix.arch }}
@@ -259,8 +268,34 @@ jobs:
             echo "Temporary keychain deleted"
           fi
 
+      # macOS 构建超时或失败通知
+      - name: Notify on macOS build timeout or failure
+        if: matrix.platform == 'macos' && failure()
+        run: |
+          echo "::warning title=macOS Build Timeout or Failure::macOS build did not complete within 40 minutes or failed. This is often due to Apple notarization delays."
+          echo ""
+          echo "⚠️  macOS Build Issue Detected"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+          echo "The macOS build exceeded the 40-minute timeout or encountered an error."
+          echo ""
+          echo "Common causes:"
+          echo "  • Apple notarization service delays (first-time apps may take days)"
+          echo "  • Apple server experiencing high load"
+          echo "  • Network connectivity issues"
+          echo ""
+          echo "Recommended actions:"
+          echo "  1. Check if signed (but not notarized) artifacts were uploaded"
+          echo "  2. Wait a few hours and manually retry the workflow"
+          echo "  3. For urgent releases, consider using the signed-only version"
+          echo ""
+          echo "Note: According to Apple, first-time notarizations can take 'a few days'"
+          echo "Reference: https://developer.apple.com/forums/thread/756867"
+          echo ""
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
       - name: List build artifacts
-        if: success()
+        if: success() || (failure() && matrix.platform == 'macos')
         shell: bash
         run: |
           echo "=========================================="
@@ -277,7 +312,7 @@ jobs:
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
-        if: success()
+        if: success() || (failure() && matrix.platform == 'macos')
         with:
           name: ${{ matrix.artifact-name }}
           path: |
@@ -293,12 +328,71 @@ jobs:
 
 
 
+  # 自动重试 workflow（当构建失败时）
+  auto-retry-workflow:
+    name: Auto Retry on Build Failure
+    runs-on: ubuntu-latest
+    needs: build
+    # 关键：只在首次失败时触发，避免无限循环
+    if: |
+      failure() &&
+      github.run_attempt == 1 &&
+      (github.event_name == 'push' || github.event_name == 'schedule')
+
+    steps:
+      - name: Log retry information
+        run: |
+          echo "=========================================="
+          echo "🔄 自动重试触发（首次失败）"
+          echo "=========================================="
+          echo "构建首次失败，准备自动重试..."
+          echo "当前尝试次数: ${{ github.run_attempt }}"
+          echo "等待策略: 1 小时后重试（给 Apple 公证服务处理时间）"
+          echo ""
+          echo "根据 Apple 官方说明，首次公证可能需要数小时甚至数天"
+          echo "参考: https://developer.apple.com/forums/thread/756867"
+          echo "=========================================="
+
+      - name: Wait before retry (1 hour for Apple notarization)
+        run: |
+          echo "⏳ 等待 1 小时后重试，给 Apple 公证服务处理时间..."
+          echo "开始时间: $(date)"
+          sleep 3600
+          echo "等待结束: $(date)"
+          echo "准备触发重试..."
+
+      - name: Trigger workflow rerun
+        run: |
+          echo "🔄 触发 workflow 完整重新运行（第 2 次尝试）..."
+
+          # 使用 re-run API（不是 rerun-failed-jobs，避免循环）
+          response=$(curl -X POST \
+            -H "Accept: application/vnd.github.v3+json" \
+            -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+            -w "\n%{http_code}" \
+            https://api.github.com/repos/${{ github.repository }}/actions/runs/${{ github.run_id }}/rerun)
+
+          http_code=$(echo "$response" | tail -n1)
+
+          if [ "$http_code" = "201" ]; then
+            echo ""
+            echo "✅ 重试已成功触发"
+            echo "这将是第 2 次尝试"
+            echo "查看详情: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          else
+            echo ""
+            echo "❌ 重试触发失败，HTTP 状态码: $http_code"
+            echo "响应内容:"
+            echo "$response" | head -n-1
+            exit 1
+          fi
+
   # 自动创建tag（main/dev分支推送时）
   create-tag:
     name: Create Tag from Branch
     runs-on: ubuntu-latest
     needs: [ build ]
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
+    if: success() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
     outputs:
       tag_name: ${{ steps.create_tag.outputs.tag_name }}
       is_dev: ${{ steps.create_tag.outputs.is_dev }}
