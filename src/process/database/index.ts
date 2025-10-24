@@ -6,6 +6,7 @@
 
 import type Database from 'better-sqlite3';
 import BetterSqlite3 from 'better-sqlite3';
+import fs from 'fs';
 import path from 'path';
 import { CURRENT_DB_VERSION, getDatabaseVersion, initSchema, setDatabaseVersion } from './schema';
 import { runMigrations as executeMigrations } from './migrations';
@@ -29,8 +30,48 @@ export class AionUIDatabase {
     const dir = path.dirname(finalPath);
     ensureDirectory(dir);
 
-    this.db = new BetterSqlite3(finalPath);
-    this.initialize();
+    try {
+      this.db = new BetterSqlite3(finalPath);
+      this.initialize();
+    } catch (error) {
+      console.error('[Database] Failed to initialize, attempting recovery...', error);
+      // 尝试恢复：关闭并重新创建数据库
+      // Try to recover by closing and recreating database
+      try {
+        if (this.db) {
+          this.db.close();
+        }
+      } catch (e) {
+        // 忽略关闭错误
+        // Ignore close errors
+      }
+
+      // 备份损坏的数据库文件
+      // Backup corrupted database file
+      if (fs.existsSync(finalPath)) {
+        const backupPath = `${finalPath}.backup.${Date.now()}`;
+        try {
+          fs.renameSync(finalPath, backupPath);
+          console.log(`[Database] Backed up corrupted database to: ${backupPath}`);
+        } catch (e) {
+          console.error('[Database] Failed to backup corrupted database:', e);
+          // 备份失败则尝试直接删除
+          // If backup fails, try to delete instead
+          try {
+            fs.unlinkSync(finalPath);
+            console.log(`[Database] Deleted corrupted database file`);
+          } catch (e2) {
+            console.error('[Database] Failed to delete corrupted database:', e2);
+            throw new Error('Database is corrupted and cannot be recovered. Please manually delete: ' + finalPath);
+          }
+        }
+      }
+
+      // 使用新数据库文件重试
+      // Retry with fresh database file
+      this.db = new BetterSqlite3(finalPath);
+      this.initialize();
+    }
   }
 
   private initialize(): void {
