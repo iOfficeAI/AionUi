@@ -222,6 +222,8 @@ jobs:
 
       - name: Build with electron-builder (non-Windows)
         if: "!startsWith(matrix.platform, 'windows')"
+        timeout-minutes: 40
+        continue-on-error: ${{ matrix.platform == 'macos' }}
         run: ${{ matrix.command }}
         env:
           # Target architecture / 目标架构
@@ -259,8 +261,34 @@ jobs:
             echo "Temporary keychain deleted"
           fi
 
+      # macOS 构建超时或失败通知
+      - name: Notify on macOS build timeout or failure
+        if: matrix.platform == 'macos' && failure()
+        run: |
+          echo "::warning title=macOS Build Timeout or Failure::macOS build did not complete within 40 minutes or failed. This is often due to Apple notarization delays."
+          echo ""
+          echo "⚠️  macOS Build Issue Detected"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+          echo "The macOS build exceeded the 40-minute timeout or encountered an error."
+          echo ""
+          echo "Common causes:"
+          echo "  • Apple notarization service delays (first-time apps may take days)"
+          echo "  • Apple server experiencing high load"
+          echo "  • Network connectivity issues"
+          echo ""
+          echo "Recommended actions:"
+          echo "  1. Check if signed (but not notarized) artifacts were uploaded"
+          echo "  2. Wait a few hours and manually retry the workflow"
+          echo "  3. For urgent releases, consider using the signed-only version"
+          echo ""
+          echo "Note: According to Apple, first-time notarizations can take 'a few days'"
+          echo "Reference: https://developer.apple.com/forums/thread/756867"
+          echo ""
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
       - name: List build artifacts
-        if: success()
+        if: success() || (failure() && matrix.platform == 'macos')
         shell: bash
         run: |
           echo "=========================================="
@@ -277,7 +305,7 @@ jobs:
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
-        if: success()
+        if: success() || (failure() && matrix.platform == 'macos')
         with:
           name: ${{ matrix.artifact-name }}
           path: |
