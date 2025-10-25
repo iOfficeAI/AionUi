@@ -13,7 +13,12 @@ export function initSchema(db: Database.Database): void {
   // Enable foreign keys
   db.pragma('foreign_keys = ON');
   // Enable Write-Ahead Logging for better performance
-  db.pragma('journal_mode = WAL');
+  try {
+    db.pragma('journal_mode = WAL');
+  } catch (error) {
+    console.warn('[Database] Failed to enable WAL mode, using default journal mode:', error);
+    // Continue with default journal mode if WAL fails
+  }
 
   // Users table (账户系统)
   db.exec(`

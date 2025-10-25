@@ -195,6 +195,10 @@ const Guid: React.FC = () => {
           },
         });
 
+        if (!conversation || !conversation.id) {
+          throw new Error('Failed to create conversation - conversation object is null or missing id');
+        }
+
         await ipcBridge.geminiConversation.sendMessage
           .invoke({
             input: files.length > 0 ? formatFilesForMessage(files) + ' ' + input : input,
