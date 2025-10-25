@@ -18,7 +18,7 @@ function runPostInstall() {
       // In CI, rebuild native modules specifically for Electron
       console.log(`CI environment detected, rebuilding native modules for Electron ${electronVersion}`);
       
-      const rebuildCmd = `npx electron-rebuild --force --version=${electronVersion} --only "better-sqlite3,bcrypt,node-pty"`;
+      const rebuildCmd = `npx electron-rebuild --force --version=${electronVersion} --module-dir . --only "better-sqlite3,bcrypt,node-pty"`;
       execSync(rebuildCmd, { 
         stdio: 'inherit', 
         env: { 
