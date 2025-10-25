@@ -10,8 +10,8 @@ import type { ChildProcess, SpawnOptions } from 'child_process';
 import { spawn } from 'child_process';
 import { promises as fs } from 'fs';
 
-interface PendingRequest {
-  resolve: (value: any) => void;
+interface PendingRequest<T = unknown> {
+  resolve: (value: T) => void;
   reject: (error: any) => void;
   timeoutId?: NodeJS.Timeout;
   method: string;
@@ -22,12 +22,12 @@ interface PendingRequest {
 
 export class AcpConnection {
   private child: ChildProcess | null = null;
-  private pendingRequests = new Map<number, PendingRequest>();
+  private pendingRequests = new Map<number, PendingRequest<any>>();
   private nextRequestId = 0;
   private sessionId: string | null = null;
   private isInitialized = false;
   private backend: AcpBackend | null = null;
-  private initializeResponse: any = null;
+  private initializeResponse: AcpResponse | null = null;
 
   public onSessionUpdate: (data: AcpSessionUpdate) => void = () => {};
   public onPermissionRequest: (data: AcpPermissionRequest) => Promise<{
@@ -195,7 +195,7 @@ export class AcpConnection {
     ]);
   }
 
-  private sendRequest(method: string, params?: any): Promise<any> {
+  private sendRequest<T = any>(method: string, params?: Record<string, any>): Promise<T> {
     const id = this.nextRequestId++;
     const message: AcpRequest = {
       jsonrpc: JSONRPC_VERSION,
@@ -467,7 +467,7 @@ export class AcpConnection {
     }
   }
 
-  private async initialize(): Promise<any> {
+  private async initialize(): Promise<AcpResponse> {
     const initializeParams = {
       protocolVersion: 1,
       clientCapabilities: {
@@ -484,12 +484,12 @@ export class AcpConnection {
     return response;
   }
 
-  async authenticate(methodId?: string): Promise<any> {
+  async authenticate(methodId?: string): Promise<AcpResponse> {
     const result = await this.sendRequest('authenticate', methodId ? { methodId } : undefined);
     return result;
   }
 
-  async newSession(cwd: string = process.cwd()): Promise<any> {
+  async newSession(cwd: string = process.cwd()): Promise<AcpResponse> {
     const response = await this.sendRequest('session/new', {
       cwd,
       mcpServers: [] as any[],
@@ -499,7 +499,7 @@ export class AcpConnection {
     return response;
   }
 
-  async sendPrompt(prompt: string): Promise<any> {
+  async sendPrompt(prompt: string): Promise<AcpResponse> {
     if (!this.sessionId) {
       throw new Error('No active ACP session');
     }
@@ -540,7 +540,7 @@ export class AcpConnection {
     return this.backend;
   }
 
-  getInitializeResponse(): any {
+  getInitializeResponse(): AcpResponse | null {
     return this.initializeResponse;
   }
 }
