@@ -96,7 +96,11 @@ try {
   console.log(`📦 Building ${targetArch}...`);
   execSync('npm run package', {
     stdio: 'inherit',
-    env: { ...process.env, ELECTRON_BUILDER_ARCH: targetArch }
+    env: { 
+      ...process.env, 
+      ELECTRON_BUILDER_ARCH: targetArch,
+      FORGE_SKIP_NATIVE_REBUILD: 'false'  // Ensure native modules are rebuilt during packaging
+    }
   });
 
   // 3. Verify Forge output
