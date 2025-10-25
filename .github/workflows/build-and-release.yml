@@ -82,11 +82,17 @@ jobs:
         run: npm ci
 
       - name: Rebuild native modules for Electron
-        run: npx electron-builder install-app-deps
+        run: |
+          # First try electron-builder install-app-deps
+          npx electron-builder install-app-deps || echo "electron-builder install-app-deps failed, proceeding to manual rebuild"
+          
+          # Manual rebuild for better control
+          npm rebuild better-sqlite3 bcrypt node-pty
         continue-on-error: ${{ startsWith(matrix.platform, 'windows') }}
         env:
           npm_config_runtime: electron
           npm_config_disturl: https://electronjs.org/headers
+          npm_config_build_from_source: true
 
       - name: Get Electron version
         id: electron-version
@@ -182,7 +188,16 @@ jobs:
           $electronVersion = "${{ steps.electron-version.outputs.version }}"
           $arch = "${{ matrix.arch }}"
           Write-Host "Rebuilding native modules for Electron $electronVersion ($arch)"
-          npx electron-rebuild --only better-sqlite3,bcrypt --force --arch $arch --version $electronVersion
+          
+          # First try electron-builder approach
+          try {
+            npx electron-builder install-app-deps
+          } catch {
+            Write-Host "electron-builder install-app-deps failed, proceeding with manual rebuild"
+          }
+          
+          # Then use electron-rebuild for more control
+          npx electron-rebuild --prebuild --force --arch $arch --version $electronVersion --module-dir . --only "better-sqlite3,bcrypt,node-pty"
         env:
           npm_config_runtime: electron
           npm_config_target: ${{ steps.electron-version.outputs.version }}
@@ -190,6 +205,9 @@ jobs:
           npm_config_target_arch: ${{ matrix.arch }}
           npm_config_disturl: https://electronjs.org/headers
           npm_config_build_from_source: true
+          npm_config_cache: ${{ runner.temp }}/.npm
+          ELECTRON_CACHE: ${{ runner.temp }}/.cache/electron
+          ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/.cache/electron-builder
           MSVS_VERSION: 2022
           GYP_MSVS_VERSION: 2022
 
@@ -226,6 +244,8 @@ jobs:
           # CI flag & GitHub token / CI 标识与 GitHub Token
           CI: true
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          # Ensure native modules are not skipped during packaging
+          FORGE_SKIP_NATIVE_REBUILD: false
 
       - name: Build with electron-builder (non-Windows)
         if: "!startsWith(matrix.platform, 'windows')"
