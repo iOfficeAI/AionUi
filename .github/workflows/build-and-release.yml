@@ -112,13 +112,14 @@ jobs:
           echo "Electron version: $ELECTRON_VERSION"
 
       - name: Rebuild native modules for Electron
+        if: "!startsWith(matrix.platform, 'windows')"
+        shell: bash
         run: |
           echo "Installing native dependencies for Electron ${{ steps.electron-version.outputs.version }} (${{ matrix.platform }} - ${{ matrix.arch }})"
           if ! npx electron-builder install-app-deps; then
             echo "electron-builder install-app-deps failed, falling back to npm rebuild"
             npm rebuild $REBUILD_MODULES
           fi
-        continue-on-error: ${{ startsWith(matrix.platform, 'windows') }}
         env:
           npm_config_runtime: electron
           npm_config_disturl: https://electronjs.org/headers
