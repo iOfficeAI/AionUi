@@ -112,13 +112,14 @@ jobs:
           echo "Electron version: $ELECTRON_VERSION"
 
       - name: Rebuild native modules for Electron
+        if: "!startsWith(matrix.platform, 'windows')"
+        shell: bash
         run: |
           echo "Installing native dependencies for Electron ${{ steps.electron-version.outputs.version }} (${{ matrix.platform }} - ${{ matrix.arch }})"
           if ! npx electron-builder install-app-deps; then
             echo "electron-builder install-app-deps failed, falling back to npm rebuild"
             npm rebuild $REBUILD_MODULES
           fi
-        continue-on-error: ${{ startsWith(matrix.platform, 'windows') }}
         env:
           npm_config_runtime: electron
           npm_config_disturl: https://electronjs.org/headers
@@ -540,6 +541,18 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Clean existing draft release (if any)
+        run: |
+          TAG_NAME="${{ needs.create-tag.outputs.tag_name }}"
+          if gh release view "$TAG_NAME" >/dev/null 2>&1; then
+            echo "Found existing release for $TAG_NAME, deleting to avoid asset conflicts"
+            gh release delete "$TAG_NAME" --yes
+          else
+            echo "No existing release for $TAG_NAME"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
       - name: Get version for release
         id: version
