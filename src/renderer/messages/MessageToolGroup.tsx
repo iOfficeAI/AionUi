@@ -125,7 +125,7 @@ const ConfirmationDetails: React.FC<{
         );
       case 'exec':
         return (
-          <div className='min-w-400px'>
+          <div className='min-w-0 max-w-full'>
             <MarkdownView codeStyle={{ marginLeft: 16, marginTop: 4, marginBottom: 4 }}>{`\`\`\`bash\n${confirmationDetails.command}\n\`\`\``}</MarkdownView>
           </div>
         );
@@ -212,7 +212,7 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
 
         if (name === 'WriteFile' && typeof resultDisplay !== 'string') {
           return (
-            <div className='min-w-400px'>
+            <div className='min-w-0 max-w-full'>
               <Diff2Html className='ml-16px' diff={(resultDisplay as any)?.fileDiff || ''}></Diff2Html>
             </div>
           );
