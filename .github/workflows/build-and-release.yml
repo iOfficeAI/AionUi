@@ -42,16 +42,16 @@ jobs:
     runs-on: ${{ matrix.os }}
     needs: code-quality
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
+    env:
+      ENABLE_MAC_SIGNING: ${{ github.ref == 'refs/heads/main' && 'true' || 'false' }}
 
     strategy:
       fail-fast: false
       matrix:
         include:
           - platform: 'macos-x64'
-            # Use Intel Mac runner for x64 build
-            # macos-12 is the last macOS runner with Intel architecture
-            # For x64 builds, we need to run on Intel hardware for compatibility
-            os: 'macos-12'
+            # Build Intel target on Apple Silicon runner via Rosetta because macos-12 runners are capacity constrained
+            os: 'macos-14'
             command: 'node scripts/build-with-builder.js x64 --mac --x64'
             artifact-name: 'macos-build-x64'
             arch: 'x64'
@@ -81,10 +81,24 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Node.js
+        if: matrix.platform != 'macos-x64'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
+
+      - name: Setup Node.js (Rosetta x64)
+        if: matrix.platform == 'macos-x64'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          architecture: 'x64'
+
+      - name: Ensure Rosetta for Intel build
+        if: matrix.platform == 'macos-x64'
+        run: |
+          sudo softwareupdate --install-rosetta --agree-to-license || echo "Rosetta is already installed"
 
       - name: Install dependencies
         run: npm ci
@@ -158,7 +172,7 @@ jobs:
 
       # macOS 代码签名证书安装
       - name: Setup macOS code signing (macOS only)
-        if:  startsWith(matrix.platform, 'macos-')  # Temporarily disable signing to speed up builds / 暂时关闭签名以加快构建
+        if: startsWith(matrix.platform, 'macos-') && env.ENABLE_MAC_SIGNING == 'true'
         env:
           BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
           P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
@@ -234,11 +248,11 @@ jobs:
           ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/.cache/electron-builder
           # Signing & IDs / 签名与应用 ID 配置
           APP_ID: ${{ secrets.APP_ID }}
-          appleId: ${{ secrets.APPLE_ID }}
-          appleIdPassword: ${{ secrets.APPLE_ID_PASSWORD }}
-          teamId: ${{ secrets.TEAM_ID }}
-          identity: ${{ secrets.IDENTITY }}
-          CSC_NAME: ${{ secrets.IDENTITY }}
+          appleId: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.APPLE_ID || '' }}
+          appleIdPassword: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.APPLE_ID_PASSWORD || '' }}
+          teamId: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.TEAM_ID || '' }}
+          identity: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.IDENTITY || '' }}
+          CSC_NAME: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.IDENTITY || '' }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
           # Windows build flags / Windows 构建参数
           MSVS_VERSION: 2022
@@ -268,13 +282,13 @@ jobs:
           npm_config_arch: ${{ matrix.arch }}
           # App ID configuration / 应用 ID 配置
           APP_ID: ${{ secrets.APP_ID }}
-          # macOS signing configuration / macOS 签名配置
-          appleId: ${{ secrets.APPLE_ID }}
-          appleIdPassword: ${{ secrets.APPLE_ID_PASSWORD }}
-          teamId: ${{ secrets.TEAM_ID }}
-          identity: ${{ secrets.IDENTITY }}
+          # macOS signing configuration / macOS 签名配置（dev 分支禁用）
+          appleId: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.APPLE_ID || '' }}
+          appleIdPassword: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.APPLE_ID_PASSWORD || '' }}
+          teamId: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.TEAM_ID || '' }}
+          identity: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.IDENTITY || '' }}
           # electron-builder signing configuration / electron-builder 签名配置
-          CSC_NAME: ${{ secrets.IDENTITY }}
+          CSC_NAME: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.IDENTITY || '' }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
           # Native dependency compilation / 原生依赖编译缓存
           # Prefer prebuilt binaries for better compatibility (especially on Linux)
@@ -292,7 +306,7 @@ jobs:
 
       # macOS 钥匙串清理
       - name: Clean up keychain (macOS only)
-        if: (matrix.platform == 'macos-x64' || matrix.platform == 'macos-arm64') && always()
+        if: (matrix.platform == 'macos-x64' || matrix.platform == 'macos-arm64') && env.ENABLE_MAC_SIGNING == 'true' && always()
         run: |
           if security list-keychains | grep -q build.keychain; then
             security delete-keychain build.keychain
