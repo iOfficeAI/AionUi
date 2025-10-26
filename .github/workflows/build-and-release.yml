@@ -542,6 +542,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Clean existing draft release (if any)
+        run: |
+          TAG_NAME="${{ needs.create-tag.outputs.tag_name }}"
+          if gh release view "$TAG_NAME" >/dev/null 2>&1; then
+            echo "Found existing release for $TAG_NAME, deleting to avoid asset conflicts"
+            gh release delete "$TAG_NAME" --yes
+          else
+            echo "No existing release for $TAG_NAME"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
       - name: Get version for release
         id: version
         run: |
