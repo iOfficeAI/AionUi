@@ -22,6 +22,10 @@
 
 ## 🎯 **AionUi 用例展示**
 
+<p align="center">
+  <img src="./resources/BANNER.png" alt="AionUi Banner" width="100%">
+</p>
+
 ### 🤖 **多代理模式**
 
 _无缝集成多个终端 AI 代理 - Gemini CLI、Claude Code、Qwen Code、Codex 等_
@@ -61,6 +65,15 @@ _开多个对话、任务不混乱、记忆独立、效率翻倍_
 <p align="center">
   <img src="./resources/multichat-side-by-side.gif" alt="对话管理演示" width="800">
 </p>
+
+### 🌐 **随时随地访问 AionUi - WebUI 模式**
+
+_远程控制您的 AI 助手 - 从网络中的任何设备访问 AionUi！安全控制本地 Agent，数据不离开您的设备_
+
+<p align="center">
+  <img src="./resources/webui-remote.png" alt="WebUI 远程访问演示" width="800">
+</p>
+
 
 ## 📋 目录
 
@@ -142,6 +155,16 @@ AionUi 为需要更好工作流效率的用户提供了现代界面，同时**�
 - **图像识别** - 高级图像分析和理解
 - **高质量输出** - 专业级图像生成，细节控制精确
 
+### 🌐 **WebUI 远程访问**
+
+- **跨设备访问** - 通过网络中的任何设备通过浏览器访问 AionUi
+- **远程控制本地 Agent** - 安全控制您本地的 AI Agent，无需数据传输
+- **安全认证** - 用户登录保护，确保您的 AI 对话和数据安全
+- **服务器部署** - 完美适合在 Linux 服务器上 24/7 运行，无需桌面环境
+- **智能网络检测** - 自动检测并显示最佳网络连接地址
+- **本地数据安全** - 所有对话、设置和配置使用 SQLite 数据库本地存储
+
+
 ### 🔧 **设置很简单**
 
 - **多平台支持** - 支持 Gemini、OpenAI、ModelScope、OpenRouter 等
@@ -178,6 +201,7 @@ AionUi 为需要更好工作流效率的用户提供了现代界面，同时**�
 - [🤖 多代理模式设置](https://github.com/iOfficeAI/AionUi/wiki/ACP-Setup-Chinese) - 集成终端 AI 代理
 - [🔌 MCP 工具配置](https://github.com/iOfficeAI/AionUi/wiki/MCP-Configuration-Guide-Chinese) - 模型上下文协议服务器设置
 - [🎨 图像生成配置](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide-Chinese) - AI 图像生成设置教程
+- [🌐 WebUI 远程访问设置](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Setup-Chinese) - 远程访问配置指南
 
 ### 🎯 使用案例
 
