@@ -111,7 +111,15 @@ const Layout: React.FC<{
             </div>
           )}
         </ArcoLayout.Header>
-        <ArcoLayout.Content className='h-[calc(100%-72px-16px)] p-8px layout-sider-content'>{React.isValidElement(sider) ? React.cloneElement(sider, { onSessionClick: () => setCollapsed(true) } as any) : sider}</ArcoLayout.Content>
+        <ArcoLayout.Content className='h-[calc(100%-72px-16px)] p-8px layout-sider-content'>
+          {React.isValidElement(sider)
+            ? React.cloneElement(sider, {
+                onSessionClick: () => {
+                  if (isMobile) setCollapsed(true);
+                },
+              } as any)
+            : sider}
+        </ArcoLayout.Content>
       </ArcoLayout.Sider>
 
       {/* 移动端toggle按钮 - 与header对齐，调整到与右侧按钮相同大小 */}
