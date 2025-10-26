@@ -89,13 +89,6 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Rebuild native modules for Electron
-        run: npx electron-builder install-app-deps
-        continue-on-error: ${{ startsWith(matrix.platform, 'windows') }}
-        env:
-          npm_config_runtime: electron
-          npm_config_disturl: https://electronjs.org/headers
-
       - name: Get Electron version
         id: electron-version
         shell: bash
@@ -103,6 +96,18 @@ jobs:
           ELECTRON_VERSION=$(node -p "require('./package.json').devDependencies.electron.replace(/[\^~]/g, '')")
           echo "version=$ELECTRON_VERSION" >> $GITHUB_OUTPUT
           echo "Electron version: $ELECTRON_VERSION"
+
+      - name: Rebuild native modules for Electron
+        run: npx electron-builder install-app-deps
+        continue-on-error: ${{ startsWith(matrix.platform, 'windows') }}
+        env:
+          npm_config_runtime: electron
+          npm_config_disturl: https://electronjs.org/headers
+          npm_config_target: ${{ steps.electron-version.outputs.version }}
+          npm_config_arch: ${{ matrix.arch == 'x64,arm64' && 'x64' || matrix.arch }}
+          npm_config_target_arch: ${{ matrix.arch == 'x64,arm64' && 'x64' || matrix.arch }}
+          npm_config_platform: ${{ startsWith(matrix.platform, 'macos-') && 'darwin' || startsWith(matrix.platform, 'windows') && 'win32' || 'linux' }}
+          npm_config_build_from_source: ${{ startsWith(matrix.platform, 'windows') && 'false' || 'true' }}
 
       - name: Print build configuration
         shell: bash
