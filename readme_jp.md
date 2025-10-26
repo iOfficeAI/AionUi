@@ -42,6 +42,8 @@ _Gemini 2.5 Flash Image Preview によるインテリジェントな画像生成
   <img src="./resources/Image_Generation.gif" alt="AI 画像生成デモ" width="800">
 </p>
 
+> 💡 **無料画像生成の設定でお困りですか？** [画像生成モデルの設定チュートリアルに従う](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide-Japanese) - OpenRouter セットアップと無料 Gemini 2.5 Flash Image Preview 設定の完全なステップバイステップガイド。
+
 ### 📁 **スマートファイル管理**
 
 _ファイルの一括リネーム、自動整理、スマート分類、ファイルの統合_
@@ -201,8 +203,8 @@ AionUi をお試しですか？お使いの環境に合った最新版を、リ�
 - [⚙️ LLM 設定ガイド](https://github.com/iOfficeAI/AionUi/wiki/LLM-Configuration) - マルチプラットフォーム AI モデル設定
 - [🤖 マルチエージェントモード設定](https://github.com/iOfficeAI/AionUi/wiki/ACP-Setup) - ターミナル AI エージェント統合
 - [🔌 MCP ツール設定](https://github.com/iOfficeAI/AionUi/wiki/MCP-Configuration-Guide) - モデルコンテキストプロトコルサーバー設定
-- [🎨 画像生成設定](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide) - AI 画像生成設定チュートリアル
-- [🌐 WebUI リモートアクセス設定](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Setup-Japanese) - リモートアクセス設定ガイド
+- [🎨 画像生成設定](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide-Japanese) - AI 画像生成設定チュートリアル
+- [🌐 WebUI リモートアクセス設定](https://github.com/iOfficeAI/AionUi/releases/tag/v1.4.2) - リモートアクセス設定ガイド
 
 ### 🎯 ユースケース
 
