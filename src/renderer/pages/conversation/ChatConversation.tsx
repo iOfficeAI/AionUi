@@ -17,8 +17,8 @@ import { emitter } from '../../utils/emitter';
 import AcpChat from './acp/AcpChat';
 import ChatLayout from './ChatLayout';
 import ChatSider from './ChatSider';
-import GeminiChat from './gemini/GeminiChat';
 import CodexChat from './codex/CodexChat';
+import GeminiChat from './gemini/GeminiChat';
 
 const AssociatedConversation: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
   const { data } = useSWR(['getAssociateConversation', conversation_id], () => ipcBridge.conversation.getAssociateConversation.invoke({ conversation_id }));

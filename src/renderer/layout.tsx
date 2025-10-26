@@ -8,7 +8,7 @@ import { ipcBridge } from '@/common';
 import { Layout as ArcoLayout } from '@arco-design/web-react';
 import { MenuFold, MenuUnfold } from '@icon-park/react';
 import classNames from 'classnames';
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { useDirectorySelection } from './hooks/useDirectorySelection';
 import { useMultiAgentDetection } from './hooks/useMultiAgentDetection';
@@ -45,15 +45,35 @@ const useDebug = () => {
 
 const Layout: React.FC<{
   sider: React.ReactNode;
-}> = ({ sider }) => {
+  onSessionClick?: () => void;
+}> = ({ sider, onSessionClick }) => {
   const [collapsed, setCollapsed] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const { onClick } = useDebug();
   const { contextHolder: multiAgentContextHolder } = useMultiAgentDetection();
   const { contextHolder: directorySelectionContextHolder } = useDirectorySelection();
+
+  // 检测移动端并响应窗口大小变化
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (mobile) {
+        setCollapsed(true);
+      }
+    };
+
+    // 初始检测
+    checkMobile();
+
+    // 监听窗口大小变化
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
   return (
     <ArcoLayout className={'size-full layout'}>
       <ArcoLayout.Sider
-        collapsedWidth={64}
+        collapsedWidth={isMobile ? 0 : 64}
         collapsed={collapsed}
         width={250}
         className={classNames('!bg-#f2f3f5 layout-sider', {
@@ -85,14 +105,22 @@ const Layout: React.FC<{
           </div>
           <div className=' flex-1 text-20px collapsed-hidden font-bold'>AionUi</div>
           <MenuFold className='cursor-pointer !collapsed-hidden flex' theme='outline' size='24' fill='#86909C' strokeWidth={3} onClick={() => setCollapsed(true)} />
-          {collapsed && (
+          {collapsed && !isMobile && (
             <div onClick={() => setCollapsed(false)} className='group-hover:opacity-100 absolute bg-#f2f3f5 left-8px top-7px transition-all duration-150 p-10px opacity-0'>
               <MenuUnfold className='cursor-pointer flex' size='24' fill='#86909C' strokeWidth={3} />
             </div>
           )}
         </ArcoLayout.Header>
-        <ArcoLayout.Content className='h-[calc(100%-72px-16px)] p-8px layout-sider-content'>{sider}</ArcoLayout.Content>
+        <ArcoLayout.Content className='h-[calc(100%-72px-16px)] p-8px layout-sider-content'>{React.isValidElement(sider) ? React.cloneElement(sider, { onSessionClick: () => setCollapsed(true) } as any) : sider}</ArcoLayout.Content>
       </ArcoLayout.Sider>
+
+      {/* 移动端toggle按钮 - 与header对齐，调整到与右侧按钮相同大小 */}
+      {isMobile && (
+        <button onClick={() => setCollapsed(!collapsed)} className='mobile-toggle-btn fixed top-0 left-0 z-50 bg-transparent w-16 h-16 flex items-center justify-center text-gray-600 hover:text-gray-800 transition-all duration-200'>
+          {collapsed ? <MenuUnfold theme='outline' size={24} fill='#86909C' strokeWidth={3} /> : <MenuFold theme='outline' size={24} fill='#86909C' strokeWidth={3} />}
+        </button>
+      )}
+
       <ArcoLayout.Content className={'bg-#F9FAFB layout-content'}>
         <Outlet></Outlet>
         {multiAgentContextHolder}
