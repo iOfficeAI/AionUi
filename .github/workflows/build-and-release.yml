@@ -545,9 +545,9 @@ jobs:
       - name: Clean existing draft release (if any)
         run: |
           TAG_NAME="${{ needs.create-tag.outputs.tag_name }}"
-          if gh release view "$TAG_NAME" >/dev/null 2>&1; then
+          if gh release view --json assets "$TAG_NAME" >/dev/null 2>&1; then
             echo "Found existing release for $TAG_NAME, deleting to avoid asset conflicts"
-            gh release delete "$TAG_NAME" --yes
+            gh release delete "$TAG_NAME" --yes || echo "Failed to delete existing release, continuing..."
           else
             echo "No existing release for $TAG_NAME"
           fi
@@ -572,20 +572,34 @@ jobs:
         with:
           path: build-artifacts
 
+      - name: List downloaded artifacts
+        run: |
+          echo "Contents of build-artifacts directory:"
+          find build-artifacts/ -type f -name "AionUi-*" | sort
+
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: build-artifacts
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ steps.version.outputs.tag_name }}
           name: ${{ needs.create-tag.outputs.is_dev == 'true' && format('Development Build {0}', steps.version.outputs.tag_name) || steps.version.outputs.tag_name }}
           files: |
-            build-artifacts/**/*.exe
-            build-artifacts/**/*.msi
-            build-artifacts/**/*.dmg
-            build-artifacts/**/*.deb
-            build-artifacts/**/*.AppImage
-            build-artifacts/**/*.zip
+            build-artifacts/**/AionUi-*.exe
+            build-artifacts/**/AionUi-*.msi
+            build-artifacts/**/AionUi-*.dmg
+            build-artifacts/**/AionUi-*.deb
+            build-artifacts/**/AionUi-*.AppImage
+            build-artifacts/**/AionUi-*-mac-*.zip
+            build-artifacts/**/AionUi-*-win-*.zip
+            build-artifacts/**/AionUi-*-linux-*.zip
           generate_release_notes: true
           draft: true
           prerelease: ${{ needs.create-tag.outputs.is_dev == 'true' || contains(steps.version.outputs.tag_name, 'beta') || contains(steps.version.outputs.tag_name, 'alpha') || contains(steps.version.outputs.tag_name, 'rc') }}
+          # 上传新资产时覆盖现有文件
+          make_latest: false
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
