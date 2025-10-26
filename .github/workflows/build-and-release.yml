@@ -47,11 +47,19 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: 'macos'
-            os: 'macos-latest'
-            command: 'npm run build-mac'
-            artifact-name: 'macos-build'
-            arch: 'x64,arm64'
+          - platform: 'macos-x64'
+            # Use Intel Mac runner for x64 build
+            # macos-12 is the last macOS runner with Intel architecture
+            # For x64 builds, we need to run on Intel hardware for compatibility
+            os: 'macos-12'
+            command: 'node scripts/build-with-builder.js x64 --mac --x64'
+            artifact-name: 'macos-build-x64'
+            arch: 'x64'
+          - platform: 'macos-arm64'
+            os: 'macos-latest'  # Use Apple Silicon Mac runner for arm64 build
+            command: 'node scripts/build-with-builder.js arm64 --mac --arm64'
+            artifact-name: 'macos-build-arm64'
+            arch: 'arm64'
           - platform: 'windows-x64'
             os: 'windows-2022'
             command: 'node scripts/build-with-builder.js x64 --win --x64'
@@ -145,7 +153,7 @@ jobs:
 
       # macOS 代码签名证书安装
       - name: Setup macOS code signing (macOS only)
-        if:  matrix.platform == 'macos'  # Temporarily disable signing to speed up builds / 暂时关闭签名以加快构建
+        if:  startsWith(matrix.platform, 'macos-')  # Temporarily disable signing to speed up builds / 暂时关闭签名以加快构建
         env:
           BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
           P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
@@ -254,7 +262,7 @@ jobs:
           timeout_minutes: 40
           max_attempts: 2
           retry_wait_seconds: 300
-          continue_on_error: ${{ matrix.platform == 'macos' }}
+          continue_on_error: ${{ (matrix.platform == 'macos-x64' || matrix.platform == 'macos-arm64') }}
           command: ${{ matrix.command }}
           on_retry_command: |
             echo "⚠️ 构建超时或失败，5 分钟后进行第 2 次尝试..."
@@ -288,7 +296,7 @@ jobs:
 
       # macOS 钥匙串清理
       - name: Clean up keychain (macOS only)
-        if: matrix.platform == 'macos' && always()
+        if: (matrix.platform == 'macos-x64' || matrix.platform == 'macos-arm64') && always()
         run: |
           if security list-keychains | grep -q build.keychain; then
             security delete-keychain build.keychain
@@ -297,7 +305,7 @@ jobs:
 
       # macOS 构建超时或失败通知
       - name: Notify on macOS build timeout or failure
-        if: matrix.platform == 'macos' && failure()
+        if: (matrix.platform == 'macos-x64' || matrix.platform == 'macos-arm64') && failure()
         run: |
           echo "::warning title=macOS Build Timeout or Failure::macOS build did not complete within 40 minutes or failed. This is often due to Apple notarization delays."
           echo ""
@@ -322,7 +330,7 @@ jobs:
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
       - name: List build artifacts
-        if: success() || (failure() && matrix.platform == 'macos')
+        if: success() || (failure() && (matrix.platform == 'macos-x64' || matrix.platform == 'macos-arm64'))
         shell: bash
         run: |
           echo "=========================================="
@@ -339,7 +347,7 @@ jobs:
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
-        if: success() || (failure() && matrix.platform == 'macos')
+        if: success() || (failure() && (matrix.platform == 'macos-x64' || matrix.platform == 'macos-arm64'))
         with:
           name: ${{ matrix.artifact-name }}
           path: |
@@ -350,6 +358,7 @@ jobs:
             out/*.AppImage
             out/AionUi-*-win32-*.zip
             out/AionUi-*-mac-*.zip
+            out/AionUi-*-mac-*.dmg
           if-no-files-found: warn
           retention-days: 7
 
