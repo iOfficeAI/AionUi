@@ -98,7 +98,12 @@ jobs:
           echo "Electron version: $ELECTRON_VERSION"
 
       - name: Rebuild native modules for Electron
-        run: npx electron-builder install-app-deps
+        run: |
+          echo "Installing native dependencies for Electron ${{ steps.electron-version.outputs.version }} (${{ matrix.platform }} - ${{ matrix.arch }})"
+          if ! npx electron-builder install-app-deps; then
+            echo "electron-builder install-app-deps failed, falling back to npm rebuild"
+            npm rebuild $REBUILD_MODULES
+          fi
         continue-on-error: ${{ startsWith(matrix.platform, 'windows') }}
         env:
           npm_config_runtime: electron
@@ -108,6 +113,7 @@ jobs:
           npm_config_target_arch: ${{ matrix.arch == 'x64,arm64' && 'x64' || matrix.arch }}
           npm_config_platform: ${{ startsWith(matrix.platform, 'macos-') && 'darwin' || startsWith(matrix.platform, 'windows') && 'win32' || 'linux' }}
           npm_config_build_from_source: ${{ startsWith(matrix.platform, 'windows') && 'false' || 'true' }}
+          REBUILD_MODULES: ${{ startsWith(matrix.platform, 'windows') && 'better-sqlite3 bcrypt' || 'better-sqlite3 bcrypt node-pty' }}
 
       - name: Print build configuration
         shell: bash
@@ -203,6 +209,9 @@ jobs:
           npm_config_target_arch: ${{ matrix.arch }}
           npm_config_disturl: https://electronjs.org/headers
           npm_config_build_from_source: true
+          npm_config_cache: ${{ runner.temp }}/.npm
+          ELECTRON_CACHE: ${{ runner.temp }}/.cache/electron
+          ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/.cache/electron-builder
           MSVS_VERSION: 2022
           GYP_MSVS_VERSION: 2022
 
@@ -239,6 +248,8 @@ jobs:
           # CI flag & GitHub token / CI 标识与 GitHub Token
           CI: true
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          # Ensure native modules are not skipped during packaging
+          FORGE_SKIP_NATIVE_REBUILD: false
 
       - name: Build with electron-builder (non-Windows)
         if: "!startsWith(matrix.platform, 'windows')"
