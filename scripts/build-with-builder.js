@@ -52,7 +52,7 @@ let targetArch;
 let multiArch = false;
 
 // Check if multiple architectures are specified (support both --x64 and x64 formats)
-const archArgs = args
+const rawArchArgs = args
   .filter(arg => {
     if (archList.includes(arg)) return true;
     if (arg.startsWith('--') && archList.includes(arg.slice(2))) return true;
@@ -60,8 +60,11 @@ const archArgs = args
   })
   .map(arg => arg.startsWith('--') ? arg.slice(2) : arg);
 
+// Remove duplicates to avoid treating "x64 --x64" as multiple architectures
+const archArgs = [...new Set(rawArchArgs)];
+
 if (archArgs.length > 1) {
-  // Multiple architectures specified - let electron-builder handle it
+  // Multiple unique architectures specified - let electron-builder handle it
   multiArch = true;
   targetArch = archArgs[0]; // Use first arch for webpack build
   console.log(`🔨 Multi-architecture build detected: ${archArgs.join(', ')}`);
