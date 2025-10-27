@@ -23,7 +23,7 @@ const MessageItem: React.FC<{ message: TMessage }> = HOC((props) => {
   const { message } = props as { message: TMessage };
   return (
     <div
-      className={classNames('flex items-start message-item [&>div]:max-w-95% min-w-300px px-8px m-t-10px max-w-780px mx-auto', message.type, {
+      className={classNames('flex items-start message-item [&>div]:max-w-70% min-w-300px px-8px m-t-10px max-w-780px mx-auto', message.type, {
         'justify-center': message.position === 'center',
         'justify-end': message.position === 'right',
         'justify-start': message.position === 'left',

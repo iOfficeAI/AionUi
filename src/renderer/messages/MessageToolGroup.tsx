@@ -120,7 +120,7 @@ const ConfirmationDetails: React.FC<{
       case 'edit':
         return (
           <div>
-            <Diff2Html className='ml-16px' title={isConfirm ? confirmationDetails.title : content.description} diff={confirmationDetails?.fileDiff || ''}></Diff2Html>
+            <Diff2Html title={isConfirm ? confirmationDetails.title : content.description} diff={confirmationDetails?.fileDiff || ''}></Diff2Html>
           </div>
         );
       case 'exec':
@@ -213,7 +213,7 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
         if (name === 'WriteFile' && typeof resultDisplay !== 'string') {
           return (
             <div className='min-w-400px'>
-              <Diff2Html className='ml-16px' diff={(resultDisplay as any)?.fileDiff || ''}></Diff2Html>
+              <Diff2Html diff={(resultDisplay as any)?.fileDiff || ''}></Diff2Html>
             </div>
           );
         }
