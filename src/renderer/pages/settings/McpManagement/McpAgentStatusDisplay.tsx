@@ -14,21 +14,16 @@ interface McpAgentStatusDisplayProps {
 }
 
 // Agent logo 映射
-const getAgentLogo = (agent: string) => {
-  switch (agent.toLowerCase()) {
-    case 'claude':
-      return ClaudeLogo;
-    case 'gemini':
-      return GeminiLogo;
-    case 'qwen':
-      return QwenLogo;
-    case 'iflow':
-      return IflowLogo;
-    case 'codex':
-      return CodexLogo;
-    default:
-      return null;
-  }
+const AGENT_LOGO_MAP: Record<string, string> = {
+  claude: ClaudeLogo,
+  gemini: GeminiLogo,
+  qwen: QwenLogo,
+  iflow: IflowLogo,
+  codex: CodexLogo,
+};
+
+const getAgentLogo = (agent: string): string | null => {
+  return AGENT_LOGO_MAP[agent.toLowerCase()] || null;
 };
 
 const McpAgentStatusDisplay: React.FC<McpAgentStatusDisplayProps> = ({ serverName, agentInstallStatus, isLoadingAgentStatus }) => {
@@ -41,11 +36,11 @@ const McpAgentStatusDisplay: React.FC<McpAgentStatusDisplayProps> = ({ serverNam
       {isLoadingAgentStatus ? (
         <LoadingOne fill={'#165dff'} className={'h-[16px] w-[16px]'} />
       ) : (
-        agentInstallStatus[serverName]?.map((agent, index) => {
+        agentInstallStatus[serverName]?.map((agent) => {
           const LogoComponent = getAgentLogo(agent);
           return LogoComponent ? (
-            <div key={agent} className='w-6 h-6 rounded-full bg-white border-2 border-white shadow-sm' style={{ zIndex: agentInstallStatus[serverName].length - index }} title={agent}>
-              <img src={LogoComponent} alt={agent} className='w-full h-full rounded-full w-[14px] h-[14px]' />
+            <div key={agent} className='w-6 h-6 bg-white border-white shadow-sm flex items-center' title={agent}>
+              <img src={LogoComponent} alt={agent} className='m-[4px] w-[20px] h-[20px]' />
             </div>
           ) : (
             <Tag key={agent} size='small' color='green'>
