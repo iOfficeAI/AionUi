@@ -100,9 +100,6 @@ jobs:
         run: |
           sudo softwareupdate --install-rosetta --agree-to-license || echo "Rosetta is already installed"
 
-      - name: Install dependencies
-        run: npm ci
-
       - name: Get Electron version
         id: electron-version
         shell: bash
@@ -111,24 +108,18 @@ jobs:
           echo "version=$ELECTRON_VERSION" >> $GITHUB_OUTPUT
           echo "Electron version: $ELECTRON_VERSION"
 
-      - name: Rebuild native modules for Electron
-        if: "!startsWith(matrix.platform, 'windows')"
+      - name: Install dependencies with Electron prebuilt binaries
         shell: bash
-        run: |
-          echo "Installing native dependencies for Electron ${{ steps.electron-version.outputs.version }} (${{ matrix.platform }} - ${{ matrix.arch }})"
-          if ! npx electron-builder install-app-deps; then
-            echo "electron-builder install-app-deps failed, falling back to npm rebuild"
-            npm rebuild $REBUILD_MODULES
-          fi
+        run: npm ci
         env:
+          # 指示 prebuild-install 下载 Electron 的预编译二进制，而不是 Node.js 的
+          # Tell prebuild-install to download Electron prebuilt binaries instead of Node.js ones
           npm_config_runtime: electron
-          npm_config_disturl: https://electronjs.org/headers
           npm_config_target: ${{ steps.electron-version.outputs.version }}
-          npm_config_arch: ${{ matrix.arch == 'x64,arm64' && 'x64' || matrix.arch }}
+          npm_config_disturl: https://electronjs.org/headers
+          # For Linux with multi-arch, use x64; otherwise use the specified arch
           npm_config_target_arch: ${{ matrix.arch == 'x64,arm64' && 'x64' || matrix.arch }}
-          npm_config_platform: ${{ startsWith(matrix.platform, 'macos-') && 'darwin' || startsWith(matrix.platform, 'windows') && 'win32' || 'linux' }}
-          npm_config_build_from_source: ${{ startsWith(matrix.platform, 'windows') && 'false' || 'true' }}
-          REBUILD_MODULES: ${{ startsWith(matrix.platform, 'windows') && 'better-sqlite3 bcrypt' || 'better-sqlite3 bcrypt node-pty' }}
+          npm_config_arch: ${{ matrix.arch == 'x64,arm64' && 'x64' || matrix.arch }}
 
       - name: Print build configuration
         shell: bash
