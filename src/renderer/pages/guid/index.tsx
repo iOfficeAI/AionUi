@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { AcpBackend } from '@/types/acpTypes';
+import { ACP_BACKENDS_ALL } from '@/types/acpTypes';
 import type { IProvider, TProviderWithModel } from '@/common/storage';
 import { ConfigStorage } from '@/common/storage';
 import { uuid } from '@/common/utils';
@@ -21,7 +22,7 @@ import { usePasteService } from '@/renderer/hooks/usePasteService';
 import { formatFilesForMessage } from '@/renderer/hooks/useSendBoxFiles';
 import { allSupportedExts, type FileMetadata, getCleanFileNames } from '@/renderer/services/FileService';
 import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
-import { Button, ConfigProvider, Dropdown, Input, Menu, Radio, Space, Tooltip } from '@arco-design/web-react';
+import { Button, ConfigProvider, Dropdown, Input, Menu, Tooltip } from '@arco-design/web-react';
 import { ArrowUp, Plus } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -113,6 +114,15 @@ const useModelList = () => {
   }, [isGoogleAuth, modelConfig]);
 
   return { modelList, isGoogleAuth };
+};
+
+// Agent Logo 映射
+const AGENT_LOGO_MAP: Record<AcpBackend, string> = {
+  claude: ClaudeLogo,
+  gemini: GeminiLogo,
+  qwen: QwenLogo,
+  codex: CodexLogo,
+  iflow: IflowLogo,
 };
 
 const Guid: React.FC = () => {
@@ -365,6 +375,29 @@ const Guid: React.FC = () => {
     <ConfigProvider getPopupContainer={() => guidContainerRef.current || document.body}>
       <div ref={guidContainerRef} className='h-full flex-center flex-col px-100px' style={{ position: 'relative' }}>
         <p className='text-2xl font-semibold text-gray-900 mb-8'>{t('conversation.welcome.title')}</p>
+
+        {/* Agent 选择器 - 在标题下方 */}
+        {availableAgents && availableAgents.length > 0 && (
+          <div
+            className={styles.agentSelector}
+            style={{
+              marginBottom: 16,
+            }}
+          >
+            {availableAgents.map((agent) => {
+              const isSelected = selectedAgent === agent.backend;
+              const logoSrc = AGENT_LOGO_MAP[agent.backend];
+
+              return (
+                <div key={agent.backend} className={`${styles.agentCard} ${isSelected ? styles.agentCardSelected : ''}`} onClick={() => setSelectedAgent(agent.backend)}>
+                  <img src={logoSrc} alt={`${agent.backend} logo`} width={20} height={20} style={{ objectFit: 'contain', flexShrink: 0 }} />
+                  <span className={styles.agentName}>{agent.name}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
         <div
           className={`bg-white b-solid border rd-20px focus-within:shadow-[0px_2px_20px_rgba(77,60,234,0.1)] transition-all duration-200 overflow-hidden p-16px ${isFileDragging ? 'bg-blue-50 border-blue-300 border-dashed' : 'border-#E5E6EB'}`}
           style={{
@@ -476,11 +509,12 @@ const Guid: React.FC = () => {
                 </Dropdown>
               )}
             </div>
+
             <Button
               shape='circle'
               type='primary'
               loading={loading}
-              disabled={(!selectedAgent || selectedAgent === 'gemini') && !currentModel}
+              disabled={!input.trim() || ((!selectedAgent || selectedAgent === 'gemini') && !currentModel)}
               icon={<ArrowUp theme='outline' size='14' fill='white' strokeWidth={2} />}
               onClick={() => {
                 handleSend().catch((error) => {
@@ -490,29 +524,6 @@ const Guid: React.FC = () => {
             />
           </div>
         </div>
-
-        {/* ACP Agents 选择区域 */}
-        {availableAgents && availableAgents.length > 0 && (
-          <Space direction='horizontal' className={styles.roundedSpace} style={{ marginTop: 16, width: '100%', justifyContent: 'center' }}>
-            <Radio.Group
-              type='button'
-              className={styles.roundedRadioGroup}
-              value={selectedAgent}
-              onChange={(value) => {
-                setSelectedAgent(value as AcpBackend);
-              }}
-              options={availableAgents.map((agent) => ({
-                label: (
-                  <div className='flex items-center gap-2'>
-                    <img src={agent.backend === 'claude' ? ClaudeLogo : agent.backend === 'gemini' ? GeminiLogo : agent.backend === 'qwen' ? QwenLogo : agent.backend === 'codex' ? CodexLogo : agent.backend === 'iflow' ? IflowLogo : ''} alt={`${agent.backend} logo`} width={16} height={16} style={{ objectFit: 'contain' }} />
-                    <span className='font-medium'>{agent.name}</span>
-                  </div>
-                ),
-                value: agent.backend,
-              }))}
-            />
-          </Space>
-        )}
       </div>
     </ConfigProvider>
   );

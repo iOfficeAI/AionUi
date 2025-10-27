@@ -72,3 +72,73 @@
   color: #c9cdd4 !important;
   opacity: 1 !important;
 }
+
+/* Agent 选择器容器 */
+.agentSelector {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Agent 卡片样式 */
+.agentCard {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: #f7f8fa;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* 未选中状态 - 60% 透明度和宽度 */
+.agentCard:not(.agentCardSelected) {
+  opacity: 0.6;
+  flex: 0 0 auto;
+}
+
+/* 未选中卡片的名称隐藏部分 */
+.agentCard:not(.agentCardSelected) .agentName {
+  max-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Hover 效果 - 展开显示名称 */
+.agentCard:not(.agentCardSelected):hover {
+  opacity: 1;
+  background: #eff0f1;
+}
+
+.agentCard:not(.agentCardSelected):hover .agentName {
+  max-width: 100px;
+  opacity: 1;
+  margin-left: 8px;
+}
+
+/* 选中状态 - 完全展开,白底 */
+.agentCardSelected {
+  background: #ffffff;
+  flex: 1 1 auto;
+  border-radius: 30px;
+}
+
+/* Agent 名称文字 */
+.agentName {
+  font-weight: 500;
+  font-size: 14px;
+  color: #1d2129;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 选中状态的文字颜色 */
+.agentCardSelected .agentName {
+  color: #4d3cea;
+  font-weight: 600;
+}
