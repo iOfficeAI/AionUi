@@ -83,17 +83,19 @@ const ChatLayout: React.FC<{
   return (
     <ArcoLayout className={'size-full'}>
       <ArcoLayout.Content>
-        <ArcoLayout.Header className={classNames('flex items-center justify-between p-16px gap-16px  !bg-#F7F8FA', backend ? 'h-96px' : 'h-56px')}>
+        <ArcoLayout.Header className={classNames('h-52px flex items-center justify-between p-16px gap-16px  !bg-#F7F8FA')}>
           <FlexFullContainer className='h-full'>
             <span className=' ml-16px font-bold text-16px inline-block overflow-hidden text-ellipsis whitespace-nowrap w-full max-w-60%'>{props.title}</span>
+          </FlexFullContainer>
+          <div className='flex items-center gap-16px'>
             {backend && (
               <div className='ml-16px flex items-center gap-2 bg-[#f2f3f5] w-fit rounded-full px-[8px] py-[2px]'>
                 <img src={backend === 'claude' ? ClaudeLogo : backend === 'gemini' ? GeminiLogo : backend === 'qwen' ? QwenLogo : backend === 'iflow' ? IflowLogo : backend === 'codex' ? CodexLogo : ''} alt={`${backend} logo`} width={16} height={16} style={{ objectFit: 'contain' }} />
                 <span className='font-medium'>{ACP_BACKENDS_ALL[backend as keyof typeof ACP_BACKENDS_ALL]?.name || backend}</span>
               </div>
             )}
-          </FlexFullContainer>
-          <div className='flex items-center gap-16px'>{rightSiderCollapsed ? <ExpandRight onClick={() => setRightSiderCollapsed(false)} className='cursor-pointer flex' theme='outline' size='24' fill='#86909C' strokeWidth={3} /> : <ExpandLeft onClick={() => setRightSiderCollapsed(true)} className='cursor-pointer flex' theme='outline' size='24' fill='#86909C' strokeWidth={3} />}</div>
+            {rightSiderCollapsed ? <ExpandRight onClick={() => setRightSiderCollapsed(false)} className='cursor-pointer flex' theme='outline' size='24' fill='#86909C' strokeWidth={3} /> : <ExpandLeft onClick={() => setRightSiderCollapsed(true)} className='cursor-pointer flex' theme='outline' size='24' fill='#86909C' strokeWidth={3} />}
+          </div>
         </ArcoLayout.Header>
         <ArcoLayout.Content className={classNames('h-[calc(100%-106px)] bg-#F9FAFB', backend ? 'h-[calc(100%-106px)]' : 'h-[calc(100%-66px)]')}>{props.children}</ArcoLayout.Content>
       </ArcoLayout.Content>
