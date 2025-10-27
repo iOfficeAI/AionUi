@@ -142,3 +142,38 @@
   color: #4d3cea;
   font-weight: 600;
 }
+
+/* 工作空间面板 - 默认状态 */
+.workspacePanel {
+  background: #f7f8fa;
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+/* 展开状态的工作空间面板 */
+.workspacePanelExpanded {
+  background: #ffffff;
+  border: 1px solid #e5e6eb;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+/* 工作空间头部 - 未展开状态 */
+.workspaceHeader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.workspaceHeader:hover {
+  background: #eff0f1;
+}
+
+/* 工作空间内容区域 - 展开状态 */
+.workspaceContent {
+  padding: 12px 16px;
+}

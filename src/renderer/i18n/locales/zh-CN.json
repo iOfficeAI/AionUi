@@ -68,7 +68,11 @@
       "linkFolder": "打开文件夹",
       "newConversation": "新对话",
       "multiAgentModeEnabled": "已进入多智能体模式",
-      "selectModel": "选择模型"
+      "selectModel": "选择模型",
+      "specifyWorkspace": "指定工作空间",
+      "currentWorkspace": "当前工作空间",
+      "openFolder": "打开文件夹",
+      "none": "无"
     },
     "history": {
       "today": "今天",

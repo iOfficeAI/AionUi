@@ -72,7 +72,11 @@
       "linkFolder": "Open Folder",
       "newConversation": "New Chat",
       "multiAgentModeEnabled": "Entering multi-agent mode",
-      "selectModel": "Select Model"
+      "selectModel": "Select Model",
+      "specifyWorkspace": "Specify Workspace",
+      "currentWorkspace": "Current Workspace",
+      "openFolder": "Open Folder",
+      "none": "None"
     },
     "history": {
       "today": "Today",
