@@ -50,10 +50,11 @@ module.exports = {
     arch: process.env.ELECTRON_BUILDER_ARCH || process.env.npm_config_target_arch || process.env.arch || process.arch,
   },
   rebuildConfig: {
-    // 在 Windows CI 环境下，跳过所有原生模块的重建
-    ...(process.env.CI === 'true' && process.platform === 'win32'
+    // 在 CI 环境下，跳过所有原生模块的重建，使用预编译的二进制以获得更好的兼容性
+    // Skip rebuilding native modules in CI to use prebuilt binaries for better compatibility
+    ...(process.env.CI === 'true'
       ? {
-          onlyModules: [], // 一个空数组意味着"不要重建任何模块"
+          onlyModules: [], // 空数组意味着"不要重建任何模块" / Empty array means "don't rebuild any modules"
         }
       : {}),
     ...(skipNativeRebuild
