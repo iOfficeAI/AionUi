@@ -421,6 +421,7 @@ const Guid: React.FC = () => {
           style={{
             width: 'clamp(400px, calc(100% - 80px), 720px)',
             margin: '0 auto',
+            zIndex: 1,
           }}
           {...dragHandlers}
         >
@@ -534,52 +535,49 @@ const Guid: React.FC = () => {
 
         {/* 工作空间选择区域 */}
         <div
-          className={`${styles.workspacePanel} ${isWorkspaceExpanded ? styles.workspacePanelExpanded : ''}`}
+          className='overflow-hidden transition-all duration-300'
           style={{
-            width: 'clamp(360px, calc(100% - 160px), 640px)',
-            marginTop: 12,
+            width: 'clamp(400px, calc(100% - 80px), 752px)',
+            marginTop: '-20px',
           }}
         >
           {!isWorkspaceExpanded ? (
-            <div className={styles.workspaceHeader} onClick={() => setIsWorkspaceExpanded(true)}>
-              <FolderOpen theme='outline' size='16' fill='#86909c' />
+            <div className='flex items-end h-40px w-150px rd-8px gap-8px px-16px py-10px cursor-pointer transition-background duration-200 bg-#eff0f1' onClick={() => setIsWorkspaceExpanded(true)}>
+              <FolderOpen className='line-height-4' theme='outline' size='16' fill='#86909c' />
               <span className='text-14px text-gray-600'>{t('conversation.welcome.specifyWorkspace')}</span>
             </div>
           ) : (
-            <div className={styles.workspaceContent}>
-              <div className='flex items-center justify-between gap-2'>
-                <div className='flex items-center gap-2 flex-1 min-w-0'>
-                  <Up theme='outline' size='16' fill='#86909c' className='cursor-pointer flex-shrink-0' onClick={() => setIsWorkspaceExpanded(false)} />
-                  <FolderOpen theme='outline' size='16' fill='#86909c' className='flex-shrink-0' />
-                  <Tooltip content={dir || defaultWorkDir} position='top'>
-                    <span className='text-13px text-gray-500 truncate'>
-                      {t('conversation.welcome.currentWorkspace')}: {dir || defaultWorkDir}
-                    </span>
-                  </Tooltip>
-                </div>
-                <Button
-                  size='small'
-                  type='text'
-                  icon={<Plus theme='outline' size='14' />}
-                  className='flex-shrink-0'
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    ipcBridge.dialog.showOpen
-                      .invoke({
-                        properties: ['openDirectory'],
-                      })
-                      .then((files) => {
-                        setFiles([]);
-                        setDir(files?.[0] || '');
-                      })
-                      .catch((error) => {
-                        console.error('Failed to open directory dialog:', error);
-                      });
-                  }}
-                >
-                  {t('conversation.welcome.openFolder')}
-                </Button>
+            <div className='flex items-center justify-between pt-25px'>
+              <div className='flex items-center gap-2 flex-1 min-w-0'>
+                <Up theme='outline' size='16' fill='#86909c' className='cursor-pointer flex-shrink-0' onClick={() => setIsWorkspaceExpanded(false)} />
+                <FolderOpen className='flex-shrink-0 line-height-4' theme='outline' size='16' fill='#86909c' />
+                <Tooltip content={dir || defaultWorkDir} position='top'>
+                  <span className='text-13px text-gray-500 truncate'>
+                    {t('conversation.welcome.currentWorkspace')}: {dir || defaultWorkDir}
+                  </span>
+                </Tooltip>
               </div>
+              <Button
+                size='small'
+                icon={<Plus theme='outline' size='14' />}
+                className='w-124px h-28px rounded-[20px] bg-#F2F3F5'
+                onClick={(e) => {
+                  e.stopPropagation();
+                  ipcBridge.dialog.showOpen
+                    .invoke({
+                      properties: ['openDirectory'],
+                    })
+                    .then((files) => {
+                      setFiles([]);
+                      setDir(files?.[0] || '');
+                    })
+                    .catch((error) => {
+                      console.error('Failed to open directory dialog:', error);
+                    });
+                }}
+              >
+                <span className='mr-8px'> {t('conversation.welcome.openFolder')} </span>
+              </Button>
             </div>
           )}
         </div>
