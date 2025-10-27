@@ -6,7 +6,6 @@
 
 import { ipcBridge } from '@/common';
 import type { AcpBackend } from '@/types/acpTypes';
-import { ACP_BACKENDS_ALL } from '@/types/acpTypes';
 import type { IProvider, TProviderWithModel } from '@/common/storage';
 import { ConfigStorage } from '@/common/storage';
 import { uuid } from '@/common/utils';
@@ -23,7 +22,7 @@ import { formatFilesForMessage } from '@/renderer/hooks/useSendBoxFiles';
 import { allSupportedExts, type FileMetadata, getCleanFileNames } from '@/renderer/services/FileService';
 import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
 import { Button, ConfigProvider, Dropdown, Input, Menu, Tooltip } from '@arco-design/web-react';
-import { ArrowUp, Plus } from '@icon-park/react';
+import { ArrowUp, FolderOpen, Plus, Up } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -139,6 +138,9 @@ const Guid: React.FC = () => {
   const [isPlusDropdownOpen, setIsPlusDropdownOpen] = useState(false);
   const [typewriterPlaceholder, setTypewriterPlaceholder] = useState('');
   const [isTyping, setIsTyping] = useState(true);
+  const [isWorkspaceExpanded, setIsWorkspaceExpanded] = useState(false);
+  const [defaultWorkDir, setDefaultWorkDir] = useState<string>('');
+
   const setCurrentModel = async (modelInfo: TProviderWithModel) => {
     await ConfigStorage.set('gemini.defaultModel', modelInfo.useModel).catch((error) => {
       console.error('Failed to save default model:', error);
@@ -146,6 +148,22 @@ const Guid: React.FC = () => {
     _setCurrentModel(modelInfo);
   };
   const navigate = useNavigate();
+
+  // 获取默认工作目录
+  useEffect(() => {
+    ipcBridge.application.systemInfo
+      .invoke()
+      .then((systemInfo) => {
+        setDefaultWorkDir(systemInfo.workDir);
+        // 如果没有自定义目录,使用默认目录
+        if (!dir) {
+          setDir(systemInfo.workDir);
+        }
+      })
+      .catch((error) => {
+        console.error('Failed to get system info:', error);
+      });
+  }, []);
 
   // 处理粘贴的文件
   const handleFilesAdded = useCallback((pastedFiles: FileMetadata[]) => {
@@ -415,29 +433,23 @@ const Guid: React.FC = () => {
                 droplist={
                   <Menu
                     onClickMenuItem={(key) => {
-                      const isFile = key === 'file';
-                      ipcBridge.dialog.showOpen
-                        .invoke({
-                          properties: isFile ? ['openFile', 'multiSelections'] : ['openDirectory'],
-                        })
-                        .then((files) => {
-                          if (isFile) {
+                      if (key === 'file') {
+                        ipcBridge.dialog.showOpen
+                          .invoke({
+                            properties: ['openFile', 'multiSelections'],
+                          })
+                          .then((files) => {
                             if (files && files.length > 0) {
                               setFiles((prev) => [...prev, ...files]);
                             }
-                            setDir('');
-                          } else {
-                            setFiles([]);
-                            setDir(files?.[0] || '');
-                          }
-                        })
-                        .catch((error) => {
-                          console.error('Failed to open file/directory dialog:', error);
-                        });
+                          })
+                          .catch((error) => {
+                            console.error('Failed to open file dialog:', error);
+                          });
+                      }
                     }}
                   >
                     <Menu.Item key='file'>{t('conversation.welcome.uploadFile')}</Menu.Item>
-                    <Menu.Item key='dir'>{t('conversation.welcome.linkFolder')}</Menu.Item>
                   </Menu>
                 }
               >
@@ -446,11 +458,6 @@ const Guid: React.FC = () => {
                   {files.length > 0 && (
                     <Tooltip className={'!max-w-max'} content={<span className='whitespace-break-spaces'>{getCleanFileNames(files).join('\n')}</span>}>
                       <span>File({files.length})</span>
-                    </Tooltip>
-                  )}
-                  {!!dir && (
-                    <Tooltip className={'!max-w-max'} content={<span className='whitespace-break-spaces'>{dir}</span>}>
-                      <span>Folder(1)</span>
                     </Tooltip>
                   )}
                 </span>
@@ -523,6 +530,58 @@ const Guid: React.FC = () => {
               }}
             />
           </div>
+        </div>
+
+        {/* 工作空间选择区域 */}
+        <div
+          className={`${styles.workspacePanel} ${isWorkspaceExpanded ? styles.workspacePanelExpanded : ''}`}
+          style={{
+            width: 'clamp(360px, calc(100% - 160px), 640px)',
+            marginTop: 12,
+          }}
+        >
+          {!isWorkspaceExpanded ? (
+            <div className={styles.workspaceHeader} onClick={() => setIsWorkspaceExpanded(true)}>
+              <FolderOpen theme='outline' size='16' fill='#86909c' />
+              <span className='text-14px text-gray-600'>{t('conversation.welcome.specifyWorkspace')}</span>
+            </div>
+          ) : (
+            <div className={styles.workspaceContent}>
+              <div className='flex items-center justify-between gap-2'>
+                <div className='flex items-center gap-2 flex-1 min-w-0'>
+                  <Up theme='outline' size='16' fill='#86909c' className='cursor-pointer flex-shrink-0' onClick={() => setIsWorkspaceExpanded(false)} />
+                  <FolderOpen theme='outline' size='16' fill='#86909c' className='flex-shrink-0' />
+                  <Tooltip content={dir || defaultWorkDir} position='top'>
+                    <span className='text-13px text-gray-500 truncate'>
+                      {t('conversation.welcome.currentWorkspace')}: {dir || defaultWorkDir}
+                    </span>
+                  </Tooltip>
+                </div>
+                <Button
+                  size='small'
+                  type='text'
+                  icon={<Plus theme='outline' size='14' />}
+                  className='flex-shrink-0'
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    ipcBridge.dialog.showOpen
+                      .invoke({
+                        properties: ['openDirectory'],
+                      })
+                      .then((files) => {
+                        setFiles([]);
+                        setDir(files?.[0] || '');
+                      })
+                      .catch((error) => {
+                        console.error('Failed to open directory dialog:', error);
+                      });
+                  }}
+                >
+                  {t('conversation.welcome.openFolder')}
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </ConfigProvider>
