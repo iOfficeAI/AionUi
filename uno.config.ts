@@ -1,5 +1,5 @@
 // uno.config.ts
-import { defineConfig, presetMini, transformerVariantGroup, transformerDirectives, presetWind3 } from 'unocss';
+import { defineConfig, presetMini, presetWind3, transformerDirectives, transformerVariantGroup } from 'unocss';
 import { presetExtra } from 'unocss-preset-extra';
 
 export default defineConfig({

@@ -81,7 +81,7 @@ const useScrollIntoView = (id: string) => {
   }, [id]);
 };
 
-const ChatHistory: React.FC = () => {
+const ChatHistory: React.FC<{ onSessionClick?: () => void }> = ({ onSessionClick }) => {
   const [chatHistory, setChatHistory] = useState<TChatConversation[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState<string>('');
@@ -96,6 +96,10 @@ const ChatHistory: React.FC = () => {
     Promise.resolve(navigate(`/conversation/${conversation.id}`)).catch((error) => {
       console.error('Navigation failed:', error);
     });
+    // 点击session后自动隐藏sidebar
+    if (onSessionClick) {
+      onSessionClick();
+    }
     // });
   };
 
