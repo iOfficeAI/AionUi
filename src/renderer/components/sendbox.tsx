@@ -115,7 +115,7 @@ const SendBox: React.FC<{
           onKeyDown={createKeyDownHandler(sendMessageHandler)}
         ></Input.TextArea>
         <div className='flex items-center justify-between gap-2 '>
-          <span>{tools}</span>
+          <span className='sendbox-tools'>{tools}</span>
           <div className='flex items-center gap-2'>
             {isLoading || loading ? (
               // <Loading
@@ -124,28 +124,17 @@ const SendBox: React.FC<{
               //   size={18}
               //   onClick={stopHandler}
               // />
-              <Button shape='circle' type='secondary' className='bg-animate' icon={<div className='mx-auto size-12px bg-#86909C' onClick={stopHandler}></div>}></Button>
+              <Button shape='circle' type='secondary' className='sendbox-icon-btn bg-animate' icon={<div className='mx-auto size-12px bg-#86909C' onClick={stopHandler}></div>}></Button>
             ) : (
               <Button
                 shape='circle'
                 type='primary'
+                className='sendbox-icon-btn'
                 icon={<ArrowUp theme='outline' size='14' fill='white' strokeWidth={2} />}
                 onClick={() => {
                   sendMessageHandler();
                 }}
               />
-              // <Send
-              //   theme="filled"
-              //   size={18}
-              //   onClick={() => {
-              //     sendMessageHandler();
-              //   }}
-              //   fill={
-              //     input
-              //       ? theme.Color.BrandColor["brand-6"]
-              //       : theme.Color.NeutralColor["grey-8"]
-              //   }
-              // />
             )}
           </div>
         </div>
