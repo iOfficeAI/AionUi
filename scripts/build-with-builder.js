@@ -151,43 +151,7 @@ try {
     ensureDir(sourceDir, webpackDir, 'native_modules');
   }
 
-  // 5. 查找 Forge 生成的 app 目录，用作 electron-builder 的 --prepackaged 输入
-  // Find the Forge-generated app directory to use as prepackaged input for electron-builder
-  const outDir = path.resolve(__dirname, '../out');
-  let forgeAppPath = null;
-
-  // 映射平台到 Forge 输出目录的命名约定和应用名称
-  // Map platform to Forge's output directory naming convention and app names
-  const platformAppMap = {
-    darwin: { dir: `mac-${targetArch}`, app: 'AionUi.app' },
-    win32: { dir: `win-${targetArch === 'ia32' ? 'ia32' : targetArch}-unpacked`, app: null },
-    linux: { dir: `linux-${targetArch === 'armv7l' ? 'armv7l' : targetArch}-unpacked`, app: null }
-  };
-
-  const platformInfo = platformAppMap[process.platform];
-  if (platformInfo) {
-    const forgeDir = path.join(outDir, platformInfo.dir);
-    if (platformInfo.app) {
-      // macOS: 指向 .app 包
-      // For macOS, point to the .app bundle
-      const appPath = path.join(forgeDir, platformInfo.app);
-      if (fs.existsSync(appPath)) {
-        forgeAppPath = appPath;
-        console.log(`📦 Found Forge-packaged app at: ${forgeAppPath}`);
-      }
-    } else if (fs.existsSync(forgeDir)) {
-      // Windows/Linux: 指向 unpacked 目录
-      // For Windows/Linux, point to the unpacked directory
-      forgeAppPath = forgeDir;
-      console.log(`📦 Found Forge-packaged directory at: ${forgeAppPath}`);
-    }
-  }
-
-  if (!forgeAppPath) {
-    console.warn(`⚠️  Could not find Forge-packaged app in ${outDir}, electron-builder will rebuild from source`);
-  }
-
-  // 6. 运行 electron-builder 生成分发包（DMG/ZIP/EXE等）
+  // 5. 运行 electron-builder 生成分发包（DMG/ZIP/EXE等）
   // Run electron-builder to create distributables (DMG/ZIP/EXE, etc.)
   const isRelease = process.env.GITHUB_REF && process.env.GITHUB_REF.startsWith('refs/tags/v');
   const publishArg = isRelease ? '' : '--publish=never';
@@ -207,11 +171,7 @@ try {
     console.log(`🚀 Creating distributables for ${targetArch}...`);
   }
 
-  // 如果 Forge app 存在，使用 --prepackaged 以保留 app.asar.unpacked 和 native modules
-  // Use --prepackaged if Forge app exists to preserve app.asar.unpacked and native modules
-  const prepackagedArg = forgeAppPath ? `--prepackaged="${forgeAppPath}"` : '';
-
-  execSync(`npx electron-builder ${builderArgs} ${archFlag} ${publishArg} ${prepackagedArg}`, { stdio: 'inherit' });
+  execSync(`npx electron-builder ${builderArgs} ${archFlag} ${publishArg}`, { stdio: 'inherit' });
 
   console.log('✅ Build completed!');
 } catch (error) {
