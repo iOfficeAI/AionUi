@@ -39,8 +39,8 @@ const McpAgentStatusDisplay: React.FC<McpAgentStatusDisplayProps> = ({ serverNam
         agentInstallStatus[serverName]?.map((agent) => {
           const LogoComponent = getAgentLogo(agent);
           return LogoComponent ? (
-            <div key={agent} className='w-6 h-6 bg-white border-white shadow-sm flex items-center' title={agent}>
-              <img src={LogoComponent} alt={agent} className='m-[4px] w-[20px] h-[20px]' />
+            <div key={agent} className='w-6 h-6 bg-white border-white flex items-center' title={agent}>
+              <img src={LogoComponent} alt={agent} className='w-[21px] h-[21px] border-solid border-[#F7F8FA]' />
             </div>
           ) : (
             <Tag key={agent} size='small' color='green'>
