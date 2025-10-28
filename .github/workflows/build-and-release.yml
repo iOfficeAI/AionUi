@@ -261,8 +261,8 @@ jobs:
         if: "!startsWith(matrix.platform, 'windows')"
         uses: nick-fields/retry@v3
         with:
-          # macOS notarization can take 60+ minutes, increase timeout for macOS builds
-          timeout_minutes: ${{ startsWith(matrix.platform, 'macos-') && 90 || 40 }}
+          # Set timeout to 40 minutes for all platforms - if it takes longer, there's definitely a problem
+          timeout_minutes: 40
           max_attempts: 2
           retry_wait_seconds: 300
           continue_on_error: ${{ (matrix.platform == 'macos-x64' || matrix.platform == 'macos-arm64') }}
