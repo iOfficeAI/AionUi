@@ -83,7 +83,10 @@
       "deleteTitle": "Delete chat",
       "deleteConfirm": "Are you sure you want to delete this chat?",
       "confirmDelete": "Yes",
-      "cancelDelete": "No"
+      "cancelDelete": "No",
+      "editName": "Edit Name",
+      "saveName": "Save Name",
+      "cancelEdit": "Cancel Edit"
     },
     "workspace": {
       "title": "Workspace",

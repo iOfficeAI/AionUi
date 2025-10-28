@@ -3,16 +3,16 @@ import type { TMessage } from '@/common/chatLib';
 import { transformMessage } from '@/common/chatLib';
 import { uuid } from '@/common/utils';
 import SendBox from '@/renderer/components/sendbox';
+import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/ThoughtDisplay';
 import { getSendBoxDraftHook } from '@/renderer/hooks/useSendBoxDraft';
 import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
 import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { Button, Tag } from '@arco-design/web-react';
 import { Plus } from '@icon-park/react';
+import ShimmerText from '@renderer/components/ShimmerText';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import ShimmerText from '@renderer/components/ShimmerText';
-import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/ThoughtDisplay';
 
 interface CodexDraftData {
   _type: 'codex';
@@ -299,6 +299,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
             <Button
               type='secondary'
               shape='circle'
+              className='sendbox-icon-btn sendbox-icon-plus'
               icon={<Plus theme='outline' size='14' strokeWidth={2} fill='#333' />}
               onClick={() => {
                 ipcBridge.dialog.showOpen

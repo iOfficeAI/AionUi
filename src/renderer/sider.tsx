@@ -5,7 +5,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import ChatHistory from './pages/conversation/ChatHistory';
 import SettingsSider from './pages/settings/SettingsSider';
 
-const Sider: React.FC = () => {
+const Sider: React.FC<{ onSessionClick?: () => void }> = ({ onSessionClick }) => {
   const { pathname } = useLocation();
 
   const { t } = useTranslation();
@@ -23,12 +23,16 @@ const Sider: React.FC = () => {
               Promise.resolve(navigate('/guid')).catch((error) => {
                 console.error('Navigation failed:', error);
               });
+              // 点击new chat后自动隐藏sidebar
+              if (onSessionClick) {
+                onSessionClick();
+              }
             }}
           >
             <Plus theme='outline' size='24' fill='#333' className='flex' />
             <span className='collapsed-hidden font-bold'>{t('conversation.welcome.newConversation')}</span>
           </div>
-          <ChatHistory></ChatHistory>
+          <ChatHistory onSessionClick={onSessionClick}></ChatHistory>
         </>
       )}
       <div
