@@ -39,7 +39,7 @@ export class AcpAgent {
   };
   private connection: AcpConnection;
   private adapter: AcpAdapter;
-  private pendingPermissions = new Map<string, { resolve: (response: any) => void; reject: (error: any) => void }>();
+  private pendingPermissions = new Map<string, { resolve: (response: { optionId: string }) => void; reject: (error: Error) => void }>();
   private statusMessageId: string | null = null;
   private readonly onStreamEvent: (data: IResponseMessage) => void;
   private readonly onSignalEvent?: (data: IResponseMessage) => void;
@@ -447,9 +447,9 @@ export class AcpAgent {
   postMessagePromise(action: string, data: any): Promise<any> {
     switch (action) {
       case 'send.message':
-        return this.sendMessage(data);
+        return this.sendMessage(data) as Promise<any>;
       case 'stop.stream':
-        return this.stop();
+        return this.stop() as Promise<any>;
       default:
         return Promise.reject(new Error(`Unknown action: ${action}`));
     }
@@ -530,8 +530,8 @@ export class AcpAgent {
 
   private async performAuthentication(): Promise<void> {
     try {
-      const initResponse = await this.connection.getInitializeResponse();
-      if (!initResponse?.authMethods?.length) {
+      const initResponse = this.connection.getInitializeResponse();
+      if (!initResponse || !(initResponse as any)?.authMethods?.length) {
         // No auth methods available - CLI should handle authentication itself
         this.emitStatusMessage('authenticated');
         return;
