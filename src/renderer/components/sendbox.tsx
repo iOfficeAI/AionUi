@@ -76,11 +76,15 @@ const SendBox: React.FC<{
       return;
     }
     setIsLoading(true);
-    onSend(input)
-      .then(() => {
-        setInput('');
+    const messageToSend = input;
+    // 立即清空输入框，提供更好的用户体验
+    setInput('');
+    onSend(messageToSend)
+      .catch((error) => {
+        // 如果发送失败，恢复输入内容
+        console.error('Failed to send message:', error);
+        setInput(messageToSend);
       })
-      .catch(() => {})
       .finally(() => {
         setIsLoading(false);
       });
@@ -96,7 +100,7 @@ const SendBox: React.FC<{
   };
 
   return (
-    <div className={`mb-16px  ${className}`}>
+    <div className={className}>
       <div className={`relative p-16px b-#E5E6EB b bg-white b-solid rd-20px  focus-within:shadow-[0px_2px_20px_rgba(77,60,234,0.1)] ${isFileDragging ? 'bg-blue-50 b-blue-300 b-dashed' : ''}`} {...dragHandlers}>
         {prefix}
         {context}

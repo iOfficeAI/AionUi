@@ -207,7 +207,8 @@
     "auto_handling_permissions": "Auto handling permission request: {{request}}",
     "copy": "Copy",
     "copySuccess": "Copied successfully",
-    "copyFailed": "Failed to copy"
+    "copyFailed": "Failed to copy",
+    "scrollToBottom": "Scroll to bottom"
   },
   "mcp": {
     "integration": {

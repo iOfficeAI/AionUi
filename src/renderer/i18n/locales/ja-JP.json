@@ -327,7 +327,8 @@
     "auto_handling_permissions": "自動ハンドリング許可要求：{{request}}",
     "copy": "コピー",
     "copySuccess": "コピーしました",
-    "copyFailed": "コピーに失敗しました"
+    "copyFailed": "コピーに失敗しました",
+    "scrollToBottom": "下にスクロール"
   },
   "mcp": {
     "integration": {
