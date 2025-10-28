@@ -192,7 +192,9 @@
       "emptyDescription": "上傳檔案或開啟資料夾後，檔案將顯示在這裡",
       "searchPlaceholder": "搜尋檔案...",
       "createNewConversation": "當前空間創建新對話",
-      "search.empty": "搜索結果為空"
+      "search.empty": "搜索結果為空",
+      "addFile": "新增檔案",
+      "refresh": "重新整理"
     },
     "chat": {
       "noModelSelected": "當前會話未選擇模型，無法發送訊息"
