@@ -78,6 +78,10 @@ mac:
   gatekeeperAssess: false
   entitlements: entitlements.plist
   entitlementsInherit: entitlements.plist
+  # Explicitly set timestamp server to avoid hangs when Apple's default timestamp server is slow
+  signAndEditExecutable: true
+  signOptions:
+    timestamp: "https://timestamp.apple.com/ts01"
 
 afterPack: scripts/afterPack.js
 afterSign: scripts/afterSign.js
