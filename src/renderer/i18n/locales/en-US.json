@@ -204,7 +204,10 @@
     "canceledExecution": "Execution canceled",
     "openLinkFailed": "Failed to open link",
     "imageGenerationModelDetected": "Image model detected, image tool has been automatically enabled. Default model: {{platform}}:{{model}}",
-    "auto_handling_permissions": "Auto handling permission request: {{request}}"
+    "auto_handling_permissions": "Auto handling permission request: {{request}}",
+    "copy": "Copy",
+    "copySuccess": "Copied successfully",
+    "copyFailed": "Failed to copy"
   },
   "mcp": {
     "integration": {
