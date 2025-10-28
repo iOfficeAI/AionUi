@@ -151,20 +151,40 @@ html[data-theme="dark"] .layout-sider-header > div:first-child {
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+/* Custom scrollbar styles for light mode */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+
 /* Design light scrollbar that becomes dark when inverted */
 [data-theme='dark'] ::-webkit-scrollbar {
-  width: 12px;
+  width: 6px;
+  height: 6px;
 }
 
 [data-theme='dark'] ::-webkit-scrollbar-track {
-  background: #e5e5e5;
+  background: transparent;
 }
 
 [data-theme='dark'] ::-webkit-scrollbar-thumb {
-  background: #cccccc;
-  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
 }
 
 [data-theme='dark'] ::-webkit-scrollbar-thumb:hover {
-  background: #b8b8b8;
+  background: rgba(255, 255, 255, 0.2);
 }
