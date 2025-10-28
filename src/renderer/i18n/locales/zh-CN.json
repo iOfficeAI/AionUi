@@ -202,7 +202,8 @@
     "auto_handling_permissions": "自动处理权限请求：{{request}}",
     "copy": "复制",
     "copySuccess": "复制成功",
-    "copyFailed": "复制失败"
+    "copyFailed": "复制失败",
+    "scrollToBottom": "滚动到底部"
   },
   "mcp": {
     "integration": {
