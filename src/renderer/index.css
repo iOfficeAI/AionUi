@@ -162,11 +162,18 @@ html[data-theme="dark"] .layout-sider-header > div:first-child {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.2);
+  background: transparent;
   border-radius: 3px;
+  transition: background 0.3s;
 }
 
 ::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+/* Show scrollbar on hover or during scroll */
+*:hover::-webkit-scrollbar-thumb,
+*:active::-webkit-scrollbar-thumb {
   background: rgba(0, 0, 0, 0.2);
 }
 
@@ -181,10 +188,17 @@ html[data-theme="dark"] .layout-sider-header > div:first-child {
 }
 
 [data-theme='dark'] ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.2);
+  background: transparent;
   border-radius: 3px;
+  transition: background 0.3s;
 }
 
 [data-theme='dark'] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Show scrollbar on hover or during scroll in dark mode */
+[data-theme='dark'] *:hover::-webkit-scrollbar-thumb,
+[data-theme='dark'] *:active::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.2);
 }
