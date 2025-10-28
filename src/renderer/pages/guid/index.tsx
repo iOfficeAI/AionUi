@@ -139,7 +139,6 @@ const Guid: React.FC = () => {
   const [typewriterPlaceholder, setTypewriterPlaceholder] = useState('');
   const [isTyping, setIsTyping] = useState(true);
   const [isWorkspaceExpanded, setIsWorkspaceExpanded] = useState(false);
-  const [defaultWorkDir, setDefaultWorkDir] = useState<string>('');
 
   const setCurrentModel = async (modelInfo: TProviderWithModel) => {
     await ConfigStorage.set('gemini.defaultModel', modelInfo.useModel).catch((error) => {
@@ -148,22 +147,6 @@ const Guid: React.FC = () => {
     _setCurrentModel(modelInfo);
   };
   const navigate = useNavigate();
-
-  // 获取默认工作目录
-  useEffect(() => {
-    ipcBridge.application.systemInfo
-      .invoke()
-      .then((systemInfo) => {
-        setDefaultWorkDir(systemInfo.workDir);
-        // 如果没有自定义目录,使用默认目录
-        if (!dir) {
-          setDir(systemInfo.workDir);
-        }
-      })
-      .catch((error) => {
-        console.error('Failed to get system info:', error);
-      });
-  }, []);
 
   // 处理粘贴的文件
   const handleFilesAdded = useCallback((pastedFiles: FileMetadata[]) => {
@@ -551,9 +534,9 @@ const Guid: React.FC = () => {
               <div className='flex items-center gap-2 flex-1 min-w-0'>
                 <Up theme='outline' size='16' fill='#86909c' className='cursor-pointer flex-shrink-0' onClick={() => setIsWorkspaceExpanded(false)} />
                 <FolderOpen className='flex-shrink-0 line-height-4' theme='outline' size='16' fill='#86909c' />
-                <Tooltip content={dir || defaultWorkDir} position='top'>
+                <Tooltip content={dir || t('conversation.welcome.none')} position='top'>
                   <span className='text-13px text-gray-500 truncate'>
-                    {t('conversation.welcome.currentWorkspace')}: {dir || defaultWorkDir}
+                    {t('conversation.welcome.currentWorkspace')}: {dir || t('conversation.welcome.none')}
                   </span>
                 </Tooltip>
               </div>
