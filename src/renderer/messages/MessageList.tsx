@@ -134,7 +134,7 @@ const MessageList: React.FC<{ className?: string }> = () => {
       {showScrollButton && (
         <>
           {/* 渐变遮罩 */}
-          <div className='absolute bottom-0 left-0 right-0 h-100px pointer-events-none' style={{ background: 'linear-gradient(to bottom, transparent, rgba(255, 255, 255, 0.95))' }} />
+          <div className='absolute bottom-0 left-0 right-0 h-100px pointer-events-none' />
           {/* 滚动按钮 */}
           <div className='absolute bottom-20px left-50% transform -translate-x-50% z-100'>
             <div className='flex items-center justify-center w-40px h-40px rd-full bg-white shadow-lg cursor-pointer hover:bg-gray-50 transition-all hover:scale-110 border-1 border-solid border-gray-200' onClick={handleScrollButtonClick} title={t('messages.scrollToBottom')} style={{ lineHeight: 0 }}>
