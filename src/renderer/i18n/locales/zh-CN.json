@@ -79,7 +79,10 @@
       "deleteTitle": "删除对话",
       "deleteConfirm": "确定删除该对话吗？",
       "confirmDelete": "是",
-      "cancelDelete": "否"
+      "cancelDelete": "否",
+      "editName": "编辑名称",
+      "saveName": "保存名称",
+      "cancelEdit": "取消编辑"
     },
     "workspace": {
       "title": "工作空间",
