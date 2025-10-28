@@ -217,7 +217,9 @@
       "emptyDescription": "ファイルをアップロードするか、またはフォルダーを開くと、ここにファイルが表示されます",
       "searchPlaceholder": "ファイルを検索...",
       "createNewConversation": "現在のワークスペースで新しいチャットを作成",
-      "search.empty": "検索結果は空です"
+      "search.empty": "検索結果は空です",
+      "addFile": "ファイルを追加",
+      "refresh": "更新"
     },
     "chat": {
       "noModelSelected": "現在のセッションでモデルが選択されていないため、メッセージを送信できません"

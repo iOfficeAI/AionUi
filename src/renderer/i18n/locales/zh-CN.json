@@ -91,7 +91,9 @@
       "emptyDescription": "上传文件或打开文件夹后，文件将显示在这里",
       "searchPlaceholder": "搜索文件...",
       "createNewConversation": "当前空间创建新会话",
-      "search.empty": "搜索结果为空"
+      "search.empty": "搜索结果为空",
+      "addFile": "添加文件",
+      "refresh": "刷新"
     },
     "chat": {
       "noModelSelected": "当前会话未选择模型，无法发送消息"

@@ -131,4 +131,55 @@ export function initFsBridge(): void {
       throw error;
     }
   });
+
+  // 复制文件到工作空间
+  ipcBridge.fs.copyFilesToWorkspace.provider(async ({ filePaths, workspace }) => {
+    try {
+      const copiedFiles: string[] = [];
+
+      // 确保工作空间目录存在
+      await fs.mkdir(workspace, { recursive: true });
+
+      for (const filePath of filePaths) {
+        try {
+          const fileName = path.basename(filePath);
+          const targetPath = path.join(workspace, fileName);
+
+          // 检查目标文件是否已存在
+          const exists = await fs
+            .access(targetPath)
+            .then(() => true)
+            .catch(() => false);
+
+          if (exists) {
+            // 如果文件已存在，添加时间戳后缀
+            const timestamp = Date.now();
+            const ext = path.extname(fileName);
+            const name = path.basename(fileName, ext);
+            const newFileName = `${name}${AIONUI_TIMESTAMP_SEPARATOR}${timestamp}${ext}`;
+            const newTargetPath = path.join(workspace, newFileName);
+            await fs.copyFile(filePath, newTargetPath);
+            copiedFiles.push(newTargetPath);
+          } else {
+            await fs.copyFile(filePath, targetPath);
+            copiedFiles.push(targetPath);
+          }
+        } catch (error) {
+          console.error(`Failed to copy file ${filePath}:`, error);
+          // 继续复制其他文件
+        }
+      }
+
+      return {
+        success: true,
+        data: { copiedFiles },
+      };
+    } catch (error) {
+      console.error('Failed to copy files to workspace:', error);
+      return {
+        success: false,
+        msg: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  });
 }

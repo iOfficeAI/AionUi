@@ -8,8 +8,8 @@ import { ipcBridge } from '@/common';
 import type { IDirOrFile } from '@/common/ipcBridge';
 import FlexFullContainer from '@/renderer/components/FlexFullContainer';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
-import { Empty, Input, Tree } from '@arco-design/web-react';
-import { Refresh, Search } from '@icon-park/react';
+import { Empty, Input, Tree, Tooltip } from '@arco-design/web-react';
+import { Refresh, Search, FileAddition } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useDebounce from '../../hooks/useDebounce';
@@ -47,6 +47,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
   const [loading, setLoading] = useLoading();
   const [treeKey, setTreeKey] = useState(Math.random());
   const [showSearch, setShowSearch] = useState(false);
+  const [isHeaderHovered, setIsHeaderHovered] = useState(false);
 
   const [searchText, setSearchText] = useState('');
   useAddEventListener(`${eventPrefix}.selected.file.clear`, () => {
@@ -79,6 +80,30 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
       setShowSearch(files.length > 0 && files[0]?.children?.length > 0);
     });
   }, [workspace, loadWorkspace]);
+
+  const handleAddFiles = useCallback(() => {
+    ipcBridge.dialog.showOpen
+      .invoke({
+        properties: ['openFile', 'multiSelections'],
+        defaultPath: workspace,
+      })
+      .then((selectedFiles) => {
+        if (selectedFiles && selectedFiles.length > 0) {
+          return ipcBridge.fs.copyFilesToWorkspace.invoke({ filePaths: selectedFiles, workspace }).then((result) => {
+            if (result.success && result.data?.copiedFiles.length > 0) {
+              setTimeout(() => {
+                refreshWorkspace();
+              }, 300);
+            } else {
+              console.error('Failed to copy files:', result.msg);
+            }
+          });
+        }
+      })
+      .catch((error) => {
+        console.error('Failed to add files:', error);
+      });
+  }, [workspace, refreshWorkspace]);
 
   const onSearch = useDebounce(
     (value: string) => {
@@ -134,9 +159,24 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
 
   return (
     <div className='size-full flex flex-col'>
-      <div className='px-16px pb-8px flex items-center justify-start gap-4px'>
-        <span className='font-bold text-14px'>{t('common.file')}</span>
-        <Refresh className={loading ? 'loading lh-[1] flex' : 'flex'} theme='outline' fill='#333' onClick={() => refreshWorkspace()} />
+      <div className='px-16px pb-8px' onMouseEnter={() => setIsHeaderHovered(true)} onMouseLeave={() => setIsHeaderHovered(false)}>
+        <div className='flex items-center justify-start gap-8px'>
+          <span className='font-bold text-14px'>{t('common.file')}</span>
+          {isHeaderHovered && (
+            <div className='flex items-center gap-8px'>
+              <Tooltip content={t('conversation.workspace.addFile')}>
+                <span>
+                  <FileAddition className='cursor-pointer flex' theme='outline' size='16' fill='#86909c' onClick={handleAddFiles} />
+                </span>
+              </Tooltip>
+              <Tooltip content={t('conversation.workspace.refresh')}>
+                <span>
+                  <Refresh className={loading ? 'loading lh-[1] flex cursor-pointer' : 'flex cursor-pointer'} theme='outline' size='16' fill='#86909c' onClick={() => refreshWorkspace()} />
+                </span>
+              </Tooltip>
+            </div>
+          )}
+        </div>
       </div>
       {(showSearch || searchText) && (
         <div className='px-16px pb-8px'>
