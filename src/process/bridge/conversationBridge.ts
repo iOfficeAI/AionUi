@@ -152,6 +152,17 @@ export function initConversationBridge(): void {
     }
   });
 
+  ipcBridge.conversation.update.provider(async ({ id, updates }) => {
+    try {
+      const db = getDatabase();
+      const result = await Promise.resolve(db.updateConversation(id, updates));
+      return result.success;
+    } catch (error) {
+      console.error('[conversationBridge] Failed to update conversation:', error);
+      return false;
+    }
+  });
+
   ipcBridge.conversation.reset.provider(({ id }) => {
     if (id) {
       WorkerManage.kill(id);

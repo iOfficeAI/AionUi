@@ -42,6 +42,8 @@ _智能图像生成、编辑和识别，由 Gemini 2.5 Flash Image Preview 驱�
   <img src="./resources/Image_Generation.gif" alt="AI 图像生成演示" width="800">
 </p>
 
+> 💡 **需要帮助设置免费图像生成？** [按照教程配置图像生成模型](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide-Chinese) - OpenRouter 设置和免费 Gemini 2.5 Flash Image Preview 配置的完整分步指南。
+
 ### 📁 **智能文件管理**
 
 _批量重命名、自动整理、智能分类、文件合并_
@@ -201,7 +203,7 @@ AionUi 为需要更好工作流效率的用户提供了现代界面，同时**�
 - [🤖 多代理模式设置](https://github.com/iOfficeAI/AionUi/wiki/ACP-Setup-Chinese) - 集成终端 AI 代理
 - [🔌 MCP 工具配置](https://github.com/iOfficeAI/AionUi/wiki/MCP-Configuration-Guide-Chinese) - 模型上下文协议服务器设置
 - [🎨 图像生成配置](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide-Chinese) - AI 图像生成设置教程
-- [🌐 WebUI 远程访问设置](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Setup-Chinese) - 远程访问配置指南
+- [🌐 WebUI 远程访问设置](https://github.com/iOfficeAI/AionUi/releases/tag/v1.4.2) - 远程访问配置指南
 
 ### 🎯 使用案例
 

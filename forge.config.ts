@@ -16,6 +16,9 @@ import packageJson from './package.json';
 const apkName = 'AionUi_' + packageJson.version + '_' + (process.env.arch || process.arch);
 const skipNativeRebuild = process.env.FORGE_SKIP_NATIVE_REBUILD === 'true';
 
+// Use target arch from build script, not host arch
+const targetArch = process.env.ELECTRON_BUILDER_ARCH || process.env.npm_config_target_arch || process.env.arch || process.arch;
+
 // Removed custom outDir to maintain compatibility with macOS signing
 
 // Forge is only used for compilation in hybrid setup
@@ -47,7 +50,7 @@ module.exports = {
     platform: process.env.npm_config_target_platform || process.platform,
     // Use target arch from build script, not host arch
     // This ensures .webpack/{target-arch}/ matches the final package architecture
-    arch: process.env.ELECTRON_BUILDER_ARCH || process.env.npm_config_target_arch || process.env.arch || process.arch,
+    arch: targetArch,
   },
   rebuildConfig: {
     // 在 CI 环境下，跳过所有原生模块的重建，使用预编译的二进制以获得更好的兼容性
