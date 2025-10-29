@@ -204,7 +204,7 @@ AionUi をお試しですか？お使いの環境に合った最新版を、リ�
 - [🤖 マルチエージェントモード設定](https://github.com/iOfficeAI/AionUi/wiki/ACP-Setup) - ターミナル AI エージェント統合
 - [🔌 MCP ツール設定](https://github.com/iOfficeAI/AionUi/wiki/MCP-Configuration-Guide) - モデルコンテキストプロトコルサーバー設定
 - [🎨 画像生成設定](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide-Japanese) - AI 画像生成設定チュートリアル
-- [🌐 WebUI リモートアクセス設定](https://github.com/iOfficeAI/AionUi/releases/tag/v1.4.2) - リモートアクセス設定ガイド
+- [🌐 WebUI 設定ガイド](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) - 完全な WebUI セットアップと設定チュートリアル
 
 ### 🎯 ユースケース
 
