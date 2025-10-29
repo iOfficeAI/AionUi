@@ -46,7 +46,7 @@ _Intelligent image generation, editing, and recognition powered by Gemini 2.5 Fl
   <img src="./resources/Image_Generation.gif" alt="AI Image Generation Demo" width="800">
 </p>
 
-> 💡 **Need help setting up free image generation?** [Follow the tutorial to configure image generation models](https://github.com/iOfficeAI/AionUi/wiki/OpenRouter-Setup-and-Image-Generation) - Complete step-by-step guide for OpenRouter setup and free Gemini 2.5 Flash Image Preview configuration.
+> 💡 **Need help setting up free image generation?** [Follow the tutorial to configure image generation models](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide) - Complete step-by-step guide for OpenRouter setup and free Gemini 2.5 Flash Image Preview configuration.
 
 ### 📁 **Organizing Your Files**
 
@@ -218,7 +218,7 @@ Ready to try AionUi? Download the latest version for your platform from our rele
 - [🤖 Multi-Agent Mode Setup](https://github.com/iOfficeAI/AionUi/wiki/ACP-Setup) - Integrate terminal AI agents
 - [🔌 MCP Tool Configuration](https://github.com/iOfficeAI/AionUi/wiki/MCP-Configuration-Guide) - Model Context Protocol server setup
 - [🎨 Image Generation Configuration](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide) - AI image generation setup tutorial
-- [🌐 WebUI Remote Access Setup](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Setup) - Remote access configuration guide
+- [🌐 WebUI Remote Access Setup](https://github.com/iOfficeAI/AionUi/releases/tag/v1.4.2) - Remote access configuration guide
 
 ### 🎯 Use Cases
 

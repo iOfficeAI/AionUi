@@ -27,6 +27,15 @@ module.exports = async function afterPack(context) {
     return;
   }
 
+  // macOS cross-compilation optimization: skip rebuild and use prebuilt binaries
+  // This significantly reduces build time when building x64 on ARM64 runners
+  if (electronPlatformName === 'darwin' && isCrossCompile) {
+    console.log(`   ⚠️  macOS cross-compilation detected (${buildArch} → ${targetArch})`);
+    console.log(`   ✓ Skipping native module rebuild, using electron-forge prebuilt binaries`);
+    console.log(`   💡 This avoids slow cross-compilation and reduces build time from 30+ minutes to <5 minutes\n`);
+    return;
+  }
+
   if (isCrossCompile) {
     console.log(`   ⚠️  Cross-compilation detected, will rebuild native modules`);
   } else if (needsSameArchRebuild || forceRebuild) {

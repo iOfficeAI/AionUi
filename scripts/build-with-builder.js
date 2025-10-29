@@ -95,12 +95,12 @@ try {
     fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n');
   }
 
-  // 2. Run Forge to build webpack bundles
+  // 2. Run Forge to build webpack bundles with explicit architecture
   console.log(`📦 Building ${targetArch}...`);
-  execSync('npm run package', {
+  execSync(`npx electron-forge package --arch=${targetArch}`, {
     stdio: 'inherit',
-    env: { 
-      ...process.env, 
+    env: {
+      ...process.env,
       ELECTRON_BUILDER_ARCH: targetArch,
       FORGE_SKIP_NATIVE_REBUILD: 'false'  // Ensure native modules are rebuilt during packaging
     }
