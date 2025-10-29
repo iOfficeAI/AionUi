@@ -261,11 +261,11 @@ jobs:
         if: "!startsWith(matrix.platform, 'windows')"
         uses: nick-fields/retry@v3
         with:
-          # Set timeout to 40 minutes for all platforms - if it takes longer, there's definitely a problem
-          timeout_minutes: 40
+          # After optimizing macOS cross-compilation (skipping native rebuild),
+          # build time reduced from 90+ min to ~15-20 min including notarization
+          timeout_minutes: ${{ startsWith(matrix.platform, 'macos-') && 30 || 40 }}
           max_attempts: 2
           retry_wait_seconds: 300
-          continue_on_error: ${{ (matrix.platform == 'macos-x64' || matrix.platform == 'macos-arm64') }}
           command: ${{ matrix.command }}
           on_retry_command: |
             echo "⚠️ 构建超时或失败，5 分钟后进行第 2 次尝试..."
