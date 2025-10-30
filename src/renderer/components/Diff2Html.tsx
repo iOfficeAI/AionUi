@@ -11,8 +11,11 @@ import { Checkbox } from '@arco-design/web-react';
 import { ExpandDownOne, FoldUpOne } from '@icon-park/react';
 import classNames from 'classnames';
 import ReactDOM from 'react-dom';
+import { iconColors } from '@/renderer/theme/colors';
+import { useThemeContext } from '@/renderer/context/ThemeContext';
 
 const Diff2Html = ({ diff, className, title }: { diff: string; className?: string; title?: string }) => {
+  const { theme } = useThemeContext();
   const [sideBySide, setSideBySide] = useState(false);
   const [collapse, setCollapse] = useState(false);
   const diffHtmlContent = useMemo(() => {
@@ -33,6 +36,7 @@ const Diff2Html = ({ diff, className, title }: { diff: string; className?: strin
       <div
         className={classNames('![&_.line-num1]:hidden ![&_.line-num2]:w-30px [&_td:first-child]:w-40px ![&_td:nth-child(2)>div]:pl-45px min-w-0 max-w-full [&_div.d2f-file-wrapper]:rd-[0.3rem_0.3rem_0px_0px]  [&_div.d2h-file-header]:items-center [&_div.d2h-file-header]:bg-[rgb(220,220,220)]', {
           '[&_.d2h-file-diff]:hidden [&_.d2h-files-diff]:hidden': collapse,
+          'd2h-dark-color-scheme': theme === 'dark',
         })}
         ref={(el) => {
           if (!el) return;
@@ -62,7 +66,7 @@ const Diff2Html = ({ diff, className, title }: { diff: string; className?: strin
           >
             <span className='whitespace-nowrap'>side-by-side</span>
           </Checkbox>
-          {collapse ? <ExpandDownOne theme='outline' size='14' fill='#333' className='flex items-center' onClick={() => setCollapse(false)} /> : <FoldUpOne theme='outline' size='14' fill='#333' className='flex items-center' onClick={() => setCollapse(true)} />}
+          {collapse ? <ExpandDownOne theme='outline' size='14' fill={iconColors.secondary} className='flex items-center' onClick={() => setCollapse(false)} /> : <FoldUpOne theme='outline' size='14' fill={iconColors.secondary} className='flex items-center' onClick={() => setCollapse(true)} />}
         </>,
         operatorRef.current
       )}
