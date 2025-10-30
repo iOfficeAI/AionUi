@@ -13,6 +13,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import ShimmerText from '@renderer/components/ShimmerText';
 import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/ThoughtDisplay';
+import { iconColors } from '@/renderer/theme/colors';
 
 interface CodexDraftData {
   _type: 'codex';
@@ -299,7 +300,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
             <Button
               type='secondary'
               shape='circle'
-              icon={<Plus theme='outline' size='14' strokeWidth={2} fill='#333' />}
+              icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />}
               onClick={() => {
                 ipcBridge.dialog.showOpen
                   .invoke({ properties: ['openFile', 'multiSelections'] })

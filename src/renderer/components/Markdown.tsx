@@ -53,12 +53,12 @@ function CodeBlock(props: any) {
           {...rest}
           className={className}
           style={{
-            backgroundColor: '#f1f1f1',
+            backgroundColor: 'var(--bg-1)',
             padding: '2px 4px',
             margin: '0 4px',
             borderRadius: '4px',
             border: '1px solid',
-            borderColor: '#ddd',
+            borderColor: 'var(--bg-3)',
           }}
         >
           {children}
@@ -73,7 +73,7 @@ function CodeBlock(props: any) {
             justifyContent: 'space-between',
             width: '100%',
             alignItems: 'center',
-            backgroundColor: '#dcdcdc', // "rgb(50, 50, 50)",
+            backgroundColor: 'var(--bg-2)',
             borderTopLeftRadius: '0.3rem',
             borderTopRightRadius: '0.3rem',
             borderBottomLeftRadius: '0',
@@ -162,13 +162,13 @@ const createInitStyle = (currentTheme = 'light') => {
     border-collapse: collapse;  /* 表格边框合并为单一边框 */
     th{
       padding: 8px;
-      border: 1px solid #ddd;
-      background-color: #f5f5f5;
+      border: 1px solid var(--bg-3);
+      background-color: var(--bg-1);
       font-weight: bold;
     }
     td{
         padding: 8px;
-        border: 1px solid #ddd;
+        border: 1px solid var(--bg-3);
         min-width: 120px;
     }
   }
@@ -184,17 +184,6 @@ const createInitStyle = (currentTheme = 'light') => {
     100% {
       transform: rotate(360deg);
     }
-  }
-  
-  /* 暗色主题下保护图片不被反转 */
-  ${
-    currentTheme === 'dark'
-      ? `
-    img, video, canvas, svg {
-      filter: invert(1) hue-rotate(180deg);
-    }
-  `
-      : ''
   }
   `;
   return style;
@@ -280,7 +269,7 @@ const MarkdownView: React.FC<{
                   style={{
                     ...props.style,
                     borderCollapse: 'collapse',
-                    border: '1px solid #ddd',
+                    border: '1px solid var(--bg-3)',
                     minWidth: '100%',
                   }}
                 />
@@ -292,7 +281,7 @@ const MarkdownView: React.FC<{
                 style={{
                   ...props.style,
                   padding: '8px',
-                  border: '1px solid #ddd',
+                  border: '1px solid var(--bg-3)',
                   minWidth: '120px',
                 }}
               />

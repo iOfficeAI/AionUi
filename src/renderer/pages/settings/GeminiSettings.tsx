@@ -12,6 +12,7 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import SettingContainer from './components/SettingContainer';
+import { iconColors } from '@/renderer/theme/colors';
 
 const DirInputItem: React.FC<{
   label: string;
@@ -29,7 +30,7 @@ const DirInputItem: React.FC<{
             <FolderOpen
               theme='outline'
               size='24'
-              fill='#333'
+              fill={iconColors.primary}
               onClick={() => {
                 ipcBridge.dialog.showOpen
                   .invoke({

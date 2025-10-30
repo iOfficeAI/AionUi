@@ -20,6 +20,7 @@ import MessageToolGroup from './MessageToolGroup';
 import MessageText from './MessagetText';
 import { Down } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
+import { iconColors } from '@/renderer/theme/colors';
 
 const MessageItem: React.FC<{ message: TMessage }> = HOC((props) => {
   const { message } = props as { message: TMessage };
@@ -35,6 +36,8 @@ const MessageItem: React.FC<{ message: TMessage }> = HOC((props) => {
     </div>
   );
 })(({ message }) => {
+  const { t } = useTranslation();
+
   switch (message.type) {
     case 'text':
       return <MessageText message={message}></MessageText>;
@@ -55,7 +58,7 @@ const MessageItem: React.FC<{ message: TMessage }> = HOC((props) => {
     case 'codex_tool_call':
       return <MessageCodexToolCall message={message}></MessageCodexToolCall>;
     default:
-      return <div>Unknown message type: {(message as any).type}</div>;
+      return <div>{t('messages.unknownMessageType', { type: (message as any).type })}</div>;
   }
 });
 
@@ -137,8 +140,8 @@ const MessageList: React.FC<{ className?: string }> = () => {
           <div className='absolute bottom-0 left-0 right-0 h-100px pointer-events-none' />
           {/* 滚动按钮 */}
           <div className='absolute bottom-20px left-50% transform -translate-x-50% z-100'>
-            <div className='flex items-center justify-center w-40px h-40px rd-full bg-white shadow-lg cursor-pointer hover:bg-gray-50 transition-all hover:scale-110 border-1 border-solid border-gray-200' onClick={handleScrollButtonClick} title={t('messages.scrollToBottom')} style={{ lineHeight: 0 }}>
-              <Down theme='filled' size='20' fill='#4E5969' style={{ display: 'block' }} />
+            <div className='flex items-center justify-center w-40px h-40px rd-full bg-base shadow-lg cursor-pointer hover:bg-1 transition-all hover:scale-110 border-1 border-solid border-3' onClick={handleScrollButtonClick} title={t('messages.scrollToBottom')} style={{ lineHeight: 0 }}>
+              <Down theme='filled' size='20' fill={iconColors.secondary} style={{ display: 'block' }} />
             </div>
           </div>
         </>

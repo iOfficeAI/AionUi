@@ -28,6 +28,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import useSWR from 'swr';
 import styles from './index.module.css';
+import { iconColors } from '@/renderer/theme/colors';
 
 /**
  * 缓存Provider的可用模型列表，避免重复计算
@@ -375,7 +376,7 @@ const Guid: React.FC = () => {
   return (
     <ConfigProvider getPopupContainer={() => guidContainerRef.current || document.body}>
       <div ref={guidContainerRef} className='h-full flex-center flex-col px-100px' style={{ position: 'relative' }}>
-        <p className='text-2xl font-semibold text-gray-900 mb-8'>{t('conversation.welcome.title')}</p>
+        <p className='text-2xl font-semibold text-t-primary mb-8'>{t('conversation.welcome.title')}</p>
 
         {/* Agent 选择器 - 在标题下方 */}
         {availableAgents && availableAgents.length > 0 && (
@@ -392,7 +393,7 @@ const Guid: React.FC = () => {
               return (
                 <div key={agent.backend} className={`${styles.agentCard} ${isSelected ? styles.agentCardSelected : ''}`} onClick={() => setSelectedAgent(agent.backend)}>
                   <img src={logoSrc} alt={`${agent.backend} logo`} width={20} height={20} style={{ objectFit: 'contain', flexShrink: 0 }} />
-                  <span className={styles.agentName}>{agent.name}</span>
+                  <span className={`${styles.agentName} text-t-primary`}>{agent.name}</span>
                 </div>
               );
             })}
@@ -400,15 +401,18 @@ const Guid: React.FC = () => {
         )}
 
         <div
-          className={`bg-white b-solid border rd-20px focus-within:shadow-[0px_2px_20px_rgba(77,60,234,0.1)] transition-all duration-200 overflow-hidden p-16px ${isFileDragging ? 'bg-blue-50 border-blue-300 border-dashed' : 'border-#E5E6EB'}`}
+          className={`bg-base b-solid border rd-20px focus-within:shadow-[0px_2px_20px_rgba(77,60,234,0.1)] transition-all duration-200 overflow-hidden p-16px ${isFileDragging ? 'border-dashed' : 'border-3'}`}
           style={{
             width: 'clamp(400px, calc(100% - 80px), 720px)',
-            margin: '0 auto',
             zIndex: 1,
+            ...(isFileDragging && {
+              backgroundColor: 'var(--color-primary-light-1)',
+              borderColor: 'rgb(var(--primary-3))',
+            }),
           }}
           {...dragHandlers}
         >
-          <Input.TextArea rows={3} placeholder={typewriterPlaceholder || t('conversation.welcome.placeholder')} className={`text-16px focus:b-none rounded-xl !bg-white !b-none !resize-none !p-0 ${styles.lightPlaceholder}`} value={input} onChange={(v) => setInput(v)} onPaste={onPaste} onFocus={onFocus} {...compositionHandlers} onKeyDown={createKeyDownHandler(sendMessageHandler)}></Input.TextArea>
+          <Input.TextArea rows={3} placeholder={typewriterPlaceholder || t('conversation.welcome.placeholder')} className={`text-16px focus:b-none rounded-xl !bg-transparent !b-none !resize-none !p-0 ${styles.lightPlaceholder}`} value={input} onChange={(v) => setInput(v)} onPaste={onPaste} onFocus={onFocus} {...compositionHandlers} onKeyDown={createKeyDownHandler(sendMessageHandler)}></Input.TextArea>
           <div className='flex items-center justify-between '>
             <div className='flex items-center gap-10px'>
               <Dropdown
@@ -438,10 +442,10 @@ const Guid: React.FC = () => {
                 }
               >
                 <span className='flex items-center gap-4px cursor-pointer lh-[1]'>
-                  <Button type='secondary' shape='circle' className={isPlusDropdownOpen ? styles.plusButtonRotate : ''} icon={<Plus theme='outline' size='14' strokeWidth={2} fill='#333' />}></Button>
+                  <Button type='secondary' shape='circle' className={isPlusDropdownOpen ? styles.plusButtonRotate : ''} icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />}></Button>
                   {files.length > 0 && (
                     <Tooltip className={'!max-w-max'} content={<span className='whitespace-break-spaces'>{getCleanFileNames(files).join('\n')}</span>}>
-                      <span>File({files.length})</span>
+                      <span className='text-t-primary'>File({files.length})</span>
                     </Tooltip>
                   )}
                 </span>
@@ -455,11 +459,11 @@ const Guid: React.FC = () => {
                       {!modelList || modelList.length === 0 ? (
                         <>
                           {/* 暂无可用模型提示 */}
-                          <Menu.Item key='no-models' className='px-12px py-12px text-gray-500 text-14px text-center flex justify-center items-center' disabled>
+                          <Menu.Item key='no-models' className='px-12px py-12px text-t-secondary text-14px text-center flex justify-center items-center' disabled>
                             {t('settings.noAvailableModels')}
                           </Menu.Item>
                           {/* Add Model 选项 */}
-                          <Menu.Item key='add-model' className='text-12px text-gray-500' onClick={() => navigate('/settings/model')}>
+                          <Menu.Item key='add-model' className='text-12px text-t-secondary' onClick={() => navigate('/settings/model')}>
                             <Plus theme='outline' size='12' />
                             {t('settings.addModel')}
                           </Menu.Item>
@@ -473,7 +477,7 @@ const Guid: React.FC = () => {
                                 {availableModels.map((modelName) => (
                                   <Menu.Item
                                     key={provider.id + modelName}
-                                    className={currentModel?.id + currentModel?.useModel === provider.id + modelName ? '!bg-#f2f3f5' : ''}
+                                    className={currentModel?.id + currentModel?.useModel === provider.id + modelName ? '!bg-2' : ''}
                                     onClick={() => {
                                       setCurrentModel({ ...provider, useModel: modelName }).catch((error) => {
                                         console.error('Failed to set current model:', error);
@@ -487,7 +491,7 @@ const Guid: React.FC = () => {
                             );
                           })}
                           {/* Add Model 选项 */}
-                          <Menu.Item key='add-model' className='text-12px text-gray-500' onClick={() => navigate('/settings/model')}>
+                          <Menu.Item key='add-model' className='text-12px text-t-secondary' onClick={() => navigate('/settings/model')}>
                             <Plus theme='outline' size='12' />
                             {t('settings.addModel')}
                           </Menu.Item>
@@ -518,24 +522,24 @@ const Guid: React.FC = () => {
 
         {/* 工作空间选择区域 */}
         <div
-          className='overflow-hidden transition-all duration-300'
+          className='overflow-hidden transition-all duration-200 ml-[-33px]'
           style={{
-            width: 'clamp(400px, calc(100% - 80px), 752px)',
+            width: 'clamp(400px, calc(100% - 80px), 720px)',
             marginTop: '-20px',
           }}
         >
           {!isWorkspaceExpanded ? (
-            <div className='flex items-end h-40px w-150px rd-8px gap-8px px-16px py-10px cursor-pointer transition-background duration-200 bg-#eff0f1' onClick={() => setIsWorkspaceExpanded(true)}>
-              <FolderOpen className='line-height-4' theme='outline' size='16' fill='#86909c' />
-              <span className='text-14px text-gray-600'>{t('conversation.welcome.specifyWorkspace')}</span>
+            <div className='flex items-end h-40px w-150px rd-8px gap-8px px-16px py-10px cursor-pointer transition-background duration-200 bg-aou-1' onClick={() => setIsWorkspaceExpanded(true)}>
+              <FolderOpen className='line-height-4' theme='outline' size='16' fill={iconColors.secondary} />
+              <span className='text-14px text-t-secondary'>{t('conversation.welcome.specifyWorkspace')}</span>
             </div>
           ) : (
             <div className='flex items-center justify-between pt-25px'>
               <div className='flex items-center gap-2 flex-1 min-w-0'>
-                <Up theme='outline' size='16' fill='#86909c' className='cursor-pointer flex-shrink-0' onClick={() => setIsWorkspaceExpanded(false)} />
-                <FolderOpen className='flex-shrink-0 line-height-4' theme='outline' size='16' fill='#86909c' />
+                <Up theme='outline' size='16' fill={iconColors.secondary} className='cursor-pointer flex-shrink-0' onClick={() => setIsWorkspaceExpanded(false)} />
+                <FolderOpen className='flex-shrink-0 line-height-4' theme='outline' size='16' fill={iconColors.secondary} />
                 <Tooltip content={dir || t('conversation.welcome.none')} position='top'>
-                  <span className='text-13px text-gray-500 truncate'>
+                  <span className='text-13px text-t-secondary truncate'>
                     {t('conversation.welcome.currentWorkspace')}: {dir || t('conversation.welcome.none')}
                   </span>
                 </Tooltip>
@@ -543,7 +547,7 @@ const Guid: React.FC = () => {
               <Button
                 size='small'
                 icon={<Plus theme='outline' size='14' />}
-                className='w-124px h-28px rounded-[20px] bg-#F2F3F5'
+                className='w-124px h-28px rounded-[20px] bg-2'
                 onClick={(e) => {
                   e.stopPropagation();
                   ipcBridge.dialog.showOpen

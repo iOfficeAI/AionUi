@@ -12,6 +12,7 @@ import React, { useRef, useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { useDirectorySelection } from './hooks/useDirectorySelection';
 import { useMultiAgentDetection } from './hooks/useMultiAgentDetection';
+import { iconColors } from './theme/colors';
 
 const useDebug = () => {
   const [count, setCount] = useState(0);
@@ -56,7 +57,7 @@ const Layout: React.FC<{
         collapsedWidth={64}
         collapsed={collapsed}
         width={250}
-        className={classNames('!bg-#f2f3f5 layout-sider', {
+        className={classNames('!bg-2 layout-sider', {
           collapsed: collapsed,
         })}
       >
@@ -66,7 +67,7 @@ const Layout: React.FC<{
           })}
         >
           <div
-            className={classNames('bg-#000 shrink-0 size-40px relative rd-0.5rem ', {
+            className={classNames('bg-black shrink-0 size-40px relative rd-0.5rem', {
               '!size-24px': collapsed,
             })}
             onClick={onClick}
@@ -83,17 +84,17 @@ const Layout: React.FC<{
               <path d='M18 50 Q40 70 62 50' stroke='white' strokeWidth='3.5' fill='none' strokeLinecap='round'></path>
             </svg>
           </div>
-          <div className=' flex-1 text-20px collapsed-hidden font-bold'>AionUi</div>
-          <MenuFold className='cursor-pointer !collapsed-hidden flex' theme='outline' size='24' fill='#86909C' strokeWidth={3} onClick={() => setCollapsed(true)} />
+          <div className=' flex-1 text-20px collapsed-hidden font-bold text-t-primary'>AionUi</div>
+          <MenuFold className='cursor-pointer !collapsed-hidden flex' theme='outline' size='24' fill={iconColors.secondary} strokeWidth={3} onClick={() => setCollapsed(true)} />
           {collapsed && (
-            <div onClick={() => setCollapsed(false)} className='group-hover:opacity-100 absolute bg-#f2f3f5 left-8px top-7px transition-all duration-150 p-10px opacity-0'>
-              <MenuUnfold className='cursor-pointer flex' size='24' fill='#86909C' strokeWidth={3} />
+            <div onClick={() => setCollapsed(false)} className='group-hover:opacity-100 absolute bg-2 left-8px top-7px transition-all duration-150 p-10px opacity-0'>
+              <MenuUnfold className='cursor-pointer flex' size='24' fill={iconColors.secondary} strokeWidth={3} />
             </div>
           )}
         </ArcoLayout.Header>
         <ArcoLayout.Content className='h-[calc(100%-72px-16px)] p-8px layout-sider-content'>{sider}</ArcoLayout.Content>
       </ArcoLayout.Sider>
-      <ArcoLayout.Content className={'bg-#F9FAFB layout-content'}>
+      <ArcoLayout.Content className={'bg-1 layout-content'}>
         <Outlet></Outlet>
         {multiAgentContextHolder}
         {directorySelectionContextHolder}

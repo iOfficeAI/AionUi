@@ -155,13 +155,13 @@ const OneClickImportModal: React.FC<OneClickImportModalProps> = ({ visible, onCa
             <div className='mb-2 text-sm font-medium'>
               {t('settings.mcpServerList')} ({importableServers.length})
             </div>
-            <div className='border border-gray-200 rounded'>
+            <div className='border border-3 rounded'>
               {importableServers.map((server, index) => (
                 <div key={index} className='p-3 border-b border-gray-100 last:border-b-0'>
                   <div className='flex-1'>
                     <div className='font-medium'>{server.name}</div>
-                    {server.description && <div className='text-sm text-gray-500'>{server.description}</div>}
-                    <div className='text-xs text-gray-400 mt-1'>
+                    {server.description && <div className='text-sm text-t-secondary'>{server.description}</div>}
+                    <div className='text-xs text-t-secondary mt-1'>
                       {server.transport.type.toUpperCase()}: {server.transport.type === 'stdio' ? `${server.transport.command} ${server.transport.args?.join(' ')}` : server.transport.url}
                     </div>
                   </div>

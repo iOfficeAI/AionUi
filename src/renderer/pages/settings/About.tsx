@@ -50,13 +50,13 @@ const About: React.FC = () => {
       <div className='flex flex-col'>
         {/* 应用信息区域 */}
         <div className='flex flex-col items-center -mt-16px pb-8px'>
-          <Typography.Title heading={3} className='text-24px font-bold text-gray-800 mb-4px'>
+          <Typography.Title heading={3} className='text-24px font-bold text-t-primary mb-4px'>
             AionUi
           </Typography.Title>
-          <Typography.Text className='text-14px text-gray-600 mb-6px text-center'>{t('settings.appDescription')}</Typography.Text>
+          <Typography.Text className='text-14px text-t-secondary mb-6px text-center'>{t('settings.appDescription')}</Typography.Text>
           <div className='flex items-center justify-center gap-6px'>
-            <span className='px-8px py-2px rounded-6px text-12px bg-gray-100 text-gray-700'>v{packageJson.version}</span>
-            <div className='text-black cursor-pointer hover:text-gray-600 transition-colors' onClick={() => openLink('https://github.com/iOfficeAI/AionUi').catch((error) => console.error('Failed to open link:', error))}>
+            <span className='px-8px py-2px rounded-6px text-12px bg-1 text-t-primary'>v{packageJson.version}</span>
+            <div className='text-t-primary cursor-pointer hover:text-t-secondary transition-colors' onClick={() => openLink('https://github.com/iOfficeAI/AionUi').catch((error) => console.error('Failed to open link:', error))}>
               <Github theme='outline' size='20' />
             </div>
           </div>
@@ -70,15 +70,15 @@ const About: React.FC = () => {
           {linkItems.map((item, index) => (
             <div
               key={index}
-              className='flex items-center justify-between p-12px rounded-8px hover:bg-gray-50 hover:shadow-sm transition-all cursor-pointer'
+              className='flex items-center justify-between p-12px rounded-8px hover:bg-1 hover:shadow-sm transition-all cursor-pointer'
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 openLink(item.url).catch((error) => console.error('Failed to open link:', error));
               }}
             >
-              <Typography.Text className='text-14px text-gray-700'>{item.title}</Typography.Text>
-              <div className='text-gray-400 hover:text-gray-600 transition-colors'>{item.icon}</div>
+              <Typography.Text className='text-14px text-t-primary'>{item.title}</Typography.Text>
+              <div className='text-t-secondary hover:text-t-secondary transition-colors'>{item.icon}</div>
             </div>
           ))}
         </div>

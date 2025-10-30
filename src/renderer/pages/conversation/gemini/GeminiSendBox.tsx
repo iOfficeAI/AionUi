@@ -13,6 +13,7 @@ import { Plus } from '@icon-park/react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/ThoughtDisplay';
+import { iconColors } from '@/renderer/theme/colors';
 
 const useGeminiSendBoxDraft = getSendBoxDraftHook('gemini', {
   _type: 'gemini',
@@ -182,7 +183,7 @@ const GeminiSendBox: React.FC<{
             <Button
               type='secondary'
               shape='circle'
-              icon={<Plus theme='outline' size='14' strokeWidth={2} fill='#333' />}
+              icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />}
               onClick={() => {
                 void ipcBridge.dialog.showOpen
                   .invoke({
@@ -196,7 +197,7 @@ const GeminiSendBox: React.FC<{
               }}
             ></Button>
             {model && (
-              <Button className={'ml-4px'} shape='round'>
+              <Button className={'ml-4px text-t-primary'} shape='round'>
                 {model.useModel}
               </Button>
             )}

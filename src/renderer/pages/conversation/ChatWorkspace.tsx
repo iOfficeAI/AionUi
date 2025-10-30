@@ -13,6 +13,7 @@ import { Refresh, Search, FileAddition } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useDebounce from '../../hooks/useDebounce';
+import { iconColors } from '@/renderer/theme/colors';
 interface WorkspaceProps {
   workspace: string;
   conversation_id: string;
@@ -161,17 +162,17 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
     <div className='size-full flex flex-col'>
       <div className='px-16px pb-8px' onMouseEnter={() => setIsHeaderHovered(true)} onMouseLeave={() => setIsHeaderHovered(false)}>
         <div className='flex items-center justify-start gap-8px'>
-          <span className='font-bold text-14px'>{t('common.file')}</span>
+          <span className='font-bold text-14px text-t-primary'>{t('common.file')}</span>
           {isHeaderHovered && (
             <div className='flex items-center gap-8px'>
               <Tooltip content={t('conversation.workspace.addFile')}>
                 <span>
-                  <FileAddition className='cursor-pointer flex' theme='outline' size='16' fill='#86909c' onClick={handleAddFiles} />
+                  <FileAddition className='cursor-pointer flex' theme='outline' size='16' fill={iconColors.secondary} onClick={handleAddFiles} />
                 </span>
               </Tooltip>
               <Tooltip content={t('conversation.workspace.refresh')}>
                 <span>
-                  <Refresh className={loading ? 'loading lh-[1] flex cursor-pointer' : 'flex cursor-pointer'} theme='outline' size='16' fill='#86909c' onClick={() => refreshWorkspace()} />
+                  <Refresh className={loading ? 'loading lh-[1] flex cursor-pointer' : 'flex cursor-pointer'} theme='outline' size='16' fill={iconColors.secondary} onClick={() => refreshWorkspace()} />
                 </span>
               </Tooltip>
             </div>
@@ -189,7 +190,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
               onSearch(value);
             }}
             allowClear
-            prefix={<Search theme='outline' size='14' fill='#333' />}
+            prefix={<Search theme='outline' size='14' fill={iconColors.primary} />}
           />
         </div>
       )}
@@ -199,8 +200,8 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
             <Empty
               description={
                 <div>
-                  <span className='color-#6b7280 font-bold text-14px'>{searchText ? t('conversation.workspace.search.empty') : t('conversation.workspace.empty')}</span>
-                  <div>{searchText ? '' : t('conversation.workspace.emptyDescription')}</div>
+                  <span className='text-t-secondary font-bold text-14px'>{searchText ? t('conversation.workspace.search.empty') : t('conversation.workspace.empty')}</span>
+                  <div className='text-t-secondary'>{searchText ? '' : t('conversation.workspace.emptyDescription')}</div>
                 </div>
               }
             />
