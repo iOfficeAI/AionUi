@@ -405,14 +405,18 @@ const Guid: React.FC = () => {
         )}
 
         <div
-          className={`bg-base b-solid border rd-20px focus-within:shadow-[0px_2px_20px_rgba(77,60,234,0.1)] transition-all duration-200 overflow-hidden p-16px ${isFileDragging ? 'border-dashed' : 'border-3'}`}
+          className={`bg-base b-solid border rd-20px transition-all duration-200 overflow-hidden p-16px ${isFileDragging ? 'border-dashed' : 'border-3'}`}
           style={{
             width: 'clamp(400px, calc(100% - 80px), 720px)',
             zIndex: 1,
-            ...(isFileDragging && {
-              backgroundColor: 'var(--color-primary-light-1)',
-              borderColor: 'rgb(var(--primary-3))',
-            }),
+            ...(isFileDragging
+              ? {
+                  backgroundColor: 'var(--color-primary-light-1)',
+                  borderColor: 'rgb(var(--primary-3))',
+                }
+              : {
+                  boxShadow: '0px 2px 20px rgba(var(--primary-rgb, 77, 60, 234), 0.1)',
+                }),
           }}
           {...dragHandlers}
         >

@@ -6,6 +6,7 @@ import QwenLogo from '@/renderer/assets/logos/qwen.svg';
 import { Tag } from '@arco-design/web-react';
 import { LoadingOne } from '@icon-park/react';
 import React from 'react';
+import { iconColors } from '@/renderer/theme/colors';
 
 interface McpAgentStatusDisplayProps {
   serverName: string;
@@ -34,7 +35,7 @@ const McpAgentStatusDisplay: React.FC<McpAgentStatusDisplayProps> = ({ serverNam
   return (
     <div className='flex items-center -space-x-1'>
       {isLoadingAgentStatus ? (
-        <LoadingOne fill={'#165dff'} className={'h-[16px] w-[16px]'} />
+        <LoadingOne fill={iconColors.primary} className={'h-[16px] w-[16px]'} />
       ) : (
         agentInstallStatus[serverName]?.map((agent) => {
           const LogoComponent = getAgentLogo(agent);
