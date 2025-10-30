@@ -72,7 +72,7 @@ jobs:
             command: 'node scripts/build-with-builder.js arm64 --win --arm64'
             artifact-name: 'windows-build-arm64'
             arch: 'arm64'
-            node-arch: 'arm64'
+            node-arch: 'x64'
           - platform: 'linux'
             os: 'ubuntu-latest'
             command: 'npm run dist:linux'
@@ -287,14 +287,13 @@ jobs:
           FORGE_SKIP_NATIVE_REBUILD: false
 
       - name: Build with electron-builder (non-Windows)
-        if: "!startsWith(matrix.platform, 'windows')"
+        if: "!startsWith(matrix.platform, 'windows') && !startsWith(matrix.platform, 'macos-')"
         uses: nick-fields/retry@v3
         with:
-          # macOS notarization may take time; allow longer timeout on macOS builds
-          timeout_minutes: ${{ startsWith(matrix.platform, 'macos-') && 45 || 40 }}
+          timeout_minutes: 40
           max_attempts: 2
           retry_wait_seconds: 300
-          command: ${{ startsWith(matrix.platform, 'macos-') && matrix.arch == 'x64' && format('arch -x86_64 {0}', matrix.command) || matrix.command }}
+          command: ${{ matrix.command }}
           on_retry_command: |
             echo "⚠️ 构建超时或失败，5 分钟后进行第 2 次尝试..."
             echo "这可能是临时网络问题或 Apple 公证服务延迟"
@@ -324,6 +323,41 @@ jobs:
           # CI flag & GitHub token / CI 标识与 GitHub Token
           CI: true
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      - name: Build with electron-builder (macOS)
+        if: startsWith(matrix.platform, 'macos-')
+        shell: bash
+        timeout-minutes: 120
+        env:
+          # Target arch / 目标架构
+          npm_config_arch: ${{ matrix.arch }}
+          npm_config_target_arch: ${{ matrix.arch }}
+          # Native module compilation / 原生模块编译
+          npm_config_runtime: electron
+          npm_config_target: ${{ steps.electron-version.outputs.version }}
+          npm_config_disturl: https://electronjs.org/headers
+          npm_config_build_from_source: true
+          npm_config_cache: ${{ runner.temp }}/.npm
+          ELECTRON_CACHE: ${{ runner.temp }}/.cache/electron
+          ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/.cache/electron-builder
+          # Signing & IDs / 签名与应用 ID 配置
+          APP_ID: ${{ secrets.APP_ID }}
+          appleId: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.APPLE_ID || '' }}
+          appleIdPassword: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.APPLE_ID_PASSWORD || '' }}
+          teamId: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.TEAM_ID || '' }}
+          identity: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.IDENTITY || '' }}
+          CSC_NAME: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.IDENTITY || '' }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+          # CI flag & GitHub token / CI 标识与 GitHub Token
+          CI: true
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          FORGE_SKIP_NATIVE_REBUILD: false
+        run: |
+          if [ "${{ matrix.platform }}" = "macos-x64" ]; then
+            arch -x86_64 ${{ matrix.command }}
+          else
+            ${{ matrix.command }}
+          fi
 
       # macOS 钥匙串清理
       - name: Clean up keychain (macOS only)
