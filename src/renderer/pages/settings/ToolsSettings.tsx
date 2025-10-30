@@ -120,7 +120,7 @@ const ToolsSettings: React.FC = () => {
                     })}
                   </Select>
                 ) : (
-                  <div className='text-gray-400 flex items-center'>
+                  <div className='text-t-secondary flex items-center'>
                     {t('settings.noAvailable')}
                     <Tooltip
                       content={

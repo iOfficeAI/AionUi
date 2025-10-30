@@ -46,8 +46,8 @@ const SettingsSider: React.FC = () => {
         return (
           <div
             key={item.path}
-            className={classNames('hover:bg-#EBECF1 px-12px py-8px rd-8px flex justify-start items-center group cursor-pointer relative overflow-hidden group shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px', {
-              '!bg-#E5E7F0 ': isSelected,
+            className={classNames('hover:bg-aou-1 px-12px py-8px rd-8px flex justify-start items-center group cursor-pointer relative overflow-hidden group shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px', {
+              '!bg-aou-2 ': isSelected,
             })}
             onClick={() => {
               Promise.resolve(navigate(`/settings/${item.path}`)).catch((error) => {
@@ -61,7 +61,7 @@ const SettingsSider: React.FC = () => {
               className: 'mt-2px ml-2px mr-8px flex',
             })}
             <FlexFullContainer className='h-24px'>
-              <div className='text-nowrap overflow-hidden inline-block w-full text-14px lh-24px  whitespace-nowrap'>{item.label}</div>
+              <div className='text-nowrap overflow-hidden inline-block w-full text-14px lh-24px whitespace-nowrap text-t-primary'>{item.label}</div>
             </FlexFullContainer>
           </div>
         );

@@ -10,6 +10,7 @@ import React, { useMemo, useState } from 'react';
 import MarkdownView from '../components/Markdown';
 import { Copy } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
+import { iconColors } from '@/renderer/theme/colors';
 
 const useFormatContent = (content: string) => {
   return useMemo(() => {
@@ -52,7 +53,7 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
   return (
     <>
       <div className='flex flex-col'>
-        <div className={classNames('rd-8px  rd-tr-2px  [&>p:first-child]:mt-0px [&>p:last-child]:mb-0px', { 'bg-#E9EFFF p-8px': message.position === 'right' })}>
+        <div className={classNames('rd-8px  rd-tr-2px  [&>p:first-child]:mt-0px [&>p:last-child]:mb-0px', { 'bg-message-user p-8px': message.position === 'right' })}>
           <MarkdownView codeStyle={{ marginLeft: 16, marginTop: 4, marginBlock: 4 }}>{json ? `\`\`\`json\n${JSON.stringify(data, null, 2)}\n\`\`\`` : data}</MarkdownView>
         </div>
         <div
@@ -61,12 +62,16 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
             'justify-start': message.position !== 'right',
           })}
         >
-          <div className='p-4px rd-4px cursor-pointer hover:bg-#e5e6eb transition-colors' onClick={handleCopy} title={t('messages.copy')} style={{ lineHeight: 0 }}>
-            <Copy theme='outline' size='16' fill='#86909c' />
+          <div className='p-4px rd-4px cursor-pointer hover:bg-3 transition-colors' onClick={handleCopy} title={t('messages.copy')} style={{ lineHeight: 0 }}>
+            <Copy theme='outline' size='16' fill={iconColors.secondary} />
           </div>
         </div>
       </div>
-      {showToast && <div className='fixed top-20px left-50% transform -translate-x-50% bg-green-600 text-white px-16px py-8px rd-6px text-14px shadow-lg z-9999'>{t('messages.copySuccess')}</div>}
+      {showToast && (
+        <div className='fixed top-20px left-50% transform -translate-x-50% px-16px py-8px rd-6px text-14px shadow-lg z-9999' style={{ backgroundColor: 'rgb(var(--success-6))', color: 'var(--color-white)' }}>
+          {t('messages.copySuccess')}
+        </div>
+      )}
     </>
   );
 };

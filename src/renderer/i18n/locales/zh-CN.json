@@ -205,7 +205,16 @@
     "copy": "复制",
     "copySuccess": "复制成功",
     "copyFailed": "复制失败",
-    "scrollToBottom": "滚动到底部"
+    "scrollToBottom": "滚动到底部",
+    "unknownMessageType": "未知消息类型：{{type}}",
+    "permissionRequest": "权限请求",
+    "agentRequestingPermission": "代理正在请求权限。",
+    "command": "命令：",
+    "chooseAction": "选择一个操作：",
+    "option": "选项",
+    "noOptionsAvailable": "无可用选项",
+    "processing": "处理中...",
+    "responseSentSuccessfully": "响应已成功发送"
   },
   "mcp": {
     "integration": {

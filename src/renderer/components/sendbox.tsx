@@ -101,7 +101,18 @@ const SendBox: React.FC<{
 
   return (
     <div className={className}>
-      <div className={`relative p-16px b-#E5E6EB b bg-white b-solid rd-20px  focus-within:shadow-[0px_2px_20px_rgba(77,60,234,0.1)] ${isFileDragging ? 'bg-blue-50 b-blue-300 b-dashed' : ''}`} {...dragHandlers}>
+      <div
+        className={`relative p-16px border-3 b bg-base b-solid rd-20px focus-within:shadow-[0px_2px_20px_rgba(77,60,234,0.1)] ${isFileDragging ? 'b-dashed' : ''}`}
+        style={
+          isFileDragging
+            ? {
+                backgroundColor: 'var(--color-primary-light-1)',
+                borderColor: 'rgb(var(--primary-3))',
+              }
+            : undefined
+        }
+        {...dragHandlers}
+      >
         {prefix}
         {context}
         <Input.TextArea
@@ -128,7 +139,7 @@ const SendBox: React.FC<{
               //   size={18}
               //   onClick={stopHandler}
               // />
-              <Button shape='circle' type='secondary' className='bg-animate' icon={<div className='mx-auto size-12px bg-#86909C' onClick={stopHandler}></div>}></Button>
+              <Button shape='circle' type='secondary' className='bg-animate' icon={<div className='mx-auto size-12px bg-6' onClick={stopHandler}></div>}></Button>
             ) : (
               <Button
                 shape='circle'

@@ -146,19 +146,23 @@ const ChatHistory: React.FC = () => {
       <div
         key={conversation.id}
         id={'c-' + conversation.id}
-        className={classNames('hover:bg-#EBECF1 px-12px py-8px rd-8px flex justify-start items-center group cursor-pointer relative overflow-hidden group shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px', {
-          '!bg-#E5E7F0 ': isSelected,
+        className={classNames('hover:bg-aou-1 px-12px py-8px rd-8px flex justify-start items-center group cursor-pointer relative overflow-hidden group shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px', {
+          '!bg-aou-2 ': isSelected,
         })}
         onClick={handleSelect.bind(null, conversation)}
       >
         <MessageOne theme='outline' size='20' className='mt-2px ml-2px mr-8px flex' />
         <FlexFullContainer className='h-24px'>
-          <div className='text-nowrap overflow-hidden inline-block w-full text-14px lh-24px  whitespace-nowrap'>{conversation.name}</div>
+          <div className='text-nowrap overflow-hidden inline-block w-full text-14px lh-24px whitespace-nowrap text-t-primary'>{conversation.name}</div>
         </FlexFullContainer>
         <div
-          className={classNames('absolute right--15px top-0px h-full w-70px items-center justify-center hidden group-hover:flex !collapsed-hidden')}
+          className={classNames('absolute right--15px top-0px h-full w-70px items-center justify-center hidden group-hover:flex !collapsed-hidden', {
+            'bg-aou-2': isSelected,
+            'bg-aou-1': !isSelected,
+          })}
           style={{
-            backgroundImage: `linear-gradient(to right, rgba(219, 234, 254, 0),${isSelected ? '#E5E7F0' : '#E5E7F0'} 50%)`,
+            maskImage: 'linear-gradient(to right, transparent, black 50%)',
+            WebkitMaskImage: 'linear-gradient(to right, transparent, black 50%)',
           }}
           onClick={(event) => {
             event.stopPropagation();
@@ -206,7 +210,7 @@ const ChatHistory: React.FC = () => {
             const timeline = formatTimeline(item);
             return (
               <React.Fragment key={item.id}>
-                {timeline && <div className='collapsed-hidden px-12px py-8px text-13px color-#555 font-bold'>{timeline}</div>}
+                {timeline && <div className='collapsed-hidden px-12px py-8px text-13px text-t-secondary font-bold'>{timeline}</div>}
                 {renderConversation(item)}
               </React.Fragment>
             );

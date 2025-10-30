@@ -210,7 +210,16 @@
     "copy": "Copy",
     "copySuccess": "Copied successfully",
     "copyFailed": "Failed to copy",
-    "scrollToBottom": "Scroll to bottom"
+    "scrollToBottom": "Scroll to bottom",
+    "unknownMessageType": "Unknown message type: {{type}}",
+    "permissionRequest": "Permission Request",
+    "agentRequestingPermission": "The agent is requesting permission.",
+    "command": "Command:",
+    "chooseAction": "Choose an action:",
+    "option": "Option",
+    "noOptionsAvailable": "No options available",
+    "processing": "Processing...",
+    "responseSentSuccessfully": "Response sent successfully"
   },
   "mcp": {
     "integration": {

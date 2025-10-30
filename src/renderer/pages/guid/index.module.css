@@ -69,7 +69,7 @@
 
 /* 浅色占位符 */
 .lightPlaceholder :global(textarea::placeholder) {
-  color: #c9cdd4 !important;
+  color: var(--text-disabled) !important;
   opacity: 1 !important;
 }
 
@@ -88,7 +88,7 @@
   gap: 8px;
   padding: 10px 16px;
   border-radius: 12px;
-  background: #f7f8fa;
+  background: var(--bg-1);
   border: 2px solid transparent;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -113,7 +113,7 @@
 /* Hover 效果 - 展开显示名称 */
 .agentCard:not(.agentCardSelected):hover {
   opacity: 1;
-  background: #eff0f1;
+  background: var(--workspace-btn-bg);
 }
 
 .agentCard:not(.agentCardSelected):hover .agentName {
@@ -124,7 +124,7 @@
 
 /* 选中状态 - 完全展开,白底 */
 .agentCardSelected {
-  background: #ffffff;
+  background: var(--bg-base);
   flex: 1 1 auto;
   border-radius: 30px;
 }
@@ -133,7 +133,7 @@
 .agentName {
   font-weight: 500;
   font-size: 14px;
-  color: #1d2129;
+  color: var(--text-primary);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 

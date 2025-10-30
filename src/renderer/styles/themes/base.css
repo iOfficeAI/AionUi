@@ -1,0 +1,68 @@
+/* Base styles - theme-independent */
+
+.loading {
+  animation: loading 1s linear infinite;
+}
+
+.bg-animate {
+  animation: bg-animate 1s alternate infinite;
+}
+
+@keyframes bg-animate {
+  0% {
+    background-color: var(--bg-2);
+  }
+  100% {
+    background-color: var(--bg-3);
+  }
+}
+
+@keyframes loading {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.collapsed {
+  .collapsed-hidden {
+    display: none;
+  }
+  .\!collapsed-hidden {
+    display: none !important;
+  }
+}
+
+/* Custom scrollbar styles */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 3px;
+  transition: background 0.3s;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+[data-theme='dark'] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+*:hover::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme='dark'] *:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+}

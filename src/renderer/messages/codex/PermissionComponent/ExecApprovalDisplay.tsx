@@ -40,23 +40,23 @@ const ExecApprovalDisplay: React.FC<ExecApprovalDisplayProps> = React.memo(({ co
     <BasePermissionDisplay content={content} messageId={messageId} conversationId={conversationId} icon={execInfo.icon} title={execInfo.title}>
       {/* Command details */}
       <div>
-        <Text className='text-xs text-gray-500 mb-1'>{t('codex.permissions.labels.command')}</Text>
-        <code className='text-xs bg-gray-100 p-2 rounded block text-gray-800 break-all'>{execInfo.command}</code>
+        <Text className='text-xs text-t-secondary mb-1'>{t('codex.permissions.labels.command')}</Text>
+        <code className='text-xs bg-1 p-2 rounded block text-t-primary break-all'>{execInfo.command}</code>
       </div>
 
       {/* Working directory */}
       {execInfo.cwd && (
         <div>
-          <Text className='text-xs text-gray-500 mb-1'>{t('codex.permissions.labels.directory')}</Text>
-          <code className='text-xs bg-gray-100 p-2 rounded block text-gray-800 break-all'>{execInfo.cwd}</code>
+          <Text className='text-xs text-t-secondary mb-1'>{t('codex.permissions.labels.directory')}</Text>
+          <code className='text-xs bg-1 p-2 rounded block text-t-primary break-all'>{execInfo.cwd}</code>
         </div>
       )}
 
       {/* Reason */}
       {execInfo.reason && (
         <div>
-          <Text className='text-xs text-gray-500 mb-1'>{t('codex.permissions.labels.reason')}</Text>
-          <Text className='text-sm text-gray-700'>{execInfo.reason}</Text>
+          <Text className='text-xs text-t-secondary mb-1'>{t('codex.permissions.labels.reason')}</Text>
+          <Text className='text-sm text-t-primary'>{execInfo.reason}</Text>
         </div>
       )}
     </BasePermissionDisplay>
