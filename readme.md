@@ -26,6 +26,10 @@
 
 ## 🚀 **What Can AionUi Do?**
 
+<p align="center">
+  <img src="./resources/BANNER.png" alt="AionUi Banner" width="100%">
+</p>
+
 ### 🤖 **Multi-Agent Mode**
 
 _Seamlessly integrate multiple terminal AI agents - Gemini CLI, Claude Code, Qwen Code, Codex and more_
@@ -42,7 +46,7 @@ _Intelligent image generation, editing, and recognition powered by Gemini 2.5 Fl
   <img src="./resources/Image_Generation.gif" alt="AI Image Generation Demo" width="800">
 </p>
 
-> 💡 **Need help setting up free image generation?** [Follow the tutorial to configure image generation models](https://github.com/iOfficeAI/AionUi/wiki/OpenRouter-Setup-and-Image-Generation) - Complete step-by-step guide for OpenRouter setup and free Gemini 2.5 Flash Image Preview configuration.
+> 💡 **Need help setting up free image generation?** [Follow the tutorial to configure image generation models](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide) - Complete step-by-step guide for OpenRouter setup and free Gemini 2.5 Flash Image Preview configuration.
 
 ### 📁 **Organizing Your Files**
 
@@ -67,6 +71,16 @@ _Multiple conversations, no task confusion, independent memory, double efficienc
 <p align="center">
   <img src="./resources/multichat-side-by-side.gif" alt="Conversation Management Demo" width="800">
 </p>
+
+### 🌐 **Access AionUi from Anywhere - WebUI Mode**
+
+_Remote Control Your AI Assistant - Access AionUi from any device on your network! Securely control your local Agent with data staying on your device_
+
+<p align="center">
+  <img src="./resources/webui-remote.png" alt="WebUI Remote Access Demo" width="800">
+</p>
+
+> 💡 **Perfect for Server Deployment** - Run AionUi 24/7 on Linux servers without desktop environment and access it remotely from anywhere!
 
 ---
 
@@ -158,6 +172,16 @@ AionUi provides a modern interface for users who need better workflow efficiency
 - **Image Recognition** - Advanced image analysis and understanding
 - **High-Quality Output** - Professional-grade image generation with detailed control
 
+### 🌐 **WebUI Remote Access**
+
+- **Cross-Device Access** - Access AionUi from any device on your network via web browser
+- **Remote Control Local Agent** - Securely control your local AI Agent without data transmission
+- **Secure Authentication** - User login protection ensures your AI conversations and data are safe
+- **Server Deployment** - Perfect for running AionUi 24/7 on Linux servers without desktop environment
+- **Smart Network Detection** - Automatically detects and displays the best network address for connection
+- **Local Data Security** - All conversations, settings, and configurations stored locally using SQLite database
+- **Remote Control** - Control your AI assistant from phone, tablet, or any computer on the network
+
 ### 🔧 **Settings Are Simple**
 
 - **Multi-Platform Support** - Support Gemini, OpenAI, ModelScope, OpenRouter, etc.
@@ -194,6 +218,7 @@ Ready to try AionUi? Download the latest version for your platform from our rele
 - [🤖 Multi-Agent Mode Setup](https://github.com/iOfficeAI/AionUi/wiki/ACP-Setup) - Integrate terminal AI agents
 - [🔌 MCP Tool Configuration](https://github.com/iOfficeAI/AionUi/wiki/MCP-Configuration-Guide) - Model Context Protocol server setup
 - [🎨 Image Generation Configuration](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide) - AI image generation setup tutorial
+- [🌐 WebUI Configuration Guide](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) - Complete WebUI setup and configuration
 
 ### 🎯 Use Cases
 

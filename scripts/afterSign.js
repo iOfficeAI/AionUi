@@ -32,16 +32,24 @@ exports.default = async function afterSign(context) {
   console.log(`Starting notarization for ${appName} (${appBundleId})...`);
 
   try {
-    await notarize({
+    // Set a reasonable timeout for notarization (30 minutes)
+    const notarizePromise = notarize({
       appBundleId,
       appPath: appPath,
       appleId: process.env.appleId,
       appleIdPassword: process.env.appleIdPassword,
       teamId: process.env.teamId,
     });
+
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Notarization timeout after 30 minutes')), 30 * 60 * 1000)
+    );
+
+    await Promise.race([notarizePromise, timeoutPromise]);
     console.log('Notarization completed successfully');
   } catch (error) {
     console.error('Notarization failed:', error);
-    throw error;
+    // Don't throw error to allow build to complete with signing only
+    console.warn('Continuing with signed-only build (not notarized)');
   }
 };

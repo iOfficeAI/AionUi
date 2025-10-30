@@ -22,6 +22,10 @@
 
 ## 🎯 **AionUi ユースケース**
 
+<p align="center">
+  <img src="./resources/BANNER.png" alt="AionUi Banner" width="100%">
+</p>
+
 ### 🤖 **マルチエージェントモード**
 
 _複数のターミナル AI エージェントをシームレスに統合 - Gemini CLI、Claude Code、Qwen Code、Codex など_
@@ -37,6 +41,8 @@ _Gemini 2.5 Flash Image Preview によるインテリジェントな画像生成
 <p align="center">
   <img src="./resources/Image_Generation.gif" alt="AI 画像生成デモ" width="800">
 </p>
+
+> 💡 **無料画像生成の設定でお困りですか？** [画像生成モデルの設定チュートリアルに従う](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide-Japanese) - OpenRouter セットアップと無料 Gemini 2.5 Flash Image Preview 設定の完全なステップバイステップガイド。
 
 ### 📁 **スマートファイル管理**
 
@@ -61,6 +67,16 @@ _複数の会話を開いてもタスクは混乱せず、それぞれの記憶�
 <p align="center">
   <img src="./resources/multichat-side-by-side.gif" alt="会話管理デモ" width="800">
 </p>
+
+### 🌐 **どこからでもアクセス - WebUI モード**
+
+_AI アシスタントをリモート制御 - ネットワーク上の任意のデバイスから AionUi にアクセス！_
+
+<p align="center">
+  <img src="./resources/webui-remote.png" alt="WebUI リモートアクセスデモ" width="800">
+</p>
+
+> 💡 **サーバー展開に最適** - Linux サーバーで 24/7 実行、デスクトップ環境不要、どこからでもリモートアクセス！
 
 ## 📋 目次
 
@@ -142,6 +158,16 @@ AionUi は、作業効率を向上させるモダンなインターフェース�
 - **画像認識** - 高度な画像分析・理解
 - **高品質出力** - プロ仕様の画像生成、詳細な制御が可能
 
+### 🌐 **WebUI リモートアクセス**
+
+- **クロスデバイスアクセス** - ネットワーク上の任意のデバイスからブラウザで AionUi にアクセス
+- **ローカルエージェントのリモート制御** - データ転送なしでローカル AI エージェントを安全に制御
+- **安全な認証** - ユーザーログイン保護により、AI 会話とデータの安全を確保
+- **サーバー展開** - Linux サーバーで 24/7 実行、デスクトップ環境不要
+- **スマートネットワーク検出** - 最適なネットワーク接続アドレスを自動検出・表示
+- **ローカルデータセキュリティ** - すべての会話、設定、構成を SQLite データベースでローカル保存
+- **リモート制御** - スマートフォン、タブレット、ネットワーク上の任意のコンピューターから AI アシスタントを制御
+
 ### 🔧 **シンプルで便利な設定**
 
 - **多様なプラットフォームに対応** - Gemini、OpenAI、ModelScope、OpenRouter など、主要なプラットフォームに対応しています。
@@ -177,7 +203,8 @@ AionUi をお試しですか？お使いの環境に合った最新版を、リ�
 - [⚙️ LLM 設定ガイド](https://github.com/iOfficeAI/AionUi/wiki/LLM-Configuration) - マルチプラットフォーム AI モデル設定
 - [🤖 マルチエージェントモード設定](https://github.com/iOfficeAI/AionUi/wiki/ACP-Setup) - ターミナル AI エージェント統合
 - [🔌 MCP ツール設定](https://github.com/iOfficeAI/AionUi/wiki/MCP-Configuration-Guide) - モデルコンテキストプロトコルサーバー設定
-- [🎨 画像生成設定](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide) - AI 画像生成設定チュートリアル
+- [🎨 画像生成設定](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide-Japanese) - AI 画像生成設定チュートリアル
+- [🌐 WebUI 設定ガイド](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) - 完全な WebUI セットアップと設定チュートリアル
 
 ### 🎯 ユースケース
 

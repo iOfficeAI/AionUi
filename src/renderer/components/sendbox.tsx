@@ -76,15 +76,11 @@ const SendBox: React.FC<{
       return;
     }
     setIsLoading(true);
-    const messageToSend = input;
-    // 立即清空输入框，提供更好的用户体验
-    setInput('');
-    onSend(messageToSend)
-      .catch((error) => {
-        // 如果发送失败，恢复输入内容
-        console.error('Failed to send message:', error);
-        setInput(messageToSend);
+    onSend(input)
+      .then(() => {
+        setInput('');
       })
+      .catch(() => {})
       .finally(() => {
         setIsLoading(false);
       });
@@ -100,19 +96,8 @@ const SendBox: React.FC<{
   };
 
   return (
-    <div className={className}>
-      <div
-        className={`relative p-16px border-3 b bg-base b-solid rd-20px focus-within:shadow-[0px_2px_20px_rgba(77,60,234,0.1)] ${isFileDragging ? 'b-dashed' : ''}`}
-        style={
-          isFileDragging
-            ? {
-                backgroundColor: 'var(--color-primary-light-1)',
-                borderColor: 'rgb(var(--primary-3))',
-              }
-            : undefined
-        }
-        {...dragHandlers}
-      >
+    <div className={`mb-16px  ${className}`}>
+      <div className={`relative p-16px b-#E5E6EB b bg-white b-solid rd-20px  focus-within:shadow-[0px_2px_20px_rgba(77,60,234,0.1)] ${isFileDragging ? 'bg-blue-50 b-blue-300 b-dashed' : ''}`} {...dragHandlers}>
         {prefix}
         {context}
         <Input.TextArea
@@ -130,7 +115,7 @@ const SendBox: React.FC<{
           onKeyDown={createKeyDownHandler(sendMessageHandler)}
         ></Input.TextArea>
         <div className='flex items-center justify-between gap-2 '>
-          <span>{tools}</span>
+          <span className='sendbox-tools'>{tools}</span>
           <div className='flex items-center gap-2'>
             {isLoading || loading ? (
               // <Loading
@@ -139,28 +124,17 @@ const SendBox: React.FC<{
               //   size={18}
               //   onClick={stopHandler}
               // />
-              <Button shape='circle' type='secondary' className='bg-animate' icon={<div className='mx-auto size-12px bg-6' onClick={stopHandler}></div>}></Button>
+              <Button shape='circle' type='secondary' className='sendbox-icon-btn bg-animate' icon={<div className='mx-auto size-12px bg-#86909C' onClick={stopHandler}></div>}></Button>
             ) : (
               <Button
                 shape='circle'
                 type='primary'
+                className='sendbox-icon-btn'
                 icon={<ArrowUp theme='outline' size='14' fill='white' strokeWidth={2} />}
                 onClick={() => {
                   sendMessageHandler();
                 }}
               />
-              // <Send
-              //   theme="filled"
-              //   size={18}
-              //   onClick={() => {
-              //     sendMessageHandler();
-              //   }}
-              //   fill={
-              //     input
-              //       ? theme.Color.BrandColor["brand-6"]
-              //       : theme.Color.NeutralColor["grey-8"]
-              //   }
-              // />
             )}
           </div>
         </div>
