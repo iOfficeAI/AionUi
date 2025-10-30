@@ -72,7 +72,7 @@ jobs:
             command: 'node scripts/build-with-builder.js arm64 --win --arm64'
             artifact-name: 'windows-build-arm64'
             arch: 'arm64'
-            node-arch: 'arm64'
+            node-arch: 'x64'
           - platform: 'linux'
             os: 'ubuntu-latest'
             command: 'npm run dist:linux'
