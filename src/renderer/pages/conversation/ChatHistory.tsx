@@ -8,8 +8,8 @@ import { ipcBridge } from '@/common';
 import type { TChatConversation } from '@/common/storage';
 import FlexFullContainer from '@/renderer/components/FlexFullContainer';
 import { addEventListener, emitter } from '@/renderer/utils/emitter';
-import { Empty, Popconfirm, Input } from '@arco-design/web-react';
-import { DeleteOne, MessageOne, EditOne } from '@icon-park/react';
+import { Empty, Popconfirm } from '@arco-design/web-react';
+import { DeleteOne, MessageOne } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -81,10 +81,8 @@ const useScrollIntoView = (id: string) => {
   }, [id]);
 };
 
-const ChatHistory: React.FC<{ onSessionClick?: () => void }> = ({ onSessionClick }) => {
+const ChatHistory: React.FC = () => {
   const [chatHistory, setChatHistory] = useState<TChatConversation[]>([]);
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editingName, setEditingName] = useState<string>('');
   const { id } = useParams();
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -96,10 +94,6 @@ const ChatHistory: React.FC<{ onSessionClick?: () => void }> = ({ onSessionClick
     Promise.resolve(navigate(`/conversation/${conversation.id}`)).catch((error) => {
       console.error('Navigation failed:', error);
     });
-    // 点击session后自动隐藏sidebar
-    if (onSessionClick) {
-      onSessionClick();
-    }
     // });
   };
 
@@ -128,13 +122,13 @@ const ChatHistory: React.FC<{ onSessionClick?: () => void }> = ({ onSessionClick
   }, [isConversation]);
 
   const handleRemoveConversation = (id: string) => {
-    void ipcBridge.conversation.remove
+    ipcBridge.conversation.remove
       .invoke({ id })
       .then((success) => {
         if (success) {
           // Trigger refresh to reload from database
           emitter.emit('chat.history.refresh');
-          void Promise.resolve(navigate('/')).catch((error) => {
+          Promise.resolve(navigate('/')).catch((error) => {
             console.error('Navigation failed:', error);
           });
         }
@@ -144,82 +138,36 @@ const ChatHistory: React.FC<{ onSessionClick?: () => void }> = ({ onSessionClick
       });
   };
 
-  const handleEditStart = (conversation: TChatConversation) => {
-    setEditingId(conversation.id);
-    setEditingName(conversation.name);
-  };
-
-  const handleEditSave = async () => {
-    if (!editingId || !editingName.trim()) return;
-
-    try {
-      const success = await ipcBridge.conversation.update.invoke({
-        id: editingId,
-        updates: { name: editingName.trim() },
-      });
-
-      if (success) {
-        // Trigger refresh to reload from database
-        emitter.emit('chat.history.refresh');
-      }
-    } catch (error) {
-      console.error('Failed to update conversation name:', error);
-    } finally {
-      setEditingId(null);
-      setEditingName('');
-    }
-  };
-
-  const handleEditCancel = () => {
-    setEditingId(null);
-    setEditingName('');
-  };
-
-  const handleEditKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      void handleEditSave();
-    } else if (e.key === 'Escape') {
-      handleEditCancel();
-    }
-  };
-
   const formatTimeline = useTimeline();
 
   const renderConversation = (conversation: TChatConversation) => {
     const isSelected = id === conversation.id;
-    const isEditing = editingId === conversation.id;
-
     return (
       <div
         key={conversation.id}
         id={'c-' + conversation.id}
-        className={classNames('hover:bg-#EBECF1 px-12px py-8px rd-8px flex justify-start items-center group cursor-pointer relative overflow-hidden group shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px', {
-          '!bg-#E5E7F0 ': isSelected,
+        className={classNames('hover:bg-aou-1 px-12px py-8px rd-8px flex justify-start items-center group cursor-pointer relative overflow-hidden group shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px', {
+          '!bg-aou-2 ': isSelected,
         })}
         onClick={handleSelect.bind(null, conversation)}
       >
         <MessageOne theme='outline' size='20' className='mt-2px ml-2px mr-8px flex' />
-        <FlexFullContainer className='h-24px'>{isEditing ? <Input className='text-14px lh-24px h-24px' value={editingName} onChange={setEditingName} onKeyDown={handleEditKeyDown} onBlur={handleEditSave} autoFocus size='small' /> : <div className='text-nowrap overflow-hidden inline-block w-full text-14px lh-24px whitespace-nowrap'>{conversation.name}</div>}</FlexFullContainer>
+        <FlexFullContainer className='h-24px'>
+          <div className='text-nowrap overflow-hidden inline-block w-full text-14px lh-24px whitespace-nowrap text-t-primary'>{conversation.name}</div>
+        </FlexFullContainer>
         <div
-          className={classNames('absolute right--15px top-0px h-full w-70px items-center justify-center hidden group-hover:flex !collapsed-hidden')}
+          className={classNames('absolute right--15px top-0px h-full w-70px items-center justify-center hidden group-hover:flex !collapsed-hidden', {
+            'bg-aou-2': isSelected,
+            'bg-aou-1': !isSelected,
+          })}
           style={{
-            backgroundImage: `linear-gradient(to right, rgba(219, 234, 254, 0),${isSelected ? '#E5E7F0' : '#E5E7F0'} 50%)`,
+            maskImage: 'linear-gradient(to right, transparent, black 50%)',
+            WebkitMaskImage: 'linear-gradient(to right, transparent, black 50%)',
           }}
           onClick={(event) => {
             event.stopPropagation();
           }}
         >
-          {!isEditing && (
-            <span
-              className='flex-center mr-8px'
-              onClick={(event) => {
-                event.stopPropagation();
-                handleEditStart(conversation);
-              }}
-            >
-              <EditOne theme='outline' size='20' className='flex' />
-            </span>
-          )}
           <Popconfirm
             title={t('conversation.history.deleteTitle')}
             content={t('conversation.history.deleteConfirm')}
@@ -262,7 +210,7 @@ const ChatHistory: React.FC<{ onSessionClick?: () => void }> = ({ onSessionClick
             const timeline = formatTimeline(item);
             return (
               <React.Fragment key={item.id}>
-                {timeline && <div className='collapsed-hidden px-12px py-8px text-13px color-#555 font-bold'>{timeline}</div>}
+                {timeline && <div className='collapsed-hidden px-12px py-8px text-13px text-t-secondary font-bold'>{timeline}</div>}
                 {renderConversation(item)}
               </React.Fragment>
             );
