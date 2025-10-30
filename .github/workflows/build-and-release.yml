@@ -107,6 +107,7 @@ jobs:
           npm_config_arch: ${{ matrix.arch == 'x64,arm64' && 'x64' || matrix.arch }}
 
       - name: Install native dependencies for Electron
+        shell: bash
         run: |
           case "${{ matrix.platform }}" in
             macos-x64)
