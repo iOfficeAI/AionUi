@@ -15,7 +15,6 @@ import { useTranslation } from 'react-i18next';
 import Diff2Html from '../components/Diff2Html';
 import LocalImageView from '../components/LocalImageView';
 import MarkdownView from '../components/Markdown';
-import { iconColors } from '@/renderer/theme/colors';
 
 interface IMessageToolGroupProps {
   message: IMessageToolGroup;
@@ -121,19 +120,19 @@ const ConfirmationDetails: React.FC<{
       case 'edit':
         return (
           <div>
-            <Diff2Html title={isConfirm ? confirmationDetails.title : content.description} diff={confirmationDetails?.fileDiff || ''}></Diff2Html>
+            <Diff2Html className='ml-16px' title={isConfirm ? confirmationDetails.title : content.description} diff={confirmationDetails?.fileDiff || ''}></Diff2Html>
           </div>
         );
       case 'exec':
         return (
-          <div className='min-w-400px'>
+          <div className='min-w-0 max-w-full'>
             <MarkdownView codeStyle={{ marginLeft: 16, marginTop: 4, marginBottom: 4 }}>{`\`\`\`bash\n${confirmationDetails.command}\n\`\`\``}</MarkdownView>
           </div>
         );
       case 'info':
-        return <span className='text-t-primary'>{confirmationDetails.prompt}</span>;
+        return <span>{confirmationDetails.prompt}</span>;
       case 'mcp':
-        return <span className='text-t-primary'>{confirmationDetails.toolDisplayName}</span>;
+        return <span>{confirmationDetails.toolDisplayName}</span>;
     }
   }, [confirmationDetails, content]);
 
@@ -146,7 +145,7 @@ const ConfirmationDetails: React.FC<{
       {node}
       {content.status === 'Confirming' && (
         <>
-          <div className='mt-10px text-t-primary'>{question}</div>
+          <div className='mt-10px'>{question}</div>
           <Radio.Group direction='vertical' size='mini' value={selected} onChange={setSelected}>
             {options.map((item) => {
               return (
@@ -176,7 +175,7 @@ const ToolResultDisplay: React.FC<{
     const { img_url, relative_path } = resultDisplay as any;
     return <LocalImageView src={img_url} alt={relative_path || img_url} className='max-w-100% max-h-100%' />;
   }
-  return <div className='text-t-primary'>{display}</div>;
+  return <div>{display}</div>;
 };
 
 const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
@@ -213,8 +212,8 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
 
         if (name === 'WriteFile' && typeof resultDisplay !== 'string') {
           return (
-            <div className='min-w-400px'>
-              <Diff2Html diff={(resultDisplay as any)?.fileDiff || ''}></Diff2Html>
+            <div className='min-w-0 max-w-full'>
+              <Diff2Html className='ml-16px' diff={(resultDisplay as any)?.fileDiff || ''}></Diff2Html>
             </div>
           );
         }
@@ -225,14 +224,14 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
             className={'!items-start !rd-8px !px-8px [&_div.arco-alert-content-wrapper]:max-w-[calc(100%-24px)]'}
             key={callId}
             type={status === 'Error' ? 'error' : status === 'Success' ? 'success' : status === 'Canceled' ? 'warning' : 'info'}
-            icon={isLoading && <LoadingOne theme='outline' size='12' fill={iconColors.primary} className='loading lh-[1] flex' />}
+            icon={isLoading && <LoadingOne theme='outline' size='12' fill='#333' className='loading lh-[1] flex' />}
             content={
               <div>
                 <Tag className={'mr-4px'}>
                   {name}
                   {status === 'Canceled' ? `(${t('messages.canceledExecution')})` : ''}
                 </Tag>
-                <div className='text-12px text-t-secondary'>{description}</div>
+                <div className='text-12px color-#666'>{description}</div>
                 <div className='overflow-auto'>
                   <ToolResultDisplay content={content}></ToolResultDisplay>
                 </div>

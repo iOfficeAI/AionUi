@@ -1,5 +1,4 @@
 import { ipcBridge } from '@/common';
-import type { AcpBackend } from '@/types/acpTypes';
 import { transformMessage, type TMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import { uuid } from '@/common/utils';
@@ -11,12 +10,11 @@ import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/useSendBo
 import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
 import { allSupportedExts, getCleanFileName } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
+import type { AcpBackend } from '@/types/acpTypes';
 import { Button, Tag } from '@arco-design/web-react';
 import { Plus } from '@icon-park/react';
-import classNames from 'classnames';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { iconColors } from '@/renderer/theme/colors';
 
 const useAcpSendBoxDraft = getSendBoxDraftHook('acp', {
   _type: 'acp',
@@ -311,7 +309,8 @@ const AcpSendBox: React.FC<{
             <Button
               type='secondary'
               shape='circle'
-              icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />}
+              className='sendbox-icon-btn sendbox-icon-plus'
+              icon={<Plus theme='outline' size='14' strokeWidth={2} fill='#333' />}
               onClick={() => {
                 ipcBridge.dialog.showOpen
                   .invoke({

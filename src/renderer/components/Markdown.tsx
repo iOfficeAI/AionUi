@@ -263,7 +263,7 @@ const MarkdownView: React.FC<{
               />
             ),
             table: ({ node: _node, ...props }) => (
-              <div style={{ overflowX: 'auto', maxWidth: 'calc(100vw - 32px)' }}>
+              <div style={{ overflowX: 'auto', maxWidth: '100%' }}>
                 <table
                   {...props}
                   style={{

@@ -2,7 +2,7 @@ import FlexFullContainer from '@/renderer/components/FlexFullContainer';
 import { removeStack } from '@/renderer/utils/common';
 import { Layout as ArcoLayout } from '@arco-design/web-react';
 import { ExpandLeft, ExpandRight } from '@icon-park/react';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 import ClaudeLogo from '@/renderer/assets/logos/claude.svg';
 import CodexLogo from '@/renderer/assets/logos/codex.svg';
@@ -80,6 +80,20 @@ const ChatLayout: React.FC<{
 
   const { siderWidth, dragContext } = useSiderWidthWithDrag(266);
   const { backend } = props;
+
+  // 启动时检测移动端并自动收起右侧边栏
+  useEffect(() => {
+    const checkMobileOnLoad = () => {
+      // 检测屏幕宽度小于768px（平板和手机的常见分界）
+      const isMobile = window.innerWidth < 768;
+      if (isMobile) {
+        setRightSiderCollapsed(true);
+      }
+    };
+
+    // 只在组件首次加载时执行一次
+    checkMobileOnLoad();
+  }, []); // 空依赖数组确保只在组件初始化时执行一次
 
   return (
     <ArcoLayout className={'size-full'}>
