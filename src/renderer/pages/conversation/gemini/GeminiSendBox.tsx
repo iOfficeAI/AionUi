@@ -3,7 +3,6 @@ import { transformMessage } from '@/common/chatLib';
 import type { TProviderWithModel } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import SendBox from '@/renderer/components/sendbox';
-import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/ThoughtDisplay';
 import { getSendBoxDraftHook } from '@/renderer/hooks/useSendBoxDraft';
 import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/useSendBoxFiles';
 import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
@@ -13,6 +12,8 @@ import { Button, Tag } from '@arco-design/web-react';
 import { Plus } from '@icon-park/react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/ThoughtDisplay';
+import { iconColors } from '@/renderer/theme/colors';
 
 const useGeminiSendBoxDraft = getSendBoxDraftHook('gemini', {
   _type: 'gemini',
@@ -182,8 +183,7 @@ const GeminiSendBox: React.FC<{
             <Button
               type='secondary'
               shape='circle'
-              className='sendbox-icon-btn sendbox-icon-plus'
-              icon={<Plus theme='outline' size='14' strokeWidth={2} fill='#333' />}
+              icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />}
               onClick={() => {
                 void ipcBridge.dialog.showOpen
                   .invoke({
@@ -197,7 +197,7 @@ const GeminiSendBox: React.FC<{
               }}
             ></Button>
             {model && (
-              <Button className={'ml-4px sendbox-model-btn'} shape='round'>
+              <Button className={'ml-4px text-t-primary'} shape='round'>
                 {model.useModel}
               </Button>
             )}
