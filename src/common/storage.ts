@@ -41,6 +41,7 @@ export interface IConfigStorageRefer {
   'mcp.agentInstallStatus': Record<string, string[]>;
   language: string;
   theme: string;
+  colorScheme: string;
   'gemini.defaultModel': string;
   'tools.imageGenerationModel': TProviderWithModel & {
     switch: boolean;
