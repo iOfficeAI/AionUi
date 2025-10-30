@@ -98,15 +98,17 @@ const SendBox: React.FC<{
   return (
     <div className={className}>
       <div
-        className={`relative p-16px border-3 b bg-base b-solid rd-20px focus-within:shadow-[0px_2px_20px_rgba(77,60,234,0.1)] ${isFileDragging ? 'b-dashed' : ''}`}
-        style={
-          isFileDragging
+        className={`relative p-16px border-3 b bg-base b-solid rd-20px ${isFileDragging ? 'b-dashed' : ''}`}
+        style={{
+          ...(isFileDragging
             ? {
                 backgroundColor: 'var(--color-primary-light-1)',
                 borderColor: 'rgb(var(--primary-3))',
               }
-            : undefined
-        }
+            : {
+                boxShadow: '0px 2px 20px rgba(var(--primary-rgb, 77, 60, 234), 0.1)',
+              }),
+        }}
         {...dragHandlers}
       >
         {prefix}

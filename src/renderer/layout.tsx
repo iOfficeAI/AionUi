@@ -8,7 +8,7 @@ import { ipcBridge } from '@/common';
 import { Layout as ArcoLayout } from '@arco-design/web-react';
 import { MenuFold, MenuUnfold } from '@icon-park/react';
 import classNames from 'classnames';
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { useDirectorySelection } from './hooks/useDirectorySelection';
 import { useMultiAgentDetection } from './hooks/useMultiAgentDetection';
@@ -87,7 +87,7 @@ const Layout: React.FC<{
           })}
         >
           <div
-            className={classNames('bg-#000 shrink-0 size-40px relative rd-0.5rem ', {
+            className={classNames('bg-black shrink-0 size-40px relative rd-0.5rem', {
               '!size-24px': collapsed,
             })}
             onClick={onClick}
