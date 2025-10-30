@@ -43,21 +43,20 @@ jobs:
     needs: code-quality
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
     env:
-      ENABLE_MAC_SIGNING: ${{ github.ref == 'refs/heads/main' && 'true' || 'false' }}
+      ENABLE_MAC_SIGNING: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev') && 'true' || 'false' }}
 
     strategy:
       fail-fast: false
       matrix:
         include:
           - platform: 'macos-x64'
-            # Build Intel target on Apple Silicon runner via Rosetta because macos-12 runners are capacity constrained
-            os: 'macos-14'
-            command: 'node scripts/build-with-builder.js x64 --mac --x64'
+            os: 'macos-12'
+            command: 'npm run build-mac:x64'
             artifact-name: 'macos-build-x64'
             arch: 'x64'
           - platform: 'macos-arm64'
-            os: 'macos-latest'  # Use Apple Silicon Mac runner for arm64 build
-            command: 'node scripts/build-with-builder.js arm64 --mac --arm64'
+            os: 'macos-14'
+            command: 'npm run build-mac:arm64'
             artifact-name: 'macos-build-arm64'
             arch: 'arm64'
           - platform: 'windows-x64'
@@ -81,24 +80,10 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Node.js
-        if: matrix.platform != 'macos-x64'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
-
-      - name: Setup Node.js (Rosetta x64)
-        if: matrix.platform == 'macos-x64'
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          architecture: 'x64'
-
-      - name: Ensure Rosetta for Intel build
-        if: matrix.platform == 'macos-x64'
-        run: |
-          sudo softwareupdate --install-rosetta --agree-to-license || echo "Rosetta is already installed"
 
       - name: Get Electron version
         id: electron-version
@@ -120,6 +105,29 @@ jobs:
           # For Linux with multi-arch, use x64; otherwise use the specified arch
           npm_config_target_arch: ${{ matrix.arch == 'x64,arm64' && 'x64' || matrix.arch }}
           npm_config_arch: ${{ matrix.arch == 'x64,arm64' && 'x64' || matrix.arch }}
+
+      - name: Install native dependencies for Electron
+        run: |
+          case "${{ matrix.platform }}" in
+            macos-x64)
+              echo "Installing native deps for macOS x64"
+              npx electron-builder install-app-deps --arch=x64
+              ;;
+            macos-arm64)
+              echo "Installing native deps for macOS arm64"
+              npx electron-builder install-app-deps --arch=arm64
+              ;;
+            windows-x64|windows-arm64)
+              echo "Installing native deps for Windows ${{ matrix.arch }}"
+              npx electron-builder install-app-deps --arch=${{ matrix.arch }} --platform=win32
+              ;;
+            *)
+              npx electron-builder install-app-deps
+              ;;
+          esac
+        env:
+          npm_config_runtime: electron
+          npm_config_disturl: https://electronjs.org/headers
 
       - name: Print build configuration
         shell: bash
@@ -299,7 +307,7 @@ jobs:
 
       # macOS 钥匙串清理
       - name: Clean up keychain (macOS only)
-        if: (matrix.platform == 'macos-x64' || matrix.platform == 'macos-arm64') && env.ENABLE_MAC_SIGNING == 'true' && always()
+        if: startsWith(matrix.platform, 'macos-') && env.ENABLE_MAC_SIGNING == 'true' && always()
         run: |
           if security list-keychains | grep -q build.keychain; then
             security delete-keychain build.keychain
@@ -308,7 +316,7 @@ jobs:
 
       # macOS 构建超时或失败通知
       - name: Notify on macOS build timeout or failure
-        if: (matrix.platform == 'macos-x64' || matrix.platform == 'macos-arm64') && failure()
+        if: startsWith(matrix.platform, 'macos-') && failure()
         run: |
           echo "::warning title=macOS Build Timeout or Failure::macOS build did not complete within 40 minutes or failed. This is often due to Apple notarization delays."
           echo ""
@@ -333,7 +341,7 @@ jobs:
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
       - name: List build artifacts
-        if: success() || (failure() && (matrix.platform == 'macos-x64' || matrix.platform == 'macos-arm64'))
+        if: success() || (failure() && startsWith(matrix.platform, 'macos-'))
         shell: bash
         run: |
           echo "=========================================="
@@ -350,7 +358,7 @@ jobs:
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
-        if: success() || (failure() && (matrix.platform == 'macos-x64' || matrix.platform == 'macos-arm64'))
+        if: success() || (failure() && startsWith(matrix.platform, 'macos-'))
         with:
           name: ${{ matrix.artifact-name }}
           path: |
