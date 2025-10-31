@@ -9,7 +9,7 @@ import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/ThoughtD
 import { getSendBoxDraftHook } from '@/renderer/hooks/useSendBoxDraft';
 import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/useSendBoxFiles';
 import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
-import { allSupportedExts, getCleanFileName } from '@/renderer/services/FileService';
+import { allSupportedExts } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { Button, Tag } from '@arco-design/web-react';
 import { Plus } from '@icon-park/react';
@@ -17,6 +17,7 @@ import classNames from 'classnames';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { iconColors } from '@/renderer/theme/colors';
+import FilePreview from '@/renderer/components/FilePreview';
 
 const useAcpSendBoxDraft = getSendBoxDraftHook('acp', {
   _type: 'acp',
@@ -330,19 +331,9 @@ const AcpSendBox: React.FC<{
           </>
         }
         prefix={
-          <>
+          <div className='flex flex-wrap items-center gap-8px mb-8px'>
             {uploadFile.map((path) => (
-              <Tag
-                color='blue'
-                key={path}
-                closable
-                className={'mr-4px'}
-                onClose={() => {
-                  setUploadFile(uploadFile.filter((v) => v !== path));
-                }}
-              >
-                {getCleanFileName(path)}
-              </Tag>
+              <FilePreview key={path} path={path} onRemove={() => setUploadFile(uploadFile.filter((v) => v !== path))} />
             ))}
             {atPath.map((path) => (
               <Tag
@@ -359,7 +350,7 @@ const AcpSendBox: React.FC<{
                 {path}
               </Tag>
             ))}
-          </>
+          </div>
         }
         onSend={onSendHandler}
       ></SendBox>
