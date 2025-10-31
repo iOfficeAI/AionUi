@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next';
 import ShimmerText from '@renderer/components/ShimmerText';
 import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/ThoughtDisplay';
 import { iconColors } from '@/renderer/theme/colors';
+import FilePreview from '@/renderer/components/FilePreview';
 
 interface CodexDraftData {
   _type: 'codex';
@@ -264,19 +265,9 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
         onFilesAdded={handleFilesAdded}
         supportedExts={allSupportedExts}
         prefix={
-          <>
+          <div className='flex flex-wrap items-center gap-8px mb-8px'>
             {uploadFile.map((path) => (
-              <Tag
-                color='blue'
-                key={path}
-                closable
-                className={'mr-4px'}
-                onClose={() => {
-                  setUploadFile(uploadFile.filter((v) => v !== path));
-                }}
-              >
-                {path.split('/').pop()}
-              </Tag>
+              <FilePreview key={path} path={path} onRemove={() => setUploadFile(uploadFile.filter((v) => v !== path))} />
             ))}
             {atPath.map((path) => (
               <Tag
@@ -293,7 +284,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
                 {path}
               </Tag>
             ))}
-          </>
+          </div>
         }
         tools={
           <>

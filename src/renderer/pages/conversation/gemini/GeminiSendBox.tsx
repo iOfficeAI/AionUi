@@ -6,7 +6,7 @@ import SendBox from '@/renderer/components/sendbox';
 import { getSendBoxDraftHook } from '@/renderer/hooks/useSendBoxDraft';
 import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/useSendBoxFiles';
 import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
-import { allSupportedExts, getCleanFileName } from '@/renderer/services/FileService';
+import { allSupportedExts } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { Button, Tag } from '@arco-design/web-react';
 import { Plus } from '@icon-park/react';
@@ -14,6 +14,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/ThoughtDisplay';
 import { iconColors } from '@/renderer/theme/colors';
+import FilePreview from '@/renderer/components/FilePreview';
 
 const useGeminiSendBoxDraft = getSendBoxDraftHook('gemini', {
   _type: 'gemini',
@@ -204,21 +205,9 @@ const GeminiSendBox: React.FC<{
           </>
         }
         prefix={
-          <>
+          <div className='flex flex-wrap items-center gap-8px mb-8px'>
             {uploadFile.map((path) => {
-              return (
-                <Tag
-                  color='blue'
-                  key={path}
-                  closable
-                  className={'mr-4px'}
-                  onClose={() => {
-                    setUploadFile(uploadFile.filter((v) => v !== path));
-                  }}
-                >
-                  {getCleanFileName(path)}
-                </Tag>
-              );
+              return <FilePreview key={path} path={path} onRemove={() => setUploadFile(uploadFile.filter((v) => v !== path))} />;
             })}
             {atPath.map((path) => (
               <Tag
@@ -235,7 +224,7 @@ const GeminiSendBox: React.FC<{
                 {path}
               </Tag>
             ))}
-          </>
+          </div>
         }
         onSend={onSendHandler}
       ></SendBox>

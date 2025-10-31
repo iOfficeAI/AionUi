@@ -163,20 +163,18 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
       <div className='px-16px pb-8px' onMouseEnter={() => setIsHeaderHovered(true)} onMouseLeave={() => setIsHeaderHovered(false)}>
         <div className='flex items-center justify-start gap-8px'>
           <span className='font-bold text-14px text-t-primary'>{t('common.file')}</span>
-          {isHeaderHovered && (
-            <div className='flex items-center gap-8px'>
-              <Tooltip content={t('conversation.workspace.addFile')}>
-                <span>
-                  <FileAddition className='cursor-pointer flex' theme='outline' size='16' fill={iconColors.secondary} onClick={handleAddFiles} />
-                </span>
-              </Tooltip>
-              <Tooltip content={t('conversation.workspace.refresh')}>
-                <span>
-                  <Refresh className={loading ? 'loading lh-[1] flex cursor-pointer' : 'flex cursor-pointer'} theme='outline' size='16' fill={iconColors.secondary} onClick={() => refreshWorkspace()} />
-                </span>
-              </Tooltip>
-            </div>
-          )}
+          <div className='flex items-center gap-8px'>
+            <Tooltip content={t('conversation.workspace.addFile')}>
+              <span>
+                <FileAddition className='cursor-pointer flex' theme='outline' size='16' fill={iconColors.secondary} onClick={handleAddFiles} />
+              </span>
+            </Tooltip>
+            <Tooltip content={t('conversation.workspace.refresh')}>
+              <span>
+                <Refresh className={loading ? 'loading lh-[1] flex cursor-pointer' : 'flex cursor-pointer'} theme='outline' size='16' fill={iconColors.secondary} onClick={() => refreshWorkspace()} />
+              </span>
+            </Tooltip>
+          </div>
         </div>
       </div>
       {(showSearch || searchText) && (
