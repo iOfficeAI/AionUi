@@ -193,6 +193,7 @@
     "mcpToolsLoaded": "读取到{{count}}个工具",
     "mcpImportedSuccess": "已导入{{count}}个工具",
     "mcpImportButton": "导入",
+    "mcpPrevStep": "上一步",
     "mcpNextStep": "下一步",
     "mcpConfirmButton": "确定",
     "mcpSyncStarted": "正在将 MCP 配置添加到 {{count}} 个智能体...",

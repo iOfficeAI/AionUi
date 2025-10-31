@@ -315,6 +315,7 @@
     "mcpToolsLoaded": "{{count}}個のツールを読み込みました",
     "mcpImportedSuccess": "{{count}}個のツールをインポートしました",
     "mcpImportButton": "インポート",
+    "mcpPrevStep": "前へ",
     "mcpNextStep": "次へ",
     "mcpConfirmButton": "確定",
     "mcpSyncStarted": "{{count}} 個のエージェントに MCP 設定を追加しています...",

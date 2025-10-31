@@ -185,6 +185,7 @@
     "mcpToolsLoaded": "Loaded {{count}} tools",
     "mcpImportedSuccess": "Imported {{count}} tools",
     "mcpImportButton": "Import",
+    "mcpPrevStep": "Previous",
     "mcpNextStep": "Next",
     "mcpConfirmButton": "Confirm",
     "mcpSyncStarted": "Adding MCP configuration to {{count}} agents...",
