@@ -237,6 +237,11 @@ const AcpSendBox: React.FC<{
 
     message = processMessageWithFiles(message);
 
+    // 立即清空输入框，避免用户误以为消息没发送
+    // Clear input immediately to avoid user thinking message wasn't sent
+    setContent('');
+    clearFiles();
+
     // Start AI processing loading state
     setAiProcessing(true);
 
@@ -279,12 +284,11 @@ const AcpSendBox: React.FC<{
       throw error;
     }
 
-    // Clear input content and selected files (similar to GeminiSendBox)
+    // Clear selected files (similar to GeminiSendBox)
     emitter.emit('acp.selected.file.clear');
     if (uploadFile.length) {
       emitter.emit('acp.workspace.refresh');
     }
-    clearFiles();
   };
 
   useAddEventListener('acp.selected.file', setAtPath);
@@ -293,7 +297,12 @@ const AcpSendBox: React.FC<{
     <div className='max-w-800px w-full mx-auto flex flex-col'>
       <ThoughtDisplay thought={thought} />
 
-      {aiProcessing && <ShimmerText duration={2}>{t('common.loading', { defaultValue: 'Please wait...' })}</ShimmerText>}
+      {/* 显示处理中提示 / Show processing indicator */}
+      {aiProcessing && (
+        <div className='text-left text-14px py-8px'>
+          <ShimmerText duration={2}>{t('conversation.chat.processing')}</ShimmerText>
+        </div>
+      )}
 
       <SendBox
         value={content}

@@ -239,7 +239,12 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
 
   return (
     <div className='max-w-800px w-full mx-auto flex flex-col'>
-      {aiProcessing && <ShimmerText duration={2}>{t('common.loading', { defaultValue: 'Please wait...' })}</ShimmerText>}
+      {/* 显示处理中提示 / Show processing indicator */}
+      {aiProcessing && (
+        <div className='text-left text-14px py-8px'>
+          <ShimmerText duration={2}>{t('conversation.chat.processing')}</ShimmerText>
+        </div>
+      )}
       {thought && <ThoughtDisplay thought={thought} style='compact' />}
       <SendBox
         value={content}
@@ -253,7 +258,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
         disabled={aiProcessing}
         placeholder={
           aiProcessing
-            ? 'Please wait...'
+            ? t('conversation.chat.processing')
             : t('acp.sendbox.placeholder', {
                 backend: 'Codex',
                 defaultValue: `Send message to Codex...`,

@@ -100,7 +100,8 @@
     },
     "chat": {
       "noModelSelected": "当前会话未选择模型，无法发送消息",
-      "sendMessageTo": "发送消息到 {{model}}"
+      "sendMessageTo": "发送消息到 {{model}}",
+      "processing": "正在处理中……"
     }
   },
   "settings": {
