@@ -222,7 +222,8 @@
       "refresh": "更新"
     },
     "chat": {
-      "noModelSelected": "現在のセッションでモデルが選択されていないため、メッセージを送信できません"
+      "noModelSelected": "現在のセッションでモデルが選択されていないため、メッセージを送信できません",
+      "sendMessageTo": "{{model}}にメッセージを送信"
     }
   },
   "settings": {

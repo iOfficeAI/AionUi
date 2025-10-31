@@ -197,7 +197,8 @@
       "refresh": "重新整理"
     },
     "chat": {
-      "noModelSelected": "當前會話未選擇模型，無法發送訊息"
+      "noModelSelected": "當前會話未選擇模型，無法發送訊息",
+      "sendMessageTo": "發送訊息到 {{model}}"
     }
   },
   "settings": {
