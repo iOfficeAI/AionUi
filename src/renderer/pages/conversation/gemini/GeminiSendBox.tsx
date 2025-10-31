@@ -161,6 +161,15 @@ const GeminiSendBox: React.FC<{
 
   useAddEventListener('gemini.selected.file', setAtPath);
 
+  // 截断过长的模型名称
+  const getDisplayModelName = (modelName: string) => {
+    const maxLength = 20;
+    if (modelName.length > maxLength) {
+      return modelName.slice(0, maxLength) + '...';
+    }
+    return modelName;
+  };
+
   return (
     <div className='max-w-800px w-full  mx-auto flex flex-col'>
       <ThoughtDisplay thought={thought} />
@@ -170,7 +179,7 @@ const GeminiSendBox: React.FC<{
         onChange={setContent}
         loading={running}
         disabled={!model?.useModel}
-        placeholder={model?.useModel ? '' : t('conversation.chat.noModelSelected')}
+        placeholder={model?.useModel ? t('conversation.chat.sendMessageTo', { model: getDisplayModelName(model.useModel) }) : t('conversation.chat.noModelSelected')}
         onStop={() => {
           return ipcBridge.conversation.stop.invoke({ conversation_id }).then(() => {
             console.log('stopStream');

@@ -99,7 +99,8 @@
       "refresh": "刷新"
     },
     "chat": {
-      "noModelSelected": "当前会话未选择模型，无法发送消息"
+      "noModelSelected": "当前会话未选择模型，无法发送消息",
+      "sendMessageTo": "发送消息到 {{model}}"
     }
   },
   "settings": {
