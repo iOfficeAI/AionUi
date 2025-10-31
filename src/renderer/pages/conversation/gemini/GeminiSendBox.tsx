@@ -132,6 +132,12 @@ const GeminiSendBox: React.FC<{
     if (!model?.useModel) return;
     const msg_id = uuid();
     message = processMessageWithFiles(message);
+
+    // 立即清空输入框，避免用户误以为消息没发送
+    // Clear input immediately to avoid user thinking message wasn't sent
+    setContent('');
+    clearFiles();
+
     // User message: Display in UI immediately (Backend will persist when receiving from IPC)
     addOrUpdateMessage(
       {
@@ -156,7 +162,6 @@ const GeminiSendBox: React.FC<{
     if (uploadFile.length) {
       emitter.emit('gemini.workspace.refresh');
     }
-    clearFiles();
   };
 
   useAddEventListener('gemini.selected.file', setAtPath);
@@ -173,6 +178,9 @@ const GeminiSendBox: React.FC<{
   return (
     <div className='max-w-800px w-full  mx-auto flex flex-col'>
       <ThoughtDisplay thought={thought} />
+
+      {/* 显示处理中提示 / Show processing indicator */}
+      {running && !thought.subject && <div className='text-left text-t-secondary text-14px py-8px'>{t('conversation.chat.processing')}</div>}
 
       <SendBox
         value={content}

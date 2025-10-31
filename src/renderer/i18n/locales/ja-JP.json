@@ -223,7 +223,8 @@
     },
     "chat": {
       "noModelSelected": "現在のセッションでモデルが選択されていないため、メッセージを送信できません",
-      "sendMessageTo": "{{model}}にメッセージを送信"
+      "sendMessageTo": "{{model}}にメッセージを送信",
+      "processing": "処理中……"
     }
   },
   "settings": {
