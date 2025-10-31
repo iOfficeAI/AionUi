@@ -63,6 +63,14 @@ const OneClickImportModal: React.FC<OneClickImportModalProps> = ({ visible, onCa
     }
   };
 
+  const handlePrevStep = () => {
+    if (currentStep === 2) {
+      setCurrentStep(1);
+      setImportableServers([]);
+      setLoadingImport(false);
+    }
+  };
+
   const handleImportFromCLI = async () => {
     setLoadingImport(true);
     try {
@@ -228,20 +236,29 @@ const OneClickImportModal: React.FC<OneClickImportModalProps> = ({ visible, onCa
 
         {/* 底部按钮 */}
         <div className='flex justify-end gap-3 h-[72px] items-center px-6 -mx-6' style={{ borderTop: '1px solid var(--bg-3)' }}>
-          <Button onClick={onCancel} size='large' shape='round' style={{ border: '1px solid var(--bg-3)' }}>
-            {t('common.cancel')}
-          </Button>
-          {currentStep === 3 ? (
+          {currentStep === 1 && (
+            <>
+              <Button onClick={onCancel} size='large' shape='round' style={{ border: '1px solid var(--bg-3)' }}>
+                {t('common.cancel')}
+              </Button>
+              <Button type='primary' onClick={handleNextStep} size='large' shape='round' disabled={!selectedAgent}>
+                {t('settings.mcpNextStep')}
+              </Button>
+            </>
+          )}
+          {currentStep === 2 && (
+            <>
+              <Button onClick={handlePrevStep} size='large' shape='round' style={{ border: '1px solid var(--bg-3)' }}>
+                {t('settings.mcpPrevStep')}
+              </Button>
+              <Button type='primary' onClick={handleNextStep} size='large' shape='round' disabled={loadingImport || importableServers.length === 0}>
+                {t('settings.mcpImportButton')}
+              </Button>
+            </>
+          )}
+          {currentStep === 3 && (
             <Button type='primary' onClick={onCancel} size='large' shape='round'>
               {t('settings.mcpConfirmButton')}
-            </Button>
-          ) : currentStep === 2 ? (
-            <Button type='primary' onClick={handleNextStep} size='large' shape='round' disabled={loadingImport || importableServers.length === 0}>
-              {t('settings.mcpImportButton')}
-            </Button>
-          ) : (
-            <Button type='primary' onClick={handleNextStep} size='large' shape='round' disabled={!selectedAgent}>
-              {t('settings.mcpNextStep')}
             </Button>
           )}
         </div>
