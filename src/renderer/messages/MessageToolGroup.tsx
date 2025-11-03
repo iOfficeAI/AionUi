@@ -15,7 +15,15 @@ import { useTranslation } from 'react-i18next';
 import Diff2Html from '../components/Diff2Html';
 import LocalImageView from '../components/LocalImageView';
 import MarkdownView from '../components/Markdown';
+import CollapsibleContent from '../components/CollapsibleContent';
 import { iconColors } from '@/renderer/theme/colors';
+
+// Alert 组件样式常量 Alert component style constant
+const ALERT_CLASSES = '!items-start !rd-8px !px-8px [&_div.arco-alert-content-wrapper]:max-w-[calc(100%-24px)]';
+
+// CollapsibleContent 高度常量 CollapsibleContent height constants
+const DESCRIPTION_MAX_HEIGHT = 120; // 描述文字最大高度 Description max height
+const RESULT_MAX_HEIGHT = 240; // 结果内容最大高度 Result content max height
 
 interface IMessageToolGroupProps {
   message: IMessageToolGroup;
@@ -169,14 +177,26 @@ const ConfirmationDetails: React.FC<{
 
 const ToolResultDisplay: React.FC<{
   content: IMessageToolGroupProps['message']['content'][number];
-}> = ({ content }) => {
+  inAlert?: boolean; // 是否在 Alert 组件内，使用 mask 模式 Whether inside Alert component, use mask mode
+}> = ({ content, inAlert = false }) => {
   const { resultDisplay, name } = content;
-  const display = typeof resultDisplay === 'string' ? resultDisplay : JSON.stringify(resultDisplay);
+
+  // 图片生成特殊处理 Special handling for image generation
   if (name === 'ImageGeneration' && typeof resultDisplay === 'object') {
     const { img_url, relative_path } = resultDisplay as any;
     return <LocalImageView src={img_url} alt={relative_path || img_url} className='max-w-100% max-h-100%' />;
   }
-  return <div className='text-t-primary'>{display}</div>;
+
+  // 将结果转换为字符串 Convert result to string
+  const display = typeof resultDisplay === 'string' ? resultDisplay : JSON.stringify(resultDisplay, null, 2);
+
+  // 使用 CollapsibleContent 包装长内容，Alert 内使用 mask 模式适配背景色
+  // Wrap long content with CollapsibleContent, use mask mode inside Alert to adapt to background color
+  return (
+    <CollapsibleContent maxHeight={RESULT_MAX_HEIGHT} defaultCollapsed={true} useMask={inAlert}>
+      <pre className='text-t-primary whitespace-pre-wrap break-words text-sm m-0 overflow-x-auto'>{display}</pre>
+    </CollapsibleContent>
+  );
 };
 
 const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
@@ -211,18 +231,19 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
           );
         }
 
+        // WriteFile 特殊处理：显示 diff Special handling for WriteFile: show diff
         if (name === 'WriteFile' && typeof resultDisplay !== 'string') {
           return (
-            <div className='min-w-400px'>
+            <div className='min-w-400px' key={callId}>
               <Diff2Html diff={(resultDisplay as any)?.fileDiff || ''}></Diff2Html>
             </div>
           );
         }
 
-        const display = typeof resultDisplay === 'string' ? resultDisplay : JSON.stringify(resultDisplay);
+        // 通用工具调用展示 Generic tool call display
         return (
           <Alert
-            className={'!items-start !rd-8px !px-8px [&_div.arco-alert-content-wrapper]:max-w-[calc(100%-24px)]'}
+            className={ALERT_CLASSES}
             key={callId}
             type={status === 'Error' ? 'error' : status === 'Success' ? 'success' : status === 'Canceled' ? 'warning' : 'info'}
             icon={isLoading && <LoadingOne theme='outline' size='12' fill={iconColors.primary} className='loading lh-[1] flex' />}
@@ -232,13 +253,21 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
                   {name}
                   {status === 'Canceled' ? `(${t('messages.canceledExecution')})` : ''}
                 </Tag>
-                <div className='text-12px text-t-secondary'>{description}</div>
-                <div className='overflow-auto'>
-                  <ToolResultDisplay content={content}></ToolResultDisplay>
+                {/* description 使用 CollapsibleContent 包装，mask 模式适配 Alert 背景色
+                    Wrap description with CollapsibleContent, mask mode adapts to Alert background color */}
+                {description && (
+                  <CollapsibleContent maxHeight={DESCRIPTION_MAX_HEIGHT} defaultCollapsed={true} useMask={true}>
+                    <div className='text-12px text-t-secondary whitespace-pre-wrap break-words'>{description}</div>
+                  </CollapsibleContent>
+                )}
+                {/* resultDisplay 使用 ToolResultDisplay 组件展示
+                    Display resultDisplay using ToolResultDisplay component */}
+                <div>
+                  <ToolResultDisplay content={content} inAlert={true} />
                 </div>
               </div>
             }
-          ></Alert>
+          />
         );
       })}
     </div>
