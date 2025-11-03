@@ -29,6 +29,7 @@ import { useNavigate } from 'react-router-dom';
 import useSWR from 'swr';
 import styles from './index.module.css';
 import { iconColors } from '@/renderer/theme/colors';
+import FilePreview from '@/renderer/components/FilePreview';
 
 /**
  * 缓存Provider的可用模型列表，避免重复计算
@@ -151,11 +152,16 @@ const Guid: React.FC = () => {
 
   // 处理粘贴的文件
   const handleFilesAdded = useCallback((pastedFiles: FileMetadata[]) => {
-    // 直接使用文件路径（现在总是有效的）
+    // 直接使用文件路径（现在总是有效的）/ Use file paths directly (always valid now)
     const filePaths = pastedFiles.map((file) => file.path);
 
     setFiles((prevFiles) => [...prevFiles, ...filePaths]);
-    setDir(''); // 清除文件夹选择
+    setDir(''); // 清除文件夹选择 / Clear selected directory
+  }, []);
+
+  const handleRemoveFile = useCallback((targetPath: string) => {
+    // 删除初始化面板中的已选文件 / Remove files already selected on the welcome screen
+    setFiles((prevFiles) => prevFiles.filter((file) => file !== targetPath));
   }, []);
 
   // 使用拖拽 hook
@@ -421,6 +427,14 @@ const Guid: React.FC = () => {
           {...dragHandlers}
         >
           <Input.TextArea rows={3} placeholder={typewriterPlaceholder || t('conversation.welcome.placeholder')} className={`text-16px focus:b-none rounded-xl !bg-transparent !b-none !resize-none !p-0 ${styles.lightPlaceholder}`} value={input} onChange={(v) => setInput(v)} onPaste={onPaste} onFocus={onFocus} {...compositionHandlers} onKeyDown={createKeyDownHandler(sendMessageHandler)}></Input.TextArea>
+          {files.length > 0 && (
+            // 展示待发送的文件并允许取消 / Show pending files and allow cancellation
+            <div className='flex flex-wrap items-center gap-8px mt-12px mb-12px'>
+              {files.map((path) => (
+                <FilePreview key={path} path={path} onRemove={() => handleRemoveFile(path)} />
+              ))}
+            </div>
+          )}
           <div className='flex items-center justify-between '>
             <div className='flex items-center gap-10px'>
               <Dropdown
