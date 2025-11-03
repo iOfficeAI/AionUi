@@ -196,6 +196,8 @@ const GeminiSendBox: React.FC<{
         className='z-10'
         onFilesAdded={handleFilesAdded}
         supportedExts={allSupportedExts}
+        defaultMultiLine={true}
+        lockMultiLine={true}
         tools={
           <>
             <Button
