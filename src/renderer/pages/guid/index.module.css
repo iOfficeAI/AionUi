@@ -73,7 +73,7 @@
   opacity: 1 !important;
 }
 
-/* Agent 选择器容器 */
+/* Agent 选择器容器 / Agent selector container */
 .agentSelector {
   display: flex;
   gap: 8px;
@@ -81,13 +81,13 @@
   align-items: center;
 }
 
-/* Agent 卡片样式 */
+/* Agent 卡片样式 / Agent card style */
 .agentCard {
   display: flex;
   align-items: center;
   gap: 8px;
   padding: 10px 16px;
-  border-radius: 12px;
+  border-radius: 30px; /* 统一使用胶囊形状，避免 hover 和选中态切换时形状突变 / Use consistent pill shape to prevent shape transition on hover/selection */
   background: var(--bg-1);
   border: 2px solid transparent;
   cursor: pointer;
@@ -96,13 +96,13 @@
   overflow: hidden;
 }
 
-/* 未选中状态 - 60% 透明度和宽度 */
+/* 未选中状态 - 60% 透明度和宽度 / Unselected state - 60% opacity and width */
 .agentCard:not(.agentCardSelected) {
   opacity: 0.6;
   flex: 0 0 auto;
 }
 
-/* 未选中卡片的名称隐藏部分 */
+/* 未选中卡片的名称隐藏 / Hide name for unselected cards */
 .agentCard:not(.agentCardSelected) .agentName {
   max-width: 0;
   opacity: 0;
@@ -110,7 +110,7 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Hover 效果 - 展开显示名称 */
+/* Hover 效果 - 展开显示名称 / Hover effect - expand and show name */
 .agentCard:not(.agentCardSelected):hover {
   opacity: 1;
   background: var(--workspace-btn-bg);
@@ -122,14 +122,14 @@
   margin-left: 8px;
 }
 
-/* 选中状态 - 完全展开,白底 */
+/* 选中状态 - 完全展开，白底 / Selected state - fully expanded with white background */
 .agentCardSelected {
   background: var(--bg-base);
   flex: 1 1 auto;
   border-radius: 30px;
 }
 
-/* Agent 名称文字 */
+/* Agent 名称文字 / Agent name text */
 .agentName {
   font-weight: 500;
   font-size: 14px;
@@ -137,7 +137,7 @@
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* 选中状态的文字颜色 */
+/* 选中状态的文字颜色 / Text color for selected state */
 .agentCardSelected .agentName {
   color: #4d3cea;
   font-weight: 600;
