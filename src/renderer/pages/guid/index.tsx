@@ -403,7 +403,9 @@ const Guid: React.FC = () => {
               return (
                 <div key={agent.backend} className={`${styles.agentCard} ${isSelected ? styles.agentCardSelected : ''}`} onClick={() => setSelectedAgent(agent.backend)}>
                   <img src={logoSrc} alt={`${agent.backend} logo`} width={20} height={20} style={{ objectFit: 'contain', flexShrink: 0 }} />
-                  <span className={`${styles.agentName} text-t-primary`}>{agent.name}</span>
+                  <span className={`${styles.agentName} `} style={{ color: 'var(--color-text-1)' }}>
+                    {agent.name}
+                  </span>
                 </div>
               );
             })}

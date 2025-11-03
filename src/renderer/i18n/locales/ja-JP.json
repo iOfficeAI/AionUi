@@ -157,7 +157,9 @@
     "version": "バージョン",
     "website": "公式サイト",
     "workspace": "ワークスペース",
-    "select": "選択"
+    "select": "選択",
+    "expandMore": "さらに表示",
+    "collapse": "折りたたむ"
   },
   "login": {
     "pageTitle": "AionUi - ログイン",
@@ -228,7 +230,26 @@
       "createNewConversation": "現在のワークスペースで新しいチャットを作成",
       "search.empty": "検索結果は空です",
       "addFile": "ファイルを追加",
-      "refresh": "更新"
+      "refresh": "更新",
+      "contextMenu": {
+        "open": "開く",
+        "openLocation": "ファイルの場所を開く",
+        "deleteTitle": "ファイルを削除",
+        "deleteConfirm": "この操作はシステム上のファイルを削除します。削除しますか？",
+        "deleteSuccess": "削除しました",
+        "deleteFailed": "削除に失敗しました",
+        "rename": "名前を変更",
+        "renameTitle": "名前を変更",
+        "renamePlaceholder": "新しい名前を入力してください",
+        "renameSuccess": "名前を変更しました",
+        "renameFailed": "名前の変更に失敗しました",
+        "renameEmpty": "名前を入力してください",
+        "renameTimeout": "名前の変更リクエストがタイムアウトしました。再試行してください",
+        "addToChat": "チャットに追加",
+        "addedToChat": "チャットに追加しました",
+        "openFailed": "開けませんでした",
+        "revealFailed": "フォルダーを開けませんでした"
+      }
     },
     "chat": {
       "noModelSelected": "現在のセッションでモデルが選択されていないため、メッセージを送信できません",

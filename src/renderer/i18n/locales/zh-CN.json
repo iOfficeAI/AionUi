@@ -26,7 +26,9 @@
     "technical_details": "技术详情",
     "error_details": "错误详情",
     "troubleshooting": "故障排除",
-    "select": "选择"
+    "select": "选择",
+    "expandMore": "展开更多",
+    "collapse": "收起"
   },
   "login": {
     "pageTitle": "AionUi - 登录",
@@ -104,7 +106,26 @@
       "createNewConversation": "当前空间创建新会话",
       "search.empty": "搜索结果为空",
       "addFile": "添加文件",
-      "refresh": "刷新"
+      "refresh": "刷新",
+      "contextMenu": {
+        "open": "打开",
+        "openLocation": "打开文件所在目录",
+        "deleteTitle": "删除文件",
+        "deleteConfirm": "此操作会删除系统所在文件,确认删除吗?",
+        "deleteSuccess": "删除成功",
+        "deleteFailed": "删除失败",
+        "rename": "重命名",
+        "renameTitle": "重命名",
+        "renamePlaceholder": "输入新的名称",
+        "renameSuccess": "重命名成功",
+        "renameFailed": "重命名失败",
+        "renameEmpty": "名称不能为空",
+        "renameTimeout": "重命名请求超时，请重试",
+        "addToChat": "添加到聊天",
+        "addedToChat": "已添加到聊天",
+        "openFailed": "打开失败",
+        "revealFailed": "无法打开所在目录"
+      }
     },
     "chat": {
       "noModelSelected": "当前会话未选择模型，无法发送消息",

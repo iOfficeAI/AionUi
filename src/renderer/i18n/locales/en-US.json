@@ -30,7 +30,9 @@
     "technical_details": "Technical Details",
     "error_details": "Error Details",
     "troubleshooting": "Troubleshooting",
-    "select": "Select"
+    "select": "Select",
+    "expandMore": "Expand More",
+    "collapse": "Collapse"
   },
   "login": {
     "pageTitle": "AionUi - Sign In",
@@ -108,7 +110,26 @@
       "createNewConversation": "Create new chat in current workspace",
       "search.empty": "The search result is empty",
       "addFile": "Add File",
-      "refresh": "Refresh"
+      "refresh": "Refresh",
+      "contextMenu": {
+        "open": "Open",
+        "openLocation": "Show in folder",
+        "deleteTitle": "Delete file",
+        "deleteConfirm": "This will delete the file from your system. Continue?",
+        "deleteSuccess": "Deleted successfully",
+        "deleteFailed": "Delete failed",
+        "rename": "Rename",
+        "renameTitle": "Rename",
+        "renamePlaceholder": "Enter new name",
+        "renameSuccess": "Renamed successfully",
+        "renameFailed": "Rename failed",
+        "renameEmpty": "Name cannot be empty",
+        "renameTimeout": "Rename request timed out, please try again",
+        "addToChat": "Add to chat",
+        "addedToChat": "Added to chat",
+        "openFailed": "Failed to open",
+        "revealFailed": "Failed to open containing folder"
+      }
     },
     "chat": {
       "noModelSelected": "No model selected for current session, cannot send message",
