@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { storage } from '@office-ai/platform';
 import type { AcpBackend } from '@/types/acpTypes';
+import { storage } from '@office-ai/platform';
 
 /**
  * @description 聊天相关的存储
@@ -46,6 +46,8 @@ export interface IConfigStorageRefer {
   'tools.imageGenerationModel': TProviderWithModel & {
     switch: boolean;
   };
+  // 是否在粘贴文件到工作区时询问确认（true = 不再询问）
+  'workspace.pasteConfirm'?: boolean;
 }
 
 export interface IEnvStorageRefer {

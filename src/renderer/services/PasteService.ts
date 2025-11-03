@@ -72,6 +72,8 @@ class PasteServiceClass {
     event.stopPropagation();
     const clipboardText = event.clipboardData?.getData('text');
     const files = event.clipboardData?.files;
+    // If caller passes an empty array, treat it as "allow all file types"
+    const allowAll = !supportedExts || supportedExts.length === 0;
 
     // 优先检查是否有文件，如果有文件则忽略文本（避免粘贴文件时同时插入文件名）
     if (files && files.length > 0) {
@@ -87,7 +89,7 @@ class PasteServiceClass {
           // 剪贴板图片，需要检查是否支持该类型
           const fileExt = getFileExtension(file.name) || getExtensionFromMimeType(file.type);
 
-          if (supportedExts.includes(fileExt)) {
+          if (allowAll || supportedExts.includes(fileExt)) {
             try {
               const arrayBuffer = await file.arrayBuffer();
               const uint8Array = new Uint8Array(arrayBuffer);
@@ -127,7 +129,7 @@ class PasteServiceClass {
           // 检查文件类型是否支持
           const fileExt = getFileExtension(file.name);
 
-          if (supportedExts.includes(fileExt)) {
+          if (allowAll || supportedExts.includes(fileExt)) {
             fileList.push({
               name: file.name,
               path: filePath,
@@ -143,7 +145,7 @@ class PasteServiceClass {
           // 没有文件路径的非图片文件（从文件管理器复制粘贴的文件）
           const fileExt = getFileExtension(file.name);
 
-          if (supportedExts.includes(fileExt)) {
+          if (allowAll || supportedExts.includes(fileExt)) {
             // 对于复制粘贴的文件，我们需要创建临时文件
             try {
               const arrayBuffer = await file.arrayBuffer();

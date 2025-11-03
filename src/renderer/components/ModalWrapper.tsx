@@ -1,9 +1,10 @@
+import type { ModalProps } from '@arco-design/web-react';
 import { Modal } from '@arco-design/web-react';
 import { Close } from '@icon-park/react';
 import React from 'react';
-import type { ModalProps } from '@arco-design/web-react/es/Modal';
 
 interface ModalWrapperProps extends Omit<ModalProps, 'title'> {
+  children?: React.ReactNode;
   title?: React.ReactNode;
   showCustomClose?: boolean;
 }

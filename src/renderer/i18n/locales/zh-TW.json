@@ -188,6 +188,15 @@
       "yesterday": "昨天"
     },
     "workspace": {
+      "title": "工作空間",
+      "pasteConfirm_title": "貼上檔案",
+      "pasteConfirm_message": "確定要將 '{{name}}' 貼上到選中的資料夾 ({{target}}) 嗎？",
+      "pasteConfirm_paste": "貼上",
+      "pasteConfirm_cancel": "取消",
+      "pasteConfirm_noAsk": "不再提示",
+      "pasteConfirm_fileName": "檔案名稱",
+      "pasteConfirm_targetFolder": "目標資料夾",
+      "pasteConfirm_multipleFiles": "{{count}} 個檔案",
       "empty": "空的",
       "emptyDescription": "上傳檔案或開啟資料夾後，檔案將顯示在這裡",
       "searchPlaceholder": "搜尋檔案...",
