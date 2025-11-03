@@ -117,7 +117,6 @@ const ModelSettings: React.FC = () => {
               onChange={() => {
                 setCollapseKey({ ...collapseKey, [key]: !collapseKey[key] });
               }}
-              style={{ maxWidth: 1180 }}
               className={'mb-20px'}
               key={key}
             >
