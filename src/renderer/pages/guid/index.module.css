@@ -79,6 +79,8 @@
   gap: 8px;
   justify-content: center;
   align-items: center;
+  /* 容器也添加过渡，让整体布局更流畅 / Add transition to container for smoother layout */
+  transition: all 0.6s cubic-bezier(0.2, 0.8, 0.3, 1);
 }
 
 /* Agent 卡片样式 / Agent card style */
@@ -91,9 +93,16 @@
   background: var(--bg-1);
   border: 2px solid transparent;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  /* 使用更柔和的 ease-out 曲线，让动画开始快、结束慢，更自然 / Use softer ease-out curve for natural deceleration */
+  transition:
+    flex 0.6s cubic-bezier(0.2, 0.8, 0.3, 1),
+    background 0.5s cubic-bezier(0.2, 0.8, 0.3, 1),
+    opacity 0.5s cubic-bezier(0.2, 0.8, 0.3, 1),
+    transform 0.6s cubic-bezier(0.2, 0.8, 0.3, 1);
   white-space: nowrap;
   overflow: hidden;
+  /* GPU 加速优化 / GPU acceleration for smoother animation */
+  will-change: flex, transform, opacity;
 }
 
 /* 未选中状态 - 60% 透明度和宽度 / Unselected state - 60% opacity and width */
@@ -107,7 +116,11 @@
   max-width: 0;
   opacity: 0;
   overflow: hidden;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  /* 使用更柔和的缓动和延迟，让文字展开更自然 / Use softer easing and delay for natural text expansion */
+  transition:
+    max-width 0.6s cubic-bezier(0.2, 0.8, 0.3, 1),
+    opacity 0.5s cubic-bezier(0.2, 0.8, 0.3, 1) 0.05s,
+    margin 0.6s cubic-bezier(0.2, 0.8, 0.3, 1);
 }
 
 /* Hover 效果 - 展开显示名称 / Hover effect - expand and show name */
@@ -134,7 +147,10 @@
   font-weight: 500;
   font-size: 14px;
   color: var(--text-primary);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  /* 使用更柔和的过渡效果 / Use softer transition */
+  transition:
+    color 0.5s cubic-bezier(0.2, 0.8, 0.3, 1),
+    font-weight 0.5s cubic-bezier(0.2, 0.8, 0.3, 1);
 }
 
 /* 选中状态的文字颜色 / Text color for selected state */
