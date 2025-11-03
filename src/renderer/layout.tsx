@@ -125,8 +125,8 @@ const Layout: React.FC<{
       </ArcoLayout.Sider>
 
       {/* 移动端toggle按钮 - 与header对齐，调整到与右侧按钮相同大小 */}
-      {isMobile && (
-        <button onClick={() => setCollapsed(!collapsed)} className='mobile-toggle-btn fixed top-0 left-0 z-50 bg-transparent w-16 h-16 flex items-center justify-center text-gray-600 hover:text-gray-800 transition-all duration-200'>
+      {isMobile && collapsed && (
+        <button onClick={() => setCollapsed(!collapsed)} className='mobile-toggle-btn fixed top-0 left-0 z-50 bg-transparent w-16 h-16 flex items-center justify-center text-gray-600 hover:text-gray-800 transition-all duration-200 border-none outline-none focus:outline-none'>
           {collapsed ? <MenuUnfold theme='outline' size={24} fill={iconColors.secondary} strokeWidth={3} /> : <MenuFold theme='outline' size={24} fill={iconColors.secondary} strokeWidth={3} />}
         </button>
       )}
