@@ -182,4 +182,49 @@ export function initFsBridge(): void {
       };
     }
   });
+
+  // Delete file or directory on disk (删除磁盘上的文件或文件夹)
+  ipcBridge.fs.removeEntry.provider(async ({ path: targetPath }) => {
+    try {
+      const stats = await fs.lstat(targetPath);
+      if (stats.isDirectory()) {
+        await fs.rm(targetPath, { recursive: true, force: true });
+      } else {
+        await fs.unlink(targetPath);
+      }
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to remove entry:', error);
+      return { success: false, msg: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  });
+
+  // Rename file or directory and return new path (重命名文件/文件夹并返回新路径)
+  ipcBridge.fs.renameEntry.provider(async ({ path: targetPath, newName }) => {
+    try {
+      const directory = path.dirname(targetPath);
+      const newPath = path.join(directory, newName);
+
+      if (newPath === targetPath) {
+        // Skip when the new name equals the original path (新旧路径一致时直接跳过)
+        return { success: true, data: { newPath } };
+      }
+
+      const exists = await fs
+        .access(newPath)
+        .then(() => true)
+        .catch(() => false);
+
+      if (exists) {
+        // Avoid overwriting existing targets (避免覆盖已存在的目标文件)
+        return { success: false, msg: 'Target path already exists' };
+      }
+
+      await fs.rename(targetPath, newPath);
+      return { success: true, data: { newPath } };
+    } catch (error) {
+      console.error('Failed to rename entry:', error);
+      return { success: false, msg: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  });
 }
