@@ -29,10 +29,12 @@ const SendBox: React.FC<{
   placeholder?: string;
   onFilesAdded?: (files: FileMetadata[]) => void;
   supportedExts?: string[];
-}> = ({ onSend, onStop, prefix, className, loading, tools, disabled, placeholder, value: input = '', onChange: setInput = constVoid, onFilesAdded, supportedExts = allSupportedExts }) => {
+  defaultMultiLine?: boolean;
+  lockMultiLine?: boolean;
+}> = ({ onSend, onStop, prefix, className, loading, tools, disabled, placeholder, value: input = '', onChange: setInput = constVoid, onFilesAdded, supportedExts = allSupportedExts, defaultMultiLine = false, lockMultiLine = false }) => {
   const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
-  const [isSingleLine, setIsSingleLine] = useState(true);
+  const [isSingleLine, setIsSingleLine] = useState(!defaultMultiLine);
   const containerRef = useRef<HTMLDivElement>(null);
   const singleLineWidthRef = useRef<number>(0);
 
@@ -98,9 +100,11 @@ const SendBox: React.FC<{
           // Switch to multi-line when text width exceeds baseline width
           if (textWidth >= baseWidth) {
             setIsSingleLine(false);
-          } else if (textWidth < baseWidth - 30) {
+          } else if (textWidth < baseWidth - 30 && !lockMultiLine) {
             // 文本宽度小于基准宽度减30px时切回单行，留出小缓冲区避免临界点抖动
+            // 如果 lockMultiLine 为 true，则不切换回单行
             // Switch back to single-line when text width is less than baseline minus 30px, leaving a small buffer to avoid flickering at the threshold
+            // If lockMultiLine is true, do not switch back to single-line
             setIsSingleLine(true);
           }
           // 在 (baseWidth-30) 到 baseWidth 之间保持当前状态
@@ -110,7 +114,7 @@ const SendBox: React.FC<{
     }, 150);
 
     return () => clearTimeout(timer);
-  }, [input]);
+  }, [input, lockMultiLine]);
 
   // 使用拖拽 hook
   const { isFileDragging, dragHandlers } = useDragUpload({
