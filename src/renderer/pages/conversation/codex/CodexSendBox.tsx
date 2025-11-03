@@ -123,6 +123,8 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
     [uploadFile, setUploadFile]
   );
 
+  // 监听从工作空间选择的文件（接收绝对路径数组）
+  // Listen to files selected from workspace (receives absolute path array)
   useAddEventListener('codex.selected.file', (files: string[]) => {
     // Add a small delay to ensure state persistence and prevent flashing
     setTimeout(() => {
@@ -140,8 +142,12 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
     setAtPath([]);
     setUploadFile([]);
 
+    // 如果有选中的文件，将文件名添加到消息中（格式：@文件名）
+    // currentAtPath 现在包含完整路径，需要提取文件名用于消息显示
+    // If there are selected files, add filenames to the message (format: @filename)
+    // currentAtPath now contains full paths, need to extract filenames for message display
     if (currentAtPath.length || currentUploadFile.length) {
-      message = currentUploadFile.map((p) => '@' + p.split(/[\\/]/).pop()).join(' ') + ' ' + currentAtPath.map((p) => '@' + p).join(' ') + ' ' + message;
+      message = currentUploadFile.map((p) => '@' + p.split(/[\\/]/).pop()).join(' ') + ' ' + currentAtPath.map((p) => '@' + p.split(/[\\/]/).pop()).join(' ') + ' ' + message;
     }
     // 前端先写入用户消息，避免导航/事件竞争导致看不到消息
     const userMessage: TMessage = {
@@ -275,19 +281,15 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
               <FilePreview key={path} path={path} onRemove={() => setUploadFile(uploadFile.filter((v) => v !== path))} />
             ))}
             {atPath.map((path) => (
-              <Tag
+              <FilePreview
                 key={path}
-                color='gray'
-                closable
-                className={'mr-4px'}
-                onClose={() => {
+                path={path}
+                onRemove={() => {
                   const newAtPath = atPath.filter((v) => v !== path);
                   emitter.emit('codex.selected.file', newAtPath);
                   setAtPath(newAtPath);
                 }}
-              >
-                {path}
-              </Tag>
+              />
             ))}
           </div>
         }

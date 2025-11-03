@@ -227,19 +227,15 @@ const GeminiSendBox: React.FC<{
               return <FilePreview key={path} path={path} onRemove={() => setUploadFile(uploadFile.filter((v) => v !== path))} />;
             })}
             {atPath.map((path) => (
-              <Tag
+              <FilePreview
                 key={path}
-                color='gray'
-                closable
-                className={'mr-4px'}
-                onClose={() => {
+                path={path}
+                onRemove={() => {
                   const newAtPath = atPath.filter((v) => v !== path);
                   emitter.emit('gemini.selected.file', newAtPath);
                   setAtPath(newAtPath);
                 }}
-              >
-                {path}
-              </Tag>
+              />
             ))}
           </div>
         }

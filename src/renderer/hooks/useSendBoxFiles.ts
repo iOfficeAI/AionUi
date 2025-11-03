@@ -27,6 +27,7 @@ interface UseSendBoxFilesProps {
 
 /**
  * 独立的文件格式化工具函数，用于GUID等不需要完整SendBox状态管理的组件
+ * Note: files can be full paths, getCleanFileNames will extract filenames
  */
 export const formatFilesForMessage = (files: string[]): string => {
   if (files.length > 0) {
@@ -53,11 +54,14 @@ export const useSendBoxFiles = ({ atPath, uploadFile, setAtPath, setUploadFile }
   );
 
   // 处理消息中的文件引用（@文件名 格式）
+  // Process file references in messages (format: @filename)
   const processMessageWithFiles = useCallback(
     (message: string): string => {
       if (atPath.length || uploadFile.length) {
         const cleanUploadFiles = getCleanFileNames(uploadFile).map((fileName) => '@' + fileName);
-        const cleanAtPaths = atPath.map((p) => '@' + p);
+        // atPath 现在包含完整路径，只提取文件名用于消息显示
+        // atPath now contains full paths, extract filenames only for message display
+        const cleanAtPaths = getCleanFileNames(atPath).map((fileName) => '@' + fileName);
         return cleanUploadFiles.join(' ') + ' ' + cleanAtPaths.join(' ') + ' ' + message;
       }
       return message;
