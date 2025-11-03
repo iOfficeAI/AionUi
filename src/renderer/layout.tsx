@@ -118,6 +118,7 @@ const Layout: React.FC<{
                 onSessionClick: () => {
                   if (isMobile) setCollapsed(true);
                 },
+                collapsed,
               } as any)
             : sider}
         </ArcoLayout.Content>
