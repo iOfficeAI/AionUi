@@ -23,7 +23,7 @@ const ThoughtDisplay: React.FC<ThoughtDisplayProps> = ({ thought, style = 'defau
   }
 
   const baseStyle = {
-    background: 'var(--bg-1)',
+    background: 'linear-gradient(90deg, #F0F3FF 0%, #F2F2F2 100%)',
   };
 
   const defaultStyle = {
@@ -40,7 +40,7 @@ const ThoughtDisplay: React.FC<ThoughtDisplayProps> = ({ thought, style = 'defau
 
   return (
     <div
-      className='px-10px py-10px rd-20px text-14px pb-40px lh-20px text-t-secondary'
+      className='px-10px py-10px rd-20px text-14px pb-40px lh-20px text-6'
       style={{
         ...(style === 'compact' ? compactStyle : defaultStyle),
         ...(style === 'compact' && { marginBottom: '8px' }),

@@ -77,7 +77,7 @@ const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
   return (
     <div className={classNames('bg-message-tips rd-8px  p-x-12px p-y-8px flex items-start gap-4px')}>
       {icon[type] || icon.warning}
-      <CollapsibleContent maxHeight={200} defaultCollapsed={true} className='flex-1'>
+      <CollapsibleContent maxHeight={200} defaultCollapsed={true} className='flex-1' useMask={true}>
         <span
           className='whitespace-break-spaces text-t-primary [word-break:break-word]'
           dangerouslySetInnerHTML={{
