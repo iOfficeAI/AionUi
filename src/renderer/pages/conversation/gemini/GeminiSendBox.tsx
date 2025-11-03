@@ -176,7 +176,7 @@ const GeminiSendBox: React.FC<{
   };
 
   return (
-    <div className='max-w-800px w-full  mx-auto flex flex-col'>
+    <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
       <ThoughtDisplay thought={thought} />
 
       {/* 显示处理中提示 / Show processing indicator */}

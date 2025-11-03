@@ -244,7 +244,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
   }, [conversation_id, codexStatus, addOrUpdateMessage]);
 
   return (
-    <div className='max-w-800px w-full mx-auto flex flex-col'>
+    <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
       {/* 显示处理中提示 / Show processing indicator */}
       {aiProcessing && (
         <div className='text-left text-14px py-8px'>

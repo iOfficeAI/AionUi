@@ -22,7 +22,7 @@ const CodexChat: React.FC<{
     updateLocalImage({ root: workspace });
   }, [workspace]);
   return (
-    <div className='h-full flex flex-col px-20px'>
+    <div className='flex-1 flex flex-col px-20px'>
       <FlexFullContainer>
         <MessageList className='flex-1'></MessageList>
       </FlexFullContainer>

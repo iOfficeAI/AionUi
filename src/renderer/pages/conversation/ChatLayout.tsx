@@ -97,7 +97,7 @@ const ChatLayout: React.FC<{
 
   return (
     <ArcoLayout className={'size-full'}>
-      <ArcoLayout.Content>
+      <ArcoLayout.Content className='flex flex-col flex-1'>
         <ArcoLayout.Header className={classNames('h-52px flex items-center justify-between p-16px gap-16px  !bg-1')}>
           <FlexFullContainer className='h-full'>
             <span className='ml-16px font-bold text-16px text-t-primary inline-block overflow-hidden text-ellipsis whitespace-nowrap w-full max-w-60%'>{props.title}</span>
@@ -112,7 +112,7 @@ const ChatLayout: React.FC<{
             {rightSiderCollapsed ? <ExpandRight onClick={() => setRightSiderCollapsed(false)} className='cursor-pointer flex' theme='outline' size='24' fill={iconColors.secondary} strokeWidth={3} /> : <ExpandLeft onClick={() => setRightSiderCollapsed(true)} className='cursor-pointer flex' theme='outline' size='24' fill={iconColors.secondary} strokeWidth={3} />}
           </div>
         </ArcoLayout.Header>
-        <ArcoLayout.Content className={classNames('h-[calc(100%-106px)] bg-1', backend ? 'h-[calc(100%-106px)]' : 'h-[calc(100%-66px)]')}>{props.children}</ArcoLayout.Content>
+        <ArcoLayout.Content className='flex flex-col flex-1 bg-1 overflow-hidden'>{props.children}</ArcoLayout.Content>
       </ArcoLayout.Content>
 
       <ArcoLayout.Sider width={siderWidth} collapsedWidth={0} collapsed={rightSiderCollapsed} className={'!bg-1 relative'}>
