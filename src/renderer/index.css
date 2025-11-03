@@ -241,6 +241,7 @@
       box-shadow: none !important;
       padding: 0 !important;
       margin: 0 !important;
+      outline: none !important;
     }
 
     .mobile-toggle-btn:hover {
