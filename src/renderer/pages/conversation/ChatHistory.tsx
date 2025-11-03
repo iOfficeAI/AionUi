@@ -8,7 +8,7 @@ import { ipcBridge } from '@/common';
 import type { TChatConversation } from '@/common/storage';
 import FlexFullContainer from '@/renderer/components/FlexFullContainer';
 import { addEventListener, emitter } from '@/renderer/utils/emitter';
-import { Empty, Popconfirm, Input } from '@arco-design/web-react';
+import { Empty, Popconfirm, Input, Tooltip } from '@arco-design/web-react';
 import { DeleteOne, MessageOne, EditOne } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useEffect, useState } from 'react';
@@ -81,7 +81,7 @@ const useScrollIntoView = (id: string) => {
   }, [id]);
 };
 
-const ChatHistory: React.FC<{ onSessionClick?: () => void }> = ({ onSessionClick }) => {
+const ChatHistory: React.FC<{ onSessionClick?: () => void; collapsed?: boolean }> = ({ onSessionClick, collapsed = false }) => {
   const [chatHistory, setChatHistory] = useState<TChatConversation[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState<string>('');
@@ -190,60 +190,61 @@ const ChatHistory: React.FC<{ onSessionClick?: () => void }> = ({ onSessionClick
     const isEditing = editingId === conversation.id;
 
     return (
-      <div
-        key={conversation.id}
-        id={'c-' + conversation.id}
-        className={classNames('hover:bg-hover px-12px py-8px rd-8px flex justify-start items-center group cursor-pointer relative overflow-hidden group shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px', {
-          '!bg-active ': isSelected,
-        })}
-        onClick={handleSelect.bind(null, conversation)}
-      >
-        <MessageOne theme='outline' size='20' className='mt-2px ml-2px mr-8px flex' />
-        <FlexFullContainer className='h-24px'>{isEditing ? <Input className='text-14px lh-24px h-24px' value={editingName} onChange={setEditingName} onKeyDown={handleEditKeyDown} onBlur={handleEditSave} autoFocus size='small' /> : <div className='text-nowrap overflow-hidden inline-block w-full text-14px lh-24px whitespace-nowrap'>{conversation.name}</div>}</FlexFullContainer>
+      <Tooltip key={conversation.id} disabled={!collapsed} content={conversation.name || t('conversation.welcome.newConversation')} position='right'>
         <div
-          className={classNames('absolute right--15px top-0px h-full w-70px items-center justify-center hidden group-hover:flex !collapsed-hidden')}
-          style={{
-            backgroundImage: isSelected ? `linear-gradient(to right, transparent, var(--bg-active) 50%)` : `linear-gradient(to right, transparent, var(--bg-hover) 50%)`,
-          }}
-          onClick={(event) => {
-            event.stopPropagation();
-          }}
+          id={'c-' + conversation.id}
+          className={classNames('hover:bg-hover px-12px py-8px rd-8px flex justify-start items-center group cursor-pointer relative overflow-hidden group shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px', {
+            '!bg-active ': isSelected,
+          })}
+          onClick={handleSelect.bind(null, conversation)}
         >
-          {!isEditing && (
-            <span
-              className='flex-center mr-8px'
-              onClick={(event) => {
-                event.stopPropagation();
-                handleEditStart(conversation);
-              }}
-            >
-              <EditOne theme='outline' size='20' className='flex' />
-            </span>
-          )}
-          <Popconfirm
-            title={t('conversation.history.deleteTitle')}
-            content={t('conversation.history.deleteConfirm')}
-            okText={t('conversation.history.confirmDelete')}
-            cancelText={t('conversation.history.cancelDelete')}
-            onOk={(event) => {
-              event.stopPropagation();
-              handleRemoveConversation(conversation.id);
+          <MessageOne theme='outline' size='20' className='mt-2px ml-2px mr-8px flex' />
+          <FlexFullContainer className='h-24px'>{isEditing ? <Input className='text-14px lh-24px h-24px' value={editingName} onChange={setEditingName} onKeyDown={handleEditKeyDown} onBlur={handleEditSave} autoFocus size='small' /> : <div className='text-nowrap overflow-hidden inline-block w-full text-14px lh-24px whitespace-nowrap'>{conversation.name}</div>}</FlexFullContainer>
+          <div
+            className={classNames('absolute right--15px top-0px h-full w-70px items-center justify-center hidden group-hover:flex !collapsed-hidden')}
+            style={{
+              backgroundImage: isSelected ? `linear-gradient(to right, transparent, var(--bg-active) 50%)` : `linear-gradient(to right, transparent, var(--bg-hover) 50%)`,
             }}
-            onCancel={(event) => {
+            onClick={(event) => {
               event.stopPropagation();
             }}
           >
-            <span
-              className='flex-center'
-              onClick={(event) => {
+            {!isEditing && (
+              <span
+                className='flex-center mr-8px'
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handleEditStart(conversation);
+                }}
+              >
+                <EditOne theme='outline' size='20' className='flex' />
+              </span>
+            )}
+            <Popconfirm
+              title={t('conversation.history.deleteTitle')}
+              content={t('conversation.history.deleteConfirm')}
+              okText={t('conversation.history.confirmDelete')}
+              cancelText={t('conversation.history.cancelDelete')}
+              onOk={(event) => {
+                event.stopPropagation();
+                handleRemoveConversation(conversation.id);
+              }}
+              onCancel={(event) => {
                 event.stopPropagation();
               }}
             >
-              <DeleteOne theme='outline' size='20' className='flex' />
-            </span>
-          </Popconfirm>
+              <span
+                className='flex-center'
+                onClick={(event) => {
+                  event.stopPropagation();
+                }}
+              >
+                <DeleteOne theme='outline' size='20' className='flex' />
+              </span>
+            </Popconfirm>
+          </div>
         </div>
-      </div>
+      </Tooltip>
     );
   };
 
