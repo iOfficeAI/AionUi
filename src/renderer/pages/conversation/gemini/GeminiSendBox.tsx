@@ -224,7 +224,7 @@ const GeminiSendBox: React.FC<{
           </>
         }
         prefix={
-          <div className='flex flex-wrap items-center gap-8px mb-8px'>
+          <div className='flex flex-wrap items-center gap-8px'>
             {uploadFile.map((path) => {
               return <FilePreview key={path} path={path} onRemove={() => setUploadFile(uploadFile.filter((v) => v !== path))} />;
             })}
