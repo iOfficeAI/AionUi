@@ -84,7 +84,7 @@ export const CollapsibleContent: React.FC<CollapsibleContentProps> = ({ children
         const contentHeight = contentRef.current.scrollHeight;
         setNeedsCollapse(contentHeight > maxHeight);
       }
-    }, 0);
+    }, 100);
 
     return () => clearTimeout(timer);
   }, [children, maxHeight]);
@@ -97,17 +97,19 @@ export const CollapsibleContent: React.FC<CollapsibleContentProps> = ({ children
   // 计算内容区域样式 Calculate content area style
   const contentStyle = useMemo(() => {
     const style: React.CSSProperties = {
-      maxHeight: needsCollapse && isCollapsed ? `${maxHeight}px` : undefined,
+      // 折叠状态下始终应用 maxHeight，不依赖 needsCollapse 状态
+      // Always apply maxHeight when collapsed, regardless of needsCollapse state
+      maxHeight: isCollapsed ? `${maxHeight}px` : undefined,
     };
 
     // mask-image 模式：让内容本身淡出 mask-image mode: fade out content itself
-    if (useMask && needsCollapse && isCollapsed) {
+    if (useMask && isCollapsed) {
       style.maskImage = MASK_GRADIENT;
       style.WebkitMaskImage = MASK_GRADIENT;
     }
 
     return style;
-  }, [needsCollapse, isCollapsed, maxHeight, useMask]);
+  }, [isCollapsed, maxHeight, useMask]);
 
   // 计算背景渐变颜色 Calculate background gradient color
   const bgGradient = useMemo(() => {
@@ -148,7 +150,7 @@ export const CollapsibleContent: React.FC<CollapsibleContentProps> = ({ children
 
       {/* 展开/折叠按钮 Expand/Collapse button */}
       {needsCollapse && (
-        <div className='flex justify-center mt-2 relative z-10'>
+        <div className='flex justify-center relative z-10'>
           <button onClick={toggleCollapse} className='flex items-center gap-1 px-3 py-1.5 text-sm text-t-primary hover:text-primary transition-colors cursor-pointer border-none bg-transparent font-medium [&_svg]:transition-colors [&_svg]:inline-block [&_svg]:align-middle' type='button'>
             {isCollapsed ? (
               <>

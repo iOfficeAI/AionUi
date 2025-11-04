@@ -6,7 +6,7 @@
 
 import type { TMessage } from '@/common/chatLib';
 import classNames from 'classnames';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo, createContext, useCallback } from 'react';
 import HOC from '../utils/HOC';
 import { useMessageList } from './hooks';
 import MessageAcpPermission from '@renderer/messages/acp/MessageAcpPermission';
@@ -21,6 +21,10 @@ import MessageText from './MessagetText';
 import { Down } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { iconColors } from '@/renderer/theme/colors';
+import { Image } from '@arco-design/web-react';
+
+// 图片预览上下文 Image preview context
+export const ImagePreviewContext = createContext<{ inPreviewGroup: boolean }>({ inPreviewGroup: false });
 
 const MessageItem: React.FC<{ message: TMessage }> = HOC((props) => {
   const { message } = props as { message: TMessage };
@@ -69,6 +73,16 @@ const MessageList: React.FC<{ className?: string }> = () => {
   const [isUserScrolling, setIsUserScrolling] = useState(false);
   const previousListLengthRef = useRef(list.length);
   const { t } = useTranslation();
+
+  // 自定义预览操作：下载按钮 Custom preview action: download button
+  const handleDownload = useCallback((currentSrc: string) => {
+    const link = document.createElement('a');
+    link.href = currentSrc;
+    link.download = `image-${Date.now()}.png`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }, []);
 
   // 检查是否在底部（允许一定的误差范围）
   const isAtBottom = () => {
@@ -137,15 +151,20 @@ const MessageList: React.FC<{ className?: string }> = () => {
   return (
     <div className='relative flex-1 h-full'>
       <div className='flex-1 overflow-auto h-full pb-10px box-border' ref={ref} onScroll={handleScroll}>
-        {list.map((message) => {
-          return <MessageItem message={message} key={message.id}></MessageItem>;
-        })}
+        {/* 使用 PreviewGroup 包裹所有消息，实现跨消息预览图片 Use PreviewGroup to wrap all messages for cross-message image preview */}
+        <Image.PreviewGroup actionsLayout={['zoomIn', 'zoomOut', 'originalSize', 'rotateLeft', 'rotateRight']}>
+          <ImagePreviewContext.Provider value={{ inPreviewGroup: true }}>
+            {list.map((message) => {
+              return <MessageItem message={message} key={message.id}></MessageItem>;
+            })}
+          </ImagePreviewContext.Provider>
+        </Image.PreviewGroup>
       </div>
       {showScrollButton && (
         <>
-          {/* 渐变遮罩 */}
+          {/* 渐变遮罩 Gradient mask */}
           <div className='absolute bottom-0 left-0 right-0 h-100px pointer-events-none' />
-          {/* 滚动按钮 */}
+          {/* 滚动按钮 Scroll button */}
           <div className='absolute bottom-20px left-50% transform -translate-x-50% z-100'>
             <div className='flex items-center justify-center w-40px h-40px rd-full bg-base shadow-lg cursor-pointer hover:bg-1 transition-all hover:scale-110 border-1 border-solid border-3' onClick={handleScrollButtonClick} title={t('messages.scrollToBottom')} style={{ lineHeight: 0 }}>
               <Down theme='filled' size='20' fill={iconColors.secondary} style={{ display: 'block' }} />

@@ -28,7 +28,9 @@
     "troubleshooting": "故障排除",
     "select": "选择",
     "expandMore": "展开更多",
-    "collapse": "收起"
+    "collapse": "收起",
+    "copy": "复制",
+    "download": "下载"
   },
   "login": {
     "pageTitle": "AionUi - 登录",
@@ -250,6 +252,10 @@
     "copy": "复制",
     "copySuccess": "复制成功",
     "copyFailed": "复制失败",
+    "copiedToClipboard": "已复制到剪贴板",
+    "downloadSuccess": "下载成功",
+    "downloadFailed": "下载失败",
+    "imageLoadFailed": "图片加载失败",
     "scrollToBottom": "滚动到底部",
     "unknownMessageType": "未知消息类型：{{type}}",
     "permissionRequest": "权限请求",

@@ -997,24 +997,12 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
               const isFile = node.dataRef.isFile;
 
               // 使用 ref 来获取最新的选中状态
-              const isSelected = selectedKeysRef.current.includes(relativePath);
               const isPasteTarget = !isFile && pasteTargetFolder === relativePath;
-
-              // 使用内联样式：参考 Arco Design 的选中样式
-              const titleStyle: React.CSSProperties = {
-                backgroundColor: isPasteTarget ? '#dbeafe' : isSelected ? 'rgb(var(--primary-1))' : undefined, // 主题色浅色背景
-                color: isPasteTarget || isSelected ? 'rgb(var(--primary-6))' : undefined, // 主题色文字
-                border: isPasteTarget ? '2px solid #3b82f6' : undefined,
-                padding: '2px 6px',
-                borderRadius: '4px',
-                fontWeight: isPasteTarget || isSelected ? 500 : undefined, // 选中时加粗
-                transition: 'all 0.15s ease',
-              };
 
               return (
                 <span
                   className='flex items-center gap-4px'
-                  style={titleStyle}
+                  style={{ color: 'inherit' }}
                   onDoubleClick={() => {
                     void ipcBridge.shell.openFile.invoke(path);
                   }}

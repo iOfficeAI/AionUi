@@ -134,7 +134,9 @@
     "workspace": "工作空間",
     "select": "選擇",
     "expandMore": "展開更多",
-    "collapse": "收起"
+    "collapse": "收起",
+    "copy": "複製",
+    "download": "下載"
   },
   "login": {
     "pageTitle": "AionUi - 登入",
@@ -348,6 +350,10 @@
     "copy": "複製",
     "copySuccess": "複製成功",
     "copyFailed": "複製失敗",
+    "copiedToClipboard": "已複製到剪貼簿",
+    "downloadSuccess": "下載成功",
+    "downloadFailed": "下載失敗",
+    "imageLoadFailed": "圖片載入失敗",
     "scrollToBottom": "滾動到底部"
   },
   "mcp": {

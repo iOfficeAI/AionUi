@@ -12,6 +12,7 @@ import CollapsibleContent from '../components/CollapsibleContent';
 import { Copy } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { iconColors } from '@/renderer/theme/colors';
+import { Tooltip } from '@arco-design/web-react';
 
 const useFormatContent = (content: string) => {
   return useMemo(() => {
@@ -70,9 +71,11 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
             'justify-start': message.position !== 'right',
           })}
         >
-          <div className='p-4px rd-4px cursor-pointer hover:bg-3 transition-colors' onClick={handleCopy} title={t('messages.copy')} style={{ lineHeight: 0 }}>
-            <Copy theme='outline' size='16' fill={iconColors.secondary} />
-          </div>
+          <Tooltip content={t('common.copy', { defaultValue: 'Copy' })}>
+            <div className='p-4px rd-4px cursor-pointer hover:bg-3 transition-colors' onClick={handleCopy} style={{ lineHeight: 0 }}>
+              <Copy theme='outline' size='16' fill={iconColors.secondary} />
+            </div>
+          </Tooltip>
         </div>
       </div>
       {showToast && (

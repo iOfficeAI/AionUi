@@ -159,7 +159,9 @@
     "workspace": "ワークスペース",
     "select": "選択",
     "expandMore": "さらに表示",
-    "collapse": "折りたたむ"
+    "collapse": "折りたたむ",
+    "copy": "コピー",
+    "download": "ダウンロード"
   },
   "login": {
     "pageTitle": "AionUi - ログイン",
@@ -373,6 +375,10 @@
     "copy": "コピー",
     "copySuccess": "コピーしました",
     "copyFailed": "コピーに失敗しました",
+    "copiedToClipboard": "クリップボードにコピーしました",
+    "downloadSuccess": "ダウンロードしました",
+    "downloadFailed": "ダウンロードに失敗しました",
+    "imageLoadFailed": "画像の読み込みに失敗しました",
     "scrollToBottom": "下にスクロール"
   },
   "mcp": {
