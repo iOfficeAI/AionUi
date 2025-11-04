@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import type { FileMetadata } from '@/renderer/services/FileService';
 import { getCleanFileNames } from '@/renderer/services/FileService';
+import type { FileOrFolderItem } from './useSendBoxDraft';
 
 /**
  * 创建通用的setUploadFile函数
@@ -19,9 +20,9 @@ export const createSetUploadFile = (mutate: (fn: (prev: any) => any) => void, da
 };
 
 interface UseSendBoxFilesProps {
-  atPath: string[];
+  atPath: Array<string | FileOrFolderItem>;
   uploadFile: string[];
-  setAtPath: (atPath: string[]) => void;
+  setAtPath: (atPath: Array<string | FileOrFolderItem>) => void;
   setUploadFile: (uploadFile: string[] | ((prev: string[]) => string[])) => void;
 }
 
@@ -59,9 +60,16 @@ export const useSendBoxFiles = ({ atPath, uploadFile, setAtPath, setUploadFile }
     (message: string): string => {
       if (atPath.length || uploadFile.length) {
         const cleanUploadFiles = getCleanFileNames(uploadFile).map((fileName) => '@' + fileName);
-        // atPath 现在包含完整路径，只提取文件名用于消息显示
-        // atPath now contains full paths, extract filenames only for message display
-        const cleanAtPaths = getCleanFileNames(atPath).map((fileName) => '@' + fileName);
+        // atPath 现在可能包含字符串路径或对象，需要分别处理
+        // atPath may now contain string paths or objects, need to handle separately
+        const atPathStrings = atPath.map((item) => {
+          if (typeof item === 'string') {
+            return item;
+          } else {
+            return item.path;
+          }
+        });
+        const cleanAtPaths = getCleanFileNames(atPathStrings).map((fileName) => '@' + fileName);
         return cleanUploadFiles.join(' ') + ' ' + cleanAtPaths.join(' ') + ' ' + message;
       }
       return message;

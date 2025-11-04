@@ -224,22 +224,59 @@ const GeminiSendBox: React.FC<{
           </>
         }
         prefix={
-          <div className='flex flex-wrap items-center gap-8px'>
-            {uploadFile.map((path) => {
-              return <FilePreview key={path} path={path} onRemove={() => setUploadFile(uploadFile.filter((v) => v !== path))} />;
-            })}
-            {atPath.map((path) => (
-              <FilePreview
-                key={path}
-                path={path}
-                onRemove={() => {
-                  const newAtPath = atPath.filter((v) => v !== path);
-                  emitter.emit('gemini.selected.file', newAtPath);
-                  setAtPath(newAtPath);
-                }}
-              />
-            ))}
-          </div>
+          <>
+            {/* Files on top */}
+            {(uploadFile.length > 0 || atPath.some((item) => (typeof item === 'string' ? true : item.isFile))) && (
+              <div className='flex flex-wrap items-center gap-8px mb-8px'>
+                {uploadFile.map((path) => {
+                  return <FilePreview key={path} path={path} onRemove={() => setUploadFile(uploadFile.filter((v) => v !== path))} />;
+                })}
+                {atPath.map((item) => {
+                  const isFile = typeof item === 'string' ? true : item.isFile;
+                  const path = typeof item === 'string' ? item : item.path;
+                  if (isFile) {
+                    return (
+                      <FilePreview
+                        key={path}
+                        path={path}
+                        onRemove={() => {
+                          const newAtPath = atPath.filter((v) => (typeof v === 'string' ? v !== path : v.path !== path));
+                          emitter.emit('gemini.selected.file', newAtPath);
+                          setAtPath(newAtPath);
+                        }}
+                      />
+                    );
+                  }
+                  return null;
+                })}
+              </div>
+            )}
+            {/* Folder tags below */}
+            {atPath.some((item) => (typeof item === 'string' ? false : !item.isFile)) && (
+              <div className='flex flex-wrap items-center gap-8px mb-8px'>
+                {atPath.map((item) => {
+                  if (typeof item === 'string') return null;
+                  if (!item.isFile) {
+                    return (
+                      <Tag
+                        key={item.path}
+                        color='blue'
+                        closable
+                        onClose={() => {
+                          const newAtPath = atPath.filter((v) => (typeof v === 'string' ? true : v.path !== item.path));
+                          emitter.emit('gemini.selected.file', newAtPath);
+                          setAtPath(newAtPath);
+                        }}
+                      >
+                        {item.name}
+                      </Tag>
+                    );
+                  }
+                  return null;
+                })}
+              </div>
+            )}
+          </>
         }
         onSend={onSendHandler}
       ></SendBox>

@@ -213,8 +213,8 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
   }, [workspace, loadWorkspace]);
 
   const ensureNodeSelected = useCallback(
-    // Keep tree selection state consistent and optionally emit file paths to send box.
-    // 确保树形控件的选中状态一致，必要时把文件路径同步给发送框。
+    // Keep tree selection state consistent and optionally emit file/folder paths to send box.
+    // 确保树形控件的选中状态一致，必要时把文件/文件夹路径同步给发送框。
     (nodeData: IDirOrFile, options?: { emit?: boolean }) => {
       const key = nodeData.relativePath;
       const shouldEmit = Boolean(options?.emit);
@@ -230,8 +230,14 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
             fullPath: nodeData.fullPath,
           };
         }
-        if (shouldEmit && nodeData.isFile && nodeData.fullPath) {
-          emitter.emit(`${eventPrefix}.selected.file`, [nodeData.fullPath]);
+        if (shouldEmit && nodeData.fullPath) {
+          emitter.emit(`${eventPrefix}.selected.file`, [
+            {
+              path: nodeData.fullPath,
+              name: nodeData.name,
+              isFile: nodeData.isFile,
+            },
+          ]);
         } else if (shouldEmit) {
           emitter.emit(`${eventPrefix}.selected.file`, []);
         }
@@ -246,17 +252,29 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
           relativePath: key,
           fullPath: nodeData.fullPath,
         };
-        if (shouldEmit) {
-          // Folders are not sent to send box; emit empty list to clear selection there.
-          // 文件夹不会发给发送框，发送空数组以清空之前选中的文件。
-          emitter.emit(`${eventPrefix}.selected.file`, []);
+        if (shouldEmit && nodeData.fullPath) {
+          // Emit folder object to send box so it can display as a tag.
+          // 将文件夹对象发给发送框，以便显示为标签。
+          emitter.emit(`${eventPrefix}.selected.file`, [
+            {
+              path: nodeData.fullPath,
+              name: nodeData.name,
+              isFile: false,
+            },
+          ]);
         }
       } else if (nodeData.fullPath) {
         selectedNodeRef.current = null;
         if (shouldEmit) {
-          // When a file is selected, broadcast its absolute path for the send box preview.
-          // 选中文件时，将绝对路径广播给发送框用于预览。
-          emitter.emit(`${eventPrefix}.selected.file`, [nodeData.fullPath]);
+          // When a file is selected, broadcast its info for the send box preview.
+          // 选中文件时，将文件信息广播给发送框用于预览。
+          emitter.emit(`${eventPrefix}.selected.file`, [
+            {
+              path: nodeData.fullPath,
+              name: nodeData.name,
+              isFile: true,
+            },
+          ]);
         }
       }
     },
@@ -504,9 +522,9 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
 
   const handleAddToChat = useCallback(
     (nodeData: IDirOrFile | null) => {
-      // Queue the file for the next chat message so it appears in the attachment preview area.
-      // (将文件加入下一条聊天消息的附件列表，并立即显示在附件预览区。)
-      if (!nodeData || !nodeData.isFile || !nodeData.fullPath) return;
+      // Queue the file or folder for the next chat message so it appears in the attachment preview area.
+      // (将文件或文件夹加入下一条聊天消息的附件列表，并立即显示在附件预览区。)
+      if (!nodeData || !nodeData.fullPath) return;
       ensureNodeSelected(nodeData, { emit: true });
       closeContextMenu();
       messageApi.success(t('conversation.workspace.contextMenu.addedToChat'));
@@ -934,20 +952,16 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
               >
                 {t('conversation.workspace.contextMenu.rename')}
               </button>
-              {isContextMenuNodeFile && (
-                <>
-                  <div className='h-1px bg-3 my-2px'></div>
-                  <button
-                    type='button'
-                    className={menuButtonBase}
-                    onClick={() => {
-                      handleAddToChat(contextMenuNode);
-                    }}
-                  >
-                    {t('conversation.workspace.contextMenu.addToChat')}
-                  </button>
-                </>
-              )}
+              <div className='h-1px bg-3 my-2px'></div>
+              <button
+                type='button'
+                className={menuButtonBase}
+                onClick={() => {
+                  handleAddToChat(contextMenuNode);
+                }}
+              >
+                {t('conversation.workspace.contextMenu.addToChat')}
+              </button>
             </div>
           </div>
         )}
@@ -964,7 +978,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
           </div>
         ) : (
           <Tree
-            className={'!px-16px'}
+            className={'!px-16px workspace-tree'}
             showLine
             key={treeKey}
             selectedKeys={selected}
@@ -1069,22 +1083,26 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
                 }
               }
 
-              // 只向 SendBox 发送文件路径（不发送文件夹）
+              // 向 SendBox 发送文件和文件夹对象
               // 使用 fullPath（绝对路径）而不是 relativePath，以便 FilePreview 组件能正确显示图片预览
-              // Emit only file paths to selected.file (folders should not be sent to SendBox)
+              // Emit both file and folder objects to SendBox
               // Use fullPath (absolute path) instead of relativePath so FilePreview can display image previews correctly
-              const filePaths: string[] = [];
+              const items: Array<{ path: string; name: string; isFile: boolean }> = [];
 
-              // 遍历选中的节点，只收集文件的完整路径（使用工具函数 findNodeByKey）
-              // Iterate through selected nodes and collect only full paths of files (using utility function findNodeByKey)
+              // 遍历选中的节点，收集文件和文件夹的完整信息（使用工具函数 findNodeByKey）
+              // Iterate through selected nodes and collect full info of files and folders (using utility function findNodeByKey)
               for (const k of newKeys) {
                 const node = findNodeByKey(files, k);
-                if (node && node.isFile && node.fullPath) {
-                  filePaths.push(node.fullPath);
+                if (node && node.fullPath) {
+                  items.push({
+                    path: node.fullPath,
+                    name: node.name,
+                    isFile: node.isFile,
+                  });
                 }
               }
 
-              emitter.emit(`${eventPrefix}.selected.file`, filePaths);
+              emitter.emit(`${eventPrefix}.selected.file`, items);
             }}
             onExpand={(keys) => {
               // eslint-disable-next-line no-console
