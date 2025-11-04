@@ -83,32 +83,29 @@
   transition: all 0.6s cubic-bezier(0.2, 0.8, 0.3, 1);
 }
 
+/* Agent 分隔线 / Agent divider */
+.agentDivider {
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 16px;
+  line-height: 1;
+  user-select: none;
+}
+
 /* Agent 卡片样式 / Agent card style */
 .agentCard {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 16px;
-  border-radius: 30px; /* 统一使用胶囊形状，避免 hover 和选中态切换时形状突变 / Use consistent pill shape to prevent shape transition on hover/selection */
-  background: var(--bg-1);
-  border: 2px solid transparent;
   cursor: pointer;
   /* 使用更柔和的 ease-out 曲线，让动画开始快、结束慢，更自然 / Use softer ease-out curve for natural deceleration */
-  transition:
-    flex 0.6s cubic-bezier(0.2, 0.8, 0.3, 1),
-    background 0.5s cubic-bezier(0.2, 0.8, 0.3, 1),
-    opacity 0.5s cubic-bezier(0.2, 0.8, 0.3, 1),
-    transform 0.6s cubic-bezier(0.2, 0.8, 0.3, 1);
+  transition: opacity 0.5s cubic-bezier(0.2, 0.8, 0.3, 1);
   white-space: nowrap;
   overflow: hidden;
-  /* GPU 加速优化 / GPU acceleration for smoother animation */
-  will-change: flex, transform, opacity;
 }
 
-/* 未选中状态 - 60% 透明度和宽度 / Unselected state - 60% opacity and width */
+/* 未选中状态 - 60% 透明度 / Unselected state - 60% opacity */
 .agentCard:not(.agentCardSelected) {
   opacity: 0.6;
-  flex: 0 0 auto;
 }
 
 /* 未选中卡片的名称隐藏 / Hide name for unselected cards */
@@ -126,7 +123,6 @@
 /* Hover 效果 - 展开显示名称 / Hover effect - expand and show name */
 .agentCard:not(.agentCardSelected):hover {
   opacity: 1;
-  background: var(--workspace-btn-bg);
 }
 
 .agentCard:not(.agentCardSelected):hover .agentName {
@@ -135,11 +131,12 @@
   margin-left: 8px;
 }
 
-/* 选中状态 - 完全展开，白底 / Selected state - fully expanded with white background */
+/* 选中状态 - 完全展开 / Selected state - fully expanded */
 .agentCardSelected {
-  background: var(--bg-base);
-  flex: 1 1 auto;
-  border-radius: 30px;
+  opacity: 1;
+  background: var(--fill-0);
+  padding: 8px 12px;
+  border-radius: 20px;
 }
 
 /* Agent 名称文字 / Agent name text */
@@ -157,4 +154,14 @@
 .agentCardSelected .agentName {
   color: #4d3cea;
   font-weight: 600;
+}
+
+/* 欢迎标题渐变效果 / Welcome title gradient */
+.welcomeTitle {
+  /* background: linear-gradient(90deg, transparent 0%, #9095d9 100%); var(--fill-white-to-black) */
+  background: linear-gradient(90deg, #000000 0%, #9095d9 100%);
+
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }

@@ -117,12 +117,34 @@ export default defineConfig({
     // Arco Design light variants: bg-primary-light-1, bg-success-light-1, etc.
     [/^bg-(primary|success|warning|danger|link)-light-([1-4])$/, ([, color, d]) => ({ 'background-color': `var(--color-${color}-light-${d})` })],
 
+    // Arco Design 官方色阶 primary/success/warning/danger 1-9
+    // Arco Design color levels: bg-primary-1, text-primary-1, border-primary-1, etc.
+    [
+      /^(bg|text|border)-(primary|success|warning|danger)-([1-9])$/,
+      ([, prefix, color, d]) => {
+        const prop = prefix === 'bg' ? 'background-color' : prefix === 'text' ? 'color' : 'border-color';
+        return { [prop]: `rgb(var(--${color}-${d}))` };
+      },
+    ],
+
     // Arco Design 官方白色和黑色
     // Arco Design white and black: bg-color-white, text-color-white, bg-color-black, text-color-black
     ['bg-color-white', { 'background-color': 'var(--color-white)' }],
     ['text-color-white', { color: 'var(--color-white)' }],
     ['bg-color-black', { 'background-color': 'var(--color-black)' }],
     ['text-color-black', { color: 'var(--color-black)' }],
+
+    // Arco Design 对话框/弹出层专用背景色
+    // Arco Design popup/dialog background color: bg-popup
+    ['bg-popup', { 'background-color': 'var(--color-bg-popup)' }],
+
+    // 项目自定义颜色 / Project custom colors
+    ['bg-dialog-fill-0', { 'background-color': 'var(--dialog-fill-0)' }],
+    ['text-0', { color: 'var(--text-0)' }],
+    ['text-white', { color: 'var(--text-white)' }],
+    ['bg-fill-0', { 'background-color': 'var(--fill-0)' }],
+    ['bg-fill-white-to-black', { 'background-color': 'var(--fill-white-to-black)' }],
+    ['border-special', { 'border-color': 'var(--border-special)' }],
   ],
   // Preflights - Global base styles 全局基础样式
   preflights: [

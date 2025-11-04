@@ -386,34 +386,39 @@ const Guid: React.FC = () => {
   return (
     <ConfigProvider getPopupContainer={() => guidContainerRef.current || document.body}>
       <div ref={guidContainerRef} className='h-full flex-center flex-col px-100px' style={{ position: 'relative' }}>
-        <p className='text-2xl font-semibold text-t-primary mb-8'>{t('conversation.welcome.title')}</p>
+        <p className={`text-2xl font-semibold mb-8 ${styles.welcomeTitle}`}>{t('conversation.welcome.title')}</p>
 
         {/* Agent 选择器 - 在标题下方 */}
         {availableAgents && availableAgents.length > 0 && (
           <div
-            className={styles.agentSelector}
+            className={`${styles.agentSelector} bg-fill-2`}
             style={{
               marginBottom: 16,
+              padding: '4px',
+              borderRadius: '30px',
             }}
           >
-            {availableAgents.map((agent) => {
+            {availableAgents.map((agent, index) => {
               const isSelected = selectedAgent === agent.backend;
               const logoSrc = AGENT_LOGO_MAP[agent.backend];
 
               return (
-                <div key={agent.backend} className={`${styles.agentCard} ${isSelected ? styles.agentCardSelected : ''}`} onClick={() => setSelectedAgent(agent.backend)}>
-                  <img src={logoSrc} alt={`${agent.backend} logo`} width={20} height={20} style={{ objectFit: 'contain', flexShrink: 0 }} />
-                  <span className={`${styles.agentName} `} style={{ color: 'var(--color-text-1)' }}>
-                    {agent.name}
-                  </span>
-                </div>
+                <React.Fragment key={agent.backend}>
+                  {index > 0 && <div className={styles.agentDivider}>|</div>}
+                  <div className={`${styles.agentCard} ${isSelected ? styles.agentCardSelected : ''}`} onClick={() => setSelectedAgent(agent.backend)}>
+                    <img src={logoSrc} alt={`${agent.backend} logo`} width={20} height={20} style={{ objectFit: 'contain', flexShrink: 0 }} />
+                    <span className={`${styles.agentName} `} style={{ color: 'var(--color-text-1)' }}>
+                      {agent.name}
+                    </span>
+                  </div>
+                </React.Fragment>
               );
             })}
           </div>
         )}
 
         <div
-          className={`bg-base b-solid border rd-20px transition-all duration-200 overflow-hidden p-16px ${isFileDragging ? 'border-dashed' : 'border-3'}`}
+          className={`bg-border-2 b-solid border rd-20px transition-all duration-200 overflow-hidden p-16px ${isFileDragging ? 'border-dashed' : 'border-3'}`}
           style={{
             width: 'clamp(400px, calc(100% - 80px), 720px)',
             zIndex: 1,
@@ -553,7 +558,7 @@ const Guid: React.FC = () => {
           }}
         >
           {!isWorkspaceExpanded ? (
-            <div className='flex items-end h-40px w-150px rd-8px gap-8px px-16px py-10px cursor-pointer transition-background duration-200 bg-aou-1' onClick={() => setIsWorkspaceExpanded(true)}>
+            <div className='flex items-end h-40px w-150px rd-8px gap-8px px-16px py-10px cursor-pointer' onClick={() => setIsWorkspaceExpanded(true)}>
               <FolderOpen className='line-height-4' theme='outline' size='16' fill={iconColors.secondary} />
               <span className='text-14px text-t-secondary'>{t('conversation.welcome.specifyWorkspace')}</span>
             </div>
