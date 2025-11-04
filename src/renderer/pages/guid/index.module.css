@@ -76,7 +76,6 @@
 /* Agent 选择器容器 / Agent selector container */
 .agentSelector {
   display: flex;
-  gap: 8px;
   justify-content: center;
   align-items: center;
   /* 容器也添加过渡，让整体布局更流畅 / Add transition to container for smoother layout */
@@ -88,6 +87,7 @@
   color: rgba(255, 255, 255, 0.3);
   font-size: 16px;
   line-height: 1;
+  padding: 2px;
   user-select: none;
 }
 
@@ -95,7 +95,6 @@
 .agentCard {
   display: flex;
   align-items: center;
-  gap: 8px;
   cursor: pointer;
   /* 使用更柔和的 ease-out 曲线，让动画开始快、结束慢，更自然 / Use softer ease-out curve for natural deceleration */
   transition: opacity 0.5s cubic-bezier(0.2, 0.8, 0.3, 1);
@@ -106,6 +105,7 @@
 /* 未选中状态 - 60% 透明度 / Unselected state - 60% opacity */
 .agentCard:not(.agentCardSelected) {
   opacity: 0.6;
+  padding: 4px;
 }
 
 /* 未选中卡片的名称隐藏 / Hide name for unselected cards */
@@ -137,6 +137,7 @@
   background: var(--fill-0);
   padding: 8px 12px;
   border-radius: 20px;
+  margin: 0 2px;
 }
 
 /* Agent 名称文字 / Agent name text */
@@ -154,14 +155,4 @@
 .agentCardSelected .agentName {
   color: #4d3cea;
   font-weight: 600;
-}
-
-/* 欢迎标题渐变效果 / Welcome title gradient */
-.welcomeTitle {
-  /* background: linear-gradient(90deg, transparent 0%, #9095d9 100%); var(--fill-white-to-black) */
-  background: linear-gradient(90deg, #000000 0%, #9095d9 100%);
-
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
 }
