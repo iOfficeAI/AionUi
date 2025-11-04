@@ -6,21 +6,22 @@
 
 import { ipcBridge } from '@/common';
 import type { IMessageToolGroup } from '@/common/chatLib';
-import { Alert, Button, Radio, Tag, Message, Image, Tooltip } from '@arco-design/web-react';
-import { LoadingOne, Copy, Download } from '@icon-park/react';
-import { ToolConfirmationOutcome } from '../types/tool-confirmation';
+import { iconColors } from '@/renderer/theme/colors';
+import { Alert, Button, Image, Message, Radio, Tag, Tooltip } from '@arco-design/web-react';
+import { Copy, Download, LoadingOne } from '@icon-park/react';
 import 'diff2html/bundles/css/diff2html.min.css';
-import React, { useMemo, useState, useCallback, useContext } from 'react';
+import React, { useCallback, useContext, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import CollapsibleContent from '../components/CollapsibleContent';
 import Diff2Html from '../components/Diff2Html';
 import LocalImageView from '../components/LocalImageView';
 import MarkdownView from '../components/Markdown';
-import CollapsibleContent from '../components/CollapsibleContent';
-import { iconColors } from '@/renderer/theme/colors';
+import { ToolConfirmationOutcome } from '../types/tool-confirmation';
 import { ImagePreviewContext } from './MessageList';
 
 // Alert 组件样式常量 Alert component style constant
-const ALERT_CLASSES = '!items-center !rd-8px !px-8px [&_.arco-alert-icon]:flex [&_.arco-alert-icon]:items-center [&_.arco-alert-content-wrapper]:flex [&_.arco-alert-content-wrapper]:items-center [&_.arco-alert-content-wrapper]:w-full [&_.arco-alert-content]:flex-1';
+// 顶部对齐图标与内容，避免多行文本时图标垂直居中
+const ALERT_CLASSES = '!items-start !rd-8px !px-8px [&_.arco-alert-icon]:flex [&_.arco-alert-icon]:items-start [&_.arco-alert-content-wrapper]:flex [&_.arco-alert-content-wrapper]:items-start [&_.arco-alert-content-wrapper]:w-full [&_.arco-alert-content]:flex-1';
 
 // CollapsibleContent 高度常量 CollapsibleContent height constants
 const DESCRIPTION_MAX_HEIGHT = 84; // 描述文字最大高度（4行）Description max height (4 lines)

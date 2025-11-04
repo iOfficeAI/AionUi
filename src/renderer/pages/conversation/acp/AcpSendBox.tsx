@@ -6,7 +6,7 @@ import { uuid } from '@/common/utils';
 import SendBox from '@/renderer/components/sendbox';
 import ShimmerText from '@/renderer/components/ShimmerText';
 import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/ThoughtDisplay';
-import { getSendBoxDraftHook } from '@/renderer/hooks/useSendBoxDraft';
+import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/useSendBoxDraft';
 import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/useSendBoxFiles';
 import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
 import { allSupportedExts } from '@/renderer/services/FileService';
@@ -104,16 +104,17 @@ const useAcpMessage = (conversation_id: string) => {
   return { thought, setThought, running, acpStatus, aiProcessing, setAiProcessing };
 };
 
-const EMPTY_ARRAY: string[] = [];
+const EMPTY_AT_PATH: Array<string | FileOrFolderItem> = [];
+const EMPTY_UPLOAD_FILES: string[] = [];
 
 const useSendBoxDraft = (conversation_id: string) => {
   const { data, mutate } = useAcpSendBoxDraft(conversation_id);
-  const atPath = data?.atPath ?? EMPTY_ARRAY;
-  const uploadFile = data?.uploadFile ?? EMPTY_ARRAY;
+  const atPath = data?.atPath ?? EMPTY_AT_PATH;
+  const uploadFile = data?.uploadFile ?? EMPTY_UPLOAD_FILES;
   const content = data?.content ?? '';
 
   const setAtPath = useCallback(
-    (atPath: string[]) => {
+    (atPath: Array<string | FileOrFolderItem>) => {
       mutate((prev) => ({ ...prev, atPath }));
     },
     [data, mutate]
