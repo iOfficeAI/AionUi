@@ -60,6 +60,14 @@
   /* Special Colors - Light Mode */
   --fill: #f7f8fa; /* 填充色 */
   --inverse: #ffffff; /* 反色（黑白切换）*/
+
+  /* Custom Colors - Light Mode */
+  --dialog-fill-0: #ffffff; /* 对话框填充色 */
+  --text-0: #000000; /* 纯黑文字色 */
+  --text-white: #ffffff; /* 纯白文字色 */
+  --fill-0: #ffffff; /* 填充色 0 */
+  --fill-white-to-black: #ffffff; /* 白到黑填充色 */
+  --border-special: var(--bg-3); /* 特殊边框色 */
 }
 
 /* Dark Mode */
@@ -121,4 +129,12 @@
   /* Special Colors - Dark Mode */
   --fill: #1a1a1a; /* 填充色 */
   --inverse: #ffffff; /* 反色（黑白切换）*/
+
+  /* Custom Colors - Dark Mode */
+  --dialog-fill-0: #333333; /* 对话框填充色 */
+  --text-0: #ffffff; /* 纯黑文字色（暗色模式下为白色） */
+  --text-white: #ffffff; /* 纯白文字色 */
+  --fill-0: rgba(255, 255, 255, 0.08); /* 填充色 0 - 暗色模式下为半透明白色 */
+  --fill-white-to-black: #000000; /* 白到黑填充色（暗色模式下为黑色） */
+  --border-special: #60677e; /* 特殊边框色 */
 }
