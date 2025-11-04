@@ -67,6 +67,7 @@ const MessageList: React.FC<{ className?: string }> = () => {
   const ref = useRef<HTMLDivElement>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [isUserScrolling, setIsUserScrolling] = useState(false);
+  const previousListLengthRef = useRef(list.length);
   const { t } = useTranslation();
 
   // 检查是否在底部（允许一定的误差范围）
@@ -96,12 +97,18 @@ const MessageList: React.FC<{ className?: string }> = () => {
 
   // 当消息列表更新时，智能滚动
   useEffect(() => {
+    const currentListLength = list.length;
+    const isNewMessage = currentListLength !== previousListLengthRef.current;
+
+    // 更新记录的列表长度
+    previousListLengthRef.current = currentListLength;
+
     // 检查最新消息是否是用户发送的（position === 'right'）
     const lastMessage = list[list.length - 1];
     const isUserMessage = lastMessage?.position === 'right';
 
     // 如果是用户发送的消息，强制滚动到底部并重置滚动状态
-    if (isUserMessage) {
+    if (isUserMessage && isNewMessage) {
       setIsUserScrolling(false);
       setTimeout(() => {
         scrollToBottom();
@@ -112,8 +119,8 @@ const MessageList: React.FC<{ className?: string }> = () => {
     // 如果用户正在查看历史消息，不自动滚动
     if (isUserScrolling) return;
 
-    // 如果在底部或接近底部，自动滚动
-    if (isAtBottom()) {
+    // 只在新消息添加时才自动滚动，而不是消息内容更新时
+    if (isNewMessage && isAtBottom()) {
       setTimeout(() => {
         scrollToBottom();
       }, 100);
