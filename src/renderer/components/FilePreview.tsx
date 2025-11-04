@@ -33,6 +33,12 @@ interface FilePreviewProps {
 }
 
 const FilePreview: React.FC<FilePreviewProps> = ({ path, onRemove }) => {
+  // Defensive check: ensure path is a string
+  if (typeof path !== 'string') {
+    console.error('[FilePreview] Invalid path type:', typeof path, path);
+    return null;
+  }
+
   const isImage = isImageFile(path);
   const fileName = getCleanFileName(path);
   const fileExt = getFileExtension(path).toUpperCase().replace('.', '');

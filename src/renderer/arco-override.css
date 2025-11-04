@@ -135,3 +135,16 @@ body[arco-theme='dark'] .arco-message-info {
 body[arco-theme='dark'] .arco-message-error {
   background: linear-gradient(90deg, rgba(255, 221, 219, 0.3) 0%, rgba(255, 243, 240, 0.3) 100%) !important;
 }
+
+/* Workspace tree selection styles - use text color instead of background for better dark mode visibility */
+.workspace-tree .arco-tree-node-selected .arco-tree-node-title {
+  background-color: transparent !important;
+  color: var(--color-primary-6) !important;
+  font-weight: 500;
+}
+
+body[arco-theme='dark'] .workspace-tree .arco-tree-node-selected .arco-tree-node-title {
+  background-color: transparent !important;
+  color: var(--color-primary-5) !important;
+  font-weight: 500;
+}
