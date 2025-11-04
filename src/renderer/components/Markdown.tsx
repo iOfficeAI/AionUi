@@ -115,13 +115,26 @@ function CodeBlock(props: any) {
   }, [props]);
 }
 
-const createInitStyle = (currentTheme = 'light') => {
+const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string>) => {
   const style = document.createElement('style');
+  // 将外部 CSS 变量注入到 Shadow DOM 中，支持深色模式 Inject external CSS variables into Shadow DOM for dark mode support
+  const cssVarsDeclaration = cssVars
+    ? Object.entries(cssVars)
+        .map(([key, value]) => `${key}: ${value};`)
+        .join('\n    ')
+    : '';
+
   style.innerHTML = `
+  /* Shadow DOM CSS 变量定义 Shadow DOM CSS variable definitions */
+  :host {
+    ${cssVarsDeclaration}
+  }
+
   * {
     line-height:26px;
     font-size:14px;
   }
+
   .markdown-shadow-body>p:first-child
   {
     margin-top:0px;
@@ -190,16 +203,54 @@ const createInitStyle = (currentTheme = 'light') => {
 };
 
 const ShadowView = ({ children }: { children: React.ReactNode }) => {
-  const [root, setRoot] = useState(null);
+  const [root, setRoot] = useState<ShadowRoot | null>(null);
+  const styleRef = React.useRef<HTMLStyleElement | null>(null);
+
+  // 更新 Shadow DOM 中的 CSS 变量 Update CSS variables in Shadow DOM
+  const updateCSSVars = React.useCallback((shadowRoot: ShadowRoot) => {
+    const computedStyle = getComputedStyle(document.documentElement);
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+    const cssVars = {
+      '--bg-1': computedStyle.getPropertyValue('--bg-1'),
+      '--bg-2': computedStyle.getPropertyValue('--bg-2'),
+      '--bg-3': computedStyle.getPropertyValue('--bg-3'),
+      '--color-text-1': computedStyle.getPropertyValue('--color-text-1'),
+      '--color-text-2': computedStyle.getPropertyValue('--color-text-2'),
+      '--color-text-3': computedStyle.getPropertyValue('--color-text-3'),
+    };
+
+    // 移除旧样式并添加新样式 Remove old style and add new style
+    if (styleRef.current) {
+      styleRef.current.remove();
+    }
+    const newStyle = createInitStyle(currentTheme, cssVars);
+    styleRef.current = newStyle;
+    shadowRoot.appendChild(newStyle);
+  }, []);
+
+  React.useEffect(() => {
+    if (!root) return;
+
+    // 监听主题变化 Listen for theme changes
+    const observer = new MutationObserver(() => {
+      updateCSSVars(root);
+    });
+
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme', 'class'],
+    });
+
+    return () => observer.disconnect();
+  }, [root, updateCSSVars]);
+
   return (
     <div
       ref={(el: any) => {
         if (!el || el.__init__shadow) return;
         el.__init__shadow = true;
         const shadowRoot = el.attachShadow({ mode: 'open' });
-        // 获取当前主题并传递给 Shadow DOM
-        const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
-        shadowRoot.appendChild(createInitStyle(currentTheme));
+        updateCSSVars(shadowRoot);
         setRoot(shadowRoot);
       }}
       className='markdown-shadow'
