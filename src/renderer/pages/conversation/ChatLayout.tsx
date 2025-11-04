@@ -60,6 +60,9 @@ const useSiderWidthWithDrag = (defaultWidth: number) => {
     <div
       className={`absolute left-0 top-0 bottom-0 w-6px cursor-col-resize  z-10 hover:bg-6/20`}
       onMouseDown={handleDragStart}
+      style={{
+        borderLeft: '1px solid var(--bg-3)',
+      }}
       onDoubleClick={() => {
         setSiderWidth(defaultWidth);
       }}
