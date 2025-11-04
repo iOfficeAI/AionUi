@@ -394,35 +394,39 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
         }
 
         // 通用工具调用展示 Generic tool call display
+        // 将可展开的长内容放在 Alert 下方，保持 Alert 仅展示头部信息
         return (
-          <Alert
-            className={ALERT_CLASSES}
-            key={callId}
-            type={status === 'Error' ? 'error' : status === 'Success' ? 'success' : status === 'Canceled' ? 'warning' : 'info'}
-            icon={isLoading && <LoadingOne theme='outline' size='12' fill={iconColors.primary} className='loading lh-[1] flex' />}
-            content={
-              <div>
-                <Tag className={'mr-4px'}>
-                  {name}
-                  {status === 'Canceled' ? `(${t('messages.canceledExecution')})` : ''}
-                </Tag>
-                {/* description 使用 CollapsibleContent 包装，mask 模式适配 Alert 背景色
-                    Wrap description with CollapsibleContent, mask mode adapts to Alert background color */}
-                {description && (
-                  <CollapsibleContent maxHeight={DESCRIPTION_MAX_HEIGHT} defaultCollapsed={true} useMask={true}>
-                    <div className='text-12px text-t-secondary whitespace-pre-wrap break-words'>{description}</div>
-                  </CollapsibleContent>
-                )}
-                {/* resultDisplay 使用 ToolResultDisplay 组件展示
-                    Display resultDisplay using ToolResultDisplay component */}
-                {resultDisplay && (
-                  <div className='mt-2'>
-                    <ToolResultDisplay content={content} inAlert={true} />
+          <div key={callId}>
+            <Alert
+              className={ALERT_CLASSES}
+              type={status === 'Error' ? 'error' : status === 'Success' ? 'success' : status === 'Canceled' ? 'warning' : 'info'}
+              icon={isLoading && <LoadingOne theme='outline' size='12' fill={iconColors.primary} className='loading lh-[1] flex' />}
+              content={
+                <div>
+                  <Tag className={'mr-4px'}>
+                    {name}
+                    {status === 'Canceled' ? `(${t('messages.canceledExecution')})` : ''}
+                  </Tag>
+                </div>
+              }
+            />
+
+            {(description || resultDisplay) && (
+              <div className='mt-8px'>
+                <CollapsibleContent maxHeight={RESULT_MAX_HEIGHT} defaultCollapsed={true} useMask={false}>
+                  <div>
+                    {description && <div className='text-12px text-t-secondary whitespace-pre-wrap break-words'>{description}</div>}
+                    {resultDisplay && (
+                      <div className='mt-2'>
+                        {/* 在 Alert 外展示完整结果，去除 inAlert 限制 */}
+                        <ToolResultDisplay content={content} inAlert={false} />
+                      </div>
+                    )}
                   </div>
-                )}
+                </CollapsibleContent>
               </div>
-            }
-          />
+            )}
+          </div>
         );
       })}
     </div>
