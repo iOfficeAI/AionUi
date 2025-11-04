@@ -5,6 +5,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import McpAgentStatusDisplay from './McpAgentStatusDisplay';
 import McpServerActions from './McpServerActions';
+import { iconColors } from '@/renderer/theme/colors';
 
 interface McpServerHeaderProps {
   server: IMcpServer;
@@ -20,13 +21,13 @@ interface McpServerHeaderProps {
 const getStatusIcon = (status?: IMcpServer['status']) => {
   switch (status) {
     case 'connected':
-      return <Check fill={'#00b42a'} className={'h-[24px] items-center'} />;
+      return <Check fill={iconColors.success} className={'h-[24px] items-center'} />;
     case 'testing':
-      return <LoadingOne fill={'#165dff'} className={'h-[24px]'} />;
+      return <LoadingOne fill={iconColors.primary} className={'h-[24px]'} />;
     case 'error':
-      return <CloseSmall fill={'#f53f3f'} className={'h-[24px]'} />;
+      return <CloseSmall fill={iconColors.danger} className={'h-[24px]'} />;
     default:
-      return <CloseOne fill={'#86909c'} className={'h-[24px]'} />;
+      return <CloseOne fill={iconColors.secondary} className={'h-[24px]'} />;
   }
 };
 

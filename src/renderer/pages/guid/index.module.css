@@ -69,6 +69,99 @@
 
 /* 浅色占位符 */
 .lightPlaceholder :global(textarea::placeholder) {
-  color: #c9cdd4 !important;
+  color: var(--text-disabled) !important;
   opacity: 1 !important;
+}
+
+/* Agent 选择器容器 / Agent selector container */
+.agentSelector {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  /* 容器也添加过渡，让整体布局更流畅 / Add transition to container for smoother layout */
+  transition: all 0.6s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+/* Agent 分隔线 / Agent divider */
+.agentDivider {
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 16px;
+  line-height: 1;
+  user-select: none;
+}
+
+/* Agent 卡片样式 / Agent card style */
+.agentCard {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  /* 使用更柔和的 ease-out 曲线，让动画开始快、结束慢，更自然 / Use softer ease-out curve for natural deceleration */
+  transition: opacity 0.5s cubic-bezier(0.2, 0.8, 0.3, 1);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+/* 未选中状态 - 60% 透明度 / Unselected state - 60% opacity */
+.agentCard:not(.agentCardSelected) {
+  opacity: 0.6;
+}
+
+/* 未选中卡片的名称隐藏 / Hide name for unselected cards */
+.agentCard:not(.agentCardSelected) .agentName {
+  max-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  /* 使用更柔和的缓动和延迟，让文字展开更自然 / Use softer easing and delay for natural text expansion */
+  transition:
+    max-width 0.6s cubic-bezier(0.2, 0.8, 0.3, 1),
+    opacity 0.5s cubic-bezier(0.2, 0.8, 0.3, 1) 0.05s,
+    margin 0.6s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+/* Hover 效果 - 展开显示名称 / Hover effect - expand and show name */
+.agentCard:not(.agentCardSelected):hover {
+  opacity: 1;
+}
+
+.agentCard:not(.agentCardSelected):hover .agentName {
+  max-width: 100px;
+  opacity: 1;
+  margin-left: 8px;
+}
+
+/* 选中状态 - 完全展开 / Selected state - fully expanded */
+.agentCardSelected {
+  opacity: 1;
+  background: var(--fill-0);
+  padding: 8px 12px;
+  border-radius: 20px;
+}
+
+/* Agent 名称文字 / Agent name text */
+.agentName {
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--text-primary);
+  /* 使用更柔和的过渡效果 / Use softer transition */
+  transition:
+    color 0.5s cubic-bezier(0.2, 0.8, 0.3, 1),
+    font-weight 0.5s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+/* 选中状态的文字颜色 / Text color for selected state */
+.agentCardSelected .agentName {
+  color: #4d3cea;
+  font-weight: 600;
+}
+
+/* 欢迎标题渐变效果 / Welcome title gradient */
+.welcomeTitle {
+  /* background: linear-gradient(90deg, transparent 0%, #9095d9 100%); var(--fill-white-to-black) */
+  background: linear-gradient(90deg, #000000 0%, #9095d9 100%);
+
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
 }

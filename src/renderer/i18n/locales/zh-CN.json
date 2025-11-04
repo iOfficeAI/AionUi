@@ -26,7 +26,11 @@
     "technical_details": "技术详情",
     "error_details": "错误详情",
     "troubleshooting": "故障排除",
-    "select": "选择"
+    "select": "选择",
+    "expandMore": "展开更多",
+    "collapse": "收起",
+    "copy": "复制",
+    "download": "下载"
   },
   "login": {
     "pageTitle": "AionUi - 登录",
@@ -68,7 +72,11 @@
       "linkFolder": "打开文件夹",
       "newConversation": "新对话",
       "multiAgentModeEnabled": "已进入多智能体模式",
-      "selectModel": "选择模型"
+      "selectModel": "选择模型",
+      "specifyWorkspace": "指定工作空间",
+      "currentWorkspace": "当前工作空间",
+      "openFolder": "打开文件夹",
+      "none": "无"
     },
     "history": {
       "today": "今天",
@@ -86,14 +94,45 @@
     },
     "workspace": {
       "title": "工作空间",
+      "pasteConfirm_title": "粘贴文件",
+      "pasteConfirm_message": "确定要将 '{{name}}' 粘贴到选中的文件夹 ({{target}}) 吗？",
+      "pasteConfirm_paste": "粘贴",
+      "pasteConfirm_cancel": "取消",
+      "pasteConfirm_noAsk": "不再提示",
+      "pasteConfirm_fileName": "文件名",
+      "pasteConfirm_targetFolder": "目标文件夹",
+      "pasteConfirm_multipleFiles": "{{count}} 个文件",
       "empty": "工作空间为空",
       "emptyDescription": "上传文件或打开文件夹后，文件将显示在这里",
       "searchPlaceholder": "搜索文件...",
       "createNewConversation": "当前空间创建新会话",
-      "search.empty": "搜索结果为空"
+      "search.empty": "搜索结果为空",
+      "addFile": "添加文件",
+      "refresh": "刷新",
+      "contextMenu": {
+        "open": "打开",
+        "openLocation": "打开文件所在目录",
+        "deleteTitle": "删除文件",
+        "deleteConfirm": "此操作会删除系统所在文件,确认删除吗?",
+        "deleteSuccess": "删除成功",
+        "deleteFailed": "删除失败",
+        "rename": "重命名",
+        "renameTitle": "重命名",
+        "renamePlaceholder": "输入新的名称",
+        "renameSuccess": "重命名成功",
+        "renameFailed": "重命名失败",
+        "renameEmpty": "名称不能为空",
+        "renameTimeout": "重命名请求超时，请重试",
+        "addToChat": "添加到聊天",
+        "addedToChat": "已添加到聊天",
+        "openFailed": "打开失败",
+        "revealFailed": "无法打开所在目录"
+      }
     },
     "chat": {
-      "noModelSelected": "当前会话未选择模型，无法发送消息"
+      "noModelSelected": "当前会话未选择模型，无法发送消息",
+      "sendMessageTo": "发送消息到 {{model}}",
+      "processing": "正在处理中……"
     }
   },
   "settings": {
@@ -172,13 +211,24 @@
     "mcpDisconnected": "已断开",
     "mcpError": "错误",
     "mcpTesting": "测试中",
-    "mcpOneKeyImport": "从 CLI 导入",
+    "mcpOneKeyImport": "一键导入",
     "mcpImportFromCLI": "扫描MCP工具",
     "mcpSelectCLI": "选择 CLI",
     "mcpNoServersFound": "未找到 MCP 服务器",
     "mcpImportSuccess": "导入成功",
     "mcpImportFailed": "导入失败",
     "mcpJsonInvalid": "无效的 JSON 格式",
+    "mcpImportDescription": "AionUi会自动获取的您在CLI Agent中已安装的MCP，并一键导入",
+    "mcpStepSelectAgent": "选择Agent",
+    "mcpStepFetchTools": "获取mcp",
+    "mcpStepImportSuccess": "导入成功",
+    "mcpLoadingTools": "读取CLI工具列表中...",
+    "mcpToolsLoaded": "读取到{{count}}个工具",
+    "mcpImportedSuccess": "已导入{{count}}个工具",
+    "mcpImportButton": "导入",
+    "mcpPrevStep": "上一步",
+    "mcpNextStep": "下一步",
+    "mcpConfirmButton": "确定",
     "mcpSyncStarted": "正在将 MCP 配置添加到 {{count}} 个智能体...",
     "mcpRemoveStarted": "正在从 {{count}} 个智能体中移除 MCP 配置...",
     "mcpSyncPartialFailed": "MCP 配置同步部分失败：{{errors}}",
@@ -198,7 +248,24 @@
     "canceledExecution": "已取消执行",
     "openLinkFailed": "打开链接失败",
     "imageGenerationModelDetected": "检测到图片模型，已自动开启图片工具，设置为默认模型：{{platform}}:{{model}}",
-    "auto_handling_permissions": "自动处理权限请求：{{request}}"
+    "auto_handling_permissions": "自动处理权限请求：{{request}}",
+    "copy": "复制",
+    "copySuccess": "复制成功",
+    "copyFailed": "复制失败",
+    "copiedToClipboard": "已复制到剪贴板",
+    "downloadSuccess": "下载成功",
+    "downloadFailed": "下载失败",
+    "imageLoadFailed": "图片加载失败",
+    "scrollToBottom": "滚动到底部",
+    "unknownMessageType": "未知消息类型：{{type}}",
+    "permissionRequest": "权限请求",
+    "agentRequestingPermission": "代理正在请求权限。",
+    "command": "命令：",
+    "chooseAction": "选择一个操作：",
+    "option": "选项",
+    "noOptionsAvailable": "无可用选项",
+    "processing": "处理中...",
+    "responseSentSuccessfully": "响应已成功发送"
   },
   "mcp": {
     "integration": {

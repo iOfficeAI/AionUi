@@ -24,14 +24,14 @@ const MessageAcpPermission: React.FC<MessageAcpPermissionProps> = React.memo(({ 
   const getToolInfo = () => {
     if (!toolCall) {
       return {
-        title: 'Permission Request',
-        description: 'The agent is requesting permission.',
+        title: t('messages.permissionRequest'),
+        description: t('messages.agentRequestingPermission'),
         icon: '🔐',
       };
     }
 
     // 直接使用 toolCall 中的实际数据
-    const displayTitle = toolCall.title || toolCall.rawInput?.description || 'Permission Request';
+    const displayTitle = toolCall.title || toolCall.rawInput?.description || t('messages.permissionRequest');
 
     // 简单的图标映射
     const kindIcons: Record<string, string> = {
@@ -84,7 +84,7 @@ const MessageAcpPermission: React.FC<MessageAcpPermissionProps> = React.memo(({ 
   }
 
   return (
-    <Card className='mb-4' bordered={false} style={{ background: '#f8f9fa' }}>
+    <Card className='mb-4' bordered={false} style={{ background: 'var(--bg-1)' }}>
       <div className='space-y-4'>
         {/* Header with icon and title */}
         <div className='flex items-center space-x-2'>
@@ -93,17 +93,17 @@ const MessageAcpPermission: React.FC<MessageAcpPermissionProps> = React.memo(({ 
         </div>
         {(toolCall.rawInput?.command || toolCall.title) && (
           <div>
-            <Text className='text-xs text-gray-500 mb-1'>Command:</Text>
-            <code className='text-xs bg-gray-100 p-2 rounded block text-gray-800 break-all'>{toolCall.rawInput?.command || toolCall.title}</code>
+            <Text className='text-xs text-t-secondary mb-1'>{t('messages.command')}</Text>
+            <code className='text-xs bg-1 p-2 rounded block text-t-primary break-all'>{toolCall.rawInput?.command || toolCall.title}</code>
           </div>
         )}
         {!hasResponded && (
           <>
-            <div className='mt-10px'>Choose an action:</div>
+            <div className='mt-10px'>{t('messages.chooseAction')}</div>
             <Radio.Group direction='vertical' size='mini' value={selected} onChange={setSelected}>
               {options && options.length > 0 ? (
                 options.map((option, index) => {
-                  const optionName = option?.name || `Option ${index + 1}`;
+                  const optionName = option?.name || `${t('messages.option')} ${index + 1}`;
                   const optionId = option?.optionId || `option_${index}`;
                   return (
                     <Radio key={optionId} value={optionId}>
@@ -112,20 +112,22 @@ const MessageAcpPermission: React.FC<MessageAcpPermissionProps> = React.memo(({ 
                   );
                 })
               ) : (
-                <Text type='secondary'>No options available</Text>
+                <Text type='secondary'>{t('messages.noOptionsAvailable')}</Text>
               )}
             </Radio.Group>
             <div className='flex justify-start pl-20px'>
               <Button type='primary' size='mini' disabled={!selected || isResponding} onClick={handleConfirm}>
-                {isResponding ? 'Processing...' : t('messages.confirm', { defaultValue: 'Confirm' })}
+                {isResponding ? t('messages.processing') : t('messages.confirm')}
               </Button>
             </div>
           </>
         )}
 
         {hasResponded && (
-          <div className='mt-10px p-2 bg-green-50 border border-green-200 rounded-md'>
-            <Text className='text-sm text-green-700'>✓ Response sent successfully</Text>
+          <div className='mt-10px p-2 rounded-md border' style={{ backgroundColor: 'var(--color-success-light-1)', borderColor: 'rgb(var(--success-3))' }}>
+            <Text className='text-sm' style={{ color: 'rgb(var(--success-6))' }}>
+              ✓ {t('messages.responseSentSuccessfully')}
+            </Text>
           </div>
         )}
       </div>

@@ -131,4 +131,100 @@ export function initFsBridge(): void {
       throw error;
     }
   });
+
+  // 复制文件到工作空间
+  ipcBridge.fs.copyFilesToWorkspace.provider(async ({ filePaths, workspace }) => {
+    try {
+      const copiedFiles: string[] = [];
+
+      // 确保工作空间目录存在
+      await fs.mkdir(workspace, { recursive: true });
+
+      for (const filePath of filePaths) {
+        try {
+          const fileName = path.basename(filePath);
+          const targetPath = path.join(workspace, fileName);
+
+          // 检查目标文件是否已存在
+          const exists = await fs
+            .access(targetPath)
+            .then(() => true)
+            .catch(() => false);
+
+          if (exists) {
+            // 如果文件已存在，添加时间戳后缀
+            const timestamp = Date.now();
+            const ext = path.extname(fileName);
+            const name = path.basename(fileName, ext);
+            const newFileName = `${name}${AIONUI_TIMESTAMP_SEPARATOR}${timestamp}${ext}`;
+            const newTargetPath = path.join(workspace, newFileName);
+            await fs.copyFile(filePath, newTargetPath);
+            copiedFiles.push(newTargetPath);
+          } else {
+            await fs.copyFile(filePath, targetPath);
+            copiedFiles.push(targetPath);
+          }
+        } catch (error) {
+          console.error(`Failed to copy file ${filePath}:`, error);
+          // 继续复制其他文件
+        }
+      }
+
+      return {
+        success: true,
+        data: { copiedFiles },
+      };
+    } catch (error) {
+      console.error('Failed to copy files to workspace:', error);
+      return {
+        success: false,
+        msg: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  });
+
+  // Delete file or directory on disk (删除磁盘上的文件或文件夹)
+  ipcBridge.fs.removeEntry.provider(async ({ path: targetPath }) => {
+    try {
+      const stats = await fs.lstat(targetPath);
+      if (stats.isDirectory()) {
+        await fs.rm(targetPath, { recursive: true, force: true });
+      } else {
+        await fs.unlink(targetPath);
+      }
+      return { success: true };
+    } catch (error) {
+      console.error('Failed to remove entry:', error);
+      return { success: false, msg: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  });
+
+  // Rename file or directory and return new path (重命名文件/文件夹并返回新路径)
+  ipcBridge.fs.renameEntry.provider(async ({ path: targetPath, newName }) => {
+    try {
+      const directory = path.dirname(targetPath);
+      const newPath = path.join(directory, newName);
+
+      if (newPath === targetPath) {
+        // Skip when the new name equals the original path (新旧路径一致时直接跳过)
+        return { success: true, data: { newPath } };
+      }
+
+      const exists = await fs
+        .access(newPath)
+        .then(() => true)
+        .catch(() => false);
+
+      if (exists) {
+        // Avoid overwriting existing targets (避免覆盖已存在的目标文件)
+        return { success: false, msg: 'Target path already exists' };
+      }
+
+      await fs.rename(targetPath, newPath);
+      return { success: true, data: { newPath } };
+    } catch (error) {
+      console.error('Failed to rename entry:', error);
+      return { success: false, msg: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  });
 }

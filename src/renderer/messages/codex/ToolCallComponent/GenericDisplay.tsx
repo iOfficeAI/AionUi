@@ -73,37 +73,37 @@ const GenericDisplay: React.FC<{ content: GenericUpdate }> = ({ content }) => {
         <div className='flex-1 min-w-0'>
           <div className='flex items-center gap-2 mb-2'>
             <span className='text-lg'>{getKindIcon(kind)}</span>
-            <span className='font-medium text-gray-900'>{getDisplayTitle()}</span>
+            <span className='font-medium text-t-primary'>{getDisplayTitle()}</span>
             <StatusTag status={status} />
           </div>
 
-          {description && <div className='text-sm text-gray-600 mb-2'>{description}</div>}
+          {description && <div className='text-sm text-t-secondary mb-2'>{description}</div>}
 
           {/* Display data if available */}
           {data && (
             <div className='text-sm mb-2'>
-              <div className='text-xs text-gray-500 mb-1'>Data:</div>
-              <div className='bg-gray-50 p-2 rounded text-sm max-h-40 overflow-y-auto'>
+              <div className='text-xs text-t-secondary mb-1'>Data:</div>
+              <div className='bg-1 p-2 rounded text-sm max-h-40 overflow-y-auto'>
                 <pre className='text-xs whitespace-pre-wrap'>{JSON.stringify(data, null, 2)}</pre>
               </div>
             </div>
           )}
 
-          {/* Display content if available */}
+          {/* Display content if available 显示内容 */}
           {contentArray && contentArray.length > 0 && (
             <div>
               {contentArray.map((content, index) => (
                 <div key={index}>
                   {content.type === 'output' && content.output && (
                     <div className='mt-3'>
-                      <div className='bg-black text-green-400 p-3 rounded border font-mono text-sm overflow-x-auto max-h-60 overflow-y-auto'>
-                        <pre className='whitespace-pre-wrap break-words'>{content.output}</pre>
+                      <div className='bg-2 p-3 rounded border border-b-base font-mono text-sm overflow-x-auto max-h-60 overflow-y-auto'>
+                        <pre className='whitespace-pre-wrap break-words text-t-primary'>{content.output}</pre>
                       </div>
                     </div>
                   )}
                   {content.type === 'text' && content.text && (
                     <div className='mt-3'>
-                      <div className='bg-gray-50 p-3 rounded border text-sm'>{content.text}</div>
+                      <div className='bg-1 p-3 rounded border border-b-base text-sm text-t-primary'>{content.text}</div>
                     </div>
                   )}
                 </div>
@@ -111,7 +111,7 @@ const GenericDisplay: React.FC<{ content: GenericUpdate }> = ({ content }) => {
             </div>
           )}
 
-          <div className='text-xs text-gray-400 mt-2'>Tool Call ID: {toolCallId}</div>
+          <div className='text-xs text-t-secondary mt-2'>Tool Call ID: {toolCallId}</div>
         </div>
       </div>
     </Card>

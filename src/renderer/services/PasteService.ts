@@ -72,18 +72,12 @@ class PasteServiceClass {
     event.stopPropagation();
     const clipboardText = event.clipboardData?.getData('text');
     const files = event.clipboardData?.files;
+    // If caller passes an empty array, treat it as "allow all file types"
+    const allowAll = !supportedExts || supportedExts.length === 0;
 
-    // 处理纯文本粘贴
-    if (clipboardText && (!files || files.length === 0)) {
-      if (onTextPaste) {
-        // 清理文本中多余的换行符，特别是末尾的换行符
-        const cleanedText = clipboardText.replace(/\n\s*$/, '');
-        onTextPaste(cleanedText);
-        return true; // 已处理，阻止默认行为
-      }
-      return false; // 如果没有回调，允许默认行为
-    }
+    // 优先检查是否有文件，如果有文件则忽略文本（避免粘贴文件时同时插入文件名）
     if (files && files.length > 0) {
+      // 处理文件，跳过文本处理
       const fileList: FileMetadata[] = [];
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
@@ -95,7 +89,7 @@ class PasteServiceClass {
           // 剪贴板图片，需要检查是否支持该类型
           const fileExt = getFileExtension(file.name) || getExtensionFromMimeType(file.type);
 
-          if (supportedExts.includes(fileExt)) {
+          if (allowAll || supportedExts.includes(fileExt)) {
             try {
               const arrayBuffer = await file.arrayBuffer();
               const uint8Array = new Uint8Array(arrayBuffer);
@@ -135,7 +129,7 @@ class PasteServiceClass {
           // 检查文件类型是否支持
           const fileExt = getFileExtension(file.name);
 
-          if (supportedExts.includes(fileExt)) {
+          if (allowAll || supportedExts.includes(fileExt)) {
             fileList.push({
               name: file.name,
               path: filePath,
@@ -151,7 +145,7 @@ class PasteServiceClass {
           // 没有文件路径的非图片文件（从文件管理器复制粘贴的文件）
           const fileExt = getFileExtension(file.name);
 
-          if (supportedExts.includes(fileExt)) {
+          if (allowAll || supportedExts.includes(fileExt)) {
             // 对于复制粘贴的文件，我们需要创建临时文件
             try {
               const arrayBuffer = await file.arrayBuffer();
@@ -182,11 +176,22 @@ class PasteServiceClass {
         }
       }
 
-      // 处理完文件后，总是返回 true（因为已经 preventDefault）
+      // 处理完文件后，总是返回 true（阻止文本插入）
       if (fileList.length > 0) {
         onFilesAdded(fileList);
       }
-      return true; // 已经调用了 preventDefault，必须返回 true
+      return true; // 阻止默认行为，不插入文件名文本
+    }
+
+    // 处理纯文本粘贴（只在没有文件时）
+    if (clipboardText) {
+      if (onTextPaste) {
+        // 清理文本中多余的换行符，特别是末尾的换行符
+        const cleanedText = clipboardText.replace(/\n\s*$/, '');
+        onTextPaste(cleanedText);
+        return true; // 已处理，阻止默认行为
+      }
+      return false; // 如果没有回调，允许默认行为
     }
 
     return false;

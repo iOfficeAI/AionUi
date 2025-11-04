@@ -4,8 +4,9 @@ import classNames from 'classnames';
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { Tooltip } from '@arco-design/web-react';
 
-const SettingsSider: React.FC = () => {
+const SettingsSider: React.FC<{ collapsed?: boolean }> = ({ collapsed = false }) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { pathname } = useLocation();
@@ -44,26 +45,27 @@ const SettingsSider: React.FC = () => {
       {menus.map((item) => {
         const isSelected = pathname.includes(item.path);
         return (
-          <div
-            key={item.path}
-            className={classNames('hover:bg-#EBECF1 px-12px py-8px rd-8px flex justify-start items-center group cursor-pointer relative overflow-hidden group shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px', {
-              '!bg-#E5E7F0 ': isSelected,
-            })}
-            onClick={() => {
-              Promise.resolve(navigate(`/settings/${item.path}`)).catch((error) => {
-                console.error('Navigation failed:', error);
-              });
-            }}
-          >
-            {React.cloneElement(item.icon, {
-              theme: 'outline',
-              size: '20',
-              className: 'mt-2px ml-2px mr-8px flex',
-            })}
-            <FlexFullContainer className='h-24px'>
-              <div className='text-nowrap overflow-hidden inline-block w-full text-14px lh-24px  whitespace-nowrap'>{item.label}</div>
-            </FlexFullContainer>
-          </div>
+          <Tooltip key={item.path} disabled={!collapsed} content={item.label} position='right'>
+            <div
+              className={classNames('hover:bg-aou-1 px-12px py-8px rd-8px flex justify-start items-center group cursor-pointer relative overflow-hidden group shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px', {
+                '!bg-aou-2 ': isSelected,
+              })}
+              onClick={() => {
+                Promise.resolve(navigate(`/settings/${item.path}`)).catch((error) => {
+                  console.error('Navigation failed:', error);
+                });
+              }}
+            >
+              {React.cloneElement(item.icon, {
+                theme: 'outline',
+                size: '20',
+                className: 'mt-2px ml-2px mr-8px flex',
+              })}
+              <FlexFullContainer className='h-24px'>
+                <div className='text-nowrap overflow-hidden inline-block w-full text-14px lh-24px whitespace-nowrap text-t-primary'>{item.label}</div>
+              </FlexFullContainer>
+            </div>
+          </Tooltip>
         );
       })}
     </div>

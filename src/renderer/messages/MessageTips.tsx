@@ -11,6 +11,7 @@ import classNames from 'classnames';
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import MarkdownView from '../components/Markdown';
+import CollapsibleContent from '../components/CollapsibleContent';
 const icon = {
   success: <CheckOne theme='filled' size='16' fill={theme.Color.FunctionalColor.success} className='m-t-2px' />,
   warning: <Attention theme='filled' size='16' strokeLinejoin='bevel' className='m-t-2px' fill={theme.Color.FunctionalColor.warn} />,
@@ -68,18 +69,22 @@ const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
   if (json)
     return (
       <div className=' p-x-12px p-y-8px min-w-400px'>
-        <MarkdownView>{`\`\`\`json\n${JSON.stringify(data, null, 2)}\n\`\`\``}</MarkdownView>
+        <CollapsibleContent maxHeight={300} defaultCollapsed={true}>
+          <MarkdownView>{`\`\`\`json\n${JSON.stringify(data, null, 2)}\n\`\`\``}</MarkdownView>
+        </CollapsibleContent>
       </div>
     );
   return (
-    <div className={classNames('bg-#f0f4ff rd-8px  p-x-12px p-y-8px flex items-start gap-4px')}>
+    <div className={classNames('bg-message-tips rd-8px  p-x-12px p-y-8px flex items-start gap-4px')}>
       {icon[type] || icon.warning}
-      <span
-        className='whitespace-break-spaces   [word-break:break-word]'
-        dangerouslySetInnerHTML={{
-          __html: displayContent,
-        }}
-      ></span>
+      <CollapsibleContent maxHeight={200} defaultCollapsed={true} className='flex-1' useMask={true}>
+        <span
+          className='whitespace-break-spaces text-t-primary [word-break:break-word]'
+          dangerouslySetInnerHTML={{
+            __html: displayContent,
+          }}
+        ></span>
+      </CollapsibleContent>
     </div>
   );
 };

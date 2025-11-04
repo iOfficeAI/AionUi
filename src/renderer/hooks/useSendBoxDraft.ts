@@ -3,11 +3,17 @@ import { useCallback } from 'react';
 import useSWR from 'swr';
 import useSWRMutation from 'swr/mutation';
 
+export type FileOrFolderItem = {
+  path: string;
+  name: string;
+  isFile: boolean;
+};
+
 type Draft =
   | {
       _type: 'gemini';
       content: string;
-      atPath: string[];
+      atPath: Array<string | FileOrFolderItem>;
       uploadFile: string[];
     }
   | {
@@ -17,13 +23,13 @@ type Draft =
   | {
       _type: 'acp';
       content: string;
-      atPath: string[];
+      atPath: Array<string | FileOrFolderItem>;
       uploadFile: string[];
     }
   | {
       _type: 'codex';
       content: string;
-      atPath: string[];
+      atPath: Array<string | FileOrFolderItem>;
       uploadFile: string[];
     };
 

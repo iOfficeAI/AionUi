@@ -1,8 +1,12 @@
 import type { IMcpServer, IMcpTool } from '@/common/storage';
 import { acpConversation, mcpService } from '@/common/ipcBridge';
-import { Button, Modal, Select } from '@arco-design/web-react';
+import { Button, Select, Spin } from '@arco-design/web-react';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Check } from '@icon-park/react';
+import { iconColors } from '@/renderer/theme/colors';
+import StepsWrapper from '@/renderer/components/StepsWrapper';
+import ModalWrapper from '@/renderer/components/ModalWrapper';
 
 interface OneClickImportModalProps {
   visible: boolean;
@@ -16,9 +20,16 @@ const OneClickImportModal: React.FC<OneClickImportModalProps> = ({ visible, onCa
   const [selectedAgent, setSelectedAgent] = useState<string>('');
   const [importableServers, setImportableServers] = useState<IMcpServer[]>([]);
   const [loadingImport, setLoadingImport] = useState(false);
+  const [currentStep, setCurrentStep] = useState<number>(1);
 
   useEffect(() => {
     if (visible) {
+      // 重置状态
+      setCurrentStep(1);
+      setSelectedAgent('');
+      setImportableServers([]);
+      setLoadingImport(false);
+
       // 初始化时检测可用的agents
       const loadAgents = async () => {
         try {
@@ -27,7 +38,7 @@ const OneClickImportModal: React.FC<OneClickImportModalProps> = ({ visible, onCa
             const agents = response.data.map((agent) => ({ backend: agent.backend, name: agent.name }));
             setDetectedAgents(agents);
             // 设置第一个agent为默认值
-            if (agents.length > 0 && !selectedAgent) {
+            if (agents.length > 1) {
               setSelectedAgent(agents[0].backend);
             }
           }
@@ -37,11 +48,30 @@ const OneClickImportModal: React.FC<OneClickImportModalProps> = ({ visible, onCa
       };
       void loadAgents();
     }
-  }, [visible, selectedAgent]);
+  }, [visible]);
+
+  const handleNextStep = async () => {
+    if (currentStep === 1) {
+      // 步骤1 -> 步骤2: 选择Agent后，进入获取MCP阶段
+      if (!selectedAgent) return;
+      setCurrentStep(2);
+      await handleImportFromCLI();
+    } else if (currentStep === 2) {
+      // 步骤2 -> 步骤3: 执行导入，显示成功页面
+      handleBatchImport();
+      setCurrentStep(3);
+    }
+  };
+
+  const handlePrevStep = () => {
+    if (currentStep === 2) {
+      setCurrentStep(1);
+      setImportableServers([]);
+      setLoadingImport(false);
+    }
+  };
 
   const handleImportFromCLI = async () => {
-    if (!selectedAgent) return;
-
     setLoadingImport(true);
     try {
       // 获取所有可用的agents
@@ -109,69 +139,131 @@ const OneClickImportModal: React.FC<OneClickImportModalProps> = ({ visible, onCa
         };
       });
       onBatchImport(serversToImport);
-      onCancel();
     }
   };
+
+  // 渲染步骤1: 选择Agent
+  const renderStep1 = () => (
+    <div className='py-4'>
+      <Select placeholder={t('settings.mcpSelectCLI')} value={selectedAgent} onChange={setSelectedAgent} className='w-full' size='large'>
+        {detectedAgents.map((agent) => (
+          <Select.Option key={agent.backend} value={agent.backend}>
+            {agent.name}
+          </Select.Option>
+        ))}
+      </Select>
+    </div>
+  );
+
+  // 渲染步骤2: 获取MCP工具列表
+  const renderStep2 = () => (
+    <div>
+      {loadingImport ? (
+        <div className='py-8'>
+          <div className='flex items-center gap-3 bg-fill-1 rounded-lg p-4'>
+            <Spin size={20} />
+            <div className='text-t-secondary text-sm'>{t('settings.mcpLoadingTools')}</div>
+          </div>
+        </div>
+      ) : importableServers.length > 0 ? (
+        <div>
+          <div className='mb-3 flex items-center gap-2'>
+            <Check theme='filled' size={20} fill={iconColors.success} />
+            <span className='text-t-primary'>{t('settings.mcpToolsLoaded', { count: importableServers.length })}</span>
+          </div>
+          <div className='bg-base rounded-lg max-h-[200px] overflow-y-auto'>
+            {importableServers.map((server, index) => (
+              <div key={index} className='p-3' style={index < importableServers.length - 1 ? { borderBottom: '1px solid var(--bg-3)' } : undefined}>
+                <div className='font-medium text-t-primary'>{server.name}</div>
+                {server.description && <div className='text-sm text-t-secondary mt-1'>{server.description}</div>}
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className='text-center py-8 text-t-secondary'>{t('settings.mcpNoServersFound')}</div>
+      )}
+    </div>
+  );
+
+  // 渲染步骤3: 导入成功
+  const renderStep3 = () => (
+    <div>
+      {importableServers.length > 0 ? (
+        <div>
+          <div className='mb-3 flex items-center gap-2'>
+            <Check theme='filled' size={20} fill={iconColors.success} />
+            <span className='text-t-primary'>{t('settings.mcpImportedSuccess', { count: importableServers.length })}</span>
+          </div>
+          <div className='bg-base rounded-lg max-h-[200px] overflow-y-auto'>
+            {importableServers.map((server, index) => (
+              <div key={index} className='p-3' style={index < importableServers.length - 1 ? { borderBottom: '1px solid var(--bg-3)' } : undefined}>
+                <div className='font-medium text-t-primary'>{server.name}</div>
+                {server.description && <div className='text-sm text-t-secondary mt-1'>{server.description}</div>}
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className='text-center py-8 text-t-secondary'>{t('settings.mcpNoServersFound')}</div>
+      )}
+    </div>
+  );
 
   if (!visible) return null;
 
   return (
-    <Modal
-      title={t('settings.mcpOneKeyImport')}
-      visible={visible}
-      onCancel={onCancel}
-      footer={[
-        <Button key='cancel' onClick={onCancel}>
-          {t('common.cancel')}
-        </Button>,
-        <Button key='import' type='primary' onClick={handleBatchImport} disabled={importableServers.length === 0}>
-          {t('common.save')}
-        </Button>,
-      ]}
-      style={{ width: 600 }}
-    >
-      <div className='space-y-4'>
-        <div>
-          <div className='mb-2 text-sm font-medium'>{t('settings.mcpSelectCLI')}</div>
-          <Select placeholder={t('settings.mcpSelectCLI')} value={selectedAgent} onChange={setSelectedAgent} className='w-full'>
-            {detectedAgents.map((agent) => (
-              <Select.Option key={agent.backend} value={agent.backend}>
-                {agent.name}
-              </Select.Option>
-            ))}
-          </Select>
+    <ModalWrapper title={t('settings.mcpOneKeyImport')} visible={visible} onCancel={onCancel} footer={null} style={{ width: 568 }}>
+      <div className='px-6 pb-0'>
+        {/* 步骤提示文本 */}
+        <div className='mb-6 text-t-secondary text-sm'>{t('settings.mcpImportDescription')}</div>
+
+        {/* 步骤指示器 */}
+        <div className='mb-6'>
+          <StepsWrapper current={currentStep} size='small'>
+            <StepsWrapper.Step title={t('settings.mcpStepSelectAgent')} icon={currentStep > 1 ? <Check theme='filled' size={16} fill='#165dff' /> : undefined} />
+            <StepsWrapper.Step title={t('settings.mcpStepFetchTools')} icon={currentStep > 2 ? <Check theme='filled' size={16} fill='#165dff' /> : undefined} />
+            <StepsWrapper.Step title={t('settings.mcpStepImportSuccess')} />
+          </StepsWrapper>
         </div>
 
-        {selectedAgent && (
-          <div>
-            <Button type='primary' loading={loadingImport} onClick={handleImportFromCLI} className='mb-4'>
-              {t('settings.mcpImportFromCLI')}
-            </Button>
-          </div>
-        )}
+        {/* 步骤内容 */}
+        <div className={`mb-6 ${currentStep === 1 ? 'min-h-[60px]' : 'min-h-[180px] max-h-[280px]'}`}>
+          {currentStep === 1 && renderStep1()}
+          {currentStep === 2 && renderStep2()}
+          {currentStep === 3 && renderStep3()}
+        </div>
 
-        {importableServers.length > 0 && (
-          <div>
-            <div className='mb-2 text-sm font-medium'>
-              {t('settings.mcpServerList')} ({importableServers.length})
-            </div>
-            <div className='border border-gray-200 rounded'>
-              {importableServers.map((server, index) => (
-                <div key={index} className='p-3 border-b border-gray-100 last:border-b-0'>
-                  <div className='flex-1'>
-                    <div className='font-medium'>{server.name}</div>
-                    {server.description && <div className='text-sm text-gray-500'>{server.description}</div>}
-                    <div className='text-xs text-gray-400 mt-1'>
-                      {server.transport.type.toUpperCase()}: {server.transport.type === 'stdio' ? `${server.transport.command} ${server.transport.args?.join(' ')}` : server.transport.url}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        {/* 底部按钮 */}
+        <div className='flex justify-end gap-3 h-[72px] items-center px-6 -mx-6' style={{ borderTop: '1px solid var(--bg-3)' }}>
+          {currentStep === 1 && (
+            <>
+              <Button onClick={onCancel} size='large' shape='round' style={{ border: '1px solid var(--bg-3)' }}>
+                {t('common.cancel')}
+              </Button>
+              <Button type='primary' onClick={handleNextStep} size='large' shape='round' disabled={!selectedAgent}>
+                {t('settings.mcpNextStep')}
+              </Button>
+            </>
+          )}
+          {currentStep === 2 && (
+            <>
+              <Button onClick={handlePrevStep} size='large' shape='round' style={{ border: '1px solid var(--bg-3)' }}>
+                {t('settings.mcpPrevStep')}
+              </Button>
+              <Button type='primary' onClick={handleNextStep} size='large' shape='round' disabled={loadingImport || importableServers.length === 0}>
+                {t('settings.mcpImportButton')}
+              </Button>
+            </>
+          )}
+          {currentStep === 3 && (
+            <Button type='primary' onClick={onCancel} size='large' shape='round'>
+              {t('settings.mcpConfirmButton')}
+            </Button>
+          )}
+        </div>
       </div>
-    </Modal>
+    </ModalWrapper>
   );
 };
 

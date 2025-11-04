@@ -4,6 +4,7 @@ import React, { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import CodeMirror from '@uiw/react-codemirror';
 import { json } from '@codemirror/lang-json';
+import { useThemeContext } from '@/renderer/context/ThemeContext';
 
 interface JsonImportModalProps {
   visible: boolean;
@@ -20,6 +21,7 @@ interface ValidationResult {
 
 const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCancel, onSubmit, onBatchImport }) => {
   const { t } = useTranslation();
+  const { theme } = useThemeContext();
   const [jsonInput, setJsonInput] = useState('');
   const [copyStatus, setCopyStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [validation, setValidation] = useState<ValidationResult>({ isValid: true });
@@ -202,11 +204,12 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
       style={{ width: 600 }}
     >
       <div>
-        <div className='mb-2 text-sm text-gray-600'>{t('settings.mcpImportPlaceholder')}</div>
+        <div className='mb-2 text-sm text-t-secondary'>{t('settings.mcpImportPlaceholder')}</div>
         <div className='relative'>
           <CodeMirror
             value={jsonInput}
             height='300px'
+            theme={theme} // Use theme from context 使用上下文中的主题
             extensions={[json()]}
             onChange={(value: string) => setJsonInput(value)}
             placeholder={`{
@@ -226,7 +229,7 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
             }}
             style={{
               fontSize: '13px',
-              border: validation.isValid || !jsonInput.trim() ? '1px solid #d9d9d9' : '1px solid #f53f3f',
+              border: validation.isValid || !jsonInput.trim() ? '1px solid var(--bg-3)' : '1px solid var(--danger)',
               borderRadius: '6px',
               overflow: 'hidden',
             }}
@@ -243,7 +246,7 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
                     if (navigator.clipboard && window.isSecureContext) {
                       await navigator.clipboard.writeText(jsonInput);
                     } else {
-                      // 降级到传统方法
+                      // Fallback to legacy method 降级到传统方法
                       const textArea = document.createElement('textarea');
                       textArea.value = jsonInput;
                       textArea.style.position = 'fixed';
@@ -258,7 +261,7 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
                     setCopyStatus('success');
                     setTimeout(() => setCopyStatus('idle'), 2000);
                   } catch (err) {
-                    console.error('复制失败:', err);
+                    console.error('Copy failed 复制失败:', err);
                     setCopyStatus('error');
                     setTimeout(() => setCopyStatus('idle'), 2000);
                   }
@@ -267,7 +270,6 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
                 void copyToClipboard();
               }}
               style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.9)',
                 backdropFilter: 'blur(4px)',
               }}
             >
