@@ -37,6 +37,9 @@ export default forkTask(({ data }, pipe) => {
     agent.stop();
     deferred.with(Promise.resolve());
   });
+  pipe.on('init.history', (event: { text: string }, deferred) => {
+    deferred.with(agent.injectConversationHistory(event.text));
+  });
   pipe.on('send.message', (event: { input: string; msg_id: string }, deferred) => {
     deferred.with(agent.send(event.input, event.msg_id));
   });
