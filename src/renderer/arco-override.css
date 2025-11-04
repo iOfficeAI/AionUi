@@ -136,15 +136,45 @@ body[arco-theme='dark'] .arco-message-error {
   background: linear-gradient(90deg, rgba(255, 221, 219, 0.3) 0%, rgba(255, 243, 240, 0.3) 100%) !important;
 }
 
-/* Workspace tree selection styles - use text color instead of background for better dark mode visibility */
+/* Workspace tree selection styles - use text color instead of background */
 .workspace-tree .arco-tree-node-selected .arco-tree-node-title {
   background-color: transparent !important;
-  color: var(--color-primary-6) !important;
-  font-weight: 500;
 }
 
-body[arco-theme='dark'] .workspace-tree .arco-tree-node-selected .arco-tree-node-title {
-  background-color: transparent !important;
-  color: var(--color-primary-5) !important;
-  font-weight: 500;
+/* Alert result display - limit to 4 lines for error/result messages */
+.alert-result-display {
+  max-height: 84px !important;
+  overflow: hidden !important;
+  line-height: 21px !important;
+  white-space: pre-wrap !important;
+  word-break: break-word !important;
+  margin: 0 !important;
+}
+
+/* Force limit all pre/code content in Alert to 4 lines */
+.arco-alert pre,
+.arco-alert code {
+  max-height: 84px !important;
+  overflow: hidden !important;
+  line-height: 21px !important;
+}
+
+/* Force limit Markdown code blocks in Alert */
+.arco-alert .arco-alert-content div[class*='language-'],
+.arco-alert .arco-alert-content pre[class*='language-'] {
+  max-height: 84px !important;
+  overflow: hidden !important;
+}
+
+/* Ultimate solution: limit all direct children of result container in Alert */
+.arco-alert .arco-alert-content > div > div:last-child {
+  max-height: 84px !important;
+  overflow: hidden !important;
+  line-height: 21px !important;
+}
+
+/* And all their descendants */
+.arco-alert .arco-alert-content > div > div:last-child > * {
+  max-height: 84px !important;
+  overflow: hidden !important;
 }
