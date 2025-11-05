@@ -8,7 +8,7 @@
 import type { TProviderWithModel } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import { getProviderAuthType } from '@/common/utils/platformAuthType';
-import type { CompletedToolCall, Config, GeminiClient, ServerGeminiStreamEvent, ToolCall, ToolCallRequestInfo } from '@office-ai/aioncli-core';
+import type { CompletedToolCall, Config, GeminiClient, ServerGeminiStreamEvent, ToolCall, ToolCallRequestInfo, Turn } from '@office-ai/aioncli-core';
 import { AuthType, CoreToolScheduler, FileDiscoveryService, sessionId } from '@office-ai/aioncli-core';
 import { execSync } from 'child_process';
 import { ApiKeyManager } from '../../common/ApiKeyManager';
@@ -296,7 +296,7 @@ export class GeminiAgent {
     });
   }
 
-  private handleMessage(stream: AsyncGenerator<ServerGeminiStreamEvent, void, void>, msg_id: string, abortController: AbortController): Promise<void> {
+  private handleMessage(stream: AsyncGenerator<ServerGeminiStreamEvent, Turn, unknown>, msg_id: string, abortController: AbortController): Promise<void> {
     const toolCallRequests: ToolCallRequestInfo[] = [];
 
     return processGeminiStreamEvents(stream, this.config, (data) => {
