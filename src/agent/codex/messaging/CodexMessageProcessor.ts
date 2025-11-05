@@ -5,6 +5,7 @@
  */
 
 import { uuid } from '@/common/utils';
+import type { TMessage } from '@/common/chatLib';
 import type { CodexEventMsg } from '@/common/codex/types';
 import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
 import { ERROR_CODES, globalErrorService } from '@/agent/codex/core/ErrorService';
@@ -87,7 +88,7 @@ export class CodexMessageProcessor {
     // Final message: only persist to database, do NOT emit to frontend
     // Frontend has already shown the content via deltas
 
-    const transformedMessage = {
+    const transformedMessage: TMessage = {
       id: this.currentLoadingId || uuid(),
       msg_id: this.currentLoadingId,
       type: 'text' as const,
@@ -98,7 +99,7 @@ export class CodexMessageProcessor {
     };
 
     // Use messageEmitter to persist, maintaining architecture separation
-    this.messageEmitter.persistMessage(transformedMessage as any);
+    this.messageEmitter.persistMessage(transformedMessage);
   }
 
   processStreamError(message: string) {

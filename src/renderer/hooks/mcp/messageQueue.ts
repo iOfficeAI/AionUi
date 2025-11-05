@@ -15,6 +15,7 @@ class MessageQueue {
   private queue: Array<() => void> = [];
   private isProcessing = false;
   private readonly delay = 100; // 每条消息间隔 100ms，确保 Arco Design 有足够时间渲染 / 100ms delay between messages to ensure Arco Design has enough time to render
+  private readonly maxQueueSize = 50; // 最大队列长度，防止内存溢出 / Maximum queue size to prevent memory overflow
 
   private constructor() {}
 
@@ -35,6 +36,12 @@ class MessageQueue {
    * @param showMessageFn 显示消息的函数 / Function to display the message
    */
   async add(showMessageFn: () => void): Promise<void> {
+    // 检查队列长度，如果超过限制则丢弃新消息而不是旧消息
+    // Check queue length, discard new message if limit exceeded (not old ones)
+    if (this.queue.length >= this.maxQueueSize) {
+      console.warn(`Message queue size exceeded ${this.maxQueueSize}, dropping new message`);
+      return;
+    }
     this.queue.push(showMessageFn);
     if (!this.isProcessing) {
       await this.process();

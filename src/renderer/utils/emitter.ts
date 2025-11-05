@@ -7,12 +7,7 @@
 import EventEmitter from 'eventemitter3';
 import type { DependencyList } from 'react';
 import { useEffect } from 'react';
-
-type FileOrFolderItem = {
-  path: string;
-  name: string;
-  isFile: boolean;
-};
+import type { FileOrFolderItem } from '@/renderer/types/files';
 
 interface EventTypes {
   'gemini.selected.file': [Array<string | FileOrFolderItem>];

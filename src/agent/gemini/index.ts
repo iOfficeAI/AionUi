@@ -228,7 +228,8 @@ export class GeminiAgent {
           if (completedToolCalls.length > 0) {
             const refreshMemory = async () => {
               const config = this.config;
-              const { memoryContent, fileCount } = await loadHierarchicalGeminiMemory(this.workspace, [], config.getDebugMode(), config.getFileService(), settings, config.getExtensionContextFilePaths());
+              const extensionPaths = config.getExtensionContextFilePaths();
+              const { memoryContent, fileCount } = await loadHierarchicalGeminiMemory(this.workspace, [], config.getDebugMode(), config.getFileService(), settings, extensionPaths);
               config.setUserMemory(memoryContent);
               config.setGeminiMdFileCount(fileCount);
             };
@@ -314,10 +315,11 @@ export class GeminiAgent {
           await this.scheduler.schedule(toolCallRequests, abortController.signal);
         }
       })
-      .catch((e) => {
+      .catch((e: unknown) => {
+        const errorMessage = e instanceof Error ? e.message : JSON.stringify(e);
         this.onStreamEvent({
           type: 'error',
-          data: e.message,
+          data: errorMessage,
           msg_id,
         });
       });

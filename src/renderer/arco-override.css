@@ -141,40 +141,5 @@ body[arco-theme='dark'] .arco-message-error {
   background-color: transparent !important;
 }
 
-/* Alert result display - limit to 4 lines for error/result messages */
-.alert-result-display {
-  max-height: 84px !important;
-  overflow: hidden !important;
-  line-height: 21px !important;
-  white-space: pre-wrap !important;
-  word-break: break-word !important;
-  margin: 0 !important;
-}
-
-/* Force limit all pre/code content in Alert to 4 lines */
-.arco-alert pre,
-.arco-alert code {
-  max-height: 84px !important;
-  overflow: hidden !important;
-  line-height: 21px !important;
-}
-
-/* Force limit Markdown code blocks in Alert */
-.arco-alert .arco-alert-content div[class*='language-'],
-.arco-alert .arco-alert-content pre[class*='language-'] {
-  max-height: 84px !important;
-  overflow: hidden !important;
-}
-
-/* Ultimate solution: limit all direct children of result container in Alert */
-.arco-alert .arco-alert-content > div > div:last-child {
-  max-height: 84px !important;
-  overflow: hidden !important;
-  line-height: 21px !important;
-}
-
-/* And all their descendants */
-.arco-alert .arco-alert-content > div > div:last-child > * {
-  max-height: 84px !important;
-  overflow: hidden !important;
-}
+/* Alert styles - content is now displayed below the Alert card, so these rules are no longer needed */
+/* Alert 样式 - 内容现在显示在 Alert 卡片下方，因此不再需要这些规则 */

@@ -354,7 +354,18 @@
     "downloadSuccess": "下載成功",
     "downloadFailed": "下載失敗",
     "imageLoadFailed": "圖片載入失敗",
-    "scrollToBottom": "滾動到底部"
+    "scrollToBottom": "滾動到底部",
+    "confirmation": {
+      "applyChange": "應用此更改？",
+      "allowExecution": "允許執行？",
+      "proceed": "您想要繼續嗎？",
+      "allowMCPTool": "允許執行來自伺服器 \"{{serverName}}\" 的 MCP 工具 \"{{toolName}}\"？",
+      "yesAllowOnce": "是，允許一次",
+      "yesAllowAlways": "是，始終允許",
+      "yesAlwaysAllowTool": "是，始終允許來自伺服器 \"{{serverName}}\" 的工具 \"{{toolName}}\"",
+      "yesAlwaysAllowServer": "是，始終允許來自伺服器 \"{{serverName}}\" 的所有工具",
+      "no": "否 (esc)"
+    }
   },
   "mcp": {
     "integration": {

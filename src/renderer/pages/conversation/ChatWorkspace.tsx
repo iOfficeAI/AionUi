@@ -13,6 +13,7 @@ import { iconColors } from '@/renderer/theme/colors';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { removeWorkspaceEntry, renameWorkspaceEntry } from '@/renderer/utils/workspaceFs';
 import { Checkbox, Empty, Input, Message, Modal, Tooltip, Tree } from '@arco-design/web-react';
+import type { NodeInstance } from '@arco-design/web-react/es/Tree/interface';
 import { FileAddition, Refresh, Search, FileText, FolderOpen } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -52,7 +53,6 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
   const [treeKey, setTreeKey] = useState(Math.random());
   const [expandedKeys, setExpandedKeys] = useState<string[]>([]);
   const [showSearch, setShowSearch] = useState(false);
-  const [, setIsHeaderHovered] = useState(false);
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [confirmFileName, setConfirmFileName] = useState('');
   const [confirmFilesToPaste, setConfirmFilesToPaste] = useState<Array<{ path: string; name: string }>>([]);
@@ -81,6 +81,25 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
     target: null,
     loading: false,
   });
+  const extractNodeData = useCallback((node: NodeInstance | null | undefined): IDirOrFile | null => {
+    // 统一从 Tree 节点中提取数据引用，避免在调用处反复断言 / Centralize dataRef extraction to avoid repeated casts
+    if (!node) return null;
+    const props = node.props as { dataRef?: IDirOrFile; _data?: IDirOrFile };
+    return props?.dataRef ?? props?._data ?? null;
+  }, []);
+  const extractNodeKey = useCallback(
+    (node: NodeInstance | null | undefined): string | null => {
+      // 优先返回业务使用的 relativePath，缺省时退回 key 字符串 / Prefer relativePath, fall back to stringified key when missing
+      if (!node) return null;
+      const dataRef = extractNodeData(node);
+      if (dataRef?.relativePath) {
+        return dataRef.relativePath;
+      }
+      const { key } = node;
+      return key == null ? null : String(key);
+    },
+    [extractNodeData]
+  );
   // Detect correct path separator by platform (根据路径判断平台分隔符)
   const getPathSeparator = useCallback((targetPath: string) => {
     return targetPath.includes('\\') ? '\\' : '/';
@@ -553,12 +572,22 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
       .then((selectedFiles) => {
         if (selectedFiles && selectedFiles.length > 0) {
           return ipcBridge.fs.copyFilesToWorkspace.invoke({ filePaths: selectedFiles, workspace }).then((result) => {
-            if (result.success && result.data?.copiedFiles.length > 0) {
+            const copiedFiles = result.data?.copiedFiles ?? [];
+            const failedFiles = result.data?.failedFiles ?? [];
+
+            if (copiedFiles.length > 0) {
               setTimeout(() => {
                 refreshWorkspace();
               }, 300);
-            } else {
-              console.error('Failed to copy files:', result.msg);
+            }
+
+            if (!result.success || failedFiles.length > 0) {
+              // 部分或全部失败时给出显式提示 / Surface warning when any copy operation fails
+              const fallback = failedFiles.length > 0 ? 'Some files failed to copy' : result.msg;
+              messageApi.warning(fallback || t('messages.unknownError') || 'Copy failed');
+              if (failedFiles.length > 0) {
+                console.warn('Files failed to copy:', failedFiles);
+              }
             }
           });
         }
@@ -637,9 +666,21 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
         try {
           const filePaths = filesMeta.map((f) => f.path);
           const res = await ipcBridge.fs.copyFilesToWorkspace.invoke({ filePaths, workspace: targetFolderPath });
-          if (res.success) {
+          const copiedFiles = res.data?.copiedFiles ?? [];
+          const failedFiles = res.data?.failedFiles ?? [];
+
+          if (copiedFiles.length > 0) {
             messageApi.success(t('messages.responseSentSuccessfully') || 'Pasted');
             setTimeout(() => refreshWorkspace(), 300);
+          }
+
+          if (!res.success || failedFiles.length > 0) {
+            // 如果有文件粘贴失败则通知用户 / Notify user when any paste fails
+            const fallback = failedFiles.length > 0 ? 'Some files failed to copy' : res.msg;
+            messageApi.warning(fallback || t('messages.unknownError') || 'Paste failed');
+            if (failedFiles.length > 0) {
+              console.warn('Files failed to copy during paste:', failedFiles);
+            }
           }
         } catch (error) {
           console.error('Paste failed:', error);
@@ -839,9 +880,21 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
                   const targetFolderPath = getTargetFolderPath().fullPath;
 
                   const res = await ipcBridge.fs.copyFilesToWorkspace.invoke({ filePaths, workspace: targetFolderPath });
-                  if (res.success) {
+                  const copiedFiles = res.data?.copiedFiles ?? [];
+                  const failedFiles = res.data?.failedFiles ?? [];
+
+                  if (copiedFiles.length > 0) {
                     messageApi.success(t('conversation.workspace.pasteConfirm_paste') || 'Pasted');
                     setTimeout(() => refreshWorkspace(), 300);
+                  }
+
+                  if (!res.success || failedFiles.length > 0) {
+                    // 即使确认后仍有失败也要明确告知 / Warn even after explicit confirmation when failures remain
+                    const fallback = failedFiles.length > 0 ? 'Some files failed to copy' : res.msg;
+                    messageApi.warning(fallback || t('messages.unknownError') || 'Paste failed');
+                    if (failedFiles.length > 0) {
+                      console.warn('Files failed to copy during confirmed paste:', failedFiles);
+                    }
                   }
                   if (doNotAsk) {
                     await ConfigStorage.set('workspace.pasteConfirm', true);
@@ -865,7 +918,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
       <Modal visible={deleteModal.visible} title={t('conversation.workspace.contextMenu.deleteTitle')} onCancel={closeDeleteModal} onOk={handleDeleteConfirm} okText={t('common.confirm')} cancelText={t('common.cancel')} confirmLoading={deleteModal.loading} style={{ borderRadius: '12px' }}>
         <div className='text-14px text-t-secondary'>{t('conversation.workspace.contextMenu.deleteConfirm')}</div>
       </Modal>
-      <div className='px-16px pb-8px' onMouseEnter={() => setIsHeaderHovered(true)} onMouseLeave={() => setIsHeaderHovered(false)}>
+      <div className='px-16px pb-8px'>
         <div className='flex items-center justify-start gap-8px'>
           <span className='font-bold text-14px text-t-primary'>{t('common.file')}</span>
           <div className='flex items-center gap-8px'>
@@ -1026,7 +1079,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
             onSelect={(keys, extra) => {
               // 检测点击的节点，实现取消选中功能
               // Detect clicked node to implement deselection feature
-              const clickedKey = extra?.node ? (extra.node as any).props?.dataRef?.relativePath || (extra.node as any).key : null;
+              const clickedKey = extractNodeKey(extra?.node);
 
               let newKeys: string[];
 
@@ -1056,8 +1109,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
               if (extra && extra.node) {
                 // 尝试不同的方式访问节点数据
                 // Try different ways to access node data
-                const nodeProps = (extra.node as any).props;
-                const nodeData = nodeProps?.dataRef || nodeProps?._data || (extra.node as any)._data || (extra.node as any).dataRef;
+                const nodeData = extractNodeData(extra.node);
 
                 if (nodeData) {
                   if (!nodeData.isFile && nodeData.fullPath && nodeData.relativePath) {
