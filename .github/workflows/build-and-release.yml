@@ -363,10 +363,10 @@ jobs:
     needs: build-macos-arm64
     env:
       ENABLE_MAC_SIGNING: ${{ ((github.event_name == 'workflow_dispatch' && github.event.inputs.enable_mac_signing == 'true') || (github.event_name != 'workflow_dispatch' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'))) && 'true' || 'false' }}
-      ENABLE_MAC_NOTARIZE: ${{ ((github.event_name == 'workflow_dispatch' && github.event.inputs.enable_mac_notarize == 'true') || (github.event_name != 'workflow_dispatch' && github.ref == 'refs/heads/main')) && 'true' || 'false' }}
+      ENABLE_MAC_NOTARIZE: ${{ ((github.event_name == 'workflow_dispatch' && github.event.inputs.enable_mac_notarize == 'true') || (github.event_name != 'workflow_dispatch' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'))) && 'true' || 'false' }}
       MAC_NOTARIZE_MODE: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.enable_mac_notarize == 'true' && github.event.inputs.notarize_wait_for_result == 'true') && 'wait' || 'async' }}
       MAC_NOTARIZE_TIMEOUT_MINUTES: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.notarize_timeout_minutes != '') && github.event.inputs.notarize_timeout_minutes || '45' }}
-      # dev 默认只签名不公证；main 或手动触发可开启公证并选择是否等待
+      # dev 临时也执行公证；需要恢复时再改回 main-only
 
     steps:
       - name: Checkout code
@@ -474,6 +474,9 @@ jobs:
           appleId: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.APPLE_ID || '' }}
           appleIdPassword: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.APPLE_ID_PASSWORD || '' }}
           teamId: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.TEAM_ID || '' }}
+          APPLE_ID: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.APPLE_ID || '' }}
+          APPLE_ID_PASSWORD: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.APPLE_ID_PASSWORD || '' }}
+          TEAM_ID: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.TEAM_ID || '' }}
           identity: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.IDENTITY || '' }}
           CSC_KEYCHAIN: ${{ env.ENABLE_MAC_SIGNING == 'true' && '/Users/runner/Library/Keychains/build.keychain-db' || '' }}
           CSC_NAME: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.IDENTITY || '' }}
@@ -556,10 +559,10 @@ jobs:
     needs: code-quality
     env:
       ENABLE_MAC_SIGNING: ${{ ((github.event_name == 'workflow_dispatch' && github.event.inputs.enable_mac_signing == 'true') || (github.event_name != 'workflow_dispatch' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'))) && 'true' || 'false' }}
-      ENABLE_MAC_NOTARIZE: ${{ ((github.event_name == 'workflow_dispatch' && github.event.inputs.enable_mac_notarize == 'true') || (github.event_name != 'workflow_dispatch' && github.ref == 'refs/heads/main')) && 'true' || 'false' }}
+      ENABLE_MAC_NOTARIZE: ${{ ((github.event_name == 'workflow_dispatch' && github.event.inputs.enable_mac_notarize == 'true') || (github.event_name != 'workflow_dispatch' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'))) && 'true' || 'false' }}
       MAC_NOTARIZE_MODE: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.enable_mac_notarize == 'true' && github.event.inputs.notarize_wait_for_result == 'true') && 'wait' || 'async' }}
       MAC_NOTARIZE_TIMEOUT_MINUTES: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.notarize_timeout_minutes != '') && github.event.inputs.notarize_timeout_minutes || '45' }}
-      # main 发布时才公证；dev 默认快速构建，如需验证可手动开启
+      # dev 临时也执行公证；需要恢复时再改回 main-only
 
     steps:
       - name: Checkout code
@@ -656,6 +659,9 @@ jobs:
           appleId: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.APPLE_ID || '' }}
           appleIdPassword: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.APPLE_ID_PASSWORD || '' }}
           teamId: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.TEAM_ID || '' }}
+          APPLE_ID: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.APPLE_ID || '' }}
+          APPLE_ID_PASSWORD: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.APPLE_ID_PASSWORD || '' }}
+          TEAM_ID: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.TEAM_ID || '' }}
           identity: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.IDENTITY || '' }}
           CSC_KEYCHAIN: ${{ env.ENABLE_MAC_SIGNING == 'true' && '/Users/runner/Library/Keychains/build.keychain-db' || '' }}
           CSC_NAME: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.IDENTITY || '' }}
