@@ -1,18 +1,20 @@
 import { useCallback } from 'react';
 import type { FileMetadata } from '@/renderer/services/FileService';
 import { getCleanFileNames } from '@/renderer/services/FileService';
-import type { FileOrFolderItem } from './useSendBoxDraft';
+import type { FileOrFolderItem } from '@/renderer/types/files';
 
 /**
  * 创建通用的setUploadFile函数
  * 支持函数式更新，避免闭包陷阱
  */
-export const createSetUploadFile = (mutate: (fn: (prev: any) => any) => void, data: any) => {
+export const createSetUploadFile = (mutate: (fn: (prev: Record<string, unknown> | undefined) => Record<string, unknown>) => void, data: unknown) => {
   return useCallback(
     (uploadFile: string[] | ((prev: string[]) => string[])) => {
-      mutate((prev: any) => {
-        const newUploadFile = typeof uploadFile === 'function' ? uploadFile(prev?.uploadFile || []) : uploadFile;
-        return { ...prev, uploadFile: newUploadFile };
+      mutate((prev) => {
+        // 取出最新的上传文件列表，保证函数式更新正确 / Derive latest upload list to keep functional updates accurate
+        const previousUploadFile = Array.isArray(prev?.uploadFile) ? (prev?.uploadFile as string[]) : [];
+        const newUploadFile = typeof uploadFile === 'function' ? uploadFile(previousUploadFile) : uploadFile;
+        return { ...(prev ?? {}), uploadFile: newUploadFile };
       });
     },
     [data, mutate]

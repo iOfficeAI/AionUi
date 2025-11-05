@@ -2,12 +2,8 @@ import type { TChatConversation } from '@/common/storage';
 import { useCallback } from 'react';
 import useSWR from 'swr';
 import useSWRMutation from 'swr/mutation';
-
-export type FileOrFolderItem = {
-  path: string;
-  name: string;
-  isFile: boolean;
-};
+import type { FileOrFolderItem } from '@/renderer/types/files';
+export type { FileOrFolderItem } from '@/renderer/types/files';
 
 type Draft =
   | {
