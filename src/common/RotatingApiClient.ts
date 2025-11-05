@@ -39,7 +39,7 @@ export interface RotatingApiClientOptions {
 // Constants for better maintainability
 const DEFAULT_MAX_RETRIES = 3;
 const DEFAULT_RETRY_DELAY = 1000;
-const RETRYABLE_STATUS_CODES = new Set([401, 429, 503]);
+const _RETRYABLE_STATUS_CODES = new Set([401, 429, 503]); // Reserved for future use
 
 export interface ApiError extends Error {
   status?: number;
