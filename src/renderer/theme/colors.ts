@@ -69,7 +69,6 @@ export const cssVars = {
   },
   // Special colors
   whiteToBlack: '--color-white-to-black',
-  officeAi: '--color-office-ai',
   // Gray scale
   gray: {
     0: '--color-gray-0',

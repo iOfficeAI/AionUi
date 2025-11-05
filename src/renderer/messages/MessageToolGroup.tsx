@@ -18,95 +18,101 @@ import LocalImageView from '../components/LocalImageView';
 import MarkdownView from '../components/Markdown';
 import { ToolConfirmationOutcome } from '../types/tool-confirmation';
 import { ImagePreviewContext } from './MessageList';
+import { COLLAPSE_CONFIG, TEXT_CONFIG } from './constants';
+import type { ImageGenerationResult, WriteFileResult } from './types';
 
 // Alert 组件样式常量 Alert component style constant
 // 顶部对齐图标与内容，避免多行文本时图标垂直居中
 const ALERT_CLASSES = '!items-start !rd-8px !px-8px [&_.arco-alert-icon]:flex [&_.arco-alert-icon]:items-start [&_.arco-alert-content-wrapper]:flex [&_.arco-alert-content-wrapper]:items-start [&_.arco-alert-content-wrapper]:w-full [&_.arco-alert-content]:flex-1';
 
 // CollapsibleContent 高度常量 CollapsibleContent height constants
-const DESCRIPTION_MAX_HEIGHT = 84; // 描述文字最大高度（4行）Description max height (4 lines)
-const RESULT_MAX_HEIGHT = 84; // 结果内容最大高度（4行，text-sm 14px × lineHeight 1.5 = 21px/行）Result content max height (4 lines, text-sm 14px × 1.5 = 21px per line)
+const DESCRIPTION_MAX_HEIGHT = COLLAPSE_CONFIG.MAX_HEIGHT;
+const RESULT_MAX_HEIGHT = COLLAPSE_CONFIG.MAX_HEIGHT;
 
 interface IMessageToolGroupProps {
   message: IMessageToolGroup;
 }
 
-const useConfirmationButtons = (confirmationDetails: IMessageToolGroupProps['message']['content'][number]['confirmationDetails']) => {
+const useConfirmationButtons = (confirmationDetails: IMessageToolGroupProps['message']['content'][number]['confirmationDetails'], t: (key: string, options?: any) => string) => {
   return useMemo(() => {
     if (!confirmationDetails) return {};
-    let question;
-    const options = [];
+    let question: string;
+    const options: Array<{ label: string; value: ToolConfirmationOutcome }> = [];
     switch (confirmationDetails.type) {
       case 'edit':
         {
-          question = `Apply this change?`;
+          question = t('messages.confirmation.applyChange');
           options.push(
             {
-              label: 'Yes, allow once',
+              label: t('messages.confirmation.yesAllowOnce'),
               value: ToolConfirmationOutcome.ProceedOnce,
             },
             {
-              label: 'Yes, allow always',
+              label: t('messages.confirmation.yesAllowAlways'),
               value: ToolConfirmationOutcome.ProceedAlways,
             },
-            // {
-            //   label: "Modify with external editor",
-            //   value: ToolConfirmationOutcome.ModifyWithEditor,
-            // },
-            { label: 'No (esc)', value: ToolConfirmationOutcome.Cancel }
+            { label: t('messages.confirmation.no'), value: ToolConfirmationOutcome.Cancel }
           );
         }
         break;
       case 'exec':
         {
           const executionProps = confirmationDetails;
-          question = `Allow execution?`;
+          question = t('messages.confirmation.allowExecution');
           options.push(
             {
-              label: 'Yes, allow once',
+              label: t('messages.confirmation.yesAllowOnce'),
               value: ToolConfirmationOutcome.ProceedOnce,
             },
             {
-              label: `Yes, allow always "${executionProps.rootCommand} ..."`,
+              label: t('messages.confirmation.yesAllowAlways'),
               value: ToolConfirmationOutcome.ProceedAlways,
             },
-            { label: 'No (esc)', value: ToolConfirmationOutcome.Cancel }
+            { label: t('messages.confirmation.no'), value: ToolConfirmationOutcome.Cancel }
           );
         }
         break;
       case 'info':
         {
-          question = `Do you want to proceed?`;
+          question = t('messages.confirmation.proceed');
           options.push(
             {
-              label: 'Yes, allow once',
+              label: t('messages.confirmation.yesAllowOnce'),
               value: ToolConfirmationOutcome.ProceedOnce,
             },
             {
-              label: 'Yes, allow always',
+              label: t('messages.confirmation.yesAllowAlways'),
               value: ToolConfirmationOutcome.ProceedAlways,
             },
-            { label: 'No (esc)', value: ToolConfirmationOutcome.Cancel }
+            { label: t('messages.confirmation.no'), value: ToolConfirmationOutcome.Cancel }
           );
         }
         break;
       default: {
         const mcpProps = confirmationDetails;
-        question = `Allow execution of MCP tool "${mcpProps.toolName}" from server "${mcpProps.serverName}"?`;
+        question = t('messages.confirmation.allowMCPTool', {
+          toolName: mcpProps.toolName,
+          serverName: mcpProps.serverName,
+        });
         options.push(
           {
-            label: 'Yes, allow once',
+            label: t('messages.confirmation.yesAllowOnce'),
             value: ToolConfirmationOutcome.ProceedOnce,
           },
           {
-            label: `Yes, always allow tool "${mcpProps.toolName}" from server "${mcpProps.serverName}"`,
-            value: ToolConfirmationOutcome.ProceedAlwaysTool, // Cast until types are updated
+            label: t('messages.confirmation.yesAlwaysAllowTool', {
+              toolName: mcpProps.toolName,
+              serverName: mcpProps.serverName,
+            }),
+            value: ToolConfirmationOutcome.ProceedAlwaysTool,
           },
           {
-            label: `Yes, always allow all tools from server "${mcpProps.serverName}"`,
+            label: t('messages.confirmation.yesAlwaysAllowServer', {
+              serverName: mcpProps.serverName,
+            }),
             value: ToolConfirmationOutcome.ProceedAlwaysServer,
           },
-          { label: 'No (esc)', value: ToolConfirmationOutcome.Cancel }
+          { label: t('messages.confirmation.no'), value: ToolConfirmationOutcome.Cancel }
         );
       }
     }
@@ -114,7 +120,7 @@ const useConfirmationButtons = (confirmationDetails: IMessageToolGroupProps['mes
       question,
       options,
     };
-  }, [confirmationDetails]);
+  }, [confirmationDetails, t]);
 };
 
 const ConfirmationDetails: React.FC<{
@@ -147,7 +153,7 @@ const ConfirmationDetails: React.FC<{
     }
   }, [confirmationDetails, content]);
 
-  const { question = '', options = [] } = useConfirmationButtons(confirmationDetails);
+  const { question = '', options = [] } = useConfirmationButtons(confirmationDetails, t);
 
   const [selected, setSelected] = useState<ToolConfirmationOutcome | null>(null);
 
@@ -310,16 +316,15 @@ const ImageDisplay: React.FC<{
 
 const ToolResultDisplay: React.FC<{
   content: IMessageToolGroupProps['message']['content'][number];
-  inAlert?: boolean; // 是否在 Alert 组件内，使用 mask 模式 Whether inside Alert component, use mask mode
-}> = ({ content, inAlert = false }) => {
+}> = ({ content }) => {
   const { resultDisplay, name } = content;
 
   // 图片生成特殊处理 Special handling for image generation
   if (name === 'ImageGeneration' && typeof resultDisplay === 'object') {
-    const { img_url, relative_path } = resultDisplay as any;
+    const result = resultDisplay as ImageGenerationResult;
     // 如果有 img_url 才显示图片，否则显示错误信息
-    if (img_url) {
-      return <LocalImageView src={img_url} alt={relative_path || img_url} className='max-w-100% max-h-100%' />;
+    if (result.img_url) {
+      return <LocalImageView src={result.img_url} alt={result.relative_path || result.img_url} className='max-w-100% max-h-100%' />;
     }
     // 如果是错误，继续走下面的 JSON 显示逻辑
   }
@@ -327,17 +332,11 @@ const ToolResultDisplay: React.FC<{
   // 将结果转换为字符串 Convert result to string
   const display = typeof resultDisplay === 'string' ? resultDisplay : JSON.stringify(resultDisplay, null, 2);
 
-  // Alert 内的错误信息直接限制高度到 4 行，不使用 CollapsibleContent
-  // For error messages in Alert, directly limit height to 4 lines without CollapsibleContent
-  if (inAlert) {
-    return <div className='alert-result-display text-t-primary text-sm'>{display}</div>;
-  }
-
   // 使用 CollapsibleContent 包装长内容
   // Wrap long content with CollapsibleContent
   return (
-    <CollapsibleContent maxHeight={RESULT_MAX_HEIGHT} defaultCollapsed={true} useMask={inAlert}>
-      <pre className='text-t-primary whitespace-pre-wrap break-words m-0' style={{ fontSize: '14px', lineHeight: '21px' }}>
+    <CollapsibleContent maxHeight={RESULT_MAX_HEIGHT} defaultCollapsed={true} useMask={false}>
+      <pre className='text-t-primary whitespace-pre-wrap break-words m-0' style={{ fontSize: `${TEXT_CONFIG.FONT_SIZE}px`, lineHeight: TEXT_CONFIG.LINE_HEIGHT }}>
         {display}
       </pre>
     </CollapsibleContent>
@@ -378,18 +377,19 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
 
         // WriteFile 特殊处理：显示 diff Special handling for WriteFile: show diff
         if (name === 'WriteFile' && typeof resultDisplay !== 'string') {
+          const result = resultDisplay as WriteFileResult;
           return (
             <div className='min-w-400px' key={callId}>
-              <Diff2Html diff={(resultDisplay as any)?.fileDiff || ''}></Diff2Html>
+              <Diff2Html diff={result.fileDiff || ''}></Diff2Html>
             </div>
           );
         }
 
         // ImageGeneration 特殊处理：单独展示图片，不用 Alert 包裹 Special handling for ImageGeneration: display image separately without Alert wrapper
         if (name === 'ImageGeneration' && typeof resultDisplay === 'object') {
-          const { img_url, relative_path } = resultDisplay as any;
-          if (img_url) {
-            return <ImageDisplay key={callId} imgUrl={img_url} relativePath={relative_path} />;
+          const result = resultDisplay as ImageGenerationResult;
+          if (result.img_url) {
+            return <ImageDisplay key={callId} imgUrl={result.img_url} relativePath={result.relative_path} />;
           }
         }
 
@@ -418,8 +418,8 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
                     {description && <div className='text-12px text-t-secondary whitespace-pre-wrap break-words'>{description}</div>}
                     {resultDisplay && (
                       <div className='mt-2'>
-                        {/* 在 Alert 外展示完整结果，去除 inAlert 限制 */}
-                        <ToolResultDisplay content={content} inAlert={false} />
+                        {/* 在 Alert 外展示完整结果 Display full result outside Alert */}
+                        <ToolResultDisplay content={content} />
                       </div>
                     )}
                   </div>

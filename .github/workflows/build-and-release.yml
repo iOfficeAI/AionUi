@@ -58,23 +58,12 @@ jobs:
     needs: code-quality
     if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
     env:
-      ENABLE_MAC_SIGNING: ${{ (github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && github.event.inputs.enable_mac_signing == 'true')) && 'true' || 'false' }}
+      ENABLE_MAC_SIGNING: 'false'
 
     strategy:
       fail-fast: false
       matrix:
         include:
-          - platform: 'macos-x64'
-            # Build Intel target on Apple Silicon runner via Rosetta because macos-12 runners are capacity constrained
-            os: 'macos-14'
-            command: 'node scripts/build-with-builder.js x64 --mac --x64'
-            artifact-name: 'macos-build-x64'
-            arch: 'x64'
-          - platform: 'macos-arm64'
-            os: 'macos-latest'  # Use Apple Silicon Mac runner for arm64 build
-            command: 'node scripts/build-with-builder.js arm64 --mac --arm64'
-            artifact-name: 'macos-build-arm64'
-            arch: 'arm64'
           - platform: 'windows-x64'
             os: 'windows-2022'
             command: 'node scripts/build-with-builder.js x64 --win --x64'
@@ -195,6 +184,8 @@ jobs:
             security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
             security default-keychain -s build.keychain
             security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+            security list-keychains -d user -s build.keychain login.keychain
+            security set-keychain-settings -lut 3600 build.keychain
           
             # 导入证书
             security import certificate.p12 -k build.keychain -P "$P12_PASSWORD" -T /usr/bin/codesign
@@ -278,7 +269,7 @@ jobs:
         with:
           # After optimizing macOS cross-compilation (skipping native rebuild),
           # build time reduced from 90+ min to ~15-20 min including notarization
-          timeout_minutes: ${{ startsWith(matrix.platform, 'macos-') && 30 || 40 }}
+          timeout_minutes: ${{ startsWith(matrix.platform, 'macos-') && 40 || 40 }}
           max_attempts: 2
           retry_wait_seconds: 300
           command: ${{ matrix.command }}
@@ -295,6 +286,7 @@ jobs:
           appleIdPassword: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.APPLE_ID_PASSWORD || '' }}
           teamId: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.TEAM_ID || '' }}
           identity: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.IDENTITY || '' }}
+          CSC_KEYCHAIN: ${{ (matrix.platform == 'macos-x64' || matrix.platform == 'macos-arm64') && env.ENABLE_MAC_SIGNING == 'true' && '/Users/runner/Library/Keychains/build.keychain-db' || '' }}
           # electron-builder signing configuration / electron-builder 签名配置
           CSC_NAME: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.IDENTITY || '' }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
@@ -312,18 +304,172 @@ jobs:
           CI: true
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
-      # macOS 钥匙串清理
+      - name: List build artifacts
+        if: always()
+        shell: bash
+        run: |
+          echo "=========================================="
+          echo "BUILD ARTIFACTS"
+          echo "=========================================="
+          if [ -d "out" ]; then
+            ls -lh out/ || true
+            echo "=========================================="
+            echo "Total artifacts:"
+            find out/ -type f \( -name "*.exe" -o -name "*.msi" -o -name "*.dmg" -o -name "*.deb" -o -name "*.AppImage" -o -name "*.zip" \) -exec basename {} \; || true
+          else
+            echo "No out directory found!"
+          fi
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: ${{ matrix.artifact-name }}
+          path: |
+            out/*.exe
+            out/*.msi
+            out/*.dmg
+            out/*.deb
+            out/*.AppImage
+            out/AionUi-*-win32-*.zip
+            out/AionUi-*-mac-*.zip
+            out/AionUi-*-mac-*.dmg
+          if-no-files-found: warn
+          retention-days: 7
+
+
+
+  build-macos-x64:
+    name: Build macOS x64
+    runs-on: macos-14
+    needs: code-quality
+    env:
+      ENABLE_MAC_SIGNING: ${{ ((github.event_name == 'workflow_dispatch' && github.event.inputs.enable_mac_signing == 'true') || (github.event_name != 'workflow_dispatch' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'))) && 'true' || 'false' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js (Rosetta x64)
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          architecture: 'x64'
+
+      - name: Ensure Rosetta for Intel build
+        run: |
+          sudo softwareupdate --install-rosetta --agree-to-license || echo "Rosetta is already installed"
+
+      - name: Get Electron version
+        id: electron-version
+        shell: bash
+        run: |
+          ELECTRON_VERSION=$(node -p "require('./package.json').devDependencies.electron.replace(/[\^~]/g, '')")
+          echo "version=$ELECTRON_VERSION" >> $GITHUB_OUTPUT
+          echo "Electron version: $ELECTRON_VERSION"
+
+      - name: Install dependencies with Electron prebuilt binaries
+        shell: bash
+        run: npm ci
+        env:
+          npm_config_runtime: electron
+          npm_config_target: ${{ steps.electron-version.outputs.version }}
+          npm_config_disturl: https://electronjs.org/headers
+          npm_config_target_arch: x64
+          npm_config_arch: x64
+
+      - name: Print build configuration
+        shell: bash
+        run: |
+          echo "=========================================="
+          echo "BUILD CONFIGURATION"
+          echo "=========================================="
+          echo "Platform: macos-x64"
+          echo "Target Architecture: x64"
+          echo "Build Command: node scripts/build-with-builder.js x64 --mac --x64"
+          echo "Runner OS: ${{ runner.os }}"
+          echo "Runner Arch: ${{ runner.arch }}"
+          echo "=========================================="
+
+      - name: Setup Python (for native dependencies)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Setup macOS code signing (macOS only)
+        if: env.ENABLE_MAC_SIGNING == 'true'
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD || 'temp-keychain-password' }}
+        run: |
+          if [ -n "$BUILD_CERTIFICATE_BASE64" ]; then
+            echo "Installing code signing certificate..."
+
+            # 创建证书文件
+            echo $BUILD_CERTIFICATE_BASE64 | base64 --decode > certificate.p12
+
+            # 创建临时钥匙串
+            security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+            security default-keychain -s build.keychain
+            security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+            security list-keychains -d user -s build.keychain login.keychain
+            security set-keychain-settings -lut 3600 build.keychain
+
+            # 导入证书
+            security import certificate.p12 -k build.keychain -P "$P12_PASSWORD" -T /usr/bin/codesign
+            security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
+
+            # 清理证书文件
+            rm certificate.p12
+
+            echo "Certificate imported successfully"
+          else
+            echo "No certificate provided - building unsigned application"
+            echo "To enable code signing, add BUILD_CERTIFICATE_BASE64 and P12_PASSWORD secrets"
+          fi
+
+      - name: Build with electron-builder (macOS x64)
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 40
+          max_attempts: 2
+          retry_wait_seconds: 300
+          command: node scripts/build-with-builder.js x64 --mac --x64
+          on_retry_command: |
+            echo "⚠️ 构建超时或失败，5 分钟后进行第 2 次尝试..."
+            echo "这可能是临时网络问题或 Apple 公证服务延迟"
+        env:
+          npm_config_arch: x64
+          APP_ID: ${{ secrets.APP_ID }}
+          appleId: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.APPLE_ID || '' }}
+          appleIdPassword: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.APPLE_ID_PASSWORD || '' }}
+          teamId: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.TEAM_ID || '' }}
+          identity: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.IDENTITY || '' }}
+          CSC_KEYCHAIN: ${{ env.ENABLE_MAC_SIGNING == 'true' && '/Users/runner/Library/Keychains/build.keychain-db' || '' }}
+          CSC_NAME: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.IDENTITY || '' }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+          npm_config_cache: ${{ runner.temp }}/.npm
+          ELECTRON_CACHE: ${{ runner.temp }}/.cache/electron
+          ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/.cache/electron-builder
+          npm_config_disturl: https://electronjs.org/headers
+          npm_config_runtime: electron
+          npm_config_target: ${{ steps.electron-version.outputs.version }}
+          npm_config_target_arch: x64
+          CI: true
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
       - name: Clean up keychain (macOS only)
-        if: (matrix.platform == 'macos-x64' || matrix.platform == 'macos-arm64') && env.ENABLE_MAC_SIGNING == 'true' && always()
+        if: env.ENABLE_MAC_SIGNING == 'true' && always()
         run: |
           if security list-keychains | grep -q build.keychain; then
             security delete-keychain build.keychain
             echo "Temporary keychain deleted"
           fi
 
-      # macOS 构建超时或失败通知
       - name: Notify on macOS build timeout or failure
-        if: (matrix.platform == 'macos-x64' || matrix.platform == 'macos-arm64') && failure()
+        if: failure()
         run: |
           echo "::warning title=macOS Build Timeout or Failure::macOS build did not complete within 40 minutes or failed. This is often due to Apple notarization delays."
           echo ""
@@ -348,7 +494,7 @@ jobs:
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
       - name: List build artifacts
-        if: success() || (failure() && (matrix.platform == 'macos-x64' || matrix.platform == 'macos-arm64'))
+        if: always()
         shell: bash
         run: |
           echo "=========================================="
@@ -358,23 +504,202 @@ jobs:
             ls -lh out/ || true
             echo "=========================================="
             echo "Total artifacts:"
-            find out/ -type f \( -name "*.exe" -o -name "*.msi" -o -name "*.dmg" -o -name "*.deb" -o -name "*.AppImage" -o -name "*.zip" \) -exec basename {} \; || true
+            find out/ -type f \( -name "*.dmg" -o -name "*.zip" \) -exec basename {} \; || true
           else
             echo "No out directory found!"
           fi
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
-        if: success() || (failure() && (matrix.platform == 'macos-x64' || matrix.platform == 'macos-arm64'))
+        if: success()
         with:
-          name: ${{ matrix.artifact-name }}
+          name: macos-build-x64
           path: |
-            out/*.exe
-            out/*.msi
             out/*.dmg
-            out/*.deb
-            out/*.AppImage
-            out/AionUi-*-win32-*.zip
+            out/AionUi-*-mac-*.zip
+            out/AionUi-*-mac-*.dmg
+          if-no-files-found: warn
+          retention-days: 7
+
+
+  build-macos-arm64:
+    name: Build macOS arm64
+    runs-on: macos-latest
+    needs: build-macos-x64
+    env:
+      ENABLE_MAC_SIGNING: ${{ ((github.event_name == 'workflow_dispatch' && github.event.inputs.enable_mac_signing == 'true') || (github.event_name != 'workflow_dispatch' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'))) && 'true' || 'false' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Get Electron version
+        id: electron-version
+        shell: bash
+        run: |
+          ELECTRON_VERSION=$(node -p "require('./package.json').devDependencies.electron.replace(/[\^~]/g, '')")
+          echo "version=$ELECTRON_VERSION" >> $GITHUB_OUTPUT
+          echo "Electron version: $ELECTRON_VERSION"
+
+      - name: Install dependencies with Electron prebuilt binaries
+        shell: bash
+        run: npm ci
+        env:
+          npm_config_runtime: electron
+          npm_config_target: ${{ steps.electron-version.outputs.version }}
+          npm_config_disturl: https://electronjs.org/headers
+          npm_config_target_arch: arm64
+          npm_config_arch: arm64
+
+      - name: Print build configuration
+        shell: bash
+        run: |
+          echo "=========================================="
+          echo "BUILD CONFIGURATION"
+          echo "=========================================="
+          echo "Platform: macos-arm64"
+          echo "Target Architecture: arm64"
+          echo "Build Command: node scripts/build-with-builder.js arm64 --mac --arm64"
+          echo "Runner OS: ${{ runner.os }}"
+          echo "Runner Arch: ${{ runner.arch }}"
+          echo "=========================================="
+
+      - name: Setup Python (for native dependencies)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Setup macOS code signing (macOS only)
+        if: env.ENABLE_MAC_SIGNING == 'true'
+        env:
+          BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
+          P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD || 'temp-keychain-password' }}
+        run: |
+          if [ -n "$BUILD_CERTIFICATE_BASE64" ]; then
+            echo "Installing code signing certificate..."
+
+            # 创建证书文件
+            echo $BUILD_CERTIFICATE_BASE64 | base64 --decode > certificate.p12
+
+            # 创建临时钥匙串
+            security create-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+            security default-keychain -s build.keychain
+            security unlock-keychain -p "$KEYCHAIN_PASSWORD" build.keychain
+            security list-keychains -d user -s build.keychain login.keychain
+            security set-keychain-settings -lut 3600 build.keychain
+
+            # 导入证书
+            security import certificate.p12 -k build.keychain -P "$P12_PASSWORD" -T /usr/bin/codesign
+            security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k "$KEYCHAIN_PASSWORD" build.keychain
+
+            # 清理证书文件
+            rm certificate.p12
+
+            echo "Certificate imported successfully"
+          else
+            echo "No certificate provided - building unsigned application"
+            echo "To enable code signing, add BUILD_CERTIFICATE_BASE64 and P12_PASSWORD secrets"
+          fi
+
+      - name: Wait for notarization queue spacing
+        shell: bash
+        run: |
+          echo "⏳ Waiting 120 seconds before starting arm64 build to stagger notarization requests..."
+          sleep 120
+
+      - name: Build with electron-builder (macOS arm64)
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 40
+          max_attempts: 2
+          retry_wait_seconds: 300
+          command: node scripts/build-with-builder.js arm64 --mac --arm64
+          on_retry_command: |
+            echo "⚠️ 构建超时或失败，5 分钟后进行第 2 次尝试..."
+            echo "这可能是临时网络问题或 Apple 公证服务延迟"
+        env:
+          npm_config_arch: arm64
+          APP_ID: ${{ secrets.APP_ID }}
+          appleId: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.APPLE_ID || '' }}
+          appleIdPassword: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.APPLE_ID_PASSWORD || '' }}
+          teamId: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.TEAM_ID || '' }}
+          identity: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.IDENTITY || '' }}
+          CSC_KEYCHAIN: ${{ env.ENABLE_MAC_SIGNING == 'true' && '/Users/runner/Library/Keychains/build.keychain-db' || '' }}
+          CSC_NAME: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.IDENTITY || '' }}
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+          npm_config_cache: ${{ runner.temp }}/.npm
+          ELECTRON_CACHE: ${{ runner.temp }}/.cache/electron
+          ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/.cache/electron-builder
+          npm_config_disturl: https://electronjs.org/headers
+          npm_config_runtime: electron
+          npm_config_target: ${{ steps.electron-version.outputs.version }}
+          npm_config_target_arch: arm64
+          CI: true
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      - name: Clean up keychain (macOS only)
+        if: env.ENABLE_MAC_SIGNING == 'true' && always()
+        run: |
+          if security list-keychains | grep -q build.keychain; then
+            security delete-keychain build.keychain
+            echo "Temporary keychain deleted"
+          fi
+
+      - name: Notify on macOS build timeout or failure
+        if: failure()
+        run: |
+          echo "::warning title=macOS Build Timeout or Failure::macOS build did not complete within 40 minutes or failed. This is often due to Apple notarization delays."
+          echo ""
+          echo "⚠️  macOS Build Issue Detected"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo ""
+          echo "The macOS build exceeded the 40-minute timeout or encountered an error."
+          echo ""
+          echo "Common causes:"
+          echo "  • Apple notarization service delays (first-time apps may take days)"
+          echo "  • Apple server experiencing high load"
+          echo "  • Network connectivity issues"
+          echo ""
+          echo "Recommended actions:"
+          echo "  1. Check if signed (but not notarized) artifacts were uploaded"
+          echo "  2. Wait a few hours and manually retry the workflow"
+          echo "  3. For urgent releases, consider using the signed-only version"
+          echo ""
+          echo "Note: According to Apple, first-time notarizations can take 'a few days'"
+          echo "Reference: https://developer.apple.com/forums/thread/756867"
+          echo ""
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+      - name: List build artifacts
+        if: always()
+        shell: bash
+        run: |
+          echo "=========================================="
+          echo "BUILD ARTIFACTS"
+          echo "=========================================="
+          if [ -d "out" ]; then
+            ls -lh out/ || true
+            echo "=========================================="
+            echo "Total artifacts:"
+            find out/ -type f \( -name "*.dmg" -o -name "*.zip" \) -exec basename {} \; || true
+          else
+            echo "No out directory found!"
+          fi
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: macos-build-arm64
+          path: |
+            out/*.dmg
             out/AionUi-*-mac-*.zip
             out/AionUi-*-mac-*.dmg
           if-no-files-found: warn
@@ -386,7 +711,7 @@ jobs:
   auto-retry-workflow:
     name: Auto Retry on Build Failure
     runs-on: ubuntu-latest
-    needs: build
+    needs: [ build, build-macos-x64, build-macos-arm64 ]
     # 关键：只在首次失败时触发，避免无限循环
     if: |
       failure() &&
@@ -445,7 +770,7 @@ jobs:
   create-tag:
     name: Create Tag from Branch
     runs-on: ubuntu-latest
-    needs: [ build ]
+    needs: [ build, build-macos-x64, build-macos-arm64 ]
     if: github.event_name == 'push' && success() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
     outputs:
       tag_name: ${{ steps.create_tag.outputs.tag_name }}
@@ -541,7 +866,7 @@ jobs:
   release:
     name: Create Release
     runs-on: ubuntu-latest
-    needs: [ build, create-tag ]
+    needs: [ build, build-macos-x64, build-macos-arm64, create-tag ]
     if: github.event_name == 'push' && always() && needs.create-tag.result == 'success'
     environment: ${{ needs.create-tag.outputs.is_dev == 'true' && 'dev-release' || 'release' }}
     

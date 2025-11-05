@@ -379,7 +379,18 @@
     "downloadSuccess": "ダウンロードしました",
     "downloadFailed": "ダウンロードに失敗しました",
     "imageLoadFailed": "画像の読み込みに失敗しました",
-    "scrollToBottom": "下にスクロール"
+    "scrollToBottom": "下にスクロール",
+    "confirmation": {
+      "applyChange": "この変更を適用しますか？",
+      "allowExecution": "実行を許可しますか？",
+      "proceed": "続行しますか？",
+      "allowMCPTool": "サーバー \"{{serverName}}\" の MCP ツール \"{{toolName}}\" の実行を許可しますか？",
+      "yesAllowOnce": "はい、一度だけ許可",
+      "yesAllowAlways": "はい、常に許可",
+      "yesAlwaysAllowTool": "はい、サーバー \"{{serverName}}\" のツール \"{{toolName}}\" を常に許可",
+      "yesAlwaysAllowServer": "はい、サーバー \"{{serverName}}\" のすべてのツールを常に許可",
+      "no": "いいえ (esc)"
+    }
   },
   "mcp": {
     "integration": {
