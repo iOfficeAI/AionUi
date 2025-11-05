@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { CompletedToolCall, Config, ServerGeminiStreamEvent, ToolCallRequestInfo } from '@office-ai/aioncli-core';
+import type { CompletedToolCall, Config, GeminiClient, ServerGeminiStreamEvent, ToolCallRequestInfo } from '@office-ai/aioncli-core';
 import { executeToolCall, GeminiEventType as ServerGeminiEventType } from '@office-ai/aioncli-core';
 import { parseAndFormatApiError } from './cli/errorParsing';
 
@@ -47,9 +47,11 @@ export const processGeminiStreamEvents = async (stream: AsyncIterable<ServerGemi
         }
         break;
       default: {
-        // enforces exhaustive switch-case
-        const unreachable: never = event;
-        return unreachable;
+        // Some event types may not be handled yet
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const _unhandled: any = event;
+        console.warn('Unhandled event type:', _unhandled);
+        break;
       }
     }
   }
@@ -156,7 +158,7 @@ export const handleCompletedTools = (completedToolCallsFromScheduler: CompletedT
         } else {
           parts = [response];
         }
-        geminiClient.addHistory({
+        void geminiClient.addHistory({
           role: 'user',
           parts,
         });

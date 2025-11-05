@@ -77,10 +77,10 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
       // Frontend only needs to update UI
       switch (message.type) {
         case 'thought':
-          setThought(message.data);
+          setThought(message.data as ThoughtData);
           break;
         case 'finish':
-          setThought(message.data);
+          setThought(message.data as ThoughtData);
           setAiProcessing(false);
           break;
         case 'content':

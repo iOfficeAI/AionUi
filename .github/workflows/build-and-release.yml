@@ -58,7 +58,7 @@ jobs:
     needs: code-quality
     if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
     env:
-      ENABLE_MAC_SIGNING: ${{ (github.ref == 'refs/heads/main' || github.event.inputs.enable_mac_signing == 'true') && 'true' || 'false' }}
+      ENABLE_MAC_SIGNING: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || github.event.inputs.enable_mac_signing == 'true') && 'true' || 'false' }}
 
     strategy:
       fail-fast: false
@@ -542,7 +542,7 @@ jobs:
     name: Create Release
     runs-on: ubuntu-latest
     needs: [ build, create-tag ]
-    if: always() && needs.create-tag.result == 'success'
+    if: github.event_name == 'push' && always() && needs.create-tag.result == 'success'
     environment: ${{ needs.create-tag.outputs.is_dev == 'true' && 'dev-release' || 'release' }}
     
     steps:
