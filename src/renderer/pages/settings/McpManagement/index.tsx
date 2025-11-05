@@ -1,4 +1,4 @@
-import { Button, Collapse, Message, Modal, Dropdown, Menu } from '@arco-design/web-react';
+import { Button, Collapse, Modal, Dropdown, Menu } from '@arco-design/web-react';
 import { Plus, Down } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
@@ -8,9 +8,12 @@ import AddMcpServerModal from '../components/AddMcpServerModal';
 import McpServerItem from './McpServerItem';
 import { useMcpServers, useMcpAgentStatus, useMcpOperations, useMcpConnection, useMcpModal, useMcpServerCRUD } from '@/renderer/hooks/mcp';
 
-const McpManagement: React.FC = () => {
+interface McpManagementProps {
+  message: ReturnType<typeof import('@arco-design/web-react').Message.useMessage>[0];
+}
+
+const McpManagement: React.FC<McpManagementProps> = ({ message }) => {
   const { t } = useTranslation();
-  const [message, messageContext] = Message.useMessage();
 
   // 使用自定义hooks管理各种状态和操作
   const { mcpServers, saveMcpServers } = useMcpServers();
@@ -93,7 +96,6 @@ const McpManagement: React.FC = () => {
 
   return (
     <div>
-      {messageContext}
       <Collapse.Item
         className={' [&_div.arco-collapse-item-header-title]:flex-1'}
         header={
