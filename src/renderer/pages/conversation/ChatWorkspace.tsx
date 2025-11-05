@@ -52,7 +52,6 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
   const [treeKey, setTreeKey] = useState(Math.random());
   const [expandedKeys, setExpandedKeys] = useState<string[]>([]);
   const [showSearch, setShowSearch] = useState(false);
-  const [, setIsHeaderHovered] = useState(false);
   const [confirmVisible, setConfirmVisible] = useState(false);
   const [confirmFileName, setConfirmFileName] = useState('');
   const [confirmFilesToPaste, setConfirmFilesToPaste] = useState<Array<{ path: string; name: string }>>([]);
@@ -865,7 +864,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
       <Modal visible={deleteModal.visible} title={t('conversation.workspace.contextMenu.deleteTitle')} onCancel={closeDeleteModal} onOk={handleDeleteConfirm} okText={t('common.confirm')} cancelText={t('common.cancel')} confirmLoading={deleteModal.loading} style={{ borderRadius: '12px' }}>
         <div className='text-14px text-t-secondary'>{t('conversation.workspace.contextMenu.deleteConfirm')}</div>
       </Modal>
-      <div className='px-16px pb-8px' onMouseEnter={() => setIsHeaderHovered(true)} onMouseLeave={() => setIsHeaderHovered(false)}>
+      <div className='px-16px pb-8px'>
         <div className='flex items-center justify-start gap-8px'>
           <span className='font-bold text-14px text-t-primary'>{t('common.file')}</span>
           <div className='flex items-center gap-8px'>
