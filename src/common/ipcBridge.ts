@@ -156,7 +156,7 @@ export interface IFileMetadata {
 
 export interface IResponseMessage {
   type: string;
-  data: any;
+  data: unknown;
   msg_id: string;
   conversation_id: string;
 }

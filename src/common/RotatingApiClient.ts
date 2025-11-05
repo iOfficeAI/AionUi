@@ -4,7 +4,7 @@ import type { AuthType } from '@office-ai/aioncli-core';
 // Unified interface for chat completion across different providers
 export interface UnifiedChatCompletionParams {
   model: string;
-  messages: any; // Allow flexible message formats for compatibility
+  messages: unknown; // Allow flexible message formats for compatibility
 }
 
 export interface UnifiedChatCompletionResponse {
