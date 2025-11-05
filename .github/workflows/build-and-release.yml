@@ -1,5 +1,13 @@
 name: Build and Release
 
+# 构建触发方式 Build triggers:
+# 1. 自动触发 (Auto): push to main/dev branches
+#    - main 分支: 自动启用 macOS 签名
+#    - dev 分支: 默认不启用签名
+# 2. 手动触发 (Manual): workflow_dispatch
+#    - 可选择是否启用 macOS 签名
+#    - 适用于在 dev 分支构建正式签名包
+
 permissions:
   contents: write
   issues: read
@@ -8,6 +16,13 @@ permissions:
 on:
   push:
     branches: [ main, dev ]
+  workflow_dispatch:
+    inputs:
+      enable_mac_signing:
+        description: '启用 macOS 代码签名 (Enable macOS code signing)'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   # 代码质量检查
@@ -43,7 +58,7 @@ jobs:
     needs: code-quality
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
     env:
-      ENABLE_MAC_SIGNING: ${{ github.ref == 'refs/heads/main' && 'true' || 'false' }}
+      ENABLE_MAC_SIGNING: ${{ (github.ref == 'refs/heads/main' || github.event.inputs.enable_mac_signing == 'true') && 'true' || 'false' }}
 
     strategy:
       fail-fast: false
@@ -591,7 +606,5 @@ jobs:
           generate_release_notes: true
           draft: true
           prerelease: ${{ needs.create-tag.outputs.is_dev == 'true' || contains(steps.version.outputs.tag_name, 'beta') || contains(steps.version.outputs.tag_name, 'alpha') || contains(steps.version.outputs.tag_name, 'rc') }}
-          # 上传新资产时覆盖现有文件
-          make_latest: false
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
