@@ -42,31 +42,16 @@ jobs:
     runs-on: ${{ matrix.os }}
     needs: code-quality
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
-    env:
-      ENABLE_MAC_SIGNING: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev') && 'true' || 'false' }}
-      # 暂时在 dev 也执行签名/公证，验证通过后再恢复只针对 main
-      appleId: ${{ secrets.APPLE_ID }}
-      appleIdPassword: ${{ secrets.APPLE_ID_PASSWORD }}
-      teamId: ${{ secrets.TEAM_ID }}
-      APPLE_ID: ${{ secrets.APPLE_ID }}
-      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
-      APPLE_TEAM_ID: ${{ secrets.TEAM_ID }}
 
     strategy:
       fail-fast: false
       matrix:
         include:
-          - platform: 'macos-x64'
-            # Build Intel target on Apple Silicon runner via Rosetta because macos-12 runners are capacity constrained
-            os: 'macos-14'
-            command: 'node scripts/build-with-builder.js x64 --mac --x64'
-            artifact-name: 'macos-build-x64'
-            arch: 'x64'
-          - platform: 'macos-arm64'
-            os: 'macos-latest'  # Use Apple Silicon Mac runner for arm64 build
-            command: 'node scripts/build-with-builder.js arm64 --mac --arm64'
-            artifact-name: 'macos-build-arm64'
-            arch: 'arm64'
+          - platform: 'macos'
+            os: 'macos-latest'
+            command: 'npm run build-mac'
+            artifact-name: 'macos-build'
+            arch: 'x64,arm64'
           - platform: 'windows-x64'
             os: 'windows-2022'
             command: 'node scripts/build-with-builder.js x64 --win --x64'
@@ -88,24 +73,20 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Setup Node.js
-        if: matrix.platform != 'macos-x64'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
 
-      - name: Setup Node.js (Rosetta x64)
-        if: matrix.platform == 'macos-x64'
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-          architecture: 'x64'
+      - name: Install dependencies
+        run: npm ci
 
-      - name: Ensure Rosetta for Intel build
-        if: matrix.platform == 'macos-x64'
-        run: |
-          sudo softwareupdate --install-rosetta --agree-to-license || echo "Rosetta is already installed"
+      - name: Rebuild native modules for Electron
+        run: npx electron-builder install-app-deps
+        continue-on-error: ${{ startsWith(matrix.platform, 'windows') }}
+        env:
+          npm_config_runtime: electron
+          npm_config_disturl: https://electronjs.org/headers
 
       - name: Get Electron version
         id: electron-version
@@ -114,19 +95,6 @@ jobs:
           ELECTRON_VERSION=$(node -p "require('./package.json').devDependencies.electron.replace(/[\^~]/g, '')")
           echo "version=$ELECTRON_VERSION" >> $GITHUB_OUTPUT
           echo "Electron version: $ELECTRON_VERSION"
-
-      - name: Install dependencies with Electron prebuilt binaries
-        shell: bash
-        run: npm ci
-        env:
-          # 指示 prebuild-install 下载 Electron 的预编译二进制，而不是 Node.js 的
-          # Tell prebuild-install to download Electron prebuilt binaries instead of Node.js ones
-          npm_config_runtime: electron
-          npm_config_target: ${{ steps.electron-version.outputs.version }}
-          npm_config_disturl: https://electronjs.org/headers
-          # For Linux with multi-arch, use x64; otherwise use the specified arch
-          npm_config_target_arch: ${{ matrix.arch == 'x64,arm64' && 'x64' || matrix.arch }}
-          npm_config_arch: ${{ matrix.arch == 'x64,arm64' && 'x64' || matrix.arch }}
 
       - name: Print build configuration
         shell: bash
@@ -171,7 +139,7 @@ jobs:
 
       # macOS 代码签名证书安装
       - name: Setup macOS code signing (macOS only)
-        if: startsWith(matrix.platform, 'macos-') && env.ENABLE_MAC_SIGNING == 'true'
+        if:  matrix.platform == 'macos'  # Temporarily disable signing to speed up builds / 暂时关闭签名以加快构建
         env:
           BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
           P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
@@ -207,7 +175,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential python3 python3-pip pkg-config libsqlite3-dev fakeroot dpkg-dev rpm libnss3-dev libatk-bridge2.0-dev libdrm2 libxkbcommon-dev libxss1 libatspi2.0-dev libgtk-3-dev libxrandr2 libasound2-dev
 
-      - name: Rebuild native modules for Electron (Windows)
+      - name: Rebuild native modules for Electron
         if: startsWith(matrix.platform, 'windows')
         shell: pwsh
         run: |
@@ -222,9 +190,6 @@ jobs:
           npm_config_target_arch: ${{ matrix.arch }}
           npm_config_disturl: https://electronjs.org/headers
           npm_config_build_from_source: true
-          npm_config_cache: ${{ runner.temp }}/.npm
-          ELECTRON_CACHE: ${{ runner.temp }}/.cache/electron
-          ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/.cache/electron-builder
           MSVS_VERSION: 2022
           GYP_MSVS_VERSION: 2022
 
@@ -247,11 +212,11 @@ jobs:
           ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/.cache/electron-builder
           # Signing & IDs / 签名与应用 ID 配置
           APP_ID: ${{ secrets.APP_ID }}
-          appleId: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.APPLE_ID || '' }}
-          appleIdPassword: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.APPLE_ID_PASSWORD || '' }}
-          teamId: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.TEAM_ID || '' }}
-          identity: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.IDENTITY || '' }}
-          CSC_NAME: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.IDENTITY || '' }}
+          appleId: ${{ secrets.APPLE_ID }}
+          appleIdPassword: ${{ secrets.APPLE_ID_PASSWORD }}
+          teamId: ${{ secrets.TEAM_ID }}
+          identity: ${{ secrets.IDENTITY }}
+          CSC_NAME: ${{ secrets.IDENTITY }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
           # Windows build flags / Windows 构建参数
           MSVS_VERSION: 2022
@@ -261,8 +226,6 @@ jobs:
           # CI flag & GitHub token / CI 标识与 GitHub Token
           CI: true
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
-          # Ensure native modules are not skipped during packaging
-          FORGE_SKIP_NATIVE_REBUILD: false
 
       - name: Build with electron-builder (non-Windows)
         if: "!startsWith(matrix.platform, 'windows')"
@@ -271,7 +234,7 @@ jobs:
           timeout_minutes: 40
           max_attempts: 2
           retry_wait_seconds: 300
-          continue_on_error: ${{ (matrix.platform == 'macos-x64' || matrix.platform == 'macos-arm64') }}
+          continue_on_error: ${{ matrix.platform == 'macos' }}
           command: ${{ matrix.command }}
           on_retry_command: |
             echo "⚠️ 构建超时或失败，5 分钟后进行第 2 次尝试..."
@@ -281,13 +244,13 @@ jobs:
           npm_config_arch: ${{ matrix.arch }}
           # App ID configuration / 应用 ID 配置
           APP_ID: ${{ secrets.APP_ID }}
-          # macOS signing configuration / macOS 签名配置（dev 分支禁用）
-          appleId: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.APPLE_ID || '' }}
-          appleIdPassword: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.APPLE_ID_PASSWORD || '' }}
-          teamId: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.TEAM_ID || '' }}
-          identity: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.IDENTITY || '' }}
+          # macOS signing configuration / macOS 签名配置
+          appleId: ${{ secrets.APPLE_ID }}
+          appleIdPassword: ${{ secrets.APPLE_ID_PASSWORD }}
+          teamId: ${{ secrets.TEAM_ID }}
+          identity: ${{ secrets.IDENTITY }}
           # electron-builder signing configuration / electron-builder 签名配置
-          CSC_NAME: ${{ env.ENABLE_MAC_SIGNING == 'true' && secrets.IDENTITY || '' }}
+          CSC_NAME: ${{ secrets.IDENTITY }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
           # Native dependency compilation / 原生依赖编译缓存
           # Prefer prebuilt binaries for better compatibility (especially on Linux)
@@ -305,7 +268,7 @@ jobs:
 
       # macOS 钥匙串清理
       - name: Clean up keychain (macOS only)
-        if: (matrix.platform == 'macos-x64' || matrix.platform == 'macos-arm64') && env.ENABLE_MAC_SIGNING == 'true' && always()
+        if: matrix.platform == 'macos' && always()
         run: |
           if security list-keychains | grep -q build.keychain; then
             security delete-keychain build.keychain
@@ -314,7 +277,7 @@ jobs:
 
       # macOS 构建超时或失败通知
       - name: Notify on macOS build timeout or failure
-        if: (matrix.platform == 'macos-x64' || matrix.platform == 'macos-arm64') && failure()
+        if: matrix.platform == 'macos' && failure()
         run: |
           echo "::warning title=macOS Build Timeout or Failure::macOS build did not complete within 40 minutes or failed. This is often due to Apple notarization delays."
           echo ""
@@ -339,7 +302,7 @@ jobs:
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
       - name: List build artifacts
-        if: success() || (failure() && (matrix.platform == 'macos-x64' || matrix.platform == 'macos-arm64'))
+        if: success() || (failure() && matrix.platform == 'macos')
         shell: bash
         run: |
           echo "=========================================="
@@ -356,7 +319,7 @@ jobs:
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
-        if: success() || (failure() && (matrix.platform == 'macos-x64' || matrix.platform == 'macos-arm64'))
+        if: success() || (failure() && matrix.platform == 'macos')
         with:
           name: ${{ matrix.artifact-name }}
           path: |
@@ -367,7 +330,6 @@ jobs:
             out/*.AppImage
             out/AionUi-*-win32-*.zip
             out/AionUi-*-mac-*.zip
-            out/AionUi-*-mac-*.dmg
           if-no-files-found: warn
           retention-days: 7
 
@@ -540,18 +502,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Clean existing draft release (if any)
-        run: |
-          TAG_NAME="${{ needs.create-tag.outputs.tag_name }}"
-          if gh release view --json assets "$TAG_NAME" >/dev/null 2>&1; then
-            echo "Found existing release for $TAG_NAME, deleting to avoid asset conflicts"
-            gh release delete "$TAG_NAME" --yes || echo "Failed to delete existing release, continuing..."
-          else
-            echo "No existing release for $TAG_NAME"
-          fi
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-
       - name: Get version for release
         id: version
         run: |
@@ -570,34 +520,20 @@ jobs:
         with:
           path: build-artifacts
 
-      - name: List downloaded artifacts
-        run: |
-          echo "Contents of build-artifacts directory:"
-          find build-artifacts/ -type f -name "AionUi-*" | sort
-
-      - name: Download all build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: build-artifacts
-
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ steps.version.outputs.tag_name }}
           name: ${{ needs.create-tag.outputs.is_dev == 'true' && format('Development Build {0}', steps.version.outputs.tag_name) || steps.version.outputs.tag_name }}
           files: |
-            build-artifacts/**/AionUi-*.exe
-            build-artifacts/**/AionUi-*.msi
-            build-artifacts/**/AionUi-*.dmg
-            build-artifacts/**/AionUi-*.deb
-            build-artifacts/**/AionUi-*.AppImage
-            build-artifacts/**/AionUi-*-mac-*.zip
-            build-artifacts/**/AionUi-*-win-*.zip
-            build-artifacts/**/AionUi-*-linux-*.zip
+            build-artifacts/**/*.exe
+            build-artifacts/**/*.msi
+            build-artifacts/**/*.dmg
+            build-artifacts/**/*.deb
+            build-artifacts/**/*.AppImage
+            build-artifacts/**/*.zip
           generate_release_notes: true
           draft: true
           prerelease: ${{ needs.create-tag.outputs.is_dev == 'true' || contains(steps.version.outputs.tag_name, 'beta') || contains(steps.version.outputs.tag_name, 'alpha') || contains(steps.version.outputs.tag_name, 'rc') }}
-          # 上传新资产时覆盖现有文件
-          make_latest: false
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
