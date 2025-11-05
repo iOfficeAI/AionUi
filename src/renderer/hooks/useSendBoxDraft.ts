@@ -2,12 +2,14 @@ import type { TChatConversation } from '@/common/storage';
 import { useCallback } from 'react';
 import useSWR from 'swr';
 import useSWRMutation from 'swr/mutation';
+import type { FileOrFolderItem } from '@/renderer/types/files';
+export type { FileOrFolderItem } from '@/renderer/types/files';
 
 type Draft =
   | {
       _type: 'gemini';
       content: string;
-      atPath: string[];
+      atPath: Array<string | FileOrFolderItem>;
       uploadFile: string[];
     }
   | {
@@ -17,13 +19,13 @@ type Draft =
   | {
       _type: 'acp';
       content: string;
-      atPath: string[];
+      atPath: Array<string | FileOrFolderItem>;
       uploadFile: string[];
     }
   | {
       _type: 'codex';
       content: string;
-      atPath: string[];
+      atPath: Array<string | FileOrFolderItem>;
       uploadFile: string[];
     };
 

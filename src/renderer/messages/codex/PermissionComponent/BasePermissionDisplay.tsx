@@ -136,11 +136,11 @@ const BasePermissionDisplay: React.FC<BasePermissionDisplayProps> = React.memo((
 
   if (shouldShowAutoHandling) {
     return (
-      <Card className='mb-4' bordered={false} style={{ background: '#f0f8ff' }}>
+      <Card className='mb-4' bordered={false} style={{ background: 'var(--bg-1)' }}>
         <div className='space-y-4 p-2'>
           <div className='flex items-center space-x-2'>
             <span className='text-2xl'>{icon}</span>
-            <Text className='block text-sm text-gray-600'>{t('messages.auto_handling_permission', { defaultValue: '' })}</Text>
+            <Text className='block text-sm text-t-secondary'>{t('messages.auto_handling_permission', { defaultValue: '' })}</Text>
           </div>
         </div>
       </Card>
@@ -148,7 +148,7 @@ const BasePermissionDisplay: React.FC<BasePermissionDisplayProps> = React.memo((
   }
 
   return (
-    <Card className='mb-4' bordered={false} style={{ background: '#f8f9fa' }}>
+    <Card className='mb-4' bordered={false} style={{ background: 'var(--bg-1)' }}>
       <div className='space-y-4'>
         <div className='flex items-center space-x-2'>
           <span className='text-2xl'>{icon}</span>
@@ -186,8 +186,10 @@ const BasePermissionDisplay: React.FC<BasePermissionDisplayProps> = React.memo((
         )}
 
         {hasResponded && (
-          <div className='mt-10px p-2 bg-green-50 border border-green-200 rounded-md'>
-            <Text className='text-sm text-green-700'>✓ {t('codex.permissions.response_sent')}</Text>
+          <div className='mt-10px p-2 rounded-md border' style={{ backgroundColor: 'var(--color-success-light-1)', borderColor: 'rgb(var(--success-3))' }}>
+            <Text className='text-sm' style={{ color: 'rgb(var(--success-6))' }}>
+              ✓ {t('codex.permissions.response_sent')}
+            </Text>
           </div>
         )}
       </div>

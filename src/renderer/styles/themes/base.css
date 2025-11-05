@@ -1,0 +1,194 @@
+/* Base styles - theme-independent */
+
+.loading {
+  animation: loading 1s linear infinite;
+}
+
+.bg-animate {
+  animation: bg-animate 1s alternate infinite;
+}
+
+@keyframes bg-animate {
+  0% {
+    background-color: var(--bg-2);
+  }
+  100% {
+    background-color: var(--bg-3);
+  }
+}
+
+@keyframes loading {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.collapsed {
+  .collapsed-hidden {
+    display: none;
+  }
+  .\!collapsed-hidden {
+    display: none !important;
+  }
+}
+
+/* Custom scrollbar styles */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 3px;
+  transition: background 0.3s;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+[data-theme='dark'] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+*:hover::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme='dark'] *:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Diff2Html Dark Theme */
+.d2h-dark-color-scheme {
+  /* File wrapper */
+  & .d2h-file-wrapper {
+    border-color: var(--bg-3);
+  }
+
+  /* File header */
+  & .d2h-file-header {
+    background-color: var(--bg-2) !important;
+    border-color: var(--bg-3);
+  }
+
+  & .d2h-file-name {
+    color: var(--text-primary);
+  }
+
+  & .d2h-file-stats {
+    color: var(--text-secondary);
+  }
+
+  /* Table */
+  & .d2h-diff-table {
+    background-color: var(--bg-1);
+  }
+
+  & .d2h-diff-tbody {
+    background-color: var(--bg-1);
+  }
+
+  /* Line numbers */
+  & .d2h-code-linenumber {
+    background-color: var(--bg-2);
+    color: var(--text-secondary);
+    border-color: var(--bg-3);
+  }
+
+  /* Code lines */
+  & .d2h-code-line {
+    color: var(--text-primary);
+    background-color: var(--bg-1);
+  }
+
+  /* Info lines */
+  & .d2h-info {
+    background-color: var(--bg-2);
+    color: var(--text-secondary);
+  }
+
+  /* Empty lines */
+  & .d2h-emptyplaceholder {
+    background-color: var(--bg-2);
+    border-color: var(--bg-3);
+  }
+
+  /* Insert lines (added) */
+  & .d2h-ins {
+    background-color: rgba(35, 195, 67, 0.15);
+    & .d2h-code-line {
+      background-color: rgba(35, 195, 67, 0.15);
+    }
+    & .d2h-code-linenumber {
+      background-color: rgba(35, 195, 67, 0.25);
+      border-color: rgba(35, 195, 67, 0.4);
+    }
+  }
+
+  & .d2h-ins.d2h-change {
+    background-color: rgba(35, 195, 67, 0.25);
+    & .d2h-code-line {
+      background-color: rgba(35, 195, 67, 0.25);
+    }
+  }
+
+  /* Delete lines (removed) */
+  & .d2h-del {
+    background-color: rgba(245, 63, 63, 0.15);
+    & .d2h-code-line {
+      background-color: rgba(245, 63, 63, 0.15);
+    }
+    & .d2h-code-linenumber {
+      background-color: rgba(245, 63, 63, 0.25);
+      border-color: rgba(245, 63, 63, 0.4);
+    }
+  }
+
+  & .d2h-del.d2h-change {
+    background-color: rgba(245, 63, 63, 0.25);
+    & .d2h-code-line {
+      background-color: rgba(245, 63, 63, 0.25);
+    }
+  }
+
+  /* Code changes highlighting */
+  & .d2h-code-line ins {
+    background-color: rgba(35, 195, 67, 0.4);
+    color: var(--text-primary);
+  }
+
+  & .d2h-code-line del {
+    background-color: rgba(245, 63, 63, 0.4);
+    color: var(--text-primary);
+  }
+
+  /* Side by side view */
+  & .d2h-code-side-linenumber {
+    background-color: var(--bg-2);
+    color: var(--text-secondary);
+    border-color: var(--bg-3);
+  }
+
+  & .d2h-code-side-line {
+    background-color: var(--bg-1);
+    color: var(--text-primary);
+  }
+
+  /* Context (unchanged) lines in side-by-side */
+  & .d2h-cntx {
+    background-color: var(--bg-1);
+    & .d2h-code-line,
+    & .d2h-code-side-line {
+      background-color: var(--bg-1);
+    }
+  }
+}

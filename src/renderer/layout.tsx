@@ -12,6 +12,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import { useDirectorySelection } from './hooks/useDirectorySelection';
 import { useMultiAgentDetection } from './hooks/useMultiAgentDetection';
+import { iconColors } from './theme/colors';
 
 const useDebug = () => {
   const [count, setCount] = useState(0);
@@ -76,7 +77,7 @@ const Layout: React.FC<{
         collapsedWidth={isMobile ? 0 : 64}
         collapsed={collapsed}
         width={250}
-        className={classNames('!bg-#f2f3f5 layout-sider', {
+        className={classNames('!bg-2 layout-sider', {
           collapsed: collapsed,
         })}
       >
@@ -86,7 +87,7 @@ const Layout: React.FC<{
           })}
         >
           <div
-            className={classNames('bg-#000 shrink-0 size-40px relative rd-0.5rem ', {
+            className={classNames('bg-black shrink-0 size-40px relative rd-0.5rem', {
               '!size-24px': collapsed,
             })}
             onClick={onClick}
@@ -104,10 +105,10 @@ const Layout: React.FC<{
             </svg>
           </div>
           <div className=' flex-1 text-20px collapsed-hidden font-bold'>AionUi</div>
-          <MenuFold className='cursor-pointer !collapsed-hidden flex' theme='outline' size='24' fill='#86909C' strokeWidth={3} onClick={() => setCollapsed(true)} />
+          <MenuFold className='cursor-pointer !collapsed-hidden flex' theme='outline' size='24' fill={iconColors.secondary} strokeWidth={3} onClick={() => setCollapsed(true)} />
           {collapsed && !isMobile && (
-            <div onClick={() => setCollapsed(false)} className='group-hover:opacity-100 absolute bg-#f2f3f5 left-8px top-7px transition-all duration-150 p-10px opacity-0'>
-              <MenuUnfold className='cursor-pointer flex' size='24' fill='#86909C' strokeWidth={3} />
+            <div onClick={() => setCollapsed(false)} className='group-hover:opacity-100 absolute bg-2 left-8px top-7px transition-all duration-150 p-10px opacity-0'>
+              <MenuUnfold className='cursor-pointer flex' size='24' fill={iconColors.secondary} strokeWidth={3} />
             </div>
           )}
         </ArcoLayout.Header>
@@ -117,19 +118,20 @@ const Layout: React.FC<{
                 onSessionClick: () => {
                   if (isMobile) setCollapsed(true);
                 },
+                collapsed,
               } as any)
             : sider}
         </ArcoLayout.Content>
       </ArcoLayout.Sider>
 
       {/* 移动端toggle按钮 - 与header对齐，调整到与右侧按钮相同大小 */}
-      {isMobile && (
-        <button onClick={() => setCollapsed(!collapsed)} className='mobile-toggle-btn fixed top-0 left-0 z-50 bg-transparent w-16 h-16 flex items-center justify-center text-gray-600 hover:text-gray-800 transition-all duration-200'>
-          {collapsed ? <MenuUnfold theme='outline' size={24} fill='#86909C' strokeWidth={3} /> : <MenuFold theme='outline' size={24} fill='#86909C' strokeWidth={3} />}
+      {isMobile && collapsed && (
+        <button onClick={() => setCollapsed(!collapsed)} className='mobile-toggle-btn fixed top-0 left-0 z-50 bg-transparent w-16 h-16 flex items-center justify-center text-gray-600 hover:text-gray-800 transition-all duration-200 border-none outline-none focus:outline-none'>
+          {collapsed ? <MenuUnfold theme='outline' size={24} fill={iconColors.secondary} strokeWidth={3} /> : <MenuFold theme='outline' size={24} fill={iconColors.secondary} strokeWidth={3} />}
         </button>
       )}
 
-      <ArcoLayout.Content className={'bg-#F9FAFB layout-content'}>
+      <ArcoLayout.Content className={'bg-1 layout-content'}>
         <Outlet></Outlet>
         {multiAgentContextHolder}
         {directorySelectionContextHolder}

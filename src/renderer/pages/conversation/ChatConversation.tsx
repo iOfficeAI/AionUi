@@ -17,8 +17,9 @@ import { emitter } from '../../utils/emitter';
 import AcpChat from './acp/AcpChat';
 import ChatLayout from './ChatLayout';
 import ChatSider from './ChatSider';
-import CodexChat from './codex/CodexChat';
 import GeminiChat from './gemini/GeminiChat';
+import CodexChat from './codex/CodexChat';
+import { iconColors } from '@/renderer/theme/colors';
 
 const AssociatedConversation: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
   const { data } = useSWR(['getAssociateConversation', conversation_id], () => ipcBridge.conversation.getAssociateConversation.invoke({ conversation_id }));
@@ -50,7 +51,7 @@ const AssociatedConversation: React.FC<{ conversation_id: string }> = ({ convers
       trigger={['click']}
     >
       <span>
-        <History theme='filled' size='17' fill='#333' strokeWidth={2} strokeLinejoin='miter' strokeLinecap='square' />
+        <History theme='filled' size='17' fill={iconColors.primary} strokeWidth={2} strokeLinejoin='miter' strokeLinecap='square' />
       </span>
     </Dropdown>
   );
@@ -78,7 +79,7 @@ const AddNewConversation: React.FC<{ conversation: TChatConversation }> = ({ con
             });
         }}
       >
-        <Plus theme='filled' size='17' fill='#333' strokeWidth={2} strokeLinejoin='miter' strokeLinecap='square' />
+        <Plus theme='filled' size='17' fill={iconColors.primary} strokeWidth={2} strokeLinejoin='miter' strokeLinecap='square' />
       </span>
     </Tooltip>
   );
@@ -106,7 +107,7 @@ const ChatConversation: React.FC<{
   const sliderTitle = useMemo(() => {
     return (
       <div className='flex items-center justify-between'>
-        <span className='text-16px font-bold color-#111827'>{t('conversation.workspace.title')}</span>
+        <span className='text-16px font-bold text-t-primary'>{t('conversation.workspace.title')}</span>
         {conversation && (
           <div className='flex items-center gap-4px'>
             <AddNewConversation conversation={conversation}></AddNewConversation>

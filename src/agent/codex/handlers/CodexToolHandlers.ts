@@ -4,10 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IMessageToolGroup, CodexToolCallUpdate } from '@/common/chatLib';
+import type { CodexToolCallUpdate } from '@/common/chatLib';
 import { uuid } from '@/common/utils';
-import { CodexAgentEventType, type FileChange, type McpInvocation, type CodexEventMsg } from '@/common/codex/types';
-import { ToolRegistry, type EventDataMap } from '@/common/codex/utils';
+import type { FileChange, McpInvocation, CodexEventMsg } from '@/common/codex/types';
+import { ToolRegistry } from '@/common/codex/utils';
 import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
 import type { IResponseMessage } from '@/common/ipcBridge';
 

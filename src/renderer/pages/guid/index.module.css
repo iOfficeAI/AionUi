@@ -69,6 +69,6 @@
 
 /* 浅色占位符 */
 .lightPlaceholder :global(textarea::placeholder) {
-  color: #c9cdd4 !important;
+  color: var(--text-disabled) !important;
   opacity: 1 !important;
 }

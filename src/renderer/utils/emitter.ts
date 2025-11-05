@@ -7,15 +7,16 @@
 import EventEmitter from 'eventemitter3';
 import type { DependencyList } from 'react';
 import { useEffect } from 'react';
+import type { FileOrFolderItem } from '@/renderer/types/files';
 
 interface EventTypes {
-  'gemini.selected.file': [string[]];
+  'gemini.selected.file': [Array<string | FileOrFolderItem>];
   'gemini.selected.file.clear': void;
   'gemini.workspace.refresh': void;
-  'acp.selected.file': [string[]];
+  'acp.selected.file': [Array<string | FileOrFolderItem>];
   'acp.selected.file.clear': void;
   'acp.workspace.refresh': void;
-  'codex.selected.file': [string[]];
+  'codex.selected.file': [Array<string | FileOrFolderItem>];
   'codex.selected.file.clear': void;
   'codex.workspace.refresh': void;
   'chat.history.refresh': void;

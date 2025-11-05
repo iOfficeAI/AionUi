@@ -72,7 +72,7 @@ const TurnDiffDisplay: React.FC<{ content: TurnDiffContent }> = ({ content }) =>
       status='success'
       description={
         <div className='max-w-full overflow-hidden'>
-          <div className='text-sm text-gray-600 truncate' title={fullPath}>
+          <div className='text-sm text-t-secondary truncate' title={fullPath}>
             {truncatePath(fullPath)}
           </div>
         </div>

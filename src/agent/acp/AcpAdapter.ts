@@ -110,9 +110,12 @@ export class AcpAdapter {
         break;
       }
 
-      default:
-        console.warn('Unknown session update type:', (update as any).sessionUpdate);
+      default: {
+        // Handle unexpected session update types
+        const unknownUpdate = update as { sessionUpdate?: string };
+        console.warn('Unknown session update type:', unknownUpdate.sessionUpdate);
         break;
+      }
     }
 
     return messages;

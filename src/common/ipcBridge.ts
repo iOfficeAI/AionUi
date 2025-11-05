@@ -56,6 +56,13 @@ export const fs = {
   createTempFile: bridge.buildProvider<string, { fileName: string }>('create-temp-file'), // 创建临时文件
   writeFile: bridge.buildProvider<boolean, { path: string; data: Uint8Array }>('write-file'), // 写入文件
   getFileMetadata: bridge.buildProvider<IFileMetadata, { path: string }>('get-file-metadata'), // 获取文件元数据
+  copyFilesToWorkspace: bridge.buildProvider<
+    // 返回成功与部分失败的详细状态，便于前端提示用户 / Return details for successful and failed copies for better UI feedback
+    IBridgeResponse<{ copiedFiles: string[]; failedFiles?: Array<{ path: string; error: string }> }>,
+    { filePaths: string[]; workspace: string }
+  >('copy-files-to-workspace'), // 复制文件到工作空间 (Copy files into workspace)
+  removeEntry: bridge.buildProvider<IBridgeResponse, { path: string }>('remove-entry'), // 删除文件或文件夹
+  renameEntry: bridge.buildProvider<IBridgeResponse<{ newPath: string }>, { path: string; newName: string }>('rename-entry'), // 重命名文件或文件夹
 };
 
 export const googleAuth = {
@@ -153,7 +160,7 @@ export interface IFileMetadata {
 
 export interface IResponseMessage {
   type: string;
-  data: any;
+  data: unknown;
   msg_id: string;
   conversation_id: string;
 }

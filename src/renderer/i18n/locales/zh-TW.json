@@ -132,7 +132,11 @@
     "version": "版本號",
     "website": "官網",
     "workspace": "工作空間",
-    "select": "選擇"
+    "select": "選擇",
+    "expandMore": "展開更多",
+    "collapse": "收起",
+    "copy": "複製",
+    "download": "下載"
   },
   "login": {
     "pageTitle": "AionUi - 登入",
@@ -188,14 +192,46 @@
       "yesterday": "昨天"
     },
     "workspace": {
+      "title": "工作空間",
+      "pasteConfirm_title": "貼上檔案",
+      "pasteConfirm_message": "確定要將 '{{name}}' 貼上到選中的資料夾 ({{target}}) 嗎？",
+      "pasteConfirm_paste": "貼上",
+      "pasteConfirm_cancel": "取消",
+      "pasteConfirm_noAsk": "不再提示",
+      "pasteConfirm_fileName": "檔案名稱",
+      "pasteConfirm_targetFolder": "目標資料夾",
+      "pasteConfirm_multipleFiles": "{{count}} 個檔案",
       "empty": "空的",
       "emptyDescription": "上傳檔案或開啟資料夾後，檔案將顯示在這裡",
       "searchPlaceholder": "搜尋檔案...",
       "createNewConversation": "當前空間創建新對話",
-      "search.empty": "搜索結果為空"
+      "search.empty": "搜索結果為空",
+      "addFile": "新增檔案",
+      "refresh": "重新整理",
+      "contextMenu": {
+        "open": "開啟",
+        "openLocation": "開啟檔案所在資料夾",
+        "deleteTitle": "刪除檔案",
+        "deleteConfirm": "此操作會刪除系統所在檔案，確認刪除嗎？",
+        "deleteSuccess": "刪除成功",
+        "deleteFailed": "刪除失敗",
+        "rename": "重新命名",
+        "renameTitle": "重新命名",
+        "renamePlaceholder": "輸入新的名稱",
+        "renameSuccess": "重新命名成功",
+        "renameFailed": "重新命名失敗",
+        "renameEmpty": "名稱不能為空",
+        "renameTimeout": "重新命名請求逾時，請重試",
+        "addToChat": "加入聊天",
+        "addedToChat": "已加入聊天",
+        "openFailed": "開啟失敗",
+        "revealFailed": "無法開啟所在資料夾"
+      }
     },
     "chat": {
-      "noModelSelected": "當前會話未選擇模型，無法發送訊息"
+      "noModelSelected": "當前會話未選擇模型，無法發送訊息",
+      "sendMessageTo": "發送訊息到 {{model}}",
+      "processing": "正在處理中……"
     }
   },
   "settings": {
@@ -273,13 +309,24 @@
     "mcpDisconnected": "已中斷",
     "mcpError": "錯誤",
     "mcpTesting": "測試中",
-    "mcpOneKeyImport": "從 CLI 匯入",
+    "mcpOneKeyImport": "一鍵匯入",
     "mcpImportFromCLI": "掃描MCP工具",
     "mcpSelectCLI": "選擇 CLI",
     "mcpNoServersFound": "未找到 MCP 伺服器",
     "mcpImportSuccess": "匯入成功",
     "mcpImportFailed": "匯入失敗",
     "mcpJsonInvalid": "無效的 JSON 格式",
+    "mcpImportDescription": "AionUi會自動獲取的您在CLI Agent中已安裝的MCP，並一鍵匯入",
+    "mcpStepSelectAgent": "選擇Agent",
+    "mcpStepFetchTools": "獲取mcp",
+    "mcpStepImportSuccess": "匯入成功",
+    "mcpLoadingTools": "讀取CLI工具列表中...",
+    "mcpToolsLoaded": "讀取到{{count}}個工具",
+    "mcpImportedSuccess": "已匯入{{count}}個工具",
+    "mcpImportButton": "匯入",
+    "mcpPrevStep": "上一步",
+    "mcpNextStep": "下一步",
+    "mcpConfirmButton": "確定",
     "mcpSyncStarted": "正在將 MCP 配置新增到 {{count}} 個智慧體...",
     "mcpRemoveStarted": "正在從 {{count}} 個智慧體中移除 MCP 配置...",
     "mcpSyncPartialFailed": "MCP 配置同步部分失敗：{{errors}}",
@@ -299,7 +346,26 @@
     "canceledExecution": "已取消執行",
     "openLinkFailed": "無法開啟連結",
     "imageGenerationModelDetected": "檢測到圖片模型，已自動開啟圖片工具，設置為默認模型：{{platform}}:{{model}}",
-    "auto_handling_permissions": "自動處理權限請求：{{request}}"
+    "auto_handling_permissions": "自動處理權限請求：{{request}}",
+    "copy": "複製",
+    "copySuccess": "複製成功",
+    "copyFailed": "複製失敗",
+    "copiedToClipboard": "已複製到剪貼簿",
+    "downloadSuccess": "下載成功",
+    "downloadFailed": "下載失敗",
+    "imageLoadFailed": "圖片載入失敗",
+    "scrollToBottom": "滾動到底部",
+    "confirmation": {
+      "applyChange": "應用此更改？",
+      "allowExecution": "允許執行？",
+      "proceed": "您想要繼續嗎？",
+      "allowMCPTool": "允許執行來自伺服器 \"{{serverName}}\" 的 MCP 工具 \"{{toolName}}\"？",
+      "yesAllowOnce": "是，允許一次",
+      "yesAllowAlways": "是，始終允許",
+      "yesAlwaysAllowTool": "是，始終允許來自伺服器 \"{{serverName}}\" 的工具 \"{{toolName}}\"",
+      "yesAlwaysAllowServer": "是，始終允許來自伺服器 \"{{serverName}}\" 的所有工具",
+      "no": "否 (esc)"
+    }
   },
   "mcp": {
     "integration": {
