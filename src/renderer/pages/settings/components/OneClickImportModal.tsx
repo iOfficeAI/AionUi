@@ -5,8 +5,8 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Check } from '@icon-park/react';
 import { iconColors } from '@/renderer/theme/colors';
-import StepsWrapper from '@/renderer/components/StepsWrapper';
-import ModalWrapper from '@/renderer/components/ModalWrapper';
+import StepsWrapper from '@/renderer/components/base/StepsWrapper';
+import ModalWrapper from '@/renderer/components/base/ModalWrapper';
 
 interface OneClickImportModalProps {
   visible: boolean;
