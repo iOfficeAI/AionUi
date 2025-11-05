@@ -19,16 +19,8 @@ import { loadExtensions } from './cli/extension';
 import type { Settings } from './cli/settings';
 import { loadSettings } from './cli/settings';
 import { ConversationToolConfig } from './cli/tools/conversation-tool-config';
-import { mapToDisplay } from './cli/useReactToolScheduler';
+import { mapToDisplay, type TrackedToolCall } from './cli/useReactToolScheduler';
 import { getPromptCount, handleCompletedTools, processGeminiStreamEvents, startNewPrompt } from './utils';
-
-/**
- * Extended ToolCall interface with response submission tracking
- * 扩展的 ToolCall 接口，包含响应提交跟踪
- */
-interface TrackedToolCall extends ToolCall {
-  responseSubmittedToGemini?: boolean;
-}
 
 // Global registry for current agent instance (used by flashFallbackHandler)
 let currentGeminiAgent: GeminiAgent | null = null;
@@ -304,12 +296,12 @@ export class GeminiAgent {
     });
   }
 
-  private handleMessage(stream: AsyncGenerator<ServerGeminiStreamEvent, any, any>, msg_id: string, abortController: AbortController): Promise<any> {
+  private handleMessage(stream: AsyncGenerator<ServerGeminiStreamEvent, void, void>, msg_id: string, abortController: AbortController): Promise<void> {
     const toolCallRequests: ToolCallRequestInfo[] = [];
 
     return processGeminiStreamEvents(stream, this.config, (data) => {
       if (data.type === 'tool_call_request') {
-        toolCallRequests.push(data.data);
+        toolCallRequests.push(data.data as ToolCallRequestInfo);
         return;
       }
       this.onStreamEvent({

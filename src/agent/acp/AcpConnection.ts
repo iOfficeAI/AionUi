@@ -478,19 +478,19 @@ export class AcpConnection {
       },
     };
 
-    const response = await this.sendRequest('initialize', initializeParams);
+    const response = await this.sendRequest<AcpResponse>('initialize', initializeParams);
     this.isInitialized = true;
     this.initializeResponse = response;
     return response;
   }
 
   async authenticate(methodId?: string): Promise<AcpResponse> {
-    const result = await this.sendRequest('authenticate', methodId ? { methodId } : undefined);
+    const result = await this.sendRequest<AcpResponse>('authenticate', methodId ? { methodId } : undefined);
     return result;
   }
 
   async newSession(cwd: string = process.cwd()): Promise<AcpResponse> {
-    const response = await this.sendRequest('session/new', {
+    const response = await this.sendRequest<AcpResponse & { sessionId?: string }>('session/new', {
       cwd,
       mcpServers: [] as unknown[],
     });

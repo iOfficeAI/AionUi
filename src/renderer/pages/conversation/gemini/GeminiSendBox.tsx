@@ -39,7 +39,7 @@ const useGeminiMessage = (conversation_id: string) => {
       // console.log('responseStream.message', message);
       switch (message.type) {
         case 'thought':
-          setThought(message.data);
+          setThought(message.data as ThoughtData);
           break;
         case 'start':
           setRunning(true);

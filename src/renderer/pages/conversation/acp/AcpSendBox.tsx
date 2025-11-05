@@ -13,7 +13,6 @@ import { allSupportedExts } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { Button, Tag } from '@arco-design/web-react';
 import { Plus } from '@icon-park/react';
-import classNames from 'classnames';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { iconColors } from '@/renderer/theme/colors';
@@ -44,7 +43,7 @@ const useAcpMessage = (conversation_id: string) => {
       const transformedMessage = transformMessage(message);
       switch (message.type) {
         case 'thought':
-          setThought(message.data);
+          setThought(message.data as ThoughtData);
           break;
         case 'start':
           setRunning(true);
@@ -59,17 +58,22 @@ const useAcpMessage = (conversation_id: string) => {
           setThought({ subject: '', description: '' });
           addOrUpdateMessage(transformedMessage);
           break;
-        case 'agent_status':
+        case 'agent_status': {
           // Update ACP/Agent status
-          if (message.data?.status) {
-            setAcpStatus(message.data.status);
+          const agentData = message.data as {
+            status?: 'connecting' | 'connected' | 'authenticated' | 'session_active' | 'disconnected' | 'error';
+            backend?: string;
+          };
+          if (agentData?.status) {
+            setAcpStatus(agentData.status);
             // Reset running state when authentication is complete
-            if (['authenticated', 'session_active'].includes(message.data.status)) {
+            if (['authenticated', 'session_active'].includes(agentData.status)) {
               setRunning(false);
             }
           }
           addOrUpdateMessage(transformedMessage);
           break;
+        }
         case 'user_content':
           addOrUpdateMessage(transformedMessage);
           break;
