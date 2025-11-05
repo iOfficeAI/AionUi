@@ -56,7 +56,7 @@ jobs:
     name: Build ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
     needs: code-quality
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
+    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
     env:
       ENABLE_MAC_SIGNING: ${{ (github.ref == 'refs/heads/main' || github.event.inputs.enable_mac_signing == 'true') && 'true' || 'false' }}
 
@@ -446,7 +446,7 @@ jobs:
     name: Create Tag from Branch
     runs-on: ubuntu-latest
     needs: [ build ]
-    if: success() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
+    if: github.event_name == 'push' && success() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
     outputs:
       tag_name: ${{ steps.create_tag.outputs.tag_name }}
       is_dev: ${{ steps.create_tag.outputs.is_dev }}
