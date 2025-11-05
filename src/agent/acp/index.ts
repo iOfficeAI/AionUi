@@ -13,6 +13,36 @@ import type { IResponseMessage } from '@/common/ipcBridge';
 import { uuid } from '@/common/utils';
 import { AcpConnection } from './AcpConnection';
 
+/**
+ * Initialize response result interface
+ * ACP 初始化响应结果接口
+ */
+interface InitializeResult {
+  authMethods?: Array<{
+    type: string;
+    [key: string]: unknown;
+  }>;
+  [key: string]: unknown;
+}
+
+/**
+ * Helper function to normalize tool call status
+ * 辅助函数：规范化工具调用状态
+ *
+ * Note: This preserves the original behavior of (status as any) || 'pending'
+ * Only converts falsy values to 'pending', keeps all truthy values unchanged
+ * 注意：保持原始行为，只将 falsy 值转换为 'pending'，保留所有 truthy 值
+ */
+function normalizeToolCallStatus(status: string | undefined): 'pending' | 'in_progress' | 'completed' | 'failed' {
+  // Matches original: (status as any) || 'pending'
+  // If falsy (undefined, null, ''), return 'pending'
+  if (!status) {
+    return 'pending';
+  }
+  // Preserve original value for backward compatibility
+  return status as 'pending' | 'in_progress' | 'completed' | 'failed';
+}
+
 export interface AcpAgentConfig {
   id: string;
   backend: AcpBackend;
@@ -331,7 +361,7 @@ export class AcpAgent {
         update: {
           sessionUpdate: 'tool_call' as const,
           toolCallId: data.toolCall.toolCallId,
-          status: (data.toolCall.status as any) || 'pending',
+          status: normalizeToolCallStatus(data.toolCall.status),
           title: data.toolCall.title || 'Tool Call',
           kind: mapKindToValidType(data.toolCall.kind),
           content: data.toolCall.content || [],
@@ -397,10 +427,11 @@ export class AcpAgent {
 
   private emitMessage(message: TMessage): void {
     // Create response message based on the message type, following GeminiAgentTask pattern
-    const responseMessage: any = {
+    const responseMessage: IResponseMessage = {
+      type: '', // Will be set in switch statement
+      data: null, // Will be set in switch statement
       conversation_id: this.id,
-      id: message.id,
-      msg_id: message.msg_id, // 使用消息自己的 msg_id
+      msg_id: message.msg_id || message.id, // 使用消息自己的 msg_id
     };
 
     // Map TMessage types to backend response types
@@ -444,12 +475,12 @@ export class AcpAgent {
     this.onStreamEvent(responseMessage);
   }
 
-  postMessagePromise(action: string, data: any): Promise<any> {
+  postMessagePromise(action: string, data: unknown): Promise<AcpResult | void> {
     switch (action) {
       case 'send.message':
-        return this.sendMessage(data) as Promise<any>;
+        return this.sendMessage(data as { content: string; files?: string[]; msg_id?: string });
       case 'stop.stream':
-        return this.stop() as Promise<any>;
+        return this.stop();
       default:
         return Promise.reject(new Error(`Unknown action: ${action}`));
     }
@@ -531,7 +562,8 @@ export class AcpAgent {
   private async performAuthentication(): Promise<void> {
     try {
       const initResponse = this.connection.getInitializeResponse();
-      if (!initResponse || !(initResponse as any)?.authMethods?.length) {
+      const result = initResponse?.result as InitializeResult | undefined;
+      if (!initResponse || !result?.authMethods?.length) {
         // No auth methods available - CLI should handle authentication itself
         this.emitStatusMessage('authenticated');
         return;

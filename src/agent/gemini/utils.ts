@@ -14,7 +14,7 @@ enum StreamProcessingStatus {
   Error,
 }
 
-export const processGeminiStreamEvents = async (stream: AsyncIterable<ServerGeminiStreamEvent>, config: Config, onStreamEvent: (event: { type: ServerGeminiStreamEvent['type']; data: any }) => void): Promise<StreamProcessingStatus> => {
+export const processGeminiStreamEvents = async (stream: AsyncIterable<ServerGeminiStreamEvent>, config: Config, onStreamEvent: (event: { type: ServerGeminiStreamEvent['type']; data: unknown }) => void): Promise<StreamProcessingStatus> => {
   for await (const event of stream) {
     switch (event.type) {
       case ServerGeminiEventType.Thought:
@@ -48,7 +48,7 @@ export const processGeminiStreamEvents = async (stream: AsyncIterable<ServerGemi
         break;
       default: {
         // enforces exhaustive switch-case
-        const unreachable: any = event;
+        const unreachable: never = event;
         return unreachable;
       }
     }
@@ -56,7 +56,7 @@ export const processGeminiStreamEvents = async (stream: AsyncIterable<ServerGemi
   return StreamProcessingStatus.Completed;
 };
 
-export const processGeminiFunctionCalls = async (config: Config, functionCalls: ToolCallRequestInfo[], onProgress: (event: { type: 'tool_call_request' | 'tool_call_response' | 'tool_call_error' | 'tool_call_finish'; data: any }) => Promise<any>) => {
+export const processGeminiFunctionCalls = async (config: Config, functionCalls: ToolCallRequestInfo[], onProgress: (event: { type: 'tool_call_request' | 'tool_call_response' | 'tool_call_error' | 'tool_call_finish'; data: unknown }) => Promise<void>) => {
   const toolResponseParts = [];
 
   for (const fc of functionCalls) {
@@ -109,7 +109,7 @@ export const processGeminiFunctionCalls = async (config: Config, functionCalls: 
   });
 };
 
-export const handleCompletedTools = (completedToolCallsFromScheduler: CompletedToolCall[], geminiClient: any, performMemoryRefresh: () => void) => {
+export const handleCompletedTools = (completedToolCallsFromScheduler: CompletedToolCall[], geminiClient: GeminiClient | null, performMemoryRefresh: () => void) => {
   const completedAndReadyToSubmitTools = completedToolCallsFromScheduler.filter((tc) => {
     const isTerminalState = tc.status === 'success' || tc.status === 'error' || tc.status === 'cancelled';
     if (isTerminalState) {
@@ -174,8 +174,8 @@ export const handleCompletedTools = (completedToolCallsFromScheduler: CompletedT
   // );
   // markToolsAsSubmitted(callIdsToMarkAsSubmitted);
 
-  function mergePartListUnions(list: any[]) {
-    const resultParts = [];
+  function mergePartListUnions(list: unknown[]): unknown[] {
+    const resultParts: unknown[] = [];
     for (const item of list) {
       if (Array.isArray(item)) {
         resultParts.push(...item);

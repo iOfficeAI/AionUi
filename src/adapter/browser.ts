@@ -6,7 +6,20 @@
 
 import { bridge, logger } from '@office-ai/platform';
 
-const win: any = window;
+// 扩展 Window 接口以支持自定义属性 / Extend Window interface for custom properties
+interface ElectronAPI {
+  emit: (name: string, data: unknown) => void;
+  on: (callback: (event: { value: string }) => void) => void;
+}
+
+interface CustomWindow extends Window {
+  electronAPI?: ElectronAPI;
+  __bridgeEmitter?: { emit: (name: string, data: unknown) => void };
+  __emitBridgeCallback?: (name: string, data: unknown) => void;
+  __websocketReconnect?: () => void;
+}
+
+const win = window as CustomWindow;
 
 /**
  * 适配electron的API到浏览器中,建立renderer和main的通信桥梁, 与preload.ts中的注入对应
@@ -18,7 +31,7 @@ if (win.electronAPI) {
       win.electronAPI.emit(name, data);
     },
     on(emitter) {
-      win.electronAPI.on((event: any) => {
+      win.electronAPI?.on((event) => {
         try {
           const { value } = event;
           const { name, data } = JSON.parse(value);
@@ -163,11 +176,11 @@ if (win.electronAPI) {
     },
     on(emitter) {
       emitterRef = emitter;
-      (window as any).__bridgeEmitter = emitter;
+      win.__bridgeEmitter = emitter;
 
       // Expose callback emitter for bridge provider pattern
       // Used by components to send responses back through WebSocket
-      (window as any).__emitBridgeCallback = (name: string, data: unknown) => {
+      win.__emitBridgeCallback = (name: string, data: unknown) => {
         emitter.emit(name, data);
       };
 
@@ -178,7 +191,7 @@ if (win.electronAPI) {
   connect();
 
   // Expose reconnection control for login flow
-  (window as any).__websocketReconnect = () => {
+  win.__websocketReconnect = () => {
     shouldReconnect = true;
     reconnectDelay = 500;
     connect();
