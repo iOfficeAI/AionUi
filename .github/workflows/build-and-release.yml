@@ -178,6 +178,7 @@ jobs:
       - name: Rebuild native modules for Electron
         if: startsWith(matrix.platform, 'windows')
         shell: pwsh
+        continue-on-error: true
         run: |
           $electronVersion = "${{ steps.electron-version.outputs.version }}"
           $arch = "${{ matrix.arch }}"
