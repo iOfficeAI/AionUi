@@ -217,7 +217,7 @@ export class CodexSessionManager {
       msg_id: uuid(),
       data: {
         backend: 'codex',
-        status: eventType as any, // Session event type as status
+        status: eventType, // Session event type as status
         eventType,
         sessionId: this.sessionId,
         timestamp: Date.now(),

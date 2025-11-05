@@ -1,5 +1,5 @@
 import { ConfigStorage, type IConfigStorageRefer } from '@/common/storage';
-import { Collapse, Form, Select, Switch, Tooltip } from '@arco-design/web-react';
+import { Collapse, Form, Select, Switch, Tooltip, Message } from '@arco-design/web-react';
 import { Help } from '@icon-park/react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -9,6 +9,7 @@ import SettingContainer from './components/SettingContainer';
 
 const ToolsSettings: React.FC = () => {
   const { t } = useTranslation();
+  const [mcpMessage, mcpMessageContext] = Message.useMessage({ maxCount: 10 });
   const [imageGenerationModel, setImageGenerationModel] = useState<IConfigStorageRefer['tools.imageGenerationModel'] | undefined>();
   const { modelListWithImage: data } = useConfigModelListWithImage();
   const imageGenerationModelList = useMemo(() => {
@@ -78,8 +79,9 @@ const ToolsSettings: React.FC = () => {
 
   return (
     <SettingContainer title={t('settings.tools')} bodyContainer>
+      {mcpMessageContext}
       <Collapse defaultActiveKey={['image-generation', 'mcp-servers']}>
-        <McpManagement />
+        <McpManagement message={mcpMessage} />
         <Collapse.Item
           className={' [&_div.arco-collapse-item-header-title]:flex-1'}
           header={
@@ -120,7 +122,7 @@ const ToolsSettings: React.FC = () => {
                     })}
                   </Select>
                 ) : (
-                  <div className='text-gray-400 flex items-center'>
+                  <div className='text-t-secondary flex items-center'>
                     {t('settings.noAvailable')}
                     <Tooltip
                       content={

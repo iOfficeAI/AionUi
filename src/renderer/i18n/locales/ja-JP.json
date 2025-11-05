@@ -157,7 +157,11 @@
     "version": "バージョン",
     "website": "公式サイト",
     "workspace": "ワークスペース",
-    "select": "選択"
+    "select": "選択",
+    "expandMore": "さらに表示",
+    "collapse": "折りたたむ",
+    "copy": "コピー",
+    "download": "ダウンロード"
   },
   "login": {
     "pageTitle": "AionUi - ログイン",
@@ -213,14 +217,46 @@
       "yesterday": "昨日"
     },
     "workspace": {
+      "title": "ワークスペース",
+      "pasteConfirm_title": "ファイルを貼り付け",
+      "pasteConfirm_message": "'{{name}}' を選択したフォルダー ({{target}}) に貼り付けてもよろしいですか？",
+      "pasteConfirm_paste": "貼り付け",
+      "pasteConfirm_cancel": "キャンセル",
+      "pasteConfirm_noAsk": "次回から表示しない",
+      "pasteConfirm_fileName": "ファイル名",
+      "pasteConfirm_targetFolder": "ターゲットフォルダー",
+      "pasteConfirm_multipleFiles": "{{count}} 個のファイル",
       "empty": "ワークスペースが空です",
       "emptyDescription": "ファイルをアップロードするか、またはフォルダーを開くと、ここにファイルが表示されます",
       "searchPlaceholder": "ファイルを検索...",
       "createNewConversation": "現在のワークスペースで新しいチャットを作成",
-      "search.empty": "検索結果は空です"
+      "search.empty": "検索結果は空です",
+      "addFile": "ファイルを追加",
+      "refresh": "更新",
+      "contextMenu": {
+        "open": "開く",
+        "openLocation": "ファイルの場所を開く",
+        "deleteTitle": "ファイルを削除",
+        "deleteConfirm": "この操作はシステム上のファイルを削除します。削除しますか？",
+        "deleteSuccess": "削除しました",
+        "deleteFailed": "削除に失敗しました",
+        "rename": "名前を変更",
+        "renameTitle": "名前を変更",
+        "renamePlaceholder": "新しい名前を入力してください",
+        "renameSuccess": "名前を変更しました",
+        "renameFailed": "名前の変更に失敗しました",
+        "renameEmpty": "名前を入力してください",
+        "renameTimeout": "名前の変更リクエストがタイムアウトしました。再試行してください",
+        "addToChat": "チャットに追加",
+        "addedToChat": "チャットに追加しました",
+        "openFailed": "開けませんでした",
+        "revealFailed": "フォルダーを開けませんでした"
+      }
     },
     "chat": {
-      "noModelSelected": "現在のセッションでモデルが選択されていないため、メッセージを送信できません"
+      "noModelSelected": "現在のセッションでモデルが選択されていないため、メッセージを送信できません",
+      "sendMessageTo": "{{model}}にメッセージを送信",
+      "processing": "処理中……"
     }
   },
   "settings": {
@@ -298,13 +334,24 @@
     "mcpDisconnected": "切断済み",
     "mcpError": "エラー",
     "mcpTesting": "テスト中",
-    "mcpOneKeyImport": "CLI からインポート",
+    "mcpOneKeyImport": "ワンクリックインポート",
     "mcpImportFromCLI": "MCPツールをスキャン",
     "mcpSelectCLI": "CLI を選択",
     "mcpNoServersFound": "MCP サーバーが見つかりません",
     "mcpImportSuccess": "インポート成功",
     "mcpImportFailed": "インポート失敗",
     "mcpJsonInvalid": "無効な JSON 形式",
+    "mcpImportDescription": "AionUiはCLI Agentにインストールされている MCP を自動的に取得し、ワンクリックでインポートします",
+    "mcpStepSelectAgent": "エージェントを選択",
+    "mcpStepFetchTools": "mcpを取得",
+    "mcpStepImportSuccess": "インポート成功",
+    "mcpLoadingTools": "CLIツールリストを読み込み中...",
+    "mcpToolsLoaded": "{{count}}個のツールを読み込みました",
+    "mcpImportedSuccess": "{{count}}個のツールをインポートしました",
+    "mcpImportButton": "インポート",
+    "mcpPrevStep": "前へ",
+    "mcpNextStep": "次へ",
+    "mcpConfirmButton": "確定",
     "mcpSyncStarted": "{{count}} 個のエージェントに MCP 設定を追加しています...",
     "mcpRemoveStarted": "{{count}} 個のエージェントから MCP 設定を削除しています...",
     "mcpSyncPartialFailed": "MCP 設定の同期が部分的に失敗しました：{{errors}}",
@@ -324,7 +371,26 @@
     "canceledExecution": "実行がキャンセルされました",
     "openLinkFailed": "リンクを開けませんでした",
     "imageGenerationModelDetected": "画像モデルが検出されました。画像ツールが自動的に有効になりました。デフォルトモデル：{{platform}}:{{model}}",
-    "auto_handling_permissions": "自動ハンドリング許可要求：{{request}}"
+    "auto_handling_permissions": "自動ハンドリング許可要求：{{request}}",
+    "copy": "コピー",
+    "copySuccess": "コピーしました",
+    "copyFailed": "コピーに失敗しました",
+    "copiedToClipboard": "クリップボードにコピーしました",
+    "downloadSuccess": "ダウンロードしました",
+    "downloadFailed": "ダウンロードに失敗しました",
+    "imageLoadFailed": "画像の読み込みに失敗しました",
+    "scrollToBottom": "下にスクロール",
+    "confirmation": {
+      "applyChange": "この変更を適用しますか？",
+      "allowExecution": "実行を許可しますか？",
+      "proceed": "続行しますか？",
+      "allowMCPTool": "サーバー \"{{serverName}}\" の MCP ツール \"{{toolName}}\" の実行を許可しますか？",
+      "yesAllowOnce": "はい、一度だけ許可",
+      "yesAllowAlways": "はい、常に許可",
+      "yesAlwaysAllowTool": "はい、サーバー \"{{serverName}}\" のツール \"{{toolName}}\" を常に許可",
+      "yesAlwaysAllowServer": "はい、サーバー \"{{serverName}}\" のすべてのツールを常に許可",
+      "no": "いいえ (esc)"
+    }
   },
   "mcp": {
     "integration": {

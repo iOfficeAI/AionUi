@@ -18,8 +18,16 @@ export const usePasteService = ({ supportedExts, onFilesAdded, onTextPaste }: Us
   // 统一的粘贴事件处理
   const handlePaste = useCallback(
     async (event: React.ClipboardEvent) => {
+      // 检查是否有文件，如果有文件立即阻止默认行为
+      const files = event.clipboardData?.files;
+      if (files && files.length > 0) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+
       const handled = await PasteService.handlePaste(event, supportedExts, onFilesAdded || (() => {}), onTextPaste);
-      if (handled) {
+      if (handled && (!files || files.length === 0)) {
+        // 如果不是文件粘贴但被处理了（比如纯文本粘贴），也阻止默认行为
         event.preventDefault();
         event.stopPropagation();
       }

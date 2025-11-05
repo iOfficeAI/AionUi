@@ -11,6 +11,7 @@ import IflowLogo from '@/renderer/assets/logos/iflow.svg';
 import QwenLogo from '@/renderer/assets/logos/qwen.svg';
 import { ACP_BACKENDS_ALL } from '@/types/acpTypes';
 import classNames from 'classnames';
+import { iconColors } from '@/renderer/theme/colors';
 
 const addEventListener = <K extends keyof DocumentEventMap>(key: K, handler: (e: DocumentEventMap[K]) => void): (() => void) => {
   document.addEventListener(key, handler);
@@ -28,11 +29,11 @@ const useSiderWidthWithDrag = (defaultWidth: number) => {
 
     const initDragStyle = () => {
       const originalUserSelect = document.body.style.userSelect;
-      target.classList.add('bg-#86909C/40');
+      target.classList.add('bg-6/40');
       document.body.style.userSelect = 'none';
       document.body.style.cursor = 'col-resize';
       return () => {
-        target.classList.remove('bg-#86909C/40');
+        target.classList.remove('bg-6/40');
         document.body.style.userSelect = originalUserSelect;
         document.body.style.cursor = '';
         target.style.transform = '';
@@ -57,8 +58,11 @@ const useSiderWidthWithDrag = (defaultWidth: number) => {
 
   const dragContext = (
     <div
-      className={`absolute left-0 top-0 bottom-0 w-6px cursor-col-resize  z-10 hover:bg-#86909C/20`}
+      className={`absolute left-0 top-0 bottom-0 w-6px cursor-col-resize  z-10 hover:bg-6/20`}
       onMouseDown={handleDragStart}
+      style={{
+        borderLeft: '1px solid var(--bg-3)',
+      }}
       onDoubleClick={() => {
         setSiderWidth(defaultWidth);
       }}
@@ -96,23 +100,25 @@ const ChatLayout: React.FC<{
 
   return (
     <ArcoLayout className={'size-full'}>
-      <ArcoLayout.Content>
-        <ArcoLayout.Header className={classNames('flex items-center justify-between p-16px gap-16px  !bg-#F7F8FA', backend ? 'h-96px' : 'h-56px')}>
+      <ArcoLayout.Content className='flex flex-col flex-1'>
+        <ArcoLayout.Header className={classNames('h-52px flex items-center justify-between p-16px gap-16px  !bg-1')}>
           <FlexFullContainer className='h-full'>
-            <span className=' ml-16px font-bold text-16px inline-block overflow-hidden text-ellipsis whitespace-nowrap w-full max-w-60%'>{props.title}</span>
+            <span className='ml-16px font-bold text-16px text-t-primary inline-block overflow-hidden text-ellipsis whitespace-nowrap w-full max-w-60%'>{props.title}</span>
+          </FlexFullContainer>
+          <div className='flex items-center gap-16px'>
             {backend && (
-              <div className='ml-16px flex items-center gap-2 bg-[#f2f3f5] w-fit rounded-full px-[8px] py-[2px]'>
+              <div className='ml-16px flex items-center gap-2 bg-2 w-fit rounded-full px-[8px] py-[2px]'>
                 <img src={backend === 'claude' ? ClaudeLogo : backend === 'gemini' ? GeminiLogo : backend === 'qwen' ? QwenLogo : backend === 'iflow' ? IflowLogo : backend === 'codex' ? CodexLogo : ''} alt={`${backend} logo`} width={16} height={16} style={{ objectFit: 'contain' }} />
-                <span className='font-medium'>{ACP_BACKENDS_ALL[backend as keyof typeof ACP_BACKENDS_ALL]?.name || backend}</span>
+                <span className='font-medium text-t-primary'>{ACP_BACKENDS_ALL[backend as keyof typeof ACP_BACKENDS_ALL]?.name || backend}</span>
               </div>
             )}
-          </FlexFullContainer>
-          <div className='flex items-center gap-16px'>{rightSiderCollapsed ? <ExpandRight onClick={() => setRightSiderCollapsed(false)} className='cursor-pointer flex' theme='outline' size='24' fill='#86909C' strokeWidth={3} /> : <ExpandLeft onClick={() => setRightSiderCollapsed(true)} className='cursor-pointer flex' theme='outline' size='24' fill='#86909C' strokeWidth={3} />}</div>
+            {rightSiderCollapsed ? <ExpandRight onClick={() => setRightSiderCollapsed(false)} className='cursor-pointer flex' theme='outline' size='24' fill={iconColors.secondary} strokeWidth={3} /> : <ExpandLeft onClick={() => setRightSiderCollapsed(true)} className='cursor-pointer flex' theme='outline' size='24' fill={iconColors.secondary} strokeWidth={3} />}
+          </div>
         </ArcoLayout.Header>
-        <ArcoLayout.Content className={classNames('h-[calc(100%-106px)] bg-#F9FAFB', backend ? 'h-[calc(100%-106px)]' : 'h-[calc(100%-66px)]')}>{props.children}</ArcoLayout.Content>
+        <ArcoLayout.Content className='flex flex-col flex-1 bg-1 overflow-hidden'>{props.children}</ArcoLayout.Content>
       </ArcoLayout.Content>
 
-      <ArcoLayout.Sider width={siderWidth} collapsedWidth={0} collapsed={rightSiderCollapsed} className={'!bg-#F7F8FA relative'}>
+      <ArcoLayout.Sider width={siderWidth} collapsedWidth={0} collapsed={rightSiderCollapsed} className={'!bg-1 relative'}>
         {/* Drag handle */}
         {/* <div className={`absolute left-0 top-0 bottom-0 w-6px cursor-col-resize transition-all duration-200 z-10 ${isDragging ? 'bg-#86909C/40' : 'hover:bg-#86909C/20'}`} onMouseDown={handleDragStart} onDoubleClick={handleDoubleClick} /> */}
         {dragContext}
@@ -120,7 +126,7 @@ const ChatLayout: React.FC<{
           <div className='w-full'>{props.siderTitle}</div>
           {/* <ExpandLeft theme='outline' size='24' fill='#86909C' className='cursor-pointer' strokeWidth={3} onClick={() => setRightSiderCollapsed(true)} /> */}
         </ArcoLayout.Header>
-        <ArcoLayout.Content className={'h-[calc(100%-106px)] bg-#F9FAFB'}>{props.sider}</ArcoLayout.Content>
+        <ArcoLayout.Content className={'h-[calc(100%-106px)] bg-1'}>{props.sider}</ArcoLayout.Content>
       </ArcoLayout.Sider>
     </ArcoLayout>
   );

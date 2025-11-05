@@ -12,7 +12,7 @@ import { promises as fs } from 'fs';
 
 interface PendingRequest<T = unknown> {
   resolve: (value: T) => void;
-  reject: (error: any) => void;
+  reject: (error: Error) => void;
   timeoutId?: NodeJS.Timeout;
   method: string;
   isPaused: boolean;
@@ -22,7 +22,7 @@ interface PendingRequest<T = unknown> {
 
 export class AcpConnection {
   private child: ChildProcess | null = null;
-  private pendingRequests = new Map<number, PendingRequest<any>>();
+  private pendingRequests = new Map<number, PendingRequest<unknown>>();
   private nextRequestId = 0;
   private sessionId: string | null = null;
   private isInitialized = false;
@@ -195,7 +195,7 @@ export class AcpConnection {
     ]);
   }
 
-  private sendRequest<T = any>(method: string, params?: Record<string, any>): Promise<T> {
+  private sendRequest<T = unknown>(method: string, params?: Record<string, unknown>): Promise<T> {
     const id = this.nextRequestId++;
     const message: AcpRequest = {
       jsonrpc: JSONRPC_VERSION,
@@ -222,14 +222,14 @@ export class AcpConnection {
 
       const initialTimeout = createTimeoutHandler();
 
-      const pendingRequest: PendingRequest = {
-        resolve: (value: any) => {
+      const pendingRequest: PendingRequest<T> = {
+        resolve: (value: T) => {
           if (pendingRequest.timeoutId) {
             clearTimeout(pendingRequest.timeoutId);
           }
           resolve(value);
         },
-        reject: (error: any) => {
+        reject: (error: Error) => {
           if (pendingRequest.timeoutId) {
             clearTimeout(pendingRequest.timeoutId);
           }
@@ -478,21 +478,21 @@ export class AcpConnection {
       },
     };
 
-    const response = await this.sendRequest('initialize', initializeParams);
+    const response = await this.sendRequest<AcpResponse>('initialize', initializeParams);
     this.isInitialized = true;
     this.initializeResponse = response;
     return response;
   }
 
   async authenticate(methodId?: string): Promise<AcpResponse> {
-    const result = await this.sendRequest('authenticate', methodId ? { methodId } : undefined);
+    const result = await this.sendRequest<AcpResponse>('authenticate', methodId ? { methodId } : undefined);
     return result;
   }
 
   async newSession(cwd: string = process.cwd()): Promise<AcpResponse> {
-    const response = await this.sendRequest('session/new', {
+    const response = await this.sendRequest<AcpResponse & { sessionId?: string }>('session/new', {
       cwd,
-      mcpServers: [] as any[],
+      mcpServers: [] as unknown[],
     });
 
     this.sessionId = response.sessionId;

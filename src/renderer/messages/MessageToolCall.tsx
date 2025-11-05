@@ -12,6 +12,7 @@ import 'diff2html/bundles/css/diff2html.min.css';
 import { diffStringsUnified } from 'jest-diff';
 import React, { useMemo, useState } from 'react';
 import MarkdownView from '../components/Markdown';
+import { iconColors } from '@/renderer/theme/colors';
 
 const Diff2Html = ({ message }: { message: IMessageToolCall }) => {
   const [sideBySide, setSideBySide] = useState(false);
@@ -38,7 +39,7 @@ const Diff2Html = ({ message }: { message: IMessageToolCall }) => {
       ></div>
       <div className='absolute top-12px right-10px flex items-center justify-center'>
         <Checkbox className={'!flex items-center justify-center'} checked={sideBySide} onChange={(value) => setSideBySide(value)}>
-          <span className='whitespace-nowrap'>side-by-side</span>
+          <span className='whitespace-nowrap text-t-primary'>side-by-side</span>
         </Checkbox>
       </div>
     </div>
@@ -51,7 +52,7 @@ const MessageToolCall: React.FC<{ message: IMessageToolCall }> = ({ message }) =
     return <Alert content={OpName + ':' + file_path} type={status === 'error' ? 'error' : status === 'success' ? 'success' : 'info'}></Alert>;
   }
   if (message.content.name === 'google_web_search') {
-    return <Alert icon={<MessageSearch theme='outline' fill='#333' className='lh-[1]' />} content={message.content.args.query}></Alert>;
+    return <Alert icon={<MessageSearch theme='outline' fill={iconColors.primary} className='lh-[1]' />} content={message.content.args.query}></Alert>;
   }
   if (message.content.name === 'run_shell_command') {
     return <MarkdownView>{`\`\`\`shell\n${message.content.args.command}\n#${message.content.args.description}`}</MarkdownView>;
@@ -59,7 +60,7 @@ const MessageToolCall: React.FC<{ message: IMessageToolCall }> = ({ message }) =
   if (message.content.name === 'replace') {
     return <Diff2Html message={message}></Diff2Html>;
   }
-  return <div>{message.content.name}</div>;
+  return <div className='text-t-primary'>{message.content.name}</div>;
 };
 
 export default MessageToolCall;

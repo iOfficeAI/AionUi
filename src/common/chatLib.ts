@@ -269,7 +269,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         position: 'center',
         conversation_id: message.conversation_id,
         content: {
-          content: message.data,
+          content: message.data as string,
           type: 'error',
         },
       };
@@ -283,7 +283,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         position: message.type === 'content' ? 'left' : 'right',
         conversation_id: message.conversation_id,
         content: {
-          content: message.data,
+          content: message.data as string,
         },
       };
     }
@@ -294,7 +294,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         msg_id: message.msg_id,
         conversation_id: message.conversation_id,
         position: 'left',
-        content: message.data,
+        content: message.data as any,
       };
     }
     case 'tool_group': {
@@ -303,7 +303,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         id: uuid(),
         msg_id: message.msg_id,
         conversation_id: message.conversation_id,
-        content: message.data,
+        content: message.data as any,
       };
     }
     case 'agent_status': {
@@ -313,7 +313,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         msg_id: message.msg_id,
         position: 'center',
         conversation_id: message.conversation_id,
-        content: message.data,
+        content: message.data as any,
       };
     }
     case 'acp_permission': {
@@ -323,7 +323,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         msg_id: message.msg_id,
         position: 'left',
         conversation_id: message.conversation_id,
-        content: message.data,
+        content: message.data as any,
       };
     }
     case 'acp_tool_call': {
@@ -333,7 +333,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         msg_id: message.msg_id,
         position: 'left',
         conversation_id: message.conversation_id,
-        content: message.data,
+        content: message.data as any,
       };
     }
     case 'codex_permission': {
@@ -343,7 +343,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         msg_id: message.msg_id,
         position: 'left',
         conversation_id: message.conversation_id,
-        content: message.data,
+        content: message.data as any,
       };
     }
     case 'codex_tool_call': {
@@ -353,7 +353,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         msg_id: message.msg_id,
         position: 'left',
         conversation_id: message.conversation_id,
-        content: message.data,
+        content: message.data as any,
       };
     }
     case 'start':

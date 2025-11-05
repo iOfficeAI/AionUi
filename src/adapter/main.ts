@@ -10,6 +10,15 @@ import { ipcMain } from 'electron';
 import { bridge } from '@office-ai/platform';
 import { ADAPTER_BRIDGE_EVENT_KEY } from './constant';
 
+/**
+ * Bridge event data structure for IPC communication
+ * IPC 通信的桥接事件数据结构
+ */
+interface BridgeEventData {
+  name: string;
+  data: unknown;
+}
+
 const adapterWindowList: Array<BrowserWindow> = [];
 
 /**
@@ -25,7 +34,7 @@ bridge.adapter({
   },
   on(emitter) {
     ipcMain.handle(ADAPTER_BRIDGE_EVENT_KEY, (event, info) => {
-      const { name, data } = JSON.parse(info) as any;
+      const { name, data } = JSON.parse(info) as BridgeEventData;
       // console.log('>>>>>>>>adapter.on', name, data);
       return Promise.resolve(emitter.emit(name, data));
     });

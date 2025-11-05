@@ -59,15 +59,15 @@ const ExecCommandDisplay: React.FC<{ content: ExecCommandUpdate }> = ({ content 
 
   return (
     <BaseToolCallDisplay toolCallId={toolCallId} title={getDisplayTitle()} status={status} description={description} icon='🔧' additionalTags={getAdditionalTags()}>
-      {/* Display command if available */}
+      {/* Display command if available 显示命令 */}
       {subtype === 'exec_command_begin' && 'command' in data && data.command && Array.isArray(data.command) && data.command.length > 0 && (
         <div className='text-sm mb-2'>
-          <div className='text-xs text-gray-500 mb-1'>{t('tools.labels.command')}</div>
-          <div className='bg-gray-900 text-green-400 p-2 rounded font-mono text-xs overflow-x-auto'>
-            <span className='text-gray-500'>$ </span>
-            {data.command.join(' ')}
+          <div className='text-xs text-t-secondary mb-1'>{t('tools.labels.command')}</div>
+          <div className='bg-2 p-2 rounded font-mono text-xs overflow-x-auto border border-b-base'>
+            <span className='text-t-secondary'>$ </span>
+            <span className='text-success'>{data.command.join(' ')}</span>
             {'cwd' in data && data.cwd && (
-              <div className='text-gray-500 text-xs mt-1'>
+              <div className='text-t-secondary text-xs mt-1'>
                 {t('tools.labels.working_directory')}: {data.cwd}
               </div>
             )}
@@ -75,15 +75,15 @@ const ExecCommandDisplay: React.FC<{ content: ExecCommandUpdate }> = ({ content 
         </div>
       )}
 
-      {/* Display output content */}
+      {/* Display output content 显示输出内容 */}
       {contentArray && contentArray.length > 0 && (
         <div>
           {contentArray.map((content, index) => (
             <div key={index}>
               {content.type === 'output' && content.output && (
                 <div className='mt-3'>
-                  <div className='bg-black text-green-400 p-3 rounded border font-mono text-sm overflow-x-auto max-h-60 overflow-y-auto'>
-                    <pre className='whitespace-pre-wrap break-words'>{content.output}</pre>
+                  <div className='bg-2 p-3 rounded border border-b-base font-mono text-sm overflow-x-auto max-h-60 overflow-y-auto'>
+                    <pre className='whitespace-pre-wrap break-words text-t-primary'>{content.output}</pre>
                   </div>
                 </div>
               )}

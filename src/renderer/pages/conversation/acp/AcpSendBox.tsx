@@ -1,20 +1,22 @@
 import { ipcBridge } from '@/common';
+import type { AcpBackend } from '@/types/acpTypes';
 import { transformMessage, type TMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import { uuid } from '@/common/utils';
 import SendBox from '@/renderer/components/sendbox';
 import ShimmerText from '@/renderer/components/ShimmerText';
 import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/ThoughtDisplay';
-import { getSendBoxDraftHook } from '@/renderer/hooks/useSendBoxDraft';
+import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/useSendBoxDraft';
 import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/useSendBoxFiles';
 import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
-import { allSupportedExts, getCleanFileName } from '@/renderer/services/FileService';
+import { allSupportedExts } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
-import type { AcpBackend } from '@/types/acpTypes';
 import { Button, Tag } from '@arco-design/web-react';
 import { Plus } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { iconColors } from '@/renderer/theme/colors';
+import FilePreview from '@/renderer/components/FilePreview';
 
 const useAcpSendBoxDraft = getSendBoxDraftHook('acp', {
   _type: 'acp',
@@ -41,7 +43,7 @@ const useAcpMessage = (conversation_id: string) => {
       const transformedMessage = transformMessage(message);
       switch (message.type) {
         case 'thought':
-          setThought(message.data);
+          setThought(message.data as ThoughtData);
           break;
         case 'start':
           setRunning(true);
@@ -56,17 +58,22 @@ const useAcpMessage = (conversation_id: string) => {
           setThought({ subject: '', description: '' });
           addOrUpdateMessage(transformedMessage);
           break;
-        case 'agent_status':
+        case 'agent_status': {
           // Update ACP/Agent status
-          if (message.data?.status) {
-            setAcpStatus(message.data.status);
+          const agentData = message.data as {
+            status?: 'connecting' | 'connected' | 'authenticated' | 'session_active' | 'disconnected' | 'error';
+            backend?: string;
+          };
+          if (agentData?.status) {
+            setAcpStatus(agentData.status);
             // Reset running state when authentication is complete
-            if (['authenticated', 'session_active'].includes(message.data.status)) {
+            if (['authenticated', 'session_active'].includes(agentData.status)) {
               setRunning(false);
             }
           }
           addOrUpdateMessage(transformedMessage);
           break;
+        }
         case 'user_content':
           addOrUpdateMessage(transformedMessage);
           break;
@@ -101,16 +108,17 @@ const useAcpMessage = (conversation_id: string) => {
   return { thought, setThought, running, acpStatus, aiProcessing, setAiProcessing };
 };
 
-const EMPTY_ARRAY: string[] = [];
+const EMPTY_AT_PATH: Array<string | FileOrFolderItem> = [];
+const EMPTY_UPLOAD_FILES: string[] = [];
 
 const useSendBoxDraft = (conversation_id: string) => {
   const { data, mutate } = useAcpSendBoxDraft(conversation_id);
-  const atPath = data?.atPath ?? EMPTY_ARRAY;
-  const uploadFile = data?.uploadFile ?? EMPTY_ARRAY;
+  const atPath = data?.atPath ?? EMPTY_AT_PATH;
+  const uploadFile = data?.uploadFile ?? EMPTY_UPLOAD_FILES;
   const content = data?.content ?? '';
 
   const setAtPath = useCallback(
-    (atPath: string[]) => {
+    (atPath: Array<string | FileOrFolderItem>) => {
       mutate((prev) => ({ ...prev, atPath }));
     },
     [data, mutate]
@@ -234,6 +242,11 @@ const AcpSendBox: React.FC<{
 
     message = processMessageWithFiles(message);
 
+    // 立即清空输入框，避免用户误以为消息没发送
+    // Clear input immediately to avoid user thinking message wasn't sent
+    setContent('');
+    clearFiles();
+
     // Start AI processing loading state
     setAiProcessing(true);
 
@@ -276,21 +289,25 @@ const AcpSendBox: React.FC<{
       throw error;
     }
 
-    // Clear input content and selected files (similar to GeminiSendBox)
+    // Clear selected files (similar to GeminiSendBox)
     emitter.emit('acp.selected.file.clear');
     if (uploadFile.length) {
       emitter.emit('acp.workspace.refresh');
     }
-    clearFiles();
   };
 
   useAddEventListener('acp.selected.file', setAtPath);
 
   return (
-    <div className='max-w-800px w-full mx-auto flex flex-col'>
+    <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
       <ThoughtDisplay thought={thought} />
 
-      {aiProcessing && <ShimmerText duration={2}>{t('common.loading', { defaultValue: 'Please wait...' })}</ShimmerText>}
+      {/* 显示处理中提示 / Show processing indicator */}
+      {aiProcessing && (
+        <div className='text-left text-14px py-8px'>
+          <ShimmerText duration={2}>{t('conversation.chat.processing')}</ShimmerText>
+        </div>
+      )}
 
       <SendBox
         value={content}
@@ -309,8 +326,7 @@ const AcpSendBox: React.FC<{
             <Button
               type='secondary'
               shape='circle'
-              className='sendbox-icon-btn sendbox-icon-plus'
-              icon={<Plus theme='outline' size='14' strokeWidth={2} fill='#333' />}
+              icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />}
               onClick={() => {
                 ipcBridge.dialog.showOpen
                   .invoke({
@@ -330,34 +346,57 @@ const AcpSendBox: React.FC<{
         }
         prefix={
           <>
-            {uploadFile.map((path) => (
-              <Tag
-                color='blue'
-                key={path}
-                closable
-                className={'mr-4px'}
-                onClose={() => {
-                  setUploadFile(uploadFile.filter((v) => v !== path));
-                }}
-              >
-                {getCleanFileName(path)}
-              </Tag>
-            ))}
-            {atPath.map((path) => (
-              <Tag
-                key={path}
-                color='gray'
-                closable
-                className={'mr-4px'}
-                onClose={() => {
-                  const newAtPath = atPath.filter((v) => v !== path);
-                  emitter.emit('acp.selected.file', newAtPath);
-                  setAtPath(newAtPath);
-                }}
-              >
-                {path}
-              </Tag>
-            ))}
+            {/* Files on top */}
+            {(uploadFile.length > 0 || atPath.some((item) => (typeof item === 'string' ? true : item.isFile))) && (
+              <div className='flex flex-wrap items-center gap-8px mb-8px'>
+                {uploadFile.map((path) => (
+                  <FilePreview key={path} path={path} onRemove={() => setUploadFile(uploadFile.filter((v) => v !== path))} />
+                ))}
+                {atPath.map((item) => {
+                  const isFile = typeof item === 'string' ? true : item.isFile;
+                  const path = typeof item === 'string' ? item : item.path;
+                  if (isFile) {
+                    return (
+                      <FilePreview
+                        key={path}
+                        path={path}
+                        onRemove={() => {
+                          const newAtPath = atPath.filter((v) => (typeof v === 'string' ? v !== path : v.path !== path));
+                          emitter.emit('acp.selected.file', newAtPath);
+                          setAtPath(newAtPath);
+                        }}
+                      />
+                    );
+                  }
+                  return null;
+                })}
+              </div>
+            )}
+            {/* Folder tags below */}
+            {atPath.some((item) => (typeof item === 'string' ? false : !item.isFile)) && (
+              <div className='flex flex-wrap items-center gap-8px mb-8px'>
+                {atPath.map((item) => {
+                  if (typeof item === 'string') return null;
+                  if (!item.isFile) {
+                    return (
+                      <Tag
+                        key={item.path}
+                        color='blue'
+                        closable
+                        onClose={() => {
+                          const newAtPath = atPath.filter((v) => (typeof v === 'string' ? true : v.path !== item.path));
+                          emitter.emit('acp.selected.file', newAtPath);
+                          setAtPath(newAtPath);
+                        }}
+                      >
+                        {item.name}
+                      </Tag>
+                    );
+                  }
+                  return null;
+                })}
+              </div>
+            )}
           </>
         }
         onSend={onSendHandler}

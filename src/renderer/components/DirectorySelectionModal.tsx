@@ -106,7 +106,7 @@ const DirectorySelectionModal: React.FC<DirectorySelectionModalProps> = ({ visib
       style={{ width: 600 }}
       footer={
         <div className='w-full flex justify-between items-center'>
-          <div className='text-#666 text-14px overflow-hidden text-ellipsis whitespace-nowrap max-w-400px' title={selectedPath || currentPath}>
+          <div className='text-t-secondary text-14px overflow-hidden text-ellipsis whitespace-nowrap max-w-400px' title={selectedPath || currentPath}>
             {selectedPath || currentPath || (isFileMode ? t('fileSelection.pleaseSelectFile') : t('fileSelection.pleaseSelectDirectory'))}
           </div>
           <div className='flex gap-10px'>
@@ -119,18 +119,18 @@ const DirectorySelectionModal: React.FC<DirectorySelectionModalProps> = ({ visib
       }
     >
       <Spin loading={loading} className='w-full'>
-        <div className='w-full border border-#ddd rd-4px overflow-hidden' style={{ height: 400 }}>
+        <div className='w-full border border-b-base rd-4px overflow-hidden' style={{ height: 400 }}>
           <div className='h-full overflow-y-auto'>
             {directoryData.canGoUp && (
-              <div className='flex items-center p-10px border-b border-#eee cursor-pointer hover:bg-#f5f5f5 transition' onClick={handleGoUp}>
-                <IconUp className='mr-10px text-#86909c' />
+              <div className='flex items-center p-10px border-b border-b-light cursor-pointer hover:bg-hover transition' onClick={handleGoUp}>
+                <IconUp className='mr-10px text-t-secondary' />
                 <span>..</span>
               </div>
             )}
             {directoryData.items.map((item, index) => (
-              <div key={index} className='flex items-center justify-between p-10px border-b border-#eee cursor-pointer hover:bg-#f5f5f5 transition' style={selectedPath === item.path ? { background: '#e3f2fd' } : {}} onClick={() => handleItemClick(item)} onDoubleClick={() => handleItemDoubleClick(item)}>
+              <div key={index} className='flex items-center justify-between p-10px border-b border-b-light cursor-pointer hover:bg-hover transition' style={selectedPath === item.path ? { background: 'var(--brand-light)' } : {}} onClick={() => handleItemClick(item)} onDoubleClick={() => handleItemDoubleClick(item)}>
                 <div className='flex items-center flex-1 min-w-0'>
-                  {item.isDirectory ? <IconFolder className='mr-10px text-#ff9800 shrink-0' /> : <IconFile className='mr-10px text-#2196f3 shrink-0' />}
+                  {item.isDirectory ? <IconFolder className='mr-10px text-warning shrink-0' /> : <IconFile className='mr-10px text-primary shrink-0' />}
                   <span className='overflow-hidden text-ellipsis whitespace-nowrap'>{item.name}</span>
                 </div>
                 {canSelect(item) && (

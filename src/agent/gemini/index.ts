@@ -8,7 +8,7 @@
 import type { TProviderWithModel } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import { getProviderAuthType } from '@/common/utils/platformAuthType';
-import type { CompletedToolCall, Config, GeminiClient, ServerGeminiStreamEvent, ToolCall, ToolCallRequestInfo } from '@office-ai/aioncli-core';
+import type { CompletedToolCall, Config, GeminiClient, ServerGeminiStreamEvent, ToolCall, ToolCallRequestInfo, Turn } from '@office-ai/aioncli-core';
 import { AuthType, CoreToolScheduler, FileDiscoveryService, sessionId } from '@office-ai/aioncli-core';
 import { execSync } from 'child_process';
 import { ApiKeyManager } from '../../common/ApiKeyManager';
@@ -19,7 +19,7 @@ import { loadExtensions } from './cli/extension';
 import type { Settings } from './cli/settings';
 import { loadSettings } from './cli/settings';
 import { ConversationToolConfig } from './cli/tools/conversation-tool-config';
-import { mapToDisplay } from './cli/useReactToolScheduler';
+import { mapToDisplay, type TrackedToolCall } from './cli/useReactToolScheduler';
 import { getPromptCount, handleCompletedTools, processGeminiStreamEvents, startNewPrompt } from './utils';
 
 // Global registry for current agent instance (used by flashFallbackHandler)
@@ -64,7 +64,7 @@ export class GeminiAgent {
   private geminiClient: GeminiClient | null = null;
   private authType: AuthType | null = null;
   private scheduler: CoreToolScheduler | null = null;
-  private trackedCalls: ToolCall[] = [];
+  private trackedCalls: TrackedToolCall[] = [];
   private abortController: AbortController | null = null;
   private onStreamEvent: (event: { type: string; data: unknown; msg_id: string }) => void;
   private toolConfig: ConversationToolConfig; // 对话级别的工具配置
@@ -228,7 +228,8 @@ export class GeminiAgent {
           if (completedToolCalls.length > 0) {
             const refreshMemory = async () => {
               const config = this.config;
-              const { memoryContent, fileCount } = await loadHierarchicalGeminiMemory(this.workspace, [], config.getDebugMode(), config.getFileService(), settings, config.getExtensionContextFilePaths());
+              const extensionPaths = config.getExtensionContextFilePaths();
+              const { memoryContent, fileCount } = await loadHierarchicalGeminiMemory(this.workspace, [], config.getDebugMode(), config.getFileService(), settings, extensionPaths);
               config.setUserMemory(memoryContent);
               config.setGeminiMdFileCount(fileCount);
             };
@@ -263,11 +264,11 @@ export class GeminiAgent {
       onToolCallsUpdate: (updatedCoreToolCalls: ToolCall[]) => {
         try {
           const prevTrackedCalls = this.trackedCalls || [];
-          const toolCalls = updatedCoreToolCalls.map((coreTc) => {
+          const toolCalls: TrackedToolCall[] = updatedCoreToolCalls.map((coreTc) => {
             const existingTrackedCall = prevTrackedCalls.find((ptc) => ptc.request.callId === coreTc.request.callId);
-            const newTrackedCall = {
+            const newTrackedCall: TrackedToolCall = {
               ...coreTc,
-              responseSubmittedToGemini: (existingTrackedCall as any)?.responseSubmittedToGemini ?? false,
+              responseSubmittedToGemini: existingTrackedCall?.responseSubmittedToGemini ?? false,
             };
             return newTrackedCall;
           });
@@ -296,12 +297,12 @@ export class GeminiAgent {
     });
   }
 
-  private handleMessage(stream: AsyncGenerator<ServerGeminiStreamEvent, any, any>, msg_id: string, abortController: AbortController): Promise<any> {
+  private handleMessage(stream: AsyncGenerator<ServerGeminiStreamEvent, Turn, unknown>, msg_id: string, abortController: AbortController): Promise<void> {
     const toolCallRequests: ToolCallRequestInfo[] = [];
 
     return processGeminiStreamEvents(stream, this.config, (data) => {
       if (data.type === 'tool_call_request') {
-        toolCallRequests.push(data.data);
+        toolCallRequests.push(data.data as ToolCallRequestInfo);
         return;
       }
       this.onStreamEvent({
@@ -314,17 +315,18 @@ export class GeminiAgent {
           await this.scheduler.schedule(toolCallRequests, abortController.signal);
         }
       })
-      .catch((e) => {
+      .catch((e: unknown) => {
+        const errorMessage = e instanceof Error ? e.message : JSON.stringify(e);
         this.onStreamEvent({
           type: 'error',
-          data: e.message,
+          data: errorMessage,
           msg_id,
         });
       });
   }
 
   submitQuery(
-    query: any,
+    query: unknown,
     msg_id: string,
     abortController: AbortController,
     options?: {
@@ -347,10 +349,11 @@ export class GeminiAgent {
         msg_id,
       });
       this.handleMessage(stream, msg_id, abortController)
-        .catch((e: any) => {
+        .catch((e: unknown) => {
+          const errorMessage = e instanceof Error ? e.message : JSON.stringify(e);
           this.onStreamEvent({
             type: 'error',
-            data: e?.message || JSON.stringify(e),
+            data: errorMessage,
             msg_id,
           });
         })
@@ -380,7 +383,7 @@ export class GeminiAgent {
       addItem: () => {
         console.log('addItem');
       },
-      onDebugMessage(log: any) {
+      onDebugMessage(log: unknown) {
         console.log('onDebugMessage', log);
       },
       messageId: Date.now(),

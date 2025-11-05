@@ -8,7 +8,7 @@ import type { IMcpServer } from '@/common/storage';
  * MCP服务器CRUD操作Hook
  * 处理MCP服务器的增加、编辑、删除、启用/禁用等操作
  */
-export const useMcpServerCRUD = (mcpServers: IMcpServer[], saveMcpServers: (serversOrUpdater: IMcpServer[] | ((prev: IMcpServer[]) => IMcpServer[])) => Promise<void>, syncMcpToAgents: (server: IMcpServer, skipRecheck?: boolean) => Promise<void>, removeMcpFromAgents: (serverName: string, successMessage?: string) => Promise<void>, checkSingleServerInstallStatus: (serverName: string) => Promise<void>, setAgentInstallStatus: React.Dispatch<React.SetStateAction<Record<string, string[]>>>, message: any) => {
+export const useMcpServerCRUD = (mcpServers: IMcpServer[], saveMcpServers: (serversOrUpdater: IMcpServer[] | ((prev: IMcpServer[]) => IMcpServer[])) => Promise<void>, syncMcpToAgents: (server: IMcpServer, skipRecheck?: boolean) => Promise<void>, removeMcpFromAgents: (serverName: string, successMessage?: string) => Promise<void>, checkSingleServerInstallStatus: (serverName: string) => Promise<void>, setAgentInstallStatus: React.Dispatch<React.SetStateAction<Record<string, string[]>>>, message: ReturnType<typeof import('@arco-design/web-react').Message.useMessage>[0]) => {
   const { t } = useTranslation();
 
   // 添加MCP服务器
