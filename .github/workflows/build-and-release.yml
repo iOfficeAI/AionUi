@@ -58,7 +58,7 @@ jobs:
     needs: code-quality
     if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
     env:
-      ENABLE_MAC_SIGNING: ${{ (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev' || github.event.inputs.enable_mac_signing == 'true') && 'true' || 'false' }}
+      ENABLE_MAC_SIGNING: ${{ (github.ref == 'refs/heads/main' || (github.event_name == 'workflow_dispatch' && github.event.inputs.enable_mac_signing == 'true')) && 'true' || 'false' }}
 
     strategy:
       fail-fast: false

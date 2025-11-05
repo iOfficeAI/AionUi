@@ -136,8 +136,9 @@ export function initFsBridge(): void {
   ipcBridge.fs.copyFilesToWorkspace.provider(async ({ filePaths, workspace }) => {
     try {
       const copiedFiles: string[] = [];
+      const failedFiles: Array<{ path: string; error: string }> = [];
 
-      // 确保工作空间目录存在
+      // 确保工作空间目录存在 / Ensure workspace directory exists
       await fs.mkdir(workspace, { recursive: true });
 
       for (const filePath of filePaths) {
@@ -151,28 +152,34 @@ export function initFsBridge(): void {
             .then(() => true)
             .catch(() => false);
 
+          let finalTargetPath = targetPath;
           if (exists) {
-            // 如果文件已存在，添加时间戳后缀
+            // 如果文件已存在，添加时间戳后缀 / Append timestamp when target file already exists
             const timestamp = Date.now();
             const ext = path.extname(fileName);
             const name = path.basename(fileName, ext);
             const newFileName = `${name}${AIONUI_TIMESTAMP_SEPARATOR}${timestamp}${ext}`;
-            const newTargetPath = path.join(workspace, newFileName);
-            await fs.copyFile(filePath, newTargetPath);
-            copiedFiles.push(newTargetPath);
-          } else {
-            await fs.copyFile(filePath, targetPath);
-            copiedFiles.push(targetPath);
+            finalTargetPath = path.join(workspace, newFileName);
           }
+
+          await fs.copyFile(filePath, finalTargetPath);
+          copiedFiles.push(finalTargetPath);
         } catch (error) {
-          console.error(`Failed to copy file ${filePath}:`, error);
-          // 继续复制其他文件
+          // 记录失败的文件路径与错误信息，前端可以用来提示用户 / Record failed file info so UI can warn user
+          const message = error instanceof Error ? error.message : String(error);
+          console.error(`Failed to copy file ${filePath}:`, message);
+          failedFiles.push({ path: filePath, error: message });
         }
       }
 
+      // 只要存在失败文件就视作部分失败，并返回提示信息 / Mark operation as non-success if anything failed and provide hint text
+      const success = failedFiles.length === 0;
+      const msg = success ? undefined : 'Some files failed to copy';
+
       return {
-        success: true,
-        data: { copiedFiles },
+        success,
+        data: { copiedFiles, failedFiles },
+        msg,
       };
     } catch (error) {
       console.error('Failed to copy files to workspace:', error);
