@@ -4,11 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { useThemeContext } from '@/renderer/context/ThemeContext';
 import { Down, Up } from '@icon-park/react';
 import classNames from 'classnames';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useThemeContext } from '@/renderer/context/ThemeContext';
 
 // 渐变遮罩常量 Gradient mask constants
 // mask-image 模式：让内容本身淡出，适用于有背景色的场景（如 Alert）
@@ -75,18 +75,43 @@ export const CollapsibleContent: React.FC<CollapsibleContentProps> = ({ children
   const [needsCollapse, setNeedsCollapse] = useState(false); // 是否需要折叠功能 Whether collapse feature is needed
   const contentRef = useRef<HTMLDivElement>(null); // 内容容器引用 Content container ref
 
-  // 检测内容高度 Detect content height
+  // 检测内容高度 Detect content height using ResizeObserver
   useEffect(() => {
-    // 使用 setTimeout 确保内容完全渲染后再检测
-    // Use setTimeout to ensure content is fully rendered before checking
-    const timer = setTimeout(() => {
-      if (contentRef.current) {
-        const contentHeight = contentRef.current.scrollHeight;
-        setNeedsCollapse(contentHeight > maxHeight);
-      }
-    }, 100);
+    const element = contentRef.current;
+    if (!element) return;
 
-    return () => clearTimeout(timer);
+    // 检测内容高度的辅助函数 Helper function to check content height
+    const checkHeight = () => {
+      const contentHeight = element.scrollHeight;
+      setNeedsCollapse(contentHeight > maxHeight);
+    };
+
+    // 使用 ResizeObserver 替代 setTimeout，更精确地检测内容变化
+    // Use ResizeObserver instead of setTimeout for more accurate content change detection
+    // Electron 环境完全支持 ResizeObserver，但添加检查以增强兼容性
+    // ResizeObserver is fully supported in Electron, but add check for enhanced compatibility
+    if (typeof ResizeObserver !== 'undefined') {
+      const resizeObserver = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+          const contentHeight = entry.target.scrollHeight;
+          setNeedsCollapse(contentHeight > maxHeight);
+        }
+      });
+
+      resizeObserver.observe(element);
+
+      // 初始检测 Initial check
+      checkHeight();
+
+      return () => {
+        resizeObserver.disconnect();
+      };
+    } else {
+      // Fallback: 如果 ResizeObserver 不可用（理论上不会发生），使用 setTimeout
+      // Fallback: use setTimeout if ResizeObserver is unavailable (should not happen in practice)
+      const timer = setTimeout(checkHeight, 100);
+      return () => clearTimeout(timer);
+    }
   }, [children, maxHeight]);
 
   // 切换折叠状态 Toggle collapse state

@@ -269,7 +269,18 @@
     "option": "Option",
     "noOptionsAvailable": "No options available",
     "processing": "Processing...",
-    "responseSentSuccessfully": "Response sent successfully"
+    "responseSentSuccessfully": "Response sent successfully",
+    "confirmation": {
+      "applyChange": "Apply this change?",
+      "allowExecution": "Allow execution?",
+      "proceed": "Do you want to proceed?",
+      "allowMCPTool": "Allow execution of MCP tool \"{{toolName}}\" from server \"{{serverName}}\"?",
+      "yesAllowOnce": "Yes, allow once",
+      "yesAllowAlways": "Yes, allow always",
+      "yesAlwaysAllowTool": "Yes, always allow tool \"{{toolName}}\" from server \"{{serverName}}\"",
+      "yesAlwaysAllowServer": "Yes, always allow all tools from server \"{{serverName}}\"",
+      "no": "No (esc)"
+    }
   },
   "mcp": {
     "integration": {

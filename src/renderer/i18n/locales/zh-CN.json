@@ -265,7 +265,18 @@
     "option": "选项",
     "noOptionsAvailable": "无可用选项",
     "processing": "处理中...",
-    "responseSentSuccessfully": "响应已成功发送"
+    "responseSentSuccessfully": "响应已成功发送",
+    "confirmation": {
+      "applyChange": "应用此更改？",
+      "allowExecution": "允许执行？",
+      "proceed": "您想要继续吗？",
+      "allowMCPTool": "允许执行来自服务器 \"{{serverName}}\" 的 MCP 工具 \"{{toolName}}\"？",
+      "yesAllowOnce": "是，允许一次",
+      "yesAllowAlways": "是，始终允许",
+      "yesAlwaysAllowTool": "是，始终允许来自服务器 \"{{serverName}}\" 的工具 \"{{toolName}}\"",
+      "yesAlwaysAllowServer": "是，始终允许来自服务器 \"{{serverName}}\" 的所有工具",
+      "no": "否 (esc)"
+    }
   },
   "mcp": {
     "integration": {
