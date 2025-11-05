@@ -15,7 +15,7 @@ import { ToolCallStatus } from './types';
 interface HandleAtCommandParams {
   query: string;
   config: Config;
-  addItem: (...args: any[]) => void; //@mark mock addItem it not use
+  addItem: (...args: unknown[]) => void; //@mark mock addItem it not use
   onDebugMessage: (message: string) => void;
   messageId: number;
   signal: AbortSignal;

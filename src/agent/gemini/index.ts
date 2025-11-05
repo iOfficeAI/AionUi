@@ -22,6 +22,14 @@ import { ConversationToolConfig } from './cli/tools/conversation-tool-config';
 import { mapToDisplay } from './cli/useReactToolScheduler';
 import { getPromptCount, handleCompletedTools, processGeminiStreamEvents, startNewPrompt } from './utils';
 
+/**
+ * Extended ToolCall interface with response submission tracking
+ * 扩展的 ToolCall 接口，包含响应提交跟踪
+ */
+interface TrackedToolCall extends ToolCall {
+  responseSubmittedToGemini?: boolean;
+}
+
 // Global registry for current agent instance (used by flashFallbackHandler)
 let currentGeminiAgent: GeminiAgent | null = null;
 
@@ -64,7 +72,7 @@ export class GeminiAgent {
   private geminiClient: GeminiClient | null = null;
   private authType: AuthType | null = null;
   private scheduler: CoreToolScheduler | null = null;
-  private trackedCalls: ToolCall[] = [];
+  private trackedCalls: TrackedToolCall[] = [];
   private abortController: AbortController | null = null;
   private onStreamEvent: (event: { type: string; data: unknown; msg_id: string }) => void;
   private toolConfig: ConversationToolConfig; // 对话级别的工具配置
@@ -263,11 +271,11 @@ export class GeminiAgent {
       onToolCallsUpdate: (updatedCoreToolCalls: ToolCall[]) => {
         try {
           const prevTrackedCalls = this.trackedCalls || [];
-          const toolCalls = updatedCoreToolCalls.map((coreTc) => {
+          const toolCalls: TrackedToolCall[] = updatedCoreToolCalls.map((coreTc) => {
             const existingTrackedCall = prevTrackedCalls.find((ptc) => ptc.request.callId === coreTc.request.callId);
-            const newTrackedCall = {
+            const newTrackedCall: TrackedToolCall = {
               ...coreTc,
-              responseSubmittedToGemini: (existingTrackedCall as any)?.responseSubmittedToGemini ?? false,
+              responseSubmittedToGemini: existingTrackedCall?.responseSubmittedToGemini ?? false,
             };
             return newTrackedCall;
           });
@@ -324,7 +332,7 @@ export class GeminiAgent {
   }
 
   submitQuery(
-    query: any,
+    query: unknown,
     msg_id: string,
     abortController: AbortController,
     options?: {
@@ -347,10 +355,11 @@ export class GeminiAgent {
         msg_id,
       });
       this.handleMessage(stream, msg_id, abortController)
-        .catch((e: any) => {
+        .catch((e: unknown) => {
+          const errorMessage = e instanceof Error ? e.message : JSON.stringify(e);
           this.onStreamEvent({
             type: 'error',
-            data: e?.message || JSON.stringify(e),
+            data: errorMessage,
             msg_id,
           });
         })
@@ -380,7 +389,7 @@ export class GeminiAgent {
       addItem: () => {
         console.log('addItem');
       },
-      onDebugMessage(log: any) {
+      onDebugMessage(log: unknown) {
         console.log('onDebugMessage', log);
       },
       messageId: Date.now(),
