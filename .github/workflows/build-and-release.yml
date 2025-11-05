@@ -19,10 +19,24 @@ on:
   workflow_dispatch:
     inputs:
       enable_mac_signing:
-        description: '启用 macOS 代码签名 (Enable macOS code signing)'
+        description: '启用 macOS 代码签名 / Enable macOS code signing'
         required: false
         type: boolean
         default: false
+      enable_mac_notarize:
+        description: '提交 macOS 公证请求 / Submit macOS notarization request'
+        required: false
+        type: boolean
+        default: false
+      notarize_wait_for_result:
+        description: '同步等待公证结果 / Wait for notarization result'
+        required: false
+        type: boolean
+        default: false
+      notarize_timeout_minutes:
+        description: '公证等待超时时长(分钟) / Notarization wait timeout minutes'
+        required: false
+        default: '45'
 
 jobs:
   # 代码质量检查
@@ -55,10 +69,14 @@ jobs:
   build:
     name: Build ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
-    needs: code-quality
+    needs: build-macos-arm64
     if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
     env:
       ENABLE_MAC_SIGNING: 'false'
+      ENABLE_MAC_NOTARIZE: 'false'
+      MAC_NOTARIZE_MODE: 'async'
+      MAC_NOTARIZE_TIMEOUT_MINUTES: '45'
+      # 以上三个变量仅在 macOS job 中使用，避免非 mac Job 误触
 
     strategy:
       fail-fast: false
@@ -342,9 +360,13 @@ jobs:
   build-macos-x64:
     name: Build macOS x64
     runs-on: macos-14
-    needs: code-quality
+    needs: build-macos-arm64
     env:
       ENABLE_MAC_SIGNING: ${{ ((github.event_name == 'workflow_dispatch' && github.event.inputs.enable_mac_signing == 'true') || (github.event_name != 'workflow_dispatch' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'))) && 'true' || 'false' }}
+      ENABLE_MAC_NOTARIZE: ${{ ((github.event_name == 'workflow_dispatch' && github.event.inputs.enable_mac_notarize == 'true') || (github.event_name != 'workflow_dispatch' && github.ref == 'refs/heads/main')) && 'true' || 'false' }}
+      MAC_NOTARIZE_MODE: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.enable_mac_notarize == 'true' && github.event.inputs.notarize_wait_for_result == 'true') && 'wait' || 'async' }}
+      MAC_NOTARIZE_TIMEOUT_MINUTES: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.notarize_timeout_minutes != '') && github.event.inputs.notarize_timeout_minutes || '45' }}
+      # dev 默认只签名不公证；main 或手动触发可开启公证并选择是否等待
 
     steps:
       - name: Checkout code
@@ -429,6 +451,12 @@ jobs:
             echo "No certificate provided - building unsigned application"
             echo "To enable code signing, add BUILD_CERTIFICATE_BASE64 and P12_PASSWORD secrets"
           fi
+
+      - name: Wait for notarization queue spacing
+        shell: bash
+        run: |
+          echo "⏳ 等待 120 秒错峰提交公证请求 / Stagger notarization submissions by waiting 120s"
+          sleep 120
 
       - name: Build with electron-builder (macOS x64)
         uses: nick-fields/retry@v3
@@ -525,9 +553,13 @@ jobs:
   build-macos-arm64:
     name: Build macOS arm64
     runs-on: macos-latest
-    needs: build-macos-x64
+    needs: code-quality
     env:
       ENABLE_MAC_SIGNING: ${{ ((github.event_name == 'workflow_dispatch' && github.event.inputs.enable_mac_signing == 'true') || (github.event_name != 'workflow_dispatch' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'))) && 'true' || 'false' }}
+      ENABLE_MAC_NOTARIZE: ${{ ((github.event_name == 'workflow_dispatch' && github.event.inputs.enable_mac_notarize == 'true') || (github.event_name != 'workflow_dispatch' && github.ref == 'refs/heads/main')) && 'true' || 'false' }}
+      MAC_NOTARIZE_MODE: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.enable_mac_notarize == 'true' && github.event.inputs.notarize_wait_for_result == 'true') && 'wait' || 'async' }}
+      MAC_NOTARIZE_TIMEOUT_MINUTES: ${{ (github.event_name == 'workflow_dispatch' && github.event.inputs.notarize_timeout_minutes != '') && github.event.inputs.notarize_timeout_minutes || '45' }}
+      # main 发布时才公证；dev 默认快速构建，如需验证可手动开启
 
     steps:
       - name: Checkout code
@@ -607,12 +639,6 @@ jobs:
             echo "No certificate provided - building unsigned application"
             echo "To enable code signing, add BUILD_CERTIFICATE_BASE64 and P12_PASSWORD secrets"
           fi
-
-      - name: Wait for notarization queue spacing
-        shell: bash
-        run: |
-          echo "⏳ Waiting 120 seconds before starting arm64 build to stagger notarization requests..."
-          sleep 120
 
       - name: Build with electron-builder (macOS arm64)
         uses: nick-fields/retry@v3
