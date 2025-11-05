@@ -386,7 +386,7 @@ const Guid: React.FC = () => {
   return (
     <ConfigProvider getPopupContainer={() => guidContainerRef.current || document.body}>
       <div ref={guidContainerRef} className='h-full flex-center flex-col px-100px' style={{ position: 'relative' }}>
-        <p className={`text-2xl font-semibold mb-8 ${styles.welcomeTitle}`}>{t('conversation.welcome.title')}</p>
+        <p className={`text-2xl font-semibold mb-8 text-0`}>{t('conversation.welcome.title')}</p>
 
         {/* Agent 选择器 - 在标题下方 */}
         {availableAgents && availableAgents.length > 0 && (
