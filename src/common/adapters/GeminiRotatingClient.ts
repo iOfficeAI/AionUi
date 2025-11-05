@@ -7,7 +7,7 @@ import { OpenAI2GeminiConverter, type OpenAIChatCompletionParams, type OpenAICha
 export interface GeminiClientConfig {
   model?: string;
   baseURL?: string;
-  requestOptions?: any;
+  requestOptions?: Record<string, unknown>;
 }
 
 export class GeminiRotatingClient extends RotatingApiClient<GoogleGenAI> {
@@ -17,7 +17,11 @@ export class GeminiRotatingClient extends RotatingApiClient<GoogleGenAI> {
   constructor(apiKeys: string, config: GeminiClientConfig = {}, options: RotatingApiClientOptions = {}, authType: AuthType = AuthType.USE_GEMINI) {
     const createClient = (apiKey: string) => {
       const cleanedApiKey = apiKey.replace(/[\s\r\n\t]/g, '').trim();
-      const clientConfig: any = {
+      const clientConfig: {
+        apiKey?: string;
+        vertexai: boolean;
+        baseURL?: string;
+      } = {
         apiKey: cleanedApiKey === '' ? undefined : cleanedApiKey,
         vertexai: authType === AuthType.USE_VERTEX_AI,
       };
@@ -49,7 +53,7 @@ export class GeminiRotatingClient extends RotatingApiClient<GoogleGenAI> {
   // }
 
   // Basic method for Gemini operations - can be extended as needed
-  async generateContent(prompt: string, config?: any): Promise<any> {
+  async generateContent(prompt: string, config?: Record<string, unknown>): Promise<unknown> {
     return await this.executeWithRetry(async (client) => {
       // client is GoogleGenAI, we need client.models to get the content generator
       const model = await client.models.generateContent({
