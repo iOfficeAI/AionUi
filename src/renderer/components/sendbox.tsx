@@ -182,14 +182,17 @@ const SendBox: React.FC<{
     <div className={className}>
       <div
         ref={containerRef}
-        className={`relative p-16px border-3 b bg-base b-solid rd-20px flex flex-col ${isFileDragging ? 'b-dashed' : ''}`}
+        className={`relative p-16px b bg-dialog-fill-0 b-solid rd-20px flex flex-col ${isFileDragging ? 'b-dashed' : ''}`}
         style={{
           ...(isFileDragging
             ? {
                 backgroundColor: 'var(--color-primary-light-1)',
                 borderColor: 'rgb(var(--primary-3))',
+                borderWidth: '1px',
               }
             : {
+                borderWidth: '1px',
+                borderColor: 'var(--border-special, #60577E)',
                 boxShadow: '0px 2px 20px rgba(var(--primary-rgb, 77, 60, 234), 0.1)',
               }),
         }}
