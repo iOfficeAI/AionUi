@@ -112,20 +112,33 @@ if (win.electronAPI) {
       try {
         const payload = JSON.parse(event.data as string) as { name: string; data: unknown };
 
+        // 处理服务端心跳 ping，立即回复 pong 以保持连接
+        // Handle server heartbeat ping - respond with pong immediately to keep connection alive
+        if (payload.name === 'ping') {
+          if (socket && socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({ name: 'pong', data: { timestamp: Date.now() } }));
+          }
+          return;
+        }
+
+        // 处理认证过期 - 停止重连并跳转到登录页
         // Handle auth expiration - stop reconnecting and redirect to login
         if (payload.name === 'auth-expired') {
           console.warn('[WebSocket] Authentication expired, stopping reconnection');
           shouldReconnect = false;
 
+          // 清除所有待执行的重连定时器
           // Clear any pending reconnection timer
           if (reconnectTimer !== null) {
             window.clearTimeout(reconnectTimer);
             reconnectTimer = null;
           }
 
+          // 关闭 socket 并跳转到登录页
           // Close the socket and redirect to login page
           socket?.close();
 
+          // 短暂延迟后跳转到登录页，以便显示 UI 反馈
           // Redirect to login page after a short delay to show any UI feedback
           setTimeout(() => {
             window.location.href = '/login';
@@ -136,7 +149,7 @@ if (win.electronAPI) {
 
         emitterRef.emit(payload.name, payload.data);
       } catch (error) {
-        // Ignore malformed payloads
+        // 忽略格式错误的消息 / Ignore malformed payloads
       }
     });
 
