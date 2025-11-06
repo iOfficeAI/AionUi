@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next';
 import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/ThoughtDisplay';
 import { iconColors } from '@/renderer/theme/colors';
 import FilePreview from '@/renderer/components/FilePreview';
+import HorizontalFileList from '@/renderer/components/HorizontalFileList';
 
 const useGeminiSendBoxDraft = getSendBoxDraftHook('gemini', {
   _type: 'gemini',
@@ -228,7 +229,7 @@ const GeminiSendBox: React.FC<{
           <>
             {/* Files on top */}
             {(uploadFile.length > 0 || atPath.some((item) => (typeof item === 'string' ? true : item.isFile))) && (
-              <div className='flex flex-wrap items-center gap-8px mb-8px'>
+              <HorizontalFileList>
                 {uploadFile.map((path) => {
                   return <FilePreview key={path} path={path} onRemove={() => setUploadFile(uploadFile.filter((v) => v !== path))} />;
                 })}
@@ -250,7 +251,7 @@ const GeminiSendBox: React.FC<{
                   }
                   return null;
                 })}
-              </div>
+              </HorizontalFileList>
             )}
             {/* Folder tags below */}
             {atPath.some((item) => (typeof item === 'string' ? false : !item.isFile)) && (
