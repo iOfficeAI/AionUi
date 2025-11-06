@@ -5,7 +5,6 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { AcpBackend } from '@/types/acpTypes';
 import type { IProvider, TProviderWithModel } from '@/common/storage';
 import { ConfigStorage } from '@/common/storage';
 import { uuid } from '@/common/utils';
@@ -14,13 +13,16 @@ import CodexLogo from '@/renderer/assets/logos/codex.svg';
 import GeminiLogo from '@/renderer/assets/logos/gemini.svg';
 import IflowLogo from '@/renderer/assets/logos/iflow.svg';
 import QwenLogo from '@/renderer/assets/logos/qwen.svg';
+import FilePreview from '@/renderer/components/FilePreview';
 import { useCompositionInput } from '@/renderer/hooks/useCompositionInput';
 import { useDragUpload } from '@/renderer/hooks/useDragUpload';
 import { geminiModeList } from '@/renderer/hooks/useModeModeList';
 import { usePasteService } from '@/renderer/hooks/usePasteService';
 import { formatFilesForMessage } from '@/renderer/hooks/useSendBoxFiles';
 import { allSupportedExts, type FileMetadata, getCleanFileNames } from '@/renderer/services/FileService';
+import { iconColors } from '@/renderer/theme/colors';
 import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
+import type { AcpBackend } from '@/types/acpTypes';
 import { Button, ConfigProvider, Dropdown, Input, Menu, Tooltip } from '@arco-design/web-react';
 import { ArrowUp, FolderOpen, Plus, Up } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -28,8 +30,6 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import useSWR from 'swr';
 import styles from './index.module.css';
-import { iconColors } from '@/renderer/theme/colors';
-import FilePreview from '@/renderer/components/FilePreview';
 
 /**
  * 缓存Provider的可用模型列表，避免重复计算
@@ -391,11 +391,12 @@ const Guid: React.FC = () => {
         {/* Agent 选择器 - 在标题下方 */}
         {availableAgents && availableAgents.length > 0 && (
           <div
-            className={`${styles.agentSelector} bg-fill-2`}
+            className='flex justify-center items-center bg-fill-2'
             style={{
               marginBottom: 16,
               padding: '4px',
               borderRadius: '30px',
+              transition: 'all 0.6s cubic-bezier(0.2, 0.8, 0.3, 1)',
             }}
           >
             {availableAgents.map((agent, index) => {
@@ -404,10 +405,27 @@ const Guid: React.FC = () => {
 
               return (
                 <React.Fragment key={agent.backend}>
-                  {index > 0 && <div className={styles.agentDivider}>|</div>}
-                  <div className={`${styles.agentCard} ${isSelected ? styles.agentCardSelected : ''}`} onClick={() => setSelectedAgent(agent.backend)}>
+                  {index > 0 && <div className='text-white/30 text-16px lh-1 p-2px select-none'>|</div>}
+                  <div
+                    className={`group flex items-center cursor-pointer whitespace-nowrap overflow-hidden ${isSelected ? 'opacity-100 px-12px py-8px rd-20px mx-2px' : 'opacity-60 p-4px hover:opacity-100'}`}
+                    style={
+                      isSelected
+                        ? {
+                            transition: 'opacity 0.5s cubic-bezier(0.2, 0.8, 0.3, 1)',
+                            backgroundColor: 'var(--fill-0)',
+                          }
+                        : { transition: 'opacity 0.5s cubic-bezier(0.2, 0.8, 0.3, 1)' }
+                    }
+                    onClick={() => setSelectedAgent(agent.backend)}
+                  >
                     <img src={logoSrc} alt={`${agent.backend} logo`} width={20} height={20} style={{ objectFit: 'contain', flexShrink: 0 }} />
-                    <span className={`${styles.agentName} `} style={{ color: 'var(--color-text-1)' }}>
+                    <span
+                      className={`font-medium text-14px ${isSelected ? 'font-semibold' : 'max-w-0 opacity-0 overflow-hidden group-hover:max-w-100px group-hover:opacity-100 group-hover:ml-8px'}`}
+                      style={{
+                        color: 'var(--color-text-1)',
+                        transition: isSelected ? 'color 0.5s cubic-bezier(0.2, 0.8, 0.3, 1), font-weight 0.5s cubic-bezier(0.2, 0.8, 0.3, 1)' : 'max-width 0.6s cubic-bezier(0.2, 0.8, 0.3, 1), opacity 0.5s cubic-bezier(0.2, 0.8, 0.3, 1) 0.05s, margin 0.6s cubic-bezier(0.2, 0.8, 0.3, 1)',
+                      }}
+                    >
                       {agent.name}
                     </span>
                   </div>
