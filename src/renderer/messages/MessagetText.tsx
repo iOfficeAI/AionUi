@@ -55,7 +55,7 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
   return (
     <>
       <div className='flex flex-col'>
-        <div className={classNames('rd-8px rd-tr-2px [&>p:first-child]:mt-0px [&>p:last-child]:mb-0px', { 'bg-message-user p-8px': message.position === 'right' })}>
+        <div className={classNames('rd-8px rd-tr-2px [&>p:first-child]:mt-0px [&>p:last-child]:mb-0px', { 'bg-aou-2 p-8px': message.position === 'right' })}>
           {/* JSON 内容使用折叠组件 Use CollapsibleContent for JSON content */}
           {json ? (
             <CollapsibleContent maxHeight={200} defaultCollapsed={true}>
@@ -66,7 +66,7 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
           )}
         </div>
         <div
-          className={classNames('flex items-center mt-4px', {
+          className={classNames('h-32px flex items-center mt-4px', {
             'justify-end': message.position === 'right',
             'justify-start': message.position !== 'right',
           })}

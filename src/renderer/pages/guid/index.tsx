@@ -24,12 +24,13 @@ import { iconColors } from '@/renderer/theme/colors';
 import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
 import type { AcpBackend } from '@/types/acpTypes';
 import { Button, ConfigProvider, Dropdown, Input, Menu, Tooltip } from '@arco-design/web-react';
-import { ArrowUp, FolderOpen, Plus, Up } from '@icon-park/react';
+import { FolderOpen, Plus, Up } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import useSWR from 'swr';
 import styles from './index.module.css';
+import SendArrowIcon from '@/renderer/assets/send-arrow.svg';
 
 /**
  * 缓存Provider的可用模型列表，避免重复计算
@@ -557,7 +558,11 @@ const Guid: React.FC = () => {
               type='primary'
               loading={loading}
               disabled={!input.trim() || ((!selectedAgent || selectedAgent === 'gemini') && !currentModel)}
-              icon={<ArrowUp theme='outline' size='14' fill='white' strokeWidth={2} />}
+              icon={
+                <div className='flex items-center justify-center'>
+                  <img src={SendArrowIcon} alt='send' className='w-[14px] h-[14px]' />
+                </div>
+              }
               onClick={() => {
                 handleSend().catch((error) => {
                   console.error('Failed to send message:', error);
