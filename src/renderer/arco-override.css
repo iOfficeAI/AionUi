@@ -6,6 +6,11 @@
   }
 }
 
+.arco-btn-primary.arco-btn-disabled {
+  background-color: var(--aou-2) !important;
+  border-color: var(--aou-2) !important;
+}
+
 .arco-collapse {
   border: none;
   border-radius: 8px;

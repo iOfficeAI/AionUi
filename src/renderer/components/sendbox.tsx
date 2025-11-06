@@ -5,7 +5,6 @@
  */
 
 import { Button, Input, Message } from '@arco-design/web-react';
-import { ArrowUp } from '@icon-park/react';
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCompositionInput } from '../hooks/useCompositionInput';
@@ -13,6 +12,7 @@ import { useDragUpload } from '../hooks/useDragUpload';
 import { usePasteService } from '../hooks/usePasteService';
 import type { FileMetadata } from '../services/FileService';
 import { allSupportedExts } from '../services/FileService';
+import SendArrowIcon from '@/renderer/assets/send-arrow.svg';
 
 const constVoid = (): void => undefined;
 
@@ -242,7 +242,11 @@ const SendBox: React.FC<{
                 <Button
                   shape='circle'
                   type='primary'
-                  icon={<ArrowUp theme='outline' size='14' fill='white' strokeWidth={2} />}
+                  icon={
+                    <div className='flex items-center justify-center'>
+                      <img src={SendArrowIcon} alt='send' className='w-[14px] h-[14px]' />
+                    </div>
+                  }
                   onClick={() => {
                     sendMessageHandler();
                   }}
@@ -261,7 +265,11 @@ const SendBox: React.FC<{
                 <Button
                   shape='circle'
                   type='primary'
-                  icon={<ArrowUp theme='outline' size='14' fill='white' strokeWidth={2} />}
+                  icon={
+                    <div className='flex items-center justify-center'>
+                      <img src={SendArrowIcon} alt='send' className='w-[14px] h-[14px]' />
+                    </div>
+                  }
                   onClick={() => {
                     sendMessageHandler();
                   }}
