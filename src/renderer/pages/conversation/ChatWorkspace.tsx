@@ -12,7 +12,7 @@ import { usePasteService } from '@/renderer/hooks/usePasteService';
 import { iconColors } from '@/renderer/theme/colors';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { removeWorkspaceEntry, renameWorkspaceEntry } from '@/renderer/utils/workspaceFs';
-import { Checkbox, Empty, Input, Message, Modal, Tooltip, Tree } from '@arco-design/web-react';
+import { Button, Checkbox, Empty, Input, Message, Modal, Tooltip, Tree } from '@arco-design/web-react';
 import type { NodeInstance } from '@arco-design/web-react/es/Tree/interface';
 import { FileAddition, Refresh, Search, FileText, FolderOpen } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -923,14 +923,10 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
           <span className='font-bold text-14px text-t-primary'>{t('common.file')}</span>
           <div className='flex items-center gap-8px'>
             <Tooltip content={t('conversation.workspace.addFile')}>
-              <span>
-                <FileAddition className='cursor-pointer flex' theme='outline' size='16' fill={iconColors.secondary} onClick={handleAddFiles} />
-              </span>
+              <Button size='mini' icon={<FileAddition theme='outline' size='14' fill={iconColors.secondary} />} onClick={handleAddFiles}></Button>
             </Tooltip>
             <Tooltip content={t('conversation.workspace.refresh')}>
-              <span>
-                <Refresh className={loading ? 'loading lh-[1] flex cursor-pointer' : 'flex cursor-pointer'} theme='outline' size='16' fill={iconColors.secondary} onClick={() => refreshWorkspace()} />
-              </span>
+              <Button size='mini' icon={<Refresh className={loading ? 'loading' : ''} theme='outline' size='14' fill={iconColors.secondary} />} onClick={() => refreshWorkspace()}></Button>
             </Tooltip>
           </div>
         </div>

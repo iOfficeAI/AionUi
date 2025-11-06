@@ -380,7 +380,7 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
           const result = resultDisplay as WriteFileResult;
           return (
             <div className='min-w-400px' key={callId}>
-              <Diff2Html diff={result.fileDiff || ''}></Diff2Html>
+              <Diff2Html diff={result?.fileDiff || ''}></Diff2Html>
             </div>
           );
         }

@@ -19,11 +19,13 @@ export const AUTH_CONFIG = {
   TOKEN: {
     // 会话 JWT 过期时间（Session JWT expiry duration）
     SESSION_EXPIRY: '24h' as const,
-    // WebSocket 临时 Token 过期时间（WebSocket token expiry duration）
+    // WebSocket Token 过期时间 - 当前 WebSocket 复用 Web 登录 token，此配置保留用于未来可能的独立方案
+    // WebSocket token expiry - Currently WebSocket reuses web login token, reserved for future independent token scheme
     WEBSOCKET_EXPIRY: '5m' as const,
     // Cookie 最大存活时间（Cookie max-age in milliseconds）
     COOKIE_MAX_AGE: 30 * 24 * 60 * 60 * 1000,
-    // WebSocket Token 最大存活时间（WebSocket token max-age in seconds）
+    // WebSocket Token 最大存活时间 - 当前未使用，保留用于未来可能的独立方案
+    // WebSocket token max-age - Currently unused, reserved for future independent token scheme
     WEBSOCKET_TOKEN_MAX_AGE: 5 * 60,
   },
 

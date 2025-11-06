@@ -5,7 +5,6 @@
  */
 
 import { Button, Input, Message } from '@arco-design/web-react';
-import { ArrowUp } from '@icon-park/react';
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCompositionInput } from '../hooks/useCompositionInput';
@@ -13,6 +12,7 @@ import { useDragUpload } from '../hooks/useDragUpload';
 import { usePasteService } from '../hooks/usePasteService';
 import type { FileMetadata } from '../services/FileService';
 import { allSupportedExts } from '../services/FileService';
+import SendArrowIcon from '@/renderer/assets/send-arrow.svg';
 
 const constVoid = (): void => undefined;
 
@@ -182,14 +182,17 @@ const SendBox: React.FC<{
     <div className={className}>
       <div
         ref={containerRef}
-        className={`relative p-16px border-3 b bg-base b-solid rd-20px flex flex-col ${isFileDragging ? 'b-dashed' : ''}`}
+        className={`relative p-16px b bg-dialog-fill-0 b-solid rd-20px flex flex-col ${isFileDragging ? 'b-dashed' : ''}`}
         style={{
           ...(isFileDragging
             ? {
                 backgroundColor: 'var(--color-primary-light-1)',
                 borderColor: 'rgb(var(--primary-3))',
+                borderWidth: '1px',
               }
             : {
+                borderWidth: '1px',
+                borderColor: 'var(--border-special, #60577E)',
                 boxShadow: '0px 2px 20px rgba(var(--primary-rgb, 77, 60, 234), 0.1)',
               }),
         }}
@@ -239,7 +242,11 @@ const SendBox: React.FC<{
                 <Button
                   shape='circle'
                   type='primary'
-                  icon={<ArrowUp theme='outline' size='14' fill='white' strokeWidth={2} />}
+                  icon={
+                    <div className='flex items-center justify-center'>
+                      <img src={SendArrowIcon} alt='send' className='w-[14px] h-[14px]' />
+                    </div>
+                  }
                   onClick={() => {
                     sendMessageHandler();
                   }}
@@ -258,7 +265,11 @@ const SendBox: React.FC<{
                 <Button
                   shape='circle'
                   type='primary'
-                  icon={<ArrowUp theme='outline' size='14' fill='white' strokeWidth={2} />}
+                  icon={
+                    <div className='flex items-center justify-center'>
+                      <img src={SendArrowIcon} alt='send' className='w-[14px] h-[14px]' />
+                    </div>
+                  }
                   onClick={() => {
                     sendMessageHandler();
                   }}
