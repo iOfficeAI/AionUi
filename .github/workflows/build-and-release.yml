@@ -331,6 +331,7 @@ jobs:
             out/*.AppImage
             out/AionUi-*-win32-*.zip
             out/AionUi-*-mac-*.zip
+            out/notarization-submission.json
           if-no-files-found: warn
           retention-days: 7
 
