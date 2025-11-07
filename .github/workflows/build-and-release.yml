@@ -522,11 +522,55 @@ jobs:
         with:
           path: build-artifacts
 
+      - name: Get previous release tag
+        id: previous_tag
+        run: |
+          # Get the latest non-draft, non-prerelease tag
+          PREVIOUS_TAG=$(gh release list --limit 100 --json tagName,isDraft,isPrerelease --jq '[.[] | select(.isDraft == false and .isPrerelease == false)] | .[0].tagName')
+
+          if [ -z "$PREVIOUS_TAG" ]; then
+            echo "No previous release found, will use repository creation as baseline"
+            echo "previous_tag=" >> $GITHUB_OUTPUT
+          else
+            echo "Previous release tag: $PREVIOUS_TAG"
+            echo "previous_tag=$PREVIOUS_TAG" >> $GITHUB_OUTPUT
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      - name: Generate release notes with correct base version
+        id: release_notes
+        run: |
+          TAG_NAME="${{ steps.version.outputs.tag_name }}"
+          PREVIOUS_TAG="${{ steps.previous_tag.outputs.previous_tag }}"
+
+          if [ -n "$PREVIOUS_TAG" ]; then
+            echo "Generating release notes: $PREVIOUS_TAG -> $TAG_NAME"
+            NOTES=$(gh api repos/${{ github.repository }}/releases/generate-notes \
+              -f tag_name="$TAG_NAME" \
+              -f target_commitish="${{ github.sha }}" \
+              -f previous_tag_name="$PREVIOUS_TAG" \
+              --jq '.body')
+          else
+            echo "Generating release notes for first release: $TAG_NAME"
+            NOTES=$(gh api repos/${{ github.repository }}/releases/generate-notes \
+              -f tag_name="$TAG_NAME" \
+              -f target_commitish="${{ github.sha }}" \
+              --jq '.body')
+          fi
+
+          # Save to file to preserve formatting
+          echo "$NOTES" > release_notes.md
+          echo "Release notes generated successfully"
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ steps.version.outputs.tag_name }}
           name: ${{ needs.create-tag.outputs.is_dev == 'true' && format('Development Build {0}', steps.version.outputs.tag_name) || steps.version.outputs.tag_name }}
+          body_path: release_notes.md
           files: |
             build-artifacts/**/*.exe
             build-artifacts/**/*.msi
@@ -534,7 +578,6 @@ jobs:
             build-artifacts/**/*.deb
             build-artifacts/**/*.AppImage
             build-artifacts/**/*.zip
-          generate_release_notes: true
           draft: true
           prerelease: ${{ needs.create-tag.outputs.is_dev == 'true' || contains(steps.version.outputs.tag_name, 'beta') || contains(steps.version.outputs.tag_name, 'alpha') || contains(steps.version.outputs.tag_name, 'rc') }}
         env:
