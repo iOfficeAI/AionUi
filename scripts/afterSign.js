@@ -42,15 +42,36 @@ exports.default = async function afterSign(context) {
   console.log(`Starting async notarization for ${appName} (${appBundleId})...`);
 
   try {
-    // 异步提交公证（关键：不使用--wait，立即返回）/ Submit notarization asynchronously (key: no --wait flag, returns immediately)
+    // 压缩 .app 为 .zip 以加速上传 / Compress .app to .zip for faster upload
+    const fs = require('fs');
+    const zipPath = `${appOutDir}/${appName}.zip`;
+
+    console.log(`Compressing ${appPath} to ZIP for faster upload...`);
+    execSync(`ditto -c -k --sequesterRsrc --keepParent "${appPath}" "${zipPath}"`, { stdio: 'inherit' });
+
+    const appSize = execSync(`du -sh "${appPath}"`, { encoding: 'utf8' }).split('\t')[0];
+    const zipSize = execSync(`du -sh "${zipPath}"`, { encoding: 'utf8' }).split('\t')[0];
+    console.log(`Original: ${appSize}, Compressed: ${zipSize}`);
+
+    // 异步提交公证（上传 ZIP 比 .app 快 3-5 倍）/ Submit notarization async (uploading ZIP is 3-5x faster than .app)
+    console.log(`Uploading ${zipPath} to Apple notarization service...`);
+    console.log(`This may take 5-10 minutes depending on network speed...`);
+
     const submitResult = execSync(
-      `xcrun notarytool submit "${appPath}" ` +
+      `xcrun notarytool submit "${zipPath}" ` +
       `--apple-id "${process.env.appleId}" ` +
       `--password "${process.env.appleIdPassword}" ` +
       `--team-id "${process.env.teamId}" ` +
       `--output-format json`,
-      { encoding: 'utf8' }
+      {
+        encoding: 'utf8',
+        stdio: ['pipe', 'pipe', 'inherit']  // 显示stderr进度输出 / Show stderr progress output
+      }
     );
+
+    // 清理临时 ZIP / Clean up temporary ZIP
+    fs.unlinkSync(zipPath);
+    console.log(`Temporary ZIP deleted: ${zipPath}`);
 
     // 解析提交结果 / Parse submission result
     const { id: submissionId, status } = JSON.parse(submitResult);
