@@ -1,0 +1,244 @@
+name: Background Notarization
+
+# 当主构建完成后自动触发 / Triggered automatically after main build completes
+on:
+  workflow_run:
+    workflows: ["Build and Release"]
+    types: [completed]
+    branches: [main, dev]
+
+jobs:
+  notarize:
+    # 只在主构建成功且有 Release 时运行 / Only run if main build succeeded and created a release
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: macos-latest
+    timeout-minutes: 90  # 给足时间等待 Apple / Allow enough time for Apple
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download artifacts from main build
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-build
+          path: ./artifacts
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check if notarization is needed
+        id: check
+        run: |
+          if [ -f ./artifacts/signing-info.json ]; then
+            echo "notarization_needed=true" >> $GITHUB_OUTPUT
+            echo "✅ Found signing-info.json, will proceed with notarization"
+          else
+            echo "❌ No signing-info.json found - macOS build likely failed"
+            echo "This means the macOS build artifact was not uploaded properly"
+            exit 1
+          fi
+
+      - name: Extract signing info
+        if: steps.check.outputs.notarization_needed == 'true'
+        id: info
+        run: |
+          APP_NAME=$(node -p "require('./artifacts/signing-info.json').appName")
+          echo "app_name=$APP_NAME" >> $GITHUB_OUTPUT
+          echo "📦 App name: $APP_NAME"
+
+      - name: Find DMG file
+        if: steps.check.outputs.notarization_needed == 'true'
+        id: dmg
+        run: |
+          # 从 signing-info.json 获取 appName / Get appName from signing-info.json
+          APP_NAME=$(node -p "require('./artifacts/signing-info.json').appName")
+
+          # 使用 appName 精确匹配 DMG / Use appName to match DMG precisely
+          DMG_FILE=$(ls ./artifacts/${APP_NAME}*.dmg 2>/dev/null | head -1)
+
+          if [ -z "$DMG_FILE" ]; then
+            echo "❌ No DMG file found matching pattern: ${APP_NAME}*.dmg"
+            echo "Available files in artifacts:"
+            ls -la ./artifacts/
+            exit 1
+          fi
+
+          DMG_COUNT=$(ls ./artifacts/${APP_NAME}*.dmg 2>/dev/null | wc -l)
+          if [ "$DMG_COUNT" -gt 1 ]; then
+            echo "⚠️  Warning: Multiple DMG files found, using first one:"
+            ls ./artifacts/${APP_NAME}*.dmg
+          fi
+
+          echo "dmg_path=$DMG_FILE" >> $GITHUB_OUTPUT
+          echo "✅ Found DMG: $DMG_FILE"
+
+      - name: Extract and compress app for notarization
+        if: steps.check.outputs.notarization_needed == 'true'
+        id: compress
+        run: |
+          DMG_PATH="${{ steps.dmg.outputs.dmg_path }}"
+          APP_NAME=$(node -p "require('./artifacts/signing-info.json').appName")
+
+          echo "📦 Mounting DMG..."
+          MOUNT_POINT=$(hdiutil attach "$DMG_PATH" -nobrowse -readonly | tail -1 | awk '{print $3}')
+
+          if [ -z "$MOUNT_POINT" ]; then
+            echo "❌ Failed to mount DMG"
+            exit 1
+          fi
+
+          echo "✅ DMG mounted at: $MOUNT_POINT"
+
+          # 查找 .app 文件
+          APP_PATH=$(find "$MOUNT_POINT" -name "${APP_NAME}.app" -maxdepth 2 | head -1)
+
+          if [ -z "$APP_PATH" ]; then
+            echo "❌ .app not found in DMG"
+            hdiutil detach "$MOUNT_POINT" -force || true
+            exit 1
+          fi
+
+          echo "✅ Found app: $APP_PATH"
+
+          # 使用 ditto 压缩（Apple 推荐方式）
+          ZIP_PATH="./artifacts/${APP_NAME}.zip"
+          echo "📦 Compressing app to ZIP..."
+          ditto -c -k --keepParent "$APP_PATH" "$ZIP_PATH"
+
+          # 卸载 DMG
+          hdiutil detach "$MOUNT_POINT" -force || true
+
+          # 检查 ZIP 大小
+          DMG_SIZE=$(ls -lh "$DMG_PATH" | awk '{print $5}')
+          ZIP_SIZE=$(ls -lh "$ZIP_PATH" | awk '{print $5}')
+
+          echo "✅ Compression complete!"
+          echo "   DMG size: $DMG_SIZE"
+          echo "   ZIP size: $ZIP_SIZE"
+
+          echo "zip_path=$ZIP_PATH" >> $GITHUB_OUTPUT
+
+      - name: Submit for notarization
+        if: steps.check.outputs.notarization_needed == 'true'
+        id: submit
+        run: |
+          ZIP_PATH="${{ steps.compress.outputs.zip_path }}"
+          echo "🚀 Submitting ZIP for notarization: $ZIP_PATH"
+
+          # 优先使用 API Key / Prefer API Key if available
+          if [ -n "${{ secrets.APPLE_API_KEY }}" ]; then
+            echo "Using API Key authentication"
+
+            # 创建临时 key 文件 / Create temporary key file
+            echo "${{ secrets.APPLE_API_KEY }}" | base64 -d > /tmp/authkey.p8
+
+            RESULT=$(xcrun notarytool submit "$ZIP_PATH" \
+              --key /tmp/authkey.p8 \
+              --key-id "${{ secrets.APPLE_API_KEY_ID }}" \
+              --issuer "${{ secrets.APPLE_API_ISSUER }}" \
+              --wait \
+              --timeout 60m \
+              --output-format json)
+
+            rm -f /tmp/authkey.p8
+          else
+            echo "Using Apple ID authentication"
+
+            RESULT=$(xcrun notarytool submit "$ZIP_PATH" \
+              --apple-id "${{ secrets.APPLE_ID }}" \
+              --password "${{ secrets.APPLE_ID_PASSWORD }}" \
+              --team-id "${{ secrets.TEAM_ID }}" \
+              --wait \
+              --timeout 60m \
+              --output-format json)
+          fi
+
+          echo "$RESULT"
+
+          SUBMISSION_ID=$(echo "$RESULT" | grep -o '"id": *"[^"]*"' | head -1 | grep -o '"[^"]*"$' | tr -d '"')
+          STATUS=$(echo "$RESULT" | grep -o '"status": *"[^"]*"' | head -1 | grep -o '"[^"]*"$' | tr -d '"')
+
+          echo "submission_id=$SUBMISSION_ID" >> $GITHUB_OUTPUT
+          echo "status=$STATUS" >> $GITHUB_OUTPUT
+
+          if [ "$STATUS" = "Accepted" ]; then
+            echo "✅ Notarization successful!"
+          else
+            echo "❌ Notarization failed with status: $STATUS"
+            exit 1
+          fi
+
+      - name: Staple notarization ticket
+        if: steps.check.outputs.notarization_needed == 'true' && steps.submit.outputs.status == 'Accepted'
+        run: |
+          echo "📎 Stapling notarization ticket..."
+          xcrun stapler staple "${{ steps.dmg.outputs.dmg_path }}"
+          echo "✅ Stapling complete!"
+
+      - name: Verify notarization
+        if: steps.check.outputs.notarization_needed == 'true' && steps.submit.outputs.status == 'Accepted'
+        run: |
+          echo "🔍 Verifying notarization..."
+          xcrun stapler validate "${{ steps.dmg.outputs.dmg_path }}"
+          spctl -a -vvv -t install "${{ steps.dmg.outputs.dmg_path }}"
+          echo "✅ Verification successful!"
+
+      - name: Get release info
+        if: steps.check.outputs.notarization_needed == 'true' && steps.submit.outputs.status == 'Accepted'
+        id: release
+        run: |
+          # 从 signing-info.json 读取 release tag / Read release tag from signing-info.json
+          RELEASE_TAG=$(node -p "require('./artifacts/signing-info.json').releaseTag || ''")
+
+          if [ -z "$RELEASE_TAG" ]; then
+            echo "❌ No release tag found in signing-info.json"
+            echo "This means the release job did not update signing-info.json properly"
+            echo "Artifact contents:"
+            ls -la ./artifacts/
+            cat ./artifacts/signing-info.json
+            exit 1
+          fi
+
+          echo "release_tag=$RELEASE_TAG" >> $GITHUB_OUTPUT
+          echo "✅ Target release: $RELEASE_TAG"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload notarized DMG to release
+        if: steps.check.outputs.notarization_needed == 'true' && steps.submit.outputs.status == 'Accepted'
+        run: |
+          DMG_NAME=$(basename "${{ steps.dmg.outputs.dmg_path }}")
+
+          echo "🚀 Uploading notarized DMG to release..."
+
+          # 删除旧的 DMG（如果存在）/ Delete old DMG if exists
+          gh release delete-asset "${{ steps.release.outputs.release_tag }}" "$DMG_NAME" --yes || true
+
+          # 上传新的公证过的 DMG / Upload new notarized DMG
+          gh release upload "${{ steps.release.outputs.release_tag }}" "${{ steps.dmg.outputs.dmg_path }}" --clobber
+
+          echo "✅ Notarized DMG uploaded successfully!"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Add notarization success comment
+        if: steps.check.outputs.notarization_needed == 'true' && steps.submit.outputs.status == 'Accepted'
+        run: |
+          gh release edit "${{ steps.release.outputs.release_tag }}" --notes-file - <<EOF
+          $(gh release view "${{ steps.release.outputs.release_tag }}" --json body --jq '.body')
+
+          ---
+
+          ✅ **macOS App Notarized** ($(date -u +"%Y-%m-%d %H:%M:%S UTC"))
+
+          The macOS DMG has been successfully notarized by Apple and is now fully verified for distribution.
+          EOF
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "❌ Background notarization failed"
+          echo "The signed (but not notarized) DMG is still available in the release"
+          echo "Users can install it by right-clicking and selecting 'Open'"
