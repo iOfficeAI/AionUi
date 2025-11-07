@@ -81,7 +81,6 @@ exports.default = async function afterSign(context) {
     console.log(`Note: Stapling will be handled by separate workflow`);
 
     // 保存submission ID供staple workflow使用 / Save submission ID for staple workflow
-    const fs = require('fs');
     const submissionInfo = {
       submissionId,  // 公证提交ID / Notarization submission ID
       appPath,       // 应用路径 / App path
