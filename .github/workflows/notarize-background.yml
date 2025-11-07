@@ -7,23 +7,53 @@ on:
     types: [completed]
     branches: [main, dev]
 
+  # 支持手动触发重新公证 / Support manual re-notarization
+  workflow_dispatch:
+    inputs:
+      run_id:
+        description: 'Build workflow run ID to notarize (leave empty to use latest)'
+        required: false
+        type: string
+
 jobs:
   notarize:
-    # 只在主构建成功且有 Release 时运行 / Only run if main build succeeded and created a release
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    # 只在主构建成功或手动触发时运行 / Only run if main build succeeded or manually triggered
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
     runs-on: macos-latest
-    timeout-minutes: 90  # 给足时间等待 Apple / Allow enough time for Apple
+    timeout-minutes: 120  # 增加到 120 分钟 / Increased to 120 minutes for Apple delays
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Determine workflow run ID
+        id: run_id
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            # 手动触发：使用输入的 run_id 或查找最新的成功构建
+            if [ -n "${{ inputs.run_id }}" ]; then
+              RUN_ID="${{ inputs.run_id }}"
+              echo "📝 Using manually specified run ID: $RUN_ID"
+            else
+              RUN_ID=$(gh run list --workflow "Build and Release" --status success --limit 1 --json databaseId --jq '.[0].databaseId')
+              echo "🔍 Using latest successful build run ID: $RUN_ID"
+            fi
+          else
+            # 自动触发：使用触发此 workflow 的 run_id
+            RUN_ID="${{ github.event.workflow_run.id }}"
+            echo "🤖 Using triggering workflow run ID: $RUN_ID"
+          fi
+
+          echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download artifacts from main build
         uses: actions/download-artifact@v4
         with:
           name: macos-build
           path: ./artifacts
-          run-id: ${{ github.event.workflow_run.id }}
+          run-id: ${{ steps.run_id.outputs.run_id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check if notarization is needed
@@ -118,55 +148,80 @@ jobs:
 
           echo "zip_path=$ZIP_PATH" >> $GITHUB_OUTPUT
 
-      - name: Submit for notarization
+      - name: Submit for notarization with auto-retry
         if: steps.check.outputs.notarization_needed == 'true'
         id: submit
         run: |
           ZIP_PATH="${{ steps.compress.outputs.zip_path }}"
-          echo "🚀 Submitting ZIP for notarization: $ZIP_PATH"
+          MAX_RETRIES=3
+          RETRY_DELAY=300  # 5分钟 / 5 minutes
 
-          # 优先使用 API Key / Prefer API Key if available
-          if [ -n "${{ secrets.APPLE_API_KEY }}" ]; then
-            echo "Using API Key authentication"
+          for attempt in $(seq 1 $MAX_RETRIES); do
+            echo ""
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "🚀 Notarization attempt $attempt/$MAX_RETRIES"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "📦 Submitting ZIP: $ZIP_PATH"
 
-            # 创建临时 key 文件 / Create temporary key file
-            echo "${{ secrets.APPLE_API_KEY }}" | base64 -d > /tmp/authkey.p8
+            # 优先使用 API Key / Prefer API Key if available
+            if [ -n "${{ secrets.APPLE_API_KEY }}" ]; then
+              echo "🔑 Using API Key authentication"
+              echo "${{ secrets.APPLE_API_KEY }}" | base64 -d > /tmp/authkey.p8
 
-            RESULT=$(xcrun notarytool submit "$ZIP_PATH" \
-              --key /tmp/authkey.p8 \
-              --key-id "${{ secrets.APPLE_API_KEY_ID }}" \
-              --issuer "${{ secrets.APPLE_API_ISSUER }}" \
-              --wait \
-              --timeout 60m \
-              --output-format json)
+              RESULT=$(xcrun notarytool submit "$ZIP_PATH" \
+                --key /tmp/authkey.p8 \
+                --key-id "${{ secrets.APPLE_API_KEY_ID }}" \
+                --issuer "${{ secrets.APPLE_API_ISSUER }}" \
+                --wait \
+                --timeout 60m \
+                --output-format json 2>&1) || SUBMIT_FAILED=true
 
-            rm -f /tmp/authkey.p8
-          else
-            echo "Using Apple ID authentication"
+              rm -f /tmp/authkey.p8
+            else
+              echo "🔑 Using Apple ID authentication"
 
-            RESULT=$(xcrun notarytool submit "$ZIP_PATH" \
-              --apple-id "${{ secrets.APPLE_ID }}" \
-              --password "${{ secrets.APPLE_ID_PASSWORD }}" \
-              --team-id "${{ secrets.TEAM_ID }}" \
-              --wait \
-              --timeout 60m \
-              --output-format json)
-          fi
+              RESULT=$(xcrun notarytool submit "$ZIP_PATH" \
+                --apple-id "${{ secrets.APPLE_ID }}" \
+                --password "${{ secrets.APPLE_ID_PASSWORD }}" \
+                --team-id "${{ secrets.TEAM_ID }}" \
+                --wait \
+                --timeout 60m \
+                --output-format json 2>&1) || SUBMIT_FAILED=true
+            fi
 
-          echo "$RESULT"
+            echo "$RESULT"
 
-          SUBMISSION_ID=$(echo "$RESULT" | grep -o '"id": *"[^"]*"' | head -1 | grep -o '"[^"]*"$' | tr -d '"')
-          STATUS=$(echo "$RESULT" | grep -o '"status": *"[^"]*"' | head -1 | grep -o '"[^"]*"$' | tr -d '"')
+            # 检查是否成功 / Check if successful
+            if [ -z "$SUBMIT_FAILED" ]; then
+              SUBMISSION_ID=$(echo "$RESULT" | grep -o '"id": *"[^"]*"' | head -1 | grep -o '"[^"]*"$' | tr -d '"')
+              STATUS=$(echo "$RESULT" | grep -o '"status": *"[^"]*"' | head -1 | grep -o '"[^"]*"$' | tr -d '"')
 
-          echo "submission_id=$SUBMISSION_ID" >> $GITHUB_OUTPUT
-          echo "status=$STATUS" >> $GITHUB_OUTPUT
+              if [ "$STATUS" = "Accepted" ]; then
+                echo "✅ Notarization successful on attempt $attempt!"
+                echo "submission_id=$SUBMISSION_ID" >> $GITHUB_OUTPUT
+                echo "status=$STATUS" >> $GITHUB_OUTPUT
+                exit 0
+              else
+                echo "⚠️  Notarization returned status: $STATUS"
+              fi
+            else
+              echo "⚠️  Notarization submission failed or timed out"
+            fi
 
-          if [ "$STATUS" = "Accepted" ]; then
-            echo "✅ Notarization successful!"
-          else
-            echo "❌ Notarization failed with status: $STATUS"
-            exit 1
-          fi
+            # 如果不是最后一次尝试，等待后重试 / If not last attempt, wait and retry
+            if [ $attempt -lt $MAX_RETRIES ]; then
+              echo "⏳ Waiting $RETRY_DELAY seconds before retry..."
+              sleep $RETRY_DELAY
+            fi
+
+            unset SUBMIT_FAILED
+          done
+
+          # 所有尝试都失败 / All attempts failed
+          echo ""
+          echo "❌ Notarization failed after $MAX_RETRIES attempts"
+          echo "Last result: $RESULT"
+          exit 1
 
       - name: Staple notarization ticket
         if: steps.check.outputs.notarization_needed == 'true' && steps.submit.outputs.status == 'Accepted'
@@ -240,5 +295,24 @@ jobs:
         if: failure()
         run: |
           echo "❌ Background notarization failed"
-          echo "The signed (but not notarized) DMG is still available in the release"
-          echo "Users can install it by right-clicking and selecting 'Open'"
+          echo ""
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "📦 Current Status:"
+          echo "   • Signed DMG is available in the release"
+          echo "   • Users can install by right-clicking and selecting 'Open'"
+          echo "   • Notarization failed - DMG is not fully verified"
+          echo ""
+          echo "🔄 How to Retry:"
+          echo "   1. Go to Actions → Background Notarization"
+          echo "   2. Click 'Run workflow'"
+          echo "   3. Leave run_id empty to retry latest build"
+          echo "   4. Or specify the build run ID"
+          echo ""
+          echo "🕐 Typical Causes:"
+          echo "   • Apple notarization service timeout (> 120 min)"
+          echo "   • Apple service temporarily unavailable"
+          echo "   • Network connectivity issues"
+          echo ""
+          echo "💡 Workflow URL:"
+          echo "   https://github.com/${{ github.repository }}/actions/workflows/notarize-background.yml"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
