@@ -1,74 +1,98 @@
-/* Guid页面的模块化样式 */
-
-/* Space容器rounded-full样式 */
-.roundedSpace {
-  border-radius: 9999px !important;
-  overflow: hidden;
+.guidLayout {
+  width: 800px;
+  max-width: calc(100vw - 32px);
+  padding: 0 16px;
+  box-sizing: border-box;
 }
 
-/* Radio按钮组rounded-full样式 */
-.roundedRadioGroup {
-  border-radius: 9999px !important;
-  overflow: hidden;
+.guidInputCard {
+  width: 100%;
+  box-sizing: border-box;
 }
 
-.roundedRadioGroup :global(.arco-radio-group-type-button) {
-  border-radius: 9999px !important;
-  overflow: hidden;
+.actionRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 8px;
+  margin-top: 12px;
 }
 
-.roundedRadioGroup :global(.arco-radio-button) {
-  border-radius: 9999px !important;
+.actionTools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
 }
 
-.roundedRadioGroup :global(.arco-radio-button:first-child) {
-  border-radius: 9999px !important;
+.actionSubmit {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  margin-left: auto;
 }
 
-.roundedRadioGroup :global(.arco-radio-button:last-child) {
-  border-radius: 9999px !important;
+.lightPlaceholder::placeholder {
+  color: var(--color-text-3);
+  opacity: 0.6;
 }
 
-.roundedRadioGroup :global(.arco-radio-button:only-child) {
-  border-radius: 9999px !important;
-}
-
-/* 未选中按钮透明度 */
-.roundedRadioGroup :global(.arco-radio-button:not(.arco-radio-checked)) {
-  opacity: 0.5;
-  transition: opacity 0.2s ease-in-out;
-}
-
-.roundedRadioGroup :global(.arco-radio-button:not(.arco-radio-checked):hover) {
-  opacity: 0.7;
-}
-
-/* Plus 按钮旋转动画 */
 .plusButtonRotate {
-  transition: transform 0.15s ease-in-out !important;
-  transform: rotate(45deg) !important;
+  animation: rotate-animation 0.3s ease-in-out;
 }
 
-/* 打字机光标闪烁效果 */
-@keyframes blink {
-  0%,
-  49% {
-    opacity: 1;
+@keyframes rotate-animation {
+  0% {
+    transform: rotate(0deg);
   }
-  50%,
   100% {
-    opacity: 0;
+    transform: rotate(45deg);
   }
 }
 
-.typewriterCursor::after {
-  content: '|';
-  animation: blink 1s infinite;
-  margin-left: 2px;
+/* 移动端优化 */
+@media (max-width: 768px) {
+  .guidLayout {
+    width: 100%;
+    padding: 0 16px;
+    box-sizing: border-box;
+  }
+
+  .guidInputCard {
+    width: 100%;
+  }
+
+  .actionRow {
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+
+  .actionTools {
+    gap: 8px;
+    flex-shrink: 1;
+    min-width: 0;
+  }
+
+  .actionSubmit {
+    flex-shrink: 0;
+    margin-left: 8px;
+  }
 }
 
-/* 浅色占位符 */
-.lightPlaceholder :global(textarea::placeholder) {
-  color: var(--text-disabled) !important;
-  opacity: 1 !important;
+/* iPhone专门优化 */
+@supports (-webkit-touch-callout: none) {
+  .actionRow {
+    flex-wrap: nowrap !important;
+  }
+
+  .actionTools {
+    flex-shrink: 1;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .actionSubmit {
+    flex-shrink: 0;
+  }
 }

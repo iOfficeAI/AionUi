@@ -59,6 +59,11 @@ function CodeBlock(props: any) {
             borderRadius: '4px',
             border: '1px solid',
             borderColor: 'var(--bg-3)',
+            display: 'inline-block',
+            maxWidth: '100%',
+            overflowWrap: 'anywhere',
+            wordBreak: 'break-word',
+            whiteSpace: 'break-spaces',
           }}
         >
           {children}
@@ -184,6 +189,12 @@ const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string
         border: 1px solid var(--bg-3);
         min-width: 120px;
     }
+  }
+  /* Inline code should wrap on small screens to avoid horizontal overflow */
+  .markdown-shadow-body code {
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    max-width: 100%;
   }
   .loading {
     animation: loading 1s linear infinite;
