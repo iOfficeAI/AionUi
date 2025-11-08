@@ -68,7 +68,7 @@ const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
 
   if (json)
     return (
-      <div className=' p-x-12px p-y-8px min-w-400px'>
+      <div className=' p-x-12px p-y-8px w-full max-w-100% min-w-0'>
         <CollapsibleContent maxHeight={300} defaultCollapsed={true}>
           <MarkdownView>{`\`\`\`json\n${JSON.stringify(data, null, 2)}\n\`\`\``}</MarkdownView>
         </CollapsibleContent>
