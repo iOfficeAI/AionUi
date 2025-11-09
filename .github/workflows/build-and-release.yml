@@ -232,7 +232,7 @@ jobs:
         if: "!startsWith(matrix.platform, 'windows')"
         uses: nick-fields/retry@v3
         with:
-          timeout_minutes: 40
+          timeout_minutes: 60  # Increased to 60 minutes for first-time macOS notarization preparation
           max_attempts: 2
           retry_wait_seconds: 300
           continue_on_error: ${{ matrix.platform == 'macos' }}
@@ -248,6 +248,8 @@ jobs:
           # macOS signing configuration / macOS 签名配置
           # 跳过同步公证，由后台 workflow 处理 / Skip sync notarization, handled by background workflow
           SKIP_NOTARIZATION: true
+          # First-time notarization info for background workflow
+          FIRST_TIME_NOTARIZATION: ${{ secrets.FIRST_TIME_NOTARIZATION || 'false' }}
           identity: ${{ secrets.IDENTITY }}
           # electron-builder signing configuration / electron-builder 签名配置
           CSC_NAME: ${{ secrets.IDENTITY }}

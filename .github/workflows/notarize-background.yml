@@ -20,7 +20,7 @@ jobs:
     # 只在主构建成功或手动触发时运行 / Only run if main build succeeded or manually triggered
     if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
     runs-on: macos-latest
-    timeout-minutes: 120  # 增加到 120 分钟 / Increased to 120 minutes for Apple delays
+    timeout-minutes: 240  # 增加到 240 分钟 / Increased to 240 minutes for first-time app notarization
 
     steps:
       - name: Checkout code
@@ -46,7 +46,7 @@ jobs:
 
           echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
       - name: Download artifacts from main build
         uses: actions/download-artifact@v4
@@ -54,7 +54,7 @@ jobs:
           name: macos-build
           path: ./artifacts
           run-id: ${{ steps.run_id.outputs.run_id }}
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github-token: ${{ secrets.GH_TOKEN }}
 
       - name: Check if notarization is needed
         id: check
@@ -148,64 +148,164 @@ jobs:
 
           echo "zip_path=$ZIP_PATH" >> $GITHUB_OUTPUT
 
-      - name: Submit for notarization with auto-retry
+      - name: Submit for notarization with improved timeout handling
         if: steps.check.outputs.notarization_needed == 'true'
         id: submit
         run: |
           ZIP_PATH="${{ steps.compress.outputs.zip_path }}"
           MAX_RETRIES=3
           RETRY_DELAY=300  # 5分钟 / 5 minutes
-
+          
+          # For first-time apps, Apple may take longer than typical 60min
+          NOTARIZATION_TIMEOUT=90m  # Increased to 90 minutes for first-time submissions
+          
+          # Try notarization submission
           for attempt in $(seq 1 $MAX_RETRIES); do
             echo ""
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo "🚀 Notarization attempt $attempt/$MAX_RETRIES"
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo "📦 Submitting ZIP: $ZIP_PATH"
-
-            # 优先使用 API Key / Prefer API Key if available
+            echo "⏰ Timeout: $NOTARIZATION_TIMEOUT"
+            echo "📋 This may take a very long time (up to 24 hours) for first-time apps"
+            
+            # 优先使用 API Key / Prefer API Key if available (more reliable than Apple ID)
             if [ -n "${{ secrets.APPLE_API_KEY }}" ]; then
-              echo "🔑 Using API Key authentication"
+              echo "🔑 Using API Key authentication (recommended)"
               echo "${{ secrets.APPLE_API_KEY }}" | base64 -d > /tmp/authkey.p8
 
-              RESULT=$(xcrun notarytool submit "$ZIP_PATH" \
+              # Submit without --wait to avoid blocking, get submission ID for polling
+              SUBMIT_RESULT=$(xcrun notarytool submit "$ZIP_PATH" \
                 --key /tmp/authkey.p8 \
                 --key-id "${{ secrets.APPLE_API_KEY_ID }}" \
                 --issuer "${{ secrets.APPLE_API_ISSUER }}" \
-                --wait \
-                --timeout 60m \
-                --output-format json 2>&1) || SUBMIT_FAILED=true
+                --output-format json 2>&1)
+              SUBMIT_STATUS=$?
 
               rm -f /tmp/authkey.p8
             else
               echo "🔑 Using Apple ID authentication"
-
-              RESULT=$(xcrun notarytool submit "$ZIP_PATH" \
+              
+              # Submit without --wait to avoid blocking, get submission ID for polling
+              SUBMIT_RESULT=$(xcrun notarytool submit "$ZIP_PATH" \
                 --apple-id "${{ secrets.APPLE_ID }}" \
                 --password "${{ secrets.APPLE_ID_PASSWORD }}" \
                 --team-id "${{ secrets.TEAM_ID }}" \
-                --wait \
-                --timeout 60m \
-                --output-format json 2>&1) || SUBMIT_FAILED=true
+                --output-format json 2>&1)
+              SUBMIT_STATUS=$?
             fi
 
-            echo "$RESULT"
-
-            # 检查是否成功 / Check if successful
-            if [ -z "$SUBMIT_FAILED" ]; then
-              SUBMISSION_ID=$(echo "$RESULT" | grep -o '"id": *"[^"]*"' | head -1 | grep -o '"[^"]*"$' | tr -d '"')
-              STATUS=$(echo "$RESULT" | grep -o '"status": *"[^"]*"' | head -1 | grep -o '"[^"]*"$' | tr -d '"')
-
-              if [ "$STATUS" = "Accepted" ]; then
-                echo "✅ Notarization successful on attempt $attempt!"
-                echo "submission_id=$SUBMISSION_ID" >> $GITHUB_OUTPUT
-                echo "status=$STATUS" >> $GITHUB_OUTPUT
-                exit 0
+            if [ $SUBMIT_STATUS -eq 0 ]; then
+              SUBMISSION_ID=$(echo "$SUBMIT_RESULT" | grep -o '"id": *"[^"]*"' | head -1 | grep -o '"[^"]*"$' | tr -d '"')
+              if [ -n "$SUBMISSION_ID" ]; then
+                echo "✅ Notarization submitted successfully! ID: $SUBMISSION_ID"
+                
+                # Now poll for completion with improved timeout handling
+                echo "⏳ Waiting for notarization to complete (ID: $SUBMISSION_ID)..."
+                echo "⏰ This may take up to 24 hours for first-time app submissions"
+                
+                # Use exponential backoff for polling: start with 30s, max 10min intervals
+                POLL_INTERVAL=30
+                MAX_POLL_INTERVAL=600  # 10 minutes max
+                TOTAL_POLL_TIME=0
+                MAX_POLL_TIME=86400  # 24 hours max total wait time (Apple can take this long for first-time apps)
+                LAST_STATUS=""
+                
+                while [ $TOTAL_POLL_TIME -lt $MAX_POLL_TIME ]; do
+                  # Check status without waiting, with better error handling
+                  if [ -n "${{ secrets.APPLE_API_KEY }}" ]; then
+                    # Use API key if available
+                    echo "${{ secrets.APPLE_API_KEY }}" | base64 -d > /tmp/authkey.p8
+                    STATUS_RESULT=$(xcrun notarytool info "$SUBMISSION_ID" \
+                      --key /tmp/authkey.p8 \
+                      --key-id "${{ secrets.APPLE_API_KEY_ID }}" \
+                      --issuer "${{ secrets.APPLE_API_ISSUER }}" \
+                      --output-format json 2>&1)
+                    STATUS_CODE=$?
+                    rm -f /tmp/authkey.p8
+                  else
+                    # Fallback to Apple ID
+                    STATUS_RESULT=$(xcrun notarytool info "$SUBMISSION_ID" \
+                      --output-format json \
+                      --apple-id "${{ secrets.APPLE_ID }}" \
+                      --password "${{ secrets.APPLE_ID_PASSWORD }}" \
+                      --team-id "${{ secrets.TEAM_ID }}" 2>&1)
+                    STATUS_CODE=$?
+                  fi
+                  
+                  if [ $STATUS_CODE -eq 0 ]; then
+                    STATUS=$(echo "$STATUS_RESULT" | grep -o '"status": *"[^"]*"' | head -1 | grep -o '"[^"]*"$' | tr -d '"')
+                    
+                    # Only log status if it has changed to reduce log spam
+                    if [ "$STATUS" != "$LAST_STATUS" ]; then
+                      echo "📊 Status: $STATUS (after $((TOTAL_POLL_TIME/60)) minutes)"
+                      LAST_STATUS="$STATUS"
+                    elif [ $((TOTAL_POLL_TIME % 600)) -eq 0 ]; then
+                      # Log every 10 minutes even if status hasn't changed
+                      echo "📊 Status: $STATUS (still processing, total elapsed: $((TOTAL_POLL_TIME/60)) minutes)"
+                    fi
+                    
+                    case "$STATUS" in
+                      "Accepted")
+                        echo "✅ Notarization completed successfully!"
+                        echo "submission_id=$SUBMISSION_ID" >> $GITHUB_OUTPUT
+                        echo "status=$STATUS" >> $GITHUB_OUTPUT
+                        exit 0
+                        ;;
+                      "Invalid"|"Rejected")
+                        echo "❌ Notarization failed with status: $STATUS"
+                        echo "$STATUS_RESULT"
+                        # Get detailed logs for debugging
+                        if [ -n "${{ secrets.APPLE_API_KEY }}" ]; then
+                          echo "${{ secrets.APPLE_API_KEY }}" | base64 -d > /tmp/authkey.p8
+                          xcrun notarytool log "$SUBMISSION_ID" \
+                            --key /tmp/authkey.p8 \
+                            --key-id "${{ secrets.APPLE_API_KEY_ID }}" \
+                            --issuer "${{ secrets.APPLE_API_ISSUER }}" 2>&1 || true
+                          rm -f /tmp/authkey.p8
+                        else
+                          xcrun notarytool log "$SUBMISSION_ID" \
+                            --apple-id "${{ secrets.APPLE_ID }}" \
+                            --password "${{ secrets.APPLE_ID_PASSWORD }}" \
+                            --team-id "${{ secrets.TEAM_ID }}" 2>&1 || true
+                        fi
+                        exit 1
+                        ;;
+                      *)
+                        # Continue waiting
+                        ;;
+                    esac
+                  else
+                    # Handle network errors or API issues gracefully
+                    echo "⚠️  Failed to check notarization status: $STATUS_RESULT"
+                    echo "⏰ Continuing to wait (network issue or temporary API problem)"
+                  fi
+                  
+                  # Wait before next check
+                  sleep $POLL_INTERVAL
+                  TOTAL_POLL_TIME=$((TOTAL_POLL_TIME + POLL_INTERVAL))
+                  
+                  # Exponential backoff for polling interval (max 10 minutes)
+                  if [ $POLL_INTERVAL -lt $MAX_POLL_INTERVAL ]; then
+                    POLL_INTERVAL=$((POLL_INTERVAL * 2))
+                    if [ $POLL_INTERVAL -gt $MAX_POLL_INTERVAL ]; then
+                      POLL_INTERVAL=$MAX_POLL_INTERVAL
+                    fi
+                  fi
+                done
+                
+                echo "⏰ Max wait time reached ($((MAX_POLL_TIME/3600)) hours), notarization still in progress"
+                echo "This is expected for first-time submissions which can take up to 24 hours"
+                echo "Try again later or check the status manually using:"
+                echo "  xcrun notarytool info $SUBMISSION_ID --apple-id '${{ secrets.APPLE_ID }}' --team-id '${{ secrets.TEAM_ID }}'"
+                echo "Notarization was submitted successfully but timed out waiting for completion"
+                exit 1
               else
-                echo "⚠️  Notarization returned status: $STATUS"
+                echo "⚠️  Failed to extract submission ID, result: $SUBMIT_RESULT"
               fi
             else
-              echo "⚠️  Notarization submission failed or timed out"
+              echo "⚠️  Notarization submission failed on attempt $attempt:"
+              echo "$SUBMIT_RESULT"
             fi
 
             # 如果不是最后一次尝试，等待后重试 / If not last attempt, wait and retry
@@ -213,14 +313,12 @@ jobs:
               echo "⏳ Waiting $RETRY_DELAY seconds before retry..."
               sleep $RETRY_DELAY
             fi
-
-            unset SUBMIT_FAILED
           done
 
           # 所有尝试都失败 / All attempts failed
           echo ""
           echo "❌ Notarization failed after $MAX_RETRIES attempts"
-          echo "Last result: $RESULT"
+          echo "Last result: $SUBMIT_RESULT"
           exit 1
 
       - name: Staple notarization ticket
@@ -257,7 +355,7 @@ jobs:
           echo "release_tag=$RELEASE_TAG" >> $GITHUB_OUTPUT
           echo "✅ Target release: $RELEASE_TAG"
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
       - name: Upload notarized DMG to release
         if: steps.check.outputs.notarization_needed == 'true' && steps.submit.outputs.status == 'Accepted'
@@ -274,7 +372,7 @@ jobs:
 
           echo "✅ Notarized DMG uploaded successfully!"
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
       - name: Add notarization success comment
         if: steps.check.outputs.notarization_needed == 'true' && steps.submit.outputs.status == 'Accepted'
@@ -289,7 +387,7 @@ jobs:
           The macOS DMG has been successfully notarized by Apple and is now fully verified for distribution.
           EOF
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
       - name: Notify on failure
         if: failure()
@@ -309,9 +407,13 @@ jobs:
           echo "   4. Or specify the build run ID"
           echo ""
           echo "🕐 Typical Causes:"
-          echo "   • Apple notarization service timeout (> 120 min)"
+          echo "   • Apple notarization service timeout (> 24 hours for first-time apps)"
           echo "   • Apple service temporarily unavailable"
           echo "   • Network connectivity issues"
+          echo "   • Invalid code signing"
+          echo ""
+          echo "💡 First-time apps can take up to 24 hours for initial notarization"
+          echo "   Subsequent builds typically take 5-15 minutes"
           echo ""
           echo "💡 Workflow URL:"
           echo "   https://github.com/${{ github.repository }}/actions/workflows/notarize-background.yml"
