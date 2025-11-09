@@ -1,3 +1,10 @@
+/* Global box-sizing to ensure padding and border are included in width */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 .loading {
   animation: loading 1s linear infinite;
 }
@@ -236,12 +243,15 @@
 
     /* 移动端toggle按钮样式 - 简洁风格 */
     .mobile-toggle-btn {
+      -webkit-appearance: none !important;
+      appearance: none !important;
       background: transparent !important;
       border: none !important;
       box-shadow: none !important;
       padding: 0 !important;
       margin: 0 !important;
       outline: none !important;
+      border-radius: 9999px !important;
     }
 
     .mobile-toggle-btn:hover {
@@ -342,6 +352,8 @@
       max-width: 100% !important;
     }
   }
+
+  /* （已移至 styles/themes/base.css 生效） */
 
   /* 确保某些特定元素在移动端有更好的可读性 */
   .text-14px {
@@ -560,3 +572,29 @@
     line-height: 1 !important;
   }
 }
+
+/* iOS Safari: relax global overflow/height to avoid keyboard flicker and allow paste menu */
+@supports (-webkit-touch-callout: none) {
+  html,
+  body {
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    height: auto !important;
+    min-height: 100% !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #root {
+    height: auto !important;
+    min-height: 100dvh !important;
+  }
+
+  /* Ensure main containers can expand with dynamic viewport */
+  .layout,
+  .arco-layout,
+  .layout-content {
+    min-height: 100dvh !important;
+  }
+}
+
+/* (removed) PWA floating reload button */
