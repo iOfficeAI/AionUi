@@ -1,17 +1,18 @@
 import FlexFullContainer from '@/renderer/components/FlexFullContainer';
 import { removeStack } from '@/renderer/utils/common';
 import { Layout as ArcoLayout } from '@arco-design/web-react';
-import { ExpandLeft, ExpandRight } from '@icon-park/react';
-import React, { useState, useEffect } from 'react';
+import { ExpandLeft, ExpandRight, MenuUnfold } from '@icon-park/react';
+import React, { useEffect, useState } from 'react';
+import { useLayoutContext } from '@/renderer/context/LayoutContext';
 
 import ClaudeLogo from '@/renderer/assets/logos/claude.svg';
 import CodexLogo from '@/renderer/assets/logos/codex.svg';
 import GeminiLogo from '@/renderer/assets/logos/gemini.svg';
 import IflowLogo from '@/renderer/assets/logos/iflow.svg';
 import QwenLogo from '@/renderer/assets/logos/qwen.svg';
+import { iconColors } from '@/renderer/theme/colors';
 import { ACP_BACKENDS_ALL } from '@/types/acpTypes';
 import classNames from 'classnames';
-import { iconColors } from '@/renderer/theme/colors';
 
 const addEventListener = <K extends keyof DocumentEventMap>(key: K, handler: (e: DocumentEventMap[K]) => void): (() => void) => {
   document.addEventListener(key, handler);
@@ -83,6 +84,7 @@ const ChatLayout: React.FC<{
 
   const { siderWidth, dragContext } = useSiderWidthWithDrag(266);
   const { backend } = props;
+  const layout = useLayoutContext();
 
   // 启动时检测移动端并自动收起右侧边栏
   useEffect(() => {
@@ -100,10 +102,23 @@ const ChatLayout: React.FC<{
 
   return (
     <ArcoLayout className={'size-full'}>
-      <ArcoLayout.Content className='flex flex-col flex-1'>
-        <ArcoLayout.Header className={classNames('h-52px flex items-center justify-between p-16px gap-16px  !bg-1')}>
-          <FlexFullContainer className='h-full'>
-            <span className='ml-16px font-bold text-16px text-t-primary inline-block overflow-hidden text-ellipsis whitespace-nowrap w-full max-w-60%'>{props.title}</span>
+      <ArcoLayout.Content
+        className='flex flex-col flex-1'
+        onClick={() => {
+          const isMobile = window.innerWidth < 768;
+          if (isMobile && !rightSiderCollapsed) {
+            setRightSiderCollapsed(true);
+          }
+        }}
+      >
+        <ArcoLayout.Header className={classNames('h-52px flex items-center justify-between p-16px gap-16px  !bg-1 chat-layout-header')}>
+          <FlexFullContainer className='h-full' containerClassName='flex items-center'>
+            {layout?.isMobile && layout?.siderCollapsed && (
+              <span className='inline-flex items-center justify-center w-18px h-18px mr-4px cursor-pointer' onClick={() => layout.setSiderCollapsed(false)} style={{ lineHeight: 0, transform: 'translateY(1px)' }}>
+                <MenuUnfold theme='outline' size={18} fill={iconColors.secondary} strokeWidth={3} />
+              </span>
+            )}
+            <span className='ml-8px font-bold text-16px lh-[1] text-t-primary inline-block overflow-hidden text-ellipsis whitespace-nowrap w-full max-w-60%'>{props.title}</span>
           </FlexFullContainer>
           <div className='flex items-center gap-16px'>
             {backend && (
