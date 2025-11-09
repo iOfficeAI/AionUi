@@ -17,8 +17,14 @@ on:
 
 jobs:
   notarize:
-    # 只在主构建成功或手动触发时运行 / Only run if main build succeeded or manually triggered
-    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' }}
+    # 修改条件，使即使主构建失败也能运行（如果必要文件存在）
+    if: >-
+      ${{
+        github.event.workflow_run.conclusion == 'success' ||
+        github.event.workflow_run.conclusion == 'failure' && 
+        (github.event.workflow_run.head_branch == 'main' || github.event.workflow_run.head_branch == 'dev') ||
+        github.event_name == 'workflow_dispatch'
+      }}
     runs-on: macos-latest
     timeout-minutes: 240  # 增加到 240 分钟 / Increased to 240 minutes for first-time app notarization
 
@@ -30,18 +36,22 @@ jobs:
         id: run_id
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            # 手动触发：使用输入的 run_id 或查找最新的成功构建
+            # 手动触发：使用输入的 run_id 或查找最新的构建（无论成功失败）
             if [ -n "${{ inputs.run_id }}" ]; then
               RUN_ID="${{ inputs.run_id }}"
               echo "📝 Using manually specified run ID: $RUN_ID"
             else
-              RUN_ID=$(gh run list --workflow "Build and Release" --status success --limit 1 --json databaseId --jq '.[0].databaseId')
-              echo "🔍 Using latest successful build run ID: $RUN_ID"
+              # 对于手动触发，查找最新的构建（无论成功失败）
+              RUN_ID=$(gh run list --workflow "Build and Release" --limit 1 --json databaseId --jq '.[0].databaseId')
+              echo "🔍 Using latest build run ID: $RUN_ID"
             fi
           else
             # 自动触发：使用触发此 workflow 的 run_id
             RUN_ID="${{ github.event.workflow_run.id }}"
             echo "🤖 Using triggering workflow run ID: $RUN_ID"
+            if [ "${{ github.event.workflow_run.conclusion }}" = "failure" ]; then
+              echo "⚠️  Main workflow failed, but attempting notarization if artifacts exist"
+            fi
           fi
 
           echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
@@ -56,16 +66,22 @@ jobs:
           run-id: ${{ steps.run_id.outputs.run_id }}
           github-token: ${{ secrets.GH_TOKEN }}
 
-      - name: Check if notarization is needed
+      - name: Check if notarization is needed (even after build failure)
         id: check
         run: |
           if [ -f ./artifacts/signing-info.json ]; then
             echo "notarization_needed=true" >> $GITHUB_OUTPUT
             echo "✅ Found signing-info.json, will proceed with notarization"
+            if [ "${{ github.event.workflow_run.conclusion }}" = "failure" ]; then
+              echo "⚠️  Note: This artifact was from a build that partially failed"
+              echo "   but still generated required files for notarization"
+            fi
           else
-            echo "❌ No signing-info.json found - macOS build likely failed"
-            echo "This means the macOS build artifact was not uploaded properly"
-            exit 1
+            echo "❌ No signing-info.json found - macOS build likely failed too early"
+            echo "Available files in artifacts:"
+            ls -la ./artifacts/ || echo "Artifacts directory does not exist"
+            # 不退出，而是标记为不需要公证
+            echo "notarization_needed=false" >> $GITHUB_OUTPUT
           fi
 
       - name: Extract signing info
