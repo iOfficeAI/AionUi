@@ -406,52 +406,56 @@ const Guid: React.FC = () => {
           </button>
         )}
         <div className={styles.guidLayout}>
-          <p className={`text-2xl font-semibold mb-8 text-0`}>{t('conversation.welcome.title')}</p>
+          <p className={`text-2xl font-semibold mb-8 text-0 text-center`}>{t('conversation.welcome.title')}</p>
 
           {/* Agent 选择器 - 在标题下方 */}
           {availableAgents && availableAgents.length > 0 && (
-            <div
-              className='flex justify-center items-center bg-fill-2'
-              style={{
-                marginBottom: 16,
-                padding: '4px',
-                borderRadius: '30px',
-                transition: 'all 0.6s cubic-bezier(0.2, 0.8, 0.3, 1)',
-              }}
-            >
-              {availableAgents.map((agent, index) => {
-                const isSelected = selectedAgent === agent.backend;
-                const logoSrc = AGENT_LOGO_MAP[agent.backend];
+            <div className='w-full flex justify-center'>
+              <div
+                className='inline-flex items-center bg-fill-2'
+                style={{
+                  marginBottom: 16,
+                  padding: '4px',
+                  borderRadius: '30px',
+                  transition: 'all 0.6s cubic-bezier(0.2, 0.8, 0.3, 1)',
+                  width: 'fit-content',
+                  gap: 0,
+                }}
+              >
+                {availableAgents.map((agent, index) => {
+                  const isSelected = selectedAgent === agent.backend;
+                  const logoSrc = AGENT_LOGO_MAP[agent.backend];
 
-                return (
-                  <React.Fragment key={agent.backend}>
-                    {index > 0 && <div className='text-white/30 text-16px lh-1 p-2px select-none'>|</div>}
-                    <div
-                      className={`group flex items-center cursor-pointer whitespace-nowrap overflow-hidden ${isSelected ? 'opacity-100 px-12px py-8px rd-20px mx-2px' : 'opacity-60 p-4px hover:opacity-100'}`}
-                      style={
-                        isSelected
-                          ? {
-                              transition: 'opacity 0.5s cubic-bezier(0.2, 0.8, 0.3, 1)',
-                              backgroundColor: 'var(--fill-0)',
-                            }
-                          : { transition: 'opacity 0.5s cubic-bezier(0.2, 0.8, 0.3, 1)' }
-                      }
-                      onClick={() => setSelectedAgent(agent.backend)}
-                    >
-                      <img src={logoSrc} alt={`${agent.backend} logo`} width={20} height={20} style={{ objectFit: 'contain', flexShrink: 0 }} />
-                      <span
-                        className={`font-medium text-14px ${isSelected ? 'font-semibold' : 'max-w-0 opacity-0 overflow-hidden group-hover:max-w-100px group-hover:opacity-100 group-hover:ml-8px'}`}
-                        style={{
-                          color: 'var(--color-text-1)',
-                          transition: isSelected ? 'color 0.5s cubic-bezier(0.2, 0.8, 0.3, 1), font-weight 0.5s cubic-bezier(0.2, 0.8, 0.3, 1)' : 'max-width 0.6s cubic-bezier(0.2, 0.8, 0.3, 1), opacity 0.5s cubic-bezier(0.2, 0.8, 0.3, 1) 0.05s, margin 0.6s cubic-bezier(0.2, 0.8, 0.3, 1)',
-                        }}
+                  return (
+                    <React.Fragment key={agent.backend}>
+                      {index > 0 && <div className='text-white/30 text-16px lh-1 p-2px select-none'>|</div>}
+                      <div
+                        className={`group flex items-center cursor-pointer whitespace-nowrap overflow-hidden ${isSelected ? 'opacity-100 px-12px py-8px rd-20px mx-2px' : 'opacity-60 p-4px hover:opacity-100'}`}
+                        style={
+                          isSelected
+                            ? {
+                                transition: 'opacity 0.5s cubic-bezier(0.2, 0.8, 0.3, 1)',
+                                backgroundColor: 'var(--fill-0)',
+                              }
+                            : { transition: 'opacity 0.5s cubic-bezier(0.2, 0.8, 0.3, 1)' }
+                        }
+                        onClick={() => setSelectedAgent(agent.backend)}
                       >
-                        {agent.name}
-                      </span>
-                    </div>
-                  </React.Fragment>
-                );
-              })}
+                        <img src={logoSrc} alt={`${agent.backend} logo`} width={20} height={20} style={{ objectFit: 'contain', flexShrink: 0 }} />
+                        <span
+                          className={`font-medium text-14px ${isSelected ? 'font-semibold' : 'max-w-0 opacity-0 overflow-hidden group-hover:max-w-100px group-hover:opacity-100 group-hover:ml-8px'}`}
+                          style={{
+                            color: 'var(--color-text-1)',
+                            transition: isSelected ? 'color 0.5s cubic-bezier(0.2, 0.8, 0.3, 1), font-weight 0.5s cubic-bezier(0.2, 0.8, 0.3, 1)' : 'max-width 0.6s cubic-bezier(0.2, 0.8, 0.3, 1), opacity 0.5s cubic-bezier(0.2, 0.8, 0.3, 1) 0.05s, margin 0.6s cubic-bezier(0.2, 0.8, 0.3, 1)',
+                          }}
+                        >
+                          {agent.name}
+                        </span>
+                      </div>
+                    </React.Fragment>
+                  );
+                })}
+              </div>
             </div>
           )}
 
