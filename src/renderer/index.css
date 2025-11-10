@@ -560,3 +560,35 @@
     line-height: 1 !important;
   }
 }
+
+/* 字体缩放滑杆刻度样式 / Font scale slider tick styling */
+.font-scale-slider .arco-slider-ticks .arco-slider-tick {
+  width: 4px !important;
+  height: 12px !important;
+  border-radius: 999px;
+  background-color: var(--border-special, #60577e) !important;
+  transform: translate(-50%, -50%) !important;
+}
+
+.font-scale-slider .arco-slider-ticks .arco-slider-tick-active {
+  background-color: rgb(var(--primary-6)) !important;
+}
+
+/* 100% 刻度加粗显示 / Emphasize 100% tick */
+.font-scale-slider .arco-slider-marks {
+  top: 20px;
+}
+
+.font-scale-slider .arco-slider-marks-text {
+  transform: translate(-50%, -120%) !important;
+}
+
+.font-scale-default-mark {
+  display: inline-flex;
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  border: 2px solid rgb(var(--primary-6));
+  background-color: var(--color-bg-2);
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.15);
+}
