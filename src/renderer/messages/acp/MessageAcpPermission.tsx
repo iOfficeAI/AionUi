@@ -5,7 +5,7 @@
  */
 
 import type { IMessageAcpPermission } from '@/common/chatLib';
-import { acpConversation } from '@/common/ipcBridge';
+import { conversation } from '@/common/ipcBridge';
 import { Button, Card, Radio, Typography } from '@arco-design/web-react';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -63,7 +63,7 @@ const MessageAcpPermission: React.FC<MessageAcpPermissionProps> = React.memo(({ 
         callId: toolCall?.toolCallId || message.id, // 使用 toolCallId 或 message.id 作为 fallback
       };
 
-      const result = await acpConversation.confirmMessage.invoke(invokeData);
+      const result = await conversation.confirmMessage.invoke(invokeData);
 
       if (result.success) {
         setHasResponded(true);
