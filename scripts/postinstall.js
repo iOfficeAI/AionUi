@@ -9,7 +9,6 @@ function runPostInstall() {
   try {
     // Check if we're in a CI environment
     const isCI = process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true';
-    const isWindows = process.platform === 'win32';
     const electronVersion = require('../package.json').devDependencies.electron.replace(/^[~^]/, '');
 
     console.log(`Environment: CI=${isCI}, Platform=${process.platform}, Electron=${electronVersion}`);
@@ -19,14 +18,10 @@ function runPostInstall() {
       // 在 CI 中跳过重建，使用预编译的二进制文件以获得更好的兼容性
       console.log('CI environment detected, skipping rebuild to use prebuilt binaries');
       console.log('Native modules will be handled by electron-forge during packaging');
-    } else if (isWindows) {
-      // On Windows in local dev, skip rebuild to avoid Python/C++ build tools requirement
-      // Windows 本地开发环境跳过重建，避免需要 Python/C++ 编译工具
-      console.log('Windows local environment detected, skipping rebuild to use prebuilt binaries');
-      console.log('Native modules (bcrypt, better-sqlite3) will use prebuilt binaries');
-      console.log('If you encounter issues, run: npm run rebuild:native');
     } else {
-      // In local environment (macOS/Linux), use electron-builder to install dependencies
+      // In local environment, use electron-builder to install dependencies
+      // Windows: Requires Python and Visual Studio Build Tools
+      // macOS/Linux: Requires standard build tools
       console.log('Local environment, installing app deps');
       execSync('npx electron-builder install-app-deps', {
         stdio: 'inherit',
@@ -38,6 +33,13 @@ function runPostInstall() {
     }
   } catch (e) {
     console.error('Postinstall failed:', e.message);
+    if (process.platform === 'win32') {
+      console.error('\nWindows users: Please install build tools:');
+      console.error('  npm install --global windows-build-tools');
+      console.error('Or manually install:');
+      console.error('  - Python 3.x: https://www.python.org/downloads/');
+      console.error('  - Visual Studio Build Tools: https://visualstudio.microsoft.com/downloads/');
+    }
     // Don't exit with error code to avoid breaking installation
   }
 }

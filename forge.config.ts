@@ -60,14 +60,6 @@ module.exports = {
           onlyModules: [], // 空数组意味着"不要重建任何模块" / Empty array means "don't rebuild any modules"
         }
       : {}),
-    // 在 Windows 本地开发环境跳过原生模块重建，避免需要 Python/C++ 编译工具
-    // Skip rebuilding on Windows local dev to avoid Python/C++ build tools requirement
-    // 但打包时（FORGE_SKIP_NATIVE_REBUILD='false'）仍会强制重建
-    ...(process.platform === 'win32' && process.env.CI !== 'true' && process.env.FORGE_SKIP_NATIVE_REBUILD !== 'false'
-      ? {
-          onlyModules: [], // Windows 本地开发使用预编译二进制文件
-        }
-      : {}),
     ...(skipNativeRebuild
       ? {
           onlyModules: [], // 开发启动时跳过原生模块重建，避免环境检查
