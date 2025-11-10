@@ -45,6 +45,8 @@ export const application = {
   openDevTools: bridge.buildProvider<void, void>('open-dev-tools'), // 打开开发者工具
   systemInfo: bridge.buildProvider<{ cacheDir: string; workDir: string; platform: string; arch: string }, void>('system.info'), // 获取系统信息
   updateSystemInfo: bridge.buildProvider<IBridgeResponse, { cacheDir: string; workDir: string }>('system.update-info'), // 更新系统信息
+  getZoomFactor: bridge.buildProvider<number, void>('app.get-zoom-factor'),
+  setZoomFactor: bridge.buildProvider<number, { factor: number }>('app.set-zoom-factor'),
 };
 
 export const dialog = {
@@ -91,9 +93,14 @@ export const acpConversation = {
 // MCP 服务相关接口
 export const mcpService = {
   getAgentMcpConfigs: bridge.buildProvider<IBridgeResponse<Array<{ source: McpSource; servers: IMcpServer[] }>>, Array<{ backend: AcpBackend; name: string; cliPath?: string }>>('mcp.get-agent-configs'),
-  testMcpConnection: bridge.buildProvider<IBridgeResponse<{ success: boolean; tools?: Array<{ name: string; description?: string }>; error?: string }>, IMcpServer>('mcp.test-connection'),
+  testMcpConnection: bridge.buildProvider<IBridgeResponse<{ success: boolean; tools?: Array<{ name: string; description?: string }>; error?: string; needsAuth?: boolean; authMethod?: 'oauth' | 'basic'; wwwAuthenticate?: string }>, IMcpServer>('mcp.test-connection'),
   syncMcpToAgents: bridge.buildProvider<IBridgeResponse<{ success: boolean; results: Array<{ agent: string; success: boolean; error?: string }> }>, { mcpServers: IMcpServer[]; agents: Array<{ backend: AcpBackend; name: string; cliPath?: string }> }>('mcp.sync-to-agents'),
   removeMcpFromAgents: bridge.buildProvider<IBridgeResponse<{ success: boolean; results: Array<{ agent: string; success: boolean; error?: string }> }>, { mcpServerName: string; agents: Array<{ backend: AcpBackend; name: string; cliPath?: string }> }>('mcp.remove-from-agents'),
+  // OAuth 相关接口
+  checkOAuthStatus: bridge.buildProvider<IBridgeResponse<{ isAuthenticated: boolean; needsLogin: boolean; error?: string }>, IMcpServer>('mcp.check-oauth-status'),
+  loginMcpOAuth: bridge.buildProvider<IBridgeResponse<{ success: boolean; error?: string }>, { server: IMcpServer; config?: any }>('mcp.login-oauth'),
+  logoutMcpOAuth: bridge.buildProvider<IBridgeResponse, string>('mcp.logout-oauth'),
+  getAuthenticatedServers: bridge.buildProvider<IBridgeResponse<string[]>, void>('mcp.get-authenticated-servers'),
 };
 
 // Codex 对话相关接口 - 复用统一的conversation接口

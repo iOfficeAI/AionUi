@@ -9,6 +9,7 @@ import { ipcBridge } from '../../common';
 import { getSystemDir, ProcessEnv } from '../initStorage';
 import { copyDirectoryRecursively } from '../utils';
 import WorkerManage from '../WorkerManage';
+import { getZoomFactor, setZoomFactor } from '../utils/zoom';
 
 export function initApplicationBridge(): void {
   ipcBridge.application.restart.provider(() => {
@@ -40,5 +41,11 @@ export function initApplicationBridge(): void {
   ipcBridge.application.openDevTools.provider(() => {
     // This will be handled by the main window when needed
     return Promise.resolve();
+  });
+
+  ipcBridge.application.getZoomFactor.provider(() => getZoomFactor());
+
+  ipcBridge.application.setZoomFactor.provider(({ factor }) => {
+    return setZoomFactor(factor);
   });
 }
