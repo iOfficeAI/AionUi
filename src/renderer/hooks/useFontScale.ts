@@ -4,16 +4,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ConfigStorage } from '@/common/storage';
+import { ipcBridge } from '@/common';
+import { UI_SCALE_DEFAULT, UI_SCALE_MAX, UI_SCALE_MIN, UI_SCALE_STEP } from '@/common/constants/uiScale';
 import { useCallback, useEffect, useState } from 'react';
 
-// 字体缩放配置常量 / Font scale configuration constants
-export const FONT_SCALE_DEFAULT = 1;
-export const FONT_SCALE_MIN = 0.8;
-export const FONT_SCALE_MAX = 1.5;
-export const FONT_SCALE_STEP = 0.05;
+export const FONT_SCALE_DEFAULT = UI_SCALE_DEFAULT;
+export const FONT_SCALE_MIN = UI_SCALE_MIN;
+export const FONT_SCALE_MAX = UI_SCALE_MAX;
+export const FONT_SCALE_STEP = UI_SCALE_STEP;
 
-// 将输入值限制在允许区间 / Clamp scale value into allowed range
+// 确保缩放值在允许范围内 / Clamp UI scale to allowed range
 const clampFontScale = (value: number) => {
   if (Number.isNaN(value) || !Number.isFinite(value)) {
     return FONT_SCALE_DEFAULT;
@@ -21,72 +21,42 @@ const clampFontScale = (value: number) => {
   return Math.min(FONT_SCALE_MAX, Math.max(FONT_SCALE_MIN, value));
 };
 
-// 将缩放即时应用到 DOM，兼容 React 与系统字体变化 / Apply scale to DOM to sync UI immediately
-const applyFontScale = (scale: number) => {
-  if (typeof document === 'undefined') {
-    return;
-  }
-
-  document.documentElement.setAttribute('data-font-scale', scale.toFixed(2));
-  document.documentElement.style.setProperty('--app-font-scale', scale.toString());
-
-  const setBodyZoom = () => {
-    if (document.body) {
-      document.body.style.setProperty('zoom', scale.toString());
-    } else {
-      requestAnimationFrame(setBodyZoom);
-    }
-  };
-
-  setBodyZoom();
-};
-
-// 初始化阶段加载缓存的缩放值 / Load persisted font scale during initialization
-const initFontScale = async () => {
-  try {
-    const storedValue = (await ConfigStorage.get('ui.fontScale')) as number | undefined;
-    const scale = clampFontScale(typeof storedValue === 'number' ? storedValue : FONT_SCALE_DEFAULT);
-    applyFontScale(scale);
-    return scale;
-  } catch (error) {
-    console.error('Failed to load font scale:', error);
-    applyFontScale(FONT_SCALE_DEFAULT);
-    return FONT_SCALE_DEFAULT;
-  }
-};
-
-let initialFontScalePromise: Promise<number> | null = null;
-if (typeof window !== 'undefined') {
-  // 提前触发一次读取，确保首屏渲染前字体已调整 / Trigger early read so first paint already respects scale
-  initialFontScalePromise = initFontScale();
-}
-
 const useFontScale = (): [number, (scale: number) => Promise<void>] => {
   const [fontScale, setFontScaleState] = useState(FONT_SCALE_DEFAULT);
 
-  // 更新缩放并持久化 / Update UI scale and persist it
-  const setFontScale = useCallback(async (nextScale: number) => {
-    const clamped = clampFontScale(nextScale);
-    setFontScaleState(clamped);
-    applyFontScale(clamped);
+  // 从主进程读取当前缩放，保持 UI 与 Electron 同步 / Pull zoom factor from main to keep UI state aligned
+  const fetchZoomFactor = useCallback(async () => {
     try {
-      await ConfigStorage.set('ui.fontScale', clamped);
+      const currentFactor = await ipcBridge.application.getZoomFactor.invoke();
+      if (typeof currentFactor === 'number') {
+        setFontScaleState(clampFontScale(currentFactor));
+      }
     } catch (error) {
-      console.error('Failed to save font scale:', error);
+      console.error('Failed to fetch zoom factor:', error);
     }
   }, []);
 
   useEffect(() => {
-    if (initialFontScalePromise) {
-      initialFontScalePromise
-        .then((value) => {
-          setFontScaleState(value);
-        })
-        .catch((error) => {
-          console.error('Failed to initialize font scale:', error);
-        });
-    }
-  }, []);
+    void fetchZoomFactor();
+  }, [fetchZoomFactor]);
+
+  // 乐观更新 slider，同时通知主进程写入 zoom / Optimistically update slider and ask main process to persist zoom
+  const setFontScale = useCallback(
+    async (nextScale: number) => {
+      const clamped = clampFontScale(nextScale);
+      setFontScaleState(clamped);
+      try {
+        const updatedFactor = await ipcBridge.application.setZoomFactor.invoke({ factor: clamped });
+        if (typeof updatedFactor === 'number' && updatedFactor !== clamped) {
+          setFontScaleState(clampFontScale(updatedFactor));
+        }
+      } catch (error) {
+        console.error('Failed to set zoom factor:', error);
+        void fetchZoomFactor();
+      }
+    },
+    [fetchZoomFactor]
+  );
 
   return [fontScale, setFontScale];
 };

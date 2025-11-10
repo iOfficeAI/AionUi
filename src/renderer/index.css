@@ -561,42 +561,22 @@
   }
 }
 
-/* 字体缩放滑杆刻度样式 / Font scale slider tick styling */
-.font-scale-slider .arco-slider-ticks .arco-slider-tick {
-  width: 4px !important;
-  height: 14px !important;
-  border-radius: 999px;
-  background-color: var(--border-special, #60577e) !important;
-  transform: translate(-50%, -100%) !important;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
-  border: 1px solid rgba(0, 0, 0, 0.05);
-}
-
-.font-scale-slider .arco-slider-ticks .arco-slider-tick-active {
-  background-color: rgb(var(--primary-6)) !important;
-}
-
-/* 100% 刻度加粗显示 / Emphasize 100% tick */
+/* Font scale slider custom mark */
 .font-scale-slider .arco-slider-marks {
-  top: 20px;
+  top: calc(50% + 16px);
 }
 
 .font-scale-slider .arco-slider-marks-text {
-  transform: translate(-50%, -120%) !important;
+  transform: translate(-50%, -50%);
+  display: inline-flex;
 }
 
 .font-scale-default-mark {
-  display: inline-flex;
   width: 14px;
   height: 14px;
   border-radius: 999px;
   border: 2px solid rgb(var(--primary-6));
   background-color: var(--color-bg-2);
   box-shadow: 0 0 4px rgba(0, 0, 0, 0.15);
-}
-
-/* Remove default endpoint dots while keeping tick lines */
-.font-scale-slider .arco-slider-dots .arco-slider-dot-wrapper:first-child,
-.font-scale-slider .arco-slider-dots .arco-slider-dot-wrapper:last-child {
-  display: none;
+  pointer-events: none;
 }

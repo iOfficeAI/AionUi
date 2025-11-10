@@ -19,7 +19,12 @@ const truncateErrorMessage = (message: string, maxLength: number = 150): string 
  * MCP连接测试管理Hook
  * 处理MCP服务器的连接测试和状态更新
  */
-export const useMcpConnection = (mcpServers: IMcpServer[], saveMcpServers: (serversOrUpdater: IMcpServer[] | ((prev: IMcpServer[]) => IMcpServer[])) => Promise<void>, message: ReturnType<typeof import('@arco-design/web-react').Message.useMessage>[0]) => {
+export const useMcpConnection = (
+  mcpServers: IMcpServer[],
+  saveMcpServers: (serversOrUpdater: IMcpServer[] | ((prev: IMcpServer[]) => IMcpServer[])) => Promise<void>,
+  message: ReturnType<typeof import('@arco-design/web-react').Message.useMessage>[0],
+  onAuthRequired?: (server: IMcpServer) => void // 新增：当需要认证时的回调
+) => {
   const { t } = useTranslation();
   const [testingServers, setTestingServers] = useState<Record<string, boolean>>({});
 
@@ -44,6 +49,20 @@ export const useMcpConnection = (mcpServers: IMcpServer[], saveMcpServers: (serv
 
         if (response.success && response.data) {
           const result = response.data;
+
+          // 检查是否需要认证
+          if (result.needsAuth) {
+            await updateServerStatus('disconnected');
+            await globalMessageQueue.add(() => {
+              message.warning(`${server.name}: ${t('settings.mcpAuthRequired') || 'Authentication required'}`);
+            });
+
+            // 触发认证回调
+            if (onAuthRequired) {
+              onAuthRequired(server);
+            }
+            return;
+          }
 
           if (result.success) {
             // 更新服务器状态为已连接，并保存获取到的工具信息
@@ -91,7 +110,7 @@ export const useMcpConnection = (mcpServers: IMcpServer[], saveMcpServers: (serv
         setTestingServers((prev) => ({ ...prev, [server.id]: false }));
       }
     },
-    [saveMcpServers, message, t]
+    [saveMcpServers, message, t, onAuthRequired]
   );
 
   return {

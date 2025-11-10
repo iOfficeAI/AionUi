@@ -48,8 +48,6 @@ export interface IConfigStorageRefer {
   };
   // 是否在粘贴文件到工作区时询问确认（true = 不再询问）
   'workspace.pasteConfirm'?: boolean;
-  // UI 字体缩放倍率 / UI font scaling factor
-  'ui.fontScale'?: number;
 }
 
 export interface IEnvStorageRefer {
