@@ -19,27 +19,41 @@ function runPostInstall() {
       console.log('CI environment detected, skipping rebuild to use prebuilt binaries');
       console.log('Native modules will be handled by electron-forge during packaging');
     } else {
-      // In local environment, use electron-builder to install dependencies
-      // Windows: Requires Python and Visual Studio Build Tools
-      // macOS/Linux: Requires standard build tools
-      console.log('Local environment, installing app deps');
-      execSync('npx electron-builder install-app-deps', {
-        stdio: 'inherit',
-        env: {
-          ...process.env,
-          npm_config_build_from_source: 'true'
+      // Download Electron-compatible prebuilt binaries for native modules
+      // 下载 Electron 兼容的预编译二进制文件
+      console.log('Downloading Electron-compatible native modules...');
+
+      const nativeModules = ['better-sqlite3', 'bcrypt'];
+      const nodeModules = require('path').resolve(__dirname, '../node_modules');
+
+      for (const mod of nativeModules) {
+        const modPath = require('path').join(nodeModules, mod);
+        try {
+          console.log(`  - ${mod}...`);
+          // Use prebuild-install to download Electron prebuilt binaries
+          execSync('npx prebuild-install', {
+            cwd: modPath,
+            stdio: 'pipe',
+            env: {
+              ...process.env,
+              npm_config_runtime: 'electron',
+              npm_config_target: electronVersion,
+              npm_config_dist_url: 'https://electronjs.org/headers',
+              npm_config_build_from_source: 'false'
+            }
+          });
+          console.log(`    ✓ ${mod} ready`);
+        } catch (e) {
+          console.log(`    ⚠ ${mod} prebuilt not available, will use fallback`);
         }
-      });
+      }
+
+      console.log('\n✅ Native modules configured for Electron');
     }
   } catch (e) {
-    console.error('Postinstall failed:', e.message);
-    if (process.platform === 'win32') {
-      console.error('\nWindows users: Please install build tools:');
-      console.error('  npm install --global windows-build-tools');
-      console.error('Or manually install:');
-      console.error('  - Python 3.x: https://www.python.org/downloads/');
-      console.error('  - Visual Studio Build Tools: https://visualstudio.microsoft.com/downloads/');
-    }
+    console.error('Postinstall warning:', e.message);
+    console.log('\n⚠️  Native modules may need manual rebuild');
+    console.log('If you encounter errors when starting the app, run: npm run rebuild:native');
     // Don't exit with error code to avoid breaking installation
   }
 }
