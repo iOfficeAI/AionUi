@@ -5,8 +5,12 @@
  */
 
 import { ipcBridge } from '@/common';
-import { UI_SCALE_DEFAULT, UI_SCALE_MAX, UI_SCALE_MIN, UI_SCALE_STEP } from '@/common/constants/uiScale';
 import { useCallback, useEffect, useState } from 'react';
+
+const UI_SCALE_DEFAULT = 1;
+const UI_SCALE_MIN = 0.8;
+const UI_SCALE_MAX = 1.3;
+const UI_SCALE_STEP = 0.05;
 
 export const FONT_SCALE_DEFAULT = UI_SCALE_DEFAULT;
 export const FONT_SCALE_MIN = UI_SCALE_MIN;
