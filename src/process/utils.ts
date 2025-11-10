@@ -143,10 +143,35 @@ export async function readDirectoryRecursive(
   return result;
 }
 
+/**
+ * 递归复制目录
+ * 注意：包含路径验证，防止复制到自身或子目录导致无限递归（修复 Windows 下 cache 目录循环创建的 bug）
+ */
 export async function copyDirectoryRecursively(src: string, dest: string) {
+  // 标准化路径：Windows 转小写（不区分大小写），Unix/macOS 保持原样（区分大小写）
+  const isWindows = process.platform === 'win32';
+  const normalizedSrc = isWindows ? path.resolve(src).toLowerCase() : path.resolve(src);
+  const normalizedDest = isWindows ? path.resolve(dest).toLowerCase() : path.resolve(dest);
+
+  // 防止复制到自身 (F:\code -> F:\code)
+  if (normalizedSrc === normalizedDest) {
+    throw new Error(`Cannot copy directory into itself: ${src}`);
+  }
+
+  // 防止复制到子目录 (F:\code -> F:\code\cache) - 会导致无限递归
+  if (normalizedDest.startsWith(normalizedSrc + path.sep)) {
+    throw new Error(`Cannot copy directory into its subdirectory: ${src} -> ${dest}`);
+  }
+
+  // 防止复制到父目录 (F:\code\cache -> F:\code)
+  if (normalizedSrc.startsWith(normalizedDest + path.sep)) {
+    throw new Error(`Cannot copy parent directory into child directory: ${src} -> ${dest}`);
+  }
+
   if (!existsSync(dest)) {
     await fs.mkdir(dest, { recursive: true });
   }
+
   const entries = await fs.readdir(src, { withFileTypes: true });
 
   for (const entry of entries) {
