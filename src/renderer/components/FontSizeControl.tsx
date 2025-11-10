@@ -18,6 +18,12 @@ const FontSizeControl: React.FC = () => {
   const { fontScale, setFontScale } = useThemeContext();
 
   const formattedValue = useMemo(() => `${Math.round(fontScale * 100)}%`, [fontScale]);
+  const defaultMarks = useMemo(
+    () => ({
+      1: <span className='font-scale-default-mark' aria-hidden='true' title='100%'></span>,
+    }),
+    []
+  );
 
   const handleSliderChange = (value: number | number[]) => {
     if (typeof value === 'number') {
@@ -41,7 +47,7 @@ const FontSizeControl: React.FC = () => {
           A-
         </Button>
         {/* 滑杆覆盖 80%-150% 区间，随值写入配置 / Slider covers 80%-150% range and persists value */}
-        <Slider className='flex-1' showTicks min={FONT_SCALE_MIN} max={FONT_SCALE_MAX} step={FONT_SCALE_STEP} value={fontScale} onChange={handleSliderChange} />
+        <Slider className='flex-1 font-scale-slider' showTicks min={FONT_SCALE_MIN} max={FONT_SCALE_MAX} step={FONT_SCALE_STEP} value={fontScale} onChange={handleSliderChange} marks={defaultMarks} />
         <Button size='mini' type='secondary' onClick={() => handleStep(FONT_SCALE_STEP)} disabled={fontScale >= FONT_SCALE_MAX - 0.001}>
           A+
         </Button>
