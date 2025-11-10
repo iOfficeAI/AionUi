@@ -31,6 +31,7 @@
     "test:coverage": "jest --coverage",
     "test:contract": "jest tests/contract",
     "test:integration": "jest tests/integration",
+    "rebuild:native": "electron-builder install-app-deps",
     "prepare": "husky",
     "postinstall": "node scripts/postinstall.js"
   },
