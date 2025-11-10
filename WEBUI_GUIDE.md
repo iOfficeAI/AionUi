@@ -343,15 +343,44 @@ find /opt -name "aionui" 2>/dev/null
 You can customize WebUI behavior with environment variables:
 
 ```bash
-# Set custom port (if supported)
+# Override the listening port
 export AIONUI_PORT=8080
 
-# Set custom host
+# Allow remote access without passing --remote
+export AIONUI_ALLOW_REMOTE=true
+
+# Optional host hint (0.0.0.0 behaves the same as AIONUI_ALLOW_REMOTE=true)
 export AIONUI_HOST=0.0.0.0
 
 # Then start the application
 aionui --webui
+
+# You can also pass the port directly via CLI
+aionui --webui --port 8080
 ```
+
+---
+
+## User Configuration File
+
+From v1.5.0+, you can store persistent WebUI preferences in `webui.config.json` located in your Electron user-data folder:
+
+| Platform | Location                                                 |
+| -------- | -------------------------------------------------------- |
+| Windows  | `%APPDATA%/AionUi/webui.config.json`                     |
+| macOS    | `~/Library/Application Support/AionUi/webui.config.json` |
+| Linux    | `~/.config/AionUi/webui.config.json`                     |
+
+Example file:
+
+```json
+{
+  "port": 8080,
+  "allowRemote": true
+}
+```
+
+Settings from CLI flags take priority, followed by environment variables, then the user config file.
 
 ---
 
