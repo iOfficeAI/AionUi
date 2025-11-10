@@ -200,7 +200,7 @@ const SendBox: React.FC<{
           {context}
         </div>
         <div className={isSingleLine ? 'flex items-center gap-2 w-full' : 'w-full'}>
-          {isSingleLine && <span className='flex-shrink-0'>{tools}</span>}
+          {isSingleLine && <div className='flex-shrink-0 sendbox-tools'>{tools}</div>}
           <Input.TextArea
             autoFocus
             disabled={disabled}
@@ -250,7 +250,7 @@ const SendBox: React.FC<{
         </div>
         {!isSingleLine && (
           <div className='flex items-center justify-between gap-2 w-full'>
-            <span>{tools}</span>
+            <div className='sendbox-tools'>{tools}</div>
             <div className='flex items-center gap-2'>
               {isLoading || loading ? (
                 <Button shape='circle' type='secondary' className='bg-animate' icon={<div className='mx-auto size-12px bg-6' onClick={stopHandler}></div>}></Button>
