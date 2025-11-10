@@ -35,19 +35,25 @@ if (electronSquirrelStartup) {
   app.quit();
 }
 
+// 主进程全局错误处理器
 // Global error handlers for main process
+// 捕获未处理的同步异常，防止显示 Electron 默认错误对话框
+// Catch uncaught synchronous exceptions to prevent Electron's default error dialog
 process.on('uncaughtException', (error) => {
   console.error('[Main Process] Uncaught Exception:', error);
-  // Optionally show dialog to user in production
+  // 在生产环境中，可以将错误记录到文件或上报到错误追踪服务
+  // In production, errors can be logged to file or sent to error tracking service
   if (process.env.NODE_ENV !== 'development') {
-    // Log to file or crash reporting service
     console.error('[Main Process] Fatal error occurred, but continuing...');
   }
 });
 
+// 捕获未处理的 Promise 拒绝，避免应用崩溃
+// Catch unhandled Promise rejections to prevent app crashes
 process.on('unhandledRejection', (reason, promise) => {
   console.error('[Main Process] Unhandled Promise Rejection at:', promise, 'reason:', reason);
-  // Log to file or crash reporting service
+  // 可以在这里添加错误上报逻辑
+  // Error reporting logic can be added here
 });
 
 const hasSwitch = (flag: string) => process.argv.includes(`--${flag}`) || app.commandLine.hasSwitch(flag);
