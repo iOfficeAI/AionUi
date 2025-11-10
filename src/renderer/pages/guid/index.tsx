@@ -142,6 +142,7 @@ const Guid: React.FC = () => {
   const [typewriterPlaceholder, setTypewriterPlaceholder] = useState('');
   const [isTyping, setIsTyping] = useState(true);
   const [isWorkspaceExpanded, setIsWorkspaceExpanded] = useState(false);
+  const textareaRef = useRef<any>(null);
 
   const setCurrentModel = async (modelInfo: TProviderWithModel) => {
     await ConfigStorage.set('gemini.defaultModel', modelInfo.useModel).catch((error) => {
@@ -176,8 +177,31 @@ const Guid: React.FC = () => {
     supportedExts: allSupportedExts,
     onFilesAdded: handleFilesAdded,
     onTextPaste: (text: string) => {
-      // 处理清理后的文本粘贴
-      setInput(text);
+      // 模拟浏览器默认粘贴行为：在光标位置插入文本
+      let textarea = textareaRef.current?.dom as HTMLTextAreaElement | undefined;
+      if (!textarea) {
+        const activeEl = document.activeElement as HTMLTextAreaElement | null;
+        if (activeEl && activeEl.tagName === 'TEXTAREA') {
+          textarea = activeEl;
+        }
+      }
+
+      if (textarea) {
+        const cursorStart = textarea.selectionStart ?? textarea.value.length;
+        const cursorEnd = textarea.selectionEnd ?? textarea.value.length;
+        const currentValue = textarea.value;
+        const newValue = currentValue.slice(0, cursorStart) + text + currentValue.slice(cursorEnd);
+        setInput(newValue);
+
+        const newCursorPosition = cursorStart + text.length;
+        setTimeout(() => {
+          textarea?.setSelectionRange(newCursorPosition, newCursorPosition);
+          textarea?.focus();
+        }, 0);
+      } else {
+        // 如果无法获取 textarea，则退化为追加到末尾
+        setInput((prev) => prev + text);
+      }
     },
   });
 
@@ -452,7 +476,7 @@ const Guid: React.FC = () => {
           }}
           {...dragHandlers}
         >
-          <Input.TextArea rows={3} placeholder={typewriterPlaceholder || t('conversation.welcome.placeholder')} className={`text-16px focus:b-none rounded-xl !bg-transparent !b-none !resize-none !p-0 ${styles.lightPlaceholder}`} value={input} onChange={(v) => setInput(v)} onPaste={onPaste} onFocus={onFocus} {...compositionHandlers} onKeyDown={createKeyDownHandler(sendMessageHandler)}></Input.TextArea>
+          <Input.TextArea ref={textareaRef} rows={3} placeholder={typewriterPlaceholder || t('conversation.welcome.placeholder')} className={`text-16px focus:b-none rounded-xl !bg-transparent !b-none !resize-none !p-0 ${styles.lightPlaceholder}`} value={input} onChange={(v) => setInput(v)} onPaste={onPaste} onFocus={onFocus} {...compositionHandlers} onKeyDown={createKeyDownHandler(sendMessageHandler)}></Input.TextArea>
           {files.length > 0 && (
             // 展示待发送的文件并允许取消 / Show pending files and allow cancellation
             <div className='flex flex-wrap items-center gap-8px mt-12px mb-12px'>
