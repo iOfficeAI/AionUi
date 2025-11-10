@@ -60,6 +60,14 @@ module.exports = {
           onlyModules: [], // 空数组意味着"不要重建任何模块" / Empty array means "don't rebuild any modules"
         }
       : {}),
+    // Windows 本地开发：优先使用 postinstall.js 下载的 Electron 预编译文件
+    // Windows local dev: Use Electron prebuilt binaries downloaded by postinstall.js
+    // 打包时通过 FORGE_SKIP_NATIVE_REBUILD='false' 强制重建
+    ...(process.platform === 'win32' && process.env.CI !== 'true' && process.env.FORGE_SKIP_NATIVE_REBUILD !== 'false'
+      ? {
+          onlyModules: [], // 使用 postinstall 下载的预编译文件，避免需要 Python/VS Build Tools
+        }
+      : {}),
     ...(skipNativeRebuild
       ? {
           onlyModules: [], // 开发启动时跳过原生模块重建，避免环境检查
