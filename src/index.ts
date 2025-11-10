@@ -35,6 +35,21 @@ if (electronSquirrelStartup) {
   app.quit();
 }
 
+// Global error handlers for main process
+process.on('uncaughtException', (error) => {
+  console.error('[Main Process] Uncaught Exception:', error);
+  // Optionally show dialog to user in production
+  if (process.env.NODE_ENV !== 'development') {
+    // Log to file or crash reporting service
+    console.error('[Main Process] Fatal error occurred, but continuing...');
+  }
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('[Main Process] Unhandled Promise Rejection at:', promise, 'reason:', reason);
+  // Log to file or crash reporting service
+});
+
 const hasSwitch = (flag: string) => process.argv.includes(`--${flag}`) || app.commandLine.hasSwitch(flag);
 const getSwitchValue = (flag: string): string | undefined => {
   const withEqualsPrefix = `--${flag}=`;
