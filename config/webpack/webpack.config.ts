@@ -1,11 +1,16 @@
 import type { Configuration } from 'webpack';
 
 import { rendererConfig } from './webpack.renderer.config';
+
+const isDevelopment = process.env.NODE_ENV !== 'production';
+
 export const mainConfig: Configuration = {
   /**
    * This is the main entry point for your application, it's the first file
    * that runs in the main process.
    */
+  mode: isDevelopment ? 'development' : 'production',
+  devtool: isDevelopment ? 'source-map' : false,
   // entry: "./src/index.ts",
   entry: {
     index: './src/index.ts',
