@@ -18,10 +18,13 @@ import { FileAddition, Refresh, Search, FileText, FolderOpen } from '@icon-park/
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useDebounce from '../../hooks/useDebounce';
+type MessageApi = ReturnType<typeof Message.useMessage>[0];
+
 interface WorkspaceProps {
   workspace: string;
   conversation_id: string;
   eventPrefix?: 'gemini' | 'acp' | 'codex';
+  messageApi?: MessageApi;
 }
 
 const useLoading = () => {
@@ -45,7 +48,9 @@ const useLoading = () => {
   return [loading, setLoadingHandler] as const;
 };
 
-const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, eventPrefix = 'gemini' }) => {
+const ADD_TO_CHAT_MESSAGE_ID = 'chat-workspace-add-to-chat';
+
+const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, eventPrefix = 'gemini', messageApi: externalMessageApi }) => {
   const { t } = useTranslation();
   const [selected, setSelected] = useState<string[]>([]);
   const [files, setFiles] = useState<IDirOrFile[]>([]);
@@ -57,7 +62,9 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
   const [confirmFileName, setConfirmFileName] = useState('');
   const [confirmFilesToPaste, setConfirmFilesToPaste] = useState<Array<{ path: string; name: string }>>([]);
   const [doNotAsk, setDoNotAsk] = useState(false);
-  const [messageApi, messageContext] = Message.useMessage();
+  const [internalMessageApi, internalMessageContext] = Message.useMessage({ maxCount: 1 });
+  const messageApi = externalMessageApi ?? internalMessageApi;
+  const shouldRenderLocalMessageContext = !externalMessageApi;
   const [pasteTargetFolder, setPasteTargetFolder] = useState<string | null>(null); // 跟踪粘贴目标文件夹 / Track paste target folder
   const selectedNodeRef = useRef<{ relativePath: string; fullPath: string } | null>(null); // 存储最后选中的文件夹节点 / Store the last selected folder node
   const selectedKeysRef = useRef<string[]>([]); // 存储选中的键供 renderTitle 访问 / Store selected keys for renderTitle to access
@@ -546,7 +553,13 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
       if (!nodeData || !nodeData.fullPath) return;
       ensureNodeSelected(nodeData, { emit: true });
       closeContextMenu();
-      messageApi.success(t('conversation.workspace.contextMenu.addedToChat'));
+      messageApi.success({
+        id: ADD_TO_CHAT_MESSAGE_ID,
+        content: t('conversation.workspace.contextMenu.addedToChat'),
+        duration: 2000,
+        closable: false,
+        position: 'top',
+      });
     },
     [closeContextMenu, ensureNodeSelected, messageApi, t]
   );
@@ -774,7 +787,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
 
   return (
     <div className='size-full flex flex-col' tabIndex={0} onFocus={onFocus} onClick={onFocus}>
-      {messageContext}
+      {shouldRenderLocalMessageContext && internalMessageContext}
       <Modal
         visible={confirmVisible}
         title={null}

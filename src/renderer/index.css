@@ -6,6 +6,15 @@
   animation: bg-animate 1s alternate infinite;
 }
 
+/* Ensure overall layout never shrinks below iPhone baseline / 保证整体布局最小宽度 375px */
+html,
+body,
+#root,
+.layout,
+.arco-layout {
+  min-width: 375px;
+}
+
 @keyframes bg-animate {
   0% {
     background-color: #f2f3f5;
@@ -129,6 +138,7 @@
       overflow-x: hidden;
       width: 100vw;
       max-width: 100vw;
+      min-width: 375px; /* Keep responsive layout baseline / 维持响应式基线宽度 */
     }
 
     /* Ensure all containers don't exceed viewport width */
