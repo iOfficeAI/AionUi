@@ -43,9 +43,9 @@ export function initApplicationBridge(): void {
     return Promise.resolve();
   });
 
-  ipcBridge.application.getZoomFactor.provider(() => getZoomFactor());
+  ipcBridge.application.getZoomFactor.provider(() => Promise.resolve(getZoomFactor()));
 
   ipcBridge.application.setZoomFactor.provider(({ factor }) => {
-    return setZoomFactor(factor);
+    return Promise.resolve(setZoomFactor(factor));
   });
 }
