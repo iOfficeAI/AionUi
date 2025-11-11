@@ -136,6 +136,7 @@
     }
   },
   "settings": {
+    "title": "设置",
     "authMethod": "认证",
     "geminiApiKey": "Gemini API 密钥",
     "vertexApiKey": "Vertex AI",
@@ -145,6 +146,8 @@
     "openai": "OpenAI",
     "proxyConfig": "代理",
     "yoloMode": "自动允许",
+    "customCss": "自定义 CSS",
+    "customCssDesc": "在此处输入自定义 CSS 样式以更改界面外观。系统会自动为所有样式添加 !important 以确保优先级最高，无需手动添加。修改会立即生效。",
     "geminiBaseUrl": "Gemini API Base URL",
     "cacheDir": "缓存目录",
     "workDir": "工作目录",
