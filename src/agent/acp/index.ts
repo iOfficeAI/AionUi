@@ -243,6 +243,11 @@ export class AcpAgent {
 
   private handlePermissionRequest(data: AcpPermissionRequest): Promise<{ optionId: string }> {
     return new Promise((resolve, reject) => {
+      // Ensure every permission request has a stable toolCallId so UI + pending map stay in sync
+      // 确保每个权限请求都拥有稳定的 toolCallId，保证 UI 与 pending map 对齐
+      if (data.toolCall && !data.toolCall.toolCallId) {
+        data.toolCall.toolCallId = uuid();
+      }
       const requestId = data.toolCall.toolCallId; // 使用 toolCallId 作为 requestId
 
       // 检查是否有重复的权限请求
