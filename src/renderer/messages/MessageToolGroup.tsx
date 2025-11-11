@@ -376,7 +376,7 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
         }
 
         // WriteFile 特殊处理：显示 diff Special handling for WriteFile: show diff
-        if (name === 'WriteFile' && typeof resultDisplay !== 'string') {
+        if (name === 'WriteFile' && resultDisplay && typeof resultDisplay === 'object') {
           const result = resultDisplay as WriteFileResult;
           return (
             <div className='w-full max-w-100% min-w-0' key={callId}>
