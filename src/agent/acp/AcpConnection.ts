@@ -9,6 +9,7 @@ import type { AcpBackend, AcpMessage, AcpNotification, AcpPermissionRequest, Acp
 import type { ChildProcess, SpawnOptions } from 'child_process';
 import { spawn } from 'child_process';
 import { promises as fs } from 'fs';
+import path from 'path';
 
 interface PendingRequest<T = unknown> {
   resolve: (value: T) => void;
@@ -28,6 +29,7 @@ export class AcpConnection {
   private isInitialized = false;
   private backend: AcpBackend | null = null;
   private initializeResponse: AcpResponse | null = null;
+  private workingDir: string = process.cwd();
 
   public onSessionUpdate: (data: AcpSessionUpdate) => void = () => {};
   public onPermissionRequest: (data: AcpPermissionRequest) => Promise<{
@@ -84,6 +86,9 @@ export class AcpConnection {
     }
 
     this.backend = backend;
+    if (workingDir) {
+      this.workingDir = workingDir;
+    }
 
     switch (backend) {
       case 'claude':
@@ -372,23 +377,10 @@ export class AcpConnection {
           result = await this.handlePermissionRequest(params);
           break;
         case 'fs/read_text_file':
-          // 通知UI文件读取操作
-          this.onFileOperation({
-            method: 'fs/read_text_file',
-            path: params.path,
-            sessionId: params.sessionId || '',
-          });
-          result = await this.handleReadTextFile(params);
+          result = await this.handleReadOperation(params);
           break;
         case 'fs/write_text_file':
-          // 通知UI文件写入操作
-          this.onFileOperation({
-            method: 'fs/write_text_file',
-            path: params.path,
-            content: params.content,
-            sessionId: params.sessionId || '',
-          });
-          result = await this.handleWriteTextFile(params);
+          result = await this.handleWriteOperation(params);
           break;
         default:
           break;
@@ -460,11 +452,22 @@ export class AcpConnection {
 
   private async handleWriteTextFile(params: { path: string; content: string }): Promise<null> {
     try {
+      await fs.mkdir(path.dirname(params.path), { recursive: true });
       await fs.writeFile(params.path, params.content, 'utf-8');
       return null;
     } catch (error) {
       throw new Error(`Failed to write file: ${error instanceof Error ? error.message : String(error)}`);
     }
+  }
+
+  private resolveWorkspacePath(targetPath: string): string {
+    // Absolute paths are used as-is; relative paths are anchored to the conversation workspace
+    // 绝对路径保持不变， 相对路径锚定到当前会话的工作区
+    if (!targetPath) return this.workingDir;
+    if (path.isAbsolute(targetPath)) {
+      return targetPath;
+    }
+    return path.join(this.workingDir, targetPath);
   }
 
   private async initialize(): Promise<AcpResponse> {
@@ -542,5 +545,30 @@ export class AcpConnection {
 
   getInitializeResponse(): AcpResponse | null {
     return this.initializeResponse;
+  }
+
+  // Normalize read operations to the conversation workspace before touching the filesystem
+  // 访问文件前先把读取操作映射到会话工作区
+  private async handleReadOperation(params: { path: string; sessionId?: string }): Promise<{ content: string }> {
+    const resolvedReadPath = this.resolveWorkspacePath(params.path);
+    this.onFileOperation({
+      method: 'fs/read_text_file',
+      path: resolvedReadPath,
+      sessionId: params.sessionId || '',
+    });
+    return await this.handleReadTextFile({ ...params, path: resolvedReadPath });
+  }
+
+  // Normalize write operations and emit UI events so the workspace view stays in sync
+  // 将写入操作归一化并通知 UI，保持工作区视图同步
+  private async handleWriteOperation(params: { path: string; content: string; sessionId?: string }): Promise<null> {
+    const resolvedWritePath = this.resolveWorkspacePath(params.path);
+    this.onFileOperation({
+      method: 'fs/write_text_file',
+      path: resolvedWritePath,
+      content: params.content,
+      sessionId: params.sessionId || '',
+    });
+    return await this.handleWriteTextFile({ ...params, path: resolvedWritePath });
   }
 }
