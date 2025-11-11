@@ -139,6 +139,7 @@
     }
   },
   "settings": {
+    "title": "Settings",
     "authMethod": "Authentication",
     "geminiApiKey": "Gemini API Key",
     "vertexApiKey": "Vertex AI",
@@ -148,6 +149,8 @@
     "openai": "OpenAI",
     "proxyConfig": "Proxy",
     "yoloMode": "YOLO (Auto Allow)",
+    "customCss": "Custom CSS",
+    "customCssDesc": "Enter custom CSS styles here to modify the interface appearance. The system will automatically add !important to ensure highest priority. Changes will take effect immediately.",
     "geminiBaseUrl": "Gemini API Base URL",
     "cacheDir": "Cache Directory",
     "workDir": "Work Directory",

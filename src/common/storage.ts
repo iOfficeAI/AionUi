@@ -42,6 +42,7 @@ export interface IConfigStorageRefer {
   language: string;
   theme: string;
   colorScheme: string;
+  customCss: string; // 自定义 CSS 样式
   'gemini.defaultModel': string;
   'tools.imageGenerationModel': TProviderWithModel & {
     switch: boolean;
