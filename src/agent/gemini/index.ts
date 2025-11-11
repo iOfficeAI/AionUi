@@ -10,7 +10,6 @@ import { uuid } from '@/common/utils';
 import { getProviderAuthType } from '@/common/utils/platformAuthType';
 import type { CompletedToolCall, Config, GeminiClient, ServerGeminiStreamEvent, ToolCall, ToolCallRequestInfo, Turn } from '@office-ai/aioncli-core';
 import { AuthType, CoreToolScheduler, FileDiscoveryService, sessionId } from '@office-ai/aioncli-core';
-import { execSync } from 'child_process';
 import { ApiKeyManager } from '../../common/ApiKeyManager';
 import { handleAtCommand } from './cli/atCommandProcessor';
 import { loadCliConfig, loadHierarchicalGeminiMemory } from './cli/config';
@@ -165,22 +164,7 @@ export class GeminiAgent {
 
   // 加载环境变量
   private getEnv() {
-    let command = '';
-    if (process.platform === 'win32') {
-      command = 'cmd /c set';
-    }
-    if (process.platform === 'darwin') {
-      command = "zsh -ic 'env'";
-    }
-    if (!command) return {};
-
-    const envOutput = execSync(command, { encoding: 'utf8' });
-
-    return envOutput.split('\n').reduce<Record<string, string>>((acc, line) => {
-      const [key, ...value] = line.split('=');
-      acc[key] = value.join('=').replace(/\r$/, '');
-      return acc;
-    }, {});
+    return process.env as Record<string, string>;
   }
   private createAbortController() {
     this.abortController = new AbortController();
