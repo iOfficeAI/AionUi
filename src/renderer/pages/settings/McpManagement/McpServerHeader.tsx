@@ -34,11 +34,7 @@ const getStatusIcon = (status?: IMcpServer['status'], oauthStatus?: McpOAuthStat
 
   // 优先级3: OAuth 需要登录
   if (oauthStatus?.needsLogin) {
-    return (
-      <Tooltip content='Authentication required'>
-        <span className='text-orange-500 text-xl font-bold'>△</span>
-      </Tooltip>
-    );
+    return <span className='text-orange-500 text-xl font-bold leading-none'>△</span>;
   }
 
   // 优先级4: 连接成功或已认证
@@ -81,13 +77,16 @@ const McpServerHeader: React.FC<McpServerHeaderProps> = ({ server, agentInstallS
   // 判断是否支持 OAuth（仅 HTTP/SSE）
   const supportsOAuth = server.transport.type === 'http' || server.transport.type === 'sse';
   const needsLogin = supportsOAuth && oauthStatus?.needsLogin;
+  const statusText = getStatusText(server.status, oauthStatus, t);
+  const statusIcon = getStatusIcon(server.status, oauthStatus);
 
   return (
     <div className='flex items-center justify-between group'>
       <div className='flex items-center gap-2'>
         <span>{server.name}</span>
-        <span className='flex items-center'>{getStatusIcon(server.status, oauthStatus)}</span>
-        <span className='text-xs text-gray-500 flex items-center'>{getStatusText(server.status, oauthStatus, t)}</span>
+        <Tooltip content={statusText} position='top'>
+          <span className='flex items-center cursor-default'>{statusIcon}</span>
+        </Tooltip>
         {needsLogin && onOAuthLogin && (
           <Button size='mini' type='primary' icon={<Login size={'14'} />} title={t('settings.mcpOAuthLogin') || 'Login'} loading={isLoggingIn} onClick={() => onOAuthLogin(server)}>
             {t('settings.mcpLogin') || 'Login'}

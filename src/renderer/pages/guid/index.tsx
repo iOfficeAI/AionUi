@@ -463,7 +463,9 @@ const Guid: React.FC = () => {
         <div
           className={`bg-border-2 b-solid border rd-20px transition-all duration-200 overflow-hidden p-16px ${isFileDragging ? 'border-dashed' : 'border-3'}`}
           style={{
-            width: 'clamp(400px, calc(100% - 80px), 720px)',
+            maxWidth: 'clamp(400px, calc(100% - 80px), 720px)',
+            minWidth: '375px',
+            width: '100%',
             zIndex: 1,
             ...(isFileDragging
               ? {
