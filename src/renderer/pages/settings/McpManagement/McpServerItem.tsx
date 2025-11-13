@@ -23,7 +23,7 @@ interface McpServerItemProps {
 
 const McpServerItem: React.FC<McpServerItemProps> = ({ server, isCollapsed, agentInstallStatus, isServerLoading, isTestingConnection, oauthStatus, isLoggingIn, onToggleCollapse, onTestConnection, onEditServer, onDeleteServer, onToggleServer, onOAuthLogin }) => {
   return (
-    <Collapse key={server.id} activeKey={isCollapsed ? ['1'] : []} onChange={onToggleCollapse} className='mb-4'>
+    <Collapse key={server.id} activeKey={isCollapsed ? ['1'] : []} onChange={onToggleCollapse} className='mb-4 [&_div.arco-collapse-item-header-title]:flex-1'>
       <Collapse.Item header={<McpServerHeader server={server} agentInstallStatus={agentInstallStatus} isServerLoading={isServerLoading} isTestingConnection={isTestingConnection} oauthStatus={oauthStatus} isLoggingIn={isLoggingIn} onTestConnection={onTestConnection} onEditServer={onEditServer} onDeleteServer={onDeleteServer} onToggleServer={onToggleServer} onOAuthLogin={onOAuthLogin} />} name='1' className={'[&_div.arco-collapse-item-content-box]:py-3'}>
         <McpServerToolsList server={server} />
       </Collapse.Item>

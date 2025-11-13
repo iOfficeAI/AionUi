@@ -177,7 +177,7 @@ const GeminiSettings: React.FC = (props) => {
           <Input placeholder={t('settings.proxyHttpOnly')}></Input>
         </Form.Item>
         <Form.Item label='GOOGLE_CLOUD_PROJECT' field='GOOGLE_CLOUD_PROJECT'>
-          <Input placeholder='Enter your Google Cloud Project ID'></Input>
+          <Input placeholder={t('settings.googleCloudProjectPlaceholder')}></Input>
         </Form.Item>
         <Form.Item label={t('settings.yoloMode')} field='yoloMode'>
           {(value, form) => <Switch checked={value.yoloMode} onChange={(checked) => form.setFieldValue('yoloMode', checked)} />}

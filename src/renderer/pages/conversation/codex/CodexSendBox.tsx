@@ -316,7 +316,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
             )}
             {/* Folder tags below */}
             {atPath.some((item) => (typeof item === 'string' ? false : !item.isFile)) && (
-              <div className='flex flex-wrap items-center gap-8px mb-8px'>
+              <div className='flex flex-wrap items-center gap-8px mb-8px mt-4px'>
                 {atPath.map((item) => {
                   if (typeof item === 'string') return null;
                   if (!item.isFile) {

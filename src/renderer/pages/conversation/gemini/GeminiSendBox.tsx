@@ -170,7 +170,7 @@ const GeminiSendBox: React.FC<{
 
   // 截断过长的模型名称
   const getDisplayModelName = (modelName: string) => {
-    const maxLength = 20;
+    const maxLength = 15;
     if (modelName.length > maxLength) {
       return modelName.slice(0, maxLength) + '...';
     }
@@ -219,7 +219,7 @@ const GeminiSendBox: React.FC<{
               }}
             ></Button>
             {model && (
-              <Button className={'ml-4px text-t-primary'} shape='round'>
+              <Button className={'ml-4px text-t-primary max-w-150px truncate'} shape='round' title={model.useModel}>
                 {model.useModel}
               </Button>
             )}
@@ -255,7 +255,7 @@ const GeminiSendBox: React.FC<{
             )}
             {/* Folder tags below */}
             {atPath.some((item) => (typeof item === 'string' ? false : !item.isFile)) && (
-              <div className='flex flex-wrap items-center gap-8px mb-8px'>
+              <div className='flex flex-wrap items-center gap-8px mb-8px mt-4px'>
                 {atPath.map((item) => {
                   if (typeof item === 'string') return null;
                   if (!item.isFile) {

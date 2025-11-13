@@ -15,36 +15,50 @@ const DirInputItem: React.FC<{
   label: string;
   field: string;
 }> = (props) => {
+  const { t } = useTranslation();
   return (
     <Form.Item label={props.label} field={props.field}>
-      {(options, form) => (
-        <Input
-          disabled
-          value={options[props.field]}
-          addAfter={
-            <FolderOpen
-              theme='outline'
-              size='24'
-              fill={iconColors.primary}
-              onClick={() => {
-                ipcBridge.dialog.showOpen
-                  .invoke({
-                    defaultPath: options[props.field],
-                    properties: ['openDirectory', 'createDirectory'],
-                  })
-                  .then((data) => {
-                    if (data?.[0]) {
-                      form.setFieldValue(props.field, data[0]);
-                    }
-                  })
-                  .catch((error) => {
-                    console.error('Failed to open directory dialog:', error);
-                  });
-              }}
-            />
-          }
-        ></Input>
-      )}
+      {(options, form) => {
+        const currentValue = options[props.field] || '';
+
+        const handlePick = () => {
+          ipcBridge.dialog.showOpen
+            .invoke({
+              defaultPath: currentValue,
+              properties: ['openDirectory', 'createDirectory'],
+            })
+            .then((data) => {
+              if (data?.[0]) {
+                form.setFieldValue(props.field, data[0]);
+              }
+            })
+            .catch((error) => {
+              console.error('Failed to open directory dialog:', error);
+            });
+        };
+
+        return (
+          <Input
+            readOnly
+            value={currentValue}
+            placeholder={t('settings.dirNotConfigured')}
+            className='w-full [&_.arco-input]:shadow-none [&_.arco-input]:bg-white dark:[&_.arco-input]:bg-[var(--color-bg-3)]'
+            suffix={
+              <FolderOpen
+                theme='outline'
+                size='20'
+                fill={iconColors.primary}
+                className='cursor-pointer'
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handlePick();
+                }}
+              />
+            }
+            onClick={handlePick}
+          />
+        );
+      }}
     </Form.Item>
   );
 };

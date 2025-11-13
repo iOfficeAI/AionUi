@@ -47,7 +47,7 @@ const FontSizeControl: React.FC = () => {
           -
         </Button>
         {/* 滑杆覆盖 80%-150% 区间，随值写入配置 / Slider covers 80%-150% range and persists value */}
-        <Slider className='flex-1 font-scale-slider' showTicks min={FONT_SCALE_MIN} max={FONT_SCALE_MAX} step={FONT_SCALE_STEP} value={fontScale} onChange={handleSliderChange} marks={defaultMarks} />
+        <Slider className='flex-1 font-scale-slider p-0 m-0' showTicks min={FONT_SCALE_MIN} max={FONT_SCALE_MAX} step={FONT_SCALE_STEP} value={fontScale} onChange={handleSliderChange} marks={defaultMarks} />
         <Button size='mini' type='secondary' onClick={() => handleStep(FONT_SCALE_STEP)} disabled={fontScale >= FONT_SCALE_MAX - 0.001}>
           +
         </Button>
@@ -58,7 +58,6 @@ const FontSizeControl: React.FC = () => {
           {t('settings.fontSizeReset')}
         </Button>
       </div>
-      <p className='text-12px text-t-secondary m-0'>{t('settings.fontSizeDescription')}</p>
     </div>
   );
 };
