@@ -19,31 +19,51 @@ export function initAuthBridge(): void {
     }
   });
 
+  // Google OAuth 登录处理器
+  // Google OAuth login handler
   ipcBridge.googleAuth.login.provider(async ({ proxy }) => {
-    const config = new Config({
-      proxy,
-      sessionId: '',
-      targetDir: '',
-      debugMode: false,
-      cwd: '',
-      model: '',
-    });
-    const client = await loginWithOauth(AuthType.LOGIN_WITH_GOOGLE, config);
+    try {
+      // 创建配置对象，包含代理设置
+      // Create config object with proxy settings
+      const config = new Config({
+        proxy,
+        sessionId: '',
+        targetDir: '',
+        debugMode: false,
+        cwd: '',
+        model: '',
+      });
 
-    if (client) {
-      // After successful login, get the actual account info
-      try {
-        const oauthInfo = await getOauthInfoWithCache(proxy);
-        if (oauthInfo && oauthInfo.email) {
-          return { success: true, data: { account: oauthInfo.email } };
+      // 执行 OAuth 登录流程
+      // Execute OAuth login flow
+      const client = await loginWithOauth(AuthType.LOGIN_WITH_GOOGLE, config);
+
+      if (client) {
+        // 登录成功后，获取用户账户信息
+        // After successful login, get the actual account info
+        try {
+          const oauthInfo = await getOauthInfoWithCache(proxy);
+          if (oauthInfo && oauthInfo.email) {
+            return { success: true, data: { account: oauthInfo.email } };
+          }
+        } catch (error) {
+          console.warn('[Auth] Failed to get OAuth info after login:', error);
+          // 即使无法获取邮箱，登录仍然是成功的
+          // Even if we can't get the email, login was successful
+          return { success: true };
         }
-      } catch (_error) {
-        // Even if we can't get the email, login was successful
-        return { success: true };
+        return { success: true, data: { account: '' } };
       }
-      return { success: true, data: { account: '' } };
+
+      // 登录失败，返回错误信息
+      // Login failed, return error message
+      return { success: false, msg: 'Login failed: No client returned' };
+    } catch (error) {
+      // 捕获登录过程中的所有异常，避免未处理的错误导致应用弹窗
+      // Catch all exceptions during login to prevent unhandled errors from showing error dialogs
+      console.error('[Auth] Login error:', error);
+      return { success: false, msg: error.message || error.toString() };
     }
-    return { success: false };
   });
 
   ipcBridge.googleAuth.logout.provider(async () => {

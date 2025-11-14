@@ -8,6 +8,7 @@ AionUi supports WebUI mode, allowing you to access the application through a web
 - [Windows](#windows)
 - [macOS](#macos)
 - [Linux](#linux)
+- [Android (Termux)](#android-termux)
 - [Remote Access](#remote-access)
 - [Troubleshooting](#troubleshooting)
 
@@ -215,6 +216,213 @@ sudo systemctl status aionui-webui.service
 
 ---
 
+## Android (Termux)
+
+**Important Note**: Electron desktop mode is **not supported** on Android. However, you can run AionUi in WebUI mode using Termux with a prooted Linux environment.
+
+> **Community Contribution**: This guide is contributed by [@Manamama](https://github.com/Manamama). Special thanks for making AionUi accessible on Android devices! 🙏
+>
+> **Original Tutorial**: [Running AionUi WebUI on Android via Termux + Proot Ubuntu](https://gist.github.com/Manamama/b4f903c279b5e73bdad4c2c0a58d5ddd)
+>
+> **Related Issues**: [#217 - Android Support Discussion](https://github.com/iOfficeAI/AionUi/issues/217)
+
+### Prerequisites
+
+- **Termux** from [F-Droid](https://f-droid.org/en/packages/com.termux/) (Google Play version is outdated and not recommended)
+- **~5 GB free storage**
+- **Internet connection**
+- **Android 7.0+** (tested on Android 14)
+
+### Installation Steps
+
+#### 1. Install Termux and Update Packages
+
+```bash
+# Update package list
+pkg update -y
+
+# Install proot-distro
+pkg install proot-distro -y
+```
+
+#### 2. Install Ubuntu via Proot
+
+```bash
+# Install Ubuntu rootfs
+proot-distro install ubuntu
+
+# Login to Ubuntu environment
+proot-distro login ubuntu
+```
+
+#### 3. Install System Dependencies
+
+```bash
+# Update Ubuntu package list
+apt update
+
+# Install required dependencies
+apt install -y \
+    wget \
+    libgtk-3-0 \
+    libnss3 \
+    libasound2 \
+    libgbm1 \
+    libxshmfence1 \
+    ca-certificates
+
+# Optional: Install additional libraries if needed
+apt install -y \
+    libx11-xcb1 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxrandr2 \
+    libatk1.0-0 \
+    libcups2
+```
+
+#### 4. Download and Install AionUi
+
+```bash
+# Download the ARM64 .deb package (replace VERSION with the actual version)
+# Check latest version at: https://github.com/iOfficeAI/AionUi/releases
+wget https://github.com/iOfficeAI/AionUi/releases/download/vVERSION/AionUi_VERSION_arm64.deb
+
+# Example for v1.5.2:
+wget https://github.com/iOfficeAI/AionUi/releases/download/v1.5.2/AionUi_1.5.2_arm64.deb
+
+# Install the package
+apt install -y ./AionUi_*.deb
+
+# Verify installation
+which AionUi
+```
+
+#### 5. Launch AionUi WebUI
+
+```bash
+# Start AionUi in WebUI mode with no-sandbox flag
+AionUi --no-sandbox --webui
+```
+
+**Important**: The `--no-sandbox` flag is required in Termux/proot environments.
+
+#### 6. Access the WebUI
+
+Once started, open your browser and navigate to:
+
+```
+http://localhost:25808
+```
+
+**Note**: The default port is 25808. Check the terminal output if a different port is used.
+
+### Expected Warnings (Non-Fatal)
+
+You may see the following warnings in the terminal - these are normal and can be ignored:
+
+```
+[WARNING] Could not connect to session bus: Using X11 for dbus-daemon autolaunch was disabled at compile time
+[ERROR] Failed to connect to the bus: Failed to connect to socket: No such file or directory
+[WARNING] Multiple instances of the app detected, but not running on display server
+```
+
+These errors are related to D-Bus and X server, which are not needed for WebUI mode.
+
+### Remote Access on LAN
+
+To access AionUi from other devices on your local network:
+
+```bash
+# Start with --remote flag
+AionUi --no-sandbox --webui --remote
+
+# Find your Android device's IP address
+# In Termux (outside proot):
+# ifconfig or ip addr show
+```
+
+Access from other devices: `http://YOUR_ANDROID_IP:25808`
+
+### Troubleshooting
+
+#### Port Already in Use
+
+If port 25808 is occupied:
+
+```bash
+# Specify a different port
+AionUi --no-sandbox --webui --port 8080
+```
+
+#### Permission Denied Errors
+
+```bash
+# Ensure the binary has execute permissions
+chmod +x /opt/AionUi/aionui
+```
+
+#### Out of Memory
+
+AionUi requires sufficient RAM. Close other apps if you encounter memory issues.
+
+#### Cannot Access from Browser
+
+1. Check if AionUi is running: look for "Server started" message
+2. Try using Termux's built-in browser or Chrome
+3. Clear browser cache
+
+### Performance Tips
+
+1. **Use a lightweight browser** - Chrome or Firefox Focus recommended
+2. **Close background apps** - Free up RAM for better performance
+3. **Use WiFi** - More stable than mobile data for remote access
+4. **Keep device charged** - Running AionUi consumes battery
+
+### Tested Environment
+
+- **Device**: Android 14
+- **Termux Version**: 0.118.0
+- **AionUi Version**: 1.5.2
+- **Proot-distro**: Ubuntu (latest)
+
+### Creating a Startup Script
+
+For convenience, create a script to launch AionUi quickly:
+
+```bash
+# Create script in Ubuntu (proot)
+cat > ~/start-aionui.sh << 'EOF'
+#!/bin/bash
+echo "Starting AionUi WebUI..."
+AionUi --no-sandbox --webui --remote
+EOF
+
+# Make executable
+chmod +x ~/start-aionui.sh
+
+# Run anytime
+./start-aionui.sh
+```
+
+### Quick Start Command (One-liner)
+
+From Termux main shell:
+
+```bash
+proot-distro login ubuntu -- bash -c "AionUi --no-sandbox --webui --remote"
+```
+
+### Feedback and Improvements
+
+If you encounter issues or have suggestions for improving Android support:
+
+1. Check the [original community guide](https://gist.github.com/Manamama/b4f903c279b5e73bdad4c2c0a58d5ddd)
+2. Report issues at [GitHub Issues #217](https://github.com/iOfficeAI/AionUi/issues/217)
+3. Share your experience to help other Android users!
+
+---
+
 ## Remote Access
 
 To allow access from other devices on your network, use the `--remote` flag:
@@ -343,15 +551,44 @@ find /opt -name "aionui" 2>/dev/null
 You can customize WebUI behavior with environment variables:
 
 ```bash
-# Set custom port (if supported)
+# Override the listening port
 export AIONUI_PORT=8080
 
-# Set custom host
+# Allow remote access without passing --remote
+export AIONUI_ALLOW_REMOTE=true
+
+# Optional host hint (0.0.0.0 behaves the same as AIONUI_ALLOW_REMOTE=true)
 export AIONUI_HOST=0.0.0.0
 
 # Then start the application
 aionui --webui
+
+# You can also pass the port directly via CLI
+aionui --webui --port 8080
 ```
+
+---
+
+## User Configuration File
+
+From v1.5.0+, you can store persistent WebUI preferences in `webui.config.json` located in your Electron user-data folder:
+
+| Platform | Location                                                 |
+| -------- | -------------------------------------------------------- |
+| Windows  | `%APPDATA%/AionUi/webui.config.json`                     |
+| macOS    | `~/Library/Application Support/AionUi/webui.config.json` |
+| Linux    | `~/.config/AionUi/webui.config.json`                     |
+
+Example file:
+
+```json
+{
+  "port": 8080,
+  "allowRemote": true
+}
+```
+
+Settings from CLI flags take priority, followed by environment variables, then the user config file.
 
 ---
 

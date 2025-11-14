@@ -47,14 +47,29 @@ const HorizontalFileList: React.FC<HorizontalFileListProps> = ({ children }) => 
     const container = scrollContainerRef.current;
     if (!container) return;
 
-    // 使用 ResizeObserver 监听容器大小变化，自动更新滚动状态
-    const resizeObserver = new ResizeObserver(checkScroll);
+    let rafId: number | null = null;
+    const scheduleCheck = () => {
+      if (typeof window !== 'undefined' && 'requestAnimationFrame' in window) {
+        if (rafId !== null) {
+          cancelAnimationFrame(rafId);
+        }
+        rafId = requestAnimationFrame(checkScroll);
+      } else {
+        checkScroll();
+      }
+    };
+
+    // 使用 ResizeObserver 监听容器大小变化，自动更新滚动状态，并将状态更新延迟到下一帧以避免 ResizeObserver 循环
+    const resizeObserver = new ResizeObserver(scheduleCheck);
     resizeObserver.observe(container);
 
     // 监听滚动事件，实时更新按钮显示状态
     container.addEventListener('scroll', checkScroll);
 
     return () => {
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+      }
       resizeObserver.disconnect();
       container.removeEventListener('scroll', checkScroll);
     };
@@ -91,7 +106,7 @@ const HorizontalFileList: React.FC<HorizontalFileListProps> = ({ children }) => 
       {/* 横向滚动容器，隐藏滚动条 */}
       <div
         ref={scrollContainerRef}
-        className='flex items-center gap-8px overflow-x-auto overflow-y-hidden scrollbar-hide pt-5px'
+        className='flex items-center gap-8px overflow-x-auto overflow-y-hidden scrollbar-hide pt-5px pb-5px'
         style={{
           scrollbarWidth: 'none', // Firefox
           msOverflowStyle: 'none', // IE/Edge

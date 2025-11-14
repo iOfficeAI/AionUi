@@ -1,11 +1,12 @@
 import type { IProvider } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import ModalHOC from '@/renderer/utils/ModalHOC';
-import { Form, Input, Message, Modal, Select } from '@arco-design/web-react';
+import { Button, Form, Input, Message, Select } from '@arco-design/web-react';
 import { Search } from '@icon-park/react';
 import React, { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import useModeModeList from '../../../hooks/useModeModeList';
+import AionModal from '@/renderer/components/base/AionModal';
 
 const useModePlatformList = () => {
   const { t } = useTranslation();
@@ -119,7 +120,7 @@ const openaiCompatibleBaseUrls = [
 
 const AddPlatformModal = ModalHOC<{
   onSubmit: (platform: IProvider) => void;
-}>(({ modalProps, onSubmit }) => {
+}>(({ modalProps, onSubmit, modalCtrl }) => {
   const [message, messageContext] = Message.useMessage();
   const modelPlatformOptions = useModePlatformList();
   const { t } = useTranslation();
@@ -157,115 +158,105 @@ const AddPlatformModal = ModalHOC<{
           apiKey: values.apiKey,
           model: [values.model],
         });
+        modalCtrl.close();
       })
       .catch((e) => {
-        console.log('>>>>>>>>>>>>>>>>>>e', e);
+        // console.log('>>>>>>>>>>>>>>>>>>e', e);
       });
   };
 
   return (
-    <Modal {...modalProps} title={t('settings.addModel')} onOk={handleSubmit} style={{ width: 750 }}>
+    <AionModal visible={modalProps.visible} onCancel={modalCtrl.close} header={{ title: t('settings.addModel'), showClose: true }} style={{ maxWidth: '92vw', borderRadius: 16 }} contentStyle={{ background: 'var(--bg-1)', borderRadius: 16, padding: '20px 24px 16px', overflow: 'auto' }} onOk={handleSubmit} confirmLoading={modalProps.confirmLoading} okText={t('common.confirm')} cancelText={t('common.cancel')}>
       {messageContext}
-      <Form
-        form={form}
-        labelCol={{
-          span: 5,
-          flex: '200px',
-        }}
-        wrapperCol={{
-          flex: '1',
-        }}
-      >
-        <Form.Item initialValue='gemini' label={t('settings.modelPlatform')} field={'platform'}>
-          <Select
-            showSearch
-            options={modelPlatformOptions}
-            onChange={(value) => {
-              form.setFieldValue('baseUrl', defaultBaseUrl[value as keyof typeof defaultBaseUrl] || '');
-              form.setFieldValue('model', '');
-              form.setFieldValue('name', value !== 'custom' ? value : '');
-            }}
-          ></Select>
-        </Form.Item>
-        <Form.Item hidden={platform !== 'custom' && platform !== 'gemini'} label='base url' required={platform !== 'gemini'} rules={[{ required: platform !== 'gemini' }]} field={'baseUrl'}>
-          {platform === 'custom' ? (
+      <div className='flex flex-col gap-16px py-20px'>
+        <Form form={form} layout='vertical' className='space-y-0'>
+          <Form.Item initialValue='gemini' label={t('settings.modelPlatform')} field={'platform'}>
             <Select
               showSearch
-              allowCreate
-              options={openaiCompatibleBaseUrls.map((item) => ({
-                label: item.url,
-                value: item.url,
-              }))}
+              options={modelPlatformOptions}
               onChange={(value) => {
-                const selectedItem = openaiCompatibleBaseUrls.find((i) => i.url === value);
-                if (selectedItem) {
-                  form.setFieldValue('name', selectedItem.name);
-                } else {
-                  try {
-                    const { hostname } = new URL(value);
-                    const parts = hostname.split('.');
-                    form.setFieldValue('name', parts.length >= 2 ? parts[parts.length - 2] : parts[0]);
-                  } catch (e) {
-                    console.error('Invalid URL:', e);
-                  }
-                }
+                form.setFieldValue('baseUrl', defaultBaseUrl[value as keyof typeof defaultBaseUrl] || '');
+                form.setFieldValue('model', '');
+                form.setFieldValue('name', value !== 'custom' ? value : '');
               }}
             ></Select>
-          ) : (
-            <Input
-              placeholder={platform === 'gemini' ? 'https://generativelanguage.googleapis.com' : ''}
-              onChange={(value) => {
-                if (platform === 'gemini') {
-                  try {
-                    const urlObj = new URL(value);
-                    const hostname = urlObj.hostname;
-                    const parts = hostname.split('.');
-                    if (parts.length >= 2) {
-                      form.setFieldValue('name', parts[parts.length - 2]);
-                    } else {
-                      form.setFieldValue('name', parts[0]);
+          </Form.Item>
+          <Form.Item hidden={platform !== 'custom' && platform !== 'gemini'} label={t('settings.baseUrl')} required={platform !== 'gemini'} rules={[{ required: platform !== 'gemini' }]} field={'baseUrl'}>
+            {platform === 'custom' ? (
+              <Select
+                showSearch
+                allowCreate
+                options={openaiCompatibleBaseUrls.map((item) => ({
+                  label: item.url,
+                  value: item.url,
+                }))}
+                onChange={(value) => {
+                  const selectedItem = openaiCompatibleBaseUrls.find((i) => i.url === value);
+                  if (selectedItem) {
+                    form.setFieldValue('name', selectedItem.name);
+                  } else {
+                    try {
+                      const { hostname } = new URL(value);
+                      const parts = hostname.split('.');
+                      form.setFieldValue('name', parts.length >= 2 ? parts[parts.length - 2] : parts[0]);
+                    } catch (e) {
+                      console.error('Invalid URL:', e);
                     }
-                  } catch (e) {
-                    console.error('Invalid URL:', e);
                   }
-                }
+                }}
+              ></Select>
+            ) : (
+              <Input
+                placeholder={platform === 'gemini' ? 'https://generativelanguage.googleapis.com' : ''}
+                onChange={(value) => {
+                  if (platform === 'gemini') {
+                    try {
+                      const urlObj = new URL(value);
+                      const hostname = urlObj.hostname;
+                      const parts = hostname.split('.');
+                      form.setFieldValue('name', parts.length >= 2 ? parts[parts.length - 2] : parts[0]);
+                    } catch (e) {
+                      console.error('Invalid URL:', e);
+                    }
+                  }
+                }}
+              ></Input>
+            )}
+          </Form.Item>
+          <Form.Item hidden={platform !== 'custom'} label={t('settings.platformName')} required rules={[{ required: true }]} field={'name'} initialValue={'gemini'}>
+            <Input></Input>
+          </Form.Item>
+          <Form.Item label={t('settings.apiKey')} required rules={[{ required: true }]} field={'apiKey'} extra={<div className='text-11px text-t-secondary mt-2 leading-4'>{t('settings.multiApiKeyTip')}</div>}>
+            <Input
+              onBlur={() => {
+                void modelListState.mutate();
               }}
             ></Input>
-          )}
-        </Form.Item>
-        <Form.Item hidden={platform !== 'custom'} label={t('settings.platformName')} required rules={[{ required: true }]} field={'name'} initialValue={'gemini'}>
-          <Input></Input>
-        </Form.Item>
-        <Form.Item label='API Key' required rules={[{ required: true }]} field={'apiKey'} extra={<div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px', lineHeight: '1.4' }}>{t('settings.multiApiKeyTip')}</div>}>
-          <Input
-            onBlur={() => {
-              void modelListState.mutate();
-            }}
-          ></Input>
-        </Form.Item>
-        <Form.Item label={t('settings.modelName')} field={'model'} required rules={[{ required: true }]} validateStatus={modelListState.error ? 'error' : 'success'} help={modelListState.error}>
-          <Select
-            loading={modelListState.isLoading}
-            showSearch
-            allowCreate
-            suffixIcon={
-              <Search
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (!platform?.includes('gemini') && (!baseUrl || !apiKey)) {
-                    message.warning(t('settings.pleaseEnterBaseUrlAndApiKey'));
-                    return;
-                  }
-                  void modelListState.mutate();
-                }}
-                className='flex'
-              />
-            }
-            options={modelListState.data?.models || []}
-          ></Select>
-        </Form.Item>
-      </Form>
-    </Modal>
+          </Form.Item>
+          <Form.Item label={t('settings.modelName')} field={'model'} required rules={[{ required: true }]} validateStatus={modelListState.error ? 'error' : 'success'} help={modelListState.error}>
+            <Select
+              loading={modelListState.isLoading}
+              showSearch
+              allowCreate
+              suffixIcon={
+                <Search
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!platform?.includes('gemini') && (!baseUrl || !apiKey)) {
+                      message.warning(t('settings.pleaseEnterBaseUrlAndApiKey'));
+                      return;
+                    }
+                    void modelListState.mutate();
+                  }}
+                  className='flex'
+                />
+              }
+              options={modelListState.data?.models || []}
+            ></Select>
+          </Form.Item>
+        </Form>
+      </div>
+    </AionModal>
   );
 });
 

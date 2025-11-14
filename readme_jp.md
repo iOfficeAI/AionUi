@@ -195,6 +195,30 @@ AionUi をお試しですか？お使いの環境に合った最新版を、リ�
 
 > 💡 **詳細な設定ガイドが必要ですか？** [完全インストールチュートリアル](https://github.com/iOfficeAI/AionUi/wiki/Getting-Started) をご確認ください
 
+## 🛠️ ローカル開発
+
+AionUi をローカルで開発・デバッグする場合：
+
+1. `npm install`
+2. `npm start`
+
+`npm start` では 2 つのポートが起動します：Webpack 開発サーバー（デフォルト **3000**）とログビューア（デフォルト **9000**）。競合する場合は環境変数で上書きしてください。
+
+```bash
+AIONUI_DEV_PORT=3100 \\
+AIONUI_LOGGER_PORT=9100 \\
+npm start
+# DEV_SERVER_PORT / PORT、DEV_LOGGER_PORT / LOGGER_PORT も利用可
+```
+
+PowerShell 例：
+
+```powershell
+$env:AIONUI_DEV_PORT=3100
+$env:AIONUI_LOGGER_PORT=9100
+npm start
+```
+
 ## 📚 詳細ドキュメント
 
 ### 🚀 クイックスタート

@@ -97,6 +97,7 @@
   },
   "dependencies": {
     "@arco-design/web-react": "^2.66.1",
+    "@codemirror/lang-css": "^6.3.1",
     "@codemirror/lang-json": "^6.0.2",
     "@google/genai": "^1.16.0",
     "@icon-park/react": "^1.4.2",

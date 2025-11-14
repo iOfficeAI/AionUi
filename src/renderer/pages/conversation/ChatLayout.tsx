@@ -101,18 +101,18 @@ const ChatLayout: React.FC<{
   return (
     <ArcoLayout className={'size-full'}>
       <ArcoLayout.Content className='flex flex-col flex-1'>
-        <ArcoLayout.Header className={classNames('h-52px flex items-center justify-between p-16px gap-16px  !bg-1')}>
-          <FlexFullContainer className='h-full'>
-            <span className='ml-16px font-bold text-16px text-t-primary inline-block overflow-hidden text-ellipsis whitespace-nowrap w-full max-w-60%'>{props.title}</span>
+        <ArcoLayout.Header className={classNames('h-52px flex items-center justify-between p-16px gap-8px  !bg-1')}>
+          <FlexFullContainer className='h-full flex-1 min-w-0'>
+            <span className='md:ml-16px max-md:text-center max-md:w-full font-bold text-16px text-t-primary inline-block overflow-hidden text-ellipsis whitespace-nowrap'>{props.title}</span>
           </FlexFullContainer>
-          <div className='flex items-center gap-16px'>
+          <div className='flex items-center gap-8px flex-shrink-0'>
             {backend && (
-              <div className='ml-16px flex items-center gap-2 bg-2 w-fit rounded-full px-[8px] py-[2px]'>
+              <div className='ml-8px flex items-center gap-2 bg-2 w-fit rounded-full px-[8px] py-[2px]'>
                 <img src={backend === 'claude' ? ClaudeLogo : backend === 'gemini' ? GeminiLogo : backend === 'qwen' ? QwenLogo : backend === 'iflow' ? IflowLogo : backend === 'codex' ? CodexLogo : ''} alt={`${backend} logo`} width={16} height={16} style={{ objectFit: 'contain' }} />
                 <span className='font-medium text-t-primary'>{ACP_BACKENDS_ALL[backend as keyof typeof ACP_BACKENDS_ALL]?.name || backend}</span>
               </div>
             )}
-            {rightSiderCollapsed ? <ExpandRight onClick={() => setRightSiderCollapsed(false)} className='cursor-pointer flex' theme='outline' size='24' fill={iconColors.secondary} strokeWidth={3} /> : <ExpandLeft onClick={() => setRightSiderCollapsed(true)} className='cursor-pointer flex' theme='outline' size='24' fill={iconColors.secondary} strokeWidth={3} />}
+            {rightSiderCollapsed ? <ExpandRight onClick={() => setRightSiderCollapsed(false)} className='cursor-pointer flex flex-shrink-0' theme='outline' size='24' fill={iconColors.secondary} strokeWidth={3} /> : <ExpandLeft onClick={() => setRightSiderCollapsed(true)} className='cursor-pointer flex flex-shrink-0' theme='outline' size='24' fill={iconColors.secondary} strokeWidth={3} />}
           </div>
         </ArcoLayout.Header>
         <ArcoLayout.Content className='flex flex-col flex-1 bg-1 overflow-hidden'>{props.children}</ArcoLayout.Content>

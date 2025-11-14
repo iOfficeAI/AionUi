@@ -15,6 +15,9 @@ import { allSupportedExts } from '../services/FileService';
 import SendArrowIcon from '@/renderer/assets/send-arrow.svg';
 
 const constVoid = (): void => undefined;
+// 临界值：超过该字符数直接切换至多行模式，避免为超长文本做昂贵的宽度测量
+// Threshold: switch to multi-line mode directly when character count exceeds this value to avoid heavy layout work
+const MAX_SINGLE_LINE_CHARACTERS = 800;
 
 const SendBox: React.FC<{
   value?: string;
@@ -37,6 +40,7 @@ const SendBox: React.FC<{
   const [isSingleLine, setIsSingleLine] = useState(!defaultMultiLine);
   const containerRef = useRef<HTMLDivElement>(null);
   const singleLineWidthRef = useRef<number>(0);
+  const measurementCanvasRef = useRef<HTMLCanvasElement | null>(null);
 
   // 初始化时获取单行输入框的可用宽度
   // Initialize and get the available width of single-line input
@@ -70,50 +74,59 @@ const SendBox: React.FC<{
       return;
     }
 
+    // 长文本无需测量，直接切换多行，防止创建超宽 DOM 触发长时间布局计算
+    // Skip measurement for long text and switch to multi-line immediately to avoid expensive layout caused by extra-wide DOM
+    if (input.length >= MAX_SINGLE_LINE_CHARACTERS) {
+      setIsSingleLine(false);
+      return;
+    }
+
     // 检测内容宽度
     // Detect content width
-    const timer = setTimeout(() => {
-      if (containerRef.current) {
-        const textarea = containerRef.current.querySelector('textarea');
-        if (textarea) {
-          // 创建一个临时元素来测量文本真实宽度
-          // Create a temporary element to measure the actual text width
-          const span = document.createElement('span');
-          span.style.cssText = `
-            position: absolute;
-            visibility: hidden;
-            white-space: nowrap;
-            font-size: 14px;
-            font-family: ${getComputedStyle(textarea).fontFamily};
-          `;
-          span.textContent = input || '';
-          document.body.appendChild(span);
-
-          const textWidth = span.offsetWidth;
-          document.body.removeChild(span);
-
-          // 使用初始化时保存的固定宽度作为判断基准
-          // Use the fixed baseline width saved during initialization
-          const baseWidth = singleLineWidthRef.current;
-
-          // 文本宽度超过基准宽度时切换到多行
-          // Switch to multi-line when text width exceeds baseline width
-          if (textWidth >= baseWidth) {
-            setIsSingleLine(false);
-          } else if (textWidth < baseWidth - 30 && !lockMultiLine) {
-            // 文本宽度小于基准宽度减30px时切回单行，留出小缓冲区避免临界点抖动
-            // 如果 lockMultiLine 为 true，则不切换回单行
-            // Switch back to single-line when text width is less than baseline minus 30px, leaving a small buffer to avoid flickering at the threshold
-            // If lockMultiLine is true, do not switch back to single-line
-            setIsSingleLine(true);
-          }
-          // 在 (baseWidth-30) 到 baseWidth 之间保持当前状态
-          // Maintain current state between (baseWidth-30) and baseWidth
-        }
+    const frame = requestAnimationFrame(() => {
+      const textarea = containerRef.current?.querySelector('textarea');
+      if (!textarea) {
+        return;
       }
-    }, 150);
 
-    return () => clearTimeout(timer);
+      // 复用单个离屏 canvas，防止持续创建/销毁元素
+      // Reuse a single offscreen canvas to avoid creating/destroying DOM nodes repeatedly
+      const canvas = measurementCanvasRef.current ?? document.createElement('canvas');
+      if (!measurementCanvasRef.current) {
+        measurementCanvasRef.current = canvas;
+      }
+      const context = canvas.getContext('2d');
+      if (!context) {
+        return;
+      }
+
+      const textareaStyle = getComputedStyle(textarea);
+      const fallbackFontSize = textareaStyle.fontSize || '14px';
+      const fallbackFontFamily = textareaStyle.fontFamily || 'sans-serif';
+      context.font = textareaStyle.font || `${fallbackFontSize} ${fallbackFontFamily}`.trim();
+
+      const textWidth = context.measureText(input || '').width;
+
+      // 使用初始化时保存的固定宽度作为判断基准
+      // Use the fixed baseline width saved during initialization
+      const baseWidth = singleLineWidthRef.current;
+
+      // 文本宽度超过基准宽度时切换到多行
+      // Switch to multi-line when text width exceeds baseline width
+      if (textWidth >= baseWidth) {
+        setIsSingleLine(false);
+      } else if (textWidth < baseWidth - 30 && !lockMultiLine) {
+        // 文本宽度小于基准宽度减30px时切回单行，留出小缓冲区避免临界点抖动
+        // 如果 lockMultiLine 为 true，则不切换回单行
+        // Switch back to single-line when text width is less than baseline minus 30px, leaving a small buffer to avoid flickering at the threshold
+        // If lockMultiLine is true, do not switch back to single-line
+        setIsSingleLine(true);
+      }
+      // 在 (baseWidth-30) 到 baseWidth 之间保持当前状态
+      // Maintain current state between (baseWidth-30) and baseWidth
+    });
+
+    return () => cancelAnimationFrame(frame);
   }, [input, lockMultiLine]);
 
   // 使用拖拽 hook
@@ -213,7 +226,7 @@ const SendBox: React.FC<{
             style={{
               width: isSingleLine ? 'auto' : '100%',
               flex: isSingleLine ? 1 : 'none',
-              minWidth: isSingleLine ? '200px' : 0,
+              minWidth: isSingleLine ? '100px' : 0,
               maxWidth: '100%',
               marginLeft: 0,
               marginRight: 0,

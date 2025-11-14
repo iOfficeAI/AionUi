@@ -8,7 +8,7 @@ import { bridge, logger } from '@office-ai/platform';
 
 // 扩展 Window 接口以支持自定义属性 / Extend Window interface for custom properties
 interface ElectronAPI {
-  emit: (name: string, data: unknown) => void;
+  emit: (name: string, data: unknown) => Promise<unknown>;
   on: (callback: (event: { value: string }) => void) => void;
 }
 
@@ -28,7 +28,7 @@ if (win.electronAPI) {
   // Electron 环境 - 使用 IPC 通信
   bridge.adapter({
     emit(name, data) {
-      win.electronAPI.emit(name, data);
+      return win.electronAPI.emit(name, data);
     },
     on(emitter) {
       win.electronAPI?.on((event) => {

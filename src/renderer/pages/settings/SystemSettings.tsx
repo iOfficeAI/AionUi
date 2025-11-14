@@ -1,8 +1,9 @@
 import { ipcBridge } from '@/common';
+import FontSizeControl from '@/renderer/components/FontSizeControl';
 import LanguageSwitcher from '@/renderer/components/LanguageSwitcher';
 import ThemeSwitcher from '@/renderer/components/ThemeSwitcher';
 import { iconColors } from '@/renderer/theme/colors';
-import { Alert, Button, Form, Input, Modal } from '@arco-design/web-react';
+import { Alert, Button, Form, Input, Modal, Tooltip } from '@arco-design/web-react';
 import { FolderOpen } from '@icon-park/react';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -14,41 +15,50 @@ const DirInputItem: React.FC<{
   label: string;
   field: string;
 }> = (props) => {
+  const { t } = useTranslation();
   return (
     <Form.Item label={props.label} field={props.field}>
-      {(options, form) => (
-        <Input
-          disabled
-          value={options[props.field]}
-          addAfter={
-            <FolderOpen
-              theme='outline'
-              size='24'
-              fill={iconColors.primary}
-              onClick={() => {
-                ipcBridge.dialog.showOpen
-                  .invoke({
-                    defaultPath: options[props.field],
-                    properties: ['openDirectory', 'createDirectory'],
-                  })
-                  .then((data) => {
-                    if (data?.[0]) {
-                      form.setFieldValue(props.field, data[0]);
-                    }
-                  })
-                  .catch((error) => {
-                    console.error('Failed to open directory dialog:', error);
-                  });
+      {(options, form) => {
+        const currentValue = options[props.field] || '';
+
+        const handlePick = () => {
+          ipcBridge.dialog.showOpen
+            .invoke({
+              defaultPath: currentValue,
+              properties: ['openDirectory', 'createDirectory'],
+            })
+            .then((data) => {
+              if (data?.[0]) {
+                form.setFieldValue(props.field, data[0]);
+              }
+            })
+            .catch((error) => {
+              console.error('Failed to open directory dialog:', error);
+            });
+        };
+
+        return (
+          <div className='aion-dir-input w-full flex items-center gap-10px rounded-8px border border-solid border-transparent px-14px py-10px' onClick={handlePick}>
+            <Tooltip content={currentValue || t('settings.dirNotConfigured')} position='top'>
+              <span className='flex-1 min-w-0 text-13px text-t-primary truncate max-w-[220px]'>{currentValue || t('settings.dirNotConfigured')}</span>
+            </Tooltip>
+            <Button
+              size='mini'
+              type='outline'
+              icon={<FolderOpen theme='outline' size='18' fill={iconColors.primary} />}
+              onClick={(e) => {
+                e.stopPropagation();
+                handlePick();
               }}
             />
-          }
-        ></Input>
-      )}
+          </div>
+        );
+      }}
     </Form.Item>
   );
 };
 
-const SystemSettings: React.FC = (props) => {
+const SystemSettings: React.FC = () => {
   const { t } = useTranslation();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
@@ -67,7 +77,7 @@ const SystemSettings: React.FC = (props) => {
   }, [systemInfo, form]);
 
   // 目录配置保存确认 / Directory configuration save confirmation
-  const saveDirConfigValidate = (values: { cacheDir: string; workDir: string }): Promise<unknown> => {
+  const saveDirConfigValidate = (_values: { cacheDir: string; workDir: string }): Promise<unknown> => {
     return new Promise((resolve, reject) => {
       modal.confirm({
         title: t('settings.updateConfirm'),
@@ -97,10 +107,10 @@ const SystemSettings: React.FC = (props) => {
         } else {
           setError(result.msg || 'Failed to update system info');
         }
-      } catch (e: any) {
-        if (e) {
+      } catch (caughtError: unknown) {
+        if (caughtError) {
           // 用户取消 / User cancelled
-          setError(e.message || e);
+          setError(caughtError instanceof Error ? caughtError.message : String(caughtError));
         }
       } finally {
         setLoading(false);
@@ -138,6 +148,10 @@ const SystemSettings: React.FC = (props) => {
         </Form.Item>
         <Form.Item label={t('settings.theme')} field={'theme'}>
           <ThemeSwitcher></ThemeSwitcher>
+        </Form.Item>
+        {/* 字体缩放设置 / Font scale setting */}
+        <Form.Item label={t('settings.fontSize')} field={'fontScale'}>
+          <FontSizeControl />
         </Form.Item>
 
         {/* 目录配置 / Directory configuration */}
