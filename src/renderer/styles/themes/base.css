@@ -59,6 +59,16 @@
   background: rgba(255, 255, 255, 0.2);
 }
 
+/* Hide scrollbar while keeping scroll behavior */
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
 *:hover::-webkit-scrollbar-thumb {
   background: rgba(0, 0, 0, 0.1);
 }

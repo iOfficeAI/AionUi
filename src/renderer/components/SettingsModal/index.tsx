@@ -4,18 +4,19 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Gemini, Info, LinkCloud, System, Toolkit } from '@icon-park/react';
-import classNames from 'classnames';
-import React, { useState, useMemo } from 'react';
-import { useTranslation } from 'react-i18next';
-import { iconColors } from '@/renderer/theme/colors';
 import AionModal from '@/renderer/components/base/AionModal';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
+import AionSelect from '@/renderer/components/base/AionSelect';
+import { iconColors } from '@/renderer/theme/colors';
+import { Gemini, Info, LinkCloud, System, Toolkit } from '@icon-park/react';
+import classNames from 'classnames';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import AboutModalContent from './contents/AboutModalContent';
 import GeminiModalContent from './contents/GeminiModalContent';
 import ModelModalContent from './contents/ModelModalContent';
-import ToolsModalContent from './contents/ToolsModalContent';
 import SystemModalContent from './contents/SystemModalContent';
-import AboutModalContent from './contents/AboutModalContent';
+import ToolsModalContent from './contents/ToolsModalContent';
 type SettingTab = 'gemini' | 'model' | 'tools' | 'system' | 'about';
 
 interface SettingsModalProps {
@@ -54,6 +55,16 @@ export const SubModal: React.FC<SubModalProps> = ({ visible, onCancel, title, ch
 const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaultTab = 'gemini' }) => {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<SettingTab>(defaultTab);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const menuItems = useMemo(
     () => [
@@ -104,6 +115,41 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
     }
   };
 
+  const mobileMenu = (
+    <div className='my-16px'>
+      <AionSelect size='large' className='w-full settings-mobile-select' value={activeTab} onChange={(val) => setActiveTab(val as SettingTab)}>
+        {menuItems.map((item) => (
+          <AionSelect.Option key={item.key} value={item.key}>
+            <div className='flex items-center gap-8px text-14px'>
+              <span className='text-16px line-height-[10px]'>{item.icon}</span>
+              <span>{item.label}</span>
+            </div>
+          </AionSelect.Option>
+        ))}
+      </AionSelect>
+    </div>
+  );
+
+  const desktopMenu = (
+    <AionScrollArea className='w-200px flex-shrink-0 b-color-border-2 scrollbar-hide'>
+      <div className='flex flex-col gap-2px'>
+        {menuItems.map((item) => (
+          <div
+            key={item.key}
+            className={classNames('flex items-center px-14px py-10px rd-8px cursor-pointer transition-all duration-150 select-none', {
+              'bg-aou-2 text-t-primary': activeTab === item.key,
+              'text-t-secondary hover:bg-fill-1': activeTab !== item.key,
+            })}
+            onClick={() => setActiveTab(item.key)}
+          >
+            <span className='mr-12px text-16px line-height-[10px]'>{item.icon}</span>
+            <span className='text-14px font-500 flex-1 lh-22px'>{item.label}</span>
+          </div>
+        ))}
+      </div>
+    </AionScrollArea>
+  );
+
   return (
     <AionModal
       visible={visible}
@@ -111,33 +157,17 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
       footer={null}
       className='settings-modal'
       style={{
-        width: '880px',
+        width: isMobile ? 'min(100vw, 560px)' : '880px',
+        maxHeight: isMobile ? '90vh' : undefined,
         borderRadius: '16px',
       }}
+      bodyStyle={{ padding: isMobile ? '16px' : '24px 24px 32px' }}
       title={t('settings.title')}
     >
-      <div className='flex h-459px mt-20px overflow-hidden gap-0'>
-        {/* 左侧导航菜单 / Left navigation menu */}
-        <AionScrollArea className='w-200px flex-shrink-0 b-color-border-2'>
-          <div className='flex flex-col gap-2px'>
-            {menuItems.map((item) => (
-              <div
-                key={item.key}
-                className={classNames('flex items-center px-14px py-12px rd-8px cursor-pointer transition-all duration-150 select-none', {
-                  'bg-aou-2 text-t-primary': activeTab === item.key,
-                  'text-t-secondary hover:bg-fill-1': activeTab !== item.key,
-                })}
-                onClick={() => setActiveTab(item.key)}
-              >
-                <span className='flex items-center justify-center mr-12px flex-shrink-0 w-20px h-20px'>{item.icon}</span>
-                <span className='text-14px font-400 flex-1 lh-20px'>{item.label}</span>
-              </div>
-            ))}
-          </div>
-        </AionScrollArea>
+      <div className={classNames('overflow-hidden gap-0', isMobile ? 'flex flex-col min-h-0 h-[calc(90vh-80px)]' : 'flex h-459px mt-20px')}>
+        {isMobile ? mobileMenu : desktopMenu}
 
-        {/* 右侧内容区域 / Right content area */}
-        <AionScrollArea className='flex-1 flex flex-col min-h-0 pl-24px gap-16px'>{renderContent()}</AionScrollArea>
+        <AionScrollArea className={classNames('flex-1 min-h-0 scrollbar-hide', isMobile ? 'overflow-y-auto' : 'flex flex-col pl-24px gap-16px')}>{renderContent()}</AionScrollArea>
       </div>
     </AionModal>
   );

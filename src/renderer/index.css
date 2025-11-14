@@ -11,10 +11,6 @@ html,
 body,
 #root,
 .layout,
-.arco-layout {
-  min-width: 375px;
-}
-
 @keyframes bg-animate {
   0% {
     background-color: #f2f3f5;
@@ -138,7 +134,6 @@ body,
       overflow-x: hidden;
       width: 100vw;
       max-width: 100vw;
-      min-width: 375px; /* Keep responsive layout baseline / 维持响应式基线宽度 */
     }
 
     /* Ensure all containers don't exceed viewport width */

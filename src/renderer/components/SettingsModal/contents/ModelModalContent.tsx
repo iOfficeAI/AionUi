@@ -49,7 +49,7 @@ const ModelModalContent: React.FC = () => {
       })
       .catch((error) => {
         console.error('Failed to save model config:', error);
-        message.error('Failed to save model configuration');
+        message.error(t('settings.saveModelConfigFailed'));
       });
   };
 
@@ -90,22 +90,22 @@ const ModelModalContent: React.FC = () => {
   });
 
   return (
-    <div className='flex flex-col h-full bg-2 rd-16px px-40px py-20px'>
+    <div className='flex flex-col bg-2 rd-16px px-[12px] md:px-32px py-20px'>
       {messageContext}
       {addPlatformModalContext}
       {editModalContext}
       {addModelModalContext}
 
       {/* Header with Add Button */}
-      <div className='flex-shrink-0 border-b border-border-2 flex items-center justify-between'>
-        <h2 className='text-16px font-600 text-t-primary'>{t('settings.model')}</h2>
-        <Button size='small' type='outline' shape='round' icon={<Plus size='16' />} onClick={() => addPlatformModalCtrl.open()} className='rd-100px border-1 border-t-secondary'>
+      <div className='flex-shrink-0 border-b flex items-center justify-between mb-20px'>
+        <div className='text-14px text-t-primary'>{t('settings.model')}</div>
+        <Button type='outline' shape='round' icon={<Plus size='16' />} onClick={() => addPlatformModalCtrl.open()} className='rd-100px border-1 border-t-secondary'>
           {t('settings.addModel')}
         </Button>
       </div>
 
       {/* Content Area */}
-      <AionScrollArea className='flex-1 min-h-0'>
+      <AionScrollArea className='flex-1 min-h-0 scrollbar-hide'>
         {!data || data.length === 0 ? (
           <div className='flex flex-col items-center justify-center py-40px'>
             <Info theme='outline' size='48' className='text-t-secondary mb-16px' />
@@ -129,7 +129,7 @@ const ModelModalContent: React.FC = () => {
                     className='[&_.arco-collapse-item-header-title]:flex-1'
                     header={
                       <div className='flex items-center justify-between w-full'>
-                        <span className='text-14px font-500 text-t-primary'>{platform.name}</span>
+                        <span className='text-14px text-t-primary'>{platform.name}</span>
                         <div className='flex items-center gap-8px' onClick={(e) => e.stopPropagation()}>
                           <span className='text-12px text-t-secondary'>
                             {t('settings.modelCount')}（{platform.model.length}）| {t('settings.apiKeyCount')}（{getApiKeyCount(platform.apiKey)}）

@@ -179,15 +179,14 @@ const McpManagement: React.FC<McpManagementProps> = ({ message }) => {
                   </Menu>
                 }
               >
-                <Button size='mini' type='outline' icon={<Plus size={'14'} />} shape='round' onClick={(e) => e.stopPropagation()}>
+                <Button type='outline' icon={<Plus size={'14'} />} shape='round' onClick={(e) => e.stopPropagation()}>
                   {t('settings.mcpAddServer')} <Down size={'12'} />
                 </Button>
               </Dropdown>
             ) : (
               <Button
-                size='mini'
                 type='outline'
-                icon={<Plus size={'14'} />}
+                icon={<Plus size={'16'} />}
                 shape='round'
                 onClick={(e) => {
                   e.stopPropagation();

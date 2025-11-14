@@ -35,7 +35,9 @@
     "expandMore": "Expand More",
     "collapse": "Collapse",
     "success": "Success",
-    "error": "Error"
+    "error": "Error",
+    "saveSuccess": "Saved successfully",
+    "saveFailed": "Failed to save"
   },
   "login": {
     "pageTitle": "AionUi - Sign In",
@@ -195,7 +197,7 @@
     "updateConfirm": "Confirm Changes",
     "restartConfirm": "Changes will restart the application. Continue?",
     "theme": "Theme",
-    "fontSize": "Interface scale",
+    "fontSize": "Scale",
     "fontSizeDescription": "Adjust the UI zoom level so the entire interface matches your preferred size.",
     "fontSizeReset": "Reset zoom",
     "lightMode": "Light",
@@ -273,7 +275,8 @@
     "updateLog": "Update Log",
     "feedback": "Feedback",
     "contactMe": "Contact Me",
-    "officialWebsite": "Official Website"
+    "officialWebsite": "Official Website",
+    "saveModelConfigFailed": "Failed to save model configuration"
   },
   "messages": {
     "conversationInProgress": "A conversation is currently in progress...",

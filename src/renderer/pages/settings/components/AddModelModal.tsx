@@ -30,36 +30,17 @@ const AddModelModal = ModalHOC<{ data?: IProvider; onSubmit: (model: IProvider) 
   }, [data, existingModels, model, onSubmit, modalCtrl]);
 
   return (
-    <AionModal
-      visible={modalProps.visible}
-      onCancel={modalCtrl.close}
-      header={{ title: t('settings.addModel') }}
-      contentStyle={{ background: 'var(--bg-1)', borderRadius: 16, padding: '20px 24px 16px', overflow: 'hidden' }}
-      style={{ width: 420, minHeight: 480, maxHeight: '90vh' }}
-      footer={{
-        render: () => (
-          <div className='flex flex-col gap-8px w-full border-t border-solid border-border-2 pt-12 mt-4'>
-            <div className='text-12px text-t-secondary leading-5'>{model ? t('settings.addModelSelectedHint', { model }) : t('settings.addModelHint', { defaultValue: '选择或输入一个模型名称，它将被追加到当前平台配置中。' })}</div>
-            <div className='flex justify-end gap-12px'>
-              <Button onClick={modalCtrl.close}>{t('common.cancel')}</Button>
-              <Button type='primary' disabled={!model} onClick={handleConfirm}>
-                {t('common.confirm')}
-              </Button>
-            </div>
-          </div>
-        ),
-      }}
-    >
-      <div className='flex flex-col gap-16px h-full'>
+    <AionModal visible={modalProps.visible} onCancel={modalCtrl.close} header={{ title: t('settings.addModel'), showClose: true }} style={{ maxHeight: '90vh' }} contentStyle={{ background: 'var(--bg-1)', borderRadius: 16, padding: '20px 24px', overflow: 'auto' }} onOk={handleConfirm} okText={t('common.confirm')} cancelText={t('common.cancel')} okButtonProps={{ disabled: !model }}>
+      <div className='flex flex-col gap-16px pt-20px'>
         <div className='space-y-8px'>
           <div className='text-13px font-500 text-t-secondary'>{t('settings.addModelPlaceholder')}</div>
           <Select showSearch options={optionsList} loading={isLoading} onChange={setModel} value={model} allowCreate placeholder={t('settings.addModelPlaceholder')}></Select>
         </div>
 
         <div className='space-y-8px'>
-          <div className='text-13px font-500 text-t-secondary'>{t('settings.currentModelsLabel', { defaultValue: '当前模型' })}</div>
+          <div className='text-13px font-500 text-t-secondary'>{t('settings.currentModelsLabel')}</div>
           {existingModels.length === 0 ? (
-            <div className='text-13px text-t-secondary bg-fill-1 rd-8px px-12px py-14px border border-dashed border-border-2'>{t('settings.addModelNoExisting', { defaultValue: '还没有为该服务商添加模型，添加后的模型将显示在这里。' })}</div>
+            <div className='text-13px text-t-secondary bg-fill-1 rd-8px px-12px py-14px border border-dashed border-border-2'>{t('settings.addModelNoExisting')}</div>
           ) : (
             <div className='flex flex-wrap gap-8px bg-1 rd-8px px-12px py-10px border border-solid border-border-2'>
               {previewModels.map((item) => (
@@ -67,17 +48,14 @@ const AddModelModal = ModalHOC<{ data?: IProvider; onSubmit: (model: IProvider) 
                   {item}
                 </Tag>
               ))}
-              {remainingCount > 0 && <Tag bordered>{t('settings.addModelMoreCount', { count: remainingCount, defaultValue: `+${remainingCount}` })}</Tag>}
+              {remainingCount > 0 && <Tag bordered>{t('settings.addModelMoreCount', { count: remainingCount })}</Tag>}
             </div>
           )}
         </div>
 
-        <div className='text-12px text-t-tertiary leading-5 bg-fill-1 rd-8px px-12px py-10px border border-dashed border-border-2'>
-          {t('settings.addModelTips', {
-            defaultValue: '支持直接输入模型名称；若接口支持 streaming ，建议确保名称与服务商控制台保持一致。',
-          })}
-        </div>
+        <div className='text-12px text-t-tertiary leading-5 bg-fill-1 rd-8px px-12px py-10px border border-dashed border-border-2'>{t('settings.addModelTips')}</div>
       </div>
+      <div className='text-12px text-t-secondary leading-5 my-4'>{model ? t('settings.addModelSelectedHint', { model }) : t('settings.addModelHint')}</div>
     </AionModal>
   );
 });

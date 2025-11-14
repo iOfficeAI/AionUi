@@ -32,7 +32,9 @@
     "copy": "复制",
     "download": "下载",
     "success": "成功",
-    "error": "错误"
+    "error": "错误",
+    "saveSuccess": "保存成功",
+    "saveFailed": "保存失败"
   },
   "login": {
     "pageTitle": "AionUi - 登录",
@@ -192,7 +194,7 @@
     "updateConfirm": "确认修改",
     "restartConfirm": "修改后将重启应用，是否继续？",
     "theme": "主题",
-    "fontSize": "界面缩放",
+    "fontSize": "缩放",
     "fontSizeDescription": "调整应用的整体缩放比例（Zoom），让界面元素更符合阅读习惯。",
     "fontSizeReset": "恢复默认缩放",
     "lightMode": "浅色",
@@ -269,7 +271,8 @@
     "mcpOAuthLoginSuccess": "OAuth 登录成功",
     "mcpOAuthLoginFailed": "OAuth 登录失败",
     "mcpLogin": "登录",
-    "mcpNeedsLogin": "未登录 · 点击登录"
+    "mcpNeedsLogin": "未登录 · 点击登录",
+    "saveModelConfigFailed": "保存模型配置失败"
   },
   "messages": {
     "conversationInProgress": "当前正在进行对话中...",

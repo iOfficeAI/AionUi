@@ -1,10 +1,16 @@
+/**
+ * @license
+ * Copyright 2025 AionUi (aionui.com)
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 import type { ModalProps } from '@arco-design/web-react';
 import { Modal, Button } from '@arco-design/web-react';
-import { useTranslation } from 'react-i18next';
 import { Close } from '@icon-park/react';
 import classNames from 'classnames';
 import type { CSSProperties } from 'react';
 import React from 'react';
+import { useThemeContext } from '@/renderer/context/ThemeContext';
 
 // ==================== 类型定义导出 ====================
 
@@ -81,11 +87,65 @@ export interface AionModalProps extends Omit<ModalProps, 'title' | 'footer'> {
   showCustomClose?: boolean;
 }
 
+// ==================== 样式常量 / Style Constants ====================
+
 const HEADER_BASE_CLASS = 'flex items-center justify-between pb-20px';
 const TITLE_BASE_CLASS = 'text-18px font-500 text-t-primary m-0';
 const CLOSE_BUTTON_CLASS = 'w-32px h-32px flex items-center justify-center rd-8px transition-colors duration-200 cursor-pointer border-0 bg-transparent p-0 hover:bg-2 focus:outline-none';
-const FOOTER_BASE_CLASS = 'flex-shrink-0 bg-transparent ';
+const FOOTER_BASE_CLASS = 'flex-shrink-0 bg-transparent';
 
+/**
+ * 自定义模态框组件 / Custom modal component
+ *
+ * 基于 Arco Design Modal 的封装，提供统一的样式主题、预设尺寸和字体缩放支持
+ * Wrapper around Arco Design Modal with unified theme styling, preset sizes, and font scaling support
+ *
+ * @features
+ * - 预设尺寸支持 / Preset size support (small/medium/large/xlarge/full)
+ * - 响应字体缩放 / Responsive to font scale changes
+ * - 灵活的 header/footer 配置 / Flexible header/footer configuration
+ * - 向后兼容旧 API / Backward compatible with old API
+ * - 自动视口适配 / Auto viewport adaptation
+ *
+ * @example
+ * ```tsx
+ * // 基本用法 / Basic usage
+ * <AionModal visible={true} onCancel={handleClose} header="标题">
+ *   内容
+ * </AionModal>
+ *
+ * // 预设尺寸 / Preset size
+ * <AionModal visible={true} size="large" header="大型弹窗">
+ *   内容
+ * </AionModal>
+ *
+ * // 自定义 header / Custom header
+ * <AionModal
+ *   visible={true}
+ *   header={{
+ *     title: "自定义标题",
+ *     showClose: true,
+ *     className: "custom-header"
+ *   }}
+ * >
+ *   内容
+ * </AionModal>
+ *
+ * // 自定义 footer / Custom footer
+ * <AionModal
+ *   visible={true}
+ *   header="标题"
+ *   footer={
+ *     <div className="flex gap-2">
+ *       <Button onClick={handleCancel}>取消</Button>
+ *       <Button type="primary" onClick={handleOk}>确定</Button>
+ *     </div>
+ *   }
+ * >
+ *   内容
+ * </AionModal>
+ * ```
+ */
 const AionModal: React.FC<AionModalProps> = ({
   children,
   size,
@@ -100,6 +160,7 @@ const AionModal: React.FC<AionModalProps> = ({
   style,
   ...props
 }) => {
+  const { fontScale } = useThemeContext();
   // 处理 contentStyle 配置，转换为 CSS 变量
   const contentBg = contentStyle?.background || 'var(--bg-1)';
   const contentBorderRadius = contentStyle?.borderRadius || '16px';
@@ -109,17 +170,69 @@ const AionModal: React.FC<AionModalProps> = ({
   const borderRadiusVal = typeof contentBorderRadius === 'number' ? `${contentBorderRadius}px` : contentBorderRadius;
   const paddingVal = typeof contentPadding === 'number' ? `${contentPadding}px` : contentPadding;
 
-  // 处理尺寸
+  const safeScale = fontScale > 0 ? fontScale : 1;
+
+  const scaleDimension = (value: CSSProperties['width']): CSSProperties['width'] => {
+    if (value === undefined || value === null) return value;
+    if (typeof value === 'number') {
+      return Number((value / safeScale).toFixed(2));
+    }
+    const match = /^([0-9]+(?:\.[0-9]+)?)px$/i.exec(value.trim());
+    if (match) {
+      return `${parseFloat(match[1]) / safeScale}px`;
+    }
+    return value;
+  };
+
+  // 处理尺寸缩放 / Handle size scaling
   const modalSize = size ? MODAL_SIZES[size] : undefined;
-  const finalStyle: CSSProperties = {
+  const baseStyle: CSSProperties = {
     ...modalSize,
     ...style,
-    // 通过 CSS 变量传递样式配置
-    ['--aionui-modal-bg' as any]: contentBg,
-    ['--aionui-modal-radius' as any]: borderRadiusVal,
-    ['--aionui-modal-padding' as any]: paddingVal,
-    ['--aionui-modal-overflow' as any]: contentOverflow,
-    borderRadius: style?.borderRadius || '16px',
+  };
+
+  // 缩放尺寸相关属性（避免副作用）/ Scale size-related properties (avoid side effects)
+  const sizeKeys: (keyof CSSProperties)[] = ['width', 'minWidth', 'maxWidth', 'height', 'minHeight', 'maxHeight'];
+  const scaledStyle = sizeKeys.reduce<CSSProperties>((acc, key) => {
+    const raw = baseStyle[key];
+    if (raw !== undefined) {
+      acc[key] = scaleDimension(raw as CSSProperties['width']);
+    }
+    return acc;
+  }, {});
+
+  const mergedStyle: CSSProperties = {
+    ...baseStyle,
+    ...scaledStyle,
+  };
+
+  // 自动设置最大宽高以适应视口 / Auto set max dimensions to fit viewport
+  if (typeof window !== 'undefined') {
+    const viewportGap = 32;
+    if (!mergedStyle.maxWidth) {
+      mergedStyle.maxWidth = `calc(100vw - ${viewportGap}px)`;
+    }
+    if (!mergedStyle.maxHeight) {
+      mergedStyle.maxHeight = `calc(100vh - ${viewportGap}px)`;
+    }
+  }
+
+  // CSS 变量接口定义 / CSS variables interface
+  interface ModalCSSVariables extends CSSProperties {
+    '--aionui-modal-bg'?: string;
+    '--aionui-modal-radius'?: string;
+    '--aionui-modal-padding'?: string;
+    '--aionui-modal-overflow'?: string;
+  }
+
+  const finalStyle: ModalCSSVariables = {
+    ...mergedStyle,
+    // 通过 CSS 变量传递样式配置 / Pass style config via CSS variables
+    '--aionui-modal-bg': contentBg,
+    '--aionui-modal-radius': borderRadiusVal,
+    '--aionui-modal-padding': paddingVal,
+    '--aionui-modal-overflow': contentOverflow,
+    borderRadius: mergedStyle.borderRadius ?? '16px',
   };
 
   // 处理 Header 配置（向后兼容）
@@ -144,8 +257,6 @@ const AionModal: React.FC<AionModalProps> = ({
   }, [header, title, showCustomClose]);
 
   // 处理 Footer 配置
-  const { t } = useTranslation();
-
   const footerConfig: ModalFooterConfig | null = React.useMemo(() => {
     if (footer === null) {
       return null;
@@ -153,16 +264,18 @@ const AionModal: React.FC<AionModalProps> = ({
 
     // 未提供 footer 时，使用默认模板
     if (footer === undefined) {
+      const cancelLabel = props.cancelText ?? 'Cancel';
+      const okLabel = props.okText ?? 'Confirm';
       return {
         render: () => (
           <div className='flex justify-end gap-10px'>
-            {/* 默认按钮使用国际化文案，保持统一圆角样式 */}
-            {/* Default buttons use i18n labels with consistent rounded corners */}
+            {/* 默认按钮提供统一圆角，文案可通过 cancelText/okText 覆盖 */}
+            {/* Default buttons ship with rounded corners; text can be overridden via cancelText/okText */}
             <Button onClick={onCancel} className='px-20px min-w-80px' style={{ borderRadius: 8 }}>
-              {props.cancelText || t('common.cancel')}
+              {cancelLabel}
             </Button>
             <Button type='primary' onClick={props.onOk} loading={props.confirmLoading} className='px-20px min-w-80px' style={{ borderRadius: 8 }}>
-              {props.okText || t('common.confirm')}
+              {okLabel}
             </Button>
           </div>
         ),
@@ -242,5 +355,7 @@ const AionModal: React.FC<AionModalProps> = ({
     </Modal>
   );
 };
+
+AionModal.displayName = 'AionModal';
 
 export default AionModal;

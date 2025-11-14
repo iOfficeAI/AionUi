@@ -120,7 +120,7 @@ const openaiCompatibleBaseUrls = [
 
 const AddPlatformModal = ModalHOC<{
   onSubmit: (platform: IProvider) => void;
-}>(({ modalProps, onSubmit }) => {
+}>(({ modalProps, onSubmit, modalCtrl }) => {
   const [message, messageContext] = Message.useMessage();
   const modelPlatformOptions = useModePlatformList();
   const { t } = useTranslation();
@@ -158,31 +158,18 @@ const AddPlatformModal = ModalHOC<{
           apiKey: values.apiKey,
           model: [values.model],
         });
+        modalCtrl.close();
       })
       .catch((e) => {
         // console.log('>>>>>>>>>>>>>>>>>>e', e);
       });
   };
 
-  const mergedStyle: React.CSSProperties = {
-    width: 600,
-    borderRadius: 16,
-    ...(modalProps.style || {}),
-  };
   return (
-    <AionModal {...modalProps} header={{ title: t('settings.addModel'), showClose: true }} style={mergedStyle} contentStyle={{ borderRadius: 16, padding: '24px', background: 'var(--bg-1)', overflow: 'auto', height: 368 - 48 }} onOk={handleSubmit} confirmLoading={modalProps.confirmLoading}>
-      <div className='mt-20px'>
-        {messageContext}
-        <Form
-          form={form}
-          labelCol={{
-            span: 5,
-            flex: '140px',
-          }}
-          wrapperCol={{
-            flex: '1',
-          }}
-        >
+    <AionModal visible={modalProps.visible} onCancel={modalCtrl.close} header={{ title: t('settings.addModel'), showClose: true }} style={{ maxWidth: '92vw', borderRadius: 16 }} contentStyle={{ background: 'var(--bg-1)', borderRadius: 16, padding: '20px 24px 16px', overflow: 'auto' }} onOk={handleSubmit} confirmLoading={modalProps.confirmLoading} okText={t('common.confirm')} cancelText={t('common.cancel')}>
+      {messageContext}
+      <div className='flex flex-col gap-16px py-20px'>
+        <Form form={form} layout='vertical' className='space-y-0'>
           <Form.Item initialValue='gemini' label={t('settings.modelPlatform')} field={'platform'}>
             <Select
               showSearch
@@ -194,7 +181,7 @@ const AddPlatformModal = ModalHOC<{
               }}
             ></Select>
           </Form.Item>
-          <Form.Item hidden={platform !== 'custom' && platform !== 'gemini'} label='base url' required={platform !== 'gemini'} rules={[{ required: platform !== 'gemini' }]} field={'baseUrl'}>
+          <Form.Item hidden={platform !== 'custom' && platform !== 'gemini'} label={t('settings.baseUrl')} required={platform !== 'gemini'} rules={[{ required: platform !== 'gemini' }]} field={'baseUrl'}>
             {platform === 'custom' ? (
               <Select
                 showSearch
@@ -227,11 +214,7 @@ const AddPlatformModal = ModalHOC<{
                       const urlObj = new URL(value);
                       const hostname = urlObj.hostname;
                       const parts = hostname.split('.');
-                      if (parts.length >= 2) {
-                        form.setFieldValue('name', parts[parts.length - 2]);
-                      } else {
-                        form.setFieldValue('name', parts[0]);
-                      }
+                      form.setFieldValue('name', parts.length >= 2 ? parts[parts.length - 2] : parts[0]);
                     } catch (e) {
                       console.error('Invalid URL:', e);
                     }
@@ -243,7 +226,7 @@ const AddPlatformModal = ModalHOC<{
           <Form.Item hidden={platform !== 'custom'} label={t('settings.platformName')} required rules={[{ required: true }]} field={'name'} initialValue={'gemini'}>
             <Input></Input>
           </Form.Item>
-          <Form.Item label='API Key' required rules={[{ required: true }]} field={'apiKey'} extra={<div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '4px', lineHeight: '1.4' }}>{t('settings.multiApiKeyTip')}</div>}>
+          <Form.Item label={t('settings.apiKey')} required rules={[{ required: true }]} field={'apiKey'} extra={<div className='text-11px text-t-secondary mt-2 leading-4'>{t('settings.multiApiKeyTip')}</div>}>
             <Input
               onBlur={() => {
                 void modelListState.mutate();

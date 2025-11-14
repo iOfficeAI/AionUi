@@ -10,7 +10,7 @@ import FontSizeControl from '@/renderer/components/FontSizeControl';
 import LanguageSwitcher from '@/renderer/components/LanguageSwitcher';
 import ThemeSwitcher from '@/renderer/components/ThemeSwitcher';
 import { iconColors } from '@/renderer/theme/colors';
-import { Alert, Button, Divider, Form, Modal, Input } from '@arco-design/web-react';
+import { Alert, Button, Divider, Form, Modal, Input, Tooltip } from '@arco-design/web-react';
 import { FolderOpen, Down, Up } from '@icon-park/react';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -28,7 +28,7 @@ const DirInputItem: React.FC<{
 }> = ({ label, field }) => {
   const { t } = useTranslation();
   return (
-    <Form.Item layout='horizontal' label={label} field={field}>
+    <Form.Item label={label} field={field}>
       {(value, form) => {
         const currentValue = form.getFieldValue(field) || '';
 
@@ -49,24 +49,20 @@ const DirInputItem: React.FC<{
         };
 
         return (
-          <Input
-            readOnly
-            value={currentValue}
-            placeholder={t('settings.dirNotConfigured')}
-            className='w-full [&_.arco-input]:shadow-none [&_.arco-input]:bg-white dark:[&_.arco-input]:bg-[var(--color-bg-3)]'
-            suffix={
-              <FolderOpen
-                theme='outline'
-                size='18'
-                fill={iconColors.primary}
-                className='cursor-pointer'
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handlePick();
-                }}
-              />
-            }
-          />
+          <div className='aion-dir-input h-[32px] flex items-center rounded-8px border border-solid border-transparent pl-14px'>
+            <Tooltip content={currentValue || t('settings.dirNotConfigured')} position='top'>
+              <div className='flex-1 min-w-0 text-13px text-t-primary truncate '>{currentValue || t('settings.dirNotConfigured')}</div>
+            </Tooltip>
+            <Button
+              type='text'
+              style={{ borderLeft: '1px solid var(--color-border-2)', borderRadius: '0 8px 8px 0' }}
+              icon={<FolderOpen theme='outline' size='18' fill={iconColors.primary} />}
+              onClick={(e) => {
+                e.stopPropagation();
+                handlePick();
+              }}
+            />
+          </div>
         );
       }}
     </Form.Item>
@@ -75,7 +71,7 @@ const DirInputItem: React.FC<{
 
 const PreferenceRow: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
   <div className='flex items-center justify-between gap-24px py-12px'>
-    <div className='text-14px text-2 w-160px'>{label}</div>
+    <div className='text-14px text-2'>{label}</div>
     <div className='flex-1 flex justify-end'>{children}</div>
   </div>
 );
@@ -175,10 +171,10 @@ const SystemModalContent: React.FC = () => {
       {modalContextHolder}
 
       {/* Content Area */}
-      <AionScrollArea className='flex-1 min-h-0 pb-16px'>
+      <AionScrollArea className='flex-1 min-h-0 pb-16px scrollbar-hide'>
         <div className='space-y-16px'>
           {/* Language & Theme Block - Horizontal Layout */}
-          <div className='h-80px flex justify-between items-center px-32px bg-2 rd-16px'>
+          <div className='h-80px flex justify-between items-center px-[12px] md:px-[32px] bg-2 rd-16px'>
             <div className='w-full flex flex-col divide-y divide-border-2'>
               <PreferenceRow label={t('settings.language')}>
                 <LanguageSwitcher />
@@ -186,7 +182,7 @@ const SystemModalContent: React.FC = () => {
             </div>
           </div>
 
-          <div className='h-80px flex justify-between items-center px-32px bg-2 rd-16px'>
+          <div className='h-80px flex justify-between items-center px-[12px] md:px-[32px] bg-2 rd-16px'>
             <div className='w-full flex flex-col divide-y divide-border-2'>
               <PreferenceRow label={t('settings.theme')}>
                 <ThemeSwitcher />
@@ -194,7 +190,7 @@ const SystemModalContent: React.FC = () => {
             </div>
           </div>
 
-          <div className='h-80px flex justify-between items-center px-32px bg-2 rd-16px'>
+          <div className='h-80px flex justify-between items-center px-[12px] md:px-[32px] bg-2 rd-16px'>
             <div className='w-full flex flex-col divide-y divide-border-2'>
               <PreferenceRow label={t('settings.fontSize')}>
                 <FontSizeControl />
@@ -202,7 +198,7 @@ const SystemModalContent: React.FC = () => {
             </div>
           </div>
 
-          {/* Advanced Settings - Collapsible */}
+          {/* 高级设置 / Advanced Settings - Collapsible */}
           <AionCollapse bordered={false} defaultActiveKey={['advanced']} expandIcon={renderExpandIcon as any} expandIconPosition='right'>
             <AionCollapse.Item name='advanced' header={<span className='text-14px text-2'>{t('settings.advancedSettings')}</span>} className='bg-transparent' contentStyle={{ padding: '12px 0 0' }}>
               <Form form={form} layout='vertical' className='space-y-16px'>
@@ -214,7 +210,7 @@ const SystemModalContent: React.FC = () => {
             </AionCollapse.Item>
           </AionCollapse>
 
-          {/* CSS Settings - Collapsible */}
+          {/* 自定义CSS Settings - Collapsible */}
           <AionCollapse bordered={false} defaultActiveKey={['css']} expandIcon={renderExpandIcon as any} expandIconPosition='right'>
             <AionCollapse.Item name='css' header={<span className='text-14px text-2'>{t('settings.customCss')}</span>} className='bg-transparent' contentStyle={{ padding: '12px 0 0' }}>
               <CodeMirror
@@ -243,10 +239,10 @@ const SystemModalContent: React.FC = () => {
       </AionScrollArea>
 
       {/* Footer with Save Button */}
-      <div className='flex-shrink-0 px-24px py-16px border-t border-border-2 flex justify-end gap-10px'>
-        <Button className='rd-100px'>{t('common.cancel') || '取消'}</Button>
+      <div className='flex-shrink-0 px-24px border-t border-border-2 flex justify-end gap-10px'>
+        <Button className='rd-100px'>{t('common.cancel')}</Button>
         <Button type='primary' loading={loading} onClick={onSubmit} className='rd-100px'>
-          {t('common.save') || '确定'}
+          {t('common.save')}
         </Button>
       </div>
     </div>

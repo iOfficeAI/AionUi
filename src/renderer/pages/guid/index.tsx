@@ -410,7 +410,7 @@ const Guid: React.FC = () => {
   }, [t]);
   return (
     <ConfigProvider getPopupContainer={() => guidContainerRef.current || document.body}>
-      <div ref={guidContainerRef} className='h-full flex-center flex-col px-100px' style={{ position: 'relative' }}>
+      <div ref={guidContainerRef} className='h-full flex-center flex-col' style={{ position: 'relative' }}>
         <p className={`text-2xl font-semibold mb-8 text-0`}>{t('conversation.welcome.title')}</p>
 
         {/* Agent 选择器 - 在标题下方 */}
@@ -432,7 +432,7 @@ const Guid: React.FC = () => {
                 <React.Fragment key={agent.backend}>
                   {index > 0 && <div className='text-white/30 text-16px lh-1 p-2px select-none'>|</div>}
                   <div
-                    className={`group flex items-center cursor-pointer whitespace-nowrap overflow-hidden ${isSelected ? 'opacity-100 px-12px py-8px rd-20px mx-2px' : 'opacity-60 p-4px hover:opacity-100'}`}
+                    className={`group flex items-center cursor-pointer whitespace-nowrap overflow-hidden ${isSelected ? 'opacity-100 px-12px py-8px rd-20px mx-2px' : 'opacity-60 px-8px hover:opacity-100'}`}
                     style={
                       isSelected
                         ? {
@@ -464,7 +464,6 @@ const Guid: React.FC = () => {
           className={`bg-border-2 b-solid border rd-20px transition-all duration-200 overflow-hidden p-16px ${isFileDragging ? 'border-dashed' : 'border-3'}`}
           style={{
             maxWidth: 'clamp(400px, calc(100% - 80px), 720px)',
-            minWidth: '375px',
             width: '100%',
             zIndex: 1,
             ...(isFileDragging
