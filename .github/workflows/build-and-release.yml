@@ -232,7 +232,7 @@ jobs:
         if: "!startsWith(matrix.platform, 'windows')"
         uses: nick-fields/retry@v3
         with:
-          timeout_minutes: 60  # Increased to 60 minutes for first-time macOS notarization preparation
+          timeout_minutes: 40
           max_attempts: 2
           retry_wait_seconds: 300
           continue_on_error: ${{ matrix.platform == 'macos' }}
@@ -246,10 +246,9 @@ jobs:
           # App ID configuration / 应用 ID 配置
           APP_ID: ${{ secrets.APP_ID }}
           # macOS signing configuration / macOS 签名配置
-          # 跳过同步公证，由后台 workflow 处理 / Skip sync notarization, handled by background workflow
-          SKIP_NOTARIZATION: true
-          # First-time notarization info for background workflow
-          FIRST_TIME_NOTARIZATION: ${{ secrets.FIRST_TIME_NOTARIZATION || 'false' }}
+          appleId: ${{ secrets.APPLE_ID }}
+          appleIdPassword: ${{ secrets.APPLE_ID_PASSWORD }}
+          teamId: ${{ secrets.TEAM_ID }}
           identity: ${{ secrets.IDENTITY }}
           # electron-builder signing configuration / electron-builder 签名配置
           CSC_NAME: ${{ secrets.IDENTITY }}
@@ -332,7 +331,6 @@ jobs:
             out/*.AppImage
             out/AionUi-*-win32-*.zip
             out/AionUi-*-mac-*.zip
-            out/signing-info.json
           if-no-files-found: warn
           retention-days: 7
 
@@ -523,85 +521,11 @@ jobs:
         with:
           path: build-artifacts
 
-      - name: Update signing-info.json with release tag
-        run: |
-          TAG_NAME="${{ needs.create-tag.outputs.tag_name }}"
-          SIGNING_INFO="build-artifacts/macos-build/signing-info.json"
-
-          if [ -f "$SIGNING_INFO" ]; then
-            echo "📝 Adding release tag to signing-info.json: $TAG_NAME"
-
-            # 使用 node 更新 JSON（保持格式）
-            node -e "
-              const fs = require('fs');
-              const info = JSON.parse(fs.readFileSync('$SIGNING_INFO', 'utf8'));
-              info.releaseTag = '$TAG_NAME';
-              fs.writeFileSync('$SIGNING_INFO', JSON.stringify(info, null, 2));
-            "
-
-            echo "✅ signing-info.json updated with release tag"
-            cat "$SIGNING_INFO"
-          else
-            echo "⚠️  signing-info.json not found, background notarization may fail"
-          fi
-
-      - name: Re-upload updated signing-info.json
-        if: hashFiles('build-artifacts/macos-build/signing-info.json') != ''
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-build
-          path: build-artifacts/macos-build/
-          overwrite: true
-
-      - name: Get previous release tag
-        id: previous_tag
-        run: |
-          # Get the latest non-draft, non-prerelease tag
-          PREVIOUS_TAG=$(gh release list --limit 100 --json tagName,isDraft,isPrerelease --jq '[.[] | select(.isDraft == false and .isPrerelease == false)] | .[0].tagName')
-
-          if [ -z "$PREVIOUS_TAG" ]; then
-            echo "No previous release found, will use repository creation as baseline"
-            echo "previous_tag=" >> $GITHUB_OUTPUT
-          else
-            echo "Previous release tag: $PREVIOUS_TAG"
-            echo "previous_tag=$PREVIOUS_TAG" >> $GITHUB_OUTPUT
-          fi
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-
-      - name: Generate release notes with correct base version
-        id: release_notes
-        run: |
-          TAG_NAME="${{ steps.version.outputs.tag_name }}"
-          PREVIOUS_TAG="${{ steps.previous_tag.outputs.previous_tag }}"
-
-          if [ -n "$PREVIOUS_TAG" ]; then
-            echo "Generating release notes: $PREVIOUS_TAG -> $TAG_NAME"
-            NOTES=$(gh api repos/${{ github.repository }}/releases/generate-notes \
-              -f tag_name="$TAG_NAME" \
-              -f target_commitish="${{ github.sha }}" \
-              -f previous_tag_name="$PREVIOUS_TAG" \
-              --jq '.body')
-          else
-            echo "Generating release notes for first release: $TAG_NAME"
-            NOTES=$(gh api repos/${{ github.repository }}/releases/generate-notes \
-              -f tag_name="$TAG_NAME" \
-              -f target_commitish="${{ github.sha }}" \
-              --jq '.body')
-          fi
-
-          # Save to file to preserve formatting
-          echo "$NOTES" > release_notes.md
-          echo "Release notes generated successfully"
-        env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ steps.version.outputs.tag_name }}
           name: ${{ needs.create-tag.outputs.is_dev == 'true' && format('Development Build {0}', steps.version.outputs.tag_name) || steps.version.outputs.tag_name }}
-          body_path: release_notes.md
           files: |
             build-artifacts/**/*.exe
             build-artifacts/**/*.msi
@@ -609,6 +533,7 @@ jobs:
             build-artifacts/**/*.deb
             build-artifacts/**/*.AppImage
             build-artifacts/**/*.zip
+          generate_release_notes: true
           draft: true
           prerelease: ${{ needs.create-tag.outputs.is_dev == 'true' || contains(steps.version.outputs.tag_name, 'beta') || contains(steps.version.outputs.tag_name, 'alpha') || contains(steps.version.outputs.tag_name, 'rc') }}
         env:
