@@ -42,7 +42,7 @@ const FontSizeControl: React.FC = () => {
 
   return (
     <div className='flex flex-col gap-2 w-full max-w-560px'>
-      <div className='flex items-center gap-3 w-full'>
+      <div className='flex items-center gap-1 w-full'>
         <Button size='mini' type='secondary' onClick={() => handleStep(-FONT_SCALE_STEP)} disabled={fontScale <= FONT_SCALE_MIN + 0.001}>
           -
         </Button>
@@ -54,7 +54,7 @@ const FontSizeControl: React.FC = () => {
         <span className='text-13px text-t-secondary' style={{ minWidth: '48px' }}>
           {formattedValue}
         </span>
-        <Button size='mini' type='text' onClick={handleReset} disabled={Math.abs(fontScale - FONT_SCALE_DEFAULT) < 0.01}>
+        <Button size='mini' type='text' className='p-0' onClick={handleReset} disabled={Math.abs(fontScale - FONT_SCALE_DEFAULT) < 0.01}>
           {t('settings.fontSizeReset')}
         </Button>
       </div>

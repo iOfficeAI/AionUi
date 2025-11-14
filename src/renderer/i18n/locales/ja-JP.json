@@ -161,7 +161,11 @@
     "expandMore": "さらに表示",
     "collapse": "折りたたむ",
     "copy": "コピー",
-    "download": "ダウンロード"
+    "download": "ダウンロード",
+    "success": "成功",
+    "error": "エラー",
+    "saveSuccess": "保存に成功しました",
+    "saveFailed": "保存に失敗しました"
   },
   "login": {
     "pageTitle": "AionUi - ログイン",
@@ -308,7 +312,7 @@
     "restartConfirm": "変更後にアプリを再起動します。続行しますか？",
     "system": "システム設定",
     "theme": "テーマ",
-    "fontSize": "インターフェース縮尺",
+    "fontSize": "ズーム",
     "fontSizeDescription": "アプリ全体のズーム（Zoom）倍率を調整し、最適な表示サイズに合わせます。",
     "fontSizeReset": "ズームをリセット",
     "tools": "ツール設定",
@@ -383,7 +387,8 @@
     "mcpOAuthLoginSuccess": "OAuth ログイン成功",
     "mcpOAuthLoginFailed": "OAuth ログイン失敗",
     "mcpLogin": "ログイン",
-    "mcpNeedsLogin": "未接続 · ログインしてください"
+    "mcpNeedsLogin": "未接続 · ログインしてください",
+    "saveModelConfigFailed": "モデル設定の保存に失敗しました"
   },
   "messages": {
     "conversationInProgress": "現在、会話中です...",

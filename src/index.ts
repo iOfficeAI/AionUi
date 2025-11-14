@@ -154,7 +154,6 @@ const isRemoteMode = hasSwitch('remote');
 const isResetPasswordMode = hasCommand('--resetpass');
 
 let mainWindow: BrowserWindow;
-const MIN_WINDOW_WIDTH = 375;
 
 const createWindow = (): void => {
   // Get primary display size
@@ -169,15 +168,11 @@ const createWindow = (): void => {
   mainWindow = new BrowserWindow({
     width: windowWidth,
     height: windowHeight,
-    minWidth: MIN_WINDOW_WIDTH, // Enforce desktop minimum width to match design / 设置桌面端最小宽度以符合设计
     autoHideMenuBar: true,
     webPreferences: {
       preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
     },
   });
-
-  // Double-ensure minimum size across all platforms / 双重保证各平台的最小窗口宽度限制
-  mainWindow.setMinimumSize(MIN_WINDOW_WIDTH, 0);
 
   initMainAdapterWithWindow(mainWindow);
   void applyZoomToWindow(mainWindow);

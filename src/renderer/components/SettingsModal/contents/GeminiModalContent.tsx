@@ -50,7 +50,7 @@ const GeminiModalContent: React.FC = () => {
       await ConfigStorage.set('gemini.config', geminiConfig);
       await ConfigStorage.set('customCss', customCss || '');
 
-      message.success(t('common.save') + ' ' + t('common.success'));
+      message.success(t('common.saveSuccess'));
 
       window.dispatchEvent(
         new CustomEvent('custom-css-updated', {
@@ -58,7 +58,7 @@ const GeminiModalContent: React.FC = () => {
         })
       );
     } catch (error: any) {
-      message.error(error.message || 'Failed to save');
+      message.error(error.message || t('common.saveFailed'));
     } finally {
       setLoading(false);
     }
@@ -86,7 +86,7 @@ const GeminiModalContent: React.FC = () => {
       {/* Content Area */}
       <AionScrollArea className='flex-1 min-h-0'>
         <div className='space-y-16px'>
-          <div className='px-32px py-24px bg-2 rd-16px'>
+          <div className='px-[12px] py-[24px] md:px-[32px] bg-2 rd-12px md:rd-16px border border-border-2'>
             <Form form={form} layout='horizontal' labelCol={{ flex: '140px' }} labelAlign='left' wrapperCol={{ flex: '1' }}>
               <Form.Item label={t('settings.personalAuth')} field='googleAccount' layout='horizontal'>
                 {(props) => (
@@ -143,12 +143,12 @@ const GeminiModalContent: React.FC = () => {
               <Divider className='mt-0px mb-20px' />
 
               <Form.Item label={t('settings.proxyConfig')} field='proxy' layout='vertical' rules={[{ match: /^https?:\/\/.+$/, message: t('settings.proxyHttpOnly') }]}>
-                <Input className='bg-white' placeholder={t('settings.proxyHttpOnly')} />
+                <Input className='aion-input' placeholder={t('settings.proxyHttpOnly')} />
               </Form.Item>
               <Divider className='mt-0px mb-20px' />
 
               <Form.Item label='GOOGLE_CLOUD_PROJECT' field='GOOGLE_CLOUD_PROJECT' layout='vertical'>
-                <Input className='bg-white' placeholder={t('settings.googleCloudProjectPlaceholder')} />
+                <Input className='aion-input' placeholder={t('settings.googleCloudProjectPlaceholder')} />
               </Form.Item>
 
               <Form.Item label={t('settings.yoloMode')} field='yoloMode' layout='horizontal'>
@@ -165,9 +165,9 @@ const GeminiModalContent: React.FC = () => {
 
       {/* Footer with Buttons */}
       <div className='flex-shrink-0 pl-24px py-16px border-t border-border-2 flex justify-end gap-10px'>
-        <Button className='rd-100px'>{t('common.cancel') || '取消'}</Button>
+        <Button className='rd-100px'>{t('common.cancel')}</Button>
         <Button type='primary' loading={loading} onClick={onSubmit} className='rd-100px'>
-          {t('common.save') || '确定'}
+          {t('common.save')}
         </Button>
       </div>
     </div>

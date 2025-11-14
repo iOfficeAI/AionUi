@@ -163,7 +163,7 @@ const ModalMcpManagementSection: React.FC<{ message: MessageInstance }> = ({ mes
             </Menu>
           }
         >
-          <Button size='mini' type='outline' icon={<Plus size={'14'} />} shape='round' onClick={(e) => e.stopPropagation()}>
+          <Button type='outline' icon={<Plus size={'16'} />} shape='round' onClick={(e) => e.stopPropagation()}>
             {t('settings.mcpAddServer')} <Down size='12' />
           </Button>
         </Dropdown>
@@ -172,9 +172,8 @@ const ModalMcpManagementSection: React.FC<{ message: MessageInstance }> = ({ mes
 
     return (
       <Button
-        size='mini'
         type='outline'
-        icon={<Plus size={'14'} />}
+        icon={<Plus size={'16'} />}
         shape='round'
         onClick={() => {
           setImportMode('json');
@@ -187,19 +186,23 @@ const ModalMcpManagementSection: React.FC<{ message: MessageInstance }> = ({ mes
   };
 
   return (
-    <div className='space-y-16px'>
-      <div className='flex flex-col gap-8px sm:flex-row sm:items-center sm:justify-between'>
-        <div>
-          <span className='text-14px text-t-primary'>{t('settings.mcpSettings')}</span>
-        </div>
-        <div className='flex-shrink-0'>{renderAddButton()}</div>
+    <div className='flex flex-col gap-16px min-h-0'>
+      <div className='flex gap-8px items-center justify-between'>
+        <div className='text-14px text-t-primary'>{t('settings.mcpSettings')}</div>
+        <div>{renderAddButton()}</div>
       </div>
 
-      <div>
+      <div className='flex-1 min-h-0'>
         {mcpServers.length === 0 ? (
           <div className='py-24px text-center text-t-secondary text-14px border border-dashed border-border-2 rd-12px'>{t('settings.mcpNoServersFound')}</div>
         ) : (
-          mcpServers.map((server) => <McpServerItem key={server.id} server={server} isCollapsed={mcpCollapseKey[server.id] || false} agentInstallStatus={agentInstallStatus} isServerLoading={isServerLoading} isTestingConnection={testingServers[server.id] || false} oauthStatus={oauthStatus[server.id]} isLoggingIn={loggingIn[server.id]} onToggleCollapse={() => toggleServerCollapse(server.id)} onTestConnection={handleTestMcpConnection} onEditServer={showEditMcpModal} onDeleteServer={showDeleteConfirm} onToggleServer={handleToggleMcpServer} onOAuthLogin={handleOAuthLogin} />)
+          <AionScrollArea className='max-h-360px'>
+            <div className='space-y-12px'>
+              {mcpServers.map((server) => (
+                <McpServerItem key={server.id} server={server} isCollapsed={mcpCollapseKey[server.id] || false} agentInstallStatus={agentInstallStatus} isServerLoading={isServerLoading} isTestingConnection={testingServers[server.id] || false} oauthStatus={oauthStatus[server.id]} isLoggingIn={loggingIn[server.id]} onToggleCollapse={() => toggleServerCollapse(server.id)} onTestConnection={handleTestMcpConnection} onEditServer={showEditMcpModal} onDeleteServer={showDeleteConfirm} onToggleServer={handleToggleMcpServer} onOAuthLogin={handleOAuthLogin} />
+              ))}
+            </div>
+          </AionScrollArea>
         )}
       </div>
 
@@ -285,16 +288,20 @@ const ToolsModalContent: React.FC = () => {
       {mcpMessageContext}
 
       {/* Content Area */}
-      <AionScrollArea className='flex-1 min-h-0 pb-16px'>
+      <AionScrollArea className='flex-1 min-h-0 pb-16px scrollbar-hide'>
         <div className='space-y-16px'>
           {/* MCP 工具配置 */}
-          <div className='px-32px py-24px bg-2 rd-16px'>
-            <ModalMcpManagementSection message={mcpMessage} />
+          <div className='px-[12px] md:px-[32px] py-[24px] bg-2 rd-12px md:rd-16px flex flex-col min-h-0 border border-border-2'>
+            <div className='max-h-360px flex-1 min-h-0'>
+              <AionScrollArea className='h-full'>
+                <ModalMcpManagementSection message={mcpMessage} />
+              </AionScrollArea>
+            </div>
           </div>
           {/* 图像生成 */}
-          <div className='px-32px py-24px bg-2 rd-16px'>
+          <div className='px-[12px] md:px-[32px] py-[24px] bg-2 rd-12px md:rd-16px border border-border-2'>
             <div className='flex items-center justify-between mb-16px'>
-              <span className='text-16px font-500 text-t-primary'>{t('settings.imageGeneration', { defaultValue: 'Image Generation' })}</span>
+              <span className='text-14px text-t-primary'>{t('settings.imageGeneration')}</span>
               <Switch disabled={!imageGenerationModelList.length || !imageGenerationModel?.useModel} checked={imageGenerationModel?.switch} onChange={(checked) => handleImageGenerationModelChange({ switch: checked })} />
             </div>
 

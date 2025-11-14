@@ -3,7 +3,7 @@ import FontSizeControl from '@/renderer/components/FontSizeControl';
 import LanguageSwitcher from '@/renderer/components/LanguageSwitcher';
 import ThemeSwitcher from '@/renderer/components/ThemeSwitcher';
 import { iconColors } from '@/renderer/theme/colors';
-import { Alert, Button, Form, Input, Modal } from '@arco-design/web-react';
+import { Alert, Button, Form, Input, Modal, Tooltip } from '@arco-design/web-react';
 import { FolderOpen } from '@icon-park/react';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -38,25 +38,20 @@ const DirInputItem: React.FC<{
         };
 
         return (
-          <Input
-            readOnly
-            value={currentValue}
-            placeholder={t('settings.dirNotConfigured')}
-            className='w-full [&_.arco-input]:shadow-none [&_.arco-input]:bg-white dark:[&_.arco-input]:bg-[var(--color-bg-3)]'
-            suffix={
-              <FolderOpen
-                theme='outline'
-                size='20'
-                fill={iconColors.primary}
-                className='cursor-pointer'
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handlePick();
-                }}
-              />
-            }
-            onClick={handlePick}
-          />
+          <div className='aion-dir-input w-full flex items-center gap-10px rounded-8px border border-solid border-transparent px-14px py-10px' onClick={handlePick}>
+            <Tooltip content={currentValue || t('settings.dirNotConfigured')} position='top'>
+              <span className='flex-1 min-w-0 text-13px text-t-primary truncate max-w-[220px]'>{currentValue || t('settings.dirNotConfigured')}</span>
+            </Tooltip>
+            <Button
+              size='mini'
+              type='outline'
+              icon={<FolderOpen theme='outline' size='18' fill={iconColors.primary} />}
+              onClick={(e) => {
+                e.stopPropagation();
+                handlePick();
+              }}
+            />
+          </div>
         );
       }}
     </Form.Item>
