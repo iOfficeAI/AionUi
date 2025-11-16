@@ -9,6 +9,8 @@
     "cli": "cross-env electron-forge start --",
     "webui": "npm run cli -- --webui",
     "webui:remote": "npm run cli -- --webui --remote",
+    "webui:prod": "cross-env NODE_ENV=production electron-forge start -- --webui",
+    "webui:prod:remote": "cross-env NODE_ENV=production electron-forge start -- --webui --remote",
     "resetpass": "npm run cli -- --resetpass",
     "package": "electron-forge package",
     "make": "electron-forge make",

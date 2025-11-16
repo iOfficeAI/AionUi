@@ -82,8 +82,10 @@ export function registerStaticRoutes(app: Express): void {
   /**
    * 处理子路径路由 (React Router)
    * Handle SPA sub-routes (React Router)
+   * Exclude: api, static, main_window, and webpack chunk directories (react, arco, vendors, etc.)
+   * Also exclude files with extensions (.js, .css, .map, etc.)
    */
-  app.get(/^\/(?!api|static|main_window).*/, pageRateLimiter, serveApplication);
+  app.get(/^\/(?!api|static|main_window|react|arco|vendors|markdown|codemirror)(?!.*\.[a-zA-Z0-9]+$).*/, pageRateLimiter, serveApplication);
 
   /**
    * 静态资源
