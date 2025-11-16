@@ -15,10 +15,7 @@ import ShimmerText from '@renderer/components/ShimmerText';
 import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/ThoughtDisplay';
 import { iconColors } from '@/renderer/theme/colors';
 import FilePreview from '@/renderer/components/FilePreview';
-<<<<<<< HEAD
 import HorizontalFileList from '@/renderer/components/HorizontalFileList';
-=======
->>>>>>> origin/main
 
 interface CodexDraftData {
   _type: 'codex';
@@ -293,11 +290,8 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
           <>
             {/* Files on top */}
             {(uploadFile.length > 0 || atPath.some((item) => (typeof item === 'string' ? true : item.isFile))) && (
-<<<<<<< HEAD
               <HorizontalFileList>
-=======
               <div className='flex flex-wrap items-center gap-8px mb-8px'>
->>>>>>> origin/main
                 {uploadFile.map((path) => (
                   <FilePreview key={path} path={path} onRemove={() => setUploadFile(uploadFile.filter((v) => v !== path))} />
                 ))}
@@ -319,19 +313,16 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
                   }
                   return null;
                 })}
-<<<<<<< HEAD
               </HorizontalFileList>
             )}
             {/* Folder tags below */}
             {atPath.some((item) => (typeof item === 'string' ? false : !item.isFile)) && (
               <div className='flex flex-wrap items-center gap-8px mb-8px mt-4px'>
-=======
               </div>
             )}
             {/* Folder tags below */}
             {atPath.some((item) => (typeof item === 'string' ? false : !item.isFile)) && (
               <div className='flex flex-wrap items-center gap-8px mb-8px'>
->>>>>>> origin/main
                 {atPath.map((item) => {
                   if (typeof item === 'string') return null;
                   if (!item.isFile) {

@@ -17,10 +17,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { iconColors } from '@/renderer/theme/colors';
 import FilePreview from '@/renderer/components/FilePreview';
-<<<<<<< HEAD
 import HorizontalFileList from '@/renderer/components/HorizontalFileList';
-=======
->>>>>>> origin/main
 
 const useAcpSendBoxDraft = getSendBoxDraftHook('acp', {
   _type: 'acp',
@@ -352,11 +349,8 @@ const AcpSendBox: React.FC<{
           <>
             {/* Files on top */}
             {(uploadFile.length > 0 || atPath.some((item) => (typeof item === 'string' ? true : item.isFile))) && (
-<<<<<<< HEAD
               <HorizontalFileList>
-=======
               <div className='flex flex-wrap items-center gap-8px mb-8px'>
->>>>>>> origin/main
                 {uploadFile.map((path) => (
                   <FilePreview key={path} path={path} onRemove={() => setUploadFile(uploadFile.filter((v) => v !== path))} />
                 ))}
@@ -378,19 +372,16 @@ const AcpSendBox: React.FC<{
                   }
                   return null;
                 })}
-<<<<<<< HEAD
               </HorizontalFileList>
             )}
             {/* Folder tags below */}
             {atPath.some((item) => (typeof item === 'string' ? false : !item.isFile)) && (
               <div className='flex flex-wrap items-center gap-8px mb-8px mt-4px'>
-=======
               </div>
             )}
             {/* Folder tags below */}
             {atPath.some((item) => (typeof item === 'string' ? false : !item.isFile)) && (
               <div className='flex flex-wrap items-center gap-8px mb-8px'>
->>>>>>> origin/main
                 {atPath.map((item) => {
                   if (typeof item === 'string') return null;
                   if (!item.isFile) {
