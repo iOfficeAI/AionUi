@@ -254,12 +254,11 @@ const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string
       transform: rotate(360deg);
     }
   }
-<<<<<<< HEAD
+  }
 
   /* 用户自定义 CSS（注入到 Shadow DOM）User Custom CSS (injected into Shadow DOM) */
   ${customCss || ''}
-=======
->>>>>>> origin/main
+   `;
   `;
   return style;
 };
