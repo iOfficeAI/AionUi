@@ -6,6 +6,11 @@
   }
 }
 
+.arco-btn-primary.arco-btn-disabled {
+  background-color: var(--aou-2) !important;
+  border-color: var(--aou-2) !important;
+}
+
 .arco-collapse {
   border: none;
   border-radius: 8px;
@@ -41,6 +46,7 @@ body[arco-theme='dark'] .arco-tag-checked.arco-tag-gray {
   color: rgb(209, 213, 219) !important;
 }
 
+
 /* AionUi Steps wrapper styles */
 .aionui-steps .arco-steps-item-process .arco-steps-item-icon {
   background-color: var(--aou-6-brand) !important;
@@ -56,6 +62,7 @@ body[arco-theme='dark'] .arco-tag-checked.arco-tag-gray {
 .aionui-steps .arco-steps-item-finish .arco-steps-item-icon .arco-steps-icon {
   line-height: 28px !important;
 }
+
 
 /* AionUi Modal wrapper styles */
 .aionui-modal .arco-modal-content {
