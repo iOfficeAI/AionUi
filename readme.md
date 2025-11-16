@@ -209,6 +209,35 @@ Ready to try AionUi? Download the latest version for your platform from our rele
 
 > 💡 **Need detailed configuration guide?** Check our [Complete Installation Tutorial](https://github.com/iOfficeAI/AionUi/wiki/Getting-Started)
 
+## 🛠️ Local Development
+
+Want to hack on AionUi?
+
+1. `npm install`
+2. `npm start`
+
+During `npm start`, Electron Forge spins up **two** ports:
+
+- Webpack dev server (default **3000**)
+- Web log viewer (default **9000**)
+
+Override them via env vars when needed:
+
+```bash
+AIONUI_DEV_PORT=3100 \
+AIONUI_LOGGER_PORT=9100 \
+npm start
+# You can also use DEV_SERVER_PORT / PORT and DEV_LOGGER_PORT / LOGGER_PORT
+```
+
+Windows PowerShell example:
+
+```powershell
+$env:AIONUI_DEV_PORT=3100
+$env:AIONUI_LOGGER_PORT=9100
+npm start
+```
+
 ## 📚 Documentation
 
 ### 🚀 Quick Start

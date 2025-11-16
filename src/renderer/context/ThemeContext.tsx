@@ -11,6 +11,7 @@ import type { Theme } from '../hooks/useTheme';
 import useTheme from '../hooks/useTheme';
 import type { ColorScheme } from '../hooks/useColorScheme';
 import useColorScheme from '../hooks/useColorScheme';
+import useFontScale from '../hooks/useFontScale';
 
 /**
  * Theme context value interface 主题上下文值接口
@@ -24,6 +25,10 @@ interface ThemeContextValue {
   // Color scheme 配色方案
   colorScheme: ColorScheme;
   setColorScheme: (scheme: ColorScheme) => Promise<void>;
+
+  // Font scaling 字体缩放
+  fontScale: number;
+  setFontScale: (scale: number) => Promise<void>;
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
@@ -35,8 +40,9 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 export const ThemeProvider: React.FC<PropsWithChildren> = ({ children }) => {
   const [theme, setTheme] = useTheme();
   const [colorScheme, setColorScheme] = useColorScheme();
+  const [fontScale, setFontScale] = useFontScale();
 
-  return <ThemeContext.Provider value={{ theme, setTheme, colorScheme, setColorScheme }}>{children}</ThemeContext.Provider>;
+  return <ThemeContext.Provider value={{ theme, setTheme, colorScheme, setColorScheme, fontScale, setFontScale }}>{children}</ThemeContext.Provider>;
 };
 
 /**

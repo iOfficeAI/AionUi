@@ -13,6 +13,7 @@ import QwenLogo from '@/renderer/assets/logos/qwen.svg';
 import { iconColors } from '@/renderer/theme/colors';
 import { ACP_BACKENDS_ALL } from '@/types/acpTypes';
 import classNames from 'classnames';
+import { iconColors } from '@/renderer/theme/colors';
 
 const addEventListener = <K extends keyof DocumentEventMap>(key: K, handler: (e: DocumentEventMap[K]) => void): (() => void) => {
   document.addEventListener(key, handler);
@@ -117,15 +118,8 @@ const ChatLayout: React.FC<{
             {backend && (
               <div className='ml-16px flex items-center gap-2 bg-2 w-fit rounded-full px-[8px] py-[2px]'>
                 <img src={backend === 'claude' ? ClaudeLogo : backend === 'gemini' ? GeminiLogo : backend === 'qwen' ? QwenLogo : backend === 'iflow' ? IflowLogo : backend === 'codex' ? CodexLogo : ''} alt={`${backend} logo`} width={16} height={16} style={{ objectFit: 'contain' }} />
-                <span className='font-medium text-t-primary'>{ACP_BACKENDS_ALL[backend as keyof typeof ACP_BACKENDS_ALL]?.name || backend}</span>
               </div>
             )}
-            {rightSiderCollapsed ? <ExpandRight onClick={() => setRightSiderCollapsed(false)} className='cursor-pointer flex' theme='outline' size='24' fill={iconColors.secondary} strokeWidth={3} /> : <ExpandLeft onClick={() => setRightSiderCollapsed(true)} className='cursor-pointer flex' theme='outline' size='24' fill={iconColors.secondary} strokeWidth={3} />}
-          </div>
-        </ArcoLayout.Header>
-        <ArcoLayout.Content className='flex flex-col flex-1 bg-1 overflow-hidden'>{props.children}</ArcoLayout.Content>
-      </ArcoLayout.Content>
-
       <ArcoLayout.Sider
         width={siderWidth}
         collapsedWidth={layout?.isMobile ? siderWidth : 0}
@@ -139,16 +133,11 @@ const ChatLayout: React.FC<{
                 top: 0,
                 height: '100vh',
                 zIndex: 100,
-                transform: rightSiderCollapsed ? 'translateX(100%)' : 'translateX(0)',
-                transition: 'transform 0.3s ease',
-                pointerEvents: rightSiderCollapsed ? 'none' : 'auto',
               }
             : undefined
         }
       >
-        {/* Drag handle */}
-        {/* <div className={`absolute left-0 top-0 bottom-0 w-6px cursor-col-resize transition-all duration-200 z-10 ${isDragging ? 'bg-#86909C/40' : 'hover:bg-#86909C/20'}`} onMouseDown={handleDragStart} onDoubleClick={handleDoubleClick} /> */}
-        {dragContext}
+        {React.isValidElement(sider)
         <ArcoLayout.Header className={'flex items-center justify-start p-16px gap-16px h-56px'}>
           <div className='w-full'>{props.siderTitle}</div>
           {/* <ExpandLeft theme='outline' size='24' fill='#86909C' className='cursor-pointer' strokeWidth={3} onClick={() => setRightSiderCollapsed(true)} /> */}

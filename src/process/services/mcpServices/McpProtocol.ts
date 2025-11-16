@@ -35,6 +35,9 @@ export interface McpConnectionTestResult {
   success: boolean;
   tools?: Array<{ name: string; description?: string }>;
   error?: string;
+  needsAuth?: boolean; // 是否需要 OAuth 认证
+  authMethod?: 'oauth' | 'basic'; // 认证方法
+  wwwAuthenticate?: string; // WWW-Authenticate 头内容
 }
 
 /**
@@ -275,6 +278,26 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
     try {
       // app imported statically
 
+      // 先尝试简单的 HTTP 请求检测认证需求
+      const authCheckResponse = await fetch(transport.url, {
+        method: 'GET',
+        headers: transport.headers || {},
+      });
+
+      // 检查是否需要认证
+      if (authCheckResponse.status === 401) {
+        const wwwAuthenticate = authCheckResponse.headers.get('WWW-Authenticate');
+        if (wwwAuthenticate) {
+          return {
+            success: false,
+            needsAuth: true,
+            authMethod: wwwAuthenticate.toLowerCase().includes('bearer') ? 'oauth' : 'basic',
+            wwwAuthenticate: wwwAuthenticate,
+            error: 'Authentication required',
+          };
+        }
+      }
+
       // 创建 SSE 传输层
       const sseTransport = new SSEClientTransport(new URL(transport.url));
 
@@ -305,9 +328,20 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
 
       return { success: true, tools };
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+
+      // 检查错误消息中是否包含认证相关信息
+      if (errorMessage.toLowerCase().includes('401') || errorMessage.toLowerCase().includes('unauthorized')) {
+        return {
+          success: false,
+          needsAuth: true,
+          error: 'Authentication required',
+        };
+      }
+
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error),
+        error: errorMessage,
       };
     } finally {
       // 清理连接
@@ -350,6 +384,20 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
           },
         }),
       });
+
+      // 检查是否需要认证
+      if (initResponse.status === 401) {
+        const wwwAuthenticate = initResponse.headers.get('WWW-Authenticate');
+        if (wwwAuthenticate) {
+          return {
+            success: false,
+            needsAuth: true,
+            authMethod: wwwAuthenticate.toLowerCase().includes('bearer') ? 'oauth' : 'basic',
+            wwwAuthenticate: wwwAuthenticate,
+            error: 'Authentication required',
+          };
+        }
+      }
 
       if (!initResponse.ok) {
         return { success: false, error: `HTTP ${initResponse.status}: ${initResponse.statusText}` };

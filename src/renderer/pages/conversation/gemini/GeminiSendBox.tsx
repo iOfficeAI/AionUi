@@ -4,6 +4,7 @@ import type { IProvider, TProviderWithModel } from '@/common/storage';
 import { ConfigStorage } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import SendBox from '@/renderer/components/sendbox';
+import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/useSendBoxDraft';
 import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/ThoughtDisplay';
 import { geminiModeList } from '@/renderer/hooks/useModeModeList';
 import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/useSendBoxDraft';
@@ -19,6 +20,10 @@ import { Button, Dropdown, Menu, Tag } from '@arco-design/web-react';
 import { Plus } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/ThoughtDisplay';
+import { iconColors } from '@/renderer/theme/colors';
+import FilePreview from '@/renderer/components/FilePreview';
+import HorizontalFileList from '@/renderer/components/HorizontalFileList';
 
 const useGeminiSendBoxDraft = getSendBoxDraftHook('gemini', {
   _type: 'gemini',
@@ -233,6 +238,7 @@ const GeminiSendBox: React.FC<{
 
   // 截断过长的模型名称
   const getDisplayModelName = (modelName: string) => {
+    const maxLength = 15;
     const maxLength = 20;
     if (modelName.length > maxLength) {
       return modelName.slice(0, maxLength) + '...';
@@ -251,6 +257,8 @@ const GeminiSendBox: React.FC<{
         value={content}
         onChange={setContent}
         loading={running}
+        disabled={!model?.useModel}
+        placeholder={model?.useModel ? t('conversation.chat.sendMessageTo', { model: getDisplayModelName(model.useModel) }) : t('conversation.chat.noModelSelected')}
         disabled={!currentModel?.useModel}
         placeholder={currentModel?.useModel ? '' : t('conversation.chat.noModelSelected')}
         onStop={() => {
@@ -281,6 +289,9 @@ const GeminiSendBox: React.FC<{
                   });
               }}
             ></Button>
+            {model && (
+              <Button className={'ml-4px text-t-primary max-w-150px truncate'} shape='round' title={model.useModel}>
+                {model.useModel}
             <Dropdown
               trigger='click'
               droplist={
@@ -315,6 +326,7 @@ const GeminiSendBox: React.FC<{
           <>
             {/* Files on top */}
             {(uploadFile.length > 0 || atPath.some((item) => (typeof item === 'string' ? true : item.isFile))) && (
+              <HorizontalFileList>
               <div className='flex flex-wrap items-center gap-8px mb-8px'>
                 {uploadFile.map((path) => {
                   return <FilePreview key={path} path={path} onRemove={() => setUploadFile(uploadFile.filter((v) => v !== path))} />;
@@ -337,6 +349,11 @@ const GeminiSendBox: React.FC<{
                   }
                   return null;
                 })}
+              </HorizontalFileList>
+            )}
+            {/* Folder tags below */}
+            {atPath.some((item) => (typeof item === 'string' ? false : !item.isFile)) && (
+              <div className='flex flex-wrap items-center gap-8px mb-8px mt-4px'>
               </div>
             )}
             {/* Folder tags below */}

@@ -17,6 +17,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { iconColors } from '@/renderer/theme/colors';
 import FilePreview from '@/renderer/components/FilePreview';
+import HorizontalFileList from '@/renderer/components/HorizontalFileList';
 
 const useAcpSendBoxDraft = getSendBoxDraftHook('acp', {
   _type: 'acp',
@@ -348,6 +349,7 @@ const AcpSendBox: React.FC<{
           <>
             {/* Files on top */}
             {(uploadFile.length > 0 || atPath.some((item) => (typeof item === 'string' ? true : item.isFile))) && (
+              <HorizontalFileList>
               <div className='flex flex-wrap items-center gap-8px mb-8px'>
                 {uploadFile.map((path) => (
                   <FilePreview key={path} path={path} onRemove={() => setUploadFile(uploadFile.filter((v) => v !== path))} />
@@ -370,6 +372,11 @@ const AcpSendBox: React.FC<{
                   }
                   return null;
                 })}
+              </HorizontalFileList>
+            )}
+            {/* Folder tags below */}
+            {atPath.some((item) => (typeof item === 'string' ? false : !item.isFile)) && (
+              <div className='flex flex-wrap items-center gap-8px mb-8px mt-4px'>
               </div>
             )}
             {/* Folder tags below */}
