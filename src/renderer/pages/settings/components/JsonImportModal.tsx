@@ -1,10 +1,11 @@
 import type { IMcpServer, IMcpServerTransport, IMcpTool } from '@/common/storage';
-import { Button, Modal } from '@arco-design/web-react';
+import { Button } from '@arco-design/web-react';
 import React, { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import CodeMirror from '@uiw/react-codemirror';
 import { json } from '@codemirror/lang-json';
 import { useThemeContext } from '@/renderer/context/ThemeContext';
+import AionModal from '@/renderer/components/base/AionModal';
 
 interface JsonImportModalProps {
   visible: boolean;
@@ -189,25 +190,22 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
   if (!visible) return null;
 
   return (
-    <Modal
-      title={server ? t('settings.mcpEditServer') : t('settings.mcpImportFromJSON')}
+    <AionModal
       visible={visible}
       onCancel={onCancel}
-      footer={[
-        <Button key='cancel' onClick={onCancel}>
-          {t('common.cancel')}
-        </Button>,
-        <Button key='submit' type='primary' onClick={handleSubmit} disabled={!validation.isValid}>
-          {t('common.save')}
-        </Button>,
-      ]}
-      style={{ width: 600 }}
+      onOk={handleSubmit}
+      okButtonProps={{ disabled: !validation.isValid }}
+      header={{ title: server ? t('settings.mcpEditServer') : t('settings.mcpImportFromJSON'), showClose: true }}
+      style={{ width: 600, height: 450 }}
+      contentStyle={{ borderRadius: 16, padding: '24px', background: 'var(--bg-1)', overflow: 'auto', height: 420 - 80 }} // 与“添加模型”弹窗保持统一尺寸 / Keep same size as Add Model modal
     >
+      <div className='space-y-12px'>
       <div>
         <div className='mb-2 text-sm text-t-secondary'>{t('settings.mcpImportPlaceholder')}</div>
         <div className='relative'>
           <CodeMirror
             value={jsonInput}
+            height='250px'
             height='300px'
             theme={theme} // Use theme from context 使用上下文中的主题
             extensions={[json()]}
@@ -231,6 +229,7 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
               fontSize: '13px',
               border: validation.isValid || !jsonInput.trim() ? '1px solid var(--bg-3)' : '1px solid var(--danger)',
               borderRadius: '6px',
+              marginBottom: '20px',
               overflow: 'hidden',
             }}
             className='[&_.cm-editor]:rounded-[6px]'
@@ -281,7 +280,7 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
         {/* JSON 格式错误提示 */}
         {!validation.isValid && jsonInput.trim() && <div className='mt-2 text-sm text-red-600'>{t('settings.mcpJsonFormatError') || 'JSON format error'}</div>}
       </div>
-    </Modal>
+    </AionModal>
   );
 };
 
