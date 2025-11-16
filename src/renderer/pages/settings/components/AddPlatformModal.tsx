@@ -25,6 +25,10 @@ const useModePlatformList = () => {
         value: 'ModelScope',
       },
       {
+        label: 'BurnCloud',
+        value: 'burncloud',
+      },
+      {
         label: 'OpenRouter',
         value: 'OpenRouter',
       },
@@ -39,6 +43,7 @@ const useModePlatformList = () => {
 const defaultBaseUrl = {
   qwen: 'https://api.qwen.com/v1',
   moonshot: 'https://api.moonshot.cn/v1',
+  burncloud: 'https://ai.burncloud.com/v1',
   OpenRouter: 'https://openrouter.ai/api/v1',
   ModelScope: 'https://api-inference.modelscope.cn/v1',
 };
@@ -71,6 +76,10 @@ const openaiCompatibleBaseUrls = [
   {
     url: 'https://api.deepseek.com',
     name: 'DeepSeek',
+  },
+  {
+    url: 'https://ai.burncloud.com/v1',
+    name: 'BurnCloud',
   },
   {
     url: 'https://qianfan.baidubce.com/v2',

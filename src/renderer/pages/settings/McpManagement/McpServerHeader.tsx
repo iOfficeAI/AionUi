@@ -6,6 +6,8 @@ import { useTranslation } from 'react-i18next';
 import McpAgentStatusDisplay from './McpAgentStatusDisplay';
 import { iconColors } from '@/renderer/theme/colors';
 import type { McpOAuthStatus } from '@/renderer/hooks/mcp/useMcpOAuth';
+import McpServerActions from './McpServerActions';
+import { iconColors } from '@/renderer/theme/colors';
 
 interface McpServerHeaderProps {
   server: IMcpServer;
@@ -25,6 +27,16 @@ const getStatusIcon = (status?: IMcpServer['status'], oauthStatus?: McpOAuthStat
   // 优先级1: 测试中状态（最高优先级）
   if (status === 'testing' || oauthStatus?.isChecking) {
     return <LoadingOne fill={iconColors.primary} className={'h-[24px]'} />;
+const getStatusIcon = (status?: IMcpServer['status']) => {
+  switch (status) {
+    case 'connected':
+      return <Check fill={iconColors.success} className={'h-[24px] items-center'} />;
+    case 'testing':
+      return <LoadingOne fill={iconColors.primary} className={'h-[24px]'} />;
+    case 'error':
+      return <CloseSmall fill={iconColors.danger} className={'h-[24px]'} />;
+    default:
+      return <CloseOne fill={iconColors.secondary} className={'h-[24px]'} />;
   }
 
   // 优先级2: 错误状态

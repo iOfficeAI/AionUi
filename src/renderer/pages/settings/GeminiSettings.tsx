@@ -78,6 +78,21 @@ const GeminiSettings: React.FC = (props) => {
     } finally {
       setLoading(false);
     }
+    const { googleAccount, ...rest } = values;
+    setLoading(true);
+    setError(null);
+
+    ConfigStorage.set('gemini.config', values)
+      .then(() => {
+        // 配置保存成功 / Configuration saved successfully
+        setError(null);
+      })
+      .catch((e) => {
+        setError(e.message || e);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   };
   // 初始化配置 / Initialize configuration
   useEffect(() => {

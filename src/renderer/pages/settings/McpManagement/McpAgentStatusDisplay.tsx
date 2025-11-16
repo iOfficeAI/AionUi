@@ -34,6 +34,7 @@ const McpAgentStatusDisplay: React.FC<McpAgentStatusDisplayProps> = ({ serverNam
   }
   return (
     <div className='flex items-center isolate'>
+    <div className='flex items-center'>
       {isLoadingAgentStatus ? (
         <LoadingOne fill={iconColors.primary} className={'h-[16px] w-[16px]'} />
       ) : (
@@ -54,6 +55,15 @@ const McpAgentStatusDisplay: React.FC<McpAgentStatusDisplayProps> = ({ serverNam
                 }}
               >
                 <img src={LogoComponent} alt={agent} className='w-[21px] h-[21px] border-solid border-1 rounded-sm' style={{ backgroundColor: 'var(--bg-base)' }} />
+            <Tooltip key={agent} content={agent}>
+              <div
+                className='w-6 h-6 flex items-center relative hover:z-10 cursor-pointer'
+                style={{
+                  zIndex: index,
+                  marginLeft: index === 0 ? 0 : '-4px',
+                }}
+              >
+                <img src={LogoComponent} alt={agent} className='w-[21px] h-[21px] border-solid border-1 rounded-sm bg-base' />
               </div>
             </Tooltip>
           ) : (

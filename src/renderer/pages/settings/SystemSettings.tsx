@@ -15,7 +15,102 @@ const DirInputItem: React.FC<{
   label: string;
   field: string;
 }> = (props) => {
+  return (
+    <Form.Item label={props.label} field={props.field}>
+      {(options, form) => (
+        <Input
+          disabled
+          value={options[props.field]}
+          addAfter={
+            <FolderOpen
+              theme='outline'
+              size='24'
+              fill={iconColors.primary}
+              onClick={() => {
+                ipcBridge.dialog.showOpen
+                  .invoke({
+                    defaultPath: options[props.field],
+                    properties: ['openDirectory', 'createDirectory'],
+                  })
+                  .then((data) => {
+                    if (data?.[0]) {
+                      form.setFieldValue(props.field, data[0]);
+                    }
+                  })
+                  .catch((error) => {
+                    console.error('Failed to open directory dialog:', error);
+                  });
+              }}
+            />
+          }
+        ></Input>
+      )}
+    </Form.Item>
+  );
+};
+
+const SystemSettings: React.FC = (props) => {
   const { t } = useTranslation();
+  const [form] = Form.useForm();
+  const [loading, setLoading] = useState(false);
+  const [modal, modalContextHolder] = Modal.useModal();
+  const [error, setError] = useState<string | null>(null);
+
+  // 获取系统目录信息 / Get system directory info
+  const { data: systemInfo } = useSWR('system.dir.info', () => ipcBridge.application.systemInfo.invoke());
+
+  // 初始化表单数据 / Initialize form data
+  useEffect(() => {
+    if (systemInfo) {
+      form.setFieldValue('cacheDir', systemInfo.cacheDir);
+      form.setFieldValue('workDir', systemInfo.workDir);
+    }
+  }, [systemInfo, form]);
+
+  // 目录配置保存确认 / Directory configuration save confirmation
+  const saveDirConfigValidate = (values: { cacheDir: string; workDir: string }): Promise<unknown> => {
+    return new Promise((resolve, reject) => {
+      modal.confirm({
+        title: t('settings.updateConfirm'),
+        content: t('settings.restartConfirm'),
+        onOk: resolve,
+        onCancel: reject,
+      });
+    });
+  };
+
+  // 保存目录配置 / Save directory configuration
+  const onSubmit = async () => {
+    const values = await form.validate();
+    const { cacheDir, workDir } = values;
+    setLoading(true);
+    setError(null);
+
+    // 检查目录是否修改 / Check if directories are modified
+    const needsRestart = cacheDir !== systemInfo?.cacheDir || workDir !== systemInfo?.workDir;
+
+    if (needsRestart) {
+      try {
+        await saveDirConfigValidate(values);
+        const result = await ipcBridge.application.updateSystemInfo.invoke({ cacheDir, workDir });
+        if (result.success) {
+          await ipcBridge.application.restart.invoke();
+        } else {
+          setError(result.msg || 'Failed to update system info');
+        }
+      } catch (e: any) {
+        if (e) {
+          // 用户取消 / User cancelled
+          setError(e.message || e);
+        }
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      setLoading(false);
+    }
+  };
+
   return (
     <Form.Item label={props.label} field={props.field}>
       {(options, form) => {
@@ -57,70 +152,6 @@ const DirInputItem: React.FC<{
     </Form.Item>
   );
 };
-
-const SystemSettings: React.FC = () => {
-  const { t } = useTranslation();
-  const [form] = Form.useForm();
-  const [loading, setLoading] = useState(false);
-  const [modal, modalContextHolder] = Modal.useModal();
-  const [error, setError] = useState<string | null>(null);
-
-  // 获取系统目录信息 / Get system directory info
-  const { data: systemInfo } = useSWR('system.dir.info', () => ipcBridge.application.systemInfo.invoke());
-
-  // 初始化表单数据 / Initialize form data
-  useEffect(() => {
-    if (systemInfo) {
-      form.setFieldValue('cacheDir', systemInfo.cacheDir);
-      form.setFieldValue('workDir', systemInfo.workDir);
-    }
-  }, [systemInfo, form]);
-
-  // 目录配置保存确认 / Directory configuration save confirmation
-  const saveDirConfigValidate = (_values: { cacheDir: string; workDir: string }): Promise<unknown> => {
-    return new Promise((resolve, reject) => {
-      modal.confirm({
-        title: t('settings.updateConfirm'),
-        content: t('settings.restartConfirm'),
-        onOk: resolve,
-        onCancel: reject,
-      });
-    });
-  };
-
-  // 保存目录配置 / Save directory configuration
-  const onSubmit = async () => {
-    const values = await form.validate();
-    const { cacheDir, workDir } = values;
-    setLoading(true);
-    setError(null);
-
-    // 检查目录是否修改 / Check if directories are modified
-    const needsRestart = cacheDir !== systemInfo?.cacheDir || workDir !== systemInfo?.workDir;
-
-    if (needsRestart) {
-      try {
-        await saveDirConfigValidate(values);
-        const result = await ipcBridge.application.updateSystemInfo.invoke({ cacheDir, workDir });
-        if (result.success) {
-          await ipcBridge.application.restart.invoke();
-        } else {
-          setError(result.msg || 'Failed to update system info');
-        }
-      } catch (caughtError: unknown) {
-        if (caughtError) {
-          // 用户取消 / User cancelled
-          setError(caughtError instanceof Error ? caughtError.message : String(caughtError));
-        }
-      } finally {
-        setLoading(false);
-      }
-    } else {
-      setLoading(false);
-    }
-  };
-
-  return (
     <SettingContainer
       title={t('settings.system')}
       bodyContainer

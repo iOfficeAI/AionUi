@@ -5,6 +5,7 @@
  */
 
 import { Button, Input, Message } from '@arco-design/web-react';
+import { ArrowUp } from '@icon-park/react';
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCompositionInput } from '../hooks/useCompositionInput';
@@ -195,7 +196,7 @@ const SendBox: React.FC<{
     <div className={className}>
       <div
         ref={containerRef}
-        className={`relative p-16px b bg-dialog-fill-0 b-solid rd-20px flex flex-col ${isFileDragging ? 'b-dashed' : ''}`}
+        className={`relative p-16px border-3 b bg-base b-solid rd-20px flex flex-col ${isFileDragging ? 'b-dashed' : ''}`}
         style={{
           ...(isFileDragging
             ? {
@@ -216,7 +217,7 @@ const SendBox: React.FC<{
           {context}
         </div>
         <div className={isSingleLine ? 'flex items-center gap-2 w-full' : 'w-full'}>
-          {isSingleLine && <span className='flex-shrink-0'>{tools}</span>}
+          {isSingleLine && <div className='flex-shrink-0 sendbox-tools'>{tools}</div>}
           <Input.TextArea
             autoFocus
             disabled={disabled}
@@ -226,7 +227,7 @@ const SendBox: React.FC<{
             style={{
               width: isSingleLine ? 'auto' : '100%',
               flex: isSingleLine ? 1 : 'none',
-              minWidth: isSingleLine ? '100px' : 0,
+              minWidth: isSingleLine ? '200px' : 0,
               maxWidth: '100%',
               marginLeft: 0,
               marginRight: 0,
@@ -255,11 +256,7 @@ const SendBox: React.FC<{
                 <Button
                   shape='circle'
                   type='primary'
-                  icon={
-                    <div className='flex items-center justify-center'>
-                      <img src={SendArrowIcon} alt='send' className='w-[14px] h-[14px]' />
-                    </div>
-                  }
+                  icon={<ArrowUp theme='outline' size='14' fill='white' strokeWidth={2} />}
                   onClick={() => {
                     sendMessageHandler();
                   }}
@@ -270,7 +267,7 @@ const SendBox: React.FC<{
         </div>
         {!isSingleLine && (
           <div className='flex items-center justify-between gap-2 w-full'>
-            <span>{tools}</span>
+            <div className='sendbox-tools'>{tools}</div>
             <div className='flex items-center gap-2'>
               {isLoading || loading ? (
                 <Button shape='circle' type='secondary' className='bg-animate' icon={<div className='mx-auto size-12px bg-6' onClick={stopHandler}></div>}></Button>
@@ -278,11 +275,7 @@ const SendBox: React.FC<{
                 <Button
                   shape='circle'
                   type='primary'
-                  icon={
-                    <div className='flex items-center justify-center'>
-                      <img src={SendArrowIcon} alt='send' className='w-[14px] h-[14px]' />
-                    </div>
-                  }
+                  icon={<ArrowUp theme='outline' size='14' fill='white' strokeWidth={2} />}
                   onClick={() => {
                     sendMessageHandler();
                   }}

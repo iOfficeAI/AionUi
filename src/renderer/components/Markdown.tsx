@@ -81,6 +81,11 @@ function CodeBlock(props: any) {
             borderRadius: '4px',
             border: '1px solid',
             borderColor: 'var(--bg-3)',
+            display: 'inline-block',
+            maxWidth: '100%',
+            overflowWrap: 'anywhere',
+            wordBreak: 'break-word',
+            whiteSpace: 'break-spaces',
           }}
         >
           {children}
@@ -157,7 +162,7 @@ function CodeBlock(props: any) {
   }, [props, currentTheme, fold]);
 }
 
-const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string>, customCss?: string) => {
+const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string>) => {
   const style = document.createElement('style');
   // 将外部 CSS 变量注入到 Shadow DOM 中，支持深色模式 Inject external CSS variables into Shadow DOM for dark mode support
   const cssVarsDeclaration = cssVars
@@ -230,6 +235,12 @@ const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string
         min-width: 120px;
     }
   }
+  /* Inline code should wrap on small screens to avoid horizontal overflow */
+  .markdown-shadow-body code {
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    max-width: 100%;
+  }
   .loading {
     animation: loading 1s linear infinite;
   }
@@ -242,10 +253,7 @@ const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string
     100% {
       transform: rotate(360deg);
     }
-  }
-
-  /* 用户自定义 CSS（注入到 Shadow DOM）User Custom CSS (injected into Shadow DOM) */
-  ${customCss || ''}
+  }\n\n  /* 用户自定义 CSS（注入到 Shadow DOM）User Custom CSS (injected into Shadow DOM) */\n  ${customCss || ''}
   `;
   return style;
 };

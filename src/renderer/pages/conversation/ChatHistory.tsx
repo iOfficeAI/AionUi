@@ -195,6 +195,8 @@ const ChatHistory: React.FC<{ onSessionClick?: () => void; collapsed?: boolean }
           id={'c-' + conversation.id}
           className={classNames('hover:bg-aou-1 px-12px py-8px rd-8px flex justify-start items-center group cursor-pointer relative overflow-hidden group shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px', {
             '!bg-aou-2 ': isSelected,
+          className={classNames('hover:bg-hover px-12px py-8px rd-8px flex justify-start items-center group cursor-pointer relative overflow-hidden group shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px', {
+            '!bg-active ': isSelected,
           })}
           onClick={handleSelect.bind(null, conversation)}
         >
@@ -247,6 +249,49 @@ const ChatHistory: React.FC<{ onSessionClick?: () => void; collapsed?: boolean }
               )}
             </div>
           )}
+          <div
+            className={classNames('absolute right--15px top-0px h-full w-70px items-center justify-center hidden group-hover:flex !collapsed-hidden')}
+            style={{
+              backgroundImage: isSelected ? `linear-gradient(to right, transparent, var(--bg-active) 50%)` : `linear-gradient(to right, transparent, var(--bg-hover) 50%)`,
+            }}
+            onClick={(event) => {
+              event.stopPropagation();
+            }}
+          >
+            {!isEditing && (
+              <span
+                className='flex-center mr-8px'
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handleEditStart(conversation);
+                }}
+              >
+                <EditOne theme='outline' size='20' className='flex' />
+              </span>
+            )}
+            <Popconfirm
+              title={t('conversation.history.deleteTitle')}
+              content={t('conversation.history.deleteConfirm')}
+              okText={t('conversation.history.confirmDelete')}
+              cancelText={t('conversation.history.cancelDelete')}
+              onOk={(event) => {
+                event.stopPropagation();
+                handleRemoveConversation(conversation.id);
+              }}
+              onCancel={(event) => {
+                event.stopPropagation();
+              }}
+            >
+              <span
+                className='flex-center'
+                onClick={(event) => {
+                  event.stopPropagation();
+                }}
+              >
+                <DeleteOne theme='outline' size='20' className='flex' />
+              </span>
+            </Popconfirm>
+          </div>
         </div>
       </Tooltip>
     );

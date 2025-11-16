@@ -45,14 +45,6 @@ const Sider: React.FC<{ onSessionClick?: () => void; collapsed?: boolean }> = ({
         <div
           onClick={() => {
             // if (isSettings) {
-            //   Promise.resolve(navigate('/guid')).catch((error) => {
-            //     console.error('Navigation failed:', error);
-            //   });
-            //   return;
-            // }
-            // Promise.resolve(navigate('/settings')).catch((error) => {
-            //   console.error('Navigation failed:', error);
-            // });
             openSettings();
           }}
           className='flex items-center justify-start gap-10px px-12px py-8px hover:bg-hover rd-0.5rem mb-8px cursor-pointer'

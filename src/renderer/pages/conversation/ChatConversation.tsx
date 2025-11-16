@@ -52,6 +52,9 @@ const AssociatedConversation: React.FC<{ conversation_id: string }> = ({ convers
       trigger={['click']}
     >
       <Button size='mini' icon={<History theme='filled' size='14' fill={iconColors.primary} strokeWidth={2} strokeLinejoin='miter' strokeLinecap='square' />}></Button>
+      <span>
+        <History theme='filled' size='17' fill={iconColors.primary} strokeWidth={2} strokeLinejoin='miter' strokeLinecap='square' />
+      </span>
     </Dropdown>
   );
 };
@@ -80,6 +83,9 @@ const AddNewConversation: React.FC<{ conversation: TChatConversation }> = ({ con
             });
         }}
       ></Button>
+      >
+        <Plus theme='filled' size='17' fill={iconColors.primary} strokeWidth={2} strokeLinejoin='miter' strokeLinecap='square' />
+      </span>
     </Tooltip>
   );
 };
