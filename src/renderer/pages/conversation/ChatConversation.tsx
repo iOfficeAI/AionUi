@@ -7,8 +7,8 @@
 import { ipcBridge } from '@/common';
 import type { TChatConversation } from '@/common/storage';
 import { uuid } from '@/common/utils';
-import { Dropdown, Menu, Tooltip, Typography } from '@arco-design/web-react';
-import { History, Plus } from '@icon-park/react';
+import { Button, Dropdown, Menu, Tooltip, Typography } from '@arco-design/web-react';
+import { History } from '@icon-park/react';
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -20,6 +20,7 @@ import ChatSider from './ChatSider';
 import GeminiChat from './gemini/GeminiChat';
 import CodexChat from './codex/CodexChat';
 import { iconColors } from '@/renderer/theme/colors';
+import addChatIcon from '@/renderer/assets/add-chat.svg';
 
 const AssociatedConversation: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
   const { data } = useSWR(['getAssociateConversation', conversation_id], () => ipcBridge.conversation.getAssociateConversation.invoke({ conversation_id }));
@@ -50,6 +51,7 @@ const AssociatedConversation: React.FC<{ conversation_id: string }> = ({ convers
       }
       trigger={['click']}
     >
+      <Button size='mini' icon={<History theme='filled' size='14' fill={iconColors.primary} strokeWidth={2} strokeLinejoin='miter' strokeLinecap='square' />}></Button>
       <span>
         <History theme='filled' size='17' fill={iconColors.primary} strokeWidth={2} strokeLinejoin='miter' strokeLinecap='square' />
       </span>
@@ -63,7 +65,9 @@ const AddNewConversation: React.FC<{ conversation: TChatConversation }> = ({ con
   if (!conversation.extra?.workspace) return null;
   return (
     <Tooltip content={t('conversation.workspace.createNewConversation')}>
-      <span
+      <Button
+        size='mini'
+        icon={<img src={addChatIcon} alt='Add chat' className='w-14px h-14px block m-auto' />}
         onClick={() => {
           const id = uuid();
           ipcBridge.conversation.createWithConversation
@@ -78,6 +82,7 @@ const AddNewConversation: React.FC<{ conversation: TChatConversation }> = ({ con
               console.error('Failed to create conversation:', error);
             });
         }}
+      ></Button>
       >
         <Plus theme='filled' size='17' fill={iconColors.primary} strokeWidth={2} strokeLinejoin='miter' strokeLinecap='square' />
       </span>

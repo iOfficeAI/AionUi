@@ -193,6 +193,8 @@ const ChatHistory: React.FC<{ onSessionClick?: () => void; collapsed?: boolean }
       <Tooltip key={conversation.id} disabled={!collapsed} content={conversation.name || t('conversation.welcome.newConversation')} position='right'>
         <div
           id={'c-' + conversation.id}
+          className={classNames('hover:bg-aou-1 px-12px py-8px rd-8px flex justify-start items-center group cursor-pointer relative overflow-hidden group shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px', {
+            '!bg-aou-2 ': isSelected,
           className={classNames('hover:bg-hover px-12px py-8px rd-8px flex justify-start items-center group cursor-pointer relative overflow-hidden group shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px', {
             '!bg-active ': isSelected,
           })}
@@ -200,6 +202,53 @@ const ChatHistory: React.FC<{ onSessionClick?: () => void; collapsed?: boolean }
         >
           <MessageOne theme='outline' size='20' className='mt-2px ml-2px mr-8px flex' />
           <FlexFullContainer className='h-24px'>{isEditing ? <Input className='text-14px lh-24px h-24px' value={editingName} onChange={setEditingName} onKeyDown={handleEditKeyDown} onBlur={handleEditSave} autoFocus size='small' /> : <div className='text-nowrap overflow-hidden inline-block w-full text-14px lh-24px whitespace-nowrap'>{conversation.name}</div>}</FlexFullContainer>
+          {!isEditing && (
+            <div
+              className={classNames('absolute right-0px top-0px h-full w-70px items-center justify-end hidden group-hover:flex !collapsed-hidden pr-12px')}
+              style={{
+                backgroundImage: isSelected ? `linear-gradient(to right, transparent, var(--aou-2) 50%)` : `linear-gradient(to right, transparent, var(--aou-1) 50%)`,
+              }}
+              onClick={(event) => {
+                event.stopPropagation();
+              }}
+            >
+              {!isEditing && (
+                <span
+                  className='flex-center mr-8px'
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleEditStart(conversation);
+                  }}
+                >
+                  <EditOne theme='outline' size='20' className='flex' />
+                </span>
+              )}
+              {!isEditing && (
+                <Popconfirm
+                  title={t('conversation.history.deleteTitle')}
+                  content={t('conversation.history.deleteConfirm')}
+                  okText={t('conversation.history.confirmDelete')}
+                  cancelText={t('conversation.history.cancelDelete')}
+                  onOk={(event) => {
+                    event.stopPropagation();
+                    handleRemoveConversation(conversation.id);
+                  }}
+                  onCancel={(event) => {
+                    event.stopPropagation();
+                  }}
+                >
+                  <span
+                    className='flex-center'
+                    onClick={(event) => {
+                      event.stopPropagation();
+                    }}
+                  >
+                    <DeleteOne theme='outline' size='20' className='flex' />
+                  </span>
+                </Popconfirm>
+              )}
+            </div>
+          )}
           <div
             className={classNames('absolute right--15px top-0px h-full w-70px items-center justify-center hidden group-hover:flex !collapsed-hidden')}
             style={{
