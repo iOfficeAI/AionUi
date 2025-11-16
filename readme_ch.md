@@ -167,7 +167,7 @@ AionUi 为需要更好工作流效率的用户提供了现代界面，同时**�
 
 ### 🔧 **设置很简单**
 
-- **多平台支持** - 支持 Gemini、OpenAI、ModelScope、OpenRouter 等
+- **多平台支持** - 支持 Gemini、OpenAI、BurnCloud、ModelScope、OpenRouter 等
 - **灵活配置** - 每个平台可以配置多个模型，支持自定义地址
 - **登录方便** - 支持 Google 账号登录或 API Key 认证，灵活选择
 - **自动修复** - 自动检测并修复配置问题，不用手动调试
