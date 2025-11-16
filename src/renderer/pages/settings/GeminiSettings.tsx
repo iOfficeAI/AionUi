@@ -9,9 +9,12 @@ import { ConfigStorage } from '@/common/storage';
 import { Alert, Button, Form, Input, Switch } from '@arco-design/web-react';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+<<<<<<< HEAD
 import CodeMirror from '@uiw/react-codemirror';
 import { css } from '@codemirror/lang-css';
 import { useThemeContext } from '@/renderer/context/ThemeContext';
+=======
+>>>>>>> origin/main
 import SettingContainer from './components/SettingContainer';
 
 const GeminiSettings: React.FC = (props) => {
@@ -49,6 +52,7 @@ const GeminiSettings: React.FC = (props) => {
   // 保存 Gemini 配置 / Save Gemini configuration
   const onSubmit = async () => {
     const values = await form.validate();
+<<<<<<< HEAD
     const { googleAccount, ...geminiConfig } = values;
 
     // CSS 编辑器在 Form 外部，需要单独获取
@@ -78,6 +82,23 @@ const GeminiSettings: React.FC = (props) => {
     } finally {
       setLoading(false);
     }
+=======
+    const { googleAccount, ...rest } = values;
+    setLoading(true);
+    setError(null);
+
+    ConfigStorage.set('gemini.config', values)
+      .then(() => {
+        // 配置保存成功 / Configuration saved successfully
+        setError(null);
+      })
+      .catch((e) => {
+        setError(e.message || e);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+>>>>>>> origin/main
   };
   // 初始化配置 / Initialize configuration
   useEffect(() => {
@@ -184,6 +205,7 @@ const GeminiSettings: React.FC = (props) => {
         </Form.Item>
         {error && <Alert className={'m-b-10px'} type='error' content={typeof error === 'string' ? error : JSON.stringify(error)} />}
       </Form>
+<<<<<<< HEAD
 
       {/* CSS 设置 - 独立的容器 */}
       <div className='bg-base rd-16px py-24px px-32px box-border mt-20px'>
@@ -215,6 +237,8 @@ const GeminiSettings: React.FC = (props) => {
           <div className='mt-10px text-13px text-t-secondary'>{t('settings.customCssDesc')}</div>
         </div>
       </div>
+=======
+>>>>>>> origin/main
     </SettingContainer>
   );
 };

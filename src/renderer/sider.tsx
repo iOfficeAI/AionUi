@@ -6,7 +6,10 @@ import ChatHistory from './pages/conversation/ChatHistory';
 import SettingsSider from './pages/settings/SettingsSider';
 import { iconColors } from './theme/colors';
 import { Tooltip } from '@arco-design/web-react';
+<<<<<<< HEAD
 import { useSettingsModal } from './components/SettingsModal/useSettingsModal';
+=======
+>>>>>>> origin/main
 
 const Sider: React.FC<{ onSessionClick?: () => void; collapsed?: boolean }> = ({ onSessionClick, collapsed = false }) => {
   const { pathname } = useLocation();
@@ -44,6 +47,7 @@ const Sider: React.FC<{ onSessionClick?: () => void; collapsed?: boolean }> = ({
       <Tooltip disabled={!collapsed} content={isSettings ? t('common.back') : t('common.settings')} position='right'>
         <div
           onClick={() => {
+<<<<<<< HEAD
             // if (isSettings) {
             //   Promise.resolve(navigate('/guid')).catch((error) => {
             //     console.error('Navigation failed:', error);
@@ -54,6 +58,17 @@ const Sider: React.FC<{ onSessionClick?: () => void; collapsed?: boolean }> = ({
             //   console.error('Navigation failed:', error);
             // });
             openSettings();
+=======
+            if (isSettings) {
+              Promise.resolve(navigate('/guid')).catch((error) => {
+                console.error('Navigation failed:', error);
+              });
+              return;
+            }
+            Promise.resolve(navigate('/settings')).catch((error) => {
+              console.error('Navigation failed:', error);
+            });
+>>>>>>> origin/main
           }}
           className='flex items-center justify-start gap-10px px-12px py-8px hover:bg-hover rd-0.5rem mb-8px cursor-pointer'
         >
@@ -61,9 +76,12 @@ const Sider: React.FC<{ onSessionClick?: () => void; collapsed?: boolean }> = ({
           <span className='collapsed-hidden text-t-primary'>{isSettings ? t('common.back') : t('common.settings')}</span>
         </div>
       </Tooltip>
+<<<<<<< HEAD
 
       {/* 渲染设置弹窗 */}
       {settingsModal}
+=======
+>>>>>>> origin/main
     </div>
   );
 };

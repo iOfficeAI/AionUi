@@ -142,7 +142,11 @@ const ConfirmationDetails: React.FC<{
         );
       case 'exec':
         return (
+<<<<<<< HEAD
           <div className='min-w-400px'>
+=======
+          <div className='w-full max-w-100% min-w-0'>
+>>>>>>> origin/main
             <MarkdownView codeStyle={{ marginLeft: 16, marginTop: 4, marginBottom: 4 }}>{`\`\`\`bash\n${confirmationDetails.command}\n\`\`\``}</MarkdownView>
           </div>
         );
@@ -376,11 +380,19 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
         }
 
         // WriteFile 特殊处理：显示 diff Special handling for WriteFile: show diff
+<<<<<<< HEAD
         if (name === 'WriteFile' && typeof resultDisplay !== 'string') {
           const result = resultDisplay as WriteFileResult;
           return (
             <div className='min-w-400px' key={callId}>
               <Diff2Html diff={result?.fileDiff || ''}></Diff2Html>
+=======
+        if (name === 'WriteFile' && resultDisplay && typeof resultDisplay === 'object') {
+          const result = resultDisplay as WriteFileResult;
+          return (
+            <div className='w-full max-w-100% min-w-0' key={callId}>
+              <Diff2Html diff={result.fileDiff || ''}></Diff2Html>
+>>>>>>> origin/main
             </div>
           );
         }

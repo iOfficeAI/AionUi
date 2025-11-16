@@ -184,7 +184,7 @@ AionUi provides a modern interface for users who need better workflow efficiency
 
 ### 🔧 **Settings Are Simple**
 
-- **Multi-Platform Support** - Support Gemini, OpenAI, ModelScope, OpenRouter, etc.
+- **Multi-Platform Support** - Support Gemini, OpenAI, BurnCloud, ModelScope, OpenRouter, etc.
 - **Flexible Configuration** - Each platform can configure multiple models, support custom addresses
 - **Easy Login** - Support Google account login or API Key authentication, flexible choice
 - **Auto Fix** - Automatically detect and fix configuration issues, no manual debugging needed

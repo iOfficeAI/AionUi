@@ -215,7 +215,16 @@ class PasteServiceClass {
     }
 
     // 处理纯文本粘贴（只在没有文件时）
+<<<<<<< HEAD
     if (clipboardText) {
+=======
+    if (clipboardText && (!files || files.length === 0)) {
+      // 在 iOS 上, 让 Safari 自己处理纯文本粘贴, 以避免粘贴菜单/键盘抖动问题
+      const isIOS = typeof navigator !== 'undefined' && /iP(hone|ad|od)/.test(navigator.userAgent);
+      if (isIOS) {
+        return false;
+      }
+>>>>>>> origin/main
       if (onTextPaste) {
         // 清理文本中多余的换行符，特别是末尾的换行符
         const cleanedText = clipboardText.replace(/\n\s*$/, '');

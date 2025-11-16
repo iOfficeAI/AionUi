@@ -59,6 +59,7 @@
   background: rgba(255, 255, 255, 0.2);
 }
 
+
 /* Hide scrollbar while keeping scroll behavior */
 .scrollbar-hide {
   -ms-overflow-style: none; /* IE and Edge */

@@ -133,7 +133,7 @@ export const SECURITY_CONFIG = {
     // 开发环境 CSP（Content-Security-Policy for development）
     CSP_DEV: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' ws: wss:;",
     // 生产环境 CSP（Content-Security-Policy for production）
-    CSP_PROD: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self';",
+    CSP_PROD: "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self' ws: wss:;",
   },
   CSRF: {
     COOKIE_NAME: CSRF_COOKIE_NAME,

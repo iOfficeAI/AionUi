@@ -8,8 +8,9 @@ import { ipcBridge } from '@/common';
 import type { TMessage } from '@/common/chatLib';
 import { transformMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
-import type { TProviderWithModel, IMcpServer } from '@/common/storage';
+import type { IMcpServer, TProviderWithModel } from '@/common/storage';
 import { ProcessConfig } from '@/process/initStorage';
+import { getDatabase } from '@process/database';
 import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '../message';
 import BaseAgentManager from './BaseAgentManager';
 
@@ -25,6 +26,23 @@ export class GeminiAgentManager extends BaseAgentManager<{
   model: TProviderWithModel;
   private bootstrap: Promise<void>;
 
+  private async injectHistoryFromDatabase(): Promise<void> {
+    try {
+      const result = getDatabase().getConversationMessages(this.conversation_id, 0, 10000);
+      const data = result.data || [];
+      const lines = data
+        .filter((m) => m.type === 'text')
+        .slice(-20)
+        .map((m) => `${m.position === 'right' ? 'User' : 'Assistant'}: ${(m as any)?.content?.content || ''}`);
+      const text = lines.join('\n').slice(-4000);
+      if (text) {
+        await this.postMessagePromise('init.history', { text });
+      }
+    } catch (e) {
+      // ignore history injection errors
+    }
+  }
+
   constructor(
     data: {
       workspace: string;
@@ -37,16 +55,20 @@ export class GeminiAgentManager extends BaseAgentManager<{
     this.workspace = data.workspace;
     this.conversation_id = data.conversation_id;
     this.model = model;
-    this.bootstrap = Promise.all([ProcessConfig.get('gemini.config'), this.getImageGenerationModel(), this.getMcpServers()]).then(([config, imageGenerationModel, mcpServers]) => {
-      return this.start({
-        ...config,
-        workspace: this.workspace,
-        model: this.model,
-        imageGenerationModel,
-        webSearchEngine: data.webSearchEngine,
-        mcpServers,
+    this.bootstrap = Promise.all([ProcessConfig.get('gemini.config'), this.getImageGenerationModel(), this.getMcpServers()])
+      .then(([config, imageGenerationModel, mcpServers]) => {
+        return this.start({
+          ...config,
+          workspace: this.workspace,
+          model: this.model,
+          imageGenerationModel,
+          webSearchEngine: data.webSearchEngine,
+          mcpServers,
+        });
+      })
+      .then(async () => {
+        await this.injectHistoryFromDatabase();
       });
-    });
   }
 
   private getImageGenerationModel(): Promise<TProviderWithModel | undefined> {
@@ -85,7 +107,6 @@ export class GeminiAgentManager extends BaseAgentManager<{
 
       return mcpConfig;
     } catch (error) {
-      console.warn('[GeminiAgentManager] Failed to load MCP servers:', error);
       return {};
     }
   }
@@ -137,7 +158,6 @@ export class GeminiAgentManager extends BaseAgentManager<{
       if (data.type !== 'thought') {
         const tMessage = transformMessage(data as IResponseMessage);
         if (tMessage) {
-          console.warn('[GeminiAgentManager] Received TMessage', tMessage);
           addOrUpdateMessage(this.conversation_id, tMessage, 'gemini');
         }
       }
@@ -148,5 +168,10 @@ export class GeminiAgentManager extends BaseAgentManager<{
   // 发送tools用户确认的消息
   confirmMessage(data: { confirmKey: string; msg_id: string; callId: string }) {
     return this.postMessagePromise(data.callId, data.confirmKey);
+  }
+
+  // Manually trigger context reload
+  async reloadContext(): Promise<void> {
+    await this.injectHistoryFromDatabase();
   }
 }

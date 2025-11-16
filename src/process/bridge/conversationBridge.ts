@@ -5,8 +5,9 @@
  */
 
 import type { CodexAgentManager } from '@/agent/codex';
-import type { TChatConversation } from '@/common/storage';
 import { GeminiAgent } from '@/agent/gemini';
+import type { TChatConversation } from '@/common/storage';
+import { getDatabase } from '@process/database';
 import { ipcBridge } from '../../common';
 import { createAcpAgent, createCodexAgent, createGeminiAgent } from '../initAgent';
 import { ProcessChat } from '../initStorage';
@@ -14,7 +15,6 @@ import type AcpAgentManager from '../task/AcpAgentManager';
 import type { GeminiAgentManager } from '../task/GeminiAgentManager';
 import { copyFilesToDirectory, readDirectoryRecursive } from '../utils';
 import WorkerManage from '../WorkerManage';
-import { getDatabase } from '@process/database';
 import { migrateConversationToDatabase } from './migrationUtils';
 
 export function initConversationBridge(): void {
@@ -60,6 +60,20 @@ export function initConversationBridge(): void {
         stack: errorStack,
       });
       throw new Error(`Failed to create ${params.type} conversation: ${errorMessage}`);
+    }
+  });
+
+  // Manually reload conversation context (Gemini): inject recent history into memory
+  ipcBridge.conversation.reloadContext.provider(async ({ conversation_id }) => {
+    try {
+      const task = (await WorkerManage.getTaskByIdRollbackBuild(conversation_id)) as GeminiAgentManager | AcpAgentManager | CodexAgentManager | undefined;
+      if (!task) return { success: false, msg: 'conversation not found' };
+      if (task.type !== 'gemini') return { success: false, msg: 'only supported for gemini' };
+
+      await (task as GeminiAgentManager).reloadContext();
+      return { success: true };
+    } catch (e: unknown) {
+      return { success: false, msg: e instanceof Error ? e.message : String(e) };
     }
   });
 
@@ -155,7 +169,23 @@ export function initConversationBridge(): void {
   ipcBridge.conversation.update.provider(async ({ id, updates }) => {
     try {
       const db = getDatabase();
+      const existing = db.getConversation(id);
+      const prevModel = existing.success ? (existing.data as any)?.model : undefined;
+      const nextModel = (updates as any)?.model;
+      const modelChanged = !!nextModel && JSON.stringify(prevModel) !== JSON.stringify(nextModel);
+      // model change detection for task rebuild
+
       const result = await Promise.resolve(db.updateConversation(id, updates));
+
+      // If model changed, kill running task to force rebuild with new model on next send
+      if (result.success && modelChanged) {
+        try {
+          WorkerManage.kill(id);
+        } catch (killErr) {
+          // ignore kill error, will lazily rebuild later
+        }
+      }
+
       return result.success;
     } catch (error) {
       console.error('[conversationBridge] Failed to update conversation:', error);
