@@ -70,12 +70,12 @@ const ComponentsShowcase: React.FC = () => {
       <section className='space-y-4'>
         <h2 className='text-xl font-semibold'>Collapse - 折叠面板</h2>
         <AionCollapse defaultActiveKey={['1']}>
-          <Collapse.Item header='折叠面板标题 1' name='1'>
+          <AionCollapse.Item header='折叠面板标题 1' name='1'>
             <div>这是折叠面板的内容区域，可以放置任意内容。</div>
-          </Collapse.Item>
-          <Collapse.Item header='折叠面板标题 2' name='2'>
+          </AionCollapse.Item>
+          <AionCollapse.Item header='折叠面板标题 2' name='2'>
             <div>自定义样式：无边框，圆角 16px，和 SettingsModal 保持一致。</div>
-          </Collapse.Item>
+          </AionCollapse.Item>
         </AionCollapse>
       </section>
 
