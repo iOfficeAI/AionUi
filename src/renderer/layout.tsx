@@ -77,12 +77,26 @@ const Layout: React.FC<{
     <LayoutContext.Provider value={{ isMobile, siderCollapsed: collapsed, setSiderCollapsed: setCollapsed }}>
       <ArcoLayout className={'size-full layout'}>
         <ArcoLayout.Sider
-          collapsedWidth={isMobile ? 0 : 64}
+          collapsedWidth={isMobile ? 250 : 64}
           collapsed={collapsed}
           width={250}
           className={classNames('!bg-2 layout-sider', {
             collapsed: collapsed,
           })}
+          style={
+            isMobile
+              ? {
+                  position: 'fixed',
+                  top: 0,
+                  left: 0,
+                  height: '100vh',
+                  zIndex: 100,
+                  transform: collapsed ? 'translateX(-100%)' : 'translateX(0)',
+                  transition: 'transform 0.3s ease',
+                  pointerEvents: collapsed ? 'none' : 'auto',
+                }
+              : undefined
+          }
         >
           <ArcoLayout.Header
             className={classNames('flex items-center justify-start p-16px gap-12px pl-20px layout-sider-header', {
@@ -132,6 +146,14 @@ const Layout: React.FC<{
           onClick={() => {
             if (isMobile && !collapsed) setCollapsed(true);
           }}
+          style={
+            isMobile
+              ? {
+                  width: '100vw',
+                  marginLeft: 0,
+                }
+              : undefined
+          }
         >
           <Outlet></Outlet>
           {multiAgentContextHolder}
