@@ -62,6 +62,12 @@ export interface ModalContentStyleConfig {
   padding?: string | number;
   /** 内容区域滚动行为，默认 auto */
   overflow?: 'auto' | 'scroll' | 'hidden' | 'visible';
+  /** 内容区域高度（支持 number 或 px 字符串） */
+  height?: string | number;
+  /** 内容区域最小高度 */
+  minHeight?: string | number;
+  /** 内容区域最大高度 */
+  maxHeight?: string | number;
 }
 
 /** AionModal 组件 Props */
@@ -146,6 +152,14 @@ const FOOTER_BASE_CLASS = 'flex-shrink-0 bg-transparent';
  * </AionModal>
  * ```
  */
+const dimensionKeys = ['width', 'minWidth', 'maxWidth', 'height', 'minHeight', 'maxHeight'] as const;
+type DimensionKey = (typeof dimensionKeys)[number];
+
+const formatDimensionValue = (value?: string | number) => {
+  if (value === undefined || value === null) return undefined;
+  return typeof value === 'number' ? `${value}px` : value;
+};
+
 const AionModal: React.FC<AionModalProps> = ({
   children,
   size,
@@ -192,14 +206,14 @@ const AionModal: React.FC<AionModalProps> = ({
   };
 
   // 缩放尺寸相关属性（避免副作用）/ Scale size-related properties (avoid side effects)
-  const sizeKeys: (keyof CSSProperties)[] = ['width', 'minWidth', 'maxWidth', 'height', 'minHeight', 'maxHeight'];
-  const scaledStyle = sizeKeys.reduce<CSSProperties>((acc, key) => {
+  type DimensionStyle = Partial<Pick<CSSProperties, DimensionKey>>;
+  const scaledStyle: DimensionStyle = {};
+  dimensionKeys.forEach((key) => {
     const raw = baseStyle[key];
     if (raw !== undefined) {
-      acc[key] = scaleDimension(raw as CSSProperties['width']);
+      scaledStyle[key] = scaleDimension(raw as CSSProperties['width']) as CSSProperties[DimensionKey];
     }
-    return acc;
-  }, {});
+  });
 
   const mergedStyle: CSSProperties = {
     ...baseStyle,
@@ -234,6 +248,21 @@ const AionModal: React.FC<AionModalProps> = ({
     '--aionui-modal-overflow': contentOverflow,
     borderRadius: mergedStyle.borderRadius ?? '16px',
   };
+
+  const bodyInlineStyle = React.useMemo<CSSProperties>(() => {
+    const style: CSSProperties = {
+      overflow: contentOverflow,
+    };
+
+    (['height', 'minHeight', 'maxHeight'] as const).forEach((key) => {
+      const value = contentStyle?.[key];
+      if (value !== undefined) {
+        style[key] = formatDimensionValue(value);
+      }
+    });
+
+    return style;
+  }, [contentOverflow, contentStyle?.height, contentStyle?.maxHeight, contentStyle?.minHeight]);
 
   // 处理 Header 配置（向后兼容）
   const headerConfig: ModalHeaderConfig = React.useMemo(() => {
@@ -349,7 +378,9 @@ const AionModal: React.FC<AionModalProps> = ({
     <Modal {...props} title={null} closable={false} footer={null} onCancel={onCancel} className={`aionui-modal ${className}`} style={finalStyle} getPopupContainer={() => document.body}>
       <div className='aionui-modal-wrapper'>
         {renderHeader()}
-        <div className='aionui-modal-body-content'>{children}</div>
+        <div className='aionui-modal-body-content' style={bodyInlineStyle}>
+          {children}
+        </div>
         {renderFooter()}
       </div>
     </Modal>
