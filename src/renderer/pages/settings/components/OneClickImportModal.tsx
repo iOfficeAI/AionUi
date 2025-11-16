@@ -5,13 +5,10 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Check } from '@icon-park/react';
 import { iconColors } from '@/renderer/theme/colors';
-<<<<<<< HEAD
 import AionSteps from '@/renderer/components/base/AionSteps';
 import AionModal from '@/renderer/components/base/AionModal';
-=======
 import StepsWrapper from '@/renderer/components/base/StepsWrapper';
 import ModalWrapper from '@/renderer/components/base/ModalWrapper';
->>>>>>> origin/main
 
 interface OneClickImportModalProps {
   visible: boolean;
@@ -248,7 +245,6 @@ const OneClickImportModal: React.FC<OneClickImportModalProps> = ({ visible, onCa
   );
 
   return (
-<<<<<<< HEAD
     <AionModal
       header={{ title: t('settings.mcpOneKeyImport'), showClose: true }}
       visible={visible}
@@ -258,16 +254,13 @@ const OneClickImportModal: React.FC<OneClickImportModalProps> = ({ visible, onCa
       contentStyle={{ borderRadius: 16, padding: '24px', background: 'var(--bg-1)', overflow: 'hidden', height: 420 - 96 }} // 跟随添加模型弹窗的统一高度 / match Add Model modal height
     >
       <div className='flex flex-col h-275px mt-20px'>
-=======
     <ModalWrapper title={t('settings.mcpOneKeyImport')} visible={visible} onCancel={onCancel} footer={null} style={{ width: 568 }}>
       <div className='px-6 pb-0'>
->>>>>>> origin/main
         {/* 步骤提示文本 */}
         <div className='mb-6 text-t-secondary text-sm'>{t('settings.mcpImportDescription')}</div>
 
         {/* 步骤指示器 */}
         <div className='mb-6'>
-<<<<<<< HEAD
           <AionSteps current={currentStep} size='small'>
             <AionSteps.Step title={t('settings.mcpStepSelectAgent')} icon={currentStep > 1 ? <Check theme='filled' size={16} fill='#165dff' /> : undefined} />
             <AionSteps.Step title={t('settings.mcpStepFetchTools')} icon={currentStep > 2 ? <Check theme='filled' size={16} fill='#165dff' /> : undefined} />
@@ -277,7 +270,6 @@ const OneClickImportModal: React.FC<OneClickImportModalProps> = ({ visible, onCa
 
         {/* 步骤内容 */}
         <div className={`mb-6 flex-1 overflow-y-auto ${currentStep === 1 ? 'min-h-[60px]' : 'min-h-[180px]'}`}>
-=======
           <StepsWrapper current={currentStep} size='small'>
             <StepsWrapper.Step title={t('settings.mcpStepSelectAgent')} icon={currentStep > 1 ? <Check theme='filled' size={16} fill='#165dff' /> : undefined} />
             <StepsWrapper.Step title={t('settings.mcpStepFetchTools')} icon={currentStep > 2 ? <Check theme='filled' size={16} fill='#165dff' /> : undefined} />
@@ -287,15 +279,12 @@ const OneClickImportModal: React.FC<OneClickImportModalProps> = ({ visible, onCa
 
         {/* 步骤内容 */}
         <div className={`mb-6 ${currentStep === 1 ? 'min-h-[60px]' : 'min-h-[180px] max-h-[280px]'}`}>
->>>>>>> origin/main
           {currentStep === 1 && renderStep1()}
           {currentStep === 2 && renderStep2()}
           {currentStep === 3 && renderStep3()}
         </div>
-<<<<<<< HEAD
       </div>
     </AionModal>
-=======
 
         {/* 底部按钮 */}
         <div className='flex justify-end gap-3 h-[72px] items-center px-6 -mx-6' style={{ borderTop: '1px solid var(--bg-3)' }}>
@@ -327,7 +316,6 @@ const OneClickImportModal: React.FC<OneClickImportModalProps> = ({ visible, onCa
         </div>
       </div>
     </ModalWrapper>
->>>>>>> origin/main
   );
 };
 

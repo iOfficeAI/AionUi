@@ -19,16 +19,12 @@ const truncateErrorMessage = (message: string, maxLength: number = 150): string 
  * MCP连接测试管理Hook
  * 处理MCP服务器的连接测试和状态更新
  */
-<<<<<<< HEAD
 export const useMcpConnection = (
   mcpServers: IMcpServer[],
   saveMcpServers: (serversOrUpdater: IMcpServer[] | ((prev: IMcpServer[]) => IMcpServer[])) => Promise<void>,
   message: ReturnType<typeof import('@arco-design/web-react').Message.useMessage>[0],
   onAuthRequired?: (server: IMcpServer) => void // 新增：当需要认证时的回调
 ) => {
-=======
-export const useMcpConnection = (mcpServers: IMcpServer[], saveMcpServers: (serversOrUpdater: IMcpServer[] | ((prev: IMcpServer[]) => IMcpServer[])) => Promise<void>, message: ReturnType<typeof import('@arco-design/web-react').Message.useMessage>[0]) => {
->>>>>>> origin/main
   const { t } = useTranslation();
   const [testingServers, setTestingServers] = useState<Record<string, boolean>>({});
 

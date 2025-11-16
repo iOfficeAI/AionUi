@@ -5,10 +5,7 @@ import { useTranslation } from 'react-i18next';
 import CodeMirror from '@uiw/react-codemirror';
 import { json } from '@codemirror/lang-json';
 import { useThemeContext } from '@/renderer/context/ThemeContext';
-<<<<<<< HEAD
 import AionModal from '@/renderer/components/base/AionModal';
-=======
->>>>>>> origin/main
 
 interface JsonImportModalProps {
   visible: boolean;
@@ -202,20 +199,14 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
       style={{ width: 600, height: 450 }}
       contentStyle={{ borderRadius: 16, padding: '24px', background: 'var(--bg-1)', overflow: 'auto', height: 420 - 80 }} // 与“添加模型”弹窗保持统一尺寸 / Keep same size as Add Model modal
     >
-<<<<<<< HEAD
       <div className='space-y-12px'>
-=======
       <div>
->>>>>>> origin/main
         <div className='mb-2 text-sm text-t-secondary'>{t('settings.mcpImportPlaceholder')}</div>
         <div className='relative'>
           <CodeMirror
             value={jsonInput}
-<<<<<<< HEAD
             height='250px'
-=======
             height='300px'
->>>>>>> origin/main
             theme={theme} // Use theme from context 使用上下文中的主题
             extensions={[json()]}
             onChange={(value: string) => setJsonInput(value)}

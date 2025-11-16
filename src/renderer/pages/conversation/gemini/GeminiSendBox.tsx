@@ -4,16 +4,13 @@ import type { IProvider, TProviderWithModel } from '@/common/storage';
 import { ConfigStorage } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import SendBox from '@/renderer/components/sendbox';
-<<<<<<< HEAD
 import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/useSendBoxDraft';
-=======
 import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/ThoughtDisplay';
 import { geminiModeList } from '@/renderer/hooks/useModeModeList';
 import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/useSendBoxDraft';
 import useSWR from 'swr';
 import { iconColors } from '@/renderer/theme/colors';
 import FilePreview from '@/renderer/components/FilePreview';
->>>>>>> origin/main
 import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/useSendBoxFiles';
 import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
 import { allSupportedExts } from '@/renderer/services/FileService';
@@ -241,11 +238,8 @@ const GeminiSendBox: React.FC<{
 
   // 截断过长的模型名称
   const getDisplayModelName = (modelName: string) => {
-<<<<<<< HEAD
     const maxLength = 15;
-=======
     const maxLength = 20;
->>>>>>> origin/main
     if (modelName.length > maxLength) {
       return modelName.slice(0, maxLength) + '...';
     }
@@ -263,13 +257,10 @@ const GeminiSendBox: React.FC<{
         value={content}
         onChange={setContent}
         loading={running}
-<<<<<<< HEAD
         disabled={!model?.useModel}
         placeholder={model?.useModel ? t('conversation.chat.sendMessageTo', { model: getDisplayModelName(model.useModel) }) : t('conversation.chat.noModelSelected')}
-=======
         disabled={!currentModel?.useModel}
         placeholder={currentModel?.useModel ? '' : t('conversation.chat.noModelSelected')}
->>>>>>> origin/main
         onStop={() => {
           return ipcBridge.conversation.stop.invoke({ conversation_id }).then(() => {
             console.log('stopStream');
@@ -298,11 +289,9 @@ const GeminiSendBox: React.FC<{
                   });
               }}
             ></Button>
-<<<<<<< HEAD
             {model && (
               <Button className={'ml-4px text-t-primary max-w-150px truncate'} shape='round' title={model.useModel}>
                 {model.useModel}
-=======
             <Dropdown
               trigger='click'
               droplist={
@@ -329,7 +318,6 @@ const GeminiSendBox: React.FC<{
             >
               <Button className={'ml-4px sendbox-model-btn'} shape='round'>
                 {currentModel ? currentModel.useModel : t('conversation.welcome.selectModel')}
->>>>>>> origin/main
               </Button>
             </Dropdown>
           </>
@@ -338,11 +326,8 @@ const GeminiSendBox: React.FC<{
           <>
             {/* Files on top */}
             {(uploadFile.length > 0 || atPath.some((item) => (typeof item === 'string' ? true : item.isFile))) && (
-<<<<<<< HEAD
               <HorizontalFileList>
-=======
               <div className='flex flex-wrap items-center gap-8px mb-8px'>
->>>>>>> origin/main
                 {uploadFile.map((path) => {
                   return <FilePreview key={path} path={path} onRemove={() => setUploadFile(uploadFile.filter((v) => v !== path))} />;
                 })}
@@ -364,19 +349,16 @@ const GeminiSendBox: React.FC<{
                   }
                   return null;
                 })}
-<<<<<<< HEAD
               </HorizontalFileList>
             )}
             {/* Folder tags below */}
             {atPath.some((item) => (typeof item === 'string' ? false : !item.isFile)) && (
               <div className='flex flex-wrap items-center gap-8px mb-8px mt-4px'>
-=======
               </div>
             )}
             {/* Folder tags below */}
             {atPath.some((item) => (typeof item === 'string' ? false : !item.isFile)) && (
               <div className='flex flex-wrap items-center gap-8px mb-8px'>
->>>>>>> origin/main
                 {atPath.map((item) => {
                   if (typeof item === 'string') return null;
                   if (!item.isFile) {

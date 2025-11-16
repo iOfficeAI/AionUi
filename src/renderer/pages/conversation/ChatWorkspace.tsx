@@ -12,11 +12,8 @@ import { usePasteService } from '@/renderer/hooks/usePasteService';
 import { iconColors } from '@/renderer/theme/colors';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { removeWorkspaceEntry, renameWorkspaceEntry } from '@/renderer/utils/workspaceFs';
-<<<<<<< HEAD
 import { Button, Checkbox, Empty, Input, Message, Modal, Tooltip, Tree } from '@arco-design/web-react';
-=======
 import { Checkbox, Empty, Input, Message, Modal, Tooltip, Tree } from '@arco-design/web-react';
->>>>>>> origin/main
 import type { NodeInstance } from '@arco-design/web-react/es/Tree/interface';
 import { FileAddition, Refresh, Search, FileText, FolderOpen } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -66,13 +63,10 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
   const [confirmFileName, setConfirmFileName] = useState('');
   const [confirmFilesToPaste, setConfirmFilesToPaste] = useState<Array<{ path: string; name: string }>>([]);
   const [doNotAsk, setDoNotAsk] = useState(false);
-<<<<<<< HEAD
   const [internalMessageApi, internalMessageContext] = Message.useMessage({ maxCount: 1 });
   const messageApi = externalMessageApi ?? internalMessageApi;
   const shouldRenderLocalMessageContext = !externalMessageApi;
-=======
   const [messageApi, messageContext] = Message.useMessage();
->>>>>>> origin/main
   const [pasteTargetFolder, setPasteTargetFolder] = useState<string | null>(null); // 跟踪粘贴目标文件夹 / Track paste target folder
   const selectedNodeRef = useRef<{ relativePath: string; fullPath: string } | null>(null); // 存储最后选中的文件夹节点 / Store the last selected folder node
   const selectedKeysRef = useRef<string[]>([]); // 存储选中的键供 renderTitle 访问 / Store selected keys for renderTitle to access
@@ -561,7 +555,6 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
       if (!nodeData || !nodeData.fullPath) return;
       ensureNodeSelected(nodeData, { emit: true });
       closeContextMenu();
-<<<<<<< HEAD
       messageApi.success({
         id: ADD_TO_CHAT_MESSAGE_ID,
         content: t('conversation.workspace.contextMenu.addedToChat'),
@@ -569,9 +562,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
         closable: false,
         position: 'top',
       });
-=======
       messageApi.success(t('conversation.workspace.contextMenu.addedToChat'));
->>>>>>> origin/main
     },
     [closeContextMenu, ensureNodeSelected, messageApi, t]
   );
@@ -799,11 +790,8 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
 
   return (
     <div className='size-full flex flex-col' tabIndex={0} onFocus={onFocus} onClick={onFocus}>
-<<<<<<< HEAD
       {shouldRenderLocalMessageContext && internalMessageContext}
-=======
       {messageContext}
->>>>>>> origin/main
       <Modal
         visible={confirmVisible}
         title={null}
@@ -952,12 +940,10 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
           <span className='font-bold text-14px text-t-primary'>{t('common.file')}</span>
           <div className='flex items-center gap-8px'>
             <Tooltip content={t('conversation.workspace.addFile')}>
-<<<<<<< HEAD
               <Button size='mini' icon={<FileAddition theme='outline' size='14' fill={iconColors.secondary} />} onClick={handleAddFiles}></Button>
             </Tooltip>
             <Tooltip content={t('conversation.workspace.refresh')}>
               <Button size='mini' icon={<Refresh className={loading ? 'loading' : ''} theme='outline' size='14' fill={iconColors.secondary} />} onClick={() => refreshWorkspace()}></Button>
-=======
               <span>
                 <FileAddition className='cursor-pointer flex' theme='outline' size='16' fill={iconColors.secondary} onClick={handleAddFiles} />
               </span>
@@ -966,7 +952,6 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
               <span>
                 <Refresh className={loading ? 'loading lh-[1] flex cursor-pointer' : 'flex cursor-pointer'} theme='outline' size='16' fill={iconColors.secondary} onClick={() => refreshWorkspace()} />
               </span>
->>>>>>> origin/main
             </Tooltip>
           </div>
         </div>

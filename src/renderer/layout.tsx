@@ -221,10 +221,6 @@ const Layout: React.FC<{
               className={classNames('bg-black shrink-0 size-40px relative rd-0.5rem', {
                 '!size-24px': collapsed,
               })}
-            <div
-              className={classNames('bg-black shrink-0 size-40px relative rd-0.5rem', {
-                '!size-24px': collapsed,
-              })}
               onClick={onClick}
             >
               <svg

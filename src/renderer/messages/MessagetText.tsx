@@ -33,10 +33,7 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
   const { data, json } = useFormatContent(message.content.content);
   const [showToast, setShowToast] = useState(false);
   const { t } = useTranslation();
-<<<<<<< HEAD
   const isUserMessage = message.position === 'right';
-=======
->>>>>>> origin/main
 
   // 过滤空内容，避免渲染空DOM
   if (!message.content.content || (typeof message.content.content === 'string' && !message.content.content.trim())) {
@@ -56,7 +53,6 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
       });
   };
 
-<<<<<<< HEAD
   const copyButton = (
     <Tooltip content={t('common.copy', { defaultValue: 'Copy' })}>
       <div className='p-4px rd-4px cursor-pointer hover:bg-3 transition-colors opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto focus-within:opacity-100 focus-within:pointer-events-auto' onClick={handleCopy} style={{ lineHeight: 0 }}>
@@ -73,12 +69,6 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
             'bg-aou-2 p-8px': isUserMessage,
           })}
         >
-=======
-  return (
-    <>
-      <div className='flex flex-col'>
-        <div className={classNames('rd-8px rd-tr-2px [&>p:first-child]:mt-0px [&>p:last-child]:mb-0px', { 'bg-message-user p-8px': message.position === 'right' })}>
->>>>>>> origin/main
           {/* JSON 内容使用折叠组件 Use CollapsibleContent for JSON content */}
           {json ? (
             <CollapsibleContent maxHeight={200} defaultCollapsed={true}>
@@ -89,25 +79,12 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
           )}
         </div>
         <div
-<<<<<<< HEAD
           className={classNames('h-32px flex items-center mt-4px', {
             'justify-end': isUserMessage,
             'justify-start': !isUserMessage,
           })}
         >
           {copyButton}
-=======
-          className={classNames('flex items-center mt-4px', {
-            'justify-end': message.position === 'right',
-            'justify-start': message.position !== 'right',
-          })}
-        >
-          <Tooltip content={t('common.copy', { defaultValue: 'Copy' })}>
-            <div className='p-4px rd-4px cursor-pointer hover:bg-3 transition-colors' onClick={handleCopy} style={{ lineHeight: 0 }}>
-              <Copy theme='outline' size='16' fill={iconColors.secondary} />
-            </div>
-          </Tooltip>
->>>>>>> origin/main
         </div>
       </div>
       {showToast && (
