@@ -24,21 +24,15 @@ import { iconColors } from '@/renderer/theme/colors';
 import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
 import type { AcpBackend } from '@/types/acpTypes';
 import { Button, ConfigProvider, Dropdown, Input, Menu, Tooltip } from '@arco-design/web-react';
-<<<<<<< HEAD
 import { FolderOpen, Plus, Up } from '@icon-park/react';
-=======
 import { ArrowUp, FolderOpen, MenuUnfold, Plus, Up } from '@icon-park/react';
->>>>>>> origin/main
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import useSWR from 'swr';
 import styles from './index.module.css';
-<<<<<<< HEAD
 import SendArrowIcon from '@/renderer/assets/send-arrow.svg';
-=======
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
->>>>>>> origin/main
 
 /**
  * 缓存Provider的可用模型列表，避免重复计算
@@ -150,10 +144,7 @@ const Guid: React.FC = () => {
   const [typewriterPlaceholder, setTypewriterPlaceholder] = useState('');
   const [isTyping, setIsTyping] = useState(true);
   const [isWorkspaceExpanded, setIsWorkspaceExpanded] = useState(false);
-<<<<<<< HEAD
   const textareaRef = useRef<any>(null);
-=======
->>>>>>> origin/main
 
   const setCurrentModel = async (modelInfo: TProviderWithModel) => {
     await ConfigStorage.set('gemini.defaultModel', modelInfo.useModel).catch((error) => {
@@ -189,7 +180,6 @@ const Guid: React.FC = () => {
     supportedExts: allSupportedExts,
     onFilesAdded: handleFilesAdded,
     onTextPaste: (text: string) => {
-<<<<<<< HEAD
       // 模拟浏览器默认粘贴行为：在光标位置插入文本
       let textarea = textareaRef.current?.dom as HTMLTextAreaElement | undefined;
       if (!textarea) {
@@ -213,7 +203,6 @@ const Guid: React.FC = () => {
         }, 0);
       } else {
         // 如果无法获取 textarea，则退化为追加到末尾
-=======
       // 按光标位置插入文本，保持现有内容
       const textarea = document.activeElement as HTMLTextAreaElement | null;
       if (textarea && textarea.tagName === 'TEXTAREA') {
@@ -226,7 +215,6 @@ const Guid: React.FC = () => {
           textarea.setSelectionRange(start + text.length, start + text.length);
         }, 0);
       } else {
->>>>>>> origin/main
         setInput((prev) => prev + text);
       }
     },
@@ -438,7 +426,6 @@ const Guid: React.FC = () => {
   return (
     <ConfigProvider getPopupContainer={() => guidContainerRef.current || document.body}>
       <div ref={guidContainerRef} className='h-full flex-center flex-col' style={{ position: 'relative' }}>
-<<<<<<< HEAD
         <p className={`text-2xl font-semibold mb-8 text-0`}>{t('conversation.welcome.title')}</p>
 
         {/* Agent 选择器 - 在标题下方 */}
@@ -551,7 +538,6 @@ const Guid: React.FC = () => {
                   )}
                 </span>
               </Dropdown>
-=======
         {layout?.isMobile && layout?.siderCollapsed && (
           <button type='button' className='mobile-toggle-btn fixed top-0 left-0 z-50 flex items-center justify-center w-16 h-16' style={{ background: 'transparent', border: 'none', outline: 'none', padding: 0, margin: 0 }} onClick={() => layout.setSiderCollapsed(false)}>
             <MenuUnfold theme='outline' size={24} fill={iconColors.secondary} strokeWidth={3} />
@@ -559,7 +545,6 @@ const Guid: React.FC = () => {
         )}
         <div className={styles.guidLayout}>
           <p className={`text-2xl font-semibold mb-8 text-0 text-center`}>{t('conversation.welcome.title')}</p>
->>>>>>> origin/main
 
           {/* Agent 选择器 - 在标题下方 */}
           {availableAgents && availableAgents.length > 0 && (
@@ -642,7 +627,6 @@ const Guid: React.FC = () => {
                   trigger='hover'
                   onVisibleChange={setIsPlusDropdownOpen}
                   droplist={
-<<<<<<< HEAD
                     <Menu selectedKeys={currentModel ? [currentModel.id + currentModel.useModel] : []}>
                       {!modelList || modelList.length === 0 ? (
                         <>
@@ -685,7 +669,6 @@ const Guid: React.FC = () => {
                           </Menu.Item>
                         </>
                       )}
-=======
                     <Menu
                       onClickMenuItem={(key) => {
                         if (key === 'file') {
@@ -705,7 +688,6 @@ const Guid: React.FC = () => {
                       }}
                     >
                       <Menu.Item key='file'>{t('conversation.welcome.uploadFile')}</Menu.Item>
->>>>>>> origin/main
                     </Menu>
                   }
                 >
@@ -789,7 +771,6 @@ const Guid: React.FC = () => {
                 />
               </div>
             </div>
-<<<<<<< HEAD
 
             <Button
               shape='circle'
@@ -858,7 +839,6 @@ const Guid: React.FC = () => {
             </div>
           )}
         </div>
-=======
           </div>
 
           {/* 工作空间选择区域 */}
@@ -909,7 +889,6 @@ const Guid: React.FC = () => {
             )}
           </div>
         </div>
->>>>>>> origin/main
       </div>
     </ConfigProvider>
   );

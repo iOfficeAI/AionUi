@@ -4,13 +4,10 @@ import { Check, CloseOne, CloseSmall, LoadingOne, Refresh, Write, DeleteFour, Se
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import McpAgentStatusDisplay from './McpAgentStatusDisplay';
-<<<<<<< HEAD
 import { iconColors } from '@/renderer/theme/colors';
 import type { McpOAuthStatus } from '@/renderer/hooks/mcp/useMcpOAuth';
-=======
 import McpServerActions from './McpServerActions';
 import { iconColors } from '@/renderer/theme/colors';
->>>>>>> origin/main
 
 interface McpServerHeaderProps {
   server: IMcpServer;
@@ -26,12 +23,10 @@ interface McpServerHeaderProps {
   onOAuthLogin?: (server: IMcpServer) => void;
 }
 
-<<<<<<< HEAD
 const getStatusIcon = (status?: IMcpServer['status'], oauthStatus?: McpOAuthStatus) => {
   // 优先级1: 测试中状态（最高优先级）
   if (status === 'testing' || oauthStatus?.isChecking) {
     return <LoadingOne fill={iconColors.primary} className={'h-[24px]'} />;
-=======
 const getStatusIcon = (status?: IMcpServer['status']) => {
   switch (status) {
     case 'connected':
@@ -42,7 +37,6 @@ const getStatusIcon = (status?: IMcpServer['status']) => {
       return <CloseSmall fill={iconColors.danger} className={'h-[24px]'} />;
     default:
       return <CloseOne fill={iconColors.secondary} className={'h-[24px]'} />;
->>>>>>> origin/main
   }
 
   // 优先级2: 错误状态
