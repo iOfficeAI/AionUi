@@ -81,6 +81,11 @@ function CodeBlock(props: any) {
             borderRadius: '4px',
             border: '1px solid',
             borderColor: 'var(--bg-3)',
+            display: 'inline-block',
+            maxWidth: '100%',
+            overflowWrap: 'anywhere',
+            wordBreak: 'break-word',
+            whiteSpace: 'break-spaces',
           }}
         >
           {children}
@@ -157,7 +162,7 @@ function CodeBlock(props: any) {
   }, [props, currentTheme, fold]);
 }
 
-const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string>, customCss?: string) => {
+const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string>) => {
   const style = document.createElement('style');
   // 将外部 CSS 变量注入到 Shadow DOM 中，支持深色模式 Inject external CSS variables into Shadow DOM for dark mode support
   const cssVarsDeclaration = cssVars
@@ -230,6 +235,12 @@ const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string
         min-width: 120px;
     }
   }
+  /* Inline code should wrap on small screens to avoid horizontal overflow */
+  .markdown-shadow-body code {
+    word-break: break-word;
+    overflow-wrap: anywhere;
+    max-width: 100%;
+  }
   .loading {
     animation: loading 1s linear infinite;
   }
@@ -243,9 +254,12 @@ const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string
       transform: rotate(360deg);
     }
   }
+<<<<<<< HEAD
 
   /* 用户自定义 CSS（注入到 Shadow DOM）User Custom CSS (injected into Shadow DOM) */
   ${customCss || ''}
+=======
+>>>>>>> origin/main
   `;
   return style;
 };
@@ -253,6 +267,7 @@ const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string
 const ShadowView = ({ children }: { children: React.ReactNode }) => {
   const [root, setRoot] = useState<ShadowRoot | null>(null);
   const styleRef = React.useRef<HTMLStyleElement | null>(null);
+<<<<<<< HEAD
   const [customCss, setCustomCss] = useState<string>('');
 
   // 从 ConfigStorage 加载自定义 CSS / Load custom CSS from ConfigStorage
@@ -322,12 +337,41 @@ const ShadowView = ({ children }: { children: React.ReactNode }) => {
     updateStyles(root);
   }, [root, customCss, updateStyles]);
 
+=======
+
+  // 更新 Shadow DOM 中的 CSS 变量 Update CSS variables in Shadow DOM
+  const updateCSSVars = React.useCallback((shadowRoot: ShadowRoot) => {
+    const computedStyle = getComputedStyle(document.documentElement);
+    const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+    const cssVars = {
+      '--bg-1': computedStyle.getPropertyValue('--bg-1'),
+      '--bg-2': computedStyle.getPropertyValue('--bg-2'),
+      '--bg-3': computedStyle.getPropertyValue('--bg-3'),
+      '--color-text-1': computedStyle.getPropertyValue('--color-text-1'),
+      '--color-text-2': computedStyle.getPropertyValue('--color-text-2'),
+      '--color-text-3': computedStyle.getPropertyValue('--color-text-3'),
+    };
+
+    // 移除旧样式并添加新样式 Remove old style and add new style
+    if (styleRef.current) {
+      styleRef.current.remove();
+    }
+    const newStyle = createInitStyle(currentTheme, cssVars);
+    styleRef.current = newStyle;
+    shadowRoot.appendChild(newStyle);
+  }, []);
+
+>>>>>>> origin/main
   React.useEffect(() => {
     if (!root) return;
 
     // 监听主题变化 Listen for theme changes
     const observer = new MutationObserver(() => {
+<<<<<<< HEAD
       updateStyles(root);
+=======
+      updateCSSVars(root);
+>>>>>>> origin/main
     });
 
     observer.observe(document.documentElement, {
@@ -336,7 +380,11 @@ const ShadowView = ({ children }: { children: React.ReactNode }) => {
     });
 
     return () => observer.disconnect();
+<<<<<<< HEAD
   }, [root, updateStyles]);
+=======
+  }, [root, updateCSSVars]);
+>>>>>>> origin/main
 
   return (
     <div
@@ -344,7 +392,11 @@ const ShadowView = ({ children }: { children: React.ReactNode }) => {
         if (!el || el.__init__shadow) return;
         el.__init__shadow = true;
         const shadowRoot = el.attachShadow({ mode: 'open' });
+<<<<<<< HEAD
         updateStyles(shadowRoot);
+=======
+        updateCSSVars(shadowRoot);
+>>>>>>> origin/main
         setRoot(shadowRoot);
       }}
       className='markdown-shadow'

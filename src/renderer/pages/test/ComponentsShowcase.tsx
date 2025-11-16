@@ -1,17 +1,28 @@
+<<<<<<< HEAD
 import { Button, Message, Tag, Space } from '@arco-design/web-react';
 import React, { useState } from 'react';
 import AionSteps from '@/renderer/components/base/AionSteps';
 import AionModal from '@/renderer/components/base/AionModal';
 import { Check } from '@icon-park/react';
 import AionCollapse from '@/renderer/components/base/AionCollapse';
+=======
+import { Button, Message, Collapse, Tag } from '@arco-design/web-react';
+import React, { useState } from 'react';
+import StepsWrapper from '@/renderer/components/base/StepsWrapper';
+import ModalWrapper from '@/renderer/components/base/ModalWrapper';
+import { Check } from '@icon-park/react';
+>>>>>>> origin/main
 
 const ComponentsShowcase: React.FC = () => {
   const [message, contextHolder] = Message.useMessage();
   const [modalVisible, setModalVisible] = useState(false);
+<<<<<<< HEAD
   const [modalSizeVisible, setModalSizeVisible] = useState(false);
   const [modalCustomHeaderVisible, setModalCustomHeaderVisible] = useState(false);
   const [modalWithFooterVisible, setModalWithFooterVisible] = useState(false);
   const [modalFullConfigVisible, setModalFullConfigVisible] = useState(false);
+=======
+>>>>>>> origin/main
   const [currentStep, setCurrentStep] = useState(1);
 
   return (
@@ -69,6 +80,7 @@ const ComponentsShowcase: React.FC = () => {
       {/* Collapse */}
       <section className='space-y-4'>
         <h2 className='text-xl font-semibold'>Collapse - 折叠面板</h2>
+<<<<<<< HEAD
         <AionCollapse defaultActiveKey={['1']}>
           <AionCollapse.Item header='折叠面板标题 1' name='1'>
             <div>这是折叠面板的内容区域，可以放置任意内容。</div>
@@ -77,6 +89,16 @@ const ComponentsShowcase: React.FC = () => {
             <div>自定义样式：无边框，圆角 16px，和 SettingsModal 保持一致。</div>
           </AionCollapse.Item>
         </AionCollapse>
+=======
+        <Collapse defaultActiveKey={['1']}>
+          <Collapse.Item header='折叠面板标题 1' name='1'>
+            <div>这是折叠面板的内容区域，可以放置任意内容。</div>
+          </Collapse.Item>
+          <Collapse.Item header='折叠面板标题 2' name='2'>
+            <div>自定义样式：无边框，圆角 8px。</div>
+          </Collapse.Item>
+        </Collapse>
+>>>>>>> origin/main
       </section>
 
       {/* Tag */}
@@ -105,11 +127,19 @@ const ComponentsShowcase: React.FC = () => {
       {/* Steps */}
       <section className='space-y-4'>
         <h2 className='text-xl font-semibold'>Steps - 步骤条</h2>
+<<<<<<< HEAD
         <AionSteps current={currentStep} size='small'>
           <AionSteps.Step title='步骤一' icon={currentStep > 1 ? <Check theme='filled' size={16} fill='#165dff' /> : undefined} />
           <AionSteps.Step title='步骤二' icon={currentStep > 2 ? <Check theme='filled' size={16} fill='#165dff' /> : undefined} />
           <AionSteps.Step title='步骤三' />
         </AionSteps>
+=======
+        <StepsWrapper current={currentStep} size='small'>
+          <StepsWrapper.Step title='步骤一' icon={currentStep > 1 ? <Check theme='filled' size={16} fill='#165dff' /> : undefined} />
+          <StepsWrapper.Step title='步骤二' icon={currentStep > 2 ? <Check theme='filled' size={16} fill='#165dff' /> : undefined} />
+          <StepsWrapper.Step title='步骤三' />
+        </StepsWrapper>
+>>>>>>> origin/main
         <div className='flex gap-2 mt-4'>
           <Button onClick={() => setCurrentStep(Math.max(1, currentStep - 1))} disabled={currentStep === 1}>
             上一步
@@ -122,6 +152,7 @@ const ComponentsShowcase: React.FC = () => {
 
       {/* Modal */}
       <section className='space-y-4'>
+<<<<<<< HEAD
         <h2 className='text-xl font-semibold'>AionModal - 模态框组件</h2>
         <p className='text-sm text-t-secondary mb-4'>基础弹窗组件，支持预设尺寸、自定义 Header/Footer、主题自适应等功能</p>
 
@@ -285,6 +316,30 @@ const ComponentsShowcase: React.FC = () => {
             </AionModal>
           </div>
         </div>
+=======
+        <h2 className='text-xl font-semibold'>Modal - 模态框</h2>
+        <Button type='primary' onClick={() => setModalVisible(true)}>
+          打开自定义 Modal
+        </Button>
+        <ModalWrapper
+          title='自定义模态框标题'
+          visible={modalVisible}
+          onCancel={() => setModalVisible(false)}
+          footer={
+            <div className='flex justify-end gap-3'>
+              <Button onClick={() => setModalVisible(false)}>取消</Button>
+              <Button type='primary' onClick={() => setModalVisible(false)}>
+                确定
+              </Button>
+            </div>
+          }
+        >
+          <div className='p-6'>
+            <p>这是使用 ModalWrapper 封装的自定义模态框。</p>
+            <p className='mt-2 text-t-secondary'>特性：圆角 12px、自定义关闭按钮、主题背景色。</p>
+          </div>
+        </ModalWrapper>
+>>>>>>> origin/main
       </section>
     </div>
   );

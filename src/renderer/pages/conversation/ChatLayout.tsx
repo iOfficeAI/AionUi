@@ -1,14 +1,16 @@
 import FlexFullContainer from '@/renderer/components/FlexFullContainer';
 import { removeStack } from '@/renderer/utils/common';
 import { Layout as ArcoLayout } from '@arco-design/web-react';
-import { ExpandLeft, ExpandRight } from '@icon-park/react';
-import React, { useState, useEffect } from 'react';
+import { ExpandLeft, ExpandRight, MenuUnfold } from '@icon-park/react';
+import React, { useEffect, useState } from 'react';
+import { useLayoutContext } from '@/renderer/context/LayoutContext';
 
 import ClaudeLogo from '@/renderer/assets/logos/claude.svg';
 import CodexLogo from '@/renderer/assets/logos/codex.svg';
 import GeminiLogo from '@/renderer/assets/logos/gemini.svg';
 import IflowLogo from '@/renderer/assets/logos/iflow.svg';
 import QwenLogo from '@/renderer/assets/logos/qwen.svg';
+import { iconColors } from '@/renderer/theme/colors';
 import { ACP_BACKENDS_ALL } from '@/types/acpTypes';
 import classNames from 'classnames';
 import { iconColors } from '@/renderer/theme/colors';
@@ -83,23 +85,18 @@ const ChatLayout: React.FC<{
 
   const { siderWidth, dragContext } = useSiderWidthWithDrag(266);
   const { backend } = props;
+  const layout = useLayoutContext();
 
-  // 启动时检测移动端并自动收起右侧边栏
+  // 响应移动端状态变化，自动收起右侧边栏
   useEffect(() => {
-    const checkMobileOnLoad = () => {
-      // 检测屏幕宽度小于768px（平板和手机的常见分界）
-      const isMobile = window.innerWidth < 768;
-      if (isMobile) {
-        setRightSiderCollapsed(true);
-      }
-    };
-
-    // 只在组件首次加载时执行一次
-    checkMobileOnLoad();
-  }, []); // 空依赖数组确保只在组件初始化时执行一次
+    if (layout?.isMobile) {
+      setRightSiderCollapsed(true);
+    }
+  }, [layout?.isMobile]); // 监听全局 isMobile 状态变化
 
   return (
     <ArcoLayout className={'size-full'}>
+<<<<<<< HEAD
       <ArcoLayout.Content className='flex flex-col flex-1'>
         <ArcoLayout.Header className={classNames('h-52px flex items-center justify-between p-16px gap-8px  !bg-1')}>
           <FlexFullContainer className='h-full flex-1 min-w-0'>
@@ -108,17 +105,67 @@ const ChatLayout: React.FC<{
           <div className='flex items-center gap-8px flex-shrink-0'>
             {backend && (
               <div className='ml-8px flex items-center gap-2 bg-2 w-fit rounded-full px-[8px] py-[2px]'>
+=======
+      <ArcoLayout.Content
+        className='flex flex-col flex-1'
+        onClick={() => {
+          const isMobile = window.innerWidth < 768;
+          if (isMobile && !rightSiderCollapsed) {
+            setRightSiderCollapsed(true);
+          }
+        }}
+      >
+        <ArcoLayout.Header className={classNames('h-52px flex items-center justify-between p-16px gap-16px  !bg-1 chat-layout-header')}>
+          <FlexFullContainer className='h-full' containerClassName='flex items-center'>
+            {layout?.isMobile && layout?.siderCollapsed && (
+              <span className='inline-flex items-center justify-center w-18px h-18px mr-4px cursor-pointer' onClick={() => layout.setSiderCollapsed(false)} style={{ lineHeight: 0, transform: 'translateY(1px)' }}>
+                <MenuUnfold theme='outline' size={18} fill={iconColors.secondary} strokeWidth={3} />
+              </span>
+            )}
+            <span className='ml-8px font-bold text-16px lh-[1] text-t-primary inline-block overflow-hidden text-ellipsis whitespace-nowrap w-full max-w-60%'>{props.title}</span>
+          </FlexFullContainer>
+          <div className='flex items-center gap-16px'>
+            {backend && (
+              <div className='ml-16px flex items-center gap-2 bg-2 w-fit rounded-full px-[8px] py-[2px]'>
+>>>>>>> origin/main
                 <img src={backend === 'claude' ? ClaudeLogo : backend === 'gemini' ? GeminiLogo : backend === 'qwen' ? QwenLogo : backend === 'iflow' ? IflowLogo : backend === 'codex' ? CodexLogo : ''} alt={`${backend} logo`} width={16} height={16} style={{ objectFit: 'contain' }} />
                 <span className='font-medium text-t-primary'>{ACP_BACKENDS_ALL[backend as keyof typeof ACP_BACKENDS_ALL]?.name || backend}</span>
               </div>
             )}
+<<<<<<< HEAD
             {rightSiderCollapsed ? <ExpandRight onClick={() => setRightSiderCollapsed(false)} className='cursor-pointer flex flex-shrink-0' theme='outline' size='24' fill={iconColors.secondary} strokeWidth={3} /> : <ExpandLeft onClick={() => setRightSiderCollapsed(true)} className='cursor-pointer flex flex-shrink-0' theme='outline' size='24' fill={iconColors.secondary} strokeWidth={3} />}
+=======
+            {rightSiderCollapsed ? <ExpandRight onClick={() => setRightSiderCollapsed(false)} className='cursor-pointer flex' theme='outline' size='24' fill={iconColors.secondary} strokeWidth={3} /> : <ExpandLeft onClick={() => setRightSiderCollapsed(true)} className='cursor-pointer flex' theme='outline' size='24' fill={iconColors.secondary} strokeWidth={3} />}
+>>>>>>> origin/main
           </div>
         </ArcoLayout.Header>
         <ArcoLayout.Content className='flex flex-col flex-1 bg-1 overflow-hidden'>{props.children}</ArcoLayout.Content>
       </ArcoLayout.Content>
 
+<<<<<<< HEAD
       <ArcoLayout.Sider width={siderWidth} collapsedWidth={0} collapsed={rightSiderCollapsed} className={'!bg-1 relative'}>
+=======
+      <ArcoLayout.Sider
+        width={siderWidth}
+        collapsedWidth={layout?.isMobile ? siderWidth : 0}
+        collapsed={rightSiderCollapsed}
+        className={'!bg-1 relative chat-layout-right-sider'}
+        style={
+          layout?.isMobile
+            ? {
+                position: 'fixed',
+                right: 0,
+                top: 0,
+                height: '100vh',
+                zIndex: 100,
+                transform: rightSiderCollapsed ? 'translateX(100%)' : 'translateX(0)',
+                transition: 'transform 0.3s ease',
+                pointerEvents: rightSiderCollapsed ? 'none' : 'auto',
+              }
+            : undefined
+        }
+      >
+>>>>>>> origin/main
         {/* Drag handle */}
         {/* <div className={`absolute left-0 top-0 bottom-0 w-6px cursor-col-resize transition-all duration-200 z-10 ${isDragging ? 'bg-#86909C/40' : 'hover:bg-#86909C/20'}`} onMouseDown={handleDragStart} onDoubleClick={handleDoubleClick} /> */}
         {dragContext}

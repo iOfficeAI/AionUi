@@ -1,9 +1,16 @@
 import { ipcBridge } from '@/common';
+<<<<<<< HEAD
 import FontSizeControl from '@/renderer/components/FontSizeControl';
 import LanguageSwitcher from '@/renderer/components/LanguageSwitcher';
 import ThemeSwitcher from '@/renderer/components/ThemeSwitcher';
 import { iconColors } from '@/renderer/theme/colors';
 import { Alert, Button, Form, Input, Modal, Tooltip } from '@arco-design/web-react';
+=======
+import LanguageSwitcher from '@/renderer/components/LanguageSwitcher';
+import ThemeSwitcher from '@/renderer/components/ThemeSwitcher';
+import { iconColors } from '@/renderer/theme/colors';
+import { Alert, Button, Form, Input, Modal } from '@arco-design/web-react';
+>>>>>>> origin/main
 import { FolderOpen } from '@icon-park/react';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -15,8 +22,107 @@ const DirInputItem: React.FC<{
   label: string;
   field: string;
 }> = (props) => {
-  const { t } = useTranslation();
+<<<<<<< HEAD
+=======
   return (
+    <Form.Item label={props.label} field={props.field}>
+      {(options, form) => (
+        <Input
+          disabled
+          value={options[props.field]}
+          addAfter={
+            <FolderOpen
+              theme='outline'
+              size='24'
+              fill={iconColors.primary}
+              onClick={() => {
+                ipcBridge.dialog.showOpen
+                  .invoke({
+                    defaultPath: options[props.field],
+                    properties: ['openDirectory', 'createDirectory'],
+                  })
+                  .then((data) => {
+                    if (data?.[0]) {
+                      form.setFieldValue(props.field, data[0]);
+                    }
+                  })
+                  .catch((error) => {
+                    console.error('Failed to open directory dialog:', error);
+                  });
+              }}
+            />
+          }
+        ></Input>
+      )}
+    </Form.Item>
+  );
+};
+
+const SystemSettings: React.FC = (props) => {
+>>>>>>> origin/main
+  const { t } = useTranslation();
+  const [form] = Form.useForm();
+  const [loading, setLoading] = useState(false);
+  const [modal, modalContextHolder] = Modal.useModal();
+  const [error, setError] = useState<string | null>(null);
+
+  // 获取系统目录信息 / Get system directory info
+  const { data: systemInfo } = useSWR('system.dir.info', () => ipcBridge.application.systemInfo.invoke());
+
+  // 初始化表单数据 / Initialize form data
+  useEffect(() => {
+    if (systemInfo) {
+      form.setFieldValue('cacheDir', systemInfo.cacheDir);
+      form.setFieldValue('workDir', systemInfo.workDir);
+    }
+  }, [systemInfo, form]);
+
+  // 目录配置保存确认 / Directory configuration save confirmation
+  const saveDirConfigValidate = (values: { cacheDir: string; workDir: string }): Promise<unknown> => {
+    return new Promise((resolve, reject) => {
+      modal.confirm({
+        title: t('settings.updateConfirm'),
+        content: t('settings.restartConfirm'),
+        onOk: resolve,
+        onCancel: reject,
+      });
+    });
+  };
+
+  // 保存目录配置 / Save directory configuration
+  const onSubmit = async () => {
+    const values = await form.validate();
+    const { cacheDir, workDir } = values;
+    setLoading(true);
+    setError(null);
+
+    // 检查目录是否修改 / Check if directories are modified
+    const needsRestart = cacheDir !== systemInfo?.cacheDir || workDir !== systemInfo?.workDir;
+
+    if (needsRestart) {
+      try {
+        await saveDirConfigValidate(values);
+        const result = await ipcBridge.application.updateSystemInfo.invoke({ cacheDir, workDir });
+        if (result.success) {
+          await ipcBridge.application.restart.invoke();
+        } else {
+          setError(result.msg || 'Failed to update system info');
+        }
+      } catch (e: any) {
+        if (e) {
+          // 用户取消 / User cancelled
+          setError(e.message || e);
+        }
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      setLoading(false);
+    }
+  };
+
+  return (
+<<<<<<< HEAD
     <Form.Item label={props.label} field={props.field}>
       {(options, form) => {
         const currentValue = options[props.field] || '';
@@ -121,6 +227,8 @@ const SystemSettings: React.FC = () => {
   };
 
   return (
+=======
+>>>>>>> origin/main
     <SettingContainer
       title={t('settings.system')}
       bodyContainer
@@ -149,10 +257,13 @@ const SystemSettings: React.FC = () => {
         <Form.Item label={t('settings.theme')} field={'theme'}>
           <ThemeSwitcher></ThemeSwitcher>
         </Form.Item>
+<<<<<<< HEAD
         {/* 字体缩放设置 / Font scale setting */}
         <Form.Item label={t('settings.fontSize')} field={'fontScale'}>
           <FontSizeControl />
         </Form.Item>
+=======
+>>>>>>> origin/main
 
         {/* 目录配置 / Directory configuration */}
         <DirInputItem label={t('settings.cacheDir')} field='cacheDir' />

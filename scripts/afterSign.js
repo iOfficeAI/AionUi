@@ -33,7 +33,7 @@ exports.default = async function afterSign(context) {
     return;
   }
 
-  // 默认跳过同步公证，由后台 workflow 处理 / Skip sync notarization by default, handled by background workflow
+    // 默认跳过同步公证，由后台 workflow 处理 / Skip sync notarization by default, handled by background workflow
   // 这样可以快速完成发布，不受 Apple 服务器不稳定影响 / This allows fast release without being affected by Apple service instability
   if (process.env.SKIP_NOTARIZATION === 'true') {
     console.log('⚠️  SKIP_NOTARIZATION is set - skipping notarization');

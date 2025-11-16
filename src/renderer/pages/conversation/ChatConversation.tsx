@@ -20,7 +20,10 @@ import ChatSider from './ChatSider';
 import GeminiChat from './gemini/GeminiChat';
 import CodexChat from './codex/CodexChat';
 import { iconColors } from '@/renderer/theme/colors';
+<<<<<<< HEAD
 import addChatIcon from '@/renderer/assets/add-chat.svg';
+=======
+>>>>>>> origin/main
 
 const AssociatedConversation: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
   const { data } = useSWR(['getAssociateConversation', conversation_id], () => ipcBridge.conversation.getAssociateConversation.invoke({ conversation_id }));
@@ -51,7 +54,13 @@ const AssociatedConversation: React.FC<{ conversation_id: string }> = ({ convers
       }
       trigger={['click']}
     >
+<<<<<<< HEAD
       <Button size='mini' icon={<History theme='filled' size='14' fill={iconColors.primary} strokeWidth={2} strokeLinejoin='miter' strokeLinecap='square' />}></Button>
+=======
+      <span>
+        <History theme='filled' size='17' fill={iconColors.primary} strokeWidth={2} strokeLinejoin='miter' strokeLinecap='square' />
+      </span>
+>>>>>>> origin/main
     </Dropdown>
   );
 };
@@ -79,7 +88,13 @@ const AddNewConversation: React.FC<{ conversation: TChatConversation }> = ({ con
               console.error('Failed to create conversation:', error);
             });
         }}
+<<<<<<< HEAD
       ></Button>
+=======
+      >
+        <Plus theme='filled' size='17' fill={iconColors.primary} strokeWidth={2} strokeLinejoin='miter' strokeLinecap='square' />
+      </span>
+>>>>>>> origin/main
     </Tooltip>
   );
 };

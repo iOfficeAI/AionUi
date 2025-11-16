@@ -33,7 +33,11 @@ const McpAgentStatusDisplay: React.FC<McpAgentStatusDisplayProps> = ({ serverNam
     return null;
   }
   return (
+<<<<<<< HEAD
     <div className='flex items-center isolate'>
+=======
+    <div className='flex items-center'>
+>>>>>>> origin/main
       {isLoadingAgentStatus ? (
         <LoadingOne fill={iconColors.primary} className={'h-[16px] w-[16px]'} />
       ) : (
@@ -44,6 +48,7 @@ const McpAgentStatusDisplay: React.FC<McpAgentStatusDisplayProps> = ({ serverNam
           const animationDelay = `${(totalAgents - 1 - index) * 0.05}s`;
 
           return LogoComponent ? (
+<<<<<<< HEAD
             <Tooltip key={`${serverName}-${agent}-${index}`} content={agent}>
               <div
                 className='w-6 h-6 flex items-center relative hover:z-[100] cursor-pointer transition-all duration-200 ease-out group-hover:scale-100 group-hover:opacity-100 scale-0 opacity-0'
@@ -54,6 +59,17 @@ const McpAgentStatusDisplay: React.FC<McpAgentStatusDisplayProps> = ({ serverNam
                 }}
               >
                 <img src={LogoComponent} alt={agent} className='w-[21px] h-[21px] border-solid border-1 rounded-sm' style={{ backgroundColor: 'var(--bg-base)' }} />
+=======
+            <Tooltip key={agent} content={agent}>
+              <div
+                className='w-6 h-6 flex items-center relative hover:z-10 cursor-pointer'
+                style={{
+                  zIndex: index,
+                  marginLeft: index === 0 ? 0 : '-4px',
+                }}
+              >
+                <img src={LogoComponent} alt={agent} className='w-[21px] h-[21px] border-solid border-1 rounded-sm bg-base' />
+>>>>>>> origin/main
               </div>
             </Tooltip>
           ) : (
