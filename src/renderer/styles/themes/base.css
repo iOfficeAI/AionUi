@@ -47,6 +47,39 @@ body,
   }
 }
 
+/* Layout sider transitions - keep bilingual comments for clarity / 布局侧栏过渡动画（中英注释） */
+.layout-sider {
+  transition:
+    width 0.32s ease,
+    min-width 0.32s ease,
+    max-width 0.32s ease;
+}
+
+.layout-sider-header,
+.layout-sider-content {
+  transition:
+    opacity 0.24s ease,
+    transform 0.24s ease;
+  will-change: opacity, transform;
+}
+
+.layout-sider--folding {
+  .layout-sider-header,
+  .layout-sider-content {
+    opacity: 0;
+    transform: translateX(-12px);
+    pointer-events: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .layout-sider,
+  .layout-sider-header,
+  .layout-sider-content {
+    transition: none !important;
+  }
+}
+
 /* Sidebar collapse animation helpers */
 .chat-history,
 .settings-sider {
