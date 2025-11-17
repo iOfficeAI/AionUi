@@ -288,8 +288,8 @@ apt install -y \
 # Check latest version at: https://github.com/iOfficeAI/AionUi/releases
 wget https://github.com/iOfficeAI/AionUi/releases/download/vVERSION/AionUi_VERSION_arm64.deb
 
-# Example:
-wget https://github.com/iOfficeAI/AionUi/releases
+# Example (replace VERSION with the release tag, e.g. v1.5.2):
+wget https://github.com/iOfficeAI/AionUi/releases/download/vVERSION/AionUi_VERSION_arm64.deb
 
 # Install the package
 apt install -y ./AionUi_*.deb
@@ -383,6 +383,7 @@ AionUi requires sufficient RAM. Close other apps if you encounter memory issues.
 
 - **Device**: Android 14
 - **Termux Version**: 0.118.0
+- **AionUi Version**: Latest release (e.g. 1.5.2)
 - **Proot-distro**: Ubuntu (latest)
 
 ### Creating a Startup Script

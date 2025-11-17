@@ -20,6 +20,7 @@ import React, { useMemo, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import LocalImageView from './LocalImageView';
+import { addImportantToAll } from '../utils/customCssProcessor';
 
 const formatCode = (code: string) => {
   const content = String(code).replace(/\n$/, '');
@@ -120,7 +121,7 @@ function CodeBlock(props: any) {
   }, [props]);
 }
 
-const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string>) => {
+const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string>, customCss?: string) => {
   const style = document.createElement('style');
   // 将外部 CSS 变量注入到 Shadow DOM 中，支持深色模式 Inject external CSS variables into Shadow DOM for dark mode support
   const cssVarsDeclaration = cssVars
@@ -209,6 +210,9 @@ const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string
       transform: rotate(360deg);
     }
   }
+
+  /* 用户自定义 CSS（注入到 Shadow DOM）User Custom CSS (injected into Shadow DOM) */
+  ${customCss || ''}
   `;
   return style;
 };
@@ -216,35 +220,81 @@ const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string
 const ShadowView = ({ children }: { children: React.ReactNode }) => {
   const [root, setRoot] = useState<ShadowRoot | null>(null);
   const styleRef = React.useRef<HTMLStyleElement | null>(null);
+  const [customCss, setCustomCss] = useState<string>('');
 
-  // 更新 Shadow DOM 中的 CSS 变量 Update CSS variables in Shadow DOM
-  const updateCSSVars = React.useCallback((shadowRoot: ShadowRoot) => {
-    const computedStyle = getComputedStyle(document.documentElement);
-    const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
-    const cssVars = {
-      '--bg-1': computedStyle.getPropertyValue('--bg-1'),
-      '--bg-2': computedStyle.getPropertyValue('--bg-2'),
-      '--bg-3': computedStyle.getPropertyValue('--bg-3'),
-      '--color-text-1': computedStyle.getPropertyValue('--color-text-1'),
-      '--color-text-2': computedStyle.getPropertyValue('--color-text-2'),
-      '--color-text-3': computedStyle.getPropertyValue('--color-text-3'),
+  // 从 ConfigStorage 加载自定义 CSS / Load custom CSS from ConfigStorage
+  React.useEffect(() => {
+    void import('@/common/storage').then(({ ConfigStorage }) => {
+      ConfigStorage.get('customCss')
+        .then((css) => {
+          if (css) {
+            // 使用统一的工具函数自动添加 !important
+            const processedCss = addImportantToAll(css);
+            setCustomCss(processedCss);
+          } else {
+            setCustomCss('');
+          }
+        })
+        .catch((error) => {
+          console.error('Failed to load custom CSS:', error);
+        });
+    });
+
+    // 监听自定义 CSS 更新事件 / Listen to custom CSS update events
+    const handleCustomCssUpdate = (e: CustomEvent) => {
+      if (e.detail?.customCss !== undefined) {
+        const css = e.detail.customCss || '';
+        // 使用统一的工具函数自动添加 !important
+        const processedCss = addImportantToAll(css);
+        setCustomCss(processedCss);
+      }
     };
 
-    // 移除旧样式并添加新样式 Remove old style and add new style
-    if (styleRef.current) {
-      styleRef.current.remove();
-    }
-    const newStyle = createInitStyle(currentTheme, cssVars);
-    styleRef.current = newStyle;
-    shadowRoot.appendChild(newStyle);
+    window.addEventListener('custom-css-updated', handleCustomCssUpdate as EventListener);
+
+    return () => {
+      window.removeEventListener('custom-css-updated', handleCustomCssUpdate as EventListener);
+    };
   }, []);
+
+  // 更新 Shadow DOM 中的 CSS 变量和自定义样式 Update CSS variables and custom styles in Shadow DOM
+  const updateStyles = React.useCallback(
+    (shadowRoot: ShadowRoot) => {
+      const computedStyle = getComputedStyle(document.documentElement);
+      const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+      const cssVars = {
+        '--bg-1': computedStyle.getPropertyValue('--bg-1'),
+        '--bg-2': computedStyle.getPropertyValue('--bg-2'),
+        '--bg-3': computedStyle.getPropertyValue('--bg-3'),
+        '--color-text-1': computedStyle.getPropertyValue('--color-text-1'),
+        '--color-text-2': computedStyle.getPropertyValue('--color-text-2'),
+        '--color-text-3': computedStyle.getPropertyValue('--color-text-3'),
+      };
+
+      // 移除旧样式并添加新样式 Remove old style and add new style
+      if (styleRef.current) {
+        styleRef.current.remove();
+      }
+      const newStyle = createInitStyle(currentTheme, cssVars, customCss);
+      styleRef.current = newStyle;
+      shadowRoot.appendChild(newStyle);
+    },
+    [customCss]
+  );
+
+  React.useEffect(() => {
+    if (!root) return;
+
+    // 当自定义 CSS 变化时，更新样式 Update styles when custom CSS changes
+    updateStyles(root);
+  }, [root, customCss, updateStyles]);
 
   React.useEffect(() => {
     if (!root) return;
 
     // 监听主题变化 Listen for theme changes
     const observer = new MutationObserver(() => {
-      updateCSSVars(root);
+      updateStyles(root);
     });
 
     observer.observe(document.documentElement, {
@@ -253,7 +303,7 @@ const ShadowView = ({ children }: { children: React.ReactNode }) => {
     });
 
     return () => observer.disconnect();
-  }, [root, updateCSSVars]);
+  }, [root, updateStyles]);
 
   return (
     <div
@@ -261,7 +311,7 @@ const ShadowView = ({ children }: { children: React.ReactNode }) => {
         if (!el || el.__init__shadow) return;
         el.__init__shadow = true;
         const shadowRoot = el.attachShadow({ mode: 'open' });
-        updateCSSVars(shadowRoot);
+        updateStyles(shadowRoot);
         setRoot(shadowRoot);
       }}
       className='markdown-shadow'
