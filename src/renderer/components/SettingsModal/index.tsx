@@ -116,7 +116,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<SettingTab>(defaultTab);
   const [isMobile, setIsMobile] = useState(false);
-  const resizeTimerRef = useRef<number>();
+  const resizeTimerRef = useRef<number | undefined>(undefined);
 
   /**
    * 处理窗口尺寸变化，更新移动端状态
@@ -202,8 +202,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
    * 切换标签页 / Switch tab
    * @param tab - 目标标签页 / Target tab
    */
-  const handleTabChange = useCallback((tab: string) => {
-    setActiveTab(tab as SettingTab);
+  const handleTabChange = useCallback((tab: SettingTab) => {
+    setActiveTab(tab);
   }, []);
 
   // 移动端菜单（下拉选择）/ Mobile menu (dropdown select)
