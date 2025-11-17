@@ -14,7 +14,6 @@ interface McpAgentStatusDisplayProps {
   isLoadingAgentStatus: boolean;
 }
 
-// Agent logo 映射
 const AGENT_LOGO_MAP: Record<string, string> = {
   claude: ClaudeLogo,
   gemini: GeminiLogo,
@@ -28,51 +27,48 @@ const getAgentLogo = (agent: string): string | null => {
 };
 
 const McpAgentStatusDisplay: React.FC<McpAgentStatusDisplayProps> = ({ serverName, agentInstallStatus, isLoadingAgentStatus }) => {
-  const hasAgents = agentInstallStatus[serverName] && agentInstallStatus[serverName].length > 0;
-  if (!hasAgents && !isLoadingAgentStatus) {
+  const agents = agentInstallStatus[serverName] || [];
+
+  if (!agents.length && !isLoadingAgentStatus) {
     return null;
   }
+
   return (
     <div className='flex items-center isolate'>
-    <div className='flex items-center'>
-      {isLoadingAgentStatus ? (
-        <LoadingOne fill={iconColors.primary} className={'h-[16px] w-[16px]'} />
-      ) : (
-        agentInstallStatus[serverName]?.map((agent, index) => {
-          const LogoComponent = getAgentLogo(agent);
-          const totalAgents = agentInstallStatus[serverName].length;
-          // 从右往左展开：最右边的（最后一个）延迟最短，最左边的（第一个）延迟最长
-          const animationDelay = `${(totalAgents - 1 - index) * 0.05}s`;
+      <div className='flex items-center'>
+        {isLoadingAgentStatus ? (
+          <LoadingOne fill={iconColors.primary} className='h-[16px] w-[16px]' />
+        ) : (
+          agents.map((agent, index) => {
+            const logo = getAgentLogo(agent);
 
-          return LogoComponent ? (
-            <Tooltip key={`${serverName}-${agent}-${index}`} content={agent}>
-              <div
-                className='w-6 h-6 flex items-center relative hover:z-[100] cursor-pointer transition-all duration-200 ease-out group-hover:scale-100 group-hover:opacity-100 scale-0 opacity-0'
-                style={{
-                  zIndex: index + 1,
-                  marginLeft: index === 0 ? 0 : '-4px',
-                  transitionDelay: animationDelay,
-                }}
-              >
-                <img src={LogoComponent} alt={agent} className='w-[21px] h-[21px] border-solid border-1 rounded-sm' style={{ backgroundColor: 'var(--bg-base)' }} />
-            <Tooltip key={agent} content={agent}>
-              <div
-                className='w-6 h-6 flex items-center relative hover:z-10 cursor-pointer'
-                style={{
-                  zIndex: index,
-                  marginLeft: index === 0 ? 0 : '-4px',
-                }}
-              >
-                <img src={LogoComponent} alt={agent} className='w-[21px] h-[21px] border-solid border-1 rounded-sm bg-base' />
-              </div>
-            </Tooltip>
-          ) : (
-            <Tag key={`${serverName}-${agent}-${index}`} size='small' color='green'>
-              {agent}
-            </Tag>
-          );
-        })
-      )}
+            if (logo) {
+              const animationDelay = `${(agents.length - 1 - index) * 0.05}s`;
+
+              return (
+                <Tooltip key={`${serverName}-${agent}-${index}`} content={agent}>
+                  <div
+                    className='w-6 h-6 flex items-center relative hover:z-[100] cursor-pointer transition-all duration-200 ease-out group-hover:scale-100 group-hover:opacity-100 scale-0 opacity-0'
+                    style={{
+                      zIndex: index + 1,
+                      marginLeft: index === 0 ? 0 : '-4px',
+                      transitionDelay: animationDelay,
+                    }}
+                  >
+                    <img src={logo} alt={agent} className='w-[21px] h-[21px] border border-solid rounded-sm' style={{ backgroundColor: 'var(--bg-base)' }} />
+                  </div>
+                </Tooltip>
+              );
+            }
+
+            return (
+              <Tag key={`${serverName}-${agent}-${index}`} size='small' color='green'>
+                {agent}
+              </Tag>
+            );
+          })
+        )}
+      </div>
     </div>
   );
 };

@@ -46,7 +46,6 @@ body[arco-theme='dark'] .arco-tag-checked.arco-tag-gray {
   color: rgb(209, 213, 219) !important;
 }
 
-
 /* AionUi Steps wrapper styles */
 .aionui-steps .arco-steps-item-process .arco-steps-item-icon {
   background-color: var(--aou-6-brand) !important;
@@ -63,12 +62,10 @@ body[arco-theme='dark'] .arco-tag-checked.arco-tag-gray {
   line-height: 28px !important;
 }
 
-
 /* AionUi Modal wrapper styles */
 .aionui-modal .arco-modal-content {
   background: var(--bg-1) !important;
   border-radius: 12px !important;
-  padding: 0 !important;
 }
 
 .aionui-modal-header {

@@ -161,7 +161,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
         maxHeight: isMobile ? '90vh' : undefined,
         borderRadius: '16px',
       }}
-      bodyStyle={{ padding: isMobile ? '16px' : '24px 24px 32px' }}
+      contentStyle={{ padding: isMobile ? '16px' : '24px 24px 32px' }}
       title={t('settings.title')}
     >
       <div className={classNames('overflow-hidden gap-0', isMobile ? 'flex flex-col min-h-0 h-[calc(90vh-80px)]' : 'flex h-459px mt-20px')}>

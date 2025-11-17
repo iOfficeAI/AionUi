@@ -226,6 +226,12 @@ module.exports = {
           'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
           'Access-Control-Allow-Headers': 'Content-Type, Authorization',
         },
+        client: {
+          overlay: {
+            errors: true, // 显示错误
+            warnings: false, // 不显示警告
+          },
+        },
       },
     }),
     // Fuses are used to enable/disable various Electron functionality

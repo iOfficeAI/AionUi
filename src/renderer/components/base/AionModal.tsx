@@ -231,26 +231,14 @@ const AionModal: React.FC<AionModalProps> = ({
     }
   }
 
-  // CSS 变量接口定义 / CSS variables interface
-  interface ModalCSSVariables extends CSSProperties {
-    '--aionui-modal-bg'?: string;
-    '--aionui-modal-radius'?: string;
-    '--aionui-modal-padding'?: string;
-    '--aionui-modal-overflow'?: string;
-  }
-
-  const finalStyle: ModalCSSVariables = {
+  const finalStyle: CSSProperties = {
     ...mergedStyle,
-    // 通过 CSS 变量传递样式配置 / Pass style config via CSS variables
-    '--aionui-modal-bg': contentBg,
-    '--aionui-modal-radius': borderRadiusVal,
-    '--aionui-modal-padding': paddingVal,
-    '--aionui-modal-overflow': contentOverflow,
     borderRadius: mergedStyle.borderRadius ?? '16px',
   };
 
   const bodyInlineStyle = React.useMemo<CSSProperties>(() => {
     const style: CSSProperties = {
+      background: contentBg,
       overflow: contentOverflow,
     };
 
@@ -262,7 +250,7 @@ const AionModal: React.FC<AionModalProps> = ({
     });
 
     return style;
-  }, [contentOverflow, contentStyle?.height, contentStyle?.maxHeight, contentStyle?.minHeight]);
+  }, [contentBg, paddingVal, contentOverflow, contentStyle?.height, contentStyle?.maxHeight, contentStyle?.minHeight]);
 
   // 处理 Header 配置（向后兼容）
   const headerConfig: ModalHeaderConfig = React.useMemo(() => {
@@ -376,7 +364,7 @@ const AionModal: React.FC<AionModalProps> = ({
 
   return (
     <Modal {...props} title={null} closable={false} footer={null} onCancel={onCancel} className={`aionui-modal ${className}`} style={finalStyle} getPopupContainer={() => document.body}>
-      <div className='aionui-modal-wrapper'>
+      <div className='aionui-modal-wrapper' style={{ borderRadius: borderRadiusVal }}>
         {renderHeader()}
         <div className='aionui-modal-body-content' style={bodyInlineStyle}>
           {children}

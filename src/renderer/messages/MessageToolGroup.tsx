@@ -140,12 +140,14 @@ const ConfirmationDetails: React.FC<{
             <Diff2Html title={isConfirm ? confirmationDetails.title : content.description} diff={confirmationDetails?.fileDiff || ''}></Diff2Html>
           </div>
         );
-      case 'exec':
+      case 'exec': {
+        const bashSnippet = `\`\`\`bash\n${confirmationDetails.command}\n\`\`\``;
         return (
           <div className='w-full max-w-100% min-w-0'>
-            <MarkdownView codeStyle={{ marginLeft: 16, marginTop: 4, marginBottom: 4 }}>{`\\`\\`\\`bash\\n${confirmationDetails.command}\\n\\`\\`\\``}</MarkdownView>
+            <MarkdownView codeStyle={{ marginLeft: 16, marginTop: 4, marginBottom: 4 }}>{bashSnippet}</MarkdownView>
           </div>
         );
+      }
       case 'info':
         return <span className='text-t-primary'>{confirmationDetails.prompt}</span>;
       case 'mcp':
