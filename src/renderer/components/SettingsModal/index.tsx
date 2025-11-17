@@ -17,35 +17,45 @@ import GeminiModalContent from './contents/GeminiModalContent';
 import ModelModalContent from './contents/ModelModalContent';
 import SystemModalContent from './contents/SystemModalContent';
 import ToolsModalContent from './contents/ToolsModalContent';
+
+/**
+ * 设置标签页类型 / Settings tab type
+ */
 type SettingTab = 'gemini' | 'model' | 'tools' | 'system' | 'about';
 
+/**
+ * 设置弹窗组件属性 / Settings modal component props
+ */
 interface SettingsModalProps {
+  /** 弹窗显示状态 / Modal visibility state */
   visible: boolean;
+  /** 关闭回调 / Close callback */
   onCancel: () => void;
+  /** 默认选中的标签页 / Default selected tab */
   defaultTab?: SettingTab;
 }
 
+/**
+ * 二级弹窗组件属性 / Secondary modal component props
+ */
 interface SubModalProps {
+  /** 弹窗显示状态 / Modal visibility state */
   visible: boolean;
+  /** 关闭回调 / Close callback */
   onCancel: () => void;
+  /** 弹窗标题 / Modal title */
   title?: string;
+  /** 子元素 / Children elements */
   children: React.ReactNode;
 }
 
-// 二级弹窗组件 / Secondary modal component
+/**
+ * 二级弹窗组件 / Secondary modal component
+ * 用于设置页面中的次级对话框 / Used for secondary dialogs in settings page
+ */
 export const SubModal: React.FC<SubModalProps> = ({ visible, onCancel, title, children }) => {
   return (
-    <AionModal
-      visible={visible}
-      onCancel={onCancel}
-      footer={null}
-      className='settings-sub-modal'
-      style={{
-        width: '500px',
-        height: '368px',
-      }}
-      title={title}
-    >
+    <AionModal visible={visible} onCancel={onCancel} footer={null} className='settings-sub-modal' size='medium' title={title}>
       <AionScrollArea className='h-full px-20px pb-16px text-14px text-t-primary'>{children}</AionScrollArea>
     </AionModal>
   );
@@ -115,9 +125,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
     }
   };
 
+  // 移动端菜单（下拉选择）/ Mobile menu (dropdown select)
   const mobileMenu = (
     <div className='my-16px'>
-      <AionSelect size='large' className='w-full settings-mobile-select' value={activeTab} onChange={(val) => setActiveTab(val as SettingTab)}>
+      <AionSelect size='large' className='!w-full' value={activeTab} onChange={(val) => setActiveTab(val as SettingTab)}>
         {menuItems.map((item) => (
           <AionSelect.Option key={item.key} value={item.key}>
             <div className='flex items-center gap-8px text-14px'>
@@ -130,6 +141,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
     </div>
   );
 
+  // 桌面端菜单（侧边栏）/ Desktop menu (sidebar)
   const desktopMenu = (
     <AionScrollArea className='w-200px flex-shrink-0 b-color-border-2 scrollbar-hide'>
       <div className='flex flex-col gap-2px'>
