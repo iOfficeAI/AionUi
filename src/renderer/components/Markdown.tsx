@@ -7,11 +7,11 @@
 import ReactMarkdown from 'react-markdown';
 
 import SyntaxHighlighter from 'react-syntax-highlighter';
+import { vs2015, vs } from 'react-syntax-highlighter/dist/esm/styles/hljs';
 import rehypeKatex from 'rehype-katex';
 import remarkBreaks from 'remark-breaks';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
-// import { coy } from "react-syntax-highlighter/dist/esm/styles/prism";
 
 import { ipcBridge } from '@/common';
 import { Down, Up } from '@icon-park/react';
@@ -44,10 +44,30 @@ const logicRender = <T, F>(condition: boolean, trueComponent: T, falseComponent?
 
 function CodeBlock(props: any) {
   const [fold, setFlow] = useState(false);
+  const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>(() => {
+    return (document.documentElement.getAttribute('data-theme') as 'light' | 'dark') || 'light';
+  });
+
+  React.useEffect(() => {
+    const updateTheme = () => {
+      const theme = (document.documentElement.getAttribute('data-theme') as 'light' | 'dark') || 'light';
+      setCurrentTheme(theme);
+    };
+
+    const observer = new MutationObserver(updateTheme);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme'],
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
   return useMemo(() => {
     const { children, className, node: _node, hiddenCodeCopyButton: _hiddenCodeCopyButton, ...rest } = props;
     const match = /language-(\w+)/.exec(className || '');
     const language = match?.[1] || 'text';
+    const codeTheme = currentTheme === 'dark' ? vs2015 : vs;
     if (!String(children).includes('\n')) {
       return (
         <code
@@ -77,33 +97,35 @@ function CodeBlock(props: any) {
           style={{
             display: 'flex',
             justifyContent: 'space-between',
-            width: '100%',
             alignItems: 'center',
             backgroundColor: 'var(--bg-2)',
             borderTopLeftRadius: '0.3rem',
             borderTopRightRadius: '0.3rem',
             borderBottomLeftRadius: '0',
             borderBottomRightRadius: '0',
+            padding: '6px 10px',
+            border: '1px solid var(--bg-3)',
+            borderBottom: 'none',
           }}
         >
           <span
             style={{
               textDecoration: 'none',
-              color: 'gray',
-              padding: '2px',
-              margin: '2px 10px 0 10px',
+              color: 'var(--text-secondary)',
+              fontSize: '12px',
+              lineHeight: '20px',
             }}
           >
             {'<' + language.toLocaleLowerCase() + '>'}
           </span>
-          <div style={{ marginRight: 10, paddingTop: 2 }}>{logicRender(!fold, <Up theme='outline' size='24' style={{ cursor: 'pointer' }} fill='gray' onClick={() => setFlow(true)} />, <Down theme='outline' size='24' style={{ cursor: 'pointer' }} fill='gray' onClick={() => setFlow(false)} />)}</div>
+          <div style={{ display: 'flex', alignItems: 'center' }}>{logicRender(!fold, <Up theme='outline' size='20' style={{ cursor: 'pointer' }} fill='var(--text-secondary)' onClick={() => setFlow(true)} />, <Down theme='outline' size='20' style={{ cursor: 'pointer' }} fill='var(--text-secondary)' onClick={() => setFlow(false)} />)}</div>
         </div>
         {logicRender(
           !fold,
           <SyntaxHighlighter
             children={formatCode(children)}
             language={language}
-            // style={coy}
+            style={codeTheme}
             PreTag='div'
             customStyle={{
               marginTop: '0',
@@ -113,12 +135,19 @@ function CodeBlock(props: any) {
               borderBottomLeftRadius: '0.3rem',
               borderBottomRightRadius: '0.3rem',
               border: 'none',
+              background: 'transparent',
+              color: 'var(--text-primary)',
+            }}
+            codeTagProps={{
+              style: {
+                color: 'var(--text-primary)',
+              },
             }}
           />
         )}
       </div>
     );
-  }, [props]);
+  }, [props, currentTheme, fold]);
 }
 
 const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string>, customCss?: string) => {
