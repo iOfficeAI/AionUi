@@ -2,7 +2,7 @@ import FlexFullContainer from '@/renderer/components/FlexFullContainer';
 import { removeStack } from '@/renderer/utils/common';
 import { Layout as ArcoLayout } from '@arco-design/web-react';
 import { ExpandLeft, ExpandRight, MenuUnfold } from '@icon-park/react';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
 
 import ClaudeLogo from '@/renderer/assets/logos/claude.svg';
@@ -73,6 +73,8 @@ const useSiderWidthWithDrag = (defaultWidth: number) => {
   return { siderWidth, dragContext };
 };
 
+const MOBILE_COLLAPSE_DURATION = 320;
+
 const ChatLayout: React.FC<{
   children: React.ReactNode;
   title?: React.ReactNode;
@@ -85,13 +87,74 @@ const ChatLayout: React.FC<{
   const { siderWidth, dragContext } = useSiderWidthWithDrag(266);
   const { backend } = props;
   const layout = useLayoutContext();
+  // 右侧栏的自动/手动折叠动画状态 / Auto & manual folding states for right sider
+  const rightCollapsedRef = useRef(rightSiderCollapsed);
+  const [autoRightCollapsing, setAutoRightCollapsing] = useState(false);
+  const [manualRightCollapsing, setManualRightCollapsing] = useState(false);
+  const autoRightCollapseTimer = useRef<number | undefined>(undefined);
+  const manualRightCollapseTimer = useRef<number | undefined>(undefined);
 
-  // 响应移动端状态变化，自动收起右侧边栏
   useEffect(() => {
-    if (layout?.isMobile) {
-      setRightSiderCollapsed(true);
+    rightCollapsedRef.current = rightSiderCollapsed;
+  }, [rightSiderCollapsed]);
+
+  // 响应移动端状态变化，自动收起右侧边栏（含动画）/ Auto-collapse right sider on mobile switch
+  useEffect(() => {
+    if (!layout?.isMobile || rightCollapsedRef.current) {
+      setAutoRightCollapsing(false);
+      if (autoRightCollapseTimer.current !== undefined) {
+        window.clearTimeout(autoRightCollapseTimer.current);
+        autoRightCollapseTimer.current = undefined;
+      }
+      return;
     }
+
+    setAutoRightCollapsing(true);
+    if (autoRightCollapseTimer.current !== undefined) {
+      window.clearTimeout(autoRightCollapseTimer.current);
+    }
+    autoRightCollapseTimer.current = window.setTimeout(() => {
+      setAutoRightCollapsing(false);
+      setRightSiderCollapsed(true);
+      autoRightCollapseTimer.current = undefined;
+    }, MOBILE_COLLAPSE_DURATION);
+
+    return () => {
+      if (autoRightCollapseTimer.current !== undefined) {
+        window.clearTimeout(autoRightCollapseTimer.current);
+        autoRightCollapseTimer.current = undefined;
+      }
+    };
   }, [layout?.isMobile]); // 监听全局 isMobile 状态变化
+
+  // 手动折叠右侧栏时也做淡出 / Fade out when user folds the right sider manually
+  useEffect(() => {
+    if (!rightSiderCollapsed) {
+      setManualRightCollapsing(false);
+      if (manualRightCollapseTimer.current !== undefined) {
+        window.clearTimeout(manualRightCollapseTimer.current);
+        manualRightCollapseTimer.current = undefined;
+      }
+      return;
+    }
+
+    setManualRightCollapsing(true);
+    if (manualRightCollapseTimer.current !== undefined) {
+      window.clearTimeout(manualRightCollapseTimer.current);
+    }
+    // Delay pointer lock until fade-out finishes / 等淡出动画完成后再禁用交互
+    manualRightCollapseTimer.current = window.setTimeout(() => {
+      setManualRightCollapsing(false);
+      manualRightCollapseTimer.current = undefined;
+    }, MOBILE_COLLAPSE_DURATION);
+
+    return () => {
+      if (manualRightCollapseTimer.current !== undefined) {
+        window.clearTimeout(manualRightCollapseTimer.current);
+        manualRightCollapseTimer.current = undefined;
+      }
+    };
+  }, [rightSiderCollapsed]);
 
   return (
     <ArcoLayout className='size-full'>
@@ -128,9 +191,11 @@ const ChatLayout: React.FC<{
 
       <ArcoLayout.Sider
         width={siderWidth}
-        collapsedWidth={layout?.isMobile ? siderWidth : 0}
+        collapsedWidth={0}
         collapsed={rightSiderCollapsed}
-        className='!bg-1 relative chat-layout-right-sider'
+        className={classNames('!bg-1 relative chat-layout-right-sider layout-sider', {
+          'layout-sider--folding': autoRightCollapsing || manualRightCollapsing,
+        })}
         style={
           layout?.isMobile
             ? {
@@ -139,9 +204,9 @@ const ChatLayout: React.FC<{
                 top: 0,
                 height: '100vh',
                 zIndex: 100,
-                transform: rightSiderCollapsed ? 'translateX(100%)' : 'translateX(0)',
-                transition: 'transform 0.3s ease',
-                pointerEvents: rightSiderCollapsed ? 'none' : 'auto',
+                transform: rightSiderCollapsed || autoRightCollapsing ? 'translateX(100%)' : 'translateX(0)',
+                transition: `transform ${MOBILE_COLLAPSE_DURATION}ms ease`,
+                pointerEvents: rightSiderCollapsed || autoRightCollapsing ? 'none' : 'auto',
               }
             : undefined
         }

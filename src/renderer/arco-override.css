@@ -147,3 +147,32 @@ body[arco-theme='dark'] .arco-message-error {
 
 /* Alert styles - content is now displayed below the Alert card, so these rules are no longer needed */
 /* Alert 样式 - 内容现在显示在 Alert 卡片下方，因此不再需要这些规则 */
+
+/* Settings modal mobile tabs styles */
+/* 设置弹窗移动端 Tabs 样式 */
+.settings-mobile-tabs {
+  .arco-tabs-nav {
+    border-bottom: 1px solid var(--color-border-2);
+  }
+
+  .arco-tabs-nav-tab {
+    font-size: 14px;
+    padding: 8px 0;
+    margin: 0 12px;
+    color: var(--color-text-2);
+  }
+
+  .arco-tabs-nav-tab:first-child {
+    margin-left: 0;
+  }
+
+  .arco-tabs-nav-tab-active {
+    color: var(--color-text-1);
+    font-weight: 500;
+  }
+
+  .arco-tabs-nav-ink {
+    height: 2px;
+    background: var(--color-primary);
+  }
+}

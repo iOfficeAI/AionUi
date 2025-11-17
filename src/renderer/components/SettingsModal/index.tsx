@@ -6,9 +6,9 @@
 
 import AionModal from '@/renderer/components/base/AionModal';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
-import AionSelect from '@/renderer/components/base/AionSelect';
 import { iconColors } from '@/renderer/theme/colors';
 import { Gemini, Info, LinkCloud, System, Toolkit } from '@icon-park/react';
+import { Tabs } from '@arco-design/web-react';
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -184,13 +184,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
   const renderContent = () => {
     switch (activeTab) {
       case 'gemini':
-        return <GeminiModalContent />;
+        return <GeminiModalContent onRequestClose={onCancel} />;
       case 'model':
         return <ModelModalContent />;
       case 'tools':
         return <ToolsModalContent />;
       case 'system':
-        return <SystemModalContent />;
+        return <SystemModalContent onRequestClose={onCancel} />;
       case 'about':
         return <AboutModalContent />;
       default:
@@ -206,19 +206,14 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
     setActiveTab(tab);
   }, []);
 
-  // 移动端菜单（下拉选择）/ Mobile menu (dropdown select)
+  // 移动端菜单（Tabs切换）/ Mobile menu (Tabs)
   const mobileMenu = (
-    <div className='my-16px'>
-      <AionSelect size='large' className='!w-full' value={activeTab} onChange={handleTabChange}>
+    <div className='mt-16px mb-20px'>
+      <Tabs activeTab={activeTab} onChange={handleTabChange} type='line' size='default' className='settings-mobile-tabs [&_.arco-tabs-nav]:border-b-0'>
         {menuItems.map((item) => (
-          <AionSelect.Option key={item.key} value={item.key}>
-            <div className='flex items-center gap-8px text-14px'>
-              <span className='text-16px line-height-[10px]'>{item.icon}</span>
-              <span>{item.label}</span>
-            </div>
-          </AionSelect.Option>
+          <Tabs.TabPane key={item.key} title={item.label} />
         ))}
-      </AionSelect>
+      </Tabs>
     </div>
   );
 
@@ -250,7 +245,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
       footer={null}
       className='settings-modal'
       style={{
-        width: isMobile ? `min(100vw, ${MODAL_WIDTH.mobile}px)` : `${MODAL_WIDTH.desktop}px`,
+        width: isMobile ? `clamp(var(--app-min-width, 390px), 100vw, ${MODAL_WIDTH.mobile}px)` : `clamp(var(--app-min-width, 390px), 100vw, ${MODAL_WIDTH.desktop}px)`,
+        minWidth: 'var(--app-min-width, 390px)',
         maxHeight: isMobile ? MODAL_HEIGHT.mobile : undefined,
         borderRadius: '16px',
       }}

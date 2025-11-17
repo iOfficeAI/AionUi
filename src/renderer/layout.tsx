@@ -48,6 +48,9 @@ const useDebug = () => {
   return { onClick };
 };
 
+const DEFAULT_SIDER_WIDTH = 250;
+const MOBILE_COLLAPSE_DURATION = 320;
+
 const Layout: React.FC<{
   sider: React.ReactNode;
   onSessionClick?: () => void;
@@ -58,6 +61,12 @@ const Layout: React.FC<{
   const { onClick } = useDebug();
   const { contextHolder: multiAgentContextHolder } = useMultiAgentDetection();
   const { contextHolder: directorySelectionContextHolder } = useDirectorySelection();
+  const collapsedRef = useRef(collapsed);
+  // 自动/手动折叠的状态与定时器 / Timers & states for auto/manual sidebar folding
+  const autoCollapseTimer = useRef<number | undefined>(undefined);
+  const manualCollapseTimer = useRef<number | undefined>(undefined);
+  const [autoCollapsing, setAutoCollapsing] = useState(false);
+  const [manualCollapsing, setManualCollapsing] = useState(false);
 
   // 加载并监听自定义 CSS 配置 / Load & watch custom CSS configuration
   useEffect(() => {
@@ -143,9 +152,6 @@ const Layout: React.FC<{
     const checkMobile = () => {
       const mobile = window.innerWidth < 768;
       setIsMobile(mobile);
-      if (mobile) {
-        setCollapsed(true);
-      }
     };
 
     // 初始检测
@@ -155,15 +161,77 @@ const Layout: React.FC<{
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  // 进入移动端后触发自动折叠动画 / Auto-collapse when switching to mobile
+  useEffect(() => {
+    if (!isMobile || collapsedRef.current) {
+      setAutoCollapsing(false);
+      if (autoCollapseTimer.current !== undefined) {
+        window.clearTimeout(autoCollapseTimer.current);
+        autoCollapseTimer.current = undefined;
+      }
+      return;
+    }
+
+    setAutoCollapsing(true);
+    if (autoCollapseTimer.current !== undefined) {
+      window.clearTimeout(autoCollapseTimer.current);
+    }
+    autoCollapseTimer.current = window.setTimeout(() => {
+      setAutoCollapsing(false);
+      setCollapsed(true);
+      autoCollapseTimer.current = undefined;
+    }, MOBILE_COLLAPSE_DURATION);
+
+    return () => {
+      if (autoCollapseTimer.current !== undefined) {
+        window.clearTimeout(autoCollapseTimer.current);
+        autoCollapseTimer.current = undefined;
+      }
+    };
+  }, [isMobile]);
+  useEffect(() => {
+    collapsedRef.current = collapsed;
+  }, [collapsed]);
+
+  // 手动折叠时为内容提供淡出动画 / Provide fade-out when user collapses manually
+  useEffect(() => {
+    if (!collapsed) {
+      setManualCollapsing(false);
+      if (manualCollapseTimer.current !== undefined) {
+        window.clearTimeout(manualCollapseTimer.current);
+        manualCollapseTimer.current = undefined;
+      }
+      return;
+    }
+
+    setManualCollapsing(true);
+    if (manualCollapseTimer.current !== undefined) {
+      window.clearTimeout(manualCollapseTimer.current);
+    }
+    // Delay collapsing pointer events until fade-out completes / 延迟到淡出结束再关闭交互
+    manualCollapseTimer.current = window.setTimeout(() => {
+      setManualCollapsing(false);
+      manualCollapseTimer.current = undefined;
+    }, MOBILE_COLLAPSE_DURATION);
+
+    return () => {
+      if (manualCollapseTimer.current !== undefined) {
+        window.clearTimeout(manualCollapseTimer.current);
+        manualCollapseTimer.current = undefined;
+      }
+    };
+  }, [collapsed]);
   return (
     <LayoutContext.Provider value={{ isMobile, siderCollapsed: collapsed, setSiderCollapsed: setCollapsed }}>
       <ArcoLayout className={'size-full layout'}>
         <ArcoLayout.Sider
           collapsedWidth={isMobile ? 0 : 64}
           collapsed={collapsed}
-          width={250}
+          width={DEFAULT_SIDER_WIDTH}
           className={classNames('!bg-2 layout-sider', {
             collapsed: collapsed,
+            'layout-sider--folding': autoCollapsing || manualCollapsing,
           })}
           style={
             isMobile
@@ -173,9 +241,9 @@ const Layout: React.FC<{
                   left: 0,
                   height: '100vh',
                   zIndex: 100,
-                  transform: collapsed ? 'translateX(-100%)' : 'translateX(0)',
-                  transition: 'transform 0.3s ease',
-                  pointerEvents: collapsed ? 'none' : 'auto',
+                  transform: collapsed || autoCollapsing ? 'translateX(-100%)' : 'translateX(0)',
+                  transition: `transform ${MOBILE_COLLAPSE_DURATION}ms ease`,
+                  pointerEvents: collapsed || autoCollapsing ? 'none' : 'auto',
                 }
               : undefined
           }
@@ -232,7 +300,6 @@ const Layout: React.FC<{
             isMobile
               ? {
                   width: '100vw',
-                  marginLeft: 0,
                 }
               : undefined
           }

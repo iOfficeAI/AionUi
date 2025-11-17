@@ -193,13 +193,13 @@ const ChatHistory: React.FC<{ onSessionClick?: () => void; collapsed?: boolean }
       <Tooltip key={conversation.id} disabled={!collapsed} content={conversation.name || t('conversation.welcome.newConversation')} position='right'>
         <div
           id={'c-' + conversation.id}
-          className={classNames('hover:bg-hover px-12px py-8px rd-8px flex justify-start items-center group cursor-pointer relative overflow-hidden group shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px', {
+          className={classNames('chat-history__item hover:bg-hover px-12px py-8px rd-8px flex justify-start items-center group cursor-pointer relative overflow-hidden group shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px', {
             '!bg-active ': isSelected,
           })}
           onClick={handleSelect.bind(null, conversation)}
         >
           <MessageOne theme='outline' size='20' className='mt-2px ml-2px mr-8px flex' />
-          <FlexFullContainer className='h-24px'>{isEditing ? <Input className='text-14px lh-24px h-24px' value={editingName} onChange={setEditingName} onKeyDown={handleEditKeyDown} onBlur={handleEditSave} autoFocus size='small' /> : <div className='text-nowrap overflow-hidden inline-block w-full text-14px lh-24px whitespace-nowrap'>{conversation.name}</div>}</FlexFullContainer>
+          <FlexFullContainer className='h-24px'>{isEditing ? <Input className='chat-history__item-editor text-14px lh-24px h-24px w-full' value={editingName} onChange={setEditingName} onKeyDown={handleEditKeyDown} onBlur={handleEditSave} autoFocus size='small' /> : <div className='chat-history__item-name text-nowrap overflow-hidden inline-block w-full text-14px lh-24px whitespace-nowrap'>{conversation.name}</div>}</FlexFullContainer>
           {!isEditing && (
             <div
               className={classNames('absolute right-0px top-0px h-full w-70px items-center justify-end hidden group-hover:flex !collapsed-hidden pr-12px')}
@@ -247,49 +247,7 @@ const ChatHistory: React.FC<{ onSessionClick?: () => void; collapsed?: boolean }
               )}
             </div>
           )}
-          <div
-            className={classNames('absolute right--15px top-0px h-full w-70px items-center justify-center hidden group-hover:flex !collapsed-hidden')}
-            style={{
-              backgroundImage: isSelected ? `linear-gradient(to right, transparent, var(--bg-active) 50%)` : `linear-gradient(to right, transparent, var(--bg-hover) 50%)`,
-            }}
-            onClick={(event) => {
-              event.stopPropagation();
-            }}
-          >
-            {!isEditing && (
-              <span
-                className='flex-center mr-8px'
-                onClick={(event) => {
-                  event.stopPropagation();
-                  handleEditStart(conversation);
-                }}
-              >
-                <EditOne theme='outline' size='20' className='flex' />
-              </span>
-            )}
-            <Popconfirm
-              title={t('conversation.history.deleteTitle')}
-              content={t('conversation.history.deleteConfirm')}
-              okText={t('conversation.history.confirmDelete')}
-              cancelText={t('conversation.history.cancelDelete')}
-              onOk={(event) => {
-                event.stopPropagation();
-                handleRemoveConversation(conversation.id);
-              }}
-              onCancel={(event) => {
-                event.stopPropagation();
-              }}
-            >
-              <span
-                className='flex-center'
-                onClick={(event) => {
-                  event.stopPropagation();
-                }}
-              >
-                <DeleteOne theme='outline' size='20' className='flex' />
-              </span>
-            </Popconfirm>
-          </div>
+          {/* legacy hover overlay removed to avoid duplicate edit icon */}
         </div>
       </Tooltip>
     );
@@ -298,19 +256,20 @@ const ChatHistory: React.FC<{ onSessionClick?: () => void; collapsed?: boolean }
   return (
     <FlexFullContainer>
       <div
-        className={classNames('size-full', {
-          'flex-center size-full': !chatHistory.length,
+        className={classNames('size-full chat-history', {
+          'flex-center': !chatHistory.length,
           'flex flex-col overflow-y-auto': !!chatHistory.length,
+          'chat-history--collapsed': collapsed,
         })}
       >
         {!chatHistory.length ? (
-          <Empty className={'collapsed-hidden'} description={t('conversation.history.noHistory')} />
+          <Empty className='chat-history__placeholder' description={t('conversation.history.noHistory')} />
         ) : (
           chatHistory.map((item) => {
             const timeline = formatTimeline(item);
             return (
               <React.Fragment key={item.id}>
-                {timeline && <div className='collapsed-hidden px-12px py-8px text-13px text-t-secondary font-bold'>{timeline}</div>}
+                {timeline && <div className='chat-history__section px-12px py-8px text-13px text-t-secondary font-bold'>{timeline}</div>}
                 {renderConversation(item)}
               </React.Fragment>
             );

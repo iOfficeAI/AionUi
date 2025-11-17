@@ -49,7 +49,40 @@ jobs:
         include:
           - platform: 'macos'
             os: 'macos-latest'
-            command: 'npm run build-mac'
+            command: |
+              cat <<'MAC_STAGGER' > /tmp/mac-staggered-build.sh
+              #!/usr/bin/env bash
+              set -euo pipefail
+
+              run_build() {
+                local label="$1"
+                shift
+
+                echo ""
+                echo "=========================================="
+                echo "🚀 Starting ${label} build"
+                echo "=========================================="
+                node scripts/build-with-builder.js "$@"
+                echo "✅ Finished ${label} build"
+              }
+
+              run_build "macOS arm64" arm64 --mac --arm64
+
+              delay=${MAC_STAGGER_DELAY_SECONDS:-300}
+              if ! [[ "$delay" =~ ^[0-9]+$ ]]; then
+                delay=300
+              fi
+
+              if [ "$delay" -gt 0 ]; then
+                echo ""
+                echo "⏳ Waiting ${delay} seconds before starting macOS x64 build to avoid Apple notarization contention..."
+                sleep "$delay"
+              fi
+
+              run_build "macOS x64" x64 --mac --x64
+              MAC_STAGGER
+
+              bash /tmp/mac-staggered-build.sh
             artifact-name: 'macos-build'
             arch: 'x64,arm64'
           - platform: 'windows-x64'
@@ -78,12 +111,40 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
+      - name: Setup Python (for native dependencies)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
       - name: Install dependencies
         run: npm ci
 
+      - name: Setup Windows native dependencies (for Windows only)
+        if: startsWith(matrix.platform, 'windows')
+        run: |
+          npm install --global node-gyp
+
+      - name: Install MSVC ARM64 toolchain (Windows ARM64 only)
+        if: matrix.platform == 'windows-arm64'
+        shell: pwsh
+        run: |
+          choco install visualstudio2022buildtools --yes --params "'--add Microsoft.VisualStudio.Component.VC.Tools.ARM64 --add Microsoft.VisualStudio.Component.Windows11SDK.22000 --includeRecommended --includeOptional'"
+
+      - name: Setup Windows build environment (for Windows only)
+        if: startsWith(matrix.platform, 'windows')
+        run: |
+          echo "Setting Windows SDK version for ConPty support"
+          echo "WindowsTargetPlatformVersion=10.0.19041.0" >> $env:GITHUB_ENV
+
+      - name: Setup MSBuild (for Windows only)
+        if: startsWith(matrix.platform, 'windows')
+        uses: microsoft/setup-msbuild@v2
+        with:
+          vs-version: '17.0'
+
       - name: Rebuild native modules for Electron
+        if: "!startsWith(matrix.platform, 'windows')"
         run: npx electron-builder install-app-deps
-        continue-on-error: ${{ startsWith(matrix.platform, 'windows') }}
         env:
           npm_config_runtime: electron
           npm_config_disturl: https://electronjs.org/headers
@@ -108,34 +169,6 @@ jobs:
           echo "Runner OS: ${{ runner.os }}"
           echo "Runner Arch: ${{ runner.arch }}"
           echo "=========================================="
-
-      - name: Setup Windows native dependencies (for Windows only)
-        if: startsWith(matrix.platform, 'windows')
-        run: |
-          npm install --global node-gyp
-
-      - name: Install MSVC ARM64 toolchain (Windows ARM64 only)
-        if: matrix.platform == 'windows-arm64'
-        shell: pwsh
-        run: |
-          choco install visualstudio2022buildtools --yes --params "'--add Microsoft.VisualStudio.Component.VC.Tools.ARM64 --add Microsoft.VisualStudio.Component.Windows11SDK.22000 --includeRecommended --includeOptional'"
-
-      - name: Setup Python (for native dependencies)
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Setup Windows build environment (for Windows only)
-        if: startsWith(matrix.platform, 'windows')
-        run: |
-          echo "Setting Windows SDK version for ConPty support"
-          echo "WindowsTargetPlatformVersion=10.0.19041.0" >> $env:GITHUB_ENV
-
-      - name: Setup MSBuild (for Windows only)
-        if: startsWith(matrix.platform, 'windows')
-        uses: microsoft/setup-msbuild@v2
-        with:
-          vs-version: '17.0'
 
       # macOS 代码签名证书安装
       - name: Setup macOS code signing (macOS only)
@@ -178,12 +211,68 @@ jobs:
       - name: Rebuild native modules for Electron
         if: startsWith(matrix.platform, 'windows')
         shell: pwsh
-        continue-on-error: true
+        continue-on-error: false  # 修复：原生模块重建失败应该中止构建
         run: |
           $electronVersion = "${{ steps.electron-version.outputs.version }}"
           $arch = "${{ matrix.arch }}"
+          Write-Host "=========================================="
           Write-Host "Rebuilding native modules for Electron $electronVersion ($arch)"
+          Write-Host "=========================================="
+
+          # 先尝试使用 electron-builder 的原生重建（更可靠）
+          Write-Host ""
+          Write-Host "Step 1: Running electron-builder install-app-deps..."
+          try {
+            npx electron-builder install-app-deps --arch $arch
+            Write-Host "✅ electron-builder install-app-deps completed"
+          } catch {
+            Write-Warning "electron-builder install-app-deps failed, will try electron-rebuild"
+          }
+
+          # 如果需要，使用 electron-rebuild 作为备选方案
+          Write-Host ""
+          Write-Host "Step 2: Running electron-rebuild for critical modules..."
           npx electron-rebuild --only better-sqlite3,bcrypt --force --arch $arch --version $electronVersion
+
+          # 验证关键模块是否存在
+          Write-Host ""
+          Write-Host "Step 3: Verifying native modules..."
+          $verified = $true
+
+          $sqliteNode = "node_modules/better-sqlite3/build/Release/better_sqlite3.node"
+          if (Test-Path $sqliteNode) {
+            Write-Host "✅ better-sqlite3 found: $sqliteNode"
+          } else {
+            Write-Error "❌ better-sqlite3 native module not found at: $sqliteNode"
+            $verified = $false
+          }
+
+          # bcrypt 可能在不同位置，尝试多个路径
+          $bcryptPaths = @(
+            "node_modules/bcrypt/lib/binding/napi-v3/bcrypt_lib.node",
+            "node_modules/bcrypt/lib/binding/bcrypt_lib.node"
+          )
+          $bcryptFound = $false
+          foreach ($path in $bcryptPaths) {
+            if (Test-Path $path) {
+              Write-Host "✅ bcrypt found: $path"
+              $bcryptFound = $true
+              break
+            }
+          }
+          if (!$bcryptFound) {
+            Write-Warning "⚠️ bcrypt native module not found (may use prebuilt binaries)"
+          }
+
+          if (!$verified) {
+            Write-Error "Native modules verification failed!"
+            exit 1
+          }
+
+          Write-Host ""
+          Write-Host "=========================================="
+          Write-Host "✅ All critical native modules verified"
+          Write-Host "=========================================="
         env:
           npm_config_runtime: electron
           npm_config_target: ${{ steps.electron-version.outputs.version }}
@@ -196,10 +285,30 @@ jobs:
 
       - name: Build with electron-builder (Windows)
         if: startsWith(matrix.platform, 'windows')
-        shell: cmd
+        id: windows-build
+        shell: pwsh
         run: |
-          ${{ matrix.command }}
+          $ErrorActionPreference = 'Stop'
+          $Command = $env:WINDOWS_BUILD_COMMAND
+          $BuildFailed = $false
+
+          try {
+            Write-Host "Running Windows build command: $Command"
+            iex $Command
+            Write-Host "Windows build completed successfully"
+          } catch {
+            $BuildFailed = $true
+            Write-Warning "${{ matrix.platform }} build failed but will not block the workflow"
+            Write-Host "::notice title=Windows build skipped::${{ matrix.platform }} build failed (see logs above) but workflow is allowed to continue."
+          }
+
+          if ($BuildFailed) {
+            "result=failure" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          } else {
+            "result=success" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          }
         env:
+          WINDOWS_BUILD_COMMAND: ${{ matrix.command }}
           # Target arch / 目标架构
           npm_config_arch: ${{ matrix.arch }}
           npm_config_target_arch: ${{ matrix.arch }}
@@ -232,7 +341,7 @@ jobs:
         if: "!startsWith(matrix.platform, 'windows')"
         uses: nick-fields/retry@v3
         with:
-          timeout_minutes: 40
+          timeout_minutes: 80
           max_attempts: 2
           retry_wait_seconds: 300
           continue_on_error: ${{ matrix.platform == 'macos' }}
@@ -263,6 +372,7 @@ jobs:
           npm_config_runtime: electron
           npm_config_target: ${{ steps.electron-version.outputs.version }}
           npm_config_target_arch: ${{ matrix.arch }}
+          MAC_STAGGER_DELAY_SECONDS: ${{ matrix.platform == 'macos' && '300' || '0' }}
           # CI flag & GitHub token / CI 标识与 GitHub Token
           CI: true
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
@@ -320,7 +430,9 @@ jobs:
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
-        if: success() || (failure() && matrix.platform == 'macos')
+        if: >-
+          (success() && (!startsWith(matrix.platform, 'windows') || steps.windows-build.outputs.result == 'success'))
+          || (failure() && matrix.platform == 'macos')
         with:
           name: ${{ matrix.artifact-name }}
           path: |

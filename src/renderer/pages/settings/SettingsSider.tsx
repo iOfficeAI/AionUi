@@ -41,13 +41,13 @@ const SettingsSider: React.FC<{ collapsed?: boolean }> = ({ collapsed = false })
     ];
   }, [t]);
   return (
-    <div className='flex-1'>
+    <div className={classNames('flex-1 settings-sider flex flex-col gap-2px', { 'settings-sider--collapsed': collapsed })}>
       {menus.map((item) => {
         const isSelected = pathname.includes(item.path);
         return (
           <Tooltip key={item.path} disabled={!collapsed} content={item.label} position='right'>
             <div
-              className={classNames('hover:bg-aou-1 px-12px py-8px rd-8px flex justify-start items-center group cursor-pointer relative overflow-hidden group shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px', {
+              className={classNames('settings-sider__item hover:bg-aou-1 px-12px py-8px rd-8px flex justify-start items-center group cursor-pointer relative overflow-hidden group shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px', {
                 '!bg-aou-2 ': isSelected,
               })}
               onClick={() => {
@@ -62,7 +62,7 @@ const SettingsSider: React.FC<{ collapsed?: boolean }> = ({ collapsed = false })
                 className: 'mt-2px ml-2px mr-8px flex',
               })}
               <FlexFullContainer className='h-24px'>
-                <div className='text-nowrap overflow-hidden inline-block w-full text-14px lh-24px whitespace-nowrap text-t-primary'>{item.label}</div>
+                <div className='settings-sider__item-label text-nowrap overflow-hidden inline-block w-full text-14px lh-24px whitespace-nowrap text-t-primary'>{item.label}</div>
               </FlexFullContainer>
             </div>
           </Tooltip>
