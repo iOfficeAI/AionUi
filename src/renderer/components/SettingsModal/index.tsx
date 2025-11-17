@@ -21,8 +21,7 @@ import ToolsModalContent from './contents/ToolsModalContent';
 /**
  * 设置标签页类型 / Settings tab type
  */
-type SettingTab = 'gemini' | 'model' | 'tools' | 'system' | 'about';
-
+export type SettingTab = 'gemini' | 'model' | 'tools' | 'system' | 'about';
 /**
  * 设置弹窗组件属性 / Settings modal component props
  */
