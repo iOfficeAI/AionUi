@@ -12,7 +12,6 @@ import { usePasteService } from '@/renderer/hooks/usePasteService';
 import { iconColors } from '@/renderer/theme/colors';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { removeWorkspaceEntry, renameWorkspaceEntry } from '@/renderer/utils/workspaceFs';
-import { Button, Checkbox, Empty, Input, Message, Modal, Tooltip, Tree } from '@arco-design/web-react';
 import { Checkbox, Empty, Input, Message, Modal, Tooltip, Tree } from '@arco-design/web-react';
 import type { NodeInstance } from '@arco-design/web-react/es/Tree/interface';
 import { FileAddition, Refresh, Search, FileText, FolderOpen } from '@icon-park/react';
@@ -49,8 +48,6 @@ const useLoading = () => {
   return [loading, setLoadingHandler] as const;
 };
 
-const ADD_TO_CHAT_MESSAGE_ID = 'chat-workspace-add-to-chat';
-
 const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, eventPrefix = 'gemini', messageApi: externalMessageApi }) => {
   const { t } = useTranslation();
   const [selected, setSelected] = useState<string[]>([]);
@@ -63,10 +60,9 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
   const [confirmFileName, setConfirmFileName] = useState('');
   const [confirmFilesToPaste, setConfirmFilesToPaste] = useState<Array<{ path: string; name: string }>>([]);
   const [doNotAsk, setDoNotAsk] = useState(false);
-  const [internalMessageApi, internalMessageContext] = Message.useMessage({ maxCount: 1 });
+  const [internalMessageApi, messageContext] = Message.useMessage();
   const messageApi = externalMessageApi ?? internalMessageApi;
   const shouldRenderLocalMessageContext = !externalMessageApi;
-  const [messageApi, messageContext] = Message.useMessage();
   const [pasteTargetFolder, setPasteTargetFolder] = useState<string | null>(null); // 跟踪粘贴目标文件夹 / Track paste target folder
   const selectedNodeRef = useRef<{ relativePath: string; fullPath: string } | null>(null); // 存储最后选中的文件夹节点 / Store the last selected folder node
   const selectedKeysRef = useRef<string[]>([]); // 存储选中的键供 renderTitle 访问 / Store selected keys for renderTitle to access
@@ -555,13 +551,6 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
       if (!nodeData || !nodeData.fullPath) return;
       ensureNodeSelected(nodeData, { emit: true });
       closeContextMenu();
-      messageApi.success({
-        id: ADD_TO_CHAT_MESSAGE_ID,
-        content: t('conversation.workspace.contextMenu.addedToChat'),
-        duration: 2000,
-        closable: false,
-        position: 'top',
-      });
       messageApi.success(t('conversation.workspace.contextMenu.addedToChat'));
     },
     [closeContextMenu, ensureNodeSelected, messageApi, t]
@@ -789,397 +778,395 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
   const menuButtonDisabled = 'opacity-40 cursor-not-allowed hover:bg-transparent'; // Disabled style for menu items (禁用状态样式)
 
   return (
-    <div className='size-full flex flex-col' tabIndex={0} onFocus={onFocus} onClick={onFocus}>
-      {shouldRenderLocalMessageContext && internalMessageContext}
-      {messageContext}
-      <Modal
-        visible={confirmVisible}
-        title={null}
-        onCancel={() => {
-          setConfirmVisible(false);
-          setPasteTargetFolder(null);
-        }}
-        footer={null}
-        style={{ borderRadius: '12px' }}
-        className='paste-confirm-modal'
-      >
-        <div className='px-24px py-20px'>
-          {/* 标题区域 */}
-          <div className='flex items-center gap-12px mb-20px'>
-            <div className='flex items-center justify-center w-48px h-48px rounded-full' style={{ backgroundColor: 'rgb(var(--primary-1))' }}>
-              <FileText theme='outline' size='24' fill='rgb(var(--primary-6))' />
-            </div>
-            <div>
-              <div className='text-16px font-semibold mb-4px'>{t('conversation.workspace.pasteConfirm_title')}</div>
-              <div className='text-13px' style={{ color: 'var(--color-text-3)' }}>
-                {confirmFilesToPaste.length > 1 ? t('conversation.workspace.pasteConfirm_multipleFiles', { count: confirmFilesToPaste.length }) : t('conversation.workspace.pasteConfirm_title')}
+    <>
+      {shouldRenderLocalMessageContext && messageContext}
+      <div className='size-full flex flex-col' tabIndex={0} onFocus={onFocus} onClick={onFocus}>
+        <Modal
+          visible={confirmVisible}
+          title={null}
+          onCancel={() => {
+            setConfirmVisible(false);
+            setPasteTargetFolder(null);
+          }}
+          footer={null}
+          style={{ borderRadius: '12px' }}
+          className='paste-confirm-modal'
+        >
+          <div className='px-24px py-20px'>
+            {/* 标题区域 */}
+            <div className='flex items-center gap-12px mb-20px'>
+              <div className='flex items-center justify-center w-48px h-48px rounded-full' style={{ backgroundColor: 'rgb(var(--primary-1))' }}>
+                <FileText theme='outline' size='24' fill='rgb(var(--primary-6))' />
               </div>
-            </div>
-          </div>
-
-          {/* 内容区域 */}
-          <div className='mb-20px px-12px py-16px rounded-8px' style={{ backgroundColor: 'var(--color-fill-2)' }}>
-            <div className='flex items-start gap-12px mb-12px'>
-              <FileText theme='outline' size='18' fill='var(--color-text-2)' style={{ marginTop: '2px' }} />
-              <div className='flex-1'>
-                <div className='text-13px mb-4px' style={{ color: 'var(--color-text-3)' }}>
-                  {t('conversation.workspace.pasteConfirm_fileName')}
-                </div>
-                <div className='text-14px font-medium break-all' style={{ color: 'var(--color-text-1)' }}>
-                  {confirmFileName}
+              <div>
+                <div className='text-16px font-semibold mb-4px'>{t('conversation.workspace.pasteConfirm_title')}</div>
+                <div className='text-13px' style={{ color: 'var(--color-text-3)' }}>
+                  {confirmFilesToPaste.length > 1 ? t('conversation.workspace.pasteConfirm_multipleFiles', { count: confirmFilesToPaste.length }) : t('conversation.workspace.pasteConfirm_title')}
                 </div>
               </div>
             </div>
-            <div className='flex items-start gap-12px'>
-              <FolderOpen theme='outline' size='18' fill='var(--color-text-2)' style={{ marginTop: '2px' }} />
-              <div className='flex-1'>
-                <div className='text-13px mb-4px' style={{ color: 'var(--color-text-3)' }}>
-                  {t('conversation.workspace.pasteConfirm_targetFolder')}
+
+            {/* 内容区域 */}
+            <div className='mb-20px px-12px py-16px rounded-8px' style={{ backgroundColor: 'var(--color-fill-2)' }}>
+              <div className='flex items-start gap-12px mb-12px'>
+                <FileText theme='outline' size='18' fill='var(--color-text-2)' style={{ marginTop: '2px' }} />
+                <div className='flex-1'>
+                  <div className='text-13px mb-4px' style={{ color: 'var(--color-text-3)' }}>
+                    {t('conversation.workspace.pasteConfirm_fileName')}
+                  </div>
+                  <div className='text-14px font-medium break-all' style={{ color: 'var(--color-text-1)' }}>
+                    {confirmFileName}
+                  </div>
                 </div>
-                <div className='text-14px font-medium font-mono break-all' style={{ color: 'rgb(var(--primary-6))' }}>
-                  {getTargetFolderPath().fullPath}
+              </div>
+              <div className='flex items-start gap-12px'>
+                <FolderOpen theme='outline' size='18' fill='var(--color-text-2)' style={{ marginTop: '2px' }} />
+                <div className='flex-1'>
+                  <div className='text-13px mb-4px' style={{ color: 'var(--color-text-3)' }}>
+                    {t('conversation.workspace.pasteConfirm_targetFolder')}
+                  </div>
+                  <div className='text-14px font-medium font-mono break-all' style={{ color: 'rgb(var(--primary-6))' }}>
+                    {getTargetFolderPath().fullPath}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Checkbox区域 */}
-          <div className='mb-20px'>
-            <Checkbox checked={doNotAsk} onChange={(v) => setDoNotAsk(v)}>
-              <span className='text-13px' style={{ color: 'var(--color-text-2)' }}>
-                {t('conversation.workspace.pasteConfirm_noAsk')}
-              </span>
-            </Checkbox>
-          </div>
+            {/* Checkbox区域 */}
+            <div className='mb-20px'>
+              <Checkbox checked={doNotAsk} onChange={(v) => setDoNotAsk(v)}>
+                <span className='text-13px' style={{ color: 'var(--color-text-2)' }}>
+                  {t('conversation.workspace.pasteConfirm_noAsk')}
+                </span>
+              </Checkbox>
+            </div>
 
-          {/* 按钮区域 */}
-          <div className='flex gap-12px justify-end'>
-            <button
-              className='px-16px py-8px rounded-6px text-14px font-medium transition-all'
-              style={{
-                border: '1px solid var(--color-border-2)',
-                backgroundColor: 'transparent',
-                color: 'var(--color-text-1)',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'var(--color-fill-2)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-              }}
-              onClick={() => {
-                setConfirmVisible(false);
-                setPasteTargetFolder(null);
-              }}
-            >
-              {t('conversation.workspace.pasteConfirm_cancel')}
-            </button>
-            <button
-              className='px-16px py-8px rounded-6px text-14px font-medium transition-all'
-              style={{
-                border: 'none',
-                backgroundColor: 'rgb(var(--primary-6))',
-                color: 'white',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgb(var(--primary-5))';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'rgb(var(--primary-6))';
-              }}
-              onClick={async () => {
-                setConfirmVisible(false);
-                try {
-                  const filePaths = confirmFilesToPaste.map((f) => f.path);
-
-                  // 使用工具函数获取目标文件夹路径
-                  // Use utility function to get target folder path
-                  const targetFolderPath = getTargetFolderPath().fullPath;
-
-                  const res = await ipcBridge.fs.copyFilesToWorkspace.invoke({ filePaths, workspace: targetFolderPath });
-                  const copiedFiles = res.data?.copiedFiles ?? [];
-                  const failedFiles = res.data?.failedFiles ?? [];
-
-                  if (copiedFiles.length > 0) {
-                    messageApi.success(t('conversation.workspace.pasteConfirm_paste') || 'Pasted');
-                    setTimeout(() => refreshWorkspace(), 300);
-                  }
-
-                  if (!res.success || failedFiles.length > 0) {
-                    // 即使确认后仍有失败也要明确告知 / Warn even after explicit confirmation when failures remain
-                    const fallback = failedFiles.length > 0 ? 'Some files failed to copy' : res.msg;
-                    messageApi.warning(fallback || t('messages.unknownError') || 'Paste failed');
-                    if (failedFiles.length > 0) {
-                      console.warn('Files failed to copy during confirmed paste:', failedFiles);
-                    }
-                  }
-                  if (doNotAsk) {
-                    await ConfigStorage.set('workspace.pasteConfirm', true);
-                  }
-                } catch (error) {
-                  console.error('Paste failed:', error);
-                  messageApi.error(t('messages.unknownError') || 'Paste failed');
-                } finally {
-                  setPasteTargetFolder(null);
-                }
-              }}
-            >
-              {t('conversation.workspace.pasteConfirm_paste')}
-            </button>
-          </div>
-        </div>
-      </Modal>
-      <Modal visible={renameModal.visible} title={t('conversation.workspace.contextMenu.renameTitle')} onCancel={closeRenameModal} onOk={handleRenameConfirm} okText={t('common.confirm')} cancelText={t('common.cancel')} confirmLoading={renameLoading} style={{ borderRadius: '12px' }}>
-        <Input autoFocus value={renameModal.value} onChange={(value) => setRenameModal((prev) => ({ ...prev, value }))} onPressEnter={handleRenameConfirm} placeholder={t('conversation.workspace.contextMenu.renamePlaceholder')} />
-      </Modal>
-      <Modal visible={deleteModal.visible} title={t('conversation.workspace.contextMenu.deleteTitle')} onCancel={closeDeleteModal} onOk={handleDeleteConfirm} okText={t('common.confirm')} cancelText={t('common.cancel')} confirmLoading={deleteModal.loading} style={{ borderRadius: '12px' }}>
-        <div className='text-14px text-t-secondary'>{t('conversation.workspace.contextMenu.deleteConfirm')}</div>
-      </Modal>
-      <div className='px-16px pb-8px'>
-        <div className='flex items-center justify-start gap-8px'>
-          <span className='font-bold text-14px text-t-primary'>{t('common.file')}</span>
-          <div className='flex items-center gap-8px'>
-            <Tooltip content={t('conversation.workspace.addFile')}>
-              <Button size='mini' icon={<FileAddition theme='outline' size='14' fill={iconColors.secondary} />} onClick={handleAddFiles}></Button>
-            </Tooltip>
-            <Tooltip content={t('conversation.workspace.refresh')}>
-              <Button size='mini' icon={<Refresh className={loading ? 'loading' : ''} theme='outline' size='14' fill={iconColors.secondary} />} onClick={() => refreshWorkspace()}></Button>
-              <span>
-                <FileAddition className='cursor-pointer flex' theme='outline' size='16' fill={iconColors.secondary} onClick={handleAddFiles} />
-              </span>
-            </Tooltip>
-            <Tooltip content={t('conversation.workspace.refresh')}>
-              <span>
-                <Refresh className={loading ? 'loading lh-[1] flex cursor-pointer' : 'flex cursor-pointer'} theme='outline' size='16' fill={iconColors.secondary} onClick={() => refreshWorkspace()} />
-              </span>
-            </Tooltip>
-          </div>
-        </div>
-      </div>
-      {(showSearch || searchText) && (
-        <div className='px-16px pb-8px'>
-          <Input
-            className='w-full'
-            placeholder={t('conversation.workspace.searchPlaceholder')}
-            value={searchText}
-            onChange={(value) => {
-              setSearchText(value);
-              onSearch(value);
-            }}
-            allowClear
-            prefix={<Search theme='outline' size='14' fill={iconColors.primary} />}
-          />
-        </div>
-      )}
-      <FlexFullContainer containerClassName='overflow-y-auto'>
-        {contextMenu.visible && contextMenuNode && contextMenuStyle && (
-          <div
-            className='fixed z-100 min-w-200px max-w-240px rounded-12px bg-base/95 shadow-[0_12px_40px_rgba(15,23,42,0.16)] backdrop-blur-sm p-6px'
-            style={{ top: contextMenuStyle.top, left: contextMenuStyle.left }}
-            onClick={(event) => event.stopPropagation()}
-            onContextMenu={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-            }}
-          >
-            <div className='flex flex-col gap-4px'>
+            {/* 按钮区域 */}
+            <div className='flex gap-12px justify-end'>
               <button
-                type='button'
-                className={menuButtonBase}
+                className='px-16px py-8px rounded-6px text-14px font-medium transition-all'
+                style={{
+                  border: '1px solid var(--color-border-2)',
+                  backgroundColor: 'transparent',
+                  color: 'var(--color-text-1)',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'var(--color-fill-2)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }}
                 onClick={() => {
-                  void handleOpenNode(contextMenuNode);
-                  closeContextMenu();
+                  setConfirmVisible(false);
+                  setPasteTargetFolder(null);
                 }}
               >
-                {t('conversation.workspace.contextMenu.open')}
+                {t('conversation.workspace.pasteConfirm_cancel')}
               </button>
-              {isContextMenuNodeFile && (
+              <button
+                className='px-16px py-8px rounded-6px text-14px font-medium transition-all'
+                style={{
+                  border: 'none',
+                  backgroundColor: 'rgb(var(--primary-6))',
+                  color: 'white',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgb(var(--primary-5))';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.backgroundColor = 'rgb(var(--primary-6))';
+                }}
+                onClick={async () => {
+                  setConfirmVisible(false);
+                  try {
+                    const filePaths = confirmFilesToPaste.map((f) => f.path);
+
+                    // 使用工具函数获取目标文件夹路径
+                    // Use utility function to get target folder path
+                    const targetFolderPath = getTargetFolderPath().fullPath;
+
+                    const res = await ipcBridge.fs.copyFilesToWorkspace.invoke({ filePaths, workspace: targetFolderPath });
+                    const copiedFiles = res.data?.copiedFiles ?? [];
+                    const failedFiles = res.data?.failedFiles ?? [];
+
+                    if (copiedFiles.length > 0) {
+                      messageApi.success(t('conversation.workspace.pasteConfirm_paste') || 'Pasted');
+                      setTimeout(() => refreshWorkspace(), 300);
+                    }
+
+                    if (!res.success || failedFiles.length > 0) {
+                      // 即使确认后仍有失败也要明确告知 / Warn even after explicit confirmation when failures remain
+                      const fallback = failedFiles.length > 0 ? 'Some files failed to copy' : res.msg;
+                      messageApi.warning(fallback || t('messages.unknownError') || 'Paste failed');
+                      if (failedFiles.length > 0) {
+                        console.warn('Files failed to copy during confirmed paste:', failedFiles);
+                      }
+                    }
+                    if (doNotAsk) {
+                      await ConfigStorage.set('workspace.pasteConfirm', true);
+                    }
+                  } catch (error) {
+                    console.error('Paste failed:', error);
+                    messageApi.error(t('messages.unknownError') || 'Paste failed');
+                  } finally {
+                    setPasteTargetFolder(null);
+                  }
+                }}
+              >
+                {t('conversation.workspace.pasteConfirm_paste')}
+              </button>
+            </div>
+          </div>
+        </Modal>
+        <Modal visible={renameModal.visible} title={t('conversation.workspace.contextMenu.renameTitle')} onCancel={closeRenameModal} onOk={handleRenameConfirm} okText={t('common.confirm')} cancelText={t('common.cancel')} confirmLoading={renameLoading} style={{ borderRadius: '12px' }}>
+          <Input autoFocus value={renameModal.value} onChange={(value) => setRenameModal((prev) => ({ ...prev, value }))} onPressEnter={handleRenameConfirm} placeholder={t('conversation.workspace.contextMenu.renamePlaceholder')} />
+        </Modal>
+        <Modal visible={deleteModal.visible} title={t('conversation.workspace.contextMenu.deleteTitle')} onCancel={closeDeleteModal} onOk={handleDeleteConfirm} okText={t('common.confirm')} cancelText={t('common.cancel')} confirmLoading={deleteModal.loading} style={{ borderRadius: '12px' }}>
+          <div className='text-14px text-t-secondary'>{t('conversation.workspace.contextMenu.deleteConfirm')}</div>
+        </Modal>
+        <div className='px-16px pb-8px'>
+          <div className='flex items-center justify-start gap-8px'>
+            <span className='font-bold text-14px text-t-primary'>{t('common.file')}</span>
+            <div className='flex items-center gap-8px'>
+              <Tooltip content={t('conversation.workspace.addFile')}>
+                <span>
+                  <FileAddition className='cursor-pointer flex' theme='outline' size='16' fill={iconColors.secondary} onClick={handleAddFiles} />
+                </span>
+              </Tooltip>
+              <Tooltip content={t('conversation.workspace.refresh')}>
+                <span>
+                  <Refresh className={loading ? 'loading lh-[1] flex cursor-pointer' : 'flex cursor-pointer'} theme='outline' size='16' fill={iconColors.secondary} onClick={() => refreshWorkspace()} />
+                </span>
+              </Tooltip>
+            </div>
+          </div>
+        </div>
+        {(showSearch || searchText) && (
+          <div className='px-16px pb-8px'>
+            <Input
+              className='w-full'
+              placeholder={t('conversation.workspace.searchPlaceholder')}
+              value={searchText}
+              onChange={(value) => {
+                setSearchText(value);
+                onSearch(value);
+              }}
+              allowClear
+              prefix={<Search theme='outline' size='14' fill={iconColors.primary} />}
+            />
+          </div>
+        )}
+        <FlexFullContainer containerClassName='overflow-y-auto'>
+          {contextMenu.visible && contextMenuNode && contextMenuStyle && (
+            <div
+              className='fixed z-100 min-w-200px max-w-240px rounded-12px bg-base/95 shadow-[0_12px_40px_rgba(15,23,42,0.16)] backdrop-blur-sm p-6px'
+              style={{ top: contextMenuStyle.top, left: contextMenuStyle.left }}
+              onClick={(event) => event.stopPropagation()}
+              onContextMenu={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+              }}
+            >
+              <div className='flex flex-col gap-4px'>
                 <button
                   type='button'
                   className={menuButtonBase}
                   onClick={() => {
-                    void handleRevealNode(contextMenuNode);
+                    void handleOpenNode(contextMenuNode);
                     closeContextMenu();
                   }}
                 >
-                  {t('conversation.workspace.contextMenu.openLocation')}
+                  {t('conversation.workspace.contextMenu.open')}
                 </button>
-              )}
-              <div className='h-1px bg-3 my-2px'></div>
-              <button
-                type='button'
-                className={`${menuButtonBase} ${isContextMenuNodeRoot ? menuButtonDisabled : ''}`.trim()}
-                disabled={isContextMenuNodeRoot}
-                onClick={() => {
-                  handleDeleteNode(contextMenuNode);
-                }}
-              >
-                {t('common.delete')}
-              </button>
-              <button
-                type='button'
-                className={`${menuButtonBase} ${isContextMenuNodeRoot ? menuButtonDisabled : ''}`.trim()}
-                disabled={isContextMenuNodeRoot}
-                onClick={() => {
-                  openRenameModal(contextMenuNode);
-                }}
-              >
-                {t('conversation.workspace.contextMenu.rename')}
-              </button>
-              <div className='h-1px bg-3 my-2px'></div>
-              <button
-                type='button'
-                className={menuButtonBase}
-                onClick={() => {
-                  handleAddToChat(contextMenuNode);
-                }}
-              >
-                {t('conversation.workspace.contextMenu.addToChat')}
-              </button>
-            </div>
-          </div>
-        )}
-        {!hasOriginalFiles ? (
-          <div className=' flex-1 size-full flex items-center justify-center px-16px box-border'>
-            <Empty
-              description={
-                <div>
-                  <span className='text-t-secondary font-bold text-14px'>{searchText ? t('conversation.workspace.search.empty') : t('conversation.workspace.empty')}</span>
-                  <div className='text-t-secondary'>{searchText ? '' : t('conversation.workspace.emptyDescription')}</div>
-                </div>
-              }
-            />
-          </div>
-        ) : (
-          <Tree
-            className={'!px-16px workspace-tree'}
-            showLine
-            key={treeKey}
-            selectedKeys={selected}
-            expandedKeys={expandedKeys}
-            treeData={files}
-            fieldNames={{
-              children: 'children',
-              title: 'name',
-              key: 'relativePath',
-              isLeaf: 'isFile',
-            }}
-            multiple
-            renderTitle={(node) => {
-              const path = node.dataRef.fullPath;
-              const relativePath = node.dataRef.relativePath;
-              const isFile = node.dataRef.isFile;
-
-              // 使用 ref 来获取最新的选中状态
-              const isPasteTarget = !isFile && pasteTargetFolder === relativePath;
-
-              return (
-                <span
-                  className='flex items-center gap-4px'
-                  style={{ color: 'inherit' }}
-                  onDoubleClick={() => {
-                    void ipcBridge.shell.openFile.invoke(path);
-                  }}
-                  onContextMenu={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    ensureNodeSelected(node.dataRef as IDirOrFile);
-                    setContextMenu({
-                      visible: true,
-                      x: event.clientX,
-                      y: event.clientY,
-                      node: node.dataRef as IDirOrFile,
-                    });
+                {isContextMenuNodeFile && (
+                  <button
+                    type='button'
+                    className={menuButtonBase}
+                    onClick={() => {
+                      void handleRevealNode(contextMenuNode);
+                      closeContextMenu();
+                    }}
+                  >
+                    {t('conversation.workspace.contextMenu.openLocation')}
+                  </button>
+                )}
+                <div className='h-1px bg-3 my-2px'></div>
+                <button
+                  type='button'
+                  className={`${menuButtonBase} ${isContextMenuNodeRoot ? menuButtonDisabled : ''}`.trim()}
+                  disabled={isContextMenuNodeRoot}
+                  onClick={() => {
+                    handleDeleteNode(contextMenuNode);
                   }}
                 >
-                  {node.title}
-                  {isPasteTarget && <span className='ml-1 text-xs text-blue-700 font-bold bg-blue-500 text-white px-1.5 py-0.5 rounded'>PASTE</span>}
-                </span>
-              );
-            }}
-            onSelect={(keys, extra) => {
-              // 检测点击的节点，实现取消选中功能
-              // Detect clicked node to implement deselection feature
-              const clickedKey = extractNodeKey(extra?.node);
+                  {t('common.delete')}
+                </button>
+                <button
+                  type='button'
+                  className={`${menuButtonBase} ${isContextMenuNodeRoot ? menuButtonDisabled : ''}`.trim()}
+                  disabled={isContextMenuNodeRoot}
+                  onClick={() => {
+                    openRenameModal(contextMenuNode);
+                  }}
+                >
+                  {t('conversation.workspace.contextMenu.rename')}
+                </button>
+                <div className='h-1px bg-3 my-2px'></div>
+                <button
+                  type='button'
+                  className={menuButtonBase}
+                  onClick={() => {
+                    handleAddToChat(contextMenuNode);
+                  }}
+                >
+                  {t('conversation.workspace.contextMenu.addToChat')}
+                </button>
+              </div>
+            </div>
+          )}
+          {!hasOriginalFiles ? (
+            <div className=' flex-1 size-full flex items-center justify-center px-16px box-border'>
+              <Empty
+                description={
+                  <div>
+                    <span className='text-t-secondary font-bold text-14px'>{searchText ? t('conversation.workspace.search.empty') : t('conversation.workspace.empty')}</span>
+                    <div className='text-t-secondary'>{searchText ? '' : t('conversation.workspace.emptyDescription')}</div>
+                  </div>
+                }
+              />
+            </div>
+          ) : (
+            <Tree
+              className={'!px-16px workspace-tree'}
+              showLine
+              key={treeKey}
+              selectedKeys={selected}
+              expandedKeys={expandedKeys}
+              treeData={files}
+              fieldNames={{
+                children: 'children',
+                title: 'name',
+                key: 'relativePath',
+                isLeaf: 'isFile',
+              }}
+              multiple
+              renderTitle={(node) => {
+                const path = node.dataRef.fullPath;
+                const relativePath = node.dataRef.relativePath;
+                const isFile = node.dataRef.isFile;
 
-              let newKeys: string[];
+                // 使用 ref 来获取最新的选中状态
+                const isPasteTarget = !isFile && pasteTargetFolder === relativePath;
 
-              // 完全由我们自己控制选中状态，不依赖 Tree 返回的 keys（可能被污染）
-              // Fully control selection state ourselves, don't rely on Tree's returned keys (may be polluted)
-              if (clickedKey && selectedKeysRef.current.includes(clickedKey)) {
-                // 如果点击的节点已经在选中列表中，则移除它（取消选中）
-                // If clicked node is already selected, remove it (deselect)
-                newKeys = selectedKeysRef.current.filter((key) => key !== clickedKey);
-              } else if (clickedKey) {
-                // 添加点击的节点到选中列表（多选模式）
-                // Add clicked node to selection list (multiple selection mode)
-                newKeys = [...selectedKeysRef.current, clickedKey];
-              } else {
-                // 没有 clickedKey（边界情况），使用 Tree 返回的值作为后备
-                // No clickedKey (edge case), use Tree's returned value as fallback
-                newKeys = keys.filter((key) => key !== workspace);
-              }
+                return (
+                  <span
+                    className='flex items-center gap-4px'
+                    style={{ color: 'inherit' }}
+                    onDoubleClick={() => {
+                      void ipcBridge.shell.openFile.invoke(path);
+                    }}
+                    onContextMenu={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      ensureNodeSelected(node.dataRef as IDirOrFile);
+                      setContextMenu({
+                        visible: true,
+                        x: event.clientX,
+                        y: event.clientY,
+                        node: node.dataRef as IDirOrFile,
+                      });
+                    }}
+                  >
+                    {node.title}
+                    {isPasteTarget && <span className='ml-1 text-xs text-blue-700 font-bold bg-blue-500 text-white px-1.5 py-0.5 rounded'>PASTE</span>}
+                  </span>
+                );
+              }}
+              onSelect={(keys, extra) => {
+                // 检测点击的节点，实现取消选中功能
+                // Detect clicked node to implement deselection feature
+                const clickedKey = extractNodeKey(extra?.node);
 
-              // 同时更新 state 和 ref，确保状态同步
-              // Update both state and ref to ensure state synchronization
-              setSelected(newKeys);
-              selectedKeysRef.current = newKeys;
+                let newKeys: string[];
 
-              // 更新 selectedNodeRef：找到最后选中的文件夹节点
-              // Update selectedNodeRef: find the last selected folder node
-              if (extra && extra.node) {
-                // 尝试不同的方式访问节点数据
-                // Try different ways to access node data
-                const nodeData = extractNodeData(extra.node);
+                // 完全由我们自己控制选中状态，不依赖 Tree 返回的 keys（可能被污染）
+                // Fully control selection state ourselves, don't rely on Tree's returned keys (may be polluted)
+                if (clickedKey && selectedKeysRef.current.includes(clickedKey)) {
+                  // 如果点击的节点已经在选中列表中，则移除它（取消选中）
+                  // If clicked node is already selected, remove it (deselect)
+                  newKeys = selectedKeysRef.current.filter((key) => key !== clickedKey);
+                } else if (clickedKey) {
+                  // 添加点击的节点到选中列表（多选模式）
+                  // Add clicked node to selection list (multiple selection mode)
+                  newKeys = [...selectedKeysRef.current, clickedKey];
+                } else {
+                  // 没有 clickedKey（边界情况），使用 Tree 返回的值作为后备
+                  // No clickedKey (edge case), use Tree's returned value as fallback
+                  newKeys = keys.filter((key) => key !== workspace);
+                }
 
-                if (nodeData) {
-                  if (!nodeData.isFile && nodeData.fullPath && nodeData.relativePath) {
-                    selectedNodeRef.current = {
-                      relativePath: nodeData.relativePath,
-                      fullPath: nodeData.fullPath,
-                    };
-                  } else if (nodeData.isFile) {
-                    selectedNodeRef.current = null;
+                // 同时更新 state 和 ref，确保状态同步
+                // Update both state and ref to ensure state synchronization
+                setSelected(newKeys);
+                selectedKeysRef.current = newKeys;
+
+                // 更新 selectedNodeRef：找到最后选中的文件夹节点
+                // Update selectedNodeRef: find the last selected folder node
+                if (extra && extra.node) {
+                  // 尝试不同的方式访问节点数据
+                  // Try different ways to access node data
+                  const nodeData = extractNodeData(extra.node);
+
+                  if (nodeData) {
+                    if (!nodeData.isFile && nodeData.fullPath && nodeData.relativePath) {
+                      selectedNodeRef.current = {
+                        relativePath: nodeData.relativePath,
+                        fullPath: nodeData.fullPath,
+                      };
+                    } else if (nodeData.isFile) {
+                      selectedNodeRef.current = null;
+                    }
                   }
                 }
-              }
 
-              // 向 SendBox 发送文件和文件夹对象
-              // 使用 fullPath（绝对路径）而不是 relativePath，以便 FilePreview 组件能正确显示图片预览
-              // Emit both file and folder objects to SendBox
-              // Use fullPath (absolute path) instead of relativePath so FilePreview can display image previews correctly
-              const items: Array<{ path: string; name: string; isFile: boolean }> = [];
+                // 向 SendBox 发送文件和文件夹对象
+                // 使用 fullPath（绝对路径）而不是 relativePath，以便 FilePreview 组件能正确显示图片预览
+                // Emit both file and folder objects to SendBox
+                // Use fullPath (absolute path) instead of relativePath so FilePreview can display image previews correctly
+                const items: Array<{ path: string; name: string; isFile: boolean }> = [];
 
-              // 遍历选中的节点，收集文件和文件夹的完整信息（使用工具函数 findNodeByKey）
-              // Iterate through selected nodes and collect full info of files and folders (using utility function findNodeByKey)
-              for (const k of newKeys) {
-                const node = findNodeByKey(files, k);
-                if (node && node.fullPath) {
-                  items.push({
-                    path: node.fullPath,
-                    name: node.name,
-                    isFile: node.isFile,
-                  });
+                // 遍历选中的节点，收集文件和文件夹的完整信息（使用工具函数 findNodeByKey）
+                // Iterate through selected nodes and collect full info of files and folders (using utility function findNodeByKey)
+                for (const k of newKeys) {
+                  const node = findNodeByKey(files, k);
+                  if (node && node.fullPath) {
+                    items.push({
+                      path: node.fullPath,
+                      name: node.name,
+                      isFile: node.isFile,
+                    });
+                  }
                 }
-              }
 
-              emitter.emit(`${eventPrefix}.selected.file`, items);
-            }}
-            onExpand={(keys) => {
-              // eslint-disable-next-line no-console
-              setExpandedKeys(keys);
-            }}
-            loadMore={(treeNode) => {
-              const path = treeNode.props.dataRef.fullPath;
-              return ipcBridge.conversation.getWorkspace.invoke({ conversation_id, workspace, path }).then((res) => {
-                treeNode.props.dataRef.children = res[0].children;
-                setFiles([...files]);
-              });
-            }}
-          ></Tree>
-        )}
-      </FlexFullContainer>
-    </div>
+                emitter.emit(`${eventPrefix}.selected.file`, items);
+              }}
+              onExpand={(keys) => {
+                // eslint-disable-next-line no-console
+                setExpandedKeys(keys);
+              }}
+              loadMore={(treeNode) => {
+                const path = treeNode.props.dataRef.fullPath;
+                return ipcBridge.conversation.getWorkspace.invoke({ conversation_id, workspace, path }).then((res) => {
+                  treeNode.props.dataRef.children = res[0].children;
+                  setFiles([...files]);
+                });
+              }}
+            ></Tree>
+          )}
+        </FlexFullContainer>
+      </div>
+      {shouldRenderLocalMessageContext && messageContext}
+    </>
   );
 };
 

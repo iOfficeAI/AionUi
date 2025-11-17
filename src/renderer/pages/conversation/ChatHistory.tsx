@@ -193,8 +193,6 @@ const ChatHistory: React.FC<{ onSessionClick?: () => void; collapsed?: boolean }
       <Tooltip key={conversation.id} disabled={!collapsed} content={conversation.name || t('conversation.welcome.newConversation')} position='right'>
         <div
           id={'c-' + conversation.id}
-          className={classNames('hover:bg-aou-1 px-12px py-8px rd-8px flex justify-start items-center group cursor-pointer relative overflow-hidden group shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px', {
-            '!bg-aou-2 ': isSelected,
           className={classNames('hover:bg-hover px-12px py-8px rd-8px flex justify-start items-center group cursor-pointer relative overflow-hidden group shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px', {
             '!bg-active ': isSelected,
           })}

@@ -228,7 +228,7 @@ module.exports = {
         },
         client: {
           overlay: {
-            errors: true,    // 显示错误
+            errors: true, // 显示错误
             warnings: false, // 不显示警告
           },
         },

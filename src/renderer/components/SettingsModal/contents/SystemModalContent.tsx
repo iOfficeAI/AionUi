@@ -8,7 +8,7 @@ import { ipcBridge } from '@/common';
 import { ConfigStorage } from '@/common/storage';
 import FontSizeControl from '@/renderer/components/FontSizeControl';
 import LanguageSwitcher from '@/renderer/components/LanguageSwitcher';
-import ThemeSwitcher from '@/renderer/components/ThemeSwitcher';
+import { ThemeSwitcher } from '@/renderer/components/ThemeSwitcher';
 import { iconColors } from '@/renderer/theme/colors';
 import { Alert, Button, Divider, Form, Modal, Input, Tooltip } from '@arco-design/web-react';
 import { FolderOpen, Down, Up } from '@icon-park/react';

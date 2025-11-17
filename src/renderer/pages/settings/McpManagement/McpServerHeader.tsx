@@ -4,9 +4,7 @@ import { Check, CloseOne, CloseSmall, LoadingOne, Refresh, Write, DeleteFour, Se
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import McpAgentStatusDisplay from './McpAgentStatusDisplay';
-import { iconColors } from '@/renderer/theme/colors';
 import type { McpOAuthStatus } from '@/renderer/hooks/mcp/useMcpOAuth';
-import McpServerActions from './McpServerActions';
 import { iconColors } from '@/renderer/theme/colors';
 
 interface McpServerHeaderProps {
@@ -24,38 +22,23 @@ interface McpServerHeaderProps {
 }
 
 const getStatusIcon = (status?: IMcpServer['status'], oauthStatus?: McpOAuthStatus) => {
-  // 优先级1: 测试中状态（最高优先级）
   if (status === 'testing' || oauthStatus?.isChecking) {
-    return <LoadingOne fill={iconColors.primary} className={'h-[24px]'} />;
-const getStatusIcon = (status?: IMcpServer['status']) => {
-  switch (status) {
-    case 'connected':
-      return <Check fill={iconColors.success} className={'h-[24px] items-center'} />;
-    case 'testing':
-      return <LoadingOne fill={iconColors.primary} className={'h-[24px]'} />;
-    case 'error':
-      return <CloseSmall fill={iconColors.danger} className={'h-[24px]'} />;
-    default:
-      return <CloseOne fill={iconColors.secondary} className={'h-[24px]'} />;
+    return <LoadingOne fill={iconColors.primary} className='h-[24px]' />;
   }
 
-  // 优先级2: 错误状态
   if (status === 'error') {
-    return <CloseSmall fill={iconColors.danger} className={'h-[24px]'} />;
+    return <CloseSmall fill={iconColors.danger} className='h-[24px]' />;
   }
 
-  // 优先级3: OAuth 需要登录
   if (oauthStatus?.needsLogin) {
     return <span className='text-orange-500 text-xl font-bold leading-none'>△</span>;
   }
 
-  // 优先级4: 连接成功或已认证
   if (status === 'connected' || oauthStatus?.isAuthenticated) {
-    return <Check fill={iconColors.success} className={'h-[24px] items-center'} />;
+    return <Check fill={iconColors.success} className='h-[24px] items-center' />;
   }
 
-  // 默认: 未连接
-  return <CloseOne fill={iconColors.secondary} className={'h-[24px]'} />;
+  return <CloseOne fill={iconColors.secondary} className='h-[24px]' />;
 };
 
 const getStatusText = (status?: IMcpServer['status'], oauthStatus?: McpOAuthStatus, t?: any) => {

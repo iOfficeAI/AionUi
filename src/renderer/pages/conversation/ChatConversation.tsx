@@ -82,10 +82,7 @@ const AddNewConversation: React.FC<{ conversation: TChatConversation }> = ({ con
               console.error('Failed to create conversation:', error);
             });
         }}
-      ></Button>
-      >
-        <Plus theme='filled' size='17' fill={iconColors.primary} strokeWidth={2} strokeLinejoin='miter' strokeLinecap='square' />
-      </span>
+      />
     </Tooltip>
   );
 };
