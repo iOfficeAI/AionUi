@@ -15,6 +15,7 @@ import ShimmerText from '@renderer/components/ShimmerText';
 import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/ThoughtDisplay';
 import { iconColors } from '@/renderer/theme/colors';
 import FilePreview from '@/renderer/components/FilePreview';
+import HorizontalFileList from '@/renderer/components/HorizontalFileList';
 
 interface CodexDraftData {
   _type: 'codex';
@@ -289,7 +290,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
           <>
             {/* Files on top */}
             {(uploadFile.length > 0 || atPath.some((item) => (typeof item === 'string' ? true : item.isFile))) && (
-              <div className='flex flex-wrap items-center gap-8px mb-8px'>
+              <HorizontalFileList>
                 {uploadFile.map((path) => (
                   <FilePreview key={path} path={path} onRemove={() => setUploadFile(uploadFile.filter((v) => v !== path))} />
                 ))}
@@ -311,7 +312,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
                   }
                   return null;
                 })}
-              </div>
+              </HorizontalFileList>
             )}
             {/* Folder tags below */}
             {atPath.some((item) => (typeof item === 'string' ? false : !item.isFile)) && (

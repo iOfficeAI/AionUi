@@ -4,9 +4,9 @@ import type { IProvider, TProviderWithModel } from '@/common/storage';
 import { ConfigStorage } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import SendBox from '@/renderer/components/sendbox';
+import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/useSendBoxDraft';
 import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/ThoughtDisplay';
 import { geminiModeList } from '@/renderer/hooks/useModeModeList';
-import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/useSendBoxDraft';
 import useSWR from 'swr';
 import { iconColors } from '@/renderer/theme/colors';
 import FilePreview from '@/renderer/components/FilePreview';
@@ -19,6 +19,7 @@ import { Button, Dropdown, Menu, Tag } from '@arco-design/web-react';
 import { Plus } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import HorizontalFileList from '@/renderer/components/HorizontalFileList';
 
 const useGeminiSendBoxDraft = getSendBoxDraftHook('gemini', {
   _type: 'gemini',
@@ -252,7 +253,7 @@ const GeminiSendBox: React.FC<{
         onChange={setContent}
         loading={running}
         disabled={!currentModel?.useModel}
-        placeholder={currentModel?.useModel ? '' : t('conversation.chat.noModelSelected')}
+        placeholder={currentModel?.useModel ? t('conversation.chat.sendMessageTo', { model: getDisplayModelName(currentModel.useModel) }) : t('conversation.chat.noModelSelected')}
         onStop={() => {
           return ipcBridge.conversation.stop.invoke({ conversation_id }).then(() => {
             console.log('stopStream');
@@ -280,7 +281,7 @@ const GeminiSendBox: React.FC<{
                     }
                   });
               }}
-            ></Button>
+            />
             <Dropdown
               trigger='click'
               droplist={
@@ -305,7 +306,7 @@ const GeminiSendBox: React.FC<{
                 </Menu>
               }
             >
-              <Button className={'ml-4px sendbox-model-btn'} shape='round'>
+              <Button className='ml-4px sendbox-model-btn' shape='round'>
                 {currentModel ? currentModel.useModel : t('conversation.welcome.selectModel')}
               </Button>
             </Dropdown>
@@ -315,10 +316,10 @@ const GeminiSendBox: React.FC<{
           <>
             {/* Files on top */}
             {(uploadFile.length > 0 || atPath.some((item) => (typeof item === 'string' ? true : item.isFile))) && (
-              <div className='flex flex-wrap items-center gap-8px mb-8px'>
-                {uploadFile.map((path) => {
-                  return <FilePreview key={path} path={path} onRemove={() => setUploadFile(uploadFile.filter((v) => v !== path))} />;
-                })}
+              <HorizontalFileList>
+                {uploadFile.map((path) => (
+                  <FilePreview key={path} path={path} onRemove={() => setUploadFile(uploadFile.filter((v) => v !== path))} />
+                ))}
                 {atPath.map((item) => {
                   const isFile = typeof item === 'string' ? true : item.isFile;
                   const path = typeof item === 'string' ? item : item.path;
@@ -337,7 +338,7 @@ const GeminiSendBox: React.FC<{
                   }
                   return null;
                 })}
-              </div>
+              </HorizontalFileList>
             )}
             {/* Folder tags below */}
             {atPath.some((item) => (typeof item === 'string' ? false : !item.isFile)) && (

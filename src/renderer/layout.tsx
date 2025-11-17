@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { ConfigStorage } from '@/common/storage';
 import PwaPullToRefresh from '@/renderer/components/PwaPullToRefresh';
 import { Layout as ArcoLayout } from '@arco-design/web-react';
 import { MenuFold, MenuUnfold } from '@icon-park/react';
@@ -15,6 +16,7 @@ import { LayoutContext } from './context/LayoutContext';
 import { useDirectorySelection } from './hooks/useDirectorySelection';
 import { useMultiAgentDetection } from './hooks/useMultiAgentDetection';
 import { iconColors } from './theme/colors';
+import { processCustomCss } from './utils/customCssProcessor';
 
 const useDebug = () => {
   const [count, setCount] = useState(0);
@@ -52,9 +54,89 @@ const Layout: React.FC<{
 }> = ({ sider, onSessionClick }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [customCss, setCustomCss] = useState<string>('');
   const { onClick } = useDebug();
   const { contextHolder: multiAgentContextHolder } = useMultiAgentDetection();
   const { contextHolder: directorySelectionContextHolder } = useDirectorySelection();
+
+  // 加载并监听自定义 CSS 配置 / Load & watch custom CSS configuration
+  useEffect(() => {
+    const loadCustomCss = () => {
+      ConfigStorage.get('customCss')
+        .then((css) => setCustomCss(css || ''))
+        .catch((error) => {
+          console.error('Failed to load custom CSS:', error);
+        });
+    };
+
+    loadCustomCss();
+
+    const handleCssUpdate = (event: CustomEvent) => {
+      if (event.detail?.customCss !== undefined) {
+        setCustomCss(event.detail.customCss || '');
+      }
+    };
+    const handleStorageChange = (event: StorageEvent) => {
+      if (event.key && event.key.includes('customCss')) {
+        loadCustomCss();
+      }
+    };
+
+    window.addEventListener('custom-css-updated', handleCssUpdate as EventListener);
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('custom-css-updated', handleCssUpdate as EventListener);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
+  // 注入自定义 CSS / Inject custom CSS into document head
+  useEffect(() => {
+    const styleId = 'user-defined-custom-css';
+
+    if (!customCss) {
+      document.getElementById(styleId)?.remove();
+      return;
+    }
+
+    const wrappedCss = processCustomCss(customCss);
+
+    const ensureStyleAtEnd = () => {
+      let styleEl = document.getElementById(styleId) as HTMLStyleElement | null;
+
+      if (styleEl && styleEl.textContent === wrappedCss && styleEl === document.head.lastElementChild) {
+        return;
+      }
+
+      styleEl?.remove();
+      styleEl = document.createElement('style');
+      styleEl.id = styleId;
+      styleEl.type = 'text/css';
+      styleEl.textContent = wrappedCss;
+      document.head.appendChild(styleEl);
+    };
+
+    ensureStyleAtEnd();
+
+    const observer = new MutationObserver((mutations) => {
+      const hasNewStyle = mutations.some((mutation) => Array.from(mutation.addedNodes).some((node) => node.nodeName === 'STYLE' || node.nodeName === 'LINK'));
+
+      if (hasNewStyle) {
+        const element = document.getElementById(styleId);
+        if (element && element !== document.head.lastElementChild) {
+          ensureStyleAtEnd();
+        }
+      }
+    });
+
+    observer.observe(document.head, { childList: true });
+
+    return () => {
+      observer.disconnect();
+      document.getElementById(styleId)?.remove();
+    };
+  }, [customCss]);
 
   // 检测移动端并响应窗口大小变化
   useEffect(() => {
@@ -77,7 +159,7 @@ const Layout: React.FC<{
     <LayoutContext.Provider value={{ isMobile, siderCollapsed: collapsed, setSiderCollapsed: setCollapsed }}>
       <ArcoLayout className={'size-full layout'}>
         <ArcoLayout.Sider
-          collapsedWidth={isMobile ? 250 : 64}
+          collapsedWidth={isMobile ? 0 : 64}
           collapsed={collapsed}
           width={250}
           className={classNames('!bg-2 layout-sider', {

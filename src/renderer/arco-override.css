@@ -6,6 +6,11 @@
   }
 }
 
+.arco-btn-primary.arco-btn-disabled {
+  background-color: var(--aou-2) !important;
+  border-color: var(--aou-2) !important;
+}
+
 .arco-collapse {
   border: none;
   border-radius: 8px;
@@ -61,7 +66,6 @@ body[arco-theme='dark'] .arco-tag-checked.arco-tag-gray {
 .aionui-modal .arco-modal-content {
   background: var(--bg-1) !important;
   border-radius: 12px !important;
-  padding: 0 !important;
 }
 
 .aionui-modal-header {

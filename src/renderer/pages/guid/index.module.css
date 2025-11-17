@@ -80,6 +80,12 @@
   }
 }
 
+/* 浅色占位符 */
+.lightPlaceholder :global(textarea::placeholder) {
+  color: var(--text-disabled) !important;
+  opacity: 1 !important;
+}
+
 /* iPhone专门优化 */
 @supports (-webkit-touch-callout: none) {
   .actionRow {

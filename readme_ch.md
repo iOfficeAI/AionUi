@@ -192,6 +192,30 @@ AionUi 为需要更好工作流效率的用户提供了现代界面，同时**�
 
 > 💡 **需要详细配置指南？** 查看我们的 [完整安装教程](https://github.com/iOfficeAI/AionUi/wiki/Getting-Started-Chinese)
 
+## 🛠️ 本地开发
+
+想在本地调试或定制 AionUi？
+
+1. `npm install`
+2. `npm start`
+
+`npm start` 会启动两个端口：Webpack 开发服务器（默认 **3000**）和日志查看器（默认 **9000**）。若有冲突，可通过环境变量覆盖：
+
+```bash
+AIONUI_DEV_PORT=3100 \\
+AIONUI_LOGGER_PORT=9100 \\
+npm start
+# 也可以使用 DEV_SERVER_PORT / PORT、DEV_LOGGER_PORT / LOGGER_PORT
+```
+
+Windows PowerShell 示例：
+
+```powershell
+$env:AIONUI_DEV_PORT=3100
+$env:AIONUI_LOGGER_PORT=9100
+npm start
+```
+
 ## 📚 详细文档
 
 ### 🚀 快速入门

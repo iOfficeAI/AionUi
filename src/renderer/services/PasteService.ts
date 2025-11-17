@@ -54,6 +54,11 @@ class PasteServiceClass {
 
   // 全局粘贴事件处理
   private handleGlobalPaste = async (event: ClipboardEvent) => {
+    // 当粘贴目标是可编辑元素（input/textarea/contentEditable）时，直接交给浏览器原生行为，避免拦截其他输入框
+    if (this.shouldAllowNativePaste(event)) {
+      return;
+    }
+
     if (!this.lastFocusedComponent) return;
 
     const handler = this.handlers.get(this.lastFocusedComponent);
@@ -65,6 +70,32 @@ class PasteServiceClass {
       }
     }
   };
+
+  private shouldAllowNativePaste(event: ClipboardEvent): boolean {
+    const target = event.target;
+    if (!target || !(target instanceof Element)) {
+      return false;
+    }
+
+    const editableElement = target.closest('input, textarea, [contenteditable]');
+    if (!editableElement) {
+      return false;
+    }
+
+    if (editableElement instanceof HTMLInputElement || editableElement instanceof HTMLTextAreaElement) {
+      return true;
+    }
+
+    if (editableElement instanceof HTMLElement) {
+      if (editableElement.isContentEditable) {
+        return true;
+      }
+      const attr = editableElement.getAttribute('contenteditable');
+      return !!attr && attr.toLowerCase() !== 'false';
+    }
+
+    return false;
+  }
 
   // 通用粘贴处理逻辑
   async handlePaste(event: React.ClipboardEvent | ClipboardEvent, supportedExts: string[], onFilesAdded: (files: FileMetadata[]) => void, onTextPaste?: (text: string) => void): Promise<boolean> {

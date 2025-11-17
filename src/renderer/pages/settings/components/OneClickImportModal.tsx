@@ -5,8 +5,8 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Check } from '@icon-park/react';
 import { iconColors } from '@/renderer/theme/colors';
-import StepsWrapper from '@/renderer/components/base/StepsWrapper';
-import ModalWrapper from '@/renderer/components/base/ModalWrapper';
+import AionSteps from '@/renderer/components/base/AionSteps';
+import AionModal from '@/renderer/components/base/AionModal';
 
 interface OneClickImportModalProps {
   visible: boolean;
@@ -212,58 +212,56 @@ const OneClickImportModal: React.FC<OneClickImportModalProps> = ({ visible, onCa
 
   if (!visible) return null;
 
+  const renderFooter = () => (
+    <div className='flex justify-end gap-10px'>
+      {currentStep === 1 && (
+        <>
+          <Button onClick={onCancel} className='min-w-100px' style={{ borderRadius: 8 }}>
+            {t('common.cancel')}
+          </Button>
+          <Button type='primary' onClick={handleNextStep} disabled={!selectedAgent} className='min-w-120px' style={{ borderRadius: 8 }}>
+            {t('settings.mcpNextStep')}
+          </Button>
+        </>
+      )}
+      {currentStep === 2 && (
+        <>
+          <Button onClick={handlePrevStep} className='min-w-100px' style={{ borderRadius: 8 }}>
+            {t('settings.mcpPrevStep')}
+          </Button>
+          <Button type='primary' onClick={handleNextStep} disabled={loadingImport || importableServers.length === 0} className='min-w-120px' style={{ borderRadius: 8 }}>
+            {t('settings.mcpImportButton')}
+          </Button>
+        </>
+      )}
+      {currentStep === 3 && (
+        <Button type='primary' onClick={onCancel} className='min-w-120px' style={{ borderRadius: 8 }}>
+          {t('settings.mcpConfirmButton')}
+        </Button>
+      )}
+    </div>
+  );
+
   return (
-    <ModalWrapper title={t('settings.mcpOneKeyImport')} visible={visible} onCancel={onCancel} footer={null} style={{ width: 568 }}>
-      <div className='px-6 pb-0'>
-        {/* 步骤提示文本 */}
+    <AionModal header={{ title: t('settings.mcpOneKeyImport'), showClose: true }} visible={visible} onCancel={onCancel} footer={{ render: renderFooter }} style={{ width: 600, height: 420 }} contentStyle={{ borderRadius: 16, padding: '24px', background: 'var(--bg-1)', overflow: 'hidden', height: 420 - 96 }}>
+      <div className='flex flex-col h-275px mt-20px'>
         <div className='mb-6 text-t-secondary text-sm'>{t('settings.mcpImportDescription')}</div>
 
-        {/* 步骤指示器 */}
         <div className='mb-6'>
-          <StepsWrapper current={currentStep} size='small'>
-            <StepsWrapper.Step title={t('settings.mcpStepSelectAgent')} icon={currentStep > 1 ? <Check theme='filled' size={16} fill='#165dff' /> : undefined} />
-            <StepsWrapper.Step title={t('settings.mcpStepFetchTools')} icon={currentStep > 2 ? <Check theme='filled' size={16} fill='#165dff' /> : undefined} />
-            <StepsWrapper.Step title={t('settings.mcpStepImportSuccess')} />
-          </StepsWrapper>
+          <AionSteps current={currentStep} size='small'>
+            <AionSteps.Step title={t('settings.mcpStepSelectAgent')} icon={currentStep > 1 ? <Check theme='filled' size={16} fill='#165dff' /> : undefined} />
+            <AionSteps.Step title={t('settings.mcpStepFetchTools')} icon={currentStep > 2 ? <Check theme='filled' size={16} fill='#165dff' /> : undefined} />
+            <AionSteps.Step title={t('settings.mcpStepImportSuccess')} />
+          </AionSteps>
         </div>
 
-        {/* 步骤内容 */}
-        <div className={`mb-6 ${currentStep === 1 ? 'min-h-[60px]' : 'min-h-[180px] max-h-[280px]'}`}>
+        <div className={`mb-6 flex-1 overflow-y-auto ${currentStep === 1 ? 'min-h-[60px]' : 'min-h-[180px]'}`}>
           {currentStep === 1 && renderStep1()}
           {currentStep === 2 && renderStep2()}
           {currentStep === 3 && renderStep3()}
         </div>
-
-        {/* 底部按钮 */}
-        <div className='flex justify-end gap-3 h-[72px] items-center px-6 -mx-6' style={{ borderTop: '1px solid var(--bg-3)' }}>
-          {currentStep === 1 && (
-            <>
-              <Button onClick={onCancel} size='large' shape='round' style={{ border: '1px solid var(--bg-3)' }}>
-                {t('common.cancel')}
-              </Button>
-              <Button type='primary' onClick={handleNextStep} size='large' shape='round' disabled={!selectedAgent}>
-                {t('settings.mcpNextStep')}
-              </Button>
-            </>
-          )}
-          {currentStep === 2 && (
-            <>
-              <Button onClick={handlePrevStep} size='large' shape='round' style={{ border: '1px solid var(--bg-3)' }}>
-                {t('settings.mcpPrevStep')}
-              </Button>
-              <Button type='primary' onClick={handleNextStep} size='large' shape='round' disabled={loadingImport || importableServers.length === 0}>
-                {t('settings.mcpImportButton')}
-              </Button>
-            </>
-          )}
-          {currentStep === 3 && (
-            <Button type='primary' onClick={onCancel} size='large' shape='round'>
-              {t('settings.mcpConfirmButton')}
-            </Button>
-          )}
-        </div>
       </div>
-    </ModalWrapper>
+    </AionModal>
   );
 };
 

@@ -94,7 +94,7 @@ const ChatLayout: React.FC<{
   }, [layout?.isMobile]); // 监听全局 isMobile 状态变化
 
   return (
-    <ArcoLayout className={'size-full'}>
+    <ArcoLayout className='size-full'>
       <ArcoLayout.Content
         className='flex flex-col flex-1'
         onClick={() => {
@@ -104,20 +104,20 @@ const ChatLayout: React.FC<{
           }
         }}
       >
-        <ArcoLayout.Header className={classNames('h-52px flex items-center justify-between p-16px gap-16px  !bg-1 chat-layout-header')}>
+        <ArcoLayout.Header className={classNames('h-52px flex items-center justify-between p-16px gap-16px !bg-1 chat-layout-header')}>
           <FlexFullContainer className='h-full' containerClassName='flex items-center'>
             {layout?.isMobile && layout?.siderCollapsed && (
               <span className='inline-flex items-center justify-center w-18px h-18px mr-4px cursor-pointer' onClick={() => layout.setSiderCollapsed(false)} style={{ lineHeight: 0, transform: 'translateY(1px)' }}>
                 <MenuUnfold theme='outline' size={18} fill={iconColors.secondary} strokeWidth={3} />
               </span>
             )}
-            <span className='ml-8px font-bold text-16px lh-[1] text-t-primary inline-block overflow-hidden text-ellipsis whitespace-nowrap w-full max-w-60%'>{props.title}</span>
+            <span className='ml-8px font-bold text-16px text-t-primary inline-block overflow-hidden text-ellipsis whitespace-nowrap w-full max-w-60%'>{props.title}</span>
           </FlexFullContainer>
           <div className='flex items-center gap-16px'>
             {backend && (
               <div className='ml-16px flex items-center gap-2 bg-2 w-fit rounded-full px-[8px] py-[2px]'>
                 <img src={backend === 'claude' ? ClaudeLogo : backend === 'gemini' ? GeminiLogo : backend === 'qwen' ? QwenLogo : backend === 'iflow' ? IflowLogo : backend === 'codex' ? CodexLogo : ''} alt={`${backend} logo`} width={16} height={16} style={{ objectFit: 'contain' }} />
-                <span className='font-medium text-t-primary'>{ACP_BACKENDS_ALL[backend as keyof typeof ACP_BACKENDS_ALL]?.name || backend}</span>
+                <span className='text-sm'>{ACP_BACKENDS_ALL[backend as keyof typeof ACP_BACKENDS_ALL]?.name || backend}</span>
               </div>
             )}
             {rightSiderCollapsed ? <ExpandRight onClick={() => setRightSiderCollapsed(false)} className='cursor-pointer flex' theme='outline' size='24' fill={iconColors.secondary} strokeWidth={3} /> : <ExpandLeft onClick={() => setRightSiderCollapsed(true)} className='cursor-pointer flex' theme='outline' size='24' fill={iconColors.secondary} strokeWidth={3} />}
@@ -130,7 +130,7 @@ const ChatLayout: React.FC<{
         width={siderWidth}
         collapsedWidth={layout?.isMobile ? siderWidth : 0}
         collapsed={rightSiderCollapsed}
-        className={'!bg-1 relative chat-layout-right-sider'}
+        className='!bg-1 relative chat-layout-right-sider'
         style={
           layout?.isMobile
             ? {
@@ -146,14 +146,11 @@ const ChatLayout: React.FC<{
             : undefined
         }
       >
-        {/* Drag handle */}
-        {/* <div className={`absolute left-0 top-0 bottom-0 w-6px cursor-col-resize transition-all duration-200 z-10 ${isDragging ? 'bg-#86909C/40' : 'hover:bg-#86909C/20'}`} onMouseDown={handleDragStart} onDoubleClick={handleDoubleClick} /> */}
         {dragContext}
-        <ArcoLayout.Header className={'flex items-center justify-start p-16px gap-16px h-56px'}>
+        <ArcoLayout.Header className='flex items-center justify-start p-16px gap-16px h-56px'>
           <div className='w-full'>{props.siderTitle}</div>
-          {/* <ExpandLeft theme='outline' size='24' fill='#86909C' className='cursor-pointer' strokeWidth={3} onClick={() => setRightSiderCollapsed(true)} /> */}
         </ArcoLayout.Header>
-        <ArcoLayout.Content className={'h-[calc(100%-106px)] bg-1'}>{props.sider}</ArcoLayout.Content>
+        <ArcoLayout.Content className='h-[calc(100%-106px)] bg-1'>{props.sider}</ArcoLayout.Content>
       </ArcoLayout.Sider>
     </ArcoLayout>
   );
