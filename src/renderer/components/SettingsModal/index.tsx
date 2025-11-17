@@ -184,13 +184,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
   const renderContent = () => {
     switch (activeTab) {
       case 'gemini':
-        return <GeminiModalContent />;
+        return <GeminiModalContent onRequestClose={onCancel} />;
       case 'model':
         return <ModelModalContent />;
       case 'tools':
         return <ToolsModalContent />;
       case 'system':
-        return <SystemModalContent />;
+        return <SystemModalContent onRequestClose={onCancel} />;
       case 'about':
         return <AboutModalContent />;
       default:
@@ -245,7 +245,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
       footer={null}
       className='settings-modal'
       style={{
-        width: isMobile ? `min(100vw, ${MODAL_WIDTH.mobile}px)` : `${MODAL_WIDTH.desktop}px`,
+        width: isMobile ? `clamp(var(--app-min-width, 390px), 100vw, ${MODAL_WIDTH.mobile}px)` : `clamp(var(--app-min-width, 390px), 100vw, ${MODAL_WIDTH.desktop}px)`,
+        minWidth: 'var(--app-min-width, 390px)',
         maxHeight: isMobile ? MODAL_HEIGHT.mobile : undefined,
         borderRadius: '16px',
       }}

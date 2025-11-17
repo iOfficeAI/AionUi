@@ -12,7 +12,12 @@ import { Button, Divider, Form, Input, Message, Switch } from '@arco-design/web-
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-const GeminiModalContent: React.FC = () => {
+interface GeminiModalContentProps {
+  /** 请求关闭设置弹窗 / Request closing the settings modal */
+  onRequestClose?: () => void;
+}
+
+const GeminiModalContent: React.FC<GeminiModalContentProps> = ({ onRequestClose }) => {
   const { t } = useTranslation();
   const { theme } = useThemeContext();
   const [form] = Form.useForm();
@@ -51,6 +56,7 @@ const GeminiModalContent: React.FC = () => {
       await ConfigStorage.set('customCss', customCss || '');
 
       message.success(t('common.saveSuccess'));
+      onRequestClose?.();
 
       window.dispatchEvent(
         new CustomEvent('custom-css-updated', {
@@ -62,6 +68,10 @@ const GeminiModalContent: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCancel = () => {
+    onRequestClose?.();
   };
 
   useEffect(() => {
@@ -165,7 +175,9 @@ const GeminiModalContent: React.FC = () => {
 
       {/* Footer with Buttons */}
       <div className='flex-shrink-0 pl-24px py-16px border-t border-border-2 flex justify-end gap-10px'>
-        <Button className='rd-100px'>{t('common.cancel')}</Button>
+        <Button className='rd-100px' onClick={handleCancel}>
+          {t('common.cancel')}
+        </Button>
         <Button type='primary' loading={loading} onClick={onSubmit} className='rd-100px'>
           {t('common.save')}
         </Button>
