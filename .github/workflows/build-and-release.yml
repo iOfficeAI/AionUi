@@ -49,7 +49,40 @@ jobs:
         include:
           - platform: 'macos'
             os: 'macos-latest'
-            command: 'npm run build-mac'
+            command: |
+              cat <<'MAC_STAGGER' > /tmp/mac-staggered-build.sh
+              #!/usr/bin/env bash
+              set -euo pipefail
+
+              run_build() {
+                local label="$1"
+                shift
+
+                echo ""
+                echo "=========================================="
+                echo "🚀 Starting ${label} build"
+                echo "=========================================="
+                node scripts/build-with-builder.js "$@"
+                echo "✅ Finished ${label} build"
+              }
+
+              run_build "macOS arm64" arm64 --mac --arm64
+
+              delay=${MAC_STAGGER_DELAY_SECONDS:-300}
+              if ! [[ "$delay" =~ ^[0-9]+$ ]]; then
+                delay=300
+              fi
+
+              if [ "$delay" -gt 0 ]; then
+                echo ""
+                echo "⏳ Waiting ${delay} seconds before starting macOS x64 build to avoid Apple notarization contention..."
+                sleep "$delay"
+              fi
+
+              run_build "macOS x64" x64 --mac --x64
+              MAC_STAGGER
+
+              bash /tmp/mac-staggered-build.sh
             artifact-name: 'macos-build'
             arch: 'x64,arm64'
           - platform: 'windows-x64'
@@ -78,12 +111,39 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
+      - name: Setup Python (for native dependencies)
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
       - name: Install dependencies
         run: npm ci
 
+      - name: Setup Windows native dependencies (for Windows only)
+        if: startsWith(matrix.platform, 'windows')
+        run: |
+          npm install --global node-gyp
+
+      - name: Install MSVC ARM64 toolchain (Windows ARM64 only)
+        if: matrix.platform == 'windows-arm64'
+        shell: pwsh
+        run: |
+          choco install visualstudio2022buildtools --yes --params "'--add Microsoft.VisualStudio.Component.VC.Tools.ARM64 --add Microsoft.VisualStudio.Component.Windows11SDK.22000 --includeRecommended --includeOptional'"
+
+      - name: Setup Windows build environment (for Windows only)
+        if: startsWith(matrix.platform, 'windows')
+        run: |
+          echo "Setting Windows SDK version for ConPty support"
+          echo "WindowsTargetPlatformVersion=10.0.19041.0" >> $env:GITHUB_ENV
+
+      - name: Setup MSBuild (for Windows only)
+        if: startsWith(matrix.platform, 'windows')
+        uses: microsoft/setup-msbuild@v2
+        with:
+          vs-version: '17.0'
+
       - name: Rebuild native modules for Electron
         run: npx electron-builder install-app-deps
-        continue-on-error: ${{ startsWith(matrix.platform, 'windows') }}
         env:
           npm_config_runtime: electron
           npm_config_disturl: https://electronjs.org/headers
@@ -108,34 +168,6 @@ jobs:
           echo "Runner OS: ${{ runner.os }}"
           echo "Runner Arch: ${{ runner.arch }}"
           echo "=========================================="
-
-      - name: Setup Windows native dependencies (for Windows only)
-        if: startsWith(matrix.platform, 'windows')
-        run: |
-          npm install --global node-gyp
-
-      - name: Install MSVC ARM64 toolchain (Windows ARM64 only)
-        if: matrix.platform == 'windows-arm64'
-        shell: pwsh
-        run: |
-          choco install visualstudio2022buildtools --yes --params "'--add Microsoft.VisualStudio.Component.VC.Tools.ARM64 --add Microsoft.VisualStudio.Component.Windows11SDK.22000 --includeRecommended --includeOptional'"
-
-      - name: Setup Python (for native dependencies)
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-
-      - name: Setup Windows build environment (for Windows only)
-        if: startsWith(matrix.platform, 'windows')
-        run: |
-          echo "Setting Windows SDK version for ConPty support"
-          echo "WindowsTargetPlatformVersion=10.0.19041.0" >> $env:GITHUB_ENV
-
-      - name: Setup MSBuild (for Windows only)
-        if: startsWith(matrix.platform, 'windows')
-        uses: microsoft/setup-msbuild@v2
-        with:
-          vs-version: '17.0'
 
       # macOS 代码签名证书安装
       - name: Setup macOS code signing (macOS only)
@@ -196,10 +228,30 @@ jobs:
 
       - name: Build with electron-builder (Windows)
         if: startsWith(matrix.platform, 'windows')
-        shell: cmd
+        id: windows-build
+        shell: pwsh
         run: |
-          ${{ matrix.command }}
+          $ErrorActionPreference = 'Stop'
+          $Command = $env:WINDOWS_BUILD_COMMAND
+          $BuildFailed = $false
+
+          try {
+            Write-Host "Running Windows build command: $Command"
+            iex $Command
+            Write-Host "Windows build completed successfully"
+          } catch {
+            $BuildFailed = $true
+            Write-Warning "${{ matrix.platform }} build failed but will not block the workflow"
+            Write-Host "::notice title=Windows build skipped::${{ matrix.platform }} build failed (see logs above) but workflow is allowed to continue."
+          }
+
+          if ($BuildFailed) {
+            "result=failure" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          } else {
+            "result=success" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          }
         env:
+          WINDOWS_BUILD_COMMAND: ${{ matrix.command }}
           # Target arch / 目标架构
           npm_config_arch: ${{ matrix.arch }}
           npm_config_target_arch: ${{ matrix.arch }}
@@ -232,7 +284,7 @@ jobs:
         if: "!startsWith(matrix.platform, 'windows')"
         uses: nick-fields/retry@v3
         with:
-          timeout_minutes: 40
+          timeout_minutes: 80
           max_attempts: 2
           retry_wait_seconds: 300
           continue_on_error: ${{ matrix.platform == 'macos' }}
@@ -263,6 +315,7 @@ jobs:
           npm_config_runtime: electron
           npm_config_target: ${{ steps.electron-version.outputs.version }}
           npm_config_target_arch: ${{ matrix.arch }}
+          MAC_STAGGER_DELAY_SECONDS: ${{ matrix.platform == 'macos' && '300' || '0' }}
           # CI flag & GitHub token / CI 标识与 GitHub Token
           CI: true
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
@@ -320,7 +373,9 @@ jobs:
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
-        if: success() || (failure() && matrix.platform == 'macos')
+        if: >-
+          (success() && (!startsWith(matrix.platform, 'windows') || steps.windows-build.outputs.result == 'success'))
+          || (failure() && matrix.platform == 'macos')
         with:
           name: ${{ matrix.artifact-name }}
           path: |

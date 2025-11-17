@@ -1,5 +1,17 @@
 /* Base styles - theme-independent */
 
+:root {
+  --app-min-width: 390px;
+}
+
+html,
+body,
+#root,
+.layout,
+.layout-content {
+  min-width: var(--app-min-width); /* prevent layout collapse on very small screens */
+}
+
 .loading {
   animation: loading 1s linear infinite;
 }
@@ -35,6 +47,121 @@
   }
 }
 
+/* Layout sider transitions - keep bilingual comments for clarity / 布局侧栏过渡动画（中英注释） */
+.layout-sider {
+  transition:
+    width 0.32s ease,
+    min-width 0.32s ease,
+    max-width 0.32s ease;
+}
+
+.layout-sider-header,
+.layout-sider-content {
+  transition:
+    opacity 0.24s ease,
+    transform 0.24s ease;
+  will-change: opacity, transform;
+}
+
+.layout-sider--folding {
+  .layout-sider-header,
+  .layout-sider-content {
+    opacity: 0;
+    transform: translateX(-12px);
+    pointer-events: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .layout-sider,
+  .layout-sider-header,
+  .layout-sider-content {
+    transition: none !important;
+  }
+}
+
+/* Sidebar collapse animation helpers */
+.chat-history,
+.settings-sider {
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease;
+}
+
+.chat-history__item,
+.settings-sider__item {
+  transition:
+    padding 0.2s ease,
+    margin 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.chat-history__item-name,
+.chat-history__item-editor,
+.settings-sider__item-label {
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease;
+  transform-origin: left center;
+}
+
+.settings-sider__item-label {
+  display: block;
+}
+
+.chat-history__placeholder,
+.chat-history__section {
+  overflow: hidden;
+  transition:
+    opacity 0.3s ease,
+    max-height 0.3s ease,
+    margin 0.3s ease,
+    padding 0.3s ease;
+}
+
+.chat-history__placeholder {
+  max-height: 140px;
+}
+
+.chat-history__section {
+  max-height: 40px;
+}
+
+.chat-history--collapsed .chat-history__placeholder,
+.chat-history--collapsed .chat-history__section {
+  opacity: 0;
+  max-height: 0;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+.chat-history--collapsed .chat-history__item-name,
+.chat-history--collapsed .chat-history__item-editor {
+  opacity: 0;
+  transform: translateX(-8px);
+}
+
+.settings-sider--collapsed .settings-sider__item-label {
+  opacity: 0;
+  transform: translateX(-8px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-history,
+  .chat-history__item,
+  .chat-history__item-name,
+  .chat-history__item-editor,
+  .settings-sider,
+  .settings-sider__item,
+  .settings-sider__item-label,
+  .chat-history__placeholder,
+  .chat-history__section {
+    transition: none;
+  }
+}
+
 /* Custom scrollbar styles */
 ::-webkit-scrollbar {
   width: 6px;
@@ -58,7 +185,6 @@
 [data-theme='dark'] ::-webkit-scrollbar-thumb:hover {
   background: rgba(255, 255, 255, 0.2);
 }
-
 
 /* Hide scrollbar while keeping scroll behavior */
 .scrollbar-hide {

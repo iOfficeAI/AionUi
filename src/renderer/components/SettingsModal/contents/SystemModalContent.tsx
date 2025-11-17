@@ -121,7 +121,12 @@ const PreferenceRow: React.FC<{
  * - 自定义CSS编辑器，支持实时预览 / Custom CSS editor with live preview
  * - 配置变更自动保存 / Auto-save on configuration changes
  */
-const SystemModalContent: React.FC = () => {
+interface SystemModalContentProps {
+  /** 关闭设置弹窗 / Close settings modal */
+  onRequestClose?: () => void;
+}
+
+const SystemModalContent: React.FC<SystemModalContentProps> = ({ onRequestClose }) => {
   const { t } = useTranslation();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
@@ -198,6 +203,7 @@ const SystemModalContent: React.FC = () => {
    * If directories are changed, will prompt user for confirmation and restart the app
    */
   const onSubmit = async () => {
+    let shouldClose = false;
     try {
       const values = await form.validate();
       const { cacheDir, workDir } = values;
@@ -213,6 +219,7 @@ const SystemModalContent: React.FC = () => {
           const result = await ipcBridge.application.updateSystemInfo.invoke({ cacheDir, workDir });
           if (result.success) {
             await ipcBridge.application.restart.invoke();
+            shouldClose = true;
           } else {
             setError(result.msg || 'Failed to update system info');
           }
@@ -221,11 +228,16 @@ const SystemModalContent: React.FC = () => {
             setError(caughtError instanceof Error ? caughtError.message : String(caughtError));
           }
         }
+      } else {
+        shouldClose = true;
       }
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : 'Failed to save');
     } finally {
       setLoading(false);
+      if (shouldClose) {
+        onRequestClose?.();
+      }
     }
   };
 
@@ -236,6 +248,11 @@ const SystemModalContent: React.FC = () => {
       form.setFieldValue('workDir', systemInfo.workDir);
     }
     setError(null);
+  };
+
+  const handleCancel = () => {
+    onReset();
+    onRequestClose?.();
   };
 
   return (
@@ -276,8 +293,8 @@ const SystemModalContent: React.FC = () => {
       </AionScrollArea>
 
       {/* 底部操作栏 / Footer with action buttons */}
-      <div className='flex-shrink-0 px-24px border-t border-border-2 flex justify-end gap-10px'>
-        <Button className='rd-100px' onClick={onReset}>
+      <div className='flex-shrink-0 px-24px pt-10px border-t border-border-2 flex justify-end gap-10px'>
+        <Button className='rd-100px' onClick={handleCancel}>
           {t('common.cancel')}
         </Button>
         <Button type='primary' loading={loading} onClick={onSubmit} className='rd-100px'>

@@ -1,8 +1,9 @@
 .guidLayout {
-  width: 800px;
-  max-width: calc(100vw - 32px);
+  width: clamp(var(--app-min-width, 390px), calc(100% - 32px), 800px);
+  max-width: 100%;
   padding: 0 16px;
   box-sizing: border-box;
+  margin: 0 auto;
 }
 
 .guidInputCard {
@@ -54,7 +55,7 @@
 /* 移动端优化 */
 @media (max-width: 768px) {
   .guidLayout {
-    width: 100%;
+    width: clamp(var(--app-min-width, 390px), calc(100% - 32px), 100%);
     padding: 0 16px;
     box-sizing: border-box;
   }

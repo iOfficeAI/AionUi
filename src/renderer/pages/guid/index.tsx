@@ -399,7 +399,7 @@ const Guid: React.FC = () => {
   }, [t]);
   return (
     <ConfigProvider getPopupContainer={() => guidContainerRef.current || document.body}>
-      <div ref={guidContainerRef} className='h-full flex-center flex-col' style={{ position: 'relative' }}>
+      <div ref={guidContainerRef} className='h-full flex-center flex-col px-10px' style={{ position: 'relative' }}>
         {layout?.isMobile && layout?.siderCollapsed && (
           <button type='button' className='mobile-toggle-btn fixed top-0 left-0 z-50 flex items-center justify-center w-16 h-16' style={{ background: 'transparent', border: 'none', outline: 'none', padding: 0, margin: 0 }} onClick={() => layout.setSiderCollapsed(false)}>
             <MenuUnfold theme='outline' size={24} fill={iconColors.secondary} strokeWidth={3} />
