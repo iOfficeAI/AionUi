@@ -55,6 +55,8 @@ export interface AionCollapseItemProps {
 
 /**
  * 标准化 keys 参数为数组格式 / Normalize keys parameter to array format
+ * @param keys - 单个 key 或 key 数组 / Single key or array of keys
+ * @returns 标准化后的 key 数组 / Normalized array of keys
  */
 const normalizeKeys = (keys?: string | string[]): string[] => {
   if (!keys) return [];
@@ -106,23 +108,32 @@ AionCollapseItem.displayName = 'AionCollapseItem';
  * </AionCollapse>
  * ```
  */
-const AionCollapseComponent: React.FC<AionCollapseProps> & { Item: typeof AionCollapseItem } = ({ children, className, defaultActiveKey, activeKey, onChange, accordion, expandIcon, expandIconPosition = 'left', bordered }) => {
+const AionCollapseComponent: React.FC<AionCollapseProps> & { Item: typeof AionCollapseItem } = ({ children, className, defaultActiveKey, activeKey, onChange, accordion, expandIcon, expandIconPosition = 'left', bordered = true }) => {
+  // 判断是否为受控模式 / Determine if in controlled mode
   const isControlled = activeKey !== undefined;
   const [internalKeys, setInternalKeys] = useState<string[]>(normalizeKeys(defaultActiveKey));
   const currentKeys = isControlled ? normalizeKeys(activeKey) : internalKeys;
 
+  // 提取并过滤有效的子面板项 / Extract and filter valid child panel items
   const items = useMemo(() => {
     return React.Children.toArray(children).filter((child): child is React.ReactElement<AionCollapseItemProps> => {
       return React.isValidElement(child) && child.type === AionCollapseItem;
     });
   }, [children]);
 
+  /**
+   * 处理面板切换 / Handle panel toggle
+   * @param name - 面板唯一标识 / Panel unique identifier
+   * @param disabled - 是否禁用 / Whether disabled
+   */
   const handleToggle = (name: string, disabled?: boolean) => {
     if (disabled) return;
     let nextKeys: string[];
     if (currentKeys.includes(name)) {
+      // 收起面板 / Collapse panel
       nextKeys = currentKeys.filter((key) => key !== name);
     } else {
+      // 展开面板（手风琴模式只展开一个）/ Expand panel (accordion mode expands only one)
       nextKeys = accordion ? [name] : [...currentKeys, name];
     }
     if (!isControlled) {
@@ -131,6 +142,7 @@ const AionCollapseComponent: React.FC<AionCollapseProps> & { Item: typeof AionCo
     onChange?.(nextKeys);
   };
 
+  // 挂载状态，用于控制动画 / Mount state for animation control
   const [mounted, setMounted] = React.useState(false);
   React.useEffect(() => {
     setMounted(true);
