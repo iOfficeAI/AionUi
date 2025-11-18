@@ -71,6 +71,33 @@
     "pleaseSelectFile": "Please select a file",
     "pleaseSelectDirectory": "Please select a directory"
   },
+  "preview": {
+    "historyVersions": "History Versions",
+    "currentFile": "Current File",
+    "loading": "Loading...",
+    "loadHistoryFailed": "Failed to load history",
+    "noHistory": "No history versions",
+    "snapshotSaved": "Snapshot saved",
+    "snapshotSaveFailed": "Failed to save snapshot",
+    "historyLoaded": "History version loaded",
+    "historyLoadFailed": "Failed to load history version",
+    "tooFrequent": "Too frequent, please try later",
+    "saveSnapshot": "Save current snapshot",
+    "snapshotNotSupported": "Current content does not support snapshot",
+    "history": "History",
+    "historyNotSupported": "Current content does not support history",
+    "downloadFile": "Download file",
+    "closePreview": "Close preview",
+    "source": "Source",
+    "preview": "Preview",
+    "editor": "Editor",
+    "previewEffect": "Preview",
+    "snapshot": "Snapshot",
+    "downloadMarkdown": "Download Markdown file",
+    "downloadCode": "Download {{language}} file",
+    "downloadDiff": "Download Diff file",
+    "addToChat": "Add to chat"
+  },
   "conversation": {
     "welcome": {
       "title": "Hi, what's your plan for today?",
@@ -119,6 +146,8 @@
       "contextMenu": {
         "open": "Open",
         "openLocation": "Show in folder",
+        "preview": "Preview",
+        "previewFailed": "Failed to preview",
         "deleteTitle": "Delete file",
         "deleteConfirm": "This will delete the file from your system. Continue?",
         "deleteSuccess": "Deleted successfully",

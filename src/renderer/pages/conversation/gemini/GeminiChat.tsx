@@ -12,6 +12,7 @@ import HOC from '@renderer/utils/HOC';
 import React, { useEffect } from 'react';
 import LocalImageView from '../../../components/LocalImageView';
 import GeminiSendBox from './GeminiSendBox';
+import { ConversationProvider } from '@/renderer/context/ConversationContext';
 
 const GeminiChat: React.FC<{
   conversation_id: string;
@@ -25,12 +26,14 @@ const GeminiChat: React.FC<{
   }, [workspace]);
 
   return (
-    <div className='flex-1 flex flex-col px-20px'>
-      <FlexFullContainer>
-        <MessageList className='flex-1'></MessageList>
-      </FlexFullContainer>
-      <GeminiSendBox conversation_id={conversation_id} model={model}></GeminiSendBox>
-    </div>
+    <ConversationProvider value={{ conversationId: conversation_id, workspace, type: 'gemini' }}>
+      <div className='flex-1 flex flex-col px-20px'>
+        <FlexFullContainer>
+          <MessageList className='flex-1'></MessageList>
+        </FlexFullContainer>
+        <GeminiSendBox conversation_id={conversation_id} model={model}></GeminiSendBox>
+      </div>
+    </ConversationProvider>
   );
 };
 

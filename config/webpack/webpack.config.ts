@@ -1,6 +1,7 @@
 import type { Configuration } from 'webpack';
-
-import { rendererConfig } from './webpack.renderer.config';
+import { rules } from './webpack.rules';
+import { plugins } from './webpack.plugins';
+import path from 'path';
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
@@ -23,7 +24,20 @@ export const mainConfig: Configuration = {
     filename: '[name].js',
     // path: path.resolve(__dirname, "../../main"),
   },
-  ...rendererConfig,
+  module: {
+    rules,
+  },
+  plugins,
+  resolve: {
+    extensions: ['.js', '.ts', '.jsx', '.tsx', '.json'],
+    alias: {
+      '@': path.resolve(__dirname, '../../src'),
+      '@common': path.resolve(__dirname, '../../src/common'),
+      '@renderer': path.resolve(__dirname, '../../src/renderer'),
+      '@process': path.resolve(__dirname, '../../src/process'),
+      '@worker': path.resolve(__dirname, '../../src/worker'),
+    },
+  },
   externals: {
     'bcrypt': 'commonjs bcrypt',
     'better-sqlite3': 'commonjs better-sqlite3',

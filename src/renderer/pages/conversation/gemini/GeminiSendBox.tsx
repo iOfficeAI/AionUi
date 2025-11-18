@@ -17,9 +17,10 @@ import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
 import { Button, Dropdown, Menu, Tag } from '@arco-design/web-react';
 import { Plus } from '@icon-park/react';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import HorizontalFileList from '@/renderer/components/HorizontalFileList';
+import { usePreviewContext } from '@/renderer/context/PreviewContext';
 
 const useGeminiSendBoxDraft = getSendBoxDraftHook('gemini', {
   _type: 'gemini',
@@ -125,6 +126,26 @@ const GeminiSendBox: React.FC<{
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
 
   const addOrUpdateMessage = useAddOrUpdateMessage();
+  const { setSendBoxHandler } = usePreviewContext();
+
+  // 使用 ref 保存最新的 setContent，避免重复注册 handler
+  // Use ref to keep latest setContent to avoid re-registering handler
+  const setContentRef = useRef(setContent);
+  useEffect(() => {
+    setContentRef.current = setContent;
+  }, [setContent]);
+
+  // 注册预览面板添加到发送框的 handler
+  // Register handler for adding text from preview panel to sendbox
+  useEffect(() => {
+    const handler = (text: string) => {
+      // 如果已有内容，添加换行和新文本；否则直接设置文本
+      // If there's existing content, add newline and new text; otherwise just set the text
+      const newContent = content ? `${content}\n${text}` : text;
+      setContentRef.current(newContent);
+    };
+    setSendBoxHandler(handler);
+  }, [setSendBoxHandler, content]);
 
   // Current model state (initialized from props)
   const [currentModel, setCurrentModel] = useState<TProviderWithModel | undefined>(model);

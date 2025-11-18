@@ -12,6 +12,7 @@ import '../adapter/browser';
 import Main from './main';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { PreviewProvider } from './context/PreviewContext';
 
 import { ConfigProvider } from '@arco-design/web-react';
 import '@arco-design/web-react/dist/css/arco.css';
@@ -45,4 +46,18 @@ const Config: React.FC<PropsWithChildren> = (props) => {
 
 const App = HOC.Wrapper(Config)(Main);
 
-root.render(React.createElement(AuthProvider, null, React.createElement(ThemeProvider, null, React.createElement(App))));
+root.render(
+  React.createElement(
+    AuthProvider,
+    null,
+    React.createElement(
+      ThemeProvider,
+      null,
+      React.createElement(
+        PreviewProvider, // 预览面板全局状态管理 / Preview panel global state management
+        null,
+        React.createElement(App)
+      )
+    )
+  )
+);

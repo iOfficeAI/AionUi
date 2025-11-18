@@ -13,10 +13,12 @@ import { initConversationBridge } from './conversationBridge';
 import { initDatabaseBridge } from './databaseBridge';
 import { initDialogBridge } from './dialogBridge';
 import { initFsBridge } from './fsBridge';
+import { initFileWatchBridge } from './fileWatchBridge';
 import { initGeminiConversationBridge } from './geminiConversationBridge';
 import { initMcpBridge } from './mcpBridge';
 import { initModelBridge } from './modelBridge';
 import { initShellBridge } from './shellBridge';
+import { initPreviewHistoryBridge } from './previewHistoryBridge';
 
 /**
  * 初始化所有IPC桥接模块
@@ -25,6 +27,7 @@ export function initAllBridges(): void {
   initDialogBridge();
   initShellBridge();
   initFsBridge();
+  initFileWatchBridge();
   initConversationBridge();
   initApplicationBridge();
   initGeminiConversationBridge();
@@ -34,6 +37,7 @@ export function initAllBridges(): void {
   initModelBridge();
   initMcpBridge();
   initDatabaseBridge();
+  initPreviewHistoryBridge();
 }
 
 /**
@@ -49,4 +53,4 @@ export async function initializeAcpDetector(): Promise<void> {
 
 // 导出初始化函数供单独使用
 export { initAcpConversationBridge, initApplicationBridge, initAuthBridge, initCodexConversationBridge, initConversationBridge };
-export { initDatabaseBridge, initDialogBridge, initFsBridge, initGeminiConversationBridge, initMcpBridge, initModelBridge, initShellBridge };
+export { initDatabaseBridge, initDialogBridge, initFsBridge, initGeminiConversationBridge, initMcpBridge, initModelBridge, initShellBridge, initPreviewHistoryBridge };

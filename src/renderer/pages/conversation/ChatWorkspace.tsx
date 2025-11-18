@@ -7,6 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { IDirOrFile } from '@/common/ipcBridge';
 import { ConfigStorage } from '@/common/storage';
+import type { PreviewContentType } from '@/common/types/preview';
 import FlexFullContainer from '@/renderer/components/FlexFullContainer';
 import { usePasteService } from '@/renderer/hooks/usePasteService';
 import { iconColors } from '@/renderer/theme/colors';
@@ -18,6 +19,7 @@ import { FileAddition, Refresh, Search, FileText, FolderOpen } from '@icon-park/
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useDebounce from '../../hooks/useDebounce';
+import { usePreviewContext } from '@/renderer/context/PreviewContext';
 type MessageApi = ReturnType<typeof Message.useMessage>[0];
 
 interface WorkspaceProps {
@@ -50,6 +52,7 @@ const useLoading = () => {
 
 const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, eventPrefix = 'gemini', messageApi: externalMessageApi }) => {
   const { t } = useTranslation();
+  const { openPreview } = usePreviewContext();
   const [selected, setSelected] = useState<string[]>([]);
   const [files, setFiles] = useState<IDirOrFile[]>([]);
   const [loading, setLoading] = useLoading();
@@ -260,6 +263,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
               path: nodeData.fullPath,
               name: nodeData.name,
               isFile: nodeData.isFile,
+              relativePath: nodeData.relativePath,
             },
           ]);
         } else if (shouldEmit) {
@@ -284,6 +288,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
               path: nodeData.fullPath,
               name: nodeData.name,
               isFile: false,
+              relativePath: nodeData.relativePath,
             },
           ]);
         }
@@ -297,6 +302,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
               path: nodeData.fullPath,
               name: nodeData.name,
               isFile: true,
+              relativePath: nodeData.relativePath,
             },
           ]);
         }
@@ -554,6 +560,46 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
       messageApi.success(t('conversation.workspace.contextMenu.addedToChat'));
     },
     [closeContextMenu, ensureNodeSelected, messageApi, t]
+  );
+
+  const handlePreviewFile = useCallback(
+    async (nodeData: IDirOrFile | null) => {
+      // Open file preview in the preview panel
+      // (在预览面板中打开文件预览)
+      if (!nodeData || !nodeData.fullPath || !nodeData.isFile) return;
+
+      try {
+        closeContextMenu();
+
+        // Read file content via IPC
+        const content = await ipcBridge.fs.readFile.invoke({ path: nodeData.fullPath });
+
+        // Determine content type based on file extension
+        const ext = nodeData.name.toLowerCase().split('.').pop() || '';
+        let contentType: PreviewContentType = 'code';
+
+        if (ext === 'md' || ext === 'markdown') {
+          contentType = 'markdown';
+        } else if (ext === 'diff' || ext === 'patch') {
+          contentType = 'diff';
+        } else if (['js', 'ts', 'tsx', 'jsx', 'py', 'java', 'go', 'rs', 'c', 'cpp', 'h', 'hpp', 'css', 'scss', 'html', 'json', 'xml', 'yaml', 'yml'].includes(ext)) {
+          contentType = 'code';
+        }
+
+        // Open preview with file metadata
+        openPreview(content, contentType, {
+          fileName: nodeData.name,
+          filePath: nodeData.fullPath,
+          workspace: workspace,
+          language: ext,
+          editable: true,
+        });
+      } catch (error) {
+        console.error('[ChatWorkspace] Failed to preview file:', error);
+        messageApi.error(t('conversation.workspace.contextMenu.previewFailed'));
+      }
+    },
+    [closeContextMenu, openPreview, workspace, messageApi, t]
   );
 
   const openRenameModal = useCallback(
@@ -988,6 +1034,17 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
                     }}
                   >
                     {t('conversation.workspace.contextMenu.openLocation')}
+                  </button>
+                )}
+                {isContextMenuNodeFile && (
+                  <button
+                    type='button'
+                    className={menuButtonBase}
+                    onClick={() => {
+                      void handlePreviewFile(contextMenuNode);
+                    }}
+                  >
+                    {t('conversation.workspace.contextMenu.preview')}
                   </button>
                 )}
                 <div className='h-1px bg-3 my-2px'></div>

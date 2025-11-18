@@ -68,6 +68,33 @@
     "pleaseSelectFile": "请选择一个文件",
     "pleaseSelectDirectory": "请选择一个目录"
   },
+  "preview": {
+    "historyVersions": "历史版本",
+    "currentFile": "当前文件",
+    "loading": "加载中...",
+    "loadHistoryFailed": "加载历史版本失败",
+    "noHistory": "暂无历史版本",
+    "snapshotSaved": "已保存快照",
+    "snapshotSaveFailed": "保存快照失败",
+    "historyLoaded": "已载入历史版本内容",
+    "historyLoadFailed": "载入历史版本失败",
+    "tooFrequent": "操作过于频繁，请稍后再试",
+    "saveSnapshot": "保存当前快照",
+    "snapshotNotSupported": "当前内容不支持快照",
+    "history": "历史",
+    "historyNotSupported": "当前内容不支持历史版本",
+    "downloadFile": "下载文件",
+    "closePreview": "关闭预览",
+    "source": "原文",
+    "preview": "预览",
+    "editor": "编辑器",
+    "previewEffect": "预览效果",
+    "snapshot": "快照",
+    "downloadMarkdown": "下载 Markdown 文件",
+    "downloadCode": "下载 {{language}} 文件",
+    "downloadDiff": "下载 Diff 文件",
+    "addToChat": "添加到会话"
+  },
   "conversation": {
     "welcome": {
       "title": "Hi，今天有什么安排？",
@@ -116,6 +143,8 @@
       "contextMenu": {
         "open": "打开",
         "openLocation": "打开文件所在目录",
+        "preview": "预览",
+        "previewFailed": "预览失败",
         "deleteTitle": "删除文件",
         "deleteConfirm": "此操作会删除系统所在文件,确认删除吗?",
         "deleteSuccess": "删除成功",

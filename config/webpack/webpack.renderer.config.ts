@@ -2,6 +2,7 @@ import type { Configuration } from 'webpack';
 import { rules } from './webpack.rules';
 import { plugins } from './webpack.plugins';
 import path from 'path';
+import webpack from 'webpack';
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
@@ -11,7 +12,14 @@ export const rendererConfig: Configuration = {
   module: {
     rules,
   },
-  plugins,
+  plugins: [
+    ...plugins,
+    // 提供 Buffer 和 process 全局变量，仅用于渲染进程的 Node.js polyfills
+    new webpack.ProvidePlugin({
+      Buffer: ['buffer', 'Buffer'],
+      process: 'process/browser',
+    }),
+  ],
   resolve: {
     extensions: ['.js', '.ts', '.jsx', '.tsx', '.css'],
     alias: {
@@ -20,10 +28,18 @@ export const rendererConfig: Configuration = {
       '@renderer': path.resolve(__dirname, '../../src/renderer'),
       '@process': path.resolve(__dirname, '../../src/process'),
       '@worker': path.resolve(__dirname, '../../src/worker'),
+      // 解决 ESM 模块中 process/browser 的导入问题
+      'process/browser': require.resolve('process/browser.js'),
     },
     fallback: {
       'crypto': false,
       'node:crypto': false,
+      'stream': require.resolve('stream-browserify'),
+      'buffer': require.resolve('buffer'),
+      'process': require.resolve('process/browser.js'),
+      'process/browser': require.resolve('process/browser.js'),
+      'zlib': false,
+      'util': false,
     },
   },
   externals: {

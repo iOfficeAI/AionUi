@@ -199,6 +199,33 @@
     "pleaseSelectFile": "ファイルを選択してください",
     "pleaseSelectDirectory": "ディレクトリを選択してください"
   },
+  "preview": {
+    "historyVersions": "履歴バージョン",
+    "currentFile": "現在のファイル",
+    "loading": "読み込み中...",
+    "loadHistoryFailed": "履歴の読み込みに失敗しました",
+    "noHistory": "履歴バージョンはありません",
+    "snapshotSaved": "スナップショットを保存しました",
+    "snapshotSaveFailed": "スナップショットの保存に失敗しました",
+    "historyLoaded": "履歴バージョンを読み込みました",
+    "historyLoadFailed": "履歴バージョンの読み込みに失敗しました",
+    "tooFrequent": "操作が頻繁すぎます。しばらくしてから再試行してください",
+    "saveSnapshot": "現在のスナップショットを保存",
+    "snapshotNotSupported": "現在のコンテンツはスナップショットをサポートしていません",
+    "history": "履歴",
+    "historyNotSupported": "現在のコンテンツは履歴をサポートしていません",
+    "downloadFile": "ファイルをダウンロード",
+    "closePreview": "プレビューを閉じる",
+    "source": "ソース",
+    "preview": "プレビュー",
+    "editor": "エディタ",
+    "previewEffect": "プレビュー",
+    "snapshot": "スナップショット",
+    "downloadMarkdown": "Markdown ファイルをダウンロード",
+    "downloadCode": "{{language}} ファイルをダウンロード",
+    "downloadDiff": "Diff ファイルをダウンロード",
+    "addToChat": "チャットに追加"
+  },
   "conversation": {
     "welcome": {
       "title": "Hi、今日の予定は何ですか？",
@@ -240,6 +267,8 @@
       "contextMenu": {
         "open": "開く",
         "openLocation": "ファイルの場所を開く",
+        "preview": "プレビュー",
+        "previewFailed": "プレビューに失敗しました",
         "deleteTitle": "ファイルを削除",
         "deleteConfirm": "この操作はシステム上のファイルを削除します。削除しますか？",
         "deleteSuccess": "削除しました",
