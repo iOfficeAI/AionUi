@@ -54,9 +54,13 @@ jobs:
               #!/usr/bin/env bash
               set -euo pipefail
 
+              ARTIFACT_ROOT="$(pwd)/out"
+              STASH_DIR="$(mktemp -d)"
+
               run_build() {
                 local label="$1"
-                shift
+                local arch="$2"
+                shift 2
 
                 echo ""
                 echo "=========================================="
@@ -64,22 +68,73 @@ jobs:
                 echo "=========================================="
                 node scripts/build-with-builder.js "$@"
                 echo "✅ Finished ${label} build"
+                stash_artifacts "$arch"
               }
 
-              run_build "macOS arm64" arm64 --mac --arm64
+              stash_artifacts() {
+                local arch="$1"
+                local target_dir="$STASH_DIR/$arch"
+                mkdir -p "$target_dir"
+                if [ -d "$ARTIFACT_ROOT" ]; then
+                  shopt -s nullglob
+                  for file in "$ARTIFACT_ROOT"/*; do
+                    mv "$file" "$target_dir"/
+                  done
+                  shopt -u nullglob
+                fi
+              }
 
-              delay=${MAC_STAGGER_DELAY_SECONDS:-300}
-              if ! [[ "$delay" =~ ^[0-9]+$ ]]; then
-                delay=300
+              restore_artifacts() {
+                rm -rf "$ARTIFACT_ROOT"
+                mkdir -p "$ARTIFACT_ROOT"
+                shopt -s nullglob
+                for dir in "$STASH_DIR"/*; do
+                  if [ -d "$dir" ] && compgen -G "$dir/*" > /dev/null; then
+                    cp -R "$dir"/* "$ARTIFACT_ROOT"/
+                  fi
+                done
+                shopt -u nullglob
+              }
+
+              # 根据分支决定打包顺序 / Determine build order based on branch
+              # dev 分支优先打 x64 包，main 分支优先打 arm64 包
+              # dev branch builds x64 first, main branch builds arm64 first
+              BRANCH_NAME="${GITHUB_REF#refs/heads/}"
+              if [ "$BRANCH_NAME" = "dev" ]; then
+                echo "📦 Dev branch: Building x64 first, then arm64"
+                run_build "macOS x64" x64 x64 --mac --x64
+
+                delay=${MAC_STAGGER_DELAY_SECONDS:-300}
+                if ! [[ "$delay" =~ ^[0-9]+$ ]]; then
+                  delay=300
+                fi
+
+                if [ "$delay" -gt 0 ]; then
+                  echo ""
+                  echo "⏳ Waiting ${delay} seconds before starting macOS arm64 build to avoid Apple notarization contention..."
+                  sleep "$delay"
+                fi
+
+                run_build "macOS arm64" arm64 arm64 --mac --arm64
+              else
+                echo "📦 Main branch: Building arm64 first, then x64"
+                run_build "macOS arm64" arm64 arm64 --mac --arm64
+
+                delay=${MAC_STAGGER_DELAY_SECONDS:-300}
+                if ! [[ "$delay" =~ ^[0-9]+$ ]]; then
+                  delay=300
+                fi
+
+                if [ "$delay" -gt 0 ]; then
+                  echo ""
+                  echo "⏳ Waiting ${delay} seconds before starting macOS x64 build to avoid Apple notarization contention..."
+                  sleep "$delay"
+                fi
+
+                run_build "macOS x64" x64 x64 --mac --x64
               fi
 
-              if [ "$delay" -gt 0 ]; then
-                echo ""
-                echo "⏳ Waiting ${delay} seconds before starting macOS x64 build to avoid Apple notarization contention..."
-                sleep "$delay"
-              fi
-
-              run_build "macOS x64" x64 --mac --x64
+              restore_artifacts
               MAC_STAGGER
 
               bash /tmp/mac-staggered-build.sh
