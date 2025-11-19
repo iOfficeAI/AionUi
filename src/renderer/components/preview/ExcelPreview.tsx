@@ -4,13 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { useTranslation } from 'react-i18next';
+import { ipcBridge } from '@/common';
+import { documentConverter } from '@/common/document/DocumentConverter';
 import { Message } from '@arco-design/web-react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import MarkdownEditor from './MarkdownEditor';
 import MarkdownPreview from './MarkdownPreview';
-import { documentConverter } from '@/common/document/DocumentConverter';
-import { ipcBridge } from '@/common';
 
 interface ExcelPreviewProps {
   filePath?: string;
@@ -47,9 +47,8 @@ const ExcelPreview: React.FC<ExcelPreviewProps> = ({ filePath, content, hideTool
         let arrayBuffer: ArrayBuffer;
 
         if (filePath) {
-          // 从文件路径读取
-          const fileContent = await ipcBridge.fs.readFile.invoke({ path: filePath });
-          arrayBuffer = new TextEncoder().encode(fileContent).buffer;
+          // 从文件路径读取二进制数据 / Read binary data from file path
+          arrayBuffer = await ipcBridge.fs.readFileBuffer.invoke({ path: filePath });
         } else if (content) {
           // 从 content 读取
           if (typeof content === 'string') {

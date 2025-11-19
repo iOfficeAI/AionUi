@@ -31,10 +31,10 @@ export function initFileWatchBridge(): void {
 
       watchers.set(filePath, watcher);
 
-      return { success: true };
+      return Promise.resolve({ success: true });
     } catch (error) {
       console.error('[FileWatch] Failed to start watching:', error);
-      return { success: false, msg: error instanceof Error ? error.message : 'Unknown error' };
+      return Promise.resolve({ success: false, msg: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
@@ -45,12 +45,12 @@ export function initFileWatchBridge(): void {
         watchers.get(filePath)?.close();
         watchers.delete(filePath);
         console.log('[FileWatch] Stopped watch for:', filePath);
-        return { success: true };
+        return Promise.resolve({ success: true });
       }
-      return { success: false, msg: 'No watcher found for this file' };
+      return Promise.resolve({ success: false, msg: 'No watcher found for this file' });
     } catch (error) {
       console.error('[FileWatch] Failed to stop watching:', error);
-      return { success: false, msg: error instanceof Error ? error.message : 'Unknown error' };
+      return Promise.resolve({ success: false, msg: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
@@ -62,10 +62,10 @@ export function initFileWatchBridge(): void {
         console.log('[FileWatch] Stopped watch for:', filePath);
       });
       watchers.clear();
-      return { success: true };
+      return Promise.resolve({ success: true });
     } catch (error) {
       console.error('[FileWatch] Failed to stop all watches:', error);
-      return { success: false, msg: error instanceof Error ? error.message : 'Unknown error' };
+      return Promise.resolve({ success: false, msg: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 }

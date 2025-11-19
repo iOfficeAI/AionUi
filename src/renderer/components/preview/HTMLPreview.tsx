@@ -4,10 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { useTranslation } from 'react-i18next';
 import { Message } from '@arco-design/web-react';
 import MonacoEditor from '@monaco-editor/react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface HTMLPreviewProps {
   content: string;
@@ -66,9 +66,30 @@ const HTMLPreview: React.FC<HTMLPreviewProps> = ({ content, filePath, hideToolba
 
     if (!iframeDoc) return;
 
-    // 写入 HTML 内容
+    // 写入 HTML 内容 / Write HTML content
     iframeDoc.open();
-    iframeDoc.write(htmlCode);
+
+    // 注入 <base> 标签以支持相对路径 / Inject <base> tag to support relative paths
+    let finalHtml = htmlCode;
+    if (filePath) {
+      // 获取文件所在目录 / Get directory of the file
+      const fileDir = filePath.substring(0, filePath.lastIndexOf('/') + 1);
+      // 构造 file:// 协议的 base URL / Construct file:// protocol base URL
+      const baseUrl = `file://${fileDir}`;
+
+      // 检查是否已有 base 标签 / Check if base tag exists
+      if (!finalHtml.match(/<base\s+href=/i)) {
+        if (finalHtml.match(/<head>/i)) {
+          finalHtml = finalHtml.replace(/<head>/i, `<head><base href="${baseUrl}">`);
+        } else if (finalHtml.match(/<html>/i)) {
+          finalHtml = finalHtml.replace(/<html>/i, `<html><head><base href="${baseUrl}"></head>`);
+        } else {
+          finalHtml = `<head><base href="${baseUrl}"></head>${finalHtml}`;
+        }
+      }
+    }
+
+    iframeDoc.write(finalHtml);
     iframeDoc.close();
 
     // 注入元素选择器脚本

@@ -9,17 +9,17 @@ import type { IDirOrFile } from '@/common/ipcBridge';
 import { ConfigStorage } from '@/common/storage';
 import type { PreviewContentType } from '@/common/types/preview';
 import FlexFullContainer from '@/renderer/components/FlexFullContainer';
+import { usePreviewContext } from '@/renderer/context/PreviewContext';
 import { usePasteService } from '@/renderer/hooks/usePasteService';
 import { iconColors } from '@/renderer/theme/colors';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { removeWorkspaceEntry, renameWorkspaceEntry } from '@/renderer/utils/workspaceFs';
 import { Checkbox, Empty, Input, Message, Modal, Tooltip, Tree } from '@arco-design/web-react';
 import type { NodeInstance } from '@arco-design/web-react/es/Tree/interface';
-import { FileAddition, Refresh, Search, FileText, FolderOpen } from '@icon-park/react';
+import { FileAddition, FileText, FolderOpen, Refresh, Search } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useDebounce from '../../hooks/useDebounce';
-import { usePreviewContext } from '@/renderer/context/PreviewContext';
 type MessageApi = ReturnType<typeof Message.useMessage>[0];
 
 interface WorkspaceProps {
@@ -571,28 +571,78 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
       try {
         closeContextMenu();
 
-        // Read file content via IPC
-        const content = await ipcBridge.fs.readFile.invoke({ path: nodeData.fullPath });
-
         // Determine content type based on file extension
         const ext = nodeData.name.toLowerCase().split('.').pop() || '';
         let contentType: PreviewContentType = 'code';
+        let content = '';
 
+        // 判断文件类型 / Determine file type
         if (ext === 'md' || ext === 'markdown') {
           contentType = 'markdown';
         } else if (ext === 'diff' || ext === 'patch') {
           contentType = 'diff';
-        } else if (['js', 'ts', 'tsx', 'jsx', 'py', 'java', 'go', 'rs', 'c', 'cpp', 'h', 'hpp', 'css', 'scss', 'html', 'json', 'xml', 'yaml', 'yml'].includes(ext)) {
+        } else if (ext === 'pdf') {
+          contentType = 'pdf';
+        } else if (['ppt', 'pptx', 'odp'].includes(ext)) {
+          contentType = 'ppt';
+        } else if (['doc', 'docx', 'odt'].includes(ext)) {
+          contentType = 'word';
+        } else if (['xls', 'xlsx', 'ods', 'csv'].includes(ext)) {
+          contentType = 'excel';
+        } else if (['html', 'htm'].includes(ext)) {
+          contentType = 'html';
+        } else if (['js', 'ts', 'tsx', 'jsx', 'py', 'java', 'go', 'rs', 'c', 'cpp', 'h', 'hpp', 'css', 'scss', 'json', 'xml', 'yaml', 'yml'].includes(ext)) {
           contentType = 'code';
+        }
+
+        // 根据文件类型读取内容 / Read content based on file type
+        if (contentType === 'pdf') {
+          // PDF: 不读取内容，PDFPreview 组件会通过 filePath 自己读取
+          // Don't read content, PDFPreview component will read via filePath itself
+          content = ''; // 空内容，依赖 filePath
+        } else if (contentType === 'word') {
+          // Word: 通过 IPC 转换为 Markdown / Convert to Markdown via IPC
+          console.log('[ChatWorkspace] Converting Word file:', nodeData.fullPath);
+          const result = await ipcBridge.conversion.wordToMarkdown.invoke({ filePath: nodeData.fullPath });
+          console.log('[ChatWorkspace] Word conversion result:', result);
+          if (result.success && result.data) {
+            content = result.data;
+          } else {
+            throw new Error(result.error || 'Word 转换失败');
+          }
+        } else if (contentType === 'excel') {
+          // Excel: 通过 IPC 转换为 JSON / Convert to JSON via IPC
+          console.log('[ChatWorkspace] Converting Excel file:', nodeData.fullPath);
+          const result = await ipcBridge.conversion.excelToJson.invoke({ filePath: nodeData.fullPath });
+          console.log('[ChatWorkspace] Excel conversion result:', result);
+          if (result.success && result.data) {
+            content = JSON.stringify(result.data);
+          } else {
+            throw new Error(result.error || 'Excel 转换失败');
+          }
+        } else if (contentType === 'ppt') {
+          // PPT: 通过 IPC 转换为 JSON / Convert to JSON via IPC
+          console.log('[ChatWorkspace] Converting PPT file:', nodeData.fullPath);
+          const result = await ipcBridge.conversion.pptToJson.invoke({ filePath: nodeData.fullPath });
+          console.log('[ChatWorkspace] PPT conversion result:', result);
+          if (result.success && result.data) {
+            content = JSON.stringify(result.data);
+          } else {
+            throw new Error(result.error || 'PPT 转换失败');
+          }
+        } else {
+          // 文本文件：使用 UTF-8 读取 / Text files: Read as UTF-8
+          content = await ipcBridge.fs.readFile.invoke({ path: nodeData.fullPath });
         }
 
         // Open preview with file metadata
         openPreview(content, contentType, {
+          title: nodeData.name,
           fileName: nodeData.name,
           filePath: nodeData.fullPath,
           workspace: workspace,
           language: ext,
-          editable: true,
+          editable: contentType === 'markdown' ? false : undefined, // Markdown 默认为预览模式 / Markdown defaults to preview-only mode
         });
       } catch (error) {
         console.error('[ChatWorkspace] Failed to preview file:', error);

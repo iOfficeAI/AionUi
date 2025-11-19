@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
 import { ipcBridge } from '@/common';
 import type { PreviewContentType } from '@/common/types/preview';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 
 export interface PreviewMetadata {
   language?: string;
@@ -210,18 +210,42 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const updateContent = useCallback(
     (newContent: string) => {
-      if (!activeTabId) return;
+      console.log('[PreviewContext] updateContent called');
+      console.log('[PreviewContext] activeTabId:', activeTabId);
+      console.log('[PreviewContext] newContent type:', typeof newContent);
+      console.log('[PreviewContext] newContent length:', newContent?.length);
 
-      setTabs((prevTabs) =>
-        prevTabs.map((tab) => {
-          if (tab.id === activeTabId) {
-            // 检查内容是否与原始内容不同 / Check if content differs from original
-            const isDirty = newContent !== tab.originalContent;
-            return { ...tab, content: newContent, isDirty };
-          }
-          return tab;
-        })
-      );
+      if (!activeTabId) {
+        console.warn('[PreviewContext] No active tab, returning');
+        return;
+      }
+
+      // 严格的类型检查，防止 Event 对象被错误传递 / Strict type checking to prevent Event object from being passed incorrectly
+      if (typeof newContent !== 'string') {
+        console.error('[PreviewContext] updateContent received non-string value:', newContent, typeof newContent);
+        return;
+      }
+
+      console.log('[PreviewContext] Updating tabs with new content...');
+      try {
+        setTabs((prevTabs) => {
+          console.log('[PreviewContext] Previous tabs count:', prevTabs.length);
+          const updated = prevTabs.map((tab) => {
+            if (tab.id === activeTabId) {
+              // 检查内容是否与原始内容不同 / Check if content differs from original
+              const isDirty = newContent !== tab.originalContent;
+              console.log('[PreviewContext] Updating tab:', tab.id, 'isDirty:', isDirty);
+              return { ...tab, content: newContent, isDirty };
+            }
+            return tab;
+          });
+          console.log('[PreviewContext] Tabs updated successfully');
+          return updated;
+        });
+      } catch (error) {
+        console.error('[PreviewContext] Error updating tabs:', error);
+        console.error('[PreviewContext] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+      }
     },
     [activeTabId]
   );
@@ -351,21 +375,17 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
           // 只更新匹配的 tab / Only update matching tabs
           if (tab.metadata?.filePath !== filePath) return tab;
 
-          // 如果用户正在编辑（isDirty），不自动更新内容，保持用户编辑状态
-          // If user is editing (isDirty), don't auto-update to preserve user edits
-          if (tab.isDirty) {
-            console.log('[PreviewContext] Tab is dirty, not updating:', tab.title);
-            return tab;
-          }
+          // 🔥 关键修改：对于外部写入（Agent 流式更新），即使 tab 是 dirty 也强制更新
+          // Key change: For external writes (Agent streaming), force update even if tab is dirty
+          // 这是因为 Agent 写入代表的是文件真实状态，而不是用户的临时编辑
+          // This is because Agent writes represent the actual file state, not user's temporary edits
 
-          // 实时更新内容（来自 agent 的流式写入）
-          // Real-time content update (from agent's streaming write)
-          console.log('[PreviewContext] Updating tab content from stream:', tab.title);
+          console.log('[PreviewContext] Updating tab content from stream (force update):', tab.title);
           return {
             ...tab,
             content: content,
             originalContent: content,
-            isDirty: false,
+            isDirty: false, // 重置 dirty 状态，因为内容已经与文件同步 / Reset dirty state as content is now synced with file
           };
         });
       });

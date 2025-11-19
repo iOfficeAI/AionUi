@@ -4,12 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { AIONUI_TIMESTAMP_SEPARATOR } from '@/common/constants';
 import fs from 'fs/promises';
 import path from 'path';
 import { ipcBridge } from '../../common';
-import { readDirectoryRecursive } from '../utils';
 import { getSystemDir } from '../initStorage';
-import { AIONUI_TIMESTAMP_SEPARATOR } from '@/common/constants';
+import { readDirectoryRecursive } from '../utils';
 
 export function initFsBridge(): void {
   ipcBridge.fs.getFilesByDir.provider(async ({ dir }) => {
@@ -91,15 +91,25 @@ export function initFsBridge(): void {
     }
   });
 
+  // 读取二进制文件为 ArrayBuffer / Read binary file as ArrayBuffer
+  ipcBridge.fs.readFileBuffer.provider(async ({ path: filePath }) => {
+    try {
+      const buffer = await fs.readFile(filePath);
+      // 将 Node.js Buffer 转换为 ArrayBuffer
+      // Convert Node.js Buffer to ArrayBuffer
+      return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+    } catch (error) {
+      console.error('Failed to read file buffer:', error);
+      throw error;
+    }
+  });
+
   // 写入文件
   ipcBridge.fs.writeFile.provider(async ({ path: filePath, data }) => {
     try {
-      let contentToEmit: string | undefined;
-
       // 处理字符串类型 / Handle string type
       if (typeof data === 'string') {
         await fs.writeFile(filePath, data, 'utf-8');
-        contentToEmit = data; // 保存内容用于流式更新 / Save content for streaming update
 
         // 发送流式内容更新事件到预览面板（用于实时更新）
         // Send streaming content update to preview panel (for real-time updates)

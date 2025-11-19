@@ -1,8 +1,8 @@
-import type { Configuration } from 'webpack';
-import { rules } from './webpack.rules';
-import { plugins } from './webpack.plugins';
 import path from 'path';
+import type { Configuration } from 'webpack';
 import webpack from 'webpack';
+import { plugins } from './webpack.plugins';
+import { rules } from './webpack.rules';
 
 const isDevelopment = process.env.NODE_ENV !== 'production';
 
@@ -30,6 +30,8 @@ export const rendererConfig: Configuration = {
       '@worker': path.resolve(__dirname, '../../src/worker'),
       // 解决 ESM 模块中 process/browser 的导入问题
       'process/browser': require.resolve('process/browser.js'),
+      // 强制使用 Streamdown 的 ESM 版本
+      'streamdown': path.resolve(__dirname, '../../node_modules/streamdown/dist/index.js'),
     },
     fallback: {
       'crypto': false,

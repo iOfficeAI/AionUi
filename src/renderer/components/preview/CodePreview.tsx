@@ -4,14 +4,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { useAutoScroll } from '@/renderer/hooks/useAutoScroll';
 import { useTextSelection } from '@/renderer/hooks/useTextSelection';
+import { useTypingAnimation } from '@/renderer/hooks/useTypingAnimation';
 import { iconColors } from '@/renderer/theme/colors';
 import { Close } from '@icon-park/react';
 import React, { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { vs, vs2015 } from 'react-syntax-highlighter/dist/esm/styles/hljs';
 import SelectionToolbar from './SelectionToolbar';
-import { useTranslation } from 'react-i18next';
 
 interface CodePreviewProps {
   content: string; // 代码内容 / Code content
@@ -39,6 +41,21 @@ const CodePreview: React.FC<CodePreviewProps> = ({ content, language = 'text', o
 
   // 使用外部传入的 viewMode，否则使用内部状态 / Use external viewMode if provided, otherwise use internal state
   const viewMode = externalViewMode !== undefined ? externalViewMode : internalViewMode;
+
+  // 🎯 使用流式打字动画 Hook / Use typing animation Hook
+  const { displayedContent } = useTypingAnimation({
+    content,
+    enabled: viewMode === 'preview', // 仅在预览模式下启用 / Only enable in preview mode
+    speed: 50, // 50 字符/秒 / 50 characters per second
+  });
+
+  // 🎯 使用智能自动滚动 Hook / Use auto-scroll Hook
+  useAutoScroll({
+    containerRef,
+    content,
+    enabled: viewMode === 'preview', // 仅在预览模式下启用 / Only enable in preview mode
+    threshold: 200, // 距离底部 200px 以内时跟随 / Follow when within 200px from bottom
+  });
 
   // 监听主题变化 / Monitor theme changes
   useEffect(() => {
@@ -127,9 +144,9 @@ const CodePreview: React.FC<CodePreviewProps> = ({ content, language = 'text', o
           // 原文模式：显示原始代码 / Source mode: Show raw code
           <pre className='w-full m-0 p-12px bg-bg-2 rd-8px overflow-auto font-mono text-12px text-t-primary whitespace-pre-wrap break-words'>{content}</pre>
         ) : (
-          // 预览模式：语法高亮 / Preview mode: Syntax highlighting
-          <SyntaxHighlighter style={currentTheme === 'dark' ? vs2015 : vs} language={language} PreTag='div' showLineNumbers>
-            {content}
+          // 预览模式：语法高亮（不显示行号，保持简洁）/ Preview mode: Syntax highlighting (no line numbers for clean look)
+          <SyntaxHighlighter style={currentTheme === 'dark' ? vs2015 : vs} language={language} PreTag='div'>
+            {displayedContent}
           </SyntaxHighlighter>
         )}
       </div>

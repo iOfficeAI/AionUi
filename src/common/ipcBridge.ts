@@ -6,10 +6,10 @@
 
 import { bridge } from '@office-ai/platform';
 import type { OpenDialogOptions } from 'electron';
-import type { AcpBackend } from '../types/acpTypes';
 import type { McpSource } from '../process/services/mcpServices/McpProtocol';
+import type { AcpBackend } from '../types/acpTypes';
+import type { IMcpServer, IProvider, TChatConversation, TProviderWithModel } from './storage';
 import type { PreviewHistoryTarget, PreviewSnapshotInfo } from './types/preview';
-import type { IProvider, TChatConversation, TProviderWithModel, IMcpServer } from './storage';
 
 export const shell = {
   openFile: bridge.buildProvider<void, string>('open-file'), // 使用系统默认程序打开文件
@@ -58,6 +58,7 @@ export const fs = {
   getFilesByDir: bridge.buildProvider<Array<IDirOrFile>, { dir: string; root: string }>('get-file-by-dir'), // 获取指定文件夹下所有文件夹和文件列表
   getImageBase64: bridge.buildProvider<string, { path: string }>('get-image-base64'), // 获取图片base64
   readFile: bridge.buildProvider<string, { path: string }>('read-file'), // 读取文件内容（UTF-8）
+  readFileBuffer: bridge.buildProvider<ArrayBuffer, { path: string }>('read-file-buffer'), // 读取二进制文件为 ArrayBuffer
   createTempFile: bridge.buildProvider<string, { fileName: string }>('create-temp-file'), // 创建临时文件
   writeFile: bridge.buildProvider<boolean, { path: string; data: Uint8Array | string }>('write-file'), // 写入文件
   getFileMetadata: bridge.buildProvider<IFileMetadata, { path: string }>('get-file-metadata'), // 获取文件元数据
@@ -141,6 +142,16 @@ export const previewHistory = {
   list: bridge.buildProvider<PreviewSnapshotInfo[], { target: PreviewHistoryTarget }>('preview-history.list'),
   save: bridge.buildProvider<PreviewSnapshotInfo, { target: PreviewHistoryTarget; content: string }>('preview-history.save'),
   getContent: bridge.buildProvider<{ snapshot: PreviewSnapshotInfo; content: string } | null, { target: PreviewHistoryTarget; snapshotId: string }>('preview-history.get-content'),
+};
+
+export const conversion = {
+  wordToMarkdown: bridge.buildProvider<import('./types/conversion').ConversionResult<string>, { filePath: string }>('conversion.word-to-markdown'),
+  markdownToWord: bridge.buildProvider<import('./types/conversion').ConversionResult<void>, { markdown: string; targetPath: string }>('conversion.markdown-to-word'),
+  excelToJson: bridge.buildProvider<import('./types/conversion').ConversionResult<import('./types/conversion').ExcelWorkbookData>, { filePath: string }>('conversion.excel-to-json'),
+  jsonToExcel: bridge.buildProvider<import('./types/conversion').ConversionResult<void>, { data: import('./types/conversion').ExcelWorkbookData; targetPath: string }>('conversion.json-to-excel'),
+  pptToJson: bridge.buildProvider<import('./types/conversion').ConversionResult<import('./types/conversion').PPTJsonData>, { filePath: string }>('conversion.ppt-to-json'),
+  markdownToPdf: bridge.buildProvider<import('./types/conversion').ConversionResult<void>, { markdown: string; targetPath: string }>('conversion.markdown-to-pdf'),
+  htmlToPdf: bridge.buildProvider<import('./types/conversion').ConversionResult<void>, { html: string; targetPath: string }>('conversion.html-to-pdf'),
 };
 
 interface ISendMessageParams {

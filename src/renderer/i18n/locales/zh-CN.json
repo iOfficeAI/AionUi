@@ -86,6 +86,7 @@
     "downloadFile": "下载文件",
     "closePreview": "关闭预览",
     "source": "原文",
+    "code": "代码",
     "preview": "预览",
     "editor": "编辑器",
     "previewEffect": "预览效果",
@@ -93,7 +94,19 @@
     "downloadMarkdown": "下载 Markdown 文件",
     "downloadCode": "下载 {{language}} 文件",
     "downloadDiff": "下载 Diff 文件",
-    "addToChat": "添加到会话"
+    "addToChat": "添加到会话",
+    "openSplitScreen": "开启分屏",
+    "closeSplitScreen": "关闭分屏",
+    "edit": "编辑",
+    "exitEdit": "退出编辑",
+    "unsavedChangesTitle": "未保存的修改",
+    "unsavedChangesMessage": "当前修改还没有保存，确定退出编辑吗？",
+    "confirmExit": "确定退出",
+    "continueEdit": "继续编辑",
+    "closeTabTitle": "关闭标签页",
+    "closeTabMessage": "当前内容还未保存，是否保存后再关闭？",
+    "saveAndClose": "保存并关闭",
+    "closeWithoutSave": "不保存"
   },
   "conversation": {
     "welcome": {

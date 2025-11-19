@@ -4,20 +4,23 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { useAutoScroll } from '@/renderer/hooks/useAutoScroll';
 import { useTextSelection } from '@/renderer/hooks/useTextSelection';
+import { useTypingAnimation } from '@/renderer/hooks/useTypingAnimation';
 import { iconColors } from '@/renderer/theme/colors';
 import { Close } from '@icon-park/react';
 import 'katex/dist/katex.min.css';
 import React, { useEffect, useRef, useState } from 'react';
-import ReactMarkdown from 'react-markdown';
+import { useTranslation } from 'react-i18next';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { vs, vs2015 } from 'react-syntax-highlighter/dist/esm/styles/hljs';
 import rehypeKatex from 'rehype-katex';
 import remarkBreaks from 'remark-breaks';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
+import { Streamdown } from 'streamdown';
+import MarkdownEditor from './MarkdownEditor';
 import SelectionToolbar from './SelectionToolbar';
-import { useTranslation } from 'react-i18next';
 
 interface MarkdownPreviewProps {
   content: string; // Markdown 内容 / Markdown content
@@ -25,6 +28,9 @@ interface MarkdownPreviewProps {
   hideToolbar?: boolean; // 隐藏工具栏 / Hide toolbar
   viewMode?: 'source' | 'preview'; // 外部控制的视图模式 / External view mode
   onViewModeChange?: (mode: 'source' | 'preview') => void; // 视图模式改变回调 / View mode change callback
+  onContentChange?: (content: string) => void; // 内容改变回调 / Content change callback
+  containerRef?: React.RefObject<HTMLDivElement>; // 容器引用，用于滚动同步 / Container ref for scroll sync
+  onScroll?: (scrollTop: number, scrollHeight: number, clientHeight: number) => void; // 滚动回调 / Scroll callback
 }
 
 /**
@@ -34,30 +40,59 @@ interface MarkdownPreviewProps {
  * 使用 ReactMarkdown 渲染 Markdown，支持原文/预览切换和下载功能
  * Uses ReactMarkdown to render Markdown, supports source/preview toggle and download
  */
-const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({ content, onClose, hideToolbar = false, viewMode: externalViewMode, onViewModeChange }) => {
+const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({ content, onClose, hideToolbar = false, viewMode: externalViewMode, onViewModeChange, onContentChange, containerRef: externalContainerRef, onScroll: externalOnScroll }) => {
   const { t } = useTranslation();
-  const containerRef = useRef<HTMLDivElement>(null);
+  const internalContainerRef = useRef<HTMLDivElement>(null);
+  const containerRef = externalContainerRef || internalContainerRef; // 使用外部 ref 或内部 ref / Use external ref or internal ref
   const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>(() => {
     return (document.documentElement.getAttribute('data-theme') as 'light' | 'dark') || 'light';
   });
+
+  // 监听容器滚动事件 / Listen to container scroll events
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container || !externalOnScroll) return;
+
+    const handleScroll = () => {
+      externalOnScroll(container.scrollTop, container.scrollHeight, container.clientHeight);
+    };
+
+    container.addEventListener('scroll', handleScroll);
+    return () => container.removeEventListener('scroll', handleScroll);
+  }, [containerRef, externalOnScroll]);
+
   const [internalViewMode, setInternalViewMode] = useState<'source' | 'preview'>('preview'); // 内部视图模式 / Internal view mode
 
   // 使用外部传入的 viewMode，否则使用内部状态 / Use external viewMode if provided, otherwise use internal state
   const viewMode = externalViewMode !== undefined ? externalViewMode : internalViewMode;
 
+  // 🎯 使用流式打字动画 Hook / Use typing animation Hook
+  const { displayedContent, isAnimating } = useTypingAnimation({
+    content,
+    enabled: viewMode === 'preview', // 仅在预览模式下启用 / Only enable in preview mode
+    speed: 50, // 50 字符/秒 / 50 characters per second
+  });
+
+  // 🎯 使用智能自动滚动 Hook / Use auto-scroll Hook
+  useAutoScroll({
+    containerRef,
+    content,
+    enabled: viewMode === 'preview', // 仅在预览模式下启用 / Only enable in preview mode
+    threshold: 200, // 距离底部 200px 以内时跟随 / Follow when within 200px from bottom
+  });
+
   // 监听主题变化 / Monitor theme changes
   useEffect(() => {
-    const updateTheme = () => {
-      const theme = (document.documentElement.getAttribute('data-theme') as 'light' | 'dark') || 'light';
-      setCurrentTheme(theme);
-    };
-
-    const observer = new MutationObserver(updateTheme);
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['data-theme'],
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
+          const theme = (document.documentElement.getAttribute('data-theme') as 'light' | 'dark') || 'light';
+          setCurrentTheme(theme);
+        }
+      });
     });
 
+    observer.observe(document.documentElement, { attributes: true });
     return () => observer.disconnect();
   }, []);
 
@@ -88,17 +123,30 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({ content, onClose, hid
 
   return (
     <div className='flex flex-col w-full h-full overflow-hidden'>
-      {/* 工具栏：原文/预览切换 + 下载按钮 / Toolbar: Source/Preview toggle + Download button */}
+      {/* 工具栏：Tabs 切换 + 下载按钮 / Toolbar: Tabs toggle + Download button */}
       {!hideToolbar && (
-        <div className='flex items-center justify-between h-40px px-12px bg-bg-2 flex-shrink-0'>
-          <div className='flex items-center gap-4px'>
-            {/* 原文按钮 / Source button */}
-            <div className={`px-12px py-4px rd-4px cursor-pointer transition-colors text-12px ${viewMode === 'source' ? 'bg-primary text-white' : 'text-t-secondary hover:bg-bg-3'}`} onClick={() => handleViewModeChange('source')}>
-              {t('preview.source')}
-            </div>
-            {/* 预览按钮 / Preview button */}
-            <div className={`px-12px py-4px rd-4px cursor-pointer transition-colors text-12px ${viewMode === 'preview' ? 'bg-primary text-white' : 'text-t-secondary hover:bg-bg-3'}`} onClick={() => handleViewModeChange('preview')}>
+        <div className='flex items-center justify-between h-40px px-12px bg-bg-2 flex-shrink-0 border-b border-border-1'>
+          {/* 左侧：原文/预览 Tabs / Left: Source/Preview Tabs */}
+          <div className='flex items-center h-full gap-2px'>
+            {/* 预览 Tab */}
+            <div
+              className={`
+                flex items-center h-full px-16px cursor-pointer transition-all text-14px font-medium
+                ${viewMode === 'preview' ? 'text-primary border-b-2 border-primary' : 'text-t-secondary hover:text-t-primary hover:bg-bg-3'}
+              `}
+              onClick={() => handleViewModeChange('preview')}
+            >
               {t('preview.preview')}
+            </div>
+            {/* 原文 Tab */}
+            <div
+              className={`
+                flex items-center h-full px-16px cursor-pointer transition-all text-14px font-medium
+                ${viewMode === 'source' ? 'text-primary border-b-2 border-primary' : 'text-t-secondary hover:text-t-primary hover:bg-bg-3'}
+              `}
+              onClick={() => handleViewModeChange('source')}
+            >
+              {t('preview.source')}
             </div>
           </div>
 
@@ -125,41 +173,53 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({ content, onClose, hid
       )}
 
       {/* 内容区域 / Content area */}
-      <div ref={containerRef} className='flex-1 overflow-auto p-16px'>
+      <div ref={containerRef} className={`flex-1 ${viewMode === 'source' ? 'overflow-hidden' : 'overflow-auto p-16px'}`}>
         {viewMode === 'source' ? (
-          // 原文模式：显示原始 Markdown 文本 / Source mode: Show raw Markdown text
-          <pre className='w-full m-0 p-12px bg-bg-2 rd-8px overflow-auto font-mono text-12px text-t-primary whitespace-pre-wrap break-words'>{content}</pre>
+          // 原文模式：使用编辑器 / Source mode: Use editor
+          <MarkdownEditor value={content} onChange={(value) => onContentChange?.(value)} />
         ) : (
           // 预览模式：渲染 Markdown / Preview mode: Render Markdown
-          <ReactMarkdown
+          <Streamdown
+            // 核心功能：解析不完整的 Markdown，优化流式渲染体验 / Core feature: parse incomplete Markdown for optimal streaming
+            parseIncompleteMarkdown={true}
+            // 启用动画效果（当正在打字时）/ Enable animation when typing
+            isAnimating={isAnimating}
             remarkPlugins={[remarkGfm, remarkMath, remarkBreaks]}
             rehypePlugins={[rehypeKatex]}
             components={{
-              code({ className, children, ...props }: any) {
+              code({ className, children, ...props }: React.HTMLAttributes<HTMLElement>) {
                 const match = /language-(\w+)/.exec(className || '');
                 const codeContent = String(children).replace(/\n$/, '');
+                const language = match ? match[1] : '';
+                const codeTheme = currentTheme === 'dark' ? vs2015 : vs;
 
-                // 判断是否为行内代码 / Check if it's inline code
-                if (!String(children).includes('\n')) {
-                  return (
-                    <code className={className} {...props}>
-                      {children}
-                    </code>
-                  );
-                }
-
-                return (
-                  <div className='my-4'>
-                    <SyntaxHighlighter style={currentTheme === 'dark' ? vs2015 : vs} language={match ? match[1] : 'text'} PreTag='div'>
-                      {codeContent}
-                    </SyntaxHighlighter>
-                  </div>
+                // 代码高亮 / Code highlighting
+                return language ? (
+                  <SyntaxHighlighter
+                    // @ts-expect-error - style 属性类型定义问题
+                    style={codeTheme}
+                    language={language}
+                    PreTag='div'
+                    customStyle={{
+                      margin: 0,
+                      borderRadius: '8px',
+                      padding: '16px',
+                      fontSize: '14px',
+                    }}
+                    {...props}
+                  >
+                    {codeContent}
+                  </SyntaxHighlighter>
+                ) : (
+                  <code className={className} {...props}>
+                    {children}
+                  </code>
                 );
               },
             }}
           >
-            {content}
-          </ReactMarkdown>
+            {displayedContent}
+          </Streamdown>
         )}
       </div>
 

@@ -5,11 +5,10 @@
  */
 
 import { useThemeContext } from '@/renderer/context/ThemeContext';
-import { markdown } from '@codemirror/lang-markdown';
 import CodeMirror from '@uiw/react-codemirror';
-import React from 'react';
+import React, { useCallback, useMemo } from 'react';
 
-interface MarkdownEditorProps {
+interface TextEditorProps {
   value: string; // 编辑器内容 / Editor content
   onChange: (value: string) => void; // 内容变化回调 / Content change callback
   readOnly?: boolean; // 是否只读 / Whether read-only
@@ -18,13 +17,13 @@ interface MarkdownEditorProps {
 }
 
 /**
- * Markdown 编辑器组件
- * Markdown editor component
+ * 通用文本编辑器组件
+ * Generic text editor component
  *
  * 基于 CodeMirror 实现，支持语法高亮和实时编辑
  * Based on CodeMirror, supports syntax highlighting and live editing
  */
-const MarkdownEditor: React.FC<MarkdownEditorProps> = ({ value, onChange, readOnly = false, containerRef, onScroll }) => {
+const TextEditor: React.FC<TextEditorProps> = ({ value, onChange, readOnly = false, containerRef, onScroll }) => {
   const { theme } = useThemeContext();
 
   // 监听容器滚动事件 / Listen to container scroll events
@@ -40,28 +39,49 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({ value, onChange, readOn
     return () => container.removeEventListener('scroll', handleScroll);
   }, [containerRef, onScroll]);
 
+  // 使用 useCallback 包装 onChange，避免每次渲染都创建新函数 / Use useCallback to avoid creating new function on each render
+  const handleChange = useCallback(
+    (val: string) => {
+      onChange(val);
+    },
+    [onChange]
+  );
+
+  // 缓存 basicSetup 配置，避免每次渲染都创建新对象 / Memoize basicSetup config
+  const basicSetupConfig = useMemo(
+    () => ({
+      lineNumbers: true, // 显示行号 / Show line numbers
+      highlightActiveLineGutter: true, // 高亮当前行号 / Highlight active line gutter
+      highlightActiveLine: true, // 高亮当前行 / Highlight active line
+      foldGutter: true, // 折叠功能 / Code folding
+    }),
+    []
+  );
+
+  // 缓存样式对象 / Memoize style object
+  const editorStyle = useMemo(
+    () => ({
+      fontSize: '14px',
+      height: '100%',
+    }),
+    []
+  );
+
   return (
     <div ref={containerRef} className='h-full w-full overflow-auto'>
       <CodeMirror
         value={value}
         height='100%'
         theme={theme === 'dark' ? 'dark' : 'light'}
-        extensions={[markdown()]} // Markdown 语法支持 / Markdown syntax support
-        onChange={onChange}
+        extensions={[]} // 不使用特定语法支持，保持通用 / No specific syntax support, keep it generic
+        onChange={handleChange}
         readOnly={readOnly}
-        basicSetup={{
-          lineNumbers: true, // 显示行号 / Show line numbers
-          highlightActiveLineGutter: true, // 高亮当前行号 / Highlight active line gutter
-          highlightActiveLine: true, // 高亮当前行 / Highlight active line
-          foldGutter: true, // 折叠功能 / Code folding
-        }}
-        style={{
-          fontSize: '14px',
-          height: '100%',
-        }}
+        basicSetup={basicSetupConfig}
+        style={editorStyle}
       />
     </div>
   );
 };
 
-export default MarkdownEditor;
+// 使用 React.memo 优化，只在 props 真正改变时才重新渲染 / Use React.memo to only re-render when props actually change
+export default React.memo(TextEditor);

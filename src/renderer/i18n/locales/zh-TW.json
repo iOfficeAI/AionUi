@@ -195,7 +195,19 @@
     "downloadMarkdown": "下載 Markdown 檔案",
     "downloadCode": "下載 {{language}} 檔案",
     "downloadDiff": "下載 Diff 檔案",
-    "addToChat": "加入對話"
+    "addToChat": "加入對話",
+    "openSplitScreen": "開啟分屏",
+    "closeSplitScreen": "關閉分屏",
+    "edit": "編輯",
+    "exitEdit": "退出編輯",
+    "unsavedChangesTitle": "未儲存的修改",
+    "unsavedChangesMessage": "當前修改還沒有儲存，確定退出編輯嗎？",
+    "confirmExit": "確定退出",
+    "continueEdit": "繼續編輯",
+    "closeTabTitle": "關閉標籤頁",
+    "closeTabMessage": "當前內容還未儲存，是否儲存後再關閉？",
+    "saveAndClose": "儲存並關閉",
+    "closeWithoutSave": "不儲存"
   },
   "conversation": {
     "welcome": {

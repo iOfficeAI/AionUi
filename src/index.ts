@@ -171,11 +171,27 @@ const createWindow = (): void => {
     autoHideMenuBar: true,
     webPreferences: {
       preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
+      webviewTag: true, // 启用 webview 标签用于 HTML 预览 / Enable webview tag for HTML preview
     },
   });
 
   initMainAdapterWithWindow(mainWindow);
   void applyZoomToWindow(mainWindow);
+
+  // 移除 webview/iframe 中的 CSP 限制，允许 HTML 预览加载外部资源
+  // Remove CSP restrictions in webview/iframe to allow HTML preview to load external resources
+  mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
+    const responseHeaders = { ...details.responseHeaders };
+
+    // 对于 data: 和 blob: 协议的请求，移除 CSP 限制
+    // Remove CSP restrictions for data: and blob: protocol requests
+    if (details.url.startsWith('data:') || details.url.startsWith('blob:')) {
+      delete responseHeaders['content-security-policy'];
+      delete responseHeaders['Content-Security-Policy'];
+    }
+
+    callback({ responseHeaders });
+  });
 
   // and load the index.html of the app.
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY).catch((error) => {

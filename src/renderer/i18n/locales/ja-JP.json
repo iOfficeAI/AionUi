@@ -224,7 +224,19 @@
     "downloadMarkdown": "Markdown ファイルをダウンロード",
     "downloadCode": "{{language}} ファイルをダウンロード",
     "downloadDiff": "Diff ファイルをダウンロード",
-    "addToChat": "チャットに追加"
+    "addToChat": "チャットに追加",
+    "openSplitScreen": "分割画面を開く",
+    "closeSplitScreen": "分割画面を閉じる",
+    "edit": "編集",
+    "exitEdit": "編集を終了",
+    "unsavedChangesTitle": "未保存の変更",
+    "unsavedChangesMessage": "現在の変更はまだ保存されていません。編集を終了してもよろしいですか？",
+    "confirmExit": "終了する",
+    "continueEdit": "編集を続ける",
+    "closeTabTitle": "タブを閉じる",
+    "closeTabMessage": "現在の内容はまだ保存されていません。保存してから閉じますか？",
+    "saveAndClose": "保存して閉じる",
+    "closeWithoutSave": "保存しない"
   },
   "conversation": {
     "welcome": {
