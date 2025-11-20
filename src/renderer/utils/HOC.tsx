@@ -27,7 +27,7 @@ type HOCComponentAndProps<Props extends Record<string, any> = Record<string, any
 
 const Hook = (...hooks: Array<() => void>) => {
   return HOC.Create((props: any) => {
-    hooks.map((hook) => hook());
+    hooks.forEach((hook) => hook());
     return <>{props.children}</>;
   });
 };
