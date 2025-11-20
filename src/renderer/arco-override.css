@@ -1,4 +1,29 @@
 /* Arco Design custom overrides - non-theme related */
+
+/* Override Arco Design component backgrounds to white in light mode */
+/* 覆盖 Arco Design 组件背景色为白色（浅色模式） */
+/* .arco-input,
+.arco-textarea,
+.arco-select-view,
+.arco-picker,
+.arco-input-number,
+.arco-cascader-view,
+.arco-tree-select-view,
+.arco-auto-complete-view,
+.arco-mentions-view {
+  background-color: #ffffff !important;
+}
+
+.arco-input-wrapper {
+  background-color: #ffffff !important;
+}
+
+.arco-select-popup .arco-select-option {
+  &:hover {
+    background-color: #fafafa !important;
+  }
+} */
+
 .arco-btn {
   &.arco-btn-outline {
     border-color: #86909c;

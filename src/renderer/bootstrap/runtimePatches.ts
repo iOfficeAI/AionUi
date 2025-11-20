@@ -20,6 +20,14 @@ declare global {
 
 const RESIZE_OBSERVER_PATTERNS = ['resizeobserver loop limit exceeded', 'resizeobserver loop completed with undelivered notifications'];
 
+// Silence Arco Design Message component key warnings (internal library issue)
+// 抑制 Arco Design Message 组件的 key 警告（第三方库内部问题）
+const ARCO_MESSAGE_KEY_PATTERNS = ['each child in a list should have a unique "key" prop', 'check the render method of `layout`', 'check the render method of `message`'];
+
+// Silence React 19 ref deprecation warnings from third-party libraries
+// 抑制第三方库中 React 19 ref 废弃警告（等待库更新）
+const REACT_19_REF_PATTERNS = ['accessing element.ref was removed in react 19', 'ref is now a regular prop'];
+
 const extractMessage = (value: unknown): string | undefined => {
   if (!value) return undefined;
   if (typeof value === 'string') return value;
@@ -33,7 +41,7 @@ const extractMessage = (value: unknown): string | undefined => {
 const shouldSilence = (message?: string) => {
   if (!message) return false;
   const normalized = message.toLowerCase();
-  return RESIZE_OBSERVER_PATTERNS.some((pattern) => normalized.includes(pattern));
+  return RESIZE_OBSERVER_PATTERNS.some((pattern) => normalized.includes(pattern)) || ARCO_MESSAGE_KEY_PATTERNS.some((pattern) => normalized.includes(pattern)) || REACT_19_REF_PATTERNS.some((pattern) => normalized.includes(pattern));
 };
 
 const patchGlobalErrorListeners = () => {
