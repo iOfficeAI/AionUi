@@ -18,8 +18,6 @@ interface HTMLRendererProps {
 interface ElectronWebView extends HTMLElement {
   src: string;
   executeJavaScript: (code: string) => Promise<void>;
-  addEventListener: (event: string, listener: () => void) => void;
-  removeEventListener: (event: string, listener: () => void) => void;
 }
 
 /**
@@ -63,9 +61,6 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containe
       const fileDir = filePath.substring(0, filePath.lastIndexOf('/') + 1);
       const baseUrl = `file://${fileDir}`;
 
-      console.log('[HTMLRenderer] File path:', filePath);
-      console.log('[HTMLRenderer] Base URL:', baseUrl);
-
       // 检查是否已有 base 标签 / Check if base tag exists
       if (!html.match(/<base\s+href=/i)) {
         if (html.match(/<head>/i)) {
@@ -78,8 +73,6 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containe
       }
     }
 
-    console.log('[HTMLRenderer] Processed HTML length:', html.length);
-    console.log('[HTMLRenderer] HTML preview:', html.substring(0, 500));
     return html;
   }, [content, filePath]);
 
@@ -97,11 +90,10 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containe
 
     const handleDidFinishLoad = () => {
       webviewLoadedRef.current = true; // 标记为已加载 / Mark as loaded
-      console.log('[HTMLRenderer] webview loaded successfully');
     };
 
-    const handleDidFailLoad = (event: Event) => {
-      console.error('[HTMLRenderer] webview failed to load:', event);
+    const handleDidFailLoad = (_event: Event) => {
+      // Handle webview load failure
     };
 
     webview.addEventListener('did-finish-load', handleDidFinishLoad);
@@ -118,7 +110,6 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containe
   const inspectScript = useMemo(() => {
     return `
       (function() {
-        console.log('[HTMLRenderer Inspect] Script executing, inspectMode:', ${inspectMode});
 
         // 移除旧的检查模式样式和监听器 / Remove old inspect mode styles and listeners
         const oldStyle = document.getElementById('inspect-mode-style');
@@ -134,22 +125,18 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containe
         const oldListeners = window.__inspectModeListeners || {};
         if (oldListeners.mousemove) {
           document.removeEventListener('mousemove', oldListeners.mousemove);
-          console.log('[HTMLRenderer Inspect] Removed mousemove listener');
         }
         if (oldListeners.contextmenu) {
           document.removeEventListener('contextmenu', oldListeners.contextmenu);
-          console.log('[HTMLRenderer Inspect] Removed contextmenu listener');
         }
         if (oldListeners.click) {
           document.removeEventListener('click', oldListeners.click);
-          console.log('[HTMLRenderer Inspect] Removed click listener');
         }
 
         if (!${inspectMode}) {
           // 如果关闭检查模式，移除所有相关元素 / If inspect mode is off, remove all related elements
           document.body.style.cursor = '';
           window.__inspectModeListeners = null;
-          console.log('[HTMLRenderer Inspect] Inspect mode disabled, cleaned up');
           return;
         }
 
@@ -311,10 +298,10 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containe
     void webview
       .executeJavaScript(inspectScript)
       .then(() => {
-        console.log('[HTMLRenderer] Inject inspect mode script, mode:', inspectMode);
+        // Script injected successfully
       })
-      .catch((error) => {
-        console.error('[HTMLRenderer] Failed to inject inspect script:', error);
+      .catch((_error) => {
+        // Failed to inject inspect script
       });
   }, [inspectScript, inspectMode]);
 
@@ -325,7 +312,6 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containe
 
     // 如果 webview 已经加载完成，立即执行脚本 / If webview is already loaded, execute script immediately
     if (webviewLoadedRef.current) {
-      console.log('[HTMLRenderer] Webview already loaded, executing script immediately');
       executeScript();
     }
 
@@ -343,14 +329,8 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containe
 
   return (
     <div ref={containerRef || divRef} className={`h-full w-full overflow-auto ${currentTheme === 'dark' ? 'bg-bg-1' : 'bg-white'}`}>
-      <webview
-        ref={webviewRef}
-        src={dataUrl}
-        className='w-full h-full border-0'
-        style={{ display: 'inline-flex' }}
-        // @ts-expect-error - webview 是 Electron 特有标签
-        webpreferences='allowRunningInsecureContent, javascript=yes'
-      />
+      {/* key 确保内容改变时 webview 重新挂载 / key ensures webview remounts when content changes */}
+      <webview key={dataUrl} ref={webviewRef} src={dataUrl} className='w-full h-full border-0' style={{ display: 'inline-flex' }} webpreferences='allowRunningInsecureContent, javascript=yes' />
     </div>
   );
 };

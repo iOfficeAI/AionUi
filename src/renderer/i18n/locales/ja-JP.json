@@ -236,7 +236,16 @@
     "closeTabTitle": "タブを閉じる",
     "closeTabMessage": "現在の内容はまだ保存されていません。保存してから閉じますか？",
     "saveAndClose": "保存して閉じる",
-    "closeWithoutSave": "保存しない"
+    "closeWithoutSave": "保存しない",
+    "pptTitle": "PowerPoint プレゼンテーション",
+    "pptOpenHint": "下のボタンをクリックして、システムアプリで開いて完全なコンテンツを表示します",
+    "pptOpenFile": "ファイルを開く",
+    "pptShowLocation": "場所を表示",
+    "pptSystemAppHint": "PowerPoint、Keynote、または WPS などのシステムデフォルトアプリで開きます",
+    "closeLeft": "左側を閉じる",
+    "closeRight": "右側を閉じる",
+    "closeOthers": "他を閉じる",
+    "closeAll": "すべて閉じる"
   },
   "conversation": {
     "welcome": {

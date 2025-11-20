@@ -5,10 +5,10 @@
  */
 
 import './utils/configureChromium';
-import fs from 'fs';
-import path from 'path';
 import { app, BrowserWindow, screen } from 'electron';
 import fixPath from 'fix-path';
+import * as fs from 'fs';
+import * as path from 'path';
 import { initMainAdapterWithWindow } from './adapter/main';
 import { ipcBridge } from './common';
 import './process';
@@ -40,19 +40,17 @@ if (electronSquirrelStartup) {
 // Global error handlers for main process
 // 捕获未处理的同步异常，防止显示 Electron 默认错误对话框
 // Catch uncaught synchronous exceptions to prevent Electron's default error dialog
-process.on('uncaughtException', (error) => {
-  console.error('[Main Process] Uncaught Exception:', error);
+process.on('uncaughtException', (_error) => {
   // 在生产环境中，可以将错误记录到文件或上报到错误追踪服务
   // In production, errors can be logged to file or sent to error tracking service
   if (process.env.NODE_ENV !== 'development') {
-    console.error('[Main Process] Fatal error occurred, but continuing...');
+    // TODO: Add error logging or reporting
   }
 });
 
 // 捕获未处理的 Promise 拒绝，避免应用崩溃
 // Catch unhandled Promise rejections to prevent app crashes
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('[Main Process] Unhandled Promise Rejection at:', promise, 'reason:', reason);
+process.on('unhandledRejection', (_reason, _promise) => {
   // 可以在这里添加错误上报逻辑
   // Error reporting logic can be added here
 });
@@ -85,14 +83,13 @@ type WebUIUserConfig = {
   allowRemote?: boolean;
 };
 
-const parsePortValue = (value: unknown, sourceLabel: string): number | null => {
+const parsePortValue = (value: unknown, _sourceLabel: string): number | null => {
   if (value === undefined || value === null || value === '') {
     return null;
   }
 
   const portNumber = typeof value === 'number' ? value : parseInt(String(value), 10);
   if (!Number.isFinite(portNumber) || portNumber < 1 || portNumber > 65535) {
-    console.warn(`[config] Ignoring invalid port from ${sourceLabel}:`, value);
     return null;
   }
   return portNumber;
@@ -109,12 +106,10 @@ const loadUserWebUIConfig = (): { config: WebUIUserConfig; path: string | null; 
     const raw = fs.readFileSync(configPath, 'utf-8');
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== 'object') {
-      console.warn(`[config] ${configPath} must export an object.`);
       return { config: {}, path: configPath, exists: false };
     }
     return { config: parsed as WebUIUserConfig, path: configPath, exists: true };
   } catch (error) {
-    console.warn('[config] Failed to load webui.config.json:', error);
     return { config: {}, path: null, exists: false };
   }
 };
@@ -194,8 +189,8 @@ const createWindow = (): void => {
   });
 
   // and load the index.html of the app.
-  mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY).catch((error) => {
-    console.error('Failed to load main window URL:', error);
+  mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY).catch((_error) => {
+    // Error loading main window URL
   });
 
   if (process.env.NODE_ENV === 'development') {
@@ -228,13 +223,12 @@ const handleAppReady = async (): Promise<void> => {
 
       app.quit();
     } catch (error) {
-      console.error('Failed to reset password:', error);
       app.exit(1);
     }
   } else if (isWebUIMode) {
     const userConfigInfo = loadUserWebUIConfig();
     if (userConfigInfo.exists && userConfigInfo.path) {
-      console.log(`[config] Loaded ${userConfigInfo.path}`);
+      // Config file loaded from user directory
     }
     const resolvedPort = resolveWebUIPort(userConfigInfo.config);
     const allowRemote = resolveRemoteAccess(userConfigInfo.config);
@@ -253,8 +247,8 @@ const handleAppReady = async (): Promise<void> => {
 void app
   .whenReady()
   .then(handleAppReady)
-  .catch((error) => {
-    console.error('Failed to initialize main process:', error);
+  .catch((_error) => {
+    // App initialization failed
     app.quit();
   });
 

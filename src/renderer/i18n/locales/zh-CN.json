@@ -106,7 +106,16 @@
     "closeTabTitle": "关闭标签页",
     "closeTabMessage": "当前内容还未保存，是否保存后再关闭？",
     "saveAndClose": "保存并关闭",
-    "closeWithoutSave": "不保存"
+    "closeWithoutSave": "不保存",
+    "pptTitle": "PowerPoint 演示文稿",
+    "pptOpenHint": "点击下方按钮在系统应用中打开以查看完整内容",
+    "pptOpenFile": "打开文件",
+    "pptShowLocation": "显示位置",
+    "pptSystemAppHint": "将使用 PowerPoint、Keynote 或 WPS 等系统默认应用打开",
+    "closeLeft": "关闭左侧",
+    "closeRight": "关闭右侧",
+    "closeOthers": "关闭其他",
+    "closeAll": "全部关闭"
   },
   "conversation": {
     "welcome": {

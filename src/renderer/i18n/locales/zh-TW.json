@@ -207,7 +207,16 @@
     "closeTabTitle": "關閉標籤頁",
     "closeTabMessage": "當前內容還未儲存，是否儲存後再關閉？",
     "saveAndClose": "儲存並關閉",
-    "closeWithoutSave": "不儲存"
+    "closeWithoutSave": "不儲存",
+    "pptTitle": "PowerPoint 簡報",
+    "pptOpenHint": "點擊下方按鈕在系統應用中開啟以查看完整內容",
+    "pptOpenFile": "開啟檔案",
+    "pptShowLocation": "顯示位置",
+    "pptSystemAppHint": "將使用 PowerPoint、Keynote 或 WPS 等系統預設應用開啟",
+    "closeLeft": "關閉左側",
+    "closeRight": "關閉右側",
+    "closeOthers": "關閉其他",
+    "closeAll": "全部關閉"
   },
   "conversation": {
     "welcome": {

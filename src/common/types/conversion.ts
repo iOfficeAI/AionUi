@@ -29,7 +29,7 @@ export interface PPTSlideData {
 
 export interface PPTJsonData {
   slides: PPTSlideData[];
-  raw: any; // 原始 PPTX JSON / Raw PPTX JSON
+  raw?: any; // 原始 PPTX JSON（可选，通常不需要传递给前端）/ Raw PPTX JSON (optional, usually not needed in frontend)
 }
 
 export interface ConversionServiceApi {

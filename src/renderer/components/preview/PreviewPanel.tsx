@@ -54,6 +54,28 @@ const PreviewPanel: React.FC = () => {
     return (document.documentElement.getAttribute('data-theme') as 'light' | 'dark') || 'light';
   });
   const [inspectMode, setInspectMode] = useState(false); // HTML 检查模式 / HTML inspect mode
+  const [contextMenu, setContextMenu] = useState<{ show: boolean; x: number; y: number; tabId: string | null }>({ show: false, x: 0, y: 0, tabId: null }); // Tab 右键菜单 / Tab context menu
+  const contextMenuRef = useRef<HTMLDivElement>(null); // 右键菜单引用 / Context menu ref
+
+  // 点击外部关闭上下文菜单 / Close context menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (!contextMenu.show) return;
+      // 如果点击的是菜单内部，不关闭 / Don't close if clicking inside menu
+      if (contextMenuRef.current && contextMenuRef.current.contains(e.target as Node)) {
+        return;
+      }
+      setContextMenu({ show: false, x: 0, y: 0, tabId: null });
+    };
+
+    // 使用 mousedown 而不是 click,避免与右键菜单的 onClick 冲突
+    // Use mousedown instead of click to avoid conflicts with context menu onClick
+    document.addEventListener('mousedown', handleClickOutside, { passive: true });
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [contextMenu.show]);
 
   // 监听主题变化 / Monitor theme changes
   useEffect(() => {
@@ -134,20 +156,14 @@ const PreviewPanel: React.FC = () => {
   // 使用 useCallback 包装 updateContent，确保引用稳定 / Wrap updateContent with useCallback for stable reference
   const handleContentChange = useCallback(
     (newContent: string) => {
-      console.log('[PreviewPanel] handleContentChange called');
-      console.log('[PreviewPanel] newContent type:', typeof newContent);
-      console.log('[PreviewPanel] newContent length:', newContent?.length);
-      console.log('[PreviewPanel] newContent preview:', typeof newContent === 'string' ? newContent.substring(0, 100) : newContent);
-
       // 严格的类型检查，防止 Event 对象被错误传递 / Strict type checking to prevent Event object from being passed incorrectly
       if (typeof newContent !== 'string') {
-        console.error('[PreviewPanel] handleContentChange received non-string value:', newContent);
         return;
       }
       try {
         updateContent(newContent);
-      } catch (error) {
-        console.error('[PreviewPanel] Error in updateContent:', error);
+      } catch {
+        // Silently ignore errors
       }
     },
     [updateContent]
@@ -201,8 +217,10 @@ const PreviewPanel: React.FC = () => {
       closeTab(closeTabConfirm.tabId);
       setCloseTabConfirm({ show: false, tabId: null });
     } catch (error) {
-      console.error('[PreviewPanel] Failed to save content before closing tab:', error);
-      messageApi.error(t('common.saveFailed'));
+      const errorMsg = error instanceof Error ? error.message : '未知错误';
+      messageApi.error(`${t('common.saveFailed')}: ${errorMsg}`);
+      // 即使保存失败，也关闭确认对话框 / Close dialog even if save failed
+      setCloseTabConfirm({ show: false, tabId: null });
     }
   }, [closeTabConfirm.tabId, saveContent, closeTab, messageApi, t]);
 
@@ -217,6 +235,60 @@ const PreviewPanel: React.FC = () => {
   const handleCancelCloseTab = useCallback(() => {
     setCloseTabConfirm({ show: false, tabId: null });
   }, []);
+
+  // 处理 tab 右键菜单 / Handle tab context menu
+  const handleTabContextMenu = useCallback((e: React.MouseEvent, tabId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenu({
+      show: true,
+      x: e.clientX,
+      y: e.clientY,
+      tabId,
+    });
+  }, []);
+
+  // 关闭左侧 tabs / Close tabs to the left
+  const handleCloseLeft = useCallback(
+    (tabId: string) => {
+      const currentIndex = tabs.findIndex((t) => t.id === tabId);
+      if (currentIndex <= 0) return; // 没有左侧 tabs / No tabs to the left
+
+      const tabsToClose = tabs.slice(0, currentIndex);
+      tabsToClose.forEach((tab) => closeTab(tab.id));
+      setContextMenu({ show: false, x: 0, y: 0, tabId: null });
+    },
+    [tabs, closeTab]
+  );
+
+  // 关闭右侧 tabs / Close tabs to the right
+  const handleCloseRight = useCallback(
+    (tabId: string) => {
+      const currentIndex = tabs.findIndex((t) => t.id === tabId);
+      if (currentIndex < 0 || currentIndex >= tabs.length - 1) return; // 没有右侧 tabs / No tabs to the right
+
+      const tabsToClose = tabs.slice(currentIndex + 1);
+      tabsToClose.forEach((tab) => closeTab(tab.id));
+      setContextMenu({ show: false, x: 0, y: 0, tabId: null });
+    },
+    [tabs, closeTab]
+  );
+
+  // 关闭其他 tabs / Close other tabs
+  const handleCloseOthers = useCallback(
+    (tabId: string) => {
+      const tabsToClose = tabs.filter((t) => t.id !== tabId);
+      tabsToClose.forEach((tab) => closeTab(tab.id));
+      setContextMenu({ show: false, x: 0, y: 0, tabId: null });
+    },
+    [tabs, closeTab]
+  );
+
+  // 关闭全部 tabs / Close all tabs
+  const handleCloseAll = useCallback(() => {
+    tabs.forEach((tab) => closeTab(tab.id));
+    setContextMenu({ show: false, x: 0, y: 0, tabId: null });
+  }, [tabs, closeTab]);
 
   // 如果预览面板未打开，不渲染 / Don't render if preview panel is not open
   if (!isOpen || !activeTab) return null;
@@ -251,9 +323,11 @@ const PreviewPanel: React.FC = () => {
     try {
       const versions = await ipcBridge.previewHistory.list.invoke({ target: historyTarget });
       setHistoryVersions(versions || []);
+      setHistoryError(null);
     } catch (error) {
-      console.error('[PreviewPanel] Failed to load preview history:', error);
-      setHistoryError(t('preview.loadHistoryFailed'));
+      const errorMsg = error instanceof Error ? error.message : '未知错误';
+      setHistoryError(`${t('preview.loadHistoryFailed')}: ${errorMsg}`);
+      setHistoryVersions([]);
     } finally {
       setHistoryLoading(false);
     }
@@ -264,14 +338,15 @@ const PreviewPanel: React.FC = () => {
   }, [refreshHistory]);
 
   const handleSaveSnapshot = useCallback(async () => {
-    if (!historyTarget || !activeTab) return;
+    if (!historyTarget || !activeTab) {
+      return;
+    }
     if (snapshotSaving) return;
 
     // 防抖检查：如果距离上次保存快照时间小于1秒，则忽略 / Debounce check: Ignore if less than 1 second since last save
     const now = Date.now();
     const DEBOUNCE_TIME = 1000; // 1秒防抖时间 / 1 second debounce time
     if (now - lastSnapshotTimeRef.current < DEBOUNCE_TIME) {
-      console.log('[PreviewPanel] Snapshot save debounced, ignoring duplicate click');
       messageApi.info(t('preview.tooFrequent'));
       return;
     }
@@ -283,8 +358,8 @@ const PreviewPanel: React.FC = () => {
       messageApi.success(t('preview.snapshotSaved'));
       await refreshHistory();
     } catch (error) {
-      console.error('[PreviewPanel] Failed to save snapshot:', error);
-      messageApi.error(t('preview.snapshotSaveFailed'));
+      const errorMsg = error instanceof Error ? error.message : '未知错误';
+      messageApi.error(`${t('preview.snapshotSaveFailed')}: ${errorMsg}`);
     } finally {
       setSnapshotSaving(false);
     }
@@ -292,16 +367,20 @@ const PreviewPanel: React.FC = () => {
 
   const handleSnapshotSelect = useCallback(
     async (snapshot: PreviewSnapshotInfo) => {
-      if (!historyTarget) return;
+      if (!historyTarget) {
+        return;
+      }
       try {
         const result = await ipcBridge.previewHistory.getContent.invoke({ target: historyTarget, snapshotId: snapshot.id });
         if (result?.content) {
           updateContent(result.content);
           messageApi.success(t('preview.historyLoaded'));
+        } else {
+          throw new Error('快照内容为空');
         }
       } catch (error) {
-        console.error('[PreviewPanel] Failed to load snapshot content:', error);
-        messageApi.error(t('preview.historyLoadFailed'));
+        const errorMsg = error instanceof Error ? error.message : '未知错误';
+        messageApi.error(`${t('preview.historyLoadFailed')}: ${errorMsg}`);
       }
     },
     [historyTarget, messageApi, updateContent, t]
@@ -355,9 +434,12 @@ const PreviewPanel: React.FC = () => {
 
     // 根据内容类型设置文件扩展名 / Set file extension based on content type
     let ext = 'txt';
-    if (contentType === 'markdown') ext = 'md';
-    else if (contentType === 'diff') ext = 'diff';
-    else if (contentType === 'code') {
+    if (activeTab.contentType === 'markdown')
+      ext = 'md'; // Changed from contentType to activeTab.contentType
+    else if (activeTab.contentType === 'diff')
+      ext = 'diff'; // Changed from contentType to activeTab.contentType
+    else if (activeTab.contentType === 'code') {
+      // Changed from contentType to activeTab.contentType
       const lang = metadata?.language;
       if (lang === 'javascript' || lang === 'js') ext = 'js';
       else if (lang === 'typescript' || lang === 'ts') ext = 'ts';
@@ -370,7 +452,7 @@ const PreviewPanel: React.FC = () => {
       else if (lang === 'json') ext = 'json';
     }
 
-    link.download = `${metadata?.fileName || `${contentType}-${Date.now()}`}.${ext}`;
+    link.download = `${metadata?.fileName || `${activeTab.contentType}-${Date.now()}`}.${ext}`; // Changed from contentType to activeTab.contentType
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -401,7 +483,7 @@ const PreviewPanel: React.FC = () => {
                 <span className='text-12px text-t-secondary'>{t('preview.editor')}</span>
               </div>
               <div className='flex-1 overflow-hidden'>
-                <MarkdownEditor value={content} onChange={handleContentChange} containerRef={editorContainerRef} onScroll={handleEditorScroll} />
+                <MarkdownEditor value={content} onChange={updateContent} containerRef={editorContainerRef} onScroll={handleEditorScroll} />
               </div>
             </div>
 
@@ -422,7 +504,7 @@ const PreviewPanel: React.FC = () => {
       }
 
       // 非分屏模式：单栏（原文或预览）/ Non-split mode: Single panel (source or preview)
-      return <MarkdownPreview content={content} hideToolbar viewMode={viewMode} onViewModeChange={setViewMode} onContentChange={handleContentChange} />;
+      return <MarkdownPreview content={content} hideToolbar viewMode={viewMode} onViewModeChange={setViewMode} onContentChange={updateContent} />;
     }
 
     // HTML 模式 / HTML mode
@@ -447,7 +529,7 @@ const PreviewPanel: React.FC = () => {
                 <span className='text-12px text-t-secondary'>{t('preview.editor')}</span>
               </div>
               <div className='flex-1 overflow-hidden'>
-                <HTMLEditor value={content} onChange={handleContentChange} containerRef={editorContainerRef} onScroll={handleEditorScroll} filePath={metadata?.filePath} />
+                <HTMLEditor value={content} onChange={updateContent} containerRef={editorContainerRef} onScroll={handleEditorScroll} filePath={metadata?.filePath} />
               </div>
             </div>
 
@@ -510,7 +592,7 @@ const PreviewPanel: React.FC = () => {
       if (isEditMode && isEditable) {
         return (
           <div className='flex-1 overflow-hidden'>
-            <TextEditor value={content} onChange={handleContentChange} language={metadata?.language} />
+            <TextEditor value={content} onChange={handleContentChange} />
           </div>
         );
       }
@@ -521,7 +603,7 @@ const PreviewPanel: React.FC = () => {
     } else if (contentType === 'ppt') {
       return <PPTPreview filePath={metadata?.filePath} content={content} />;
     } else if (contentType === 'word') {
-      return <WordPreview filePath={metadata?.filePath} content={content} hideToolbar />;
+      return <WordPreview filePath={metadata?.filePath} content={content} />;
     } else if (contentType === 'excel') {
       return <ExcelPreview filePath={metadata?.filePath} content={content} hideToolbar />;
     }
@@ -565,26 +647,30 @@ const PreviewPanel: React.FC = () => {
       </Modal>
 
       {/* Tab 栏 / Tab bar */}
-      <div className='flex items-center h-40px bg-bg-2 overflow-x-auto'>
-        {tabs.map((tab) => (
-          <div key={tab.id} className={`flex items-center gap-8px px-12px h-full cursor-pointer transition-colors flex-shrink-0 ${tab.id === activeTabId ? 'bg-bg-1 text-t-primary' : 'text-t-secondary hover:bg-bg-3'}`} onClick={() => switchTab(tab.id)}>
-            <span className='text-12px whitespace-nowrap flex items-center gap-4px'>
-              {tab.title}
-              {/* 未保存指示器 / Unsaved indicator */}
-              {tab.isDirty && <span className='w-6px h-6px rd-full bg-primary' title='有未保存的修改 / Unsaved changes' />}
-            </span>
-            <Close
-              theme='outline'
-              size='14'
-              fill={iconColors.secondary}
-              className='hover:fill-primary'
-              onClick={(e) => {
-                e.stopPropagation();
-                handleCloseTab(tab.id);
-              }}
-            />
-          </div>
-        ))}
+      <div className='flex items-center h-40px bg-bg-2 overflow-x-auto flex-shrink-0' style={{ minHeight: '40px', borderBottom: '1px solid var(--border-base)' }}>
+        {tabs.length > 0 ? (
+          tabs.map((tab) => (
+            <div key={tab.id} className={`flex items-center gap-8px px-12px h-full cursor-pointer transition-colors flex-shrink-0 ${tab.id === activeTabId ? 'bg-bg-1 text-t-primary' : 'text-t-secondary hover:bg-bg-3'}`} onClick={() => switchTab(tab.id)} onContextMenu={(e) => handleTabContextMenu(e, tab.id)}>
+              <span className='text-12px whitespace-nowrap flex items-center gap-4px'>
+                {tab.title}
+                {/* 未保存指示器 / Unsaved indicator */}
+                {tab.isDirty && <span className='w-6px h-6px rd-full bg-primary' title='有未保存的修改 / Unsaved changes' />}
+              </span>
+              <Close
+                theme='outline'
+                size='14'
+                fill={iconColors.secondary}
+                className='hover:fill-primary'
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleCloseTab(tab.id);
+                }}
+              />
+            </div>
+          ))
+        ) : (
+          <div className='text-12px text-t-tertiary px-12px'>No tabs</div>
+        )}
       </div>
 
       {/* 工具栏：Tabs + 文件名 + 操作按钮 / Toolbar: Tabs + Filename + Action buttons */}
@@ -601,13 +687,12 @@ const PreviewPanel: React.FC = () => {
                   flex items-center h-full px-16px cursor-pointer transition-all text-14px font-medium
                   ${viewMode === 'source' ? 'text-primary border-b-2 border-primary' : 'text-t-secondary hover:text-t-primary hover:bg-bg-3'}
                 `}
-                  onClick={(e) => {
+                  onClick={() => {
                     try {
-                      console.log('[PreviewPanel] Switching to source mode, event:', e);
                       setViewMode('source');
                       setIsSplitScreenEnabled(false); // 切换到原文模式时关闭分屏 / Disable split when switching to source
-                    } catch (error) {
-                      console.error('[PreviewPanel] Error switching to source mode:', error);
+                    } catch {
+                      // Silently ignore errors
                     }
                   }}
                 >
@@ -619,13 +704,12 @@ const PreviewPanel: React.FC = () => {
                   flex items-center h-full px-16px cursor-pointer transition-all text-14px font-medium
                   ${viewMode === 'preview' ? 'text-primary border-b-2 border-primary' : 'text-t-secondary hover:text-t-primary hover:bg-bg-3'}
                 `}
-                  onClick={(e) => {
+                  onClick={() => {
                     try {
-                      console.log('[PreviewPanel] Switching to preview mode, event:', e);
                       setViewMode('preview');
                       setIsSplitScreenEnabled(false); // 切换到预览模式时关闭分屏 / Disable split when switching to preview
-                    } catch (error) {
-                      console.error('[PreviewPanel] Error switching to preview mode:', error);
+                    } catch {
+                      // Silently ignore errors
                     }
                   }}
                 >
@@ -636,12 +720,11 @@ const PreviewPanel: React.FC = () => {
               {/* 分屏按钮 / Split-screen button */}
               <div
                 className={`flex items-center px-8px py-4px rd-4px cursor-pointer transition-colors ${isSplitScreenEnabled ? 'bg-primary text-white' : 'text-t-secondary hover:bg-bg-3'}`}
-                onClick={(e) => {
+                onClick={() => {
                   try {
-                    console.log('[PreviewPanel] Toggling split screen, current state:', isSplitScreenEnabled, 'event:', e);
                     setIsSplitScreenEnabled(!isSplitScreenEnabled);
-                  } catch (error) {
-                    console.error('[PreviewPanel] Error toggling split screen:', error);
+                  } catch {
+                    // Silently ignore errors
                   }
                 }}
                 title={isSplitScreenEnabled ? t('preview.closeSplitScreen') : t('preview.openSplitScreen')}
@@ -671,36 +754,41 @@ const PreviewPanel: React.FC = () => {
             </div>
           )}
 
-          {/* 保存快照按钮 / Snapshot button */}
-          <div className={`flex items-center gap-4px px-8px py-4px rd-4px transition-colors ${historyTarget ? 'cursor-pointer hover:bg-bg-3' : 'cursor-not-allowed opacity-50'} ${snapshotSaving ? 'opacity-60' : ''}`} onClick={historyTarget && !snapshotSaving ? handleSaveSnapshot : undefined} title={historyTarget ? t('preview.saveSnapshot') : t('preview.snapshotNotSupported')}>
-            <svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='1.8' className='text-t-secondary'>
-              <path d='M5 7h3l1-2h6l1 2h3a1 1 0 0 1 1 1v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a1 1 0 0 1 1-1Z' />
-              <circle cx='12' cy='13' r='3' />
-            </svg>
-            <span className='text-12px text-t-secondary'>{t('preview.snapshot')}</span>
-          </div>
-
-          {/* 历史版本按钮 / History button */}
-          {historyTarget ? (
-            <Dropdown droplist={renderHistoryDropdown()} trigger={['hover']} position='br' onVisibleChange={(visible) => visible && refreshHistory()}>
-              <div className='flex items-center gap-4px px-8px py-4px rd-4px cursor-pointer hover:bg-bg-3 transition-colors' title={t('preview.historyVersions')}>
+          {/* 快照和历史按钮（仅对有编辑能力的内容类型显示：markdown/html/code）/ Snapshot and history buttons (only for editable types: markdown/html/code) */}
+          {(contentType === 'markdown' || contentType === 'html' || (contentType === 'code' && isEditable)) && (
+            <>
+              {/* 保存快照按钮 / Snapshot button */}
+              <div className={`flex items-center gap-4px px-8px py-4px rd-4px transition-colors ${historyTarget ? 'cursor-pointer hover:bg-bg-3' : 'cursor-not-allowed opacity-50'} ${snapshotSaving ? 'opacity-60' : ''}`} onClick={historyTarget && !snapshotSaving ? handleSaveSnapshot : undefined} title={historyTarget ? t('preview.saveSnapshot') : t('preview.snapshotNotSupported')}>
                 <svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='1.8' className='text-t-secondary'>
-                  <path d='M12 8v5l3 2' />
-                  <path d='M12 3a9 9 0 1 0 9 9' />
-                  <polyline points='21 3 21 9 15 9' />
+                  <path d='M5 7h3l1-2h6l1 2h3a1 1 0 0 1 1 1v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a1 1 0 0 1 1-1Z' />
+                  <circle cx='12' cy='13' r='3' />
                 </svg>
-                <span className='text-12px text-t-secondary'>{t('preview.history')}</span>
+                <span className='text-12px text-t-secondary'>{t('preview.snapshot')}</span>
               </div>
-            </Dropdown>
-          ) : (
-            <div className='flex items-center gap-4px px-8px py-4px rd-4px cursor-not-allowed opacity-50 transition-colors' title={t('preview.historyNotSupported')}>
-              <svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='1.8' className='text-t-secondary'>
-                <path d='M12 8v5l3 2' />
-                <path d='M12 3a9 9 0 1 0 9 9' />
-                <polyline points='21 3 21 9 15 9' />
-              </svg>
-              <span className='text-12px text-t-secondary'>{t('preview.history')}</span>
-            </div>
+
+              {/* 历史版本按钮 / History button */}
+              {historyTarget ? (
+                <Dropdown droplist={renderHistoryDropdown()} trigger={['hover']} position='br' onVisibleChange={(visible) => visible && refreshHistory()}>
+                  <div className='flex items-center gap-4px px-8px py-4px rd-4px cursor-pointer hover:bg-bg-3 transition-colors' title={t('preview.historyVersions')}>
+                    <svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='1.8' className='text-t-secondary'>
+                      <path d='M12 8v5l3 2' />
+                      <path d='M12 3a9 9 0 1 0 9 9' />
+                      <polyline points='21 3 21 9 15 9' />
+                    </svg>
+                    <span className='text-12px text-t-secondary'>{t('preview.history')}</span>
+                  </div>
+                </Dropdown>
+              ) : (
+                <div className='flex items-center gap-4px px-8px py-4px rd-4px cursor-not-allowed opacity-50 transition-colors' title={t('preview.historyNotSupported')}>
+                  <svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='1.8' className='text-t-secondary'>
+                    <path d='M12 8v5l3 2' />
+                    <path d='M12 3a9 9 0 1 0 9 9' />
+                    <polyline points='21 3 21 9 15 9' />
+                  </svg>
+                  <span className='text-12px text-t-secondary'>{t('preview.history')}</span>
+                </div>
+              )}
+            </>
           )}
 
           {/* 下载按钮 / Download button */}
@@ -722,6 +810,53 @@ const PreviewPanel: React.FC = () => {
 
       {/* 预览内容 / Preview content */}
       {renderContent()}
+
+      {/* Tab 右键菜单 / Tab context menu */}
+      {contextMenu.show &&
+        contextMenu.tabId &&
+        (() => {
+          const currentIndex = tabs.findIndex((t) => t.id === contextMenu.tabId);
+          const hasLeftTabs = currentIndex > 0;
+          const hasRightTabs = currentIndex >= 0 && currentIndex < tabs.length - 1;
+          const hasOtherTabs = tabs.length > 1;
+
+          return (
+            <div
+              ref={contextMenuRef}
+              className='fixed shadow-lg rd-8px py-4px z-9999'
+              style={{
+                left: `${contextMenu.x}px`,
+                top: `${contextMenu.y}px`,
+                backgroundColor: currentTheme === 'dark' ? '#1d1d1f' : '#ffffff',
+                border: '1px solid var(--border-base, #e5e6eb)',
+                minWidth: '140px',
+              }}
+            >
+              {/* 关闭左侧 / Close tabs to the left */}
+              <div className={`px-12px py-8px text-12px transition-colors ${hasLeftTabs ? 'cursor-pointer text-t-primary hover:bg-bg-3' : 'opacity-50 cursor-not-allowed text-t-tertiary'}`} onClick={() => hasLeftTabs && handleCloseLeft(contextMenu.tabId!)}>
+                {t('preview.closeLeft')}
+              </div>
+
+              {/* 关闭右侧 / Close tabs to the right */}
+              <div className={`px-12px py-8px text-12px transition-colors ${hasRightTabs ? 'cursor-pointer text-t-primary hover:bg-bg-3' : 'opacity-50 cursor-not-allowed text-t-tertiary'}`} onClick={() => hasRightTabs && handleCloseRight(contextMenu.tabId!)}>
+                {t('preview.closeRight')}
+              </div>
+
+              {/* 关闭其他 / Close other tabs */}
+              <div className={`px-12px py-8px text-12px transition-colors ${hasOtherTabs ? 'cursor-pointer text-t-primary hover:bg-bg-3' : 'opacity-50 cursor-not-allowed text-t-tertiary'}`} onClick={() => hasOtherTabs && handleCloseOthers(contextMenu.tabId!)}>
+                {t('preview.closeOthers')}
+              </div>
+
+              {/* 分隔线 / Divider */}
+              <div className='h-1px bg-border-1 my-4px mx-8px' />
+
+              {/* 全部关闭 / Close all tabs */}
+              <div className='px-12px py-8px text-12px text-t-primary cursor-pointer hover:bg-bg-3 transition-colors' onClick={handleCloseAll}>
+                {t('preview.closeAll')}
+              </div>
+            </div>
+          );
+        })()}
     </div>
   );
 };

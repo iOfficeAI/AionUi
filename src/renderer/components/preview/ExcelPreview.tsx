@@ -5,148 +5,169 @@
  */
 
 import { ipcBridge } from '@/common';
-import { documentConverter } from '@/common/document/DocumentConverter';
+import type { ExcelWorkbookData } from '@/common/types/conversion';
 import { Message } from '@arco-design/web-react';
-import React, { useCallback, useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import MarkdownEditor from './MarkdownEditor';
-import MarkdownPreview from './MarkdownPreview';
+import React, { useEffect, useState } from 'react';
 
 interface ExcelPreviewProps {
   filePath?: string;
-  content?: string; // Base64 或 ArrayBuffer
+  content?: string; // 预留，暂不使用
   hideToolbar?: boolean;
 }
 
 /**
- * Excel 表格预览与编辑组件
+ * Excel 表格预览组件（只读模式）
  *
- * 核心流程：
- * 1. Excel → Markdown 表格 (SheetJS)
- * 2. 使用 MarkdownEditor 编辑表格
- * 3. Markdown → Excel (SheetJS)
+ * 功能：
+ * 1. 通过 IPC 从主进程读取 Excel 文件
+ * 2. 主进程使用 xlsx 库转换为 JSON 格式
+ * 3. 渲染进程用 HTML 表格展示数据
  */
-const ExcelPreview: React.FC<ExcelPreviewProps> = ({ filePath, content, hideToolbar = false }) => {
-  const { t } = useTranslation();
-  const [markdown, setMarkdown] = useState('');
-  const [editMode, setEditMode] = useState(false);
+const ExcelPreview: React.FC<ExcelPreviewProps> = ({ filePath, hideToolbar = false }) => {
+  const [excelData, setExcelData] = useState<ExcelWorkbookData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [isDirty, setIsDirty] = useState(false);
-  const [messageApi, messageContextHolder] = Message.useMessage();
+  const [activeSheet, setActiveSheet] = useState<string>('');
+  const [, messageContextHolder] = Message.useMessage();
 
   /**
-   * 加载 Excel 文档并转换为 Markdown
+   * 加载 Excel 文件
    */
   useEffect(() => {
-    const loadDocument = async () => {
+    const loadExcel = async () => {
+      if (!filePath) {
+        setError('未提供文件路径');
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       setError(null);
 
       try {
-        let arrayBuffer: ArrayBuffer;
+        // 通过 IPC 调用主进程转换
+        const result = await ipcBridge.conversion.excelToJson.invoke({ filePath });
 
-        if (filePath) {
-          // 从文件路径读取二进制数据 / Read binary data from file path
-          arrayBuffer = await ipcBridge.fs.readFileBuffer.invoke({ path: filePath });
-        } else if (content) {
-          // 从 content 读取
-          if (typeof content === 'string') {
-            // Base64
-            const base64 = content.startsWith('data:') ? content.split(',')[1] : content;
-            const binary = atob(base64);
-            const bytes = new Uint8Array(binary.length);
-            for (let i = 0; i < binary.length; i++) {
-              bytes[i] = binary.charCodeAt(i);
-            }
-            arrayBuffer = bytes.buffer;
-          } else {
-            arrayBuffer = content as unknown as ArrayBuffer;
+        if (result.success && result.data) {
+          setExcelData(result.data);
+          // 默认选中第一个工作表
+          if (result.data.sheets.length > 0) {
+            setActiveSheet(result.data.sheets[0].name);
           }
         } else {
-          throw new Error('No Excel document source provided');
+          throw new Error(result.error || 'Excel 转换失败');
         }
-
-        // 转换为 Markdown
-        const md = await documentConverter.excelToMarkdown(arrayBuffer);
-        setMarkdown(md);
       } catch (err) {
-        console.error('[ExcelPreview] Failed to load Excel document:', err);
-        setError('加载 Excel 文档失败');
+        setError(err instanceof Error ? err.message : '加载 Excel 文档失败');
       } finally {
         setLoading(false);
       }
     };
 
-    void loadDocument();
-  }, [filePath, content]);
+    void loadExcel();
+  }, [filePath]);
 
   /**
-   * 切换编辑模式
+   * 渲染工作表数据为 HTML 表格
    */
-  const handleToggleEdit = () => {
-    setEditMode(!editMode);
-  };
-
-  /**
-   * 保存文档
-   */
-  const handleSave = useCallback(async () => {
-    if (!filePath) {
-      messageApi.error('无法保存：未指定文件路径');
-      return;
+  const renderSheetTable = (sheetName: string) => {
+    const sheet = excelData?.sheets.find((s) => s.name === sheetName);
+    if (!sheet || !sheet.data || sheet.data.length === 0) {
+      return (
+        <div className='flex items-center justify-center h-200px'>
+          <div className='text-center'>
+            <div className='text-14px text-t-secondary mb-8px'>此工作表无数据</div>
+            <div className='text-12px text-t-tertiary'>请检查 Excel 文件是否包含数据</div>
+          </div>
+        </div>
+      );
     }
 
-    try {
-      // Markdown → Excel
-      const excelBuffer = await documentConverter.markdownToExcel(markdown);
+    const data = sheet.data;
 
-      // 写入文件（将 ArrayBuffer 转换为 Uint8Array）
-      await ipcBridge.fs.writeFile.invoke({
-        path: filePath,
-        data: new Uint8Array(excelBuffer),
-      });
-
-      setIsDirty(false);
-      setEditMode(false);
-      messageApi.success('Excel 文档已保存');
-    } catch (err) {
-      console.error('[ExcelPreview] Failed to save Excel document:', err);
-      messageApi.error('保存 Excel 文档失败');
+    // 如果只有表头没有数据行，显示提示
+    if (data.length === 1) {
+      return (
+        <div className='w-full h-full overflow-auto p-16px bg-bg-1'>
+          <div className='mb-16px'>
+            <table className='min-w-full border-collapse border border-border-base'>
+              <thead>
+                <tr className='bg-bg-3'>
+                  {data[0]?.map((cell: any, colIndex: number) => (
+                    <th key={colIndex} className='border border-border-base px-12px py-8px text-left text-13px font-600 text-t-primary min-w-100px whitespace-nowrap'>
+                      {String(cell || '')}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+            </table>
+          </div>
+          <div className='text-center py-40px'>
+            <div className='text-14px text-t-secondary mb-8px'>⚠️ 此工作表仅包含表头，无数据行</div>
+            <div className='text-12px text-t-tertiary'>请检查 Excel 文件是否包含数据行</div>
+          </div>
+        </div>
+      );
     }
-  }, [filePath, markdown, messageApi]);
 
-  /**
-   * 下载为 Excel
-   */
-  const handleDownloadExcel = useCallback(async () => {
-    try {
-      const excelBuffer = await documentConverter.markdownToExcel(markdown);
-      const blob = new Blob([excelBuffer], {
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `${filePath?.split('/').pop() || 'spreadsheet'}.xlsx`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+    return (
+      <div className='w-full h-full overflow-auto p-16px bg-bg-1'>
+        <div className='relative inline-block min-w-full'>
+          <table
+            className='border-collapse text-13px text-t-primary'
+            style={{
+              borderCollapse: 'collapse',
+              border: '1px solid var(--color-border-2, #d4d4d8)',
+            }}
+          >
+            <thead>
+              <tr style={{ backgroundColor: 'var(--color-fill-2, #f7f8fa)' }}>
+                {data[0]?.map((cell: any, colIndex: number) => (
+                  <th
+                    key={colIndex}
+                    className='px-12px py-8px text-left font-600 whitespace-nowrap'
+                    style={{
+                      border: '1px solid var(--color-border-2, #d4d4d8)',
+                      minWidth: '100px',
+                    }}
+                  >
+                    {String(cell || '')}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {data.slice(1).map((row: any, rowIndex: number) => {
+                const rowData = Array.isArray(row) ? row : [];
+                const cellCount = Math.max(rowData.length, data[0]?.length || 0);
 
-      messageApi.success('Excel 文档已下载');
-    } catch (err) {
-      console.error('[ExcelPreview] Failed to download Excel:', err);
-      messageApi.error('下载失败');
-    }
-  }, [markdown, filePath, messageApi]);
-
-  /**
-   * Markdown 内容变化
-   */
-  const handleMarkdownChange = (newMarkdown: string) => {
-    setMarkdown(newMarkdown);
-    setIsDirty(true);
+                return (
+                  <tr
+                    key={rowIndex}
+                    style={{
+                      backgroundColor: rowIndex % 2 === 0 ? 'var(--color-bg-1, #ffffff)' : 'var(--color-fill-1, #f2f3f5)',
+                    }}
+                  >
+                    {Array.from({ length: cellCount }).map((_, colIndex) => (
+                      <td
+                        key={colIndex}
+                        className='px-12px py-8px'
+                        style={{
+                          border: '1px solid var(--color-border-2, #d4d4d8)',
+                          minWidth: '100px',
+                        }}
+                      >
+                        {String(rowData[colIndex] ?? '')}
+                      </td>
+                    ))}
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
   };
 
   if (loading) {
@@ -168,8 +189,16 @@ const ExcelPreview: React.FC<ExcelPreviewProps> = ({ filePath, content, hideTool
     );
   }
 
+  if (!excelData || excelData.sheets.length === 0) {
+    return (
+      <div className='flex items-center justify-center h-full'>
+        <div className='text-14px text-t-secondary'>Excel 文件中没有工作表</div>
+      </div>
+    );
+  }
+
   return (
-    <div className='h-full w-full flex flex-col bg-bg-1'>
+    <div className='h-full w-full flex flex-col'>
       {messageContextHolder}
 
       {/* 工具栏 */}
@@ -177,55 +206,56 @@ const ExcelPreview: React.FC<ExcelPreviewProps> = ({ filePath, content, hideTool
         <div className='flex items-center justify-between h-40px px-12px bg-bg-2 border-b border-border-base flex-shrink-0'>
           <div className='flex items-center gap-8px'>
             <span className='text-13px text-t-secondary'>📊 Excel 表格</span>
-            {isDirty && <span className='text-12px text-warning'>● 未保存</span>}
-            <span className='text-11px text-t-tertiary'>提示：表格以 Markdown 格式编辑</span>
+            <span className='text-11px text-t-tertiary'>只读预览</span>
           </div>
 
           <div className='flex items-center gap-8px'>
-            {/* 编辑/保存按钮 */}
-            {editMode ? (
-              <>
-                <button onClick={handleSave} className='px-12px py-4px bg-primary text-white rd-4px text-12px hover:opacity-90 transition-opacity'>
-                  💾 保存
-                </button>
-                <button onClick={() => setEditMode(false)} className='px-12px py-4px bg-bg-3 text-t-primary rd-4px text-12px hover:bg-bg-4 transition-colors'>
-                  取消
-                </button>
-              </>
-            ) : (
-              <button onClick={handleToggleEdit} className='px-12px py-4px bg-primary text-white rd-4px text-12px hover:opacity-90 transition-opacity'>
-                ✏️ 编辑
-              </button>
-            )}
-
-            {/* 下载按钮 */}
-            <button onClick={handleDownloadExcel} className='flex items-center gap-4px px-8px py-4px rd-4px cursor-pointer hover:bg-bg-3 transition-colors' title='下载 Excel 文档'>
-              <svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' className='text-t-secondary'>
-                <path d='M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4' />
-                <polyline points='7 10 12 15 17 10' />
-                <line x1='12' y1='15' x2='12' y2='3' />
-              </svg>
-              <span className='text-12px text-t-secondary'>{t('common.download')}</span>
-            </button>
+            <span className='text-12px text-t-secondary'>{excelData.sheets.length} 个工作表</span>
           </div>
         </div>
       )}
 
       {/* 内容区域 */}
-      <div className='flex-1 overflow-hidden'>
-        {editMode ? (
-          // 编辑模式：左右分割（编辑器 + 预览）
-          <div className='h-full flex'>
-            <div className='flex-1 overflow-hidden border-r border-border-base'>
-              <MarkdownEditor value={markdown} onChange={handleMarkdownChange} />
-            </div>
-            <div className='flex-1 overflow-hidden'>
-              <MarkdownPreview content={markdown} hideToolbar />
-            </div>
-          </div>
+      <div className='flex-1 overflow-hidden flex flex-col bg-bg-1'>
+        {excelData.sheets.length === 1 ? (
+          // 单个工作表：直接显示表格
+          renderSheetTable(excelData.sheets[0].name)
         ) : (
-          // 预览模式：只显示 Markdown 表格渲染
-          <MarkdownPreview content={markdown} hideToolbar />
+          // 多个工作表：使用紧凑的工作表切换栏
+          <>
+            {/* 工作表切换栏 */}
+            <div className='flex items-center h-28px px-8px bg-bg-1 border-b border-border-base overflow-x-auto flex-shrink-0'>
+              {excelData.sheets.map((sheet) => (
+                <button
+                  key={sheet.name}
+                  type='button'
+                  className='px-12px h-24px flex items-center cursor-pointer text-11px whitespace-nowrap transition-colors'
+                  style={{
+                    color: activeSheet === sheet.name ? 'var(--color-text-1)' : 'var(--color-text-3)',
+                    backgroundColor: activeSheet === sheet.name ? 'var(--color-bg-2)' : 'transparent',
+                    fontWeight: activeSheet === sheet.name ? 500 : 400,
+                    borderRadius: '2px',
+                    border: 'none',
+                    outline: 'none',
+                  }}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setActiveSheet(sheet.name);
+                  }}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                  }}
+                >
+                  {sheet.name}
+                </button>
+              ))}
+            </div>
+            {/* 当前工作表内容 */}
+            <div className='flex-1 overflow-hidden' key={activeSheet}>
+              {renderSheetTable(activeSheet)}
+            </div>
+          </>
         )}
       </div>
     </div>

@@ -320,7 +320,6 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
       try {
         await ipcBridge.shell.openFile.invoke(nodeData.fullPath);
       } catch (error) {
-        console.error('Failed to open path:', error);
         messageApi.error(t('conversation.workspace.contextMenu.openFailed') || 'Failed to open');
       }
     },
@@ -335,7 +334,6 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
       try {
         await ipcBridge.shell.showItemInFolder.invoke(nodeData.fullPath);
       } catch (error) {
-        console.error('Failed to reveal item in folder:', error);
         messageApi.error(t('conversation.workspace.contextMenu.revealFailed') || 'Failed to reveal');
       }
     },
@@ -376,7 +374,6 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
       closeDeleteModal();
       setTimeout(() => refreshWorkspace(), 200);
     } catch (error) {
-      console.error('Failed to delete item:', error);
       messageApi.error(t('conversation.workspace.contextMenu.deleteFailed'));
       setDeleteModal((prev) => ({ ...prev, loading: false }));
     }
@@ -542,7 +539,6 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
       if (error instanceof Error && error.message === 'timeout') {
         messageApi.error(t('conversation.workspace.contextMenu.renameTimeout'));
       } else {
-        console.error('Failed to rename item:', error);
         messageApi.error(t('conversation.workspace.contextMenu.renameFailed'));
       }
     } finally {
@@ -602,31 +598,26 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
           content = ''; // 空内容，依赖 filePath
         } else if (contentType === 'word') {
           // Word: 通过 IPC 转换为 Markdown / Convert to Markdown via IPC
-          console.log('[ChatWorkspace] Converting Word file:', nodeData.fullPath);
           const result = await ipcBridge.conversion.wordToMarkdown.invoke({ filePath: nodeData.fullPath });
-          console.log('[ChatWorkspace] Word conversion result:', result);
           if (result.success && result.data) {
             content = result.data;
           } else {
             throw new Error(result.error || 'Word 转换失败');
           }
         } else if (contentType === 'excel') {
-          // Excel: 通过 IPC 转换为 JSON / Convert to JSON via IPC
-          console.log('[ChatWorkspace] Converting Excel file:', nodeData.fullPath);
-          const result = await ipcBridge.conversion.excelToJson.invoke({ filePath: nodeData.fullPath });
-          console.log('[ChatWorkspace] Excel conversion result:', result);
-          if (result.success && result.data) {
-            content = JSON.stringify(result.data);
-          } else {
-            throw new Error(result.error || 'Excel 转换失败');
-          }
+          // Excel: 不读取内容，ExcelPreview 组件会通过 filePath 自己读取和转换
+          // Don't read content, ExcelPreview component will read and convert via filePath itself
+          content = ''; // 空内容，依赖 filePath
         } else if (contentType === 'ppt') {
           // PPT: 通过 IPC 转换为 JSON / Convert to JSON via IPC
-          console.log('[ChatWorkspace] Converting PPT file:', nodeData.fullPath);
           const result = await ipcBridge.conversion.pptToJson.invoke({ filePath: nodeData.fullPath });
-          console.log('[ChatWorkspace] PPT conversion result:', result);
           if (result.success && result.data) {
-            content = JSON.stringify(result.data);
+            // 只保留 slides 数据，不包含 raw 对象（过大且不需要）
+            // Only keep slides data, exclude raw object (too large and unnecessary)
+            const pptData = {
+              slides: result.data.slides || [],
+            };
+            content = JSON.stringify(pptData);
           } else {
             throw new Error(result.error || 'PPT 转换失败');
           }
@@ -645,7 +636,6 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
           editable: contentType === 'markdown' ? false : undefined, // Markdown 默认为预览模式 / Markdown defaults to preview-only mode
         });
       } catch (error) {
-        console.error('[ChatWorkspace] Failed to preview file:', error);
         messageApi.error(t('conversation.workspace.contextMenu.previewFailed'));
       }
     },
@@ -686,15 +676,12 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
               // 部分或全部失败时给出显式提示 / Surface warning when any copy operation fails
               const fallback = failedFiles.length > 0 ? 'Some files failed to copy' : result.msg;
               messageApi.warning(fallback || t('messages.unknownError') || 'Copy failed');
-              if (failedFiles.length > 0) {
-                console.warn('Files failed to copy:', failedFiles);
-              }
             }
           });
         }
       })
-      .catch((error) => {
-        console.error('Failed to add files:', error);
+      .catch(() => {
+        // Silently ignore errors
       });
   }, [workspace, refreshWorkspace]);
 
@@ -779,12 +766,8 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
             // 如果有文件粘贴失败则通知用户 / Notify user when any paste fails
             const fallback = failedFiles.length > 0 ? 'Some files failed to copy' : res.msg;
             messageApi.warning(fallback || t('messages.unknownError') || 'Paste failed');
-            if (failedFiles.length > 0) {
-              console.warn('Files failed to copy during paste:', failedFiles);
-            }
           }
         } catch (error) {
-          console.error('Paste failed:', error);
           messageApi.error(t('messages.unknownError') || 'Paste failed');
         } finally {
           // 操作完成后重置粘贴目标文件夹（成功或失败都重置）
@@ -870,6 +853,52 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
   const contextMenuNode = contextMenu.node;
   const isContextMenuNodeFile = !!contextMenuNode?.isFile;
   const isContextMenuNodeRoot = !!contextMenuNode && (!contextMenuNode.relativePath || contextMenuNode.relativePath === '');
+
+  // 检查文件是否支持预览 / Check if file supports preview
+  const isPreviewSupported = (() => {
+    if (!contextMenuNode?.isFile || !contextMenuNode.name) return false;
+    const ext = contextMenuNode.name.toLowerCase().split('.').pop() || '';
+    const supportedExts = [
+      'md',
+      'markdown', // markdown
+      'diff',
+      'patch', // diff
+      'pdf', // pdf
+      'ppt',
+      'pptx',
+      'odp', // ppt
+      'doc',
+      'docx',
+      'odt', // word
+      'xls',
+      'xlsx',
+      'ods',
+      'csv', // excel
+      'html',
+      'htm', // html
+      'js',
+      'ts',
+      'tsx',
+      'jsx',
+      'py',
+      'java',
+      'go',
+      'rs',
+      'c',
+      'cpp',
+      'h',
+      'hpp',
+      'css',
+      'scss',
+      'json',
+      'xml',
+      'yaml',
+      'yml',
+      'txt', // code
+    ];
+    return supportedExts.includes(ext);
+  })();
+
   const menuButtonBase = 'w-full flex items-center gap-8px px-14px py-6px text-13px text-left text-t-primary rounded-md transition-colors duration-150 hover:bg-2 border-none bg-transparent appearance-none focus:outline-none focus-visible:outline-none';
   const menuButtonDisabled = 'opacity-40 cursor-not-allowed hover:bg-transparent'; // Disabled style for menu items (禁用状态样式)
 
@@ -994,15 +1023,11 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
                       // 即使确认后仍有失败也要明确告知 / Warn even after explicit confirmation when failures remain
                       const fallback = failedFiles.length > 0 ? 'Some files failed to copy' : res.msg;
                       messageApi.warning(fallback || t('messages.unknownError') || 'Paste failed');
-                      if (failedFiles.length > 0) {
-                        console.warn('Files failed to copy during confirmed paste:', failedFiles);
-                      }
                     }
                     if (doNotAsk) {
                       await ConfigStorage.set('workspace.pasteConfirm', true);
                     }
                   } catch (error) {
-                    console.error('Paste failed:', error);
                     messageApi.error(t('messages.unknownError') || 'Paste failed');
                   } finally {
                     setPasteTargetFolder(null);
@@ -1086,7 +1111,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
                     {t('conversation.workspace.contextMenu.openLocation')}
                   </button>
                 )}
-                {isContextMenuNodeFile && (
+                {isContextMenuNodeFile && isPreviewSupported && (
                   <button
                     type='button'
                     className={menuButtonBase}

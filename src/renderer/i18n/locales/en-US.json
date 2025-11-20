@@ -109,7 +109,16 @@
     "closeTabTitle": "Close Tab",
     "closeTabMessage": "The current content has not been saved. Do you want to save before closing?",
     "saveAndClose": "Save and Close",
-    "closeWithoutSave": "Don't Save"
+    "closeWithoutSave": "Don't Save",
+    "pptTitle": "PowerPoint Presentation",
+    "pptOpenHint": "Click the button below to open in system application to view full content",
+    "pptOpenFile": "Open File",
+    "pptShowLocation": "Show Location",
+    "pptSystemAppHint": "Will be opened with default system app (PowerPoint, Keynote, or WPS)",
+    "closeLeft": "Close Left",
+    "closeRight": "Close Right",
+    "closeOthers": "Close Others",
+    "closeAll": "Close All"
   },
   "conversation": {
     "welcome": {

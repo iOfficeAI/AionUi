@@ -80,16 +80,32 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
     (type: PreviewContentType, content?: string, meta?: PreviewMetadata) => {
       const normalizedFileName = normalize(meta?.fileName);
       const normalizedTitle = normalize(meta?.title);
+      const normalizedFilePath = normalize(meta?.filePath);
 
       return (
         tabs.find((tab) => {
           if (tab.contentType !== type) return false;
           const tabFileName = normalize(tab.metadata?.fileName);
           const tabTitle = normalize(tab.metadata?.title);
+          const tabFilePath = normalize(tab.metadata?.filePath);
 
+          // 优先通过 filePath 匹配（最可靠）/ Prefer matching by filePath (most reliable)
+          if (normalizedFilePath && tabFilePath && normalizedFilePath === tabFilePath) return true;
+
+          // 其次通过 fileName 匹配 / Then match by fileName
           if (normalizedFileName && tabFileName && normalizedFileName === tabFileName) return true;
+
+          // 再通过 title 匹配 / Then match by title
           if (!normalizedFileName && normalizedTitle && tabTitle && normalizedTitle === tabTitle) return true;
-          if (!normalizedFileName && !normalizedTitle && content !== undefined) return tab.content === content;
+
+          // 最后才通过 content 匹配（仅用于小文件）/ Finally match by content (only for small files)
+          // 对于大文件（PPT/Excel/Word），不使用 content 比较，避免性能问题
+          // For large files (PPT/Excel/Word), skip content comparison to avoid performance issues
+          if (!normalizedFileName && !normalizedTitle && !normalizedFilePath && content !== undefined) {
+            // 只对小于 100KB 的内容进行比较 / Only compare content smaller than 100KB
+            if (content.length < 100000 && tab.content === content) return true;
+          }
+
           return false;
         }) || null
       );
@@ -103,13 +119,6 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
       const existingTab = findPreviewTab(type, newContent, meta);
 
       if (existingTab) {
-        console.log('[PreviewContext] 🔄 Reusing existing tab:', {
-          id: existingTab.id,
-          title: existingTab.title,
-          filePath: existingTab.metadata?.filePath,
-          isDirty: existingTab.isDirty,
-        });
-
         setIsOpen(true);
         setActiveTabId(existingTab.id);
         setTabs((prevTabs) =>
@@ -118,11 +127,9 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
             // 如果用户已编辑内容，则保留当前内容，仅更新元数据 / Keep edited content, only merge metadata
             if (tab.isDirty) {
-              console.log('[PreviewContext] Tab is dirty, keeping edited content');
               return meta ? { ...tab, metadata: { ...tab.metadata, ...meta } } : tab;
             }
 
-            console.log('[PreviewContext] Updating existing tab with new content');
             return {
               ...tab,
               content: newContent,
@@ -149,14 +156,6 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
         isDirty: false,
         originalContent: newContent, // 保存原始内容 / Save original content
       };
-
-      console.log('[PreviewContext] 📂 Opening new preview tab:', {
-        id: tabId,
-        title,
-        type,
-        filePath: meta?.filePath,
-        workspace: meta?.workspace,
-      });
 
       setTabs((prevTabs) => [...prevTabs, newTab]);
       setActiveTabId(tabId);
@@ -210,41 +209,29 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const updateContent = useCallback(
     (newContent: string) => {
-      console.log('[PreviewContext] updateContent called');
-      console.log('[PreviewContext] activeTabId:', activeTabId);
-      console.log('[PreviewContext] newContent type:', typeof newContent);
-      console.log('[PreviewContext] newContent length:', newContent?.length);
-
       if (!activeTabId) {
-        console.warn('[PreviewContext] No active tab, returning');
         return;
       }
 
       // 严格的类型检查，防止 Event 对象被错误传递 / Strict type checking to prevent Event object from being passed incorrectly
       if (typeof newContent !== 'string') {
-        console.error('[PreviewContext] updateContent received non-string value:', newContent, typeof newContent);
         return;
       }
 
-      console.log('[PreviewContext] Updating tabs with new content...');
       try {
         setTabs((prevTabs) => {
-          console.log('[PreviewContext] Previous tabs count:', prevTabs.length);
           const updated = prevTabs.map((tab) => {
             if (tab.id === activeTabId) {
               // 检查内容是否与原始内容不同 / Check if content differs from original
               const isDirty = newContent !== tab.originalContent;
-              console.log('[PreviewContext] Updating tab:', tab.id, 'isDirty:', isDirty);
               return { ...tab, content: newContent, isDirty };
             }
             return tab;
           });
-          console.log('[PreviewContext] Tabs updated successfully');
           return updated;
         });
-      } catch (error) {
-        console.error('[PreviewContext] Error updating tabs:', error);
-        console.error('[PreviewContext] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+      } catch {
+        // Silently ignore errors
       }
     },
     [activeTabId]
@@ -273,8 +260,6 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
           });
 
           if (success) {
-            console.log('[PreviewContext] File saved successfully to workspace:', filePath);
-
             // 标记为已保存（更新 originalContent 和清除 isDirty）/ Mark as saved
             setTabs((prevTabs) =>
               prevTabs.map((t) => {
@@ -286,7 +271,6 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
             );
           } else {
             // 写入失败，静默处理（只记录到控制台）/ Write failed, handle silently (log only)
-            console.error('[PreviewContext] Failed to save file to workspace:', filePath);
           }
 
           // 延迟移除保存标记（给文件监听一点时间忽略变化）/ Delay removing save flag (give file watch time to ignore change)
@@ -295,7 +279,6 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
           }, 500);
         } catch (error) {
           // 发生错误，静默处理（只记录到控制台）/ Error occurred, handle silently (log only)
-          console.error('[PreviewContext] Error saving file to workspace:', error);
           // 确保移除保存标记 / Ensure save flag is removed
           if (tab.metadata?.filePath) {
             savingFilesRef.current.delete(tab.metadata.filePath);
@@ -303,7 +286,6 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
         }
       } else {
         // 没有工作空间路径，无法保存 / No workspace path, cannot save
-        console.warn('[PreviewContext] Cannot save: no workspace path available');
       }
     },
     [activeTabId, tabs]
@@ -325,23 +307,12 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // 流式内容订阅：订阅 agent 写入文件时的流式更新（替代文件监听）
   // Streaming content subscription: Subscribe to streaming updates when agent writes files (replaces file watching)
   useEffect(() => {
-    console.log('[PreviewContext] 🔔 Setting up file stream subscription');
-
-    const unsubscribe = ipcBridge.fileStream.contentUpdate.on(({ filePath, content, operation, workspace, relativePath }) => {
-      console.log('[PreviewContext] 📥 Received file stream update:', {
-        filePath,
-        workspace,
-        relativePath,
-        operation,
-        contentLength: content.length,
-      });
-
+    const unsubscribe = ipcBridge.fileStream.contentUpdate.on(({ filePath, content, operation }) => {
       // 如果是删除操作，关闭对应的预览 tab / If delete operation, close the corresponding preview tab
       if (operation === 'delete') {
         setTabs((prevTabs) => {
           const tabToClose = prevTabs.find((tab) => tab.metadata?.filePath === filePath);
           if (tabToClose) {
-            console.log('[PreviewContext] Closing tab for deleted file:', tabToClose.title);
             closeTab(tabToClose.id);
           }
           return prevTabs;
@@ -351,25 +322,12 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
       // 使用函数式更新来访问最新的 tabs 状态 / Use functional update to access latest tabs state
       setTabs((prevTabs) => {
-        console.log('[PreviewContext] 🔍 Checking tabs for file path:', filePath);
-        console.log(
-          '[PreviewContext] Current tabs:',
-          prevTabs.map((tab) => ({
-            id: tab.id,
-            title: tab.title,
-            filePath: tab.metadata?.filePath,
-          }))
-        );
-
         // 查找受影响的 tabs / Find affected tabs
         const affectedTabs = prevTabs.filter((tab) => tab.metadata?.filePath === filePath);
 
         if (affectedTabs.length === 0) {
-          console.log('[PreviewContext] ⚠️ No tabs affected by file update:', filePath);
           return prevTabs;
         }
-
-        console.log('[PreviewContext] ✅ Found', affectedTabs.length, 'affected tabs for:', filePath);
 
         return prevTabs.map((tab) => {
           // 只更新匹配的 tab / Only update matching tabs
@@ -380,7 +338,6 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
           // 这是因为 Agent 写入代表的是文件真实状态，而不是用户的临时编辑
           // This is because Agent writes represent the actual file state, not user's temporary edits
 
-          console.log('[PreviewContext] Updating tab content from stream (force update):', tab.title);
           return {
             ...tab,
             content: content,
@@ -392,7 +349,6 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
     });
 
     return () => {
-      console.log('[PreviewContext] 🔕 Cleaning up file stream subscription');
       unsubscribe();
     };
   }, [closeTab]); // 只依赖 closeTab，不依赖 tabs，避免重复订阅 / Only depend on closeTab, not tabs, to avoid re-subscribing

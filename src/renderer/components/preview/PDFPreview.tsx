@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useRef } from 'react';
-import { ipcBridge } from '@/common';
+import React, { useEffect, useRef, useState } from 'react';
 
 interface PDFPreviewProps {
   /**
@@ -20,64 +19,53 @@ interface PDFPreviewProps {
   content?: string;
 }
 
+// Electron webview 元素的类型定义 / Type definition for Electron webview element
+interface ElectronWebView extends HTMLElement {
+  src: string;
+}
+
 const PDFPreview: React.FC<PDFPreviewProps> = ({ filePath, content }) => {
-  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const blobUrlRef = useRef<string | null>(null);
+  const webviewRef = useRef<ElectronWebView>(null);
 
   useEffect(() => {
-    const loadPDF = async () => {
-      try {
-        setLoading(true);
-        setError(null);
+    try {
+      setLoading(true);
+      setError(null);
 
-        if (filePath) {
-          // 读取 PDF 文件为 ArrayBuffer
-          // Read PDF file as ArrayBuffer
-          console.log('[PDFPreview] Loading PDF from file path:', filePath);
-          const buffer = await ipcBridge.fs.readFileBuffer.invoke({ path: filePath });
+      if (!filePath && !content) {
+        setError('PDF 文件路径为空');
+        setLoading(false);
+        return;
+      }
 
-          // 创建 Blob 和 Object URL
-          // Create Blob and Object URL
-          const blob = new Blob([buffer], { type: 'application/pdf' });
-          const url = URL.createObjectURL(blob);
+      // webview 加载成功后隐藏 loading
+      // Hide loading after webview finishes loading
+      const webview = webviewRef.current;
+      if (webview) {
+        const handleLoad = () => {
+          setLoading(false);
+        };
+        const handleError = () => {
+          setError('加载 PDF 失败');
+          setLoading(false);
+        };
 
-          console.log('[PDFPreview] Created blob URL:', url);
+        webview.addEventListener('did-finish-load', handleLoad);
+        webview.addEventListener('did-fail-load', handleError);
 
-          // 清理旧的 URL
-          // Cleanup old URL
-          if (blobUrlRef.current) {
-            URL.revokeObjectURL(blobUrlRef.current);
-          }
-
-          blobUrlRef.current = url;
-          setPdfUrl(url);
-        } else if (content) {
-          // 如果提供了 content（base64 或 blob URL）
-          // If content is provided (base64 or blob URL)
-          setPdfUrl(content);
-        } else {
-          setError('PDF 文件路径为空');
-        }
-      } catch (err) {
-        console.error('[PDFPreview] Failed to load PDF:', err);
-        setError(`加载 PDF 失败: ${err instanceof Error ? err.message : String(err)}`);
-      } finally {
+        return () => {
+          webview.removeEventListener('did-finish-load', handleLoad);
+          webview.removeEventListener('did-fail-load', handleError);
+        };
+      } else {
         setLoading(false);
       }
-    };
-
-    void loadPDF();
-
-    // 清理函数：组件卸载时释放 blob URL
-    // Cleanup function: revoke blob URL when component unmounts
-    return () => {
-      if (blobUrlRef.current) {
-        URL.revokeObjectURL(blobUrlRef.current);
-        blobUrlRef.current = null;
-      }
-    };
+    } catch (err) {
+      setError(`加载 PDF 失败: ${err instanceof Error ? err.message : String(err)}`);
+      setLoading(false);
+    }
   }, [filePath, content]);
 
   if (error) {
@@ -91,7 +79,7 @@ const PDFPreview: React.FC<PDFPreviewProps> = ({ filePath, content }) => {
     );
   }
 
-  if (loading || !pdfUrl) {
+  if (loading) {
     return (
       <div className='flex items-center justify-center h-full'>
         <div className='text-14px text-t-secondary'>加载中...</div>
@@ -99,27 +87,16 @@ const PDFPreview: React.FC<PDFPreviewProps> = ({ filePath, content }) => {
     );
   }
 
-  // 使用浏览器原生 PDF 查看器
-  // Use browser's native PDF viewer
+  // 使用 Electron webview 加载本地 PDF 文件
+  // Use Electron webview to load local PDF files
+  const pdfSrc = filePath ? `file://${filePath}` : content || '';
+
   return (
     <div className='h-full w-full bg-bg-1 flex flex-col'>
-      {/* 工具栏 / Toolbar */}
-      <div className='flex items-center justify-between h-48px px-16px bg-bg-2 border-b border-border-1 flex-shrink-0'>
-        <div className='flex items-center gap-8px'>
-          <span className='text-24px'>📄</span>
-          <div>
-            <div className='text-14px text-t-primary font-medium'>PDF 文档</div>
-            <div className='text-11px text-t-tertiary'>使用浏览器原生查看器</div>
-          </div>
-        </div>
-
-        {/* 右侧：文件信息 / Right: File info */}
-        <div className='text-12px text-t-tertiary'>{filePath ? filePath.split('/').pop() : 'PDF 文件'}</div>
-      </div>
-
       {/* PDF 内容区域 / PDF content area */}
-      <div className='flex-1 overflow-hidden'>
-        <embed src={pdfUrl} type='application/pdf' width='100%' height='100%' className='w-full h-full' style={{ border: 'none' }} />
+      <div className='flex-1 overflow-hidden bg-bg-1'>
+        {/* key 确保文件路径改变时 webview 重新挂载 / key ensures webview remounts when file path changes */}
+        <webview key={pdfSrc} ref={webviewRef} src={pdfSrc} className='w-full h-full' style={{ display: 'inline-flex' }} />
       </div>
     </div>
   );
