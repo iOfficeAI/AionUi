@@ -182,7 +182,10 @@ const createWindow = (): void => {
     console.error('Failed to load main window URL:', error);
   });
 
-  if (process.env.NODE_ENV === 'development') {
+  // 只在开发环境自动打开 DevTools / Only auto-open DevTools in development
+  // 使用 app.isPackaged 判断更可靠，打包后的应用不会自动打开 DevTools
+  // Using app.isPackaged is more reliable, packaged apps won't auto-open DevTools
+  if (!app.isPackaged) {
     mainWindow.webContents.openDevTools();
   }
 };
