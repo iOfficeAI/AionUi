@@ -123,7 +123,7 @@ body,
 }
 
 .chat-history__section {
-  max-height: 40px;
+  max-height: 60px; /* 增加高度以适应缩放，避免文字被裁剪 / Increase height for zoom scaling to prevent text clipping */
 }
 
 .chat-history--collapsed .chat-history__placeholder,
@@ -327,4 +327,11 @@ body,
       background-color: var(--bg-1);
     }
   }
+}
+
+/* Message component positioning - center in conversation area (exclude left sider) */
+/* Message 组件定位 - 在对话区域居中（排除左侧侧边栏） */
+.arco-message-wrapper {
+  left: 266px !important;
+  width: calc(100% - 266px) !important;
 }
