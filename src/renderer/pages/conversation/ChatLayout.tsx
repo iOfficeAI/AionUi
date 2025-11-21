@@ -244,7 +244,8 @@ const ChatLayout: React.FC<{
         <div
           className='flex flex-col relative'
           style={{
-            flex: chatFlex,
+            flexGrow: chatFlex,
+            flexShrink: 1,
             flexBasis: 0,
             display: isPreviewOpen && layout?.isMobile ? 'none' : 'flex',
             minWidth: isDesktop ? '240px' : '100%',
@@ -299,7 +300,8 @@ const ChatLayout: React.FC<{
           <div
             className='flex flex-col relative'
             style={{
-              flex: layout?.isMobile ? '0 0 100%' : previewFlex,
+              flexGrow: layout?.isMobile ? 0 : previewFlex,
+              flexShrink: layout?.isMobile ? 0 : 1,
               flexBasis: layout?.isMobile ? '100%' : 0,
               borderLeft: '1px solid var(--bg-3)',
               minWidth: layout?.isMobile ? '100%' : '260px',
@@ -319,7 +321,8 @@ const ChatLayout: React.FC<{
               'layout-sider--folding': autoRightCollapsing || manualRightCollapsing,
             })}
             style={{
-              flex: workspaceFlex,
+              flexGrow: workspaceFlex,
+              flexShrink: 1,
               flexBasis: rightSiderCollapsed ? '0px' : 0,
               width: rightSiderCollapsed ? '0px' : undefined,
               minWidth: rightSiderCollapsed ? '0px' : '220px',

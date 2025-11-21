@@ -4,13 +4,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { joinPath } from '@/common/chatLib';
 import { useAutoScroll } from '@/renderer/hooks/useAutoScroll';
 import { useTextSelection } from '@/renderer/hooks/useTextSelection';
 import { useTypingAnimation } from '@/renderer/hooks/useTypingAnimation';
 import { iconColors } from '@/renderer/theme/colors';
 import { Close } from '@icon-park/react';
 import 'katex/dist/katex.min.css';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { vs, vs2015 } from 'react-syntax-highlighter/dist/esm/styles/hljs';
@@ -32,7 +33,79 @@ interface MarkdownPreviewProps {
   onContentChange?: (content: string) => void; // 内容改变回调 / Content change callback
   containerRef?: React.RefObject<HTMLDivElement>; // 容器引用，用于滚动同步 / Container ref for scroll sync
   onScroll?: (scrollTop: number, scrollHeight: number, clientHeight: number) => void; // 滚动回调 / Scroll callback
+  filePath?: string; // 当前 Markdown 文件的绝对路径 / Absolute file path of current markdown
 }
+
+const isDataOrRemoteUrl = (value?: string): boolean => {
+  if (!value) return false;
+  return /^(https?:|data:|blob:|file:)/i.test(value);
+};
+
+const isAbsoluteLocalPath = (value?: string): boolean => {
+  if (!value) return false;
+  return /^([a-zA-Z]:\\|\\\\|\/)/.test(value);
+};
+
+interface MarkdownImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
+  baseDir?: string;
+}
+
+const toFileUrl = (path: string) => {
+  if (!path) return path;
+  const normalized = path.replace(/\\/g, '/');
+  if (normalized.startsWith('file://')) return normalized;
+  return `file://${normalized}`;
+};
+
+const MarkdownImage: React.FC<MarkdownImageProps> = ({ src, alt, baseDir, ...props }) => {
+  const [resolvedSrc, setResolvedSrc] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadImage = () => {
+      if (!src) {
+        setResolvedSrc(undefined);
+        return;
+      }
+
+      if (isDataOrRemoteUrl(src)) {
+        setResolvedSrc(src);
+        return;
+      }
+
+      const normalizedBase = baseDir ? baseDir.replace(/\\/g, '/') : undefined;
+      const cleanedSrc = src.replace(/\\/g, '/');
+      const absolutePath = isAbsoluteLocalPath(cleanedSrc) ? cleanedSrc : normalizedBase ? joinPath(normalizedBase, cleanedSrc) : cleanedSrc;
+
+      if (!absolutePath) {
+        setResolvedSrc(src);
+        return;
+      }
+
+      try {
+        const fileUrl = toFileUrl(absolutePath);
+        if (!cancelled) {
+          setResolvedSrc(fileUrl);
+        }
+      } catch (error) {
+        console.error('[MarkdownPreview] Failed to resolve local image:', { src, absolutePath, error });
+      }
+    };
+
+    loadImage();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [src, baseDir]);
+
+  if (!resolvedSrc) {
+    return alt ? <span>{alt}</span> : null;
+  }
+
+  return <img src={resolvedSrc} alt={alt} {...props} />;
+};
 
 /**
  * Markdown 预览组件
@@ -41,7 +114,10 @@ interface MarkdownPreviewProps {
  * 使用 ReactMarkdown 渲染 Markdown，支持原文/预览切换和下载功能
  * Uses ReactMarkdown to render Markdown, supports source/preview toggle and download
  */
-const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({ content, onClose, hideToolbar = false, viewMode: externalViewMode, onViewModeChange, onContentChange, containerRef: externalContainerRef, onScroll: externalOnScroll }) => {
+// 该函数参数较多，保持单行可以让 Prettier 控制格式，同时使用 eslint-disable 规避长度限制
+// This line has many props; keep it single-line for Prettier and silence max-len warning explicitly
+// eslint-disable-next-line max-len
+const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({ content, onClose, hideToolbar = false, viewMode: externalViewMode, onViewModeChange, onContentChange, containerRef: externalContainerRef, onScroll: externalOnScroll, filePath }) => {
   const { t } = useTranslation();
   const internalContainerRef = useRef<HTMLDivElement>(null);
   const containerRef = externalContainerRef || internalContainerRef; // 使用外部 ref 或内部 ref / Use external ref or internal ref
@@ -122,6 +198,66 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({ content, onClose, hid
     }
   };
 
+  const baseDir = useMemo(() => {
+    if (!filePath) return undefined;
+    const normalized = filePath.replace(/\\/g, '/');
+    const lastSlash = normalized.lastIndexOf('/');
+    if (lastSlash === -1) return undefined;
+    return normalized.slice(0, lastSlash);
+  }, [filePath]);
+
+  useEffect(() => {
+    if (viewMode !== 'preview') return;
+    const container = containerRef.current;
+    if (!container) return;
+
+    const seen = new WeakSet<HTMLImageElement>();
+
+    const resolveLocalImage = (img: HTMLImageElement) => {
+      if (!img || seen.has(img)) return;
+      const rawAttr = img.getAttribute('src') || '';
+      if (!rawAttr || isDataOrRemoteUrl(rawAttr)) {
+        seen.add(img);
+        return;
+      }
+
+      const normalizedBase = baseDir ? baseDir.replace(/\\/g, '/') : undefined;
+      const cleanedSrc = rawAttr.replace(/\\/g, '/');
+      const absolutePath = isAbsoluteLocalPath(cleanedSrc) ? cleanedSrc : normalizedBase ? joinPath(normalizedBase, cleanedSrc) : undefined;
+      if (!absolutePath) {
+        seen.add(img);
+        return;
+      }
+
+      try {
+        const fileUrl = toFileUrl(absolutePath);
+        img.src = fileUrl;
+      } catch (error) {
+        console.error('[MarkdownPreview] Failed to patch rendered image:', { rawAttr, absolutePath, error });
+      } finally {
+        seen.add(img);
+      }
+    };
+
+    const scanImages = () => {
+      const images = container.querySelectorAll('img');
+      images.forEach((img) => {
+        resolveLocalImage(img as HTMLImageElement);
+      });
+    };
+
+    scanImages();
+
+    const observer = new MutationObserver(() => {
+      scanImages();
+    });
+    observer.observe(container, { childList: true, subtree: true });
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [baseDir, containerRef, viewMode, displayedContent]);
+
   return (
     <div className='flex flex-col w-full h-full overflow-hidden'>
       {/* 工具栏：Tabs 切换 + 下载按钮 / Toolbar: Tabs toggle + Download button */}
@@ -189,7 +325,7 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({ content, onClose, hid
             rehypePlugins={[rehypeRaw, rehypeKatex]}
             components={{
               img({ src, alt, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) {
-                return <img src={src} alt={alt} {...props} />;
+                return <MarkdownImage src={src} alt={alt} baseDir={baseDir} {...props} />;
               },
               code({ className, children, ...props }: React.HTMLAttributes<HTMLElement>) {
                 const match = /language-(\w+)/.exec(className || '');

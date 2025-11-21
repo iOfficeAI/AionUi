@@ -4,11 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { ipcBridge } from '@/common';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 interface HTMLRendererProps {
   content: string;
   filePath?: string;
+  workspace?: string;
   containerRef?: React.RefObject<HTMLDivElement>;
   onScroll?: (scrollTop: number, scrollHeight: number, clientHeight: number) => void;
   inspectMode?: boolean; // 是否开启检查模式 / Whether inspect mode is enabled
@@ -27,7 +29,7 @@ interface ElectronWebView extends HTMLElement {
  * 在 webview 中渲染 HTML 内容（Electron 专用标签）
  * Renders HTML content in a webview (Electron-specific tag)
  */
-const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containerRef, inspectMode = false }) => {
+const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, workspace, containerRef, inspectMode = false }) => {
   const divRef = useRef<HTMLDivElement>(null);
   const webviewRef = useRef<ElectronWebView | null>(null);
   const webviewLoadedRef = useRef(false); // 跟踪 webview 是否已加载 / Track if webview is loaded
@@ -51,37 +53,84 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containe
     return () => observer.disconnect();
   }, []);
 
+  const resourceBaseDir = useMemo(() => {
+    const normalizeDir = (dir?: string) => {
+      if (!dir) return undefined;
+      const normalized = dir.replace(/\\/g, '/');
+      if (!normalized) return undefined;
+      return normalized.endsWith('/') ? normalized : `${normalized}/`;
+    };
+
+    if (filePath) {
+      const normalizedPath = filePath.replace(/\\/g, '/');
+      const lastSlash = normalizedPath.lastIndexOf('/');
+      if (lastSlash >= 0) {
+        return normalizeDir(normalizedPath.slice(0, lastSlash + 1));
+      }
+    }
+
+    return normalizeDir(workspace);
+  }, [filePath, workspace]);
+
+  const resourceBaseUrl = useMemo(() => {
+    if (!resourceBaseDir) return undefined;
+    const normalized = resourceBaseDir.replace(/\\/g, '/');
+    const withLeadingSlash = normalized.startsWith('/') ? normalized : `/${normalized}`;
+    return `file://${encodeURI(withLeadingSlash)}`;
+  }, [resourceBaseDir]);
+
   // 处理 HTML 内容，注入 base 标签支持相对路径
   // Process HTML content, inject base tag for relative paths
   const processedHtml = useMemo(() => {
     let html = content;
 
-    // 注入 base 标签支持相对路径 / Inject base tag for relative paths
-    if (filePath) {
-      const fileDir = filePath.substring(0, filePath.lastIndexOf('/') + 1);
-      const baseUrl = `file://${fileDir}`;
-
-      // 检查是否已有 base 标签 / Check if base tag exists
+    if (resourceBaseUrl) {
       if (!html.match(/<base\s+href=/i)) {
-        if (html.match(/<head>/i)) {
-          html = html.replace(/<head>/i, `<head><base href="${baseUrl}">`);
-        } else if (html.match(/<html>/i)) {
-          html = html.replace(/<html>/i, `<html><head><base href="${baseUrl}"></head>`);
+        if (html.match(/<head[^>]*>/i)) {
+          html = html.replace(/<head[^>]*>/i, (match) => `${match}<base href="${resourceBaseUrl}">`);
+        } else if (html.match(/<html[^>]*>/i)) {
+          html = html.replace(/<html[^>]*>/i, (match) => `${match}<head><base href="${resourceBaseUrl}"></head>`);
         } else {
-          html = `<head><base href="${baseUrl}"></head>${html}`;
+          html = `<head><base href="${resourceBaseUrl}"></head>${html}`;
         }
       }
     }
 
     return html;
-  }, [content, filePath]);
+  }, [content, resourceBaseUrl]);
 
-  // 使用 data URL 来加载内容（避免 CSP 问题）
-  // Use data URL to load content (avoids CSP issues)
-  const dataUrl = useMemo(() => {
-    const encoded = encodeURIComponent(processedHtml);
-    return `data:text/html;charset=utf-8,${encoded}`;
-  }, [processedHtml]);
+  const [webviewSrc, setWebviewSrc] = useState<string>('');
+  const tempFileRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const updatePreview = async () => {
+      try {
+        if (!tempFileRef.current) {
+          const baseName = filePath?.split(/[\\/]/).pop() || 'preview.html';
+          tempFileRef.current = await ipcBridge.fs.createTempFile.invoke({ fileName: baseName });
+        }
+
+        if (!tempFileRef.current) return;
+
+        await ipcBridge.fs.writeFile.invoke({ path: tempFileRef.current, data: processedHtml });
+        if (!cancelled) {
+          const timestamp = Date.now();
+          setWebviewSrc(`file://${tempFileRef.current}?ts=${timestamp}`);
+          webviewLoadedRef.current = false;
+        }
+      } catch (error) {
+        console.error('[HTMLRenderer] Failed to prepare preview file:', error);
+      }
+    };
+
+    void updatePreview();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [processedHtml, filePath, workspace]);
 
   // 监听 webview 加载完成
   useEffect(() => {
@@ -107,6 +156,67 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containe
 
   // 生成检查模式注入脚本 / Generate inspect mode injection script
   // 使用 useMemo 缓存，只在 inspectMode 改变时重新生成 / Use useMemo to cache, only regenerate when inspectMode changes
+  const assetPatchScript = useMemo(() => {
+    if (!resourceBaseUrl) return '';
+    const baseJson = JSON.stringify(resourceBaseUrl);
+    return `
+      (function() {
+        try {
+          const baseHref = ${baseJson};
+          function ensureBase() {
+            let baseEl = document.querySelector('base');
+            if (!baseEl) {
+              baseEl = document.createElement('base');
+              if (document.head) {
+                document.head.prepend(baseEl);
+              } else if (document.documentElement) {
+                const head = document.createElement('head');
+                document.documentElement.insertBefore(head, document.documentElement.firstChild);
+                head.appendChild(baseEl);
+              }
+            }
+            if (baseEl) {
+              baseEl.setAttribute('href', baseHref);
+            }
+          }
+
+          function rewriteAttribute(selector, attribute) {
+            const toAbsoluteUrl = (value) => {
+              if (!value) return null;
+              const trimmed = value.trim();
+              if (!trimmed || trimmed.startsWith('data:') || trimmed.startsWith('blob:') || trimmed.startsWith('#')) return null;
+              if (/^[a-zA-Z]+:/.test(trimmed) || trimmed.startsWith('//') || trimmed.startsWith('file://') || trimmed.startsWith('about:') || trimmed.startsWith('chrome:')) return trimmed;
+              try {
+                return new URL(trimmed, baseHref).href;
+              } catch (error) {
+                return null;
+              }
+            };
+
+            document.querySelectorAll(selector).forEach((element) => {
+              const currentValue = element.getAttribute(attribute);
+              const absolute = toAbsoluteUrl(currentValue);
+              if (absolute && absolute !== currentValue) {
+                element.setAttribute(attribute, absolute);
+              }
+            });
+          }
+
+          ensureBase();
+          rewriteAttribute('img[src]', 'src');
+          rewriteAttribute('link[rel="stylesheet"][href]', 'href');
+          rewriteAttribute('link[as="style"][href]', 'href');
+          rewriteAttribute('source[src]', 'src');
+          rewriteAttribute('video[src]', 'src');
+          rewriteAttribute('audio[src]', 'src');
+          rewriteAttribute('iframe[src]', 'src');
+        } catch (error) {
+          console.error('[HTMLRenderer] Failed to patch relative assets:', error);
+        }
+      })();
+    `;
+  }, [resourceBaseUrl]);
+
   const inspectScript = useMemo(() => {
     return `
       (function() {
@@ -288,6 +398,10 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containe
     `;
   }, [inspectMode]);
 
+  const combinedScript = useMemo(() => {
+    return `${assetPatchScript}${inspectScript}`;
+  }, [assetPatchScript, inspectScript]);
+
   // 执行脚本注入的函数 / Function to execute script injection
   // 使用 useCallback 缓存，避免每次渲染都创建新函数 / Use useCallback to cache, avoid creating new function on each render
   const executeScript = useCallback(() => {
@@ -295,15 +409,17 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containe
     if (!webview) return;
 
     // executeJavaScript 返回 Promise，需要处理 / executeJavaScript returns Promise, need to handle it
+    if (!combinedScript.trim()) return;
+
     void webview
-      .executeJavaScript(inspectScript)
+      .executeJavaScript(combinedScript)
       .then(() => {
         // Script injected successfully
       })
       .catch((_error) => {
         // Failed to inject inspect script
       });
-  }, [inspectScript, inspectMode]);
+  }, [combinedScript]);
 
   // 注入检查模式脚本 / Inject inspect mode script
   useEffect(() => {
@@ -330,7 +446,7 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containe
   return (
     <div ref={containerRef || divRef} className={`h-full w-full overflow-auto ${currentTheme === 'dark' ? 'bg-bg-1' : 'bg-white'}`}>
       {/* key 确保内容改变时 webview 重新挂载 / key ensures webview remounts when content changes */}
-      <webview key={dataUrl} ref={webviewRef} src={dataUrl} className='w-full h-full border-0' style={{ display: 'inline-flex' }} webpreferences='allowRunningInsecureContent, javascript=yes' />
+      {webviewSrc && <webview key={webviewSrc} ref={webviewRef} src={webviewSrc} className='w-full h-full border-0' style={{ display: 'inline-flex' }} webpreferences='allowRunningInsecureContent, allowFileAccessFromFileUrls, javascript=yes' />}
     </div>
   );
 };

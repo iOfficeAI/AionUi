@@ -589,7 +589,7 @@ const PreviewPanel: React.FC = () => {
         if (layout?.isMobile) {
           return (
             <div className='flex-1 overflow-hidden'>
-              <MarkdownPreview content={content} hideToolbar />
+              <MarkdownPreview content={content} hideToolbar filePath={metadata?.filePath} />
             </div>
           );
         }
@@ -616,7 +616,7 @@ const PreviewPanel: React.FC = () => {
                 <span className='text-12px text-t-secondary'>{t('preview.preview')}</span>
               </div>
               <div className='flex-1 overflow-hidden'>
-                <MarkdownPreview content={content} hideToolbar containerRef={previewContainerRef} onScroll={handlePreviewScroll} />
+                <MarkdownPreview content={content} hideToolbar containerRef={previewContainerRef} onScroll={handlePreviewScroll} filePath={metadata?.filePath} />
               </div>
             </div>
           </div>
@@ -624,7 +624,7 @@ const PreviewPanel: React.FC = () => {
       }
 
       // 非分屏模式：单栏（原文或预览）/ Non-split mode: Single panel (source or preview)
-      return <MarkdownPreview content={content} hideToolbar viewMode={viewMode} onViewModeChange={setViewMode} onContentChange={updateContent} />;
+      return <MarkdownPreview content={content} hideToolbar viewMode={viewMode} onViewModeChange={setViewMode} onContentChange={updateContent} filePath={metadata?.filePath} />;
     }
 
     // HTML 模式 / HTML mode
@@ -669,7 +669,9 @@ const PreviewPanel: React.FC = () => {
                 </div>
               </div>
               <div className='flex-1 overflow-hidden'>
-                <HTMLRenderer content={content} filePath={metadata?.filePath} containerRef={previewContainerRef} onScroll={handlePreviewScroll} inspectMode={inspectMode} />
+                {/* prettier-ignore */}
+                {/* eslint-disable-next-line max-len */}
+                <HTMLRenderer content={content} filePath={metadata?.filePath} workspace={metadata?.workspace} containerRef={previewContainerRef} onScroll={handlePreviewScroll} inspectMode={inspectMode} />
               </div>
             </div>
           </div>
@@ -697,7 +699,7 @@ const PreviewPanel: React.FC = () => {
               </div>
             </div>
             <div className='flex-1 overflow-hidden'>
-              <HTMLRenderer content={content} filePath={metadata?.filePath} inspectMode={inspectMode} />
+              <HTMLRenderer content={content} filePath={metadata?.filePath} workspace={metadata?.workspace} inspectMode={inspectMode} />
             </div>
           </div>
         );
