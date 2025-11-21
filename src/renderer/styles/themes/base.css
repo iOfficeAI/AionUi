@@ -111,7 +111,6 @@ body,
 
 .chat-history__placeholder,
 .chat-history__section {
-  overflow: hidden;
   transition:
     opacity 0.3s ease,
     max-height 0.3s ease,

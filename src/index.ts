@@ -176,16 +176,38 @@ const createWindow = (): void => {
   // 移除 webview/iframe 中的 CSP 限制，允许 HTML 预览加载外部资源
   // Remove CSP restrictions in webview/iframe to allow HTML preview to load external resources
   mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
-    const responseHeaders = { ...details.responseHeaders };
-
-    // 对于 data: 和 blob: 协议的请求，移除 CSP 限制
-    // Remove CSP restrictions for data: and blob: protocol requests
-    if (details.url.startsWith('data:') || details.url.startsWith('blob:')) {
-      delete responseHeaders['content-security-policy'];
-      delete responseHeaders['Content-Security-Policy'];
-    }
-
-    callback({ responseHeaders });
+    callback({
+      responseHeaders: {
+        ...details.responseHeaders,
+        'Content-Security-Policy': [
+          [
+            // Default: only allow resources from same origin / 默认：仅允许同源资源
+            "default-src 'self'",
+            // Scripts: allow same-origin + inline scripts (required by React) / 脚本：允许同源和内联脚本（React 需要）
+            // Note: 'unsafe-eval' is intentionally excluded for security / 注意：为安全起见特意排除 'unsafe-eval'
+            "script-src 'self' 'unsafe-inline'",
+            // Styles: allow same-origin + inline styles (required by dynamic theming) / 样式：允许同源和内联样式（动态主题需要）
+            "style-src 'self' 'unsafe-inline'",
+            // Images: allow same-origin, data URIs, local files, blobs, and HTTPS (required by preview features and custom backgrounds) / 图片：允许同源、data URI、本地文件、blob 和 HTTPS（预览功能和自定义背景需要）
+            "img-src 'self' data: file: blob: https:",
+            // Fonts: allow same-origin and data URIs / 字体：允许同源和 data URI
+            "font-src 'self' data:",
+            // Network connections: allow same-origin, WebSocket, and localhost (required by WebUI mode) / 网络连接：允许同源、WebSocket 和 localhost（WebUI 模式需要）
+            "connect-src 'self' ws: wss: http://localhost:* https://localhost:* http://127.0.0.1:*",
+            // Media: allow same-origin and blobs (required by preview features) / 媒体：允许同源和 blob（预览功能需要）
+            "media-src 'self' blob:",
+            // Objects: disallow plugins for security / 对象：为安全起见禁止插件
+            "object-src 'none'",
+            // Base URI: restrict <base> tag to same-origin only / 基础 URI：限制 <base> 标签仅使用同源
+            "base-uri 'self'",
+            // Forms: restrict form submission to same-origin / 表单：限制表单提交到同源
+            "form-action 'self'",
+            // Frame ancestors: prevent clickjacking by disallowing embedding / 框架祖先：禁止嵌入以防止点击劫持
+            "frame-ancestors 'none'",
+          ].join('; '),
+        ],
+      },
+    });
   });
 
   // and load the index.html of the app.
