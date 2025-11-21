@@ -188,20 +188,7 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({ content, onClose, hid
             remarkPlugins={[remarkGfm, remarkMath, remarkBreaks]}
             rehypePlugins={[rehypeRaw, rehypeKatex]}
             components={{
-              // 处理图片，将相对路径转换为file://协议路径 / Handle images, convert relative paths to file:// protocol
               img({ src, alt, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) {
-                // 如果是相对路径（./或../开头），需要转换为绝对路径
-                // If relative path (starts with ./ or ../), convert to absolute path
-                if (src && (src.startsWith('./') || src.startsWith('../'))) {
-                  // 获取当前工作目录（项目根目录）/ Get current working directory (project root)
-                  const cwd = process.cwd();
-                  // 移除 ./ 前缀 / Remove ./ prefix
-                  const relativePath = src.replace(/^\.\//, '');
-                  // 构建完整的文件路径 / Build full file path
-                  const fullPath = `file://${cwd}/${relativePath}`;
-                  return <img src={fullPath} alt={alt} {...props} />;
-                }
-                // 其他路径（HTTPS等）直接返回 / Other paths (HTTPS etc.) return as is
                 return <img src={src} alt={alt} {...props} />;
               },
               code({ className, children, ...props }: React.HTMLAttributes<HTMLElement>) {

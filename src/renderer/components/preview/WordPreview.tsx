@@ -5,8 +5,9 @@
  */
 
 import { ipcBridge } from '@/common';
-import { Button, Message } from '@arco-design/web-react';
-import React, { useCallback, useEffect, useState } from 'react';
+import { Message } from '@arco-design/web-react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import MarkdownPreview from './MarkdownPreview';
 
 interface WordPreviewProps {
@@ -24,11 +25,16 @@ interface WordPreviewProps {
  * 3. 点击"在 Word 中打开"可以用系统默认应用编辑
  */
 const WordPreview: React.FC<WordPreviewProps> = ({ filePath, hideToolbar = false }) => {
-  // const { t } = useTranslation(); // 未使用 / Unused
+  const { t } = useTranslation();
   const [markdown, setMarkdown] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [messageApi, messageContextHolder] = Message.useMessage();
+
+  const messageApiRef = useRef(messageApi);
+  useEffect(() => {
+    messageApiRef.current = messageApi;
+  }, [messageApi]);
 
   /**
    * 加载 Word 文档并转换为 Markdown
@@ -54,14 +60,14 @@ const WordPreview: React.FC<WordPreviewProps> = ({ filePath, hideToolbar = false
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : '加载 Word 文档失败';
         setError(`${errorMessage}\n路径: ${filePath}`);
-        messageApi.error(errorMessage);
+        messageApiRef.current?.error?.(errorMessage);
       } finally {
         setLoading(false);
       }
     };
 
     void loadDocument();
-  }, [filePath, messageApi]);
+  }, [filePath]);
 
   /**
    * 在系统默认应用中打开 Word 文档
@@ -75,11 +81,11 @@ const WordPreview: React.FC<WordPreviewProps> = ({ filePath, hideToolbar = false
 
     try {
       await ipcBridge.shell.openFile.invoke(filePath);
-      messageApi.info('已在系统默认应用中打开');
+      messageApi.info(t('preview.openInSystemSuccess'));
     } catch (err) {
-      messageApi.error('打开文件失败');
+      messageApi.error(t('preview.openInSystemFailed'));
     }
-  }, [filePath, messageApi]);
+  }, [filePath, messageApi, t]);
 
   if (loading) {
     return (
@@ -113,15 +119,14 @@ const WordPreview: React.FC<WordPreviewProps> = ({ filePath, hideToolbar = false
 
           {/* 右侧按钮组 / Right button group */}
           <div className='flex items-center gap-8px'>
-            {/* 在 Word 中打开 */}
-            <Button size='mini' type='text' onClick={handleOpenInSystem} title='在 Word 中打开'>
+            <div className='flex items-center gap-4px px-8px py-4px rd-4px cursor-pointer hover:bg-bg-3 transition-colors text-12px text-t-secondary' onClick={handleOpenInSystem} title={t('preview.openWithApp', { app: 'Word' })}>
               <svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'>
                 <path d='M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6' />
                 <polyline points='15 3 21 3 21 9' />
                 <line x1='10' y1='14' x2='21' y2='3' />
               </svg>
-              <span>在 Word 中打开</span>
-            </Button>
+              <span>{t('preview.openWithApp', { app: 'Word' })}</span>
+            </div>
           </div>
         </div>
       )}

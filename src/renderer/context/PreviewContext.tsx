@@ -141,8 +141,18 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
         return;
       }
 
-      // Tab 标题：优先使用文件名，并从 title 中提取实际文件名 / Tab title: Prefer fileName and extract actual filename from title
-      const title = extractFileName(meta?.fileName) || extractFileName(meta?.title) || (type === 'markdown' ? 'Markdown' : type === 'diff' ? 'Diff' : type === 'code' ? `${meta?.language || 'Code'}` : 'Preview');
+      // Tab 标题：优先使用文件名，并从 title 中提取实际文件名
+      // Tab title: Prefer fileName and extract actual filename from title
+      const fallbackTitle = (() => {
+        // 根据内容类型设置默认标题 / Set default title based on content type
+        if (type === 'markdown') return 'Markdown';
+        if (type === 'diff') return 'Diff';
+        if (type === 'code') return `${meta?.language || 'Code'}`;
+        if (type === 'image') return 'Image'; // 图片预览默认标题 / Default title for image preview
+        return 'Preview';
+      })();
+
+      const title = extractFileName(meta?.fileName) || extractFileName(meta?.title) || fallbackTitle;
 
       // 生成唯一 ID / Generate unique ID
       const tabId = `${type}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;

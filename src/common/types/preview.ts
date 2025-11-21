@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export type PreviewContentType = 'markdown' | 'diff' | 'code' | 'html' | 'pdf' | 'ppt' | 'word' | 'excel';
+export type PreviewContentType = 'markdown' | 'diff' | 'code' | 'html' | 'pdf' | 'ppt' | 'word' | 'excel' | 'image';
 
 export interface PreviewHistoryTarget {
   contentType: PreviewContentType;

@@ -2,6 +2,144 @@
 
 :root {
   --app-min-width: 390px;
+  --titlebar-height: 36px;
+}
+
+.app-shell {
+  min-height: 0;
+}
+
+.app-titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px;
+  height: var(--titlebar-height);
+  min-height: var(--titlebar-height);
+  line-height: var(--titlebar-height);
+  user-select: none;
+  position: relative;
+  z-index: 10;
+}
+
+.app-titlebar--desktop {
+  -webkit-app-region: drag;
+}
+
+.app-titlebar--mac {
+  height: env(titlebar-area-height, var(--titlebar-height));
+  min-height: env(titlebar-area-height, var(--titlebar-height));
+  padding-left: calc(env(titlebar-area-x, 16px) + 8px);
+  padding-right: 12px;
+}
+
+.app-titlebar__brand {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 13px;
+  letter-spacing: 0.2px;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  pointer-events: none;
+  min-width: 120px;
+  line-height: 1;
+}
+
+.app-titlebar__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  -webkit-app-region: no-drag;
+  margin-left: auto;
+  min-height: var(--titlebar-height);
+}
+
+.app-titlebar__button {
+  width: var(--titlebar-height);
+  height: var(--titlebar-height);
+  border: none;
+  border-radius: 6px;
+  background-color: transparent;
+  color: var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.app-titlebar__button:hover {
+  background-color: var(--bg-hover);
+}
+
+.app-titlebar__button:active {
+  background-color: var(--bg-active);
+}
+
+.app-window-controls {
+  display: flex;
+  align-items: stretch;
+  -webkit-app-region: no-drag;
+}
+
+.app-window-controls__button {
+  width: 40px;
+  height: var(--titlebar-height);
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.18s ease;
+}
+
+.app-window-controls__button:hover {
+  background-color: rgba(128, 128, 128, 0.2);
+}
+
+.app-window-controls__button:active {
+  background-color: rgba(128, 128, 128, 0.3);
+}
+
+.app-window-controls__button--close:hover {
+  background-color: #e81123;
+  color: #fff;
+}
+
+.app-window-controls__button--close:active {
+  background-color: #c10f1f;
+  color: #fff;
+}
+
+.workspace-header__toggle {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.workspace-header__toggle:hover {
+  background-color: var(--bg-hover);
+}
+
+.workspace-header__toggle:active {
+  background-color: var(--bg-active);
+}
+
+.workspace-toggle-floating {
+  background-color: var(--bg-2);
+  border: 1px solid var(--bg-3);
 }
 
 html,

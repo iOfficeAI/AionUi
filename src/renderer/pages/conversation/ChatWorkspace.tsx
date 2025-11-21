@@ -567,12 +567,16 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
       try {
         closeContextMenu();
 
-        // Determine content type based on file extension
+        // 根据文件扩展名确定内容类型 / Determine content type based on file extension
         const ext = nodeData.name.toLowerCase().split('.').pop() || '';
+
+        // 支持的图片格式列表 / List of supported image formats
+        const imageExtensions = ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp', 'svg', 'ico', 'tif', 'tiff', 'avif'];
+
         let contentType: PreviewContentType = 'code';
         let content = '';
 
-        // 判断文件类型 / Determine file type
+        // 根据扩展名判断文件类型 / Determine file type based on extension
         if (ext === 'md' || ext === 'markdown') {
           contentType = 'markdown';
         } else if (ext === 'diff' || ext === 'patch') {
@@ -587,6 +591,9 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
           contentType = 'excel';
         } else if (['html', 'htm'].includes(ext)) {
           contentType = 'html';
+        } else if (imageExtensions.includes(ext)) {
+          // 图片文件类型 / Image file type
+          contentType = 'image';
         } else if (['js', 'ts', 'tsx', 'jsx', 'py', 'java', 'go', 'rs', 'c', 'cpp', 'h', 'hpp', 'css', 'scss', 'json', 'xml', 'yaml', 'yml'].includes(ext)) {
           contentType = 'code';
         }
@@ -594,10 +601,10 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
         // 根据文件类型读取内容 / Read content based on file type
         if (contentType === 'pdf') {
           // PDF: 不读取内容，PDFPreview 组件会通过 filePath 自己读取
-          // Don't read content, PDFPreview component will read via filePath itself
-          content = ''; // 空内容，依赖 filePath
+          // PDF: Don't read content, PDFPreview component will read via filePath itself
+          content = ''; // 空内容，依赖 filePath / Empty content, relies on filePath
         } else if (contentType === 'word') {
-          // Word: 通过 IPC 转换为 Markdown / Convert to Markdown via IPC
+          // Word: 通过 IPC 转换为 Markdown / Word: Convert to Markdown via IPC
           const result = await ipcBridge.conversion.wordToMarkdown.invoke({ filePath: nodeData.fullPath });
           if (result.success && result.data) {
             content = result.data;
@@ -606,10 +613,10 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
           }
         } else if (contentType === 'excel') {
           // Excel: 不读取内容，ExcelPreview 组件会通过 filePath 自己读取和转换
-          // Don't read content, ExcelPreview component will read and convert via filePath itself
-          content = ''; // 空内容，依赖 filePath
+          // Excel: Don't read content, ExcelPreview component will read and convert via filePath itself
+          content = ''; // 空内容，依赖 filePath / Empty content, relies on filePath
         } else if (contentType === 'ppt') {
-          // PPT: 通过 IPC 转换为 JSON / Convert to JSON via IPC
+          // PPT: 通过 IPC 转换为 JSON / PPT: Convert to JSON via IPC
           const result = await ipcBridge.conversion.pptToJson.invoke({ filePath: nodeData.fullPath });
           if (result.success && result.data) {
             // 只保留 slides 数据，不包含 raw 对象（过大且不需要）
@@ -621,19 +628,24 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
           } else {
             throw new Error(result.error || 'PPT 转换失败');
           }
+        } else if (contentType === 'image') {
+          // 图片: 读取为 Base64 格式 / Image: Read as Base64 format
+          content = await ipcBridge.fs.getImageBase64.invoke({ path: nodeData.fullPath });
         } else {
-          // 文本文件：使用 UTF-8 读取 / Text files: Read as UTF-8
+          // 文本文件：使用 UTF-8 编码读取 / Text files: Read using UTF-8 encoding
           content = await ipcBridge.fs.readFile.invoke({ path: nodeData.fullPath });
         }
 
-        // Open preview with file metadata
+        // 打开预览面板并传入文件元数据 / Open preview panel with file metadata
         openPreview(content, contentType, {
           title: nodeData.name,
           fileName: nodeData.name,
           filePath: nodeData.fullPath,
           workspace: workspace,
           language: ext,
-          editable: contentType === 'markdown' ? false : undefined, // Markdown 默认为预览模式 / Markdown defaults to preview-only mode
+          // Markdown 和图片文件默认为只读模式，其他类型保持默认可编辑
+          // Markdown and image files default to read-only mode, other types remain editable by default
+          editable: contentType === 'markdown' || contentType === 'image' ? false : undefined,
         });
       } catch (error) {
         messageApi.error(t('conversation.workspace.contextMenu.previewFailed'));
@@ -859,23 +871,31 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
     if (!contextMenuNode?.isFile || !contextMenuNode.name) return false;
     const ext = contextMenuNode.name.toLowerCase().split('.').pop() || '';
     const supportedExts = [
+      // Markdown 格式 / Markdown formats
       'md',
-      'markdown', // markdown
+      'markdown',
+      // Diff 格式 / Diff formats
       'diff',
-      'patch', // diff
-      'pdf', // pdf
+      'patch',
+      // PDF 格式 / PDF format
+      'pdf',
+      // PPT 格式 / PPT formats
       'ppt',
       'pptx',
-      'odp', // ppt
+      'odp',
+      // Word 格式 / Word formats
       'doc',
       'docx',
-      'odt', // word
+      'odt',
+      // Excel 格式 / Excel formats
       'xls',
       'xlsx',
       'ods',
-      'csv', // excel
+      'csv',
+      // HTML 格式 / HTML formats
       'html',
-      'htm', // html
+      'htm',
+      // 代码文件格式 / Code file formats
       'js',
       'ts',
       'tsx',
@@ -894,7 +914,19 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
       'xml',
       'yaml',
       'yml',
-      'txt', // code
+      'txt',
+      // 图片格式 / Image formats
+      'png',
+      'jpg',
+      'jpeg',
+      'gif',
+      'bmp',
+      'webp',
+      'svg',
+      'ico',
+      'tif',
+      'tiff',
+      'avif',
     ];
     return supportedExts.includes(ext);
   })();
@@ -1183,7 +1215,6 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
               }}
               multiple
               renderTitle={(node) => {
-                const path = node.dataRef.fullPath;
                 const relativePath = node.dataRef.relativePath;
                 const isFile = node.dataRef.isFile;
 
@@ -1195,7 +1226,11 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
                     className='flex items-center gap-4px'
                     style={{ color: 'inherit' }}
                     onDoubleClick={() => {
-                      void ipcBridge.shell.openFile.invoke(path);
+                      // 双击文件时在预览框中打开，而不是在外部程序中打开
+                      // Double-click to open file in preview panel instead of external program
+                      if (isFile) {
+                        void handlePreviewFile(node.dataRef as IDirOrFile);
+                      }
                     }}
                     onContextMenu={(event) => {
                       event.preventDefault();

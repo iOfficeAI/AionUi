@@ -15,11 +15,36 @@ import QwenLogo from '@/renderer/assets/logos/qwen.svg';
 import { iconColors } from '@/renderer/theme/colors';
 import { ACP_BACKENDS_ALL } from '@/types/acpTypes';
 import classNames from 'classnames';
+import { WORKSPACE_TOGGLE_EVENT, dispatchWorkspaceStateEvent, dispatchWorkspaceToggleEvent } from '@/renderer/utils/workspaceEvents';
 
 const MOBILE_COLLAPSE_DURATION = 320;
 const MIN_CHAT_RATIO = 25;
 const MIN_WORKSPACE_RATIO = 12;
 const MIN_PREVIEW_RATIO = 20;
+const WORKSPACE_HEADER_HEIGHT = 32;
+
+const isMacEnvironment = () => {
+  if (typeof navigator === 'undefined') return false;
+  return /mac/i.test(navigator.userAgent);
+};
+
+interface WorkspaceHeaderProps {
+  children?: React.ReactNode;
+  showToggle?: boolean;
+  collapsed: boolean;
+  onToggle: () => void;
+}
+
+const WorkspacePanelHeader: React.FC<WorkspaceHeaderProps> = ({ children, showToggle = false, collapsed, onToggle }) => (
+  <div className='workspace-panel-header flex items-center justify-start px-12px py-4px gap-12px border-b border-[var(--bg-3)]' style={{ height: WORKSPACE_HEADER_HEIGHT, minHeight: WORKSPACE_HEADER_HEIGHT }}>
+    <div className='flex-1 truncate'>{children}</div>
+    {showToggle && (
+      <button type='button' className='workspace-header__toggle' aria-label='Toggle workspace' onClick={onToggle}>
+        {collapsed ? <ExpandRight size={16} /> : <ExpandLeft size={16} />}
+      </button>
+    )}
+  </div>
+);
 
 const ChatLayout: React.FC<{
   children: React.ReactNode;
@@ -33,6 +58,7 @@ const ChatLayout: React.FC<{
   const [containerWidth, setContainerWidth] = useState(() => (typeof window === 'undefined' ? 0 : window.innerWidth));
   const { backend } = props;
   const layout = useLayoutContext();
+  const isMacRuntime = isMacEnvironment();
   // 右侧栏的自动/手动折叠动画状态 / Auto & manual folding states for right sider
   const rightCollapsedRef = useRef(rightSiderCollapsed);
   const [autoRightCollapsing, setAutoRightCollapsing] = useState(false);
@@ -42,6 +68,23 @@ const ChatLayout: React.FC<{
 
   // 预览面板状态 / Preview panel state
   const { isOpen: isPreviewOpen } = usePreviewContext();
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+    const handleWorkspaceToggle = () => {
+      setRightSiderCollapsed((prev) => !prev);
+    };
+    window.addEventListener(WORKSPACE_TOGGLE_EVENT, handleWorkspaceToggle);
+    return () => {
+      window.removeEventListener(WORKSPACE_TOGGLE_EVENT, handleWorkspaceToggle);
+    };
+  }, []);
+
+  useEffect(() => {
+    dispatchWorkspaceStateEvent(rightSiderCollapsed);
+  }, [rightSiderCollapsed]);
 
   useEffect(() => {
     const element = containerRef.current;
@@ -172,6 +215,18 @@ const ChatLayout: React.FC<{
     }
   }, [chatSplitRatio, isDesktop, isPreviewOpen, rightSiderCollapsed, setChatSplitRatio, workspaceSplitRatio]);
 
+  // 预览打开时自动收起侧边栏和工作空间 / Auto-collapse sidebar and workspace when preview opens
+  useEffect(() => {
+    if (isPreviewOpen && isDesktop) {
+      // 收起工作空间 / Collapse workspace
+      setRightSiderCollapsed(true);
+      // 收起左侧边栏 / Collapse left sidebar
+      if (layout?.setSiderCollapsed) {
+        layout.setSiderCollapsed(true);
+      }
+    }
+  }, [isPreviewOpen, isDesktop, layout]);
+
   const rightHandle = isDesktop && !rightSiderCollapsed ? createWorkspaceDragHandle({ className: 'absolute right-0 top-0 bottom-0', style: { borderRight: '1px solid var(--bg-3)' } }) : null;
   const mobileHandle = layout?.isMobile
     ? createWorkspaceDragHandle({
@@ -220,13 +275,17 @@ const ChatLayout: React.FC<{
                     <span className='text-sm'>{ACP_BACKENDS_ALL[backend as keyof typeof ACP_BACKENDS_ALL]?.name || backend}</span>
                   </div>
                 )}
-                {rightSiderCollapsed ? <ExpandRight onClick={() => setRightSiderCollapsed(false)} className='cursor-pointer flex' theme='outline' size='24' fill={iconColors.secondary} strokeWidth={3} /> : <ExpandLeft onClick={() => setRightSiderCollapsed(true)} className='cursor-pointer flex' theme='outline' size='24' fill={iconColors.secondary} strokeWidth={3} />}
+                {/* {rightSiderCollapsed ? (
+                  <ExpandRight onClick={() => setRightSiderCollapsed(false)} className='cursor-pointer flex' theme='outline' size='24' fill={iconColors.secondary} strokeWidth={3} />
+                ) : (
+                  <ExpandLeft onClick={() => setRightSiderCollapsed(true)} className='cursor-pointer flex' theme='outline' size='24' fill={iconColors.secondary} strokeWidth={3} />
+                )} */}
               </div>
             </ArcoLayout.Header>
             <ArcoLayout.Content className='flex flex-col flex-1 bg-1 overflow-hidden'>{props.children}</ArcoLayout.Content>
           </ArcoLayout.Content>
 
-          {/* 左侧拖动手柄：在桌面模式下调节预览宽度 */}
+          {/* 会话右侧拖动手柄：在桌面模式下调节会话和预览的宽度比例 */}
           {isPreviewOpen &&
             !layout?.isMobile &&
             createPreviewDragHandle({
@@ -235,7 +294,25 @@ const ChatLayout: React.FC<{
             })}
         </div>
 
-        {/* 工作空间面板（移到中间位置）/ Workspace panel (moved to middle position) */}
+        {/* 预览面板（移到中间位置）/ Preview panel (moved to middle position) */}
+        {isPreviewOpen && (
+          <div
+            className='flex flex-col relative'
+            style={{
+              flex: layout?.isMobile ? '0 0 100%' : previewFlex,
+              flexBasis: layout?.isMobile ? '100%' : 0,
+              borderLeft: '1px solid var(--bg-3)',
+              minWidth: layout?.isMobile ? '100%' : '260px',
+            }}
+          >
+            <PreviewPanel />
+
+            {/* 预览右侧拖动手柄：在桌面模式下调节预览和工作空间的宽度比例 */}
+            {isDesktop && !rightSiderCollapsed && rightHandle}
+          </div>
+        )}
+
+        {/* 工作空间面板（移到最右边）/ Workspace panel (moved to rightmost position) */}
         {!layout?.isMobile && (
           <div
             className={classNames('!bg-1 relative chat-layout-right-sider layout-sider transition-all duration-300', {
@@ -250,11 +327,10 @@ const ChatLayout: React.FC<{
               borderLeft: rightSiderCollapsed ? 'none' : '1px solid var(--bg-3)',
             }}
           >
-            <ArcoLayout.Header className='flex items-center justify-start p-16px gap-16px h-56px'>
-              <div className='w-full'>{props.siderTitle}</div>
-            </ArcoLayout.Header>
-            <ArcoLayout.Content className='h-[calc(100%-56px)] bg-1'>{props.sider}</ArcoLayout.Content>
-            {rightHandle}
+            <WorkspacePanelHeader showToggle={!isMacRuntime} collapsed={rightSiderCollapsed} onToggle={() => dispatchWorkspaceToggleEvent()}>
+              {props.siderTitle}
+            </WorkspacePanelHeader>
+            <ArcoLayout.Content style={{ height: `calc(100% - ${WORKSPACE_HEADER_HEIGHT}px)` }}>{props.sider}</ArcoLayout.Content>
           </div>
         )}
 
@@ -275,26 +351,19 @@ const ChatLayout: React.FC<{
             }}
           >
             {mobileHandle}
-            <ArcoLayout.Header className='flex items-center justify-start p-16px gap-16px h-56px'>
-              <div className='w-full'>{props.siderTitle}</div>
-            </ArcoLayout.Header>
-            <ArcoLayout.Content className='h-[calc(100%-56px)] bg-1'>{props.sider}</ArcoLayout.Content>
+            <WorkspacePanelHeader showToggle={!isMacRuntime} collapsed={rightSiderCollapsed} onToggle={() => dispatchWorkspaceToggleEvent()}>
+              {props.siderTitle}
+            </WorkspacePanelHeader>
+            <ArcoLayout.Content className='bg-1' style={{ height: `calc(100% - ${WORKSPACE_HEADER_HEIGHT}px)` }}>
+              {props.sider}
+            </ArcoLayout.Content>
           </div>
         )}
 
-        {/* 预览面板 / Preview panel */}
-        {isPreviewOpen && (
-          <div
-            className='flex flex-col'
-            style={{
-              flex: layout?.isMobile ? '0 0 100%' : previewFlex,
-              flexBasis: layout?.isMobile ? '100%' : 0,
-              borderLeft: '1px solid var(--bg-3)',
-              minWidth: layout?.isMobile ? '100%' : '260px',
-            }}
-          >
-            <PreviewPanel />
-          </div>
+        {!isMacRuntime && rightSiderCollapsed && !layout?.isMobile && (
+          <button type='button' className='workspace-toggle-floating workspace-header__toggle absolute top-1/2 right-2 z-10' style={{ transform: 'translateY(-50%)' }} onClick={() => dispatchWorkspaceToggleEvent()} aria-label='Expand workspace'>
+            <ExpandLeft size={16} />
+          </button>
         )}
       </div>
     </ArcoLayout>

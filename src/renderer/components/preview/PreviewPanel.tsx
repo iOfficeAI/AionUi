@@ -25,6 +25,7 @@ import PDFPreview from './PDFPreview';
 import PPTPreview from './PPTPreview';
 import TextEditor from './TextEditor';
 import WordPreview from './WordPreview';
+import ImagePreview from './ImagePreview';
 
 /**
  * 预览面板主组件
@@ -50,6 +51,8 @@ const PreviewPanel: React.FC = () => {
   const lastSnapshotTimeRef = useRef<number>(0); // 记录上次快照保存时间 / Track last snapshot save time
   const editorContainerRef = useRef<HTMLDivElement>(null); // 编辑器容器引用 / Editor container ref
   const previewContainerRef = useRef<HTMLDivElement>(null); // 预览容器引用 / Preview container ref
+  const tabsContainerRef = useRef<HTMLDivElement>(null); // Tabs 容器引用 / Tabs container ref
+  const [tabFadeState, setTabFadeState] = useState({ left: false, right: false }); // Tabs 渐变状态 / Gradient indicators for tabs
   const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>(() => {
     return (document.documentElement.getAttribute('data-theme') as 'light' | 'dark') || 'light';
   });
@@ -108,6 +111,64 @@ const PreviewPanel: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [activeTab, saveContent]);
+
+  // Tabs 横向溢出状态检测，用于显示左右渐变指示器
+  // Track tab overflow for displaying left/right gradient indicators
+  const updateTabOverflow = useCallback(() => {
+    const container = tabsContainerRef.current;
+    if (!container) return;
+
+    const { scrollLeft, scrollWidth, clientWidth } = container;
+
+    // 检查是否有横向溢出（内容宽度大于容器宽度）
+    // Check if there's horizontal overflow (content width exceeds container width)
+    const hasOverflow = scrollWidth > clientWidth + 1;
+
+    const nextState = {
+      // 左侧渐变：有溢出且已向右滚动 / Left gradient: has overflow and scrolled right
+      left: hasOverflow && scrollLeft > 2,
+      // 右侧渐变：有溢出且未滚动到最右侧 / Right gradient: has overflow and not scrolled to rightmost
+      right: hasOverflow && scrollLeft + clientWidth < scrollWidth - 2,
+    };
+
+    // 只在状态变化时更新，避免不必要的重渲染 / Only update when state changes to avoid unnecessary re-renders
+    setTabFadeState((prev) => {
+      if (prev.left === nextState.left && prev.right === nextState.right) return prev;
+      return nextState;
+    });
+  }, []);
+
+  // 当 tabs 或 activeTabId 变化时更新溢出状态
+  // Update overflow state when tabs or activeTabId changes
+  useEffect(() => {
+    updateTabOverflow();
+  }, [tabs, activeTabId, updateTabOverflow]);
+
+  // 监听滚动、窗口大小变化和容器大小变化
+  // Listen to scroll, window resize, and container size changes
+  useEffect(() => {
+    const container = tabsContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => updateTabOverflow();
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('resize', updateTabOverflow);
+
+    // 使用 ResizeObserver 监听容器大小变化 / Use ResizeObserver to monitor container size changes
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(() => updateTabOverflow());
+      resizeObserver.observe(container);
+    }
+
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', updateTabOverflow);
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
+    };
+  }, [updateTabOverflow]);
 
   // 内层分割：编辑器和预览的分割比例（默认 50/50）
   // Inner split: Split ratio between editor and preview (default 50/50)
@@ -298,6 +359,14 @@ const PreviewPanel: React.FC = () => {
   const isHTML = contentType === 'html';
   const isEditable = metadata?.editable !== false; // 默认可编辑 / Default editable
 
+  // 检查文件类型是否已有内置的打开按钮（Word、PPT、PDF、Excel 组件内部已提供）
+  // Check if file type already has built-in open button (Word, PPT, PDF, Excel components provide their own)
+  const hasBuiltInOpenButton = contentType === 'word' || contentType === 'ppt' || contentType === 'pdf' || contentType === 'excel';
+
+  // 仅对有 filePath 且没有内置打开按钮的文件显示"在系统中打开"按钮
+  // Show "Open in System" button only for files with filePath and without built-in open button
+  const showOpenInSystemButton = Boolean(metadata?.filePath) && !hasBuiltInOpenButton;
+
   const historyTarget = useMemo<PreviewHistoryTarget | null>(() => {
     if (!activeTab) return null;
     const meta = activeTab.metadata;
@@ -425,39 +494,90 @@ const PreviewPanel: React.FC = () => {
     );
   };
 
-  // 下载文件 / Download file
-  const handleDownload = () => {
-    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
+  // 下载文件到本地 / Download file to local system
+  const handleDownload = useCallback(async () => {
+    try {
+      let blob: Blob | null = null;
+      let ext = 'txt';
 
-    // 根据内容类型设置文件扩展名 / Set file extension based on content type
-    let ext = 'txt';
-    if (activeTab.contentType === 'markdown')
-      ext = 'md'; // Changed from contentType to activeTab.contentType
-    else if (activeTab.contentType === 'diff')
-      ext = 'diff'; // Changed from contentType to activeTab.contentType
-    else if (activeTab.contentType === 'code') {
-      // Changed from contentType to activeTab.contentType
-      const lang = metadata?.language;
-      if (lang === 'javascript' || lang === 'js') ext = 'js';
-      else if (lang === 'typescript' || lang === 'ts') ext = 'ts';
-      else if (lang === 'python' || lang === 'py') ext = 'py';
-      else if (lang === 'java') ext = 'java';
-      else if (lang === 'cpp' || lang === 'c++') ext = 'cpp';
-      else if (lang === 'c') ext = 'c';
-      else if (lang === 'html') ext = 'html';
-      else if (lang === 'css') ext = 'css';
-      else if (lang === 'json') ext = 'json';
+      // 图片文件：从 Base64 数据或文件路径读取 / Image files: read from Base64 data or file path
+      if (contentType === 'image') {
+        let dataUrl = content;
+        // 如果没有 Base64 数据，从文件路径读取 / If no Base64 data, read from file path
+        if (!dataUrl && metadata?.filePath) {
+          dataUrl = await ipcBridge.fs.getImageBase64.invoke({ path: metadata.filePath });
+        }
+
+        if (!dataUrl) {
+          messageApi.error(t('messages.downloadFailed', { defaultValue: 'Failed to download' }));
+          return;
+        }
+
+        // 将 Base64 数据转换为 Blob / Convert Base64 data to Blob
+        blob = await fetch(dataUrl).then((res) => res.blob());
+
+        // 优先使用文件名扩展名，其次使用 MIME 类型扩展名，最后默认为 png
+        // Prefer filename extension, then MIME type extension, finally default to png
+        const nameExt = metadata?.fileName?.split('.').pop();
+        const mimeExt = blob.type && blob.type.includes('/') ? blob.type.split('/').pop() : undefined;
+        ext = nameExt || mimeExt || 'png';
+      } else {
+        // 文本文件：创建文本 Blob / Text files: create text Blob
+        blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+
+        // 根据内容类型设置文件扩展名 / Set file extension based on content type
+        if (contentType === 'markdown') ext = 'md';
+        else if (contentType === 'diff') ext = 'diff';
+        else if (contentType === 'code') {
+          // 代码文件：根据语言设置扩展名 / Code files: set extension based on language
+          const lang = metadata?.language;
+          if (lang === 'javascript' || lang === 'js') ext = 'js';
+          else if (lang === 'typescript' || lang === 'ts') ext = 'ts';
+          else if (lang === 'python' || lang === 'py') ext = 'py';
+          else if (lang === 'java') ext = 'java';
+          else if (lang === 'cpp' || lang === 'c++') ext = 'cpp';
+          else if (lang === 'c') ext = 'c';
+          else if (lang === 'html') ext = 'html';
+          else if (lang === 'css') ext = 'css';
+          else if (lang === 'json') ext = 'json';
+        }
+      }
+
+      if (!blob) {
+        messageApi.error(t('messages.downloadFailed', { defaultValue: 'Failed to download' }));
+        return;
+      }
+
+      // 创建下载链接并触发下载 / Create download link and trigger download
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `${metadata?.fileName || `${contentType}-${Date.now()}`}.${ext}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url); // 释放 URL 对象 / Release URL object
+    } catch (error) {
+      console.error('[PreviewPanel] Failed to download file:', error);
+      messageApi.error(t('messages.downloadFailed', { defaultValue: 'Failed to download' }));
+    }
+  }, [content, contentType, metadata?.fileName, metadata?.filePath, metadata?.language, messageApi, t]);
+
+  // 在系统默认应用中打开文件 / Open file in system default application
+  const handleOpenInSystem = useCallback(async () => {
+    if (!metadata?.filePath) {
+      messageApi.error(t('preview.openInSystemFailed'));
+      return;
     }
 
-    link.download = `${metadata?.fileName || `${activeTab.contentType}-${Date.now()}`}.${ext}`; // Changed from contentType to activeTab.contentType
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
+    try {
+      // 使用系统默认应用打开文件 / Open file with system default application
+      await ipcBridge.shell.openFile.invoke(metadata.filePath);
+      messageApi.success(t('preview.openInSystemSuccess'));
+    } catch (err) {
+      messageApi.error(t('preview.openInSystemFailed'));
+    }
+  }, [metadata?.filePath, messageApi, t]);
 
   // 渲染预览内容 / Render preview content
   const renderContent = () => {
@@ -605,11 +725,15 @@ const PreviewPanel: React.FC = () => {
     } else if (contentType === 'word') {
       return <WordPreview filePath={metadata?.filePath} content={content} />;
     } else if (contentType === 'excel') {
-      return <ExcelPreview filePath={metadata?.filePath} content={content} hideToolbar />;
+      return <ExcelPreview filePath={metadata?.filePath} content={content} />;
+    } else if (contentType === 'image') {
+      return <ImagePreview filePath={metadata?.filePath} content={content} fileName={metadata?.fileName || metadata?.title} />;
     }
 
     return null;
   };
+
+  const { left: showLeftFade, right: showRightFade } = tabFadeState;
 
   return (
     <div className='h-full flex flex-col bg-1'>
@@ -647,29 +771,48 @@ const PreviewPanel: React.FC = () => {
       </Modal>
 
       {/* Tab 栏 / Tab bar */}
-      <div className='flex items-center h-40px bg-bg-2 overflow-x-auto flex-shrink-0' style={{ minHeight: '40px', borderBottom: '1px solid var(--border-base)' }}>
-        {tabs.length > 0 ? (
-          tabs.map((tab) => (
-            <div key={tab.id} className={`flex items-center gap-8px px-12px h-full cursor-pointer transition-colors flex-shrink-0 ${tab.id === activeTabId ? 'bg-bg-1 text-t-primary' : 'text-t-secondary hover:bg-bg-3'}`} onClick={() => switchTab(tab.id)} onContextMenu={(e) => handleTabContextMenu(e, tab.id)}>
-              <span className='text-12px whitespace-nowrap flex items-center gap-4px'>
-                {tab.title}
-                {/* 未保存指示器 / Unsaved indicator */}
-                {tab.isDirty && <span className='w-6px h-6px rd-full bg-primary' title='有未保存的修改 / Unsaved changes' />}
-              </span>
-              <Close
-                theme='outline'
-                size='14'
-                fill={iconColors.secondary}
-                className='hover:fill-primary'
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleCloseTab(tab.id);
-                }}
-              />
-            </div>
-          ))
-        ) : (
-          <div className='text-12px text-t-tertiary px-12px'>No tabs</div>
+      <div className='relative flex-shrink-0 bg-bg-2' style={{ minHeight: '40px', borderBottom: '1px solid var(--border-base)' }}>
+        <div ref={tabsContainerRef} className='flex items-center h-40px w-full overflow-x-auto flex-shrink-0'>
+          {tabs.length > 0 ? (
+            tabs.map((tab) => (
+              <div key={tab.id} className={`flex items-center gap-8px px-12px h-full cursor-pointer transition-colors flex-shrink-0 ${tab.id === activeTabId ? 'bg-bg-1 text-t-primary' : 'text-t-secondary hover:bg-bg-3'}`} onClick={() => switchTab(tab.id)} onContextMenu={(e) => handleTabContextMenu(e, tab.id)}>
+                <span className='text-12px whitespace-nowrap flex items-center gap-4px'>
+                  {tab.title}
+                  {/* 未保存指示器 / Unsaved indicator */}
+                  {tab.isDirty && <span className='w-6px h-6px rd-full bg-primary' title='有未保存的修改 / Unsaved changes' />}
+                </span>
+                <Close
+                  theme='outline'
+                  size='14'
+                  fill={iconColors.secondary}
+                  className='hover:fill-primary'
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleCloseTab(tab.id);
+                  }}
+                />
+              </div>
+            ))
+          ) : (
+            <div className='text-12px text-t-tertiary px-12px'>No tabs</div>
+          )}
+        </div>
+
+        {showLeftFade && (
+          <div
+            className='pointer-events-none absolute left-0 top-0 bottom-0 w-32px'
+            style={{
+              background: 'linear-gradient(90deg, var(--bg-2) 0%, transparent 100%)',
+            }}
+          />
+        )}
+        {showRightFade && (
+          <div
+            className='pointer-events-none absolute right-0 top-0 bottom-0 w-32px'
+            style={{
+              background: 'linear-gradient(270deg, var(--bg-2) 0%, transparent 100%)',
+            }}
+          />
         )}
       </div>
 
@@ -791,8 +934,19 @@ const PreviewPanel: React.FC = () => {
             </>
           )}
 
+          {showOpenInSystemButton && (
+            <div className='flex items-center gap-4px px-8px py-4px rd-4px cursor-pointer hover:bg-bg-3 transition-colors' onClick={handleOpenInSystem} title={t('preview.openInSystemApp')}>
+              <svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' className='text-t-secondary'>
+                <path d='M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6' />
+                <polyline points='15 3 21 3 21 9' />
+                <line x1='10' y1='14' x2='21' y2='3' />
+              </svg>
+              <span className='text-12px text-t-secondary'>{t('preview.openInSystemApp')}</span>
+            </div>
+          )}
+
           {/* 下载按钮 / Download button */}
-          <div className='flex items-center gap-4px px-8px py-4px rd-4px cursor-pointer hover:bg-bg-3 transition-colors' onClick={handleDownload} title={t('preview.downloadFile')}>
+          <div className='flex items-center gap-4px px-8px py-4px rd-4px cursor-pointer hover:bg-bg-3 transition-colors' onClick={() => void handleDownload()} title={t('preview.downloadFile')}>
             <svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' className='text-t-secondary'>
               <path d='M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4' />
               <polyline points='7 10 12 15 17 10' />

@@ -11,10 +11,20 @@ export interface ConversionResult<T> {
 }
 
 // Excel 中间格式 (JSON) / Excel Intermediate Format (JSON)
+export interface ExcelSheetImage {
+  row: number; // 图片所在行（从 0 开始）/ Image row index (0-based)
+  col: number; // 图片所在列（从 0 开始）/ Image column index (0-based)
+  src: string; // 图片数据（通常为 data URL）/ Image data (typically data URL)
+  width?: number; // 预估宽度（像素）/ Estimated width (px)
+  height?: number; // 预估高度（像素）/ Estimated height (px)
+  alt?: string; // 可选描述 / Optional description
+}
+
 export interface ExcelSheetData {
   name: string; // 工作表名称 / Sheet name
   data: any[][]; // 单元格数据二维数组 / 2D array of cell values
   merges?: { s: { r: number; c: number }; e: { r: number; c: number } }[]; // 合并单元格范围 / Merge ranges
+  images?: ExcelSheetImage[]; // 单元格图片信息 / Embedded images info
 }
 
 export interface ExcelWorkbookData {

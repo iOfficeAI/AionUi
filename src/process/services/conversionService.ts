@@ -5,13 +5,15 @@
  */
 
 import type { ConversionResult, ExcelWorkbookData, PPTJsonData } from '@/common/types/conversion';
-import { Document, Packer, Paragraph, TextRun } from 'docx';
+import { DOMParser } from '@xmldom/xmldom';
+import { Document as DocxDocument, Packer, Paragraph, TextRun } from 'docx';
 import { BrowserWindow } from 'electron';
 import fs from 'fs/promises';
 import mammoth from 'mammoth';
 import PPTX2Json from 'pptx2json';
 import TurndownService from 'turndown';
 import * as XLSX from 'xlsx';
+import * as yauzl from 'yauzl';
 
 class ConversionService {
   private turndownService: TurndownService;
@@ -60,7 +62,7 @@ class ConversionService {
           })
       );
 
-      const doc = new Document({
+      const doc = new DocxDocument({
         sections: [
           {
             properties: {},
@@ -86,6 +88,7 @@ class ConversionService {
     try {
       const buffer = await fs.readFile(filePath);
       const workbook = XLSX.read(buffer, { type: 'buffer' });
+      const sheetImages = await this.extractExcelImages(buffer);
 
       const sheets = workbook.SheetNames.map((name) => {
         const sheet = workbook.Sheets[name];
@@ -94,6 +97,7 @@ class ConversionService {
           name,
           data,
           merges: sheet['!merges'] as any,
+          images: sheetImages[name],
         };
       });
 
@@ -200,6 +204,274 @@ class ConversionService {
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   }
+
+  /**
+   * 提取 Excel 中的图片资源，并且定位到对应单元格
+   */
+  private async extractExcelImages(buffer: Buffer): Promise<Record<string, { row: number; col: number; src: string; width?: number; height?: number }[]>> {
+    try {
+      const fileMap = await this.loadExcelZipEntries(buffer);
+      const workbookXml = fileMap.get('xl/workbook.xml');
+      if (!workbookXml) {
+        return {};
+      }
+
+      const workbookRels = this.parseRelationships(fileMap.get('xl/_rels/workbook.xml.rels'));
+      const workbookDoc = new DOMParser().parseFromString(workbookXml.toString('utf8'), 'text/xml');
+      const sheetNodes = workbookDoc.getElementsByTagName('sheet');
+      const sheetInfos: Array<{ name: string; path: string }> = [];
+
+      for (let i = 0; i < sheetNodes.length; i++) {
+        const sheetNode = sheetNodes.item(i);
+        if (!sheetNode) continue;
+        const name = sheetNode.getAttribute('name') || `Sheet${i + 1}`;
+        const relId = sheetNode.getAttribute('r:id') || sheetNode.getAttribute('Id') || sheetNode.getAttribute('id');
+        if (!relId) continue;
+        const rel = workbookRels.get(relId);
+        if (!rel) continue;
+        const sheetPath = this.resolveZipPath('xl/workbook.xml', rel.target);
+        if (!sheetPath) continue;
+        sheetInfos.push({ name, path: sheetPath });
+      }
+
+      if (sheetInfos.length === 0) {
+        return {};
+      }
+
+      const parser = new DOMParser();
+      const result: Record<string, { row: number; col: number; src: string; width?: number; height?: number }[]> = {};
+
+      for (const sheetInfo of sheetInfos) {
+        const sheetRelPath = this.getRelsPath(sheetInfo.path);
+        const sheetRelXml = sheetRelPath ? fileMap.get(sheetRelPath) : null;
+        if (!sheetRelXml) continue;
+        const sheetRelMap = this.parseRelationships(sheetRelXml);
+        const drawingRels = Array.from(sheetRelMap.values()).filter((rel) => rel.type === ConversionService.DRAWING_REL_TYPE);
+        if (drawingRels.length === 0) continue;
+
+        for (const drawingRel of drawingRels) {
+          const drawingPath = this.resolveZipPath(sheetInfo.path, drawingRel.target);
+          if (!drawingPath) continue;
+          const drawingXml = fileMap.get(drawingPath);
+          if (!drawingXml) continue;
+          const drawingDoc = parser.parseFromString(drawingXml.toString('utf8'), 'text/xml');
+          const anchors = this.parseDrawingAnchors(drawingDoc);
+          if (!anchors.length) continue;
+          const drawingRelMap = this.parseRelationships(fileMap.get(this.getRelsPath(drawingPath)));
+
+          anchors.forEach((anchor) => {
+            const relInfo = drawingRelMap.get(anchor.embedId);
+            if (!relInfo) return;
+            const imagePath = this.resolveZipPath(drawingPath, relInfo.target);
+            if (!imagePath) return;
+            const imageBuffer = fileMap.get(imagePath);
+            if (!imageBuffer) return;
+            const mime = this.getMimeTypeFromName(imagePath);
+            const src = `data:${mime};base64,${imageBuffer.toString('base64')}`;
+            (result[sheetInfo.name] ||= []).push({ row: anchor.row, col: anchor.col, src, width: anchor.width, height: anchor.height });
+          });
+        }
+      }
+
+      return result;
+    } catch (error) {
+      console.warn('[ConversionService] extractExcelImages failed:', error);
+      return {};
+    }
+  }
+
+  /**
+   * 解析 Drawing XML 中的图片锚点信息
+   */
+  private parseDrawingAnchors(doc: Document): Array<{ row: number; col: number; embedId: string; width?: number; height?: number }> {
+    const anchors: Element[] = [];
+    const anchorTags = ['xdr:twoCellAnchor', 'xdr:oneCellAnchor', 'xdr:absoluteAnchor', 'twoCellAnchor', 'oneCellAnchor', 'absoluteAnchor'];
+    anchorTags.forEach((tag) => {
+      const nodes = doc.getElementsByTagName(tag);
+      for (let i = 0; i < nodes.length; i++) {
+        const node = nodes.item(i);
+        if (node) anchors.push(node);
+      }
+    });
+
+    const blipTags = ['a:blip', 'pic:blip', 'blip'];
+    const fromTags = ['xdr:from', 'from'];
+    const rowTags = ['xdr:row', 'row'];
+    const colTags = ['xdr:col', 'col'];
+    const sizeTags = ['xdr:ext', 'a:ext', 'ext'];
+
+    const entries: Array<{ row: number; col: number; embedId: string; width?: number; height?: number }> = [];
+
+    anchors.forEach((anchor) => {
+      const blip = this.findFirstChild(anchor, blipTags);
+      const embedId = blip?.getAttribute('r:embed') || blip?.getAttribute('embed');
+      if (!embedId) return;
+
+      const fromNode = this.findFirstChild(anchor, fromTags);
+      const row = this.safeParseInt(this.findFirstChild(fromNode, rowTags)?.textContent, 0);
+      const col = this.safeParseInt(this.findFirstChild(fromNode, colTags)?.textContent, 0);
+
+      const sizeNode = this.findFirstChild(anchor, sizeTags);
+      const width = this.safeSize(sizeNode?.getAttribute('cx'));
+      const height = this.safeSize(sizeNode?.getAttribute('cy'));
+
+      entries.push({ row, col, embedId, width, height });
+    });
+
+    return entries;
+  }
+
+  private safeParseInt(value: string | null | undefined, fallback: number): number {
+    const parsed = Number.parseInt(value ?? '', 10);
+    return Number.isFinite(parsed) ? parsed : fallback;
+  }
+
+  private safeSize(value: string | null | undefined): number | undefined {
+    const parsed = Number.parseInt(value ?? '', 10);
+    if (!Number.isFinite(parsed)) {
+      return undefined;
+    }
+    const pixels = Math.round(parsed / 9525);
+    return pixels > 0 ? pixels : undefined;
+  }
+
+  private findFirstChild(root: Element | null, tagNames: string[]): Element | null {
+    if (!root) return null;
+    for (const tag of tagNames) {
+      const nodes = root.getElementsByTagName(tag);
+      if (nodes.length > 0) {
+        return nodes.item(0);
+      }
+    }
+    return null;
+  }
+
+  private loadExcelZipEntries(buffer: Buffer): Promise<Map<string, Buffer>> {
+    return new Promise((resolve, reject) => {
+      yauzl.fromBuffer(buffer, { lazyEntries: true }, (err, zip) => {
+        if (err || !zip) {
+          reject(err);
+          return;
+        }
+
+        const fileMap = new Map<string, Buffer>();
+
+        const handleError = (error: Error) => {
+          zip.close();
+          reject(error);
+        };
+
+        zip.on('error', handleError);
+        zip.on('end', () => {
+          zip.close();
+          resolve(fileMap);
+        });
+
+        zip.on('entry', (entry) => {
+          const normalizedPath = this.normalizeZipPath(entry.fileName);
+          if (!this.shouldKeepZipEntry(normalizedPath) || entry.fileName.endsWith('/')) {
+            zip.readEntry();
+            return;
+          }
+
+          zip.openReadStream(entry, (streamErr, stream) => {
+            if (streamErr || !stream) {
+              handleError(streamErr || new Error('Unable to open zip stream'));
+              return;
+            }
+
+            const chunks: Buffer[] = [];
+            stream.on('data', (chunk) => chunks.push(chunk as Buffer));
+            stream.on('error', handleError);
+            stream.on('end', () => {
+              fileMap.set(normalizedPath, Buffer.concat(chunks));
+              zip.readEntry();
+            });
+          });
+        });
+
+        zip.readEntry();
+      });
+    });
+  }
+
+  private shouldKeepZipEntry(path: string): boolean {
+    if (!path.startsWith('xl/')) return false;
+    return path === 'xl/workbook.xml' || path === 'xl/_rels/workbook.xml.rels' || path.startsWith('xl/worksheets/') || path.startsWith('xl/worksheets/_rels/') || path.startsWith('xl/drawings/') || path.startsWith('xl/drawings/_rels/') || path.startsWith('xl/media/');
+  }
+
+  private normalizeZipPath(filePath: string): string {
+    const cleaned = filePath.replace(/\\/g, '/').replace(/^\/+/, '');
+    const parts = cleaned.split('/');
+    const stack: string[] = [];
+    parts.forEach((part) => {
+      if (!part || part === '.') return;
+      if (part === '..') stack.pop();
+      else stack.push(part);
+    });
+    return stack.join('/');
+  }
+
+  private resolveZipPath(basePath: string, target: string): string {
+    if (!target) return '';
+    if (target.startsWith('/')) {
+      return this.normalizeZipPath(target);
+    }
+    const baseParts = this.normalizeZipPath(basePath).split('/');
+    baseParts.pop();
+    return this.normalizeZipPath([...baseParts, target].join('/'));
+  }
+
+  private getRelsPath(partPath: string): string {
+    const normalized = this.normalizeZipPath(partPath);
+    const idx = normalized.lastIndexOf('/');
+    const dir = idx >= 0 ? normalized.substring(0, idx) : '';
+    const file = idx >= 0 ? normalized.substring(idx + 1) : normalized;
+    return this.normalizeZipPath(`${dir}/_rels/${file}.rels`);
+  }
+
+  private parseRelationships(xml?: Buffer | string | null): Map<string, { target: string; type: string }> {
+    const map = new Map<string, { target: string; type: string }>();
+    if (!xml) return map;
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(typeof xml === 'string' ? xml : xml.toString('utf8'), 'text/xml');
+    const nodes: Element[] = [];
+    const byTag = doc.getElementsByTagName('Relationship');
+    for (let i = 0; i < byTag.length; i++) {
+      const node = byTag.item(i);
+      if (node) nodes.push(node);
+    }
+    if (nodes.length === 0 && doc.getElementsByTagNameNS) {
+      const byNS = doc.getElementsByTagNameNS('*', 'Relationship');
+      for (let i = 0; i < byNS.length; i++) {
+        const node = byNS.item(i);
+        if (node) nodes.push(node);
+      }
+    }
+
+    nodes.forEach((node) => {
+      const id = node.getAttribute('Id') || node.getAttribute('ID');
+      const target = node.getAttribute('Target');
+      const type = node.getAttribute('Type') || '';
+      if (!id || !target) return;
+      map.set(id, { target, type });
+    });
+
+    return map;
+  }
+
+  private getMimeTypeFromName(fileName: string): string {
+    const lower = fileName.toLowerCase();
+    if (lower.endsWith('.png')) return 'image/png';
+    if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
+    if (lower.endsWith('.gif')) return 'image/gif';
+    if (lower.endsWith('.bmp')) return 'image/bmp';
+    if (lower.endsWith('.svg')) return 'image/svg+xml';
+    return 'application/octet-stream';
+  }
+
+  private static readonly DRAWING_REL_TYPE = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships/drawing';
 
   /**
    * HTML -> PDF

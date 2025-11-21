@@ -6,8 +6,9 @@
 
 import { ipcBridge } from '@/common';
 import type { ExcelWorkbookData } from '@/common/types/conversion';
-import { Message } from '@arco-design/web-react';
-import React, { useEffect, useState } from 'react';
+import { Button, Message } from '@arco-design/web-react';
+import React, { useCallback, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface ExcelPreviewProps {
   filePath?: string;
@@ -24,11 +25,26 @@ interface ExcelPreviewProps {
  * 3. 渲染进程用 HTML 表格展示数据
  */
 const ExcelPreview: React.FC<ExcelPreviewProps> = ({ filePath, hideToolbar = false }) => {
+  const { t } = useTranslation();
   const [excelData, setExcelData] = useState<ExcelWorkbookData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeSheet, setActiveSheet] = useState<string>('');
-  const [, messageContextHolder] = Message.useMessage();
+  const [messageApi, messageContextHolder] = Message.useMessage();
+
+  const handleOpenInSystem = useCallback(async () => {
+    if (!filePath) {
+      messageApi.error('无法打开：未提供文件路径');
+      return;
+    }
+
+    try {
+      await ipcBridge.shell.openFile.invoke(filePath);
+      messageApi.success(t('preview.openInSystemSuccess'));
+    } catch (err) {
+      messageApi.error(t('preview.openInSystemFailed'));
+    }
+  }, [filePath, messageApi, t]);
 
   /**
    * 加载 Excel 文件
@@ -72,43 +88,96 @@ const ExcelPreview: React.FC<ExcelPreviewProps> = ({ filePath, hideToolbar = fal
    */
   const renderSheetTable = (sheetName: string) => {
     const sheet = excelData?.sheets.find((s) => s.name === sheetName);
-    if (!sheet || !sheet.data || sheet.data.length === 0) {
+    const hasTableData = !!sheet?.data && sheet.data.length > 0;
+    const sheetImages = sheet?.images || [];
+
+    if (!hasTableData && sheetImages.length === 0) {
       return (
         <div className='flex items-center justify-center h-200px'>
           <div className='text-center'>
             <div className='text-14px text-t-secondary mb-8px'>此工作表无数据</div>
-            <div className='text-12px text-t-tertiary'>请检查 Excel 文件是否包含数据</div>
+            <div className='text-12px text-t-tertiary'>请检查 Excel 文件是否包含数据或图片</div>
           </div>
         </div>
       );
     }
 
-    const data = sheet.data;
+    const rows = hasTableData && sheet ? sheet.data : [[]];
+    const imageMap = new Map<string, typeof sheetImages>();
+    const rowImageMaxCols = new Map<number, number>();
+    let maxImageRow = -1;
+    sheetImages.forEach((img) => {
+      const key = `${img.row}-${img.col}`;
+      const list = imageMap.get(key) || [];
+      list.push(img);
+      imageMap.set(key, list);
+      const existingMax = rowImageMaxCols.get(img.row) ?? 0;
+      if (img.col + 1 > existingMax) {
+        rowImageMaxCols.set(img.row, img.col + 1);
+      }
+      if (img.row > maxImageRow) {
+        maxImageRow = img.row;
+      }
+    });
 
-    // 如果只有表头没有数据行，显示提示
-    if (data.length === 1) {
+    const maxColumnsFromData = rows.reduce((max, row) => Math.max(max, Array.isArray(row) ? row.length : 0), 0);
+    const maxColumnsFromMerges = (sheet?.merges || []).reduce((max, merge) => Math.max(max, (merge?.e?.c ?? 0) + 1), 0);
+    const maxColumnsFromImages = rowImageMaxCols.size > 0 ? Math.max(...rowImageMaxCols.values()) : 0;
+    const totalColumns = Math.max(1, maxColumnsFromData, maxColumnsFromMerges, maxColumnsFromImages);
+
+    const maxRowFromMerges = (sheet?.merges || []).reduce((max, merge) => Math.max(max, (merge?.e?.r ?? 0) + 1), 0);
+    const totalRows = Math.max(rows.length, maxImageRow + 1, maxRowFromMerges);
+
+    const mergeMap = new Map<string, { colSpan: number; rowSpan: number }>();
+    const skipCells = new Set<string>();
+    (sheet?.merges || []).forEach((merge) => {
+      const start = merge.s;
+      const end = merge.e;
+      const colSpan = (end.c ?? start.c) - (start.c ?? 0) + 1;
+      const rowSpan = (end.r ?? start.r) - (start.r ?? 0) + 1;
+      const key = `${start.r}-${start.c}`;
+      mergeMap.set(key, { colSpan, rowSpan });
+
+      for (let r = start.r; r <= end.r; r += 1) {
+        for (let c = start.c; c <= end.c; c += 1) {
+          if (r === start.r && c === start.c) continue;
+          skipCells.add(`${r}-${c}`);
+        }
+      }
+    });
+
+    const renderCellContent = (value: any, cellImages?: typeof sheetImages) => {
+      const text = value === undefined || value === null ? '' : String(value);
+      const hasText = text !== '';
+      const hasImages = !!cellImages && cellImages.length > 0;
+      if (!hasText && !hasImages) return null;
+
       return (
-        <div className='w-full h-full overflow-auto p-16px bg-bg-1'>
-          <div className='mb-16px'>
-            <table className='min-w-full border-collapse border border-border-base'>
-              <thead>
-                <tr className='bg-bg-3'>
-                  {data[0]?.map((cell: any, colIndex: number) => (
-                    <th key={colIndex} className='border border-border-base px-12px py-8px text-left text-13px font-600 text-t-primary min-w-100px whitespace-nowrap'>
-                      {String(cell || '')}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-            </table>
-          </div>
-          <div className='text-center py-40px'>
-            <div className='text-14px text-t-secondary mb-8px'>⚠️ 此工作表仅包含表头，无数据行</div>
-            <div className='text-12px text-t-tertiary'>请检查 Excel 文件是否包含数据行</div>
-          </div>
+        <div className='flex flex-col gap-4px'>
+          {hasText && <span>{text}</span>}
+          {cellImages?.map((img, idx) => {
+            const maxWidth = img.width ? Math.min(img.width, 240) : 160;
+            const maxHeight = img.height ? Math.min(img.height, 200) : 120;
+            return (
+              <img
+                key={`${img.col}-${img.row}-${idx}`}
+                src={img.src}
+                alt={img.alt || 'cell image'}
+                style={{
+                  maxWidth: `${maxWidth}px`,
+                  maxHeight: `${maxHeight}px`,
+                  width: img.width ? `${Math.min(img.width, 240)}px` : 'auto',
+                  height: img.height ? `${Math.min(img.height, 200)}px` : 'auto',
+                  objectFit: 'contain',
+                  borderRadius: '4px',
+                  backgroundColor: 'var(--bg-1)',
+                }}
+              />
+            );
+          })}
         </div>
       );
-    }
+    };
 
     return (
       <div className='w-full h-full overflow-auto p-16px bg-bg-1'>
@@ -120,46 +189,41 @@ const ExcelPreview: React.FC<ExcelPreviewProps> = ({ filePath, hideToolbar = fal
               border: '1px solid var(--color-border-2, #d4d4d8)',
             }}
           >
-            <thead>
-              <tr style={{ backgroundColor: 'var(--color-fill-2, #f7f8fa)' }}>
-                {data[0]?.map((cell: any, colIndex: number) => (
-                  <th
-                    key={colIndex}
-                    className='px-12px py-8px text-left font-600 whitespace-nowrap'
-                    style={{
-                      border: '1px solid var(--color-border-2, #d4d4d8)',
-                      minWidth: '100px',
-                    }}
-                  >
-                    {String(cell || '')}
-                  </th>
-                ))}
-              </tr>
-            </thead>
             <tbody>
-              {data.slice(1).map((row: any, rowIndex: number) => {
-                const rowData = Array.isArray(row) ? row : [];
-                const cellCount = Math.max(rowData.length, data[0]?.length || 0);
+              {Array.from({ length: totalRows }).map((_, rowIndex) => {
+                const rowData = Array.isArray(rows[rowIndex]) ? rows[rowIndex] : [];
+                const rowKey = `${sheetName}-row-${rowIndex}`;
+                const backgroundColor = rowIndex % 2 === 0 ? 'var(--color-bg-1, #ffffff)' : 'var(--color-fill-1, #f2f3f5)';
 
                 return (
-                  <tr
-                    key={rowIndex}
-                    style={{
-                      backgroundColor: rowIndex % 2 === 0 ? 'var(--color-bg-1, #ffffff)' : 'var(--color-fill-1, #f2f3f5)',
-                    }}
-                  >
-                    {Array.from({ length: cellCount }).map((_, colIndex) => (
-                      <td
-                        key={colIndex}
-                        className='px-12px py-8px'
-                        style={{
-                          border: '1px solid var(--color-border-2, #d4d4d8)',
-                          minWidth: '100px',
-                        }}
-                      >
-                        {String(rowData[colIndex] ?? '')}
-                      </td>
-                    ))}
+                  <tr key={rowKey} style={{ backgroundColor }}>
+                    {Array.from({ length: totalColumns }).map((_, colIndex) => {
+                      const cellKey = `${rowIndex}-${colIndex}`;
+                      if (skipCells.has(cellKey)) {
+                        return null;
+                      }
+
+                      const mergeInfo = mergeMap.get(cellKey);
+                      const value = rowData[colIndex];
+                      const cellImages = imageMap.get(cellKey);
+                      const content = renderCellContent(value, cellImages);
+
+                      return (
+                        <td
+                          key={cellKey}
+                          colSpan={mergeInfo?.colSpan}
+                          rowSpan={mergeInfo?.rowSpan}
+                          className='px-12px py-8px whitespace-pre-wrap align-top'
+                          style={{
+                            border: '1px solid var(--color-border-2, #d4d4d8)',
+                            minWidth: '100px',
+                            backgroundColor,
+                          }}
+                        >
+                          {content}
+                        </td>
+                      );
+                    })}
                   </tr>
                 );
               })}
@@ -211,6 +275,16 @@ const ExcelPreview: React.FC<ExcelPreviewProps> = ({ filePath, hideToolbar = fal
 
           <div className='flex items-center gap-8px'>
             <span className='text-12px text-t-secondary'>{excelData.sheets.length} 个工作表</span>
+            {filePath && (
+              <Button size='mini' type='text' onClick={handleOpenInSystem} title={t('preview.openWithApp', { app: 'Excel' })}>
+                <svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'>
+                  <path d='M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6' />
+                  <polyline points='15 3 21 3 21 9' />
+                  <line x1='10' y1='14' x2='21' y2='3' />
+                </svg>
+                <span>{t('preview.openWithApp', { app: 'Excel' })}</span>
+              </Button>
+            )}
           </div>
         </div>
       )}
