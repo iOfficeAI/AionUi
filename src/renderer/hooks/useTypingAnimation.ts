@@ -33,6 +33,7 @@ export const useTypingAnimation = ({ content, enabled = true, speed = 50 }: UseT
   const [isAnimating, setIsAnimating] = useState(false); // 是否正在打字动画 / Whether typing animation is active
   const animationFrameRef = useRef<number | null>(null); // 动画帧 ID / Animation frame ID
   const targetContentRef = useRef(content); // 目标内容 / Target content
+  const isFirstRenderRef = useRef(true); // 是否是首次渲染 / Whether this is the first render
 
   useEffect(() => {
     // 如果禁用动画，直接显示完整内容 / If animation disabled, show full content immediately
@@ -44,9 +45,18 @@ export const useTypingAnimation = ({ content, enabled = true, speed = 50 }: UseT
 
     targetContentRef.current = content;
 
-    // 如果是第一次加载或内容变短了（删除），直接显示
-    // If first load or content got shorter (deletion), show immediately
-    if (displayedContent.length === 0 || content.length < displayedContent.length) {
+    // 如果是首次渲染，直接显示完整内容，不做动画
+    // If first render, show full content immediately without animation
+    if (isFirstRenderRef.current) {
+      isFirstRenderRef.current = false;
+      setDisplayedContent(content);
+      setIsAnimating(false);
+      return;
+    }
+
+    // 如果内容变短了（删除），直接显示
+    // If content got shorter (deletion), show immediately
+    if (content.length < displayedContent.length) {
       setDisplayedContent(content);
       setIsAnimating(false);
       return;
