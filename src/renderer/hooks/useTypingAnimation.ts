@@ -33,7 +33,6 @@ export const useTypingAnimation = ({ content, enabled = true, speed = 50 }: UseT
   const [isAnimating, setIsAnimating] = useState(false); // 是否正在打字动画 / Whether typing animation is active
   const animationFrameRef = useRef<number | null>(null); // 动画帧 ID / Animation frame ID
   const targetContentRef = useRef(content); // 目标内容 / Target content
-  const isFirstRenderRef = useRef(true); // 是否是首次渲染 / Whether this is the first render
 
   useEffect(() => {
     // 如果禁用动画，直接显示完整内容 / If animation disabled, show full content immediately
@@ -45,26 +44,29 @@ export const useTypingAnimation = ({ content, enabled = true, speed = 50 }: UseT
 
     targetContentRef.current = content;
 
-    // 如果是首次渲染，直接显示完整内容，不做动画
-    // If first render, show full content immediately without animation
-    if (isFirstRenderRef.current) {
-      isFirstRenderRef.current = false;
-      setDisplayedContent(content);
-      setIsAnimating(false);
-      return;
-    }
-
-    // 如果内容变短了（删除），直接显示
-    // If content got shorter (deletion), show immediately
-    if (content.length < displayedContent.length) {
-      setDisplayedContent(content);
-      setIsAnimating(false);
-      return;
-    }
-
     // 如果内容没变化，不做任何事
     // If content unchanged, do nothing
     if (content === displayedContent) {
+      return;
+    }
+
+    // 如果 displayedContent 是空的，说明是首次加载，直接显示
+    // If displayedContent is empty, it's the first load, show immediately
+    if (displayedContent.length === 0) {
+      setDisplayedContent(content);
+      setIsAnimating(false);
+      return;
+    }
+
+    // 计算内容变化量 / Calculate content change amount
+    const contentDiff = content.length - displayedContent.length;
+
+    // 如果内容变短了（删除）或一次性增加了很多内容（超过1000字符），说明不是流式更新
+    // 直接显示，不做动画 / If content got shorter or increased by a lot (>1000 chars), show immediately
+    // 只有增量更新（每次少量增加）才触发打字动画 / Only trigger typing animation for incremental updates
+    if (contentDiff < 0 || contentDiff > 1000) {
+      setDisplayedContent(content);
+      setIsAnimating(false);
       return;
     }
 
