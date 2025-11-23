@@ -4,13 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { spawn } from 'child_process';
-import type { AcpPermissionRequest, AcpSessionUpdate, AcpBackend, AcpResult, ToolCallUpdate } from '@/types/acpTypes';
 import { AcpAdapter } from '@/agent/acp/AcpAdapter';
-import { AcpErrorType, createAcpError } from '@/types/acpTypes';
 import type { TMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import { uuid } from '@/common/utils';
+import type { AcpBackend, AcpPermissionRequest, AcpResult, AcpSessionUpdate, ToolCallUpdate } from '@/types/acpTypes';
+import { AcpErrorType, createAcpError } from '@/types/acpTypes';
+import { spawn } from 'child_process';
 import { AcpConnection } from './AcpConnection';
 
 /**

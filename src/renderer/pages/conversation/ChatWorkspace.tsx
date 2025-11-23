@@ -7,14 +7,16 @@
 import { ipcBridge } from '@/common';
 import type { IDirOrFile } from '@/common/ipcBridge';
 import { ConfigStorage } from '@/common/storage';
+import type { PreviewContentType } from '@/common/types/preview';
 import FlexFullContainer from '@/renderer/components/FlexFullContainer';
+import { usePreviewContext } from '@/renderer/context/PreviewContext';
 import { usePasteService } from '@/renderer/hooks/usePasteService';
 import { iconColors } from '@/renderer/theme/colors';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { removeWorkspaceEntry, renameWorkspaceEntry } from '@/renderer/utils/workspaceFs';
 import { Checkbox, Empty, Input, Message, Modal, Tooltip, Tree } from '@arco-design/web-react';
 import type { NodeInstance } from '@arco-design/web-react/es/Tree/interface';
-import { FileAddition, Refresh, Search, FileText, FolderOpen } from '@icon-park/react';
+import { FileAddition, FileText, FolderOpen, Refresh, Search } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useDebounce from '../../hooks/useDebounce';
@@ -50,6 +52,7 @@ const useLoading = () => {
 
 const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, eventPrefix = 'gemini', messageApi: externalMessageApi }) => {
   const { t } = useTranslation();
+  const { openPreview } = usePreviewContext();
   const [selected, setSelected] = useState<string[]>([]);
   const [files, setFiles] = useState<IDirOrFile[]>([]);
   const [loading, setLoading] = useLoading();
@@ -260,6 +263,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
               path: nodeData.fullPath,
               name: nodeData.name,
               isFile: nodeData.isFile,
+              relativePath: nodeData.relativePath,
             },
           ]);
         } else if (shouldEmit) {
@@ -284,6 +288,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
               path: nodeData.fullPath,
               name: nodeData.name,
               isFile: false,
+              relativePath: nodeData.relativePath,
             },
           ]);
         }
@@ -297,6 +302,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
               path: nodeData.fullPath,
               name: nodeData.name,
               isFile: true,
+              relativePath: nodeData.relativePath,
             },
           ]);
         }
@@ -314,7 +320,6 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
       try {
         await ipcBridge.shell.openFile.invoke(nodeData.fullPath);
       } catch (error) {
-        console.error('Failed to open path:', error);
         messageApi.error(t('conversation.workspace.contextMenu.openFailed') || 'Failed to open');
       }
     },
@@ -329,7 +334,6 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
       try {
         await ipcBridge.shell.showItemInFolder.invoke(nodeData.fullPath);
       } catch (error) {
-        console.error('Failed to reveal item in folder:', error);
         messageApi.error(t('conversation.workspace.contextMenu.revealFailed') || 'Failed to reveal');
       }
     },
@@ -370,7 +374,6 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
       closeDeleteModal();
       setTimeout(() => refreshWorkspace(), 200);
     } catch (error) {
-      console.error('Failed to delete item:', error);
       messageApi.error(t('conversation.workspace.contextMenu.deleteFailed'));
       setDeleteModal((prev) => ({ ...prev, loading: false }));
     }
@@ -536,7 +539,6 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
       if (error instanceof Error && error.message === 'timeout') {
         messageApi.error(t('conversation.workspace.contextMenu.renameTimeout'));
       } else {
-        console.error('Failed to rename item:', error);
         messageApi.error(t('conversation.workspace.contextMenu.renameFailed'));
       }
     } finally {
@@ -554,6 +556,102 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
       messageApi.success(t('conversation.workspace.contextMenu.addedToChat'));
     },
     [closeContextMenu, ensureNodeSelected, messageApi, t]
+  );
+
+  const handlePreviewFile = useCallback(
+    async (nodeData: IDirOrFile | null) => {
+      // Open file preview in the preview panel
+      // (在预览面板中打开文件预览)
+      if (!nodeData || !nodeData.fullPath || !nodeData.isFile) return;
+
+      try {
+        closeContextMenu();
+
+        // 根据文件扩展名确定内容类型 / Determine content type based on file extension
+        const ext = nodeData.name.toLowerCase().split('.').pop() || '';
+
+        // 支持的图片格式列表 / List of supported image formats
+        const imageExtensions = ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp', 'svg', 'ico', 'tif', 'tiff', 'avif'];
+
+        let contentType: PreviewContentType = 'code';
+        let content = '';
+
+        // 根据扩展名判断文件类型 / Determine file type based on extension
+        if (ext === 'md' || ext === 'markdown') {
+          contentType = 'markdown';
+        } else if (ext === 'diff' || ext === 'patch') {
+          contentType = 'diff';
+        } else if (ext === 'pdf') {
+          contentType = 'pdf';
+        } else if (['ppt', 'pptx', 'odp'].includes(ext)) {
+          contentType = 'ppt';
+        } else if (['doc', 'docx', 'odt'].includes(ext)) {
+          contentType = 'word';
+        } else if (['xls', 'xlsx', 'ods', 'csv'].includes(ext)) {
+          contentType = 'excel';
+        } else if (['html', 'htm'].includes(ext)) {
+          contentType = 'html';
+        } else if (imageExtensions.includes(ext)) {
+          // 图片文件类型 / Image file type
+          contentType = 'image';
+        } else if (['js', 'ts', 'tsx', 'jsx', 'py', 'java', 'go', 'rs', 'c', 'cpp', 'h', 'hpp', 'css', 'scss', 'json', 'xml', 'yaml', 'yml'].includes(ext)) {
+          contentType = 'code';
+        }
+
+        // 根据文件类型读取内容 / Read content based on file type
+        if (contentType === 'pdf') {
+          // PDF: 不读取内容，PDFPreview 组件会通过 filePath 自己读取
+          // PDF: Don't read content, PDFPreview component will read via filePath itself
+          content = ''; // 空内容，依赖 filePath / Empty content, relies on filePath
+        } else if (contentType === 'word') {
+          // Word: 通过 IPC 转换为 Markdown / Word: Convert to Markdown via IPC
+          const result = await ipcBridge.conversion.wordToMarkdown.invoke({ filePath: nodeData.fullPath });
+          if (result.success && result.data) {
+            content = result.data;
+          } else {
+            throw new Error(result.error || 'Word 转换失败');
+          }
+        } else if (contentType === 'excel') {
+          // Excel: 不读取内容，ExcelPreview 组件会通过 filePath 自己读取和转换
+          // Excel: Don't read content, ExcelPreview component will read and convert via filePath itself
+          content = ''; // 空内容，依赖 filePath / Empty content, relies on filePath
+        } else if (contentType === 'ppt') {
+          // PPT: 通过 IPC 转换为 JSON / PPT: Convert to JSON via IPC
+          const result = await ipcBridge.conversion.pptToJson.invoke({ filePath: nodeData.fullPath });
+          if (result.success && result.data) {
+            // 只保留 slides 数据，不包含 raw 对象（过大且不需要）
+            // Only keep slides data, exclude raw object (too large and unnecessary)
+            const pptData = {
+              slides: result.data.slides || [],
+            };
+            content = JSON.stringify(pptData);
+          } else {
+            throw new Error(result.error || 'PPT 转换失败');
+          }
+        } else if (contentType === 'image') {
+          // 图片: 读取为 Base64 格式 / Image: Read as Base64 format
+          content = await ipcBridge.fs.getImageBase64.invoke({ path: nodeData.fullPath });
+        } else {
+          // 文本文件：使用 UTF-8 编码读取 / Text files: Read using UTF-8 encoding
+          content = await ipcBridge.fs.readFile.invoke({ path: nodeData.fullPath });
+        }
+
+        // 打开预览面板并传入文件元数据 / Open preview panel with file metadata
+        openPreview(content, contentType, {
+          title: nodeData.name,
+          fileName: nodeData.name,
+          filePath: nodeData.fullPath,
+          workspace: workspace,
+          language: ext,
+          // Markdown 和图片文件默认为只读模式，其他类型保持默认可编辑
+          // Markdown and image files default to read-only mode, other types remain editable by default
+          editable: contentType === 'markdown' || contentType === 'image' ? false : undefined,
+        });
+      } catch (error) {
+        messageApi.error(t('conversation.workspace.contextMenu.previewFailed'));
+      }
+    },
+    [closeContextMenu, openPreview, workspace, messageApi, t]
   );
 
   const openRenameModal = useCallback(
@@ -590,15 +688,12 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
               // 部分或全部失败时给出显式提示 / Surface warning when any copy operation fails
               const fallback = failedFiles.length > 0 ? 'Some files failed to copy' : result.msg;
               messageApi.warning(fallback || t('messages.unknownError') || 'Copy failed');
-              if (failedFiles.length > 0) {
-                console.warn('Files failed to copy:', failedFiles);
-              }
             }
           });
         }
       })
-      .catch((error) => {
-        console.error('Failed to add files:', error);
+      .catch(() => {
+        // Silently ignore errors
       });
   }, [workspace, refreshWorkspace]);
 
@@ -683,12 +778,8 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
             // 如果有文件粘贴失败则通知用户 / Notify user when any paste fails
             const fallback = failedFiles.length > 0 ? 'Some files failed to copy' : res.msg;
             messageApi.warning(fallback || t('messages.unknownError') || 'Paste failed');
-            if (failedFiles.length > 0) {
-              console.warn('Files failed to copy during paste:', failedFiles);
-            }
           }
         } catch (error) {
-          console.error('Paste failed:', error);
           messageApi.error(t('messages.unknownError') || 'Paste failed');
         } finally {
           // 操作完成后重置粘贴目标文件夹（成功或失败都重置）
@@ -774,6 +865,72 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
   const contextMenuNode = contextMenu.node;
   const isContextMenuNodeFile = !!contextMenuNode?.isFile;
   const isContextMenuNodeRoot = !!contextMenuNode && (!contextMenuNode.relativePath || contextMenuNode.relativePath === '');
+
+  // 检查文件是否支持预览 / Check if file supports preview
+  const isPreviewSupported = (() => {
+    if (!contextMenuNode?.isFile || !contextMenuNode.name) return false;
+    const ext = contextMenuNode.name.toLowerCase().split('.').pop() || '';
+    const supportedExts = [
+      // Markdown 格式 / Markdown formats
+      'md',
+      'markdown',
+      // Diff 格式 / Diff formats
+      'diff',
+      'patch',
+      // PDF 格式 / PDF format
+      'pdf',
+      // PPT 格式 / PPT formats
+      'ppt',
+      'pptx',
+      'odp',
+      // Word 格式 / Word formats
+      'doc',
+      'docx',
+      'odt',
+      // Excel 格式 / Excel formats
+      'xls',
+      'xlsx',
+      'ods',
+      'csv',
+      // HTML 格式 / HTML formats
+      'html',
+      'htm',
+      // 代码文件格式 / Code file formats
+      'js',
+      'ts',
+      'tsx',
+      'jsx',
+      'py',
+      'java',
+      'go',
+      'rs',
+      'c',
+      'cpp',
+      'h',
+      'hpp',
+      'css',
+      'scss',
+      'json',
+      'xml',
+      'yaml',
+      'yml',
+      'txt',
+      // 图片格式 / Image formats
+      'png',
+      'jpg',
+      'jpeg',
+      'gif',
+      'bmp',
+      'webp',
+      'svg',
+      'ico',
+      'tif',
+      'tiff',
+      'avif',
+    ];
+    return supportedExts.includes(ext);
+  })();
+
   const menuButtonBase = 'w-full flex items-center gap-8px px-14px py-6px text-13px text-left text-t-primary rounded-md transition-colors duration-150 hover:bg-2 border-none bg-transparent appearance-none focus:outline-none focus-visible:outline-none';
   const menuButtonDisabled = 'opacity-40 cursor-not-allowed hover:bg-transparent'; // Disabled style for menu items (禁用状态样式)
 
@@ -898,15 +1055,11 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
                       // 即使确认后仍有失败也要明确告知 / Warn even after explicit confirmation when failures remain
                       const fallback = failedFiles.length > 0 ? 'Some files failed to copy' : res.msg;
                       messageApi.warning(fallback || t('messages.unknownError') || 'Paste failed');
-                      if (failedFiles.length > 0) {
-                        console.warn('Files failed to copy during confirmed paste:', failedFiles);
-                      }
                     }
                     if (doNotAsk) {
                       await ConfigStorage.set('workspace.pasteConfirm', true);
                     }
                   } catch (error) {
-                    console.error('Paste failed:', error);
                     messageApi.error(t('messages.unknownError') || 'Paste failed');
                   } finally {
                     setPasteTargetFolder(null);
@@ -990,6 +1143,17 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
                     {t('conversation.workspace.contextMenu.openLocation')}
                   </button>
                 )}
+                {isContextMenuNodeFile && isPreviewSupported && (
+                  <button
+                    type='button'
+                    className={menuButtonBase}
+                    onClick={() => {
+                      void handlePreviewFile(contextMenuNode);
+                    }}
+                  >
+                    {t('conversation.workspace.contextMenu.preview')}
+                  </button>
+                )}
                 <div className='h-1px bg-3 my-2px'></div>
                 <button
                   type='button'
@@ -1051,7 +1215,6 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
               }}
               multiple
               renderTitle={(node) => {
-                const path = node.dataRef.fullPath;
                 const relativePath = node.dataRef.relativePath;
                 const isFile = node.dataRef.isFile;
 
@@ -1063,7 +1226,11 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
                     className='flex items-center gap-4px'
                     style={{ color: 'inherit' }}
                     onDoubleClick={() => {
-                      void ipcBridge.shell.openFile.invoke(path);
+                      // 双击文件时在预览框中打开，而不是在外部程序中打开
+                      // Double-click to open file in preview panel instead of external program
+                      if (isFile) {
+                        void handlePreviewFile(node.dataRef as IDirOrFile);
+                      }
                     }}
                     onContextMenu={(event) => {
                       event.preventDefault();

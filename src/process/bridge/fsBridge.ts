@@ -4,12 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { AIONUI_TIMESTAMP_SEPARATOR } from '@/common/constants';
 import fs from 'fs/promises';
 import path from 'path';
 import { ipcBridge } from '../../common';
-import { readDirectoryRecursive } from '../utils';
 import { getSystemDir } from '../initStorage';
-import { AIONUI_TIMESTAMP_SEPARATOR } from '@/common/constants';
+import { readDirectoryRecursive } from '../utils';
 
 export function initFsBridge(): void {
   ipcBridge.fs.getFilesByDir.provider(async ({ dir }) => {
@@ -80,9 +80,69 @@ export function initFsBridge(): void {
     }
   });
 
+  // 读取文件内容（UTF-8编码）/ Read file content (UTF-8 encoding)
+  ipcBridge.fs.readFile.provider(async ({ path: filePath }) => {
+    try {
+      const content = await fs.readFile(filePath, 'utf-8');
+      return content;
+    } catch (error) {
+      console.error('Failed to read file:', error);
+      throw error;
+    }
+  });
+
+  // 读取二进制文件为 ArrayBuffer / Read binary file as ArrayBuffer
+  ipcBridge.fs.readFileBuffer.provider(async ({ path: filePath }) => {
+    try {
+      const buffer = await fs.readFile(filePath);
+      // 将 Node.js Buffer 转换为 ArrayBuffer
+      // Convert Node.js Buffer to ArrayBuffer
+      return buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength);
+    } catch (error) {
+      console.error('Failed to read file buffer:', error);
+      throw error;
+    }
+  });
+
   // 写入文件
   ipcBridge.fs.writeFile.provider(async ({ path: filePath, data }) => {
     try {
+      // 处理字符串类型 / Handle string type
+      if (typeof data === 'string') {
+        await fs.writeFile(filePath, data, 'utf-8');
+
+        // 发送流式内容更新事件到预览面板（用于实时更新）
+        // Send streaming content update to preview panel (for real-time updates)
+        try {
+          const pathSegments = filePath.split(path.sep);
+          const fileName = pathSegments[pathSegments.length - 1];
+          const workspace = pathSegments.slice(0, -1).join(path.sep);
+
+          const eventData = {
+            filePath: filePath,
+            content: data,
+            workspace: workspace,
+            relativePath: fileName,
+            operation: 'write' as const,
+          };
+
+          console.log('[fsBridge] 📡 Emitting file stream update:', {
+            filePath: eventData.filePath,
+            workspace: eventData.workspace,
+            relativePath: eventData.relativePath,
+            contentLength: eventData.content.length,
+            operation: eventData.operation,
+          });
+
+          ipcBridge.fileStream.contentUpdate.emit(eventData);
+          console.log('[fsBridge] ✅ File stream update emitted successfully');
+        } catch (emitError) {
+          console.error('[fsBridge] ❌ Failed to emit file stream update:', emitError);
+        }
+
+        return true;
+      }
+
       // 处理 Uint8Array 在 IPC 传输中被序列化为对象的情况
       let bufferData;
 
@@ -198,6 +258,24 @@ export function initFsBridge(): void {
         await fs.rm(targetPath, { recursive: true, force: true });
       } else {
         await fs.unlink(targetPath);
+
+        // 发送流式删除事件到预览面板（用于关闭预览）
+        // Send streaming delete event to preview panel (to close preview)
+        try {
+          const pathSegments = targetPath.split(path.sep);
+          const fileName = pathSegments[pathSegments.length - 1];
+          const workspace = pathSegments.slice(0, -1).join(path.sep);
+
+          ipcBridge.fileStream.contentUpdate.emit({
+            filePath: targetPath,
+            content: '',
+            workspace: workspace,
+            relativePath: fileName,
+            operation: 'delete',
+          });
+        } catch (emitError) {
+          console.error('[fsBridge] Failed to emit file stream delete:', emitError);
+        }
       }
       return { success: true };
     } catch (error) {

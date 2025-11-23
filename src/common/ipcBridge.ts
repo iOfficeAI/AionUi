@@ -6,9 +6,10 @@
 
 import { bridge } from '@office-ai/platform';
 import type { OpenDialogOptions } from 'electron';
-import type { AcpBackend } from '../types/acpTypes';
 import type { McpSource } from '../process/services/mcpServices/McpProtocol';
-import type { IProvider, TChatConversation, TProviderWithModel, IMcpServer } from './storage';
+import type { AcpBackend } from '../types/acpTypes';
+import type { IMcpServer, IProvider, TChatConversation, TProviderWithModel } from './storage';
+import type { PreviewHistoryTarget, PreviewSnapshotInfo } from './types/preview';
 
 export const shell = {
   openFile: bridge.buildProvider<void, string>('open-file'), // 使用系统默认程序打开文件
@@ -56,8 +57,10 @@ export const dialog = {
 export const fs = {
   getFilesByDir: bridge.buildProvider<Array<IDirOrFile>, { dir: string; root: string }>('get-file-by-dir'), // 获取指定文件夹下所有文件夹和文件列表
   getImageBase64: bridge.buildProvider<string, { path: string }>('get-image-base64'), // 获取图片base64
+  readFile: bridge.buildProvider<string, { path: string }>('read-file'), // 读取文件内容（UTF-8）
+  readFileBuffer: bridge.buildProvider<ArrayBuffer, { path: string }>('read-file-buffer'), // 读取二进制文件为 ArrayBuffer
   createTempFile: bridge.buildProvider<string, { fileName: string }>('create-temp-file'), // 创建临时文件
-  writeFile: bridge.buildProvider<boolean, { path: string; data: Uint8Array }>('write-file'), // 写入文件
+  writeFile: bridge.buildProvider<boolean, { path: string; data: Uint8Array | string }>('write-file'), // 写入文件
   getFileMetadata: bridge.buildProvider<IFileMetadata, { path: string }>('get-file-metadata'), // 获取文件元数据
   copyFilesToWorkspace: bridge.buildProvider<
     // 返回成功与部分失败的详细状态，便于前端提示用户 / Return details for successful and failed copies for better UI feedback
@@ -66,6 +69,24 @@ export const fs = {
   >('copy-files-to-workspace'), // 复制文件到工作空间 (Copy files into workspace)
   removeEntry: bridge.buildProvider<IBridgeResponse, { path: string }>('remove-entry'), // 删除文件或文件夹
   renameEntry: bridge.buildProvider<IBridgeResponse<{ newPath: string }>, { path: string; newName: string }>('rename-entry'), // 重命名文件或文件夹
+};
+
+export const fileWatch = {
+  startWatch: bridge.buildProvider<IBridgeResponse, { filePath: string }>('file-watch-start'), // 开始监听文件变化
+  stopWatch: bridge.buildProvider<IBridgeResponse, { filePath: string }>('file-watch-stop'), // 停止监听文件变化
+  stopAllWatches: bridge.buildProvider<IBridgeResponse, void>('file-watch-stop-all'), // 停止所有文件监听
+  fileChanged: bridge.buildEmitter<{ filePath: string; eventType: string }>('file-changed'), // 文件变化事件
+};
+
+// 文件流式更新（Agent 写入文件时实时推送内容）/ File streaming updates (real-time content push when agent writes)
+export const fileStream = {
+  contentUpdate: bridge.buildEmitter<{
+    filePath: string; // 文件绝对路径 / Absolute file path
+    content: string; // 新内容 / New content
+    workspace: string; // 工作空间根目录 / Workspace root directory
+    relativePath: string; // 相对路径 / Relative path
+    operation: 'write' | 'delete'; // 操作类型 / Operation type
+  }>('file-stream-content-update'), // Agent 写入文件时的流式内容更新 / Streaming content update when agent writes file
 };
 
 export const googleAuth = {
@@ -115,6 +136,22 @@ export const codexConversation = {
 export const database = {
   getConversationMessages: bridge.buildProvider<import('@/common/chatLib').TMessage[], { conversation_id: string; page?: number; pageSize?: number }>('database.get-conversation-messages'),
   getUserConversations: bridge.buildProvider<import('@/common/storage').TChatConversation[], { page?: number; pageSize?: number }>('database.get-user-conversations'),
+};
+
+export const previewHistory = {
+  list: bridge.buildProvider<PreviewSnapshotInfo[], { target: PreviewHistoryTarget }>('preview-history.list'),
+  save: bridge.buildProvider<PreviewSnapshotInfo, { target: PreviewHistoryTarget; content: string }>('preview-history.save'),
+  getContent: bridge.buildProvider<{ snapshot: PreviewSnapshotInfo; content: string } | null, { target: PreviewHistoryTarget; snapshotId: string }>('preview-history.get-content'),
+};
+
+export const conversion = {
+  wordToMarkdown: bridge.buildProvider<import('./types/conversion').ConversionResult<string>, { filePath: string }>('conversion.word-to-markdown'),
+  markdownToWord: bridge.buildProvider<import('./types/conversion').ConversionResult<void>, { markdown: string; targetPath: string }>('conversion.markdown-to-word'),
+  excelToJson: bridge.buildProvider<import('./types/conversion').ConversionResult<import('./types/conversion').ExcelWorkbookData>, { filePath: string }>('conversion.excel-to-json'),
+  jsonToExcel: bridge.buildProvider<import('./types/conversion').ConversionResult<void>, { data: import('./types/conversion').ExcelWorkbookData; targetPath: string }>('conversion.json-to-excel'),
+  pptToJson: bridge.buildProvider<import('./types/conversion').ConversionResult<import('./types/conversion').PPTJsonData>, { filePath: string }>('conversion.ppt-to-json'),
+  markdownToPdf: bridge.buildProvider<import('./types/conversion').ConversionResult<void>, { markdown: string; targetPath: string }>('conversion.markdown-to-pdf'),
+  htmlToPdf: bridge.buildProvider<import('./types/conversion').ConversionResult<void>, { html: string; targetPath: string }>('conversion.html-to-pdf'),
 };
 
 interface ISendMessageParams {

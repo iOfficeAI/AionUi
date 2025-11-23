@@ -14,11 +14,24 @@ declare global {
   var electronAPI: any;
 }
 
+const noop = () => Promise.resolve();
+
 // Mock Electron APIs for testing
-(global as any).electronAPI = {
-  ipcRenderer: {
-    invoke: () => Promise.resolve(),
-    on: () => {},
-    removeAllListeners: () => {},
-  },
+const windowControlsMock = {
+  minimize: noop,
+  maximize: noop,
+  unmaximize: noop,
+  close: noop,
+  isMaximized: () => Promise.resolve(false),
+  onMaximizedChange: () => () => void 0,
 };
+
+(global as any).electronAPI = {
+  emit: noop,
+  on: () => {},
+  windowControls: windowControlsMock,
+};
+
+if (typeof window !== 'undefined') {
+  (window as any).electronAPI = (global as any).electronAPI;
+}

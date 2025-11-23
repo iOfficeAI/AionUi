@@ -6,7 +6,7 @@
 
 import { Close } from '@icon-park/react';
 import React, { useEffect, useState } from 'react';
-import { getCleanFileName, getFileExtension } from '@/renderer/services/FileService';
+import { getFileExtension } from '@/renderer/services/FileService';
 import { ipcBridge } from '@/common';
 import { Image } from '@arco-design/web-react';
 import fileIcon from '@/renderer/assets/file-icon.svg';
@@ -40,7 +40,9 @@ const FilePreview: React.FC<FilePreviewProps> = ({ path, onRemove }) => {
   }
 
   const isImage = isImageFile(path);
-  const fileName = getCleanFileName(path);
+  // 直接从路径中提取文件名，不清理时间戳后缀
+  // Extract filename directly from path without cleaning timestamp suffix
+  const fileName = path.split(/[\\/]/).pop() || '';
   const fileExt = getFileExtension(path).toUpperCase().replace('.', '');
   const [imageUrl, setImageUrl] = useState<string>('');
   const [fileSize, setFileSize] = useState<string>('');
