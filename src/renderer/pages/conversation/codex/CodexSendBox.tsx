@@ -3,7 +3,7 @@ import type { TMessage } from '@/common/chatLib';
 import { transformMessage } from '@/common/chatLib';
 import { uuid } from '@/common/utils';
 import SendBox from '@/renderer/components/sendbox';
-import { getSendBoxDraftHook } from '@/renderer/hooks/useSendBoxDraft';
+import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/useSendBoxDraft';
 import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
 import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
@@ -13,10 +13,13 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import ShimmerText from '@renderer/components/ShimmerText';
 import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/ThoughtDisplay';
+import { iconColors } from '@/renderer/theme/colors';
+import FilePreview from '@/renderer/components/FilePreview';
+import HorizontalFileList from '@/renderer/components/HorizontalFileList';
 
 interface CodexDraftData {
   _type: 'codex';
-  atPath: string[];
+  atPath: Array<string | FileOrFolderItem>;
   content: string;
   uploadFile: string[];
 }
@@ -42,15 +45,15 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
 
   const { content, setContent, atPath, setAtPath, uploadFile, setUploadFile } = (function useDraft() {
     const { data, mutate } = useCodexSendBoxDraft(conversation_id);
-    const EMPTY: string[] = [];
+    const EMPTY: Array<string | FileOrFolderItem> = [];
     const atPath = data?.atPath ?? EMPTY;
-    const uploadFile = data?.uploadFile ?? EMPTY;
+    const uploadFile = data?.uploadFile ?? [];
     const content = data?.content ?? '';
     return {
       atPath,
       uploadFile,
       content,
-      setAtPath: (val: string[]) => mutate((prev) => ({ ...(prev as CodexDraftData), atPath: val })),
+      setAtPath: (val: Array<string | FileOrFolderItem>) => mutate((prev) => ({ ...(prev as CodexDraftData), atPath: val })),
       setUploadFile: (val: string[]) => mutate((prev) => ({ ...(prev as CodexDraftData), uploadFile: val })),
       setContent: (val: string) => mutate((prev) => ({ ...(prev as CodexDraftData), content: val })),
     };
@@ -75,10 +78,10 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
       // Frontend only needs to update UI
       switch (message.type) {
         case 'thought':
-          setThought(message.data);
+          setThought(message.data as ThoughtData);
           break;
         case 'finish':
-          setThought(message.data);
+          setThought(message.data as ThoughtData);
           setAiProcessing(false);
           break;
         case 'content':
@@ -121,10 +124,12 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
     [uploadFile, setUploadFile]
   );
 
-  useAddEventListener('codex.selected.file', (files: string[]) => {
+  // 监听从工作空间选择的文件/文件夹（接收对象或路径数组）
+  // Listen to files/folders selected from workspace (receives objects or path array)
+  useAddEventListener('codex.selected.file', (items: Array<string | FileOrFolderItem>) => {
     // Add a small delay to ensure state persistence and prevent flashing
     setTimeout(() => {
-      setAtPath(files);
+      setAtPath(items);
     }, 10);
   });
 
@@ -138,8 +143,20 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
     setAtPath([]);
     setUploadFile([]);
 
+    // 如果有选中的文件/文件夹，将名称添加到消息中（格式：@名称）
+    // currentAtPath 现在可能包含字符串路径或对象，需要分别处理
+    // If there are selected files/folders, add names to the message (format: @name)
+    // currentAtPath may now contain string paths or objects, need to handle separately
     if (currentAtPath.length || currentUploadFile.length) {
-      message = currentUploadFile.map((p) => '@' + p.split(/[\\/]/).pop()).join(' ') + ' ' + currentAtPath.map((p) => '@' + p).join(' ') + ' ' + message;
+      const uploadFileNames = currentUploadFile.map((p) => '@' + p.split(/[\\/]/).pop());
+      const atPathNames = currentAtPath.map((item) => {
+        if (typeof item === 'string') {
+          return '@' + item.split(/[\\/]/).pop();
+        } else {
+          return '@' + item.name;
+        }
+      });
+      message = uploadFileNames.join(' ') + ' ' + atPathNames.join(' ') + ' ' + message;
     }
     // 前端先写入用户消息，避免导航/事件竞争导致看不到消息
     const userMessage: TMessage = {
@@ -154,11 +171,13 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
     addOrUpdateMessage(userMessage, true); // 立即保存到存储，避免刷新丢失
     setAiProcessing(true);
     try {
+      // 提取实际的文件路径发送给后端
+      const atPathStrings = currentAtPath.map((item) => (typeof item === 'string' ? item : item.path));
       await ipcBridge.codexConversation.sendMessage.invoke({
         input: message,
         msg_id,
         conversation_id,
-        files: [...currentUploadFile, ...currentAtPath], // 包含上传文件和选中的工作空间文件
+        files: [...currentUploadFile, ...atPathStrings], // 包含上传文件和选中的工作空间文件
       });
     } finally {
       // Clear waiting state when done
@@ -236,8 +255,13 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
   }, [conversation_id, codexStatus, addOrUpdateMessage]);
 
   return (
-    <div className='max-w-800px w-full mx-auto flex flex-col'>
-      {aiProcessing && <ShimmerText duration={2}>{t('common.loading', { defaultValue: 'Please wait...' })}</ShimmerText>}
+    <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
+      {/* 显示处理中提示 / Show processing indicator */}
+      {aiProcessing && (
+        <div className='text-left text-14px py-8px'>
+          <ShimmerText duration={2}>{t('conversation.chat.processing')}</ShimmerText>
+        </div>
+      )}
       {thought && <ThoughtDisplay thought={thought} style='compact' />}
       <SendBox
         value={content}
@@ -251,7 +275,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
         disabled={aiProcessing}
         placeholder={
           aiProcessing
-            ? 'Please wait...'
+            ? t('conversation.chat.processing')
             : t('acp.sendbox.placeholder', {
                 backend: 'Codex',
                 defaultValue: `Send message to Codex...`,
@@ -264,34 +288,57 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
         supportedExts={allSupportedExts}
         prefix={
           <>
-            {uploadFile.map((path) => (
-              <Tag
-                color='blue'
-                key={path}
-                closable
-                className={'mr-4px'}
-                onClose={() => {
-                  setUploadFile(uploadFile.filter((v) => v !== path));
-                }}
-              >
-                {path.split('/').pop()}
-              </Tag>
-            ))}
-            {atPath.map((path) => (
-              <Tag
-                key={path}
-                color='gray'
-                closable
-                className={'mr-4px'}
-                onClose={() => {
-                  const newAtPath = atPath.filter((v) => v !== path);
-                  emitter.emit('codex.selected.file', newAtPath);
-                  setAtPath(newAtPath);
-                }}
-              >
-                {path}
-              </Tag>
-            ))}
+            {/* Files on top */}
+            {(uploadFile.length > 0 || atPath.some((item) => (typeof item === 'string' ? true : item.isFile))) && (
+              <HorizontalFileList>
+                {uploadFile.map((path) => (
+                  <FilePreview key={path} path={path} onRemove={() => setUploadFile(uploadFile.filter((v) => v !== path))} />
+                ))}
+                {atPath.map((item) => {
+                  const isFile = typeof item === 'string' ? true : item.isFile;
+                  const path = typeof item === 'string' ? item : item.path;
+                  if (isFile) {
+                    return (
+                      <FilePreview
+                        key={path}
+                        path={path}
+                        onRemove={() => {
+                          const newAtPath = atPath.filter((v) => (typeof v === 'string' ? v !== path : v.path !== path));
+                          emitter.emit('codex.selected.file', newAtPath);
+                          setAtPath(newAtPath);
+                        }}
+                      />
+                    );
+                  }
+                  return null;
+                })}
+              </HorizontalFileList>
+            )}
+            {/* Folder tags below */}
+            {atPath.some((item) => (typeof item === 'string' ? false : !item.isFile)) && (
+              <div className='flex flex-wrap items-center gap-8px mb-8px'>
+                {atPath.map((item) => {
+                  if (typeof item === 'string') return null;
+                  if (!item.isFile) {
+                    return (
+                      <Tag
+                        key={item.path}
+                        color='blue'
+                        closable
+                        onClose={() => {
+                          const newAtPath = atPath.filter((v) => (typeof v === 'string' ? true : v.path !== item.path));
+                          emitter.emit('codex.selected.file', newAtPath);
+                          setAtPath(newAtPath);
+                        }}
+                      >
+                        {item.name}
+                      </Tag>
+                    );
+                  }
+                  return null;
+                })}
+              </div>
+            )}
           </>
         }
         tools={
@@ -299,7 +346,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
             <Button
               type='secondary'
               shape='circle'
-              icon={<Plus theme='outline' size='14' strokeWidth={2} fill='#333' />}
+              icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />}
               onClick={() => {
                 ipcBridge.dialog.showOpen
                   .invoke({ properties: ['openFile', 'multiSelections'] })

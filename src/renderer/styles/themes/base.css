@@ -1,0 +1,338 @@
+/* Base styles - theme-independent */
+
+:root {
+  --app-min-width: 390px;
+}
+
+html,
+body,
+#root,
+.layout,
+.layout-content {
+  min-width: var(--app-min-width); /* prevent layout collapse on very small screens */
+}
+
+.loading {
+  animation: loading 1s linear infinite;
+}
+
+.bg-animate {
+  animation: bg-animate 1s alternate infinite;
+}
+
+@keyframes bg-animate {
+  0% {
+    background-color: var(--bg-2);
+  }
+  100% {
+    background-color: var(--bg-3);
+  }
+}
+
+@keyframes loading {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.collapsed {
+  .collapsed-hidden {
+    display: none;
+  }
+  .\!collapsed-hidden {
+    display: none !important;
+  }
+}
+
+/* Layout sider transitions - keep bilingual comments for clarity / 布局侧栏过渡动画（中英注释） */
+.layout-sider {
+  transition:
+    width 0.32s ease,
+    min-width 0.32s ease,
+    max-width 0.32s ease;
+}
+
+.layout-sider-header,
+.layout-sider-content {
+  transition:
+    opacity 0.24s ease,
+    transform 0.24s ease;
+  will-change: opacity, transform;
+}
+
+.layout-sider--folding {
+  .layout-sider-header,
+  .layout-sider-content {
+    opacity: 0;
+    transform: translateX(-12px);
+    pointer-events: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .layout-sider,
+  .layout-sider-header,
+  .layout-sider-content {
+    transition: none !important;
+  }
+}
+
+/* Sidebar collapse animation helpers */
+.chat-history,
+.settings-sider {
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease;
+}
+
+.chat-history__item,
+.settings-sider__item {
+  transition:
+    padding 0.2s ease,
+    margin 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.chat-history__item-name,
+.chat-history__item-editor,
+.settings-sider__item-label {
+  transition:
+    opacity 0.25s ease,
+    transform 0.25s ease;
+  transform-origin: left center;
+}
+
+.settings-sider__item-label {
+  display: block;
+}
+
+.chat-history__placeholder,
+.chat-history__section {
+  overflow: hidden;
+  transition:
+    opacity 0.3s ease,
+    max-height 0.3s ease,
+    margin 0.3s ease,
+    padding 0.3s ease;
+}
+
+.chat-history__placeholder {
+  max-height: 140px;
+}
+
+.chat-history__section {
+  max-height: 60px; /* 增加高度以适应缩放，避免文字被裁剪 / Increase height for zoom scaling to prevent text clipping */
+}
+
+.chat-history--collapsed .chat-history__placeholder,
+.chat-history--collapsed .chat-history__section {
+  opacity: 0;
+  max-height: 0;
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+.chat-history--collapsed .chat-history__item-name,
+.chat-history--collapsed .chat-history__item-editor {
+  opacity: 0;
+  transform: translateX(-8px);
+}
+
+.settings-sider--collapsed .settings-sider__item-label {
+  opacity: 0;
+  transform: translateX(-8px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chat-history,
+  .chat-history__item,
+  .chat-history__item-name,
+  .chat-history__item-editor,
+  .settings-sider,
+  .settings-sider__item,
+  .settings-sider__item-label,
+  .chat-history__placeholder,
+  .chat-history__section {
+    transition: none;
+  }
+}
+
+/* Custom scrollbar styles */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 3px;
+  transition: background 0.3s;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+[data-theme='dark'] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Hide scrollbar while keeping scroll behavior */
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+*:hover::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme='dark'] *:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Diff2Html Dark Theme */
+.d2h-dark-color-scheme {
+  /* File wrapper */
+  & .d2h-file-wrapper {
+    border-color: var(--bg-3);
+  }
+
+  /* File header */
+  & .d2h-file-header {
+    background-color: var(--bg-2) !important;
+    border-color: var(--bg-3);
+  }
+
+  & .d2h-file-name {
+    color: var(--text-primary);
+  }
+
+  & .d2h-file-stats {
+    color: var(--text-secondary);
+  }
+
+  /* Table */
+  & .d2h-diff-table {
+    background-color: var(--bg-1);
+  }
+
+  & .d2h-diff-tbody {
+    background-color: var(--bg-1);
+  }
+
+  /* Line numbers */
+  & .d2h-code-linenumber {
+    background-color: var(--bg-2);
+    color: var(--text-secondary);
+    border-color: var(--bg-3);
+  }
+
+  /* Code lines */
+  & .d2h-code-line {
+    color: var(--text-primary);
+    background-color: var(--bg-1);
+  }
+
+  /* Info lines */
+  & .d2h-info {
+    background-color: var(--bg-2);
+    color: var(--text-secondary);
+  }
+
+  /* Empty lines */
+  & .d2h-emptyplaceholder {
+    background-color: var(--bg-2);
+    border-color: var(--bg-3);
+  }
+
+  /* Insert lines (added) */
+  & .d2h-ins {
+    background-color: rgba(35, 195, 67, 0.15);
+    & .d2h-code-line {
+      background-color: rgba(35, 195, 67, 0.15);
+    }
+    & .d2h-code-linenumber {
+      background-color: rgba(35, 195, 67, 0.25);
+      border-color: rgba(35, 195, 67, 0.4);
+    }
+  }
+
+  & .d2h-ins.d2h-change {
+    background-color: rgba(35, 195, 67, 0.25);
+    & .d2h-code-line {
+      background-color: rgba(35, 195, 67, 0.25);
+    }
+  }
+
+  /* Delete lines (removed) */
+  & .d2h-del {
+    background-color: rgba(245, 63, 63, 0.15);
+    & .d2h-code-line {
+      background-color: rgba(245, 63, 63, 0.15);
+    }
+    & .d2h-code-linenumber {
+      background-color: rgba(245, 63, 63, 0.25);
+      border-color: rgba(245, 63, 63, 0.4);
+    }
+  }
+
+  & .d2h-del.d2h-change {
+    background-color: rgba(245, 63, 63, 0.25);
+    & .d2h-code-line {
+      background-color: rgba(245, 63, 63, 0.25);
+    }
+  }
+
+  /* Code changes highlighting */
+  & .d2h-code-line ins {
+    background-color: rgba(35, 195, 67, 0.4);
+    color: var(--text-primary);
+  }
+
+  & .d2h-code-line del {
+    background-color: rgba(245, 63, 63, 0.4);
+    color: var(--text-primary);
+  }
+
+  /* Side by side view */
+  & .d2h-code-side-linenumber {
+    background-color: var(--bg-2);
+    color: var(--text-secondary);
+    border-color: var(--bg-3);
+  }
+
+  & .d2h-code-side-line {
+    background-color: var(--bg-1);
+    color: var(--text-primary);
+  }
+
+  /* Context (unchanged) lines in side-by-side */
+  & .d2h-cntx {
+    background-color: var(--bg-1);
+    & .d2h-code-line,
+    & .d2h-code-side-line {
+      background-color: var(--bg-1);
+    }
+  }
+}
+
+/* Message component positioning - center in conversation area (exclude left sider) */
+/* Message 组件定位 - 在对话区域居中（排除左侧侧边栏） */
+.arco-message-wrapper {
+  left: 266px !important;
+  width: calc(100% - 266px) !important;
+}

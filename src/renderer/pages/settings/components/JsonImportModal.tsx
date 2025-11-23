@@ -1,9 +1,11 @@
 import type { IMcpServer, IMcpServerTransport, IMcpTool } from '@/common/storage';
-import { Button, Modal } from '@arco-design/web-react';
+import { Alert, Button } from '@arco-design/web-react';
 import React, { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import CodeMirror from '@uiw/react-codemirror';
 import { json } from '@codemirror/lang-json';
+import { useThemeContext } from '@/renderer/context/ThemeContext';
+import AionModal from '@/renderer/components/base/AionModal';
 
 interface JsonImportModalProps {
   visible: boolean;
@@ -20,6 +22,7 @@ interface ValidationResult {
 
 const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCancel, onSubmit, onBatchImport }) => {
   const { t } = useTranslation();
+  const { theme } = useThemeContext();
   const [jsonInput, setJsonInput] = useState('');
   const [copyStatus, setCopyStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [validation, setValidation] = useState<ValidationResult>({ isValid: true });
@@ -187,29 +190,26 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
   if (!visible) return null;
 
   return (
-    <Modal
-      title={server ? t('settings.mcpEditServer') : t('settings.mcpImportFromJSON')}
+    <AionModal
       visible={visible}
       onCancel={onCancel}
-      footer={[
-        <Button key='cancel' onClick={onCancel}>
-          {t('common.cancel')}
-        </Button>,
-        <Button key='submit' type='primary' onClick={handleSubmit} disabled={!validation.isValid}>
-          {t('common.save')}
-        </Button>,
-      ]}
-      style={{ width: 600 }}
+      onOk={handleSubmit}
+      okButtonProps={{ disabled: !validation.isValid }}
+      header={{ title: server ? t('settings.mcpEditServer') : t('settings.mcpImportFromJSON'), showClose: true }}
+      style={{ width: 600, height: 450 }}
+      contentStyle={{ borderRadius: 16, padding: '24px', background: 'var(--bg-1)', overflow: 'auto', height: 420 - 80 }} // 与“添加模型”弹窗保持统一尺寸 / Keep same size as Add Model modal
     >
-      <div>
-        <div className='mb-2 text-sm text-gray-600'>{t('settings.mcpImportPlaceholder')}</div>
-        <div className='relative'>
-          <CodeMirror
-            value={jsonInput}
-            height='300px'
-            extensions={[json()]}
-            onChange={(value: string) => setJsonInput(value)}
-            placeholder={`{
+      <div className='space-y-12px'>
+        <div>
+          <div className='mb-2 text-sm text-t-secondary'>{t('settings.mcpImportPlaceholder')}</div>
+          <div className='relative'>
+            <CodeMirror
+              value={jsonInput}
+              height='300px'
+              theme={theme}
+              extensions={[json()]}
+              onChange={(value: string) => setJsonInput(value)}
+              placeholder={`{
   "mcpServers": {
     "weather": {
       "command": "uv",
@@ -218,68 +218,84 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
     }
   }
 }`}
-            basicSetup={{
-              lineNumbers: true,
-              foldGutter: true,
-              dropCursor: false,
-              allowMultipleSelections: false,
-            }}
-            style={{
-              fontSize: '13px',
-              border: validation.isValid || !jsonInput.trim() ? '1px solid #d9d9d9' : '1px solid #f53f3f',
-              borderRadius: '6px',
-              overflow: 'hidden',
-            }}
-            className='[&_.cm-editor]:rounded-[6px]'
-          />
-          {jsonInput && (
-            <Button
-              size='mini'
-              type='outline'
-              className='absolute top-2 right-2 z-10'
-              onClick={() => {
-                const copyToClipboard = async () => {
-                  try {
-                    if (navigator.clipboard && window.isSecureContext) {
-                      await navigator.clipboard.writeText(jsonInput);
-                    } else {
-                      // 降级到传统方法
-                      const textArea = document.createElement('textarea');
-                      textArea.value = jsonInput;
-                      textArea.style.position = 'fixed';
-                      textArea.style.left = '-9999px';
-                      textArea.style.top = '-9999px';
-                      document.body.appendChild(textArea);
-                      textArea.focus();
-                      textArea.select();
-                      document.execCommand('copy');
-                      document.body.removeChild(textArea);
-                    }
-                    setCopyStatus('success');
-                    setTimeout(() => setCopyStatus('idle'), 2000);
-                  } catch (err) {
-                    console.error('复制失败:', err);
-                    setCopyStatus('error');
-                    setTimeout(() => setCopyStatus('idle'), 2000);
-                  }
-                };
-
-                void copyToClipboard();
+              basicSetup={{
+                lineNumbers: true,
+                foldGutter: true,
+                dropCursor: false,
+                allowMultipleSelections: false,
               }}
               style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                backdropFilter: 'blur(4px)',
+                fontSize: '13px',
+                border: validation.isValid || !jsonInput.trim() ? '1px solid var(--bg-3)' : '1px solid var(--danger)',
+                borderRadius: '6px',
+                marginBottom: '20px',
+                overflow: 'hidden',
               }}
-            >
-              {copyStatus === 'success' ? t('common.copySuccess') : copyStatus === 'error' ? t('common.copyFailed') : t('common.copy')}
-            </Button>
-          )}
+              className='[&_.cm-editor]:rounded-[6px]'
+            />
+            {jsonInput && (
+              <Button
+                size='mini'
+                type='outline'
+                className='absolute top-2 right-2 z-10'
+                onClick={() => {
+                  const copyToClipboard = async () => {
+                    try {
+                      if (navigator.clipboard && window.isSecureContext) {
+                        await navigator.clipboard.writeText(jsonInput);
+                      } else {
+                        // Fallback to legacy method 降级到传统方法
+                        const textArea = document.createElement('textarea');
+                        textArea.value = jsonInput;
+                        textArea.style.position = 'fixed';
+                        textArea.style.left = '-9999px';
+                        textArea.style.top = '-9999px';
+                        document.body.appendChild(textArea);
+                        textArea.focus();
+                        textArea.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(textArea);
+                      }
+                      setCopyStatus('success');
+                      setTimeout(() => setCopyStatus('idle'), 2000);
+                    } catch (err) {
+                      console.error('Copy failed 复制失败:', err);
+                      setCopyStatus('error');
+                      setTimeout(() => setCopyStatus('idle'), 2000);
+                    }
+                  };
+
+                  void copyToClipboard();
+                }}
+                style={{
+                  backdropFilter: 'blur(4px)',
+                }}
+              >
+                {copyStatus === 'success' ? t('common.copySuccess') : copyStatus === 'error' ? t('common.copyFailed') : t('common.copy')}
+              </Button>
+            )}
+          </div>
+
+          {/* JSON 格式错误提示 */}
+          {!validation.isValid && jsonInput.trim() && <div className='mt-2 text-sm text-red-600'>{t('settings.mcpJsonFormatError') || 'JSON format error'}</div>}
         </div>
 
-        {/* JSON 格式错误提示 */}
-        {!validation.isValid && jsonInput.trim() && <div className='mt-2 text-sm text-red-600'>{t('settings.mcpJsonFormatError') || 'JSON format error'}</div>}
+        <Alert
+          type='info'
+          showIcon
+          content={
+            <div>
+              <div>{t('settings.mcpImportTips')}</div>
+              <ul className='list-disc pl-5 mt-2 space-y-1 text-sm'>
+                <li>{t('settings.mcpImportTip1')}</li>
+                <li>{t('settings.mcpImportTip2')}</li>
+                <li>{t('settings.mcpImportTip3')}</li>
+              </ul>
+            </div>
+          }
+        />
       </div>
-    </Modal>
+    </AionModal>
   );
 };
 

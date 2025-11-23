@@ -10,10 +10,10 @@ const SettingContainer: React.FC<{
   className?: string;
 }> = (props) => {
   return (
-    <Card title={props.title} className={classNames('setting-container m-50px  [&.setting-container]:(bg-#F2F3F5 b-none rd-16px py-24px) [&>div.arco-card-body]:(pt-8px pb-0px) [&>div.arco-card-header]:(b-none px-32px h-28px) [&_div.arco-card-header-title]:(color-#86909C font-normal text-16px )`', props.className)}>
+    <Card title={props.title} className={classNames('setting-container m-50px  [&.setting-container]:(bg-2 b-none rd-16px py-24px) [&>div.arco-card-body]:(pt-8px pb-0px) [&>div.arco-card-header]:(b-none px-32px h-28px) [&_div.arco-card-header-title]:(text-t-secondary font-normal text-16px )`', props.className)}>
       <div
         className={classNames({
-          'bg-white rd-16px py-24px px-32px box-border': props.bodyContainer,
+          'bg-base rd-16px py-24px px-32px box-border': props.bodyContainer,
         })}
       >
         {props.children}

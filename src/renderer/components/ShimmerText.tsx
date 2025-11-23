@@ -25,7 +25,7 @@ interface ShimmerTextProps {
 const ShimmerText: React.FC<ShimmerTextProps> = ({ children, className, duration = 3, pauseOnHover = false }) => {
   // Inline styles for shimmer effect to avoid global CSS additions
   const shimmerStyle: React.CSSProperties = {
-    background: 'linear-gradient(90deg, #9ca3af 0%, #ffffff 50%, #9ca3af 100%)',
+    background: 'linear-gradient(90deg, var(--text-secondary) 0%, var(--text-primary) 50%, var(--text-secondary) 100%)',
     backgroundSize: '200% 100%',
     backgroundClip: 'text',
     WebkitBackgroundClip: 'text',

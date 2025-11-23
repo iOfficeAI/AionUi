@@ -8,9 +8,8 @@
 import type { TProviderWithModel } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import { getProviderAuthType } from '@/common/utils/platformAuthType';
-import type { CompletedToolCall, Config, GeminiClient, ServerGeminiStreamEvent, ToolCall, ToolCallRequestInfo } from '@office-ai/aioncli-core';
+import type { CompletedToolCall, Config, GeminiClient, ServerGeminiStreamEvent, ToolCall, ToolCallRequestInfo, Turn } from '@office-ai/aioncli-core';
 import { AuthType, CoreToolScheduler, FileDiscoveryService, sessionId } from '@office-ai/aioncli-core';
-import { execSync } from 'child_process';
 import { ApiKeyManager } from '../../common/ApiKeyManager';
 import { handleAtCommand } from './cli/atCommandProcessor';
 import { loadCliConfig, loadHierarchicalGeminiMemory } from './cli/config';
@@ -19,7 +18,7 @@ import { loadExtensions } from './cli/extension';
 import type { Settings } from './cli/settings';
 import { loadSettings } from './cli/settings';
 import { ConversationToolConfig } from './cli/tools/conversation-tool-config';
-import { mapToDisplay } from './cli/useReactToolScheduler';
+import { mapToDisplay, type TrackedToolCall } from './cli/useReactToolScheduler';
 import { getPromptCount, handleCompletedTools, processGeminiStreamEvents, startNewPrompt } from './utils';
 
 // Global registry for current agent instance (used by flashFallbackHandler)
@@ -64,11 +63,14 @@ export class GeminiAgent {
   private geminiClient: GeminiClient | null = null;
   private authType: AuthType | null = null;
   private scheduler: CoreToolScheduler | null = null;
-  private trackedCalls: ToolCall[] = [];
+  private trackedCalls: TrackedToolCall[] = [];
   private abortController: AbortController | null = null;
   private onStreamEvent: (event: { type: string; data: unknown; msg_id: string }) => void;
   private toolConfig: ConversationToolConfig; // 对话级别的工具配置
   private apiKeyManager: ApiKeyManager | null = null; // 多API Key管理器
+  private settings: Settings | null = null;
+  private historyPrefix: string | null = null;
+  private historyUsedOnce = false;
   bootstrap: Promise<void>;
   static buildFileServer(workspace: string) {
     return new FileDiscoveryService(workspace);
@@ -162,22 +164,7 @@ export class GeminiAgent {
 
   // 加载环境变量
   private getEnv() {
-    let command = '';
-    if (process.platform === 'win32') {
-      command = 'cmd /c set';
-    }
-    if (process.platform === 'darwin') {
-      command = "zsh -ic 'env'";
-    }
-    if (!command) return {};
-
-    const envOutput = execSync(command, { encoding: 'utf8' });
-
-    return envOutput.split('\n').reduce<Record<string, string>>((acc, line) => {
-      const [key, ...value] = line.split('=');
-      acc[key] = value.join('=').replace(/\r$/, '');
-      return acc;
-    }, {});
+    return process.env as Record<string, string>;
   }
   private createAbortController() {
     this.abortController = new AbortController();
@@ -188,6 +175,7 @@ export class GeminiAgent {
     const path = this.workspace;
 
     const settings = loadSettings(path).merged;
+    this.settings = settings;
 
     // 使用传入的 YOLO 设置
     const yoloMode = this.yoloMode;
@@ -228,7 +216,8 @@ export class GeminiAgent {
           if (completedToolCalls.length > 0) {
             const refreshMemory = async () => {
               const config = this.config;
-              const { memoryContent, fileCount } = await loadHierarchicalGeminiMemory(this.workspace, [], config.getDebugMode(), config.getFileService(), settings, config.getExtensionContextFilePaths());
+              const extensionPaths = config.getExtensionContextFilePaths();
+              const { memoryContent, fileCount } = await loadHierarchicalGeminiMemory(this.workspace, [], config.getDebugMode(), config.getFileService(), settings, extensionPaths);
               config.setUserMemory(memoryContent);
               config.setGeminiMdFileCount(fileCount);
             };
@@ -263,11 +252,11 @@ export class GeminiAgent {
       onToolCallsUpdate: (updatedCoreToolCalls: ToolCall[]) => {
         try {
           const prevTrackedCalls = this.trackedCalls || [];
-          const toolCalls = updatedCoreToolCalls.map((coreTc) => {
+          const toolCalls: TrackedToolCall[] = updatedCoreToolCalls.map((coreTc) => {
             const existingTrackedCall = prevTrackedCalls.find((ptc) => ptc.request.callId === coreTc.request.callId);
-            const newTrackedCall = {
+            const newTrackedCall: TrackedToolCall = {
               ...coreTc,
-              responseSubmittedToGemini: (existingTrackedCall as any)?.responseSubmittedToGemini ?? false,
+              responseSubmittedToGemini: existingTrackedCall?.responseSubmittedToGemini ?? false,
             };
             return newTrackedCall;
           });
@@ -296,12 +285,12 @@ export class GeminiAgent {
     });
   }
 
-  private handleMessage(stream: AsyncGenerator<ServerGeminiStreamEvent, any, any>, msg_id: string, abortController: AbortController): Promise<any> {
+  private handleMessage(stream: AsyncGenerator<ServerGeminiStreamEvent, Turn, unknown>, msg_id: string, abortController: AbortController): Promise<void> {
     const toolCallRequests: ToolCallRequestInfo[] = [];
 
     return processGeminiStreamEvents(stream, this.config, (data) => {
       if (data.type === 'tool_call_request') {
-        toolCallRequests.push(data.data);
+        toolCallRequests.push(data.data as ToolCallRequestInfo);
         return;
       }
       this.onStreamEvent({
@@ -314,17 +303,18 @@ export class GeminiAgent {
           await this.scheduler.schedule(toolCallRequests, abortController.signal);
         }
       })
-      .catch((e) => {
+      .catch((e: unknown) => {
+        const errorMessage = e instanceof Error ? e.message : JSON.stringify(e);
         this.onStreamEvent({
           type: 'error',
-          data: e.message,
+          data: errorMessage,
           msg_id,
         });
       });
   }
 
   submitQuery(
-    query: any,
+    query: unknown,
     msg_id: string,
     abortController: AbortController,
     options?: {
@@ -347,10 +337,11 @@ export class GeminiAgent {
         msg_id,
       });
       this.handleMessage(stream, msg_id, abortController)
-        .catch((e: any) => {
+        .catch((e: unknown) => {
+          const errorMessage = e instanceof Error ? e.message : JSON.stringify(e);
           this.onStreamEvent({
             type: 'error',
-            data: e?.message || JSON.stringify(e),
+            data: errorMessage,
             msg_id,
           });
         })
@@ -374,13 +365,24 @@ export class GeminiAgent {
   async send(message: string | Array<{ text: string }>, msg_id = '') {
     await this.bootstrap;
     const abortController = this.createAbortController();
+    // Prepend one-time history prefix before processing commands
+    if (this.historyPrefix && !this.historyUsedOnce) {
+      if (Array.isArray(message)) {
+        const first = message[0];
+        const original = first?.text ?? '';
+        message = [{ text: `${this.historyPrefix}${original}` }];
+      } else if (typeof message === 'string') {
+        message = `${this.historyPrefix}${message}`;
+      }
+      this.historyUsedOnce = true;
+    }
     const { processedQuery, shouldProceed } = await handleAtCommand({
       query: Array.isArray(message) ? message[0].text : message,
       config: this.config,
       addItem: () => {
         console.log('addItem');
       },
-      onDebugMessage(log: any) {
+      onDebugMessage(log: unknown) {
         console.log('onDebugMessage', log);
       },
       messageId: Date.now(),
@@ -389,10 +391,25 @@ export class GeminiAgent {
     if (!shouldProceed || processedQuery === null || abortController.signal.aborted) {
       return;
     }
-    return this.submitQuery(processedQuery, msg_id, abortController);
+    const requestId = this.submitQuery(processedQuery, msg_id, abortController);
+    return requestId;
   }
   stop(): void {
     this.abortController?.abort();
+  }
+
+  async injectConversationHistory(text: string): Promise<void> {
+    try {
+      if (!this.config || !this.workspace || !this.settings) return;
+      // Prepare one-time prefix for first outgoing message after (re)start
+      this.historyPrefix = `Conversation history (recent):\n${text}\n\n`;
+      this.historyUsedOnce = false;
+      const { memoryContent } = await loadHierarchicalGeminiMemory(this.workspace, [], this.config.getDebugMode(), this.config.getFileService(), this.settings, this.config.getExtensionContextFilePaths());
+      const combined = `${memoryContent}\n\n[Recent Chat]\n${text}`;
+      this.config.setUserMemory(combined);
+    } catch (e) {
+      // ignore injection errors
+    }
   }
 }
 

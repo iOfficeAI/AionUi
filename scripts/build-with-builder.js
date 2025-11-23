@@ -52,7 +52,7 @@ let targetArch;
 let multiArch = false;
 
 // Check if multiple architectures are specified (support both --x64 and x64 formats)
-const archArgs = args
+const rawArchArgs = args
   .filter(arg => {
     if (archList.includes(arg)) return true;
     if (arg.startsWith('--') && archList.includes(arg.slice(2))) return true;
@@ -60,8 +60,11 @@ const archArgs = args
   })
   .map(arg => arg.startsWith('--') ? arg.slice(2) : arg);
 
+// Remove duplicates to avoid treating "x64 --x64" as multiple architectures
+const archArgs = [...new Set(rawArchArgs)];
+
 if (archArgs.length > 1) {
-  // Multiple architectures specified - let electron-builder handle it
+  // Multiple unique architectures specified - let electron-builder handle it
   multiArch = true;
   targetArch = archArgs[0]; // Use first arch for webpack build
   console.log(`🔨 Multi-architecture build detected: ${archArgs.join(', ')}`);
@@ -92,11 +95,16 @@ try {
     fs.writeFileSync(packageJsonPath, JSON.stringify(packageJson, null, 2) + '\n');
   }
 
-  // 2. Run Forge to build webpack bundles
+  // 2. Run Forge to build webpack bundles with explicit architecture
   console.log(`📦 Building ${targetArch}...`);
-  execSync('npm run package', {
+  // Use cross-platform command: npm exec works on both Unix and Windows
+  execSync(`npm exec electron-forge -- package --arch=${targetArch}`, {
     stdio: 'inherit',
-    env: { ...process.env, ELECTRON_BUILDER_ARCH: targetArch }
+    env: {
+      ...process.env,
+      ELECTRON_BUILDER_ARCH: targetArch,
+      FORGE_SKIP_NATIVE_REBUILD: 'false'  // Ensure native modules are rebuilt during packaging
+    }
   });
 
   // 3. Verify Forge output
@@ -144,20 +152,24 @@ try {
     ensureDir(sourceDir, webpackDir, 'native_modules');
   }
 
-  // 5. Run electron-builder
+  // 5. 运行 electron-builder 生成分发包（DMG/ZIP/EXE等）
+  // Run electron-builder to create distributables (DMG/ZIP/EXE, etc.)
   const isRelease = process.env.GITHUB_REF && process.env.GITHUB_REF.startsWith('refs/tags/v');
   const publishArg = isRelease ? '' : '--publish=never';
 
+  // 根据模式添加架构标志
   // Add arch flags based on mode
   let archFlag = '';
   if (multiArch) {
+    // 多架构模式：将所有架构标志传递给 electron-builder
     // Multi-arch mode: pass all arch flags to electron-builder
     archFlag = archArgs.map(arch => `--${arch}`).join(' ');
     console.log(`🚀 Packaging for multiple architectures: ${archArgs.join(', ')}...`);
   } else {
+    // 单架构模式：使用确定的目标架构
     // Single arch mode: use the determined target arch
     archFlag = `--${targetArch}`;
-    console.log(`🚀 Packaging for ${targetArch}...`);
+    console.log(`🚀 Creating distributables for ${targetArch}...`);
   }
 
   execSync(`npx electron-builder ${builderArgs} ${archFlag} ${publishArg}`, { stdio: 'inherit' });

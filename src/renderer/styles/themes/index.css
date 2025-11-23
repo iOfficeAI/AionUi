@@ -1,0 +1,7 @@
+/* Theme System Entry Point */
+
+/* Base styles (theme-independent) */
+@import './base.css';
+
+/* Color Schemes */
+@import './color-schemes/default.css';

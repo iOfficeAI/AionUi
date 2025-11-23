@@ -184,7 +184,7 @@ AionUi provides a modern interface for users who need better workflow efficiency
 
 ### 🔧 **Settings Are Simple**
 
-- **Multi-Platform Support** - Support Gemini, OpenAI, ModelScope, OpenRouter, etc.
+- **Multi-Platform Support** - Support Gemini, OpenAI, BurnCloud, ModelScope, OpenRouter, etc.
 - **Flexible Configuration** - Each platform can configure multiple models, support custom addresses
 - **Easy Login** - Support Google account login or API Key authentication, flexible choice
 - **Auto Fix** - Automatically detect and fix configuration issues, no manual debugging needed
@@ -209,6 +209,35 @@ Ready to try AionUi? Download the latest version for your platform from our rele
 
 > 💡 **Need detailed configuration guide?** Check our [Complete Installation Tutorial](https://github.com/iOfficeAI/AionUi/wiki/Getting-Started)
 
+## 🛠️ Local Development
+
+Want to hack on AionUi?
+
+1. `npm install`
+2. `npm start`
+
+During `npm start`, Electron Forge spins up **two** ports:
+
+- Webpack dev server (default **3000**)
+- Web log viewer (default **9000**)
+
+Override them via env vars when needed:
+
+```bash
+AIONUI_DEV_PORT=3100 \
+AIONUI_LOGGER_PORT=9100 \
+npm start
+# You can also use DEV_SERVER_PORT / PORT and DEV_LOGGER_PORT / LOGGER_PORT
+```
+
+Windows PowerShell example:
+
+```powershell
+$env:AIONUI_DEV_PORT=3100
+$env:AIONUI_LOGGER_PORT=9100
+npm start
+```
+
 ## 📚 Documentation
 
 ### 🚀 Quick Start
@@ -218,7 +247,7 @@ Ready to try AionUi? Download the latest version for your platform from our rele
 - [🤖 Multi-Agent Mode Setup](https://github.com/iOfficeAI/AionUi/wiki/ACP-Setup) - Integrate terminal AI agents
 - [🔌 MCP Tool Configuration](https://github.com/iOfficeAI/AionUi/wiki/MCP-Configuration-Guide) - Model Context Protocol server setup
 - [🎨 Image Generation Configuration](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide) - AI image generation setup tutorial
-- [🌐 WebUI Remote Access Setup](https://github.com/iOfficeAI/AionUi/releases/tag/v1.4.2) - Remote access configuration guide
+- [🌐 WebUI Configuration Guide](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) - Complete WebUI setup and configuration
 
 ### 🎯 Use Cases
 

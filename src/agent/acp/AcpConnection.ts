@@ -9,10 +9,11 @@ import type { AcpBackend, AcpMessage, AcpNotification, AcpPermissionRequest, Acp
 import type { ChildProcess, SpawnOptions } from 'child_process';
 import { spawn } from 'child_process';
 import { promises as fs } from 'fs';
+import path from 'path';
 
-interface PendingRequest {
-  resolve: (value: any) => void;
-  reject: (error: any) => void;
+interface PendingRequest<T = unknown> {
+  resolve: (value: T) => void;
+  reject: (error: Error) => void;
   timeoutId?: NodeJS.Timeout;
   method: string;
   isPaused: boolean;
@@ -22,12 +23,13 @@ interface PendingRequest {
 
 export class AcpConnection {
   private child: ChildProcess | null = null;
-  private pendingRequests = new Map<number, PendingRequest>();
+  private pendingRequests = new Map<number, PendingRequest<unknown>>();
   private nextRequestId = 0;
   private sessionId: string | null = null;
   private isInitialized = false;
   private backend: AcpBackend | null = null;
-  private initializeResponse: any = null;
+  private initializeResponse: AcpResponse | null = null;
+  private workingDir: string = process.cwd();
 
   public onSessionUpdate: (data: AcpSessionUpdate) => void = () => {};
   public onPermissionRequest: (data: AcpPermissionRequest) => Promise<{
@@ -84,6 +86,9 @@ export class AcpConnection {
     }
 
     this.backend = backend;
+    if (workingDir) {
+      this.workingDir = workingDir;
+    }
 
     switch (backend) {
       case 'claude':
@@ -195,7 +200,7 @@ export class AcpConnection {
     ]);
   }
 
-  private sendRequest(method: string, params?: any): Promise<any> {
+  private sendRequest<T = unknown>(method: string, params?: Record<string, unknown>): Promise<T> {
     const id = this.nextRequestId++;
     const message: AcpRequest = {
       jsonrpc: JSONRPC_VERSION,
@@ -222,14 +227,14 @@ export class AcpConnection {
 
       const initialTimeout = createTimeoutHandler();
 
-      const pendingRequest: PendingRequest = {
-        resolve: (value: any) => {
+      const pendingRequest: PendingRequest<T> = {
+        resolve: (value: T) => {
           if (pendingRequest.timeoutId) {
             clearTimeout(pendingRequest.timeoutId);
           }
           resolve(value);
         },
-        reject: (error: any) => {
+        reject: (error: Error) => {
           if (pendingRequest.timeoutId) {
             clearTimeout(pendingRequest.timeoutId);
           }
@@ -372,23 +377,10 @@ export class AcpConnection {
           result = await this.handlePermissionRequest(params);
           break;
         case 'fs/read_text_file':
-          // 通知UI文件读取操作
-          this.onFileOperation({
-            method: 'fs/read_text_file',
-            path: params.path,
-            sessionId: params.sessionId || '',
-          });
-          result = await this.handleReadTextFile(params);
+          result = await this.handleReadOperation(params);
           break;
         case 'fs/write_text_file':
-          // 通知UI文件写入操作
-          this.onFileOperation({
-            method: 'fs/write_text_file',
-            path: params.path,
-            content: params.content,
-            sessionId: params.sessionId || '',
-          });
-          result = await this.handleWriteTextFile(params);
+          result = await this.handleWriteOperation(params);
           break;
         default:
           break;
@@ -460,6 +452,7 @@ export class AcpConnection {
 
   private async handleWriteTextFile(params: { path: string; content: string }): Promise<null> {
     try {
+      await fs.mkdir(path.dirname(params.path), { recursive: true });
       await fs.writeFile(params.path, params.content, 'utf-8');
       return null;
     } catch (error) {
@@ -467,7 +460,17 @@ export class AcpConnection {
     }
   }
 
-  private async initialize(): Promise<any> {
+  private resolveWorkspacePath(targetPath: string): string {
+    // Absolute paths are used as-is; relative paths are anchored to the conversation workspace
+    // 绝对路径保持不变， 相对路径锚定到当前会话的工作区
+    if (!targetPath) return this.workingDir;
+    if (path.isAbsolute(targetPath)) {
+      return targetPath;
+    }
+    return path.join(this.workingDir, targetPath);
+  }
+
+  private async initialize(): Promise<AcpResponse> {
     const initializeParams = {
       protocolVersion: 1,
       clientCapabilities: {
@@ -478,28 +481,28 @@ export class AcpConnection {
       },
     };
 
-    const response = await this.sendRequest('initialize', initializeParams);
+    const response = await this.sendRequest<AcpResponse>('initialize', initializeParams);
     this.isInitialized = true;
     this.initializeResponse = response;
     return response;
   }
 
-  async authenticate(methodId?: string): Promise<any> {
-    const result = await this.sendRequest('authenticate', methodId ? { methodId } : undefined);
+  async authenticate(methodId?: string): Promise<AcpResponse> {
+    const result = await this.sendRequest<AcpResponse>('authenticate', methodId ? { methodId } : undefined);
     return result;
   }
 
-  async newSession(cwd: string = process.cwd()): Promise<any> {
-    const response = await this.sendRequest('session/new', {
+  async newSession(cwd: string = process.cwd()): Promise<AcpResponse> {
+    const response = await this.sendRequest<AcpResponse & { sessionId?: string }>('session/new', {
       cwd,
-      mcpServers: [] as any[],
+      mcpServers: [] as unknown[],
     });
 
     this.sessionId = response.sessionId;
     return response;
   }
 
-  async sendPrompt(prompt: string): Promise<any> {
+  async sendPrompt(prompt: string): Promise<AcpResponse> {
     if (!this.sessionId) {
       throw new Error('No active ACP session');
     }
@@ -540,7 +543,32 @@ export class AcpConnection {
     return this.backend;
   }
 
-  getInitializeResponse(): any {
+  getInitializeResponse(): AcpResponse | null {
     return this.initializeResponse;
+  }
+
+  // Normalize read operations to the conversation workspace before touching the filesystem
+  // 访问文件前先把读取操作映射到会话工作区
+  private async handleReadOperation(params: { path: string; sessionId?: string }): Promise<{ content: string }> {
+    const resolvedReadPath = this.resolveWorkspacePath(params.path);
+    this.onFileOperation({
+      method: 'fs/read_text_file',
+      path: resolvedReadPath,
+      sessionId: params.sessionId || '',
+    });
+    return await this.handleReadTextFile({ ...params, path: resolvedReadPath });
+  }
+
+  // Normalize write operations and emit UI events so the workspace view stays in sync
+  // 将写入操作归一化并通知 UI，保持工作区视图同步
+  private async handleWriteOperation(params: { path: string; content: string; sessionId?: string }): Promise<null> {
+    const resolvedWritePath = this.resolveWorkspacePath(params.path);
+    this.onFileOperation({
+      method: 'fs/write_text_file',
+      path: resolvedWritePath,
+      content: params.content,
+      sessionId: params.sessionId || '',
+    });
+    return await this.handleWriteTextFile({ ...params, path: resolvedWritePath });
   }
 }

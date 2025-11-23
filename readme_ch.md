@@ -76,7 +76,6 @@ _远程控制您的 AI 助手 - 从网络中的任何设备访问 AionUi！安�
   <img src="./resources/webui-remote.png" alt="WebUI 远程访问演示" width="800">
 </p>
 
-
 ## 📋 目录
 
 - [🤔 为什么需要 AionUi？](#-为什么需要-aionui)
@@ -166,10 +165,9 @@ AionUi 为需要更好工作流效率的用户提供了现代界面，同时**�
 - **智能网络检测** - 自动检测并显示最佳网络连接地址
 - **本地数据安全** - 所有对话、设置和配置使用 SQLite 数据库本地存储
 
-
 ### 🔧 **设置很简单**
 
-- **多平台支持** - 支持 Gemini、OpenAI、ModelScope、OpenRouter 等
+- **多平台支持** - 支持 Gemini、OpenAI、BurnCloud、ModelScope、OpenRouter 等
 - **灵活配置** - 每个平台可以配置多个模型，支持自定义地址
 - **登录方便** - 支持 Google 账号登录或 API Key 认证，灵活选择
 - **自动修复** - 自动检测并修复配置问题，不用手动调试
@@ -194,6 +192,30 @@ AionUi 为需要更好工作流效率的用户提供了现代界面，同时**�
 
 > 💡 **需要详细配置指南？** 查看我们的 [完整安装教程](https://github.com/iOfficeAI/AionUi/wiki/Getting-Started-Chinese)
 
+## 🛠️ 本地开发
+
+想在本地调试或定制 AionUi？
+
+1. `npm install`
+2. `npm start`
+
+`npm start` 会启动两个端口：Webpack 开发服务器（默认 **3000**）和日志查看器（默认 **9000**）。若有冲突，可通过环境变量覆盖：
+
+```bash
+AIONUI_DEV_PORT=3100 \\
+AIONUI_LOGGER_PORT=9100 \\
+npm start
+# 也可以使用 DEV_SERVER_PORT / PORT、DEV_LOGGER_PORT / LOGGER_PORT
+```
+
+Windows PowerShell 示例：
+
+```powershell
+$env:AIONUI_DEV_PORT=3100
+$env:AIONUI_LOGGER_PORT=9100
+npm start
+```
+
 ## 📚 详细文档
 
 ### 🚀 快速入门
@@ -203,7 +225,7 @@ AionUi 为需要更好工作流效率的用户提供了现代界面，同时**�
 - [🤖 多代理模式设置](https://github.com/iOfficeAI/AionUi/wiki/ACP-Setup-Chinese) - 集成终端 AI 代理
 - [🔌 MCP 工具配置](https://github.com/iOfficeAI/AionUi/wiki/MCP-Configuration-Guide-Chinese) - 模型上下文协议服务器设置
 - [🎨 图像生成配置](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide-Chinese) - AI 图像生成设置教程
-- [🌐 WebUI 远程访问设置](https://github.com/iOfficeAI/AionUi/releases/tag/v1.4.2) - 远程访问配置指南
+- [🌐 WebUI 配置指南](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide-Chinese) - 完整的 WebUI 设置和配置教程
 
 ### 🎯 使用案例
 

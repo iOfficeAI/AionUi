@@ -1,3 +1,29 @@
+/* Arco Design custom overrides - non-theme related */
+
+/* Override Arco Design component backgrounds to white in light mode */
+/* 覆盖 Arco Design 组件背景色为白色（浅色模式） */
+/* .arco-input,
+.arco-textarea,
+.arco-select-view,
+.arco-picker,
+.arco-input-number,
+.arco-cascader-view,
+.arco-tree-select-view,
+.arco-auto-complete-view,
+.arco-mentions-view {
+  background-color: #ffffff !important;
+}
+
+.arco-input-wrapper {
+  background-color: #ffffff !important;
+}
+
+.arco-select-popup .arco-select-option {
+  &:hover {
+    background-color: #fafafa !important;
+  }
+} */
+
 .arco-btn {
   &.arco-btn-outline {
     border-color: #86909c;
@@ -5,10 +31,173 @@
   }
 }
 
+.arco-btn-primary.arco-btn-disabled {
+  background-color: var(--aou-2) !important;
+  border-color: var(--aou-2) !important;
+}
+
 .arco-collapse {
   border: none;
   border-radius: 8px;
   .arco-collapse-item-header {
     border-bottom: none;
+  }
+}
+
+/* Arco Tag dark mode styles - enhance contrast with semi-transparent backgrounds */
+/* Arco Tag 深色模式样式 - 使用半透明背景增强对比度 */
+body[arco-theme='dark'] .arco-tag-checked.arco-tag-blue {
+  background-color: rgba(59, 130, 246, 0.2) !important;
+  color: rgb(96, 165, 250) !important;
+}
+
+body[arco-theme='dark'] .arco-tag-checked.arco-tag-green {
+  background-color: rgba(34, 197, 94, 0.2) !important;
+  color: rgb(74, 222, 128) !important;
+}
+
+body[arco-theme='dark'] .arco-tag-checked.arco-tag-red {
+  background-color: rgba(239, 68, 68, 0.2) !important;
+  color: rgb(248, 113, 113) !important;
+}
+
+body[arco-theme='dark'] .arco-tag-checked.arco-tag-orange {
+  background-color: rgba(245, 158, 11, 0.2) !important;
+  color: rgb(251, 191, 36) !important;
+}
+
+body[arco-theme='dark'] .arco-tag-checked.arco-tag-gray {
+  background-color: rgba(156, 163, 175, 0.2) !important;
+  color: rgb(209, 213, 219) !important;
+}
+
+/* AionUi Steps wrapper styles */
+.aionui-steps .arco-steps-item-process .arco-steps-item-icon {
+  background-color: var(--aou-6-brand) !important;
+  border-color: var(--aou-6-brand) !important;
+}
+
+.aionui-steps .arco-steps-item-finish .arco-steps-item-icon {
+  background-color: #e8f3ff !important;
+  border-color: #e8f3ff !important;
+  border-radius: 50% !important;
+}
+
+.aionui-steps .arco-steps-item-finish .arco-steps-item-icon .arco-steps-icon {
+  line-height: 28px !important;
+}
+
+/* AionUi Modal wrapper styles */
+.aionui-modal .arco-modal-content {
+  background: var(--bg-1) !important;
+  border-radius: 12px !important;
+}
+
+.aionui-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px 16px;
+}
+
+.aionui-modal-title {
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--text-t-primary);
+  margin: 0;
+}
+
+.aionui-modal-close-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: background-color 0.2s;
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  padding: 0;
+}
+
+.aionui-modal-close-btn:hover {
+  background: var(--fill-2);
+}
+
+/* Arco Message custom styles */
+.arco-message {
+  border: none !important;
+  border-radius: 8px !important;
+}
+
+/* Light mode */
+.arco-message-success {
+  background: linear-gradient(270deg, #f9fff2 0%, #d2ffd9 100%) !important;
+}
+
+.arco-message-warning {
+  background: linear-gradient(90deg, #fff3dc 0%, #fff8de 100%) !important;
+}
+
+.arco-message-info {
+  background: linear-gradient(90deg, #e8f3ff 0%, #f8f8ff 49.52%) !important;
+}
+
+.arco-message-error {
+  background: linear-gradient(90deg, #ffdddb 0%, #fff3f0 100%) !important;
+}
+
+/* Dark mode */
+body[arco-theme='dark'] .arco-message-success {
+  background: linear-gradient(270deg, rgba(249, 255, 242, 0.3) 0%, rgba(210, 255, 217, 0.3) 100%) !important;
+}
+
+body[arco-theme='dark'] .arco-message-warning {
+  background: linear-gradient(90deg, rgba(255, 243, 220, 0.3) 0%, rgba(255, 248, 222, 0.3) 100%) !important;
+}
+
+body[arco-theme='dark'] .arco-message-info {
+  background: linear-gradient(90deg, rgba(232, 243, 255, 0.3) 0%, rgba(248, 248, 255, 0.3) 49.52%) !important;
+}
+
+body[arco-theme='dark'] .arco-message-error {
+  background: linear-gradient(90deg, rgba(255, 221, 219, 0.3) 0%, rgba(255, 243, 240, 0.3) 100%) !important;
+}
+
+/* Workspace tree selection styles - use text color instead of background */
+.workspace-tree .arco-tree-node-selected .arco-tree-node-title {
+  background-color: transparent !important;
+}
+
+/* Alert styles - content is now displayed below the Alert card, so these rules are no longer needed */
+/* Alert 样式 - 内容现在显示在 Alert 卡片下方，因此不再需要这些规则 */
+
+/* Settings modal mobile tabs styles */
+/* 设置弹窗移动端 Tabs 样式 */
+.settings-mobile-tabs {
+  .arco-tabs-nav {
+    border-bottom: 1px solid var(--color-border-2);
+  }
+
+  .arco-tabs-nav-tab {
+    font-size: 14px;
+    padding: 8px 0;
+    margin: 0 12px;
+    color: var(--color-text-2);
+  }
+
+  .arco-tabs-nav-tab:first-child {
+    margin-left: 0;
+  }
+
+  .arco-tabs-nav-tab-active {
+    color: var(--color-text-1);
+    font-weight: 500;
+  }
+
+  .arco-tabs-nav-ink {
+    height: 2px;
+    background: var(--color-primary);
   }
 }

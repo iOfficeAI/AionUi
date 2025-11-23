@@ -6,62 +6,19 @@
 
 import { ipcBridge } from '@/common';
 import { ConfigStorage } from '@/common/storage';
-import { Alert, Button, Form, Input, Modal, Switch } from '@arco-design/web-react';
-import { FolderOpen } from '@icon-park/react';
+import { Alert, Button, Form, Input, Switch } from '@arco-design/web-react';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import useSWR from 'swr';
 import SettingContainer from './components/SettingContainer';
-
-const DirInputItem: React.FC<{
-  label: string;
-  field: string;
-  rules?: any[];
-}> = (props) => {
-  const { t } = useTranslation();
-  return (
-    <Form.Item label={props.label} field={props.field}>
-      {(options, form) => (
-        <Input
-          disabled
-          value={options[props.field]}
-          addAfter={
-            <FolderOpen
-              theme='outline'
-              size='24'
-              fill='#333'
-              onClick={() => {
-                ipcBridge.dialog.showOpen
-                  .invoke({
-                    defaultPath: options[props.field],
-                    properties: ['openDirectory', 'createDirectory'],
-                  })
-                  .then((data) => {
-                    if (data?.[0]) {
-                      form.setFieldValue(props.field, data[0]);
-                    }
-                  })
-                  .catch((error) => {
-                    console.error('Failed to open directory dialog:', error);
-                  });
-              }}
-            />
-          }
-        ></Input>
-      )}
-    </Form.Item>
-  );
-};
 
 const GeminiSettings: React.FC = (props) => {
   const { t } = useTranslation();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const [modal, modalContextHolder] = Modal.useModal();
   const [error, setError] = useState<string | null>(null);
   const [googleAccountLoading, setGoogleAccountLoading] = useState(false);
   const [userLoggedOut, setUserLoggedOut] = useState(false);
-  const { data } = useSWR('gemini.env.config', () => ipcBridge.application.systemInfo.invoke());
+
   const loadGoogleAuthStatus = (proxy?: string) => {
     setGoogleAccountLoading(true);
     ipcBridge.googleAuth.status
@@ -85,41 +42,17 @@ const GeminiSettings: React.FC = (props) => {
       });
   };
 
-  const saveDirConfigValidate = (values: { cacheDir: string; workDir: string }): Promise<unknown> => {
-    return new Promise((resolve, reject) => {
-      modal.confirm({
-        title: t('settings.updateConfirm'),
-        content: t('settings.restartConfirm'),
-        onOk: resolve,
-        onCancel: reject,
-      });
-    });
-  };
-
+  // 保存 Gemini 配置 / Save Gemini configuration
   const onSubmit = async () => {
     const values = await form.validate();
-    const { cacheDir, workDir, googleAccount, ...rest } = values;
+    const { googleAccount, ...rest } = values;
     setLoading(true);
     setError(null);
 
-    // 检查是否修改了需要重启的目录设置
-    const currentConfig = await ConfigStorage.get('gemini.config');
-    const needsRestart = cacheDir !== (currentConfig as any)?.cacheDir || workDir !== (currentConfig as any)?.workDir;
-
-    if (needsRestart) {
-      await saveDirConfigValidate(values);
-    }
-
     ConfigStorage.set('gemini.config', values)
       .then(() => {
-        if (needsRestart) {
-          return ipcBridge.application.updateSystemInfo.invoke({ cacheDir, workDir }).then((data) => {
-            if (data.success) return ipcBridge.application.restart.invoke();
-            return Promise.reject(data.msg);
-          });
-        }
-        // 如果不需要重启，直接完成保存
-        return Promise.resolve();
+        // 配置保存成功 / Configuration saved successfully
+        setError(null);
       })
       .catch((e) => {
         setError(e.message || e);
@@ -128,6 +61,7 @@ const GeminiSettings: React.FC = (props) => {
         setLoading(false);
       });
   };
+  // 初始化配置 / Initialize configuration
   useEffect(() => {
     ConfigStorage.get('gemini.config')
       .then((data) => {
@@ -138,12 +72,6 @@ const GeminiSettings: React.FC = (props) => {
         console.error('Failed to load Gemini config:', error);
       });
   }, []);
-  useEffect(() => {
-    if (data) {
-      form.setFieldValue('cacheDir', data.cacheDir);
-      form.setFieldValue('workDir', data.workDir);
-    }
-  }, [data]);
 
   return (
     <SettingContainer
@@ -231,11 +159,8 @@ const GeminiSettings: React.FC = (props) => {
         <Form.Item label={t('settings.yoloMode')} field='yoloMode'>
           {(value, form) => <Switch checked={value.yoloMode} onChange={(checked) => form.setFieldValue('yoloMode', checked)} />}
         </Form.Item>
-        <DirInputItem label={t('settings.cacheDir')} field='cacheDir' />
-        <DirInputItem label={t('settings.workDir')} field='workDir' />
         {error && <Alert className={'m-b-10px'} type='error' content={typeof error === 'string' ? error : JSON.stringify(error)} />}
       </Form>
-      {modalContextHolder}
     </SettingContainer>
   );
 };

@@ -4,7 +4,7 @@ import type { AuthType } from '@office-ai/aioncli-core';
 // Unified interface for chat completion across different providers
 export interface UnifiedChatCompletionParams {
   model: string;
-  messages: any; // Allow flexible message formats for compatibility
+  messages: unknown; // Allow flexible message formats for compatibility
 }
 
 export interface UnifiedChatCompletionResponse {
@@ -39,7 +39,7 @@ export interface RotatingApiClientOptions {
 // Constants for better maintainability
 const DEFAULT_MAX_RETRIES = 3;
 const DEFAULT_RETRY_DELAY = 1000;
-const RETRYABLE_STATUS_CODES = new Set([401, 429, 503]);
+const _RETRYABLE_STATUS_CODES = new Set([401, 429, 503]); // Reserved for future use
 
 export interface ApiError extends Error {
   status?: number;

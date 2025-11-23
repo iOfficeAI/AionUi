@@ -98,9 +98,9 @@ const ModelSettings: React.FC = () => {
       {messageContext}
       {!data || data.length === 0 ? (
         <div className='flex flex-col items-center justify-center py-20px'>
-          <Info theme='outline' size='48' className='text-gray-400 mb-16px' />
-          <h3 className='text-18px font-medium text-gray-700 mb-8px'>{t('settings.noConfiguredModels')}</h3>
-          <p className='text-14px text-gray-500 text-center'>
+          <Info theme='outline' size='48' className='text-t-secondary mb-16px' />
+          <h3 className='text-18px font-medium text-t-primary mb-8px'>{t('settings.noConfiguredModels')}</h3>
+          <p className='text-14px text-t-secondary text-center'>
             {t('settings.needHelpConfigGuide')}
             <a href='https://github.com/iOfficeAI/AionUi/wiki/LLM-Configuration' target='_blank' rel='noopener noreferrer' className='text-blue-600 hover:text-blue-800 underline ml-4px'>
               {t('settings.configGuide')}
@@ -117,7 +117,6 @@ const ModelSettings: React.FC = () => {
               onChange={() => {
                 setCollapseKey({ ...collapseKey, [key]: !collapseKey[key] });
               }}
-              style={{ maxWidth: 1180 }}
               className={'mb-20px'}
               key={key}
             >

@@ -54,6 +54,11 @@ class PasteServiceClass {
 
   // 全局粘贴事件处理
   private handleGlobalPaste = async (event: ClipboardEvent) => {
+    // 当粘贴目标是可编辑元素（input/textarea/contentEditable）时，直接交给浏览器原生行为，避免拦截其他输入框
+    if (this.shouldAllowNativePaste(event)) {
+      return;
+    }
+
     if (!this.lastFocusedComponent) return;
 
     const handler = this.handlers.get(this.lastFocusedComponent);
@@ -66,24 +71,44 @@ class PasteServiceClass {
     }
   };
 
+  private shouldAllowNativePaste(event: ClipboardEvent): boolean {
+    const target = event.target;
+    if (!target || !(target instanceof Element)) {
+      return false;
+    }
+
+    const editableElement = target.closest('input, textarea, [contenteditable]');
+    if (!editableElement) {
+      return false;
+    }
+
+    if (editableElement instanceof HTMLInputElement || editableElement instanceof HTMLTextAreaElement) {
+      return true;
+    }
+
+    if (editableElement instanceof HTMLElement) {
+      if (editableElement.isContentEditable) {
+        return true;
+      }
+      const attr = editableElement.getAttribute('contenteditable');
+      return !!attr && attr.toLowerCase() !== 'false';
+    }
+
+    return false;
+  }
+
   // 通用粘贴处理逻辑
   async handlePaste(event: React.ClipboardEvent | ClipboardEvent, supportedExts: string[], onFilesAdded: (files: FileMetadata[]) => void, onTextPaste?: (text: string) => void): Promise<boolean> {
     // 立即事件冒泡,避免全局监听器重复处理
     event.stopPropagation();
     const clipboardText = event.clipboardData?.getData('text');
     const files = event.clipboardData?.files;
+    // If caller passes an empty array, treat it as "allow all file types"
+    const allowAll = !supportedExts || supportedExts.length === 0;
 
-    // 处理纯文本粘贴
-    if (clipboardText && (!files || files.length === 0)) {
-      if (onTextPaste) {
-        // 清理文本中多余的换行符，特别是末尾的换行符
-        const cleanedText = clipboardText.replace(/\n\s*$/, '');
-        onTextPaste(cleanedText);
-        return true; // 已处理，阻止默认行为
-      }
-      return false; // 如果没有回调，允许默认行为
-    }
+    // 优先检查是否有文件，如果有文件则忽略文本（避免粘贴文件时同时插入文件名）
     if (files && files.length > 0) {
+      // 处理文件，跳过文本处理
       const fileList: FileMetadata[] = [];
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
@@ -95,7 +120,7 @@ class PasteServiceClass {
           // 剪贴板图片，需要检查是否支持该类型
           const fileExt = getFileExtension(file.name) || getExtensionFromMimeType(file.type);
 
-          if (supportedExts.includes(fileExt)) {
+          if (allowAll || supportedExts.includes(fileExt)) {
             try {
               const arrayBuffer = await file.arrayBuffer();
               const uint8Array = new Uint8Array(arrayBuffer);
@@ -135,7 +160,7 @@ class PasteServiceClass {
           // 检查文件类型是否支持
           const fileExt = getFileExtension(file.name);
 
-          if (supportedExts.includes(fileExt)) {
+          if (allowAll || supportedExts.includes(fileExt)) {
             fileList.push({
               name: file.name,
               path: filePath,
@@ -151,7 +176,7 @@ class PasteServiceClass {
           // 没有文件路径的非图片文件（从文件管理器复制粘贴的文件）
           const fileExt = getFileExtension(file.name);
 
-          if (supportedExts.includes(fileExt)) {
+          if (allowAll || supportedExts.includes(fileExt)) {
             // 对于复制粘贴的文件，我们需要创建临时文件
             try {
               const arrayBuffer = await file.arrayBuffer();
@@ -182,11 +207,27 @@ class PasteServiceClass {
         }
       }
 
-      // 处理完文件后，总是返回 true（因为已经 preventDefault）
+      // 处理完文件后，总是返回 true（阻止文本插入）
       if (fileList.length > 0) {
         onFilesAdded(fileList);
       }
-      return true; // 已经调用了 preventDefault，必须返回 true
+      return true; // 阻止默认行为，不插入文件名文本
+    }
+
+    // 处理纯文本粘贴（只在没有文件时）
+    if (clipboardText && (!files || files.length === 0)) {
+      // 在 iOS 上, 让 Safari 自己处理纯文本粘贴, 以避免粘贴菜单/键盘抖动问题
+      const isIOS = typeof navigator !== 'undefined' && /iP(hone|ad|od)/.test(navigator.userAgent);
+      if (isIOS) {
+        return false;
+      }
+      if (onTextPaste) {
+        // 清理文本中多余的换行符，特别是末尾的换行符
+        const cleanedText = clipboardText.replace(/\n\s*$/, '');
+        onTextPaste(cleanedText);
+        return true; // 已处理，阻止默认行为
+      }
+      return false; // 如果没有回调，允许默认行为
     }
 
     return false;

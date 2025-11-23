@@ -4,12 +4,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import './bootstrap/runtimePatches';
 import type { PropsWithChildren } from 'react';
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import '../adapter/browser';
 import Main from './main';
 import { AuthProvider } from './context/AuthContext';
+import { ThemeProvider } from './context/ThemeContext';
 
 import { ConfigProvider } from '@arco-design/web-react';
 import '@arco-design/web-react/dist/css/arco.css';
@@ -21,7 +23,7 @@ import { useTranslation } from 'react-i18next';
 import 'uno.css';
 import './arco-override.css';
 import './i18n';
-import './index.css';
+import './styles/themes/index.css';
 import HOC from './utils/HOC';
 const root = createRoot(document.getElementById('root'));
 
@@ -43,4 +45,4 @@ const Config: React.FC<PropsWithChildren> = (props) => {
 
 const App = HOC.Wrapper(Config)(Main);
 
-root.render(React.createElement(AuthProvider, null, React.createElement(App)));
+root.render(React.createElement(AuthProvider, null, React.createElement(ThemeProvider, null, React.createElement(App))));

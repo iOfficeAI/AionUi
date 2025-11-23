@@ -47,32 +47,32 @@ const ApplyPatchApprovalDisplay: React.FC<ApplyPatchApprovalDisplayProps> = Reac
     <BasePermissionDisplay content={content} messageId={messageId} conversationId={conversationId} icon={patchInfo.icon} title={patchInfo.title}>
       {/* Files to be changed */}
       <div>
-        <Text className='text-xs text-gray-500 mb-1'>
+        <Text className='text-xs text-t-secondary mb-1'>
           {t('codex.permissions.labels.files_to_modify')} ({patchInfo.fileCount}):
         </Text>
-        <div className='text-xs bg-gray-100 p-2 rounded text-gray-800'>
+        <div className='text-xs bg-1 p-2 rounded text-t-primary'>
           {patchInfo.fileNames.map((fileName, index) => (
             <div key={index} className='break-all'>
               📄 {fileName}
             </div>
           ))}
-          {patchInfo.hasMoreFiles && <div className='text-gray-500'>... and {patchInfo.fileCount - 3} more files</div>}
+          {patchInfo.hasMoreFiles && <div className='text-t-secondary'>... and {patchInfo.fileCount - 3} more files</div>}
         </div>
       </div>
 
       {/* Summary */}
       {patchInfo.summary && (
         <div>
-          <Text className='text-xs text-gray-500 mb-1'>{t('codex.permissions.labels.summary')}</Text>
-          <Text className='text-sm text-gray-700'>{patchInfo.summary}</Text>
+          <Text className='text-xs text-t-secondary mb-1'>{t('codex.permissions.labels.summary')}</Text>
+          <Text className='text-sm text-t-primary'>{patchInfo.summary}</Text>
         </div>
       )}
 
       {/* Reason */}
       {patchInfo.reason && (
         <div>
-          <Text className='text-xs text-gray-500 mb-1'>{t('codex.permissions.labels.reason')}</Text>
-          <Text className='text-sm text-gray-700'>{patchInfo.reason}</Text>
+          <Text className='text-xs text-t-secondary mb-1'>{t('codex.permissions.labels.reason')}</Text>
+          <Text className='text-sm text-t-primary'>{patchInfo.reason}</Text>
         </div>
       )}
     </BasePermissionDisplay>

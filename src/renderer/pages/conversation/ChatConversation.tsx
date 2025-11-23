@@ -7,8 +7,8 @@
 import { ipcBridge } from '@/common';
 import type { TChatConversation } from '@/common/storage';
 import { uuid } from '@/common/utils';
-import { Dropdown, Menu, Tooltip, Typography } from '@arco-design/web-react';
-import { History, Plus } from '@icon-park/react';
+import { Button, Dropdown, Menu, Tooltip, Typography } from '@arco-design/web-react';
+import { History } from '@icon-park/react';
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -19,6 +19,8 @@ import ChatLayout from './ChatLayout';
 import ChatSider from './ChatSider';
 import GeminiChat from './gemini/GeminiChat';
 import CodexChat from './codex/CodexChat';
+import { iconColors } from '@/renderer/theme/colors';
+import addChatIcon from '@/renderer/assets/add-chat.svg';
 
 const AssociatedConversation: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
   const { data } = useSWR(['getAssociateConversation', conversation_id], () => ipcBridge.conversation.getAssociateConversation.invoke({ conversation_id }));
@@ -49,9 +51,7 @@ const AssociatedConversation: React.FC<{ conversation_id: string }> = ({ convers
       }
       trigger={['click']}
     >
-      <span>
-        <History theme='filled' size='17' fill='#333' strokeWidth={2} strokeLinejoin='miter' strokeLinecap='square' />
-      </span>
+      <Button size='mini' icon={<History theme='filled' size='14' fill={iconColors.primary} strokeWidth={2} strokeLinejoin='miter' strokeLinecap='square' />}></Button>
     </Dropdown>
   );
 };
@@ -62,7 +62,9 @@ const AddNewConversation: React.FC<{ conversation: TChatConversation }> = ({ con
   if (!conversation.extra?.workspace) return null;
   return (
     <Tooltip content={t('conversation.workspace.createNewConversation')}>
-      <span
+      <Button
+        size='mini'
+        icon={<img src={addChatIcon} alt='Add chat' className='w-14px h-14px block m-auto' />}
         onClick={() => {
           const id = uuid();
           ipcBridge.conversation.createWithConversation
@@ -77,9 +79,7 @@ const AddNewConversation: React.FC<{ conversation: TChatConversation }> = ({ con
               console.error('Failed to create conversation:', error);
             });
         }}
-      >
-        <Plus theme='filled' size='17' fill='#333' strokeWidth={2} strokeLinejoin='miter' strokeLinecap='square' />
-      </span>
+      />
     </Tooltip>
   );
 };
@@ -106,7 +106,7 @@ const ChatConversation: React.FC<{
   const sliderTitle = useMemo(() => {
     return (
       <div className='flex items-center justify-between'>
-        <span className='text-16px font-bold color-#111827'>{t('conversation.workspace.title')}</span>
+        <span className='text-16px font-bold text-t-primary'>{t('conversation.workspace.title')}</span>
         {conversation && (
           <div className='flex items-center gap-4px'>
             <AddNewConversation conversation={conversation}></AddNewConversation>

@@ -5,7 +5,6 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { AcpBackend } from '@/types/acpTypes';
 import type { IProvider, TProviderWithModel } from '@/common/storage';
 import { ConfigStorage } from '@/common/storage';
 import { uuid } from '@/common/utils';
@@ -14,20 +13,24 @@ import CodexLogo from '@/renderer/assets/logos/codex.svg';
 import GeminiLogo from '@/renderer/assets/logos/gemini.svg';
 import IflowLogo from '@/renderer/assets/logos/iflow.svg';
 import QwenLogo from '@/renderer/assets/logos/qwen.svg';
+import FilePreview from '@/renderer/components/FilePreview';
 import { useCompositionInput } from '@/renderer/hooks/useCompositionInput';
 import { useDragUpload } from '@/renderer/hooks/useDragUpload';
 import { geminiModeList } from '@/renderer/hooks/useModeModeList';
 import { usePasteService } from '@/renderer/hooks/usePasteService';
 import { formatFilesForMessage } from '@/renderer/hooks/useSendBoxFiles';
 import { allSupportedExts, type FileMetadata, getCleanFileNames } from '@/renderer/services/FileService';
+import { iconColors } from '@/renderer/theme/colors';
 import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
-import { Button, ConfigProvider, Dropdown, Input, Menu, Radio, Space, Tooltip } from '@arco-design/web-react';
-import { ArrowUp, Plus } from '@icon-park/react';
+import type { AcpBackend } from '@/types/acpTypes';
+import { Button, ConfigProvider, Dropdown, Input, Menu, Tooltip } from '@arco-design/web-react';
+import { ArrowUp, FolderOpen, MenuUnfold, Plus, Up } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import useSWR from 'swr';
 import styles from './index.module.css';
+import { useLayoutContext } from '@/renderer/context/LayoutContext';
 
 /**
  * 缓存Provider的可用模型列表，避免重复计算
@@ -115,6 +118,15 @@ const useModelList = () => {
   return { modelList, isGoogleAuth };
 };
 
+// Agent Logo 映射
+const AGENT_LOGO_MAP: Record<AcpBackend, string> = {
+  claude: ClaudeLogo,
+  gemini: GeminiLogo,
+  qwen: QwenLogo,
+  codex: CodexLogo,
+  iflow: IflowLogo,
+};
+
 const Guid: React.FC = () => {
   const { t } = useTranslation();
   const guidContainerRef = useRef<HTMLDivElement>(null);
@@ -129,6 +141,8 @@ const Guid: React.FC = () => {
   const [isPlusDropdownOpen, setIsPlusDropdownOpen] = useState(false);
   const [typewriterPlaceholder, setTypewriterPlaceholder] = useState('');
   const [isTyping, setIsTyping] = useState(true);
+  const [isWorkspaceExpanded, setIsWorkspaceExpanded] = useState(false);
+
   const setCurrentModel = async (modelInfo: TProviderWithModel) => {
     await ConfigStorage.set('gemini.defaultModel', modelInfo.useModel).catch((error) => {
       console.error('Failed to save default model:', error);
@@ -136,14 +150,20 @@ const Guid: React.FC = () => {
     _setCurrentModel(modelInfo);
   };
   const navigate = useNavigate();
+  const layout = useLayoutContext();
 
   // 处理粘贴的文件
   const handleFilesAdded = useCallback((pastedFiles: FileMetadata[]) => {
-    // 直接使用文件路径（现在总是有效的）
+    // 直接使用文件路径（现在总是有效的）/ Use file paths directly (always valid now)
     const filePaths = pastedFiles.map((file) => file.path);
 
     setFiles((prevFiles) => [...prevFiles, ...filePaths]);
-    setDir(''); // 清除文件夹选择
+    setDir(''); // 清除文件夹选择 / Clear selected directory
+  }, []);
+
+  const handleRemoveFile = useCallback((targetPath: string) => {
+    // 删除初始化面板中的已选文件 / Remove files already selected on the welcome screen
+    setFiles((prevFiles) => prevFiles.filter((file) => file !== targetPath));
   }, []);
 
   // 使用拖拽 hook
@@ -157,8 +177,20 @@ const Guid: React.FC = () => {
     supportedExts: allSupportedExts,
     onFilesAdded: handleFilesAdded,
     onTextPaste: (text: string) => {
-      // 处理清理后的文本粘贴
-      setInput(text);
+      // 按光标位置插入文本，保持现有内容
+      const textarea = document.activeElement as HTMLTextAreaElement | null;
+      if (textarea && textarea.tagName === 'TEXTAREA') {
+        const start = textarea.selectionStart ?? textarea.value.length;
+        const end = textarea.selectionEnd ?? start;
+        const currentValue = textarea.value;
+        const newValue = currentValue.slice(0, start) + text + currentValue.slice(end);
+        setInput(newValue);
+        setTimeout(() => {
+          textarea.setSelectionRange(start + text.length, start + text.length);
+        }, 0);
+      } else {
+        setInput((prev) => prev + text);
+      }
     },
   });
 
@@ -367,156 +399,248 @@ const Guid: React.FC = () => {
   }, [t]);
   return (
     <ConfigProvider getPopupContainer={() => guidContainerRef.current || document.body}>
-      <div ref={guidContainerRef} className='h-full flex-center flex-col px-100px' style={{ position: 'relative' }}>
-        <p className='text-2xl font-semibold text-gray-900 mb-8'>{t('conversation.welcome.title')}</p>
-        <div
-          className={`bg-white b-solid border rd-20px focus-within:shadow-[0px_2px_20px_rgba(77,60,234,0.1)] transition-all duration-200 overflow-hidden p-16px ${isFileDragging ? 'bg-blue-50 border-blue-300 border-dashed' : 'border-#E5E6EB'}`}
-          style={{
-            width: 'clamp(400px, calc(100% - 80px), 720px)',
-            margin: '0 auto',
-          }}
-          {...dragHandlers}
-        >
-          <Input.TextArea rows={3} placeholder={typewriterPlaceholder || t('conversation.welcome.placeholder')} className={`text-16px focus:b-none rounded-xl !bg-white !b-none !resize-none !p-0 ${styles.lightPlaceholder}`} value={input} onChange={(v) => setInput(v)} onPaste={onPaste} onFocus={onFocus} {...compositionHandlers} onKeyDown={createKeyDownHandler(sendMessageHandler)}></Input.TextArea>
-          <div className='flex items-center justify-between '>
-            <div className='flex items-center gap-10px'>
-              <Dropdown
-                trigger='hover'
-                onVisibleChange={setIsPlusDropdownOpen}
-                droplist={
-                  <Menu
-                    onClickMenuItem={(key) => {
-                      const isFile = key === 'file';
-                      ipcBridge.dialog.showOpen
-                        .invoke({
-                          properties: isFile ? ['openFile', 'multiSelections'] : ['openDirectory'],
-                        })
-                        .then((files) => {
-                          if (isFile) {
-                            if (files && files.length > 0) {
-                              setFiles((prev) => [...prev, ...files]);
-                            }
-                            setDir('');
-                          } else {
-                            setFiles([]);
-                            setDir(files?.[0] || '');
-                          }
-                        })
-                        .catch((error) => {
-                          console.error('Failed to open file/directory dialog:', error);
-                        });
-                    }}
-                  >
-                    <Menu.Item key='file'>{t('conversation.welcome.uploadFile')}</Menu.Item>
-                    <Menu.Item key='dir'>{t('conversation.welcome.linkFolder')}</Menu.Item>
-                  </Menu>
-                }
-              >
-                <span className='flex items-center gap-4px cursor-pointer lh-[1]'>
-                  <Button type='secondary' shape='circle' className={isPlusDropdownOpen ? styles.plusButtonRotate : ''} icon={<Plus theme='outline' size='14' strokeWidth={2} fill='#333' />}></Button>
-                  {files.length > 0 && (
-                    <Tooltip className={'!max-w-max'} content={<span className='whitespace-break-spaces'>{getCleanFileNames(files).join('\n')}</span>}>
-                      <span>File({files.length})</span>
-                    </Tooltip>
-                  )}
-                  {!!dir && (
-                    <Tooltip className={'!max-w-max'} content={<span className='whitespace-break-spaces'>{dir}</span>}>
-                      <span>Folder(1)</span>
-                    </Tooltip>
-                  )}
-                </span>
-              </Dropdown>
+      <div ref={guidContainerRef} className='h-full flex-center flex-col px-10px' style={{ position: 'relative' }}>
+        {layout?.isMobile && layout?.siderCollapsed && (
+          <button type='button' className='mobile-toggle-btn fixed top-0 left-0 z-50 flex items-center justify-center w-16 h-16' style={{ background: 'transparent', border: 'none', outline: 'none', padding: 0, margin: 0 }} onClick={() => layout.setSiderCollapsed(false)}>
+            <MenuUnfold theme='outline' size={24} fill={iconColors.secondary} strokeWidth={3} />
+          </button>
+        )}
+        <div className={styles.guidLayout}>
+          <p className={`text-2xl font-semibold mb-8 text-0 text-center`}>{t('conversation.welcome.title')}</p>
 
-              {selectedAgent === 'gemini' && (
+          {/* Agent 选择器 - 在标题下方 */}
+          {availableAgents && availableAgents.length > 0 && (
+            <div className='w-full flex justify-center'>
+              <div
+                className='inline-flex items-center bg-fill-2'
+                style={{
+                  marginBottom: 16,
+                  padding: '4px',
+                  borderRadius: '30px',
+                  transition: 'all 0.6s cubic-bezier(0.2, 0.8, 0.3, 1)',
+                  width: 'fit-content',
+                  gap: 0,
+                }}
+              >
+                {availableAgents.map((agent, index) => {
+                  const isSelected = selectedAgent === agent.backend;
+                  const logoSrc = AGENT_LOGO_MAP[agent.backend];
+
+                  return (
+                    <React.Fragment key={agent.backend}>
+                      {index > 0 && <div className='text-white/30 text-16px lh-1 p-2px select-none'>|</div>}
+                      <div
+                        className={`group flex items-center cursor-pointer whitespace-nowrap overflow-hidden ${isSelected ? 'opacity-100 px-12px py-8px rd-20px mx-2px' : 'opacity-60 p-4px hover:opacity-100'}`}
+                        style={
+                          isSelected
+                            ? {
+                                transition: 'opacity 0.5s cubic-bezier(0.2, 0.8, 0.3, 1)',
+                                backgroundColor: 'var(--fill-0)',
+                              }
+                            : { transition: 'opacity 0.5s cubic-bezier(0.2, 0.8, 0.3, 1)' }
+                        }
+                        onClick={() => setSelectedAgent(agent.backend)}
+                      >
+                        <img src={logoSrc} alt={`${agent.backend} logo`} width={20} height={20} style={{ objectFit: 'contain', flexShrink: 0 }} />
+                        <span
+                          className={`font-medium text-14px ${isSelected ? 'font-semibold' : 'max-w-0 opacity-0 overflow-hidden group-hover:max-w-100px group-hover:opacity-100 group-hover:ml-8px'}`}
+                          style={{
+                            color: 'var(--color-text-1)',
+                            transition: isSelected ? 'color 0.5s cubic-bezier(0.2, 0.8, 0.3, 1), font-weight 0.5s cubic-bezier(0.2, 0.8, 0.3, 1)' : 'max-width 0.6s cubic-bezier(0.2, 0.8, 0.3, 1), opacity 0.5s cubic-bezier(0.2, 0.8, 0.3, 1) 0.05s, margin 0.6s cubic-bezier(0.2, 0.8, 0.3, 1)',
+                          }}
+                        >
+                          {agent.name}
+                        </span>
+                      </div>
+                    </React.Fragment>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <div
+            className={`${styles.guidInputCard} bg-border-2 b-solid border rd-20px transition-all duration-200 overflow-hidden p-16px ${isFileDragging ? 'border-dashed' : 'border-3'}`}
+            style={{
+              zIndex: 1,
+              ...(isFileDragging
+                ? {
+                    backgroundColor: 'var(--color-primary-light-1)',
+                    borderColor: 'rgb(var(--primary-3))',
+                  }
+                : {
+                    boxShadow: '0px 2px 20px rgba(var(--primary-rgb, 77, 60, 234), 0.1)',
+                  }),
+            }}
+            {...dragHandlers}
+          >
+            <Input.TextArea rows={3} placeholder={typewriterPlaceholder || t('conversation.welcome.placeholder')} className={`text-16px focus:b-none rounded-xl !bg-transparent !b-none !resize-none !p-0 ${styles.lightPlaceholder}`} value={input} onChange={(v) => setInput(v)} onPaste={onPaste} onFocus={onFocus} {...compositionHandlers} onKeyDown={createKeyDownHandler(sendMessageHandler)}></Input.TextArea>
+            {files.length > 0 && (
+              // 展示待发送的文件并允许取消 / Show pending files and allow cancellation
+              <div className='flex flex-wrap items-center gap-8px mt-12px mb-12px'>
+                {files.map((path) => (
+                  <FilePreview key={path} path={path} onRemove={() => handleRemoveFile(path)} />
+                ))}
+              </div>
+            )}
+            <div className={styles.actionRow}>
+              <div className={`${styles.actionTools} flex items-center gap-10px`}>
                 <Dropdown
                   trigger='hover'
+                  onVisibleChange={setIsPlusDropdownOpen}
                   droplist={
-                    <Menu selectedKeys={currentModel ? [currentModel.id + currentModel.useModel] : []}>
-                      {!modelList || modelList.length === 0 ? (
-                        <>
-                          {/* 暂无可用模型提示 */}
-                          <Menu.Item key='no-models' className='px-12px py-12px text-gray-500 text-14px text-center flex justify-center items-center' disabled>
-                            {t('settings.noAvailableModels')}
-                          </Menu.Item>
-                          {/* Add Model 选项 */}
-                          <Menu.Item key='add-model' className='text-12px text-gray-500' onClick={() => navigate('/settings/model')}>
-                            <Plus theme='outline' size='12' />
-                            {t('settings.addModel')}
-                          </Menu.Item>
-                        </>
-                      ) : (
-                        <>
-                          {(modelList || []).map((provider) => {
-                            const availableModels = getAvailableModels(provider);
-                            return (
-                              <Menu.ItemGroup title={provider.name} key={provider.id}>
-                                {availableModels.map((modelName) => (
-                                  <Menu.Item
-                                    key={provider.id + modelName}
-                                    className={currentModel?.id + currentModel?.useModel === provider.id + modelName ? '!bg-#f2f3f5' : ''}
-                                    onClick={() => {
-                                      setCurrentModel({ ...provider, useModel: modelName }).catch((error) => {
-                                        console.error('Failed to set current model:', error);
-                                      });
-                                    }}
-                                  >
-                                    {modelName}
-                                  </Menu.Item>
-                                ))}
-                              </Menu.ItemGroup>
-                            );
-                          })}
-                          {/* Add Model 选项 */}
-                          <Menu.Item key='add-model' className='text-12px text-gray-500' onClick={() => navigate('/settings/model')}>
-                            <Plus theme='outline' size='12' />
-                            {t('settings.addModel')}
-                          </Menu.Item>
-                        </>
-                      )}
+                    <Menu
+                      onClickMenuItem={(key) => {
+                        if (key === 'file') {
+                          ipcBridge.dialog.showOpen
+                            .invoke({
+                              properties: ['openFile', 'multiSelections'],
+                            })
+                            .then((files) => {
+                              if (files && files.length > 0) {
+                                setFiles((prev) => [...prev, ...files]);
+                              }
+                            })
+                            .catch((error) => {
+                              console.error('Failed to open file dialog:', error);
+                            });
+                        }
+                      }}
+                    >
+                      <Menu.Item key='file'>{t('conversation.welcome.uploadFile')}</Menu.Item>
                     </Menu>
                   }
                 >
-                  <Button shape='round'>{currentModel ? currentModel.useModel : t('conversation.welcome.selectModel')}</Button>
+                  <span className='flex items-center gap-4px cursor-pointer lh-[1]'>
+                    <Button type='secondary' shape='circle' className={isPlusDropdownOpen ? styles.plusButtonRotate : ''} icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />}></Button>
+                    {files.length > 0 && (
+                      <Tooltip className={'!max-w-max'} content={<span className='whitespace-break-spaces'>{getCleanFileNames(files).join('\n')}</span>}>
+                        <span className='text-t-primary'>File({files.length})</span>
+                      </Tooltip>
+                    )}
+                  </span>
                 </Dropdown>
-              )}
+
+                {selectedAgent === 'gemini' && (
+                  <Dropdown
+                    trigger='hover'
+                    droplist={
+                      <Menu selectedKeys={currentModel ? [currentModel.id + currentModel.useModel] : []}>
+                        {!modelList || modelList.length === 0 ? (
+                          <>
+                            {/* 暂无可用模型提示 */}
+                            <Menu.Item key='no-models' className='px-12px py-12px text-t-secondary text-14px text-center flex justify-center items-center' disabled>
+                              {t('settings.noAvailableModels')}
+                            </Menu.Item>
+                            {/* Add Model 选项 */}
+                            <Menu.Item key='add-model' className='text-12px text-t-secondary' onClick={() => navigate('/settings/model')}>
+                              <Plus theme='outline' size='12' />
+                              {t('settings.addModel')}
+                            </Menu.Item>
+                          </>
+                        ) : (
+                          <>
+                            {(modelList || []).map((provider) => {
+                              const availableModels = getAvailableModels(provider);
+                              return (
+                                <Menu.ItemGroup title={provider.name} key={provider.id}>
+                                  {availableModels.map((modelName) => (
+                                    <Menu.Item
+                                      key={provider.id + modelName}
+                                      className={currentModel?.id + currentModel?.useModel === provider.id + modelName ? '!bg-2' : ''}
+                                      onClick={() => {
+                                        setCurrentModel({ ...provider, useModel: modelName }).catch((error) => {
+                                          console.error('Failed to set current model:', error);
+                                        });
+                                      }}
+                                    >
+                                      {modelName}
+                                    </Menu.Item>
+                                  ))}
+                                </Menu.ItemGroup>
+                              );
+                            })}
+                            {/* Add Model 选项 */}
+                            <Menu.Item key='add-model' className='text-12px text-t-secondary' onClick={() => navigate('/settings/model')}>
+                              <Plus theme='outline' size='12' />
+                              {t('settings.addModel')}
+                            </Menu.Item>
+                          </>
+                        )}
+                      </Menu>
+                    }
+                  >
+                    <Button className={'sendbox-model-btn'} shape='round'>
+                      {currentModel ? currentModel.useModel : t('conversation.welcome.selectModel')}
+                    </Button>
+                  </Dropdown>
+                )}
+              </div>
+              <div className={styles.actionSubmit}>
+                <Button
+                  shape='circle'
+                  type='primary'
+                  loading={loading}
+                  disabled={!input.trim() || ((!selectedAgent || selectedAgent === 'gemini') && !currentModel)}
+                  icon={<ArrowUp theme='outline' size='14' fill='white' strokeWidth={2} />}
+                  onClick={() => {
+                    handleSend().catch((error) => {
+                      console.error('Failed to send message:', error);
+                    });
+                  }}
+                />
+              </div>
             </div>
-            <Button
-              shape='circle'
-              type='primary'
-              loading={loading}
-              disabled={(!selectedAgent || selectedAgent === 'gemini') && !currentModel}
-              icon={<ArrowUp theme='outline' size='14' fill='white' strokeWidth={2} />}
-              onClick={() => {
-                handleSend().catch((error) => {
-                  console.error('Failed to send message:', error);
-                });
-              }}
-            />
+          </div>
+
+          {/* 工作空间选择区域 */}
+          <div
+            className={`${styles.guidInputCard} overflow-hidden transition-all duration-200`}
+            style={{
+              marginTop: '-20px',
+            }}
+          >
+            {!isWorkspaceExpanded ? (
+              <div className='flex items-end h-40px w-150px rd-8px gap-8px px-16px py-10px cursor-pointer' onClick={() => setIsWorkspaceExpanded(true)}>
+                <FolderOpen className='line-height-4' theme='outline' size='16' fill={iconColors.secondary} />
+                <span className='text-14px text-t-secondary'>{t('conversation.welcome.specifyWorkspace')}</span>
+              </div>
+            ) : (
+              <div className='flex items-center justify-between pt-25px'>
+                <div className='flex items-center gap-2 flex-1 min-w-0'>
+                  <Up theme='outline' size='16' fill={iconColors.secondary} className='cursor-pointer flex-shrink-0' onClick={() => setIsWorkspaceExpanded(false)} />
+                  <FolderOpen className='flex-shrink-0 line-height-4' theme='outline' size='16' fill={iconColors.secondary} />
+                  <Tooltip content={dir || t('conversation.welcome.none')} position='top'>
+                    <span className='text-13px text-t-secondary truncate'>
+                      {t('conversation.welcome.currentWorkspace')}: {dir || t('conversation.welcome.none')}
+                    </span>
+                  </Tooltip>
+                </div>
+                <Button
+                  size='small'
+                  icon={<Plus theme='outline' size='14' />}
+                  className='w-124px h-28px rounded-[20px] bg-2'
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    ipcBridge.dialog.showOpen
+                      .invoke({
+                        properties: ['openDirectory'],
+                      })
+                      .then((files) => {
+                        setFiles([]);
+                        setDir(files?.[0] || '');
+                      })
+                      .catch((error) => {
+                        console.error('Failed to open directory dialog:', error);
+                      });
+                  }}
+                >
+                  <span className='mr-8px'> {t('conversation.welcome.openFolder')} </span>
+                </Button>
+              </div>
+            )}
           </div>
         </div>
-
-        {/* ACP Agents 选择区域 */}
-        {availableAgents && availableAgents.length > 0 && (
-          <Space direction='horizontal' className={styles.roundedSpace} style={{ marginTop: 16, width: '100%', justifyContent: 'center' }}>
-            <Radio.Group
-              type='button'
-              className={styles.roundedRadioGroup}
-              value={selectedAgent}
-              onChange={(value) => {
-                setSelectedAgent(value as AcpBackend);
-              }}
-              options={availableAgents.map((agent) => ({
-                label: (
-                  <div className='flex items-center gap-2'>
-                    <img src={agent.backend === 'claude' ? ClaudeLogo : agent.backend === 'gemini' ? GeminiLogo : agent.backend === 'qwen' ? QwenLogo : agent.backend === 'codex' ? CodexLogo : agent.backend === 'iflow' ? IflowLogo : ''} alt={`${agent.backend} logo`} width={16} height={16} style={{ objectFit: 'contain' }} />
-                    <span className='font-medium'>{agent.name}</span>
-                  </div>
-                ),
-                value: agent.backend,
-              }))}
-            />
-          </Space>
-        )}
       </div>
     </ConfigProvider>
   );

@@ -1,19 +1,31 @@
-import useTheme from '@/renderer/hooks/useTheme';
-import { Select } from '@arco-design/web-react';
+/**
+ * @license
+ * Copyright 2025 AionUi (aionui.com)
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { useThemeContext } from '@/renderer/context/ThemeContext';
+import AionSelect from '@/renderer/components/base/AionSelect';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
-const ThemeSwitcher: React.FC = () => {
+/**
+ * 主题切换器组件 / Theme switcher component
+ *
+ * 提供明暗模式切换功能
+ * Provides light/dark mode switching functionality
+ */
+export const ThemeSwitcher = () => {
+  const { theme, setTheme } = useThemeContext();
   const { t } = useTranslation();
-  const [theme, setTheme] = useTheme();
+
   return (
     <div className='flex items-center gap-8px'>
-      <Select value={theme} onChange={setTheme} style={{ width: 100 }} size='small'>
-        <Select.Option value='light'>{t('settings.lightMode')}</Select.Option>
-        <Select.Option value='dark'>{t('settings.darkMode')}</Select.Option>
-      </Select>
+      {/* 明暗模式选择器 / Light/Dark mode selector */}
+      <AionSelect value={theme} onChange={setTheme} className='w-160px'>
+        <AionSelect.Option value='light'>{t('settings.lightMode')}</AionSelect.Option>
+        <AionSelect.Option value='dark'>{t('settings.darkMode')}</AionSelect.Option>
+      </AionSelect>
     </div>
   );
 };
-
-export default ThemeSwitcher;
