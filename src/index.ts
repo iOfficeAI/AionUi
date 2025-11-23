@@ -5,7 +5,7 @@
  */
 
 import './utils/configureChromium';
-import { app, BrowserWindow, ipcMain, nativeTheme, screen } from 'electron';
+import { app, BrowserWindow, screen } from 'electron';
 import fixPath from 'fix-path';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -55,7 +55,6 @@ process.on('unhandledRejection', (_reason, _promise) => {
   // Error reporting logic can be added here
 });
 
-const isMacOS = process.platform === 'darwin';
 const hasSwitch = (flag: string) => process.argv.includes(`--${flag}`) || app.commandLine.hasSwitch(flag);
 const getSwitchValue = (flag: string): string | undefined => {
   const withEqualsPrefix = `--${flag}=`;
@@ -148,55 +147,8 @@ const resolveRemoteAccess = (config: WebUIUserConfig): boolean => {
 const isWebUIMode = hasSwitch('webui');
 const isRemoteMode = hasSwitch('remote');
 const isResetPasswordMode = hasCommand('--resetpass');
-const TITLEBAR_OVERLAY_HEIGHT = 36;
 
-const WINDOW_CONTROL_CHANNELS = {
-  minimize: 'window-controls:minimize',
-  maximize: 'window-controls:maximize',
-  unmaximize: 'window-controls:unmaximize',
-  close: 'window-controls:close',
-  isMaximized: 'window-controls:is-maximized',
-  stateChanged: 'window-controls:maximized-changed',
-} as const;
-
-let mainWindow: BrowserWindow | null = null;
-
-const getActiveWindow = () => {
-  if (mainWindow && !mainWindow.isDestroyed()) {
-    return mainWindow;
-  }
-  return null;
-};
-
-ipcMain.handle(WINDOW_CONTROL_CHANNELS.minimize, () => {
-  const target = getActiveWindow();
-  target?.minimize();
-});
-
-ipcMain.handle(WINDOW_CONTROL_CHANNELS.maximize, () => {
-  const target = getActiveWindow();
-  if (!target) return;
-  if (target.isMaximized()) {
-    target.unmaximize();
-  } else {
-    target.maximize();
-  }
-});
-
-ipcMain.handle(WINDOW_CONTROL_CHANNELS.unmaximize, () => {
-  const target = getActiveWindow();
-  target?.unmaximize();
-});
-
-ipcMain.handle(WINDOW_CONTROL_CHANNELS.close, () => {
-  const target = getActiveWindow();
-  target?.close();
-});
-
-ipcMain.handle(WINDOW_CONTROL_CHANNELS.isMaximized, () => {
-  const target = getActiveWindow();
-  return target ? target.isMaximized() : false;
-});
+let mainWindow: BrowserWindow;
 
 const createWindow = (): void => {
   // Get primary display size
@@ -208,62 +160,21 @@ const createWindow = (): void => {
   const windowHeight = Math.floor(screenHeight * 0.8);
 
   // Create the browser window.
-  const prefersDarkAppearance = nativeTheme.shouldUseDarkColors;
-  const createdWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: windowWidth,
     height: windowHeight,
     autoHideMenuBar: true,
-    backgroundColor: prefersDarkAppearance ? '#1a1a1a' : '#f7f8fa',
-    ...(isMacOS
-      ? {
-          titleBarStyle: 'hiddenInset' as const,
-          titleBarOverlay: {
-            color: '#00000000',
-            symbolColor: prefersDarkAppearance ? '#f0f0f0' : '#1d2129',
-            height: TITLEBAR_OVERLAY_HEIGHT,
-          },
-          trafficLightPosition: { x: 12, y: 12 },
-        }
-      : {
-          frame: false,
-        }),
     webPreferences: {
       preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
       webviewTag: true, // 启用 webview 标签用于 HTML 预览 / Enable webview tag for HTML preview
     },
   });
 
-  mainWindow = createdWindow;
-
-  // 设置 CSP 以允许加载图片、webview 和内联内容
-  // Set CSP to allow loading images, webview, and inline content
-  createdWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
-    callback({
-      responseHeaders: {
-        ...details.responseHeaders,
-        'Content-Security-Policy': ["default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob:; " + "script-src 'self' 'unsafe-inline' 'unsafe-eval'; " + "style-src 'self' 'unsafe-inline' data: blob:; " + "img-src 'self' data: blob: https:; " + "font-src 'self' data: blob:; " + "connect-src 'self' ws: wss: blob:; " + "media-src 'self' blob: data:; " + "frame-src 'self' data: blob:; " + "child-src 'self' data: blob:; " + "object-src 'none';"],
-      },
-    });
-  });
-
-  const emitWindowState = () => {
-    const target = getActiveWindow();
-    if (target) {
-      target.webContents.send(WINDOW_CONTROL_CHANNELS.stateChanged, target.isMaximized());
-    }
-  };
-
-  createdWindow.on('maximize', emitWindowState);
-  createdWindow.on('unmaximize', emitWindowState);
-  createdWindow.on('closed', () => {
-    mainWindow = null;
-  });
-
-  initMainAdapterWithWindow(createdWindow);
-  void applyZoomToWindow(createdWindow);
+  initMainAdapterWithWindow(mainWindow);
+  void applyZoomToWindow(mainWindow);
 
   // and load the index.html of the app.
-  createdWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY).catch((_error) => {
+  mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY).catch((_error) => {
     // Error loading main window URL
   });
 
@@ -271,7 +182,7 @@ const createWindow = (): void => {
   // 使用 app.isPackaged 判断更可靠，打包后的应用不会自动打开 DevTools
   // Using app.isPackaged is more reliable, packaged apps won't auto-open DevTools
   if (!app.isPackaged) {
-    createdWindow.webContents.openDevTools();
+    mainWindow.webContents.openDevTools();
   }
 };
 
