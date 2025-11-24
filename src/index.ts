@@ -164,6 +164,13 @@ const createWindow = (): void => {
     width: windowWidth,
     height: windowHeight,
     autoHideMenuBar: true,
+    // Custom titlebar configuration / 自定义标题栏配置
+    ...(process.platform === 'darwin'
+      ? {
+          titleBarStyle: 'hidden',
+          trafficLightPosition: { x: 10, y: 10 },
+        }
+      : { frame: false }),
     webPreferences: {
       preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
       webviewTag: true, // 启用 webview 标签用于 HTML 预览 / Enable webview tag for HTML preview
