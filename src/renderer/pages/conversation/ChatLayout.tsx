@@ -67,6 +67,7 @@ const ChatLayout: React.FC<{
   const manualRightCollapseTimer = useRef<number | undefined>(undefined);
   const previousWorkspaceCollapsedRef = useRef<boolean | null>(null);
   const previousSiderCollapsedRef = useRef<boolean | null>(null);
+  const previousPreviewOpenRef = useRef(false);
 
   // 预览面板状态 / Preview panel state
   const { isOpen: isPreviewOpen } = usePreviewContext();
@@ -219,9 +220,12 @@ const ChatLayout: React.FC<{
 
   // 预览打开时自动收起侧边栏和工作空间 / Auto-collapse sidebar and workspace when preview opens
   useEffect(() => {
-    if (!isDesktop) return;
+    if (!isDesktop) {
+      previousPreviewOpenRef.current = false;
+      return;
+    }
 
-    if (isPreviewOpen) {
+    if (isPreviewOpen && !previousPreviewOpenRef.current) {
       if (previousWorkspaceCollapsedRef.current === null) {
         previousWorkspaceCollapsedRef.current = rightSiderCollapsed;
       }
@@ -230,7 +234,7 @@ const ChatLayout: React.FC<{
       }
       setRightSiderCollapsed(true);
       layout?.setSiderCollapsed?.(true);
-    } else {
+    } else if (!isPreviewOpen && previousPreviewOpenRef.current) {
       if (previousWorkspaceCollapsedRef.current !== null) {
         setRightSiderCollapsed(previousWorkspaceCollapsedRef.current);
         previousWorkspaceCollapsedRef.current = null;
@@ -240,6 +244,8 @@ const ChatLayout: React.FC<{
         previousSiderCollapsedRef.current = null;
       }
     }
+
+    previousPreviewOpenRef.current = isPreviewOpen;
   }, [isPreviewOpen, isDesktop, layout, rightSiderCollapsed]);
 
   const rightHandle = isDesktop && !rightSiderCollapsed ? createWorkspaceDragHandle({ className: 'absolute right-0 top-0 bottom-0', style: { borderRight: '1px solid var(--bg-3)' } }) : null;
