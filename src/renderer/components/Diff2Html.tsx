@@ -20,44 +20,7 @@ import { ipcBridge } from '@/common';
 import CollapsibleContent from './CollapsibleContent';
 import { useTranslation } from 'react-i18next';
 import { joinPath } from '@/common/chatLib';
-
-// 辅助函数：获取文件扩展名 / Helper function: Get file extension
-const getFileExtension = (filePath: string): string => {
-  const lastDotIndex = filePath.lastIndexOf('.');
-  if (lastDotIndex === -1 || lastDotIndex === filePath.length - 1) {
-    return '';
-  }
-  return filePath.substring(lastDotIndex + 1).toLowerCase();
-};
-
-// 辅助函数：根据文件扩展名确定内容类型 / Helper function: Determine content type by file extension
-const getContentTypeByExtension = (filePath: string): 'markdown' | 'html' | 'pdf' | 'word' | 'ppt' | 'excel' | 'image' | 'code' => {
-  const ext = getFileExtension(filePath);
-
-  // Markdown
-  if (ext === 'md' || ext === 'markdown') return 'markdown';
-
-  // HTML
-  if (ext === 'html' || ext === 'htm') return 'html';
-
-  // PDF
-  if (ext === 'pdf') return 'pdf';
-
-  // Word
-  if (ext === 'docx' || ext === 'doc') return 'word';
-
-  // PowerPoint
-  if (ext === 'pptx' || ext === 'ppt') return 'ppt';
-
-  // Excel
-  if (ext === 'xlsx' || ext === 'xls') return 'excel';
-
-  // Images
-  if (['png', 'jpg', 'jpeg', 'gif', 'svg', 'webp', 'bmp', 'ico'].includes(ext)) return 'image';
-
-  // Default to code
-  return 'code';
-};
+import { getContentTypeByExtension, getFileExtension } from '@/renderer/utils/fileUtils';
 
 const Diff2Html = ({ diff, className, title }: { diff: string; className?: string; title?: string }) => {
   const { theme } = useThemeContext();
