@@ -43,10 +43,15 @@ const SendBox: React.FC<{
   const singleLineWidthRef = useRef<number>(0);
   const measurementCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const latestInputRef = useRef(input);
+  const setInputRef = useRef(setInput);
 
   useEffect(() => {
     latestInputRef.current = input;
   }, [input]);
+
+  useEffect(() => {
+    setInputRef.current = setInput;
+  }, [setInput]);
 
   // 集成预览面板的"添加到聊天"功能 / Integrate preview panel's "Add to chat" functionality
   const { setSendBoxHandler } = usePreviewContext();
@@ -56,13 +61,13 @@ const SendBox: React.FC<{
     const handler = (text: string) => {
       const base = latestInputRef.current;
       const newValue = base ? `${base}\n\n${text}` : text;
-      setInput(newValue);
+      setInputRef.current(newValue);
     };
     setSendBoxHandler(handler);
     return () => {
       setSendBoxHandler(null);
     };
-  }, [setInput, setSendBoxHandler]);
+  }, [setSendBoxHandler]);
 
   // 初始化时获取单行输入框的可用宽度
   // Initialize and get the available width of single-line input

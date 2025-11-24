@@ -39,12 +39,12 @@ export function initFsBridge(): void {
       const base64 = await fs.readFile(filePath, { encoding: 'base64' });
       return `data:${mime};base64,${base64}`;
     } catch (error) {
-      console.error(`Failed to read image file: ${filePath}`, error);
       // Return a placeholder data URL instead of throwing
       return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIG5vdCBmb3VuZDwvdGV4dD48L3N2Zz4=';
     }
   });
 
+  // 下载远程图片并限制协议/重定向次数 / Download remote resource with protocol & redirect guard
   const downloadRemoteBuffer = (targetUrl: string, redirectCount = 0): Promise<{ buffer: Buffer; contentType?: string }> => {
     const allowedProtocols = new Set(['http:', 'https:']);
     const parsedUrl = new URL(targetUrl);
@@ -52,6 +52,7 @@ export function initFsBridge(): void {
       return Promise.reject(new Error('Unsupported protocol'));
     }
 
+    // 仅允许白名单域名，避免随意访问 / Restrict to a whitelist of hosts for safety
     const allowedHosts = ['github.com', 'raw.githubusercontent.com', 'contrib.rocks', 'img.shields.io'];
     const isAllowedHost = allowedHosts.some((host) => parsedUrl.hostname === host || parsedUrl.hostname.endsWith(`.${host}`));
     if (!isAllowedHost) {
@@ -116,31 +117,27 @@ export function initFsBridge(): void {
     });
   };
 
+  // 通过桥接层拉取远程图片并转成 base64 / Fetch remote image via bridge and return base64
   ipcBridge.fs.fetchRemoteImage.provider(async ({ url }) => {
-    try {
-      const { buffer, contentType } = await downloadRemoteBuffer(url);
-      const base64 = buffer.toString('base64');
-      return `data:${contentType || 'application/octet-stream'};base64,${base64}`;
-    } catch (error) {
-      console.error('Failed to fetch remote image:', url, error);
-      throw error;
-    }
+    const { buffer, contentType } = await downloadRemoteBuffer(url);
+    const base64 = buffer.toString('base64');
+    return `data:${contentType || 'application/octet-stream'};base64,${base64}`;
   });
 
-  // 创建临时文件
+  // 创建临时文件 / Create temporary file on disk
   ipcBridge.fs.createTempFile.provider(async ({ fileName }) => {
     try {
       const { cacheDir } = getSystemDir();
       const tempDir = path.join(cacheDir, 'temp');
 
-      // 确保临时目录存在
+      // 确保临时目录存在 / Ensure temp directory exists
       await fs.mkdir(tempDir, { recursive: true });
 
-      // 使用原文件名，只在必要时清理特殊字符
+      // 使用原文件名，必要时清理非法字符 / Keep original name but sanitize illegal characters
       const safeFileName = fileName.replace(/[<>:"/\\|?*]/g, '_');
       let tempFilePath = path.join(tempDir, safeFileName);
 
-      // 如果文件已存在，添加时间戳后缀避免冲突
+      // 如果冲突则追加时间戳后缀 / Append timestamp when duplicate exists
       const fileExists = await fs
         .access(tempFilePath)
         .then(() => true)
@@ -154,7 +151,7 @@ export function initFsBridge(): void {
         tempFilePath = path.join(tempDir, tempFileName);
       }
 
-      // 创建空文件
+      // 创建空文件作为占位 / Create empty placeholder file
       await fs.writeFile(tempFilePath, Buffer.alloc(0));
 
       return tempFilePath;
@@ -210,16 +207,7 @@ export function initFsBridge(): void {
             operation: 'write' as const,
           };
 
-          console.log('[fsBridge] 📡 Emitting file stream update:', {
-            filePath: eventData.filePath,
-            workspace: eventData.workspace,
-            relativePath: eventData.relativePath,
-            contentLength: eventData.content.length,
-            operation: eventData.operation,
-          });
-
           ipcBridge.fileStream.contentUpdate.emit(eventData);
-          console.log('[fsBridge] ✅ File stream update emitted successfully');
         } catch (emitError) {
           console.error('[fsBridge] ❌ Failed to emit file stream update:', emitError);
         }

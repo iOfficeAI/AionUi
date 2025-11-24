@@ -10,6 +10,7 @@ import { ipcBridge } from '@/common';
 // 存储所有文件监听器 / Store all file watchers
 const watchers = new Map<string, fs.FSWatcher>();
 
+// 初始化文件监听桥接，负责 start/stop 所有 watcher / Initialize file watch bridge to manage start/stop of watchers
 export function initFileWatchBridge(): void {
   // 开始监听文件 / Start watching file
   ipcBridge.fileWatch.startWatch.provider(({ filePath }) => {
@@ -20,12 +21,9 @@ export function initFileWatchBridge(): void {
         watchers.delete(filePath);
       }
 
-      console.log('[FileWatch] Starting watch for:', filePath);
-
       // 创建文件监听器 / Create file watcher
       const watcher = fs.watch(filePath, (eventType) => {
         // 文件变化时，通知 renderer 进程 / Notify renderer process on file change
-        console.log('[FileWatch] File changed:', filePath, eventType);
         ipcBridge.fileWatch.fileChanged.emit({ filePath, eventType });
       });
 
@@ -44,7 +42,6 @@ export function initFileWatchBridge(): void {
       if (watchers.has(filePath)) {
         watchers.get(filePath)?.close();
         watchers.delete(filePath);
-        console.log('[FileWatch] Stopped watch for:', filePath);
         return Promise.resolve({ success: true });
       }
       return Promise.resolve({ success: false, msg: 'No watcher found for this file' });
@@ -57,9 +54,8 @@ export function initFileWatchBridge(): void {
   // 停止所有监听 / Stop all watchers
   ipcBridge.fileWatch.stopAllWatches.provider(() => {
     try {
-      watchers.forEach((watcher, filePath) => {
+      watchers.forEach((watcher) => {
         watcher.close();
-        console.log('[FileWatch] Stopped watch for:', filePath);
       });
       watchers.clear();
       return Promise.resolve({ success: true });
