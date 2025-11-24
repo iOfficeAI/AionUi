@@ -18,16 +18,8 @@ import { useConversationContextSafe } from '@/renderer/context/ConversationConte
 import { parseFilePathFromDiff } from '@/renderer/utils/diffUtils';
 import { ipcBridge } from '@/common';
 import CollapsibleContent from './CollapsibleContent';
-
-// 辅助函数：拼接路径 / Helper function: Join paths
-const joinPath = (base: string, relative: string): string => {
-  // 移除 base 末尾的斜杠 / Remove trailing slash from base
-  const normalizedBase = base.replace(/[/\\]+$/, '');
-  // 移除 relative 开头的斜杠 / Remove leading slash from relative
-  const normalizedRelative = relative.replace(/^[/\\]+/, '');
-  // 使用正斜杠拼接（跨平台兼容）/ Join with forward slash (cross-platform compatible)
-  return `${normalizedBase}/${normalizedRelative}`;
-};
+import { useTranslation } from 'react-i18next';
+import { joinPath } from '@/common/chatLib';
 
 // 辅助函数：获取文件扩展名 / Helper function: Get file extension
 const getFileExtension = (filePath: string): string => {
@@ -69,6 +61,7 @@ const getContentTypeByExtension = (filePath: string): 'markdown' | 'html' | 'pdf
 
 const Diff2Html = ({ diff, className, title }: { diff: string; className?: string; title?: string }) => {
   const { theme } = useThemeContext();
+  const { t } = useTranslation();
   const { openPreview, closePreviewByIdentity, findPreviewTab } = usePreviewContext(); // 获取预览上下文 / Get preview context
   const conversationContext = useConversationContextSafe(); // 获取会话上下文 / Get conversation context
   const [sideBySide, setSideBySide] = useState(false);
@@ -133,17 +126,13 @@ const Diff2Html = ({ diff, className, title }: { diff: string; className?: strin
                 } else {
                   // 如果有工作空间上下文，尝试从工作空间读取实际文件 / If workspace context exists, try to read actual file from workspace
                   if (conversationContext?.workspace) {
-                    console.log('[Diff2Html] Workspace context found', { workspace: conversationContext.workspace });
-
                     try {
                       // 1. 从 diff 中解析文件路径 / Parse file path from diff
                       const relativePath = parseFilePathFromDiff(diff);
-                      console.log('[Diff2Html] Parsed relative path', { relativePath });
 
                       if (relativePath) {
                         // 2. 构建完整文件路径 / Construct full file path
                         const fullPath = joinPath(conversationContext.workspace, relativePath);
-                        console.log('[Diff2Html] Full path constructed', { fullPath });
 
                         // 3. 根据文件类型确定如何处理 / Determine how to handle based on file type
                         if (contentType === 'image') {
@@ -166,7 +155,6 @@ const Diff2Html = ({ diff, className, title }: { diff: string; className?: strin
                         } else {
                           // 文本文件（markdown, html, code）：读取内容 / Text files (markdown, html, code): Read content
                           const fileContent = await ipcBridge.fs.readFile.invoke({ path: fullPath });
-                          console.log('[Diff2Html] File read successfully', { contentLength: fileContent.length, contentType });
 
                           const ext = getFileExtension(relativePath);
                           openPreview(fileContent, contentType, {
@@ -183,15 +171,13 @@ const Diff2Html = ({ diff, className, title }: { diff: string; className?: strin
                       console.error('[Diff2Html] Failed to read file from workspace:', error);
                       // 读取失败时不显示预览 / Don't show preview on read failure
                     }
-                  } else {
-                    console.log('[Diff2Html] No workspace context available');
                   }
                 }
               }}
-              title={isCurrentlyPreviewing ? '关闭预览面板 / Close preview panel' : '在预览面板中查看 / View in preview panel'}
+              title={isCurrentlyPreviewing ? t('preview.closePreview') : t('preview.preview')}
             >
               <PreviewOpen theme='outline' size='14' fill={iconColors.secondary} />
-              <span className='text-12px text-t-secondary whitespace-nowrap'>{isCurrentlyPreviewing ? '关闭预览' : '查看预览'}</span>
+              <span className='text-12px text-t-secondary whitespace-nowrap'>{isCurrentlyPreviewing ? t('preview.closePreview') : t('preview.preview')}</span>
             </div>
 
             {/* 原有的 side-by-side 选项 / Original side-by-side option */}

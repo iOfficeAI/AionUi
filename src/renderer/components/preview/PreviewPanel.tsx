@@ -103,7 +103,7 @@ const PreviewPanel: React.FC = () => {
       if ((e.metaKey || e.ctrlKey) && e.key === 's') {
         e.preventDefault(); // 阻止浏览器默认保存行为 / Prevent default browser save
         if (activeTab?.isDirty) {
-          saveContent(); // 保存当前 tab / Save current tab
+          void saveContent(); // 保存当前 tab / Save current tab
         }
       }
     };
@@ -268,20 +268,19 @@ const PreviewPanel: React.FC = () => {
   );
 
   // 保存并关闭tab / Save and close tab
-  const handleSaveAndCloseTab = useCallback(() => {
+  const handleSaveAndCloseTab = useCallback(async () => {
     if (!closeTabConfirm.tabId) return;
 
     try {
-      // 先保存 / Save first
-      saveContent(closeTabConfirm.tabId);
-      // 再关闭 / Then close
+      const success = await saveContent(closeTabConfirm.tabId);
+      if (!success) {
+        throw new Error(t('common.saveFailed'));
+      }
       closeTab(closeTabConfirm.tabId);
       setCloseTabConfirm({ show: false, tabId: null });
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : '未知错误';
       messageApi.error(`${t('common.saveFailed')}: ${errorMsg}`);
-      // 即使保存失败，也关闭确认对话框 / Close dialog even if save failed
-      setCloseTabConfirm({ show: false, tabId: null });
     }
   }, [closeTabConfirm.tabId, saveContent, closeTab, messageApi, t]);
 
@@ -552,7 +551,10 @@ const PreviewPanel: React.FC = () => {
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `${metadata?.fileName || `${contentType}-${Date.now()}`}.${ext}`;
+      const rawFileName = metadata?.fileName || `${contentType}-${Date.now()}`;
+      const normalizedExt = ext.toLowerCase();
+      const hasSameExt = rawFileName.toLowerCase().endsWith(`.${normalizedExt}`);
+      link.download = hasSameExt ? rawFileName : `${rawFileName}.${ext}`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

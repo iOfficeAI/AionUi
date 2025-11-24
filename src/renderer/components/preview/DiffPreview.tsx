@@ -15,6 +15,7 @@ import { vs, vs2015 } from 'react-syntax-highlighter/dist/esm/styles/hljs';
 import remarkGfm from 'remark-gfm';
 import SelectionToolbar from './SelectionToolbar';
 import { useTranslation } from 'react-i18next';
+import { extractContentFromDiff } from '@/renderer/utils/diffUtils';
 
 interface DiffPreviewProps {
   content: string; // Diff 内容 / Diff content
@@ -82,38 +83,6 @@ const DiffPreview: React.FC<DiffPreviewProps> = ({ content, metadata, onClose, h
     } else {
       setInternalViewMode(mode);
     }
-  };
-
-  // 从 diff 中提取实际文件内容（去除元数据）/ Extract actual file content from diff (remove metadata)
-  const extractContentFromDiff = (diffContent: string): string => {
-    const lines = diffContent.split('\n');
-    const contentLines: string[] = [];
-    let inDiffBlock = false;
-
-    for (const line of lines) {
-      // 跳过 diff 元数据行 / Skip diff metadata lines
-      if (line.startsWith('Index:') || line.match(/^={3,}/) || line.startsWith('diff --git') || line.startsWith('---') || line.startsWith('+++') || line.startsWith('@@')) {
-        inDiffBlock = true;
-        continue;
-      }
-
-      if (inDiffBlock) {
-        // 提取新增行（去掉开头的 + 号）/ Extract added lines (remove leading +)
-        if (line.startsWith('+')) {
-          contentLines.push(line.substring(1));
-        }
-        // 跳过删除行和上下文标记 / Skip deleted lines and context markers
-        else if (line.startsWith('-') || line.startsWith('\\')) {
-          continue;
-        }
-        // 空行也保留 / Keep empty lines too
-        else {
-          contentLines.push(line);
-        }
-      }
-    }
-
-    return contentLines.join('\n').trim();
   };
 
   // 提取纯净的文件内容 / Extract clean file content

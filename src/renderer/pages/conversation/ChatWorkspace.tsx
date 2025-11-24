@@ -599,35 +599,8 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
         }
 
         // 根据文件类型读取内容 / Read content based on file type
-        if (contentType === 'pdf') {
-          // PDF: 不读取内容，PDFPreview 组件会通过 filePath 自己读取
-          // PDF: Don't read content, PDFPreview component will read via filePath itself
-          content = ''; // 空内容，依赖 filePath / Empty content, relies on filePath
-        } else if (contentType === 'word') {
-          // Word: 通过 IPC 转换为 Markdown / Word: Convert to Markdown via IPC
-          const result = await ipcBridge.conversion.wordToMarkdown.invoke({ filePath: nodeData.fullPath });
-          if (result.success && result.data) {
-            content = result.data;
-          } else {
-            throw new Error(result.error || 'Word 转换失败');
-          }
-        } else if (contentType === 'excel') {
-          // Excel: 不读取内容，ExcelPreview 组件会通过 filePath 自己读取和转换
-          // Excel: Don't read content, ExcelPreview component will read and convert via filePath itself
-          content = ''; // 空内容，依赖 filePath / Empty content, relies on filePath
-        } else if (contentType === 'ppt') {
-          // PPT: 通过 IPC 转换为 JSON / PPT: Convert to JSON via IPC
-          const result = await ipcBridge.conversion.pptToJson.invoke({ filePath: nodeData.fullPath });
-          if (result.success && result.data) {
-            // 只保留 slides 数据，不包含 raw 对象（过大且不需要）
-            // Only keep slides data, exclude raw object (too large and unnecessary)
-            const pptData = {
-              slides: result.data.slides || [],
-            };
-            content = JSON.stringify(pptData);
-          } else {
-            throw new Error(result.error || 'PPT 转换失败');
-          }
+        if (contentType === 'pdf' || contentType === 'word' || contentType === 'excel' || contentType === 'ppt') {
+          content = '';
         } else if (contentType === 'image') {
           // 图片: 读取为 Base64 格式 / Image: Read as Base64 format
           content = await ipcBridge.fs.getImageBase64.invoke({ path: nodeData.fullPath });
