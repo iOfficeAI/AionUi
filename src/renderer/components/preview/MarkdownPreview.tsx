@@ -51,20 +51,45 @@ interface MarkdownImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
   baseDir?: string;
 }
 
-const toFileUrl = (path: string) => {
-  if (!path) return path;
-  const normalized = path.replace(/\\/g, '/');
-  if (normalized.startsWith('file://')) return normalized;
-  return `file://${normalized}`;
+const useImageResolverCache = () => {
+  const cacheRef = useRef(new Map<string, string>());
+  const inflightRef = useRef(new Map<string, Promise<string>>());
+
+  const resolve = useCallback((key: string, loader: () => Promise<string>) => {
+    const cache = cacheRef.current;
+    if (cache.has(key)) {
+      return cache.get(key)!;
+    }
+
+    const inflight = inflightRef.current;
+    if (inflight.has(key)) {
+      return inflight.get(key)!;
+    }
+
+    const promise = loader()
+      .then((result) => {
+        cache.set(key, result);
+        return result;
+      })
+      .finally(() => {
+        inflight.delete(key);
+      });
+
+    inflight.set(key, promise);
+    return promise;
+  }, []);
+
+  return resolve;
 };
 
 const MarkdownImage: React.FC<MarkdownImageProps> = ({ src, alt, baseDir, ...props }) => {
   const [resolvedSrc, setResolvedSrc] = useState<string | undefined>(undefined);
+  const resolveImage = useImageResolverCache();
 
   useEffect(() => {
     let cancelled = false;
 
-    const loadImage = async () => {
+    const loadImage = () => {
       if (!src) {
         setResolvedSrc(undefined);
         return;
@@ -72,15 +97,19 @@ const MarkdownImage: React.FC<MarkdownImageProps> = ({ src, alt, baseDir, ...pro
 
       if (isDataOrRemoteUrl(src)) {
         if (/^https?:/i.test(src)) {
-          try {
-            const dataUrl = await ipcBridge.fs.fetchRemoteImage.invoke({ url: src });
-            if (!cancelled) {
-              setResolvedSrc(dataUrl);
-            }
-            return;
-          } catch (error) {
-            console.error('[MarkdownPreview] Failed to fetch remote image:', src, error);
-          }
+          resolveImage(src, () => ipcBridge.fs.fetchRemoteImage.invoke({ url: src }))
+            .then((dataUrl) => {
+              if (!cancelled) {
+                setResolvedSrc(dataUrl);
+              }
+            })
+            .catch((error) => {
+              console.error('[MarkdownPreview] Failed to fetch remote image:', src, error);
+              if (!cancelled) {
+                setResolvedSrc(src);
+              }
+            });
+          return;
         }
         setResolvedSrc(src);
         return;
@@ -95,20 +124,21 @@ const MarkdownImage: React.FC<MarkdownImageProps> = ({ src, alt, baseDir, ...pro
         return;
       }
 
-      try {
-        const dataUrl = await ipcBridge.fs.getImageBase64.invoke({ path: absolutePath });
-        if (!cancelled) {
-          setResolvedSrc(dataUrl);
-        }
-      } catch (error) {
-        console.error('[MarkdownPreview] Failed to load local image:', { src, absolutePath, error });
-        if (!cancelled) {
-          setResolvedSrc(src);
-        }
-      }
+      resolveImage(absolutePath, () => ipcBridge.fs.getImageBase64.invoke({ path: absolutePath }))
+        .then((dataUrl) => {
+          if (!cancelled) {
+            setResolvedSrc(dataUrl);
+          }
+        })
+        .catch((error) => {
+          console.error('[MarkdownPreview] Failed to load local image:', { src, absolutePath, error });
+          if (!cancelled) {
+            setResolvedSrc(src);
+          }
+        });
     };
 
-    void loadImage();
+    loadImage();
 
     return () => {
       cancelled = true;

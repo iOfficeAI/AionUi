@@ -25,3 +25,7 @@ export interface PreviewSnapshotInfo {
   fileName?: string;
   filePath?: string;
 }
+
+export interface RemoteImageFetchRequest {
+  url: string;
+}

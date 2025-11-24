@@ -46,9 +46,20 @@ export function initFsBridge(): void {
   });
 
   const downloadRemoteBuffer = (targetUrl: string, redirectCount = 0): Promise<{ buffer: Buffer; contentType?: string }> => {
+    const allowedProtocols = new Set(['http:', 'https:']);
+    const parsedUrl = new URL(targetUrl);
+    if (!allowedProtocols.has(parsedUrl.protocol)) {
+      return Promise.reject(new Error('Unsupported protocol'));
+    }
+
+    const allowedHosts = ['github.com', 'raw.githubusercontent.com', 'contrib.rocks', 'img.shields.io'];
+    const isAllowedHost = allowedHosts.some((host) => parsedUrl.hostname === host || parsedUrl.hostname.endsWith(`.${host}`));
+    if (!isAllowedHost) {
+      return Promise.reject(new Error('URL not allowed for remote fetch'));
+    }
+
     return new Promise((resolve, reject) => {
       try {
-        const parsedUrl = new URL(targetUrl);
         const client = parsedUrl.protocol === 'https:' ? https : http;
         const request = client.get(
           targetUrl,
@@ -75,13 +86,28 @@ export function initFsBridge(): void {
             }
 
             const chunks: Buffer[] = [];
-            response.on('data', (chunk: Buffer) => chunks.push(chunk));
+            let receivedBytes = 0;
+            const MAX_BYTES = 5 * 1024 * 1024; // 5MB limit
+
+            response.on('data', (chunk: Buffer) => {
+              receivedBytes += chunk.length;
+              if (receivedBytes > MAX_BYTES) {
+                response.destroy(new Error('Remote image exceeds size limit (5MB)'));
+                return;
+              }
+              chunks.push(chunk);
+            });
+
             response.on('end', () => {
               resolve({ buffer: Buffer.concat(chunks), contentType: headers['content-type'] });
             });
             response.on('error', (error) => reject(error));
           }
         );
+
+        request.setTimeout(15000, () => {
+          request.destroy(new Error('Remote image request timed out'));
+        });
 
         request.on('error', (error) => reject(error));
       } catch (error) {
