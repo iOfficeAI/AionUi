@@ -16,13 +16,13 @@ import { Checkbox, Empty, Input, Message, Modal, Tooltip, Tree } from '@arco-des
 import { FileAddition, FileText, FolderOpen, Refresh, Search } from '@icon-park/react';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useWorkspaceEvents } from './workspace/hooks/useWorkspaceEvents';
-import { useWorkspaceFileOps } from './workspace/hooks/useWorkspaceFileOps';
-import { useWorkspaceModals } from './workspace/hooks/useWorkspaceModals';
-import { useWorkspacePaste } from './workspace/hooks/useWorkspacePaste';
-import { useWorkspaceTree } from './workspace/hooks/useWorkspaceTree';
-import type { WorkspaceProps } from './workspace/types';
-import { extractNodeData, extractNodeKey, findNodeByKey, getTargetFolderPath } from './workspace/utils/treeHelpers';
+import { useWorkspaceEvents } from './hooks/useWorkspaceEvents';
+import { useWorkspaceFileOps } from './hooks/useWorkspaceFileOps';
+import { useWorkspaceModals } from './hooks/useWorkspaceModals';
+import { useWorkspacePaste } from './hooks/useWorkspacePaste';
+import { useWorkspaceTree } from './hooks/useWorkspaceTree';
+import type { WorkspaceProps } from './types';
+import { extractNodeData, extractNodeKey, findNodeByKey, getTargetFolderPath } from './utils/treeHelpers';
 
 const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, eventPrefix = 'gemini', messageApi: externalMessageApi }) => {
   const { t } = useTranslation();
