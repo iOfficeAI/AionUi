@@ -671,7 +671,7 @@ const PreviewPanel: React.FC = () => {
               <div className='flex-1 overflow-hidden'>
                 {/* prettier-ignore */}
                 {/* eslint-disable-next-line max-len */}
-                <HTMLRenderer content={content} filePath={metadata?.filePath} workspace={metadata?.workspace} containerRef={previewContainerRef} onScroll={handlePreviewScroll} inspectMode={inspectMode} />
+                <HTMLRenderer content={content} filePath={metadata?.filePath} containerRef={previewContainerRef} onScroll={handlePreviewScroll} inspectMode={inspectMode} />
               </div>
             </div>
           </div>
@@ -699,7 +699,7 @@ const PreviewPanel: React.FC = () => {
               </div>
             </div>
             <div className='flex-1 overflow-hidden'>
-              <HTMLRenderer content={content} filePath={metadata?.filePath} workspace={metadata?.workspace} inspectMode={inspectMode} />
+              <HTMLRenderer content={content} filePath={metadata?.filePath} inspectMode={inspectMode} />
             </div>
           </div>
         );
