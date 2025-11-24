@@ -12,6 +12,7 @@ interface TitlebarProps {
   workspaceAvailable: boolean;
 }
 
+// 运行环境探测：Electron 桌面 / Desktop runtime detection
 const detectDesktop = () => typeof window !== 'undefined' && Boolean(window.electronAPI);
 const detectMac = () => typeof navigator !== 'undefined' && /mac/i.test(navigator.userAgent);
 
@@ -20,6 +21,7 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
   const appTitle = useMemo(() => t('app.name', { defaultValue: 'AionUi' }), [t]);
   const [workspaceCollapsed, setWorkspaceCollapsed] = useState(true);
 
+  // 监听工作空间折叠状态，保持按钮图标一致 / Sync workspace collapsed state for toggle button
   useEffect(() => {
     if (typeof window === 'undefined') {
       return undefined;
@@ -38,6 +40,7 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
 
   const isDesktopRuntime = detectDesktop();
   const isMacRuntime = isDesktopRuntime && detectMac();
+  // Windows/Linux 显示自定义窗口按钮；macOS 在标题栏给工作区一个切换入口
   const showWindowControls = isDesktopRuntime && !isMacRuntime;
   const showWorkspaceButton = workspaceAvailable && isMacRuntime;
 
