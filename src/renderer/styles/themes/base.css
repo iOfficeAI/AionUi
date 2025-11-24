@@ -27,9 +27,10 @@
 }
 
 .app-titlebar--mac {
-  height: env(titlebar-area-height, var(--titlebar-height));
-  min-height: env(titlebar-area-height, var(--titlebar-height));
-  padding-left: calc(env(titlebar-area-x, 16px) + 8px);
+  height: 36px;
+  min-height: 36px;
+  /* Reserve space for macOS traffic light buttons (left side) */
+  padding-left: 80px;
   padding-right: 12px;
 }
 
@@ -38,12 +39,9 @@
   color: var(--text-primary);
   font-size: 13px;
   letter-spacing: 0.2px;
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+  flex: 1;
   text-align: center;
   pointer-events: none;
-  min-width: 120px;
   line-height: 1;
 }
 

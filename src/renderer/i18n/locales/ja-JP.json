@@ -165,7 +165,8 @@
     "success": "成功",
     "error": "エラー",
     "saveSuccess": "保存に成功しました",
-    "saveFailed": "保存に失敗しました"
+    "saveFailed": "保存に失敗しました",
+    "unknownError": "不明なエラー"
   },
   "login": {
     "pageTitle": "AionUi - ログイン",
@@ -249,7 +250,56 @@
     "closeLeft": "左側を閉じる",
     "closeRight": "右側を閉じる",
     "closeOthers": "他を閉じる",
-    "closeAll": "すべて閉じる"
+    "closeAll": "すべて閉じる",
+    "readOnlyLabel": "閲覧専用",
+    "pathLabel": "パス",
+    "noTabs": "タブはありません",
+    "openInPanelTooltip": "プレビューパネルで表示",
+    "errors": {
+      "missingFilePath": "ファイルパスが指定されていません",
+      "openWithoutPath": "ファイルパスがないため開けません",
+      "conversionFailed": "変換に失敗しました",
+      "emptySnapshot": "スナップショット内容が空です"
+    },
+    "word": {
+      "title": "Word ドキュメント",
+      "loading": "Word ドキュメントを読み込み中...",
+      "invalid": "有効な Word ドキュメントか確認してください",
+      "loadFailed": "Word ドキュメントの読み込みに失敗しました"
+    },
+    "excel": {
+      "title": "Excel スプレッドシート",
+      "loading": "Excel ファイルを読み込み中...",
+      "invalid": "有効な Excel ファイルか確認してください",
+      "noSheets": "この Excel ファイルにはワークシートがありません",
+      "sheetCount": "{{count}} 件のワークシート",
+      "convertFailed": "Excel の変換に失敗しました",
+      "loadFailed": "Excel ファイルの読み込みに失敗しました",
+      "emptySheet": "このワークシートにはデータがありません",
+      "emptySheetHint": "ワークシートにデータまたは画像が含まれているか確認してください"
+    },
+    "pdf": {
+      "title": "PDF ドキュメント",
+      "pathMissing": "PDF ファイルパスが空です",
+      "loadFailed": "PDF の読み込みに失敗しました",
+      "unableDisplay": "PDF ファイルを表示できません"
+    },
+    "html": {
+      "elementSelected": "選択中の要素: {{path}}",
+      "copySuccess": "HTML をコピーしました",
+      "inspectorEnabled": "要素インスペクターを有効にしました。プレビュー内の要素をクリックしてください。",
+      "inspectorButton": "要素インスペクター",
+      "inspecting": "検出中...",
+      "selectedLabel": "選択中:",
+      "inspectorTooltip": "プレビュー内の要素をクリックして HTML を確認します",
+      "downloadHtml": "HTML ファイルをダウンロード",
+      "copyElementHtml": "要素 HTML をコピー",
+      "viewElementInfo": "要素情報を表示",
+      "printedToConsole": "要素情報をコンソールに出力しました",
+      "inspectElement": "要素を検証",
+      "inspectElementEnable": "要素インスペクターを有効化",
+      "inspectElementDisable": "要素インスペクターを無効化"
+    }
   },
   "conversation": {
     "welcome": {

@@ -43,13 +43,13 @@ export interface PreviewContextValue {
   closeTab: (tabId: string) => void;
   switchTab: (tabId: string) => void;
   updateContent: (content: string) => void;
-  saveContent: (tabId?: string) => void; // 保存内容 / Save content
+  saveContent: (tabId?: string) => Promise<boolean>; // 保存内容 / Save content
   findPreviewTab: (type: PreviewContentType, content?: string, metadata?: PreviewMetadata) => PreviewTab | null; // 查找匹配的 tab
   closePreviewByIdentity: (type: PreviewContentType, content?: string, metadata?: PreviewMetadata) => void; // 根据内容关闭指定 tab
 
   // 发送框集成 / Sendbox integration
   addToSendBox: (text: string) => void;
-  setSendBoxHandler: (handler: (text: string) => void) => void;
+  setSendBoxHandler: (handler: ((text: string) => void) | null) => void;
 }
 
 const PreviewContext = createContext<PreviewContextValue | null>(null);
@@ -250,10 +250,10 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const saveContent = useCallback(
     async (tabId?: string) => {
       const targetTabId = tabId || activeTabId;
-      if (!targetTabId) return;
+      if (!targetTabId) return false;
 
       const tab = tabs.find((t) => t.id === targetTabId);
-      if (!tab) return;
+      if (!tab) return false;
 
       // 如果有 filePath 和 workspace，写回工作空间文件 / If filePath and workspace exist, write back to workspace file
       if (tab.metadata?.filePath && tab.metadata?.workspace) {
@@ -270,7 +270,6 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
           });
 
           if (success) {
-            // 标记为已保存（更新 originalContent 和清除 isDirty）/ Mark as saved
             setTabs((prevTabs) =>
               prevTabs.map((t) => {
                 if (t.id === targetTabId) {
@@ -279,24 +278,24 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
                 return t;
               })
             );
-          } else {
-            // 写入失败，静默处理（只记录到控制台）/ Write failed, handle silently (log only)
           }
 
           // 延迟移除保存标记（给文件监听一点时间忽略变化）/ Delay removing save flag (give file watch time to ignore change)
           setTimeout(() => {
             savingFilesRef.current.delete(filePath);
           }, 500);
+
+          return success;
         } catch (error) {
           // 发生错误，静默处理（只记录到控制台）/ Error occurred, handle silently (log only)
           // 确保移除保存标记 / Ensure save flag is removed
           if (tab.metadata?.filePath) {
             savingFilesRef.current.delete(tab.metadata.filePath);
           }
+          throw error;
         }
-      } else {
-        // 没有工作空间路径，无法保存 / No workspace path, cannot save
       }
+      return false;
     },
     [activeTabId, tabs]
   );
@@ -310,7 +309,7 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
     [sendBoxHandler]
   );
 
-  const setSendBoxHandler = useCallback((handler: (text: string) => void) => {
+  const setSendBoxHandler = useCallback((handler: ((text: string) => void) | null) => {
     setSendBoxHandlerState(() => handler);
   }, []);
 
@@ -340,19 +339,17 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
         }
 
         return prevTabs.map((tab) => {
-          // 只更新匹配的 tab / Only update matching tabs
           if (tab.metadata?.filePath !== filePath) return tab;
 
-          // 🔥 关键修改：对于外部写入（Agent 流式更新），即使 tab 是 dirty 也强制更新
-          // Key change: For external writes (Agent streaming), force update even if tab is dirty
-          // 这是因为 Agent 写入代表的是文件真实状态，而不是用户的临时编辑
-          // This is because Agent writes represent the actual file state, not user's temporary edits
+          if (savingFilesRef.current.has(filePath) || tab.isDirty) {
+            return tab;
+          }
 
           return {
             ...tab,
-            content: content,
+            content,
             originalContent: content,
-            isDirty: false, // 重置 dirty 状态，因为内容已经与文件同步 / Reset dirty state as content is now synced with file
+            isDirty: false,
           };
         });
       });

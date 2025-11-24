@@ -20,7 +20,7 @@ import { Plus } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import HorizontalFileList from '@/renderer/components/HorizontalFileList';
-import { usePreviewContext } from '@/renderer/context/PreviewContext';
+import { usePreviewContext } from '@/renderer/pages/conversation/preview';
 
 const useGeminiSendBoxDraft = getSendBoxDraftHook('gemini', {
   _type: 'gemini',

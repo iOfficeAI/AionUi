@@ -3,9 +3,8 @@ import { Layout as ArcoLayout } from '@arco-design/web-react';
 import { ExpandLeft, ExpandRight, MenuUnfold } from '@icon-park/react';
 import React, { useEffect, useRef, useState } from 'react';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
-import { usePreviewContext } from '@/renderer/context/PreviewContext';
+import { usePreviewContext, PreviewPanel } from '@/renderer/pages/conversation/preview';
 import { useResizableSplit } from '@/renderer/hooks/useResizableSplit';
-import PreviewPanel from '@/renderer/components/preview/PreviewPanel';
 
 import ClaudeLogo from '@/renderer/assets/logos/claude.svg';
 import CodexLogo from '@/renderer/assets/logos/codex.svg';
@@ -65,6 +64,9 @@ const ChatLayout: React.FC<{
   const [manualRightCollapsing, setManualRightCollapsing] = useState(false);
   const autoRightCollapseTimer = useRef<number | undefined>(undefined);
   const manualRightCollapseTimer = useRef<number | undefined>(undefined);
+  const previousWorkspaceCollapsedRef = useRef<boolean | null>(null);
+  const previousSiderCollapsedRef = useRef<boolean | null>(null);
+  const previousPreviewOpenRef = useRef(false);
 
   // 预览面板状态 / Preview panel state
   const { isOpen: isPreviewOpen } = usePreviewContext();
@@ -217,17 +219,34 @@ const ChatLayout: React.FC<{
 
   // 预览打开时自动收起侧边栏和工作空间 / Auto-collapse sidebar and workspace when preview opens
   useEffect(() => {
-    if (isPreviewOpen && isDesktop) {
-      // 收起工作空间 / Collapse workspace
+    if (!isDesktop) {
+      previousPreviewOpenRef.current = false;
+      return;
+    }
+
+    if (isPreviewOpen && !previousPreviewOpenRef.current) {
+      if (previousWorkspaceCollapsedRef.current === null) {
+        previousWorkspaceCollapsedRef.current = rightSiderCollapsed;
+      }
+      if (previousSiderCollapsedRef.current === null && typeof layout?.siderCollapsed !== 'undefined') {
+        previousSiderCollapsedRef.current = layout.siderCollapsed;
+      }
       setRightSiderCollapsed(true);
-      // 收起左侧边栏 / Collapse left sidebar
-      if (layout?.setSiderCollapsed) {
-        layout.setSiderCollapsed(true);
+      layout?.setSiderCollapsed?.(true);
+    } else if (!isPreviewOpen && previousPreviewOpenRef.current) {
+      if (previousWorkspaceCollapsedRef.current !== null) {
+        setRightSiderCollapsed(previousWorkspaceCollapsedRef.current);
+        previousWorkspaceCollapsedRef.current = null;
+      }
+      if (previousSiderCollapsedRef.current !== null && layout?.setSiderCollapsed) {
+        layout.setSiderCollapsed(previousSiderCollapsedRef.current);
+        previousSiderCollapsedRef.current = null;
       }
     }
-  }, [isPreviewOpen, isDesktop, layout]);
 
-  const rightHandle = isDesktop && !rightSiderCollapsed ? createWorkspaceDragHandle({ className: 'absolute right-0 top-0 bottom-0', style: { borderRight: '1px solid var(--bg-3)' } }) : null;
+    previousPreviewOpenRef.current = isPreviewOpen;
+  }, [isPreviewOpen, isDesktop, layout, rightSiderCollapsed]);
+
   const mobileHandle = layout?.isMobile
     ? createWorkspaceDragHandle({
         className: 'absolute left-0 top-0 bottom-0',
@@ -308,9 +327,6 @@ const ChatLayout: React.FC<{
             }}
           >
             <PreviewPanel />
-
-            {/* 预览右侧拖动手柄：在桌面模式下调节预览和工作空间的宽度比例 */}
-            {isDesktop && !rightSiderCollapsed && rightHandle}
           </div>
         )}
 
@@ -330,6 +346,13 @@ const ChatLayout: React.FC<{
               borderLeft: rightSiderCollapsed ? 'none' : '1px solid var(--bg-3)',
             }}
           >
+            {isDesktop &&
+              !rightSiderCollapsed &&
+              createWorkspaceDragHandle({
+                className: 'absolute left-0 top-0 bottom-0',
+                style: { borderLeft: '1px solid var(--bg-3)' },
+                reverse: true,
+              })}
             <WorkspacePanelHeader showToggle={!isMacRuntime} collapsed={rightSiderCollapsed} onToggle={() => dispatchWorkspaceToggleEvent()}>
               {props.siderTitle}
             </WorkspacePanelHeader>

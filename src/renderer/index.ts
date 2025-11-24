@@ -12,7 +12,7 @@ import '../adapter/browser';
 import Main from './main';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
-import { PreviewProvider } from './context/PreviewContext';
+import { PreviewProvider } from './pages/conversation/preview';
 
 import { ConfigProvider } from '@arco-design/web-react';
 import '@arco-design/web-react/dist/css/arco.css';

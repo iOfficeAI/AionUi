@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { PreviewMetadata } from '@/renderer/context/PreviewContext';
+import type { PreviewMetadata } from '../../context/PreviewContext';
 import { useTextSelection } from '@/renderer/hooks/useTextSelection';
 import { iconColors } from '@/renderer/theme/colors';
 import { Close } from '@icon-park/react';
@@ -13,8 +13,9 @@ import ReactMarkdown from 'react-markdown';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { vs, vs2015 } from 'react-syntax-highlighter/dist/esm/styles/hljs';
 import remarkGfm from 'remark-gfm';
-import SelectionToolbar from './SelectionToolbar';
+import SelectionToolbar from '../renderers/SelectionToolbar';
 import { useTranslation } from 'react-i18next';
+import { extractContentFromDiff } from '@/renderer/utils/diffUtils';
 
 interface DiffPreviewProps {
   content: string; // Diff 内容 / Diff content
@@ -84,38 +85,6 @@ const DiffPreview: React.FC<DiffPreviewProps> = ({ content, metadata, onClose, h
     }
   };
 
-  // 从 diff 中提取实际文件内容（去除元数据）/ Extract actual file content from diff (remove metadata)
-  const extractContentFromDiff = (diffContent: string): string => {
-    const lines = diffContent.split('\n');
-    const contentLines: string[] = [];
-    let inDiffBlock = false;
-
-    for (const line of lines) {
-      // 跳过 diff 元数据行 / Skip diff metadata lines
-      if (line.startsWith('Index:') || line.match(/^={3,}/) || line.startsWith('diff --git') || line.startsWith('---') || line.startsWith('+++') || line.startsWith('@@')) {
-        inDiffBlock = true;
-        continue;
-      }
-
-      if (inDiffBlock) {
-        // 提取新增行（去掉开头的 + 号）/ Extract added lines (remove leading +)
-        if (line.startsWith('+')) {
-          contentLines.push(line.substring(1));
-        }
-        // 跳过删除行和上下文标记 / Skip deleted lines and context markers
-        else if (line.startsWith('-') || line.startsWith('\\')) {
-          continue;
-        }
-        // 空行也保留 / Keep empty lines too
-        else {
-          contentLines.push(line);
-        }
-      }
-    }
-
-    return contentLines.join('\n').trim();
-  };
-
   // 提取纯净的文件内容 / Extract clean file content
   const cleanContent = extractContentFromDiff(content);
 
@@ -149,13 +118,6 @@ const DiffPreview: React.FC<DiffPreviewProps> = ({ content, metadata, onClose, h
               </svg>
               <span className='text-12px text-t-secondary'>{t('common.download')}</span>
             </div>
-
-            {/* 关闭按钮 / Close button */}
-            {onClose && (
-              <div className='cursor-pointer p-4px hover:bg-bg-3 rd-4px transition-colors' onClick={onClose} title={t('preview.closePreview')}>
-                <Close theme='outline' size='18' fill={iconColors.secondary} />
-              </div>
-            )}
           </div>
         </div>
       )}

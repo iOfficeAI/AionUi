@@ -19,7 +19,7 @@ import { theme } from '@office-ai/platform';
 import React, { useMemo, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { usePreviewContext } from '@/renderer/context/PreviewContext';
+import { usePreviewContext } from '@/renderer/pages/conversation/preview';
 import { iconColors } from '@/renderer/theme/colors';
 import LocalImageView from './LocalImageView';
 import { addImportantToAll } from '../utils/customCssProcessor';
@@ -50,6 +50,7 @@ function CodeBlock(props: any) {
     return (document.documentElement.getAttribute('data-theme') as 'light' | 'dark') || 'light';
   });
   const { openPreview } = usePreviewContext(); // 获取预览上下文 / Get preview context
+  const { t } = useTranslation();
 
   React.useEffect(() => {
     const updateTheme = () => {
@@ -187,10 +188,10 @@ function CodeBlock(props: any) {
                 const isEditable = contentType === 'markdown';
                 openPreview(content, contentType, { language, editable: isEditable });
               }}
-              title='在预览面板中查看 / View in preview panel'
+              title={t('preview.openInPanelTooltip')}
             >
               <PreviewOpen theme='outline' size='16' fill={iconColors.secondary} />
-              <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>预览</span>
+              <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{t('preview.preview')}</span>
             </div>
 
             {/* 折叠/展开按钮 / Fold/unfold button */}

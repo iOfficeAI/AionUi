@@ -13,8 +13,7 @@ import { useDragUpload } from '../hooks/useDragUpload';
 import { usePasteService } from '../hooks/usePasteService';
 import type { FileMetadata } from '../services/FileService';
 import { allSupportedExts } from '../services/FileService';
-import SendArrowIcon from '@/renderer/assets/send-arrow.svg';
-import { usePreviewContext } from '../context/PreviewContext';
+import { usePreviewContext } from '@/renderer/pages/conversation/preview';
 
 const constVoid = (): void => undefined;
 // 临界值：超过该字符数直接切换至多行模式，避免为超长文本做昂贵的宽度测量
@@ -43,18 +42,27 @@ const SendBox: React.FC<{
   const containerRef = useRef<HTMLDivElement>(null);
   const singleLineWidthRef = useRef<number>(0);
   const measurementCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const latestInputRef = useRef(input);
+
+  useEffect(() => {
+    latestInputRef.current = input;
+  }, [input]);
 
   // 集成预览面板的"添加到聊天"功能 / Integrate preview panel's "Add to chat" functionality
   const { setSendBoxHandler } = usePreviewContext();
 
   // 注册处理器以接收来自预览面板的文本 / Register handler to receive text from preview panel
   useEffect(() => {
-    setSendBoxHandler((text: string) => {
-      // 在当前输入内容后追加文本 / Append text after current input
-      const newValue = input ? `${input}\n\n${text}` : text;
+    const handler = (text: string) => {
+      const base = latestInputRef.current;
+      const newValue = base ? `${base}\n\n${text}` : text;
       setInput(newValue);
-    });
-  }, [input, setInput, setSendBoxHandler]);
+    };
+    setSendBoxHandler(handler);
+    return () => {
+      setSendBoxHandler(null);
+    };
+  }, [setInput, setSendBoxHandler]);
 
   // 初始化时获取单行输入框的可用宽度
   // Initialize and get the available width of single-line input

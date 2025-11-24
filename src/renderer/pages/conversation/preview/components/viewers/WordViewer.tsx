@@ -5,10 +5,11 @@
  */
 
 import { ipcBridge } from '@/common';
+import { usePreviewToolbarExtras } from '../../context/PreviewToolbarExtrasContext';
 import { Message } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import MarkdownPreview from './MarkdownPreview';
+import MarkdownPreview from './MarkdownViewer';
 
 interface WordPreviewProps {
   filePath?: string;
@@ -30,6 +31,8 @@ const WordPreview: React.FC<WordPreviewProps> = ({ filePath, hideToolbar = false
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [messageApi, messageContextHolder] = Message.useMessage();
+  const toolbarExtrasContext = usePreviewToolbarExtras();
+  const usePortalToolbar = Boolean(toolbarExtrasContext) && !hideToolbar;
 
   const messageApiRef = useRef(messageApi);
   useEffect(() => {
@@ -46,7 +49,7 @@ const WordPreview: React.FC<WordPreviewProps> = ({ filePath, hideToolbar = false
 
       try {
         if (!filePath) {
-          throw new Error('文件路径缺失');
+          throw new Error(t('preview.errors.missingFilePath'));
         }
 
         // 使用后端转换服务 / Use backend conversion service
@@ -55,11 +58,12 @@ const WordPreview: React.FC<WordPreviewProps> = ({ filePath, hideToolbar = false
         if (result.success && result.data) {
           setMarkdown(result.data);
         } else {
-          throw new Error(result.error || '转换失败');
+          throw new Error(result.error || t('preview.errors.conversionFailed'));
         }
       } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : '加载 Word 文档失败';
-        setError(`${errorMessage}\n路径: ${filePath}`);
+        const defaultMessage = t('preview.word.loadFailed');
+        const errorMessage = err instanceof Error ? err.message : defaultMessage;
+        setError(`${errorMessage}\n${t('preview.pathLabel')}: ${filePath}`);
         messageApiRef.current?.error?.(errorMessage);
       } finally {
         setLoading(false);
@@ -67,7 +71,7 @@ const WordPreview: React.FC<WordPreviewProps> = ({ filePath, hideToolbar = false
     };
 
     void loadDocument();
-  }, [filePath]);
+  }, [filePath, t]);
 
   /**
    * 在系统默认应用中打开 Word 文档
@@ -75,7 +79,7 @@ const WordPreview: React.FC<WordPreviewProps> = ({ filePath, hideToolbar = false
    */
   const handleOpenInSystem = useCallback(async () => {
     if (!filePath) {
-      messageApi.error('无法打开：未指定文件路径');
+      messageApi.error(t('preview.errors.openWithoutPath'));
       return;
     }
 
@@ -87,10 +91,25 @@ const WordPreview: React.FC<WordPreviewProps> = ({ filePath, hideToolbar = false
     }
   }, [filePath, messageApi, t]);
 
+  // 设置工具栏扩展（必须在所有条件返回之前调用）
+  // Set toolbar extras (must be called before any conditional returns)
+  useEffect(() => {
+    if (!usePortalToolbar || !toolbarExtrasContext || loading || error) return;
+    toolbarExtrasContext.setExtras({
+      left: (
+        <div className='flex items-center gap-8px'>
+          <span className='text-13px text-t-secondary'>📄 {t('preview.word.title')}</span>
+        </div>
+      ),
+      right: null,
+    });
+    return () => toolbarExtrasContext.setExtras(null);
+  }, [usePortalToolbar, toolbarExtrasContext, t, loading, error]);
+
   if (loading) {
     return (
       <div className='flex items-center justify-center h-full'>
-        <div className='text-14px text-t-secondary'>加载 Word 文档中...</div>
+        <div className='text-14px text-t-secondary'>{t('preview.word.loading')}</div>
       </div>
     );
   }
@@ -100,7 +119,7 @@ const WordPreview: React.FC<WordPreviewProps> = ({ filePath, hideToolbar = false
       <div className='flex items-center justify-center h-full'>
         <div className='text-center'>
           <div className='text-16px text-t-error mb-8px'>❌ {error}</div>
-          <div className='text-12px text-t-secondary'>请检查文件是否为有效的 Word 文档</div>
+          <div className='text-12px text-t-secondary'>{t('preview.word.invalid')}</div>
         </div>
       </div>
     );
@@ -111,10 +130,10 @@ const WordPreview: React.FC<WordPreviewProps> = ({ filePath, hideToolbar = false
       {messageContextHolder}
 
       {/* 工具栏 / Toolbar */}
-      {!hideToolbar && (
-        <div className='flex items-center justify-between h-40px px-12px bg-bg-2 flex-shrink-0 '>
+      {!usePortalToolbar && !hideToolbar && (
+        <div className='flex items-center justify-between h-40px px-12px bg-bg-2 flex-shrink-0'>
           <div className='flex items-center gap-8px'>
-            <span className='text-13px text-t-secondary'>📄 Word 文档</span>
+            <span className='text-13px text-t-secondary'>📄 {t('preview.word.title')}</span>
           </div>
 
           {/* 右侧按钮组 / Right button group */}

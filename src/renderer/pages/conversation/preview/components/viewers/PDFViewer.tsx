@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { usePreviewToolbarExtras } from '../../context/PreviewToolbarExtrasContext';
 import { Button, Message } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -34,10 +35,12 @@ const PDFPreview: React.FC<PDFPreviewProps> = ({ filePath, content, hideToolbar 
   const [loading, setLoading] = useState(true);
   const webviewRef = useRef<ElectronWebView>(null);
   const [messageApi, messageContextHolder] = Message.useMessage();
+  const toolbarExtrasContext = usePreviewToolbarExtras();
+  const usePortalToolbar = Boolean(toolbarExtrasContext) && !hideToolbar;
 
   const handleOpenInSystem = useCallback(async () => {
     if (!filePath) {
-      messageApi.error('无法打开：未提供文件路径');
+      messageApi.error(t('preview.errors.openWithoutPath'));
       return;
     }
 
@@ -55,7 +58,7 @@ const PDFPreview: React.FC<PDFPreviewProps> = ({ filePath, content, hideToolbar 
       setError(null);
 
       if (!filePath && !content) {
-        setError('PDF 文件路径为空');
+        setError(t('preview.pdf.pathMissing'));
         setLoading(false);
         return;
       }
@@ -68,7 +71,7 @@ const PDFPreview: React.FC<PDFPreviewProps> = ({ filePath, content, hideToolbar 
           setLoading(false);
         };
         const handleError = () => {
-          setError('加载 PDF 失败');
+          setError(t('preview.pdf.loadFailed'));
           setLoading(false);
         };
 
@@ -83,10 +86,30 @@ const PDFPreview: React.FC<PDFPreviewProps> = ({ filePath, content, hideToolbar 
         setLoading(false);
       }
     } catch (err) {
-      setError(`加载 PDF 失败: ${err instanceof Error ? err.message : String(err)}`);
+      setError(`${t('preview.pdf.loadFailed')}: ${err instanceof Error ? err.message : String(err)}`);
       setLoading(false);
     }
-  }, [filePath, content]);
+  }, [filePath, content, t]);
+
+  // 设置工具栏扩展（必须在所有条件返回之前调用）
+  // Set toolbar extras (must be called before any conditional returns)
+  useEffect(() => {
+    if (!usePortalToolbar || !toolbarExtrasContext || loading || error) return;
+    toolbarExtrasContext.setExtras({
+      left: (
+        <div className='flex items-center gap-8px'>
+          <span className='text-13px text-t-secondary'>📄 {t('preview.pdf.title')}</span>
+          <span className='text-11px text-t-tertiary'>{t('preview.readOnlyLabel')}</span>
+        </div>
+      ),
+      right: null,
+    });
+    return () => toolbarExtrasContext.setExtras(null);
+  }, [usePortalToolbar, toolbarExtrasContext, t, loading, error]);
+
+  // 使用 Electron webview 加载本地 PDF 文件
+  // Use Electron webview to load local PDF files
+  const pdfSrc = filePath ? `file://${filePath}` : content || '';
 
   if (error) {
     return (
@@ -94,7 +117,7 @@ const PDFPreview: React.FC<PDFPreviewProps> = ({ filePath, content, hideToolbar 
         {messageContextHolder}
         <div className='text-center'>
           <div className='text-16px text-t-error mb-8px'>❌ {error}</div>
-          <div className='text-12px text-t-secondary'>无法加载 PDF 文件</div>
+          <div className='text-12px text-t-secondary'>{t('preview.pdf.unableDisplay')}</div>
         </div>
       </div>
     );
@@ -104,23 +127,19 @@ const PDFPreview: React.FC<PDFPreviewProps> = ({ filePath, content, hideToolbar 
     return (
       <div className='flex items-center justify-center h-full'>
         {messageContextHolder}
-        <div className='text-14px text-t-secondary'>加载中...</div>
+        <div className='text-14px text-t-secondary'>{t('preview.loading')}</div>
       </div>
     );
   }
 
-  // 使用 Electron webview 加载本地 PDF 文件
-  // Use Electron webview to load local PDF files
-  const pdfSrc = filePath ? `file://${filePath}` : content || '';
-
   return (
     <div className='h-full w-full bg-bg-1 flex flex-col'>
       {messageContextHolder}
-      {!hideToolbar && (
+      {!usePortalToolbar && !hideToolbar && (
         <div className='flex items-center justify-between h-40px px-12px bg-bg-2 flex-shrink-0'>
           <div className='flex items-center gap-8px'>
-            <span className='text-13px text-t-secondary'>📄 PDF 文档</span>
-            <span className='text-11px text-t-tertiary'>只读预览</span>
+            <span className='text-13px text-t-secondary'>📄 {t('preview.pdf.title')}</span>
+            <span className='text-11px text-t-tertiary'>{t('preview.readOnlyLabel')}</span>
           </div>
           {filePath && (
             <Button size='mini' type='text' onClick={handleOpenInSystem} title={t('preview.openInSystemApp')}>

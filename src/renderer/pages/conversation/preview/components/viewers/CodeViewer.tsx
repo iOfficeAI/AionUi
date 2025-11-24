@@ -13,7 +13,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { vs, vs2015 } from 'react-syntax-highlighter/dist/esm/styles/hljs';
-import SelectionToolbar from './SelectionToolbar';
+import SelectionToolbar from '../renderers/SelectionToolbar';
 
 interface CodePreviewProps {
   content: string; // 代码内容 / Code content
@@ -127,13 +127,6 @@ const CodePreview: React.FC<CodePreviewProps> = ({ content, language = 'text', o
               </svg>
               <span className='text-12px text-t-secondary'>{t('common.download')}</span>
             </div>
-
-            {/* 关闭按钮 / Close button */}
-            {onClose && (
-              <div className='cursor-pointer p-4px hover:bg-bg-3 rd-4px transition-colors' onClick={onClose} title={t('preview.closePreview')}>
-                <Close theme='outline' size='18' fill={iconColors.secondary} />
-              </div>
-            )}
           </div>
         </div>
       )}

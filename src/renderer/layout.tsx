@@ -281,7 +281,7 @@ const Layout: React.FC<{
               <div className=' flex-1 text-20px collapsed-hidden font-bold'>AionUi</div>
               <MenuFold className='cursor-pointer !collapsed-hidden flex' theme='outline' size='24' fill={iconColors.secondary} strokeWidth={3} onClick={() => setCollapsed(true)} />
               {collapsed && !isMobile && (
-                <div onClick={() => setCollapsed(false)} className='group-hover:opacity-100 absolute bg-2 left-8px top-7px transition-all duration-150 p-10px opacity-0'>
+                <div onClick={() => setCollapsed(false)} className='absolute bg-2 left-8px top-7px transition-all duration-150 p-10px hover:bg-hover opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto'>
                   <MenuUnfold className='cursor-pointer flex' size='24' fill={iconColors.secondary} strokeWidth={3} />
                 </div>
               )}
