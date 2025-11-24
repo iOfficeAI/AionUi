@@ -315,10 +315,22 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   // 流式内容订阅：订阅 agent 写入文件时的流式更新（替代文件监听）
   // Streaming content subscription: Subscribe to streaming updates when agent writes files (replaces file watching)
+  // 使用防抖优化：等待 agent 完成写入后再更新预览，避免打字动画被频繁中断
+  // Use debounce optimization: Wait for agent to finish writing before updating preview, avoiding frequent animation interruptions
   useEffect(() => {
+    // 防抖定时器映射：每个文件路径对应一个定时器 / Debounce timer map: one timer per file path
+    const debounceTimers = new Map<string, NodeJS.Timeout>();
+
     const unsubscribe = ipcBridge.fileStream.contentUpdate.on(({ filePath, content, operation }) => {
-      // 如果是删除操作，关闭对应的预览 tab / If delete operation, close the corresponding preview tab
+      // 如果是删除操作，立即处理，不需要防抖 / If delete operation, handle immediately without debounce
       if (operation === 'delete') {
+        // 清除该文件的防抖定时器 / Clear debounce timer for this file
+        const existingTimer = debounceTimers.get(filePath);
+        if (existingTimer) {
+          clearTimeout(existingTimer);
+          debounceTimers.delete(filePath);
+        }
+
         setTabs((prevTabs) => {
           const tabToClose = prevTabs.find((tab) => tab.metadata?.filePath === filePath);
           if (tabToClose) {
@@ -329,34 +341,52 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
         return;
       }
 
-      // 使用函数式更新来访问最新的 tabs 状态 / Use functional update to access latest tabs state
-      setTabs((prevTabs) => {
-        // 查找受影响的 tabs / Find affected tabs
-        const affectedTabs = prevTabs.filter((tab) => tab.metadata?.filePath === filePath);
+      // 对写入操作进行防抖：500ms 内没有新的更新才真正更新内容
+      // Debounce write operations: Only update content if no new updates within 500ms
+      const existingTimer = debounceTimers.get(filePath);
+      if (existingTimer) {
+        clearTimeout(existingTimer);
+      }
 
-        if (affectedTabs.length === 0) {
-          return prevTabs;
-        }
+      const timer = setTimeout(() => {
+        // 使用函数式更新来访问最新的 tabs 状态 / Use functional update to access latest tabs state
+        setTabs((prevTabs) => {
+          // 查找受影响的 tabs / Find affected tabs
+          const affectedTabs = prevTabs.filter((tab) => tab.metadata?.filePath === filePath);
 
-        return prevTabs.map((tab) => {
-          if (tab.metadata?.filePath !== filePath) return tab;
-
-          if (savingFilesRef.current.has(filePath) || tab.isDirty) {
-            return tab;
+          if (affectedTabs.length === 0) {
+            return prevTabs;
           }
 
-          return {
-            ...tab,
-            content,
-            originalContent: content,
-            isDirty: false,
-          };
+          return prevTabs.map((tab) => {
+            if (tab.metadata?.filePath !== filePath) return tab;
+
+            // 如果正在保存或用户已编辑，不更新 / Don't update if saving or user has edited
+            if (savingFilesRef.current.has(filePath) || tab.isDirty) {
+              return tab;
+            }
+
+            return {
+              ...tab,
+              content,
+              originalContent: content,
+              isDirty: false,
+            };
+          });
         });
-      });
+
+        // 清除定时器 / Clean up timer
+        debounceTimers.delete(filePath);
+      }, 500); // 500ms 防抖时间 / 500ms debounce delay
+
+      debounceTimers.set(filePath, timer);
     });
 
     return () => {
       unsubscribe();
+      // 清理所有防抖定时器 / Clean up all debounce timers
+      debounceTimers.forEach((timer) => clearTimeout(timer));
+      debounceTimers.clear();
     };
   }, [closeTab]); // 只依赖 closeTab，不依赖 tabs，避免重复订阅 / Only depend on closeTab, not tabs, to avoid re-subscribing
 
