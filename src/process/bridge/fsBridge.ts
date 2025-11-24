@@ -7,6 +7,8 @@
 import { AIONUI_TIMESTAMP_SEPARATOR } from '@/common/constants';
 import fs from 'fs/promises';
 import path from 'path';
+import https from 'node:https';
+import http from 'node:http';
 import { ipcBridge } from '../../common';
 import { getSystemDir } from '../initStorage';
 import { readDirectoryRecursive } from '../utils';
@@ -40,6 +42,62 @@ export function initFsBridge(): void {
       console.error(`Failed to read image file: ${filePath}`, error);
       // Return a placeholder data URL instead of throwing
       return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCwgc2Fucy1zZXJpZiIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIG5vdCBmb3VuZDwvdGV4dD48L3N2Zz4=';
+    }
+  });
+
+  const downloadRemoteBuffer = (targetUrl: string, redirectCount = 0): Promise<{ buffer: Buffer; contentType?: string }> => {
+    return new Promise((resolve, reject) => {
+      try {
+        const parsedUrl = new URL(targetUrl);
+        const client = parsedUrl.protocol === 'https:' ? https : http;
+        const request = client.get(
+          targetUrl,
+          {
+            headers: {
+              'User-Agent': 'AionUI-Preview',
+              Referer: 'https://github.com/iOfficeAI/AionUi',
+            },
+          },
+          (response) => {
+            const { statusCode = 0, headers } = response;
+
+            if (statusCode >= 300 && statusCode < 400 && headers.location && redirectCount < 5) {
+              const redirectUrl = new URL(headers.location, targetUrl).toString();
+              response.resume();
+              resolve(downloadRemoteBuffer(redirectUrl, redirectCount + 1));
+              return;
+            }
+
+            if (statusCode >= 400) {
+              response.resume();
+              reject(new Error(`Failed to fetch image: HTTP ${statusCode}`));
+              return;
+            }
+
+            const chunks: Buffer[] = [];
+            response.on('data', (chunk: Buffer) => chunks.push(chunk));
+            response.on('end', () => {
+              resolve({ buffer: Buffer.concat(chunks), contentType: headers['content-type'] });
+            });
+            response.on('error', (error) => reject(error));
+          }
+        );
+
+        request.on('error', (error) => reject(error));
+      } catch (error) {
+        reject(error);
+      }
+    });
+  };
+
+  ipcBridge.fs.fetchRemoteImage.provider(async ({ url }) => {
+    try {
+      const { buffer, contentType } = await downloadRemoteBuffer(url);
+      const base64 = buffer.toString('base64');
+      return `data:${contentType || 'application/octet-stream'};base64,${base64}`;
+    } catch (error) {
+      console.error('Failed to fetch remote image:', url, error);
+      throw error;
     }
   });
 

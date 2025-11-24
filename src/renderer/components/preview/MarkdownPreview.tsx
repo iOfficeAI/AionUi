@@ -5,6 +5,7 @@
  */
 
 import { joinPath } from '@/common/chatLib';
+import { ipcBridge } from '@/common';
 import { useAutoScroll } from '@/renderer/hooks/useAutoScroll';
 import { useTextSelection } from '@/renderer/hooks/useTextSelection';
 import { useTypingAnimation } from '@/renderer/hooks/useTypingAnimation';
@@ -63,13 +64,24 @@ const MarkdownImage: React.FC<MarkdownImageProps> = ({ src, alt, baseDir, ...pro
   useEffect(() => {
     let cancelled = false;
 
-    const loadImage = () => {
+    const loadImage = async () => {
       if (!src) {
         setResolvedSrc(undefined);
         return;
       }
 
       if (isDataOrRemoteUrl(src)) {
+        if (/^https?:/i.test(src)) {
+          try {
+            const dataUrl = await ipcBridge.fs.fetchRemoteImage.invoke({ url: src });
+            if (!cancelled) {
+              setResolvedSrc(dataUrl);
+            }
+            return;
+          } catch (error) {
+            console.error('[MarkdownPreview] Failed to fetch remote image:', src, error);
+          }
+        }
         setResolvedSrc(src);
         return;
       }
@@ -84,16 +96,19 @@ const MarkdownImage: React.FC<MarkdownImageProps> = ({ src, alt, baseDir, ...pro
       }
 
       try {
-        const fileUrl = toFileUrl(absolutePath);
+        const dataUrl = await ipcBridge.fs.getImageBase64.invoke({ path: absolutePath });
         if (!cancelled) {
-          setResolvedSrc(fileUrl);
+          setResolvedSrc(dataUrl);
         }
       } catch (error) {
-        console.error('[MarkdownPreview] Failed to resolve local image:', { src, absolutePath, error });
+        console.error('[MarkdownPreview] Failed to load local image:', { src, absolutePath, error });
+        if (!cancelled) {
+          setResolvedSrc(src);
+        }
       }
     };
 
-    loadImage();
+    void loadImage();
 
     return () => {
       cancelled = true;
@@ -104,7 +119,21 @@ const MarkdownImage: React.FC<MarkdownImageProps> = ({ src, alt, baseDir, ...pro
     return alt ? <span>{alt}</span> : null;
   }
 
-  return <img src={resolvedSrc} alt={alt} {...props} />;
+  return <img src={resolvedSrc} alt={alt} referrerPolicy='no-referrer' crossOrigin='anonymous' {...props} />;
+};
+
+const encodeHtmlAttribute = (value: string) => value.replace(/&(?!#?[a-z0-9]+;)/gi, '&amp;');
+
+const rewriteExternalMediaUrls = (markdown: string): string => {
+  const githubWikiRegex = /https:\/\/github\.com\/([^/]+)\/([^/]+)\/wiki\/([^\s)"'>]+)/gi;
+  const rewriteWiki = markdown.replace(githubWikiRegex, (_match, owner, repo, rest) => {
+    return `https://raw.githubusercontent.com/wiki/${owner}/${repo}/${rest}`;
+  });
+  return rewriteWiki.replace(/<(img|a)\b[^>]*>/gi, (tag) => {
+    return tag.replace(/(src|href)\s*=\s*(["'])([^"']*)(\2)/gi, (match, attr, quote, value, closingQuote) => {
+      return `${attr}=${quote}${encodeHtmlAttribute(value)}${closingQuote}`;
+    });
+  });
 };
 
 /**
@@ -144,8 +173,10 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({ content, onClose, hid
   const viewMode = externalViewMode !== undefined ? externalViewMode : internalViewMode;
 
   // 🎯 使用流式打字动画 Hook / Use typing animation Hook
+  const previewSource = useMemo(() => rewriteExternalMediaUrls(content), [content]);
+
   const { displayedContent, isAnimating } = useTypingAnimation({
-    content,
+    content: previewSource,
     enabled: viewMode === 'preview', // 仅在预览模式下启用 / Only enable in preview mode
     speed: 50, // 50 字符/秒 / 50 characters per second
   });
@@ -229,14 +260,17 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({ content, onClose, hid
         return;
       }
 
-      try {
-        const fileUrl = toFileUrl(absolutePath);
-        img.src = fileUrl;
-      } catch (error) {
-        console.error('[MarkdownPreview] Failed to patch rendered image:', { rawAttr, absolutePath, error });
-      } finally {
-        seen.add(img);
-      }
+      void ipcBridge.fs.getImageBase64
+        .invoke({ path: absolutePath })
+        .then((dataUrl) => {
+          img.src = dataUrl;
+        })
+        .catch((error) => {
+          console.error('[MarkdownPreview] Failed to inline rendered image:', { rawAttr, absolutePath, error });
+        })
+        .finally(() => {
+          seen.add(img);
+        });
     };
 
     const scanImages = () => {
