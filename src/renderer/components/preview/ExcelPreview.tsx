@@ -180,7 +180,7 @@ const ExcelPreview: React.FC<ExcelPreviewProps> = ({ filePath, hideToolbar = fal
     };
 
     return (
-      <div className='w-full h-full overflow-auto p-16px bg-bg-1'>
+      <div className='w-full h-full overflow-auto p-32px bg-bg-1'>
         <div className='relative inline-block min-w-full'>
           <table
             className='border-collapse text-13px text-t-primary'

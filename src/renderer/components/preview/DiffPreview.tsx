@@ -130,7 +130,7 @@ const DiffPreview: React.FC<DiffPreviewProps> = ({ content, metadata, onClose, h
       )}
 
       {/* 内容区域 / Content area */}
-      <div ref={containerRef} className='flex-1 overflow-auto p-16px'>
+      <div ref={containerRef} className='flex-1 overflow-auto p-32px'>
         {viewMode === 'source' ? (
           // 原文模式：显示提取后的纯净文件内容 / Source mode: Show extracted clean file content
           <pre className='w-full m-0 p-12px bg-bg-2 rd-8px overflow-auto font-mono text-12px text-t-primary whitespace-pre-wrap break-words'>{cleanContent}</pre>

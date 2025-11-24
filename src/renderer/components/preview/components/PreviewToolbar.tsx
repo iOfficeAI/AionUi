@@ -215,9 +215,6 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({ contentType, isMarkdown
             </div>
           </>
         )}
-
-        {/* 文件名 / Filename */}
-        <span className='text-12px font-medium text-t-primary'>{fileName}</span>
       </div>
 
       {/* 右侧：操作按钮（编辑/快照/历史/下载/关闭）/ Right: Action buttons (Edit/Snapshot/History/Download/Close) */}

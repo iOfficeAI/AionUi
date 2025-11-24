@@ -139,7 +139,7 @@ const CodePreview: React.FC<CodePreviewProps> = ({ content, language = 'text', o
       )}
 
       {/* 内容区域 / Content area */}
-      <div ref={containerRef} className='flex-1 overflow-auto p-16px'>
+      <div ref={containerRef} className='flex-1 overflow-auto p-32px'>
         {viewMode === 'source' ? (
           // 原文模式：显示原始代码 / Source mode: Show raw code
           <pre className='w-full m-0 p-12px bg-bg-2 rd-8px overflow-auto font-mono text-12px text-t-primary whitespace-pre-wrap break-words'>{content}</pre>
