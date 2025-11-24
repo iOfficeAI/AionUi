@@ -4,22 +4,20 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { PreviewMetadata } from '@/renderer/context/PreviewContext';
+import { useAutoScroll } from '@/renderer/hooks/useAutoScroll';
 import { useTextSelection } from '@/renderer/hooks/useTextSelection';
+import { useTypingAnimation } from '@/renderer/hooks/useTypingAnimation';
 import { iconColors } from '@/renderer/theme/colors';
 import { Close } from '@icon-park/react';
 import React, { useEffect, useRef, useState } from 'react';
-import ReactMarkdown from 'react-markdown';
+import { useTranslation } from 'react-i18next';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { vs, vs2015 } from 'react-syntax-highlighter/dist/esm/styles/hljs';
-import remarkGfm from 'remark-gfm';
-import SelectionToolbar from './SelectionToolbar';
-import { useTranslation } from 'react-i18next';
-import { extractContentFromDiff } from '@/renderer/utils/diffUtils';
+import SelectionToolbar from '../renderers/SelectionToolbar';
 
-interface DiffPreviewProps {
-  content: string; // Diff 内容 / Diff content
-  metadata?: PreviewMetadata; // 元数据 / Metadata
+interface CodePreviewProps {
+  content: string; // 代码内容 / Code content
+  language?: string; // 编程语言 / Programming language
   onClose?: () => void; // 关闭回调 / Close callback
   hideToolbar?: boolean; // 隐藏工具栏 / Hide toolbar
   viewMode?: 'source' | 'preview'; // 外部控制的视图模式 / External view mode
@@ -27,13 +25,13 @@ interface DiffPreviewProps {
 }
 
 /**
- * Diff 预览组件
- * Diff preview component
+ * 代码预览组件
+ * Code preview component
  *
- * 使用 ReactMarkdown 渲染 Diff，支持原文/预览切换和下载功能
- * Uses ReactMarkdown to render Diff, supports source/preview toggle and download
+ * 使用 SyntaxHighlighter 渲染代码块，支持原文/预览切换和下载功能
+ * Uses SyntaxHighlighter to render code block, supports source/preview toggle and download
  */
-const DiffPreview: React.FC<DiffPreviewProps> = ({ content, metadata, onClose, hideToolbar = false, viewMode: externalViewMode, onViewModeChange }) => {
+const CodePreview: React.FC<CodePreviewProps> = ({ content, language = 'text', onClose, hideToolbar = false, viewMode: externalViewMode, onViewModeChange }) => {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>(() => {
@@ -43,6 +41,21 @@ const DiffPreview: React.FC<DiffPreviewProps> = ({ content, metadata, onClose, h
 
   // 使用外部传入的 viewMode，否则使用内部状态 / Use external viewMode if provided, otherwise use internal state
   const viewMode = externalViewMode !== undefined ? externalViewMode : internalViewMode;
+
+  // 🎯 使用流式打字动画 Hook / Use typing animation Hook
+  const { displayedContent } = useTypingAnimation({
+    content,
+    enabled: viewMode === 'preview', // 仅在预览模式下启用 / Only enable in preview mode
+    speed: 50, // 50 字符/秒 / 50 characters per second
+  });
+
+  // 🎯 使用智能自动滚动 Hook / Use auto-scroll Hook
+  useAutoScroll({
+    containerRef,
+    content,
+    enabled: viewMode === 'preview', // 仅在预览模式下启用 / Only enable in preview mode
+    threshold: 200, // 距离底部 200px 以内时跟随 / Follow when within 200px from bottom
+  });
 
   // 监听主题变化 / Monitor theme changes
   useEffect(() => {
@@ -63,13 +76,15 @@ const DiffPreview: React.FC<DiffPreviewProps> = ({ content, metadata, onClose, h
   // 监听文本选择 / Monitor text selection
   const { selectedText, selectionPosition, clearSelection } = useTextSelection(containerRef);
 
-  // 下载 Diff 文件 / Download Diff file
+  // 下载代码文件 / Download code file
   const handleDownload = () => {
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `diff-${Date.now()}.diff`;
+    // 根据语言设置文件扩展名 / Set file extension based on language
+    const ext = language === 'javascript' || language === 'js' ? 'js' : language === 'typescript' || language === 'ts' ? 'ts' : language === 'python' || language === 'py' ? 'py' : language === 'java' ? 'java' : language === 'cpp' || language === 'c++' ? 'cpp' : language === 'c' ? 'c' : language === 'html' ? 'html' : language === 'css' ? 'css' : language === 'json' ? 'json' : language === 'markdown' || language === 'md' ? 'md' : 'txt';
+    link.download = `code-${Date.now()}.${ext}`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -84,12 +99,6 @@ const DiffPreview: React.FC<DiffPreviewProps> = ({ content, metadata, onClose, h
       setInternalViewMode(mode);
     }
   };
-
-  // 提取纯净的文件内容 / Extract clean file content
-  const cleanContent = extractContentFromDiff(content);
-
-  // 判断提取的内容是否为 markdown / Check if extracted content is markdown
-  const isMarkdownContent = metadata?.title?.toLowerCase().endsWith('.md') || metadata?.title?.toLowerCase().endsWith('.markdown');
 
   return (
     <div className='flex flex-col w-full h-full overflow-hidden'>
@@ -110,7 +119,7 @@ const DiffPreview: React.FC<DiffPreviewProps> = ({ content, metadata, onClose, h
           {/* 右侧按钮组：下载 + 关闭 / Right button group: Download + Close */}
           <div className='flex items-center gap-8px'>
             {/* 下载按钮 / Download button */}
-            <div className='flex items-center gap-4px px-8px py-4px rd-4px cursor-pointer hover:bg-bg-3 transition-colors' onClick={handleDownload} title={t('preview.downloadDiff')}>
+            <div className='flex items-center gap-4px px-8px py-4px rd-4px cursor-pointer hover:bg-bg-3 transition-colors' onClick={handleDownload} title={t('preview.downloadCode', { language: language.toUpperCase() })}>
               <svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' className='text-t-secondary'>
                 <path d='M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4' />
                 <polyline points='7 10 12 15 17 10' />
@@ -118,57 +127,19 @@ const DiffPreview: React.FC<DiffPreviewProps> = ({ content, metadata, onClose, h
               </svg>
               <span className='text-12px text-t-secondary'>{t('common.download')}</span>
             </div>
-
-            {/* 关闭按钮 / Close button */}
-            {onClose && (
-              <div className='cursor-pointer p-4px hover:bg-bg-3 rd-4px transition-colors' onClick={onClose} title={t('preview.closePreview')}>
-                <Close theme='outline' size='18' fill={iconColors.secondary} />
-              </div>
-            )}
           </div>
         </div>
       )}
 
       {/* 内容区域 / Content area */}
-      <div ref={containerRef} className='flex-1 overflow-auto p-32px'>
+      <div ref={containerRef} className='flex-1 overflow-auto p-16px'>
         {viewMode === 'source' ? (
-          // 原文模式：显示提取后的纯净文件内容 / Source mode: Show extracted clean file content
-          <pre className='w-full m-0 p-12px bg-bg-2 rd-8px overflow-auto font-mono text-12px text-t-primary whitespace-pre-wrap break-words'>{cleanContent}</pre>
-        ) : // 预览模式：根据文件类型渲染内容 / Preview mode: Render content based on file type
-        isMarkdownContent ? (
-          // Markdown 文件：渲染 markdown / Markdown file: Render markdown
-          <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
-            components={{
-              code({ className, children, ...props }: any) {
-                const match = /language-(\w+)/.exec(className || '');
-                const codeContent = String(children).replace(/\n$/, '');
-
-                // 判断是否为行内代码 / Check if it's inline code
-                if (!String(children).includes('\n')) {
-                  return (
-                    <code className={className} {...props}>
-                      {children}
-                    </code>
-                  );
-                }
-
-                return (
-                  <div className='my-4'>
-                    <SyntaxHighlighter style={currentTheme === 'dark' ? vs2015 : vs} language={match ? match[1] : 'text'} PreTag='div'>
-                      {codeContent}
-                    </SyntaxHighlighter>
-                  </div>
-                );
-              },
-            }}
-          >
-            {cleanContent}
-          </ReactMarkdown>
+          // 原文模式：显示原始代码 / Source mode: Show raw code
+          <pre className='w-full m-0 p-12px bg-bg-2 rd-8px overflow-auto font-mono text-12px text-t-primary whitespace-pre-wrap break-words'>{content}</pre>
         ) : (
-          // 其他文件：显示语法高亮的代码 / Other files: Show syntax-highlighted code
-          <SyntaxHighlighter style={currentTheme === 'dark' ? vs2015 : vs} language='text' PreTag='div' showLineNumbers>
-            {cleanContent}
+          // 预览模式：语法高亮（不显示行号，保持简洁）/ Preview mode: Syntax highlighting (no line numbers for clean look)
+          <SyntaxHighlighter style={currentTheme === 'dark' ? vs2015 : vs} language={language} PreTag='div'>
+            {displayedContent}
           </SyntaxHighlighter>
         )}
       </div>
@@ -179,4 +150,4 @@ const DiffPreview: React.FC<DiffPreviewProps> = ({ content, metadata, onClose, h
   );
 };
 
-export default DiffPreview;
+export default CodePreview;

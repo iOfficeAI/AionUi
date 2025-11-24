@@ -34,7 +34,8 @@
     "success": "成功",
     "error": "错误",
     "saveSuccess": "保存成功",
-    "saveFailed": "保存失败"
+    "saveFailed": "保存失败",
+    "unknownError": "未知错误"
   },
   "login": {
     "pageTitle": "AionUi - 登录",
@@ -119,7 +120,56 @@
     "closeLeft": "关闭左侧",
     "closeRight": "关闭右侧",
     "closeOthers": "关闭其他",
-    "closeAll": "全部关闭"
+    "closeAll": "全部关闭",
+    "readOnlyLabel": "只读预览",
+    "pathLabel": "路径",
+    "noTabs": "暂无标签页",
+    "openInPanelTooltip": "在预览面板中查看",
+    "errors": {
+      "missingFilePath": "未提供文件路径",
+      "openWithoutPath": "无法打开：未提供文件路径",
+      "conversionFailed": "转换失败",
+      "emptySnapshot": "快照内容为空"
+    },
+    "word": {
+      "title": "Word 文档",
+      "loading": "加载 Word 文档中...",
+      "invalid": "请检查文件是否为有效的 Word 文档",
+      "loadFailed": "加载 Word 文档失败"
+    },
+    "excel": {
+      "title": "Excel 表格",
+      "loading": "加载 Excel 文档中...",
+      "invalid": "请检查文件是否为有效的 Excel 文档",
+      "noSheets": "Excel 文件中没有工作表",
+      "sheetCount": "{{count}} 个工作表",
+      "convertFailed": "Excel 转换失败",
+      "loadFailed": "加载 Excel 文档失败",
+      "emptySheet": "此工作表无数据",
+      "emptySheetHint": "请检查 Excel 文件是否包含数据或图片"
+    },
+    "pdf": {
+      "title": "PDF 文档",
+      "pathMissing": "PDF 文件路径为空",
+      "loadFailed": "加载 PDF 失败",
+      "unableDisplay": "无法加载 PDF 文件"
+    },
+    "html": {
+      "elementSelected": "已选中元素: {{path}}",
+      "copySuccess": "已复制该段 HTML",
+      "inspectorEnabled": "元素选择器已开启，点击预览中的元素可定位代码",
+      "inspectorButton": "元素选择器",
+      "inspecting": "选择中...",
+      "selectedLabel": "已选中:",
+      "inspectorTooltip": "开启后，点击预览中的元素可查看其 HTML 代码",
+      "downloadHtml": "下载 HTML 文件",
+      "copyElementHtml": "复制元素 HTML",
+      "viewElementInfo": "查看元素信息",
+      "printedToConsole": "已在控制台打印元素信息",
+      "inspectElement": "审核元素",
+      "inspectElementEnable": "开启审核元素",
+      "inspectElementDisable": "关闭审核元素"
+    }
   },
   "conversation": {
     "welcome": {

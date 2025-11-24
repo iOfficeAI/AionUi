@@ -3,9 +3,8 @@ import { Layout as ArcoLayout } from '@arco-design/web-react';
 import { ExpandLeft, ExpandRight, MenuUnfold } from '@icon-park/react';
 import React, { useEffect, useRef, useState } from 'react';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
-import { usePreviewContext } from '@/renderer/context/PreviewContext';
+import { usePreviewContext, PreviewPanel } from '@/renderer/pages/conversation/preview';
 import { useResizableSplit } from '@/renderer/hooks/useResizableSplit';
-import PreviewPanel from '@/renderer/components/preview/PreviewPanel';
 
 import ClaudeLogo from '@/renderer/assets/logos/claude.svg';
 import CodexLogo from '@/renderer/assets/logos/codex.svg';
@@ -248,7 +247,6 @@ const ChatLayout: React.FC<{
     previousPreviewOpenRef.current = isPreviewOpen;
   }, [isPreviewOpen, isDesktop, layout, rightSiderCollapsed]);
 
-  const rightHandle = isDesktop && !rightSiderCollapsed ? createWorkspaceDragHandle({ className: 'absolute right-0 top-0 bottom-0', style: { borderRight: '1px solid var(--bg-3)' } }) : null;
   const mobileHandle = layout?.isMobile
     ? createWorkspaceDragHandle({
         className: 'absolute left-0 top-0 bottom-0',
@@ -329,9 +327,6 @@ const ChatLayout: React.FC<{
             }}
           >
             <PreviewPanel />
-
-            {/* 预览右侧拖动手柄：在桌面模式下调节预览和工作空间的宽度比例 */}
-            {isDesktop && !rightSiderCollapsed && rightHandle}
           </div>
         )}
 
@@ -351,6 +346,13 @@ const ChatLayout: React.FC<{
               borderLeft: rightSiderCollapsed ? 'none' : '1px solid var(--bg-3)',
             }}
           >
+            {isDesktop &&
+              !rightSiderCollapsed &&
+              createWorkspaceDragHandle({
+                className: 'absolute left-0 top-0 bottom-0',
+                style: { borderLeft: '1px solid var(--bg-3)' },
+                reverse: true,
+              })}
             <WorkspacePanelHeader showToggle={!isMacRuntime} collapsed={rightSiderCollapsed} onToggle={() => dispatchWorkspaceToggleEvent()}>
               {props.siderTitle}
             </WorkspacePanelHeader>

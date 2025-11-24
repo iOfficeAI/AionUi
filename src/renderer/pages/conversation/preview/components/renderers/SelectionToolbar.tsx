@@ -8,7 +8,7 @@ import React from 'react';
 import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react';
 import { Application } from '@icon-park/react';
 import { iconColors } from '@/renderer/theme/colors';
-import { usePreviewContext } from '@/renderer/context/PreviewContext';
+import { usePreviewContext } from '../../context/PreviewContext';
 import type { SelectionPosition } from '@/renderer/hooks/useTextSelection';
 import { useTranslation } from 'react-i18next';
 
@@ -62,18 +62,22 @@ const SelectionToolbar: React.FC<SelectionToolbarProps> = ({ selectedText, posit
   if (!selectedText || !position) return null;
 
   // 处理"添加到会话"按钮点击 / Handle "Add to chat" button click
-  const handleAddToSendBox = () => {
+  // 使用 mousedown 而不是 click，因为 click 之前文本选择可能已被清除
+  // Use mousedown instead of click because selection may be cleared before click fires
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     addToSendBox(selectedText);
     onClear(); // 清除选择状态 / Clear selection state
   };
 
   return (
-    <div ref={refs.setFloating} style={floatingStyles} className='z-1000'>
-      <div className='flex items-center gap-8px px-12px py-6px bg-white dark:bg-gray-800 rd-8px shadow-lg border-1 border-solid border-gray-200 dark:border-gray-700' onClick={handleAddToSendBox}>
-        <div className='cursor-pointer flex items-center gap-6px hover:opacity-80 transition-opacity'>
+    <div ref={refs.setFloating} style={{ ...floatingStyles, zIndex: 99999 }}>
+      <div className='flex items-center gap-8px px-12px py-8px bg-white dark:bg-gray-800 rd-8px shadow-lg border-1 border-solid border-gray-200 dark:border-gray-700 cursor-pointer hover:opacity-80 transition-opacity' onMouseDown={handleMouseDown}>
+        <div className='flex items-center justify-center' style={{ width: '16px', height: '16px' }}>
           <Application theme='outline' size='16' fill={iconColors.primary} />
-          <span className='text-12px text-t-primary font-medium whitespace-nowrap'>{t('preview.addToChat')}</span>
         </div>
+        <span className='text-13px text-t-primary font-medium whitespace-nowrap leading-16px'>{t('preview.addToChat')}</span>
       </div>
     </div>
   );

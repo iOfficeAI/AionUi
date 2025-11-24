@@ -9,7 +9,7 @@ import type { IDirOrFile } from '@/common/ipcBridge';
 import { ConfigStorage } from '@/common/storage';
 import type { PreviewContentType } from '@/common/types/preview';
 import FlexFullContainer from '@/renderer/components/FlexFullContainer';
-import { usePreviewContext } from '@/renderer/context/PreviewContext';
+import { usePreviewContext } from '@/renderer/pages/conversation/preview';
 import { usePasteService } from '@/renderer/hooks/usePasteService';
 import { iconColors } from '@/renderer/theme/colors';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';

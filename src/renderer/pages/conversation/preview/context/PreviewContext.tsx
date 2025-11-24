@@ -49,7 +49,7 @@ export interface PreviewContextValue {
 
   // 发送框集成 / Sendbox integration
   addToSendBox: (text: string) => void;
-  setSendBoxHandler: (handler: (text: string) => void) => void;
+  setSendBoxHandler: (handler: ((text: string) => void) | null) => void;
 }
 
 const PreviewContext = createContext<PreviewContextValue | null>(null);
@@ -309,7 +309,7 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
     [sendBoxHandler]
   );
 
-  const setSendBoxHandler = useCallback((handler: (text: string) => void) => {
+  const setSendBoxHandler = useCallback((handler: ((text: string) => void) | null) => {
     setSendBoxHandlerState(() => handler);
   }, []);
 

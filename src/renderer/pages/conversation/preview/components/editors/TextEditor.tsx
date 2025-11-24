@@ -63,12 +63,13 @@ const TextEditor: React.FC<TextEditorProps> = ({ value, onChange, readOnly = fal
     () => ({
       fontSize: '14px',
       height: '100%',
+      textAlign: 'left' as const, // 文本左对齐 / Text align left
     }),
     []
   );
 
   return (
-    <div ref={containerRef} className='h-full w-full overflow-auto'>
+    <div ref={containerRef} className='h-full w-full overflow-auto text-left'>
       <CodeMirror
         value={value}
         height='100%'

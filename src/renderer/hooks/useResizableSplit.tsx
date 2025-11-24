@@ -113,7 +113,11 @@ export const useResizableSplit = (options: UseResizableSplitOptions = {}) => {
     [splitRatio, minWidth, maxWidth, setSplitRatio]
   );
 
-  const renderHandle = ({ className, style, reverse }: { className?: string; style?: CSSProperties; reverse?: boolean } = {}) => <div className={classNames('resizable-split-handle absolute top-0 bottom-0 cursor-col-resize z-20', className)} style={style} onMouseDown={handleDragStart(reverse)} onDoubleClick={() => setSplitRatio(defaultWidth)} />;
+  const renderHandle = ({ className, style, reverse }: { className?: string; style?: CSSProperties; reverse?: boolean } = {}) => (
+    <div className={classNames('group absolute top-0 bottom-0 z-20 cursor-col-resize flex items-center', reverse ? 'justify-start' : 'justify-end', className)} style={{ width: '12px', ...style }} onMouseDown={handleDragStart(reverse)} onDoubleClick={() => setSplitRatio(defaultWidth)}>
+      <span className='pointer-events-none block h-full w-2px bg-bg-3 opacity-90 rd-full transition-all duration-150 group-hover:w-6px group-hover:bg-aou-6 group-active:w-6px group-active:bg-aou-6' />
+    </div>
+  );
 
   return { splitRatio, dragHandle: renderHandle({ className: 'right-0' }), setSplitRatio, createDragHandle: renderHandle };
 };

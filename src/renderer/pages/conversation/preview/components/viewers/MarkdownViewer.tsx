@@ -22,8 +22,8 @@ import remarkBreaks from 'remark-breaks';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import { Streamdown } from 'streamdown';
-import MarkdownEditor from './MarkdownEditor';
-import SelectionToolbar from './SelectionToolbar';
+import MarkdownEditor from '../editors/MarkdownEditor';
+import SelectionToolbar from '../renderers/SelectionToolbar';
 
 interface MarkdownPreviewProps {
   content: string; // Markdown 内容 / Markdown content
@@ -55,10 +55,10 @@ const useImageResolverCache = () => {
   const cacheRef = useRef(new Map<string, string>());
   const inflightRef = useRef(new Map<string, Promise<string>>());
 
-  const resolve = useCallback((key: string, loader: () => Promise<string>) => {
+  const resolve = useCallback((key: string, loader: () => Promise<string>): Promise<string> => {
     const cache = cacheRef.current;
     if (cache.has(key)) {
-      return cache.get(key)!;
+      return Promise.resolve(cache.get(key)!);
     }
 
     const inflight = inflightRef.current;
@@ -149,7 +149,7 @@ const MarkdownImage: React.FC<MarkdownImageProps> = ({ src, alt, baseDir, ...pro
     return alt ? <span>{alt}</span> : null;
   }
 
-  return <img src={resolvedSrc} alt={alt} referrerPolicy='no-referrer' crossOrigin='anonymous' {...props} />;
+  return <img src={resolvedSrc} alt={alt} referrerPolicy='no-referrer' crossOrigin='anonymous' style={{ maxWidth: '100%', width: 'auto', height: 'auto', display: 'block', objectFit: 'contain' }} {...props} />;
 };
 
 const encodeHtmlAttribute = (value: string) => value.replace(/&(?!#?[a-z0-9]+;)/gi, '&amp;');
@@ -326,104 +326,117 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({ content, onClose, hid
     <div className='flex flex-col w-full h-full overflow-hidden'>
       {/* 工具栏：Tabs 切换 + 下载按钮 / Toolbar: Tabs toggle + Download button */}
       {!hideToolbar && (
-        <div className='flex items-center justify-between h-40px px-12px bg-bg-2 flex-shrink-0 border-b border-border-1'>
-          {/* 左侧：原文/预览 Tabs / Left: Source/Preview Tabs */}
-          <div className='flex items-center h-full gap-2px'>
-            {/* 预览 Tab */}
-            <div
-              className={`
-                flex items-center h-full px-16px cursor-pointer transition-all text-14px font-medium
-                ${viewMode === 'preview' ? 'text-primary border-b-2 border-primary' : 'text-t-secondary hover:text-t-primary hover:bg-bg-3'}
-              `}
-              onClick={() => handleViewModeChange('preview')}
-            >
-              {t('preview.preview')}
-            </div>
-            {/* 原文 Tab */}
-            <div
-              className={`
-                flex items-center h-full px-16px cursor-pointer transition-all text-14px font-medium
-                ${viewMode === 'source' ? 'text-primary border-b-2 border-primary' : 'text-t-secondary hover:text-t-primary hover:bg-bg-3'}
-              `}
-              onClick={() => handleViewModeChange('source')}
-            >
-              {t('preview.source')}
-            </div>
-          </div>
-
-          {/* 右侧按钮组：下载 + 关闭 / Right button group: Download + Close */}
-          <div className='flex items-center gap-8px'>
-            {/* 下载按钮 / Download button */}
-            <div className='flex items-center gap-4px px-8px py-4px rd-4px cursor-pointer hover:bg-bg-3 transition-colors' onClick={handleDownload} title={t('preview.downloadMarkdown')}>
-              <svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' className='text-t-secondary'>
-                <path d='M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4' />
-                <polyline points='7 10 12 15 17 10' />
-                <line x1='12' y1='15' x2='12' y2='3' />
-              </svg>
-              <span className='text-12px text-t-secondary'>{t('common.download')}</span>
-            </div>
-
-            {/* 关闭按钮 / Close button */}
-            {onClose && (
-              <div className='cursor-pointer p-4px hover:bg-bg-3 rd-4px transition-colors' onClick={onClose} title={t('preview.closePreview')}>
-                <Close theme='outline' size='18' fill={iconColors.secondary} />
+        <div className='flex items-center justify-between h-40px px-12px bg-bg-2 flex-shrink-0 border-b border-border-1 overflow-x-auto'>
+          <div className='flex items-center justify-between gap-12px w-full' style={{ minWidth: 'max-content' }}>
+            {/* 左侧：原文/预览 Tabs / Left: Source/Preview Tabs */}
+            <div className='flex items-center h-full gap-2px'>
+              {/* 预览 Tab */}
+              <div
+                className={`
+                  flex items-center h-full px-16px cursor-pointer transition-all text-14px font-medium
+                  ${viewMode === 'preview' ? 'text-primary border-b-2 border-primary' : 'text-t-secondary hover:text-t-primary hover:bg-bg-3'}
+                `}
+                onClick={() => handleViewModeChange('preview')}
+              >
+                {t('preview.preview')}
               </div>
-            )}
+              {/* 原文 Tab */}
+              <div
+                className={`
+                  flex items-center h-full px-16px cursor-pointer transition-all text-14px font-medium
+                  ${viewMode === 'source' ? 'text-primary border-b-2 border-primary' : 'text-t-secondary hover:text-t-primary hover:bg-bg-3'}
+                `}
+                onClick={() => handleViewModeChange('source')}
+              >
+                {t('preview.source')}
+              </div>
+            </div>
+
+            {/* 右侧按钮组：下载 + 关闭 / Right button group: Download + Close */}
+            <div className='flex items-center gap-8px flex-shrink-0'>
+              {/* 下载按钮 / Download button */}
+              <div className='flex items-center gap-4px px-8px py-4px rd-4px cursor-pointer hover:bg-bg-3 transition-colors' onClick={handleDownload} title={t('preview.downloadMarkdown')}>
+                <svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' className='text-t-secondary'>
+                  <path d='M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4' />
+                  <polyline points='7 10 12 15 17 10' />
+                  <line x1='12' y1='15' x2='12' y2='3' />
+                </svg>
+                <span className='text-12px text-t-secondary'>{t('common.download')}</span>
+              </div>
+            </div>
           </div>
         </div>
       )}
 
       {/* 内容区域 / Content area */}
-      <div ref={containerRef} className={`flex-1 ${viewMode === 'source' ? 'overflow-hidden' : 'overflow-auto p-32px'}`}>
+      <div ref={containerRef} className={`flex-1 ${viewMode === 'source' ? 'overflow-hidden' : 'overflow-auto p-32px'}`} style={{ minWidth: 0 }}>
         {viewMode === 'source' ? (
           // 原文模式：使用编辑器 / Source mode: Use editor
           <MarkdownEditor value={content} onChange={(value) => onContentChange?.(value)} />
         ) : (
           // 预览模式：渲染 Markdown / Preview mode: Render Markdown
-          <Streamdown
-            // 核心功能：解析不完整的 Markdown，优化流式渲染体验 / Core feature: parse incomplete Markdown for optimal streaming
-            parseIncompleteMarkdown={true}
-            // 启用动画效果（当正在打字时）/ Enable animation when typing
-            isAnimating={isAnimating}
-            remarkPlugins={[remarkGfm, remarkMath, remarkBreaks]}
-            rehypePlugins={[rehypeRaw, rehypeKatex]}
-            components={{
-              img({ src, alt, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) {
-                return <MarkdownImage src={src} alt={alt} baseDir={baseDir} {...props} />;
-              },
-              code({ className, children, ...props }: React.HTMLAttributes<HTMLElement>) {
-                const match = /language-(\w+)/.exec(className || '');
-                const codeContent = String(children).replace(/\n$/, '');
-                const language = match ? match[1] : '';
-                const codeTheme = currentTheme === 'dark' ? vs2015 : vs;
+          <div style={{ wordWrap: 'break-word', overflowWrap: 'break-word', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
+            <Streamdown
+              // 核心功能：解析不完整的 Markdown，优化流式渲染体验 / Core feature: parse incomplete Markdown for optimal streaming
+              parseIncompleteMarkdown={true}
+              // 启用动画效果（当正在打字时）/ Enable animation when typing
+              isAnimating={isAnimating}
+              remarkPlugins={[remarkGfm, remarkMath, remarkBreaks]}
+              rehypePlugins={[rehypeRaw, rehypeKatex]}
+              components={{
+                img({ src, alt, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) {
+                  return <MarkdownImage src={src} alt={alt} baseDir={baseDir} {...props} />;
+                },
+                table({ children, ...props }: React.HTMLAttributes<HTMLTableElement>) {
+                  return (
+                    <div style={{ maxWidth: '100%', overflowX: 'auto' }}>
+                      <table {...props}>{children}</table>
+                    </div>
+                  );
+                },
+                pre({ children, ...props }: React.HTMLAttributes<HTMLPreElement>) {
+                  return (
+                    <pre style={{ maxWidth: '100%', overflowX: 'auto' }} {...props}>
+                      {children}
+                    </pre>
+                  );
+                },
+                code({ className, children, ...props }: React.HTMLAttributes<HTMLElement>) {
+                  const match = /language-(\w+)/.exec(className || '');
+                  const codeContent = String(children).replace(/\n$/, '');
+                  const language = match ? match[1] : '';
+                  const codeTheme = currentTheme === 'dark' ? vs2015 : vs;
 
-                // 代码高亮 / Code highlighting
-                return language ? (
-                  <SyntaxHighlighter
-                    // @ts-expect-error - style 属性类型定义问题
-                    style={codeTheme}
-                    language={language}
-                    PreTag='div'
-                    customStyle={{
-                      margin: 0,
-                      borderRadius: '8px',
-                      padding: '16px',
-                      fontSize: '14px',
-                    }}
-                    {...props}
-                  >
-                    {codeContent}
-                  </SyntaxHighlighter>
-                ) : (
-                  <code className={className} {...props}>
-                    {children}
-                  </code>
-                );
-              },
-            }}
-          >
-            {displayedContent}
-          </Streamdown>
+                  // 代码高亮 / Code highlighting
+                  return language ? (
+                    <SyntaxHighlighter
+                      // @ts-expect-error - style 属性类型定义问题
+                      style={codeTheme}
+                      language={language}
+                      PreTag='div'
+                      customStyle={{
+                        margin: 0,
+                        borderRadius: '8px',
+                        padding: '16px',
+                        fontSize: '14px',
+                        maxWidth: '100%',
+                        overflow: 'auto',
+                      }}
+                      {...props}
+                    >
+                      {codeContent}
+                    </SyntaxHighlighter>
+                  ) : (
+                    <code className={className} {...props}>
+                      {children}
+                    </code>
+                  );
+                },
+              }}
+            >
+              {displayedContent}
+            </Streamdown>
+          </div>
         )}
       </div>
 

@@ -7,7 +7,8 @@
 import { iconColors } from '@/renderer/theme/colors';
 import { Close } from '@icon-park/react';
 import React from 'react';
-import type { TabFadeState } from '../hooks/useTabOverflow';
+import { useTranslation } from 'react-i18next';
+import type { TabFadeState } from '../../hooks/useTabOverflow';
 
 /**
  * Tab 信息
@@ -91,6 +92,7 @@ interface PreviewTabsProps {
  * Includes left/right gradient indicators to prompt users that more tabs can be scrolled
  */
 const PreviewTabs: React.FC<PreviewTabsProps> = ({ tabs, activeTabId, tabFadeState, tabsContainerRef, onSwitchTab, onCloseTab, onContextMenu }) => {
+  const { t } = useTranslation();
   const { left: showLeftFade, right: showRightFade } = tabFadeState;
 
   return (
@@ -102,7 +104,7 @@ const PreviewTabs: React.FC<PreviewTabsProps> = ({ tabs, activeTabId, tabFadeSta
               <span className='text-12px whitespace-nowrap flex items-center gap-4px'>
                 {tab.title}
                 {/* 未保存指示器 / Unsaved indicator */}
-                {tab.isDirty && <span className='w-6px h-6px rd-full bg-primary' title='有未保存的修改 / Unsaved changes' />}
+                {tab.isDirty && <span className='w-6px h-6px rd-full bg-primary' title={t('preview.unsavedChangesTitle')} />}
               </span>
               <Close
                 theme='outline'
@@ -117,7 +119,7 @@ const PreviewTabs: React.FC<PreviewTabsProps> = ({ tabs, activeTabId, tabFadeSta
             </div>
           ))
         ) : (
-          <div className='text-12px text-t-tertiary px-12px'>No tabs</div>
+          <div className='text-12px text-t-tertiary px-12px'>{t('preview.noTabs')}</div>
         )}
       </div>
 

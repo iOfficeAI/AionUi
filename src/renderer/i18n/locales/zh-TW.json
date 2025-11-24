@@ -136,7 +136,8 @@
     "expandMore": "展開更多",
     "collapse": "收起",
     "copy": "複製",
-    "download": "下載"
+    "download": "下載",
+    "unknownError": "未知錯誤"
   },
   "login": {
     "pageTitle": "AionUi - 登入",
@@ -220,7 +221,56 @@
     "closeLeft": "關閉左側",
     "closeRight": "關閉右側",
     "closeOthers": "關閉其他",
-    "closeAll": "全部關閉"
+    "closeAll": "全部關閉",
+    "readOnlyLabel": "唯讀預覽",
+    "pathLabel": "路徑",
+    "noTabs": "尚無標籤",
+    "openInPanelTooltip": "在預覽面板中查看",
+    "errors": {
+      "missingFilePath": "未提供檔案路徑",
+      "openWithoutPath": "無法開啟：未提供檔案路徑",
+      "conversionFailed": "轉換失敗",
+      "emptySnapshot": "快照內容為空"
+    },
+    "word": {
+      "title": "Word 文件",
+      "loading": "正在載入 Word 文件...",
+      "invalid": "請確認這是有效的 Word 文件",
+      "loadFailed": "載入 Word 文件失敗"
+    },
+    "excel": {
+      "title": "Excel 試算表",
+      "loading": "正在載入 Excel 文件...",
+      "invalid": "請確認這是有效的 Excel 文件",
+      "noSheets": "此 Excel 文件沒有工作表",
+      "sheetCount": "{{count}} 個工作表",
+      "convertFailed": "Excel 轉換失敗",
+      "loadFailed": "載入 Excel 文件失敗",
+      "emptySheet": "此工作表沒有資料",
+      "emptySheetHint": "請確認工作表內是否包含資料或圖片"
+    },
+    "pdf": {
+      "title": "PDF 文件",
+      "pathMissing": "PDF 檔案路徑為空",
+      "loadFailed": "載入 PDF 失敗",
+      "unableDisplay": "無法載入 PDF 文件"
+    },
+    "html": {
+      "elementSelected": "已選取元素: {{path}}",
+      "copySuccess": "已複製該段 HTML",
+      "inspectorEnabled": "元素檢視器已啟用，點擊預覽中的元素即可定位",
+      "inspectorButton": "元素檢視器",
+      "inspecting": "檢視中...",
+      "selectedLabel": "已選取:",
+      "inspectorTooltip": "啟用後可點擊預覽中的元素以檢視 HTML",
+      "downloadHtml": "下載 HTML 檔案",
+      "copyElementHtml": "複製元素 HTML",
+      "viewElementInfo": "查看元素資訊",
+      "printedToConsole": "已在主控台輸出元素資訊",
+      "inspectElement": "檢查元素",
+      "inspectElementEnable": "啟用元素檢查",
+      "inspectElementDisable": "停用元素檢查"
+    }
   },
   "conversation": {
     "welcome": {

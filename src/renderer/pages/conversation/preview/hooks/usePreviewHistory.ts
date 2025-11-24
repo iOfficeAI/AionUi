@@ -154,7 +154,7 @@ export const usePreviewHistory = ({ activeTab, updateContent }: UsePreviewHistor
       setHistoryVersions(versions || []);
       setHistoryError(null);
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : '未知错误';
+      const errorMsg = error instanceof Error ? error.message : t('common.unknownError');
       setHistoryError(`${t('preview.loadHistoryFailed')}: ${errorMsg}`);
       setHistoryVersions([]);
     } finally {
@@ -188,7 +188,7 @@ export const usePreviewHistory = ({ activeTab, updateContent }: UsePreviewHistor
       messageApi.success(t('preview.snapshotSaved'));
       await refreshHistory();
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : '未知错误';
+      const errorMsg = error instanceof Error ? error.message : t('common.unknownError');
       messageApi.error(`${t('preview.snapshotSaveFailed')}: ${errorMsg}`);
     } finally {
       setSnapshotSaving(false);
@@ -207,10 +207,10 @@ export const usePreviewHistory = ({ activeTab, updateContent }: UsePreviewHistor
           updateContent(result.content);
           messageApi.success(t('preview.historyLoaded'));
         } else {
-          throw new Error('快照内容为空');
+          throw new Error(t('preview.errors.emptySnapshot'));
         }
       } catch (error) {
-        const errorMsg = error instanceof Error ? error.message : '未知错误';
+        const errorMsg = error instanceof Error ? error.message : t('common.unknownError');
         messageApi.error(`${t('preview.historyLoadFailed')}: ${errorMsg}`);
       }
     },

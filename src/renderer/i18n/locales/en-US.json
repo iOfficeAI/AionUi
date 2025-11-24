@@ -37,7 +37,8 @@
     "success": "Success",
     "error": "Error",
     "saveSuccess": "Saved successfully",
-    "saveFailed": "Failed to save"
+    "saveFailed": "Failed to save",
+    "unknownError": "Unknown error"
   },
   "login": {
     "pageTitle": "AionUi - Sign In",
@@ -122,7 +123,56 @@
     "closeLeft": "Close Left",
     "closeRight": "Close Right",
     "closeOthers": "Close Others",
-    "closeAll": "Close All"
+    "closeAll": "Close All",
+    "readOnlyLabel": "Read-only preview",
+    "pathLabel": "Path",
+    "noTabs": "No tabs open",
+    "openInPanelTooltip": "View in preview panel",
+    "errors": {
+      "missingFilePath": "File path is missing",
+      "openWithoutPath": "Unable to open: file path is not provided",
+      "conversionFailed": "Conversion failed",
+      "emptySnapshot": "Snapshot content is empty"
+    },
+    "word": {
+      "title": "Word Document",
+      "loading": "Loading Word document...",
+      "invalid": "Please confirm the file is a valid Word document",
+      "loadFailed": "Failed to load Word document"
+    },
+    "excel": {
+      "title": "Excel Spreadsheet",
+      "loading": "Loading Excel workbook...",
+      "invalid": "Please confirm the file is a valid Excel document",
+      "noSheets": "No worksheets found in this Excel file",
+      "sheetCount": "{{count}} worksheet(s)",
+      "convertFailed": "Excel conversion failed",
+      "loadFailed": "Failed to load Excel workbook",
+      "emptySheet": "This worksheet has no data",
+      "emptySheetHint": "Check whether the sheet contains data or images"
+    },
+    "pdf": {
+      "title": "PDF Document",
+      "pathMissing": "PDF file path is missing",
+      "loadFailed": "Failed to load PDF document",
+      "unableDisplay": "Unable to display PDF file"
+    },
+    "html": {
+      "elementSelected": "Selected element: {{path}}",
+      "copySuccess": "Copied HTML snippet",
+      "inspectorEnabled": "Element inspector enabled. Click items in the preview to highlight them.",
+      "inspectorButton": "Element inspector",
+      "inspecting": "Inspecting...",
+      "selectedLabel": "Selected:",
+      "inspectorTooltip": "Click preview elements to inspect their HTML",
+      "downloadHtml": "Download HTML file",
+      "copyElementHtml": "Copy element HTML",
+      "viewElementInfo": "View element info",
+      "printedToConsole": "Element info logged to console",
+      "inspectElement": "Inspect element",
+      "inspectElementEnable": "Enable element inspector",
+      "inspectElementDisable": "Disable element inspector"
+    }
   },
   "conversation": {
     "welcome": {

@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { ExcelWorkbookData } from '@/common/types/conversion';
+import { usePreviewToolbarExtras } from '../../context/PreviewToolbarExtrasContext';
 import { Button, Message } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -31,10 +32,12 @@ const ExcelPreview: React.FC<ExcelPreviewProps> = ({ filePath, hideToolbar = fal
   const [error, setError] = useState<string | null>(null);
   const [activeSheet, setActiveSheet] = useState<string>('');
   const [messageApi, messageContextHolder] = Message.useMessage();
+  const toolbarExtrasContext = usePreviewToolbarExtras();
+  const usePortalToolbar = Boolean(toolbarExtrasContext) && !hideToolbar;
 
   const handleOpenInSystem = useCallback(async () => {
     if (!filePath) {
-      messageApi.error('无法打开：未提供文件路径');
+      messageApi.error(t('preview.errors.openWithoutPath'));
       return;
     }
 
@@ -46,13 +49,30 @@ const ExcelPreview: React.FC<ExcelPreviewProps> = ({ filePath, hideToolbar = fal
     }
   }, [filePath, messageApi, t]);
 
+  const sheetCount = excelData?.sheets.length;
+
+  useEffect(() => {
+    if (!usePortalToolbar || !toolbarExtrasContext) return;
+    toolbarExtrasContext.setExtras({
+      left: (
+        <div className='flex items-center gap-8px'>
+          <span className='text-13px text-t-secondary'>📊 {t('preview.excel.title')}</span>
+          <span className='text-11px text-t-tertiary'>{t('preview.readOnlyLabel')}</span>
+          {typeof sheetCount === 'number' && <span className='text-12px text-t-secondary'>{t('preview.excel.sheetCount', { count: sheetCount })}</span>}
+        </div>
+      ),
+      right: null,
+    });
+    return () => toolbarExtrasContext.setExtras(null);
+  }, [usePortalToolbar, toolbarExtrasContext, sheetCount, t]);
+
   /**
    * 加载 Excel 文件
    */
   useEffect(() => {
     const loadExcel = async () => {
       if (!filePath) {
-        setError('未提供文件路径');
+        setError(t('preview.errors.missingFilePath'));
         setLoading(false);
         return;
       }
@@ -71,17 +91,17 @@ const ExcelPreview: React.FC<ExcelPreviewProps> = ({ filePath, hideToolbar = fal
             setActiveSheet(result.data.sheets[0].name);
           }
         } else {
-          throw new Error(result.error || 'Excel 转换失败');
+          throw new Error(result.error || t('preview.excel.convertFailed'));
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : '加载 Excel 文档失败');
+        setError(err instanceof Error ? err.message : t('preview.excel.loadFailed'));
       } finally {
         setLoading(false);
       }
     };
 
     void loadExcel();
-  }, [filePath]);
+  }, [filePath, t]);
 
   /**
    * 渲染工作表数据为 HTML 表格
@@ -95,8 +115,8 @@ const ExcelPreview: React.FC<ExcelPreviewProps> = ({ filePath, hideToolbar = fal
       return (
         <div className='flex items-center justify-center h-200px'>
           <div className='text-center'>
-            <div className='text-14px text-t-secondary mb-8px'>此工作表无数据</div>
-            <div className='text-12px text-t-tertiary'>请检查 Excel 文件是否包含数据或图片</div>
+            <div className='text-14px text-t-secondary mb-8px'>{t('preview.excel.emptySheet')}</div>
+            <div className='text-12px text-t-tertiary'>{t('preview.excel.emptySheetHint')}</div>
           </div>
         </div>
       );
@@ -146,7 +166,7 @@ const ExcelPreview: React.FC<ExcelPreviewProps> = ({ filePath, hideToolbar = fal
       }
     });
 
-    const renderCellContent = (value: any, cellImages?: typeof sheetImages) => {
+    const renderCellContent = (value: unknown, cellImages?: typeof sheetImages) => {
       const text = value === undefined || value === null ? '' : String(value);
       const hasText = text !== '';
       const hasImages = !!cellImages && cellImages.length > 0;
@@ -237,7 +257,7 @@ const ExcelPreview: React.FC<ExcelPreviewProps> = ({ filePath, hideToolbar = fal
   if (loading) {
     return (
       <div className='flex items-center justify-center h-full'>
-        <div className='text-14px text-t-secondary'>加载 Excel 文档中...</div>
+        <div className='text-14px text-t-secondary'>{t('preview.excel.loading')}</div>
       </div>
     );
   }
@@ -247,7 +267,7 @@ const ExcelPreview: React.FC<ExcelPreviewProps> = ({ filePath, hideToolbar = fal
       <div className='flex items-center justify-center h-full'>
         <div className='text-center'>
           <div className='text-16px text-t-error mb-8px'>❌ {error}</div>
-          <div className='text-12px text-t-secondary'>请检查文件是否为有效的 Excel 文档</div>
+          <div className='text-12px text-t-secondary'>{t('preview.excel.invalid')}</div>
         </div>
       </div>
     );
@@ -256,7 +276,7 @@ const ExcelPreview: React.FC<ExcelPreviewProps> = ({ filePath, hideToolbar = fal
   if (!excelData || excelData.sheets.length === 0) {
     return (
       <div className='flex items-center justify-center h-full'>
-        <div className='text-14px text-t-secondary'>Excel 文件中没有工作表</div>
+        <div className='text-14px text-t-secondary'>{t('preview.excel.noSheets')}</div>
       </div>
     );
   }
@@ -266,15 +286,15 @@ const ExcelPreview: React.FC<ExcelPreviewProps> = ({ filePath, hideToolbar = fal
       {messageContextHolder}
 
       {/* 工具栏 */}
-      {!hideToolbar && (
+      {!usePortalToolbar && !hideToolbar && (
         <div className='flex items-center justify-between h-40px px-12px bg-bg-2 border-b border-border-base flex-shrink-0'>
           <div className='flex items-center gap-8px'>
-            <span className='text-13px text-t-secondary'>📊 Excel 表格</span>
-            <span className='text-11px text-t-tertiary'>只读预览</span>
+            <span className='text-13px text-t-secondary'>📊 {t('preview.excel.title')}</span>
+            <span className='text-11px text-t-tertiary'>{t('preview.readOnlyLabel')}</span>
           </div>
 
           <div className='flex items-center gap-8px'>
-            <span className='text-12px text-t-secondary'>{excelData.sheets.length} 个工作表</span>
+            <span className='text-12px text-t-secondary'>{t('preview.excel.sheetCount', { count: excelData.sheets.length })}</span>
             {filePath && (
               <Button size='mini' type='text' onClick={handleOpenInSystem} title={t('preview.openWithApp', { app: 'Excel' })}>
                 <svg width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'>

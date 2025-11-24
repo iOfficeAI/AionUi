@@ -6,24 +6,25 @@
 
 import { ipcBridge } from '@/common';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
-import { usePreviewContext } from '@/renderer/context/PreviewContext';
+import { PreviewToolbarExtrasProvider, type PreviewToolbarExtras } from '../../context/PreviewToolbarExtrasContext';
+import { usePreviewContext } from '../../context/PreviewContext';
 import { useResizableSplit } from '@/renderer/hooks/useResizableSplit';
-import React, { useCallback, useRef, useState } from 'react';
-import CodePreview from './CodePreview';
-import DiffPreview from './DiffPreview';
-import ExcelPreview from './ExcelPreview';
-import HTMLEditor from './HTMLEditor';
-import HTMLRenderer from './HTMLRenderer';
-import ImagePreview from './ImagePreview';
-import MarkdownEditor from './MarkdownEditor';
-import MarkdownPreview from './MarkdownPreview';
-import PDFPreview from './PDFPreview';
-import PPTPreview from './PPTPreview';
-import TextEditor from './TextEditor';
-import WordPreview from './WordPreview';
-import { PreviewTabs, PreviewToolbar, PreviewContextMenu, PreviewConfirmModals, PreviewHistoryDropdown, type ContextMenuState, type CloseTabConfirmState, type PreviewTab } from './components';
-import { DEFAULT_SPLIT_RATIO, FILE_TYPES_WITH_BUILTIN_OPEN, MAX_SPLIT_WIDTH, MIN_SPLIT_WIDTH } from './constants';
-import { usePreviewHistory, usePreviewKeyboardShortcuts, useScrollSync, useTabOverflow, useThemeDetection } from './hooks';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
+import CodePreview from '../viewers/CodeViewer';
+import DiffPreview from '../viewers/DiffViewer';
+import ExcelPreview from '../viewers/ExcelViewer';
+import HTMLEditor from '../editors/HTMLEditor';
+import HTMLRenderer from '../renderers/HTMLRenderer';
+import ImagePreview from '../viewers/ImageViewer';
+import MarkdownEditor from '../editors/MarkdownEditor';
+import MarkdownPreview from '../viewers/MarkdownViewer';
+import PDFPreview from '../viewers/PDFViewer';
+import PPTPreview from '../viewers/PPTViewer';
+import TextEditor from '../editors/TextEditor';
+import WordPreview from '../viewers/WordViewer';
+import { PreviewTabs, PreviewToolbar, PreviewContextMenu, PreviewConfirmModals, PreviewHistoryDropdown, type ContextMenuState, type CloseTabConfirmState, type PreviewTab } from '.';
+import { DEFAULT_SPLIT_RATIO, FILE_TYPES_WITH_BUILTIN_OPEN, MAX_SPLIT_WIDTH, MIN_SPLIT_WIDTH } from '../../constants';
+import { usePreviewHistory, usePreviewKeyboardShortcuts, useScrollSync, useTabOverflow, useThemeDetection } from '../../hooks';
 import { useTranslation } from 'react-i18next';
 
 /**
@@ -43,6 +44,7 @@ const PreviewPanel: React.FC = () => {
   const [isSplitScreenEnabled, setIsSplitScreenEnabled] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [inspectMode, setInspectMode] = useState(false);
+  const [toolbarExtras, setToolbarExtras] = useState<PreviewToolbarExtras | null>(null);
 
   // 确认对话框状态 / Confirmation dialog states
   const [showExitConfirm, setShowExitConfirm] = useState(false);
@@ -74,6 +76,17 @@ const PreviewPanel: React.FC = () => {
     isDirty: activeTab?.isDirty,
     onSave: () => void saveContent(),
   });
+
+  const setToolbarExtrasCallback = useCallback((extras: PreviewToolbarExtras | null) => {
+    setToolbarExtras(extras);
+  }, []);
+
+  const toolbarExtrasContextValue = useMemo(
+    () => ({
+      setExtras: setToolbarExtrasCallback,
+    }),
+    [setToolbarExtrasCallback]
+  );
 
   // 内层分割：编辑器和预览的分割比例（默认 50/50）
   // Inner split: Split ratio between editor and preview (default 50/50)
@@ -149,7 +162,7 @@ const PreviewPanel: React.FC = () => {
       closeTab(closeTabConfirm.tabId);
       setCloseTabConfirm({ show: false, tabId: null });
     } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : '未知错误';
+      const errorMsg = error instanceof Error ? error.message : t('common.unknownError');
       messageApi.error(`${t('common.saveFailed')}: ${errorMsg}`);
     }
   }, [closeTabConfirm.tabId, saveContent, closeTab, messageApi, t]);
@@ -233,9 +246,9 @@ const PreviewPanel: React.FC = () => {
   // (Word, PPT, PDF, Excel components provide their own)
   const hasBuiltInOpenButton = (FILE_TYPES_WITH_BUILTIN_OPEN as readonly string[]).includes(contentType);
 
-  // 仅对有 filePath 且没有内置打开按钮的文件显示"在系统中打开"按钮
-  // Show "Open in System" button only for files with filePath and without built-in open button
-  const showOpenInSystemButton = Boolean(metadata?.filePath) && !hasBuiltInOpenButton;
+  // 对所有有 filePath 的文件显示"在系统中打开"按钮（统一在工具栏显示）
+  // Show "Open in System" button for all files with filePath (unified in toolbar)
+  const showOpenInSystemButton = Boolean(metadata?.filePath);
 
   // 下载文件到本地 / Download file to local system
   const handleDownload = useCallback(async () => {
@@ -363,11 +376,11 @@ const PreviewPanel: React.FC = () => {
             {dragHandle}
 
             {/* 右侧：预览 / Right: Preview */}
-            <div className='flex flex-col flex-1'>
+            <div className='flex flex-col' style={{ width: `${100 - splitRatio}%`, minWidth: 0 }}>
               <div className='h-40px flex items-center px-12px bg-bg-2'>
                 <span className='text-12px text-t-secondary'>{t('preview.preview')}</span>
               </div>
-              <div className='flex-1 overflow-hidden'>
+              <div className='flex flex-col flex-1 overflow-hidden'>
                 <MarkdownPreview content={content} hideToolbar containerRef={previewContainerRef} onScroll={handlePreviewScroll} filePath={metadata?.filePath} />
               </div>
             </div>
@@ -387,7 +400,7 @@ const PreviewPanel: React.FC = () => {
         if (layout?.isMobile) {
           return (
             <div className='flex-1 overflow-hidden'>
-              <HTMLRenderer content={content} filePath={metadata?.filePath} />
+              <HTMLRenderer content={content} filePath={metadata?.filePath} copySuccessMessage={t('preview.html.copySuccess')} />
             </div>
           );
         }
@@ -409,21 +422,14 @@ const PreviewPanel: React.FC = () => {
             {dragHandle}
 
             {/* 右侧：预览 / Right: Preview */}
-            <div className='flex flex-col flex-1'>
+            <div className='flex flex-col' style={{ width: `${100 - splitRatio}%`, minWidth: 0 }}>
               <div className='h-40px flex items-center justify-between px-12px bg-bg-2'>
                 <span className='text-12px text-t-secondary'>{t('preview.preview')}</span>
-                {/* HTML 审核元素按钮 / HTML inspect element button */}
-                <div className={`flex items-center justify-center w-24px h-24px rd-4px cursor-pointer transition-colors ${inspectMode ? 'bg-primary text-white' : 'text-t-secondary hover:bg-bg-3'}`} onClick={() => setInspectMode(!inspectMode)} title={inspectMode ? '关闭审核元素' : '开启审核元素 (Hover元素显示边框，右键显示菜单)'}>
-                  <svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'>
-                    <path d='M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z' />
-                    <path d='M13 13l6 6' />
-                  </svg>
-                </div>
               </div>
-              <div className='flex-1 overflow-hidden'>
+              <div className='flex flex-col flex-1 overflow-hidden'>
                 {/* prettier-ignore */}
                 {/* eslint-disable-next-line max-len */}
-                <HTMLRenderer content={content} filePath={metadata?.filePath} containerRef={previewContainerRef} onScroll={handlePreviewScroll} inspectMode={inspectMode} />
+                <HTMLRenderer content={content} filePath={metadata?.filePath} containerRef={previewContainerRef} onScroll={handlePreviewScroll} inspectMode={inspectMode} copySuccessMessage={t('preview.html.copySuccess')} />
               </div>
             </div>
           </div>
@@ -438,21 +444,10 @@ const PreviewPanel: React.FC = () => {
           </div>
         );
       } else {
-        // 预览模式，显示检查模式按钮 / Preview mode, show inspect mode button
+        // 预览模式 / Preview mode
         return (
-          <div className='flex flex-col flex-1'>
-            <div className='h-40px flex items-center justify-end px-12px bg-bg-2'>
-              {/* HTML 审核元素按钮 / HTML inspect element button */}
-              <div className={`flex items-center justify-center w-24px h-24px rd-4px cursor-pointer transition-colors ${inspectMode ? 'bg-primary text-white' : 'text-t-secondary hover:bg-bg-3'}`} onClick={() => setInspectMode(!inspectMode)} title={inspectMode ? '关闭审核元素' : '开启审核元素 (Hover元素显示边框，右键显示菜单)'}>
-                <svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2' strokeLinecap='round' strokeLinejoin='round'>
-                  <path d='M3 3l7.07 16.97 2.51-7.39 7.39-2.51L3 3z' />
-                  <path d='M13 13l6 6' />
-                </svg>
-              </div>
-            </div>
-            <div className='flex-1 overflow-hidden'>
-              <HTMLRenderer content={content} filePath={metadata?.filePath} inspectMode={inspectMode} />
-            </div>
+          <div className='flex-1 overflow-hidden'>
+            <HTMLRenderer content={content} filePath={metadata?.filePath} inspectMode={inspectMode} copySuccessMessage={t('preview.html.copySuccess')} />
           </div>
         );
       }
@@ -462,7 +457,37 @@ const PreviewPanel: React.FC = () => {
     if (contentType === 'diff') {
       return <DiffPreview content={content} metadata={metadata} hideToolbar viewMode={viewMode} onViewModeChange={setViewMode} />;
     } else if (contentType === 'code') {
-      // 如果处于编辑模式且可编辑，显示文本编辑器 / If in edit mode and editable, show text editor
+      // 分屏模式：左右分割（编辑器 + 预览）/ Split-screen mode: Editor + Preview
+      if (isSplitScreenEnabled && isEditMode && isEditable) {
+        return (
+          <div className='flex flex-1 relative overflow-hidden'>
+            {/* 左侧：编辑器 / Left: Editor */}
+            <div className='flex flex-col' style={{ width: `${splitRatio}%` }}>
+              <div className='h-40px flex items-center px-12px bg-bg-2'>
+                <span className='text-12px text-t-secondary'>{t('preview.editor')}</span>
+              </div>
+              <div className='flex-1 overflow-hidden'>
+                <TextEditor value={content} onChange={updateContent} />
+              </div>
+            </div>
+
+            {/* 拖动分割线 / Drag handle */}
+            {dragHandle}
+
+            {/* 右侧：预览 / Right: Preview */}
+            <div className='flex flex-col' style={{ width: `${100 - splitRatio}%`, minWidth: 0 }}>
+              <div className='h-40px flex items-center px-12px bg-bg-2'>
+                <span className='text-12px text-t-secondary'>{t('preview.preview')}</span>
+              </div>
+              <div className='flex flex-col flex-1 overflow-hidden'>
+                <CodePreview content={content} language={metadata?.language} hideToolbar />
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      // 非分屏模式：如果处于编辑模式且可编辑，显示文本编辑器 / Non-split mode: If in edit mode and editable, show text editor
       if (isEditMode && isEditable) {
         return (
           <div className='flex-1 overflow-hidden'>
@@ -495,52 +520,64 @@ const PreviewPanel: React.FC = () => {
   }));
 
   return (
-    <div className='h-full flex flex-col bg-1'>
-      {messageContextHolder}
+    <PreviewToolbarExtrasProvider value={toolbarExtrasContextValue}>
+      <div className='h-full flex flex-col bg-1'>
+        {messageContextHolder}
 
-      {/* 确认对话框 / Confirmation modals */}
-      {/* eslint-disable-next-line max-len */}
-      <PreviewConfirmModals showExitConfirm={showExitConfirm} closeTabConfirm={closeTabConfirm} onConfirmExit={handleConfirmExit} onCancelExit={handleCancelExit} onSaveAndCloseTab={handleSaveAndCloseTab} onCloseWithoutSave={handleCloseWithoutSave} onCancelCloseTab={handleCancelCloseTab} />
+        {/* 确认对话框 / Confirmation modals */}
+        {/* eslint-disable-next-line max-len */}
+        <PreviewConfirmModals showExitConfirm={showExitConfirm} closeTabConfirm={closeTabConfirm} onConfirmExit={handleConfirmExit} onCancelExit={handleCancelExit} onSaveAndCloseTab={handleSaveAndCloseTab} onCloseWithoutSave={handleCloseWithoutSave} onCancelCloseTab={handleCancelCloseTab} />
 
-      {/* Tab 栏 / Tab bar */}
-      {/* eslint-disable-next-line max-len */}
-      <PreviewTabs tabs={previewTabs} activeTabId={activeTabId} tabFadeState={tabFadeState} tabsContainerRef={tabsContainerRef} onSwitchTab={switchTab} onCloseTab={handleCloseTab} onContextMenu={handleTabContextMenu} />
+        {/* Tab 栏 / Tab bar */}
+        {/* eslint-disable-next-line max-len */}
+        <PreviewTabs tabs={previewTabs} activeTabId={activeTabId} tabFadeState={tabFadeState} tabsContainerRef={tabsContainerRef} onSwitchTab={switchTab} onCloseTab={handleCloseTab} onContextMenu={handleTabContextMenu} />
 
-      {/* 工具栏 / Toolbar */}
-      <PreviewToolbar
-        contentType={contentType}
-        isMarkdown={isMarkdown}
-        isHTML={isHTML}
-        isEditable={isEditable}
-        isEditMode={isEditMode}
-        viewMode={viewMode}
-        isSplitScreenEnabled={isSplitScreenEnabled}
-        fileName={metadata?.fileName || activeTab.title}
-        showOpenInSystemButton={showOpenInSystemButton}
-        historyTarget={historyTarget}
-        snapshotSaving={snapshotSaving}
-        onViewModeChange={(mode) => {
-          setViewMode(mode);
-          setIsSplitScreenEnabled(false); // 切换视图模式时关闭分屏 / Disable split when switching view mode
-        }}
-        onSplitScreenToggle={() => setIsSplitScreenEnabled(!isSplitScreenEnabled)}
-        onEditClick={() => setIsEditMode(true)}
-        onExitEdit={handleExitEdit}
-        onSaveSnapshot={handleSaveSnapshot}
-        onRefreshHistory={refreshHistory}
-        renderHistoryDropdown={renderHistoryDropdown}
-        onOpenInSystem={handleOpenInSystem}
-        onDownload={handleDownload}
-        onClose={closePreview}
-      />
+        {/* 工具栏 / Toolbar */}
+        <PreviewToolbar
+          contentType={contentType}
+          isMarkdown={isMarkdown}
+          isHTML={isHTML}
+          isEditable={isEditable}
+          isEditMode={isEditMode}
+          viewMode={viewMode}
+          isSplitScreenEnabled={isSplitScreenEnabled}
+          fileName={metadata?.fileName || activeTab.title}
+          showOpenInSystemButton={showOpenInSystemButton}
+          historyTarget={historyTarget}
+          snapshotSaving={snapshotSaving}
+          onViewModeChange={(mode) => {
+            setViewMode(mode);
+            setIsSplitScreenEnabled(false); // 切换视图模式时关闭分屏 / Disable split when switching view mode
+          }}
+          onSplitScreenToggle={() => setIsSplitScreenEnabled(!isSplitScreenEnabled)}
+          onEditClick={() => {
+            setIsEditMode(true);
+            // Code/TXT 类型进入编辑模式时自动开启分屏 / Auto enable split screen for Code/TXT when entering edit mode
+            if (contentType === 'code') {
+              setIsSplitScreenEnabled(true);
+            }
+          }}
+          onExitEdit={handleExitEdit}
+          onSaveSnapshot={handleSaveSnapshot}
+          onRefreshHistory={refreshHistory}
+          renderHistoryDropdown={renderHistoryDropdown}
+          onOpenInSystem={handleOpenInSystem}
+          onDownload={handleDownload}
+          onClose={closePreview}
+          inspectMode={inspectMode}
+          onInspectModeToggle={() => setInspectMode(!inspectMode)}
+          leftExtra={toolbarExtras?.left}
+          rightExtra={toolbarExtras?.right}
+        />
 
-      {/* 预览内容 / Preview content */}
-      {renderContent()}
+        {/* 预览内容 / Preview content */}
+        {renderContent()}
 
-      {/* Tab 右键菜单 / Tab context menu */}
-      {/* eslint-disable-next-line max-len */}
-      <PreviewContextMenu contextMenu={contextMenu} tabs={previewTabs} currentTheme={currentTheme} onClose={() => setContextMenu({ show: false, x: 0, y: 0, tabId: null })} onCloseLeft={handleCloseLeft} onCloseRight={handleCloseRight} onCloseOthers={handleCloseOthers} onCloseAll={handleCloseAll} />
-    </div>
+        {/* Tab 右键菜单 / Tab context menu */}
+        {/* eslint-disable-next-line max-len */}
+        <PreviewContextMenu contextMenu={contextMenu} tabs={previewTabs} currentTheme={currentTheme} onClose={() => setContextMenu({ show: false, x: 0, y: 0, tabId: null })} onCloseLeft={handleCloseLeft} onCloseRight={handleCloseRight} onCloseOthers={handleCloseOthers} onCloseAll={handleCloseAll} />
+      </div>
+    </PreviewToolbarExtrasProvider>
   );
 };
 

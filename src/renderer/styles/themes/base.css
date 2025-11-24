@@ -199,27 +199,6 @@ body,
   will-change: opacity, transform;
 }
 
-/* Hover indicator for resizable split handles / 分割拖动条的悬浮效果 */
-.resizable-split-handle {
-  width: 6px;
-  background-color: var(--bg-3);
-  opacity: 0.8;
-  transition:
-    width 0.18s ease,
-    background-color 0.18s ease,
-    opacity 0.18s ease;
-}
-
-.resizable-split-handle:hover,
-.resizable-split-handle:active {
-  width: 12px;
-  background-color: var(--color-primary);
-  opacity: 0.95;
-  box-shadow:
-    -2px 0 0 var(--color-primary),
-    2px 0 0 var(--color-primary);
-}
-
 .layout-sider--folding {
   .layout-sider-header,
   .layout-sider-content {

@@ -16,7 +16,7 @@ import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/ThoughtD
 import { iconColors } from '@/renderer/theme/colors';
 import FilePreview from '@/renderer/components/FilePreview';
 import HorizontalFileList from '@/renderer/components/HorizontalFileList';
-import { usePreviewContext } from '@/renderer/context/PreviewContext';
+import { usePreviewContext } from '@/renderer/pages/conversation/preview';
 
 interface CodexDraftData {
   _type: 'codex';
