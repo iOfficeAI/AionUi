@@ -14,6 +14,7 @@ const WindowRestoreIcon: React.FC<{ size?: number }> = ({ size = 14 }) => (
   </svg>
 );
 
+// 从 preload 暴露的 electronAPI 获取窗口控制句柄 / Retrieve window control handles from preload electronAPI
 const getWindowControls = () => {
   if (typeof window === 'undefined') {
     return undefined;
@@ -26,6 +27,7 @@ const WindowControls: React.FC = () => {
   const [isMaximized, setIsMaximized] = useState(false);
   const [available, setAvailable] = useState(Boolean(controls));
 
+  // 初始化时同步窗口状态并订阅最大化事件 / Sync current window state and subscribe to maximize events
   useEffect(() => {
     if (!controls) {
       return;
@@ -59,10 +61,12 @@ const WindowControls: React.FC = () => {
     };
   }, [controls]);
 
+  // 桌面环境缺少控制接口时直接不渲染 / Hide when window controls are not available (non-desktop)
   if (!controls || !available) {
     return null;
   }
 
+  // 以下处理三种窗口按钮点击事件 / Handle minimize, maximize/restore, and close button events
   const handleMinimize = () => {
     void controls.minimize();
   };
