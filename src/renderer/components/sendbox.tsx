@@ -14,6 +14,7 @@ import { usePasteService } from '../hooks/usePasteService';
 import type { FileMetadata } from '../services/FileService';
 import { allSupportedExts } from '../services/FileService';
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';
+import { useLatestRef } from '../hooks/useLatestRef';
 
 const constVoid = (): void => undefined;
 // 临界值：超过该字符数直接切换至多行模式，避免为超长文本做昂贵的宽度测量
@@ -42,16 +43,8 @@ const SendBox: React.FC<{
   const containerRef = useRef<HTMLDivElement>(null);
   const singleLineWidthRef = useRef<number>(0);
   const measurementCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const latestInputRef = useRef(input);
-  const setInputRef = useRef(setInput);
-
-  useEffect(() => {
-    latestInputRef.current = input;
-  }, [input]);
-
-  useEffect(() => {
-    setInputRef.current = setInput;
-  }, [setInput]);
+  const latestInputRef = useLatestRef(input);
+  const setInputRef = useLatestRef(setInput);
 
   // 集成预览面板的"添加到聊天"功能 / Integrate preview panel's "Add to chat" functionality
   const { setSendBoxHandler } = usePreviewContext();

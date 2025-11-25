@@ -9,7 +9,7 @@ import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileSer
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { Button, Tag } from '@arco-design/web-react';
 import { Plus } from '@icon-park/react';
-import React, { useCallback, useEffect, useState, useRef } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import ShimmerText from '@renderer/components/ShimmerText';
 import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/ThoughtDisplay';
@@ -17,6 +17,7 @@ import { iconColors } from '@/renderer/theme/colors';
 import FilePreview from '@/renderer/components/FilePreview';
 import HorizontalFileList from '@/renderer/components/HorizontalFileList';
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';
+import { useLatestRef } from '@/renderer/hooks/useLatestRef';
 
 interface CodexDraftData {
   _type: 'codex';
@@ -61,12 +62,9 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
     };
   })();
 
-  // 使用 ref 保存最新的 setContent，避免重复注册 handler
-  // Use ref to keep latest setContent to avoid re-registering handler
-  const setContentRef = useRef(setContent);
-  useEffect(() => {
-    setContentRef.current = setContent;
-  }, [setContent]);
+  // 使用 useLatestRef 保存最新的 setContent，避免重复注册 handler
+  // Use useLatestRef to keep latest setContent to avoid re-registering handler
+  const setContentRef = useLatestRef(setContent);
 
   // 当会话ID变化时，清理所有状态避免状态污染
   useEffect(() => {

@@ -19,6 +19,7 @@ import { iconColors } from '@/renderer/theme/colors';
 import FilePreview from '@/renderer/components/FilePreview';
 import HorizontalFileList from '@/renderer/components/HorizontalFileList';
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';
+import { useLatestCallback, useLatestRef } from '@/renderer/hooks/useLatestRef';
 
 const useAcpSendBoxDraft = getSendBoxDraftHook('acp', {
   _type: 'acp',
@@ -154,17 +155,13 @@ const AcpSendBox: React.FC<{
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
   const { setSendBoxHandler } = usePreviewContext();
 
-  // 使用 ref 保存最新的 setContent，避免重复注册 handler
-  // Use ref to keep latest setContent to avoid re-registering handler
-  const setContentRef = useRef(setContent);
-  useEffect(() => {
-    setContentRef.current = setContent;
-  }, [setContent]);
+  // 使用 useLatestRef 保存最新的 setContent，避免重复注册 handler
+  // Use useLatestRef to keep latest setContent to avoid re-registering handler
+  const setContentRef = useLatestRef(setContent);
 
   const sendingInitialMessageRef = useRef(false); // Prevent duplicate sends
   const addOrUpdateMessage = useAddOrUpdateMessage(); // Move this here so it's available in useEffect
-  const addOrUpdateMessageRef = useRef(addOrUpdateMessage);
-  addOrUpdateMessageRef.current = addOrUpdateMessage;
+  const addOrUpdateMessageRef = useLatestRef(addOrUpdateMessage);
 
   // 使用共享的文件处理逻辑
   const { handleFilesAdded, processMessageWithFiles, clearFiles } = useSendBoxFiles({
