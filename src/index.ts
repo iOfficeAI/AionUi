@@ -13,6 +13,7 @@ import { initMainAdapterWithWindow } from './adapter/main';
 import { ipcBridge } from './common';
 import './process';
 import { initializeAcpDetector } from './process/bridge';
+import { registerWindowMaximizeListeners } from './process/bridge/windowControlsBridge';
 import WorkerManage from './process/WorkerManage';
 import { startWebServer } from './webserver';
 import { SERVER_CONFIG } from './webserver/config/constants';
@@ -179,6 +180,7 @@ const createWindow = (): void => {
 
   initMainAdapterWithWindow(mainWindow);
   void applyZoomToWindow(mainWindow);
+  registerWindowMaximizeListeners(mainWindow);
 
   // and load the index.html of the app.
   mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY).catch((_error) => {
