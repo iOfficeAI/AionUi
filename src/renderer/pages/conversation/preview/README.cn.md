@@ -72,11 +72,9 @@ preview/
 │   │   ├── MarkdownEditor.tsx         # Markdown 编辑器
 │   │   ├── TextEditor.tsx             # 代码编辑器（Monaco）
 │   │   └── HTMLEditor.tsx             # HTML 编辑器
-│   ├── renderers/                     # 特殊渲染器
-│   │   ├── HTMLRenderer.tsx           # HTML iframe 渲染器
-│   │   └── SelectionToolbar.tsx       # HTML 选择工具栏
-│   └── shared/                        # 共享组件
-│       └── Diff2Html.tsx              # Diff 渲染组件
+│   └── renderers/                     # 特殊渲染器
+│       ├── HTMLRenderer.tsx           # HTML iframe 渲染器
+│       └── SelectionToolbar.tsx       # HTML 选择工具栏
 ├── hooks/                             # 自定义 Hooks
 │   ├── usePreviewHistory.ts           # 版本历史管理
 │   ├── usePreviewKeyboardShortcuts.ts # 快捷键处理
