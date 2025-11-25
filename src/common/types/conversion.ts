@@ -58,3 +58,15 @@ export interface ConversionServiceApi {
   markdownToPdf: (markdown: string, targetPath: string) => Promise<ConversionResult<void>>;
   htmlToPdf: (html: string, targetPath: string) => Promise<ConversionResult<void>>;
 }
+
+// 文档转换目标格式 / Supported document conversion targets
+export type DocumentConversionTarget = 'markdown' | 'excel-json' | 'ppt-json';
+
+// 统一的文档转换请求参数 / Unified document conversion request payload
+export interface DocumentConversionRequest {
+  filePath: string; // 待转换文件的绝对路径 / Absolute file path to convert
+  to: DocumentConversionTarget; // 目标格式 / Desired target format
+}
+
+// 根据目标格式返回不同的数据类型 / Result payload differs per target format
+export type DocumentConversionResponse = { to: 'markdown'; result: ConversionResult<string> } | { to: 'excel-json'; result: ConversionResult<ExcelWorkbookData> } | { to: 'ppt-json'; result: ConversionResult<PPTJsonData> };

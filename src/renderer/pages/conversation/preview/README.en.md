@@ -72,11 +72,9 @@ preview/
 │   │   ├── MarkdownEditor.tsx         # Markdown editor
 │   │   ├── TextEditor.tsx             # Code editor (Monaco)
 │   │   └── HTMLEditor.tsx             # HTML editor
-│   ├── renderers/                     # Special renderers
-│   │   ├── HTMLRenderer.tsx           # HTML iframe renderer
-│   │   └── SelectionToolbar.tsx       # HTML selection toolbar
-│   └── shared/                        # Shared components
-│       └── Diff2Html.tsx              # Diff rendering component
+│   └── renderers/                     # Special renderers
+│       ├── HTMLRenderer.tsx           # HTML iframe renderer
+│       └── SelectionToolbar.tsx       # HTML selection toolbar
 ├── hooks/                             # Custom hooks
 │   ├── usePreviewHistory.ts           # Version history management
 │   ├── usePreviewKeyboardShortcuts.ts # Keyboard shortcut handling

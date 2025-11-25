@@ -145,14 +145,18 @@ export const previewHistory = {
   getContent: bridge.buildProvider<{ snapshot: PreviewSnapshotInfo; content: string } | null, { target: PreviewHistoryTarget; snapshotId: string }>('preview-history.get-content'),
 };
 
-export const conversion = {
-  wordToMarkdown: bridge.buildProvider<import('./types/conversion').ConversionResult<string>, { filePath: string }>('conversion.word-to-markdown'),
-  markdownToWord: bridge.buildProvider<import('./types/conversion').ConversionResult<void>, { markdown: string; targetPath: string }>('conversion.markdown-to-word'),
-  excelToJson: bridge.buildProvider<import('./types/conversion').ConversionResult<import('./types/conversion').ExcelWorkbookData>, { filePath: string }>('conversion.excel-to-json'),
-  jsonToExcel: bridge.buildProvider<import('./types/conversion').ConversionResult<void>, { data: import('./types/conversion').ExcelWorkbookData; targetPath: string }>('conversion.json-to-excel'),
-  pptToJson: bridge.buildProvider<import('./types/conversion').ConversionResult<import('./types/conversion').PPTJsonData>, { filePath: string }>('conversion.ppt-to-json'),
-  markdownToPdf: bridge.buildProvider<import('./types/conversion').ConversionResult<void>, { markdown: string; targetPath: string }>('conversion.markdown-to-pdf'),
-  htmlToPdf: bridge.buildProvider<import('./types/conversion').ConversionResult<void>, { html: string; targetPath: string }>('conversion.html-to-pdf'),
+export const document = {
+  convert: bridge.buildProvider<import('./types/conversion').DocumentConversionResponse, import('./types/conversion').DocumentConversionRequest>('document.convert'),
+};
+
+// 窗口控制相关接口 / Window controls API
+export const windowControls = {
+  minimize: bridge.buildProvider<void, void>('window-controls:minimize'),
+  maximize: bridge.buildProvider<void, void>('window-controls:maximize'),
+  unmaximize: bridge.buildProvider<void, void>('window-controls:unmaximize'),
+  close: bridge.buildProvider<void, void>('window-controls:close'),
+  isMaximized: bridge.buildProvider<boolean, void>('window-controls:is-maximized'),
+  maximizedChanged: bridge.buildEmitter<{ isMaximized: boolean }>('window-controls:maximized-changed'),
 };
 
 interface ISendMessageParams {

@@ -53,12 +53,17 @@ const WordPreview: React.FC<WordPreviewProps> = ({ filePath, hideToolbar = false
         }
 
         // 使用后端转换服务 / Use backend conversion service
-        const result = await ipcBridge.conversion.wordToMarkdown.invoke({ filePath });
+        // 通过统一的 document.convert IPC 请求转换 / Request conversion via unified document.convert IPC
+        const response = await ipcBridge.document.convert.invoke({ filePath, to: 'markdown' });
 
-        if (result.success && result.data) {
-          setMarkdown(result.data);
+        if (response.to !== 'markdown') {
+          throw new Error(t('preview.errors.conversionFailed'));
+        }
+
+        if (response.result.success && response.result.data) {
+          setMarkdown(response.result.data);
         } else {
-          throw new Error(result.error || t('preview.errors.conversionFailed'));
+          throw new Error(response.result.error || t('preview.errors.conversionFailed'));
         }
       } catch (err) {
         const defaultMessage = t('preview.word.loadFailed');

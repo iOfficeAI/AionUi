@@ -13,19 +13,14 @@ import classNames from 'classnames';
 import ReactDOM from 'react-dom';
 import { iconColors } from '@/renderer/theme/colors';
 import { useThemeContext } from '@/renderer/context/ThemeContext';
-import { usePreviewContext, getContentTypeByExtension, getFileExtension } from '@/renderer/pages/conversation/preview';
-import { useConversationContextSafe } from '@/renderer/context/ConversationContext';
-import { parseFilePathFromDiff } from '@/renderer/utils/diffUtils';
-import { ipcBridge } from '@/common';
+import { usePreviewContext, getContentTypeByExtension } from '@/renderer/pages/conversation/preview';
 import CollapsibleContent from './CollapsibleContent';
 import { useTranslation } from 'react-i18next';
-import { joinPath } from '@/common/chatLib';
 
 const Diff2Html = ({ diff, className, title }: { diff: string; className?: string; title?: string }) => {
   const { theme } = useThemeContext();
   const { t } = useTranslation();
   const { openPreview, closePreviewByIdentity, findPreviewTab } = usePreviewContext(); // 获取预览上下文 / Get preview context
-  const conversationContext = useConversationContextSafe(); // 获取会话上下文 / Get conversation context
   const [sideBySide, setSideBySide] = useState(false);
   const [collapse, setCollapse] = useState(false);
 
@@ -79,61 +74,17 @@ const Diff2Html = ({ diff, className, title }: { diff: string; className?: strin
             {/* 预览按钮 / Preview button */}
             <div
               className='flex items-center gap-4px px-8px py-4px rd-4px cursor-pointer hover:bg-3 transition-colors'
-              onClick={async () => {
-                console.log('[Diff2Html] Preview button clicked', { title, isCurrentlyPreviewing, contentType });
-
+              onClick={() => {
                 if (isCurrentlyPreviewing) {
                   // 关闭当前文件的预览 / Close preview for this file
                   closePreviewByIdentity(contentType, undefined, fileMeta);
                 } else {
-                  // 如果有工作空间上下文，尝试从工作空间读取实际文件 / If workspace context exists, try to read actual file from workspace
-                  if (conversationContext?.workspace) {
-                    try {
-                      // 1. 从 diff 中解析文件路径 / Parse file path from diff
-                      const relativePath = parseFilePathFromDiff(diff);
-
-                      if (relativePath) {
-                        // 2. 构建完整文件路径 / Construct full file path
-                        const fullPath = joinPath(conversationContext.workspace, relativePath);
-
-                        // 3. 根据文件类型确定如何处理 / Determine how to handle based on file type
-                        if (contentType === 'image') {
-                          // 图片文件：读取为 base64 / Image files: Read as base64
-                          const imageData = await ipcBridge.fs.getImageBase64.invoke({ path: fullPath });
-                          openPreview(imageData, 'image', {
-                            title,
-                            fileName: title,
-                            filePath: fullPath,
-                            editable: false,
-                          });
-                        } else if (contentType === 'pdf' || contentType === 'word' || contentType === 'ppt' || contentType === 'excel') {
-                          // Office 文档和 PDF：直接传递文件路径 / Office documents and PDF: Pass file path directly
-                          openPreview('', contentType, {
-                            title,
-                            fileName: title,
-                            filePath: fullPath,
-                            editable: false,
-                          });
-                        } else {
-                          // 文本文件（markdown, html, code）：读取内容 / Text files (markdown, html, code): Read content
-                          const fileContent = await ipcBridge.fs.readFile.invoke({ path: fullPath });
-
-                          const ext = getFileExtension(relativePath);
-                          openPreview(fileContent, contentType, {
-                            title,
-                            fileName: title,
-                            filePath: fullPath,
-                            language: contentType === 'code' ? ext || 'text' : undefined,
-                            editable: false, // 只读预览 / Read-only preview
-                          });
-                        }
-                        return; // 成功读取并打开，提前返回 / Successfully read and opened, return early
-                      }
-                    } catch (error) {
-                      console.error('[Diff2Html] Failed to read file from workspace:', error);
-                      // 读取失败时不显示预览 / Don't show preview on read failure
-                    }
-                  }
+                  // 直接预览 diff 内容 / Preview diff content directly
+                  openPreview(diff, 'diff', {
+                    title: title || 'Diff',
+                    fileName: title,
+                    editable: false,
+                  });
                 }
               }}
               title={isCurrentlyPreviewing ? t('preview.closePreview') : t('preview.preview')}

@@ -25,7 +25,3 @@ export * from './editors';
 // 渲染器组件
 // Renderer components
 export * from './renderers';
-
-// 共享组件
-// Shared components
-export * from './shared';
