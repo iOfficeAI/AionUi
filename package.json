@@ -170,6 +170,10 @@
   "electronRebuild": {
     "electronVersion": "^37.3.1"
   },
+  "overrides": {
+    "webpack-dev-server": "^5.2.2",
+    "tmp": "^0.2.5"
+  },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [
       "eslint --fix",
