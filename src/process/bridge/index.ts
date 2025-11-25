@@ -10,7 +10,7 @@ import { initApplicationBridge } from './applicationBridge';
 import { initAuthBridge } from './authBridge';
 import { initCodexConversationBridge } from './codexConversationBridge';
 import { initConversationBridge } from './conversationBridge';
-import { initConversionBridge } from './conversionBridge';
+import { initDocumentBridge } from './documentBridge';
 import { initDatabaseBridge } from './databaseBridge';
 import { initDialogBridge } from './dialogBridge';
 import { initFileWatchBridge } from './fileWatchBridge';
@@ -39,7 +39,7 @@ export function initAllBridges(): void {
   initMcpBridge();
   initDatabaseBridge();
   initPreviewHistoryBridge();
-  initConversionBridge();
+  initDocumentBridge();
   // Conversion bridge is an object, not a function, so we just ensure it's imported if it has side effects,
   // but wait, the other bridges have init functions.
   // Let's check conversionBridge.ts again.

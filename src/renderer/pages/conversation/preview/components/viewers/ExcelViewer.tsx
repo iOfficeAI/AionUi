@@ -82,16 +82,21 @@ const ExcelPreview: React.FC<ExcelPreviewProps> = ({ filePath, hideToolbar = fal
 
       try {
         // 通过 IPC 调用主进程转换
-        const result = await ipcBridge.conversion.excelToJson.invoke({ filePath });
+        // 调用统一的 document.convert 将 Excel 转换为 JSON / Convert Excel to JSON via document.convert
+        const response = await ipcBridge.document.convert.invoke({ filePath, to: 'excel-json' });
 
-        if (result.success && result.data) {
-          setExcelData(result.data);
+        if (response.to !== 'excel-json') {
+          throw new Error(t('preview.excel.convertFailed'));
+        }
+
+        if (response.result.success && response.result.data) {
+          setExcelData(response.result.data);
           // 默认选中第一个工作表
-          if (result.data.sheets.length > 0) {
-            setActiveSheet(result.data.sheets[0].name);
+          if (response.result.data.sheets.length > 0) {
+            setActiveSheet(response.result.data.sheets[0].name);
           }
         } else {
-          throw new Error(result.error || t('preview.excel.convertFailed'));
+          throw new Error(response.result.error || t('preview.excel.convertFailed'));
         }
       } catch (err) {
         setError(err instanceof Error ? err.message : t('preview.excel.loadFailed'));
@@ -200,7 +205,7 @@ const ExcelPreview: React.FC<ExcelPreviewProps> = ({ filePath, hideToolbar = fal
     };
 
     return (
-      <div className='w-full h-full overflow-auto p-32px bg-bg-1'>
+      <div className='w-full h-full overflow-auto p-10px bg-bg-1'>
         <div className='relative inline-block min-w-full'>
           <table
             className='border-collapse text-13px text-t-primary'

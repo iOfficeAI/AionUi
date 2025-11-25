@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Minus, CloseSmall } from '@icon-park/react';
+import { ipcBridge } from '@/common';
 
 const WindowMaximizeIcon: React.FC<{ size?: number }> = ({ size = 14 }) => (
   <svg width={size} height={size} viewBox='0 0 18 18' fill='none' stroke='currentColor' strokeWidth='1.4'>
@@ -14,33 +15,20 @@ const WindowRestoreIcon: React.FC<{ size?: number }> = ({ size = 14 }) => (
   </svg>
 );
 
-// 从 preload 暴露的 electronAPI 获取窗口控制句柄 / Retrieve window control handles from preload electronAPI
-const getWindowControls = () => {
-  if (typeof window === 'undefined') {
-    return undefined;
-  }
-  return window.electronAPI?.windowControls;
-};
-
 const WindowControls: React.FC = () => {
-  const controls = useMemo(() => getWindowControls(), []);
   const [isMaximized, setIsMaximized] = useState(false);
-  const [available, setAvailable] = useState(Boolean(controls));
+  const [available, setAvailable] = useState(true);
 
   // 初始化时同步窗口状态并订阅最大化事件 / Sync current window state and subscribe to maximize events
   useEffect(() => {
-    if (!controls) {
-      return;
-    }
-
     let isMounted = true;
 
-    controls
-      .isMaximized()
+    // 获取初始窗口状态 / Get initial window state
+    ipcBridge.windowControls.isMaximized
+      .invoke()
       .then((state) => {
         if (isMounted) {
           setIsMaximized(state);
-          setAvailable(true);
         }
       })
       .catch(() => {
@@ -49,7 +37,8 @@ const WindowControls: React.FC = () => {
         }
       });
 
-    const unsubscribe = controls.onMaximizedChange?.((state) => {
+    // 订阅窗口最大化状态变化 / Subscribe to window maximize state changes
+    const unsubscribe = ipcBridge.windowControls.maximizedChanged.on((state: boolean) => {
       if (isMounted) {
         setIsMaximized(state);
       }
@@ -57,29 +46,29 @@ const WindowControls: React.FC = () => {
 
     return () => {
       isMounted = false;
-      unsubscribe?.();
+      unsubscribe();
     };
-  }, [controls]);
+  }, []);
 
   // 桌面环境缺少控制接口时直接不渲染 / Hide when window controls are not available (non-desktop)
-  if (!controls || !available) {
+  if (!available) {
     return null;
   }
 
   // 以下处理三种窗口按钮点击事件 / Handle minimize, maximize/restore, and close button events
   const handleMinimize = () => {
-    void controls.minimize();
+    void ipcBridge.windowControls.minimize.invoke();
   };
 
   const handleClose = () => {
-    void controls.close();
+    void ipcBridge.windowControls.close.invoke();
   };
 
   const handleToggleMaximize = () => {
     if (isMaximized) {
-      void controls.unmaximize();
+      void ipcBridge.windowControls.unmaximize.invoke();
     } else {
-      void controls.maximize();
+      void ipcBridge.windowControls.maximize.invoke();
     }
   };
 
