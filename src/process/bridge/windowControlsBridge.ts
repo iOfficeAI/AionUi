@@ -24,12 +24,12 @@ import { ipcBridge } from '@/common';
 export function registerWindowMaximizeListeners(window: BrowserWindow): void {
   // 当窗口最大化时通知渲染进程 / Notify renderer when window is maximized
   window.on('maximize', () => {
-    ipcBridge.windowControls.maximizedChanged.emit(true);
+    ipcBridge.windowControls.maximizedChanged.emit({ isMaximized: true });
   });
 
   // 当窗口取消最大化时通知渲染进程 / Notify renderer when window is unmaximized
   window.on('unmaximize', () => {
-    ipcBridge.windowControls.maximizedChanged.emit(false);
+    ipcBridge.windowControls.maximizedChanged.emit({ isMaximized: false });
   });
 }
 
@@ -47,6 +47,7 @@ export function initWindowControlsBridge(): void {
     if (window) {
       window.minimize();
     }
+    return Promise.resolve();
   });
 
   // 最大化窗口 / Maximize window
@@ -55,6 +56,7 @@ export function initWindowControlsBridge(): void {
     if (window) {
       window.maximize();
     }
+    return Promise.resolve();
   });
 
   // 取消最大化窗口 / Unmaximize window
@@ -63,6 +65,7 @@ export function initWindowControlsBridge(): void {
     if (window) {
       window.unmaximize();
     }
+    return Promise.resolve();
   });
 
   // 关闭窗口 / Close window
@@ -71,6 +74,7 @@ export function initWindowControlsBridge(): void {
     if (window) {
       window.close();
     }
+    return Promise.resolve();
   });
 
   // 获取窗口是否最大化状态 / Get window maximized state
