@@ -103,7 +103,7 @@ export class DocumentConverter {
    * 使用 SheetJS
    */
   async excelToMarkdown(arrayBuffer: ArrayBuffer): Promise<string> {
-    const XLSX = await import('xlsx');
+    const XLSX = await import('xlsx-republish');
 
     const workbook = XLSX.read(arrayBuffer, { type: 'array' });
     let markdown = '';
@@ -145,7 +145,7 @@ export class DocumentConverter {
    * 解析 Markdown 表格并转换为 Excel
    */
   async markdownToExcel(markdown: string): Promise<ArrayBuffer> {
-    const XLSX = await import('xlsx');
+    const XLSX = await import('xlsx-republish');
 
     const workbook = XLSX.utils.book_new();
     const sheets = this.parseMarkdownTables(markdown);

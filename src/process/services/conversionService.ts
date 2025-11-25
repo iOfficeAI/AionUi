@@ -12,7 +12,7 @@ import fs from 'fs/promises';
 import mammoth from 'mammoth';
 import PPTX2Json from 'pptx2json';
 import TurndownService from 'turndown';
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-republish';
 import * as yauzl from 'yauzl';
 
 class ConversionService {
