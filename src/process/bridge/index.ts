@@ -20,7 +20,6 @@ import { initMcpBridge } from './mcpBridge';
 import { initModelBridge } from './modelBridge';
 import { initPreviewHistoryBridge } from './previewHistoryBridge';
 import { initShellBridge } from './shellBridge';
-import { initApiTesterBridge } from './apiTesterBridge';
 import { initWindowControlsBridge } from './windowControlsBridge';
 
 /**
@@ -42,18 +41,7 @@ export function initAllBridges(): void {
   initDatabaseBridge();
   initPreviewHistoryBridge();
   initDocumentBridge();
-  initApiTesterBridge();
   initWindowControlsBridge();
-  // Conversion bridge is an object, not a function, so we just ensure it's imported if it has side effects,
-  // but wait, the other bridges have init functions.
-  // Let's check conversionBridge.ts again.
-  // It exports an object 'conversionBridge' with invoke/handle methods.
-  // Unlike others which seem to export an init function that calls ipcMain.handle.
-  // Ah, looking at conversionBridge.ts, it has 'handle' properties which are functions calling ipcMain.handle.
-  // But they are not called automatically.
-  // I need to create an init function in conversionBridge.ts or call them here.
-  // Let's look at how other bridges work.
-  // e.g. initPreviewHistoryBridge.
 }
 
 /**
@@ -68,6 +56,6 @@ export async function initializeAcpDetector(): Promise<void> {
 }
 
 // 导出初始化函数供单独使用
-export { initAcpConversationBridge, initApiTesterBridge, initApplicationBridge, initAuthBridge, initCodexConversationBridge, initConversationBridge, initDatabaseBridge, initDialogBridge, initDocumentBridge, initFsBridge, initGeminiConversationBridge, initMcpBridge, initModelBridge, initPreviewHistoryBridge, initShellBridge, initWindowControlsBridge };
+export { initAcpConversationBridge, initApplicationBridge, initAuthBridge, initCodexConversationBridge, initConversationBridge, initDatabaseBridge, initDialogBridge, initDocumentBridge, initFsBridge, initGeminiConversationBridge, initMcpBridge, initModelBridge, initPreviewHistoryBridge, initShellBridge, initWindowControlsBridge };
 // 导出窗口控制相关工具函数
 export { registerWindowMaximizeListeners } from './windowControlsBridge';
