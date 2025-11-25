@@ -90,16 +90,7 @@ export class CodexFileOperationHandler {
         operation: 'write' as const,
       };
 
-      console.log('[CodexFileOperationHandler] 📡 Emitting file stream update:', {
-        filePath: eventData.filePath,
-        workspace: eventData.workspace,
-        relativePath: eventData.relativePath,
-        contentLength: eventData.content.length,
-        operation: eventData.operation,
-      });
-
       ipcBridge.fileStream.contentUpdate.emit(eventData);
-      console.log('[CodexFileOperationHandler] ✅ File stream update emitted successfully');
     } catch (error) {
       console.error('[CodexFileOperationHandler] ❌ Failed to emit file stream update:', error);
     }

@@ -470,17 +470,7 @@ export class AcpConnection {
           relativePath: fileName,
           operation: 'write' as const,
         };
-
-        console.log('[AcpConnection] 📡 Emitting file stream update:', {
-          filePath: eventData.filePath,
-          workspace: eventData.workspace,
-          relativePath: eventData.relativePath,
-          contentLength: eventData.content.length,
-          operation: eventData.operation,
-        });
-
         ipcBridge.fileStream.contentUpdate.emit(eventData);
-        console.log('[AcpConnection] ✅ File stream update emitted successfully');
       } catch (emitError) {
         console.error('[AcpConnection] ❌ Failed to emit file stream update:', emitError);
       }
