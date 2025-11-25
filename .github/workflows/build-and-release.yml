@@ -49,11 +49,16 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - platform: 'macos'
+          - platform: 'macos-arm64'
             os: 'macos-latest'
-            command: ''
-            artifact-name: 'macos-build'
-            arch: 'x64,arm64'
+            command: 'node scripts/build-with-builder.js arm64 --mac --arm64'
+            artifact-name: 'macos-build-arm64'
+            arch: 'arm64'
+          - platform: 'macos-x64'
+            os: 'macos-latest'
+            command: 'node scripts/build-with-builder.js x64 --mac --x64'
+            artifact-name: 'macos-build-x64'
+            arch: 'x64'
           - platform: 'windows-x64'
             os: 'windows-2022'
             command: 'node scripts/build-with-builder.js x64 --win --x64'
@@ -69,7 +74,10 @@ jobs:
             command: 'npm run dist:linux'
             artifact-name: 'linux-build'
             arch: 'x64,arm64'
-    
+    concurrency:
+      group: ${{ startsWith(matrix.platform, 'macos') && format('macos-notarize-{0}', github.run_id) || format('build-{0}-{1}', github.run_id, matrix.platform) }}
+      cancel-in-progress: false
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -141,7 +149,7 @@ jobs:
 
       # macOS 代码签名证书安装
       - name: Setup macOS code signing (macOS only)
-        if:  matrix.platform == 'macos'  # Temporarily disable signing to speed up builds / 暂时关闭签名以加快构建
+        if: startsWith(matrix.platform, 'macos')  # Temporarily disable signing to speed up builds / 暂时关闭签名以加快构建
         env:
           BUILD_CERTIFICATE_BASE64: ${{ secrets.BUILD_CERTIFICATE_BASE64 }}
           P12_PASSWORD: ${{ secrets.P12_PASSWORD }}
@@ -307,13 +315,13 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
       - name: Build with electron-builder (non-Windows)
-        if: matrix.platform == 'linux'
+        if: "!startsWith(matrix.platform, 'windows')"
         uses: nick-fields/retry@v3
         with:
           timeout_minutes: 80
           max_attempts: 2
           retry_wait_seconds: 300
-          continue_on_error: false
+          continue_on_error: ${{ startsWith(matrix.platform, 'macos') }}
           command: ${{ matrix.command }}
           on_retry_command: |
             echo "⚠️ 构建超时或失败，5 分钟后进行第 2 次尝试..."
@@ -345,117 +353,9 @@ jobs:
           CI: true
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
-      - name: Prepare macOS build directory
-        if: matrix.platform == 'macos'
-        run: |
-          rm -rf out
-          mkdir -p out
-
-      # Dev branch: build x64 first
-      - name: Build macOS x64 (dev branch)
-        if: matrix.platform == 'macos' && github.ref == 'refs/heads/dev'
-        run: node scripts/build-with-builder.js x64 --mac --x64
-
-      - name: Upload macOS x64 artifact (dev branch)
-        if: matrix.platform == 'macos' && github.ref == 'refs/heads/dev'
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-build-x64
-          path: |
-            out/*.dmg
-            out/AionUi-*-mac-*.zip
-          if-no-files-found: error
-          retention-days: 7
-
-      - name: Clean macOS build directory before arm64 (dev branch)
-        if: matrix.platform == 'macos' && github.ref == 'refs/heads/dev'
-        run: |
-          rm -rf out
-          mkdir -p out
-
-      - name: Wait before macOS arm64 build (dev branch)
-        if: matrix.platform == 'macos' && github.ref == 'refs/heads/dev'
-        run: |
-          DELAY=${MAC_STAGGER_DELAY_SECONDS:-300}
-          if ! [[ "$DELAY" =~ ^[0-9]+$ ]]; then
-            DELAY=300
-          fi
-          if [ "$DELAY" -gt 0 ]; then
-            echo "⏳ 等待 ${DELAY} 秒后启动 macOS arm64 构建..."
-            sleep "$DELAY"
-          else
-            echo "⏩ 未配置等待时间，立即开始 macOS arm64 构建"
-          fi
-
-      - name: Build macOS arm64 (dev branch)
-        if: matrix.platform == 'macos' && github.ref == 'refs/heads/dev'
-        run: node scripts/build-with-builder.js arm64 --mac --arm64
-
-      - name: Upload macOS arm64 artifact (dev branch)
-        if: matrix.platform == 'macos' && github.ref == 'refs/heads/dev'
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-build-arm64
-          path: |
-            out/*.dmg
-            out/AionUi-*-mac-*.zip
-          if-no-files-found: error
-          retention-days: 7
-
-      # Main branch: build arm64 first
-      - name: Build macOS arm64 (main branch)
-        if: matrix.platform == 'macos' && github.ref == 'refs/heads/main'
-        run: node scripts/build-with-builder.js arm64 --mac --arm64
-
-      - name: Upload macOS arm64 artifact (main branch)
-        if: matrix.platform == 'macos' && github.ref == 'refs/heads/main'
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-build-arm64
-          path: |
-            out/*.dmg
-            out/AionUi-*-mac-*.zip
-          if-no-files-found: error
-          retention-days: 7
-
-      - name: Clean macOS build directory before x64 (main branch)
-        if: matrix.platform == 'macos' && github.ref == 'refs/heads/main'
-        run: |
-          rm -rf out
-          mkdir -p out
-
-      - name: Wait before macOS x64 build (main branch)
-        if: matrix.platform == 'macos' && github.ref == 'refs/heads/main'
-        run: |
-          DELAY=${MAC_STAGGER_DELAY_SECONDS:-300}
-          if ! [[ "$DELAY" =~ ^[0-9]+$ ]]; then
-            DELAY=300
-          fi
-          if [ "$DELAY" -gt 0 ]; then
-            echo "⏳ 等待 ${DELAY} 秒后启动 macOS x64 构建..."
-            sleep "$DELAY"
-          else
-            echo "⏩ 未配置等待时间，立即开始 macOS x64 构建"
-          fi
-
-      - name: Build macOS x64 (main branch)
-        if: matrix.platform == 'macos' && github.ref == 'refs/heads/main'
-        run: node scripts/build-with-builder.js x64 --mac --x64
-
-      - name: Upload macOS x64 artifact (main branch)
-        if: matrix.platform == 'macos' && github.ref == 'refs/heads/main'
-        uses: actions/upload-artifact@v4
-        with:
-          name: macos-build-x64
-          path: |
-            out/*.dmg
-            out/AionUi-*-mac-*.zip
-          if-no-files-found: error
-          retention-days: 7
-
       # macOS 钥匙串清理
       - name: Clean up keychain (macOS only)
-        if: matrix.platform == 'macos' && always()
+        if: startsWith(matrix.platform, 'macos') && always()
         run: |
           if security list-keychains | grep -q build.keychain; then
             security delete-keychain build.keychain
@@ -464,7 +364,7 @@ jobs:
 
       # macOS 构建超时或失败通知
       - name: Notify on macOS build timeout or failure
-        if: matrix.platform == 'macos' && failure()
+        if: startsWith(matrix.platform, 'macos') && failure()
         run: |
           echo "::warning title=macOS Build Timeout or Failure::macOS build did not complete within 40 minutes or failed. This is often due to Apple notarization delays."
           echo ""
@@ -489,7 +389,7 @@ jobs:
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
       - name: List build artifacts
-        if: matrix.platform != 'macos' && (success() || failure())
+        if: success() || (failure() && startsWith(matrix.platform, 'macos'))
         shell: bash
         run: |
           echo "=========================================="
@@ -507,9 +407,8 @@ jobs:
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         if: >-
-          matrix.platform != 'macos' &&
-          ((success() && (!startsWith(matrix.platform, 'windows') || steps.windows-build.outputs.result == 'success'))
-          || failure())
+          (success() && (!startsWith(matrix.platform, 'windows') || steps.windows-build.outputs.result == 'success'))
+          || (failure() && startsWith(matrix.platform, 'macos'))
         with:
           name: ${{ matrix.artifact-name }}
           path: |

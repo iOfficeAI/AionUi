@@ -261,7 +261,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
       >
         {isMobile ? mobileMenu : desktopMenu}
 
-        <AionScrollArea className={classNames('flex-1 min-h-0 scrollbar-hide', isMobile ? 'overflow-y-auto' : 'flex flex-col pl-24px gap-16px')}>{renderContent()}</AionScrollArea>
+        <AionScrollArea className={classNames('flex-1 min-h-0', isMobile ? 'overflow-y-auto' : 'flex flex-col pl-24px gap-16px')}>{renderContent()}</AionScrollArea>
       </div>
     </AionModal>
   );

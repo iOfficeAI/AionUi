@@ -19,7 +19,7 @@ module.exports = async function afterPack(context) {
 
   const isCrossCompile = buildArch !== targetArch;
   const forceRebuild = process.env.FORCE_NATIVE_REBUILD === 'true';
-  const needsSameArchRebuild = electronPlatformName === 'win32'; // 只有 Windows 需要同架构重建以匹配 Electron ABI | Only Windows needs same-arch rebuild to match Electron ABI 
+  const needsSameArchRebuild = electronPlatformName === 'win32'; // 只有 Windows 需要同架构重建以匹配 Electron ABI | Only Windows needs same-arch rebuild to match Electron ABI
   // Linux 使用预编译二进制，避免 GLIBC 版本依赖 | Linux uses prebuilt binaries which are GLIBC-independent
 
   if (!isCrossCompile && !needsSameArchRebuild && !forceRebuild) {
@@ -27,17 +27,16 @@ module.exports = async function afterPack(context) {
     return;
   }
 
-  // macOS cross-compilation optimization: skip rebuild and use prebuilt binaries
-  // This significantly reduces build time when building x64 on ARM64 runners
-  if (electronPlatformName === 'darwin' && isCrossCompile) {
-    console.log(`   ⚠️  macOS cross-compilation detected (${buildArch} → ${targetArch})`);
-    console.log(`   ✓ Skipping native module rebuild, using electron-forge prebuilt binaries`);
-    console.log(`   💡 This avoids slow cross-compilation and reduces build time from 30+ minutes to <5 minutes\n`);
-    return;
-  }
+  // Note: Previously there was an optimization to skip macOS cross-compilation,
+  // but this caused incorrect architecture binaries (arm64) to be included in x64 builds.
+  // Now we always rebuild native modules for cross-compilation to ensure correctness.
+  // The rebuild process uses prebuild-install first (fast), falling back to source compilation only when needed.
 
   if (isCrossCompile) {
-    console.log(`   ⚠️  Cross-compilation detected, will rebuild native modules`);
+    console.log(`   ⚠️  Cross-compilation detected (${buildArch} → ${targetArch}), will rebuild native modules`);
+    if (electronPlatformName === 'darwin') {
+      console.log(`   💡 Using prebuild-install for faster cross-architecture build`);
+    }
   } else if (needsSameArchRebuild || forceRebuild) {
     console.log(`   ℹ️  Rebuilding native modules for platform requirements (force=${forceRebuild})`);
   }
@@ -86,6 +85,50 @@ module.exports = async function afterPack(context) {
   // Use platform-specific module list (Windows skips node-pty due to cross-compilation issues)
   const modulesToRebuild = getModulesToRebuild(electronPlatformName);
   console.log(`   Modules to rebuild: ${modulesToRebuild.join(', ')}`);
+
+  // For cross-compilation, clean up build artifacts from the wrong architecture
+  // This prevents node-gyp-build from loading incorrect binaries
+  if (isCrossCompile) {
+    console.log(`\n🧹 Cleaning up wrong-architecture build artifacts...`);
+    for (const moduleName of modulesToRebuild) {
+      const moduleRoot = path.join(nodeModulesDir, moduleName);
+      if (!fs.existsSync(moduleRoot)) continue;
+
+      // Remove build/ directory (contains wrong-arch compiled binaries)
+      const buildDir = path.join(moduleRoot, 'build');
+      if (fs.existsSync(buildDir)) {
+        fs.rmSync(buildDir, { recursive: true, force: true });
+        console.log(`   ✓ Removed ${moduleName}/build/`);
+      }
+
+      // Remove bin/ directory (might contain wrong-arch binaries)
+      const binDir = path.join(moduleRoot, 'bin');
+      if (fs.existsSync(binDir)) {
+        fs.rmSync(binDir, { recursive: true, force: true });
+        console.log(`   ✓ Removed ${moduleName}/bin/`);
+      }
+    }
+
+    // Also clean up architecture-specific packages that shouldn't be included
+    // Remove packages for the opposite architecture of the target
+    const wrongArchSuffix = targetArch === 'arm64' ? 'x64' : 'arm64';
+    console.log(`\n🧹 Removing ${wrongArchSuffix}-specific optional dependencies (target: ${targetArch})...`);
+
+    if (fs.existsSync(nodeModulesDir)) {
+      const allModules = fs.readdirSync(nodeModulesDir);
+      for (const module of allModules) {
+        // Remove modules that have the wrong architecture in their name
+        // Examples: @lydell/node-pty-darwin-arm64, @napi-rs/canvas-darwin-arm64, etc.
+        if (module.includes(`-${wrongArchSuffix}`) || module.includes(`-${electronPlatformName}-${wrongArchSuffix}`)) {
+          const modulePath = path.join(nodeModulesDir, module);
+          if (fs.existsSync(modulePath) && fs.statSync(modulePath).isDirectory()) {
+            fs.rmSync(modulePath, { recursive: true, force: true });
+            console.log(`   ✓ Removed ${module}`);
+          }
+        }
+      }
+    }
+  }
 
   const failedModules = [];
 
