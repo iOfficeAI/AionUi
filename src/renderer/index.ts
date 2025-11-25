@@ -12,6 +12,7 @@ import '../adapter/browser';
 import Main from './main';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeProvider } from './context/ThemeContext';
+import { PreviewProvider } from './pages/conversation/preview';
 
 import { ConfigProvider } from '@arco-design/web-react';
 import '@arco-design/web-react/dist/css/arco.css';
@@ -27,22 +28,24 @@ import './styles/themes/index.css';
 import HOC from './utils/HOC';
 const root = createRoot(document.getElementById('root'));
 
-const Config: React.FC<PropsWithChildren> = (props) => {
+const arcoLocales: Record<string, typeof enUS> = {
+  'zh-CN': zhCN,
+  'zh-TW': zhTW,
+  'ja-JP': jaJP,
+  'en-US': enUS,
+};
+
+const AppProviders: React.FC<PropsWithChildren> = ({ children }) => React.createElement(AuthProvider, null, React.createElement(ThemeProvider, null, React.createElement(PreviewProvider, null, children)));
+
+const Config: React.FC<PropsWithChildren> = ({ children }) => {
   const {
     i18n: { language },
   } = useTranslation();
-  return React.createElement(
-    ConfigProvider,
-    {
-      theme: {
-        primaryColor: '#4E5969',
-      },
-      locale: language === 'zh-CN' ? zhCN : language === 'zh-TW' ? zhTW : language === 'ja-JP' ? jaJP : enUS,
-    },
-    props.children
-  );
+  const arcoLocale = arcoLocales[language] ?? enUS;
+
+  return React.createElement(ConfigProvider, { theme: { primaryColor: '#4E5969' }, locale: arcoLocale }, children);
 };
 
 const App = HOC.Wrapper(Config)(Main);
 
-root.render(React.createElement(AuthProvider, null, React.createElement(ThemeProvider, null, React.createElement(App))));
+root.render(React.createElement(AppProviders, null, React.createElement(App)));

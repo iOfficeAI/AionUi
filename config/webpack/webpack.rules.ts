@@ -1,6 +1,6 @@
-import type { ModuleOptions } from 'webpack';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import path from 'path';
+import type { ModuleOptions } from 'webpack';
 export const rules: Required<ModuleOptions>['rules'] = [
   // Add support for native node modules
   {
@@ -10,8 +10,16 @@ export const rules: Required<ModuleOptions>['rules'] = [
     use: 'node-loader',
   },
   {
+    test: /\.m?js/,
+    resolve: {
+      fullySpecified: false,
+    },
+  },
+  {
     test: /[/\\]node_modules[/\\].+\.(m?js|node)$/,
     parser: { amd: false },
+    // 排除纯 JS 库，避免 relocator loader 错误地解析依赖路径 (特别是 hoisted 依赖)
+    exclude: /[/\\]node_modules[/\\](mermaid|streamdown|marked|shiki|@shikijs)[/\\]/,
     use: {
       loader: '@vercel/webpack-asset-relocator-loader',
       options: {

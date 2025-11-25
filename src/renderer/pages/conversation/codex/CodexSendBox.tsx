@@ -16,6 +16,8 @@ import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/ThoughtD
 import { iconColors } from '@/renderer/theme/colors';
 import FilePreview from '@/renderer/components/FilePreview';
 import HorizontalFileList from '@/renderer/components/HorizontalFileList';
+import { usePreviewContext } from '@/renderer/pages/conversation/preview';
+import { useLatestRef } from '@/renderer/hooks/useLatestRef';
 
 interface CodexDraftData {
   _type: 'codex';
@@ -34,6 +36,7 @@ const useCodexSendBoxDraft = getSendBoxDraftHook('codex', {
 const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
   const { t } = useTranslation();
   const addOrUpdateMessage = useAddOrUpdateMessage();
+  const { setSendBoxHandler } = usePreviewContext();
 
   const [running, setRunning] = useState(false);
   const [aiProcessing, setAiProcessing] = useState(false); // New loading state for AI response
@@ -59,6 +62,10 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
     };
   })();
 
+  // 使用 useLatestRef 保存最新的 setContent，避免重复注册 handler
+  // Use useLatestRef to keep latest setContent to avoid re-registering handler
+  const setContentRef = useLatestRef(setContent);
+
   // 当会话ID变化时，清理所有状态避免状态污染
   useEffect(() => {
     // 重置所有运行状态，避免切换会话时状态污染
@@ -67,6 +74,18 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
     setCodexStatus(null);
     setThought({ subject: '', description: '' });
   }, [conversation_id]);
+
+  // 注册预览面板添加到发送框的 handler
+  // Register handler for adding text from preview panel to sendbox
+  useEffect(() => {
+    const handler = (text: string) => {
+      // 如果已有内容，添加换行和新文本；否则直接设置文本
+      // If there's existing content, add newline and new text; otherwise just set the text
+      const newContent = content ? `${content}\n${text}` : text;
+      setContentRef.current(newContent);
+    };
+    setSendBoxHandler(handler);
+  }, [setSendBoxHandler, content]);
 
   useEffect(() => {
     return ipcBridge.codexConversation.responseStream.on((message) => {
@@ -153,7 +172,9 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
         if (typeof item === 'string') {
           return '@' + item.split(/[\\/]/).pop();
         } else {
-          return '@' + item.name;
+          // 优先使用 relativePath（工作空间相对路径），这样可以避免文件名被清理导致找不到文件
+          // Prefer relativePath (workspace-relative path) to avoid file name cleaning issues
+          return '@' + (item.relativePath || item.name);
         }
       });
       message = uploadFileNames.join(' ') + ' ' + atPathNames.join(' ') + ' ' + message;

@@ -8,17 +8,27 @@ import React, { useMemo, useRef, useState } from 'react';
 import { html } from 'diff2html';
 import 'diff2html/bundles/css/diff2html.min.css';
 import { Checkbox } from '@arco-design/web-react';
-import { ExpandDownOne, FoldUpOne } from '@icon-park/react';
+import { ExpandDownOne, FoldUpOne, PreviewOpen } from '@icon-park/react';
 import classNames from 'classnames';
 import ReactDOM from 'react-dom';
 import { iconColors } from '@/renderer/theme/colors';
 import { useThemeContext } from '@/renderer/context/ThemeContext';
+import { usePreviewContext, getContentTypeByExtension } from '@/renderer/pages/conversation/preview';
 import CollapsibleContent from './CollapsibleContent';
+import { useTranslation } from 'react-i18next';
 
 const Diff2Html = ({ diff, className, title }: { diff: string; className?: string; title?: string }) => {
   const { theme } = useThemeContext();
+  const { t } = useTranslation();
+  const { openPreview, closePreviewByIdentity, findPreviewTab } = usePreviewContext(); // 获取预览上下文 / Get preview context
   const [sideBySide, setSideBySide] = useState(false);
   const [collapse, setCollapse] = useState(false);
+
+  // 检查当前 diff 是否正在预览中 / Check if current diff is being previewed
+  const fileMeta = title ? { title, fileName: title } : undefined;
+  const contentType = title ? getContentTypeByExtension(title) : 'code';
+  const previewTab = fileMeta ? findPreviewTab(contentType, undefined, fileMeta) : null;
+  const isCurrentlyPreviewing = !!previewTab;
   const diffHtmlContent = useMemo(() => {
     return html(diff, {
       outputFormat: sideBySide ? 'side-by-side' : 'line-by-line',
@@ -61,14 +71,34 @@ const Diff2Html = ({ diff, className, title }: { diff: string; className?: strin
         ></div>
         {ReactDOM.createPortal(
           <>
-            <Checkbox
-              className='whitespace-nowrap'
-              // className={"!flex items-center justify-center"}
-              checked={sideBySide}
-              onChange={(value) => setSideBySide(value)}
+            {/* 预览按钮 / Preview button */}
+            <div
+              className='flex items-center gap-4px px-8px py-4px rd-4px cursor-pointer hover:bg-3 transition-colors'
+              onClick={() => {
+                if (isCurrentlyPreviewing) {
+                  // 关闭当前文件的预览 / Close preview for this file
+                  closePreviewByIdentity(contentType, undefined, fileMeta);
+                } else {
+                  // 直接预览 diff 内容 / Preview diff content directly
+                  openPreview(diff, 'diff', {
+                    title: title || 'Diff',
+                    fileName: title,
+                    editable: false,
+                  });
+                }
+              }}
+              title={isCurrentlyPreviewing ? t('preview.closePreview') : t('preview.preview')}
             >
+              <PreviewOpen theme='outline' size='14' fill={iconColors.secondary} />
+              <span className='text-12px text-t-secondary whitespace-nowrap'>{isCurrentlyPreviewing ? t('preview.closePreview') : t('preview.preview')}</span>
+            </div>
+
+            {/* 原有的 side-by-side 选项 / Original side-by-side option */}
+            <Checkbox className='whitespace-nowrap' checked={sideBySide} onChange={(value) => setSideBySide(value)}>
               <span className='whitespace-nowrap'>side-by-side</span>
             </Checkbox>
+
+            {/* 折叠按钮 / Collapse button */}
             {collapse ? <ExpandDownOne theme='outline' size='14' fill={iconColors.secondary} className='flex items-center' onClick={() => setCollapse(false)} /> : <FoldUpOne theme='outline' size='14' fill={iconColors.secondary} className='flex items-center' onClick={() => setCollapse(true)} />}
           </>,
           operatorRef.current

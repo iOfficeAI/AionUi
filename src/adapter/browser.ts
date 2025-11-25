@@ -5,15 +5,10 @@
  */
 
 import { bridge, logger } from '@office-ai/platform';
-
-// 扩展 Window 接口以支持自定义属性 / Extend Window interface for custom properties
-interface ElectronAPI {
-  emit: (name: string, data: unknown) => void;
-  on: (callback: (event: { value: string }) => void) => void;
-}
+import type { ElectronBridgeAPI } from '@/types/electron';
 
 interface CustomWindow extends Window {
-  electronAPI?: ElectronAPI;
+  electronAPI?: ElectronBridgeAPI;
   __bridgeEmitter?: { emit: (name: string, data: unknown) => void };
   __emitBridgeCallback?: (name: string, data: unknown) => void;
   __websocketReconnect?: () => void;

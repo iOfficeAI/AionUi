@@ -11,6 +11,7 @@ import HOC from '@renderer/utils/HOC';
 import React, { useEffect } from 'react';
 import CodexSendBox from './CodexSendBox';
 import LocalImageView from '../../../components/LocalImageView';
+import { ConversationProvider } from '@/renderer/context/ConversationContext';
 
 const CodexChat: React.FC<{
   conversation_id: string;
@@ -22,12 +23,14 @@ const CodexChat: React.FC<{
     updateLocalImage({ root: workspace });
   }, [workspace]);
   return (
-    <div className='flex-1 flex flex-col px-20px'>
-      <FlexFullContainer>
-        <MessageList className='flex-1'></MessageList>
-      </FlexFullContainer>
-      <CodexSendBox conversation_id={conversation_id} />
-    </div>
+    <ConversationProvider value={{ conversationId: conversation_id, workspace, type: 'codex' }}>
+      <div className='flex-1 flex flex-col px-20px'>
+        <FlexFullContainer>
+          <MessageList className='flex-1'></MessageList>
+        </FlexFullContainer>
+        <CodexSendBox conversation_id={conversation_id} />
+      </div>
+    </ConversationProvider>
   );
 };
 

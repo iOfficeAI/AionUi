@@ -1,4 +1,4 @@
-import { ArrowCircleLeft, Plus, SettingTwo, SettingConfig } from '@icon-park/react';
+import { ArrowCircleLeft, Plus, SettingTwo } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -6,15 +6,19 @@ import ChatHistory from './pages/conversation/ChatHistory';
 import SettingsSider from './pages/settings/SettingsSider';
 import { iconColors } from './theme/colors';
 import { Tooltip } from '@arco-design/web-react';
-import { useSettingsModal } from './components/SettingsModal/useSettingsModal';
 
-const Sider: React.FC<{ onSessionClick?: () => void; collapsed?: boolean }> = ({ onSessionClick, collapsed = false }) => {
+interface SiderProps {
+  onSessionClick?: () => void;
+  collapsed?: boolean;
+  openSettings: () => void;
+}
+
+const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false, openSettings }) => {
   const { pathname } = useLocation();
 
   const { t } = useTranslation();
   const navigate = useNavigate();
   const isSettings = pathname.startsWith('/settings');
-  const { openSettings, settingsModal } = useSettingsModal();
   return (
     <div className='size-full flex flex-col'>
       {isSettings ? (
@@ -44,8 +48,7 @@ const Sider: React.FC<{ onSessionClick?: () => void; collapsed?: boolean }> = ({
       <Tooltip disabled={!collapsed} content={isSettings ? t('common.back') : t('common.settings')} position='right'>
         <div
           onClick={() => {
-            // if (isSettings) {
-            openSettings();
+            openSettings?.();
           }}
           className='flex items-center justify-start gap-10px px-12px py-8px hover:bg-hover rd-0.5rem mb-8px cursor-pointer'
         >
@@ -53,9 +56,6 @@ const Sider: React.FC<{ onSessionClick?: () => void; collapsed?: boolean }> = ({
           <span className='collapsed-hidden text-t-primary'>{isSettings ? t('common.back') : t('common.settings')}</span>
         </div>
       </Tooltip>
-
-      {/* 渲染设置弹窗 */}
-      {settingsModal}
     </div>
   );
 };

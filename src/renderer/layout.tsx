@@ -7,16 +7,18 @@
 import { ipcBridge } from '@/common';
 import { ConfigStorage } from '@/common/storage';
 import PwaPullToRefresh from '@/renderer/components/PwaPullToRefresh';
+import Titlebar from '@/renderer/components/Titlebar';
+import { useSettingsModal } from '@/renderer/components/SettingsModal/useSettingsModal';
 import { Layout as ArcoLayout } from '@arco-design/web-react';
 import { MenuFold, MenuUnfold } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useEffect, useRef, useState } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { LayoutContext } from './context/LayoutContext';
 import { useDirectorySelection } from './hooks/useDirectorySelection';
 import { useMultiAgentDetection } from './hooks/useMultiAgentDetection';
-import { iconColors } from './theme/colors';
 import { processCustomCss } from './utils/customCssProcessor';
+import { iconColors } from './theme/colors';
 
 const useDebug = () => {
   const [count, setCount] = useState(0);
@@ -54,13 +56,16 @@ const MOBILE_COLLAPSE_DURATION = 320;
 const Layout: React.FC<{
   sider: React.ReactNode;
   onSessionClick?: () => void;
-}> = ({ sider, onSessionClick }) => {
+}> = ({ sider, onSessionClick: _onSessionClick }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [customCss, setCustomCss] = useState<string>('');
   const { onClick } = useDebug();
   const { contextHolder: multiAgentContextHolder } = useMultiAgentDetection();
   const { contextHolder: directorySelectionContextHolder } = useDirectorySelection();
+  const { openSettings, settingsModal } = useSettingsModal();
+  const location = useLocation();
+  const workspaceAvailable = location.pathname.startsWith('/conversation/');
   const collapsedRef = useRef(collapsed);
   // 自动/手动折叠的状态与定时器 / Timers & states for auto/manual sidebar folding
   const autoCollapseTimer = useRef<number | undefined>(undefined);
@@ -224,92 +229,97 @@ const Layout: React.FC<{
   }, [collapsed]);
   return (
     <LayoutContext.Provider value={{ isMobile, siderCollapsed: collapsed, setSiderCollapsed: setCollapsed }}>
-      <ArcoLayout className={'size-full layout'}>
-        <ArcoLayout.Sider
-          collapsedWidth={isMobile ? 0 : 64}
-          collapsed={collapsed}
-          width={DEFAULT_SIDER_WIDTH}
-          className={classNames('!bg-2 layout-sider', {
-            collapsed: collapsed,
-            'layout-sider--folding': autoCollapsing || manualCollapsing,
-          })}
-          style={
-            isMobile
-              ? {
-                  position: 'fixed',
-                  top: 0,
-                  left: 0,
-                  height: '100vh',
-                  zIndex: 100,
-                  transform: collapsed || autoCollapsing ? 'translateX(-100%)' : 'translateX(0)',
-                  transition: `transform ${MOBILE_COLLAPSE_DURATION}ms ease`,
-                  pointerEvents: collapsed || autoCollapsing ? 'none' : 'auto',
-                }
-              : undefined
-          }
-        >
-          <ArcoLayout.Header
-            className={classNames('flex items-center justify-start p-16px gap-12px pl-20px layout-sider-header', {
-              'cursor-pointer group ': collapsed,
+      <div className='app-shell flex flex-col size-full min-h-0'>
+        <Titlebar workspaceAvailable={workspaceAvailable} />
+        <ArcoLayout className={'size-full layout flex-1 min-h-0'}>
+          <ArcoLayout.Sider
+            collapsedWidth={isMobile ? 0 : 64}
+            collapsed={collapsed}
+            width={DEFAULT_SIDER_WIDTH}
+            className={classNames('!bg-2 layout-sider', {
+              collapsed: collapsed,
+              'layout-sider--folding': autoCollapsing || manualCollapsing,
             })}
+            style={
+              isMobile
+                ? {
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    height: '100vh',
+                    zIndex: 100,
+                    transform: collapsed || autoCollapsing ? 'translateX(-100%)' : 'translateX(0)',
+                    transition: `transform ${MOBILE_COLLAPSE_DURATION}ms ease`,
+                    pointerEvents: collapsed || autoCollapsing ? 'none' : 'auto',
+                  }
+                : undefined
+            }
           >
-            <div
-              className={classNames('bg-black shrink-0 size-40px relative rd-0.5rem', {
-                '!size-24px': collapsed,
+            <ArcoLayout.Header
+              className={classNames('flex items-center justify-start p-16px gap-12px pl-20px layout-sider-header', {
+                'cursor-pointer group ': collapsed,
               })}
-              onClick={onClick}
             >
-              <svg
-                className={classNames('w-5.5 h-5.5 absolute inset-0 m-auto', {
-                  ' scale-140': !collapsed,
+              <div
+                className={classNames('bg-black shrink-0 size-40px relative rd-0.5rem', {
+                  '!size-24px': collapsed,
                 })}
-                viewBox='0 0 80 80'
-                fill='none'
+                onClick={onClick}
               >
-                <path key='logo-path-1' d='M40 20 Q38 22 25 40 Q23 42 26 42 L30 42 Q32 40 40 30 Q48 40 50 42 L54 42 Q57 42 55 40 Q42 22 40 20' fill='white'></path>
-                <circle key='logo-circle' cx='40' cy='46' r='3' fill='white'></circle>
-                <path key='logo-path-2' d='M18 50 Q40 70 62 50' stroke='white' strokeWidth='3.5' fill='none' strokeLinecap='round'></path>
-              </svg>
-            </div>
-            <div className=' flex-1 text-20px collapsed-hidden font-bold'>AionUi</div>
-            <MenuFold className='cursor-pointer !collapsed-hidden flex' theme='outline' size='24' fill={iconColors.secondary} strokeWidth={3} onClick={() => setCollapsed(true)} />
-            {collapsed && !isMobile && (
-              <div onClick={() => setCollapsed(false)} className='group-hover:opacity-100 absolute bg-2 left-8px top-7px transition-all duration-150 p-10px opacity-0'>
-                <MenuUnfold className='cursor-pointer flex' size='24' fill={iconColors.secondary} strokeWidth={3} />
+                <svg
+                  className={classNames('w-5.5 h-5.5 absolute inset-0 m-auto', {
+                    ' scale-140': !collapsed,
+                  })}
+                  viewBox='0 0 80 80'
+                  fill='none'
+                >
+                  <path key='logo-path-1' d='M40 20 Q38 22 25 40 Q23 42 26 42 L30 42 Q32 40 40 30 Q48 40 50 42 L54 42 Q57 42 55 40 Q42 22 40 20' fill='white'></path>
+                  <circle key='logo-circle' cx='40' cy='46' r='3' fill='white'></circle>
+                  <path key='logo-path-2' d='M18 50 Q40 70 62 50' stroke='white' strokeWidth='3.5' fill='none' strokeLinecap='round'></path>
+                </svg>
               </div>
-            )}
-          </ArcoLayout.Header>
-          <ArcoLayout.Content className='h-[calc(100%-72px-16px)] p-8px layout-sider-content'>
-            {React.isValidElement(sider)
-              ? React.cloneElement(sider, {
-                  onSessionClick: () => {
-                    if (isMobile) setCollapsed(true);
-                  },
-                  collapsed,
-                } as any)
-              : sider}
-          </ArcoLayout.Content>
-        </ArcoLayout.Sider>
+              <div className=' flex-1 text-20px collapsed-hidden font-bold'>AionUi</div>
+              <MenuFold className='cursor-pointer !collapsed-hidden flex' theme='outline' size='24' fill={iconColors.secondary} strokeWidth={3} onClick={() => setCollapsed(true)} />
+              {collapsed && !isMobile && (
+                <div onClick={() => setCollapsed(false)} className='absolute bg-2 left-8px top-7px transition-all duration-150 p-10px hover:bg-hover opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto'>
+                  <MenuUnfold className='cursor-pointer flex' size='24' fill={iconColors.secondary} strokeWidth={3} />
+                </div>
+              )}
+            </ArcoLayout.Header>
+            <ArcoLayout.Content className='h-[calc(100%-72px-16px)] p-8px layout-sider-content'>
+              {React.isValidElement(sider)
+                ? React.cloneElement(sider, {
+                    onSessionClick: () => {
+                      if (isMobile) setCollapsed(true);
+                    },
+                    collapsed,
+                    openSettings,
+                  } as any)
+                : sider}
+            </ArcoLayout.Content>
+          </ArcoLayout.Sider>
 
-        <ArcoLayout.Content
-          className={'bg-1 layout-content'}
-          onClick={() => {
-            if (isMobile && !collapsed) setCollapsed(true);
-          }}
-          style={
-            isMobile
-              ? {
-                  width: '100vw',
-                }
-              : undefined
-          }
-        >
-          <Outlet />
-          {multiAgentContextHolder}
-          {directorySelectionContextHolder}
-          <PwaPullToRefresh />
-        </ArcoLayout.Content>
-      </ArcoLayout>
+          <ArcoLayout.Content
+            className={'bg-1 layout-content flex flex-col min-h-0'}
+            onClick={() => {
+              if (isMobile && !collapsed) setCollapsed(true);
+            }}
+            style={
+              isMobile
+                ? {
+                    width: '100vw',
+                  }
+                : undefined
+            }
+          >
+            <Outlet />
+            {multiAgentContextHolder}
+            {directorySelectionContextHolder}
+            <PwaPullToRefresh />
+          </ArcoLayout.Content>
+        </ArcoLayout>
+        {settingsModal}
+      </div>
     </LayoutContext.Provider>
   );
 };

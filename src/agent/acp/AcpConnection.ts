@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { JSONRPC_VERSION } from '@/types/acpTypes';
 import type { AcpBackend, AcpMessage, AcpNotification, AcpPermissionRequest, AcpRequest, AcpResponse, AcpSessionUpdate } from '@/types/acpTypes';
+import { JSONRPC_VERSION } from '@/types/acpTypes';
 import type { ChildProcess, SpawnOptions } from 'child_process';
 import { spawn } from 'child_process';
 import { promises as fs } from 'fs';
@@ -454,6 +454,27 @@ export class AcpConnection {
     try {
       await fs.mkdir(path.dirname(params.path), { recursive: true });
       await fs.writeFile(params.path, params.content, 'utf-8');
+
+      // 发送流式内容更新事件到预览面板（用于实时更新）
+      // Send streaming content update to preview panel (for real-time updates)
+      try {
+        const { ipcBridge } = await import('@/common');
+        const pathSegments = params.path.split(path.sep);
+        const fileName = pathSegments[pathSegments.length - 1];
+        const workspace = pathSegments.slice(0, -1).join(path.sep);
+
+        const eventData = {
+          filePath: params.path,
+          content: params.content,
+          workspace: workspace,
+          relativePath: fileName,
+          operation: 'write' as const,
+        };
+        ipcBridge.fileStream.contentUpdate.emit(eventData);
+      } catch (emitError) {
+        console.error('[AcpConnection] ❌ Failed to emit file stream update:', emitError);
+      }
+
       return null;
     } catch (error) {
       throw new Error(`Failed to write file: ${error instanceof Error ? error.message : String(error)}`);

@@ -11,21 +11,24 @@ import { MessageListProvider, useMessageLstCache } from '@renderer/messages/hook
 import HOC from '@renderer/utils/HOC';
 import React from 'react';
 import AcpSendBox from './AcpSendBox';
+import { ConversationProvider } from '@/renderer/context/ConversationContext';
 
 const AcpChat: React.FC<{
   conversation_id: string;
   workspace?: string;
   backend: AcpBackend;
-}> = ({ conversation_id, backend }) => {
+}> = ({ conversation_id, workspace, backend }) => {
   useMessageLstCache(conversation_id);
 
   return (
-    <div className='flex-1 flex flex-col px-20px'>
-      <FlexFullContainer>
-        <MessageList className='flex-1'></MessageList>
-      </FlexFullContainer>
-      <AcpSendBox conversation_id={conversation_id} backend={backend}></AcpSendBox>
-    </div>
+    <ConversationProvider value={{ conversationId: conversation_id, workspace, type: 'acp' }}>
+      <div className='flex-1 flex flex-col px-20px'>
+        <FlexFullContainer>
+          <MessageList className='flex-1'></MessageList>
+        </FlexFullContainer>
+        <AcpSendBox conversation_id={conversation_id} backend={backend}></AcpSendBox>
+      </div>
+    </ConversationProvider>
   );
 };
 

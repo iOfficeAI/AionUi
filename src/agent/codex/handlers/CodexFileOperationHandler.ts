@@ -7,6 +7,7 @@
 import { uuid } from '@/common/utils';
 import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
 import type { FileChange } from '@/common/codex/types';
+import { ipcBridge } from '@/common';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -78,6 +79,22 @@ export class CodexFileOperationHandler {
     // 写入文件
     await fs.writeFile(fullPath, content, 'utf-8');
 
+    // 发送流式内容更新事件到预览面板（用于实时更新）
+    // Send streaming content update to preview panel (for real-time updates)
+    try {
+      const eventData = {
+        filePath: fullPath,
+        content: content,
+        workspace: this.workingDirectory,
+        relativePath: operation.path,
+        operation: 'write' as const,
+      };
+
+      ipcBridge.fileStream.contentUpdate.emit(eventData);
+    } catch (error) {
+      console.error('[CodexFileOperationHandler] ❌ Failed to emit file stream update:', error);
+    }
+
     // 发送操作反馈消息
     this.emitFileOperationMessage({
       method: 'fs/write_text_file',
@@ -118,6 +135,20 @@ export class CodexFileOperationHandler {
 
     try {
       await fs.unlink(fullPath);
+
+      // 发送流式删除事件到预览面板（用于关闭预览）
+      // Send streaming delete event to preview panel (to close preview)
+      try {
+        ipcBridge.fileStream.contentUpdate.emit({
+          filePath: fullPath,
+          content: '',
+          workspace: this.workingDirectory,
+          relativePath: operation.path,
+          operation: 'delete',
+        });
+      } catch (error) {
+        console.error('[CodexFileOperationHandler] Failed to emit file stream delete:', error);
+      }
 
       // 发送操作反馈消息
       this.emitFileOperationMessage({
