@@ -126,10 +126,23 @@ module.exports = async function afterPack(context) {
     if (fs.existsSync(nodeModulesDir)) {
       const allModules = fs.readdirSync(nodeModulesDir);
       for (const module of allModules) {
-        // Remove modules that have the wrong architecture in their name
-        // Examples: @lydell/node-pty-darwin-arm64, @napi-rs/canvas-darwin-arm64, etc.
-        if (module.includes(`-${wrongArchSuffix}`) || module.includes(`-${electronPlatformName}-${wrongArchSuffix}`)) {
-          const modulePath = path.join(nodeModulesDir, module);
+        const modulePath = path.join(nodeModulesDir, module);
+
+        // Handle scoped packages (e.g., @lydell, @napi-rs)
+        if (module.startsWith('@') && fs.existsSync(modulePath) && fs.statSync(modulePath).isDirectory()) {
+          const scopedPackages = fs.readdirSync(modulePath);
+          for (const pkg of scopedPackages) {
+            if (pkg.includes(`-${wrongArchSuffix}`) || pkg.includes(`-${electronPlatformName}-${wrongArchSuffix}`)) {
+              const pkgPath = path.join(modulePath, pkg);
+              if (fs.existsSync(pkgPath) && fs.statSync(pkgPath).isDirectory()) {
+                fs.rmSync(pkgPath, { recursive: true, force: true });
+                console.log(`   ✓ Removed ${module}/${pkg}`);
+              }
+            }
+          }
+        }
+        // Handle regular packages
+        else if (module.includes(`-${wrongArchSuffix}`) || module.includes(`-${electronPlatformName}-${wrongArchSuffix}`)) {
           if (fs.existsSync(modulePath) && fs.statSync(modulePath).isDirectory()) {
             fs.rmSync(modulePath, { recursive: true, force: true });
             console.log(`   ✓ Removed ${module}`);
