@@ -34,13 +34,14 @@ function normalizeArch(arch) {
 function getModulesToRebuild(platform) {
   // Windows: Skip node-pty (cross-compilation fails with missing conpty API types)
   // Linux: Skip node-pty (no ARM64 prebuilds available, cross-compilation requires ARM64 toolchain)
-  // macOS: Include node-pty (can cross-compile between x64 and arm64)
+  // macOS: Skip node-pty (cross-compilation from ARM64→x64 fails, use @lydell/node-pty-* prebuilts)
   if (platform === 'win32' || platform === 'windows') {
     return ['better-sqlite3', 'bcrypt'];
   } else if (platform === 'linux') {
     return ['better-sqlite3', 'bcrypt'];
   }
-  return ['better-sqlite3', 'bcrypt', 'node-pty'];
+  // macOS: only rebuild better-sqlite3 and bcrypt, skip node-pty
+  return ['better-sqlite3', 'bcrypt'];
 }
 
 /**
