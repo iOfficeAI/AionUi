@@ -49,7 +49,16 @@ module.exports = async function afterPack(context) {
     packager?.config?.electronVersion ??
     require('../package.json').devDependencies?.electron?.replace(/^\D*/, '');
 
-  const resourcesDir = path.join(appOutDir, 'resources');
+  // Determine resources directory based on platform
+  // macOS: appOutDir/AionUi.app/Contents/Resources
+  // Windows/Linux: appOutDir/resources
+  let resourcesDir;
+  if (electronPlatformName === 'darwin') {
+    const appName = packager?.appInfo?.productFilename || 'AionUi';
+    resourcesDir = path.join(appOutDir, `${appName}.app`, 'Contents', 'Resources');
+  } else {
+    resourcesDir = path.join(appOutDir, 'resources');
+  }
 
   // Debug: check what's in resources directory
   console.log(`   Checking resources directory: ${resourcesDir}`);
