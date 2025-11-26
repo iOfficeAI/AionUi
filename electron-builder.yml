@@ -39,6 +39,7 @@ files:
   - '!**/node_modules/{@img,@emnapi}/**'
   - '!**/node_modules/@img/sharp-*/**'
   - '!**/node_modules/@anthropic-ai/claude-code/vendor/**'
+  - '!**/node_modules/@anthropic-ai/claude-agent-sdk/vendor/**'
   # Exclude webpack source maps
   - '!**/*.map'
   - '!**/webpack-stats.json'
