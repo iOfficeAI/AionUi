@@ -151,6 +151,11 @@ module.exports = async function afterPack(context) {
 
     console.log(`   ✓ Found ${moduleName}, rebuilding for ${targetArch}...`);
 
+    // For Windows cross-compilation (x64 → ARM64), use prebuild-install to download prebuilt binaries
+    // Only force rebuild for same-architecture builds (ensures correct Electron ABI version)
+    const isWindowsCrossCompile = electronPlatformName === 'win32' && isCrossCompile;
+    const forceRebuildFromSource = electronPlatformName === 'win32' && !isWindowsCrossCompile;
+
     const success = rebuildSingleModule({
       moduleName,
       moduleRoot,
@@ -159,7 +164,7 @@ module.exports = async function afterPack(context) {
       electronVersion,
       projectRoot: path.resolve(__dirname, '..'),
       buildArch: buildArch, // Pass build architecture for cross-compile detection
-      forceRebuild: electronPlatformName === 'win32', // Windows: force rebuild from source; Linux: prefer prebuilt binaries
+      forceRebuild: forceRebuildFromSource, // Windows same-arch: force rebuild; Windows cross-arch: use prebuild-install; Linux: prefer prebuilt binaries
     });
 
     if (success) {
