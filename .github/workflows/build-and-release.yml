@@ -42,8 +42,6 @@ jobs:
     runs-on: ${{ matrix.os }}
     needs: code-quality
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
-    env:
-      MAC_STAGGER_DELAY_SECONDS: ${{ vars.MAC_STAGGER_DELAY_SECONDS != '' && vars.MAC_STAGGER_DELAY_SECONDS || '300' }}
 
     strategy:
       fail-fast: false
@@ -74,9 +72,6 @@ jobs:
             command: 'npm run dist:linux'
             artifact-name: 'linux-build'
             arch: 'x64,arm64'
-    concurrency:
-      group: ${{ startsWith(matrix.platform, 'macos') && format('macos-notarize-{0}', github.run_id) || format('build-{0}-{1}', github.run_id, matrix.platform) }}
-      cancel-in-progress: false
 
     steps:
       - name: Checkout code
