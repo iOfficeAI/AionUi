@@ -50,12 +50,12 @@ jobs:
       matrix:
         include:
           - platform: 'macos-arm64'
-            os: 'macos-latest'
+            os: 'macos-14'
             command: 'node scripts/build-with-builder.js arm64 --mac --arm64'
             artifact-name: 'macos-build-arm64'
             arch: 'arm64'
           - platform: 'macos-x64'
-            os: 'macos-latest'
+            os: 'macos-13'
             command: 'node scripts/build-with-builder.js x64 --mac --x64'
             artifact-name: 'macos-build-x64'
             arch: 'x64'
