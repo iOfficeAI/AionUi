@@ -31,6 +31,7 @@ import { useNavigate } from 'react-router-dom';
 import useSWR from 'swr';
 import styles from './index.module.css';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
+import { useSettingsModal } from '@/renderer/components/SettingsModal/useSettingsModal';
 
 /**
  * 缓存Provider的可用模型列表，避免重复计算
@@ -325,7 +326,7 @@ const Guid: React.FC = () => {
           console.error(t('acp.auth.console_error'), error.message);
           const confirmed = window.confirm(t('acp.auth.failed_confirm', { backend: selectedAgent, error: error.message }));
           if (confirmed) {
-            await navigate('/settings/model');
+            openSettings('model');
           }
         } else {
           alert(`Failed to create ${selectedAgent} ACP conversation. Please check your ACP configuration and ensure the CLI is installed.`);
@@ -352,6 +353,7 @@ const Guid: React.FC = () => {
   // 使用共享的输入法合成处理
   const { compositionHandlers, createKeyDownHandler } = useCompositionInput();
   const { modelList, isGoogleAuth } = useModelList();
+  const { openSettings, settingsModal } = useSettingsModal();
   const setDefaultModel = async () => {
     const useModel = await ConfigStorage.get('gemini.defaultModel');
     const defaultModel = modelList.find((m) => m.model.includes(useModel)) || modelList[0];
@@ -399,6 +401,7 @@ const Guid: React.FC = () => {
   }, [t]);
   return (
     <ConfigProvider getPopupContainer={() => guidContainerRef.current || document.body}>
+      {settingsModal}
       <div ref={guidContainerRef} className='h-full flex-center flex-col px-10px' style={{ position: 'relative' }}>
         {layout?.isMobile && layout?.siderCollapsed && (
           <button type='button' className='mobile-toggle-btn fixed top-0 left-0 z-50 flex items-center justify-center w-16 h-16' style={{ background: 'transparent', border: 'none', outline: 'none', padding: 0, margin: 0 }} onClick={() => layout.setSiderCollapsed(false)}>
@@ -526,47 +529,47 @@ const Guid: React.FC = () => {
                     trigger='hover'
                     droplist={
                       <Menu selectedKeys={currentModel ? [currentModel.id + currentModel.useModel] : []}>
-                        {!modelList || modelList.length === 0 ? (
-                          <>
-                            {/* 暂无可用模型提示 */}
-                            <Menu.Item key='no-models' className='px-12px py-12px text-t-secondary text-14px text-center flex justify-center items-center' disabled>
-                              {t('settings.noAvailableModels')}
-                            </Menu.Item>
-                            {/* Add Model 选项 */}
-                            <Menu.Item key='add-model' className='text-12px text-t-secondary' onClick={() => navigate('/settings/model')}>
-                              <Plus theme='outline' size='12' />
-                              {t('settings.addModel')}
-                            </Menu.Item>
-                          </>
-                        ) : (
-                          <>
-                            {(modelList || []).map((provider) => {
-                              const availableModels = getAvailableModels(provider);
-                              return (
-                                <Menu.ItemGroup title={provider.name} key={provider.id}>
-                                  {availableModels.map((modelName) => (
-                                    <Menu.Item
-                                      key={provider.id + modelName}
-                                      className={currentModel?.id + currentModel?.useModel === provider.id + modelName ? '!bg-2' : ''}
-                                      onClick={() => {
-                                        setCurrentModel({ ...provider, useModel: modelName }).catch((error) => {
-                                          console.error('Failed to set current model:', error);
-                                        });
-                                      }}
-                                    >
-                                      {modelName}
-                                    </Menu.Item>
-                                  ))}
-                                </Menu.ItemGroup>
-                              );
-                            })}
-                            {/* Add Model 选项 */}
-                            <Menu.Item key='add-model' className='text-12px text-t-secondary' onClick={() => navigate('/settings/model')}>
-                              <Plus theme='outline' size='12' />
-                              {t('settings.addModel')}
-                            </Menu.Item>
-                          </>
-                        )}
+                        {!modelList || modelList.length === 0
+                          ? [
+                              /* 暂无可用模型提示 */
+                              <Menu.Item key='no-models' className='px-12px py-12px text-t-secondary text-14px text-center flex justify-center items-center' disabled>
+                                {t('settings.noAvailableModels')}
+                              </Menu.Item>,
+                              /* Add Model 选项 */
+                              <Menu.Item key='add-model' className='text-12px text-t-secondary' onClick={() => openSettings('model')}>
+                                <Plus theme='outline' size='12' />
+                                {t('settings.addModel')}
+                              </Menu.Item>,
+                            ]
+                          : [
+                              ...(modelList || []).map((provider) => {
+                                const availableModels = getAvailableModels(provider);
+                                // 只渲染有可用模型的 provider
+                                if (availableModels.length === 0) return null;
+                                return (
+                                  <Menu.ItemGroup title={provider.name} key={provider.id}>
+                                    {availableModels.map((modelName) => (
+                                      <Menu.Item
+                                        key={provider.id + modelName}
+                                        className={currentModel?.id + currentModel?.useModel === provider.id + modelName ? '!bg-2' : ''}
+                                        onClick={() => {
+                                          setCurrentModel({ ...provider, useModel: modelName }).catch((error) => {
+                                            console.error('Failed to set current model:', error);
+                                          });
+                                        }}
+                                      >
+                                        {modelName}
+                                      </Menu.Item>
+                                    ))}
+                                  </Menu.ItemGroup>
+                                );
+                              }),
+                              /* Add Model 选项 */
+                              <Menu.Item key='add-model' className='text-12px text-t-secondary' onClick={() => openSettings('model')}>
+                                <Plus theme='outline' size='12' />
+                                {t('settings.addModel')}
+                              </Menu.Item>,
+                            ]}
                       </Menu>
                     }
                   >
