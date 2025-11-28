@@ -223,6 +223,7 @@ const AcpSendBox: React.FC<{
         if (result && result.success === true) {
           // Initial message sent successfully
           sessionStorage.removeItem(storageKey);
+          emitter.emit('chat.history.refresh');
         } else {
           // Handle send failure
           console.error('[ACP-FRONTEND] Failed to send initial message:', result);
@@ -277,6 +278,7 @@ const AcpSendBox: React.FC<{
         conversation_id,
         files: uploadFile,
       });
+      emitter.emit('chat.history.refresh');
     } catch (error: unknown) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       // Check if it's an ACP authentication error

@@ -24,6 +24,10 @@ const diffDay = (time1: number, time2: number) => {
   return Math.floor(diff / (1000 * 60 * 60 * 24));
 };
 
+const getActivityTime = (conversation: TChatConversation): number => {
+  return conversation.modifyTime || conversation.createTime || 0;
+};
+
 const useTimeline = () => {
   const { t } = useTranslation();
   const current = Date.now();
@@ -35,7 +39,7 @@ const useTimeline = () => {
     return t('conversation.history.earlier');
   };
   return (conversation: TChatConversation) => {
-    const time = conversation.createTime;
+    const time = getActivityTime(conversation);
     const formatStr = format(time);
     if (prevTime && formatStr === format(prevTime)) {
       prevTime = time;
@@ -112,7 +116,7 @@ const ChatHistory: React.FC<{ onSessionClick?: () => void; collapsed?: boolean }
         .invoke({ page: 0, pageSize: 10000 })
         .then((history) => {
           if (history && Array.isArray(history) && history.length > 0) {
-            const sortedHistory = history.sort((a, b) => (b.createTime - a.createTime < 0 ? -1 : 1));
+            const sortedHistory = history.sort((a, b) => getActivityTime(b) - getActivityTime(a));
             setChatHistory(sortedHistory);
           } else {
             setChatHistory([]);
