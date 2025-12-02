@@ -4,15 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { FileFilteringOptions, TelemetryTarget } from '@office-ai/aioncli-core';
-import { ApprovalMode, Config, DEFAULT_GEMINI_EMBEDDING_MODEL, DEFAULT_GEMINI_MODEL, DEFAULT_MEMORY_FILE_FILTERING_OPTIONS, FileDiscoveryService, getCurrentGeminiMdFilename, loadServerHierarchicalMemory, setGeminiMdFilename as setServerGeminiMdFilename } from '@office-ai/aioncli-core';
-import * as fs from 'fs';
-import { homedir } from 'node:os';
+import type { TelemetryTarget, GeminiCLIExtension, FallbackIntent } from '@office-ai/aioncli-core';
+import { ApprovalMode, Config, DEFAULT_GEMINI_EMBEDDING_MODEL, DEFAULT_GEMINI_MODEL, DEFAULT_MEMORY_FILE_FILTERING_OPTIONS, FileDiscoveryService, getCurrentGeminiMdFilename, loadServerHierarchicalMemory, setGeminiMdFilename as setServerGeminiMdFilename, SimpleExtensionLoader } from '@office-ai/aioncli-core';
 import process from 'node:process';
-import * as path from 'path';
 import type { Settings } from './settings';
-
-import type { Extension } from './extension';
 import { annotateActiveExtensions } from './extension';
 import { getCurrentGeminiAgent } from '../index';
 
@@ -53,32 +48,9 @@ export interface CliArgs {
   includeDirectories: string[] | undefined;
 }
 
-// This function is now a thin wrapper around the server's implementation.
-// It's kept in the CLI for now as App.tsx directly calls it for memory refresh.
-// TODO: Consider if App.tsx should get memory via a server call or if Config should refresh itself.
-export function loadHierarchicalGeminiMemory(currentWorkingDirectory: string, includeDirectoriesToReadGemini: readonly string[] = [], debugMode: boolean, fileService: FileDiscoveryService, settings: Settings, extensionContextFilePaths: string[] = [], memoryImportFormat: 'flat' | 'tree' = 'tree', fileFilteringOptions?: FileFilteringOptions): Promise<{ memoryContent: string; fileCount: number }> {
-  // FIX: Use real, canonical paths for a reliable comparison to handle symlinks.
-  const realCwd = fs.realpathSync(path.resolve(currentWorkingDirectory));
-  const realHome = fs.realpathSync(path.resolve(homedir()));
-  const isHomeDirectory = realCwd === realHome;
-
-  // If it is the home directory, pass an empty string to the core memory
-  // function to signal that it should skip the workspace search.
-  const effectiveCwd = isHomeDirectory ? '' : currentWorkingDirectory;
-
-  if (debugMode) {
-    logger.debug(`CLI: Delegating hierarchical memory load to server for CWD: ${currentWorkingDirectory} (memoryImportFormat: ${memoryImportFormat})`);
-  }
-
-  // Directly call the server function with the corrected path.
-  // Fixed parameter order: added folderTrust parameter before memoryImportFormat
-  const folderTrust = true; // Default to true for workspace trust
-  return loadServerHierarchicalMemory(effectiveCwd, includeDirectoriesToReadGemini, debugMode, fileService, extensionContextFilePaths, folderTrust, memoryImportFormat, fileFilteringOptions, settings.memoryDiscoveryMaxDirs);
-}
-
 import type { ConversationToolConfig } from './tools/conversation-tool-config';
 
-export async function loadCliConfig({ workspace, settings, extensions, sessionId, proxy, model, conversationToolConfig, yoloMode, mcpServers }: { workspace: string; settings: Settings; extensions: Extension[]; sessionId: string; proxy?: string; model?: string; conversationToolConfig: ConversationToolConfig; yoloMode?: boolean; mcpServers?: Record<string, unknown> }): Promise<Config> {
+export async function loadCliConfig({ workspace, settings, extensions, sessionId, proxy, model, conversationToolConfig, yoloMode, mcpServers }: { workspace: string; settings: Settings; extensions: GeminiCLIExtension[]; sessionId: string; proxy?: string; model?: string; conversationToolConfig: ConversationToolConfig; yoloMode?: boolean; mcpServers?: Record<string, unknown> }): Promise<Config> {
   const argv: Partial<CliArgs> = {
     yolo: yoloMode,
   };
@@ -90,8 +62,7 @@ export async function loadCliConfig({ workspace, settings, extensions, sessionId
   const _ideModeFeature = (argv.ideModeFeature ?? settings.ideModeFeature ?? false) && !process.env.SANDBOX;
 
   const allExtensions = annotateActiveExtensions(extensions, argv.extensions || []);
-
-  const activeExtensions = extensions.filter((_, i) => allExtensions[i].isActive);
+  const activeExtensions = allExtensions.filter((ext) => ext.isActive);
   // Handle OpenAI API key from command line
   if (argv.openaiApiKey) {
     process.env.OPENAI_API_KEY = argv.openaiApiKey;
@@ -113,8 +84,6 @@ export async function loadCliConfig({ workspace, settings, extensions, sessionId
     setServerGeminiMdFilename(getCurrentGeminiMdFilename());
   }
 
-  const extensionContextFilePaths = activeExtensions.flatMap((e) => e.contextFiles);
-
   const fileService = new FileDiscoveryService(workspace);
 
   const fileFiltering = {
@@ -122,8 +91,11 @@ export async function loadCliConfig({ workspace, settings, extensions, sessionId
     ...settings.fileFiltering,
   };
 
-  // Call the (now wrapper) loadHierarchicalGeminiMemory which calls the server's version
-  const { memoryContent, fileCount } = await loadHierarchicalGeminiMemory(workspace, [], debugMode, fileService, settings, extensionContextFilePaths, memoryImportFormat, fileFiltering);
+  // 直接使用 aioncli-core 的 loadServerHierarchicalMemory，传入 ExtensionLoader
+  // Directly use aioncli-core's loadServerHierarchicalMemory with ExtensionLoader
+  const extensionLoader = new SimpleExtensionLoader(allExtensions);
+  const folderTrust = true; // 默认信任工作区 / Default to trusting the workspace
+  const { memoryContent, fileCount } = await loadServerHierarchicalMemory(workspace, [], debugMode, fileService, extensionLoader, folderTrust, memoryImportFormat, fileFiltering, settings.memoryDiscoveryMaxDirs);
 
   let mcpServersConfig = mergeMcpServers(settings, activeExtensions, mcpServers);
 
@@ -156,9 +128,10 @@ export async function loadCliConfig({ workspace, settings, extensions, sessionId
         Object.entries(mcpServersConfig).filter(([key, server]) => {
           const isAllowed = allowedNames.has(key);
           if (!isAllowed) {
+            // aioncli-core v0.18.4: 使用 server.extension?.name 替代 server.extensionName / use server.extension?.name instead of server.extensionName
             blockedMcpServers.push({
               name: key,
-              extensionName: server.extensionName || '',
+              extensionName: server.extension?.name || '',
             });
           }
           return isAllowed;
@@ -168,12 +141,16 @@ export async function loadCliConfig({ workspace, settings, extensions, sessionId
       blockedMcpServers.push(
         ...Object.entries(mcpServersConfig).map(([key, server]) => ({
           name: key,
-          extensionName: server.extensionName || '',
+          // aioncli-core v0.18.4: 使用 server.extension?.name 替代 server.extensionName / use server.extension?.name instead of server.extensionName
+          extensionName: server.extension?.name || '',
         }))
       );
       mcpServersConfig = {};
     }
   }
+
+  // extensionLoader 已在上方创建，复用于 Config 初始化
+  // extensionLoader was created above, reuse for Config initialization
 
   const config = new Config({
     sessionId,
@@ -183,7 +160,7 @@ export async function loadCliConfig({ workspace, settings, extensions, sessionId
     includeDirectories: argv.includeDirectories,
     debugMode,
     question: argv.promptInteractive || argv.prompt || '',
-    fullContext: argv.allFiles || argv.all_files || false,
+    // fullContext 参数在 aioncli-core v0.18.4 中已移除 / parameter was removed in aioncli-core v0.18.4
     coreTools: settings.coreTools || undefined,
     excludeTools,
     toolDiscoveryCommand: settings.toolDiscoveryCommand,
@@ -215,36 +192,54 @@ export async function loadCliConfig({ workspace, settings, extensions, sessionId
     fileDiscoveryService: fileService,
     bugCommand: settings.bugCommand,
     model: model || DEFAULT_GEMINI_MODEL,
-    // model: "kimi-k2-0711-preview", // "Qwen/Qwen2.5-Coder-32B-Instruct", // "deepseek-chat",
-    extensionContextFilePaths,
+    // 使用 extensionLoader 替代已废弃的 extensionContextFilePaths 和 extensions 参数
+    // Use extensionLoader instead of deprecated extensionContextFilePaths and extensions parameters
+    extensionLoader,
     maxSessionTurns: settings.maxSessionTurns ?? -1,
     listExtensions: argv.listExtensions || false,
-    extensions: allExtensions,
-    blockedMcpServers,
     noBrowser: !!process.env.NO_BROWSER,
     summarizeToolOutput: settings.summarizeToolOutput,
     ideMode,
   });
 
-  const fallbackModelHandler = async (_currentModel: string, _fallbackModel: string, _error?: unknown): Promise<'retry' | 'stop' | 'auth' | null> => {
+  // FallbackModelHandler 返回类型在 aioncli-core v0.18.4 中使用 FallbackIntent
+  // FallbackModelHandler return type uses FallbackIntent in aioncli-core v0.18.4
+  // 可用值 / Available values: 'retry_always' | 'retry_once' | 'stop' | 'retry_later' | 'upgrade' | null
+  //
+  // 工作流程 / Workflow:
+  // 1. handler 调用 apiKeyManager.rotateKey() 更新 process.env 中的 API Key
+  //    handler calls apiKeyManager.rotateKey() to update API Key in process.env
+  // 2. aioncli-core 的 tryRotateApiKey 检测到 env 变化后会调用 config.refreshAuth()
+  //    aioncli-core's tryRotateApiKey detects env change and calls config.refreshAuth()
+  // 3. 返回 'retry_once' 表示本次重试，'stop' 表示停止
+  //    Return 'retry_once' for one-time retry, 'stop' to stop retrying
+  const fallbackModelHandler = async (_currentModel: string, _fallbackModel: string, _error?: unknown): Promise<FallbackIntent | null> => {
     try {
       const agent = getCurrentGeminiAgent();
       const apiKeyManager = agent?.getApiKeyManager();
 
       if (!apiKeyManager?.hasMultipleKeys()) {
-        return 'retry';
+        // 单 Key 模式，尝试一次重试（可能是临时错误）
+        // Single key mode, try one retry (might be transient error)
+        return 'retry_once';
       }
 
+      // 轮换到下一个可用的 API Key，这会更新 process.env
+      // Rotate to next available API Key, this updates process.env
       const hasMoreKeys = apiKeyManager.rotateKey();
 
       if (hasMoreKeys) {
-        return 'retry';
+        // 还有可用的 Key，重试一次
+        // More keys available, retry once
+        return 'retry_once';
       }
 
+      // 所有 Key 都已用尽或被 blacklist，停止重试
+      // All keys exhausted or blacklisted, stop retrying
       return 'stop';
     } catch (e) {
       console.error(`[FallbackHandler] Handler error:`, e);
-      return 'retry';
+      return 'retry_once';
     }
   };
 
@@ -253,19 +248,20 @@ export async function loadCliConfig({ workspace, settings, extensions, sessionId
   return config;
 }
 
-function mergeMcpServers(settings: Settings, extensions: Extension[], uiMcpServers?: Record<string, unknown>) {
+function mergeMcpServers(settings: Settings, extensions: GeminiCLIExtension[], uiMcpServers?: Record<string, unknown>) {
   const mcpServers = { ...(settings.mcpServers || {}) };
 
   // 添加来自 extensions 的 MCP 服务器
+  // Add MCP servers from extensions
   for (const extension of extensions) {
-    Object.entries(extension.config.mcpServers || {}).forEach(([key, server]) => {
+    Object.entries(extension.mcpServers || {}).forEach(([key, server]) => {
       if (mcpServers[key]) {
         logger.warn(`Skipping extension MCP config for server with key "${key}" as it already exists.`);
         return;
       }
       mcpServers[key] = {
         ...server,
-        extensionName: extension.config.name,
+        extension,
       };
     });
   }
@@ -284,10 +280,10 @@ function mergeMcpServers(settings: Settings, extensions: Extension[], uiMcpServe
   return mcpServers;
 }
 
-function mergeExcludeTools(settings: Settings, extensions: Extension[]): string[] {
+function mergeExcludeTools(settings: Settings, extensions: GeminiCLIExtension[]): string[] {
   const allExcludeTools = new Set(settings.excludeTools || []);
   for (const extension of extensions) {
-    for (const tool of extension.config.excludeTools || []) {
+    for (const tool of extension.excludeTools || []) {
       allExcludeTools.add(tool);
     }
   }

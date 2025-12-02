@@ -91,7 +91,7 @@ export class ConversationToolConfig {
       cwd: process.cwd(),
       debugMode: false,
       question: '',
-      fullContext: false,
+      // fullContext 参数在 aioncli-core v0.18.4 中已移除
       userMemory: '',
       geminiMdFileCount: 0,
       model: geminiModel.useModel,

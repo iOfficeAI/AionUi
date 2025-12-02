@@ -12,13 +12,11 @@ import * as os from 'os';
 export const EXTENSIONS_DIRECTORY_NAME = path.join('.gemini', 'extensions');
 export const EXTENSIONS_CONFIG_FILENAME = 'gemini-extension.json';
 
-export interface Extension {
-  path: string;
-  config: ExtensionConfig;
-  contextFiles: string[];
-}
-
-export interface ExtensionConfig {
+/**
+ * 扩展配置文件结构（gemini-extension.json）
+ * Extension config file structure (gemini-extension.json)
+ */
+interface ExtensionConfigFile {
   name: string;
   version: string;
   mcpServers?: Record<string, MCPServerConfig>;
@@ -26,26 +24,30 @@ export interface ExtensionConfig {
   excludeTools?: string[];
 }
 
-export function loadExtensions(workspaceDir: string): Extension[] {
+/**
+ * 加载工作区和用户目录下的所有扩展
+ * Load all extensions from workspace and user home directory
+ */
+export function loadExtensions(workspaceDir: string): GeminiCLIExtension[] {
   const allExtensions = [...loadExtensionsFromDir(workspaceDir), ...loadExtensionsFromDir(os.homedir())];
 
-  const uniqueExtensions = new Map<string, Extension>();
+  const uniqueExtensions = new Map<string, GeminiCLIExtension>();
   for (const extension of allExtensions) {
-    if (!uniqueExtensions.has(extension.config.name)) {
-      uniqueExtensions.set(extension.config.name, extension);
+    if (!uniqueExtensions.has(extension.name)) {
+      uniqueExtensions.set(extension.name, extension);
     }
   }
 
   return Array.from(uniqueExtensions.values());
 }
 
-function loadExtensionsFromDir(dir: string): Extension[] {
+function loadExtensionsFromDir(dir: string): GeminiCLIExtension[] {
   const extensionsDir = path.join(dir, EXTENSIONS_DIRECTORY_NAME);
   if (!fs.existsSync(extensionsDir)) {
     return [];
   }
 
-  const extensions: Extension[] = [];
+  const extensions: GeminiCLIExtension[] = [];
   for (const subdir of fs.readdirSync(extensionsDir)) {
     const extensionDir = path.join(extensionsDir, subdir);
 
@@ -57,7 +59,7 @@ function loadExtensionsFromDir(dir: string): Extension[] {
   return extensions;
 }
 
-function loadExtension(extensionDir: string): Extension | null {
+function loadExtension(extensionDir: string): GeminiCLIExtension | null {
   if (!fs.statSync(extensionDir).isDirectory()) {
     console.error(`Warning: unexpected file ${extensionDir} in extensions directory.`);
     return null;
@@ -71,7 +73,7 @@ function loadExtension(extensionDir: string): Extension | null {
 
   try {
     const configContent = fs.readFileSync(configFilePath, 'utf-8');
-    const config = JSON.parse(configContent) as ExtensionConfig;
+    const config = JSON.parse(configContent) as ExtensionConfigFile;
     if (!config.name || !config.version) {
       console.error(`Invalid extension config in ${configFilePath}: missing name or version.`);
       return null;
@@ -82,9 +84,14 @@ function loadExtension(extensionDir: string): Extension | null {
       .filter((contextFilePath) => fs.existsSync(contextFilePath));
 
     return {
+      name: config.name,
+      version: config.version,
+      isActive: true, // 默认激活，后续由 annotateActiveExtensions 调整
       path: extensionDir,
-      config,
       contextFiles,
+      id: `${config.name}-${config.version}`,
+      mcpServers: config.mcpServers,
+      excludeTools: config.excludeTools,
     };
   } catch (e) {
     console.error(`Warning: error parsing extension config in ${configFilePath}: ${e}`);
@@ -92,7 +99,7 @@ function loadExtension(extensionDir: string): Extension | null {
   }
 }
 
-function getContextFileNames(config: ExtensionConfig): string[] {
+function getContextFileNames(config: ExtensionConfigFile): string[] {
   if (!config.contextFileName) {
     return ['QWEN.md'];
   } else if (!Array.isArray(config.contextFileName)) {
@@ -101,46 +108,35 @@ function getContextFileNames(config: ExtensionConfig): string[] {
   return config.contextFileName;
 }
 
-export function annotateActiveExtensions(extensions: Extension[], enabledExtensionNames: string[]): GeminiCLIExtension[] {
-  const annotatedExtensions: GeminiCLIExtension[] = [];
-
+/**
+ * 根据启用的扩展名列表标记扩展的激活状态
+ * Mark extension activation status based on enabled extension names list
+ */
+export function annotateActiveExtensions(extensions: GeminiCLIExtension[], enabledExtensionNames: string[]): GeminiCLIExtension[] {
+  // 如果没有指定启用列表，所有扩展都激活
   if (enabledExtensionNames.length === 0) {
-    return extensions.map((extension) => ({
-      name: extension.config.name,
-      version: extension.config.version,
-      isActive: true,
-      path: extension.path,
-    }));
+    return extensions.map((ext) => ({ ...ext, isActive: true }));
   }
 
   const lowerCaseEnabledExtensions = new Set(enabledExtensionNames.map((e) => e.trim().toLowerCase()));
 
+  // 如果指定 'none'，禁用所有扩展
   if (lowerCaseEnabledExtensions.size === 1 && lowerCaseEnabledExtensions.has('none')) {
-    return extensions.map((extension) => ({
-      name: extension.config.name,
-      version: extension.config.version,
-      isActive: false,
-      path: extension.path,
-    }));
+    return extensions.map((ext) => ({ ...ext, isActive: false }));
   }
 
   const notFoundNames = new Set(lowerCaseEnabledExtensions);
 
-  for (const extension of extensions) {
-    const lowerCaseName = extension.config.name.toLowerCase();
+  const annotatedExtensions = extensions.map((extension) => {
+    const lowerCaseName = extension.name.toLowerCase();
     const isActive = lowerCaseEnabledExtensions.has(lowerCaseName);
 
     if (isActive) {
       notFoundNames.delete(lowerCaseName);
     }
 
-    annotatedExtensions.push({
-      name: extension.config.name,
-      version: extension.config.version,
-      isActive,
-      path: extension.path,
-    });
-  }
+    return { ...extension, isActive };
+  });
 
   for (const requestedName of notFoundNames) {
     console.error(`Extension not found: ${requestedName}`);
