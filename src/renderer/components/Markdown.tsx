@@ -14,13 +14,11 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 
 import { ipcBridge } from '@/common';
-import { Down, Up, PreviewOpen } from '@icon-park/react';
+import { Down, Up } from '@icon-park/react';
 import { theme } from '@office-ai/platform';
 import React, { useMemo, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { usePreviewContext } from '@/renderer/pages/conversation/preview';
-import { iconColors } from '@/renderer/theme/colors';
 import LocalImageView from './LocalImageView';
 import { addImportantToAll } from '../utils/customCssProcessor';
 
@@ -49,8 +47,6 @@ function CodeBlock(props: any) {
   const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>(() => {
     return (document.documentElement.getAttribute('data-theme') as 'light' | 'dark') || 'light';
   });
-  const { openPreview } = usePreviewContext(); // 获取预览上下文 / Get preview context
-  const { t } = useTranslation();
 
   React.useEffect(() => {
     const updateTheme = () => {
@@ -123,77 +119,6 @@ function CodeBlock(props: any) {
             {'<' + language.toLocaleLowerCase() + '>'}
           </span>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {/* 预览按钮 / Preview button */}
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                padding: '4px 8px',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                transition: 'background-color 0.2s',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'var(--bg-3)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-              }}
-              onClick={() => {
-                // 获取纯净内容 / Get clean content
-                let content = String(children).replace(/\n$/, '');
-
-                // 检测是否为 diff 格式并提取实际文件内容 / Detect if it's diff format and extract actual file content
-                const isDiffFormat = /^(Index:|diff --git|---|\+\+\+|@@)/m.test(content);
-
-                if (isDiffFormat && language !== 'diff' && language !== 'patch') {
-                  // 从 diff 中提取新文件的实际内容 / Extract actual content from diff
-                  const lines = content.split('\n');
-                  const contentLines: string[] = [];
-                  let inDiffBlock = false;
-
-                  for (const line of lines) {
-                    // 跳过 diff 元数据行 / Skip diff metadata lines
-                    if (line.startsWith('Index:') || line.match(/^={3,}/) || line.startsWith('diff --git') || line.startsWith('---') || line.startsWith('+++') || line.startsWith('@@')) {
-                      inDiffBlock = true;
-                      continue;
-                    }
-
-                    if (inDiffBlock) {
-                      // 提取新增行（去掉开头的 + 号）/ Extract added lines (remove leading +)
-                      if (line.startsWith('+')) {
-                        contentLines.push(line.substring(1));
-                      }
-                      // 跳过删除行和上下文标记 / Skip deleted lines and context markers
-                      else if (line.startsWith('-') || line.startsWith('\\')) {
-                        continue;
-                      }
-                      // 未标记的行也包含进来（可能是上下文）/ Include unmarked lines (might be context)
-                      else if (line.trim() !== '') {
-                        contentLines.push(line);
-                      }
-                    } else {
-                      // diff 块之前的内容直接保留 / Keep content before diff block
-                      contentLines.push(line);
-                    }
-                  }
-
-                  content = contentLines.join('\n').trim();
-                }
-
-                // 如果是 markdown 或 md 语言，使用 markdown 预览；否则使用 code 预览
-                const contentType = language === 'markdown' || language === 'md' ? 'markdown' : 'code';
-                // Markdown 类型支持编辑，其他类型只读 / Markdown type supports editing, other types are read-only
-                const isEditable = contentType === 'markdown';
-                openPreview(content, contentType, { language, editable: isEditable });
-              }}
-              title={t('preview.openInPanelTooltip')}
-            >
-              <PreviewOpen theme='outline' size='16' fill={iconColors.secondary} />
-              <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{t('preview.preview')}</span>
-            </div>
-
             {/* 折叠/展开按钮 / Fold/unfold button */}
             {logicRender(!fold, <Up theme='outline' size='20' style={{ cursor: 'pointer' }} fill='var(--text-secondary)' onClick={() => setFlow(true)} />, <Down theme='outline' size='20' style={{ cursor: 'pointer' }} fill='var(--text-secondary)' onClick={() => setFlow(false)} />)}
           </div>
