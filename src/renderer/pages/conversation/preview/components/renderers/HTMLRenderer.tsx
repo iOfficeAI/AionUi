@@ -29,76 +29,6 @@ interface ElectronWebView extends HTMLElement {
  * 在 webview 中渲染 HTML 内容（Electron 专用标签）
  * Renders HTML content in a webview (Electron-specific tag)
  */
-const previewLog = (message: string, payload?: Record<string, unknown>) => {
-  try {
-    // eslint-disable-next-line no-console
-    console.debug(`[HTMLPreview] ${message}`, payload || '');
-  } catch (_err) {
-    // noop in production builds without console
-  }
-};
-
-const toFileBaseUrl = (absolutePath?: string): string | null => {
-  if (!absolutePath) return null;
-
-  // 统一路径分隔符，兼容 Windows 和 *nix / Normalize path separators across OSes
-  const normalized = absolutePath.replace(/\\/g, '/');
-  const lastSlashIndex = normalized.lastIndexOf('/');
-  if (lastSlashIndex < 0) return null;
-
-  const dirWithSlash = normalized.substring(0, lastSlashIndex + 1);
-  if (!dirWithSlash) return null;
-
-  const prefix = dirWithSlash.startsWith('/') ? 'file://' : 'file:///';
-  const rawUrl = `${prefix}${dirWithSlash}`;
-  const encodedUrl = encodeURI(rawUrl);
-  previewLog('Resolved base URL', { absolutePath, normalized, baseUrl: encodedUrl });
-  return encodedUrl;
-};
-
-const rewriteRelativeResourceUrls = (html: string, baseUrl?: string): string => {
-  if (!baseUrl || typeof DOMParser === 'undefined') return html;
-
-  try {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
-
-    const targets: Array<{ selector: string; attr: string }> = [
-      { selector: 'link[href]', attr: 'href' },
-      { selector: 'script[src]', attr: 'src' },
-      { selector: 'img[src]', attr: 'src' },
-      { selector: 'video[src]', attr: 'src' },
-      { selector: 'audio[src]', attr: 'src' },
-      { selector: 'source[src]', attr: 'src' },
-      { selector: 'iframe[src]', attr: 'src' },
-    ];
-
-    const isAbsolute = (value: string) => /^(?:[a-zA-Z][a-zA-Z0-9+.-]*:|\/\/|#)/.test(value);
-
-    targets.forEach(({ selector, attr }) => {
-      doc.querySelectorAll(selector).forEach((el) => {
-        const attrValue = el.getAttribute(attr);
-        if (!attrValue) return;
-        if (isAbsolute(attrValue) || attrValue.startsWith('data:') || attrValue.startsWith('javascript:')) return;
-        try {
-          const resolved = new URL(attrValue, baseUrl).href;
-          el.setAttribute(attr, resolved);
-        } catch (error) {
-          previewLog('Failed to resolve relative resource URL', { attr, attrValue, error: (error as Error)?.message });
-        }
-      });
-    });
-
-    const docType = doc.doctype ? `<!DOCTYPE ${doc.doctype.name}>` : '';
-    const outerHTML = doc.documentElement ? doc.documentElement.outerHTML : html;
-    previewLog('Rewrote relative resource URLs for HTML preview');
-    return `${docType}${outerHTML}`;
-  } catch (error) {
-    previewLog('Failed to rewrite relative resource URLs', { error: (error as Error)?.message });
-    return html;
-  }
-};
-
 const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containerRef, inspectMode = false, copySuccessMessage }) => {
   const divRef = useRef<HTMLDivElement>(null);
   const webviewRef = useRef<ElectronWebView | null>(null);
@@ -123,18 +53,16 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containe
     return () => observer.disconnect();
   }, []);
 
-  const baseUrl = useMemo(() => {
-    return toFileBaseUrl(filePath);
-  }, [filePath]);
-
   // 处理 HTML 内容，注入 base 标签支持相对路径
   // Process HTML content, inject base tag for relative paths
   const processedHtml = useMemo(() => {
     let html = content;
 
-    previewLog('Processing HTML content', { filePath, baseUrl, hasHead: /<head>/i.test(html), hasHtmlTag: /<html>/i.test(html) });
+    // 注入 base 标签支持相对路径 / Inject base tag for relative paths
+    if (filePath) {
+      const fileDir = filePath.substring(0, filePath.lastIndexOf('/') + 1);
+      const baseUrl = `file://${fileDir}`;
 
-    if (baseUrl) {
       // 检查是否已有 base 标签 / Check if base tag exists
       if (!html.match(/<base\s+href=/i)) {
         if (html.match(/<head>/i)) {
@@ -144,16 +72,11 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containe
         } else {
           html = `<head><base href="${baseUrl}"></head>${html}`;
         }
-        previewLog('Injected <base> tag for preview', { baseUrl });
-      } else {
-        previewLog('HTML already contains <base> tag - skip injection', { baseUrl });
       }
-
-      html = rewriteRelativeResourceUrls(html, baseUrl);
     }
 
     return html;
-  }, [content, filePath, baseUrl]);
+  }, [content, filePath]);
 
   // 使用 data URL 来加载内容（避免 CSP 问题）
   // Use data URL to load content (avoids CSP issues)
@@ -176,11 +99,10 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containe
 
     const handleDidFinishLoad = () => {
       webviewLoadedRef.current = true; // 标记为已加载 / Mark as loaded
-      previewLog('Webview finished loading', { filePath, src: webview.src });
     };
 
-    const handleDidFailLoad = (event: Event) => {
-      previewLog('Webview failed to load', { filePath, error: (event as any)?.errorDescription });
+    const handleDidFailLoad = (_event: Event) => {
+      // Handle webview load failure
     };
 
     webview.addEventListener('did-finish-load', handleDidFinishLoad);
@@ -226,7 +148,6 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containe
 
     // 同时监听未来的页面加载事件 / Also listen for future page loads
     const handleLoad = () => {
-      previewLog('Re-inject inspect script after load', { filePath });
       executeScript();
     };
 
@@ -240,11 +161,7 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containe
   return (
     <div ref={containerRef || divRef} className={`h-full w-full overflow-auto ${currentTheme === 'dark' ? 'bg-bg-1' : 'bg-white'}`}>
       {/* key 确保内容改变时 webview 重新挂载 / key ensures webview remounts when content changes */}
-      {/* allowfileaccessfromfiles: enable loading sibling CSS/JS assets referenced via file:// */}
-      {
-        // @ts-expect-error - allowfileaccessfromfiles is an Electron webview attribute not in React types
-        <webview key={dataUrl} ref={webviewRef} src={dataUrl} className='w-full h-full border-0' style={{ display: 'inline-flex' }} webpreferences='allowRunningInsecureContent, javascript=yes' allowfileaccessfromfiles='true' />
-      }
+      <webview key={dataUrl} ref={webviewRef} src={dataUrl} className='w-full h-full border-0' style={{ display: 'inline-flex' }} webpreferences='allowRunningInsecureContent, javascript=yes' />
     </div>
   );
 };
