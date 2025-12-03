@@ -36,7 +36,7 @@ import { useTranslation } from 'react-i18next';
  */
 const PreviewPanel: React.FC = () => {
   const { t } = useTranslation();
-  const { isOpen, tabs, activeTabId, activeTab, closeTab, switchTab, closePreview, updateContent, saveContent } = usePreviewContext();
+  const { isOpen, tabs, activeTabId, activeTab, closeTab, switchTab, closePreview, updateContent, saveContent, addDomSnippet } = usePreviewContext();
   const layout = useLayoutContext();
 
   // 视图状态 / View states
@@ -80,6 +80,14 @@ const PreviewPanel: React.FC = () => {
   const setToolbarExtrasCallback = useCallback((extras: PreviewToolbarExtras | null) => {
     setToolbarExtras(extras);
   }, []);
+
+  // 处理 HTML 审核模式元素选中 / Handle HTML inspect mode element selection
+  const handleElementSelected = useCallback(
+    (element: { html: string; tag: string }) => {
+      addDomSnippet(element.tag, element.html);
+    },
+    [addDomSnippet]
+  );
 
   const toolbarExtrasContextValue = useMemo(
     () => ({
@@ -400,7 +408,7 @@ const PreviewPanel: React.FC = () => {
         if (layout?.isMobile) {
           return (
             <div className='flex-1 overflow-hidden'>
-              <HTMLRenderer content={content} filePath={metadata?.filePath} copySuccessMessage={t('preview.html.copySuccess')} />
+              <HTMLRenderer content={content} filePath={metadata?.filePath} copySuccessMessage={t('preview.html.copySuccess')} inspectMode={inspectMode} onElementSelected={handleElementSelected} />
             </div>
           );
         }
@@ -429,7 +437,7 @@ const PreviewPanel: React.FC = () => {
               <div className='flex flex-col flex-1 overflow-hidden'>
                 {/* prettier-ignore */}
                 {/* eslint-disable-next-line max-len */}
-                <HTMLRenderer content={content} filePath={metadata?.filePath} containerRef={previewContainerRef} onScroll={handlePreviewScroll} inspectMode={inspectMode} copySuccessMessage={t('preview.html.copySuccess')} />
+                <HTMLRenderer content={content} filePath={metadata?.filePath} containerRef={previewContainerRef} onScroll={handlePreviewScroll} inspectMode={inspectMode} copySuccessMessage={t('preview.html.copySuccess')} onElementSelected={handleElementSelected} />
               </div>
             </div>
           </div>
@@ -447,7 +455,7 @@ const PreviewPanel: React.FC = () => {
         // 预览模式 / Preview mode
         return (
           <div className='flex-1 overflow-hidden'>
-            <HTMLRenderer content={content} filePath={metadata?.filePath} inspectMode={inspectMode} copySuccessMessage={t('preview.html.copySuccess')} />
+            <HTMLRenderer content={content} filePath={metadata?.filePath} inspectMode={inspectMode} copySuccessMessage={t('preview.html.copySuccess')} onElementSelected={handleElementSelected} />
           </div>
         );
       }

@@ -7,6 +7,14 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { generateInspectScript } from './htmlInspectScript';
 
+/** 选中元素的数据结构 / Selected element data structure */
+export interface InspectedElement {
+  /** 完整 HTML / Full HTML */
+  html: string;
+  /** 简化标签名 / Simplified tag name */
+  tag: string;
+}
+
 interface HTMLRendererProps {
   content: string;
   filePath?: string;
@@ -14,6 +22,8 @@ interface HTMLRendererProps {
   onScroll?: (scrollTop: number, scrollHeight: number, clientHeight: number) => void;
   inspectMode?: boolean; // 是否开启检查模式 / Whether inspect mode is enabled
   copySuccessMessage?: string;
+  /** 元素选中回调 / Element selected callback */
+  onElementSelected?: (element: InspectedElement) => void;
 }
 
 // Electron webview 元素的类型定义 / Type definition for Electron webview element
@@ -29,7 +39,7 @@ interface ElectronWebView extends HTMLElement {
  * 在 webview 中渲染 HTML 内容（Electron 专用标签）
  * Renders HTML content in a webview (Electron-specific tag)
  */
-const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containerRef, inspectMode = false, copySuccessMessage }) => {
+const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containerRef, inspectMode = false, copySuccessMessage, onElementSelected }) => {
   const divRef = useRef<HTMLDivElement>(null);
   const webviewRef = useRef<ElectronWebView | null>(null);
   const webviewLoadedRef = useRef(false); // 跟踪 webview 是否已加载 / Track if webview is loaded
@@ -168,6 +178,33 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containe
       webview.removeEventListener('did-finish-load', handleLoad);
     };
   }, [executeScript]);
+
+  // 监听 webview 控制台消息，捕获检查元素事件 / Listen for webview console messages to capture inspect element events
+  useEffect(() => {
+    const webview = webviewRef.current;
+    if (!webview || !onElementSelected) return;
+
+    const handleConsoleMessage = (event: Event) => {
+      const consoleEvent = event as Event & { message?: string };
+      const message = consoleEvent.message;
+
+      if (typeof message === 'string' && message.startsWith('__INSPECT_ELEMENT__')) {
+        try {
+          const jsonStr = message.slice('__INSPECT_ELEMENT__'.length);
+          const data = JSON.parse(jsonStr) as InspectedElement;
+          onElementSelected(data);
+        } catch (e) {
+          console.warn('[HTMLRenderer] Failed to parse inspect element message:', e);
+        }
+      }
+    };
+
+    webview.addEventListener('console-message', handleConsoleMessage);
+
+    return () => {
+      webview.removeEventListener('console-message', handleConsoleMessage);
+    };
+  }, [onElementSelected]);
 
   return (
     <div ref={containerRef || divRef} className={`h-full w-full overflow-auto ${currentTheme === 'dark' ? 'bg-bg-1' : 'bg-white'}`}>
