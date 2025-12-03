@@ -5,6 +5,7 @@
  */
 
 import type { TMessage, IMessageText } from '@/common/chatLib';
+import type { TChatConversation } from '@/common/storage';
 import { composeMessage } from '@/common/chatLib';
 import { getDatabase } from './database/export';
 import { ProcessChat } from './initStorage';
@@ -28,6 +29,8 @@ export const addMessage = (conversation_id: string, message: TMessage): void => 
       if (!result.success) {
         console.error('[Message] Insert failed:', result.error);
         console.error('[Message] Message data:', JSON.stringify(message, null, 2));
+      } else {
+        db.updateConversation(conversation_id, {} as Partial<TChatConversation>);
       }
       // Execute pending callbacks after operation completes
       executePendingCallbacks();

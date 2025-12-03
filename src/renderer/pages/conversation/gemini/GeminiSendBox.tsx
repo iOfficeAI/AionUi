@@ -243,6 +243,7 @@ const GeminiSendBox: React.FC<{
       conversation_id,
       files: uploadFile,
     });
+    emitter.emit('chat.history.refresh');
     emitter.emit('gemini.selected.file.clear');
     if (uploadFile.length) {
       emitter.emit('gemini.workspace.refresh');

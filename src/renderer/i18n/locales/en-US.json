@@ -384,6 +384,8 @@
     "saveModelConfigFailed": "Failed to save model configuration"
   },
   "messages": {
+    "fileChanges": "File Changes",
+    "fileChangesCount": "{{count}} File Changes",
     "conversationInProgress": "A conversation is currently in progress...",
     "confirm": "Confirm",
     "canceledExecution": "Execution canceled",

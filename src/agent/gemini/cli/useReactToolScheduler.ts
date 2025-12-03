@@ -34,7 +34,9 @@ export type TrackedCancelledToolCall = CancelledToolCall & {
 
 export type TrackedToolCall = TrackedScheduledToolCall | TrackedValidatingToolCall | TrackedWaitingToolCall | TrackedExecutingToolCall | TrackedCompletedToolCall | TrackedCancelledToolCall;
 
-export function useReactToolScheduler(onComplete: (tools: CompletedToolCall[]) => Promise<void>, config: Config, setPendingHistoryItem: React.Dispatch<React.SetStateAction<HistoryItemWithoutId | null>>, getPreferredEditor: () => EditorType | undefined, onEditorClose: () => void): [TrackedToolCall[], ScheduleFn, MarkToolsAsSubmittedFn] {
+// aioncli-core v0.18.4: onEditorClose 回调已从 CoreToolSchedulerOptions 中移除
+// aioncli-core v0.18.4: onEditorClose callback was removed from CoreToolSchedulerOptions
+export function useReactToolScheduler(onComplete: (tools: CompletedToolCall[]) => Promise<void>, config: Config, setPendingHistoryItem: React.Dispatch<React.SetStateAction<HistoryItemWithoutId | null>>, getPreferredEditor: () => EditorType | undefined): [TrackedToolCall[], ScheduleFn, MarkToolsAsSubmittedFn] {
   const [toolCallsForDisplay, setToolCallsForDisplay] = useState<TrackedToolCall[]>([]);
 
   const outputUpdateHandler: OutputUpdateHandler = useCallback(
@@ -93,9 +95,10 @@ export function useReactToolScheduler(onComplete: (tools: CompletedToolCall[]) =
         onAllToolCallsComplete: allToolCallsCompleteHandler,
         onToolCallsUpdate: toolCallsUpdateHandler,
         getPreferredEditor,
-        onEditorClose,
+        // onEditorClose 在 aioncli-core v0.18.4 中已移除
+        // onEditorClose was removed in aioncli-core v0.18.4
       }),
-    [config, outputUpdateHandler, allToolCallsCompleteHandler, toolCallsUpdateHandler, getPreferredEditor, onEditorClose]
+    [config, outputUpdateHandler, allToolCallsCompleteHandler, toolCallsUpdateHandler, getPreferredEditor]
   );
 
   const schedule: ScheduleFn = useCallback(

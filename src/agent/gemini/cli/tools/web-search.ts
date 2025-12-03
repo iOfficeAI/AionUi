@@ -119,7 +119,7 @@ class WebSearchInvocation extends BaseToolInvocation<WebSearchToolParams, WebSea
     try {
       updateOutput?.(`Searching the web for: "${this.params.query}"`);
 
-      const response = await this.geminiClient.generateContent([{ role: 'user', parts: [{ text: this.params.query }] }], { tools: [{ googleSearch: {} }] }, signal, DEFAULT_GEMINI_FLASH_MODEL);
+      const response = await this.geminiClient.generateContent({ model: DEFAULT_GEMINI_FLASH_MODEL }, [{ role: 'user', parts: [{ text: this.params.query }] }], signal);
 
       const responseText = getResponseText(response);
       const groundingMetadata = response.candidates?.[0]?.groundingMetadata;

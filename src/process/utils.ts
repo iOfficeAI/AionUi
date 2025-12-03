@@ -43,7 +43,7 @@ export async function readDirectoryRecursive(
   options?: {
     root?: string;
     abortController?: AbortController;
-    fileService?: { shouldGitIgnoreFile(path: string): boolean };
+    fileService?: { shouldIgnoreFile(path: string): boolean };
     maxDepth?: number;
     search?: {
       text: string;
@@ -87,7 +87,7 @@ export async function readDirectoryRecursive(
     checkStatus();
     if (item === 'node_modules') continue;
     const itemPath = path.join(dirPath, item);
-    if (fileService && fileService.shouldGitIgnoreFile(itemPath)) continue;
+    if (fileService && fileService.shouldIgnoreFile(itemPath)) continue;
 
     const itemStats = await fs.stat(itemPath);
     if (itemStats.isDirectory()) {

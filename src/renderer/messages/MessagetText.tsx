@@ -72,10 +72,10 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
           {/* JSON 内容使用折叠组件 Use CollapsibleContent for JSON content */}
           {json ? (
             <CollapsibleContent maxHeight={200} defaultCollapsed={true}>
-              <MarkdownView codeStyle={{ marginLeft: 16, marginTop: 4, marginBlock: 4 }}>{`\`\`\`json\n${JSON.stringify(data, null, 2)}\n\`\`\``}</MarkdownView>
+              <MarkdownView codeStyle={{ marginTop: 4, marginBlock: 4 }}>{`\`\`\`json\n${JSON.stringify(data, null, 2)}\n\`\`\``}</MarkdownView>
             </CollapsibleContent>
           ) : (
-            <MarkdownView codeStyle={{ marginLeft: 16, marginTop: 4, marginBlock: 4 }}>{data}</MarkdownView>
+            <MarkdownView codeStyle={{ marginTop: 4, marginBlock: 4 }}>{data}</MarkdownView>
           )}
         </div>
         <div
