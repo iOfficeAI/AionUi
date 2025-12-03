@@ -2,6 +2,15 @@ import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import path from 'path';
 import type { ModuleOptions } from 'webpack';
 export const rules: Required<ModuleOptions>['rules'] = [
+  // 忽略 tree-sitter 相关的 .wasm 文件导入，这些在 Electron 环境中通过 externals 处理
+  // Ignore tree-sitter .wasm file imports, these are handled via externals in Electron
+  {
+    test: /\.wasm$/,
+    type: 'asset/resource',
+    generator: {
+      filename: 'wasm/[name][ext]',
+    },
+  },
   // Add support for native node modules
   {
     // We're specifying native_modules in the test because the asset relocator loader generates a
