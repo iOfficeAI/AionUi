@@ -172,7 +172,9 @@
   "overrides": {
     "webpack-dev-server": "^5.2.2",
     "tmp": "^0.2.5",
-    "body-parser": "^2.2.1"
+    "body-parser": "^2.2.1",
+    "node-forge": "^1.3.2",
+    "mdast-util-to-hast": "^13.2.1"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [
