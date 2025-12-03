@@ -53,9 +53,26 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containe
     return () => observer.disconnect();
   }, []);
 
-  // 处理 HTML 内容，注入 base 标签支持相对路径
-  // Process HTML content, inject base tag for relative paths
-  const processedHtml = useMemo(() => {
+  // 判断是否应该直接从文件加载（支持相对资源）
+  // Determine if should load directly from file (supports relative resources)
+  const shouldLoadFromFile = useMemo(() => {
+    if (!filePath) return false;
+    // 检查 HTML 是否引用了相对资源 / Check if HTML references relative resources
+    const hasRelativeResources = /<link[^>]+href=["'](?!https?:\/\/|data:|\/\/)[^"']+["']/i.test(content) || /<script[^>]+src=["'](?!https?:\/\/|data:|\/\/)[^"']+["']/i.test(content) || /<img[^>]+src=["'](?!https?:\/\/|data:|\/\/)[^"']+["']/i.test(content);
+    return hasRelativeResources;
+  }, [content, filePath]);
+
+  // 计算 webview 的 src
+  // Calculate webview src
+  const webviewSrc = useMemo(() => {
+    // 如果有相对资源引用且有文件路径，直接用 file:// URL 加载
+    // If has relative resource references and has file path, load directly via file:// URL
+    if (shouldLoadFromFile && filePath) {
+      return `file://${filePath}`;
+    }
+
+    // 否则使用 data URL（适用于动态生成的 HTML 或没有外部资源的情况）
+    // Otherwise use data URL (for dynamically generated HTML or no external resources)
     let html = content;
 
     // 注入 base 标签支持相对路径 / Inject base tag for relative paths
@@ -75,24 +92,18 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containe
       }
     }
 
-    return html;
-  }, [content, filePath]);
-
-  // 使用 data URL 来加载内容（避免 CSP 问题）
-  // Use data URL to load content (avoids CSP issues)
-  const dataUrl = useMemo(() => {
-    const encoded = encodeURIComponent(processedHtml);
+    const encoded = encodeURIComponent(html);
     return `data:text/html;charset=utf-8,${encoded}`;
-  }, [processedHtml]);
+  }, [content, filePath, shouldLoadFromFile]);
 
-  // 当 dataUrl 改变时重置加载状态 / Reset loading state when dataUrl changes
+  // 当 webviewSrc 改变时重置加载状态 / Reset loading state when webviewSrc changes
   useEffect(() => {
     webviewLoadedRef.current = false;
-  }, [dataUrl]);
+  }, [webviewSrc]);
 
   // 监听 webview 加载完成
-  // 依赖 dataUrl 确保 webview 重新挂载时重新添加监听器
-  // Depend on dataUrl to ensure listeners are re-added when webview remounts
+  // 依赖 webviewSrc 确保 webview 重新挂载时重新添加监听器
+  // Depend on webviewSrc to ensure listeners are re-added when webview remounts
   useEffect(() => {
     const webview = webviewRef.current;
     if (!webview) return;
@@ -112,7 +123,7 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containe
       webview.removeEventListener('did-finish-load', handleDidFinishLoad);
       webview.removeEventListener('did-fail-load', handleDidFailLoad);
     };
-  }, [dataUrl]);
+  }, [webviewSrc]);
 
   // 生成检查模式注入脚本 / Generate inspect mode injection script
   // 使用 useMemo 缓存，只在 inspectMode 改变时重新生成 / Use useMemo to cache, only regenerate when inspectMode changes
@@ -161,7 +172,7 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containe
   return (
     <div ref={containerRef || divRef} className={`h-full w-full overflow-auto ${currentTheme === 'dark' ? 'bg-bg-1' : 'bg-white'}`}>
       {/* key 确保内容改变时 webview 重新挂载 / key ensures webview remounts when content changes */}
-      <webview key={dataUrl} ref={webviewRef} src={dataUrl} className='w-full h-full border-0' style={{ display: 'inline-flex' }} webpreferences='allowRunningInsecureContent, javascript=yes' />
+      <webview key={webviewSrc} ref={webviewRef} src={webviewSrc} className='w-full h-full border-0' style={{ display: 'inline-flex' }} webpreferences='allowRunningInsecureContent, javascript=yes' />
     </div>
   );
 };
