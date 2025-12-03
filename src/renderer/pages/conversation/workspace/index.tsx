@@ -467,7 +467,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
                     style={{ color: 'inherit' }}
                     onDoubleClick={() => {
                       if (isFile) {
-                        void fileOpsHook.handlePreviewFile(node.dataRef as IDirOrFile);
+                        fileOpsHook.handleAddToChat(node.dataRef as IDirOrFile);
                       }
                     }}
                     onContextMenu={(event) => {
@@ -489,9 +489,28 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
               }}
               onSelect={(keys, extra) => {
                 const clickedKey = extractNodeKey(extra?.node);
+                const nodeData = extra && extra.node ? extractNodeData(extra.node) : null;
+                const isFileNode = Boolean(nodeData?.isFile);
+                const wasSelected = clickedKey ? treeHook.selectedKeysRef.current.includes(clickedKey) : false;
+
+                if (isFileNode) {
+                  // 单击文件仅打开预览，不改变选中状态 / Single-click file only opens preview without changing selection state
+                  if (clickedKey) {
+                    const filteredKeys = treeHook.selectedKeysRef.current.filter((key) => key !== clickedKey);
+                    treeHook.selectedKeysRef.current = filteredKeys;
+                    treeHook.setSelected(filteredKeys);
+                  }
+                  treeHook.selectedNodeRef.current = null;
+                  if (nodeData && clickedKey && !wasSelected) {
+                    void fileOpsHook.handlePreviewFile(nodeData);
+                  }
+                  return;
+                }
+
+                // 目录节点仍保留原有选中逻辑 / Keep existing selection logic for folders
                 let newKeys: string[];
 
-                if (clickedKey && treeHook.selectedKeysRef.current.includes(clickedKey)) {
+                if (clickedKey && wasSelected) {
                   newKeys = treeHook.selectedKeysRef.current.filter((key) => key !== clickedKey);
                 } else if (clickedKey) {
                   newKeys = [...treeHook.selectedKeysRef.current, clickedKey];
@@ -502,18 +521,13 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
                 treeHook.setSelected(newKeys);
                 treeHook.selectedKeysRef.current = newKeys;
 
-                if (extra && extra.node) {
-                  const nodeData = extractNodeData(extra.node);
-                  if (nodeData) {
-                    if (!nodeData.isFile && nodeData.fullPath && nodeData.relativePath) {
-                      treeHook.selectedNodeRef.current = {
-                        relativePath: nodeData.relativePath,
-                        fullPath: nodeData.fullPath,
-                      };
-                    } else if (nodeData.isFile) {
-                      treeHook.selectedNodeRef.current = null;
-                    }
-                  }
+                if (extra && extra.node && nodeData && nodeData.fullPath && nodeData.relativePath != null) {
+                  treeHook.selectedNodeRef.current = {
+                    relativePath: nodeData.relativePath,
+                    fullPath: nodeData.fullPath,
+                  };
+                } else {
+                  treeHook.selectedNodeRef.current = null;
                 }
 
                 const items: Array<{ path: string; name: string; isFile: boolean }> = [];
