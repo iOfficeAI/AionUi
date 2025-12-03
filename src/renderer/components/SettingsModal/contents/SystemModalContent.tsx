@@ -260,7 +260,7 @@ const SystemModalContent: React.FC<SystemModalContentProps> = ({ onRequestClose 
       {modalContextHolder}
 
       {/* 内容区域 / Content Area */}
-      <AionScrollArea className='flex-1 min-h-0 pb-16px scrollbar-hide'>
+      <AionScrollArea className='flex-1 min-h-0 pb-16px'>
         <div className='space-y-16px'>
           {/* 偏好设置项（语言、主题、字体大小）/ Preference items (Language, Theme, Font Size) */}
           {preferenceItems.map((item) => (

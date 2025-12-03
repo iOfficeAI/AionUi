@@ -40,6 +40,16 @@ files:
   - '!**/node_modules/@img/sharp-*/**'
   - '!**/node_modules/@anthropic-ai/claude-code/vendor/**'
   - '!**/node_modules/@anthropic-ai/claude-agent-sdk/vendor/**'
+  # Exclude JAR files and JNI libraries that cause notarization issues
+  - '!**/*.jar'
+  - '!**/*.jnilib'
+  # Exclude all vendor directories to prevent unsigned binaries
+  - '!**/node_modules/*/vendor/**'
+  - '!**/node_modules/@*/*/vendor/**'
+  # Re-include vendor dirs for native modules that need them (if any)
+  - 'node_modules/better-sqlite3/vendor/**'
+  - 'node_modules/bcrypt/vendor/**'
+  - 'node_modules/node-pty/vendor/**'
   # Exclude webpack source maps
   - '!**/*.map'
   - '!**/webpack-stats.json'
