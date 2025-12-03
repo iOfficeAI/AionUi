@@ -495,6 +495,8 @@
     "saveModelConfigFailed": "モデル設定の保存に失敗しました"
   },
   "messages": {
+    "fileChanges": "ファイル変更",
+    "fileChangesCount": "{{count}} 件のファイル変更",
     "conversationInProgress": "現在、会話中です...",
     "confirm": "確認",
     "canceledExecution": "実行がキャンセルされました",

@@ -4,19 +4,25 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { html } from 'diff2html';
 import 'diff2html/bundles/css/diff2html.min.css';
-import { Checkbox } from '@arco-design/web-react';
-import { ExpandDownOne, FoldUpOne } from '@icon-park/react';
+import { Checkbox, Tooltip, Button } from '@arco-design/web-react';
+import { ExpandDownOne, FoldUpOne, PreviewOpen } from '@icon-park/react';
 import classNames from 'classnames';
 import ReactDOM from 'react-dom';
 import { iconColors } from '@/renderer/theme/colors';
 import { useThemeContext } from '@/renderer/context/ThemeContext';
+import { extractContentFromDiff, parseFilePathFromDiff } from '@/renderer/utils/diffUtils';
+import { getFileTypeInfo } from '@/renderer/utils/fileType';
 import CollapsibleContent from './CollapsibleContent';
+import { useTranslation } from 'react-i18next';
+import { usePreviewLauncher } from '@/renderer/hooks/usePreviewLauncher';
 
-const Diff2Html = ({ diff, className, title }: { diff: string; className?: string; title?: string }) => {
+const Diff2Html = ({ diff, className, title, filePath }: { diff: string; className?: string; title?: string; filePath?: string }) => {
   const { theme } = useThemeContext();
+  const { t } = useTranslation();
+  const { launchPreview, loading: previewLoading } = usePreviewLauncher();
   const [sideBySide, setSideBySide] = useState(false);
   const [collapse, setCollapse] = useState(false);
 
@@ -33,6 +39,48 @@ const Diff2Html = ({ diff, className, title }: { diff: string; className?: strin
     });
   }, [diff, sideBySide]);
   const operatorRef = useRef<HTMLDivElement>(document.createElement('div'));
+
+  const normalizedTitle = useMemo(() => {
+    if (!title) return '';
+    return title.replace(/^File:\s*/i, '').trim();
+  }, [title]);
+
+  const relativePath = useMemo(() => {
+    if (filePath && filePath.trim()) {
+      return filePath.trim();
+    }
+    return parseFilePathFromDiff(diff) || normalizedTitle || '';
+  }, [diff, normalizedTitle, filePath]);
+
+  const fileName = useMemo(() => {
+    if (relativePath) {
+      const parts = relativePath.split(/[\\/]/);
+      return parts[parts.length - 1] || relativePath;
+    }
+    if (normalizedTitle) {
+      const parts = normalizedTitle.split(/[\\/]/);
+      return parts[parts.length - 1] || normalizedTitle;
+    }
+    return 'preview.txt';
+  }, [relativePath, normalizedTitle]);
+
+  const previewTitle = normalizedTitle || relativePath || title || fileName;
+  const fileTypeInfo = useMemo(() => getFileTypeInfo(fileName), [fileName]);
+
+  const handlePreviewClick = useCallback(() => {
+    const { contentType, editable, language } = fileTypeInfo;
+    void launchPreview({
+      relativePath,
+      originalPath: filePath,
+      fileName,
+      title: previewTitle,
+      language,
+      contentType,
+      editable,
+      fallbackContent: editable ? extractContentFromDiff(diff) : undefined,
+      diffContent: diff,
+    });
+  }, [diff, fileName, filePath, fileTypeInfo, launchPreview, previewTitle, relativePath]);
 
   return (
     <CollapsibleContent maxHeight={160} defaultCollapsed={true} className={className}>
@@ -66,6 +114,12 @@ const Diff2Html = ({ diff, className, title }: { diff: string; className?: strin
             <Checkbox className='whitespace-nowrap' checked={sideBySide} onChange={(value) => setSideBySide(value)}>
               <span className='whitespace-nowrap'>side-by-side</span>
             </Checkbox>
+
+            <Tooltip content={t('preview.openInPanelTooltip')}>
+              <Button type='text' size='mini' onClick={handlePreviewClick} disabled={previewLoading} icon={<PreviewOpen theme='outline' size='14' fill={iconColors.secondary} />}>
+                {t('preview.preview')}
+              </Button>
+            </Tooltip>
 
             {/* 折叠按钮 / Collapse button */}
             {collapse ? <ExpandDownOne theme='outline' size='14' fill={iconColors.secondary} className='flex items-center' onClick={() => setCollapse(false)} /> : <FoldUpOne theme='outline' size='14' fill={iconColors.secondary} className='flex items-center' onClick={() => setCollapse(true)} />}
