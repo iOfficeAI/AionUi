@@ -179,6 +179,10 @@ const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string
     font-size:14px;
   }
 
+  .markdown-shadow-body {
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
   .markdown-shadow-body>p:first-child
   {
     margin-top:0px;
@@ -191,6 +195,8 @@ const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string
     color:${theme.Color.PrimaryColor};
      text-decoration: none;
      cursor: pointer;
+     word-break: break-all;
+     overflow-wrap: anywhere;
   }
   h1{
     font-size: 24px;
