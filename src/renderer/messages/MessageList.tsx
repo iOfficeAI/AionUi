@@ -4,15 +4,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { TMessage } from '@/common/chatLib';
+import type { TMessage, CodexToolCallUpdate } from '@/common/chatLib';
 import classNames from 'classnames';
-import React, { useEffect, useRef, useState, useMemo, createContext, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useMemo, createContext } from 'react';
 import HOC from '../utils/HOC';
 import { useMessageList } from './hooks';
 import MessageAcpPermission from '@renderer/messages/acp/MessageAcpPermission';
 import MessageAgentStatus from '@renderer/messages/MessageAgentStatus';
 import MessageCodexPermission from './codex/MessageCodexPermission';
 import MessageCodexToolCall from './codex/MessageCodexToolCall';
+import MessageFileChanges from './codex/MessageFileChanges';
 import MessageAcpToolCall from '@renderer/messages/acp/MessageAcpToolCall';
 import MessageTips from './MessageTips';
 import MessageToolCall from './MessageToolCall';
@@ -22,6 +23,8 @@ import { Down } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { iconColors } from '@/renderer/theme/colors';
 import { Image } from '@arco-design/web-react';
+
+type TurnDiffContent = Extract<CodexToolCallUpdate, { subtype: 'turn_diff' }>;
 
 // 图片预览上下文 Image preview context
 export const ImagePreviewContext = createContext<{ inPreviewGroup: boolean }>({ inPreviewGroup: false });
@@ -74,15 +77,26 @@ const MessageList: React.FC<{ className?: string }> = () => {
   const previousListLengthRef = useRef(list.length);
   const { t } = useTranslation();
 
-  // 自定义预览操作：下载按钮 Custom preview action: download button
-  const handleDownload = useCallback((currentSrc: string) => {
-    const link = document.createElement('a');
-    link.href = currentSrc;
-    link.download = `image-${Date.now()}.png`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }, []);
+  // 提取所有 Codex turn_diff 消息用于汇总显示 / Extract all Codex turn_diff messages for summary display
+  const { turnDiffMessages, firstTurnDiffIndex } = useMemo(() => {
+    const turnDiffs: TurnDiffContent[] = [];
+    let firstIndex = -1;
+
+    list.forEach((message, index) => {
+      // Codex turn_diff 消息 / Codex turn_diff messages
+      if (message.type === 'codex_tool_call' && message.content.subtype === 'turn_diff') {
+        if (firstIndex === -1) firstIndex = index;
+        turnDiffs.push(message.content as TurnDiffContent);
+      }
+    });
+
+    return { turnDiffMessages: turnDiffs, firstTurnDiffIndex: firstIndex };
+  }, [list]);
+
+  // 判断消息是否为 turn_diff 类型（用于跳过单独渲染）/ Check if message is turn_diff type (for skipping individual render)
+  const isTurnDiffMessage = (message: TMessage) => {
+    return message.type === 'codex_tool_call' && message.content.subtype === 'turn_diff';
+  };
 
   // 检查是否在底部（允许一定的误差范围）
   const isAtBottom = () => {
@@ -154,7 +168,22 @@ const MessageList: React.FC<{ className?: string }> = () => {
         {/* 使用 PreviewGroup 包裹所有消息，实现跨消息预览图片 Use PreviewGroup to wrap all messages for cross-message image preview */}
         <Image.PreviewGroup actionsLayout={['zoomIn', 'zoomOut', 'originalSize', 'rotateLeft', 'rotateRight']}>
           <ImagePreviewContext.Provider value={{ inPreviewGroup: true }}>
-            {list.map((message) => {
+            {list.map((message, index) => {
+              // 跳过 Codex turn_diff 消息的单独渲染（除了第一个位置显示汇总）
+              // Skip individual Codex turn_diff message rendering (show summary at first position)
+              if (isTurnDiffMessage(message)) {
+                // 在第一个 turn_diff 位置显示汇总组件 / Show summary component at first turn_diff position
+                if (index === firstTurnDiffIndex && turnDiffMessages.length > 0) {
+                  return (
+                    <div key={`file-changes-${message.id}`} className='w-full message-item px-8px m-t-10px max-w-780px mx-auto'>
+                      <MessageFileChanges turnDiffChanges={turnDiffMessages} />
+                    </div>
+                  );
+                }
+                // 跳过其他 turn_diff 消息 / Skip other turn_diff messages
+                return null;
+              }
+
               return <MessageItem message={message} key={message.id}></MessageItem>;
             })}
           </ImagePreviewContext.Provider>

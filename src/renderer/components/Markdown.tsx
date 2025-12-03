@@ -14,15 +14,14 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 
 import { ipcBridge } from '@/common';
-import { Down, Up, PreviewOpen } from '@icon-park/react';
+import { Down, Up } from '@icon-park/react';
 import { theme } from '@office-ai/platform';
 import React, { useMemo, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { usePreviewContext } from '@/renderer/pages/conversation/preview';
-import { iconColors } from '@/renderer/theme/colors';
 import LocalImageView from './LocalImageView';
 import { addImportantToAll } from '../utils/customCssProcessor';
+import classNames from 'classnames';
 
 const formatCode = (code: string) => {
   const content = String(code).replace(/\n$/, '');
@@ -49,8 +48,6 @@ function CodeBlock(props: any) {
   const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>(() => {
     return (document.documentElement.getAttribute('data-theme') as 'light' | 'dark') || 'light';
   });
-  const { openPreview } = usePreviewContext(); // 获取预览上下文 / Get preview context
-  const { t } = useTranslation();
 
   React.useEffect(() => {
     const updateTheme = () => {
@@ -96,133 +93,67 @@ function CodeBlock(props: any) {
       );
     }
     return (
-      <div style={props.codeStyle}>
+      <div style={{ width: '100%', ...(props.codeStyle || {}) }}>
         <div
           style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            backgroundColor: 'var(--bg-2)',
-            borderTopLeftRadius: '0.3rem',
-            borderTopRightRadius: '0.3rem',
-            borderBottomLeftRadius: '0',
-            borderBottomRightRadius: '0',
-            padding: '6px 10px',
             border: '1px solid var(--bg-3)',
-            borderBottom: 'none',
+            borderRadius: '0.3rem',
+            overflow: 'hidden',
           }}
         >
-          <span
+          <div
             style={{
-              textDecoration: 'none',
-              color: 'var(--text-secondary)',
-              fontSize: '12px',
-              lineHeight: '20px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              backgroundColor: 'var(--bg-2)',
+              borderTopLeftRadius: '0.3rem',
+              borderTopRightRadius: '0.3rem',
+              borderBottomLeftRadius: fold ? '0.3rem' : '0',
+              borderBottomRightRadius: fold ? '0.3rem' : '0',
+              padding: '6px 10px',
+              borderBottom: !fold ? '1px solid var(--bg-3)' : undefined,
             }}
           >
-            {'<' + language.toLocaleLowerCase() + '>'}
-          </span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            {/* 预览按钮 / Preview button */}
-            <div
+            <span
               style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-                padding: '4px 8px',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                transition: 'background-color 0.2s',
+                textDecoration: 'none',
+                color: 'var(--text-secondary)',
+                fontSize: '12px',
+                lineHeight: '20px',
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = 'var(--bg-3)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-              }}
-              onClick={() => {
-                // 获取纯净内容 / Get clean content
-                let content = String(children).replace(/\n$/, '');
-
-                // 检测是否为 diff 格式并提取实际文件内容 / Detect if it's diff format and extract actual file content
-                const isDiffFormat = /^(Index:|diff --git|---|\+\+\+|@@)/m.test(content);
-
-                if (isDiffFormat && language !== 'diff' && language !== 'patch') {
-                  // 从 diff 中提取新文件的实际内容 / Extract actual content from diff
-                  const lines = content.split('\n');
-                  const contentLines: string[] = [];
-                  let inDiffBlock = false;
-
-                  for (const line of lines) {
-                    // 跳过 diff 元数据行 / Skip diff metadata lines
-                    if (line.startsWith('Index:') || line.match(/^={3,}/) || line.startsWith('diff --git') || line.startsWith('---') || line.startsWith('+++') || line.startsWith('@@')) {
-                      inDiffBlock = true;
-                      continue;
-                    }
-
-                    if (inDiffBlock) {
-                      // 提取新增行（去掉开头的 + 号）/ Extract added lines (remove leading +)
-                      if (line.startsWith('+')) {
-                        contentLines.push(line.substring(1));
-                      }
-                      // 跳过删除行和上下文标记 / Skip deleted lines and context markers
-                      else if (line.startsWith('-') || line.startsWith('\\')) {
-                        continue;
-                      }
-                      // 未标记的行也包含进来（可能是上下文）/ Include unmarked lines (might be context)
-                      else if (line.trim() !== '') {
-                        contentLines.push(line);
-                      }
-                    } else {
-                      // diff 块之前的内容直接保留 / Keep content before diff block
-                      contentLines.push(line);
-                    }
-                  }
-
-                  content = contentLines.join('\n').trim();
-                }
-
-                // 如果是 markdown 或 md 语言，使用 markdown 预览；否则使用 code 预览
-                const contentType = language === 'markdown' || language === 'md' ? 'markdown' : 'code';
-                // Markdown 类型支持编辑，其他类型只读 / Markdown type supports editing, other types are read-only
-                const isEditable = contentType === 'markdown';
-                openPreview(content, contentType, { language, editable: isEditable });
-              }}
-              title={t('preview.openInPanelTooltip')}
             >
-              <PreviewOpen theme='outline' size='16' fill={iconColors.secondary} />
-              <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{t('preview.preview')}</span>
-            </div>
-
+              {'<' + language.toLocaleLowerCase() + '>'}
+            </span>
             {/* 折叠/展开按钮 / Fold/unfold button */}
             {logicRender(!fold, <Up theme='outline' size='20' style={{ cursor: 'pointer' }} fill='var(--text-secondary)' onClick={() => setFlow(true)} />, <Down theme='outline' size='20' style={{ cursor: 'pointer' }} fill='var(--text-secondary)' onClick={() => setFlow(false)} />)}
           </div>
-        </div>
-        {logicRender(
-          !fold,
-          <SyntaxHighlighter
-            children={formatCode(children)}
-            language={language}
-            style={codeTheme}
-            PreTag='div'
-            customStyle={{
-              marginTop: '0',
-              margin: '0',
-              borderTopLeftRadius: '0',
-              borderTopRightRadius: '0',
-              borderBottomLeftRadius: '0.3rem',
-              borderBottomRightRadius: '0.3rem',
-              border: 'none',
-              background: 'transparent',
-              color: 'var(--text-primary)',
-            }}
-            codeTagProps={{
-              style: {
+          {logicRender(
+            !fold,
+            <SyntaxHighlighter
+              children={formatCode(children)}
+              language={language}
+              style={codeTheme}
+              PreTag='div'
+              customStyle={{
+                marginTop: '0',
+                margin: '0',
+                borderTopLeftRadius: '0',
+                borderTopRightRadius: '0',
+                borderBottomLeftRadius: '0.3rem',
+                borderBottomRightRadius: '0.3rem',
+                border: 'none',
+                background: 'transparent',
                 color: 'var(--text-primary)',
-              },
-            }}
-          />
-        )}
+              }}
+              codeTagProps={{
+                style: {
+                  color: 'var(--text-primary)',
+                },
+              }}
+            />
+          )}
+        </div>
       </div>
     );
   }, [props, currentTheme, fold]);
@@ -422,27 +353,30 @@ const ShadowView = ({ children }: { children: React.ReactNode }) => {
         setRoot(shadowRoot);
       }}
       className='markdown-shadow'
-      style={{ width: '100%' }}
+      style={{ width: '100%', flex: '1 1 auto', minWidth: 0 }}
     >
       {root && ReactDOM.createPortal(children, root)}
     </div>
   );
 };
 
-const MarkdownView: React.FC<{
+interface MarkdownViewProps {
   children: string;
   hiddenCodeCopyButton?: boolean;
   codeStyle?: React.CSSProperties;
   className?: string;
   onRef?: (el?: HTMLDivElement | null) => void;
-}> = ({ hiddenCodeCopyButton, codeStyle, ...props }) => {
+}
+
+const MarkdownView: React.FC<MarkdownViewProps> = ({ hiddenCodeCopyButton, codeStyle, className, onRef, children: childrenProp }) => {
   const { t } = useTranslation();
-  const children = useMemo(() => {
-    if (typeof props.children === 'string') {
-      return props.children.replace(/file:\/\//g, '');
+
+  const normalizedChildren = useMemo(() => {
+    if (typeof childrenProp === 'string') {
+      return childrenProp.replace(/file:\/\//g, '');
     }
-    return props.children;
-  }, [props.children]);
+    return childrenProp;
+  }, [childrenProp]);
 
   const isLocalFilePath = (src: string): boolean => {
     if (src.startsWith('http://') || src.startsWith('https://')) {
@@ -455,71 +389,71 @@ const MarkdownView: React.FC<{
   };
 
   return (
-    <ShadowView>
-      <div ref={props.onRef} className='markdown-shadow-body'>
-        <ReactMarkdown
-          remarkPlugins={[remarkGfm, remarkMath, remarkBreaks]}
-          rehypePlugins={[rehypeKatex]}
-          components={{
-            code: (props: any) => CodeBlock({ ...props, codeStyle, hiddenCodeCopyButton }),
-            a: ({ node: _node, ...props }) => (
-              <a
-                {...props}
-                target='_blank'
-                rel='noreferrer'
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  if (!props.href) return;
-                  try {
-                    ipcBridge.shell.openExternal.invoke(props.href).catch((error) => {
+    <div className={classNames('relative w-full', className)}>
+      <ShadowView>
+        <div ref={onRef} className='markdown-shadow-body'>
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm, remarkMath, remarkBreaks]}
+            rehypePlugins={[rehypeKatex]}
+            components={{
+              code: (props: any) => CodeBlock({ ...props, codeStyle, hiddenCodeCopyButton }),
+              a: ({ node: _node, ...props }) => (
+                <a
+                  {...props}
+                  target='_blank'
+                  rel='noreferrer'
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (!props.href) return;
+                    try {
+                      ipcBridge.shell.openExternal.invoke(props.href).catch((error) => {
+                        console.error(t('messages.openLinkFailed'), error);
+                      });
+                    } catch (error) {
                       console.error(t('messages.openLinkFailed'), error);
-                    });
-                  } catch (error) {
-                    console.error(t('messages.openLinkFailed'), error);
-                  }
-                }}
-              />
-            ),
-            table: ({ node: _node, ...props }) => (
-              <div style={{ overflowX: 'auto', maxWidth: '100%' }}>
-                <table
+                    }
+                  }}
+                />
+              ),
+              table: ({ node: _node, ...props }) => (
+                <div style={{ overflowX: 'auto', maxWidth: '100%' }}>
+                  <table
+                    {...props}
+                    style={{
+                      ...props.style,
+                      borderCollapse: 'collapse',
+                      border: '1px solid var(--bg-3)',
+                      minWidth: '100%',
+                    }}
+                  />
+                </div>
+              ),
+              td: ({ node: _node, ...props }) => (
+                <td
                   {...props}
                   style={{
                     ...props.style,
-                    borderCollapse: 'collapse',
+                    padding: '8px',
                     border: '1px solid var(--bg-3)',
-                    minWidth: '100%',
+                    minWidth: '120px',
                   }}
                 />
-              </div>
-            ),
-            td: ({ node: _node, ...props }) => (
-              <td
-                {...props}
-                style={{
-                  ...props.style,
-                  padding: '8px',
-                  border: '1px solid var(--bg-3)',
-                  minWidth: '120px',
-                }}
-              />
-            ),
-            img: ({ node: _node, ...props }) => {
-              // 判断是否为本地文件路径
-              if (isLocalFilePath(props.src || '')) {
-                const src = decodeURIComponent(props.src || '');
-                return <LocalImageView src={src} alt={props.alt || ''} className={props.className} />;
-              }
-              // 否则使用普通的 img 标签
-              return <img {...props} />;
-            },
-          }}
-        >
-          {children}
-        </ReactMarkdown>
-      </div>
-    </ShadowView>
+              ),
+              img: ({ node: _node, ...props }) => {
+                if (isLocalFilePath(props.src || '')) {
+                  const src = decodeURIComponent(props.src || '');
+                  return <LocalImageView src={src} alt={props.alt || ''} className={props.className} />;
+                }
+                return <img {...props} />;
+              },
+            }}
+          >
+            {normalizedChildren}
+          </ReactMarkdown>
+        </div>
+      </ShadowView>
+    </div>
   );
 };
 

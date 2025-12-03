@@ -465,6 +465,8 @@
     "mcpNeedsLogin": "未登入 · 點擊登入"
   },
   "messages": {
+    "fileChanges": "檔案變更",
+    "fileChangesCount": "{{count}} 個檔案變更",
     "conversationInProgress": "目前正在進行對話...",
     "confirm": "確認",
     "canceledExecution": "已取消執行",

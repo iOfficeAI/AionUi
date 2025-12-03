@@ -151,7 +151,7 @@ I have fetched the content from ${this.params.url}. Please use the following con
 ${textContent}
 ---`;
 
-      const result = await this.geminiClient.generateContent([{ role: 'user', parts: [{ text: processPrompt }] }], {}, signal, DEFAULT_GEMINI_FLASH_MODEL);
+      const result = await this.geminiClient.generateContent({ model: DEFAULT_GEMINI_FLASH_MODEL }, [{ role: 'user', parts: [{ text: processPrompt }] }], signal);
       const resultText = getResponseText(result) || '';
       return {
         llmContent: resultText,
