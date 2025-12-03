@@ -64,4 +64,17 @@ export function initAcpConversationBridge(): void {
       });
     }
   });
+
+  // Refresh custom agent detection - called when custom agent config changes
+  ipcBridge.acpConversation.refreshCustomAgent.provider(async () => {
+    try {
+      await acpDetector.refreshCustomAgent();
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        msg: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  });
 }

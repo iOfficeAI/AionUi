@@ -110,6 +110,7 @@ export const acpConversation = {
   detectCliPath: bridge.buildProvider<IBridgeResponse<{ path?: string }>, { backend: AcpBackend }>('acp.detect-cli-path'),
   getAvailableAgents: bridge.buildProvider<IBridgeResponse<Array<{ backend: AcpBackend; name: string; cliPath?: string }>>, void>('acp.get-available-agents'),
   checkEnv: bridge.buildProvider<{ env: Record<string, string> }, void>('acp.check.env'),
+  refreshCustomAgent: bridge.buildProvider<IBridgeResponse, void>('acp.refresh-custom-agent'),
   // clearAllCache: bridge.buildProvider<IBridgeResponse<{ details?: any }>, void>('acp.clear.all.cache'),
 };
 
@@ -180,7 +181,7 @@ export interface ICreateConversationParams {
   id?: string;
   name?: string;
   model: TProviderWithModel;
-  extra: { workspace?: string; defaultFiles?: string[]; backend?: AcpBackend; cliPath?: string; webSearchEngine?: 'google' | 'default' };
+  extra: { workspace?: string; defaultFiles?: string[]; backend?: AcpBackend; cliPath?: string; webSearchEngine?: 'google' | 'default'; agentName?: string };
 }
 interface IResetConversationParams {
   id?: string;

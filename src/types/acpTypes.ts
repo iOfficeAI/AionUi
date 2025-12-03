@@ -17,17 +17,53 @@ export type AcpBackendAll =
   | 'gemini' // Google Gemini ACP
   | 'qwen' // Qwen Code ACP
   | 'iflow' // iFlow CLI ACP
-  | 'codex'; // OpenAI Codex MCP
+  | 'codex' // OpenAI Codex MCP
+  | 'custom'; // User-configured custom ACP agent
 
-// 后端配置接口
+/**
+ * Configuration for an ACP backend agent.
+ * Used for both built-in backends (claude, gemini, qwen) and custom user agents.
+ */
 export interface AcpBackendConfig {
+  /** Unique identifier for the backend (e.g., 'claude', 'gemini', 'custom') */
   id: string;
+
+  /** Display name shown in the UI (e.g., 'Goose', 'Claude Code') */
   name: string;
+
+  /**
+   * CLI command name used for detection via `which` command.
+   * Example: 'goose', 'claude', 'qwen'
+   * Only needed if the binary name differs from id.
+   */
   cliCommand?: string;
+
+  /**
+   * Full CLI path with optional arguments (space-separated).
+   * Used when spawning the process.
+   * Examples:
+   *   - 'goose' (simple binary)
+   *   - 'npx @qwen-code/qwen-code' (npx package)
+   *   - '/usr/local/bin/my-agent --verbose' (full path with args)
+   * Note: '--experimental-acp' is auto-appended for non-custom backends.
+   */
   defaultCliPath?: string;
+
+  /** Whether this backend requires authentication before use */
   authRequired?: boolean;
-  enabled?: boolean; // 是否启用，用于控制后端的可用性
-  supportsStreaming?: boolean; // 是否支持流式输出
+
+  /** Whether this backend is enabled and should appear in the UI */
+  enabled?: boolean;
+
+  /** Whether this backend supports streaming responses */
+  supportsStreaming?: boolean;
+
+  /**
+   * Custom environment variables to pass to the spawned process.
+   * Merged with process.env when spawning.
+   * Example: { "ANTHROPIC_API_KEY": "sk-...", "DEBUG": "true" }
+   */
+  env?: Record<string, string>;
 }
 
 // 所有后端配置 - 包括暂时禁用的
@@ -71,6 +107,14 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     cliCommand: 'codex',
     authRequired: false,
     enabled: true, // ✅ 已验证支持：Codex CLI v0.4.0+ 支持 acp 模式
+    supportsStreaming: false,
+  },
+  custom: {
+    id: 'custom',
+    name: 'Custom Agent',
+    cliCommand: undefined, // User-configured via settings
+    authRequired: false,
+    enabled: true,
     supportsStreaming: false,
   },
 };

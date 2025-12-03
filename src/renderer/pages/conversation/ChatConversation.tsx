@@ -118,7 +118,7 @@ const ChatConversation: React.FC<{
   }, [conversation]);
 
   return (
-    <ChatLayout title={conversation?.name} backend={conversation?.type === 'acp' ? conversation?.extra?.backend : conversation?.type === 'codex' ? 'codex' : undefined} siderTitle={sliderTitle} sider={<ChatSider conversation={conversation} />}>
+    <ChatLayout title={conversation?.name} backend={conversation?.type === 'acp' ? conversation?.extra?.backend : conversation?.type === 'codex' ? 'codex' : undefined} agentName={(conversation?.extra as { agentName?: string })?.agentName} siderTitle={sliderTitle} sider={<ChatSider conversation={conversation} />}>
       {conversationNode}
     </ChatLayout>
   );
