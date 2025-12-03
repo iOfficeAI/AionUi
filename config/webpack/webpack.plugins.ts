@@ -19,4 +19,9 @@ export const plugins: WebpackPluginInstance[] = [
     chunkFilename: '[id].css',
   }),
   UnoCSS(),
+  // 忽略 tree-sitter 的 ?binary wasm 导入，让 aioncli-core 的 loadWasmBinary fallback 机制从磁盘读取
+  // Ignore tree-sitter ?binary wasm imports, let aioncli-core's loadWasmBinary fallback read from disk
+  new webpack.IgnorePlugin({
+    resourceRegExp: /\.wasm\?binary$/,
+  }),
 ];
