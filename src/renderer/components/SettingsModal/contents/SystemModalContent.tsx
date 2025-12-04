@@ -262,26 +262,27 @@ const SystemModalContent: React.FC<SystemModalContentProps> = ({ onRequestClose 
       {/* 内容区域 / Content Area */}
       <AionScrollArea className='flex-1 min-h-0 pb-16px'>
         <div className='space-y-16px'>
-          {/* 偏好设置项（语言、主题、字体大小）/ Preference items (Language, Theme, Font Size) */}
-          {preferenceItems.map((item) => (
-            <div key={item.key} className='h-80px flex justify-between items-center px-[12px] md:px-[32px] bg-2 rd-16px'>
-              <div className='w-full flex flex-col divide-y divide-border-2'>
-                <PreferenceRow label={item.label}>{item.component}</PreferenceRow>
-              </div>
+          {/* 偏好设置与高级设置合并展示 / Combined preferences and advanced settings */}
+          <div className='px-[12px] md:px-[32px] py-16px bg-2 rd-16px space-y-12px'>
+            <div className='w-full flex flex-col divide-y divide-border-2'>
+              {preferenceItems.map((item) => (
+                <PreferenceRow key={item.key} label={item.label}>
+                  {item.component}
+                </PreferenceRow>
+              ))}
             </div>
-          ))}
-
-          {/* 高级设置 / Advanced Settings - Collapsible */}
-          <AionCollapse bordered={false} defaultActiveKey={['advanced']} expandIcon={renderExpandIcon} expandIconPosition='right'>
-            <AionCollapse.Item name='advanced' header={<span className='text-14px text-2'>{t('settings.advancedSettings')}</span>} className='bg-transparent' contentStyle={{ padding: '12px 0 0' }}>
-              <Form form={form} layout='vertical' className='space-y-16px'>
-                <DirInputItem label={t('settings.cacheDir')} field='cacheDir' />
-                <DirInputItem label={t('settings.workDir')} field='workDir' />
-
-                {error && <Alert className='mt-16px' type='error' content={typeof error === 'string' ? error : JSON.stringify(error)} />}
-              </Form>
-            </AionCollapse.Item>
-          </AionCollapse>
+            <Divider className='my-0 border-border-2' />
+            {/* <AionCollapse className='!p-[0px]' bordered={false} defaultActiveKey={['advanced']} expandIcon={renderExpandIcon} expandIconPosition='right'>
+              <AionCollapse.Item name='advanced' header={<span className='text-14px text-2'>{t('settings.advancedSettings')}</span>} className='bg-transparent' contentStyle={{ padding: '12px 0 0' }}>
+                
+              </AionCollapse.Item>
+            </AionCollapse> */}
+            <Form form={form} layout='vertical' className='space-y-16px'>
+              <DirInputItem label={t('settings.cacheDir')} field='cacheDir' />
+              <DirInputItem label={t('settings.workDir')} field='workDir' />
+              {error && <Alert className='mt-16px' type='error' content={typeof error === 'string' ? error : JSON.stringify(error)} />}
+            </Form>
+          </div>
 
           {/* 自定义CSS设置 / Custom CSS Settings - Collapsible */}
           <AionCollapse bordered={false} defaultActiveKey={['css']} expandIcon={renderExpandIcon} expandIconPosition='right'>
