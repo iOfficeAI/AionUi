@@ -24,7 +24,7 @@ import { iconColors } from '@/renderer/theme/colors';
 import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
 import type { AcpBackend } from '@/types/acpTypes';
 import { Button, ConfigProvider, Dropdown, Input, Menu, Tooltip } from '@arco-design/web-react';
-import { ArrowUp, FolderOpen, MenuUnfold, Plus, Up } from '@icon-park/react';
+import { ArrowUp, FolderOpen, MenuUnfold, Plus, Robot, Up } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -119,8 +119,8 @@ const useModelList = () => {
   return { modelList, isGoogleAuth };
 };
 
-// Agent Logo 映射
-const AGENT_LOGO_MAP: Record<AcpBackend, string> = {
+// Agent Logo 映射 (custom uses Robot icon from @icon-park/react)
+const AGENT_LOGO_MAP: Partial<Record<AcpBackend, string>> = {
   claude: ClaudeLogo,
   gemini: GeminiLogo,
   qwen: QwenLogo,
@@ -299,6 +299,7 @@ const Guid: React.FC = () => {
             workspace: workingDir,
             backend: selectedAgent,
             cliPath: agentInfo.cliPath,
+            agentName: agentInfo.name, // Store configured name for custom agents
           },
         });
 
@@ -444,7 +445,7 @@ const Guid: React.FC = () => {
                         }
                         onClick={() => setSelectedAgent(agent.backend)}
                       >
-                        <img src={logoSrc} alt={`${agent.backend} logo`} width={20} height={20} style={{ objectFit: 'contain', flexShrink: 0 }} />
+                        {agent.backend === 'custom' ? <Robot theme='outline' size={20} style={{ flexShrink: 0 }} /> : <img src={logoSrc} alt={`${agent.backend} logo`} width={20} height={20} style={{ objectFit: 'contain', flexShrink: 0 }} />}
                         <span
                           className={`font-medium text-14px ${isSelected ? 'font-semibold' : 'max-w-0 opacity-0 overflow-hidden group-hover:max-w-100px group-hover:opacity-100 group-hover:ml-8px'}`}
                           style={{

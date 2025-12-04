@@ -32,16 +32,38 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
 
   initAgent(data: AcpAgentManagerData = this.options) {
     if (this.bootstrap) return this.bootstrap;
-    this.bootstrap = ProcessConfig.get('acp.config').then((config) => {
+    this.bootstrap = (async () => {
       let cliPath = data.cliPath;
-      if (!cliPath && config[data.backend].cliPath) {
-        cliPath = config[data.backend].cliPath;
+      let customArgs: string[] | undefined;
+      let customEnv: Record<string, string> | undefined;
+
+      // Handle custom backend: read from acp.customAgent config
+      if (data.backend === 'custom') {
+        const customAgentConfig = await ProcessConfig.get('acp.customAgent');
+        if (customAgentConfig?.defaultCliPath) {
+          // Parse defaultCliPath which may contain command + args (e.g., "node /path/to/file.js" or "goose acp")
+          const parts = customAgentConfig.defaultCliPath.trim().split(/\s+/);
+          cliPath = parts[0]; // First part is the command
+          if (parts.length > 1) {
+            customArgs = parts.slice(1); // Remaining parts are args
+          }
+          customEnv = customAgentConfig.env;
+        }
+      } else {
+        // Handle built-in backends: read from acp.config
+        const config = await ProcessConfig.get('acp.config');
+        if (!cliPath && config?.[data.backend]?.cliPath) {
+          cliPath = config[data.backend].cliPath;
+        }
       }
+
       this.agent = new AcpAgent({
         id: data.conversation_id,
         backend: data.backend,
         cliPath: cliPath,
         workingDir: data.workspace,
+        customArgs: customArgs,
+        customEnv: customEnv,
         onStreamEvent: (v) => {
           if (v.type !== 'thought') {
             const tMessage = transformMessage(v as IResponseMessage);
@@ -57,7 +79,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
         },
       });
       return this.agent.start().then(() => this.agent);
-    });
+    })();
     return this.bootstrap;
   }
 

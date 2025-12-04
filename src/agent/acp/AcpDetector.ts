@@ -7,6 +7,7 @@
 import { execSync } from 'child_process';
 import type { AcpBackend } from '@/types/acpTypes';
 import { getEnabledAcpBackends } from '@/types/acpTypes';
+import { ProcessConfig } from '@/process/initStorage';
 
 interface DetectedAgent {
   backend: AcpBackend;
@@ -20,6 +21,33 @@ interface DetectedAgent {
 class AcpDetector {
   private detectedAgents: DetectedAgent[] = [];
   private isDetected = false;
+
+  /**
+   * Add custom agent to detected list if configured and enabled.
+   * Inserts after Claude if present, otherwise appends.
+   */
+  private async addCustomAgentToList(detected: DetectedAgent[]): Promise<void> {
+    try {
+      const customAgentConfig = await ProcessConfig.get('acp.customAgent');
+      if (!customAgentConfig?.enabled || !customAgentConfig.defaultCliPath) return;
+
+      const customAgent: DetectedAgent = {
+        backend: 'custom' as AcpBackend,
+        name: customAgentConfig.name || 'Custom Agent',
+        cliPath: customAgentConfig.defaultCliPath,
+      };
+
+      // Insert after Claude if present, otherwise append
+      const claudeIndex = detected.findIndex((a) => a.backend === 'claude');
+      if (claudeIndex !== -1) {
+        detected.splice(claudeIndex + 1, 0, customAgent);
+      } else {
+        detected.push(customAgent);
+      }
+    } catch {
+      // No custom agent configured - this is normal
+    }
+  }
 
   /**
    * 启动时执行检测 - 简化版：只用 which 命令检查
@@ -80,6 +108,9 @@ class AcpDetector {
       });
     }
 
+    // Check for custom agent configuration - insert after claude if found
+    await this.addCustomAgentToList(detected);
+
     this.detectedAgents = detected;
     this.isDetected = true;
 
@@ -99,6 +130,17 @@ class AcpDetector {
    */
   hasAgents(): boolean {
     return this.detectedAgents.length > 0;
+  }
+
+  /**
+   * Refresh custom agent detection only (called when config changes)
+   */
+  async refreshCustomAgent(): Promise<void> {
+    // Remove existing custom agent if present
+    this.detectedAgents = this.detectedAgents.filter((agent) => agent.backend !== 'custom');
+
+    // Re-add custom agent with current config
+    await this.addCustomAgentToList(this.detectedAgents);
   }
 }
 
