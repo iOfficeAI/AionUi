@@ -470,8 +470,11 @@ const Guid: React.FC = () => {
                 ? {
                     backgroundColor: 'var(--color-primary-light-1)',
                     borderColor: 'rgb(var(--primary-3))',
+                    borderWidth: '1px',
                   }
                 : {
+                    borderWidth: '1px',
+                    borderColor: 'var(--border-special, #60577E)',
                     boxShadow: '0px 2px 20px rgba(var(--primary-rgb, 77, 60, 234), 0.1)',
                   }),
             }}

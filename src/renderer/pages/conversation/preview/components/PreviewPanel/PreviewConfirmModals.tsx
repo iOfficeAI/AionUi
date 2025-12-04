@@ -87,7 +87,7 @@ const PreviewConfirmModals: React.FC<PreviewConfirmModalsProps> = ({ showExitCon
   return (
     <>
       {/* 退出编辑确认对话框 / Exit edit confirmation modal */}
-      <Modal visible={showExitConfirm} title={t('preview.unsavedChangesTitle')} onCancel={onCancelExit} onOk={onConfirmExit} okText={t('preview.confirmExit')} cancelText={t('preview.continueEdit')} style={{ borderRadius: '12px' }}>
+      <Modal visible={showExitConfirm} title={t('preview.unsavedChangesTitle')} onCancel={onCancelExit} onOk={onConfirmExit} okText={t('preview.confirmExit')} cancelText={t('preview.continueEdit')} style={{ borderRadius: '12px' }} alignCenter getPopupContainer={() => document.body}>
         <div className='text-14px text-t-secondary'>{t('preview.unsavedChangesMessage')}</div>
       </Modal>
 
@@ -100,6 +100,8 @@ const PreviewConfirmModals: React.FC<PreviewConfirmModalsProps> = ({ showExitCon
         okText={t('preview.saveAndClose')}
         cancelText={t('common.cancel')}
         style={{ borderRadius: '12px' }}
+        alignCenter
+        getPopupContainer={() => document.body}
         footer={
           <div className='flex justify-end gap-8px'>
             <button className='px-16px py-6px cursor-pointer border-none hover:bg-bg-3 transition-colors text-14px text-t-primary' onClick={onCancelCloseTab}>
