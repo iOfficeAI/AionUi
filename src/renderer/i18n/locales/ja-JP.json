@@ -339,6 +339,11 @@
       "search.empty": "検索結果は空です",
       "addFile": "ファイルを追加",
       "refresh": "更新",
+      "dragOverlayTitle": "ドラッグして取り込み",
+      "dragOverlayDesc": "ここにファイルやフォルダーをドロップすると、このワークスペースにコピーされます。",
+      "dragOverlayHint": "ヒント：フォルダー選択中は、そのフォルダーに直接取り込まれます。",
+      "dragNoFiles": "有効なファイルやフォルダーが見つかりませんでした。Explorer/Finder からドラッグしてください。",
+      "dragFailed": "ファイルの取り込みに失敗しました。",
       "contextMenu": {
         "open": "開く",
         "openLocation": "ファイルの場所を開く",

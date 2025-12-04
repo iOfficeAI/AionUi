@@ -310,6 +310,11 @@
       "search.empty": "搜索結果為空",
       "addFile": "新增檔案",
       "refresh": "重新整理",
+      "dragOverlayTitle": "拖曳匯入",
+      "dragOverlayDesc": "將檔案或資料夾拖曳到此處即可複製到目前工作空間。",
+      "dragOverlayHint": "提示：若已選取資料夾，會直接匯入該資料夾。",
+      "dragNoFiles": "未偵測到有效的檔案或資料夾，請從檔案總管或 Finder 拖曳。",
+      "dragFailed": "拖曳匯入失敗，請重試。",
       "contextMenu": {
         "open": "開啟",
         "openLocation": "開啟檔案所在資料夾",

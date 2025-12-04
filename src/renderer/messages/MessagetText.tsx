@@ -12,7 +12,7 @@ import CollapsibleContent from '../components/CollapsibleContent';
 import { Copy } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { iconColors } from '@/renderer/theme/colors';
-import { Tooltip } from '@arco-design/web-react';
+import { Alert, Tooltip } from '@arco-design/web-react';
 
 const useFormatContent = (content: string) => {
   return useMemo(() => {
@@ -31,8 +31,8 @@ const useFormatContent = (content: string) => {
 
 const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
   const { data, json } = useFormatContent(message.content.content);
-  const [showToast, setShowToast] = useState(false);
   const { t } = useTranslation();
+  const [showCopyAlert, setShowCopyAlert] = useState(false);
   const isUserMessage = message.position === 'right';
 
   // 过滤空内容，避免渲染空DOM
@@ -45,8 +45,8 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
     navigator.clipboard
       .writeText(textToCopy)
       .then(() => {
-        setShowToast(true);
-        setTimeout(() => setShowToast(false), 2000);
+        setShowCopyAlert(true);
+        setTimeout(() => setShowCopyAlert(false), 2000);
       })
       .catch((error) => {
         console.error('Copy failed:', error);
@@ -87,11 +87,7 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
           {copyButton}
         </div>
       </div>
-      {showToast && (
-        <div className='fixed top-20px left-50% transform -translate-x-50% px-16px py-8px rd-6px text-14px shadow-lg z-9999' style={{ backgroundColor: 'rgb(var(--success-6))', color: 'var(--color-white)' }}>
-          {t('messages.copySuccess')}
-        </div>
-      )}
+      {showCopyAlert && <Alert type='success' content={t('messages.copySuccess')} showIcon className='fixed top-20px left-50% transform -translate-x-50% z-9999 w-max max-w-[80%]' style={{ boxShadow: '0px 2px 12px rgba(0,0,0,0.12)' }} closable={false} />}
     </>
   );
 };

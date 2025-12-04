@@ -216,6 +216,11 @@
       "search.empty": "搜索结果为空",
       "addFile": "添加文件",
       "refresh": "刷新",
+      "dragOverlayTitle": "拖拽导入",
+      "dragOverlayDesc": "将文件或文件夹拖到此处，即可复制到当前工作空间。",
+      "dragOverlayHint": "提示：若已选择文件夹，将直接导入该文件夹。",
+      "dragNoFiles": "未检测到有效的文件或目录，请从资源管理器或访达中拖拽。",
+      "dragFailed": "拖拽导入失败，请重试。",
       "contextMenu": {
         "open": "打开",
         "openLocation": "打开文件所在目录",
