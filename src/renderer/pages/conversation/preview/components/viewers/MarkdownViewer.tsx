@@ -24,6 +24,7 @@ import remarkMath from 'remark-math';
 import { Streamdown } from 'streamdown';
 import MarkdownEditor from '../editors/MarkdownEditor';
 import SelectionToolbar from '../renderers/SelectionToolbar';
+import { useContainerScroll, useContainerScrollTarget } from '../../hooks/useScrollSyncHelpers';
 
 interface MarkdownPreviewProps {
   content: string; // Markdown 内容 / Markdown content
@@ -184,46 +185,9 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({ content, onClose, hid
     return (document.documentElement.getAttribute('data-theme') as 'light' | 'dark') || 'light';
   });
 
-  // 监听容器滚动事件 / Listen to container scroll events
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container || !externalOnScroll) return;
-
-    const handleScroll = () => {
-      console.log('[MarkdownViewer] Container scroll:', {
-        scrollTop: container.scrollTop,
-        scrollHeight: container.scrollHeight,
-        clientHeight: container.clientHeight,
-      });
-      externalOnScroll(container.scrollTop, container.scrollHeight, container.clientHeight);
-    };
-
-    container.addEventListener('scroll', handleScroll, { passive: true });
-    return () => container.removeEventListener('scroll', handleScroll);
-  }, [containerRef, externalOnScroll]);
-
-  // 监听外部滚动同步请求（通过 data-target-scroll-percent 属性）
-  // Listen for external scroll sync requests (via data-target-scroll-percent attribute)
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const observer = new MutationObserver((mutations) => {
-      for (const mutation of mutations) {
-        if (mutation.type === 'attributes' && mutation.attributeName === 'data-target-scroll-percent') {
-          const targetPercent = parseFloat(container.dataset.targetScrollPercent || '0');
-          if (isNaN(targetPercent)) return;
-
-          const targetScroll = targetPercent * (container.scrollHeight - container.clientHeight);
-          console.log('[MarkdownViewer] Syncing scroll from external:', { targetPercent, targetScroll });
-          container.scrollTop = targetScroll;
-        }
-      }
-    });
-
-    observer.observe(container, { attributes: true, attributeFilter: ['data-target-scroll-percent'] });
-    return () => observer.disconnect();
-  }, [containerRef]);
+  // 使用滚动同步 Hooks / Use scroll sync hooks
+  useContainerScroll(containerRef, externalOnScroll);
+  useContainerScrollTarget(containerRef);
 
   const [internalViewMode, setInternalViewMode] = useState<'source' | 'preview'>('preview'); // 内部视图模式 / Internal view mode
 

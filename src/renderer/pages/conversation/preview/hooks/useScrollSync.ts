@@ -75,13 +75,6 @@ export const useScrollSync = ({ enabled, editorContainerRef, previewContainerRef
       isSyncingRef.current = true;
       const previewContainer = previewContainerRef.current;
       const scrollPercentage = scrollTop / (scrollHeight - clientHeight || 1);
-      console.log('[useScrollSync] Editor scroll:', {
-        scrollTop,
-        scrollHeight,
-        clientHeight,
-        scrollPercentage,
-        previewContainer: !!previewContainer,
-      });
       if (previewContainer) {
         // 使用 data 属性传递目标滚动百分比，由各组件自行处理
         // Use data attribute to pass target scroll percentage, each component handles it
@@ -90,7 +83,6 @@ export const useScrollSync = ({ enabled, editorContainerRef, previewContainerRef
         // Also try to set scrollTop directly (for components that support it)
         const targetScroll = scrollPercentage * (previewContainer.scrollHeight - previewContainer.clientHeight);
         previewContainer.scrollTop = targetScroll;
-        console.log('[useScrollSync] Setting preview scroll percent to:', scrollPercentage);
       }
 
       setTimeout(() => {
@@ -107,13 +99,6 @@ export const useScrollSync = ({ enabled, editorContainerRef, previewContainerRef
       isSyncingRef.current = true;
       const editorContainer = editorContainerRef.current;
       const scrollPercentage = scrollTop / (scrollHeight - clientHeight || 1);
-      console.log('[useScrollSync] Preview scroll:', {
-        scrollTop,
-        scrollHeight,
-        clientHeight,
-        scrollPercentage,
-        editorContainer: !!editorContainer,
-      });
       if (editorContainer) {
         // 使用 data 属性传递目标滚动百分比，由各组件自行处理
         // Use data attribute to pass target scroll percentage, each component handles it
@@ -122,7 +107,6 @@ export const useScrollSync = ({ enabled, editorContainerRef, previewContainerRef
         // Also try to set scrollTop directly (for components that support it)
         const targetScroll = scrollPercentage * (editorContainer.scrollHeight - editorContainer.clientHeight);
         editorContainer.scrollTop = targetScroll;
-        console.log('[useScrollSync] Setting editor scroll percent to:', scrollPercentage);
       }
 
       setTimeout(() => {

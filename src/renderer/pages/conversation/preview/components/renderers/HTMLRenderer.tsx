@@ -7,6 +7,7 @@
 import { useTypingAnimation } from '@/renderer/hooks/useTypingAnimation';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { generateInspectScript } from './htmlInspectScript';
+import { useScrollSyncTarget } from '../../hooks/useScrollSyncHelpers';
 
 /** 选中元素的数据结构 / Selected element data structure */
 export interface InspectedElement {
@@ -219,7 +220,6 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containe
           try {
             const jsonStr = message.slice('__SCROLL_SYNC__'.length);
             const data = JSON.parse(jsonStr) as { scrollTop: number; scrollHeight: number; clientHeight: number };
-            console.log('[HTMLRenderer] Webview scroll event:', data);
             onScroll(data.scrollTop, data.scrollHeight, data.clientHeight);
           } catch (e) {
             console.warn('[HTMLRenderer] Failed to parse scroll message:', e);
@@ -229,7 +229,6 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containe
         else if (message.startsWith('__CONTENT_HEIGHT__')) {
           try {
             const height = parseInt(message.slice('__CONTENT_HEIGHT__'.length), 10);
-            console.log('[HTMLRenderer] Received content height:', height);
             if (!isNaN(height) && height > 0) {
               setWebviewContentHeight(height);
             }
@@ -288,15 +287,7 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containe
     if (!webview || !onScroll) return;
 
     const injectScrollSync = () => {
-      console.log('[HTMLRenderer] Injecting scroll sync script...');
-      void webview
-        .executeJavaScript(scrollSyncScript)
-        .then(() => {
-          console.log('[HTMLRenderer] Scroll sync script injected successfully');
-        })
-        .catch((err) => {
-          console.error('[HTMLRenderer] Failed to inject scroll sync script:', err);
-        });
+      void webview.executeJavaScript(scrollSyncScript).catch(() => {});
     };
 
     if (webviewLoadedRef.current) {
@@ -310,42 +301,27 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containe
     };
   }, [scrollSyncScript, onScroll]);
 
-  // 监听外部滚动同步请求（通过 data-target-scroll-percent 属性）
-  // Listen for external scroll sync requests (via data-target-scroll-percent attribute)
-  useEffect(() => {
-    const container = containerRef?.current || divRef.current;
-    if (!container) return;
+  // 监听外部滚动同步请求 / Listen for external scroll sync requests
+  const handleTargetScroll = useCallback((targetPercent: number) => {
+    const webview = webviewRef.current;
+    if (!webview || !webviewLoadedRef.current) return;
 
-    const observer = new MutationObserver((mutations) => {
-      for (const mutation of mutations) {
-        if (mutation.type === 'attributes' && mutation.attributeName === 'data-target-scroll-percent') {
-          const targetPercent = parseFloat(container.dataset.targetScrollPercent || '0');
-          if (isNaN(targetPercent)) return;
-
-          const webview = webviewRef.current;
-          if (!webview || !webviewLoadedRef.current) return;
-
-          console.log('[HTMLRenderer] Syncing scroll from external:', targetPercent);
-
-          void webview
-            .executeJavaScript(
-              `
-              (function() {
-                const scrollHeight = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
-                const clientHeight = window.innerHeight || document.documentElement.clientHeight;
-                const targetScroll = ${targetPercent} * (scrollHeight - clientHeight);
-                window.scrollTo({ top: targetScroll, behavior: 'auto' });
-              })();
-            `
-            )
-            .catch(() => {});
-        }
-      }
-    });
-
-    observer.observe(container, { attributes: true, attributeFilter: ['data-target-scroll-percent'] });
-    return () => observer.disconnect();
-  }, [containerRef]);
+    void webview
+      .executeJavaScript(
+        `
+          (function() {
+            const scrollHeight = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
+            const clientHeight = window.innerHeight || document.documentElement.clientHeight;
+            const targetScroll = ${targetPercent} * (scrollHeight - clientHeight);
+            window.scrollTo({ top: targetScroll, behavior: 'auto' });
+          })();
+        `
+      )
+      .catch(() => {});
+  }, []);
+  // 使用外部 containerRef 或内部 divRef / Use external containerRef or internal divRef
+  const effectiveContainerRef = containerRef || divRef;
+  useScrollSyncTarget(effectiveContainerRef, handleTargetScroll);
 
   // 监听容器滚动，同步到 webview / Listen to container scroll, sync to webview
   useEffect(() => {
@@ -360,12 +336,6 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containe
 
       isSyncingScrollRef.current = true;
       const scrollPercentage = container.scrollTop / (container.scrollHeight - container.clientHeight || 1);
-      console.log('[HTMLRenderer] Container scroll:', {
-        scrollTop: container.scrollTop,
-        scrollHeight: container.scrollHeight,
-        clientHeight: container.clientHeight,
-        scrollPercentage,
-      });
 
       void webview
         .executeJavaScript(
