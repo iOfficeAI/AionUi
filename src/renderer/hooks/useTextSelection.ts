@@ -48,28 +48,47 @@ export const useTextSelection = (containerRef: React.RefObject<HTMLElement>) => 
         return;
       }
 
-      // 获取选中文本的位置 / Get selection position
-      const rect = range.getBoundingClientRect();
       setSelectedText(text);
-      setSelectionPosition({
-        x: rect.left + rect.width / 2,
-        y: rect.top,
-        width: rect.width,
-        height: rect.height,
-      });
+      // 位置由 mouseup 事件设置 / Position is set by mouseup event
     }
   }, [containerRef]);
+
+  // 处理鼠标松开事件，使用鼠标位置定位工具栏 / Handle mouseup to position toolbar at mouse location
+  const handleMouseUp = useCallback(
+    (e: MouseEvent) => {
+      const selection = window.getSelection();
+      const text = selection?.toString().trim() || '';
+
+      if (!text || !containerRef.current || !selection || selection.rangeCount === 0) {
+        return;
+      }
+
+      const range = selection.getRangeAt(0);
+      if (!containerRef.current.contains(range.commonAncestorContainer)) {
+        return;
+      }
+
+      // 使用鼠标位置定位 / Use mouse position for toolbar
+      setSelectionPosition({
+        x: e.clientX,
+        y: e.clientY,
+        width: 0,
+        height: 0,
+      });
+    },
+    [containerRef]
+  );
 
   // 监听选择变化事件 / Listen to selection change events
   useEffect(() => {
     document.addEventListener('selectionchange', handleSelectionChange);
-    document.addEventListener('mouseup', handleSelectionChange);
+    document.addEventListener('mouseup', handleMouseUp);
 
     return () => {
       document.removeEventListener('selectionchange', handleSelectionChange);
-      document.removeEventListener('mouseup', handleSelectionChange);
+      document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [handleSelectionChange]);
+  }, [handleSelectionChange, handleMouseUp]);
 
   // 清除选择 / Clear selection
   const clearSelection = useCallback(() => {
