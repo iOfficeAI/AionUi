@@ -98,7 +98,7 @@ const PreviewPanel: React.FC = () => {
 
   // 内层分割：编辑器和预览的分割比例（默认 50/50）
   // Inner split: Split ratio between editor and preview (default 50/50)
-  const { splitRatio, dragHandle } = useResizableSplit({
+  const { splitRatio, createDragHandle } = useResizableSplit({
     defaultWidth: DEFAULT_SPLIT_RATIO,
     minWidth: MIN_SPLIT_WIDTH,
     maxWidth: MAX_SPLIT_WIDTH,
@@ -371,17 +371,16 @@ const PreviewPanel: React.FC = () => {
         return (
           <div className='flex flex-1 relative overflow-hidden'>
             {/* 左侧：编辑器 / Left: Editor */}
-            <div className='flex flex-col' style={{ width: `${splitRatio}%` }}>
+            <div className='flex flex-col relative' style={{ width: `${splitRatio}%` }}>
               <div className='h-40px flex items-center px-12px bg-bg-2'>
                 <span className='text-12px text-t-secondary'>{t('preview.editor')}</span>
               </div>
               <div className='flex-1 overflow-hidden'>
                 <MarkdownEditor value={content} onChange={updateContent} containerRef={editorContainerRef} onScroll={handleEditorScroll} />
               </div>
+              {/* 拖动分割线 / Drag handle */}
+              {createDragHandle({ className: 'absolute right-0 top-0 bottom-0' })}
             </div>
-
-            {/* 拖动分割线 / Drag handle */}
-            {dragHandle}
 
             {/* 右侧：预览 / Right: Preview */}
             <div className='flex flex-col' style={{ width: `${100 - splitRatio}%`, minWidth: 0 }}>
@@ -417,17 +416,16 @@ const PreviewPanel: React.FC = () => {
         return (
           <div className='flex flex-1 relative overflow-hidden'>
             {/* 左侧：编辑器 / Left: Editor */}
-            <div className='flex flex-col' style={{ width: `${splitRatio}%` }}>
+            <div className='flex flex-col relative' style={{ width: `${splitRatio}%` }}>
               <div className='h-40px flex items-center px-12px bg-bg-2'>
                 <span className='text-12px text-t-secondary'>{t('preview.editor')}</span>
               </div>
               <div className='flex-1 overflow-hidden'>
                 <HTMLEditor value={content} onChange={updateContent} containerRef={editorContainerRef} onScroll={handleEditorScroll} filePath={metadata?.filePath} />
               </div>
+              {/* 拖动分割线 / Drag handle */}
+              {createDragHandle({ className: 'absolute right-0 top-0 bottom-0' })}
             </div>
-
-            {/* 拖动分割线 / Drag handle */}
-            {dragHandle}
 
             {/* 右侧：预览 / Right: Preview */}
             <div className='flex flex-col' style={{ width: `${100 - splitRatio}%`, minWidth: 0 }}>
@@ -470,17 +468,16 @@ const PreviewPanel: React.FC = () => {
         return (
           <div className='flex flex-1 relative overflow-hidden'>
             {/* 左侧：编辑器 / Left: Editor */}
-            <div className='flex flex-col' style={{ width: `${splitRatio}%` }}>
+            <div className='flex flex-col relative' style={{ width: `${splitRatio}%` }}>
               <div className='h-40px flex items-center px-12px bg-bg-2'>
                 <span className='text-12px text-t-secondary'>{t('preview.editor')}</span>
               </div>
               <div className='flex-1 overflow-hidden'>
                 <TextEditor value={content} onChange={updateContent} />
               </div>
+              {/* 拖动分割线 / Drag handle */}
+              {createDragHandle({ className: 'absolute right-0 top-0 bottom-0' })}
             </div>
-
-            {/* 拖动分割线 / Drag handle */}
-            {dragHandle}
 
             {/* 右侧：预览 / Right: Preview */}
             <div className='flex flex-col' style={{ width: `${100 - splitRatio}%`, minWidth: 0 }}>

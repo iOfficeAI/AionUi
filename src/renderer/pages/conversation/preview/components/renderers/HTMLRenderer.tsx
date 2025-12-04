@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { useTypingAnimation } from '@/renderer/hooks/useTypingAnimation';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { generateInspectScript } from './htmlInspectScript';
 
@@ -39,10 +40,12 @@ interface ElectronWebView extends HTMLElement {
  * 在 webview 中渲染 HTML 内容（Electron 专用标签）
  * Renders HTML content in a webview (Electron-specific tag)
  */
-const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containerRef, inspectMode = false, copySuccessMessage, onElementSelected }) => {
+const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containerRef, onScroll, inspectMode = false, copySuccessMessage, onElementSelected }) => {
   const divRef = useRef<HTMLDivElement>(null);
   const webviewRef = useRef<ElectronWebView | null>(null);
   const webviewLoadedRef = useRef(false); // 跟踪 webview 是否已加载 / Track if webview is loaded
+  const isSyncingScrollRef = useRef(false); // 防止滚动同步循环 / Prevent scroll sync loops
+  const [webviewContentHeight, setWebviewContentHeight] = useState(0); // webview 内容高度 / webview content height
   const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>(() => {
     return (document.documentElement.getAttribute('data-theme') as 'light' | 'dark') || 'light';
   });
@@ -72,6 +75,16 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containe
     return hasRelativeResources;
   }, [content, filePath]);
 
+  // 流式打字动画：HTML 预览在使用 data URL 渲染时也能获得流式体验
+  // Typing animation: provide streaming experience when rendering via data URL
+  const { displayedContent } = useTypingAnimation({
+    content,
+    enabled: !shouldLoadFromFile,
+    speed: 40,
+  });
+
+  const htmlContent = useMemo(() => (shouldLoadFromFile ? content : displayedContent), [shouldLoadFromFile, content, displayedContent]);
+
   // 计算 webview 的 src
   // Calculate webview src
   const webviewSrc = useMemo(() => {
@@ -83,7 +96,7 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containe
 
     // 否则使用 data URL（适用于动态生成的 HTML 或没有外部资源的情况）
     // Otherwise use data URL (for dynamically generated HTML or no external resources)
-    let html = content;
+    let html = htmlContent;
 
     // 注入 base 标签支持相对路径 / Inject base tag for relative paths
     if (filePath) {
@@ -104,7 +117,7 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containe
 
     const encoded = encodeURIComponent(html);
     return `data:text/html;charset=utf-8,${encoded}`;
-  }, [content, filePath, shouldLoadFromFile]);
+  }, [htmlContent, filePath, shouldLoadFromFile]);
 
   // 当 webviewSrc 改变时重置加载状态 / Reset loading state when webviewSrc changes
   useEffect(() => {
@@ -179,22 +192,50 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containe
     };
   }, [executeScript]);
 
-  // 监听 webview 控制台消息，捕获检查元素事件 / Listen for webview console messages to capture inspect element events
+  // 监听 webview 控制台消息，捕获检查元素事件和滚动事件
+  // Listen for webview console messages to capture inspect element events and scroll events
   useEffect(() => {
     const webview = webviewRef.current;
-    if (!webview || !onElementSelected) return;
+    if (!webview) return;
 
     const handleConsoleMessage = (event: Event) => {
       const consoleEvent = event as Event & { message?: string };
       const message = consoleEvent.message;
 
-      if (typeof message === 'string' && message.startsWith('__INSPECT_ELEMENT__')) {
-        try {
-          const jsonStr = message.slice('__INSPECT_ELEMENT__'.length);
-          const data = JSON.parse(jsonStr) as InspectedElement;
-          onElementSelected(data);
-        } catch (e) {
-          console.warn('[HTMLRenderer] Failed to parse inspect element message:', e);
+      if (typeof message === 'string') {
+        // 处理检查元素消息 / Handle inspect element message
+        if (message.startsWith('__INSPECT_ELEMENT__') && onElementSelected) {
+          try {
+            const jsonStr = message.slice('__INSPECT_ELEMENT__'.length);
+            const data = JSON.parse(jsonStr) as InspectedElement;
+            onElementSelected(data);
+          } catch (e) {
+            console.warn('[HTMLRenderer] Failed to parse inspect element message:', e);
+          }
+        }
+        // 处理滚动消息 / Handle scroll message
+        else if (message.startsWith('__SCROLL_SYNC__') && onScroll) {
+          if (isSyncingScrollRef.current) return; // 防止循环 / Prevent loop
+          try {
+            const jsonStr = message.slice('__SCROLL_SYNC__'.length);
+            const data = JSON.parse(jsonStr) as { scrollTop: number; scrollHeight: number; clientHeight: number };
+            console.log('[HTMLRenderer] Webview scroll event:', data);
+            onScroll(data.scrollTop, data.scrollHeight, data.clientHeight);
+          } catch (e) {
+            console.warn('[HTMLRenderer] Failed to parse scroll message:', e);
+          }
+        }
+        // 处理内容高度消息 / Handle content height message
+        else if (message.startsWith('__CONTENT_HEIGHT__')) {
+          try {
+            const height = parseInt(message.slice('__CONTENT_HEIGHT__'.length), 10);
+            console.log('[HTMLRenderer] Received content height:', height);
+            if (!isNaN(height) && height > 0) {
+              setWebviewContentHeight(height);
+            }
+          } catch (e) {
+            console.warn('[HTMLRenderer] Failed to parse content height message:', e);
+          }
         }
       }
     };
@@ -204,12 +245,176 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containe
     return () => {
       webview.removeEventListener('console-message', handleConsoleMessage);
     };
-  }, [onElementSelected]);
+  }, [onElementSelected, onScroll]);
+
+  // 注入滚动监听脚本 / Inject scroll listener script
+  const scrollSyncScript = useMemo(
+    () => `
+    (function() {
+      if (window.__scrollSyncInitialized) return;
+      window.__scrollSyncInitialized = true;
+
+      // 发送内容高度 / Send content height
+      function sendContentHeight() {
+        const scrollHeight = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
+        console.log('__CONTENT_HEIGHT__' + scrollHeight);
+      }
+
+      // 初始发送 / Initial send
+      sendContentHeight();
+
+      // 监听内容变化 / Listen for content changes
+      const resizeObserver = new ResizeObserver(sendContentHeight);
+      resizeObserver.observe(document.body);
+
+      let scrollTimeout;
+      window.addEventListener('scroll', function() {
+        clearTimeout(scrollTimeout);
+        scrollTimeout = setTimeout(function() {
+          const scrollTop = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
+          const scrollHeight = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
+          const clientHeight = window.innerHeight || document.documentElement.clientHeight;
+          console.log('__SCROLL_SYNC__' + JSON.stringify({ scrollTop, scrollHeight, clientHeight }));
+        }, 16); // ~60fps throttle
+      }, { passive: true });
+    })();
+  `,
+    []
+  );
+
+  // 注入滚动同步脚本 / Inject scroll sync script
+  useEffect(() => {
+    const webview = webviewRef.current;
+    if (!webview || !onScroll) return;
+
+    const injectScrollSync = () => {
+      console.log('[HTMLRenderer] Injecting scroll sync script...');
+      void webview
+        .executeJavaScript(scrollSyncScript)
+        .then(() => {
+          console.log('[HTMLRenderer] Scroll sync script injected successfully');
+        })
+        .catch((err) => {
+          console.error('[HTMLRenderer] Failed to inject scroll sync script:', err);
+        });
+    };
+
+    if (webviewLoadedRef.current) {
+      injectScrollSync();
+    }
+
+    webview.addEventListener('did-finish-load', injectScrollSync);
+
+    return () => {
+      webview.removeEventListener('did-finish-load', injectScrollSync);
+    };
+  }, [scrollSyncScript, onScroll]);
+
+  // 监听外部滚动同步请求（通过 data-target-scroll-percent 属性）
+  // Listen for external scroll sync requests (via data-target-scroll-percent attribute)
+  useEffect(() => {
+    const container = containerRef?.current || divRef.current;
+    if (!container) return;
+
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'data-target-scroll-percent') {
+          const targetPercent = parseFloat(container.dataset.targetScrollPercent || '0');
+          if (isNaN(targetPercent)) return;
+
+          const webview = webviewRef.current;
+          if (!webview || !webviewLoadedRef.current) return;
+
+          console.log('[HTMLRenderer] Syncing scroll from external:', targetPercent);
+
+          void webview
+            .executeJavaScript(
+              `
+              (function() {
+                const scrollHeight = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
+                const clientHeight = window.innerHeight || document.documentElement.clientHeight;
+                const targetScroll = ${targetPercent} * (scrollHeight - clientHeight);
+                window.scrollTo({ top: targetScroll, behavior: 'auto' });
+              })();
+            `
+            )
+            .catch(() => {});
+        }
+      }
+    });
+
+    observer.observe(container, { attributes: true, attributeFilter: ['data-target-scroll-percent'] });
+    return () => observer.disconnect();
+  }, [containerRef]);
+
+  // 监听容器滚动，同步到 webview / Listen to container scroll, sync to webview
+  useEffect(() => {
+    const container = containerRef?.current || divRef.current;
+    if (!container) return;
+
+    const handleContainerScroll = () => {
+      if (isSyncingScrollRef.current) return;
+
+      const webview = webviewRef.current;
+      if (!webview || !webviewLoadedRef.current) return;
+
+      isSyncingScrollRef.current = true;
+      const scrollPercentage = container.scrollTop / (container.scrollHeight - container.clientHeight || 1);
+      console.log('[HTMLRenderer] Container scroll:', {
+        scrollTop: container.scrollTop,
+        scrollHeight: container.scrollHeight,
+        clientHeight: container.clientHeight,
+        scrollPercentage,
+      });
+
+      void webview
+        .executeJavaScript(
+          `
+          (function() {
+            const scrollHeight = Math.max(document.documentElement.scrollHeight, document.body.scrollHeight);
+            const clientHeight = window.innerHeight || document.documentElement.clientHeight;
+            const targetScroll = ${scrollPercentage} * (scrollHeight - clientHeight);
+            window.scrollTo({ top: targetScroll, behavior: 'auto' });
+          })();
+        `
+        )
+        .catch(() => {})
+        .finally(() => {
+          setTimeout(() => {
+            isSyncingScrollRef.current = false;
+          }, 50);
+        });
+    };
+
+    container.addEventListener('scroll', handleContainerScroll);
+    return () => container.removeEventListener('scroll', handleContainerScroll);
+  }, [containerRef]);
+
+  // 计算代理滚动层的高度 / Calculate proxy scroll layer height
+  const proxyHeight = webviewContentHeight > 0 ? webviewContentHeight : '100%';
 
   return (
-    <div ref={containerRef || divRef} className={`h-full w-full overflow-auto ${currentTheme === 'dark' ? 'bg-bg-1' : 'bg-white'}`}>
+    <div ref={containerRef || divRef} className={`h-full w-full overflow-auto relative ${currentTheme === 'dark' ? 'bg-bg-1' : 'bg-white'}`}>
+      {/* 代理滚动层：使容器可滚动 / Proxy scroll layer: makes container scrollable */}
+      <div style={{ height: proxyHeight, width: '100%', pointerEvents: 'none' }} />
+      {/* webview 固定在容器顶部 / webview fixed at container top */}
       {/* key 确保内容改变时 webview 重新挂载 / key ensures webview remounts when content changes */}
-      <webview key={webviewSrc} ref={webviewRef} src={webviewSrc} className='w-full h-full border-0' style={{ display: 'inline-flex' }} webpreferences='allowRunningInsecureContent, javascript=yes' />
+      <webview
+        key={webviewSrc}
+        ref={webviewRef}
+        src={webviewSrc}
+        className='w-full border-0'
+        style={{
+          display: 'inline-flex',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          height: '100%',
+        }}
+        webpreferences='allowRunningInsecureContent, javascript=yes'
+      />
     </div>
   );
 };
