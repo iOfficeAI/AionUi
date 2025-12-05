@@ -14,6 +14,8 @@ import CodexLogo from '@/renderer/assets/logos/codex.svg';
 import GeminiLogo from '@/renderer/assets/logos/gemini.svg';
 import GooseLogo from '@/renderer/assets/logos/goose.svg';
 import IflowLogo from '@/renderer/assets/logos/iflow.svg';
+import KimiLogo from '@/renderer/assets/logos/kimi.svg';
+import OpenCodeLogo from '@/renderer/assets/logos/opencode.svg';
 import QwenLogo from '@/renderer/assets/logos/qwen.svg';
 import FilePreview from '@/renderer/components/FilePreview';
 import { useCompositionInput } from '@/renderer/hooks/useCompositionInput';
@@ -130,6 +132,8 @@ const AGENT_LOGO_MAP: Partial<Record<AcpBackend, string>> = {
   iflow: IflowLogo,
   goose: GooseLogo,
   auggie: AuggieLogo,
+  kimi: KimiLogo,
+  opencode: OpenCodeLogo,
 };
 
 const Guid: React.FC = () => {

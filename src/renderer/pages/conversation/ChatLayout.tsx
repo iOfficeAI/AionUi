@@ -13,6 +13,8 @@ import CodexLogo from '@/renderer/assets/logos/codex.svg';
 import GeminiLogo from '@/renderer/assets/logos/gemini.svg';
 import GooseLogo from '@/renderer/assets/logos/goose.svg';
 import IflowLogo from '@/renderer/assets/logos/iflow.svg';
+import KimiLogo from '@/renderer/assets/logos/kimi.svg';
+import OpenCodeLogo from '@/renderer/assets/logos/opencode.svg';
 import QwenLogo from '@/renderer/assets/logos/qwen.svg';
 import type { AcpBackend } from '@/types/acpTypes';
 
@@ -25,6 +27,8 @@ const AGENT_LOGO_MAP: Partial<Record<AcpBackend, string>> = {
   iflow: IflowLogo,
   goose: GooseLogo,
   auggie: AuggieLogo,
+  kimi: KimiLogo,
+  opencode: OpenCodeLogo,
 };
 import { iconColors } from '@/renderer/theme/colors';
 import { ACP_BACKENDS_ALL } from '@/types/acpTypes';

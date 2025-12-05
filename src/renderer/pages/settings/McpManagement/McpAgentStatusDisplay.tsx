@@ -4,6 +4,8 @@ import CodexLogo from '@/renderer/assets/logos/codex.svg';
 import GeminiLogo from '@/renderer/assets/logos/gemini.svg';
 import GooseLogo from '@/renderer/assets/logos/goose.svg';
 import IflowLogo from '@/renderer/assets/logos/iflow.svg';
+import KimiLogo from '@/renderer/assets/logos/kimi.svg';
+import OpenCodeLogo from '@/renderer/assets/logos/opencode.svg';
 import QwenLogo from '@/renderer/assets/logos/qwen.svg';
 import { Tag, Tooltip } from '@arco-design/web-react';
 import { LoadingOne } from '@icon-park/react';
@@ -24,6 +26,8 @@ const AGENT_LOGO_MAP: Record<string, string> = {
   codex: CodexLogo,
   goose: GooseLogo,
   auggie: AuggieLogo,
+  kimi: KimiLogo,
+  opencode: OpenCodeLogo,
 };
 
 const getAgentLogo = (agent: string): string | null => {
