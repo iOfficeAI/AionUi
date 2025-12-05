@@ -1,6 +1,7 @@
 import { AcpAgent } from '@/agent/acp';
 import { ipcBridge } from '@/common';
 import type { AcpBackend } from '@/types/acpTypes';
+import { ACP_BACKENDS_ALL } from '@/types/acpTypes';
 import type { TMessage } from '@/common/chatLib';
 import { transformMessage } from '@/common/chatLib';
 import type { IConfirmMessageParams, IResponseMessage } from '@/common/ipcBridge';
@@ -54,6 +55,12 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
         const config = await ProcessConfig.get('acp.config');
         if (!cliPath && config?.[data.backend]?.cliPath) {
           cliPath = config[data.backend].cliPath;
+        }
+
+        // Get acpArgs from backend config (for goose, auggie, etc.)
+        const backendConfig = ACP_BACKENDS_ALL[data.backend];
+        if (backendConfig?.acpArgs) {
+          customArgs = backendConfig.acpArgs;
         }
       }
 

@@ -8,9 +8,11 @@ import { ipcBridge } from '@/common';
 import type { IProvider, TProviderWithModel } from '@/common/storage';
 import { ConfigStorage } from '@/common/storage';
 import { uuid } from '@/common/utils';
+import AuggieLogo from '@/renderer/assets/logos/auggie.svg';
 import ClaudeLogo from '@/renderer/assets/logos/claude.svg';
 import CodexLogo from '@/renderer/assets/logos/codex.svg';
 import GeminiLogo from '@/renderer/assets/logos/gemini.svg';
+import GooseLogo from '@/renderer/assets/logos/goose.svg';
 import IflowLogo from '@/renderer/assets/logos/iflow.svg';
 import QwenLogo from '@/renderer/assets/logos/qwen.svg';
 import FilePreview from '@/renderer/components/FilePreview';
@@ -126,6 +128,8 @@ const AGENT_LOGO_MAP: Partial<Record<AcpBackend, string>> = {
   qwen: QwenLogo,
   codex: CodexLogo,
   iflow: IflowLogo,
+  goose: GooseLogo,
+  auggie: AuggieLogo,
 };
 
 const Guid: React.FC = () => {
@@ -445,7 +449,7 @@ const Guid: React.FC = () => {
                         }
                         onClick={() => setSelectedAgent(agent.backend)}
                       >
-                        {agent.backend === 'custom' ? <Robot theme='outline' size={20} style={{ flexShrink: 0 }} /> : <img src={logoSrc} alt={`${agent.backend} logo`} width={20} height={20} style={{ objectFit: 'contain', flexShrink: 0 }} />}
+                        {logoSrc ? <img src={logoSrc} alt={`${agent.backend} logo`} width={20} height={20} style={{ objectFit: 'contain', flexShrink: 0 }} /> : <Robot theme='outline' size={20} style={{ flexShrink: 0 }} />}
                         <span
                           className={`font-medium text-14px ${isSelected ? 'font-semibold' : 'max-w-0 opacity-0 overflow-hidden group-hover:max-w-100px group-hover:opacity-100 group-hover:ml-8px'}`}
                           style={{

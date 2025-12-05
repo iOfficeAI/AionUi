@@ -18,7 +18,47 @@ export type AcpBackendAll =
   | 'qwen' // Qwen Code ACP
   | 'iflow' // iFlow CLI ACP
   | 'codex' // OpenAI Codex MCP
+  | 'goose' // Block's Goose CLI
+  | 'auggie' // Augment Code CLI
+  | 'kimi' // Kimi CLI (Moonshot)
+  | 'opencode' // OpenCode CLI
   | 'custom'; // User-configured custom ACP agent
+
+/**
+ * 潜在的 ACP CLI 工具列表
+ * 用于自动检测用户本地安装的 CLI 工具
+ * 当有新的 ACP CLI 工具发布时，只需在此列表中添加即可
+ */
+export interface PotentialAcpCli {
+  /** CLI 可执行文件名 */
+  cmd: string;
+  /** ACP 启动参数 */
+  args: string[];
+  /** 显示名称 */
+  name: string;
+  /** 对应的 backend id */
+  backendId: AcpBackendAll;
+}
+
+/**
+ * 已知支持 ACP 协议的 CLI 工具列表
+ * 检测时会遍历此列表，用 `which` 命令检查是否安装
+ */
+export const POTENTIAL_ACP_CLIS: PotentialAcpCli[] = [
+  // 使用 --experimental-acp 的 CLI
+  { cmd: 'claude', args: ['--experimental-acp'], name: 'Claude Code', backendId: 'claude' },
+  { cmd: 'qwen', args: ['--experimental-acp'], name: 'Qwen Code', backendId: 'qwen' },
+  { cmd: 'iflow', args: ['--experimental-acp'], name: 'iFlow CLI', backendId: 'iflow' },
+  { cmd: 'codex', args: ['--experimental-acp'], name: 'Codex', backendId: 'codex' },
+
+  // 使用 acp 子命令的 CLI
+  { cmd: 'goose', args: ['acp'], name: 'Goose', backendId: 'goose' },
+  { cmd: 'opencode', args: ['acp'], name: 'OpenCode', backendId: 'opencode' },
+
+  // 使用 --acp 标志的 CLI
+  { cmd: 'auggie', args: ['--acp'], name: 'Augment Code', backendId: 'auggie' },
+  { cmd: 'kimi', args: ['--acp'], name: 'Kimi CLI', backendId: 'kimi' },
+];
 
 /**
  * Configuration for an ACP backend agent.
@@ -64,6 +104,16 @@ export interface AcpBackendConfig {
    * Example: { "ANTHROPIC_API_KEY": "sk-...", "DEBUG": "true" }
    */
   env?: Record<string, string>;
+
+  /**
+   * Arguments to enable ACP mode when spawning the CLI.
+   * Different CLIs use different conventions:
+   *   - ['--experimental-acp'] for claude, qwen (default if not specified)
+   *   - ['acp'] for goose (subcommand)
+   *   - ['--acp'] for auggie
+   * If not specified, defaults to ['--experimental-acp'].
+   */
+  acpArgs?: string[];
 }
 
 // 所有后端配置 - 包括暂时禁用的
@@ -108,6 +158,42 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     authRequired: false,
     enabled: true, // ✅ 已验证支持：Codex CLI v0.4.0+ 支持 acp 模式
     supportsStreaming: false,
+  },
+  goose: {
+    id: 'goose',
+    name: 'Goose',
+    cliCommand: 'goose',
+    authRequired: false,
+    enabled: true, // ✅ Block's Goose CLI，使用 `goose acp` 启动
+    supportsStreaming: false,
+    acpArgs: ['acp'], // goose 使用子命令而非 flag
+  },
+  auggie: {
+    id: 'auggie',
+    name: 'Augment Code',
+    cliCommand: 'auggie',
+    authRequired: false,
+    enabled: true, // ✅ Augment Code CLI，使用 `auggie --acp` 启动
+    supportsStreaming: false,
+    acpArgs: ['--acp'], // auggie 使用 --acp flag
+  },
+  kimi: {
+    id: 'kimi',
+    name: 'Kimi CLI',
+    cliCommand: 'kimi',
+    authRequired: false,
+    enabled: true, // ✅ Kimi CLI (Moonshot)，使用 `kimi --acp` 启动
+    supportsStreaming: false,
+    acpArgs: ['--acp'], // kimi 使用 --acp flag
+  },
+  opencode: {
+    id: 'opencode',
+    name: 'OpenCode',
+    cliCommand: 'opencode',
+    authRequired: false,
+    enabled: true, // ✅ OpenCode CLI，使用 `opencode acp` 启动
+    supportsStreaming: false,
+    acpArgs: ['acp'], // opencode 使用 acp 子命令
   },
   custom: {
     id: 'custom',

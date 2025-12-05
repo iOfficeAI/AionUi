@@ -207,6 +207,7 @@ export interface IFileMetadata {
   size: number;
   type: string;
   lastModified: number;
+  isDirectory?: boolean;
 }
 
 export interface IResponseMessage {

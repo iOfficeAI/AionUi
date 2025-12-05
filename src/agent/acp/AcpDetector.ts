@@ -5,14 +5,15 @@
  */
 
 import { execSync } from 'child_process';
-import type { AcpBackend } from '@/types/acpTypes';
-import { getEnabledAcpBackends } from '@/types/acpTypes';
+import type { AcpBackendAll } from '@/types/acpTypes';
+import { POTENTIAL_ACP_CLIS } from '@/types/acpTypes';
 import { ProcessConfig } from '@/process/initStorage';
 
 interface DetectedAgent {
-  backend: AcpBackend;
+  backend: AcpBackendAll;
   name: string;
   cliPath?: string;
+  acpArgs?: string[];
 }
 
 /**
@@ -32,7 +33,7 @@ class AcpDetector {
       if (!customAgentConfig?.enabled || !customAgentConfig.defaultCliPath) return;
 
       const customAgent: DetectedAgent = {
-        backend: 'custom' as AcpBackend,
+        backend: 'custom',
         name: customAgentConfig.name || 'Custom Agent',
         cliPath: customAgentConfig.defaultCliPath,
       };
@@ -50,7 +51,7 @@ class AcpDetector {
   }
 
   /**
-   * 启动时执行检测 - 简化版：只用 which 命令检查
+   * 启动时执行检测 - 使用 POTENTIAL_ACP_CLIS 列表检测已安装的 CLI
    */
   async initialize(): Promise<void> {
     if (this.isDetected) return;
@@ -61,28 +62,23 @@ class AcpDetector {
     const isWindows = process.platform === 'win32';
     const whichCommand = isWindows ? 'where' : 'which';
 
-    // 从配置中获取要检测的ACP后端（仅启用的）
-    const enabledBackends = getEnabledAcpBackends();
-    const acpCommands = enabledBackends.map((backend) => backend.id);
     const detected: DetectedAgent[] = [];
 
-    // 并行检测所有命令
-    const detectionPromises = acpCommands.map((command) => {
+    // 并行检测所有潜在的 ACP CLI
+    const detectionPromises = POTENTIAL_ACP_CLIS.map((cli) => {
       return Promise.resolve().then(() => {
         try {
-          execSync(`${whichCommand} ${command}`, {
+          execSync(`${whichCommand} ${cli.cmd}`, {
             encoding: 'utf-8',
             stdio: 'pipe',
             timeout: 1000,
           });
 
-          // 从配置中获取对应的名称
-          const backendConfig = enabledBackends.find((backend) => backend.id === command);
-
           return {
-            backend: command as AcpBackend,
-            name: backendConfig?.name || command,
-            cliPath: command,
+            backend: cli.backendId,
+            name: cli.name,
+            cliPath: cli.cmd,
+            acpArgs: cli.args,
           };
         } catch {
           return null;
@@ -102,9 +98,10 @@ class AcpDetector {
     // 如果检测到ACP工具，添加内置Gemini
     if (detected.length > 0) {
       detected.unshift({
-        backend: 'gemini' as AcpBackend,
+        backend: 'gemini',
         name: 'Gemini CLI',
         cliPath: undefined,
+        acpArgs: undefined,
       });
     }
 

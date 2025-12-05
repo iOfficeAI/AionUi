@@ -11,12 +11,15 @@ import type { FileOrFolderItem } from '@/renderer/types/files';
 
 interface EventTypes {
   'gemini.selected.file': [Array<string | FileOrFolderItem>];
+  'gemini.selected.file.append': [Array<string | FileOrFolderItem>];
   'gemini.selected.file.clear': void;
   'gemini.workspace.refresh': void;
   'acp.selected.file': [Array<string | FileOrFolderItem>];
+  'acp.selected.file.append': [Array<string | FileOrFolderItem>];
   'acp.selected.file.clear': void;
   'acp.workspace.refresh': void;
   'codex.selected.file': [Array<string | FileOrFolderItem>];
+  'codex.selected.file.append': [Array<string | FileOrFolderItem>];
   'codex.selected.file.clear': void;
   'codex.workspace.refresh': void;
   'chat.history.refresh': void;

@@ -7,11 +7,25 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import useSWR from 'swr';
 
+import AuggieLogo from '@/renderer/assets/logos/auggie.svg';
 import ClaudeLogo from '@/renderer/assets/logos/claude.svg';
 import CodexLogo from '@/renderer/assets/logos/codex.svg';
 import GeminiLogo from '@/renderer/assets/logos/gemini.svg';
+import GooseLogo from '@/renderer/assets/logos/goose.svg';
 import IflowLogo from '@/renderer/assets/logos/iflow.svg';
 import QwenLogo from '@/renderer/assets/logos/qwen.svg';
+import type { AcpBackend } from '@/types/acpTypes';
+
+// Agent Logo 映射
+const AGENT_LOGO_MAP: Partial<Record<AcpBackend, string>> = {
+  claude: ClaudeLogo,
+  gemini: GeminiLogo,
+  qwen: QwenLogo,
+  codex: CodexLogo,
+  iflow: IflowLogo,
+  goose: GooseLogo,
+  auggie: AuggieLogo,
+};
 import { iconColors } from '@/renderer/theme/colors';
 import { ACP_BACKENDS_ALL } from '@/types/acpTypes';
 import classNames from 'classnames';
@@ -188,7 +202,7 @@ const ChatLayout: React.FC<{
           <div className='flex items-center gap-16px'>
             {backend && (
               <div className='ml-16px flex items-center gap-2 bg-2 w-fit rounded-full px-[8px] py-[2px]'>
-                {backend === 'custom' ? <Robot theme='outline' size={16} fill={iconColors.primary} /> : <img src={backend === 'claude' ? ClaudeLogo : backend === 'gemini' ? GeminiLogo : backend === 'qwen' ? QwenLogo : backend === 'iflow' ? IflowLogo : backend === 'codex' ? CodexLogo : ''} alt={`${backend} logo`} width={16} height={16} style={{ objectFit: 'contain' }} />}
+                {AGENT_LOGO_MAP[backend as AcpBackend] ? <img src={AGENT_LOGO_MAP[backend as AcpBackend]} alt={`${backend} logo`} width={16} height={16} style={{ objectFit: 'contain' }} /> : <Robot theme='outline' size={16} fill={iconColors.primary} />}
                 <span className='text-sm'>{displayName}</span>
               </div>
             )}
