@@ -11,6 +11,7 @@ import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/useSendBo
 import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
 import { allSupportedExts } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
+import { mergeFileSelectionItems } from '@/renderer/utils/fileSelection';
 import { Button, Tag } from '@arco-design/web-react';
 import { Plus } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -155,9 +156,10 @@ const AcpSendBox: React.FC<{
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
   const { setSendBoxHandler } = usePreviewContext();
 
-  // 使用 useLatestRef 保存最新的 setContent，避免重复注册 handler
-  // Use useLatestRef to keep latest setContent to avoid re-registering handler
+  // 使用 useLatestRef 保存最新的 setContent/atPath，避免重复注册 handler
+  // Use useLatestRef to keep latest setters to avoid re-registering handler
   const setContentRef = useLatestRef(setContent);
+  const atPathRef = useLatestRef(atPath);
 
   const sendingInitialMessageRef = useRef(false); // Prevent duplicate sends
   const addOrUpdateMessage = useAddOrUpdateMessage(); // Move this here so it's available in useEffect
@@ -318,6 +320,12 @@ const AcpSendBox: React.FC<{
   };
 
   useAddEventListener('acp.selected.file', setAtPath);
+  useAddEventListener('acp.selected.file.append', (items: Array<string | FileOrFolderItem>) => {
+    const merged = mergeFileSelectionItems(atPathRef.current, items);
+    if (merged !== atPathRef.current) {
+      setAtPath(merged as Array<string | FileOrFolderItem>);
+    }
+  });
 
   return (
     <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>

@@ -7,6 +7,7 @@ import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/use
 import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
 import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
+import { mergeFileSelectionItems } from '@/renderer/utils/fileSelection';
 import { Button, Tag } from '@arco-design/web-react';
 import { Plus } from '@icon-park/react';
 import React, { useCallback, useEffect, useState } from 'react';
@@ -62,9 +63,10 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
     };
   })();
 
-  // 使用 useLatestRef 保存最新的 setContent，避免重复注册 handler
-  // Use useLatestRef to keep latest setContent to avoid re-registering handler
+  // 使用 useLatestRef 保存最新的 setContent/atPath，避免重复注册 handler
+  // Use useLatestRef to keep latest setters to avoid re-registering handler
   const setContentRef = useLatestRef(setContent);
+  const atPathRef = useLatestRef(atPath);
 
   // 当会话ID变化时，清理所有状态避免状态污染
   useEffect(() => {
@@ -149,6 +151,15 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
     // Add a small delay to ensure state persistence and prevent flashing
     setTimeout(() => {
       setAtPath(items);
+    }, 10);
+  });
+
+  useAddEventListener('codex.selected.file.append', (items: Array<string | FileOrFolderItem>) => {
+    setTimeout(() => {
+      const merged = mergeFileSelectionItems(atPathRef.current, items);
+      if (merged !== atPathRef.current) {
+        setAtPath(merged as Array<string | FileOrFolderItem>);
+      }
     }, 10);
   });
 

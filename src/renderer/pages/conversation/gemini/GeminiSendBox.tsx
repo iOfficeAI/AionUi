@@ -14,6 +14,7 @@ import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/useSendBo
 import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
 import { allSupportedExts } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
+import { mergeFileSelectionItems } from '@/renderer/utils/fileSelection';
 import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
 import { Button, Dropdown, Menu, Tag } from '@arco-design/web-react';
 import { Plus } from '@icon-park/react';
@@ -129,9 +130,10 @@ const GeminiSendBox: React.FC<{
   const addOrUpdateMessage = useAddOrUpdateMessage();
   const { setSendBoxHandler } = usePreviewContext();
 
-  // 使用 useLatestRef 保存最新的 setContent，避免重复注册 handler
-  // Use useLatestRef to keep latest setContent to avoid re-registering handler
+  // 使用 useLatestRef 保存最新的 setContent/atPath，避免重复注册 handler
+  // Use useLatestRef to keep latest setters to avoid re-registering handler
   const setContentRef = useLatestRef(setContent);
+  const atPathRef = useLatestRef(atPath);
 
   // 注册预览面板添加到发送框的 handler
   // Register handler for adding text from preview panel to sendbox
@@ -251,6 +253,12 @@ const GeminiSendBox: React.FC<{
   };
 
   useAddEventListener('gemini.selected.file', setAtPath);
+  useAddEventListener('gemini.selected.file.append', (items: Array<string | FileOrFolderItem>) => {
+    const merged = mergeFileSelectionItems(atPathRef.current, items);
+    if (merged !== atPathRef.current) {
+      setAtPath(merged as Array<string | FileOrFolderItem>);
+    }
+  });
 
   // 截断过长的模型名称
   const getDisplayModelName = (modelName: string) => {
