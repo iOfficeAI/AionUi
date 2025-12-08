@@ -28,14 +28,13 @@ import { iconColors } from '@/renderer/theme/colors';
 import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
 import type { AcpBackend } from '@/types/acpTypes';
 import { Button, ConfigProvider, Dropdown, Input, Menu, Tooltip } from '@arco-design/web-react';
-import { ArrowUp, FolderOpen, MenuUnfold, Plus, Robot, Up } from '@icon-park/react';
+import { ArrowUp, FolderOpen, Plus, Robot, Up } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import useSWR from 'swr';
 import styles from './index.module.css';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
-import { useSettingsModal } from '@/renderer/components/SettingsModal/useSettingsModal';
 
 /**
  * 缓存Provider的可用模型列表，避免重复计算
@@ -335,7 +334,7 @@ const Guid: React.FC = () => {
           console.error(t('acp.auth.console_error'), error.message);
           const confirmed = window.confirm(t('acp.auth.failed_confirm', { backend: selectedAgent, error: error.message }));
           if (confirmed) {
-            openSettings('model');
+            void navigate('/settings/model');
           }
         } else {
           alert(`Failed to create ${selectedAgent} ACP conversation. Please check your ACP configuration and ensure the CLI is installed.`);
@@ -362,7 +361,6 @@ const Guid: React.FC = () => {
   // 使用共享的输入法合成处理
   const { compositionHandlers, createKeyDownHandler } = useCompositionInput();
   const { modelList, isGoogleAuth } = useModelList();
-  const { openSettings, settingsModal } = useSettingsModal();
   const setDefaultModel = async () => {
     const useModel = await ConfigStorage.get('gemini.defaultModel');
     const defaultModel = modelList.find((m) => m.model.includes(useModel)) || modelList[0];
@@ -410,13 +408,7 @@ const Guid: React.FC = () => {
   }, [t]);
   return (
     <ConfigProvider getPopupContainer={() => guidContainerRef.current || document.body}>
-      {settingsModal}
       <div ref={guidContainerRef} className='h-full flex-center flex-col px-10px' style={{ position: 'relative' }}>
-        {layout?.isMobile && layout?.siderCollapsed && (
-          <button type='button' className='mobile-toggle-btn fixed top-0 left-0 z-50 flex items-center justify-center w-16 h-16' style={{ background: 'transparent', border: 'none', outline: 'none', padding: 0, margin: 0 }} onClick={() => layout.setSiderCollapsed(false)}>
-            <MenuUnfold theme='outline' size={24} fill={iconColors.secondary} strokeWidth={3} />
-          </button>
-        )}
         <div className={styles.guidLayout}>
           <p className={`text-2xl font-semibold mb-8 text-0 text-center`}>{t('conversation.welcome.title')}</p>
 
@@ -548,7 +540,7 @@ const Guid: React.FC = () => {
                                 {t('settings.noAvailableModels')}
                               </Menu.Item>,
                               /* Add Model 选项 */
-                              <Menu.Item key='add-model' className='text-12px text-t-secondary' onClick={() => openSettings('model')}>
+                              <Menu.Item key='add-model' className='text-12px text-t-secondary' onClick={() => navigate('/settings/model')}>
                                 <Plus theme='outline' size='12' />
                                 {t('settings.addModel')}
                               </Menu.Item>,
@@ -577,7 +569,7 @@ const Guid: React.FC = () => {
                                 );
                               }),
                               /* Add Model 选项 */
-                              <Menu.Item key='add-model' className='text-12px text-t-secondary' onClick={() => openSettings('model')}>
+                              <Menu.Item key='add-model' className='text-12px text-t-secondary' onClick={() => navigate('/settings/model')}>
                                 <Plus theme='outline' size='12' />
                                 {t('settings.addModel')}
                               </Menu.Item>,

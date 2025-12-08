@@ -27,10 +27,9 @@
 }
 
 .app-titlebar--mac {
-  height: 36px;
+  height: 55px;
   min-height: 36px;
   /* Reserve space for macOS traffic light buttons (left side) */
-  padding-left: 80px;
   padding-right: 12px;
 }
 

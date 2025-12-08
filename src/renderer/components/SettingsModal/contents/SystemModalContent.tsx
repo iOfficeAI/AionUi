@@ -21,6 +21,8 @@ import CodeMirror from '@uiw/react-codemirror';
 import { css as cssLang } from '@codemirror/lang-css';
 import { useThemeContext } from '@/renderer/context/ThemeContext';
 import AionCollapse from '@/renderer/components/base/AionCollapse';
+import classNames from 'classnames';
+import { useSettingsViewMode } from '../settingsViewContext';
 
 // ==================== 样式常量 / Style Constants ====================
 
@@ -134,6 +136,8 @@ const SystemModalContent: React.FC<SystemModalContentProps> = ({ onRequestClose 
   const [error, setError] = useState<string | null>(null);
   const { theme } = useThemeContext();
   const [customCss, setCustomCss] = useState('');
+  const viewMode = useSettingsViewMode();
+  const isPageMode = viewMode === 'page';
 
   // Get system directory info
   const { data: systemInfo } = useSWR('system.dir.info', () => ipcBridge.application.systemInfo.invoke());
@@ -260,7 +264,7 @@ const SystemModalContent: React.FC<SystemModalContentProps> = ({ onRequestClose 
       {modalContextHolder}
 
       {/* 内容区域 / Content Area */}
-      <AionScrollArea className='flex-1 min-h-0 pb-16px'>
+      <AionScrollArea className='flex-1 min-h-0 pb-16px' disableOverflow={isPageMode}>
         <div className='space-y-16px'>
           {/* 偏好设置与高级设置合并展示 / Combined preferences and advanced settings */}
           <div className='px-[12px] md:px-[32px] py-16px bg-2 rd-16px space-y-12px'>
@@ -294,11 +298,11 @@ const SystemModalContent: React.FC<SystemModalContentProps> = ({ onRequestClose 
       </AionScrollArea>
 
       {/* 底部操作栏 / Footer with action buttons */}
-      <div className='flex-shrink-0 px-24px pt-10px border-t border-border-2 flex justify-end gap-10px'>
-        <Button className='rd-100px' onClick={handleCancel}>
+      <div className={classNames('flex-shrink-0 flex gap-10px border-t border-border-2 px-24px pt-10px', isPageMode ? 'border-none px-0 pt-10px flex-col md:flex-row md:justify-end' : 'justify-end')}>
+        <Button className={classNames('rd-100px', isPageMode && 'w-full md:w-auto')} onClick={handleCancel}>
           {t('common.cancel')}
         </Button>
-        <Button type='primary' loading={loading} onClick={onSubmit} className='rd-100px'>
+        <Button type='primary' loading={loading} onClick={onSubmit} className={classNames('rd-100px', isPageMode && 'w-full md:w-auto')}>
           {t('common.save')}
         </Button>
       </div>
