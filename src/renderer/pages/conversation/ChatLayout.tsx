@@ -93,11 +93,11 @@ const ChatLayout: React.FC<{
   // 预览面板状态 / Preview panel state
   const { isOpen: isPreviewOpen } = usePreviewContext();
 
-  // Fetch custom agent config as fallback when agentName is not provided
-  const { data: customAgentConfig } = useSWR(backend === 'custom' && !agentName ? 'acp.customAgent' : null, () => ConfigStorage.get('acp.customAgent'));
+  // Fetch custom agents config as fallback when agentName is not provided
+  const { data: customAgents } = useSWR(backend === 'custom' && !agentName ? 'acp.customAgents' : null, () => ConfigStorage.get('acp.customAgents'));
 
-  // Compute display name with fallback chain
-  const displayName = agentName || (backend === 'custom' ? customAgentConfig?.name : null) || ACP_BACKENDS_ALL[backend as keyof typeof ACP_BACKENDS_ALL]?.name || backend;
+  // Compute display name with fallback chain (use first custom agent as fallback for backward compatibility)
+  const displayName = agentName || (backend === 'custom' && customAgents?.[0]?.name) || ACP_BACKENDS_ALL[backend as keyof typeof ACP_BACKENDS_ALL]?.name || backend;
 
   useEffect(() => {
     if (typeof window === 'undefined') {

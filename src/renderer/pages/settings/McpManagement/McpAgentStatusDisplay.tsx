@@ -56,14 +56,14 @@ const McpAgentStatusDisplay: React.FC<McpAgentStatusDisplayProps> = ({ serverNam
               return (
                 <Tooltip key={`${serverName}-${agent}-${index}`} content={agent}>
                   <div
-                    className='w-6 h-6 flex items-center relative hover:z-[100] cursor-pointer transition-all duration-200 ease-out group-hover:scale-100 group-hover:opacity-100 scale-0 opacity-0'
+                    className='w-6 h-6 flex items-center relative  cursor-pointer transition-all duration-200 ease-out group-hover:scale-100 group-hover:opacity-100 scale-0 opacity-0'
                     style={{
                       zIndex: index + 1,
                       marginLeft: index === 0 ? 0 : '-4px',
                       transitionDelay: animationDelay,
                     }}
                   >
-                    <img src={logo} alt={agent} className='w-[21px] h-[21px] border border-solid rounded-sm' style={{ backgroundColor: 'var(--bg-base)' }} />
+                    <img src={logo} alt={agent} className='w-[21px] h-[21px] border border-solid border-[var(--color-border-2)] rounded-sm' style={{ backgroundColor: 'var(--dialog-fill-0)' }} />
                   </div>
                 </Tooltip>
               );

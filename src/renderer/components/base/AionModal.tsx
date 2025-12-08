@@ -285,7 +285,7 @@ const AionModal: React.FC<AionModalProps> = ({
       const okLabel = props.okText ?? 'Confirm';
       return {
         render: () => (
-          <div className='flex justify-end gap-10px'>
+          <div className='flex justify-end gap-10px mt-10px'>
             {/* 默认按钮提供统一圆角，文案可通过 cancelText/okText 覆盖 */}
             {/* Default buttons ship with rounded corners; text can be overridden via cancelText/okText */}
             <Button onClick={onCancel} className='px-20px min-w-80px' style={{ borderRadius: 8 }}>

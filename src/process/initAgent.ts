@@ -75,7 +75,14 @@ export const createAcpAgent = async (options: ICreateConversationParams): Promis
   const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(`${extra.backend}-temp-${Date.now()}`, extra.workspace, extra.defaultFiles);
   return {
     type: 'acp',
-    extra: { workspace: workspace, customWorkspace, backend: extra.backend, cliPath: extra.cliPath },
+    extra: {
+      workspace: workspace,
+      customWorkspace,
+      backend: extra.backend,
+      cliPath: extra.cliPath,
+      agentName: extra.agentName,
+      customAgentId: extra.customAgentId,
+    },
     createTime: Date.now(),
     modifyTime: Date.now(),
     name: workspace,

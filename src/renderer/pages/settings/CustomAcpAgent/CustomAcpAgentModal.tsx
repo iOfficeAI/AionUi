@@ -6,6 +6,7 @@ import CodeMirror from '@uiw/react-codemirror';
 import { json } from '@codemirror/lang-json';
 import { useThemeContext } from '@/renderer/context/ThemeContext';
 import AionModal from '@/renderer/components/base/AionModal';
+import { uuid } from '@/common/utils';
 
 interface CustomAcpAgentModalProps {
   visible: boolean;
@@ -72,11 +73,13 @@ const CustomAcpAgentModal: React.FC<CustomAcpAgentModalProps> = ({ visible, agen
     const parsed = JSON.parse(jsonInput);
 
     const customAgent: AcpBackendConfig = {
-      id: parsed.id || 'custom',
+      // Keep existing id when editing, generate new UUID for new agents
+      id: agent?.id || parsed.id || uuid(),
       name: parsed.name || 'My Agent',
       defaultCliPath: parsed.defaultCliPath,
       enabled: parsed.enabled ?? true,
       env: parsed.env || {},
+      acpArgs: parsed.acpArgs,
     };
 
     onSubmit(customAgent);

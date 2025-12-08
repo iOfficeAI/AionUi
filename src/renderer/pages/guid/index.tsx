@@ -144,8 +144,37 @@ const Guid: React.FC = () => {
   const [dir, setDir] = useState<string>('');
   const [currentModel, _setCurrentModel] = useState<TProviderWithModel>();
   // 支持在初始化页展示 Codex（MCP）选项，先做 UI 占位
-  const [selectedAgent, setSelectedAgent] = useState<AcpBackend | null>('gemini');
-  const [availableAgents, setAvailableAgents] = useState<Array<{ backend: AcpBackend; name: string; cliPath?: string }>>();
+  // 对于自定义代理，使用 "custom:uuid" 格式来区分多个自定义代理
+  // For custom agents, we store "custom:uuid" format to distinguish between multiple custom agents
+  const [selectedAgentKey, setSelectedAgentKey] = useState<string>('gemini');
+  const [availableAgents, setAvailableAgents] = useState<Array<{ backend: AcpBackend; name: string; cliPath?: string; customAgentId?: string }>>();
+
+  /**
+   * 获取代理的唯一选择键
+   * 对于自定义代理返回 "custom:uuid"，其他代理返回 backend 类型
+   * Helper to get agent key for selection
+   * Returns "custom:uuid" for custom agents, backend type for others
+   */
+  const getAgentKey = (agent: { backend: AcpBackend; customAgentId?: string }) => {
+    return agent.backend === 'custom' && agent.customAgentId ? `custom:${agent.customAgentId}` : agent.backend;
+  };
+
+  /**
+   * 通过选择键查找代理
+   * 支持 "custom:uuid" 格式和普通 backend 类型
+   * Helper to find agent by key
+   * Supports both "custom:uuid" format and plain backend type
+   */
+  const findAgentByKey = (key: string) => {
+    if (key.startsWith('custom:')) {
+      const customAgentId = key.slice(7);
+      return availableAgents?.find((a) => a.backend === 'custom' && a.customAgentId === customAgentId);
+    }
+    return availableAgents?.find((a) => a.backend === key);
+  };
+
+  // 获取选中的后端类型（向后兼容）/ Get the selected backend type (for backward compatibility)
+  const selectedAgent = selectedAgentKey.startsWith('custom:') ? 'custom' : (selectedAgentKey as AcpBackend);
   const [isPlusDropdownOpen, setIsPlusDropdownOpen] = useState(false);
   const [typewriterPlaceholder, setTypewriterPlaceholder] = useState('');
   const [isTyping, setIsTyping] = useState(true);
@@ -287,7 +316,7 @@ const Guid: React.FC = () => {
       return;
     } else {
       // ACP conversation type
-      const agentInfo = availableAgents?.find((a) => a.backend === selectedAgent);
+      const agentInfo = findAgentByKey(selectedAgentKey);
       if (!agentInfo) {
         alert(`${selectedAgent} CLI not found or not configured. Please ensure it's installed and accessible.`);
         return;
@@ -306,7 +335,8 @@ const Guid: React.FC = () => {
             workspace: workingDir,
             backend: selectedAgent,
             cliPath: agentInfo.cliPath,
-            agentName: agentInfo.name, // Store configured name for custom agents
+            agentName: agentInfo.name, // 存储自定义代理的配置名称 / Store configured name for custom agents
+            customAgentId: agentInfo.customAgentId, // 自定义代理的 UUID / UUID for custom agents
           },
         });
 
@@ -427,11 +457,11 @@ const Guid: React.FC = () => {
                 }}
               >
                 {availableAgents.map((agent, index) => {
-                  const isSelected = selectedAgent === agent.backend;
+                  const isSelected = selectedAgentKey === getAgentKey(agent);
                   const logoSrc = AGENT_LOGO_MAP[agent.backend];
 
                   return (
-                    <React.Fragment key={agent.backend}>
+                    <React.Fragment key={getAgentKey(agent)}>
                       {index > 0 && <div className='text-white/30 text-16px lh-1 p-2px select-none'>|</div>}
                       <div
                         className={`group flex items-center cursor-pointer whitespace-nowrap overflow-hidden ${isSelected ? 'opacity-100 px-12px py-8px rd-20px mx-2px' : 'opacity-60 p-4px hover:opacity-100'}`}
@@ -443,7 +473,7 @@ const Guid: React.FC = () => {
                               }
                             : { transition: 'opacity 0.5s cubic-bezier(0.2, 0.8, 0.3, 1)' }
                         }
-                        onClick={() => setSelectedAgent(agent.backend)}
+                        onClick={() => setSelectedAgentKey(getAgentKey(agent))}
                       >
                         {logoSrc ? <img src={logoSrc} alt={`${agent.backend} logo`} width={20} height={20} style={{ objectFit: 'contain', flexShrink: 0 }} /> : <Robot theme='outline' size={20} style={{ flexShrink: 0 }} />}
                         <span

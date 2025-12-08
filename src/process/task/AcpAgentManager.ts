@@ -16,6 +16,7 @@ interface AcpAgentManagerData {
   cliPath?: string;
   customWorkspace?: boolean;
   conversation_id: string;
+  customAgentId?: string; // 用于标识特定自定义代理的 UUID / UUID for identifying specific custom agent
 }
 
 class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
@@ -38,9 +39,12 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
       let customArgs: string[] | undefined;
       let customEnv: Record<string, string> | undefined;
 
-      // Handle custom backend: read from acp.customAgent config
-      if (data.backend === 'custom') {
-        const customAgentConfig = await ProcessConfig.get('acp.customAgent');
+      // 处理自定义后端：从 acp.customAgents 配置数组中读取
+      // Handle custom backend: read from acp.customAgents config array
+      if (data.backend === 'custom' && data.customAgentId) {
+        const customAgents = await ProcessConfig.get('acp.customAgents');
+        // 通过 UUID 查找对应的自定义代理配置 / Find custom agent config by UUID
+        const customAgentConfig = customAgents?.find((agent) => agent.id === data.customAgentId);
         if (customAgentConfig?.defaultCliPath) {
           // Parse defaultCliPath which may contain command + args (e.g., "node /path/to/file.js" or "goose acp")
           const parts = customAgentConfig.defaultCliPath.trim().split(/\s+/);
@@ -48,9 +52,13 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
           if (parts.length > 1) {
             customArgs = parts.slice(1); // Remaining parts are args
           }
+          // Use acpArgs if specified in config
+          if (customAgentConfig.acpArgs) {
+            customArgs = customAgentConfig.acpArgs;
+          }
           customEnv = customAgentConfig.env;
         }
-      } else {
+      } else if (data.backend !== 'custom') {
         // Handle built-in backends: read from acp.config
         const config = await ProcessConfig.get('acp.config');
         if (!cliPath && config?.[data.backend]?.cliPath) {

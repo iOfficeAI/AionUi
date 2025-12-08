@@ -14,6 +14,7 @@ interface DetectedAgent {
   name: string;
   cliPath?: string;
   acpArgs?: string[];
+  customAgentId?: string; // UUID for custom agents
 }
 
 /**
@@ -24,29 +25,30 @@ class AcpDetector {
   private isDetected = false;
 
   /**
-   * Add custom agent to detected list if configured and enabled.
-   * Inserts after Claude if present, otherwise appends.
+   * 将自定义代理添加到检测列表（追加到末尾）
+   * Add custom agents to detected list if configured and enabled (appends to end).
    */
-  private async addCustomAgentToList(detected: DetectedAgent[]): Promise<void> {
+  private async addCustomAgentsToList(detected: DetectedAgent[]): Promise<void> {
     try {
-      const customAgentConfig = await ProcessConfig.get('acp.customAgent');
-      if (!customAgentConfig?.enabled || !customAgentConfig.defaultCliPath) return;
+      const customAgents = await ProcessConfig.get('acp.customAgents');
+      if (!customAgents || !Array.isArray(customAgents) || customAgents.length === 0) return;
 
-      const customAgent: DetectedAgent = {
+      // 过滤出已启用且有有效 CLI 路径的代理 / Filter enabled agents with valid CLI path
+      const enabledAgents = customAgents.filter((agent) => agent.enabled && agent.defaultCliPath);
+      if (enabledAgents.length === 0) return;
+
+      // 将所有自定义代理追加到列表末尾 / Append all custom agents to the end
+      const customDetectedAgents: DetectedAgent[] = enabledAgents.map((agent) => ({
         backend: 'custom',
-        name: customAgentConfig.name || 'Custom Agent',
-        cliPath: customAgentConfig.defaultCliPath,
-      };
+        name: agent.name || 'Custom Agent',
+        cliPath: agent.defaultCliPath,
+        acpArgs: agent.acpArgs,
+        customAgentId: agent.id, // 存储 UUID 用于标识 / Store the UUID for identification
+      }));
 
-      // Insert after Claude if present, otherwise append
-      const claudeIndex = detected.findIndex((a) => a.backend === 'claude');
-      if (claudeIndex !== -1) {
-        detected.splice(claudeIndex + 1, 0, customAgent);
-      } else {
-        detected.push(customAgent);
-      }
+      detected.push(...customDetectedAgents);
     } catch {
-      // No custom agent configured - this is normal
+      // 未配置自定义代理 - 这是正常情况 / No custom agents configured - this is normal
     }
   }
 
@@ -105,8 +107,8 @@ class AcpDetector {
       });
     }
 
-    // Check for custom agent configuration - insert after claude if found
-    await this.addCustomAgentToList(detected);
+    // Check for custom agents configuration - insert after claude if found
+    await this.addCustomAgentsToList(detected);
 
     this.detectedAgents = detected;
     this.isDetected = true;
@@ -130,14 +132,14 @@ class AcpDetector {
   }
 
   /**
-   * Refresh custom agent detection only (called when config changes)
+   * Refresh custom agents detection only (called when config changes)
    */
-  async refreshCustomAgent(): Promise<void> {
-    // Remove existing custom agent if present
+  async refreshCustomAgents(): Promise<void> {
+    // Remove existing custom agents if present
     this.detectedAgents = this.detectedAgents.filter((agent) => agent.backend !== 'custom');
 
-    // Re-add custom agent with current config
-    await this.addCustomAgentToList(this.detectedAgents);
+    // Re-add custom agents with current config
+    await this.addCustomAgentsToList(this.detectedAgents);
   }
 }
 
