@@ -470,3 +470,11 @@ body,
   left: 266px !important;
   width: calc(100% - 266px) !important;
 }
+
+/* Default background for select and input components */
+/* Select 和 Input 组件默认背景 */
+.arco-select-view,
+.arco-input,
+.arco-input-inner-wrapper {
+  background-color: var(--fill-0) !important;
+}

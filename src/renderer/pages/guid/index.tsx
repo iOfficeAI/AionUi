@@ -494,7 +494,7 @@ const Guid: React.FC = () => {
           )}
 
           <div
-            className={`${styles.guidInputCard} bg-border-2 b-solid border rd-20px transition-all duration-200 overflow-hidden p-16px ${isFileDragging ? 'border-dashed' : 'border-3'}`}
+            className={`${styles.guidInputCard} bg-border-2 b-solid border rd-20px transition-all duration-200 overflow-hidden p-16px bg-[var(--fill-0)] ${isFileDragging ? 'border-dashed' : 'border-3'}`}
             style={{
               zIndex: 1,
               ...(isFileDragging
