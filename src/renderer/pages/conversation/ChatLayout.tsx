@@ -309,12 +309,12 @@ const ChatLayout: React.FC<{
           >
             <ArcoLayout.Header className={classNames('h-52px flex items-center justify-between p-16px gap-16px !bg-1 chat-layout-header')}>
               <FlexFullContainer className='h-full' containerClassName='flex items-center'>
-                {layout?.isMobile && layout?.siderCollapsed && (
+                {/* {layout?.isMobile && layout?.siderCollapsed && (
                   <span className='inline-flex items-center justify-center w-18px h-18px mr-4px cursor-pointer' onClick={() => layout.setSiderCollapsed(false)} style={{ lineHeight: 0, transform: 'translateY(1px)' }}>
                     <MenuUnfold theme='outline' size={18} fill={iconColors.secondary} strokeWidth={3} />
                   </span>
-                )}
-                <span className='ml-8px font-bold text-16px text-t-primary inline-block overflow-hidden text-ellipsis whitespace-nowrap w-full max-w-60%'>{props.title}</span>
+                )} */}
+                <span className='font-bold text-16px text-t-primary inline-block overflow-hidden text-ellipsis whitespace-nowrap w-full max-w-60%'>{props.title}</span>
               </FlexFullContainer>
               <div className='flex items-center gap-16px'>
                 {backend && (
