@@ -107,18 +107,12 @@ export class AcpConnection {
       case 'gemini':
       case 'qwen':
       case 'iflow':
-        if (!cliPath) {
-          throw new Error(`${backend} CLI path is required for ${backend} backend`);
-        }
-        await this.connectGenericBackend(backend, cliPath, workingDir, acpArgs);
-        break;
-
       case 'goose':
       case 'auggie':
       case 'kimi':
       case 'opencode':
         if (!cliPath) {
-          throw new Error(`${backend} CLI path is required for ${backend} backend`);
+          throw new Error(`CLI path is required for ${backend} backend`);
         }
         await this.connectGenericBackend(backend, cliPath, workingDir, acpArgs);
         break;

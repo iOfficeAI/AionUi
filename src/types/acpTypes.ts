@@ -40,25 +40,62 @@ export interface PotentialAcpCli {
   backendId: AcpBackendAll;
 }
 
+/** 默认的 ACP 启动参数 / Default ACP launch arguments */
+const DEFAULT_ACP_ARGS = ['--experimental-acp'];
+
+/**
+ * 从 ACP_BACKENDS_ALL 生成可检测的 CLI 列表
+ * 仅包含有 cliCommand 且已启用的后端（排除 gemini 和 custom）
+ * Generate detectable CLI list from ACP_BACKENDS_ALL
+ * Only includes enabled backends with cliCommand (excludes gemini and custom)
+ */
+function generatePotentialAcpClis(): PotentialAcpCli[] {
+  // 需要在 ACP_BACKENDS_ALL 定义之后调用，所以使用延迟初始化
+  // Must be called after ACP_BACKENDS_ALL is defined, so use lazy initialization
+  return Object.entries(ACP_BACKENDS_ALL)
+    .filter(([id, config]) => {
+      // 排除没有 CLI 命令的后端（gemini 内置，custom 用户配置）
+      // Exclude backends without CLI command (gemini is built-in, custom is user-configured)
+      if (!config.cliCommand) return false;
+      if (id === 'gemini' || id === 'custom') return false;
+      return config.enabled;
+    })
+    .map(([id, config]) => ({
+      cmd: config.cliCommand!,
+      args: config.acpArgs || DEFAULT_ACP_ARGS,
+      name: config.name,
+      backendId: id as AcpBackendAll,
+    }));
+}
+
+// 延迟初始化，避免循环依赖 / Lazy initialization to avoid circular dependency
+let _potentialAcpClis: PotentialAcpCli[] | null = null;
+
 /**
  * 已知支持 ACP 协议的 CLI 工具列表
  * 检测时会遍历此列表，用 `which` 命令检查是否安装
+ * 从 ACP_BACKENDS_ALL 自动生成，避免数据冗余
  */
-export const POTENTIAL_ACP_CLIS: PotentialAcpCli[] = [
-  // 使用 --experimental-acp 的 CLI
-  { cmd: 'claude', args: ['--experimental-acp'], name: 'Claude Code', backendId: 'claude' },
-  { cmd: 'qwen', args: ['--experimental-acp'], name: 'Qwen Code', backendId: 'qwen' },
-  { cmd: 'iflow', args: ['--experimental-acp'], name: 'iFlow CLI', backendId: 'iflow' },
-  { cmd: 'codex', args: ['--experimental-acp'], name: 'Codex', backendId: 'codex' },
-
-  // 使用 acp 子命令的 CLI
-  { cmd: 'goose', args: ['acp'], name: 'Goose', backendId: 'goose' },
-  { cmd: 'opencode', args: ['acp'], name: 'OpenCode', backendId: 'opencode' },
-
-  // 使用 --acp 标志的 CLI
-  { cmd: 'auggie', args: ['--acp'], name: 'Augment Code', backendId: 'auggie' },
-  { cmd: 'kimi', args: ['--acp'], name: 'Kimi CLI', backendId: 'kimi' },
-];
+export const POTENTIAL_ACP_CLIS: PotentialAcpCli[] = new Proxy([] as PotentialAcpCli[], {
+  get(_target, prop) {
+    if (_potentialAcpClis === null) {
+      _potentialAcpClis = generatePotentialAcpClis();
+    }
+    if (prop === 'length') return _potentialAcpClis.length;
+    if (typeof prop === 'string' && !isNaN(Number(prop))) {
+      return _potentialAcpClis[Number(prop)];
+    }
+    if (prop === Symbol.iterator) {
+      return function* () {
+        yield* _potentialAcpClis!;
+      };
+    }
+    if (prop === 'map') return _potentialAcpClis.map.bind(_potentialAcpClis);
+    if (prop === 'filter') return _potentialAcpClis.filter.bind(_potentialAcpClis);
+    if (prop === 'forEach') return _potentialAcpClis.forEach.bind(_potentialAcpClis);
+    return Reflect.get(_potentialAcpClis, prop);
+  },
+});
 
 /**
  * Configuration for an ACP backend agent.

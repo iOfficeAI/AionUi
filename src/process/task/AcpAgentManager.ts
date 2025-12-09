@@ -49,12 +49,13 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
           // Parse defaultCliPath which may contain command + args (e.g., "node /path/to/file.js" or "goose acp")
           const parts = customAgentConfig.defaultCliPath.trim().split(/\s+/);
           cliPath = parts[0]; // First part is the command
-          if (parts.length > 1) {
-            customArgs = parts.slice(1); // Remaining parts are args
-          }
-          // Use acpArgs if specified in config
+
+          // 参数优先级：acpArgs > defaultCliPath 中解析的参数
+          // Argument priority: acpArgs > args parsed from defaultCliPath
           if (customAgentConfig.acpArgs) {
             customArgs = customAgentConfig.acpArgs;
+          } else if (parts.length > 1) {
+            customArgs = parts.slice(1); // Fallback to parsed args
           }
           customEnv = customAgentConfig.env;
         }
@@ -70,6 +71,10 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
         if (backendConfig?.acpArgs) {
           customArgs = backendConfig.acpArgs;
         }
+      } else {
+        // backend === 'custom' but no customAgentId - this is an invalid state
+        // 自定义后端但缺少 customAgentId - 这是无效状态
+        console.warn('[AcpAgentManager] Custom backend specified but customAgentId is missing');
       }
 
       this.agent = new AcpAgent({

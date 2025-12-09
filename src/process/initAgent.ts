@@ -99,11 +99,11 @@ export const createCodexAgent = async (options: ICreateConversationParams): Prom
       workspace: workspace,
       customWorkspace,
       cliPath: extra.cliPath,
-      sandboxMode: 'workspace-write', // 默认为读写权限
+      sandboxMode: 'workspace-write', // 默认为读写权限 / Default to read-write permission
     },
     createTime: Date.now(),
     modifyTime: Date.now(),
     name: workspace,
     id: uuid(),
-  } as any;
+  };
 };
