@@ -28,7 +28,7 @@ import { iconColors } from '@/renderer/theme/colors';
 import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
 import type { AcpBackend } from '@/types/acpTypes';
 import { Button, ConfigProvider, Dropdown, Input, Menu, Tooltip } from '@arco-design/web-react';
-import { ArrowUp, FolderOpen, Plus, Robot, Up } from '@icon-park/react';
+import { ArrowUp, FolderOpen, Plus, Robot, UploadOne } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -178,7 +178,6 @@ const Guid: React.FC = () => {
   const [isPlusDropdownOpen, setIsPlusDropdownOpen] = useState(false);
   const [typewriterPlaceholder, setTypewriterPlaceholder] = useState('');
   const [isTyping, setIsTyping] = useState(true);
-  const [isWorkspaceExpanded, setIsWorkspaceExpanded] = useState(false);
 
   const setCurrentModel = async (modelInfo: TProviderWithModel) => {
     await ConfigStorage.set('gemini.defaultModel', modelInfo.useModel).catch((error) => {
@@ -527,12 +526,11 @@ const Guid: React.FC = () => {
                   onVisibleChange={setIsPlusDropdownOpen}
                   droplist={
                     <Menu
+                      className='min-w-200px'
                       onClickMenuItem={(key) => {
                         if (key === 'file') {
                           ipcBridge.dialog.showOpen
-                            .invoke({
-                              properties: ['openFile', 'multiSelections'],
-                            })
+                            .invoke({ properties: ['openFile', 'multiSelections'] })
                             .then((files) => {
                               if (files && files.length > 0) {
                                 setFiles((prev) => [...prev, ...files]);
@@ -541,10 +539,32 @@ const Guid: React.FC = () => {
                             .catch((error) => {
                               console.error('Failed to open file dialog:', error);
                             });
+                        } else if (key === 'workspace') {
+                          ipcBridge.dialog.showOpen
+                            .invoke({ properties: ['openDirectory'] })
+                            .then((files) => {
+                              if (files && files[0]) {
+                                setDir(files[0]);
+                              }
+                            })
+                            .catch((error) => {
+                              console.error('Failed to open directory dialog:', error);
+                            });
                         }
                       }}
                     >
-                      <Menu.Item key='file'>{t('conversation.welcome.uploadFile')}</Menu.Item>
+                      <Menu.Item key='file'>
+                        <div className='flex items-center gap-8px'>
+                          <UploadOne theme='outline' size='16' fill={iconColors.secondary} style={{ lineHeight: 0 }} />
+                          <span>{t('conversation.welcome.uploadFile')}</span>
+                        </div>
+                      </Menu.Item>
+                      <Menu.Item key='workspace'>
+                        <div className='flex items-center gap-8px'>
+                          <FolderOpen theme='outline' size='16' fill={iconColors.secondary} style={{ lineHeight: 0 }} />
+                          <span>{t('conversation.welcome.specifyWorkspace')}</span>
+                        </div>
+                      </Menu.Item>
                     </Menu>
                   }
                 >
@@ -628,52 +648,14 @@ const Guid: React.FC = () => {
                 />
               </div>
             </div>
-          </div>
-
-          {/* 工作空间选择区域 */}
-          <div
-            className={`${styles.guidInputCard} overflow-hidden transition-all duration-200`}
-            style={{
-              marginTop: '-20px',
-            }}
-          >
-            {!isWorkspaceExpanded ? (
-              <div className='flex items-end h-40px w-150px rd-8px gap-8px px-16px py-10px cursor-pointer' onClick={() => setIsWorkspaceExpanded(true)}>
-                <FolderOpen className='line-height-4' theme='outline' size='16' fill={iconColors.secondary} />
-                <span className='text-14px text-t-secondary'>{t('conversation.welcome.specifyWorkspace')}</span>
-              </div>
-            ) : (
-              <div className='flex items-center justify-between pt-25px'>
-                <div className='flex items-center gap-2 flex-1 min-w-0'>
-                  <Up theme='outline' size='16' fill={iconColors.secondary} className='cursor-pointer flex-shrink-0' onClick={() => setIsWorkspaceExpanded(false)} />
-                  <FolderOpen className='flex-shrink-0 line-height-4' theme='outline' size='16' fill={iconColors.secondary} />
-                  <Tooltip content={dir || t('conversation.welcome.none')} position='top'>
-                    <span className='text-13px text-t-secondary truncate'>
-                      {t('conversation.welcome.currentWorkspace')}: {dir || t('conversation.welcome.none')}
-                    </span>
-                  </Tooltip>
-                </div>
-                <Button
-                  size='small'
-                  icon={<Plus theme='outline' size='14' />}
-                  className='w-124px h-28px rounded-[20px] bg-2'
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    ipcBridge.dialog.showOpen
-                      .invoke({
-                        properties: ['openDirectory'],
-                      })
-                      .then((files) => {
-                        setFiles([]);
-                        setDir(files?.[0] || '');
-                      })
-                      .catch((error) => {
-                        console.error('Failed to open directory dialog:', error);
-                      });
-                  }}
-                >
-                  <span className='mr-8px'> {t('conversation.welcome.openFolder')} </span>
-                </Button>
+            {dir && (
+              <div className='flex items-center gap-6px mt-12px text-13px text-t-secondary'>
+                <FolderOpen className='flex-shrink-0' theme='outline' size='16' fill={iconColors.secondary} style={{ lineHeight: 0 }} />
+                <Tooltip content={dir} position='top'>
+                  <span className='truncate'>
+                    {t('conversation.welcome.currentWorkspace')}: {dir}
+                  </span>
+                </Tooltip>
               </div>
             )}
           </div>

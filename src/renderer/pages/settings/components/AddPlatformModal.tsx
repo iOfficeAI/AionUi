@@ -33,7 +33,7 @@ const useModePlatformList = () => {
         value: 'OpenRouter',
       },
       {
-        label: t('settings.customOpenAI'),
+        label: 'More', // t('settings.customOpenAI'),
         value: 'custom',
       },
     ];
