@@ -535,7 +535,7 @@ const PreviewPanel: React.FC = () => {
 
         {/* Tab 栏 / Tab bar */}
         {/* eslint-disable-next-line max-len */}
-        <PreviewTabs tabs={previewTabs} activeTabId={activeTabId} tabFadeState={tabFadeState} tabsContainerRef={tabsContainerRef} onSwitchTab={switchTab} onCloseTab={handleCloseTab} onContextMenu={handleTabContextMenu} />
+        <PreviewTabs tabs={previewTabs} activeTabId={activeTabId} tabFadeState={tabFadeState} tabsContainerRef={tabsContainerRef} onSwitchTab={switchTab} onCloseTab={handleCloseTab} onContextMenu={handleTabContextMenu} onClosePanel={closePreview} />
 
         {/* 工具栏 / Toolbar */}
         <PreviewToolbar
