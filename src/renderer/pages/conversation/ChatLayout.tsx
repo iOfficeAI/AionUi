@@ -37,7 +37,7 @@ import { ACP_BACKENDS_ALL } from '@/types/acpTypes';
 import classNames from 'classnames';
 import { WORKSPACE_TOGGLE_EVENT, dispatchWorkspaceStateEvent, dispatchWorkspaceToggleEvent } from '@/renderer/utils/workspaceEvents';
 
-const MOBILE_COLLAPSE_DURATION = 320;
+const MOBILE_COLLAPSE_DURATION = 280;
 const MIN_CHAT_RATIO = 25;
 const MIN_WORKSPACE_RATIO = 12;
 const MIN_PREVIEW_RATIO = 20;
@@ -340,7 +340,7 @@ const ChatLayout: React.FC<{
         {/* 预览面板（移到中间位置）/ Preview panel (moved to middle position) */}
         {isPreviewOpen && (
           <div
-            className='flex flex-col relative my-[16px] mr-[16px] rounded-[15px]'
+            className='preview-panel flex flex-col relative my-[16px] mr-[16px] rounded-[15px]'
             style={{
               flexGrow: layout?.isMobile ? 0 : previewFlex,
               flexShrink: layout?.isMobile ? 0 : 1,
@@ -356,7 +356,7 @@ const ChatLayout: React.FC<{
         {/* 工作空间面板（移到最右边）/ Workspace panel (moved to rightmost position) */}
         {!layout?.isMobile && (
           <div
-            className={classNames('!bg-1 relative chat-layout-right-sider layout-sider transition-all duration-300', {
+            className={classNames('!bg-1 relative chat-layout-right-sider layout-sider', {
               'layout-sider--folding': autoRightCollapsing || manualRightCollapsing,
             })}
             style={{
