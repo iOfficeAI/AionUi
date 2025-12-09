@@ -21,6 +21,50 @@ interface PendingRequest<T = unknown> {
   timeoutDuration: number;
 }
 
+/**
+ * Creates spawn configuration for ACP CLI commands.
+ * Exported for unit testing.
+ *
+ * @param cliPath - CLI command path (e.g., 'goose', 'npx @pkg/cli')
+ * @param workingDir - Working directory for the spawned process
+ * @param acpArgs - Arguments to enable ACP mode (e.g., ['acp'] for goose, ['--acp'] for auggie)
+ * @param customEnv - Custom environment variables
+ */
+export function createGenericSpawnConfig(cliPath: string, workingDir: string, acpArgs?: string[], customEnv?: Record<string, string>) {
+  const isWindows = process.platform === 'win32';
+  const env = { ...process.env, ...customEnv };
+
+  // Default to --experimental-acp if no acpArgs specified
+  const effectiveAcpArgs = acpArgs && acpArgs.length > 0 ? acpArgs : ['--experimental-acp'];
+
+  let spawnCommand: string;
+  let spawnArgs: string[];
+
+  if (cliPath.startsWith('npx ')) {
+    // For "npx @package/name", split into command and arguments
+    const parts = cliPath.split(' ');
+    spawnCommand = isWindows ? 'npx.cmd' : 'npx';
+    spawnArgs = [...parts.slice(1), ...effectiveAcpArgs];
+  } else {
+    // For regular paths like '/usr/local/bin/cli' or simple commands like 'goose'
+    spawnCommand = cliPath;
+    spawnArgs = effectiveAcpArgs;
+  }
+
+  const options: SpawnOptions = {
+    cwd: workingDir,
+    stdio: ['pipe', 'pipe', 'pipe'],
+    env,
+    shell: isWindows,
+  };
+
+  return {
+    command: spawnCommand,
+    args: spawnArgs,
+    options,
+  };
+}
+
 export class AcpConnection {
   private child: ChildProcess | null = null;
   private pendingRequests = new Map<number, PendingRequest<unknown>>();
@@ -38,49 +82,14 @@ export class AcpConnection {
   public onEndTurn: () => void = () => {}; // Handler for end_turn messages
   public onFileOperation: (operation: { method: string; path: string; content?: string; sessionId: string }) => void = () => {};
 
-  // 通用的spawn配置生成方法
-  private createGenericSpawnConfig(backend: string, cliPath: string, workingDir: string) {
-    const isWindows = process.platform === 'win32';
-    const env = { ...process.env };
-
-    // No additional environment variables needed for sandbox - CLI handles this
-
-    let spawnCommand: string;
-    let spawnArgs: string[];
-
-    if (cliPath.startsWith('npx ')) {
-      // For "npx @package/name", split into command and arguments
-      const parts = cliPath.split(' ');
-      spawnCommand = isWindows ? 'npx.cmd' : 'npx';
-      spawnArgs = [...parts.slice(1), '--experimental-acp'];
-    } else {
-      // For regular paths like '/usr/local/bin/cli'
-      spawnCommand = cliPath;
-      spawnArgs = ['--experimental-acp'];
-    }
-
-    const options: SpawnOptions = {
-      cwd: workingDir,
-      stdio: ['pipe', 'pipe', 'pipe'],
-      env,
-      shell: isWindows,
-    };
-
-    return {
-      command: spawnCommand,
-      args: spawnArgs,
-      options,
-    };
-  }
-
   // 通用的后端连接方法
-  private async connectGenericBackend(backend: 'gemini' | 'qwen' | 'iflow', cliPath: string, workingDir: string): Promise<void> {
-    const config = this.createGenericSpawnConfig(backend, cliPath, workingDir);
+  private async connectGenericBackend(backend: 'gemini' | 'qwen' | 'iflow' | 'goose' | 'auggie' | 'kimi' | 'opencode' | 'custom', cliPath: string, workingDir: string, acpArgs?: string[], customEnv?: Record<string, string>): Promise<void> {
+    const config = createGenericSpawnConfig(cliPath, workingDir, acpArgs, customEnv);
     this.child = spawn(config.command, config.args, config.options);
     await this.setupChildProcessHandlers(backend);
   }
 
-  async connect(backend: AcpBackend, cliPath?: string, workingDir: string = process.cwd()): Promise<void> {
+  async connect(backend: AcpBackend, cliPath?: string, workingDir: string = process.cwd(), acpArgs?: string[], customEnv?: Record<string, string>): Promise<void> {
     if (this.child) {
       this.disconnect();
     }
@@ -101,7 +110,24 @@ export class AcpConnection {
         if (!cliPath) {
           throw new Error(`${backend} CLI path is required for ${backend} backend`);
         }
-        await this.connectGenericBackend(backend, cliPath, workingDir);
+        await this.connectGenericBackend(backend, cliPath, workingDir, acpArgs);
+        break;
+
+      case 'goose':
+      case 'auggie':
+      case 'kimi':
+      case 'opencode':
+        if (!cliPath) {
+          throw new Error(`${backend} CLI path is required for ${backend} backend`);
+        }
+        await this.connectGenericBackend(backend, cliPath, workingDir, acpArgs);
+        break;
+
+      case 'custom':
+        if (!cliPath) {
+          throw new Error('Custom agent CLI path/command is required');
+        }
+        await this.connectGenericBackend('custom', cliPath, workingDir, acpArgs, customEnv);
         break;
 
       default:

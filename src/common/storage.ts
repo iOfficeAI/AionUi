@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { AcpBackend } from '@/types/acpTypes';
+import type { AcpBackend, AcpBackendConfig } from '@/types/acpTypes';
 import { storage } from '@office-ai/platform';
 
 /**
@@ -36,6 +36,7 @@ export interface IConfigStorageRefer {
       cliPath?: string;
     };
   };
+  'acp.customAgents'?: AcpBackendConfig[];
   'model.config': IProvider[];
   'mcp.config': IMcpServer[];
   'mcp.agentInstallStatus': Record<string, string[]>;
@@ -87,6 +88,8 @@ export type TChatConversation =
           backend: AcpBackend;
           cliPath?: string;
           customWorkspace?: boolean;
+          agentName?: string;
+          customAgentId?: string; // UUID for identifying specific custom agent
         }
       >,
       'model'

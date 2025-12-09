@@ -23,7 +23,7 @@ const windowControlsMock = {
   unmaximize: noop,
   close: noop,
   isMaximized: () => Promise.resolve(false),
-  onMaximizedChange: () => () => void 0,
+  onMaximizedChange: (): (() => void) => () => void 0,
 };
 
 (global as any).electronAPI = {

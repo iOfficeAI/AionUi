@@ -1,5 +1,5 @@
 import FlexFullContainer from '@/renderer/components/FlexFullContainer';
-import { Gemini, Info, LinkCloud, System, Toolkit } from '@icon-park/react';
+import { Gemini, Info, LinkCloud, System, Toolkit, Robot } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -22,6 +22,11 @@ const SettingsSider: React.FC<{ collapsed?: boolean }> = ({ collapsed = false })
         label: t('settings.model'),
         icon: <LinkCloud />,
         path: 'model',
+      },
+      {
+        label: t('settings.agent') || 'Agent',
+        icon: <Robot />,
+        path: 'agent',
       },
       {
         label: t('settings.tools'),
@@ -51,7 +56,7 @@ const SettingsSider: React.FC<{ collapsed?: boolean }> = ({ collapsed = false })
                 '!bg-aou-2 ': isSelected,
               })}
               onClick={() => {
-                Promise.resolve(navigate(`/settings/${item.path}`)).catch((error) => {
+                Promise.resolve(navigate(`/settings/${item.path}`, { replace: true })).catch((error) => {
                   console.error('Navigation failed:', error);
                 });
               }}

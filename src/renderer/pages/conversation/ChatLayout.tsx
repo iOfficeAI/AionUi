@@ -1,22 +1,43 @@
 import FlexFullContainer from '@/renderer/components/FlexFullContainer';
+import { ConfigStorage } from '@/common/storage';
 import { Layout as ArcoLayout } from '@arco-design/web-react';
-import { ExpandLeft, ExpandRight, MenuUnfold } from '@icon-park/react';
+import { ExpandLeft, ExpandRight, MenuUnfold, Robot } from '@icon-park/react';
 import React, { useEffect, useRef, useState } from 'react';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { usePreviewContext, PreviewPanel } from '@/renderer/pages/conversation/preview';
 import { useResizableSplit } from '@/renderer/hooks/useResizableSplit';
+import useSWR from 'swr';
 
+import AuggieLogo from '@/renderer/assets/logos/auggie.svg';
 import ClaudeLogo from '@/renderer/assets/logos/claude.svg';
 import CodexLogo from '@/renderer/assets/logos/codex.svg';
 import GeminiLogo from '@/renderer/assets/logos/gemini.svg';
+import GooseLogo from '@/renderer/assets/logos/goose.svg';
 import IflowLogo from '@/renderer/assets/logos/iflow.svg';
+import KimiLogo from '@/renderer/assets/logos/kimi.svg';
+import OpenCodeLogo from '@/renderer/assets/logos/opencode.svg';
 import QwenLogo from '@/renderer/assets/logos/qwen.svg';
+import type { AcpBackend } from '@/types/acpTypes';
+
+// Agent Logo 映射
+const AGENT_LOGO_MAP: Partial<Record<AcpBackend, string>> = {
+  claude: ClaudeLogo,
+  gemini: GeminiLogo,
+  qwen: QwenLogo,
+  codex: CodexLogo,
+  iflow: IflowLogo,
+  goose: GooseLogo,
+  auggie: AuggieLogo,
+  kimi: KimiLogo,
+  opencode: OpenCodeLogo,
+};
+
 import { iconColors } from '@/renderer/theme/colors';
 import { ACP_BACKENDS_ALL } from '@/types/acpTypes';
 import classNames from 'classnames';
 import { WORKSPACE_TOGGLE_EVENT, dispatchWorkspaceStateEvent, dispatchWorkspaceToggleEvent } from '@/renderer/utils/workspaceEvents';
 
-const MOBILE_COLLAPSE_DURATION = 320;
+const MOBILE_COLLAPSE_DURATION = 280;
 const MIN_CHAT_RATIO = 25;
 const MIN_WORKSPACE_RATIO = 12;
 const MIN_PREVIEW_RATIO = 20;
@@ -51,11 +72,12 @@ const ChatLayout: React.FC<{
   sider: React.ReactNode;
   siderTitle?: React.ReactNode;
   backend?: string;
+  agentName?: string;
 }> = (props) => {
   const [rightSiderCollapsed, setRightSiderCollapsed] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(() => (typeof window === 'undefined' ? 0 : window.innerWidth));
-  const { backend } = props;
+  const { backend, agentName } = props;
   const layout = useLayoutContext();
   const isMacRuntime = isMacEnvironment();
   // 右侧栏的自动/手动折叠动画状态 / Auto & manual folding states for right sider
@@ -70,6 +92,12 @@ const ChatLayout: React.FC<{
 
   // 预览面板状态 / Preview panel state
   const { isOpen: isPreviewOpen } = usePreviewContext();
+
+  // Fetch custom agents config as fallback when agentName is not provided
+  const { data: customAgents } = useSWR(backend === 'custom' && !agentName ? 'acp.customAgents' : null, () => ConfigStorage.get('acp.customAgents'));
+
+  // Compute display name with fallback chain (use first custom agent as fallback for backward compatibility)
+  const displayName = agentName || (backend === 'custom' && customAgents?.[0]?.name) || ACP_BACKENDS_ALL[backend as keyof typeof ACP_BACKENDS_ALL]?.name || backend;
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -281,25 +309,20 @@ const ChatLayout: React.FC<{
           >
             <ArcoLayout.Header className={classNames('h-52px flex items-center justify-between p-16px gap-16px !bg-1 chat-layout-header')}>
               <FlexFullContainer className='h-full' containerClassName='flex items-center'>
-                {layout?.isMobile && layout?.siderCollapsed && (
+                {/* {layout?.isMobile && layout?.siderCollapsed && (
                   <span className='inline-flex items-center justify-center w-18px h-18px mr-4px cursor-pointer' onClick={() => layout.setSiderCollapsed(false)} style={{ lineHeight: 0, transform: 'translateY(1px)' }}>
                     <MenuUnfold theme='outline' size={18} fill={iconColors.secondary} strokeWidth={3} />
                   </span>
-                )}
-                <span className='ml-8px font-bold text-16px text-t-primary inline-block overflow-hidden text-ellipsis whitespace-nowrap w-full max-w-60%'>{props.title}</span>
+                )} */}
+                <span className='font-bold text-16px text-t-primary inline-block overflow-hidden text-ellipsis whitespace-nowrap w-full max-w-60%'>{props.title}</span>
               </FlexFullContainer>
               <div className='flex items-center gap-16px'>
                 {backend && (
                   <div className='ml-16px flex items-center gap-2 bg-2 w-fit rounded-full px-[8px] py-[2px]'>
-                    <img src={backend === 'claude' ? ClaudeLogo : backend === 'gemini' ? GeminiLogo : backend === 'qwen' ? QwenLogo : backend === 'iflow' ? IflowLogo : backend === 'codex' ? CodexLogo : ''} alt={`${backend} logo`} width={16} height={16} style={{ objectFit: 'contain' }} />
-                    <span className='text-sm'>{ACP_BACKENDS_ALL[backend as keyof typeof ACP_BACKENDS_ALL]?.name || backend}</span>
+                    {AGENT_LOGO_MAP[backend as AcpBackend] ? <img src={AGENT_LOGO_MAP[backend as AcpBackend]} alt={`${backend} logo`} width={16} height={16} style={{ objectFit: 'contain' }} /> : <Robot theme='outline' size={16} fill={iconColors.primary} />}
+                    <span className='text-sm'>{displayName}</span>
                   </div>
                 )}
-                {/* {rightSiderCollapsed ? (
-                  <ExpandRight onClick={() => setRightSiderCollapsed(false)} className='cursor-pointer flex' theme='outline' size='24' fill={iconColors.secondary} strokeWidth={3} />
-                ) : (
-                  <ExpandLeft onClick={() => setRightSiderCollapsed(true)} className='cursor-pointer flex' theme='outline' size='24' fill={iconColors.secondary} strokeWidth={3} />
-                )} */}
               </div>
             </ArcoLayout.Header>
             <ArcoLayout.Content className='flex flex-col flex-1 bg-1 overflow-hidden'>{props.children}</ArcoLayout.Content>
@@ -310,19 +333,19 @@ const ChatLayout: React.FC<{
             !layout?.isMobile &&
             createPreviewDragHandle({
               className: 'absolute right-0 top-0 bottom-0',
-              style: { borderRight: '1px solid var(--bg-3)' },
+              style: {},
             })}
         </div>
 
         {/* 预览面板（移到中间位置）/ Preview panel (moved to middle position) */}
         {isPreviewOpen && (
           <div
-            className='flex flex-col relative'
+            className='preview-panel flex flex-col relative my-[16px] mr-[16px] rounded-[15px]'
             style={{
               flexGrow: layout?.isMobile ? 0 : previewFlex,
               flexShrink: layout?.isMobile ? 0 : 1,
               flexBasis: layout?.isMobile ? '100%' : 0,
-              borderLeft: '1px solid var(--bg-3)',
+              border: '1px solid var(--bg-3)',
               minWidth: layout?.isMobile ? '100%' : '260px',
             }}
           >
@@ -333,7 +356,7 @@ const ChatLayout: React.FC<{
         {/* 工作空间面板（移到最右边）/ Workspace panel (moved to rightmost position) */}
         {!layout?.isMobile && (
           <div
-            className={classNames('!bg-1 relative chat-layout-right-sider layout-sider transition-all duration-300', {
+            className={classNames('!bg-1 relative chat-layout-right-sider layout-sider', {
               'layout-sider--folding': autoRightCollapsing || manualRightCollapsing,
             })}
             style={{
@@ -350,7 +373,7 @@ const ChatLayout: React.FC<{
               !rightSiderCollapsed &&
               createWorkspaceDragHandle({
                 className: 'absolute left-0 top-0 bottom-0',
-                style: { borderLeft: '1px solid var(--bg-3)' },
+                style: {},
                 reverse: true,
               })}
             <WorkspacePanelHeader showToggle={!isMacRuntime} collapsed={rightSiderCollapsed} onToggle={() => dispatchWorkspaceToggleEvent()}>

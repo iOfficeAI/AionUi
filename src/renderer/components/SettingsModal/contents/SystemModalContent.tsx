@@ -21,6 +21,8 @@ import CodeMirror from '@uiw/react-codemirror';
 import { css as cssLang } from '@codemirror/lang-css';
 import { useThemeContext } from '@/renderer/context/ThemeContext';
 import AionCollapse from '@/renderer/components/base/AionCollapse';
+import classNames from 'classnames';
+import { useSettingsViewMode } from '../settingsViewContext';
 
 // ==================== 样式常量 / Style Constants ====================
 
@@ -73,7 +75,7 @@ const DirInputItem: React.FC<{
         };
 
         return (
-          <div className='aion-dir-input h-[32px] flex items-center rounded-8px border border-solid border-transparent pl-14px'>
+          <div className='aion-dir-input h-[32px] flex items-center rounded-8px border border-solid border-transparent pl-14px bg-[var(--fill-0)]'>
             <Tooltip content={currentValue || t('settings.dirNotConfigured')} position='top'>
               <div className='flex-1 min-w-0 text-13px text-t-primary truncate '>{currentValue || t('settings.dirNotConfigured')}</div>
             </Tooltip>
@@ -134,6 +136,8 @@ const SystemModalContent: React.FC<SystemModalContentProps> = ({ onRequestClose 
   const [error, setError] = useState<string | null>(null);
   const { theme } = useThemeContext();
   const [customCss, setCustomCss] = useState('');
+  const viewMode = useSettingsViewMode();
+  const isPageMode = viewMode === 'page';
 
   // Get system directory info
   const { data: systemInfo } = useSWR('system.dir.info', () => ipcBridge.application.systemInfo.invoke());
@@ -260,28 +264,29 @@ const SystemModalContent: React.FC<SystemModalContentProps> = ({ onRequestClose 
       {modalContextHolder}
 
       {/* 内容区域 / Content Area */}
-      <AionScrollArea className='flex-1 min-h-0 pb-16px'>
+      <AionScrollArea className='flex-1 min-h-0 pb-16px' disableOverflow={isPageMode}>
         <div className='space-y-16px'>
-          {/* 偏好设置项（语言、主题、字体大小）/ Preference items (Language, Theme, Font Size) */}
-          {preferenceItems.map((item) => (
-            <div key={item.key} className='h-80px flex justify-between items-center px-[12px] md:px-[32px] bg-2 rd-16px'>
-              <div className='w-full flex flex-col divide-y divide-border-2'>
-                <PreferenceRow label={item.label}>{item.component}</PreferenceRow>
-              </div>
+          {/* 偏好设置与高级设置合并展示 / Combined preferences and advanced settings */}
+          <div className='px-[12px] md:px-[32px] py-16px bg-2 rd-16px space-y-12px'>
+            <div className='w-full flex flex-col divide-y divide-border-2'>
+              {preferenceItems.map((item) => (
+                <PreferenceRow key={item.key} label={item.label}>
+                  {item.component}
+                </PreferenceRow>
+              ))}
             </div>
-          ))}
-
-          {/* 高级设置 / Advanced Settings - Collapsible */}
-          <AionCollapse bordered={false} defaultActiveKey={['advanced']} expandIcon={renderExpandIcon} expandIconPosition='right'>
-            <AionCollapse.Item name='advanced' header={<span className='text-14px text-2'>{t('settings.advancedSettings')}</span>} className='bg-transparent' contentStyle={{ padding: '12px 0 0' }}>
-              <Form form={form} layout='vertical' className='space-y-16px'>
-                <DirInputItem label={t('settings.cacheDir')} field='cacheDir' />
-                <DirInputItem label={t('settings.workDir')} field='workDir' />
-
-                {error && <Alert className='mt-16px' type='error' content={typeof error === 'string' ? error : JSON.stringify(error)} />}
-              </Form>
-            </AionCollapse.Item>
-          </AionCollapse>
+            <Divider className='my-0 border-border-2' />
+            {/* <AionCollapse className='!p-[0px]' bordered={false} defaultActiveKey={['advanced']} expandIcon={renderExpandIcon} expandIconPosition='right'>
+              <AionCollapse.Item name='advanced' header={<span className='text-14px text-2'>{t('settings.advancedSettings')}</span>} className='bg-transparent' contentStyle={{ padding: '12px 0 0' }}>
+                
+              </AionCollapse.Item>
+            </AionCollapse> */}
+            <Form form={form} layout='vertical' className='space-y-16px'>
+              <DirInputItem label={t('settings.cacheDir')} field='cacheDir' />
+              <DirInputItem label={t('settings.workDir')} field='workDir' />
+              {error && <Alert className='mt-16px' type='error' content={typeof error === 'string' ? error : JSON.stringify(error)} />}
+            </Form>
+          </div>
 
           {/* 自定义CSS设置 / Custom CSS Settings - Collapsible */}
           <AionCollapse bordered={false} defaultActiveKey={['css']} expandIcon={renderExpandIcon} expandIconPosition='right'>
@@ -293,11 +298,11 @@ const SystemModalContent: React.FC<SystemModalContentProps> = ({ onRequestClose 
       </AionScrollArea>
 
       {/* 底部操作栏 / Footer with action buttons */}
-      <div className='flex-shrink-0 px-24px pt-10px border-t border-border-2 flex justify-end gap-10px'>
-        <Button className='rd-100px' onClick={handleCancel}>
+      <div className={classNames('flex-shrink-0 flex gap-10px border-t border-border-2 px-24px pt-10px', isPageMode ? 'border-none px-0 pt-10px flex-col md:flex-row md:justify-end' : 'justify-end')}>
+        <Button className={classNames('rd-100px', isPageMode && 'w-full md:w-auto')} onClick={handleCancel}>
           {t('common.cancel')}
         </Button>
-        <Button type='primary' loading={loading} onClick={onSubmit} className='rd-100px'>
+        <Button type='primary' loading={loading} onClick={onSubmit} className={classNames('rd-100px', isPageMode && 'w-full md:w-auto')}>
           {t('common.save')}
         </Button>
       </div>

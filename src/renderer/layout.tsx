@@ -8,7 +8,6 @@ import { ipcBridge } from '@/common';
 import { ConfigStorage } from '@/common/storage';
 import PwaPullToRefresh from '@/renderer/components/PwaPullToRefresh';
 import Titlebar from '@/renderer/components/Titlebar';
-import { useSettingsModal } from '@/renderer/components/SettingsModal/useSettingsModal';
 import { Layout as ArcoLayout } from '@arco-design/web-react';
 import { MenuFold, MenuUnfold } from '@icon-park/react';
 import classNames from 'classnames';
@@ -63,7 +62,6 @@ const Layout: React.FC<{
   const { onClick } = useDebug();
   const { contextHolder: multiAgentContextHolder } = useMultiAgentDetection();
   const { contextHolder: directorySelectionContextHolder } = useDirectorySelection();
-  const { openSettings, settingsModal } = useSettingsModal();
   const location = useLocation();
   const workspaceAvailable = location.pathname.startsWith('/conversation/');
   const collapsedRef = useRef(collapsed);
@@ -256,7 +254,7 @@ const Layout: React.FC<{
             }
           >
             <ArcoLayout.Header
-              className={classNames('flex items-center justify-start p-16px gap-12px pl-20px layout-sider-header', {
+              className={classNames('flex items-center justify-start py-10px px-16px pl-20px gap-12px layout-sider-header', {
                 'cursor-pointer group ': collapsed,
               })}
             >
@@ -293,7 +291,6 @@ const Layout: React.FC<{
                       if (isMobile) setCollapsed(true);
                     },
                     collapsed,
-                    openSettings,
                   } as any)
                 : sider}
             </ArcoLayout.Content>
@@ -318,7 +315,6 @@ const Layout: React.FC<{
             <PwaPullToRefresh />
           </ArcoLayout.Content>
         </ArcoLayout>
-        {settingsModal}
       </div>
     </LayoutContext.Provider>
   );

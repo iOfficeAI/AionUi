@@ -44,12 +44,12 @@ const ThoughtDisplay: React.FC<ThoughtDisplayProps> = ({ thought, style = 'defau
     };
   }, [theme, style]);
 
-  if (!thought.subject) {
+  if (!thought?.subject) {
     return null;
   }
 
   return (
-    <div className='px-10px py-10px rd-20px text-14px pb-40px lh-20px text-6' style={containerStyle}>
+    <div className='px-10px py-10px rd-20px text-14px pb-40px lh-20px text-t-primary' style={containerStyle}>
       <Tag color='arcoblue' size='small' className='float-left mr-4px'>
         {thought.subject}
       </Tag>

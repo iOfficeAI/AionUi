@@ -1,5 +1,5 @@
 .guidLayout {
-  width: clamp(var(--app-min-width, 390px), calc(100% - 32px), 800px);
+  width: clamp(var(--app-min-width, 360px), calc(100% - 32px), 800px);
   max-width: 100%;
   padding: 0 16px;
   box-sizing: border-box;
@@ -55,7 +55,7 @@
 /* 移动端优化 */
 @media (max-width: 768px) {
   .guidLayout {
-    width: clamp(var(--app-min-width, 390px), calc(100% - 32px), 100%);
+    width: clamp(var(--app-min-width, 360px), calc(100% - 32px), 100%);
     padding: 0 16px;
     box-sizing: border-box;
   }

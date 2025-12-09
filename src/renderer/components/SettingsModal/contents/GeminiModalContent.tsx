@@ -11,6 +11,8 @@ import { useThemeContext } from '@/renderer/context/ThemeContext';
 import { Button, Divider, Form, Input, Message, Switch } from '@arco-design/web-react';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import classNames from 'classnames';
+import { useSettingsViewMode } from '../settingsViewContext';
 
 interface GeminiModalContentProps {
   /** 请求关闭设置弹窗 / Request closing the settings modal */
@@ -25,6 +27,8 @@ const GeminiModalContent: React.FC<GeminiModalContentProps> = ({ onRequestClose 
   const [googleAccountLoading, setGoogleAccountLoading] = useState(false);
   const [userLoggedOut, setUserLoggedOut] = useState(false);
   const [message, messageContext] = Message.useMessage();
+  const viewMode = useSettingsViewMode();
+  const isPageMode = viewMode === 'page';
 
   const loadGoogleAuthStatus = (proxy?: string) => {
     setGoogleAccountLoading(true);
@@ -94,16 +98,20 @@ const GeminiModalContent: React.FC<GeminiModalContentProps> = ({ onRequestClose 
       {messageContext}
 
       {/* Content Area */}
-      <AionScrollArea className='flex-1 min-h-0'>
+      <AionScrollArea className='flex-1 min-h-0' disableOverflow={isPageMode}>
         <div className='space-y-16px'>
           <div className='px-[12px] py-[24px] md:px-[32px] bg-2 rd-12px md:rd-16px border border-border-2'>
             <Form form={form} layout='horizontal' labelCol={{ flex: '140px' }} labelAlign='left' wrapperCol={{ flex: '1' }}>
               <Form.Item label={t('settings.personalAuth')} field='googleAccount' layout='horizontal'>
                 {(props) => (
-                  <div className='float-right'>
+                  <div
+                    className={classNames('flex flex-wrap items-center justify-end gap-12px', {
+                      'mt-12px w-full justify-start md:mt-0 md:w-auto md:justify-end': isPageMode,
+                    })}
+                  >
                     {props.googleAccount ? (
                       <>
-                        <span className='text-14px text-t-primary mr-12px'>{props.googleAccount}</span>
+                        <span className='text-14px text-t-primary'>{props.googleAccount}</span>
                         <Button
                           size='small'
                           className='rd-100px border-1 border-[#86909C]'
@@ -163,7 +171,11 @@ const GeminiModalContent: React.FC<GeminiModalContentProps> = ({ onRequestClose 
 
               <Form.Item label={t('settings.yoloMode')} field='yoloMode' layout='horizontal'>
                 {(value, form) => (
-                  <div className='float-right'>
+                  <div
+                    className={classNames('flex justify-end', {
+                      'mt-12px w-full justify-start md:mt-0 md:w-auto md:justify-end': isPageMode,
+                    })}
+                  >
                     <Switch checked={value.yoloMode} onChange={(checked) => form.setFieldValue('yoloMode', checked)} />
                   </div>
                 )}
@@ -174,11 +186,11 @@ const GeminiModalContent: React.FC<GeminiModalContentProps> = ({ onRequestClose 
       </AionScrollArea>
 
       {/* Footer with Buttons */}
-      <div className='flex-shrink-0 pl-24px py-16px border-t border-border-2 flex justify-end gap-10px'>
-        <Button className='rd-100px' onClick={handleCancel}>
+      <div className={classNames('flex-shrink-0 flex gap-10px border-t border-border-2 pl-24px py-16px', isPageMode ? 'border-none pl-0 pr-0 pt-10px flex-col md:flex-row md:justify-end' : 'justify-end')}>
+        <Button className={classNames('rd-100px', isPageMode && 'w-full md:w-auto')} onClick={handleCancel}>
           {t('common.cancel')}
         </Button>
-        <Button type='primary' loading={loading} onClick={onSubmit} className='rd-100px'>
+        <Button type='primary' loading={loading} onClick={onSubmit} className={classNames('rd-100px', isPageMode && 'w-full md:w-auto')}>
           {t('common.save')}
         </Button>
       </div>

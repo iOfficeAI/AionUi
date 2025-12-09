@@ -1,7 +1,7 @@
 /* Base styles - theme-independent */
 
 :root {
-  --app-min-width: 390px;
+  --app-min-width: 360px;
   --titlebar-height: 36px;
 }
 
@@ -27,10 +27,9 @@
 }
 
 .app-titlebar--mac {
-  height: 36px;
+  height: 55px;
   min-height: 36px;
   /* Reserve space for macOS traffic light buttons (left side) */
-  padding-left: 80px;
   padding-right: 12px;
 }
 
@@ -186,16 +185,20 @@ body,
 /* Layout sider transitions - keep bilingual comments for clarity / 布局侧栏过渡动画（中英注释） */
 .layout-sider {
   transition:
-    width 0.32s ease,
-    min-width 0.32s ease,
-    max-width 0.32s ease;
+    flex-grow 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    flex-basis 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    min-width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    max-width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    border-left 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: flex-grow, flex-basis, width, min-width;
 }
 
 .layout-sider-header,
 .layout-sider-content {
   transition:
-    opacity 0.24s ease,
-    transform 0.24s ease;
+    opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   will-change: opacity, transform;
 }
 
@@ -211,8 +214,27 @@ body,
 @media (prefers-reduced-motion: reduce) {
   .layout-sider,
   .layout-sider-header,
-  .layout-sider-content {
+  .layout-sider-content,
+  .preview-panel {
     transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* Preview panel animation / 预览面板动画 */
+.preview-panel {
+  animation: preview-panel-enter 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  will-change: opacity, transform;
+}
+
+@keyframes preview-panel-enter {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
   }
 }
 
@@ -470,4 +492,12 @@ body,
 .arco-message-wrapper {
   left: 266px !important;
   width: calc(100% - 266px) !important;
+}
+
+/* Default background for select and input components */
+/* Select 和 Input 组件默认背景 */
+.arco-select-view,
+.arco-input,
+.arco-input-inner-wrapper {
+  background-color: var(--fill-0) !important;
 }
