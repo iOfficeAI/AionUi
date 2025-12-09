@@ -1,7 +1,7 @@
 import FlexFullContainer from '@/renderer/components/FlexFullContainer';
 import { ConfigStorage } from '@/common/storage';
 import { Layout as ArcoLayout } from '@arco-design/web-react';
-import { ExpandLeft, ExpandRight, MenuUnfold, Robot } from '@icon-park/react';
+import { ExpandLeft, ExpandRight, Robot } from '@icon-park/react';
 import React, { useEffect, useRef, useState } from 'react';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { usePreviewContext, PreviewPanel } from '@/renderer/pages/conversation/preview';
@@ -220,7 +220,6 @@ const ChatLayout: React.FC<{
   const effectiveWorkspaceRatio = isDesktop && !rightSiderCollapsed ? workspaceSplitRatio : 0;
   const chatFlex = isDesktop ? (isPreviewOpen ? chatSplitRatio : 100 - effectiveWorkspaceRatio) : 100;
   const workspaceFlex = effectiveWorkspaceRatio;
-  const previewFlex = isDesktop && isPreviewOpen ? Math.max(0, 100 - chatFlex - workspaceFlex) : 0;
   const viewportWidth = containerWidth || (typeof window === 'undefined' ? 0 : window.innerWidth);
   const workspaceWidthPx = Math.min(500, Math.max(200, (workspaceSplitRatio / 100) * (viewportWidth || 0)));
 
@@ -232,7 +231,8 @@ const ChatLayout: React.FC<{
     if (workspaceSplitRatio > maxWorkspace) {
       setWorkspaceSplitRatio(maxWorkspace);
     }
-  }, [chatSplitRatio, isDesktop, isPreviewOpen, rightSiderCollapsed, setWorkspaceSplitRatio, workspaceSplitRatio]);
+    // 故意不将 workspaceSplitRatio 加入依赖，避免拖动工作空间时触发额外的 effect
+  }, [chatSplitRatio, isDesktop, isPreviewOpen, rightSiderCollapsed, setWorkspaceSplitRatio]);
 
   useEffect(() => {
     if (!isPreviewOpen || !isDesktop) {
@@ -243,7 +243,8 @@ const ChatLayout: React.FC<{
     if (chatSplitRatio > maxChat) {
       setChatSplitRatio(maxChat);
     }
-  }, [chatSplitRatio, isDesktop, isPreviewOpen, rightSiderCollapsed, setChatSplitRatio, workspaceSplitRatio]);
+    // 故意不将 workspaceSplitRatio 加入依赖，避免拖动工作空间时影响会话面板
+  }, [chatSplitRatio, isDesktop, isPreviewOpen, rightSiderCollapsed, setChatSplitRatio]);
 
   // 预览打开时自动收起侧边栏和工作空间 / Auto-collapse sidebar and workspace when preview opens
   useEffect(() => {
@@ -291,9 +292,10 @@ const ChatLayout: React.FC<{
         <div
           className='flex flex-col relative'
           style={{
-            flexGrow: chatFlex,
-            flexShrink: 1,
-            flexBasis: 0,
+            // 使用 flexBasis 设置宽度，避免 width 和 flexBasis 冲突
+            flexGrow: isPreviewOpen && isDesktop ? 0 : chatFlex,
+            flexShrink: 0,
+            flexBasis: isPreviewOpen && isDesktop ? `${chatFlex}%` : 0,
             display: isPreviewOpen && layout?.isMobile ? 'none' : 'flex',
             minWidth: isDesktop ? '240px' : '100%',
           }}
@@ -309,11 +311,6 @@ const ChatLayout: React.FC<{
           >
             <ArcoLayout.Header className={classNames('h-52px flex items-center justify-between p-16px gap-16px !bg-1 chat-layout-header')}>
               <FlexFullContainer className='h-full' containerClassName='flex items-center'>
-                {/* {layout?.isMobile && layout?.siderCollapsed && (
-                  <span className='inline-flex items-center justify-center w-18px h-18px mr-4px cursor-pointer' onClick={() => layout.setSiderCollapsed(false)} style={{ lineHeight: 0, transform: 'translateY(1px)' }}>
-                    <MenuUnfold theme='outline' size={18} fill={iconColors.secondary} strokeWidth={3} />
-                  </span>
-                )} */}
                 <span className='font-bold text-16px text-t-primary inline-block overflow-hidden text-ellipsis whitespace-nowrap w-full max-w-60%'>{props.title}</span>
               </FlexFullContainer>
               <div className='flex items-center gap-16px'>
@@ -342,7 +339,8 @@ const ChatLayout: React.FC<{
           <div
             className='preview-panel flex flex-col relative my-[16px] mr-[16px] rounded-[15px]'
             style={{
-              flexGrow: layout?.isMobile ? 0 : previewFlex,
+              // 使用 flexGrow: 1 填充剩余空间（会话和工作空间使用固定 flexBasis）
+              flexGrow: layout?.isMobile ? 0 : 1,
               flexShrink: layout?.isMobile ? 0 : 1,
               flexBasis: layout?.isMobile ? '100%' : 0,
               border: '1px solid var(--bg-3)',
@@ -360,10 +358,10 @@ const ChatLayout: React.FC<{
               'layout-sider--folding': autoRightCollapsing || manualRightCollapsing,
             })}
             style={{
-              flexGrow: workspaceFlex,
-              flexShrink: 1,
-              flexBasis: rightSiderCollapsed ? '0px' : 0,
-              width: rightSiderCollapsed ? '0px' : undefined,
+              // 使用 flexBasis 设置宽度，避免 width 和 flexBasis 冲突
+              flexGrow: isPreviewOpen ? 0 : workspaceFlex,
+              flexShrink: 0,
+              flexBasis: rightSiderCollapsed ? '0px' : isPreviewOpen ? `${workspaceFlex}%` : 0,
               minWidth: rightSiderCollapsed ? '0px' : '220px',
               overflow: 'hidden',
               borderLeft: rightSiderCollapsed ? 'none' : '1px solid var(--bg-3)',

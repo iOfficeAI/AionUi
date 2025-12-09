@@ -80,28 +80,63 @@ export const useResizableSplit = (options: UseResizableSplitOptions = {}) => {
         const containerWidth = outerContainer?.offsetWidth || 0;
         const startRatio = splitRatio;
 
+        // 用于 requestAnimationFrame 节流 / For requestAnimationFrame throttling
+        let rafId: number | null = null;
+        let pendingRatio: number | null = null;
+
         // 初始化拖动样式 / Initialize drag styles
         const initDragStyle = () => {
           const originalUserSelect = document.body.style.userSelect;
           document.body.style.userSelect = 'none';
           document.body.style.cursor = 'col-resize';
+
+          // 给最近的 layout-sider 添加拖动类，禁用 transition
+          // Add dragging class to nearest layout-sider to disable transition
+          const layoutSider = dragHandle.closest('.layout-sider');
+          if (layoutSider) {
+            layoutSider.classList.add('layout-sider--dragging');
+          }
+
           return () => {
             document.body.style.userSelect = originalUserSelect;
             document.body.style.cursor = '';
+            // 清理未执行的 RAF / Clean up pending RAF
+            if (rafId !== null) {
+              cancelAnimationFrame(rafId);
+            }
+            // 移除拖动类 / Remove dragging class
+            if (layoutSider) {
+              layoutSider.classList.remove('layout-sider--dragging');
+            }
           };
         };
 
         const remove = removeStack(
           initDragStyle(),
-          // 鼠标移动时更新比例 / Update ratio on mouse move
+          // 鼠标移动时更新比例（使用 RAF 节流）/ Update ratio on mouse move (throttled with RAF)
           addEventListener('mousemove', (e: MouseEvent) => {
             const deltaX = reverse ? startX - e.clientX : e.clientX - startX;
             const deltaRatio = (deltaX / containerWidth) * 100;
-            const newRatio = Math.max(minWidth, Math.min(maxWidth, startRatio + deltaRatio));
-            setSplitRatioState(newRatio);
+            pendingRatio = Math.max(minWidth, Math.min(maxWidth, startRatio + deltaRatio));
+
+            // 使用 requestAnimationFrame 节流，避免每次 mousemove 都触发渲染
+            // Use requestAnimationFrame to throttle, avoid rendering on every mousemove
+            if (rafId === null) {
+              rafId = requestAnimationFrame(() => {
+                if (pendingRatio !== null) {
+                  setSplitRatioState(pendingRatio);
+                }
+                rafId = null;
+              });
+            }
           }),
           // 鼠标释放时保存比例 / Save ratio on mouse up
           addEventListener('mouseup', (e: MouseEvent) => {
+            // 取消未执行的 RAF / Cancel pending RAF
+            if (rafId !== null) {
+              cancelAnimationFrame(rafId);
+              rafId = null;
+            }
             const deltaX = reverse ? startX - e.clientX : e.clientX - startX;
             const deltaRatio = (deltaX / containerWidth) * 100;
             const newRatio = Math.max(minWidth, Math.min(maxWidth, startRatio + deltaRatio));
