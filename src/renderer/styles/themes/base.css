@@ -1,7 +1,7 @@
 /* Base styles - theme-independent */
 
 :root {
-  --app-min-width: 390px;
+  --app-min-width: 360px;
   --titlebar-height: 36px;
 }
 

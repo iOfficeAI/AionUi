@@ -333,19 +333,19 @@ const ChatLayout: React.FC<{
             !layout?.isMobile &&
             createPreviewDragHandle({
               className: 'absolute right-0 top-0 bottom-0',
-              style: { borderRight: '1px solid var(--bg-3)' },
+              style: {},
             })}
         </div>
 
         {/* 预览面板（移到中间位置）/ Preview panel (moved to middle position) */}
         {isPreviewOpen && (
           <div
-            className='flex flex-col relative'
+            className='flex flex-col relative my-[16px] mr-[16px] rounded-[15px]'
             style={{
               flexGrow: layout?.isMobile ? 0 : previewFlex,
               flexShrink: layout?.isMobile ? 0 : 1,
               flexBasis: layout?.isMobile ? '100%' : 0,
-              borderLeft: '1px solid var(--bg-3)',
+              border: '1px solid var(--bg-3)',
               minWidth: layout?.isMobile ? '100%' : '260px',
             }}
           >
@@ -373,7 +373,7 @@ const ChatLayout: React.FC<{
               !rightSiderCollapsed &&
               createWorkspaceDragHandle({
                 className: 'absolute left-0 top-0 bottom-0',
-                style: { borderLeft: '1px solid var(--bg-3)' },
+                style: {},
                 reverse: true,
               })}
             <WorkspacePanelHeader showToggle={!isMacRuntime} collapsed={rightSiderCollapsed} onToggle={() => dispatchWorkspaceToggleEvent()}>
