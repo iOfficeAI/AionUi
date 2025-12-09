@@ -47,8 +47,14 @@ class AcpDetector {
       }));
 
       detected.push(...customDetectedAgents);
-    } catch {
-      // 未配置自定义代理 - 这是正常情况 / No custom agents configured - this is normal
+    } catch (error) {
+      // 配置读取失败时区分预期错误和非预期错误
+      // Distinguish expected vs unexpected errors when reading config
+      if (error instanceof Error && (error.message.includes('ENOENT') || error.message.includes('not found'))) {
+        // 未配置自定义代理 - 这是正常情况 / No custom agents configured - this is normal
+        return;
+      }
+      console.warn('[AcpDetector] Unexpected error loading custom agents:', error);
     }
   }
 

@@ -193,10 +193,10 @@ const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string
   }
   a{
     color:${theme.Color.PrimaryColor};
-     text-decoration: none;
-     cursor: pointer;
-     word-break: break-all;
-     overflow-wrap: anywhere;
+    text-decoration: none;
+    cursor: pointer;
+    word-break: break-all;
+    overflow-wrap: anywhere;
   }
   h1{
     font-size: 24px;

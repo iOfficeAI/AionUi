@@ -101,6 +101,7 @@ export type TChatConversation =
           workspace?: string;
           cliPath?: string;
           customWorkspace?: boolean;
+          sandboxMode?: 'read-only' | 'workspace-write' | 'danger-full-access'; // Codex sandbox permission mode
         }
       >,
       'model'

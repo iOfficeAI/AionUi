@@ -211,6 +211,11 @@ body,
   }
 }
 
+/* 拖动时禁用过渡动画，确保流畅的拖动体验 / Disable transition during drag for smooth dragging */
+.layout-sider--dragging {
+  transition: none !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .layout-sider,
   .layout-sider-header,
