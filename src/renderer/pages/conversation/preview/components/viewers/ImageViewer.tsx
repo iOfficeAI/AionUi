@@ -76,7 +76,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ filePath, content, fileName
       );
     }
 
-    return <Image src={imageSrc} alt={fileName || filePath || 'Image preview'} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} className='max-w-full max-h-full' preview={!!imageSrc} />;
+    return <Image src={imageSrc} alt={fileName || filePath || 'Image preview'} className='w-full h-full flex items-center justify-center [&_.arco-image-img]:w-full [&_.arco-image-img]:h-full [&_.arco-image-img]:object-contain' preview={!!imageSrc} />;
   };
 
   return <div className='flex-1 flex items-center justify-center bg-bg-1 p-24px overflow-auto'>{renderStatus()}</div>;

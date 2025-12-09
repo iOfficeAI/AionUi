@@ -7,8 +7,9 @@ import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/use
 import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
 import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
-import { Button, Tag } from '@arco-design/web-react';
-import { Plus } from '@icon-park/react';
+import { mergeFileSelectionItems } from '@/renderer/utils/fileSelection';
+import { Button, Dropdown, Menu, Tag } from '@arco-design/web-react';
+import { FolderOpen, Plus, UploadOne } from '@icon-park/react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import ShimmerText from '@renderer/components/ShimmerText';
@@ -18,6 +19,7 @@ import FilePreview from '@/renderer/components/FilePreview';
 import HorizontalFileList from '@/renderer/components/HorizontalFileList';
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';
 import { useLatestRef } from '@/renderer/hooks/useLatestRef';
+import { useWorkspaceSelector } from '@/renderer/hooks/useWorkspaceSelector';
 
 interface CodexDraftData {
   _type: 'codex';
@@ -37,6 +39,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
   const { t } = useTranslation();
   const addOrUpdateMessage = useAddOrUpdateMessage();
   const { setSendBoxHandler } = usePreviewContext();
+  const selectWorkspace = useWorkspaceSelector(conversation_id, 'codex');
 
   const [running, setRunning] = useState(false);
   const [aiProcessing, setAiProcessing] = useState(false); // New loading state for AI response
@@ -62,9 +65,10 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
     };
   })();
 
-  // 使用 useLatestRef 保存最新的 setContent，避免重复注册 handler
-  // Use useLatestRef to keep latest setContent to avoid re-registering handler
+  // 使用 useLatestRef 保存最新的 setContent/atPath，避免重复注册 handler
+  // Use useLatestRef to keep latest setters to avoid re-registering handler
   const setContentRef = useLatestRef(setContent);
+  const atPathRef = useLatestRef(atPath);
 
   // 当会话ID变化时，清理所有状态避免状态污染
   useEffect(() => {
@@ -149,6 +153,15 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
     // Add a small delay to ensure state persistence and prevent flashing
     setTimeout(() => {
       setAtPath(items);
+    }, 10);
+  });
+
+  useAddEventListener('codex.selected.file.append', (items: Array<string | FileOrFolderItem>) => {
+    setTimeout(() => {
+      const merged = mergeFileSelectionItems(atPathRef.current, items);
+      if (merged !== atPathRef.current) {
+        setAtPath(merged as Array<string | FileOrFolderItem>);
+      }
     }, 10);
   });
 
@@ -366,19 +379,42 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
         }
         tools={
           <>
-            <Button
-              type='secondary'
-              shape='circle'
-              icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />}
-              onClick={() => {
-                ipcBridge.dialog.showOpen
-                  .invoke({ properties: ['openFile', 'multiSelections'] })
-                  .then((files) => setUploadFile(files || []))
-                  .catch((error) => {
-                    console.error('Failed to open file dialog:', error);
-                  });
-              }}
-            ></Button>
+            <Dropdown
+              trigger='click'
+              position='br'
+              droplist={
+                <Menu className='min-w-180px'>
+                  <Menu.Item
+                    key='upload'
+                    onClick={() => {
+                      ipcBridge.dialog.showOpen
+                        .invoke({ properties: ['openFile', 'multiSelections'] })
+                        .then((files) => {
+                          if (files && files.length > 0) {
+                            setUploadFile([...uploadFile, ...files]);
+                          }
+                        })
+                        .catch((error) => {
+                          console.error('Failed to open file dialog:', error);
+                        });
+                    }}
+                  >
+                    <div className='flex items-center gap-8px leading-0'>
+                      <UploadOne theme='outline' size='16' fill={iconColors.secondary} style={{ lineHeight: 0 }} />
+                      <span>{t('conversation.welcome.uploadFile')}</span>
+                    </div>
+                  </Menu.Item>
+                  <Menu.Item key='workspace' onClick={selectWorkspace}>
+                    <div className='flex items-center gap-8px leading-0'>
+                      <FolderOpen theme='outline' size='16' fill={iconColors.secondary} style={{ lineHeight: 0 }} />
+                      <span>{t('conversation.welcome.specifyWorkspace')}</span>
+                    </div>
+                  </Menu.Item>
+                </Menu>
+              }
+            >
+              <Button type='secondary' shape='circle' icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />} />
+            </Dropdown>
           </>
         }
         onSend={onSendHandler}

@@ -56,7 +56,7 @@ const SettingsSider: React.FC<{ collapsed?: boolean }> = ({ collapsed = false })
                 '!bg-aou-2 ': isSelected,
               })}
               onClick={() => {
-                Promise.resolve(navigate(`/settings/${item.path}`)).catch((error) => {
+                Promise.resolve(navigate(`/settings/${item.path}`, { replace: true })).catch((error) => {
                   console.error('Navigation failed:', error);
                 });
               }}

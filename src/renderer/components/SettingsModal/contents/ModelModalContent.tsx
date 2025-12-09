@@ -17,6 +17,7 @@ import EditModeModal from '@/renderer/pages/settings/components/EditModeModal';
 import { iconColors } from '@/renderer/theme/colors';
 import AionCollapse from '@/renderer/components/base/AionCollapse';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
+import { useSettingsViewMode } from '../settingsViewContext';
 
 // Calculate API Key count
 const getApiKeyCount = (apiKey: string): number => {
@@ -26,6 +27,8 @@ const getApiKeyCount = (apiKey: string): number => {
 
 const ModelModalContent: React.FC = () => {
   const { t } = useTranslation();
+  const viewMode = useSettingsViewMode();
+  const isPageMode = viewMode === 'page';
   const [cacheKey, setCacheKey] = useState('model.config');
   const [collapseKey, setCollapseKey] = useState<Record<string, boolean>>({});
   const { data } = useSWR(cacheKey, () => {
@@ -105,7 +108,7 @@ const ModelModalContent: React.FC = () => {
       </div>
 
       {/* Content Area */}
-      <AionScrollArea className='flex-1 min-h-0'>
+      <AionScrollArea className='flex-1 min-h-0' disableOverflow={isPageMode}>
         {!data || data.length === 0 ? (
           <div className='flex flex-col items-center justify-center py-40px'>
             <Info theme='outline' size='48' className='text-t-secondary mb-16px' />

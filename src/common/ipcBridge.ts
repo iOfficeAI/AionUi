@@ -108,9 +108,9 @@ export const acpConversation = {
   confirmMessage: bridge.buildProvider<IBridgeResponse, IConfirmMessageParams>('acp.input.confirm.message'),
   responseStream: conversation.responseStream,
   detectCliPath: bridge.buildProvider<IBridgeResponse<{ path?: string }>, { backend: AcpBackend }>('acp.detect-cli-path'),
-  getAvailableAgents: bridge.buildProvider<IBridgeResponse<Array<{ backend: AcpBackend; name: string; cliPath?: string }>>, void>('acp.get-available-agents'),
+  getAvailableAgents: bridge.buildProvider<IBridgeResponse<Array<{ backend: AcpBackend; name: string; cliPath?: string; customAgentId?: string }>>, void>('acp.get-available-agents'),
   checkEnv: bridge.buildProvider<{ env: Record<string, string> }, void>('acp.check.env'),
-  refreshCustomAgent: bridge.buildProvider<IBridgeResponse, void>('acp.refresh-custom-agent'),
+  refreshCustomAgents: bridge.buildProvider<IBridgeResponse, void>('acp.refresh-custom-agents'),
   // clearAllCache: bridge.buildProvider<IBridgeResponse<{ details?: any }>, void>('acp.clear.all.cache'),
 };
 
@@ -181,7 +181,7 @@ export interface ICreateConversationParams {
   id?: string;
   name?: string;
   model: TProviderWithModel;
-  extra: { workspace?: string; defaultFiles?: string[]; backend?: AcpBackend; cliPath?: string; webSearchEngine?: 'google' | 'default'; agentName?: string };
+  extra: { workspace?: string; defaultFiles?: string[]; backend?: AcpBackend; cliPath?: string; webSearchEngine?: 'google' | 'default'; agentName?: string; customAgentId?: string };
 }
 interface IResetConversationParams {
   id?: string;
@@ -207,6 +207,7 @@ export interface IFileMetadata {
   size: number;
   type: string;
   lastModified: number;
+  isDirectory?: boolean;
 }
 
 export interface IResponseMessage {

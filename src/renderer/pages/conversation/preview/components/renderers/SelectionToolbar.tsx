@@ -6,8 +6,6 @@
 
 import React from 'react';
 import { useFloating, offset, flip, shift, autoUpdate } from '@floating-ui/react';
-import { Application } from '@icon-park/react';
-import { iconColors } from '@/renderer/theme/colors';
 import { usePreviewContext } from '../../context/PreviewContext';
 import type { SelectionPosition } from '@/renderer/hooks/useTextSelection';
 import { useTranslation } from 'react-i18next';
@@ -29,11 +27,11 @@ const SelectionToolbar: React.FC<SelectionToolbarProps> = ({ selectedText, posit
   const { t } = useTranslation();
   const { addToSendBox } = usePreviewContext();
 
-  // 使用 Floating UI 定位工具栏 / Use Floating UI to position the toolbar
+  // 使用 Floating UI 定位工具栏（跟随鼠标位置）/ Use Floating UI to position toolbar (follow mouse position)
   const { refs, floatingStyles } = useFloating({
-    placement: 'top', // 默认显示在选中文本上方 / Default position above selected text
+    placement: 'bottom-start', // 显示在鼠标下方 / Display below mouse
     middleware: [
-      offset(10), // 与选中文本的距离 / Distance from selected text
+      offset(8), // 与鼠标的距离 / Distance from mouse
       flip(), // 自动翻转避免溢出 / Auto flip to avoid overflow
       shift({ padding: 8 }), // 自动偏移保持在视口内 / Auto shift to stay within viewport
     ],
@@ -73,10 +71,7 @@ const SelectionToolbar: React.FC<SelectionToolbarProps> = ({ selectedText, posit
 
   return (
     <div ref={refs.setFloating} style={{ ...floatingStyles, zIndex: 99999 }}>
-      <div className='flex items-center gap-8px px-12px py-8px bg-white dark:bg-gray-800 rd-8px shadow-lg border-1 border-solid border-gray-200 dark:border-gray-700 cursor-pointer hover:opacity-80 transition-opacity' onMouseDown={handleMouseDown}>
-        <div className='flex items-center justify-center' style={{ width: '16px', height: '16px' }}>
-          <Application theme='outline' size='16' fill={iconColors.primary} />
-        </div>
+      <div className='flex items-center px-12px py-8px bg-white dark:bg-gray-800 rd-8px shadow-lg border-1 border-solid border-gray-200 dark:border-gray-700 cursor-pointer hover:opacity-80 transition-opacity' onMouseDown={handleMouseDown}>
         <span className='text-13px text-t-primary font-medium whitespace-nowrap leading-16px'>{t('preview.addToChat')}</span>
       </div>
     </div>

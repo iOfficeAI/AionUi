@@ -65,10 +65,10 @@ export function initAcpConversationBridge(): void {
     }
   });
 
-  // Refresh custom agent detection - called when custom agent config changes
-  ipcBridge.acpConversation.refreshCustomAgent.provider(async () => {
+  // Refresh custom agents detection - called when custom agents config changes
+  ipcBridge.acpConversation.refreshCustomAgents.provider(async () => {
     try {
-      await acpDetector.refreshCustomAgent();
+      await acpDetector.refreshCustomAgents();
       return { success: true };
     } catch (error) {
       return {

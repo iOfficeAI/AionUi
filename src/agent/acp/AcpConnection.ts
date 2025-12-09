@@ -27,34 +27,28 @@ interface PendingRequest<T = unknown> {
  *
  * @param cliPath - CLI command path (e.g., 'goose', 'npx @pkg/cli')
  * @param workingDir - Working directory for the spawned process
- * @param customArgs - Custom arguments (for custom backend)
+ * @param acpArgs - Arguments to enable ACP mode (e.g., ['acp'] for goose, ['--acp'] for auggie)
  * @param customEnv - Custom environment variables
  */
-export function createGenericSpawnConfig(cliPath: string, workingDir: string, customArgs?: string[], customEnv?: Record<string, string>) {
+export function createGenericSpawnConfig(cliPath: string, workingDir: string, acpArgs?: string[], customEnv?: Record<string, string>) {
   const isWindows = process.platform === 'win32';
   const env = { ...process.env, ...customEnv };
+
+  // Default to --experimental-acp if no acpArgs specified
+  const effectiveAcpArgs = acpArgs && acpArgs.length > 0 ? acpArgs : ['--experimental-acp'];
 
   let spawnCommand: string;
   let spawnArgs: string[];
 
-  if (customArgs && customArgs.length > 0) {
-    if (cliPath.startsWith('npx ')) {
-      const parts = cliPath.split(' ');
-      spawnCommand = isWindows ? 'npx.cmd' : 'npx';
-      spawnArgs = [...parts.slice(1), ...customArgs];
-    } else {
-      spawnCommand = cliPath;
-      spawnArgs = customArgs;
-    }
-  } else if (cliPath.startsWith('npx ')) {
+  if (cliPath.startsWith('npx ')) {
     // For "npx @package/name", split into command and arguments
     const parts = cliPath.split(' ');
     spawnCommand = isWindows ? 'npx.cmd' : 'npx';
-    spawnArgs = [...parts.slice(1), '--experimental-acp'];
+    spawnArgs = [...parts.slice(1), ...effectiveAcpArgs];
   } else {
-    // For regular paths like '/usr/local/bin/cli'
+    // For regular paths like '/usr/local/bin/cli' or simple commands like 'goose'
     spawnCommand = cliPath;
-    spawnArgs = ['--experimental-acp'];
+    spawnArgs = effectiveAcpArgs;
   }
 
   const options: SpawnOptions = {
@@ -89,13 +83,13 @@ export class AcpConnection {
   public onFileOperation: (operation: { method: string; path: string; content?: string; sessionId: string }) => void = () => {};
 
   // 通用的后端连接方法
-  private async connectGenericBackend(backend: 'gemini' | 'qwen' | 'iflow' | 'custom', cliPath: string, workingDir: string, customArgs?: string[], customEnv?: Record<string, string>): Promise<void> {
-    const config = createGenericSpawnConfig(cliPath, workingDir, customArgs, customEnv);
+  private async connectGenericBackend(backend: 'gemini' | 'qwen' | 'iflow' | 'goose' | 'auggie' | 'kimi' | 'opencode' | 'custom', cliPath: string, workingDir: string, acpArgs?: string[], customEnv?: Record<string, string>): Promise<void> {
+    const config = createGenericSpawnConfig(cliPath, workingDir, acpArgs, customEnv);
     this.child = spawn(config.command, config.args, config.options);
     await this.setupChildProcessHandlers(backend);
   }
 
-  async connect(backend: AcpBackend, cliPath?: string, workingDir: string = process.cwd(), customArgs?: string[], customEnv?: Record<string, string>): Promise<void> {
+  async connect(backend: AcpBackend, cliPath?: string, workingDir: string = process.cwd(), acpArgs?: string[], customEnv?: Record<string, string>): Promise<void> {
     if (this.child) {
       this.disconnect();
     }
@@ -113,17 +107,21 @@ export class AcpConnection {
       case 'gemini':
       case 'qwen':
       case 'iflow':
+      case 'goose':
+      case 'auggie':
+      case 'kimi':
+      case 'opencode':
         if (!cliPath) {
-          throw new Error(`${backend} CLI path is required for ${backend} backend`);
+          throw new Error(`CLI path is required for ${backend} backend`);
         }
-        await this.connectGenericBackend(backend, cliPath, workingDir);
+        await this.connectGenericBackend(backend, cliPath, workingDir, acpArgs);
         break;
 
       case 'custom':
         if (!cliPath) {
           throw new Error('Custom agent CLI path/command is required');
         }
-        await this.connectGenericBackend('custom', cliPath, workingDir, customArgs, customEnv);
+        await this.connectGenericBackend('custom', cliPath, workingDir, acpArgs, customEnv);
         break;
 
       default:

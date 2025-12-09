@@ -234,7 +234,6 @@ const HTMLPreview: React.FC<HTMLPreviewProps> = ({ content, filePath, hideToolba
       if (event.data.type === 'element-selected') {
         const elementInfo: SelectedElement = event.data.data;
         setSelectedElement(elementInfo);
-        console.log('[HTMLPreview] Element selected:', elementInfo);
         messageApi.info(t('preview.html.elementSelected', { path: elementInfo.path }));
       } else if (event.data.type === 'element-contextmenu') {
         const { element, x, y } = event.data.data;

@@ -8,6 +8,16 @@ import { ipcBridge } from '@/common';
 import type { PreviewContentType } from '@/common/types/preview';
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 
+/** DOM 片段数据结构 / DOM snippet data structure */
+export interface DomSnippet {
+  /** 唯一 ID / Unique ID */
+  id: string;
+  /** 简化标签名（用于显示）/ Simplified tag name (for display) */
+  tag: string;
+  /** 完整 HTML / Full HTML */
+  html: string;
+}
+
 export interface PreviewMetadata {
   language?: string;
   title?: string;
@@ -50,6 +60,12 @@ export interface PreviewContextValue {
   // 发送框集成 / Sendbox integration
   addToSendBox: (text: string) => void;
   setSendBoxHandler: (handler: ((text: string) => void) | null) => void;
+
+  // DOM 片段管理 / DOM snippet management
+  domSnippets: DomSnippet[];
+  addDomSnippet: (tag: string, html: string) => void;
+  removeDomSnippet: (id: string) => void;
+  clearDomSnippets: () => void;
 }
 
 const PreviewContext = createContext<PreviewContextValue | null>(null);
@@ -59,6 +75,7 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [tabs, setTabs] = useState<PreviewTab[]>([]);
   const [activeTabId, setActiveTabId] = useState<string | null>(null);
   const [sendBoxHandler, setSendBoxHandlerState] = useState<((text: string) => void) | null>(null);
+  const [domSnippets, setDomSnippets] = useState<DomSnippet[]>([]);
 
   // 追踪是否正在保存（避免与流式更新冲突）/ Track if currently saving (to avoid conflicts with streaming updates)
   const savingFilesRef = useRef<Set<string>>(new Set());
@@ -313,6 +330,21 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setSendBoxHandlerState(() => handler);
   }, []);
 
+  // DOM 片段管理函数 / DOM snippet management functions
+  // 只保留最新的一个片段 / Only keep the latest snippet
+  const addDomSnippet = useCallback((tag: string, html: string) => {
+    const id = `snippet-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    setDomSnippets([{ id, tag, html }]);
+  }, []);
+
+  const removeDomSnippet = useCallback((id: string) => {
+    setDomSnippets((prev) => prev.filter((s) => s.id !== id));
+  }, []);
+
+  const clearDomSnippets = useCallback(() => {
+    setDomSnippets([]);
+  }, []);
+
   // 流式内容订阅：订阅 agent 写入文件时的流式更新（替代文件监听）
   // Streaming content subscription: Subscribe to streaming updates when agent writes files (replaces file watching)
   // 使用防抖优化：等待 agent 完成写入后再更新预览，避免打字动画被频繁中断
@@ -407,6 +439,10 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
         closePreviewByIdentity,
         addToSendBox,
         setSendBoxHandler,
+        domSnippets,
+        addDomSnippet,
+        removeDomSnippet,
+        clearDomSnippets,
       }}
     >
       {children}

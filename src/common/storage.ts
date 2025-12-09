@@ -36,7 +36,7 @@ export interface IConfigStorageRefer {
       cliPath?: string;
     };
   };
-  'acp.customAgent'?: AcpBackendConfig;
+  'acp.customAgents'?: AcpBackendConfig[];
   'model.config': IProvider[];
   'mcp.config': IMcpServer[];
   'mcp.agentInstallStatus': Record<string, string[]>;
@@ -89,6 +89,7 @@ export type TChatConversation =
           cliPath?: string;
           customWorkspace?: boolean;
           agentName?: string;
+          customAgentId?: string; // UUID for identifying specific custom agent
         }
       >,
       'model'
@@ -100,6 +101,7 @@ export type TChatConversation =
           workspace?: string;
           cliPath?: string;
           customWorkspace?: boolean;
+          sandboxMode?: 'read-only' | 'workspace-write' | 'danger-full-access'; // Codex sandbox permission mode
         }
       >,
       'model'

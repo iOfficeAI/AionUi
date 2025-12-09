@@ -109,7 +109,17 @@ export function generateInspectScript(inspectMode: boolean, messages: InspectMes
         }
       };
 
-      // 点击元素直接复制 HTML / Click element to copy HTML directly
+      // 获取元素的简化标签名 / Get simplified tag name for display
+      const getSimplifiedTag = (element) => {
+        const tagName = element.tagName.toLowerCase();
+        const id = element.id ? '#' + element.id : '';
+        const className = element.className && typeof element.className === 'string'
+          ? '.' + element.className.split(' ').filter(c => c).slice(0, 1).join('.')
+          : '';
+        return tagName + id + className;
+      };
+
+      // 点击元素发送 HTML 到父窗口 / Click element to send HTML to parent window
       const handleClick = (e) => {
         e.preventDefault();
         e.stopPropagation();
@@ -117,15 +127,10 @@ export function generateInspectScript(inspectMode: boolean, messages: InspectMes
         const element = document.elementFromPoint(e.clientX, e.clientY);
         if (element && element !== overlay) {
           const html = element.outerHTML;
-          // 创建临时textarea复制内容 / Create temporary textarea to copy content
-          const textarea = document.createElement('textarea');
-          textarea.value = html;
-          textarea.style.position = 'fixed';
-          textarea.style.opacity = '0';
-          document.body.appendChild(textarea);
-          textarea.select();
-          document.execCommand('copy');
-          document.body.removeChild(textarea);
+          const tag = getSimplifiedTag(element);
+
+          // 通过 console.log 发送消息（webview 会捕获）/ Send message via console.log (webview will capture)
+          console.log('__INSPECT_ELEMENT__' + JSON.stringify({ html: html, tag: tag }));
 
           // 显示提示 / Show notification
           showNotification(${copySuccess});

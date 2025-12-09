@@ -11,8 +11,9 @@ import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/useSendBo
 import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
 import { allSupportedExts } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
-import { Button, Tag } from '@arco-design/web-react';
-import { Plus } from '@icon-park/react';
+import { mergeFileSelectionItems } from '@/renderer/utils/fileSelection';
+import { Button, Dropdown, Menu, Tag } from '@arco-design/web-react';
+import { FolderOpen, Plus, UploadOne } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { iconColors } from '@/renderer/theme/colors';
@@ -20,6 +21,7 @@ import FilePreview from '@/renderer/components/FilePreview';
 import HorizontalFileList from '@/renderer/components/HorizontalFileList';
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';
 import { useLatestCallback, useLatestRef } from '@/renderer/hooks/useLatestRef';
+import { useWorkspaceSelector } from '@/renderer/hooks/useWorkspaceSelector';
 
 const useAcpSendBoxDraft = getSendBoxDraftHook('acp', {
   _type: 'acp',
@@ -154,10 +156,12 @@ const AcpSendBox: React.FC<{
   const { t } = useTranslation();
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
   const { setSendBoxHandler } = usePreviewContext();
+  const selectWorkspace = useWorkspaceSelector(conversation_id, 'acp');
 
-  // 使用 useLatestRef 保存最新的 setContent，避免重复注册 handler
-  // Use useLatestRef to keep latest setContent to avoid re-registering handler
+  // 使用 useLatestRef 保存最新的 setContent/atPath，避免重复注册 handler
+  // Use useLatestRef to keep latest setters to avoid re-registering handler
   const setContentRef = useLatestRef(setContent);
+  const atPathRef = useLatestRef(atPath);
 
   const sendingInitialMessageRef = useRef(false); // Prevent duplicate sends
   const addOrUpdateMessage = useAddOrUpdateMessage(); // Move this here so it's available in useEffect
@@ -318,6 +322,12 @@ const AcpSendBox: React.FC<{
   };
 
   useAddEventListener('acp.selected.file', setAtPath);
+  useAddEventListener('acp.selected.file.append', (items: Array<string | FileOrFolderItem>) => {
+    const merged = mergeFileSelectionItems(atPathRef.current, items);
+    if (merged !== atPathRef.current) {
+      setAtPath(merged as Array<string | FileOrFolderItem>);
+    }
+  });
 
   return (
     <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
@@ -344,25 +354,42 @@ const AcpSendBox: React.FC<{
         supportedExts={allSupportedExts}
         tools={
           <>
-            <Button
-              type='secondary'
-              shape='circle'
-              icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />}
-              onClick={() => {
-                ipcBridge.dialog.showOpen
-                  .invoke({
-                    properties: ['openFile', 'multiSelections'],
-                  })
-                  .then((files) => {
-                    if (files && files.length > 0) {
-                      setUploadFile((prev) => [...prev, ...files]);
-                    }
-                  })
-                  .catch((error) => {
-                    console.error('Failed to open file dialog:', error);
-                  });
-              }}
-            ></Button>
+            <Dropdown
+              trigger='click'
+              position='br'
+              droplist={
+                <Menu className='min-w-180px'>
+                  <Menu.Item
+                    key='upload'
+                    onClick={() => {
+                      ipcBridge.dialog.showOpen
+                        .invoke({ properties: ['openFile', 'multiSelections'] })
+                        .then((files) => {
+                          if (files && files.length > 0) {
+                            setUploadFile([...uploadFile, ...files]);
+                          }
+                        })
+                        .catch((error) => {
+                          console.error('Failed to open file dialog:', error);
+                        });
+                    }}
+                  >
+                    <div className='flex items-center gap-8px leading-0'>
+                      <UploadOne theme='outline' size='16' fill={iconColors.secondary} style={{ lineHeight: 0 }} />
+                      <span>{t('conversation.welcome.uploadFile')}</span>
+                    </div>
+                  </Menu.Item>
+                  <Menu.Item key='workspace' onClick={selectWorkspace}>
+                    <div className='flex items-center gap-8px leading-0'>
+                      <FolderOpen theme='outline' size='16' fill={iconColors.secondary} style={{ lineHeight: 0 }} />
+                      <span>{t('conversation.welcome.specifyWorkspace')}</span>
+                    </div>
+                  </Menu.Item>
+                </Menu>
+              }
+            >
+              <Button type='secondary' shape='circle' icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />} />
+            </Dropdown>
           </>
         }
         prefix={

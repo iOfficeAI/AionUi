@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { contextBridge, ipcRenderer } from 'electron';
+import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import { ADAPTER_BRIDGE_EVENT_KEY } from './adapter/constant';
 
 /**
@@ -34,4 +34,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
       ipcRenderer.off(ADAPTER_BRIDGE_EVENT_KEY, handler);
     };
   },
+  // 获取拖拽文件/目录的绝对路径 / Get absolute path for dragged file/directory
+  getPathForFile: (file: File) => webUtils.getPathForFile(file),
 });
