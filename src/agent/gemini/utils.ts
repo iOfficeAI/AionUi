@@ -43,7 +43,7 @@ export const processGeminiStreamEvents = async (stream: AsyncIterable<ServerGemi
       case ServerGeminiEventType.Finished:
       case ServerGeminiEventType.LoopDetected:
         {
-          console.log('event>>>>>>>>>>>>>>>>>>>', event);
+          // console.log('event>>>>>>>>>>>>>>>>>>>', event);
         }
         break;
       default: {
