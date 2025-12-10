@@ -152,7 +152,7 @@ const GeminiSendBox: React.FC<{
     setCurrentModel(model);
   }, [model?.id, model?.useModel]);
 
-  // Model list for dropdown (providers + models), with optional Google Auth Gemini provider
+  // 模型下拉：根据 Google Auth 情况动态注入 Gemini 官方 provider / Dynamic provider list with Google Auth
   const { geminiModeOptions, isGoogleAuth } = useGeminiGoogleAuthModels();
   const { data: modelConfig } = useSWR('model.config.sendbox', () => ipcBridge.mode.getModelConfig.invoke());
 
