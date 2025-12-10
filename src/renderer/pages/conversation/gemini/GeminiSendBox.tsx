@@ -1,14 +1,12 @@
 import { ipcBridge } from '@/common';
 import { transformMessage } from '@/common/chatLib';
 import type { IProvider, TProviderWithModel } from '@/common/storage';
-import { ConfigStorage } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import SendBox from '@/renderer/components/sendbox';
 import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/useSendBoxDraft';
 import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/ThoughtDisplay';
-import { geminiModeList } from '@/renderer/hooks/useModeModeList';
+import { useGeminiGoogleAuthModels } from '@/renderer/hooks/useGeminiGoogleAuthModels';
 import useSWR from 'swr';
-import { iconColors } from '@/renderer/theme/colors';
 import FilePreview from '@/renderer/components/FilePreview';
 import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/useSendBoxFiles';
 import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
@@ -17,13 +15,13 @@ import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/fileSelection';
 import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
 import { Button, Dropdown, Menu, Tag } from '@arco-design/web-react';
-import { FolderOpen, Plus, UploadOne } from '@icon-park/react';
+import { Plus } from '@icon-park/react';
+import { iconColors } from '@/renderer/theme/colors';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import HorizontalFileList from '@/renderer/components/HorizontalFileList';
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';
 import { useLatestRef } from '@/renderer/hooks/useLatestRef';
-import { useWorkspaceSelector } from '@/renderer/hooks/useWorkspaceSelector';
 
 const useGeminiSendBoxDraft = getSendBoxDraftHook('gemini', {
   _type: 'gemini',
@@ -130,7 +128,6 @@ const GeminiSendBox: React.FC<{
 
   const addOrUpdateMessage = useAddOrUpdateMessage();
   const { setSendBoxHandler } = usePreviewContext();
-  const selectWorkspace = useWorkspaceSelector(conversation_id, 'gemini');
 
   // 使用 useLatestRef 保存最新的 setContent/atPath，避免重复注册 handler
   // Use useLatestRef to keep latest setters to avoid re-registering handler
@@ -156,8 +153,7 @@ const GeminiSendBox: React.FC<{
   }, [model?.id, model?.useModel]);
 
   // Model list for dropdown (providers + models), with optional Google Auth Gemini provider
-  const { data: geminiConfig } = useSWR('gemini.config', () => ConfigStorage.get('gemini.config'));
-  const { data: isGoogleAuth } = useSWR('google.auth.status' + (geminiConfig?.proxy || ''), () => ipcBridge.googleAuth.status.invoke({ proxy: geminiConfig?.proxy }).then((d) => d.success));
+  const { geminiModeOptions, isGoogleAuth } = useGeminiGoogleAuthModels();
   const { data: modelConfig } = useSWR('model.config.sendbox', () => ipcBridge.mode.getModelConfig.invoke());
 
   const availableModelsCache = useMemo(() => new Map<string, string[]>(), []);
@@ -188,14 +184,14 @@ const GeminiSendBox: React.FC<{
         platform: 'gemini-with-google-auth',
         baseUrl: '',
         apiKey: '',
-        model: geminiModeList.map((v) => v.value),
+        model: geminiModeOptions.map((v) => v.value),
         capabilities: [{ type: 'text' }, { type: 'vision' }, { type: 'function_calling' }],
       } as unknown as IProvider;
       list = [googleProvider, ...list];
     }
     // Filter providers with at least one primary chat model
     return list.filter((p) => getAvailableModels(p).length > 0);
-  }, [isGoogleAuth, modelConfig, getAvailableModels]);
+  }, [geminiModeOptions, getAvailableModels, isGoogleAuth, modelConfig]);
 
   const handleSelectModel = useCallback(
     async (provider: IProvider, modelName: string) => {
@@ -296,37 +292,18 @@ const GeminiSendBox: React.FC<{
         lockMultiLine={true}
         tools={
           <>
-            <Dropdown
-              trigger='click'
-              position='br'
-              droplist={
-                <Menu className='min-w-180px'>
-                  <Menu.Item
-                    key='upload'
-                    onClick={() => {
-                      void ipcBridge.dialog.showOpen.invoke({ properties: ['openFile', 'multiSelections'] }).then((files) => {
-                        if (files && files.length > 0) {
-                          setUploadFile([...uploadFile, ...files]);
-                        }
-                      });
-                    }}
-                  >
-                    <div className='flex items-center gap-8px leading-0'>
-                      <UploadOne theme='outline' size='16' fill={iconColors.secondary} style={{ lineHeight: 0 }} />
-                      <span>{t('conversation.welcome.uploadFile')}</span>
-                    </div>
-                  </Menu.Item>
-                  <Menu.Item key='workspace' onClick={selectWorkspace}>
-                    <div className='flex items-center gap-8px leading-0'>
-                      <FolderOpen theme='outline' size='16' fill={iconColors.secondary} style={{ lineHeight: 0 }} />
-                      <span>{t('conversation.welcome.specifyWorkspace')}</span>
-                    </div>
-                  </Menu.Item>
-                </Menu>
-              }
-            >
-              <Button type='secondary' shape='circle' icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />} />
-            </Dropdown>
+            <Button
+              type='secondary'
+              shape='circle'
+              icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />}
+              onClick={() => {
+                void ipcBridge.dialog.showOpen.invoke({ properties: ['openFile', 'multiSelections'] }).then((files) => {
+                  if (files && files.length > 0) {
+                    setUploadFile([...uploadFile, ...files]);
+                  }
+                });
+              }}
+            />
             <Dropdown
               trigger='click'
               droplist={
