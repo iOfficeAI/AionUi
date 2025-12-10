@@ -181,7 +181,7 @@
       "newConversation": "新对话",
       "multiAgentModeEnabled": "已进入多智能体模式",
       "selectModel": "选择模型",
-      "specifyWorkspace": "工作目录",
+      "specifyWorkspace": "关联文件夹对话",
       "currentWorkspace": "当前工作空间",
       "openFolder": "打开文件夹",
       "none": "无"

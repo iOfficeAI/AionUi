@@ -184,7 +184,7 @@
       "newConversation": "New Chat",
       "multiAgentModeEnabled": "Entering multi-agent mode",
       "selectModel": "Select Model",
-      "specifyWorkspace": "Set Work Directory",
+      "specifyWorkspace": "Chat in Folder",
       "currentWorkspace": "Current Workspace",
       "openFolder": "Open Folder",
       "none": "None"
