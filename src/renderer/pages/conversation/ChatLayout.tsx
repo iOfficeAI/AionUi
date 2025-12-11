@@ -331,6 +331,13 @@ const ChatLayout: React.FC<{
                       <span className='text-sm'>{displayName}</span>
                     </div>
                   )}
+
+                  {/* Workspace toggle button - mobile only */}
+                  {layout?.isMobile && (
+                    <button type='button' className='app-titlebar__button flex-shrink-0 self-start mt-[2px]' onClick={() => dispatchWorkspaceToggleEvent()} aria-label={rightSiderCollapsed ? 'Expand workspace' : 'Collapse workspace'}>
+                      {rightSiderCollapsed ? <ExpandLeft theme='outline' size='18' fill='currentColor' /> : <ExpandRight theme='outline' size='18' fill='currentColor' />}
+                    </button>
+                  )}
                 </div>
               </div>
             </ArcoLayout.Header>
