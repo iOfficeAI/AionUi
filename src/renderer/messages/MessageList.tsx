@@ -4,25 +4,25 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { TMessage, CodexToolCallUpdate } from '@/common/chatLib';
-import classNames from 'classnames';
-import React, { useEffect, useRef, useState, useMemo, createContext } from 'react';
-import HOC from '../utils/HOC';
-import { useMessageList } from './hooks';
+import type { CodexToolCallUpdate, TMessage } from '@/common/chatLib';
+import { iconColors } from '@/renderer/theme/colors';
+import { Image } from '@arco-design/web-react';
+import { Down } from '@icon-park/react';
 import MessageAcpPermission from '@renderer/messages/acp/MessageAcpPermission';
+import MessageAcpToolCall from '@renderer/messages/acp/MessageAcpToolCall';
 import MessageAgentStatus from '@renderer/messages/MessageAgentStatus';
+import classNames from 'classnames';
+import React, { createContext, useEffect, useMemo, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import HOC from '../utils/HOC';
 import MessageCodexPermission from './codex/MessageCodexPermission';
 import MessageCodexToolCall from './codex/MessageCodexToolCall';
 import MessageFileChanges from './codex/MessageFileChanges';
-import MessageAcpToolCall from '@renderer/messages/acp/MessageAcpToolCall';
+import { useMessageList } from './hooks';
 import MessageTips from './MessageTips';
 import MessageToolCall from './MessageToolCall';
 import MessageToolGroup from './MessageToolGroup';
 import MessageText from './MessagetText';
-import { Down } from '@icon-park/react';
-import { useTranslation } from 'react-i18next';
-import { iconColors } from '@/renderer/theme/colors';
-import { Image } from '@arco-design/web-react';
 
 type TurnDiffContent = Extract<CodexToolCallUpdate, { subtype: 'turn_diff' }>;
 
@@ -33,7 +33,7 @@ const MessageItem: React.FC<{ message: TMessage }> = HOC((props) => {
   const { message } = props as { message: TMessage };
   return (
     <div
-      className={classNames('flex items-start message-item [&>div]:max-w-full px-8px m-t-10px max-w-780px mx-auto', message.type, {
+      className={classNames('flex items-start message-item [&>div]:max-w-full px-8px m-t-10px max-w-full md:max-w-780px mx-auto', message.type, {
         'justify-center': message.position === 'center',
         'justify-end': message.position === 'right',
         'justify-start': message.position === 'left',
@@ -175,7 +175,7 @@ const MessageList: React.FC<{ className?: string }> = () => {
                 // 在第一个 turn_diff 位置显示汇总组件 / Show summary component at first turn_diff position
                 if (index === firstTurnDiffIndex && turnDiffMessages.length > 0) {
                   return (
-                    <div key={`file-changes-${message.id}`} className='w-full message-item px-8px m-t-10px max-w-780px mx-auto'>
+                    <div key={`file-changes-${message.id}`} className='w-full message-item px-8px m-t-10px max-w-full md:max-w-780px mx-auto'>
                       <MessageFileChanges turnDiffChanges={turnDiffMessages} />
                     </div>
                   );

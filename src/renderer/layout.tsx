@@ -227,7 +227,7 @@ const Layout: React.FC<{
   return (
     <LayoutContext.Provider value={{ isMobile, siderCollapsed: collapsed, setSiderCollapsed: setCollapsed }}>
       <div className='app-shell flex flex-col size-full min-h-0'>
-        <Titlebar workspaceAvailable={workspaceAvailable} />
+        {!isMobile && <Titlebar workspaceAvailable={workspaceAvailable} />}
         <ArcoLayout className={'size-full layout flex-1 min-h-0'}>
           <ArcoLayout.Sider
             collapsedWidth={isMobile ? 0 : 64}

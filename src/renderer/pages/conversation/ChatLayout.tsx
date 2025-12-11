@@ -1,11 +1,11 @@
-import FlexFullContainer from '@/renderer/components/FlexFullContainer';
 import { ConfigStorage } from '@/common/storage';
-import { Layout as ArcoLayout } from '@arco-design/web-react';
-import { ExpandLeft, ExpandRight, Robot } from '@icon-park/react';
-import React, { useEffect, useRef, useState } from 'react';
+import FlexFullContainer from '@/renderer/components/FlexFullContainer';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
-import { usePreviewContext, PreviewPanel } from '@/renderer/pages/conversation/preview';
 import { useResizableSplit } from '@/renderer/hooks/useResizableSplit';
+import { PreviewPanel, usePreviewContext } from '@/renderer/pages/conversation/preview';
+import { Layout as ArcoLayout } from '@arco-design/web-react';
+import { ExpandLeft, ExpandRight, MenuFold, MenuUnfold, Robot } from '@icon-park/react';
+import React, { useEffect, useRef, useState } from 'react';
 import useSWR from 'swr';
 
 import AuggieLogo from '@/renderer/assets/logos/auggie.svg';
@@ -33,9 +33,9 @@ const AGENT_LOGO_MAP: Partial<Record<AcpBackend, string>> = {
 };
 
 import { iconColors } from '@/renderer/theme/colors';
+import { WORKSPACE_TOGGLE_EVENT, dispatchWorkspaceStateEvent, dispatchWorkspaceToggleEvent } from '@/renderer/utils/workspaceEvents';
 import { ACP_BACKENDS_ALL } from '@/types/acpTypes';
 import classNames from 'classnames';
-import { WORKSPACE_TOGGLE_EVENT, dispatchWorkspaceStateEvent, dispatchWorkspaceToggleEvent } from '@/renderer/utils/workspaceEvents';
 
 const MOBILE_COLLAPSE_DURATION = 280;
 const MIN_CHAT_RATIO = 25;
@@ -310,16 +310,35 @@ const ChatLayout: React.FC<{
             }}
           >
             <ArcoLayout.Header className={classNames('h-52px flex items-center justify-between p-16px gap-16px !bg-1 chat-layout-header')}>
-              <FlexFullContainer className='h-full' containerClassName='flex items-center'>
-                <span className='font-bold text-16px text-t-primary inline-block overflow-hidden text-ellipsis whitespace-nowrap w-full max-w-60%'>{props.title}</span>
-              </FlexFullContainer>
-              <div className='flex items-center gap-16px'>
-                {backend && (
-                  <div className='ml-16px flex items-center gap-2 bg-2 w-fit rounded-full px-[8px] py-[2px]'>
-                    {AGENT_LOGO_MAP[backend as AcpBackend] ? <img src={AGENT_LOGO_MAP[backend as AcpBackend]} alt={`${backend} logo`} width={16} height={16} style={{ objectFit: 'contain' }} /> : <Robot theme='outline' size={16} fill={iconColors.primary} />}
-                    <span className='text-sm'>{displayName}</span>
-                  </div>
+              <div className='flex items-center w-full'>
+                {/* Sidebar toggle button - mobile only */}
+                {layout?.isMobile && (
+                  <button type='button' className='app-titlebar__button flex-shrink-0 -ml-8px -mr-4px self-start mt-[2px]' onClick={() => layout?.setSiderCollapsed?.(!layout.siderCollapsed)} aria-label={layout.siderCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}>
+                    {layout.siderCollapsed ? <MenuUnfold theme='outline' size='18' fill='currentColor' /> : <MenuFold theme='outline' size='18' fill='currentColor' />}
+                  </button>
                 )}
+
+                {/* Title */}
+                <FlexFullContainer className='flex-1 h-full' containerClassName='flex items-center'>
+                  <span className='font-bold text-16px text-t-primary inline-block overflow-hidden text-ellipsis whitespace-nowrap w-full max-w-60%'>{props.title}</span>
+                </FlexFullContainer>
+
+                {/* Agent badge */}
+                <div className='flex items-center gap-16px flex-shrink-0'>
+                  {backend && (
+                    <div className='flex items-center gap-2 bg-2 w-fit rounded-full px-[8px] py-[2px]'>
+                      {AGENT_LOGO_MAP[backend as AcpBackend] ? <img src={AGENT_LOGO_MAP[backend as AcpBackend]} alt={`${backend} logo`} width={16} height={16} style={{ objectFit: 'contain' }} /> : <Robot theme='outline' size={16} fill={iconColors.primary} />}
+                      <span className='text-sm'>{displayName}</span>
+                    </div>
+                  )}
+
+                  {/* Workspace toggle button - mobile only */}
+                  {layout?.isMobile && (
+                    <button type='button' className='app-titlebar__button flex-shrink-0 self-start mt-[2px]' onClick={() => dispatchWorkspaceToggleEvent()} aria-label={rightSiderCollapsed ? 'Expand workspace' : 'Collapse workspace'}>
+                      {rightSiderCollapsed ? <ExpandLeft theme='outline' size='18' fill='currentColor' /> : <ExpandRight theme='outline' size='18' fill='currentColor' />}
+                    </button>
+                  )}
+                </div>
               </div>
             </ArcoLayout.Header>
             <ArcoLayout.Content className='flex flex-col flex-1 bg-1 overflow-hidden'>{props.children}</ArcoLayout.Content>
