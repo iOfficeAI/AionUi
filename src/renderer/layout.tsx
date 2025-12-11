@@ -16,7 +16,6 @@ import { Outlet, useLocation } from 'react-router-dom';
 import { LayoutContext } from './context/LayoutContext';
 import { useDirectorySelection } from './hooks/useDirectorySelection';
 import { useMultiAgentDetection } from './hooks/useMultiAgentDetection';
-import { iconColors } from './theme/colors';
 import { processCustomCss } from './utils/customCssProcessor';
 
 const useDebug = () => {
@@ -228,7 +227,7 @@ const Layout: React.FC<{
   return (
     <LayoutContext.Provider value={{ isMobile, siderCollapsed: collapsed, setSiderCollapsed: setCollapsed }}>
       <div className='app-shell flex flex-col size-full min-h-0'>
-        {!isMobile && <Titlebar workspaceAvailable={workspaceAvailable} />}
+        <Titlebar workspaceAvailable={workspaceAvailable} />
         <ArcoLayout className={'size-full layout flex-1 min-h-0'}>
           <ArcoLayout.Sider
             collapsedWidth={isMobile ? 0 : 64}
@@ -277,12 +276,12 @@ const Layout: React.FC<{
                 </svg>
               </div>
               <div className=' flex-1 text-20px collapsed-hidden font-bold'>AionUi</div>
-              <MenuFold className='cursor-pointer !collapsed-hidden flex' theme='outline' size='24' fill={iconColors.secondary} strokeWidth={3} onClick={() => setCollapsed(true)} />
-              {collapsed && !isMobile && (
-                <div onClick={() => setCollapsed(false)} className='absolute bg-2 left-8px top-7px transition-all duration-150 p-10px hover:bg-hover opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto'>
-                  <MenuUnfold className='cursor-pointer flex' size='24' fill={iconColors.secondary} strokeWidth={3} />
-                </div>
+              {isMobile && !collapsed && (
+                <button type='button' className='app-titlebar__button' onClick={() => setCollapsed(true)} aria-label='Collapse sidebar'>
+                  {collapsed ? <MenuUnfold theme='outline' size='18' fill='currentColor' /> : <MenuFold theme='outline' size='18' fill='currentColor' />}
+                </button>
               )}
+              {/* 侧栏折叠改由标题栏统一控制 / Sidebar folding handled by Titlebar toggle */}
             </ArcoLayout.Header>
             <ArcoLayout.Content className='h-[calc(100%-72px-16px)] p-8px layout-sider-content'>
               {React.isValidElement(sider)

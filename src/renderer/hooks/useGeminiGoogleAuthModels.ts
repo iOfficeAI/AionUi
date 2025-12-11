@@ -6,12 +6,13 @@
 
 import { ipcBridge } from '@/common';
 import { ConfigStorage } from '@/common/storage';
-import { getGeminiModeList } from './useModeModeList';
+import { getGeminiModeList, type GeminiModeOption } from './useModeModeList';
 import useSWR from 'swr';
 import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export interface GeminiGoogleAuthModelResult {
-  geminiModeOptions: { label: string; value: string }[];
+  geminiModeOptions: GeminiModeOption[];
   isGoogleAuth: boolean;
   subscriptionStatus?: {
     isSubscriber: boolean;
@@ -22,6 +23,7 @@ export interface GeminiGoogleAuthModelResult {
 }
 
 export const useGeminiGoogleAuthModels = (): GeminiGoogleAuthModelResult => {
+  const { t } = useTranslation();
   const { data: geminiConfig } = useSWR('gemini.config', () => ConfigStorage.get('gemini.config'));
   const proxyKey = geminiConfig?.proxy || '';
 
@@ -41,7 +43,15 @@ export const useGeminiGoogleAuthModels = (): GeminiGoogleAuthModelResult => {
 
   const includeProPreview = Boolean(subscriptionResponse?.data?.isSubscriber);
   // 订阅用户添加 gemini-3-pro-preview，非订阅保留默认列表。Subscribers see Pro Preview first.
-  const geminiModeOptions = useMemo(() => getGeminiModeList({ includeProPreview }), [includeProPreview]);
+  const descriptions = useMemo(
+    () => ({
+      auto: t('gemini.mode.autoDesc', 'Let the system choose the best model for your task.'),
+      pro: t('gemini.mode.proDesc', 'For complex tasks that require deep reasoning and creativity'),
+      flash: t('gemini.mode.flashDesc', 'For tasks that need a balance of speed and reasoning'),
+    }),
+    [t]
+  );
+  const geminiModeOptions = useMemo(() => getGeminiModeList({ includeProPreview, descriptions }), [descriptions, includeProPreview]);
 
   return {
     geminiModeOptions,

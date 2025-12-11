@@ -5,34 +5,54 @@ const DEFAULT_GEMINI_MODEL = 'gemini-2.5-pro';
 const DEFAULT_GEMINI_FLASH_MODEL = 'gemini-2.5-flash';
 const GEMINI_PRO_PREVIEW_MODEL = 'gemini-3-pro-preview';
 
+export interface GeminiModeOption {
+  label: string;
+  value: string;
+  description: string;
+  modelHint?: string;
+}
+
+type GeminiModeDescriptions = {
+  auto: string;
+  pro: string;
+  flash: string;
+};
+
 type GeminiModeListOptions = {
   includeProPreview?: boolean;
+  descriptions?: GeminiModeDescriptions;
+};
+
+const defaultGeminiModeDescriptions: GeminiModeDescriptions = {
+  auto: 'Let the system choose the best model for your task.',
+  pro: 'For complex tasks that require deep reasoning and creativity',
+  flash: 'For tasks that need a balance of speed and reasoning',
 };
 
 // 生成基础 Gemini 列表，可根据订阅态插入 preview 模型 / Build Gemini model list with optional previews
-export const getGeminiModeList = (options?: GeminiModeListOptions) => {
-  const baseList = [
+export const getGeminiModeList = (options?: GeminiModeListOptions): GeminiModeOption[] => {
+  const proModels = options?.includeProPreview ? [GEMINI_PRO_PREVIEW_MODEL, DEFAULT_GEMINI_MODEL] : [DEFAULT_GEMINI_MODEL];
+  const descriptions = options?.descriptions || defaultGeminiModeDescriptions;
+
+  return [
     {
-      label: DEFAULT_GEMINI_MODEL,
-      value: DEFAULT_GEMINI_MODEL,
+      label: 'Auto',
+      value: 'auto',
+      description: descriptions.auto,
     },
     {
-      label: DEFAULT_GEMINI_FLASH_MODEL,
-      value: DEFAULT_GEMINI_FLASH_MODEL,
+      label: 'Pro',
+      value: 'pro',
+      modelHint: proModels.join(', '),
+      description: descriptions.pro,
+    },
+    {
+      label: 'Flash',
+      value: 'flash',
+      modelHint: DEFAULT_GEMINI_FLASH_MODEL,
+      description: descriptions.flash,
     },
   ];
-
-  if (options?.includeProPreview) {
-    return [
-      {
-        label: GEMINI_PRO_PREVIEW_MODEL,
-        value: GEMINI_PRO_PREVIEW_MODEL,
-      },
-      ...baseList,
-    ];
-  }
-
-  return baseList;
 };
 
 export const geminiModeList = getGeminiModeList();

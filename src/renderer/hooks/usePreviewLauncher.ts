@@ -81,6 +81,27 @@ export const usePreviewLauncher = () => {
         if (absolutePath || originalPath) {
           try {
             const pathToRead = absolutePath || originalPath;
+
+            if (contentType === 'image') {
+              const base64 = await ipcBridge.fs.getImageBase64.invoke({ path: pathToRead! });
+              openPreview(base64, contentType, {
+                ...metadata,
+                editable,
+              });
+              return;
+            }
+
+            const binaryOnlyTypes: PreviewContentType[] = ['pdf', 'ppt', 'word', 'excel'];
+            if (binaryOnlyTypes.includes(contentType)) {
+              // 这类格式仅依赖文件路径渲染，不需要实际读取内容
+              // These formats rely on file path; no need to read file content
+              openPreview('', contentType, {
+                ...metadata,
+                editable,
+              });
+              return;
+            }
+
             const content = await ipcBridge.fs.readFile.invoke({ path: pathToRead! });
             openPreview(content, contentType, {
               ...metadata,

@@ -27,7 +27,7 @@
 }
 
 .app-titlebar--mac {
-  height: 55px;
+  height: 45px;
   min-height: 36px;
   /* Reserve space for macOS traffic light buttons (left side) */
   padding-right: 12px;
@@ -44,6 +44,12 @@
   line-height: 1;
 }
 
+.app-titlebar__menu {
+  -webkit-app-region: no-drag;
+  display: flex;
+  align-items: center;
+}
+
 .app-titlebar__toolbar {
   display: flex;
   align-items: center;
@@ -54,6 +60,7 @@
 }
 
 .app-titlebar__button {
+  -webkit-app-region: no-drag;
   width: var(--titlebar-height);
   height: var(--titlebar-height);
   border: none;
@@ -494,9 +501,19 @@ body,
 
 /* Message component positioning - center in conversation area (exclude left sider) */
 /* Message 组件定位 - 在对话区域居中（排除左侧侧边栏） */
+/* 使用 padding-left 偏移，保持内部消息居中 / Use padding-left offset while keeping inner message centered */
 .arco-message-wrapper {
-  left: 266px !important;
-  width: calc(100% - 266px) !important;
+  left: 0 !important;
+  width: 100% !important;
+  padding-left: 266px;
+  box-sizing: border-box;
+}
+
+/* Mobile: remove left padding / 移动端：移除左侧内边距 */
+@media (max-width: 767px) {
+  .arco-message-wrapper {
+    padding-left: 0;
+  }
 }
 
 /* Default background for select and input components */
