@@ -487,23 +487,6 @@ const Guid: React.FC = () => {
   return (
     <ConfigProvider getPopupContainer={() => guidContainerRef.current || document.body}>
       <div ref={guidContainerRef} className='h-full flex-center flex-col px-10px' style={{ position: 'relative' }}>
-        {/* Floating sidebar toggle - mobile only */}
-        {layout?.isMobile && (
-          <button
-            type='button'
-            className='app-titlebar__button flex-shrink-0'
-            style={{
-              position: 'absolute',
-              top: '16px',
-              left: '16px',
-              zIndex: 10,
-            }}
-            onClick={() => layout?.setSiderCollapsed?.(!layout.siderCollapsed)}
-            aria-label={layout.siderCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          >
-            {layout.siderCollapsed ? <MenuUnfold theme='outline' size='18' fill='currentColor' /> : <MenuFold theme='outline' size='18' fill='currentColor' />}
-          </button>
-        )}
         <div className={styles.guidLayout}>
           <p className={`text-2xl font-semibold mb-8 text-0 text-center`}>{t('conversation.welcome.title')}</p>
 

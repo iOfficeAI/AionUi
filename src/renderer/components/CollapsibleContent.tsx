@@ -50,6 +50,11 @@ interface CollapsibleContentProps {
    * @default false
    */
   useMask?: boolean;
+  /**
+   * 是否允许横向滚动，避免宽内容被裁剪
+   * Allow horizontal scrolling to prevent clipping wide content
+   */
+  allowHorizontalScroll?: boolean;
 }
 
 /**
@@ -68,7 +73,7 @@ interface CollapsibleContentProps {
  * </CollapsibleContent>
  * ```
  */
-export const CollapsibleContent: React.FC<CollapsibleContentProps> = ({ children, maxHeight = 240, defaultCollapsed = true, className, contentClassName, useMask = false }) => {
+export const CollapsibleContent: React.FC<CollapsibleContentProps> = ({ children, maxHeight = 240, defaultCollapsed = true, className, contentClassName, useMask = false, allowHorizontalScroll = false }) => {
   const { t } = useTranslation(); // 国际化 i18n
   const { theme } = useThemeContext(); // 主题上下文（亮色/暗色）Theme context (light/dark)
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed); // 折叠状态 Collapse state
@@ -139,10 +144,14 @@ export const CollapsibleContent: React.FC<CollapsibleContentProps> = ({ children
   // 计算内容区域样式 Calculate content area style
   const contentStyle = useMemo(() => {
     const style: React.CSSProperties = {
-      // 折叠状态下始终应用 maxHeight，不依赖 needsCollapse 状态
-      // Always apply maxHeight when collapsed, regardless of needsCollapse state
       maxHeight: isCollapsed ? `${maxHeight}px` : undefined,
+      overflowX: allowHorizontalScroll ? 'auto' : 'hidden',
+      overflowY: isCollapsed ? 'hidden' : 'visible',
     };
+
+    if (!allowHorizontalScroll && !isCollapsed) {
+      style.overflowX = 'visible';
+    }
 
     // mask-image 模式：让内容本身淡出 mask-image mode: fade out content itself
     if (useMask && isCollapsed) {
@@ -151,7 +160,7 @@ export const CollapsibleContent: React.FC<CollapsibleContentProps> = ({ children
     }
 
     return style;
-  }, [isCollapsed, maxHeight, useMask]);
+  }, [allowHorizontalScroll, isCollapsed, maxHeight, useMask]);
 
   // 计算背景渐变颜色 Calculate background gradient color
   const bgGradient = useMemo(() => {
@@ -161,14 +170,7 @@ export const CollapsibleContent: React.FC<CollapsibleContentProps> = ({ children
   return (
     <div className={classNames('relative', className)}>
       {/* 内容区域 Content area */}
-      <div
-        ref={contentRef}
-        className={classNames(
-          'overflow-hidden transition-all duration-300', // 隐藏溢出，平滑过渡动画 Hide overflow with smooth transition
-          contentClassName
-        )}
-        style={contentStyle}
-      >
+      <div ref={contentRef} className={classNames('transition-all duration-300', contentClassName)} style={contentStyle}>
         {children}
       </div>
 
