@@ -18,6 +18,7 @@ import KimiLogo from '@/renderer/assets/logos/kimi.svg';
 import OpenCodeLogo from '@/renderer/assets/logos/opencode.svg';
 import QwenLogo from '@/renderer/assets/logos/qwen.svg';
 import FilePreview from '@/renderer/components/FilePreview';
+import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { useCompositionInput } from '@/renderer/hooks/useCompositionInput';
 import { useDragUpload } from '@/renderer/hooks/useDragUpload';
 import { useGeminiGoogleAuthModels } from '@/renderer/hooks/useGeminiGoogleAuthModels';
@@ -28,13 +29,12 @@ import { iconColors } from '@/renderer/theme/colors';
 import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
 import type { AcpBackend } from '@/types/acpTypes';
 import { Button, ConfigProvider, Dropdown, Input, Menu, Tooltip } from '@arco-design/web-react';
-import { ArrowUp, FolderOpen, Plus, Robot, UploadOne } from '@icon-park/react';
+import { ArrowUp, FolderOpen, MenuFold, MenuUnfold, Plus, Robot, UploadOne } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import useSWR from 'swr';
 import styles from './index.module.css';
-import { useLayoutContext } from '@/renderer/context/LayoutContext';
 
 /**
  * 缓存Provider的可用模型列表，避免重复计算
@@ -471,6 +471,23 @@ const Guid: React.FC = () => {
   return (
     <ConfigProvider getPopupContainer={() => guidContainerRef.current || document.body}>
       <div ref={guidContainerRef} className='h-full flex-center flex-col px-10px' style={{ position: 'relative' }}>
+        {/* Floating sidebar toggle - mobile only */}
+        {layout?.isMobile && (
+          <button
+            type='button'
+            className='app-titlebar__button flex-shrink-0'
+            style={{
+              position: 'absolute',
+              top: '16px',
+              left: '16px',
+              zIndex: 10,
+            }}
+            onClick={() => layout?.setSiderCollapsed?.(!layout.siderCollapsed)}
+            aria-label={layout.siderCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {layout.siderCollapsed ? <MenuUnfold theme='outline' size='18' fill='currentColor' /> : <MenuFold theme='outline' size='18' fill='currentColor' />}
+          </button>
+        )}
         <div className={styles.guidLayout}>
           <p className={`text-2xl font-semibold mb-8 text-0 text-center`}>{t('conversation.welcome.title')}</p>
 
