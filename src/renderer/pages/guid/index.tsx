@@ -21,7 +21,7 @@ import FilePreview from '@/renderer/components/FilePreview';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { useCompositionInput } from '@/renderer/hooks/useCompositionInput';
 import { useDragUpload } from '@/renderer/hooks/useDragUpload';
-import { geminiModeList } from '@/renderer/hooks/useModeModeList';
+import { useGeminiGoogleAuthModels } from '@/renderer/hooks/useGeminiGoogleAuthModels';
 import { usePasteService } from '@/renderer/hooks/usePasteService';
 import { formatFilesForMessage } from '@/renderer/hooks/useSendBoxFiles';
 import { allSupportedExts, type FileMetadata, getCleanFileNames } from '@/renderer/services/FileService';
@@ -83,19 +83,14 @@ const hasAvailableModels = (provider: IProvider): boolean => {
 };
 
 const useModelList = () => {
-  const geminiConfig = useSWR('gemini.config', () => {
-    return ConfigStorage.get('gemini.config');
-  });
-  const { data: isGoogleAuth } = useSWR('google.auth.status' + geminiConfig.data?.proxy, () => {
-    return ipcBridge.googleAuth.status.invoke({ proxy: geminiConfig.data?.proxy }).then((data) => {
-      return data.success;
-    });
-  });
+  const { geminiModeOptions, isGoogleAuth } = useGeminiGoogleAuthModels();
   const { data: modelConfig } = useSWR('model.config.welcome', () => {
     return ipcBridge.mode.getModelConfig.invoke().then((data) => {
       return (data || []).filter((platform) => !!platform.model.length);
     });
   });
+
+  const geminiModelValues = useMemo(() => geminiModeOptions.map((option) => option.value), [geminiModeOptions]);
 
   const modelList = useMemo(() => {
     let allProviders: IProvider[] = [];
@@ -107,7 +102,7 @@ const useModelList = () => {
         platform: 'gemini-with-google-auth',
         baseUrl: '',
         apiKey: '',
-        model: geminiModeList.map((v) => v.value),
+        model: geminiModelValues,
         capabilities: [{ type: 'text' }, { type: 'vision' }, { type: 'function_calling' }],
       };
       allProviders = [geminiProvider, ...(modelConfig || [])];
@@ -117,7 +112,7 @@ const useModelList = () => {
 
     // 过滤出有可用主力模型的提供商
     return allProviders.filter(hasAvailableModels);
-  }, [isGoogleAuth, modelConfig]);
+  }, [geminiModelValues, isGoogleAuth, modelConfig]);
 
   return { modelList, isGoogleAuth };
 };
@@ -143,6 +138,8 @@ const Guid: React.FC = () => {
   const [files, setFiles] = useState<string[]>([]);
   const [dir, setDir] = useState<string>('');
   const [currentModel, _setCurrentModel] = useState<TProviderWithModel>();
+  // 记录当前选中的 provider+model，方便列表刷新时判断是否仍可用
+  const selectedModelKeyRef = useRef<string | null>(null);
   // 支持在初始化页展示 Codex（MCP）选项，先做 UI 占位
   // 对于自定义代理，使用 "custom:uuid" 格式来区分多个自定义代理
   // For custom agents, we store "custom:uuid" format to distinguish between multiple custom agents
@@ -179,7 +176,30 @@ const Guid: React.FC = () => {
   const [typewriterPlaceholder, setTypewriterPlaceholder] = useState('');
   const [isTyping, setIsTyping] = useState(true);
 
+  /**
+   * 生成唯一模型 key（providerId:model）
+   * Build a unique key for provider/model pair
+   */
+  const buildModelKey = (providerId?: string, modelName?: string) => {
+    if (!providerId || !modelName) return null;
+    return `${providerId}:${modelName}`;
+  };
+
+  /**
+   * 检查当前 key 是否仍存在于新模型列表中
+   * Check if selected model key still exists in the new provider list
+   */
+  const isModelKeyAvailable = (key: string | null, providers?: IProvider[]) => {
+    if (!key || !providers || providers.length === 0) return false;
+    return providers.some((provider) => {
+      if (!provider.id || !provider.model?.length) return false;
+      return provider.model.some((modelName) => buildModelKey(provider.id, modelName) === key);
+    });
+  };
+
   const setCurrentModel = async (modelInfo: TProviderWithModel) => {
+    // 记录最新的选中 key，避免列表刷新后被错误重置
+    selectedModelKeyRef.current = buildModelKey(modelInfo.id, modelInfo.useModel);
     await ConfigStorage.set('gemini.defaultModel', modelInfo.useModel).catch((error) => {
       console.error('Failed to save default model:', error);
     });
@@ -391,12 +411,25 @@ const Guid: React.FC = () => {
   const { compositionHandlers, createKeyDownHandler } = useCompositionInput();
   const { modelList, isGoogleAuth } = useModelList();
   const setDefaultModel = async () => {
+    if (!modelList || modelList.length === 0) {
+      return;
+    }
+    const currentKey = selectedModelKeyRef.current || buildModelKey(currentModel?.id, currentModel?.useModel);
+    // 当前选择仍然可用则不重置 / Keep current selection when still available
+    if (isModelKeyAvailable(currentKey, modelList)) {
+      if (!selectedModelKeyRef.current && currentKey) {
+        selectedModelKeyRef.current = currentKey;
+      }
+      return;
+    }
+    // 读取默认配置，或回落到新的第一个模型
     const useModel = await ConfigStorage.get('gemini.defaultModel');
     const defaultModel = modelList.find((m) => m.model.includes(useModel)) || modelList[0];
-    if (!defaultModel) return;
-    _setCurrentModel({
+    if (!defaultModel || !defaultModel.model.length) return;
+    const resolvedUseModel = defaultModel.model.includes(useModel) ? useModel : defaultModel.model[0];
+    await setCurrentModel({
       ...defaultModel,
-      useModel: defaultModel.model.find((m) => m == useModel) || defaultModel.model[0],
+      useModel: resolvedUseModel,
     });
   };
   useEffect(() => {

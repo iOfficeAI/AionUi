@@ -12,16 +12,15 @@ import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
 import { allSupportedExts } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/fileSelection';
-import { Button, Dropdown, Menu, Tag } from '@arco-design/web-react';
-import { FolderOpen, Plus, UploadOne } from '@icon-park/react';
+import { Button, Tag } from '@arco-design/web-react';
+import { Plus } from '@icon-park/react';
+import { iconColors } from '@/renderer/theme/colors';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { iconColors } from '@/renderer/theme/colors';
 import FilePreview from '@/renderer/components/FilePreview';
 import HorizontalFileList from '@/renderer/components/HorizontalFileList';
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';
 import { useLatestCallback, useLatestRef } from '@/renderer/hooks/useLatestRef';
-import { useWorkspaceSelector } from '@/renderer/hooks/useWorkspaceSelector';
 
 const useAcpSendBoxDraft = getSendBoxDraftHook('acp', {
   _type: 'acp',
@@ -156,7 +155,6 @@ const AcpSendBox: React.FC<{
   const { t } = useTranslation();
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
   const { setSendBoxHandler } = usePreviewContext();
-  const selectWorkspace = useWorkspaceSelector(conversation_id, 'acp');
 
   // 使用 useLatestRef 保存最新的 setContent/atPath，避免重复注册 handler
   // Use useLatestRef to keep latest setters to avoid re-registering handler
@@ -353,44 +351,18 @@ const AcpSendBox: React.FC<{
         onFilesAdded={handleFilesAdded}
         supportedExts={allSupportedExts}
         tools={
-          <>
-            <Dropdown
-              trigger='click'
-              position='br'
-              droplist={
-                <Menu className='min-w-180px'>
-                  <Menu.Item
-                    key='upload'
-                    onClick={() => {
-                      ipcBridge.dialog.showOpen
-                        .invoke({ properties: ['openFile', 'multiSelections'] })
-                        .then((files) => {
-                          if (files && files.length > 0) {
-                            setUploadFile([...uploadFile, ...files]);
-                          }
-                        })
-                        .catch((error) => {
-                          console.error('Failed to open file dialog:', error);
-                        });
-                    }}
-                  >
-                    <div className='flex items-center gap-8px leading-0'>
-                      <UploadOne theme='outline' size='16' fill={iconColors.secondary} style={{ lineHeight: 0 }} />
-                      <span>{t('conversation.welcome.uploadFile')}</span>
-                    </div>
-                  </Menu.Item>
-                  <Menu.Item key='workspace' onClick={selectWorkspace}>
-                    <div className='flex items-center gap-8px leading-0'>
-                      <FolderOpen theme='outline' size='16' fill={iconColors.secondary} style={{ lineHeight: 0 }} />
-                      <span>{t('conversation.welcome.specifyWorkspace')}</span>
-                    </div>
-                  </Menu.Item>
-                </Menu>
-              }
-            >
-              <Button type='secondary' shape='circle' icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />} />
-            </Dropdown>
-          </>
+          <Button
+            type='secondary'
+            shape='circle'
+            icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />}
+            onClick={() => {
+              void ipcBridge.dialog.showOpen.invoke({ properties: ['openFile', 'multiSelections'] }).then((files) => {
+                if (files && files.length > 0) {
+                  setUploadFile([...uploadFile, ...files]);
+                }
+              });
+            }}
+          />
         }
         prefix={
           <>
