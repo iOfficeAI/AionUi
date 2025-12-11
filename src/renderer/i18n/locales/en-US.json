@@ -38,7 +38,10 @@
     "error": "Error",
     "saveSuccess": "Saved successfully",
     "saveFailed": "Failed to save",
-    "unknownError": "Unknown error"
+    "unknownError": "Unknown error",
+    "confirmDelete": "Confirm Delete",
+    "deleteSuccess": "Deleted successfully",
+    "deleteFailed": "Failed to delete"
   },
   "login": {
     "pageTitle": "AionUi - Sign In",
@@ -279,7 +282,8 @@
       "cssCode": "CSS Code",
       "applied": "Applied theme: {{name}}",
       "applyFailed": "Failed to apply theme",
-      "cleared": "Restored to default style"
+      "cleared": "Restored to default style",
+      "deleteConfirm": "Are you sure you want to delete this theme? This action cannot be undone."
     },
     "geminiBaseUrl": "Gemini API Base URL",
     "cacheDir": "Cache Directory",
@@ -739,6 +743,13 @@
       "create": "create",
       "modify": "modify",
       "delete": "delete"
+    }
+  },
+  "gemini": {
+    "mode": {
+      "autoDesc": "Let the system choose the best model for your task.",
+      "proDesc": "For complex tasks that require deep reasoning and creativity",
+      "flashDesc": "For tasks that need a balance of speed and reasoning"
     }
   }
 }

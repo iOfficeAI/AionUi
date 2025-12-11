@@ -137,7 +137,10 @@
     "collapse": "收起",
     "copy": "複製",
     "download": "下載",
-    "unknownError": "未知錯誤"
+    "unknownError": "未知錯誤",
+    "confirmDelete": "確認刪除",
+    "deleteSuccess": "刪除成功",
+    "deleteFailed": "刪除失敗"
   },
   "login": {
     "pageTitle": "AionUi - 登入",
@@ -384,7 +387,8 @@
       "cssCode": "CSS代碼",
       "applied": "已套用主題：{{name}}",
       "applyFailed": "套用主題失敗",
-      "cleared": "已恢復預設樣式"
+      "cleared": "已恢復預設樣式",
+      "deleteConfirm": "確定要刪除該主題嗎？此操作不可恢復。"
     },
     "googleLogin": "Google 登入",
     "googleLogout": "登出",
@@ -681,6 +685,13 @@
       "create": "建立",
       "modify": "修改",
       "delete": "刪除"
+    }
+  },
+  "gemini": {
+    "mode": {
+      "autoDesc": "讓系統為你的任務自動選擇最合適的模型。",
+      "proDesc": "適合需要複雜推理與創造力的任務。",
+      "flashDesc": "適合同時兼顧速度與推理的任務。"
     }
   },
   "acp": {

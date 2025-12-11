@@ -35,7 +35,10 @@
     "error": "错误",
     "saveSuccess": "保存成功",
     "saveFailed": "保存失败",
-    "unknownError": "未知错误"
+    "unknownError": "未知错误",
+    "confirmDelete": "确认删除",
+    "deleteSuccess": "删除成功",
+    "deleteFailed": "删除失败"
   },
   "login": {
     "pageTitle": "AionUi - 登录",
@@ -276,7 +279,8 @@
       "cssCode": "CSS代码",
       "applied": "已应用主题：{{name}}",
       "applyFailed": "应用主题失败",
-      "cleared": "已恢复默认样式"
+      "cleared": "已恢复默认样式",
+      "deleteConfirm": "确定要删除该主题吗？此操作不可恢复。"
     },
     "geminiBaseUrl": "Gemini API Base URL",
     "cacheDir": "缓存目录",
@@ -735,6 +739,13 @@
       "create": "创建",
       "modify": "修改",
       "delete": "删除"
+    }
+  },
+  "gemini": {
+    "mode": {
+      "autoDesc": "让系统为你的任务自动选择最合适的模型。",
+      "proDesc": "适合需要复杂推理和创造力的任务。",
+      "flashDesc": "适合同时兼顾速度与推理的任务。"
     }
   }
 }

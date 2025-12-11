@@ -114,7 +114,7 @@ const useModelList = () => {
     return allProviders.filter(hasAvailableModels);
   }, [geminiModelValues, isGoogleAuth, modelConfig]);
 
-  return { modelList, isGoogleAuth };
+  return { modelList, isGoogleAuth, geminiModeOptions };
 };
 
 // Agent Logo 映射 (custom uses Robot icon from @icon-park/react)
@@ -138,6 +138,23 @@ const Guid: React.FC = () => {
   const [files, setFiles] = useState<string[]>([]);
   const [dir, setDir] = useState<string>('');
   const [currentModel, _setCurrentModel] = useState<TProviderWithModel>();
+  const { modelList, isGoogleAuth, geminiModeOptions } = useModelList();
+  const geminiModeLookup = useMemo(() => {
+    const lookup = new Map<string, (typeof geminiModeOptions)[number]>();
+    geminiModeOptions.forEach((option) => lookup.set(option.value, option));
+    return lookup;
+  }, [geminiModeOptions]);
+  const formatGeminiModelLabel = useCallback(
+    (provider: { platform?: string } | undefined, modelName?: string) => {
+      if (!modelName) return '';
+      const isGoogleProvider = provider?.platform?.toLowerCase().includes('gemini-with-google-auth');
+      if (isGoogleProvider) {
+        return geminiModeLookup.get(modelName)?.label || modelName;
+      }
+      return modelName;
+    },
+    [geminiModeLookup]
+  );
   // 记录当前选中的 provider+model，方便列表刷新时判断是否仍可用
   const selectedModelKeyRef = useRef<string | null>(null);
   // 支持在初始化页展示 Codex（MCP）选项，先做 UI 占位
@@ -409,7 +426,6 @@ const Guid: React.FC = () => {
   };
   // 使用共享的输入法合成处理
   const { compositionHandlers, createKeyDownHandler } = useCompositionInput();
-  const { modelList, isGoogleAuth } = useModelList();
   const setDefaultModel = async () => {
     if (!modelList || modelList.length === 0) {
       return;
@@ -645,7 +661,29 @@ const Guid: React.FC = () => {
                                           });
                                         }}
                                       >
-                                        {modelName}
+                                        {(() => {
+                                          const isGoogleProvider = provider.platform?.toLowerCase().includes('gemini-with-google-auth');
+                                          const option = isGoogleProvider ? geminiModeLookup.get(modelName) : undefined;
+                                          if (!option) {
+                                            return modelName;
+                                          }
+                                          return (
+                                            <Tooltip
+                                              position='right'
+                                              trigger='hover'
+                                              content={
+                                                <div className='max-w-240px space-y-6px'>
+                                                  <div className='text-12px text-t-secondary leading-5'>{option.description}</div>
+                                                  {option.modelHint && <div className='text-11px text-t-tertiary'>{option.modelHint}</div>}
+                                                </div>
+                                              }
+                                            >
+                                              <div className='flex items-center justify-between gap-12px w-full'>
+                                                <span>{option.label}</span>
+                                              </div>
+                                            </Tooltip>
+                                          );
+                                        })()}
                                       </Menu.Item>
                                     ))}
                                   </Menu.ItemGroup>
@@ -661,7 +699,7 @@ const Guid: React.FC = () => {
                     }
                   >
                     <Button className={'sendbox-model-btn'} shape='round'>
-                      {currentModel ? currentModel.useModel : t('conversation.welcome.selectModel')}
+                      {currentModel ? formatGeminiModelLabel(currentModel, currentModel.useModel) : t('conversation.welcome.selectModel')}
                     </Button>
                   </Dropdown>
                 )}
