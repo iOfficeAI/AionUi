@@ -164,11 +164,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
         icon: <LinkCloud theme='outline' size='20' fill={iconColors.secondary} />,
       },
       {
-        key: 'agent',
-        label: t('settings.agent') || 'Agent',
-        icon: <Robot theme='outline' size='20' fill={iconColors.secondary} />,
-      },
-      {
         key: 'tools',
         label: t('settings.tools'),
         icon: <Toolkit theme='outline' size='20' fill={iconColors.secondary} />,

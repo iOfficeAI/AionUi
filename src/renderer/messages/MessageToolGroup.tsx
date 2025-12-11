@@ -431,17 +431,15 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
 
             {(description || resultDisplay) && (
               <div className='mt-8px'>
-                <CollapsibleContent maxHeight={RESULT_MAX_HEIGHT} defaultCollapsed={true} useMask={false}>
+                {description && <div className='text-12px text-t-secondary whitespace-pre-wrap break-words mb-2'>{description}</div>}
+                {resultDisplay && (
                   <div>
-                    {description && <div className='text-12px text-t-secondary whitespace-pre-wrap break-words'>{description}</div>}
-                    {resultDisplay && (
-                      <div className='mt-2'>
-                        {/* 在 Alert 外展示完整结果 Display full result outside Alert */}
-                        <ToolResultDisplay content={content} />
-                      </div>
-                    )}
+                    {/* 在 Alert 外展示完整结果 Display full result outside Alert */}
+                    {/* ToolResultDisplay 内部已包含 CollapsibleContent，避免嵌套 */}
+                    {/* ToolResultDisplay already contains CollapsibleContent internally, avoid nesting */}
+                    <ToolResultDisplay content={content} />
                   </div>
-                </CollapsibleContent>
+                )}
               </div>
             )}
           </div>
