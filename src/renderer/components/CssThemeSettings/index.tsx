@@ -182,9 +182,8 @@ const CssThemeSettings: React.FC = () => {
         </Button>
       </div>
 
-      {/* 主题卡片网格 / Theme card grid */}
-      <div className='grid grid-cols-2 md:grid-cols-3 gap-16px'>
-        {/* 主题卡片列表 / Theme card list */}
+      {/* 主题卡片列表 / Theme card list */}
+      <div className='flex flex-wrap gap-10px'>
         {themes.map((theme) => (
           <div key={theme.id} className={`relative cursor-pointer rounded-12px overflow-hidden border-2 transition-all duration-200 w-180px h-112px ${activeThemeId === theme.id ? 'border-[var(--color-primary)]' : 'border-transparent hover:border-border-2'}`} style={theme.cover ? { backgroundImage: `url(${theme.cover})`, backgroundSize: '100% 100%', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', backgroundColor: 'var(--fill-1)' } : { backgroundColor: 'var(--fill-1)' }} onClick={() => handleSelectTheme(theme)} onMouseEnter={() => setHoveredThemeId(theme.id)} onMouseLeave={() => setHoveredThemeId(null)}>
             {/* 无封面时显示名称占位 / Show name placeholder when no cover */}
