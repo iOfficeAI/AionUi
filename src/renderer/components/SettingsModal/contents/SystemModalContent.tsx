@@ -5,42 +5,20 @@
  */
 
 import { ipcBridge } from '@/common';
-import { ConfigStorage } from '@/common/storage';
 import FontSizeControl from '@/renderer/components/FontSizeControl';
 import LanguageSwitcher from '@/renderer/components/LanguageSwitcher';
 import { ThemeSwitcher } from '@/renderer/components/ThemeSwitcher';
+import CssThemeSettings from '@/renderer/components/CssThemeSettings';
 import { iconColors } from '@/renderer/theme/colors';
-import { Alert, Button, Divider, Form, Modal, Input, Tooltip } from '@arco-design/web-react';
+import { Alert, Button, Divider, Form, Modal, Tooltip } from '@arco-design/web-react';
 import { FolderOpen, Down, Up } from '@icon-park/react';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { CSSProperties } from 'react';
 import useSWR from 'swr';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
-import CodeMirror from '@uiw/react-codemirror';
-import { css as cssLang } from '@codemirror/lang-css';
-import { useThemeContext } from '@/renderer/context/ThemeContext';
 import AionCollapse from '@/renderer/components/base/AionCollapse';
 import classNames from 'classnames';
 import { useSettingsViewMode } from '../settingsViewContext';
-
-// ==================== 样式常量 / Style Constants ====================
-
-/** CodeMirror 编辑器样式 / CodeMirror editor styles */
-const CODE_MIRROR_STYLE: CSSProperties = {
-  fontSize: '13px',
-  border: '1px solid var(--color-border-2)',
-  borderRadius: '6px',
-  overflow: 'hidden',
-} as const;
-
-/** CodeMirror 基础配置 / CodeMirror basic setup */
-const CODE_MIRROR_BASIC_SETUP = {
-  lineNumbers: true,
-  foldGutter: true,
-  dropCursor: false,
-  allowMultipleSelections: false,
-} as const;
 
 /**
  * 目录选择输入组件 / Directory selection input component
@@ -134,8 +112,6 @@ const SystemModalContent: React.FC<SystemModalContentProps> = ({ onRequestClose 
   const [loading, setLoading] = useState(false);
   const [modal, modalContextHolder] = Modal.useModal();
   const [error, setError] = useState<string | null>(null);
-  const { theme } = useThemeContext();
-  const [customCss, setCustomCss] = useState('');
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
 
@@ -149,35 +125,6 @@ const SystemModalContent: React.FC<SystemModalContentProps> = ({ onRequestClose 
       form.setFieldValue('workDir', systemInfo.workDir);
     }
   }, [systemInfo, form]);
-
-  // Load custom CSS
-  useEffect(() => {
-    void ConfigStorage.get('customCss')
-      .then((storedCss) => {
-        setCustomCss(storedCss || '');
-      })
-      .catch((err) => {
-        console.error('Failed to load custom CSS:', err);
-      });
-  }, []);
-
-  /**
-   * 处理自定义 CSS 变更 / Handle custom CSS change
-   * 保存到存储并触发自定义事件通知其他组件更新
-   * Saves to storage and dispatches custom event to notify other components
-   * @param cssValue - CSS 样式内容 / CSS style content
-   */
-  const handleCustomCssChange = (cssValue: string) => {
-    setCustomCss(cssValue);
-    void ConfigStorage.set('customCss', cssValue || '').catch((err) => {
-      console.error('Failed to save custom CSS:', err);
-    });
-    window.dispatchEvent(
-      new CustomEvent('custom-css-updated', {
-        detail: { customCss: cssValue || '' },
-      })
-    );
-  };
 
   // 渲染折叠面板的展开/收起图标 / Render expand/collapse icon for collapse panel
   const renderExpandIcon = (active: boolean) => (active ? <Up theme='outline' size='16' fill={iconColors.secondary} /> : <Down theme='outline' size='16' fill={iconColors.secondary} />);
@@ -288,10 +235,10 @@ const SystemModalContent: React.FC<SystemModalContentProps> = ({ onRequestClose 
             </Form>
           </div>
 
-          {/* 自定义CSS设置 / Custom CSS Settings - Collapsible */}
+          {/* CSS 主题设置 / CSS Theme Settings - Collapsible */}
           <AionCollapse bordered={false} defaultActiveKey={['css']} expandIcon={renderExpandIcon} expandIconPosition='right'>
-            <AionCollapse.Item name='css' header={<span className='text-14px text-2'>{t('settings.customCss')}</span>} className='bg-transparent' contentStyle={{ padding: '12px 0 0' }}>
-              <CodeMirror value={customCss} theme={theme} extensions={[cssLang()]} onChange={handleCustomCssChange} placeholder={`/* ${t('settings.customCssDesc') || '在这里输入自定义 CSS 样式'} */\n/* 例如: */\n.chat-message {\n  font-size: 16px;\n}`} basicSetup={CODE_MIRROR_BASIC_SETUP} style={CODE_MIRROR_STYLE} className='[&_.cm-editor]:rounded-[6px]' />
+            <AionCollapse.Item name='css' header={<span className='text-14px text-2'>{t('settings.cssSettings')}</span>} className='bg-transparent' contentStyle={{ padding: '12px 0 0' }}>
+              <CssThemeSettings />
             </AionCollapse.Item>
           </AionCollapse>
         </div>

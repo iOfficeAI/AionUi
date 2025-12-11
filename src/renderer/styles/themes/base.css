@@ -44,6 +44,12 @@
   line-height: 1;
 }
 
+.app-titlebar__menu {
+  -webkit-app-region: no-drag;
+  display: flex;
+  align-items: center;
+}
+
 .app-titlebar__toolbar {
   display: flex;
   align-items: center;
@@ -54,6 +60,7 @@
 }
 
 .app-titlebar__button {
+  -webkit-app-region: no-drag;
   width: var(--titlebar-height);
   height: var(--titlebar-height);
   border: none;

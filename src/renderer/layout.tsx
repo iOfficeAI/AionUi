@@ -9,7 +9,6 @@ import { ConfigStorage } from '@/common/storage';
 import PwaPullToRefresh from '@/renderer/components/PwaPullToRefresh';
 import Titlebar from '@/renderer/components/Titlebar';
 import { Layout as ArcoLayout } from '@arco-design/web-react';
-import { MenuFold, MenuUnfold } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useEffect, useRef, useState } from 'react';
 import { Outlet, useLocation } from 'react-router-dom';
@@ -17,7 +16,6 @@ import { LayoutContext } from './context/LayoutContext';
 import { useDirectorySelection } from './hooks/useDirectorySelection';
 import { useMultiAgentDetection } from './hooks/useMultiAgentDetection';
 import { processCustomCss } from './utils/customCssProcessor';
-import { iconColors } from './theme/colors';
 
 const useDebug = () => {
   const [count, setCount] = useState(0);
@@ -277,12 +275,7 @@ const Layout: React.FC<{
                 </svg>
               </div>
               <div className=' flex-1 text-20px collapsed-hidden font-bold'>AionUi</div>
-              <MenuFold className='cursor-pointer !collapsed-hidden flex' theme='outline' size='24' fill={iconColors.secondary} strokeWidth={3} onClick={() => setCollapsed(true)} />
-              {collapsed && !isMobile && (
-                <div onClick={() => setCollapsed(false)} className='absolute bg-2 left-8px top-7px transition-all duration-150 p-10px hover:bg-hover opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto'>
-                  <MenuUnfold className='cursor-pointer flex' size='24' fill={iconColors.secondary} strokeWidth={3} />
-                </div>
-              )}
+              {/* 侧栏折叠改由标题栏统一控制 / Sidebar folding handled by Titlebar toggle */}
             </ArcoLayout.Header>
             <ArcoLayout.Content className='h-[calc(100%-72px-16px)] p-8px layout-sider-content'>
               {React.isValidElement(sider)
