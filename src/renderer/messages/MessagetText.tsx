@@ -65,7 +65,7 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
     <>
       <div className={classNames('flex flex-col group', isUserMessage ? 'items-end' : 'items-start')}>
         <div
-          className={classNames('max-w-[70%] rd-8px rd-tr-2px [&>p:first-child]:mt-0px [&>p:last-child]:mb-0px', {
+          className={classNames('max-w-[95%] md:max-w-[70%] rd-8px rd-tr-2px [&>p:first-child]:mt-0px [&>p:last-child]:mb-0px', {
             'bg-aou-2 p-8px': isUserMessage,
           })}
         >
