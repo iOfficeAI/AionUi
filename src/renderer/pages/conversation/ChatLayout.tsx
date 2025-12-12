@@ -37,7 +37,6 @@ import { WORKSPACE_TOGGLE_EVENT, dispatchWorkspaceStateEvent, dispatchWorkspaceT
 import { ACP_BACKENDS_ALL } from '@/types/acpTypes';
 import classNames from 'classnames';
 
-const MOBILE_COLLAPSE_DURATION = 280;
 const MIN_CHAT_RATIO = 25;
 const MIN_WORKSPACE_RATIO = 12;
 const MIN_PREVIEW_RATIO = 20;
@@ -80,12 +79,8 @@ const ChatLayout: React.FC<{
   const { backend, agentName } = props;
   const layout = useLayoutContext();
   const isMacRuntime = isMacEnvironment();
-  // 右侧栏的自动/手动折叠动画状态 / Auto & manual folding states for right sider
+  // 右侧栏折叠状态引用 / Mirror ref for collapse state
   const rightCollapsedRef = useRef(rightSiderCollapsed);
-  const [autoRightCollapsing, setAutoRightCollapsing] = useState(false);
-  const [manualRightCollapsing, setManualRightCollapsing] = useState(false);
-  const autoRightCollapseTimer = useRef<number | undefined>(undefined);
-  const manualRightCollapseTimer = useRef<number | undefined>(undefined);
   const previousWorkspaceCollapsedRef = useRef<boolean | null>(null);
   const previousSiderCollapsedRef = useRef<boolean | null>(null);
   const previousPreviewOpenRef = useRef(false);
@@ -141,59 +136,10 @@ const ChatLayout: React.FC<{
 
   useEffect(() => {
     if (!layout?.isMobile || rightCollapsedRef.current) {
-      setAutoRightCollapsing(false);
-      if (autoRightCollapseTimer.current !== undefined) {
-        window.clearTimeout(autoRightCollapseTimer.current);
-        autoRightCollapseTimer.current = undefined;
-      }
       return;
     }
-    setAutoRightCollapsing(true);
-    if (autoRightCollapseTimer.current !== undefined) {
-      window.clearTimeout(autoRightCollapseTimer.current);
-    }
-    autoRightCollapseTimer.current = window.setTimeout(() => {
-      setAutoRightCollapsing(false);
-      setRightSiderCollapsed(true);
-      autoRightCollapseTimer.current = undefined;
-    }, MOBILE_COLLAPSE_DURATION);
-
-    return () => {
-      if (autoRightCollapseTimer.current !== undefined) {
-        window.clearTimeout(autoRightCollapseTimer.current);
-        autoRightCollapseTimer.current = undefined;
-      }
-    };
+    setRightSiderCollapsed(true);
   }, [layout?.isMobile]);
-
-  // 手动折叠右侧栏时也做淡出 / Fade out when user folds the right sider manually
-  useEffect(() => {
-    if (!rightSiderCollapsed) {
-      setManualRightCollapsing(false);
-      if (manualRightCollapseTimer.current !== undefined) {
-        window.clearTimeout(manualRightCollapseTimer.current);
-        manualRightCollapseTimer.current = undefined;
-      }
-      return;
-    }
-
-    setManualRightCollapsing(true);
-    if (manualRightCollapseTimer.current !== undefined) {
-      window.clearTimeout(manualRightCollapseTimer.current);
-    }
-    // Delay pointer lock until fade-out finishes / 等淡出动画完成后再禁用交互
-    manualRightCollapseTimer.current = window.setTimeout(() => {
-      setManualRightCollapsing(false);
-      manualRightCollapseTimer.current = undefined;
-    }, MOBILE_COLLAPSE_DURATION);
-
-    return () => {
-      if (manualRightCollapseTimer.current !== undefined) {
-        window.clearTimeout(manualRightCollapseTimer.current);
-        manualRightCollapseTimer.current = undefined;
-      }
-    };
-  }, [rightSiderCollapsed]);
 
   const {
     splitRatio: chatSplitRatio,
@@ -354,9 +300,7 @@ const ChatLayout: React.FC<{
         {/* 工作空间面板（移到最右边）/ Workspace panel (moved to rightmost position) */}
         {!layout?.isMobile && (
           <div
-            className={classNames('!bg-1 relative chat-layout-right-sider layout-sider', {
-              'layout-sider--folding': autoRightCollapsing || manualRightCollapsing,
-            })}
+            className={classNames('!bg-1 relative chat-layout-right-sider layout-sider')}
             style={{
               // 使用 flexBasis 设置宽度，避免 width 和 flexBasis 冲突
               flexGrow: isPreviewOpen ? 0 : workspaceFlex,
@@ -392,9 +336,9 @@ const ChatLayout: React.FC<{
               height: '100vh',
               width: `${Math.round(workspaceWidthPx)}px`,
               zIndex: 100,
-              transform: rightSiderCollapsed || autoRightCollapsing ? 'translateX(100%)' : 'translateX(0)',
-              transition: `transform ${MOBILE_COLLAPSE_DURATION}ms ease`,
-              pointerEvents: rightSiderCollapsed || autoRightCollapsing ? 'none' : 'auto',
+              transform: rightSiderCollapsed ? 'translateX(100%)' : 'translateX(0)',
+              transition: 'none',
+              pointerEvents: rightSiderCollapsed ? 'none' : 'auto',
             }}
           >
             {mobileHandle}
