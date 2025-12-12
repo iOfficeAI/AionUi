@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { AcpBackend } from '@/types/acpTypes';
+import type { AcpBackend, AcpBackendConfig } from '@/types/acpTypes';
 import { storage } from '@office-ai/platform';
 
 /**
@@ -36,6 +36,7 @@ export interface IConfigStorageRefer {
       cliPath?: string;
     };
   };
+  'acp.customAgents'?: AcpBackendConfig[];
   'model.config': IProvider[];
   'mcp.config': IMcpServer[];
   'mcp.agentInstallStatus': Record<string, string[]>;
@@ -43,6 +44,8 @@ export interface IConfigStorageRefer {
   theme: string;
   colorScheme: string;
   customCss: string; // 自定义 CSS 样式
+  'css.themes': ICssTheme[]; // 自定义 CSS 主题列表 / Custom CSS themes list
+  'css.activeThemeId': string; // 当前激活的主题 ID / Currently active theme ID
   'gemini.defaultModel': string;
   'tools.imageGenerationModel': TProviderWithModel & {
     switch: boolean;
@@ -87,6 +90,8 @@ export type TChatConversation =
           backend: AcpBackend;
           cliPath?: string;
           customWorkspace?: boolean;
+          agentName?: string;
+          customAgentId?: string; // UUID for identifying specific custom agent
         }
       >,
       'model'
@@ -98,6 +103,7 @@ export type TChatConversation =
           workspace?: string;
           cliPath?: string;
           customWorkspace?: boolean;
+          sandboxMode?: 'read-only' | 'workspace-write' | 'danger-full-access'; // Codex sandbox permission mode
         }
       >,
       'model'
@@ -193,4 +199,18 @@ export interface IMcpTool {
   name: string;
   description?: string;
   inputSchema?: unknown;
+}
+
+/**
+ * CSS 主题配置接口 / CSS Theme configuration interface
+ * 用于存储用户自定义的 CSS 皮肤 / Used to store user-defined CSS skins
+ */
+export interface ICssTheme {
+  id: string; // 唯一标识 / Unique identifier
+  name: string; // 主题名称 / Theme name
+  cover?: string; // 封面图片 base64 或 URL / Cover image base64 or URL
+  css: string; // CSS 样式代码 / CSS style code
+  isPreset?: boolean; // 是否为预设主题 / Whether it's a preset theme
+  createdAt: number; // 创建时间 / Creation time
+  updatedAt: number; // 更新时间 / Update time
 }

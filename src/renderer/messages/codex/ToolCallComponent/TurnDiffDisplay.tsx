@@ -81,7 +81,7 @@ const TurnDiffDisplay: React.FC<{ content: TurnDiffContent }> = ({ content }) =>
       additionalTags={additionalTags}
     >
       <div className='mt-3 max-w-full overflow-hidden'>
-        <Diff2Html diff={unified_diff} title={fileName} className='border rounded w-full' />
+        <Diff2Html diff={unified_diff} title={fileName} filePath={fullPath} className='border rounded w-full' />
       </div>
     </BaseToolCallDisplay>
   );

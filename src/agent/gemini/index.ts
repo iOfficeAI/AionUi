@@ -9,11 +9,10 @@ import type { TProviderWithModel } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import { getProviderAuthType } from '@/common/utils/platformAuthType';
 import type { CompletedToolCall, Config, GeminiClient, ServerGeminiStreamEvent, ToolCall, ToolCallRequestInfo, Turn } from '@office-ai/aioncli-core';
-import { AuthType, CoreToolScheduler, FileDiscoveryService, sessionId } from '@office-ai/aioncli-core';
+import { AuthType, CoreToolScheduler, FileDiscoveryService, sessionId, refreshServerHierarchicalMemory } from '@office-ai/aioncli-core';
 import { ApiKeyManager } from '../../common/ApiKeyManager';
 import { handleAtCommand } from './cli/atCommandProcessor';
-import { loadCliConfig, loadHierarchicalGeminiMemory } from './cli/config';
-import type { Extension } from './cli/extension';
+import { loadCliConfig } from './cli/config';
 import { loadExtensions } from './cli/extension';
 import type { Settings } from './cli/settings';
 import { loadSettings } from './cli/settings';
@@ -23,20 +22,6 @@ import { getPromptCount, handleCompletedTools, processGeminiStreamEvents, startN
 
 // Global registry for current agent instance (used by flashFallbackHandler)
 let currentGeminiAgent: GeminiAgent | null = null;
-
-function _mergeMcpServers(settings: ReturnType<typeof loadSettings>['merged'], extensions: Extension[]) {
-  const mcpServers = { ...(settings.mcpServers || {}) };
-  for (const extension of extensions) {
-    Object.entries(extension.config.mcpServers || {}).forEach(([key, server]) => {
-      if (mcpServers[key]) {
-        console.warn(`Skipping extension MCP config for server with key "${key}" as it already exists.`);
-        return;
-      }
-      mcpServers[key] = server;
-    });
-  }
-  return mcpServers;
-}
 
 interface GeminiAgent2Options {
   workspace: string;
@@ -215,11 +200,11 @@ export class GeminiAgent {
         try {
           if (completedToolCalls.length > 0) {
             const refreshMemory = async () => {
-              const config = this.config;
-              const extensionPaths = config.getExtensionContextFilePaths();
-              const { memoryContent, fileCount } = await loadHierarchicalGeminiMemory(this.workspace, [], config.getDebugMode(), config.getFileService(), settings, extensionPaths);
-              config.setUserMemory(memoryContent);
-              config.setGeminiMdFileCount(fileCount);
+              // 直接使用 aioncli-core 提供的 refreshServerHierarchicalMemory
+              // Directly use refreshServerHierarchicalMemory from aioncli-core
+              // 它会自动从 config 获取 ExtensionLoader 并更新 memory
+              // It automatically gets ExtensionLoader from config and updates memory
+              await refreshServerHierarchicalMemory(this.config);
             };
             const response = handleCompletedTools(completedToolCalls, this.geminiClient, refreshMemory);
             if (response.length > 0) {
@@ -274,9 +259,7 @@ export class GeminiAgent {
           });
         }
       },
-      onEditorClose() {
-        console.log('onEditorClose');
-      },
+      // onEditorClose 回调在 aioncli-core v0.18.4 中已移除 / callback was removed in aioncli-core v0.18.4
       // approvalMode: this.config.getApprovalMode(),
       getPreferredEditor() {
         return 'vscode';
@@ -404,7 +387,9 @@ export class GeminiAgent {
       // Prepare one-time prefix for first outgoing message after (re)start
       this.historyPrefix = `Conversation history (recent):\n${text}\n\n`;
       this.historyUsedOnce = false;
-      const { memoryContent } = await loadHierarchicalGeminiMemory(this.workspace, [], this.config.getDebugMode(), this.config.getFileService(), this.settings, this.config.getExtensionContextFilePaths());
+      // 使用 refreshServerHierarchicalMemory 刷新 memory，然后追加聊天历史
+      // Use refreshServerHierarchicalMemory to refresh memory, then append chat history
+      const { memoryContent } = await refreshServerHierarchicalMemory(this.config);
       const combined = `${memoryContent}\n\n[Recent Chat]\n${text}`;
       this.config.setUserMemory(combined);
     } catch (e) {

@@ -9,7 +9,8 @@ import { html } from '@codemirror/lang-html';
 import { history, historyKeymap } from '@codemirror/commands';
 import { keymap } from '@codemirror/view';
 import CodeMirror from '@uiw/react-codemirror';
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef, useCallback } from 'react';
+import { useCodeMirrorScroll, useScrollSyncTarget } from '../../hooks/useScrollSyncHelpers';
 
 interface HTMLEditorProps {
   value: string;
@@ -26,8 +27,21 @@ interface HTMLEditorProps {
  * 使用 CodeMirror 进行 HTML 代码编辑，支持撤销/重做历史记录
  * Uses CodeMirror for HTML code editing with undo/redo history support
  */
-const HTMLEditor: React.FC<HTMLEditorProps> = ({ value, onChange, containerRef, filePath }) => {
+const HTMLEditor: React.FC<HTMLEditorProps> = ({ value, onChange, containerRef, onScroll, filePath }) => {
   const { theme } = useThemeContext();
+  const editorWrapperRef = useRef<HTMLDivElement>(null);
+
+  // 使用 CodeMirror 滚动 Hook / Use CodeMirror scroll hook
+  const { setScrollPercent } = useCodeMirrorScroll(editorWrapperRef, onScroll);
+
+  // 监听外部滚动同步请求 / Listen for external scroll sync requests
+  const handleTargetScroll = useCallback(
+    (targetPercent: number) => {
+      setScrollPercent(targetPercent);
+    },
+    [setScrollPercent]
+  );
+  useScrollSyncTarget(containerRef, handleTargetScroll);
 
   // 使用 filePath 作为 key 的一部分，确保编辑器实例稳定
   // Use filePath as part of key to ensure editor instance is stable
@@ -35,15 +49,14 @@ const HTMLEditor: React.FC<HTMLEditorProps> = ({ value, onChange, containerRef, 
     return filePath || 'html-editor';
   }, [filePath]);
 
-  // 包装 onChange 以添加日志和类型检查 / Wrap onChange to add logging and type checking
-  const handleChange = React.useCallback(
+  // 包装 onChange 以添加类型检查 / Wrap onChange to add type checking
+  const handleChange = useCallback(
     (newValue: string) => {
       // 严格类型检查 / Strict type checking
       if (typeof newValue !== 'string') {
         console.error('[HTMLEditor] onChange received non-string value:', newValue);
         return;
       }
-
       onChange(newValue);
     },
     [onChange]
@@ -61,26 +74,28 @@ const HTMLEditor: React.FC<HTMLEditorProps> = ({ value, onChange, containerRef, 
   );
 
   return (
-    <div ref={containerRef} className='h-full w-full overflow-auto'>
-      <CodeMirror
-        key={editorKey}
-        value={value}
-        height='100%'
-        theme={theme === 'dark' ? 'dark' : 'light'}
-        extensions={extensions}
-        onChange={handleChange}
-        basicSetup={{
-          lineNumbers: true,
-          highlightActiveLineGutter: true,
-          highlightActiveLine: true,
-          foldGutter: true,
-          history: false, // 关闭 basicSetup 的 history，使用我们自己的 / Disable basicSetup history, use our own
-        }}
-        style={{
-          fontSize: '14px',
-          height: '100%',
-        }}
-      />
+    <div ref={containerRef} className='h-full w-full overflow-hidden'>
+      <div ref={editorWrapperRef} className='h-full w-full'>
+        <CodeMirror
+          key={editorKey}
+          value={value}
+          height='100%'
+          theme={theme === 'dark' ? 'dark' : 'light'}
+          extensions={extensions}
+          onChange={handleChange}
+          basicSetup={{
+            lineNumbers: true,
+            highlightActiveLineGutter: true,
+            highlightActiveLine: true,
+            foldGutter: true,
+            history: false, // 关闭 basicSetup 的 history，使用我们自己的 / Disable basicSetup history, use our own
+          }}
+          style={{
+            fontSize: '14px',
+            height: '100%',
+          }}
+        />
+      </div>
     </div>
   );
 };

@@ -21,6 +21,7 @@ import { useWorkspaceFileOps } from './hooks/useWorkspaceFileOps';
 import { useWorkspaceModals } from './hooks/useWorkspaceModals';
 import { useWorkspacePaste } from './hooks/useWorkspacePaste';
 import { useWorkspaceTree } from './hooks/useWorkspaceTree';
+import { useWorkspaceDragImport } from './hooks/useWorkspaceDragImport';
 import type { WorkspaceProps } from './types';
 import { extractNodeData, extractNodeKey, findNodeByKey, getTargetFolderPath } from './utils/treeHelpers';
 
@@ -51,6 +52,12 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
     pasteConfirm: modalsHook.pasteConfirm,
     setPasteConfirm: modalsHook.setPasteConfirm,
     closePasteConfirm: modalsHook.closePasteConfirm,
+  });
+
+  const dragImportHook = useWorkspaceDragImport({
+    messageApi,
+    t,
+    onFilesDropped: pasteHook.handleFilesToAdd,
   });
 
   const fileOpsHook = useWorkspaceFileOps({
@@ -196,7 +203,51 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
   return (
     <>
       {shouldRenderLocalMessageContext && messageContext}
-      <div className='size-full flex flex-col' tabIndex={0} onFocus={pasteHook.onFocusPaste} onClick={pasteHook.onFocusPaste}>
+      <div
+        className='size-full flex flex-col relative'
+        tabIndex={0}
+        onFocus={pasteHook.onFocusPaste}
+        onClick={pasteHook.onFocusPaste}
+        {...dragImportHook.dragHandlers}
+        style={
+          dragImportHook.isDragging
+            ? {
+                border: '1px dashed rgb(var(--primary-6))',
+                borderRadius: '18px',
+                backgroundColor: 'rgba(var(--primary-1), 0.25)',
+                transition: 'all 0.2s ease',
+              }
+            : undefined
+        }
+      >
+        {dragImportHook.isDragging && (
+          <div className='absolute inset-0 pointer-events-none z-30 flex items-center justify-center px-32px'>
+            <div
+              className='w-full max-w-480px text-center text-white rounded-16px px-32px py-28px'
+              style={{
+                background: 'rgba(6, 11, 25, 0.85)',
+                border: '1px dashed rgb(var(--primary-6))',
+                boxShadow: '0 20px 60px rgba(15, 23, 42, 0.45)',
+              }}
+            >
+              <div className='text-18px font-semibold mb-8px'>
+                {t('conversation.workspace.dragOverlayTitle', {
+                  defaultValue: 'Drop to import',
+                })}
+              </div>
+              <div className='text-14px opacity-90 mb-4px'>
+                {t('conversation.workspace.dragOverlayDesc', {
+                  defaultValue: 'Drag files or folders here to copy them into this workspace.',
+                })}
+              </div>
+              <div className='text-12px opacity-70'>
+                {t('conversation.workspace.dragOverlayHint', {
+                  defaultValue: 'Tip: drop anywhere to import into the selected folder.',
+                })}
+              </div>
+            </div>
+          </div>
+        )}
         {/* Paste Confirm Modal */}
         <Modal
           visible={modalsHook.pasteConfirm.visible}
@@ -207,6 +258,8 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
           footer={null}
           style={{ borderRadius: '12px' }}
           className='paste-confirm-modal'
+          alignCenter
+          getPopupContainer={() => document.body}
         >
           <div className='px-24px py-20px'>
             {/* Title area */}
@@ -302,12 +355,12 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
         </Modal>
 
         {/* Rename Modal */}
-        <Modal visible={modalsHook.renameModal.visible} title={t('conversation.workspace.contextMenu.renameTitle')} onCancel={modalsHook.closeRenameModal} onOk={fileOpsHook.handleRenameConfirm} okText={t('common.confirm')} cancelText={t('common.cancel')} confirmLoading={modalsHook.renameLoading} style={{ borderRadius: '12px' }}>
+        <Modal visible={modalsHook.renameModal.visible} title={t('conversation.workspace.contextMenu.renameTitle')} onCancel={modalsHook.closeRenameModal} onOk={fileOpsHook.handleRenameConfirm} okText={t('common.confirm')} cancelText={t('common.cancel')} confirmLoading={modalsHook.renameLoading} style={{ borderRadius: '12px' }} alignCenter getPopupContainer={() => document.body}>
           <Input autoFocus value={modalsHook.renameModal.value} onChange={(value) => modalsHook.setRenameModal((prev) => ({ ...prev, value }))} onPressEnter={fileOpsHook.handleRenameConfirm} placeholder={t('conversation.workspace.contextMenu.renamePlaceholder')} />
         </Modal>
 
         {/* Delete Modal */}
-        <Modal visible={modalsHook.deleteModal.visible} title={t('conversation.workspace.contextMenu.deleteTitle')} onCancel={modalsHook.closeDeleteModal} onOk={fileOpsHook.handleDeleteConfirm} okText={t('common.confirm')} cancelText={t('common.cancel')} confirmLoading={modalsHook.deleteModal.loading} style={{ borderRadius: '12px' }}>
+        <Modal visible={modalsHook.deleteModal.visible} title={t('conversation.workspace.contextMenu.deleteTitle')} onCancel={modalsHook.closeDeleteModal} onOk={fileOpsHook.handleDeleteConfirm} okText={t('common.confirm')} cancelText={t('common.cancel')} confirmLoading={modalsHook.deleteModal.loading} style={{ borderRadius: '12px' }} alignCenter getPopupContainer={() => document.body}>
           <div className='text-14px text-t-secondary'>{t('conversation.workspace.contextMenu.deleteConfirm')}</div>
         </Modal>
 
@@ -467,7 +520,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
                     style={{ color: 'inherit' }}
                     onDoubleClick={() => {
                       if (isFile) {
-                        void fileOpsHook.handlePreviewFile(node.dataRef as IDirOrFile);
+                        fileOpsHook.handleAddToChat(node.dataRef as IDirOrFile);
                       }
                     }}
                     onContextMenu={(event) => {
@@ -489,9 +542,28 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
               }}
               onSelect={(keys, extra) => {
                 const clickedKey = extractNodeKey(extra?.node);
+                const nodeData = extra && extra.node ? extractNodeData(extra.node) : null;
+                const isFileNode = Boolean(nodeData?.isFile);
+                const wasSelected = clickedKey ? treeHook.selectedKeysRef.current.includes(clickedKey) : false;
+
+                if (isFileNode) {
+                  // 单击文件仅打开预览，不改变选中状态 / Single-click file only opens preview without changing selection state
+                  if (clickedKey) {
+                    const filteredKeys = treeHook.selectedKeysRef.current.filter((key) => key !== clickedKey);
+                    treeHook.selectedKeysRef.current = filteredKeys;
+                    treeHook.setSelected(filteredKeys);
+                  }
+                  treeHook.selectedNodeRef.current = null;
+                  if (nodeData && clickedKey && !wasSelected) {
+                    void fileOpsHook.handlePreviewFile(nodeData);
+                  }
+                  return;
+                }
+
+                // 目录节点仍保留原有选中逻辑 / Keep existing selection logic for folders
                 let newKeys: string[];
 
-                if (clickedKey && treeHook.selectedKeysRef.current.includes(clickedKey)) {
+                if (clickedKey && wasSelected) {
                   newKeys = treeHook.selectedKeysRef.current.filter((key) => key !== clickedKey);
                 } else if (clickedKey) {
                   newKeys = [...treeHook.selectedKeysRef.current, clickedKey];
@@ -502,18 +574,13 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
                 treeHook.setSelected(newKeys);
                 treeHook.selectedKeysRef.current = newKeys;
 
-                if (extra && extra.node) {
-                  const nodeData = extractNodeData(extra.node);
-                  if (nodeData) {
-                    if (!nodeData.isFile && nodeData.fullPath && nodeData.relativePath) {
-                      treeHook.selectedNodeRef.current = {
-                        relativePath: nodeData.relativePath,
-                        fullPath: nodeData.fullPath,
-                      };
-                    } else if (nodeData.isFile) {
-                      treeHook.selectedNodeRef.current = null;
-                    }
-                  }
+                if (extra && extra.node && nodeData && nodeData.fullPath && nodeData.relativePath != null) {
+                  treeHook.selectedNodeRef.current = {
+                    relativePath: nodeData.relativePath,
+                    fullPath: nodeData.fullPath,
+                  };
+                } else {
+                  treeHook.selectedNodeRef.current = null;
                 }
 
                 const items: Array<{ path: string; name: string; isFile: boolean }> = [];

@@ -7,13 +7,14 @@ import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/use
 import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
 import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
+import { mergeFileSelectionItems } from '@/renderer/utils/fileSelection';
 import { Button, Tag } from '@arco-design/web-react';
 import { Plus } from '@icon-park/react';
+import { iconColors } from '@/renderer/theme/colors';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import ShimmerText from '@renderer/components/ShimmerText';
 import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/ThoughtDisplay';
-import { iconColors } from '@/renderer/theme/colors';
 import FilePreview from '@/renderer/components/FilePreview';
 import HorizontalFileList from '@/renderer/components/HorizontalFileList';
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';
@@ -62,9 +63,10 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
     };
   })();
 
-  // 使用 useLatestRef 保存最新的 setContent，避免重复注册 handler
-  // Use useLatestRef to keep latest setContent to avoid re-registering handler
+  // 使用 useLatestRef 保存最新的 setContent/atPath，避免重复注册 handler
+  // Use useLatestRef to keep latest setters to avoid re-registering handler
   const setContentRef = useLatestRef(setContent);
+  const atPathRef = useLatestRef(atPath);
 
   // 当会话ID变化时，清理所有状态避免状态污染
   useEffect(() => {
@@ -152,6 +154,15 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
     }, 10);
   });
 
+  useAddEventListener('codex.selected.file.append', (items: Array<string | FileOrFolderItem>) => {
+    setTimeout(() => {
+      const merged = mergeFileSelectionItems(atPathRef.current, items);
+      if (merged !== atPathRef.current) {
+        setAtPath(merged as Array<string | FileOrFolderItem>);
+      }
+    }, 10);
+  });
+
   const onSendHandler = async (message: string) => {
     const msg_id = uuid();
     // 立即清空输入框和选择的文件，提升用户体验
@@ -200,6 +211,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
         conversation_id,
         files: [...currentUploadFile, ...atPathStrings], // 包含上传文件和选中的工作空间文件
       });
+      emitter.emit('chat.history.refresh');
     } finally {
       // Clear waiting state when done
       setAiProcessing(false);
@@ -251,6 +263,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
 
         // 发送消息到后端处理
         await ipcBridge.codexConversation.sendMessage.invoke({ input, msg_id, conversation_id, files, loading_id });
+        emitter.emit('chat.history.refresh');
 
         // 成功后移除初始消息存储
         sessionStorage.removeItem(storageKey);
@@ -275,15 +288,14 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
     };
   }, [conversation_id, codexStatus, addOrUpdateMessage]);
 
+  const showProcessingHint = (aiProcessing || running) && !thought.subject;
+
   return (
     <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
+      <ThoughtDisplay thought={thought} />
+
       {/* 显示处理中提示 / Show processing indicator */}
-      {aiProcessing && (
-        <div className='text-left text-14px py-8px'>
-          <ShimmerText duration={2}>{t('conversation.chat.processing')}</ShimmerText>
-        </div>
-      )}
-      {thought && <ThoughtDisplay thought={thought} style='compact' />}
+      {showProcessingHint && <div className='text-left text-t-secondary text-14px py-8px'>{aiProcessing ? <ShimmerText duration={2}>{t('conversation.chat.processing')}</ShimmerText> : t('conversation.chat.processing')}</div>}
       <SendBox
         value={content}
         onChange={(val) => {
@@ -294,6 +306,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
         }}
         loading={running}
         disabled={aiProcessing}
+        className='z-10'
         placeholder={
           aiProcessing
             ? t('conversation.chat.processing')
@@ -307,6 +320,20 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
         }}
         onFilesAdded={handleFilesAdded}
         supportedExts={allSupportedExts}
+        tools={
+          <Button
+            type='secondary'
+            shape='circle'
+            icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />}
+            onClick={() => {
+              void ipcBridge.dialog.showOpen.invoke({ properties: ['openFile', 'multiSelections'] }).then((files) => {
+                if (files && files.length > 0) {
+                  setUploadFile([...uploadFile, ...files]);
+                }
+              });
+            }}
+          />
+        }
         prefix={
           <>
             {/* Files on top */}
@@ -360,23 +387,6 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
                 })}
               </div>
             )}
-          </>
-        }
-        tools={
-          <>
-            <Button
-              type='secondary'
-              shape='circle'
-              icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />}
-              onClick={() => {
-                ipcBridge.dialog.showOpen
-                  .invoke({ properties: ['openFile', 'multiSelections'] })
-                  .then((files) => setUploadFile(files || []))
-                  .catch((error) => {
-                    console.error('Failed to open file dialog:', error);
-                  });
-              }}
-            ></Button>
           </>
         }
         onSend={onSendHandler}

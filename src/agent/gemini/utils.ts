@@ -43,7 +43,7 @@ export const processGeminiStreamEvents = async (stream: AsyncIterable<ServerGemi
       case ServerGeminiEventType.Finished:
       case ServerGeminiEventType.LoopDetected:
         {
-          console.log('event>>>>>>>>>>>>>>>>>>>', event);
+          // console.log('event>>>>>>>>>>>>>>>>>>>', event);
         }
         break;
       default: {
@@ -77,12 +77,12 @@ export const processGeminiFunctionCalls = async (config: Config, functionCalls: 
     const abortController = new AbortController();
 
     const toolResponse = await executeToolCall(config, requestInfo, abortController.signal);
-    if (toolResponse?.error) {
+    if (toolResponse?.response?.error) {
       await onProgress({
         type: 'tool_call_error',
         data: Object.assign({}, requestInfo, {
           status: 'error',
-          error: `Error executing tool ${fc.name}: ${toolResponse.resultDisplay || toolResponse.error.message}`,
+          error: `Error executing tool ${fc.name}: ${toolResponse.response.resultDisplay || toolResponse.response.error.message}`,
         }),
       });
       return;
@@ -94,8 +94,8 @@ export const processGeminiFunctionCalls = async (config: Config, functionCalls: 
       }),
     });
 
-    if (toolResponse.responseParts) {
-      const parts = Array.isArray(toolResponse.responseParts) ? toolResponse.responseParts : [toolResponse.responseParts];
+    if (toolResponse.response?.responseParts) {
+      const parts = Array.isArray(toolResponse.response.responseParts) ? toolResponse.response.responseParts : [toolResponse.response.responseParts];
       for (const part of parts) {
         if (typeof part === 'string') {
           toolResponseParts.push({ text: part });

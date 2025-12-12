@@ -1,22 +1,22 @@
 import { ipcBridge } from '@/common';
 import { transformMessage } from '@/common/chatLib';
 import type { IProvider, TProviderWithModel } from '@/common/storage';
-import { ConfigStorage } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import SendBox from '@/renderer/components/sendbox';
 import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/useSendBoxDraft';
 import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/ThoughtDisplay';
-import { geminiModeList } from '@/renderer/hooks/useModeModeList';
+import { useGeminiGoogleAuthModels } from '@/renderer/hooks/useGeminiGoogleAuthModels';
 import useSWR from 'swr';
-import { iconColors } from '@/renderer/theme/colors';
 import FilePreview from '@/renderer/components/FilePreview';
 import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/useSendBoxFiles';
 import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
 import { allSupportedExts } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
+import { mergeFileSelectionItems } from '@/renderer/utils/fileSelection';
 import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
-import { Button, Dropdown, Menu, Tag } from '@arco-design/web-react';
+import { Button, Dropdown, Menu, Tag, Tooltip } from '@arco-design/web-react';
 import { Plus } from '@icon-park/react';
+import { iconColors } from '@/renderer/theme/colors';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import HorizontalFileList from '@/renderer/components/HorizontalFileList';
@@ -129,9 +129,10 @@ const GeminiSendBox: React.FC<{
   const addOrUpdateMessage = useAddOrUpdateMessage();
   const { setSendBoxHandler } = usePreviewContext();
 
-  // 使用 useLatestRef 保存最新的 setContent，避免重复注册 handler
-  // Use useLatestRef to keep latest setContent to avoid re-registering handler
+  // 使用 useLatestRef 保存最新的 setContent/atPath，避免重复注册 handler
+  // Use useLatestRef to keep latest setters to avoid re-registering handler
   const setContentRef = useLatestRef(setContent);
+  const atPathRef = useLatestRef(atPath);
 
   // 注册预览面板添加到发送框的 handler
   // Register handler for adding text from preview panel to sendbox
@@ -151,9 +152,24 @@ const GeminiSendBox: React.FC<{
     setCurrentModel(model);
   }, [model?.id, model?.useModel]);
 
-  // Model list for dropdown (providers + models), with optional Google Auth Gemini provider
-  const { data: geminiConfig } = useSWR('gemini.config', () => ConfigStorage.get('gemini.config'));
-  const { data: isGoogleAuth } = useSWR('google.auth.status' + (geminiConfig?.proxy || ''), () => ipcBridge.googleAuth.status.invoke({ proxy: geminiConfig?.proxy }).then((d) => d.success));
+  // 模型下拉：根据 Google Auth 情况动态注入 Gemini 官方 provider / Dynamic provider list with Google Auth
+  const { geminiModeOptions, isGoogleAuth } = useGeminiGoogleAuthModels();
+  const geminiModeLookup = useMemo(() => {
+    const lookup = new Map<string, (typeof geminiModeOptions)[number]>();
+    geminiModeOptions.forEach((option) => lookup.set(option.value, option));
+    return lookup;
+  }, [geminiModeOptions]);
+  const formatModelLabel = useCallback(
+    (provider: { platform?: string } | undefined, modelName?: string) => {
+      if (!modelName) return '';
+      const isGoogleAuthProvider = provider?.platform?.toLowerCase().includes('gemini-with-google-auth');
+      if (isGoogleAuthProvider) {
+        return geminiModeLookup.get(modelName)?.label || modelName;
+      }
+      return modelName;
+    },
+    [geminiModeLookup]
+  );
   const { data: modelConfig } = useSWR('model.config.sendbox', () => ipcBridge.mode.getModelConfig.invoke());
 
   const availableModelsCache = useMemo(() => new Map<string, string[]>(), []);
@@ -184,14 +200,14 @@ const GeminiSendBox: React.FC<{
         platform: 'gemini-with-google-auth',
         baseUrl: '',
         apiKey: '',
-        model: geminiModeList.map((v) => v.value),
+        model: geminiModeOptions.map((v) => v.value),
         capabilities: [{ type: 'text' }, { type: 'vision' }, { type: 'function_calling' }],
       } as unknown as IProvider;
       list = [googleProvider, ...list];
     }
     // Filter providers with at least one primary chat model
     return list.filter((p) => getAvailableModels(p).length > 0);
-  }, [isGoogleAuth, modelConfig, getAvailableModels]);
+  }, [geminiModeOptions, getAvailableModels, isGoogleAuth, modelConfig]);
 
   const handleSelectModel = useCallback(
     async (provider: IProvider, modelName: string) => {
@@ -243,6 +259,7 @@ const GeminiSendBox: React.FC<{
       conversation_id,
       files: uploadFile,
     });
+    emitter.emit('chat.history.refresh');
     emitter.emit('gemini.selected.file.clear');
     if (uploadFile.length) {
       emitter.emit('gemini.workspace.refresh');
@@ -250,15 +267,25 @@ const GeminiSendBox: React.FC<{
   };
 
   useAddEventListener('gemini.selected.file', setAtPath);
-
-  // 截断过长的模型名称
-  const getDisplayModelName = (modelName: string) => {
-    const maxLength = 20;
-    if (modelName.length > maxLength) {
-      return modelName.slice(0, maxLength) + '...';
+  useAddEventListener('gemini.selected.file.append', (items: Array<string | FileOrFolderItem>) => {
+    const merged = mergeFileSelectionItems(atPathRef.current, items);
+    if (merged !== atPathRef.current) {
+      setAtPath(merged as Array<string | FileOrFolderItem>);
     }
-    return modelName;
-  };
+  });
+
+  // 截断过长的模型名称 / Shorten model labels for UI
+  const getDisplayModelName = useCallback(
+    (modelName: string) => {
+      const label = formatModelLabel(currentModel, modelName);
+      const maxLength = 20;
+      if (label.length > maxLength) {
+        return label.slice(0, maxLength) + '...';
+      }
+      return label;
+    },
+    [currentModel, formatModelLabel]
+  );
 
   return (
     <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
@@ -290,15 +317,11 @@ const GeminiSendBox: React.FC<{
               shape='circle'
               icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />}
               onClick={() => {
-                void ipcBridge.dialog.showOpen
-                  .invoke({
-                    properties: ['openFile', 'multiSelections'],
-                  })
-                  .then((files) => {
-                    if (files && files.length > 0) {
-                      setUploadFile((prev) => [...prev, ...files]);
-                    }
-                  });
+                void ipcBridge.dialog.showOpen.invoke({ properties: ['openFile', 'multiSelections'] }).then((files) => {
+                  if (files && files.length > 0) {
+                    setUploadFile([...uploadFile, ...files]);
+                  }
+                });
               }}
             />
             <Dropdown
@@ -316,7 +339,29 @@ const GeminiSendBox: React.FC<{
                               void handleSelectModel(provider, modelName);
                             }}
                           >
-                            {modelName}
+                            {(() => {
+                              const isGoogleProvider = provider.platform?.toLowerCase().includes('gemini-with-google-auth');
+                              const option = isGoogleProvider ? geminiModeLookup.get(modelName) : undefined;
+                              if (!option) {
+                                return modelName;
+                              }
+                              return (
+                                <Tooltip
+                                  position='right'
+                                  trigger='hover'
+                                  content={
+                                    <div className='max-w-240px space-y-6px'>
+                                      <div className='text-12px text-t-tertiary leading-5'>{option.description}</div>
+                                      {option.modelHint && <div className='text-11px text-t-tertiary'>{option.modelHint}</div>}
+                                    </div>
+                                  }
+                                >
+                                  <div className='flex items-center justify-between gap-12px w-full'>
+                                    <span>{option.label}</span>
+                                  </div>
+                                </Tooltip>
+                              );
+                            })()}
                           </Menu.Item>
                         ))}
                       </Menu.ItemGroup>
@@ -326,7 +371,7 @@ const GeminiSendBox: React.FC<{
               }
             >
               <Button className='ml-4px sendbox-model-btn' shape='round'>
-                {currentModel ? currentModel.useModel : t('conversation.welcome.selectModel')}
+                {currentModel ? formatModelLabel(currentModel, currentModel.useModel) : t('conversation.welcome.selectModel')}
               </Button>
             </Dropdown>
           </>

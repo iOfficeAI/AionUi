@@ -4,31 +4,28 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { html } from 'diff2html';
 import 'diff2html/bundles/css/diff2html.min.css';
-import { Checkbox } from '@arco-design/web-react';
+import { Checkbox, Tooltip, Button } from '@arco-design/web-react';
 import { ExpandDownOne, FoldUpOne, PreviewOpen } from '@icon-park/react';
 import classNames from 'classnames';
 import ReactDOM from 'react-dom';
 import { iconColors } from '@/renderer/theme/colors';
 import { useThemeContext } from '@/renderer/context/ThemeContext';
-import { usePreviewContext, getContentTypeByExtension } from '@/renderer/pages/conversation/preview';
+import { extractContentFromDiff, parseFilePathFromDiff } from '@/renderer/utils/diffUtils';
+import { getFileTypeInfo } from '@/renderer/utils/fileType';
 import CollapsibleContent from './CollapsibleContent';
 import { useTranslation } from 'react-i18next';
+import { usePreviewLauncher } from '@/renderer/hooks/usePreviewLauncher';
 
-const Diff2Html = ({ diff, className, title }: { diff: string; className?: string; title?: string }) => {
+const Diff2Html = ({ diff, className, title, filePath }: { diff: string; className?: string; title?: string; filePath?: string }) => {
   const { theme } = useThemeContext();
   const { t } = useTranslation();
-  const { openPreview, closePreviewByIdentity, findPreviewTab } = usePreviewContext(); // 获取预览上下文 / Get preview context
+  const { launchPreview, loading: previewLoading } = usePreviewLauncher();
   const [sideBySide, setSideBySide] = useState(false);
   const [collapse, setCollapse] = useState(false);
 
-  // 检查当前 diff 是否正在预览中 / Check if current diff is being previewed
-  const fileMeta = title ? { title, fileName: title } : undefined;
-  const contentType = title ? getContentTypeByExtension(title) : 'code';
-  const previewTab = fileMeta ? findPreviewTab(contentType, undefined, fileMeta) : null;
-  const isCurrentlyPreviewing = !!previewTab;
   const diffHtmlContent = useMemo(() => {
     return html(diff, {
       outputFormat: sideBySide ? 'side-by-side' : 'line-by-line',
@@ -42,6 +39,48 @@ const Diff2Html = ({ diff, className, title }: { diff: string; className?: strin
     });
   }, [diff, sideBySide]);
   const operatorRef = useRef<HTMLDivElement>(document.createElement('div'));
+
+  const normalizedTitle = useMemo(() => {
+    if (!title) return '';
+    return title.replace(/^File:\s*/i, '').trim();
+  }, [title]);
+
+  const relativePath = useMemo(() => {
+    if (filePath && filePath.trim()) {
+      return filePath.trim();
+    }
+    return parseFilePathFromDiff(diff) || normalizedTitle || '';
+  }, [diff, normalizedTitle, filePath]);
+
+  const fileName = useMemo(() => {
+    if (relativePath) {
+      const parts = relativePath.split(/[\\/]/);
+      return parts[parts.length - 1] || relativePath;
+    }
+    if (normalizedTitle) {
+      const parts = normalizedTitle.split(/[\\/]/);
+      return parts[parts.length - 1] || normalizedTitle;
+    }
+    return 'preview.txt';
+  }, [relativePath, normalizedTitle]);
+
+  const previewTitle = normalizedTitle || relativePath || title || fileName;
+  const fileTypeInfo = useMemo(() => getFileTypeInfo(fileName), [fileName]);
+
+  const handlePreviewClick = useCallback(() => {
+    const { contentType, editable, language } = fileTypeInfo;
+    void launchPreview({
+      relativePath,
+      originalPath: filePath,
+      fileName,
+      title: previewTitle,
+      language,
+      contentType,
+      editable,
+      fallbackContent: editable ? extractContentFromDiff(diff) : undefined,
+      diffContent: diff,
+    });
+  }, [diff, fileName, filePath, fileTypeInfo, launchPreview, previewTitle, relativePath]);
 
   return (
     <CollapsibleContent maxHeight={160} defaultCollapsed={true} className={className}>
@@ -71,32 +110,16 @@ const Diff2Html = ({ diff, className, title }: { diff: string; className?: strin
         ></div>
         {ReactDOM.createPortal(
           <>
-            {/* 预览按钮 / Preview button */}
-            <div
-              className='flex items-center gap-4px px-8px py-4px rd-4px cursor-pointer hover:bg-3 transition-colors'
-              onClick={() => {
-                if (isCurrentlyPreviewing) {
-                  // 关闭当前文件的预览 / Close preview for this file
-                  closePreviewByIdentity(contentType, undefined, fileMeta);
-                } else {
-                  // 直接预览 diff 内容 / Preview diff content directly
-                  openPreview(diff, 'diff', {
-                    title: title || 'Diff',
-                    fileName: title,
-                    editable: false,
-                  });
-                }
-              }}
-              title={isCurrentlyPreviewing ? t('preview.closePreview') : t('preview.preview')}
-            >
-              <PreviewOpen theme='outline' size='14' fill={iconColors.secondary} />
-              <span className='text-12px text-t-secondary whitespace-nowrap'>{isCurrentlyPreviewing ? t('preview.closePreview') : t('preview.preview')}</span>
-            </div>
-
-            {/* 原有的 side-by-side 选项 / Original side-by-side option */}
+            {/* side-by-side 选项 / Side-by-side option */}
             <Checkbox className='whitespace-nowrap' checked={sideBySide} onChange={(value) => setSideBySide(value)}>
               <span className='whitespace-nowrap'>side-by-side</span>
             </Checkbox>
+
+            <Tooltip content={t('preview.openInPanelTooltip')}>
+              <Button type='text' size='mini' onClick={handlePreviewClick} disabled={previewLoading} icon={<PreviewOpen theme='outline' size='14' fill={iconColors.secondary} />}>
+                {t('preview.preview')}
+              </Button>
+            </Tooltip>
 
             {/* 折叠按钮 / Collapse button */}
             {collapse ? <ExpandDownOne theme='outline' size='14' fill={iconColors.secondary} className='flex items-center' onClick={() => setCollapse(false)} /> : <FoldUpOne theme='outline' size='14' fill={iconColors.secondary} className='flex items-center' onClick={() => setCollapse(true)} />}

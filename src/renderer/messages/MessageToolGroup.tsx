@@ -18,6 +18,7 @@ import LocalImageView from '../components/LocalImageView';
 import MarkdownView from '../components/Markdown';
 import { ToolConfirmationOutcome } from '../types/tool-confirmation';
 import { ImagePreviewContext } from './MessageList';
+import MessageFileChanges from './codex/MessageFileChanges';
 import { COLLAPSE_CONFIG, TEXT_CONFIG } from './constants';
 import type { ImageGenerationResult, WriteFileResult } from './types';
 
@@ -26,7 +27,6 @@ import type { ImageGenerationResult, WriteFileResult } from './types';
 const ALERT_CLASSES = '!items-start !rd-8px !px-8px [&_.arco-alert-icon]:flex [&_.arco-alert-icon]:items-start [&_.arco-alert-content-wrapper]:flex [&_.arco-alert-content-wrapper]:items-start [&_.arco-alert-content-wrapper]:w-full [&_.arco-alert-content]:flex-1';
 
 // CollapsibleContent 高度常量 CollapsibleContent height constants
-const DESCRIPTION_MAX_HEIGHT = COLLAPSE_CONFIG.MAX_HEIGHT;
 const RESULT_MAX_HEIGHT = COLLAPSE_CONFIG.MAX_HEIGHT;
 
 interface IMessageToolGroupProps {
@@ -57,7 +57,6 @@ const useConfirmationButtons = (confirmationDetails: IMessageToolGroupProps['mes
         break;
       case 'exec':
         {
-          const executionProps = confirmationDetails;
           question = t('messages.confirmation.allowExecution');
           options.push(
             {
@@ -137,14 +136,14 @@ const ConfirmationDetails: React.FC<{
       case 'edit':
         return (
           <div>
-            <Diff2Html title={isConfirm ? confirmationDetails.title : content.description} diff={confirmationDetails?.fileDiff || ''}></Diff2Html>
+            <Diff2Html title={isConfirm ? confirmationDetails.title : content.description} diff={confirmationDetails?.fileDiff || ''} filePath={confirmationDetails.fileName}></Diff2Html>
           </div>
         );
       case 'exec': {
         const bashSnippet = `\`\`\`bash\n${confirmationDetails.command}\n\`\`\``;
         return (
           <div className='w-full max-w-100% min-w-0'>
-            <MarkdownView codeStyle={{ marginLeft: 16, marginTop: 4, marginBottom: 4 }}>{bashSnippet}</MarkdownView>
+            <MarkdownView codeStyle={{ marginTop: 4, marginBottom: 4 }}>{bashSnippet}</MarkdownView>
           </div>
         );
       }
@@ -348,15 +347,26 @@ const ToolResultDisplay: React.FC<{
 const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
   const { t } = useTranslation();
 
+  // 收集所有 WriteFile 结果用于汇总显示 / Collect all WriteFile results for summary display
+  const writeFileResults = useMemo(() => {
+    return message.content.filter((item) => item.name === 'WriteFile' && item.resultDisplay && typeof item.resultDisplay === 'object' && 'fileDiff' in item.resultDisplay).map((item) => item.resultDisplay as WriteFileResult);
+  }, [message.content]);
+
+  // 找到第一个 WriteFile 的索引 / Find the index of first WriteFile
+  const firstWriteFileIndex = useMemo(() => {
+    return message.content.findIndex((item) => item.name === 'WriteFile' && item.resultDisplay && typeof item.resultDisplay === 'object' && 'fileDiff' in item.resultDisplay);
+  }, [message.content]);
+
   return (
     <div>
-      {message.content.map((content) => {
+      {message.content.map((content, index) => {
         const { status, callId, name, description, resultDisplay, confirmationDetails } = content;
         const isLoading = status !== 'Success' && status !== 'Error' && status !== 'Canceled';
         // status === "Confirming" &&
         if (confirmationDetails) {
           return (
             <ConfirmationDetails
+              key={callId}
               content={content}
               onConfirm={(outcome) => {
                 ipcBridge.geminiConversation.confirmMessage
@@ -377,15 +387,19 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
           );
         }
 
-        // WriteFile 特殊处理：显示 diff Special handling for WriteFile: show diff
+        // WriteFile 特殊处理：使用 MessageFileChanges 汇总显示 / WriteFile special handling: use MessageFileChanges for summary display
         if (name === 'WriteFile' && typeof resultDisplay !== 'string') {
-          if (name === 'WriteFile' && resultDisplay && typeof resultDisplay === 'object') {
-            const result = resultDisplay as WriteFileResult;
-            return (
-              <div className='w-full max-w-100% min-w-0' key={callId}>
-                <Diff2Html diff={result.fileDiff || ''}></Diff2Html>
-              </div>
-            );
+          if (resultDisplay && typeof resultDisplay === 'object' && 'fileDiff' in resultDisplay) {
+            // 只在第一个 WriteFile 位置显示汇总组件 / Only show summary component at first WriteFile position
+            if (index === firstWriteFileIndex && writeFileResults.length > 0) {
+              return (
+                <div className='w-full max-w-100% min-w-0' key={callId}>
+                  <MessageFileChanges writeFileChanges={writeFileResults} />
+                </div>
+              );
+            }
+            // 跳过其他 WriteFile / Skip other WriteFile
+            return null;
           }
         }
 
@@ -417,17 +431,15 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
 
             {(description || resultDisplay) && (
               <div className='mt-8px'>
-                <CollapsibleContent maxHeight={RESULT_MAX_HEIGHT} defaultCollapsed={true} useMask={false}>
+                {description && <div className='text-12px text-t-secondary whitespace-pre-wrap break-words mb-2'>{description}</div>}
+                {resultDisplay && (
                   <div>
-                    {description && <div className='text-12px text-t-secondary whitespace-pre-wrap break-words'>{description}</div>}
-                    {resultDisplay && (
-                      <div className='mt-2'>
-                        {/* 在 Alert 外展示完整结果 Display full result outside Alert */}
-                        <ToolResultDisplay content={content} />
-                      </div>
-                    )}
+                    {/* 在 Alert 外展示完整结果 Display full result outside Alert */}
+                    {/* ToolResultDisplay 内部已包含 CollapsibleContent，避免嵌套 */}
+                    {/* ToolResultDisplay already contains CollapsibleContent internally, avoid nesting */}
+                    <ToolResultDisplay content={content} />
                   </div>
-                </CollapsibleContent>
+                )}
               </div>
             )}
           </div>

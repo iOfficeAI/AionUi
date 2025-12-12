@@ -6,9 +6,8 @@
 
 import type { GroundingMetadata } from '@google/genai';
 import { Type } from '@google/genai';
-import type { GeminiClient, ToolResult, ToolInvocation, ToolLocation, ToolCallConfirmationDetails } from '@office-ai/aioncli-core';
-import { BaseDeclarativeTool, BaseToolInvocation, Kind, getErrorMessage, ToolErrorType, DEFAULT_GEMINI_FLASH_MODEL } from '@office-ai/aioncli-core';
-import { getResponseText } from './utils';
+import type { ToolResult, ToolInvocation, ToolLocation, ToolCallConfirmationDetails, Config } from '@office-ai/aioncli-core';
+import { BaseDeclarativeTool, BaseToolInvocation, Kind, getErrorMessage, ToolErrorType, getResponseText } from '@office-ai/aioncli-core';
 
 interface GroundingChunkWeb {
   uri?: string;
@@ -54,7 +53,7 @@ export interface WebSearchToolResult extends ToolResult {
 export class WebSearchTool extends BaseDeclarativeTool<WebSearchToolParams, WebSearchToolResult> {
   static readonly Name: string = 'gemini_web_search';
 
-  constructor(private readonly geminiClient: GeminiClient) {
+  constructor(private readonly dedicatedConfig: Config) {
     super(
       WebSearchTool.Name,
       'GoogleSearch',
@@ -83,13 +82,13 @@ export class WebSearchTool extends BaseDeclarativeTool<WebSearchToolParams, WebS
   }
 
   protected createInvocation(params: WebSearchToolParams): ToolInvocation<WebSearchToolParams, WebSearchToolResult> {
-    return new WebSearchInvocation(this.geminiClient, params);
+    return new WebSearchInvocation(this.dedicatedConfig, params);
   }
 }
 
 class WebSearchInvocation extends BaseToolInvocation<WebSearchToolParams, WebSearchToolResult> {
   constructor(
-    private readonly geminiClient: GeminiClient,
+    private readonly dedicatedConfig: Config,
     params: WebSearchToolParams
   ) {
     super(params);
@@ -119,12 +118,16 @@ class WebSearchInvocation extends BaseToolInvocation<WebSearchToolParams, WebSea
     try {
       updateOutput?.(`Searching the web for: "${this.params.query}"`);
 
-      const response = await this.geminiClient.generateContent([{ role: 'user', parts: [{ text: this.params.query }] }], { tools: [{ googleSearch: {} }] }, signal, DEFAULT_GEMINI_FLASH_MODEL);
+      // Use the authenticated GeminiClient from dedicatedConfig
+      const geminiClient = this.dedicatedConfig.getGeminiClient();
 
-      const responseText = getResponseText(response);
+      // Use 'web-search' model config alias which has googleSearch enabled
+      // See: aioncli-core/src/config/defaultModelConfigs.js
+      const response = await geminiClient.generateContent({ model: 'web-search' }, [{ role: 'user', parts: [{ text: this.params.query }] }], signal);
+
+      const responseText = getResponseText(response) || '';
       const groundingMetadata = response.candidates?.[0]?.groundingMetadata;
       const sources = groundingMetadata?.groundingChunks as GroundingChunkItem[] | undefined;
-      const groundingSupports = groundingMetadata?.groundingSupports as GroundingSupportItem[] | undefined;
 
       if (!responseText) {
         const errorMsg = 'No search results received';
@@ -169,11 +172,6 @@ class WebSearchInvocation extends BaseToolInvocation<WebSearchToolParams, WebSea
 
       const errorMessage = getErrorMessage(error);
       const errorType: ToolErrorType = ToolErrorType.EXECUTION_FAILED;
-
-      // Check for specific Google API errors
-      if (errorMessage.includes('Google') || errorMessage.includes('search')) {
-        // Google未登录或API限制等
-      }
 
       return {
         llmContent: `Error performing web search: ${errorMessage}`,

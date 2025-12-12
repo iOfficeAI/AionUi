@@ -8,15 +8,20 @@ import { ipcBridge } from '@/common';
 import type { IProvider, TProviderWithModel } from '@/common/storage';
 import { ConfigStorage } from '@/common/storage';
 import { uuid } from '@/common/utils';
+import AuggieLogo from '@/renderer/assets/logos/auggie.svg';
 import ClaudeLogo from '@/renderer/assets/logos/claude.svg';
 import CodexLogo from '@/renderer/assets/logos/codex.svg';
 import GeminiLogo from '@/renderer/assets/logos/gemini.svg';
+import GooseLogo from '@/renderer/assets/logos/goose.svg';
 import IflowLogo from '@/renderer/assets/logos/iflow.svg';
+import KimiLogo from '@/renderer/assets/logos/kimi.svg';
+import OpenCodeLogo from '@/renderer/assets/logos/opencode.svg';
 import QwenLogo from '@/renderer/assets/logos/qwen.svg';
 import FilePreview from '@/renderer/components/FilePreview';
+import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { useCompositionInput } from '@/renderer/hooks/useCompositionInput';
 import { useDragUpload } from '@/renderer/hooks/useDragUpload';
-import { geminiModeList } from '@/renderer/hooks/useModeModeList';
+import { useGeminiGoogleAuthModels } from '@/renderer/hooks/useGeminiGoogleAuthModels';
 import { usePasteService } from '@/renderer/hooks/usePasteService';
 import { formatFilesForMessage } from '@/renderer/hooks/useSendBoxFiles';
 import { allSupportedExts, type FileMetadata, getCleanFileNames } from '@/renderer/services/FileService';
@@ -24,14 +29,12 @@ import { iconColors } from '@/renderer/theme/colors';
 import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
 import type { AcpBackend } from '@/types/acpTypes';
 import { Button, ConfigProvider, Dropdown, Input, Menu, Tooltip } from '@arco-design/web-react';
-import { ArrowUp, FolderOpen, MenuUnfold, Plus, Up } from '@icon-park/react';
+import { ArrowUp, FolderOpen, MenuFold, MenuUnfold, Plus, Robot, UploadOne } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import useSWR from 'swr';
 import styles from './index.module.css';
-import { useLayoutContext } from '@/renderer/context/LayoutContext';
-import { useSettingsModal } from '@/renderer/components/SettingsModal/useSettingsModal';
 
 /**
  * 缓存Provider的可用模型列表，避免重复计算
@@ -80,19 +83,14 @@ const hasAvailableModels = (provider: IProvider): boolean => {
 };
 
 const useModelList = () => {
-  const geminiConfig = useSWR('gemini.config', () => {
-    return ConfigStorage.get('gemini.config');
-  });
-  const { data: isGoogleAuth } = useSWR('google.auth.status' + geminiConfig.data?.proxy, () => {
-    return ipcBridge.googleAuth.status.invoke({ proxy: geminiConfig.data?.proxy }).then((data) => {
-      return data.success;
-    });
-  });
+  const { geminiModeOptions, isGoogleAuth } = useGeminiGoogleAuthModels();
   const { data: modelConfig } = useSWR('model.config.welcome', () => {
     return ipcBridge.mode.getModelConfig.invoke().then((data) => {
       return (data || []).filter((platform) => !!platform.model.length);
     });
   });
+
+  const geminiModelValues = useMemo(() => geminiModeOptions.map((option) => option.value), [geminiModeOptions]);
 
   const modelList = useMemo(() => {
     let allProviders: IProvider[] = [];
@@ -104,7 +102,7 @@ const useModelList = () => {
         platform: 'gemini-with-google-auth',
         baseUrl: '',
         apiKey: '',
-        model: geminiModeList.map((v) => v.value),
+        model: geminiModelValues,
         capabilities: [{ type: 'text' }, { type: 'vision' }, { type: 'function_calling' }],
       };
       allProviders = [geminiProvider, ...(modelConfig || [])];
@@ -114,18 +112,22 @@ const useModelList = () => {
 
     // 过滤出有可用主力模型的提供商
     return allProviders.filter(hasAvailableModels);
-  }, [isGoogleAuth, modelConfig]);
+  }, [geminiModelValues, isGoogleAuth, modelConfig]);
 
-  return { modelList, isGoogleAuth };
+  return { modelList, isGoogleAuth, geminiModeOptions };
 };
 
-// Agent Logo 映射
-const AGENT_LOGO_MAP: Record<AcpBackend, string> = {
+// Agent Logo 映射 (custom uses Robot icon from @icon-park/react)
+const AGENT_LOGO_MAP: Partial<Record<AcpBackend, string>> = {
   claude: ClaudeLogo,
   gemini: GeminiLogo,
   qwen: QwenLogo,
   codex: CodexLogo,
   iflow: IflowLogo,
+  goose: GooseLogo,
+  auggie: AuggieLogo,
+  kimi: KimiLogo,
+  opencode: OpenCodeLogo,
 };
 
 const Guid: React.FC = () => {
@@ -136,15 +138,85 @@ const Guid: React.FC = () => {
   const [files, setFiles] = useState<string[]>([]);
   const [dir, setDir] = useState<string>('');
   const [currentModel, _setCurrentModel] = useState<TProviderWithModel>();
+  const { modelList, isGoogleAuth, geminiModeOptions } = useModelList();
+  const geminiModeLookup = useMemo(() => {
+    const lookup = new Map<string, (typeof geminiModeOptions)[number]>();
+    geminiModeOptions.forEach((option) => lookup.set(option.value, option));
+    return lookup;
+  }, [geminiModeOptions]);
+  const formatGeminiModelLabel = useCallback(
+    (provider: { platform?: string } | undefined, modelName?: string) => {
+      if (!modelName) return '';
+      const isGoogleProvider = provider?.platform?.toLowerCase().includes('gemini-with-google-auth');
+      if (isGoogleProvider) {
+        return geminiModeLookup.get(modelName)?.label || modelName;
+      }
+      return modelName;
+    },
+    [geminiModeLookup]
+  );
+  // 记录当前选中的 provider+model，方便列表刷新时判断是否仍可用
+  const selectedModelKeyRef = useRef<string | null>(null);
   // 支持在初始化页展示 Codex（MCP）选项，先做 UI 占位
-  const [selectedAgent, setSelectedAgent] = useState<AcpBackend | null>('gemini');
-  const [availableAgents, setAvailableAgents] = useState<Array<{ backend: AcpBackend; name: string; cliPath?: string }>>();
+  // 对于自定义代理，使用 "custom:uuid" 格式来区分多个自定义代理
+  // For custom agents, we store "custom:uuid" format to distinguish between multiple custom agents
+  const [selectedAgentKey, setSelectedAgentKey] = useState<string>('gemini');
+  const [availableAgents, setAvailableAgents] = useState<Array<{ backend: AcpBackend; name: string; cliPath?: string; customAgentId?: string }>>();
+
+  /**
+   * 获取代理的唯一选择键
+   * 对于自定义代理返回 "custom:uuid"，其他代理返回 backend 类型
+   * Helper to get agent key for selection
+   * Returns "custom:uuid" for custom agents, backend type for others
+   */
+  const getAgentKey = (agent: { backend: AcpBackend; customAgentId?: string }) => {
+    return agent.backend === 'custom' && agent.customAgentId ? `custom:${agent.customAgentId}` : agent.backend;
+  };
+
+  /**
+   * 通过选择键查找代理
+   * 支持 "custom:uuid" 格式和普通 backend 类型
+   * Helper to find agent by key
+   * Supports both "custom:uuid" format and plain backend type
+   */
+  const findAgentByKey = (key: string) => {
+    if (key.startsWith('custom:')) {
+      const customAgentId = key.slice(7);
+      return availableAgents?.find((a) => a.backend === 'custom' && a.customAgentId === customAgentId);
+    }
+    return availableAgents?.find((a) => a.backend === key);
+  };
+
+  // 获取选中的后端类型（向后兼容）/ Get the selected backend type (for backward compatibility)
+  const selectedAgent = selectedAgentKey.startsWith('custom:') ? 'custom' : (selectedAgentKey as AcpBackend);
   const [isPlusDropdownOpen, setIsPlusDropdownOpen] = useState(false);
   const [typewriterPlaceholder, setTypewriterPlaceholder] = useState('');
   const [isTyping, setIsTyping] = useState(true);
-  const [isWorkspaceExpanded, setIsWorkspaceExpanded] = useState(false);
+
+  /**
+   * 生成唯一模型 key（providerId:model）
+   * Build a unique key for provider/model pair
+   */
+  const buildModelKey = (providerId?: string, modelName?: string) => {
+    if (!providerId || !modelName) return null;
+    return `${providerId}:${modelName}`;
+  };
+
+  /**
+   * 检查当前 key 是否仍存在于新模型列表中
+   * Check if selected model key still exists in the new provider list
+   */
+  const isModelKeyAvailable = (key: string | null, providers?: IProvider[]) => {
+    if (!key || !providers || providers.length === 0) return false;
+    return providers.some((provider) => {
+      if (!provider.id || !provider.model?.length) return false;
+      return provider.model.some((modelName) => buildModelKey(provider.id, modelName) === key);
+    });
+  };
 
   const setCurrentModel = async (modelInfo: TProviderWithModel) => {
+    // 记录最新的选中 key，避免列表刷新后被错误重置
+    selectedModelKeyRef.current = buildModelKey(modelInfo.id, modelInfo.useModel);
     await ConfigStorage.set('gemini.defaultModel', modelInfo.useModel).catch((error) => {
       console.error('Failed to save default model:', error);
     });
@@ -280,7 +352,7 @@ const Guid: React.FC = () => {
       return;
     } else {
       // ACP conversation type
-      const agentInfo = availableAgents?.find((a) => a.backend === selectedAgent);
+      const agentInfo = findAgentByKey(selectedAgentKey);
       if (!agentInfo) {
         alert(`${selectedAgent} CLI not found or not configured. Please ensure it's installed and accessible.`);
         return;
@@ -299,6 +371,8 @@ const Guid: React.FC = () => {
             workspace: workingDir,
             backend: selectedAgent,
             cliPath: agentInfo.cliPath,
+            agentName: agentInfo.name, // 存储自定义代理的配置名称 / Store configured name for custom agents
+            customAgentId: agentInfo.customAgentId, // 自定义代理的 UUID / UUID for custom agents
           },
         });
 
@@ -326,7 +400,7 @@ const Guid: React.FC = () => {
           console.error(t('acp.auth.console_error'), error.message);
           const confirmed = window.confirm(t('acp.auth.failed_confirm', { backend: selectedAgent, error: error.message }));
           if (confirmed) {
-            openSettings('model');
+            void navigate('/settings/model');
           }
         } else {
           alert(`Failed to create ${selectedAgent} ACP conversation. Please check your ACP configuration and ensure the CLI is installed.`);
@@ -352,15 +426,26 @@ const Guid: React.FC = () => {
   };
   // 使用共享的输入法合成处理
   const { compositionHandlers, createKeyDownHandler } = useCompositionInput();
-  const { modelList, isGoogleAuth } = useModelList();
-  const { openSettings, settingsModal } = useSettingsModal();
   const setDefaultModel = async () => {
+    if (!modelList || modelList.length === 0) {
+      return;
+    }
+    const currentKey = selectedModelKeyRef.current || buildModelKey(currentModel?.id, currentModel?.useModel);
+    // 当前选择仍然可用则不重置 / Keep current selection when still available
+    if (isModelKeyAvailable(currentKey, modelList)) {
+      if (!selectedModelKeyRef.current && currentKey) {
+        selectedModelKeyRef.current = currentKey;
+      }
+      return;
+    }
+    // 读取默认配置，或回落到新的第一个模型
     const useModel = await ConfigStorage.get('gemini.defaultModel');
     const defaultModel = modelList.find((m) => m.model.includes(useModel)) || modelList[0];
-    if (!defaultModel) return;
-    _setCurrentModel({
+    if (!defaultModel || !defaultModel.model.length) return;
+    const resolvedUseModel = defaultModel.model.includes(useModel) ? useModel : defaultModel.model[0];
+    await setCurrentModel({
       ...defaultModel,
-      useModel: defaultModel.model.find((m) => m == useModel) || defaultModel.model[0],
+      useModel: resolvedUseModel,
     });
   };
   useEffect(() => {
@@ -401,13 +486,7 @@ const Guid: React.FC = () => {
   }, [t]);
   return (
     <ConfigProvider getPopupContainer={() => guidContainerRef.current || document.body}>
-      {settingsModal}
       <div ref={guidContainerRef} className='h-full flex-center flex-col px-10px' style={{ position: 'relative' }}>
-        {layout?.isMobile && layout?.siderCollapsed && (
-          <button type='button' className='mobile-toggle-btn fixed top-0 left-0 z-50 flex items-center justify-center w-16 h-16' style={{ background: 'transparent', border: 'none', outline: 'none', padding: 0, margin: 0 }} onClick={() => layout.setSiderCollapsed(false)}>
-            <MenuUnfold theme='outline' size={24} fill={iconColors.secondary} strokeWidth={3} />
-          </button>
-        )}
         <div className={styles.guidLayout}>
           <p className={`text-2xl font-semibold mb-8 text-0 text-center`}>{t('conversation.welcome.title')}</p>
 
@@ -426,11 +505,11 @@ const Guid: React.FC = () => {
                 }}
               >
                 {availableAgents.map((agent, index) => {
-                  const isSelected = selectedAgent === agent.backend;
+                  const isSelected = selectedAgentKey === getAgentKey(agent);
                   const logoSrc = AGENT_LOGO_MAP[agent.backend];
 
                   return (
-                    <React.Fragment key={agent.backend}>
+                    <React.Fragment key={getAgentKey(agent)}>
                       {index > 0 && <div className='text-white/30 text-16px lh-1 p-2px select-none'>|</div>}
                       <div
                         className={`group flex items-center cursor-pointer whitespace-nowrap overflow-hidden ${isSelected ? 'opacity-100 px-12px py-8px rd-20px mx-2px' : 'opacity-60 p-4px hover:opacity-100'}`}
@@ -442,9 +521,9 @@ const Guid: React.FC = () => {
                               }
                             : { transition: 'opacity 0.5s cubic-bezier(0.2, 0.8, 0.3, 1)' }
                         }
-                        onClick={() => setSelectedAgent(agent.backend)}
+                        onClick={() => setSelectedAgentKey(getAgentKey(agent))}
                       >
-                        <img src={logoSrc} alt={`${agent.backend} logo`} width={20} height={20} style={{ objectFit: 'contain', flexShrink: 0 }} />
+                        {logoSrc ? <img src={logoSrc} alt={`${agent.backend} logo`} width={20} height={20} style={{ objectFit: 'contain', flexShrink: 0 }} /> : <Robot theme='outline' size={20} style={{ flexShrink: 0 }} />}
                         <span
                           className={`font-medium text-14px ${isSelected ? 'font-semibold' : 'max-w-0 opacity-0 overflow-hidden group-hover:max-w-100px group-hover:opacity-100 group-hover:ml-8px'}`}
                           style={{
@@ -463,15 +542,18 @@ const Guid: React.FC = () => {
           )}
 
           <div
-            className={`${styles.guidInputCard} bg-border-2 b-solid border rd-20px transition-all duration-200 overflow-hidden p-16px ${isFileDragging ? 'border-dashed' : 'border-3'}`}
+            className={`${styles.guidInputCard} bg-border-2 b-solid border rd-20px transition-all duration-200 overflow-hidden p-16px bg-[var(--fill-0)] ${isFileDragging ? 'border-dashed' : 'border-3'}`}
             style={{
               zIndex: 1,
               ...(isFileDragging
                 ? {
                     backgroundColor: 'var(--color-primary-light-1)',
                     borderColor: 'rgb(var(--primary-3))',
+                    borderWidth: '1px',
                   }
                 : {
+                    borderWidth: '1px',
+                    borderColor: 'var(--border-special, #60577E)',
                     boxShadow: '0px 2px 20px rgba(var(--primary-rgb, 77, 60, 234), 0.1)',
                   }),
             }}
@@ -493,12 +575,11 @@ const Guid: React.FC = () => {
                   onVisibleChange={setIsPlusDropdownOpen}
                   droplist={
                     <Menu
+                      className='min-w-200px'
                       onClickMenuItem={(key) => {
                         if (key === 'file') {
                           ipcBridge.dialog.showOpen
-                            .invoke({
-                              properties: ['openFile', 'multiSelections'],
-                            })
+                            .invoke({ properties: ['openFile', 'multiSelections'] })
                             .then((files) => {
                               if (files && files.length > 0) {
                                 setFiles((prev) => [...prev, ...files]);
@@ -507,10 +588,32 @@ const Guid: React.FC = () => {
                             .catch((error) => {
                               console.error('Failed to open file dialog:', error);
                             });
+                        } else if (key === 'workspace') {
+                          ipcBridge.dialog.showOpen
+                            .invoke({ properties: ['openDirectory'] })
+                            .then((files) => {
+                              if (files && files[0]) {
+                                setDir(files[0]);
+                              }
+                            })
+                            .catch((error) => {
+                              console.error('Failed to open directory dialog:', error);
+                            });
                         }
                       }}
                     >
-                      <Menu.Item key='file'>{t('conversation.welcome.uploadFile')}</Menu.Item>
+                      <Menu.Item key='file'>
+                        <div className='flex items-center gap-8px'>
+                          <UploadOne theme='outline' size='16' fill={iconColors.secondary} style={{ lineHeight: 0 }} />
+                          <span>{t('conversation.welcome.uploadFile')}</span>
+                        </div>
+                      </Menu.Item>
+                      <Menu.Item key='workspace'>
+                        <div className='flex items-center gap-8px'>
+                          <FolderOpen theme='outline' size='16' fill={iconColors.secondary} style={{ lineHeight: 0 }} />
+                          <span>{t('conversation.welcome.specifyWorkspace')}</span>
+                        </div>
+                      </Menu.Item>
                     </Menu>
                   }
                 >
@@ -536,7 +639,7 @@ const Guid: React.FC = () => {
                                 {t('settings.noAvailableModels')}
                               </Menu.Item>,
                               /* Add Model 选项 */
-                              <Menu.Item key='add-model' className='text-12px text-t-secondary' onClick={() => openSettings('model')}>
+                              <Menu.Item key='add-model' className='text-12px text-t-secondary' onClick={() => navigate('/settings/model')}>
                                 <Plus theme='outline' size='12' />
                                 {t('settings.addModel')}
                               </Menu.Item>,
@@ -558,14 +661,36 @@ const Guid: React.FC = () => {
                                           });
                                         }}
                                       >
-                                        {modelName}
+                                        {(() => {
+                                          const isGoogleProvider = provider.platform?.toLowerCase().includes('gemini-with-google-auth');
+                                          const option = isGoogleProvider ? geminiModeLookup.get(modelName) : undefined;
+                                          if (!option) {
+                                            return modelName;
+                                          }
+                                          return (
+                                            <Tooltip
+                                              position='right'
+                                              trigger='hover'
+                                              content={
+                                                <div className='max-w-240px space-y-6px'>
+                                                  <div className='text-12px text-t-secondary leading-5'>{option.description}</div>
+                                                  {option.modelHint && <div className='text-11px text-t-tertiary'>{option.modelHint}</div>}
+                                                </div>
+                                              }
+                                            >
+                                              <div className='flex items-center justify-between gap-12px w-full'>
+                                                <span>{option.label}</span>
+                                              </div>
+                                            </Tooltip>
+                                          );
+                                        })()}
                                       </Menu.Item>
                                     ))}
                                   </Menu.ItemGroup>
                                 );
                               }),
                               /* Add Model 选项 */
-                              <Menu.Item key='add-model' className='text-12px text-t-secondary' onClick={() => openSettings('model')}>
+                              <Menu.Item key='add-model' className='text-12px text-t-secondary' onClick={() => navigate('/settings/model')}>
                                 <Plus theme='outline' size='12' />
                                 {t('settings.addModel')}
                               </Menu.Item>,
@@ -574,7 +699,7 @@ const Guid: React.FC = () => {
                     }
                   >
                     <Button className={'sendbox-model-btn'} shape='round'>
-                      {currentModel ? currentModel.useModel : t('conversation.welcome.selectModel')}
+                      {currentModel ? formatGeminiModelLabel(currentModel, currentModel.useModel) : t('conversation.welcome.selectModel')}
                     </Button>
                   </Dropdown>
                 )}
@@ -594,52 +719,14 @@ const Guid: React.FC = () => {
                 />
               </div>
             </div>
-          </div>
-
-          {/* 工作空间选择区域 */}
-          <div
-            className={`${styles.guidInputCard} overflow-hidden transition-all duration-200`}
-            style={{
-              marginTop: '-20px',
-            }}
-          >
-            {!isWorkspaceExpanded ? (
-              <div className='flex items-end h-40px w-150px rd-8px gap-8px px-16px py-10px cursor-pointer' onClick={() => setIsWorkspaceExpanded(true)}>
-                <FolderOpen className='line-height-4' theme='outline' size='16' fill={iconColors.secondary} />
-                <span className='text-14px text-t-secondary'>{t('conversation.welcome.specifyWorkspace')}</span>
-              </div>
-            ) : (
-              <div className='flex items-center justify-between pt-25px'>
-                <div className='flex items-center gap-2 flex-1 min-w-0'>
-                  <Up theme='outline' size='16' fill={iconColors.secondary} className='cursor-pointer flex-shrink-0' onClick={() => setIsWorkspaceExpanded(false)} />
-                  <FolderOpen className='flex-shrink-0 line-height-4' theme='outline' size='16' fill={iconColors.secondary} />
-                  <Tooltip content={dir || t('conversation.welcome.none')} position='top'>
-                    <span className='text-13px text-t-secondary truncate'>
-                      {t('conversation.welcome.currentWorkspace')}: {dir || t('conversation.welcome.none')}
-                    </span>
-                  </Tooltip>
-                </div>
-                <Button
-                  size='small'
-                  icon={<Plus theme='outline' size='14' />}
-                  className='w-124px h-28px rounded-[20px] bg-2'
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    ipcBridge.dialog.showOpen
-                      .invoke({
-                        properties: ['openDirectory'],
-                      })
-                      .then((files) => {
-                        setFiles([]);
-                        setDir(files?.[0] || '');
-                      })
-                      .catch((error) => {
-                        console.error('Failed to open directory dialog:', error);
-                      });
-                  }}
-                >
-                  <span className='mr-8px'> {t('conversation.welcome.openFolder')} </span>
-                </Button>
+            {dir && (
+              <div className='flex items-center gap-6px mt-12px text-13px text-t-secondary'>
+                <FolderOpen className='flex-shrink-0' theme='outline' size='16' fill={iconColors.secondary} style={{ lineHeight: 0 }} />
+                <Tooltip content={dir} position='top'>
+                  <span className='truncate'>
+                    {t('conversation.welcome.currentWorkspace')}: {dir}
+                  </span>
+                </Tooltip>
               </div>
             )}
           </div>

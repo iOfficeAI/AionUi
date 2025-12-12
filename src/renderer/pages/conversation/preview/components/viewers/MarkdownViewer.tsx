@@ -24,6 +24,7 @@ import remarkMath from 'remark-math';
 import { Streamdown } from 'streamdown';
 import MarkdownEditor from '../editors/MarkdownEditor';
 import SelectionToolbar from '../renderers/SelectionToolbar';
+import { useContainerScroll, useContainerScrollTarget } from '../../hooks/useScrollSyncHelpers';
 
 interface MarkdownPreviewProps {
   content: string; // Markdown 内容 / Markdown content
@@ -184,18 +185,9 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({ content, onClose, hid
     return (document.documentElement.getAttribute('data-theme') as 'light' | 'dark') || 'light';
   });
 
-  // 监听容器滚动事件 / Listen to container scroll events
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container || !externalOnScroll) return;
-
-    const handleScroll = () => {
-      externalOnScroll(container.scrollTop, container.scrollHeight, container.clientHeight);
-    };
-
-    container.addEventListener('scroll', handleScroll);
-    return () => container.removeEventListener('scroll', handleScroll);
-  }, [containerRef, externalOnScroll]);
+  // 使用滚动同步 Hooks / Use scroll sync hooks
+  useContainerScroll(containerRef, externalOnScroll);
+  useContainerScrollTarget(containerRef);
 
   const [internalViewMode, setInternalViewMode] = useState<'source' | 'preview'>('preview'); // 内部视图模式 / Internal view mode
 

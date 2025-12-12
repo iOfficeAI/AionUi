@@ -166,7 +166,10 @@
     "error": "エラー",
     "saveSuccess": "保存に成功しました",
     "saveFailed": "保存に失敗しました",
-    "unknownError": "不明なエラー"
+    "unknownError": "不明なエラー",
+    "confirmDelete": "削除の確認",
+    "deleteSuccess": "削除に成功しました",
+    "deleteFailed": "削除に失敗しました"
   },
   "login": {
     "pageTitle": "AionUi - ログイン",
@@ -217,6 +220,7 @@
     "historyNotSupported": "現在のコンテンツは履歴をサポートしていません",
     "downloadFile": "ファイルをダウンロード",
     "closePreview": "プレビューを閉じる",
+    "collapsePanel": "パネルを閉じる",
     "source": "ソース",
     "preview": "プレビュー",
     "editor": "エディタ",
@@ -339,6 +343,11 @@
       "search.empty": "検索結果は空です",
       "addFile": "ファイルを追加",
       "refresh": "更新",
+      "dragOverlayTitle": "ドラッグして取り込み",
+      "dragOverlayDesc": "ここにファイルやフォルダーをドロップすると、このワークスペースにコピーされます。",
+      "dragOverlayHint": "ヒント：フォルダー選択中は、そのフォルダーに直接取り込まれます。",
+      "dragNoFiles": "有効なファイルやフォルダーが見つかりませんでした。Explorer/Finder からドラッグしてください。",
+      "dragFailed": "ファイルの取り込みに失敗しました。",
       "contextMenu": {
         "open": "開く",
         "openLocation": "ファイルの場所を開く",
@@ -394,6 +403,22 @@
     "gemini": "Gemini",
     "geminiApiKey": "Gemini API キー",
     "geminiBaseUrl": "Gemini API ベース URL",
+    "cssSettings": "CSS設定",
+    "cssTheme": {
+      "selectOrCustomize": "プリセットテーマまたはカスタムCSSを選択",
+      "addManually": "手動で追加",
+      "default": "デフォルト",
+      "addToPreset": "プリセットに追加",
+      "editTheme": "テーマを編集",
+      "previewCover": "プレビューカバー",
+      "name": "名前",
+      "namePlaceholder": "プリセット名を入力",
+      "cssCode": "CSSコード",
+      "applied": "テーマを適用しました：{{name}}",
+      "applyFailed": "テーマの適用に失敗しました",
+      "cleared": "デフォルトスタイルに戻しました",
+      "deleteConfirm": "このテーマを削除してもよろしいですか？この操作は元に戻せません。"
+    },
     "googleLogin": "Google でログイン",
     "googleLogout": "ログアウト",
     "imageGenerationGuide": "画像モデル設定ガイド",
@@ -419,6 +444,7 @@
     "fontSize": "ズーム",
     "fontSizeDescription": "アプリ全体のズーム（Zoom）倍率を調整し、最適な表示サイズに合わせます。",
     "fontSizeReset": "ズームをリセット",
+    "agent": "エージェント",
     "tools": "ツール",
     "imageGeneration": "画像生成",
     "imageGenerationToggle": "画像生成ツールを有効にする",
@@ -492,9 +518,40 @@
     "mcpOAuthLoginFailed": "OAuth ログイン失敗",
     "mcpLogin": "ログイン",
     "mcpNeedsLogin": "未接続 · ログインしてください",
-    "saveModelConfigFailed": "モデル設定の保存に失敗しました"
+    "saveModelConfigFailed": "モデル設定の保存に失敗しました",
+    "customAcpAgent": "カスタム ACP エージェント",
+    "addCustomAgent": "追加",
+    "configureCustomAgent": "設定",
+    "editCustomAgent": "カスタムエージェントを編集",
+    "noCustomAgentConfigured": "カスタムエージェントが設定されていません",
+    "agentDisabled": "無効",
+    "customAcpAgentSaved": "カスタムエージェントを保存しました",
+    "customAcpAgentSaveFailed": "カスタムエージェントの保存に失敗しました",
+    "customAcpAgentDeleted": "カスタムエージェントを削除しました",
+    "customAcpAgentDeleteFailed": "カスタムエージェントの削除に失敗しました",
+    "deleteCustomAgent": "カスタムエージェントを削除",
+    "deleteCustomAgentConfirm": "このカスタムエージェントを削除してもよろしいですか？",
+    "customAcpAgentJsonDescription": "以下にカスタムエージェント設定 JSON を貼り付けてください",
+    "customAcpAgentTips": "設定のヒント：",
+    "customAcpAgentTip2": "name: エージェント選択に表示される名前",
+    "customAcpAgentTip3": "defaultCliPath: 実行コマンド（例: \"goose\" または \"npx @pkg/name\"）",
+    "customAcpAgentTip4": "env: 環境変数（例: API キー）",
+    "customAcpAgentTipArgs": "acpArgs: カスタム CLI 引数（オプション）",
+    "configMode": "設定モード",
+    "simpleMode": "シンプル",
+    "advancedMode": "詳細 (JSON)",
+    "selectCli": "CLI を選択",
+    "noCliDetected": "CLI ツールが検出されませんでした。まず ACP 対応の CLI をインストールしてください。",
+    "agentDisplayName": "表示名",
+    "agentNamePlaceholder": "エージェント名を入力",
+    "simpleModeTip": "検出された CLI を選択してカスタム名を付けてください。環境変数などの詳細設定には詳細モードに切り替えてください。",
+    "command": "コマンド",
+    "args": "引数",
+    "env": "環境変数"
   },
   "messages": {
+    "fileChanges": "ファイル変更",
+    "fileChangesCount": "{{count}} 件のファイル変更",
     "conversationInProgress": "現在、会話中です...",
     "confirm": "確認",
     "canceledExecution": "実行がキャンセルされました",
@@ -657,6 +714,13 @@
       "create": "作成",
       "modify": "変更",
       "delete": "削除"
+    }
+  },
+  "gemini": {
+    "mode": {
+      "autoDesc": "システムがタスクに最適なモデルを自動で選択します。",
+      "proDesc": "高度な推論と創造性が求められる複雑なタスク向けです。",
+      "flashDesc": "速度と推論のバランスが必要なタスク向けです。"
     }
   },
   "acp": {

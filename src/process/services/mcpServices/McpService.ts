@@ -152,10 +152,10 @@ export class McpService {
       try {
         const agentInstance = this.getAgent(agent.backend);
         if (!agentInstance) {
+          console.warn(`[McpService] Skipping MCP sync for unsupported backend: ${agent.backend}`);
           return {
             agent: agent.name,
-            success: false,
-            error: `Unsupported agent backend: ${agent.backend}`,
+            success: true,
           };
         }
 
@@ -197,10 +197,10 @@ export class McpService {
       try {
         const agentInstance = this.getAgent(agent.backend);
         if (!agentInstance) {
+          console.warn(`[McpService] Skipping MCP removal for unsupported backend: ${agent.backend}`);
           return {
             agent: `${agent.backend}:${agent.name}`,
-            success: false,
-            error: `Unsupported agent backend: ${agent.backend}`,
+            success: true,
           };
         }
 

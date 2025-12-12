@@ -1,7 +1,7 @@
 /* Base styles - theme-independent */
 
 :root {
-  --app-min-width: 390px;
+  --app-min-width: 360px;
   --titlebar-height: 36px;
 }
 
@@ -27,10 +27,9 @@
 }
 
 .app-titlebar--mac {
-  height: 36px;
+  height: 45px;
   min-height: 36px;
   /* Reserve space for macOS traffic light buttons (left side) */
-  padding-left: 80px;
   padding-right: 12px;
 }
 
@@ -45,6 +44,12 @@
   line-height: 1;
 }
 
+.app-titlebar__menu {
+  -webkit-app-region: no-drag;
+  display: flex;
+  align-items: center;
+}
+
 .app-titlebar__toolbar {
   display: flex;
   align-items: center;
@@ -55,6 +60,7 @@
 }
 
 .app-titlebar__button {
+  -webkit-app-region: no-drag;
   width: var(--titlebar-height);
   height: var(--titlebar-height);
   border: none;
@@ -186,16 +192,20 @@ body,
 /* Layout sider transitions - keep bilingual comments for clarity / 布局侧栏过渡动画（中英注释） */
 .layout-sider {
   transition:
-    width 0.32s ease,
-    min-width 0.32s ease,
-    max-width 0.32s ease;
+    flex-grow 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    flex-basis 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    min-width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    max-width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+    border-left 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: flex-grow, flex-basis, width, min-width;
 }
 
 .layout-sider-header,
 .layout-sider-content {
   transition:
-    opacity 0.24s ease,
-    transform 0.24s ease;
+    opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   will-change: opacity, transform;
 }
 
@@ -208,11 +218,35 @@ body,
   }
 }
 
+/* 拖动时禁用过渡动画，确保流畅的拖动体验 / Disable transition during drag for smooth dragging */
+.layout-sider--dragging {
+  transition: none !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .layout-sider,
   .layout-sider-header,
-  .layout-sider-content {
+  .layout-sider-content,
+  .preview-panel {
     transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* Preview panel animation / 预览面板动画 */
+.preview-panel {
+  animation: preview-panel-enter 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  will-change: opacity, transform;
+}
+
+@keyframes preview-panel-enter {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
   }
 }
 
@@ -467,7 +501,25 @@ body,
 
 /* Message component positioning - center in conversation area (exclude left sider) */
 /* Message 组件定位 - 在对话区域居中（排除左侧侧边栏） */
+/* 使用 padding-left 偏移，保持内部消息居中 / Use padding-left offset while keeping inner message centered */
 .arco-message-wrapper {
-  left: 266px !important;
-  width: calc(100% - 266px) !important;
+  left: 0 !important;
+  width: 100% !important;
+  padding-left: 266px;
+  box-sizing: border-box;
+}
+
+/* Mobile: remove left padding / 移动端：移除左侧内边距 */
+@media (max-width: 767px) {
+  .arco-message-wrapper {
+    padding-left: 0;
+  }
+}
+
+/* Default background for select and input components */
+/* Select 和 Input 组件默认背景 */
+.arco-select-view,
+.arco-input,
+.arco-input-inner-wrapper {
+  background-color: var(--fill-0) !important;
 }

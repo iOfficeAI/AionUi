@@ -4,7 +4,37 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { AuthType, DEFAULT_GEMINI_FLASH_MODEL, DEFAULT_GEMINI_MODEL, isApiError, isGenericQuotaExceededError, isProQuotaExceededError, isStructuredError, UserTierId } from '@office-ai/aioncli-core';
+import { AuthType, DEFAULT_GEMINI_FLASH_MODEL, DEFAULT_GEMINI_MODEL, isApiError, isStructuredError, UserTierId } from '@office-ai/aioncli-core';
+
+/**
+ * 检查错误是否为 Pro 模型配额超限错误
+ * Check if error is a Pro model quota exceeded error
+ *
+ * aioncli-core v0.18.4 移除了 isProQuotaExceededError，本地实现替代
+ * isProQuotaExceededError was removed in aioncli-core v0.18.4, local implementation
+ */
+function isProQuotaExceededError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+
+  // 检查是否包含 Pro 模型相关的配额错误信息
+  const errorStr = JSON.stringify(error).toLowerCase();
+  return errorStr.includes('quota') && (errorStr.includes('pro') || errorStr.includes('2.5') || errorStr.includes('gemini-pro'));
+}
+
+/**
+ * 检查错误是否为通用配额超限错误
+ * Check if error is a generic quota exceeded error
+ *
+ * aioncli-core v0.18.4 移除了 isGenericQuotaExceededError，本地实现替代
+ * isGenericQuotaExceededError was removed in aioncli-core v0.18.4, local implementation
+ */
+function isGenericQuotaExceededError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+
+  // 检查是否包含配额相关错误
+  const errorStr = JSON.stringify(error).toLowerCase();
+  return errorStr.includes('quota') && (errorStr.includes('exceeded') || errorStr.includes('exhausted') || errorStr.includes('limit'));
+}
 
 // Free Tier message functions
 const getRateLimitErrorMessageGoogleFree = (fallbackModel: string = DEFAULT_GEMINI_FLASH_MODEL) => `\nPossible quota limitations in place or slow response times detected. Switching to the ${fallbackModel} model for the rest of this session.`;

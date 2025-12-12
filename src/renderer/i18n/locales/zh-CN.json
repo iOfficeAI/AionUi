@@ -35,7 +35,10 @@
     "error": "错误",
     "saveSuccess": "保存成功",
     "saveFailed": "保存失败",
-    "unknownError": "未知错误"
+    "unknownError": "未知错误",
+    "confirmDelete": "确认删除",
+    "deleteSuccess": "删除成功",
+    "deleteFailed": "删除失败"
   },
   "login": {
     "pageTitle": "AionUi - 登录",
@@ -86,6 +89,7 @@
     "historyNotSupported": "当前内容不支持历史版本",
     "downloadFile": "下载文件",
     "closePreview": "关闭预览",
+    "collapsePanel": "收起面板",
     "source": "原文",
     "code": "代码",
     "preview": "预览",
@@ -180,7 +184,7 @@
       "newConversation": "新对话",
       "multiAgentModeEnabled": "已进入多智能体模式",
       "selectModel": "选择模型",
-      "specifyWorkspace": "指定工作空间",
+      "specifyWorkspace": "关联文件夹对话",
       "currentWorkspace": "当前工作空间",
       "openFolder": "打开文件夹",
       "none": "无"
@@ -216,6 +220,11 @@
       "search.empty": "搜索结果为空",
       "addFile": "添加文件",
       "refresh": "刷新",
+      "dragOverlayTitle": "拖拽导入",
+      "dragOverlayDesc": "将文件或文件夹拖到此处，即可复制到当前工作空间。",
+      "dragOverlayHint": "提示：若已选择文件夹，将直接导入该文件夹。",
+      "dragNoFiles": "未检测到有效的文件或目录，请从资源管理器或访达中拖拽。",
+      "dragFailed": "拖拽导入失败，请重试。",
       "contextMenu": {
         "open": "打开",
         "openLocation": "打开文件所在目录",
@@ -257,6 +266,22 @@
     "yoloMode": "自动允许",
     "customCss": "自定义 CSS",
     "customCssDesc": "在此处输入自定义 CSS 样式以更改界面外观。系统会自动为所有样式添加 !important 以确保优先级最高，无需手动添加。修改会立即生效。",
+    "cssSettings": "CSS设置",
+    "cssTheme": {
+      "selectOrCustomize": "选择预设主题或自定义 CSS",
+      "addManually": "手动添加",
+      "default": "默认",
+      "addToPreset": "添加主题",
+      "editTheme": "编辑主题",
+      "previewCover": "预览封面",
+      "name": "名称",
+      "namePlaceholder": "输入预设名称",
+      "cssCode": "CSS代码",
+      "applied": "已应用主题：{{name}}",
+      "applyFailed": "应用主题失败",
+      "cleared": "已恢复默认样式",
+      "deleteConfirm": "确定要删除该主题吗？此操作不可恢复。"
+    },
     "geminiBaseUrl": "Gemini API Base URL",
     "cacheDir": "缓存目录",
     "workDir": "工作目录",
@@ -304,6 +329,7 @@
     "fontSizeReset": "恢复默认缩放",
     "lightMode": "浅色",
     "darkMode": "深色",
+    "agent": "代理",
     "tools": "工具",
     "imageGeneration": "图像生成",
     "imageGenerationToggle": "启用图像生成工具",
@@ -377,9 +403,40 @@
     "mcpOAuthLoginFailed": "OAuth 登录失败",
     "mcpLogin": "登录",
     "mcpNeedsLogin": "未登录 · 点击登录",
-    "saveModelConfigFailed": "保存模型配置失败"
+    "saveModelConfigFailed": "保存模型配置失败",
+    "customAcpAgent": "自定义 ACP 代理",
+    "addCustomAgent": "添加",
+    "configureCustomAgent": "配置",
+    "editCustomAgent": "编辑自定义代理",
+    "noCustomAgentConfigured": "暂无配置自定义代理",
+    "agentDisabled": "已禁用",
+    "customAcpAgentSaved": "自定义代理已保存",
+    "customAcpAgentSaveFailed": "保存自定义代理失败",
+    "customAcpAgentDeleted": "自定义代理已删除",
+    "customAcpAgentDeleteFailed": "删除自定义代理失败",
+    "deleteCustomAgent": "删除自定义代理",
+    "deleteCustomAgentConfirm": "确定要删除此自定义代理吗？",
+    "customAcpAgentJsonDescription": "在下方粘贴您的自定义代理配置 JSON",
+    "customAcpAgentTips": "配置提示：",
+    "customAcpAgentTip2": "name: 在代理选择器中显示的名称",
+    "customAcpAgentTip3": "defaultCliPath: 运行命令（如 \"goose\" 或 \"npx @pkg/name\"）",
+    "customAcpAgentTip4": "env: 环境变量（如 API 密钥）",
+    "customAcpAgentTipArgs": "acpArgs: 自定义 CLI 参数（可选）",
+    "configMode": "配置模式",
+    "simpleMode": "简单",
+    "advancedMode": "高级 (JSON)",
+    "selectCli": "选择 CLI",
+    "noCliDetected": "未检测到 CLI 工具。请先安装支持 ACP 协议的 CLI。",
+    "agentDisplayName": "显示名称",
+    "agentNamePlaceholder": "请输入代理名称",
+    "simpleModeTip": "选择已检测到的 CLI 并自定义名称。如需配置环境变量等更多选项，请切换到高级模式。",
+    "command": "命令",
+    "args": "参数",
+    "env": "环境变量"
   },
   "messages": {
+    "fileChanges": "文件变更",
+    "fileChangesCount": "{{count}} 个文件变更",
     "conversationInProgress": "当前正在进行对话中...",
     "confirm": "确认",
     "canceledExecution": "已取消执行",
@@ -682,6 +739,13 @@
       "create": "创建",
       "modify": "修改",
       "delete": "删除"
+    }
+  },
+  "gemini": {
+    "mode": {
+      "autoDesc": "让系统为你的任务自动选择最合适的模型。",
+      "proDesc": "适合需要复杂推理和创造力的任务。",
+      "flashDesc": "适合同时兼顾速度与推理的任务。"
     }
   }
 }

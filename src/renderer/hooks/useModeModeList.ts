@@ -3,27 +3,59 @@ import useSWR from 'swr';
 
 const DEFAULT_GEMINI_MODEL = 'gemini-2.5-pro';
 const DEFAULT_GEMINI_FLASH_MODEL = 'gemini-2.5-flash';
-const DEFAULT_GEMINI_FLASH_LITE_MODEL = 'gemini-2.5-flash-lite';
-const DEFAULT_GEMINI_EMBEDDING_MODEL = 'gemini-embedding-001';
+const GEMINI_PRO_PREVIEW_MODEL = 'gemini-3-pro-preview';
 
-export const geminiModeList = [
-  {
-    label: DEFAULT_GEMINI_MODEL,
-    value: DEFAULT_GEMINI_MODEL,
-  },
-  {
-    label: DEFAULT_GEMINI_FLASH_MODEL,
-    value: DEFAULT_GEMINI_FLASH_MODEL,
-  },
-  // {
-  //   label: DEFAULT_GEMINI_FLASH_LITE_MODEL,
-  //   value: DEFAULT_GEMINI_FLASH_LITE_MODEL,
-  // },
-  // {
-  //   label: DEFAULT_GEMINI_EMBEDDING_MODEL,
-  //   value: DEFAULT_GEMINI_EMBEDDING_MODEL,
-  // },
-];
+export interface GeminiModeOption {
+  label: string;
+  value: string;
+  description: string;
+  modelHint?: string;
+}
+
+type GeminiModeDescriptions = {
+  auto: string;
+  pro: string;
+  flash: string;
+};
+
+type GeminiModeListOptions = {
+  includeProPreview?: boolean;
+  descriptions?: GeminiModeDescriptions;
+};
+
+const defaultGeminiModeDescriptions: GeminiModeDescriptions = {
+  auto: 'Let the system choose the best model for your task.',
+  pro: 'For complex tasks that require deep reasoning and creativity',
+  flash: 'For tasks that need a balance of speed and reasoning',
+};
+
+// 生成基础 Gemini 列表，可根据订阅态插入 preview 模型 / Build Gemini model list with optional previews
+export const getGeminiModeList = (options?: GeminiModeListOptions): GeminiModeOption[] => {
+  const proModels = options?.includeProPreview ? [GEMINI_PRO_PREVIEW_MODEL, DEFAULT_GEMINI_MODEL] : [DEFAULT_GEMINI_MODEL];
+  const descriptions = options?.descriptions || defaultGeminiModeDescriptions;
+
+  return [
+    {
+      label: 'Auto',
+      value: 'auto',
+      description: descriptions.auto,
+    },
+    {
+      label: 'Pro',
+      value: 'pro',
+      modelHint: proModels.join(', '),
+      description: descriptions.pro,
+    },
+    {
+      label: 'Flash',
+      value: 'flash',
+      modelHint: DEFAULT_GEMINI_FLASH_MODEL,
+      description: descriptions.flash,
+    },
+  ];
+};
+
+export const geminiModeList = getGeminiModeList();
 
 // Gemini 模型排序函数：Pro 优先，版本号降序
 const sortGeminiModels = (models: { label: string; value: string }[]) => {

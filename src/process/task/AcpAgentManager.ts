@@ -1,6 +1,7 @@
 import { AcpAgent } from '@/agent/acp';
 import { ipcBridge } from '@/common';
 import type { AcpBackend } from '@/types/acpTypes';
+import { ACP_BACKENDS_ALL } from '@/types/acpTypes';
 import type { TMessage } from '@/common/chatLib';
 import { transformMessage } from '@/common/chatLib';
 import type { IConfirmMessageParams, IResponseMessage } from '@/common/ipcBridge';
@@ -15,6 +16,7 @@ interface AcpAgentManagerData {
   cliPath?: string;
   customWorkspace?: boolean;
   conversation_id: string;
+  customAgentId?: string; // 用于标识特定自定义代理的 UUID / UUID for identifying specific custom agent
 }
 
 class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
@@ -32,16 +34,56 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
 
   initAgent(data: AcpAgentManagerData = this.options) {
     if (this.bootstrap) return this.bootstrap;
-    this.bootstrap = ProcessConfig.get('acp.config').then((config) => {
+    this.bootstrap = (async () => {
       let cliPath = data.cliPath;
-      if (!cliPath && config[data.backend].cliPath) {
-        cliPath = config[data.backend].cliPath;
+      let customArgs: string[] | undefined;
+      let customEnv: Record<string, string> | undefined;
+
+      // 处理自定义后端：从 acp.customAgents 配置数组中读取
+      // Handle custom backend: read from acp.customAgents config array
+      if (data.backend === 'custom' && data.customAgentId) {
+        const customAgents = await ProcessConfig.get('acp.customAgents');
+        // 通过 UUID 查找对应的自定义代理配置 / Find custom agent config by UUID
+        const customAgentConfig = customAgents?.find((agent) => agent.id === data.customAgentId);
+        if (customAgentConfig?.defaultCliPath) {
+          // Parse defaultCliPath which may contain command + args (e.g., "node /path/to/file.js" or "goose acp")
+          const parts = customAgentConfig.defaultCliPath.trim().split(/\s+/);
+          cliPath = parts[0]; // First part is the command
+
+          // 参数优先级：acpArgs > defaultCliPath 中解析的参数
+          // Argument priority: acpArgs > args parsed from defaultCliPath
+          if (customAgentConfig.acpArgs) {
+            customArgs = customAgentConfig.acpArgs;
+          } else if (parts.length > 1) {
+            customArgs = parts.slice(1); // Fallback to parsed args
+          }
+          customEnv = customAgentConfig.env;
+        }
+      } else if (data.backend !== 'custom') {
+        // Handle built-in backends: read from acp.config
+        const config = await ProcessConfig.get('acp.config');
+        if (!cliPath && config?.[data.backend]?.cliPath) {
+          cliPath = config[data.backend].cliPath;
+        }
+
+        // Get acpArgs from backend config (for goose, auggie, etc.)
+        const backendConfig = ACP_BACKENDS_ALL[data.backend];
+        if (backendConfig?.acpArgs) {
+          customArgs = backendConfig.acpArgs;
+        }
+      } else {
+        // backend === 'custom' but no customAgentId - this is an invalid state
+        // 自定义后端但缺少 customAgentId - 这是无效状态
+        console.warn('[AcpAgentManager] Custom backend specified but customAgentId is missing');
       }
+
       this.agent = new AcpAgent({
         id: data.conversation_id,
         backend: data.backend,
         cliPath: cliPath,
         workingDir: data.workspace,
+        customArgs: customArgs,
+        customEnv: customEnv,
         onStreamEvent: (v) => {
           if (v.type !== 'thought') {
             const tMessage = transformMessage(v as IResponseMessage);
@@ -57,7 +99,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
         },
       });
       return this.agent.start().then(() => this.agent);
-    });
+    })();
     return this.bootstrap;
   }
 

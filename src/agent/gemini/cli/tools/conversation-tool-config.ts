@@ -28,6 +28,7 @@ export class ConversationToolConfig {
   private geminiModel: TProviderWithModel | null = null;
   private excludeTools: string[] = [];
   private dedicatedGeminiClient: GeminiClient | null = null; // 缓存专门的Gemini客户端
+  private dedicatedConfig: Config | null = null; // 缓存专门的Config（用于OAuth认证）
   private imageGenerationModel: TProviderWithModel | undefined;
   private webSearchEngine: 'google' | 'default' = 'default';
   private proxy: string = '';
@@ -91,7 +92,7 @@ export class ConversationToolConfig {
       cwd: process.cwd(),
       debugMode: false,
       question: '',
-      fullContext: false,
+      // fullContext 参数在 aioncli-core v0.18.4 中已移除
       userMemory: '',
       geminiMdFileCount: 0,
       model: geminiModel.useModel,
@@ -133,25 +134,25 @@ export class ConversationToolConfig {
     if (this.useGeminiWebSearch) {
       try {
         // 前端已通过 webSearchEngine 参数确认认证状态，直接创建客户端
-        // 创建专门的Gemini客户端（如果还没有）
-        if (!this.dedicatedGeminiClient) {
+        // 创建专门的Config（如果还没有）
+        if (!this.dedicatedConfig) {
           const geminiModel = await this.findBestGeminiModel();
           if (geminiModel) {
             this.geminiModel = geminiModel;
-            const dedicatedConfig = this.createDedicatedGeminiConfig(geminiModel);
+            this.dedicatedConfig = this.createDedicatedGeminiConfig(geminiModel);
             const authType = AuthType.LOGIN_WITH_GOOGLE; // 固定使用Google认证
 
-            await dedicatedConfig.initialize();
-            await dedicatedConfig.refreshAuth(authType);
+            await this.dedicatedConfig.initialize();
+            await this.dedicatedConfig.refreshAuth(authType);
 
-            // 创建新的 GeminiClient
-            this.dedicatedGeminiClient = dedicatedConfig.getGeminiClient();
+            // 创建新的 GeminiClient（用于检查认证状态）
+            this.dedicatedGeminiClient = this.dedicatedConfig.getGeminiClient();
           }
         }
 
-        // 只有成功创建客户端时才注册工具
-        if (this.dedicatedGeminiClient) {
-          const customWebSearchTool = new WebSearchTool(this.dedicatedGeminiClient);
+        // 只有成功创建 Config 时才注册工具
+        if (this.dedicatedConfig && this.dedicatedGeminiClient) {
+          const customWebSearchTool = new WebSearchTool(this.dedicatedConfig);
           toolRegistry.registerTool(customWebSearchTool);
         }
         // Google未登录时静默跳过，不影响其他工具

@@ -17,7 +17,7 @@ const Main = () => {
     return null;
   }
 
-  return <Router layout={<Layout sider={<Sider openSettings={() => {}}></Sider>} />} />;
+  return <Router layout={<Layout sider={<Sider />} />} />;
 };
 
 export default Main;

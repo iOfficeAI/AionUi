@@ -48,11 +48,15 @@ export interface AcpAgentConfig {
   backend: AcpBackend;
   cliPath?: string;
   workingDir: string;
+  customArgs?: string[]; // Custom CLI arguments (for custom backend)
+  customEnv?: Record<string, string>; // Custom environment variables (for custom backend)
   extra?: {
     workspace?: string;
     backend: AcpBackend;
     cliPath?: string;
     customWorkspace?: boolean;
+    customArgs?: string[];
+    customEnv?: Record<string, string>;
   };
   onStreamEvent: (data: IResponseMessage) => void;
   onSignalEvent?: (data: IResponseMessage) => void; // 新增：仅发送信号，不更新UI
@@ -66,6 +70,8 @@ export class AcpAgent {
     backend: AcpBackend;
     cliPath?: string;
     customWorkspace?: boolean;
+    customArgs?: string[];
+    customEnv?: Record<string, string>;
   };
   private connection: AcpConnection;
   private adapter: AcpAdapter;
@@ -83,6 +89,8 @@ export class AcpAgent {
       backend: config.backend,
       cliPath: config.cliPath,
       customWorkspace: false, // Default to system workspace
+      customArgs: config.customArgs,
+      customEnv: config.customEnv,
     };
 
     this.connection = new AcpConnection();
@@ -112,7 +120,7 @@ export class AcpAgent {
       this.emitStatusMessage('connecting');
 
       await Promise.race([
-        this.connection.connect(this.extra.backend, this.extra.cliPath, this.extra.workspace),
+        this.connection.connect(this.extra.backend, this.extra.cliPath, this.extra.workspace, this.extra.customArgs, this.extra.customEnv),
         new Promise((_, reject) =>
           setTimeout(() => {
             reject(new Error('Connection timeout after 70 seconds'));

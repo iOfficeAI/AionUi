@@ -8,7 +8,6 @@ import { ipcBridge } from '@/common';
 import { ConfigStorage } from '@/common/storage';
 import PwaPullToRefresh from '@/renderer/components/PwaPullToRefresh';
 import Titlebar from '@/renderer/components/Titlebar';
-import { useSettingsModal } from '@/renderer/components/SettingsModal/useSettingsModal';
 import { Layout as ArcoLayout } from '@arco-design/web-react';
 import { MenuFold, MenuUnfold } from '@icon-park/react';
 import classNames from 'classnames';
@@ -18,7 +17,6 @@ import { LayoutContext } from './context/LayoutContext';
 import { useDirectorySelection } from './hooks/useDirectorySelection';
 import { useMultiAgentDetection } from './hooks/useMultiAgentDetection';
 import { processCustomCss } from './utils/customCssProcessor';
-import { iconColors } from './theme/colors';
 
 const useDebug = () => {
   const [count, setCount] = useState(0);
@@ -63,7 +61,6 @@ const Layout: React.FC<{
   const { onClick } = useDebug();
   const { contextHolder: multiAgentContextHolder } = useMultiAgentDetection();
   const { contextHolder: directorySelectionContextHolder } = useDirectorySelection();
-  const { openSettings, settingsModal } = useSettingsModal();
   const location = useLocation();
   const workspaceAvailable = location.pathname.startsWith('/conversation/');
   const collapsedRef = useRef(collapsed);
@@ -256,7 +253,7 @@ const Layout: React.FC<{
             }
           >
             <ArcoLayout.Header
-              className={classNames('flex items-center justify-start p-16px gap-12px pl-20px layout-sider-header', {
+              className={classNames('flex items-center justify-start py-10px px-16px pl-20px gap-12px layout-sider-header', {
                 'cursor-pointer group ': collapsed,
               })}
             >
@@ -279,12 +276,12 @@ const Layout: React.FC<{
                 </svg>
               </div>
               <div className=' flex-1 text-20px collapsed-hidden font-bold'>AionUi</div>
-              <MenuFold className='cursor-pointer !collapsed-hidden flex' theme='outline' size='24' fill={iconColors.secondary} strokeWidth={3} onClick={() => setCollapsed(true)} />
-              {collapsed && !isMobile && (
-                <div onClick={() => setCollapsed(false)} className='absolute bg-2 left-8px top-7px transition-all duration-150 p-10px hover:bg-hover opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto'>
-                  <MenuUnfold className='cursor-pointer flex' size='24' fill={iconColors.secondary} strokeWidth={3} />
-                </div>
+              {isMobile && !collapsed && (
+                <button type='button' className='app-titlebar__button' onClick={() => setCollapsed(true)} aria-label='Collapse sidebar'>
+                  {collapsed ? <MenuUnfold theme='outline' size='18' fill='currentColor' /> : <MenuFold theme='outline' size='18' fill='currentColor' />}
+                </button>
               )}
+              {/* 侧栏折叠改由标题栏统一控制 / Sidebar folding handled by Titlebar toggle */}
             </ArcoLayout.Header>
             <ArcoLayout.Content className='h-[calc(100%-72px-16px)] p-8px layout-sider-content'>
               {React.isValidElement(sider)
@@ -293,7 +290,6 @@ const Layout: React.FC<{
                       if (isMobile) setCollapsed(true);
                     },
                     collapsed,
-                    openSettings,
                   } as any)
                 : sider}
             </ArcoLayout.Content>
@@ -318,7 +314,6 @@ const Layout: React.FC<{
             <PwaPullToRefresh />
           </ArcoLayout.Content>
         </ArcoLayout>
-        {settingsModal}
       </div>
     </LayoutContext.Provider>
   );

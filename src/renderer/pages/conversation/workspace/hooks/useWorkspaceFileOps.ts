@@ -11,6 +11,7 @@ import { emitter } from '@/renderer/utils/emitter';
 import { removeWorkspaceEntry, renameWorkspaceEntry } from '@/renderer/utils/workspaceFs';
 import { useCallback } from 'react';
 import type { MessageApi, RenameModalState, DeleteModalState } from '../types';
+import type { FileOrFolderItem } from '@/renderer/types/files';
 import { getPathSeparator, replacePathInList, updateTreeForRename } from '../utils/treeHelpers';
 
 interface UseWorkspaceFileOpsOptions {
@@ -228,11 +229,20 @@ export function useWorkspaceFileOps(options: UseWorkspaceFileOpsOptions) {
   const handleAddToChat = useCallback(
     (nodeData: IDirOrFile | null) => {
       if (!nodeData || !nodeData.fullPath) return;
-      ensureNodeSelected(nodeData, { emit: true });
+      ensureNodeSelected(nodeData);
       closeContextMenu();
+
+      const payload: FileOrFolderItem = {
+        path: nodeData.fullPath,
+        name: nodeData.name,
+        isFile: Boolean(nodeData.isFile),
+        relativePath: nodeData.relativePath || undefined,
+      };
+
+      emitter.emit(`${eventPrefix}.selected.file.append`, [payload]);
       messageApi.success(t('conversation.workspace.contextMenu.addedToChat'));
     },
-    [closeContextMenu, ensureNodeSelected, messageApi, t]
+    [closeContextMenu, ensureNodeSelected, eventPrefix, messageApi, t]
   );
 
   /**

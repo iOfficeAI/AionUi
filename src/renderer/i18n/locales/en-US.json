@@ -38,7 +38,10 @@
     "error": "Error",
     "saveSuccess": "Saved successfully",
     "saveFailed": "Failed to save",
-    "unknownError": "Unknown error"
+    "unknownError": "Unknown error",
+    "confirmDelete": "Confirm Delete",
+    "deleteSuccess": "Deleted successfully",
+    "deleteFailed": "Failed to delete"
   },
   "login": {
     "pageTitle": "AionUi - Sign In",
@@ -89,6 +92,7 @@
     "historyNotSupported": "Current content does not support history",
     "downloadFile": "Download file",
     "closePreview": "Close preview",
+    "collapsePanel": "Collapse panel",
     "source": "Source",
     "code": "Code",
     "preview": "Preview",
@@ -183,7 +187,7 @@
       "newConversation": "New Chat",
       "multiAgentModeEnabled": "Entering multi-agent mode",
       "selectModel": "Select Model",
-      "specifyWorkspace": "Specify Workspace",
+      "specifyWorkspace": "Chat in Folder",
       "currentWorkspace": "Current Workspace",
       "openFolder": "Open Folder",
       "none": "None"
@@ -219,6 +223,11 @@
       "search.empty": "The search result is empty",
       "addFile": "Add File",
       "refresh": "Refresh",
+      "dragOverlayTitle": "Drop to import",
+      "dragOverlayDesc": "Drag files or folders here to copy them into this workspace.",
+      "dragOverlayHint": "Tip: drop anywhere to import into the selected folder.",
+      "dragNoFiles": "No valid files detected. Please drag from Finder/Explorer.",
+      "dragFailed": "Failed to import dropped files.",
       "contextMenu": {
         "open": "Open",
         "openLocation": "Show in folder",
@@ -260,6 +269,22 @@
     "yoloMode": "YOLO (Auto Allow)",
     "customCss": "Custom CSS",
     "customCssDesc": "Enter custom CSS styles here to modify the interface appearance. The system will automatically add !important to ensure highest priority. Changes will take effect immediately.",
+    "cssSettings": "CSS Settings",
+    "cssTheme": {
+      "selectOrCustomize": "Select preset theme or custom CSS",
+      "addManually": "Add Manually",
+      "default": "Default",
+      "addToPreset": "Add Theme",
+      "editTheme": "Edit Theme",
+      "previewCover": "Preview Cover",
+      "name": "Name",
+      "namePlaceholder": "Enter preset name",
+      "cssCode": "CSS Code",
+      "applied": "Applied theme: {{name}}",
+      "applyFailed": "Failed to apply theme",
+      "cleared": "Restored to default style",
+      "deleteConfirm": "Are you sure you want to delete this theme? This action cannot be undone."
+    },
     "geminiBaseUrl": "Gemini API Base URL",
     "cacheDir": "Cache Directory",
     "workDir": "Work Directory",
@@ -307,6 +332,7 @@
     "fontSizeReset": "Reset zoom",
     "lightMode": "Light",
     "darkMode": "Dark",
+    "agent": "Agent",
     "tools": "Tools",
     "imageGeneration": "Image Generation",
     "imageGenerationToggle": "Enable image generation tool",
@@ -381,9 +407,40 @@
     "feedback": "Feedback",
     "contactMe": "Contact Me",
     "officialWebsite": "Official Website",
-    "saveModelConfigFailed": "Failed to save model configuration"
+    "saveModelConfigFailed": "Failed to save model configuration",
+    "customAcpAgent": "Custom ACP Agents",
+    "addCustomAgent": "Add",
+    "configureCustomAgent": "Configure",
+    "editCustomAgent": "Edit Custom Agent",
+    "noCustomAgentConfigured": "No custom agents configured",
+    "agentDisabled": "Disabled",
+    "customAcpAgentSaved": "Custom agent saved",
+    "customAcpAgentSaveFailed": "Failed to save custom agent",
+    "customAcpAgentDeleted": "Custom agent deleted",
+    "customAcpAgentDeleteFailed": "Failed to delete custom agent",
+    "deleteCustomAgent": "Delete Custom Agent",
+    "deleteCustomAgentConfirm": "Are you sure you want to delete this custom agent?",
+    "customAcpAgentJsonDescription": "Paste your custom agent configuration JSON below",
+    "customAcpAgentTips": "Configuration tips:",
+    "customAcpAgentTip2": "name: Display name shown in the agent selector",
+    "customAcpAgentTip3": "defaultCliPath: Command to run (e.g., \"goose\" or \"npx @pkg/name\")",
+    "customAcpAgentTip4": "env: Environment variables (e.g., API keys)",
+    "customAcpAgentTipArgs": "acpArgs: Custom CLI arguments (optional)",
+    "configMode": "Configuration Mode",
+    "simpleMode": "Simple",
+    "advancedMode": "Advanced (JSON)",
+    "selectCli": "Select CLI",
+    "noCliDetected": "No CLI tools detected. Please install an ACP-compatible CLI first.",
+    "agentDisplayName": "Display Name",
+    "agentNamePlaceholder": "Enter a name for this agent",
+    "simpleModeTip": "Select a detected CLI and give it a custom name. Switch to Advanced mode for environment variables and other options.",
+    "command": "Command",
+    "args": "Args",
+    "env": "Env"
   },
   "messages": {
+    "fileChanges": "File Changes",
+    "fileChangesCount": "{{count}} File Changes",
     "conversationInProgress": "A conversation is currently in progress...",
     "confirm": "Confirm",
     "canceledExecution": "Execution canceled",
@@ -686,6 +743,13 @@
       "create": "create",
       "modify": "modify",
       "delete": "delete"
+    }
+  },
+  "gemini": {
+    "mode": {
+      "autoDesc": "Let the system choose the best model for your task.",
+      "proDesc": "For complex tasks that require deep reasoning and creativity",
+      "flashDesc": "For tasks that need a balance of speed and reasoning"
     }
   }
 }
