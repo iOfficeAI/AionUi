@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { PreviewContentType } from '@/common/types/preview';
+import { emitter } from '@/renderer/utils/emitter';
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 
 /** DOM 片段数据结构 / DOM snippet data structure */
@@ -436,6 +437,20 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
       debounceTimers.clear();
     };
   }, [closeTab]); // 只依赖 closeTab，不依赖 tabs，避免重复订阅 / Only depend on closeTab, not tabs, to avoid re-subscribing
+
+  // 监听 preview.open 事件（用于 agent 打开网页预览）/ Listen to preview.open event (for agent to open web preview)
+  useEffect(() => {
+    const handlePreviewOpen = (data: { content: string; contentType: PreviewContentType; metadata?: PreviewMetadata }) => {
+      if (data && data.content) {
+        openPreview(data.content, data.contentType, data.metadata);
+      }
+    };
+
+    emitter.on('preview.open', handlePreviewOpen);
+    return () => {
+      emitter.off('preview.open', handlePreviewOpen);
+    };
+  }, [openPreview]);
 
   return (
     <PreviewContext.Provider
