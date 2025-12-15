@@ -109,8 +109,23 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
           // 优先通过 filePath 匹配（最可靠）/ Prefer matching by filePath (most reliable)
           if (normalizedFilePath && tabFilePath && normalizedFilePath === tabFilePath) return true;
 
-          // 其次通过 fileName 匹配 / Then match by fileName
-          if (normalizedFileName && tabFileName && normalizedFileName === tabFileName) return true;
+          // 通过 fileName 匹配时，需要确保路径兼容（避免同名文件在不同目录的冲突）
+          // When matching by fileName, ensure path compatibility (avoid conflicts of same-named files in different directories)
+          if (normalizedFileName && tabFileName && normalizedFileName === tabFileName) {
+            // 如果两边都有 filePath，则必须完全匹配
+            // If both have filePath, they must match exactly
+            if (normalizedFilePath && tabFilePath) {
+              return normalizedFilePath === tabFilePath;
+            }
+            // 如果只有一边有 filePath，不能仅凭 fileName 匹配
+            // If only one side has filePath, cannot match by fileName alone
+            if (normalizedFilePath || tabFilePath) {
+              return false;
+            }
+            // 都没有 filePath 时，可以通过 fileName 匹配
+            // When neither has filePath, can match by fileName
+            return true;
+          }
 
           // 再通过 title 匹配 / Then match by title
           if (!normalizedFileName && normalizedTitle && tabTitle && normalizedTitle === tabTitle) return true;

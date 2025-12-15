@@ -393,7 +393,7 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
             // 只在第一个 WriteFile 位置显示汇总组件 / Only show summary component at first WriteFile position
             if (index === firstWriteFileIndex && writeFileResults.length > 0) {
               return (
-                <div className='w-full max-w-100% min-w-0' key={callId}>
+                <div className='w-full min-w-0' key={callId}>
                   <MessageFileChanges writeFileChanges={writeFileResults} />
                 </div>
               );

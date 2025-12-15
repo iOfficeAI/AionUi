@@ -5,12 +5,15 @@
  */
 
 import { AcpAdapter } from '@/agent/acp/AcpAdapter';
+import { extractAtPaths, parseAllAtCommands, reconstructQuery } from '@/common/atCommandParser';
 import type { TMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import { uuid } from '@/common/utils';
 import type { AcpBackend, AcpPermissionRequest, AcpResult, AcpSessionUpdate, ToolCallUpdate } from '@/types/acpTypes';
 import { AcpErrorType, createAcpError } from '@/types/acpTypes';
 import { spawn } from 'child_process';
+import { promises as fs } from 'fs';
+import * as path from 'path';
 import { AcpConnection } from './AcpConnection';
 
 /**
@@ -157,21 +160,11 @@ export class AcpAgent {
       }
       this.adapter.resetMessageTracking();
       let processedContent = data.content;
-      // Only process if there are actual files involved AND the message contains @ symbols
-      if (data.files && data.files.length > 0 && processedContent.includes('@')) {
-        // Get actual filenames from uploaded files
-        const actualFilenames = data.files.map((filePath) => {
-          return filePath.split('/').pop() || filePath;
-        });
 
-        // Replace @actualFilename with just actualFilename for each uploaded file
-        actualFilenames.forEach((filename) => {
-          const atFilename = `@${filename}`;
-          if (processedContent.includes(atFilename)) {
-            processedContent = processedContent.replace(new RegExp(atFilename.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), filename);
-          }
-        });
-      }
+      // Process @ file references in the message
+      // 处理消息中的 @ 文件引用
+      processedContent = await this.processAtFileReferences(processedContent, data.files);
+
       await this.connection.sendPrompt(processedContent);
       this.statusMessageId = null;
       return { success: true, data: null };
@@ -212,6 +205,141 @@ export class AcpAgent {
         error: createAcpError(errorType, errorMsg, retryable),
       };
     }
+  }
+
+  /**
+   * Process @ file references in the message content
+   * 处理消息内容中的 @ 文件引用
+   *
+   * This method resolves @ references to actual files in the workspace,
+   * reads their content, and appends it to the message.
+   * 此方法解析工作区中的 @ 引用，读取文件内容并附加到消息中。
+   */
+  private async processAtFileReferences(content: string, uploadedFiles?: string[]): Promise<string> {
+    const workspace = this.extra.workspace;
+    if (!workspace) {
+      return content;
+    }
+
+    // Parse all @ references in the content
+    const parts = parseAllAtCommands(content);
+    const atPaths = extractAtPaths(content);
+
+    // If no @ references found, return original content
+    if (atPaths.length === 0) {
+      return content;
+    }
+
+    // Get filenames from uploaded files for matching
+    const uploadedFilenames = (uploadedFiles || []).map((filePath) => {
+      const segments = filePath.split(/[\\/]/);
+      return segments[segments.length - 1] || filePath;
+    });
+
+    // Track which @ references are resolved to files
+    const resolvedFiles: Map<string, string> = new Map(); // atPath -> file content
+
+    for (const atPath of atPaths) {
+      // Skip if this @ reference matches an uploaded file (already handled by frontend)
+      if (uploadedFilenames.some((name) => atPath === name || atPath.endsWith('/' + name) || atPath.endsWith('\\' + name))) {
+        continue;
+      }
+
+      // Try to resolve the path in workspace
+      const resolvedPath = await this.resolveAtPath(atPath, workspace);
+      if (resolvedPath) {
+        try {
+          const fileContent = await fs.readFile(resolvedPath, 'utf-8');
+          resolvedFiles.set(atPath, fileContent);
+        } catch (error) {
+          console.warn(`[ACP] Failed to read file ${resolvedPath}:`, error);
+        }
+      }
+    }
+
+    // If no files were resolved, return original content (let ACP handle unknown @ references)
+    if (resolvedFiles.size === 0) {
+      return content;
+    }
+
+    // Reconstruct the message: replace @ references with plain text and append file contents
+    const reconstructedQuery = reconstructQuery(parts, (atPath) => {
+      if (resolvedFiles.has(atPath)) {
+        // Replace with just the filename (without @) as the reference
+        return atPath;
+      }
+      // Keep unresolved @ references as-is
+      return '@' + atPath;
+    });
+
+    // Append file contents at the end of the message
+    let result = reconstructedQuery;
+    if (resolvedFiles.size > 0) {
+      result += '\n\n--- Referenced file contents ---';
+      for (const [atPath, fileContent] of resolvedFiles) {
+        result += `\n\n[Content of ${atPath}]:\n${fileContent}`;
+      }
+      result += '\n--- End of file contents ---';
+    }
+
+    return result;
+  }
+
+  /**
+   * Resolve an @ path to an actual file path in the workspace
+   * 将 @ 路径解析为工作区中的实际文件路径
+   */
+  private async resolveAtPath(atPath: string, workspace: string): Promise<string | null> {
+    // Try direct path first
+    const directPath = path.resolve(workspace, atPath);
+    try {
+      const stats = await fs.stat(directPath);
+      if (stats.isFile()) {
+        return directPath;
+      }
+      // If it's a directory, we don't read it (for now)
+      return null;
+    } catch {
+      // Direct path doesn't exist, try searching for the file
+    }
+
+    // Try to find file by name in workspace (simple search)
+    try {
+      const fileName = path.basename(atPath);
+      const foundPath = await this.findFileInWorkspace(workspace, fileName);
+      return foundPath;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Simple file search in workspace (non-recursive for performance)
+   * 在工作区中简单搜索文件（非递归以保证性能）
+   */
+  private async findFileInWorkspace(workspace: string, fileName: string, maxDepth: number = 3): Promise<string | null> {
+    const searchDir = async (dir: string, depth: number): Promise<string | null> => {
+      if (depth > maxDepth) return null;
+
+      try {
+        const entries = await fs.readdir(dir, { withFileTypes: true });
+        for (const entry of entries) {
+          const fullPath = path.join(dir, entry.name);
+          if (entry.isFile() && entry.name === fileName) {
+            return fullPath;
+          }
+          if (entry.isDirectory() && !entry.name.startsWith('.') && entry.name !== 'node_modules') {
+            const found = await searchDir(fullPath, depth + 1);
+            if (found) return found;
+          }
+        }
+      } catch {
+        // Ignore permission errors
+      }
+      return null;
+    };
+
+    return await searchDir(workspace, 0);
   }
 
   confirmMessage(data: { confirmKey: string; msg_id: string; callId: string }): Promise<AcpResult> {

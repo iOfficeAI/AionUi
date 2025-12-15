@@ -193,7 +193,7 @@ export class GeminiAgent {
   }
 
   // 初始化调度工具
-  private initToolScheduler(settings: Settings) {
+  private initToolScheduler(_settings: Settings) {
     this.scheduler = new CoreToolScheduler({
       onAllToolCallsComplete: async (completedToolCalls: CompletedToolCall[]) => {
         await Promise.resolve(); // Satisfy async requirement
@@ -359,11 +359,22 @@ export class GeminiAgent {
       }
       this.historyUsedOnce = true;
     }
+
+    // Track error messages from @ command processing
+    let atCommandError: string | null = null;
+
     const { processedQuery, shouldProceed } = await handleAtCommand({
       query: Array.isArray(message) ? message[0].text : message,
       config: this.config,
-      addItem: () => {
-        console.log('addItem');
+      addItem: (item: unknown) => {
+        console.log('addItem', item);
+        // Capture error messages from @ command processing
+        if (item && typeof item === 'object' && 'type' in item) {
+          const typedItem = item as { type: string; text?: string };
+          if (typedItem.type === 'error' && typedItem.text) {
+            atCommandError = typedItem.text;
+          }
+        }
       },
       onDebugMessage(log: unknown) {
         console.log('onDebugMessage', log);
@@ -371,7 +382,30 @@ export class GeminiAgent {
       messageId: Date.now(),
       signal: abortController.signal,
     });
+
     if (!shouldProceed || processedQuery === null || abortController.signal.aborted) {
+      // Send error message to user if @ command processing failed
+      // 如果 @ 命令处理失败，向用户发送错误消息
+      if (atCommandError) {
+        this.onStreamEvent({
+          type: 'error',
+          data: atCommandError,
+          msg_id,
+        });
+      } else if (!abortController.signal.aborted) {
+        // Generic error if we don't have specific error message
+        this.onStreamEvent({
+          type: 'error',
+          data: 'Failed to process @ file reference. The file may not exist or is not accessible.',
+          msg_id,
+        });
+      }
+      // Send finish event so UI can reset state
+      this.onStreamEvent({
+        type: 'finish',
+        data: null,
+        msg_id,
+      });
       return;
     }
     const requestId = this.submitQuery(processedQuery, msg_id, abortController);
