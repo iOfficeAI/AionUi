@@ -65,6 +65,8 @@ const WorkspacePanelHeader: React.FC<WorkspaceHeaderProps> = ({ children, showTo
   </div>
 );
 
+// headerExtra 用于在会话头部右侧插入自定义操作（如模型选择）
+// headerExtra allows injecting custom actions (e.g., model picker) into the header's right area
 const ChatLayout: React.FC<{
   children: React.ReactNode;
   title?: React.ReactNode;
@@ -72,6 +74,7 @@ const ChatLayout: React.FC<{
   siderTitle?: React.ReactNode;
   backend?: string;
   agentName?: string;
+  headerExtra?: React.ReactNode;
 }> = (props) => {
   const [rightSiderCollapsed, setRightSiderCollapsed] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -259,7 +262,9 @@ const ChatLayout: React.FC<{
               <FlexFullContainer className='h-full' containerClassName='flex items-center'>
                 <span className='font-bold text-16px text-t-primary inline-block overflow-hidden text-ellipsis whitespace-nowrap w-full max-w-60%'>{props.title}</span>
               </FlexFullContainer>
-              <div className='flex items-center gap-16px'>
+              <div className='flex items-center gap-12px'>
+                {/* headerExtra 会在右上角优先渲染，例如模型切换按钮 / headerExtra renders at top-right for items like model switchers */}
+                {props.headerExtra}
                 {backend && (
                   <div className='ml-16px flex items-center gap-2 bg-2 w-fit rounded-full px-[8px] py-[2px]'>
                     {AGENT_LOGO_MAP[backend as AcpBackend] ? <img src={AGENT_LOGO_MAP[backend as AcpBackend]} alt={`${backend} logo`} width={16} height={16} style={{ objectFit: 'contain' }} /> : <Robot theme='outline' size={16} fill={iconColors.primary} />}
