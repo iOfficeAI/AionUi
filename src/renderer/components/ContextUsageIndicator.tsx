@@ -8,9 +8,10 @@ import { Popover } from '@arco-design/web-react';
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
-// 从 storage 导入共享的 TokenUsageData 类型
 import type { TokenUsageData } from '@/common/storage';
-export type { TokenUsageData } from '@/common/storage';
+
+// 从 modelContextLimits 导入默认上下文限制
+import { DEFAULT_CONTEXT_LIMIT } from '@/renderer/utils/modelContextLimits';
 
 interface ContextUsageIndicatorProps {
   tokenUsage: TokenUsageData | null;
@@ -19,9 +20,7 @@ interface ContextUsageIndicatorProps {
   size?: number;
 }
 
-const DEFAULT_TOKEN_LIMIT = 1048576; // 默认 1M
-
-const ContextUsageIndicator: React.FC<ContextUsageIndicatorProps> = ({ tokenUsage, contextLimit = DEFAULT_TOKEN_LIMIT, className = '', size = 24 }) => {
+const ContextUsageIndicator: React.FC<ContextUsageIndicatorProps> = ({ tokenUsage, contextLimit = DEFAULT_CONTEXT_LIMIT, className = '', size = 24 }) => {
   const { t } = useTranslation();
 
   const { percentage, displayTotal, displayLimit, isWarning, isDanger } = useMemo(() => {

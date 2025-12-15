@@ -1,29 +1,29 @@
 import { ipcBridge } from '@/common';
 import { transformMessage } from '@/common/chatLib';
-import type { IProvider, TProviderWithModel } from '@/common/storage';
+import type { IProvider, TChatConversation, TokenUsageData, TProviderWithModel } from '@/common/storage';
 import { uuid } from '@/common/utils';
-import ContextUsageIndicator, { type TokenUsageData } from '@/renderer/components/ContextUsageIndicator';
+import ContextUsageIndicator from '@/renderer/components/ContextUsageIndicator';
+import FilePreview from '@/renderer/components/FilePreview';
+import HorizontalFileList from '@/renderer/components/HorizontalFileList';
 import SendBox from '@/renderer/components/sendbox';
-import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/useSendBoxDraft';
 import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/ThoughtDisplay';
 import { useGeminiGoogleAuthModels } from '@/renderer/hooks/useGeminiGoogleAuthModels';
-import useSWR from 'swr';
-import FilePreview from '@/renderer/components/FilePreview';
+import { useLatestRef } from '@/renderer/hooks/useLatestRef';
+import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/useSendBoxDraft';
 import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/useSendBoxFiles';
 import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
+import { usePreviewContext } from '@/renderer/pages/conversation/preview';
 import { allSupportedExts } from '@/renderer/services/FileService';
+import { iconColors } from '@/renderer/theme/colors';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/fileSelection';
 import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
 import { getModelContextLimit } from '@/renderer/utils/modelContextLimits';
 import { Button, Dropdown, Menu, Tag, Tooltip } from '@arco-design/web-react';
 import { Plus } from '@icon-park/react';
-import { iconColors } from '@/renderer/theme/colors';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import HorizontalFileList from '@/renderer/components/HorizontalFileList';
-import { usePreviewContext } from '@/renderer/pages/conversation/preview';
-import { useLatestRef } from '@/renderer/hooks/useLatestRef';
+import useSWR from 'swr';
 
 const useGeminiSendBoxDraft = getSendBoxDraftHook('gemini', {
   _type: 'gemini',
@@ -78,18 +78,15 @@ const useGeminiMessage = (conversation_id: string) => {
               };
               setTokenUsage(newTokenUsage);
               // 持久化 token 使用统计到会话的 extra.lastTokenUsage 字段
-              void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((conv) => {
-                if (conv && conv.type === 'gemini') {
-                  void ipcBridge.conversation.update.invoke({
-                    id: conversation_id,
-                    updates: {
-                      extra: {
-                        ...conv.extra,
-                        lastTokenUsage: newTokenUsage,
-                      },
-                    },
-                  });
-                }
+              // 使用 mergeExtra 选项，后端会自动合并 extra 字段，避免两次 IPC 调用
+              void ipcBridge.conversation.update.invoke({
+                id: conversation_id,
+                updates: {
+                  extra: {
+                    lastTokenUsage: newTokenUsage,
+                  } as TChatConversation['extra'],
+                },
+                mergeExtra: true,
               });
             }
           }

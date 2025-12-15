@@ -39,8 +39,7 @@ export const processGeminiStreamEvents = async (stream: AsyncIterable<ServerGemi
         {
           // 传递 Finished 事件，包含 token 使用统计
           onStreamEvent({ type: event.type, data: event.value });
-          console.log('event>>>>>>>>>>>>>>>>>>>', event);
-          console.log('[Token Usage]', event.value.usageMetadata);
+          // console.log('[Token Usage]', event.value.usageMetadata);
         }
         break;
       case ServerGeminiEventType.ChatCompressed:
