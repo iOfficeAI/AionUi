@@ -96,7 +96,7 @@ const GeminiConversationPanel: React.FC<{ conversation: GeminiConversation; slid
   const modelSelection = useGeminiModelSelection(conversation.id, conversation.model);
 
   return (
-    <ChatLayout title={conversation.name} siderTitle={sliderTitle} sider={<ChatSider conversation={conversation} />} headerExtra={<GeminiModelSelector selection={modelSelection} />}>
+    <ChatLayout title={conversation.name} siderTitle={sliderTitle} sider={<ChatSider conversation={conversation} />} headerLeft={<GeminiModelSelector selection={modelSelection} />}>
       <GeminiChat conversation_id={conversation.id} workspace={conversation.extra.workspace} modelSelection={modelSelection} />
     </ChatLayout>
   );

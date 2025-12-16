@@ -75,8 +75,10 @@ const ChatLayout: React.FC<{
   backend?: string;
   agentName?: string;
   headerExtra?: React.ReactNode;
+  headerLeft?: React.ReactNode;
 }> = (props) => {
-  const [rightSiderCollapsed, setRightSiderCollapsed] = useState(false);
+  // 默认折叠工作空间，用户按需展开 / Default to collapsed workspace; users can toggle when needed
+  const [rightSiderCollapsed, setRightSiderCollapsed] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(() => (typeof window === 'undefined' ? 0 : window.innerWidth));
   const { backend, agentName } = props;
@@ -259,8 +261,9 @@ const ChatLayout: React.FC<{
             }}
           >
             <ArcoLayout.Header className={classNames('h-52px flex items-center justify-between p-16px gap-16px !bg-1 chat-layout-header')}>
-              <FlexFullContainer className='h-full' containerClassName='flex items-center'>
-                <span className='font-bold text-16px text-t-primary inline-block overflow-hidden text-ellipsis whitespace-nowrap w-full max-w-60%'>{props.title}</span>
+              <div>{props.headerLeft}</div>
+              <FlexFullContainer className='h-full' containerClassName='flex items-center gap-16px'>
+                <span className='font-bold text-16px text-t-primary inline-block overflow-hidden text-ellipsis whitespace-nowrap shrink-0 max-w-[50%]'>{props.title}</span>
               </FlexFullContainer>
               <div className='flex items-center gap-12px'>
                 {/* headerExtra 会在右上角优先渲染，例如模型切换按钮 / headerExtra renders at top-right for items like model switchers */}

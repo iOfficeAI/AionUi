@@ -51,51 +51,32 @@ interface PlatformConfig {
 /**
  * 模型平台选项（第一层下拉）
  * Model Platform options (first dropdown)
+ * 顺序：Gemini, Gemini Vertex AI, 自定义（第三个），其他供应商（第四个之后）
  */
 const MODEL_PLATFORMS: PlatformConfig[] = [
   { name: 'Gemini', value: 'gemini', logo: GeminiLogo, platform: 'gemini' },
   { name: 'Gemini (Vertex AI)', value: 'gemini-vertex-ai', logo: GeminiLogo, platform: 'gemini-vertex-ai' },
-  { name: 'ModelScope', value: 'ModelScope', logo: ModelScopeLogo, platform: 'custom', baseUrl: 'https://api-inference.modelscope.cn/v1' },
+  // 第三个：自定义（需要用户输入 base url）
+  { name: 'Custom', value: 'custom', logo: null, platform: 'custom' },
+  // 第四个之后：预设供应商
+  { name: 'OpenAI', value: 'OpenAI', logo: OpenAILogo, platform: 'custom', baseUrl: 'https://api.openai.com/v1' },
+  { name: 'Anthropic', value: 'Anthropic', logo: AnthropicLogo, platform: 'custom', baseUrl: 'https://api.anthropic.com/v1' },
+  { name: 'DeepSeek', value: 'DeepSeek', logo: DeepSeekLogo, platform: 'custom', baseUrl: 'https://api.deepseek.com' },
   { name: 'OpenRouter', value: 'OpenRouter', logo: OpenRouterLogo, platform: 'custom', baseUrl: 'https://openrouter.ai/api/v1' },
-  { name: 'More', value: 'custom', logo: null, platform: 'custom' },
-];
-
-/**
- * 模型供应商配置（More 选项的第二层下拉）
- * Model Provider Configuration (second dropdown for More option)
- */
-interface ProviderConfig {
-  /** 供应商名称 / Provider name */
-  name: string;
-  /** API Base URL */
-  url: string;
-  /** Logo */
-  logo: string | null;
-}
-
-/**
- * 模型供应商列表（More 选项使用）
- * Model Provider list (for More option)
- */
-const MODEL_PROVIDERS: ProviderConfig[] = [
-  { name: 'OpenAI', url: 'https://api.openai.com/v1', logo: OpenAILogo },
-  { name: 'Anthropic', url: 'https://api.anthropic.com/v1', logo: AnthropicLogo },
-  { name: 'DeepSeek', url: 'https://api.deepseek.com', logo: DeepSeekLogo },
-  { name: 'OpenRouter', url: 'https://openrouter.ai/api/v1', logo: OpenRouterLogo },
-  { name: 'Dashscope', url: 'https://dashscope.aliyuncs.com/compatible-mode/v1', logo: QwenLogo },
-  { name: 'SiliconFlow', url: 'https://api.siliconflow.cn/v1', logo: SiliconFlowLogo },
-  { name: 'Zhipu', url: 'https://open.bigmodel.cn/api/paas/v4', logo: ZhipuLogo },
-  { name: 'Moonshot', url: 'https://api.moonshot.cn/v1', logo: KimiLogo },
-  { name: 'xAI', url: 'https://api.x.ai/v1', logo: XaiLogo },
-  { name: 'Ark', url: 'https://ark.cn-beijing.volces.com/api/v3', logo: VolcengineLogo },
-  { name: 'Qianfan', url: 'https://qianfan.baidubce.com/v2', logo: BaiduLogo },
-  { name: 'Hunyuan', url: 'https://api.hunyuan.cloud.tencent.com/v1', logo: TencentLogo },
-  { name: 'Lingyi', url: 'https://api.lingyiwanwu.com/v1', logo: LingyiLogo },
-  { name: 'Poe', url: 'https://api.poe.com/v1', logo: PoeLogo },
-  { name: 'ModelScope', url: 'https://api-inference.modelscope.cn/v1', logo: ModelScopeLogo },
-  { name: 'InfiniAI', url: 'https://cloud.infini-ai.com/maas/v1', logo: InfiniAILogo },
-  { name: 'Ctyun', url: 'https://wishub-x1.ctyun.cn/v1', logo: CtyunLogo },
-  { name: 'StepFun', url: 'https://api.stepfun.com/v1', logo: StepFunLogo },
+  { name: 'Dashscope', value: 'Dashscope', logo: QwenLogo, platform: 'custom', baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1' },
+  { name: 'SiliconFlow', value: 'SiliconFlow', logo: SiliconFlowLogo, platform: 'custom', baseUrl: 'https://api.siliconflow.cn/v1' },
+  { name: 'Zhipu', value: 'Zhipu', logo: ZhipuLogo, platform: 'custom', baseUrl: 'https://open.bigmodel.cn/api/paas/v4' },
+  { name: 'Moonshot', value: 'Moonshot', logo: KimiLogo, platform: 'custom', baseUrl: 'https://api.moonshot.cn/v1' },
+  { name: 'xAI', value: 'xAI', logo: XaiLogo, platform: 'custom', baseUrl: 'https://api.x.ai/v1' },
+  { name: 'Ark', value: 'Ark', logo: VolcengineLogo, platform: 'custom', baseUrl: 'https://ark.cn-beijing.volces.com/api/v3' },
+  { name: 'Qianfan', value: 'Qianfan', logo: BaiduLogo, platform: 'custom', baseUrl: 'https://qianfan.baidubce.com/v2' },
+  { name: 'Hunyuan', value: 'Hunyuan', logo: TencentLogo, platform: 'custom', baseUrl: 'https://api.hunyuan.cloud.tencent.com/v1' },
+  { name: 'Lingyi', value: 'Lingyi', logo: LingyiLogo, platform: 'custom', baseUrl: 'https://api.lingyiwanwu.com/v1' },
+  { name: 'Poe', value: 'Poe', logo: PoeLogo, platform: 'custom', baseUrl: 'https://api.poe.com/v1' },
+  { name: 'ModelScope', value: 'ModelScope', logo: ModelScopeLogo, platform: 'custom', baseUrl: 'https://api-inference.modelscope.cn/v1' },
+  { name: 'InfiniAI', value: 'InfiniAI', logo: InfiniAILogo, platform: 'custom', baseUrl: 'https://cloud.infini-ai.com/maas/v1' },
+  { name: 'Ctyun', value: 'Ctyun', logo: CtyunLogo, platform: 'custom', baseUrl: 'https://wishub-x1.ctyun.cn/v1' },
+  { name: 'StepFun', value: 'StepFun', logo: StepFunLogo, platform: 'custom', baseUrl: 'https://api.stepfun.com/v1' },
 ];
 
 /**
@@ -120,17 +101,6 @@ const renderPlatformOption = (platform: PlatformConfig) => (
   </div>
 );
 
-/**
- * 供应商下拉选项渲染（More 选项的第二层）
- * Provider dropdown option renderer (second level for More)
- */
-const renderProviderOption = (provider: ProviderConfig) => (
-  <div className='flex items-center gap-8px'>
-    <ProviderLogo logo={provider.logo} name={provider.name} size={18} />
-    <span>{provider.name}</span>
-  </div>
-);
-
 const AddPlatformModal = ModalHOC<{
   onSubmit: (platform: IProvider) => void;
 }>(({ modalProps, onSubmit, modalCtrl }) => {
@@ -140,7 +110,6 @@ const AddPlatformModal = ModalHOC<{
   const [apiKeyEditorVisible, setApiKeyEditorVisible] = useState(false);
 
   const platformValue = Form.useWatch('platform', form);
-  const providerName = Form.useWatch('providerName', form);
   const baseUrl = Form.useWatch('baseUrl', form);
   const apiKey = Form.useWatch('apiKey', form);
 
@@ -150,7 +119,8 @@ const AddPlatformModal = ModalHOC<{
   }, [platformValue]);
 
   const platform = selectedPlatform?.platform ?? 'gemini';
-  const isMore = platformValue === 'custom';
+  // 判断是否为"自定义"选项（没有预设 baseUrl） / Check if "Custom" option (no preset baseUrl)
+  const isCustom = platformValue === 'custom' && !selectedPlatform?.baseUrl;
   const isGemini = platform === 'gemini' || platform === 'gemini-vertex-ai';
 
   const modelListState = useModeModeList(platform, baseUrl, apiKey, true);
@@ -173,8 +143,8 @@ const AddPlatformModal = ModalHOC<{
     form
       .validate()
       .then((values) => {
-        // More 选项使用 providerName，其他使用 platform 的 name
-        const name = isMore ? values.providerName : (selectedPlatform?.name ?? values.platform);
+        // 自定义选项使用 "Custom"，其他使用 platform 的 name
+        const name = isCustom ? 'Custom' : (selectedPlatform?.name ?? values.platform);
         onSubmit({
           id: uuid(),
           platform: selectedPlatform?.platform ?? 'custom',
@@ -209,10 +179,6 @@ const AddPlatformModal = ModalHOC<{
                 if (plat) {
                   form.setFieldValue('baseUrl', plat.baseUrl || '');
                   form.setFieldValue('model', '');
-                  // More 选项时清空供应商名称
-                  if (value === 'custom') {
-                    form.setFieldValue('providerName', '');
-                  }
                 }
               }}
               renderFormat={(option) => {
@@ -230,35 +196,14 @@ const AddPlatformModal = ModalHOC<{
             </Select>
           </Form.Item>
 
-          {/* 模型供应商选择 - 仅 More 选项显示 / Model Provider Selection - only for More option */}
-          <Form.Item hidden={!isMore} label={t('settings.modelProvider')} field={'providerName'} required={isMore} rules={[{ required: isMore }]}>
-            <Select
-              showSearch
-              filterOption={(inputValue, option) => {
-                const optionValue = (option as React.ReactElement<{ value?: string }>)?.props?.value;
-                const provider = MODEL_PROVIDERS.find((p) => p.name === optionValue);
-                return provider?.name.toLowerCase().includes(inputValue.toLowerCase()) ?? false;
+          {/* Base URL - 仅自定义选项显示 / Base URL - only for Custom option */}
+          <Form.Item hidden={!isCustom} label={t('settings.baseUrl')} field={'baseUrl'} required={isCustom} rules={[{ required: isCustom }]}>
+            <Input
+              placeholder='https://api.example.com/v1'
+              onBlur={() => {
+                void modelListState.mutate();
               }}
-              onChange={(value) => {
-                const provider = MODEL_PROVIDERS.find((p) => p.name === value);
-                if (provider) {
-                  form.setFieldValue('baseUrl', provider.url);
-                  form.setFieldValue('model', '');
-                }
-              }}
-              renderFormat={(option) => {
-                const optionValue = (option as { value?: string })?.value;
-                const provider = MODEL_PROVIDERS.find((p) => p.name === optionValue);
-                if (!provider) return optionValue;
-                return renderProviderOption(provider);
-              }}
-            >
-              {MODEL_PROVIDERS.map((provider) => (
-                <Select.Option key={provider.name} value={provider.name}>
-                  {renderProviderOption(provider)}
-                </Select.Option>
-              ))}
-            </Select>
+            />
           </Form.Item>
 
           {/* API Key */}
@@ -281,8 +226,8 @@ const AddPlatformModal = ModalHOC<{
                 <Search
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (isMore && !providerName) {
-                      message.warning(t('settings.pleaseSelectProvider'));
+                    if (isCustom && !baseUrl) {
+                      message.warning(t('settings.pleaseEnterBaseUrl'));
                       return;
                     }
                     if (!isGemini && !apiKey) {
