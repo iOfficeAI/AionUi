@@ -73,6 +73,11 @@ interface IChatConversation<T, Extra> {
   status?: 'pending' | 'running' | 'finished' | undefined;
 }
 
+// Token 使用统计数据类型
+export interface TokenUsageData {
+  totalTokens: number;
+}
+
 export type TChatConversation =
   | IChatConversation<
       'gemini',
@@ -80,6 +85,7 @@ export type TChatConversation =
         workspace: string;
         customWorkspace?: boolean; // true 用户指定工作目录 false 系统默认工作目录
         webSearchEngine?: 'google' | 'default'; // 搜索引擎配置
+        lastTokenUsage?: TokenUsageData; // 上次的 token 使用统计
       }
     >
   | Omit<
