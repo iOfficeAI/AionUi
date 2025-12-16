@@ -313,6 +313,7 @@
     "apiKeyCount": "API Key",
     "pleaseEnterBaseUrlAndApiKey": "Please enter base url and api key",
     "pleaseEnterApiKey": "Please enter API Key",
+    "pleaseEnterBaseUrl": "Please enter Base URL",
     "pleaseSelectProvider": "Please select a model provider",
     "multiApiKeyTip": "💡 To add multiple API Keys for auto-rotation, configure in platform edit later",
     "multiApiKeyEditTip": "Support multiple API Keys, one per line, system will auto-rotate",

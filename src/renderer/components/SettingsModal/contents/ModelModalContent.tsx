@@ -129,8 +129,8 @@ const ModelModalContent: React.FC = () => {
               return (
                 <Collapse
                   activeKey={isExpanded ? ['image-generation'] : []}
-                  onChange={(keys) => {
-                    const expanded = keys.includes('image-generation');
+                  onChange={(_, activeKeys) => {
+                    const expanded = activeKeys.includes('image-generation');
                     setCollapseKey((prev) => ({ ...prev, [platform.id]: expanded }));
                   }}
                   key={key}

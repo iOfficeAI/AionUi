@@ -443,6 +443,7 @@
     "platformName": "プラットフォーム名",
     "pleaseEnterBaseUrlAndApiKey": "ベースURLとAPIキーを入力してください",
     "pleaseEnterApiKey": "APIキーを入力してください",
+    "pleaseEnterBaseUrl": "ベースURLを入力してください",
     "pleaseSelectProvider": "モデルプロバイダーを選択してください",
     "proxyConfig": "プロキシ",
     "proxyHttpOnly": "HTTP/HTTPSのみをサポート",

@@ -310,6 +310,7 @@
     "apiKeyCount": "API Key",
     "pleaseEnterBaseUrlAndApiKey": "请输入base url和api key",
     "pleaseEnterApiKey": "请输入 API Key",
+    "pleaseEnterBaseUrl": "请输入 Base URL",
     "pleaseSelectProvider": "请选择模型供应商",
     "multiApiKeyTip": "💡 如需添加多个 API Key 实现自动轮询，请稍后到平台编辑界面配置",
     "multiApiKeyEditTip": "支持多个 API Key，每行一个，系统将自动轮询使用",

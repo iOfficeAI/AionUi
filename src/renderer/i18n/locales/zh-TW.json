@@ -414,6 +414,7 @@
     "platformName": "平台名稱",
     "pleaseEnterBaseUrlAndApiKey": "請輸入base url和api key",
     "pleaseEnterApiKey": "請輸入 API Key",
+    "pleaseEnterBaseUrl": "請輸入 Base URL",
     "pleaseSelectProvider": "請選擇模型供應商",
     "proxyConfig": "代理",
     "proxyHttpOnly": "僅支持 http/https 協議",
