@@ -115,6 +115,13 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
 
   // Context menu calculations
   const hasOriginalFiles = treeHook.files.length > 0 && treeHook.files[0]?.children?.length > 0;
+  const normalizedWorkspaceName = workspace.toLowerCase();
+  const rootName = treeHook.files[0]?.name?.toLowerCase() ?? '';
+  const containsTempMarker = (value: string) => value.includes('codex-temp-') || value.includes('gemini-temp-');
+  const shouldFlattenRoot = treeHook.files.length === 1 && (treeHook.files[0]?.children?.length ?? 0) > 0 && (containsTempMarker(rootName) || containsTempMarker(normalizedWorkspaceName));
+  // 当自动创建的临时目录只有一层时，隐藏根目录直接展示子文件
+  // Hide auto-generated codex/gemini temp root folders and show children directly
+  const treeData = shouldFlattenRoot ? (treeHook.files[0]?.children ?? []) : treeHook.files;
   let contextMenuStyle: React.CSSProperties | undefined;
   if (modalsHook.contextMenu.visible) {
     let x = modalsHook.contextMenu.x;
@@ -501,7 +508,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
               key={treeHook.treeKey}
               selectedKeys={treeHook.selected}
               expandedKeys={treeHook.expandedKeys}
-              treeData={treeHook.files}
+              treeData={treeData}
               fieldNames={{
                 children: 'children',
                 title: 'name',
