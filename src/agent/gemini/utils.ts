@@ -35,12 +35,18 @@ export const processGeminiStreamEvents = async (stream: AsyncIterable<ServerGemi
           });
         }
         break;
-      case ServerGeminiEventType.UserCancelled:
+      case ServerGeminiEventType.Finished:
+        {
+          // 传递 Finished 事件，包含 token 使用统计
+          onStreamEvent({ type: event.type, data: event.value });
+          // console.log('[Token Usage]', event.value.usageMetadata);
+        }
+        break;
       case ServerGeminiEventType.ChatCompressed:
+      case ServerGeminiEventType.UserCancelled:
       case ServerGeminiEventType.ToolCallConfirmation:
       case ServerGeminiEventType.ToolCallResponse:
       case ServerGeminiEventType.MaxSessionTurns:
-      case ServerGeminiEventType.Finished:
       case ServerGeminiEventType.LoopDetected:
         {
           // console.log('event>>>>>>>>>>>>>>>>>>>', event);

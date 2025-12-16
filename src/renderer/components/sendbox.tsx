@@ -36,7 +36,8 @@ const SendBox: React.FC<{
   supportedExts?: string[];
   defaultMultiLine?: boolean;
   lockMultiLine?: boolean;
-}> = ({ onSend, onStop, prefix, className, loading, tools, disabled, placeholder, value: input = '', onChange: setInput = constVoid, onFilesAdded, supportedExts = allSupportedExts, defaultMultiLine = false, lockMultiLine = false }) => {
+  sendButtonPrefix?: React.ReactNode;
+}> = ({ onSend, onStop, prefix, className, loading, tools, disabled, placeholder, value: input = '', onChange: setInput = constVoid, onFilesAdded, supportedExts = allSupportedExts, defaultMultiLine = false, lockMultiLine = false, sendButtonPrefix }) => {
   const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
   const [isSingleLine, setIsSingleLine] = useState(!defaultMultiLine);
@@ -290,6 +291,7 @@ const SendBox: React.FC<{
           ></Input.TextArea>
           {isSingleLine && (
             <div className='flex items-center gap-2'>
+              {sendButtonPrefix}
               {isLoading || loading ? (
                 <Button shape='circle' type='secondary' className='bg-animate' icon={<div className='mx-auto size-12px bg-6' onClick={stopHandler}></div>}></Button>
               ) : (
@@ -309,6 +311,7 @@ const SendBox: React.FC<{
           <div className='flex items-center justify-between gap-2 w-full'>
             <div className='sendbox-tools'>{tools}</div>
             <div className='flex items-center gap-2'>
+              {sendButtonPrefix}
               {isLoading || loading ? (
                 <Button shape='circle' type='secondary' className='bg-animate' icon={<div className='mx-auto size-12px bg-6' onClick={stopHandler}></div>}></Button>
               ) : (
