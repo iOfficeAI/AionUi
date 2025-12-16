@@ -13,6 +13,7 @@ import { ProcessConfig } from '@/process/initStorage';
 import { getDatabase } from '@process/database';
 import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '../message';
 import BaseAgentManager from './BaseAgentManager';
+import { handlePreviewOpenEvent } from '../utils/previewUtils';
 
 // gemini agent管理器类
 export class GeminiAgentManager extends BaseAgentManager<{
@@ -146,13 +147,18 @@ export class GeminiAgentManager extends BaseAgentManager<{
     super.init();
     // 接受来子进程的对话消息
     this.on('gemini.message', (data) => {
-      // console.log('gemini.message', data);
       if (data.type === 'finish') {
         this.status = 'finished';
       }
       if (data.type === 'start') {
         this.status = 'running';
       }
+
+      // 处理预览打开事件（chrome-devtools 导航触发）/ Handle preview open event (triggered by chrome-devtools navigation)
+      if (handlePreviewOpenEvent(data)) {
+        return; // 不需要继续处理 / No need to continue processing
+      }
+
       data.conversation_id = this.conversation_id;
       // Transform and persist message (skip transient UI state messages)
       if (data.type !== 'thought') {

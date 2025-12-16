@@ -151,6 +151,19 @@ export const previewHistory = {
   getContent: bridge.buildProvider<{ snapshot: PreviewSnapshotInfo; content: string } | null, { target: PreviewHistoryTarget; snapshotId: string }>('preview-history.get-content'),
 };
 
+// 预览面板相关接口 / Preview panel API
+export const preview = {
+  // Agent 触发打开预览（如 chrome-devtools 导航到 URL）/ Agent triggers open preview (e.g., chrome-devtools navigates to URL)
+  open: bridge.buildEmitter<{
+    content: string; // URL 或内容 / URL or content
+    contentType: import('./types/preview').PreviewContentType; // 内容类型 / Content type
+    metadata?: {
+      title?: string;
+      fileName?: string;
+    };
+  }>('preview.open'),
+};
+
 export const document = {
   convert: bridge.buildProvider<import('./types/conversion').DocumentConversionResponse, import('./types/conversion').DocumentConversionRequest>('document.convert'),
 };

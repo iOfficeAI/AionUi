@@ -8,6 +8,7 @@ import { AcpAdapter } from '@/agent/acp/AcpAdapter';
 import { extractAtPaths, parseAllAtCommands, reconstructQuery } from '@/common/atCommandParser';
 import type { TMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
+import { NavigationInterceptor } from '@/common/navigation';
 import { uuid } from '@/common/utils';
 import type { AcpBackend, AcpPermissionRequest, AcpResult, AcpSessionUpdate, ToolCallUpdate } from '@/types/acpTypes';
 import { AcpErrorType, createAcpError } from '@/types/acpTypes';
@@ -83,6 +84,10 @@ export class AcpAgent {
   private readonly onStreamEvent: (data: IResponseMessage) => void;
   private readonly onSignalEvent?: (data: IResponseMessage) => void;
 
+  // Track pending navigation tool calls for URL extraction from results
+  // 跟踪待处理的导航工具调用，以便从结果中提取 URL
+  private pendingNavigationTools = new Set<string>();
+
   constructor(config: AcpAgentConfig) {
     this.id = config.id;
     this.onStreamEvent = config.onStreamEvent;
@@ -115,6 +120,35 @@ export class AcpAgent {
     this.connection.onFileOperation = (operation) => {
       this.handleFileOperation(operation);
     };
+  }
+
+  /**
+   * Check if a tool is a chrome-devtools navigation tool
+   * 检查工具是否为 chrome-devtools 导航工具
+   *
+   * Delegates to NavigationInterceptor for unified logic
+   */
+  private isNavigationTool(toolName: string): boolean {
+    return NavigationInterceptor.isNavigationTool(toolName);
+  }
+
+  /**
+   * Extract URL from navigation tool's permission request data
+   * 从导航工具的权限请求数据中提取 URL
+   *
+   * Delegates to NavigationInterceptor for unified logic
+   */
+  private extractNavigationUrl(toolCall: { rawInput?: Record<string, unknown>; content?: Array<{ type?: string; content?: { type?: string; text?: string }; text?: string }>; title?: string }): string | null {
+    return NavigationInterceptor.extractUrl(toolCall);
+  }
+
+  /**
+   * Handle intercepted navigation tool by emitting preview_open event
+   * 处理被拦截的导航工具，发出 preview_open 事件
+   */
+  private handleInterceptedNavigation(url: string, _toolName: string): void {
+    const previewMessage = NavigationInterceptor.createPreviewMessage(url, this.id);
+    this.onStreamEvent(previewMessage);
   }
 
   // 启动ACP连接和会话
@@ -365,6 +399,53 @@ export class AcpAgent {
 
   private handleSessionUpdate(data: AcpSessionUpdate): void {
     try {
+      // Intercept chrome-devtools navigation tools from session updates
+      // 从会话更新中拦截 chrome-devtools 导航工具
+      if (data.update?.sessionUpdate === 'tool_call') {
+        const toolCallUpdate = data as ToolCallUpdate;
+        const toolName = toolCallUpdate.update?.title || '';
+        const toolCallId = toolCallUpdate.update?.toolCallId;
+        if (this.isNavigationTool(toolName)) {
+          // Track this navigation tool call for result interception
+          // 跟踪此导航工具调用以拦截结果
+          if (toolCallId) {
+            this.pendingNavigationTools.add(toolCallId);
+          }
+          const url = this.extractNavigationUrl(toolCallUpdate.update);
+          if (url) {
+            // Emit preview_open event to show URL in preview panel
+            // 发出 preview_open 事件，在预览面板中显示 URL
+            this.handleInterceptedNavigation(url, toolName);
+          }
+        }
+      }
+
+      // Intercept tool_call_update to extract URL from navigation tool results
+      // 拦截 tool_call_update 以从导航工具结果中提取 URL
+      if (data.update?.sessionUpdate === 'tool_call_update') {
+        const statusUpdate = data as import('@/types/acpTypes').ToolCallUpdateStatus;
+        const toolCallId = statusUpdate.update?.toolCallId;
+        if (toolCallId && this.pendingNavigationTools.has(toolCallId)) {
+          // This is a result for a tracked navigation tool
+          // 这是已跟踪的导航工具的结果
+          if (statusUpdate.update?.status === 'completed' && statusUpdate.update?.content) {
+            // Try to extract URL from the result content
+            // 尝试从结果内容中提取 URL
+            for (const item of statusUpdate.update.content) {
+              const text = item.content?.text || '';
+              const urlMatch = text.match(/https?:\/\/[^\s<>"]+/i);
+              if (urlMatch) {
+                this.handleInterceptedNavigation(urlMatch[0], 'navigate_page');
+                break;
+              }
+            }
+          }
+          // Clean up tracking
+          // 清理跟踪
+          this.pendingNavigationTools.delete(toolCallId);
+        }
+      }
+
       const messages = this.adapter.convertSessionUpdate(data);
 
       for (let i = 0; i < messages.length; i++) {
@@ -385,6 +466,23 @@ export class AcpAgent {
         data.toolCall.toolCallId = uuid();
       }
       const requestId = data.toolCall.toolCallId; // 使用 toolCallId 作为 requestId
+
+      // Intercept chrome-devtools navigation tools and show in preview panel
+      // 拦截 chrome-devtools 导航工具，在预览面板中显示
+      // Note: We only emit preview_open event, do NOT block tool execution
+      // 注意：只发送 preview_open 事件，不阻止工具执行，agent 需要 chrome-devtools 获取网页内容
+      const toolName = data.toolCall?.title || '';
+      if (this.isNavigationTool(toolName)) {
+        const url = this.extractNavigationUrl(data.toolCall);
+        if (url) {
+          // Emit preview_open event to show URL in preview panel
+          // 发出 preview_open 事件，在预览面板中显示 URL
+          this.handleInterceptedNavigation(url, toolName);
+        }
+        // Track for later extraction from result if URL not available now
+        // 跟踪以便稍后从结果中提取 URL（如果现在不可用）
+        this.pendingNavigationTools.add(requestId);
+      }
 
       // 检查是否有重复的权限请求
       if (this.pendingPermissions.has(requestId)) {

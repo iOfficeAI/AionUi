@@ -5,6 +5,7 @@
  */
 
 // src/core/ConfigManager.ts
+import { NavigationInterceptor } from '@/common/navigation';
 import type { TProviderWithModel } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import { getProviderAuthType } from '@/common/utils/platformAuthType';
@@ -218,8 +219,6 @@ export class GeminiAgent {
                 return false;
               });
 
-              console.log('geminiTools.done.request>>>>>>>>>>>>>>>>>>>', geminiTools[0].request.prompt_id);
-
               this.submitQuery(response, uuid(), this.createAbortController(), {
                 isContinuation: true,
                 prompt_id: geminiTools[0].request.prompt_id,
@@ -283,6 +282,14 @@ export class GeminiAgent {
     })
       .then(async () => {
         if (toolCallRequests.length > 0) {
+          // Emit preview_open for navigation tools, but don't block execution
+          // 对导航工具发送 preview_open 事件，但不阻止执行
+          // Agent needs chrome-devtools to fetch web page content
+          // Agent 需要 chrome-devtools 来获取网页内容
+          this.emitPreviewForNavigationTools(toolCallRequests, msg_id);
+
+          // Schedule ALL tool requests including chrome-devtools
+          // 调度所有工具请求，包括 chrome-devtools
           await this.scheduler.schedule(toolCallRequests, abortController.signal);
         }
       })
@@ -294,6 +301,51 @@ export class GeminiAgent {
           msg_id,
         });
       });
+  }
+
+  /**
+   * 检查是否为导航工具调用（支持带MCP前缀和不带前缀的工具名）
+   * Check if it's a navigation tool call (supports both with and without MCP prefix)
+   *
+   * Delegates to NavigationInterceptor for unified logic
+   */
+  private isNavigationTool(toolName: string): boolean {
+    return NavigationInterceptor.isNavigationTool(toolName);
+  }
+
+  /**
+   * Emit preview_open events for navigation tools without blocking execution
+   * 对导航工具发送 preview_open 事件，但不阻止执行
+   *
+   * Agent needs chrome-devtools to fetch web page content, so we only emit
+   * preview events to show URL in preview panel, while letting tools execute normally.
+   * Agent 需要 chrome-devtools 来获取网页内容，所以我们只发送预览事件在预览面板中显示 URL，
+   * 同时让工具正常执行。
+   */
+  private emitPreviewForNavigationTools(toolCallRequests: ToolCallRequestInfo[], _msg_id: string): void {
+    for (const request of toolCallRequests) {
+      const toolName = request.name || '';
+
+      if (this.isNavigationTool(toolName)) {
+        const args = request.args || {};
+        const url = NavigationInterceptor.extractUrl({ arguments: args as Record<string, unknown> });
+        if (url) {
+          // Emit preview_open event to show URL in preview panel
+          // 发送 preview_open 事件在预览面板中显示 URL
+          this.onStreamEvent({
+            type: 'preview_open',
+            data: {
+              content: url,
+              contentType: 'url',
+              metadata: {
+                title: url,
+              },
+            },
+            msg_id: uuid(),
+          });
+        }
+      }
+    }
   }
 
   submitQuery(
@@ -367,7 +419,6 @@ export class GeminiAgent {
       query: Array.isArray(message) ? message[0].text : message,
       config: this.config,
       addItem: (item: unknown) => {
-        console.log('addItem', item);
         // Capture error messages from @ command processing
         if (item && typeof item === 'object' && 'type' in item) {
           const typedItem = item as { type: string; text?: string };
@@ -376,8 +427,8 @@ export class GeminiAgent {
           }
         }
       },
-      onDebugMessage(log: unknown) {
-        console.log('onDebugMessage', log);
+      onDebugMessage() {
+        // 调试回调留空以避免日志噪声 / Debug hook intentionally left blank to avoid noisy logging
       },
       messageId: Date.now(),
       signal: abortController.signal,

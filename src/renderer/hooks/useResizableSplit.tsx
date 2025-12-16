@@ -53,10 +53,18 @@ export const useResizableSplit = (options: UseResizableSplitOptions = {}) => {
 
   const [splitRatio, setSplitRatioState] = useState(() => getStoredRatio());
 
+  const dispatchSplitResizeEvent = useCallback((ratio: number) => {
+    if (typeof window === 'undefined' || typeof window.dispatchEvent !== 'function') {
+      return;
+    }
+    window.dispatchEvent(new CustomEvent('preview-panel-resize', { detail: { ratio } }));
+  }, []);
+
   // 保存比例到 LocalStorage / Save ratio to LocalStorage
   const setSplitRatio = useCallback(
     (ratio: number) => {
       setSplitRatioState(ratio);
+      dispatchSplitResizeEvent(ratio);
       if (storageKey) {
         try {
           localStorage.setItem(storageKey, ratio.toString());
@@ -65,7 +73,7 @@ export const useResizableSplit = (options: UseResizableSplitOptions = {}) => {
         }
       }
     },
-    [storageKey]
+    [storageKey, dispatchSplitResizeEvent]
   );
 
   // 处理拖动开始事件 / Handle drag start event
@@ -125,6 +133,7 @@ export const useResizableSplit = (options: UseResizableSplitOptions = {}) => {
               rafId = requestAnimationFrame(() => {
                 if (pendingRatio !== null) {
                   setSplitRatioState(pendingRatio);
+                  dispatchSplitResizeEvent(pendingRatio);
                 }
                 rafId = null;
               });
@@ -145,7 +154,7 @@ export const useResizableSplit = (options: UseResizableSplitOptions = {}) => {
           })
         );
       },
-    [splitRatio, minWidth, maxWidth, setSplitRatio]
+    [splitRatio, minWidth, maxWidth, setSplitRatio, dispatchSplitResizeEvent]
   );
 
   const renderHandle = ({ className, style, reverse }: { className?: string; style?: CSSProperties; reverse?: boolean } = {}) => (
