@@ -11,6 +11,10 @@
 export const BACKGROUND_BLOCK_START = '/* AionUi Theme Background Start */';
 export const BACKGROUND_BLOCK_END = '/* AionUi Theme Background End */';
 
+// Precompiled regex for better performance / 预编译正则以提升性能
+const escapeRegex = (str: string) => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const BACKGROUND_BLOCK_PATTERN = new RegExp(`${escapeRegex(BACKGROUND_BLOCK_START)}[\\s\\S]*?${escapeRegex(BACKGROUND_BLOCK_END)}\n?`, 'g');
+
 const buildBackgroundCss = (imageDataUrl: string): string => {
   if (!imageDataUrl) return '';
   return `${BACKGROUND_BLOCK_START}
@@ -59,8 +63,9 @@ export const injectBackgroundCssBlock = (css: string, imageDataUrl: string): str
   if (!css) {
     return buildBackgroundCss(imageDataUrl);
   }
-  const pattern = new RegExp(`${BACKGROUND_BLOCK_START}[\\s\\S]*?${BACKGROUND_BLOCK_END}\n?`, 'g');
-  const cleanedCss = css.replace(pattern, '').trim();
+  // Reset lastIndex for global regex reuse / 重置 lastIndex 以重用全局正则
+  BACKGROUND_BLOCK_PATTERN.lastIndex = 0;
+  const cleanedCss = css.replace(BACKGROUND_BLOCK_PATTERN, '').trim();
   const block = buildBackgroundCss(imageDataUrl);
   return [cleanedCss, block].filter(Boolean).join('\n\n');
 };

@@ -74,22 +74,31 @@ const ApiKeyEditorModal: React.FC<ApiKeyEditorModalProps> = ({ visible, apiKeys,
     });
   }, []);
 
-  // 测试单个 key
-  const testKey = useCallback(
-    async (id: string) => {
-      const key = keys.find((k) => k.id === id);
-      if (!key || !key.value.trim() || !onTestKey) return;
+  // 测试单个 key 的核心逻辑 / Core logic for testing a single key
+  const executeKeyTest = useCallback(
+    async (id: string, value: string) => {
+      if (!onTestKey) return;
 
       setKeys((prev) => prev.map((k) => (k.id === id ? { ...k, status: 'testing' } : k)));
 
       try {
-        const isValid = await onTestKey(key.value.trim());
+        const isValid = await onTestKey(value);
         setKeys((prev) => prev.map((k) => (k.id === id ? { ...k, status: isValid ? 'valid' : 'invalid' } : k)));
       } catch {
         setKeys((prev) => prev.map((k) => (k.id === id ? { ...k, status: 'invalid' } : k)));
       }
     },
-    [keys, onTestKey]
+    [onTestKey]
+  );
+
+  // 测试单个 key
+  const testKey = useCallback(
+    async (id: string) => {
+      const key = keys.find((k) => k.id === id);
+      if (!key || !key.value.trim()) return;
+      await executeKeyTest(id, key.value.trim());
+    },
+    [keys, executeKeyTest]
   );
 
   // 添加新的 key 输入框
@@ -99,19 +108,11 @@ const ApiKeyEditorModal: React.FC<ApiKeyEditorModalProps> = ({ visible, apiKeys,
 
   // 测试所有 keys
   const testAllKeys = useCallback(async () => {
-    if (!onTestKey) return;
-
     const keysToTest = keys.filter((k) => k.value.trim());
     for (const key of keysToTest) {
-      setKeys((prev) => prev.map((k) => (k.id === key.id ? { ...k, status: 'testing' } : k)));
-      try {
-        const isValid = await onTestKey(key.value.trim());
-        setKeys((prev) => prev.map((k) => (k.id === key.id ? { ...k, status: isValid ? 'valid' : 'invalid' } : k)));
-      } catch {
-        setKeys((prev) => prev.map((k) => (k.id === key.id ? { ...k, status: 'invalid' } : k)));
-      }
+      await executeKeyTest(key.id, key.value.trim());
     }
-  }, [keys, onTestKey]);
+  }, [keys, executeKeyTest]);
 
   // 删除无效的 keys
   const deleteInvalidKeys = useCallback(() => {

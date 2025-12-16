@@ -3,7 +3,7 @@ import type { IProvider, TProviderWithModel } from '@/common/storage';
 import { useGeminiGoogleAuthModels } from '@/renderer/hooks/useGeminiGoogleAuthModels';
 import type { GeminiModeOption } from '@/renderer/hooks/useModeModeList';
 import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
 
 export interface GeminiModelSelection {
@@ -35,27 +35,26 @@ export const useGeminiModelSelection = (conversationId: string | undefined, init
 
   const { data: modelConfig } = useSWR('model.config.sendbox', () => ipcBridge.mode.getModelConfig.invoke());
 
-  const availableModelsCache = useMemo(() => new Map<string, string[]>(), []);
+  // Use useRef for mutable cache that persists across renders / 使用 useRef 存储可变缓存
+  const availableModelsCacheRef = useRef(new Map<string, string[]>());
 
-  const getAvailableModels = useCallback(
-    (provider: IProvider): string[] => {
-      const cacheKey = `${provider.id}-${(provider.model || []).join(',')}`;
-      if (availableModelsCache.has(cacheKey)) {
-        return availableModelsCache.get(cacheKey)!;
+  const getAvailableModels = useCallback((provider: IProvider): string[] => {
+    const cacheKey = `${provider.id}-${(provider.model || []).join(',')}`;
+    const cache = availableModelsCacheRef.current;
+    if (cache.has(cacheKey)) {
+      return cache.get(cacheKey)!;
+    }
+    const result: string[] = [];
+    for (const modelName of provider.model || []) {
+      const functionCalling = hasSpecificModelCapability(provider, modelName, 'function_calling');
+      const excluded = hasSpecificModelCapability(provider, modelName, 'excludeFromPrimary');
+      if ((functionCalling === true || functionCalling === undefined) && excluded !== true) {
+        result.push(modelName);
       }
-      const result: string[] = [];
-      for (const modelName of provider.model || []) {
-        const functionCalling = hasSpecificModelCapability(provider, modelName, 'function_calling');
-        const excluded = hasSpecificModelCapability(provider, modelName, 'excludeFromPrimary');
-        if ((functionCalling === true || functionCalling === undefined) && excluded !== true) {
-          result.push(modelName);
-        }
-      }
-      availableModelsCache.set(cacheKey, result);
-      return result;
-    },
-    [availableModelsCache]
-  );
+    }
+    cache.set(cacheKey, result);
+    return result;
+  }, []);
 
   const providers = useMemo(() => {
     // 根据是否启用 Google Auth 动态拼接 provider 列表

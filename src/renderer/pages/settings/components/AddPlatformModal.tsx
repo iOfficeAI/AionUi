@@ -9,75 +9,7 @@ import { useTranslation } from 'react-i18next';
 import useModeModeList from '../../../hooks/useModeModeList';
 import AionModal from '@/renderer/components/base/AionModal';
 import ApiKeyEditorModal from './ApiKeyEditorModal';
-
-// Provider Logo imports
-import GeminiLogo from '@/renderer/assets/logos/gemini.svg';
-import OpenAILogo from '@/renderer/assets/logos/openai.svg';
-import AnthropicLogo from '@/renderer/assets/logos/anthropic.svg';
-import DeepSeekLogo from '@/renderer/assets/logos/deepseek.svg';
-import OpenRouterLogo from '@/renderer/assets/logos/openrouter.svg';
-import SiliconFlowLogo from '@/renderer/assets/logos/siliconflow.svg';
-import QwenLogo from '@/renderer/assets/logos/qwen.svg';
-import KimiLogo from '@/renderer/assets/logos/kimi.svg';
-import ZhipuLogo from '@/renderer/assets/logos/zhipu.svg';
-import XaiLogo from '@/renderer/assets/logos/xai.svg';
-import VolcengineLogo from '@/renderer/assets/logos/volcengine.svg';
-import BaiduLogo from '@/renderer/assets/logos/baidu.svg';
-import TencentLogo from '@/renderer/assets/logos/tencent.svg';
-import LingyiLogo from '@/renderer/assets/logos/lingyiwanwu.svg';
-import PoeLogo from '@/renderer/assets/logos/poe.svg';
-import ModelScopeLogo from '@/renderer/assets/logos/modelscope.svg';
-import InfiniAILogo from '@/renderer/assets/logos/infiniai.svg';
-import CtyunLogo from '@/renderer/assets/logos/ctyun.svg';
-import StepFunLogo from '@/renderer/assets/logos/stepfun.svg';
-
-/**
- * 模型平台配置（第一层下拉）
- * Model Platform Configuration (first dropdown)
- */
-interface PlatformConfig {
-  /** 平台名称 / Platform name */
-  name: string;
-  /** 平台值 / Platform value */
-  value: string;
-  /** Logo */
-  logo: string | null;
-  /** 平台标识 / Platform identifier */
-  platform: 'gemini' | 'gemini-vertex-ai' | 'custom';
-  /** Base URL（非 More 选项使用）/ Base URL (for non-More options) */
-  baseUrl?: string;
-}
-
-/**
- * 模型平台选项（第一层下拉）
- * Model Platform options (first dropdown)
- * 顺序：Gemini, Gemini Vertex AI, 自定义（第三个），其他供应商（第四个之后）
- */
-const MODEL_PLATFORMS: PlatformConfig[] = [
-  { name: 'Gemini', value: 'gemini', logo: GeminiLogo, platform: 'gemini' },
-  { name: 'Gemini (Vertex AI)', value: 'gemini-vertex-ai', logo: GeminiLogo, platform: 'gemini-vertex-ai' },
-  // 第三个：自定义（需要用户输入 base url）
-  { name: 'Custom', value: 'custom', logo: null, platform: 'custom' },
-  // 第四个之后：预设供应商
-  { name: 'OpenAI', value: 'OpenAI', logo: OpenAILogo, platform: 'custom', baseUrl: 'https://api.openai.com/v1' },
-  { name: 'Anthropic', value: 'Anthropic', logo: AnthropicLogo, platform: 'custom', baseUrl: 'https://api.anthropic.com/v1' },
-  { name: 'DeepSeek', value: 'DeepSeek', logo: DeepSeekLogo, platform: 'custom', baseUrl: 'https://api.deepseek.com' },
-  { name: 'OpenRouter', value: 'OpenRouter', logo: OpenRouterLogo, platform: 'custom', baseUrl: 'https://openrouter.ai/api/v1' },
-  { name: 'Dashscope', value: 'Dashscope', logo: QwenLogo, platform: 'custom', baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1' },
-  { name: 'SiliconFlow', value: 'SiliconFlow', logo: SiliconFlowLogo, platform: 'custom', baseUrl: 'https://api.siliconflow.cn/v1' },
-  { name: 'Zhipu', value: 'Zhipu', logo: ZhipuLogo, platform: 'custom', baseUrl: 'https://open.bigmodel.cn/api/paas/v4' },
-  { name: 'Moonshot', value: 'Moonshot', logo: KimiLogo, platform: 'custom', baseUrl: 'https://api.moonshot.cn/v1' },
-  { name: 'xAI', value: 'xAI', logo: XaiLogo, platform: 'custom', baseUrl: 'https://api.x.ai/v1' },
-  { name: 'Ark', value: 'Ark', logo: VolcengineLogo, platform: 'custom', baseUrl: 'https://ark.cn-beijing.volces.com/api/v3' },
-  { name: 'Qianfan', value: 'Qianfan', logo: BaiduLogo, platform: 'custom', baseUrl: 'https://qianfan.baidubce.com/v2' },
-  { name: 'Hunyuan', value: 'Hunyuan', logo: TencentLogo, platform: 'custom', baseUrl: 'https://api.hunyuan.cloud.tencent.com/v1' },
-  { name: 'Lingyi', value: 'Lingyi', logo: LingyiLogo, platform: 'custom', baseUrl: 'https://api.lingyiwanwu.com/v1' },
-  { name: 'Poe', value: 'Poe', logo: PoeLogo, platform: 'custom', baseUrl: 'https://api.poe.com/v1' },
-  { name: 'ModelScope', value: 'ModelScope', logo: ModelScopeLogo, platform: 'custom', baseUrl: 'https://api-inference.modelscope.cn/v1' },
-  { name: 'InfiniAI', value: 'InfiniAI', logo: InfiniAILogo, platform: 'custom', baseUrl: 'https://cloud.infini-ai.com/maas/v1' },
-  { name: 'Ctyun', value: 'Ctyun', logo: CtyunLogo, platform: 'custom', baseUrl: 'https://wishub-x1.ctyun.cn/v1' },
-  { name: 'StepFun', value: 'StepFun', logo: StepFunLogo, platform: 'custom', baseUrl: 'https://api.stepfun.com/v1' },
-];
+import { MODEL_PLATFORMS, getPlatformByValue, isCustomOption, isGeminiPlatform, type PlatformConfig } from '@/renderer/config/modelPlatforms';
 
 /**
  * 供应商 Logo 组件
@@ -114,14 +46,12 @@ const AddPlatformModal = ModalHOC<{
   const apiKey = Form.useWatch('apiKey', form);
 
   // 获取当前选中的平台配置 / Get current selected platform config
-  const selectedPlatform = useMemo(() => {
-    return MODEL_PLATFORMS.find((p) => p.value === platformValue);
-  }, [platformValue]);
+  const selectedPlatform = useMemo(() => getPlatformByValue(platformValue), [platformValue]);
 
   const platform = selectedPlatform?.platform ?? 'gemini';
   // 判断是否为"自定义"选项（没有预设 baseUrl） / Check if "Custom" option (no preset baseUrl)
-  const isCustom = platformValue === 'custom' && !selectedPlatform?.baseUrl;
-  const isGemini = platform === 'gemini' || platform === 'gemini-vertex-ai';
+  const isCustom = isCustomOption(platformValue);
+  const isGemini = isGeminiPlatform(platform);
 
   const modelListState = useModeModeList(platform, baseUrl, apiKey, true);
 
