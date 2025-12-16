@@ -27,7 +27,7 @@ export const PRESET_THEMES: ICssTheme[] = [
     id: DEFAULT_THEME_ID,
     name: 'Default',
     isPreset: true,
-    cover: defaultThemeCover,
+    cover: defaultThemeCover, // 仅用于预览展示 / Only for preview display
     css: `/* Default Theme - AOU Purple Theme / 默认主题 */
 /* 此主题展示了系统默认的颜色变量，您可以基于此进行自定义 */
 /* This theme shows the system default color variables, you can customize based on this */
@@ -336,8 +336,7 @@ html {
   background-color: var(--bg-1);
 }
 
-.arco-layout-content,
-[class*="content"]:not([class*="message"]):not([class*="sendbox"]) {
+.arco-layout-content {
   background-color: var(--bg-1);
 }
 
@@ -411,7 +410,7 @@ button:not([class*="model"]) svg:hover,
 
 /* ========== 背景图片设置 ========== */
 .layout-content.bg-1 {
-  background: url('https://wallpaper.forfun.com/fetch/fe/fe613a3bdf2ecbd0c8b138fa452e22b2.jpeg') center/cover no-repeat fixed;
+  background-color: var(--bg-1);
   position: relative;
 }
 
@@ -420,7 +419,7 @@ button:not([class*="model"]) svg:hover,
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, rgba(240, 249, 255, 0.75) 0%, rgba(224, 242, 254, 0.8) 50%, rgba(240, 249, 255, 0.75) 100%);
+  background: transparent;
   z-index: 0;
   pointer-events: none;
 }
@@ -437,8 +436,8 @@ button:not([class*="model"]) svg:hover,
   content: "";
   position: absolute;
   inset: 0;
-  background: url('https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1920&q=80') center/cover no-repeat fixed;
-  opacity: 0.15;
+  background: transparent;
+  opacity: 0;
   z-index: 0;
   pointer-events: none;
 }
@@ -1172,7 +1171,7 @@ html {
 /* ===== 背景图设置 ===== */
 .layout-content.bg-1 {
   position: relative;
-  background: url('https://wallpapercg.com/media/ts_2x/24836.webp') center/cover no-repeat fixed;
+  background-color: var(--hk-bg-1);
 }
 
 /* 背景图遮罩 - 增强可读性 */
@@ -1180,12 +1179,7 @@ html {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    135deg,
-    rgba(255, 240, 243, 0.85) 0%,
-    rgba(255, 228, 232, 0.9) 50%,
-    rgba(255, 240, 243, 0.85) 100%
-  );
+  background: transparent;
   z-index: 0;
   pointer-events: none;
 }
@@ -1206,8 +1200,8 @@ html {
   content: "";
   position: absolute;
   inset: 0;
-  background: url('https://wallpapercg.com/media/ts_2x/24836.webp') center/cover no-repeat fixed;
-  opacity: 0.12;
+  background: transparent;
+  opacity: 0;
   z-index: 0;
   pointer-events: none;
 }
@@ -1538,12 +1532,48 @@ a:hover {
   --hk-gradient-primary: linear-gradient(135deg, #ff85a2 0%, #ffb7c5 100%);
   --hk-gradient-light: linear-gradient(135deg, #4a2f3a 0%, #5d3b4a 100%);
   --hk-gradient-button: linear-gradient(135deg, #ff85a2 0%, #ffb7c5 100%);
+
+  /* ===== 重新映射系统变量 ===== */
+  --color-primary: var(--hk-primary);
+  --primary: var(--hk-primary);
+  --brand: var(--hk-primary);
+  --color-bg-1: var(--hk-bg-1);
+  --bg-1: var(--hk-bg-1);
+  --color-bg-2: var(--hk-bg-2);
+  --bg-2: var(--hk-bg-2);
+  --bg-hover: var(--hk-bg-hover);
+  --bg-active: var(--hk-bg-active);
+  --color-text-1: var(--hk-text-primary);
+  --text-primary: var(--hk-text-primary);
+  --color-text-2: var(--hk-text-secondary);
+  --text-secondary: var(--hk-text-secondary);
+  --color-border: var(--hk-border-base);
+  --border-base: var(--hk-border-base);
 }
 
 /* ===== 深色模式全局样式 ===== */
 [data-theme='dark'] body,
 [data-theme='dark'] html {
   background-color: var(--hk-bg-1);
+  color: var(--hk-text-primary);
+}
+
+/* ===== 深色模式标题栏 ===== */
+[data-theme='dark'] .app-titlebar {
+  background-color: var(--hk-bg-2);
+  border-color: var(--hk-border-base);
+}
+
+[data-theme='dark'] .app-titlebar__button {
+  color: var(--hk-text-primary);
+}
+
+[data-theme='dark'] .app-titlebar__button:hover {
+  background-color: var(--hk-bg-hover);
+  color: var(--hk-primary);
+}
+
+[data-theme='dark'] .app-titlebar__brand {
   color: var(--hk-text-primary);
 }
 
@@ -1810,8 +1840,14 @@ a:hover {
     name: 'Retro Windows',
     isPreset: true,
     cover: retroWindowsCover,
-    css: `             
-* 核心颜色变量 - 复古 Windows 配色 */
+    css: `/* ========================================
+   Windows Classic Theme - 优化版
+   复古 Windows 配色，支持明暗双模式
+   确保可读性，适度添加 Windows 经典元素
+   ======================================== */
+
+/* ==================== 明色模式 (Light Mode) ==================== */
+/* 核心颜色变量 - 复古 Windows 配色 */
 :root {
   /* 主色调 - Classic Windows Blue */
   --color-primary: #0078d4;
@@ -1846,10 +1882,10 @@ a:hover {
   --bg-1: #f0f0f0;
   --color-bg-2: #ffffff;
   --bg-2: #ffffff;
-  --color-bg-3: #c0c0c0;
-  --bg-3: #c0c0c0;
-  --color-bg-4: #808080;
-  --bg-4: #808080;
+  --color-bg-3: #e0e0e0;
+  --bg-3: #e0e0e0;
+  --color-bg-4: #c0c0c0;
+  --bg-4: #c0c0c0;
   --bg-base: #ffffff;
   --bg-hover: #e0e0e0;
   --bg-active: #c0c0c0;
@@ -1873,10 +1909,15 @@ a:hover {
   --border-light: #c0c0c0;
   
   /* 语义色 - Classic Windows Colors */
-  --success: #00a300;
+  --success: #00a300; /* Windows 绿 */
   --warning: #ff8c00;
   --danger: #d13438;
-  --info: #0078d4;
+  --info: #0078d4; /* Windows 蓝 */
+  
+  /* Windows 经典绿色 - 适度使用 */
+  --windows-green: #00a300;
+  --windows-green-light: #00c300;
+  --windows-green-dark: #008000;
   
   /* 消息背景色 - Message Backgrounds */
   --message-user-bg: #d0e8f5;
@@ -1886,218 +1927,180 @@ a:hover {
   /* 对话框颜色 - Dialog Colors */
   --dialog-fill-0: rgba(255, 255, 255, 0.95);
 }
- 
+
 /* 全局字体 - 经典 Windows 字体 */
 body {
   font-family: "MS Sans Serif", "Tahoma", "Arial", "Microsoft YaHei", sans-serif;
 }
- 
+
 /* 全局背景色 - 经典 Windows 米色 */
 body,
 html {
   background-color: var(--bg-1, #f0f0f0);
 }
- 
+
 /* 全局主要背景区域 */
 .arco-layout,
 [class*="layout"] {
   background-color: var(--bg-1, #f0f0f0);
 }
- 
+
 /* 全局内容区域背景 */
-.arco-layout-content,
-[class*="content"]:not([class*="message"]):not([class*="sendbox"]) {
+.arco-layout-content {
   background-color: var(--bg-1, #f0f0f0);
 }
- 
-/* 侧边栏样式 - 经典 Windows 灰色 */
+
+/* ==================== 侧边栏 Sidebar ==================== */
+/* 侧边栏样式 - 只保留基础样式，其他使用系统默认 */
 .layout-sider {
   background-color: #e0e0e0;
   border-right: 2px solid #808080;
   position: relative;
   z-index: 100;
 }
- 
+
+.layout-sider.collapsed {
+  overflow: hidden;
+}
+
+.layout-sider.collapsed * {
+  overflow: hidden;
+}
+
+.layout-sider.collapsed::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
 .layout-sider-header {
   background: linear-gradient(180deg, #0078d4 0%, #005a9e 100%);
   color: white;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
 }
- 
-/* Icon 颜色调整 - 默认状态改为蓝色，排除系统组件 */
-/* 全局图标默认颜色 - 蓝色系（只设置stroke描边） */
-svg:not(.sendbox-model-btn svg):not([class*="sendbox-model"] svg):not([class*="model"] svg):not([class*="Model"] svg),
-[class*="icon"]:not(.sendbox-model-btn):not([class*="sendbox-model"]):not([class*="model"]):not([class*="Model"]) svg,
-i[class*="icon"]:not(.sendbox-model-btn):not([class*="sendbox-model"]):not([class*="model"]):not([class*="Model"]) {
-  fill: none;
-  stroke: #0078d4;
-  color: #0078d4;
-  transition: stroke 0.3s ease, color 0.3s ease;
-}
- 
-/* 图标hover状态 */
-svg:not(.sendbox-model-btn svg):not([class*="sendbox-model"] svg):not([class*="model"] svg):not([class*="Model"] svg):hover,
-[class*="icon"]:not(.sendbox-model-btn):not([class*="sendbox-model"]):not([class*="model"]):not([class*="Model"]) svg:hover {
-  fill: none;
-  stroke: #1a86d9;
-  color: #1a86d9;
-}
- 
-/* 按钮内的图标 - 默认蓝色（只设置stroke描边） */
+
+/* 按钮内的图标 - 保持原有样式，不强制设置 */
 button:not(.sendbox-model-btn):not([class*="model"]):not([class*="Model"]) svg,
 .arco-btn:not(.sendbox-model-btn):not([class*="model"]):not([class*="Model"]) svg {
-  fill: none;
-  stroke: #0078d4;
-  color: #0078d4;
-  transition: stroke 0.3s ease, color 0.3s ease;
+  /* 保持图标原有样式 */
 }
- 
-button:not(.sendbox-model-btn):not([class*="model"]):not([class*="Model"]) svg:hover,
-.arco-btn:not(.sendbox-model-btn):not([class*="model"]):not([class*="Model"]) svg:hover {
-  fill: none;
-  stroke: #1a86d9;
-  color: #1a86d9;
+
+/* 主要按钮内的图标 - 保持原有样式 */
+.arco-btn-primary:not(.sendbox-model-btn):not([class*="model"]):not([class*="Model"]) svg {
+  /* 保持图标原有样式 */
 }
- 
-/* 侧边栏图标颜色 - 只设置stroke描边 */
-.layout-sider svg,
-.layout-sider-header svg {
-  fill: none;
-  stroke: rgba(255, 255, 255, 0.9);
-  color: rgba(255, 255, 255, 0.9);
-}
- 
-.layout-sider-header svg:hover {
-  fill: none;
-  stroke: white;
-  color: white;
-}
- 
-/* 背景图片设置 - 只针对主内容区 */
+
+/* ==================== 背景图设置 ==================== */
+/* 背景图片设置 - 让背景图穿透显示 */
 .layout-content.bg-1 {
-  background: url('https://wallpapers.com/images/hd/windows-10-default-k4s3pap71thyjavb.jpg') center/cover no-repeat fixed;
-  background-size: cover;
-  background-position: center center;
-  background-color: transparent;
+  background-color: var(--bg-1, #f0f0f0);
   position: relative;
 }
- 
-/* 半透明遮罩层 - 增加遮罩层透明度，让背景图更浅 */
+
+/* 遮罩层透明 - 让背景图穿透 */
 .layout-content.bg-1::before {
   content: "";
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(
-    135deg,
-    rgba(240, 240, 240, 0.85) 0%,
-    rgba(230, 230, 230, 0.9) 50%,
-    rgba(240, 240, 240, 0.85) 100%
-  );
+  inset: 0;
+  background: transparent;
   z-index: 0;
   pointer-events: none;
 }
- 
-/* 聊天页面背景图 - 15% 透明度，浅浅的 */
+
+/* 聊天页面背景图 - Windows 经典配色 */
 .chat-layout-header,
 [class*="chat-layout"] .arco-layout-content,
 [class*="conversation"] .arco-layout-content {
   position: relative;
 }
- 
+
 [class*="chat-layout"] .arco-layout-content::before,
 [class*="conversation"] .arco-layout-content::before {
   content: "";
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: url('https://wallpapers.com/images/hd/windows-10-default-k4s3pap71thyjavb.jpg') center/cover no-repeat fixed;
-  opacity: 0.15;
+  inset: 0;
+  background: transparent;
+  opacity: 0;
   z-index: 0;
   pointer-events: none;
 }
- 
+
 /* 确保聊天内容在背景图之上 */
 [class*="chat-layout"] .arco-layout-content > *,
 [class*="conversation"] .arco-layout-content > * {
   position: relative;
   z-index: 1;
 }
- 
+
 /* 确保内容在遮罩之上 */
 .layout-content.bg-1 > * {
   position: relative;
   z-index: 1;
 }
- 
+
 /* 首页对话框和输入区域 - 确保完全可见 */
 .guidLayout,
 [class*="guid"] {
   position: relative;
   z-index: 10;
 }
- 
+
 /* 输入框文本域 - 确保文字清晰可见 */
 .guidInputCard textarea,
 [class*="guidInputCard"] textarea {
   background-color: rgba(255, 255, 255, 0.98);
   color: var(--color-text-1);
 }
- 
+
+/* ==================== 输入框 Input ==================== */
 /* 发送框样式 - 只针对可见的发送框容器，排除模型选择器等系统组件 */
 .sendbox-container:not([class*="model"]):not([class*="Model"]),
 [class*="sendbox"]:not([class*="input"]):not([class*="textarea"]):not([class*="model"]):not([class*="Model"]):not([class*="tools"]) {
   border-radius: 4px; /* 经典 Windows 方角 */
   border: 2px outset #c0c0c0; /* 经典 3D 边框效果 */
-  background-color: rgba(255, 255, 255, 0.9);
+  background-color: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(4px);
   box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.8), inset -1px -1px 0 rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.1);
   transition: all 0.2s ease;
 }
- 
+
 /* 首页输入框对话框 - 白色90%不透明度，确保用户看得清 */
 .guidInputCard {
-  background-color: rgba(255, 255, 255, 0.9);
+  background-color: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(4px);
   border: 2px outset #c0c0c0; /* 经典 3D 边框 */
   border-radius: 4px;
   box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.8), inset -1px -1px 0 rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.1);
 }
- 
+
 /* 发送框内的文本域 - 保持原有样式，只调整边框 */
 .sendbox-container textarea,
 [class*="sendbox"] textarea {
   border: none;
   background: transparent;
+  color: var(--color-text-1); /* 确保文字清晰 */
 }
- 
+
 .sendbox-container:focus-within,
 [class*="sendbox"]:focus-within {
   border: 2px inset #808080; /* 聚焦时变为内陷效果 */
   box-shadow: inset 2px 2px 4px rgba(0, 0, 0, 0.2);
 }
- 
-/* 发送框内图标颜色调整 - 排除模型选择按钮和系统组件（只设置stroke描边） */
+
+/* 发送框内图标颜色调整 - 排除模型选择按钮和系统组件 */
 .sendbox-container svg:not(.sendbox-model-btn svg):not([class*="model"] svg),
 [class*="sendbox"]:not([class*="model"]):not([class*="Model"]) svg:not(.sendbox-model-btn svg) {
-  fill: none;
-  stroke: #0078d4;
   color: #0078d4;
-  transition: stroke 0.3s ease, color 0.3s ease;
+  transition: color 0.3s ease;
 }
- 
+
 .sendbox-container svg:not(.sendbox-model-btn svg):not([class*="model"] svg):hover,
 [class*="sendbox"]:not([class*="model"]):not([class*="Model"]) svg:not(.sendbox-model-btn svg):hover {
-  fill: none;
-  stroke: #1a86d9;
   color: #1a86d9;
   transform: scale(1.1);
 }
- 
+
+/* ==================== 消息气泡 Message ==================== */
 /* 用户消息气泡 - 经典 Windows 蓝色 */
 .message-item.user .message-bubble,
 [class*="message"][class*="user"] .message-content {
@@ -2108,19 +2111,20 @@ button:not(.sendbox-model-btn):not([class*="model"]):not([class*="Model"]) svg:h
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 2px 4px rgba(0, 0, 0, 0.2);
   padding: 12px 16px;
 }
- 
+
 /* AI 消息气泡 - 经典 Windows 白色 */
 .message-item.ai .message-bubble,
 [class*="message"][class*="ai"] .message-content,
 [class*="message"][class*="assistant"] .message-content {
-  background-color: rgba(255, 255, 255, 0.95);
+  background-color: rgba(255, 255, 255, 0.98);
   backdrop-filter: blur(4px);
   border: 1px solid #c0c0c0;
   border-radius: 4px; /* 方角 */
   box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.8), inset -1px -1px 0 rgba(0, 0, 0, 0.1), 0 2px 4px rgba(0, 0, 0, 0.1);
   padding: 12px 16px;
+  color: var(--color-text-1); /* 确保文字清晰 */
 }
- 
+
 /* 工具调用消息 - 保持原有样式，只微调背景色以融入主题 */
 .message-item.ai .arco-alert,
 [class*="message"][class*="ai"] .arco-alert,
@@ -2128,14 +2132,15 @@ button:not(.sendbox-model-btn):not([class*="model"]):not([class*="Model"]) svg:h
 .message-item.ai [class*="alert"],
 [class*="message"][class*="ai"] [class*="alert"],
 [class*="message"][class*="assistant"] [class*="alert"] {
-  background-color: rgba(255, 255, 255, 0.8);
+  background-color: rgba(255, 255, 255, 0.9);
   border: 1px solid #c0c0c0;
   border-radius: 4px;
   box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.8), inset -1px -1px 0 rgba(0, 0, 0, 0.1);
   backdrop-filter: none;
   margin: 4px 0;
+  color: var(--color-text-1); /* 确保文字清晰 */
 }
- 
+
 /* 工具调用卡片 - 恢复原有样式，微调 */
 .message-item.ai .arco-card,
 [class*="message"][class*="ai"] .arco-card,
@@ -2143,14 +2148,15 @@ button:not(.sendbox-model-btn):not([class*="model"]):not([class*="Model"]) svg:h
 .message-item.ai [class*="card"],
 [class*="message"][class*="ai"] [class*="card"],
 [class*="message"][class*="assistant"] [class*="card"] {
-  background-color: rgba(255, 255, 255, 0.8);
+  background-color: rgba(255, 255, 255, 0.9);
   border: 1px solid #c0c0c0;
   border-radius: 4px;
   box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.8), inset -1px -1px 0 rgba(0, 0, 0, 0.1);
   backdrop-filter: none;
   margin: 4px 0;
+  color: var(--color-text-1); /* 确保文字清晰 */
 }
- 
+
 /* 工具调用相关的内容区域 - 恢复简洁样式 */
 .message-item.ai [class*="tool"]:not([class*="message"]):not([class*="bubble"]),
 [class*="message"][class*="ai"] [class*="tool"]:not([class*="message"]):not([class*="bubble"]),
@@ -2170,18 +2176,20 @@ button:not(.sendbox-model-btn):not([class*="model"]):not([class*="Model"]) svg:h
   padding: 0;
   margin: 0;
 }
- 
+
 /* 工具调用状态标签 - 恢复简洁样式 */
 .message-item.ai [class*="status"]:not([class*="message"]):not([class*="bubble"]),
 [class*="message"][class*="ai"] [class*="status"]:not([class*="message"]):not([class*="bubble"]),
 .message-item.ai [class*="Status"]:not([class*="message"]):not([class*="bubble"]),
 [class*="message"][class*="ai"] [class*="Status"]:not([class*="message"]):not([class*="bubble"]) {
-  background-color: rgba(255, 255, 255, 0.9);
+  background-color: rgba(255, 255, 255, 0.95);
   border: 1px solid #c0c0c0;
   border-radius: 4px;
   padding: 2px 6px;
+  color: var(--color-text-1); /* 确保文字清晰 */
 }
- 
+
+/* ==================== 按钮 Button ==================== */
 /* 主要按钮样式 - 经典 Windows 3D 按钮效果 */
 .arco-btn-primary:not([class*="icon"]):not([class*="circle"]):not([class*="model"]):not([class*="Model"]),
 button[type="primary"]:not([class*="icon"]):not([class*="circle"]):not([class*="model"]):not([class*="Model"]) {
@@ -2193,19 +2201,104 @@ button[type="primary"]:not([class*="icon"]):not([class*="circle"]):not([class*="
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 2px 4px rgba(0, 0, 0, 0.2);
   transition: all 0.2s ease;
 }
- 
+
 .arco-btn-primary:hover:not([class*="icon"]):not([class*="circle"]):not([class*="model"]):not([class*="Model"]),
 button[type="primary"]:hover:not([class*="icon"]):not([class*="circle"]):not([class*="model"]):not([class*="Model"]) {
   background: linear-gradient(180deg, #1a86d9 0%, #0078d4 100%);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 3px 6px rgba(0, 0, 0, 0.3);
 }
- 
+
 .arco-btn-primary:active:not([class*="icon"]):not([class*="circle"]):not([class*="model"]):not([class*="Model"]),
 button[type="primary"]:active:not([class*="icon"]):not([class*="circle"]):not([class*="model"]):not([class*="Model"]) {
   border: 2px inset #005a9e;
   box-shadow: inset 2px 2px 4px rgba(0, 0, 0, 0.3);
 }
- 
+
+/* 成功状态按钮 - Windows 绿（适度使用） */
+.arco-btn-success,
+button[type="success"] {
+  background: linear-gradient(180deg, #00a300 0%, #008000 100%);
+  border: 2px outset #00a300;
+  border-radius: 4px;
+  color: white;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+}
+
+.arco-btn-success:hover,
+button[type="success"]:hover {
+  background: linear-gradient(180deg, #00c300 0%, #00a300 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 3px 6px rgba(0, 0, 0, 0.3);
+}
+
+.arco-btn-success:active,
+button[type="success"]:active {
+  border: 2px inset #008000;
+  box-shadow: inset 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Windows 绿点缀 - 用于成功提示、确认按钮等 */
+.arco-alert[class*="success"],
+[class*="alert"][class*="success"],
+.arco-message-success,
+[class*="message"][class*="success"] {
+  background-color: rgba(0, 163, 0, 0.1);
+  border: 1px solid #00a300;
+  border-left: 3px solid #00a300;
+}
+
+/* 链接 hover 时可以使用 Windows 绿 */
+a:not([class*="button"]):not([class*="btn"])[class*="success"],
+a:not([class*="button"]):not([class*="btn"])[class*="confirm"] {
+  color: #00a300;
+}
+
+a:not([class*="button"]):not([class*="btn"])[class*="success"]:hover,
+a:not([class*="button"]):not([class*="btn"])[class*="confirm"]:hover {
+  color: #00c300;
+  text-decoration: underline;
+}
+
+/* Windows 绿点缀 - 复选框选中状态 */
+.arco-checkbox-checked .arco-checkbox-icon,
+input[type="checkbox"]:checked {
+  background-color: #00a300;
+  border-color: #00a300;
+}
+
+.arco-checkbox-checked .arco-checkbox-icon::after {
+  border-color: white;
+}
+
+/* Windows 绿点缀 - 单选框选中状态 */
+.arco-radio-checked .arco-radio-button,
+input[type="radio"]:checked {
+  border-color: #00a300;
+}
+
+.arco-radio-checked .arco-radio-button::after {
+  background-color: #00a300;
+}
+
+/* Windows 绿点缀 - 进度条成功状态 */
+.arco-progress-line[class*="success"],
+.arco-progress-line[data-status="success"] {
+  background-color: rgba(0, 163, 0, 0.1);
+}
+
+.arco-progress-line[class*="success"] .arco-progress-line-inner,
+.arco-progress-line[data-status="success"] .arco-progress-line-inner {
+  background-color: #00a300;
+}
+
+/* Windows 绿点缀 - 标签成功状态 */
+.arco-tag[class*="success"],
+.arco-tag[data-color="green"] {
+  background-color: rgba(0, 163, 0, 0.1);
+  border-color: #00a300;
+  color: #00a300;
+}
+
 /* 明确排除模型选择按钮及其所有子元素，保持系统默认样式 */
 .sendbox-model-btn,
 [class*="sendbox-model"],
@@ -2220,7 +2313,7 @@ button[type="primary"]:active:not([class*="icon"]):not([class*="circle"]):not([c
   box-shadow: inherit;
   transform: none;
 }
- 
+
 /* 排除发送框工具区域（包含模型选择器） */
 .sendbox-tools,
 [class*="sendbox-tools"],
@@ -2234,13 +2327,14 @@ button[type="primary"]:active:not([class*="icon"]):not([class*="circle"]):not([c
   box-shadow: inherit;
   transform: none;
 }
- 
+
+/* ==================== 滚动条 Scrollbar ==================== */
 /* 滚动条美化 - 经典 Windows 滚动条样式 */
 ::-webkit-scrollbar {
   width: 16px;
   height: 16px;
 }
- 
+
 ::-webkit-scrollbar-thumb {
   background: linear-gradient(180deg, #c0c0c0 0%, #808080 100%);
   border: 1px solid #808080;
@@ -2248,143 +2342,719 @@ button[type="primary"]:active:not([class*="icon"]):not([class*="circle"]):not([c
   box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.5), inset -1px -1px 0 rgba(0, 0, 0, 0.2);
   transition: background 0.2s ease;
 }
- 
+
 ::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(180deg, #d0d0d0 0%, #909090 100%);
 }
- 
+
 /* 当容器hover时，滚动条也显示 */
 *:hover::-webkit-scrollbar-thumb {
   background: linear-gradient(180deg, #c0c0c0 0%, #808080 100%);
 }
- 
+
 *:hover::-webkit-scrollbar-thumb:hover {
   background: linear-gradient(180deg, #d0d0d0 0%, #909090 100%);
 }
- 
+
 ::-webkit-scrollbar-track {
   background: #f0f0f0;
   border: 1px solid #808080;
   border-radius: 0; /* 方角 */
   box-shadow: inset 1px 1px 0 rgba(0, 0, 0, 0.1);
 }
- 
+
 ::-webkit-scrollbar-button {
   background: #c0c0c0;
   border: 1px solid #808080;
   box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.5), inset -1px -1px 0 rgba(0, 0, 0, 0.2);
 }
- 
+
 ::-webkit-scrollbar-button:hover {
   background: #d0d0d0;
 }
- 
+
+/* ==================== 其他元素 ==================== */
 /* 选中文字 */
 ::selection {
   background-color: #0078d4;
   color: white;
 }
- 
+
 /* 链接样式 */
 a:not([class*="button"]):not([class*="btn"]) {
   color: #0078d4;
   transition: color 0.2s ease;
 }
- 
+
 a:hover:not([class*="button"]):not([class*="btn"]) {
   color: #005a9e;
   text-decoration: underline;
 }
- 
-/* 按钮内图标颜色 - 只针对主要按钮，排除模型选择器等系统组件（只设置stroke描边） */
-.arco-btn-primary:not(.sendbox-model-btn):not([class*="model"]):not([class*="Model"]) svg {
-  fill: none;
-  stroke: white;
-  color: white;
-  transition: stroke 0.2s ease;
-}
- 
-/* 次要按钮图标颜色 - 排除模型选择器（只设置stroke描边） */
+
+/* 次要按钮图标颜色 - 排除模型选择器 */
 .arco-btn-secondary:not(.sendbox-model-btn):not([class*="model"]):not([class*="Model"]) svg,
 button[type="secondary"]:not(.sendbox-model-btn):not([class*="model"]):not([class*="Model"]) svg {
-  fill: none;
-  stroke: #0078d4;
   color: #0078d4;
-  transition: stroke 0.2s ease;
+  transition: color 0.2s ease;
 }
- 
+
 .arco-btn-secondary:not(.sendbox-model-btn):not([class*="model"]):not([class*="Model"]) svg:hover,
 button[type="secondary"]:not(.sendbox-model-btn):not([class*="model"]):not([class*="Model"]) svg:hover {
-  fill: none;
-  stroke: #1a86d9;
   color: #1a86d9;
 }
- 
-/* 消息区域图标颜色 - 只针对消息气泡内的图标（只设置stroke描边） */
+
+/* 消息区域图标颜色 - 只针对消息气泡内的图标 */
 .message-item .message-content svg,
 [class*="message"] [class*="content"] svg {
-  fill: none;
-  stroke: #404040;
   color: #404040;
-  transition: stroke 0.2s ease, color 0.2s ease;
+  transition: color 0.2s ease;
 }
- 
+
 .message-item:hover .message-content svg,
 [class*="message"]:hover [class*="content"] svg {
-  fill: none;
-  stroke: #0078d4;
   color: #0078d4;
 }
- 
+
+/* ==================== Tooltip 和 Popover ==================== */
 /* Tooltip 和 Popover 样式优化 - 经典 Windows 灰色背景，黑色文字 */
 .arco-tooltip-popup,
 .arco-popover-popup {
   pointer-events: none; /* 避免遮挡鼠标事件 */
+  z-index: 10000 !important; /* 确保 tooltip 在最上层 */
 }
- 
+
 /* 内部容器样式 */
 .arco-tooltip-inner,
 .arco-popover-inner,
 .arco-popover-content {
-  background-color: #ffffe1; /* 经典 Windows 米黄色 */
-  color: #000000; /* 黑色文字 */
-  border: 1px solid #808080;
-  border-radius: 0; /* 方角 */
-  box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-  backdrop-filter: none;
+  background-color: #ffffe1 !important; /* 经典 Windows 米黄色 */
+  color: #000000 !important; /* 黑色文字 */
+  border: 1px solid #808080 !important;
+  border-radius: 0 !important; /* 方角 */
+  box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3) !important;
+  backdrop-filter: none !important;
+  padding: 4px 8px !important;
+  font-size: 12px !important;
+  line-height: 1.4 !important;
+  max-width: 200px !important;
+  word-wrap: break-word !important;
 }
- 
+
 /* 强制内部文字颜色为黑色 */
 .arco-tooltip-inner *,
 .arco-popover-inner *,
 .arco-popover-content * {
-  color: #000000;
+  color: #000000 !important;
+  background-color: transparent !important;
 }
- 
+
 /* 箭头样式 */
 .arco-tooltip-arrow,
 .arco-popover-arrow {
-  border-color: #808080;
+  border-color: #808080 !important;
 }
- 
+
+/* 侧边栏 tooltip - 使用系统默认配色 */
+.layout-sider ~ .arco-tooltip-popup,
+.layout-sider .arco-tooltip-popup {
+  z-index: 10001 !important;
+}
+
+/* ==================== 对话框 Modal ==================== */
 /* 对话框背景和透明度 */
 .arco-modal-body {
-  background-color: rgba(240, 240, 240, 0.95);
+  background-color: rgba(240, 240, 240, 0.98);
   backdrop-filter: blur(4px);
   border: 2px outset #c0c0c0;
+  color: var(--color-text-1); /* 确保文字清晰 */
 }
- 
+
 .arco-modal-header {
   background: linear-gradient(180deg, #0078d4 0%, #005a9e 100%);
   color: white;
   border-bottom: 1px solid #005a9e;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3);
 }
- 
+
 .arco-modal-footer {
-  background-color: rgba(240, 240, 240, 0.95);
+  background-color: rgba(240, 240, 240, 0.98);
   border-top: 1px solid #c0c0c0;
-}`,
+  color: var(--color-text-1); /* 确保文字清晰 */
+}
+
+/* ==================== Windows 经典元素（适度添加） ==================== */
+/* 经典输入框 - Windows 95/98 风格 */
+.arco-input,
+input[type="text"],
+input[type="password"],
+input[type="email"],
+input[type="number"],
+input[type="search"] {
+  background-color: var(--bg-2);
+  border: 2px inset var(--border-base);
+  box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.2);
+  border-radius: 0;
+  padding: 4px 6px;
+  font-size: 13px;
+  color: var(--color-text-1); /* 确保文字清晰 */
+  transition: all 0.1s ease;
+}
+
+.arco-input:focus,
+input:focus {
+  border: 2px inset var(--color-primary);
+  box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.3), 0 0 0 1px var(--color-primary);
+  outline: none;
+}
+
+/* 经典复选框和单选框 - Windows 95/98 风格 */
+.arco-checkbox,
+.arco-radio,
+input[type="checkbox"],
+input[type="radio"] {
+  width: 13px;
+  height: 13px;
+  border: 2px inset var(--border-base);
+  background-color: var(--bg-2);
+  box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.2);
+  border-radius: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  transition: all 0.1s ease;
+}
+
+.arco-checkbox:checked,
+.arco-radio:checked,
+input[type="checkbox"]:checked,
+input[type="radio"]:checked {
+  background-color: var(--bg-active);
+  border: 2px inset var(--border-base);
+  box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.arco-checkbox:checked::after,
+input[type="checkbox"]:checked::after {
+  content: "✓";
+  display: block;
+  color: var(--text-primary);
+  font-size: 10px;
+  font-weight: bold;
+  text-align: center;
+  line-height: 9px;
+}
+
+.arco-radio {
+  border-radius: 50%;
+}
+
+.arco-radio:checked::after,
+input[type="radio"]:checked::after {
+  content: "";
+  display: block;
+  width: 5px;
+  height: 5px;
+  background-color: var(--text-primary);
+  border-radius: 50%;
+  margin: 2px auto;
+}
+
+/* ==================== 表单标签样式 - 保持简洁 ==================== */
+/* 表单标签 - 移除不必要的背景色和边框，只作为标题显示 */
+.arco-form-label-item,
+[class*="form-label"],
+[class*="arco-form-label"],
+.arco-col[class*="form-label"],
+.arco-form-item-label,
+[class*="arco-form-item-label"] {
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  color: var(--color-text-1) !important;
+}
+
+/* 表单标签文字 - 确保清晰可见 */
+.arco-form-label-item *,
+[class*="form-label"] *,
+[class*="arco-form-label"] *,
+.arco-col[class*="form-label"] *,
+.arco-form-item-label *,
+[class*="arco-form-item-label"] * {
+  color: var(--color-text-1) !important;
+  background-color: transparent !important;
+}
+
+/* 深色模式表单标签 */
+[data-theme='dark'] .arco-form-label-item,
+[data-theme='dark'] [class*="form-label"],
+[data-theme='dark'] [class*="arco-form-label"],
+[data-theme='dark'] .arco-col[class*="form-label"],
+[data-theme='dark'] .arco-form-item-label,
+[data-theme='dark'] [class*="arco-form-item-label"] {
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: var(--color-text-1) !important;
+}
+
+[data-theme='dark'] .arco-form-label-item *,
+[data-theme='dark'] [class*="form-label"] *,
+[data-theme='dark'] [class*="arco-form-label"] *,
+[data-theme='dark'] .arco-col[class*="form-label"] *,
+[data-theme='dark'] .arco-form-item-label *,
+[data-theme='dark'] [class*="arco-form-item-label"] * {
+  color: var(--color-text-1) !important;
+  background-color: transparent !important;
+}
+
+/* ==================== 深色模式 (Dark Mode) ==================== */
+[data-theme='dark'] {
+  /* 主色调 - 深色模式调亮以提高可见度 */
+  --color-primary: #4da6f0;
+  --primary: #4da6f0;
+  --color-primary-light-1: #66b1e1;
+  --color-primary-light-2: #80bce8;
+  --color-primary-light-3: #99cbeb;
+  --color-primary-dark-1: #3399e6;
+  --primary-rgb: 77, 166, 240;
+
+  /* 品牌色 - 深色模式 */
+  --brand: #4da6f0;
+  --brand-light: #1a2a3a;
+  --brand-hover: #66b1e1;
+  --color-brand-fill: #4da6f0;
+  --color-brand-bg: #1a2a3a;
+
+  /* AOU 品牌色板 - 深色模式反转 */
+  --aou-1: #001b2c;
+  --aou-2: #003052;
+  --aou-3: #004578;
+  --aou-4: #005a9e;
+  --aou-5: #0078d4;
+  --aou-6: #4da6f0;
+  --aou-7: #66b1e1;
+  --aou-8: #80bce8;
+  --aou-9: #99cbeb;
+  --aou-10: #b3d8f0;
+
+  /* 背景色 - 深色 Windows 风格 */
+  --color-bg-1: #1a1a1a;
+  --bg-1: #1a1a1a;
+  --color-bg-2: #262626;
+  --bg-2: #262626;
+  --color-bg-3: #333333;
+  --bg-3: #333333;
+  --color-bg-4: #404040;
+  --bg-4: #404040;
+  --bg-base: #0d0d0d;
+  --bg-hover: #2d2d2d;
+  --bg-active: #404040;
+  --fill: #1a1a1a;
+  --color-fill: #1a1a1a;
+
+  /* 文字色 - 高对比度 */
+  --color-text-1: #e0e0e0;
+  --text-primary: #e0e0e0;
+  --color-text-2: #b0b0b0;
+  --text-secondary: #b0b0b0;
+  --color-text-3: #808080;
+  --text-disabled: #808080;
+  --text-0: #ffffff;
+
+  /* 边框色 */
+  --color-border: #5a5a5a;
+  --color-border-1: #5a5a5a;
+  --color-border-2: #404040;
+  --border-base: #5a5a5a;
+  --border-light: #404040;
+
+  /* 语义色 - 深色模式调整 */
+  --success: #4caf50; /* Windows 绿（深色模式调亮） */
+  --warning: #ff9800;
+  --danger: #f44336;
+  --info: #4da6f0;
+  
+  /* Windows 经典绿色 - 深色模式 */
+  --windows-green: #4caf50;
+  --windows-green-light: #66bb6a;
+  --windows-green-dark: #388e3c;
+
+  /* 消息和组件色 */
+  --message-user-bg: #1a2a3a;
+  --message-tips-bg: #1a1a1a;
+  --workspace-btn-bg: #2d2d2d;
+  
+  /* 对话框颜色 */
+  --dialog-fill-0: rgba(26, 26, 26, 0.95);
+}
+
+/* ===== 深色模式全局样式 ===== */
+[data-theme='dark'] body,
+[data-theme='dark'] html {
+  background-color: var(--bg-1);
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .arco-layout,
+[data-theme='dark'] [class*="layout"] {
+  background-color: var(--bg-1);
+}
+
+[data-theme='dark'] .arco-layout-content {
+  background-color: var(--bg-1);
+}
+
+/* ===== 深色模式侧边栏 ===== */
+[data-theme='dark'] .layout-sider {
+  background-color: var(--bg-3);
+  border-right: 2px solid var(--border-base);
+}
+
+[data-theme='dark'] .layout-sider.collapsed {
+  overflow: hidden !important;
+}
+
+[data-theme='dark'] .layout-sider.collapsed * {
+  overflow: hidden !important;
+}
+
+[data-theme='dark'] .layout-sider.collapsed::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+[data-theme='dark'] .layout-sider-header {
+  background: linear-gradient(180deg, #005a9e 0%, #004578 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+/* ===== 深色模式背景图 ===== */
+/* 参考 Hello Kitty 模式：只在 ::before 上设置半透明遮罩 */
+[data-theme='dark'] .layout-content.bg-1::before {
+  background: linear-gradient(
+    135deg,
+    rgba(26, 42, 58, 0.7) 0%,
+    rgba(30, 46, 62, 0.75) 50%,
+    rgba(26, 42, 58, 0.7) 100%
+  );
+}
+
+[data-theme='dark'] [class*="chat-layout"] .arco-layout-content::before,
+[data-theme='dark'] [class*="conversation"] .arco-layout-content::before {
+  opacity: 0.2;
+  filter: brightness(0.9) saturate(1.1);
+}
+
+/* ===== 深色模式输入框 ===== */
+[data-theme='dark'] .guidInputCard textarea,
+[data-theme='dark'] [class*="guidInputCard"] textarea {
+  background-color: rgba(38, 38, 38, 0.98);
+  color: var(--color-text-1);
+}
+
+[data-theme='dark'] .sendbox-container:not([class*="model"]):not([class*="Model"]),
+[data-theme='dark'] [class*="sendbox"]:not([class*="input"]):not([class*="textarea"]):not([class*="model"]):not([class*="Model"]):not([class*="tools"]) {
+  background-color: rgba(38, 38, 38, 0.95);
+  border: 2px outset var(--border-base);
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.1), inset -1px -1px 0 rgba(0, 0, 0, 0.3), 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme='dark'] .sendbox-container textarea,
+[data-theme='dark'] [class*="sendbox"] textarea {
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .guidInputCard {
+  background-color: rgba(38, 38, 38, 0.95);
+  border: 2px outset var(--border-base);
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.1), inset -1px -1px 0 rgba(0, 0, 0, 0.3), 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* ===== 深色模式消息气泡 ===== */
+[data-theme='dark'] .message-item.user .message-bubble,
+[data-theme='dark'] [class*="message"][class*="user"] .message-content {
+  background: linear-gradient(180deg, #005a9e 0%, #004578 100%);
+  color: var(--text-white);
+  border: 1px solid #004578;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme='dark'] .message-item.ai .message-bubble,
+[data-theme='dark'] .message-item.assistant .message-bubble,
+[data-theme='dark'] [class*="message"][class*="ai"] .message-content,
+[data-theme='dark'] [class*="message"][class*="assistant"] .message-content {
+  background: rgba(38, 38, 38, 0.98);
+  border: 1px solid var(--border-base);
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.1), inset -1px -1px 0 rgba(0, 0, 0, 0.3), 0 2px 4px rgba(0, 0, 0, 0.3);
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .message-item.ai .arco-alert,
+[data-theme='dark'] [class*="message"][class*="ai"] .arco-alert,
+[data-theme='dark'] .message-item.ai [class*="alert"],
+[data-theme='dark'] [class*="message"][class*="ai"] [class*="alert"] {
+  background-color: rgba(38, 38, 38, 0.9);
+  border-color: var(--border-base);
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .message-item.ai .arco-card,
+[data-theme='dark'] [class*="message"][class*="ai"] .arco-card,
+[data-theme='dark'] .message-item.ai [class*="card"],
+[data-theme='dark'] [class*="message"][class*="ai"] [class*="card"] {
+  background-color: rgba(38, 38, 38, 0.9);
+  border-color: var(--border-base);
+  color: var(--text-primary);
+}
+
+/* ===== 深色模式按钮 ===== */
+[data-theme='dark'] .arco-btn-primary:not([class*="icon"]):not([class*="circle"]):not([class*="model"]):not([class*="Model"]),
+[data-theme='dark'] button[type="primary"]:not([class*="icon"]):not([class*="circle"]):not([class*="model"]):not([class*="Model"]) {
+  background: linear-gradient(180deg, #005a9e 0%, #004578 100%);
+  border: 2px outset #005a9e;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme='dark'] .arco-btn-primary:hover:not([class*="icon"]):not([class*="circle"]):not([class*="model"]):not([class*="Model"]),
+[data-theme='dark'] button[type="primary"]:hover:not([class*="icon"]):not([class*="circle"]):not([class*="model"]):not([class*="Model"]) {
+  background: linear-gradient(180deg, #0078d4 0%, #005a9e 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 3px 6px rgba(0, 0, 0, 0.5);
+}
+
+[data-theme='dark'] .arco-btn-success,
+[data-theme='dark'] button[type="success"] {
+  background: linear-gradient(180deg, #388e3c 0%, #2e7d32 100%);
+  border: 2px outset #388e3c;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme='dark'] .arco-btn-success:hover,
+[data-theme='dark'] button[type="success"]:hover {
+  background: linear-gradient(180deg, #4caf50 0%, #388e3c 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.3), 0 3px 6px rgba(0, 0, 0, 0.5);
+}
+
+/* 深色模式 Windows 绿点缀 */
+[data-theme='dark'] .arco-alert[class*="success"],
+[data-theme='dark'] [class*="alert"][class*="success"],
+[data-theme='dark'] .arco-message-success,
+[data-theme='dark'] [class*="message"][class*="success"] {
+  background-color: rgba(76, 175, 80, 0.15);
+  border: 1px solid #4caf50;
+  border-left: 3px solid #4caf50;
+}
+
+[data-theme='dark'] a:not([class*="button"]):not([class*="btn"])[class*="success"],
+[data-theme='dark'] a:not([class*="button"]):not([class*="btn"])[class*="confirm"] {
+  color: #4caf50;
+}
+
+[data-theme='dark'] a:not([class*="button"]):not([class*="btn"])[class*="success"]:hover,
+[data-theme='dark'] a:not([class*="button"]):not([class*="btn"])[class*="confirm"]:hover {
+  color: #66bb6a;
+  text-decoration: underline;
+}
+
+/* 深色模式 Windows 绿点缀 - 复选框选中状态 */
+[data-theme='dark'] .arco-checkbox-checked .arco-checkbox-icon,
+[data-theme='dark'] input[type="checkbox"]:checked {
+  background-color: #4caf50;
+  border-color: #4caf50;
+}
+
+/* 深色模式 Windows 绿点缀 - 单选框选中状态 */
+[data-theme='dark'] .arco-radio-checked .arco-radio-button,
+[data-theme='dark'] input[type="radio"]:checked {
+  border-color: #4caf50;
+}
+
+[data-theme='dark'] .arco-radio-checked .arco-radio-button::after {
+  background-color: #4caf50;
+}
+
+/* 深色模式 Windows 绿点缀 - 进度条成功状态 */
+[data-theme='dark'] .arco-progress-line[class*="success"],
+[data-theme='dark'] .arco-progress-line[data-status="success"] {
+  background-color: rgba(76, 175, 80, 0.15);
+}
+
+[data-theme='dark'] .arco-progress-line[class*="success"] .arco-progress-line-inner,
+[data-theme='dark'] .arco-progress-line[data-status="success"] .arco-progress-line-inner {
+  background-color: #4caf50;
+}
+
+/* 深色模式 Windows 绿点缀 - 标签成功状态 */
+[data-theme='dark'] .arco-tag[class*="success"],
+[data-theme='dark'] .arco-tag[data-color="green"] {
+  background-color: rgba(76, 175, 80, 0.15);
+  border-color: #4caf50;
+  color: #4caf50;
+}
+
+/* ===== 深色模式滚动条 ===== */
+[data-theme='dark'] ::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #5a5a5a 0%, #404040 100%);
+  border: 1px solid #5a5a5a;
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.2), inset -1px -1px 0 rgba(0, 0, 0, 0.4);
+}
+
+[data-theme='dark'] ::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #6a6a6a 0%, #4d4d4d 100%);
+}
+
+[data-theme='dark'] ::-webkit-scrollbar-track {
+  background: var(--bg-1);
+  border: 1px solid var(--border-base);
+  box-shadow: inset 1px 1px 0 rgba(0, 0, 0, 0.3);
+}
+
+[data-theme='dark'] ::-webkit-scrollbar-button {
+  background: var(--bg-3);
+  border: 1px solid var(--border-base);
+  box-shadow: inset 1px 1px 0 rgba(255, 255, 255, 0.1), inset -1px -1px 0 rgba(0, 0, 0, 0.4);
+}
+
+/* ===== 深色模式其他元素 ===== */
+[data-theme='dark'] ::selection {
+  background-color: var(--color-primary);
+  color: var(--text-white);
+}
+
+[data-theme='dark'] a:not([class*="button"]):not([class*="btn"]) {
+  color: var(--color-primary);
+}
+
+[data-theme='dark'] a:hover:not([class*="button"]):not([class*="btn"]) {
+  color: var(--color-primary-light-1);
+}
+
+[data-theme='dark'] .arco-tooltip-popup,
+[data-theme='dark'] .arco-popover-popup {
+  z-index: 10000 !important; /* 确保 tooltip 在最上层 */
+}
+
+[data-theme='dark'] .arco-tooltip-inner,
+[data-theme='dark'] .arco-popover-inner,
+[data-theme='dark'] .arco-popover-content {
+  background: rgba(45, 45, 45, 0.98) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-base) !important;
+  box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5) !important;
+  padding: 4px 8px !important;
+  font-size: 12px !important;
+  line-height: 1.4 !important;
+  max-width: 200px !important;
+  word-wrap: break-word !important;
+}
+
+[data-theme='dark'] .arco-tooltip-inner *,
+[data-theme='dark'] .arco-popover-inner *,
+[data-theme='dark'] .arco-popover-content * {
+  color: var(--text-primary) !important;
+  background-color: transparent !important;
+}
+
+/* 深色模式侧边栏 tooltip - 使用系统默认配色 */
+[data-theme='dark'] .layout-sider ~ .arco-tooltip-popup,
+[data-theme='dark'] .layout-sider .arco-tooltip-popup {
+  z-index: 10001 !important;
+}
+
+[data-theme='dark'] .arco-modal-body {
+  background: var(--bg-2);
+  backdrop-filter: blur(8px);
+  border: 2px outset var(--border-base);
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .arco-modal-header {
+  background: linear-gradient(180deg, #005a9e 0%, #004578 100%);
+  color: var(--text-white);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.3);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+[data-theme='dark'] .arco-modal-footer {
+  background: var(--bg-2);
+  border-top: 1px solid var(--border-base);
+  color: var(--text-primary);
+}
+
+/* ===== 深色模式输入框 ===== */
+[data-theme='dark'] .arco-input,
+[data-theme='dark'] input[type="text"],
+[data-theme='dark'] input[type="password"],
+[data-theme='dark'] input[type="email"],
+[data-theme='dark'] input[type="number"],
+[data-theme='dark'] input[type="search"] {
+  background-color: var(--bg-2);
+  border: 2px inset var(--border-base);
+  box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.4);
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .arco-input:focus,
+[data-theme='dark'] input:focus {
+  border: 2px inset var(--color-primary);
+  box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.5), 0 0 0 1px var(--color-primary);
+}
+
+/* ===== 深色模式复选框和单选框 ===== */
+[data-theme='dark'] .arco-checkbox,
+[data-theme='dark'] .arco-radio,
+[data-theme='dark'] input[type="checkbox"],
+[data-theme='dark'] input[type="radio"] {
+  background-color: var(--bg-2);
+  border: 2px inset var(--border-base);
+  box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+[data-theme='dark'] .arco-checkbox:checked,
+[data-theme='dark'] .arco-radio:checked,
+[data-theme='dark'] input[type="checkbox"]:checked,
+[data-theme='dark'] input[type="radio"]:checked {
+  background-color: var(--bg-active);
+  border: 2px inset var(--border-base);
+  box-shadow: inset 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* ==================== 响应式调整 ==================== */
+@media (max-width: 768px) {
+  .guidInputCard,
+  .sendbox-container {
+    border-radius: 4px;
+  }
+
+  .message-item.user .message-bubble,
+  .message-item.ai .message-bubble,
+  .message-item.assistant .message-bubble {
+    border-radius: 4px;
+    padding: 10px 14px;
+  }
+
+  .arco-btn-primary,
+  .arco-btn-secondary {
+    border-radius: 4px;
+    padding: 8px 16px;
+  }
+}
+
+/* ==================== 打印样式 ==================== */
+@media print {
+  .layout-content.bg-1::before,
+  [class*="chat-layout"] .arco-layout-content::before {
+    display: none;
+  }
+
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+}
+`,
     createdAt: Date.now(),
     updatedAt: Date.now(),
   },
