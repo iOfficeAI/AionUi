@@ -6,6 +6,7 @@ import Conversation from './pages/conversation';
 import Guid from './pages/guid';
 import About from './pages/settings/About';
 import AgentSettings from './pages/settings/AgentSettings';
+import DisplaySettings from './pages/settings/DisplaySettings';
 import GeminiSettings from './pages/settings/GeminiSettings';
 import ModeSettings from './pages/settings/ModeSettings';
 import SystemSettings from './pages/settings/SystemSettings';
@@ -41,6 +42,7 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
           <Route path='/settings/gemini' element={<GeminiSettings />} />
           <Route path='/settings/model' element={<ModeSettings />} />
           <Route path='/settings/agent' element={<AgentSettings />} />
+          <Route path='/settings/display' element={<DisplaySettings />} />
           <Route path='/settings/system' element={<SystemSettings />} />
           <Route path='/settings/about' element={<About />} />
           <Route path='/settings/tools' element={<ToolsSettings />} />

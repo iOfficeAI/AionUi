@@ -189,33 +189,14 @@ body,
   }
 }
 
-/* Layout sider transitions - keep bilingual comments for clarity / 布局侧栏过渡动画（中英注释） */
+/* Layout sider base styles / 布局侧栏基础样式 */
 .layout-sider {
-  transition:
-    flex-grow 0.28s cubic-bezier(0.4, 0, 0.2, 1),
-    flex-basis 0.28s cubic-bezier(0.4, 0, 0.2, 1),
-    width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
-    min-width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
-    max-width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
-    border-left 0.28s cubic-bezier(0.4, 0, 0.2, 1);
-  will-change: flex-grow, flex-basis, width, min-width;
+  overflow-x: hidden;
 }
 
-.layout-sider-header,
-.layout-sider-content {
-  transition:
-    opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-    transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  will-change: opacity, transform;
-}
-
-.layout-sider--folding {
-  .layout-sider-header,
-  .layout-sider-content {
-    opacity: 0;
-    transform: translateX(-12px);
-    pointer-events: none;
-  }
+.layout-sider.collapsed .arco-layout-sider-children,
+.layout-sider.arco-layout-sider-collapsed .arco-layout-sider-children {
+  overflow-x: hidden;
 }
 
 /* 拖动时禁用过渡动画，确保流畅的拖动体验 / Disable transition during drag for smooth dragging */
@@ -224,9 +205,6 @@ body,
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .layout-sider,
-  .layout-sider-header,
-  .layout-sider-content,
   .preview-panel {
     transition: none !important;
     animation: none !important;
@@ -248,14 +226,6 @@ body,
     opacity: 1;
     transform: translateX(0);
   }
-}
-
-/* Sidebar collapse animation helpers */
-.chat-history,
-.settings-sider {
-  transition:
-    opacity 0.25s ease,
-    transform 0.25s ease;
 }
 
 .chat-history__item,

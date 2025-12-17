@@ -22,6 +22,7 @@ import PDFPreview from '../viewers/PDFViewer';
 import PPTPreview from '../viewers/PPTViewer';
 import TextEditor from '../editors/TextEditor';
 import WordPreview from '../viewers/WordViewer';
+import URLViewer from '../viewers/URLViewer';
 import { PreviewTabs, PreviewToolbar, PreviewContextMenu, PreviewConfirmModals, PreviewHistoryDropdown, type ContextMenuState, type CloseTabConfirmState, type PreviewTab } from '.';
 import { DEFAULT_SPLIT_RATIO, FILE_TYPES_WITH_BUILTIN_OPEN, MAX_SPLIT_WIDTH, MIN_SPLIT_WIDTH } from '../../constants';
 import { usePreviewHistory, usePreviewKeyboardShortcuts, useScrollSync, useTabOverflow, useThemeDetection } from '../../hooks';
@@ -512,6 +513,9 @@ const PreviewPanel: React.FC = () => {
       return <ExcelPreview filePath={metadata?.filePath} content={content} />;
     } else if (contentType === 'image') {
       return <ImagePreview filePath={metadata?.filePath} content={content} fileName={metadata?.fileName || metadata?.title} />;
+    } else if (contentType === 'url') {
+      // URL 预览模式 / URL preview mode
+      return <URLViewer url={content} title={metadata?.title} />;
     }
 
     return null;
@@ -537,43 +541,45 @@ const PreviewPanel: React.FC = () => {
         {/* eslint-disable-next-line max-len */}
         <PreviewTabs tabs={previewTabs} activeTabId={activeTabId} tabFadeState={tabFadeState} tabsContainerRef={tabsContainerRef} onSwitchTab={switchTab} onCloseTab={handleCloseTab} onContextMenu={handleTabContextMenu} onClosePanel={closePreview} />
 
-        {/* 工具栏 / Toolbar */}
-        <PreviewToolbar
-          contentType={contentType}
-          isMarkdown={isMarkdown}
-          isHTML={isHTML}
-          isEditable={isEditable}
-          isEditMode={isEditMode}
-          viewMode={viewMode}
-          isSplitScreenEnabled={isSplitScreenEnabled}
-          fileName={metadata?.fileName || activeTab.title}
-          showOpenInSystemButton={showOpenInSystemButton}
-          historyTarget={historyTarget}
-          snapshotSaving={snapshotSaving}
-          onViewModeChange={(mode) => {
-            setViewMode(mode);
-            setIsSplitScreenEnabled(false); // 切换视图模式时关闭分屏 / Disable split when switching view mode
-          }}
-          onSplitScreenToggle={() => setIsSplitScreenEnabled(!isSplitScreenEnabled)}
-          onEditClick={() => {
-            setIsEditMode(true);
-            // Code/TXT 类型进入编辑模式时自动开启分屏 / Auto enable split screen for Code/TXT when entering edit mode
-            if (contentType === 'code') {
-              setIsSplitScreenEnabled(true);
-            }
-          }}
-          onExitEdit={handleExitEdit}
-          onSaveSnapshot={handleSaveSnapshot}
-          onRefreshHistory={refreshHistory}
-          renderHistoryDropdown={renderHistoryDropdown}
-          onOpenInSystem={handleOpenInSystem}
-          onDownload={handleDownload}
-          onClose={closePreview}
-          inspectMode={inspectMode}
-          onInspectModeToggle={() => setInspectMode(!inspectMode)}
-          leftExtra={toolbarExtras?.left}
-          rightExtra={toolbarExtras?.right}
-        />
+        {/* 工具栏（URL 类型不显示工具栏，因为不需要下载/编辑等功能）/ Toolbar (hidden for URL type as it doesn't need download/edit features) */}
+        {contentType !== 'url' && (
+          <PreviewToolbar
+            contentType={contentType}
+            isMarkdown={isMarkdown}
+            isHTML={isHTML}
+            isEditable={isEditable}
+            isEditMode={isEditMode}
+            viewMode={viewMode}
+            isSplitScreenEnabled={isSplitScreenEnabled}
+            fileName={metadata?.fileName || activeTab.title}
+            showOpenInSystemButton={showOpenInSystemButton}
+            historyTarget={historyTarget}
+            snapshotSaving={snapshotSaving}
+            onViewModeChange={(mode) => {
+              setViewMode(mode);
+              setIsSplitScreenEnabled(false); // 切换视图模式时关闭分屏 / Disable split when switching view mode
+            }}
+            onSplitScreenToggle={() => setIsSplitScreenEnabled(!isSplitScreenEnabled)}
+            onEditClick={() => {
+              setIsEditMode(true);
+              // Code/TXT 类型进入编辑模式时自动开启分屏 / Auto enable split screen for Code/TXT when entering edit mode
+              if (contentType === 'code') {
+                setIsSplitScreenEnabled(true);
+              }
+            }}
+            onExitEdit={handleExitEdit}
+            onSaveSnapshot={handleSaveSnapshot}
+            onRefreshHistory={refreshHistory}
+            renderHistoryDropdown={renderHistoryDropdown}
+            onOpenInSystem={handleOpenInSystem}
+            onDownload={handleDownload}
+            onClose={closePreview}
+            inspectMode={inspectMode}
+            onInspectModeToggle={() => setInspectMode(!inspectMode)}
+            leftExtra={toolbarExtras?.left}
+            rightExtra={toolbarExtras?.right}
+          />
+        )}
 
         {/* 预览内容 / Preview content */}
         {renderContent()}

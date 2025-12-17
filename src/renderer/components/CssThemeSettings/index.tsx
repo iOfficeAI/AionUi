@@ -12,6 +12,30 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import CssThemeModal from './CssThemeModal';
 import { PRESET_THEMES, DEFAULT_THEME_ID } from './presets';
+import { BACKGROUND_BLOCK_START, injectBackgroundCssBlock } from './backgroundUtils';
+
+const ensureBackgroundCss = <T extends { id?: string; cover?: string; css: string }>(theme: T): T => {
+  // 跳过 Default 主题，不注入背景图 CSS / Skip Default theme, do not inject background CSS
+  if (theme.id === DEFAULT_THEME_ID) {
+    return theme;
+  }
+  if (theme.cover && theme.css && !theme.css.includes(BACKGROUND_BLOCK_START)) {
+    return { ...theme, css: injectBackgroundCssBlock(theme.css, theme.cover) };
+  }
+  return theme;
+};
+
+const normalizeUserThemes = (themes: ICssTheme[]): { normalized: ICssTheme[]; updated: boolean } => {
+  let updated = false;
+  const normalized = themes.map((theme) => {
+    const nextTheme = ensureBackgroundCss(theme);
+    if (nextTheme !== theme) {
+      updated = true;
+    }
+    return nextTheme;
+  });
+  return { normalized, updated };
+};
 
 /**
  * CSS 主题设置组件 / CSS Theme Settings Component
@@ -29,12 +53,22 @@ const CssThemeSettings: React.FC = () => {
   useEffect(() => {
     const loadThemes = async () => {
       try {
-        const savedThemes = await ConfigStorage.get('css.themes');
+        const savedThemes = (await ConfigStorage.get('css.themes')) || [];
+        const { normalized, updated } = normalizeUserThemes(savedThemes);
         const activeId = await ConfigStorage.get('css.activeThemeId');
 
+        if (updated) {
+          await ConfigStorage.set(
+            'css.themes',
+            normalized.filter((t) => !t.isPreset)
+          );
+        }
+
+        // 对预设主题也应用背景图 CSS 处理 / Apply background CSS processing to preset themes as well
+        const normalizedPresets = PRESET_THEMES.map((theme) => ensureBackgroundCss(theme));
+
         // 合并预设主题和用户主题 / Merge preset themes with user themes
-        const userThemes = savedThemes || [];
-        const allThemes = [...PRESET_THEMES, ...userThemes.filter((t) => !t.isPreset)];
+        const allThemes = [...normalizedPresets, ...normalized.filter((t) => !t.isPreset)];
 
         setThemes(allThemes);
         // 如果没有保存的主题 ID，默认选择 default-theme / Default to default-theme if no saved theme ID
@@ -104,15 +138,16 @@ const CssThemeSettings: React.FC = () => {
       try {
         const now = Date.now();
         let updatedThemes: ICssTheme[];
+        const normalizedThemeData = ensureBackgroundCss(themeData);
 
         if (editingTheme && !editingTheme.isPreset) {
           // 更新现有用户主题 / Update existing user theme
-          updatedThemes = themes.map((t) => (t.id === editingTheme.id ? { ...t, ...themeData, updatedAt: now } : t));
+          updatedThemes = themes.map((t) => (t.id === editingTheme.id ? { ...t, ...normalizedThemeData, updatedAt: now } : t));
         } else {
           // 添加新主题（包括从预设主题编辑创建副本）/ Add new theme (including copy from preset)
           const newTheme: ICssTheme = {
             id: uuid(),
-            ...themeData,
+            ...normalizedThemeData,
             isPreset: false,
             createdAt: now,
             updatedAt: now,

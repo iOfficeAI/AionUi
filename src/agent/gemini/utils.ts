@@ -64,15 +64,36 @@ export const processGeminiStreamEvents = async (stream: AsyncIterable<ServerGemi
   return StreamProcessingStatus.Completed;
 };
 
+/**
+ * 规范化工具参数名称
+ * 某些模型可能返回不同的参数名称，需要映射到工具期望的标准名称
+ * Normalize tool parameter names - some models may return different param names
+ */
+const normalizeToolParams = (toolName: string, args: Record<string, unknown>): Record<string, unknown> => {
+  const normalized = { ...args };
+
+  // 文件操作工具：将 path 映射到 file_path
+  // File operation tools: map 'path' to 'file_path'
+  const fileTools = ['ReadFileTool', 'WriteFileTool', 'EditTool', 'read_file', 'write_file', 'edit'];
+  if (fileTools.includes(toolName) && 'path' in normalized && !('file_path' in normalized)) {
+    normalized.file_path = normalized.path;
+    delete normalized.path;
+  }
+
+  return normalized;
+};
+
 export const processGeminiFunctionCalls = async (config: Config, functionCalls: ToolCallRequestInfo[], onProgress: (event: { type: 'tool_call_request' | 'tool_call_response' | 'tool_call_error' | 'tool_call_finish'; data: unknown }) => Promise<void>) => {
   const toolResponseParts = [];
 
   for (const fc of functionCalls) {
     const callId = fc.callId ?? `${fc.name}-${Date.now()}`;
+    // 规范化参数名称 / Normalize parameter names
+    const normalizedArgs = normalizeToolParams(fc.name, fc.args ?? {});
     const requestInfo = {
       callId,
       name: fc.name,
-      args: fc.args ?? {},
+      args: normalizedArgs,
       isClientInitiated: false,
       prompt_id: fc.prompt_id,
     };

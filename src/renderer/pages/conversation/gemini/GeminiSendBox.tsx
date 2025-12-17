@@ -24,6 +24,7 @@ import { Plus } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
+import type { GeminiModelSelection } from './useGeminiModelSelection';
 
 const useGeminiSendBoxDraft = getSendBoxDraftHook('gemini', {
   _type: 'gemini',
@@ -162,8 +163,8 @@ const useSendBoxDraft = (conversation_id: string) => {
 
 const GeminiSendBox: React.FC<{
   conversation_id: string;
-  model: TProviderWithModel;
-}> = ({ conversation_id, model }) => {
+  modelSelection: GeminiModelSelection;
+}> = ({ conversation_id, modelSelection }) => {
   const { t } = useTranslation();
   const { thought, running, tokenUsage } = useGeminiMessage(conversation_id);
 
@@ -171,6 +172,10 @@ const GeminiSendBox: React.FC<{
 
   const addOrUpdateMessage = useAddOrUpdateMessage();
   const { setSendBoxHandler } = usePreviewContext();
+
+  // 从共享模型选择 hook 中获取当前模型及展示名称
+  // Read current model and display helper from shared selection hook
+  const { currentModel, getDisplayModelName } = modelSelection;
 
   // 使用 useLatestRef 保存最新的 setContent/atPath，避免重复注册 handler
   // Use useLatestRef to keep latest setters to avoid re-registering handler
@@ -188,81 +193,6 @@ const GeminiSendBox: React.FC<{
     };
     setSendBoxHandler(handler);
   }, [setSendBoxHandler, content]);
-
-  // Current model state (initialized from props)
-  const [currentModel, setCurrentModel] = useState<TProviderWithModel | undefined>(model);
-  useEffect(() => {
-    setCurrentModel(model);
-  }, [model?.id, model?.useModel]);
-
-  // 模型下拉：根据 Google Auth 情况动态注入 Gemini 官方 provider / Dynamic provider list with Google Auth
-  const { geminiModeOptions, isGoogleAuth } = useGeminiGoogleAuthModels();
-  const geminiModeLookup = useMemo(() => {
-    const lookup = new Map<string, (typeof geminiModeOptions)[number]>();
-    geminiModeOptions.forEach((option) => lookup.set(option.value, option));
-    return lookup;
-  }, [geminiModeOptions]);
-  const formatModelLabel = useCallback(
-    (provider: { platform?: string } | undefined, modelName?: string) => {
-      if (!modelName) return '';
-      const isGoogleAuthProvider = provider?.platform?.toLowerCase().includes('gemini-with-google-auth');
-      if (isGoogleAuthProvider) {
-        return geminiModeLookup.get(modelName)?.label || modelName;
-      }
-      return modelName;
-    },
-    [geminiModeLookup]
-  );
-  const { data: modelConfig } = useSWR('model.config.sendbox', () => ipcBridge.mode.getModelConfig.invoke());
-
-  const availableModelsCache = useMemo(() => new Map<string, string[]>(), []);
-  const getAvailableModels = useCallback(
-    (provider: IProvider): string[] => {
-      const cacheKey = `${provider.id}-${(provider.model || []).join(',')}`;
-      if (availableModelsCache.has(cacheKey)) return availableModelsCache.get(cacheKey)!;
-      const result: string[] = [];
-      for (const modelName of provider.model || []) {
-        const functionCalling = hasSpecificModelCapability(provider, modelName, 'function_calling');
-        const excluded = hasSpecificModelCapability(provider, modelName, 'excludeFromPrimary');
-        if ((functionCalling === true || functionCalling === undefined) && excluded !== true) {
-          result.push(modelName);
-        }
-      }
-      availableModelsCache.set(cacheKey, result);
-      return result;
-    },
-    [availableModelsCache]
-  );
-
-  const providers = useMemo(() => {
-    let list: IProvider[] = Array.isArray(modelConfig) ? modelConfig : [];
-    if (isGoogleAuth) {
-      const googleProvider: IProvider = {
-        id: 'google-auth-gemini',
-        name: 'Gemini Google Auth',
-        platform: 'gemini-with-google-auth',
-        baseUrl: '',
-        apiKey: '',
-        model: geminiModeOptions.map((v) => v.value),
-        capabilities: [{ type: 'text' }, { type: 'vision' }, { type: 'function_calling' }],
-      } as unknown as IProvider;
-      list = [googleProvider, ...list];
-    }
-    // Filter providers with at least one primary chat model
-    return list.filter((p) => getAvailableModels(p).length > 0);
-  }, [geminiModeOptions, getAvailableModels, isGoogleAuth, modelConfig]);
-
-  const handleSelectModel = useCallback(
-    async (provider: IProvider, modelName: string) => {
-      const selected: TProviderWithModel = { ...(provider as unknown as TProviderWithModel), useModel: modelName };
-      // Update conversation model and restart backend task
-      const ok = await ipcBridge.conversation.update.invoke({ id: conversation_id, updates: { model: selected } });
-      if (ok) {
-        setCurrentModel(selected);
-      }
-    },
-    [conversation_id]
-  );
 
   // 使用共享的文件处理逻辑
   const { handleFilesAdded, processMessageWithFiles, clearFiles } = useSendBoxFiles({
@@ -317,19 +247,6 @@ const GeminiSendBox: React.FC<{
     }
   });
 
-  // 截断过长的模型名称 / Shorten model labels for UI
-  const getDisplayModelName = useCallback(
-    (modelName: string) => {
-      const label = formatModelLabel(currentModel, modelName);
-      const maxLength = 20;
-      if (label.length > maxLength) {
-        return label.slice(0, maxLength) + '...';
-      }
-      return label;
-    },
-    [currentModel, formatModelLabel]
-  );
-
   return (
     <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
       <ThoughtDisplay thought={thought} />
@@ -342,6 +259,8 @@ const GeminiSendBox: React.FC<{
         onChange={setContent}
         loading={running}
         disabled={!currentModel?.useModel}
+        // 占位提示同步右上角选择的模型，确保用户感知当前目标
+        // Keep placeholder in sync with header selection so users know the active target
         placeholder={currentModel?.useModel ? t('conversation.chat.sendMessageTo', { model: getDisplayModelName(currentModel.useModel) }) : t('conversation.chat.noModelSelected')}
         onStop={() => {
           return ipcBridge.conversation.stop.invoke({ conversation_id }).then(() => {
@@ -354,70 +273,18 @@ const GeminiSendBox: React.FC<{
         defaultMultiLine={true}
         lockMultiLine={true}
         tools={
-          <>
-            <Button
-              type='secondary'
-              shape='circle'
-              icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />}
-              onClick={() => {
-                void ipcBridge.dialog.showOpen.invoke({ properties: ['openFile', 'multiSelections'] }).then((files) => {
-                  if (files && files.length > 0) {
-                    setUploadFile([...uploadFile, ...files]);
-                  }
-                });
-              }}
-            />
-            <Dropdown
-              trigger='click'
-              droplist={
-                <Menu>
-                  {(providers || []).map((provider) => {
-                    const models = getAvailableModels(provider);
-                    return (
-                      <Menu.ItemGroup title={provider.name} key={provider.id}>
-                        {models.map((modelName) => (
-                          <Menu.Item
-                            key={`${provider.id}-${modelName}`}
-                            onClick={() => {
-                              void handleSelectModel(provider, modelName);
-                            }}
-                          >
-                            {(() => {
-                              const isGoogleProvider = provider.platform?.toLowerCase().includes('gemini-with-google-auth');
-                              const option = isGoogleProvider ? geminiModeLookup.get(modelName) : undefined;
-                              if (!option) {
-                                return modelName;
-                              }
-                              return (
-                                <Tooltip
-                                  position='right'
-                                  trigger='hover'
-                                  content={
-                                    <div className='max-w-240px space-y-6px'>
-                                      <div className='text-12px text-t-tertiary leading-5'>{option.description}</div>
-                                      {option.modelHint && <div className='text-11px text-t-tertiary'>{option.modelHint}</div>}
-                                    </div>
-                                  }
-                                >
-                                  <div className='flex items-center justify-between gap-12px w-full'>
-                                    <span>{option.label}</span>
-                                  </div>
-                                </Tooltip>
-                              );
-                            })()}
-                          </Menu.Item>
-                        ))}
-                      </Menu.ItemGroup>
-                    );
-                  })}
-                </Menu>
-              }
-            >
-              <Button className='ml-4px sendbox-model-btn' shape='round'>
-                {currentModel ? formatModelLabel(currentModel, currentModel.useModel) : t('conversation.welcome.selectModel')}
-              </Button>
-            </Dropdown>
-          </>
+          <Button
+            type='secondary'
+            shape='circle'
+            icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />}
+            onClick={() => {
+              void ipcBridge.dialog.showOpen.invoke({ properties: ['openFile', 'multiSelections'] }).then((files) => {
+                if (files && files.length > 0) {
+                  setUploadFile([...uploadFile, ...files]);
+                }
+              });
+            }}
+          />
         }
         sendButtonPrefix={<ContextUsageIndicator tokenUsage={tokenUsage} contextLimit={getModelContextLimit(currentModel?.useModel)} size={24} />}
         prefix={

@@ -5,18 +5,14 @@
  */
 
 import { ipcBridge } from '@/common';
-import FontSizeControl from '@/renderer/components/FontSizeControl';
 import LanguageSwitcher from '@/renderer/components/LanguageSwitcher';
-import { ThemeSwitcher } from '@/renderer/components/ThemeSwitcher';
-import CssThemeSettings from '@/renderer/components/CssThemeSettings';
 import { iconColors } from '@/renderer/theme/colors';
-import { Alert, Button, Divider, Form, Modal, Tooltip } from '@arco-design/web-react';
-import { FolderOpen, Down, Up } from '@icon-park/react';
+import { Alert, Button, Form, Modal, Tooltip } from '@arco-design/web-react';
+import { FolderOpen } from '@icon-park/react';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
-import AionCollapse from '@/renderer/components/base/AionCollapse';
 import classNames from 'classnames';
 import { useSettingsViewMode } from '../settingsViewContext';
 
@@ -92,13 +88,12 @@ const PreferenceRow: React.FC<{
 /**
  * 系统设置内容组件 / System settings content component
  *
- * 提供系统级配置选项，包括语言、主题、字体大小、目录配置和自定义CSS
- * Provides system-level configuration options including language, theme, font size, directory config and custom CSS
+ * 提供系统级配置选项，包括语言和目录配置
+ * Provides system-level configuration options including language and directory config
  *
  * @features
- * - 偏好设置：语言、主题、字体大小 / Preferences: language, theme, font size
+ * - 语言设置 / Language setting
  * - 高级设置：缓存目录、工作目录配置 / Advanced: cache directory, work directory configuration
- * - 自定义CSS编辑器，支持实时预览 / Custom CSS editor with live preview
  * - 配置变更自动保存 / Auto-save on configuration changes
  */
 interface SystemModalContentProps {
@@ -126,15 +121,8 @@ const SystemModalContent: React.FC<SystemModalContentProps> = ({ onRequestClose 
     }
   }, [systemInfo, form]);
 
-  // 渲染折叠面板的展开/收起图标 / Render expand/collapse icon for collapse panel
-  const renderExpandIcon = (active: boolean) => (active ? <Up theme='outline' size='16' fill={iconColors.secondary} /> : <Down theme='outline' size='16' fill={iconColors.secondary} />);
-
   // 偏好设置项配置 / Preference items configuration
-  const preferenceItems = [
-    { key: 'language', label: t('settings.language'), component: <LanguageSwitcher /> },
-    { key: 'theme', label: t('settings.theme'), component: <ThemeSwitcher /> },
-    { key: 'fontSize', label: t('settings.fontSize'), component: <FontSizeControl /> },
-  ];
+  const preferenceItems = [{ key: 'language', label: t('settings.language'), component: <LanguageSwitcher /> }];
 
   // 目录配置保存确认 / Directory configuration save confirmation
   const saveDirConfigValidate = (_values: { cacheDir: string; workDir: string }): Promise<unknown> => {
@@ -222,25 +210,12 @@ const SystemModalContent: React.FC<SystemModalContentProps> = ({ onRequestClose 
                 </PreferenceRow>
               ))}
             </div>
-            <Divider className='my-0 border-border-2' />
-            {/* <AionCollapse className='!p-[0px]' bordered={false} defaultActiveKey={['advanced']} expandIcon={renderExpandIcon} expandIconPosition='right'>
-              <AionCollapse.Item name='advanced' header={<span className='text-14px text-2'>{t('settings.advancedSettings')}</span>} className='bg-transparent' contentStyle={{ padding: '12px 0 0' }}>
-                
-              </AionCollapse.Item>
-            </AionCollapse> */}
             <Form form={form} layout='vertical' className='space-y-16px'>
               <DirInputItem label={t('settings.cacheDir')} field='cacheDir' />
               <DirInputItem label={t('settings.workDir')} field='workDir' />
               {error && <Alert className='mt-16px' type='error' content={typeof error === 'string' ? error : JSON.stringify(error)} />}
             </Form>
           </div>
-
-          {/* CSS 主题设置 / CSS Theme Settings - Collapsible */}
-          <AionCollapse bordered={false} defaultActiveKey={['css']} expandIcon={renderExpandIcon} expandIconPosition='right'>
-            <AionCollapse.Item name='css' header={<span className='text-14px text-2'>{t('settings.cssSettings')}</span>} className='bg-transparent' contentStyle={{ padding: '12px 0 0' }}>
-              <CssThemeSettings />
-            </AionCollapse.Item>
-          </AionCollapse>
         </div>
       </AionScrollArea>
 

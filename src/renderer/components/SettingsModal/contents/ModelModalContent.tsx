@@ -125,8 +125,17 @@ const ModelModalContent: React.FC = () => {
           <div className='space-y-12px'>
             {(data || []).map((platform) => {
               const key = platform.id;
+              const isExpanded = collapseKey[platform.id] ?? false;
               return (
-                <Collapse defaultActiveKey={['1']} key={key} bordered>
+                <Collapse
+                  activeKey={isExpanded ? ['image-generation'] : []}
+                  onChange={(_, activeKeys) => {
+                    const expanded = activeKeys.includes('image-generation');
+                    setCollapseKey((prev) => ({ ...prev, [platform.id]: expanded }));
+                  }}
+                  key={key}
+                  bordered
+                >
                   <Collapse.Item
                     name='image-generation'
                     className='[&_.arco-collapse-item-header-title]:flex-1'
@@ -135,7 +144,18 @@ const ModelModalContent: React.FC = () => {
                         <span className='text-14px text-t-primary'>{platform.name}</span>
                         <div className='flex items-center gap-8px' onClick={(e) => e.stopPropagation()}>
                           <span className='text-12px text-t-secondary'>
-                            {t('settings.modelCount')}（{platform.model.length}）| {t('settings.apiKeyCount')}（{getApiKeyCount(platform.apiKey)}）
+                            <span
+                              className='cursor-pointer hover:text-t-primary'
+                              onClick={() => {
+                                setCollapseKey((prev) => ({ ...prev, [platform.id]: !isExpanded }));
+                              }}
+                            >
+                              {t('settings.modelCount')}（{platform.model.length}）
+                            </span>
+                            |{' '}
+                            <span className='cursor-pointer hover:text-t-primary' onClick={() => editModalCtrl.open({ data: platform })}>
+                              {t('settings.apiKeyCount')}（{getApiKeyCount(platform.apiKey)}）
+                            </span>
                           </span>
                           <Button size='mini' icon={<Plus size='14' />} onClick={() => addModelModalCtrl.open({ data: platform })} />
                           <Popconfirm title={t('settings.deleteAllModelConfirm')} onOk={() => removePlatform(platform.id)}>

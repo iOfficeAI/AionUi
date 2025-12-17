@@ -21,6 +21,7 @@ import type { CodexAgentManagerData, FileChange } from '@/common/codex/types';
 import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
 import { getConfiguredAppClientName, getConfiguredAppClientVersion, getConfiguredCodexMcpProtocolVersion, setAppConfig } from '../../common/utils/appConfig';
 import { mapPermissionDecision } from '@/common/codex/utils';
+import { handlePreviewOpenEvent } from '@process/utils/previewUtils';
 
 const APP_CLIENT_NAME = getConfiguredAppClientName();
 const APP_CLIENT_VERSION = getConfiguredAppClientVersion();
@@ -396,6 +397,12 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
   emitAndPersistMessage(message: IResponseMessage, persist: boolean = true): void {
     message.conversation_id = this.conversation_id;
+
+    // Handle preview_open event (chrome-devtools navigation interception)
+    // 处理 preview_open 事件（chrome-devtools 导航拦截）
+    if (handlePreviewOpenEvent(message)) {
+      return; // Don't process further / 不需要继续处理
+    }
 
     // Backend handles persistence if needed
     if (persist) {

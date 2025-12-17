@@ -9,6 +9,7 @@ import { parseError, uuid } from '@/common/utils';
 import { ProcessConfig } from '../initStorage';
 import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '../message';
 import BaseAgentManager from './BaseAgentManager';
+import { handlePreviewOpenEvent } from '../utils/previewUtils';
 
 interface AcpAgentManagerData {
   workspace?: string;
@@ -85,6 +86,12 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
         customArgs: customArgs,
         customEnv: customEnv,
         onStreamEvent: (v) => {
+          // Handle preview_open event (chrome-devtools navigation interception)
+          // 处理 preview_open 事件（chrome-devtools 导航拦截）
+          if (handlePreviewOpenEvent(v)) {
+            return; // Don't process further / 不需要继续处理
+          }
+
           if (v.type !== 'thought') {
             const tMessage = transformMessage(v as IResponseMessage);
             if (tMessage) {
