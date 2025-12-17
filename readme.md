@@ -8,237 +8,223 @@
   <img src="https://img.shields.io/badge/license-Apache--2.0-32CD32?style=flat-square&logo=apache&logoColor=white" alt="License">
   &nbsp;
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6C757D?style=flat-square&logo=linux&logoColor=white" alt="Platform">
-  &nbsp;
-  <img src="https://img.shields.io/badge/Electron-37.2.0-007ACC?style=flat-square&logo=electron&logoColor=white" alt="Electron">
-  &nbsp;
-  <img src="https://img.shields.io/badge/React-19.1.0-FF6B35?style=flat-square&logo=react&logoColor=white" alt="React">
 </p>
 
 ---
 
 <p align="center">
-  <strong>Transform your command-line experience into a modern, efficient AI Chat interface.</strong>
+  <strong>🚀 Give Command-Line AI Tools a Graphical Interface</strong><br>
+  <em>Say goodbye to command line, enjoy a graphical interface | Multi-model support | Local data security</em>
 </p>
 
 <p align="center">
-  <strong>English</strong> | <a href="./readme_ch.md">简体中文</a> | <a href="./readme_jp.md">日本語</a> |<a href="https://www.aionui.com" target="_blank">Official Site</a> | <a href="https://twitter.com/WailiVery" target="_blank">Twitter</a>
+  <a href="https://github.com/iOfficeAI/AionUi/releases">
+    <img src="https://img.shields.io/badge/⬇️%20Download%20Now-Latest%20Release-32CD32?style=for-the-badge&logo=github&logoColor=white" alt="Download Latest Release" height="30">
+  </a>
 </p>
-
-## 🚀 **What Can AionUi Do?**
 
 <p align="center">
-  <img src="./resources/BANNER.png" alt="AionUi Banner" width="100%">
+  <strong>English</strong> | <a href="./readme_ch.md">简体中文</a> | <a href="./readme_jp.md">日本語</a> | <a href="https://www.aionui.com" target="_blank">Official Website</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
 </p>
 
-### 🤖 **Multi-Agent Mode**
+---
 
-_Seamlessly integrate multiple terminal AI agents - Gemini CLI, Claude Code, Qwen Code, Codex and more_
+## 📋 Quick Navigation
 
 <p align="center">
-  <img src="./resources/multi-agent.gif" alt="Multi-Agent Mode Demo" width="800">
+
+[✨ What Can AionUi Do?](#✨-what-can-aionui-do) ·
+[🤔 Why Choose AionUi?](#🤔-why-choose-aionui) ·
+[✨ Core Features](#✨-core-features) ·
+[🚀 Quick Start](#🚀-quick-start) ·
+[📖 Detailed Usage Guide](#📖-detailed-usage-guide) ·
+[💬 Community](#🤝-community--support)
+
 </p>
+
+---
+
+## ✨ What Can AionUi Do?
+
+<p align="center">
+  <img src="./resources/bannerimage.png" alt="AionUi Features" width="800">
+</p>
+
+### 🤖 **Multi-Agent Mode - Give Command-Line AI Tools a Graphical Interface**
+
+_If you have installed command-line tools like Gemini CLI, Claude Code, CodeX, Qwen Code, AionUi can automatically detect them and provide a unified graphical interface_
+
+- ✅ **Auto Detection + Unified Interface** - Automatically recognizes local CLI tools, provides a unified graphical interface, say goodbye to command line
+- ✅ **Local Storage + Multi-Session** - Conversations saved locally, supports multiple parallel sessions, each session with independent context
+
+<p align="center">
+  <img src="./resources/acp home page.gif" alt="Multi-Agent Mode Demo" width="800">
+</p>
+
+---
+
+### 📄 **Preview Panel - Quickly View AI-Generated Results**
+
+_Supports 9+ formats of visual preview (PDF, Word, Excel, PPT, code, Markdown, images, HTML, Diff, etc.)_
+
+- ✅ **View Results Instantly** - After AI generates files, view preview immediately without switching apps
+- ✅ **Real-time Tracking + Editable** - Automatically tracks file changes, editor and preview sync intelligently; supports real-time editing of Markdown, code, HTML, WYSIWYG
+
+<p align="center">
+  <img src="./resources/preview.gif" alt="Preview Panel Demo" width="800">
+</p>
+
+---
 
 ### 🎨 **AI Image Generation & Editing**
 
-_Intelligent image generation, editing, and recognition powered by Gemini 2.5 Flash Image Preview - the most advanced image model, with support for other leading AI image models_
+_Intelligent image generation, editing, and recognition, powered by Gemini_
 
 <p align="center">
   <img src="./resources/Image_Generation.gif" alt="AI Image Generation Demo" width="800">
 </p>
 
-> 💡 **Need help setting up free image generation?** [Follow the tutorial to configure image generation models](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide) - Complete step-by-step guide for OpenRouter setup and free Gemini 2.5 Flash Image Preview configuration.
+> 💡 **Need help setting up free image generation?** [Follow the tutorial to configure image generation models](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide)
 
-### 📁 **Organizing Your Files**
+---
 
-_Batch renaming, auto organization, smart classification, file merging_
+### 📁 **Smart File Management**
+
+_Batch renaming, automatic organization, smart classification, file merging_
 
 <p align="center">
   <img src="https://github.com/iOfficeAI/AionUi/wiki/assets/gifs/file-management/file-organization.gif" alt="File Management Demo" width="800">
 </p>
 
-### 📊 **Make Excel Smarter**
+---
 
-_AI helps you create, organize, analyze, and beautify Excel files_
+### 💬 **Multi-Task Parallel Processing**
 
-<p align="center">
-  <img src="./resources/generate_xlsx.gif" alt="Excel Processing Demo" width="800">
-</p>
-
-### 💬 **Handle Multiple Tasks at Once**
-
-_Multiple conversations, no task confusion, independent memory, double efficiency_
+_Open multiple conversations, tasks don't get mixed up, independent memory, double efficiency_
 
 <p align="center">
   <img src="./resources/multichat-side-by-side.gif" alt="Conversation Management Demo" width="800">
 </p>
 
-### 🌐 **Access AionUi from Anywhere - WebUI Mode**
+---
 
-_Remote Control Your AI Assistant - Access AionUi from any device on your network! Securely control your local Agent with data staying on your device_
+### 🌐 **Access Anywhere - WebUI Mode**
+
+_Remotely control your AI tools - Access AionUi from any device on the network! Securely control local Gemini CLI, Claude Code, Codex, and other tools, data never leaves your device_
+
+```bash
+# Basic startup
+AionUi --webui
+
+# Remote access (accessible from other devices on the local network)
+AionUi --webui --remote
+```
+
+> 💡 **Need detailed configuration guide?** Check out the [WebUI Configuration Tutorial](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) - includes complete startup commands for all platforms
 
 <p align="center">
-  <img src="./resources/webui-remote.png" alt="WebUI Remote Access Demo" width="800">
+  <img src="./resources/webui banner.png" alt="WebUI Remote Access Demo" width="800">
 </p>
 
-> 💡 **Perfect for Server Deployment** - Run AionUi 24/7 on Linux servers without desktop environment and access it remotely from anywhere!
+---
+
+## 🤔 Why Choose AionUi?
+
+While command-line AI tools like Gemini CLI, Claude Code, Codex, Qwen Code are powerful, they share common pain points: conversations can't be saved, single-session limitations, cumbersome file operations, and only support a single model.
+
+AionUi provides a modern graphical interface for these command-line tools, **breaking these limitations**, making interactions simple and intuitive, while supporting multi-model switching to meet different task requirements.
+
+### 📊 AionUi vs Command-Line AI Tools
+
+| Feature              | AionUi                                  | Command-Line AI Tools              |
+| -------------------- | --------------------------------------- | ---------------------------------- |
+| Interface            | 🎨 Graphical Interface                  | 💻 Command Line                    |
+| Conversation Storage | ✅ Local Storage                        | ❌ Lost on Close                   |
+| Multi-Session        | ✅ Supported                            | ❌ Not Supported                   |
+| Context Management   | ✅ Independent Context, No Interference | ❌ Single Context, Easy to Confuse |
+| File Selection       | 🖱️ Click to Select                      | ⌨️ @ Command                       |
+| Multi-Model          | ✅ Supported                            | ❌ Single Model                    |
+| File Preview         | ✅ 9+ Format Visual Preview             | ❌ No Preview                      |
+| Remote Access        | ✅ WebUI Mode                           | ❌ Not Supported                   |
 
 ---
 
-**This is just the tip of AionUi's capabilities!** 🚀
+### ❓ Quick Q&A
 
-Want to explore more features? Keep reading to discover what else AionUi can help you with:
+<details>
+<summary><strong>Q: Is AionUi ready to use out of the box?</strong></summary>
+A: Yes! After installation, you can directly use Google account login, AionUi will automatically associate with Gemini CLI, no additional configuration needed to start using.
+</details>
 
-- 🎯 Write code, create documents, analyze data
-- 🗂️ Learn new things, answer questions, translate text
-- ⚡ And many more daily work and learning scenarios
+<details>
+<summary><strong>Q: Is it free?</strong></summary>
+A: AionUi is completely free and open source, but using AI models requires corresponding API Keys.
+</details>
 
-## 📋 Table of Contents
+<details>
+<summary><strong>Q: Which AI models are supported?</strong></summary>
+A: Supports mainstream models like Gemini, OpenAI, Claude, Qwen, as well as local models like Ollama, LM Studio.
 
-- [🤔 Why does AionUi exist?](#-why-does-aionui-exist)
-- [🎯 AionUi Use Cases](#-aionui-use-cases)
-- [✨ Key Features](#-key-features)
-- [🚀 Quick Start](#-quick-start)
-- [📚 Documentation](#-documentation)
-- [🤝 Community & Support](#-community--support)
-- [📄 License](#-license)
+You can also run multiple AI Agents simultaneously (such as Gemini CLI, Claude Code, Qwen Code, etc.), see the configuration guide for details.
+
+</details>
+
+<details>
+<summary><strong>Q: Is my data secure?</strong></summary>
+A: All conversation data is stored in a local SQLite database and will not be uploaded to any server.
+</details>
 
 ---
 
-## 🤔 Why does AionUi exist?
+## ✨ Core Features
 
-While the official Gemini CLI is powerful, its command-line interface has limitations for daily use. AionUi provides a GUI alternative that addresses these key pain points:
+### 💬 **Multi-Session Chat**
 
-> - Using the `@` command to select files is cumbersome
-> - Conversations are lost when closing the CLI window
-> - Command-line interface lacks natural chat interactions
-> - Single conversation mode limits parallel workflows
-> - Restricted to Gemini models only, unable to use other excellent large language models
+- **Multi-Session + Independent Context** - Open multiple chats simultaneously, each session has independent context memory, no confusion
+- **Local Storage** - All conversations are saved locally and will not be lost
 
-AionUi provides a modern interface for users who need better workflow efficiency, while **breaking the single-model limitation**, allowing you to choose the most suitable AI model for different task requirements.
+### 🤖 **Multi-Model Support**
 
-## ✨ Key Features
+- **Multi-Platform Support** - Supports mainstream models like Gemini, OpenAI, Claude, Qwen, flexible switching
+- **Local Model Support** - Supports local model deployment like Ollama, LM Studio, select Custom platform and set local API address (e.g., `http://localhost:11434/v1`) to connect
+- **Gemini 3 Subscription Optimization** - Automatically identifies subscribed users, recommends advanced models
 
-### 💬 **Better Chat Experience**
+### 🗂️ **File Management**
 
-- **Multi-Conversation** - Open multiple chats simultaneously, no interference
-- **Permanent Storage** - All conversations saved locally, never lost
-- **Modern Interface** - Chat interface like WeChat, simple to use
-- **Multi-Model Support** - Not just Gemini, can use other AI models too
+- **File Tree Browsing + Drag & Drop Upload** - Browse files like folders, support drag and drop files or folders for one-click import
+- **Smart Organization** - You can let AI help organize folders, automatic classification
 
-### 🗂️ **File Management Made Simple**
+### 📄 **Preview Panel - Give AI Agent a Display**
 
-- **File Tree Browsing** - Browse files like folders, click to use
-- **File Upload** - Drag and drop files, AI helps you process
-- **Code Comparison** - File before/after comparison, clear at a glance
-- **Smart Organization** - AI helps organize folders, automatic classification
-- **Excel Processing** - AI helps create and modify Excel files
-
-### ⚡ **Development Efficiency Boost**
-
-- **Function Calling** - Complete Gemini API, more powerful features
-- **Code Rendering** - Code blocks display more beautifully, format clearer
-- **Tool Scheduling** - Automatically select most suitable tools, no manual selection needed
-
-### 🤖 **Multi-Agent Integration**
-
-- **Multi-Terminal Agent Support** - Seamlessly integrate with various terminal AI agents (Gemini CLI, Claude Code, Qwen Code, Codex, etc.)
-- **Dynamic CLI Detection** - Automatic backend discovery and CLI path detection
-- **Secure Authentication** - OAuth support and secure authentication flows
-- **Real-time Monitoring** - Live connection status and backend health monitoring
-- **Unified Interface** - All terminal AI agents accessible through the same chat interface
-
-### 🔌 **MCP Tool Management**
-
-- **MCP Server Configuration** - Add, edit, and manage Model Context Protocol servers
-- **Multiple Import Methods** - Import from JSON configuration or CLI with one-click setup
-- **Tool Discovery** - Automatically discover and list available tools from MCP servers
-- **Connection Testing** - Real-time testing of MCP server connections and health status
-- **Multi-Agent Sync** - Synchronize MCP configurations across different AI agents
-- **Tool Management** - Enable/disable tools, view parameters and tool descriptions
-
-### 🔄 **Multi-API Key Rotation Service**
-
-- **Multi-Key Rotation** - Automatic rotation of multiple API keys for enhanced reliability
-- **Intelligent Error Recovery** - Time-based blacklisting (90s) with automatic retry mechanisms
-- **High Availability** - Seamless failover between API keys to prevent service interruptions
-- **Rate Limit Handling** - Smart retry logic that respects API rate limits and quotas
-- **Performance Optimization** - Reduced downtime and improved API call success rates
+- **9+ Format Preview** - Supports PDF, Word, Excel, PPT, code, Markdown, images, etc., view results immediately after AI generation
+- **Real-time Tracking + Editable** - Automatically tracks file changes, supports real-time editing and debugging of Markdown, code, HTML
 
 ### 🎨 **AI Image Generation & Editing**
 
-- **Smart Image Generation** - Powered by Gemini 2.5 Flash Image Preview, the most advanced image model
-- **Multi-Model Support** - Also supports other leading AI image models for diverse creative needs
-- **Intelligent Editing** - AI-powered image editing and enhancement capabilities
-- **Image Recognition** - Advanced image analysis and understanding
-- **High-Quality Output** - Professional-grade image generation with detailed control
+- **Intelligent Image Generation** - Supports multiple image generation models like Gemini 2.5 Flash Image Preview, Nano, Banana
+- **Image Recognition & Editing** - AI-driven image analysis and editing features
 
 ### 🌐 **WebUI Remote Access**
 
-- **Cross-Device Access** - Access AionUi from any device on your network via web browser
-- **Remote Control Local Agent** - Securely control your local AI Agent without data transmission
-- **Secure Authentication** - User login protection ensures your AI conversations and data are safe
-- **Server Deployment** - Perfect for running AionUi 24/7 on Linux servers without desktop environment
-- **Smart Network Detection** - Automatically detects and displays the best network address for connection
-- **Local Data Security** - All conversations, settings, and configurations stored locally using SQLite database
-- **Remote Control** - Control your AI assistant from phone, tablet, or any computer on the network
+- **Cross-Device Access** - Access from any device on the network via browser, supports mobile devices
+- **Local Data Security** - All data stored locally in SQLite database, suitable for server deployment
 
-### 🔧 **Settings Are Simple**
+### 🎨 **Personalized Interface Customization**
 
-- **Multi-Platform Support** - Support Gemini, OpenAI, BurnCloud, ModelScope, OpenRouter, etc.
-- **Flexible Configuration** - Each platform can configure multiple models, support custom addresses
-- **Easy Login** - Support Google account login or API Key authentication, flexible choice
-- **Auto Fix** - Automatically detect and fix configuration issues, no manual debugging needed
+_Customize with your own CSS code, make your interface match your preferences_
 
-## 🚀 Quick Start
-
-### 📥 Download
-
-Ready to try AionUi? Download the latest version for your platform from our releases page:
-
-<p>
-  <a href="https://github.com/iOfficeAI/AionUi/releases">
-    <img src="https://img.shields.io/badge/Download-Latest%20Release-32CD32?style=for-the-badge&logo=github&logoColor=white" alt="Download Latest Release">
-  </a>
+<p align="center">
+  <img src="./resources/css with skin.gif" alt="CSS Custom Interface Demo" width="800">
 </p>
 
-### 🔧 Simple Installation
+- **Fully Customizable** - Freely customize interface colors, styles, layout through CSS code, create your exclusive experience
 
-1. **Download and install** AionUi application
-2. **Configure AI service** - Support Google account login or API Key authentication
-3. **Start using** - Experience modern AI chat interface immediately
+---
 
-> 💡 **Need detailed configuration guide?** Check our [Complete Installation Tutorial](https://github.com/iOfficeAI/AionUi/wiki/Getting-Started)
+## 📖 Detailed Usage Guide
 
-## 🛠️ Local Development
-
-Want to hack on AionUi?
-
-1. `npm install`
-2. `npm start`
-
-During `npm start`, Electron Forge spins up **two** ports:
-
-- Webpack dev server (default **3000**)
-- Web log viewer (default **9000**)
-
-Override them via env vars when needed:
-
-```bash
-AIONUI_DEV_PORT=3100 \
-AIONUI_LOGGER_PORT=9100 \
-npm start
-# You can also use DEV_SERVER_PORT / PORT and DEV_LOGGER_PORT / LOGGER_PORT
-```
-
-Windows PowerShell example:
-
-```powershell
-$env:AIONUI_DEV_PORT=3100
-$env:AIONUI_LOGGER_PORT=9100
-npm start
-```
-
-## 📚 Documentation
+<details>
+<summary><strong>📖 Expand to View Complete Usage Guide</strong></summary>
 
 ### 🚀 Quick Start
 
@@ -247,7 +233,7 @@ npm start
 - [🤖 Multi-Agent Mode Setup](https://github.com/iOfficeAI/AionUi/wiki/ACP-Setup) - Integrate terminal AI agents
 - [🔌 MCP Tool Configuration](https://github.com/iOfficeAI/AionUi/wiki/MCP-Configuration-Guide) - Model Context Protocol server setup
 - [🎨 Image Generation Configuration](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide) - AI image generation setup tutorial
-- [🌐 WebUI Configuration Guide](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) - Complete WebUI setup and configuration
+- [🌐 WebUI Configuration Guide](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) - Complete WebUI setup and configuration tutorial
 
 ### 🎯 Use Cases
 
@@ -259,19 +245,59 @@ npm start
 ### ❓ Support & Help
 
 - [❓ FAQ](https://github.com/iOfficeAI/AionUi/wiki/FAQ) - Questions and troubleshooting
-- [🔧 Configuration & Usage Tutorial](https://github.com/iOfficeAI/AionUi/wiki/Configuration-Guides) - Complete configuration documentation
+- [🔧 Configuration & Usage Tutorials](https://github.com/iOfficeAI/AionUi/wiki/Configuration-Guides) - Complete configuration documentation
+
+</details>
+
+---
+
+## 🚀 Quick Start
+
+### 💻 System Requirements
+
+- **macOS**: 10.15 or higher
+- **Windows**: Windows 10 or higher
+- **Linux**: Ubuntu 18.04+ / Debian 10+ / Fedora 32+
+- **Memory**: Recommended 4GB or more
+- **Storage**: At least 500MB available space
+
+### 📥 Download
+
+<p>
+  <a href="https://github.com/iOfficeAI/AionUi/releases">
+    <img src="https://img.shields.io/badge/Download-Latest%20Release-32CD32?style=for-the-badge&logo=github&logoColor=white" alt="Download Latest Release">
+  </a>
+</p>
+
+### 🔧 Simple Installation
+
+1. **Download and install** AionUi application
+2. **Configure AI service** - Support Google account login or API Key authentication
+3. **Start using** - Immediately experience modern AI chat interface
+
+> 💡 **Need detailed configuration guide?** Check out our [Complete Installation Tutorial](https://github.com/iOfficeAI/AionUi/wiki/Getting-Started)
+
+---
 
 ## 🤝 Community & Support
 
 ### 💬 Community
 
-- [💬 GitHub Discussions](https://github.com/iOfficeAI/AionUi/discussions) - Share experiences and get help
+**💡 Your ideas matter!** We highly value every user's suggestions and feedback. Whether it's feature ideas, user experience, or issues you encounter, feel free to contact us anytime!
+
+<p align="center">
+  <a href="https://x.com/AionUi" target="_blank">
+    <img src="./resources/contactus-x.png" alt="Contact Us on X" width="600">
+  </a>
+</p>
+
+- [💬 GitHub Discussions](https://github.com/iOfficeAI/AionUi/discussions) - **Share ideas, make suggestions, exchange usage tips**
 - [🐛 Report Issues](https://github.com/iOfficeAI/AionUi/issues) - Report bugs or feature requests
-- [📦 Releases](https://github.com/iOfficeAI/AionUi/releases) - Get latest updates
+- [📦 Release Updates](https://github.com/iOfficeAI/AionUi/releases) - Get the latest version
 
 ### 🤝 Contributing
 
-Issues and Pull Requests are welcome!
+Welcome to submit Issues and Pull Requests!
 
 1. Fork this project
 2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
@@ -283,13 +309,13 @@ Issues and Pull Requests are welcome!
 
 ## 📄 License
 
-This project is licensed under the [Apache-2.0](LICENSE) License.
+This project is licensed under [Apache-2.0](LICENSE).
 
 ---
 
 ## 👥 Contributors
 
-Thanks to all developers who contributed to AionUi!
+Thanks to all developers who have contributed to AionUi!
 
 <p align="center">
   <a href="https://github.com/iOfficeAI/AionUi/graphs/contributors">
@@ -301,13 +327,13 @@ Thanks to all developers who contributed to AionUi!
 
 <p align="center">
   <a href="https://www.star-history.com/#iOfficeAI/aionui&Date" target="_blank">
-    <img src="https://api.star-history.com/svg?repos=iOfficeAI/aionui&type=Date" alt="GitHub Stars Trend" width="600">
+    <img src="https://api.star-history.com/svg?repos=iOfficeAI/aionui&type=Date" alt="GitHub Star Trends" width="600">
   </a>
 </p>
 
 <div align="center">
 
-**⭐ Star the repo if you like it**
+**⭐ If you like it, give us a star**
 
 [Report Bug](https://github.com/iOfficeAI/AionUi/issues) · [Request Feature](https://github.com/iOfficeAI/AionUi/issues)
 
