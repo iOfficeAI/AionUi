@@ -48,7 +48,7 @@
     "usernamePlaceholder": "请输入用户名",
     "password": "密码",
     "passwordPlaceholder": "请输入密码",
-    "rememberPassword": "记住密码",
+    "rememberMe": "记住我",
     "submit": "登录",
     "submitting": "登录中...",
     "success": "登录成功！正在跳转...",

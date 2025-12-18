@@ -12,7 +12,9 @@ type MessageState = {
   text: string;
 };
 
-const REMEMBER_PASSWORD_KEY = 'rememberedPassword';
+const REMEMBER_ME_KEY = 'rememberMe';
+const REMEMBERED_USERNAME_KEY = 'rememberedUsername';
+const REMEMBERED_PASSWORD_KEY = 'rememberedPassword';
 
 const LoginPage: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -21,7 +23,7 @@ const LoginPage: React.FC = () => {
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [rememberPassword, setRememberPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [message, setMessage] = useState<MessageState | null>(null);
   const [loading, setLoading] = useState(false);
@@ -49,10 +51,13 @@ const LoginPage: React.FC = () => {
   }, [i18n.language]);
 
   useEffect(() => {
-    const storedPassword = localStorage.getItem(REMEMBER_PASSWORD_KEY);
-    if (storedPassword) {
-      setPassword(storedPassword);
-      setRememberPassword(true);
+    const isRememberMe = localStorage.getItem(REMEMBER_ME_KEY) === 'true';
+    if (isRememberMe) {
+      const storedUsername = localStorage.getItem(REMEMBERED_USERNAME_KEY);
+      const storedPassword = localStorage.getItem(REMEMBERED_PASSWORD_KEY);
+      if (storedUsername) setUsername(storedUsername);
+      if (storedPassword) setPassword(storedPassword);
+      setRememberMe(true);
     }
     window.setTimeout(() => {
       usernameRef.current?.focus();
@@ -126,13 +131,17 @@ const LoginPage: React.FC = () => {
       setLoading(true);
       setMessage(null);
 
-      const result = await login({ username: trimmedUsername, password, remember: rememberPassword });
+      const result = await login({ username: trimmedUsername, password, remember: rememberMe });
 
       if (result.success) {
-        if (rememberPassword) {
-          localStorage.setItem(REMEMBER_PASSWORD_KEY, password);
+        if (rememberMe) {
+          localStorage.setItem(REMEMBER_ME_KEY, 'true');
+          localStorage.setItem(REMEMBERED_USERNAME_KEY, trimmedUsername);
+          localStorage.setItem(REMEMBERED_PASSWORD_KEY, password);
         } else {
-          localStorage.removeItem(REMEMBER_PASSWORD_KEY);
+          localStorage.removeItem(REMEMBER_ME_KEY);
+          localStorage.removeItem(REMEMBERED_USERNAME_KEY);
+          localStorage.removeItem(REMEMBERED_PASSWORD_KEY);
         }
 
         const successText = t('login.success');
@@ -163,7 +172,7 @@ const LoginPage: React.FC = () => {
 
       setLoading(false);
     },
-    [login, navigate, password, rememberPassword, showMessage, t, username]
+    [login, navigate, password, rememberMe, showMessage, t, username]
   );
 
   if (status === 'checking') {
@@ -240,8 +249,8 @@ const LoginPage: React.FC = () => {
           </div>
 
           <div className='login-page__checkbox'>
-            <input type='checkbox' id='remember-password' checked={rememberPassword} onChange={(event) => setRememberPassword(event.target.checked)} />
-            <label htmlFor='remember-password'>{t('login.rememberPassword')}</label>
+            <input type='checkbox' id='remember-me' checked={rememberMe} onChange={(event) => setRememberMe(event.target.checked)} />
+            <label htmlFor='remember-me'>{t('login.rememberMe')}</label>
           </div>
 
           <button type='submit' className='login-page__submit' disabled={loading}>

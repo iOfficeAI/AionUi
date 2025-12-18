@@ -51,7 +51,7 @@
     "usernamePlaceholder": "Enter your username",
     "password": "Password",
     "passwordPlaceholder": "Enter your password",
-    "rememberPassword": "Remember password",
+    "rememberMe": "Remember me",
     "submit": "Sign In",
     "submitting": "Signing in...",
     "success": "Login successful! Redirecting...",

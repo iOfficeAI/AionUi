@@ -179,7 +179,7 @@
     "usernamePlaceholder": "ユーザー名を入力してください",
     "password": "パスワード",
     "passwordPlaceholder": "パスワードを入力してください",
-    "rememberPassword": "パスワードを記憶する",
+    "rememberMe": "ログイン状態を保持",
     "submit": "ログイン",
     "submitting": "ログイン中...",
     "success": "ログインに成功しました。リダイレクトします...",

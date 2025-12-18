@@ -150,7 +150,7 @@
     "usernamePlaceholder": "請輸入使用者名稱",
     "password": "密碼",
     "passwordPlaceholder": "請輸入密碼",
-    "rememberPassword": "記住密碼",
+    "rememberMe": "記住我",
     "submit": "登入",
     "submitting": "登入中...",
     "success": "登入成功！準備跳轉...",
