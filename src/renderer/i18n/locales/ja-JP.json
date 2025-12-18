@@ -179,7 +179,7 @@
     "usernamePlaceholder": "ユーザー名を入力してください",
     "password": "パスワード",
     "passwordPlaceholder": "パスワードを入力してください",
-    "rememberUsername": "ユーザー名を記憶する",
+    "rememberMe": "ログイン状態を保持",
     "submit": "ログイン",
     "submitting": "ログイン中...",
     "success": "ログインに成功しました。リダイレクトします...",
@@ -313,7 +313,10 @@
       "linkFolder": "フォルダを追加",
       "newConversation": "新しいチャット",
       "multiAgentModeEnabled": "マルチエージェントモードに入ります",
-      "selectModel": "モデルを選択"
+      "selectModel": "モデルを選択",
+      "specifyWorkspace": "フォルダーでチャット",
+      "currentWorkspace": "現在のワークスペース",
+      "clearWorkspace": "フォルダーを解除"
     },
     "history": {
       "cancelDelete": "いいえ",

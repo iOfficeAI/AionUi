@@ -13,8 +13,9 @@ import { usePreviewContext } from '@/renderer/pages/conversation/preview';
 import { iconColors } from '@/renderer/theme/colors';
 import { emitter } from '@/renderer/utils/emitter';
 import { Checkbox, Empty, Input, Message, Modal, Tooltip, Tree } from '@arco-design/web-react';
+import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
 import { FileAddition, FileText, FolderOpen, Refresh, Search } from '@icon-park/react';
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useWorkspaceEvents } from './hooks/useWorkspaceEvents';
 import { useWorkspaceFileOps } from './hooks/useWorkspaceFileOps';
@@ -36,7 +37,8 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
 
   // Search state
   const [searchText, setSearchText] = useState('');
-  const [showSearch, setShowSearch] = useState(false);
+  const [showSearch, setShowSearch] = useState(true);
+  const searchInputRef = useRef<RefInputType | null>(null);
 
   // Initialize all hooks
   const treeHook = useWorkspaceTree({ workspace, conversation_id, eventPrefix });
@@ -59,6 +61,15 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
     t,
     onFilesDropped: pasteHook.handleFilesToAdd,
   });
+  useEffect(() => {
+    if (!showSearch) return;
+    const timer = window.setTimeout(() => {
+      searchInputRef.current?.focus?.();
+    }, 0);
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [showSearch]);
 
   const fileOpsHook = useWorkspaceFileOps({
     workspace,
@@ -395,6 +406,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
           <div className='px-16px pb-8px'>
             <Input
               className='w-full'
+              ref={searchInputRef}
               placeholder={t('conversation.workspace.searchPlaceholder')}
               value={searchText}
               onChange={(value) => {

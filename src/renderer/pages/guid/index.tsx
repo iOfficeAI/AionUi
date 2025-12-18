@@ -29,6 +29,7 @@ import { iconColors } from '@/renderer/theme/colors';
 import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
 import type { AcpBackend } from '@/types/acpTypes';
 import { Button, ConfigProvider, Dropdown, Input, Menu, Tooltip } from '@arco-design/web-react';
+import { IconClose } from '@arco-design/web-react/icon';
 import { ArrowUp, FolderOpen, MenuFold, MenuUnfold, Plus, Robot, UploadOne } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -726,6 +727,9 @@ const Guid: React.FC = () => {
                   <span className='truncate'>
                     {t('conversation.welcome.currentWorkspace')}: {dir}
                   </span>
+                </Tooltip>
+                <Tooltip content={t('conversation.welcome.clearWorkspace')} position='top'>
+                  <IconClose className='hover:text-[rgb(var(--danger-6))] hover:bg-3 transition-colors' strokeWidth={3} style={{ fontSize: 16 }} onClick={() => setDir('')} />
                 </Tooltip>
               </div>
             )}

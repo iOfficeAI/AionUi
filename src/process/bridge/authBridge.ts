@@ -36,7 +36,12 @@ export function initAuthBridge(): void {
 
       // 执行 OAuth 登录流程
       // Execute OAuth login flow
-      const client = await loginWithOauth(AuthType.LOGIN_WITH_GOOGLE, config);
+      // 添加超时机制，防止用户未完成登录导致一直卡住 / Add timeout to prevent hanging if user doesn't complete login
+      const timeoutPromise = new Promise<null>((_, reject) => {
+        setTimeout(() => reject(new Error('Login timed out after 2 minutes')), 2 * 60 * 1000);
+      });
+
+      const client = await Promise.race([loginWithOauth(AuthType.LOGIN_WITH_GOOGLE, config), timeoutPromise]);
 
       if (client) {
         // 登录成功后，获取用户账户信息

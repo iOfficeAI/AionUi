@@ -51,7 +51,7 @@
     "usernamePlaceholder": "Enter your username",
     "password": "Password",
     "passwordPlaceholder": "Enter your password",
-    "rememberUsername": "Remember username",
+    "rememberMe": "Remember me",
     "submit": "Sign In",
     "submitting": "Signing in...",
     "success": "Login successful! Redirecting...",
@@ -189,6 +189,7 @@
       "selectModel": "Select Model",
       "specifyWorkspace": "Chat in Folder",
       "currentWorkspace": "Current Workspace",
+      "clearWorkspace": "Remove folder",
       "openFolder": "Open Folder",
       "none": "None"
     },
