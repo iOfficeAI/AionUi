@@ -264,6 +264,7 @@ export function initConversationBridge(): void {
         root: workspace,
         fileService,
         abortController: buildLastAbortController(),
+        maxDepth: 10, // 支持更深的目录结构 / Support deeper directory structures
         search: {
           text: search,
           onProcess(result) {
