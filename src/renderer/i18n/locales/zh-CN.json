@@ -48,7 +48,7 @@
     "usernamePlaceholder": "请输入用户名",
     "password": "密码",
     "passwordPlaceholder": "请输入密码",
-    "rememberUsername": "记住用户名",
+    "rememberPassword": "记住密码",
     "submit": "登录",
     "submitting": "登录中...",
     "success": "登录成功！正在跳转...",
@@ -186,6 +186,7 @@
       "selectModel": "选择模型",
       "specifyWorkspace": "关联文件夹对话",
       "currentWorkspace": "当前工作空间",
+      "clearWorkspace": "移除已选文件夹",
       "openFolder": "打开文件夹",
       "none": "无"
     },

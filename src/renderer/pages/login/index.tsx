@@ -12,7 +12,7 @@ type MessageState = {
   text: string;
 };
 
-const REMEMBER_KEY = 'rememberedUsername';
+const REMEMBER_PASSWORD_KEY = 'rememberedPassword';
 
 const LoginPage: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -21,7 +21,7 @@ const LoginPage: React.FC = () => {
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [rememberUsername, setRememberUsername] = useState(false);
+  const [rememberPassword, setRememberPassword] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [message, setMessage] = useState<MessageState | null>(null);
   const [loading, setLoading] = useState(false);
@@ -49,18 +49,14 @@ const LoginPage: React.FC = () => {
   }, [i18n.language]);
 
   useEffect(() => {
-    const storedUsername = localStorage.getItem(REMEMBER_KEY);
-    if (storedUsername) {
-      setUsername(storedUsername);
-      setRememberUsername(true);
-      window.setTimeout(() => {
-        passwordRef.current?.focus();
-      }, 0);
-    } else {
-      window.setTimeout(() => {
-        usernameRef.current?.focus();
-      }, 0);
+    const storedPassword = localStorage.getItem(REMEMBER_PASSWORD_KEY);
+    if (storedPassword) {
+      setPassword(storedPassword);
+      setRememberPassword(true);
     }
+    window.setTimeout(() => {
+      usernameRef.current?.focus();
+    }, 0);
 
     return () => {
       if (messageTimer.current) {
@@ -130,13 +126,13 @@ const LoginPage: React.FC = () => {
       setLoading(true);
       setMessage(null);
 
-      const result = await login({ username: trimmedUsername, password, remember: rememberUsername });
+      const result = await login({ username: trimmedUsername, password, remember: rememberPassword });
 
       if (result.success) {
-        if (rememberUsername) {
-          localStorage.setItem(REMEMBER_KEY, trimmedUsername);
+        if (rememberPassword) {
+          localStorage.setItem(REMEMBER_PASSWORD_KEY, password);
         } else {
-          localStorage.removeItem(REMEMBER_KEY);
+          localStorage.removeItem(REMEMBER_PASSWORD_KEY);
         }
 
         const successText = t('login.success');
@@ -167,7 +163,7 @@ const LoginPage: React.FC = () => {
 
       setLoading(false);
     },
-    [login, navigate, password, rememberUsername, showMessage, t, username]
+    [login, navigate, password, rememberPassword, showMessage, t, username]
   );
 
   if (status === 'checking') {
@@ -244,8 +240,8 @@ const LoginPage: React.FC = () => {
           </div>
 
           <div className='login-page__checkbox'>
-            <input type='checkbox' id='remember-username' checked={rememberUsername} onChange={(event) => setRememberUsername(event.target.checked)} />
-            <label htmlFor='remember-username'>{t('login.rememberUsername')}</label>
+            <input type='checkbox' id='remember-password' checked={rememberPassword} onChange={(event) => setRememberPassword(event.target.checked)} />
+            <label htmlFor='remember-password'>{t('login.rememberPassword')}</label>
           </div>
 
           <button type='submit' className='login-page__submit' disabled={loading}>

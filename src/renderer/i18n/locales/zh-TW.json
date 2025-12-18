@@ -150,7 +150,7 @@
     "usernamePlaceholder": "請輸入使用者名稱",
     "password": "密碼",
     "passwordPlaceholder": "請輸入密碼",
-    "rememberUsername": "記住使用者名稱",
+    "rememberPassword": "記住密碼",
     "submit": "登入",
     "submitting": "登入中...",
     "success": "登入成功！準備跳轉...",
@@ -284,7 +284,10 @@
       "linkFolder": "開啟資料夾",
       "newConversation": "新對話",
       "multiAgentModeEnabled": "已進入多智能體模式",
-      "selectModel": "選擇模型"
+      "selectModel": "選擇模型",
+      "specifyWorkspace": "關聯資料夾對話",
+      "currentWorkspace": "目前工作空間",
+      "clearWorkspace": "移除資料夾"
     },
     "history": {
       "cancelDelete": "取消",
