@@ -44,7 +44,8 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
   const isMacRuntime = isDesktopRuntime && detectMac();
   // Windows/Linux 显示自定义窗口按钮；macOS 在标题栏给工作区一个切换入口
   const showWindowControls = isDesktopRuntime && !isMacRuntime;
-  const showWorkspaceButton = workspaceAvailable && isMacRuntime;
+  // WebUI 和 macOS 桌面都需要在标题栏放工作区开关
+  const showWorkspaceButton = workspaceAvailable && (!isDesktopRuntime || isMacRuntime);
 
   const workspaceTooltip = workspaceCollapsed ? t('conversation.workspace.expand', { defaultValue: 'Expand workspace' }) : t('conversation.workspace.collapse', { defaultValue: 'Collapse workspace' });
   // 统一在标题栏左侧展示主侧栏开关 / Always expose sidebar toggle on titlebar left side
@@ -90,11 +91,9 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
       <div className='app-titlebar__brand'>{appTitle}</div>
       <div className='app-titlebar__toolbar'>
         {showWorkspaceButton && (
-          <Tooltip content={workspaceTooltip} position='bottom'>
-            <button type='button' className='app-titlebar__button' onClick={handleWorkspaceToggle} aria-label={workspaceTooltip}>
-              {workspaceCollapsed ? <ExpandRight theme='outline' size='18' fill='currentColor' /> : <ExpandLeft theme='outline' size='18' fill='currentColor' />}
-            </button>
-          </Tooltip>
+          <button type='button' className='app-titlebar__button' onClick={handleWorkspaceToggle} aria-label={workspaceTooltip}>
+            {workspaceCollapsed ? <ExpandRight theme='outline' size='18' fill='currentColor' /> : <ExpandLeft theme='outline' size='18' fill='currentColor' />}
+          </button>
         )}
         {showWindowControls && <WindowControls />}
       </div>

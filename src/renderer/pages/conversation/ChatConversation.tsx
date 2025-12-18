@@ -94,9 +94,17 @@ const GeminiConversationPanel: React.FC<{ conversation: GeminiConversation; slid
   // 共享模型选择状态供头部和发送框复用
   // Share model selection state between header and send box
   const modelSelection = useGeminiModelSelection(conversation.id, conversation.model);
+  const workspaceEnabled = Boolean(conversation.extra?.workspace);
+  const chatLayoutProps = {
+    title: conversation.name,
+    siderTitle: sliderTitle,
+    sider: <ChatSider conversation={conversation} />,
+    headerLeft: <GeminiModelSelector selection={modelSelection} />,
+    workspaceEnabled,
+  };
 
   return (
-    <ChatLayout title={conversation.name} siderTitle={sliderTitle} sider={<ChatSider conversation={conversation} />} headerLeft={<GeminiModelSelector selection={modelSelection} />}>
+    <ChatLayout {...chatLayoutProps}>
       <GeminiChat conversation_id={conversation.id} workspace={conversation.extra.workspace} modelSelection={modelSelection} />
     </ChatLayout>
   );
@@ -106,6 +114,7 @@ const ChatConversation: React.FC<{
   conversation?: TChatConversation;
 }> = ({ conversation }) => {
   const { t } = useTranslation();
+  const workspaceEnabled = Boolean(conversation?.extra?.workspace);
 
   const isGeminiConversation = conversation?.type === 'gemini';
 
@@ -142,7 +151,7 @@ const ChatConversation: React.FC<{
   }
 
   return (
-    <ChatLayout title={conversation?.name} backend={conversation?.type === 'acp' ? conversation?.extra?.backend : conversation?.type === 'codex' ? 'codex' : undefined} agentName={(conversation?.extra as { agentName?: string })?.agentName} siderTitle={sliderTitle} sider={<ChatSider conversation={conversation} />}>
+    <ChatLayout title={conversation?.name} backend={conversation?.type === 'acp' ? conversation?.extra?.backend : conversation?.type === 'codex' ? 'codex' : undefined} agentName={(conversation?.extra as { agentName?: string })?.agentName} siderTitle={sliderTitle} sider={<ChatSider conversation={conversation} />} workspaceEnabled={workspaceEnabled}>
       {conversationNode}
     </ChatLayout>
   );

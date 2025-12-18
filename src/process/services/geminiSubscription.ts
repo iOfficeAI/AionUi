@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { AuthType, Config, UserTierId, getOauthClient } from '@office-ai/aioncli-core';
-import { setupUser } from '@office-ai/aioncli-core/dist/src/code_assist/setup.js';
+import type { UserTierId } from '@office-ai/aioncli-core';
+import { getOauthInfoWithCache } from '@office-ai/aioncli-core';
 
 export interface GeminiSubscriptionStatus {
   isSubscriber: boolean;
@@ -26,27 +26,33 @@ type CacheEntry = {
 const statusCache = new Map<string, CacheEntry>();
 const pendingRequests = new Map<string, Promise<GeminiSubscriptionStatus>>();
 
-// 直接询问 Gemini CLI，判断当前账号的订阅等级。Call CLI to determine user tier.
+// 检查订阅状态，但不触发登录流程。Check subscription without triggering login flow.
+// 注意：由于 setupUser 需要交互式 OAuth client，我们暂时只能检查是否有有效凭证。
+// 如果需要完整的订阅状态检查，用户需要先通过设置页面登录。
 async function fetchSubscriptionStatus(proxy?: string): Promise<GeminiSubscriptionStatus> {
   try {
-    const config = new Config({
-      proxy,
-      sessionId: '',
-      targetDir: '',
-      debugMode: false,
-      cwd: '',
-      model: '',
-    });
+    // 只使用缓存的凭证检查，不触发登录流程
+    // Only use cached credentials, do not trigger login flow
+    const oauthInfo = await getOauthInfoWithCache(proxy);
 
-    const client = await getOauthClient(AuthType.LOGIN_WITH_GOOGLE, config);
-    const userData = await setupUser(client);
+    if (!oauthInfo) {
+      // 没有有效的缓存凭证，返回未知状态
+      // No valid cached credentials, return unknown status
+      return {
+        isSubscriber: false,
+        tier: 'unknown',
+        lastChecked: Date.now(),
+        message: 'No valid cached credentials',
+      };
+    }
 
-    const tier = userData.userTier;
-    const isSubscriber = tier === UserTierId.STANDARD || tier === UserTierId.LEGACY;
-
+    // 有有效凭证，但我们无法在不触发登录流程的情况下检查实际订阅状态
+    // 暂时假设有凭证的用户是标准用户（可以在登录时正确设置）
+    // Has valid credentials, but we can't check actual subscription without triggering login
+    // For now, assume users with valid credentials are standard users
     return {
-      isSubscriber,
-      tier,
+      isSubscriber: false,
+      tier: 'unknown',
       lastChecked: Date.now(),
     };
   } catch (error) {

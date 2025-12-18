@@ -139,9 +139,9 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
           </Form.Item>
 
           {/* Base URL - 仅 Gemini 平台显示（用于自定义代理）/ Base URL - only for Gemini platform (for custom proxy) */}
-          <Form.Item hidden={!isGemini} label={t('settings.baseUrl')} field={'baseUrl'}>
+          {/* <Form.Item hidden={!isGemini} label={t('settings.baseUrl')} field={'baseUrl'}>
             <Input placeholder='https://generativelanguage.googleapis.com' />
-          </Form.Item>
+          </Form.Item> */}
 
           <Form.Item label={t('settings.apiKey')} required rules={[{ required: true }]} field={'apiKey'} extra={<div className='text-11px text-t-secondary mt-2'>💡 {t('settings.multiApiKeyEditTip')}</div>}>
             <Input.TextArea rows={4} placeholder={t('settings.apiKeyPlaceholder')} />
