@@ -38,7 +38,10 @@
     "error": "Error",
     "saveSuccess": "Saved successfully",
     "saveFailed": "Failed to save",
-    "unknownError": "Unknown error"
+    "unknownError": "Unknown error",
+    "confirmDelete": "Confirm Delete",
+    "deleteSuccess": "Deleted successfully",
+    "deleteFailed": "Failed to delete"
   },
   "login": {
     "pageTitle": "AionUi - Sign In",
@@ -48,7 +51,7 @@
     "usernamePlaceholder": "Enter your username",
     "password": "Password",
     "passwordPlaceholder": "Enter your password",
-    "rememberUsername": "Remember username",
+    "rememberMe": "Remember me",
     "submit": "Sign In",
     "submitting": "Signing in...",
     "success": "Login successful! Redirecting...",
@@ -186,6 +189,7 @@
       "selectModel": "Select Model",
       "specifyWorkspace": "Chat in Folder",
       "currentWorkspace": "Current Workspace",
+      "clearWorkspace": "Remove folder",
       "openFolder": "Open Folder",
       "none": "None"
     },
@@ -251,6 +255,9 @@
       "noModelSelected": "No model selected for current session, cannot send message",
       "sendMessageTo": "Send message to {{model}}",
       "processing": "Processing..."
+    },
+    "contextUsage": {
+      "contextUsed": "context used"
     }
   },
   "settings": {
@@ -266,6 +273,22 @@
     "yoloMode": "YOLO (Auto Allow)",
     "customCss": "Custom CSS",
     "customCssDesc": "Enter custom CSS styles here to modify the interface appearance. The system will automatically add !important to ensure highest priority. Changes will take effect immediately.",
+    "cssSettings": "CSS Settings",
+    "cssTheme": {
+      "selectOrCustomize": "Select preset theme or custom CSS",
+      "addManually": "Add Manually",
+      "default": "Default",
+      "addToPreset": "Add Theme",
+      "editTheme": "Edit Theme",
+      "previewCover": "Background Image",
+      "name": "Name",
+      "namePlaceholder": "Enter preset name",
+      "cssCode": "CSS Code",
+      "applied": "Applied theme: {{name}}",
+      "applyFailed": "Failed to apply theme",
+      "cleared": "Restored to default style",
+      "deleteConfirm": "Are you sure you want to delete this theme? This action cannot be undone."
+    },
     "geminiBaseUrl": "Gemini API Base URL",
     "cacheDir": "Cache Directory",
     "workDir": "Work Directory",
@@ -283,6 +306,7 @@
     "addModel": "Add Model",
     "editModel": "Edit Model",
     "modelPlatform": "Model Platform",
+    "modelProvider": "Model Provider",
     "platformName": "Platform Name",
     "modelName": "Model Name",
     "baseUrl": "base url",
@@ -292,9 +316,17 @@
     "modelCount": "Model",
     "apiKeyCount": "API Key",
     "pleaseEnterBaseUrlAndApiKey": "Please enter base url and api key",
+    "pleaseEnterApiKey": "Please enter API Key",
+    "pleaseEnterBaseUrl": "Please enter Base URL",
+    "pleaseSelectProvider": "Please select a model provider",
     "multiApiKeyTip": "💡 To add multiple API Keys for auto-rotation, configure in platform edit later",
     "multiApiKeyEditTip": "Support multiple API Keys, one per line, system will auto-rotate",
     "apiKeyPlaceholder": "Enter API Key(s), one per line for multiple keys",
+    "editApiKey": "Edit API Keys",
+    "testKey": "Test Key",
+    "multiKeyTip": "Multiple keys separated by comma",
+    "deleteInvalidKeys": "Delete Invalid Keys",
+    "testAllKeys": "Test All Keys",
     "addModelPlaceholder": "Select or enter model ID",
     "addModelHint": "Pick or type a model ID and it will be appended to this provider.",
     "addModelSelectedHint": "Ready to add model: {{model}}",
@@ -315,6 +347,7 @@
     "darkMode": "Dark",
     "agent": "Agent",
     "tools": "Tools",
+    "display": "Display",
     "imageGeneration": "Image Generation",
     "imageGenerationToggle": "Enable image generation tool",
     "imageGenerationDescription": "Choose which configured image-capable model the tool should use by default.",
@@ -724,6 +757,13 @@
       "create": "create",
       "modify": "modify",
       "delete": "delete"
+    }
+  },
+  "gemini": {
+    "mode": {
+      "autoDesc": "Let the system choose the best model for your task.",
+      "proDesc": "For complex tasks that require deep reasoning and creativity",
+      "flashDesc": "For tasks that need a balance of speed and reasoning"
     }
   }
 }

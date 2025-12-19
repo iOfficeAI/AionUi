@@ -44,6 +44,8 @@ export interface IConfigStorageRefer {
   theme: string;
   colorScheme: string;
   customCss: string; // 自定义 CSS 样式
+  'css.themes': ICssTheme[]; // 自定义 CSS 主题列表 / Custom CSS themes list
+  'css.activeThemeId': string; // 当前激活的主题 ID / Currently active theme ID
   'gemini.defaultModel': string;
   'tools.imageGenerationModel': TProviderWithModel & {
     switch: boolean;
@@ -71,6 +73,11 @@ interface IChatConversation<T, Extra> {
   status?: 'pending' | 'running' | 'finished' | undefined;
 }
 
+// Token 使用统计数据类型
+export interface TokenUsageData {
+  totalTokens: number;
+}
+
 export type TChatConversation =
   | IChatConversation<
       'gemini',
@@ -78,6 +85,7 @@ export type TChatConversation =
         workspace: string;
         customWorkspace?: boolean; // true 用户指定工作目录 false 系统默认工作目录
         webSearchEngine?: 'google' | 'default'; // 搜索引擎配置
+        lastTokenUsage?: TokenUsageData; // 上次的 token 使用统计
       }
     >
   | Omit<
@@ -197,4 +205,18 @@ export interface IMcpTool {
   name: string;
   description?: string;
   inputSchema?: unknown;
+}
+
+/**
+ * CSS 主题配置接口 / CSS Theme configuration interface
+ * 用于存储用户自定义的 CSS 皮肤 / Used to store user-defined CSS skins
+ */
+export interface ICssTheme {
+  id: string; // 唯一标识 / Unique identifier
+  name: string; // 主题名称 / Theme name
+  cover?: string; // 封面图片 base64 或 URL / Cover image base64 or URL
+  css: string; // CSS 样式代码 / CSS style code
+  isPreset?: boolean; // 是否为预设主题 / Whether it's a preset theme
+  createdAt: number; // 创建时间 / Creation time
+  updatedAt: number; // 更新时间 / Update time
 }

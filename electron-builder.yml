@@ -23,6 +23,12 @@ files:
   - node_modules/prebuild-install/**/*
   - node_modules/node-gyp-build/**/*
   - node_modules/bindings/**/*
+  # tree-sitter WASM dependencies for bash parsing (used by aioncli-core)
+  - node_modules/web-tree-sitter/**/*
+  - node_modules/tree-sitter-bash/**/*
+  # Exclude tree-sitter-bash native binaries to avoid signing issues
+  - '!node_modules/tree-sitter-bash/prebuilds/**/*'
+  - '!node_modules/tree-sitter-bash/build/**/*'
   # Exclude dev/test files
   - '!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}'
   - '!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}'
@@ -126,6 +132,9 @@ asarUnpack:
   - "**/node_modules/prebuild-install/**/*"
   - "**/node_modules/node-gyp-build/**/*"
   - "**/node_modules/bindings/**/*"
+  # tree-sitter WASM files need to be unpacked for fs.readFile access
+  - "**/node_modules/web-tree-sitter/**/*"
+  - "**/node_modules/tree-sitter-bash/**/*"
 
 compression: maximum
 removePackageScripts: true

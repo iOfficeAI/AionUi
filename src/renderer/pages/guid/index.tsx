@@ -18,6 +18,7 @@ import KimiLogo from '@/renderer/assets/logos/kimi.svg';
 import OpenCodeLogo from '@/renderer/assets/logos/opencode.svg';
 import QwenLogo from '@/renderer/assets/logos/qwen.svg';
 import FilePreview from '@/renderer/components/FilePreview';
+import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { useCompositionInput } from '@/renderer/hooks/useCompositionInput';
 import { useDragUpload } from '@/renderer/hooks/useDragUpload';
 import { useGeminiGoogleAuthModels } from '@/renderer/hooks/useGeminiGoogleAuthModels';
@@ -28,13 +29,13 @@ import { iconColors } from '@/renderer/theme/colors';
 import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
 import type { AcpBackend } from '@/types/acpTypes';
 import { Button, ConfigProvider, Dropdown, Input, Menu, Tooltip } from '@arco-design/web-react';
-import { ArrowUp, FolderOpen, Plus, Robot, UploadOne } from '@icon-park/react';
+import { IconClose } from '@arco-design/web-react/icon';
+import { ArrowUp, FolderOpen, MenuFold, MenuUnfold, Plus, Robot, UploadOne } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import useSWR from 'swr';
 import styles from './index.module.css';
-import { useLayoutContext } from '@/renderer/context/LayoutContext';
 
 /**
  * 缓存Provider的可用模型列表，避免重复计算
@@ -114,7 +115,7 @@ const useModelList = () => {
     return allProviders.filter(hasAvailableModels);
   }, [geminiModelValues, isGoogleAuth, modelConfig]);
 
-  return { modelList, isGoogleAuth };
+  return { modelList, isGoogleAuth, geminiModeOptions };
 };
 
 // Agent Logo 映射 (custom uses Robot icon from @icon-park/react)
@@ -138,6 +139,23 @@ const Guid: React.FC = () => {
   const [files, setFiles] = useState<string[]>([]);
   const [dir, setDir] = useState<string>('');
   const [currentModel, _setCurrentModel] = useState<TProviderWithModel>();
+  const { modelList, isGoogleAuth, geminiModeOptions } = useModelList();
+  const geminiModeLookup = useMemo(() => {
+    const lookup = new Map<string, (typeof geminiModeOptions)[number]>();
+    geminiModeOptions.forEach((option) => lookup.set(option.value, option));
+    return lookup;
+  }, [geminiModeOptions]);
+  const formatGeminiModelLabel = useCallback(
+    (provider: { platform?: string } | undefined, modelName?: string) => {
+      if (!modelName) return '';
+      const isGoogleProvider = provider?.platform?.toLowerCase().includes('gemini-with-google-auth');
+      if (isGoogleProvider) {
+        return geminiModeLookup.get(modelName)?.label || modelName;
+      }
+      return modelName;
+    },
+    [geminiModeLookup]
+  );
   // 记录当前选中的 provider+model，方便列表刷新时判断是否仍可用
   const selectedModelKeyRef = useRef<string | null>(null);
   // 支持在初始化页展示 Codex（MCP）选项，先做 UI 占位
@@ -409,7 +427,6 @@ const Guid: React.FC = () => {
   };
   // 使用共享的输入法合成处理
   const { compositionHandlers, createKeyDownHandler } = useCompositionInput();
-  const { modelList, isGoogleAuth } = useModelList();
   const setDefaultModel = async () => {
     if (!modelList || modelList.length === 0) {
       return;
@@ -645,7 +662,29 @@ const Guid: React.FC = () => {
                                           });
                                         }}
                                       >
-                                        {modelName}
+                                        {(() => {
+                                          const isGoogleProvider = provider.platform?.toLowerCase().includes('gemini-with-google-auth');
+                                          const option = isGoogleProvider ? geminiModeLookup.get(modelName) : undefined;
+                                          if (!option) {
+                                            return modelName;
+                                          }
+                                          return (
+                                            <Tooltip
+                                              position='right'
+                                              trigger='hover'
+                                              content={
+                                                <div className='max-w-240px space-y-6px'>
+                                                  <div className='text-12px text-t-secondary leading-5'>{option.description}</div>
+                                                  {option.modelHint && <div className='text-11px text-t-tertiary'>{option.modelHint}</div>}
+                                                </div>
+                                              }
+                                            >
+                                              <div className='flex items-center justify-between gap-12px w-full'>
+                                                <span>{option.label}</span>
+                                              </div>
+                                            </Tooltip>
+                                          );
+                                        })()}
                                       </Menu.Item>
                                     ))}
                                   </Menu.ItemGroup>
@@ -661,7 +700,7 @@ const Guid: React.FC = () => {
                     }
                   >
                     <Button className={'sendbox-model-btn'} shape='round'>
-                      {currentModel ? currentModel.useModel : t('conversation.welcome.selectModel')}
+                      {currentModel ? formatGeminiModelLabel(currentModel, currentModel.useModel) : t('conversation.welcome.selectModel')}
                     </Button>
                   </Dropdown>
                 )}
@@ -688,6 +727,9 @@ const Guid: React.FC = () => {
                   <span className='truncate'>
                     {t('conversation.welcome.currentWorkspace')}: {dir}
                   </span>
+                </Tooltip>
+                <Tooltip content={t('conversation.welcome.clearWorkspace')} position='top'>
+                  <IconClose className='hover:text-[rgb(var(--danger-6))] hover:bg-3 transition-colors' strokeWidth={3} style={{ fontSize: 16 }} onClick={() => setDir('')} />
                 </Tooltip>
               </div>
             )}

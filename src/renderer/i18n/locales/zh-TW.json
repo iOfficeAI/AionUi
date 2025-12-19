@@ -137,7 +137,10 @@
     "collapse": "收起",
     "copy": "複製",
     "download": "下載",
-    "unknownError": "未知錯誤"
+    "unknownError": "未知錯誤",
+    "confirmDelete": "確認刪除",
+    "deleteSuccess": "刪除成功",
+    "deleteFailed": "刪除失敗"
   },
   "login": {
     "pageTitle": "AionUi - 登入",
@@ -147,7 +150,7 @@
     "usernamePlaceholder": "請輸入使用者名稱",
     "password": "密碼",
     "passwordPlaceholder": "請輸入密碼",
-    "rememberUsername": "記住使用者名稱",
+    "rememberMe": "記住我",
     "submit": "登入",
     "submitting": "登入中...",
     "success": "登入成功！準備跳轉...",
@@ -281,7 +284,10 @@
       "linkFolder": "開啟資料夾",
       "newConversation": "新對話",
       "multiAgentModeEnabled": "已進入多智能體模式",
-      "selectModel": "選擇模型"
+      "selectModel": "選擇模型",
+      "specifyWorkspace": "關聯資料夾對話",
+      "currentWorkspace": "目前工作空間",
+      "clearWorkspace": "移除資料夾"
     },
     "history": {
       "cancelDelete": "取消",
@@ -342,6 +348,9 @@
       "noModelSelected": "當前會話未選擇模型，無法發送訊息",
       "sendMessageTo": "發送訊息到 {{model}}",
       "processing": "正在處理中……"
+    },
+    "contextUsage": {
+      "contextUsed": "上下文已使用"
     }
   },
   "settings": {
@@ -357,6 +366,11 @@
     "apiKey": "API Key",
     "apiKeyCount": "API Key",
     "apiKeyPlaceholder": "請輸入 API Key，多個 Key 請每行一個",
+    "editApiKey": "編輯 API Key",
+    "testKey": "測試金鑰",
+    "multiKeyTip": "多個金鑰使用逗號分隔",
+    "deleteInvalidKeys": "刪除無效金鑰",
+    "testAllKeys": "測試所有金鑰",
     "authMethod": "驗證",
     "baseUrl": "base url",
     "baseUrlAutoFix": "base_url 自動修復為：{{base_url}}",
@@ -371,6 +385,22 @@
     "gemini": "Gemini",
     "geminiApiKey": "Gemini API 金鑰",
     "geminiBaseUrl": "Gemini API Base URL",
+    "cssSettings": "CSS設定",
+    "cssTheme": {
+      "selectOrCustomize": "選擇預設主題或自訂 CSS",
+      "addManually": "手動新增",
+      "default": "預設",
+      "addToPreset": "新增主題",
+      "editTheme": "編輯主題",
+      "previewCover": "背景圖",
+      "name": "名稱",
+      "namePlaceholder": "輸入預設名稱",
+      "cssCode": "CSS代碼",
+      "applied": "已套用主題：{{name}}",
+      "applyFailed": "套用主題失敗",
+      "cleared": "已恢復預設樣式",
+      "deleteConfirm": "確定要刪除該主題嗎？此操作不可恢復。"
+    },
     "googleLogin": "Google 登入",
     "googleLogout": "登出",
     "imageGenerationGuide": "圖像模型配置指南",
@@ -381,6 +411,7 @@
     "modelCount": "模型",
     "modelName": "模型名稱",
     "modelPlatform": "模型平台",
+    "modelProvider": "模型供應商",
     "multiApiKeyEditTip": "支援多個 API Key，每行一個，系統將自動輪詢使用",
     "multiApiKeyTip": "💡 如需新增多個 API Key 實現自動輪詢，請稍後到平台編輯界面配置",
     "noAvailable": "暫無可用圖像模型，請先配置。",
@@ -388,6 +419,9 @@
     "personalAuth": "Google 帳號",
     "platformName": "平台名稱",
     "pleaseEnterBaseUrlAndApiKey": "請輸入base url和api key",
+    "pleaseEnterApiKey": "請輸入 API Key",
+    "pleaseEnterBaseUrl": "請輸入 Base URL",
+    "pleaseSelectProvider": "請選擇模型供應商",
     "proxyConfig": "代理",
     "proxyHttpOnly": "僅支持 http/https 協議",
     "restartConfirm": "修改後將重啟應用，是否繼續？",
@@ -666,6 +700,13 @@
       "create": "建立",
       "modify": "修改",
       "delete": "刪除"
+    }
+  },
+  "gemini": {
+    "mode": {
+      "autoDesc": "讓系統為你的任務自動選擇最合適的模型。",
+      "proDesc": "適合需要複雜推理與創造力的任務。",
+      "flashDesc": "適合同時兼顧速度與推理的任務。"
     }
   },
   "acp": {

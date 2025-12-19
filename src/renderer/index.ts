@@ -15,6 +15,9 @@ import { ThemeProvider } from './context/ThemeContext';
 import { PreviewProvider } from './pages/conversation/preview';
 
 import { ConfigProvider } from '@arco-design/web-react';
+// 配置 Arco Design 使用 React 18 的 createRoot，修复 Message 组件的 CopyReactDOM.render 错误
+// Configure Arco Design to use React 18's createRoot, fixing Message component's CopyReactDOM.render error
+import '@arco-design/web-react/es/_util/react-19-adapter';
 import '@arco-design/web-react/dist/css/arco.css';
 import enUS from '@arco-design/web-react/es/locale/en-US'; // 英文
 import jaJP from '@arco-design/web-react/es/locale/ja-JP'; // 日文

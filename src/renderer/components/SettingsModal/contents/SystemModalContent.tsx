@@ -5,42 +5,16 @@
  */
 
 import { ipcBridge } from '@/common';
-import { ConfigStorage } from '@/common/storage';
-import FontSizeControl from '@/renderer/components/FontSizeControl';
 import LanguageSwitcher from '@/renderer/components/LanguageSwitcher';
-import { ThemeSwitcher } from '@/renderer/components/ThemeSwitcher';
 import { iconColors } from '@/renderer/theme/colors';
-import { Alert, Button, Divider, Form, Modal, Input, Tooltip } from '@arco-design/web-react';
-import { FolderOpen, Down, Up } from '@icon-park/react';
+import { Alert, Button, Form, Modal, Tooltip } from '@arco-design/web-react';
+import { FolderOpen } from '@icon-park/react';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { CSSProperties } from 'react';
 import useSWR from 'swr';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
-import CodeMirror from '@uiw/react-codemirror';
-import { css as cssLang } from '@codemirror/lang-css';
-import { useThemeContext } from '@/renderer/context/ThemeContext';
-import AionCollapse from '@/renderer/components/base/AionCollapse';
 import classNames from 'classnames';
 import { useSettingsViewMode } from '../settingsViewContext';
-
-// ==================== 样式常量 / Style Constants ====================
-
-/** CodeMirror 编辑器样式 / CodeMirror editor styles */
-const CODE_MIRROR_STYLE: CSSProperties = {
-  fontSize: '13px',
-  border: '1px solid var(--color-border-2)',
-  borderRadius: '6px',
-  overflow: 'hidden',
-} as const;
-
-/** CodeMirror 基础配置 / CodeMirror basic setup */
-const CODE_MIRROR_BASIC_SETUP = {
-  lineNumbers: true,
-  foldGutter: true,
-  dropCursor: false,
-  allowMultipleSelections: false,
-} as const;
 
 /**
  * 目录选择输入组件 / Directory selection input component
@@ -114,13 +88,12 @@ const PreferenceRow: React.FC<{
 /**
  * 系统设置内容组件 / System settings content component
  *
- * 提供系统级配置选项，包括语言、主题、字体大小、目录配置和自定义CSS
- * Provides system-level configuration options including language, theme, font size, directory config and custom CSS
+ * 提供系统级配置选项，包括语言和目录配置
+ * Provides system-level configuration options including language and directory config
  *
  * @features
- * - 偏好设置：语言、主题、字体大小 / Preferences: language, theme, font size
+ * - 语言设置 / Language setting
  * - 高级设置：缓存目录、工作目录配置 / Advanced: cache directory, work directory configuration
- * - 自定义CSS编辑器，支持实时预览 / Custom CSS editor with live preview
  * - 配置变更自动保存 / Auto-save on configuration changes
  */
 interface SystemModalContentProps {
@@ -134,8 +107,6 @@ const SystemModalContent: React.FC<SystemModalContentProps> = ({ onRequestClose 
   const [loading, setLoading] = useState(false);
   const [modal, modalContextHolder] = Modal.useModal();
   const [error, setError] = useState<string | null>(null);
-  const { theme } = useThemeContext();
-  const [customCss, setCustomCss] = useState('');
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
 
@@ -150,44 +121,8 @@ const SystemModalContent: React.FC<SystemModalContentProps> = ({ onRequestClose 
     }
   }, [systemInfo, form]);
 
-  // Load custom CSS
-  useEffect(() => {
-    void ConfigStorage.get('customCss')
-      .then((storedCss) => {
-        setCustomCss(storedCss || '');
-      })
-      .catch((err) => {
-        console.error('Failed to load custom CSS:', err);
-      });
-  }, []);
-
-  /**
-   * 处理自定义 CSS 变更 / Handle custom CSS change
-   * 保存到存储并触发自定义事件通知其他组件更新
-   * Saves to storage and dispatches custom event to notify other components
-   * @param cssValue - CSS 样式内容 / CSS style content
-   */
-  const handleCustomCssChange = (cssValue: string) => {
-    setCustomCss(cssValue);
-    void ConfigStorage.set('customCss', cssValue || '').catch((err) => {
-      console.error('Failed to save custom CSS:', err);
-    });
-    window.dispatchEvent(
-      new CustomEvent('custom-css-updated', {
-        detail: { customCss: cssValue || '' },
-      })
-    );
-  };
-
-  // 渲染折叠面板的展开/收起图标 / Render expand/collapse icon for collapse panel
-  const renderExpandIcon = (active: boolean) => (active ? <Up theme='outline' size='16' fill={iconColors.secondary} /> : <Down theme='outline' size='16' fill={iconColors.secondary} />);
-
   // 偏好设置项配置 / Preference items configuration
-  const preferenceItems = [
-    { key: 'language', label: t('settings.language'), component: <LanguageSwitcher /> },
-    { key: 'theme', label: t('settings.theme'), component: <ThemeSwitcher /> },
-    { key: 'fontSize', label: t('settings.fontSize'), component: <FontSizeControl /> },
-  ];
+  const preferenceItems = [{ key: 'language', label: t('settings.language'), component: <LanguageSwitcher /> }];
 
   // 目录配置保存确认 / Directory configuration save confirmation
   const saveDirConfigValidate = (_values: { cacheDir: string; workDir: string }): Promise<unknown> => {
@@ -275,25 +210,12 @@ const SystemModalContent: React.FC<SystemModalContentProps> = ({ onRequestClose 
                 </PreferenceRow>
               ))}
             </div>
-            <Divider className='my-0 border-border-2' />
-            {/* <AionCollapse className='!p-[0px]' bordered={false} defaultActiveKey={['advanced']} expandIcon={renderExpandIcon} expandIconPosition='right'>
-              <AionCollapse.Item name='advanced' header={<span className='text-14px text-2'>{t('settings.advancedSettings')}</span>} className='bg-transparent' contentStyle={{ padding: '12px 0 0' }}>
-                
-              </AionCollapse.Item>
-            </AionCollapse> */}
             <Form form={form} layout='vertical' className='space-y-16px'>
               <DirInputItem label={t('settings.cacheDir')} field='cacheDir' />
               <DirInputItem label={t('settings.workDir')} field='workDir' />
               {error && <Alert className='mt-16px' type='error' content={typeof error === 'string' ? error : JSON.stringify(error)} />}
             </Form>
           </div>
-
-          {/* 自定义CSS设置 / Custom CSS Settings - Collapsible */}
-          <AionCollapse bordered={false} defaultActiveKey={['css']} expandIcon={renderExpandIcon} expandIconPosition='right'>
-            <AionCollapse.Item name='css' header={<span className='text-14px text-2'>{t('settings.customCss')}</span>} className='bg-transparent' contentStyle={{ padding: '12px 0 0' }}>
-              <CodeMirror value={customCss} theme={theme} extensions={[cssLang()]} onChange={handleCustomCssChange} placeholder={`/* ${t('settings.customCssDesc') || '在这里输入自定义 CSS 样式'} */\n/* 例如: */\n.chat-message {\n  font-size: 16px;\n}`} basicSetup={CODE_MIRROR_BASIC_SETUP} style={CODE_MIRROR_STYLE} className='[&_.cm-editor]:rounded-[6px]' />
-            </AionCollapse.Item>
-          </AionCollapse>
         </div>
       </AionScrollArea>
 

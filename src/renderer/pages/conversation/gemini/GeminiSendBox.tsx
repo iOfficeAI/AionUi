@@ -1,27 +1,30 @@
 import { ipcBridge } from '@/common';
 import { transformMessage } from '@/common/chatLib';
-import type { IProvider, TProviderWithModel } from '@/common/storage';
+import type { IProvider, TChatConversation, TokenUsageData, TProviderWithModel } from '@/common/storage';
 import { uuid } from '@/common/utils';
+import ContextUsageIndicator from '@/renderer/components/ContextUsageIndicator';
+import FilePreview from '@/renderer/components/FilePreview';
+import HorizontalFileList from '@/renderer/components/HorizontalFileList';
 import SendBox from '@/renderer/components/sendbox';
-import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/useSendBoxDraft';
 import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/ThoughtDisplay';
 import { useGeminiGoogleAuthModels } from '@/renderer/hooks/useGeminiGoogleAuthModels';
-import useSWR from 'swr';
-import FilePreview from '@/renderer/components/FilePreview';
+import { useLatestRef } from '@/renderer/hooks/useLatestRef';
+import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/useSendBoxDraft';
 import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/useSendBoxFiles';
 import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
+import { usePreviewContext } from '@/renderer/pages/conversation/preview';
 import { allSupportedExts } from '@/renderer/services/FileService';
+import { iconColors } from '@/renderer/theme/colors';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/fileSelection';
 import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
-import { Button, Dropdown, Menu, Tag } from '@arco-design/web-react';
+import { getModelContextLimit } from '@/renderer/utils/modelContextLimits';
+import { Button, Dropdown, Menu, Tag, Tooltip } from '@arco-design/web-react';
 import { Plus } from '@icon-park/react';
-import { iconColors } from '@/renderer/theme/colors';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import HorizontalFileList from '@/renderer/components/HorizontalFileList';
-import { usePreviewContext } from '@/renderer/pages/conversation/preview';
-import { useLatestRef } from '@/renderer/hooks/useLatestRef';
+import useSWR from 'swr';
+import type { GeminiModelSelection } from './useGeminiModelSelection';
 
 const useGeminiSendBoxDraft = getSendBoxDraftHook('gemini', {
   _type: 'gemini',
@@ -37,6 +40,7 @@ const useGeminiMessage = (conversation_id: string) => {
     description: '',
     subject: '',
   });
+  const [tokenUsage, setTokenUsage] = useState<TokenUsageData | null>(null);
 
   useEffect(() => {
     return ipcBridge.geminiConversation.responseStream.on((message) => {
@@ -57,6 +61,37 @@ const useGeminiMessage = (conversation_id: string) => {
             setThought({ subject: '', description: '' });
           }
           break;
+        case 'finished':
+          {
+            // 处理 Finished 事件，提取 token 使用统计
+            const finishedData = message.data as {
+              reason?: string;
+              usageMetadata?: {
+                promptTokenCount?: number;
+                candidatesTokenCount?: number;
+                totalTokenCount?: number;
+                cachedContentTokenCount?: number;
+              };
+            };
+            if (finishedData?.usageMetadata) {
+              const newTokenUsage: TokenUsageData = {
+                totalTokens: finishedData.usageMetadata.totalTokenCount || 0,
+              };
+              setTokenUsage(newTokenUsage);
+              // 持久化 token 使用统计到会话的 extra.lastTokenUsage 字段
+              // 使用 mergeExtra 选项，后端会自动合并 extra 字段，避免两次 IPC 调用
+              void ipcBridge.conversation.update.invoke({
+                id: conversation_id,
+                updates: {
+                  extra: {
+                    lastTokenUsage: newTokenUsage,
+                  } as TChatConversation['extra'],
+                },
+                mergeExtra: true,
+              });
+            }
+          }
+          break;
         default:
           {
             // Backend handles persistence, Frontend only updates UI
@@ -70,15 +105,24 @@ const useGeminiMessage = (conversation_id: string) => {
   useEffect(() => {
     setRunning(false);
     setThought({ subject: '', description: '' });
+    setTokenUsage(null);
     void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
       if (!res) return;
       if (res.status === 'running') {
         setRunning(true);
       }
+      // 加载持久化的 token 使用统计
+      if (res.type === 'gemini' && res.extra?.lastTokenUsage) {
+        const { lastTokenUsage } = res.extra;
+        // 只有当 lastTokenUsage 有有效数据时才设置
+        if (lastTokenUsage.totalTokens > 0) {
+          setTokenUsage(lastTokenUsage);
+        }
+      }
     });
   }, [conversation_id]);
 
-  return { thought, setThought, running };
+  return { thought, setThought, running, tokenUsage };
 };
 
 const EMPTY_AT_PATH: Array<string | FileOrFolderItem> = [];
@@ -119,15 +163,19 @@ const useSendBoxDraft = (conversation_id: string) => {
 
 const GeminiSendBox: React.FC<{
   conversation_id: string;
-  model: TProviderWithModel;
-}> = ({ conversation_id, model }) => {
+  modelSelection: GeminiModelSelection;
+}> = ({ conversation_id, modelSelection }) => {
   const { t } = useTranslation();
-  const { thought, running } = useGeminiMessage(conversation_id);
+  const { thought, running, tokenUsage } = useGeminiMessage(conversation_id);
 
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
 
   const addOrUpdateMessage = useAddOrUpdateMessage();
   const { setSendBoxHandler } = usePreviewContext();
+
+  // 从共享模型选择 hook 中获取当前模型及展示名称
+  // Read current model and display helper from shared selection hook
+  const { currentModel, getDisplayModelName } = modelSelection;
 
   // 使用 useLatestRef 保存最新的 setContent/atPath，避免重复注册 handler
   // Use useLatestRef to keep latest setters to avoid re-registering handler
@@ -145,65 +193,6 @@ const GeminiSendBox: React.FC<{
     };
     setSendBoxHandler(handler);
   }, [setSendBoxHandler, content]);
-
-  // Current model state (initialized from props)
-  const [currentModel, setCurrentModel] = useState<TProviderWithModel | undefined>(model);
-  useEffect(() => {
-    setCurrentModel(model);
-  }, [model?.id, model?.useModel]);
-
-  // 模型下拉：根据 Google Auth 情况动态注入 Gemini 官方 provider / Dynamic provider list with Google Auth
-  const { geminiModeOptions, isGoogleAuth } = useGeminiGoogleAuthModels();
-  const { data: modelConfig } = useSWR('model.config.sendbox', () => ipcBridge.mode.getModelConfig.invoke());
-
-  const availableModelsCache = useMemo(() => new Map<string, string[]>(), []);
-  const getAvailableModels = useCallback(
-    (provider: IProvider): string[] => {
-      const cacheKey = `${provider.id}-${(provider.model || []).join(',')}`;
-      if (availableModelsCache.has(cacheKey)) return availableModelsCache.get(cacheKey)!;
-      const result: string[] = [];
-      for (const modelName of provider.model || []) {
-        const functionCalling = hasSpecificModelCapability(provider, modelName, 'function_calling');
-        const excluded = hasSpecificModelCapability(provider, modelName, 'excludeFromPrimary');
-        if ((functionCalling === true || functionCalling === undefined) && excluded !== true) {
-          result.push(modelName);
-        }
-      }
-      availableModelsCache.set(cacheKey, result);
-      return result;
-    },
-    [availableModelsCache]
-  );
-
-  const providers = useMemo(() => {
-    let list: IProvider[] = Array.isArray(modelConfig) ? modelConfig : [];
-    if (isGoogleAuth) {
-      const googleProvider: IProvider = {
-        id: 'google-auth-gemini',
-        name: 'Gemini Google Auth',
-        platform: 'gemini-with-google-auth',
-        baseUrl: '',
-        apiKey: '',
-        model: geminiModeOptions.map((v) => v.value),
-        capabilities: [{ type: 'text' }, { type: 'vision' }, { type: 'function_calling' }],
-      } as unknown as IProvider;
-      list = [googleProvider, ...list];
-    }
-    // Filter providers with at least one primary chat model
-    return list.filter((p) => getAvailableModels(p).length > 0);
-  }, [geminiModeOptions, getAvailableModels, isGoogleAuth, modelConfig]);
-
-  const handleSelectModel = useCallback(
-    async (provider: IProvider, modelName: string) => {
-      const selected: TProviderWithModel = { ...(provider as unknown as TProviderWithModel), useModel: modelName };
-      // Update conversation model and restart backend task
-      const ok = await ipcBridge.conversation.update.invoke({ id: conversation_id, updates: { model: selected } });
-      if (ok) {
-        setCurrentModel(selected);
-      }
-    },
-    [conversation_id]
-  );
 
   // 使用共享的文件处理逻辑
   const { handleFilesAdded, processMessageWithFiles, clearFiles } = useSendBoxFiles({
@@ -258,15 +247,6 @@ const GeminiSendBox: React.FC<{
     }
   });
 
-  // 截断过长的模型名称
-  const getDisplayModelName = (modelName: string) => {
-    const maxLength = 20;
-    if (modelName.length > maxLength) {
-      return modelName.slice(0, maxLength) + '...';
-    }
-    return modelName;
-  };
-
   return (
     <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
       <ThoughtDisplay thought={thought} />
@@ -279,6 +259,8 @@ const GeminiSendBox: React.FC<{
         onChange={setContent}
         loading={running}
         disabled={!currentModel?.useModel}
+        // 占位提示同步右上角选择的模型，确保用户感知当前目标
+        // Keep placeholder in sync with header selection so users know the active target
         placeholder={currentModel?.useModel ? t('conversation.chat.sendMessageTo', { model: getDisplayModelName(currentModel.useModel) }) : t('conversation.chat.noModelSelected')}
         onStop={() => {
           return ipcBridge.conversation.stop.invoke({ conversation_id }).then(() => {
@@ -291,49 +273,20 @@ const GeminiSendBox: React.FC<{
         defaultMultiLine={true}
         lockMultiLine={true}
         tools={
-          <>
-            <Button
-              type='secondary'
-              shape='circle'
-              icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />}
-              onClick={() => {
-                void ipcBridge.dialog.showOpen.invoke({ properties: ['openFile', 'multiSelections'] }).then((files) => {
-                  if (files && files.length > 0) {
-                    setUploadFile([...uploadFile, ...files]);
-                  }
-                });
-              }}
-            />
-            <Dropdown
-              trigger='click'
-              droplist={
-                <Menu>
-                  {(providers || []).map((provider) => {
-                    const models = getAvailableModels(provider);
-                    return (
-                      <Menu.ItemGroup title={provider.name} key={provider.id}>
-                        {models.map((modelName) => (
-                          <Menu.Item
-                            key={`${provider.id}-${modelName}`}
-                            onClick={() => {
-                              void handleSelectModel(provider, modelName);
-                            }}
-                          >
-                            {modelName}
-                          </Menu.Item>
-                        ))}
-                      </Menu.ItemGroup>
-                    );
-                  })}
-                </Menu>
-              }
-            >
-              <Button className='ml-4px sendbox-model-btn' shape='round'>
-                {currentModel ? currentModel.useModel : t('conversation.welcome.selectModel')}
-              </Button>
-            </Dropdown>
-          </>
+          <Button
+            type='secondary'
+            shape='circle'
+            icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />}
+            onClick={() => {
+              void ipcBridge.dialog.showOpen.invoke({ properties: ['openFile', 'multiSelections'] }).then((files) => {
+                if (files && files.length > 0) {
+                  setUploadFile([...uploadFile, ...files]);
+                }
+              });
+            }}
+          />
         }
+        sendButtonPrefix={<ContextUsageIndicator tokenUsage={tokenUsage} contextLimit={getModelContextLimit(currentModel?.useModel)} size={24} />}
         prefix={
           <>
             {/* Files on top */}

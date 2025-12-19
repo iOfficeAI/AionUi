@@ -9,11 +9,13 @@ import type { CSSProperties } from 'react';
 import classNames from 'classnames';
 import { removeStack } from '@/renderer/utils/common';
 
-// 添加事件监听器的辅助函数 / Helper function for adding event listeners
-const addEventListener = <K extends keyof DocumentEventMap>(key: K, handler: (e: DocumentEventMap[K]) => void): (() => void) => {
-  document.addEventListener(key, handler);
+const addWindowEventListener = <K extends keyof WindowEventMap>(key: K, handler: (e: WindowEventMap[K]) => void): (() => void) => {
+  if (typeof window === 'undefined') {
+    return () => {};
+  }
+  window.addEventListener(key, handler);
   return () => {
-    document.removeEventListener(key, handler);
+    window.removeEventListener(key, handler);
   };
 };
 
@@ -53,10 +55,18 @@ export const useResizableSplit = (options: UseResizableSplitOptions = {}) => {
 
   const [splitRatio, setSplitRatioState] = useState(() => getStoredRatio());
 
+  const dispatchSplitResizeEvent = useCallback((ratio: number) => {
+    if (typeof window === 'undefined' || typeof window.dispatchEvent !== 'function') {
+      return;
+    }
+    window.dispatchEvent(new CustomEvent('preview-panel-resize', { detail: { ratio } }));
+  }, []);
+
   // 保存比例到 LocalStorage / Save ratio to LocalStorage
   const setSplitRatio = useCallback(
     (ratio: number) => {
       setSplitRatioState(ratio);
+      dispatchSplitResizeEvent(ratio);
       if (storageKey) {
         try {
           localStorage.setItem(storageKey, ratio.toString());
@@ -65,24 +75,43 @@ export const useResizableSplit = (options: UseResizableSplitOptions = {}) => {
         }
       }
     },
-    [storageKey]
+    [storageKey, dispatchSplitResizeEvent]
   );
 
   // 处理拖动开始事件 / Handle drag start event
   const handleDragStart = useCallback(
     (reverse = false) =>
-      (e: React.MouseEvent) => {
-        const startX = e.clientX;
-        // 获取最外层容器宽度（拖动句柄的父级的父级）/ Get outermost container width (grandparent of drag handle)
-        const dragHandle = e.currentTarget as HTMLElement;
-        const chatPanel = dragHandle.parentElement; // 会话面板包裹 div / Chat panel wrapper div
-        const outerContainer = chatPanel?.parentElement; // 最外层 flex 容器 / Outermost flex container
-        const containerWidth = outerContainer?.offsetWidth || 0;
-        const startRatio = splitRatio;
+      (event: React.PointerEvent<HTMLDivElement>) => {
+        if (event.pointerType !== 'touch' && event.button !== 0) {
+          return;
+        }
+        event.preventDefault();
 
-        // 用于 requestAnimationFrame 节流 / For requestAnimationFrame throttling
+        const dragHandle = event.currentTarget as HTMLElement;
+        const parent = dragHandle.parentElement;
+        const outerContainer = parent?.parentElement;
+        const containerWidth = outerContainer?.offsetWidth || 0;
+        if (!containerWidth) {
+          return;
+        }
+
+        const startX = event.clientX;
+        const startRatio = splitRatio;
+        const pointerId = event.pointerId;
         let rafId: number | null = null;
         let pendingRatio: number | null = null;
+        let latestRatio = startRatio;
+        let isDragging = true;
+        let cleanupListeners: (() => void) | null = null;
+
+        const flushPendingRatio = () => {
+          if (pendingRatio === null) {
+            return;
+          }
+          latestRatio = pendingRatio;
+          setSplitRatioState(pendingRatio);
+          dispatchSplitResizeEvent(pendingRatio);
+        };
 
         // 初始化拖动样式 / Initialize drag styles
         const initDragStyle = () => {
@@ -90,8 +119,6 @@ export const useResizableSplit = (options: UseResizableSplitOptions = {}) => {
           document.body.style.userSelect = 'none';
           document.body.style.cursor = 'col-resize';
 
-          // 给最近的 layout-sider 添加拖动类，禁用 transition
-          // Add dragging class to nearest layout-sider to disable transition
           const layoutSider = dragHandle.closest('.layout-sider');
           if (layoutSider) {
             layoutSider.classList.add('layout-sider--dragging');
@@ -100,56 +127,96 @@ export const useResizableSplit = (options: UseResizableSplitOptions = {}) => {
           return () => {
             document.body.style.userSelect = originalUserSelect;
             document.body.style.cursor = '';
-            // 清理未执行的 RAF / Clean up pending RAF
             if (rafId !== null) {
               cancelAnimationFrame(rafId);
+              rafId = null;
             }
-            // 移除拖动类 / Remove dragging class
             if (layoutSider) {
               layoutSider.classList.remove('layout-sider--dragging');
             }
           };
         };
 
-        const remove = removeStack(
-          initDragStyle(),
-          // 鼠标移动时更新比例（使用 RAF 节流）/ Update ratio on mouse move (throttled with RAF)
-          addEventListener('mousemove', (e: MouseEvent) => {
-            const deltaX = reverse ? startX - e.clientX : e.clientX - startX;
-            const deltaRatio = (deltaX / containerWidth) * 100;
-            pendingRatio = Math.max(minWidth, Math.min(maxWidth, startRatio + deltaRatio));
+        const finishDrag = (e?: PointerEvent | MouseEvent | FocusEvent) => {
+          if (!isDragging) {
+            return;
+          }
+          isDragging = false;
 
-            // 使用 requestAnimationFrame 节流，避免每次 mousemove 都触发渲染
-            // Use requestAnimationFrame to throttle, avoid rendering on every mousemove
-            if (rafId === null) {
-              rafId = requestAnimationFrame(() => {
-                if (pendingRatio !== null) {
-                  setSplitRatioState(pendingRatio);
-                }
-                rafId = null;
-              });
-            }
-          }),
-          // 鼠标释放时保存比例 / Save ratio on mouse up
-          addEventListener('mouseup', (e: MouseEvent) => {
-            // 取消未执行的 RAF / Cancel pending RAF
-            if (rafId !== null) {
-              cancelAnimationFrame(rafId);
-              rafId = null;
-            }
+          if (rafId !== null) {
+            cancelAnimationFrame(rafId);
+            rafId = null;
+          }
+          flushPendingRatio();
+
+          let finalRatio = latestRatio;
+          if (e && 'clientX' in e && typeof e.clientX === 'number') {
             const deltaX = reverse ? startX - e.clientX : e.clientX - startX;
             const deltaRatio = (deltaX / containerWidth) * 100;
-            const newRatio = Math.max(minWidth, Math.min(maxWidth, startRatio + deltaRatio));
-            setSplitRatio(newRatio); // 保存到 LocalStorage / Save to LocalStorage
-            remove();
-          })
+            finalRatio = Math.max(minWidth, Math.min(maxWidth, startRatio + deltaRatio));
+            latestRatio = finalRatio;
+          }
+
+          setSplitRatio(finalRatio);
+          cleanupListeners?.();
+        };
+
+        const handlePointerMove = (e: PointerEvent) => {
+          if (!isDragging) {
+            return;
+          }
+          if (e.buttons === 0) {
+            finishDrag(e);
+            return;
+          }
+          const deltaX = reverse ? startX - e.clientX : e.clientX - startX;
+          const deltaRatio = (deltaX / containerWidth) * 100;
+          pendingRatio = Math.max(minWidth, Math.min(maxWidth, startRatio + deltaRatio));
+          if (rafId === null) {
+            rafId = requestAnimationFrame(() => {
+              rafId = null;
+              flushPendingRatio();
+            });
+          }
+        };
+
+        const handleLostPointerCapture = () => finishDrag();
+
+        const handlePointerUp = (e: PointerEvent) => finishDrag(e);
+        const handlePointerCancel = (e: PointerEvent) => finishDrag(e);
+        const handleMouseUp = (e: MouseEvent) => finishDrag(e);
+
+        if (dragHandle.setPointerCapture) {
+          try {
+            dragHandle.setPointerCapture(pointerId);
+            dragHandle.addEventListener('lostpointercapture', handleLostPointerCapture);
+          } catch (error) {
+            // 忽略 pointer capture 失败，继续使用备用逻辑 / Ignore failures silently
+          }
+        }
+
+        const releasePointerCapture = () => {
+          if (dragHandle.releasePointerCapture && dragHandle.hasPointerCapture?.(pointerId)) {
+            dragHandle.releasePointerCapture(pointerId);
+          }
+          dragHandle.removeEventListener('lostpointercapture', handleLostPointerCapture);
+        };
+
+        cleanupListeners = removeStack(
+          initDragStyle(),
+          releasePointerCapture,
+          addWindowEventListener('pointermove', handlePointerMove),
+          addWindowEventListener('pointerup', handlePointerUp),
+          addWindowEventListener('pointercancel', handlePointerCancel),
+          addWindowEventListener('mouseup', handleMouseUp),
+          addWindowEventListener('blur', () => finishDrag())
         );
       },
-    [splitRatio, minWidth, maxWidth, setSplitRatio]
+    [splitRatio, minWidth, maxWidth, setSplitRatio, dispatchSplitResizeEvent]
   );
 
   const renderHandle = ({ className, style, reverse }: { className?: string; style?: CSSProperties; reverse?: boolean } = {}) => (
-    <div className={classNames('group absolute top-0 bottom-0 z-20 cursor-col-resize flex items-center', reverse ? 'justify-start' : 'justify-end', className)} style={{ width: '12px', ...style }} onMouseDown={handleDragStart(reverse)} onDoubleClick={() => setSplitRatio(defaultWidth)}>
+    <div className={classNames('group absolute top-0 bottom-0 z-20 cursor-col-resize flex items-center', reverse ? 'justify-start' : 'justify-end', className)} style={{ width: '12px', ...style }} onPointerDown={handleDragStart(reverse)} onDoubleClick={() => setSplitRatio(defaultWidth)}>
       <span className='pointer-events-none block h-full w-2px bg-bg-3 opacity-90 rd-full transition-all duration-150 group-hover:w-6px group-hover:bg-aou-6 group-active:w-6px group-active:bg-aou-6' />
     </div>
   );

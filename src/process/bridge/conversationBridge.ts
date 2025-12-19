@@ -166,7 +166,7 @@ export function initConversationBridge(): void {
     }
   });
 
-  ipcBridge.conversation.update.provider(async ({ id, updates }) => {
+  ipcBridge.conversation.update.provider(async ({ id, updates, mergeExtra }) => {
     try {
       const db = getDatabase();
       const existing = db.getConversation(id);
@@ -175,7 +175,19 @@ export function initConversationBridge(): void {
       const modelChanged = !!nextModel && JSON.stringify(prevModel) !== JSON.stringify(nextModel);
       // model change detection for task rebuild
 
-      const result = await Promise.resolve(db.updateConversation(id, updates));
+      // 如果 mergeExtra 为 true，合并 extra 字段而不是覆盖
+      let finalUpdates = updates;
+      if (mergeExtra && updates.extra && existing.success && existing.data) {
+        finalUpdates = {
+          ...updates,
+          extra: {
+            ...existing.data.extra,
+            ...updates.extra,
+          },
+        } as Partial<TChatConversation>;
+      }
+
+      const result = await Promise.resolve(db.updateConversation(id, finalUpdates));
 
       // If model changed, kill running task to force rebuild with new model on next send
       if (result.success && modelChanged) {
@@ -252,6 +264,7 @@ export function initConversationBridge(): void {
         root: workspace,
         fileService,
         abortController: buildLastAbortController(),
+        maxDepth: 10, // 支持更深的目录结构 / Support deeper directory structures
         search: {
           text: search,
           onProcess(result) {

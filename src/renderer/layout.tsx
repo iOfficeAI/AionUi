@@ -17,7 +17,6 @@ import { LayoutContext } from './context/LayoutContext';
 import { useDirectorySelection } from './hooks/useDirectorySelection';
 import { useMultiAgentDetection } from './hooks/useMultiAgentDetection';
 import { processCustomCss } from './utils/customCssProcessor';
-import { iconColors } from './theme/colors';
 
 const useDebug = () => {
   const [count, setCount] = useState(0);
@@ -50,7 +49,6 @@ const useDebug = () => {
 };
 
 const DEFAULT_SIDER_WIDTH = 250;
-const MOBILE_COLLAPSE_DURATION = 320;
 
 const Layout: React.FC<{
   sider: React.ReactNode;
@@ -65,11 +63,6 @@ const Layout: React.FC<{
   const location = useLocation();
   const workspaceAvailable = location.pathname.startsWith('/conversation/');
   const collapsedRef = useRef(collapsed);
-  // 自动/手动折叠的状态与定时器 / Timers & states for auto/manual sidebar folding
-  const autoCollapseTimer = useRef<number | undefined>(undefined);
-  const manualCollapseTimer = useRef<number | undefined>(undefined);
-  const [autoCollapsing, setAutoCollapsing] = useState(false);
-  const [manualCollapsing, setManualCollapsing] = useState(false);
 
   // 加载并监听自定义 CSS 配置 / Load & watch custom CSS configuration
   useEffect(() => {
@@ -165,70 +158,23 @@ const Layout: React.FC<{
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // 进入移动端后触发自动折叠动画 / Auto-collapse when switching to mobile
+  // 进入移动端后立即折叠 / Collapse immediately when switching to mobile
   useEffect(() => {
     if (!isMobile || collapsedRef.current) {
-      setAutoCollapsing(false);
-      if (autoCollapseTimer.current !== undefined) {
-        window.clearTimeout(autoCollapseTimer.current);
-        autoCollapseTimer.current = undefined;
-      }
       return;
     }
-
-    setAutoCollapsing(true);
-    if (autoCollapseTimer.current !== undefined) {
-      window.clearTimeout(autoCollapseTimer.current);
-    }
-    autoCollapseTimer.current = window.setTimeout(() => {
-      setAutoCollapsing(false);
-      setCollapsed(true);
-      autoCollapseTimer.current = undefined;
-    }, MOBILE_COLLAPSE_DURATION);
-
-    return () => {
-      if (autoCollapseTimer.current !== undefined) {
-        window.clearTimeout(autoCollapseTimer.current);
-        autoCollapseTimer.current = undefined;
-      }
-    };
+    setCollapsed(true);
   }, [isMobile]);
   useEffect(() => {
     collapsedRef.current = collapsed;
-  }, [collapsed]);
-
-  // 手动折叠时为内容提供淡出动画 / Provide fade-out when user collapses manually
-  useEffect(() => {
-    if (!collapsed) {
-      setManualCollapsing(false);
-      if (manualCollapseTimer.current !== undefined) {
-        window.clearTimeout(manualCollapseTimer.current);
-        manualCollapseTimer.current = undefined;
-      }
-      return;
-    }
-
-    setManualCollapsing(true);
-    if (manualCollapseTimer.current !== undefined) {
-      window.clearTimeout(manualCollapseTimer.current);
-    }
-    // Delay collapsing pointer events until fade-out completes / 延迟到淡出结束再关闭交互
-    manualCollapseTimer.current = window.setTimeout(() => {
-      setManualCollapsing(false);
-      manualCollapseTimer.current = undefined;
-    }, MOBILE_COLLAPSE_DURATION);
-
-    return () => {
-      if (manualCollapseTimer.current !== undefined) {
-        window.clearTimeout(manualCollapseTimer.current);
-        manualCollapseTimer.current = undefined;
-      }
-    };
   }, [collapsed]);
   return (
     <LayoutContext.Provider value={{ isMobile, siderCollapsed: collapsed, setSiderCollapsed: setCollapsed }}>
       <div className='app-shell flex flex-col size-full min-h-0'>
         <Titlebar workspaceAvailable={workspaceAvailable} />
+        {/* 移动端左侧边栏蒙板 / Mobile left sider backdrop */}
+        {isMobile && !collapsed && <div className='fixed inset-0 bg-black/30 z-90' onClick={() => setCollapsed(true)} aria-hidden='true' />}
+
         <ArcoLayout className={'size-full layout flex-1 min-h-0'}>
           <ArcoLayout.Sider
             collapsedWidth={isMobile ? 0 : 64}
@@ -236,7 +182,6 @@ const Layout: React.FC<{
             width={DEFAULT_SIDER_WIDTH}
             className={classNames('!bg-2 layout-sider', {
               collapsed: collapsed,
-              'layout-sider--folding': autoCollapsing || manualCollapsing,
             })}
             style={
               isMobile
@@ -246,9 +191,9 @@ const Layout: React.FC<{
                     left: 0,
                     height: '100vh',
                     zIndex: 100,
-                    transform: collapsed || autoCollapsing ? 'translateX(-100%)' : 'translateX(0)',
-                    transition: `transform ${MOBILE_COLLAPSE_DURATION}ms ease`,
-                    pointerEvents: collapsed || autoCollapsing ? 'none' : 'auto',
+                    transform: collapsed ? 'translateX(-100%)' : 'translateX(0)',
+                    transition: 'none',
+                    pointerEvents: collapsed ? 'none' : 'auto',
                   }
                 : undefined
             }
@@ -277,12 +222,12 @@ const Layout: React.FC<{
                 </svg>
               </div>
               <div className=' flex-1 text-20px collapsed-hidden font-bold'>AionUi</div>
-              <MenuFold className='cursor-pointer !collapsed-hidden flex' theme='outline' size='24' fill={iconColors.secondary} strokeWidth={3} onClick={() => setCollapsed(true)} />
-              {collapsed && !isMobile && (
-                <div onClick={() => setCollapsed(false)} className='absolute bg-2 left-8px top-7px transition-all duration-150 p-10px hover:bg-hover opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto'>
-                  <MenuUnfold className='cursor-pointer flex' size='24' fill={iconColors.secondary} strokeWidth={3} />
-                </div>
+              {isMobile && !collapsed && (
+                <button type='button' className='app-titlebar__button' onClick={() => setCollapsed(true)} aria-label='Collapse sidebar'>
+                  {collapsed ? <MenuUnfold theme='outline' size='18' fill='currentColor' /> : <MenuFold theme='outline' size='18' fill='currentColor' />}
+                </button>
               )}
+              {/* 侧栏折叠改由标题栏统一控制 / Sidebar folding handled by Titlebar toggle */}
             </ArcoLayout.Header>
             <ArcoLayout.Content className='h-[calc(100%-72px-16px)] p-8px layout-sider-content'>
               {React.isValidElement(sider)

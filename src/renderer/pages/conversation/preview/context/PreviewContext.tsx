@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { PreviewContentType } from '@/common/types/preview';
+import { emitter } from '@/renderer/utils/emitter';
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 
 /** DOM 片段数据结构 / DOM snippet data structure */
@@ -70,12 +71,56 @@ export interface PreviewContextValue {
 
 const PreviewContext = createContext<PreviewContextValue | null>(null);
 
+// 持久化 key / Persistence key
+const PREVIEW_STATE_KEY = 'aionui_preview_state';
+
+// 从 localStorage 恢复状态 / Restore state from localStorage
+// 注意：isOpen 不从 localStorage 恢复，新会话时预览面板默认关闭
+// Note: isOpen is not restored from localStorage, preview panel is closed by default for new sessions
+const loadPersistedState = (): { isOpen: boolean; tabs: PreviewTab[]; activeTabId: string | null } => {
+  try {
+    const stored = localStorage.getItem(PREVIEW_STATE_KEY);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      // 验证数据结构 / Validate data structure
+      if (Array.isArray(parsed.tabs)) {
+        return {
+          isOpen: false, // 始终默认关闭 / Always start closed
+          tabs: parsed.tabs,
+          activeTabId: parsed.activeTabId || null,
+        };
+      }
+    }
+  } catch {
+    // 忽略解析错误 / Ignore parsing errors
+  }
+  return { isOpen: false, tabs: [], activeTabId: null };
+};
+
 export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [tabs, setTabs] = useState<PreviewTab[]>([]);
-  const [activeTabId, setActiveTabId] = useState<string | null>(null);
+  // 从 localStorage 恢复初始状态 / Restore initial state from localStorage
+  const persistedState = loadPersistedState();
+  const [isOpen, setIsOpen] = useState(persistedState.isOpen);
+  const [tabs, setTabs] = useState<PreviewTab[]>(persistedState.tabs);
+  const [activeTabId, setActiveTabId] = useState<string | null>(persistedState.activeTabId);
   const [sendBoxHandler, setSendBoxHandlerState] = useState<((text: string) => void) | null>(null);
   const [domSnippets, setDomSnippets] = useState<DomSnippet[]>([]);
+
+  // 持久化状态到 localStorage / Persist state to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        PREVIEW_STATE_KEY,
+        JSON.stringify({
+          isOpen,
+          tabs,
+          activeTabId,
+        })
+      );
+    } catch {
+      // 忽略存储错误（如存储空间不足）/ Ignore storage errors (e.g., quota exceeded)
+    }
+  }, [isOpen, tabs, activeTabId]);
 
   // 追踪是否正在保存（避免与流式更新冲突）/ Track if currently saving (to avoid conflicts with streaming updates)
   const savingFilesRef = useRef<Set<string>>(new Set());
@@ -109,8 +154,23 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
           // 优先通过 filePath 匹配（最可靠）/ Prefer matching by filePath (most reliable)
           if (normalizedFilePath && tabFilePath && normalizedFilePath === tabFilePath) return true;
 
-          // 其次通过 fileName 匹配 / Then match by fileName
-          if (normalizedFileName && tabFileName && normalizedFileName === tabFileName) return true;
+          // 通过 fileName 匹配时，需要确保路径兼容（避免同名文件在不同目录的冲突）
+          // When matching by fileName, ensure path compatibility (avoid conflicts of same-named files in different directories)
+          if (normalizedFileName && tabFileName && normalizedFileName === tabFileName) {
+            // 如果两边都有 filePath，则必须完全匹配
+            // If both have filePath, they must match exactly
+            if (normalizedFilePath && tabFilePath) {
+              return normalizedFilePath === tabFilePath;
+            }
+            // 如果只有一边有 filePath，不能仅凭 fileName 匹配
+            // If only one side has filePath, cannot match by fileName alone
+            if (normalizedFilePath || tabFilePath) {
+              return false;
+            }
+            // 都没有 filePath 时，可以通过 fileName 匹配
+            // When neither has filePath, can match by fileName
+            return true;
+          }
 
           // 再通过 title 匹配 / Then match by title
           if (!normalizedFileName && normalizedTitle && tabTitle && normalizedTitle === tabTitle) return true;
@@ -421,6 +481,27 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
       debounceTimers.clear();
     };
   }, [closeTab]); // 只依赖 closeTab，不依赖 tabs，避免重复订阅 / Only depend on closeTab, not tabs, to avoid re-subscribing
+
+  // 监听 preview.open 事件（用于 agent 打开网页预览）/ Listen to preview.open event (for agent to open web preview)
+  // 同时监听 IPC 和 renderer emitter 两种方式 / Listen to both IPC and renderer emitter
+  useEffect(() => {
+    const handlePreviewOpen = (data: { content: string; contentType: PreviewContentType; metadata?: PreviewMetadata }) => {
+      if (data && data.content) {
+        openPreview(data.content, data.contentType, data.metadata);
+      }
+    };
+
+    // 监听 renderer emitter 事件 / Listen to renderer emitter event
+    emitter.on('preview.open', handlePreviewOpen);
+
+    // 监听 IPC 事件（来自主进程，如 chrome-devtools MCP 导航）/ Listen to IPC event (from main process, e.g., chrome-devtools MCP navigation)
+    const unsubscribeIpc = ipcBridge.preview.open.on(handlePreviewOpen);
+
+    return () => {
+      emitter.off('preview.open', handlePreviewOpen);
+      unsubscribeIpc();
+    };
+  }, [openPreview]);
 
   return (
     <PreviewContext.Provider

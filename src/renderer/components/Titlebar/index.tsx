@@ -44,10 +44,12 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
   const isMacRuntime = isDesktopRuntime && detectMac();
   // Windows/Linux 显示自定义窗口按钮；macOS 在标题栏给工作区一个切换入口
   const showWindowControls = isDesktopRuntime && !isMacRuntime;
-  const showWorkspaceButton = workspaceAvailable && isMacRuntime;
+  // WebUI 和 macOS 桌面都需要在标题栏放工作区开关
+  const showWorkspaceButton = workspaceAvailable && (!isDesktopRuntime || isMacRuntime);
 
   const workspaceTooltip = workspaceCollapsed ? t('conversation.workspace.expand', { defaultValue: 'Expand workspace' }) : t('conversation.workspace.collapse', { defaultValue: 'Collapse workspace' });
-  const showSiderToggle = Boolean(layout?.isMobile);
+  // 统一在标题栏左侧展示主侧栏开关 / Always expose sidebar toggle on titlebar left side
+  const showSiderToggle = Boolean(layout?.setSiderCollapsed);
   const siderTooltip = layout?.siderCollapsed ? t('sidebar.expand', { defaultValue: '展开侧栏' }) : t('sidebar.collapse', { defaultValue: '收起侧栏' });
 
   const handleSiderToggle = () => {
@@ -62,6 +64,16 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
     dispatchWorkspaceToggleEvent();
   };
 
+  const menuStyle: React.CSSProperties = useMemo(() => {
+    if (!isMacRuntime || !showSiderToggle) return {};
+
+    const marginLeft = layout?.isMobile ? '0px' : layout?.siderCollapsed ? '60px' : '210px';
+    return {
+      marginLeft,
+      transition: 'margin-left 0.28s cubic-bezier(0.4, 0, 0.2, 1)',
+    };
+  }, [isMacRuntime, showSiderToggle, layout?.isMobile, layout?.siderCollapsed]);
+
   return (
     <div
       className={classNames('flex items-center gap-8px app-titlebar bg-2 border-b border-[var(--border-base)]', {
@@ -69,7 +81,7 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
         'app-titlebar--mac': isMacRuntime,
       })}
     >
-      <div className='app-titlebar__menu'>
+      <div className='app-titlebar__menu' style={menuStyle}>
         {showSiderToggle && (
           <button type='button' className='app-titlebar__button' onClick={handleSiderToggle} aria-label={siderTooltip}>
             {layout?.siderCollapsed ? <MenuUnfold theme='outline' size='18' fill='currentColor' /> : <MenuFold theme='outline' size='18' fill='currentColor' />}
@@ -79,11 +91,9 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
       <div className='app-titlebar__brand'>{appTitle}</div>
       <div className='app-titlebar__toolbar'>
         {showWorkspaceButton && (
-          <Tooltip content={workspaceTooltip} position='bottom'>
-            <button type='button' className='app-titlebar__button' onClick={handleWorkspaceToggle} aria-label={workspaceTooltip}>
-              {workspaceCollapsed ? <ExpandRight theme='outline' size='18' fill='currentColor' /> : <ExpandLeft theme='outline' size='18' fill='currentColor' />}
-            </button>
-          </Tooltip>
+          <button type='button' className='app-titlebar__button' onClick={handleWorkspaceToggle} aria-label={workspaceTooltip}>
+            {workspaceCollapsed ? <ExpandRight theme='outline' size='18' fill='currentColor' /> : <ExpandLeft theme='outline' size='18' fill='currentColor' />}
+          </button>
         )}
         {showWindowControls && <WindowControls />}
       </div>

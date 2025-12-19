@@ -35,7 +35,10 @@
     "error": "错误",
     "saveSuccess": "保存成功",
     "saveFailed": "保存失败",
-    "unknownError": "未知错误"
+    "unknownError": "未知错误",
+    "confirmDelete": "确认删除",
+    "deleteSuccess": "删除成功",
+    "deleteFailed": "删除失败"
   },
   "login": {
     "pageTitle": "AionUi - 登录",
@@ -45,7 +48,7 @@
     "usernamePlaceholder": "请输入用户名",
     "password": "密码",
     "passwordPlaceholder": "请输入密码",
-    "rememberUsername": "记住用户名",
+    "rememberMe": "记住我",
     "submit": "登录",
     "submitting": "登录中...",
     "success": "登录成功！正在跳转...",
@@ -183,6 +186,7 @@
       "selectModel": "选择模型",
       "specifyWorkspace": "关联文件夹对话",
       "currentWorkspace": "当前工作空间",
+      "clearWorkspace": "移除已选文件夹",
       "openFolder": "打开文件夹",
       "none": "无"
     },
@@ -248,6 +252,9 @@
       "noModelSelected": "当前会话未选择模型，无法发送消息",
       "sendMessageTo": "发送消息到 {{model}}",
       "processing": "正在处理中……"
+    },
+    "contextUsage": {
+      "contextUsed": "上下文已使用"
     }
   },
   "settings": {
@@ -263,6 +270,22 @@
     "yoloMode": "自动允许",
     "customCss": "自定义 CSS",
     "customCssDesc": "在此处输入自定义 CSS 样式以更改界面外观。系统会自动为所有样式添加 !important 以确保优先级最高，无需手动添加。修改会立即生效。",
+    "cssSettings": "CSS设置",
+    "cssTheme": {
+      "selectOrCustomize": "选择预设主题或自定义 CSS",
+      "addManually": "手动添加",
+      "default": "默认",
+      "addToPreset": "添加主题",
+      "editTheme": "编辑主题",
+      "previewCover": "背景图",
+      "name": "名称",
+      "namePlaceholder": "输入预设名称",
+      "cssCode": "CSS代码",
+      "applied": "已应用主题：{{name}}",
+      "applyFailed": "应用主题失败",
+      "cleared": "已恢复默认样式",
+      "deleteConfirm": "确定要删除该主题吗？此操作不可恢复。"
+    },
     "geminiBaseUrl": "Gemini API Base URL",
     "cacheDir": "缓存目录",
     "workDir": "工作目录",
@@ -280,6 +303,7 @@
     "addModel": "添加模型",
     "editModel": "编辑模型",
     "modelPlatform": "模型平台",
+    "modelProvider": "模型供应商",
     "platformName": "平台名称",
     "modelName": "模型名称",
     "baseUrl": "base url",
@@ -289,9 +313,17 @@
     "modelCount": "模型",
     "apiKeyCount": "API Key",
     "pleaseEnterBaseUrlAndApiKey": "请输入base url和api key",
+    "pleaseEnterApiKey": "请输入 API Key",
+    "pleaseEnterBaseUrl": "请输入 Base URL",
+    "pleaseSelectProvider": "请选择模型供应商",
     "multiApiKeyTip": "💡 如需添加多个 API Key 实现自动轮询，请稍后到平台编辑界面配置",
     "multiApiKeyEditTip": "支持多个 API Key，每行一个，系统将自动轮询使用",
     "apiKeyPlaceholder": "请输入 API Key，多个 Key 请每行一个",
+    "editApiKey": "编辑 API Key",
+    "testKey": "测试密钥",
+    "multiKeyTip": "多个密钥使用逗号分隔",
+    "deleteInvalidKeys": "删除无效密钥",
+    "testAllKeys": "测试所有密钥",
     "addModelPlaceholder": "请选择或输入模型ID",
     "addModelHint": "选择或输入模型 ID，它会追加到当前平台配置。",
     "addModelSelectedHint": "即将添加模型：{{model}}",
@@ -312,6 +344,7 @@
     "darkMode": "深色",
     "agent": "代理",
     "tools": "工具",
+    "display": "显示",
     "imageGeneration": "图像生成",
     "imageGenerationToggle": "启用图像生成工具",
     "imageGenerationDescription": "选择默认用于图像工具的已配置模型。",
@@ -720,6 +753,13 @@
       "create": "创建",
       "modify": "修改",
       "delete": "删除"
+    }
+  },
+  "gemini": {
+    "mode": {
+      "autoDesc": "让系统为你的任务自动选择最合适的模型。",
+      "proDesc": "适合需要复杂推理和创造力的任务。",
+      "flashDesc": "适合同时兼顾速度与推理的任务。"
     }
   }
 }

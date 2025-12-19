@@ -137,9 +137,10 @@ export async function handleAtCommand({ query, config, addItem, onDebugMessage, 
   const readManyFilesTool = toolRegistry.getTool('read_many_files');
   const globTool = toolRegistry.getTool('glob');
 
-  if (!readManyFilesTool) {
-    addItem({ type: 'error', text: 'Error: read_many_files tool not found.' }, userMessageTimestamp);
-    return { processedQuery: null, shouldProceed: false };
+  // Flag to use fallback direct file reading when read_many_files tool is not available
+  const useFallbackFileReading = !readManyFilesTool;
+  if (useFallbackFileReading) {
+    onDebugMessage('read_many_files tool not found, using fallback direct file reading');
   }
 
   for (const atPathPart of atPathCommandParts) {
@@ -323,6 +324,40 @@ export async function handleAtCommand({ query, config, addItem, onDebugMessage, 
 
   const processedQueryParts: PartUnion[] = [{ text: initialQueryText }];
 
+  // Use fallback direct file reading if read_many_files tool is not available
+  if (useFallbackFileReading) {
+    try {
+      const workspaceDirs = config.getWorkspaceContext().getDirectories();
+      const workspaceDir = workspaceDirs[0] || process.cwd();
+
+      processedQueryParts.push({
+        text: '\n--- Content from referenced files ---',
+      });
+
+      for (const pathSpec of pathSpecsToRead) {
+        try {
+          const absolutePath = path.resolve(workspaceDir, pathSpec);
+          const fileContent = await fs.readFile(absolutePath, 'utf-8');
+          processedQueryParts.push({
+            text: `\nContent from @${pathSpec}:\n`,
+          });
+          processedQueryParts.push({ text: fileContent });
+          onDebugMessage(`Successfully read file: ${pathSpec}`);
+        } catch (readError) {
+          onDebugMessage(`Failed to read file ${pathSpec}: ${getErrorMessage(readError)}`);
+          // Continue with other files even if one fails
+        }
+      }
+
+      processedQueryParts.push({ text: '\n--- End of content ---' });
+      return { processedQuery: processedQueryParts, shouldProceed: true };
+    } catch (error) {
+      addItem({ type: 'error', text: `Error reading files: ${getErrorMessage(error)}` }, userMessageTimestamp);
+      return { processedQuery: null, shouldProceed: false };
+    }
+  }
+
+  // Use read_many_files tool when available
   const toolArgs = {
     paths: pathSpecsToRead,
     file_filtering_options: {
@@ -335,11 +370,11 @@ export async function handleAtCommand({ query, config, addItem, onDebugMessage, 
 
   let invocation: AnyToolInvocation | undefined = undefined;
   try {
-    invocation = readManyFilesTool.build(toolArgs);
+    invocation = readManyFilesTool!.build(toolArgs);
     const result = await invocation.execute(signal);
     toolCallDisplay = {
       callId: `client-read-${userMessageTimestamp}`,
-      name: readManyFilesTool.displayName,
+      name: readManyFilesTool!.displayName,
       description: invocation.getDescription(),
       status: ToolCallStatus.Success,
       resultDisplay: result.returnDisplay || `Successfully read: ${contentLabelsForDisplay.join(', ')}`,
@@ -379,7 +414,7 @@ export async function handleAtCommand({ query, config, addItem, onDebugMessage, 
   } catch (error: unknown) {
     toolCallDisplay = {
       callId: `client-read-${userMessageTimestamp}`,
-      name: readManyFilesTool.displayName,
+      name: readManyFilesTool!.displayName,
       description: invocation?.getDescription() ?? 'Error attempting to execute tool to read files',
       status: ToolCallStatus.Error,
       resultDisplay: `Error reading files (${contentLabelsForDisplay.join(', ')}): ${getErrorMessage(error)}`,

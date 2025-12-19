@@ -5,6 +5,7 @@
  */
 
 // src/core/ConfigManager.ts
+import { NavigationInterceptor } from '@/common/navigation';
 import type { TProviderWithModel } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import { getProviderAuthType } from '@/common/utils/platformAuthType';
@@ -193,7 +194,7 @@ export class GeminiAgent {
   }
 
   // 初始化调度工具
-  private initToolScheduler(settings: Settings) {
+  private initToolScheduler(_settings: Settings) {
     this.scheduler = new CoreToolScheduler({
       onAllToolCallsComplete: async (completedToolCalls: CompletedToolCall[]) => {
         await Promise.resolve(); // Satisfy async requirement
@@ -217,8 +218,6 @@ export class GeminiAgent {
                 }
                 return false;
               });
-
-              console.log('geminiTools.done.request>>>>>>>>>>>>>>>>>>>', geminiTools[0].request.prompt_id);
 
               this.submitQuery(response, uuid(), this.createAbortController(), {
                 isContinuation: true,
@@ -283,6 +282,14 @@ export class GeminiAgent {
     })
       .then(async () => {
         if (toolCallRequests.length > 0) {
+          // Emit preview_open for navigation tools, but don't block execution
+          // 对导航工具发送 preview_open 事件，但不阻止执行
+          // Agent needs chrome-devtools to fetch web page content
+          // Agent 需要 chrome-devtools 来获取网页内容
+          this.emitPreviewForNavigationTools(toolCallRequests, msg_id);
+
+          // Schedule ALL tool requests including chrome-devtools
+          // 调度所有工具请求，包括 chrome-devtools
           await this.scheduler.schedule(toolCallRequests, abortController.signal);
         }
       })
@@ -294,6 +301,51 @@ export class GeminiAgent {
           msg_id,
         });
       });
+  }
+
+  /**
+   * 检查是否为导航工具调用（支持带MCP前缀和不带前缀的工具名）
+   * Check if it's a navigation tool call (supports both with and without MCP prefix)
+   *
+   * Delegates to NavigationInterceptor for unified logic
+   */
+  private isNavigationTool(toolName: string): boolean {
+    return NavigationInterceptor.isNavigationTool(toolName);
+  }
+
+  /**
+   * Emit preview_open events for navigation tools without blocking execution
+   * 对导航工具发送 preview_open 事件，但不阻止执行
+   *
+   * Agent needs chrome-devtools to fetch web page content, so we only emit
+   * preview events to show URL in preview panel, while letting tools execute normally.
+   * Agent 需要 chrome-devtools 来获取网页内容，所以我们只发送预览事件在预览面板中显示 URL，
+   * 同时让工具正常执行。
+   */
+  private emitPreviewForNavigationTools(toolCallRequests: ToolCallRequestInfo[], _msg_id: string): void {
+    for (const request of toolCallRequests) {
+      const toolName = request.name || '';
+
+      if (this.isNavigationTool(toolName)) {
+        const args = request.args || {};
+        const url = NavigationInterceptor.extractUrl({ arguments: args as Record<string, unknown> });
+        if (url) {
+          // Emit preview_open event to show URL in preview panel
+          // 发送 preview_open 事件在预览面板中显示 URL
+          this.onStreamEvent({
+            type: 'preview_open',
+            data: {
+              content: url,
+              contentType: 'url',
+              metadata: {
+                title: url,
+              },
+            },
+            msg_id: uuid(),
+          });
+        }
+      }
+    }
   }
 
   submitQuery(
@@ -359,19 +411,52 @@ export class GeminiAgent {
       }
       this.historyUsedOnce = true;
     }
+
+    // Track error messages from @ command processing
+    let atCommandError: string | null = null;
+
     const { processedQuery, shouldProceed } = await handleAtCommand({
       query: Array.isArray(message) ? message[0].text : message,
       config: this.config,
-      addItem: () => {
-        console.log('addItem');
+      addItem: (item: unknown) => {
+        // Capture error messages from @ command processing
+        if (item && typeof item === 'object' && 'type' in item) {
+          const typedItem = item as { type: string; text?: string };
+          if (typedItem.type === 'error' && typedItem.text) {
+            atCommandError = typedItem.text;
+          }
+        }
       },
-      onDebugMessage(log: unknown) {
-        console.log('onDebugMessage', log);
+      onDebugMessage() {
+        // 调试回调留空以避免日志噪声 / Debug hook intentionally left blank to avoid noisy logging
       },
       messageId: Date.now(),
       signal: abortController.signal,
     });
+
     if (!shouldProceed || processedQuery === null || abortController.signal.aborted) {
+      // Send error message to user if @ command processing failed
+      // 如果 @ 命令处理失败，向用户发送错误消息
+      if (atCommandError) {
+        this.onStreamEvent({
+          type: 'error',
+          data: atCommandError,
+          msg_id,
+        });
+      } else if (!abortController.signal.aborted) {
+        // Generic error if we don't have specific error message
+        this.onStreamEvent({
+          type: 'error',
+          data: 'Failed to process @ file reference. The file may not exist or is not accessible.',
+          msg_id,
+        });
+      }
+      // Send finish event so UI can reset state
+      this.onStreamEvent({
+        type: 'finish',
+        data: null,
+        msg_id,
+      });
       return;
     }
     const requestId = this.submitQuery(processedQuery, msg_id, abortController);

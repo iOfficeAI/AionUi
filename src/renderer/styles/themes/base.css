@@ -27,7 +27,7 @@
 }
 
 .app-titlebar--mac {
-  height: 55px;
+  height: 45px;
   min-height: 36px;
   /* Reserve space for macOS traffic light buttons (left side) */
   padding-right: 12px;
@@ -44,6 +44,12 @@
   line-height: 1;
 }
 
+.app-titlebar__menu {
+  -webkit-app-region: no-drag;
+  display: flex;
+  align-items: center;
+}
+
 .app-titlebar__toolbar {
   display: flex;
   align-items: center;
@@ -54,6 +60,7 @@
 }
 
 .app-titlebar__button {
+  -webkit-app-region: no-drag;
   width: var(--titlebar-height);
   height: var(--titlebar-height);
   border: none;
@@ -182,33 +189,14 @@ body,
   }
 }
 
-/* Layout sider transitions - keep bilingual comments for clarity / 布局侧栏过渡动画（中英注释） */
+/* Layout sider base styles / 布局侧栏基础样式 */
 .layout-sider {
-  transition:
-    flex-grow 0.28s cubic-bezier(0.4, 0, 0.2, 1),
-    flex-basis 0.28s cubic-bezier(0.4, 0, 0.2, 1),
-    width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
-    min-width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
-    max-width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
-    border-left 0.28s cubic-bezier(0.4, 0, 0.2, 1);
-  will-change: flex-grow, flex-basis, width, min-width;
+  overflow-x: hidden;
 }
 
-.layout-sider-header,
-.layout-sider-content {
-  transition:
-    opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1),
-    transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  will-change: opacity, transform;
-}
-
-.layout-sider--folding {
-  .layout-sider-header,
-  .layout-sider-content {
-    opacity: 0;
-    transform: translateX(-12px);
-    pointer-events: none;
-  }
+.layout-sider.collapsed .arco-layout-sider-children,
+.layout-sider.arco-layout-sider-collapsed .arco-layout-sider-children {
+  overflow-x: hidden;
 }
 
 /* 拖动时禁用过渡动画，确保流畅的拖动体验 / Disable transition during drag for smooth dragging */
@@ -217,9 +205,6 @@ body,
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .layout-sider,
-  .layout-sider-header,
-  .layout-sider-content,
   .preview-panel {
     transition: none !important;
     animation: none !important;
@@ -241,14 +226,6 @@ body,
     opacity: 1;
     transform: translateX(0);
   }
-}
-
-/* Sidebar collapse animation helpers */
-.chat-history,
-.settings-sider {
-  transition:
-    opacity 0.25s ease,
-    transform 0.25s ease;
 }
 
 .chat-history__item,
@@ -494,9 +471,19 @@ body,
 
 /* Message component positioning - center in conversation area (exclude left sider) */
 /* Message 组件定位 - 在对话区域居中（排除左侧侧边栏） */
+/* 使用 padding-left 偏移，保持内部消息居中 / Use padding-left offset while keeping inner message centered */
 .arco-message-wrapper {
-  left: 266px !important;
-  width: calc(100% - 266px) !important;
+  left: 0 !important;
+  width: 100% !important;
+  padding-left: 266px;
+  box-sizing: border-box;
+}
+
+/* Mobile: remove left padding / 移动端：移除左侧内边距 */
+@media (max-width: 767px) {
+  .arco-message-wrapper {
+    padding-left: 0;
+  }
 }
 
 /* Default background for select and input components */

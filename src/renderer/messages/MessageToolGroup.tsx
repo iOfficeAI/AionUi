@@ -358,7 +358,7 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
   }, [message.content]);
 
   return (
-    <div className='w-[70%] '>
+    <div>
       {message.content.map((content, index) => {
         const { status, callId, name, description, resultDisplay, confirmationDetails } = content;
         const isLoading = status !== 'Success' && status !== 'Error' && status !== 'Canceled';
@@ -393,7 +393,7 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
             // 只在第一个 WriteFile 位置显示汇总组件 / Only show summary component at first WriteFile position
             if (index === firstWriteFileIndex && writeFileResults.length > 0) {
               return (
-                <div className='w-full max-w-100% min-w-0' key={callId}>
+                <div className='w-full min-w-0' key={callId}>
                   <MessageFileChanges writeFileChanges={writeFileResults} />
                 </div>
               );

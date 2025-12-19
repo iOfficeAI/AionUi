@@ -46,6 +46,8 @@ export const mainConfig: Configuration = {
     // tree-sitter dependencies need to be external to avoid webpack processing .wasm files
     'tree-sitter': 'commonjs tree-sitter',
     'tree-sitter-bash': 'commonjs tree-sitter-bash',
+    // web-tree-sitter 是 aioncli-core 的嵌套依赖，通过 symlink 解决
+    // web-tree-sitter is a nested dependency of aioncli-core, resolved via symlink
     'web-tree-sitter': 'commonjs web-tree-sitter',
   },
 };

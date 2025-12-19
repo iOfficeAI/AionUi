@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { TProviderWithModel } from '@/common/storage';
 import FlexFullContainer from '@renderer/components/FlexFullContainer';
 import MessageList from '@renderer/messages/MessageList';
 import { MessageListProvider, useMessageLstCache } from '@renderer/messages/hooks';
@@ -13,12 +12,15 @@ import React, { useEffect } from 'react';
 import LocalImageView from '../../../components/LocalImageView';
 import GeminiSendBox from './GeminiSendBox';
 import { ConversationProvider } from '@/renderer/context/ConversationContext';
+import type { GeminiModelSelection } from './useGeminiModelSelection';
 
+// GeminiChat 接收共享的模型选择状态，避免组件内重复管理
+// GeminiChat consumes shared model selection state to avoid duplicate logic
 const GeminiChat: React.FC<{
   conversation_id: string;
-  model: TProviderWithModel;
   workspace: string;
-}> = ({ conversation_id, model, workspace }) => {
+  modelSelection: GeminiModelSelection;
+}> = ({ conversation_id, workspace, modelSelection }) => {
   useMessageLstCache(conversation_id);
   const updateLocalImage = LocalImageView.useUpdateLocalImage();
   useEffect(() => {
@@ -31,7 +33,7 @@ const GeminiChat: React.FC<{
         <FlexFullContainer>
           <MessageList className='flex-1'></MessageList>
         </FlexFullContainer>
-        <GeminiSendBox conversation_id={conversation_id} model={model}></GeminiSendBox>
+        <GeminiSendBox conversation_id={conversation_id} modelSelection={modelSelection}></GeminiSendBox>
       </div>
     </ConversationProvider>
   );
