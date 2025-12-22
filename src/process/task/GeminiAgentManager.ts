@@ -14,6 +14,11 @@ import { getDatabase } from '@process/database';
 import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '../message';
 import BaseAgentManager from './BaseAgentManager';
 import { handlePreviewOpenEvent } from '../utils/previewUtils';
+import * as fs from 'fs/promises';
+import * as path from 'path';
+
+// Generated images directory name
+const GENERATED_IMAGES_DIR = '.aionui/generated-images';
 
 // gemini agent管理器类
 export class GeminiAgentManager extends BaseAgentManager<{
@@ -112,6 +117,29 @@ export class GeminiAgentManager extends BaseAgentManager<{
     }
   }
 
+  /**
+   * Save base64 image data to workspace and return relative path
+   * 将 base64 图片数据保存到工作空间并返回相对路径
+   */
+  private async saveInlineDataToFile(inlineData: { mimeType: string; data: string }): Promise<string> {
+    // Create directory if not exists
+    const imagesDir = path.join(this.workspace, GENERATED_IMAGES_DIR);
+    await fs.mkdir(imagesDir, { recursive: true });
+
+    // Generate filename with timestamp
+    const ext = inlineData.mimeType.split('/')[1] || 'png';
+    const timestamp = Date.now();
+    const filename = `generated-${timestamp}.${ext}`;
+    const filePath = path.join(imagesDir, filename);
+
+    // Decode base64 and write to file
+    const buffer = Buffer.from(inlineData.data, 'base64');
+    await fs.writeFile(filePath, buffer);
+
+    // Return relative path from workspace
+    return path.join(GENERATED_IMAGES_DIR, filename);
+  }
+
   sendMessage(data: { input: string; msg_id: string }) {
     const message: TMessage = {
       id: data.msg_id,
@@ -146,7 +174,7 @@ export class GeminiAgentManager extends BaseAgentManager<{
   init() {
     super.init();
     // 接受来子进程的对话消息
-    this.on('gemini.message', (data) => {
+    this.on('gemini.message', async (data) => {
       if (data.type === 'finish') {
         this.status = 'finished';
       }
@@ -157,6 +185,19 @@ export class GeminiAgentManager extends BaseAgentManager<{
       // 处理预览打开事件（chrome-devtools 导航触发）/ Handle preview open event (triggered by chrome-devtools navigation)
       if (handlePreviewOpenEvent(data)) {
         return; // 不需要继续处理 / No need to continue processing
+      }
+
+      // Handle inline_data: save image to file, replace data with file path
+      // 处理 inline_data：保存图片到文件，将数据替换为文件路径
+      if (data.type === 'inline_data' && data.data?.mimeType && data.data?.data) {
+        try {
+          const relativePath = await this.saveInlineDataToFile(data.data);
+          // Replace base64 data with relative file path
+          data.data = relativePath;
+        } catch (error) {
+          console.error('[GeminiAgentManager] Failed to save inline data to file:', error);
+          return; // Skip this message if save failed
+        }
       }
 
       data.conversation_id = this.conversation_id;

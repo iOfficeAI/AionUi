@@ -23,6 +23,10 @@ export const processGeminiStreamEvents = async (stream: AsyncIterable<ServerGemi
       case ServerGeminiEventType.Content:
         onStreamEvent({ type: event.type, data: event.value });
         break;
+      case ServerGeminiEventType.InlineData:
+        // Handle image data from image generation models (like nano-banana-pro)
+        onStreamEvent({ type: event.type, data: event.value });
+        break;
       case ServerGeminiEventType.ToolCallRequest:
         onStreamEvent({ type: event.type, data: event.value });
         break;
@@ -42,15 +46,16 @@ export const processGeminiStreamEvents = async (stream: AsyncIterable<ServerGemi
           // console.log('[Token Usage]', event.value.usageMetadata);
         }
         break;
-      case ServerGeminiEventType.ChatCompressed:
       case ServerGeminiEventType.UserCancelled:
       case ServerGeminiEventType.ToolCallConfirmation:
       case ServerGeminiEventType.ToolCallResponse:
       case ServerGeminiEventType.MaxSessionTurns:
       case ServerGeminiEventType.LoopDetected:
-        {
-          // console.log('event>>>>>>>>>>>>>>>>>>>', event);
-        }
+        // These events are handled internally by the SDK / 这些事件由 SDK 内部处理
+        break;
+      // Handle OpenRouter specific events (ignored) / 处理 OpenRouter 特定事件（忽略）
+      case 'model_info':
+      case 'invalid_stream':
         break;
       default: {
         // Some event types may not be handled yet

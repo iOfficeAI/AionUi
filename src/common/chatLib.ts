@@ -90,7 +90,7 @@ interface IMessage<T extends TMessageType, Content extends Record<string, any>> 
   status?: 'finish' | 'pending' | 'error' | 'work';
 }
 
-export type IMessageText = IMessage<'text', { content: string }>;
+export type IMessageText = IMessage<'text', { content: string; images?: string[] }>; // images: array of relative file paths
 
 export type IMessageTips = IMessage<'tips', { content: string; type: 'error' | 'success' | 'warning' }>;
 
@@ -354,6 +354,22 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         position: 'left',
         conversation_id: message.conversation_id,
         content: message.data as any,
+      };
+    }
+    case 'inline_data': {
+      // Handle image data from image generation models (like nano-banana-pro)
+      // At this point, data should already be converted to relative file path by GeminiAgentManager
+      const imagePath = message.data as string;
+      return {
+        id: uuid(),
+        type: 'text',
+        msg_id: message.msg_id,
+        position: 'left',
+        conversation_id: message.conversation_id,
+        content: {
+          content: '', // Empty text content, image will be rendered separately
+          images: [imagePath],
+        },
       };
     }
     case 'start':
