@@ -10,6 +10,12 @@
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6C757D?style=flat-square&logo=linux&logoColor=white" alt="Platform">
 </p>
 
+<p align="center">
+  <a href="https://trendshift.io/repositories/15423" target="_blank">
+    <img src="https://trendshift.io/api/badge/repositories/15423" alt="GitHub Trending" height="40">
+  </a>
+</p>
+
 ---
 
 <p align="center">
@@ -52,7 +58,7 @@
 
 ### 🤖 **多代理模式 - 让命令行 AI 工具拥有图形界面**
 
-_如果你已经安装了 Gemini CLI、Claude Code、CodeX、Qwen Code 等命令行工具，AionUi 可以自动检测并为它们提供统一的图形界面_
+_如果你已经安装了 Gemini CLI、Claude Code、CodeX、Qwen Code、Goose AI、Augment Code 等命令行工具，AionUi 可以自动检测并为它们提供统一的图形界面_
 
 - ✅ **自动检测 + 统一界面** - 自动识别本地 CLI 工具，提供统一的图形界面，告别命令行
 - ✅ **本地保存 + 多会话** - 对话保存在本地，支持多会话并行，每个会话独立上下文

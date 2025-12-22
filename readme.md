@@ -10,6 +10,12 @@
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6C757D?style=flat-square&logo=linux&logoColor=white" alt="Platform">
 </p>
 
+<p align="center">
+  <a href="https://trendshift.io/repositories/15423" target="_blank">
+    <img src="https://trendshift.io/api/badge/repositories/15423" alt="GitHub Trending" height="40">
+  </a>
+</p>
+
 ---
 
 <p align="center">
@@ -52,7 +58,7 @@
 
 ### 🤖 **Multi-Agent Mode - Give Command-Line AI Tools a Graphical Interface**
 
-_If you have installed command-line tools like Gemini CLI, Claude Code, CodeX, Qwen Code, AionUi can automatically detect them and provide a unified graphical interface_
+_If you have installed command-line tools like Gemini CLI, Claude Code, CodeX, Qwen Code, Goose AI, Augment Code, AionUi can automatically detect them and provide a unified graphical interface_
 
 - ✅ **Auto Detection + Unified Interface** - Automatically recognizes local CLI tools, provides a unified graphical interface, say goodbye to command line
 - ✅ **Local Storage + Multi-Session** - Conversations saved locally, supports multiple parallel sessions, each session with independent context
