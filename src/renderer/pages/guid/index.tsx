@@ -721,13 +721,15 @@ const Guid: React.FC = () => {
               </div>
             </div>
             {dir && (
-              <div className='flex items-center gap-6px mt-12px text-13px text-t-secondary'>
-                <FolderOpen className='flex-shrink-0' theme='outline' size='16' fill={iconColors.secondary} style={{ lineHeight: 0 }} />
-                <Tooltip content={dir} position='top'>
-                  <span className='truncate'>
-                    {t('conversation.welcome.currentWorkspace')}: {dir}
-                  </span>
-                </Tooltip>
+              <div className='flex items-center justify-between gap-6px h-28px mt-12px px-12px text-13px text-t-secondary ' style={{ borderTop: '1px solid var(--border-base)' }}>
+                <div className='flex items-center'>
+                  <FolderOpen className='m-r-8px flex-shrink-0' theme='outline' size='16' fill={iconColors.secondary} style={{ lineHeight: 0 }} />
+                  <Tooltip content={dir} position='top'>
+                    <span className='truncate'>
+                      {t('conversation.welcome.currentWorkspace')}: {dir}
+                    </span>
+                  </Tooltip>
+                </div>
                 <Tooltip content={t('conversation.welcome.clearWorkspace')} position='top'>
                   <IconClose className='hover:text-[rgb(var(--danger-6))] hover:bg-3 transition-colors' strokeWidth={3} style={{ fontSize: 16 }} onClick={() => setDir('')} />
                 </Tooltip>
