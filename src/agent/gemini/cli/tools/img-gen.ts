@@ -14,7 +14,6 @@ import * as path from 'path';
 import type OpenAI from 'openai';
 import { ClientFactory, type RotatingClient } from '@/common/ClientFactory';
 import type { UnifiedChatCompletionResponse } from '@/common/RotatingApiClient';
-import { OpenAIRotatingClient } from '@/common/adapters/OpenAIRotatingClient';
 import { IMAGE_EXTENSIONS, MIME_TYPE_MAP, MIME_TO_EXT_MAP, DEFAULT_IMAGE_EXTENSION } from '@/common/constants';
 
 /**
@@ -39,6 +38,12 @@ function safeJsonParse<T = unknown>(jsonString: string, fallbackValue: T): T {
 }
 
 const API_TIMEOUT_MS = 120000; // 2 minutes for image generation API calls
+
+// Define specific types for image generation
+interface ImageGenerationResult {
+  img_url: string;
+  relative_path: string;
+}
 
 interface ImageContent {
   type: 'image_url';
@@ -445,71 +450,6 @@ class ImageGenerationInvocation extends BaseToolInvocation<ImageGenerationToolPa
         }
       }
 
-      updateOutput?.('Sending request to AI service...');
-
-      const client = await this.ensureClient();
-
-      // Choose API based on whether there are input images
-      // 根据是否有输入图片选择 API
-      // - Text-to-Image (no input): use dedicated image generation API
-      // - Image editing/analysis (with input): use chat completion API with vision
-      // - 纯文生图（无输入）：使用专用图片生成 API
-      // - 图片编辑/分析（有输入）：使用带视觉能力的聊天完成 API
-      if (!hasImages && client instanceof OpenAIRotatingClient) {
-        // Pure text-to-image with OpenAI-compatible API: use dedicated image generation API
-        // 纯文生图（OpenAI 兼容 API）：使用专用图片生成 API
-        const prompt = this.params.prompt;
-        const imageResult = await client.generateImageFromPrompt(prompt, this.currentModel, {
-          signal,
-          timeout: API_TIMEOUT_MS,
-        });
-
-        if (!imageResult.success || !imageResult.images?.length) {
-          const errorMsg = imageResult.error || 'No image generated';
-          return {
-            llmContent: `Error: ${errorMsg}`,
-            returnDisplay: errorMsg,
-            error: {
-              message: errorMsg,
-              type: ToolErrorType.EXECUTION_FAILED,
-            },
-          };
-        }
-
-        updateOutput?.('Saving generated image...');
-
-        const firstImage = imageResult.images[0];
-        const imageUrl = firstImage.url || firstImage.b64_json;
-
-        if (!imageUrl) {
-          const errorMsg = 'No image URL or data in response';
-          return {
-            llmContent: `Error: ${errorMsg}`,
-            returnDisplay: errorMsg,
-            error: {
-              message: errorMsg,
-              type: ToolErrorType.EXECUTION_FAILED,
-            },
-          };
-        }
-
-        const sessionId = this.config.getSessionId();
-        const conversationId = sessionId?.split('########')[0];
-
-        const imagePath = await saveGeneratedImage(imageUrl, this.config, undefined, conversationId);
-        const relativeImagePath = path.relative(this.config.getWorkingDir(), imagePath);
-
-        return {
-          llmContent: `Image generated successfully.\n\nGenerated image saved to: ${imagePath}`,
-          returnDisplay: {
-            img_url: imagePath,
-            relative_path: relativeImagePath,
-          } as unknown as ToolResultDisplay,
-        };
-      }
-
-      // Image editing/analysis: use chat completion API with vision
-      // 图片编辑/分析：使用带视觉能力的聊天完成 API
       const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
         {
           role: 'user',
@@ -517,6 +457,9 @@ class ImageGenerationInvocation extends BaseToolInvocation<ImageGenerationToolPa
         },
       ];
 
+      updateOutput?.('Sending request to AI service...');
+
+      const client = await this.ensureClient();
       const completion: UnifiedChatCompletionResponse = await client.createChatCompletion(
         {
           model: this.currentModel,
