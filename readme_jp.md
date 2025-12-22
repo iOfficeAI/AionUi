@@ -10,6 +10,12 @@
   <img src="https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-6C757D?style=flat-square&logo=linux&logoColor=white" alt="Platform">
 </p>
 
+<p align="center">
+  <a href="https://trendshift.io/repositories/15423" target="_blank">
+    <img src="https://trendshift.io/api/badge/repositories/15423" alt="GitHub Trending" height="40">
+  </a>
+</p>
+
 ---
 
 <p align="center">
@@ -52,7 +58,7 @@
 
 ### 🤖 **マルチエージェントモード - コマンドラインAIツールにグラフィカルインターフェースを提供**
 
-_Gemini CLI、Claude Code、CodeX、Qwen Codeなどのコマンドラインツールをインストール済みの場合、AionUiは自動的に検出し、統一されたグラフィカルインターフェースを提供します_
+_Gemini CLI、Claude Code、CodeX、Qwen Code、Goose AI、Augment Codeなどのコマンドラインツールをインストール済みの場合、AionUiは自動的に検出し、統一されたグラフィカルインターフェースを提供します_
 
 - ✅ **自動検出 + 統一インターフェース** - ローカルCLIツールを自動認識し、統一されたグラフィカルインターフェースを提供、コマンドラインに別れを告げる
 - ✅ **ローカル保存 + マルチセッション** - 会話をローカルに保存、マルチセッション並列をサポート、各セッションは独立したコンテキスト
