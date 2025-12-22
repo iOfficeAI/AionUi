@@ -132,7 +132,16 @@ export class OpenAI2GeminiConverter implements ProtocolConverter<OpenAIChatCompl
     // Use image generation model if request seems to be for image generation
     const isImageGeneration = parts.some((part) => part.text && (part.text.toLowerCase().includes('generate image') || part.text.toLowerCase().includes('create image') || part.text.toLowerCase().includes('draw') || part.text.toLowerCase().includes('make image')));
 
-    const model = isImageGeneration ? 'gemini-2.5-flash-image-preview' : this.config.defaultModel || params.model;
+    // Use provided model if available, otherwise fallback to default
+    let model = params.model || this.config.defaultModel;
+
+    // Only switch to image generation model if:
+    // 1. It is detected as an image generation request
+    // AND
+    // 2. The current model is the default one (meaning user didn't explicitly select a specialized model)
+    if (isImageGeneration && model === this.config.defaultModel) {
+      model = 'gemini-2.5-flash-image-preview';
+    }
 
     const request: GeminiRequest = {
       model,

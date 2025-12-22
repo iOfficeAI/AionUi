@@ -38,7 +38,12 @@ const Diff2Html = ({ diff, className, title, filePath }: { diff: string; classNa
       renderNothingWhenEmpty: false,
     });
   }, [diff, sideBySide]);
-  const operatorRef = useRef<HTMLDivElement>(document.createElement('div'));
+
+  // Lazy init operatorRef to avoid creating div on every render
+  const operatorRef = useRef<HTMLDivElement | null>(null);
+  if (!operatorRef.current) {
+    operatorRef.current = document.createElement('div');
+  }
 
   const normalizedTitle = useMemo(() => {
     if (!title) return '';
@@ -67,20 +72,57 @@ const Diff2Html = ({ diff, className, title, filePath }: { diff: string; classNa
   const previewTitle = normalizedTitle || relativePath || title || fileName;
   const fileTypeInfo = useMemo(() => getFileTypeInfo(fileName), [fileName]);
 
-  const handlePreviewClick = useCallback(() => {
-    const { contentType, editable, language } = fileTypeInfo;
-    void launchPreview({
-      relativePath,
-      originalPath: filePath,
-      fileName,
-      title: previewTitle,
-      language,
-      contentType,
-      editable,
-      fallbackContent: editable ? extractContentFromDiff(diff) : undefined,
-      diffContent: diff,
-    });
-  }, [diff, fileName, filePath, fileTypeInfo, launchPreview, previewTitle, relativePath]);
+  const handlePreviewClick = useCallback(
+    (e: React.MouseEvent<HTMLElement>) => {
+      e.stopPropagation();
+      if (e.preventDefault) e.preventDefault();
+      const { contentType, editable, language } = fileTypeInfo;
+      void launchPreview({
+        relativePath,
+        originalPath: filePath,
+        fileName,
+        title: previewTitle,
+        language,
+        contentType,
+        editable,
+        fallbackContent: editable ? extractContentFromDiff(diff) : undefined,
+        diffContent: diff,
+      });
+    },
+    [diff, fileName, filePath, fileTypeInfo, launchPreview, previewTitle, relativePath]
+  );
+
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Re-attach operatorRef to the DOM whenever component updates
+  // We remove the dependency array to ensure this runs on every render/update,
+  // guaranteeing the button is always attached and styled correctly.
+  React.useLayoutEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    // diff2html renders file headers with class 'd2h-file-header'
+    const header = el.querySelectorAll('.d2h-file-header')[0] as HTMLDivElement;
+    if (header && operatorRef.current) {
+      // Always enforce styles
+      header.style.alignItems = 'center';
+      header.style.height = '23px';
+
+      operatorRef.current.className = 'flex items-center justify-center gap-10px';
+
+      // Ensure operatorRef.current is appended
+      if (!header.contains(operatorRef.current)) {
+        header.appendChild(operatorRef.current);
+      }
+
+      const name = header.querySelector('.d2h-file-name') as HTMLDivElement;
+      if (name && title) {
+        name.innerHTML = title;
+      }
+    } else {
+      console.warn('[Diff2Html] Header or operatorRef missing', { hasHeader: !!header, hasRef: !!operatorRef.current });
+    }
+  });
 
   return (
     <CollapsibleContent maxHeight={160} defaultCollapsed={true} className={className}>
@@ -90,42 +132,30 @@ const Diff2Html = ({ diff, className, title, filePath }: { diff: string; classNa
             '[&_.d2h-file-diff]:hidden [&_.d2h-files-diff]:hidden': collapse,
             'd2h-dark-color-scheme': theme === 'dark',
           })}
-          ref={(el) => {
-            if (!el) return;
-            const header = el.querySelectorAll('.d2h-file-header')[0] as HTMLDivElement;
-            if (header) {
-              header.style.alignItems = 'center';
-              header.style.height = '23px';
-              operatorRef.current.className = 'flex items-center justify-center gap-10px';
-              header.appendChild(operatorRef.current);
-              const name = header.querySelector('.d2h-file-name') as HTMLDivElement;
-              if (name && title) {
-                name.innerHTML = title;
-              }
-            }
-          }}
+          ref={containerRef}
           dangerouslySetInnerHTML={{
             __html: diffHtmlContent,
           }}
         ></div>
-        {ReactDOM.createPortal(
-          <>
-            {/* side-by-side 选项 / Side-by-side option */}
-            <Checkbox className='whitespace-nowrap' checked={sideBySide} onChange={(value) => setSideBySide(value)}>
-              <span className='whitespace-nowrap'>side-by-side</span>
-            </Checkbox>
+        {operatorRef.current &&
+          ReactDOM.createPortal(
+            <>
+              {/* side-by-side 选项 / Side-by-side option */}
+              <Checkbox className='whitespace-nowrap' checked={sideBySide} onChange={(value) => setSideBySide(value)}>
+                <span className='whitespace-nowrap'>side-by-side</span>
+              </Checkbox>
 
-            <Tooltip content={t('preview.openInPanelTooltip')}>
-              <Button type='text' size='mini' onClick={handlePreviewClick} disabled={previewLoading} icon={<PreviewOpen theme='outline' size='14' fill={iconColors.secondary} />}>
-                {t('preview.preview')}
-              </Button>
-            </Tooltip>
+              <Tooltip content={t('preview.openInPanelTooltip')}>
+                <Button type='text' size='mini' onClick={handlePreviewClick as any} disabled={previewLoading} icon={<PreviewOpen theme='outline' size='14' fill={iconColors.secondary} />}>
+                  {t('preview.preview')}
+                </Button>
+              </Tooltip>
 
-            {/* 折叠按钮 / Collapse button */}
-            {collapse ? <ExpandDownOne theme='outline' size='14' fill={iconColors.secondary} className='flex items-center' onClick={() => setCollapse(false)} /> : <FoldUpOne theme='outline' size='14' fill={iconColors.secondary} className='flex items-center' onClick={() => setCollapse(true)} />}
-          </>,
-          operatorRef.current
-        )}
+              {/* 折叠按钮 / Collapse button */}
+              {collapse ? <ExpandDownOne theme='outline' size='14' fill={iconColors.secondary} className='flex items-center' onClick={() => setCollapse(false)} /> : <FoldUpOne theme='outline' size='14' fill={iconColors.secondary} className='flex items-center' onClick={() => setCollapse(true)} />}
+            </>,
+            operatorRef.current
+          )}
       </div>
     </CollapsibleContent>
   );

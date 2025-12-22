@@ -10,6 +10,19 @@ export interface OpenAIClientConfig {
   httpAgent?: unknown;
 }
 
+/**
+ * Image generation result interface
+ * 图片生成结果接口
+ */
+export interface ImageGenerationResult {
+  success: boolean;
+  images?: Array<{
+    url?: string;
+    b64_json?: string;
+  }>;
+  error?: string;
+}
+
 export class OpenAIRotatingClient extends RotatingApiClient<OpenAI> {
   private readonly baseConfig: OpenAIClientConfig;
 
@@ -43,6 +56,7 @@ export class OpenAIRotatingClient extends RotatingApiClient<OpenAI> {
   }
 
   // Convenience methods for common OpenAI operations
+  // 常用 OpenAI 操作的便捷方法
   async createChatCompletion(params: OpenAI.Chat.Completions.ChatCompletionCreateParams, options?: OpenAI.RequestOptions): Promise<OpenAI.Chat.Completions.ChatCompletion> {
     return await this.executeWithRetry((client) => {
       return client.chat.completions.create(params, options) as Promise<OpenAI.Chat.Completions.ChatCompletion>;
@@ -53,6 +67,42 @@ export class OpenAIRotatingClient extends RotatingApiClient<OpenAI> {
     return await this.executeWithRetry((client) => {
       return client.images.generate(params, options) as Promise<OpenAI.Images.ImagesResponse>;
     });
+  }
+
+  /**
+   * Generate image from text prompt (dedicated method for image generation tools)
+   * 从文本提示生成图片（专用于图片生成工具的方法）
+   *
+   * @param prompt - Text description of the image to generate / 要生成图片的文本描述
+   * @param model - Model to use for generation / 用于生成的模型
+   * @param options - Additional request options / 额外的请求选项
+   * @returns ImageGenerationResult with success status and image data / 包含成功状态和图片数据的结果
+   */
+  async generateImageFromPrompt(prompt: string, model: string, options?: OpenAI.RequestOptions): Promise<ImageGenerationResult> {
+    try {
+      const imageResponse = await this.createImage(
+        {
+          model,
+          prompt,
+          n: 1,
+          size: '1024x1024',
+        },
+        options
+      );
+
+      return {
+        success: true,
+        images: imageResponse.data.map((d) => ({
+          url: d.url,
+          b64_json: d.b64_json,
+        })),
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
   }
 
   async createEmbedding(params: OpenAI.Embeddings.EmbeddingCreateParams, options?: OpenAI.RequestOptions): Promise<OpenAI.Embeddings.CreateEmbeddingResponse> {

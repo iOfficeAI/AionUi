@@ -225,18 +225,19 @@ const ToolsModalContent: React.FC = () => {
 
   const imageGenerationModelList = useMemo(() => {
     if (!data) return [];
+    const isImageModel = (model: string) => {
+      const lowerModel = model.toLowerCase();
+      return lowerModel.includes('image') || lowerModel.includes('banana') || lowerModel.includes('dall-e') || lowerModel.includes('midjourney') || lowerModel.includes('flux') || lowerModel.includes('stable-diffusion') || lowerModel.includes('recraft');
+    };
+
     return (data || [])
       .filter((v) => {
-        const filteredModels = v.model.filter((model) => {
-          return model.toLowerCase().includes('image');
-        });
+        const filteredModels = v.model.filter(isImageModel);
         return filteredModels.length > 0;
       })
       .map((v) => ({
         ...v,
-        model: v.model.filter((model) => {
-          return model.toLowerCase().includes('image');
-        }),
+        model: v.model.filter(isImageModel),
       }));
   }, [data]);
 
@@ -321,7 +322,8 @@ const ToolsModalContent: React.FC = () => {
                       const [platformId, modelName] = value.split('|');
                       const platform = imageGenerationModelList.find((p) => p.id === platformId);
                       if (platform) {
-                        handleImageGenerationModelChange({ ...platform, useModel: modelName });
+                        // Auto-enable switch when selecting a model
+                        handleImageGenerationModelChange({ ...platform, useModel: modelName, switch: true });
                       }
                     }}
                   >
