@@ -38,7 +38,7 @@ html,
 [class*="chat-layout"] .arco-layout-content,
 [class*="conversation"] .arco-layout-content,
 .bg-1,
-.bg-2,
+.bg-2:not(.app-titlebar),
 [class*="flex-col"][class*="h-full"],
 [class*="flex-center"] {
   background-color: transparent;
