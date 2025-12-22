@@ -33,6 +33,7 @@ exports.default = async function afterSign(context) {
 
   try {
     await notarize({
+      tool: 'notarytool',
       appBundleId,
       appPath: appPath,
       appleId: process.env.appleId,

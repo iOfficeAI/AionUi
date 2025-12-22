@@ -418,8 +418,16 @@ button:not([class*="model"]) svg:hover,
 .layout-content.bg-1::before {
   content: "";
   position: absolute;
-  inset: 0;
-  background: transparent;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(240, 249, 255, 0.75) 0%,
+    rgba(224, 242, 254, 0.8) 50%,
+    rgba(240, 249, 255, 0.75) 100%
+  );
   z-index: 0;
   pointer-events: none;
 }
@@ -1174,12 +1182,20 @@ html {
   background-color: var(--hk-bg-1);
 }
 
-/* 背景图遮罩 - 增强可读性 */
+/* 半透明遮罩层 */
 .layout-content.bg-1::before {
   content: "";
   position: absolute;
-  inset: 0;
-  background: transparent;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(240, 249, 255, 0.75) 0%,
+    rgba(224, 242, 254, 0.8) 50%,
+    rgba(240, 249, 255, 0.75) 100%
+  );
   z-index: 0;
   pointer-events: none;
 }
@@ -1997,16 +2013,24 @@ button:not(.sendbox-model-btn):not([class*="model"]):not([class*="Model"]) svg,
   position: relative;
 }
 
-/* 遮罩层透明 - 让背景图穿透 */
+/* 半透明遮罩层 */
 .layout-content.bg-1::before {
   content: "";
   position: absolute;
-  inset: 0;
-  background: transparent;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(240, 249, 255, 0.75) 0%,
+    rgba(224, 242, 254, 0.8) 50%,
+    rgba(240, 249, 255, 0.75) 100%
+  );
   z-index: 0;
   pointer-events: none;
 }
-
+  
 /* 聊天页面背景图 - Windows 经典配色 */
 .chat-layout-header,
 [class*="chat-layout"] .arco-layout-content,
