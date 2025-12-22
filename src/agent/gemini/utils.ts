@@ -23,13 +23,6 @@ export const processGeminiStreamEvents = async (stream: AsyncIterable<ServerGemi
       case ServerGeminiEventType.Content:
         onStreamEvent({ type: event.type, data: event.value });
         break;
-      // Handle inline_data from image generation models (like nano-banana-pro)
-      // 处理图片生成模型（如 nano-banana-pro）的 inline_data
-      // Note: Using string literal for compatibility until aioncli-core publishes InlineData type
-      // 注意：使用字符串字面量以兼容未发布 InlineData 类型的 aioncli-core 版本
-      case 'inline_data':
-        onStreamEvent({ type: event.type, data: (event as any).value });
-        break;
       case ServerGeminiEventType.ToolCallRequest:
         onStreamEvent({ type: event.type, data: event.value });
         break;
@@ -49,16 +42,15 @@ export const processGeminiStreamEvents = async (stream: AsyncIterable<ServerGemi
           // console.log('[Token Usage]', event.value.usageMetadata);
         }
         break;
+      case ServerGeminiEventType.ChatCompressed:
       case ServerGeminiEventType.UserCancelled:
       case ServerGeminiEventType.ToolCallConfirmation:
       case ServerGeminiEventType.ToolCallResponse:
       case ServerGeminiEventType.MaxSessionTurns:
       case ServerGeminiEventType.LoopDetected:
-        // These events are handled internally by the SDK / 这些事件由 SDK 内部处理
-        break;
-      // Handle OpenRouter specific events (ignored) / 处理 OpenRouter 特定事件（忽略）
-      case 'model_info':
-      case 'invalid_stream':
+        {
+          // console.log('event>>>>>>>>>>>>>>>>>>>', event);
+        }
         break;
       default: {
         // Some event types may not be handled yet

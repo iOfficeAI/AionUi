@@ -225,11 +225,12 @@ const ToolsModalContent: React.FC = () => {
 
   const imageGenerationModelList = useMemo(() => {
     if (!data) return [];
-    const isImageModel = (model: string) => {
-      const lowerModel = model.toLowerCase();
-      return lowerModel.includes('image') || lowerModel.includes('banana') || lowerModel.includes('dall-e') || lowerModel.includes('midjourney') || lowerModel.includes('flux') || lowerModel.includes('stable-diffusion') || lowerModel.includes('recraft');
+    // Filter models that support image generation
+    // 筛选支持图片生成的模型
+    const isImageModel = (modelName: string) => {
+      const name = modelName.toLowerCase();
+      return name.includes('image') || name.includes('banana');
     };
-
     return (data || [])
       .filter((v) => {
         const filteredModels = v.model.filter(isImageModel);
@@ -322,8 +323,7 @@ const ToolsModalContent: React.FC = () => {
                       const [platformId, modelName] = value.split('|');
                       const platform = imageGenerationModelList.find((p) => p.id === platformId);
                       if (platform) {
-                        // Auto-enable switch when selecting a model
-                        handleImageGenerationModelChange({ ...platform, useModel: modelName, switch: true });
+                        handleImageGenerationModelChange({ ...platform, useModel: modelName });
                       }
                     }}
                   >
