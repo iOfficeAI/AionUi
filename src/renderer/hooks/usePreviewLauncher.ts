@@ -76,8 +76,18 @@ export const usePreviewLauncher = () => {
         language,
       };
 
+      // 1. 乐观预览：如果有回退内容（如 Diff 中提取的内容），立即显示 / Optimistic preview: Show fallback content immediately if available
+      let hasOpened = false;
+      if (typeof fallbackContent === 'string') {
+        openPreview(fallbackContent, contentType, {
+          ...metadata,
+          editable,
+        });
+        hasOpened = true;
+      }
+
       try {
-        // 尝试读取实际文件内容 / Try to read actual file content
+        // 2. 尝试读取实际文件内容（覆盖乐观预览） / Try to read actual file content (override optimistic preview)
         if (absolutePath || originalPath) {
           try {
             const pathToRead = absolutePath || originalPath;
@@ -102,38 +112,30 @@ export const usePreviewLauncher = () => {
               return;
             }
 
-            const content = await ipcBridge.fs.readFile.invoke({ path: pathToRead! });
+            // 使用 Promise.race 防止长时间卡死 / Use Promise.race to prevent hanging
+            const content = await Promise.race([ipcBridge.fs.readFile.invoke({ path: pathToRead! }), new Promise<never>((_, reject) => setTimeout(() => reject(new Error('File read timeout')), 5000))]);
             openPreview(content, contentType, {
               ...metadata,
               editable,
             });
             return;
           } catch (error) {
-            // 读取失败，回退到 fallbackContent / Read failed, fallback to fallbackContent
-            console.warn('[usePreviewLauncher] Failed to read file, fallback to provided content:', error);
+            // 读取失败，如果已经显示了乐观预览，则只记录警告
+            // Read failed, log warning if optimistic preview is already shown
           }
         }
 
-        // 使用提供的回退内容 / Use provided fallback content
-        if (typeof fallbackContent === 'string') {
-          openPreview(fallbackContent, contentType, {
-            ...metadata,
-            editable,
-          });
-          return;
+        // 3. 如果尚未打开且没有成功读取文件，处理回退情况 / If not opened and file read failed, handle fallback cases
+        if (!hasOpened) {
+          // 显示 diff 内容（只读）/ Show diff content (read-only)
+          if (diffContent) {
+            openPreview(diffContent, 'diff', {
+              ...metadata,
+              editable: false,
+            });
+            return;
+          }
         }
-
-        // 显示 diff 内容（只读）/ Show diff content (read-only)
-        if (diffContent) {
-          openPreview(diffContent, 'diff', {
-            ...metadata,
-            editable: false,
-          });
-          return;
-        }
-
-        // 无法打开预览 / Unable to open preview
-        console.warn('[usePreviewLauncher] No content available for preview');
       } catch (error) {
         console.error('[usePreviewLauncher] Failed to open preview:', error);
       } finally {
