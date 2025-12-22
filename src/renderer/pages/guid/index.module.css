@@ -103,3 +103,71 @@
     flex-shrink: 0;
   }
 }
+
+/* 底部快捷按钮 */
+.quickActions {
+  position: absolute;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 24px;
+}
+
+.quickActionBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--fill-0);
+  box-shadow:
+    6px 6px 12px rgba(0, 0, 0, 0.08),
+    -6px -6px 12px rgba(255, 255, 255, 0.8);
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.2, 0.8, 0.3, 1);
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.quickActionBtn:hover {
+  width: 200px;
+  border-radius: 28px;
+  padding: 0 20px;
+  justify-content: flex-start;
+  gap: 10px;
+}
+
+.quickActionBtn .quickActionText {
+  opacity: 0;
+  max-width: 0;
+  overflow: hidden;
+  font-size: 14px;
+  color: var(--color-text-2);
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.3, 1);
+}
+
+.quickActionBtn:hover .quickActionText {
+  opacity: 1;
+  max-width: 150px;
+}
+
+.quickActionBtn .quickActionIcon {
+  flex-shrink: 0;
+  color: var(--color-text-3);
+  transition: color 0.3s ease;
+}
+
+.quickActionBtn:hover .quickActionIcon {
+  color: rgb(var(--primary-6));
+}
+
+/* 暗色模式适配 */
+:global(.dark) .quickActionBtn {
+  box-shadow:
+    6px 6px 12px rgba(0, 0, 0, 0.3),
+    -6px -6px 12px rgba(255, 255, 255, 0.05);
+}

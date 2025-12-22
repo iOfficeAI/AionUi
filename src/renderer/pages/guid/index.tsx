@@ -30,7 +30,7 @@ import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
 import type { AcpBackend } from '@/types/acpTypes';
 import { Button, ConfigProvider, Dropdown, Input, Menu, Tooltip } from '@arco-design/web-react';
 import { IconClose } from '@arco-design/web-react/icon';
-import { ArrowUp, FolderOpen, MenuFold, MenuUnfold, Plus, Robot, UploadOne } from '@icon-park/react';
+import { ArrowUp, Comment, FolderOpen, MenuFold, MenuUnfold, Plus, Robot, Star, UploadOne } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -735,6 +735,18 @@ const Guid: React.FC = () => {
                 </Tooltip>
               </div>
             )}
+          </div>
+        </div>
+
+        {/* 底部快捷按钮 */}
+        <div className={styles.quickActions}>
+          <div className={styles.quickActionBtn} onClick={() => ipcBridge.shell.openExternal.invoke('https://x.com/i/chat')}>
+            <Comment className={styles.quickActionIcon} theme='outline' size='24' />
+            <span className={styles.quickActionText}>想吐槽或提建议?</span>
+          </div>
+          <div className={styles.quickActionBtn} onClick={() => ipcBridge.shell.openExternal.invoke('https://github.com/iOfficeAI/AionUi')}>
+            <Star className={styles.quickActionIcon} theme='outline' size='24' />
+            <span className={styles.quickActionText}>喜欢我们？点个星吧</span>
           </div>
         </div>
       </div>
