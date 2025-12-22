@@ -23,9 +23,12 @@ export const processGeminiStreamEvents = async (stream: AsyncIterable<ServerGemi
       case ServerGeminiEventType.Content:
         onStreamEvent({ type: event.type, data: event.value });
         break;
-      case ServerGeminiEventType.InlineData:
-        // Handle image data from image generation models (like nano-banana-pro)
-        onStreamEvent({ type: event.type, data: event.value });
+      // Handle inline_data from image generation models (like nano-banana-pro)
+      // 处理图片生成模型（如 nano-banana-pro）的 inline_data
+      // Note: Using string literal for compatibility until aioncli-core publishes InlineData type
+      // 注意：使用字符串字面量以兼容未发布 InlineData 类型的 aioncli-core 版本
+      case 'inline_data':
+        onStreamEvent({ type: event.type, data: (event as any).value });
         break;
       case ServerGeminiEventType.ToolCallRequest:
         onStreamEvent({ type: event.type, data: event.value });
