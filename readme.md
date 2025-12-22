@@ -12,7 +12,7 @@
 
 <p align="center">
   <a href="https://trendshift.io/repositories/15423" target="_blank">
-    <img src="https://trendshift.io/api/badge/repositories/15423" alt="GitHub Trending" height="40">
+    <img src="https://trendshift.io/api/badge/repositories/15423" alt="GitHub Trending" height="80">
   </a>
 </p>
 
