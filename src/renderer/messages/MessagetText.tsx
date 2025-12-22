@@ -9,7 +9,6 @@ import classNames from 'classnames';
 import React, { useMemo, useState } from 'react';
 import MarkdownView from '../components/Markdown';
 import CollapsibleContent from '../components/CollapsibleContent';
-import LocalImageView from '../components/LocalImageView';
 import { Copy } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { iconColors } from '@/renderer/theme/colors';
@@ -35,13 +34,9 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
   const { t } = useTranslation();
   const [showCopyAlert, setShowCopyAlert] = useState(false);
   const isUserMessage = message.position === 'right';
-  const images = message.content.images;
-  const hasImages = images && images.length > 0;
-  const hasTextContent = message.content.content && message.content.content.trim();
 
-  // 过滤空内容，避免渲染空DOM (但允许有图片的情况)
-  // Filter empty content to avoid rendering empty DOM (but allow cases with images)
-  if (!hasTextContent && !hasImages) {
+  // 过滤空内容，避免渲染空DOM
+  if (!message.content.content || (typeof message.content.content === 'string' && !message.content.content.trim())) {
     return null;
   }
 
@@ -74,24 +69,14 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
             'bg-aou-2 p-8px': isUserMessage,
           })}
         >
-          {/* 渲染图片 (来自图片生成模型如 nano-banana-pro) */}
-          {/* Render images (from image generation models like nano-banana-pro) */}
-          {hasImages && (
-            <div className='mb-8px'>
-              {images.map((imagePath, index) => (
-                <LocalImageView key={index} src={imagePath} alt={`Generated Image ${index + 1}`} className='max-w-full rd-8px' />
-              ))}
-            </div>
-          )}
           {/* JSON 内容使用折叠组件 Use CollapsibleContent for JSON content */}
-          {hasTextContent &&
-            (json ? (
-              <CollapsibleContent maxHeight={200} defaultCollapsed={true}>
-                <MarkdownView codeStyle={{ marginTop: 4, marginBlock: 4 }}>{`\`\`\`json\n${JSON.stringify(data, null, 2)}\n\`\`\``}</MarkdownView>
-              </CollapsibleContent>
-            ) : (
-              <MarkdownView codeStyle={{ marginTop: 4, marginBlock: 4 }}>{data}</MarkdownView>
-            ))}
+          {json ? (
+            <CollapsibleContent maxHeight={200} defaultCollapsed={true}>
+              <MarkdownView codeStyle={{ marginTop: 4, marginBlock: 4 }}>{`\`\`\`json\n${JSON.stringify(data, null, 2)}\n\`\`\``}</MarkdownView>
+            </CollapsibleContent>
+          ) : (
+            <MarkdownView codeStyle={{ marginTop: 4, marginBlock: 4 }}>{data}</MarkdownView>
+          )}
         </div>
         <div
           className={classNames('h-32px flex items-center mt-4px', {
