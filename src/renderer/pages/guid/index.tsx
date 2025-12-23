@@ -134,6 +134,15 @@ const AGENT_LOGO_MAP: Partial<Record<AcpBackend, string>> = {
 const Guid: React.FC = () => {
   const { t } = useTranslation();
   const guidContainerRef = useRef<HTMLDivElement>(null);
+
+  // 打开外部链接 / Open external link
+  const openLink = useCallback(async (url: string) => {
+    try {
+      await ipcBridge.shell.openExternal.invoke(url);
+    } catch (error) {
+      console.error('Failed to open external link:', error);
+    }
+  }, []);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [files, setFiles] = useState<string[]>([]);
@@ -742,11 +751,11 @@ const Guid: React.FC = () => {
         <div className='absolute bottom-32px left-50% -translate-x-1/2 flex flex-col justify-center items-center'>
           <div className='text-text-3 text-14px mt-24px mb-12px'>{t('conversation.welcome.quickActionsTitle')}</div>
           <div className='flex justify-center items-center gap-24px'>
-            <div className='group flex items-center justify-center w-56px h-56px rd-50% bg-fill-0 cursor-pointer overflow-hidden whitespace-nowrap hover:w-200px hover:rd-28px hover:px-20px hover:justify-start hover:gap-10px transition-all duration-400 ease-[cubic-bezier(0.2,0.8,0.3,1)] dark:shadow-[6px_6px_12px_rgba(0,0,0,0.3),-6px_-6px_12px_rgba(255,255,255,0.05)]' style={{ boxShadow: '6px 6px 12px rgba(0, 0, 0, 0.08), -6px -6px 12px rgba(255, 255, 255, 0.8)' }} onClick={() => ipcBridge.shell.openExternal.invoke('https://x.com/i/chat')}>
+            <div className='group flex items-center justify-center w-56px h-56px rd-50% bg-fill-0 b-solid border border-1 cursor-pointer overflow-hidden whitespace-nowrap hover:w-200px hover:rd-28px hover:px-20px hover:justify-start hover:gap-10px transition-all duration-400 ease-[cubic-bezier(0.2,0.8,0.3,1)]' style={{ borderColor: 'var(--border-special, #60577E)', boxShadow: '0px 2px 12px rgba(var(--primary-rgb, 77, 60, 234), 0.1)' }} onClick={() => openLink('https://x.com/AionUi')}>
               <Comment className='flex-shrink-0 text-[var(--color-text-3)] group-hover:text-[rgb(var(--primary-6))] transition-colors duration-300' theme='outline' size='24' />
               <span className='opacity-0 max-w-0 overflow-hidden text-14px text-[var(--color-text-2)] group-hover:opacity-100 group-hover:max-w-150px transition-all duration-300 ease-[cubic-bezier(0.2,0.8,0.3,1)]'>{t('conversation.welcome.quickActionFeedback')}</span>
             </div>
-            <div className='group flex items-center justify-center w-56px h-56px rd-50% bg-fill-0 cursor-pointer overflow-hidden whitespace-nowrap hover:w-200px hover:rd-28px hover:px-20px hover:justify-start hover:gap-10px transition-all duration-400 ease-[cubic-bezier(0.2,0.8,0.3,1)] dark:shadow-[6px_6px_12px_rgba(0,0,0,0.3),-6px_-6px_12px_rgba(255,255,255,0.05)]' style={{ boxShadow: '6px 6px 12px rgba(0, 0, 0, 0.08), -6px -6px 12px rgba(255, 255, 255, 0.8)' }} onClick={() => ipcBridge.shell.openExternal.invoke('https://github.com/iOfficeAI/AionUi')}>
+            <div className='group flex items-center justify-center w-56px h-56px rd-50% bg-fill-0 b-solid border border-1 cursor-pointer overflow-hidden whitespace-nowrap hover:w-200px hover:rd-28px hover:px-20px hover:justify-start hover:gap-10px transition-all duration-400 ease-[cubic-bezier(0.2,0.8,0.3,1)]' style={{ borderColor: 'var(--border-special, #60577E)', boxShadow: '0px 2px 12px rgba(var(--primary-rgb, 77, 60, 234), 0.1)' }} onClick={() => openLink('https://github.com/iOfficeAI/AionUi')}>
               <Star className='flex-shrink-0 text-[var(--color-text-3)] group-hover:text-[rgb(var(--primary-6))] transition-colors duration-300' theme='outline' size='24' />
               <span className='opacity-0 max-w-0 overflow-hidden text-14px text-[var(--color-text-2)] group-hover:opacity-100 group-hover:max-w-150px transition-all duration-300 ease-[cubic-bezier(0.2,0.8,0.3,1)]'>{t('conversation.welcome.quickActionStar')}</span>
             </div>
