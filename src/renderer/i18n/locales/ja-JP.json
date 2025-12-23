@@ -316,7 +316,10 @@
       "selectModel": "モデルを選択",
       "specifyWorkspace": "フォルダーでチャット",
       "currentWorkspace": "現在のワークスペース",
-      "clearWorkspace": "フォルダーを解除"
+      "clearWorkspace": "フォルダーを解除",
+      "quickActionsTitle": "AionUi で何ができる？",
+      "quickActionFeedback": "フィードバックや提案は？",
+      "quickActionStar": "気に入った？スターをください！"
     },
     "history": {
       "cancelDelete": "いいえ",

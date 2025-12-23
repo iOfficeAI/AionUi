@@ -30,7 +30,7 @@ import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
 import type { AcpBackend } from '@/types/acpTypes';
 import { Button, ConfigProvider, Dropdown, Input, Menu, Tooltip } from '@arco-design/web-react';
 import { IconClose } from '@arco-design/web-react/icon';
-import { ArrowUp, FolderOpen, MenuFold, MenuUnfold, Plus, Robot, UploadOne } from '@icon-park/react';
+import { ArrowUp, Comment, FolderOpen, MenuFold, MenuUnfold, Plus, Robot, Star, UploadOne } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -543,7 +543,7 @@ const Guid: React.FC = () => {
           )}
 
           <div
-            className={`${styles.guidInputCard} bg-border-2 b-solid border rd-20px transition-all duration-200 overflow-hidden p-16px bg-[var(--fill-0)] ${isFileDragging ? 'border-dashed' : 'border-3'}`}
+            className={`${styles.guidInputCard} bg-border-2 b-solid border rd-20px transition-all duration-200 overflow-hidden p-12px bg-[var(--fill-0)] ${isFileDragging ? 'border-dashed' : 'border-3'}`}
             style={{
               zIndex: 1,
               ...(isFileDragging
@@ -721,18 +721,35 @@ const Guid: React.FC = () => {
               </div>
             </div>
             {dir && (
-              <div className='flex items-center gap-6px mt-12px text-13px text-t-secondary'>
-                <FolderOpen className='flex-shrink-0' theme='outline' size='16' fill={iconColors.secondary} style={{ lineHeight: 0 }} />
-                <Tooltip content={dir} position='top'>
-                  <span className='truncate'>
-                    {t('conversation.welcome.currentWorkspace')}: {dir}
-                  </span>
-                </Tooltip>
+              <div className='flex items-center justify-between gap-6px h-28px mt-12px px-12px text-13px text-t-secondary ' style={{ borderTop: '1px solid var(--border-base)' }}>
+                <div className='flex items-center'>
+                  <FolderOpen className='m-r-8px flex-shrink-0' theme='outline' size='16' fill={iconColors.secondary} style={{ lineHeight: 0 }} />
+                  <Tooltip content={dir} position='top'>
+                    <span className='truncate'>
+                      {t('conversation.welcome.currentWorkspace')}: {dir}
+                    </span>
+                  </Tooltip>
+                </div>
                 <Tooltip content={t('conversation.welcome.clearWorkspace')} position='top'>
                   <IconClose className='hover:text-[rgb(var(--danger-6))] hover:bg-3 transition-colors' strokeWidth={3} style={{ fontSize: 16 }} onClick={() => setDir('')} />
                 </Tooltip>
               </div>
             )}
+          </div>
+        </div>
+
+        {/* 底部快捷按钮 */}
+        <div className='absolute bottom-32px left-50% -translate-x-1/2 flex flex-col justify-center items-center'>
+          <div className='text-text-3 text-14px mt-24px mb-12px'>{t('conversation.welcome.quickActionsTitle')}</div>
+          <div className='flex justify-center items-center gap-24px'>
+            <div className='group flex items-center justify-center w-56px h-56px rd-50% bg-fill-0 cursor-pointer overflow-hidden whitespace-nowrap hover:w-200px hover:rd-28px hover:px-20px hover:justify-start hover:gap-10px transition-all duration-400 ease-[cubic-bezier(0.2,0.8,0.3,1)] dark:shadow-[6px_6px_12px_rgba(0,0,0,0.3),-6px_-6px_12px_rgba(255,255,255,0.05)]' style={{ boxShadow: '6px 6px 12px rgba(0, 0, 0, 0.08), -6px -6px 12px rgba(255, 255, 255, 0.8)' }} onClick={() => ipcBridge.shell.openExternal.invoke('https://x.com/i/chat')}>
+              <Comment className='flex-shrink-0 text-[var(--color-text-3)] group-hover:text-[rgb(var(--primary-6))] transition-colors duration-300' theme='outline' size='24' />
+              <span className='opacity-0 max-w-0 overflow-hidden text-14px text-[var(--color-text-2)] group-hover:opacity-100 group-hover:max-w-150px transition-all duration-300 ease-[cubic-bezier(0.2,0.8,0.3,1)]'>{t('conversation.welcome.quickActionFeedback')}</span>
+            </div>
+            <div className='group flex items-center justify-center w-56px h-56px rd-50% bg-fill-0 cursor-pointer overflow-hidden whitespace-nowrap hover:w-200px hover:rd-28px hover:px-20px hover:justify-start hover:gap-10px transition-all duration-400 ease-[cubic-bezier(0.2,0.8,0.3,1)] dark:shadow-[6px_6px_12px_rgba(0,0,0,0.3),-6px_-6px_12px_rgba(255,255,255,0.05)]' style={{ boxShadow: '6px 6px 12px rgba(0, 0, 0, 0.08), -6px -6px 12px rgba(255, 255, 255, 0.8)' }} onClick={() => ipcBridge.shell.openExternal.invoke('https://github.com/iOfficeAI/AionUi')}>
+              <Star className='flex-shrink-0 text-[var(--color-text-3)] group-hover:text-[rgb(var(--primary-6))] transition-colors duration-300' theme='outline' size='24' />
+              <span className='opacity-0 max-w-0 overflow-hidden text-14px text-[var(--color-text-2)] group-hover:opacity-100 group-hover:max-w-150px transition-all duration-300 ease-[cubic-bezier(0.2,0.8,0.3,1)]'>{t('conversation.welcome.quickActionStar')}</span>
+            </div>
           </div>
         </div>
       </div>

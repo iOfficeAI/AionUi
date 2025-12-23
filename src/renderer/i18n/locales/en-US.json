@@ -191,7 +191,10 @@
       "currentWorkspace": "Current Workspace",
       "clearWorkspace": "Remove folder",
       "openFolder": "Open Folder",
-      "none": "None"
+      "none": "None",
+      "quickActionsTitle": "What can AionUi do?",
+      "quickActionFeedback": "Got feedback or suggestions?",
+      "quickActionStar": "Like us? Give us a star!"
     },
     "history": {
       "today": "Today",

@@ -188,7 +188,10 @@
       "currentWorkspace": "当前工作空间",
       "clearWorkspace": "移除已选文件夹",
       "openFolder": "打开文件夹",
-      "none": "无"
+      "none": "无",
+      "quickActionsTitle": "AionUi 能做什么？",
+      "quickActionFeedback": "想吐槽或提建议?",
+      "quickActionStar": "喜欢我们？点个星吧"
     },
     "history": {
       "today": "今天",
