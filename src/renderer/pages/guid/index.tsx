@@ -752,12 +752,12 @@ const Guid: React.FC = () => {
           <div className='text-text-3 text-14px mt-24px mb-12px'>{t('conversation.welcome.quickActionsTitle')}</div>
           <div className='flex justify-center items-center gap-24px'>
             <div className='group flex items-center justify-center w-56px h-56px rd-50% bg-fill-0 b-solid border border-1 cursor-pointer overflow-hidden whitespace-nowrap hover:w-200px hover:rd-28px hover:px-20px hover:justify-start hover:gap-10px transition-all duration-400 ease-[cubic-bezier(0.2,0.8,0.3,1)]' style={{ borderColor: 'var(--border-special, #60577E)', boxShadow: '0px 2px 12px rgba(var(--primary-rgb, 77, 60, 234), 0.1)' }} onClick={() => openLink('https://x.com/AionUi')}>
-              <Comment className='flex-shrink-0 text-[var(--color-text-3)] group-hover:text-[rgb(var(--primary-6))] transition-colors duration-300' theme='outline' size='24' />
-              <span className='opacity-0 max-w-0 overflow-hidden text-14px text-[var(--color-text-2)] group-hover:opacity-100 group-hover:max-w-150px transition-all duration-300 ease-[cubic-bezier(0.2,0.8,0.3,1)]'>{t('conversation.welcome.quickActionFeedback')}</span>
+              <Comment className='flex-shrink-0 text-[var(--color-text-3)] group-hover:text-[rgb(var(--primary-6))] transition-colors duration-300 line-height-[0]' theme='outline' size='24' />
+              <span className='opacity-0 max-w-0 overflow-hidden text-14px text-[var(--color-text-2)] group-hover:opacity-100 group-hover:max-w-250px transition-all duration-300 ease-[cubic-bezier(0.2,0.8,0.3,1)]'>{t('conversation.welcome.quickActionFeedback')}</span>
             </div>
             <div className='group flex items-center justify-center w-56px h-56px rd-50% bg-fill-0 b-solid border border-1 cursor-pointer overflow-hidden whitespace-nowrap hover:w-200px hover:rd-28px hover:px-20px hover:justify-start hover:gap-10px transition-all duration-400 ease-[cubic-bezier(0.2,0.8,0.3,1)]' style={{ borderColor: 'var(--border-special, #60577E)', boxShadow: '0px 2px 12px rgba(var(--primary-rgb, 77, 60, 234), 0.1)' }} onClick={() => openLink('https://github.com/iOfficeAI/AionUi')}>
-              <Star className='flex-shrink-0 text-[var(--color-text-3)] group-hover:text-[rgb(var(--primary-6))] transition-colors duration-300' theme='outline' size='24' />
-              <span className='opacity-0 max-w-0 overflow-hidden text-14px text-[var(--color-text-2)] group-hover:opacity-100 group-hover:max-w-150px transition-all duration-300 ease-[cubic-bezier(0.2,0.8,0.3,1)]'>{t('conversation.welcome.quickActionStar')}</span>
+              <Star className='flex-shrink-0 text-[var(--color-text-3)] group-hover:text-[rgb(var(--primary-6))] transition-colors duration-300 line-height-[0]' theme='outline' size='24' />
+              <span className='opacity-0 max-w-0 overflow-hidden text-14px text-[var(--color-text-2)] group-hover:opacity-100 group-hover:max-w-250px transition-all duration-300 ease-[cubic-bezier(0.2,0.8,0.3,1)]'>{t('conversation.welcome.quickActionStar')}</span>
             </div>
           </div>
         </div>
