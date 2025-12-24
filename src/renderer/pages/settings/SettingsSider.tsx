@@ -1,5 +1,5 @@
 import FlexFullContainer from '@/renderer/components/FlexFullContainer';
-import { Gemini, Info, LinkCloud, System, Toolkit, Robot, FullScreen } from '@icon-park/react';
+import { Computer, Gemini, Info, LinkCloud, System, Toolkit, Robot } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -30,7 +30,7 @@ const SettingsSider: React.FC<{ collapsed?: boolean }> = ({ collapsed = false })
       },
       {
         label: t('settings.display'),
-        icon: <FullScreen />,
+        icon: <Computer />,
         path: 'display',
       },
       {

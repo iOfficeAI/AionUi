@@ -31,7 +31,6 @@ export interface CodexAgentConfig {
   fileOperationHandler: CodexFileOperationHandler;
   onNetworkError?: (error: NetworkError) => void;
   sandboxMode?: 'read-only' | 'workspace-write' | 'danger-full-access'; // Filesystem sandbox mode
-  webSearchEnabled?: boolean; // Enable web search functionality
 }
 
 /**
@@ -47,7 +46,6 @@ export class CodexAgent {
   private readonly fileOperationHandler: CodexFileOperationHandler;
   private readonly onNetworkError?: (error: NetworkError) => void;
   private readonly sandboxMode: 'read-only' | 'workspace-write' | 'danger-full-access';
-  private readonly webSearchEnabled: boolean;
   private conn: CodexConnection | null = null;
   private conversationId: string | null = null;
 
@@ -60,7 +58,6 @@ export class CodexAgent {
     this.fileOperationHandler = cfg.fileOperationHandler;
     this.onNetworkError = cfg.onNetworkError;
     this.sandboxMode = cfg.sandboxMode || 'workspace-write'; // Default to workspace-write for file operations
-    this.webSearchEnabled = cfg.webSearchEnabled ?? true; // Default to enabled (true)
   }
 
   async start(): Promise<void> {
@@ -160,11 +157,8 @@ export class CodexAgent {
               prompt: initialPrompt || '',
               cwd: cwd || this.workingDir,
               sandbox: this.sandboxMode, // 强制指定沙盒模式
-              config: {
-                tools: {
-                  web_search_request: this.webSearchEnabled,
-                },
-              },
+              // Note: Removed config.tools.web_search_request to avoid "duplicate field" error in Codex v0.75.0+
+              // Codex CLI now handles web_search configuration internally
             },
             config: { conversationId: convId },
           },

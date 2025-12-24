@@ -83,7 +83,6 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
       sessionManager,
       fileOperationHandler,
       sandboxMode: data.sandboxMode || 'workspace-write', // Enable file writing within workspace by default
-      webSearchEnabled: data.webSearchEnabled ?? true, // Enable web search by default
       onNetworkError: (error) => {
         this.handleNetworkError(error);
       },

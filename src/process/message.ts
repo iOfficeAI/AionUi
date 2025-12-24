@@ -107,7 +107,7 @@ async function ensureConversationExists(db: ReturnType<typeof getDatabase>, conv
 
   // Load conversation from file storage
   const history = await ProcessChat.get('chat.history');
-  const conversation = history.find((c) => c.id === conversation_id);
+  const conversation = (history || []).find((c) => c.id === conversation_id);
 
   if (!conversation) {
     console.error(`[Message] Conversation ${conversation_id} not found in file storage either`);
