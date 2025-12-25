@@ -205,8 +205,13 @@ const ConversationTabs: React.FC = () => {
 
   const { left: showLeftFade, right: showRightFade } = tabFadeState;
 
-  // 如果没有打开的 tabs，不显示此组件
-  if (openTabs.length === 0) {
+  // 检查当前激活的 tab 是否在 openTabs 中
+  // Check if current active tab is in openTabs
+  const isActiveTabInList = openTabs.some((tab) => tab.id === activeTabId);
+
+  // 如果没有打开的 tabs，或者当前激活的会话不在 tabs 中（说明切换到了非工作空间会话），不显示此组件
+  // If no open tabs, or active conversation is not in tabs (switched to non-workspace chat), hide component
+  if (openTabs.length === 0 || !isActiveTabInList) {
     return null;
   }
 
