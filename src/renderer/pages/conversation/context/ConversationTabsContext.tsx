@@ -104,6 +104,10 @@ export const ConversationTabsProvider: React.FC<{ children: React.ReactNode }> =
     if (!customWorkspace) {
       // 临时工作空间的会话不添加到 tabs
       // Don't add temporary workspace conversations to tabs
+      // 离开分组后关闭所有 tabs / Close all tabs when leaving the group
+      setOpenTabs([]);
+      // 但需要更新 activeTabId 以保持同步 / But need to update activeTabId to keep in sync
+      setActiveTabId(conversation.id);
       return;
     }
 

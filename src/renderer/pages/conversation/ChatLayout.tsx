@@ -342,7 +342,7 @@ const ChatLayout: React.FC<{
         {/* 预览面板（移到中间位置）/ Preview panel (moved to middle position) */}
         {isPreviewOpen && (
           <div
-            className='preview-panel flex flex-col relative my-[16px] mr-[16px] rounded-[15px]'
+            className='preview-panel flex flex-col relative my-[12px] mr-[12px] ml-[8px] rounded-[15px]'
             style={{
               // 使用 flexGrow: 1 填充剩余空间（会话和工作空间使用固定 flexBasis）
               flexGrow: layout?.isMobile ? 0 : 1,

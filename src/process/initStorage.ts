@@ -9,7 +9,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import { application } from '../common/ipcBridge';
 import type { TMessage } from '@/common/chatLib';
-import type { IChatConversationRefer, IConfigStorageRefer, IEnvStorageRefer, IMcpServer, TChatConversation } from '../common/storage';
+import type { IChatConversationRefer, IConfigStorageRefer, IEnvStorageRefer, IMcpServer, TChatConversation, TProviderWithModel } from '../common/storage';
 import { ChatMessageStorage, ChatStorage, ConfigStorage, EnvStorage } from '../common/storage';
 import { copyDirectoryRecursively, getCliSafePath, getConfigPath, getDataPath, getTempPath, verifyDirectoryFiles } from './utils';
 import { getDatabase } from './database/export';
@@ -200,15 +200,15 @@ const JsonFileBuilder = <S extends object = Record<string, unknown>>(path: strin
     toJson,
     setJson,
     toJsonSync,
-    async set<K extends keyof S>(key: K, value: S[K]): Promise<S[K]> {
+    async set<K extends keyof S>(key: K, value: Awaited<S>[K]): Promise<Awaited<S>[K]> {
       const data = await toJson();
       data[key] = value;
       await setJson(data);
       return value;
     },
-    async get<K extends keyof S>(key: K): Promise<S[K]> {
+    async get<K extends keyof S>(key: K): Promise<Awaited<S>[K]> {
       const data = await toJson();
-      return Promise.resolve(data[key]);
+      return data[key] as Awaited<S>[K];
     },
     async remove<K extends keyof S>(key: K) {
       const data = await toJson();
@@ -216,7 +216,7 @@ const JsonFileBuilder = <S extends object = Record<string, unknown>>(path: strin
       return setJson(data);
     },
     clear() {
-      return setJson({});
+      return setJson({} as S);
     },
     getSync<K extends keyof S>(key: K): S[K] {
       const data = toJsonSync();
@@ -253,6 +253,10 @@ const _chatMessageFile = JsonFileBuilder<ConversationHistoryData>(path.join(cach
 const _chatFile = JsonFileBuilder<IChatConversationRefer>(path.join(cacheDir, STORAGE_PATH.chat));
 
 // 创建带字段迁移的聊天历史代理
+const isGeminiConversation = (conversation: TChatConversation): conversation is Extract<TChatConversation, { type: 'gemini' }> => {
+  return conversation.type === 'gemini';
+};
+
 const chatFile = {
   ..._chatFile,
   async get<K extends keyof IChatConversationRefer>(key: K): Promise<IChatConversationRefer[K]> {
@@ -262,13 +266,15 @@ const chatFile = {
     if (key === 'chat.history' && Array.isArray(data)) {
       const history = data as IChatConversationRefer['chat.history'];
       return history.map((conversation: TChatConversation) => {
-        // 迁移 model 字段：selectedModel -> useModel
-        if (conversation.model && 'selectedModel' in conversation.model && !('useModel' in conversation.model)) {
-          conversation.model = {
-            ...conversation.model,
-            useModel: conversation.model.selectedModel,
-          };
-          delete conversation.model.selectedModel;
+        // 只有 Gemini 会话带有 model 字段，需要将旧格式 selectedModel 迁移为 useModel
+        if (isGeminiConversation(conversation) && conversation.model) {
+          // 使用 Record 类型处理旧格式迁移
+          const modelRecord = conversation.model as unknown as Record<string, unknown>;
+          if ('selectedModel' in modelRecord && !('useModel' in modelRecord)) {
+            modelRecord['useModel'] = modelRecord['selectedModel'];
+            delete modelRecord['selectedModel'];
+            conversation.model = modelRecord as TProviderWithModel;
+          }
         }
         return conversation;
       }) as IChatConversationRefer[K];

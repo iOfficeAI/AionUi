@@ -20,7 +20,7 @@ export const shell = {
 //通用会话能力
 export const conversation = {
   create: bridge.buildProvider<TChatConversation, ICreateConversationParams>('create-conversation'), // 创建对话
-  createWithConversation: bridge.buildProvider<TChatConversation, { conversation: TChatConversation }>('create-conversation-with-conversation'), // 通过历史会话创建新对话
+  createWithConversation: bridge.buildProvider<TChatConversation, { conversation: TChatConversation; sourceConversationId?: string }>('create-conversation-with-conversation'), // Create new conversation from history (supports migration) / 通过历史会话创建新对话（支持迁移）
   get: bridge.buildProvider<TChatConversation, { id: string }>('get-conversation'), // 获取对话信息
   getAssociateConversation: bridge.buildProvider<TChatConversation[], { conversation_id: string }>('get-associated-conversation'), // 获取关联对话
   remove: bridge.buildProvider<boolean, { id: string }>('remove-conversation'), // 删除对话
@@ -66,7 +66,7 @@ export const fs = {
   copyFilesToWorkspace: bridge.buildProvider<
     // 返回成功与部分失败的详细状态，便于前端提示用户 / Return details for successful and failed copies for better UI feedback
     IBridgeResponse<{ copiedFiles: string[]; failedFiles?: Array<{ path: string; error: string }> }>,
-    { filePaths: string[]; workspace: string }
+    { filePaths: string[]; workspace: string; sourceRoot?: string }
   >('copy-files-to-workspace'), // 复制文件到工作空间 (Copy files into workspace)
   removeEntry: bridge.buildProvider<IBridgeResponse, { path: string }>('remove-entry'), // 删除文件或文件夹
   renameEntry: bridge.buildProvider<IBridgeResponse<{ newPath: string }>, { path: string; newName: string }>('rename-entry'), // 重命名文件或文件夹

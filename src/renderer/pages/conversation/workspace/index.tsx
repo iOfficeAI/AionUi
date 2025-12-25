@@ -283,6 +283,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
         const copyResult = await ipcBridge.fs.copyFilesToWorkspace.invoke({
           filePaths,
           workspace: targetWorkspace,
+          sourceRoot: workspace,
         });
         if (!copyResult?.success) {
           throw new Error(copyResult?.msg || 'Failed to copy workspace files');
@@ -308,6 +309,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
 
       await ipcBridge.conversation.createWithConversation.invoke({
         conversation: newConversation,
+        sourceConversationId: conversation_id, // Pass source ID to migrate chat history / 传递源会话 ID 以迁移聊天记录
       });
 
       // Close modal and reset state / 关闭弹窗并重置状态

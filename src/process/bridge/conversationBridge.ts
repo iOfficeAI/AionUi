@@ -9,6 +9,7 @@ import { GeminiAgent } from '@/agent/gemini';
 import type { TChatConversation } from '@/common/storage';
 import { getDatabase } from '@process/database';
 import { ipcBridge } from '../../common';
+import { uuid } from '../../common/utils';
 import { createAcpAgent, createCodexAgent, createGeminiAgent } from '../initAgent';
 import { ProcessChat } from '../initStorage';
 import type AcpAgentManager from '../task/AcpAgentManager';
@@ -124,7 +125,7 @@ export function initConversationBridge(): void {
     }
   });
 
-  ipcBridge.conversation.createWithConversation.provider(({ conversation }) => {
+  ipcBridge.conversation.createWithConversation.provider(({ conversation, sourceConversationId }) => {
     try {
       conversation.createTime = Date.now();
       conversation.modifyTime = Date.now();
@@ -135,6 +136,60 @@ export function initConversationBridge(): void {
       const result = db.createConversation(conversation);
       if (!result.success) {
         console.error('[conversationBridge] Failed to create conversation in database:', result.error);
+      }
+
+      // Migrate messages if sourceConversationId is provided / 如果提供了源会话ID，则迁移消息
+      if (sourceConversationId && result.success) {
+        try {
+          // Fetch all messages from source conversation / 获取源会话的所有消息
+          // Using a large pageSize to get all messages, or loop if needed. / 使用较大的 pageSize 获取所有消息，必要时循环获取
+          // For now, 10000 should cover most cases. / 目前 10000 条应该能覆盖大多数情况
+          const pageSize = 10000;
+          let page = 0;
+          let hasMore = true;
+
+          while (hasMore) {
+            const messagesResult = db.getConversationMessages(sourceConversationId, page, pageSize);
+            const messages = messagesResult.data;
+
+            for (const msg of messages) {
+              // Create a copy of the message with new ID and new conversation ID / 创建消息副本，使用新 ID 和新会话 ID
+              const newMessage = {
+                ...msg,
+                id: uuid(), // Generate new ID / 生成新 ID
+                conversation_id: conversation.id,
+                createdAt: msg.createdAt || Date.now(),
+              };
+              db.insertMessage(newMessage);
+            }
+
+            hasMore = messagesResult.hasMore;
+            page++;
+          }
+
+          // Verify integrity and remove source conversation / 校验完整性并移除源会话
+          const sourceMessages = db.getConversationMessages(sourceConversationId, 0, 1);
+          const newMessages = db.getConversationMessages(conversation.id, 0, 1);
+
+          if (sourceMessages.total === newMessages.total) {
+            // Verification passed, delete source conversation / 校验通过，删除源会话
+            // ON DELETE CASCADE will handle message deletion / 级联删除会自动处理消息删除
+            const deleteResult = db.deleteConversation(sourceConversationId);
+            if (deleteResult.success) {
+              console.log(`[conversationBridge] Successfully migrated and deleted source conversation ${sourceConversationId}`);
+            } else {
+              console.error(`[conversationBridge] Failed to delete source conversation ${sourceConversationId}: ${deleteResult.error}`);
+            }
+          } else {
+            console.error('[conversationBridge] Migration integrity check failed: Message counts do not match.', {
+              source: sourceMessages.total,
+              new: newMessages.total,
+            });
+            // Do not delete source if verification fails / 如果校验失败，不删除源会话
+          }
+        } catch (msgError) {
+          console.error('[conversationBridge] Failed to copy messages during migration:', msgError);
+        }
       }
 
       return Promise.resolve(conversation);
