@@ -8,9 +8,10 @@ import { mkdirSync as _mkdirSync, existsSync, readdirSync, readFileSync } from '
 import fs from 'fs/promises';
 import path from 'path';
 import { application } from '../common/ipcBridge';
-import type { IChatConversationRefer, IConfigStorageRefer, IEnvStorageRefer, IMcpServer } from '../common/storage';
+import type { TMessage } from '@/common/chatLib';
+import type { IChatConversationRefer, IConfigStorageRefer, IEnvStorageRefer, IMcpServer, TChatConversation, TProviderWithModel } from '../common/storage';
 import { ChatMessageStorage, ChatStorage, ConfigStorage, EnvStorage } from '../common/storage';
-import { copyDirectoryRecursively, getConfigPath, getDataPath, getTempPath, verifyDirectoryFiles } from './utils';
+import { copyDirectoryRecursively, getCliSafePath, getConfigPath, getDataPath, getTempPath, verifyDirectoryFiles } from './utils';
 import { getDatabase } from './database/export';
 // Platform and architecture types (moved from deleted updateConfig)
 type PlatformType = 'win32' | 'darwin' | 'linux';
@@ -137,7 +138,7 @@ const FileBuilder = (file: string) => {
   };
 };
 
-const JsonFileBuilder = <S extends Record<string, any>>(path: string) => {
+const JsonFileBuilder = <S extends object = Record<string, unknown>>(path: string) => {
   const file = FileBuilder(path);
   const encode = (data: unknown) => {
     return btoa(encodeURIComponent(String(data)));
@@ -178,7 +179,7 @@ const JsonFileBuilder = <S extends Record<string, any>>(path: string) => {
     }
   };
 
-  const setJson = async (data: any): Promise<any> => {
+  const setJson = async (data: S): Promise<S> => {
     try {
       await file.write(encode(JSON.stringify(data)));
       return data;
@@ -199,15 +200,15 @@ const JsonFileBuilder = <S extends Record<string, any>>(path: string) => {
     toJson,
     setJson,
     toJsonSync,
-    async set<K extends keyof S>(key: K, value: S[K]): Promise<S[K]> {
+    async set<K extends keyof S>(key: K, value: Awaited<S>[K]): Promise<Awaited<S>[K]> {
       const data = await toJson();
       data[key] = value;
       await setJson(data);
       return value;
     },
-    async get<K extends keyof S>(key: K): Promise<S[K]> {
+    async get<K extends keyof S>(key: K): Promise<Awaited<S>[K]> {
       const data = await toJson();
-      return Promise.resolve(data[key]);
+      return data[key] as Awaited<S>[K];
     },
     async remove<K extends keyof S>(key: K) {
       const data = await toJson();
@@ -215,7 +216,7 @@ const JsonFileBuilder = <S extends Record<string, any>>(path: string) => {
       return setJson(data);
     },
     clear() {
-      return setJson({});
+      return setJson({} as S);
     },
     getSync<K extends keyof S>(key: K): S[K] {
       const data = toJsonSync();
@@ -246,10 +247,16 @@ const dirConfig = envFile.getSync('aionui.dir');
 const cacheDir = dirConfig?.cacheDir || getHomePage();
 
 const configFile = JsonFileBuilder<IConfigStorageRefer>(path.join(cacheDir, STORAGE_PATH.config));
-const _chatMessageFile = JsonFileBuilder(path.join(cacheDir, STORAGE_PATH.chatMessage));
+type ConversationHistoryData = Record<string, TMessage[]>;
+
+const _chatMessageFile = JsonFileBuilder<ConversationHistoryData>(path.join(cacheDir, STORAGE_PATH.chatMessage));
 const _chatFile = JsonFileBuilder<IChatConversationRefer>(path.join(cacheDir, STORAGE_PATH.chat));
 
 // 创建带字段迁移的聊天历史代理
+const isGeminiConversation = (conversation: TChatConversation): conversation is Extract<TChatConversation, { type: 'gemini' }> => {
+  return conversation.type === 'gemini';
+};
+
 const chatFile = {
   ..._chatFile,
   async get<K extends keyof IChatConversationRefer>(key: K): Promise<IChatConversationRefer[K]> {
@@ -257,14 +264,17 @@ const chatFile = {
 
     // 特别处理 chat.history 的字段迁移
     if (key === 'chat.history' && Array.isArray(data)) {
-      return data.map((conversation: any) => {
-        // 迁移 model 字段：selectedModel -> useModel
-        if (conversation.model && 'selectedModel' in conversation.model && !('useModel' in conversation.model)) {
-          conversation.model = {
-            ...conversation.model,
-            useModel: conversation.model.selectedModel,
-          };
-          delete conversation.model.selectedModel;
+      const history = data as IChatConversationRefer['chat.history'];
+      return history.map((conversation: TChatConversation) => {
+        // 只有 Gemini 会话带有 model 字段，需要将旧格式 selectedModel 迁移为 useModel
+        if (isGeminiConversation(conversation) && conversation.model) {
+          // 使用 Record 类型处理旧格式迁移
+          const modelRecord = conversation.model as unknown as Record<string, unknown>;
+          if ('selectedModel' in modelRecord && !('useModel' in modelRecord)) {
+            modelRecord['useModel'] = modelRecord['selectedModel'];
+            delete modelRecord['selectedModel'];
+            conversation.model = modelRecord as TProviderWithModel;
+          }
         }
         return conversation;
       }) as IChatConversationRefer[K];
@@ -282,18 +292,18 @@ const buildMessageListStorage = (conversation_id: string, dir: string) => {
   if (!existsSync(fullName)) {
     mkdirSync(path.join(dir, 'aionui-chat-history'));
   }
-  return JsonFileBuilder(path.join(dir, 'aionui-chat-history', conversation_id + '.txt'));
+  return JsonFileBuilder<TMessage[]>(path.join(dir, 'aionui-chat-history', conversation_id + '.txt'));
 };
 
 const conversationHistoryProxy = (options: typeof _chatMessageFile, dir: string) => {
   return {
     ...options,
-    async set(key: string, data: any) {
+    async set(key: string, data: TMessage[]) {
       const conversation_id = key;
       const storage = buildMessageListStorage(conversation_id, dir);
       return await storage.setJson(data);
     },
-    async get(key: string): Promise<any[]> {
+    async get(key: string): Promise<TMessage[]> {
       const conversation_id = key;
       const storage = buildMessageListStorage(conversation_id, dir);
       const data = await storage.toJson();
@@ -395,7 +405,9 @@ export const ProcessEnv = envFile;
 export const getSystemDir = () => {
   return {
     cacheDir: cacheDir,
-    workDir: dirConfig?.workDir || getDataPath(),
+    // Use CLI-safe path (symlink on macOS) for all agents to avoid spaces in paths
+    // 所有 agent 使用 CLI 安全路径（macOS 上的符号链接）以避免路径中空格导致的问题
+    workDir: dirConfig?.workDir || getCliSafePath(),
     platform: process.platform as PlatformType,
     arch: process.arch as ArchitectureType,
   };

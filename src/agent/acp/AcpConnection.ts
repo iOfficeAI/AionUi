@@ -533,18 +533,14 @@ export class AcpConnection {
     return result;
   }
 
-  async newSession(_cwd: string = process.cwd()): Promise<AcpResponse> {
-    // Fix: Use '.' (current directory) instead of the full absolute path
-    // The spawn process's cwd is already set to the workspace directory,
-    // so we should not send the absolute path again, which some CLIs
-    // (like qwen) may incorrectly interpret as a relative path,
-    // causing nested directory structures (directory nesting issue).
-    // 修复：使用 '.'（当前目录）而不是完整的绝对路径
-    // spawn 进程的 cwd 已经设置为 workspace 目录，
-    // 不应再次发送绝对路径，因为某些 CLI（如 qwen）可能会错误地将其解释为相对路径，
-    // 导致目录嵌套（套娃）问题。
+  async newSession(cwd: string = process.cwd()): Promise<AcpResponse> {
+    // Normalize workspace-relative paths:
+    // Agents such as qwen already run with `workingDir` as their process cwd.
+    // Sending the absolute path again makes some CLIs treat it as a nested relative path.
+    const normalizedCwd = this.normalizeCwdForAgent(cwd);
+
     const response = await this.sendRequest<AcpResponse & { sessionId?: string }>('session/new', {
-      cwd: '.',
+      cwd: normalizedCwd,
       mcpServers: [] as unknown[],
     });
 
@@ -552,12 +548,35 @@ export class AcpConnection {
     return response;
   }
 
+  /**
+   * Ensure the cwd we send to ACP agents is relative to the actual working directory.
+   * 某些 CLI 会对绝对路径进行再次拼接，导致“套娃”路径，因此需要转换为相对路径。
+   */
+  private normalizeCwdForAgent(cwd?: string): string {
+    const defaultPath = '.';
+    if (!cwd) return defaultPath;
+
+    try {
+      const workspaceRoot = path.resolve(this.workingDir);
+      const requested = path.resolve(cwd);
+
+      const relative = path.relative(workspaceRoot, requested);
+      const isInsideWorkspace = relative && !relative.startsWith('..') && !path.isAbsolute(relative);
+
+      if (isInsideWorkspace) {
+        return relative.length === 0 ? defaultPath : relative;
+      }
+    } catch (error) {
+      console.warn('[ACP] Failed to normalize cwd for agent, using default "."', error);
+    }
+
+    return defaultPath;
+  }
+
   async sendPrompt(prompt: string): Promise<AcpResponse> {
     if (!this.sessionId) {
       throw new Error('No active ACP session');
     }
-
-    // console.log('Sending ACP session...', prompt);
 
     return await this.sendRequest('session/prompt', {
       sessionId: this.sessionId,

@@ -10,6 +10,7 @@ import FlexFullContainer from '@/renderer/components/FlexFullContainer';
 import { addEventListener, emitter } from '@/renderer/utils/emitter';
 import { getActivityTime, getTimelineLabel } from '@/renderer/utils/timeline';
 import { getWorkspaceDisplayName } from '@/renderer/utils/workspace';
+import { getWorkspaceUpdateTime } from '@/renderer/utils/workspaceHistory';
 import { Empty, Popconfirm, Input, Tooltip } from '@arco-design/web-react';
 import { DeleteOne, MessageOne, EditOne } from '@icon-park/react';
 import classNames from 'classnames';
@@ -25,10 +26,17 @@ interface WorkspaceGroup {
   conversations: TChatConversation[];
 }
 
+// 统一的时间线项目，可以是 workspace 分组或独立会话
+interface TimelineItem {
+  type: 'workspace' | 'conversation';
+  time: number; // 用于排序的时间
+  workspaceGroup?: WorkspaceGroup; // type === 'workspace' 时有值
+  conversation?: TChatConversation; // type === 'conversation' 时有值
+}
+
 interface TimelineSection {
   timeline: string; // 时间线标题
-  withWorkspace: WorkspaceGroup[]; // 有workspace的会话分组
-  withoutWorkspace: TChatConversation[]; // 无workspace的会话
+  items: TimelineItem[]; // 合并后按时间排序的项目
 }
 
 // Helper to get timeline label for a conversation
@@ -101,20 +109,35 @@ const groupConversationsByTimelineAndWorkspace = (conversations: TChatConversati
     // 只有当该时间线有会话时才添加section
     if (withWorkspace.length === 0 && withoutWorkspace.length === 0) return;
 
-    // workspace组按最新会话时间排序
-    withWorkspace.sort((a, b) => {
-      const aLatest = getActivityTime(a.conversations[0]);
-      const bLatest = getActivityTime(b.conversations[0]);
-      return bLatest - aLatest;
+    // 将 workspace 分组和独立会话合并成统一的 items 数组
+    const items: TimelineItem[] = [];
+
+    // 添加 workspace 分组项目
+    withWorkspace.forEach((group) => {
+      const updateTime = getWorkspaceUpdateTime(group.workspace);
+      const time = updateTime > 0 ? updateTime : getActivityTime(group.conversations[0]);
+      items.push({
+        type: 'workspace',
+        time,
+        workspaceGroup: group,
+      });
     });
 
-    // 无workspace的会话按时间排序
-    withoutWorkspace.sort((a, b) => getActivityTime(b) - getActivityTime(a));
+    // 添加独立会话项目
+    withoutWorkspace.forEach((conv) => {
+      items.push({
+        type: 'conversation',
+        time: getActivityTime(conv),
+        conversation: conv,
+      });
+    });
+
+    // 按时间统一排序（最近的在前）
+    items.sort((a, b) => b.time - a.time);
 
     sections.push({
       timeline,
-      withWorkspace,
-      withoutWorkspace,
+      items,
     });
   });
 
@@ -143,7 +166,7 @@ const WorkspaceGroupedHistory: React.FC<{ onSessionClick?: () => void; collapsed
   const { id } = useParams();
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { openTab, closeAllTabs, activeTab } = useConversationTabs();
+  const { openTab, closeAllTabs, activeTab, updateTabName } = useConversationTabs();
 
   // 加载会话列表
   useEffect(() => {
@@ -177,23 +200,24 @@ const WorkspaceGroupedHistory: React.FC<{ onSessionClick?: () => void; collapsed
 
   // 按时间线和workspace分组
   const timelineSections = useMemo(() => {
-    const sections = groupConversationsByTimelineAndWorkspace(conversations, t);
+    return groupConversationsByTimelineAndWorkspace(conversations, t);
+  }, [conversations, t]);
 
-    // 默认展开所有workspace组（如果 localStorage 为空）
-    if (expandedWorkspaces.length === 0) {
-      const allWorkspaces: string[] = [];
-      sections.forEach((section) => {
-        section.withWorkspace.forEach((group) => {
-          allWorkspaces.push(group.workspace);
-        });
+  // 默认展开所有 workspace（仅在还未记录展开状态时执行一次）
+  useEffect(() => {
+    if (expandedWorkspaces.length > 0) return;
+    const allWorkspaces: string[] = [];
+    timelineSections.forEach((section) => {
+      section.items.forEach((item) => {
+        if (item.type === 'workspace' && item.workspaceGroup) {
+          allWorkspaces.push(item.workspaceGroup.workspace);
+        }
       });
-      if (allWorkspaces.length > 0) {
-        setExpandedWorkspaces(allWorkspaces);
-      }
+    });
+    if (allWorkspaces.length > 0) {
+      setExpandedWorkspaces(allWorkspaces);
     }
-
-    return sections;
-  }, [conversations, t, expandedWorkspaces.length]);
+  }, [timelineSections, expandedWorkspaces.length]);
 
   const handleConversationClick = useCallback(
     (conv: TChatConversation) => {
@@ -278,6 +302,7 @@ const WorkspaceGroupedHistory: React.FC<{ onSessionClick?: () => void; collapsed
       });
 
       if (success) {
+        updateTabName(editingId, editingName.trim());
         emitter.emit('chat.history.refresh');
       }
     } catch (error) {
@@ -286,7 +311,7 @@ const WorkspaceGroupedHistory: React.FC<{ onSessionClick?: () => void; collapsed
       setEditingId(null);
       setEditingName('');
     }
-  }, [editingId, editingName]);
+  }, [editingId, editingName, updateTabName]);
 
   const handleEditCancel = useCallback(() => {
     setEditingId(null);
@@ -318,7 +343,7 @@ const WorkspaceGroupedHistory: React.FC<{ onSessionClick?: () => void; collapsed
             })}
             onClick={() => handleConversationClick(conversation)}
           >
-            <MessageOne theme='outline' size='20' className='mt-2px flex-shrink-0' />
+            <MessageOne theme='outline' size='20' className='line-height-0 flex-shrink-0' />
             <FlexFullContainer className='h-24px min-w-0 flex-1 collapsed-hidden ml-10px'>{isEditing ? <Input className='chat-history__item-editor text-14px lh-24px h-24px w-full' value={editingName} onChange={setEditingName} onKeyDown={handleEditKeyDown} onBlur={handleEditSave} autoFocus size='small' /> : <div className='chat-history__item-name overflow-hidden text-ellipsis inline-block w-full text-14px lh-24px whitespace-nowrap'>{conversation.name}</div>}</FlexFullContainer>
             {!isEditing && (
               <div
@@ -387,32 +412,33 @@ const WorkspaceGroupedHistory: React.FC<{ onSessionClick?: () => void; collapsed
         {timelineSections.map((section) => (
           <div key={section.timeline} className='mb-8px min-w-0'>
             {/* 时间线标题 */}
-            <div className='chat-history__section px-12px py-8px text-13px text-t-secondary font-bold'>{section.timeline}</div>
+            {!collapsed && <div className='chat-history__section px-12px py-8px text-13px text-t-secondary font-bold'>{section.timeline}</div>}
 
-            {/* 该时间线下无 workspace 的会话 */}
-            {section.withoutWorkspace.map((conv) => renderConversation(conv))}
-
-            {/* 该时间线下有 workspace 的会话：折叠组展示 */}
-            {section.withWorkspace.length > 0 && (
-              <div className={classNames('min-w-0', { 'px-8px': !collapsed })}>
-                {section.withWorkspace.map((group) => (
-                  <WorkspaceCollapse
-                    key={group.workspace}
-                    expanded={expandedWorkspaces.includes(group.workspace)}
-                    onToggle={() => handleToggleWorkspace(group.workspace)}
-                    siderCollapsed={collapsed}
-                    header={
-                      <div className='flex items-center gap-8px text-14px min-w-0'>
-                        <span className='font-medium truncate flex-1 text-t-primary min-w-0'>{group.displayName}</span>
-                        {/* <span className="text-12px text-t-tertiary flex-shrink-0">({group.conversations.length})</span> */}
-                      </div>
-                    }
-                  >
-                    <div className={classNames('flex flex-col gap-2px min-w-0', { 'mt-4px': !collapsed })}>{group.conversations.map((conv) => renderConversation(conv))}</div>
-                  </WorkspaceCollapse>
-                ))}
-              </div>
-            )}
+            {/* 按时间统一排序渲染所有项目（workspace 分组和独立会话混合） */}
+            {section.items.map((item) => {
+              if (item.type === 'workspace' && item.workspaceGroup) {
+                const group = item.workspaceGroup;
+                return (
+                  <div key={group.workspace} className={classNames('min-w-0', { 'px-8px': !collapsed })}>
+                    <WorkspaceCollapse
+                      expanded={expandedWorkspaces.includes(group.workspace)}
+                      onToggle={() => handleToggleWorkspace(group.workspace)}
+                      siderCollapsed={collapsed}
+                      header={
+                        <div className='flex items-center gap-8px text-14px min-w-0'>
+                          <span className='font-medium truncate flex-1 text-t-primary min-w-0'>{group.displayName}</span>
+                        </div>
+                      }
+                    >
+                      <div className={classNames('flex flex-col gap-2px min-w-0', { 'mt-4px': !collapsed })}>{group.conversations.map((conv) => renderConversation(conv))}</div>
+                    </WorkspaceCollapse>
+                  </div>
+                );
+              } else if (item.type === 'conversation' && item.conversation) {
+                return renderConversation(item.conversation);
+              }
+              return null;
+            })}
           </div>
         ))}
       </div>

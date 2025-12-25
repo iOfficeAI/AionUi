@@ -228,8 +228,19 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
   }, [messageApi, t]);
 
   const handleMigrationConfirm = useCallback(async () => {
-    if (!selectedTargetPath) {
+    if (!isTemporaryWorkspace) {
+      messageApi.error(t('conversation.workspace.migration.error'));
+      return;
+    }
+
+    const targetWorkspace = selectedTargetPath.trim();
+    if (!targetWorkspace) {
       messageApi.error(t('conversation.workspace.migration.noTargetPath'));
+      return;
+    }
+
+    if (targetWorkspace === workspace) {
+      messageApi.warning(t('conversation.workspace.migration.selectFolderError'));
       return;
     }
 
@@ -267,15 +278,18 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
 
       const filePaths = collectFilePaths(workspaceFiles);
 
-      // Copy all files to the target workspace
+      // Copy all files to the target workspace / 复制所有文件到目标工作区
       if (filePaths.length > 0) {
-        await ipcBridge.fs.copyFilesToWorkspace.invoke({
+        const copyResult = await ipcBridge.fs.copyFilesToWorkspace.invoke({
           filePaths,
-          workspace: selectedTargetPath,
+          workspace: targetWorkspace,
         });
+        if (!copyResult?.success) {
+          throw new Error(copyResult?.msg || 'Failed to copy workspace files');
+        }
       }
 
-      // Create new conversation with the new workspace
+      // Create new conversation with the new workspace / 使用新工作区创建会话
       const newId = uuid();
       const newConversation = {
         ...currentConversation,
@@ -285,22 +299,24 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
         modifyTime: Date.now(),
       };
 
-      // Update the workspace in extra field
-      if (newConversation.extra) {
-        newConversation.extra.workspace = selectedTargetPath;
-        newConversation.extra.customWorkspace = true;
-      }
+      // Update the workspace in extra field / 更新 extra 中的 workspace 信息
+      newConversation.extra = {
+        ...(currentConversation.extra ?? {}),
+        workspace: targetWorkspace,
+        customWorkspace: true,
+      };
 
       await ipcBridge.conversation.createWithConversation.invoke({
         conversation: newConversation,
+        sourceConversationId: conversation_id, // Pass source ID to migrate chat history / 传递源会话 ID 以迁移聊天记录
       });
 
-      // Close modal and reset state
+      // Close modal and reset state / 关闭弹窗并重置状态
       setShowMigrationModal(false);
       setSelectedTargetPath('');
       setMigrationLoading(false);
 
-      // Navigate to new conversation
+      // Navigate to new conversation / 跳转到新的会话
       void navigate(`/conversation/${newId}`);
       emitter.emit('chat.history.refresh');
       messageApi.success(t('conversation.workspace.migration.success'));

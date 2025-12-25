@@ -80,6 +80,29 @@ const normalizeToolParams = (toolName: string, args: Record<string, unknown>): R
     delete normalized.path;
   }
 
+  // 目录操作相关工具：兼容旧版本模型输出的 path/directory 字段
+  // Directory-related tools: normalize legacy keys (path/directory) to dir_path
+  const dirPathTools = ['list_directory', 'glob', 'search_file_content', 'run_shell_command'];
+  if (dirPathTools.includes(toolName)) {
+    const dirLikeKeys = ['dir_path', 'path', 'directory_path', 'directory', 'dir', 'folder_path', 'folder'];
+    for (const key of dirLikeKeys) {
+      if (key in normalized && typeof normalized[key] === 'string' && normalized[key]) {
+        if (!('dir_path' in normalized) && key !== 'dir_path') {
+          normalized.dir_path = normalized[key];
+        }
+        if (key !== 'dir_path') {
+          delete normalized[key];
+        }
+      }
+    }
+
+    // 新版 core 要求 list_directory 必填 dir_path，这里缺省时默认当前目录
+    // aioncli-core now requires dir_path; default to workspace root when missing
+    if (toolName === 'list_directory' && (typeof normalized.dir_path !== 'string' || normalized.dir_path.length === 0)) {
+      normalized.dir_path = '.';
+    }
+  }
+
   return normalized;
 };
 

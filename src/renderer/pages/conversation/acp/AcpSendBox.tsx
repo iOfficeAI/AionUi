@@ -20,7 +20,7 @@ import { useTranslation } from 'react-i18next';
 import FilePreview from '@/renderer/components/FilePreview';
 import HorizontalFileList from '@/renderer/components/HorizontalFileList';
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';
-import { useLatestCallback, useLatestRef } from '@/renderer/hooks/useLatestRef';
+import { useLatestRef } from '@/renderer/hooks/useLatestRef';
 
 const useAcpSendBoxDraft = getSendBoxDraftHook('acp', {
   _type: 'acp',
@@ -224,6 +224,8 @@ const AcpSendBox: React.FC<{
 
         if (result && result.success === true) {
           // Initial message sent successfully
+          // 等待一小段时间确保后端数据库更新完成
+          await new Promise((resolve) => setTimeout(resolve, 100));
           sessionStorage.removeItem(storageKey);
           emitter.emit('chat.history.refresh');
         } else {

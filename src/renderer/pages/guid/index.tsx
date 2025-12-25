@@ -9,6 +9,7 @@ import type { IProvider, TProviderWithModel } from '@/common/storage';
 import { ConfigStorage } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import { useConversationTabs } from '@/renderer/pages/conversation/context/ConversationTabsContext';
+import { updateWorkspaceTime } from '@/renderer/utils/workspaceHistory';
 import AuggieLogo from '@/renderer/assets/logos/auggie.svg';
 import ClaudeLogo from '@/renderer/assets/logos/claude.svg';
 import CodexLogo from '@/renderer/assets/logos/codex.svg';
@@ -27,6 +28,7 @@ import { usePasteService } from '@/renderer/hooks/usePasteService';
 import { formatFilesForMessage } from '@/renderer/hooks/useSendBoxFiles';
 import { allSupportedExts, type FileMetadata, getCleanFileNames } from '@/renderer/services/FileService';
 import { iconColors } from '@/renderer/theme/colors';
+import { emitter } from '@/renderer/utils/emitter';
 import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
 import type { AcpBackend } from '@/types/acpTypes';
 import { Button, ConfigProvider, Dropdown, Input, Menu, Tooltip } from '@arco-design/web-react';
@@ -135,7 +137,7 @@ const AGENT_LOGO_MAP: Partial<Record<AcpBackend, string>> = {
 const Guid: React.FC = () => {
   const { t } = useTranslation();
   const guidContainerRef = useRef<HTMLDivElement>(null);
-  const { activeTab } = useConversationTabs();
+  const { closeAllTabs, openTab } = useConversationTabs();
 
   // 打开外部链接 / Open external link
   const openLink = useCallback(async (url: string) => {
@@ -306,12 +308,10 @@ const Guid: React.FC = () => {
   }, [availableAgentsData]);
 
   const handleSend = async () => {
-    // 如果用户没有选择工作目录，尝试继承当前活动会话的 workspace
-    // If user hasn't selected a workspace, try to inherit from active conversation
-    let finalWorkspace = dir;
-    if (!finalWorkspace && activeTab) {
-      finalWorkspace = activeTab.workspace;
-    }
+    // 用户明确选择的目录 -> customWorkspace = true, 使用用户选择的目录
+    // 未选择时 -> customWorkspace = false, 传空让后端创建临时目录 (gemini-temp-xxx)
+    const isCustomWorkspace = !!dir;
+    const finalWorkspace = dir || ''; // 不指定时传空，让后端创建临时目录
 
     // 默认情况使用 Gemini（参考 main 分支的纯粹逻辑）
     if (!selectedAgent || selectedAgent === 'gemini') {
@@ -324,7 +324,7 @@ const Guid: React.FC = () => {
           extra: {
             defaultFiles: files,
             workspace: finalWorkspace,
-            customWorkspace: !!finalWorkspace, // 标记为自定义工作空间
+            customWorkspace: isCustomWorkspace,
             webSearchEngine: isGoogleAuth ? 'google' : 'default',
           },
         });
@@ -333,6 +333,21 @@ const Guid: React.FC = () => {
           throw new Error('Failed to create conversation - conversation object is null or missing id');
         }
 
+        // 更新 workspace 时间戳，确保分组会话能正确排序（仅自定义工作空间）
+        if (isCustomWorkspace) {
+          closeAllTabs();
+          updateWorkspaceTime(finalWorkspace);
+          // 将新会话添加到 tabs
+          openTab(conversation);
+        }
+
+        // 立即触发刷新，让左侧栏开始加载新会话（在导航前）
+        emitter.emit('chat.history.refresh');
+
+        // 然后导航到会话页面
+        await navigate(`/conversation/${conversation.id}`);
+
+        // 然后发送消息
         await ipcBridge.geminiConversation.sendMessage
           .invoke({
             input: files.length > 0 ? formatFilesForMessage(files) + ' ' + input : input,
@@ -343,7 +358,6 @@ const Guid: React.FC = () => {
             console.error('Failed to send message:', error);
             throw error;
           });
-        await navigate(`/conversation/${conversation.id}`);
       } catch (error: unknown) {
         console.error('Failed to create or send Gemini message:', error);
         const errorMessage = error instanceof Error ? error.message : String(error);
@@ -361,7 +375,7 @@ const Guid: React.FC = () => {
           extra: {
             defaultFiles: files,
             workspace: finalWorkspace,
-            customWorkspace: !!finalWorkspace, // 标记为自定义工作空间
+            customWorkspace: isCustomWorkspace,
           },
         });
 
@@ -369,12 +383,26 @@ const Guid: React.FC = () => {
           alert('Failed to create Codex conversation. Please ensure the Codex CLI is installed and accessible in PATH.');
           return;
         }
+
+        // 更新 workspace 时间戳，确保分组会话能正确排序（仅自定义工作空间）
+        if (isCustomWorkspace) {
+          closeAllTabs();
+          updateWorkspaceTime(finalWorkspace);
+          // 将新会话添加到 tabs
+          openTab(conversation);
+        }
+
+        // 立即触发刷新，让左侧栏开始加载新会话（在导航前）
+        emitter.emit('chat.history.refresh');
+
         // 交给对话页发送，避免事件丢失
         const initialMessage = {
           input,
           files: files.length > 0 ? files : undefined,
         };
         sessionStorage.setItem(`codex_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
+
+        // 然后导航到会话页面
         await navigate(`/conversation/${conversation.id}`);
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : String(error);
@@ -398,7 +426,7 @@ const Guid: React.FC = () => {
           extra: {
             defaultFiles: files,
             workspace: finalWorkspace,
-            customWorkspace: !!finalWorkspace, // 标记为自定义工作空间
+            customWorkspace: isCustomWorkspace,
             backend: selectedAgent,
             cliPath: agentInfo.cliPath,
             agentName: agentInfo.name, // 存储自定义代理的配置名称 / Store configured name for custom agents
@@ -411,6 +439,17 @@ const Guid: React.FC = () => {
           return;
         }
 
+        // 更新 workspace 时间戳，确保分组会话能正确排序（仅自定义工作空间）
+        if (isCustomWorkspace) {
+          closeAllTabs();
+          updateWorkspaceTime(finalWorkspace);
+          // 将新会话添加到 tabs
+          openTab(conversation);
+        }
+
+        // 立即触发刷新，让左侧栏开始加载新会话（在导航前）
+        emitter.emit('chat.history.refresh');
+
         // For ACP, we need to wait for the connection to be ready before sending the message
         // Store the initial message and let the conversation page handle it when ready
         const initialMessage = {
@@ -421,6 +460,7 @@ const Guid: React.FC = () => {
         // Store initial message in sessionStorage to be picked up by the conversation page
         sessionStorage.setItem(`acp_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
 
+        // 然后导航到会话页面
         await navigate(`/conversation/${conversation.id}`);
       } catch (error: unknown) {
         console.error('Failed to create ACP conversation:', error);
@@ -444,8 +484,10 @@ const Guid: React.FC = () => {
     setLoading(true);
     handleSend()
       .then(() => {
-        // Only clear input on successful send
+        // Clear all input states on successful send
         setInput('');
+        setFiles([]);
+        setDir('');
       })
       .catch((error) => {
         console.error('Failed to send message:', error);
