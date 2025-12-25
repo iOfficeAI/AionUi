@@ -330,7 +330,16 @@
       "noHistory": "チャット履歴はありません",
       "recent7Days": "過去7日間",
       "today": "今日",
-      "yesterday": "昨日"
+      "yesterday": "昨日",
+      "editName": "名前を編集",
+      "saveName": "名前を保存",
+      "cancelEdit": "編集をキャンセル"
+    },
+    "tabs": {
+      "closeAll": "すべて閉じる",
+      "closeLeft": "左側を閉じる",
+      "closeRight": "右側を閉じる",
+      "closeOthers": "他を閉じる"
     },
     "workspace": {
       "title": "ワークスペース",
@@ -349,6 +358,24 @@
       "search.empty": "検索結果は空です",
       "addFile": "ファイルを追加",
       "refresh": "更新",
+      "temporarySpace": "一時スペース",
+      "changeWorkspace": "ワークスペースを変更",
+      "migration": {
+        "title": "ワークスペースを変更",
+        "currentWorkspaceLabel": "現在の一時ワークスペース：",
+        "moveToNewFolder": "新しいフォルダー（ワークスペース）に移動",
+        "selectFolder": "フォルダーを選択",
+        "hint": "ファイルは新しいフォルダーに移動されます。会話履歴は失われません",
+        "description": "一時ワークスペースのファイルを指定されたディレクトリに移動します",
+        "currentWorkspace": "現在の一時ワークスペース",
+        "targetWorkspace": "移動先ワークスペース",
+        "selectTarget": "クリックして移動先フォルダーを選択",
+        "noTargetPath": "移動先フォルダーを選択してください",
+        "selectFolderError": "フォルダーの選択に失敗しました",
+        "success": "ワークスペースの移行が成功しました",
+        "error": "ワークスペースの移行に失敗しました",
+        "migrating": "移行中..."
+      },
       "dragOverlayTitle": "ドラッグして取り込み",
       "dragOverlayDesc": "ここにファイルやフォルダーをドロップすると、このワークスペースにコピーされます。",
       "dragOverlayHint": "ヒント：フォルダー選択中は、そのフォルダーに直接取り込まれます。",

@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import classNames from 'classnames';
-import { Tooltip } from '@arco-design/web-react';
 import { ExpandLeft, ExpandRight, MenuFold, MenuUnfold } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 
@@ -8,14 +7,11 @@ import WindowControls from '../WindowControls';
 import { WORKSPACE_STATE_EVENT, dispatchWorkspaceToggleEvent } from '@renderer/utils/workspaceEvents';
 import type { WorkspaceStateDetail } from '@renderer/utils/workspaceEvents';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
+import { isElectronDesktop, isMacOS } from '@/renderer/utils/platform';
 
 interface TitlebarProps {
   workspaceAvailable: boolean;
 }
-
-// 运行环境探测：Electron 桌面 / Desktop runtime detection
-const detectDesktop = () => typeof window !== 'undefined' && Boolean(window.electronAPI);
-const detectMac = () => typeof navigator !== 'undefined' && /mac/i.test(navigator.userAgent);
 
 const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
   const { t } = useTranslation();
@@ -40,8 +36,8 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
     };
   }, []);
 
-  const isDesktopRuntime = detectDesktop();
-  const isMacRuntime = isDesktopRuntime && detectMac();
+  const isDesktopRuntime = isElectronDesktop();
+  const isMacRuntime = isDesktopRuntime && isMacOS();
   // Windows/Linux 显示自定义窗口按钮；macOS 在标题栏给工作区一个切换入口
   const showWindowControls = isDesktopRuntime && !isMacRuntime;
   // WebUI 和 macOS 桌面都需要在标题栏放工作区开关

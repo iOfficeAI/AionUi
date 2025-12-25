@@ -210,6 +210,12 @@
       "saveName": "Save Name",
       "cancelEdit": "Cancel Edit"
     },
+    "tabs": {
+      "closeAll": "Close All",
+      "closeLeft": "Close to the Left",
+      "closeRight": "Close to the Right",
+      "closeOthers": "Close Others"
+    },
     "workspace": {
       "title": "Workspace",
       "pasteConfirm_title": "Paste files",
@@ -227,6 +233,24 @@
       "search.empty": "The search result is empty",
       "addFile": "Add File",
       "refresh": "Refresh",
+      "temporarySpace": "Temporary Space",
+      "changeWorkspace": "Change Workspace",
+      "migration": {
+        "title": "Change Workspace",
+        "currentWorkspaceLabel": "Current temporary workspace: ",
+        "moveToNewFolder": "Move to new folder (Workspace)",
+        "selectFolder": "Select folder",
+        "hint": "Files will be moved to the new folder, chat history will not be lost",
+        "description": "Move temporary workspace files to a specified directory",
+        "currentWorkspace": "Current temporary workspace",
+        "targetWorkspace": "Target workspace",
+        "selectTarget": "Click to select target folder",
+        "noTargetPath": "Please select a target folder",
+        "selectFolderError": "Failed to select folder",
+        "success": "Workspace migrated successfully",
+        "error": "Failed to migrate workspace",
+        "migrating": "Migrating..."
+      },
       "dragOverlayTitle": "Drop to import",
       "dragOverlayDesc": "Drag files or folders here to copy them into this workspace.",
       "dragOverlayHint": "Tip: drop anywhere to import into the selected folder.",

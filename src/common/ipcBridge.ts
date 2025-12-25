@@ -199,7 +199,7 @@ export interface ICreateConversationParams {
   id?: string;
   name?: string;
   model: TProviderWithModel;
-  extra: { workspace?: string; defaultFiles?: string[]; backend?: AcpBackend; cliPath?: string; webSearchEngine?: 'google' | 'default'; agentName?: string; customAgentId?: string };
+  extra: { workspace?: string; customWorkspace?: boolean; defaultFiles?: string[]; backend?: AcpBackend; cliPath?: string; webSearchEngine?: 'google' | 'default'; agentName?: string; customAgentId?: string };
 }
 interface IResetConversationParams {
   id?: string;

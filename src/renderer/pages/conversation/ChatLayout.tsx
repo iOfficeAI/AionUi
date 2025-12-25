@@ -1,8 +1,10 @@
 import { ConfigStorage } from '@/common/storage';
+import { STORAGE_KEYS } from '@/common/storageKeys';
 import FlexFullContainer from '@/renderer/components/FlexFullContainer';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { useResizableSplit } from '@/renderer/hooks/useResizableSplit';
 import { PreviewPanel, usePreviewContext } from '@/renderer/pages/conversation/preview';
+import ConversationTabs from '@/renderer/pages/conversation/ConversationTabs';
 import { Layout as ArcoLayout } from '@arco-design/web-react';
 import { ExpandLeft, ExpandRight, Robot } from '@icon-park/react';
 import React, { useEffect, useRef, useState } from 'react';
@@ -84,8 +86,19 @@ const ChatLayout: React.FC<{
   headerLeft?: React.ReactNode;
   workspaceEnabled?: boolean;
 }> = (props) => {
-  // 默认折叠工作空间，用户按需展开 / Default to collapsed workspace; users can toggle when needed
-  const [rightSiderCollapsed, setRightSiderCollapsed] = useState(true);
+  // 工作空间面板折叠状态 - 全局持久化
+  // Workspace panel collapse state - globally persisted
+  const [rightSiderCollapsed, setRightSiderCollapsed] = useState(() => {
+    try {
+      const stored = localStorage.getItem(STORAGE_KEYS.WORKSPACE_PANEL_COLLAPSE);
+      if (stored !== null) {
+        return stored === 'true';
+      }
+    } catch {
+      // 忽略错误
+    }
+    return true; // 默认折叠
+  });
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(() => (typeof window === 'undefined' ? 0 : window.innerWidth));
   const { backend, agentName, workspaceEnabled = true } = props;
@@ -151,6 +164,16 @@ const ChatLayout: React.FC<{
   }, []);
   useEffect(() => {
     rightCollapsedRef.current = rightSiderCollapsed;
+  }, [rightSiderCollapsed]);
+
+  // 持久化工作空间面板折叠状态
+  // Persist workspace panel collapse state
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEYS.WORKSPACE_PANEL_COLLAPSE, String(rightSiderCollapsed));
+    } catch {
+      // 忽略错误
+    }
   }, [rightSiderCollapsed]);
 
   useEffect(() => {
@@ -281,7 +304,9 @@ const ChatLayout: React.FC<{
               }
             }}
           >
-            <ArcoLayout.Header className={classNames('h-52px flex items-center justify-between p-16px gap-16px !bg-1 chat-layout-header')}>
+            {/* 会话 Tabs 栏 / Conversation tabs bar */}
+            <ConversationTabs />
+            <ArcoLayout.Header className={classNames('h-36px flex items-center justify-between p-16px gap-16px !bg-1 chat-layout-header')}>
               <div>{props.headerLeft}</div>
               <FlexFullContainer className='h-full' containerClassName='flex items-center gap-16px'>
                 <span className='font-bold text-16px text-t-primary inline-block overflow-hidden text-ellipsis whitespace-nowrap shrink-0 max-w-[50%]'>{props.title}</span>

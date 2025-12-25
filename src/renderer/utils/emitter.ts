@@ -24,6 +24,8 @@ interface EventTypes {
   'codex.selected.file.clear': void;
   'codex.workspace.refresh': void;
   'chat.history.refresh': void;
+  // 会话删除事件 / Conversation deletion event
+  'conversation.deleted': [string]; // conversationId
   // 预览面板事件 / Preview panel events
   'preview.open': [{ content: string; contentType: PreviewContentType; metadata?: { title?: string; fileName?: string } }];
 }
