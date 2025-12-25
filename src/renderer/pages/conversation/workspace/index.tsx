@@ -283,6 +283,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
         const copyResult = await ipcBridge.fs.copyFilesToWorkspace.invoke({
           filePaths,
           workspace: targetWorkspace,
+          sourceRoot: workspace,
         });
         if (!copyResult?.success) {
           throw new Error(copyResult?.msg || 'Failed to copy workspace files');
