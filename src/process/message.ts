@@ -15,9 +15,9 @@ import { ACP_BACKENDS_ALL } from '@/types/acpTypes';
 
 /**
  * Add a new message to the database
+ * Wraps async work inside an IIFE to keep call sites synchronous.
  */
 export const addMessage = (conversation_id: string, message: TMessage): void => {
-  // Use async IIFE to handle async operations
   void (async () => {
     try {
       const db = getDatabase();
@@ -137,7 +137,6 @@ export const addOrUpdateMessage = (conversation_id: string, message: TMessage, b
     return;
   }
 
-  // Use async IIFE to handle async operations
   void (async () => {
     try {
       const db = getDatabase();

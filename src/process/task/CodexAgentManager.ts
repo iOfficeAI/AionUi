@@ -21,6 +21,7 @@ import type { CodexAgentManagerData, FileChange } from '@/common/codex/types';
 import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
 import { getConfiguredAppClientName, getConfiguredAppClientVersion, getConfiguredCodexMcpProtocolVersion, setAppConfig } from '../../common/utils/appConfig';
 import { mapPermissionDecision } from '@/common/codex/utils';
+import { PERMISSION_DECISION_MAP } from '@/common/codex/types/permissionTypes';
 import { handlePreviewOpenEvent } from '@process/utils/previewUtils';
 
 const APP_CLIENT_NAME = getConfiguredAppClientName();
@@ -231,7 +232,8 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     this.agent.getEventHandler().getToolHandlers().removePendingConfirmation(data.callId);
 
     // Use standardized permission decision mapping
-    const decision = mapPermissionDecision(data.confirmKey as any) as 'approved' | 'approved_for_session' | 'denied' | 'abort';
+    const decisionKey = data.confirmKey in PERMISSION_DECISION_MAP ? (data.confirmKey as keyof typeof PERMISSION_DECISION_MAP) : 'reject_once';
+    const decision = mapPermissionDecision(decisionKey) as 'approved' | 'approved_for_session' | 'denied' | 'abort';
     const isApproved = decision === 'approved' || decision === 'approved_for_session';
 
     // Apply patch changes if available and approved

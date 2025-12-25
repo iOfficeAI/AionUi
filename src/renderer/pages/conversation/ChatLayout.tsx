@@ -5,6 +5,7 @@ import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { useResizableSplit } from '@/renderer/hooks/useResizableSplit';
 import { PreviewPanel, usePreviewContext } from '@/renderer/pages/conversation/preview';
 import ConversationTabs from '@/renderer/pages/conversation/ConversationTabs';
+import { useConversationTabs } from '@/renderer/pages/conversation/context/ConversationTabsContext';
 import { Layout as ArcoLayout } from '@arco-design/web-react';
 import { ExpandLeft, ExpandRight, Robot } from '@icon-park/react';
 import React, { useEffect, useRef, useState } from 'react';
@@ -118,6 +119,10 @@ const ChatLayout: React.FC<{
 
   // Compute display name with fallback chain (use first custom agent as fallback for backward compatibility)
   const displayName = agentName || (backend === 'custom' && customAgents?.[0]?.name) || ACP_BACKENDS_ALL[backend as keyof typeof ACP_BACKENDS_ALL]?.name || backend;
+
+  // 获取 tabs 状态，有 tabs 时隐藏会话标题
+  const { openTabs } = useConversationTabs();
+  const hasTabs = openTabs.length > 0;
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -309,7 +314,7 @@ const ChatLayout: React.FC<{
             <ArcoLayout.Header className={classNames('h-36px flex items-center justify-between p-16px gap-16px !bg-1 chat-layout-header')}>
               <div>{props.headerLeft}</div>
               <FlexFullContainer className='h-full' containerClassName='flex items-center gap-16px'>
-                <span className='font-bold text-16px text-t-primary inline-block overflow-hidden text-ellipsis whitespace-nowrap shrink-0 max-w-[50%]'>{props.title}</span>
+                {!hasTabs && <span className='font-bold text-16px text-t-primary inline-block overflow-hidden text-ellipsis whitespace-nowrap shrink-0 max-w-[50%]'>{props.title}</span>}
               </FlexFullContainer>
               <div className='flex items-center gap-12px'>
                 {/* headerExtra 会在右上角优先渲染，例如模型切换按钮 / headerExtra renders at top-right for items like model switchers */}
