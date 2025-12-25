@@ -4,45 +4,12 @@
  */
 
 const { execSync } = require('child_process');
-const fs = require('fs');
-const path = require('path');
 
-/**
- * Create symlink for web-tree-sitter from aioncli-core's nested node_modules
- * web-tree-sitter 是 aioncli-core 的嵌套依赖，需要创建 symlink 以便 webpack externals 解析
- */
-function createWebTreeSitterSymlink() {
-  const nodeModulesPath = path.resolve(__dirname, '../node_modules');
-  const symlinkPath = path.join(nodeModulesPath, 'web-tree-sitter');
-  const targetPath = path.join(nodeModulesPath, '@office-ai/aioncli-core/node_modules/web-tree-sitter');
-
-  try {
-    // Check if target exists
-    if (!fs.existsSync(targetPath)) {
-      console.log('web-tree-sitter not found in aioncli-core, skipping symlink creation');
-      return;
-    }
-
-    // Remove existing symlink or directory if it exists
-    if (fs.existsSync(symlinkPath)) {
-      const stats = fs.lstatSync(symlinkPath);
-      if (stats.isSymbolicLink()) {
-        fs.unlinkSync(symlinkPath);
-      } else {
-        return;
-      }
-    }
-
-    // Create relative symlink (relative path is more portable)
-    fs.symlinkSync('@office-ai/aioncli-core/node_modules/web-tree-sitter', symlinkPath, 'junction');
-  } catch (e) {
-  }
-}
+// Note: web-tree-sitter is now a direct dependency in package.json
+// No need for symlinks or copying - npm will install it directly to node_modules
 
 function runPostInstall() {
   try {
-    // Create symlink for web-tree-sitter (needed for aioncli-core nested dependency)
-    createWebTreeSitterSymlink();
 
     // Check if we're in a CI environment
     const isCI = process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true';

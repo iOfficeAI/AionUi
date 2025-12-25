@@ -287,7 +287,10 @@
       "selectModel": "選擇模型",
       "specifyWorkspace": "關聯資料夾對話",
       "currentWorkspace": "目前工作空間",
-      "clearWorkspace": "移除資料夾"
+      "clearWorkspace": "移除資料夾",
+      "quickActionsTitle": "AionUi 能做什麼？",
+      "quickActionFeedback": "想吐槽或提建議?",
+      "quickActionStar": "喜歡我們？點個星吧"
     },
     "history": {
       "cancelDelete": "取消",
@@ -298,7 +301,16 @@
       "noHistory": "暫無對話記錄",
       "recent7Days": "近7天",
       "today": "今天",
-      "yesterday": "昨天"
+      "yesterday": "昨天",
+      "editName": "編輯名稱",
+      "saveName": "儲存名稱",
+      "cancelEdit": "取消編輯"
+    },
+    "tabs": {
+      "closeAll": "全部關閉",
+      "closeLeft": "關閉左側",
+      "closeRight": "關閉右側",
+      "closeOthers": "關閉其他"
     },
     "workspace": {
       "title": "工作空間",
@@ -317,6 +329,24 @@
       "search.empty": "搜索結果為空",
       "addFile": "新增檔案",
       "refresh": "重新整理",
+      "temporarySpace": "臨時空間",
+      "changeWorkspace": "更換工作空間",
+      "migration": {
+        "title": "更換工作空間",
+        "currentWorkspaceLabel": "當前臨時工作空間：",
+        "moveToNewFolder": "移動到新資料夾(工作空間)",
+        "selectFolder": "選擇資料夾",
+        "hint": "檔案將移動到新資料夾，對話記錄不會遺失",
+        "description": "將臨時工作空間檔案移動到指定目錄",
+        "currentWorkspace": "當前臨時工作空間",
+        "targetWorkspace": "目標工作空間",
+        "selectTarget": "點擊選擇目標資料夾",
+        "noTargetPath": "請選擇目標資料夾",
+        "selectFolderError": "選擇資料夾失敗",
+        "success": "工作空間遷移成功",
+        "error": "工作空間遷移失敗",
+        "migrating": "遷移中..."
+      },
       "dragOverlayTitle": "拖曳匯入",
       "dragOverlayDesc": "將檔案或資料夾拖曳到此處即可複製到目前工作空間。",
       "dragOverlayHint": "提示：若已選取資料夾，會直接匯入該資料夾。",

@@ -2,7 +2,7 @@ import { ArrowCircleLeft, Plus, SettingTwo } from '@icon-park/react';
 import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
-import ChatHistory from './pages/conversation/ChatHistory';
+import WorkspaceGroupedHistory from './pages/conversation/WorkspaceGroupedHistory';
 import SettingsSider from './pages/settings/SettingsSider';
 import { iconColors } from './theme/colors';
 import { Tooltip } from '@arco-design/web-react';
@@ -65,7 +65,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
               <span className='collapsed-hidden font-bold text-t-primary'>{t('conversation.welcome.newConversation')}</span>
             </div>
           </Tooltip>
-          <ChatHistory collapsed={collapsed} onSessionClick={onSessionClick}></ChatHistory>
+          <WorkspaceGroupedHistory collapsed={collapsed} onSessionClick={onSessionClick}></WorkspaceGroupedHistory>
         </>
       )}
       <Tooltip disabled={!collapsed} content={isSettings ? t('common.back') : t('common.settings')} position='right'>

@@ -24,7 +24,7 @@ import addChatIcon from '@/renderer/assets/add-chat.svg';
 import GeminiModelSelector from './gemini/GeminiModelSelector';
 import { useGeminiModelSelection } from './gemini/useGeminiModelSelection';
 
-const AssociatedConversation: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
+const _AssociatedConversation: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
   const { data } = useSWR(['getAssociateConversation', conversation_id], () => ipcBridge.conversation.getAssociateConversation.invoke({ conversation_id }));
   const navigate = useNavigate();
   const list = useMemo(() => {
@@ -58,7 +58,7 @@ const AssociatedConversation: React.FC<{ conversation_id: string }> = ({ convers
   );
 };
 
-const AddNewConversation: React.FC<{ conversation: TChatConversation }> = ({ conversation }) => {
+const _AddNewConversation: React.FC<{ conversation: TChatConversation }> = ({ conversation }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   if (!conversation.extra?.workspace) return null;
@@ -134,15 +134,9 @@ const ChatConversation: React.FC<{
     return (
       <div className='flex items-center justify-between'>
         <span className='text-16px font-bold text-t-primary'>{t('conversation.workspace.title')}</span>
-        {conversation && (
-          <div className='flex items-center gap-4px'>
-            <AddNewConversation conversation={conversation}></AddNewConversation>
-            <AssociatedConversation conversation_id={conversation.id}></AssociatedConversation>
-          </div>
-        )}
       </div>
     );
-  }, [conversation]);
+  }, [t]);
 
   if (conversation && conversation.type === 'gemini') {
     // Gemini 会话独立渲染，带右上角模型选择

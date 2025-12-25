@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { TMessage } from '@/common/chatLib';
+import type { IMessageText, TMessage } from '@/common/chatLib';
 import { transformMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import type { IMcpServer, TProviderWithModel } from '@/common/storage';
@@ -16,12 +16,19 @@ import BaseAgentManager from './BaseAgentManager';
 import { handlePreviewOpenEvent } from '../utils/previewUtils';
 
 // gemini agent管理器类
+type UiMcpServerConfig = {
+  command: string;
+  args: string[];
+  env: Record<string, string>;
+  description?: string;
+};
+
 export class GeminiAgentManager extends BaseAgentManager<{
   workspace: string;
   model: TProviderWithModel;
   imageGenerationModel?: TProviderWithModel;
   webSearchEngine?: 'google' | 'default';
-  mcpServers?: Record<string, any>;
+  mcpServers?: Record<string, UiMcpServerConfig>;
 }> {
   workspace: string;
   model: TProviderWithModel;
@@ -30,11 +37,11 @@ export class GeminiAgentManager extends BaseAgentManager<{
   private async injectHistoryFromDatabase(): Promise<void> {
     try {
       const result = getDatabase().getConversationMessages(this.conversation_id, 0, 10000);
-      const data = result.data || [];
+      const data = (result.data || []) as TMessage[];
       const lines = data
-        .filter((m) => m.type === 'text')
+        .filter((m): m is IMessageText => m.type === 'text')
         .slice(-20)
-        .map((m) => `${m.position === 'right' ? 'User' : 'Assistant'}: ${(m as any)?.content?.content || ''}`);
+        .map((m) => `${m.position === 'right' ? 'User' : 'Assistant'}: ${m.content.content || ''}`);
       const text = lines.join('\n').slice(-4000);
       if (text) {
         await this.postMessagePromise('init.history', { text });
@@ -83,7 +90,7 @@ export class GeminiAgentManager extends BaseAgentManager<{
       .catch(() => Promise.resolve(undefined));
   }
 
-  private async getMcpServers(): Promise<Record<string, any>> {
+  private async getMcpServers(): Promise<Record<string, UiMcpServerConfig>> {
     try {
       const mcpServers = await ProcessConfig.get('mcp.config');
       if (!mcpServers || !Array.isArray(mcpServers)) {
@@ -91,7 +98,7 @@ export class GeminiAgentManager extends BaseAgentManager<{
       }
 
       // 转换为 aioncli-core 期望的格式
-      const mcpConfig: Record<string, any> = {};
+      const mcpConfig: Record<string, UiMcpServerConfig> = {};
       mcpServers
         .filter((server: IMcpServer) => server.enabled && server.status === 'connected') // 只使用启用且连接成功的服务器
         .forEach((server: IMcpServer) => {
@@ -112,7 +119,7 @@ export class GeminiAgentManager extends BaseAgentManager<{
     }
   }
 
-  sendMessage(data: { input: string; msg_id: string }) {
+  async sendMessage(data: { input: string; msg_id: string }) {
     const message: TMessage = {
       id: data.msg_id,
       type: 'text',
@@ -124,7 +131,7 @@ export class GeminiAgentManager extends BaseAgentManager<{
     };
     addMessage(this.conversation_id, message);
     this.status = 'pending';
-    return this.bootstrap
+    const result = await this.bootstrap
       .catch((e) => {
         this.emit('gemini.message', {
           type: 'error',
@@ -141,6 +148,7 @@ export class GeminiAgentManager extends BaseAgentManager<{
         });
       })
       .then(() => super.sendMessage(data));
+    return result;
   }
 
   init() {

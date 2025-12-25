@@ -12,8 +12,30 @@
 
 import { uuid } from '@/renderer/utils/common';
 import type { UtilityProcess } from 'electron';
-import { utilityProcess } from 'electron';
+import { app, utilityProcess } from 'electron';
 import { Pipe } from './pipe';
+
+/**
+ * 获取 worker 进程的工作目录
+ * Get working directory for worker process
+ *
+ * 在打包环境中，需要指向 app.asar.unpacked 目录以便 aioncli-core 能找到 WASM 文件
+ * In packaged environment, needs to point to app.asar.unpacked directory
+ * so aioncli-core can find WASM files
+ */
+function getWorkerCwd(): string {
+  if (app.isPackaged) {
+    // 打包环境: app.getAppPath() 返回 .../Resources/app.asar
+    // 我们需要 .../Resources/app.asar.unpacked 目录
+    // Packaged: app.getAppPath() returns .../Resources/app.asar
+    // We need the .../Resources/app.asar.unpacked directory
+    const appPath = app.getAppPath();
+    return appPath.replace('app.asar', 'app.asar.unpacked');
+  }
+  // 开发环境: 使用项目根目录
+  // Development: use project root directory
+  return process.cwd();
+}
 
 export class ForkTask<Data> extends Pipe {
   protected path = '';
@@ -39,7 +61,12 @@ export class ForkTask<Data> extends Pipe {
     process.off('exit', this.killFn);
   }
   protected init() {
-    const fcp = utilityProcess.fork(this.path);
+    // 传递 cwd 确保 worker 可以正确解析 node_modules 路径 (用于加载 WASM 文件等)
+    // Pass cwd to ensure worker can correctly resolve node_modules paths (for WASM files etc.)
+    const workerCwd = getWorkerCwd();
+    const fcp = utilityProcess.fork(this.path, [], {
+      cwd: workerCwd,
+    });
     // 接受子进程发送的消息
     fcp.on('message', (e: IForkData) => {
       // console.log("---------接受来子进程消息>", e);

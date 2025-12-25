@@ -225,18 +225,20 @@ const ToolsModalContent: React.FC = () => {
 
   const imageGenerationModelList = useMemo(() => {
     if (!data) return [];
+    // Filter models that support image generation
+    // 筛选支持图片生成的模型
+    const isImageModel = (modelName: string) => {
+      const name = modelName.toLowerCase();
+      return name.includes('image') || name.includes('banana');
+    };
     return (data || [])
       .filter((v) => {
-        const filteredModels = v.model.filter((model) => {
-          return model.toLowerCase().includes('image');
-        });
+        const filteredModels = v.model.filter(isImageModel);
         return filteredModels.length > 0;
       })
       .map((v) => ({
         ...v,
-        model: v.model.filter((model) => {
-          return model.toLowerCase().includes('image');
-        }),
+        model: v.model.filter(isImageModel),
       }));
   }, [data]);
 

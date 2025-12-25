@@ -8,6 +8,8 @@ import { ipcBridge } from '@/common';
 import type { IProvider, TProviderWithModel } from '@/common/storage';
 import { ConfigStorage } from '@/common/storage';
 import { uuid } from '@/common/utils';
+import { useConversationTabs } from '@/renderer/pages/conversation/context/ConversationTabsContext';
+import { updateWorkspaceTime } from '@/renderer/utils/workspaceHistory';
 import AuggieLogo from '@/renderer/assets/logos/auggie.svg';
 import ClaudeLogo from '@/renderer/assets/logos/claude.svg';
 import CodexLogo from '@/renderer/assets/logos/codex.svg';
@@ -26,14 +28,15 @@ import { usePasteService } from '@/renderer/hooks/usePasteService';
 import { formatFilesForMessage } from '@/renderer/hooks/useSendBoxFiles';
 import { allSupportedExts, type FileMetadata, getCleanFileNames } from '@/renderer/services/FileService';
 import { iconColors } from '@/renderer/theme/colors';
+import { emitter } from '@/renderer/utils/emitter';
 import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
 import type { AcpBackend } from '@/types/acpTypes';
 import { Button, ConfigProvider, Dropdown, Input, Menu, Tooltip } from '@arco-design/web-react';
 import { IconClose } from '@arco-design/web-react/icon';
-import { ArrowUp, FolderOpen, MenuFold, MenuUnfold, Plus, Robot, UploadOne } from '@icon-park/react';
+import { ArrowUp, FolderOpen, Plus, Robot, UploadOne } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import useSWR from 'swr';
 import styles from './index.module.css';
 
@@ -134,11 +137,30 @@ const AGENT_LOGO_MAP: Partial<Record<AcpBackend, string>> = {
 const Guid: React.FC = () => {
   const { t } = useTranslation();
   const guidContainerRef = useRef<HTMLDivElement>(null);
+  const { closeAllTabs, openTab } = useConversationTabs();
+
+  // 打开外部链接 / Open external link
+  const openLink = useCallback(async (url: string) => {
+    try {
+      await ipcBridge.shell.openExternal.invoke(url);
+    } catch (error) {
+      console.error('Failed to open external link:', error);
+    }
+  }, []);
+  const location = useLocation();
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [files, setFiles] = useState<string[]>([]);
   const [dir, setDir] = useState<string>('');
   const [currentModel, _setCurrentModel] = useState<TProviderWithModel>();
+
+  // 从 location.state 中读取 workspace（从 tabs 的添加按钮传递）
+  useEffect(() => {
+    const state = location.state as { workspace?: string } | null;
+    if (state?.workspace) {
+      setDir(state.workspace);
+    }
+  }, [location.state]);
   const { modelList, isGoogleAuth, geminiModeOptions } = useModelList();
   const geminiModeLookup = useMemo(() => {
     const lookup = new Map<string, (typeof geminiModeOptions)[number]>();
@@ -192,7 +214,7 @@ const Guid: React.FC = () => {
   const selectedAgent = selectedAgentKey.startsWith('custom:') ? 'custom' : (selectedAgentKey as AcpBackend);
   const [isPlusDropdownOpen, setIsPlusDropdownOpen] = useState(false);
   const [typewriterPlaceholder, setTypewriterPlaceholder] = useState('');
-  const [isTyping, setIsTyping] = useState(true);
+  const [_isTyping, setIsTyping] = useState(true);
 
   /**
    * 生成唯一模型 key（providerId:model）
@@ -224,7 +246,7 @@ const Guid: React.FC = () => {
     _setCurrentModel(modelInfo);
   };
   const navigate = useNavigate();
-  const layout = useLayoutContext();
+  const _layout = useLayoutContext();
 
   // 处理粘贴的文件
   const handleFilesAdded = useCallback((pastedFiles: FileMetadata[]) => {
@@ -286,6 +308,11 @@ const Guid: React.FC = () => {
   }, [availableAgentsData]);
 
   const handleSend = async () => {
+    // 用户明确选择的目录 -> customWorkspace = true, 使用用户选择的目录
+    // 未选择时 -> customWorkspace = false, 传空让后端创建临时目录 (gemini-temp-xxx)
+    const isCustomWorkspace = !!dir;
+    const finalWorkspace = dir || ''; // 不指定时传空，让后端创建临时目录
+
     // 默认情况使用 Gemini（参考 main 分支的纯粹逻辑）
     if (!selectedAgent || selectedAgent === 'gemini') {
       if (!currentModel) return;
@@ -296,7 +323,8 @@ const Guid: React.FC = () => {
           model: currentModel,
           extra: {
             defaultFiles: files,
-            workspace: dir,
+            workspace: finalWorkspace,
+            customWorkspace: isCustomWorkspace,
             webSearchEngine: isGoogleAuth ? 'google' : 'default',
           },
         });
@@ -305,6 +333,21 @@ const Guid: React.FC = () => {
           throw new Error('Failed to create conversation - conversation object is null or missing id');
         }
 
+        // 更新 workspace 时间戳，确保分组会话能正确排序（仅自定义工作空间）
+        if (isCustomWorkspace) {
+          closeAllTabs();
+          updateWorkspaceTime(finalWorkspace);
+          // 将新会话添加到 tabs
+          openTab(conversation);
+        }
+
+        // 立即触发刷新，让左侧栏开始加载新会话（在导航前）
+        emitter.emit('chat.history.refresh');
+
+        // 然后导航到会话页面
+        await navigate(`/conversation/${conversation.id}`);
+
+        // 然后发送消息
         await ipcBridge.geminiConversation.sendMessage
           .invoke({
             input: files.length > 0 ? formatFilesForMessage(files) + ' ' + input : input,
@@ -315,10 +358,10 @@ const Guid: React.FC = () => {
             console.error('Failed to send message:', error);
             throw error;
           });
-        await navigate(`/conversation/${conversation.id}`);
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Failed to create or send Gemini message:', error);
-        alert(`Failed to create Gemini conversation: ${error.message || error}`);
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        alert(`Failed to create Gemini conversation: ${errorMessage}`);
         throw error; // Re-throw to prevent input clearing
       }
       return;
@@ -331,7 +374,8 @@ const Guid: React.FC = () => {
           model: currentModel!, // not used by codex, but required by type
           extra: {
             defaultFiles: files,
-            workspace: dir,
+            workspace: finalWorkspace,
+            customWorkspace: isCustomWorkspace,
           },
         });
 
@@ -339,15 +383,30 @@ const Guid: React.FC = () => {
           alert('Failed to create Codex conversation. Please ensure the Codex CLI is installed and accessible in PATH.');
           return;
         }
+
+        // 更新 workspace 时间戳，确保分组会话能正确排序（仅自定义工作空间）
+        if (isCustomWorkspace) {
+          closeAllTabs();
+          updateWorkspaceTime(finalWorkspace);
+          // 将新会话添加到 tabs
+          openTab(conversation);
+        }
+
+        // 立即触发刷新，让左侧栏开始加载新会话（在导航前）
+        emitter.emit('chat.history.refresh');
+
         // 交给对话页发送，避免事件丢失
         const initialMessage = {
           input,
           files: files.length > 0 ? files : undefined,
         };
         sessionStorage.setItem(`codex_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
+
+        // 然后导航到会话页面
         await navigate(`/conversation/${conversation.id}`);
-      } catch (error: any) {
-        alert(`Failed to create Codex conversation: ${error.message || error}`);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        alert(`Failed to create Codex conversation: ${errorMessage}`);
         throw error;
       }
       return;
@@ -359,9 +418,6 @@ const Guid: React.FC = () => {
         return;
       }
 
-      // 如果没有工作目录，使用默认目录（参考 AcpSetup 逻辑）
-      const workingDir = dir;
-
       try {
         const conversation = await ipcBridge.conversation.create.invoke({
           type: 'acp',
@@ -369,7 +425,8 @@ const Guid: React.FC = () => {
           model: currentModel!, // ACP needs a model too
           extra: {
             defaultFiles: files,
-            workspace: workingDir,
+            workspace: finalWorkspace,
+            customWorkspace: isCustomWorkspace,
             backend: selectedAgent,
             cliPath: agentInfo.cliPath,
             agentName: agentInfo.name, // 存储自定义代理的配置名称 / Store configured name for custom agents
@@ -382,6 +439,17 @@ const Guid: React.FC = () => {
           return;
         }
 
+        // 更新 workspace 时间戳，确保分组会话能正确排序（仅自定义工作空间）
+        if (isCustomWorkspace) {
+          closeAllTabs();
+          updateWorkspaceTime(finalWorkspace);
+          // 将新会话添加到 tabs
+          openTab(conversation);
+        }
+
+        // 立即触发刷新，让左侧栏开始加载新会话（在导航前）
+        emitter.emit('chat.history.refresh');
+
         // For ACP, we need to wait for the connection to be ready before sending the message
         // Store the initial message and let the conversation page handle it when ready
         const initialMessage = {
@@ -392,14 +460,16 @@ const Guid: React.FC = () => {
         // Store initial message in sessionStorage to be picked up by the conversation page
         sessionStorage.setItem(`acp_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
 
+        // 然后导航到会话页面
         await navigate(`/conversation/${conversation.id}`);
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Failed to create ACP conversation:', error);
 
         // Check if it's an authentication error
-        if (error?.message?.includes('[ACP-AUTH-')) {
-          console.error(t('acp.auth.console_error'), error.message);
-          const confirmed = window.confirm(t('acp.auth.failed_confirm', { backend: selectedAgent, error: error.message }));
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        if (errorMessage.includes('[ACP-AUTH-')) {
+          console.error(t('acp.auth.console_error'), errorMessage);
+          const confirmed = window.confirm(t('acp.auth.failed_confirm', { backend: selectedAgent, error: errorMessage }));
           if (confirmed) {
             void navigate('/settings/model');
           }
@@ -414,8 +484,10 @@ const Guid: React.FC = () => {
     setLoading(true);
     handleSend()
       .then(() => {
-        // Only clear input on successful send
+        // Clear all input states on successful send
         setInput('');
+        setFiles([]);
+        setDir('');
       })
       .catch((error) => {
         console.error('Failed to send message:', error);
@@ -543,7 +615,7 @@ const Guid: React.FC = () => {
           )}
 
           <div
-            className={`${styles.guidInputCard} bg-border-2 b-solid border rd-20px transition-all duration-200 overflow-hidden p-16px bg-[var(--fill-0)] ${isFileDragging ? 'border-dashed' : 'border-3'}`}
+            className={`${styles.guidInputCard} bg-border-2 b-solid border rd-20px transition-all duration-200 overflow-hidden p-12px bg-[var(--fill-0)] ${isFileDragging ? 'border-dashed' : 'border-3'}`}
             style={{
               zIndex: 1,
               ...(isFileDragging
@@ -721,18 +793,45 @@ const Guid: React.FC = () => {
               </div>
             </div>
             {dir && (
-              <div className='flex items-center gap-6px mt-12px text-13px text-t-secondary'>
-                <FolderOpen className='flex-shrink-0' theme='outline' size='16' fill={iconColors.secondary} style={{ lineHeight: 0 }} />
-                <Tooltip content={dir} position='top'>
-                  <span className='truncate'>
-                    {t('conversation.welcome.currentWorkspace')}: {dir}
-                  </span>
-                </Tooltip>
+              <div className='flex items-center justify-between gap-6px h-28px mt-12px px-12px text-13px text-t-secondary ' style={{ borderTop: '1px solid var(--border-base)' }}>
+                <div className='flex items-center'>
+                  <FolderOpen className='m-r-8px flex-shrink-0' theme='outline' size='16' fill={iconColors.secondary} style={{ lineHeight: 0 }} />
+                  <Tooltip content={dir} position='top'>
+                    <span className='truncate'>
+                      {t('conversation.welcome.currentWorkspace')}: {dir}
+                    </span>
+                  </Tooltip>
+                </div>
                 <Tooltip content={t('conversation.welcome.clearWorkspace')} position='top'>
                   <IconClose className='hover:text-[rgb(var(--danger-6))] hover:bg-3 transition-colors' strokeWidth={3} style={{ fontSize: 16 }} onClick={() => setDir('')} />
                 </Tooltip>
               </div>
             )}
+          </div>
+        </div>
+
+        {/* 底部快捷按钮 */}
+        <div className='absolute bottom-32px left-50% -translate-x-1/2 flex flex-col justify-center items-center'>
+          {/* <div className='text-text-3 text-14px mt-24px mb-12px'>{t('conversation.welcome.quickActionsTitle')}</div> */}
+          <div className='flex justify-center items-center gap-24px'>
+            <div className='group flex items-center justify-center w-44px h-44px rd-50% bg-fill-0 b-solid border border-1 cursor-pointer overflow-hidden whitespace-nowrap hover:w-200px hover:rd-28px hover:px-20px hover:justify-start hover:gap-10px transition-all duration-400 ease-[cubic-bezier(0.2,0.8,0.3,1)]' style={{ borderColor: 'var(--border-special, #60577E)', boxShadow: '0px 2px 12px rgba(var(--primary-rgb, 77, 60, 234), 0.1)' }} onClick={() => openLink('https://x.com/AionUi')}>
+              <svg className='flex-shrink-0 text-[var(--color-text-3)] group-hover:text-[#2C7FFF] transition-colors duration-300' width='20' height='20' viewBox='0 0 20 20' fill='none' xmlns='http://www.w3.org/2000/svg'>
+                <path d='M6.58335 16.6674C8.17384 17.4832 10.0034 17.7042 11.7424 17.2905C13.4814 16.8768 15.0155 15.8555 16.0681 14.4108C17.1208 12.9661 17.6229 11.1929 17.4838 9.41082C17.3448 7.6287 16.5738 5.95483 15.3099 4.69085C14.0459 3.42687 12.372 2.6559 10.5899 2.51687C8.80776 2.37784 7.03458 2.8799 5.58987 3.93256C4.14516 4.98523 3.12393 6.51928 2.71021 8.25828C2.29648 9.99729 2.51747 11.8269 3.33335 13.4174L1.66669 18.334L6.58335 16.6674Z' stroke='currentColor' strokeWidth='1.66667' strokeLinecap='round' strokeLinejoin='round' />
+              </svg>
+              <span className='opacity-0 max-w-0 overflow-hidden text-14px text-[var(--color-text-2)] font-bold group-hover:opacity-100 group-hover:max-w-250px transition-all duration-300 ease-[cubic-bezier(0.2,0.8,0.3,1)]'>{t('conversation.welcome.quickActionFeedback')}</span>
+            </div>
+            <div className='group flex items-center justify-center w-44px h-44px rd-50% bg-fill-0 b-solid border border-1 cursor-pointer overflow-hidden whitespace-nowrap hover:w-200px hover:rd-28px hover:px-20px hover:justify-start hover:gap-10px transition-all duration-400 ease-[cubic-bezier(0.2,0.8,0.3,1)]' style={{ borderColor: 'var(--border-special, #60577E)', boxShadow: '0px 2px 12px rgba(var(--primary-rgb, 77, 60, 234), 0.1)' }} onClick={() => openLink('https://github.com/iOfficeAI/AionUi')}>
+              <svg className='flex-shrink-0 text-[var(--color-text-3)] group-hover:text-[#FE9900] transition-colors duration-300' width='20' height='20' viewBox='0 0 20 20' fill='none' xmlns='http://www.w3.org/2000/svg'>
+                <path
+                  d='M9.60416 1.91176C9.64068 1.83798 9.6971 1.77587 9.76704 1.73245C9.83698 1.68903 9.91767 1.66602 9.99999 1.66602C10.0823 1.66602 10.163 1.68903 10.233 1.73245C10.3029 1.77587 10.3593 1.83798 10.3958 1.91176L12.3208 5.81093C12.4476 6.06757 12.6348 6.2896 12.8663 6.45797C13.0979 6.62634 13.3668 6.73602 13.65 6.77759L17.955 7.40759C18.0366 7.41941 18.1132 7.45382 18.1762 7.50693C18.2393 7.56003 18.2862 7.62972 18.3117 7.7081C18.3372 7.78648 18.3402 7.87043 18.3205 7.95046C18.3007 8.03048 18.259 8.10339 18.2 8.16093L15.0867 11.1926C14.8813 11.3927 14.7277 11.6397 14.639 11.9123C14.5503 12.1849 14.5292 12.475 14.5775 12.7576L15.3125 17.0409C15.3269 17.1225 15.3181 17.2064 15.2871 17.2832C15.2561 17.3599 15.2041 17.4264 15.1371 17.4751C15.0701 17.5237 14.9908 17.5526 14.9082 17.5583C14.8256 17.5641 14.7431 17.5465 14.67 17.5076L10.8217 15.4843C10.5681 15.3511 10.286 15.2816 9.99958 15.2816C9.71318 15.2816 9.43106 15.3511 9.17749 15.4843L5.32999 17.5076C5.25694 17.5463 5.17449 17.5637 5.09204 17.5578C5.00958 17.5519 4.93043 17.5231 4.86357 17.4744C4.79672 17.4258 4.74485 17.3594 4.71387 17.2828C4.68289 17.2061 4.67404 17.1223 4.68833 17.0409L5.42249 12.7584C5.47099 12.4757 5.44998 12.1854 5.36128 11.9126C5.27257 11.6398 5.11883 11.3927 4.91333 11.1926L1.79999 8.16176C1.74049 8.10429 1.69832 8.03126 1.6783 7.95099C1.65827 7.87072 1.66119 7.78644 1.68673 7.70775C1.71226 7.62906 1.75938 7.55913 1.82272 7.50591C1.88607 7.4527 1.96308 7.41834 2.04499 7.40676L6.34916 6.77759C6.63271 6.73634 6.90199 6.62681 7.13381 6.45842C7.36564 6.29002 7.55308 6.06782 7.67999 5.81093L9.60416 1.91176Z'
+                  stroke='currentColor'
+                  strokeWidth='1.66667'
+                  strokeLinecap='round'
+                  strokeLinejoin='round'
+                />
+              </svg>
+              <span className='opacity-0 max-w-0 overflow-hidden text-14px text-[var(--color-text-2)] font-bold group-hover:opacity-100 group-hover:max-w-250px transition-all duration-300 ease-[cubic-bezier(0.2,0.8,0.3,1)]'>{t('conversation.welcome.quickActionStar')}</span>
+            </div>
           </div>
         </div>
       </div>

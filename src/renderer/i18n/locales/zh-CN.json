@@ -188,7 +188,10 @@
       "currentWorkspace": "当前工作空间",
       "clearWorkspace": "移除已选文件夹",
       "openFolder": "打开文件夹",
-      "none": "无"
+      "none": "无",
+      "quickActionsTitle": "AionUi 能做什么？",
+      "quickActionFeedback": "想吐槽或提建议?",
+      "quickActionStar": "喜欢我们？点个星吧"
     },
     "history": {
       "today": "今天",
@@ -203,6 +206,12 @@
       "editName": "编辑名称",
       "saveName": "保存名称",
       "cancelEdit": "取消编辑"
+    },
+    "tabs": {
+      "closeAll": "关闭全部",
+      "closeLeft": "关闭左侧",
+      "closeRight": "关闭右侧",
+      "closeOthers": "关闭其他"
     },
     "workspace": {
       "title": "工作空间",
@@ -221,6 +230,24 @@
       "search.empty": "搜索结果为空",
       "addFile": "添加文件",
       "refresh": "刷新",
+      "temporarySpace": "临时空间",
+      "changeWorkspace": "更换工作空间",
+      "migration": {
+        "title": "更换工作空间",
+        "currentWorkspaceLabel": "当前临时工作空间：",
+        "moveToNewFolder": "移动到新文件夹(工作空间)",
+        "selectFolder": "选择文件夹",
+        "hint": "文件将移动到新文件夹，对话记录不会丢失",
+        "description": "将临时工作空间文件移动到指定目录",
+        "currentWorkspace": "当前临时工作空间",
+        "targetWorkspace": "目标工作空间",
+        "selectTarget": "点击选择目标文件夹",
+        "noTargetPath": "请选择目标文件夹",
+        "selectFolderError": "选择文件夹失败",
+        "success": "工作空间迁移成功",
+        "error": "工作空间迁移失败",
+        "migrating": "迁移中..."
+      },
       "dragOverlayTitle": "拖拽导入",
       "dragOverlayDesc": "将文件或文件夹拖到此处，即可复制到当前工作空间。",
       "dragOverlayHint": "提示：若已选择文件夹，将直接导入该文件夹。",

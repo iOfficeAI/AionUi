@@ -21,7 +21,7 @@ export function initConversationBridge(): void {
   ipcBridge.conversation.create.provider(async (params): Promise<TChatConversation> => {
     const { type, extra, name, model, id } = params;
     const buildConversation = () => {
-      if (type === 'gemini') return createGeminiAgent(model, extra.workspace, extra.defaultFiles, extra.webSearchEngine);
+      if (type === 'gemini') return createGeminiAgent(model, extra.workspace, extra.defaultFiles, extra.webSearchEngine, extra.customWorkspace);
       if (type === 'acp') return createAcpAgent(params);
       if (type === 'codex') return createCodexAgent(params);
       throw new Error('Invalid conversation type');
@@ -90,7 +90,7 @@ export function initConversationBridge(): void {
       } else {
         // Not in database, try file storage
         const history = await ProcessChat.get('chat.history');
-        currentConversation = history.find((item) => item.id === conversation_id);
+        currentConversation = (history || []).find((item) => item.id === conversation_id);
 
         // Lazy migrate in background
         if (currentConversation) {
@@ -230,7 +230,7 @@ export function initConversationBridge(): void {
 
       // Not in database, try to load from file storage and migrate
       const history = await ProcessChat.get('chat.history');
-      const conversation = history.find((item) => item.id === id);
+      const conversation = (history || []).find((item) => item.id === id);
       if (conversation) {
         // Update status from running task
         const task = WorkerManage.getTaskById(id);

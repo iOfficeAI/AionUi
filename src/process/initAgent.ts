@@ -12,12 +12,17 @@ import fs from 'fs/promises';
 import path from 'path';
 import { getSystemDir } from './initStorage';
 
-const buildWorkspaceWidthFiles = async (defaultWorkspaceName: string, workspace?: string, defaultFiles?: string[]) => {
-  const customWorkspace = !!workspace;
+const buildWorkspaceWidthFiles = async (defaultWorkspaceName: string, workspace?: string, defaultFiles?: string[], providedCustomWorkspace?: boolean) => {
+  // 使用前端提供的customWorkspace标志，如果没有则根据workspace参数判断
+  const customWorkspace = providedCustomWorkspace !== undefined ? providedCustomWorkspace : !!workspace;
+
   if (!workspace) {
     const tempPath = getSystemDir().workDir;
     workspace = path.join(tempPath, defaultWorkspaceName);
     await fs.mkdir(workspace, { recursive: true });
+  } else {
+    // 规范化路径：去除末尾斜杠，解析为绝对路径
+    workspace = path.resolve(workspace);
   }
   if (defaultFiles) {
     for (const file of defaultFiles) {
@@ -53,16 +58,18 @@ const buildWorkspaceWidthFiles = async (defaultWorkspaceName: string, workspace?
       }
     }
   }
+
   return { workspace, customWorkspace };
 };
 
-export const createGeminiAgent = async (model: TProviderWithModel, workspace?: string, defaultFiles?: string[], webSearchEngine?: 'google' | 'default'): Promise<TChatConversation> => {
-  const { workspace: newWorkspace, customWorkspace } = await buildWorkspaceWidthFiles(`gemini-temp-${Date.now()}`, workspace, defaultFiles);
+export const createGeminiAgent = async (model: TProviderWithModel, workspace?: string, defaultFiles?: string[], webSearchEngine?: 'google' | 'default', customWorkspace?: boolean): Promise<TChatConversation> => {
+  const { workspace: newWorkspace, customWorkspace: finalCustomWorkspace } = await buildWorkspaceWidthFiles(`gemini-temp-${Date.now()}`, workspace, defaultFiles, customWorkspace);
+
   return {
     type: 'gemini',
     model,
-    extra: { workspace: newWorkspace, customWorkspace, webSearchEngine },
-    desc: customWorkspace ? newWorkspace : '临时工作区',
+    extra: { workspace: newWorkspace, customWorkspace: finalCustomWorkspace, webSearchEngine },
+    desc: finalCustomWorkspace ? newWorkspace : '',
     createTime: Date.now(),
     modifyTime: Date.now(),
     name: newWorkspace,
@@ -72,7 +79,7 @@ export const createGeminiAgent = async (model: TProviderWithModel, workspace?: s
 
 export const createAcpAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
   const { extra } = options;
-  const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(`${extra.backend}-temp-${Date.now()}`, extra.workspace, extra.defaultFiles);
+  const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(`${extra.backend}-temp-${Date.now()}`, extra.workspace, extra.defaultFiles, extra.customWorkspace);
   return {
     type: 'acp',
     extra: {
@@ -92,7 +99,7 @@ export const createAcpAgent = async (options: ICreateConversationParams): Promis
 
 export const createCodexAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
   const { extra } = options;
-  const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(`codex-temp-${Date.now()}`, extra.workspace, extra.defaultFiles);
+  const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(`codex-temp-${Date.now()}`, extra.workspace, extra.defaultFiles, extra.customWorkspace);
   return {
     type: 'codex',
     extra: {
