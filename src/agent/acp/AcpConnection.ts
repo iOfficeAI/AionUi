@@ -533,9 +533,18 @@ export class AcpConnection {
     return result;
   }
 
-  async newSession(cwd: string = process.cwd()): Promise<AcpResponse> {
+  async newSession(_cwd: string = process.cwd()): Promise<AcpResponse> {
+    // Fix: Use '.' (current directory) instead of the full absolute path
+    // The spawn process's cwd is already set to the workspace directory,
+    // so we should not send the absolute path again, which some CLIs
+    // (like qwen) may incorrectly interpret as a relative path,
+    // causing nested directory structures (directory nesting issue).
+    // 修复：使用 '.'（当前目录）而不是完整的绝对路径
+    // spawn 进程的 cwd 已经设置为 workspace 目录，
+    // 不应再次发送绝对路径，因为某些 CLI（如 qwen）可能会错误地将其解释为相对路径，
+    // 导致目录嵌套（套娃）问题。
     const response = await this.sendRequest<AcpResponse & { sessionId?: string }>('session/new', {
-      cwd,
+      cwd: '.',
       mcpServers: [] as unknown[],
     });
 

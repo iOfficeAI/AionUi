@@ -7,7 +7,7 @@
 import AionModal from '@/renderer/components/base/AionModal';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { iconColors } from '@/renderer/theme/colors';
-import { Gemini, Info, LinkCloud, System, Toolkit, Robot } from '@icon-park/react';
+import { Computer, Gemini, Info, LinkCloud, Toolkit, Robot } from '@icon-park/react';
 import { Tabs } from '@arco-design/web-react';
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -171,7 +171,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
       {
         key: 'system',
         label: t('settings.system'),
-        icon: <System theme='outline' size='20' fill={iconColors.secondary} />,
+        icon: <Computer theme='outline' size='20' fill={iconColors.secondary} />,
       },
       {
         key: 'about',
