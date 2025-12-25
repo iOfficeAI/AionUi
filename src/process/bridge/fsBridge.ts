@@ -265,7 +265,7 @@ export function initFsBridge(): void {
   });
 
   // 复制文件到工作空间
-  ipcBridge.fs.copyFilesToWorkspace.provider(async ({ filePaths, workspace }) => {
+  ipcBridge.fs.copyFilesToWorkspace.provider(async ({ filePaths, workspace, sourceRoot }) => {
     try {
       const copiedFiles: string[] = [];
       const failedFiles: Array<{ path: string; error: string }> = [];
@@ -275,8 +275,20 @@ export function initFsBridge(): void {
 
       for (const filePath of filePaths) {
         try {
-          const fileName = path.basename(filePath);
-          const targetPath = path.join(workspace, fileName);
+          let targetPath: string;
+
+          if (sourceRoot) {
+            // Preserve directory structure / 保留目录结构
+            const relativePath = path.relative(sourceRoot, filePath);
+            targetPath = path.join(workspace, relativePath);
+
+            // Ensure parent directory exists / 确保父目录存在
+            await fs.mkdir(path.dirname(targetPath), { recursive: true });
+          } else {
+            // Flatten to root (legacy behavior) / 扁平化到根目录（旧行为）
+            const fileName = path.basename(filePath);
+            targetPath = path.join(workspace, fileName);
+          }
 
           // 检查目标文件是否已存在
           const exists = await fs
@@ -288,10 +300,12 @@ export function initFsBridge(): void {
           if (exists) {
             // 如果文件已存在，添加时间戳后缀 / Append timestamp when target file already exists
             const timestamp = Date.now();
-            const ext = path.extname(fileName);
-            const name = path.basename(fileName, ext);
+            const ext = path.extname(targetPath);
+            const name = path.basename(targetPath, ext);
+            // Construct new path in the same directory / 在同一目录下构建新路径
+            const dir = path.dirname(targetPath);
             const newFileName = `${name}${AIONUI_TIMESTAMP_SEPARATOR}${timestamp}${ext}`;
-            finalTargetPath = path.join(workspace, newFileName);
+            finalTargetPath = path.join(dir, newFileName);
           }
 
           await fs.copyFile(filePath, finalTargetPath);
