@@ -237,7 +237,7 @@ const ConversationTabs: React.FC = () => {
         </div>
 
         {/* 新建会话按钮 */}
-        <div className='flex items-center justify-center w-40px h-40px shrink-0 cursor-pointer transition-colors duration-200 hover:bg-[var(--fill-2)] border-l border-b border-solid border-[color:var(--border-base)]' onClick={handleNewConversation} title={t('conversation.workspace.createNewConversation')}>
+        <div className='flex items-center justify-center w-40px h-40px shrink-0 cursor-pointer transition-colors duration-200 hover:bg-[var(--fill-2)] ' style={{ borderLeft: '1px solid var(--border-base)' }} onClick={handleNewConversation} title={t('conversation.workspace.createNewConversation')}>
           <Plus theme='outline' size='16' fill={iconColors.primary} strokeWidth={3} />
         </div>
 
