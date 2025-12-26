@@ -25,13 +25,21 @@ const ProviderLogo: React.FC<{ logo: string | null; name: string; size?: number 
 /**
  * 平台下拉选项渲染（第一层）
  * Platform dropdown option renderer (first level)
+ *
+ * @param platform - 平台配置 / Platform config
+ * @param t - 翻译函数 / Translation function
  */
-const renderPlatformOption = (platform: PlatformConfig) => (
-  <div className='flex items-center gap-8px'>
-    <ProviderLogo logo={platform.logo} name={platform.name} size={18} />
-    <span>{platform.name}</span>
-  </div>
-);
+const renderPlatformOption = (platform: PlatformConfig, t?: (key: string) => string) => {
+  // 如果有 i18nKey 且提供了翻译函数，使用翻译后的名称；否则使用原始名称
+  // If i18nKey exists and t function is provided, use translated name; otherwise use original name
+  const displayName = platform.i18nKey && t ? t(platform.i18nKey) : platform.name;
+  return (
+    <div className='flex items-center gap-8px'>
+      <ProviderLogo logo={platform.logo} name={displayName} size={18} />
+      <span>{displayName}</span>
+    </div>
+  );
+};
 
 const AddPlatformModal = ModalHOC<{
   onSubmit: (platform: IProvider) => void;
@@ -73,8 +81,9 @@ const AddPlatformModal = ModalHOC<{
     form
       .validate()
       .then((values) => {
-        // 自定义选项使用 "Custom"，其他使用 platform 的 name
-        const name = isCustom ? 'Custom' : (selectedPlatform?.name ?? values.platform);
+        // 如果有 i18nKey 使用翻译后的名称，否则使用 platform 的 name
+        // If i18nKey exists use translated name, otherwise use platform name
+        const name = selectedPlatform?.i18nKey ? t(selectedPlatform.i18nKey) : (selectedPlatform?.name ?? values.platform);
         onSubmit({
           id: uuid(),
           platform: selectedPlatform?.platform ?? 'custom',
@@ -115,12 +124,12 @@ const AddPlatformModal = ModalHOC<{
                 const optionValue = (option as { value?: string })?.value;
                 const plat = MODEL_PLATFORMS.find((p) => p.value === optionValue);
                 if (!plat) return optionValue;
-                return renderPlatformOption(plat);
+                return renderPlatformOption(plat, t);
               }}
             >
               {MODEL_PLATFORMS.map((plat) => (
                 <Select.Option key={plat.value} value={plat.value}>
-                  {renderPlatformOption(plat)}
+                  {renderPlatformOption(plat, t)}
                 </Select.Option>
               ))}
             </Select>
