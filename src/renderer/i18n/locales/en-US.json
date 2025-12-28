@@ -41,7 +41,8 @@
     "unknownError": "Unknown error",
     "confirmDelete": "Confirm Delete",
     "deleteSuccess": "Deleted successfully",
-    "deleteFailed": "Failed to delete"
+    "deleteFailed": "Failed to delete",
+    "default": "Default"
   },
   "login": {
     "pageTitle": "AionUi - Sign In",
@@ -362,6 +363,7 @@
     "addModelMoreCount": "+{{count}} more",
     "addModelTips": "You can paste any model name directly. Keep it consistent with the provider console for best compatibility.",
     "customOpenAI": "Custom (OpenAI Compatible)",
+    "platformCustom": "Custom",
     "proxyHttpOnly": "Only support http/https protocol",
     "baseUrlAutoFix": "base_url auto fix to: {{base_url}}",
     "updateConfirm": "Confirm Changes",
@@ -477,7 +479,25 @@
     "simpleModeTip": "Select a detected CLI and give it a custom name. Switch to Advanced mode for environment variables and other options.",
     "command": "Command",
     "args": "Args",
-    "env": "Env"
+    "env": "Env",
+    "agentModelSettings": "Agent Model Settings",
+    "agentModelSettingsTooltip": "Configure default models for each AI agent. Models will be injected when starting new conversations.",
+    "selectModel": "Select model",
+    "agentModelSaved": "Model selection saved",
+    "agentModelSaveFailed": "Failed to save model selection",
+    "agentModelLoadFailed": "Failed to load agent models",
+    "agentModelValidateSuccess": "Model configuration is valid",
+    "agentModelValidateFailed": "Model validation failed",
+    "agentModelValid": "Configuration is valid",
+    "agentModelInvalid": "Configuration is invalid",
+    "clickToValidate": "Click to validate",
+    "agentModelNote": "Note: Model changes will take effect in new conversations.",
+    "agentModelCustomNote": "You can also enter any custom model ID supported by the agent.",
+    "customModel": "Custom model ID...",
+    "customModelPlaceholder": "Enter model ID (e.g., claude-opus-4-20250514)",
+    "switchToPreset": "Switch to preset models",
+    "preset": "Preset",
+    "noAgentsDetected": "No agents detected"
   },
   "messages": {
     "fileChanges": "File Changes",
@@ -788,9 +808,9 @@
   },
   "gemini": {
     "mode": {
-      "autoDesc": "Let the system choose the best model for your task.",
-      "proDesc": "For complex tasks that require deep reasoning and creativity",
-      "flashDesc": "For tasks that need a balance of speed and reasoning"
+      "autoGemini3Desc": "Let Gemini CLI decide the best model for the task: gemini-3-pro, gemini-3-flash",
+      "autoGemini25Desc": "Let Gemini CLI decide the best model for the task: gemini-2.5-pro, gemini-2.5-flash",
+      "manualDesc": "Manually select a model"
     }
   }
 }

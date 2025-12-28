@@ -38,7 +38,8 @@
     "unknownError": "未知错误",
     "confirmDelete": "确认删除",
     "deleteSuccess": "删除成功",
-    "deleteFailed": "删除失败"
+    "deleteFailed": "删除失败",
+    "default": "默认"
   },
   "login": {
     "pageTitle": "AionUi - 登录",
@@ -359,6 +360,7 @@
     "addModelMoreCount": "+{{count}}",
     "addModelTips": "支持直接输入模型名称，建议与服务商保持一致。",
     "customOpenAI": "自定义(兼容OpenAI)",
+    "platformCustom": "自定义",
     "proxyHttpOnly": "仅支持 http/https 协议",
     "baseUrlAutoFix": "base_url 自动修复为：{{base_url}}",
     "updateConfirm": "确认修改",
@@ -473,7 +475,25 @@
     "simpleModeTip": "选择已检测到的 CLI 并自定义名称。如需配置环境变量等更多选项，请切换到高级模式。",
     "command": "命令",
     "args": "参数",
-    "env": "环境变量"
+    "env": "环境变量",
+    "agentModelSettings": "Agent 模型设置",
+    "agentModelSettingsTooltip": "为每个 AI Agent 配置默认模型，模型将在启动新对话时注入。",
+    "selectModel": "选择模型",
+    "agentModelSaved": "模型选择已保存",
+    "agentModelSaveFailed": "保存模型选择失败",
+    "agentModelLoadFailed": "加载 Agent 模型失败",
+    "agentModelValidateSuccess": "模型配置有效",
+    "agentModelValidateFailed": "模型验证失败",
+    "agentModelValid": "配置有效",
+    "agentModelInvalid": "配置无效",
+    "clickToValidate": "点击验证",
+    "agentModelNote": "注意：模型更改将在新对话中生效。",
+    "agentModelCustomNote": "你也可以输入 Agent 支持的任意模型 ID。",
+    "customModel": "自定义模型 ID...",
+    "customModelPlaceholder": "输入模型 ID（如 claude-opus-4-20250514）",
+    "switchToPreset": "切换到预设模型",
+    "preset": "预设",
+    "noAgentsDetected": "未检测到 Agent"
   },
   "messages": {
     "fileChanges": "文件变更",
@@ -784,9 +804,9 @@
   },
   "gemini": {
     "mode": {
-      "autoDesc": "让系统为你的任务自动选择最合适的模型。",
-      "proDesc": "适合需要复杂推理和创造力的任务。",
-      "flashDesc": "适合同时兼顾速度与推理的任务。"
+      "autoGemini3Desc": "让 Gemini CLI 决定最佳模型: gemini-3-pro, gemini-3-flash",
+      "autoGemini25Desc": "让 Gemini CLI 决定最佳模型: gemini-2.5-pro, gemini-2.5-flash",
+      "manualDesc": "手动选择模型"
     }
   }
 }
