@@ -109,32 +109,33 @@ export function initModelBridge(): void {
         return errRes;
       }
 
-      // 用户输入的 URL 已经请求失败，并行尝试多种可能的 URL 格式
-      // User's URL request failed, try multiple possible URL formats in parallel
+      // 用户输入的 URL 已经请求失败，按优先级尝试多种可能的 URL 格式
+      // User's URL request failed, try multiple possible URL formats with priority
       const url = new URL(base_url);
       const pathname = url.pathname.replace(/\/+$/, ''); // 移除末尾斜杠 / Remove trailing slashes
       const base = `${url.protocol}//${url.host}`;
 
-      // 构建候选 URL 列表 / Build candidate URL list
-      const candidateUrls = new Set<string>();
+      // 构建优先级候选 URL 列表 / Build prioritized candidate URL list
+      // 优先级 1: 用户路径相关的变体 / Priority 1: User path variants
+      const userPathUrls = new Set<string>();
+      // 优先级 2: 标准 API 路径格式 / Priority 2: Standard API path patterns
+      const standardUrls = new Set<string>();
 
-      // 1. 用户路径 + /v1（适用于代理场景）/ User path + /v1 (for proxy scenarios)
+      // 1. 用户路径 + 常见后缀（适用于代理场景）/ User path + common suffixes (for proxy scenarios)
       if (pathname && pathname !== '/') {
-        candidateUrls.add(`${base}${pathname}/v1`);
+        userPathUrls.add(`${base}${pathname}/v1`);
+        // 也尝试用户路径本身（可能只是缺少末尾斜杠）
+        // Also try user's path itself (might just be missing trailing slash)
+        userPathUrls.add(`${base}${pathname}`);
       }
 
       // 2. 尝试所有已知的 API 路径格式 / Try all known API path patterns
-      API_PATH_PATTERNS.forEach((pattern) => candidateUrls.add(`${base}${pattern}`));
+      API_PATH_PATTERNS.forEach((pattern) => standardUrls.add(`${base}${pattern}`));
 
       // 移除原始 URL（已经请求过了）/ Remove original URL (already tried)
-      candidateUrls.delete(base_url);
+      userPathUrls.delete(base_url);
+      standardUrls.delete(base_url);
 
-      if (candidateUrls.size === 0) {
-        return errRes;
-      }
-
-      // 并行请求所有候选 URL，第一个成功的就用
-      // Request all candidate URLs in parallel, use the first successful one
       const tryFetch = (candidateUrl: string) =>
         fetchModelList({ base_url: candidateUrl, api_key: api_key, try_fix: false }).then((res) => {
           if (res.success) {
@@ -148,6 +149,10 @@ export function initModelBridge(): void {
       const promiseAny = <T>(promises: Promise<T>[]): Promise<T> =>
         new Promise((resolve, reject) => {
           let rejectCount = 0;
+          if (promises.length === 0) {
+            reject(new Error('No promises to try'));
+            return;
+          }
           promises.forEach((p) =>
             p.then(resolve).catch(() => {
               rejectCount++;
@@ -156,8 +161,27 @@ export function initModelBridge(): void {
           );
         });
 
+      // 按优先级顺序尝试：先用户路径变体，再标准格式
+      // Try in priority order: user path variants first, then standard patterns
       try {
-        return await promiseAny([...candidateUrls].map(tryFetch));
+        // 优先级 1: 并行尝试用户路径相关的 URL
+        // Priority 1: Try user path variants in parallel
+        if (userPathUrls.size > 0) {
+          try {
+            return await promiseAny([...userPathUrls].map(tryFetch));
+          } catch {
+            // 用户路径变体全部失败，继续尝试标准格式
+            // User path variants all failed, continue to standard patterns
+          }
+        }
+
+        // 优先级 2: 并行尝试标准 API 路径格式
+        // Priority 2: Try standard API path patterns in parallel
+        if (standardUrls.size > 0) {
+          return await promiseAny([...standardUrls].map(tryFetch));
+        }
+
+        return errRes;
       } catch {
         // 所有尝试都失败，返回原始错误 / All attempts failed, return original error
         return errRes;
