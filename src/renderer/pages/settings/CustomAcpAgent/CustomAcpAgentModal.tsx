@@ -4,13 +4,12 @@
  *
  * Redesigned modal with CLI card selection, logo display, and collapsible advanced JSON config.
  */
-import type { AcpBackendConfig, AcpBackend } from '@/types/acpTypes';
+import type { AcpBackendConfig, AcpBackend, ModelInfo } from '@/types/acpTypes';
 import { ACP_BACKENDS_ALL } from '@/types/acpTypes';
 import { Alert, Button, Input, Select, Spin, Collapse } from '@arco-design/web-react';
 import React, { useState, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { acpConversation } from '@/common/ipcBridge';
-import type { ModelInfo } from '@/types/acpTypes';
 import CodeMirror from '@uiw/react-codemirror';
 import { json } from '@codemirror/lang-json';
 import { useThemeContext } from '@/renderer/context/ThemeContext';
@@ -216,7 +215,7 @@ const CustomAcpAgentModal: React.FC<CustomAcpAgentModalProps> = ({ visible, agen
         setModels(res.data.modelState?.availableModels || []);
         setCurrentModelId(res.data.modelState?.currentModelId || '');
         // Update JSON with models/current
-        let currentJson = jsonInput ? JSON.parse(jsonInput) : {};
+        const currentJson = jsonInput ? JSON.parse(jsonInput) : {};
         currentJson.currentModelId = res.data.modelState?.currentModelId;
         currentJson.availableModels = res.data.modelState?.availableModels;
         setJsonInput(JSON.stringify(currentJson, null, 2));
@@ -234,10 +233,12 @@ const CustomAcpAgentModal: React.FC<CustomAcpAgentModalProps> = ({ visible, agen
   useEffect(() => {
     if (currentModelId && jsonInput) {
       try {
-        let json = JSON.parse(jsonInput);
+        const json = JSON.parse(jsonInput);
         json.currentModelId = currentModelId;
         setJsonInput(JSON.stringify(json, null, 2));
-      } catch {}
+      } catch {
+        // Ignore JSON parse errors
+      }
     }
   }, [currentModelId, jsonInput]);
 
