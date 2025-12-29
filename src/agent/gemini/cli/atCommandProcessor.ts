@@ -12,6 +12,36 @@ import * as path from 'path';
 import type { HistoryItem, IndividualToolCallDisplay } from './types';
 import { ToolCallStatus } from './types';
 
+// Truncation constants synced from aioncli-core/src/utils/fileUtils.ts
+const DEFAULT_MAX_LINES_TEXT_FILE = 2000;
+const MAX_LINE_LENGTH_TEXT_FILE = 2000;
+
+/**
+ * Truncates file content to prevent token overflow.
+ * Synced from aioncli-core/src/utils/fileUtils.ts
+ */
+function truncateFileContent(content: string): { content: string; truncated: boolean } {
+  const lines = content.split('\n');
+  let truncated = false;
+
+  const truncatedLines = lines.map((line) => {
+    if (line.length > MAX_LINE_LENGTH_TEXT_FILE) {
+      truncated = true;
+      return line.substring(0, MAX_LINE_LENGTH_TEXT_FILE) + '... [truncated]';
+    }
+    return line;
+  });
+
+  if (truncatedLines.length > DEFAULT_MAX_LINES_TEXT_FILE) {
+    truncated = true;
+    const result = truncatedLines.slice(0, DEFAULT_MAX_LINES_TEXT_FILE);
+    result.push(`\n... [${truncatedLines.length - DEFAULT_MAX_LINES_TEXT_FILE} more lines truncated]`);
+    return { content: result.join('\n'), truncated };
+  }
+
+  return { content: truncatedLines.join('\n'), truncated };
+}
+
 interface HandleAtCommandParams {
   query: string;
   config: Config;
@@ -337,12 +367,14 @@ export async function handleAtCommand({ query, config, addItem, onDebugMessage, 
       for (const pathSpec of pathSpecsToRead) {
         try {
           const absolutePath = path.resolve(workspaceDir, pathSpec);
-          const fileContent = await fs.readFile(absolutePath, 'utf-8');
+          const rawContent = await fs.readFile(absolutePath, 'utf-8');
+          // Apply truncation to prevent token overflow
+          const { content: fileContent, truncated } = truncateFileContent(rawContent);
           processedQueryParts.push({
-            text: `\nContent from @${pathSpec}:\n`,
+            text: `\nContent from @${pathSpec}${truncated ? ' (truncated)' : ''}:\n`,
           });
           processedQueryParts.push({ text: fileContent });
-          onDebugMessage(`Successfully read file: ${pathSpec}`);
+          onDebugMessage(`Successfully read file: ${pathSpec}${truncated ? ' (content truncated to prevent token overflow)' : ''}`);
         } catch (readError) {
           onDebugMessage(`Failed to read file ${pathSpec}: ${getErrorMessage(readError)}`);
           // Continue with other files even if one fails
