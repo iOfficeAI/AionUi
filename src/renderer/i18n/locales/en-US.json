@@ -373,6 +373,7 @@
     "lightMode": "Light",
     "darkMode": "Dark",
     "agent": "Agent",
+    "fetchAgentMeta": "Fetch Models & Meta",
     "tools": "Tools",
     "display": "Display",
     "imageGeneration": "Image Generation",

@@ -6,15 +6,16 @@
  */
 import type { AcpBackendConfig, AcpBackend } from '@/types/acpTypes';
 import { ACP_BACKENDS_ALL } from '@/types/acpTypes';
-import { Alert, Input, Spin, Collapse } from '@arco-design/web-react';
+import { Alert, Button, Input, Select, Spin, Collapse } from '@arco-design/web-react';
 import React, { useState, useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { acpConversation } from '@/common/ipcBridge';
+import type { ModelInfo } from '@/types/acpTypes';
 import CodeMirror from '@uiw/react-codemirror';
 import { json } from '@codemirror/lang-json';
 import { useThemeContext } from '@/renderer/context/ThemeContext';
 import AionModal from '@/renderer/components/base/AionModal';
 import { uuid } from '@/common/utils';
-import { acpConversation } from '@/common/ipcBridge';
 import { CheckSmall } from '@icon-park/react';
 
 // CLI Logo 导入 / CLI Logo imports
@@ -63,9 +64,15 @@ const CustomAcpAgentModal: React.FC<CustomAcpAgentModalProps> = ({ visible, agen
   const [loadingAgents, setLoadingAgents] = useState(false); // 加载状态 / Loading state
   const [selectedCli, setSelectedCli] = useState<string>(''); // 当前选中的 CLI 路径 / Currently selected CLI path
   const [agentName, setAgentName] = useState(''); // 显示名称（独立于 JSON 配置）/ Display name (separate from JSON config)
-  const [showAdvanced, setShowAdvanced] = useState(false); // 是否展开高级配置 / Whether advanced config is expanded
+  const [showAdvanced, setShowAdvanced] = useState(true); // 是否展开高级配置 / Whether advanced config is expanded
   const [jsonInput, setJsonInput] = useState(''); // JSON 配置内容（不含 name）/ JSON config content (excludes name)
   const [validation, setValidation] = useState<ValidationResult>({ isValid: true }); // JSON 校验结果 / JSON validation result
+
+  // New for model meta
+  const [models, setModels] = useState<ModelInfo[]>([]);
+  const [currentModelId, setCurrentModelId] = useState<string>('');
+  const [fetchingMeta, setFetchingMeta] = useState(false);
+  const [fetchError, setFetchError] = useState<string>('');
 
   /**
    * 加载已检测到的 CLI 列表
@@ -153,7 +160,7 @@ const CustomAcpAgentModal: React.FC<CustomAcpAgentModalProps> = ({ visible, agen
         setSelectedCli('');
         setAgentName('');
         setJsonInput('');
-        setShowAdvanced(false);
+        setShowAdvanced(true);
         void loadDetectedAgents(); // 显式标记为不需要等待 / Explicitly mark as fire-and-forget
       }
     }
@@ -187,6 +194,52 @@ const CustomAcpAgentModal: React.FC<CustomAcpAgentModalProps> = ({ visible, agen
       }
     }
   }, [agentName, selectedCli, detectedAgents, generateJsonConfig]);
+
+  // Fetch agent meta (models, capabilities)
+  const handleFetchMeta = useCallback(async () => {
+    setFetchingMeta(true);
+    setFetchError('');
+    try {
+      const cliPathVal = selectedCli || agent?.defaultCliPath;
+      if (!cliPathVal) {
+        setFetchError('No CLI path available');
+        return;
+      }
+      const res = await acpConversation.fetchAgentMeta.invoke({
+        cliPath: cliPathVal,
+        acpArgs: agent?.acpArgs,
+        env: agent?.env,
+        backend: 'custom',
+        workspace: process.cwd(), // Or from context
+      });
+      if (res.success) {
+        setModels(res.data.modelState?.availableModels || []);
+        setCurrentModelId(res.data.modelState?.currentModelId || '');
+        // Update JSON with models/current
+        let currentJson = jsonInput ? JSON.parse(jsonInput) : {};
+        currentJson.currentModelId = res.data.modelState?.currentModelId;
+        currentJson.availableModels = res.data.modelState?.availableModels;
+        setJsonInput(JSON.stringify(currentJson, null, 2));
+      } else {
+        setFetchError(res.msg || 'Fetch failed');
+      }
+    } catch (e) {
+      setFetchError((e as Error).message || 'Network error');
+    } finally {
+      setFetchingMeta(false);
+    }
+  }, [selectedCli, agent, jsonInput, acpConversation]);
+
+  // Sync currentModelId to JSON on change
+  useEffect(() => {
+    if (currentModelId && jsonInput) {
+      try {
+        let json = JSON.parse(jsonInput);
+        json.currentModelId = currentModelId;
+        setJsonInput(JSON.stringify(json, null, 2));
+      } catch {}
+    }
+  }, [currentModelId, jsonInput]);
 
   /**
    * 提交表单
@@ -284,15 +337,25 @@ const CustomAcpAgentModal: React.FC<CustomAcpAgentModalProps> = ({ visible, agen
         )}
 
         {/* 显示名称输入（选中 CLI 或编辑模式时显示）/ Display name input (shown when CLI selected or in edit mode) */}
-        {(selectedCli || agent) && (
+        {true && (
           <div>
             <div className='mb-8px text-sm font-medium text-t-primary'>{t('settings.agentDisplayName') || 'Display Name'}</div>
             <Input value={agentName} onChange={(v) => setAgentName(v)} placeholder={t('settings.agentNamePlaceholder') || 'Enter a name for this agent'} />
+            <Button type='secondary' size='small' onClick={handleFetchMeta} loading={fetchingMeta} className='mt-8px'>
+              {t('settings.fetchAgentMeta') || 'Fetch Models & Meta'}
+            </Button>
+            {models.length > 0 && (
+              <div className='mt-8px'>
+                <label className='text-xs font-medium'>Available Models:</label>
+                <Select value={currentModelId} onChange={(v) => setCurrentModelId(v)} options={models.map((m) => ({ value: m.modelId, label: `${m.name} (${m._meta?.totalContextTokens || 'N/A'} tokens)` }))} placeholder='Select default model' className='mt-4px' />
+              </div>
+            )}
+            {fetchError && <Alert type='error' content={fetchError} className='mt-8px' />}
           </div>
         )}
 
         {/* 高级配置（可折叠 JSON 编辑器）/ Advanced config (collapsible JSON editor) */}
-        {(selectedCli || agent) && (
+        {true && (
           <Collapse
             activeKey={showAdvanced ? ['advanced'] : []}
             // Arco Collapse.onChange 签名：(key, keys, e) => void，第二个参数 keys 是当前激活的 key 数组

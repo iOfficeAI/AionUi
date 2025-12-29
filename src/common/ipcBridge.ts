@@ -7,7 +7,7 @@
 import { bridge } from '@office-ai/platform';
 import type { OpenDialogOptions } from 'electron';
 import type { McpSource } from '../process/services/mcpServices/McpProtocol';
-import type { AcpBackend } from '../types/acpTypes';
+import type { AcpBackend, ModelInfo, AcpMeta } from '../types/acpTypes';
 import type { IMcpServer, IProvider, TChatConversation, TProviderWithModel } from './storage';
 import type { PreviewHistoryTarget, PreviewSnapshotInfo } from './types/preview';
 
@@ -108,12 +108,17 @@ export const mode = {
 };
 
 // ACP对话相关接口 - 复用统一的conversation接口
+// Duplicate import removed; use top import type { AcpBackend, ModelInfo, AcpMeta } ...
+
 export const acpConversation = {
   sendMessage: conversation.sendMessage,
+  // For new acp meta support
+
   confirmMessage: bridge.buildProvider<IBridgeResponse, IConfirmMessageParams>('acp.input.confirm.message'),
   responseStream: conversation.responseStream,
   detectCliPath: bridge.buildProvider<IBridgeResponse<{ path?: string }>, { backend: AcpBackend }>('acp.detect-cli-path'),
-  getAvailableAgents: bridge.buildProvider<IBridgeResponse<Array<{ backend: AcpBackend; name: string; cliPath?: string; customAgentId?: string }>>, void>('acp.get-available-agents'),
+  getAvailableAgents: bridge.buildProvider<IBridgeResponse<Array<{ backend: AcpBackend; name: string; cliPath?: string; customAgentId?: string; models?: ModelInfo[]; capabilities?: any }>>, void>('acp.get-available-agents'), // Added models/capabilities from meta
+  fetchAgentMeta: bridge.buildProvider<IBridgeResponse<AcpMeta>, { cliPath?: string; acpArgs?: string[]; env?: Record<string, string>; backend?: AcpBackend; workspace?: string }>('acp.fetch-agent-meta'), // Fetch modelState/capabilities via temp session
   checkEnv: bridge.buildProvider<{ env: Record<string, string> }, void>('acp.check.env'),
   refreshCustomAgents: bridge.buildProvider<IBridgeResponse, void>('acp.refresh-custom-agents'),
   // clearAllCache: bridge.buildProvider<IBridgeResponse<{ details?: any }>, void>('acp.clear.all.cache'),
@@ -199,7 +204,7 @@ export interface ICreateConversationParams {
   id?: string;
   name?: string;
   model: TProviderWithModel;
-  extra: { workspace?: string; customWorkspace?: boolean; defaultFiles?: string[]; backend?: AcpBackend; cliPath?: string; webSearchEngine?: 'google' | 'default'; agentName?: string; customAgentId?: string };
+  extra: { workspace?: string; customWorkspace?: boolean; defaultFiles?: string[]; backend?: AcpBackend; cliPath?: string; webSearchEngine?: 'google' | 'default'; agentName?: string; customAgentId?: string; selectedModel?: string };
 }
 interface IResetConversationParams {
   id?: string;

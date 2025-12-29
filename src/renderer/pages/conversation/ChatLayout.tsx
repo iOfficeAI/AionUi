@@ -1,3 +1,4 @@
+import { ipcBridge } from '@/common';
 import { ConfigStorage } from '@/common/storage';
 import { STORAGE_KEYS } from '@/common/storageKeys';
 import FlexFullContainer from '@/renderer/components/FlexFullContainer';
@@ -86,6 +87,8 @@ const ChatLayout: React.FC<{
   headerExtra?: React.ReactNode;
   headerLeft?: React.ReactNode;
   workspaceEnabled?: boolean;
+  workspace?: string;
+  selectedModel?: string;
 }> = (props) => {
   // 工作空间面板折叠状态 - 全局持久化
   // Workspace panel collapse state - globally persisted
@@ -102,7 +105,7 @@ const ChatLayout: React.FC<{
   });
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(() => (typeof window === 'undefined' ? 0 : window.innerWidth));
-  const { backend, agentName, workspaceEnabled = true } = props;
+  const { backend, agentName, workspaceEnabled = true, workspace, selectedModel } = props;
   const layout = useLayoutContext();
   const isMacRuntime = isMacEnvironment();
   // 右侧栏折叠状态引用 / Mirror ref for collapse state
@@ -114,8 +117,24 @@ const ChatLayout: React.FC<{
   // 预览面板状态 / Preview panel state
   const { isOpen: isPreviewOpen } = usePreviewContext();
 
-  // Fetch custom agents config as fallback when agentName is not provided
-  const { data: customAgents } = useSWR(backend === 'custom' && !agentName ? 'acp.customAgents' : null, () => ConfigStorage.get('acp.customAgents'));
+  // Always fetch custom agents config when backend is 'custom'
+  const { data: customAgents } = useSWR(backend === 'custom' ? 'acp.customAgents' : null, () => ConfigStorage.get('acp.customAgents'));
+
+  // Fetch agent meta for models pre-chat
+  const agentConfig = customAgents?.find((c) => c.name === agentName);
+  const { data: agentMeta, error: agentMetaError } = useSWR(agentName && backend === 'custom' && agentConfig ? `acp.meta.${agentName}` : null, () => {
+    return ipcBridge.acpConversation.fetchAgentMeta.invoke({
+      cliPath: agentConfig?.defaultCliPath,
+      acpArgs: agentConfig?.acpArgs,
+      env: agentConfig?.env,
+      workspace: workspace || process.cwd(),
+      backend: 'custom',
+    });
+  });
+
+  const models = agentMeta?.data?.modelState?.availableModels || [];
+  // Use the selected model from conversation if available, otherwise fall back to default
+  const currentModelId = selectedModel || agentMeta?.data?.modelState?.currentModelId || '';
 
   // Compute display name with fallback chain (use first custom agent as fallback for backward compatibility)
   const displayName = agentName || (backend === 'custom' && customAgents?.[0]?.name) || ACP_BACKENDS_ALL[backend as keyof typeof ACP_BACKENDS_ALL]?.name || backend;
@@ -323,6 +342,7 @@ const ChatLayout: React.FC<{
                   <div className='ml-16px flex items-center gap-2 bg-2 w-fit rounded-full px-[8px] py-[2px]'>
                     {AGENT_LOGO_MAP[backend as AcpBackend] ? <img src={AGENT_LOGO_MAP[backend as AcpBackend]} alt={`${backend} logo`} width={16} height={16} style={{ objectFit: 'contain' }} /> : <Robot theme='outline' size={16} fill={iconColors.primary} />}
                     <span className='text-sm'>{displayName}</span>
+                    {backend === 'custom' && currentModelId && models.length > 0 && <span className='text-xs text-t-secondary ml-1'>({models.find((m: any) => m.modelId === currentModelId)?.name || currentModelId})</span>}
                   </div>
                 )}
               </div>

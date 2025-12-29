@@ -5,9 +5,12 @@
  */
 
 import { acpDetector } from '@/agent/acp/AcpDetector';
+import { AcpConnection } from '@/agent/acp/AcpConnection';
 import { ipcBridge } from '../../common';
 import WorkerManage from '../WorkerManage';
 import type AcpAgentManager from '../task/AcpAgentManager';
+import type { AcpBackend } from '@/types/acpTypes';
+import type { AcpMeta } from '@/types/acpTypes';
 
 export function initAcpConversationBridge(): void {
   // ACP 专用的 confirmMessage provider (for backward compatibility with 'acp.input.confirm.message' channel)
@@ -75,6 +78,25 @@ export function initAcpConversationBridge(): void {
         success: false,
         msg: error instanceof Error ? error.message : 'Unknown error',
       };
+    }
+  });
+
+  // Fetch agent meta (models, capabilities) via temp connection/session
+  ipcBridge.acpConversation.fetchAgentMeta.provider(async ({ backend: b, cliPath, workspace, acpArgs, env }) => {
+    let conn;
+    try {
+      conn = new AcpConnection();
+      await conn.connect(b, cliPath, workspace, acpArgs || [], env || {});
+      // Get the initialize response which contains models and capabilities
+      const initResponse = conn.getInitializeResponse();
+      const meta = conn.parseAcpMeta(initResponse);
+      return { success: true, data: meta };
+    } catch (error) {
+      return { success: false, msg: error instanceof Error ? error.message : 'Failed to fetch meta' };
+    } finally {
+      if (conn) {
+        conn.cleanup();
+      }
     }
   });
 }

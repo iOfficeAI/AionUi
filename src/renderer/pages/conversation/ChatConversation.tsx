@@ -145,7 +145,7 @@ const ChatConversation: React.FC<{
   }
 
   return (
-    <ChatLayout title={conversation?.name} backend={conversation?.type === 'acp' ? conversation?.extra?.backend : conversation?.type === 'codex' ? 'codex' : undefined} agentName={(conversation?.extra as { agentName?: string })?.agentName} siderTitle={sliderTitle} sider={<ChatSider conversation={conversation} />} workspaceEnabled={workspaceEnabled}>
+    <ChatLayout title={conversation?.name} backend={conversation?.type === 'acp' ? conversation?.extra?.backend : conversation?.type === 'codex' ? 'codex' : undefined} agentName={(conversation?.extra as { agentName?: string })?.agentName} siderTitle={sliderTitle} sider={<ChatSider conversation={conversation} />} workspaceEnabled={workspaceEnabled} workspace={conversation?.extra?.workspace} selectedModel={(conversation?.extra as { selectedModel?: string })?.selectedModel}>
       {conversationNode}
     </ChatLayout>
   );

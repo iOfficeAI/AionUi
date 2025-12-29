@@ -98,6 +98,7 @@ export type TChatConversation =
           customWorkspace?: boolean;
           agentName?: string;
           customAgentId?: string; // UUID for identifying specific custom agent
+          selectedModel?: string; // Model ID selected by user before starting conversation
         }
       >,
       'model'

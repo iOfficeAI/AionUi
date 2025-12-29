@@ -29,6 +29,11 @@ const SettingsSider: React.FC<{ collapsed?: boolean }> = ({ collapsed = false })
         path: 'tools',
       },
       {
+        label: t('settings.agent'),
+        icon: <Robot />,
+        path: 'agent',
+      },
+      {
         label: t('settings.display'),
         icon: <Computer />,
         path: 'display',

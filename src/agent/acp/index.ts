@@ -72,6 +72,7 @@ export class AcpAgent {
   private extra: {
     workspace?: string;
     backend: AcpBackend;
+    selectedModel?: string;
     cliPath?: string;
     customWorkspace?: boolean;
     customArgs?: string[];
@@ -156,6 +157,8 @@ export class AcpAgent {
     try {
       this.emitStatusMessage('connecting');
 
+      console.log('[AcpAgent] Starting with extra:', JSON.stringify(this.extra, null, 2));
+
       await Promise.race([
         this.connection.connect(this.extra.backend, this.extra.cliPath, this.extra.workspace, this.extra.customArgs, this.extra.customEnv),
         new Promise((_, reject) =>
@@ -168,7 +171,8 @@ export class AcpAgent {
       await this.performAuthentication();
       // 避免重复创建会话：仅当尚无活动会话时再创建
       if (!this.connection.hasActiveSession) {
-        await this.connection.newSession(this.extra.workspace);
+        console.log('[AcpAgent] Creating new session with selectedModel:', this.extra.selectedModel);
+        await this.connection.newSession(this.extra.workspace, this.extra.selectedModel);
       }
       this.emitStatusMessage('session_active');
     } catch (error) {
@@ -810,7 +814,7 @@ export class AcpAgent {
 
       // 先尝试直接创建session以判断是否已鉴权
       try {
-        await this.connection.newSession(this.extra.workspace);
+        await this.connection.newSession(this.extra.workspace, this.extra.selectedModel);
         this.emitStatusMessage('authenticated');
         return;
       } catch (_err) {
@@ -826,7 +830,7 @@ export class AcpAgent {
 
       // 预热后重试创建session
       try {
-        await this.connection.newSession(this.extra.workspace);
+        await this.connection.newSession(this.extra.workspace, this.extra.selectedModel);
         this.emitStatusMessage('authenticated');
         return;
       } catch (error) {

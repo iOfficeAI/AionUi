@@ -101,6 +101,40 @@ export const POTENTIAL_ACP_CLIS: PotentialAcpCli[] = new Proxy([] as PotentialAc
  * Configuration for an ACP backend agent.
  * Used for both built-in backends (claude, gemini, qwen) and custom user agents.
  */
+export interface ModelInfo {
+  modelId: string;
+  name: string;
+  description: string;
+  _meta?: {
+    totalContextTokens?: number;
+  };
+}
+
+export interface AcpMeta {
+  modelState?: {
+    currentModelId?: string;
+    availableModels?: ModelInfo[];
+  };
+  authMethods?: Array<{
+    id: string;
+    name: string;
+    description: string;
+  }>;
+  capabilities?: {
+    loadSession?: boolean;
+    promptCapabilities?: {
+      image?: boolean;
+      audio?: boolean;
+      embeddedContext?: boolean;
+    };
+    mcpCapabilities?: {
+      http?: boolean;
+      sse?: boolean;
+    };
+    _meta?: Record<string, any>;
+  };
+}
+
 export interface AcpBackendConfig {
   /** Unique identifier for the backend (e.g., 'claude', 'gemini', 'custom') */
   id: string;

@@ -89,6 +89,7 @@ export const createAcpAgent = async (options: ICreateConversationParams): Promis
       cliPath: extra.cliPath,
       agentName: extra.agentName,
       customAgentId: extra.customAgentId,
+      selectedModel: extra.selectedModel,
     },
     createTime: Date.now(),
     modifyTime: Date.now(),

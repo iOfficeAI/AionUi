@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { AcpBackend, AcpMessage, AcpNotification, AcpPermissionRequest, AcpRequest, AcpResponse, AcpSessionUpdate } from '@/types/acpTypes';
+import type { AcpBackend, AcpMessage, AcpNotification, AcpPermissionRequest, AcpRequest, AcpResponse, AcpSessionUpdate, AcpMeta } from '@/types/acpTypes';
 import { JSONRPC_VERSION } from '@/types/acpTypes';
 import type { ChildProcess, SpawnOptions } from 'child_process';
 import { spawn } from 'child_process';
@@ -34,8 +34,9 @@ export function createGenericSpawnConfig(cliPath: string, workingDir: string, ac
   const isWindows = process.platform === 'win32';
   const env = { ...process.env, ...customEnv };
 
-  // Default to --experimental-acp if no acpArgs specified
-  const effectiveAcpArgs = acpArgs && acpArgs.length > 0 ? acpArgs : ['--experimental-acp'];
+  // Only use acpArgs if explicitly provided (non-empty array or undefined)
+  // Don't add default --experimental-acp for custom agents that may not support it
+  const effectiveAcpArgs = acpArgs || [];
 
   let spawnCommand: string;
   let spawnArgs: string[];
@@ -533,16 +534,26 @@ export class AcpConnection {
     return result;
   }
 
-  async newSession(cwd: string = process.cwd()): Promise<AcpResponse> {
+  async newSession(cwd: string = process.cwd(), modelId?: string): Promise<AcpResponse> {
     // Normalize workspace-relative paths:
     // Agents such as qwen already run with `workingDir` as their process cwd.
     // Sending the absolute path again makes some CLIs treat it as a nested relative path.
     const normalizedCwd = this.normalizeCwdForAgent(cwd);
 
-    const response = await this.sendRequest<AcpResponse & { sessionId?: string }>('session/new', {
+    const params: { cwd: string; mcpServers: unknown[]; modelId?: string } = {
       cwd: normalizedCwd,
       mcpServers: [] as unknown[],
-    });
+    };
+
+    // Only include modelId if provided
+    if (modelId) {
+      console.log('[AcpConnection] Creating session with modelId:', modelId);
+      params.modelId = modelId;
+    } else {
+      console.log('[AcpConnection] Creating session without modelId (will use default)');
+    }
+
+    const response = await this.sendRequest<AcpResponse & { sessionId?: string }>('session/new', params);
 
     this.sessionId = response.sessionId;
     return response;
@@ -553,7 +564,7 @@ export class AcpConnection {
    * 某些 CLI 会对绝对路径进行再次拼接，导致“套娃”路径，因此需要转换为相对路径。
    */
   private normalizeCwdForAgent(cwd?: string): string {
-    const defaultPath = '.';
+    const defaultPath = path.resolve(this.workingDir || process.cwd());
     if (!cwd) return defaultPath;
 
     try {
@@ -564,13 +575,29 @@ export class AcpConnection {
       const isInsideWorkspace = relative && !relative.startsWith('..') && !path.isAbsolute(relative);
 
       if (isInsideWorkspace) {
-        return relative.length === 0 ? defaultPath : relative;
+        if (relative === '.' || relative.length === 0) {
+          return path.resolve(workspaceRoot);
+        }
+        return relative;
       }
     } catch (error) {
-      console.warn('[ACP] Failed to normalize cwd for agent, using default "."', error);
+      console.warn('[ACP] Failed to normalize cwd for agent, using absolute default', error);
     }
 
     return defaultPath;
+  }
+
+  /**
+   * Parse ACP response meta for models, capabilities, etc.
+   */
+  parseAcpMeta(result: AcpResponse): AcpMeta {
+    const anyResult = result as any;
+    const meta = anyResult._meta || {};
+    return {
+      modelState: anyResult.models || meta.modelState || anyResult._meta?.modelState, // Handle top-level 'models' in session or _meta.modelState in init,
+      authMethods: anyResult.authMethods,
+      capabilities: anyResult.agentCapabilities,
+    };
   }
 
   async sendPrompt(prompt: string): Promise<AcpResponse> {
@@ -582,6 +609,17 @@ export class AcpConnection {
       sessionId: this.sessionId,
       prompt: [{ type: 'text', text: prompt }],
     });
+  }
+
+  /**
+   * Clean up connection resources (kill child process and clear pending requests)
+   * This is a public method for external cleanup needs
+   */
+  cleanup(): void {
+    if (this.child) {
+      this.child.kill();
+    }
+    this.pendingRequests.clear();
   }
 
   disconnect(): void {

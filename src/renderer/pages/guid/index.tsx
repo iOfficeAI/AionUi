@@ -184,7 +184,7 @@ const Guid: React.FC = () => {
   // 对于自定义代理，使用 "custom:uuid" 格式来区分多个自定义代理
   // For custom agents, we store "custom:uuid" format to distinguish between multiple custom agents
   const [selectedAgentKey, setSelectedAgentKey] = useState<string>('gemini');
-  const [availableAgents, setAvailableAgents] = useState<Array<{ backend: AcpBackend; name: string; cliPath?: string; customAgentId?: string }>>();
+  const [availableAgents, setAvailableAgents] = useState<Array<{ backend: AcpBackend; name: string; cliPath?: string; customAgentId?: string; acpArgs?: string[]; env?: Record<string, string> }>>();
 
   /**
    * 获取代理的唯一选择键
@@ -306,6 +306,38 @@ const Guid: React.FC = () => {
       setAvailableAgents(availableAgentsData);
     }
   }, [availableAgentsData]);
+
+  // Fetch custom agent models when a custom agent is selected
+  const selectedAgentInfo = findAgentByKey(selectedAgentKey);
+  const isCustomAgent = selectedAgentKey.startsWith('custom:');
+  const { data: customAgentMeta } = useSWR(isCustomAgent && selectedAgentInfo ? `acp.meta.guide.${selectedAgentKey}` : null, async () => {
+    console.log('[Guide] Fetching custom agent meta for:', selectedAgentInfo);
+    const result = await ipcBridge.acpConversation.fetchAgentMeta.invoke({
+      cliPath: selectedAgentInfo!.cliPath,
+      acpArgs: selectedAgentInfo!.acpArgs || [],
+      env: selectedAgentInfo!.env || {},
+      workspace: dir || process.cwd(),
+      backend: 'custom',
+    });
+    console.log('[Guide] Custom agent meta result:', result);
+    return result;
+  });
+
+  // Extract models from custom agent meta
+  const customAgentModels = customAgentMeta?.data?.modelState?.availableModels || [];
+  const customAgentCurrentModel = customAgentMeta?.data?.modelState?.currentModelId;
+  const [selectedCustomModel, setSelectedCustomModel] = useState<string>('');
+
+  // Update selected custom model when meta is loaded or agent changes
+  useEffect(() => {
+    if (isCustomAgent && customAgentCurrentModel) {
+      // Always update to the current model when agent changes or loads
+      setSelectedCustomModel(customAgentCurrentModel);
+    } else if (!isCustomAgent) {
+      // Reset when switching away from custom agent
+      setSelectedCustomModel('');
+    }
+  }, [customAgentCurrentModel, isCustomAgent, selectedAgentKey]);
 
   const handleSend = async () => {
     // 用户明确选择的目录 -> customWorkspace = true, 使用用户选择的目录
@@ -431,6 +463,7 @@ const Guid: React.FC = () => {
             cliPath: agentInfo.cliPath,
             agentName: agentInfo.name, // 存储自定义代理的配置名称 / Store configured name for custom agents
             customAgentId: agentInfo.customAgentId, // 自定义代理的 UUID / UUID for custom agents
+            selectedModel: isCustomAgent ? selectedCustomModel : undefined, // Pass selected model for custom agents
           },
         });
 
@@ -776,13 +809,46 @@ const Guid: React.FC = () => {
                     </Button>
                   </Dropdown>
                 )}
+
+                {/* Custom agent model selector */}
+                {isCustomAgent && customAgentModels.length > 0 && (
+                  <Dropdown
+                    trigger='hover'
+                    droplist={
+                      <Menu selectedKeys={selectedCustomModel ? [selectedCustomModel] : []}>
+                        {customAgentModels.map((model: any) => (
+                          <Menu.Item key={model.modelId} className={selectedCustomModel === model.modelId ? '!bg-2' : ''} onClick={() => setSelectedCustomModel(model.modelId)}>
+                            <Tooltip
+                              position='right'
+                              trigger='hover'
+                              content={
+                                <div className='max-w-240px space-y-6px'>
+                                  <div className='text-12px text-t-secondary leading-5'>{model.description || model.name}</div>
+                                  {model._meta?.totalContextTokens && <div className='text-11px text-t-tertiary'>Context: {model._meta.totalContextTokens.toLocaleString()} tokens</div>}
+                                </div>
+                              }
+                            >
+                              <div className='flex items-center justify-between gap-12px w-full'>
+                                <span>{model.name}</span>
+                              </div>
+                            </Tooltip>
+                          </Menu.Item>
+                        ))}
+                      </Menu>
+                    }
+                  >
+                    <Button className={'sendbox-model-btn'} shape='round'>
+                      {selectedCustomModel ? customAgentModels.find((m: any) => m.modelId === selectedCustomModel)?.name || selectedCustomModel : t('conversation.welcome.selectModel')}
+                    </Button>
+                  </Dropdown>
+                )}
               </div>
               <div className={styles.actionSubmit}>
                 <Button
                   shape='circle'
                   type='primary'
                   loading={loading}
-                  disabled={!input.trim() || ((!selectedAgent || selectedAgent === 'gemini') && !currentModel)}
+                  disabled={!input.trim() || ((!selectedAgent || selectedAgent === 'gemini') && !currentModel) || (isCustomAgent && !selectedCustomModel)}
                   icon={<ArrowUp theme='outline' size='14' fill='white' strokeWidth={2} />}
                   onClick={() => {
                     handleSend().catch((error) => {
