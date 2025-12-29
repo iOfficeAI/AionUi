@@ -169,7 +169,8 @@
     "unknownError": "不明なエラー",
     "confirmDelete": "削除の確認",
     "deleteSuccess": "削除に成功しました",
-    "deleteFailed": "削除に失敗しました"
+    "deleteFailed": "削除に失敗しました",
+    "default": "デフォルト"
   },
   "login": {
     "pageTitle": "AionUi - ログイン",
@@ -437,6 +438,7 @@
     "workDir": "作業ディレクトリ",
     "dirNotConfigured": "まだ設定されていません",
     "customOpenAI": "カスタム（OpenAI互換）",
+    "platformCustom": "カスタム",
     "darkMode": "ダーク",
     "deleteAllModelConfirm": "すべてのモデルを削除してもよろしいですか？",
     "deleteModelConfirm": "このモデルを削除してもよろしいですか？",
@@ -592,7 +594,25 @@
     "simpleModeTip": "検出された CLI を選択してカスタム名を付けてください。環境変数などの詳細設定には詳細モードに切り替えてください。",
     "command": "コマンド",
     "args": "引数",
-    "env": "環境変数"
+    "env": "環境変数",
+    "agentModelSettings": "Agent モデル設定",
+    "agentModelSettingsTooltip": "各 AI Agent のデフォルトモデルを設定します。モデルは新しい会話開始時に注入されます。",
+    "selectModel": "モデルを選択",
+    "agentModelSaved": "モデル選択を保存しました",
+    "agentModelSaveFailed": "モデル選択の保存に失敗しました",
+    "agentModelLoadFailed": "Agent モデルの読み込みに失敗しました",
+    "agentModelValidateSuccess": "モデル設定は有効です",
+    "agentModelValidateFailed": "モデル検証に失敗しました",
+    "agentModelValid": "設定は有効です",
+    "agentModelInvalid": "設定は無効です",
+    "clickToValidate": "クリックして検証",
+    "agentModelNote": "注意：モデルの変更は新しい会話で有効になります。",
+    "agentModelCustomNote": "Agent がサポートする任意のモデル ID を入力することもできます。",
+    "customModel": "カスタムモデル ID...",
+    "customModelPlaceholder": "モデル ID を入力（例：claude-opus-4-20250514）",
+    "switchToPreset": "プリセットモデルに切り替え",
+    "preset": "プリセット",
+    "noAgentsDetected": "Agent が検出されませんでした"
   },
   "messages": {
     "fileChanges": "ファイル変更",
@@ -763,9 +783,9 @@
   },
   "gemini": {
     "mode": {
-      "autoDesc": "システムがタスクに最適なモデルを自動で選択します。",
-      "proDesc": "高度な推論と創造性が求められる複雑なタスク向けです。",
-      "flashDesc": "速度と推論のバランスが必要なタスク向けです。"
+      "autoGemini3Desc": "Gemini CLI が最適なモデルを決定します: gemini-3-pro, gemini-3-flash",
+      "autoGemini25Desc": "Gemini CLI が最適なモデルを決定します: gemini-2.5-pro, gemini-2.5-flash",
+      "manualDesc": "手動でモデルを選択"
     }
   },
   "acp": {
