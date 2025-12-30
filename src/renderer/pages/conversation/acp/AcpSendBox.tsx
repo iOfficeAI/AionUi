@@ -21,6 +21,7 @@ import FilePreview from '@/renderer/components/FilePreview';
 import HorizontalFileList from '@/renderer/components/HorizontalFileList';
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';
 import { useLatestRef } from '@/renderer/hooks/useLatestRef';
+import { useAutoTitle } from '@/renderer/hooks/useAutoTitle';
 
 const useAcpSendBoxDraft = getSendBoxDraftHook('acp', {
   _type: 'acp',
@@ -153,6 +154,7 @@ const AcpSendBox: React.FC<{
 }> = ({ conversation_id, backend }) => {
   const { thought, running, acpStatus, aiProcessing, setAiProcessing } = useAcpMessage(conversation_id);
   const { t } = useTranslation();
+  const { checkAndUpdateTitle } = useAutoTitle();
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
   const { setSendBoxHandler } = usePreviewContext();
 
@@ -224,6 +226,7 @@ const AcpSendBox: React.FC<{
 
         if (result && result.success === true) {
           // Initial message sent successfully
+          void checkAndUpdateTitle(conversation_id, input);
           // 等待一小段时间确保后端数据库更新完成
           await new Promise((resolve) => setTimeout(resolve, 100));
           sessionStorage.removeItem(storageKey);
@@ -282,6 +285,7 @@ const AcpSendBox: React.FC<{
         conversation_id,
         files: uploadFile,
       });
+      void checkAndUpdateTitle(conversation_id, message);
       emitter.emit('chat.history.refresh');
     } catch (error: unknown) {
       const errorMsg = error instanceof Error ? error.message : String(error);
