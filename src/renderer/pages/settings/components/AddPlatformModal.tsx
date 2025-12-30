@@ -136,7 +136,7 @@ const AddPlatformModal = ModalHOC<{
           </Form.Item>
 
           {/* Base URL - 仅自定义选项显示 / Base URL - only for Custom option */}
-          <Form.Item hidden={!isCustom} label={t('settings.baseUrl')} field={'baseUrl'} required={isCustom} rules={[{ required: isCustom }]}>
+          <Form.Item hidden={!isCustom && !isGemini} label={t('settings.baseUrl')} field={'baseUrl'} required={isCustom} rules={[{ required: isCustom }]}>
             <Input
               placeholder='https://api.example.com/v1'
               onBlur={() => {

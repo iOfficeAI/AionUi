@@ -36,7 +36,7 @@ const AGENT_LOGO_MAP: Partial<Record<AcpBackend, string>> = {
 };
 
 import { iconColors } from '@/renderer/theme/colors';
-import { WORKSPACE_TOGGLE_EVENT, dispatchWorkspaceStateEvent, dispatchWorkspaceToggleEvent } from '@/renderer/utils/workspaceEvents';
+import { WORKSPACE_TOGGLE_EVENT, WORKSPACE_HAS_FILES_EVENT, dispatchWorkspaceStateEvent, dispatchWorkspaceToggleEvent, type WorkspaceHasFilesDetail } from '@/renderer/utils/workspaceEvents';
 import { ACP_BACKENDS_ALL } from '@/types/acpTypes';
 import classNames from 'classnames';
 
@@ -100,6 +100,9 @@ const ChatLayout: React.FC<{
     }
     return true; // 默认折叠
   });
+  // 当前活跃的会话 ID（用于记录用户手动操作偏好）
+  // Current active conversation ID (for recording user manual operation preference)
+  const currentConversationIdRef = useRef<string | undefined>(undefined);
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(() => (typeof window === 'undefined' ? 0 : window.innerWidth));
   const { backend, agentName, workspaceEnabled = true } = props;
@@ -132,13 +135,74 @@ const ChatLayout: React.FC<{
       if (!workspaceEnabled) {
         return;
       }
-      setRightSiderCollapsed((prev) => !prev);
+      setRightSiderCollapsed((prev) => {
+        const newState = !prev;
+        // 记录用户手动操作偏好 / Record user manual operation preference
+        const conversationId = currentConversationIdRef.current;
+        if (conversationId) {
+          try {
+            localStorage.setItem(`workspace-preference-${conversationId}`, newState ? 'collapsed' : 'expanded');
+          } catch {
+            // 忽略错误
+          }
+        }
+        return newState;
+      });
     };
     window.addEventListener(WORKSPACE_TOGGLE_EVENT, handleWorkspaceToggle);
     return () => {
       window.removeEventListener(WORKSPACE_TOGGLE_EVENT, handleWorkspaceToggle);
     };
   }, [workspaceEnabled]);
+
+  // 根据文件状态自动展开/折叠工作空间面板（优先使用用户手动偏好）
+  // Auto expand/collapse workspace panel based on files state (user preference takes priority)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !workspaceEnabled) {
+      return undefined;
+    }
+    const handleHasFiles = (event: Event) => {
+      const detail = (event as CustomEvent<WorkspaceHasFilesDetail>).detail;
+      const conversationId = detail.conversationId;
+
+      // 更新当前会话 ID / Update current conversation ID
+      currentConversationIdRef.current = conversationId;
+
+      // 检查用户是否有手动设置的偏好 / Check if user has manual preference
+      let userPreference: 'expanded' | 'collapsed' | null = null;
+      if (conversationId) {
+        try {
+          const stored = localStorage.getItem(`workspace-preference-${conversationId}`);
+          if (stored === 'expanded' || stored === 'collapsed') {
+            userPreference = stored;
+          }
+        } catch {
+          // 忽略错误
+        }
+      }
+
+      // 如果有用户偏好，按偏好设置；否则按文件状态决定
+      // If user has preference, use it; otherwise decide by file state
+      if (userPreference) {
+        const shouldCollapse = userPreference === 'collapsed';
+        if (shouldCollapse !== rightSiderCollapsed) {
+          setRightSiderCollapsed(shouldCollapse);
+        }
+      } else {
+        // 无用户偏好：有文件展开，没文件折叠
+        // No user preference: expand if has files, collapse if not
+        if (detail.hasFiles && rightSiderCollapsed) {
+          setRightSiderCollapsed(false);
+        } else if (!detail.hasFiles && !rightSiderCollapsed) {
+          setRightSiderCollapsed(true);
+        }
+      }
+    };
+    window.addEventListener(WORKSPACE_HAS_FILES_EVENT, handleHasFiles);
+    return () => {
+      window.removeEventListener(WORKSPACE_HAS_FILES_EVENT, handleHasFiles);
+    };
+  }, [workspaceEnabled, rightSiderCollapsed]);
 
   useEffect(() => {
     if (!workspaceEnabled) {

@@ -29,9 +29,11 @@ export const processGeminiStreamEvents = async (stream: AsyncIterable<ServerGemi
 
       case ServerGeminiEventType.Error:
         {
+          // Safely extract error value - event.value may be string, object with .error, or undefined
+          const errorValue = event.value?.error ?? event.value ?? 'Unknown error occurred';
           onStreamEvent({
             type: event.type,
-            data: parseAndFormatApiError(event.value.error, config.getContentGeneratorConfig().authType),
+            data: parseAndFormatApiError(errorValue, config.getContentGeneratorConfig().authType),
           });
         }
         break;
@@ -40,6 +42,24 @@ export const processGeminiStreamEvents = async (stream: AsyncIterable<ServerGemi
           // 传递 Finished 事件，包含 token 使用统计
           onStreamEvent({ type: event.type, data: event.value });
           // console.log('[Token Usage]', event.value.usageMetadata);
+        }
+        break;
+      case ServerGeminiEventType.ContextWindowWillOverflow:
+        {
+          // Handle context window overflow - extract token counts for user-friendly message
+          const overflowEvent = event as {
+            type: string;
+            value: { estimatedRequestTokenCount: number; remainingTokenCount: number };
+          };
+          const estimated = overflowEvent.value?.estimatedRequestTokenCount || 0;
+          const remaining = overflowEvent.value?.remainingTokenCount || 0;
+          const estimatedK = Math.round(estimated / 1000);
+          const remainingK = Math.round(remaining / 1000);
+
+          onStreamEvent({
+            type: ServerGeminiEventType.Error,
+            data: `Context window overflow: Request size (${estimatedK}K tokens) exceeds model capacity (${remainingK}K tokens). Try: 1) Start a new conversation, 2) Reduce workspace files, 3) Clear conversation history, or 4) Use smaller files.`,
+          });
         }
         break;
       case ServerGeminiEventType.ChatCompressed:
