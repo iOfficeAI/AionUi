@@ -413,7 +413,7 @@
     "darkMode": "深色",
     "deleteAllModelConfirm": "是否刪除所有模型？",
     "deleteModelConfirm": "是否刪除該模型？",
-    "editModel": "編輯模型",
+    "editModel": "編輯模型平台",
     "gemini": "Gemini",
     "geminiApiKey": "Gemini API 金鑰",
     "geminiBaseUrl": "Gemini API Base URL",

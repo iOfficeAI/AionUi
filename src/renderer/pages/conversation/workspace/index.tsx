@@ -17,8 +17,7 @@ import { isTemporaryWorkspace as checkIsTemporaryWorkspace, getWorkspaceDisplayN
 import { Checkbox, Empty, Input, Message, Modal, Tooltip, Tree } from '@arco-design/web-react';
 import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
 import { Down, FileText, FolderOpen, Refresh, Search } from '@icon-park/react';
-import IconCatalogue from '@/renderer/assets/icon-catalogue.svg';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import DirectorySelectionModal from '@/renderer/components/DirectorySelectionModal';
@@ -31,6 +30,24 @@ import { useWorkspaceTree } from './hooks/useWorkspaceTree';
 import { useWorkspaceDragImport } from './hooks/useWorkspaceDragImport';
 import type { WorkspaceProps } from './types';
 import { extractNodeData, extractNodeKey, findNodeByKey, getTargetFolderPath } from './utils/treeHelpers';
+
+const ChangeWorkspaceIcon: React.FC<React.SVGProps<SVGSVGElement>> = ({ className, ...rest }) => {
+  const clipPathId = useId();
+  return (
+    <svg className={className} viewBox='0 0 24 24' role='img' aria-hidden='true' focusable='false' {...rest}>
+      <rect width='24' height='24' rx='2' fill='var(--workspace-btn-bg, var(--color-bg-1))' />
+      <g clipPath={`url(#${clipPathId})`}>
+        <path fillRule='evenodd' clipRule='evenodd' d='M10.8215 8.66602L9.15482 6.99935H5.33333V16.9993H18.6667V8.66602H10.8215ZM4.5 6.99935C4.5 6.53912 4.8731 6.16602 5.33333 6.16602H9.15482C9.37583 6.16602 9.5878 6.25382 9.74407 6.41009L11.1667 7.83268H18.6667C19.1269 7.83268 19.5 8.20578 19.5 8.66602V16.9993C19.5 17.4596 19.1269 17.8327 18.6667 17.8327H5.33333C4.8731 17.8327 4.5 17.4596 4.5 16.9993V6.99935Z' fill='var(--color-text-3, var(--text-secondary))' />
+        <path d='M13.0775 12.4158L12.1221 11.4603L12.7113 10.8711L14.6726 12.8324L12.7113 14.7937L12.1221 14.2044L13.0774 13.2491H9.5V12.4158H13.0775Z' fill='var(--color-text-3, var(--text-secondary))' />
+      </g>
+      <defs>
+        <clipPath id={clipPathId}>
+          <rect width='20' height='20' fill='transparent' transform='translate(2 2)' />
+        </clipPath>
+      </defs>
+    </svg>
+  );
+};
 
 const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, eventPrefix = 'gemini', messageApi: externalMessageApi }) => {
   const { t } = useTranslation();
@@ -672,7 +689,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
         {/* Search Input - 最上方 */}
         <div className='px-12px'>
           {(showSearch || searchText) && (
-            <div className='pb-8px'>
+            <div className='pb-8px workspace-toolbar-search'>
               <Input
                 className='w-full'
                 ref={searchInputRef}
@@ -703,7 +720,9 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
             <div className='flex items-center gap-8px flex-shrink-0'>
               {isTemporaryWorkspace && (
                 <Tooltip content={t('conversation.workspace.changeWorkspace')}>
-                  <img src={IconCatalogue} className='line-height-0 cursor-pointer w-24px h-24px' onClick={handleOpenMigrationModal} alt='change workspace' />
+                  <span>
+                    <ChangeWorkspaceIcon className='line-height-0 cursor-pointer w-24px h-24px flex-shrink-0' onClick={handleOpenMigrationModal} />
+                  </span>
                 </Tooltip>
               )}
               <Tooltip content={t('conversation.workspace.refresh')}>
@@ -730,6 +749,15 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
                 }}
               >
                 <div className='flex flex-col gap-4px'>
+                  <button
+                    type='button'
+                    className={menuButtonBase}
+                    onClick={() => {
+                      fileOpsHook.handleAddToChat(contextMenuNode);
+                    }}
+                  >
+                    {t('conversation.workspace.contextMenu.addToChat')}
+                  </button>
                   <button
                     type='button'
                     className={menuButtonBase}
@@ -783,16 +811,6 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
                     }}
                   >
                     {t('conversation.workspace.contextMenu.rename')}
-                  </button>
-                  <div className='h-1px bg-3 my-2px'></div>
-                  <button
-                    type='button'
-                    className={menuButtonBase}
-                    onClick={() => {
-                      fileOpsHook.handleAddToChat(contextMenuNode);
-                    }}
-                  >
-                    {t('conversation.workspace.contextMenu.addToChat')}
                   </button>
                 </div>
               </div>

@@ -105,8 +105,6 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
     return getProviderLogo(data?.name, data?.baseUrl, data?.platform);
   }, [data?.name, data?.baseUrl, data?.platform]);
 
-  const isGemini = data?.platform === 'gemini' || data?.platform === 'gemini-vertex-ai';
-
   useEffect(() => {
     if (data) {
       form.setFieldsValue(data);
@@ -130,11 +128,11 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
     >
       <div className='py-20px'>
         <Form form={form} layout='vertical'>
-          {/* 模型供应商（只读显示）/ Model Provider (read-only display) */}
-          <Form.Item label={t('settings.modelProvider')}>
-            <div className='flex items-center gap-8px h-32px px-12px bg-fill-2 rounded-md'>
+          {/* 模型供应商名称（可编辑，带 Logo）/ Model Provider name (editable, with Logo) */}
+          <Form.Item label={t('settings.modelProvider')} field='name' required rules={[{ required: true }]}>
+            <div className='flex items-center gap-8px'>
               <ProviderLogo logo={providerLogo} name={data?.name || ''} size={18} />
-              <span className='text-t-primary'>{data?.name}</span>
+              <Input className='flex-1' placeholder={t('settings.modelProvider')} />
             </div>
           </Form.Item>
 
