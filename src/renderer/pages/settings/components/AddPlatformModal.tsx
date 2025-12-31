@@ -63,6 +63,14 @@ const AddPlatformModal = ModalHOC<{
 
   const modelListState = useModeModeList(platform, baseUrl, apiKey, true);
 
+  // 弹窗打开时重置表单 / Reset form when modal opens
+  useEffect(() => {
+    if (modalProps.visible) {
+      form.resetFields();
+      form.setFieldValue('platform', 'gemini');
+    }
+  }, [modalProps.visible]);
+
   useEffect(() => {
     if (platform?.includes('gemini')) {
       void modelListState.mutate();

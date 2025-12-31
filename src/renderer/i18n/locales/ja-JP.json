@@ -442,7 +442,7 @@
     "darkMode": "ダーク",
     "deleteAllModelConfirm": "すべてのモデルを削除してもよろしいですか？",
     "deleteModelConfirm": "このモデルを削除してもよろしいですか？",
-    "editModel": "モデルを編集",
+    "editModel": "モデルプラットフォームを編集",
     "gemini": "Gemini",
     "geminiApiKey": "Gemini API キー",
     "geminiBaseUrl": "Gemini API ベース URL",

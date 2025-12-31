@@ -6,7 +6,7 @@
 
 import { Button, Input, Message, Tag } from '@arco-design/web-react';
 import { ArrowUp, CloseSmall } from '@icon-park/react';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCompositionInput } from '../hooks/useCompositionInput';
 import { useDragUpload } from '../hooks/useDragUpload';
@@ -15,6 +15,7 @@ import type { FileMetadata } from '../services/FileService';
 import { allSupportedExts } from '../services/FileService';
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';
 import { useLatestRef } from '../hooks/useLatestRef';
+import { useInputFocusRing } from '@/renderer/hooks/useInputFocusRing';
 
 const constVoid = (): void => undefined;
 // 临界值：超过该字符数直接切换至多行模式，避免为超长文本做昂贵的宽度测量
@@ -41,6 +42,9 @@ const SendBox: React.FC<{
   const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
   const [isSingleLine, setIsSingleLine] = useState(!defaultMultiLine);
+  const [isInputFocused, setIsInputFocused] = useState(false);
+  const isInputActive = isInputFocused;
+  const { activeBorderColor, inactiveBorderColor, activeShadow } = useInputFocusRing();
   const containerRef = useRef<HTMLDivElement>(null);
   const singleLineWidthRef = useRef<number>(0);
   const measurementCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -162,7 +166,7 @@ const SendBox: React.FC<{
   const { compositionHandlers, createKeyDownHandler } = useCompositionInput();
 
   // 使用共享的PasteService集成
-  const { onPaste, onFocus } = usePasteService({
+  const { onPaste, onFocus: handlePasteFocus } = usePasteService({
     supportedExts,
     onFilesAdded,
     onTextPaste: (text: string) => {
@@ -183,6 +187,13 @@ const SendBox: React.FC<{
       }
     },
   });
+  const handleInputFocus = useCallback(() => {
+    handlePasteFocus();
+    setIsInputFocused(true);
+  }, [handlePasteFocus]);
+  const handleInputBlur = useCallback(() => {
+    setIsInputFocused(false);
+  }, []);
 
   const sendMessageHandler = () => {
     if (loading || isLoading) {
@@ -225,8 +236,9 @@ const SendBox: React.FC<{
     <div className={className}>
       <div
         ref={containerRef}
-        className={`relative p-16px border-3 b bg-base b-solid rd-20px flex flex-col overflow-hidden ${isFileDragging ? 'b-dashed' : ''}`}
+        className={`relative p-16px border-3 b bg-dialog-fill-0 b-solid rd-20px flex flex-col overflow-hidden ${isFileDragging ? 'b-dashed' : ''}`}
         style={{
+          transition: 'box-shadow 0.25s ease, border-color 0.25s ease',
           ...(isFileDragging
             ? {
                 backgroundColor: 'var(--color-primary-light-1)',
@@ -235,8 +247,8 @@ const SendBox: React.FC<{
               }
             : {
                 borderWidth: '1px',
-                borderColor: 'var(--border-special, #60577E)',
-                boxShadow: '0px 2px 20px rgba(var(--primary-rgb, 77, 60, 234), 0.1)',
+                borderColor: isInputActive ? activeBorderColor : inactiveBorderColor,
+                boxShadow: isInputActive ? activeShadow : 'none',
               }),
         }}
         {...dragHandlers}
@@ -284,7 +296,8 @@ const SendBox: React.FC<{
               setInput(v);
             }}
             onPaste={onPaste}
-            onFocus={onFocus}
+            onFocus={handleInputFocus}
+            onBlur={handleInputBlur}
             {...compositionHandlers}
             autoSize={isSingleLine ? false : { minRows: 1, maxRows: 10 }}
             onKeyDown={createKeyDownHandler(sendMessageHandler)}
