@@ -129,11 +129,18 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
       <div className='py-20px'>
         <Form form={form} layout='vertical'>
           {/* 模型供应商名称（可编辑，带 Logo）/ Model Provider name (editable, with Logo) */}
-          <Form.Item label={t('settings.modelProvider')} field='name' required rules={[{ required: true }]}>
-            <div className='flex items-center gap-8px'>
-              <ProviderLogo logo={providerLogo} name={data?.name || ''} size={18} />
-              <Input className='flex-1' placeholder={t('settings.modelProvider')} />
-            </div>
+          <Form.Item
+            label={
+              <div className='flex items-center gap-6px'>
+                <ProviderLogo logo={providerLogo} name={data?.name || ''} size={16} />
+                <span>{t('settings.modelProvider')}</span>
+              </div>
+            }
+            field='name'
+            required
+            rules={[{ required: true }]}
+          >
+            <Input placeholder={t('settings.modelProvider')} />
           </Form.Item>
 
           {/* Base URL - 仅 Gemini 平台显示（用于自定义代理）/ Base URL - only for Gemini platform (for custom proxy) */}
