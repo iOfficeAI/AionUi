@@ -124,7 +124,6 @@ const AddPlatformModal = ModalHOC<{
               onChange={(value) => {
                 const plat = MODEL_PLATFORMS.find((p) => p.value === value);
                 if (plat) {
-                  form.setFieldValue('baseUrl', plat.baseUrl || '');
                   form.setFieldValue('model', '');
                 }
               }}
@@ -143,10 +142,10 @@ const AddPlatformModal = ModalHOC<{
             </Select>
           </Form.Item>
 
-          {/* Base URL - 仅自定义选项显示 / Base URL - only for Custom option */}
-          <Form.Item hidden={!isCustom && !isGemini} label={t('settings.baseUrl')} field={'baseUrl'} required={isCustom} rules={[{ required: isCustom }]}>
+          {/* Base URL - 仅自定义选项和标准 Gemini 显示 / Base URL - only for Custom option and standard Gemini */}
+          <Form.Item hidden={!isCustom && platformValue !== 'gemini'} label={t('settings.baseUrl')} field={'baseUrl'} required={isCustom} rules={[{ required: isCustom }]}>
             <Input
-              placeholder='https://api.example.com/v1'
+              placeholder={selectedPlatform?.baseUrl || ''}
               onBlur={() => {
                 void modelListState.mutate();
               }}
