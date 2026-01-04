@@ -7,6 +7,7 @@
 
 const { execSync } = require('child_process');
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 
 // Parse command line arguments
@@ -21,6 +22,20 @@ const builderArgs = args
     return true;
   })
   .join(' ');
+
+const resolveElectronCache = () => {
+  if (process.platform === 'darwin') {
+    return path.join(os.homedir(), 'Library', 'Caches', 'electron');
+  }
+  if (process.platform === 'win32') {
+    return path.join(os.homedir(), 'AppData', 'Local', 'electron', 'Cache');
+  }
+  return path.join(os.homedir(), '.cache', 'electron');
+};
+
+if (!process.env.ELECTRON_CACHE) {
+  process.env.ELECTRON_CACHE = resolveElectronCache();
+}
 
 // Get target architecture from electron-builder.yml
 function getTargetArchFromConfig(platform) {
