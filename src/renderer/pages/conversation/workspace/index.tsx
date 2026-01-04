@@ -166,6 +166,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({ conversation_id, workspace, e
 
   // Setup events
   useWorkspaceEvents({
+    workspace,
     conversation_id,
     eventPrefix,
     refreshWorkspace: treeHook.refreshWorkspace,

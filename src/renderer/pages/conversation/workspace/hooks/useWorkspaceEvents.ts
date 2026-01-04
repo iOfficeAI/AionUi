@@ -9,8 +9,11 @@ import type { IDirOrFile } from '@/common/ipcBridge';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { useEffect } from 'react';
 import type { ContextMenuState } from '../types';
+import type { FileOrFolderItem } from '@/renderer/types/files';
+import { getPathSeparator } from '../utils/treeHelpers';
 
 interface UseWorkspaceEventsOptions {
+  workspace: string;
   conversation_id: string;
   eventPrefix: 'gemini' | 'acp' | 'codex';
 
@@ -31,12 +34,24 @@ interface UseWorkspaceEventsOptions {
   closeDeleteModal: () => void;
 }
 
+const getRelativePathFromSelection = (item: FileOrFolderItem, workspace: string): string | null => {
+  if (item.relativePath !== undefined) return item.relativePath;
+  if (!item.path) return null;
+  if (item.path === workspace) return '';
+
+  const separator = getPathSeparator(item.path);
+  const base = workspace.endsWith(separator) ? workspace.slice(0, -1) : workspace;
+  const prefix = `${base}${separator}`;
+  if (!item.path.startsWith(prefix)) return null;
+  return item.path.slice(prefix.length);
+};
+
 /**
  * useWorkspaceEvents - 管理所有事件监听器
  * Manage all event listeners
  */
 export function useWorkspaceEvents(options: UseWorkspaceEventsOptions) {
-  const { conversation_id, eventPrefix, refreshWorkspace, clearSelection, setFiles, setSelected, setExpandedKeys, setTreeKey, selectedNodeRef, selectedKeysRef, closeContextMenu, setContextMenu, closeRenameModal, closeDeleteModal } = options;
+  const { workspace, conversation_id, eventPrefix, refreshWorkspace, clearSelection, setFiles, setSelected, setExpandedKeys, setTreeKey, selectedNodeRef, selectedKeysRef, closeContextMenu, setContextMenu, closeRenameModal, closeDeleteModal } = options;
 
   /**
    * 监听对话切换事件 - 重置所有状态
@@ -98,6 +113,42 @@ export function useWorkspaceEvents(options: UseWorkspaceEventsOptions) {
    * Listen to clear selected files event (after sending message)
    */
   useAddEventListener(`${eventPrefix}.selected.file.clear`, () => clearSelection(), [clearSelection]);
+
+  /**
+   * 监听发送框更新选中目录，保持工作区树与标签同步
+   * Listen to sendbox selection updates to keep workspace tree in sync
+   */
+  useAddEventListener(
+    `${eventPrefix}.selected.file`,
+    (items: Array<string | FileOrFolderItem>) => {
+      const folderItems = items.filter((item): item is FileOrFolderItem => typeof item !== 'string' && !item.isFile);
+      const nextSelected = Array.from(new Set(folderItems.map((item) => getRelativePathFromSelection(item, workspace)).filter((value): value is string => value !== null)));
+
+      const current = selectedKeysRef.current;
+      const isSame = current.length === nextSelected.length && current.every((value, index) => value === nextSelected[index]);
+      if (isSame) return;
+
+      setSelected(nextSelected);
+      selectedKeysRef.current = nextSelected;
+
+      if (nextSelected.length === 0) {
+        selectedNodeRef.current = null;
+        return;
+      }
+
+      const lastItem = folderItems[folderItems.length - 1];
+      const lastRelativePath = lastItem ? getRelativePathFromSelection(lastItem, workspace) : null;
+      if (lastItem && lastItem.path && lastRelativePath !== null) {
+        selectedNodeRef.current = {
+          relativePath: lastRelativePath,
+          fullPath: lastItem.path,
+        };
+      } else {
+        selectedNodeRef.current = null;
+      }
+    },
+    [workspace, setSelected, selectedKeysRef, selectedNodeRef]
+  );
 
   /**
    * 监听搜索工作空间响应
