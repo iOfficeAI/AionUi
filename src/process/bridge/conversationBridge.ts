@@ -8,6 +8,7 @@ import type { CodexAgentManager } from '@/agent/codex';
 import { GeminiAgent } from '@/agent/gemini';
 import type { TChatConversation } from '@/common/storage';
 import { getDatabase } from '@process/database';
+import path from 'path';
 import { ipcBridge } from '../../common';
 import { uuid } from '../../common/utils';
 import { createAcpAgent, createCodexAgent, createGeminiAgent } from '../initAgent';
@@ -22,7 +23,15 @@ export function initConversationBridge(): void {
   ipcBridge.conversation.create.provider(async (params): Promise<TChatConversation> => {
     const { type, extra, name, model, id } = params;
     const buildConversation = () => {
-      if (type === 'gemini') return createGeminiAgent(model, extra.workspace, extra.defaultFiles, extra.webSearchEngine, extra.customWorkspace);
+      if (type === 'gemini') {
+        let contextFileName = extra.contextFileName;
+        // Resolve relative paths to CWD (usually project root in dev)
+        // Ensure we pass an absolute path to the agent
+        if (contextFileName && !path.isAbsolute(contextFileName)) {
+          contextFileName = path.resolve(process.cwd(), contextFileName);
+        }
+        return createGeminiAgent(model, extra.workspace, extra.defaultFiles, extra.webSearchEngine, extra.customWorkspace, contextFileName, extra.context);
+      }
       if (type === 'acp') return createAcpAgent(params);
       if (type === 'codex') return createCodexAgent(params);
       throw new Error('Invalid conversation type');
@@ -221,12 +230,12 @@ export function initConversationBridge(): void {
     }
   });
 
-  ipcBridge.conversation.update.provider(async ({ id, updates, mergeExtra }) => {
+  ipcBridge.conversation.update.provider(async ({ id, updates, mergeExtra }: { id: string; updates: Partial<TChatConversation>; mergeExtra?: boolean }) => {
     try {
       const db = getDatabase();
       const existing = db.getConversation(id);
-      const prevModel = existing.success ? (existing.data as any)?.model : undefined;
-      const nextModel = (updates as any)?.model;
+      const prevModel = existing.success && existing.data ? existing.data.model : undefined;
+      const nextModel = updates?.model;
       const modelChanged = !!nextModel && JSON.stringify(prevModel) !== JSON.stringify(nextModel);
       // model change detection for task rebuild
 

@@ -86,6 +86,8 @@ export type TChatConversation =
         customWorkspace?: boolean; // true 用户指定工作目录 false 系统默认工作目录
         webSearchEngine?: 'google' | 'default'; // 搜索引擎配置
         lastTokenUsage?: TokenUsageData; // 上次的 token 使用统计
+        contextFileName?: string;
+        contextContent?: string;
       }
     >
   | Omit<

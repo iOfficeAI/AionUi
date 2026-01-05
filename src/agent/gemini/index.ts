@@ -33,7 +33,9 @@ interface GeminiAgent2Options {
   yoloMode?: boolean;
   GOOGLE_CLOUD_PROJECT?: string;
   mcpServers?: Record<string, unknown>;
+  contextFileName?: string;
   onStreamEvent: (event: { type: string; data: unknown; msg_id: string }) => void;
+  contextContent?: string;
 }
 
 export class GeminiAgent {
@@ -52,11 +54,13 @@ export class GeminiAgent {
   private trackedCalls: TrackedToolCall[] = [];
   private abortController: AbortController | null = null;
   private onStreamEvent: (event: { type: string; data: unknown; msg_id: string }) => void;
+  private contextContent?: string;
   private toolConfig: ConversationToolConfig; // 对话级别的工具配置
   private apiKeyManager: ApiKeyManager | null = null; // 多API Key管理器
   private settings: Settings | null = null;
   private historyPrefix: string | null = null;
   private historyUsedOnce = false;
+  private contextFileName: string | undefined;
   bootstrap: Promise<void>;
   static buildFileServer(workspace: string) {
     return new FileDiscoveryService(workspace);
@@ -70,9 +74,11 @@ export class GeminiAgent {
     this.yoloMode = options.yoloMode || false;
     this.googleCloudProject = options.GOOGLE_CLOUD_PROJECT;
     this.mcpServers = options.mcpServers || {};
+    this.contextFileName = options.contextFileName;
     // 使用统一的工具函数获取认证类型
     this.authType = getProviderAuthType(options.model);
     this.onStreamEvent = options.onStreamEvent;
+    this.contextContent = options.contextContent;
     this.initClientEnv();
     this.toolConfig = new ConversationToolConfig({
       proxy: this.proxy,
@@ -161,6 +167,9 @@ export class GeminiAgent {
     const path = this.workspace;
 
     const settings = loadSettings(path).merged;
+    if (this.contextFileName) {
+      settings.contextFileName = this.contextFileName;
+    }
     this.settings = settings;
 
     // 使用传入的 YOLO 设置
@@ -186,6 +195,13 @@ export class GeminiAgent {
     await this.config.refreshAuth(this.authType || AuthType.USE_GEMINI);
 
     this.geminiClient = this.config.getGeminiClient();
+
+    // Inject context content (preset rules) if provided
+    if (this.contextContent) {
+      const currentMemory = this.config.getUserMemory();
+      const combined = `${this.contextContent}\n\n[Workspace Context]\n${currentMemory}`;
+      this.config.setUserMemory(combined);
+    }
 
     // 注册对话级别的自定义工具
     await this.toolConfig.registerCustomTools(this.config, this.geminiClient);

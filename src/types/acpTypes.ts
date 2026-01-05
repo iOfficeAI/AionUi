@@ -151,6 +151,12 @@ export interface AcpBackendConfig {
    * If not specified, defaults to ['--experimental-acp'].
    */
   acpArgs?: string[];
+
+  /** Whether this is a prompt-based preset (no CLI binary required) */
+  isPreset?: boolean;
+
+  /** The system prompt or rule context for this preset */
+  context?: string;
 }
 
 // 所有后端配置 - 包括暂时禁用的
@@ -289,14 +295,14 @@ export interface AcpError {
   code: string;
   message: string;
   retryable: boolean;
-  details?: any;
+  details?: unknown;
 }
 
 // ACP Result Type - Type-safe result handling
-export type AcpResult<T = any> = { success: true; data: T } | { success: false; error: AcpError };
+export type AcpResult<T = unknown> = { success: true; data: T } | { success: false; error: AcpError };
 
 // Helper function to create ACP errors
-export function createAcpError(type: AcpErrorType, message: string, retryable: boolean = false, details?: any): AcpError {
+export function createAcpError(type: AcpErrorType, message: string, retryable: boolean = false, details?: unknown): AcpError {
   return {
     type,
     code: type.toString(),
@@ -317,13 +323,13 @@ export interface AcpRequest {
   jsonrpc: typeof JSONRPC_VERSION;
   id: number;
   method: string;
-  params?: any;
+  params?: Record<string, unknown> | unknown[];
 }
 
 export interface AcpResponse {
   jsonrpc: typeof JSONRPC_VERSION;
   id: number;
-  result?: any;
+  result?: unknown;
   error?: {
     code: number;
     message: string;
@@ -333,7 +339,7 @@ export interface AcpResponse {
 export interface AcpNotification {
   jsonrpc: typeof JSONRPC_VERSION;
   method: string;
-  params?: any;
+  params?: Record<string, unknown> | unknown[];
 }
 
 // Base interface for all session updates
@@ -374,7 +380,7 @@ export interface ToolCallUpdate extends BaseSessionUpdate {
     status: 'pending' | 'in_progress' | 'completed' | 'failed';
     title: string;
     kind: 'read' | 'edit' | 'execute';
-    rawInput?: any;
+    rawInput?: Record<string, unknown>;
     content?: Array<{
       type: 'content' | 'diff';
       content?: {
@@ -473,36 +479,34 @@ export interface AcpPermissionRequest {
     rawInput?: {
       command?: string;
       description?: string;
-      [key: string]: any;
+      [key: string]: unknown;
     };
     status?: string;
     title?: string;
     kind?: string;
-    content?: any[];
-    locations?: any[];
+    content?: Array<Record<string, unknown>>;
+    locations?: Array<Record<string, unknown>>;
   };
 }
 
 // 历史兼容性类型 - 支持旧版本数据结构
-export interface LegacyAcpPermissionData {
+export interface LegacyAcpPermissionData extends Record<string, unknown> {
   // 可能的旧版本字段
   options?: Array<{
     optionId?: string;
     name?: string;
     kind?: string;
     // 兼容可能的其他字段
-    [key: string]: any;
+    [key: string]: unknown;
   }>;
   toolCall?: {
     toolCallId?: string;
-    rawInput?: any;
+    rawInput?: unknown;
     title?: string;
     kind?: string;
     // 兼容可能的其他字段
-    [key: string]: any;
+    [key: string]: unknown;
   };
-  // 兼容完全不同的结构
-  [key: string]: any;
 }
 
 // 兼容性联合类型

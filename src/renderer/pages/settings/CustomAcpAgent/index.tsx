@@ -45,7 +45,7 @@ const CustomAcpAgent: React.FC<CustomAcpAgentProps> = ({ message }) => {
         // 首先检查新的数组格式 / First check for new array format
         const agents = await ConfigStorage.get('acp.customAgents');
         if (agents && Array.isArray(agents) && agents.length > 0) {
-          setCustomAgents(agents);
+          setCustomAgents(agents.filter((a) => !a.isPreset));
           return;
         }
 
