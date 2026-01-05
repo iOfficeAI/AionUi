@@ -6,6 +6,7 @@
 
 import type { IProvider } from '@/common/storage';
 import { uuid } from '@/common/utils';
+import { type ProtocolDetectionRequest, type ProtocolDetectionResponse, type ProtocolType, type MultiKeyTestResult, parseApiKeys, maskApiKey, normalizeBaseUrl, guessProtocolFromUrl, guessProtocolFromKey, getProtocolDisplayName } from '@/common/utils/protocolDetector';
 import OpenAI from 'openai';
 import { ipcBridge } from '../../common';
 import { ProcessConfig } from '../initStorage';
@@ -231,4 +232,477 @@ export function initModelBridge(): void {
         return [] as IProvider[];
       });
   });
+
+  // 协议检测接口实现 / Protocol detection implementation
+  ipcBridge.mode.detectProtocol.provider(async function detectProtocol(request: ProtocolDetectionRequest): Promise<{ success: boolean; msg?: string; data?: ProtocolDetectionResponse }> {
+    const { baseUrl: rawBaseUrl, apiKey: apiKeyString, timeout = 10000, testAllKeys = false, preferredProtocol } = request;
+
+    const baseUrl = normalizeBaseUrl(rawBaseUrl);
+    const baseUrlCandidates = buildBaseUrlCandidates(baseUrl);
+    const apiKeys = parseApiKeys(apiKeyString);
+
+    if (!baseUrl) {
+      return {
+        success: false,
+        msg: 'Base URL is required',
+        data: {
+          success: false,
+          protocol: 'unknown',
+          confidence: 0,
+          error: 'Base URL is required',
+        },
+      };
+    }
+
+    if (apiKeys.length === 0) {
+      return {
+        success: false,
+        msg: 'API Key is required',
+        data: {
+          success: false,
+          protocol: 'unknown',
+          confidence: 0,
+          error: 'API Key is required',
+        },
+      };
+    }
+
+    const firstKey = apiKeys[0];
+
+    // 智能预判：根据 URL 和 Key 格式猜测协议
+    // Smart prediction: guess protocol from URL and key format
+    const urlGuess = guessProtocolFromUrl(baseUrl);
+    const keyGuess = guessProtocolFromKey(firstKey);
+
+    // 确定测试顺序：优先测试猜测的协议
+    // Determine test order: prioritize guessed protocols
+    const protocolsToTest: ProtocolType[] = [];
+
+    if (preferredProtocol && preferredProtocol !== 'unknown') {
+      protocolsToTest.push(preferredProtocol);
+    }
+    if (urlGuess && !protocolsToTest.includes(urlGuess)) {
+      protocolsToTest.push(urlGuess);
+    }
+    if (keyGuess && !protocolsToTest.includes(keyGuess)) {
+      protocolsToTest.push(keyGuess);
+    }
+    // 添加剩余协议
+    for (const p of ['gemini', 'openai', 'anthropic'] as ProtocolType[]) {
+      if (!protocolsToTest.includes(p)) {
+        protocolsToTest.push(p);
+      }
+    }
+
+    let detectedProtocol: ProtocolType = 'unknown';
+    let confidence = 0;
+    let models: string[] = [];
+    let detectionError: string | undefined;
+    let fixedBaseUrl: string | undefined;
+    let detectedBaseUrl: string | undefined;
+
+    // 依次测试每种协议
+    // Test each protocol in order
+    for (const protocol of protocolsToTest) {
+      for (const candidateBaseUrl of baseUrlCandidates) {
+        const result = await testProtocol(candidateBaseUrl, firstKey, protocol, timeout);
+
+        if (result.success) {
+          detectedProtocol = protocol;
+          confidence = result.confidence;
+          models = result.models || [];
+          fixedBaseUrl = result.fixedBaseUrl;
+          detectedBaseUrl = candidateBaseUrl;
+          break;
+        } else if (!detectionError) {
+          detectionError = result.error;
+        }
+      }
+      if (detectedProtocol !== 'unknown') {
+        break;
+      }
+    }
+
+    // 多 Key 测试
+    // Multi-key testing
+    let multiKeyResult: MultiKeyTestResult | undefined;
+    const baseUrlForTesting = detectedBaseUrl || baseUrlCandidates[0] || baseUrl;
+    if (testAllKeys && apiKeys.length > 1 && detectedProtocol !== 'unknown') {
+      multiKeyResult = await testMultipleKeys(baseUrlForTesting, apiKeys, detectedProtocol, timeout);
+    }
+
+    // 生成建议
+    // Generate suggestion
+    const suggestion = generateSuggestion(detectedProtocol, confidence, baseUrlForTesting, detectionError);
+
+    const response: ProtocolDetectionResponse = {
+      success: detectedProtocol !== 'unknown',
+      protocol: detectedProtocol,
+      confidence,
+      error: detectedProtocol === 'unknown' ? detectionError : undefined,
+      fixedBaseUrl,
+      suggestion,
+      multiKeyResult,
+      models,
+    };
+
+    return {
+      success: true,
+      data: response,
+    };
+  });
+}
+
+function buildBaseUrlCandidates(baseUrl: string): string[] {
+  if (!baseUrl) return [];
+  if (/^https?:\/\//i.test(baseUrl)) {
+    return [baseUrl];
+  }
+  return [`https://${baseUrl}`, `http://${baseUrl}`];
+}
+
+/**
+ * 测试单个协议
+ * Test a single protocol
+ */
+async function testProtocol(
+  baseUrl: string,
+  apiKey: string,
+  protocol: ProtocolType,
+  timeout: number
+): Promise<{
+  success: boolean;
+  confidence: number;
+  error?: string;
+  models?: string[];
+  fixedBaseUrl?: string;
+}> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+
+  try {
+    switch (protocol) {
+      case 'gemini':
+        return await testGeminiProtocol(baseUrl, apiKey, controller.signal);
+      case 'openai':
+        return await testOpenAIProtocol(baseUrl, apiKey, controller.signal);
+      case 'anthropic':
+        return await testAnthropicProtocol(baseUrl, apiKey, controller.signal);
+      default:
+        return { success: false, confidence: 0, error: 'Unknown protocol' };
+    }
+  } catch (error: any) {
+    if (error.name === 'AbortError') {
+      return { success: false, confidence: 0, error: 'Request timeout' };
+    }
+    return { success: false, confidence: 0, error: error.message || String(error) };
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
+/**
+ * 测试 Gemini 协议
+ * Test Gemini protocol
+ */
+async function testGeminiProtocol(baseUrl: string, apiKey: string, signal: AbortSignal): Promise<{ success: boolean; confidence: number; error?: string; models?: string[]; fixedBaseUrl?: string }> {
+  // Gemini API Key 格式: AIza...
+  // 尝试多个可能的端点
+  const endpoints = [
+    { url: `${baseUrl}/v1beta/models?key=${encodeURIComponent(apiKey)}`, version: 'v1beta' },
+    { url: `${baseUrl}/v1/models?key=${encodeURIComponent(apiKey)}`, version: 'v1' },
+    { url: `${baseUrl}/models?key=${encodeURIComponent(apiKey)}`, version: 'root' },
+  ];
+
+  for (const endpoint of endpoints) {
+    try {
+      const response = await fetch(endpoint.url, {
+        method: 'GET',
+        signal,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.models && Array.isArray(data.models)) {
+          const models = data.models.map((m: any) => {
+            const name = m.name || '';
+            return name.startsWith('models/') ? name.substring(7) : name;
+          });
+          return {
+            success: true,
+            confidence: 95,
+            models,
+            fixedBaseUrl: endpoint.version !== 'v1beta' ? baseUrl : undefined,
+          };
+        }
+      }
+
+      // 检查特定的 Gemini 错误响应
+      if (response.status === 400 || response.status === 403) {
+        const errorData = await response.json().catch(() => ({}));
+        if (errorData.error?.message?.includes('API key')) {
+          // API key 格式错误但确认是 Gemini 协议
+          return { success: false, confidence: 80, error: 'Invalid API key format for Gemini' };
+        }
+      }
+    } catch (e) {
+      // 继续尝试下一个端点
+    }
+  }
+
+  return { success: false, confidence: 0, error: 'Not a Gemini API endpoint' };
+}
+
+/**
+ * 测试 OpenAI 协议
+ * Test OpenAI protocol
+ */
+async function testOpenAIProtocol(baseUrl: string, apiKey: string, signal: AbortSignal): Promise<{ success: boolean; confidence: number; error?: string; models?: string[]; fixedBaseUrl?: string }> {
+  // 尝试多个可能的端点
+  const endpoints = [
+    { url: `${baseUrl}/models`, path: '' },
+    { url: `${baseUrl}/v1/models`, path: '/v1' },
+  ];
+
+  for (const endpoint of endpoints) {
+    try {
+      const response = await fetch(endpoint.url, {
+        method: 'GET',
+        signal,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${apiKey}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.data && Array.isArray(data.data)) {
+          const models = data.data.map((m: any) => m.id);
+          return {
+            success: true,
+            confidence: 95,
+            models,
+            fixedBaseUrl: endpoint.path ? `${baseUrl}${endpoint.path}` : undefined,
+          };
+        }
+        // 有些 OpenAI 兼容 API 返回 models 而不是 data
+        if (data.models && Array.isArray(data.models)) {
+          const models = data.models.map((m: any) => m.id || m.name);
+          return {
+            success: true,
+            confidence: 85,
+            models,
+            fixedBaseUrl: endpoint.path ? `${baseUrl}${endpoint.path}` : undefined,
+          };
+        }
+      }
+
+      // 401 错误说明是 OpenAI 协议但 key 无效
+      if (response.status === 401) {
+        return { success: false, confidence: 70, error: 'Invalid API key for OpenAI protocol' };
+      }
+    } catch (e) {
+      // 继续尝试下一个端点
+    }
+  }
+
+  return { success: false, confidence: 0, error: 'Not an OpenAI-compatible API endpoint' };
+}
+
+/**
+ * 测试 Anthropic 协议
+ * Test Anthropic protocol
+ */
+async function testAnthropicProtocol(baseUrl: string, apiKey: string, signal: AbortSignal): Promise<{ success: boolean; confidence: number; error?: string; models?: string[]; fixedBaseUrl?: string }> {
+  // Anthropic 没有 models 端点，需要用 messages 端点测试
+  // 发送一个最小请求来验证认证
+  const endpoints = [
+    { url: `${baseUrl}/v1/messages`, path: '/v1' },
+    { url: `${baseUrl}/messages`, path: '' },
+  ];
+
+  for (const endpoint of endpoints) {
+    try {
+      const response = await fetch(endpoint.url, {
+        method: 'POST',
+        signal,
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: 'claude-3-haiku-20240307',
+          max_tokens: 1,
+          messages: [{ role: 'user', content: 'hi' }],
+        }),
+      });
+
+      // 200 表示成功，400 表示参数问题但认证成功
+      if (response.ok) {
+        // 返回 Anthropic 支持的模型列表
+        const models = ['claude-3-opus-20240229', 'claude-3-sonnet-20240229', 'claude-3-haiku-20240307', 'claude-3-5-sonnet-20241022'];
+        return {
+          success: true,
+          confidence: 95,
+          models,
+          fixedBaseUrl: endpoint.path ? `${baseUrl}${endpoint.path}` : undefined,
+        };
+      }
+
+      if (response.status === 400) {
+        // 参数错误但认证成功
+        const models = ['claude-3-opus-20240229', 'claude-3-sonnet-20240229', 'claude-3-haiku-20240307', 'claude-3-5-sonnet-20241022'];
+        return {
+          success: true,
+          confidence: 90,
+          models,
+          fixedBaseUrl: endpoint.path ? `${baseUrl}${endpoint.path}` : undefined,
+        };
+      }
+
+      if (response.status === 401) {
+        return { success: false, confidence: 70, error: 'Invalid API key for Anthropic protocol' };
+      }
+    } catch (e) {
+      // 继续尝试下一个端点
+    }
+  }
+
+  return { success: false, confidence: 0, error: 'Not an Anthropic API endpoint' };
+}
+
+/**
+ * 测试多个 Key 的连通性（并发执行）
+ * Test connectivity for multiple keys (concurrent execution)
+ *
+ * 参考 GPT-Load 的设计，采用并发测试提高效率
+ * Reference GPT-Load design, use concurrent testing for efficiency
+ */
+async function testMultipleKeys(
+  baseUrl: string,
+  apiKeys: string[],
+  protocol: ProtocolType,
+  timeout: number,
+  concurrency: number = 5 // 最大并发数，避免触发限流 / Max concurrency to avoid rate limiting
+): Promise<MultiKeyTestResult> {
+  const results: MultiKeyTestResult['details'] = [];
+
+  // 分批并发执行 / Execute in batches concurrently
+  for (let batchStart = 0; batchStart < apiKeys.length; batchStart += concurrency) {
+    const batchEnd = Math.min(batchStart + concurrency, apiKeys.length);
+    const batch = apiKeys.slice(batchStart, batchEnd);
+
+    const batchPromises = batch.map(async (key, batchIndex) => {
+      const globalIndex = batchStart + batchIndex;
+      const startTime = Date.now();
+
+      try {
+        const result = await testProtocol(baseUrl, key, protocol, timeout);
+        return {
+          index: globalIndex,
+          maskedKey: maskApiKey(key),
+          valid: result.success,
+          error: result.error,
+          latency: Date.now() - startTime,
+        };
+      } catch (e: unknown) {
+        return {
+          index: globalIndex,
+          maskedKey: maskApiKey(key),
+          valid: false,
+          error: e instanceof Error ? e.message : String(e),
+          latency: Date.now() - startTime,
+        };
+      }
+    });
+
+    const batchResults = await Promise.all(batchPromises);
+    results.push(...batchResults);
+  }
+
+  // 按原始索引排序 / Sort by original index
+  results.sort((a, b) => a.index - b.index);
+
+  return {
+    total: apiKeys.length,
+    valid: results.filter((r) => r.valid).length,
+    invalid: results.filter((r) => !r.valid).length,
+    details: results,
+  };
+}
+
+/**
+ * 生成建议
+ * Generate suggestion
+ *
+ * 返回 i18n key 和参数，前端负责翻译
+ * Return i18n key and params, frontend handles translation
+ */
+function generateSuggestion(protocol: ProtocolType, _confidence: number, baseUrl: string, error?: string): ProtocolDetectionResponse['suggestion'] {
+  if (protocol === 'unknown') {
+    if (error?.includes('timeout') || error?.includes('Timeout')) {
+      return {
+        type: 'check_key',
+        message: 'Connection timeout, please check network or API URL',
+        i18nKey: 'settings.protocolTimeout',
+      };
+    }
+    if (error?.includes('API key') || error?.includes('401') || error?.includes('Unauthorized')) {
+      return {
+        type: 'check_key',
+        message: 'Invalid API Key, please check your key',
+        i18nKey: 'settings.protocolInvalidKey',
+      };
+    }
+    return {
+      type: 'check_key',
+      message: 'Unable to identify API protocol, please check configuration',
+      i18nKey: 'settings.protocolCheckConfig',
+    };
+  }
+
+  const displayName = getProtocolDisplayName(protocol);
+
+  // 检测到 Gemini 协议但用户可能选择了其他平台
+  if (protocol === 'gemini' && !baseUrl.includes('googleapis.com')) {
+    return {
+      type: 'switch_platform',
+      message: `Detected ${displayName} protocol, consider switching to Gemini for better support`,
+      suggestedPlatform: 'gemini',
+      i18nKey: 'settings.protocolSwitchSuggestion',
+      i18nParams: { protocol: displayName, platform: 'Gemini' },
+    };
+  }
+
+  // 检测到 Anthropic 协议
+  if (protocol === 'anthropic') {
+    return {
+      type: 'switch_platform',
+      message: `Detected ${displayName} protocol, using custom mode`,
+      suggestedPlatform: 'Anthropic',
+      i18nKey: 'settings.protocolSwitchSuggestion',
+      i18nParams: { protocol: displayName, platform: 'Anthropic' },
+    };
+  }
+
+  // OpenAI 协议是默认支持的
+  if (protocol === 'openai') {
+    return {
+      type: 'none',
+      message: `Detected ${displayName}-compatible protocol, configuration is correct`,
+      i18nKey: 'settings.protocolOpenAICompatible',
+    };
+  }
+
+  return {
+    type: 'none',
+    message: `Identified as ${displayName} protocol`,
+    i18nKey: 'settings.protocolDetected',
+    i18nParams: { protocol: displayName },
+  };
 }
