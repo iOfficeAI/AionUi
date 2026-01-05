@@ -7,43 +7,11 @@
 import type { CompletedToolCall, Config, GeminiClient, ServerGeminiStreamEvent, ToolCallRequestInfo } from '@office-ai/aioncli-core';
 import { executeToolCall, GeminiEventType as ServerGeminiEventType } from '@office-ai/aioncli-core';
 import { parseAndFormatApiError } from './cli/errorParsing';
-import { MIME_TO_EXT_MAP, DEFAULT_IMAGE_EXTENSION } from '@/common/constants';
-import * as fs from 'fs';
-import * as path from 'path';
 
 enum StreamProcessingStatus {
   Completed,
   UserCancelled,
   Error,
-}
-
-/**
- * Get file extension from MIME type (e.g., 'image/png' -> '.png')
- * 从 MIME 类型获取文件扩展名
- */
-function getExtensionFromMimeType(mimeType: string): string {
-  // Extract subtype from MIME type (e.g., 'image/png' -> 'png')
-  const subtype = mimeType.split('/')[1]?.toLowerCase();
-  if (subtype && MIME_TO_EXT_MAP[subtype]) {
-    return MIME_TO_EXT_MAP[subtype];
-  }
-  return DEFAULT_IMAGE_EXTENSION;
-}
-
-/**
- * Save inline image data to a file and return the file path
- * 将内联图片数据保存到文件并返回文件路径
- */
-async function saveInlineImage(mimeType: string, base64Data: string, workingDir: string): Promise<string> {
-  const ext = getExtensionFromMimeType(mimeType);
-  const uniqueSuffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-  const fileName = `gemini-img-${uniqueSuffix}${ext}`;
-  const filePath = path.join(workingDir, fileName);
-
-  const imageBuffer = Buffer.from(base64Data, 'base64');
-  await fs.promises.writeFile(filePath, imageBuffer);
-
-  return filePath;
 }
 
 export const processGeminiStreamEvents = async (stream: AsyncIterable<ServerGeminiStreamEvent>, config: Config, onStreamEvent: (event: { type: ServerGeminiStreamEvent['type']; data: unknown }) => void): Promise<StreamProcessingStatus> => {
@@ -54,31 +22,6 @@ export const processGeminiStreamEvents = async (stream: AsyncIterable<ServerGemi
         break;
       case ServerGeminiEventType.Content:
         onStreamEvent({ type: event.type, data: event.value });
-        break;
-      case ServerGeminiEventType.InlineData:
-        {
-          // Handle inline image data from image generation models (e.g., gemini-3-pro-image)
-          // 处理来自图片生成模型的内联图片数据
-          const inlineData = event.value as { mimeType: string; data: string };
-          if (inlineData?.mimeType && inlineData?.data) {
-            try {
-              const workingDir = config.getWorkingDir();
-              const imagePath = await saveInlineImage(inlineData.mimeType, inlineData.data, workingDir);
-              const relativePath = path.relative(workingDir, imagePath);
-              // Emit as content with markdown image format for display
-              onStreamEvent({
-                type: ServerGeminiEventType.Content,
-                data: `![Generated Image](${relativePath})`,
-              });
-            } catch (error) {
-              console.error('[InlineData] Failed to save image:', error);
-              onStreamEvent({
-                type: ServerGeminiEventType.Error,
-                data: `Failed to save generated image: ${error instanceof Error ? error.message : String(error)}`,
-              });
-            }
-          }
-        }
         break;
       case ServerGeminiEventType.ToolCallRequest:
         onStreamEvent({ type: event.type, data: event.value });
@@ -125,10 +68,8 @@ export const processGeminiStreamEvents = async (stream: AsyncIterable<ServerGemi
       case ServerGeminiEventType.ToolCallResponse:
       case ServerGeminiEventType.MaxSessionTurns:
       case ServerGeminiEventType.LoopDetected:
-      case ServerGeminiEventType.ModelInfo:
         {
-          // These event types are handled silently or are informational only
-          // ModelInfo: Contains the model name being used (e.g., 'gemini-3-pro-image')
+          // console.log('event>>>>>>>>>>>>>>>>>>>', event);
         }
         break;
       default: {

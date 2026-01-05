@@ -10,7 +10,6 @@ import { ProcessConfig } from '../initStorage';
 import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '../message';
 import BaseAgentManager from './BaseAgentManager';
 import { handlePreviewOpenEvent } from '../utils/previewUtils';
-import { loadSkillContent } from '@/common/utils/skillLoader';
 
 interface AcpAgentManagerData {
   workspace?: string;
@@ -25,7 +24,6 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
   workspace: string;
   agent: AcpAgent;
   private bootstrap: Promise<AcpAgent> | undefined;
-  private isFirstMessage: boolean = true;
   options: AcpAgentManagerData;
 
   constructor(data: AcpAgentManagerData) {
@@ -121,22 +119,6 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
       await this.initAgent(this.options);
       // Save user message to chat history ONLY after successful sending
       if (data.msg_id && data.content) {
-        let contentToSend = data.content;
-
-        // Inject Claude skill for the first message only
-        const shouldInjectSkill = this.options.backend === 'claude' && this.isFirstMessage;
-        if (shouldInjectSkill) {
-          const skillContent = await loadSkillContent('claude-skill');
-          if (skillContent) {
-            // Append skill instruction to the user's first prompt invisibly (or visibly if desired)
-            // Based on "context will overflow" concern, we should be careful.
-            // However, for Claude Code, instructions often go in the prompt.
-            // If we want to treat it as a "skill" definition, it might need to be wrapped differently.
-            // Given current constraints, appending it with a delimiter is the standard way unless we use MCP.
-            contentToSend = `${contentToSend}\n\n<system_instruction>\n${skillContent}\n</system_instruction>`;
-          }
-        }
-
         const userMessage: TMessage = {
           id: data.msg_id,
           msg_id: data.msg_id,
@@ -144,7 +126,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
           position: 'right',
           conversation_id: this.conversation_id,
           content: {
-            content: data.content, // Save original content to history
+            content: data.content,
           },
           createdAt: Date.now(),
         };
@@ -156,12 +138,6 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
           data: userMessage.content.content,
         };
         ipcBridge.acpConversation.responseStream.emit(userResponseMessage);
-
-        const result = await this.agent.sendMessage({ ...data, content: contentToSend });
-        if (shouldInjectSkill) {
-          this.isFirstMessage = false;
-        }
-        return result;
       }
       return await this.agent.sendMessage(data);
     } catch (e) {
