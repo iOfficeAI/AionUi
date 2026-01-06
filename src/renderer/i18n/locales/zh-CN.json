@@ -283,6 +283,28 @@
     },
     "contextUsage": {
       "contextUsed": "上下文已使用"
+    },
+    "skill_generator": {
+      "title": "生成 Skill/规则",
+      "generate": "生成",
+      "description": "分析会话历史，自动生成：",
+      "type_skill": "技能（Python）",
+      "type_rule": "规则（JSON/Markdown）",
+      "name_label": "智能体名称：",
+      "name_placeholder": "例如：Excel 翻译助手",
+      "menu_generate": "根据历史生成",
+      "menu_load": "加载规则/技能",
+      "load_title": "加载 Rule/Skill",
+      "load_error": "读取工作区文件失败",
+      "no_files": "工作区没有匹配的文件",
+      "read_error": "读取文件失败",
+      "rule_loaded": "规则已应用",
+      "no_workspace": "未配置工作区，无法生成",
+      "name_required": "请先填写名称",
+      "no_history": "没有会话历史记录",
+      "request_sent": "生成请求已发送",
+      "failed": "生成失败",
+      "preset_registered": "已保存为全局预设"
     }
   },
   "settings": {
@@ -298,6 +320,12 @@
     "yoloMode": "自动允许",
     "customCss": "自定义 CSS",
     "customCssDesc": "在此处输入自定义 CSS 样式以更改界面外观。系统会自动为所有样式添加 !important 以确保优先级最高，无需手动添加。修改会立即生效。",
+    "preset_agents": "自定义预设（规则 & 技能）",
+    "no_presets": "还没有生成过自定义预设",
+    "edit_preset": "编辑预设",
+    "agent_name": "智能体名称",
+    "rule_content": "规则内容 / 指令",
+    "delete_preset_confirm": "确定要删除该预设吗？",
     "cssSettings": "CSS设置",
     "cssTheme": {
       "selectOrCustomize": "选择预设主题或自定义 CSS",
@@ -493,7 +521,22 @@
     "customModelPlaceholder": "输入模型 ID（如 claude-opus-4-20250514）",
     "switchToPreset": "切换到预设模型",
     "preset": "预设",
-    "noAgentsDetected": "未检测到 Agent"
+    "noAgentsDetected": "未检测到 Agent",
+    "protocolDetecting": "正在检测 API 协议...",
+    "protocolDetected": "检测到 {{protocol}} 协议",
+    "protocolDetectFailed": "协议检测失败",
+    "protocolUnknown": "未识别的协议",
+    "switchPlatform": "切换",
+    "platformSwitched": "已切换到 {{platform}} 平台",
+    "protocolOpenAICompatible": "检测到 OpenAI 兼容协议，配置正确",
+    "protocolSwitchSuggestion": "检测到 {{protocol}} 协议，建议切换到 {{platform}} 平台以获得更好的支持",
+    "protocolTimeout": "连接超时，请检查网络或 API 地址是否正确",
+    "protocolInvalidKey": "API Key 无效，请检查 Key 是否正确",
+    "protocolCheckConfig": "无法识别 API 协议，请检查配置",
+    "multiKeyTestResult": "多 Key 测试：{{valid}}/{{total}} 个有效",
+    "multiKeyAllValid": "所有 {{total}} 个 Key 均有效",
+    "multiKeyPartialValid": "{{valid}} 个有效，{{invalid}} 个无效",
+    "multiKeyAllInvalid": "所有 {{total}} 个 Key 均无效"
   },
   "messages": {
     "fileChanges": "文件变更",

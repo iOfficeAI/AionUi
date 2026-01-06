@@ -10,6 +10,7 @@ import type { McpSource } from '../process/services/mcpServices/McpProtocol';
 import type { AcpBackend } from '../types/acpTypes';
 import type { IMcpServer, IProvider, TChatConversation, TProviderWithModel } from './storage';
 import type { PreviewHistoryTarget, PreviewSnapshotInfo } from './types/preview';
+import type { ProtocolDetectionRequest, ProtocolDetectionResponse } from './utils/protocolDetector';
 
 export const shell = {
   openFile: bridge.buildProvider<void, string>('open-file'), // 使用系统默认程序打开文件
@@ -105,6 +106,8 @@ export const mode = {
   fetchModelList: bridge.buildProvider<IBridgeResponse<{ mode: Array<string>; fix_base_url?: string }>, { base_url?: string; api_key: string; try_fix?: boolean; platform?: string }>('mode.get-model-list'),
   saveModelConfig: bridge.buildProvider<IBridgeResponse, IProvider[]>('mode.save-model-config'),
   getModelConfig: bridge.buildProvider<IProvider[], void>('mode.get-model-config'),
+  /** 协议检测接口 - 自动检测 API 端点使用的协议类型 / Protocol detection - auto-detect API protocol type */
+  detectProtocol: bridge.buildProvider<IBridgeResponse<ProtocolDetectionResponse>, ProtocolDetectionRequest>('mode.detect-protocol'),
 };
 
 // ACP对话相关接口 - 复用统一的conversation接口
@@ -199,7 +202,17 @@ export interface ICreateConversationParams {
   id?: string;
   name?: string;
   model: TProviderWithModel;
-  extra: { workspace?: string; customWorkspace?: boolean; defaultFiles?: string[]; backend?: AcpBackend; cliPath?: string; webSearchEngine?: 'google' | 'default'; agentName?: string; customAgentId?: string };
+  extra: {
+    workspace?: string;
+    customWorkspace?: boolean;
+    defaultFiles?: string[];
+    backend?: AcpBackend;
+    cliPath?: string;
+    webSearchEngine?: 'google' | 'default';
+    agentName?: string;
+    customAgentId?: string;
+    context?: string;
+  };
 }
 interface IResetConversationParams {
   id?: string;

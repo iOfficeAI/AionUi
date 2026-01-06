@@ -7,8 +7,10 @@ import { Search, LinkCloud, Edit } from '@icon-park/react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useModeModeList from '../../../hooks/useModeModeList';
+import useProtocolDetection from '../../../hooks/useProtocolDetection';
 import AionModal from '@/renderer/components/base/AionModal';
 import ApiKeyEditorModal from './ApiKeyEditorModal';
+import ProtocolDetectionStatus from './ProtocolDetectionStatus';
 import { MODEL_PLATFORMS, getPlatformByValue, isCustomOption, isGeminiPlatform, type PlatformConfig } from '@/renderer/config/modelPlatforms';
 
 /**
@@ -48,6 +50,9 @@ const AddPlatformModal = ModalHOC<{
   const { t } = useTranslation();
   const [form] = Form.useForm();
   const [apiKeyEditorVisible, setApiKeyEditorVisible] = useState(false);
+  // 用于追踪上次检测时的输入值，避免重复检测
+  // Track last detection input to avoid redundant detection
+  const [lastDetectionInput, setLastDetectionInput] = useState<{ baseUrl: string; apiKey: string } | null>(null);
 
   const platformValue = Form.useWatch('platform', form);
   const baseUrl = Form.useWatch('baseUrl', form);
@@ -63,11 +68,57 @@ const AddPlatformModal = ModalHOC<{
 
   const modelListState = useModeModeList(platform, baseUrl, apiKey, true);
 
+  // 计算实际使用的 baseUrl（优先使用用户输入，否则使用平台预设）
+  // Calculate actual baseUrl (prefer user input, fallback to platform preset)
+  const actualBaseUrl = useMemo(() => {
+    if (baseUrl) return baseUrl;
+    return selectedPlatform?.baseUrl || '';
+  }, [baseUrl, selectedPlatform?.baseUrl]);
+
+  // 协议检测 Hook / Protocol detection hook
+  // 启用检测的条件：
+  // 1. 自定义平台 或 用户输入了自定义 base URL（非官方地址，如本地代理）
+  // 2. 输入值与上次"采纳建议"时不同（避免切换平台后重复检测）
+  // Enable detection when:
+  // 1. Custom platform OR user entered a custom base URL (non-official, like local proxy)
+  // 2. Input values differ from last "accepted suggestion" (avoid redundant detection after platform switch)
+  const isNonOfficialBaseUrl = baseUrl && !baseUrl.includes('googleapis.com') && !baseUrl.includes('generativelanguage.googleapis.com');
+  const shouldEnableDetection = isCustom || isNonOfficialBaseUrl;
+  // 只有在用户修改了输入值（相对于上次采纳建议时）才触发检测
+  // Only trigger detection when input changed since last accepted suggestion
+  const inputChangedSinceLastSwitch = !lastDetectionInput || lastDetectionInput.baseUrl !== actualBaseUrl || lastDetectionInput.apiKey !== apiKey;
+  const protocolDetection = useProtocolDetection(shouldEnableDetection && inputChangedSinceLastSwitch ? actualBaseUrl : '', shouldEnableDetection && inputChangedSinceLastSwitch ? apiKey : '', {
+    debounceMs: 1000,
+    autoDetect: true,
+    timeout: 10000,
+  });
+
+  // 是否显示检测结果：启用检测 且 (有结果或正在检测) 且 输入值与上次采纳时不同
+  // Whether to show detection result: enabled AND (has result or detecting) AND input changed since last switch
+  const shouldShowDetectionResult = shouldEnableDetection && inputChangedSinceLastSwitch;
+
+  // 处理平台切换建议
+  // Handle platform switch suggestion
+  const handleSwitchPlatform = (suggestedPlatform: string) => {
+    const targetPlatform = MODEL_PLATFORMS.find((p) => p.value === suggestedPlatform || p.name === suggestedPlatform);
+    if (targetPlatform) {
+      form.setFieldValue('platform', targetPlatform.value);
+      form.setFieldValue('model', '');
+      protocolDetection.reset();
+      // 记录当前输入，防止切换后重复检测
+      // Record current input to prevent redundant detection after switch
+      setLastDetectionInput({ baseUrl: actualBaseUrl, apiKey });
+      message.success(t('settings.platformSwitched', { platform: targetPlatform.name }));
+    }
+  };
+
   // 弹窗打开时重置表单 / Reset form when modal opens
   useEffect(() => {
     if (modalProps.visible) {
       form.resetFields();
       form.setFieldValue('platform', 'gemini');
+      protocolDetection.reset();
+      setLastDetectionInput(null); // 重置检测记录 / Reset detection record
     }
   }, [modalProps.visible]);
 
@@ -153,7 +204,19 @@ const AddPlatformModal = ModalHOC<{
           </Form.Item>
 
           {/* API Key */}
-          <Form.Item label={t('settings.apiKey')} required rules={[{ required: true }]} field={'apiKey'} extra={<div className='text-11px text-t-secondary mt-2 leading-4'>{t('settings.multiApiKeyTip')}</div>}>
+          <Form.Item
+            label={t('settings.apiKey')}
+            required
+            rules={[{ required: true }]}
+            field={'apiKey'}
+            extra={
+              <div className='space-y-2px'>
+                <div className='text-11px text-t-secondary mt-2 leading-4'>{t('settings.multiApiKeyTip')}</div>
+                {/* 协议检测状态 / Protocol detection status */}
+                {shouldShowDetectionResult && <ProtocolDetectionStatus isDetecting={protocolDetection.isDetecting} result={protocolDetection.result} currentPlatform={platformValue} onSwitchPlatform={handleSwitchPlatform} />}
+              </div>
+            }
+          >
             <Input
               onBlur={() => {
                 void modelListState.mutate();

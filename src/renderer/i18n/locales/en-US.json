@@ -286,6 +286,28 @@
     },
     "contextUsage": {
       "contextUsed": "context used"
+    },
+    "skill_generator": {
+      "title": "Generate Skill/Rule",
+      "generate": "Generate",
+      "description": "Analyze conversation history to generate:",
+      "type_skill": "Skill (Python)",
+      "type_rule": "Rule (JSON/MD)",
+      "name_label": "Agent Name:",
+      "name_placeholder": "e.g. Excel Translator",
+      "menu_generate": "Generate from History",
+      "menu_load": "Load Rule/Skill",
+      "load_title": "Load Rule/Skill",
+      "load_error": "Failed to load files",
+      "no_files": "No relevant files found in workspace",
+      "read_error": "Failed to read file",
+      "rule_loaded": "Rule loaded successfully",
+      "no_workspace": "No workspace available",
+      "name_required": "Please enter a name for the preset",
+      "no_history": "No conversation history found",
+      "request_sent": "Request sent to agent",
+      "failed": "Failed to generate",
+      "preset_registered": "Agent preset registered successfully!"
     }
   },
   "settings": {
@@ -301,6 +323,12 @@
     "yoloMode": "YOLO (Auto Allow)",
     "customCss": "Custom CSS",
     "customCssDesc": "Enter custom CSS styles here to modify the interface appearance. The system will automatically add !important to ensure highest priority. Changes will take effect immediately.",
+    "preset_agents": "Custom Presets (Rules & Skills)",
+    "no_presets": "No custom presets generated yet.",
+    "edit_preset": "Edit Preset",
+    "agent_name": "Agent Name",
+    "rule_content": "Rule Content / Instructions",
+    "delete_preset_confirm": "Are you sure you want to delete this preset?",
     "cssSettings": "CSS Settings",
     "cssTheme": {
       "selectOrCustomize": "Select preset theme or custom CSS",
@@ -497,7 +525,22 @@
     "customModelPlaceholder": "Enter model ID (e.g., claude-opus-4-20250514)",
     "switchToPreset": "Switch to preset models",
     "preset": "Preset",
-    "noAgentsDetected": "No agents detected"
+    "noAgentsDetected": "No agents detected",
+    "protocolDetecting": "Detecting API protocol...",
+    "protocolDetected": "Detected {{protocol}} protocol",
+    "protocolDetectFailed": "Protocol detection failed",
+    "protocolUnknown": "Unknown protocol",
+    "switchPlatform": "Switch",
+    "platformSwitched": "Switched to {{platform}} platform",
+    "protocolOpenAICompatible": "Detected OpenAI-compatible protocol, configuration is correct",
+    "protocolSwitchSuggestion": "Detected {{protocol}} protocol, consider switching to {{platform}} for better support",
+    "protocolTimeout": "Connection timeout, please check network or API URL",
+    "protocolInvalidKey": "Invalid API Key, please check your key",
+    "protocolCheckConfig": "Unable to identify API protocol, please check configuration",
+    "multiKeyTestResult": "Multi-key test: {{valid}}/{{total}} valid",
+    "multiKeyAllValid": "All {{total}} keys are valid",
+    "multiKeyPartialValid": "{{valid}} valid, {{invalid}} invalid",
+    "multiKeyAllInvalid": "All {{total}} keys are invalid"
   },
   "messages": {
     "fileChanges": "File Changes",
