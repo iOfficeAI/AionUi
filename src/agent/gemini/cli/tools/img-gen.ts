@@ -487,7 +487,20 @@ class ImageGenerationInvocation extends BaseToolInvocation<ImageGenerationToolPa
       updateOutput?.('Processing AI response...');
 
       const responseText = choice.message.content || 'Image generated successfully.';
-      const images = choice.message.images;
+      let images = choice.message.images;
+
+      // If no images field, try to extract from markdown in content
+      // Antigravity proxy returns images as ![image](data:mime;base64,xxx) in content
+      if ((!images || images.length === 0) && responseText) {
+        const markdownImageRegex = /!\[image\]\((data:image\/[^;]+;base64,[^)]+)\)/g;
+        const matches = [...responseText.matchAll(markdownImageRegex)];
+        if (matches.length > 0) {
+          images = matches.map((match) => ({
+            type: 'image_url' as const,
+            image_url: { url: match[1] },
+          }));
+        }
+      }
 
       if (!images || images.length === 0) {
         // No images generated, return text response
