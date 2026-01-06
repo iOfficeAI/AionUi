@@ -227,17 +227,59 @@ const ImageDisplay: React.FC<{
   const handleCopy = useCallback(async () => {
     try {
       const blob = await getImageBlob();
-      await navigator.clipboard.write([
-        new ClipboardItem({
-          [blob.type]: blob,
-        }),
-      ]);
-      messageApi.success(t('messages.copySuccess', { defaultValue: 'Copied' }));
+
+      // Try using Clipboard API with blob
+      if (navigator.clipboard && typeof navigator.clipboard.write === 'function') {
+        try {
+          await navigator.clipboard.write([
+            new ClipboardItem({
+              [blob.type]: blob,
+            }),
+          ]);
+          messageApi.success(t('messages.copySuccess', { defaultValue: 'Copied' }));
+          return;
+        } catch (clipboardError) {
+          console.warn('[ImageDisplay] Clipboard API failed, trying fallback:', clipboardError);
+        }
+      }
+
+      // Fallback: Use canvas to copy image for browsers/Electron that don't support ClipboardItem with images
+      const img = document.createElement('img');
+      img.src = imageUrl;
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+      });
+
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) throw new Error('Failed to get canvas context');
+
+      ctx.drawImage(img, 0, 0);
+      canvas.toBlob(async (canvasBlob) => {
+        if (!canvasBlob) {
+          messageApi.error(t('messages.copyFailed', { defaultValue: 'Failed to copy' }));
+          return;
+        }
+        try {
+          await navigator.clipboard.write([
+            new ClipboardItem({
+              'image/png': canvasBlob,
+            }),
+          ]);
+          messageApi.success(t('messages.copySuccess', { defaultValue: 'Copied' }));
+        } catch (canvasError) {
+          console.error('[ImageDisplay] Canvas fallback also failed:', canvasError);
+          messageApi.error(t('messages.copyFailed', { defaultValue: 'Failed to copy' }));
+        }
+      }, 'image/png');
     } catch (error) {
       console.error('Failed to copy image:', error);
       messageApi.error(t('messages.copyFailed', { defaultValue: 'Failed to copy' }));
     }
-  }, [getImageBlob, t, messageApi]);
+  }, [getImageBlob, imageUrl, t, messageApi]);
 
   const handleDownload = useCallback(async () => {
     try {
@@ -431,7 +473,7 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
 
             {(description || resultDisplay) && (
               <div className='mt-8px'>
-                {description && <div className='text-12px text-t-secondary whitespace-pre-wrap break-words mb-2'>{description}</div>}
+                {description && <div className='text-12px text-t-secondary truncate mb-2'>{description}</div>}
                 {resultDisplay && (
                   <div>
                     {/* 在 Alert 外展示完整结果 Display full result outside Alert */}
