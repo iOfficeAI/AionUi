@@ -612,7 +612,22 @@
     "customModelPlaceholder": "モデル ID を入力（例：claude-opus-4-20250514）",
     "switchToPreset": "プリセットモデルに切り替え",
     "preset": "プリセット",
-    "noAgentsDetected": "Agent が検出されませんでした"
+    "noAgentsDetected": "Agent が検出されませんでした",
+    "protocolDetecting": "API プロトコルを検出中...",
+    "protocolDetected": "{{protocol}} プロトコルを検出しました",
+    "protocolDetectFailed": "プロトコル検出に失敗しました",
+    "protocolUnknown": "認識できないプロトコル",
+    "switchPlatform": "切替",
+    "platformSwitched": "{{platform}} プラットフォームに切り替えました",
+    "protocolOpenAICompatible": "OpenAI 互換プロトコルを検出しました。設定は正しいです",
+    "protocolSwitchSuggestion": "{{protocol}} プロトコルを検出しました。より良いサポートのために {{platform}} プラットフォームへの切り替えをお勧めします",
+    "protocolTimeout": "接続がタイムアウトしました。ネットワークまたは API アドレスを確認してください",
+    "protocolInvalidKey": "API Key が無効です。Key が正しいか確認してください",
+    "protocolCheckConfig": "API プロトコルを認識できません。設定を確認してください",
+    "multiKeyTestResult": "マルチキーテスト：{{valid}}/{{total}} 個有効",
+    "multiKeyAllValid": "すべての {{total}} 個のキーが有効です",
+    "multiKeyPartialValid": "{{valid}} 個有効、{{invalid}} 個無効",
+    "multiKeyAllInvalid": "すべての {{total}} 個のキーが無効です"
   },
   "messages": {
     "fileChanges": "ファイル変更",

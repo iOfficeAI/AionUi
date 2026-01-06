@@ -583,7 +583,22 @@
     "customModelPlaceholder": "輸入模型 ID（如 claude-opus-4-20250514）",
     "switchToPreset": "切換到預設模型",
     "preset": "預設",
-    "noAgentsDetected": "未偵測到 Agent"
+    "noAgentsDetected": "未偵測到 Agent",
+    "protocolDetecting": "正在偵測 API 協議...",
+    "protocolDetected": "偵測到 {{protocol}} 協議",
+    "protocolDetectFailed": "協議偵測失敗",
+    "protocolUnknown": "未識別的協議",
+    "switchPlatform": "切換",
+    "platformSwitched": "已切換到 {{platform}} 平台",
+    "protocolOpenAICompatible": "偵測到 OpenAI 相容協議，設定正確",
+    "protocolSwitchSuggestion": "偵測到 {{protocol}} 協議，建議切換到 {{platform}} 平台以獲得更好的支援",
+    "protocolTimeout": "連線逾時，請檢查網路或 API 位址是否正確",
+    "protocolInvalidKey": "API Key 無效，請檢查 Key 是否正確",
+    "protocolCheckConfig": "無法識別 API 協議，請檢查設定",
+    "multiKeyTestResult": "多 Key 測試：{{valid}}/{{total}} 個有效",
+    "multiKeyAllValid": "所有 {{total}} 個 Key 均有效",
+    "multiKeyPartialValid": "{{valid}} 個有效，{{invalid}} 個無效",
+    "multiKeyAllInvalid": "所有 {{total}} 個 Key 均無效"
   },
   "messages": {
     "fileChanges": "檔案變更",
