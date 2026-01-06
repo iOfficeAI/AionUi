@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aion PDF Purifier | 3D Visualization</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Vue 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #050510; font-family: 'Rajdhani', sans-serif; }
+        #canvas-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+        #ui-layer { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 10; pointer-events: none; }
+        .pointer-events-auto { pointer-events: auto; }
+        .glass-panel {
+            background: rgba(20, 30, 50, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(100, 200, 255, 0.2);
+            box-shadow: 0 0 20px rgba(0, 150, 255, 0.1);
+        }
+        .neon-text {
+            color: #00f3ff;
+            text-shadow: 0 0 10px rgba(0, 243, 255, 0.7);
+        }
+        .title-font { font-family: 'Orbitron', sans-serif; }
+        
+        /* Scanline effect */
+        .scanlines {
+            background: linear-gradient(
+                to bottom,
+                rgba(255,255,255,0),
+                rgba(255,255,255,0) 50%,
+                rgba(0,0,0,0.1) 50%,
+                rgba(0,0,0,0.1)
+            );
+            background-size: 100% 4px;
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            z-index: 5;
+            pointer-events: none;
+            opacity: 0.3;
+        }
+
+        /* Animations */
+        @keyframes pulse-border {
+            0% { border-color: rgba(0, 243, 255, 0.3); }
+            50% { border-color: rgba(0, 243, 255, 0.8); }
+            100% { border-color: rgba(0, 243, 255, 0.3); }
+        }
+        .animate-border { animation: pulse-border 2s infinite; }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <!-- 3D Background -->
+    <div id="canvas-container"></div>
+    <div class="scanlines"></div>
+
+    <!-- UI Overlay -->
+    <div id="ui-layer" class="flex flex-col justify-between p-6 text-white">
+        
+        <!-- Header -->
+        <header class="flex justify-between items-center pointer-events-auto">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 border-2 border-cyan-400 rounded-full flex items-center justify-center bg-cyan-900/50">
+                    <span class="text-xl">⚡</span>
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold title-font tracking-wider neon-text">AION <span class="text-white text-lg">PURIFIER</span></h1>
+                    <p class="text-xs text-cyan-300 opacity-70">PDF TO PPT CONVERTER // V3.1 INFOGRAPHIC MODE</p>
+                </div>
+            </div>
+            <div class="text-right">
+                <div class="text-xs text-gray-400">SYSTEM STATUS</div>
+                <div class="text-sm font-bold text-green-400 flex items-center gap-2 justify-end">
+                    <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span> ONLINE
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Interaction Area -->
+        <main class="flex-grow flex items-center justify-center relative pointer-events-auto gap-8">
+            
+            <!-- Left Panel: Data Stats (Infographic Style) -->
+            <div v-if="processingState !== 'idle'" class="glass-panel rounded-xl p-4 w-64 h-80 flex flex-col justify-center transition-all duration-500" :class="{'opacity-0 -translate-x-10': processingState === 'idle'}">
+                <h3 class="text-cyan-400 text-sm font-bold mb-4 border-b border-cyan-900 pb-2">DATA METRICS</h3>
+                
+                <div class="mb-4">
+                    <div class="flex justify-between text-xs text-gray-400 mb-1">
+                        <span>WATERMARK DENSITY</span>
+                        <span>{{ stats.density }}%</span>
+                    </div>
+                    <div class="h-1 bg-gray-700 rounded overflow-hidden">
+                        <div class="h-full bg-red-400 transition-all duration-300" :style="{ width: stats.density + '%' }"></div>
+                    </div>
+                </div>
+
+                <div class="mb-4">
+                    <div class="flex justify-between text-xs text-gray-400 mb-1">
+                        <span>CLEANING CONFIDENCE</span>
+                        <span>{{ stats.confidence }}%</span>
+                    </div>
+                    <div class="h-1 bg-gray-700 rounded overflow-hidden">
+                        <div class="h-full bg-cyan-400 transition-all duration-300" :style="{ width: stats.confidence + '%' }"></div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-2 mt-4">
+                    <div class="bg-black/30 p-2 rounded">
+                        <div class="text-[10px] text-gray-500">PAGES</div>
+                        <div class="text-xl font-mono">{{ stats.pages }}</div>
+                    </div>
+                    <div class="bg-black/30 p-2 rounded">
+                        <div class="text-[10px] text-gray-500">TIME</div>
+                        <div class="text-xl font-mono">{{ (progress / 20).toFixed(1) }}s</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Center Panel: Drop Zone / Status Display -->
+            <div 
+                class="glass-panel rounded-2xl p-8 w-[480px] text-center transition-all duration-500 transform hover:scale-105 z-20"
+                :class="{'border-cyan-400 shadow-[0_0_30px_rgba(0,243,255,0.3)]': isDragging, 'opacity-100': true}"
+                @dragover.prevent="isDragging = true"
+                @dragleave.prevent="isDragging = false"
+                @drop.prevent="handleDrop"
+            >
+                <div v-if="processingState === 'idle'">
+                    <div class="text-6xl mb-4 opacity-80 animate-bounce">📄</div>
+                    <h2 class="text-2xl font-bold mb-2 title-font">INITIATE SEQUENCE</h2>
+                    <p class="text-cyan-200 mb-6 opacity-80 text-sm">Drag & Drop PDF Document or Click to Upload</p>
+                    
+                    <button @click="triggerUpload" class="px-8 py-3 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-lg transition-colors tracking-widest text-sm clip-path-polygon">
+                        SELECT FILE
+                    </button>
+                    <input type="file" ref="fileInput" class="hidden" accept=".pdf" @change="handleFileSelect">
+                </div>
+
+                <div v-if="processingState === 'processing'" class="py-8">
+                     <div class="text-6xl mb-4 animate-spin text-cyan-400">⚙️</div>
+                    <h2 class="text-xl font-bold mb-2 title-font animate-pulse">PURIFYING...</h2>
+                    <p class="text-cyan-200 opacity-60 text-xs">AI Models Active</p>
+                </div>
+
+                <div v-if="processingState === 'complete'">
+                     <div class="text-6xl mb-4 text-green-400">✨</div>
+                    <h2 class="text-2xl font-bold mb-2 title-font text-green-400">PURIFICATION COMPLETE</h2>
+                    <p class="text-gray-300 mb-6 text-sm">Watermarks removed. Slides fitted.</p>
+                    
+                    <button @click="reset" class="px-6 py-2 border border-white/30 hover:bg-white/10 rounded-lg text-sm mr-2 transition-colors">
+                        NEW TASK
+                    </button>
+                    <button class="px-8 py-3 bg-green-600 hover:bg-green-500 text-white font-bold rounded-lg transition-colors tracking-widest text-sm shadow-[0_0_15px_rgba(34,197,94,0.4)]">
+                        DOWNLOAD PPTX
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right Panel: Processing Log (Visualized) -->
+             <div v-if="processingState === 'processing'" class="glass-panel rounded-xl p-6 w-80 pointer-events-none flex flex-col justify-between">
+                <div>
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-xs font-mono text-cyan-300">CORE_PROCESS</span>
+                        <span class="text-xs font-mono">{{ progress }}%</span>
+                    </div>
+                    <div class="w-full bg-gray-800 h-1 rounded overflow-hidden mb-4">
+                        <div class="bg-cyan-400 h-full transition-all duration-300" :style="{ width: progress + '%' }"></div>
+                    </div>
+                </div>
+                <div class="font-mono text-xs space-y-1 h-32 overflow-hidden relative border-l border-cyan-900 pl-2">
+                    <div v-for="(log, idx) in logs" :key="idx" class="text-cyan-100 opacity-80">
+                        <span class="text-cyan-600 mr-1">>></span> {{ log }}
+                    </div>
+                </div>
+            </div>
+
+        </main>
+
+        <!-- Footer -->
+        <footer class="flex justify-between items-end pointer-events-auto text-xs text-gray-500 font-mono">
+            <div>
+                <div class="mb-1">MODULES:</div>
+                <div class="flex gap-2">
+                    <span class="px-2 py-1 border border-gray-700 rounded bg-black/40 hover:bg-cyan-900/30 transition-colors cursor-help" title="Detects watermarks via variance analysis">AUTO-ROI</span>
+                    <span class="px-2 py-1 border border-gray-700 rounded bg-black/40 hover:bg-cyan-900/30 transition-colors cursor-help" title="Fills removed areas intelligently">HYBRID-INPAINT</span>
+                </div>
+            </div>
+            <div class="text-right opacity-50">
+                GENERATED BY AION FRONTEND ASSISTANT<br>
+                SKILL: UI/UX PRO MAX // SPEC: PDF-TO-PPT
+            </div>
+        </footer>
+    </div>
+</div>
+
+<script>
+    const { createApp, ref, reactive, onMounted } = Vue;
+
+    createApp({
+        setup() {
+            const processingState = ref('idle'); // idle, processing, complete
+            const isDragging = ref(false);
+            const progress = ref(0);
+            const logs = ref([]);
+            const fileInput = ref(null);
+            
+            // Fake Stats for Infographic Feel
+            const stats = reactive({
+                density: 0,
+                confidence: 0,
+                pages: 0
+            });
+
+            // Three.js State
+            let scene, camera, renderer, coreObj, particles;
+            let targetRotationSpeed = 0.005;
+
+            const triggerUpload = () => fileInput.value.click();
+
+            const handleFileSelect = (e) => {
+                if (e.target.files.length) startProcess(e.target.files[0]);
+            };
+
+            const handleDrop = (e) => {
+                isDragging.value = false;
+                if (e.dataTransfer.files.length) startProcess(e.dataTransfer.files[0]);
+            };
+
+            const addLog = (msg) => {
+                logs.value.unshift(msg);
+                if (logs.value.length > 7) logs.value.pop();
+            };
+
+            const startProcess = (file) => {
+                processingState.value = 'processing';
+                progress.value = 0;
+                logs.value = [];
+                stats.pages = Math.floor(Math.random() * 20) + 5;
+                addLog(`File received: ${file.name}`);
+                
+                // Ramp up animation
+                targetRotationSpeed = 0.05;
+                
+                // Simulate process steps
+                const steps = [
+                    { t: 10, msg: "Analyzing PDF structure...", action: () => { stats.density = 12; } },
+                    { t: 30, msg: "Detecting watermarks (Auto-ROI)...", action: () => { stats.density = 45; stats.confidence = 20; } },
+                    { t: 45, msg: "ROI identified at [Bottom-Right]...", action: () => { stats.confidence = 60; } },
+                    { t: 60, msg: "Applying Hybrid Inpainting...", action: () => { stats.density = 20; stats.confidence = 85; } },
+                    { t: 80, msg: "Refining slide background...", action: () => { stats.density = 5; stats.confidence = 92; } },
+                    { t: 90, msg: "Generating PPTX container...", action: () => { stats.density = 0; stats.confidence = 98; } },
+                    { t: 100, msg: "Finalizing output...", action: () => { stats.confidence = 100; } }
+                ];
+
+                let currentStep = 0;
+                
+                const interval = setInterval(() => {
+                    progress.value += 1;
+                    
+                    // Random fluctuate stats
+                    if (processingState.value === 'processing') {
+                         stats.confidence = Math.min(100, Math.max(0, stats.confidence + (Math.random() - 0.4)));
+                    }
+
+                    if (currentStep < steps.length && progress.value >= steps[currentStep].t) {
+                        addLog(steps[currentStep].msg);
+                        if(steps[currentStep].action) steps[currentStep].action();
+                        currentStep++;
+                    }
+
+                    if (progress.value >= 100) {
+                        clearInterval(interval);
+                        completeProcess();
+                    }
+                }, 50); // 5 seconds total
+            };
+
+            const completeProcess = () => {
+                processingState.value = 'complete';
+                targetRotationSpeed = 0.002;
+                addLog("Done.");
+            };
+
+            const reset = () => {
+                processingState.value = 'idle';
+                progress.value = 0;
+                logs.value = [];
+                stats.density = 0;
+                stats.confidence = 0;
+                stats.pages = 0;
+            };
+
+            // Three.js Initialization
+            onMounted(() => {
+                initThreeJS();
+                animate();
+            });
+
+            const initThreeJS = () => {
+                scene = new THREE.Scene();
+                // Fog for depth
+                scene.fog = new THREE.FogExp2(0x050510, 0.002);
+
+                camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+                camera.position.z = 5;
+
+                renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+                renderer.setSize(window.innerWidth, window.innerHeight);
+                document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+                // Core Object (The "Processor")
+                const geometry = new THREE.IcosahedronGeometry(1.5, 0);
+                const material = new THREE.MeshBasicMaterial({ 
+                    color: 0x00f3ff, 
+                    wireframe: true,
+                    transparent: true,
+                    opacity: 0.3
+                });
+                coreObj = new THREE.Mesh(geometry, material);
+                
+                // Inner Core
+                const innerGeo = new THREE.OctahedronGeometry(0.8, 0);
+                const innerMat = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true });
+                const innerCore = new THREE.Mesh(innerGeo, innerMat);
+                coreObj.add(innerCore);
+
+                scene.add(coreObj);
+
+                // Particles
+                const particlesGeometry = new THREE.BufferGeometry();
+                const particlesCount = 1000;
+                const posArray = new Float32Array(particlesCount * 3);
+
+                for(let i = 0; i < particlesCount * 3; i++) {
+                    posArray[i] = (Math.random() - 0.5) * 20;
+                }
+
+                particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+                const particlesMaterial = new THREE.PointsMaterial({
+                    size: 0.02,
+                    color: 0x44aaff,
+                    transparent: true,
+                    opacity: 0.6
+                });
+                particles = new THREE.Points(particlesGeometry, particlesMaterial);
+                scene.add(particles);
+
+                // Lights
+                const pointLight = new THREE.PointLight(0x00f3ff, 1, 100);
+                pointLight.position.set(2, 2, 5);
+                scene.add(pointLight);
+
+                window.addEventListener('resize', onWindowResize, false);
+            };
+
+            const onWindowResize = () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            };
+
+            const animate = () => {
+                requestAnimationFrame(animate);
+
+                // Rotate Core
+                coreObj.rotation.x += targetRotationSpeed;
+                coreObj.rotation.y += targetRotationSpeed;
+
+                // Rotate Particles
+                particles.rotation.y -= 0.0005;
+
+                // Pulse effect based on processing state
+                if (processingState.value === 'processing') {
+                    const scale = 1 + Math.sin(Date.now() * 0.005) * 0.1;
+                    coreObj.scale.set(scale, scale, scale);
+                } else {
+                    coreObj.scale.set(1, 1, 1);
+                }
+
+                renderer.render(scene, camera);
+            };
+
+            return {
+                processingState,
+                isDragging,
+                progress,
+                logs,
+                stats,
+                handleFileSelect,
+                handleDrop,
+                triggerUpload,
+                fileInput,
+                reset
+            };
+        }
+    }).mount('#app');
+</script>
+
+</body>
+</html>

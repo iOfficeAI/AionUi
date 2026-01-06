@@ -18,6 +18,7 @@ import GooseLogo from '@/renderer/assets/logos/goose.svg';
 import IflowLogo from '@/renderer/assets/logos/iflow.svg';
 import KimiLogo from '@/renderer/assets/logos/kimi.svg';
 import OpenCodeLogo from '@/renderer/assets/logos/opencode.svg';
+import PdfToPptLogo from '@/renderer/assets/logos/pdf-to-ppt.svg';
 import QwenLogo from '@/renderer/assets/logos/qwen.svg';
 import FilePreview from '@/renderer/components/FilePreview';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
@@ -34,7 +35,7 @@ import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
 import type { AcpBackend } from '@/types/acpTypes';
 import { Button, ConfigProvider, Dropdown, Input, Menu, Tooltip } from '@arco-design/web-react';
 import { IconClose } from '@arco-design/web-react/icon';
-import { ArrowUp, FolderOpen, Plus, Robot, UploadOne } from '@icon-park/react';
+import { ArrowUp, Down, FolderOpen, Plus, Robot, UploadOne } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -151,6 +152,10 @@ const Guid: React.FC = () => {
   }, []);
   const location = useLocation();
   const [input, setInput] = useState('');
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const [mentionOpen, setMentionOpen] = useState(false);
+  const [mentionSelectorVisible, setMentionSelectorVisible] = useState(false);
+  const [mentionSelectorOpen, setMentionSelectorOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [files, setFiles] = useState<string[]>([]);
   const [dir, setDir] = useState<string>('');
@@ -198,7 +203,7 @@ const Guid: React.FC = () => {
   // 对于自定义代理，使用 "custom:uuid" 格式来区分多个自定义代理
   // For custom agents, we store "custom:uuid" format to distinguish between multiple custom agents
   const [selectedAgentKey, setSelectedAgentKey] = useState<string>('gemini');
-  const [availableAgents, setAvailableAgents] = useState<Array<{ backend: AcpBackend; name: string; cliPath?: string; customAgentId?: string }>>();
+  const [availableAgents, setAvailableAgents] = useState<Array<{ backend: AcpBackend; name: string; cliPath?: string; customAgentId?: string; isPreset?: boolean; context?: string }>>();
 
   /**
    * 获取代理的唯一选择键
@@ -226,9 +231,12 @@ const Guid: React.FC = () => {
 
   // 获取选中的后端类型（向后兼容）/ Get the selected backend type (for backward compatibility)
   const selectedAgent = selectedAgentKey.startsWith('custom:') ? 'custom' : (selectedAgentKey as AcpBackend);
+  const selectedAgentInfo = useMemo(() => findAgentByKey(selectedAgentKey), [selectedAgentKey, availableAgents]);
+  const isPresetAgent = Boolean(selectedAgentInfo?.isPreset);
   const [isPlusDropdownOpen, setIsPlusDropdownOpen] = useState(false);
   const [typewriterPlaceholder, setTypewriterPlaceholder] = useState('');
   const [_isTyping, setIsTyping] = useState(true);
+  const mentionMatchRegex = useMemo(() => /(?:^|\s)@([^\s@]*)$/, []);
 
   /**
    * 生成唯一模型 key（providerId:model）
@@ -311,6 +319,86 @@ const Guid: React.FC = () => {
     setIsInputFocused(false);
   }, []);
 
+  const mentionOptions = useMemo(() => {
+    const agents = availableAgents || [];
+    return agents.map((agent) => {
+      const key = getAgentKey(agent);
+      const label = agent.name || agent.backend;
+      const tokens = new Set<string>();
+      const normalizedLabel = label.toLowerCase();
+      tokens.add(normalizedLabel);
+      tokens.add(normalizedLabel.replace(/\s+/g, '-'));
+      tokens.add(normalizedLabel.replace(/\s+/g, ''));
+      tokens.add(agent.backend.toLowerCase());
+      if (agent.customAgentId) {
+        tokens.add(agent.customAgentId.toLowerCase());
+      }
+      if (agent.customAgentId === 'pdf-to-ppt-preset') {
+        tokens.add('pdf');
+        tokens.add('ppt');
+        tokens.add('pdf-to-ppt');
+      }
+      return {
+        key,
+        label,
+        tokens,
+        logo: agent.customAgentId === 'pdf-to-ppt-preset' ? PdfToPptLogo : AGENT_LOGO_MAP[agent.backend],
+      };
+    });
+  }, [availableAgents]);
+
+  const filteredMentionOptions = useMemo(() => {
+    if (!mentionQuery) return mentionOptions;
+    const query = mentionQuery.toLowerCase();
+    return mentionOptions.filter((option) => Array.from(option.tokens).some((token) => token.startsWith(query)));
+  }, [mentionOptions, mentionQuery]);
+
+  const stripMentionToken = useCallback(
+    (value: string) => {
+      if (!mentionMatchRegex.test(value)) return value;
+      return value.replace(mentionMatchRegex, (_match, _query) => '').trimEnd();
+    },
+    [mentionMatchRegex]
+  );
+
+  const selectMentionAgent = useCallback(
+    (key: string) => {
+      setSelectedAgentKey(key);
+      setInput((prev) => stripMentionToken(prev));
+      setMentionOpen(false);
+      setMentionSelectorOpen(false);
+      setMentionSelectorVisible(true);
+      setMentionQuery(null);
+    },
+    [stripMentionToken]
+  );
+
+  const selectedAgentLabel = selectedAgentInfo?.name || selectedAgentKey;
+
+  const mentionMenu = useMemo(
+    () => (
+      <div className='bg-bg-2 border border-[var(--color-border-2)] rd-12px shadow-lg overflow-hidden'>
+        <Menu selectedKeys={[selectedAgentKey]} onClickMenuItem={(key) => selectMentionAgent(String(key))} className='min-w-180px max-h-200px overflow-auto'>
+          {filteredMentionOptions.length > 0 ? (
+            filteredMentionOptions.map((option) => (
+              <Menu.Item key={option.key}>
+                <div className='flex items-center gap-8px'>
+                  {option.logo ? <img src={option.logo} alt={option.label} width={16} height={16} style={{ objectFit: 'contain' }} /> : <Robot theme='outline' size={16} />}
+                  <span>{option.label}</span>
+                </div>
+              </Menu.Item>
+            ))
+          ) : (
+            <Menu.Item key='empty' disabled>
+              {t('conversation.welcome.none', { defaultValue: 'None' })}
+            </Menu.Item>
+          )}
+        </Menu>
+      </div>
+    ),
+    [filteredMentionOptions, selectMentionAgent, selectedAgentKey, t]
+  );
+
   // 获取可用的 ACP agents - 基于全局标记位
   const { data: availableAgentsData } = useSWR('acp.agents.available', async () => {
     const result = await ipcBridge.acpConversation.getAvailableAgents.invoke();
@@ -328,14 +416,36 @@ const Guid: React.FC = () => {
     }
   }, [availableAgentsData]);
 
+  const { compositionHandlers, isComposing } = useCompositionInput();
+
+  const handleInputChange = useCallback(
+    (value: string) => {
+      setInput(value);
+      const match = value.match(mentionMatchRegex);
+      if (match) {
+        setMentionQuery(match[1]);
+        setMentionOpen(true);
+        setMentionSelectorOpen(false);
+      } else {
+        setMentionQuery(null);
+        setMentionOpen(false);
+      }
+    },
+    [mentionMatchRegex]
+  );
+
   const handleSend = async () => {
     // 用户明确选择的目录 -> customWorkspace = true, 使用用户选择的目录
     // 未选择时 -> customWorkspace = false, 传空让后端创建临时目录 (gemini-temp-xxx)
     const isCustomWorkspace = !!dir;
     const finalWorkspace = dir || ''; // 不指定时传空，让后端创建临时目录
 
+    const isPdfToPpt = selectedAgentKey === 'custom:pdf-to-ppt-preset';
+    const agentInfo = selectedAgentInfo;
+    const isPreset = isPresetAgent;
+
     // 默认情况使用 Gemini（参考 main 分支的纯粹逻辑）
-    if (!selectedAgent || selectedAgent === 'gemini') {
+    if (isPdfToPpt || !selectedAgent || selectedAgent === 'gemini' || isPreset) {
       if (!currentModel) return;
       try {
         const conversation = await ipcBridge.conversation.create.invoke({
@@ -347,6 +457,8 @@ const Guid: React.FC = () => {
             workspace: finalWorkspace,
             customWorkspace: isCustomWorkspace,
             webSearchEngine: isGoogleAuth ? 'google' : 'default',
+            contextFileName: isPdfToPpt ? 'skill/gemini-rules.md' : undefined,
+            context: agentInfo?.context,
           },
         });
 
@@ -369,7 +481,7 @@ const Guid: React.FC = () => {
         await navigate(`/conversation/${conversation.id}`);
 
         // 然后发送消息
-        await ipcBridge.geminiConversation.sendMessage
+        void ipcBridge.geminiConversation.sendMessage
           .invoke({
             input: files.length > 0 ? formatFilesForMessage(files) + ' ' + input : input,
             conversation_id: conversation.id,
@@ -507,6 +619,9 @@ const Guid: React.FC = () => {
       .then(() => {
         // Clear all input states on successful send
         setInput('');
+        setMentionOpen(false);
+        setMentionQuery(null);
+        setMentionSelectorOpen(false);
         setFiles([]);
         setDir('');
       })
@@ -518,8 +633,37 @@ const Guid: React.FC = () => {
         setLoading(false);
       });
   };
-  // 使用共享的输入法合成处理
-  const { compositionHandlers, createKeyDownHandler } = useCompositionInput();
+  const handleInputKeyDown = useCallback(
+    (event: React.KeyboardEvent) => {
+      if (isComposing.current) return;
+      if (mentionOpen && event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        if (mentionQuery && filteredMentionOptions.length > 0) {
+          const query = mentionQuery.toLowerCase();
+          const exactMatch = filteredMentionOptions.find((option) => option.label.toLowerCase() === query || option.tokens.has(query));
+          const selected = exactMatch || filteredMentionOptions[0];
+          if (selected) {
+            selectMentionAgent(selected.key);
+            return;
+          }
+        }
+        setMentionOpen(false);
+        setMentionQuery(null);
+        return;
+      }
+      if (mentionOpen && event.key === 'Escape') {
+        event.preventDefault();
+        setMentionOpen(false);
+        setMentionQuery(null);
+        return;
+      }
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        sendMessageHandler();
+      }
+    },
+    [filteredMentionOptions, mentionOpen, mentionQuery, selectMentionAgent, sendMessageHandler, isComposing]
+  );
   const setDefaultModel = async () => {
     if (!modelList || modelList.length === 0) {
       return;
@@ -600,7 +744,7 @@ const Guid: React.FC = () => {
               >
                 {availableAgents.map((agent, index) => {
                   const isSelected = selectedAgentKey === getAgentKey(agent);
-                  const logoSrc = AGENT_LOGO_MAP[agent.backend];
+                  const logoSrc = agent.customAgentId === 'pdf-to-ppt-preset' ? PdfToPptLogo : AGENT_LOGO_MAP[agent.backend];
 
                   return (
                     <React.Fragment key={getAgentKey(agent)}>
@@ -615,7 +759,12 @@ const Guid: React.FC = () => {
                               }
                             : { transition: 'opacity 0.5s cubic-bezier(0.2, 0.8, 0.3, 1)' }
                         }
-                        onClick={() => setSelectedAgentKey(getAgentKey(agent))}
+                        onClick={() => {
+                          setSelectedAgentKey(getAgentKey(agent));
+                          setMentionOpen(false);
+                          setMentionQuery(null);
+                          setMentionSelectorOpen(false);
+                        }}
                       >
                         {logoSrc ? <img src={logoSrc} alt={`${agent.backend} logo`} width={20} height={20} style={{ objectFit: 'contain', flexShrink: 0 }} /> : <Robot theme='outline' size={20} style={{ flexShrink: 0 }} />}
                         <span
@@ -654,7 +803,32 @@ const Guid: React.FC = () => {
             }}
             {...dragHandlers}
           >
-            <Input.TextArea rows={3} placeholder={typewriterPlaceholder || t('conversation.welcome.placeholder')} className={`text-16px focus:b-none rounded-xl !bg-transparent !b-none !resize-none !p-0 ${styles.lightPlaceholder}`} value={input} onChange={(v) => setInput(v)} onPaste={onPaste} onFocus={handleTextareaFocus} onBlur={handleTextareaBlur} {...compositionHandlers} onKeyDown={createKeyDownHandler(sendMessageHandler)}></Input.TextArea>
+            {mentionSelectorVisible && (
+              <div className='flex items-center gap-8px mb-8px'>
+                <Dropdown
+                  trigger='click'
+                  popupVisible={mentionSelectorOpen}
+                  onVisibleChange={(visible) => {
+                    setMentionSelectorOpen(visible);
+                    if (visible) {
+                      setMentionQuery(null);
+                    }
+                  }}
+                  droplist={mentionMenu}
+                >
+                  <div className='flex items-center gap-6px bg-fill-2 px-10px py-4px rd-16px cursor-pointer select-none'>
+                    <span className='text-14px font-medium text-t-primary'>@{selectedAgentLabel}</span>
+                    <Down theme='outline' size={12} />
+                  </div>
+                </Dropdown>
+              </div>
+            )}
+            <Input.TextArea rows={3} placeholder={typewriterPlaceholder || t('conversation.welcome.placeholder')} className={`text-16px focus:b-none rounded-xl !bg-transparent !b-none !resize-none !p-0 ${styles.lightPlaceholder}`} value={input} onChange={handleInputChange} onPaste={onPaste} onFocus={handleTextareaFocus} onBlur={handleTextareaBlur} {...compositionHandlers} onKeyDown={handleInputKeyDown}></Input.TextArea>
+            {mentionOpen && (
+              <div className='absolute z-20' style={{ left: 16, top: 44 }}>
+                {mentionMenu}
+              </div>
+            )}
             {files.length > 0 && (
               // 展示待发送的文件并允许取消 / Show pending files and allow cancellation
               <div className='flex flex-wrap items-center gap-8px mt-12px mb-12px'>
@@ -722,7 +896,7 @@ const Guid: React.FC = () => {
                   </span>
                 </Dropdown>
 
-                {selectedAgent === 'gemini' && (
+                {(selectedAgent === 'gemini' || isPresetAgent || selectedAgentKey === 'custom:pdf-to-ppt-preset') && (
                   <Dropdown
                     trigger='hover'
                     droplist={
@@ -804,7 +978,7 @@ const Guid: React.FC = () => {
                   shape='circle'
                   type='primary'
                   loading={loading}
-                  disabled={!input.trim() || ((!selectedAgent || selectedAgent === 'gemini') && !currentModel)}
+                  disabled={!input.trim() || ((!selectedAgent || selectedAgent === 'gemini' || isPresetAgent || selectedAgentKey === 'custom:pdf-to-ppt-preset') && !currentModel)}
                   icon={<ArrowUp theme='outline' size='14' fill='white' strokeWidth={2} />}
                   onClick={() => {
                     handleSend().catch((error) => {

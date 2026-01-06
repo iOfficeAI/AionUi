@@ -108,6 +108,9 @@ export interface AcpBackendConfig {
   /** Display name shown in the UI (e.g., 'Goose', 'Claude Code') */
   name: string;
 
+  /** Short description shown in assistant lists or settings */
+  description?: string;
+
   /**
    * CLI command name used for detection via `which` command.
    * Example: 'goose', 'claude', 'qwen'

@@ -23,6 +23,7 @@ import { getConfiguredAppClientName, getConfiguredAppClientVersion, getConfigure
 import { mapPermissionDecision } from '@/common/codex/utils';
 import { PERMISSION_DECISION_MAP } from '@/common/codex/types/permissionTypes';
 import { handlePreviewOpenEvent } from '@process/utils/previewUtils';
+import { loadSkillContent } from '@/common/utils/skillLoader';
 
 const APP_CLIENT_NAME = getConfiguredAppClientName();
 const APP_CLIENT_VERSION = getConfiguredAppClientVersion();
@@ -175,11 +176,18 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
       }
 
       // 处理文件引用 - 参考 ACP 的文件引用处理
-      const processedContent = this.agent.getFileOperationHandler().processFileReferences(data.content, data.files);
+      let processedContent = this.agent.getFileOperationHandler().processFileReferences(data.content, data.files);
 
       // 如果是第一条消息，通过 newSession 发送以避免双消息问题
       if (this.isFirstMessage) {
         this.isFirstMessage = false;
+
+        // Inject Codex skill if available
+        const skillContent = await loadSkillContent('codex-skill');
+        if (skillContent) {
+          processedContent = `${processedContent}\n\n<system_instruction>\n${skillContent}\n</system_instruction>`;
+        }
+
         const result = await this.agent.newSession(this.workspace, processedContent);
 
         // Session created successfully - Codex will send session_configured event automatically
