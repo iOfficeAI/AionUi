@@ -7,12 +7,15 @@
 import { mkdirSync as _mkdirSync, existsSync, readdirSync, readFileSync } from 'fs';
 import fs from 'fs/promises';
 import path from 'path';
+import { app } from 'electron';
 import { application } from '../common/ipcBridge';
 import type { TMessage } from '@/common/chatLib';
+import { SMART_ASSISTANT_PRESETS } from '@/common/presets/smartAssistantPresets';
 import type { IChatConversationRefer, IConfigStorageRefer, IEnvStorageRefer, IMcpServer, TChatConversation, TProviderWithModel } from '../common/storage';
 import { ChatMessageStorage, ChatStorage, ConfigStorage, EnvStorage } from '../common/storage';
 import { copyDirectoryRecursively, getCliSafePath, getConfigPath, getDataPath, getTempPath, verifyDirectoryFiles } from './utils';
 import { getDatabase } from './database/export';
+import type { AcpBackendConfig } from '@/types/acpTypes';
 // Platform and architecture types (moved from deleted updateConfig)
 type PlatformType = 'win32' | 'darwin' | 'linux';
 type ArchitectureType = 'x64' | 'arm64' | 'ia32' | 'arm';
@@ -320,6 +323,61 @@ const conversationHistoryProxy = (options: typeof _chatMessageFile, dir: string)
 const chatMessageFile = conversationHistoryProxy(_chatMessageFile, cacheDir);
 
 /**
+ * 获取内置智能助手配置
+ * Get built-in smart assistant configurations
+ * 使用共享的 SMART_ASSISTANT_PRESETS 配置
+ */
+const getBuiltinSmartAssistants = async (): Promise<AcpBackendConfig[]> => {
+  const appPath = app.getAppPath();
+  const assistants: AcpBackendConfig[] = [];
+
+  for (const preset of SMART_ASSISTANT_PRESETS) {
+    try {
+      // 加载各语言的规则文件
+      // Load rule files for each locale
+      const contextI18n: Record<string, string> = {};
+
+      for (const [locale, ruleFile] of Object.entries(preset.ruleFiles)) {
+        try {
+          const rulesPath = path.join(appPath, 'rules', ruleFile);
+          contextI18n[locale] = await fs.readFile(rulesPath, 'utf-8');
+        } catch {
+          // 忽略缺失的语言文件 / Ignore missing locale files
+        }
+      }
+
+      // 使用 en-US 作为默认 context
+      // Use en-US as default context
+      const defaultContext = contextI18n['en-US'] || contextI18n['zh-CN'] || '';
+
+      if (!defaultContext) {
+        console.warn(`[AionUi] No rule files found for builtin assistant ${preset.id}`);
+        continue;
+      }
+
+      assistants.push({
+        id: `builtin-${preset.id}`,
+        name: preset.nameI18n['en-US'],
+        nameI18n: preset.nameI18n,
+        description: preset.descriptionI18n['en-US'],
+        descriptionI18n: preset.descriptionI18n,
+        avatar: preset.avatar,
+        context: defaultContext,
+        contextI18n,
+        enabled: true,
+        isPreset: true,
+        isBuiltin: true,
+        presetAgentType: preset.presetAgentType || 'gemini',
+      });
+    } catch (error) {
+      console.warn(`[AionUi] Failed to load builtin assistant ${preset.id}:`, error);
+    }
+  }
+
+  return assistants;
+};
+
+/**
  * 创建默认的 MCP 服务器配置
  */
 const getDefaultMcpServers = (): IMcpServer[] => {
@@ -382,7 +440,28 @@ const initStorage = async () => {
   } catch (error) {
     console.error('[AionUi] Failed to initialize default MCP servers:', error);
   }
-  // 5. 初始化数据库（better-sqlite3）
+  // 5. 初始化内置智能助手（Smart Assistants）
+  try {
+    const existingAgents = (await configFile.get('acp.customAgents').catch((): undefined => undefined)) || [];
+    const builtinAssistants = await getBuiltinSmartAssistants();
+
+    // 检查是否有缺失的内置助手，如果有则添加
+    // Check for missing builtin assistants and add them if needed
+    const existingIds = new Set(existingAgents.map((agent: AcpBackendConfig) => agent.id));
+    const missingAssistants = builtinAssistants.filter((assistant) => !existingIds.has(assistant.id));
+
+    if (missingAssistants.length > 0) {
+      // 将缺失的内置助手添加到列表开头
+      // Add missing builtin assistants to the beginning of the list
+      const updatedAgents = [...missingAssistants, ...existingAgents];
+      await configFile.set('acp.customAgents', updatedAgents);
+      console.log(`[AionUi] Initialized ${missingAssistants.length} builtin smart assistant(s)`);
+    }
+  } catch (error) {
+    console.error('[AionUi] Failed to initialize builtin smart assistants:', error);
+  }
+
+  // 6. 初始化数据库（better-sqlite3）
   try {
     getDatabase();
   } catch (error) {
