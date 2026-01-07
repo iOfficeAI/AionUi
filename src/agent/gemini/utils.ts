@@ -93,16 +93,16 @@ export const processGeminiStreamEvents = async (stream: AsyncIterable<ServerGemi
 
       switch (event.type) {
         case ServerGeminiEventType.Thought:
-          onStreamEvent({ type: event.type, data: (event as { value: unknown }).value });
+          onStreamEvent({ type: event.type, data: (event as unknown as { value: unknown }).value });
           break;
         case ServerGeminiEventType.Content:
-          onStreamEvent({ type: event.type, data: (event as { value: unknown }).value });
+          onStreamEvent({ type: event.type, data: (event as unknown as { value: unknown }).value });
           break;
         // InlineData: Handle inline image data from image generation models (e.g., gemini-3-pro-image)
         // 处理来自图片生成模型的内联图片数据（使用字符串字面量以兼容旧版本 aioncli-core）
         case 'inline_data' as ServerGeminiEventType:
           {
-            const inlineData = (event as { value: { mimeType: string; data: string } }).value;
+            const inlineData = (event as unknown as { value: { mimeType: string; data: string } }).value;
             if (inlineData?.mimeType && inlineData?.data) {
               try {
                 const workingDir = config.getWorkingDir();
@@ -124,13 +124,13 @@ export const processGeminiStreamEvents = async (stream: AsyncIterable<ServerGemi
           }
           break;
         case ServerGeminiEventType.ToolCallRequest:
-          onStreamEvent({ type: event.type, data: (event as { value: unknown }).value });
+          onStreamEvent({ type: event.type, data: (event as unknown as { value: unknown }).value });
           break;
 
         case ServerGeminiEventType.Error:
           {
             // Safely extract error value - event.value may be string, object with .error, or undefined
-            const errorEvent = event as { value?: { error?: unknown } | unknown };
+            const errorEvent = event as unknown as { value?: { error?: unknown } | unknown };
             const errorValue = (errorEvent.value as { error?: unknown })?.error ?? errorEvent.value ?? 'Unknown error occurred';
             onStreamEvent({
               type: event.type,
@@ -141,7 +141,7 @@ export const processGeminiStreamEvents = async (stream: AsyncIterable<ServerGemi
         case ServerGeminiEventType.Finished:
           {
             // 传递 Finished 事件，包含 token 使用统计
-            onStreamEvent({ type: event.type, data: (event as { value: unknown }).value });
+            onStreamEvent({ type: event.type, data: (event as unknown as { value: unknown }).value });
           }
           break;
         case ServerGeminiEventType.ContextWindowWillOverflow:
