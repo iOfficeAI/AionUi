@@ -124,8 +124,14 @@ export interface AcpBackendConfig {
   /** UI 显示名称 / Display name shown in the UI (e.g., 'Goose', 'Claude Code') */
   name: string;
 
+  /** 本地化名称 / Localized names (e.g., { 'zh-CN': '...', 'en-US': '...' }) */
+  nameI18n?: Record<string, string>;
+
   /** 助手列表或设置中显示的简短描述 / Short description shown in assistant lists or settings */
   description?: string;
+
+  /** 本地化描述 / Localized descriptions (e.g., { 'zh-CN': '...', 'en-US': '...' }) */
+  descriptionI18n?: Record<string, string>;
 
   /** 助手头像 - 可以是 emoji 或图片路径 / Avatar for the assistant - can be an emoji string or image path */
   avatar?: string;

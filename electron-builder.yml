@@ -23,12 +23,18 @@ files:
   - node_modules/prebuild-install/**/*
   - node_modules/node-gyp-build/**/*
   - node_modules/bindings/**/*
-  # tree-sitter WASM dependencies for bash parsing (used by aioncli-core)
+  # tree-sitter WASM dependencies
   - node_modules/web-tree-sitter/**/*
   - node_modules/tree-sitter-bash/**/*
-  # Exclude tree-sitter-bash native binaries to avoid signing issues
-  - '!node_modules/tree-sitter-bash/prebuilds/**/*'
-  - '!node_modules/tree-sitter-bash/build/**/*'
+  # CRITICAL: Exclude ALL tree-sitter native binaries to prevent signing issues
+  - '!**/node_modules/tree-sitter-*/prebuilds/**'
+  - '!**/node_modules/tree-sitter-*/build/**'
+  - '!**/node_modules/tree-sitter-*/src/**'
+  - '!**/node_modules/tree-sitter-*/**/*.node'
+  - '!**/node_modules/tree-sitter-*/**/*.obj'
+  - '!**/node_modules/tree-sitter-*/**/*.o'
+  - '!**/node_modules/tree-sitter-*/**/*.cc'
+  - '!**/node_modules/tree-sitter-*/**/*.c'
   # Exclude dev/test files
   - '!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}'
   - '!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}'
