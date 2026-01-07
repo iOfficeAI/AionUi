@@ -437,6 +437,8 @@
     "assistantRules": "ルール",
     "assistantRulesHint": "Gemini のルールを入力してください。ルールはアシスタントの振る舞いと応答スタイルを定義します。",
     "assistantRulesPlaceholder": "Markdown 形式でルールを入力...",
+    "assistantModels": "利用可能なモデル",
+    "assistantModelsHint": "このアシスタントが使用できるモデルを選択してください。",
     "assistantSkills": "スキル",
     "assistantSkillsHint": "Claude/Codex のスキルを入力してください。スキルは最初のメッセージでシステム指示として注入されます。",
     "assistantSkillsPlaceholder": "Markdown 形式でスキルを入力...",

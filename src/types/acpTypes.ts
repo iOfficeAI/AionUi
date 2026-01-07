@@ -214,6 +214,18 @@ export interface AcpBackendConfig {
    * Defaults to 'gemini' for backward compatibility.
    */
   presetAgentType?: PresetAgentType;
+
+  /**
+   * 此助手可用的模型列表（仅 isPreset=true 时生效）
+   * 如果未指定，将使用系统默认的模型列表
+   *
+   * Available models for this assistant (only applies when isPreset=true).
+   * If not specified, system default models will be used.
+   */
+  models?: string[];
+
+  /** 是否为内置助手（不可编辑/删除）/ Whether this is a built-in assistant (cannot be edited/deleted) */
+  isBuiltin?: boolean;
 }
 
 // 所有后端配置 - 包括暂时禁用的 / All backend configurations - including temporarily disabled ones

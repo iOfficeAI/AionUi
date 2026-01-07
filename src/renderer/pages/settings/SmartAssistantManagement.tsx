@@ -1,15 +1,39 @@
 import type { Message } from '@arco-design/web-react';
 import { Avatar, Button, Collapse, Input, Drawer, Modal, Typography } from '@arco-design/web-react';
-import { Right, Robot, SettingOne, Plus } from '@icon-park/react';
+import { Robot, SettingOne } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { mutate } from 'swr';
 import { ipcBridge } from '@/common';
 import { ConfigStorage } from '@/common/storage';
-import { uuid, resolveLocaleKey } from '@/common/utils';
+import { resolveLocaleKey, uuid } from '@/common/utils';
 import type { AcpBackendConfig } from '@/types/acpTypes';
 import EmojiPicker from '@/renderer/components/EmojiPicker';
 import MarkdownView from '@/renderer/components/Markdown';
+
+// 内置助手配置 / Built-in assistant configurations
+const BUILTIN_ASSISTANTS: Array<{
+  id: string;
+  nameKey: string;
+  descKey: string;
+  avatar: string;
+  ruleFile: string;
+}> = [
+  {
+    id: 'builtin-pdf-to-ppt',
+    nameKey: 'settings.pdfToPptAssistantName',
+    descKey: 'settings.pdfToPptAssistantDesc',
+    avatar: '📄',
+    ruleFile: 'pdf-to-ppt.md',
+  },
+  {
+    id: 'builtin-game-3d',
+    nameKey: 'settings.game3dAssistantName',
+    descKey: 'settings.game3dAssistantDesc',
+    avatar: '🎮',
+    ruleFile: 'game-3d.md',
+  },
+];
 
 interface SmartAssistantManagementProps {
   message: ReturnType<typeof Message.useMessage>[0];
@@ -64,20 +88,43 @@ const SmartAssistantManagement: React.FC<SmartAssistantManagementProps> = ({ mes
 
   const loadAssistants = useCallback(async () => {
     try {
-      const agents = (await ConfigStorage.get('acp.customAgents')) || [];
-      const presetAgents = agents.filter((agent) => agent.isPreset);
-      setAssistants(presetAgents);
-      setActiveAssistantId((prev) => prev || presetAgents[0]?.id || null);
+      // 加载内置助手（从项目文件读取 rules）
+      // Load built-in assistants (read rules from project files)
+      const builtinAgents: AcpBackendConfig[] = await Promise.all(
+        BUILTIN_ASSISTANTS.map(async (config) => {
+          let context = '';
+          try {
+            context = await ipcBridge.fs.readBuiltinRule.invoke({ fileName: config.ruleFile });
+          } catch (err) {
+            console.warn(`Failed to load rule file ${config.ruleFile}:`, err);
+          }
+          return {
+            id: config.id,
+            name: t(config.nameKey, { defaultValue: config.nameKey }),
+            description: t(config.descKey, { defaultValue: config.descKey }),
+            avatar: config.avatar,
+            context,
+            enabled: true,
+            isPreset: true,
+            isBuiltin: true, // 标记为内置，不可删除 / Mark as built-in, cannot be deleted
+            presetAgentType: 'gemini' as const,
+          };
+        })
+      );
+
+      setAssistants(builtinAgents);
+      setActiveAssistantId((prev) => prev || builtinAgents[0]?.id || null);
     } catch (error) {
       console.error('Failed to load assistant presets:', error);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     void loadAssistants();
   }, [loadAssistants]);
 
   const activeAssistant = assistants.find((assistant) => assistant.id === activeAssistantId) || null;
+  const isBuiltinAssistant = activeAssistant?.id?.startsWith('builtin-') ?? false;
 
   // Check if string is an emoji (simple check for common emoji patterns)
   const isEmoji = useCallback((str: string) => {
@@ -114,7 +161,8 @@ const SmartAssistantManagement: React.FC<SmartAssistantManagementProps> = ({ mes
     setEditVisible(true);
   };
 
-  const handleCreate = () => {
+  // 暂时禁用创建功能 / Temporarily disabled create function
+  const _handleCreate = () => {
     setIsCreating(true);
     setActiveAssistantId(null);
     setEditName('');
@@ -219,19 +267,19 @@ const SmartAssistantManagement: React.FC<SmartAssistantManagementProps> = ({ mes
           </div>
         }
         name='smart-assistants'
-        extra={
-          <Button
-            type='text'
-            size='small'
-            icon={<Plus size={14} />}
-            onClick={(e) => {
-              e.stopPropagation();
-              handleCreate();
-            }}
-          >
-            {t('settings.createAssistant', { defaultValue: 'Create' })}
-          </Button>
-        }
+        // extra={
+        //   <Button
+        //     type='text'
+        //     size='small'
+        //     icon={<Plus size={14} />}
+        //     onClick={(e) => {
+        //       e.stopPropagation();
+        //       handleCreate();
+        //     }}
+        //   >
+        //     {t('settings.createAssistant', { defaultValue: 'Create' })}
+        //   </Button>
+        // }
       >
         <div className='py-2'>
           <div className='bg-fill-2 rounded-2xl p-20px'>
@@ -289,7 +337,7 @@ const SmartAssistantManagement: React.FC<SmartAssistantManagementProps> = ({ mes
               </Button>
               <Button onClick={() => setEditVisible(false)}>{t('common.cancel', { defaultValue: 'Cancel' })}</Button>
             </div>
-            {!isCreating && (
+            {!isCreating && !isBuiltinAssistant && (
               <Typography.Text className='cursor-pointer transition-colors' style={{ color: 'rgb(var(--danger-6))' }} onClick={handleDeleteClick} onMouseEnter={(e) => (e.currentTarget.style.color = 'rgb(var(--danger-5))')} onMouseLeave={(e) => (e.currentTarget.style.color = 'rgb(var(--danger-6))')}>
                 {t('common.delete', { defaultValue: 'Delete' })}
               </Typography.Text>
@@ -308,12 +356,12 @@ const SmartAssistantManagement: React.FC<SmartAssistantManagementProps> = ({ mes
                   {editAvatar ? <span style={{ fontSize: 24 }}>{editAvatar}</span> : <Robot theme='outline' size={20} />}
                 </Avatar>
               </EmojiPicker>
-              <Input value={editName} onChange={setEditName} placeholder={t('settings.agentNamePlaceholder', { defaultValue: 'Enter a name for this agent' })} className='flex-1' />
+              <Input value={editName} onChange={setEditName} placeholder={t('settings.agentNamePlaceholder', { defaultValue: 'Enter a name for this agent' })} className='flex-1' style={{ border: '1px solid var(--color-border-2)' }} />
             </div>
           </div>
           <div className='flex-shrink-0'>
             <Typography.Text bold>{t('settings.assistantDescription', { defaultValue: 'Assistant Description' })}</Typography.Text>
-            <Input className='mt-10px' value={editDescription} onChange={setEditDescription} placeholder={t('settings.assistantDescriptionPlaceholder', { defaultValue: 'What can this assistant help with?' })} />
+            <Input className='mt-10px' value={editDescription} onChange={setEditDescription} placeholder={t('settings.assistantDescriptionPlaceholder', { defaultValue: 'What can this assistant help with?' })} style={{ border: '1px solid var(--color-border-2)' }} />
           </div>
           <div className='flex-1 flex flex-col min-h-0'>
             <Typography.Text bold className='flex-shrink-0'>

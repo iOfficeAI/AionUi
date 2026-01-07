@@ -14,6 +14,27 @@ import ProtocolDetectionStatus from './ProtocolDetectionStatus';
 import { MODEL_PLATFORMS, getPlatformByValue, isCustomOption, isGeminiPlatform, type PlatformConfig } from '@/renderer/config/modelPlatforms';
 
 /**
+ * 允许的 Google API 主机名白名单
+ * Whitelist of allowed Google API hostnames
+ */
+const GOOGLE_API_HOSTS = ['generativelanguage.googleapis.com', 'aiplatform.googleapis.com'];
+
+/**
+ * 安全地验证 URL 是否为 Google APIs 主机
+ * 使用 URL 解析而非字符串包含检查，防止恶意 URL 绕过
+ * Safely validate if URL is a Google APIs host.
+ * Uses URL parsing instead of string includes to prevent malicious URL bypass.
+ */
+function isGoogleApisHost(urlString: string): boolean {
+  try {
+    const url = new URL(urlString);
+    return GOOGLE_API_HOSTS.includes(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
+/**
  * 供应商 Logo 组件
  * Provider Logo Component
  */
@@ -82,7 +103,7 @@ const AddPlatformModal = ModalHOC<{
   // Enable detection when:
   // 1. Custom platform OR user entered a custom base URL (non-official, like local proxy)
   // 2. Input values differ from last "accepted suggestion" (avoid redundant detection after platform switch)
-  const isNonOfficialBaseUrl = baseUrl && !baseUrl.includes('googleapis.com') && !baseUrl.includes('generativelanguage.googleapis.com');
+  const isNonOfficialBaseUrl = baseUrl && !isGoogleApisHost(baseUrl);
   const shouldEnableDetection = isCustom || isNonOfficialBaseUrl;
   // 只有在用户修改了输入值（相对于上次采纳建议时）才触发检测
   // Only trigger detection when input changed since last accepted suggestion

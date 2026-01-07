@@ -29,6 +29,30 @@ const API_PATH_PATTERNS = [
   '/api/paas/v4', // 智谱 / Zhipu
 ];
 
+/**
+ * 允许的 Google API 主机名白名单
+ * Whitelist of allowed Google API hostnames
+ */
+const GOOGLE_API_HOSTS = ['generativelanguage.googleapis.com', 'aiplatform.googleapis.com'];
+
+/**
+ * 安全地验证 URL 是否为 Google APIs 主机
+ * 使用 URL 解析而非字符串包含检查，防止恶意 URL 绕过
+ * Safely validate if URL is a Google APIs host.
+ * Uses URL parsing instead of string includes to prevent malicious URL bypass.
+ *
+ * @param urlString - 要验证的 URL 字符串 / URL string to validate
+ * @returns 如果是有效的 Google APIs 主机返回 true / Returns true if valid Google APIs host
+ */
+function isGoogleApisHost(urlString: string): boolean {
+  try {
+    const url = new URL(urlString);
+    return GOOGLE_API_HOSTS.includes(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
 export function initModelBridge(): void {
   ipcBridge.mode.fetchModelList.provider(async function fetchModelList({ base_url, api_key, try_fix, platform }): Promise<{ success: boolean; msg?: string; data?: { mode: Array<string>; fix_base_url?: string } }> {
     // 如果是多key（包含逗号或回车），只取第一个key来获取模型列表
@@ -735,7 +759,8 @@ function generateSuggestion(protocol: ProtocolType, _confidence: number, baseUrl
   const displayName = getProtocolDisplayName(protocol);
 
   // 检测到 Gemini 协议但用户可能选择了其他平台
-  if (protocol === 'gemini' && !baseUrl.includes('googleapis.com')) {
+  // Detected Gemini protocol but user may have selected a different platform
+  if (protocol === 'gemini' && !isGoogleApisHost(baseUrl)) {
     return {
       type: 'switch_platform',
       message: `Detected ${displayName} protocol, consider switching to Gemini for better support`,

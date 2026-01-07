@@ -345,6 +345,8 @@
     "assistantRules": "Rules",
     "assistantRulesHint": "Enter rules for Gemini. Rules define how the assistant should behave and respond.",
     "assistantRulesPlaceholder": "Enter rules in Markdown format...",
+    "assistantModels": "Available Models",
+    "assistantModelsHint": "Select which models this assistant can use.",
     "assistantSkills": "Skills",
     "assistantSkillsHint": "Enter skills for Claude/Codex. Skills are injected as system instructions on the first message.",
     "assistantSkillsPlaceholder": "Enter skills in Markdown format...",

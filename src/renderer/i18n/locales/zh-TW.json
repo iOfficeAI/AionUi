@@ -408,6 +408,8 @@
     "assistantRules": "規則",
     "assistantRulesHint": "輸入 Gemini 規則。規則定義助理的行為方式和回覆風格。",
     "assistantRulesPlaceholder": "請輸入 Markdown 格式的規則...",
+    "assistantModels": "可用模型",
+    "assistantModelsHint": "選擇此助理可以使用的模型。",
     "assistantSkills": "技能",
     "assistantSkillsHint": "輸入 Claude/Codex 技能。技能會在首條訊息時作為系統指令注入。",
     "assistantSkillsPlaceholder": "請輸入 Markdown 格式的技能...",
