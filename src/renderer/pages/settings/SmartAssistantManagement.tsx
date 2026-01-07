@@ -1,6 +1,6 @@
 import type { Message } from '@arco-design/web-react';
 import { Avatar, Button, Collapse, Input, Drawer, Modal, Typography } from '@arco-design/web-react';
-import { Robot, SettingOne } from '@icon-park/react';
+import { Close, Robot, SettingOne } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { mutate } from 'swr';
@@ -324,10 +324,26 @@ const SmartAssistantManagement: React.FC<SmartAssistantManagementProps> = ({ mes
       </Collapse.Item>
 
       <Drawer
-        title={isCreating ? t('settings.createAssistant', { defaultValue: 'Create Assistant' }) : t('settings.editAssistant', { defaultValue: 'Assistant Details' })}
+        title={
+          <>
+            <span>{isCreating ? t('settings.createAssistant', { defaultValue: 'Create Assistant' }) : t('settings.editAssistant', { defaultValue: 'Assistant Details' })}</span>
+            <div
+              onClick={(e) => {
+                e.stopPropagation();
+                setEditVisible(false);
+              }}
+              className='absolute right-4 top-4 cursor-pointer text-t-secondary hover:text-t-primary transition-colors p-1'
+              style={{ zIndex: 10, WebkitAppRegion: 'no-drag' } as any}
+            >
+              <Close size={18} />
+            </div>
+          </>
+        }
+        closable={false}
         visible={editVisible}
         placement='right'
         width={480}
+        zIndex={2000}
         onCancel={() => setEditVisible(false)}
         footer={
           <div className='flex items-center justify-between w-full'>
@@ -393,7 +409,7 @@ const SmartAssistantManagement: React.FC<SmartAssistantManagementProps> = ({ mes
       </Drawer>
 
       {/* Delete Confirmation Modal */}
-      <Modal title={t('settings.deleteAssistantTitle', { defaultValue: 'Delete Assistant' })} visible={deleteConfirmVisible} onCancel={() => setDeleteConfirmVisible(false)} onOk={handleDeleteConfirm} okButtonProps={{ status: 'danger' }} okText={t('common.delete', { defaultValue: 'Delete' })} cancelText={t('common.cancel', { defaultValue: 'Cancel' })} style={{ width: 400 }}>
+      <Modal title={t('settings.deleteAssistantTitle', { defaultValue: 'Delete Assistant' })} visible={deleteConfirmVisible} onCancel={() => setDeleteConfirmVisible(false)} onOk={handleDeleteConfirm} okButtonProps={{ status: 'danger' }} okText={t('common.delete', { defaultValue: 'Delete' })} cancelText={t('common.cancel', { defaultValue: 'Cancel' })} style={{ width: 400, zIndex: 2001 }}>
         <p>{t('settings.deleteAssistantConfirm', { defaultValue: 'Are you sure you want to delete this assistant? This action cannot be undone.' })}</p>
         {activeAssistant && (
           <div className='mt-12px p-12px bg-fill-2 rounded-lg flex items-center gap-12px'>
