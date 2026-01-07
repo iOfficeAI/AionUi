@@ -14,7 +14,8 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 
 import { ipcBridge } from '@/common';
-import { Down, Up } from '@icon-park/react';
+import { Copy, Down, Up } from '@icon-park/react';
+import { Message } from '@arco-design/web-react';
 import { theme } from '@office-ai/platform';
 import React, { useMemo, useState } from 'react';
 import ReactDOM from 'react-dom';
@@ -125,8 +126,22 @@ function CodeBlock(props: any) {
             >
               {'<' + language.toLocaleLowerCase() + '>'}
             </span>
-            {/* 折叠/展开按钮 / Fold/unfold button */}
-            {logicRender(!fold, <Up theme='outline' size='20' style={{ cursor: 'pointer' }} fill='var(--text-secondary)' onClick={() => setFlow(true)} />, <Down theme='outline' size='20' style={{ cursor: 'pointer' }} fill='var(--text-secondary)' onClick={() => setFlow(false)} />)}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {/* 复制代码按钮 / Copy code button */}
+              <Copy
+                theme='outline'
+                size='18'
+                style={{ cursor: 'pointer' }}
+                fill='var(--text-secondary)'
+                onClick={() => {
+                  void navigator.clipboard.writeText(formatCode(children)).then(() => {
+                    Message.success('复制成功');
+                  });
+                }}
+              />
+              {/* 折叠/展开按钮 / Fold/unfold button */}
+              {logicRender(!fold, <Up theme='outline' size='20' style={{ cursor: 'pointer' }} fill='var(--text-secondary)' onClick={() => setFlow(true)} />, <Down theme='outline' size='20' style={{ cursor: 'pointer' }} fill='var(--text-secondary)' onClick={() => setFlow(false)} />)}
+            </div>
           </div>
           {logicRender(
             !fold,

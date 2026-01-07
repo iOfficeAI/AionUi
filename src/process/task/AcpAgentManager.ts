@@ -18,12 +18,14 @@ interface AcpAgentManagerData {
   customWorkspace?: boolean;
   conversation_id: string;
   customAgentId?: string; // 用于标识特定自定义代理的 UUID / UUID for identifying specific custom agent
+  presetContext?: string; // 智能助手的预设规则/提示词 / Preset context from smart assistant
 }
 
 class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
   workspace: string;
   agent: AcpAgent;
   private bootstrap: Promise<AcpAgent> | undefined;
+  private isFirstMessage: boolean = true;
   options: AcpAgentManagerData;
 
   constructor(data: AcpAgentManagerData) {
@@ -119,6 +121,15 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
       await this.initAgent(this.options);
       // Save user message to chat history ONLY after successful sending
       if (data.msg_id && data.content) {
+        let contentToSend = data.content;
+
+        // 首条消息时注入预设规则（来自智能助手配置）
+        // Inject preset context on first message (from smart assistant config)
+        const shouldInjectContext = this.isFirstMessage && this.options.presetContext;
+        if (shouldInjectContext) {
+          contentToSend = `${contentToSend}\n\n<system_instruction>\n${this.options.presetContext}\n</system_instruction>`;
+        }
+
         const userMessage: TMessage = {
           id: data.msg_id,
           msg_id: data.msg_id,
@@ -126,7 +137,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
           position: 'right',
           conversation_id: this.conversation_id,
           content: {
-            content: data.content,
+            content: data.content, // Save original content to history
           },
           createdAt: Date.now(),
         };
@@ -138,6 +149,13 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
           data: userMessage.content.content,
         };
         ipcBridge.acpConversation.responseStream.emit(userResponseMessage);
+
+        const result = await this.agent.sendMessage({ ...data, content: contentToSend });
+        // 首条消息发送后标记，无论是否有 presetContext
+        if (this.isFirstMessage) {
+          this.isFirstMessage = false;
+        }
+        return result;
       }
       return await this.agent.sendMessage(data);
     } catch (e) {
