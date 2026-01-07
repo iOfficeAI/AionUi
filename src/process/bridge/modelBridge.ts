@@ -7,6 +7,7 @@
 import type { IProvider } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import { type ProtocolDetectionRequest, type ProtocolDetectionResponse, type ProtocolType, type MultiKeyTestResult, parseApiKeys, maskApiKey, normalizeBaseUrl, removeApiPathSuffix, guessProtocolFromUrl, guessProtocolFromKey, getProtocolDisplayName } from '@/common/utils/protocolDetector';
+import { isGoogleApisHost } from '@/common/utils/urlValidation';
 import OpenAI from 'openai';
 import { ipcBridge } from '../../common';
 import { ProcessConfig } from '../initStorage';
@@ -28,30 +29,6 @@ const API_PATH_PATTERNS = [
   '/api/v3', // 火山引擎 Ark / Volcengine
   '/api/paas/v4', // 智谱 / Zhipu
 ];
-
-/**
- * 允许的 Google API 主机名白名单
- * Whitelist of allowed Google API hostnames
- */
-const GOOGLE_API_HOSTS = ['generativelanguage.googleapis.com', 'aiplatform.googleapis.com'];
-
-/**
- * 安全地验证 URL 是否为 Google APIs 主机
- * 使用 URL 解析而非字符串包含检查，防止恶意 URL 绕过
- * Safely validate if URL is a Google APIs host.
- * Uses URL parsing instead of string includes to prevent malicious URL bypass.
- *
- * @param urlString - 要验证的 URL 字符串 / URL string to validate
- * @returns 如果是有效的 Google APIs 主机返回 true / Returns true if valid Google APIs host
- */
-function isGoogleApisHost(urlString: string): boolean {
-  try {
-    const url = new URL(urlString);
-    return GOOGLE_API_HOSTS.includes(url.hostname);
-  } catch {
-    return false;
-  }
-}
 
 export function initModelBridge(): void {
   ipcBridge.mode.fetchModelList.provider(async function fetchModelList({ base_url, api_key, try_fix, platform }): Promise<{ success: boolean; msg?: string; data?: { mode: Array<string>; fix_base_url?: string } }> {

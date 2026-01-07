@@ -1,6 +1,7 @@
 import type { IProvider } from '@/common/storage';
 import { ipcBridge } from '@/common';
 import { uuid } from '@/common/utils';
+import { isGoogleApisHost } from '@/common/utils/urlValidation';
 import ModalHOC from '@/renderer/utils/ModalHOC';
 import { Form, Input, Message, Select } from '@arco-design/web-react';
 import { Search, LinkCloud, Edit } from '@icon-park/react';
@@ -12,27 +13,6 @@ import AionModal from '@/renderer/components/base/AionModal';
 import ApiKeyEditorModal from './ApiKeyEditorModal';
 import ProtocolDetectionStatus from './ProtocolDetectionStatus';
 import { MODEL_PLATFORMS, getPlatformByValue, isCustomOption, isGeminiPlatform, type PlatformConfig } from '@/renderer/config/modelPlatforms';
-
-/**
- * 允许的 Google API 主机名白名单
- * Whitelist of allowed Google API hostnames
- */
-const GOOGLE_API_HOSTS = ['generativelanguage.googleapis.com', 'aiplatform.googleapis.com'];
-
-/**
- * 安全地验证 URL 是否为 Google APIs 主机
- * 使用 URL 解析而非字符串包含检查，防止恶意 URL 绕过
- * Safely validate if URL is a Google APIs host.
- * Uses URL parsing instead of string includes to prevent malicious URL bypass.
- */
-function isGoogleApisHost(urlString: string): boolean {
-  try {
-    const url = new URL(urlString);
-    return GOOGLE_API_HOSTS.includes(url.hostname);
-  } catch {
-    return false;
-  }
-}
 
 /**
  * 供应商 Logo 组件
