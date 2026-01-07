@@ -9,6 +9,7 @@ import SendBox from '@/renderer/components/sendbox';
 import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/ThoughtDisplay';
 import { useGeminiGoogleAuthModels } from '@/renderer/hooks/useGeminiGoogleAuthModels';
 import { useLatestRef } from '@/renderer/hooks/useLatestRef';
+import { useAutoTitle } from '@/renderer/hooks/useAutoTitle';
 import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/useSendBoxDraft';
 import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/useSendBoxFiles';
 import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
@@ -166,6 +167,7 @@ const GeminiSendBox: React.FC<{
   modelSelection: GeminiModelSelection;
 }> = ({ conversation_id, modelSelection }) => {
   const { t } = useTranslation();
+  const { checkAndUpdateTitle } = useAutoTitle();
   const { thought, running, tokenUsage } = useGeminiMessage(conversation_id);
 
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
@@ -232,6 +234,7 @@ const GeminiSendBox: React.FC<{
       conversation_id,
       files: uploadFile,
     });
+    void checkAndUpdateTitle(conversation_id, message);
     emitter.emit('chat.history.refresh');
     emitter.emit('gemini.selected.file.clear');
     if (uploadFile.length) {

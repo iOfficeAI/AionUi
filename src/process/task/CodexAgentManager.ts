@@ -175,11 +175,18 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
       }
 
       // 处理文件引用 - 参考 ACP 的文件引用处理
-      const processedContent = this.agent.getFileOperationHandler().processFileReferences(data.content, data.files);
+      let processedContent = this.agent.getFileOperationHandler().processFileReferences(data.content, data.files);
 
       // 如果是第一条消息，通过 newSession 发送以避免双消息问题
       if (this.isFirstMessage) {
         this.isFirstMessage = false;
+
+        // 注入智能助手的预设规则（如果有）
+        // Inject preset context from smart assistant (if available)
+        if (this.data.data.presetContext) {
+          processedContent = `${processedContent}\n\n<system_instruction>\n${this.data.data.presetContext}\n</system_instruction>`;
+        }
+
         const result = await this.agent.newSession(this.workspace, processedContent);
 
         // Session created successfully - Codex will send session_configured event automatically

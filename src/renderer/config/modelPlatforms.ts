@@ -54,6 +54,8 @@ export interface PlatformConfig {
   platform: PlatformType;
   /** Base URL（预设供应商使用） / Base URL (for preset providers) */
   baseUrl?: string;
+  /** 国际化 key（可选，用于需要翻译的平台名称） / i18n key (optional, for platform names that need translation) */
+  i18nKey?: string;
 }
 
 /**
@@ -67,12 +69,12 @@ export interface PlatformConfig {
  * 4+ 预设供应商
  */
 export const MODEL_PLATFORMS: PlatformConfig[] = [
-  // 官方 Gemini 平台
-  { name: 'Gemini', value: 'gemini', logo: GeminiLogo, platform: 'gemini' },
-  { name: 'Gemini (Vertex AI)', value: 'gemini-vertex-ai', logo: GeminiLogo, platform: 'gemini-vertex-ai' },
+  // 自定义选项（需要用户输入 base url）/ Custom option (requires user to input base url)
+  { name: 'Custom', value: 'custom', logo: null, platform: 'custom', i18nKey: 'settings.platformCustom' },
 
-  // 自定义选项（需要用户输入 base url）
-  { name: 'Custom', value: 'custom', logo: null, platform: 'custom' },
+  // 官方 Gemini 平台
+  { name: 'Gemini', value: 'gemini', logo: GeminiLogo, platform: 'gemini', baseUrl: 'https://generativelanguage.googleapis.com' },
+  { name: 'Gemini (Vertex AI)', value: 'gemini-vertex-ai', logo: GeminiLogo, platform: 'gemini-vertex-ai' },
 
   // 预设供应商（按字母顺序排列）
   { name: 'OpenAI', value: 'OpenAI', logo: OpenAILogo, platform: 'custom', baseUrl: 'https://api.openai.com/v1' },

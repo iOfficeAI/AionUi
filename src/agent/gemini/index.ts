@@ -20,6 +20,8 @@ import { loadSettings } from './cli/settings';
 import { ConversationToolConfig } from './cli/tools/conversation-tool-config';
 import { mapToDisplay, type TrackedToolCall } from './cli/useReactToolScheduler';
 import { getPromptCount, handleCompletedTools, processGeminiStreamEvents, startNewPrompt } from './utils';
+import { globalToolCallGuard, type StreamConnectionEvent } from './cli/streamResilience';
+import { OAuthTokenManager, getGlobalTokenManager } from './cli/oauthTokenManager';
 
 // Global registry for current agent instance (used by flashFallbackHandler)
 let currentGeminiAgent: GeminiAgent | null = null;
@@ -33,7 +35,9 @@ interface GeminiAgent2Options {
   yoloMode?: boolean;
   GOOGLE_CLOUD_PROJECT?: string;
   mcpServers?: Record<string, unknown>;
+  contextFileName?: string;
   onStreamEvent: (event: { type: string; data: unknown; msg_id: string }) => void;
+  contextContent?: string;
 }
 
 export class GeminiAgent {
@@ -52,11 +56,13 @@ export class GeminiAgent {
   private trackedCalls: TrackedToolCall[] = [];
   private abortController: AbortController | null = null;
   private onStreamEvent: (event: { type: string; data: unknown; msg_id: string }) => void;
+  private contextContent?: string;
   private toolConfig: ConversationToolConfig; // 对话级别的工具配置
   private apiKeyManager: ApiKeyManager | null = null; // 多API Key管理器
   private settings: Settings | null = null;
   private historyPrefix: string | null = null;
   private historyUsedOnce = false;
+  private contextFileName: string | undefined;
   bootstrap: Promise<void>;
   static buildFileServer(workspace: string) {
     return new FileDiscoveryService(workspace);
@@ -70,9 +76,11 @@ export class GeminiAgent {
     this.yoloMode = options.yoloMode || false;
     this.googleCloudProject = options.GOOGLE_CLOUD_PROJECT;
     this.mcpServers = options.mcpServers || {};
+    this.contextFileName = options.contextFileName;
     // 使用统一的工具函数获取认证类型
     this.authType = getProviderAuthType(options.model);
     this.onStreamEvent = options.onStreamEvent;
+    this.contextContent = options.contextContent;
     this.initClientEnv();
     this.toolConfig = new ConversationToolConfig({
       proxy: this.proxy,
@@ -161,6 +169,9 @@ export class GeminiAgent {
     const path = this.workspace;
 
     const settings = loadSettings(path).merged;
+    if (this.contextFileName) {
+      settings.contextFileName = this.contextFileName;
+    }
     this.settings = settings;
 
     // 使用传入的 YOLO 设置
@@ -186,6 +197,13 @@ export class GeminiAgent {
     await this.config.refreshAuth(this.authType || AuthType.USE_GEMINI);
 
     this.geminiClient = this.config.getGeminiClient();
+
+    // Inject context content (preset rules) if provided
+    if (this.contextContent) {
+      const currentMemory = this.config.getUserMemory();
+      const combined = `${this.contextContent}\n\n[Workspace Context]\n${currentMemory}`;
+      this.config.setUserMemory(combined);
+    }
 
     // 注册对话级别的自定义工具
     await this.toolConfig.registerCustomTools(this.config, this.geminiClient);
@@ -267,19 +285,48 @@ export class GeminiAgent {
     });
   }
 
+  /**
+   * 处理消息流（带弹性监控）
+   * Handle message stream with resilience monitoring
+   */
   private handleMessage(stream: AsyncGenerator<ServerGeminiStreamEvent, Turn, unknown>, msg_id: string, abortController: AbortController): Promise<void> {
     const toolCallRequests: ToolCallRequestInfo[] = [];
 
-    return processGeminiStreamEvents(stream, this.config, (data) => {
-      if (data.type === 'tool_call_request') {
-        toolCallRequests.push(data.data as ToolCallRequestInfo);
-        return;
+    // 流连接事件处理
+    // Stream connection event handler
+    const onConnectionEvent = (event: StreamConnectionEvent) => {
+      if (event.type === 'heartbeat_timeout') {
+        console.warn(`[GeminiAgent] Stream heartbeat timeout at ${new Date(event.lastEventTime).toISOString()}`);
+        // 可以在这里添加重连逻辑或通知用户
+      } else if (event.type === 'state_change' && event.state === 'failed') {
+        console.error(`[GeminiAgent] Stream connection failed: ${event.reason}`);
+        this.onStreamEvent({
+          type: 'error',
+          data: `Connection lost: ${event.reason}. Please try again.`,
+          msg_id,
+        });
       }
-      this.onStreamEvent({
-        ...data,
-        msg_id,
-      });
-    })
+    };
+
+    return processGeminiStreamEvents(
+      stream,
+      this.config,
+      (data) => {
+        if (data.type === 'tool_call_request') {
+          const toolRequest = data.data as ToolCallRequestInfo;
+          toolCallRequests.push(toolRequest);
+          // 立即保护工具调用，防止被取消
+          // Immediately protect tool call to prevent cancellation
+          globalToolCallGuard.protect(toolRequest.callId);
+          return;
+        }
+        this.onStreamEvent({
+          ...data,
+          msg_id,
+        });
+      },
+      { onConnectionEvent }
+    )
       .then(async () => {
         if (toolCallRequests.length > 0) {
           // Emit preview_open for navigation tools, but don't block execution
@@ -295,6 +342,11 @@ export class GeminiAgent {
       })
       .catch((e: unknown) => {
         const errorMessage = e instanceof Error ? e.message : JSON.stringify(e);
+        // 清理受保护的工具调用
+        // Clean up protected tool calls on error
+        for (const req of toolCallRequests) {
+          globalToolCallGuard.unprotect(req.callId);
+        }
         this.onStreamEvent({
           type: 'error',
           data: errorMessage,
@@ -400,6 +452,22 @@ export class GeminiAgent {
   async send(message: string | Array<{ text: string }>, msg_id = '') {
     await this.bootstrap;
     const abortController = this.createAbortController();
+
+    // OAuth Token 预检查（仅对 OAuth 模式生效）
+    // Preemptive OAuth Token check (only for OAuth mode)
+    if (this.authType === AuthType.LOGIN_WITH_GOOGLE) {
+      try {
+        const tokenManager = getGlobalTokenManager(this.authType);
+        const isTokenValid = await tokenManager.checkAndRefreshIfNeeded();
+        if (!isTokenValid) {
+          console.warn('[GeminiAgent] OAuth token validation failed, proceeding anyway');
+        }
+      } catch (tokenError) {
+        console.warn('[GeminiAgent] OAuth token check error:', tokenError);
+        // 继续执行，让后续流程处理认证错误
+      }
+    }
+
     // Prepend one-time history prefix before processing commands
     if (this.historyPrefix && !this.historyUsedOnce) {
       if (Array.isArray(message)) {

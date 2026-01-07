@@ -62,13 +62,13 @@ const buildWorkspaceWidthFiles = async (defaultWorkspaceName: string, workspace?
   return { workspace, customWorkspace };
 };
 
-export const createGeminiAgent = async (model: TProviderWithModel, workspace?: string, defaultFiles?: string[], webSearchEngine?: 'google' | 'default', customWorkspace?: boolean): Promise<TChatConversation> => {
+export const createGeminiAgent = async (model: TProviderWithModel, workspace?: string, defaultFiles?: string[], webSearchEngine?: 'google' | 'default', customWorkspace?: boolean, contextFileName?: string, contextContent?: string): Promise<TChatConversation> => {
   const { workspace: newWorkspace, customWorkspace: finalCustomWorkspace } = await buildWorkspaceWidthFiles(`gemini-temp-${Date.now()}`, workspace, defaultFiles, customWorkspace);
 
   return {
     type: 'gemini',
     model,
-    extra: { workspace: newWorkspace, customWorkspace: finalCustomWorkspace, webSearchEngine },
+    extra: { workspace: newWorkspace, customWorkspace: finalCustomWorkspace, webSearchEngine, contextFileName, contextContent },
     desc: finalCustomWorkspace ? newWorkspace : '',
     createTime: Date.now(),
     modifyTime: Date.now(),
@@ -89,6 +89,7 @@ export const createAcpAgent = async (options: ICreateConversationParams): Promis
       cliPath: extra.cliPath,
       agentName: extra.agentName,
       customAgentId: extra.customAgentId,
+      presetContext: extra.presetContext, // 智能助手的预设规则/提示词
     },
     createTime: Date.now(),
     modifyTime: Date.now(),
@@ -107,6 +108,7 @@ export const createCodexAgent = async (options: ICreateConversationParams): Prom
       customWorkspace,
       cliPath: extra.cliPath,
       sandboxMode: 'workspace-write', // 默认为读写权限 / Default to read-write permission
+      presetContext: extra.presetContext, // 智能助手的预设规则/提示词
     },
     createTime: Date.now(),
     modifyTime: Date.now(),

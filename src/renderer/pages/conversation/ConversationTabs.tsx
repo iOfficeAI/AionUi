@@ -131,7 +131,7 @@ const ConversationTabs: React.FC = () => {
         const newConversation = {
           ...currentConversation,
           id: newId,
-          name: currentConversation.name, // 复制上一个会话的标题
+          name: t('conversation.welcome.newConversation'), // Default title for new session
           createTime: Date.now(),
           modifyTime: Date.now(),
         };

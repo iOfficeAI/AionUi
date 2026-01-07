@@ -105,8 +105,6 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
     return getProviderLogo(data?.name, data?.baseUrl, data?.platform);
   }, [data?.name, data?.baseUrl, data?.platform]);
 
-  const isGemini = data?.platform === 'gemini' || data?.platform === 'gemini-vertex-ai';
-
   useEffect(() => {
     if (data) {
       form.setFieldsValue(data);
@@ -130,18 +128,25 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
     >
       <div className='py-20px'>
         <Form form={form} layout='vertical'>
-          {/* 模型供应商（只读显示）/ Model Provider (read-only display) */}
-          <Form.Item label={t('settings.modelProvider')}>
-            <div className='flex items-center gap-8px h-32px px-12px bg-fill-2 rounded-md'>
-              <ProviderLogo logo={providerLogo} name={data?.name || ''} size={18} />
-              <span className='text-t-primary'>{data?.name}</span>
-            </div>
+          {/* 模型供应商名称（可编辑，带 Logo）/ Model Provider name (editable, with Logo) */}
+          <Form.Item
+            label={
+              <div className='flex items-center gap-6px'>
+                <ProviderLogo logo={providerLogo} name={data?.name || ''} size={16} />
+                <span>{t('settings.modelProvider')}</span>
+              </div>
+            }
+            field='name'
+            required
+            rules={[{ required: true }]}
+          >
+            <Input placeholder={t('settings.modelProvider')} />
           </Form.Item>
 
           {/* Base URL - 仅 Gemini 平台显示（用于自定义代理）/ Base URL - only for Gemini platform (for custom proxy) */}
-          {/* <Form.Item hidden={!isGemini} label={t('settings.baseUrl')} field={'baseUrl'}>
-            <Input placeholder='https://generativelanguage.googleapis.com' />
-          </Form.Item> */}
+          <Form.Item label={t('settings.baseUrl')} required={data?.platform !== 'gemini' && data?.platform !== 'gemini-vertex-ai'} rules={[{ required: data?.platform !== 'gemini' && data?.platform !== 'gemini-vertex-ai' }]} field={'baseUrl'} disabled>
+            <Input></Input>
+          </Form.Item>
 
           <Form.Item label={t('settings.apiKey')} required rules={[{ required: true }]} field={'apiKey'} extra={<div className='text-11px text-t-secondary mt-2'>💡 {t('settings.multiApiKeyEditTip')}</div>}>
             <Input.TextArea rows={4} placeholder={t('settings.apiKeyPlaceholder')} />

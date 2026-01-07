@@ -321,6 +321,7 @@ export interface CodexAgentManagerData {
   cliPath?: string;
   sandboxMode?: 'read-only' | 'workspace-write' | 'danger-full-access';
   webSearchEnabled?: boolean;
+  presetContext?: string; // 智能助手的预设规则/提示词 / Preset context from smart assistant
 }
 
 export interface ElicitationCreateData {

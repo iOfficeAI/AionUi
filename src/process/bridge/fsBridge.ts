@@ -9,6 +9,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import https from 'node:https';
 import http from 'node:http';
+import { app } from 'electron';
 import { ipcBridge } from '../../common';
 import { getSystemDir } from '../initStorage';
 import { readDirectoryRecursive } from '../utils';
@@ -396,6 +397,27 @@ export function initFsBridge(): void {
     } catch (error) {
       console.error('Failed to rename entry:', error);
       return { success: false, msg: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  });
+
+  // 读取内置 rules 文件 / Read built-in rules file from app resources
+  ipcBridge.fs.readBuiltinRule.provider(async ({ fileName }) => {
+    try {
+      // 安全检查：只允许读取 rules 目录下的 .md 文件
+      // Security check: only allow reading .md files from rules directory
+      const safeFileName = path.basename(fileName);
+      if (!safeFileName.endsWith('.md')) {
+        throw new Error('Only .md files are allowed');
+      }
+
+      const appPath = app.getAppPath();
+      const rulesPath = path.join(appPath, 'rules', safeFileName);
+
+      const content = await fs.readFile(rulesPath, 'utf-8');
+      return content;
+    } catch (error) {
+      console.error('Failed to read builtin rule:', error);
+      throw error;
     }
   });
 }

@@ -34,7 +34,7 @@ const WorkspaceCollapse: React.FC<WorkspaceCollapseProps> = ({ expanded, onToggl
     <div className={classNames('workspace-collapse min-w-0', className)}>
       {/* 折叠头部 - 侧栏折叠时隐藏 */}
       {!siderCollapsed && (
-        <div className='flex items-center ml-2px gap-8px px-4px py-4px cursor-pointer hover:bg-hover rd-4px transition-colors min-w-0' onClick={onToggle}>
+        <div className='flex items-center ml-2px gap-8px h-32px p-4px cursor-pointer hover:bg-hover rd-4px transition-colors min-w-0' onClick={onToggle}>
           {/* 展开/收起箭头 */}
           <Down size={16} className={classNames('line-height-0 transition-transform duration-200 flex-shrink-0', expanded ? 'rotate-0' : '-rotate-90')} />
 

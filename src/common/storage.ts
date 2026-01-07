@@ -86,6 +86,8 @@ export type TChatConversation =
         customWorkspace?: boolean; // true 用户指定工作目录 false 系统默认工作目录
         webSearchEngine?: 'google' | 'default'; // 搜索引擎配置
         lastTokenUsage?: TokenUsageData; // 上次的 token 使用统计
+        contextFileName?: string;
+        contextContent?: string;
       }
     >
   | Omit<
@@ -98,6 +100,7 @@ export type TChatConversation =
           customWorkspace?: boolean;
           agentName?: string;
           customAgentId?: string; // UUID for identifying specific custom agent
+          presetContext?: string; // 智能助手的预设规则/提示词 / Preset context from smart assistant
         }
       >,
       'model'
@@ -110,6 +113,7 @@ export type TChatConversation =
           cliPath?: string;
           customWorkspace?: boolean;
           sandboxMode?: 'read-only' | 'workspace-write' | 'danger-full-access'; // Codex sandbox permission mode
+          presetContext?: string; // 智能助手的预设规则/提示词 / Preset context from smart assistant
         }
       >,
       'model'

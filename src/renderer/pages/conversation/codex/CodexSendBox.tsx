@@ -19,6 +19,7 @@ import FilePreview from '@/renderer/components/FilePreview';
 import HorizontalFileList from '@/renderer/components/HorizontalFileList';
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';
 import { useLatestRef } from '@/renderer/hooks/useLatestRef';
+import { useAutoTitle } from '@/renderer/hooks/useAutoTitle';
 
 interface CodexDraftData {
   _type: 'codex';
@@ -36,6 +37,7 @@ const useCodexSendBoxDraft = getSendBoxDraftHook('codex', {
 
 const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
   const { t } = useTranslation();
+  const { checkAndUpdateTitle } = useAutoTitle();
   const addOrUpdateMessage = useAddOrUpdateMessage();
   const { setSendBoxHandler } = usePreviewContext();
 
@@ -211,6 +213,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
         conversation_id,
         files: [...currentUploadFile, ...atPathStrings], // 包含上传文件和选中的工作空间文件
       });
+      void checkAndUpdateTitle(conversation_id, message);
       emitter.emit('chat.history.refresh');
     } finally {
       // Clear waiting state when done
@@ -263,6 +266,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
 
         // 发送消息到后端处理
         await ipcBridge.codexConversation.sendMessage.invoke({ input, msg_id, conversation_id, files, loading_id });
+        void checkAndUpdateTitle(conversation_id, input);
         emitter.emit('chat.history.refresh');
 
         // 成功后移除初始消息存储

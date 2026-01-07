@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { AcpBackend, AcpMessage, AcpNotification, AcpPermissionRequest, AcpRequest, AcpResponse, AcpSessionUpdate } from '@/types/acpTypes';
-import { JSONRPC_VERSION } from '@/types/acpTypes';
+import type { AcpBackend, AcpIncomingMessage, AcpMessage, AcpNotification, AcpPermissionRequest, AcpRequest, AcpResponse, AcpSessionUpdate } from '@/types/acpTypes';
+import { ACP_METHODS, JSONRPC_VERSION } from '@/types/acpTypes';
 import type { ChildProcess, SpawnOptions } from 'child_process';
 import { spawn } from 'child_process';
 import { promises as fs } from 'fs';
@@ -354,10 +354,10 @@ export class AcpConnection {
 
   private handleMessage(message: AcpMessage): void {
     try {
-      // 修复：优先检查是否为 request（有 method 字段），而不是仅基于 ID
+      // 优先检查是否为 request/notification（有 method 字段）
       if ('method' in message) {
-        // This is a request or notification
-        this.handleIncomingRequest(message).catch((_error) => {
+        // 直接传递给 handleIncomingRequest，switch 会过滤未知 method
+        this.handleIncomingRequest(message as AcpIncomingMessage).catch((_error) => {
           // Handle request errors silently
         });
       } else if ('id' in message && typeof message.id === 'number' && this.pendingRequests.has(message.id)) {
@@ -367,7 +367,7 @@ export class AcpConnection {
 
         if ('result' in message) {
           // Check for end_turn message
-          if (message.result && typeof message.result === 'object' && message.result.stopReason === 'end_turn') {
+          if (message.result && typeof message.result === 'object' && (message.result as Record<string, unknown>).stopReason === 'end_turn') {
             this.onEndTurn();
           }
           resolve(message.result);
@@ -383,26 +383,23 @@ export class AcpConnection {
     }
   }
 
-  private async handleIncomingRequest(message: AcpRequest | AcpNotification): Promise<void> {
-    const { method, params } = message;
-
+  private async handleIncomingRequest(message: AcpIncomingMessage): Promise<void> {
     try {
       let result = null;
 
-      switch (method) {
-        case 'session/update':
-          this.onSessionUpdate(params);
+      // 可辨识联合类型：TypeScript 根据 method 字面量自动窄化 params 类型
+      switch (message.method) {
+        case ACP_METHODS.SESSION_UPDATE:
+          this.onSessionUpdate(message.params);
           break;
-        case 'session/request_permission':
-          result = await this.handlePermissionRequest(params);
+        case ACP_METHODS.REQUEST_PERMISSION:
+          result = await this.handlePermissionRequest(message.params);
           break;
-        case 'fs/read_text_file':
-          result = await this.handleReadOperation(params);
+        case ACP_METHODS.READ_TEXT_FILE:
+          result = await this.handleReadOperation(message.params);
           break;
-        case 'fs/write_text_file':
-          result = await this.handleWriteOperation(params);
-          break;
-        default:
+        case ACP_METHODS.WRITE_TEXT_FILE:
+          result = await this.handleWriteOperation(message.params);
           break;
       }
 
