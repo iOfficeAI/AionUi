@@ -30,7 +30,9 @@ export function initConversationBridge(): void {
         if (contextFileName && !path.isAbsolute(contextFileName)) {
           contextFileName = path.resolve(process.cwd(), contextFileName);
         }
-        return createGeminiAgent(model, extra.workspace, extra.defaultFiles, extra.webSearchEngine, extra.customWorkspace, contextFileName, extra.context);
+        // 智能助手使用 presetContext，普通对话使用 context / Smart assistants use presetContext, normal conversations use context
+        const contextContent = extra.presetContext || extra.context;
+        return createGeminiAgent(model, extra.workspace, extra.defaultFiles, extra.webSearchEngine, extra.customWorkspace, contextFileName, contextContent);
       }
       if (type === 'acp') return createAcpAgent(params);
       if (type === 'codex') return createCodexAgent(params);
@@ -234,8 +236,9 @@ export function initConversationBridge(): void {
     try {
       const db = getDatabase();
       const existing = db.getConversation(id);
-      const prevModel = existing.success && existing.data ? existing.data.model : undefined;
-      const nextModel = updates?.model;
+      // Only gemini type has model, use 'in' check to safely access
+      const prevModel = existing.success && existing.data && 'model' in existing.data ? existing.data.model : undefined;
+      const nextModel = 'model' in updates ? updates.model : undefined;
       const modelChanged = !!nextModel && JSON.stringify(prevModel) !== JSON.stringify(nextModel);
       // model change detection for task rebuild
 

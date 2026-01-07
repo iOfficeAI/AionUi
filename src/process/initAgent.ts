@@ -89,6 +89,7 @@ export const createAcpAgent = async (options: ICreateConversationParams): Promis
       cliPath: extra.cliPath,
       agentName: extra.agentName,
       customAgentId: extra.customAgentId,
+      presetContext: extra.presetContext, // 智能助手的预设规则/提示词
     },
     createTime: Date.now(),
     modifyTime: Date.now(),
@@ -107,6 +108,7 @@ export const createCodexAgent = async (options: ICreateConversationParams): Prom
       customWorkspace,
       cliPath: extra.cliPath,
       sandboxMode: 'workspace-write', // 默认为读写权限 / Default to read-write permission
+      presetContext: extra.presetContext, // 智能助手的预设规则/提示词
     },
     createTime: Date.now(),
     modifyTime: Date.now(),

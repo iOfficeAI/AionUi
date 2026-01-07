@@ -54,7 +54,6 @@ const buildConversation = (conversation: TChatConversation) => {
       return task;
     }
     default: {
-      console.warn('[WorkerManage] Unsupported conversation type:', conversation.type);
       return null;
     }
   }

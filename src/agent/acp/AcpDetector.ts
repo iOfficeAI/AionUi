@@ -17,6 +17,8 @@ interface DetectedAgent {
   customAgentId?: string; // UUID for custom agents
   isPreset?: boolean;
   context?: string;
+  avatar?: string;
+  presetAgentType?: 'gemini' | 'claude' | 'codex'; // Primary agent type for presets
 }
 
 /**
@@ -48,6 +50,8 @@ class AcpDetector {
         customAgentId: agent.id, // 存储 UUID 用于标识 / Store the UUID for identification
         isPreset: agent.isPreset,
         context: agent.context,
+        avatar: agent.avatar,
+        presetAgentType: agent.presetAgentType, // 主 Agent 类型 / Primary agent type
       }));
 
       detected.push(...customDetectedAgents);

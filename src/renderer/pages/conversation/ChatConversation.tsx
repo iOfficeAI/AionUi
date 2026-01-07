@@ -23,7 +23,7 @@ import { iconColors } from '@/renderer/theme/colors';
 import addChatIcon from '@/renderer/assets/add-chat.svg';
 import GeminiModelSelector from './gemini/GeminiModelSelector';
 import { useGeminiModelSelection } from './gemini/useGeminiModelSelection';
-import SkillRuleGenerator from './components/SkillRuleGenerator';
+// import SkillRuleGenerator from './components/SkillRuleGenerator'; // Temporarily hidden
 
 const _AssociatedConversation: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
   const { data } = useSWR(['getAssociateConversation', conversation_id], () => ipcBridge.conversation.getAssociateConversation.invoke({ conversation_id }));
@@ -101,7 +101,7 @@ const GeminiConversationPanel: React.FC<{ conversation: GeminiConversation; slid
     siderTitle: sliderTitle,
     sider: <ChatSider conversation={conversation} />,
     headerLeft: <GeminiModelSelector selection={modelSelection} />,
-    headerExtra: <SkillRuleGenerator conversationId={conversation.id} workspace={conversation.extra?.workspace} />,
+    // headerExtra: <SkillRuleGenerator conversationId={conversation.id} workspace={conversation.extra?.workspace} />, // Temporarily hidden
     workspaceEnabled,
   };
 
@@ -147,7 +147,7 @@ const ChatConversation: React.FC<{
   }
 
   return (
-    <ChatLayout title={conversation?.name} backend={conversation?.type === 'acp' ? conversation?.extra?.backend : conversation?.type === 'codex' ? 'codex' : undefined} agentName={(conversation?.extra as { agentName?: string })?.agentName} siderTitle={sliderTitle} sider={<ChatSider conversation={conversation} />} workspaceEnabled={workspaceEnabled} headerExtra={conversation ? <SkillRuleGenerator conversationId={conversation.id} workspace={conversation.extra?.workspace} /> : null}>
+    <ChatLayout title={conversation?.name} backend={conversation?.type === 'acp' ? conversation?.extra?.backend : conversation?.type === 'codex' ? 'codex' : undefined} agentName={(conversation?.extra as { agentName?: string })?.agentName} siderTitle={sliderTitle} sider={<ChatSider conversation={conversation} />} workspaceEnabled={workspaceEnabled}>
       {conversationNode}
     </ChatLayout>
   );

@@ -116,7 +116,21 @@ export const acpConversation = {
   confirmMessage: bridge.buildProvider<IBridgeResponse, IConfirmMessageParams>('acp.input.confirm.message'),
   responseStream: conversation.responseStream,
   detectCliPath: bridge.buildProvider<IBridgeResponse<{ path?: string }>, { backend: AcpBackend }>('acp.detect-cli-path'),
-  getAvailableAgents: bridge.buildProvider<IBridgeResponse<Array<{ backend: AcpBackend; name: string; cliPath?: string; customAgentId?: string }>>, void>('acp.get-available-agents'),
+  getAvailableAgents: bridge.buildProvider<
+    IBridgeResponse<
+      Array<{
+        backend: AcpBackend;
+        name: string;
+        cliPath?: string;
+        customAgentId?: string;
+        isPreset?: boolean;
+        context?: string;
+        avatar?: string;
+        presetAgentType?: 'gemini' | 'claude' | 'codex';
+      }>
+    >,
+    void
+  >('acp.get-available-agents'),
   checkEnv: bridge.buildProvider<{ env: Record<string, string> }, void>('acp.check.env'),
   refreshCustomAgents: bridge.buildProvider<IBridgeResponse, void>('acp.refresh-custom-agents'),
   // clearAllCache: bridge.buildProvider<IBridgeResponse<{ details?: any }>, void>('acp.clear.all.cache'),
@@ -212,6 +226,14 @@ export interface ICreateConversationParams {
     agentName?: string;
     customAgentId?: string;
     context?: string;
+    contextFileName?: string; // For gemini preset agents
+    /**
+     * Preset context/rules to inject into the first message.
+     * Used by smart assistants to provide custom prompts/rules.
+     * For Gemini: injected via contextContent
+     * For ACP/Codex: injected via <system_instruction> tag in first message
+     */
+    presetContext?: string;
   };
 }
 interface IResetConversationParams {

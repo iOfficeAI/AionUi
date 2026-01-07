@@ -7,7 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { IProvider, TProviderWithModel } from '@/common/storage';
 import { ConfigStorage } from '@/common/storage';
-import { uuid } from '@/common/utils';
+import { uuid, resolveLocaleKey } from '@/common/utils';
 import { useConversationTabs } from '@/renderer/pages/conversation/context/ConversationTabsContext';
 import { updateWorkspaceTime } from '@/renderer/utils/workspaceHistory';
 import AuggieLogo from '@/renderer/assets/logos/auggie.svg';
@@ -18,7 +18,6 @@ import GooseLogo from '@/renderer/assets/logos/goose.svg';
 import IflowLogo from '@/renderer/assets/logos/iflow.svg';
 import KimiLogo from '@/renderer/assets/logos/kimi.svg';
 import OpenCodeLogo from '@/renderer/assets/logos/opencode.svg';
-import PdfToPptLogo from '@/renderer/assets/logos/pdf-to-ppt.svg';
 import QwenLogo from '@/renderer/assets/logos/qwen.svg';
 import FilePreview from '@/renderer/components/FilePreview';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
@@ -32,14 +31,14 @@ import { allSupportedExts, type FileMetadata, getCleanFileNames } from '@/render
 import { iconColors } from '@/renderer/theme/colors';
 import { emitter } from '@/renderer/utils/emitter';
 import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
-import type { AcpBackend } from '@/types/acpTypes';
+import type { AcpBackend, AcpBackendConfig } from '@/types/acpTypes';
 import { Button, ConfigProvider, Dropdown, Input, Menu, Tooltip } from '@arco-design/web-react';
 import { IconClose } from '@arco-design/web-react/icon';
 import { ArrowUp, Down, FolderOpen, Plus, Robot, UploadOne } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
-import useSWR from 'swr';
+import useSWR, { mutate } from 'swr';
 import styles from './index.module.css';
 
 /**
@@ -137,10 +136,11 @@ const AGENT_LOGO_MAP: Partial<Record<AcpBackend, string>> = {
 };
 
 const Guid: React.FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const guidContainerRef = useRef<HTMLDivElement>(null);
   const { closeAllTabs, openTab } = useConversationTabs();
   const { activeBorderColor, inactiveBorderColor, activeShadow } = useInputFocusRing();
+  const localeKey = resolveLocaleKey(i18n.language);
 
   // 打开外部链接 / Open external link
   const openLink = useCallback(async (url: string) => {
@@ -156,6 +156,7 @@ const Guid: React.FC = () => {
   const [mentionOpen, setMentionOpen] = useState(false);
   const [mentionSelectorVisible, setMentionSelectorVisible] = useState(false);
   const [mentionSelectorOpen, setMentionSelectorOpen] = useState(false);
+  const [mentionActiveIndex, setMentionActiveIndex] = useState(0);
   const [loading, setLoading] = useState(false);
   const [files, setFiles] = useState<string[]>([]);
   const [dir, setDir] = useState<string>('');
@@ -203,7 +204,19 @@ const Guid: React.FC = () => {
   // 对于自定义代理，使用 "custom:uuid" 格式来区分多个自定义代理
   // For custom agents, we store "custom:uuid" format to distinguish between multiple custom agents
   const [selectedAgentKey, setSelectedAgentKey] = useState<string>('gemini');
-  const [availableAgents, setAvailableAgents] = useState<Array<{ backend: AcpBackend; name: string; cliPath?: string; customAgentId?: string; isPreset?: boolean; context?: string }>>();
+  const [availableAgents, setAvailableAgents] = useState<
+    Array<{
+      backend: AcpBackend;
+      name: string;
+      cliPath?: string;
+      customAgentId?: string;
+      isPreset?: boolean;
+      context?: string;
+      avatar?: string;
+      presetAgentType?: 'gemini' | 'claude' | 'codex';
+    }>
+  >();
+  const [customAgents, setCustomAgents] = useState<AcpBackendConfig[]>([]);
 
   /**
    * 获取代理的唯一选择键
@@ -319,11 +332,17 @@ const Guid: React.FC = () => {
     setIsInputFocused(false);
   }, []);
 
+  const customAgentAvatarMap = useMemo(() => {
+    return new Map(customAgents.map((agent) => [agent.id, agent.avatar]));
+  }, [customAgents]);
+
   const mentionOptions = useMemo(() => {
     const agents = availableAgents || [];
     return agents.map((agent) => {
       const key = getAgentKey(agent);
       const label = agent.name || agent.backend;
+      const avatarValue = agent.backend === 'custom' ? agent.avatar || customAgentAvatarMap.get(agent.customAgentId || '') : undefined;
+      const avatar = avatarValue ? avatarValue.trim() : undefined;
       const tokens = new Set<string>();
       const normalizedLabel = label.toLowerCase();
       tokens.add(normalizedLabel);
@@ -333,19 +352,15 @@ const Guid: React.FC = () => {
       if (agent.customAgentId) {
         tokens.add(agent.customAgentId.toLowerCase());
       }
-      if (agent.customAgentId === 'pdf-to-ppt-preset') {
-        tokens.add('pdf');
-        tokens.add('ppt');
-        tokens.add('pdf-to-ppt');
-      }
       return {
         key,
         label,
         tokens,
-        logo: agent.customAgentId === 'pdf-to-ppt-preset' ? PdfToPptLogo : AGENT_LOGO_MAP[agent.backend],
+        avatar,
+        logo: AGENT_LOGO_MAP[agent.backend],
       };
     });
-  }, [availableAgents]);
+  }, [availableAgents, customAgentAvatarMap]);
 
   const filteredMentionOptions = useMemo(() => {
     if (!mentionQuery) return mentionOptions;
@@ -369,21 +384,25 @@ const Guid: React.FC = () => {
       setMentionSelectorOpen(false);
       setMentionSelectorVisible(true);
       setMentionQuery(null);
+      setMentionActiveIndex(0);
     },
     [stripMentionToken]
   );
 
   const selectedAgentLabel = selectedAgentInfo?.name || selectedAgentKey;
+  const mentionMenuActiveOption = filteredMentionOptions[mentionActiveIndex] || filteredMentionOptions[0];
+  const mentionMenuSelectedKey = mentionOpen || mentionSelectorOpen ? mentionMenuActiveOption?.key || selectedAgentKey : selectedAgentKey;
+  const mentionMenuRef = useRef<HTMLDivElement>(null);
 
   const mentionMenu = useMemo(
     () => (
-      <div className='bg-bg-2 border border-[var(--color-border-2)] rd-12px shadow-lg overflow-hidden'>
-        <Menu selectedKeys={[selectedAgentKey]} onClickMenuItem={(key) => selectMentionAgent(String(key))} className='min-w-180px max-h-200px overflow-auto'>
+      <div ref={mentionMenuRef} className='bg-bg-2 border border-[var(--color-border-2)] rd-12px shadow-lg overflow-hidden' style={{ boxShadow: '0 0 0 1px var(--color-border-2), 0 12px 24px rgba(0, 0, 0, 0.12)' }}>
+        <Menu selectedKeys={[mentionMenuSelectedKey]} onClickMenuItem={(key) => selectMentionAgent(String(key))} className='min-w-180px max-h-200px overflow-auto'>
           {filteredMentionOptions.length > 0 ? (
-            filteredMentionOptions.map((option) => (
-              <Menu.Item key={option.key}>
+            filteredMentionOptions.map((option, index) => (
+              <Menu.Item key={option.key} data-mention-index={index}>
                 <div className='flex items-center gap-8px'>
-                  {option.logo ? <img src={option.logo} alt={option.label} width={16} height={16} style={{ objectFit: 'contain' }} /> : <Robot theme='outline' size={16} />}
+                  {option.avatar ? <span style={{ fontSize: 14, lineHeight: '16px' }}>{option.avatar}</span> : option.logo ? <img src={option.logo} alt={option.label} width={16} height={16} style={{ objectFit: 'contain' }} /> : <Robot theme='outline' size={16} />}
                   <span>{option.label}</span>
                 </div>
               </Menu.Item>
@@ -396,7 +415,7 @@ const Guid: React.FC = () => {
         </Menu>
       </div>
     ),
-    [filteredMentionOptions, selectMentionAgent, selectedAgentKey, t]
+    [filteredMentionOptions, mentionMenuSelectedKey, selectMentionAgent, t]
   );
 
   // 获取可用的 ACP agents - 基于全局标记位
@@ -416,7 +435,76 @@ const Guid: React.FC = () => {
     }
   }, [availableAgentsData]);
 
+  useEffect(() => {
+    let isActive = true;
+    ConfigStorage.get('acp.customAgents')
+      .then((agents) => {
+        if (!isActive) return;
+        setCustomAgents(agents || []);
+      })
+      .catch((error) => {
+        console.error('Failed to load custom agents:', error);
+      });
+    return () => {
+      isActive = false;
+    };
+  }, [availableAgentsData]);
+
+  useEffect(() => {
+    if (mentionOpen) {
+      setMentionActiveIndex(0);
+      return;
+    }
+    if (mentionSelectorOpen) {
+      const selectedIndex = filteredMentionOptions.findIndex((option) => option.key === selectedAgentKey);
+      setMentionActiveIndex(selectedIndex >= 0 ? selectedIndex : 0);
+    }
+  }, [filteredMentionOptions, mentionOpen, mentionQuery, mentionSelectorOpen, selectedAgentKey]);
+
+  useEffect(() => {
+    if (!mentionOpen && !mentionSelectorOpen) return;
+    const container = mentionMenuRef.current;
+    if (!container) return;
+    const target = container.querySelector<HTMLElement>(`[data-mention-index="${mentionActiveIndex}"]`);
+    if (!target) return;
+    target.scrollIntoView({ block: 'nearest' });
+  }, [mentionActiveIndex, mentionOpen, mentionSelectorOpen]);
+
   const { compositionHandlers, isComposing } = useCompositionInput();
+
+  const resolvePresetContext = useCallback(
+    (agentInfo: { backend: AcpBackend; customAgentId?: string; context?: string } | undefined) => {
+      if (!agentInfo) return undefined;
+      if (agentInfo.backend !== 'custom') return agentInfo.context;
+      const customAgent = customAgents.find((agent) => agent.id === agentInfo.customAgentId);
+      const contextI18n = customAgent?.contextI18n || {};
+      return contextI18n[localeKey] || contextI18n['zh-CN'] || contextI18n['en-US'] || customAgent?.context || agentInfo.context;
+    },
+    [customAgents, localeKey]
+  );
+
+  const resolvePresetAgentType = useCallback(
+    (agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined) => {
+      if (!agentInfo) return 'gemini';
+      if (agentInfo.backend !== 'custom') return 'gemini';
+      const customAgent = customAgents.find((agent) => agent.id === agentInfo.customAgentId);
+      return customAgent?.presetAgentType || 'gemini';
+    },
+    [customAgents]
+  );
+
+  const refreshCustomAgents = useCallback(async () => {
+    try {
+      await ipcBridge.acpConversation.refreshCustomAgents.invoke();
+      await mutate('acp.agents.available');
+    } catch (error) {
+      console.error('Failed to refresh custom agents:', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    void refreshCustomAgents();
+  }, [refreshCustomAgents]);
 
   const handleInputChange = useCallback(
     (value: string) => {
@@ -440,12 +528,13 @@ const Guid: React.FC = () => {
     const isCustomWorkspace = !!dir;
     const finalWorkspace = dir || ''; // 不指定时传空，让后端创建临时目录
 
-    const isPdfToPpt = selectedAgentKey === 'custom:pdf-to-ppt-preset';
     const agentInfo = selectedAgentInfo;
     const isPreset = isPresetAgent;
+    const presetAgentType = resolvePresetAgentType(agentInfo);
+    const presetContext = resolvePresetContext(agentInfo);
 
-    // 默认情况使用 Gemini（参考 main 分支的纯粹逻辑）
-    if (isPdfToPpt || !selectedAgent || selectedAgent === 'gemini' || isPreset) {
+    // 默认情况使用 Gemini，或 Preset 配置为 Gemini
+    if (!selectedAgent || selectedAgent === 'gemini' || (isPreset && presetAgentType === 'gemini')) {
       if (!currentModel) return;
       try {
         const conversation = await ipcBridge.conversation.create.invoke({
@@ -457,8 +546,8 @@ const Guid: React.FC = () => {
             workspace: finalWorkspace,
             customWorkspace: isCustomWorkspace,
             webSearchEngine: isGoogleAuth ? 'google' : 'default',
-            contextFileName: isPdfToPpt ? 'skill/gemini-rules.md' : undefined,
-            context: agentInfo?.context,
+            // Pass preset context for rules injection
+            presetContext: isPreset ? presetContext : undefined,
           },
         });
 
@@ -498,7 +587,7 @@ const Guid: React.FC = () => {
         throw error; // Re-throw to prevent input clearing
       }
       return;
-    } else if (selectedAgent === 'codex') {
+    } else if (selectedAgent === 'codex' || (isPreset && presetAgentType === 'codex')) {
       // 创建 Codex 会话并保存初始消息，由对话页负责发送
       try {
         const conversation = await ipcBridge.conversation.create.invoke({
@@ -509,6 +598,8 @@ const Guid: React.FC = () => {
             defaultFiles: files,
             workspace: finalWorkspace,
             customWorkspace: isCustomWorkspace,
+            // Pass preset context for skill injection
+            presetContext: isPreset ? presetContext : undefined,
           },
         });
 
@@ -544,9 +635,13 @@ const Guid: React.FC = () => {
       }
       return;
     } else {
-      // ACP conversation type
-      const agentInfo = findAgentByKey(selectedAgentKey);
-      if (!agentInfo) {
+      // ACP conversation type (including preset with claude agent type)
+      const acpAgentInfo = agentInfo || findAgentByKey(selectedAgentKey);
+
+      // For preset with claude agent type, we use 'claude' as backend
+      const acpBackend = isPreset && presetAgentType === 'claude' ? 'claude' : selectedAgent;
+
+      if (!acpAgentInfo && !isPreset) {
         alert(`${selectedAgent} CLI not found or not configured. Please ensure it's installed and accessible.`);
         return;
       }
@@ -560,10 +655,12 @@ const Guid: React.FC = () => {
             defaultFiles: files,
             workspace: finalWorkspace,
             customWorkspace: isCustomWorkspace,
-            backend: selectedAgent,
-            cliPath: agentInfo.cliPath,
-            agentName: agentInfo.name, // 存储自定义代理的配置名称 / Store configured name for custom agents
-            customAgentId: agentInfo.customAgentId, // 自定义代理的 UUID / UUID for custom agents
+            backend: acpBackend,
+            cliPath: acpAgentInfo?.cliPath,
+            agentName: acpAgentInfo?.name, // 存储自定义代理的配置名称 / Store configured name for custom agents
+            customAgentId: acpAgentInfo?.customAgentId, // 自定义代理的 UUID / UUID for custom agents
+            // Pass preset context for skill injection
+            presetContext: isPreset ? presetContext : undefined,
           },
         });
 
@@ -622,6 +719,7 @@ const Guid: React.FC = () => {
         setMentionOpen(false);
         setMentionQuery(null);
         setMentionSelectorOpen(false);
+        setMentionActiveIndex(0);
         setFiles([]);
         setDir('');
       })
@@ -636,12 +734,23 @@ const Guid: React.FC = () => {
   const handleInputKeyDown = useCallback(
     (event: React.KeyboardEvent) => {
       if (isComposing.current) return;
-      if (mentionOpen && event.key === 'Enter' && !event.shiftKey) {
+      if ((mentionOpen || mentionSelectorOpen) && (event.key === 'ArrowDown' || event.key === 'ArrowUp')) {
         event.preventDefault();
-        if (mentionQuery && filteredMentionOptions.length > 0) {
-          const query = mentionQuery.toLowerCase();
-          const exactMatch = filteredMentionOptions.find((option) => option.label.toLowerCase() === query || option.tokens.has(query));
-          const selected = exactMatch || filteredMentionOptions[0];
+        if (filteredMentionOptions.length === 0) return;
+        setMentionActiveIndex((prev) => {
+          if (event.key === 'ArrowDown') {
+            return (prev + 1) % filteredMentionOptions.length;
+          }
+          return (prev - 1 + filteredMentionOptions.length) % filteredMentionOptions.length;
+        });
+        return;
+      }
+      if ((mentionOpen || mentionSelectorOpen) && event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        if (filteredMentionOptions.length > 0) {
+          const query = mentionQuery?.toLowerCase();
+          const exactMatch = query ? filteredMentionOptions.find((option) => option.label.toLowerCase() === query || option.tokens.has(query)) : undefined;
+          const selected = exactMatch || filteredMentionOptions[mentionActiveIndex] || filteredMentionOptions[0];
           if (selected) {
             selectMentionAgent(selected.key);
             return;
@@ -649,20 +758,38 @@ const Guid: React.FC = () => {
         }
         setMentionOpen(false);
         setMentionQuery(null);
+        setMentionSelectorOpen(false);
+        setMentionActiveIndex(0);
         return;
       }
-      if (mentionOpen && event.key === 'Escape') {
+      if (mentionOpen && (event.key === 'Backspace' || event.key === 'Delete') && !mentionQuery) {
+        setMentionOpen(false);
+        setMentionQuery(null);
+        setMentionActiveIndex(0);
+        return;
+      }
+      if (!mentionOpen && mentionSelectorVisible && !input.trim() && (event.key === 'Backspace' || event.key === 'Delete')) {
+        event.preventDefault();
+        setMentionSelectorVisible(false);
+        setMentionSelectorOpen(false);
+        setMentionActiveIndex(0);
+        return;
+      }
+      if ((mentionOpen || mentionSelectorOpen) && event.key === 'Escape') {
         event.preventDefault();
         setMentionOpen(false);
         setMentionQuery(null);
+        setMentionSelectorOpen(false);
+        setMentionActiveIndex(0);
         return;
       }
       if (event.key === 'Enter' && !event.shiftKey) {
         event.preventDefault();
+        if (!input.trim()) return;
         sendMessageHandler();
       }
     },
-    [filteredMentionOptions, mentionOpen, mentionQuery, selectMentionAgent, sendMessageHandler, isComposing]
+    [filteredMentionOptions, mentionOpen, mentionQuery, mentionSelectorOpen, selectMentionAgent, sendMessageHandler, mentionActiveIndex, mentionSelectorVisible, input, isComposing]
   );
   const setDefaultModel = async () => {
     if (!modelList || modelList.length === 0) {
@@ -692,35 +819,38 @@ const Guid: React.FC = () => {
     });
   }, [modelList]);
 
-  // 打字机效果
+  // 打字机效果 / Typewriter effect
   useEffect(() => {
     const fullText = t('conversation.welcome.placeholder');
     let currentIndex = 0;
-    const typingSpeed = 80; // 每个字符的打字速度（毫秒）
+    const typingSpeed = 80; // 每个字符的打字速度（毫秒）/ Typing speed per character (ms)
+    let intervalId: ReturnType<typeof setInterval> | null = null;
 
     const typeNextChar = () => {
       if (currentIndex <= fullText.length) {
-        // 在打字过程中添加光标
+        // 在打字过程中添加光标 / Add cursor during typing
         setTypewriterPlaceholder(fullText.slice(0, currentIndex) + (currentIndex < fullText.length ? '|' : ''));
         currentIndex++;
       }
     };
 
-    // 初始延迟，让用户看到页面加载完成
+    // 初始延迟，让用户看到页面加载完成 / Initial delay to let user see page loaded
     const initialDelay = setTimeout(() => {
-      const intervalId = setInterval(() => {
+      intervalId = setInterval(() => {
         typeNextChar();
         if (currentIndex > fullText.length) {
-          clearInterval(intervalId);
-          setIsTyping(false); // 打字完成
-          setTypewriterPlaceholder(fullText); // 移除光标
+          if (intervalId) clearInterval(intervalId);
+          setIsTyping(false); // 打字完成 / Typing complete
+          setTypewriterPlaceholder(fullText); // 移除光标 / Remove cursor
         }
       }, typingSpeed);
-
-      return () => clearInterval(intervalId);
     }, 300);
 
-    return () => clearTimeout(initialDelay);
+    // 清理函数：同时清理 timeout 和 interval / Cleanup: clear both timeout and interval
+    return () => {
+      clearTimeout(initialDelay);
+      if (intervalId) clearInterval(intervalId);
+    };
   }, [t]);
   return (
     <ConfigProvider getPopupContainer={() => guidContainerRef.current || document.body}>
@@ -744,7 +874,9 @@ const Guid: React.FC = () => {
               >
                 {availableAgents.map((agent, index) => {
                   const isSelected = selectedAgentKey === getAgentKey(agent);
-                  const logoSrc = agent.customAgentId === 'pdf-to-ppt-preset' ? PdfToPptLogo : AGENT_LOGO_MAP[agent.backend];
+                  const logoSrc = AGENT_LOGO_MAP[agent.backend];
+                  const avatarValue = agent.backend === 'custom' ? agent.avatar || customAgentAvatarMap.get(agent.customAgentId || '') : undefined;
+                  const avatar = avatarValue ? avatarValue.trim() : undefined;
 
                   return (
                     <React.Fragment key={getAgentKey(agent)}>
@@ -764,9 +896,10 @@ const Guid: React.FC = () => {
                           setMentionOpen(false);
                           setMentionQuery(null);
                           setMentionSelectorOpen(false);
+                          setMentionActiveIndex(0);
                         }}
                       >
-                        {logoSrc ? <img src={logoSrc} alt={`${agent.backend} logo`} width={20} height={20} style={{ objectFit: 'contain', flexShrink: 0 }} /> : <Robot theme='outline' size={20} style={{ flexShrink: 0 }} />}
+                        {avatar ? <span style={{ fontSize: 16, lineHeight: '20px', flexShrink: 0 }}>{avatar}</span> : logoSrc ? <img src={logoSrc} alt={`${agent.backend} logo`} width={20} height={20} style={{ objectFit: 'contain', flexShrink: 0 }} /> : <Robot theme='outline' size={20} style={{ flexShrink: 0 }} />}
                         <span
                           className={`font-medium text-14px ${isSelected ? 'font-semibold' : 'max-w-0 opacity-0 overflow-hidden group-hover:max-w-100px group-hover:opacity-100 group-hover:ml-8px'}`}
                           style={{
@@ -785,7 +918,7 @@ const Guid: React.FC = () => {
           )}
 
           <div
-            className={`${styles.guidInputCard} relative p-16px border-3 b bg-dialog-fill-0 b-solid rd-20px flex flex-col overflow-hidden transition-all duration-200 ${isFileDragging ? 'border-dashed' : ''}`}
+            className={`${styles.guidInputCard} relative p-16px border-3 b bg-dialog-fill-0 b-solid rd-20px flex flex-col ${mentionOpen ? 'overflow-visible' : 'overflow-hidden'} transition-all duration-200 ${isFileDragging ? 'border-dashed' : ''}`}
             style={{
               zIndex: 1,
               transition: 'box-shadow 0.25s ease, border-color 0.25s ease, border-width 0.25s ease',
@@ -825,7 +958,7 @@ const Guid: React.FC = () => {
             )}
             <Input.TextArea rows={3} placeholder={typewriterPlaceholder || t('conversation.welcome.placeholder')} className={`text-16px focus:b-none rounded-xl !bg-transparent !b-none !resize-none !p-0 ${styles.lightPlaceholder}`} value={input} onChange={handleInputChange} onPaste={onPaste} onFocus={handleTextareaFocus} onBlur={handleTextareaBlur} {...compositionHandlers} onKeyDown={handleInputKeyDown}></Input.TextArea>
             {mentionOpen && (
-              <div className='absolute z-20' style={{ left: 16, top: 44 }}>
+              <div className='absolute z-50' style={{ left: 16, top: 44 }}>
                 {mentionMenu}
               </div>
             )}
@@ -896,7 +1029,7 @@ const Guid: React.FC = () => {
                   </span>
                 </Dropdown>
 
-                {(selectedAgent === 'gemini' || isPresetAgent || selectedAgentKey === 'custom:pdf-to-ppt-preset') && (
+                {(selectedAgent === 'gemini' || isPresetAgent) && (
                   <Dropdown
                     trigger='hover'
                     droplist={
@@ -978,7 +1111,7 @@ const Guid: React.FC = () => {
                   shape='circle'
                   type='primary'
                   loading={loading}
-                  disabled={!input.trim() || ((!selectedAgent || selectedAgent === 'gemini' || isPresetAgent || selectedAgentKey === 'custom:pdf-to-ppt-preset') && !currentModel)}
+                  disabled={!input.trim() || ((!selectedAgent || selectedAgent === 'gemini' || isPresetAgent) && !currentModel)}
                   icon={<ArrowUp theme='outline' size='14' fill='white' strokeWidth={2} />}
                   onClick={() => {
                     handleSend().catch((error) => {

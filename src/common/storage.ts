@@ -100,6 +100,7 @@ export type TChatConversation =
           customWorkspace?: boolean;
           agentName?: string;
           customAgentId?: string; // UUID for identifying specific custom agent
+          presetContext?: string; // 智能助手的预设规则/提示词 / Preset context from smart assistant
         }
       >,
       'model'
@@ -112,6 +113,7 @@ export type TChatConversation =
           cliPath?: string;
           customWorkspace?: boolean;
           sandboxMode?: 'read-only' | 'workspace-write' | 'danger-full-access'; // Codex sandbox permission mode
+          presetContext?: string; // 智能助手的预设规则/提示词 / Preset context from smart assistant
         }
       >,
       'model'

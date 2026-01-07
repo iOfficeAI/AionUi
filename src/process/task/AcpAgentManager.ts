@@ -10,7 +10,6 @@ import { ProcessConfig } from '../initStorage';
 import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '../message';
 import BaseAgentManager from './BaseAgentManager';
 import { handlePreviewOpenEvent } from '../utils/previewUtils';
-import { loadSkillContent } from '@/common/utils/skillLoader';
 
 interface AcpAgentManagerData {
   workspace?: string;
@@ -19,6 +18,7 @@ interface AcpAgentManagerData {
   customWorkspace?: boolean;
   conversation_id: string;
   customAgentId?: string; // 用于标识特定自定义代理的 UUID / UUID for identifying specific custom agent
+  presetContext?: string; // 智能助手的预设规则/提示词 / Preset context from smart assistant
 }
 
 class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
@@ -123,18 +123,11 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
       if (data.msg_id && data.content) {
         let contentToSend = data.content;
 
-        // Inject Claude skill for the first message only
-        const shouldInjectSkill = this.options.backend === 'claude' && this.isFirstMessage;
-        if (shouldInjectSkill) {
-          const skillContent = await loadSkillContent('claude-skill');
-          if (skillContent) {
-            // Append skill instruction to the user's first prompt invisibly (or visibly if desired)
-            // Based on "context will overflow" concern, we should be careful.
-            // However, for Claude Code, instructions often go in the prompt.
-            // If we want to treat it as a "skill" definition, it might need to be wrapped differently.
-            // Given current constraints, appending it with a delimiter is the standard way unless we use MCP.
-            contentToSend = `${contentToSend}\n\n<system_instruction>\n${skillContent}\n</system_instruction>`;
-          }
+        // 首条消息时注入预设规则（来自智能助手配置）
+        // Inject preset context on first message (from smart assistant config)
+        const shouldInjectContext = this.isFirstMessage && this.options.presetContext;
+        if (shouldInjectContext) {
+          contentToSend = `${contentToSend}\n\n<system_instruction>\n${this.options.presetContext}\n</system_instruction>`;
         }
 
         const userMessage: TMessage = {
@@ -158,7 +151,8 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
         ipcBridge.acpConversation.responseStream.emit(userResponseMessage);
 
         const result = await this.agent.sendMessage({ ...data, content: contentToSend });
-        if (shouldInjectSkill) {
+        // 首条消息发送后标记，无论是否有 presetContext
+        if (this.isFirstMessage) {
           this.isFirstMessage = false;
         }
         return result;

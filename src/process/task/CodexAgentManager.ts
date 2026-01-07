@@ -23,7 +23,6 @@ import { getConfiguredAppClientName, getConfiguredAppClientVersion, getConfigure
 import { mapPermissionDecision } from '@/common/codex/utils';
 import { PERMISSION_DECISION_MAP } from '@/common/codex/types/permissionTypes';
 import { handlePreviewOpenEvent } from '@process/utils/previewUtils';
-import { loadSkillContent } from '@/common/utils/skillLoader';
 
 const APP_CLIENT_NAME = getConfiguredAppClientName();
 const APP_CLIENT_VERSION = getConfiguredAppClientVersion();
@@ -182,10 +181,10 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
       if (this.isFirstMessage) {
         this.isFirstMessage = false;
 
-        // Inject Codex skill if available
-        const skillContent = await loadSkillContent('codex-skill');
-        if (skillContent) {
-          processedContent = `${processedContent}\n\n<system_instruction>\n${skillContent}\n</system_instruction>`;
+        // 注入智能助手的预设规则（如果有）
+        // Inject preset context from smart assistant (if available)
+        if (this.data.data.presetContext) {
+          processedContent = `${processedContent}\n\n<system_instruction>\n${this.data.data.presetContext}\n</system_instruction>`;
         }
 
         const result = await this.agent.newSession(this.workspace, processedContent);
