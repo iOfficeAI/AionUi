@@ -386,9 +386,9 @@
   },
   "settings": {
     "about": "關於",
-    "smartAssistants": "智慧助理",
-    "smartAssistantsList": "可用模型清單",
-    "smartAssistantsEmpty": "目前沒有可用的智慧助理。",
+    "assistants": "助理",
+    "assistantsList": "可用助理清單",
+    "assistantsEmpty": "目前沒有可用的助理。",
     "pdfToPptAssistantName": "PDF 轉 PPT",
     "pdfToPptAssistantDesc": "PDF 轉 PPT 並套用去浮水印規則。",
     "game3dAssistantName": "3D 遊戲生成",

@@ -473,14 +473,26 @@ const Guid: React.FC = () => {
   const { compositionHandlers, isComposing } = useCompositionInput();
 
   const resolvePresetContext = useCallback(
-    (agentInfo: { backend: AcpBackend; customAgentId?: string; context?: string } | undefined) => {
+    async (agentInfo: { backend: AcpBackend; customAgentId?: string; context?: string } | undefined): Promise<string | undefined> => {
       if (!agentInfo) return undefined;
       if (agentInfo.backend !== 'custom') return agentInfo.context;
-      const customAgent = customAgents.find((agent) => agent.id === agentInfo.customAgentId);
-      const contextI18n = customAgent?.contextI18n || {};
-      return contextI18n[localeKey] || contextI18n['zh-CN'] || contextI18n['en-US'] || customAgent?.context || agentInfo.context;
+
+      // 从文件读取助手规则 / Read assistant rule from file
+      const customAgentId = agentInfo.customAgentId;
+      if (!customAgentId) return agentInfo.context;
+
+      try {
+        const content = await ipcBridge.fs.readAssistantRule.invoke({
+          assistantId: customAgentId,
+          locale: localeKey,
+        });
+        return content || agentInfo.context;
+      } catch (error) {
+        console.warn(`Failed to load rule for ${customAgentId}:`, error);
+        return agentInfo.context;
+      }
     },
-    [customAgents, localeKey]
+    [localeKey]
   );
 
   const resolvePresetAgentType = useCallback(
@@ -531,7 +543,7 @@ const Guid: React.FC = () => {
     const agentInfo = selectedAgentInfo;
     const isPreset = isPresetAgent;
     const presetAgentType = resolvePresetAgentType(agentInfo);
-    const presetContext = resolvePresetContext(agentInfo);
+    const presetContext = await resolvePresetContext(agentInfo);
 
     // 默认情况使用 Gemini，或 Preset 配置为 Gemini
     if (!selectedAgent || selectedAgent === 'gemini' || (isPreset && presetAgentType === 'gemini')) {

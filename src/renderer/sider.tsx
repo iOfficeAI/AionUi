@@ -6,6 +6,7 @@ import WorkspaceGroupedHistory from './pages/conversation/WorkspaceGroupedHistor
 import SettingsSider from './pages/settings/SettingsSider';
 import { iconColors } from './theme/colors';
 import { Tooltip } from '@arco-design/web-react';
+import { usePreviewContext } from './pages/conversation/preview';
 
 interface SiderProps {
   onSessionClick?: () => void;
@@ -18,6 +19,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
 
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { closePreview } = usePreviewContext();
   const isSettings = pathname.startsWith('/settings');
   const lastNonSettingsPathRef = useRef('/guid');
 
@@ -52,6 +54,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
             <div
               className='flex items-center justify-start gap-10px px-12px py-8px hover:bg-hover rd-0.5rem mb-8px cursor-pointer group'
               onClick={() => {
+                closePreview();
                 Promise.resolve(navigate('/guid')).catch((error) => {
                   console.error('Navigation failed:', error);
                 });

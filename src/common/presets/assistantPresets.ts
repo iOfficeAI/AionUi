@@ -1,6 +1,6 @@
 import type { PresetAgentType } from '@/types/acpTypes';
 
-export type SmartAssistantPreset = {
+export type AssistantPreset = {
   id: string;
   avatar: string;
   presetAgentType?: PresetAgentType;
@@ -9,7 +9,7 @@ export type SmartAssistantPreset = {
   descriptionI18n: Record<'en-US' | 'zh-CN', string>;
 };
 
-export const SMART_ASSISTANT_PRESETS: SmartAssistantPreset[] = [
+export const ASSISTANT_PRESETS: AssistantPreset[] = [
   {
     id: 'pdf-to-ppt',
     avatar: '📄',

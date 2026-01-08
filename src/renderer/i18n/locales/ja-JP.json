@@ -415,9 +415,9 @@
   },
   "settings": {
     "about": "情報",
-    "smartAssistants": "スマートアシスタント",
-    "smartAssistantsList": "利用可能なモデル一覧",
-    "smartAssistantsEmpty": "利用可能なアシスタントがありません。",
+    "assistants": "アシスタント",
+    "assistantsList": "利用可能なアシスタント一覧",
+    "assistantsEmpty": "利用可能なアシスタントがありません。",
     "pdfToPptAssistantName": "PDF to PPT",
     "pdfToPptAssistantDesc": "PDF を PPT に変換し、透かし除去ルールを適用します。",
     "game3dAssistantName": "3Dゲーム生成",
