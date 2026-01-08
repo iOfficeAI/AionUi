@@ -42,7 +42,8 @@
     "confirmDelete": "Confirm Delete",
     "deleteSuccess": "Deleted successfully",
     "deleteFailed": "Failed to delete",
-    "default": "Default"
+    "default": "Default",
+    "escToCancel": "esc to cancel"
   },
   "login": {
     "pageTitle": "AionUi - Sign In",
@@ -282,7 +283,11 @@
     "chat": {
       "noModelSelected": "No model selected for current session, cannot send message",
       "sendMessageTo": "Send message to {{model}}",
-      "processing": "Processing..."
+      "processing": "Processing...",
+      "quotaExceededTitle": "Model quota reached",
+      "quotaExceededBody": "The current model quota is exhausted. Switch to {{model}} to continue?",
+      "quotaExceededNoFallback": "Model quota reached. Please switch to another available model.",
+      "quotaSwitched": "Switched to {{model}}."
     },
     "contextUsage": {
       "contextUsed": "context used"
@@ -317,6 +322,8 @@
     "vertexApiKey": "Vertex AI",
     "personalAuth": "Google Account",
     "googleLogin": "Login with Google",
+    "googleLoginSuccess": "Successfully logged in",
+    "googleLoginFailed": "Login failed. Please try again.",
     "googleLogout": "Logout",
     "openai": "OpenAI",
     "proxyConfig": "Proxy",
@@ -328,7 +335,7 @@
     "assistantsEmpty": "No assistants configured.",
     "pdfToPptAssistantName": "PDF to PPT",
     "pdfToPptAssistantDesc": "Convert PDF to PPT with watermark removal rules.",
-    "game3dAssistantName": "3D Game Builder",
+    "game3dAssistantName": "3D Game",
     "game3dAssistantDesc": "Generate a complete 3D platform collection game in one HTML file.",
     "editAssistant": "Assistant Details",
     "assistantNameAvatar": "Name & Avatar",

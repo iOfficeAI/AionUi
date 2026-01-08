@@ -336,12 +336,23 @@ const getAssistantsDir = () => {
  * Initialize builtin assistant rule files to user directory
  */
 const initBuiltinAssistantRules = async (): Promise<void> => {
-  const appPath = app.getAppPath();
   const assistantsDir = getAssistantsDir();
+
+  // 开发模式下使用项目根目录，生产模式使用 app.getAppPath()
+  // In development, use project root. In production, use app.getAppPath()
+  let rulesDir: string;
+  if (app.isPackaged) {
+    rulesDir = path.join(app.getAppPath(), 'rules');
+  } else {
+    rulesDir = path.join(app.getAppPath(), '..', '..', 'rules');
+  }
+
+  console.log(`[AionUi] initBuiltinAssistantRules: rulesDir=${rulesDir}, assistantsDir=${assistantsDir}`);
 
   // 确保助手目录存在 / Ensure assistants directory exists
   if (!existsSync(assistantsDir)) {
     mkdirSync(assistantsDir);
+    console.log(`[AionUi] Created assistants directory: ${assistantsDir}`);
   }
 
   for (const preset of ASSISTANT_PRESETS) {
@@ -349,18 +360,26 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
 
     for (const [locale, ruleFile] of Object.entries(preset.ruleFiles)) {
       try {
-        const sourceRulesPath = path.join(appPath, 'rules', ruleFile);
+        const sourceRulesPath = path.join(rulesDir, ruleFile);
         // 目标文件名格式：{assistantId}.{locale}.md
         // Target file name format: {assistantId}.{locale}.md
         const targetFileName = `${assistantId}.${locale}.md`;
         const targetPath = path.join(assistantsDir, targetFileName);
 
-        // 如果目标文件不存在，则从源文件复制
-        // Copy from source if target doesn't exist
-        if (!existsSync(targetPath)) {
+        // 检查源文件是否存在 / Check if source file exists
+        if (!existsSync(sourceRulesPath)) {
+          console.warn(`[AionUi] Source rule file not found: ${sourceRulesPath}`);
+          continue;
+        }
+
+        // 只在目标文件不存在时才创建，不覆盖用户的修改
+        // Only create if target file doesn't exist, don't overwrite user modifications
+        const targetExists = existsSync(targetPath);
+
+        if (!targetExists) {
           const content = await fs.readFile(sourceRulesPath, 'utf-8');
           await fs.writeFile(targetPath, content, 'utf-8');
-          console.log(`[AionUi] Copied builtin rule: ${targetFileName}`);
+          console.log(`[AionUi] Created builtin rule: ${targetFileName}`);
         }
       } catch (error) {
         // 忽略缺失的语言文件 / Ignore missing locale files
@@ -471,15 +490,32 @@ const initStorage = async () => {
     const existingAgents = (await configFile.get('acp.customAgents').catch((): undefined => undefined)) || [];
     const builtinAssistants = getBuiltinAssistants();
 
-    // 检查是否有缺失的内置助手，如果有则添加
-    // Check for missing builtin assistants and add them if needed
-    const existingIds = new Set(existingAgents.map((agent: AcpBackendConfig) => agent.id));
-    const missingAssistants = builtinAssistants.filter((assistant) => !existingIds.has(assistant.id));
+    // 更新或添加内置助手配置
+    // Update or add built-in assistant configurations
+    const updatedAgents = [...existingAgents];
+    let hasChanges = false;
 
-    if (missingAssistants.length > 0) {
-      // 将缺失的内置助手添加到列表开头
-      // Add missing builtin assistants to the beginning of the list
-      const updatedAgents = [...missingAssistants, ...existingAgents];
+    for (const builtin of builtinAssistants) {
+      const index = updatedAgents.findIndex((a: AcpBackendConfig) => a.id === builtin.id);
+      if (index >= 0) {
+        // 更新现有内置助手配置
+        // Update existing built-in assistant config
+        const existing = updatedAgents[index];
+        // 只有当关键字段不同时才更新，避免不必要的写入
+        // Update only if key fields are different to avoid unnecessary writes
+        if (existing.name !== builtin.name || existing.description !== builtin.description || existing.avatar !== builtin.avatar || existing.presetAgentType !== builtin.presetAgentType || existing.isPreset !== builtin.isPreset || existing.isBuiltin !== builtin.isBuiltin) {
+          updatedAgents[index] = { ...existing, ...builtin };
+          hasChanges = true;
+        }
+      } else {
+        // 添加新的内置助手
+        // Add new built-in assistant
+        updatedAgents.unshift(builtin);
+        hasChanges = true;
+      }
+    }
+
+    if (hasChanges) {
       await configFile.set('acp.customAgents', updatedAgents);
     }
   } catch (error) {

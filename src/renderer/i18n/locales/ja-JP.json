@@ -170,7 +170,8 @@
     "confirmDelete": "削除の確認",
     "deleteSuccess": "削除に成功しました",
     "deleteFailed": "削除に失敗しました",
-    "default": "デフォルト"
+    "default": "デフォルト",
+    "escToCancel": "ESC でキャンセル"
   },
   "login": {
     "pageTitle": "AionUi - ログイン",
@@ -407,7 +408,11 @@
     "chat": {
       "noModelSelected": "現在のセッションでモデルが選択されていないため、メッセージを送信できません",
       "sendMessageTo": "{{model}}にメッセージを送信",
-      "processing": "処理中……"
+      "processing": "処理中……",
+      "quotaExceededTitle": "モデルの上限に達しました",
+      "quotaExceededBody": "現在のモデルの上限に達しました。{{model}}に切り替えて続行しますか？",
+      "quotaExceededNoFallback": "現在のモデルの上限に達しました。別の利用可能なモデルに切り替えてください。",
+      "quotaSwitched": "{{model}}に切り替えました。"
     },
     "contextUsage": {
       "contextUsed": "コンテキスト使用量"
@@ -496,6 +501,8 @@
       "deleteConfirm": "このテーマを削除してもよろしいですか？この操作は元に戻せません。"
     },
     "googleLogin": "Google でログイン",
+    "googleLoginSuccess": "ログインに成功しました",
+    "googleLoginFailed": "ログインに失敗しました。もう一度お試しください。",
     "googleLogout": "ログアウト",
     "imageGenerationGuide": "画像モデル設定ガイド",
     "imageGenerationModel": "画像モデル",

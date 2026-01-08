@@ -195,6 +195,9 @@ export async function loadCliConfig({ workspace, settings, extensions, sessionId
     fileDiscoveryService: fileService,
     bugCommand: settings.bugCommand,
     model: model || DEFAULT_GEMINI_MODEL,
+    // 启用模型路由以支持 auto 模式（与终端 CLI 保持一致）
+    // Enable model router to support auto mode (consistent with terminal CLI)
+    useModelRouter: true,
     // 使用 extensionLoader 替代已废弃的 extensionContextFilePaths 和 extensions 参数
     // Use extensionLoader instead of deprecated extensionContextFilePaths and extensions parameters
     extensionLoader,
@@ -203,6 +206,9 @@ export async function loadCliConfig({ workspace, settings, extensions, sessionId
     noBrowser: !!process.env.NO_BROWSER,
     summarizeToolOutput: settings.summarizeToolOutput,
     ideMode,
+    // 启用预览功能以支持 Gemini 3 等新模型
+    // Enable preview features to support Gemini 3 and other new models
+    previewFeatures: true,
   });
 
   // FallbackModelHandler 返回类型在 aioncli-core v0.18.4 中使用 FallbackIntent

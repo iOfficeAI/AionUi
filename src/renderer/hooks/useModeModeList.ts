@@ -1,56 +1,66 @@
 import { ipcBridge } from '@/common';
 import useSWR from 'swr';
 
-const DEFAULT_GEMINI_MODEL = 'gemini-2.5-pro';
-const DEFAULT_GEMINI_FLASH_MODEL = 'gemini-2.5-flash';
-const GEMINI_PRO_PREVIEW_MODEL = 'gemini-3-pro-preview';
-
 export interface GeminiModeOption {
   label: string;
   value: string;
   description: string;
   modelHint?: string;
+  /** Manual 模式的子模型列表 / Sub-models for Manual mode */
+  subModels?: Array<{ label: string; value: string }>;
 }
 
 type GeminiModeDescriptions = {
-  auto: string;
-  pro: string;
-  flash: string;
+  autoGemini3: string;
+  autoGemini25: string;
+  manual: string;
 };
 
 type GeminiModeListOptions = {
-  includeProPreview?: boolean;
   descriptions?: GeminiModeDescriptions;
 };
 
 const defaultGeminiModeDescriptions: GeminiModeDescriptions = {
-  auto: 'Let the system choose the best model for your task.',
-  pro: 'For complex tasks that require deep reasoning and creativity',
-  flash: 'For tasks that need a balance of speed and reasoning',
+  autoGemini3: 'Let Gemini CLI decide the best model for the task: gemini-3-pro-preview, gemini-2.5-flash',
+  autoGemini25: 'Let Gemini CLI decide the best model for the task: gemini-2.5-pro, gemini-2.5-flash',
+  manual: 'Manually select a model',
 };
 
-// 生成基础 Gemini 列表，可根据订阅态插入 preview 模型 / Build Gemini model list with optional previews
+// 生成 Gemini 模型列表，与终端 CLI 保持一致 / Build Gemini model list matching terminal CLI
+// TODO: 后端 aioncli-core 需要支持 auto-25 值以实现真正的 Gemini 2.5 auto 模式
+// TODO: Backend aioncli-core needs to support auto-25 value for true Gemini 2.5 auto mode
 export const getGeminiModeList = (options?: GeminiModeListOptions): GeminiModeOption[] => {
-  const proModels = options?.includeProPreview ? [GEMINI_PRO_PREVIEW_MODEL, DEFAULT_GEMINI_MODEL] : [DEFAULT_GEMINI_MODEL];
   const descriptions = options?.descriptions || defaultGeminiModeDescriptions;
 
   return [
     {
-      label: 'Auto',
-      value: 'auto',
-      description: descriptions.auto,
+      label: 'Auto (Gemini 3)',
+      value: 'auto', // 使用 model router 自动选择 gemini-3-pro-preview 或 gemini-2.5-flash
+      description: descriptions.autoGemini3,
+      modelHint: 'gemini-3-pro-preview, gemini-2.5-flash',
     },
     {
-      label: 'Pro',
-      value: 'pro',
-      modelHint: proModels.join(', '),
-      description: descriptions.pro,
+      label: 'Auto (Gemini 2.5)',
+      value: 'gemini-2.5-pro', // 显式使用 gemini-2.5-pro，暂不支持 auto-routing
+      description: descriptions.autoGemini25,
+      modelHint: 'gemini-2.5-pro, gemini-2.5-flash',
     },
     {
-      label: 'Flash',
-      value: 'flash',
-      modelHint: DEFAULT_GEMINI_FLASH_MODEL,
-      description: descriptions.flash,
+      label: 'Manual',
+      value: 'manual', // 展开子菜单选择具体模型 / Expand submenu to select specific model
+      description: descriptions.manual,
+      // 与 aioncli-core/src/config/models.ts 中定义的模型名保持一致
+      // Match model names defined in aioncli-core/src/config/models.ts
+      // PREVIEW_GEMINI_MODEL = 'gemini-3-pro-preview'
+      // DEFAULT_GEMINI_MODEL = 'gemini-2.5-pro'
+      // DEFAULT_GEMINI_FLASH_MODEL = 'gemini-2.5-flash'
+      // DEFAULT_GEMINI_FLASH_LITE_MODEL = 'gemini-2.5-flash-lite'
+      subModels: [
+        { label: 'gemini-3-pro-preview', value: 'gemini-3-pro-preview' },
+        { label: 'gemini-2.5-pro', value: 'gemini-2.5-pro' },
+        { label: 'gemini-2.5-flash', value: 'gemini-2.5-flash' },
+        { label: 'gemini-2.5-flash-lite', value: 'gemini-2.5-flash-lite' },
+      ],
     },
   ];
 };
@@ -87,7 +97,7 @@ const sortGeminiModels = (models: { label: string; value: string }[]) => {
 };
 
 const useModeModeList = (platform: string, base_url?: string, api_key?: string, try_fix?: boolean) => {
-  return useSWR([platform + '/models', { platform, base_url, api_key, try_fix }], async ([url, { platform, base_url, api_key, try_fix }]): Promise<{ models: { label: string; value: string }[]; fix_base_url?: string }> => {
+  return useSWR([platform + '/models', { platform, base_url, api_key, try_fix }], async ([_url, { platform, base_url, api_key, try_fix }]): Promise<{ models: { label: string; value: string }[]; fix_base_url?: string }> => {
     // 如果有 API key 或 base_url，尝试通过 API 获取模型列表
     if (api_key || base_url) {
       const res = await ipcBridge.mode.fetchModelList.invoke({ base_url, api_key, try_fix, platform });
