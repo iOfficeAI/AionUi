@@ -39,7 +39,8 @@
     "confirmDelete": "确认删除",
     "deleteSuccess": "删除成功",
     "deleteFailed": "删除失败",
-    "default": "默认"
+    "default": "默认",
+    "escToCancel": "按 ESC 取消"
   },
   "login": {
     "pageTitle": "AionUi - 登录",
@@ -279,7 +280,11 @@
     "chat": {
       "noModelSelected": "当前会话未选择模型，无法发送消息",
       "sendMessageTo": "发送消息到 {{model}}",
-      "processing": "正在处理中……"
+      "processing": "正在处理中……",
+      "quotaExceededTitle": "模型额度已用尽",
+      "quotaExceededBody": "当前模型额度已用尽，是否切换到 {{model}}？",
+      "quotaExceededNoFallback": "当前模型额度已用尽，请切换到其他可用模型。",
+      "quotaSwitched": "已切换到 {{model}}。"
     },
     "contextUsage": {
       "contextUsed": "上下文已使用"
@@ -314,15 +319,17 @@
     "vertexApiKey": "Vertex AI",
     "personalAuth": "Google帐号",
     "googleLogin": "Google 登录",
+    "googleLoginSuccess": "登录成功",
+    "googleLoginFailed": "登录失败，请重试",
     "googleLogout": "退出登录",
     "openai": "OpenAI",
     "proxyConfig": "代理",
     "yoloMode": "自动允许",
     "customCss": "自定义 CSS",
     "customCssDesc": "在此处输入自定义 CSS 样式以更改界面外观。系统会自动为所有样式添加 !important 以确保优先级最高，无需手动添加。修改会立即生效。",
-    "smartAssistants": "智能助手",
-    "smartAssistantsList": "可用模型列表",
-    "smartAssistantsEmpty": "暂无可用智能助手",
+    "assistants": "助手",
+    "assistantsList": "可用助手列表",
+    "assistantsEmpty": "暂无可用助手",
     "pdfToPptAssistantName": "PDF 转 PPT",
     "pdfToPptAssistantDesc": "PDF 转 PPT 并去除水印规则",
     "game3dAssistantName": "3D 游戏生成",

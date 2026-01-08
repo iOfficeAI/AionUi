@@ -24,7 +24,7 @@ const SettingsSider: React.FC<{ collapsed?: boolean }> = ({ collapsed = false })
         path: 'model',
       },
       {
-        label: t('settings.smartAssistants', { defaultValue: 'Smart Assistants' }),
+        label: t('settings.assistants', { defaultValue: 'Assistants' }),
         icon: <Robot />,
         path: 'agent',
       },

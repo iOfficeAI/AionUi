@@ -10,7 +10,7 @@ import type { TProviderWithModel } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import { getProviderAuthType } from '@/common/utils/platformAuthType';
 import type { CompletedToolCall, Config, GeminiClient, ServerGeminiStreamEvent, ToolCall, ToolCallRequestInfo, Turn } from '@office-ai/aioncli-core';
-import { AuthType, CoreToolScheduler, FileDiscoveryService, sessionId, refreshServerHierarchicalMemory } from '@office-ai/aioncli-core';
+import { AuthType, CoreToolScheduler, FileDiscoveryService, sessionId, refreshServerHierarchicalMemory, clearOauthClientCache } from '@office-ai/aioncli-core';
 import { ApiKeyManager } from '../../common/ApiKeyManager';
 import { handleAtCommand } from './cli/atCommandProcessor';
 import { loadCliConfig } from './cli/config';
@@ -21,7 +21,8 @@ import { ConversationToolConfig } from './cli/tools/conversation-tool-config';
 import { mapToDisplay, type TrackedToolCall } from './cli/useReactToolScheduler';
 import { getPromptCount, handleCompletedTools, processGeminiStreamEvents, startNewPrompt } from './utils';
 import { globalToolCallGuard, type StreamConnectionEvent } from './cli/streamResilience';
-import { OAuthTokenManager, getGlobalTokenManager } from './cli/oauthTokenManager';
+import { getGlobalTokenManager } from './cli/oauthTokenManager';
+import fs from 'fs';
 
 // Global registry for current agent instance (used by flashFallbackHandler)
 let currentGeminiAgent: GeminiAgent | null = null;
@@ -62,6 +63,7 @@ export class GeminiAgent {
   private settings: Settings | null = null;
   private historyPrefix: string | null = null;
   private historyUsedOnce = false;
+  private contextPrependedOnce = false; // Track if we've prepended context rules to first message
   private contextFileName: string | undefined;
   bootstrap: Promise<void>;
   static buildFileServer(workspace: string) {
@@ -96,7 +98,6 @@ export class GeminiAgent {
   }
 
   private initClientEnv() {
-    const env = this.getEnv();
     const fallbackValue = (key: string, value1: string, value2?: string) => {
       if (value1 && value1 !== 'undefined') {
         process.env[key] = value1;
@@ -117,6 +118,20 @@ export class GeminiAgent {
       return this.model.apiKey;
     };
 
+    // 清除所有认证相关的环境变量，避免不同认证类型之间的干扰
+    // Clear all auth-related env vars to avoid interference between different auth types
+    const clearAllAuthEnvVars = () => {
+      delete process.env.GEMINI_API_KEY;
+      delete process.env.GOOGLE_GEMINI_BASE_URL;
+      delete process.env.GOOGLE_API_KEY;
+      delete process.env.GOOGLE_GENAI_USE_VERTEXAI;
+      delete process.env.GOOGLE_CLOUD_PROJECT;
+      delete process.env.OPENAI_BASE_URL;
+      delete process.env.OPENAI_API_KEY;
+    };
+
+    clearAllAuthEnvVars();
+
     if (this.authType === AuthType.USE_GEMINI) {
       fallbackValue('GEMINI_API_KEY', getCurrentApiKey());
       fallbackValue('GOOGLE_GEMINI_BASE_URL', this.model.baseUrl);
@@ -128,7 +143,17 @@ export class GeminiAgent {
       return;
     }
     if (this.authType === AuthType.LOGIN_WITH_GOOGLE) {
-      fallbackValue('GOOGLE_CLOUD_PROJECT', this.googleCloudProject || '', env.GOOGLE_CLOUD_PROJECT);
+      // 对于个人 OAuth 认证，不需要 GOOGLE_CLOUD_PROJECT
+      // 如果用户配置了无效的项目 ID，会导致 403 权限错误
+      // For personal OAuth auth, GOOGLE_CLOUD_PROJECT is not needed
+      // Invalid project ID will cause 403 permission error
+      // 只有当用户明确配置了有效的项目 ID 时才设置
+      // Only set if user explicitly configured a valid project ID
+      if (this.googleCloudProject && this.googleCloudProject.trim()) {
+        process.env.GOOGLE_CLOUD_PROJECT = this.googleCloudProject.trim();
+      }
+      // 注意：LOGIN_WITH_GOOGLE 使用 OAuth，不需要设置任何 API Key
+      // Note: LOGIN_WITH_GOOGLE uses OAuth, no API Key needed
       return;
     }
     if (this.authType === AuthType.USE_OPENAI) {
@@ -156,13 +181,28 @@ export class GeminiAgent {
     return this.apiKeyManager;
   }
 
-  // 加载环境变量
-  private getEnv() {
-    return process.env as Record<string, string>;
-  }
   private createAbortController() {
     this.abortController = new AbortController();
     return this.abortController;
+  }
+
+  private enrichErrorMessage(errorMessage: string): string {
+    const reportMatch = errorMessage.match(/Full report available at:\s*(.+?\.json)/i);
+    const lowerMessage = errorMessage.toLowerCase();
+    if (lowerMessage.includes('model_capacity_exhausted') || lowerMessage.includes('no capacity available') || lowerMessage.includes('resource_exhausted') || lowerMessage.includes('ratelimitexceeded')) {
+      return `${errorMessage}\nQuota exhausted on this model.`;
+    }
+    if (!reportMatch?.[1]) return errorMessage;
+    try {
+      const reportContent = fs.readFileSync(reportMatch[1], 'utf-8');
+      const reportLower = reportContent.toLowerCase();
+      if (reportLower.includes('quota') || reportLower.includes('resource_exhausted') || reportLower.includes('exhausted')) {
+        return `${errorMessage}\nQuota exhausted on this model.`;
+      }
+    } catch {
+      // Ignore report read errors and keep original message.
+    }
+    return errorMessage;
   }
 
   private async initialize(): Promise<void> {
@@ -193,6 +233,12 @@ export class GeminiAgent {
       mcpServers: this.mcpServers,
     });
     await this.config.initialize();
+
+    // 对于 Google OAuth 认证，清除缓存的 OAuth 客户端以确保使用最新凭证
+    // For Google OAuth auth, clear cached OAuth client to ensure fresh credentials
+    if (this.authType === AuthType.LOGIN_WITH_GOOGLE) {
+      clearOauthClientCache();
+    }
 
     await this.config.refreshAuth(this.authType || AuthType.USE_GEMINI);
 
@@ -291,13 +337,16 @@ export class GeminiAgent {
    */
   private handleMessage(stream: AsyncGenerator<ServerGeminiStreamEvent, Turn, unknown>, msg_id: string, abortController: AbortController): Promise<void> {
     const toolCallRequests: ToolCallRequestInfo[] = [];
+    let heartbeatWarned = false;
 
     // 流连接事件处理
     // Stream connection event handler
     const onConnectionEvent = (event: StreamConnectionEvent) => {
       if (event.type === 'heartbeat_timeout') {
         console.warn(`[GeminiAgent] Stream heartbeat timeout at ${new Date(event.lastEventTime).toISOString()}`);
-        // 可以在这里添加重连逻辑或通知用户
+        if (!heartbeatWarned) {
+          heartbeatWarned = true;
+        }
       } else if (event.type === 'state_change' && event.state === 'failed') {
         console.error(`[GeminiAgent] Stream connection failed: ${event.reason}`);
         this.onStreamEvent({
@@ -341,7 +390,8 @@ export class GeminiAgent {
         }
       })
       .catch((e: unknown) => {
-        const errorMessage = e instanceof Error ? e.message : JSON.stringify(e);
+        const rawMessage = e instanceof Error ? e.message : JSON.stringify(e);
+        const errorMessage = this.enrichErrorMessage(rawMessage);
         // 清理受保护的工具调用
         // Clean up protected tool calls on error
         for (const req of toolCallRequests) {
@@ -441,9 +491,11 @@ export class GeminiAgent {
         });
       return '';
     } catch (e) {
+      const rawMessage = e instanceof Error ? e.message : JSON.stringify(e);
+      const errorMessage = this.enrichErrorMessage(rawMessage);
       this.onStreamEvent({
         type: 'error',
-        data: e.message,
+        data: errorMessage,
         msg_id,
       });
     }
@@ -478,6 +530,18 @@ export class GeminiAgent {
         message = `${this.historyPrefix}${message}`;
       }
       this.historyUsedOnce = true;
+    }
+
+    // Prepend context rules to the first message for preset assistants
+    // This ensures the model sees the rules as part of the user's request, not just background context
+    if (this.contextContent && !this.contextPrependedOnce) {
+      const rulesPrefix = `[Assistant Rules - You MUST follow these instructions]\n${this.contextContent}\n\n[User Request]\n`;
+      if (Array.isArray(message)) {
+        if (message[0]) message[0].text = rulesPrefix + message[0].text;
+      } else {
+        message = rulesPrefix + message;
+      }
+      this.contextPrependedOnce = true;
     }
 
     // Track error messages from @ command processing

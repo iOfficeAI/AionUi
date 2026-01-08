@@ -128,24 +128,24 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // 获取当前激活的 tab / Get active tab
   const activeTab = tabs.find((tab) => tab.id === activeTabId) || null;
 
-  const normalize = (value?: string | null) => value?.trim() || '';
+  const normalize = useCallback((value?: string | null) => value?.trim() || '', []);
 
   // 从可能包含描述的字符串中提取文件名 / Extract filename from string that may contain description
-  const extractFileName = (str?: string): string | undefined => {
+  const extractFileName = useCallback((str?: string): string | undefined => {
     if (!str) return undefined;
     // 匹配 "Writing to xxx.md" 或 "Reading xxx.txt" 等模式，提取文件名 / Match patterns like "Writing to xxx.md" and extract filename
     const match = str.match(/(?:Writing to|Reading|Creating|Updating)\s+(.+)$/i);
     return match ? match[1] : str;
-  };
+  }, []);
 
-  const findPreviewTab = useCallback(
-    (type: PreviewContentType, content?: string, meta?: PreviewMetadata) => {
+  const findPreviewTabInList = useCallback(
+    (tabList: PreviewTab[], type: PreviewContentType, content?: string, meta?: PreviewMetadata) => {
       const normalizedFileName = normalize(meta?.fileName);
       const normalizedTitle = normalize(meta?.title);
       const normalizedFilePath = normalize(meta?.filePath);
 
       return (
-        tabs.find((tab) => {
+        tabList.find((tab) => {
           if (tab.contentType !== type) return false;
           const tabFileName = normalize(tab.metadata?.fileName);
           const tabTitle = normalize(tab.metadata?.title);
@@ -187,19 +187,27 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
         }) || null
       );
     },
-    [tabs]
+    [normalize]
+  );
+
+  const findPreviewTab = useCallback(
+    (type: PreviewContentType, content?: string, meta?: PreviewMetadata) => {
+      return findPreviewTabInList(tabs, type, content, meta);
+    },
+    [findPreviewTabInList, tabs]
   );
 
   const openPreview = useCallback(
     (newContent: string, type: PreviewContentType, meta?: PreviewMetadata) => {
-      // 如果同一个文件已经打开，则直接激活现有 tab，避免重复 / Focus existing tab when the same file is opened again
-      const existingTab = findPreviewTab(type, newContent, meta);
+      let nextActiveTabId: string | null = null;
 
-      if (existingTab) {
-        setIsOpen(true);
-        setActiveTabId(existingTab.id);
-        setTabs((prevTabs) =>
-          prevTabs.map((tab) => {
+      setTabs((prevTabs) => {
+        // 如果同一个文件已经打开，则直接激活现有 tab，避免重复 / Focus existing tab when the same file is opened again
+        const existingTab = findPreviewTabInList(prevTabs, type, newContent, meta);
+
+        if (existingTab) {
+          nextActiveTabId = existingTab.id;
+          return prevTabs.map((tab) => {
             if (tab.id !== existingTab.id) return tab;
 
             // 如果用户已编辑内容，则保留当前内容，仅更新元数据 / Keep edited content, only merge metadata
@@ -213,42 +221,45 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
               metadata: meta ? { ...tab.metadata, ...meta } : tab.metadata,
               originalContent: newContent,
             };
-          })
-        );
-        return;
+          });
+        }
+
+        // Tab 标题：优先使用文件名，并从 title 中提取实际文件名
+        // Tab title: Prefer fileName and extract actual filename from title
+        const fallbackTitle = (() => {
+          // 根据内容类型设置默认标题 / Set default title based on content type
+          if (type === 'markdown') return 'Markdown';
+          if (type === 'diff') return 'Diff';
+          if (type === 'code') return `${meta?.language || 'Code'}`;
+          if (type === 'image') return 'Image'; // 图片预览默认标题 / Default title for image preview
+          return 'Preview';
+        })();
+
+        const title = extractFileName(meta?.fileName) || extractFileName(meta?.title) || fallbackTitle;
+
+        // 生成唯一 ID / Generate unique ID
+        const tabId = `${type}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
+        const newTab: PreviewTab = {
+          id: tabId,
+          content: newContent,
+          contentType: type,
+          metadata: meta,
+          title,
+          isDirty: false,
+          originalContent: newContent, // 保存原始内容 / Save original content
+        };
+
+        nextActiveTabId = tabId;
+        return [...prevTabs, newTab];
+      });
+
+      if (nextActiveTabId) {
+        setActiveTabId(nextActiveTabId);
       }
-
-      // Tab 标题：优先使用文件名，并从 title 中提取实际文件名
-      // Tab title: Prefer fileName and extract actual filename from title
-      const fallbackTitle = (() => {
-        // 根据内容类型设置默认标题 / Set default title based on content type
-        if (type === 'markdown') return 'Markdown';
-        if (type === 'diff') return 'Diff';
-        if (type === 'code') return `${meta?.language || 'Code'}`;
-        if (type === 'image') return 'Image'; // 图片预览默认标题 / Default title for image preview
-        return 'Preview';
-      })();
-
-      const title = extractFileName(meta?.fileName) || extractFileName(meta?.title) || fallbackTitle;
-
-      // 生成唯一 ID / Generate unique ID
-      const tabId = `${type}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-
-      const newTab: PreviewTab = {
-        id: tabId,
-        content: newContent,
-        contentType: type,
-        metadata: meta,
-        title,
-        isDirty: false,
-        originalContent: newContent, // 保存原始内容 / Save original content
-      };
-
-      setTabs((prevTabs) => [...prevTabs, newTab]);
-      setActiveTabId(tabId);
       setIsOpen(true);
     },
-    [findPreviewTab]
+    [extractFileName, findPreviewTabInList]
   );
 
   const closePreview = useCallback(() => {

@@ -11,35 +11,11 @@ import type { AcpBackendConfig } from '@/types/acpTypes';
 import EmojiPicker from '@/renderer/components/EmojiPicker';
 import MarkdownView from '@/renderer/components/Markdown';
 
-// 内置助手配置 / Built-in assistant configurations
-const BUILTIN_ASSISTANTS: Array<{
-  id: string;
-  nameKey: string;
-  descKey: string;
-  avatar: string;
-  ruleFile: string;
-}> = [
-  {
-    id: 'builtin-pdf-to-ppt',
-    nameKey: 'settings.pdfToPptAssistantName',
-    descKey: 'settings.pdfToPptAssistantDesc',
-    avatar: '📄',
-    ruleFile: 'pdf-to-ppt.md',
-  },
-  {
-    id: 'builtin-game-3d',
-    nameKey: 'settings.game3dAssistantName',
-    descKey: 'settings.game3dAssistantDesc',
-    avatar: '🎮',
-    ruleFile: 'game-3d.md',
-  },
-];
-
-interface SmartAssistantManagementProps {
+interface AssistantManagementProps {
   message: ReturnType<typeof Message.useMessage>[0];
 }
 
-const SmartAssistantManagement: React.FC<SmartAssistantManagementProps> = ({ message }) => {
+const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) => {
   const { t, i18n } = useTranslation();
   const [assistants, setAssistants] = useState<AcpBackendConfig[]>([]);
   const [activeAssistantId, setActiveAssistantId] = useState<string | null>(null);
@@ -75,56 +51,42 @@ const SmartAssistantManagement: React.FC<SmartAssistantManagementProps> = ({ mes
     }
   }, []);
 
-  const resolveAssistantContext = useCallback(
-    (assistant: AcpBackendConfig | null) => {
-      if (!assistant) return '';
-      const contextI18n = assistant.contextI18n || {};
-      const localized = contextI18n[localeKey];
-      if (localized) return localized;
-      return contextI18n['zh-CN'] || contextI18n['en-US'] || assistant.context || '';
+  // 从文件加载助手规则内容 / Load assistant rule content from file
+  const loadAssistantContext = useCallback(
+    async (assistantId: string): Promise<string> => {
+      try {
+        const content = await ipcBridge.fs.readAssistantRule.invoke({ assistantId, locale: localeKey });
+        return content || '';
+      } catch (error) {
+        console.error(`Failed to load rule for ${assistantId}:`, error);
+        return '';
+      }
     },
     [localeKey]
   );
 
   const loadAssistants = useCallback(async () => {
     try {
-      // 加载内置助手（从项目文件读取 rules）
-      // Load built-in assistants (read rules from project files)
-      const builtinAgents: AcpBackendConfig[] = await Promise.all(
-        BUILTIN_ASSISTANTS.map(async (config) => {
-          let context = '';
-          try {
-            context = await ipcBridge.fs.readBuiltinRule.invoke({ fileName: config.ruleFile });
-          } catch (err) {
-            console.warn(`Failed to load rule file ${config.ruleFile}:`, err);
-          }
-          return {
-            id: config.id,
-            name: t(config.nameKey, { defaultValue: config.nameKey }),
-            description: t(config.descKey, { defaultValue: config.descKey }),
-            avatar: config.avatar,
-            context,
-            enabled: true,
-            isPreset: true,
-            isBuiltin: true, // 标记为内置，不可删除 / Mark as built-in, cannot be deleted
-            presetAgentType: 'gemini' as const,
-          };
-        })
-      );
+      // 从配置中读取已存储的助手（包含内置助手和用户自定义助手）
+      // Read stored assistants from config (includes builtin and user-defined)
+      const allAgents: AcpBackendConfig[] = (await ConfigStorage.get('acp.customAgents')) || [];
 
-      setAssistants(builtinAgents);
-      setActiveAssistantId((prev) => prev || builtinAgents[0]?.id || null);
+      // 过滤出助手（isPreset 为 true 的助手）
+      // Filter assistants (agents with isPreset = true)
+      const presetAssistants = allAgents.filter((agent) => agent.isPreset);
+
+      setAssistants(presetAssistants);
+      setActiveAssistantId((prev) => prev || presetAssistants[0]?.id || null);
     } catch (error) {
       console.error('Failed to load assistant presets:', error);
     }
-  }, [t]);
+  }, []);
 
   useEffect(() => {
     void loadAssistants();
   }, [loadAssistants]);
 
   const activeAssistant = assistants.find((assistant) => assistant.id === activeAssistantId) || null;
-  const isBuiltinAssistant = activeAssistant?.id?.startsWith('builtin-') ?? false;
 
   // Check if string is an emoji (simple check for common emoji patterns)
   const isEmoji = useCallback((str: string) => {
@@ -142,7 +104,7 @@ const SmartAssistantManagement: React.FC<SmartAssistantManagementProps> = ({ mes
 
       return (
         <Avatar.Group size={size}>
-          <Avatar shape='square' style={{ backgroundColor: 'var(--color-fill-2)' }}>
+          <Avatar className='border-none' shape='square' style={{ backgroundColor: 'var(--color-fill-2)' }}>
             {hasEmojiAvatar ? <span style={{ fontSize: emojiSize }}>{assistant.avatar}</span> : <Robot theme='outline' size={iconSize} />}
           </Avatar>
         </Avatar.Group>
@@ -151,13 +113,21 @@ const SmartAssistantManagement: React.FC<SmartAssistantManagementProps> = ({ mes
     [isEmoji]
   );
 
-  const handleEdit = (assistant: AcpBackendConfig) => {
+  const handleEdit = async (assistant: AcpBackendConfig) => {
     setIsCreating(false);
     setActiveAssistantId(assistant.id);
     setEditName(assistant.name || '');
     setEditDescription(assistant.description || '');
-    setEditContext(resolveAssistantContext(assistant));
     setEditAvatar(assistant.avatar || '');
+
+    // 先加载规则内容，再打开 drawer / Load rule content first, then open drawer
+    try {
+      const context = await loadAssistantContext(assistant.id);
+      setEditContext(context);
+    } catch (error) {
+      console.error('Failed to load assistant context:', error);
+      setEditContext('');
+    }
     setEditVisible(true);
   };
 
@@ -188,18 +158,24 @@ const SmartAssistantManagement: React.FC<SmartAssistantManagementProps> = ({ mes
 
       if (isCreating) {
         // Create new assistant
+        const newAssistantId = `smart-assistant-${uuid()}`;
+
+        // 1. 写入规则文件 / Write rule file
+        await ipcBridge.fs.writeAssistantRule.invoke({
+          assistantId: newAssistantId,
+          content: editContext.trim(),
+          locale: localeKey,
+        });
+
+        // 2. 配置只保存元数据（不包含 context）/ Config only stores metadata (no context)
         const newAssistant: AcpBackendConfig = {
-          id: `smart-assistant-${uuid()}`,
+          id: newAssistantId,
           name: editName.trim(),
           description: editDescription.trim(),
-          context: editContext.trim(),
-          contextI18n: {
-            [localeKey]: editContext.trim(),
-          },
           avatar: editAvatar || '🤖',
           enabled: true,
           isPreset: true,
-          presetAgentType: 'gemini', // Smart assistants always use Gemini rules
+          presetAgentType: 'gemini', // Assistants use Gemini rules
         };
         const updatedAgents = [...agents, newAssistant];
         await ConfigStorage.set('acp.customAgents', updatedAgents);
@@ -208,18 +184,24 @@ const SmartAssistantManagement: React.FC<SmartAssistantManagementProps> = ({ mes
       } else {
         // Update existing assistant
         if (!activeAssistant) return;
-        const nextContextI18n = {
-          ...(activeAssistant.contextI18n || {}),
-          [localeKey]: editContext.trim(),
-        };
+
+        // 1. 写入规则文件 / Write rule file
+        await ipcBridge.fs.writeAssistantRule.invoke({
+          assistantId: activeAssistant.id,
+          content: editContext.trim(),
+          locale: localeKey,
+        });
+
+        // 2. 更新配置（只保存元数据）/ Update config (metadata only)
         const updatedAgent: AcpBackendConfig = {
           ...activeAssistant,
           name: editName.trim(),
           description: editDescription.trim(),
-          context: editContext.trim(),
-          contextI18n: nextContextI18n,
           avatar: editAvatar,
-          presetAgentType: 'gemini', // Smart assistants always use Gemini rules
+          presetAgentType: 'gemini', // Assistants use Gemini rules
+          // 移除 context 和 contextI18n / Remove context and contextI18n
+          context: undefined,
+          contextI18n: undefined,
         };
         const updatedAgents = agents.map((agent) => (agent.id === activeAssistant.id ? updatedAgent : agent));
         await ConfigStorage.set('acp.customAgents', updatedAgents);
@@ -243,6 +225,10 @@ const SmartAssistantManagement: React.FC<SmartAssistantManagementProps> = ({ mes
   const handleDeleteConfirm = async () => {
     if (!activeAssistant) return;
     try {
+      // 1. 删除规则文件 / Delete rule files
+      await ipcBridge.fs.deleteAssistantRule.invoke({ assistantId: activeAssistant.id });
+
+      // 2. 从配置中移除助手 / Remove assistant from config
       const agents = (await ConfigStorage.get('acp.customAgents')) || [];
       const updatedAgents = agents.filter((agent) => agent.id !== activeAssistant.id);
       await ConfigStorage.set('acp.customAgents', updatedAgents);
@@ -263,7 +249,7 @@ const SmartAssistantManagement: React.FC<SmartAssistantManagementProps> = ({ mes
       <Collapse.Item
         header={
           <div className='flex items-center justify-between w-full'>
-            <span>{t('settings.smartAssistants', { defaultValue: 'Smart Assistants' })}</span>
+            <span>{t('settings.assistants', { defaultValue: 'Assistants' })}</span>
           </div>
         }
         name='smart-assistants'
@@ -283,7 +269,7 @@ const SmartAssistantManagement: React.FC<SmartAssistantManagementProps> = ({ mes
       >
         <div className='py-2'>
           <div className='bg-fill-2 rounded-2xl p-20px'>
-            <div className='text-14px text-t-secondary mb-12px'>{t('settings.smartAssistantsList', { defaultValue: 'Available assistants' })}</div>
+            <div className='text-14px text-t-secondary mb-12px'>{t('settings.assistantsList', { defaultValue: 'Available assistants' })}</div>
             {assistants.length > 0 ? (
               <div className='space-y-12px'>
                 {assistants.map((assistant) => (
@@ -292,14 +278,14 @@ const SmartAssistantManagement: React.FC<SmartAssistantManagementProps> = ({ mes
                     className='bg-fill-0 rounded-lg px-16px py-12px flex items-center justify-between cursor-pointer hover:bg-fill-1 transition-colors'
                     onClick={() => {
                       setActiveAssistantId(assistant.id);
-                      handleEdit(assistant);
+                      void handleEdit(assistant);
                     }}
                   >
                     <div className='flex items-center gap-12px min-w-0'>
                       {renderAvatarGroup(assistant, 28)}
                       <div className='min-w-0'>
-                        <div className='font-medium text-t-primary truncate'>{assistant.name}</div>
-                        <div className='text-12px text-t-secondary truncate'>{assistant.description || ''}</div>
+                        <div className='font-medium text-t-primary truncate'>{assistant.nameI18n?.[localeKey] || assistant.name}</div>
+                        <div className='text-12px text-t-secondary truncate'>{assistant.descriptionI18n?.[localeKey] || assistant.description || ''}</div>
                       </div>
                     </div>
                     <div className='flex items-center gap-8px text-t-secondary'>
@@ -309,7 +295,7 @@ const SmartAssistantManagement: React.FC<SmartAssistantManagementProps> = ({ mes
                         icon={<SettingOne size={16} />}
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleEdit(assistant);
+                          void handleEdit(assistant);
                         }}
                       />
                     </div>
@@ -317,7 +303,7 @@ const SmartAssistantManagement: React.FC<SmartAssistantManagementProps> = ({ mes
                 ))}
               </div>
             ) : (
-              <div className='text-center text-t-secondary py-12px'>{t('settings.smartAssistantsEmpty', { defaultValue: 'No assistants configured.' })}</div>
+              <div className='text-center text-t-secondary py-12px'>{t('settings.assistantsEmpty', { defaultValue: 'No assistants configured.' })}</div>
             )}
           </div>
         </div>
@@ -332,8 +318,8 @@ const SmartAssistantManagement: React.FC<SmartAssistantManagementProps> = ({ mes
                 e.stopPropagation();
                 setEditVisible(false);
               }}
-              className='absolute right-4 top-4 cursor-pointer text-t-secondary hover:text-t-primary transition-colors p-1'
-              style={{ zIndex: 10, WebkitAppRegion: 'no-drag' } as any}
+              className='absolute right-4 top-2 cursor-pointer text-t-secondary hover:text-t-primary transition-colors p-1'
+              style={{ zIndex: 10, WebkitAppRegion: 'no-drag' } as React.CSSProperties}
             >
               <Close size={18} />
             </div>
@@ -345,63 +331,69 @@ const SmartAssistantManagement: React.FC<SmartAssistantManagementProps> = ({ mes
         width={480}
         zIndex={2000}
         onCancel={() => setEditVisible(false)}
+        headerStyle={{ background: 'var(--color-bg-1)' }}
+        bodyStyle={{ background: 'var(--color-bg-1)' }}
         footer={
           <div className='flex items-center justify-between w-full'>
             <div className='flex items-center gap-8px'>
-              <Button type='primary' onClick={handleSave}>
-                {isCreating ? t('common.create', { defaultValue: 'Create' }) : t('settings.saveAssistant', { defaultValue: 'Save Settings' })}
+              <Button type='primary' onClick={handleSave} className='w-[100px] rounded-[100px]'>
+                {isCreating ? t('common.create', { defaultValue: 'Create' }) : t('common.save', { defaultValue: 'Save' })}
               </Button>
-              <Button onClick={() => setEditVisible(false)}>{t('common.cancel', { defaultValue: 'Cancel' })}</Button>
+              <Button onClick={() => setEditVisible(false)} className='w-[100px] rounded-[100px] bg-fill-2'>
+                {t('common.cancel', { defaultValue: 'Cancel' })}
+              </Button>
             </div>
-            {!isCreating && !isBuiltinAssistant && (
-              <Typography.Text className='cursor-pointer transition-colors' style={{ color: 'rgb(var(--danger-6))' }} onClick={handleDeleteClick} onMouseEnter={(e) => (e.currentTarget.style.color = 'rgb(var(--danger-5))')} onMouseLeave={(e) => (e.currentTarget.style.color = 'rgb(var(--danger-6))')}>
+            {!isCreating && (
+              <Button status='danger' onClick={handleDeleteClick} className='rounded-[100px]' style={{ backgroundColor: 'rgb(var(--danger-1))' }}>
                 {t('common.delete', { defaultValue: 'Delete' })}
-              </Typography.Text>
+              </Button>
             )}
           </div>
         }
       >
-        <div className='flex flex-col h-full gap-16px'>
-          <div className='flex-shrink-0'>
-            <Typography.Text bold>
-              <span className='text-red-500'>*</span> {t('settings.assistantNameAvatar', { defaultValue: 'Name & Avatar' })}
-            </Typography.Text>
-            <div className='mt-10px flex items-center gap-12px'>
-              <EmojiPicker value={editAvatar} onChange={setEditAvatar}>
-                <Avatar shape='square' size={40} style={{ backgroundColor: 'var(--color-fill-2)', cursor: 'pointer' }}>
-                  {editAvatar ? <span style={{ fontSize: 24 }}>{editAvatar}</span> : <Robot theme='outline' size={20} />}
-                </Avatar>
-              </EmojiPicker>
-              <Input value={editName} onChange={setEditName} placeholder={t('settings.agentNamePlaceholder', { defaultValue: 'Enter a name for this agent' })} className='flex-1' style={{ border: '1px solid var(--color-border-2)' }} />
-            </div>
-          </div>
-          <div className='flex-shrink-0'>
-            <Typography.Text bold>{t('settings.assistantDescription', { defaultValue: 'Assistant Description' })}</Typography.Text>
-            <Input className='mt-10px' value={editDescription} onChange={setEditDescription} placeholder={t('settings.assistantDescriptionPlaceholder', { defaultValue: 'What can this assistant help with?' })} style={{ border: '1px solid var(--color-border-2)' }} />
-          </div>
-          <div className='flex-1 flex flex-col min-h-0'>
-            <Typography.Text bold className='flex-shrink-0'>
-              <span className='text-red-500'>*</span> {t('settings.assistantRules', { defaultValue: 'Rules' })}
-            </Typography.Text>
-            <div className='text-12px text-t-secondary mt-4px mb-8px flex-shrink-0'>{t('settings.assistantRulesHint', { defaultValue: 'Enter rules for Gemini. Rules define how the assistant should behave and respond.' })}</div>
-            {/* Prompt Edit/Preview Tabs */}
-            <div className='mt-10px border border-border-2 rounded-lg overflow-hidden flex-1 flex flex-col min-h-200px'>
-              <div className='flex items-center h-36px bg-fill-2 border-b border-border-2 flex-shrink-0'>
-                <div className={`flex items-center h-full px-16px cursor-pointer transition-all text-13px font-medium ${promptViewMode === 'edit' ? 'text-primary border-b-2 border-primary bg-bg-1' : 'text-t-secondary hover:text-t-primary'}`} onClick={() => setPromptViewMode('edit')}>
-                  {t('settings.promptEdit', { defaultValue: 'Edit' })}
-                </div>
-                <div className={`flex items-center h-full px-16px cursor-pointer transition-all text-13px font-medium ${promptViewMode === 'preview' ? 'text-primary border-b-2 border-primary bg-bg-1' : 'text-t-secondary hover:text-t-primary'}`} onClick={() => setPromptViewMode('preview')}>
-                  {t('settings.promptPreview', { defaultValue: 'Preview' })}
-                </div>
+        <div className='flex flex-col h-full'>
+          <div className='flex flex-col h-full gap-16px bg-fill-2 rounded-16px p-20px'>
+            <div className='flex-shrink-0'>
+              <Typography.Text bold>
+                <span className='text-red-500'>*</span> {t('settings.assistantNameAvatar', { defaultValue: 'Name & Avatar' })}
+              </Typography.Text>
+              <div className='mt-10px flex items-center gap-12px'>
+                <EmojiPicker value={editAvatar} onChange={setEditAvatar}>
+                  <Avatar shape='square' size={40} className='bg-bg-1 cursor-pointer rounded-4px'>
+                    {editAvatar ? <span className='text-24px'>{editAvatar}</span> : <Robot theme='outline' size={20} />}
+                  </Avatar>
+                </EmojiPicker>
+                <Input value={editName} onChange={setEditName} placeholder={t('settings.agentNamePlaceholder', { defaultValue: 'Enter a name for this agent' })} className='w-[398px] rounded-4px bg-bg-1' />
               </div>
-              <div className='flex-1 overflow-auto bg-fill-2'>
-                {promptViewMode === 'edit' ? (
-                  <div ref={textareaWrapperRef} className='h-full'>
-                    <Input.TextArea value={editContext} onChange={setEditContext} placeholder={t('settings.assistantRulesPlaceholder', { defaultValue: 'Enter rules in Markdown format...' })} autoSize={false} style={{ border: 'none', borderRadius: 0, backgroundColor: 'transparent', height: '100%', resize: 'none' }} />
+            </div>
+            <div className='flex-shrink-0'>
+              <Typography.Text bold>{t('settings.assistantDescription', { defaultValue: 'Assistant Description' })}</Typography.Text>
+              <Input className='mt-10px rounded-4px bg-bg-1' value={editDescription} onChange={setEditDescription} placeholder={t('settings.assistantDescriptionPlaceholder', { defaultValue: 'What can this assistant help with?' })} />
+            </div>
+            <div className='flex-1 flex flex-col min-h-0'>
+              <Typography.Text bold className='flex-shrink-0'>
+                <span className='text-red-500'>*</span> {t('settings.assistantRules', { defaultValue: 'Rules' })}
+              </Typography.Text>
+              <div className='text-12px text-t-secondary mt-4px mb-8px flex-shrink-0'>{t('settings.assistantRulesHint', { defaultValue: 'Enter rules for Gemini. Rules define how the assistant should behave and respond.' })}</div>
+              {/* Prompt Edit/Preview Tabs */}
+              <div className='mt-10px border border-border-2 overflow-hidden flex-1 flex flex-col min-h-200px rounded-4px'>
+                <div className='flex items-center h-36px bg-fill-2 border-b border-border-2 flex-shrink-0'>
+                  <div className={`flex items-center h-full px-16px cursor-pointer transition-all text-13px font-medium ${promptViewMode === 'edit' ? 'text-primary border-b-2 border-primary bg-bg-1' : 'text-t-secondary hover:text-t-primary'}`} onClick={() => setPromptViewMode('edit')}>
+                    {t('settings.promptEdit', { defaultValue: 'Edit' })}
                   </div>
-                ) : (
-                  <div className='p-16px'>{editContext ? <MarkdownView hiddenCodeCopyButton>{editContext}</MarkdownView> : <div className='text-t-secondary text-center py-32px'>{t('settings.promptPreviewEmpty', { defaultValue: 'No content to preview' })}</div>}</div>
-                )}
+                  <div className={`flex items-center h-full px-16px cursor-pointer transition-all text-13px font-medium ${promptViewMode === 'preview' ? 'text-primary border-b-2 border-primary bg-bg-1' : 'text-t-secondary hover:text-t-primary'}`} onClick={() => setPromptViewMode('preview')}>
+                    {t('settings.promptPreview', { defaultValue: 'Preview' })}
+                  </div>
+                </div>
+                <div className='flex-1 overflow-auto bg-fill-2'>
+                  {promptViewMode === 'edit' ? (
+                    <div ref={textareaWrapperRef} className='h-full'>
+                      <Input.TextArea value={editContext} onChange={setEditContext} placeholder={t('settings.assistantRulesPlaceholder', { defaultValue: 'Enter rules in Markdown format...' })} autoSize={false} className='border-none rounded-none bg-transparent h-full resize-none' />
+                    </div>
+                  ) : (
+                    <div className='p-16px'>{editContext ? <MarkdownView hiddenCodeCopyButton>{editContext}</MarkdownView> : <div className='text-t-secondary text-center py-32px'>{t('settings.promptPreviewEmpty', { defaultValue: 'No content to preview' })}</div>}</div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -425,4 +417,4 @@ const SmartAssistantManagement: React.FC<SmartAssistantManagementProps> = ({ mes
   );
 };
 
-export default SmartAssistantManagement;
+export default AssistantManagement;

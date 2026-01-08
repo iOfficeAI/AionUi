@@ -1,6 +1,6 @@
 import type { PresetAgentType } from '@/types/acpTypes';
 
-export type SmartAssistantPreset = {
+export type AssistantPreset = {
   id: string;
   avatar: string;
   presetAgentType?: PresetAgentType;
@@ -9,7 +9,7 @@ export type SmartAssistantPreset = {
   descriptionI18n: Record<'en-US' | 'zh-CN', string>;
 };
 
-export const SMART_ASSISTANT_PRESETS: SmartAssistantPreset[] = [
+export const ASSISTANT_PRESETS: AssistantPreset[] = [
   {
     id: 'pdf-to-ppt',
     avatar: '📄',
@@ -36,7 +36,7 @@ export const SMART_ASSISTANT_PRESETS: SmartAssistantPreset[] = [
       'zh-CN': 'game-3d.zh-CN.md',
     },
     nameI18n: {
-      'en-US': '3D Game Builder',
+      'en-US': '3D Game',
       'zh-CN': '3D 游戏生成',
     },
     descriptionI18n: {

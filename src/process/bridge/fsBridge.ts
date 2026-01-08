@@ -11,7 +11,7 @@ import https from 'node:https';
 import http from 'node:http';
 import { app } from 'electron';
 import { ipcBridge } from '../../common';
-import { getSystemDir } from '../initStorage';
+import { getSystemDir, getAssistantsDir } from '../initStorage';
 import { readDirectoryRecursive } from '../utils';
 
 export function initFsBridge(): void {
@@ -410,14 +410,153 @@ export function initFsBridge(): void {
         throw new Error('Only .md files are allowed');
       }
 
-      const appPath = app.getAppPath();
-      const rulesPath = path.join(appPath, 'rules', safeFileName);
+      // 开发模式下使用项目根目录，生产模式使用 app.getAppPath()
+      // In development, use project root. In production, use app.getAppPath()
+      let rulesDir: string;
+      if (app.isPackaged) {
+        // 生产模式：rules 在 app.asar 中或 Resources 目录下
+        // Production: rules are in app.asar or Resources directory
+        rulesDir = path.join(app.getAppPath(), 'rules');
+      } else {
+        // 开发模式：尝试多种路径找到 rules 目录
+        // Development: try multiple paths to find rules directory
+        const appPath = app.getAppPath();
+        const candidates = [
+          path.join(appPath, 'rules'), // 直接在 appPath 下
+          path.join(appPath, '..', 'rules'), // 上一级
+          path.join(appPath, '..', '..', 'rules'), // 上两级 (.webpack/main 情况)
+          path.join(appPath, '..', '..', '..', 'rules'), // 上三级
+        ];
 
+        rulesDir = candidates[0]; // 默认值
+        for (const candidate of candidates) {
+          try {
+            await fs.access(candidate);
+            rulesDir = candidate;
+            break;
+          } catch {
+            // 继续尝试下一个路径 / Try next path
+          }
+        }
+      }
+
+      const rulesPath = path.join(rulesDir, safeFileName);
       const content = await fs.readFile(rulesPath, 'utf-8');
       return content;
     } catch (error) {
       console.error('Failed to read builtin rule:', error);
       throw error;
+    }
+  });
+
+  // 读取助手规则文件 / Read assistant rule file from user directory or builtin rules
+  ipcBridge.fs.readAssistantRule.provider(async ({ assistantId, locale = 'en-US' }) => {
+    try {
+      const assistantsDir = getAssistantsDir();
+
+      // 尝试按优先级读取：指定语言 -> en-US -> zh-CN
+      // Try reading in priority order: specified locale -> en-US -> zh-CN
+      const locales = [locale, 'en-US', 'zh-CN'].filter((l, i, arr) => arr.indexOf(l) === i);
+
+      // 1. 首先尝试从用户数据目录读取 / First try to read from user data directory
+      for (const loc of locales) {
+        const fileName = `${assistantId}.${loc}.md`;
+        const filePath = path.join(assistantsDir, fileName);
+
+        try {
+          const content = await fs.readFile(filePath, 'utf-8');
+          return content;
+        } catch {
+          // 继续尝试下一个语言 / Try next locale
+        }
+      }
+
+      // 2. 如果用户目录没有，回退到内置规则目录 / Fallback to builtin rules directory
+      let builtinRulesDir: string;
+      if (app.isPackaged) {
+        builtinRulesDir = path.join(app.getAppPath(), 'rules');
+      } else {
+        // 开发模式：尝试多种路径找到 rules 目录
+        const appPath = app.getAppPath();
+        const candidates = [path.join(appPath, 'rules'), path.join(appPath, '..', 'rules'), path.join(appPath, '..', '..', 'rules'), path.join(appPath, '..', '..', '..', 'rules')];
+
+        builtinRulesDir = candidates[0];
+        for (const candidate of candidates) {
+          try {
+            await fs.access(candidate);
+            builtinRulesDir = candidate;
+            break;
+          } catch {
+            // 继续尝试下一个路径
+          }
+        }
+      }
+
+      // 尝试从内置规则目录读取 / Try to read from builtin rules directory
+      for (const loc of locales) {
+        const fileName = `${assistantId}.${loc}.md`;
+        const filePath = path.join(builtinRulesDir, fileName);
+
+        try {
+          const content = await fs.readFile(filePath, 'utf-8');
+          console.log(`[fsBridge] Read builtin rule for ${assistantId}: ${fileName}`);
+          return content;
+        } catch {
+          // 继续尝试下一个语言 / Try next locale
+        }
+      }
+
+      // 如果都找不到，返回空字符串
+      // Return empty string if no file found
+      return '';
+    } catch (error) {
+      console.error('Failed to read assistant rule:', error);
+      throw error;
+    }
+  });
+
+  // 写入助手规则文件 / Write assistant rule file to user directory
+  ipcBridge.fs.writeAssistantRule.provider(async ({ assistantId, content, locale = 'en-US' }) => {
+    try {
+      const assistantsDir = getAssistantsDir();
+
+      // 确保目录存在 / Ensure directory exists
+      await fs.mkdir(assistantsDir, { recursive: true });
+
+      const fileName = `${assistantId}.${locale}.md`;
+      const filePath = path.join(assistantsDir, fileName);
+
+      await fs.writeFile(filePath, content, 'utf-8');
+      console.log(`[fsBridge] Wrote assistant rule: ${fileName}`);
+      return true;
+    } catch (error) {
+      console.error('Failed to write assistant rule:', error);
+      return false;
+    }
+  });
+
+  // 删除助手规则文件 / Delete assistant rule files
+  ipcBridge.fs.deleteAssistantRule.provider(async ({ assistantId }) => {
+    try {
+      const assistantsDir = getAssistantsDir();
+
+      // 读取目录中所有文件 / Read all files in directory
+      const files = await fs.readdir(assistantsDir);
+
+      // 删除所有匹配该助手 ID 的规则文件（所有语言版本）
+      // Delete all rule files matching this assistant ID (all locale versions)
+      const pattern = new RegExp(`^${assistantId}\\..*\\.md$`);
+      for (const file of files) {
+        if (pattern.test(file)) {
+          await fs.unlink(path.join(assistantsDir, file));
+          console.log(`[fsBridge] Deleted assistant rule: ${file}`);
+        }
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Failed to delete assistant rule:', error);
+      return false;
     }
   });
 }

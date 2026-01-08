@@ -4,7 +4,6 @@ import { transformMessage, type TMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import { uuid } from '@/common/utils';
 import SendBox from '@/renderer/components/sendbox';
-import ShimmerText from '@/renderer/components/ShimmerText';
 import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/ThoughtDisplay';
 import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/useSendBoxDraft';
 import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/useSendBoxFiles';
@@ -333,16 +332,14 @@ const AcpSendBox: React.FC<{
     }
   });
 
+  // 停止会话处理函数 Stop conversation handler
+  const handleStop = () => {
+    return ipcBridge.conversation.stop.invoke({ conversation_id }).then(() => {});
+  };
+
   return (
     <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
-      <ThoughtDisplay thought={thought} />
-
-      {/* 显示处理中提示 / Show processing indicator */}
-      {aiProcessing && (
-        <div className='text-left text-14px py-8px'>
-          <ShimmerText duration={2}>{t('conversation.chat.processing')}</ShimmerText>
-        </div>
-      )}
+      <ThoughtDisplay thought={thought} running={running || aiProcessing} onStop={handleStop} />
 
       <SendBox
         value={content}
@@ -350,9 +347,7 @@ const AcpSendBox: React.FC<{
         loading={running}
         disabled={false}
         placeholder={t('acp.sendbox.placeholder', { backend, defaultValue: `Send message to {{backend}}...` })}
-        onStop={() => {
-          return ipcBridge.conversation.stop.invoke({ conversation_id }).then(() => {});
-        }}
+        onStop={handleStop}
         className='z-10'
         onFilesAdded={handleFilesAdded}
         supportedExts={allSupportedExts}

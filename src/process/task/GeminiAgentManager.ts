@@ -13,6 +13,7 @@ import { ProcessConfig } from '@/process/initStorage';
 import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '../message';
 import BaseAgentManager from './BaseAgentManager';
 import { handlePreviewOpenEvent } from '../utils/previewUtils';
+import { getOauthInfoWithCache } from '@office-ai/aioncli-core';
 
 // gemini agent管理器类
 type UiMcpServerConfig = {
@@ -30,6 +31,7 @@ export class GeminiAgentManager extends BaseAgentManager<{
   mcpServers?: Record<string, UiMcpServerConfig>;
   contextFileName?: string;
   contextContent?: string;
+  GOOGLE_CLOUD_PROJECT?: string;
 }> {
   workspace: string;
   model: TProviderWithModel;
@@ -58,9 +60,25 @@ export class GeminiAgentManager extends BaseAgentManager<{
     this.contextFileName = data.contextFileName;
     this.contextContent = data.contextContent;
     this.bootstrap = Promise.all([ProcessConfig.get('gemini.config'), this.getImageGenerationModel(), this.getMcpServers()])
-      .then(([config, imageGenerationModel, mcpServers]) => {
+      .then(async ([config, imageGenerationModel, mcpServers]) => {
+        // 获取当前账号对应的 GOOGLE_CLOUD_PROJECT
+        // Get GOOGLE_CLOUD_PROJECT for current account
+        let projectId: string | undefined;
+        try {
+          const oauthInfo = await getOauthInfoWithCache(config?.proxy);
+          if (oauthInfo && oauthInfo.email && config?.accountProjects) {
+            projectId = config.accountProjects[oauthInfo.email];
+          }
+          // 注意：不使用旧的全局 GOOGLE_CLOUD_PROJECT 回退，因为可能属于其他账号
+          // Note: Don't fall back to old global GOOGLE_CLOUD_PROJECT, it might belong to another account
+        } catch {
+          // 获取账号失败时不设置 projectId，让系统使用默认值
+          // If account retrieval fails, don't set projectId, let system use default
+        }
+
         return this.start({
           ...config,
+          GOOGLE_CLOUD_PROJECT: projectId,
           workspace: this.workspace,
           model: this.model,
           imageGenerationModel,

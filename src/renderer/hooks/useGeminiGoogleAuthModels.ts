@@ -41,17 +41,16 @@ export const useGeminiGoogleAuthModels = (): GeminiGoogleAuthModelResult => {
     return ipcBridge.gemini.subscriptionStatus.invoke({ proxy: geminiConfig?.proxy });
   });
 
-  const includeProPreview = Boolean(subscriptionResponse?.data?.isSubscriber);
-  // 订阅用户添加 gemini-3-pro-preview，非订阅保留默认列表。Subscribers see Pro Preview first.
+  // 生成与终端 CLI 一致的模型列表 / Generate model list matching terminal CLI
   const descriptions = useMemo(
     () => ({
-      auto: t('gemini.mode.autoDesc', 'Let the system choose the best model for your task.'),
-      pro: t('gemini.mode.proDesc', 'For complex tasks that require deep reasoning and creativity'),
-      flash: t('gemini.mode.flashDesc', 'For tasks that need a balance of speed and reasoning'),
+      autoGemini3: t('gemini.mode.autoGemini3Desc', 'Let Gemini CLI decide the best model for the task: gemini-3-pro, gemini-3-flash'),
+      autoGemini25: t('gemini.mode.autoGemini25Desc', 'Let Gemini CLI decide the best model for the task: gemini-2.5-pro, gemini-2.5-flash'),
+      manual: t('gemini.mode.manualDesc', 'Manually select a model'),
     }),
     [t]
   );
-  const geminiModeOptions = useMemo(() => getGeminiModeList({ includeProPreview, descriptions }), [descriptions, includeProPreview]);
+  const geminiModeOptions = useMemo(() => getGeminiModeList({ descriptions }), [descriptions]);
 
   return {
     geminiModeOptions,

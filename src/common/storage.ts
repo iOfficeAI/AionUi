@@ -26,7 +26,11 @@ export interface IConfigStorageRefer {
     authType: string;
     proxy: string;
     GOOGLE_GEMINI_BASE_URL?: string;
+    /** @deprecated Use accountProjects instead. Kept for backward compatibility migration. */
     GOOGLE_CLOUD_PROJECT?: string;
+    /** 按 Google 账号存储的 GCP 项目 ID / GCP project IDs stored per Google account */
+    accountProjects?: Record<string, string>;
+    yoloMode?: boolean;
   };
   'acp.config': {
     [backend in AcpBackend]?: {
@@ -52,6 +56,8 @@ export interface IConfigStorageRefer {
   };
   // 是否在粘贴文件到工作区时询问确认（true = 不再询问）
   'workspace.pasteConfirm'?: boolean;
+  // guid 页面上次选择的 agent 类型 / Last selected agent type on guid page
+  'guid.lastSelectedAgent'?: string;
 }
 
 export interface IEnvStorageRefer {

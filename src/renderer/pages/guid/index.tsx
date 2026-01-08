@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { ASSISTANT_PRESETS } from '@/common/presets/assistantPresets';
 import type { IProvider, TProviderWithModel } from '@/common/storage';
 import { ConfigStorage } from '@/common/storage';
 import { uuid, resolveLocaleKey } from '@/common/utils';
@@ -203,7 +204,17 @@ const Guid: React.FC = () => {
   // 支持在初始化页展示 Codex（MCP）选项，先做 UI 占位
   // 对于自定义代理，使用 "custom:uuid" 格式来区分多个自定义代理
   // For custom agents, we store "custom:uuid" format to distinguish between multiple custom agents
-  const [selectedAgentKey, setSelectedAgentKey] = useState<string>('gemini');
+  const [selectedAgentKey, _setSelectedAgentKey] = useState<string>('gemini');
+
+  // 封装 setSelectedAgentKey 以同时保存到 storage
+  // Wrap setSelectedAgentKey to also save to storage
+  const setSelectedAgentKey = useCallback((key: string) => {
+    _setSelectedAgentKey(key);
+    // 保存选择到 storage / Save selection to storage
+    ConfigStorage.set('guid.lastSelectedAgent', key).catch((error) => {
+      console.error('Failed to save selected agent:', error);
+    });
+  }, []);
   const [availableAgents, setAvailableAgents] = useState<
     Array<{
       backend: AcpBackend;
@@ -435,6 +446,29 @@ const Guid: React.FC = () => {
     }
   }, [availableAgentsData]);
 
+  // 加载上次选择的 agent / Load last selected agent
+  useEffect(() => {
+    if (!availableAgents || availableAgents.length === 0) return;
+
+    ConfigStorage.get('guid.lastSelectedAgent')
+      .then((savedAgentKey) => {
+        if (!savedAgentKey) return;
+
+        // 验证保存的 agent 是否仍然可用 / Validate saved agent is still available
+        const isAvailable = availableAgents.some((agent) => {
+          const key = agent.backend === 'custom' && agent.customAgentId ? `custom:${agent.customAgentId}` : agent.backend;
+          return key === savedAgentKey;
+        });
+
+        if (isAvailable) {
+          _setSelectedAgentKey(savedAgentKey);
+        }
+      })
+      .catch((error) => {
+        console.error('Failed to load last selected agent:', error);
+      });
+  }, [availableAgents]);
+
   useEffect(() => {
     let isActive = true;
     ConfigStorage.get('acp.customAgents')
@@ -473,14 +507,47 @@ const Guid: React.FC = () => {
   const { compositionHandlers, isComposing } = useCompositionInput();
 
   const resolvePresetContext = useCallback(
-    (agentInfo: { backend: AcpBackend; customAgentId?: string; context?: string } | undefined) => {
+    async (agentInfo: { backend: AcpBackend; customAgentId?: string; context?: string } | undefined): Promise<string | undefined> => {
       if (!agentInfo) return undefined;
-      if (agentInfo.backend !== 'custom') return agentInfo.context;
-      const customAgent = customAgents.find((agent) => agent.id === agentInfo.customAgentId);
-      const contextI18n = customAgent?.contextI18n || {};
-      return contextI18n[localeKey] || contextI18n['zh-CN'] || contextI18n['en-US'] || customAgent?.context || agentInfo.context;
+      if (agentInfo.backend !== 'custom') {
+        return agentInfo.context;
+      }
+
+      // 从文件读取助手规则 / Read assistant rule from file
+      const customAgentId = agentInfo.customAgentId;
+      if (!customAgentId) return agentInfo.context;
+
+      let content = '';
+      try {
+        content = await ipcBridge.fs.readAssistantRule.invoke({
+          assistantId: customAgentId,
+          locale: localeKey,
+        });
+      } catch (error) {
+        console.warn(`Failed to load rule for ${customAgentId}:`, error);
+      }
+
+      // Fallback: 如果用户规则为空且是内置助手，直接读取内置资源
+      // Fallback: If user rule is empty and it is a builtin assistant, read directly from builtin resources
+      if (!content && customAgentId.startsWith('builtin-')) {
+        try {
+          const presetId = customAgentId.replace('builtin-', '');
+          const preset = ASSISTANT_PRESETS.find((p) => p.id === presetId);
+          if (preset) {
+            // 根据 localeKey 获取对应的文件名 / Get filename based on localeKey
+            const ruleFile = preset.ruleFiles[localeKey as 'en-US' | 'zh-CN'] || preset.ruleFiles['en-US'];
+            if (ruleFile) {
+              content = await ipcBridge.fs.readBuiltinRule.invoke({ fileName: ruleFile });
+            }
+          }
+        } catch (fallbackError) {
+          console.warn(`Failed to load builtin rule fallback for ${customAgentId}:`, fallbackError);
+        }
+      }
+
+      return content || agentInfo.context;
     },
-    [customAgents, localeKey]
+    [localeKey]
   );
 
   const resolvePresetAgentType = useCallback(
@@ -531,7 +598,7 @@ const Guid: React.FC = () => {
     const agentInfo = selectedAgentInfo;
     const isPreset = isPresetAgent;
     const presetAgentType = resolvePresetAgentType(agentInfo);
-    const presetContext = resolvePresetContext(agentInfo);
+    const presetContext = await resolvePresetContext(agentInfo);
 
     // 默认情况使用 Gemini，或 Preset 配置为 Gemini
     if (!selectedAgent || selectedAgent === 'gemini' || (isPreset && presetAgentType === 'gemini')) {
@@ -1053,41 +1120,75 @@ const Guid: React.FC = () => {
                                 if (availableModels.length === 0) return null;
                                 return (
                                   <Menu.ItemGroup title={provider.name} key={provider.id}>
-                                    {availableModels.map((modelName) => (
-                                      <Menu.Item
-                                        key={provider.id + modelName}
-                                        className={currentModel?.id + currentModel?.useModel === provider.id + modelName ? '!bg-2' : ''}
-                                        onClick={() => {
-                                          setCurrentModel({ ...provider, useModel: modelName }).catch((error) => {
-                                            console.error('Failed to set current model:', error);
-                                          });
-                                        }}
-                                      >
-                                        {(() => {
-                                          const isGoogleProvider = provider.platform?.toLowerCase().includes('gemini-with-google-auth');
-                                          const option = isGoogleProvider ? geminiModeLookup.get(modelName) : undefined;
-                                          if (!option) {
-                                            return modelName;
-                                          }
-                                          return (
-                                            <Tooltip
-                                              position='right'
-                                              trigger='hover'
-                                              content={
-                                                <div className='max-w-240px space-y-6px'>
-                                                  <div className='text-12px text-t-secondary leading-5'>{option.description}</div>
-                                                  {option.modelHint && <div className='text-11px text-t-tertiary'>{option.modelHint}</div>}
-                                                </div>
-                                              }
-                                            >
+                                    {availableModels.map((modelName) => {
+                                      const isGoogleProvider = provider.platform?.toLowerCase().includes('gemini-with-google-auth');
+                                      const option = isGoogleProvider ? geminiModeLookup.get(modelName) : undefined;
+
+                                      // Manual 模式：显示带子菜单的选项
+                                      // Manual mode: show submenu with specific models
+                                      if (option?.subModels && option.subModels.length > 0) {
+                                        return (
+                                          <Menu.SubMenu
+                                            key={provider.id + modelName}
+                                            title={
                                               <div className='flex items-center justify-between gap-12px w-full'>
                                                 <span>{option.label}</span>
                                               </div>
-                                            </Tooltip>
-                                          );
-                                        })()}
-                                      </Menu.Item>
-                                    ))}
+                                            }
+                                          >
+                                            {option.subModels.map((subModel) => (
+                                              <Menu.Item
+                                                key={provider.id + subModel.value}
+                                                className={currentModel?.id + currentModel?.useModel === provider.id + subModel.value ? '!bg-2' : ''}
+                                                onClick={() => {
+                                                  setCurrentModel({ ...provider, useModel: subModel.value }).catch((error) => {
+                                                    console.error('Failed to set current model:', error);
+                                                  });
+                                                }}
+                                              >
+                                                {subModel.label}
+                                              </Menu.Item>
+                                            ))}
+                                          </Menu.SubMenu>
+                                        );
+                                      }
+
+                                      // 普通模式：显示单个选项
+                                      // Normal mode: show single item
+                                      return (
+                                        <Menu.Item
+                                          key={provider.id + modelName}
+                                          className={currentModel?.id + currentModel?.useModel === provider.id + modelName ? '!bg-2' : ''}
+                                          onClick={() => {
+                                            setCurrentModel({ ...provider, useModel: modelName }).catch((error) => {
+                                              console.error('Failed to set current model:', error);
+                                            });
+                                          }}
+                                        >
+                                          {(() => {
+                                            if (!option) {
+                                              return modelName;
+                                            }
+                                            return (
+                                              <Tooltip
+                                                position='right'
+                                                trigger='hover'
+                                                content={
+                                                  <div className='max-w-240px space-y-6px'>
+                                                    <div className='text-12px text-t-secondary leading-5'>{option.description}</div>
+                                                    {option.modelHint && <div className='text-11px text-t-tertiary'>{option.modelHint}</div>}
+                                                  </div>
+                                                }
+                                              >
+                                                <div className='flex items-center justify-between gap-12px w-full'>
+                                                  <span>{option.label}</span>
+                                                </div>
+                                              </Tooltip>
+                                            );
+                                          })()}
+                                        </Menu.Item>
+                                      );
+                                    })}
                                   </Menu.ItemGroup>
                                 );
                               }),
