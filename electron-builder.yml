@@ -14,6 +14,7 @@ files:
   - .webpack/main/**/*
   - .webpack/renderer/**/*
   - public/**/*
+  - rules/**/*
   - package.json
   - node_modules/better-sqlite3/**/*
   - node_modules/bcrypt/**/*

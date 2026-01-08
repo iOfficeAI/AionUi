@@ -6,7 +6,7 @@
 
 import { Collapse, Message } from '@arco-design/web-react';
 import React from 'react';
-import SmartAssistantManagement from '@/renderer/pages/settings/SmartAssistantManagement';
+import AssistantManagement from '@/renderer/pages/settings/AssistantManagement';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { useSettingsViewMode } from '../settingsViewContext';
 
@@ -21,7 +21,7 @@ const AgentModalContent: React.FC = () => {
 
       <AionScrollArea className='flex-1 min-h-0 pb-16px scrollbar-hide' disableOverflow={isPageMode}>
         <Collapse defaultActiveKey={['smart-assistants']}>
-          <SmartAssistantManagement message={agentMessage} />
+          <AssistantManagement message={agentMessage} />
         </Collapse>
       </AionScrollArea>
     </div>

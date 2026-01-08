@@ -11,7 +11,7 @@ import https from 'node:https';
 import http from 'node:http';
 import { app } from 'electron';
 import { ipcBridge } from '../../common';
-import { getSystemDir } from '../initStorage';
+import { getSystemDir, getAssistantsDir } from '../initStorage';
 import { readDirectoryRecursive } from '../utils';
 
 export function initFsBridge(): void {
@@ -418,6 +418,81 @@ export function initFsBridge(): void {
     } catch (error) {
       console.error('Failed to read builtin rule:', error);
       throw error;
+    }
+  });
+
+  // 读取助手规则文件 / Read assistant rule file from user directory
+  ipcBridge.fs.readAssistantRule.provider(async ({ assistantId, locale = 'en-US' }) => {
+    try {
+      const assistantsDir = getAssistantsDir();
+
+      // 尝试按优先级读取：指定语言 -> en-US -> zh-CN
+      // Try reading in priority order: specified locale -> en-US -> zh-CN
+      const locales = [locale, 'en-US', 'zh-CN'].filter((l, i, arr) => arr.indexOf(l) === i);
+
+      for (const loc of locales) {
+        const fileName = `${assistantId}.${loc}.md`;
+        const filePath = path.join(assistantsDir, fileName);
+
+        try {
+          const content = await fs.readFile(filePath, 'utf-8');
+          return content;
+        } catch {
+          // 继续尝试下一个语言 / Try next locale
+        }
+      }
+
+      // 如果都找不到，返回空字符串
+      // Return empty string if no file found
+      return '';
+    } catch (error) {
+      console.error('Failed to read assistant rule:', error);
+      throw error;
+    }
+  });
+
+  // 写入助手规则文件 / Write assistant rule file to user directory
+  ipcBridge.fs.writeAssistantRule.provider(async ({ assistantId, content, locale = 'en-US' }) => {
+    try {
+      const assistantsDir = getAssistantsDir();
+
+      // 确保目录存在 / Ensure directory exists
+      await fs.mkdir(assistantsDir, { recursive: true });
+
+      const fileName = `${assistantId}.${locale}.md`;
+      const filePath = path.join(assistantsDir, fileName);
+
+      await fs.writeFile(filePath, content, 'utf-8');
+      console.log(`[fsBridge] Wrote assistant rule: ${fileName}`);
+      return true;
+    } catch (error) {
+      console.error('Failed to write assistant rule:', error);
+      return false;
+    }
+  });
+
+  // 删除助手规则文件 / Delete assistant rule files
+  ipcBridge.fs.deleteAssistantRule.provider(async ({ assistantId }) => {
+    try {
+      const assistantsDir = getAssistantsDir();
+
+      // 读取目录中所有文件 / Read all files in directory
+      const files = await fs.readdir(assistantsDir);
+
+      // 删除所有匹配该助手 ID 的规则文件（所有语言版本）
+      // Delete all rule files matching this assistant ID (all locale versions)
+      const pattern = new RegExp(`^${assistantId}\\..*\\.md$`);
+      for (const file of files) {
+        if (pattern.test(file)) {
+          await fs.unlink(path.join(assistantsDir, file));
+          console.log(`[fsBridge] Deleted assistant rule: ${file}`);
+        }
+      }
+
+      return true;
+    } catch (error) {
+      console.error('Failed to delete assistant rule:', error);
+      return false;
     }
   });
 }

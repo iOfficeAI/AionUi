@@ -10,7 +10,7 @@ import path from 'path';
 import { app } from 'electron';
 import { application } from '../common/ipcBridge';
 import type { TMessage } from '@/common/chatLib';
-import { SMART_ASSISTANT_PRESETS } from '@/common/presets/smartAssistantPresets';
+import { ASSISTANT_PRESETS } from '@/common/presets/assistantPresets';
 import type { IChatConversationRefer, IConfigStorageRefer, IEnvStorageRefer, IMcpServer, TChatConversation, TProviderWithModel } from '../common/storage';
 import { ChatMessageStorage, ChatStorage, ConfigStorage, EnvStorage } from '../common/storage';
 import { copyDirectoryRecursively, getCliSafePath, getConfigPath, getDataPath, getTempPath, verifyDirectoryFiles } from './utils';
@@ -27,6 +27,7 @@ const STORAGE_PATH = {
   chatMessage: 'aionui-chat-message.txt',
   chat: 'aionui-chat.txt',
   env: '.aionui-env',
+  assistants: 'assistants',
 };
 
 const getHomePage = getConfigPath;
@@ -323,55 +324,74 @@ const conversationHistoryProxy = (options: typeof _chatMessageFile, dir: string)
 const chatMessageFile = conversationHistoryProxy(_chatMessageFile, cacheDir);
 
 /**
- * 获取内置智能助手配置
- * Get built-in smart assistant configurations
- * 使用共享的 SMART_ASSISTANT_PRESETS 配置
+ * 获取助手规则目录路径
+ * Get assistant rules directory path
  */
-const getBuiltinSmartAssistants = async (): Promise<AcpBackendConfig[]> => {
+const getAssistantsDir = () => {
+  return path.join(cacheDir, STORAGE_PATH.assistants);
+};
+
+/**
+ * 初始化内置助手的规则文件到用户目录
+ * Initialize builtin assistant rule files to user directory
+ */
+const initBuiltinAssistantRules = async (): Promise<void> => {
   const appPath = app.getAppPath();
+  const assistantsDir = getAssistantsDir();
+
+  // 确保助手目录存在 / Ensure assistants directory exists
+  if (!existsSync(assistantsDir)) {
+    mkdirSync(assistantsDir);
+  }
+
+  for (const preset of ASSISTANT_PRESETS) {
+    const assistantId = `builtin-${preset.id}`;
+
+    for (const [locale, ruleFile] of Object.entries(preset.ruleFiles)) {
+      try {
+        const sourceRulesPath = path.join(appPath, 'rules', ruleFile);
+        // 目标文件名格式：{assistantId}.{locale}.md
+        // Target file name format: {assistantId}.{locale}.md
+        const targetFileName = `${assistantId}.${locale}.md`;
+        const targetPath = path.join(assistantsDir, targetFileName);
+
+        // 如果目标文件不存在，则从源文件复制
+        // Copy from source if target doesn't exist
+        if (!existsSync(targetPath)) {
+          const content = await fs.readFile(sourceRulesPath, 'utf-8');
+          await fs.writeFile(targetPath, content, 'utf-8');
+          console.log(`[AionUi] Copied builtin rule: ${targetFileName}`);
+        }
+      } catch (error) {
+        // 忽略缺失的语言文件 / Ignore missing locale files
+        console.warn(`[AionUi] Failed to copy rule file ${ruleFile}:`, error);
+      }
+    }
+  }
+};
+
+/**
+ * 获取内置助手配置（不包含 context，context 从文件读取）
+ * Get built-in assistant configurations (without context, context is read from files)
+ */
+const getBuiltinAssistants = (): AcpBackendConfig[] => {
   const assistants: AcpBackendConfig[] = [];
 
-  for (const preset of SMART_ASSISTANT_PRESETS) {
-    try {
-      // 加载各语言的规则文件
-      // Load rule files for each locale
-      const contextI18n: Record<string, string> = {};
-
-      for (const [locale, ruleFile] of Object.entries(preset.ruleFiles)) {
-        try {
-          const rulesPath = path.join(appPath, 'rules', ruleFile);
-          contextI18n[locale] = await fs.readFile(rulesPath, 'utf-8');
-        } catch {
-          // 忽略缺失的语言文件 / Ignore missing locale files
-        }
-      }
-
-      // 使用 en-US 作为默认 context
-      // Use en-US as default context
-      const defaultContext = contextI18n['en-US'] || contextI18n['zh-CN'] || '';
-
-      if (!defaultContext) {
-        console.warn(`[AionUi] No rule files found for builtin assistant ${preset.id}`);
-        continue;
-      }
-
-      assistants.push({
-        id: `builtin-${preset.id}`,
-        name: preset.nameI18n['en-US'],
-        nameI18n: preset.nameI18n,
-        description: preset.descriptionI18n['en-US'],
-        descriptionI18n: preset.descriptionI18n,
-        avatar: preset.avatar,
-        context: defaultContext,
-        contextI18n,
-        enabled: true,
-        isPreset: true,
-        isBuiltin: true,
-        presetAgentType: preset.presetAgentType || 'gemini',
-      });
-    } catch (error) {
-      console.warn(`[AionUi] Failed to load builtin assistant ${preset.id}:`, error);
-    }
+  for (const preset of ASSISTANT_PRESETS) {
+    assistants.push({
+      id: `builtin-${preset.id}`,
+      name: preset.nameI18n['en-US'],
+      nameI18n: preset.nameI18n,
+      description: preset.descriptionI18n['en-US'],
+      descriptionI18n: preset.descriptionI18n,
+      avatar: preset.avatar,
+      // context 不再存储在配置中，而是从文件读取
+      // context is no longer stored in config, read from files instead
+      enabled: true,
+      isPreset: true,
+      isBuiltin: true,
+      presetAgentType: preset.presetAgentType || 'gemini',
+    });
   }
 
   return assistants;
@@ -440,10 +460,16 @@ const initStorage = async () => {
   } catch (error) {
     console.error('[AionUi] Failed to initialize default MCP servers:', error);
   }
-  // 5. 初始化内置智能助手（Smart Assistants）
+  // 5. 初始化内置助手（Assistants）
   try {
+    // 5.1 初始化内置助手的规则文件到用户目录
+    // Initialize builtin assistant rule files to user directory
+    await initBuiltinAssistantRules();
+
+    // 5.2 初始化助手配置（只包含元数据，不包含 context）
+    // Initialize assistant config (metadata only, no context)
     const existingAgents = (await configFile.get('acp.customAgents').catch((): undefined => undefined)) || [];
-    const builtinAssistants = await getBuiltinSmartAssistants();
+    const builtinAssistants = getBuiltinAssistants();
 
     // 检查是否有缺失的内置助手，如果有则添加
     // Check for missing builtin assistants and add them if needed
@@ -455,10 +481,9 @@ const initStorage = async () => {
       // Add missing builtin assistants to the beginning of the list
       const updatedAgents = [...missingAssistants, ...existingAgents];
       await configFile.set('acp.customAgents', updatedAgents);
-      console.log(`[AionUi] Initialized ${missingAssistants.length} builtin smart assistant(s)`);
     }
   } catch (error) {
-    console.error('[AionUi] Failed to initialize builtin smart assistants:', error);
+    console.error('[AionUi] Failed to initialize builtin assistants:', error);
   }
 
   // 6. 初始化数据库（better-sqlite3）
@@ -491,5 +516,11 @@ export const getSystemDir = () => {
     arch: process.arch as ArchitectureType,
   };
 };
+
+/**
+ * 获取助手规则目录路径（供其他模块使用）
+ * Get assistant rules directory path (for use by other modules)
+ */
+export { getAssistantsDir };
 
 export default initStorage;
