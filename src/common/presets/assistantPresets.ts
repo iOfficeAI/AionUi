@@ -11,6 +11,23 @@ export type AssistantPreset = {
 
 export const ASSISTANT_PRESETS: AssistantPreset[] = [
   {
+    id: 'pptx-generator',
+    avatar: '📊',
+    presetAgentType: 'gemini',
+    ruleFiles: {
+      'en-US': 'pptx-generator.md',
+      'zh-CN': 'pptx-generator.zh-CN.md',
+    },
+    nameI18n: {
+      'en-US': 'PPTX Generator',
+      'zh-CN': 'PPTX 生成器',
+    },
+    descriptionI18n: {
+      'en-US': 'Generate local PPTX assets and structure for pptxgenjs.',
+      'zh-CN': '生成本地 PPTX 资产与结构（pptxgenjs）。',
+    },
+  },
+  {
     id: 'pdf-to-ppt',
     avatar: '📄',
     presetAgentType: 'gemini',
