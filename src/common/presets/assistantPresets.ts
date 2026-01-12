@@ -44,4 +44,21 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
       'zh-CN': '用单个 HTML 文件生成完整的 3D 平台收集游戏。',
     },
   },
+  {
+    id: 'ui-ux-pro-max',
+    avatar: '🎨',
+    presetAgentType: 'gemini',
+    ruleFiles: {
+      'en-US': 'ui-ux-pro-max.md',
+      'zh-CN': 'ui-ux-pro-max.zh-CN.md',
+    },
+    nameI18n: {
+      'en-US': 'UI/UX Pro Max',
+      'zh-CN': 'UI/UX 专业设计师',
+    },
+    descriptionI18n: {
+      'en-US': 'Professional UI/UX design intelligence with 57 styles, 95 color palettes, 56 font pairings, and stack-specific best practices.',
+      'zh-CN': '专业 UI/UX 设计智能助手，包含 57 种风格、95 个配色方案、56 个字体配对及技术栈最佳实践。',
+    },
+  },
 ];
