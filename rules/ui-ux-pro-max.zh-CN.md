@@ -52,10 +52,10 @@ winget install Python.Python.3.12
 
 ### 步骤 2：搜索设计数据库
 
-设计数据库已集成到 AionUi 项目的 `ui-ux-pro-max/data/` 目录中。使用搜索脚本查找相关设计信息：
+设计数据库已集成到 AionUi 项目的 `assistant/ui-ux-pro-max/data/` 目录中。使用搜索脚本查找相关设计信息：
 
 ```bash
-python3 ui-ux-pro-max/scripts/search.py "<关键词>" --domain <域名> [-n <最大结果数>]
+python3 assistant/ui-ux-pro-max/scripts/search.py "<关键词>" --domain <域名> [-n <最大结果数>]
 ```
 
 **推荐的搜索顺序：**
@@ -63,48 +63,48 @@ python3 ui-ux-pro-max/scripts/search.py "<关键词>" --domain <域名> [-n <最
 1. **产品** - 获取产品类型的风格推荐
 
    ```bash
-   python3 ui-ux-pro-max/scripts/search.py "saas ecommerce" --domain product
+   python3 assistant/ui-ux-pro-max/scripts/search.py "saas ecommerce" --domain product
    ```
 
 2. **风格** - 获取详细的风格指南（颜色、效果、框架）
 
    ```bash
-   python3 ui-ux-pro-max/scripts/search.py "glassmorphism minimalism" --domain style
+   python3 assistant/ui-ux-pro-max/scripts/search.py "glassmorphism minimalism" --domain style
    ```
 
 3. **排版** - 获取带 Google Fonts 导入的字体配对
 
    ```bash
-   python3 ui-ux-pro-max/scripts/search.py "elegant modern" --domain typography
+   python3 assistant/ui-ux-pro-max/scripts/search.py "elegant modern" --domain typography
    ```
 
 4. **配色** - 获取配色方案（主色、次色、CTA、背景、文本、边框）
 
    ```bash
-   python3 ui-ux-pro-max/scripts/search.py "saas healthcare" --domain color
+   python3 assistant/ui-ux-pro-max/scripts/search.py "saas healthcare" --domain color
    ```
 
 5. **落地页** - 获取页面结构（如果是落地页）
 
    ```bash
-   python3 ui-ux-pro-max/scripts/search.py "hero testimonial pricing" --domain landing
+   python3 assistant/ui-ux-pro-max/scripts/search.py "hero testimonial pricing" --domain landing
    ```
 
 6. **图表** - 获取图表推荐（如果是仪表板/分析）
 
    ```bash
-   python3 ui-ux-pro-max/scripts/search.py "trend comparison" --domain chart
+   python3 assistant/ui-ux-pro-max/scripts/search.py "trend comparison" --domain chart
    ```
 
 7. **UX** - 获取最佳实践和反模式
 
    ```bash
-   python3 ui-ux-pro-max/scripts/search.py "animation accessibility" --domain ux
+   python3 assistant/ui-ux-pro-max/scripts/search.py "animation accessibility" --domain ux
    ```
 
 8. **技术栈** - 获取特定技术栈的指南（默认：html-tailwind）
    ```bash
-   python3 ui-ux-pro-max/scripts/search.py "layout responsive" --stack html-tailwind
+   python3 assistant/ui-ux-pro-max/scripts/search.py "layout responsive" --stack html-tailwind
    ```
 
 ### 步骤 3：应用技术栈指南

@@ -52,10 +52,10 @@ Extract key information from the user's request:
 
 ### Step 2: Search Design Database
 
-The design database is integrated into the AionUi project at `ui-ux-pro-max/data/`. Use the search script to find relevant design information:
+The design database is integrated into the AionUi project at `assistant/ui-ux-pro-max/data/`. Use the search script to find relevant design information:
 
 ```bash
-python3 ui-ux-pro-max/scripts/search.py "<keyword>" --domain <domain> [-n <max_results>]
+python3 assistant/ui-ux-pro-max/scripts/search.py "<keyword>" --domain <domain> [-n <max_results>]
 ```
 
 **Recommended search order:**
@@ -63,48 +63,48 @@ python3 ui-ux-pro-max/scripts/search.py "<keyword>" --domain <domain> [-n <max_r
 1. **Product** - Get style recommendations for product type
 
    ```bash
-   python3 ui-ux-pro-max/scripts/search.py "saas ecommerce" --domain product
+   python3 assistant/ui-ux-pro-max/scripts/search.py "saas ecommerce" --domain product
    ```
 
 2. **Style** - Get detailed style guide (colors, effects, frameworks)
 
    ```bash
-   python3 ui-ux-pro-max/scripts/search.py "glassmorphism minimalism" --domain style
+   python3 assistant/ui-ux-pro-max/scripts/search.py "glassmorphism minimalism" --domain style
    ```
 
 3. **Typography** - Get font pairings with Google Fonts imports
 
    ```bash
-   python3 ui-ux-pro-max/scripts/search.py "elegant modern" --domain typography
+   python3 assistant/ui-ux-pro-max/scripts/search.py "elegant modern" --domain typography
    ```
 
 4. **Color** - Get color palette (Primary, Secondary, CTA, Background, Text, Border)
 
    ```bash
-   python3 ui-ux-pro-max/scripts/search.py "saas healthcare" --domain color
+   python3 assistant/ui-ux-pro-max/scripts/search.py "saas healthcare" --domain color
    ```
 
 5. **Landing** - Get page structure (if landing page)
 
    ```bash
-   python3 ui-ux-pro-max/scripts/search.py "hero testimonial pricing" --domain landing
+   python3 assistant/ui-ux-pro-max/scripts/search.py "hero testimonial pricing" --domain landing
    ```
 
 6. **Chart** - Get chart recommendations (if dashboard/analytics)
 
    ```bash
-   python3 ui-ux-pro-max/scripts/search.py "trend comparison" --domain chart
+   python3 assistant/ui-ux-pro-max/scripts/search.py "trend comparison" --domain chart
    ```
 
 7. **UX** - Get best practices and anti-patterns
 
    ```bash
-   python3 ui-ux-pro-max/scripts/search.py "animation accessibility" --domain ux
+   python3 assistant/ui-ux-pro-max/scripts/search.py "animation accessibility" --domain ux
    ```
 
 8. **Stack** - Get stack-specific guidelines (default: html-tailwind)
    ```bash
-   python3 ui-ux-pro-max/scripts/search.py "layout responsive" --stack html-tailwind
+   python3 assistant/ui-ux-pro-max/scripts/search.py "layout responsive" --stack html-tailwind
    ```
 
 ### Step 3: Apply Stack Guidelines
