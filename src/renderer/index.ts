@@ -33,11 +33,31 @@ import './styles/themes/index.css';
 import HOC from './utils/HOC';
 const root = createRoot(document.getElementById('root'));
 
+// Patch Korean locale with missing properties from English locale
+const koKRComplete = {
+  ...koKR,
+  Calendar: {
+    ...koKR.Calendar,
+    monthFormat: enUS.Calendar.monthFormat,
+    yearFormat: enUS.Calendar.yearFormat,
+  },
+  DatePicker: {
+    ...koKR.DatePicker,
+    Calendar: {
+      ...koKR.DatePicker.Calendar,
+      monthFormat: enUS.Calendar.monthFormat,
+      yearFormat: enUS.Calendar.yearFormat,
+    },
+  },
+  Form: enUS.Form,
+  ColorPicker: enUS.ColorPicker,
+};
+
 const arcoLocales: Record<string, typeof enUS> = {
   'zh-CN': zhCN,
   'zh-TW': zhTW,
   'ja-JP': jaJP,
-  'ko-KR': koKR,
+  'ko-KR': koKRComplete,
   'en-US': enUS,
 };
 
