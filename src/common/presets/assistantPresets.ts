@@ -61,4 +61,38 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
       'zh-CN': '专业 UI/UX 设计智能助手，包含 57 种风格、95 个配色方案、56 个字体配对及技术栈最佳实践。',
     },
   },
+  {
+    id: 'planning-with-files',
+    avatar: '📋',
+    presetAgentType: 'gemini',
+    ruleFiles: {
+      'en-US': 'planning-with-files.md',
+      'zh-CN': 'planning-with-files.zh-CN.md',
+    },
+    nameI18n: {
+      'en-US': 'Planning with Files',
+      'zh-CN': '文件规划助手',
+    },
+    descriptionI18n: {
+      'en-US': 'Manus-style file-based planning for complex tasks. Uses task_plan.md, findings.md, and progress.md to maintain persistent context.',
+      'zh-CN': 'Manus 风格的文件规划，用于复杂任务。使用 task_plan.md、findings.md 和 progress.md 维护持久化上下文。',
+    },
+  },
+  {
+    id: 'human-3-coach',
+    avatar: '🧭',
+    presetAgentType: 'gemini',
+    ruleFiles: {
+      'en-US': 'human-3-coach.md',
+      'zh-CN': 'human-3-coach.zh-CN.md',
+    },
+    nameI18n: {
+      'en-US': 'HUMAN 3.0 Coach',
+      'zh-CN': 'HUMAN 3.0 教练',
+    },
+    descriptionI18n: {
+      'en-US': 'Personal development coach based on HUMAN 3.0 framework: 4 Quadrants (Mind/Body/Spirit/Vocation), 3 Levels, 3 Growth Phases.',
+      'zh-CN': '基于 HUMAN 3.0 框架的个人发展教练：4 象限（思维/身体/精神/职业）、3 层次、3 成长阶段。',
+    },
+  },
 ];
