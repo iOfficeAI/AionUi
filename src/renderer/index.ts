@@ -24,6 +24,7 @@ import enUS from '@arco-design/web-react/es/locale/en-US'; // 英文
 import jaJP from '@arco-design/web-react/es/locale/ja-JP'; // 日文
 import zhCN from '@arco-design/web-react/es/locale/zh-CN'; // 中文（简体）
 import zhTW from '@arco-design/web-react/es/locale/zh-TW'; // 中文（繁体）
+import koKR from '@arco-design/web-react/es/locale/ko-KR'; // 韩文
 import { useTranslation } from 'react-i18next';
 import 'uno.css';
 import './arco-override.css';
@@ -36,6 +37,7 @@ const arcoLocales: Record<string, typeof enUS> = {
   'zh-CN': zhCN,
   'zh-TW': zhTW,
   'ja-JP': jaJP,
+  'ko-KR': koKR,
   'en-US': enUS,
 };
 

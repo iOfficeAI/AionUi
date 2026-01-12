@@ -115,6 +115,7 @@ const LoginPage: React.FC = () => {
       { code: 'zh-CN', label: '简体中文' },
       { code: 'zh-TW', label: '繁體中文' },
       { code: 'ja-JP', label: '日本語' },
+      { code: 'ko-KR', label: '한국어' },
       { code: 'en-US', label: 'English' },
     ],
     []

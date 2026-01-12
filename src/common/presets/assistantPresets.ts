@@ -4,9 +4,9 @@ export type AssistantPreset = {
   id: string;
   avatar: string;
   presetAgentType?: PresetAgentType;
-  ruleFiles: Record<'en-US' | 'zh-CN', string>;
-  nameI18n: Record<'en-US' | 'zh-CN', string>;
-  descriptionI18n: Record<'en-US' | 'zh-CN', string>;
+  ruleFiles: Record<string, string>;
+  nameI18n: Record<string, string>;
+  descriptionI18n: Record<string, string>;
 };
 
 export const ASSISTANT_PRESETS: AssistantPreset[] = [
