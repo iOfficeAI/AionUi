@@ -25,7 +25,7 @@
 
 <p align="center">
   <a href="https://github.com/iOfficeAI/AionUi/releases">
-    <img src="https://img.shields.io/badge/⬇️%20今すぐダウンロード-最新版-32CD32?style=for-the-badge&logo=github&logoColor=white" alt="最新版をダウンロード" height="30">
+    <img src="https://img.shields.io/badge/⬇️%20今すぐダウンロード-最新版-32CD32?style=for-the-badge&logo=github&logoColor=white" alt="最新版をダウンロード" height="50">
   </a>
 </p>
 
@@ -280,7 +280,7 @@ _独自のCSSコードでカスタマイズし、インターフェースを好�
 
 <p>
   <a href="https://github.com/iOfficeAI/AionUi/releases">
-    <img src="https://img.shields.io/badge/ダウンロード-最新版-32CD32?style=for-the-badge&logo=github&logoColor=white" alt="最新版をダウンロード">
+    <img src="https://img.shields.io/badge/ダウンロード-最新版-32CD32?style=for-the-badge&logo=github&logoColor=white" alt="最新版をダウンロード" height="50">
   </a>
 </p>
 

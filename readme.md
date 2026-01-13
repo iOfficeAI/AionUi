@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./resources/aionui_readme_header_0807.png" alt="AionUi Logo" width="100%">
+  <img src="./resources/aionui-banner-1 copy.png" alt="AionUi - Cowork with Your CLI AI Agent" width="100%">
 </p>
 
 <p align="center">
@@ -19,13 +19,13 @@
 ---
 
 <p align="center">
-  <strong>🚀 Give Command-Line AI Tools a Graphical Interface</strong><br>
-  <em>Say goodbye to command line, enjoy a graphical interface | Multi-model support | Local data security</em>
+  <strong>🚀 Cowork with Your AI, Gemini CLI, Claude Code, Codex, Qwen Code, Goose CLI, Auggie, and more</strong><br>
+  <em>User-friendly | Visual graphical interface | Multi-model support | Local data security</em>
 </p>
 
 <p align="center">
   <a href="https://github.com/iOfficeAI/AionUi/releases">
-    <img src="https://img.shields.io/badge/⬇️%20Download%20Now-Latest%20Release-32CD32?style=for-the-badge&logo=github&logoColor=white" alt="Download Latest Release" height="30">
+    <img src="https://img.shields.io/badge/⬇️%20Download%20Now-Latest%20Release-32CD32?style=for-the-badge&logo=github&logoColor=white" alt="Download Latest Release" height="50">
   </a>
 </p>
 
@@ -53,10 +53,10 @@
 ## ✨ What Can AionUi Do?
 
 <p align="center">
-  <img src="./resources/bannerimage.png" alt="AionUi Features" width="800">
+  <img src="./resources/offica-ai BANNER-function copy.png" alt="AionUi - Cowork with Your CLI AI Agent" width="800">
 </p>
 
-### 🤖 **Multi-Agent Mode - Give Command-Line AI Tools a Graphical Interface**
+### 🤖 **Multi-Agent Mode - Cowork for Your Command-Line AI Tools, Unified Graphical Interface**
 
 _If you have installed command-line tools like Gemini CLI, Claude Code, CodeX, Qwen Code, Goose AI, Augment Code, AionUi can automatically detect them and provide a unified graphical interface_
 
@@ -136,9 +136,18 @@ AionUi --webui --remote
 
 ## 🤔 Why Choose AionUi?
 
-While command-line AI tools like Gemini CLI, Claude Code, Codex, Qwen Code are powerful, they share common pain points: conversations can't be saved, single-session limitations, cumbersome file operations, and only support a single model.
+**Just like Claude Cowork makes Claude Code easier to use, AionUi is the Cowork platform for all your command-line AI tools**
 
-AionUi provides a modern graphical interface for these command-line tools, **breaking these limitations**, making interactions simple and intuitive, while supporting multi-model switching to meet different task requirements.
+While command-line tools like Gemini CLI, Claude Code, Codex, Qwen Code are powerful, they share common pain points: conversations can't be saved, single-session limitations, cumbersome file operations, and only support a single model.
+
+AionUi provides unified **Cowork capabilities** for these command-line tools:
+
+- 🎯 **Unified Platform** - One interface to manage all command-line AI tools, no switching needed
+- 🚀 **Multi-Tool Support** - Not only supports Claude Code, but also Gemini CLI, Codex, Qwen Code, and more
+- 🌐 **Cross-Platform** - Full platform support for macOS, Windows, Linux (Claude Cowork currently only macOS)
+- 🔄 **Multi-Model Switching** - Flexibly switch between different models in the same interface, meeting different task requirements
+- 📄 **Real-time Preview** - Visual preview for 9+ formats, immediately view the effects of AI-generated files
+- 💾 **Local Data Security** - All conversations and files saved locally, data never leaves your device
 
 ### 📊 AionUi vs Command-Line AI Tools
 
@@ -271,7 +280,7 @@ _Customize with your own CSS code, make your interface match your preferences_
 
 <p>
   <a href="https://github.com/iOfficeAI/AionUi/releases">
-    <img src="https://img.shields.io/badge/Download-Latest%20Release-32CD32?style=for-the-badge&logo=github&logoColor=white" alt="Download Latest Release">
+    <img src="https://img.shields.io/badge/Download-Latest%20Release-32CD32?style=for-the-badge&logo=github&logoColor=white" alt="Download Latest Release" height="50">
   </a>
 </p>
 
