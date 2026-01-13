@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./resources/aionui_readme_header_0807.png" alt="AionUi Logo" width="100%">
+  <img src="./resources/aionui-banner-1 copy.png" alt="AionUi - Cowork with Your CLI AI Agent" width="100%">
 </p>
 
 <p align="center">
@@ -19,8 +19,8 @@
 ---
 
 <p align="center">
-  <strong>🚀 コマンドラインAIツールにグラフィカルインターフェースを提供</strong><br>
-  <em>コマンドラインに別れを告げ、グラフィカルインターフェースを楽しむ | マルチモデル対応 | ローカルデータセキュリティ</em>
+  <strong>🚀 Cowork とあなたのAI, Gemini CLI, Claude Code, Codex, Qwen Code, Goose CLI, Auggie, その他のAIエージェント</strong><br>
+  <em>ユーザーフレンドリー | 視覚的なグラフィカルインターフェース | マルチモデル対応 | ローカルデータセキュリティ</em>
 </p>
 
 <p align="center">
@@ -53,10 +53,10 @@
 ## ✨ AionUiでできること？
 
 <p align="center">
-  <img src="./resources/bannerimage.png" alt="AionUi機能紹介" width="800">
+  <img src="./resources/offica-ai BANNER-function copy.png" alt="AionUi - Cowork with Your CLI AI Agent" width="800">
 </p>
 
-### 🤖 **マルチエージェントモード - コマンドラインAIツールにグラフィカルインターフェースを提供**
+### 🤖 **マルチエージェントモード - あなたのコマンドラインAIツールのためのCowork、統一グラフィカルインターフェース**
 
 _Gemini CLI、Claude Code、CodeX、Qwen Code、Goose AI、Augment Codeなどのコマンドラインツールをインストール済みの場合、AionUiは自動的に検出し、統一されたグラフィカルインターフェースを提供します_
 
@@ -136,9 +136,18 @@ AionUi --webui --remote
 
 ## 🤔 なぜAionUiを選ぶのか？
 
-Gemini CLI、Claude Code、Codex、Qwen CodeなどのコマンドラインAIツールは強力ですが、いくつかの共通の痛みがあります：会話が保存できない、単一セッション制限、ファイル操作が煩雑、単一モデルのみ使用可能。
+**Claude CoworkがClaude Codeをより使いやすくするように、AionUiはすべてのコマンドラインAIツールのためのCoworkプラットフォームです**
 
-AionUiはこれらのコマンドラインツールにモダンなグラフィカルインターフェースを提供し、**これらの制限を打破**し、インタラクション体験をシンプルで直感的にし、同時にマルチモデル切り替えをサポートし、さまざまなタスク要件を満たします。
+Gemini CLI、Claude Code、Codex、Qwen Codeなどのコマンドラインツールは強力ですが、共通の痛みがあります：会話が保存できない、単一セッション制限、ファイル操作が煩雑、単一モデルのみ使用可能。
+
+AionUiはこれらのコマンドラインツールに統一された **Cowork機能** を提供します：
+
+- 🎯 **統一プラットフォーム** - すべてのコマンドラインAIツールを1つのインターフェースで管理、切り替え不要
+- 🚀 **マルチツール対応** - Claude Codeだけでなく、Gemini CLI、Codex、Qwen Codeなどもサポート
+- 🌐 **クロスプラットフォーム** - macOS、Windows、Linux全プラットフォーム対応（Claude Coworkは現在macOSのみ）
+- 🔄 **マルチモデル切り替え** - 同じインターフェースで異なるモデルを柔軟に切り替え、さまざまなタスク要件に対応
+- 📄 **リアルタイムプレビュー** - 9種類以上の形式のビジュアルプレビュー、AI生成ファイルを即座に確認
+- 💾 **ローカルデータセキュリティ** - すべての会話とファイルをローカルに保存、データはデバイスから離れません
 
 ### 📊 AionUi vs コマンドラインAIツール
 

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./resources/aionui_readme_header_0807.png" alt="AionUi Logo" width="100%">
+  <img src="./resources/aionui-banner-1 copy.png" alt="AionUi - Cowork with Your CLI AI Agent" width="100%">
 </p>
 
 <p align="center">
@@ -19,8 +19,8 @@
 ---
 
 <p align="center">
-  <strong>🚀 让命令行 AI 工具拥有图形化界面</strong><br>
-  <em>告别命令行，享受图形化界面 | 多模型支持 | 本地数据安全</em>
+  <strong>🚀 Cowork 与你的AI, Gemini CLI, Claude Code, Codex, Qwen Code, Goose Cli, Auggie, 等ai agent </strong><br>
+  <em> 任何用户友好 | 可视的图形化界面 | 多模型支持 | 本地数据安全</em>
 </p>
 
 <p align="center">
@@ -53,10 +53,10 @@
 ## ✨ 看看 AionUi 能做什么？
 
 <p align="center">
-  <img src="./resources/bannerimage.png" alt="AionUi 功能展示" width="800">
+  <img src="./resources/offica-ai BANNER-function copy.png" alt="AionUi - Cowork with Your CLI AI Agent" width="800">
 </p>
 
-### 🤖 **多代理模式 - 让命令行 AI 工具拥有图形界面**
+### 🤖 **多代理模式 - Cowork for 你的命令行 AI 工具，统一图形界面**
 
 _如果你已经安装了 Gemini CLI、Claude Code、CodeX、Qwen Code、Goose AI、Augment Code 等命令行工具，AionUi 可以自动检测并为它们提供统一的图形界面_
 
@@ -136,9 +136,18 @@ AionUi --webui --remote
 
 ## 🤔 为什么选择 AionUi？
 
-Gemini CLI、Claude Code、Codex、Qwen Code 等命令行 AI 工具虽然强大，但存在一些通用痛点：对话无法保存、单会话限制、文件操作繁琐、只能使用单一模型。
+**就像 Claude Cowork 让 Claude Code 更易用，AionUi 是你所有命令行 AI 工具的 Cowork 平台**
 
-AionUi 为这些命令行工具提供了现代化的图形界面，**打破这些限制**，让交互体验简单直观，同时支持多模型切换，满足不同任务需求。
+Gemini CLI、Claude Code、Codex、Qwen Code 等命令行工具虽然强大，但存在通用痛点：对话无法保存、单会话限制、文件操作繁琐、只能使用单一模型。
+
+AionUi 为这些命令行工具提供统一的 **Cowork 能力**：
+
+- 🎯 **统一平台** - 一个界面管理所有命令行 AI 工具，无需切换
+- 🚀 **多工具支持** - 不仅支持 Claude Code，还支持 Gemini CLI、Codex、Qwen Code 等
+- 🌐 **跨平台** - macOS、Windows、Linux 全平台支持（Claude Cowork 目前仅 macOS）
+- 🔄 **多模型切换** - 在同一个界面中灵活切换不同模型，满足不同任务需求
+- 📄 **实时预览** - 9+ 种格式可视化预览，AI 生成的文件立即查看效果
+- 💾 **本地数据安全** - 所有对话和文件保存在本地，数据不离开你的设备
 
 ### 📊 AionUi vs 命令行 AI 工具
 
