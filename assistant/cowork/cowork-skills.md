@@ -112,6 +112,34 @@ sheet.getRow(1).fill = {
 await workbook.xlsx.writeFile('output.xlsx');
 ```
 
+### XLSX Scripts Workflow
+
+For recalculating formulas in existing spreadsheets, use the recalc script:
+
+```bash
+# Recalculate all formulas in an Excel file using LibreOffice
+# This is useful after modifying cell values programmatically
+python skills/xlsx/recalc.py <input.xlsx> <output.xlsx>
+```
+
+**Python Quick Reference**:
+
+```python
+import pandas as pd
+
+# Read Excel
+df = pd.read_excel('file.xlsx')  # Default: first sheet
+all_sheets = pd.read_excel('file.xlsx', sheet_name=None)  # All sheets as dict
+
+# Analyze
+df.head()      # Preview data
+df.info()      # Column info
+df.describe()  # Statistics
+
+# Write Excel
+df.to_excel('output.xlsx', index=False)
+```
+
 **Best Practices**:
 
 - Always validate data types before writing
@@ -120,6 +148,7 @@ await workbook.xlsx.writeFile('output.xlsx');
 - Add data validation for user input cells
 - Use named ranges for complex formulas
 - Freeze header rows for large datasets
+- **Use formulas instead of hardcoded values** to keep spreadsheets dynamic
 
 ---
 
@@ -191,6 +220,34 @@ slide.addChart(pptx.ChartType.bar, chartData, { x: 0.5, y: 3, w: 6, h: 3 });
 await pptx.writeFile('presentation.pptx');
 ```
 
+### PPTX Scripts Workflow
+
+For editing existing presentations or working with templates, use the PPTX scripts:
+
+```bash
+# Unpack a presentation to access raw XML
+python skills/pptx/ooxml/scripts/unpack.py <input.pptx> <output_directory>
+
+# Extract text inventory from presentation (useful for template-based editing)
+python skills/pptx/scripts/inventory.py <input.pptx> <output.json>
+
+# Create thumbnail grid of all slides for visual analysis
+python skills/pptx/scripts/thumbnail.py <input.pptx> [output_prefix] [--cols N]
+
+# Rearrange slides by index sequence
+python skills/pptx/scripts/rearrange.py <template.pptx> <output.pptx> <indices>
+# Example: python skills/pptx/scripts/rearrange.py template.pptx output.pptx 0,34,34,50,52
+
+# Apply text replacements from JSON
+python skills/pptx/scripts/replace.py <input.pptx> <replacements.json> <output.pptx>
+
+# Pack modified XML back to PPTX
+python skills/pptx/ooxml/scripts/pack.py <input_directory> <output.pptx>
+
+# Validate PPTX structure
+python skills/pptx/ooxml/scripts/validate.py <file.pptx>
+```
+
 **Best Practices**:
 
 - Maintain consistent design across all slides
@@ -206,9 +263,9 @@ await pptx.writeFile('presentation.pptx');
 
 ## 3. pdf - PDF Document Processor
 
-**MANDATORY TRIGGERS**: PDF, .pdf, form, extract text, merge pdf, split pdf, combine pdf, pdf to, watermark, annotate
+**MANDATORY TRIGGERS**: PDF, .pdf, form, extract text, merge pdf, split pdf, combine pdf, pdf to, watermark, annotate, fill form, fill pdf
 
-**Description**: Extract, manipulate, and create PDF documents with text extraction, merging, splitting, form handling, and annotations.
+**Description**: Comprehensive PDF manipulation toolkit for extracting text and tables, creating new PDFs, merging/splitting documents, and handling forms.
 
 **Capabilities**:
 
@@ -216,7 +273,7 @@ await pptx.writeFile('presentation.pptx');
 - Merge multiple PDFs into one
 - Split PDFs into individual pages or ranges
 - Extract tables and structured data
-- Fill and create PDF forms
+- Fill and create PDF forms (both fillable and non-fillable)
 - Add watermarks, headers, footers
 - Add annotations and comments
 - Compress PDF file size
@@ -224,53 +281,133 @@ await pptx.writeFile('presentation.pptx');
 - Handle encrypted/password-protected PDFs
 - OCR for scanned documents
 
-**Implementation Guidelines**:
+### PDF Form Filling Workflow
 
-```javascript
-// Use pdf-lib for creation and manipulation
-const { PDFDocument, StandardFonts, rgb } = require('pdf-lib');
+**CRITICAL: You MUST complete these steps in order. Do not skip ahead.**
 
-// Create new PDF
-const pdfDoc = await PDFDocument.create();
-const page = pdfDoc.addPage([612, 792]); // Letter size
-const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+If you need to fill out a PDF form, first check if the PDF has fillable form fields:
 
-page.drawText('Hello, World!', {
-  x: 50,
-  y: 700,
-  size: 24,
-  font,
-  color: rgb(0, 0, 0),
-});
+```bash
+python skills/pdf/scripts/check_fillable_fields.py <file.pdf>
+```
 
-// Merge PDFs
-const pdf1 = await PDFDocument.load(pdf1Bytes);
-const pdf2 = await PDFDocument.load(pdf2Bytes);
-const mergedPdf = await PDFDocument.create();
-const pages1 = await mergedPdf.copyPages(pdf1, pdf1.getPageIndices());
-const pages2 = await mergedPdf.copyPages(pdf2, pdf2.getPageIndices());
-pages1.forEach((page) => mergedPdf.addPage(page));
-pages2.forEach((page) => mergedPdf.addPage(page));
+#### For Fillable PDFs:
 
-// Save PDF
-const pdfBytes = await pdfDoc.save();
-await fs.writeFile('output.pdf', pdfBytes);
+1. Extract field information:
 
-// For text extraction, use pdf-parse
-const pdf = require('pdf-parse');
-const data = await pdf(pdfBuffer);
-console.log(data.text);
+   ```bash
+   python skills/pdf/scripts/extract_form_field_info.py <input.pdf> <field_info.json>
+   ```
+
+2. Convert PDF to images for visual analysis:
+
+   ```bash
+   python skills/pdf/scripts/convert_pdf_to_images.py <file.pdf> <output_directory>
+   ```
+
+3. Create `field_values.json` with values to fill:
+
+   ```json
+   [
+     { "field_id": "last_name", "value": "Simpson" },
+     { "field_id": "Checkbox12", "value": "/On" }
+   ]
+   ```
+
+4. Fill the form:
+   ```bash
+   python skills/pdf/scripts/fill_fillable_fields.py <input.pdf> <field_values.json> <output.pdf>
+   ```
+
+#### For Non-Fillable PDFs (Annotation-based):
+
+1. Convert PDF to images:
+
+   ```bash
+   python skills/pdf/scripts/convert_pdf_to_images.py <file.pdf> <output_directory>
+   ```
+
+2. Create `fields.json` with bounding boxes for each field:
+
+   ```json
+   {
+     "pages": [{ "page_number": 1, "image_width": 612, "image_height": 792 }],
+     "form_fields": [
+       {
+         "page_number": 1,
+         "description": "User's last name",
+         "field_label": "Last name",
+         "label_bounding_box": [30, 125, 95, 142],
+         "entry_bounding_box": [100, 125, 280, 142],
+         "entry_text": { "text": "Johnson", "font_size": 14, "font_color": "000000" }
+       }
+     ]
+   }
+   ```
+
+3. Create validation images:
+
+   ```bash
+   python skills/pdf/scripts/create_validation_image.py <page_number> <fields.json> <input_image> <output_image>
+   ```
+
+4. Validate bounding boxes:
+
+   ```bash
+   python skills/pdf/scripts/check_bounding_boxes.py <fields.json>
+   ```
+
+5. Fill the form with annotations:
+   ```bash
+   python skills/pdf/scripts/fill_pdf_form_with_annotations.py <input.pdf> <fields.json> <output.pdf>
+   ```
+
+### PDF Merge/Split Operations
+
+```bash
+# Merge multiple PDFs
+python skills/pdf/scripts/merge_pdfs.py <output.pdf> <input1.pdf> <input2.pdf> ...
+
+# Split into individual pages
+python skills/pdf/scripts/split_pdf.py <input.pdf> <output_directory>
+
+# Extract specific pages
+python skills/pdf/scripts/split_pdf.py <input.pdf> <output.pdf> 1-5
+python skills/pdf/scripts/split_pdf.py <input.pdf> <output.pdf> 1,3,5,7
+```
+
+### Python Quick Reference
+
+```python
+from pypdf import PdfReader, PdfWriter
+
+# Read a PDF
+reader = PdfReader("document.pdf")
+print(f"Pages: {len(reader.pages)}")
+
+# Extract text
+text = ""
+for page in reader.pages:
+    text += page.extract_text()
+
+# For table extraction, use pdfplumber
+import pdfplumber
+with pdfplumber.open("document.pdf") as pdf:
+    for page in pdf.pages:
+        tables = page.extract_tables()
+        for table in tables:
+            print(table)
 ```
 
 **Best Practices**:
 
+- Always check for fillable fields first before deciding workflow
+- For non-fillable forms, validate bounding boxes visually before filling
 - Preserve original quality when processing
 - Handle password-protected PDFs appropriately (request password from user)
 - Validate PDF structure before processing
-- Report extraction confidence levels for OCR
-- Use streaming for large PDFs
+- Use streaming for large PDFs (>10MB)
 - Maintain PDF metadata when merging
-- Compress images when file size is a concern
 
 ---
 
@@ -361,6 +498,51 @@ const doc = new Document({
 // Save document
 const buffer = await Packer.toBuffer(doc);
 await fs.writeFile('document.docx', buffer);
+```
+
+### DOCX Scripts Workflow
+
+For editing existing documents or working with tracked changes, use the DOCX scripts:
+
+```bash
+# Convert document to markdown (preserves tracked changes)
+pandoc --track-changes=all <input.docx> -o output.md
+
+# Unpack a document to access raw XML
+python skills/docx/ooxml/scripts/unpack.py <input.docx> <output_directory>
+
+# Pack modified XML back to DOCX
+python skills/docx/ooxml/scripts/pack.py <input_directory> <output.docx>
+
+# Validate DOCX structure
+python skills/docx/ooxml/scripts/validate.py <file.docx>
+```
+
+**Python Document Library for Tracked Changes**:
+
+```python
+# Import the Document library for tracked changes and comments
+from skills.docx.scripts.document import Document
+
+# Initialize (automatically sets up comment infrastructure)
+doc = Document('unpacked_directory')
+doc = Document('unpacked_directory', author="John Doe", initials="JD")
+
+# Find nodes
+node = doc["word/document.xml"].get_node(tag="w:p", contains="specific text")
+node = doc["word/document.xml"].get_node(tag="w:del", attrs={"w:id": "1"})
+
+# Add comments
+doc.add_comment(start=node, end=node, text="Comment text")
+doc.reply_to_comment(parent_comment_id=0, text="Reply text")
+
+# Suggest tracked changes
+doc["word/document.xml"].suggest_deletion(node)  # Delete content
+doc["word/document.xml"].revert_insertion(ins_node)  # Reject insertion
+doc["word/document.xml"].revert_deletion(del_node)  # Reject deletion
+
+# Save
+doc.save()
 ```
 
 **Best Practices**:

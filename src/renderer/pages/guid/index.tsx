@@ -15,6 +15,7 @@ import { updateWorkspaceTime } from '@/renderer/utils/workspaceHistory';
 import AuggieLogo from '@/renderer/assets/logos/auggie.svg';
 import ClaudeLogo from '@/renderer/assets/logos/claude.svg';
 import CodexLogo from '@/renderer/assets/logos/codex.svg';
+import coworkSvg from '@/renderer/assets/cowork.svg';
 import GeminiLogo from '@/renderer/assets/logos/gemini.svg';
 import GooseLogo from '@/renderer/assets/logos/goose.svg';
 import IflowLogo from '@/renderer/assets/logos/iflow.svg';
@@ -135,6 +136,10 @@ const AGENT_LOGO_MAP: Partial<Record<AcpBackend, string>> = {
   auggie: AuggieLogo,
   kimi: KimiLogo,
   opencode: OpenCodeLogo,
+};
+const CUSTOM_AVATAR_IMAGE_MAP: Record<string, string> = {
+  'cowork.svg': coworkSvg,
+  '🛠️': coworkSvg,
 };
 
 const Guid: React.FC = () => {
@@ -369,6 +374,7 @@ const Guid: React.FC = () => {
         label,
         tokens,
         avatar,
+        avatarImage: avatar ? CUSTOM_AVATAR_IMAGE_MAP[avatar] : undefined,
         logo: AGENT_LOGO_MAP[agent.backend],
       };
     });
@@ -414,7 +420,7 @@ const Guid: React.FC = () => {
             filteredMentionOptions.map((option, index) => (
               <Menu.Item key={option.key} data-mention-index={index}>
                 <div className='flex items-center gap-8px'>
-                  {option.avatar ? <span style={{ fontSize: 14, lineHeight: '16px' }}>{option.avatar}</span> : option.logo ? <img src={option.logo} alt={option.label} width={16} height={16} style={{ objectFit: 'contain' }} /> : <Robot theme='outline' size={16} />}
+                  {option.avatarImage ? <img src={option.avatarImage} alt='' width={16} height={16} style={{ objectFit: 'contain' }} /> : option.avatar ? <span style={{ fontSize: 14, lineHeight: '16px' }}>{option.avatar}</span> : option.logo ? <img src={option.logo} alt={option.label} width={16} height={16} style={{ objectFit: 'contain' }} /> : <Robot theme='outline' size={16} />}
                   <span>{option.label}</span>
                 </div>
               </Menu.Item>
@@ -993,6 +999,7 @@ const Guid: React.FC = () => {
                   const logoSrc = AGENT_LOGO_MAP[agent.backend];
                   const avatarValue = agent.backend === 'custom' ? agent.avatar || customAgentAvatarMap.get(agent.customAgentId || '') : undefined;
                   const avatar = avatarValue ? avatarValue.trim() : undefined;
+                  const avatarImage = avatar ? CUSTOM_AVATAR_IMAGE_MAP[avatar] : undefined;
 
                   return (
                     <React.Fragment key={getAgentKey(agent)}>
@@ -1015,7 +1022,7 @@ const Guid: React.FC = () => {
                           setMentionActiveIndex(0);
                         }}
                       >
-                        {avatar ? <span style={{ fontSize: 16, lineHeight: '20px', flexShrink: 0 }}>{avatar}</span> : logoSrc ? <img src={logoSrc} alt={`${agent.backend} logo`} width={20} height={20} style={{ objectFit: 'contain', flexShrink: 0 }} /> : <Robot theme='outline' size={20} style={{ flexShrink: 0 }} />}
+                        {avatarImage ? <img src={avatarImage} alt='' width={20} height={20} style={{ objectFit: 'contain', flexShrink: 0 }} /> : avatar ? <span style={{ fontSize: 16, lineHeight: '20px', flexShrink: 0 }}>{avatar}</span> : logoSrc ? <img src={logoSrc} alt={`${agent.backend} logo`} width={20} height={20} style={{ objectFit: 'contain', flexShrink: 0 }} /> : <Robot theme='outline' size={20} style={{ flexShrink: 0 }} />}
                         <span
                           className={`font-medium text-14px ${isSelected ? 'font-semibold' : 'max-w-0 opacity-0 overflow-hidden group-hover:max-w-100px group-hover:opacity-100 group-hover:ml-8px'}`}
                           style={{
