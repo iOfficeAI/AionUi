@@ -129,15 +129,9 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     id: 'cowork',
     avatar: 'cowork.svg',
     presetAgentType: 'gemini',
-    resourceDir: 'assistant/cowork',
-    ruleFiles: {
-      'en-US': 'cowork.md',
-      'zh-CN': 'cowork.zh-CN.md',
-    },
-    skillFiles: {
-      'en-US': 'cowork-skills.md',
-      'zh-CN': 'cowork-skills.zh-CN.md',
-    },
+    // 不再使用 resourceDir/ruleFiles/skillFiles，完全依赖 SkillManager 按需加载
+    // No longer use resourceDir/ruleFiles/skillFiles, fully rely on SkillManager for on-demand loading
+    ruleFiles: {},
     nameI18n: {
       'en-US': 'Cowork',
       'zh-CN': 'Cowork',

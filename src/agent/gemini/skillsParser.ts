@@ -28,10 +28,21 @@ export interface ParsedSkillsResult {
 /**
  * 解析 YAML front matter 格式的技能块
  * Parse YAML front matter format skill block
+ *
+ * Supports both compact and formatted (with empty lines) YAML:
+ * ---
+ * id: ...        OR    ---
+ * name: ...
+ * triggers: ...        id: ...
+ * ---                  name: ...
+ *                      triggers: ...
+ *
+ *                      ---
  */
 function parseYamlFrontMatter(block: string): { id?: string; name?: string; triggers?: string; content: string } | null {
-  // 匹配 YAML front matter: --- ... ---
-  const yamlMatch = block.match(/^---\s*\n([\s\S]*?)\n---\s*\n?([\s\S]*)$/);
+  // 匹配 YAML front matter: --- ... --- (支持 --- 周围有空行)
+  // Match YAML front matter: --- ... --- (supports empty lines around ---)
+  const yamlMatch = block.match(/^---\s*\n([\s\S]*?)\n\s*---\s*\n?([\s\S]*)$/);
   if (!yamlMatch) return null;
 
   const [, yamlContent, content] = yamlMatch;
@@ -85,12 +96,15 @@ export function parseSkillsContent(skillsContent: string): ParsedSkillsResult {
 
   // 检测格式：YAML front matter 或旧格式
   // Detect format: YAML front matter or legacy format
-  const hasYamlFormat = /^---\s*\nid:/m.test(skillsContent);
+  // 支持 --- 后紧跟 id: 或有空行再 id: 两种格式
+  // Supports both --- immediately followed by id: or with empty line before id:
+  const hasYamlFormat = /^---\s*\n\s*id:/m.test(skillsContent);
 
   if (hasYamlFormat) {
     // YAML front matter 格式：按 \n--- 分割（技能块之间）
     // YAML format: split by \n--- (between skill blocks)
-    const skillBlocks = skillsContent.split(/\n(?=---\s*\nid:)/g).filter((block) => block.trim());
+    // 支持 --- 后有空行的格式 / Supports empty line after ---
+    const skillBlocks = skillsContent.split(/\n(?=---\s*\n\s*id:)/g).filter((block) => block.trim());
 
     for (const block of skillBlocks) {
       const parsed = parseYamlFrontMatter(block);

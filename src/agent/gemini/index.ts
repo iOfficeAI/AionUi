@@ -23,7 +23,6 @@ import { getPromptCount, handleCompletedTools, processGeminiStreamEvents, startN
 import { globalToolCallGuard, type StreamConnectionEvent } from './cli/streamResilience';
 import { getGlobalTokenManager } from './cli/oauthTokenManager';
 import fs from 'fs';
-import { parseSkillsContent, matchSkillTriggers, getMatchedSkillsContent, type ParsedSkill } from './skillsParser';
 
 // Global registry for current agent instance (used by flashFallbackHandler)
 let currentGeminiAgent: GeminiAgent | null = null;
@@ -41,8 +40,10 @@ interface GeminiAgent2Options {
   onStreamEvent: (event: { type: string; data: unknown; msg_id: string }) => void;
   // 分离的 rules 和 skills / Separate rules and skills
   presetRules?: string; // 系统规则，在初始化时注入到 userMemory / System rules, injected into userMemory at initialization
-  presetSkills?: string; // 技能定义，在首次请求时注入到消息前缀 / Skill definitions, injected into message prefix at first request
+  presetSkills?: string; // 技能定义，在首次请求时注入到消息前缀 / Skill definitions, injected into message prefix at first request (deprecated, use skillsDir)
   contextContent?: string; // 向后兼容 / Backward compatible
+  /** 内置 skills 目录路径，使用 aioncli-core SkillManager 加载 / Builtin skills directory path, loaded by aioncli-core SkillManager */
+  skillsDir?: string;
 }
 
 export class GeminiAgent {
@@ -63,19 +64,17 @@ export class GeminiAgent {
   private onStreamEvent: (event: { type: string; data: unknown; msg_id: string }) => void;
   // 分离的 rules 和 skills / Separate rules and skills
   private presetRules?: string; // 系统规则，在初始化时注入 / System rules, injected at initialization
-  private presetSkills?: string; // 技能定义，在首次请求时注入 / Skill definitions, injected at first request
+  private presetSkills?: string; // 技能定义（已废弃，使用 skillsDir）/ Skill definitions (deprecated, use skillsDir)
   private contextContent?: string; // 向后兼容 / Backward compatible
   private toolConfig: ConversationToolConfig; // 对话级别的工具配置
   private apiKeyManager: ApiKeyManager | null = null; // 多API Key管理器
   private settings: Settings | null = null;
   private historyPrefix: string | null = null;
   private historyUsedOnce = false;
-  private skillsPrependedOnce = false; // Track if we've prepended skills to first message
+  private skillsIndexPrependedOnce = false; // Track if we've prepended skills index to first message
   private contextFileName: string | undefined;
-  // 按需加载 skills / On-demand skills loading
-  private skillsIndex?: string; // 精简索引 / Compact index
-  private parsedSkills?: Map<string, ParsedSkill>; // 解析后的技能 / Parsed skills
-  private injectedSkillIds: Set<string> = new Set(); // 已注入的技能ID / Already injected skill IDs
+  /** 内置 skills 目录路径 / Builtin skills directory path */
+  private skillsDir?: string;
   bootstrap: Promise<void>;
   static buildFileServer(workspace: string) {
     return new FileDiscoveryService(workspace);
@@ -96,12 +95,7 @@ export class GeminiAgent {
     // 分离的 rules 和 skills / Separate rules and skills
     this.presetRules = options.presetRules;
     this.presetSkills = options.presetSkills;
-    // 解析 skills 用于按需加载 / Parse skills for on-demand loading
-    if (this.presetSkills) {
-      const parsed = parseSkillsContent(this.presetSkills);
-      this.skillsIndex = parsed.index;
-      this.parsedSkills = parsed.skills;
-    }
+    this.skillsDir = options.skillsDir;
     // 向后兼容：优先使用 presetRules，其次 contextContent / Backward compatible: prefer presetRules, fallback to contextContent
     this.contextContent = options.contextContent || options.presetRules;
     this.initClientEnv();
@@ -252,6 +246,7 @@ export class GeminiAgent {
       conversationToolConfig: this.toolConfig,
       yoloMode,
       mcpServers: this.mcpServers,
+      skillsDir: this.skillsDir,
     });
     await this.config.initialize();
 
@@ -275,6 +270,22 @@ export class GeminiAgent {
       const combined = currentMemory ? `${rulesSection}\n\n${currentMemory}` : rulesSection;
       this.config.setUserMemory(combined);
     }
+
+    // Debug: Log context sizes to help diagnose token consumption
+    // 调试：记录上下文大小以帮助诊断 token 消耗
+    const skillManager = this.config.getSkillManager();
+    const skills = skillManager?.getSkills() || [];
+    const userMemory = this.config.getUserMemory();
+    const toolRegistry = this.config.getToolRegistry();
+    const toolCount = toolRegistry?.getAllToolNames()?.length || 0;
+    const skillsMode = this.presetSkills ? 'presetSkills (assistant-specific)' : skills.length > 0 ? 'SkillManager (global)' : 'none';
+    console.log('[GeminiAgent] Context debug info:');
+    console.log(`  - Skills mode: ${skillsMode}`);
+    console.log(`  - SkillManager skills: ${skills.length}`);
+    console.log(`  - UserMemory size: ${userMemory?.length || 0} bytes`);
+    console.log(`  - PresetRules size: ${this.presetRules?.length || 0} bytes`);
+    console.log(`  - PresetSkills size: ${this.presetSkills?.length || 0} bytes`);
+    console.log(`  - Registered tools count: ${toolCount}`);
 
     // Note: Skills (技能定义) are prepended to the first message in send() method
     // Skills provide capabilities/tools descriptions, injected at runtime
@@ -563,49 +574,36 @@ export class GeminiAgent {
       this.historyUsedOnce = true;
     }
 
-    // Skills 按需加载：首次注入精简索引，后续按触发词动态注入
-    // On-demand skills loading: inject compact index first, then inject matched skills dynamically
-    const messageText = Array.isArray(message) ? message[0]?.text || '' : message;
+    // Skills 加载优先级 / Skills loading priority:
+    // 1. presetSkills（助手特定的 skills 文件）优先 / presetSkills (assistant-specific skills file) takes priority
+    // 2. 如果没有 presetSkills，使用 SkillManager 的全局 skills / If no presetSkills, use SkillManager's global skills
+    //
+    // 注意：当有 presetSkills 时，SkillManager 的 skills 不会被使用
+    // Note: When presetSkills exists, SkillManager's skills will not be used
     let skillsPrefix = '';
 
-    if (this.parsedSkills && this.skillsIndex) {
-      // 首次消息注入精简索引 / First message: inject compact index
-      if (!this.skillsPrependedOnce) {
-        skillsPrefix += `[Available Skills Index]\n${this.skillsIndex}\n\n`;
-        this.skillsPrependedOnce = true;
-      }
-
-      // 检查触发词并注入匹配的技能（避免重复注入）
-      // Check triggers and inject matched skills (avoid duplicates)
-      const matchedSkillIds = matchSkillTriggers(messageText, this.parsedSkills);
-      const newSkillIds = matchedSkillIds.filter((id) => !this.injectedSkillIds.has(id));
-
-      if (newSkillIds.length > 0) {
-        const skillsContent = getMatchedSkillsContent(newSkillIds, this.parsedSkills);
-        if (skillsContent) {
-          skillsPrefix += `[Activated Skills - ${newSkillIds.join(', ')}]\n${skillsContent}\n\n`;
-          // 记录已注入的技能 / Record injected skills
-          newSkillIds.forEach((id) => this.injectedSkillIds.add(id));
-        }
-      }
-    } else if (!this.skillsPrependedOnce) {
-      // 向后兼容：如果没有解析的 skills，使用原有逻辑
-      // Backward compatible: if no parsed skills, use original logic
+    if (!this.skillsIndexPrependedOnce) {
       if (this.presetSkills) {
+        // 助手有专属的 skills 文件，优先使用
+        // Assistant has dedicated skills file, use it with priority
         skillsPrefix = `[Available Skills]\n${this.presetSkills}\n\n`;
       } else if (this.contextContent && !this.presetRules) {
+        // 向后兼容：没有 presetSkills 时使用 contextContent
+        // Backward compatible: use contextContent when no presetSkills
         skillsPrefix = `[Assistant Rules - You MUST follow these instructions]\n${this.contextContent}\n\n`;
       }
-      this.skillsPrependedOnce = true;
-    }
+      // 注意：如果没有 presetSkills，SkillManager 的 skills 索引已在系统指令中
+      // Note: If no presetSkills, SkillManager's skills index is already in system instruction
+      this.skillsIndexPrependedOnce = true;
 
-    // 注入前缀到消息 / Inject prefix into message
-    if (skillsPrefix) {
-      const prefix = skillsPrefix + '[User Request]\n';
-      if (Array.isArray(message)) {
-        if (message[0]) message[0].text = prefix + message[0].text;
-      } else {
-        message = prefix + message;
+      // 注入前缀到消息 / Inject prefix into message
+      if (skillsPrefix) {
+        const prefix = skillsPrefix + '[User Request]\n';
+        if (Array.isArray(message)) {
+          if (message[0]) message[0].text = prefix + message[0].text;
+        } else {
+          message = prefix + message;
+        }
       }
     }
 
