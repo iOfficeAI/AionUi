@@ -24,6 +24,7 @@ import enUS from '@arco-design/web-react/es/locale/en-US'; // 英文
 import jaJP from '@arco-design/web-react/es/locale/ja-JP'; // 日文
 import zhCN from '@arco-design/web-react/es/locale/zh-CN'; // 中文（简体）
 import zhTW from '@arco-design/web-react/es/locale/zh-TW'; // 中文（繁体）
+import koKR from '@arco-design/web-react/es/locale/ko-KR'; // 韩文
 import { useTranslation } from 'react-i18next';
 import 'uno.css';
 import './arco-override.css';
@@ -32,10 +33,31 @@ import './styles/themes/index.css';
 import HOC from './utils/HOC';
 const root = createRoot(document.getElementById('root'));
 
+// Patch Korean locale with missing properties from English locale
+const koKRComplete = {
+  ...koKR,
+  Calendar: {
+    ...koKR.Calendar,
+    monthFormat: enUS.Calendar.monthFormat,
+    yearFormat: enUS.Calendar.yearFormat,
+  },
+  DatePicker: {
+    ...koKR.DatePicker,
+    Calendar: {
+      ...koKR.DatePicker.Calendar,
+      monthFormat: enUS.Calendar.monthFormat,
+      yearFormat: enUS.Calendar.yearFormat,
+    },
+  },
+  Form: enUS.Form,
+  ColorPicker: enUS.ColorPicker,
+};
+
 const arcoLocales: Record<string, typeof enUS> = {
   'zh-CN': zhCN,
   'zh-TW': zhTW,
   'ja-JP': jaJP,
+  'ko-KR': koKRComplete,
   'en-US': enUS,
 };
 

@@ -6,6 +6,7 @@ import zhCN from './locales/zh-CN.json';
 import enUS from './locales/en-US.json';
 import jaJP from './locales/ja-JP.json';
 import zhTW from './locales/zh-TW.json';
+import koKR from './locales/ko-KR.json';
 import { ConfigStorage } from '@/common/storage';
 
 const resources = {
@@ -20,6 +21,9 @@ const resources = {
   },
   'zh-TW': {
     translation: zhTW,
+  },
+  'ko-KR': {
+    translation: koKR,
   },
 };
 

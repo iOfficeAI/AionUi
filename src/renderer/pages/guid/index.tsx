@@ -535,7 +535,7 @@ const Guid: React.FC = () => {
           const preset = ASSISTANT_PRESETS.find((p) => p.id === presetId);
           if (preset) {
             // 根据 localeKey 获取对应的文件名 / Get filename based on localeKey
-            const ruleFile = preset.ruleFiles[localeKey as 'en-US' | 'zh-CN'] || preset.ruleFiles['en-US'];
+            const ruleFile = preset.ruleFiles[localeKey] || preset.ruleFiles['en-US'];
             if (ruleFile) {
               content = await ipcBridge.fs.readBuiltinRule.invoke({ fileName: ruleFile });
             }
