@@ -286,6 +286,59 @@
 
 ---
 
+## 大文件处理策略
+
+**关键**：为避免上下文窗口溢出错误（如 "Request size exceeds model capacity"），处理大文件时**必须**使用替代方案，而不是默认的 Read 工具。
+
+### 何时应用
+
+在以下情况下应用此策略：
+
+- PDF 文件大于 10MB 或页数较多（>20 页）
+- 任何直接读取可能超过 50K token 的文件
+- 之前已导致上下文溢出错误的文件
+
+### 推荐方案
+
+1. **PDF 文件**（首选）：
+   先使用内置 PDF 技能转换或拆分文件：
+
+   ```bash
+   # 方案 1：将 PDF 转换为图片，逐页查看
+   python skills/pdf/scripts/convert_pdf_to_images.py <file.pdf> <output_directory>
+   # 然后根据需要读取单独的页面图片
+
+   # 方案 2：将 PDF 拆分成较小部分
+   python skills/pdf/scripts/split_pdf.py <input.pdf> <output_directory>
+   # 读取特定页面：split_pdf.py input.pdf output.pdf 1-5
+   ```
+
+2. **大型文本文件**：
+   - 使用 Read 工具的 `offset` 和 `limit` 参数分块读取
+   - 使用 Grep 搜索特定内容，而不是读取整个文件
+   - 仅提取相关部分
+
+3. **Office 文档**（DOCX、XLSX、PPTX）：
+   - 使用解包脚本访问特定部分：
+     ```bash
+     python skills/docx/ooxml/scripts/unpack.py <input.docx> <output_dir>
+     python skills/pptx/ooxml/scripts/unpack.py <input.pptx> <output_dir>
+     ```
+   - 从解包目录中只读取所需的特定 XML 文件
+
+### 工作流示例
+
+当用户要求分析大型 PDF 时：
+
+1. **首先**：检查文件大小或页数
+2. **如果很大**：使用 `convert_pdf_to_images.py` 转换为图片
+3. **然后**：逐页读取图片分析内容
+4. **或者**：使用 `split_pdf.py` 仅提取所需页面
+
+**禁止**：如果大文件可能导致上下文溢出，不要直接使用 Read 工具读取。
+
+---
+
 ## 核心执行原则
 
 ### 1. 自主执行
