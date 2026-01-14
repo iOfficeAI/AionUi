@@ -497,6 +497,7 @@ export class GeminiAgent {
       if (!options?.isContinuation) {
         startNewPrompt();
       }
+
       const stream = this.geminiClient.sendMessageStream(query, abortController.signal, prompt_id);
       this.onStreamEvent({
         type: 'start',

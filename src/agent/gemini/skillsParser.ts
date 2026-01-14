@@ -31,7 +31,8 @@ export function parseSkillsContent(skillsContent: string): ParsedSkillsResult {
   // 匹配技能标题：## N. skill-id - Skill Name
   // Match skill headers: ## N. skill-id - Skill Name
   const skillHeaderRegex = /^## (\d+)\. (\S+) - (.+)$/gm;
-  const triggerRegex = /\*\*MANDATORY TRIGGERS\*\*:\s*(.+)$/m;
+  // 支持英文和中文触发词标签 / Support both English and Chinese trigger labels
+  const triggerRegex = /\*\*(?:MANDATORY TRIGGERS|强制触发词)\*\*:\s*(.+)$/m;
 
   // 分割成技能块 / Split into skill blocks
   const skillBlocks = skillsContent.split(/(?=^## \d+\.)/m).filter((block) => block.trim());

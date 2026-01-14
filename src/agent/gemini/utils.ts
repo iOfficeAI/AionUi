@@ -162,6 +162,34 @@ export const processGeminiStreamEvents = async (stream: AsyncIterable<ServerGemi
             });
           }
           break;
+        case ServerGeminiEventType.AgentExecutionStopped: {
+          const reason = (event as { value?: { reason?: string } }).value?.reason;
+          onStreamEvent({
+            type: ServerGeminiEventType.Error,
+            data: `Agent execution stopped${reason ? `: ${reason}` : ''}.`,
+          });
+          break;
+        }
+        case ServerGeminiEventType.AgentExecutionBlocked: {
+          const reason = (event as { value?: { reason?: string } }).value?.reason;
+          onStreamEvent({
+            type: ServerGeminiEventType.Error,
+            data: `Agent execution blocked${reason ? `: ${reason}` : ''}.`,
+          });
+          break;
+        }
+        case ServerGeminiEventType.Retry:
+          onStreamEvent({
+            type: ServerGeminiEventType.Error,
+            data: 'Request is being retried after a temporary failure. Please wait…',
+          });
+          break;
+        case ServerGeminiEventType.InvalidStream:
+          onStreamEvent({
+            type: ServerGeminiEventType.Error,
+            data: 'Invalid response stream detected. Please retry the request.',
+          });
+          break;
         case ServerGeminiEventType.ChatCompressed:
         case ServerGeminiEventType.UserCancelled:
         case ServerGeminiEventType.ToolCallConfirmation:
@@ -169,10 +197,8 @@ export const processGeminiStreamEvents = async (stream: AsyncIterable<ServerGemi
         case ServerGeminiEventType.MaxSessionTurns:
         case ServerGeminiEventType.LoopDetected:
         case ServerGeminiEventType.ModelInfo:
-          {
-            // These event types are handled silently or are informational only
-            // ModelInfo: Contains the model name being used (e.g., 'gemini-3-pro-image')
-          }
+          // These event types are handled silently or are informational only
+          // ModelInfo: Contains the model name being used (e.g., 'gemini-3-pro-image')
           break;
         default: {
           // Some event types may not be handled yet
