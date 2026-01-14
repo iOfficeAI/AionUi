@@ -332,22 +332,31 @@ const getAssistantsDir = () => {
 };
 
 /**
- * 初始化内置助手的规则文件到用户目录
- * Initialize builtin assistant rule files to user directory
+ * 初始化内置助手的规则和技能文件到用户目录
+ * Initialize builtin assistant rule and skill files to user directory
  */
 const initBuiltinAssistantRules = async (): Promise<void> => {
   const assistantsDir = getAssistantsDir();
 
   // 开发模式下使用项目根目录，生产模式使用 app.getAppPath()
   // In development, use project root. In production, use app.getAppPath()
-  let rulesDir: string;
-  if (app.isPackaged) {
-    rulesDir = path.join(app.getAppPath(), 'rules');
-  } else {
-    rulesDir = path.join(app.getAppPath(), '..', '..', 'rules');
-  }
+  const resolveBuiltinDir = (dirName: 'rules' | 'skills'): string => {
+    const appPath = app.getAppPath();
+    const candidates = app.isPackaged ? [path.join(appPath, dirName)] : [path.join(appPath, dirName), path.join(appPath, '..', dirName), path.join(appPath, '..', '..', dirName), path.join(appPath, '..', '..', '..', dirName), path.join(process.cwd(), dirName)];
 
-  console.log(`[AionUi] initBuiltinAssistantRules: rulesDir=${rulesDir}, assistantsDir=${assistantsDir}`);
+    for (const candidate of candidates) {
+      if (existsSync(candidate)) {
+        return candidate;
+      }
+    }
+
+    return candidates[0];
+  };
+
+  const rulesDir = resolveBuiltinDir('rules');
+  const skillsDir = resolveBuiltinDir('skills');
+
+  console.log(`[AionUi] initBuiltinAssistantRules: rulesDir=${rulesDir}, skillsDir=${skillsDir}, assistantsDir=${assistantsDir}`);
 
   // 确保助手目录存在 / Ensure assistants directory exists
   if (!existsSync(assistantsDir)) {
@@ -358,6 +367,7 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
   for (const preset of ASSISTANT_PRESETS) {
     const assistantId = `builtin-${preset.id}`;
 
+    // 复制规则文件 / Copy rule files
     for (const [locale, ruleFile] of Object.entries(preset.ruleFiles)) {
       try {
         const sourceRulesPath = path.join(rulesDir, ruleFile);
@@ -384,6 +394,38 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
       } catch (error) {
         // 忽略缺失的语言文件 / Ignore missing locale files
         console.warn(`[AionUi] Failed to copy rule file ${ruleFile}:`, error);
+      }
+    }
+
+    // 复制技能文件 / Copy skill files (if preset has skills)
+    if (preset.skillFiles) {
+      for (const [locale, skillFile] of Object.entries(preset.skillFiles)) {
+        try {
+          const sourceSkillsPath = path.join(skillsDir, skillFile);
+          // 目标文件名格式：{assistantId}-skills.{locale}.md
+          // Target file name format: {assistantId}-skills.{locale}.md
+          const targetFileName = `${assistantId}-skills.${locale}.md`;
+          const targetPath = path.join(assistantsDir, targetFileName);
+
+          // 检查源文件是否存在 / Check if source file exists
+          if (!existsSync(sourceSkillsPath)) {
+            console.warn(`[AionUi] Source skill file not found: ${sourceSkillsPath}`);
+            continue;
+          }
+
+          // 只在目标文件不存在时才创建，不覆盖用户的修改
+          // Only create if target file doesn't exist, don't overwrite user modifications
+          const targetExists = existsSync(targetPath);
+
+          if (!targetExists) {
+            const content = await fs.readFile(sourceSkillsPath, 'utf-8');
+            await fs.writeFile(targetPath, content, 'utf-8');
+            console.log(`[AionUi] Created builtin skill: ${targetFileName}`);
+          }
+        } catch (error) {
+          // 忽略缺失的技能文件 / Ignore missing skill files
+          console.warn(`[AionUi] Failed to copy skill file ${skillFile}:`, error);
+        }
       }
     }
   }

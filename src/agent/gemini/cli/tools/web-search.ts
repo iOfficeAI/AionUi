@@ -6,7 +6,7 @@
 
 import type { GroundingMetadata } from '@google/genai';
 import { Type } from '@google/genai';
-import type { ToolResult, ToolInvocation, ToolLocation, ToolCallConfirmationDetails, Config } from '@office-ai/aioncli-core';
+import type { ToolResult, ToolInvocation, ToolLocation, ToolCallConfirmationDetails, Config, MessageBus } from '@office-ai/aioncli-core';
 import { BaseDeclarativeTool, BaseToolInvocation, Kind, getErrorMessage, ToolErrorType, getResponseText } from '@office-ai/aioncli-core';
 
 interface GroundingChunkWeb {
@@ -53,7 +53,10 @@ export interface WebSearchToolResult extends ToolResult {
 export class WebSearchTool extends BaseDeclarativeTool<WebSearchToolParams, WebSearchToolResult> {
   static readonly Name: string = 'gemini_web_search';
 
-  constructor(private readonly dedicatedConfig: Config) {
+  constructor(
+    private readonly dedicatedConfig: Config,
+    messageBus: MessageBus
+  ) {
     super(
       WebSearchTool.Name,
       'GoogleSearch',
@@ -69,6 +72,7 @@ export class WebSearchTool extends BaseDeclarativeTool<WebSearchToolParams, WebS
         },
         required: ['query'],
       },
+      messageBus,
       true, // isOutputMarkdown
       false // canUpdateOutput
     );
@@ -81,17 +85,20 @@ export class WebSearchTool extends BaseDeclarativeTool<WebSearchToolParams, WebS
     return null;
   }
 
-  protected createInvocation(params: WebSearchToolParams): ToolInvocation<WebSearchToolParams, WebSearchToolResult> {
-    return new WebSearchInvocation(this.dedicatedConfig, params);
+  protected createInvocation(params: WebSearchToolParams, messageBus: MessageBus, _toolName?: string, _toolDisplayName?: string): ToolInvocation<WebSearchToolParams, WebSearchToolResult> {
+    return new WebSearchInvocation(this.dedicatedConfig, params, messageBus, _toolName, _toolDisplayName);
   }
 }
 
 class WebSearchInvocation extends BaseToolInvocation<WebSearchToolParams, WebSearchToolResult> {
   constructor(
     private readonly dedicatedConfig: Config,
-    params: WebSearchToolParams
+    params: WebSearchToolParams,
+    messageBus: MessageBus,
+    _toolName?: string,
+    _toolDisplayName?: string
   ) {
-    super(params);
+    super(params, messageBus, _toolName, _toolDisplayName);
   }
 
   getDescription(): string {

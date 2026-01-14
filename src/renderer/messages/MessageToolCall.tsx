@@ -7,9 +7,9 @@
 import type { IMessageToolCall } from '@/common/chatLib';
 import { Alert, Checkbox } from '@arco-design/web-react';
 import { MessageSearch } from '@icon-park/react';
+import { createTwoFilesPatch } from 'diff';
 import { html } from 'diff2html';
 import 'diff2html/bundles/css/diff2html.min.css';
-import { diffStringsUnified } from 'jest-diff';
 import React, { useMemo, useState } from 'react';
 import MarkdownView from '../components/Markdown';
 import { iconColors } from '@/renderer/theme/colors';
@@ -17,9 +17,9 @@ import { iconColors } from '@/renderer/theme/colors';
 const Diff2Html = ({ message }: { message: IMessageToolCall }) => {
   const [sideBySide, setSideBySide] = useState(false);
   const diffHtmlContent = useMemo(() => {
-    const diff = diffStringsUnified(message.content.args.new_string, message.content.args.old_string);
     const file = message.content.args.file_path;
-    return html(`diff --git a/${file} b/${file}\n--- a/${file}\n+++ b/${file}\n${diff}`, {
+    const diffText = createTwoFilesPatch(file, file, message.content.args.old_string ?? '', message.content.args.new_string ?? '', '', '', { context: 3 });
+    return html(diffText, {
       outputFormat: sideBySide ? 'side-by-side' : 'line-by-line',
       drawFileList: false,
       matching: 'lines',

@@ -237,6 +237,9 @@ export interface ICreateConversationParams {
     customAgentId?: string;
     context?: string;
     contextFileName?: string; // For gemini preset agents
+    // Separated rules/skills for smart assistants
+    presetRules?: string; // system rules injected at initialization
+    presetSkills?: string; // skill definitions injected on first request
     /**
      * Preset context/rules to inject into the first message.
      * Used by smart assistants to provide custom prompts/rules.

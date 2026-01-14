@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import type { ICreateConversationParams } from '@/common/ipcBridge';
 import { ASSISTANT_PRESETS } from '@/common/presets/assistantPresets';
 import type { IProvider, TProviderWithModel } from '@/common/storage';
 import { ConfigStorage } from '@/common/storage';
@@ -663,7 +664,7 @@ const Guid: React.FC = () => {
             presetSkills: isPreset ? presetSkills : undefined,
             // 向后兼容：presetContext 作为合并后的内容 / Backward compatible: presetContext as combined content
             presetContext: isPreset ? presetRules : undefined,
-          },
+          } as ICreateConversationParams['extra'] & { presetRules?: string; presetSkills?: string },
         });
 
         if (!conversation || !conversation.id) {
@@ -1144,7 +1145,7 @@ const Guid: React.FC = () => {
                   </span>
                 </Dropdown>
 
-                {(selectedAgent === 'gemini' || isPresetAgent) && (
+                {(selectedAgent === 'gemini' || (isPresetAgent && resolvePresetAgentType(selectedAgentInfo) === 'gemini')) && (
                   <Dropdown
                     trigger='hover'
                     droplist={
@@ -1260,7 +1261,7 @@ const Guid: React.FC = () => {
                   shape='circle'
                   type='primary'
                   loading={loading}
-                  disabled={!input.trim() || ((!selectedAgent || selectedAgent === 'gemini' || isPresetAgent) && !currentModel)}
+                  disabled={!input.trim() || ((!selectedAgent || selectedAgent === 'gemini' || (isPresetAgent && resolvePresetAgentType(selectedAgentInfo) === 'gemini')) && !currentModel)}
                   icon={<ArrowUp theme='outline' size='14' fill='white' strokeWidth={2} />}
                   onClick={() => {
                     handleSend().catch((error) => {

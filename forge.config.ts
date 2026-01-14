@@ -210,7 +210,7 @@ module.exports = {
         config: rendererConfig,
         entryPoints: [
           {
-            html: './public/index.html',
+            html: '!!html-webpack-plugin/lib/loader.js?force=true!./public/index.html',
             js: './src/renderer/index.ts',
             name: 'main_window',
             preload: {

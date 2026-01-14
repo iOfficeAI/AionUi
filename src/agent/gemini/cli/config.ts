@@ -195,9 +195,6 @@ export async function loadCliConfig({ workspace, settings, extensions, sessionId
     fileDiscoveryService: fileService,
     bugCommand: settings.bugCommand,
     model: model || DEFAULT_GEMINI_MODEL,
-    // 启用模型路由以支持 auto 模式（与终端 CLI 保持一致）
-    // Enable model router to support auto mode (consistent with terminal CLI)
-    useModelRouter: true,
     // 使用 extensionLoader 替代已废弃的 extensionContextFilePaths 和 extensions 参数
     // Use extensionLoader instead of deprecated extensionContextFilePaths and extensions parameters
     extensionLoader,

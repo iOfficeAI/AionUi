@@ -3,6 +3,7 @@ import type IForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin';
 import MiniCssExtractPlugin from 'mini-css-extract-plugin';
 import type { WebpackPluginInstance } from 'webpack';
 import webpack from 'webpack';
+import unoConfig from '../../uno.config';
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const ForkTsCheckerWebpackPlugin: typeof IForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
@@ -18,7 +19,14 @@ export const plugins: WebpackPluginInstance[] = [
     filename: '[name].css',
     chunkFilename: '[id].css',
   }),
-  UnoCSS(),
+  {
+    apply(compiler) {
+      if (compiler.options.name?.startsWith('HtmlWebpackPlugin')) {
+        return;
+      }
+      UnoCSS(unoConfig).apply(compiler);
+    },
+  },
   // 忽略 tree-sitter 的 ?binary wasm 导入，让 aioncli-core 的 loadWasmBinary fallback 机制从磁盘读取
   // Ignore tree-sitter ?binary wasm imports, let aioncli-core's loadWasmBinary fallback read from disk
   new webpack.IgnorePlugin({

@@ -24,6 +24,10 @@ export function initConversationBridge(): void {
     const { type, extra, name, model, id } = params;
     const buildConversation = () => {
       if (type === 'gemini') {
+        const extraWithPresets = extra as typeof extra & {
+          presetRules?: string;
+          presetSkills?: string;
+        };
         let contextFileName = extra.contextFileName;
         // Resolve relative paths to CWD (usually project root in dev)
         // Ensure we pass an absolute path to the agent
@@ -33,8 +37,8 @@ export function initConversationBridge(): void {
         // 分别处理 rules 和 skills / Handle rules and skills separately
         // rules: 系统规则（初始化时注入）/ System rules (injected at initialization)
         // skills: 技能定义（首次请求时注入）/ Skill definitions (injected at first request)
-        const presetRules = extra.presetRules || extra.presetContext || extra.context;
-        const presetSkills = extra.presetSkills;
+        const presetRules = extraWithPresets.presetRules || extraWithPresets.presetContext || extraWithPresets.context;
+        const presetSkills = extraWithPresets.presetSkills;
         return createGeminiAgent(model, extra.workspace, extra.defaultFiles, extra.webSearchEngine, extra.customWorkspace, contextFileName, presetRules, presetSkills);
       }
       if (type === 'acp') return createAcpAgent(params);

@@ -5,6 +5,7 @@ export type AssistantPreset = {
   avatar: string;
   presetAgentType?: PresetAgentType;
   ruleFiles: Record<string, string>;
+  skillFiles?: Record<string, string>;
   nameI18n: Record<string, string>;
   descriptionI18n: Record<string, string>;
 };
@@ -110,6 +111,27 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     descriptionI18n: {
       'en-US': 'Personal development coach based on HUMAN 3.0 framework: 4 Quadrants (Mind/Body/Spirit/Vocation), 3 Levels, 3 Growth Phases.',
       'zh-CN': '基于 HUMAN 3.0 框架的个人发展教练：4 象限（思维/身体/精神/职业）、3 层次、3 成长阶段。',
+    },
+  },
+  {
+    id: 'cowork',
+    avatar: '🤝',
+    presetAgentType: 'gemini',
+    ruleFiles: {
+      'en-US': 'cowork.md',
+      'zh-CN': 'cowork.zh-CN.md',
+    },
+    skillFiles: {
+      'en-US': 'cowork-skills.md',
+      'zh-CN': 'cowork-skills.zh-CN.md',
+    },
+    nameI18n: {
+      'en-US': 'Cowork',
+      'zh-CN': 'Cowork',
+    },
+    descriptionI18n: {
+      'en-US': 'Autonomous task execution with file operations, document processing, and multi-step workflow planning.',
+      'zh-CN': '具有文件操作、文档处理和多步骤工作流规划的自主任务执行助手。',
     },
   },
 ];
