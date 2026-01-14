@@ -9,7 +9,7 @@ When users ask you to perform tasks, check if any of the available skills below 
 
 How to use skills:
 
-- Skills are automatically activated when MANDATORY TRIGGER keywords appear in user requests
+- Skills are automatically activated when trigger keywords appear in user requests
 - When a skill is invoked, detailed instructions will be provided on how to complete the task
 - Skills can be combined for complex workflows
 - Always follow the skill's best practices and guidelines
@@ -17,18 +17,24 @@ How to use skills:
 
 <available_skills>
 
-## 0. skill-creator - Guide for Creating Effective Skills
+---
 
-**MANDATORY TRIGGERS**: create skill, new skill, skill template, define skill, 创建技能, 新技能
+id: skill-creator
+name: Guide for Creating Effective Skills
+triggers: create skill, new skill, skill template, define skill, 创建技能, 新技能
+
+---
 
 **Description**: Guide for creating effective skills that can be used by the assistant.
 
 **Skill Structure**:
 
 ```markdown
-## N. skill-id - Skill Name
-
-**MANDATORY TRIGGERS**: [comma-separated keywords that activate this skill]
+---
+id: skill-id
+name: Skill Name
+triggers: keyword1, keyword2, keyword3
+---
 
 **Description**: [One-sentence description of what this skill does]
 
@@ -49,9 +55,9 @@ How to use skills:
 
 Where:
 
-- `N` is the skill number (0-based index)
 - `skill-id` is a unique lowercase identifier (e.g., `xlsx`, `pptx`, `pdf`)
 - `Skill Name` is the human-readable name
+- `triggers` are comma-separated keywords that activate this skill
 
 **Creating a Good Skill**:
 
@@ -71,9 +77,11 @@ Where:
 
 ---
 
-## 1. xlsx - Excel Spreadsheet Handler
+id: xlsx
+name: Excel Spreadsheet Handler
+triggers: Excel, spreadsheet, .xlsx, data table, budget, financial model, chart, graph, tabular data, xls, csv to excel, data analysis
 
-**MANDATORY TRIGGERS**: Excel, spreadsheet, .xlsx, data table, budget, financial model, chart, graph, tabular data, xls, csv to excel, data analysis
+---
 
 **Description**: Create, read, and manipulate Excel workbooks with multiple sheets, charts, formulas, and advanced formatting.
 
@@ -158,9 +166,11 @@ df.to_excel('output.xlsx', index=False)
 
 ---
 
-## 2. pptx - PowerPoint Presentation Generator
+id: pptx
+name: PowerPoint Presentation Generator
+triggers: PowerPoint, presentation, .pptx, slides, slide deck, pitch deck, ppt, slideshow, deck, keynote, 演示文稿, 幻灯片
 
-**MANDATORY TRIGGERS**: PowerPoint, presentation, .pptx, slides, slide deck, pitch deck, ppt, slideshow, deck, keynote, 演示文稿, 幻灯片
+---
 
 **Description**: Create professional presentations with text, images, charts, diagrams, and consistent theming.
 
@@ -267,9 +277,11 @@ python skills/pptx/ooxml/scripts/validate.py <file.pptx>
 
 ---
 
-## 3. pdf - PDF Document Processor
+id: pdf
+name: PDF Document Processor
+triggers: PDF, .pdf, form, extract text, merge pdf, split pdf, combine pdf, pdf to, watermark, annotate, fill form, fill pdf
 
-**MANDATORY TRIGGERS**: PDF, .pdf, form, extract text, merge pdf, split pdf, combine pdf, pdf to, watermark, annotate, fill form, fill pdf
+---
 
 **Description**: Comprehensive PDF manipulation toolkit for extracting text and tables, creating new PDFs, merging/splitting documents, and handling forms.
 
@@ -417,9 +429,11 @@ with pdfplumber.open("document.pdf") as pdf:
 
 ---
 
-## 4. docx - Word Document Handler
+id: docx
+name: Word Document Handler
+triggers: Word, document, .docx, report, letter, memo, manuscript, essay, paper, article, writeup, documentation, doc file, word文档, 文档
 
-**MANDATORY TRIGGERS**: Word, document, .docx, report, letter, memo, manuscript, essay, paper, article, writeup, documentation, doc file, word文档, 文档
+---
 
 **Description**: Create and manipulate Word documents with rich formatting, tables, headers, footers, and table of contents.
 
@@ -562,9 +576,11 @@ doc.save()
 
 ---
 
-## 5. task-orchestrator - Multi-Step Task Planning
+id: task-orchestrator
+name: Multi-Step Task Planning
+triggers: complex task, multi-step, plan, organize, breakdown, orchestrate, project plan, workflow, 任务规划, 多步骤
 
-**MANDATORY TRIGGERS**: complex task, multi-step, plan, organize, breakdown, orchestrate, project plan, workflow, 任务规划, 多步骤
+---
 
 **Description**: Plan and execute complex multi-step tasks with dependency tracking, parallel execution, and progress monitoring.
 
@@ -637,9 +653,11 @@ Phase X: [Phase Name]
 
 ---
 
-## 6. error-recovery - Error Handling & Recovery
+id: error-recovery
+name: Error Handling & Recovery
+triggers: error, failed, broken, not working, issue, problem, bug, exception, crash, 错误, 失败
 
-**MANDATORY TRIGGERS**: error, failed, broken, not working, issue, problem, bug, exception, crash, 错误, 失败
+---
 
 **Description**: Systematic approach to diagnosing, handling, and recovering from errors during task execution.
 
@@ -695,9 +713,11 @@ After 3 failed attempts, escalate to user with:
 
 ---
 
-## 7. parallel-ops - Parallel File Operations
+id: parallel-ops
+name: Parallel File Operations
+triggers: multiple files, batch, parallel, concurrent, all files, bulk, mass, 批量, 并行
 
-**MANDATORY TRIGGERS**: multiple files, batch, parallel, concurrent, all files, bulk, mass, 批量, 并行
+---
 
 **Description**: Optimize file operations by identifying and executing independent operations in parallel.
 

@@ -1,6 +1,14 @@
 /**
  * Skills Parser - 解析和按需加载技能
  * Parse skills content and load on demand based on trigger keywords
+ *
+ * Supports YAML front matter format:
+ * ---
+ * id: skill-id
+ * name: Skill Name
+ * triggers: keyword1, keyword2, keyword3
+ * ---
+ * [skill content]
  */
 
 export interface ParsedSkill {
@@ -18,6 +26,53 @@ export interface ParsedSkillsResult {
 }
 
 /**
+ * 解析 YAML front matter 格式的技能块
+ * Parse YAML front matter format skill block
+ */
+function parseYamlFrontMatter(block: string): { id?: string; name?: string; triggers?: string; content: string } | null {
+  // 匹配 YAML front matter: --- ... ---
+  const yamlMatch = block.match(/^---\s*\n([\s\S]*?)\n---\s*\n?([\s\S]*)$/);
+  if (!yamlMatch) return null;
+
+  const [, yamlContent, content] = yamlMatch;
+  const result: { id?: string; name?: string; triggers?: string; content: string } = { content: content.trim() };
+
+  // 解析 YAML 字段 / Parse YAML fields
+  const idMatch = yamlContent.match(/^id:\s*(.+)$/m);
+  const nameMatch = yamlContent.match(/^name:\s*(.+)$/m);
+  const triggersMatch = yamlContent.match(/^triggers:\s*(.+)$/m);
+
+  if (idMatch) result.id = idMatch[1].trim();
+  if (nameMatch) result.name = nameMatch[1].trim();
+  if (triggersMatch) result.triggers = triggersMatch[1].trim();
+
+  return result;
+}
+
+/**
+ * 解析旧格式技能块 (## N. skill-id - Skill Name)
+ * Parse legacy format skill block
+ */
+function parseLegacyFormat(block: string): { id?: string; name?: string; triggers?: string; content: string } | null {
+  const headerMatch = block.match(/^## (\d+)\. (\S+) - (.+)$/m);
+  if (!headerMatch) return null;
+
+  const [, , skillId, skillName] = headerMatch;
+  // 支持英文和中文触发词标签 / Support both English and Chinese trigger labels
+  const triggerRegex = /\*\*(?:MANDATORY TRIGGERS|强制触发词)\*\*:\s*(.+)$/m;
+  const triggerMatch = block.match(triggerRegex);
+
+  if (!triggerMatch) return null;
+
+  return {
+    id: skillId,
+    name: skillName,
+    triggers: triggerMatch[1].trim(),
+    content: block.trim(),
+  };
+}
+
+/**
  * 解析 skills 文件内容
  * Parse skills file content into index and skill map
  *
@@ -28,40 +83,56 @@ export function parseSkillsContent(skillsContent: string): ParsedSkillsResult {
   const skills = new Map<string, ParsedSkill>();
   const indexLines: string[] = [];
 
-  // 匹配技能标题：## N. skill-id - Skill Name
-  // Match skill headers: ## N. skill-id - Skill Name
-  const skillHeaderRegex = /^## (\d+)\. (\S+) - (.+)$/gm;
-  // 支持英文和中文触发词标签 / Support both English and Chinese trigger labels
-  const triggerRegex = /\*\*(?:MANDATORY TRIGGERS|强制触发词)\*\*:\s*(.+)$/m;
+  // 检测格式：YAML front matter 或旧格式
+  // Detect format: YAML front matter or legacy format
+  const hasYamlFormat = /^---\s*\nid:/m.test(skillsContent);
 
-  // 分割成技能块 / Split into skill blocks
-  const skillBlocks = skillsContent.split(/(?=^## \d+\.)/m).filter((block) => block.trim());
+  if (hasYamlFormat) {
+    // YAML front matter 格式：按 \n--- 分割（技能块之间）
+    // YAML format: split by \n--- (between skill blocks)
+    const skillBlocks = skillsContent.split(/\n(?=---\s*\nid:)/g).filter((block) => block.trim());
 
-  for (const block of skillBlocks) {
-    const headerMatch = block.match(/^## (\d+)\. (\S+) - (.+)$/m);
-    if (!headerMatch) continue;
+    for (const block of skillBlocks) {
+      const parsed = parseYamlFrontMatter(block);
+      if (!parsed || !parsed.id || !parsed.name || !parsed.triggers) continue;
 
-    const [, , skillId, skillName] = headerMatch;
-    const triggerMatch = block.match(triggerRegex);
+      const triggers = parsed.triggers
+        .split(',')
+        .map((t) => t.trim().toLowerCase())
+        .filter((t) => t.length > 0);
 
-    if (!triggerMatch) continue;
+      skills.set(parsed.id, {
+        id: parsed.id,
+        name: parsed.name,
+        triggers,
+        content: block.trim(),
+      });
 
-    const triggersStr = triggerMatch[1].trim();
-    // 解析触发词，支持逗号分隔 / Parse triggers, supports comma separation
-    const triggers = triggersStr
-      .split(',')
-      .map((t) => t.trim().toLowerCase())
-      .filter((t) => t.length > 0);
+      indexLines.push(`- **${parsed.id}** (${parsed.name}): ${parsed.triggers}`);
+    }
+  } else {
+    // 旧格式：## N. skill-id - Skill Name
+    // Legacy format: ## N. skill-id - Skill Name
+    const skillBlocks = skillsContent.split(/(?=^## \d+\.)/m).filter((block) => block.trim());
 
-    skills.set(skillId, {
-      id: skillId,
-      name: skillName,
-      triggers,
-      content: block.trim(),
-    });
+    for (const block of skillBlocks) {
+      const parsed = parseLegacyFormat(block);
+      if (!parsed || !parsed.id || !parsed.name || !parsed.triggers) continue;
 
-    // 构建索引行 / Build index line
-    indexLines.push(`- **${skillId}** (${skillName}): ${triggersStr}`);
+      const triggers = parsed.triggers
+        .split(',')
+        .map((t) => t.trim().toLowerCase())
+        .filter((t) => t.length > 0);
+
+      skills.set(parsed.id, {
+        id: parsed.id,
+        name: parsed.name,
+        triggers,
+        content: block.trim(),
+      });
+
+      indexLines.push(`- **${parsed.id}** (${parsed.name}): ${parsed.triggers}`);
+    }
   }
 
   // 构建精简索引 / Build compact index

@@ -9,7 +9,7 @@
 
 如何使用技能：
 
-- 当用户请求中出现强制触发关键词时，技能会自动激活
+- 当用户请求中出现触发关键词时，技能会自动激活
 - 当技能被调用时，会提供详细的任务完成指南
 - 技能可以组合用于复杂工作流
 - 始终遵循技能的最佳实践和指南
@@ -17,18 +17,24 @@
 
 <available_skills>
 
-## 0. skill-creator - 技能创建指南
+---
 
-**强制触发词**: create skill, new skill, skill template, define skill, 创建技能, 新技能, 定义技能
+id: skill-creator
+name: 技能创建指南
+triggers: create skill, new skill, skill template, define skill, 创建技能, 新技能, 定义技能
+
+---
 
 **描述**: 创建可被助手使用的有效技能的指南。
 
 **技能结构**:
 
 ```markdown
-## N. skill-id - 技能名称
-
-**强制触发词**: [激活此技能的逗号分隔关键词]
+---
+id: skill-id
+name: 技能名称
+triggers: 关键词1, 关键词2, 关键词3
+---
 
 **描述**: [此技能功能的一句话描述]
 
@@ -49,9 +55,9 @@
 
 其中：
 
-- `N` 是技能编号（从 0 开始）
 - `skill-id` 是唯一的小写标识符（如 `xlsx`、`pptx`、`pdf`）
 - `技能名称` 是易读的技能名称
+- `triggers` 是激活此技能的逗号分隔关键词
 
 **创建好技能的要点**:
 
@@ -71,9 +77,11 @@
 
 ---
 
-## 1. xlsx - Excel 电子表格处理器
+id: xlsx
+name: Excel 电子表格处理器
+triggers: Excel, 电子表格, .xlsx, 数据表, 预算, 财务模型, 图表, 表格数据, xls, csv转excel, 数据分析, spreadsheet
 
-**强制触发词**: Excel, 电子表格, .xlsx, 数据表, 预算, 财务模型, 图表, 表格数据, xls, csv转excel, 数据分析, spreadsheet
+---
 
 **描述**: 创建、读取和操作带有多个工作表、图表、公式和高级格式的 Excel 工作簿。
 
@@ -148,9 +156,11 @@ recalc.py 脚本打开工作簿，强制公式重新评估，并保存结果。�
 
 ---
 
-## 2. pptx - PowerPoint 演示文稿生成器
+id: pptx
+name: PowerPoint 演示文稿生成器
+triggers: PowerPoint, 演示文稿, .pptx, 幻灯片, slide deck, pitch deck, ppt, slideshow, 演示, 汇报, presentation
 
-**强制触发词**: PowerPoint, 演示文稿, .pptx, 幻灯片, slide deck, pitch deck, ppt, slideshow, 演示, 汇报, presentation
+---
 
 **描述**: 创建包含文本、图像、图表、图形和一致主题的专业演示文稿。
 
@@ -261,9 +271,11 @@ python skills/pptx/ooxml/scripts/pack.py <input_directory> <output.pptx>
 
 ---
 
-## 3. pdf - PDF 文档处理器
+id: pdf
+name: PDF 文档处理器
+triggers: PDF, .pdf, 表单, 提取文本, 合并pdf, 拆分pdf, 组合pdf, pdf转换, 水印, 批注, 填写表单, 填写pdf
 
-**强制触发词**: PDF, .pdf, 表单, 提取文本, 合并pdf, 拆分pdf, 组合pdf, pdf转换, 水印, 批注, 填写表单, 填写pdf
+---
 
 **描述**: 全面的 PDF 操作工具包，用于提取文本和表格、创建新 PDF、合并/拆分文档以及处理表单。
 
@@ -411,9 +423,11 @@ with pdfplumber.open("document.pdf") as pdf:
 
 ---
 
-## 4. docx - Word 文档处理器
+id: docx
+name: Word 文档处理器
+triggers: Word, 文档, .docx, 报告, 信函, 备忘录, 手稿, 论文, 文章, 文档编写, doc文件
 
-**强制触发词**: Word, 文档, .docx, 报告, 信函, 备忘录, 手稿, 论文, 文章, 文档编写, doc文件
+---
 
 **描述**: 创建和操作带有丰富格式、表格、页眉、页脚和目录的 Word 文档。
 
@@ -551,9 +565,11 @@ python skills/docx/ooxml/scripts/pack.py <input_directory> <output.docx>
 
 ---
 
-## 5. task-orchestrator - 多步骤任务规划
+id: task-orchestrator
+name: 多步骤任务规划
+triggers: 复杂任务, 多步骤, 规划, 组织, 分解, 编排, 项目计划, 工作流, complex task, multi-step
 
-**强制触发词**: 复杂任务, 多步骤, 规划, 组织, 分解, 编排, 项目计划, 工作流, complex task, multi-step
+---
 
 **描述**: 规划和执行带有依赖跟踪、并行执行和进度监控的复杂多步骤任务。
 
@@ -626,9 +642,11 @@ python skills/docx/ooxml/scripts/pack.py <input_directory> <output.docx>
 
 ---
 
-## 6. error-recovery - 错误处理与恢复
+id: error-recovery
+name: 错误处理与恢复
+triggers: 错误, 失败, 损坏, 不工作, 问题, bug, 异常, 崩溃, error, failed, broken
 
-**强制触发词**: 错误, 失败, 损坏, 不工作, 问题, bug, 异常, 崩溃, error, failed, broken
+---
 
 **描述**: 诊断、处理和从任务执行中的错误恢复的系统化方法。
 
@@ -684,9 +702,11 @@ python skills/docx/ooxml/scripts/pack.py <input_directory> <output.docx>
 
 ---
 
-## 7. parallel-ops - 并行文件操作
+id: parallel-ops
+name: 并行文件操作
+triggers: 多个文件, 批量, 并行, 并发, 所有文件, 批处理, multiple files, batch, parallel
 
-**强制触发词**: 多个文件, 批量, 并行, 并发, 所有文件, 批处理, multiple files, batch, parallel
+---
 
 **描述**: 通过识别和并行执行独立操作来优化文件操作。
 
