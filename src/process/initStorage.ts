@@ -413,18 +413,14 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
           continue;
         }
 
-        // 只在目标文件不存在时才创建，不覆盖用户的修改
-        // Only create if target file doesn't exist, don't overwrite user modifications
-        const targetExists = existsSync(targetPath);
-
-        if (!targetExists) {
-          let content = await fs.readFile(sourceRulesPath, 'utf-8');
-          // 替换相对路径为绝对路径，确保 AI 能找到正确的脚本位置
-          // Replace relative paths with absolute paths so AI can find scripts correctly
-          content = content.replace(/skills\//g, userSkillsDir + '/');
-          await fs.writeFile(targetPath, content, 'utf-8');
-          console.log(`[AionUi] Created builtin rule: ${targetFileName}`);
-        }
+        // 内置助手规则文件始终强制覆盖，确保用户获得最新版本
+        // Always overwrite builtin assistant rule files to ensure users get the latest version
+        let content = await fs.readFile(sourceRulesPath, 'utf-8');
+        // 替换相对路径为绝对路径，确保 AI 能找到正确的脚本位置
+        // Replace relative paths with absolute paths so AI can find scripts correctly
+        content = content.replace(/skills\//g, userSkillsDir + '/');
+        await fs.writeFile(targetPath, content, 'utf-8');
+        console.log(`[AionUi] Updated builtin rule: ${targetFileName}`);
       } catch (error) {
         // 忽略缺失的语言文件 / Ignore missing locale files
         console.warn(`[AionUi] Failed to copy rule file ${ruleFile}:`, error);
@@ -447,18 +443,14 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
             continue;
           }
 
-          // 只在目标文件不存在时才创建，不覆盖用户的修改
-          // Only create if target file doesn't exist, don't overwrite user modifications
-          const targetExists = existsSync(targetPath);
-
-          if (!targetExists) {
-            let content = await fs.readFile(sourceSkillsPath, 'utf-8');
-            // 替换相对路径为绝对路径，确保 AI 能找到正确的脚本位置
-            // Replace relative paths with absolute paths so AI can find scripts correctly
-            content = content.replace(/skills\//g, userSkillsDir + '/');
-            await fs.writeFile(targetPath, content, 'utf-8');
-            console.log(`[AionUi] Created builtin skill: ${targetFileName}`);
-          }
+          // 内置助手技能文件始终强制覆盖，确保用户获得最新版本
+          // Always overwrite builtin assistant skill files to ensure users get the latest version
+          let content = await fs.readFile(sourceSkillsPath, 'utf-8');
+          // 替换相对路径为绝对路径，确保 AI 能找到正确的脚本位置
+          // Replace relative paths with absolute paths so AI can find scripts correctly
+          content = content.replace(/skills\//g, userSkillsDir + '/');
+          await fs.writeFile(targetPath, content, 'utf-8');
+          console.log(`[AionUi] Updated builtin skill: ${targetFileName}`);
         } catch (error) {
           // 忽略缺失的技能文件 / Ignore missing skill files
           console.warn(`[AionUi] Failed to copy skill file ${skillFile}:`, error);
@@ -583,9 +575,12 @@ const initStorage = async () => {
         const existing = updatedAgents[index];
         // 只有当关键字段不同时才更新，避免不必要的写入
         // Update only if key fields are different to avoid unnecessary writes
-        if (existing.name !== builtin.name || existing.description !== builtin.description || existing.avatar !== builtin.avatar || existing.presetAgentType !== builtin.presetAgentType || existing.isPreset !== builtin.isPreset || existing.isBuiltin !== builtin.isBuiltin) {
-          // 保留用户的 enabled 设置 / Preserve user's enabled setting
-          updatedAgents[index] = { ...existing, ...builtin, enabled: existing.enabled };
+        const shouldUpdate = existing.name !== builtin.name || existing.description !== builtin.description || existing.avatar !== builtin.avatar || existing.presetAgentType !== builtin.presetAgentType || existing.isPreset !== builtin.isPreset || existing.isBuiltin !== builtin.isBuiltin || existing.enabled === undefined;
+
+        if (shouldUpdate) {
+          const resolvedEnabled = existing.enabled ?? builtin.id === 'builtin-cowork';
+          // 保留用户已设置的 enabled，未设置时应用默认 / Preserve user setting if present, otherwise use default
+          updatedAgents[index] = { ...existing, ...builtin, enabled: resolvedEnabled };
           hasChanges = true;
         }
       } else {

@@ -4,6 +4,23 @@
 
 ---
 
+## 文件路径规则
+
+**关键**：当用户提到文件时（如"读取这个 PDF"、"分析这个文档"），遵循以下规则：
+
+1. **默认在工作空间**：用户提到的所有文件都假定在当前工作空间目录中，除非提供了绝对路径
+2. **使用 Glob 查找**：如果给出了确切文件名但路径不明确，使用 Glob 工具在工作空间中搜索（如 `**/*.pdf`、`**/<文件名>`）
+3. **不要询问路径**：永远不要问"文件在哪里？"或"文件路径是什么？"——主动搜索它
+4. **处理歧义**：如果匹配到多个文件，列出它们并询问使用哪一个
+5. **禁止访问工作空间外的文件**：不要尝试读取工作空间目录之外的文件，包括：
+   - `~/.gemini/GEMINI.md` 或 `~/.gemini/` 目录下的任何文件
+   - 使用 `../../../../../` 等相对路径逃逸工作空间的文件
+   - 工作空间外的任何系统或用户配置文件
+
+**示例**：用户说"读取 report.pdf" → 使用 `Glob` 搜索 `**/report.pdf` 找到它，然后直接读取。
+
+---
+
 ## 工具调用格式
 
 你可以通过在回复中编写 function_calls 块来调用函数。
@@ -283,6 +300,59 @@
 - 跳过内置工作流直接使用替代方法
 
 详细的脚本使用方法请参考技能文档（cowork-skills.zh-CN.md）。
+
+---
+
+## 大文件处理策略
+
+**关键**：为避免上下文窗口溢出错误（如 "Request size exceeds model capacity"），处理大文件时**必须**使用替代方案，而不是默认的 Read 工具。
+
+### 何时应用
+
+在以下情况下应用此策略：
+
+- PDF 文件大于 10MB 或页数较多（>20 页）
+- 任何直接读取可能超过 50K token 的文件
+- 之前已导致上下文溢出错误的文件
+
+### 推荐方案
+
+1. **PDF 文件**（首选）：
+   先使用内置 PDF 技能转换或拆分文件：
+
+   ```bash
+   # 方案 1：将 PDF 转换为图片，逐页查看
+   python skills/pdf/scripts/convert_pdf_to_images.py <file.pdf> <output_directory>
+   # 然后根据需要读取单独的页面图片
+
+   # 方案 2：将 PDF 拆分成较小部分
+   python skills/pdf/scripts/split_pdf.py <input.pdf> <output_directory>
+   # 读取特定页面：split_pdf.py input.pdf output.pdf 1-5
+   ```
+
+2. **大型文本文件**：
+   - 使用 Read 工具的 `offset` 和 `limit` 参数分块读取
+   - 使用 Grep 搜索特定内容，而不是读取整个文件
+   - 仅提取相关部分
+
+3. **Office 文档**（DOCX、XLSX、PPTX）：
+   - 使用解包脚本访问特定部分：
+     ```bash
+     python skills/docx/ooxml/scripts/unpack.py <input.docx> <output_dir>
+     python skills/pptx/ooxml/scripts/unpack.py <input.pptx> <output_dir>
+     ```
+   - 从解包目录中只读取所需的特定 XML 文件
+
+### 工作流示例
+
+当用户要求分析大型 PDF 时：
+
+1. **首先**：检查文件大小或页数
+2. **如果很大**：使用 `convert_pdf_to_images.py` 转换为图片
+3. **然后**：逐页读取图片分析内容
+4. **或者**：使用 `split_pdf.py` 仅提取所需页面
+
+**禁止**：如果大文件可能导致上下文溢出，不要直接使用 Read 工具读取。
 
 ---
 

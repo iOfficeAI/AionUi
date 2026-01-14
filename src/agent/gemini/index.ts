@@ -23,6 +23,7 @@ import { getPromptCount, handleCompletedTools, processGeminiStreamEvents, startN
 import { globalToolCallGuard, type StreamConnectionEvent } from './cli/streamResilience';
 import { getGlobalTokenManager } from './cli/oauthTokenManager';
 import fs from 'fs';
+import { parseSkillsContent, matchSkillTriggers, getMatchedSkillsContent, type ParsedSkill } from './skillsParser';
 
 // Global registry for current agent instance (used by flashFallbackHandler)
 let currentGeminiAgent: GeminiAgent | null = null;
@@ -71,6 +72,10 @@ export class GeminiAgent {
   private historyUsedOnce = false;
   private skillsPrependedOnce = false; // Track if we've prepended skills to first message
   private contextFileName: string | undefined;
+  // 按需加载 skills / On-demand skills loading
+  private skillsIndex?: string; // 精简索引 / Compact index
+  private parsedSkills?: Map<string, ParsedSkill>; // 解析后的技能 / Parsed skills
+  private injectedSkillIds: Set<string> = new Set(); // 已注入的技能ID / Already injected skill IDs
   bootstrap: Promise<void>;
   static buildFileServer(workspace: string) {
     return new FileDiscoveryService(workspace);
@@ -91,6 +96,12 @@ export class GeminiAgent {
     // 分离的 rules 和 skills / Separate rules and skills
     this.presetRules = options.presetRules;
     this.presetSkills = options.presetSkills;
+    // 解析 skills 用于按需加载 / Parse skills for on-demand loading
+    if (this.presetSkills) {
+      const parsed = parseSkillsContent(this.presetSkills);
+      this.skillsIndex = parsed.index;
+      this.parsedSkills = parsed.skills;
+    }
     // 向后兼容：优先使用 presetRules，其次 contextContent / Backward compatible: prefer presetRules, fallback to contextContent
     this.contextContent = options.contextContent || options.presetRules;
     this.initClientEnv();
@@ -486,6 +497,7 @@ export class GeminiAgent {
       if (!options?.isContinuation) {
         startNewPrompt();
       }
+
       const stream = this.geminiClient.sendMessageStream(query, abortController.signal, prompt_id);
       this.onStreamEvent({
         type: 'start',
@@ -551,34 +563,50 @@ export class GeminiAgent {
       this.historyUsedOnce = true;
     }
 
-    // Prepend skills to the first message for preset assistants
-    // Skills provide capability/tool descriptions, injected at runtime
-    // 为预设助手在首次消息中注入 skills
-    // Skills 提供能力/工具描述，在运行时注入
-    if (!this.skillsPrependedOnce) {
-      let contentToInject: string | undefined;
-      let sectionLabel: string;
+    // Skills 按需加载：首次注入精简索引，后续按触发词动态注入
+    // On-demand skills loading: inject compact index first, then inject matched skills dynamically
+    const messageText = Array.isArray(message) ? message[0]?.text || '' : message;
+    let skillsPrefix = '';
 
-      if (this.presetSkills) {
-        // 新方式：分离的 skills / New approach: separate skills
-        contentToInject = this.presetSkills;
-        sectionLabel = 'Available Skills';
-      } else if (this.contextContent && !this.presetRules) {
-        // 向后兼容：如果没有 presetRules，contextContent 应该在首次消息中注入
-        // Backward compatible: if no presetRules, contextContent should be injected in first message
-        contentToInject = this.contextContent;
-        sectionLabel = 'Assistant Rules - You MUST follow these instructions';
+    if (this.parsedSkills && this.skillsIndex) {
+      // 首次消息注入精简索引 / First message: inject compact index
+      if (!this.skillsPrependedOnce) {
+        skillsPrefix += `[Available Skills Index]\n${this.skillsIndex}\n\n`;
+        this.skillsPrependedOnce = true;
       }
 
-      if (contentToInject) {
-        const prefix = `[${sectionLabel}]\n${contentToInject}\n\n[User Request]\n`;
-        if (Array.isArray(message)) {
-          if (message[0]) message[0].text = prefix + message[0].text;
-        } else {
-          message = prefix + message;
+      // 检查触发词并注入匹配的技能（避免重复注入）
+      // Check triggers and inject matched skills (avoid duplicates)
+      const matchedSkillIds = matchSkillTriggers(messageText, this.parsedSkills);
+      const newSkillIds = matchedSkillIds.filter((id) => !this.injectedSkillIds.has(id));
+
+      if (newSkillIds.length > 0) {
+        const skillsContent = getMatchedSkillsContent(newSkillIds, this.parsedSkills);
+        if (skillsContent) {
+          skillsPrefix += `[Activated Skills - ${newSkillIds.join(', ')}]\n${skillsContent}\n\n`;
+          // 记录已注入的技能 / Record injected skills
+          newSkillIds.forEach((id) => this.injectedSkillIds.add(id));
         }
       }
+    } else if (!this.skillsPrependedOnce) {
+      // 向后兼容：如果没有解析的 skills，使用原有逻辑
+      // Backward compatible: if no parsed skills, use original logic
+      if (this.presetSkills) {
+        skillsPrefix = `[Available Skills]\n${this.presetSkills}\n\n`;
+      } else if (this.contextContent && !this.presetRules) {
+        skillsPrefix = `[Assistant Rules - You MUST follow these instructions]\n${this.contextContent}\n\n`;
+      }
       this.skillsPrependedOnce = true;
+    }
+
+    // 注入前缀到消息 / Inject prefix into message
+    if (skillsPrefix) {
+      const prefix = skillsPrefix + '[User Request]\n';
+      if (Array.isArray(message)) {
+        if (message[0]) message[0].text = prefix + message[0].text;
+      } else {
+        message = prefix + message;
+      }
     }
 
     // Track error messages from @ command processing
