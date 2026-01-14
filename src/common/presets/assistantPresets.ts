@@ -4,6 +4,12 @@ export type AssistantPreset = {
   id: string;
   avatar: string;
   presetAgentType?: PresetAgentType;
+  /**
+   * Directory containing all resources for this preset (relative to project root).
+   * If set, both ruleFiles and skillFiles will be resolved from this directory.
+   * Default: rules/ for rules, skills/ for skills
+   */
+  resourceDir?: string;
   ruleFiles: Record<string, string>;
   skillFiles?: Record<string, string>;
   nameI18n: Record<string, string>;
@@ -15,6 +21,7 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     id: 'pptx-generator',
     avatar: '📊',
     presetAgentType: 'gemini',
+    resourceDir: 'assistant/pptx-generator',
     ruleFiles: {
       'en-US': 'pptx-generator.md',
       'zh-CN': 'pptx-generator.zh-CN.md',
@@ -32,6 +39,7 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     id: 'pdf-to-ppt',
     avatar: '📄',
     presetAgentType: 'gemini',
+    resourceDir: 'assistant/pdf-to-ppt',
     ruleFiles: {
       'en-US': 'pdf-to-ppt.md',
       'zh-CN': 'pdf-to-ppt.zh-CN.md',
@@ -49,6 +57,7 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     id: 'game-3d',
     avatar: '🎮',
     presetAgentType: 'gemini',
+    resourceDir: 'assistant/game-3d',
     ruleFiles: {
       'en-US': 'game-3d.md',
       'zh-CN': 'game-3d.zh-CN.md',
@@ -66,6 +75,7 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     id: 'ui-ux-pro-max',
     avatar: '🎨',
     presetAgentType: 'gemini',
+    resourceDir: 'assistant/ui-ux-pro-max',
     ruleFiles: {
       'en-US': 'ui-ux-pro-max.md',
       'zh-CN': 'ui-ux-pro-max.zh-CN.md',
@@ -83,6 +93,7 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     id: 'planning-with-files',
     avatar: '📋',
     presetAgentType: 'gemini',
+    resourceDir: 'assistant/planning-with-files',
     ruleFiles: {
       'en-US': 'planning-with-files.md',
       'zh-CN': 'planning-with-files.zh-CN.md',
@@ -100,6 +111,7 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     id: 'human-3-coach',
     avatar: '🧭',
     presetAgentType: 'gemini',
+    resourceDir: 'assistant/human-3-coach',
     ruleFiles: {
       'en-US': 'human-3-coach.md',
       'zh-CN': 'human-3-coach.zh-CN.md',
@@ -115,8 +127,9 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
   },
   {
     id: 'cowork',
-    avatar: '🤝',
+    avatar: 'cowork.svg',
     presetAgentType: 'gemini',
+    resourceDir: 'assistant/cowork',
     ruleFiles: {
       'en-US': 'cowork.md',
       'zh-CN': 'cowork.zh-CN.md',

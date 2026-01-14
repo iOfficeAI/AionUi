@@ -200,7 +200,13 @@ export async function readDirectoryRecursive(
  * 递归复制目录
  * 注意：包含路径验证，防止复制到自身或子目录导致无限递归（修复 Windows 下 cache 目录循环创建的 bug）
  */
-export async function copyDirectoryRecursively(src: string, dest: string) {
+interface CopyOptions {
+  overwrite?: boolean;
+}
+
+export async function copyDirectoryRecursively(src: string, dest: string, options: CopyOptions = {}) {
+  const { overwrite = true } = options;
+
   // 标准化路径：Windows 转小写（不区分大小写），Unix/macOS 保持原样（区分大小写）
   const isWindows = process.platform === 'win32';
   const normalizedSrc = isWindows ? path.resolve(src).toLowerCase() : path.resolve(src);
@@ -232,9 +238,15 @@ export async function copyDirectoryRecursively(src: string, dest: string) {
     const destPath = path.join(dest, entry.name);
 
     if (entry.isDirectory()) {
-      await fs.mkdir(destPath, { recursive: true });
-      await copyDirectoryRecursively(srcPath, destPath);
+      if (!existsSync(destPath)) {
+        await fs.mkdir(destPath, { recursive: true });
+      }
+      await copyDirectoryRecursively(srcPath, destPath, options);
     } else {
+      // 如果不覆盖且目标文件已存在，跳过
+      if (!overwrite && existsSync(destPath)) {
+        continue;
+      }
       await fs.copyFile(srcPath, destPath);
     }
   }

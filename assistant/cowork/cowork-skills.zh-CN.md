@@ -121,6 +121,25 @@ await workbook.xlsx.writeFile('output.xlsx');
 - 对复杂公式使用命名范围
 - 为大型数据集冻结标题行
 
+### XLSX 脚本工作流
+
+对于高级 Excel 操作和公式重计算，使用 XLSX 脚本：
+
+```bash
+# 使用 openpyxl 引擎重新计算 Excel 公式
+python skills/xlsx/recalc.py <input.xlsx> <output.xlsx>
+```
+
+recalc.py 脚本打开工作簿，强制公式重新评估，并保存结果。当你需要确保所有计算值都是最新的时使用它。
+
+**何时使用 recalc.py**:
+
+- 修改后更新计算结果
+- 确保导出前公式正确评估
+- 为不支持实时计算的系统准备电子表格
+
+**注意**：openpyxl 的计算引擎支持许多常见公式，但对于复杂的 Excel 特定函数（如 XLOOKUP、动态数组）可能有限制。
+
 ---
 
 ## 2. pptx - PowerPoint 演示文稿生成器
@@ -202,13 +221,45 @@ await pptx.writeFile('presentation.pptx');
 - 使用高对比度颜色组合
 - 限制动画以增强而非分散注意力
 
+### PPTX 脚本工作流
+
+对于编辑现有演示文稿或使用模板，使用 PPTX 脚本：
+
+```bash
+# 解包 PPTX 为 XML 目录结构（用于检查/编辑）
+python skills/pptx/ooxml/scripts/unpack.py <input.pptx> <output_directory>
+
+# 获取幻灯片清单（标题、布局、关系）
+python skills/pptx/scripts/inventory.py <input.pptx> <output.json>
+
+# 生成缩略图网格以进行可视化审查
+python skills/pptx/scripts/thumbnail.py <input.pptx> [output_prefix] [--cols N]
+
+# 重新排列幻灯片（索引从0开始，逗号分隔）
+python skills/pptx/scripts/rearrange.py <template.pptx> <output.pptx> <indices>
+
+# 替换占位符文本/图像
+python skills/pptx/scripts/replace.py <input.pptx> <replacements.json> <output.pptx>
+
+# 将修改后的 XML 目录重新打包为 PPTX
+python skills/pptx/ooxml/scripts/pack.py <input_directory> <output.pptx>
+```
+
+**PPTX 脚本工作流示例**:
+
+1. 使用 `inventory.py` 了解幻灯片结构
+2. 使用 `thumbnail.py` 进行可视化审查
+3. 使用 `rearrange.py` 重新排序幻灯片
+4. 使用 `replace.py` 更新内容
+5. 对于复杂编辑，先解包、修改 XML，然后重新打包
+
 ---
 
 ## 3. pdf - PDF 文档处理器
 
-**强制触发词**: PDF, .pdf, 表单, 提取文本, 合并pdf, 拆分pdf, 组合pdf, pdf转换, 水印, 批注
+**强制触发词**: PDF, .pdf, 表单, 提取文本, 合并pdf, 拆分pdf, 组合pdf, pdf转换, 水印, 批注, 填写表单, 填写pdf
 
-**描述**: 提取、操作和创建 PDF 文档，包括文本提取、合并、拆分、表单处理和批注。
+**描述**: 全面的 PDF 操作工具包，用于提取文本和表格、创建新 PDF、合并/拆分文档以及处理表单。
 
 **功能**:
 
@@ -216,7 +267,7 @@ await pptx.writeFile('presentation.pptx');
 - 合并多个 PDF 为一个
 - 将 PDF 拆分为单独页面或范围
 - 提取表格和结构化数据
-- 填写和创建 PDF 表单
+- 填写和创建 PDF 表单（可填写和不可填写）
 - 添加水印、页眉、页脚
 - 添加批注和注释
 - 压缩 PDF 文件大小
@@ -224,53 +275,133 @@ await pptx.writeFile('presentation.pptx');
 - 处理加密/密码保护的 PDF
 - 扫描文档的 OCR
 
-**实现指南**:
+### PDF 表单填写工作流
 
-```javascript
-// 使用 pdf-lib 创建和操作
-const { PDFDocument, StandardFonts, rgb } = require('pdf-lib');
+**关键：必须按顺序完成这些步骤。不要跳过。**
 
-// 创建新 PDF
-const pdfDoc = await PDFDocument.create();
-const page = pdfDoc.addPage([612, 792]); // Letter 尺寸
-const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
+如果需要填写 PDF 表单，首先检查 PDF 是否有可填写的表单字段：
 
-page.drawText('你好，世界！', {
-  x: 50,
-  y: 700,
-  size: 24,
-  font,
-  color: rgb(0, 0, 0),
-});
+```bash
+python skills/pdf/scripts/check_fillable_fields.py <file.pdf>
+```
 
-// 合并 PDF
-const pdf1 = await PDFDocument.load(pdf1Bytes);
-const pdf2 = await PDFDocument.load(pdf2Bytes);
-const mergedPdf = await PDFDocument.create();
-const pages1 = await mergedPdf.copyPages(pdf1, pdf1.getPageIndices());
-const pages2 = await mergedPdf.copyPages(pdf2, pdf2.getPageIndices());
-pages1.forEach((page) => mergedPdf.addPage(page));
-pages2.forEach((page) => mergedPdf.addPage(page));
+#### 可填写 PDF：
 
-// 保存 PDF
-const pdfBytes = await pdfDoc.save();
-await fs.writeFile('output.pdf', pdfBytes);
+1. 提取字段信息：
 
-// 文本提取使用 pdf-parse
-const pdf = require('pdf-parse');
-const data = await pdf(pdfBuffer);
-console.log(data.text);
+   ```bash
+   python skills/pdf/scripts/extract_form_field_info.py <input.pdf> <field_info.json>
+   ```
+
+2. 将 PDF 转换为图像以进行可视化分析：
+
+   ```bash
+   python skills/pdf/scripts/convert_pdf_to_images.py <file.pdf> <output_directory>
+   ```
+
+3. 创建包含要填写值的 `field_values.json`：
+
+   ```json
+   [
+     { "field_id": "last_name", "value": "张三" },
+     { "field_id": "Checkbox12", "value": "/On" }
+   ]
+   ```
+
+4. 填写表单：
+   ```bash
+   python skills/pdf/scripts/fill_fillable_fields.py <input.pdf> <field_values.json> <output.pdf>
+   ```
+
+#### 不可填写 PDF（基于批注）：
+
+1. 将 PDF 转换为图像：
+
+   ```bash
+   python skills/pdf/scripts/convert_pdf_to_images.py <file.pdf> <output_directory>
+   ```
+
+2. 创建包含每个字段边界框的 `fields.json`：
+
+   ```json
+   {
+     "pages": [{ "page_number": 1, "image_width": 612, "image_height": 792 }],
+     "form_fields": [
+       {
+         "page_number": 1,
+         "description": "用户姓氏",
+         "field_label": "姓氏",
+         "label_bounding_box": [30, 125, 95, 142],
+         "entry_bounding_box": [100, 125, 280, 142],
+         "entry_text": { "text": "张三", "font_size": 14, "font_color": "000000" }
+       }
+     ]
+   }
+   ```
+
+3. 创建验证图像：
+
+   ```bash
+   python skills/pdf/scripts/create_validation_image.py <page_number> <fields.json> <input_image> <output_image>
+   ```
+
+4. 验证边界框：
+
+   ```bash
+   python skills/pdf/scripts/check_bounding_boxes.py <fields.json>
+   ```
+
+5. 使用批注填写表单：
+   ```bash
+   python skills/pdf/scripts/fill_pdf_form_with_annotations.py <input.pdf> <fields.json> <output.pdf>
+   ```
+
+### PDF 合并/拆分操作
+
+```bash
+# 合并多个 PDF
+python skills/pdf/scripts/merge_pdfs.py <output.pdf> <input1.pdf> <input2.pdf> ...
+
+# 拆分为单独页面
+python skills/pdf/scripts/split_pdf.py <input.pdf> <output_directory>
+
+# 提取特定页面
+python skills/pdf/scripts/split_pdf.py <input.pdf> <output.pdf> 1-5
+python skills/pdf/scripts/split_pdf.py <input.pdf> <output.pdf> 1,3,5,7
+```
+
+### Python 快速参考
+
+```python
+from pypdf import PdfReader, PdfWriter
+
+# 读取 PDF
+reader = PdfReader("document.pdf")
+print(f"页数: {len(reader.pages)}")
+
+# 提取文本
+text = ""
+for page in reader.pages:
+    text += page.extract_text()
+
+# 表格提取使用 pdfplumber
+import pdfplumber
+with pdfplumber.open("document.pdf") as pdf:
+    for page in pdf.pages:
+        tables = page.extract_tables()
+        for table in tables:
+            print(table)
 ```
 
 **最佳实践**:
 
+- 在决定工作流之前始终先检查是否有可填写字段
+- 对于不可填写表单，在填写之前先可视化验证边界框
 - 处理时保持原始质量
 - 适当处理密码保护的 PDF（向用户请求密码）
 - 处理前验证 PDF 结构
-- 报告 OCR 的提取置信度
-- 对大型 PDF 使用流式处理
+- 对大型 PDF（>10MB）使用流式处理
 - 合并时保留 PDF 元数据
-- 当文件大小是问题时压缩图像
 
 ---
 
@@ -371,6 +502,46 @@ await fs.writeFile('document.docx', buffer);
 - 使用样式而非直接格式化
 - 保存前验证文档结构
 - 考虑可访问性（图像替代文本、正确的标题层次）
+
+### DOCX 脚本工作流
+
+对于编辑现有 Word 文档或处理修订/批注，使用 DOCX 脚本：
+
+```bash
+# 解包 DOCX 为 XML 目录结构（用于检查/编辑）
+python skills/docx/ooxml/scripts/unpack.py <input.docx> <output_directory>
+
+# 提取纯文本内容
+python skills/docx/scripts/extract_text.py <input.docx> <output.txt>
+
+# 提取所有批注
+python skills/docx/scripts/extract_comments.py <input.docx> <output.json>
+
+# 接受所有修订
+python skills/docx/scripts/accept_revisions.py <input.docx> <output.docx>
+
+# 拒绝所有修订
+python skills/docx/scripts/reject_revisions.py <input.docx> <output.docx>
+
+# 将修改后的 XML 目录重新打包为 DOCX
+python skills/docx/ooxml/scripts/pack.py <input_directory> <output.docx>
+```
+
+**DOCX 脚本工作流示例**:
+
+1. 使用 `extract_text.py` 提取内容进行分析
+2. 使用 `extract_comments.py` 审查文档反馈
+3. 使用 `accept_revisions.py` 或 `reject_revisions.py` 处理修订
+4. 对于复杂编辑：
+   - 使用 `unpack.py` 解包
+   - 直接修改 `word/document.xml`
+   - 使用 `pack.py` 重新打包
+
+**处理修订（Track Changes）**:
+
+- 修订存储在 `word/document.xml` 中的 `<w:ins>` 和 `<w:del>` 标签中
+- 批注存储在 `word/comments.xml` 中
+- 使用脚本或直接 XML 操作来处理它们
 
 ---
 

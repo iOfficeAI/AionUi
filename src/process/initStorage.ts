@@ -28,6 +28,7 @@ const STORAGE_PATH = {
   chat: 'aionui-chat.txt',
   env: '.aionui-env',
   assistants: 'assistants',
+  skills: 'skills',
 };
 
 const getHomePage = getConfigPath;
@@ -332,6 +333,14 @@ const getAssistantsDir = () => {
 };
 
 /**
+ * 获取技能脚本目录路径
+ * Get skills scripts directory path
+ */
+const getSkillsDir = () => {
+  return path.join(cacheDir, STORAGE_PATH.skills);
+};
+
+/**
  * 初始化内置助手的规则和技能文件到用户目录
  * Initialize builtin assistant rule and skill files to user directory
  */
@@ -340,9 +349,9 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
 
   // 开发模式下使用项目根目录，生产模式使用 app.getAppPath()
   // In development, use project root. In production, use app.getAppPath()
-  const resolveBuiltinDir = (dirName: 'rules' | 'skills'): string => {
+  const resolveBuiltinDir = (dirPath: string): string => {
     const appPath = app.getAppPath();
-    const candidates = app.isPackaged ? [path.join(appPath, dirName)] : [path.join(appPath, dirName), path.join(appPath, '..', dirName), path.join(appPath, '..', '..', dirName), path.join(appPath, '..', '..', '..', dirName), path.join(process.cwd(), dirName)];
+    const candidates = app.isPackaged ? [path.join(appPath, dirPath)] : [path.join(appPath, dirPath), path.join(appPath, '..', dirPath), path.join(appPath, '..', '..', dirPath), path.join(appPath, '..', '..', '..', dirPath), path.join(process.cwd(), dirPath)];
 
     for (const candidate of candidates) {
       if (existsSync(candidate)) {
@@ -354,9 +363,26 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
   };
 
   const rulesDir = resolveBuiltinDir('rules');
-  const skillsDir = resolveBuiltinDir('skills');
+  const builtinSkillsDir = resolveBuiltinDir('skills');
+  const userSkillsDir = getSkillsDir();
 
-  console.log(`[AionUi] initBuiltinAssistantRules: rulesDir=${rulesDir}, skillsDir=${skillsDir}, assistantsDir=${assistantsDir}`);
+  console.log(`[AionUi] initBuiltinAssistantRules: rulesDir=${rulesDir}, builtinSkillsDir=${builtinSkillsDir}, userSkillsDir=${userSkillsDir}, assistantsDir=${assistantsDir}`);
+
+  // 复制技能脚本目录到用户配置目录
+  // Copy skills scripts directory to user config directory
+  if (existsSync(builtinSkillsDir)) {
+    try {
+      // 确保用户技能目录存在
+      if (!existsSync(userSkillsDir)) {
+        mkdirSync(userSkillsDir);
+      }
+      // 复制内置技能到用户目录（不覆盖已存在的文件）
+      await copyDirectoryRecursively(builtinSkillsDir, userSkillsDir, { overwrite: false });
+      console.log(`[AionUi] Skills directory initialized: ${userSkillsDir}`);
+    } catch (error) {
+      console.warn(`[AionUi] Failed to copy skills directory:`, error);
+    }
+  }
 
   // 确保助手目录存在 / Ensure assistants directory exists
   if (!existsSync(assistantsDir)) {
@@ -367,10 +393,15 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
   for (const preset of ASSISTANT_PRESETS) {
     const assistantId = `builtin-${preset.id}`;
 
+    // 如果设置了 resourceDir，使用该目录；否则使用默认的 rules/ 目录
+    // If resourceDir is set, use that directory; otherwise use default rules/ directory
+    const presetRulesDir = preset.resourceDir ? resolveBuiltinDir(preset.resourceDir) : rulesDir;
+    const presetSkillsDir = preset.resourceDir ? resolveBuiltinDir(preset.resourceDir) : builtinSkillsDir;
+
     // 复制规则文件 / Copy rule files
     for (const [locale, ruleFile] of Object.entries(preset.ruleFiles)) {
       try {
-        const sourceRulesPath = path.join(rulesDir, ruleFile);
+        const sourceRulesPath = path.join(presetRulesDir, ruleFile);
         // 目标文件名格式：{assistantId}.{locale}.md
         // Target file name format: {assistantId}.{locale}.md
         const targetFileName = `${assistantId}.${locale}.md`;
@@ -387,7 +418,10 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
         const targetExists = existsSync(targetPath);
 
         if (!targetExists) {
-          const content = await fs.readFile(sourceRulesPath, 'utf-8');
+          let content = await fs.readFile(sourceRulesPath, 'utf-8');
+          // 替换相对路径为绝对路径，确保 AI 能找到正确的脚本位置
+          // Replace relative paths with absolute paths so AI can find scripts correctly
+          content = content.replace(/skills\//g, userSkillsDir + '/');
           await fs.writeFile(targetPath, content, 'utf-8');
           console.log(`[AionUi] Created builtin rule: ${targetFileName}`);
         }
@@ -401,7 +435,7 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
     if (preset.skillFiles) {
       for (const [locale, skillFile] of Object.entries(preset.skillFiles)) {
         try {
-          const sourceSkillsPath = path.join(skillsDir, skillFile);
+          const sourceSkillsPath = path.join(presetSkillsDir, skillFile);
           // 目标文件名格式：{assistantId}-skills.{locale}.md
           // Target file name format: {assistantId}-skills.{locale}.md
           const targetFileName = `${assistantId}-skills.${locale}.md`;
@@ -418,7 +452,10 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
           const targetExists = existsSync(targetPath);
 
           if (!targetExists) {
-            const content = await fs.readFile(sourceSkillsPath, 'utf-8');
+            let content = await fs.readFile(sourceSkillsPath, 'utf-8');
+            // 替换相对路径为绝对路径，确保 AI 能找到正确的脚本位置
+            // Replace relative paths with absolute paths so AI can find scripts correctly
+            content = content.replace(/skills\//g, userSkillsDir + '/');
             await fs.writeFile(targetPath, content, 'utf-8');
             console.log(`[AionUi] Created builtin skill: ${targetFileName}`);
           }
@@ -448,7 +485,8 @@ const getBuiltinAssistants = (): AcpBackendConfig[] => {
       avatar: preset.avatar,
       // context 不再存储在配置中，而是从文件读取
       // context is no longer stored in config, read from files instead
-      enabled: true,
+      // Cowork 默认启用，其他助手默认关闭 / Cowork enabled by default, others disabled
+      enabled: preset.id === 'cowork',
       isPreset: true,
       isBuiltin: true,
       presetAgentType: preset.presetAgentType || 'gemini',
@@ -546,7 +584,8 @@ const initStorage = async () => {
         // 只有当关键字段不同时才更新，避免不必要的写入
         // Update only if key fields are different to avoid unnecessary writes
         if (existing.name !== builtin.name || existing.description !== builtin.description || existing.avatar !== builtin.avatar || existing.presetAgentType !== builtin.presetAgentType || existing.isPreset !== builtin.isPreset || existing.isBuiltin !== builtin.isBuiltin) {
-          updatedAgents[index] = { ...existing, ...builtin };
+          // 保留用户的 enabled 设置 / Preserve user's enabled setting
+          updatedAgents[index] = { ...existing, ...builtin, enabled: existing.enabled };
           hasChanges = true;
         }
       } else {
@@ -599,6 +638,6 @@ export const getSystemDir = () => {
  * 获取助手规则目录路径（供其他模块使用）
  * Get assistant rules directory path (for use by other modules)
  */
-export { getAssistantsDir };
+export { getAssistantsDir, getSkillsDir };
 
 export default initStorage;

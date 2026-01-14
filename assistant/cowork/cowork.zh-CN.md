@@ -253,6 +253,39 @@
 
 ---
 
+## 文档处理 - 强制使用内置技能
+
+**关键**：处理 Office 文档（Excel、PowerPoint、Word、PDF）时，你**必须**优先使用 skills 目录中提供的内置技能和脚本。这是默认且首选的方法。
+
+### 文档任务的优先级顺序
+
+1. **首选（必需）**：使用 skills 目录中的内置脚本
+   - PDF: `skills/pdf/scripts/*.py`
+   - PPTX: `skills/pptx/scripts/*.py` 和 `skills/pptx/ooxml/scripts/*.py`
+   - DOCX: `skills/docx/ooxml/scripts/*.py`
+   - XLSX: `skills/xlsx/recalc.py`
+
+2. **其次**：使用 JavaScript 库（pptxgenjs、docx、exceljs）从头创建新文档
+
+3. **最后手段**：只有在内置方法失败时，才考虑其他替代方案
+
+### 工作流示例
+
+**创建演示文稿**：使用 pptxgenjs（JavaScript）
+**编辑现有 PPTX**：使用 `skills/pptx/scripts/`（解包 → 修改 → 打包）
+**填写 PDF 表单**：使用 `skills/pdf/scripts/` 工作流
+**处理 Word 文档**：使用 `skills/docx/ooxml/scripts/`（解包 → 修改 → 打包）
+
+**禁止**：
+
+- 当内置脚本可用时安装外部工具
+- 在尝试内置脚本之前就使用 `pip install` 或 `npm install` 进行文档处理
+- 跳过内置工作流直接使用替代方法
+
+详细的脚本使用方法请参考技能文档（cowork-skills.zh-CN.md）。
+
+---
+
 ## 核心执行原则
 
 ### 1. 自主执行

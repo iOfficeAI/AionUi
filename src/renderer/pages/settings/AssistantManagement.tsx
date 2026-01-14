@@ -1,5 +1,5 @@
 import type { Message } from '@arco-design/web-react';
-import { Avatar, Button, Collapse, Input, Drawer, Modal, Typography, Select } from '@arco-design/web-react';
+import { Avatar, Button, Collapse, Input, Drawer, Modal, Typography, Select, Switch } from '@arco-design/web-react';
 import { Close, Robot, SettingOne } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -10,6 +10,7 @@ import { resolveLocaleKey } from '@/common/utils';
 import type { AcpBackendConfig, PresetAgentType } from '@/types/acpTypes';
 // EmojiPicker removed - avatar editing is disabled
 import MarkdownView from '@/renderer/components/Markdown';
+import coworkSvg from '@/renderer/assets/cowork.svg';
 
 interface AssistantManagementProps {
   message: ReturnType<typeof Message.useMessage>[0];
@@ -33,6 +34,10 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
   const textareaWrapperRef = useRef<HTMLDivElement>(null);
   const skillsTextareaWrapperRef = useRef<HTMLDivElement>(null);
   const localeKey = resolveLocaleKey(i18n.language);
+  const avatarImageMap: Record<string, string> = {
+    'cowork.svg': coworkSvg,
+    '🛠️': coworkSvg,
+  };
 
   // Auto focus textarea when drawer opens
   useEffect(() => {
@@ -116,19 +121,21 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
 
   const renderAvatarGroup = useCallback(
     (assistant: AcpBackendConfig, size = 32) => {
-      const hasEmojiAvatar = assistant.avatar && isEmoji(assistant.avatar);
+      const resolvedAvatar = assistant.avatar?.trim();
+      const hasEmojiAvatar = resolvedAvatar && isEmoji(resolvedAvatar);
+      const avatarImage = resolvedAvatar ? avatarImageMap[resolvedAvatar] : undefined;
       const iconSize = Math.floor(size * 0.5);
       const emojiSize = Math.floor(size * 0.6);
 
       return (
         <Avatar.Group size={size}>
           <Avatar className='border-none' shape='square' style={{ backgroundColor: 'var(--color-fill-2)' }}>
-            {hasEmojiAvatar ? <span style={{ fontSize: emojiSize }}>{assistant.avatar}</span> : <Robot theme='outline' size={iconSize} />}
+            {avatarImage ? <img src={avatarImage} alt='' width={emojiSize} height={emojiSize} style={{ objectFit: 'contain' }} /> : hasEmojiAvatar ? <span style={{ fontSize: emojiSize }}>{resolvedAvatar}</span> : <Robot theme='outline' size={iconSize} />}
           </Avatar>
         </Avatar.Group>
       );
     },
-    [isEmoji]
+    [avatarImageMap, isEmoji]
   );
 
   const handleEdit = async (assistant: AcpBackendConfig) => {
@@ -138,6 +145,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
     setEditDescription(assistant.description || '');
     setEditAvatar(assistant.avatar || '');
     setEditAgent(assistant.presetAgentType || 'gemini');
+    setEditVisible(true);
 
     // 先加载规则和技能内容，再打开 drawer / Load rule and skill content first, then open drawer
     try {
@@ -149,7 +157,6 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
       setEditContext('');
       setEditSkills('');
     }
-    setEditVisible(true);
   };
 
   // 暂时禁用创建功能 / Temporarily disabled create function
@@ -213,6 +220,20 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
     }
   };
 
+  // Toggle assistant enabled state / 切换助手启用状态
+  const handleToggleEnabled = async (assistant: AcpBackendConfig, enabled: boolean) => {
+    try {
+      const agents = (await ConfigStorage.get('acp.customAgents')) || [];
+      const updatedAgents = agents.map((agent) => (agent.id === assistant.id ? { ...agent, enabled } : agent));
+      await ConfigStorage.set('acp.customAgents', updatedAgents);
+      setAssistants(updatedAgents.filter((agent) => agent.isPreset));
+      await refreshAgentDetection();
+    } catch (error) {
+      console.error('Failed to toggle assistant:', error);
+      message.error(t('common.failed', { defaultValue: 'Failed' }));
+    }
+  };
+
   return (
     <div>
       <Collapse.Item
@@ -257,16 +278,27 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                         <div className='text-12px text-t-secondary truncate'>{assistant.descriptionI18n?.[localeKey] || assistant.description || ''}</div>
                       </div>
                     </div>
-                    <div className='flex items-center gap-8px text-t-secondary'>
-                      <Button
-                        type='text'
+                    <div className='flex items-center gap-12px text-t-secondary'>
+                      <Switch
                         size='small'
-                        icon={<SettingOne size={16} />}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          void handleEdit(assistant);
+                        checked={assistant.enabled !== false}
+                        onChange={(checked) => {
+                          void handleToggleEnabled(assistant, checked);
                         }}
+                        onClick={(e) => e.stopPropagation()}
                       />
+                      {/* 编辑按钮暂时隐藏 / Edit button temporarily hidden */}
+                      {false && (
+                        <Button
+                          type='text'
+                          size='small'
+                          icon={<SettingOne size={16} />}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void handleEdit(assistant);
+                          }}
+                        />
+                      )}
                     </div>
                   </div>
                 ))}
@@ -328,7 +360,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
               </Typography.Text>
               <div className='mt-10px flex items-center gap-12px'>
                 <Avatar shape='square' size={40} className='bg-bg-1 rounded-4px'>
-                  {editAvatar ? <span className='text-24px'>{editAvatar}</span> : <Robot theme='outline' size={20} />}
+                  {editAvatar && avatarImageMap[editAvatar.trim()] ? <img src={avatarImageMap[editAvatar.trim()]} alt='' width={24} height={24} style={{ objectFit: 'contain' }} /> : editAvatar ? <span className='text-24px'>{editAvatar}</span> : <Robot theme='outline' size={20} />}
                 </Avatar>
                 <Input value={editName} disabled placeholder={t('settings.agentNamePlaceholder', { defaultValue: 'Enter a name for this agent' })} className='w-[398px] rounded-4px bg-bg-1' />
               </div>
