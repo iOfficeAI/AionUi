@@ -141,7 +141,8 @@
     "confirmDelete": "確認刪除",
     "deleteSuccess": "刪除成功",
     "deleteFailed": "刪除失敗",
-    "default": "預設"
+    "default": "預設",
+    "escToCancel": "按 ESC 取消"
   },
   "login": {
     "pageTitle": "AionUi - 登入",
@@ -378,7 +379,11 @@
     "chat": {
       "noModelSelected": "當前會話未選擇模型，無法發送訊息",
       "sendMessageTo": "發送訊息到 {{model}}",
-      "processing": "正在處理中……"
+      "processing": "正在處理中……",
+      "quotaExceededTitle": "模型額度已用盡",
+      "quotaExceededBody": "當前模型額度已用盡，是否切換到 {{model}}？",
+      "quotaExceededNoFallback": "當前模型額度已用盡，請切換到其他可用模型。",
+      "quotaSwitched": "已切換到 {{model}}。"
     },
     "contextUsage": {
       "contextUsed": "上下文已使用"
@@ -406,12 +411,12 @@
     "assistantPromptRequired": "提示詞不能為空",
     "assistantPromptHint": "輸入此助理的規則。注意：Gemini 目前僅支援規則。",
     "assistantRules": "規則",
-    "assistantRulesHint": "輸入 Gemini 規則。規則定義助理的行為方式和回覆風格。",
+    "assistantRulesHint": "",
     "assistantRulesPlaceholder": "請輸入 Markdown 格式的規則...",
     "assistantModels": "可用模型",
     "assistantModelsHint": "選擇此助理可以使用的模型。",
     "assistantSkills": "技能",
-    "assistantSkillsHint": "輸入 Claude/Codex 技能。技能會在首條訊息時作為系統指令注入。",
+    "assistantSkillsHint": "",
     "assistantSkillsPlaceholder": "請輸入 Markdown 格式的技能...",
     "promptEdit": "編輯",
     "promptPreview": "預覽",
@@ -467,6 +472,8 @@
       "deleteConfirm": "確定要刪除該主題嗎？此操作不可恢復。"
     },
     "googleLogin": "Google 登入",
+    "googleLoginSuccess": "登入成功",
+    "googleLoginFailed": "登入失敗，請重試",
     "googleLogout": "登出",
     "imageGenerationGuide": "圖像模型配置指南",
     "imageGenerationModel": "圖像模型",

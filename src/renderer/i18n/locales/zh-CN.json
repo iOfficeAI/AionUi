@@ -39,7 +39,8 @@
     "confirmDelete": "确认删除",
     "deleteSuccess": "删除成功",
     "deleteFailed": "删除失败",
-    "default": "默认"
+    "default": "默认",
+    "escToCancel": "按 ESC 取消"
   },
   "login": {
     "pageTitle": "AionUi - 登录",
@@ -279,7 +280,11 @@
     "chat": {
       "noModelSelected": "当前会话未选择模型，无法发送消息",
       "sendMessageTo": "发送消息到 {{model}}",
-      "processing": "正在处理中……"
+      "processing": "正在处理中……",
+      "quotaExceededTitle": "模型额度已用尽",
+      "quotaExceededBody": "当前模型额度已用尽，是否切换到 {{model}}？",
+      "quotaExceededNoFallback": "当前模型额度已用尽，请切换到其他可用模型。",
+      "quotaSwitched": "已切换到 {{model}}。"
     },
     "contextUsage": {
       "contextUsed": "上下文已使用"
@@ -314,6 +319,8 @@
     "vertexApiKey": "Vertex AI",
     "personalAuth": "Google帐号",
     "googleLogin": "Google 登录",
+    "googleLoginSuccess": "登录成功",
+    "googleLoginFailed": "登录失败，请重试",
     "googleLogout": "退出登录",
     "openai": "OpenAI",
     "proxyConfig": "代理",
@@ -340,12 +347,12 @@
     "assistantPromptRequired": "提示词不能为空",
     "assistantPromptHint": "输入此助手的规则。注意：Gemini 目前仅支持规则。",
     "assistantRules": "规则",
-    "assistantRulesHint": "输入 Gemini 规则。规则定义助手的行为方式和回复风格。",
+    "assistantRulesHint": "",
     "assistantRulesPlaceholder": "请输入 Markdown 格式的规则...",
     "assistantModels": "可用模型",
     "assistantModelsHint": "选择此助手可以使用的模型。",
     "assistantSkills": "技能",
-    "assistantSkillsHint": "输入 Claude/Codex 技能。技能会在首条消息时作为系统指令注入。",
+    "assistantSkillsHint": "",
     "assistantSkillsPlaceholder": "请输入 Markdown 格式的技能...",
     "promptEdit": "编辑",
     "promptPreview": "预览",

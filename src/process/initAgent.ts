@@ -62,13 +62,23 @@ const buildWorkspaceWidthFiles = async (defaultWorkspaceName: string, workspace?
   return { workspace, customWorkspace };
 };
 
-export const createGeminiAgent = async (model: TProviderWithModel, workspace?: string, defaultFiles?: string[], webSearchEngine?: 'google' | 'default', customWorkspace?: boolean, contextFileName?: string, contextContent?: string): Promise<TChatConversation> => {
+export const createGeminiAgent = async (model: TProviderWithModel, workspace?: string, defaultFiles?: string[], webSearchEngine?: 'google' | 'default', customWorkspace?: boolean, contextFileName?: string, presetRules?: string, presetSkills?: string): Promise<TChatConversation> => {
   const { workspace: newWorkspace, customWorkspace: finalCustomWorkspace } = await buildWorkspaceWidthFiles(`gemini-temp-${Date.now()}`, workspace, defaultFiles, customWorkspace);
 
   return {
     type: 'gemini',
     model,
-    extra: { workspace: newWorkspace, customWorkspace: finalCustomWorkspace, webSearchEngine, contextFileName, contextContent },
+    extra: {
+      workspace: newWorkspace,
+      customWorkspace: finalCustomWorkspace,
+      webSearchEngine,
+      contextFileName,
+      // 分离的 rules 和 skills / Separate rules and skills
+      presetRules,
+      presetSkills,
+      // 向后兼容：contextContent 保存 rules / Backward compatible: contextContent stores rules
+      contextContent: presetRules,
+    },
     desc: finalCustomWorkspace ? newWorkspace : '',
     createTime: Date.now(),
     modifyTime: Date.now(),

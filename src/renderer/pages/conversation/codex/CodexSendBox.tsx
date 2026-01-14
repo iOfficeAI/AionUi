@@ -13,7 +13,6 @@ import { Plus } from '@icon-park/react';
 import { iconColors } from '@/renderer/theme/colors';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import ShimmerText from '@renderer/components/ShimmerText';
 import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/ThoughtDisplay';
 import FilePreview from '@/renderer/components/FilePreview';
 import HorizontalFileList from '@/renderer/components/HorizontalFileList';
@@ -292,14 +291,15 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
     };
   }, [conversation_id, codexStatus, addOrUpdateMessage]);
 
-  const showProcessingHint = (aiProcessing || running) && !thought.subject;
+  // 停止会话处理函数 Stop conversation handler
+  const handleStop = () => {
+    return ipcBridge.conversation.stop.invoke({ conversation_id }).then(() => {});
+  };
 
   return (
     <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
-      <ThoughtDisplay thought={thought} />
+      <ThoughtDisplay thought={thought} running={aiProcessing || running} onStop={handleStop} />
 
-      {/* 显示处理中提示 / Show processing indicator */}
-      {showProcessingHint && <div className='text-left text-t-secondary text-14px py-8px'>{aiProcessing ? <ShimmerText duration={2}>{t('conversation.chat.processing')}</ShimmerText> : t('conversation.chat.processing')}</div>}
       <SendBox
         value={content}
         onChange={(val) => {
@@ -319,9 +319,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
                 defaultValue: `Send message to Codex...`,
               })
         }
-        onStop={() => {
-          return ipcBridge.conversation.stop.invoke({ conversation_id }).then(() => {});
-        }}
+        onStop={handleStop}
         onFilesAdded={handleFilesAdded}
         supportedExts={allSupportedExts}
         tools={

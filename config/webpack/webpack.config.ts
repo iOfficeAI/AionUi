@@ -36,6 +36,7 @@ export const mainConfig: Configuration = {
       '@renderer': path.resolve(__dirname, '../../src/renderer'),
       '@process': path.resolve(__dirname, '../../src/process'),
       '@worker': path.resolve(__dirname, '../../src/worker'),
+      '@xterm/headless$': path.resolve(__dirname, '../../src/shims/xterm-headless.ts'),
     },
   },
   externals: {

@@ -5,6 +5,8 @@
  */
 
 import { ipcBridge } from '@/common';
+import type { ICreateConversationParams } from '@/common/ipcBridge';
+import { ASSISTANT_PRESETS } from '@/common/presets/assistantPresets';
 import type { IProvider, TProviderWithModel } from '@/common/storage';
 import { ConfigStorage } from '@/common/storage';
 import { uuid, resolveLocaleKey } from '@/common/utils';
@@ -203,7 +205,17 @@ const Guid: React.FC = () => {
   // 支持在初始化页展示 Codex（MCP）选项，先做 UI 占位
   // 对于自定义代理，使用 "custom:uuid" 格式来区分多个自定义代理
   // For custom agents, we store "custom:uuid" format to distinguish between multiple custom agents
-  const [selectedAgentKey, setSelectedAgentKey] = useState<string>('gemini');
+  const [selectedAgentKey, _setSelectedAgentKey] = useState<string>('gemini');
+
+  // 封装 setSelectedAgentKey 以同时保存到 storage
+  // Wrap setSelectedAgentKey to also save to storage
+  const setSelectedAgentKey = useCallback((key: string) => {
+    _setSelectedAgentKey(key);
+    // 保存选择到 storage / Save selection to storage
+    ConfigStorage.set('guid.lastSelectedAgent', key).catch((error) => {
+      console.error('Failed to save selected agent:', error);
+    });
+  }, []);
   const [availableAgents, setAvailableAgents] = useState<
     Array<{
       backend: AcpBackend;
@@ -435,6 +447,29 @@ const Guid: React.FC = () => {
     }
   }, [availableAgentsData]);
 
+  // 加载上次选择的 agent / Load last selected agent
+  useEffect(() => {
+    if (!availableAgents || availableAgents.length === 0) return;
+
+    ConfigStorage.get('guid.lastSelectedAgent')
+      .then((savedAgentKey) => {
+        if (!savedAgentKey) return;
+
+        // 验证保存的 agent 是否仍然可用 / Validate saved agent is still available
+        const isAvailable = availableAgents.some((agent) => {
+          const key = agent.backend === 'custom' && agent.customAgentId ? `custom:${agent.customAgentId}` : agent.backend;
+          return key === savedAgentKey;
+        });
+
+        if (isAvailable) {
+          _setSelectedAgentKey(savedAgentKey);
+        }
+      })
+      .catch((error) => {
+        console.error('Failed to load last selected agent:', error);
+      });
+  }, [availableAgents]);
+
   useEffect(() => {
     let isActive = true;
     ConfigStorage.get('acp.customAgents')
@@ -472,27 +507,90 @@ const Guid: React.FC = () => {
 
   const { compositionHandlers, isComposing } = useCompositionInput();
 
-  const resolvePresetContext = useCallback(
-    async (agentInfo: { backend: AcpBackend; customAgentId?: string; context?: string } | undefined): Promise<string | undefined> => {
-      if (!agentInfo) return undefined;
-      if (agentInfo.backend !== 'custom') return agentInfo.context;
+  /**
+   * 解析预设助手的 rules 和 skills
+   * Resolve preset assistant rules and skills
+   *
+   * - rules: 系统规则，在会话初始化时注入到 userMemory
+   * - skills: 技能定义，在首次请求时注入到消息前缀
+   */
+  const resolvePresetRulesAndSkills = useCallback(
+    async (agentInfo: { backend: AcpBackend; customAgentId?: string; context?: string } | undefined): Promise<{ rules?: string; skills?: string }> => {
+      if (!agentInfo) return {};
+      if (agentInfo.backend !== 'custom') {
+        return { rules: agentInfo.context };
+      }
 
-      // 从文件读取助手规则 / Read assistant rule from file
       const customAgentId = agentInfo.customAgentId;
-      if (!customAgentId) return agentInfo.context;
+      if (!customAgentId) return { rules: agentInfo.context };
 
+      let rules = '';
+      let skills = '';
+
+      // 1. 加载 rules / Load rules
       try {
-        const content = await ipcBridge.fs.readAssistantRule.invoke({
+        rules = await ipcBridge.fs.readAssistantRule.invoke({
           assistantId: customAgentId,
           locale: localeKey,
         });
-        return content || agentInfo.context;
       } catch (error) {
-        console.warn(`Failed to load rule for ${customAgentId}:`, error);
-        return agentInfo.context;
+        console.warn(`Failed to load rules for ${customAgentId}:`, error);
       }
+
+      // 2. 加载 skills / Load skills
+      try {
+        skills = await ipcBridge.fs.readAssistantSkill.invoke({
+          assistantId: customAgentId,
+          locale: localeKey,
+        });
+      } catch (error) {
+        // skills 可能不存在，这是正常的 / skills may not exist, this is normal
+      }
+
+      // 3. Fallback: 如果是内置助手且文件为空，从内置资源加载
+      // Fallback: If builtin assistant and files are empty, load from builtin resources
+      if (customAgentId.startsWith('builtin-')) {
+        const presetId = customAgentId.replace('builtin-', '');
+        const preset = ASSISTANT_PRESETS.find((p) => p.id === presetId);
+        if (preset) {
+          // Fallback for rules
+          if (!rules && preset.ruleFiles) {
+            try {
+              const ruleFile = preset.ruleFiles[localeKey] || preset.ruleFiles['en-US'];
+              if (ruleFile) {
+                rules = await ipcBridge.fs.readBuiltinRule.invoke({ fileName: ruleFile });
+              }
+            } catch (e) {
+              console.warn(`Failed to load builtin rules for ${customAgentId}:`, e);
+            }
+          }
+          // Fallback for skills
+          if (!skills && preset.skillFiles) {
+            try {
+              const skillFile = preset.skillFiles[localeKey] || preset.skillFiles['en-US'];
+              if (skillFile) {
+                skills = await ipcBridge.fs.readBuiltinSkill.invoke({ fileName: skillFile });
+              }
+            } catch (e) {
+              // skills fallback failure is ok
+            }
+          }
+        }
+      }
+
+      return { rules: rules || agentInfo.context, skills };
     },
     [localeKey]
+  );
+
+  // 保持向后兼容的 resolvePresetContext（只返回 rules）
+  // Backward compatible resolvePresetContext (returns only rules)
+  const resolvePresetContext = useCallback(
+    async (agentInfo: { backend: AcpBackend; customAgentId?: string; context?: string } | undefined): Promise<string | undefined> => {
+      const { rules } = await resolvePresetRulesAndSkills(agentInfo);
+      return rules;
+    },
+    [resolvePresetRulesAndSkills]
   );
 
   const resolvePresetAgentType = useCallback(
@@ -543,7 +641,8 @@ const Guid: React.FC = () => {
     const agentInfo = selectedAgentInfo;
     const isPreset = isPresetAgent;
     const presetAgentType = resolvePresetAgentType(agentInfo);
-    const presetContext = await resolvePresetContext(agentInfo);
+    // 同时加载 rules 和 skills / Load both rules and skills
+    const { rules: presetRules, skills: presetSkills } = await resolvePresetRulesAndSkills(agentInfo);
 
     // 默认情况使用 Gemini，或 Preset 配置为 Gemini
     if (!selectedAgent || selectedAgent === 'gemini' || (isPreset && presetAgentType === 'gemini')) {
@@ -558,9 +657,14 @@ const Guid: React.FC = () => {
             workspace: finalWorkspace,
             customWorkspace: isCustomWorkspace,
             webSearchEngine: isGoogleAuth ? 'google' : 'default',
-            // Pass preset context for rules injection
-            presetContext: isPreset ? presetContext : undefined,
-          },
+            // 分别传递 rules 和 skills / Pass rules and skills separately
+            // rules: 系统规则，在初始化时注入 / system rules, injected at initialization
+            // skills: 技能定义，在首次请求时注入 / skill definitions, injected at first request
+            presetRules: isPreset ? presetRules : undefined,
+            presetSkills: isPreset ? presetSkills : undefined,
+            // 向后兼容：presetContext 作为合并后的内容 / Backward compatible: presetContext as combined content
+            presetContext: isPreset ? presetRules : undefined,
+          } as ICreateConversationParams['extra'] & { presetRules?: string; presetSkills?: string },
         });
 
         if (!conversation || !conversation.id) {
@@ -611,7 +715,7 @@ const Guid: React.FC = () => {
             workspace: finalWorkspace,
             customWorkspace: isCustomWorkspace,
             // Pass preset context for skill injection
-            presetContext: isPreset ? presetContext : undefined,
+            presetContext: isPreset ? presetSkills || presetRules : undefined,
           },
         });
 
@@ -672,7 +776,7 @@ const Guid: React.FC = () => {
             agentName: acpAgentInfo?.name, // 存储自定义代理的配置名称 / Store configured name for custom agents
             customAgentId: acpAgentInfo?.customAgentId, // 自定义代理的 UUID / UUID for custom agents
             // Pass preset context for skill injection
-            presetContext: isPreset ? presetContext : undefined,
+            presetContext: isPreset ? (presetAgentType === 'claude' ? presetSkills || presetRules : presetRules) : undefined,
           },
         });
 
@@ -1041,7 +1145,7 @@ const Guid: React.FC = () => {
                   </span>
                 </Dropdown>
 
-                {(selectedAgent === 'gemini' || isPresetAgent) && (
+                {(selectedAgent === 'gemini' || (isPresetAgent && resolvePresetAgentType(selectedAgentInfo) === 'gemini')) && (
                   <Dropdown
                     trigger='hover'
                     droplist={
@@ -1065,41 +1169,75 @@ const Guid: React.FC = () => {
                                 if (availableModels.length === 0) return null;
                                 return (
                                   <Menu.ItemGroup title={provider.name} key={provider.id}>
-                                    {availableModels.map((modelName) => (
-                                      <Menu.Item
-                                        key={provider.id + modelName}
-                                        className={currentModel?.id + currentModel?.useModel === provider.id + modelName ? '!bg-2' : ''}
-                                        onClick={() => {
-                                          setCurrentModel({ ...provider, useModel: modelName }).catch((error) => {
-                                            console.error('Failed to set current model:', error);
-                                          });
-                                        }}
-                                      >
-                                        {(() => {
-                                          const isGoogleProvider = provider.platform?.toLowerCase().includes('gemini-with-google-auth');
-                                          const option = isGoogleProvider ? geminiModeLookup.get(modelName) : undefined;
-                                          if (!option) {
-                                            return modelName;
-                                          }
-                                          return (
-                                            <Tooltip
-                                              position='right'
-                                              trigger='hover'
-                                              content={
-                                                <div className='max-w-240px space-y-6px'>
-                                                  <div className='text-12px text-t-secondary leading-5'>{option.description}</div>
-                                                  {option.modelHint && <div className='text-11px text-t-tertiary'>{option.modelHint}</div>}
-                                                </div>
-                                              }
-                                            >
+                                    {availableModels.map((modelName) => {
+                                      const isGoogleProvider = provider.platform?.toLowerCase().includes('gemini-with-google-auth');
+                                      const option = isGoogleProvider ? geminiModeLookup.get(modelName) : undefined;
+
+                                      // Manual 模式：显示带子菜单的选项
+                                      // Manual mode: show submenu with specific models
+                                      if (option?.subModels && option.subModels.length > 0) {
+                                        return (
+                                          <Menu.SubMenu
+                                            key={provider.id + modelName}
+                                            title={
                                               <div className='flex items-center justify-between gap-12px w-full'>
                                                 <span>{option.label}</span>
                                               </div>
-                                            </Tooltip>
-                                          );
-                                        })()}
-                                      </Menu.Item>
-                                    ))}
+                                            }
+                                          >
+                                            {option.subModels.map((subModel) => (
+                                              <Menu.Item
+                                                key={provider.id + subModel.value}
+                                                className={currentModel?.id + currentModel?.useModel === provider.id + subModel.value ? '!bg-2' : ''}
+                                                onClick={() => {
+                                                  setCurrentModel({ ...provider, useModel: subModel.value }).catch((error) => {
+                                                    console.error('Failed to set current model:', error);
+                                                  });
+                                                }}
+                                              >
+                                                {subModel.label}
+                                              </Menu.Item>
+                                            ))}
+                                          </Menu.SubMenu>
+                                        );
+                                      }
+
+                                      // 普通模式：显示单个选项
+                                      // Normal mode: show single item
+                                      return (
+                                        <Menu.Item
+                                          key={provider.id + modelName}
+                                          className={currentModel?.id + currentModel?.useModel === provider.id + modelName ? '!bg-2' : ''}
+                                          onClick={() => {
+                                            setCurrentModel({ ...provider, useModel: modelName }).catch((error) => {
+                                              console.error('Failed to set current model:', error);
+                                            });
+                                          }}
+                                        >
+                                          {(() => {
+                                            if (!option) {
+                                              return modelName;
+                                            }
+                                            return (
+                                              <Tooltip
+                                                position='right'
+                                                trigger='hover'
+                                                content={
+                                                  <div className='max-w-240px space-y-6px'>
+                                                    <div className='text-12px text-t-secondary leading-5'>{option.description}</div>
+                                                    {option.modelHint && <div className='text-11px text-t-tertiary'>{option.modelHint}</div>}
+                                                  </div>
+                                                }
+                                              >
+                                                <div className='flex items-center justify-between gap-12px w-full'>
+                                                  <span>{option.label}</span>
+                                                </div>
+                                              </Tooltip>
+                                            );
+                                          })()}
+                                        </Menu.Item>
+                                      );
+                                    })}
                                   </Menu.ItemGroup>
                                 );
                               }),
@@ -1123,7 +1261,7 @@ const Guid: React.FC = () => {
                   shape='circle'
                   type='primary'
                   loading={loading}
-                  disabled={!input.trim() || ((!selectedAgent || selectedAgent === 'gemini' || isPresetAgent) && !currentModel)}
+                  disabled={!input.trim() || ((!selectedAgent || selectedAgent === 'gemini' || (isPresetAgent && resolvePresetAgentType(selectedAgentInfo) === 'gemini')) && !currentModel)}
                   icon={<ArrowUp theme='outline' size='14' fill='white' strokeWidth={2} />}
                   onClick={() => {
                     handleSend().catch((error) => {

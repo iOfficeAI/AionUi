@@ -6,7 +6,7 @@
 
 import type { IMessageAcpToolCall } from '@/common/chatLib';
 import { Card, Tag } from '@arco-design/web-react';
-import { diffStringsUnified } from 'jest-diff';
+import { createTwoFilesPatch } from 'diff';
 import React from 'react';
 import Diff2Html from '../../components/Diff2Html';
 import MarkdownView from '../../components/Markdown';
@@ -32,10 +32,9 @@ const ContentView: React.FC<{ content: IMessageAcpToolCall['content']['update'][
   if (content.type === 'diff') {
     const oldText = content.oldText || '';
     const newText = content.newText || '';
-    const diff = diffStringsUnified(oldText, newText);
     const resolvedPath = content.path || '';
     const displayName = resolvedPath.split(/[/\\]/).pop() || resolvedPath || 'Unknown file';
-    const formattedDiff = `diff --git a/${displayName} b/${displayName}\n--- a/${displayName}\n+++ b/${displayName}\n${diff}`;
+    const formattedDiff = createTwoFilesPatch(displayName, displayName, oldText, newText, '', '', { context: 3 });
     return <Diff2Html diff={formattedDiff} title={`File: ${displayName}`} className='border rounded' filePath={resolvedPath || displayName} />;
   }
 

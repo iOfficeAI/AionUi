@@ -53,4 +53,11 @@ export const parseError = (error: any): string => {
  * 根据语言代码解析为标准化的区域键
  * Resolve language code to standardized locale key
  */
-export const resolveLocaleKey = (language: string): 'zh-CN' | 'en-US' => (language.toLowerCase().startsWith('zh') ? 'zh-CN' : 'en-US');
+export const resolveLocaleKey = (language: string): 'zh-CN' | 'en-US' | 'ja-JP' | 'zh-TW' | 'ko-KR' => {
+  const lang = language.toLowerCase();
+  if (lang.startsWith('zh-tw')) return 'zh-TW';
+  if (lang.startsWith('zh')) return 'zh-CN';
+  if (lang.startsWith('ja')) return 'ja-JP';
+  if (lang.startsWith('ko')) return 'ko-KR';
+  return 'en-US';
+};

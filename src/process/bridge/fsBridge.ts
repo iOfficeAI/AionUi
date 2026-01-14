@@ -14,6 +14,125 @@ import { ipcBridge } from '../../common';
 import { getSystemDir, getAssistantsDir } from '../initStorage';
 import { readDirectoryRecursive } from '../utils';
 
+// ============================================================================
+// Helper functions for builtin resource directory resolution
+// 内置资源目录解析辅助函数
+// ============================================================================
+
+type ResourceType = 'rules' | 'skills';
+
+/**
+ * Find the builtin resource directory (rules or skills)
+ * 查找内置资源目录（rules 或 skills）
+ */
+async function findBuiltinResourceDir(resourceType: ResourceType): Promise<string> {
+  if (app.isPackaged) {
+    return path.join(app.getAppPath(), resourceType);
+  }
+  // Development: try multiple paths
+  const appPath = app.getAppPath();
+  const candidates = [path.join(appPath, resourceType), path.join(appPath, '..', resourceType), path.join(appPath, '..', '..', resourceType), path.join(appPath, '..', '..', '..', resourceType)];
+  for (const candidate of candidates) {
+    try {
+      await fs.access(candidate);
+      return candidate;
+    } catch {
+      // Try next path
+    }
+  }
+  return candidates[0]; // Default fallback
+}
+
+/**
+ * Read a builtin resource file (.md only)
+ * 读取内置资源文件（仅限 .md）
+ */
+async function readBuiltinResource(resourceType: ResourceType, fileName: string): Promise<string> {
+  const safeFileName = path.basename(fileName);
+  if (!safeFileName.endsWith('.md')) {
+    throw new Error('Only .md files are allowed');
+  }
+  const dir = await findBuiltinResourceDir(resourceType);
+  return fs.readFile(path.join(dir, safeFileName), 'utf-8');
+}
+
+/**
+ * Read assistant resource file with locale fallback
+ * 读取助手资源文件，支持语言回退
+ */
+async function readAssistantResource(resourceType: ResourceType, assistantId: string, locale: string, fileNamePattern: (id: string, loc: string) => string): Promise<string> {
+  const assistantsDir = getAssistantsDir();
+  const locales = [locale, 'en-US', 'zh-CN'].filter((l, i, arr) => arr.indexOf(l) === i);
+
+  // 1. Try user data directory first
+  for (const loc of locales) {
+    const fileName = fileNamePattern(assistantId, loc);
+    try {
+      return await fs.readFile(path.join(assistantsDir, fileName), 'utf-8');
+    } catch {
+      // Try next locale
+    }
+  }
+
+  // 2. Fallback to builtin directory
+  const builtinDir = await findBuiltinResourceDir(resourceType);
+  for (const loc of locales) {
+    const fileName = fileNamePattern(assistantId, loc);
+    try {
+      const content = await fs.readFile(path.join(builtinDir, fileName), 'utf-8');
+      console.log(`[fsBridge] Read builtin ${resourceType} for ${assistantId}: ${fileName}`);
+      return content;
+    } catch {
+      // Try next locale
+    }
+  }
+
+  return ''; // Not found
+}
+
+/**
+ * Write assistant resource file to user directory
+ * 写入助手资源文件到用户目录
+ */
+async function writeAssistantResource(resourceType: ResourceType, assistantId: string, content: string, locale: string, fileNamePattern: (id: string, loc: string) => string): Promise<boolean> {
+  try {
+    const assistantsDir = getAssistantsDir();
+    await fs.mkdir(assistantsDir, { recursive: true });
+    const fileName = fileNamePattern(assistantId, locale);
+    await fs.writeFile(path.join(assistantsDir, fileName), content, 'utf-8');
+    console.log(`[fsBridge] Wrote assistant ${resourceType}: ${fileName}`);
+    return true;
+  } catch (error) {
+    console.error(`Failed to write assistant ${resourceType}:`, error);
+    return false;
+  }
+}
+
+/**
+ * Delete assistant resource files (all locale versions)
+ * 删除助手资源文件（所有语言版本）
+ */
+async function deleteAssistantResource(resourceType: ResourceType, filePattern: RegExp): Promise<boolean> {
+  try {
+    const assistantsDir = getAssistantsDir();
+    const files = await fs.readdir(assistantsDir);
+    for (const file of files) {
+      if (filePattern.test(file)) {
+        await fs.unlink(path.join(assistantsDir, file));
+        console.log(`[fsBridge] Deleted assistant ${resourceType}: ${file}`);
+      }
+    }
+    return true;
+  } catch (error) {
+    console.error(`Failed to delete assistant ${resourceType}:`, error);
+    return false;
+  }
+}
+
+// File name patterns for rules and skills
+const ruleFilePattern = (id: string, loc: string) => `${id}.${loc}.md`;
+const skillFilePattern = (id: string, loc: string) => `${id}-skills.${loc}.md`;
+
 export function initFsBridge(): void {
   ipcBridge.fs.getFilesByDir.provider(async ({ dir }) => {
     const tree = await readDirectoryRecursive(dir);
@@ -403,48 +522,27 @@ export function initFsBridge(): void {
   // 读取内置 rules 文件 / Read built-in rules file from app resources
   ipcBridge.fs.readBuiltinRule.provider(async ({ fileName }) => {
     try {
-      // 安全检查：只允许读取 rules 目录下的 .md 文件
-      // Security check: only allow reading .md files from rules directory
-      const safeFileName = path.basename(fileName);
-      if (!safeFileName.endsWith('.md')) {
-        throw new Error('Only .md files are allowed');
-      }
-
-      const appPath = app.getAppPath();
-      const rulesPath = path.join(appPath, 'rules', safeFileName);
-
-      const content = await fs.readFile(rulesPath, 'utf-8');
-      return content;
+      return await readBuiltinResource('rules', fileName);
     } catch (error) {
       console.error('Failed to read builtin rule:', error);
       throw error;
     }
   });
 
-  // 读取助手规则文件 / Read assistant rule file from user directory
+  // 读取内置 skills 文件 / Read built-in skills file from app resources
+  ipcBridge.fs.readBuiltinSkill.provider(async ({ fileName }) => {
+    try {
+      return await readBuiltinResource('skills', fileName);
+    } catch (error) {
+      console.error('Failed to read builtin skill:', error);
+      throw error;
+    }
+  });
+
+  // 读取助手规则文件 / Read assistant rule file from user directory or builtin rules
   ipcBridge.fs.readAssistantRule.provider(async ({ assistantId, locale = 'en-US' }) => {
     try {
-      const assistantsDir = getAssistantsDir();
-
-      // 尝试按优先级读取：指定语言 -> en-US -> zh-CN
-      // Try reading in priority order: specified locale -> en-US -> zh-CN
-      const locales = [locale, 'en-US', 'zh-CN'].filter((l, i, arr) => arr.indexOf(l) === i);
-
-      for (const loc of locales) {
-        const fileName = `${assistantId}.${loc}.md`;
-        const filePath = path.join(assistantsDir, fileName);
-
-        try {
-          const content = await fs.readFile(filePath, 'utf-8');
-          return content;
-        } catch {
-          // 继续尝试下一个语言 / Try next locale
-        }
-      }
-
-      // 如果都找不到，返回空字符串
-      // Return empty string if no file found
-      return '';
+      return await readAssistantResource('rules', assistantId, locale, ruleFilePattern);
     } catch (error) {
       console.error('Failed to read assistant rule:', error);
       throw error;
@@ -452,47 +550,32 @@ export function initFsBridge(): void {
   });
 
   // 写入助手规则文件 / Write assistant rule file to user directory
-  ipcBridge.fs.writeAssistantRule.provider(async ({ assistantId, content, locale = 'en-US' }) => {
-    try {
-      const assistantsDir = getAssistantsDir();
-
-      // 确保目录存在 / Ensure directory exists
-      await fs.mkdir(assistantsDir, { recursive: true });
-
-      const fileName = `${assistantId}.${locale}.md`;
-      const filePath = path.join(assistantsDir, fileName);
-
-      await fs.writeFile(filePath, content, 'utf-8');
-      console.log(`[fsBridge] Wrote assistant rule: ${fileName}`);
-      return true;
-    } catch (error) {
-      console.error('Failed to write assistant rule:', error);
-      return false;
-    }
+  ipcBridge.fs.writeAssistantRule.provider(({ assistantId, content, locale = 'en-US' }) => {
+    return writeAssistantResource('rules', assistantId, content, locale, ruleFilePattern);
   });
 
   // 删除助手规则文件 / Delete assistant rule files
-  ipcBridge.fs.deleteAssistantRule.provider(async ({ assistantId }) => {
+  ipcBridge.fs.deleteAssistantRule.provider(({ assistantId }) => {
+    return deleteAssistantResource('rules', new RegExp(`^${assistantId}\\..*\\.md$`));
+  });
+
+  // 读取助手技能文件 / Read assistant skill file from user directory or builtin skills
+  ipcBridge.fs.readAssistantSkill.provider(async ({ assistantId, locale = 'en-US' }) => {
     try {
-      const assistantsDir = getAssistantsDir();
-
-      // 读取目录中所有文件 / Read all files in directory
-      const files = await fs.readdir(assistantsDir);
-
-      // 删除所有匹配该助手 ID 的规则文件（所有语言版本）
-      // Delete all rule files matching this assistant ID (all locale versions)
-      const pattern = new RegExp(`^${assistantId}\\..*\\.md$`);
-      for (const file of files) {
-        if (pattern.test(file)) {
-          await fs.unlink(path.join(assistantsDir, file));
-          console.log(`[fsBridge] Deleted assistant rule: ${file}`);
-        }
-      }
-
-      return true;
+      return await readAssistantResource('skills', assistantId, locale, skillFilePattern);
     } catch (error) {
-      console.error('Failed to delete assistant rule:', error);
-      return false;
+      console.error('Failed to read assistant skill:', error);
+      throw error;
     }
+  });
+
+  // 写入助手技能文件 / Write assistant skill file to user directory
+  ipcBridge.fs.writeAssistantSkill.provider(({ assistantId, content, locale = 'en-US' }) => {
+    return writeAssistantResource('skills', assistantId, content, locale, skillFilePattern);
+  });
+
+  // 删除助手技能文件 / Delete assistant skill files
+  ipcBridge.fs.deleteAssistantSkill.provider(({ assistantId }) => {
+    return deleteAssistantResource('skills', new RegExp(`^${assistantId}-skills\\..*\\.md$`));
   });
 }
