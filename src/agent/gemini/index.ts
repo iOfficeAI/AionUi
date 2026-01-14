@@ -38,7 +38,10 @@ interface GeminiAgent2Options {
   mcpServers?: Record<string, unknown>;
   contextFileName?: string;
   onStreamEvent: (event: { type: string; data: unknown; msg_id: string }) => void;
-  contextContent?: string;
+  // 分离的 rules 和 skills / Separate rules and skills
+  presetRules?: string; // 系统规则，在初始化时注入到 userMemory / System rules, injected into userMemory at initialization
+  presetSkills?: string; // 技能定义，在首次请求时注入到消息前缀 / Skill definitions, injected into message prefix at first request
+  contextContent?: string; // 向后兼容 / Backward compatible
 }
 
 export class GeminiAgent {
@@ -57,13 +60,16 @@ export class GeminiAgent {
   private trackedCalls: TrackedToolCall[] = [];
   private abortController: AbortController | null = null;
   private onStreamEvent: (event: { type: string; data: unknown; msg_id: string }) => void;
-  private contextContent?: string;
+  // 分离的 rules 和 skills / Separate rules and skills
+  private presetRules?: string; // 系统规则，在初始化时注入 / System rules, injected at initialization
+  private presetSkills?: string; // 技能定义，在首次请求时注入 / Skill definitions, injected at first request
+  private contextContent?: string; // 向后兼容 / Backward compatible
   private toolConfig: ConversationToolConfig; // 对话级别的工具配置
   private apiKeyManager: ApiKeyManager | null = null; // 多API Key管理器
   private settings: Settings | null = null;
   private historyPrefix: string | null = null;
   private historyUsedOnce = false;
-  private contextPrependedOnce = false; // Track if we've prepended context rules to first message
+  private skillsPrependedOnce = false; // Track if we've prepended skills to first message
   private contextFileName: string | undefined;
   bootstrap: Promise<void>;
   static buildFileServer(workspace: string) {
@@ -82,7 +88,11 @@ export class GeminiAgent {
     // 使用统一的工具函数获取认证类型
     this.authType = getProviderAuthType(options.model);
     this.onStreamEvent = options.onStreamEvent;
-    this.contextContent = options.contextContent;
+    // 分离的 rules 和 skills / Separate rules and skills
+    this.presetRules = options.presetRules;
+    this.presetSkills = options.presetSkills;
+    // 向后兼容：优先使用 presetRules，其次 contextContent / Backward compatible: prefer presetRules, fallback to contextContent
+    this.contextContent = options.contextContent || options.presetRules;
     this.initClientEnv();
     this.toolConfig = new ConversationToolConfig({
       proxy: this.proxy,
@@ -244,12 +254,21 @@ export class GeminiAgent {
 
     this.geminiClient = this.config.getGeminiClient();
 
-    // Inject context content (preset rules) if provided
-    if (this.contextContent) {
+    // 在初始化时注入 presetRules 到 userMemory
+    // Inject presetRules into userMemory at initialization
+    // Rules 定义系统行为规则，在会话开始时就应该生效
+    // Rules define system behavior, should be effective from session start
+    if (this.presetRules) {
       const currentMemory = this.config.getUserMemory();
-      const combined = `${this.contextContent}\n\n[Workspace Context]\n${currentMemory}`;
+      const rulesSection = `[Assistant System Rules]\n${this.presetRules}`;
+      const combined = currentMemory ? `${rulesSection}\n\n${currentMemory}` : rulesSection;
       this.config.setUserMemory(combined);
     }
+
+    // Note: Skills (技能定义) are prepended to the first message in send() method
+    // Skills provide capabilities/tools descriptions, injected at runtime
+    // 注意：Skills 在 send() 方法中 prepend 到第一条消息
+    // Skills 提供能力/工具描述，在运行时注入
 
     // 注册对话级别的自定义工具
     await this.toolConfig.registerCustomTools(this.config, this.geminiClient);
@@ -532,16 +551,34 @@ export class GeminiAgent {
       this.historyUsedOnce = true;
     }
 
-    // Prepend context rules to the first message for preset assistants
-    // This ensures the model sees the rules as part of the user's request, not just background context
-    if (this.contextContent && !this.contextPrependedOnce) {
-      const rulesPrefix = `[Assistant Rules - You MUST follow these instructions]\n${this.contextContent}\n\n[User Request]\n`;
-      if (Array.isArray(message)) {
-        if (message[0]) message[0].text = rulesPrefix + message[0].text;
-      } else {
-        message = rulesPrefix + message;
+    // Prepend skills to the first message for preset assistants
+    // Skills provide capability/tool descriptions, injected at runtime
+    // 为预设助手在首次消息中注入 skills
+    // Skills 提供能力/工具描述，在运行时注入
+    if (!this.skillsPrependedOnce) {
+      let contentToInject: string | undefined;
+      let sectionLabel: string;
+
+      if (this.presetSkills) {
+        // 新方式：分离的 skills / New approach: separate skills
+        contentToInject = this.presetSkills;
+        sectionLabel = 'Available Skills';
+      } else if (this.contextContent && !this.presetRules) {
+        // 向后兼容：如果没有 presetRules，contextContent 应该在首次消息中注入
+        // Backward compatible: if no presetRules, contextContent should be injected in first message
+        contentToInject = this.contextContent;
+        sectionLabel = 'Assistant Rules - You MUST follow these instructions';
       }
-      this.contextPrependedOnce = true;
+
+      if (contentToInject) {
+        const prefix = `[${sectionLabel}]\n${contentToInject}\n\n[User Request]\n`;
+        if (Array.isArray(message)) {
+          if (message[0]) message[0].text = prefix + message[0].text;
+        } else {
+          message = prefix + message;
+        }
+      }
+      this.skillsPrependedOnce = true;
     }
 
     // Track error messages from @ command processing

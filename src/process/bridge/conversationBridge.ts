@@ -30,9 +30,12 @@ export function initConversationBridge(): void {
         if (contextFileName && !path.isAbsolute(contextFileName)) {
           contextFileName = path.resolve(process.cwd(), contextFileName);
         }
-        // 智能助手使用 presetContext，普通对话使用 context / Smart assistants use presetContext, normal conversations use context
-        const contextContent = extra.presetContext || extra.context;
-        return createGeminiAgent(model, extra.workspace, extra.defaultFiles, extra.webSearchEngine, extra.customWorkspace, contextFileName, contextContent);
+        // 分别处理 rules 和 skills / Handle rules and skills separately
+        // rules: 系统规则（初始化时注入）/ System rules (injected at initialization)
+        // skills: 技能定义（首次请求时注入）/ Skill definitions (injected at first request)
+        const presetRules = extra.presetRules || extra.presetContext || extra.context;
+        const presetSkills = extra.presetSkills;
+        return createGeminiAgent(model, extra.workspace, extra.defaultFiles, extra.webSearchEngine, extra.customWorkspace, contextFileName, presetRules, presetSkills);
       }
       if (type === 'acp') return createAcpAgent(params);
       if (type === 'codex') return createCodexAgent(params);

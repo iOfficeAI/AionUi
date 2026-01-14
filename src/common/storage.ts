@@ -94,6 +94,9 @@ export type TChatConversation =
         lastTokenUsage?: TokenUsageData; // 上次的 token 使用统计
         contextFileName?: string;
         contextContent?: string;
+        // 分离的 rules 和 skills 支持 / Separate rules and skills support
+        presetRules?: string; // 系统规则，在初始化时注入 / System rules, injected at initialization
+        presetSkills?: string; // 技能定义，在首次请求时注入 / Skill definitions, injected at first request
       }
     >
   | Omit<

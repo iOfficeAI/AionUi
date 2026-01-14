@@ -30,12 +30,17 @@ export class GeminiAgentManager extends BaseAgentManager<{
   webSearchEngine?: 'google' | 'default';
   mcpServers?: Record<string, UiMcpServerConfig>;
   contextFileName?: string;
-  contextContent?: string;
+  // 分离的 rules 和 skills / Separate rules and skills
+  presetRules?: string;
+  presetSkills?: string;
+  contextContent?: string; // 向后兼容 / Backward compatible
   GOOGLE_CLOUD_PROJECT?: string;
 }> {
   workspace: string;
   model: TProviderWithModel;
   contextFileName?: string;
+  presetRules?: string;
+  presetSkills?: string;
   contextContent?: string;
   private bootstrap: Promise<void>;
 
@@ -49,7 +54,10 @@ export class GeminiAgentManager extends BaseAgentManager<{
       conversation_id: string;
       webSearchEngine?: 'google' | 'default';
       contextFileName?: string;
-      contextContent?: string;
+      // 分离的 rules 和 skills / Separate rules and skills
+      presetRules?: string;
+      presetSkills?: string;
+      contextContent?: string; // 向后兼容 / Backward compatible
     },
     model: TProviderWithModel
   ) {
@@ -58,7 +66,11 @@ export class GeminiAgentManager extends BaseAgentManager<{
     this.conversation_id = data.conversation_id;
     this.model = model;
     this.contextFileName = data.contextFileName;
-    this.contextContent = data.contextContent;
+    // 分离的 rules 和 skills / Separate rules and skills
+    this.presetRules = data.presetRules;
+    this.presetSkills = data.presetSkills;
+    // 向后兼容 / Backward compatible
+    this.contextContent = data.contextContent || data.presetRules;
     this.bootstrap = Promise.all([ProcessConfig.get('gemini.config'), this.getImageGenerationModel(), this.getMcpServers()])
       .then(async ([config, imageGenerationModel, mcpServers]) => {
         // 获取当前账号对应的 GOOGLE_CLOUD_PROJECT
@@ -85,6 +97,9 @@ export class GeminiAgentManager extends BaseAgentManager<{
           webSearchEngine: data.webSearchEngine,
           mcpServers,
           contextFileName: this.contextFileName,
+          // 分离的 rules 和 skills / Separate rules and skills
+          presetRules: this.presetRules,
+          presetSkills: this.presetSkills,
           contextContent: this.contextContent,
         });
       })

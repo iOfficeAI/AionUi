@@ -506,48 +506,90 @@ const Guid: React.FC = () => {
 
   const { compositionHandlers, isComposing } = useCompositionInput();
 
-  const resolvePresetContext = useCallback(
-    async (agentInfo: { backend: AcpBackend; customAgentId?: string; context?: string } | undefined): Promise<string | undefined> => {
-      if (!agentInfo) return undefined;
+  /**
+   * 解析预设助手的 rules 和 skills
+   * Resolve preset assistant rules and skills
+   *
+   * - rules: 系统规则，在会话初始化时注入到 userMemory
+   * - skills: 技能定义，在首次请求时注入到消息前缀
+   */
+  const resolvePresetRulesAndSkills = useCallback(
+    async (agentInfo: { backend: AcpBackend; customAgentId?: string; context?: string } | undefined): Promise<{ rules?: string; skills?: string }> => {
+      if (!agentInfo) return {};
       if (agentInfo.backend !== 'custom') {
-        return agentInfo.context;
+        return { rules: agentInfo.context };
       }
 
-      // 从文件读取助手规则 / Read assistant rule from file
       const customAgentId = agentInfo.customAgentId;
-      if (!customAgentId) return agentInfo.context;
+      if (!customAgentId) return { rules: agentInfo.context };
 
-      let content = '';
+      let rules = '';
+      let skills = '';
+
+      // 1. 加载 rules / Load rules
       try {
-        content = await ipcBridge.fs.readAssistantRule.invoke({
+        rules = await ipcBridge.fs.readAssistantRule.invoke({
           assistantId: customAgentId,
           locale: localeKey,
         });
       } catch (error) {
-        console.warn(`Failed to load rule for ${customAgentId}:`, error);
+        console.warn(`Failed to load rules for ${customAgentId}:`, error);
       }
 
-      // Fallback: 如果用户规则为空且是内置助手，直接读取内置资源
-      // Fallback: If user rule is empty and it is a builtin assistant, read directly from builtin resources
-      if (!content && customAgentId.startsWith('builtin-')) {
-        try {
-          const presetId = customAgentId.replace('builtin-', '');
-          const preset = ASSISTANT_PRESETS.find((p) => p.id === presetId);
-          if (preset) {
-            // 根据 localeKey 获取对应的文件名 / Get filename based on localeKey
-            const ruleFile = preset.ruleFiles[localeKey] || preset.ruleFiles['en-US'];
-            if (ruleFile) {
-              content = await ipcBridge.fs.readBuiltinRule.invoke({ fileName: ruleFile });
+      // 2. 加载 skills / Load skills
+      try {
+        skills = await ipcBridge.fs.readAssistantSkill.invoke({
+          assistantId: customAgentId,
+          locale: localeKey,
+        });
+      } catch (error) {
+        // skills 可能不存在，这是正常的 / skills may not exist, this is normal
+      }
+
+      // 3. Fallback: 如果是内置助手且文件为空，从内置资源加载
+      // Fallback: If builtin assistant and files are empty, load from builtin resources
+      if (customAgentId.startsWith('builtin-')) {
+        const presetId = customAgentId.replace('builtin-', '');
+        const preset = ASSISTANT_PRESETS.find((p) => p.id === presetId);
+        if (preset) {
+          // Fallback for rules
+          if (!rules && preset.ruleFiles) {
+            try {
+              const ruleFile = preset.ruleFiles[localeKey] || preset.ruleFiles['en-US'];
+              if (ruleFile) {
+                rules = await ipcBridge.fs.readBuiltinRule.invoke({ fileName: ruleFile });
+              }
+            } catch (e) {
+              console.warn(`Failed to load builtin rules for ${customAgentId}:`, e);
             }
           }
-        } catch (fallbackError) {
-          console.warn(`Failed to load builtin rule fallback for ${customAgentId}:`, fallbackError);
+          // Fallback for skills
+          if (!skills && preset.skillFiles) {
+            try {
+              const skillFile = preset.skillFiles[localeKey] || preset.skillFiles['en-US'];
+              if (skillFile) {
+                skills = await ipcBridge.fs.readBuiltinSkill.invoke({ fileName: skillFile });
+              }
+            } catch (e) {
+              // skills fallback failure is ok
+            }
+          }
         }
       }
 
-      return content || agentInfo.context;
+      return { rules: rules || agentInfo.context, skills };
     },
     [localeKey]
+  );
+
+  // 保持向后兼容的 resolvePresetContext（只返回 rules）
+  // Backward compatible resolvePresetContext (returns only rules)
+  const resolvePresetContext = useCallback(
+    async (agentInfo: { backend: AcpBackend; customAgentId?: string; context?: string } | undefined): Promise<string | undefined> => {
+      const { rules } = await resolvePresetRulesAndSkills(agentInfo);
+      return rules;
+    },
+    [resolvePresetRulesAndSkills]
   );
 
   const resolvePresetAgentType = useCallback(
@@ -598,7 +640,8 @@ const Guid: React.FC = () => {
     const agentInfo = selectedAgentInfo;
     const isPreset = isPresetAgent;
     const presetAgentType = resolvePresetAgentType(agentInfo);
-    const presetContext = await resolvePresetContext(agentInfo);
+    // 同时加载 rules 和 skills / Load both rules and skills
+    const { rules: presetRules, skills: presetSkills } = await resolvePresetRulesAndSkills(agentInfo);
 
     // 默认情况使用 Gemini，或 Preset 配置为 Gemini
     if (!selectedAgent || selectedAgent === 'gemini' || (isPreset && presetAgentType === 'gemini')) {
@@ -613,8 +656,13 @@ const Guid: React.FC = () => {
             workspace: finalWorkspace,
             customWorkspace: isCustomWorkspace,
             webSearchEngine: isGoogleAuth ? 'google' : 'default',
-            // Pass preset context for rules injection
-            presetContext: isPreset ? presetContext : undefined,
+            // 分别传递 rules 和 skills / Pass rules and skills separately
+            // rules: 系统规则，在初始化时注入 / system rules, injected at initialization
+            // skills: 技能定义，在首次请求时注入 / skill definitions, injected at first request
+            presetRules: isPreset ? presetRules : undefined,
+            presetSkills: isPreset ? presetSkills : undefined,
+            // 向后兼容：presetContext 作为合并后的内容 / Backward compatible: presetContext as combined content
+            presetContext: isPreset ? presetRules : undefined,
           },
         });
 
@@ -666,7 +714,7 @@ const Guid: React.FC = () => {
             workspace: finalWorkspace,
             customWorkspace: isCustomWorkspace,
             // Pass preset context for skill injection
-            presetContext: isPreset ? presetContext : undefined,
+            presetContext: isPreset ? presetSkills || presetRules : undefined,
           },
         });
 
@@ -727,7 +775,7 @@ const Guid: React.FC = () => {
             agentName: acpAgentInfo?.name, // 存储自定义代理的配置名称 / Store configured name for custom agents
             customAgentId: acpAgentInfo?.customAgentId, // 自定义代理的 UUID / UUID for custom agents
             // Pass preset context for skill injection
-            presetContext: isPreset ? presetContext : undefined,
+            presetContext: isPreset ? (presetAgentType === 'claude' ? presetSkills || presetRules : presetRules) : undefined,
           },
         });
 
