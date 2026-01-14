@@ -26,7 +26,7 @@ How to use skills:
 **Skill Structure**:
 
 ```markdown
-# [Skill Name]
+## N. skill-id - Skill Name
 
 **MANDATORY TRIGGERS**: [comma-separated keywords that activate this skill]
 
@@ -46,6 +46,12 @@ How to use skills:
 - [Best practice 1]
 - [Best practice 2]
 ```
+
+Where:
+
+- `N` is the skill number (0-based index)
+- `skill-id` is a unique lowercase identifier (e.g., `xlsx`, `pptx`, `pdf`)
+- `Skill Name` is the human-readable name
 
 **Creating a Good Skill**:
 
