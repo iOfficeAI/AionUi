@@ -9,7 +9,7 @@ import type { TMessage } from '@/common/chatLib';
 import { transformMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import type { IMcpServer, TProviderWithModel } from '@/common/storage';
-import { ProcessConfig } from '@/process/initStorage';
+import { ProcessConfig, getSkillsDir } from '@/process/initStorage';
 import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '../message';
 import BaseAgentManager from './BaseAgentManager';
 import { handlePreviewOpenEvent } from '../utils/previewUtils';
@@ -35,6 +35,8 @@ export class GeminiAgentManager extends BaseAgentManager<{
   presetSkills?: string;
   contextContent?: string; // 向后兼容 / Backward compatible
   GOOGLE_CLOUD_PROJECT?: string;
+  /** 内置 skills 目录路径 / Builtin skills directory path */
+  skillsDir?: string;
 }> {
   workspace: string;
   model: TProviderWithModel;
@@ -101,6 +103,12 @@ export class GeminiAgentManager extends BaseAgentManager<{
           presetRules: this.presetRules,
           presetSkills: this.presetSkills,
           contextContent: this.contextContent,
+          // Skills 加载策略 / Skills loading strategy:
+          // - 如果助手有 presetSkills，优先使用它（不传 skillsDir，禁用 SkillManager）
+          // - 如果没有 presetSkills，使用 SkillManager 加载全局 skills
+          // - If assistant has presetSkills, use it (don't pass skillsDir, disable SkillManager)
+          // - If no presetSkills, use SkillManager to load global skills
+          skillsDir: this.presetSkills ? undefined : getSkillsDir(),
         });
       })
       .then(async () => {

@@ -4,9 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { TelemetryTarget, GeminiCLIExtension, FallbackIntent } from '@office-ai/aioncli-core';
-import { ApprovalMode, Config, DEFAULT_GEMINI_EMBEDDING_MODEL, DEFAULT_GEMINI_MODEL, DEFAULT_MEMORY_FILE_FILTERING_OPTIONS, FileDiscoveryService, getCurrentGeminiMdFilename, loadServerHierarchicalMemory, setGeminiMdFilename as setServerGeminiMdFilename, SimpleExtensionLoader, PREVIEW_GEMINI_MODEL_AUTO } from '@office-ai/aioncli-core';
+import type { TelemetryTarget, GeminiCLIExtension, FallbackIntent, SkillDefinition } from '@office-ai/aioncli-core';
+import { ApprovalMode, Config, DEFAULT_GEMINI_EMBEDDING_MODEL, DEFAULT_GEMINI_MODEL, DEFAULT_MEMORY_FILE_FILTERING_OPTIONS, FileDiscoveryService, getCurrentGeminiMdFilename, loadServerHierarchicalMemory, setGeminiMdFilename as setServerGeminiMdFilename, SimpleExtensionLoader, PREVIEW_GEMINI_MODEL_AUTO, loadSkillsFromDir } from '@office-ai/aioncli-core';
 import process from 'node:process';
+import path from 'node:path';
 import type { Settings } from './settings';
 import { annotateActiveExtensions } from './extension';
 import { getCurrentGeminiAgent } from '../index';
@@ -50,7 +51,21 @@ export interface CliArgs {
 
 import type { ConversationToolConfig } from './tools/conversation-tool-config';
 
-export async function loadCliConfig({ workspace, settings, extensions, sessionId, proxy, model, conversationToolConfig, yoloMode, mcpServers }: { workspace: string; settings: Settings; extensions: GeminiCLIExtension[]; sessionId: string; proxy?: string; model?: string; conversationToolConfig: ConversationToolConfig; yoloMode?: boolean; mcpServers?: Record<string, unknown> }): Promise<Config> {
+export interface LoadCliConfigOptions {
+  workspace: string;
+  settings: Settings;
+  extensions: GeminiCLIExtension[];
+  sessionId: string;
+  proxy?: string;
+  model?: string;
+  conversationToolConfig: ConversationToolConfig;
+  yoloMode?: boolean;
+  mcpServers?: Record<string, unknown>;
+  /** 内置 skills 目录路径 / Builtin skills directory path */
+  skillsDir?: string;
+}
+
+export async function loadCliConfig({ workspace, settings, extensions, sessionId, proxy, model, conversationToolConfig, yoloMode, mcpServers, skillsDir }: LoadCliConfigOptions): Promise<Config> {
   const argv: Partial<CliArgs> = {
     yolo: yoloMode,
   };
@@ -69,7 +84,31 @@ export async function loadCliConfig({ workspace, settings, extensions, sessionId
 
   const _ideModeFeature = (argv.ideModeFeature ?? settings.ideModeFeature ?? false) && !process.env.SANDBOX;
 
-  const allExtensions = annotateActiveExtensions(extensions, argv.extensions || []);
+  // 加载内置 skills 并创建虚拟 extension
+  // Load builtin skills and create a virtual extension
+  let builtinSkills: SkillDefinition[] = [];
+  if (skillsDir) {
+    try {
+      builtinSkills = await loadSkillsFromDir(skillsDir);
+      console.log(`[Config] Loaded ${builtinSkills.length} builtin skills from ${skillsDir}`);
+    } catch (error) {
+      console.warn(`[Config] Failed to load builtin skills from ${skillsDir}:`, error);
+    }
+  }
+
+  // 创建虚拟 extension 来承载内置 skills
+  // Create a virtual extension to hold builtin skills
+  const builtinSkillsExtension: GeminiCLIExtension = {
+    name: 'aionui-builtin-skills',
+    version: '1.0.0',
+    isActive: true,
+    path: skillsDir || '',
+    contextFiles: [],
+    id: 'aionui-builtin-skills',
+    skills: builtinSkills,
+  };
+
+  const allExtensions = annotateActiveExtensions([builtinSkillsExtension, ...extensions], argv.extensions || []);
   const activeExtensions = allExtensions.filter((ext) => ext.isActive);
   // Handle OpenAI API key from command line
   if (argv.openaiApiKey) {
@@ -214,6 +253,12 @@ export async function loadCliConfig({ workspace, settings, extensions, sessionId
     // 启用预览功能以支持 Gemini 3 等新模型
     // Enable preview features to support Gemini 3 and other new models
     previewFeatures: true,
+    // Skills 支持策略 / Skills support strategy:
+    // - 当 skillsDir 有值时，启用 SkillManager（用于没有 presetSkills 的场景）
+    // - 当 skillsDir 为空时，禁用 SkillManager（使用助手的 presetSkills）
+    // - When skillsDir has value, enable SkillManager (for scenarios without presetSkills)
+    // - When skillsDir is empty, disable SkillManager (use assistant's presetSkills)
+    skillsSupport: !!skillsDir,
   });
 
   // FallbackModelHandler 返回类型在 aioncli-core v0.18.4 中使用 FallbackIntent
