@@ -7,7 +7,7 @@
 import type { TMessage } from '@/common/chatLib';
 import { composeMessage } from '@/common/chatLib';
 import { ipcBridge } from '@/common';
-import { useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { createContext } from '../utils/createContext';
 
 const [useMessageList, MessageListProvider, useUpdateMessageList] = createContext([] as TMessage[]);
@@ -18,14 +18,40 @@ const beforeUpdateMessageListStack: Array<(list: TMessage[]) => TMessage[]> = []
 
 export const useAddOrUpdateMessage = () => {
   const update = useUpdateMessageList();
-  return (message: TMessage, add = false) => {
+  const pendingRef = useRef<Array<{ message: TMessage; add: boolean }>>([]);
+  const rafRef = useRef<number | null>(null);
+
+  const flush = useCallback(() => {
+    rafRef.current = null;
+    const pending = pendingRef.current;
+    if (!pending.length) return;
+    pendingRef.current = [];
     update((list) => {
-      let newList = add ? list.concat(message) : composeMessage(message, list).slice();
-      while (beforeUpdateMessageListStack.length) {
-        newList = beforeUpdateMessageListStack.shift()(newList);
+      let newList = list;
+      for (const item of pending) {
+        newList = item.add ? newList.concat(item.message) : composeMessage(item.message, newList).slice();
+        while (beforeUpdateMessageListStack.length) {
+          newList = beforeUpdateMessageListStack.shift()(newList);
+        }
       }
       return newList;
     });
+  }, [update]);
+
+  useEffect(() => {
+    return () => {
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
+        rafRef.current = null;
+      }
+    };
+  }, []);
+
+  return (message: TMessage, add = false) => {
+    pendingRef.current.push({ message, add });
+    if (rafRef.current === null) {
+      rafRef.current = requestAnimationFrame(flush);
+    }
   };
 };
 

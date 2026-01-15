@@ -95,7 +95,6 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
       if (conversation_id !== message.conversation_id) {
         return;
       }
-
       // All messages from Backend are already persisted via emitAndPersistMessage
       // Frontend only needs to update UI
       switch (message.type) {

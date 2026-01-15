@@ -63,6 +63,7 @@ export class GeminiAgent {
   private scheduler: CoreToolScheduler | null = null;
   private trackedCalls: TrackedToolCall[] = [];
   private abortController: AbortController | null = null;
+  private activeMsgId: string | null = null;
   private onStreamEvent: (event: { type: string; data: unknown; msg_id: string }) => void;
   // 分离的 rules 和 skills / Separate rules and skills
   private presetRules?: string; // 系统规则，在初始化时注入 / System rules, injected at initialization
@@ -330,7 +331,7 @@ export class GeminiAgent {
                 return false;
               });
 
-              this.submitQuery(response, uuid(), this.createAbortController(), {
+              this.submitQuery(response, this.activeMsgId ?? uuid(), this.createAbortController(), {
                 isContinuation: true,
                 prompt_id: geminiTools[0].request.prompt_id,
               });
@@ -340,7 +341,7 @@ export class GeminiAgent {
           this.onStreamEvent({
             type: 'error',
             data: 'handleCompletedTools error: ' + (e.message || JSON.stringify(e)),
-            msg_id: uuid(),
+            msg_id: this.activeMsgId ?? uuid(),
           });
         }
       },
@@ -359,13 +360,13 @@ export class GeminiAgent {
           this.onStreamEvent({
             type: 'tool_group',
             data: display.tools,
-            msg_id: uuid(),
+            msg_id: this.activeMsgId ?? uuid(),
           });
         } catch (e) {
           this.onStreamEvent({
             type: 'error',
             data: 'tool_calls_update error: ' + (e.message || JSON.stringify(e)),
-            msg_id: uuid(),
+            msg_id: this.activeMsgId ?? uuid(),
           });
         }
       },
@@ -507,6 +508,7 @@ export class GeminiAgent {
     }
   ): string | undefined {
     try {
+      this.activeMsgId = msg_id;
       let prompt_id = options?.prompt_id;
       if (!prompt_id) {
         prompt_id = this.config.getSessionId() + '########' + getPromptCount();

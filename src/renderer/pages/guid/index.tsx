@@ -609,6 +609,17 @@ const Guid: React.FC = () => {
     [customAgents]
   );
 
+  // 解析助手启用的 skills 列表 / Resolve enabled skills for the assistant
+  const resolveEnabledSkills = useCallback(
+    (agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined): string[] | undefined => {
+      if (!agentInfo) return undefined;
+      if (agentInfo.backend !== 'custom') return undefined;
+      const customAgent = customAgents.find((agent) => agent.id === agentInfo.customAgentId);
+      return customAgent?.enabledSkills;
+    },
+    [customAgents]
+  );
+
   const refreshCustomAgents = useCallback(async () => {
     try {
       await ipcBridge.acpConversation.refreshCustomAgents.invoke();
@@ -649,6 +660,8 @@ const Guid: React.FC = () => {
     const presetAgentType = resolvePresetAgentType(agentInfo);
     // 同时加载 rules 和 skills / Load both rules and skills
     const { rules: presetRules, skills: presetSkills } = await resolvePresetRulesAndSkills(agentInfo);
+    // 获取启用的 skills 列表 / Get enabled skills list
+    const enabledSkills = resolveEnabledSkills(agentInfo);
 
     // 默认情况使用 Gemini，或 Preset 配置为 Gemini
     if (!selectedAgent || selectedAgent === 'gemini' || (isPreset && presetAgentType === 'gemini')) {
@@ -670,7 +683,9 @@ const Guid: React.FC = () => {
             presetSkills: isPreset ? presetSkills : undefined,
             // 向后兼容：presetContext 作为合并后的内容 / Backward compatible: presetContext as combined content
             presetContext: isPreset ? presetRules : undefined,
-          } as ICreateConversationParams['extra'] & { presetRules?: string; presetSkills?: string },
+            // 启用的 skills 列表 / Enabled skills list
+            enabledSkills: isPreset ? enabledSkills : undefined,
+          } as ICreateConversationParams['extra'] & { presetRules?: string; presetSkills?: string; enabledSkills?: string[] },
         });
 
         if (!conversation || !conversation.id) {
