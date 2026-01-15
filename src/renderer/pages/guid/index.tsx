@@ -801,7 +801,7 @@ const Guid: React.FC = () => {
             presetContext: isPreset ? presetRules : undefined,
             // 预设助手 ID，用于在会话面板显示助手名称和头像
             // Preset assistant ID for displaying name and avatar in conversation panel
-            presetAssistantId: isPreset ? agentInfo?.customAgentId : undefined,
+            presetAssistantId: isPreset ? acpAgentInfo?.customAgentId : undefined,
           },
         });
 
