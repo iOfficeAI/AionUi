@@ -5,6 +5,7 @@
  */
 
 // src/core/ConfigManager.ts
+import { AIONUI_FILES_MARKER } from '@/common/constants';
 import { NavigationInterceptor } from '@/common/navigation';
 import type { TProviderWithModel } from '@/common/storage';
 import { uuid } from '@/common/utils';
@@ -546,9 +547,23 @@ export class GeminiAgent {
     }
   }
 
-  async send(message: string | Array<{ text: string }>, msg_id = '') {
+  async send(message: string | Array<{ text: string }>, msg_id = '', files?: string[]) {
     await this.bootstrap;
     const abortController = this.createAbortController();
+
+    const stripFilesMarker = (text: string): string => {
+      const markerIndex = text.indexOf(AIONUI_FILES_MARKER);
+      if (markerIndex === -1) return text;
+      return text.slice(0, markerIndex).trimEnd();
+    };
+
+    if (Array.isArray(message)) {
+      if (message[0]?.text) {
+        message[0].text = stripFilesMarker(message[0].text);
+      }
+    } else if (typeof message === 'string') {
+      message = stripFilesMarker(message);
+    }
 
     // OAuth Token 预检查（仅对 OAuth 模式生效）
     // Preemptive OAuth Token check (only for OAuth mode)
@@ -600,6 +615,8 @@ export class GeminiAgent {
       }
     }
 
+    // files 参数仅用于复制到工作空间，不向模型传递路径提示
+
     // Track error messages from @ command processing
     let atCommandError: string | null = null;
 
@@ -620,9 +637,9 @@ export class GeminiAgent {
       },
       messageId: Date.now(),
       signal: abortController.signal,
-      // 启用懒加载模式：不立即读取文件内容，让 agent 自主决定何时读取
-      // Enable lazy loading: don't read file content immediately, let agent decide when to read
-      lazyFileLoading: true,
+      // 有 files 时启用懒加载：不立即读取文件内容
+      // Enable lazy loading only when files are provided
+      lazyFileLoading: !!(files && files.length > 0),
     });
 
     if (!shouldProceed || processedQuery === null || abortController.signal.aborted) {

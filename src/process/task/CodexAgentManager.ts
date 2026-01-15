@@ -10,6 +10,7 @@ import { ipcBridge } from '@/common';
 import type { TMessage } from '@/common/chatLib';
 import { transformMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
+import { AIONUI_FILES_MARKER } from '@/common/constants';
 import { uuid } from '@/common/utils';
 import { addMessage } from '@process/message';
 import BaseAgentManager from '@process/task/BaseAgentManager';
@@ -159,6 +160,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
   async sendMessage(data: { content: string; files?: string[]; msg_id?: string }) {
     try {
       await this.bootstrap;
+      const contentToSend = data.content?.includes(AIONUI_FILES_MARKER) ? data.content.split(AIONUI_FILES_MARKER)[0].trimEnd() : data.content;
 
       // Save user message to chat history only (renderer already inserts right-hand bubble)
       if (data.msg_id && data.content) {
@@ -175,7 +177,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
       }
 
       // 处理文件引用 - 参考 ACP 的文件引用处理
-      let processedContent = this.agent.getFileOperationHandler().processFileReferences(data.content, data.files);
+      let processedContent = this.agent.getFileOperationHandler().processFileReferences(contentToSend, data.files);
 
       // 如果是第一条消息，通过 newSession 发送以避免双消息问题
       if (this.isFirstMessage) {

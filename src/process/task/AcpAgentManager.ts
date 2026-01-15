@@ -3,6 +3,7 @@ import { ipcBridge } from '@/common';
 import type { AcpBackend } from '@/types/acpTypes';
 import { ACP_BACKENDS_ALL } from '@/types/acpTypes';
 import type { TMessage } from '@/common/chatLib';
+import { AIONUI_FILES_MARKER } from '@/common/constants';
 import { transformMessage } from '@/common/chatLib';
 import type { IConfirmMessageParams, IResponseMessage } from '@/common/ipcBridge';
 import { parseError, uuid } from '@/common/utils';
@@ -122,6 +123,9 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
       // Save user message to chat history ONLY after successful sending
       if (data.msg_id && data.content) {
         let contentToSend = data.content;
+        if (contentToSend.includes(AIONUI_FILES_MARKER)) {
+          contentToSend = contentToSend.split(AIONUI_FILES_MARKER)[0].trimEnd();
+        }
 
         // 首条消息时注入预设规则（来自智能助手配置）
         // Inject preset context on first message (from smart assistant config)

@@ -28,8 +28,8 @@ import { useCompositionInput } from '@/renderer/hooks/useCompositionInput';
 import { useDragUpload } from '@/renderer/hooks/useDragUpload';
 import { useGeminiGoogleAuthModels } from '@/renderer/hooks/useGeminiGoogleAuthModels';
 import { usePasteService } from '@/renderer/hooks/usePasteService';
-import { formatFilesForMessage } from '@/renderer/hooks/useSendBoxFiles';
 import { allSupportedExts, type FileMetadata, getCleanFileNames } from '@/renderer/services/FileService';
+import { buildDisplayMessage } from '@/renderer/utils/messageFiles';
 import { iconColors } from '@/renderer/theme/colors';
 import { emitter } from '@/renderer/utils/emitter';
 import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
@@ -704,12 +704,17 @@ const Guid: React.FC = () => {
         // 然后导航到会话页面
         await navigate(`/conversation/${conversation.id}`);
 
-        // 然后发送消息
+        // 然后发送消息（文件通过 files 参数传递，不在消息中添加 @ 前缀）
+        // Send message (files passed via files param, no @ prefix in message)
+        const workspacePath = conversation.extra?.workspace || '';
+        const displayMessage = buildDisplayMessage(input, files, workspacePath);
+
         void ipcBridge.geminiConversation.sendMessage
           .invoke({
-            input: files.length > 0 ? formatFilesForMessage(files) + ' ' + input : input,
+            input: displayMessage,
             conversation_id: conversation.id,
             msg_id: uuid(),
+            files,
           })
           .catch((error) => {
             console.error('Failed to send message:', error);
@@ -727,6 +732,9 @@ const Guid: React.FC = () => {
       const codexAgentInfo = agentInfo || findAgentByKey(selectedAgentKey);
 
       // 创建 Codex 会话并保存初始消息，由对话页负责发送
+      // Codex conversation type (including preset with codex agent type)
+      const codexAgentInfo = agentInfo || findAgentByKey(selectedAgentKey);
+
       try {
         const conversation = await ipcBridge.conversation.create.invoke({
           type: 'codex',

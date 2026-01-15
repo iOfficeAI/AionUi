@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { AIONUI_FILES_MARKER } from '@/common/constants';
 import type { IMessageText } from '@/common/chatLib';
 import classNames from 'classnames';
 import React, { useMemo, useState } from 'react';
@@ -13,6 +14,24 @@ import { Copy } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { iconColors } from '@/renderer/theme/colors';
 import { Alert, Tooltip } from '@arco-design/web-react';
+import FilePreview from '../components/FilePreview';
+import HorizontalFileList from '../components/HorizontalFileList';
+
+const parseFileMarker = (content: string) => {
+  const markerIndex = content.indexOf(AIONUI_FILES_MARKER);
+  if (markerIndex === -1) {
+    return { text: content, files: [] as string[] };
+  }
+  const text = content.slice(0, markerIndex).trimEnd();
+  const afterMarker = content.slice(markerIndex + AIONUI_FILES_MARKER.length).trim();
+  const files = afterMarker
+    ? afterMarker
+        .split('\n')
+        .map((line) => line.trim())
+        .filter(Boolean)
+    : [];
+  return { text, files };
+};
 
 const useFormatContent = (content: string) => {
   return useMemo(() => {
@@ -30,7 +49,8 @@ const useFormatContent = (content: string) => {
 };
 
 const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
-  const { data, json } = useFormatContent(message.content.content);
+  const { text, files } = parseFileMarker(message.content.content);
+  const { data, json } = useFormatContent(text);
   const { t } = useTranslation();
   const [showCopyAlert, setShowCopyAlert] = useState(false);
   const isUserMessage = message.position === 'right';
@@ -41,7 +61,9 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
   }
 
   const handleCopy = () => {
-    const textToCopy = json ? JSON.stringify(data, null, 2) : message.content.content;
+    const baseText = json ? JSON.stringify(data, null, 2) : text;
+    const fileList = files.length ? `Files:\n${files.map((path) => `- ${path}`).join('\n')}\n\n` : '';
+    const textToCopy = fileList + baseText;
     navigator.clipboard
       .writeText(textToCopy)
       .then(() => {
@@ -64,6 +86,21 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
   return (
     <>
       <div className={classNames('flex flex-col group', isUserMessage ? 'items-end' : 'items-start')}>
+        {files.length > 0 && (
+          <div className={classNames('mt-6px max-w-[95%] md:max-w-[90%]', { 'self-end': isUserMessage })}>
+            {files.length === 1 ? (
+              <div className='flex items-center'>
+                <FilePreview path={files[0]} onRemove={() => undefined} readonly />
+              </div>
+            ) : (
+              <HorizontalFileList>
+                {files.map((path) => (
+                  <FilePreview key={path} path={path} onRemove={() => undefined} readonly />
+                ))}
+              </HorizontalFileList>
+            )}
+          </div>
+        )}
         <div
           className={classNames('max-w-[95%] md:max-w-[90%] rd-8px rd-tr-2px [&>p:first-child]:mt-0px [&>p:last-child]:mb-0px', {
             'bg-aou-2 p-8px': isUserMessage,

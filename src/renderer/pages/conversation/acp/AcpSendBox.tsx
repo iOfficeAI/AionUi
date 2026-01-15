@@ -19,6 +19,7 @@ import { useTranslation } from 'react-i18next';
 import FilePreview from '@/renderer/components/FilePreview';
 import HorizontalFileList from '@/renderer/components/HorizontalFileList';
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';
+import { buildDisplayMessage } from '@/renderer/utils/messageFiles';
 import { useLatestRef } from '@/renderer/hooks/useLatestRef';
 import { useAutoTitle } from '@/renderer/hooks/useAutoTitle';
 
@@ -151,11 +152,19 @@ const AcpSendBox: React.FC<{
   conversation_id: string;
   backend: AcpBackend;
 }> = ({ conversation_id, backend }) => {
+  const [workspacePath, setWorkspacePath] = useState('');
   const { thought, running, acpStatus, aiProcessing, setAiProcessing } = useAcpMessage(conversation_id);
   const { t } = useTranslation();
   const { checkAndUpdateTitle } = useAutoTitle();
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
   const { setSendBoxHandler } = usePreviewContext();
+
+  useEffect(() => {
+    void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
+      if (!res?.extra?.workspace) return;
+      setWorkspacePath(res.extra.workspace);
+    });
+  }, [conversation_id]);
 
   // 使用 useLatestRef 保存最新的 setContent/atPath，避免重复注册 handler
   // Use useLatestRef to keep latest setters to avoid re-registering handler
@@ -167,7 +176,7 @@ const AcpSendBox: React.FC<{
   const addOrUpdateMessageRef = useLatestRef(addOrUpdateMessage);
 
   // 使用共享的文件处理逻辑
-  const { handleFilesAdded, processMessageWithFiles, clearFiles } = useSendBoxFiles({
+  const { handleFilesAdded, clearFiles } = useSendBoxFiles({
     atPath,
     uploadFile,
     setAtPath,
@@ -210,6 +219,7 @@ const AcpSendBox: React.FC<{
       try {
         const initialMessage = JSON.parse(storedMessage);
         const { input, files } = initialMessage;
+        const displayMessage = buildDisplayMessage(input, files || [], workspacePath);
         const msg_id = uuid();
 
         // Start AI processing loading state (user message will be added via backend response)
@@ -217,7 +227,7 @@ const AcpSendBox: React.FC<{
 
         // Send the message
         const result = await ipcBridge.acpConversation.sendMessage.invoke({
-          input,
+          input: displayMessage,
           msg_id,
           conversation_id,
           files,
@@ -266,7 +276,7 @@ const AcpSendBox: React.FC<{
   const onSendHandler = async (message: string) => {
     const msg_id = uuid();
 
-    message = processMessageWithFiles(message);
+    const displayMessage = buildDisplayMessage(message, uploadFile, workspacePath);
 
     // 立即清空输入框，避免用户误以为消息没发送
     // Clear input immediately to avoid user thinking message wasn't sent
@@ -279,7 +289,7 @@ const AcpSendBox: React.FC<{
     // Send message via ACP
     try {
       await ipcBridge.acpConversation.sendMessage.invoke({
-        input: message,
+        input: displayMessage,
         msg_id,
         conversation_id,
         files: uploadFile,
