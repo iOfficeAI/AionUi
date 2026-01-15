@@ -100,6 +100,8 @@ export type TChatConversation =
         presetRules?: string; // 系统规则，在初始化时注入 / System rules, injected at initialization
         /** 启用的 skills 列表，用于过滤 SkillManager 加载的 skills / Enabled skills list for filtering SkillManager skills */
         enabledSkills?: string[];
+        /** 预设助手 ID，用于在会话面板显示助手名称和头像 / Preset assistant ID for displaying name and avatar in conversation panel */
+        presetAssistantId?: string;
       }
     >
   | Omit<

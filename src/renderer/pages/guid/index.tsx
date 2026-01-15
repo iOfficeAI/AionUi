@@ -681,7 +681,10 @@ const Guid: React.FC = () => {
             presetRules: isPreset ? presetRules : undefined,
             // 启用的 skills 列表 / Enabled skills list
             enabledSkills: isPreset ? enabledSkills : undefined,
-          } as ICreateConversationParams['extra'] & { presetRules?: string; enabledSkills?: string[] },
+            // 预设助手 ID，用于在会话面板显示助手名称和头像
+            // Preset assistant ID for displaying name and avatar in conversation panel
+            presetAssistantId: isPreset ? agentInfo?.customAgentId : undefined,
+          } as ICreateConversationParams['extra'] & { presetRules?: string; enabledSkills?: string[]; presetAssistantId?: string },
         });
 
         if (!conversation || !conversation.id) {
