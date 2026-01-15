@@ -69,6 +69,19 @@ _如果你已经安装了 Gemini CLI、Claude Code、CodeX、Qwen Code、Goose A
 
 ---
 
+### 📁 **智能文件管理 (AI Cowork)**
+
+_批量重命名、自动整理、智能分类、文件合并_
+
+- **自动整理**：智能识别内容并自动分类，让文件夹保持整洁。
+- **高效批量**：一键重命名、合并文件，彻底告别繁琐手动。
+
+<p align="center">
+  <img src="./resources/aionui sort file.gif" alt="智能文件管理演示" width="800">
+</p>
+
+---
+
 ### 📄 **预览面板 - 快速查看 AI 生成效果**
 
 _支持 9+ 种格式的可视化预览（PDF、Word、Excel、PPT、代码、Markdown、图片、HTML、Diff 等）_
@@ -91,16 +104,6 @@ _智能图像生成、编辑和识别，由 Gemini 驱动_
 </p>
 
 > 💡 **需要帮助设置免费图像生成？** [按照教程配置图像生成模型](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide-Chinese)
-
----
-
-### 📁 **智能文件管理**
-
-_批量重命名、自动整理、智能分类、文件合并_
-
-<p align="center">
-  <img src="https://github.com/iOfficeAI/AionUi/wiki/assets/gifs/file-management/file-organization.gif" alt="文件管理演示" width="800">
-</p>
 
 ---
 
@@ -149,22 +152,31 @@ AionUi 为这些命令行工具提供统一的 **Cowork 能力**：
 - 📄 **实时预览** - 9+ 种格式可视化预览，AI 生成的文件立即查看效果
 - 💾 **本地数据安全** - 所有对话和文件保存在本地，数据不离开你的设备
 
-### 📊 AionUi vs 命令行 AI 工具
-
-| 功能       | AionUi                  | 命令行 AI 工具      |
-| ---------- | ----------------------- | ------------------- |
-| 界面       | 🎨 图形化界面           | 💻 命令行           |
-| 对话保存   | ✅ 本地保存             | ❌ 关闭即丢失       |
-| 多会话     | ✅ 支持                 | ❌ 不支持           |
-| 上下文管理 | ✅ 独立上下文，互不干扰 | ❌ 单上下文，易混淆 |
-| 文件选择   | 🖱️ 点击选择             | ⌨️ @ 命令           |
-| 多模型     | ✅ 支持                 | ❌ 单一模型         |
-| 文件预览   | ✅ 9+ 种格式可视化预览  | ❌ 无预览           |
-| 远程访问   | ✅ WebUI 模式           | ❌ 不支持           |
-
----
-
 ### ❓ 快速问答
+
+<details>
+<summary><strong>Q: 为什么 AionUi是你Claude Cowork不错的替换选择？</strong></summary>
+A: AionUi 是一款**免费开源**的 **Multi-AI Agent Desktop  **。相比于只能在 Mac 上运行且绑死 Claude 的官方 Cowork，AionUi 是它的**全模型、跨平台增强版**，深度覆盖 **AI 办公自动化** 场景。
+
+| 维度     | Claude Cowork  | AionUi (本项目)                             |
+| :------- | :------------- | :------------------------------------------ |
+| 操作系统 | 仅 macOS       | 🍏 macOS / 🪟 Windows / 🐧 Linux            |
+| 模型支持 | 仅 Claude      | 🤖 Gemini, Claude, DeepSeek, OpenAI, Ollama |
+| 交互形式 | GUI            | 🖥️ 全功能 GUI + WebUI 远程访问              |
+| 费用     | 需订阅 $100/月 | 🆓 完全免费开源                             |
+
+**深度 AI 办公场景支持：**
+
+- **文件管理**：智能整理本地杂乱文件夹、一键批量重命名。
+- **数据处理**：深度分析并自动美化 Excel 报表。
+- **文档生成**：自动编写并排版 PPT、Word 与 Markdown 文档。
+- **即时预览**：内置 9+ 种格式预览面板，让 AI 办公协作结果即刻可见。
+</details>
+
+<details>
+<summary><strong>Q: 我可以用 AionUi 做什么？</strong></summary>
+A: 它可以成为你的**私有化 Cowork 工作空间**。你可以让它帮你批量整理文件夹、深度美化 Excel、实时预览网页代码。它是你探索办公自动化流程、增强 Claude Code 或 Gemini CLI 体验的最佳图形化选择。
+</details>
 
 <details>
 <summary><strong>Q: AionUi 是开箱即用吗？</strong></summary>

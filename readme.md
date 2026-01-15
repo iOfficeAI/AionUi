@@ -69,6 +69,19 @@ _If you have installed command-line tools like Gemini CLI, Claude Code, CodeX, Q
 
 ---
 
+### 📁 **Smart File Management (AI Cowork)**
+
+_Batch renaming, automatic organization, smart classification, file merging_
+
+- **Auto Organize**: Intelligently identify content and auto-classify, keeping folders tidy.
+- **Efficient Batch**: One-click rename, merge files, say goodbye to tedious manual tasks.
+
+<p align="center">
+  <img src="./resources/aionui sort file.gif" alt="Smart File Management Demo" width="800">
+</p>
+
+---
+
 ### 📄 **Preview Panel - Quickly View AI-Generated Results**
 
 _Supports 9+ formats of visual preview (PDF, Word, Excel, PPT, code, Markdown, images, HTML, Diff, etc.)_
@@ -88,18 +101,6 @@ _Intelligent image generation, editing, and recognition, powered by Gemini_
 
 <p align="center">
   <img src="./resources/Image_Generation.gif" alt="AI Image Generation Demo" width="800">
-</p>
-
-> 💡 **Need help setting up free image generation?** [Follow the tutorial to configure image generation models](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide)
-
----
-
-### 📁 **Smart File Management**
-
-_Batch renaming, automatic organization, smart classification, file merging_
-
-<p align="center">
-  <img src="https://github.com/iOfficeAI/AionUi/wiki/assets/gifs/file-management/file-organization.gif" alt="File Management Demo" width="800">
 </p>
 
 ---
@@ -138,7 +139,7 @@ AionUi --webui --remote
 
 **Just like Claude Cowork makes Claude Code easier to use, AionUi is the Cowork platform for all your command-line AI tools**
 
-While command-line tools like Gemini CLI, Claude Code, Codex, Qwen Code are powerful, they share common pain points: conversations can't be saved, single-session limitations, cumbersome file operations, and only support a single model.
+Gemini CLI, Claude Code, Codex, Qwen Code are powerful, but share common pain points: conversations can't be saved, single-session limitations, cumbersome file operations, and only support a single model.
 
 AionUi provides unified **Cowork capabilities** for these command-line tools:
 
@@ -149,22 +150,33 @@ AionUi provides unified **Cowork capabilities** for these command-line tools:
 - 📄 **Real-time Preview** - Visual preview for 9+ formats, immediately view the effects of AI-generated files
 - 💾 **Local Data Security** - All conversations and files saved locally, data never leaves your device
 
-### 📊 AionUi vs Command-Line AI Tools
-
-| Feature              | AionUi                                  | Command-Line AI Tools              |
-| -------------------- | --------------------------------------- | ---------------------------------- |
-| Interface            | 🎨 Graphical Interface                  | 💻 Command Line                    |
-| Conversation Storage | ✅ Local Storage                        | ❌ Lost on Close                   |
-| Multi-Session        | ✅ Supported                            | ❌ Not Supported                   |
-| Context Management   | ✅ Independent Context, No Interference | ❌ Single Context, Easy to Confuse |
-| File Selection       | 🖱️ Click to Select                      | ⌨️ @ Command                       |
-| Multi-Model          | ✅ Supported                            | ❌ Single Model                    |
-| File Preview         | ✅ 9+ Format Visual Preview             | ❌ No Preview                      |
-| Remote Access        | ✅ WebUI Mode                           | ❌ Not Supported                   |
-
 ---
 
 ### ❓ Quick Q&A
+
+<details>
+<summary><strong>Q: Why is AionUi a great replacement for Claude Cowork?</strong></summary>
+A: AionUi is a **free and open-source** **Multi-AI Agent Desktop**. Compared to the official Cowork which only runs on macOS and is locked to Claude, AionUi is its **full-model, cross-platform enhanced version**, deeply covering **AI Office Automation** scenarios.
+
+| Dimension     | Claude Cowork        | AionUi (This Project)                       |
+| :------------ | :------------------- | :------------------------------------------ |
+| OS            | macOS Only           | 🍏 macOS / 🪟 Windows / 🐧 Linux            |
+| Model Support | Claude Only          | 🤖 Gemini, Claude, DeepSeek, OpenAI, Ollama |
+| Interaction   | GUI                  | 🖥️ Full GUI + WebUI Remote Access           |
+| Cost          | Subscription $100/mo | 🆓 Completely Free & Open Source            |
+
+**Deep AI Office Scenario Support:**
+
+- **File Management**: Intelligently organize messy local folders and batch rename with one click.
+- **Data Processing**: Deeply analyze and automatically beautify Excel reports.
+- **Document Generation**: Automatically write and format PPT, Word, and Markdown documents.
+- **Instant Preview**: Built-in 9+ format preview panels, making AI office collaboration results instantly visible.
+</details>
+
+<details>
+<summary><strong>Q: What can I do with AionUi?</strong></summary>
+A: It can be your **private Cowork workspace**. You can let it help you batch organize folders, deeply beautify Excel, and preview web code in real-time. It's your best graphical choice for exploring office automation workflows and enhancing your experience with Claude Code or Gemini CLI.
+</details>
 
 <details>
 <summary><strong>Q: Is AionUi ready to use out of the box?</strong></summary>
