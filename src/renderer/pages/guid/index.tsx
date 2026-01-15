@@ -5,7 +5,6 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { ICreateConversationParams } from '@/common/ipcBridge';
 import { ASSISTANT_PRESETS } from '@/common/presets/assistantPresets';
 import type { IProvider, TProviderWithModel } from '@/common/storage';
 import { ConfigStorage } from '@/common/storage';
@@ -684,7 +683,7 @@ const Guid: React.FC = () => {
             // 预设助手 ID，用于在会话面板显示助手名称和头像
             // Preset assistant ID for displaying name and avatar in conversation panel
             presetAssistantId: isPreset ? agentInfo?.customAgentId : undefined,
-          } as ICreateConversationParams['extra'] & { presetRules?: string; enabledSkills?: string[]; presetAssistantId?: string },
+          },
         });
 
         if (!conversation || !conversation.id) {
@@ -736,6 +735,9 @@ const Guid: React.FC = () => {
             customWorkspace: isCustomWorkspace,
             // Pass preset context (rules only, skills via SkillManager)
             presetContext: isPreset ? presetRules : undefined,
+            // 预设助手 ID，用于在会话面板显示助手名称和头像
+            // Preset assistant ID for displaying name and avatar in conversation panel
+            presetAssistantId: isPreset ? agentInfo?.customAgentId : undefined,
           },
         });
 
@@ -797,6 +799,9 @@ const Guid: React.FC = () => {
             customAgentId: acpAgentInfo?.customAgentId, // 自定义代理的 UUID / UUID for custom agents
             // Pass preset context (rules only, skills via SkillManager)
             presetContext: isPreset ? presetRules : undefined,
+            // 预设助手 ID，用于在会话面板显示助手名称和头像
+            // Preset assistant ID for displaying name and avatar in conversation panel
+            presetAssistantId: isPreset ? agentInfo?.customAgentId : undefined,
           },
         });
 

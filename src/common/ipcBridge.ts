@@ -250,6 +250,8 @@ export interface ICreateConversationParams {
      * For ACP/Codex: injected via <system_instruction> tag in first message
      */
     presetContext?: string;
+    /** 预设助手 ID，用于在会话面板显示助手名称和头像 / Preset assistant ID for displaying name and avatar in conversation panel */
+    presetAssistantId?: string;
   };
 }
 interface IResetConversationParams {

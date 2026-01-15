@@ -115,6 +115,8 @@ export type TChatConversation =
           agentName?: string;
           customAgentId?: string; // UUID for identifying specific custom agent
           presetContext?: string; // 智能助手的预设规则/提示词 / Preset context from smart assistant
+          /** 预设助手 ID，用于在会话面板显示助手名称和头像 / Preset assistant ID for displaying name and avatar in conversation panel */
+          presetAssistantId?: string;
         }
       >,
       'model'
@@ -128,6 +130,8 @@ export type TChatConversation =
           customWorkspace?: boolean;
           sandboxMode?: 'read-only' | 'workspace-write' | 'danger-full-access'; // Codex sandbox permission mode
           presetContext?: string; // 智能助手的预设规则/提示词 / Preset context from smart assistant
+          /** 预设助手 ID，用于在会话面板显示助手名称和头像 / Preset assistant ID for displaying name and avatar in conversation panel */
+          presetAssistantId?: string;
         }
       >,
       'model'

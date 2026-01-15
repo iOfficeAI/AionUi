@@ -165,7 +165,7 @@ const GeminiConversationPanel: React.FC<{ conversation: GeminiConversation; slid
 const ChatConversation: React.FC<{
   conversation?: TChatConversation;
 }> = ({ conversation }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const workspaceEnabled = Boolean(conversation?.extra?.workspace);
 
   const isGeminiConversation = conversation?.type === 'gemini';
@@ -182,6 +182,34 @@ const ChatConversation: React.FC<{
     }
   }, [conversation, isGeminiConversation]);
 
+  // 获取预设助手信息（如果有）/ Get preset assistant info for ACP/Codex conversations
+  const presetAssistantInfo = useMemo(() => {
+    if (!conversation || isGeminiConversation) return null;
+
+    const presetAssistantId = (conversation.extra as { presetAssistantId?: string })?.presetAssistantId;
+    if (!presetAssistantId) return null;
+
+    // presetAssistantId 格式为 'builtin-xxx'，提取 preset id
+    const presetId = presetAssistantId.replace('builtin-', '');
+    const preset = ASSISTANT_PRESETS.find((p) => p.id === presetId);
+    if (!preset) return null;
+
+    const locale = i18n.language || 'en-US';
+    const name = preset.nameI18n[locale] || preset.nameI18n['en-US'] || preset.id;
+
+    const isEmoji = !preset.avatar.endsWith('.svg');
+    let logo: string;
+    if (isEmoji) {
+      logo = preset.avatar;
+    } else if (preset.id === 'cowork') {
+      logo = CoworkLogo;
+    } else {
+      logo = '🤖';
+    }
+
+    return { name, logo, isEmoji };
+  }, [conversation, isGeminiConversation, i18n.language]);
+
   const sliderTitle = useMemo(() => {
     return (
       <div className='flex items-center justify-between'>
@@ -196,8 +224,21 @@ const ChatConversation: React.FC<{
     return <GeminiConversationPanel conversation={conversation} sliderTitle={sliderTitle} />;
   }
 
+  // 如果有预设助手信息，使用预设助手的 logo 和名称；否则使用 backend 的 logo
+  // If preset assistant info exists, use preset logo/name; otherwise use backend logo
+  const chatLayoutProps = presetAssistantInfo
+    ? {
+        agentName: presetAssistantInfo.name,
+        agentLogo: presetAssistantInfo.logo,
+        agentLogoIsEmoji: presetAssistantInfo.isEmoji,
+      }
+    : {
+        backend: conversation?.type === 'acp' ? conversation?.extra?.backend : conversation?.type === 'codex' ? 'codex' : undefined,
+        agentName: (conversation?.extra as { agentName?: string })?.agentName,
+      };
+
   return (
-    <ChatLayout title={conversation?.name} backend={conversation?.type === 'acp' ? conversation?.extra?.backend : conversation?.type === 'codex' ? 'codex' : undefined} agentName={(conversation?.extra as { agentName?: string })?.agentName} siderTitle={sliderTitle} sider={<ChatSider conversation={conversation} />} workspaceEnabled={workspaceEnabled}>
+    <ChatLayout title={conversation?.name} {...chatLayoutProps} siderTitle={sliderTitle} sider={<ChatSider conversation={conversation} />} workspaceEnabled={workspaceEnabled}>
       {conversationNode}
     </ChatLayout>
   );
