@@ -275,21 +275,6 @@ export class GeminiAgent {
       this.config.setUserMemory(combined);
     }
 
-    // Debug: Log context sizes to help diagnose token consumption
-    // 调试：记录上下文大小以帮助诊断 token 消耗
-    const skillManager = this.config.getSkillManager();
-    const skills = skillManager?.getSkills() || [];
-    const userMemory = this.config.getUserMemory();
-    const toolRegistry = this.config.getToolRegistry();
-    const toolCount = toolRegistry?.getAllToolNames()?.length || 0;
-    const skillsMode = skills.length > 0 ? 'SkillManager' : 'none';
-    console.log('[GeminiAgent] Context debug info:');
-    console.log(`  - Skills mode: ${skillsMode}`);
-    console.log(`  - SkillManager skills: ${skills.length}`);
-    console.log(`  - UserMemory size: ${userMemory?.length || 0} bytes`);
-    console.log(`  - PresetRules size: ${this.presetRules?.length || 0} bytes`);
-    console.log(`  - Registered tools count: ${toolCount}`);
-
     // Note: Skills (技能定义) are prepended to the first message in send() method
     // Skills provide capabilities/tools descriptions, injected at runtime
     // 注意：Skills 在 send() 方法中 prepend 到第一条消息
