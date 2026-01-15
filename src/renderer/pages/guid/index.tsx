@@ -723,6 +723,9 @@ const Guid: React.FC = () => {
       }
       return;
     } else if (selectedAgent === 'codex' || (isPreset && presetAgentType === 'codex')) {
+      // Codex conversation type (including preset with codex agent type)
+      const codexAgentInfo = agentInfo || findAgentByKey(selectedAgentKey);
+
       // 创建 Codex 会话并保存初始消息，由对话页负责发送
       try {
         const conversation = await ipcBridge.conversation.create.invoke({
@@ -737,7 +740,7 @@ const Guid: React.FC = () => {
             presetContext: isPreset ? presetRules : undefined,
             // 预设助手 ID，用于在会话面板显示助手名称和头像
             // Preset assistant ID for displaying name and avatar in conversation panel
-            presetAssistantId: isPreset ? agentInfo?.customAgentId : undefined,
+            presetAssistantId: isPreset ? codexAgentInfo?.customAgentId : undefined,
           },
         });
 
