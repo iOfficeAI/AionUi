@@ -81,6 +81,8 @@ export const fs = {
   readAssistantSkill: bridge.buildProvider<string, { assistantId: string; locale?: string }>('read-assistant-skill'), // 读取助手技能文件
   writeAssistantSkill: bridge.buildProvider<boolean, { assistantId: string; content: string; locale?: string }>('write-assistant-skill'), // 写入助手技能文件
   deleteAssistantSkill: bridge.buildProvider<boolean, { assistantId: string }>('delete-assistant-skill'), // 删除助手技能文件
+  // 获取可用 skills 列表 / List available skills from skills directory
+  listAvailableSkills: bridge.buildProvider<Array<{ name: string; description: string; location: string }>, void>('list-available-skills'),
 };
 
 export const fileWatch = {
@@ -240,6 +242,8 @@ export interface ICreateConversationParams {
     // Separated rules/skills for smart assistants
     presetRules?: string; // system rules injected at initialization
     presetSkills?: string; // skill definitions injected on first request
+    /** Enabled skills list for filtering SkillManager skills */
+    enabledSkills?: string[];
     /**
      * Preset context/rules to inject into the first message.
      * Used by smart assistants to provide custom prompts/rules.

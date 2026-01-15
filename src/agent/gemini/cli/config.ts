@@ -63,9 +63,11 @@ export interface LoadCliConfigOptions {
   mcpServers?: Record<string, unknown>;
   /** 内置 skills 目录路径 / Builtin skills directory path */
   skillsDir?: string;
+  /** 启用的 skills 列表，用于过滤加载的 skills / Enabled skills list for filtering loaded skills */
+  enabledSkills?: string[];
 }
 
-export async function loadCliConfig({ workspace, settings, extensions, sessionId, proxy, model, conversationToolConfig, yoloMode, mcpServers, skillsDir }: LoadCliConfigOptions): Promise<Config> {
+export async function loadCliConfig({ workspace, settings, extensions, sessionId, proxy, model, conversationToolConfig, yoloMode, mcpServers, skillsDir, enabledSkills }: LoadCliConfigOptions): Promise<Config> {
   const argv: Partial<CliArgs> = {
     yolo: yoloMode,
   };
@@ -91,6 +93,15 @@ export async function loadCliConfig({ workspace, settings, extensions, sessionId
     try {
       builtinSkills = await loadSkillsFromDir(skillsDir);
       console.log(`[Config] Loaded ${builtinSkills.length} builtin skills from ${skillsDir}`);
+
+      // 根据 enabledSkills 过滤 skills
+      // Filter skills based on enabledSkills
+      if (enabledSkills && enabledSkills.length > 0) {
+        const enabledSet = new Set(enabledSkills);
+        const originalCount = builtinSkills.length;
+        builtinSkills = builtinSkills.filter((skill) => enabledSet.has(skill.name));
+        console.log(`[Config] Filtered skills: ${builtinSkills.length}/${originalCount} enabled (${enabledSkills.join(', ')})`);
+      }
     } catch (error) {
       console.warn(`[Config] Failed to load builtin skills from ${skillsDir}:`, error);
     }

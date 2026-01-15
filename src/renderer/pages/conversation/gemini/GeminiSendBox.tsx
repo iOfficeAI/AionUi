@@ -60,11 +60,13 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
         return;
       }
       // 过滤掉不属于当前活跃请求的事件（防止 abort 后的事件干扰）
+      // 注意: 只过滤 thought 和 start 等状态消息，其他消息都必须渲染
       // Filter out events not belonging to current active request (prevents aborted events from interfering)
+      // Note: only filter out thought and start messages, other messages must be rendered
       if (activeMsgIdRef.current && message.msg_id && message.msg_id !== activeMsgIdRef.current) {
-        // 允许 finish 事件通过，以便正确清理状态
-        // Allow finish events through to properly clean up state
-        if (message.type !== 'finish') {
+        // 只过滤掉 thought 和 start，其他消息都需要渲染
+        // Only filter out thought and start, other messages need to be rendered
+        if (message.type === 'thought') {
           return;
         }
       }

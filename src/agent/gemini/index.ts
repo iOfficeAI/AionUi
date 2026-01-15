@@ -44,6 +44,8 @@ interface GeminiAgent2Options {
   contextContent?: string; // 向后兼容 / Backward compatible
   /** 内置 skills 目录路径，使用 aioncli-core SkillManager 加载 / Builtin skills directory path, loaded by aioncli-core SkillManager */
   skillsDir?: string;
+  /** 启用的 skills 列表，用于过滤 SkillManager 中的 skills / Enabled skills list for filtering skills in SkillManager */
+  enabledSkills?: string[];
 }
 
 export class GeminiAgent {
@@ -75,6 +77,8 @@ export class GeminiAgent {
   private contextFileName: string | undefined;
   /** 内置 skills 目录路径 / Builtin skills directory path */
   private skillsDir?: string;
+  /** 启用的 skills 列表 / Enabled skills list */
+  private enabledSkills?: string[];
   bootstrap: Promise<void>;
   static buildFileServer(workspace: string) {
     return new FileDiscoveryService(workspace);
@@ -96,6 +100,7 @@ export class GeminiAgent {
     this.presetRules = options.presetRules;
     this.presetSkills = options.presetSkills;
     this.skillsDir = options.skillsDir;
+    this.enabledSkills = options.enabledSkills;
     // 向后兼容：优先使用 presetRules，其次 contextContent / Backward compatible: prefer presetRules, fallback to contextContent
     this.contextContent = options.contextContent || options.presetRules;
     this.initClientEnv();
@@ -247,6 +252,7 @@ export class GeminiAgent {
       yoloMode,
       mcpServers: this.mcpServers,
       skillsDir: this.skillsDir,
+      enabledSkills: this.enabledSkills,
     });
     await this.config.initialize();
 

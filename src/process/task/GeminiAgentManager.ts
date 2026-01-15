@@ -37,6 +37,8 @@ export class GeminiAgentManager extends BaseAgentManager<{
   GOOGLE_CLOUD_PROJECT?: string;
   /** 内置 skills 目录路径 / Builtin skills directory path */
   skillsDir?: string;
+  /** 启用的 skills 列表 / Enabled skills list */
+  enabledSkills?: string[];
 }> {
   workspace: string;
   model: TProviderWithModel;
@@ -44,6 +46,7 @@ export class GeminiAgentManager extends BaseAgentManager<{
   presetRules?: string;
   presetSkills?: string;
   contextContent?: string;
+  enabledSkills?: string[];
   private bootstrap: Promise<void>;
 
   private async injectHistoryFromDatabase(): Promise<void> {
@@ -60,6 +63,8 @@ export class GeminiAgentManager extends BaseAgentManager<{
       presetRules?: string;
       presetSkills?: string;
       contextContent?: string; // 向后兼容 / Backward compatible
+      /** 启用的 skills 列表 / Enabled skills list */
+      enabledSkills?: string[];
     },
     model: TProviderWithModel
   ) {
@@ -71,6 +76,7 @@ export class GeminiAgentManager extends BaseAgentManager<{
     // 分离的 rules 和 skills / Separate rules and skills
     this.presetRules = data.presetRules;
     this.presetSkills = data.presetSkills;
+    this.enabledSkills = data.enabledSkills;
     // 向后兼容 / Backward compatible
     this.contextContent = data.contextContent || data.presetRules;
     this.bootstrap = Promise.all([ProcessConfig.get('gemini.config'), this.getImageGenerationModel(), this.getMcpServers()])
@@ -109,6 +115,9 @@ export class GeminiAgentManager extends BaseAgentManager<{
           // - If assistant has presetSkills, use it (don't pass skillsDir, disable SkillManager)
           // - If no presetSkills, use SkillManager to load global skills
           skillsDir: this.presetSkills ? undefined : getSkillsDir(),
+          // 启用的 skills 列表，用于过滤 SkillManager 中的 skills
+          // Enabled skills list for filtering skills in SkillManager
+          enabledSkills: this.enabledSkills,
         });
       })
       .then(async () => {

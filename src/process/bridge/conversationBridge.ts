@@ -27,6 +27,7 @@ export function initConversationBridge(): void {
         const extraWithPresets = extra as typeof extra & {
           presetRules?: string;
           presetSkills?: string;
+          enabledSkills?: string[];
         };
         let contextFileName = extra.contextFileName;
         // Resolve relative paths to CWD (usually project root in dev)
@@ -39,7 +40,8 @@ export function initConversationBridge(): void {
         // skills: 技能定义（首次请求时注入）/ Skill definitions (injected at first request)
         const presetRules = extraWithPresets.presetRules || extraWithPresets.presetContext || extraWithPresets.context;
         const presetSkills = extraWithPresets.presetSkills;
-        return createGeminiAgent(model, extra.workspace, extra.defaultFiles, extra.webSearchEngine, extra.customWorkspace, contextFileName, presetRules, presetSkills);
+        const enabledSkills = extraWithPresets.enabledSkills;
+        return createGeminiAgent(model, extra.workspace, extra.defaultFiles, extra.webSearchEngine, extra.customWorkspace, contextFileName, presetRules, presetSkills, enabledSkills);
       }
       if (type === 'acp') return createAcpAgent(params);
       if (type === 'codex') return createCodexAgent(params);

@@ -41,6 +41,8 @@ const buildConversation = (conversation: TChatConversation) => {
           presetSkills: conversation.extra.presetSkills,
           // 向后兼容 / Backward compatible
           contextContent: conversation.extra.contextContent,
+          // 启用的 skills 列表 / Enabled skills list
+          enabledSkills: conversation.extra.enabledSkills,
         },
         conversation.model
       );
