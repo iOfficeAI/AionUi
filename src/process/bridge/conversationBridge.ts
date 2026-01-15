@@ -24,15 +24,21 @@ export function initConversationBridge(): void {
     const { type, extra, name, model, id } = params;
     const buildConversation = () => {
       if (type === 'gemini') {
+        const extraWithPresets = extra as typeof extra & {
+          presetRules?: string;
+          enabledSkills?: string[];
+        };
         let contextFileName = extra.contextFileName;
         // Resolve relative paths to CWD (usually project root in dev)
         // Ensure we pass an absolute path to the agent
         if (contextFileName && !path.isAbsolute(contextFileName)) {
           contextFileName = path.resolve(process.cwd(), contextFileName);
         }
-        // 智能助手使用 presetContext，普通对话使用 context / Smart assistants use presetContext, normal conversations use context
-        const contextContent = extra.presetContext || extra.context;
-        return createGeminiAgent(model, extra.workspace, extra.defaultFiles, extra.webSearchEngine, extra.customWorkspace, contextFileName, contextContent);
+        // 系统规则（初始化时注入）/ System rules (injected at initialization)
+        // skills 通过 SkillManager 加载 / Skills are loaded via SkillManager
+        const presetRules = extraWithPresets.presetRules || extraWithPresets.presetContext || extraWithPresets.context;
+        const enabledSkills = extraWithPresets.enabledSkills;
+        return createGeminiAgent(model, extra.workspace, extra.defaultFiles, extra.webSearchEngine, extra.customWorkspace, contextFileName, presetRules, enabledSkills);
       }
       if (type === 'acp') return createAcpAgent(params);
       if (type === 'codex') return createCodexAgent(params);
@@ -374,7 +380,7 @@ export function initConversationBridge(): void {
     try {
       // 根据 task 类型调用对应的 sendMessage 方法
       if (task.type === 'gemini') {
-        await (task as GeminiAgentManager).sendMessage(other);
+        await (task as GeminiAgentManager).sendMessage({ ...other, files });
         return { success: true };
       } else if (task.type === 'acp') {
         await (task as AcpAgentManager).sendMessage({ content: other.input, files, msg_id: other.msg_id });

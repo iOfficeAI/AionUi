@@ -12,6 +12,7 @@ import { useLatestRef } from '@/renderer/hooks/useLatestRef';
 import { useAutoTitle } from '@/renderer/hooks/useAutoTitle';
 import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/useSendBoxDraft';
 import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/useSendBoxFiles';
+import { buildDisplayMessage, collectSelectedFiles } from '@/renderer/utils/messageFiles';
 import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';
 import { allSupportedExts } from '@/renderer/services/FileService';
@@ -60,11 +61,13 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
         return;
       }
       // 过滤掉不属于当前活跃请求的事件（防止 abort 后的事件干扰）
+      // 注意: 只过滤 thought 和 start 等状态消息，其他消息都必须渲染
       // Filter out events not belonging to current active request (prevents aborted events from interfering)
+      // Note: only filter out thought and start messages, other messages must be rendered
       if (activeMsgIdRef.current && message.msg_id && message.msg_id !== activeMsgIdRef.current) {
-        // 允许 finish 事件通过，以便正确清理状态
-        // Allow finish events through to properly clean up state
-        if (message.type !== 'finish') {
+        // 只过滤掉 thought 和 start，其他消息都需要渲染
+        // Only filter out thought and start, other messages need to be rendered
+        if (message.type === 'thought') {
           return;
         }
       }
@@ -229,6 +232,7 @@ const GeminiSendBox: React.FC<{
   conversation_id: string;
   modelSelection: GeminiModelSelection;
 }> = ({ conversation_id, modelSelection }) => {
+  const [workspacePath, setWorkspacePath] = useState('');
   const { t } = useTranslation();
   const { checkAndUpdateTitle } = useAutoTitle();
   const quotaPromptedRef = useRef<string | null>(null);
@@ -301,6 +305,13 @@ const GeminiSendBox: React.FC<{
 
   const { thought, running, tokenUsage, setActiveMsgId } = useGeminiMessage(conversation_id, handleGeminiError);
 
+  useEffect(() => {
+    void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
+      if (!res?.extra?.workspace) return;
+      setWorkspacePath(res.extra.workspace);
+    });
+  }, [conversation_id]);
+
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
 
   const addOrUpdateMessage = useAddOrUpdateMessage();
@@ -324,7 +335,7 @@ const GeminiSendBox: React.FC<{
   }, [setSendBoxHandler, content]);
 
   // 使用共享的文件处理逻辑
-  const { handleFilesAdded, processMessageWithFiles, clearFiles } = useSendBoxFiles({
+  const { handleFilesAdded, clearFiles } = useSendBoxFiles({
     atPath,
     uploadFile,
     setAtPath,
@@ -337,7 +348,10 @@ const GeminiSendBox: React.FC<{
     // 设置当前活跃的消息 ID，用于过滤掉旧请求的事件
     // Set current active message ID to filter out events from old requests
     setActiveMsgId(msg_id);
-    message = processMessageWithFiles(message);
+
+    // 保存文件列表（清空前需要保存）/ Save file list before clearing
+    const filesToSend = collectSelectedFiles(uploadFile, atPath);
+    const hasFiles = filesToSend.length > 0;
 
     // 立即清空输入框，避免用户误以为消息没发送
     // Clear input immediately to avoid user thinking message wasn't sent
@@ -345,6 +359,8 @@ const GeminiSendBox: React.FC<{
     clearFiles();
 
     // User message: Display in UI immediately (Backend will persist when receiving from IPC)
+    // 显示原始消息，并附带选中文件名 / Display original message with selected file names
+    const displayMessage = buildDisplayMessage(message, filesToSend, workspacePath);
     addOrUpdateMessage(
       {
         id: msg_id,
@@ -352,22 +368,24 @@ const GeminiSendBox: React.FC<{
         position: 'right',
         conversation_id,
         content: {
-          content: message,
+          content: displayMessage,
         },
         createdAt: Date.now(),
       },
       true
     );
+    // 文件通过 files 参数传递给后端，不再在消息中添加 @ 前缀
+    // Files are passed via files param, no longer adding @ prefix in message
     await ipcBridge.geminiConversation.sendMessage.invoke({
-      input: message,
+      input: displayMessage,
       msg_id,
       conversation_id,
-      files: uploadFile,
+      files: filesToSend,
     });
     void checkAndUpdateTitle(conversation_id, message);
     emitter.emit('chat.history.refresh');
     emitter.emit('gemini.selected.file.clear');
-    if (uploadFile.length) {
+    if (hasFiles) {
       emitter.emit('gemini.workspace.refresh');
     }
   };

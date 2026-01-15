@@ -14,6 +14,7 @@ import { updateWorkspaceTime } from '@/renderer/utils/workspaceHistory';
 import AuggieLogo from '@/renderer/assets/logos/auggie.svg';
 import ClaudeLogo from '@/renderer/assets/logos/claude.svg';
 import CodexLogo from '@/renderer/assets/logos/codex.svg';
+import coworkSvg from '@/renderer/assets/cowork.svg';
 import GeminiLogo from '@/renderer/assets/logos/gemini.svg';
 import GooseLogo from '@/renderer/assets/logos/goose.svg';
 import IflowLogo from '@/renderer/assets/logos/iflow.svg';
@@ -27,8 +28,8 @@ import { useCompositionInput } from '@/renderer/hooks/useCompositionInput';
 import { useDragUpload } from '@/renderer/hooks/useDragUpload';
 import { useGeminiGoogleAuthModels } from '@/renderer/hooks/useGeminiGoogleAuthModels';
 import { usePasteService } from '@/renderer/hooks/usePasteService';
-import { formatFilesForMessage } from '@/renderer/hooks/useSendBoxFiles';
 import { allSupportedExts, type FileMetadata, getCleanFileNames } from '@/renderer/services/FileService';
+import { buildDisplayMessage } from '@/renderer/utils/messageFiles';
 import { iconColors } from '@/renderer/theme/colors';
 import { emitter } from '@/renderer/utils/emitter';
 import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
@@ -134,6 +135,10 @@ const AGENT_LOGO_MAP: Partial<Record<AcpBackend, string>> = {
   auggie: AuggieLogo,
   kimi: KimiLogo,
   opencode: OpenCodeLogo,
+};
+const CUSTOM_AVATAR_IMAGE_MAP: Record<string, string> = {
+  'cowork.svg': coworkSvg,
+  '🛠️': coworkSvg,
 };
 
 const Guid: React.FC = () => {
@@ -368,6 +373,7 @@ const Guid: React.FC = () => {
         label,
         tokens,
         avatar,
+        avatarImage: avatar ? CUSTOM_AVATAR_IMAGE_MAP[avatar] : undefined,
         logo: AGENT_LOGO_MAP[agent.backend],
       };
     });
@@ -413,7 +419,7 @@ const Guid: React.FC = () => {
             filteredMentionOptions.map((option, index) => (
               <Menu.Item key={option.key} data-mention-index={index}>
                 <div className='flex items-center gap-8px'>
-                  {option.avatar ? <span style={{ fontSize: 14, lineHeight: '16px' }}>{option.avatar}</span> : option.logo ? <img src={option.logo} alt={option.label} width={16} height={16} style={{ objectFit: 'contain' }} /> : <Robot theme='outline' size={16} />}
+                  {option.avatarImage ? <img src={option.avatarImage} alt='' width={16} height={16} style={{ objectFit: 'contain' }} /> : option.avatar ? <span style={{ fontSize: 14, lineHeight: '16px' }}>{option.avatar}</span> : option.logo ? <img src={option.logo} alt={option.label} width={16} height={16} style={{ objectFit: 'contain' }} /> : <Robot theme='outline' size={16} />}
                   <span>{option.label}</span>
                 </div>
               </Menu.Item>
@@ -506,48 +512,90 @@ const Guid: React.FC = () => {
 
   const { compositionHandlers, isComposing } = useCompositionInput();
 
-  const resolvePresetContext = useCallback(
-    async (agentInfo: { backend: AcpBackend; customAgentId?: string; context?: string } | undefined): Promise<string | undefined> => {
-      if (!agentInfo) return undefined;
+  /**
+   * 解析预设助手的 rules 和 skills
+   * Resolve preset assistant rules and skills
+   *
+   * - rules: 系统规则，在会话初始化时注入到 userMemory
+   * - skills: 技能定义，在首次请求时注入到消息前缀
+   */
+  const resolvePresetRulesAndSkills = useCallback(
+    async (agentInfo: { backend: AcpBackend; customAgentId?: string; context?: string } | undefined): Promise<{ rules?: string; skills?: string }> => {
+      if (!agentInfo) return {};
       if (agentInfo.backend !== 'custom') {
-        return agentInfo.context;
+        return { rules: agentInfo.context };
       }
 
-      // 从文件读取助手规则 / Read assistant rule from file
       const customAgentId = agentInfo.customAgentId;
-      if (!customAgentId) return agentInfo.context;
+      if (!customAgentId) return { rules: agentInfo.context };
 
-      let content = '';
+      let rules = '';
+      let skills = '';
+
+      // 1. 加载 rules / Load rules
       try {
-        content = await ipcBridge.fs.readAssistantRule.invoke({
+        rules = await ipcBridge.fs.readAssistantRule.invoke({
           assistantId: customAgentId,
           locale: localeKey,
         });
       } catch (error) {
-        console.warn(`Failed to load rule for ${customAgentId}:`, error);
+        console.warn(`Failed to load rules for ${customAgentId}:`, error);
       }
 
-      // Fallback: 如果用户规则为空且是内置助手，直接读取内置资源
-      // Fallback: If user rule is empty and it is a builtin assistant, read directly from builtin resources
-      if (!content && customAgentId.startsWith('builtin-')) {
-        try {
-          const presetId = customAgentId.replace('builtin-', '');
-          const preset = ASSISTANT_PRESETS.find((p) => p.id === presetId);
-          if (preset) {
-            // 根据 localeKey 获取对应的文件名 / Get filename based on localeKey
-            const ruleFile = preset.ruleFiles[localeKey] || preset.ruleFiles['en-US'];
-            if (ruleFile) {
-              content = await ipcBridge.fs.readBuiltinRule.invoke({ fileName: ruleFile });
+      // 2. 加载 skills / Load skills
+      try {
+        skills = await ipcBridge.fs.readAssistantSkill.invoke({
+          assistantId: customAgentId,
+          locale: localeKey,
+        });
+      } catch (error) {
+        // skills 可能不存在，这是正常的 / skills may not exist, this is normal
+      }
+
+      // 3. Fallback: 如果是内置助手且文件为空，从内置资源加载
+      // Fallback: If builtin assistant and files are empty, load from builtin resources
+      if (customAgentId.startsWith('builtin-')) {
+        const presetId = customAgentId.replace('builtin-', '');
+        const preset = ASSISTANT_PRESETS.find((p) => p.id === presetId);
+        if (preset) {
+          // Fallback for rules
+          if (!rules && preset.ruleFiles) {
+            try {
+              const ruleFile = preset.ruleFiles[localeKey] || preset.ruleFiles['en-US'];
+              if (ruleFile) {
+                rules = await ipcBridge.fs.readBuiltinRule.invoke({ fileName: ruleFile });
+              }
+            } catch (e) {
+              console.warn(`Failed to load builtin rules for ${customAgentId}:`, e);
             }
           }
-        } catch (fallbackError) {
-          console.warn(`Failed to load builtin rule fallback for ${customAgentId}:`, fallbackError);
+          // Fallback for skills
+          if (!skills && preset.skillFiles) {
+            try {
+              const skillFile = preset.skillFiles[localeKey] || preset.skillFiles['en-US'];
+              if (skillFile) {
+                skills = await ipcBridge.fs.readBuiltinSkill.invoke({ fileName: skillFile });
+              }
+            } catch (e) {
+              // skills fallback failure is ok
+            }
+          }
         }
       }
 
-      return content || agentInfo.context;
+      return { rules: rules || agentInfo.context, skills };
     },
     [localeKey]
+  );
+
+  // 保持向后兼容的 resolvePresetContext（只返回 rules）
+  // Backward compatible resolvePresetContext (returns only rules)
+  const resolvePresetContext = useCallback(
+    async (agentInfo: { backend: AcpBackend; customAgentId?: string; context?: string } | undefined): Promise<string | undefined> => {
+      const { rules } = await resolvePresetRulesAndSkills(agentInfo);
+      return rules;
+    },
+    [resolvePresetRulesAndSkills]
   );
 
   const resolvePresetAgentType = useCallback(
@@ -556,6 +604,17 @@ const Guid: React.FC = () => {
       if (agentInfo.backend !== 'custom') return 'gemini';
       const customAgent = customAgents.find((agent) => agent.id === agentInfo.customAgentId);
       return customAgent?.presetAgentType || 'gemini';
+    },
+    [customAgents]
+  );
+
+  // 解析助手启用的 skills 列表 / Resolve enabled skills for the assistant
+  const resolveEnabledSkills = useCallback(
+    (agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined): string[] | undefined => {
+      if (!agentInfo) return undefined;
+      if (agentInfo.backend !== 'custom') return undefined;
+      const customAgent = customAgents.find((agent) => agent.id === agentInfo.customAgentId);
+      return customAgent?.enabledSkills;
     },
     [customAgents]
   );
@@ -598,7 +657,10 @@ const Guid: React.FC = () => {
     const agentInfo = selectedAgentInfo;
     const isPreset = isPresetAgent;
     const presetAgentType = resolvePresetAgentType(agentInfo);
-    const presetContext = await resolvePresetContext(agentInfo);
+    // 加载 rules（skills 已迁移到 SkillManager）/ Load rules (skills migrated to SkillManager)
+    const { rules: presetRules } = await resolvePresetRulesAndSkills(agentInfo);
+    // 获取启用的 skills 列表 / Get enabled skills list
+    const enabledSkills = resolveEnabledSkills(agentInfo);
 
     // 默认情况使用 Gemini，或 Preset 配置为 Gemini
     if (!selectedAgent || selectedAgent === 'gemini' || (isPreset && presetAgentType === 'gemini')) {
@@ -613,8 +675,14 @@ const Guid: React.FC = () => {
             workspace: finalWorkspace,
             customWorkspace: isCustomWorkspace,
             webSearchEngine: isGoogleAuth ? 'google' : 'default',
-            // Pass preset context for rules injection
-            presetContext: isPreset ? presetContext : undefined,
+            // 传递 rules（skills 通过 SkillManager 加载）
+            // Pass rules (skills loaded via SkillManager)
+            presetRules: isPreset ? presetRules : undefined,
+            // 启用的 skills 列表 / Enabled skills list
+            enabledSkills: isPreset ? enabledSkills : undefined,
+            // 预设助手 ID，用于在会话面板显示助手名称和头像
+            // Preset assistant ID for displaying name and avatar in conversation panel
+            presetAssistantId: isPreset ? agentInfo?.customAgentId : undefined,
           },
         });
 
@@ -636,12 +704,17 @@ const Guid: React.FC = () => {
         // 然后导航到会话页面
         await navigate(`/conversation/${conversation.id}`);
 
-        // 然后发送消息
+        // 然后发送消息（文件通过 files 参数传递，不在消息中添加 @ 前缀）
+        // Send message (files passed via files param, no @ prefix in message)
+        const workspacePath = conversation.extra?.workspace || '';
+        const displayMessage = buildDisplayMessage(input, files, workspacePath);
+
         void ipcBridge.geminiConversation.sendMessage
           .invoke({
-            input: files.length > 0 ? formatFilesForMessage(files) + ' ' + input : input,
+            input: displayMessage,
             conversation_id: conversation.id,
             msg_id: uuid(),
+            files,
           })
           .catch((error) => {
             console.error('Failed to send message:', error);
@@ -655,6 +728,9 @@ const Guid: React.FC = () => {
       }
       return;
     } else if (selectedAgent === 'codex' || (isPreset && presetAgentType === 'codex')) {
+      // Codex conversation type (including preset with codex agent type)
+      const codexAgentInfo = agentInfo || findAgentByKey(selectedAgentKey);
+
       // 创建 Codex 会话并保存初始消息，由对话页负责发送
       try {
         const conversation = await ipcBridge.conversation.create.invoke({
@@ -665,8 +741,13 @@ const Guid: React.FC = () => {
             defaultFiles: files,
             workspace: finalWorkspace,
             customWorkspace: isCustomWorkspace,
-            // Pass preset context for skill injection
-            presetContext: isPreset ? presetContext : undefined,
+            // Pass preset context (rules only)
+            presetContext: isPreset ? presetRules : undefined,
+            // 启用的 skills 列表（通过 SkillManager 加载）/ Enabled skills list (loaded via SkillManager)
+            enabledSkills: isPreset ? enabledSkills : undefined,
+            // 预设助手 ID，用于在会话面板显示助手名称和头像
+            // Preset assistant ID for displaying name and avatar in conversation panel
+            presetAssistantId: isPreset ? codexAgentInfo?.customAgentId : undefined,
           },
         });
 
@@ -726,8 +807,13 @@ const Guid: React.FC = () => {
             cliPath: acpAgentInfo?.cliPath,
             agentName: acpAgentInfo?.name, // 存储自定义代理的配置名称 / Store configured name for custom agents
             customAgentId: acpAgentInfo?.customAgentId, // 自定义代理的 UUID / UUID for custom agents
-            // Pass preset context for skill injection
-            presetContext: isPreset ? presetContext : undefined,
+            // Pass preset context (rules only)
+            presetContext: isPreset ? presetRules : undefined,
+            // 启用的 skills 列表（通过 SkillManager 加载）/ Enabled skills list (loaded via SkillManager)
+            enabledSkills: isPreset ? enabledSkills : undefined,
+            // 预设助手 ID，用于在会话面板显示助手名称和头像
+            // Preset assistant ID for displaying name and avatar in conversation panel
+            presetAssistantId: isPreset ? acpAgentInfo?.customAgentId : undefined,
           },
         });
 
@@ -944,6 +1030,7 @@ const Guid: React.FC = () => {
                   const logoSrc = AGENT_LOGO_MAP[agent.backend];
                   const avatarValue = agent.backend === 'custom' ? agent.avatar || customAgentAvatarMap.get(agent.customAgentId || '') : undefined;
                   const avatar = avatarValue ? avatarValue.trim() : undefined;
+                  const avatarImage = avatar ? CUSTOM_AVATAR_IMAGE_MAP[avatar] : undefined;
 
                   return (
                     <React.Fragment key={getAgentKey(agent)}>
@@ -966,7 +1053,7 @@ const Guid: React.FC = () => {
                           setMentionActiveIndex(0);
                         }}
                       >
-                        {avatar ? <span style={{ fontSize: 16, lineHeight: '20px', flexShrink: 0 }}>{avatar}</span> : logoSrc ? <img src={logoSrc} alt={`${agent.backend} logo`} width={20} height={20} style={{ objectFit: 'contain', flexShrink: 0 }} /> : <Robot theme='outline' size={20} style={{ flexShrink: 0 }} />}
+                        {avatarImage ? <img src={avatarImage} alt='' width={20} height={20} style={{ objectFit: 'contain', flexShrink: 0 }} /> : avatar ? <span style={{ fontSize: 16, lineHeight: '20px', flexShrink: 0 }}>{avatar}</span> : logoSrc ? <img src={logoSrc} alt={`${agent.backend} logo`} width={20} height={20} style={{ objectFit: 'contain', flexShrink: 0 }} /> : <Robot theme='outline' size={20} style={{ flexShrink: 0 }} />}
                         <span
                           className={`font-medium text-14px ${isSelected ? 'font-semibold' : 'max-w-0 opacity-0 overflow-hidden group-hover:max-w-100px group-hover:opacity-100 group-hover:ml-8px'}`}
                           style={{
@@ -1096,7 +1183,7 @@ const Guid: React.FC = () => {
                   </span>
                 </Dropdown>
 
-                {(selectedAgent === 'gemini' || isPresetAgent) && (
+                {(selectedAgent === 'gemini' || (isPresetAgent && resolvePresetAgentType(selectedAgentInfo) === 'gemini')) && (
                   <Dropdown
                     trigger='hover'
                     droplist={
@@ -1212,7 +1299,7 @@ const Guid: React.FC = () => {
                   shape='circle'
                   type='primary'
                   loading={loading}
-                  disabled={!input.trim() || ((!selectedAgent || selectedAgent === 'gemini' || isPresetAgent) && !currentModel)}
+                  disabled={!input.trim() || ((!selectedAgent || selectedAgent === 'gemini' || (isPresetAgent && resolvePresetAgentType(selectedAgentInfo) === 'gemini')) && !currentModel)}
                   icon={<ArrowUp theme='outline' size='14' fill='white' strokeWidth={2} />}
                   onClick={() => {
                     handleSend().catch((error) => {

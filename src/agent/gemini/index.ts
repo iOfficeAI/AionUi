@@ -5,6 +5,7 @@
  */
 
 // src/core/ConfigManager.ts
+import { AIONUI_FILES_MARKER } from '@/common/constants';
 import { NavigationInterceptor } from '@/common/navigation';
 import type { TProviderWithModel } from '@/common/storage';
 import { uuid } from '@/common/utils';
@@ -38,7 +39,13 @@ interface GeminiAgent2Options {
   mcpServers?: Record<string, unknown>;
   contextFileName?: string;
   onStreamEvent: (event: { type: string; data: unknown; msg_id: string }) => void;
-  contextContent?: string;
+  // 系统规则，在初始化时注入到 userMemory / System rules, injected into userMemory at initialization
+  presetRules?: string;
+  contextContent?: string; // 向后兼容 / Backward compatible
+  /** 内置 skills 目录路径，使用 aioncli-core SkillManager 加载 / Builtin skills directory path, loaded by aioncli-core SkillManager */
+  skillsDir?: string;
+  /** 启用的 skills 列表，用于过滤 SkillManager 中的 skills / Enabled skills list for filtering skills in SkillManager */
+  enabledSkills?: string[];
 }
 
 export class GeminiAgent {
@@ -56,15 +63,22 @@ export class GeminiAgent {
   private scheduler: CoreToolScheduler | null = null;
   private trackedCalls: TrackedToolCall[] = [];
   private abortController: AbortController | null = null;
+  private activeMsgId: string | null = null;
   private onStreamEvent: (event: { type: string; data: unknown; msg_id: string }) => void;
-  private contextContent?: string;
+  // 系统规则，在初始化时注入 / System rules, injected at initialization
+  private presetRules?: string;
+  private contextContent?: string; // 向后兼容 / Backward compatible
   private toolConfig: ConversationToolConfig; // 对话级别的工具配置
   private apiKeyManager: ApiKeyManager | null = null; // 多API Key管理器
   private settings: Settings | null = null;
   private historyPrefix: string | null = null;
   private historyUsedOnce = false;
-  private contextPrependedOnce = false; // Track if we've prepended context rules to first message
+  private skillsIndexPrependedOnce = false; // Track if we've prepended skills index to first message
   private contextFileName: string | undefined;
+  /** 内置 skills 目录路径 / Builtin skills directory path */
+  private skillsDir?: string;
+  /** 启用的 skills 列表 / Enabled skills list */
+  private enabledSkills?: string[];
   bootstrap: Promise<void>;
   static buildFileServer(workspace: string) {
     return new FileDiscoveryService(workspace);
@@ -82,7 +96,11 @@ export class GeminiAgent {
     // 使用统一的工具函数获取认证类型
     this.authType = getProviderAuthType(options.model);
     this.onStreamEvent = options.onStreamEvent;
-    this.contextContent = options.contextContent;
+    this.presetRules = options.presetRules;
+    this.skillsDir = options.skillsDir;
+    this.enabledSkills = options.enabledSkills;
+    // 向后兼容：优先使用 presetRules，其次 contextContent / Backward compatible: prefer presetRules, fallback to contextContent
+    this.contextContent = options.contextContent || options.presetRules;
     this.initClientEnv();
     this.toolConfig = new ConversationToolConfig({
       proxy: this.proxy,
@@ -231,6 +249,8 @@ export class GeminiAgent {
       conversationToolConfig: this.toolConfig,
       yoloMode,
       mcpServers: this.mcpServers,
+      skillsDir: this.skillsDir,
+      enabledSkills: this.enabledSkills,
     });
     await this.config.initialize();
 
@@ -244,12 +264,21 @@ export class GeminiAgent {
 
     this.geminiClient = this.config.getGeminiClient();
 
-    // Inject context content (preset rules) if provided
-    if (this.contextContent) {
+    // 在初始化时注入 presetRules 到 userMemory
+    // Inject presetRules into userMemory at initialization
+    // Rules 定义系统行为规则，在会话开始时就应该生效
+    // Rules define system behavior, should be effective from session start
+    if (this.presetRules) {
       const currentMemory = this.config.getUserMemory();
-      const combined = `${this.contextContent}\n\n[Workspace Context]\n${currentMemory}`;
+      const rulesSection = `[Assistant System Rules]\n${this.presetRules}`;
+      const combined = currentMemory ? `${rulesSection}\n\n${currentMemory}` : rulesSection;
       this.config.setUserMemory(combined);
     }
+
+    // Note: Skills (技能定义) are prepended to the first message in send() method
+    // Skills provide capabilities/tools descriptions, injected at runtime
+    // 注意：Skills 在 send() 方法中 prepend 到第一条消息
+    // Skills 提供能力/工具描述，在运行时注入
 
     // 注册对话级别的自定义工具
     await this.toolConfig.registerCustomTools(this.config, this.geminiClient);
@@ -283,7 +312,7 @@ export class GeminiAgent {
                 return false;
               });
 
-              this.submitQuery(response, uuid(), this.createAbortController(), {
+              this.submitQuery(response, this.activeMsgId ?? uuid(), this.createAbortController(), {
                 isContinuation: true,
                 prompt_id: geminiTools[0].request.prompt_id,
               });
@@ -293,7 +322,7 @@ export class GeminiAgent {
           this.onStreamEvent({
             type: 'error',
             data: 'handleCompletedTools error: ' + (e.message || JSON.stringify(e)),
-            msg_id: uuid(),
+            msg_id: this.activeMsgId ?? uuid(),
           });
         }
       },
@@ -312,13 +341,13 @@ export class GeminiAgent {
           this.onStreamEvent({
             type: 'tool_group',
             data: display.tools,
-            msg_id: uuid(),
+            msg_id: this.activeMsgId ?? uuid(),
           });
         } catch (e) {
           this.onStreamEvent({
             type: 'error',
             data: 'tool_calls_update error: ' + (e.message || JSON.stringify(e)),
-            msg_id: uuid(),
+            msg_id: this.activeMsgId ?? uuid(),
           });
         }
       },
@@ -460,6 +489,7 @@ export class GeminiAgent {
     }
   ): string | undefined {
     try {
+      this.activeMsgId = msg_id;
       let prompt_id = options?.prompt_id;
       if (!prompt_id) {
         prompt_id = this.config.getSessionId() + '########' + getPromptCount();
@@ -467,6 +497,7 @@ export class GeminiAgent {
       if (!options?.isContinuation) {
         startNewPrompt();
       }
+
       const stream = this.geminiClient.sendMessageStream(query, abortController.signal, prompt_id);
       this.onStreamEvent({
         type: 'start',
@@ -501,9 +532,23 @@ export class GeminiAgent {
     }
   }
 
-  async send(message: string | Array<{ text: string }>, msg_id = '') {
+  async send(message: string | Array<{ text: string }>, msg_id = '', files?: string[]) {
     await this.bootstrap;
     const abortController = this.createAbortController();
+
+    const stripFilesMarker = (text: string): string => {
+      const markerIndex = text.indexOf(AIONUI_FILES_MARKER);
+      if (markerIndex === -1) return text;
+      return text.slice(0, markerIndex).trimEnd();
+    };
+
+    if (Array.isArray(message)) {
+      if (message[0]?.text) {
+        message[0].text = stripFilesMarker(message[0].text);
+      }
+    } else if (typeof message === 'string') {
+      message = stripFilesMarker(message);
+    }
 
     // OAuth Token 预检查（仅对 OAuth 模式生效）
     // Preemptive OAuth Token check (only for OAuth mode)
@@ -532,17 +577,30 @@ export class GeminiAgent {
       this.historyUsedOnce = true;
     }
 
-    // Prepend context rules to the first message for preset assistants
-    // This ensures the model sees the rules as part of the user's request, not just background context
-    if (this.contextContent && !this.contextPrependedOnce) {
-      const rulesPrefix = `[Assistant Rules - You MUST follow these instructions]\n${this.contextContent}\n\n[User Request]\n`;
-      if (Array.isArray(message)) {
-        if (message[0]) message[0].text = rulesPrefix + message[0].text;
-      } else {
-        message = rulesPrefix + message;
+    // Skills 通过 SkillManager 加载，索引已在系统指令中
+    // Skills are loaded via SkillManager, index is already in system instruction
+    let skillsPrefix = '';
+
+    if (!this.skillsIndexPrependedOnce) {
+      // 向后兼容：使用 contextContent 作为助手规则
+      // Backward compatible: use contextContent as assistant rules
+      if (this.contextContent && !this.presetRules) {
+        skillsPrefix = `[Assistant Rules - You MUST follow these instructions]\n${this.contextContent}\n\n`;
       }
-      this.contextPrependedOnce = true;
+      this.skillsIndexPrependedOnce = true;
+
+      // 注入前缀到消息 / Inject prefix into message
+      if (skillsPrefix) {
+        const prefix = skillsPrefix + '[User Request]\n';
+        if (Array.isArray(message)) {
+          if (message[0]) message[0].text = prefix + message[0].text;
+        } else {
+          message = prefix + message;
+        }
+      }
     }
+
+    // files 参数仅用于复制到工作空间，不向模型传递路径提示
 
     // Track error messages from @ command processing
     let atCommandError: string | null = null;
@@ -564,6 +622,9 @@ export class GeminiAgent {
       },
       messageId: Date.now(),
       signal: abortController.signal,
+      // 有 files 时启用懒加载：不立即读取文件内容
+      // Enable lazy loading only when files are provided
+      lazyFileLoading: !!(files && files.length > 0),
     });
 
     if (!shouldProceed || processedQuery === null || abortController.signal.aborted) {

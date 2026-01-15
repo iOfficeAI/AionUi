@@ -231,7 +231,8 @@ export class AcpConnection {
 
     return new Promise((resolve, reject) => {
       // Use longer timeout for session/prompt requests as they involve LLM processing
-      const timeoutDuration = method === 'session/prompt' ? 120000 : 60000; // 2 minutes for prompts, 1 minute for others
+      // Complex tasks like document processing may need significantly more time
+      const timeoutDuration = method === 'session/prompt' ? 300000 : 60000; // 5 minutes for prompts, 1 minute for others
       const startTime = Date.now();
 
       const createTimeoutHandler = () => {
@@ -328,6 +329,25 @@ export class AcpConnection {
     }
   }
 
+  // 重置所有 session/prompt 请求的超时计时器（在收到流式更新时调用）
+  // Reset timeout timers for all session/prompt requests (called when receiving streaming updates)
+  private resetSessionPromptTimeouts(): void {
+    for (const [id, request] of this.pendingRequests) {
+      if (request.method === 'session/prompt' && !request.isPaused && request.timeoutId) {
+        // Clear existing timeout
+        clearTimeout(request.timeoutId);
+        // Reset start time and create new timeout
+        request.startTime = Date.now();
+        request.timeoutId = setTimeout(() => {
+          if (this.pendingRequests.has(id) && !request.isPaused) {
+            this.pendingRequests.delete(id);
+            request.reject(new Error(`LLM request timed out after ${request.timeoutDuration / 1000} seconds`));
+          }
+        }, request.timeoutDuration);
+      }
+    }
+  }
+
   private sendMessage(message: AcpRequest | AcpNotification): void {
     if (this.child?.stdin) {
       const jsonString = JSON.stringify(message);
@@ -390,6 +410,8 @@ export class AcpConnection {
       // 可辨识联合类型：TypeScript 根据 method 字面量自动窄化 params 类型
       switch (message.method) {
         case ACP_METHODS.SESSION_UPDATE:
+          // Reset timeout on streaming updates - LLM is still processing
+          this.resetSessionPromptTimeouts();
           this.onSessionUpdate(message.params);
           break;
         case ACP_METHODS.REQUEST_PERMISSION:

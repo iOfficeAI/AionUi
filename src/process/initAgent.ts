@@ -62,13 +62,24 @@ const buildWorkspaceWidthFiles = async (defaultWorkspaceName: string, workspace?
   return { workspace, customWorkspace };
 };
 
-export const createGeminiAgent = async (model: TProviderWithModel, workspace?: string, defaultFiles?: string[], webSearchEngine?: 'google' | 'default', customWorkspace?: boolean, contextFileName?: string, contextContent?: string): Promise<TChatConversation> => {
+export const createGeminiAgent = async (model: TProviderWithModel, workspace?: string, defaultFiles?: string[], webSearchEngine?: 'google' | 'default', customWorkspace?: boolean, contextFileName?: string, presetRules?: string, enabledSkills?: string[]): Promise<TChatConversation> => {
   const { workspace: newWorkspace, customWorkspace: finalCustomWorkspace } = await buildWorkspaceWidthFiles(`gemini-temp-${Date.now()}`, workspace, defaultFiles, customWorkspace);
 
   return {
     type: 'gemini',
     model,
-    extra: { workspace: newWorkspace, customWorkspace: finalCustomWorkspace, webSearchEngine, contextFileName, contextContent },
+    extra: {
+      workspace: newWorkspace,
+      customWorkspace: finalCustomWorkspace,
+      webSearchEngine,
+      contextFileName,
+      // 系统规则 / System rules
+      presetRules,
+      // 向后兼容：contextContent 保存 rules / Backward compatible: contextContent stores rules
+      contextContent: presetRules,
+      // 启用的 skills 列表（通过 SkillManager 加载）/ Enabled skills list (loaded via SkillManager)
+      enabledSkills,
+    },
     desc: finalCustomWorkspace ? newWorkspace : '',
     createTime: Date.now(),
     modifyTime: Date.now(),
@@ -88,8 +99,10 @@ export const createAcpAgent = async (options: ICreateConversationParams): Promis
       backend: extra.backend,
       cliPath: extra.cliPath,
       agentName: extra.agentName,
-      customAgentId: extra.customAgentId,
+      customAgentId: extra.customAgentId, // 同时用于标识预设助手 / Also used to identify preset assistant
       presetContext: extra.presetContext, // 智能助手的预设规则/提示词
+      // 启用的 skills 列表（通过 SkillManager 加载）/ Enabled skills list (loaded via SkillManager)
+      enabledSkills: extra.enabledSkills,
     },
     createTime: Date.now(),
     modifyTime: Date.now(),
@@ -109,6 +122,11 @@ export const createCodexAgent = async (options: ICreateConversationParams): Prom
       cliPath: extra.cliPath,
       sandboxMode: 'workspace-write', // 默认为读写权限 / Default to read-write permission
       presetContext: extra.presetContext, // 智能助手的预设规则/提示词
+      // 启用的 skills 列表（通过 SkillManager 加载）/ Enabled skills list (loaded via SkillManager)
+      enabledSkills: extra.enabledSkills,
+      // 预设助手 ID，用于在会话面板显示助手名称和头像
+      // Preset assistant ID for displaying name and avatar in conversation panel
+      presetAssistantId: extra.presetAssistantId,
     },
     createTime: Date.now(),
     modifyTime: Date.now(),

@@ -49,6 +49,13 @@ interface HandleAtCommandParams {
   onDebugMessage: (message: string) => void;
   messageId: number;
   signal: AbortSignal;
+  /**
+   * 懒加载模式：不立即读取文件内容，只传递文件路径提示给 agent
+   * 让 agent 自主决定何时使用 read_file 工具读取文件
+   * Lazy loading mode: don't read file content immediately, only pass file path hints to agent
+   * Let agent decide when to use read_file tool to read files
+   */
+  lazyFileLoading?: boolean;
 }
 
 interface HandleAtCommandResult {
@@ -138,7 +145,7 @@ function parseAllAtCommands(query: string): AtCommandPart[] {
  * @returns An object indicating whether the main hook should proceed with an
  *          LLM call and the processed query parts (including file content).
  */
-export async function handleAtCommand({ query, config, addItem, onDebugMessage, messageId: userMessageTimestamp, signal }: HandleAtCommandParams): Promise<HandleAtCommandResult> {
+export async function handleAtCommand({ query, config, addItem, onDebugMessage, messageId: userMessageTimestamp, signal, lazyFileLoading = false }: HandleAtCommandParams): Promise<HandleAtCommandResult> {
   const commandParts = parseAllAtCommands(query);
   const atPathCommandParts = commandParts.filter((part) => part.type === 'atPath');
 
@@ -331,7 +338,6 @@ export async function handleAtCommand({ query, config, addItem, onDebugMessage, 
     }
 
     const message = `Ignored ${totalIgnored} files:\n${messages.join('\n')}`;
-    console.log(message);
     onDebugMessage(message);
   }
 
@@ -353,6 +359,31 @@ export async function handleAtCommand({ query, config, addItem, onDebugMessage, 
   }
 
   const processedQueryParts: PartUnion[] = [{ text: initialQueryText }];
+
+  // 懒加载模式：不读取文件内容，只传递文件路径提示给 agent
+  // Lazy loading mode: don't read file content, only pass file path hints to agent
+  if (lazyFileLoading) {
+    const workspaceDirs = config.getWorkspaceContext().getDirectories();
+    const workspaceDir = workspaceDirs[0] || process.cwd();
+
+    processedQueryParts.push({
+      text: '\n\n[Files referenced in workspace - use read_file tool to access when needed]:',
+    });
+
+    for (const pathSpec of pathSpecsToRead) {
+      const absolutePath = path.resolve(workspaceDir, pathSpec);
+      processedQueryParts.push({
+        text: `\n- ${pathSpec} (path: ${absolutePath})`,
+      });
+      onDebugMessage(`File reference added (lazy mode): ${pathSpec}`);
+    }
+
+    processedQueryParts.push({
+      text: '\n\nNote: File contents are not loaded. Use read_file or read_many_files tool to read file content when you need it.',
+    });
+
+    return { processedQuery: processedQueryParts, shouldProceed: true };
+  }
 
   // Use fallback direct file reading if read_many_files tool is not available
   if (useFallbackFileReading) {

@@ -9,7 +9,7 @@ import type { TMessage } from '@/common/chatLib';
 import { transformMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import type { IMcpServer, TProviderWithModel } from '@/common/storage';
-import { ProcessConfig } from '@/process/initStorage';
+import { ProcessConfig, getSkillsDir } from '@/process/initStorage';
 import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '../message';
 import BaseAgentManager from './BaseAgentManager';
 import { handlePreviewOpenEvent } from '../utils/previewUtils';
@@ -30,13 +30,21 @@ export class GeminiAgentManager extends BaseAgentManager<{
   webSearchEngine?: 'google' | 'default';
   mcpServers?: Record<string, UiMcpServerConfig>;
   contextFileName?: string;
-  contextContent?: string;
+  // 系统规则 / System rules
+  presetRules?: string;
+  contextContent?: string; // 向后兼容 / Backward compatible
   GOOGLE_CLOUD_PROJECT?: string;
+  /** 内置 skills 目录路径 / Builtin skills directory path */
+  skillsDir?: string;
+  /** 启用的 skills 列表 / Enabled skills list */
+  enabledSkills?: string[];
 }> {
   workspace: string;
   model: TProviderWithModel;
   contextFileName?: string;
+  presetRules?: string;
   contextContent?: string;
+  enabledSkills?: string[];
   private bootstrap: Promise<void>;
 
   private async injectHistoryFromDatabase(): Promise<void> {
@@ -49,7 +57,11 @@ export class GeminiAgentManager extends BaseAgentManager<{
       conversation_id: string;
       webSearchEngine?: 'google' | 'default';
       contextFileName?: string;
-      contextContent?: string;
+      // 系统规则 / System rules
+      presetRules?: string;
+      contextContent?: string; // 向后兼容 / Backward compatible
+      /** 启用的 skills 列表 / Enabled skills list */
+      enabledSkills?: string[];
     },
     model: TProviderWithModel
   ) {
@@ -58,7 +70,10 @@ export class GeminiAgentManager extends BaseAgentManager<{
     this.conversation_id = data.conversation_id;
     this.model = model;
     this.contextFileName = data.contextFileName;
-    this.contextContent = data.contextContent;
+    this.presetRules = data.presetRules;
+    this.enabledSkills = data.enabledSkills;
+    // 向后兼容 / Backward compatible
+    this.contextContent = data.contextContent || data.presetRules;
     this.bootstrap = Promise.all([ProcessConfig.get('gemini.config'), this.getImageGenerationModel(), this.getMcpServers()])
       .then(async ([config, imageGenerationModel, mcpServers]) => {
         // 获取当前账号对应的 GOOGLE_CLOUD_PROJECT
@@ -85,7 +100,13 @@ export class GeminiAgentManager extends BaseAgentManager<{
           webSearchEngine: data.webSearchEngine,
           mcpServers,
           contextFileName: this.contextFileName,
+          presetRules: this.presetRules,
           contextContent: this.contextContent,
+          // Skills 通过 SkillManager 加载 / Skills loaded via SkillManager
+          skillsDir: getSkillsDir(),
+          // 启用的 skills 列表，用于过滤 SkillManager 中的 skills
+          // Enabled skills list for filtering skills in SkillManager
+          enabledSkills: this.enabledSkills,
         });
       })
       .then(async () => {
@@ -133,7 +154,7 @@ export class GeminiAgentManager extends BaseAgentManager<{
     }
   }
 
-  async sendMessage(data: { input: string; msg_id: string }) {
+  async sendMessage(data: { input: string; msg_id: string; files?: string[] }) {
     const message: TMessage = {
       id: data.msg_id,
       type: 'text',

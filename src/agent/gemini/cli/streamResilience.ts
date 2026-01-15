@@ -60,7 +60,7 @@ export const DEFAULT_STREAM_RESILIENCE_CONFIG: StreamResilienceConfig = {
   maxRetries: 3,
   initialRetryDelayMs: 1000,
   maxRetryDelayMs: 10000,
-  heartbeatTimeoutMs: 30000, // 30 seconds without data considered disconnected / 30秒无数据则认为断开
+  heartbeatTimeoutMs: 90000, // 90 seconds without data considered disconnected / 90秒无数据则认为断开
   requestTimeoutMs: 120000, // 2 minutes request timeout / 2分钟请求超时
   enableAutoReconnect: true,
 };

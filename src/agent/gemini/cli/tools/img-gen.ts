@@ -6,7 +6,7 @@
 
 import type { TProviderWithModel } from '@/common/storage';
 import { Type } from '@google/genai';
-import type { Config, ToolResult, ToolInvocation, ToolLocation, ToolCallConfirmationDetails, ToolResultDisplay } from '@office-ai/aioncli-core';
+import type { Config, ToolResult, ToolInvocation, ToolLocation, ToolCallConfirmationDetails, ToolResultDisplay, MessageBus } from '@office-ai/aioncli-core';
 import { BaseDeclarativeTool, BaseToolInvocation, Kind, getErrorMessage, ToolErrorType } from '@office-ai/aioncli-core';
 import * as fs from 'fs';
 import { jsonrepair } from 'jsonrepair';
@@ -186,6 +186,7 @@ IMPORTANT: When user provides multiple images (like @img1.jpg @img2.png), ALWAYS
         },
         required: ['prompt'],
       },
+      config.getMessageBus(),
       true, // isOutputMarkdown
       false // canUpdateOutput
     );
@@ -249,8 +250,8 @@ IMPORTANT: When user provides multiple images (like @img1.jpg @img2.png), ALWAYS
     return null;
   }
 
-  protected createInvocation(params: ImageGenerationToolParams): ToolInvocation<ImageGenerationToolParams, ToolResult> {
-    return new ImageGenerationInvocation(this.config, this.imageGenerationModel, params, this.proxy);
+  protected createInvocation(params: ImageGenerationToolParams, messageBus: MessageBus, _toolName?: string, _toolDisplayName?: string): ToolInvocation<ImageGenerationToolParams, ToolResult> {
+    return new ImageGenerationInvocation(this.config, this.imageGenerationModel, params, this.proxy, messageBus, _toolName, _toolDisplayName);
   }
 }
 
@@ -262,9 +263,12 @@ class ImageGenerationInvocation extends BaseToolInvocation<ImageGenerationToolPa
     private readonly config: Config,
     private readonly imageGenerationModel: TProviderWithModel,
     params: ImageGenerationToolParams,
-    private readonly proxy?: string
+    private readonly proxy: string | undefined,
+    messageBus: MessageBus,
+    _toolName?: string,
+    _toolDisplayName?: string
   ) {
-    super(params);
+    super(params, messageBus, _toolName, _toolDisplayName);
 
     // Initialize the rotating client using factory
     this.currentModel = this.imageGenerationModel.useModel;

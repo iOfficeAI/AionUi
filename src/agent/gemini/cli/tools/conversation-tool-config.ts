@@ -120,7 +120,7 @@ export class ConversationToolConfig {
 
     // 注册 aionui_web_fetch 工具（所有模型）
     if (this.useAionuiWebFetch) {
-      const customWebFetchTool = new WebFetchTool(geminiClient);
+      const customWebFetchTool = new WebFetchTool(geminiClient, config.getMessageBus());
       toolRegistry.registerTool(customWebFetchTool);
     }
 
@@ -152,7 +152,7 @@ export class ConversationToolConfig {
 
         // 只有成功创建 Config 时才注册工具
         if (this.dedicatedConfig && this.dedicatedGeminiClient) {
-          const customWebSearchTool = new WebSearchTool(this.dedicatedConfig);
+          const customWebSearchTool = new WebSearchTool(this.dedicatedConfig, this.dedicatedConfig.getMessageBus());
           toolRegistry.registerTool(customWebSearchTool);
         }
         // Google未登录时静默跳过，不影响其他工具
