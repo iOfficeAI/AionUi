@@ -618,19 +618,22 @@ const initStorage = async () => {
         const existing = updatedAgents[index];
         // 只有当关键字段不同时才更新，避免不必要的写入
         // Update only if key fields are different to avoid unnecessary writes
-        // 注意：enabled 字段由用户控制，不参与 shouldUpdate 判断（除非需要迁移）
-        // Note: enabled field is user-controlled, not included in shouldUpdate check (unless migration needed)
-        const shouldUpdate = existing.name !== builtin.name || existing.description !== builtin.description || existing.avatar !== builtin.avatar || existing.presetAgentType !== builtin.presetAgentType || existing.isPreset !== builtin.isPreset || existing.isBuiltin !== builtin.isBuiltin;
+        // 注意：enabled 和 presetAgentType 字段由用户控制，不参与 shouldUpdate 判断
+        // Note: enabled and presetAgentType are user-controlled, not included in shouldUpdate check
+        const shouldUpdate = existing.name !== builtin.name || existing.description !== builtin.description || existing.avatar !== builtin.avatar || existing.isPreset !== builtin.isPreset || existing.isBuiltin !== builtin.isBuiltin;
         // 当 enabled 是 undefined 或需要迁移时，设置默认值（Cowork 启用，其他禁用）
         // When enabled is undefined or migration needed, set default value (Cowork enabled, others disabled)
         const needsEnabledFix = existing.enabled === undefined || needsMigration;
         // 迁移时强制使用默认值，否则保留用户设置
         // Force default value during migration, otherwise preserve user setting
         const resolvedEnabled = needsEnabledFix ? builtin.enabled : existing.enabled;
+        // presetAgentType 由用户控制，未设置时使用内置默认值
+        // presetAgentType is user-controlled, use builtin default if not set
+        const resolvedPresetAgentType = existing.presetAgentType ?? builtin.presetAgentType;
 
         if (shouldUpdate || needsEnabledFix) {
-          // 保留用户已设置的 enabled，未设置时应用默认 / Preserve user setting if present, otherwise use default
-          updatedAgents[index] = { ...existing, ...builtin, enabled: resolvedEnabled };
+          // 保留用户已设置的 enabled 和 presetAgentType / Preserve user-set enabled and presetAgentType
+          updatedAgents[index] = { ...existing, ...builtin, enabled: resolvedEnabled, presetAgentType: resolvedPresetAgentType };
           hasChanges = true;
         }
       } else {
