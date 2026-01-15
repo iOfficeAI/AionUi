@@ -240,6 +240,14 @@ export const processGeminiStreamEvents = async (stream: AsyncIterable<ServerGemi
 const normalizeToolParams = (toolName: string, args: Record<string, unknown>): Record<string, unknown> => {
   const normalized = { ...args };
 
+  // Strip leading "@" for file references (users often write @file.ext)
+  if (typeof normalized.file_path === 'string' && normalized.file_path.startsWith('@')) {
+    normalized.file_path = normalized.file_path.slice(1);
+  }
+  if (typeof normalized.path === 'string' && normalized.path.startsWith('@')) {
+    normalized.path = normalized.path.slice(1);
+  }
+
   // 文件操作工具：将 path 映射到 file_path
   // File operation tools: map 'path' to 'file_path'
   const fileTools = ['ReadFileTool', 'WriteFileTool', 'EditTool', 'read_file', 'write_file', 'edit'];

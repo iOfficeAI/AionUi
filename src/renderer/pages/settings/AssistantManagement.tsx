@@ -1,5 +1,5 @@
 import type { Message } from '@arco-design/web-react';
-import { Avatar, Button, Collapse, Input, Drawer, Modal, Typography, Select, Switch } from '@arco-design/web-react';
+import { Avatar, Button, Checkbox, Collapse, Input, Drawer, Modal, Typography, Select, Switch } from '@arco-design/web-react';
 import { Close, Robot, SettingOne } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -11,6 +11,13 @@ import type { AcpBackendConfig, PresetAgentType } from '@/types/acpTypes';
 // EmojiPicker removed - avatar editing is disabled
 import MarkdownView from '@/renderer/components/Markdown';
 import coworkSvg from '@/renderer/assets/cowork.svg';
+
+// Skill 信息类型 / Skill info type
+interface SkillInfo {
+  name: string;
+  description: string;
+  location: string;
+}
 
 interface AssistantManagementProps {
   message: ReturnType<typeof Message.useMessage>[0];
@@ -30,9 +37,10 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
   const [isCreating, setIsCreating] = useState(false);
   const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
   const [promptViewMode, setPromptViewMode] = useState<'edit' | 'preview'>('preview');
-  const [skillsViewMode, setSkillsViewMode] = useState<'edit' | 'preview'>('preview');
+  // Skills 选择模式相关 state / Skills selection mode states
+  const [availableSkills, setAvailableSkills] = useState<SkillInfo[]>([]);
+  const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const textareaWrapperRef = useRef<HTMLDivElement>(null);
-  const skillsTextareaWrapperRef = useRef<HTMLDivElement>(null);
   const localeKey = resolveLocaleKey(i18n.language);
   const avatarImageMap: Record<string, string> = {
     'cowork.svg': coworkSvg,
@@ -147,15 +155,28 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
     setEditAgent(assistant.presetAgentType || 'gemini');
     setEditVisible(true);
 
-    // 先加载规则和技能内容，再打开 drawer / Load rule and skill content first, then open drawer
+    // 先加载规则、技能内容 / Load rules, skills content
+    // 只有 cowork 助手才加载技能列表 / Only load skills list for cowork assistant
     try {
       const [context, skills] = await Promise.all([loadAssistantContext(assistant.id), loadAssistantSkills(assistant.id)]);
       setEditContext(context);
       setEditSkills(skills);
+
+      // 只有 cowork 助手才加载技能选择 / Only load skills selection for cowork assistant
+      if (assistant.id === 'builtin-cowork') {
+        const skillsList = await ipcBridge.fs.listAvailableSkills.invoke();
+        setAvailableSkills(skillsList);
+        setSelectedSkills(assistant.enabledSkills || skillsList.map((s) => s.name));
+      } else {
+        setAvailableSkills([]);
+        setSelectedSkills([]);
+      }
     } catch (error) {
       console.error('Failed to load assistant content:', error);
       setEditContext('');
       setEditSkills('');
+      setAvailableSkills([]);
+      setSelectedSkills([]);
     }
   };
 
@@ -172,18 +193,19 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
 
   const handleSave = async () => {
     try {
-      // 只更新 Main Agent 类型 / Only update Main Agent type
+      // 更新 Main Agent 类型和启用的 skills / Update Main Agent type and enabled skills
       if (!activeAssistant) return;
 
       const agents = (await ConfigStorage.get('acp.customAgents')) || [];
       const updatedAgent: AcpBackendConfig = {
         ...activeAssistant,
         presetAgentType: editAgent,
+        enabledSkills: selectedSkills,
       };
       const updatedAgents = agents.map((agent) => (agent.id === activeAssistant.id ? updatedAgent : agent));
       await ConfigStorage.set('acp.customAgents', updatedAgents);
       setAssistants(updatedAgents.filter((agent) => agent.isPreset));
-      message.success(t('common.success', { defaultValue: 'Success' }));
+      message.success(t('common.saveSuccess', { defaultValue: 'Saved successfully' }));
 
       setEditVisible(false);
       await refreshAgentDetection();
@@ -402,31 +424,48 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                 </div>
               </div>
             </div>
-            <div className='flex-shrink-0 mt-16px'>
-              <Typography.Text bold className='flex-shrink-0'>
-                {t('settings.assistantSkills', { defaultValue: 'Skills' })}
-              </Typography.Text>
-              {/* Skills Edit/Preview Tabs */}
-              <div className='mt-10px border border-border-2 overflow-hidden rounded-4px' style={{ height: '300px' }}>
-                <div className='flex items-center h-36px bg-fill-2 border-b border-border-2 flex-shrink-0'>
-                  <div className={`flex items-center h-full px-16px cursor-pointer transition-all text-13px font-medium ${skillsViewMode === 'edit' ? 'text-primary border-b-2 border-primary bg-bg-1' : 'text-t-secondary hover:text-t-primary'}`} onClick={() => setSkillsViewMode('edit')}>
-                    {t('settings.promptEdit', { defaultValue: 'Edit' })}
+            {/* 只有 cowork 助手显示技能选择 / Only show skills selection for cowork assistant */}
+            {activeAssistantId === 'builtin-cowork' && (
+              <div className='flex-shrink-0 mt-16px'>
+                <Typography.Text bold className='flex-shrink-0'>
+                  {t('settings.assistantSkills', { defaultValue: 'Skills' })}
+                </Typography.Text>
+                <div className='text-12px text-t-secondary mt-4px mb-10px'>{t('settings.assistantSkillsHint', { defaultValue: 'Select skills to enable for this assistant. AI will only load selected skills.' })}</div>
+                {/* Skills Card Grid */}
+                {availableSkills.length > 0 ? (
+                  <div className='grid grid-cols-2 gap-10px mt-10px'>
+                    {availableSkills.map((skill) => {
+                      const isSelected = selectedSkills.includes(skill.name);
+                      return (
+                        <div
+                          key={skill.name}
+                          className='p-12px rounded-8px cursor-pointer transition-all bg-bg-1'
+                          style={{
+                            border: '1px solid',
+                            borderColor: isSelected ? 'var(--color-primary-6)' : 'var(--color-border-2)',
+                          }}
+                          onClick={() => {
+                            if (isSelected) {
+                              setSelectedSkills(selectedSkills.filter((s) => s !== skill.name));
+                            } else {
+                              setSelectedSkills([...selectedSkills, skill.name]);
+                            }
+                          }}
+                        >
+                          <div className='flex items-center gap-8px'>
+                            <Checkbox checked={isSelected} onChange={() => {}} />
+                            <span className='text-13px font-medium text-t-primary'>{skill.name}</span>
+                          </div>
+                          {skill.description && <div className='text-12px text-t-secondary mt-6px ml-24px line-clamp-2'>{skill.description}</div>}
+                        </div>
+                      );
+                    })}
                   </div>
-                  <div className={`flex items-center h-full px-16px cursor-pointer transition-all text-13px font-medium ${skillsViewMode === 'preview' ? 'text-primary border-b-2 border-primary bg-bg-1' : 'text-t-secondary hover:text-t-primary'}`} onClick={() => setSkillsViewMode('preview')}>
-                    {t('settings.promptPreview', { defaultValue: 'Preview' })}
-                  </div>
-                </div>
-                <div className='bg-fill-2' style={{ height: 'calc(100% - 36px)', overflow: 'auto' }}>
-                  {skillsViewMode === 'edit' ? (
-                    <div ref={skillsTextareaWrapperRef} className='h-full'>
-                      <Input.TextArea value={editSkills} disabled placeholder={t('settings.assistantSkillsPlaceholder', { defaultValue: 'Enter skills in Markdown format...' })} autoSize={false} className='border-none rounded-none bg-transparent h-full resize-none' />
-                    </div>
-                  ) : (
-                    <div className='p-16px'>{editSkills ? <MarkdownView hiddenCodeCopyButton>{editSkills}</MarkdownView> : <div className='text-t-secondary text-center py-32px'>{t('settings.promptPreviewEmpty', { defaultValue: 'No content to preview' })}</div>}</div>
-                  )}
-                </div>
+                ) : (
+                  <div className='text-t-secondary text-center py-32px border border-border-2 rounded-4px bg-bg-1'>{t('settings.noSkillsAvailable', { defaultValue: 'No skills available' })}</div>
+                )}
               </div>
-            </div>
+            )}
           </div>
         </div>
       </Drawer>

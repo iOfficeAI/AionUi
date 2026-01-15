@@ -578,4 +578,45 @@ export function initFsBridge(): void {
   ipcBridge.fs.deleteAssistantSkill.provider(({ assistantId }) => {
     return deleteAssistantResource('skills', new RegExp(`^${assistantId}-skills\\..*\\.md$`));
   });
+
+  // 获取可用 skills 列表 / List available skills from skills directory
+  ipcBridge.fs.listAvailableSkills.provider(async () => {
+    try {
+      const skillsDir = await findBuiltinResourceDir('skills');
+      const skills: Array<{ name: string; description: string; location: string }> = [];
+
+      // 读取 skills 目录下所有子目录
+      const entries = await fs.readdir(skillsDir, { withFileTypes: true });
+      for (const entry of entries) {
+        if (!entry.isDirectory()) continue;
+
+        const skillMdPath = path.join(skillsDir, entry.name, 'SKILL.md');
+        try {
+          const content = await fs.readFile(skillMdPath, 'utf-8');
+          // 解析 YAML front matter
+          const frontMatterMatch = content.match(/^---\s*\n([\s\S]*?)\n---/);
+          if (frontMatterMatch) {
+            const yaml = frontMatterMatch[1];
+            const nameMatch = yaml.match(/^name:\s*(.+)$/m);
+            const descMatch = yaml.match(/^description:\s*['"]?(.+?)['"]?$/m);
+            if (nameMatch) {
+              skills.push({
+                name: nameMatch[1].trim(),
+                description: descMatch ? descMatch[1].trim() : '',
+                location: skillMdPath,
+              });
+            }
+          }
+        } catch {
+          // Skill directory without SKILL.md, skip
+        }
+      }
+
+      console.log(`[fsBridge] Listed ${skills.length} available skills from ${skillsDir}`);
+      return skills;
+    } catch (error) {
+      console.error('[fsBridge] Failed to list available skills:', error);
+      return [];
+    }
+  });
 }

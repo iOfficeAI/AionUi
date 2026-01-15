@@ -30,20 +30,21 @@ export class GeminiAgentManager extends BaseAgentManager<{
   webSearchEngine?: 'google' | 'default';
   mcpServers?: Record<string, UiMcpServerConfig>;
   contextFileName?: string;
-  // 分离的 rules 和 skills / Separate rules and skills
+  // 系统规则 / System rules
   presetRules?: string;
-  presetSkills?: string;
   contextContent?: string; // 向后兼容 / Backward compatible
   GOOGLE_CLOUD_PROJECT?: string;
   /** 内置 skills 目录路径 / Builtin skills directory path */
   skillsDir?: string;
+  /** 启用的 skills 列表 / Enabled skills list */
+  enabledSkills?: string[];
 }> {
   workspace: string;
   model: TProviderWithModel;
   contextFileName?: string;
   presetRules?: string;
-  presetSkills?: string;
   contextContent?: string;
+  enabledSkills?: string[];
   private bootstrap: Promise<void>;
 
   private async injectHistoryFromDatabase(): Promise<void> {
@@ -56,10 +57,11 @@ export class GeminiAgentManager extends BaseAgentManager<{
       conversation_id: string;
       webSearchEngine?: 'google' | 'default';
       contextFileName?: string;
-      // 分离的 rules 和 skills / Separate rules and skills
+      // 系统规则 / System rules
       presetRules?: string;
-      presetSkills?: string;
       contextContent?: string; // 向后兼容 / Backward compatible
+      /** 启用的 skills 列表 / Enabled skills list */
+      enabledSkills?: string[];
     },
     model: TProviderWithModel
   ) {
@@ -68,9 +70,8 @@ export class GeminiAgentManager extends BaseAgentManager<{
     this.conversation_id = data.conversation_id;
     this.model = model;
     this.contextFileName = data.contextFileName;
-    // 分离的 rules 和 skills / Separate rules and skills
     this.presetRules = data.presetRules;
-    this.presetSkills = data.presetSkills;
+    this.enabledSkills = data.enabledSkills;
     // 向后兼容 / Backward compatible
     this.contextContent = data.contextContent || data.presetRules;
     this.bootstrap = Promise.all([ProcessConfig.get('gemini.config'), this.getImageGenerationModel(), this.getMcpServers()])
@@ -99,16 +100,13 @@ export class GeminiAgentManager extends BaseAgentManager<{
           webSearchEngine: data.webSearchEngine,
           mcpServers,
           contextFileName: this.contextFileName,
-          // 分离的 rules 和 skills / Separate rules and skills
           presetRules: this.presetRules,
-          presetSkills: this.presetSkills,
           contextContent: this.contextContent,
-          // Skills 加载策略 / Skills loading strategy:
-          // - 如果助手有 presetSkills，优先使用它（不传 skillsDir，禁用 SkillManager）
-          // - 如果没有 presetSkills，使用 SkillManager 加载全局 skills
-          // - If assistant has presetSkills, use it (don't pass skillsDir, disable SkillManager)
-          // - If no presetSkills, use SkillManager to load global skills
-          skillsDir: this.presetSkills ? undefined : getSkillsDir(),
+          // Skills 通过 SkillManager 加载 / Skills loaded via SkillManager
+          skillsDir: getSkillsDir(),
+          // 启用的 skills 列表，用于过滤 SkillManager 中的 skills
+          // Enabled skills list for filtering skills in SkillManager
+          enabledSkills: this.enabledSkills,
         });
       })
       .then(async () => {
@@ -156,7 +154,7 @@ export class GeminiAgentManager extends BaseAgentManager<{
     }
   }
 
-  async sendMessage(data: { input: string; msg_id: string }) {
+  async sendMessage(data: { input: string; msg_id: string; files?: string[] }) {
     const message: TMessage = {
       id: data.msg_id,
       type: 'text',

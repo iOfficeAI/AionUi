@@ -3,10 +3,11 @@ import { ipcBridge } from '@/common';
 import type { AcpBackend } from '@/types/acpTypes';
 import { ACP_BACKENDS_ALL } from '@/types/acpTypes';
 import type { TMessage } from '@/common/chatLib';
+import { AIONUI_FILES_MARKER } from '@/common/constants';
 import { transformMessage } from '@/common/chatLib';
 import type { IConfirmMessageParams, IResponseMessage } from '@/common/ipcBridge';
 import { parseError, uuid } from '@/common/utils';
-import { ProcessConfig } from '../initStorage';
+import { ProcessConfig, loadSkillsContent } from '../initStorage';
 import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '../message';
 import BaseAgentManager from './BaseAgentManager';
 import { handlePreviewOpenEvent } from '../utils/previewUtils';
@@ -19,6 +20,8 @@ interface AcpAgentManagerData {
   conversation_id: string;
   customAgentId?: string; // 用于标识特定自定义代理的 UUID / UUID for identifying specific custom agent
   presetContext?: string; // 智能助手的预设规则/提示词 / Preset context from smart assistant
+  /** 启用的 skills 列表，用于过滤 SkillManager 加载的 skills / Enabled skills list for filtering SkillManager skills */
+  enabledSkills?: string[];
 }
 
 class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
@@ -122,12 +125,30 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
       // Save user message to chat history ONLY after successful sending
       if (data.msg_id && data.content) {
         let contentToSend = data.content;
+        if (contentToSend.includes(AIONUI_FILES_MARKER)) {
+          contentToSend = contentToSend.split(AIONUI_FILES_MARKER)[0].trimEnd();
+        }
 
-        // 首条消息时注入预设规则（来自智能助手配置）
-        // Inject preset context on first message (from smart assistant config)
-        const shouldInjectContext = this.isFirstMessage && this.options.presetContext;
-        if (shouldInjectContext) {
-          contentToSend = `${contentToSend}\n\n<system_instruction>\n${this.options.presetContext}\n</system_instruction>`;
+        // 首条消息时注入预设规则和 skills（来自智能助手配置）
+        // Inject preset context and skills on first message (from smart assistant config)
+        if (this.isFirstMessage) {
+          const systemInstructions: string[] = [];
+
+          if (this.options.presetContext) {
+            systemInstructions.push(this.options.presetContext);
+          }
+
+          // 加载并注入 enabledSkills / Load and inject enabledSkills
+          if (this.options.enabledSkills && this.options.enabledSkills.length > 0) {
+            const skillsContent = await loadSkillsContent(this.options.enabledSkills);
+            if (skillsContent) {
+              systemInstructions.push(skillsContent);
+            }
+          }
+
+          if (systemInstructions.length > 0) {
+            contentToSend = `${contentToSend}\n\n<system_instruction>\n${systemInstructions.join('\n\n')}\n</system_instruction>`;
+          }
         }
 
         const userMessage: TMessage = {

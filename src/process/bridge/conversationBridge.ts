@@ -26,7 +26,7 @@ export function initConversationBridge(): void {
       if (type === 'gemini') {
         const extraWithPresets = extra as typeof extra & {
           presetRules?: string;
-          presetSkills?: string;
+          enabledSkills?: string[];
         };
         let contextFileName = extra.contextFileName;
         // Resolve relative paths to CWD (usually project root in dev)
@@ -34,12 +34,11 @@ export function initConversationBridge(): void {
         if (contextFileName && !path.isAbsolute(contextFileName)) {
           contextFileName = path.resolve(process.cwd(), contextFileName);
         }
-        // 分别处理 rules 和 skills / Handle rules and skills separately
-        // rules: 系统规则（初始化时注入）/ System rules (injected at initialization)
-        // skills: 技能定义（首次请求时注入）/ Skill definitions (injected at first request)
+        // 系统规则（初始化时注入）/ System rules (injected at initialization)
+        // skills 通过 SkillManager 加载 / Skills are loaded via SkillManager
         const presetRules = extraWithPresets.presetRules || extraWithPresets.presetContext || extraWithPresets.context;
-        const presetSkills = extraWithPresets.presetSkills;
-        return createGeminiAgent(model, extra.workspace, extra.defaultFiles, extra.webSearchEngine, extra.customWorkspace, contextFileName, presetRules, presetSkills);
+        const enabledSkills = extraWithPresets.enabledSkills;
+        return createGeminiAgent(model, extra.workspace, extra.defaultFiles, extra.webSearchEngine, extra.customWorkspace, contextFileName, presetRules, enabledSkills);
       }
       if (type === 'acp') return createAcpAgent(params);
       if (type === 'codex') return createCodexAgent(params);
@@ -381,7 +380,7 @@ export function initConversationBridge(): void {
     try {
       // 根据 task 类型调用对应的 sendMessage 方法
       if (task.type === 'gemini') {
-        await (task as GeminiAgentManager).sendMessage(other);
+        await (task as GeminiAgentManager).sendMessage({ ...other, files });
         return { success: true };
       } else if (task.type === 'acp') {
         await (task as AcpAgentManager).sendMessage({ content: other.input, files, msg_id: other.msg_id });

@@ -58,6 +58,8 @@ export interface IConfigStorageRefer {
   'workspace.pasteConfirm'?: boolean;
   // guid 页面上次选择的 agent 类型 / Last selected agent type on guid page
   'guid.lastSelectedAgent'?: string;
+  // 迁移标记：修复老版本中助手 enabled 默认值问题 / Migration flag: fix assistant enabled default value issue
+  'migration.assistantEnabledFixed'?: boolean;
 }
 
 export interface IEnvStorageRefer {
@@ -94,9 +96,12 @@ export type TChatConversation =
         lastTokenUsage?: TokenUsageData; // 上次的 token 使用统计
         contextFileName?: string;
         contextContent?: string;
-        // 分离的 rules 和 skills 支持 / Separate rules and skills support
+        // 系统规则支持 / System rules support
         presetRules?: string; // 系统规则，在初始化时注入 / System rules, injected at initialization
-        presetSkills?: string; // 技能定义，在首次请求时注入 / Skill definitions, injected at first request
+        /** 启用的 skills 列表，用于过滤 SkillManager 加载的 skills / Enabled skills list for filtering SkillManager skills */
+        enabledSkills?: string[];
+        /** 预设助手 ID，用于在会话面板显示助手名称和头像 / Preset assistant ID for displaying name and avatar in conversation panel */
+        presetAssistantId?: string;
       }
     >
   | Omit<
@@ -110,6 +115,10 @@ export type TChatConversation =
           agentName?: string;
           customAgentId?: string; // UUID for identifying specific custom agent
           presetContext?: string; // 智能助手的预设规则/提示词 / Preset context from smart assistant
+          /** 启用的 skills 列表，用于过滤 SkillManager 加载的 skills / Enabled skills list for filtering SkillManager skills */
+          enabledSkills?: string[];
+          /** 预设助手 ID，用于在会话面板显示助手名称和头像 / Preset assistant ID for displaying name and avatar in conversation panel */
+          presetAssistantId?: string;
         }
       >,
       'model'
@@ -123,6 +132,10 @@ export type TChatConversation =
           customWorkspace?: boolean;
           sandboxMode?: 'read-only' | 'workspace-write' | 'danger-full-access'; // Codex sandbox permission mode
           presetContext?: string; // 智能助手的预设规则/提示词 / Preset context from smart assistant
+          /** 启用的 skills 列表，用于过滤 SkillManager 加载的 skills / Enabled skills list for filtering SkillManager skills */
+          enabledSkills?: string[];
+          /** 预设助手 ID，用于在会话面板显示助手名称和头像 / Preset assistant ID for displaying name and avatar in conversation panel */
+          presetAssistantId?: string;
         }
       >,
       'model'

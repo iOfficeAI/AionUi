@@ -83,6 +83,10 @@ const ChatLayout: React.FC<{
   siderTitle?: React.ReactNode;
   backend?: string;
   agentName?: string;
+  /** 自定义 agent logo（可以是 SVG 路径或 emoji 字符串）/ Custom agent logo (can be SVG path or emoji string) */
+  agentLogo?: string;
+  /** 是否为 emoji 类型的 logo / Whether the logo is an emoji */
+  agentLogoIsEmoji?: boolean;
   headerExtra?: React.ReactNode;
   headerLeft?: React.ReactNode;
   workspaceEnabled?: boolean;
@@ -105,7 +109,7 @@ const ChatLayout: React.FC<{
   const currentConversationIdRef = useRef<string | undefined>(undefined);
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(() => (typeof window === 'undefined' ? 0 : window.innerWidth));
-  const { backend, agentName, workspaceEnabled = true } = props;
+  const { backend, agentName, agentLogo, agentLogoIsEmoji, workspaceEnabled = true } = props;
   const layout = useLayoutContext();
   const isMacRuntime = isMacEnvironment();
   // 右侧栏折叠状态引用 / Mirror ref for collapse state
@@ -383,9 +387,9 @@ const ChatLayout: React.FC<{
               <div className='flex items-center gap-12px'>
                 {/* headerExtra 会在右上角优先渲染，例如模型切换按钮 / headerExtra renders at top-right for items like model switchers */}
                 {props.headerExtra}
-                {backend && (
+                {(backend || agentLogo) && (
                   <div className='ml-16px flex items-center gap-2 bg-2 w-fit rounded-full px-[8px] py-[2px]'>
-                    {AGENT_LOGO_MAP[backend as AcpBackend] ? <img src={AGENT_LOGO_MAP[backend as AcpBackend]} alt={`${backend} logo`} width={16} height={16} style={{ objectFit: 'contain' }} /> : <Robot theme='outline' size={16} fill={iconColors.primary} />}
+                    {agentLogo ? agentLogoIsEmoji ? <span className='text-sm'>{agentLogo}</span> : <img src={agentLogo} alt={`${agentName || 'agent'} logo`} width={16} height={16} style={{ objectFit: 'contain' }} /> : AGENT_LOGO_MAP[backend as AcpBackend] ? <img src={AGENT_LOGO_MAP[backend as AcpBackend]} alt={`${backend} logo`} width={16} height={16} style={{ objectFit: 'contain' }} /> : <Robot theme='outline' size={16} fill={iconColors.primary} />}
                     <span className='text-sm'>{displayName}</span>
                   </div>
                 )}

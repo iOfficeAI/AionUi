@@ -599,6 +599,12 @@ const initStorage = async () => {
     const existingAgents = (await configFile.get('acp.customAgents').catch((): undefined => undefined)) || [];
     const builtinAssistants = getBuiltinAssistants();
 
+    // 5.2.1 检查是否需要迁移：修复老版本中所有助手都默认启用的问题
+    // Check if migration needed: fix old version where all assistants were enabled by default
+    const ASSISTANT_ENABLED_MIGRATION_KEY = 'migration.assistantEnabledFixed';
+    const migrationDone = await configFile.get(ASSISTANT_ENABLED_MIGRATION_KEY).catch(() => false);
+    const needsMigration = !migrationDone && existingAgents.length > 0;
+
     // 更新或添加内置助手配置
     // Update or add built-in assistant configurations
     const updatedAgents = [...existingAgents];
@@ -612,12 +618,22 @@ const initStorage = async () => {
         const existing = updatedAgents[index];
         // 只有当关键字段不同时才更新，避免不必要的写入
         // Update only if key fields are different to avoid unnecessary writes
-        const shouldUpdate = existing.name !== builtin.name || existing.description !== builtin.description || existing.avatar !== builtin.avatar || existing.presetAgentType !== builtin.presetAgentType || existing.isPreset !== builtin.isPreset || existing.isBuiltin !== builtin.isBuiltin || existing.enabled === undefined;
+        // 注意：enabled 和 presetAgentType 字段由用户控制，不参与 shouldUpdate 判断
+        // Note: enabled and presetAgentType are user-controlled, not included in shouldUpdate check
+        const shouldUpdate = existing.name !== builtin.name || existing.description !== builtin.description || existing.avatar !== builtin.avatar || existing.isPreset !== builtin.isPreset || existing.isBuiltin !== builtin.isBuiltin;
+        // 当 enabled 是 undefined 或需要迁移时，设置默认值（Cowork 启用，其他禁用）
+        // When enabled is undefined or migration needed, set default value (Cowork enabled, others disabled)
+        const needsEnabledFix = existing.enabled === undefined || needsMigration;
+        // 迁移时强制使用默认值，否则保留用户设置
+        // Force default value during migration, otherwise preserve user setting
+        const resolvedEnabled = needsEnabledFix ? builtin.enabled : existing.enabled;
+        // presetAgentType 由用户控制，未设置时使用内置默认值
+        // presetAgentType is user-controlled, use builtin default if not set
+        const resolvedPresetAgentType = existing.presetAgentType ?? builtin.presetAgentType;
 
-        if (shouldUpdate) {
-          const resolvedEnabled = existing.enabled ?? builtin.id === 'builtin-cowork';
-          // 保留用户已设置的 enabled，未设置时应用默认 / Preserve user setting if present, otherwise use default
-          updatedAgents[index] = { ...existing, ...builtin, enabled: resolvedEnabled };
+        if (shouldUpdate || needsEnabledFix) {
+          // 保留用户已设置的 enabled 和 presetAgentType / Preserve user-set enabled and presetAgentType
+          updatedAgents[index] = { ...existing, ...builtin, enabled: resolvedEnabled, presetAgentType: resolvedPresetAgentType };
           hasChanges = true;
         }
       } else {
@@ -630,6 +646,12 @@ const initStorage = async () => {
 
     if (hasChanges) {
       await configFile.set('acp.customAgents', updatedAgents);
+    }
+
+    // 标记迁移完成 / Mark migration as done
+    if (needsMigration) {
+      await configFile.set(ASSISTANT_ENABLED_MIGRATION_KEY, true);
+      console.log('[AionUi] Assistant enabled migration completed');
     }
   } catch (error) {
     console.error('[AionUi] Failed to initialize builtin assistants:', error);
@@ -671,5 +693,41 @@ export const getSystemDir = () => {
  * Get assistant rules directory path (for use by other modules)
  */
 export { getAssistantsDir, getSkillsDir };
+
+/**
+ * 加载指定 skills 的内容
+ * Load content of specified skills
+ * @param enabledSkills - skill 名称列表 / list of skill names
+ * @returns 合并后的 skills 内容 / merged skills content
+ */
+export const loadSkillsContent = async (enabledSkills: string[]): Promise<string> => {
+  if (!enabledSkills || enabledSkills.length === 0) {
+    return '';
+  }
+
+  const skillsDir = getSkillsDir();
+  const skillContents: string[] = [];
+
+  for (const skillName of enabledSkills) {
+    // skill 文件名格式：skillName.md
+    const skillFile = path.join(skillsDir, `${skillName}.md`);
+    try {
+      if (existsSync(skillFile)) {
+        const content = await fs.readFile(skillFile, 'utf-8');
+        if (content.trim()) {
+          skillContents.push(`## Skill: ${skillName}\n${content}`);
+        }
+      }
+    } catch (error) {
+      console.warn(`[AionUi] Failed to load skill ${skillName}:`, error);
+    }
+  }
+
+  if (skillContents.length === 0) {
+    return '';
+  }
+
+  return `[Available Skills]\n${skillContents.join('\n\n')}`;
+};
 
 export default initStorage;

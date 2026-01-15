@@ -5,7 +5,6 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { ICreateConversationParams } from '@/common/ipcBridge';
 import { ASSISTANT_PRESETS } from '@/common/presets/assistantPresets';
 import type { IProvider, TProviderWithModel } from '@/common/storage';
 import { ConfigStorage } from '@/common/storage';
@@ -29,8 +28,8 @@ import { useCompositionInput } from '@/renderer/hooks/useCompositionInput';
 import { useDragUpload } from '@/renderer/hooks/useDragUpload';
 import { useGeminiGoogleAuthModels } from '@/renderer/hooks/useGeminiGoogleAuthModels';
 import { usePasteService } from '@/renderer/hooks/usePasteService';
-import { formatFilesForMessage } from '@/renderer/hooks/useSendBoxFiles';
 import { allSupportedExts, type FileMetadata, getCleanFileNames } from '@/renderer/services/FileService';
+import { buildDisplayMessage } from '@/renderer/utils/messageFiles';
 import { iconColors } from '@/renderer/theme/colors';
 import { emitter } from '@/renderer/utils/emitter';
 import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
@@ -609,6 +608,17 @@ const Guid: React.FC = () => {
     [customAgents]
   );
 
+  // 解析助手启用的 skills 列表 / Resolve enabled skills for the assistant
+  const resolveEnabledSkills = useCallback(
+    (agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined): string[] | undefined => {
+      if (!agentInfo) return undefined;
+      if (agentInfo.backend !== 'custom') return undefined;
+      const customAgent = customAgents.find((agent) => agent.id === agentInfo.customAgentId);
+      return customAgent?.enabledSkills;
+    },
+    [customAgents]
+  );
+
   const refreshCustomAgents = useCallback(async () => {
     try {
       await ipcBridge.acpConversation.refreshCustomAgents.invoke();
@@ -647,8 +657,10 @@ const Guid: React.FC = () => {
     const agentInfo = selectedAgentInfo;
     const isPreset = isPresetAgent;
     const presetAgentType = resolvePresetAgentType(agentInfo);
-    // 同时加载 rules 和 skills / Load both rules and skills
-    const { rules: presetRules, skills: presetSkills } = await resolvePresetRulesAndSkills(agentInfo);
+    // 加载 rules（skills 已迁移到 SkillManager）/ Load rules (skills migrated to SkillManager)
+    const { rules: presetRules } = await resolvePresetRulesAndSkills(agentInfo);
+    // 获取启用的 skills 列表 / Get enabled skills list
+    const enabledSkills = resolveEnabledSkills(agentInfo);
 
     // 默认情况使用 Gemini，或 Preset 配置为 Gemini
     if (!selectedAgent || selectedAgent === 'gemini' || (isPreset && presetAgentType === 'gemini')) {
@@ -663,14 +675,15 @@ const Guid: React.FC = () => {
             workspace: finalWorkspace,
             customWorkspace: isCustomWorkspace,
             webSearchEngine: isGoogleAuth ? 'google' : 'default',
-            // 分别传递 rules 和 skills / Pass rules and skills separately
-            // rules: 系统规则，在初始化时注入 / system rules, injected at initialization
-            // skills: 技能定义，在首次请求时注入 / skill definitions, injected at first request
+            // 传递 rules（skills 通过 SkillManager 加载）
+            // Pass rules (skills loaded via SkillManager)
             presetRules: isPreset ? presetRules : undefined,
-            presetSkills: isPreset ? presetSkills : undefined,
-            // 向后兼容：presetContext 作为合并后的内容 / Backward compatible: presetContext as combined content
-            presetContext: isPreset ? presetRules : undefined,
-          } as ICreateConversationParams['extra'] & { presetRules?: string; presetSkills?: string },
+            // 启用的 skills 列表 / Enabled skills list
+            enabledSkills: isPreset ? enabledSkills : undefined,
+            // 预设助手 ID，用于在会话面板显示助手名称和头像
+            // Preset assistant ID for displaying name and avatar in conversation panel
+            presetAssistantId: isPreset ? agentInfo?.customAgentId : undefined,
+          },
         });
 
         if (!conversation || !conversation.id) {
@@ -691,12 +704,17 @@ const Guid: React.FC = () => {
         // 然后导航到会话页面
         await navigate(`/conversation/${conversation.id}`);
 
-        // 然后发送消息
+        // 然后发送消息（文件通过 files 参数传递，不在消息中添加 @ 前缀）
+        // Send message (files passed via files param, no @ prefix in message)
+        const workspacePath = conversation.extra?.workspace || '';
+        const displayMessage = buildDisplayMessage(input, files, workspacePath);
+
         void ipcBridge.geminiConversation.sendMessage
           .invoke({
-            input: files.length > 0 ? formatFilesForMessage(files) + ' ' + input : input,
+            input: displayMessage,
             conversation_id: conversation.id,
             msg_id: uuid(),
+            files,
           })
           .catch((error) => {
             console.error('Failed to send message:', error);
@@ -710,6 +728,9 @@ const Guid: React.FC = () => {
       }
       return;
     } else if (selectedAgent === 'codex' || (isPreset && presetAgentType === 'codex')) {
+      // Codex conversation type (including preset with codex agent type)
+      const codexAgentInfo = agentInfo || findAgentByKey(selectedAgentKey);
+
       // 创建 Codex 会话并保存初始消息，由对话页负责发送
       try {
         const conversation = await ipcBridge.conversation.create.invoke({
@@ -720,8 +741,13 @@ const Guid: React.FC = () => {
             defaultFiles: files,
             workspace: finalWorkspace,
             customWorkspace: isCustomWorkspace,
-            // Pass preset context for skill injection
-            presetContext: isPreset ? presetSkills || presetRules : undefined,
+            // Pass preset context (rules only)
+            presetContext: isPreset ? presetRules : undefined,
+            // 启用的 skills 列表（通过 SkillManager 加载）/ Enabled skills list (loaded via SkillManager)
+            enabledSkills: isPreset ? enabledSkills : undefined,
+            // 预设助手 ID，用于在会话面板显示助手名称和头像
+            // Preset assistant ID for displaying name and avatar in conversation panel
+            presetAssistantId: isPreset ? codexAgentInfo?.customAgentId : undefined,
           },
         });
 
@@ -781,8 +807,13 @@ const Guid: React.FC = () => {
             cliPath: acpAgentInfo?.cliPath,
             agentName: acpAgentInfo?.name, // 存储自定义代理的配置名称 / Store configured name for custom agents
             customAgentId: acpAgentInfo?.customAgentId, // 自定义代理的 UUID / UUID for custom agents
-            // Pass preset context for skill injection
-            presetContext: isPreset ? (presetAgentType === 'claude' ? presetSkills || presetRules : presetRules) : undefined,
+            // Pass preset context (rules only)
+            presetContext: isPreset ? presetRules : undefined,
+            // 启用的 skills 列表（通过 SkillManager 加载）/ Enabled skills list (loaded via SkillManager)
+            enabledSkills: isPreset ? enabledSkills : undefined,
+            // 预设助手 ID，用于在会话面板显示助手名称和头像
+            // Preset assistant ID for displaying name and avatar in conversation panel
+            presetAssistantId: isPreset ? acpAgentInfo?.customAgentId : undefined,
           },
         });
 
