@@ -87,7 +87,7 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
     <>
       <div className={classNames('flex flex-col group', isUserMessage ? 'items-end' : 'items-start')}>
         {files.length > 0 && (
-          <div className={classNames('mt-6px max-w-[95%] md:max-w-[90%]', { 'self-end': isUserMessage })}>
+          <div className={classNames('mt-6px', { 'self-end': isUserMessage })}>
             {files.length === 1 ? (
               <div className='flex items-center'>
                 <FilePreview path={files[0]} onRemove={() => undefined} readonly />
@@ -102,7 +102,7 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
           </div>
         )}
         <div
-          className={classNames('max-w-[95%] md:max-w-[90%] rd-8px rd-tr-2px [&>p:first-child]:mt-0px [&>p:last-child]:mb-0px', {
+          className={classNames('rd-8px rd-tr-2px [&>p:first-child]:mt-0px [&>p:last-child]:mb-0px', {
             'bg-aou-2 p-8px': isUserMessage,
           })}
         >

@@ -732,9 +732,6 @@ const Guid: React.FC = () => {
       const codexAgentInfo = agentInfo || findAgentByKey(selectedAgentKey);
 
       // 创建 Codex 会话并保存初始消息，由对话页负责发送
-      // Codex conversation type (including preset with codex agent type)
-      const codexAgentInfo = agentInfo || findAgentByKey(selectedAgentKey);
-
       try {
         const conversation = await ipcBridge.conversation.create.invoke({
           type: 'codex',
@@ -744,8 +741,10 @@ const Guid: React.FC = () => {
             defaultFiles: files,
             workspace: finalWorkspace,
             customWorkspace: isCustomWorkspace,
-            // Pass preset context (rules only, skills via SkillManager)
+            // Pass preset context (rules only)
             presetContext: isPreset ? presetRules : undefined,
+            // 启用的 skills 列表（通过 SkillManager 加载）/ Enabled skills list (loaded via SkillManager)
+            enabledSkills: isPreset ? enabledSkills : undefined,
             // 预设助手 ID，用于在会话面板显示助手名称和头像
             // Preset assistant ID for displaying name and avatar in conversation panel
             presetAssistantId: isPreset ? codexAgentInfo?.customAgentId : undefined,
@@ -808,8 +807,10 @@ const Guid: React.FC = () => {
             cliPath: acpAgentInfo?.cliPath,
             agentName: acpAgentInfo?.name, // 存储自定义代理的配置名称 / Store configured name for custom agents
             customAgentId: acpAgentInfo?.customAgentId, // 自定义代理的 UUID / UUID for custom agents
-            // Pass preset context (rules only, skills via SkillManager)
+            // Pass preset context (rules only)
             presetContext: isPreset ? presetRules : undefined,
+            // 启用的 skills 列表（通过 SkillManager 加载）/ Enabled skills list (loaded via SkillManager)
+            enabledSkills: isPreset ? enabledSkills : undefined,
             // 预设助手 ID，用于在会话面板显示助手名称和头像
             // Preset assistant ID for displaying name and avatar in conversation panel
             presetAssistantId: isPreset ? acpAgentInfo?.customAgentId : undefined,

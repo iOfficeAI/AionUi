@@ -694,4 +694,40 @@ export const getSystemDir = () => {
  */
 export { getAssistantsDir, getSkillsDir };
 
+/**
+ * 加载指定 skills 的内容
+ * Load content of specified skills
+ * @param enabledSkills - skill 名称列表 / list of skill names
+ * @returns 合并后的 skills 内容 / merged skills content
+ */
+export const loadSkillsContent = async (enabledSkills: string[]): Promise<string> => {
+  if (!enabledSkills || enabledSkills.length === 0) {
+    return '';
+  }
+
+  const skillsDir = getSkillsDir();
+  const skillContents: string[] = [];
+
+  for (const skillName of enabledSkills) {
+    // skill 文件名格式：skillName.md
+    const skillFile = path.join(skillsDir, `${skillName}.md`);
+    try {
+      if (existsSync(skillFile)) {
+        const content = await fs.readFile(skillFile, 'utf-8');
+        if (content.trim()) {
+          skillContents.push(`## Skill: ${skillName}\n${content}`);
+        }
+      }
+    } catch (error) {
+      console.warn(`[AionUi] Failed to load skill ${skillName}:`, error);
+    }
+  }
+
+  if (skillContents.length === 0) {
+    return '';
+  }
+
+  return `[Available Skills]\n${skillContents.join('\n\n')}`;
+};
+
 export default initStorage;

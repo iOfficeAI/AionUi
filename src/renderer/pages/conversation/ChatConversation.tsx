@@ -186,7 +186,10 @@ const ChatConversation: React.FC<{
   const presetAssistantInfo = useMemo(() => {
     if (!conversation || isGeminiConversation) return null;
 
-    const presetAssistantId = (conversation.extra as { presetAssistantId?: string })?.presetAssistantId;
+    // 优先使用 presetAssistantId，回退到 customAgentId（ACP 已有此字段）
+    // Prefer presetAssistantId, fallback to customAgentId (ACP already has this field)
+    const extra = conversation.extra as { presetAssistantId?: string; customAgentId?: string };
+    const presetAssistantId = extra?.presetAssistantId || extra?.customAgentId;
     if (!presetAssistantId) return null;
 
     // presetAssistantId 格式为 'builtin-xxx'，提取 preset id
