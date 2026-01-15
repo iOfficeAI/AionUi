@@ -36,12 +36,11 @@ const buildConversation = (conversation: TChatConversation) => {
           workspace: conversation.extra.workspace,
           conversation_id: conversation.id,
           webSearchEngine: conversation.extra.webSearchEngine,
-          // 分离的 rules 和 skills / Separate rules and skills
+          // 系统规则 / System rules
           presetRules: conversation.extra.presetRules,
-          presetSkills: conversation.extra.presetSkills,
           // 向后兼容 / Backward compatible
           contextContent: conversation.extra.contextContent,
-          // 启用的 skills 列表 / Enabled skills list
+          // 启用的 skills 列表（通过 SkillManager 加载）/ Enabled skills list (loaded via SkillManager)
           enabledSkills: conversation.extra.enabledSkills,
         },
         conversation.model

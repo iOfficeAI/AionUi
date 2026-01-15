@@ -264,11 +264,8 @@ export async function loadCliConfig({ workspace, settings, extensions, sessionId
     // 启用预览功能以支持 Gemini 3 等新模型
     // Enable preview features to support Gemini 3 and other new models
     previewFeatures: true,
-    // Skills 支持策略 / Skills support strategy:
-    // - 当 skillsDir 有值时，启用 SkillManager（用于没有 presetSkills 的场景）
-    // - 当 skillsDir 为空时，禁用 SkillManager（使用助手的 presetSkills）
-    // - When skillsDir has value, enable SkillManager (for scenarios without presetSkills)
-    // - When skillsDir is empty, disable SkillManager (use assistant's presetSkills)
+    // Skills 通过 SkillManager 加载 / Skills loaded via SkillManager
+    // skillsDir 有值时启用 / Enabled when skillsDir has value
     skillsSupport: !!skillsDir,
   });
 

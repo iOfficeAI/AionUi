@@ -38,9 +38,8 @@ interface GeminiAgent2Options {
   mcpServers?: Record<string, unknown>;
   contextFileName?: string;
   onStreamEvent: (event: { type: string; data: unknown; msg_id: string }) => void;
-  // 分离的 rules 和 skills / Separate rules and skills
-  presetRules?: string; // 系统规则，在初始化时注入到 userMemory / System rules, injected into userMemory at initialization
-  presetSkills?: string; // 技能定义，在首次请求时注入到消息前缀 / Skill definitions, injected into message prefix at first request (deprecated, use skillsDir)
+  // 系统规则，在初始化时注入到 userMemory / System rules, injected into userMemory at initialization
+  presetRules?: string;
   contextContent?: string; // 向后兼容 / Backward compatible
   /** 内置 skills 目录路径，使用 aioncli-core SkillManager 加载 / Builtin skills directory path, loaded by aioncli-core SkillManager */
   skillsDir?: string;
@@ -65,9 +64,8 @@ export class GeminiAgent {
   private abortController: AbortController | null = null;
   private activeMsgId: string | null = null;
   private onStreamEvent: (event: { type: string; data: unknown; msg_id: string }) => void;
-  // 分离的 rules 和 skills / Separate rules and skills
-  private presetRules?: string; // 系统规则，在初始化时注入 / System rules, injected at initialization
-  private presetSkills?: string; // 技能定义（已废弃，使用 skillsDir）/ Skill definitions (deprecated, use skillsDir)
+  // 系统规则，在初始化时注入 / System rules, injected at initialization
+  private presetRules?: string;
   private contextContent?: string; // 向后兼容 / Backward compatible
   private toolConfig: ConversationToolConfig; // 对话级别的工具配置
   private apiKeyManager: ApiKeyManager | null = null; // 多API Key管理器
@@ -97,9 +95,7 @@ export class GeminiAgent {
     // 使用统一的工具函数获取认证类型
     this.authType = getProviderAuthType(options.model);
     this.onStreamEvent = options.onStreamEvent;
-    // 分离的 rules 和 skills / Separate rules and skills
     this.presetRules = options.presetRules;
-    this.presetSkills = options.presetSkills;
     this.skillsDir = options.skillsDir;
     this.enabledSkills = options.enabledSkills;
     // 向后兼容：优先使用 presetRules，其次 contextContent / Backward compatible: prefer presetRules, fallback to contextContent
@@ -285,13 +281,12 @@ export class GeminiAgent {
     const userMemory = this.config.getUserMemory();
     const toolRegistry = this.config.getToolRegistry();
     const toolCount = toolRegistry?.getAllToolNames()?.length || 0;
-    const skillsMode = this.presetSkills ? 'presetSkills (assistant-specific)' : skills.length > 0 ? 'SkillManager (global)' : 'none';
+    const skillsMode = skills.length > 0 ? 'SkillManager' : 'none';
     console.log('[GeminiAgent] Context debug info:');
     console.log(`  - Skills mode: ${skillsMode}`);
     console.log(`  - SkillManager skills: ${skills.length}`);
     console.log(`  - UserMemory size: ${userMemory?.length || 0} bytes`);
     console.log(`  - PresetRules size: ${this.presetRules?.length || 0} bytes`);
-    console.log(`  - PresetSkills size: ${this.presetSkills?.length || 0} bytes`);
     console.log(`  - Registered tools count: ${toolCount}`);
 
     // Note: Skills (技能定义) are prepended to the first message in send() method
@@ -582,26 +577,16 @@ export class GeminiAgent {
       this.historyUsedOnce = true;
     }
 
-    // Skills 加载优先级 / Skills loading priority:
-    // 1. presetSkills（助手特定的 skills 文件）优先 / presetSkills (assistant-specific skills file) takes priority
-    // 2. 如果没有 presetSkills，使用 SkillManager 的全局 skills / If no presetSkills, use SkillManager's global skills
-    //
-    // 注意：当有 presetSkills 时，SkillManager 的 skills 不会被使用
-    // Note: When presetSkills exists, SkillManager's skills will not be used
+    // Skills 通过 SkillManager 加载，索引已在系统指令中
+    // Skills are loaded via SkillManager, index is already in system instruction
     let skillsPrefix = '';
 
     if (!this.skillsIndexPrependedOnce) {
-      if (this.presetSkills) {
-        // 助手有专属的 skills 文件，优先使用
-        // Assistant has dedicated skills file, use it with priority
-        skillsPrefix = `[Available Skills]\n${this.presetSkills}\n\n`;
-      } else if (this.contextContent && !this.presetRules) {
-        // 向后兼容：没有 presetSkills 时使用 contextContent
-        // Backward compatible: use contextContent when no presetSkills
+      // 向后兼容：使用 contextContent 作为助手规则
+      // Backward compatible: use contextContent as assistant rules
+      if (this.contextContent && !this.presetRules) {
         skillsPrefix = `[Assistant Rules - You MUST follow these instructions]\n${this.contextContent}\n\n`;
       }
-      // 注意：如果没有 presetSkills，SkillManager 的 skills 索引已在系统指令中
-      // Note: If no presetSkills, SkillManager's skills index is already in system instruction
       this.skillsIndexPrependedOnce = true;
 
       // 注入前缀到消息 / Inject prefix into message
@@ -635,6 +620,9 @@ export class GeminiAgent {
       },
       messageId: Date.now(),
       signal: abortController.signal,
+      // 启用懒加载模式：不立即读取文件内容，让 agent 自主决定何时读取
+      // Enable lazy loading: don't read file content immediately, let agent decide when to read
+      lazyFileLoading: true,
     });
 
     if (!shouldProceed || processedQuery === null || abortController.signal.aborted) {

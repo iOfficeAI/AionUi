@@ -658,8 +658,8 @@ const Guid: React.FC = () => {
     const agentInfo = selectedAgentInfo;
     const isPreset = isPresetAgent;
     const presetAgentType = resolvePresetAgentType(agentInfo);
-    // 同时加载 rules 和 skills / Load both rules and skills
-    const { rules: presetRules, skills: presetSkills } = await resolvePresetRulesAndSkills(agentInfo);
+    // 加载 rules（skills 已迁移到 SkillManager）/ Load rules (skills migrated to SkillManager)
+    const { rules: presetRules } = await resolvePresetRulesAndSkills(agentInfo);
     // 获取启用的 skills 列表 / Get enabled skills list
     const enabledSkills = resolveEnabledSkills(agentInfo);
 
@@ -676,16 +676,12 @@ const Guid: React.FC = () => {
             workspace: finalWorkspace,
             customWorkspace: isCustomWorkspace,
             webSearchEngine: isGoogleAuth ? 'google' : 'default',
-            // 分别传递 rules 和 skills / Pass rules and skills separately
-            // rules: 系统规则，在初始化时注入 / system rules, injected at initialization
-            // skills: 技能定义，在首次请求时注入 / skill definitions, injected at first request
+            // 传递 rules（skills 通过 SkillManager 加载）
+            // Pass rules (skills loaded via SkillManager)
             presetRules: isPreset ? presetRules : undefined,
-            presetSkills: isPreset ? presetSkills : undefined,
-            // 向后兼容：presetContext 作为合并后的内容 / Backward compatible: presetContext as combined content
-            presetContext: isPreset ? presetRules : undefined,
             // 启用的 skills 列表 / Enabled skills list
             enabledSkills: isPreset ? enabledSkills : undefined,
-          } as ICreateConversationParams['extra'] & { presetRules?: string; presetSkills?: string; enabledSkills?: string[] },
+          } as ICreateConversationParams['extra'] & { presetRules?: string; enabledSkills?: string[] },
         });
 
         if (!conversation || !conversation.id) {
@@ -735,8 +731,8 @@ const Guid: React.FC = () => {
             defaultFiles: files,
             workspace: finalWorkspace,
             customWorkspace: isCustomWorkspace,
-            // Pass preset context for skill injection
-            presetContext: isPreset ? presetSkills || presetRules : undefined,
+            // Pass preset context (rules only, skills via SkillManager)
+            presetContext: isPreset ? presetRules : undefined,
           },
         });
 
@@ -796,8 +792,8 @@ const Guid: React.FC = () => {
             cliPath: acpAgentInfo?.cliPath,
             agentName: acpAgentInfo?.name, // 存储自定义代理的配置名称 / Store configured name for custom agents
             customAgentId: acpAgentInfo?.customAgentId, // 自定义代理的 UUID / UUID for custom agents
-            // Pass preset context for skill injection
-            presetContext: isPreset ? (presetAgentType === 'claude' ? presetSkills || presetRules : presetRules) : undefined,
+            // Pass preset context (rules only, skills via SkillManager)
+            presetContext: isPreset ? presetRules : undefined,
           },
         });
 
