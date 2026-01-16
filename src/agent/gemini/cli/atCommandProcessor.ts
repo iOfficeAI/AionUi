@@ -338,7 +338,6 @@ export async function handleAtCommand({ query, config, addItem, onDebugMessage, 
     }
 
     const message = `Ignored ${totalIgnored} files:\n${messages.join('\n')}`;
-    console.log(message);
     onDebugMessage(message);
   }
 
@@ -366,10 +365,6 @@ export async function handleAtCommand({ query, config, addItem, onDebugMessage, 
   if (lazyFileLoading) {
     const workspaceDirs = config.getWorkspaceContext().getDirectories();
     const workspaceDir = workspaceDirs[0] || process.cwd();
-
-    console.log('[AtCommand] Lazy loading mode enabled');
-    console.log('[AtCommand] Workspace directory:', workspaceDir);
-    console.log('[AtCommand] Files to reference:', pathSpecsToRead);
 
     processedQueryParts.push({
       text: '\n\n[Files referenced in workspace - use read_file tool to access when needed]:',

@@ -67,14 +67,14 @@ const AddPlatformModal = ModalHOC<{
   const isCustom = isCustomOption(platformValue);
   const isGemini = isGeminiPlatform(platform);
 
-  const modelListState = useModeModeList(platform, baseUrl, apiKey, true);
-
   // 计算实际使用的 baseUrl（优先使用用户输入，否则使用平台预设）
   // Calculate actual baseUrl (prefer user input, fallback to platform preset)
   const actualBaseUrl = useMemo(() => {
     if (baseUrl) return baseUrl;
     return selectedPlatform?.baseUrl || '';
   }, [baseUrl, selectedPlatform?.baseUrl]);
+
+  const modelListState = useModeModeList(platform, actualBaseUrl, apiKey, true);
 
   // 协议检测 Hook / Protocol detection hook
   // 启用检测的条件：
@@ -267,7 +267,7 @@ const AddPlatformModal = ModalHOC<{
         onTestKey={async (key) => {
           try {
             const res = await ipcBridge.mode.fetchModelList.invoke({
-              base_url: baseUrl,
+              base_url: actualBaseUrl,
               api_key: key,
               platform: selectedPlatform?.platform ?? 'custom',
             });

@@ -695,14 +695,28 @@ export const getSystemDir = () => {
 export { getAssistantsDir, getSkillsDir };
 
 /**
- * 加载指定 skills 的内容
- * Load content of specified skills
+ * Skills 内容缓存，避免重复从文件系统读取
+ * Skills content cache to avoid repeated file system reads
+ */
+const skillsContentCache = new Map<string, string>();
+
+/**
+ * 加载指定 skills 的内容（带缓存）
+ * Load content of specified skills (with caching)
  * @param enabledSkills - skill 名称列表 / list of skill names
  * @returns 合并后的 skills 内容 / merged skills content
  */
 export const loadSkillsContent = async (enabledSkills: string[]): Promise<string> => {
   if (!enabledSkills || enabledSkills.length === 0) {
     return '';
+  }
+
+  // 使用排序后的 skill 名称作为缓存 key，确保相同组合命中缓存
+  // Use sorted skill names as cache key to ensure same combinations hit cache
+  const cacheKey = [...enabledSkills].sort().join(',');
+  const cached = skillsContentCache.get(cacheKey);
+  if (cached !== undefined) {
+    return cached;
   }
 
   const skillsDir = getSkillsDir();
@@ -723,11 +737,20 @@ export const loadSkillsContent = async (enabledSkills: string[]): Promise<string
     }
   }
 
-  if (skillContents.length === 0) {
-    return '';
-  }
+  const result = skillContents.length === 0 ? '' : `[Available Skills]\n${skillContents.join('\n\n')}`;
 
-  return `[Available Skills]\n${skillContents.join('\n\n')}`;
+  // 缓存结果 / Cache result
+  skillsContentCache.set(cacheKey, result);
+
+  return result;
+};
+
+/**
+ * 清除 skills 缓存（在 skills 文件更新后调用）
+ * Clear skills cache (call after skills files are updated)
+ */
+export const clearSkillsCache = (): void => {
+  skillsContentCache.clear();
 };
 
 export default initStorage;

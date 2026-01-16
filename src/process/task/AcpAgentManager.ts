@@ -7,10 +7,11 @@ import { AIONUI_FILES_MARKER } from '@/common/constants';
 import { transformMessage } from '@/common/chatLib';
 import type { IConfirmMessageParams, IResponseMessage } from '@/common/ipcBridge';
 import { parseError, uuid } from '@/common/utils';
-import { ProcessConfig, loadSkillsContent } from '../initStorage';
+import { ProcessConfig } from '../initStorage';
 import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '../message';
 import BaseAgentManager from './BaseAgentManager';
 import { handlePreviewOpenEvent } from '../utils/previewUtils';
+import { prepareFirstMessage } from './agentUtils';
 
 interface AcpAgentManagerData {
   workspace?: string;
@@ -132,23 +133,10 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
         // 首条消息时注入预设规则和 skills（来自智能助手配置）
         // Inject preset context and skills on first message (from smart assistant config)
         if (this.isFirstMessage) {
-          const systemInstructions: string[] = [];
-
-          if (this.options.presetContext) {
-            systemInstructions.push(this.options.presetContext);
-          }
-
-          // 加载并注入 enabledSkills / Load and inject enabledSkills
-          if (this.options.enabledSkills && this.options.enabledSkills.length > 0) {
-            const skillsContent = await loadSkillsContent(this.options.enabledSkills);
-            if (skillsContent) {
-              systemInstructions.push(skillsContent);
-            }
-          }
-
-          if (systemInstructions.length > 0) {
-            contentToSend = `${contentToSend}\n\n<system_instruction>\n${systemInstructions.join('\n\n')}\n</system_instruction>`;
-          }
+          contentToSend = await prepareFirstMessage(contentToSend, {
+            presetContext: this.options.presetContext,
+            enabledSkills: this.options.enabledSkills,
+          });
         }
 
         const userMessage: TMessage = {
