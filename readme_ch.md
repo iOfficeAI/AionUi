@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <strong>💬 社区：</strong> <a href="https://discord.gg/g6u66vV9" target="_blank">Discord (English)</a> | 微信 (中文)：veryliu_66 (加我拉群)
+  <strong>💬 社区：</strong> <a href="https://discord.gg/g6u66vV9" target="_blank">Discord (English)</a> | <a href="./resources/wechat.jpg" target="_blank">微信 (中文群)</a>
 </p>
 
 ---
@@ -325,6 +325,8 @@ _自己写 CSS 代码自定义，让你的交互界面符合你的心意_
 - [💬 GitHub Discussions](https://github.com/iOfficeAI/AionUi/discussions) - **分享想法、提出建议、交流使用心得**
 - [🐛 报告问题](https://github.com/iOfficeAI/AionUi/issues) - 反馈 Bug 或功能请求
 - [📦 发布更新](https://github.com/iOfficeAI/AionUi/releases) - 获取最新版本
+- [💬 Discord Community](https://discord.gg/g6u66vV9) - **加入我们的英文 Discord 社区**
+- [💬 微信 (中文群)](./resources/wechat.jpg) - **点击查看二维码**
 
 ### 🤝 贡献代码
 

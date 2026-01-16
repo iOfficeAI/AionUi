@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <strong>💬 Community:</strong> <a href="https://discord.gg/g6u66vV9" target="_blank">Discord (English)</a> | WeChat (Chinese): veryliu_66 (Add me to join wechat group)
+  <strong>💬 Community:</strong> <a href="https://discord.gg/g6u66vV9" target="_blank">Discord (English)</a> | <a href="./resources/wechat.jpg" target="_blank">微信 (中文群)</a>
 </p>
 
 ---
@@ -325,6 +325,8 @@ _Customize with your own CSS code, make your interface match your preferences_
 - [💬 GitHub Discussions](https://github.com/iOfficeAI/AionUi/discussions) - **Share ideas, make suggestions, exchange usage tips**
 - [🐛 Report Issues](https://github.com/iOfficeAI/AionUi/issues) - Report bugs or feature requests
 - [📦 Release Updates](https://github.com/iOfficeAI/AionUi/releases) - Get the latest version
+- [💬 Discord Community](https://discord.gg/g6u66vV9) - **Join our English community on Discord**
+- [💬 微信 (中文群)](./resources/wechat.jpg) - **Click to view QR code**
 
 ### 🤝 Contributing
 
