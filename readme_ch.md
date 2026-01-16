@@ -33,6 +33,10 @@
   <a href="./readme.md">English</a> | <strong>简体中文</strong> | <a href="./readme_jp.md">日本語</a> | <a href="https://www.aionui.com" target="_blank">官网</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
 </p>
 
+<p align="center">
+  <strong>💬 社区：</strong> <a href="https://discord.gg/g6u66vV9" target="_blank">Discord (English)</a> | 微信 (中文)：veryliu_66 (加我拉群)
+</p>
+
 ---
 
 ## 📋 快速导航

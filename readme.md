@@ -33,6 +33,10 @@
   <strong>English</strong> | <a href="./readme_ch.md">简体中文</a> | <a href="./readme_jp.md">日本語</a> | <a href="https://www.aionui.com" target="_blank">Official Website</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
 </p>
 
+<p align="center">
+  <strong>💬 Community:</strong> <a href="https://discord.gg/g6u66vV9" target="_blank">Discord (English)</a> | WeChat (Chinese): veryliu_66 (Add me to join wechat group)
+</p>
+
 ---
 
 ## 📋 Quick Navigation
