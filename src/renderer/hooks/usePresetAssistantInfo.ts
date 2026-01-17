@@ -8,7 +8,9 @@ import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ASSISTANT_PRESETS } from '@/common/presets/assistantPresets';
 import type { TChatConversation } from '@/common/storage';
+import { ConfigStorage } from '@/common/storage';
 import CoworkLogo from '@/renderer/assets/cowork.svg';
+import useSWR from 'swr';
 
 export interface PresetAssistantInfo {
   name: string;
@@ -34,19 +36,23 @@ function resolvePresetId(conversation: TChatConversation): string | null {
 
   // 1. 优先使用 presetAssistantId（新会话）
   // Priority: use presetAssistantId (new conversations)
-  if (extra?.presetAssistantId) {
-    return extra.presetAssistantId.replace('builtin-', '');
+  if (extra?.presetAssistantId && extra.presetAssistantId.trim()) {
+    const resolved = extra.presetAssistantId.replace('builtin-', '');
+    return resolved;
   }
 
   // 2. 向后兼容：customAgentId（ACP/Codex 旧会话）
   // Backward compatible: customAgentId (ACP/Codex old conversations)
-  if (extra?.customAgentId) {
-    return extra.customAgentId.replace('builtin-', '');
+  if (extra?.customAgentId && extra.customAgentId.trim()) {
+    const resolved = extra.customAgentId.replace('builtin-', '');
+    return resolved;
   }
 
   // 3. 向后兼容：enabledSkills 存在说明是 Cowork 会话（Gemini 旧会话）
   // Backward compatible: enabledSkills means Cowork conversation (Gemini old conversations)
-  if (conversation.type === 'gemini' && extra?.enabledSkills && extra.enabledSkills.length > 0) {
+  // 只有在既没有 presetAssistantId 也没有 customAgentId 时才使用此逻辑
+  // Only use this logic when both presetAssistantId and customAgentId are absent (including empty strings)
+  if (conversation.type === 'gemini' && !extra?.presetAssistantId?.trim() && !extra?.customAgentId?.trim() && extra?.enabledSkills && extra.enabledSkills.length > 0) {
     return 'cowork';
   }
 
@@ -90,12 +96,61 @@ function buildPresetInfo(presetId: string, locale: string): PresetAssistantInfo 
 export function usePresetAssistantInfo(conversation: TChatConversation | undefined): PresetAssistantInfo | null {
   const { i18n } = useTranslation();
 
+  // Fetch custom agents to support custom preset assistants
+  const { data: customAgents } = useSWR('acp.customAgents', () => ConfigStorage.get('acp.customAgents'));
+
   return useMemo(() => {
     if (!conversation) return null;
 
     const presetId = resolvePresetId(conversation);
     if (!presetId) return null;
 
-    return buildPresetInfo(presetId, i18n.language || 'en-US');
-  }, [conversation, i18n.language]);
+    // First try to find in built-in presets
+    const builtinInfo = buildPresetInfo(presetId, i18n.language || 'en-US');
+    if (builtinInfo) {
+      return builtinInfo;
+    }
+
+    // If not found in built-in presets, try to find in custom agents
+    if (customAgents && Array.isArray(customAgents)) {
+      const customAgent = customAgents.find((agent) => agent.id === presetId || agent.id === `builtin-${presetId}`);
+      if (customAgent) {
+        const locale = i18n.language || 'en-US';
+        const resolveLocaleKey = (lang: string) => {
+          if (lang.startsWith('zh')) return 'zh-CN';
+          return 'en-US';
+        };
+        const localeKey = resolveLocaleKey(locale);
+
+        // Handle avatar: could be emoji or svg filename
+        let logo = customAgent.avatar || '🤖';
+        let isEmoji = true;
+
+        if (customAgent.avatar) {
+          if (customAgent.avatar.endsWith('.svg')) {
+            isEmoji = false;
+            // For cowork.svg, use the imported logo; for others, use emoji fallback
+            if (customAgent.avatar === 'cowork.svg') {
+              logo = CoworkLogo;
+            } else {
+              // Other svgs not yet supported, fallback to emoji
+              logo = '🤖';
+              isEmoji = true;
+            }
+          } else {
+            // It's an emoji
+            logo = customAgent.avatar;
+          }
+        }
+
+        return {
+          name: customAgent.nameI18n?.[localeKey] || customAgent.name || presetId,
+          logo,
+          isEmoji,
+        };
+      }
+    }
+
+    return null;
+  }, [conversation, i18n.language, customAgents]);
 }

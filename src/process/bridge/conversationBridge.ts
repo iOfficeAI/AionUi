@@ -27,6 +27,7 @@ export function initConversationBridge(): void {
         const extraWithPresets = extra as typeof extra & {
           presetRules?: string;
           enabledSkills?: string[];
+          presetAssistantId?: string;
         };
         let contextFileName = extra.contextFileName;
         // Resolve relative paths to CWD (usually project root in dev)
@@ -38,7 +39,8 @@ export function initConversationBridge(): void {
         // skills 通过 SkillManager 加载 / Skills are loaded via SkillManager
         const presetRules = extraWithPresets.presetRules || extraWithPresets.presetContext || extraWithPresets.context;
         const enabledSkills = extraWithPresets.enabledSkills;
-        return createGeminiAgent(model, extra.workspace, extra.defaultFiles, extra.webSearchEngine, extra.customWorkspace, contextFileName, presetRules, enabledSkills);
+        const presetAssistantId = extraWithPresets.presetAssistantId;
+        return createGeminiAgent(model, extra.workspace, extra.defaultFiles, extra.webSearchEngine, extra.customWorkspace, contextFileName, presetRules, enabledSkills, presetAssistantId);
       }
       if (type === 'acp') return createAcpAgent(params);
       if (type === 'codex') return createCodexAgent(params);

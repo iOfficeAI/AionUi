@@ -8,13 +8,11 @@ import { ipcBridge } from '@/common';
 import { ASSISTANT_PRESETS } from '@/common/presets/assistantPresets';
 import type { IProvider, TProviderWithModel } from '@/common/storage';
 import { ConfigStorage } from '@/common/storage';
-import { uuid, resolveLocaleKey } from '@/common/utils';
-import { useConversationTabs } from '@/renderer/pages/conversation/context/ConversationTabsContext';
-import { updateWorkspaceTime } from '@/renderer/utils/workspaceHistory';
+import { resolveLocaleKey, uuid } from '@/common/utils';
+import coworkSvg from '@/renderer/assets/cowork.svg';
 import AuggieLogo from '@/renderer/assets/logos/auggie.svg';
 import ClaudeLogo from '@/renderer/assets/logos/claude.svg';
 import CodexLogo from '@/renderer/assets/logos/codex.svg';
-import coworkSvg from '@/renderer/assets/cowork.svg';
 import GeminiLogo from '@/renderer/assets/logos/gemini.svg';
 import GooseLogo from '@/renderer/assets/logos/goose.svg';
 import IflowLogo from '@/renderer/assets/logos/iflow.svg';
@@ -23,16 +21,18 @@ import OpenCodeLogo from '@/renderer/assets/logos/opencode.svg';
 import QwenLogo from '@/renderer/assets/logos/qwen.svg';
 import FilePreview from '@/renderer/components/FilePreview';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
-import { useInputFocusRing } from '@/renderer/hooks/useInputFocusRing';
 import { useCompositionInput } from '@/renderer/hooks/useCompositionInput';
 import { useDragUpload } from '@/renderer/hooks/useDragUpload';
 import { useGeminiGoogleAuthModels } from '@/renderer/hooks/useGeminiGoogleAuthModels';
+import { useInputFocusRing } from '@/renderer/hooks/useInputFocusRing';
 import { usePasteService } from '@/renderer/hooks/usePasteService';
+import { useConversationTabs } from '@/renderer/pages/conversation/context/ConversationTabsContext';
 import { allSupportedExts, type FileMetadata, getCleanFileNames } from '@/renderer/services/FileService';
-import { buildDisplayMessage } from '@/renderer/utils/messageFiles';
 import { iconColors } from '@/renderer/theme/colors';
 import { emitter } from '@/renderer/utils/emitter';
+import { buildDisplayMessage } from '@/renderer/utils/messageFiles';
 import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
+import { updateWorkspaceTime } from '@/renderer/utils/workspaceHistory';
 import type { AcpBackend, AcpBackendConfig } from '@/types/acpTypes';
 import { Button, ConfigProvider, Dropdown, Input, Menu, Tooltip } from '@arco-design/web-react';
 import { IconClose } from '@arco-design/web-react/icon';
@@ -657,6 +657,7 @@ const Guid: React.FC = () => {
     const agentInfo = selectedAgentInfo;
     const isPreset = isPresetAgent;
     const presetAgentType = resolvePresetAgentType(agentInfo);
+
     // 加载 rules（skills 已迁移到 SkillManager）/ Load rules (skills migrated to SkillManager)
     const { rules: presetRules } = await resolvePresetRulesAndSkills(agentInfo);
     // 获取启用的 skills 列表 / Get enabled skills list
@@ -666,6 +667,8 @@ const Guid: React.FC = () => {
     if (!selectedAgent || selectedAgent === 'gemini' || (isPreset && presetAgentType === 'gemini')) {
       if (!currentModel) return;
       try {
+        const presetAssistantIdToPass = isPreset ? agentInfo?.customAgentId : undefined;
+
         const conversation = await ipcBridge.conversation.create.invoke({
           type: 'gemini',
           name: input,
@@ -682,7 +685,7 @@ const Guid: React.FC = () => {
             enabledSkills: isPreset ? enabledSkills : undefined,
             // 预设助手 ID，用于在会话面板显示助手名称和头像
             // Preset assistant ID for displaying name and avatar in conversation panel
-            presetAssistantId: isPreset ? agentInfo?.customAgentId : undefined,
+            presetAssistantId: presetAssistantIdToPass,
           },
         });
 
@@ -1067,6 +1070,11 @@ const Guid: React.FC = () => {
                     </React.Fragment>
                   );
                 })}
+                {/* 添加助手按钮 */}
+                <div className='text-white/30 text-16px lh-1 p-2px select-none'>|</div>
+                <div className='flex items-center cursor-pointer opacity-60 hover:opacity-100 p-4px' style={{ transition: 'opacity 0.5s cubic-bezier(0.2, 0.8, 0.3, 1)' }} onClick={() => navigate('/settings/agent')}>
+                  <Plus theme='outline' size={20} fill='currentColor' strokeWidth={3} style={{ lineHeight: 0 }} />
+                </div>
               </div>
             </div>
           )}

@@ -44,6 +44,35 @@ async function findBuiltinResourceDir(resourceType: ResourceType): Promise<strin
 }
 
 /**
+ * Get user config skills directory
+ * 获取用户配置 skills 目录
+ */
+function getUserSkillsDir(): string {
+  const userDataPath = app.getPath('userData');
+  return path.join(userDataPath, 'config', 'skills');
+}
+
+/**
+ * Copy directory recursively
+ * 递归复制目录
+ */
+async function copyDirectory(src: string, dest: string) {
+  await fs.mkdir(dest, { recursive: true });
+  const entries = await fs.readdir(src, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+
+    if (entry.isDirectory()) {
+      await copyDirectory(srcPath, destPath);
+    } else {
+      await fs.copyFile(srcPath, destPath);
+    }
+  }
+}
+
+/**
  * Read a builtin resource file (.md only)
  * 读取内置资源文件（仅限 .md）
  */
@@ -579,44 +608,205 @@ export function initFsBridge(): void {
     return deleteAssistantResource('skills', new RegExp(`^${assistantId}-skills\\..*\\.md$`));
   });
 
-  // 获取可用 skills 列表 / List available skills from skills directory
+  // 获取可用 skills 列表 / List available skills from both builtin and user directories
   ipcBridge.fs.listAvailableSkills.provider(async () => {
     try {
-      const skillsDir = await findBuiltinResourceDir('skills');
-      const skills: Array<{ name: string; description: string; location: string }> = [];
+      const skills: Array<{ name: string; description: string; location: string; isCustom: boolean }> = [];
 
-      // 读取 skills 目录下所有子目录
-      const entries = await fs.readdir(skillsDir, { withFileTypes: true });
-      for (const entry of entries) {
-        if (!entry.isDirectory()) continue;
-
-        const skillMdPath = path.join(skillsDir, entry.name, 'SKILL.md');
+      // 辅助函数：从目录读取 skills
+      const readSkillsFromDir = async (skillsDir: string, isCustomDir: boolean) => {
         try {
-          const content = await fs.readFile(skillMdPath, 'utf-8');
-          // 解析 YAML front matter
-          const frontMatterMatch = content.match(/^---\s*\n([\s\S]*?)\n---/);
-          if (frontMatterMatch) {
-            const yaml = frontMatterMatch[1];
-            const nameMatch = yaml.match(/^name:\s*(.+)$/m);
-            const descMatch = yaml.match(/^description:\s*['"]?(.+?)['"]?$/m);
-            if (nameMatch) {
-              skills.push({
-                name: nameMatch[1].trim(),
-                description: descMatch ? descMatch[1].trim() : '',
-                location: skillMdPath,
-              });
+          await fs.access(skillsDir);
+          const entries = await fs.readdir(skillsDir, { withFileTypes: true });
+
+          for (const entry of entries) {
+            if (!entry.isDirectory()) continue;
+
+            const skillMdPath = path.join(skillsDir, entry.name, 'SKILL.md');
+
+            try {
+              const content = await fs.readFile(skillMdPath, 'utf-8');
+              // 解析 YAML front matter
+              const frontMatterMatch = content.match(/^---\s*\n([\s\S]*?)\n---/);
+              if (frontMatterMatch) {
+                const yaml = frontMatterMatch[1];
+                const nameMatch = yaml.match(/^name:\s*(.+)$/m);
+                const descMatch = yaml.match(/^description:\s*['"]?(.+?)['"]?$/m);
+                if (nameMatch) {
+                  skills.push({
+                    name: nameMatch[1].trim(),
+                    description: descMatch ? descMatch[1].trim() : '',
+                    location: skillMdPath,
+                    isCustom: isCustomDir,
+                  });
+                }
+              }
+            } catch {
+              // Skill directory without SKILL.md, skip
             }
           }
         } catch {
-          // Skill directory without SKILL.md, skip
+          // Directory doesn't exist, skip
+        }
+      };
+
+      // 读取内置 skills (isCustom: false)
+      const builtinSkillsDir = await findBuiltinResourceDir('skills');
+      const builtinCountBefore = skills.length;
+      await readSkillsFromDir(builtinSkillsDir, false);
+      const builtinCount = skills.length - builtinCountBefore;
+
+      // 读取用户自定义 skills (isCustom: true)
+      const userSkillsDir = getUserSkillsDir();
+      const userCountBefore = skills.length;
+      await readSkillsFromDir(userSkillsDir, true);
+      const userCount = skills.length - userCountBefore;
+
+      // 去重：如果 custom skill 和 builtin skill 同名，只保留 builtin
+      // Deduplicate: if custom and builtin skills have same name, keep only builtin
+      const skillMap = new Map<string, { name: string; description: string; location: string; isCustom: boolean }>();
+      for (const skill of skills) {
+        const existing = skillMap.get(skill.name);
+        // 如果已存在且当前是 builtin，或者不存在，则添加/更新
+        // Add/update if: already exists and current is builtin, or doesn't exist yet
+        if (!existing || !skill.isCustom) {
+          skillMap.set(skill.name, skill);
         }
       }
+      const deduplicatedSkills = Array.from(skillMap.values());
 
-      console.log(`[fsBridge] Listed ${skills.length} available skills from ${skillsDir}`);
-      return skills;
+      console.log(`[fsBridge] Listed ${deduplicatedSkills.length} available skills (${skills.length} before deduplication):`);
+      console.log(`  - Builtin skills (${builtinCount}): ${builtinSkillsDir}`);
+      console.log(`  - User skills (${userCount}): ${userSkillsDir}`);
+      console.log(`  - Skills breakdown:`, deduplicatedSkills.map((s) => `${s.name} (${s.isCustom ? 'custom' : 'builtin'})`).join(', '));
+
+      return deduplicatedSkills;
     } catch (error) {
       console.error('[fsBridge] Failed to list available skills:', error);
       return [];
+    }
+  });
+
+  // 读取 skill 信息（不导入）/ Read skill info without importing
+  ipcBridge.fs.readSkillInfo.provider(async ({ skillPath }) => {
+    try {
+      // 验证 SKILL.md 文件存在 / Verify SKILL.md file exists
+      const skillMdPath = path.join(skillPath, 'SKILL.md');
+      try {
+        await fs.access(skillMdPath);
+      } catch {
+        return {
+          success: false,
+          msg: 'SKILL.md file not found in the selected directory',
+        };
+      }
+
+      // 读取 SKILL.md 获取 skill 信息 / Read SKILL.md to get skill info
+      const content = await fs.readFile(skillMdPath, 'utf-8');
+      const frontMatterMatch = content.match(/^---\s*\n([\s\S]*?)\n---/);
+      let skillName = path.basename(skillPath); // 默认使用目录名 / Default to directory name
+      let skillDescription = '';
+
+      if (frontMatterMatch) {
+        const yaml = frontMatterMatch[1];
+        const nameMatch = yaml.match(/^name:\s*(.+)$/m);
+        const descMatch = yaml.match(/^description:\s*['"]?(.+?)['"]?$/m);
+        if (nameMatch) {
+          skillName = nameMatch[1].trim();
+        }
+        if (descMatch) {
+          skillDescription = descMatch[1].trim();
+        }
+      }
+
+      return {
+        success: true,
+        data: {
+          name: skillName,
+          description: skillDescription,
+        },
+        msg: 'Skill info loaded successfully',
+      };
+    } catch (error) {
+      console.error('[fsBridge] Failed to read skill info:', error);
+      return {
+        success: false,
+        msg: `Failed to read skill info: ${error instanceof Error ? error.message : String(error)}`,
+      };
+    }
+  });
+
+  // 导入 skill 目录 / Import skill directory
+  ipcBridge.fs.importSkill.provider(async ({ skillPath }) => {
+    try {
+      // 验证 SKILL.md 文件存在 / Verify SKILL.md file exists
+      const skillMdPath = path.join(skillPath, 'SKILL.md');
+      try {
+        await fs.access(skillMdPath);
+      } catch {
+        return {
+          success: false,
+          msg: 'SKILL.md file not found in the selected directory',
+        };
+      }
+
+      // 读取 SKILL.md 获取 skill 名称 / Read SKILL.md to get skill name
+      const content = await fs.readFile(skillMdPath, 'utf-8');
+      const frontMatterMatch = content.match(/^---\s*\n([\s\S]*?)\n---/);
+      let skillName = path.basename(skillPath); // 默认使用目录名 / Default to directory name
+
+      if (frontMatterMatch) {
+        const yaml = frontMatterMatch[1];
+        const nameMatch = yaml.match(/^name:\s*(.+)$/m);
+        if (nameMatch) {
+          skillName = nameMatch[1].trim();
+        }
+      }
+
+      // 获取用户 skills 目录 / Get user skills directory
+      const userSkillsDir = getUserSkillsDir();
+      const targetDir = path.join(userSkillsDir, skillName);
+
+      // 检查是否已存在同名 skill（同时检查内置和用户目录）/ Check if skill already exists in both builtin and user directories
+      const builtinSkillsDir = await findBuiltinResourceDir('skills');
+      const builtinTargetDir = path.join(builtinSkillsDir, skillName);
+
+      try {
+        await fs.access(targetDir);
+        return {
+          success: false,
+          msg: `Skill "${skillName}" already exists in user skills`,
+        };
+      } catch {
+        // User skill doesn't exist
+      }
+
+      try {
+        await fs.access(builtinTargetDir);
+        return {
+          success: false,
+          msg: `Skill "${skillName}" already exists in builtin skills`,
+        };
+      } catch {
+        // Builtin skill doesn't exist, proceed with copy
+      }
+
+      // 复制整个目录 / Copy entire directory
+      await copyDirectory(skillPath, targetDir);
+
+      console.log(`[fsBridge] Successfully imported skill "${skillName}" to ${targetDir}`);
+
+      return {
+        success: true,
+        data: { skillName },
+        msg: `Skill "${skillName}" imported successfully`,
+      };
+    } catch (error) {
+      console.error('[fsBridge] Failed to import skill:', error);
+      return {
+        success: false,
+        msg: `Failed to import skill: ${error instanceof Error ? error.message : String(error)}`,
+      };
     }
   });
 }
