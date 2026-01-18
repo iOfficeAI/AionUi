@@ -8,6 +8,7 @@ import { ipcBridge } from '@/common';
 import type { TChatConversation } from '@/common/storage';
 import FlexFullContainer from '@/renderer/components/FlexFullContainer';
 import { addEventListener, emitter } from '@/renderer/utils/emitter';
+import { getActivityTime, createTimelineGrouper } from '@/renderer/utils/timeline';
 import { Empty, Popconfirm, Input, Tooltip } from '@arco-design/web-react';
 import { DeleteOne, MessageOne, EditOne } from '@icon-park/react';
 import classNames from 'classnames';
@@ -15,35 +16,9 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 
-const diffDay = (time1: number, time2: number) => {
-  const date1 = new Date(time1);
-  const date2 = new Date(time2);
-  const ymd1 = new Date(date1.getFullYear(), date1.getMonth(), date1.getDate());
-  const ymd2 = new Date(date2.getFullYear(), date2.getMonth(), date2.getDate());
-  const diff = Math.abs(ymd2.getTime() - ymd1.getTime());
-  return Math.floor(diff / (1000 * 60 * 60 * 24));
-};
-
 const useTimeline = () => {
   const { t } = useTranslation();
-  const current = Date.now();
-  let prevTime: number;
-  const format = (time: number) => {
-    if (diffDay(current, time) === 0) return t('conversation.history.today');
-    if (diffDay(current, time) === 1) return t('conversation.history.yesterday');
-    if (diffDay(current, time) < 7) return t('conversation.history.recent7Days');
-    return t('conversation.history.earlier');
-  };
-  return (conversation: TChatConversation) => {
-    const time = conversation.createTime;
-    const formatStr = format(time);
-    if (prevTime && formatStr === format(prevTime)) {
-      prevTime = time;
-      return '';
-    }
-    prevTime = time;
-    return formatStr;
-  };
+  return createTimelineGrouper(t);
 };
 
 const useScrollIntoView = (id: string) => {
@@ -112,7 +87,7 @@ const ChatHistory: React.FC<{ onSessionClick?: () => void; collapsed?: boolean }
         .invoke({ page: 0, pageSize: 10000 })
         .then((history) => {
           if (history && Array.isArray(history) && history.length > 0) {
-            const sortedHistory = history.sort((a, b) => (b.createTime - a.createTime < 0 ? -1 : 1));
+            const sortedHistory = history.sort((a, b) => getActivityTime(b) - getActivityTime(a));
             setChatHistory(sortedHistory);
           } else {
             setChatHistory([]);
@@ -198,8 +173,8 @@ const ChatHistory: React.FC<{ onSessionClick?: () => void; collapsed?: boolean }
           })}
           onClick={handleSelect.bind(null, conversation)}
         >
-          <MessageOne theme='outline' size='20' className='mt-2px ml-2px mr-8px flex' />
-          <FlexFullContainer className='h-24px'>{isEditing ? <Input className='chat-history__item-editor text-14px lh-24px h-24px w-full' value={editingName} onChange={setEditingName} onKeyDown={handleEditKeyDown} onBlur={handleEditSave} autoFocus size='small' /> : <div className='chat-history__item-name text-nowrap overflow-hidden inline-block w-full text-14px lh-24px whitespace-nowrap'>{conversation.name}</div>}</FlexFullContainer>
+          <MessageOne theme='outline' size='20' className='mt-2px flex' />
+          <FlexFullContainer className='h-24px collapsed-hidden ml-10px'>{isEditing ? <Input className='chat-history__item-editor text-14px lh-24px h-24px w-full' value={editingName} onChange={setEditingName} onKeyDown={handleEditKeyDown} onBlur={handleEditSave} autoFocus size='small' /> : <div className='chat-history__item-name text-nowrap overflow-hidden inline-block w-full text-14px lh-24px whitespace-nowrap'>{conversation.name}</div>}</FlexFullContainer>
           {!isEditing && (
             <div
               className={classNames('absolute right-0px top-0px h-full w-70px items-center justify-end hidden group-hover:flex !collapsed-hidden pr-12px')}

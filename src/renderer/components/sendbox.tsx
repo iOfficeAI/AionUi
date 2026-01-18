@@ -4,16 +4,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Button, Input, Message } from '@arco-design/web-react';
-import { ArrowUp } from '@icon-park/react';
-import React, { useState, useRef, useEffect } from 'react';
+import { Button, Input, Message, Tag } from '@arco-design/web-react';
+import { ArrowUp, CloseSmall } from '@icon-park/react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCompositionInput } from '../hooks/useCompositionInput';
 import { useDragUpload } from '../hooks/useDragUpload';
 import { usePasteService } from '../hooks/usePasteService';
 import type { FileMetadata } from '../services/FileService';
 import { allSupportedExts } from '../services/FileService';
-import SendArrowIcon from '@/renderer/assets/send-arrow.svg';
+import { usePreviewContext } from '@/renderer/pages/conversation/preview';
+import { useLatestRef } from '../hooks/useLatestRef';
+import { useInputFocusRing } from '@/renderer/hooks/useInputFocusRing';
 
 const constVoid = (): void => undefined;
 // 临界值：超过该字符数直接切换至多行模式，避免为超长文本做昂贵的宽度测量
@@ -35,13 +37,35 @@ const SendBox: React.FC<{
   supportedExts?: string[];
   defaultMultiLine?: boolean;
   lockMultiLine?: boolean;
-}> = ({ onSend, onStop, prefix, className, loading, tools, disabled, placeholder, value: input = '', onChange: setInput = constVoid, onFilesAdded, supportedExts = allSupportedExts, defaultMultiLine = false, lockMultiLine = false }) => {
+  sendButtonPrefix?: React.ReactNode;
+}> = ({ onSend, onStop, prefix, className, loading, tools, disabled, placeholder, value: input = '', onChange: setInput = constVoid, onFilesAdded, supportedExts = allSupportedExts, defaultMultiLine = false, lockMultiLine = false, sendButtonPrefix }) => {
   const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
   const [isSingleLine, setIsSingleLine] = useState(!defaultMultiLine);
+  const [isInputFocused, setIsInputFocused] = useState(false);
+  const isInputActive = isInputFocused;
+  const { activeBorderColor, inactiveBorderColor, activeShadow } = useInputFocusRing();
   const containerRef = useRef<HTMLDivElement>(null);
   const singleLineWidthRef = useRef<number>(0);
   const measurementCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const latestInputRef = useLatestRef(input);
+  const setInputRef = useLatestRef(setInput);
+
+  // 集成预览面板的"添加到聊天"功能 / Integrate preview panel's "Add to chat" functionality
+  const { setSendBoxHandler, domSnippets, removeDomSnippet, clearDomSnippets } = usePreviewContext();
+
+  // 注册处理器以接收来自预览面板的文本 / Register handler to receive text from preview panel
+  useEffect(() => {
+    const handler = (text: string) => {
+      const base = latestInputRef.current;
+      const newValue = base ? `${base}\n\n${text}` : text;
+      setInputRef.current(newValue);
+    };
+    setSendBoxHandler(handler);
+    return () => {
+      setSendBoxHandler(null);
+    };
+  }, [setSendBoxHandler]);
 
   // 初始化时获取单行输入框的可用宽度
   // Initialize and get the available width of single-line input
@@ -142,7 +166,7 @@ const SendBox: React.FC<{
   const { compositionHandlers, createKeyDownHandler } = useCompositionInput();
 
   // 使用共享的PasteService集成
-  const { onPaste, onFocus } = usePasteService({
+  const { onPaste, onFocus: handlePasteFocus } = usePasteService({
     supportedExts,
     onFilesAdded,
     onTextPaste: (text: string) => {
@@ -163,19 +187,35 @@ const SendBox: React.FC<{
       }
     },
   });
+  const handleInputFocus = useCallback(() => {
+    handlePasteFocus();
+    setIsInputFocused(true);
+  }, [handlePasteFocus]);
+  const handleInputBlur = useCallback(() => {
+    setIsInputFocused(false);
+  }, []);
 
   const sendMessageHandler = () => {
     if (loading || isLoading) {
       message.warning(t('messages.conversationInProgress'));
       return;
     }
-    if (!input.trim()) {
+    if (!input.trim() && domSnippets.length === 0) {
       return;
     }
     setIsLoading(true);
-    onSend(input)
+
+    // 构建消息内容：如果有 DOM 片段，附加完整 HTML / Build message: if has DOM snippets, append full HTML
+    let finalMessage = input;
+    if (domSnippets.length > 0) {
+      const snippetsHtml = domSnippets.map((s) => `\n\n---\nDOM Snippet (${s.tag}):\n\`\`\`html\n${s.html}\n\`\`\``).join('');
+      finalMessage = input + snippetsHtml;
+    }
+
+    onSend(finalMessage)
       .then(() => {
         setInput('');
+        clearDomSnippets(); // 发送后清除 DOM 片段 / Clear DOM snippets after sending
       })
       .catch(() => {})
       .finally(() => {
@@ -196,8 +236,9 @@ const SendBox: React.FC<{
     <div className={className}>
       <div
         ref={containerRef}
-        className={`relative p-16px border-3 b bg-base b-solid rd-20px flex flex-col ${isFileDragging ? 'b-dashed' : ''}`}
+        className={`relative p-16px border-3 b bg-dialog-fill-0 b-solid rd-20px flex flex-col overflow-hidden ${isFileDragging ? 'b-dashed' : ''}`}
         style={{
+          transition: 'box-shadow 0.25s ease, border-color 0.25s ease',
           ...(isFileDragging
             ? {
                 backgroundColor: 'var(--color-primary-light-1)',
@@ -206,8 +247,8 @@ const SendBox: React.FC<{
               }
             : {
                 borderWidth: '1px',
-                borderColor: 'var(--border-special, #60577E)',
-                boxShadow: '0px 2px 20px rgba(var(--primary-rgb, 77, 60, 234), 0.1)',
+                borderColor: isInputActive ? activeBorderColor : inactiveBorderColor,
+                boxShadow: isInputActive ? activeShadow : 'none',
               }),
         }}
         {...dragHandlers}
@@ -215,8 +256,18 @@ const SendBox: React.FC<{
         <div style={{ width: '100%' }}>
           {prefix}
           {context}
+          {/* DOM 片段标签 / DOM snippet tags */}
+          {domSnippets.length > 0 && (
+            <div className='flex flex-wrap gap-6px mb-8px'>
+              {domSnippets.map((snippet) => (
+                <Tag key={snippet.id} closable closeIcon={<CloseSmall theme='outline' size='12' />} onClose={() => removeDomSnippet(snippet.id)} className='text-12px bg-fill-2 b-1 b-solid b-border-2 rd-4px'>
+                  {snippet.tag}
+                </Tag>
+              ))}
+            </div>
+          )}
         </div>
-        <div className={isSingleLine ? 'flex items-center gap-2 w-full' : 'w-full'}>
+        <div className={isSingleLine ? 'flex items-center gap-2 w-full min-w-0 overflow-hidden' : 'w-full overflow-hidden'}>
           {isSingleLine && <div className='flex-shrink-0 sendbox-tools'>{tools}</div>}
           <Input.TextArea
             autoFocus
@@ -227,7 +278,7 @@ const SendBox: React.FC<{
             style={{
               width: isSingleLine ? 'auto' : '100%',
               flex: isSingleLine ? 1 : 'none',
-              minWidth: isSingleLine ? '200px' : 0,
+              minWidth: 0,
               maxWidth: '100%',
               marginLeft: 0,
               marginRight: 0,
@@ -238,18 +289,22 @@ const SendBox: React.FC<{
               overflowX: 'hidden',
               whiteSpace: isSingleLine ? 'nowrap' : 'pre-wrap',
               textOverflow: isSingleLine ? 'ellipsis' : 'clip',
+              wordBreak: isSingleLine ? 'normal' : 'break-word',
+              overflowWrap: 'break-word',
             }}
             onChange={(v) => {
               setInput(v);
             }}
             onPaste={onPaste}
-            onFocus={onFocus}
+            onFocus={handleInputFocus}
+            onBlur={handleInputBlur}
             {...compositionHandlers}
             autoSize={isSingleLine ? false : { minRows: 1, maxRows: 10 }}
             onKeyDown={createKeyDownHandler(sendMessageHandler)}
           ></Input.TextArea>
           {isSingleLine && (
             <div className='flex items-center gap-2'>
+              {sendButtonPrefix}
               {isLoading || loading ? (
                 <Button shape='circle' type='secondary' className='bg-animate' icon={<div className='mx-auto size-12px bg-6' onClick={stopHandler}></div>}></Button>
               ) : (
@@ -269,6 +324,7 @@ const SendBox: React.FC<{
           <div className='flex items-center justify-between gap-2 w-full'>
             <div className='sendbox-tools'>{tools}</div>
             <div className='flex items-center gap-2'>
+              {sendButtonPrefix}
               {isLoading || loading ? (
                 <Button shape='circle' type='secondary' className='bg-animate' icon={<div className='mx-auto size-12px bg-6' onClick={stopHandler}></div>}></Button>
               ) : (

@@ -9,10 +9,14 @@ import { Divider, Typography } from '@arco-design/web-react';
 import { Github, Right } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import classNames from 'classnames';
+import { useSettingsViewMode } from '../settingsViewContext';
 import packageJson from '../../../../../package.json';
 
 const AboutModalContent: React.FC = () => {
   const { t } = useTranslation();
+  const viewMode = useSettingsViewMode();
+  const isPageMode = viewMode === 'page';
 
   const openLink = async (url: string) => {
     try {
@@ -53,7 +57,7 @@ const AboutModalContent: React.FC = () => {
   return (
     <div className='flex flex-col h-full w-full'>
       {/* Content Area */}
-      <div className='flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-24px'>
+      <div className={classNames('flex-1 min-h-0 overflow-y-auto overflow-x-hidden px-24px', isPageMode && 'px-0 overflow-visible')}>
         <div className='flex flex-col max-w-500px mx-auto'>
           {/* App Info Section */}
           <div className='flex flex-col items-center pb-24px'>

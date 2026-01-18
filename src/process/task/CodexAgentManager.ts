@@ -10,9 +10,11 @@ import { ipcBridge } from '@/common';
 import type { TMessage } from '@/common/chatLib';
 import { transformMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
+import { AIONUI_FILES_MARKER } from '@/common/constants';
 import { uuid } from '@/common/utils';
 import { addMessage } from '@process/message';
 import BaseAgentManager from '@process/task/BaseAgentManager';
+import { prepareFirstMessage } from '@process/task/agentUtils';
 import { t } from 'i18next';
 import { CodexEventHandler } from '@/agent/codex/handlers/CodexEventHandler';
 import { CodexSessionManager } from '@/agent/codex/handlers/CodexSessionManager';
@@ -21,6 +23,8 @@ import type { CodexAgentManagerData, FileChange } from '@/common/codex/types';
 import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
 import { getConfiguredAppClientName, getConfiguredAppClientVersion, getConfiguredCodexMcpProtocolVersion, setAppConfig } from '../../common/utils/appConfig';
 import { mapPermissionDecision } from '@/common/codex/utils';
+import { PERMISSION_DECISION_MAP } from '@/common/codex/types/permissionTypes';
+import { handlePreviewOpenEvent } from '@process/utils/previewUtils';
 
 const APP_CLIENT_NAME = getConfiguredAppClientName();
 const APP_CLIENT_VERSION = getConfiguredAppClientVersion();
@@ -31,12 +35,14 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
   agent: CodexAgent;
   bootstrap: Promise<CodexAgent>;
   private isFirstMessage: boolean = true;
+  private options: CodexAgentManagerData; // 保存原始配置数据 / Store original config data
 
   constructor(data: CodexAgentManagerData) {
     // Do not fork a worker for Codex; we run the agent in-process now
     super('codex', data);
     this.conversation_id = data.conversation_id;
     this.workspace = data.workspace;
+    this.options = data; // 保存原始数据以便后续使用 / Save original data for later use
 
     this.initAgent(data);
   }
@@ -82,7 +88,6 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
       sessionManager,
       fileOperationHandler,
       sandboxMode: data.sandboxMode || 'workspace-write', // Enable file writing within workspace by default
-      webSearchEnabled: data.webSearchEnabled ?? true, // Enable web search by default
       onNetworkError: (error) => {
         this.handleNetworkError(error);
       },
@@ -158,6 +163,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
   async sendMessage(data: { content: string; files?: string[]; msg_id?: string }) {
     try {
       await this.bootstrap;
+      const contentToSend = data.content?.includes(AIONUI_FILES_MARKER) ? data.content.split(AIONUI_FILES_MARKER)[0].trimEnd() : data.content;
 
       // Save user message to chat history only (renderer already inserts right-hand bubble)
       if (data.msg_id && data.content) {
@@ -174,11 +180,19 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
       }
 
       // 处理文件引用 - 参考 ACP 的文件引用处理
-      const processedContent = this.agent.getFileOperationHandler().processFileReferences(data.content, data.files);
+      let processedContent = this.agent.getFileOperationHandler().processFileReferences(contentToSend, data.files);
 
       // 如果是第一条消息，通过 newSession 发送以避免双消息问题
       if (this.isFirstMessage) {
         this.isFirstMessage = false;
+
+        // 注入智能助手的预设规则和 skills（如果有）
+        // Inject preset context and skills from smart assistant (if available)
+        processedContent = await prepareFirstMessage(processedContent, {
+          presetContext: this.options.presetContext,
+          enabledSkills: this.options.enabledSkills,
+        });
+
         const result = await this.agent.newSession(this.workspace, processedContent);
 
         // Session created successfully - Codex will send session_configured event automatically
@@ -231,7 +245,8 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     this.agent.getEventHandler().getToolHandlers().removePendingConfirmation(data.callId);
 
     // Use standardized permission decision mapping
-    const decision = mapPermissionDecision(data.confirmKey as any) as 'approved' | 'approved_for_session' | 'denied' | 'abort';
+    const decisionKey = data.confirmKey in PERMISSION_DECISION_MAP ? (data.confirmKey as keyof typeof PERMISSION_DECISION_MAP) : 'reject_once';
+    const decision = mapPermissionDecision(decisionKey) as 'approved' | 'approved_for_session' | 'denied' | 'abort';
     const isApproved = decision === 'approved' || decision === 'approved_for_session';
 
     // Apply patch changes if available and approved
@@ -396,6 +411,12 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
   emitAndPersistMessage(message: IResponseMessage, persist: boolean = true): void {
     message.conversation_id = this.conversation_id;
+
+    // Handle preview_open event (chrome-devtools navigation interception)
+    // 处理 preview_open 事件（chrome-devtools 导航拦截）
+    if (handlePreviewOpenEvent(message)) {
+      return; // Don't process further / 不需要继续处理
+    }
 
     // Backend handles persistence if needed
     if (persist) {

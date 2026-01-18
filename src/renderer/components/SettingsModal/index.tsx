@@ -7,16 +7,18 @@
 import AionModal from '@/renderer/components/base/AionModal';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { iconColors } from '@/renderer/theme/colors';
-import { Gemini, Info, LinkCloud, System, Toolkit } from '@icon-park/react';
+import { Computer, Gemini, Info, LinkCloud, Toolkit, Robot } from '@icon-park/react';
 import { Tabs } from '@arco-design/web-react';
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import AboutModalContent from './contents/AboutModalContent';
+import AgentModalContent from './contents/AgentModalContent';
 import GeminiModalContent from './contents/GeminiModalContent';
 import ModelModalContent from './contents/ModelModalContent';
 import SystemModalContent from './contents/SystemModalContent';
 import ToolsModalContent from './contents/ToolsModalContent';
+import { SettingsViewModeProvider } from './settingsViewContext';
 
 // ==================== 常量定义 / Constants ====================
 
@@ -47,7 +49,7 @@ const RESIZE_DEBOUNCE_DELAY = 150;
 /**
  * 设置标签页类型 / Settings tab type
  */
-export type SettingTab = 'gemini' | 'model' | 'tools' | 'system' | 'about';
+export type SettingTab = 'gemini' | 'model' | 'agent' | 'tools' | 'system' | 'about';
 
 /**
  * 设置弹窗组件属性 / Settings modal component props
@@ -169,7 +171,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
       {
         key: 'system',
         label: t('settings.system'),
-        icon: <System theme='outline' size='20' fill={iconColors.secondary} />,
+        icon: <Computer theme='outline' size='20' fill={iconColors.secondary} />,
       },
       {
         key: 'about',
@@ -187,6 +189,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
         return <GeminiModalContent onRequestClose={onCancel} />;
       case 'model':
         return <ModelModalContent />;
+      case 'agent':
+        return <AgentModalContent />;
       case 'tools':
         return <ToolsModalContent />;
       case 'system':
@@ -239,31 +243,33 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
   );
 
   return (
-    <AionModal
-      visible={visible}
-      onCancel={onCancel}
-      footer={null}
-      className='settings-modal'
-      style={{
-        width: isMobile ? `clamp(var(--app-min-width, 390px), 100vw, ${MODAL_WIDTH.mobile}px)` : `clamp(var(--app-min-width, 390px), 100vw, ${MODAL_WIDTH.desktop}px)`,
-        minWidth: 'var(--app-min-width, 390px)',
-        maxHeight: isMobile ? MODAL_HEIGHT.mobile : undefined,
-        borderRadius: '16px',
-      }}
-      contentStyle={{ padding: isMobile ? '16px' : '24px 24px 32px' }}
-      title={t('settings.title')}
-    >
-      <div
-        className={classNames('overflow-hidden gap-0', isMobile ? 'flex flex-col min-h-0' : 'flex mt-20px')}
+    <SettingsViewModeProvider value='modal'>
+      <AionModal
+        visible={visible}
+        onCancel={onCancel}
+        footer={null}
+        className='settings-modal'
         style={{
-          height: isMobile ? MODAL_HEIGHT.mobileContent : `${MODAL_HEIGHT.desktop}px`,
+          width: isMobile ? `clamp(var(--app-min-width, 360px), 100vw, ${MODAL_WIDTH.mobile}px)` : `clamp(var(--app-min-width, 360px), 100vw, ${MODAL_WIDTH.desktop}px)`,
+          minWidth: 'var(--app-min-width, 360px)',
+          maxHeight: isMobile ? MODAL_HEIGHT.mobile : undefined,
+          borderRadius: '16px',
         }}
+        contentStyle={{ padding: isMobile ? '16px' : '24px 24px 32px' }}
+        title={t('settings.title')}
       >
-        {isMobile ? mobileMenu : desktopMenu}
+        <div
+          className={classNames('overflow-hidden gap-0', isMobile ? 'flex flex-col min-h-0' : 'flex mt-20px')}
+          style={{
+            height: isMobile ? MODAL_HEIGHT.mobileContent : `${MODAL_HEIGHT.desktop}px`,
+          }}
+        >
+          {isMobile ? mobileMenu : desktopMenu}
 
-        <AionScrollArea className={classNames('flex-1 min-h-0 scrollbar-hide', isMobile ? 'overflow-y-auto' : 'flex flex-col pl-24px gap-16px')}>{renderContent()}</AionScrollArea>
-      </div>
-    </AionModal>
+          <AionScrollArea className={classNames('flex-1 min-h-0', isMobile ? 'overflow-y-auto' : 'flex flex-col pl-24px gap-16px')}>{renderContent()}</AionScrollArea>
+        </div>
+      </AionModal>
+    </SettingsViewModeProvider>
   );
 };
 

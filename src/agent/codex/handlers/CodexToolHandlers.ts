@@ -10,6 +10,7 @@ import type { FileChange, McpInvocation, CodexEventMsg } from '@/common/codex/ty
 import { ToolRegistry } from '@/common/codex/utils';
 import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
 import type { IResponseMessage } from '@/common/ipcBridge';
+import { NavigationInterceptor } from '@/common/navigation';
 
 export class CodexToolHandlers {
   private cmdBuffers: Map<string, { stdout: string; stderr: string; combined: string }> = new Map();
@@ -176,11 +177,30 @@ export class CodexToolHandlers {
 
   // MCP tool handlers
   handleMcpToolCallBegin(msg: Extract<CodexEventMsg, { type: 'mcp_tool_call_begin' }>) {
-    // MCP events don't have call_id, generate one based on tool name
+    // MCP events may or may not have call_id, generate one based on tool name if missing
+    // MCP 事件可能有也可能没有 call_id，如果缺失则根据工具名称生成
     const inv = msg.invocation || {};
-    const toolName = inv.tool || inv.name || inv.method || 'unknown';
-    const callId = `mcp_${toolName}_${uuid()}`;
+    const toolName = String(inv.tool || inv.name || inv.method || 'unknown');
+    // Use type assertion since call_id may exist in runtime data but not in type definition
+    // 使用类型断言，因为 call_id 可能在运行时数据中存在但不在类型定义中
+    const callId = (msg as any).call_id || `mcp_${toolName}_${uuid()}`;
     const title = this.formatMcpInvocation(inv);
+
+    // Intercept chrome-devtools navigation tools using unified NavigationInterceptor
+    // 使用统一的 NavigationInterceptor 拦截 chrome-devtools 导航工具
+    const interceptionResult = NavigationInterceptor.intercept(
+      {
+        toolName,
+        server: String(inv.server || ''),
+        arguments: inv.arguments as Record<string, unknown>,
+      },
+      this.conversation_id
+    );
+
+    if (interceptionResult.intercepted && interceptionResult.previewMessage) {
+      // Use emitAndPersistMessage with persist=false since preview_open is a signal
+      this.messageEmitter.emitAndPersistMessage(interceptionResult.previewMessage, false);
+    }
 
     // Add to pending confirmations
     this.pendingConfirmations.add(callId);

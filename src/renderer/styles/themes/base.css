@@ -1,7 +1,149 @@
 /* Base styles - theme-independent */
 
 :root {
-  --app-min-width: 390px;
+  --app-min-width: 360px;
+  --titlebar-height: 36px;
+}
+
+.app-shell {
+  min-height: 0;
+}
+
+.app-titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px;
+  height: var(--titlebar-height);
+  min-height: var(--titlebar-height);
+  line-height: var(--titlebar-height);
+  user-select: none;
+  position: relative;
+  z-index: 10;
+}
+
+.app-titlebar--desktop {
+  -webkit-app-region: drag;
+}
+
+.app-titlebar--mac {
+  height: 45px;
+  min-height: 36px;
+  /* Reserve space for macOS traffic light buttons (left side) */
+  padding-right: 12px;
+}
+
+.app-titlebar__brand {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 13px;
+  letter-spacing: 0.2px;
+  flex: 1;
+  text-align: center;
+  pointer-events: none;
+  line-height: 1;
+}
+
+.app-titlebar__menu {
+  -webkit-app-region: no-drag;
+  display: flex;
+  align-items: center;
+}
+
+.app-titlebar__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  -webkit-app-region: no-drag;
+  margin-left: auto;
+  min-height: var(--titlebar-height);
+}
+
+.app-titlebar__button {
+  -webkit-app-region: no-drag;
+  width: var(--titlebar-height);
+  height: var(--titlebar-height);
+  border: none;
+  border-radius: 6px;
+  background-color: transparent;
+  color: var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.app-titlebar__button:hover {
+  background-color: var(--bg-hover);
+}
+
+.app-titlebar__button:active {
+  background-color: var(--bg-active);
+}
+
+.app-window-controls {
+  display: flex;
+  align-items: stretch;
+  -webkit-app-region: no-drag;
+}
+
+.app-window-controls__button {
+  width: 40px;
+  height: var(--titlebar-height);
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.18s ease;
+}
+
+.app-window-controls__button:hover {
+  background-color: rgba(128, 128, 128, 0.2);
+}
+
+.app-window-controls__button:active {
+  background-color: rgba(128, 128, 128, 0.3);
+}
+
+.app-window-controls__button--close:hover {
+  background-color: #e81123;
+  color: #fff;
+}
+
+.app-window-controls__button--close:active {
+  background-color: #c10f1f;
+  color: #fff;
+}
+
+.workspace-header__toggle {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.workspace-header__toggle:hover {
+  background-color: var(--bg-hover);
+}
+
+.workspace-header__toggle:active {
+  background-color: var(--bg-active);
+}
+
+.workspace-toggle-floating {
+  background-color: var(--bg-2);
+  border: 1px solid var(--bg-3);
 }
 
 html,
@@ -47,45 +189,43 @@ body,
   }
 }
 
-/* Layout sider transitions - keep bilingual comments for clarity / 布局侧栏过渡动画（中英注释） */
+/* Layout sider base styles / 布局侧栏基础样式 */
 .layout-sider {
-  transition:
-    width 0.32s ease,
-    min-width 0.32s ease,
-    max-width 0.32s ease;
+  overflow-x: hidden;
 }
 
-.layout-sider-header,
-.layout-sider-content {
-  transition:
-    opacity 0.24s ease,
-    transform 0.24s ease;
-  will-change: opacity, transform;
+.layout-sider.collapsed .arco-layout-sider-children,
+.layout-sider.arco-layout-sider-collapsed .arco-layout-sider-children {
+  overflow-x: hidden;
 }
 
-.layout-sider--folding {
-  .layout-sider-header,
-  .layout-sider-content {
-    opacity: 0;
-    transform: translateX(-12px);
-    pointer-events: none;
-  }
+/* 拖动时禁用过渡动画，确保流畅的拖动体验 / Disable transition during drag for smooth dragging */
+.layout-sider--dragging {
+  transition: none !important;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .layout-sider,
-  .layout-sider-header,
-  .layout-sider-content {
+  .preview-panel {
     transition: none !important;
+    animation: none !important;
   }
 }
 
-/* Sidebar collapse animation helpers */
-.chat-history,
-.settings-sider {
-  transition:
-    opacity 0.25s ease,
-    transform 0.25s ease;
+/* Preview panel animation / 预览面板动画 */
+.preview-panel {
+  animation: preview-panel-enter 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  will-change: opacity, transform;
+}
+
+@keyframes preview-panel-enter {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 .chat-history__item,
@@ -111,7 +251,6 @@ body,
 
 .chat-history__placeholder,
 .chat-history__section {
-  overflow: hidden;
   transition:
     opacity 0.3s ease,
     max-height 0.3s ease,
@@ -332,7 +471,25 @@ body,
 
 /* Message component positioning - center in conversation area (exclude left sider) */
 /* Message 组件定位 - 在对话区域居中（排除左侧侧边栏） */
+/* 使用 padding-left 偏移，保持内部消息居中 / Use padding-left offset while keeping inner message centered */
 .arco-message-wrapper {
-  left: 266px !important;
-  width: calc(100% - 266px) !important;
+  left: 0 !important;
+  width: 100% !important;
+  padding-left: 266px;
+  box-sizing: border-box;
+}
+
+/* Mobile: remove left padding / 移动端：移除左侧内边距 */
+@media (max-width: 767px) {
+  .arco-message-wrapper {
+    padding-left: 0;
+  }
+}
+
+/* Default background for select and input components */
+/* Select 和 Input 组件默认背景 */
+.arco-select-view,
+.arco-input,
+.arco-input-inner-wrapper {
+  background-color: var(--fill-0) !important;
 }

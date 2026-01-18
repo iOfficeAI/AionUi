@@ -4,20 +4,24 @@ import { transformMessage, type TMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import { uuid } from '@/common/utils';
 import SendBox from '@/renderer/components/sendbox';
-import ShimmerText from '@/renderer/components/ShimmerText';
 import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/ThoughtDisplay';
 import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/useSendBoxDraft';
 import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/useSendBoxFiles';
 import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
 import { allSupportedExts } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
+import { mergeFileSelectionItems } from '@/renderer/utils/fileSelection';
 import { Button, Tag } from '@arco-design/web-react';
 import { Plus } from '@icon-park/react';
+import { iconColors } from '@/renderer/theme/colors';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { iconColors } from '@/renderer/theme/colors';
 import FilePreview from '@/renderer/components/FilePreview';
 import HorizontalFileList from '@/renderer/components/HorizontalFileList';
+import { usePreviewContext } from '@/renderer/pages/conversation/preview';
+import { buildDisplayMessage } from '@/renderer/utils/messageFiles';
+import { useLatestRef } from '@/renderer/hooks/useLatestRef';
+import { useAutoTitle } from '@/renderer/hooks/useAutoTitle';
 
 const useAcpSendBoxDraft = getSendBoxDraftHook('acp', {
   _type: 'acp',
@@ -148,22 +152,48 @@ const AcpSendBox: React.FC<{
   conversation_id: string;
   backend: AcpBackend;
 }> = ({ conversation_id, backend }) => {
+  const [workspacePath, setWorkspacePath] = useState('');
   const { thought, running, acpStatus, aiProcessing, setAiProcessing } = useAcpMessage(conversation_id);
   const { t } = useTranslation();
+  const { checkAndUpdateTitle } = useAutoTitle();
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
+  const { setSendBoxHandler } = usePreviewContext();
+
+  useEffect(() => {
+    void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
+      if (!res?.extra?.workspace) return;
+      setWorkspacePath(res.extra.workspace);
+    });
+  }, [conversation_id]);
+
+  // 使用 useLatestRef 保存最新的 setContent/atPath，避免重复注册 handler
+  // Use useLatestRef to keep latest setters to avoid re-registering handler
+  const setContentRef = useLatestRef(setContent);
+  const atPathRef = useLatestRef(atPath);
 
   const sendingInitialMessageRef = useRef(false); // Prevent duplicate sends
   const addOrUpdateMessage = useAddOrUpdateMessage(); // Move this here so it's available in useEffect
-  const addOrUpdateMessageRef = useRef(addOrUpdateMessage);
-  addOrUpdateMessageRef.current = addOrUpdateMessage;
+  const addOrUpdateMessageRef = useLatestRef(addOrUpdateMessage);
 
   // 使用共享的文件处理逻辑
-  const { handleFilesAdded, processMessageWithFiles, clearFiles } = useSendBoxFiles({
+  const { handleFilesAdded, clearFiles } = useSendBoxFiles({
     atPath,
     uploadFile,
     setAtPath,
     setUploadFile,
   });
+
+  // 注册预览面板添加到发送框的 handler
+  // Register handler for adding text from preview panel to sendbox
+  useEffect(() => {
+    const handler = (text: string) => {
+      // 如果已有内容，添加换行和新文本；否则直接设置文本
+      // If there's existing content, add newline and new text; otherwise just set the text
+      const newContent = content ? `${content}\n${text}` : text;
+      setContentRef.current(newContent);
+    };
+    setSendBoxHandler(handler);
+  }, [setSendBoxHandler, content]);
 
   // Check for and send initial message from guid page when ACP is authenticated
   useEffect(() => {
@@ -189,6 +219,7 @@ const AcpSendBox: React.FC<{
       try {
         const initialMessage = JSON.parse(storedMessage);
         const { input, files } = initialMessage;
+        const displayMessage = buildDisplayMessage(input, files || [], workspacePath);
         const msg_id = uuid();
 
         // Start AI processing loading state (user message will be added via backend response)
@@ -196,7 +227,7 @@ const AcpSendBox: React.FC<{
 
         // Send the message
         const result = await ipcBridge.acpConversation.sendMessage.invoke({
-          input,
+          input: displayMessage,
           msg_id,
           conversation_id,
           files,
@@ -204,7 +235,11 @@ const AcpSendBox: React.FC<{
 
         if (result && result.success === true) {
           // Initial message sent successfully
+          void checkAndUpdateTitle(conversation_id, input);
+          // 等待一小段时间确保后端数据库更新完成
+          await new Promise((resolve) => setTimeout(resolve, 100));
           sessionStorage.removeItem(storageKey);
+          emitter.emit('chat.history.refresh');
         } else {
           // Handle send failure
           console.error('[ACP-FRONTEND] Failed to send initial message:', result);
@@ -241,7 +276,7 @@ const AcpSendBox: React.FC<{
   const onSendHandler = async (message: string) => {
     const msg_id = uuid();
 
-    message = processMessageWithFiles(message);
+    const displayMessage = buildDisplayMessage(message, uploadFile, workspacePath);
 
     // 立即清空输入框，避免用户误以为消息没发送
     // Clear input immediately to avoid user thinking message wasn't sent
@@ -254,11 +289,13 @@ const AcpSendBox: React.FC<{
     // Send message via ACP
     try {
       await ipcBridge.acpConversation.sendMessage.invoke({
-        input: message,
+        input: displayMessage,
         msg_id,
         conversation_id,
         files: uploadFile,
       });
+      void checkAndUpdateTitle(conversation_id, message);
+      emitter.emit('chat.history.refresh');
     } catch (error: unknown) {
       const errorMsg = error instanceof Error ? error.message : String(error);
       // Check if it's an ACP authentication error
@@ -298,17 +335,21 @@ const AcpSendBox: React.FC<{
   };
 
   useAddEventListener('acp.selected.file', setAtPath);
+  useAddEventListener('acp.selected.file.append', (items: Array<string | FileOrFolderItem>) => {
+    const merged = mergeFileSelectionItems(atPathRef.current, items);
+    if (merged !== atPathRef.current) {
+      setAtPath(merged as Array<string | FileOrFolderItem>);
+    }
+  });
+
+  // 停止会话处理函数 Stop conversation handler
+  const handleStop = () => {
+    return ipcBridge.conversation.stop.invoke({ conversation_id }).then(() => {});
+  };
 
   return (
     <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
-      <ThoughtDisplay thought={thought} />
-
-      {/* 显示处理中提示 / Show processing indicator */}
-      {aiProcessing && (
-        <div className='text-left text-14px py-8px'>
-          <ShimmerText duration={2}>{t('conversation.chat.processing')}</ShimmerText>
-        </div>
-      )}
+      <ThoughtDisplay thought={thought} running={running || aiProcessing} onStop={handleStop} />
 
       <SendBox
         value={content}
@@ -316,34 +357,23 @@ const AcpSendBox: React.FC<{
         loading={running}
         disabled={false}
         placeholder={t('acp.sendbox.placeholder', { backend, defaultValue: `Send message to {{backend}}...` })}
-        onStop={() => {
-          return ipcBridge.conversation.stop.invoke({ conversation_id }).then(() => {});
-        }}
+        onStop={handleStop}
         className='z-10'
         onFilesAdded={handleFilesAdded}
         supportedExts={allSupportedExts}
         tools={
-          <>
-            <Button
-              type='secondary'
-              shape='circle'
-              icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />}
-              onClick={() => {
-                ipcBridge.dialog.showOpen
-                  .invoke({
-                    properties: ['openFile', 'multiSelections'],
-                  })
-                  .then((files) => {
-                    if (files && files.length > 0) {
-                      setUploadFile((prev) => [...prev, ...files]);
-                    }
-                  })
-                  .catch((error) => {
-                    console.error('Failed to open file dialog:', error);
-                  });
-              }}
-            ></Button>
-          </>
+          <Button
+            type='secondary'
+            shape='circle'
+            icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />}
+            onClick={() => {
+              void ipcBridge.dialog.showOpen.invoke({ properties: ['openFile', 'multiSelections'] }).then((files) => {
+                if (files && files.length > 0) {
+                  setUploadFile([...uploadFile, ...files]);
+                }
+              });
+            }}
+          />
         }
         prefix={
           <>

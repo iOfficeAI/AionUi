@@ -11,6 +11,7 @@ import type { CodexEventHandler } from '@/agent/codex/handlers/CodexEventHandler
 import type { CodexSessionManager } from '@/agent/codex/handlers/CodexSessionManager';
 import type { CodexFileOperationHandler } from '@/agent/codex/handlers/CodexFileOperationHandler';
 import { getConfiguredAppClientName, getConfiguredAppClientVersion, getConfiguredCodexMcpProtocolVersion } from '../../../common/utils/appConfig';
+import { lt } from 'semver';
 
 interface LegacyNetworkErrorDetails {
   networkErrorType?: string;
@@ -31,7 +32,6 @@ export interface CodexAgentConfig {
   fileOperationHandler: CodexFileOperationHandler;
   onNetworkError?: (error: NetworkError) => void;
   sandboxMode?: 'read-only' | 'workspace-write' | 'danger-full-access'; // Filesystem sandbox mode
-  webSearchEnabled?: boolean; // Enable web search functionality
 }
 
 /**
@@ -47,7 +47,6 @@ export class CodexAgent {
   private readonly fileOperationHandler: CodexFileOperationHandler;
   private readonly onNetworkError?: (error: NetworkError) => void;
   private readonly sandboxMode: 'read-only' | 'workspace-write' | 'danger-full-access';
-  private readonly webSearchEnabled: boolean;
   private conn: CodexConnection | null = null;
   private conversationId: string | null = null;
 
@@ -60,7 +59,6 @@ export class CodexAgent {
     this.fileOperationHandler = cfg.fileOperationHandler;
     this.onNetworkError = cfg.onNetworkError;
     this.sandboxMode = cfg.sandboxMode || 'workspace-write'; // Default to workspace-write for file operations
-    this.webSearchEnabled = cfg.webSearchEnabled ?? true; // Default to enabled (true)
   }
 
   async start(): Promise<void> {
@@ -150,22 +148,31 @@ export class CodexAgent {
     const maxRetries = 3;
     let lastError: Error | null = null;
 
+    // Prepare arguments based on version
+    const args: Record<string, any> = {
+      prompt: initialPrompt || '',
+      cwd: cwd || this.workingDir,
+      sandbox: this.sandboxMode, // 强制指定沙盒模式
+    };
+
+    // Restore web_search_request for older versions (< 0.40.0)
+    // Codex CLI 0.40.0+ (mcp-server) handles web_search configuration internally and errors on duplicate field
+    const currentVersion = this.conn?.getVersion();
+    if (currentVersion && lt(currentVersion, '0.40.0')) {
+      args.config = {
+        tools: {
+          web_search_request: true,
+        },
+      };
+    }
+
     for (let attempt = 1; attempt <= maxRetries; attempt++) {
       try {
         await this.conn?.request(
           'tools/call',
           {
             name: 'codex',
-            arguments: {
-              prompt: initialPrompt || '',
-              cwd: cwd || this.workingDir,
-              sandbox: this.sandboxMode, // 强制指定沙盒模式
-              config: {
-                tools: {
-                  web_search_request: this.webSearchEnabled,
-                },
-              },
-            },
+            arguments: args,
             config: { conversationId: convId },
           },
           600000

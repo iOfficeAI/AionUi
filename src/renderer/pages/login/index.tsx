@@ -12,7 +12,24 @@ type MessageState = {
   text: string;
 };
 
-const REMEMBER_KEY = 'rememberedUsername';
+const REMEMBER_ME_KEY = 'rememberMe';
+const REMEMBERED_USERNAME_KEY = 'rememberedUsername';
+const REMEMBERED_PASSWORD_KEY = 'rememberedPassword';
+
+// Simple obfuscation for stored credentials (not cryptographically secure, but prevents plain text storage)
+const obfuscate = (text: string): string => {
+  const encoded = btoa(encodeURIComponent(text));
+  return encoded.split('').reverse().join('');
+};
+
+const deobfuscate = (text: string): string => {
+  try {
+    const reversed = text.split('').reverse().join('');
+    return decodeURIComponent(atob(reversed));
+  } catch {
+    return '';
+  }
+};
 
 const LoginPage: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -21,7 +38,7 @@ const LoginPage: React.FC = () => {
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [rememberUsername, setRememberUsername] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [message, setMessage] = useState<MessageState | null>(null);
   const [loading, setLoading] = useState(false);
@@ -49,18 +66,17 @@ const LoginPage: React.FC = () => {
   }, [i18n.language]);
 
   useEffect(() => {
-    const storedUsername = localStorage.getItem(REMEMBER_KEY);
-    if (storedUsername) {
-      setUsername(storedUsername);
-      setRememberUsername(true);
-      window.setTimeout(() => {
-        passwordRef.current?.focus();
-      }, 0);
-    } else {
-      window.setTimeout(() => {
-        usernameRef.current?.focus();
-      }, 0);
+    const isRememberMe = localStorage.getItem(REMEMBER_ME_KEY) === 'true';
+    if (isRememberMe) {
+      const storedUsername = localStorage.getItem(REMEMBERED_USERNAME_KEY);
+      const storedPassword = localStorage.getItem(REMEMBERED_PASSWORD_KEY);
+      if (storedUsername) setUsername(deobfuscate(storedUsername));
+      if (storedPassword) setPassword(deobfuscate(storedPassword));
+      setRememberMe(true);
     }
+    window.setTimeout(() => {
+      usernameRef.current?.focus();
+    }, 0);
 
     return () => {
       if (messageTimer.current) {
@@ -99,6 +115,7 @@ const LoginPage: React.FC = () => {
       { code: 'zh-CN', label: '简体中文' },
       { code: 'zh-TW', label: '繁體中文' },
       { code: 'ja-JP', label: '日本語' },
+      { code: 'ko-KR', label: '한국어' },
       { code: 'en-US', label: 'English' },
     ],
     []
@@ -130,13 +147,17 @@ const LoginPage: React.FC = () => {
       setLoading(true);
       setMessage(null);
 
-      const result = await login({ username: trimmedUsername, password, remember: rememberUsername });
+      const result = await login({ username: trimmedUsername, password, remember: rememberMe });
 
       if (result.success) {
-        if (rememberUsername) {
-          localStorage.setItem(REMEMBER_KEY, trimmedUsername);
+        if (rememberMe) {
+          localStorage.setItem(REMEMBER_ME_KEY, 'true');
+          localStorage.setItem(REMEMBERED_USERNAME_KEY, obfuscate(trimmedUsername));
+          localStorage.setItem(REMEMBERED_PASSWORD_KEY, obfuscate(password));
         } else {
-          localStorage.removeItem(REMEMBER_KEY);
+          localStorage.removeItem(REMEMBER_ME_KEY);
+          localStorage.removeItem(REMEMBERED_USERNAME_KEY);
+          localStorage.removeItem(REMEMBERED_PASSWORD_KEY);
         }
 
         const successText = t('login.success');
@@ -167,7 +188,7 @@ const LoginPage: React.FC = () => {
 
       setLoading(false);
     },
-    [login, navigate, password, rememberUsername, showMessage, t, username]
+    [login, navigate, password, rememberMe, showMessage, t, username]
   );
 
   if (status === 'checking') {
@@ -244,8 +265,8 @@ const LoginPage: React.FC = () => {
           </div>
 
           <div className='login-page__checkbox'>
-            <input type='checkbox' id='remember-username' checked={rememberUsername} onChange={(event) => setRememberUsername(event.target.checked)} />
-            <label htmlFor='remember-username'>{t('login.rememberUsername')}</label>
+            <input type='checkbox' id='remember-me' checked={rememberMe} onChange={(event) => setRememberMe(event.target.checked)} />
+            <label htmlFor='remember-me'>{t('login.rememberMe')}</label>
           </div>
 
           <button type='submit' className='login-page__submit' disabled={loading}>

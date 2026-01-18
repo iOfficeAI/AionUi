@@ -65,6 +65,12 @@ export class CodexConnection {
   private retryDelay = 5000; // 5 seconds
   private isNetworkError = false;
 
+  private detectedVersion: string | null = null;
+
+  public getVersion(): string | null {
+    return this.detectedVersion;
+  }
+
   /**
    * 检测 Codex 版本并返回相应的 MCP 启动命令
    * Detect Codex version and return appropriate MCP command
@@ -84,6 +90,7 @@ export class CodexConnection {
       // Extract version number (e.g., "0.39.0" from "codex version 0.39.0")
       const versionMatch = versionOutput.match(/(\d+)\.(\d+)\.(\d+)/);
       if (versionMatch) {
+        this.detectedVersion = versionMatch[0];
         const [, major, minor] = versionMatch;
         const majorVer = parseInt(major, 10);
         const minorVer = parseInt(minor, 10);

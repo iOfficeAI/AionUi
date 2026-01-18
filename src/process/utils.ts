@@ -7,7 +7,7 @@
 import { AIONUI_TIMESTAMP_REGEX } from '@/common/constants';
 import type { IDirOrFile } from '@/common/ipcBridge';
 import { app } from 'electron';
-import { existsSync, mkdirSync } from 'fs';
+import { existsSync, lstatSync, mkdirSync, readlinkSync, symlinkSync, unlinkSync } from 'fs';
 import fs from 'fs/promises';
 import path from 'path';
 import { getSystemDir } from './initStorage';
@@ -19,6 +19,59 @@ export const getTempPath = () => {
 export const getDataPath = () => {
   const rootPath = app.getPath('userData');
   return path.join(rootPath, 'aionui');
+};
+
+/**
+ * Get symlink path for CLI tools that don't handle spaces in paths.
+ * Creates ~/.aionui symlink pointing to ~/Library/Application Support/AionUi/aionui/
+ * This allows CLI tools like Qwen to work with paths that don't contain spaces.
+ *
+ * 获取用于 CLI 工具的符号链接路径。
+ * 创建 ~/.aionui 符号链接指向 ~/Library/Application Support/AionUi/aionui/
+ * 这允许像 Qwen 这样不能正确处理路径中空格的 CLI 工具正常工作。
+ *
+ * @returns The symlink path on macOS, or original path on other platforms
+ */
+export const getCliSafePath = (): string => {
+  const dataPath = getDataPath();
+
+  // Only needed on macOS where Application Support has a space
+  if (process.platform !== 'darwin') {
+    return dataPath;
+  }
+
+  const homePath = app.getPath('home');
+  const symlinkPath = path.join(homePath, '.aionui');
+
+  // Ensure symlink exists
+  try {
+    const stats = lstatSync(symlinkPath);
+    if (stats.isSymbolicLink()) {
+      // Symlink exists, verify it points to the correct location
+      const target = readlinkSync(symlinkPath);
+      if (target === dataPath) {
+        return symlinkPath;
+      }
+      // Wrong target, remove and recreate
+      unlinkSync(symlinkPath);
+    } else {
+      // Not a symlink (maybe a directory), don't touch it
+      return dataPath;
+    }
+  } catch {
+    // Symlink doesn't exist, create it
+  }
+
+  try {
+    // Ensure the target directory exists first
+    if (!existsSync(dataPath)) {
+      mkdirSync(dataPath, { recursive: true });
+    }
+    symlinkSync(dataPath, symlinkPath);
+    return symlinkPath;
+  } catch (error) {
+    return dataPath;
+  }
 };
 
 export const getConfigPath = () => {
@@ -43,7 +96,7 @@ export async function readDirectoryRecursive(
   options?: {
     root?: string;
     abortController?: AbortController;
-    fileService?: { shouldGitIgnoreFile(path: string): boolean };
+    fileService?: { shouldIgnoreFile(path: string): boolean };
     maxDepth?: number;
     search?: {
       text: string;
@@ -87,7 +140,7 @@ export async function readDirectoryRecursive(
     checkStatus();
     if (item === 'node_modules') continue;
     const itemPath = path.join(dirPath, item);
-    if (fileService && fileService.shouldGitIgnoreFile(itemPath)) continue;
+    if (fileService && fileService.shouldIgnoreFile(itemPath)) continue;
 
     const itemStats = await fs.stat(itemPath);
     if (itemStats.isDirectory()) {
@@ -147,7 +200,13 @@ export async function readDirectoryRecursive(
  * 递归复制目录
  * 注意：包含路径验证，防止复制到自身或子目录导致无限递归（修复 Windows 下 cache 目录循环创建的 bug）
  */
-export async function copyDirectoryRecursively(src: string, dest: string) {
+interface CopyOptions {
+  overwrite?: boolean;
+}
+
+export async function copyDirectoryRecursively(src: string, dest: string, options: CopyOptions = {}) {
+  const { overwrite = true } = options;
+
   // 标准化路径：Windows 转小写（不区分大小写），Unix/macOS 保持原样（区分大小写）
   const isWindows = process.platform === 'win32';
   const normalizedSrc = isWindows ? path.resolve(src).toLowerCase() : path.resolve(src);
@@ -179,9 +238,15 @@ export async function copyDirectoryRecursively(src: string, dest: string) {
     const destPath = path.join(dest, entry.name);
 
     if (entry.isDirectory()) {
-      await fs.mkdir(destPath, { recursive: true });
-      await copyDirectoryRecursively(srcPath, destPath);
+      if (!existsSync(destPath)) {
+        await fs.mkdir(destPath, { recursive: true });
+      }
+      await copyDirectoryRecursively(srcPath, destPath, options);
     } else {
+      // 如果不覆盖且目标文件已存在，跳过
+      if (!overwrite && existsSync(destPath)) {
+        continue;
+      }
       await fs.copyFile(srcPath, destPath);
     }
   }

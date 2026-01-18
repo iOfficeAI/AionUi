@@ -21,8 +21,12 @@ import GeminiChat from './gemini/GeminiChat';
 import CodexChat from './codex/CodexChat';
 import { iconColors } from '@/renderer/theme/colors';
 import addChatIcon from '@/renderer/assets/add-chat.svg';
+import GeminiModelSelector from './gemini/GeminiModelSelector';
+import { useGeminiModelSelection } from './gemini/useGeminiModelSelection';
+import { usePresetAssistantInfo } from '@/renderer/hooks/usePresetAssistantInfo';
+// import SkillRuleGenerator from './components/SkillRuleGenerator'; // Temporarily hidden
 
-const AssociatedConversation: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
+const _AssociatedConversation: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
   const { data } = useSWR(['getAssociateConversation', conversation_id], () => ipcBridge.conversation.getAssociateConversation.invoke({ conversation_id }));
   const navigate = useNavigate();
   const list = useMemo(() => {
@@ -56,7 +60,7 @@ const AssociatedConversation: React.FC<{ conversation_id: string }> = ({ convers
   );
 };
 
-const AddNewConversation: React.FC<{ conversation: TChatConversation }> = ({ conversation }) => {
+const _AddNewConversation: React.FC<{ conversation: TChatConversation }> = ({ conversation }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   if (!conversation.extra?.workspace) return null;
@@ -84,16 +88,50 @@ const AddNewConversation: React.FC<{ conversation: TChatConversation }> = ({ con
   );
 };
 
+// 仅抽取 Gemini 会话，确保包含模型信息
+// Narrow to Gemini conversations so model field is always available
+type GeminiConversation = Extract<TChatConversation, { type: 'gemini' }>;
+
+const GeminiConversationPanel: React.FC<{ conversation: GeminiConversation; sliderTitle: React.ReactNode }> = ({ conversation, sliderTitle }) => {
+  // 共享模型选择状态供头部和发送框复用
+  // Share model selection state between header and send box
+  const modelSelection = useGeminiModelSelection(conversation.id, conversation.model);
+  const workspaceEnabled = Boolean(conversation.extra?.workspace);
+
+  // 使用统一的 Hook 获取预设助手信息 / Use unified hook for preset assistant info
+  const presetAssistantInfo = usePresetAssistantInfo(conversation);
+
+  const chatLayoutProps = {
+    title: conversation.name,
+    siderTitle: sliderTitle,
+    sider: <ChatSider conversation={conversation} />,
+    headerLeft: <GeminiModelSelector selection={modelSelection} />,
+    // headerExtra: <SkillRuleGenerator conversationId={conversation.id} workspace={conversation.extra?.workspace} />, // Temporarily hidden
+    workspaceEnabled,
+    // 传递预设助手信息 / Pass preset assistant info
+    agentName: presetAssistantInfo?.name,
+    agentLogo: presetAssistantInfo?.logo,
+    agentLogoIsEmoji: presetAssistantInfo?.isEmoji,
+  };
+
+  return (
+    <ChatLayout {...chatLayoutProps}>
+      <GeminiChat conversation_id={conversation.id} workspace={conversation.extra.workspace} modelSelection={modelSelection} />
+    </ChatLayout>
+  );
+};
+
 const ChatConversation: React.FC<{
   conversation?: TChatConversation;
 }> = ({ conversation }) => {
   const { t } = useTranslation();
+  const workspaceEnabled = Boolean(conversation?.extra?.workspace);
+
+  const isGeminiConversation = conversation?.type === 'gemini';
 
   const conversationNode = useMemo(() => {
-    if (!conversation) return null;
+    if (!conversation || isGeminiConversation) return null;
     switch (conversation.type) {
-      case 'gemini':
-        return <GeminiChat key={conversation.id} conversation_id={conversation.id} workspace={conversation.extra.workspace} model={conversation.model}></GeminiChat>;
       case 'acp':
         return <AcpChat key={conversation.id} conversation_id={conversation.id} workspace={conversation.extra?.workspace} backend={conversation.extra?.backend || 'claude'}></AcpChat>;
       case 'codex':
@@ -101,24 +139,41 @@ const ChatConversation: React.FC<{
       default:
         return null;
     }
-  }, [conversation]);
+  }, [conversation, isGeminiConversation]);
+
+  // 使用统一的 Hook 获取预设助手信息（ACP/Codex 会话）
+  // Use unified hook for preset assistant info (ACP/Codex conversations)
+  const presetAssistantInfo = usePresetAssistantInfo(isGeminiConversation ? undefined : conversation);
 
   const sliderTitle = useMemo(() => {
     return (
       <div className='flex items-center justify-between'>
         <span className='text-16px font-bold text-t-primary'>{t('conversation.workspace.title')}</span>
-        {conversation && (
-          <div className='flex items-center gap-4px'>
-            <AddNewConversation conversation={conversation}></AddNewConversation>
-            <AssociatedConversation conversation_id={conversation.id}></AssociatedConversation>
-          </div>
-        )}
       </div>
     );
-  }, [conversation]);
+  }, [t]);
+
+  if (conversation && conversation.type === 'gemini') {
+    // Gemini 会话独立渲染，带右上角模型选择
+    // Render Gemini layout with dedicated top-right model selector
+    return <GeminiConversationPanel conversation={conversation} sliderTitle={sliderTitle} />;
+  }
+
+  // 如果有预设助手信息，使用预设助手的 logo 和名称；否则使用 backend 的 logo
+  // If preset assistant info exists, use preset logo/name; otherwise use backend logo
+  const chatLayoutProps = presetAssistantInfo
+    ? {
+        agentName: presetAssistantInfo.name,
+        agentLogo: presetAssistantInfo.logo,
+        agentLogoIsEmoji: presetAssistantInfo.isEmoji,
+      }
+    : {
+        backend: conversation?.type === 'acp' ? conversation?.extra?.backend : conversation?.type === 'codex' ? 'codex' : undefined,
+        agentName: (conversation?.extra as { agentName?: string })?.agentName,
+      };
 
   return (
-    <ChatLayout title={conversation?.name} backend={conversation?.type === 'acp' ? conversation?.extra?.backend : conversation?.type === 'codex' ? 'codex' : undefined} siderTitle={sliderTitle} sider={<ChatSider conversation={conversation} />}>
+    <ChatLayout title={conversation?.name} {...chatLayoutProps} siderTitle={sliderTitle} sider={<ChatSider conversation={conversation} />} workspaceEnabled={workspaceEnabled}>
       {conversationNode}
     </ChatLayout>
   );

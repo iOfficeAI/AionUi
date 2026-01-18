@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { AcpBackend } from '@/types/acpTypes';
+import type { AcpBackend, AcpBackendConfig } from '@/types/acpTypes';
 import { storage } from '@office-ai/platform';
 
 /**
@@ -26,7 +26,11 @@ export interface IConfigStorageRefer {
     authType: string;
     proxy: string;
     GOOGLE_GEMINI_BASE_URL?: string;
+    /** @deprecated Use accountProjects instead. Kept for backward compatibility migration. */
     GOOGLE_CLOUD_PROJECT?: string;
+    /** 按 Google 账号存储的 GCP 项目 ID / GCP project IDs stored per Google account */
+    accountProjects?: Record<string, string>;
+    yoloMode?: boolean;
   };
   'acp.config': {
     [backend in AcpBackend]?: {
@@ -36,6 +40,7 @@ export interface IConfigStorageRefer {
       cliPath?: string;
     };
   };
+  'acp.customAgents'?: AcpBackendConfig[];
   'model.config': IProvider[];
   'mcp.config': IMcpServer[];
   'mcp.agentInstallStatus': Record<string, string[]>;
@@ -43,12 +48,20 @@ export interface IConfigStorageRefer {
   theme: string;
   colorScheme: string;
   customCss: string; // 自定义 CSS 样式
+  'css.themes': ICssTheme[]; // 自定义 CSS 主题列表 / Custom CSS themes list
+  'css.activeThemeId': string; // 当前激活的主题 ID / Currently active theme ID
   'gemini.defaultModel': string;
   'tools.imageGenerationModel': TProviderWithModel & {
     switch: boolean;
   };
   // 是否在粘贴文件到工作区时询问确认（true = 不再询问）
   'workspace.pasteConfirm'?: boolean;
+  // guid 页面上次选择的 agent 类型 / Last selected agent type on guid page
+  'guid.lastSelectedAgent'?: string;
+  // 迁移标记：修复老版本中助手 enabled 默认值问题 / Migration flag: fix assistant enabled default value issue
+  'migration.assistantEnabledFixed'?: boolean;
+  // 迁移标记：为 cowork 助手添加默认启用的 skills / Migration flag: add default enabled skills for cowork assistant
+  'migration.coworkDefaultSkillsAdded'?: boolean;
 }
 
 export interface IEnvStorageRefer {
@@ -70,6 +83,11 @@ interface IChatConversation<T, Extra> {
   status?: 'pending' | 'running' | 'finished' | undefined;
 }
 
+// Token 使用统计数据类型
+export interface TokenUsageData {
+  totalTokens: number;
+}
+
 export type TChatConversation =
   | IChatConversation<
       'gemini',
@@ -77,6 +95,15 @@ export type TChatConversation =
         workspace: string;
         customWorkspace?: boolean; // true 用户指定工作目录 false 系统默认工作目录
         webSearchEngine?: 'google' | 'default'; // 搜索引擎配置
+        lastTokenUsage?: TokenUsageData; // 上次的 token 使用统计
+        contextFileName?: string;
+        contextContent?: string;
+        // 系统规则支持 / System rules support
+        presetRules?: string; // 系统规则，在初始化时注入 / System rules, injected at initialization
+        /** 启用的 skills 列表，用于过滤 SkillManager 加载的 skills / Enabled skills list for filtering SkillManager skills */
+        enabledSkills?: string[];
+        /** 预设助手 ID，用于在会话面板显示助手名称和头像 / Preset assistant ID for displaying name and avatar in conversation panel */
+        presetAssistantId?: string;
       }
     >
   | Omit<
@@ -87,6 +114,13 @@ export type TChatConversation =
           backend: AcpBackend;
           cliPath?: string;
           customWorkspace?: boolean;
+          agentName?: string;
+          customAgentId?: string; // UUID for identifying specific custom agent
+          presetContext?: string; // 智能助手的预设规则/提示词 / Preset context from smart assistant
+          /** 启用的 skills 列表，用于过滤 SkillManager 加载的 skills / Enabled skills list for filtering SkillManager skills */
+          enabledSkills?: string[];
+          /** 预设助手 ID，用于在会话面板显示助手名称和头像 / Preset assistant ID for displaying name and avatar in conversation panel */
+          presetAssistantId?: string;
         }
       >,
       'model'
@@ -98,6 +132,12 @@ export type TChatConversation =
           workspace?: string;
           cliPath?: string;
           customWorkspace?: boolean;
+          sandboxMode?: 'read-only' | 'workspace-write' | 'danger-full-access'; // Codex sandbox permission mode
+          presetContext?: string; // 智能助手的预设规则/提示词 / Preset context from smart assistant
+          /** 启用的 skills 列表，用于过滤 SkillManager 加载的 skills / Enabled skills list for filtering SkillManager skills */
+          enabledSkills?: string[];
+          /** 预设助手 ID，用于在会话面板显示助手名称和头像 / Preset assistant ID for displaying name and avatar in conversation panel */
+          presetAssistantId?: string;
         }
       >,
       'model'
@@ -193,4 +233,18 @@ export interface IMcpTool {
   name: string;
   description?: string;
   inputSchema?: unknown;
+}
+
+/**
+ * CSS 主题配置接口 / CSS Theme configuration interface
+ * 用于存储用户自定义的 CSS 皮肤 / Used to store user-defined CSS skins
+ */
+export interface ICssTheme {
+  id: string; // 唯一标识 / Unique identifier
+  name: string; // 主题名称 / Theme name
+  cover?: string; // 封面图片 base64 或 URL / Cover image base64 or URL
+  css: string; // CSS 样式代码 / CSS style code
+  isPreset?: boolean; // 是否为预设主题 / Whether it's a preset theme
+  createdAt: number; // 创建时间 / Creation time
+  updatedAt: number; // 更新时间 / Update time
 }

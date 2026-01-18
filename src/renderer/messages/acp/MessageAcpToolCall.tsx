@@ -6,7 +6,7 @@
 
 import type { IMessageAcpToolCall } from '@/common/chatLib';
 import { Card, Tag } from '@arco-design/web-react';
-import { diffStringsUnified } from 'jest-diff';
+import { createTwoFilesPatch } from 'diff';
 import React from 'react';
 import Diff2Html from '../../components/Diff2Html';
 import MarkdownView from '../../components/Markdown';
@@ -32,10 +32,10 @@ const ContentView: React.FC<{ content: IMessageAcpToolCall['content']['update'][
   if (content.type === 'diff') {
     const oldText = content.oldText || '';
     const newText = content.newText || '';
-    const diff = diffStringsUnified(oldText, newText);
-    const filePath = content.path?.split(/[/\\]/).pop() || content.path || 'Unknown file';
-    const formattedDiff = `diff --git a/${filePath} b/${filePath}\n--- a/${filePath}\n+++ b/${filePath}\n${diff}`;
-    return <Diff2Html diff={formattedDiff} title={`File: ${filePath}`} className='border rounded' />;
+    const resolvedPath = content.path || '';
+    const displayName = resolvedPath.split(/[/\\]/).pop() || resolvedPath || 'Unknown file';
+    const formattedDiff = createTwoFilesPatch(displayName, displayName, oldText, newText, '', '', { context: 3 });
+    return <Diff2Html diff={formattedDiff} title={`File: ${displayName}`} className='border rounded' filePath={resolvedPath || displayName} />;
   }
 
   // 处理 content 类型，包含 text 内容
@@ -63,7 +63,7 @@ const MessageAcpToolCall: React.FC<{ message: IMessageAcpToolCall }> = ({ messag
     return null;
   }
   const { update } = content;
-  const { toolCallId, kind, title, status, rawInput, content: diffContent, locations } = update;
+  const { toolCallId, kind, title, status, rawInput, content: diffContent } = update;
 
   const getKindDisplayName = (kind: string) => {
     switch (kind) {

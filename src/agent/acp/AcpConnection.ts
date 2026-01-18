@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { JSONRPC_VERSION } from '@/types/acpTypes';
-import type { AcpBackend, AcpMessage, AcpNotification, AcpPermissionRequest, AcpRequest, AcpResponse, AcpSessionUpdate } from '@/types/acpTypes';
+import type { AcpBackend, AcpIncomingMessage, AcpMessage, AcpNotification, AcpPermissionRequest, AcpRequest, AcpResponse, AcpSessionUpdate } from '@/types/acpTypes';
+import { ACP_METHODS, JSONRPC_VERSION } from '@/types/acpTypes';
 import type { ChildProcess, SpawnOptions } from 'child_process';
 import { spawn } from 'child_process';
 import { promises as fs } from 'fs';
@@ -19,6 +19,50 @@ interface PendingRequest<T = unknown> {
   isPaused: boolean;
   startTime: number;
   timeoutDuration: number;
+}
+
+/**
+ * Creates spawn configuration for ACP CLI commands.
+ * Exported for unit testing.
+ *
+ * @param cliPath - CLI command path (e.g., 'goose', 'npx @pkg/cli')
+ * @param workingDir - Working directory for the spawned process
+ * @param acpArgs - Arguments to enable ACP mode (e.g., ['acp'] for goose, ['--acp'] for auggie)
+ * @param customEnv - Custom environment variables
+ */
+export function createGenericSpawnConfig(cliPath: string, workingDir: string, acpArgs?: string[], customEnv?: Record<string, string>) {
+  const isWindows = process.platform === 'win32';
+  const env = { ...process.env, ...customEnv };
+
+  // Default to --experimental-acp if no acpArgs specified
+  const effectiveAcpArgs = acpArgs && acpArgs.length > 0 ? acpArgs : ['--experimental-acp'];
+
+  let spawnCommand: string;
+  let spawnArgs: string[];
+
+  if (cliPath.startsWith('npx ')) {
+    // For "npx @package/name", split into command and arguments
+    const parts = cliPath.split(' ');
+    spawnCommand = isWindows ? 'npx.cmd' : 'npx';
+    spawnArgs = [...parts.slice(1), ...effectiveAcpArgs];
+  } else {
+    // For regular paths like '/usr/local/bin/cli' or simple commands like 'goose'
+    spawnCommand = cliPath;
+    spawnArgs = effectiveAcpArgs;
+  }
+
+  const options: SpawnOptions = {
+    cwd: workingDir,
+    stdio: ['pipe', 'pipe', 'pipe'],
+    env,
+    shell: isWindows,
+  };
+
+  return {
+    command: spawnCommand,
+    args: spawnArgs,
+    options,
+  };
 }
 
 export class AcpConnection {
@@ -38,49 +82,14 @@ export class AcpConnection {
   public onEndTurn: () => void = () => {}; // Handler for end_turn messages
   public onFileOperation: (operation: { method: string; path: string; content?: string; sessionId: string }) => void = () => {};
 
-  // 通用的spawn配置生成方法
-  private createGenericSpawnConfig(backend: string, cliPath: string, workingDir: string) {
-    const isWindows = process.platform === 'win32';
-    const env = { ...process.env };
-
-    // No additional environment variables needed for sandbox - CLI handles this
-
-    let spawnCommand: string;
-    let spawnArgs: string[];
-
-    if (cliPath.startsWith('npx ')) {
-      // For "npx @package/name", split into command and arguments
-      const parts = cliPath.split(' ');
-      spawnCommand = isWindows ? 'npx.cmd' : 'npx';
-      spawnArgs = [...parts.slice(1), '--experimental-acp'];
-    } else {
-      // For regular paths like '/usr/local/bin/cli'
-      spawnCommand = cliPath;
-      spawnArgs = ['--experimental-acp'];
-    }
-
-    const options: SpawnOptions = {
-      cwd: workingDir,
-      stdio: ['pipe', 'pipe', 'pipe'],
-      env,
-      shell: isWindows,
-    };
-
-    return {
-      command: spawnCommand,
-      args: spawnArgs,
-      options,
-    };
-  }
-
   // 通用的后端连接方法
-  private async connectGenericBackend(backend: 'gemini' | 'qwen' | 'iflow', cliPath: string, workingDir: string): Promise<void> {
-    const config = this.createGenericSpawnConfig(backend, cliPath, workingDir);
+  private async connectGenericBackend(backend: 'gemini' | 'qwen' | 'iflow' | 'goose' | 'auggie' | 'kimi' | 'opencode' | 'custom', cliPath: string, workingDir: string, acpArgs?: string[], customEnv?: Record<string, string>): Promise<void> {
+    const config = createGenericSpawnConfig(cliPath, workingDir, acpArgs, customEnv);
     this.child = spawn(config.command, config.args, config.options);
     await this.setupChildProcessHandlers(backend);
   }
 
-  async connect(backend: AcpBackend, cliPath?: string, workingDir: string = process.cwd()): Promise<void> {
+  async connect(backend: AcpBackend, cliPath?: string, workingDir: string = process.cwd(), acpArgs?: string[], customEnv?: Record<string, string>): Promise<void> {
     if (this.child) {
       this.disconnect();
     }
@@ -98,10 +107,21 @@ export class AcpConnection {
       case 'gemini':
       case 'qwen':
       case 'iflow':
+      case 'goose':
+      case 'auggie':
+      case 'kimi':
+      case 'opencode':
         if (!cliPath) {
-          throw new Error(`${backend} CLI path is required for ${backend} backend`);
+          throw new Error(`CLI path is required for ${backend} backend`);
         }
-        await this.connectGenericBackend(backend, cliPath, workingDir);
+        await this.connectGenericBackend(backend, cliPath, workingDir, acpArgs);
+        break;
+
+      case 'custom':
+        if (!cliPath) {
+          throw new Error('Custom agent CLI path/command is required');
+        }
+        await this.connectGenericBackend('custom', cliPath, workingDir, acpArgs, customEnv);
         break;
 
       default:
@@ -211,7 +231,8 @@ export class AcpConnection {
 
     return new Promise((resolve, reject) => {
       // Use longer timeout for session/prompt requests as they involve LLM processing
-      const timeoutDuration = method === 'session/prompt' ? 120000 : 60000; // 2 minutes for prompts, 1 minute for others
+      // Complex tasks like document processing may need significantly more time
+      const timeoutDuration = method === 'session/prompt' ? 300000 : 60000; // 5 minutes for prompts, 1 minute for others
       const startTime = Date.now();
 
       const createTimeoutHandler = () => {
@@ -308,6 +329,25 @@ export class AcpConnection {
     }
   }
 
+  // 重置所有 session/prompt 请求的超时计时器（在收到流式更新时调用）
+  // Reset timeout timers for all session/prompt requests (called when receiving streaming updates)
+  private resetSessionPromptTimeouts(): void {
+    for (const [id, request] of this.pendingRequests) {
+      if (request.method === 'session/prompt' && !request.isPaused && request.timeoutId) {
+        // Clear existing timeout
+        clearTimeout(request.timeoutId);
+        // Reset start time and create new timeout
+        request.startTime = Date.now();
+        request.timeoutId = setTimeout(() => {
+          if (this.pendingRequests.has(id) && !request.isPaused) {
+            this.pendingRequests.delete(id);
+            request.reject(new Error(`LLM request timed out after ${request.timeoutDuration / 1000} seconds`));
+          }
+        }, request.timeoutDuration);
+      }
+    }
+  }
+
   private sendMessage(message: AcpRequest | AcpNotification): void {
     if (this.child?.stdin) {
       const jsonString = JSON.stringify(message);
@@ -334,10 +374,10 @@ export class AcpConnection {
 
   private handleMessage(message: AcpMessage): void {
     try {
-      // 修复：优先检查是否为 request（有 method 字段），而不是仅基于 ID
+      // 优先检查是否为 request/notification（有 method 字段）
       if ('method' in message) {
-        // This is a request or notification
-        this.handleIncomingRequest(message).catch((_error) => {
+        // 直接传递给 handleIncomingRequest，switch 会过滤未知 method
+        this.handleIncomingRequest(message as AcpIncomingMessage).catch((_error) => {
           // Handle request errors silently
         });
       } else if ('id' in message && typeof message.id === 'number' && this.pendingRequests.has(message.id)) {
@@ -347,7 +387,7 @@ export class AcpConnection {
 
         if ('result' in message) {
           // Check for end_turn message
-          if (message.result && typeof message.result === 'object' && message.result.stopReason === 'end_turn') {
+          if (message.result && typeof message.result === 'object' && (message.result as Record<string, unknown>).stopReason === 'end_turn') {
             this.onEndTurn();
           }
           resolve(message.result);
@@ -363,26 +403,25 @@ export class AcpConnection {
     }
   }
 
-  private async handleIncomingRequest(message: AcpRequest | AcpNotification): Promise<void> {
-    const { method, params } = message;
-
+  private async handleIncomingRequest(message: AcpIncomingMessage): Promise<void> {
     try {
       let result = null;
 
-      switch (method) {
-        case 'session/update':
-          this.onSessionUpdate(params);
+      // 可辨识联合类型：TypeScript 根据 method 字面量自动窄化 params 类型
+      switch (message.method) {
+        case ACP_METHODS.SESSION_UPDATE:
+          // Reset timeout on streaming updates - LLM is still processing
+          this.resetSessionPromptTimeouts();
+          this.onSessionUpdate(message.params);
           break;
-        case 'session/request_permission':
-          result = await this.handlePermissionRequest(params);
+        case ACP_METHODS.REQUEST_PERMISSION:
+          result = await this.handlePermissionRequest(message.params);
           break;
-        case 'fs/read_text_file':
-          result = await this.handleReadOperation(params);
+        case ACP_METHODS.READ_TEXT_FILE:
+          result = await this.handleReadOperation(message.params);
           break;
-        case 'fs/write_text_file':
-          result = await this.handleWriteOperation(params);
-          break;
-        default:
+        case ACP_METHODS.WRITE_TEXT_FILE:
+          result = await this.handleWriteOperation(message.params);
           break;
       }
 
@@ -454,6 +493,27 @@ export class AcpConnection {
     try {
       await fs.mkdir(path.dirname(params.path), { recursive: true });
       await fs.writeFile(params.path, params.content, 'utf-8');
+
+      // 发送流式内容更新事件到预览面板（用于实时更新）
+      // Send streaming content update to preview panel (for real-time updates)
+      try {
+        const { ipcBridge } = await import('@/common');
+        const pathSegments = params.path.split(path.sep);
+        const fileName = pathSegments[pathSegments.length - 1];
+        const workspace = pathSegments.slice(0, -1).join(path.sep);
+
+        const eventData = {
+          filePath: params.path,
+          content: params.content,
+          workspace: workspace,
+          relativePath: fileName,
+          operation: 'write' as const,
+        };
+        ipcBridge.fileStream.contentUpdate.emit(eventData);
+      } catch (emitError) {
+        console.error('[AcpConnection] ❌ Failed to emit file stream update:', emitError);
+      }
+
       return null;
     } catch (error) {
       throw new Error(`Failed to write file: ${error instanceof Error ? error.message : String(error)}`);
@@ -493,8 +553,13 @@ export class AcpConnection {
   }
 
   async newSession(cwd: string = process.cwd()): Promise<AcpResponse> {
+    // Normalize workspace-relative paths:
+    // Agents such as qwen already run with `workingDir` as their process cwd.
+    // Sending the absolute path again makes some CLIs treat it as a nested relative path.
+    const normalizedCwd = this.normalizeCwdForAgent(cwd);
+
     const response = await this.sendRequest<AcpResponse & { sessionId?: string }>('session/new', {
-      cwd,
+      cwd: normalizedCwd,
       mcpServers: [] as unknown[],
     });
 
@@ -502,12 +567,35 @@ export class AcpConnection {
     return response;
   }
 
+  /**
+   * Ensure the cwd we send to ACP agents is relative to the actual working directory.
+   * 某些 CLI 会对绝对路径进行再次拼接，导致“套娃”路径，因此需要转换为相对路径。
+   */
+  private normalizeCwdForAgent(cwd?: string): string {
+    const defaultPath = '.';
+    if (!cwd) return defaultPath;
+
+    try {
+      const workspaceRoot = path.resolve(this.workingDir);
+      const requested = path.resolve(cwd);
+
+      const relative = path.relative(workspaceRoot, requested);
+      const isInsideWorkspace = relative && !relative.startsWith('..') && !path.isAbsolute(relative);
+
+      if (isInsideWorkspace) {
+        return relative.length === 0 ? defaultPath : relative;
+      }
+    } catch (error) {
+      console.warn('[ACP] Failed to normalize cwd for agent, using default "."', error);
+    }
+
+    return defaultPath;
+  }
+
   async sendPrompt(prompt: string): Promise<AcpResponse> {
     if (!this.sessionId) {
       throw new Error('No active ACP session');
     }
-
-    // console.log('Sending ACP session...', prompt);
 
     return await this.sendRequest('session/prompt', {
       sessionId: this.sessionId,

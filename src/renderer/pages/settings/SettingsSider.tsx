@@ -1,5 +1,5 @@
 import FlexFullContainer from '@/renderer/components/FlexFullContainer';
-import { Gemini, Info, LinkCloud, System, Toolkit } from '@icon-park/react';
+import { Computer, Gemini, Info, LinkCloud, System, Toolkit, Robot } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -24,9 +24,19 @@ const SettingsSider: React.FC<{ collapsed?: boolean }> = ({ collapsed = false })
         path: 'model',
       },
       {
+        label: t('settings.assistants', { defaultValue: 'Assistants' }),
+        icon: <Robot />,
+        path: 'agent',
+      },
+      {
         label: t('settings.tools'),
         icon: <Toolkit />,
         path: 'tools',
+      },
+      {
+        label: t('settings.display'),
+        icon: <Computer />,
+        path: 'display',
       },
       {
         label: t('settings.system'),
@@ -51,7 +61,7 @@ const SettingsSider: React.FC<{ collapsed?: boolean }> = ({ collapsed = false })
                 '!bg-aou-2 ': isSelected,
               })}
               onClick={() => {
-                Promise.resolve(navigate(`/settings/${item.path}`)).catch((error) => {
+                Promise.resolve(navigate(`/settings/${item.path}`, { replace: true })).catch((error) => {
                   console.error('Navigation failed:', error);
                 });
               }}

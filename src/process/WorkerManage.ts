@@ -15,7 +15,7 @@ import { getDatabase } from './database/export';
 
 const taskList: {
   id: string;
-  task: AgentBaseTask<any>;
+  task: AgentBaseTask<unknown>;
 }[] = [];
 
 const getTaskById = (id: string) => {
@@ -36,6 +36,12 @@ const buildConversation = (conversation: TChatConversation) => {
           workspace: conversation.extra.workspace,
           conversation_id: conversation.id,
           webSearchEngine: conversation.extra.webSearchEngine,
+          // 系统规则 / System rules
+          presetRules: conversation.extra.presetRules,
+          // 向后兼容 / Backward compatible
+          contextContent: conversation.extra.contextContent,
+          // 启用的 skills 列表（通过 SkillManager 加载）/ Enabled skills list (loaded via SkillManager)
+          enabledSkills: conversation.extra.enabledSkills,
         },
         conversation.model
       );
@@ -53,14 +59,12 @@ const buildConversation = (conversation: TChatConversation) => {
       return task;
     }
     default: {
-      // Type assertion to help TypeScript understand that conversation has a type property
-      const unknownConversation = conversation as TChatConversation;
       return null;
     }
   }
 };
 
-const getTaskByIdRollbackBuild = async (id: string): Promise<AgentBaseTask<any>> => {
+const getTaskByIdRollbackBuild = async (id: string): Promise<AgentBaseTask<unknown>> => {
   const task = taskList.find((item) => item.id === id)?.task;
   if (task) return Promise.resolve(task);
   // Try to load from database first
@@ -72,8 +76,8 @@ const getTaskByIdRollbackBuild = async (id: string): Promise<AgentBaseTask<any>>
   }
 
   // Fallback to file storage
-  const list = await ProcessChat.get('chat.history');
-  const conversation = (list || []).find((item) => item.id === id);
+  const list = (await ProcessChat.get('chat.history')) as TChatConversation[] | undefined;
+  const conversation = list?.find((item) => item.id === id);
   if (conversation) {
     return buildConversation(conversation);
   }
@@ -99,7 +103,7 @@ const clear = () => {
   taskList.length = 0;
 };
 
-const addTask = (id: string, task: AgentBaseTask<{}>) => {
+const addTask = (id: string, task: AgentBaseTask<unknown>) => {
   const existing = taskList.find((item) => item.id === id);
   if (existing) {
     existing.task = task;

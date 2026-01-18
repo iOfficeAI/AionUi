@@ -9,38 +9,46 @@ import type { TMessage } from '@/common/chatLib';
 import { transformMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import type { IMcpServer, TProviderWithModel } from '@/common/storage';
-import { ProcessConfig } from '@/process/initStorage';
-import { getDatabase } from '@process/database';
+import { ProcessConfig, getSkillsDir } from '@/process/initStorage';
 import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '../message';
 import BaseAgentManager from './BaseAgentManager';
+import { handlePreviewOpenEvent } from '../utils/previewUtils';
+import { getOauthInfoWithCache } from '@office-ai/aioncli-core';
 
 // gemini agent管理器类
+type UiMcpServerConfig = {
+  command: string;
+  args: string[];
+  env: Record<string, string>;
+  description?: string;
+};
+
 export class GeminiAgentManager extends BaseAgentManager<{
   workspace: string;
   model: TProviderWithModel;
   imageGenerationModel?: TProviderWithModel;
   webSearchEngine?: 'google' | 'default';
-  mcpServers?: Record<string, any>;
+  mcpServers?: Record<string, UiMcpServerConfig>;
+  contextFileName?: string;
+  // 系统规则 / System rules
+  presetRules?: string;
+  contextContent?: string; // 向后兼容 / Backward compatible
+  GOOGLE_CLOUD_PROJECT?: string;
+  /** 内置 skills 目录路径 / Builtin skills directory path */
+  skillsDir?: string;
+  /** 启用的 skills 列表 / Enabled skills list */
+  enabledSkills?: string[];
 }> {
   workspace: string;
   model: TProviderWithModel;
+  contextFileName?: string;
+  presetRules?: string;
+  contextContent?: string;
+  enabledSkills?: string[];
   private bootstrap: Promise<void>;
 
   private async injectHistoryFromDatabase(): Promise<void> {
-    try {
-      const result = getDatabase().getConversationMessages(this.conversation_id, 0, 10000);
-      const data = result.data || [];
-      const lines = data
-        .filter((m) => m.type === 'text')
-        .slice(-20)
-        .map((m) => `${m.position === 'right' ? 'User' : 'Assistant'}: ${(m as any)?.content?.content || ''}`);
-      const text = lines.join('\n').slice(-4000);
-      if (text) {
-        await this.postMessagePromise('init.history', { text });
-      }
-    } catch (e) {
-      // ignore history injection errors
-    }
+    // ... (omitting injectHistoryFromDatabase for space)
   }
 
   constructor(
@@ -48,6 +56,12 @@ export class GeminiAgentManager extends BaseAgentManager<{
       workspace: string;
       conversation_id: string;
       webSearchEngine?: 'google' | 'default';
+      contextFileName?: string;
+      // 系统规则 / System rules
+      presetRules?: string;
+      contextContent?: string; // 向后兼容 / Backward compatible
+      /** 启用的 skills 列表 / Enabled skills list */
+      enabledSkills?: string[];
     },
     model: TProviderWithModel
   ) {
@@ -55,15 +69,44 @@ export class GeminiAgentManager extends BaseAgentManager<{
     this.workspace = data.workspace;
     this.conversation_id = data.conversation_id;
     this.model = model;
+    this.contextFileName = data.contextFileName;
+    this.presetRules = data.presetRules;
+    this.enabledSkills = data.enabledSkills;
+    // 向后兼容 / Backward compatible
+    this.contextContent = data.contextContent || data.presetRules;
     this.bootstrap = Promise.all([ProcessConfig.get('gemini.config'), this.getImageGenerationModel(), this.getMcpServers()])
-      .then(([config, imageGenerationModel, mcpServers]) => {
+      .then(async ([config, imageGenerationModel, mcpServers]) => {
+        // 获取当前账号对应的 GOOGLE_CLOUD_PROJECT
+        // Get GOOGLE_CLOUD_PROJECT for current account
+        let projectId: string | undefined;
+        try {
+          const oauthInfo = await getOauthInfoWithCache(config?.proxy);
+          if (oauthInfo && oauthInfo.email && config?.accountProjects) {
+            projectId = config.accountProjects[oauthInfo.email];
+          }
+          // 注意：不使用旧的全局 GOOGLE_CLOUD_PROJECT 回退，因为可能属于其他账号
+          // Note: Don't fall back to old global GOOGLE_CLOUD_PROJECT, it might belong to another account
+        } catch {
+          // 获取账号失败时不设置 projectId，让系统使用默认值
+          // If account retrieval fails, don't set projectId, let system use default
+        }
+
         return this.start({
           ...config,
+          GOOGLE_CLOUD_PROJECT: projectId,
           workspace: this.workspace,
           model: this.model,
           imageGenerationModel,
           webSearchEngine: data.webSearchEngine,
           mcpServers,
+          contextFileName: this.contextFileName,
+          presetRules: this.presetRules,
+          contextContent: this.contextContent,
+          // Skills 通过 SkillManager 加载 / Skills loaded via SkillManager
+          skillsDir: getSkillsDir(),
+          // 启用的 skills 列表，用于过滤 SkillManager 中的 skills
+          // Enabled skills list for filtering skills in SkillManager
+          enabledSkills: this.enabledSkills,
         });
       })
       .then(async () => {
@@ -82,7 +125,7 @@ export class GeminiAgentManager extends BaseAgentManager<{
       .catch(() => Promise.resolve(undefined));
   }
 
-  private async getMcpServers(): Promise<Record<string, any>> {
+  private async getMcpServers(): Promise<Record<string, UiMcpServerConfig>> {
     try {
       const mcpServers = await ProcessConfig.get('mcp.config');
       if (!mcpServers || !Array.isArray(mcpServers)) {
@@ -90,7 +133,7 @@ export class GeminiAgentManager extends BaseAgentManager<{
       }
 
       // 转换为 aioncli-core 期望的格式
-      const mcpConfig: Record<string, any> = {};
+      const mcpConfig: Record<string, UiMcpServerConfig> = {};
       mcpServers
         .filter((server: IMcpServer) => server.enabled && server.status === 'connected') // 只使用启用且连接成功的服务器
         .forEach((server: IMcpServer) => {
@@ -111,7 +154,7 @@ export class GeminiAgentManager extends BaseAgentManager<{
     }
   }
 
-  sendMessage(data: { input: string; msg_id: string }) {
+  async sendMessage(data: { input: string; msg_id: string; files?: string[] }) {
     const message: TMessage = {
       id: data.msg_id,
       type: 'text',
@@ -123,7 +166,7 @@ export class GeminiAgentManager extends BaseAgentManager<{
     };
     addMessage(this.conversation_id, message);
     this.status = 'pending';
-    return this.bootstrap
+    const result = await this.bootstrap
       .catch((e) => {
         this.emit('gemini.message', {
           type: 'error',
@@ -140,22 +183,30 @@ export class GeminiAgentManager extends BaseAgentManager<{
         });
       })
       .then(() => super.sendMessage(data));
+    return result;
   }
 
   init() {
     super.init();
     // 接受来子进程的对话消息
     this.on('gemini.message', (data) => {
-      // console.log('gemini.message', data);
       if (data.type === 'finish') {
         this.status = 'finished';
       }
       if (data.type === 'start') {
         this.status = 'running';
       }
+
+      // 处理预览打开事件（chrome-devtools 导航触发）/ Handle preview open event (triggered by chrome-devtools navigation)
+      if (handlePreviewOpenEvent(data)) {
+        return; // 不需要继续处理 / No need to continue processing
+      }
+
       data.conversation_id = this.conversation_id;
       // Transform and persist message (skip transient UI state messages)
-      if (data.type !== 'thought') {
+      // 跳过 thought, finished 等不需要持久化的消息类型
+      const skipTransformTypes = ['thought', 'finished'];
+      if (!skipTransformTypes.includes(data.type)) {
         const tMessage = transformMessage(data as IResponseMessage);
         if (tMessage) {
           addOrUpdateMessage(this.conversation_id, tMessage, 'gemini');

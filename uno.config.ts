@@ -97,31 +97,32 @@ export default defineConfig({
   content: {
     pipeline: {
       include: ['src/**/*.{ts,tsx,vue,css}'],
+      exclude: [/\.html($|\?)/],
     },
   },
   // 自定义规则 / Custom rules
   rules: [
     // Arco Design 官方文字颜色 text-1 到 text-4
     // Arco Design official text colors: text-1, text-2, text-3, text-4
-    [/^text-([1-4])$/, ([, d]) => ({ color: `var(--color-text-${d})` })],
+    [/^text-([1-4])$/, ([, d]: RegExpExecArray) => ({ color: `var(--color-text-${d})` })],
 
     // Arco Design 官方填充色 fill-1 到 fill-4
     // Arco Design official fill colors: bg-fill-1, bg-fill-2, bg-fill-3, bg-fill-4
-    [/^bg-fill-([1-4])$/, ([, d]) => ({ 'background-color': `var(--color-fill-${d})` })],
+    [/^bg-fill-([1-4])$/, ([, d]: RegExpExecArray) => ({ 'background-color': `var(--color-fill-${d})` })],
 
     // Arco Design 官方边框色 border-1 到 border-4 (使用 border-arco-* 避免和项目自定义冲突)
     // Arco Design official border colors: border-arco-1, border-arco-2, border-arco-3, border-arco-4
-    [/^border-arco-([1-4])$/, ([, d]) => ({ 'border-color': `var(--color-border-${d})` })],
+    [/^border-arco-([1-4])$/, ([, d]: RegExpExecArray) => ({ 'border-color': `var(--color-border-${d})` })],
 
     // Arco Design 官方浅色系 primary/success/warning/danger/link-light-1 到 -light-4
     // Arco Design light variants: bg-primary-light-1, bg-success-light-1, etc.
-    [/^bg-(primary|success|warning|danger|link)-light-([1-4])$/, ([, color, d]) => ({ 'background-color': `var(--color-${color}-light-${d})` })],
+    [/^bg-(primary|success|warning|danger|link)-light-([1-4])$/, ([, color, d]: RegExpExecArray) => ({ 'background-color': `var(--color-${color}-light-${d})` })],
 
     // Arco Design 官方色阶 primary/success/warning/danger 1-9
     // Arco Design color levels: bg-primary-1, text-primary-1, border-primary-1, etc.
     [
       /^(bg|text|border)-(primary|success|warning|danger)-([1-9])$/,
-      ([, prefix, color, d]) => {
+      ([, prefix, color, d]: RegExpExecArray) => {
         const prop = prefix === 'bg' ? 'background-color' : prefix === 'text' ? 'color' : 'border-color';
         return { [prop]: `rgb(var(--${color}-${d}))` };
       },

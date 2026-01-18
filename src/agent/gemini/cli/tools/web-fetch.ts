@@ -5,7 +5,7 @@
  */
 
 import { Type } from '@google/genai';
-import type { GeminiClient, Config, ToolResult, ToolInvocation, ToolLocation, ToolCallConfirmationDetails } from '@office-ai/aioncli-core';
+import type { GeminiClient, Config, ToolResult, ToolInvocation, ToolLocation, ToolCallConfirmationDetails, MessageBus } from '@office-ai/aioncli-core';
 import { BaseDeclarativeTool, BaseToolInvocation, Kind, getErrorMessage, ToolErrorType, DEFAULT_GEMINI_FLASH_MODEL } from '@office-ai/aioncli-core';
 import { getResponseText } from './utils';
 import { convert } from 'html-to-text';
@@ -50,7 +50,10 @@ export interface WebFetchToolParams {
 export class WebFetchTool extends BaseDeclarativeTool<WebFetchToolParams, ToolResult> {
   static readonly Name: string = 'aionui_web_fetch';
 
-  constructor(private readonly geminiClient: GeminiClient) {
+  constructor(
+    private readonly geminiClient: GeminiClient,
+    messageBus: MessageBus
+  ) {
     super(
       WebFetchTool.Name,
       'WebFetch',
@@ -70,6 +73,7 @@ export class WebFetchTool extends BaseDeclarativeTool<WebFetchToolParams, ToolRe
         },
         required: ['url', 'prompt'],
       },
+      messageBus,
       true, // isOutputMarkdown
       false // canUpdateOutput
     );
@@ -88,17 +92,20 @@ export class WebFetchTool extends BaseDeclarativeTool<WebFetchToolParams, ToolRe
     return null;
   }
 
-  protected createInvocation(params: WebFetchToolParams): ToolInvocation<WebFetchToolParams, ToolResult> {
-    return new WebFetchInvocation(this.geminiClient, params);
+  protected createInvocation(params: WebFetchToolParams, messageBus: MessageBus, _toolName?: string, _toolDisplayName?: string): ToolInvocation<WebFetchToolParams, ToolResult> {
+    return new WebFetchInvocation(this.geminiClient, params, messageBus, _toolName, _toolDisplayName);
   }
 }
 
 class WebFetchInvocation extends BaseToolInvocation<WebFetchToolParams, ToolResult> {
   constructor(
     private readonly geminiClient: GeminiClient,
-    params: WebFetchToolParams
+    params: WebFetchToolParams,
+    messageBus: MessageBus,
+    _toolName?: string,
+    _toolDisplayName?: string
   ) {
-    super(params);
+    super(params, messageBus, _toolName, _toolDisplayName);
   }
 
   getDescription(): string {
@@ -151,7 +158,7 @@ I have fetched the content from ${this.params.url}. Please use the following con
 ${textContent}
 ---`;
 
-      const result = await this.geminiClient.generateContent([{ role: 'user', parts: [{ text: processPrompt }] }], {}, signal, DEFAULT_GEMINI_FLASH_MODEL);
+      const result = await this.geminiClient.generateContent({ model: DEFAULT_GEMINI_FLASH_MODEL }, [{ role: 'user', parts: [{ text: processPrompt }] }], signal);
       const resultText = getResponseText(result) || '';
       return {
         llmContent: resultText,

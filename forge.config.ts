@@ -83,7 +83,7 @@ const targetArch = process.env.ELECTRON_BUILDER_ARCH || process.env.npm_config_t
 module.exports = {
   packagerConfig: {
     asar: {
-      unpack: '**/node_modules/{node-pty,bcrypt,better-sqlite3,@mapbox,detect-libc,prebuild-install,node-gyp-build,bindings}/**/*',
+      unpack: '**/node_modules/{node-pty,bcrypt,better-sqlite3,@mapbox,detect-libc,prebuild-install,node-gyp-build,bindings,web-tree-sitter,tree-sitter-bash}/**/*',
     }, // Enable asar with native modules and their dependencies unpacking
     executableName: 'AionUi',
     out: path.resolve(__dirname, 'out'),
@@ -210,7 +210,7 @@ module.exports = {
         config: rendererConfig,
         entryPoints: [
           {
-            html: './public/index.html',
+            html: '!!html-webpack-plugin/lib/loader.js?force=true!./public/index.html',
             js: './src/renderer/index.ts',
             name: 'main_window',
             preload: {

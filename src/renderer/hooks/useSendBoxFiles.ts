@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import type { FileMetadata } from '@/renderer/services/FileService';
-import { getCleanFileNames } from '@/renderer/services/FileService';
+import { getCleanFileNames, getFileExtension, textExts } from '@/renderer/services/FileService';
 import type { FileOrFolderItem } from '@/renderer/types/files';
 
 /**
@@ -21,6 +21,16 @@ export const createSetUploadFile = (mutate: (fn: (prev: Record<string, unknown> 
   );
 };
 
+const formatFileRef = (fileName: string): string => {
+  const trimmed = fileName.trim();
+  const normalized = trimmed.startsWith('@') ? trimmed.slice(1) : trimmed;
+  const ext = getFileExtension(normalized);
+  if (textExts.includes(ext)) {
+    return '@' + normalized;
+  }
+  return normalized;
+};
+
 interface UseSendBoxFilesProps {
   atPath: Array<string | FileOrFolderItem>;
   uploadFile: string[];
@@ -35,7 +45,7 @@ interface UseSendBoxFilesProps {
 export const formatFilesForMessage = (files: string[]): string => {
   if (files.length > 0) {
     return getCleanFileNames(files)
-      .map((v) => `@${v}`)
+      .map((v) => formatFileRef(v))
       .join(' ');
   }
   return '';
@@ -61,7 +71,7 @@ export const useSendBoxFiles = ({ atPath, uploadFile, setAtPath, setUploadFile }
   const processMessageWithFiles = useCallback(
     (message: string): string => {
       if (atPath.length || uploadFile.length) {
-        const cleanUploadFiles = getCleanFileNames(uploadFile).map((fileName) => '@' + fileName);
+        const cleanUploadFiles = getCleanFileNames(uploadFile).map((fileName) => formatFileRef(fileName));
         // atPath 现在可能包含字符串路径或对象，需要分别处理
         // atPath may now contain string paths or objects, need to handle separately
         const atPathStrings = atPath.map((item) => {
@@ -71,7 +81,7 @@ export const useSendBoxFiles = ({ atPath, uploadFile, setAtPath, setUploadFile }
             return item.path;
           }
         });
-        const cleanAtPaths = getCleanFileNames(atPathStrings).map((fileName) => '@' + fileName);
+        const cleanAtPaths = getCleanFileNames(atPathStrings).map((fileName) => formatFileRef(fileName));
         return cleanUploadFiles.join(' ') + ' ' + cleanAtPaths.join(' ') + ' ' + message;
       }
       return message;

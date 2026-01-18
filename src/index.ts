@@ -5,14 +5,15 @@
  */
 
 import './utils/configureChromium';
-import fs from 'fs';
-import path from 'path';
 import { app, BrowserWindow, screen } from 'electron';
 import fixPath from 'fix-path';
+import * as fs from 'fs';
+import * as path from 'path';
 import { initMainAdapterWithWindow } from './adapter/main';
 import { ipcBridge } from './common';
-import './process';
+import { initializeProcess } from './process';
 import { initializeAcpDetector } from './process/bridge';
+import { registerWindowMaximizeListeners } from './process/bridge/windowControlsBridge';
 import WorkerManage from './process/WorkerManage';
 import { startWebServer } from './webserver';
 import { SERVER_CONFIG } from './webserver/config/constants';
@@ -40,19 +41,17 @@ if (electronSquirrelStartup) {
 // Global error handlers for main process
 // 捕获未处理的同步异常，防止显示 Electron 默认错误对话框
 // Catch uncaught synchronous exceptions to prevent Electron's default error dialog
-process.on('uncaughtException', (error) => {
-  console.error('[Main Process] Uncaught Exception:', error);
+process.on('uncaughtException', (_error) => {
   // 在生产环境中，可以将错误记录到文件或上报到错误追踪服务
   // In production, errors can be logged to file or sent to error tracking service
   if (process.env.NODE_ENV !== 'development') {
-    console.error('[Main Process] Fatal error occurred, but continuing...');
+    // TODO: Add error logging or reporting
   }
 });
 
 // 捕获未处理的 Promise 拒绝，避免应用崩溃
 // Catch unhandled Promise rejections to prevent app crashes
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('[Main Process] Unhandled Promise Rejection at:', promise, 'reason:', reason);
+process.on('unhandledRejection', (_reason, _promise) => {
   // 可以在这里添加错误上报逻辑
   // Error reporting logic can be added here
 });
@@ -85,14 +84,13 @@ type WebUIUserConfig = {
   allowRemote?: boolean;
 };
 
-const parsePortValue = (value: unknown, sourceLabel: string): number | null => {
+const parsePortValue = (value: unknown, _sourceLabel: string): number | null => {
   if (value === undefined || value === null || value === '') {
     return null;
   }
 
   const portNumber = typeof value === 'number' ? value : parseInt(String(value), 10);
   if (!Number.isFinite(portNumber) || portNumber < 1 || portNumber > 65535) {
-    console.warn(`[config] Ignoring invalid port from ${sourceLabel}:`, value);
     return null;
   }
   return portNumber;
@@ -109,12 +107,10 @@ const loadUserWebUIConfig = (): { config: WebUIUserConfig; path: string | null; 
     const raw = fs.readFileSync(configPath, 'utf-8');
     const parsed = JSON.parse(raw);
     if (!parsed || typeof parsed !== 'object') {
-      console.warn(`[config] ${configPath} must export an object.`);
       return { config: {}, path: configPath, exists: false };
     }
     return { config: parsed as WebUIUserConfig, path: configPath, exists: true };
   } catch (error) {
-    console.warn('[config] Failed to load webui.config.json:', error);
     return { config: {}, path: null, exists: false };
   }
 };
@@ -169,58 +165,26 @@ const createWindow = (): void => {
     width: windowWidth,
     height: windowHeight,
     autoHideMenuBar: true,
+    // Custom titlebar configuration / 自定义标题栏配置
+    ...(process.platform === 'darwin'
+      ? {
+          titleBarStyle: 'hidden',
+          trafficLightPosition: { x: 10, y: 10 },
+        }
+      : { frame: false }),
     webPreferences: {
       preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
+      webviewTag: true, // 启用 webview 标签用于 HTML 预览 / Enable webview tag for HTML preview
     },
   });
 
   initMainAdapterWithWindow(mainWindow);
   void applyZoomToWindow(mainWindow);
-
-  // Configure Content Security Policy (CSP) to fix Electron security warning
-  // 配置内容安全策略以修复 Electron 安全警告
-  // Reason: Electron warns about missing or unsafe CSP, which protects against XSS attacks
-  // 原因：Electron 会对缺失或不安全的 CSP 发出警告，CSP 可防止 XSS 攻击
-  // Using onHeadersReceived ensures CSP is applied reliably via HTTP headers
-  // 使用 onHeadersReceived 确保通过 HTTP 头可靠地应用 CSP
-  mainWindow.webContents.session.webRequest.onHeadersReceived((details, callback) => {
-    callback({
-      responseHeaders: {
-        ...details.responseHeaders,
-        'Content-Security-Policy': [
-          [
-            // Default: only allow resources from same origin / 默认：仅允许同源资源
-            "default-src 'self'",
-            // Scripts: allow same-origin + inline scripts (required by React) / 脚本：允许同源和内联脚本（React 需要）
-            // Note: 'unsafe-eval' is intentionally excluded for security / 注意：为安全起见特意排除 'unsafe-eval'
-            "script-src 'self' 'unsafe-inline'",
-            // Styles: allow same-origin + inline styles (required by dynamic theming) / 样式：允许同源和内联样式（动态主题需要）
-            "style-src 'self' 'unsafe-inline'",
-            // Images: allow same-origin, data URIs, local files, and blobs (required by preview features) / 图片：允许同源、data URI、本地文件和 blob（预览功能需要）
-            "img-src 'self' data: file: blob:",
-            // Fonts: allow same-origin and data URIs / 字体：允许同源和 data URI
-            "font-src 'self' data:",
-            // Network connections: allow same-origin, WebSocket, and localhost (required by WebUI mode) / 网络连接：允许同源、WebSocket 和 localhost（WebUI 模式需要）
-            "connect-src 'self' ws: wss: http://localhost:* https://localhost:* http://127.0.0.1:*",
-            // Media: allow same-origin and blobs (required by preview features) / 媒体：允许同源和 blob（预览功能需要）
-            "media-src 'self' blob:",
-            // Objects: disallow plugins for security / 对象：为安全起见禁止插件
-            "object-src 'none'",
-            // Base URI: restrict <base> tag to same-origin only / 基础 URI：限制 <base> 标签仅使用同源
-            "base-uri 'self'",
-            // Forms: restrict form submission to same-origin / 表单：限制表单提交到同源
-            "form-action 'self'",
-            // Frame ancestors: prevent clickjacking by disallowing embedding / 框架祖先：禁止嵌入以防止点击劫持
-            "frame-ancestors 'none'",
-          ].join('; '),
-        ],
-      },
-    });
-  });
+  registerWindowMaximizeListeners(mainWindow);
 
   // and load the index.html of the app.
-  mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY).catch((error) => {
-    console.error('Failed to load main window URL:', error);
+  mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY).catch((_error) => {
+    // Error loading main window URL
   });
 
   // 只在开发环境自动打开 DevTools / Only auto-open DevTools in development
@@ -241,6 +205,14 @@ ipcBridge.application.openDevTools.provider(() => {
 });
 
 const handleAppReady = async (): Promise<void> => {
+  try {
+    await initializeProcess();
+  } catch (error) {
+    console.error('Failed to initialize process:', error);
+    app.exit(1);
+    return;
+  }
+
   if (isResetPasswordMode) {
     // Handle password reset without creating window
     try {
@@ -256,13 +228,12 @@ const handleAppReady = async (): Promise<void> => {
 
       app.quit();
     } catch (error) {
-      console.error('Failed to reset password:', error);
       app.exit(1);
     }
   } else if (isWebUIMode) {
     const userConfigInfo = loadUserWebUIConfig();
     if (userConfigInfo.exists && userConfigInfo.path) {
-      console.log(`[config] Loaded ${userConfigInfo.path}`);
+      // Config file loaded from user directory
     }
     const resolvedPort = resolveWebUIPort(userConfigInfo.config);
     const allowRemote = resolveRemoteAccess(userConfigInfo.config);
@@ -281,8 +252,8 @@ const handleAppReady = async (): Promise<void> => {
 void app
   .whenReady()
   .then(handleAppReady)
-  .catch((error) => {
-    console.error('Failed to initialize main process:', error);
+  .catch((_error) => {
+    // App initialization failed
     app.quit();
   });
 

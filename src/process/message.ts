@@ -5,6 +5,7 @@
  */
 
 import type { TMessage, IMessageText } from '@/common/chatLib';
+import type { TChatConversation } from '@/common/storage';
 import { composeMessage } from '@/common/chatLib';
 import { getDatabase } from './database/export';
 import { ProcessChat } from './initStorage';
@@ -14,9 +15,9 @@ import { ACP_BACKENDS_ALL } from '@/types/acpTypes';
 
 /**
  * Add a new message to the database
+ * Wraps async work inside an IIFE to keep call sites synchronous.
  */
 export const addMessage = (conversation_id: string, message: TMessage): void => {
-  // Use async IIFE to handle async operations
   void (async () => {
     try {
       const db = getDatabase();
@@ -28,6 +29,8 @@ export const addMessage = (conversation_id: string, message: TMessage): void => 
       if (!result.success) {
         console.error('[Message] Insert failed:', result.error);
         console.error('[Message] Message data:', JSON.stringify(message, null, 2));
+      } else {
+        db.updateConversation(conversation_id, {} as Partial<TChatConversation>);
       }
       // Execute pending callbacks after operation completes
       executePendingCallbacks();
@@ -104,7 +107,7 @@ async function ensureConversationExists(db: ReturnType<typeof getDatabase>, conv
 
   // Load conversation from file storage
   const history = await ProcessChat.get('chat.history');
-  const conversation = history.find((c) => c.id === conversation_id);
+  const conversation = (history || []).find((c) => c.id === conversation_id);
 
   if (!conversation) {
     console.error(`[Message] Conversation ${conversation_id} not found in file storage either`);
@@ -134,7 +137,6 @@ export const addOrUpdateMessage = (conversation_id: string, message: TMessage, b
     return;
   }
 
-  // Use async IIFE to handle async operations
   void (async () => {
     try {
       const db = getDatabase();

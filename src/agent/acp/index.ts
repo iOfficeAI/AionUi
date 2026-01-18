@@ -4,13 +4,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { spawn } from 'child_process';
-import type { AcpPermissionRequest, AcpSessionUpdate, AcpBackend, AcpResult, ToolCallUpdate } from '@/types/acpTypes';
 import { AcpAdapter } from '@/agent/acp/AcpAdapter';
-import { AcpErrorType, createAcpError } from '@/types/acpTypes';
+import { extractAtPaths, parseAllAtCommands, reconstructQuery } from '@/common/atCommandParser';
 import type { TMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
+import { NavigationInterceptor } from '@/common/navigation';
 import { uuid } from '@/common/utils';
+import type { AcpBackend, AcpPermissionRequest, AcpResult, AcpSessionUpdate, ToolCallUpdate } from '@/types/acpTypes';
+import { AcpErrorType, createAcpError } from '@/types/acpTypes';
+import { spawn } from 'child_process';
+import { promises as fs } from 'fs';
+import * as path from 'path';
 import { AcpConnection } from './AcpConnection';
 
 /**
@@ -48,11 +52,15 @@ export interface AcpAgentConfig {
   backend: AcpBackend;
   cliPath?: string;
   workingDir: string;
+  customArgs?: string[]; // Custom CLI arguments (for custom backend)
+  customEnv?: Record<string, string>; // Custom environment variables (for custom backend)
   extra?: {
     workspace?: string;
     backend: AcpBackend;
     cliPath?: string;
     customWorkspace?: boolean;
+    customArgs?: string[];
+    customEnv?: Record<string, string>;
   };
   onStreamEvent: (data: IResponseMessage) => void;
   onSignalEvent?: (data: IResponseMessage) => void; // 新增：仅发送信号，不更新UI
@@ -66,6 +74,8 @@ export class AcpAgent {
     backend: AcpBackend;
     cliPath?: string;
     customWorkspace?: boolean;
+    customArgs?: string[];
+    customEnv?: Record<string, string>;
   };
   private connection: AcpConnection;
   private adapter: AcpAdapter;
@@ -73,6 +83,10 @@ export class AcpAgent {
   private statusMessageId: string | null = null;
   private readonly onStreamEvent: (data: IResponseMessage) => void;
   private readonly onSignalEvent?: (data: IResponseMessage) => void;
+
+  // Track pending navigation tool calls for URL extraction from results
+  // 跟踪待处理的导航工具调用，以便从结果中提取 URL
+  private pendingNavigationTools = new Set<string>();
 
   constructor(config: AcpAgentConfig) {
     this.id = config.id;
@@ -83,6 +97,8 @@ export class AcpAgent {
       backend: config.backend,
       cliPath: config.cliPath,
       customWorkspace: false, // Default to system workspace
+      customArgs: config.customArgs,
+      customEnv: config.customEnv,
     };
 
     this.connection = new AcpConnection();
@@ -106,13 +122,42 @@ export class AcpAgent {
     };
   }
 
+  /**
+   * Check if a tool is a chrome-devtools navigation tool
+   * 检查工具是否为 chrome-devtools 导航工具
+   *
+   * Delegates to NavigationInterceptor for unified logic
+   */
+  private isNavigationTool(toolName: string): boolean {
+    return NavigationInterceptor.isNavigationTool(toolName);
+  }
+
+  /**
+   * Extract URL from navigation tool's permission request data
+   * 从导航工具的权限请求数据中提取 URL
+   *
+   * Delegates to NavigationInterceptor for unified logic
+   */
+  private extractNavigationUrl(toolCall: { rawInput?: Record<string, unknown>; content?: Array<{ type?: string; content?: { type?: string; text?: string }; text?: string }>; title?: string }): string | null {
+    return NavigationInterceptor.extractUrl(toolCall);
+  }
+
+  /**
+   * Handle intercepted navigation tool by emitting preview_open event
+   * 处理被拦截的导航工具，发出 preview_open 事件
+   */
+  private handleInterceptedNavigation(url: string, _toolName: string): void {
+    const previewMessage = NavigationInterceptor.createPreviewMessage(url, this.id);
+    this.onStreamEvent(previewMessage);
+  }
+
   // 启动ACP连接和会话
   async start(): Promise<void> {
     try {
       this.emitStatusMessage('connecting');
 
       await Promise.race([
-        this.connection.connect(this.extra.backend, this.extra.cliPath, this.extra.workspace),
+        this.connection.connect(this.extra.backend, this.extra.cliPath, this.extra.workspace, this.extra.customArgs, this.extra.customEnv),
         new Promise((_, reject) =>
           setTimeout(() => {
             reject(new Error('Connection timeout after 70 seconds'));
@@ -149,21 +194,11 @@ export class AcpAgent {
       }
       this.adapter.resetMessageTracking();
       let processedContent = data.content;
-      // Only process if there are actual files involved AND the message contains @ symbols
-      if (data.files && data.files.length > 0 && processedContent.includes('@')) {
-        // Get actual filenames from uploaded files
-        const actualFilenames = data.files.map((filePath) => {
-          return filePath.split('/').pop() || filePath;
-        });
 
-        // Replace @actualFilename with just actualFilename for each uploaded file
-        actualFilenames.forEach((filename) => {
-          const atFilename = `@${filename}`;
-          if (processedContent.includes(atFilename)) {
-            processedContent = processedContent.replace(new RegExp(atFilename.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), filename);
-          }
-        });
-      }
+      // Process @ file references in the message
+      // 处理消息中的 @ 文件引用
+      processedContent = await this.processAtFileReferences(processedContent, data.files);
+
       await this.connection.sendPrompt(processedContent);
       this.statusMessageId = null;
       return { success: true, data: null };
@@ -206,6 +241,141 @@ export class AcpAgent {
     }
   }
 
+  /**
+   * Process @ file references in the message content
+   * 处理消息内容中的 @ 文件引用
+   *
+   * This method resolves @ references to actual files in the workspace,
+   * reads their content, and appends it to the message.
+   * 此方法解析工作区中的 @ 引用，读取文件内容并附加到消息中。
+   */
+  private async processAtFileReferences(content: string, uploadedFiles?: string[]): Promise<string> {
+    const workspace = this.extra.workspace;
+    if (!workspace) {
+      return content;
+    }
+
+    // Parse all @ references in the content
+    const parts = parseAllAtCommands(content);
+    const atPaths = extractAtPaths(content);
+
+    // If no @ references found, return original content
+    if (atPaths.length === 0) {
+      return content;
+    }
+
+    // Get filenames from uploaded files for matching
+    const uploadedFilenames = (uploadedFiles || []).map((filePath) => {
+      const segments = filePath.split(/[\\/]/);
+      return segments[segments.length - 1] || filePath;
+    });
+
+    // Track which @ references are resolved to files
+    const resolvedFiles: Map<string, string> = new Map(); // atPath -> file content
+
+    for (const atPath of atPaths) {
+      // Skip if this @ reference matches an uploaded file (already handled by frontend)
+      if (uploadedFilenames.some((name) => atPath === name || atPath.endsWith('/' + name) || atPath.endsWith('\\' + name))) {
+        continue;
+      }
+
+      // Try to resolve the path in workspace
+      const resolvedPath = await this.resolveAtPath(atPath, workspace);
+      if (resolvedPath) {
+        try {
+          const fileContent = await fs.readFile(resolvedPath, 'utf-8');
+          resolvedFiles.set(atPath, fileContent);
+        } catch (error) {
+          console.warn(`[ACP] Failed to read file ${resolvedPath}:`, error);
+        }
+      }
+    }
+
+    // If no files were resolved, return original content (let ACP handle unknown @ references)
+    if (resolvedFiles.size === 0) {
+      return content;
+    }
+
+    // Reconstruct the message: replace @ references with plain text and append file contents
+    const reconstructedQuery = reconstructQuery(parts, (atPath) => {
+      if (resolvedFiles.has(atPath)) {
+        // Replace with just the filename (without @) as the reference
+        return atPath;
+      }
+      // Keep unresolved @ references as-is
+      return '@' + atPath;
+    });
+
+    // Append file contents at the end of the message
+    let result = reconstructedQuery;
+    if (resolvedFiles.size > 0) {
+      result += '\n\n--- Referenced file contents ---';
+      for (const [atPath, fileContent] of resolvedFiles) {
+        result += `\n\n[Content of ${atPath}]:\n${fileContent}`;
+      }
+      result += '\n--- End of file contents ---';
+    }
+
+    return result;
+  }
+
+  /**
+   * Resolve an @ path to an actual file path in the workspace
+   * 将 @ 路径解析为工作区中的实际文件路径
+   */
+  private async resolveAtPath(atPath: string, workspace: string): Promise<string | null> {
+    // Try direct path first
+    const directPath = path.resolve(workspace, atPath);
+    try {
+      const stats = await fs.stat(directPath);
+      if (stats.isFile()) {
+        return directPath;
+      }
+      // If it's a directory, we don't read it (for now)
+      return null;
+    } catch {
+      // Direct path doesn't exist, try searching for the file
+    }
+
+    // Try to find file by name in workspace (simple search)
+    try {
+      const fileName = path.basename(atPath);
+      const foundPath = await this.findFileInWorkspace(workspace, fileName);
+      return foundPath;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Simple file search in workspace (non-recursive for performance)
+   * 在工作区中简单搜索文件（非递归以保证性能）
+   */
+  private async findFileInWorkspace(workspace: string, fileName: string, maxDepth: number = 3): Promise<string | null> {
+    const searchDir = async (dir: string, depth: number): Promise<string | null> => {
+      if (depth > maxDepth) return null;
+
+      try {
+        const entries = await fs.readdir(dir, { withFileTypes: true });
+        for (const entry of entries) {
+          const fullPath = path.join(dir, entry.name);
+          if (entry.isFile() && entry.name === fileName) {
+            return fullPath;
+          }
+          if (entry.isDirectory() && !entry.name.startsWith('.') && entry.name !== 'node_modules') {
+            const found = await searchDir(fullPath, depth + 1);
+            if (found) return found;
+          }
+        }
+      } catch {
+        // Ignore permission errors
+      }
+      return null;
+    };
+
+    return await searchDir(workspace, 0);
+  }
+
   confirmMessage(data: { confirmKey: string; msg_id: string; callId: string }): Promise<AcpResult> {
     try {
       if (this.pendingPermissions.has(data.callId)) {
@@ -229,6 +399,53 @@ export class AcpAgent {
 
   private handleSessionUpdate(data: AcpSessionUpdate): void {
     try {
+      // Intercept chrome-devtools navigation tools from session updates
+      // 从会话更新中拦截 chrome-devtools 导航工具
+      if (data.update?.sessionUpdate === 'tool_call') {
+        const toolCallUpdate = data as ToolCallUpdate;
+        const toolName = toolCallUpdate.update?.title || '';
+        const toolCallId = toolCallUpdate.update?.toolCallId;
+        if (this.isNavigationTool(toolName)) {
+          // Track this navigation tool call for result interception
+          // 跟踪此导航工具调用以拦截结果
+          if (toolCallId) {
+            this.pendingNavigationTools.add(toolCallId);
+          }
+          const url = this.extractNavigationUrl(toolCallUpdate.update);
+          if (url) {
+            // Emit preview_open event to show URL in preview panel
+            // 发出 preview_open 事件，在预览面板中显示 URL
+            this.handleInterceptedNavigation(url, toolName);
+          }
+        }
+      }
+
+      // Intercept tool_call_update to extract URL from navigation tool results
+      // 拦截 tool_call_update 以从导航工具结果中提取 URL
+      if (data.update?.sessionUpdate === 'tool_call_update') {
+        const statusUpdate = data as import('@/types/acpTypes').ToolCallUpdateStatus;
+        const toolCallId = statusUpdate.update?.toolCallId;
+        if (toolCallId && this.pendingNavigationTools.has(toolCallId)) {
+          // This is a result for a tracked navigation tool
+          // 这是已跟踪的导航工具的结果
+          if (statusUpdate.update?.status === 'completed' && statusUpdate.update?.content) {
+            // Try to extract URL from the result content
+            // 尝试从结果内容中提取 URL
+            for (const item of statusUpdate.update.content) {
+              const text = item.content?.text || '';
+              const urlMatch = text.match(/https?:\/\/[^\s<>"]+/i);
+              if (urlMatch) {
+                this.handleInterceptedNavigation(urlMatch[0], 'navigate_page');
+                break;
+              }
+            }
+          }
+          // Clean up tracking
+          // 清理跟踪
+          this.pendingNavigationTools.delete(toolCallId);
+        }
+      }
+
       const messages = this.adapter.convertSessionUpdate(data);
 
       for (let i = 0; i < messages.length; i++) {
@@ -249,6 +466,23 @@ export class AcpAgent {
         data.toolCall.toolCallId = uuid();
       }
       const requestId = data.toolCall.toolCallId; // 使用 toolCallId 作为 requestId
+
+      // Intercept chrome-devtools navigation tools and show in preview panel
+      // 拦截 chrome-devtools 导航工具，在预览面板中显示
+      // Note: We only emit preview_open event, do NOT block tool execution
+      // 注意：只发送 preview_open 事件，不阻止工具执行，agent 需要 chrome-devtools 获取网页内容
+      const toolName = data.toolCall?.title || '';
+      if (this.isNavigationTool(toolName)) {
+        const url = this.extractNavigationUrl(data.toolCall);
+        if (url) {
+          // Emit preview_open event to show URL in preview panel
+          // 发出 preview_open 事件，在预览面板中显示 URL
+          this.handleInterceptedNavigation(url, toolName);
+        }
+        // Track for later extraction from result if URL not available now
+        // 跟踪以便稍后从结果中提取 URL（如果现在不可用）
+        this.pendingNavigationTools.add(requestId);
+      }
 
       // 检查是否有重复的权限请求
       if (this.pendingPermissions.has(requestId)) {

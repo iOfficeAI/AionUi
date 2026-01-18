@@ -7,15 +7,19 @@ import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/use
 import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
 import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
+import { mergeFileSelectionItems } from '@/renderer/utils/fileSelection';
 import { Button, Tag } from '@arco-design/web-react';
 import { Plus } from '@icon-park/react';
+import { iconColors } from '@/renderer/theme/colors';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import ShimmerText from '@renderer/components/ShimmerText';
+import { buildDisplayMessage } from '@/renderer/utils/messageFiles';
 import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/ThoughtDisplay';
-import { iconColors } from '@/renderer/theme/colors';
 import FilePreview from '@/renderer/components/FilePreview';
 import HorizontalFileList from '@/renderer/components/HorizontalFileList';
+import { usePreviewContext } from '@/renderer/pages/conversation/preview';
+import { useLatestRef } from '@/renderer/hooks/useLatestRef';
+import { useAutoTitle } from '@/renderer/hooks/useAutoTitle';
 
 interface CodexDraftData {
   _type: 'codex';
@@ -32,8 +36,11 @@ const useCodexSendBoxDraft = getSendBoxDraftHook('codex', {
 });
 
 const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
+  const [workspacePath, setWorkspacePath] = useState('');
   const { t } = useTranslation();
+  const { checkAndUpdateTitle } = useAutoTitle();
   const addOrUpdateMessage = useAddOrUpdateMessage();
+  const { setSendBoxHandler } = usePreviewContext();
 
   const [running, setRunning] = useState(false);
   const [aiProcessing, setAiProcessing] = useState(false); // New loading state for AI response
@@ -59,6 +66,11 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
     };
   })();
 
+  // 使用 useLatestRef 保存最新的 setContent/atPath，避免重复注册 handler
+  // Use useLatestRef to keep latest setters to avoid re-registering handler
+  const setContentRef = useLatestRef(setContent);
+  const atPathRef = useLatestRef(atPath);
+
   // 当会话ID变化时，清理所有状态避免状态污染
   useEffect(() => {
     // 重置所有运行状态，避免切换会话时状态污染
@@ -68,12 +80,23 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
     setThought({ subject: '', description: '' });
   }, [conversation_id]);
 
+  // 注册预览面板添加到发送框的 handler
+  // Register handler for adding text from preview panel to sendbox
+  useEffect(() => {
+    const handler = (text: string) => {
+      // 如果已有内容，添加换行和新文本；否则直接设置文本
+      // If there's existing content, add newline and new text; otherwise just set the text
+      const newContent = content ? `${content}\n${text}` : text;
+      setContentRef.current(newContent);
+    };
+    setSendBoxHandler(handler);
+  }, [setSendBoxHandler, content]);
+
   useEffect(() => {
     return ipcBridge.codexConversation.responseStream.on((message) => {
       if (conversation_id !== message.conversation_id) {
         return;
       }
-
       // All messages from Backend are already persisted via emitAndPersistMessage
       // Frontend only needs to update UI
       switch (message.type) {
@@ -114,6 +137,13 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
     });
   }, [conversation_id, addOrUpdateMessage]);
 
+  useEffect(() => {
+    void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
+      if (!res?.extra?.workspace) return;
+      setWorkspacePath(res.extra.workspace);
+    });
+  }, [conversation_id]);
+
   // 处理粘贴的文件 - Codex专用逻辑
   const handleFilesAdded = useCallback(
     (pastedFiles: FileMetadata[]) => {
@@ -133,6 +163,15 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
     }, 10);
   });
 
+  useAddEventListener('codex.selected.file.append', (items: Array<string | FileOrFolderItem>) => {
+    setTimeout(() => {
+      const merged = mergeFileSelectionItems(atPathRef.current, items);
+      if (merged !== atPathRef.current) {
+        setAtPath(merged as Array<string | FileOrFolderItem>);
+      }
+    }, 10);
+  });
+
   const onSendHandler = async (message: string) => {
     const msg_id = uuid();
     // 立即清空输入框和选择的文件，提升用户体验
@@ -143,21 +182,10 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
     setAtPath([]);
     setUploadFile([]);
 
-    // 如果有选中的文件/文件夹，将名称添加到消息中（格式：@名称）
-    // currentAtPath 现在可能包含字符串路径或对象，需要分别处理
-    // If there are selected files/folders, add names to the message (format: @name)
-    // currentAtPath may now contain string paths or objects, need to handle separately
-    if (currentAtPath.length || currentUploadFile.length) {
-      const uploadFileNames = currentUploadFile.map((p) => '@' + p.split(/[\\/]/).pop());
-      const atPathNames = currentAtPath.map((item) => {
-        if (typeof item === 'string') {
-          return '@' + item.split(/[\\/]/).pop();
-        } else {
-          return '@' + item.name;
-        }
-      });
-      message = uploadFileNames.join(' ') + ' ' + atPathNames.join(' ') + ' ' + message;
-    }
+    // 不再自动添加 @ 前缀，避免消息显示换行和歧义
+    const filePaths = [...currentUploadFile, ...currentAtPath.map((item) => (typeof item === 'string' ? item : item.path))];
+    const displayMessage = buildDisplayMessage(message, filePaths, workspacePath);
+
     // 前端先写入用户消息，避免导航/事件竞争导致看不到消息
     const userMessage: TMessage = {
       id: msg_id,
@@ -165,7 +193,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
       conversation_id,
       type: 'text',
       position: 'right',
-      content: { content: message },
+      content: { content: displayMessage },
       createdAt: Date.now(),
     };
     addOrUpdateMessage(userMessage, true); // 立即保存到存储，避免刷新丢失
@@ -174,11 +202,13 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
       // 提取实际的文件路径发送给后端
       const atPathStrings = currentAtPath.map((item) => (typeof item === 'string' ? item : item.path));
       await ipcBridge.codexConversation.sendMessage.invoke({
-        input: message,
+        input: displayMessage,
         msg_id,
         conversation_id,
         files: [...currentUploadFile, ...atPathStrings], // 包含上传文件和选中的工作空间文件
       });
+      void checkAndUpdateTitle(conversation_id, message);
+      emitter.emit('chat.history.refresh');
     } finally {
       // Clear waiting state when done
       setAiProcessing(false);
@@ -216,6 +246,8 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
         const msg_id = `initial_${conversation_id}_${Date.now()}`;
         const loading_id = uuid();
 
+        const initialDisplayMessage = buildDisplayMessage(input, files, workspacePath);
+
         // 前端先写入用户消息，避免导航/事件竞争导致看不到消息
         const userMessage: TMessage = {
           id: msg_id,
@@ -223,13 +255,15 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
           conversation_id,
           type: 'text',
           position: 'right',
-          content: { content: input },
+          content: { content: initialDisplayMessage },
           createdAt: Date.now(),
         };
         addOrUpdateMessage(userMessage, true); // 立即保存到存储，避免刷新丢失
 
         // 发送消息到后端处理
-        await ipcBridge.codexConversation.sendMessage.invoke({ input, msg_id, conversation_id, files, loading_id });
+        await ipcBridge.codexConversation.sendMessage.invoke({ input: initialDisplayMessage, msg_id, conversation_id, files, loading_id });
+        void checkAndUpdateTitle(conversation_id, input);
+        emitter.emit('chat.history.refresh');
 
         // 成功后移除初始消息存储
         sessionStorage.removeItem(storageKey);
@@ -254,15 +288,15 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
     };
   }, [conversation_id, codexStatus, addOrUpdateMessage]);
 
+  // 停止会话处理函数 Stop conversation handler
+  const handleStop = () => {
+    return ipcBridge.conversation.stop.invoke({ conversation_id }).then(() => {});
+  };
+
   return (
     <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
-      {/* 显示处理中提示 / Show processing indicator */}
-      {aiProcessing && (
-        <div className='text-left text-14px py-8px'>
-          <ShimmerText duration={2}>{t('conversation.chat.processing')}</ShimmerText>
-        </div>
-      )}
-      {thought && <ThoughtDisplay thought={thought} style='compact' />}
+      <ThoughtDisplay thought={thought} running={aiProcessing || running} onStop={handleStop} />
+
       <SendBox
         value={content}
         onChange={(val) => {
@@ -273,6 +307,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
         }}
         loading={running}
         disabled={aiProcessing}
+        className='z-10'
         placeholder={
           aiProcessing
             ? t('conversation.chat.processing')
@@ -281,11 +316,23 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
                 defaultValue: `Send message to Codex...`,
               })
         }
-        onStop={() => {
-          return ipcBridge.conversation.stop.invoke({ conversation_id }).then(() => {});
-        }}
+        onStop={handleStop}
         onFilesAdded={handleFilesAdded}
         supportedExts={allSupportedExts}
+        tools={
+          <Button
+            type='secondary'
+            shape='circle'
+            icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />}
+            onClick={() => {
+              void ipcBridge.dialog.showOpen.invoke({ properties: ['openFile', 'multiSelections'] }).then((files) => {
+                if (files && files.length > 0) {
+                  setUploadFile([...uploadFile, ...files]);
+                }
+              });
+            }}
+          />
+        }
         prefix={
           <>
             {/* Files on top */}
@@ -339,23 +386,6 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
                 })}
               </div>
             )}
-          </>
-        }
-        tools={
-          <>
-            <Button
-              type='secondary'
-              shape='circle'
-              icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />}
-              onClick={() => {
-                ipcBridge.dialog.showOpen
-                  .invoke({ properties: ['openFile', 'multiSelections'] })
-                  .then((files) => setUploadFile(files || []))
-                  .catch((error) => {
-                    console.error('Failed to open file dialog:', error);
-                  });
-              }}
-            ></Button>
           </>
         }
         onSend={onSendHandler}

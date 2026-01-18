@@ -212,10 +212,7 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
         },
         {
           capabilities: {
-            prompts: {},
-            resources: {},
-            tools: {},
-            logging: {},
+            sampling: {},
           },
         }
       );
@@ -309,10 +306,7 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
         },
         {
           capabilities: {
-            prompts: {},
-            resources: {},
-            tools: {},
-            logging: {},
+            sampling: {},
           },
         }
       );
@@ -465,10 +459,7 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
         },
         {
           capabilities: {
-            prompts: {},
-            resources: {},
-            tools: {},
-            logging: {},
+            sampling: {},
           },
         }
       );

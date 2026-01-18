@@ -14,13 +14,15 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 
 import { ipcBridge } from '@/common';
-import { Down, Up } from '@icon-park/react';
+import { Copy, Down, Up } from '@icon-park/react';
+import { Message } from '@arco-design/web-react';
 import { theme } from '@office-ai/platform';
 import React, { useMemo, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import LocalImageView from './LocalImageView';
 import { addImportantToAll } from '../utils/customCssProcessor';
+import classNames from 'classnames';
 
 const formatCode = (code: string) => {
   const content = String(code).replace(/\n$/, '');
@@ -92,59 +94,81 @@ function CodeBlock(props: any) {
       );
     }
     return (
-      <div style={props.codeStyle}>
+      <div style={{ width: '100%', ...(props.codeStyle || {}) }}>
         <div
           style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            backgroundColor: 'var(--bg-2)',
-            borderTopLeftRadius: '0.3rem',
-            borderTopRightRadius: '0.3rem',
-            borderBottomLeftRadius: '0',
-            borderBottomRightRadius: '0',
-            padding: '6px 10px',
             border: '1px solid var(--bg-3)',
-            borderBottom: 'none',
+            borderRadius: '0.3rem',
+            overflow: 'hidden',
           }}
         >
-          <span
+          <div
             style={{
-              textDecoration: 'none',
-              color: 'var(--text-secondary)',
-              fontSize: '12px',
-              lineHeight: '20px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              backgroundColor: 'var(--bg-2)',
+              borderTopLeftRadius: '0.3rem',
+              borderTopRightRadius: '0.3rem',
+              borderBottomLeftRadius: fold ? '0.3rem' : '0',
+              borderBottomRightRadius: fold ? '0.3rem' : '0',
+              padding: '6px 10px',
+              borderBottom: !fold ? '1px solid var(--bg-3)' : undefined,
             }}
           >
-            {'<' + language.toLocaleLowerCase() + '>'}
-          </span>
-          <div style={{ display: 'flex', alignItems: 'center' }}>{logicRender(!fold, <Up theme='outline' size='20' style={{ cursor: 'pointer' }} fill='var(--text-secondary)' onClick={() => setFlow(true)} />, <Down theme='outline' size='20' style={{ cursor: 'pointer' }} fill='var(--text-secondary)' onClick={() => setFlow(false)} />)}</div>
-        </div>
-        {logicRender(
-          !fold,
-          <SyntaxHighlighter
-            children={formatCode(children)}
-            language={language}
-            style={codeTheme}
-            PreTag='div'
-            customStyle={{
-              marginTop: '0',
-              margin: '0',
-              borderTopLeftRadius: '0',
-              borderTopRightRadius: '0',
-              borderBottomLeftRadius: '0.3rem',
-              borderBottomRightRadius: '0.3rem',
-              border: 'none',
-              background: 'transparent',
-              color: 'var(--text-primary)',
-            }}
-            codeTagProps={{
-              style: {
+            <span
+              style={{
+                textDecoration: 'none',
+                color: 'var(--text-secondary)',
+                fontSize: '12px',
+                lineHeight: '20px',
+              }}
+            >
+              {'<' + language.toLocaleLowerCase() + '>'}
+            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              {/* 复制代码按钮 / Copy code button */}
+              <Copy
+                theme='outline'
+                size='18'
+                style={{ cursor: 'pointer' }}
+                fill='var(--text-secondary)'
+                onClick={() => {
+                  void navigator.clipboard.writeText(formatCode(children)).then(() => {
+                    Message.success('复制成功');
+                  });
+                }}
+              />
+              {/* 折叠/展开按钮 / Fold/unfold button */}
+              {logicRender(!fold, <Up theme='outline' size='20' style={{ cursor: 'pointer' }} fill='var(--text-secondary)' onClick={() => setFlow(true)} />, <Down theme='outline' size='20' style={{ cursor: 'pointer' }} fill='var(--text-secondary)' onClick={() => setFlow(false)} />)}
+            </div>
+          </div>
+          {logicRender(
+            !fold,
+            <SyntaxHighlighter
+              children={formatCode(children)}
+              language={language}
+              style={codeTheme}
+              PreTag='div'
+              customStyle={{
+                marginTop: '0',
+                margin: '0',
+                borderTopLeftRadius: '0',
+                borderTopRightRadius: '0',
+                borderBottomLeftRadius: '0.3rem',
+                borderBottomRightRadius: '0.3rem',
+                border: 'none',
+                background: 'transparent',
                 color: 'var(--text-primary)',
-              },
-            }}
-          />
-        )}
+              }}
+              codeTagProps={{
+                style: {
+                  color: 'var(--text-primary)',
+                },
+              }}
+            />
+          )}
+        </div>
       </div>
     );
   }, [props, currentTheme, fold]);
@@ -170,6 +194,10 @@ const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string
     font-size:14px;
   }
 
+  .markdown-shadow-body {
+    word-break: break-word;
+    overflow-wrap: anywhere;
+  }
   .markdown-shadow-body>p:first-child
   {
     margin-top:0px;
@@ -180,8 +208,10 @@ const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string
   }
   a{
     color:${theme.Color.PrimaryColor};
-     text-decoration: none;
-     cursor: pointer;
+    text-decoration: none;
+    cursor: pointer;
+    word-break: break-all;
+    overflow-wrap: anywhere;
   }
   h1{
     font-size: 24px;
@@ -344,27 +374,30 @@ const ShadowView = ({ children }: { children: React.ReactNode }) => {
         setRoot(shadowRoot);
       }}
       className='markdown-shadow'
-      style={{ width: '100%' }}
+      style={{ width: '100%', flex: '1 1 auto', minWidth: 0 }}
     >
       {root && ReactDOM.createPortal(children, root)}
     </div>
   );
 };
 
-const MarkdownView: React.FC<{
+interface MarkdownViewProps {
   children: string;
   hiddenCodeCopyButton?: boolean;
   codeStyle?: React.CSSProperties;
   className?: string;
   onRef?: (el?: HTMLDivElement | null) => void;
-}> = ({ hiddenCodeCopyButton, codeStyle, ...props }) => {
+}
+
+const MarkdownView: React.FC<MarkdownViewProps> = ({ hiddenCodeCopyButton, codeStyle, className, onRef, children: childrenProp }) => {
   const { t } = useTranslation();
-  const children = useMemo(() => {
-    if (typeof props.children === 'string') {
-      return props.children.replace(/file:\/\//g, '');
+
+  const normalizedChildren = useMemo(() => {
+    if (typeof childrenProp === 'string') {
+      return childrenProp.replace(/file:\/\//g, '');
     }
-    return props.children;
-  }, [props.children]);
+    return childrenProp;
+  }, [childrenProp]);
 
   const isLocalFilePath = (src: string): boolean => {
     if (src.startsWith('http://') || src.startsWith('https://')) {
@@ -377,71 +410,71 @@ const MarkdownView: React.FC<{
   };
 
   return (
-    <ShadowView>
-      <div ref={props.onRef} className='markdown-shadow-body'>
-        <ReactMarkdown
-          remarkPlugins={[remarkGfm, remarkMath, remarkBreaks]}
-          rehypePlugins={[rehypeKatex]}
-          components={{
-            code: (props: any) => CodeBlock({ ...props, codeStyle, hiddenCodeCopyButton }),
-            a: ({ node: _node, ...props }) => (
-              <a
-                {...props}
-                target='_blank'
-                rel='noreferrer'
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  if (!props.href) return;
-                  try {
-                    ipcBridge.shell.openExternal.invoke(props.href).catch((error) => {
+    <div className={classNames('relative w-full', className)}>
+      <ShadowView>
+        <div ref={onRef} className='markdown-shadow-body'>
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm, remarkMath, remarkBreaks]}
+            rehypePlugins={[rehypeKatex]}
+            components={{
+              code: (props: any) => CodeBlock({ ...props, codeStyle, hiddenCodeCopyButton }),
+              a: ({ node: _node, ...props }) => (
+                <a
+                  {...props}
+                  target='_blank'
+                  rel='noreferrer'
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (!props.href) return;
+                    try {
+                      ipcBridge.shell.openExternal.invoke(props.href).catch((error) => {
+                        console.error(t('messages.openLinkFailed'), error);
+                      });
+                    } catch (error) {
                       console.error(t('messages.openLinkFailed'), error);
-                    });
-                  } catch (error) {
-                    console.error(t('messages.openLinkFailed'), error);
-                  }
-                }}
-              />
-            ),
-            table: ({ node: _node, ...props }) => (
-              <div style={{ overflowX: 'auto', maxWidth: '100%' }}>
-                <table
+                    }
+                  }}
+                />
+              ),
+              table: ({ node: _node, ...props }) => (
+                <div style={{ overflowX: 'auto', maxWidth: '100%' }}>
+                  <table
+                    {...props}
+                    style={{
+                      ...props.style,
+                      borderCollapse: 'collapse',
+                      border: '1px solid var(--bg-3)',
+                      minWidth: '100%',
+                    }}
+                  />
+                </div>
+              ),
+              td: ({ node: _node, ...props }) => (
+                <td
                   {...props}
                   style={{
                     ...props.style,
-                    borderCollapse: 'collapse',
+                    padding: '8px',
                     border: '1px solid var(--bg-3)',
-                    minWidth: '100%',
+                    minWidth: '120px',
                   }}
                 />
-              </div>
-            ),
-            td: ({ node: _node, ...props }) => (
-              <td
-                {...props}
-                style={{
-                  ...props.style,
-                  padding: '8px',
-                  border: '1px solid var(--bg-3)',
-                  minWidth: '120px',
-                }}
-              />
-            ),
-            img: ({ node: _node, ...props }) => {
-              // 判断是否为本地文件路径
-              if (isLocalFilePath(props.src || '')) {
-                const src = decodeURIComponent(props.src || '');
-                return <LocalImageView src={src} alt={props.alt || ''} className={props.className} />;
-              }
-              // 否则使用普通的 img 标签
-              return <img {...props} />;
-            },
-          }}
-        >
-          {children}
-        </ReactMarkdown>
-      </div>
-    </ShadowView>
+              ),
+              img: ({ node: _node, ...props }) => {
+                if (isLocalFilePath(props.src || '')) {
+                  const src = decodeURIComponent(props.src || '');
+                  return <LocalImageView src={src} alt={props.alt || ''} className={props.className} />;
+                }
+                return <img {...props} />;
+              },
+            }}
+          >
+            {normalizedChildren}
+          </ReactMarkdown>
+        </div>
+      </ShadowView>
+    </div>
   );
 };
 

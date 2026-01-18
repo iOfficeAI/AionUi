@@ -6,7 +6,7 @@
 
 import type { TProviderWithModel } from '@/common/storage';
 import { Type } from '@google/genai';
-import type { Config, ToolResult, ToolInvocation, ToolLocation, ToolCallConfirmationDetails, ToolResultDisplay } from '@office-ai/aioncli-core';
+import type { Config, ToolResult, ToolInvocation, ToolLocation, ToolCallConfirmationDetails, ToolResultDisplay, MessageBus } from '@office-ai/aioncli-core';
 import { BaseDeclarativeTool, BaseToolInvocation, Kind, getErrorMessage, ToolErrorType } from '@office-ai/aioncli-core';
 import * as fs from 'fs';
 import { jsonrepair } from 'jsonrepair';
@@ -83,7 +83,12 @@ async function fileToBase64(filePath: string): Promise<string> {
     const fileBuffer = await fs.promises.readFile(filePath);
     return fileBuffer.toString('base64');
   } catch (error) {
-    throw new Error(`Failed to read image file: ${error instanceof Error ? error.message : String(error)}`);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    // Provide a more specific error message for missing files
+    if (errorMessage.includes('ENOENT') || errorMessage.includes('no such file')) {
+      throw new Error(`Image file not found: ${filePath}`);
+    }
+    throw new Error(`Failed to read image file: ${errorMessage}`);
   }
 }
 
@@ -181,6 +186,7 @@ IMPORTANT: When user provides multiple images (like @img1.jpg @img2.png), ALWAYS
         },
         required: ['prompt'],
       },
+      config.getMessageBus(),
       true, // isOutputMarkdown
       false // canUpdateOutput
     );
@@ -244,8 +250,8 @@ IMPORTANT: When user provides multiple images (like @img1.jpg @img2.png), ALWAYS
     return null;
   }
 
-  protected createInvocation(params: ImageGenerationToolParams): ToolInvocation<ImageGenerationToolParams, ToolResult> {
-    return new ImageGenerationInvocation(this.config, this.imageGenerationModel, params, this.proxy);
+  protected createInvocation(params: ImageGenerationToolParams, messageBus: MessageBus, _toolName?: string, _toolDisplayName?: string): ToolInvocation<ImageGenerationToolParams, ToolResult> {
+    return new ImageGenerationInvocation(this.config, this.imageGenerationModel, params, this.proxy, messageBus, _toolName, _toolDisplayName);
   }
 }
 
@@ -257,9 +263,12 @@ class ImageGenerationInvocation extends BaseToolInvocation<ImageGenerationToolPa
     private readonly config: Config,
     private readonly imageGenerationModel: TProviderWithModel,
     params: ImageGenerationToolParams,
-    private readonly proxy?: string
+    private readonly proxy: string | undefined,
+    messageBus: MessageBus,
+    _toolName?: string,
+    _toolDisplayName?: string
   ) {
-    super(params);
+    super(params, messageBus, _toolName, _toolDisplayName);
 
     // Initialize the rotating client using factory
     this.currentModel = this.imageGenerationModel.useModel;
@@ -337,23 +346,37 @@ class ImageGenerationInvocation extends BaseToolInvocation<ImageGenerationToolPa
 
       // 检查文件是否存在且为图片文件
       try {
-        await fs.promises.access(fullPath);
-        if (isImageFile(fullPath)) {
-          const base64Data = await fileToBase64(fullPath);
-          const mimeType = getImageMimeType(fullPath);
-          return {
-            type: 'image_url',
-            image_url: {
-              url: `data:${mimeType};base64,${base64Data}`,
-              detail: 'auto',
-            },
-          };
+        // Check if file exists first
+        await fs.promises.access(fullPath, fs.constants.F_OK);
+
+        // Check if it's a valid image file
+        if (!isImageFile(fullPath)) {
+          throw new Error(`File is not a supported image type: ${fullPath}`);
         }
-      } catch {
-        // 文件不存在，提供详细的错误信息
+
+        // Read and encode the image
+        const base64Data = await fileToBase64(fullPath);
+        const mimeType = getImageMimeType(fullPath);
+        return {
+          type: 'image_url',
+          image_url: {
+            url: `data:${mimeType};base64,${base64Data}`,
+            detail: 'auto',
+          },
+        };
+      } catch (error) {
+        // 文件不存在或读取失败，提供详细的错误信息
         const workspaceDir = this.config.getWorkingDir();
         const possiblePaths = [imageUri, path.join(workspaceDir, imageUri)].filter((p, i, arr) => arr.indexOf(p) === i); // 去重
 
+        const errorMessage = error instanceof Error ? error.message : String(error);
+
+        // If it's already a detailed error from fileToBase64, throw it directly
+        if (errorMessage.includes('Image file not found') || errorMessage.includes('not a supported image type')) {
+          throw error;
+        }
+
+        // Otherwise provide detailed search paths
         throw new Error(`Image file not found. Searched paths:\n${possiblePaths.map((p) => `- ${p}`).join('\n')}\n\n` + 'Please ensure the image file exists and has a valid image extension (.jpg, .png, .gif, .webp, etc.)');
       }
     }
@@ -468,7 +491,20 @@ class ImageGenerationInvocation extends BaseToolInvocation<ImageGenerationToolPa
       updateOutput?.('Processing AI response...');
 
       const responseText = choice.message.content || 'Image generated successfully.';
-      const images = choice.message.images;
+      let images = choice.message.images;
+
+      // If no images field, try to extract from markdown in content
+      // Antigravity proxy returns images as ![image](data:mime;base64,xxx) in content
+      if ((!images || images.length === 0) && responseText) {
+        const markdownImageRegex = /!\[image\]\((data:image\/[^;]+;base64,[^)]+)\)/g;
+        const matches = [...responseText.matchAll(markdownImageRegex)];
+        if (matches.length > 0) {
+          images = matches.map((match) => ({
+            type: 'image_url' as const,
+            image_url: { url: match[1] },
+          }));
+        }
+      }
 
       if (!images || images.length === 0) {
         // No images generated, return text response
