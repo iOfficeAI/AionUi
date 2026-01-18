@@ -300,6 +300,13 @@ _Customize with your own CSS code, make your interface match your preferences_
   </a>
 </p>
 
+#### Install via Homebrew (macOS)
+
+```bash
+brew tap iOfficeAI/aionui https://github.com/iOfficeAI/AionUi
+brew install --cask aionui
+```
+
 ### 🔧 Simple Installation
 
 1. **Download and install** AionUi application
