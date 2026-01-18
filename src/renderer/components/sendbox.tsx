@@ -6,7 +6,7 @@
 
 import { Button, Input, Message, Tag } from '@arco-design/web-react';
 import { ArrowUp, CloseSmall } from '@icon-park/react';
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCompositionInput } from '../hooks/useCompositionInput';
 import { useDragUpload } from '../hooks/useDragUpload';
@@ -21,6 +21,17 @@ const constVoid = (): void => undefined;
 // 临界值：超过该字符数直接切换至多行模式，避免为超长文本做昂贵的宽度测量
 // Threshold: switch to multi-line mode directly when character count exceeds this value to avoid heavy layout work
 const MAX_SINGLE_LINE_CHARACTERS = 800;
+
+// Simple debounce function
+function debounce<T extends (...args: any[]) => void>(func: T, wait: number): T {
+  let timeout: NodeJS.Timeout | null = null;
+  return function (this: any, ...args: Parameters<T>) {
+    if (timeout) clearTimeout(timeout);
+    timeout = setTimeout(() => {
+      func.apply(this, args);
+    }, wait);
+  } as T;
+}
 
 const SendBox: React.FC<{
   value?: string;
@@ -38,7 +49,7 @@ const SendBox: React.FC<{
   defaultMultiLine?: boolean;
   lockMultiLine?: boolean;
   sendButtonPrefix?: React.ReactNode;
-}> = ({ onSend, onStop, prefix, className, loading, tools, disabled, placeholder, value: input = '', onChange: setInput = constVoid, onFilesAdded, supportedExts = allSupportedExts, defaultMultiLine = false, lockMultiLine = false, sendButtonPrefix }) => {
+}> = ({ onSend, onStop, prefix, className, loading, tools, disabled, placeholder, value: propInput = '', onChange: setInput = constVoid, onFilesAdded, supportedExts = allSupportedExts, defaultMultiLine = false, lockMultiLine = false, sendButtonPrefix }) => {
   const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
   const [isSingleLine, setIsSingleLine] = useState(!defaultMultiLine);
@@ -48,6 +59,37 @@ const SendBox: React.FC<{
   const containerRef = useRef<HTMLDivElement>(null);
   const singleLineWidthRef = useRef<number>(0);
   const measurementCanvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  // Local state for input to decouple from parent updates
+  const [input, setLocalInput] = useState(propInput);
+  const lastNotifiedValueRef = useRef(propInput);
+
+  // Sync with propInput only when it changes externally
+  useEffect(() => {
+    if (propInput !== lastNotifiedValueRef.current) {
+      setLocalInput(propInput);
+      lastNotifiedValueRef.current = propInput;
+    }
+  }, [propInput]);
+
+  // Debounced input handler
+  const debouncedSetInput = useMemo(
+    () =>
+      debounce((val: string) => {
+        lastNotifiedValueRef.current = val;
+        setInput(val);
+      }, 100),
+    [setInput]
+  );
+
+  const handleInputChange = useCallback(
+    (val: string) => {
+      setLocalInput(val);
+      debouncedSetInput(val);
+    },
+    [debouncedSetInput]
+  );
+
   const latestInputRef = useLatestRef(input);
   const setInputRef = useLatestRef(setInput);
 
@@ -59,6 +101,8 @@ const SendBox: React.FC<{
     const handler = (text: string) => {
       const base = latestInputRef.current;
       const newValue = base ? `${base}\n\n${text}` : text;
+      // This is an external update simulation, so we call setInput directly to update parent immediately
+      // The parent update will propagate back via propInput -> useEffect sync
       setInputRef.current(newValue);
     };
     setSendBoxHandler(handler);
@@ -176,14 +220,14 @@ const SendBox: React.FC<{
         const cursorPosition = textarea.selectionStart;
         const currentValue = textarea.value;
         const newValue = currentValue.slice(0, cursorPosition) + text + currentValue.slice(cursorPosition);
-        setInput(newValue);
+        handleInputChange(newValue);
         // 设置光标到插入文本后的位置
         setTimeout(() => {
           textarea.setSelectionRange(cursorPosition + text.length, cursorPosition + text.length);
         }, 0);
       } else {
         // 如果无法获取光标位置，回退到追加到末尾的行为
-        setInput(text);
+        handleInputChange(text);
       }
     },
   });
@@ -214,7 +258,11 @@ const SendBox: React.FC<{
 
     onSend(finalMessage)
       .then(() => {
+        // Need to clear parent state immediately
         setInput('');
+        // Also clear local state immediately for better UX
+        setLocalInput('');
+        lastNotifiedValueRef.current = '';
         clearDomSnippets(); // 发送后清除 DOM 片段 / Clear DOM snippets after sending
       })
       .catch(() => {})
@@ -293,7 +341,7 @@ const SendBox: React.FC<{
               overflowWrap: 'break-word',
             }}
             onChange={(v) => {
-              setInput(v);
+              handleInputChange(v);
             }}
             onPaste={onPaste}
             onFocus={handleInputFocus}

@@ -169,6 +169,7 @@ const AcpSendBox: React.FC<{
   // 使用 useLatestRef 保存最新的 setContent/atPath，避免重复注册 handler
   // Use useLatestRef to keep latest setters to avoid re-registering handler
   const setContentRef = useLatestRef(setContent);
+  const contentRef = useLatestRef(content);
   const atPathRef = useLatestRef(atPath);
 
   const sendingInitialMessageRef = useRef(false); // Prevent duplicate sends
@@ -189,11 +190,12 @@ const AcpSendBox: React.FC<{
     const handler = (text: string) => {
       // 如果已有内容，添加换行和新文本；否则直接设置文本
       // If there's existing content, add newline and new text; otherwise just set the text
-      const newContent = content ? `${content}\n${text}` : text;
+      const currentContent = contentRef.current;
+      const newContent = currentContent ? `${currentContent}\n${text}` : text;
       setContentRef.current(newContent);
     };
     setSendBoxHandler(handler);
-  }, [setSendBoxHandler, content]);
+  }, [setSendBoxHandler]);
 
   // Check for and send initial message from guid page when ACP is authenticated
   useEffect(() => {
