@@ -7,6 +7,7 @@
 import { AIONUI_TIMESTAMP_SEPARATOR } from '@/common/constants';
 import fs from 'fs/promises';
 import path from 'path';
+import os from 'os';
 import https from 'node:https';
 import http from 'node:http';
 import { app } from 'electron';
@@ -826,6 +827,117 @@ export function initFsBridge(): void {
       return {
         success: false,
         msg: `Failed to import skill: ${error instanceof Error ? error.message : String(error)}`,
+      };
+    }
+  });
+
+  // 扫描目录下的 skills / Scan directory for skills
+  ipcBridge.fs.scanForSkills.provider(async ({ folderPath }) => {
+    console.log(`[fsBridge] scanForSkills called with path: ${folderPath}`);
+    try {
+      const skills: Array<{ name: string; description: string; path: string }> = [];
+
+      await fs.access(folderPath);
+      const entries = await fs.readdir(folderPath, { withFileTypes: true });
+      console.log(`[fsBridge] Found ${entries.length} entries in ${folderPath}`);
+
+      for (const entry of entries) {
+        if (!entry.isDirectory()) continue;
+
+        const skillDir = path.join(folderPath, entry.name);
+        const skillMdPath = path.join(skillDir, 'SKILL.md');
+
+        try {
+          const content = await fs.readFile(skillMdPath, 'utf-8');
+          // 解析 YAML front matter
+          const frontMatterMatch = content.match(/^---\s*\n([\s\S]*?)\n---/);
+          if (frontMatterMatch) {
+            const yaml = frontMatterMatch[1];
+            const nameMatch = yaml.match(/^name:\s*(.+)$/m);
+            const descMatch = yaml.match(/^description:\s*['"]?(.+?)['"]?$/m);
+            if (nameMatch) {
+              skills.push({
+                name: nameMatch[1].trim(),
+                description: descMatch ? descMatch[1].trim() : '',
+                path: skillDir,
+              });
+              console.log(`[fsBridge] Found skill in subdirectory: ${nameMatch[1].trim()}`);
+            }
+          }
+        } catch {
+          // Skill directory without SKILL.md, skip
+        }
+      }
+
+      // Si no se encontraron skills en subdirectorios, probamos si la carpeta seleccionada en sí es una skill
+      if (skills.length === 0) {
+        console.log(`[fsBridge] No skills in subdirectories, checking if ${folderPath} is a skill itself`);
+        const skillMdPath = path.join(folderPath, 'SKILL.md');
+        try {
+          const content = await fs.readFile(skillMdPath, 'utf-8');
+          const frontMatterMatch = content.match(/^---\s*\n([\s\S]*?)\n---/);
+          if (frontMatterMatch) {
+            const yaml = frontMatterMatch[1];
+            const nameMatch = yaml.match(/^name:\s*(.+)$/m);
+            const descMatch = yaml.match(/^description:\s*['"]?(.+?)['"]?$/m);
+            if (nameMatch) {
+              skills.push({
+                name: nameMatch[1].trim(),
+                description: descMatch ? descMatch[1].trim() : '',
+                path: folderPath,
+              });
+              console.log(`[fsBridge] Found skill in the folder itself: ${nameMatch[1].trim()}`);
+            }
+          }
+        } catch {
+          // Not a skill directory
+        }
+      }
+
+      console.log(`[fsBridge] scanForSkills finished. Found ${skills.length} skills.`);
+      return {
+        success: true,
+        data: skills,
+        msg: `Found ${skills.length} skills`,
+      };
+    } catch (error) {
+      console.error('[fsBridge] Failed to scan skills:', error);
+      return {
+        success: false,
+        msg: `Failed to scan skills: ${error instanceof Error ? error.message : String(error)}`,
+      };
+    }
+  });
+
+  // 检测常见的 skills 路径 / Detect common skills paths
+  ipcBridge.fs.detectCommonSkillPaths.provider(async () => {
+    try {
+      const homedir = os.homedir();
+      const candidates = [
+        { name: 'Gemini', path: path.join(homedir, '.gemini', 'skills') },
+        { name: 'Claude', path: path.join(homedir, '.claude', 'skills') },
+      ];
+
+      const detected: Array<{ name: string; path: string }> = [];
+      for (const candidate of candidates) {
+        try {
+          await fs.access(candidate.path);
+          detected.push(candidate);
+        } catch {
+          // Path doesn't exist
+        }
+      }
+
+      return {
+        success: true,
+        data: detected,
+        msg: `Detected ${detected.length} common paths`,
+      };
+    } catch (error) {
+      console.error('[fsBridge] Failed to detect common paths:', error);
+      return {
+        success: false,
+        msg: 'Failed to detect common paths',
       };
     }
   });
