@@ -297,10 +297,23 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
 
         const updatedAgent: AcpBackendConfig = {
           ...activeAssistant,
+          name: editName,
+          description: editDescription,
+          avatar: editAvatar,
           presetAgentType: editAgent,
           enabledSkills: selectedSkills,
           customSkillNames: finalCustomSkills,
         };
+
+        // 保存规则文件（如果有更改）/ Save rule file (if changed)
+        if (editContext.trim()) {
+          await ipcBridge.fs.writeAssistantRule.invoke({
+            assistantId: activeAssistant.id,
+            locale: localeKey,
+            content: editContext,
+          });
+        }
+
         const updatedAgents = agents.map((agent) => (agent.id === activeAssistant.id ? updatedAgent : agent));
         await ConfigStorage.set('acp.customAgents', updatedAgents);
         setAssistants(updatedAgents.filter((agent) => agent.isPreset));
@@ -638,13 +651,13 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                     )}
                   </Collapse.Item>
 
-                  {/* 所有已导入的 Skills（排除 Custom Skills）/ Builtin Skills (all imported skills except custom) */}
-                  <Collapse.Item header={<span className='text-13px font-medium'>{t('settings.builtinSkills', { defaultValue: 'Builtin Skills' })}</span>} name='builtin-skills' extra={<span className='text-12px text-t-secondary'>{availableSkills.filter((skill) => !customSkills.includes(skill.name)).length}</span>}>
-                    {availableSkills.filter((skill) => !customSkills.includes(skill.name)).length > 0 ? (
+                  {/* 内置 Skills（项目自带的，非用户导入的）/ Builtin Skills (project builtin, not user imported) */}
+                  <Collapse.Item header={<span className='text-13px font-medium'>{t('settings.builtinSkills', { defaultValue: 'Builtin Skills' })}</span>} name='builtin-skills' extra={<span className='text-12px text-t-secondary'>{availableSkills.filter((skill) => !skill.isCustom && !customSkills.includes(skill.name)).length}</span>}>
+                    {availableSkills.filter((skill) => !skill.isCustom && !customSkills.includes(skill.name)).length > 0 ? (
                       <div className='space-y-4px'>
-                        {/* 显示所有已导入的 skills（排除在 customSkills 中的）/ Show all imported skills (exclude those in customSkills) */}
+                        {/* 显示项目自带的内置 skills（排除用户导入的和当前助手 custom skills）/ Show project builtin skills (exclude user imported and current assistant's custom skills) */}
                         {availableSkills
-                          .filter((skill) => !customSkills.includes(skill.name))
+                          .filter((skill) => !skill.isCustom && !customSkills.includes(skill.name))
                           .map((skill) => (
                             <div key={skill.name} className='flex items-start gap-8px p-8px hover:bg-fill-1 rounded-4px'>
                               <Checkbox

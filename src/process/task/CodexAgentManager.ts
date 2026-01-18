@@ -35,12 +35,14 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
   agent: CodexAgent;
   bootstrap: Promise<CodexAgent>;
   private isFirstMessage: boolean = true;
+  private options: CodexAgentManagerData; // 保存原始配置数据 / Store original config data
 
   constructor(data: CodexAgentManagerData) {
     // Do not fork a worker for Codex; we run the agent in-process now
     super('codex', data);
     this.conversation_id = data.conversation_id;
     this.workspace = data.workspace;
+    this.options = data; // 保存原始数据以便后续使用 / Save original data for later use
 
     this.initAgent(data);
   }
@@ -187,8 +189,8 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
         // 注入智能助手的预设规则和 skills（如果有）
         // Inject preset context and skills from smart assistant (if available)
         processedContent = await prepareFirstMessage(processedContent, {
-          presetContext: this.data.data.presetContext,
-          enabledSkills: this.data.data.enabledSkills,
+          presetContext: this.options.presetContext,
+          enabledSkills: this.options.enabledSkills,
         });
 
         const result = await this.agent.newSession(this.workspace, processedContent);
