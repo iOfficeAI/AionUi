@@ -82,7 +82,11 @@ export const fs = {
   writeAssistantSkill: bridge.buildProvider<boolean, { assistantId: string; content: string; locale?: string }>('write-assistant-skill'), // 写入助手技能文件
   deleteAssistantSkill: bridge.buildProvider<boolean, { assistantId: string }>('delete-assistant-skill'), // 删除助手技能文件
   // 获取可用 skills 列表 / List available skills from skills directory
-  listAvailableSkills: bridge.buildProvider<Array<{ name: string; description: string; location: string }>, void>('list-available-skills'),
+  listAvailableSkills: bridge.buildProvider<Array<{ name: string; description: string; location: string; isCustom: boolean }>, void>('list-available-skills'),
+  // 读取 skill 信息（不导入）/ Read skill info without importing
+  readSkillInfo: bridge.buildProvider<IBridgeResponse<{ name: string; description: string }>, { skillPath: string }>('read-skill-info'),
+  // 导入 skill 目录 / Import skill directory
+  importSkill: bridge.buildProvider<IBridgeResponse<{ skillName: string }>, { skillPath: string }>('import-skill'),
 };
 
 export const fileWatch = {

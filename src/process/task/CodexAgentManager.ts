@@ -13,8 +13,8 @@ import type { IResponseMessage } from '@/common/ipcBridge';
 import { AIONUI_FILES_MARKER } from '@/common/constants';
 import { uuid } from '@/common/utils';
 import { addMessage } from '@process/message';
-import { loadSkillsContent } from '@process/initStorage';
 import BaseAgentManager from '@process/task/BaseAgentManager';
+import { prepareFirstMessage } from '@process/task/agentUtils';
 import { t } from 'i18next';
 import { CodexEventHandler } from '@/agent/codex/handlers/CodexEventHandler';
 import { CodexSessionManager } from '@/agent/codex/handlers/CodexSessionManager';
@@ -35,12 +35,14 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
   agent: CodexAgent;
   bootstrap: Promise<CodexAgent>;
   private isFirstMessage: boolean = true;
+  private options: CodexAgentManagerData; // 保存原始配置数据 / Store original config data
 
   constructor(data: CodexAgentManagerData) {
     // Do not fork a worker for Codex; we run the agent in-process now
     super('codex', data);
     this.conversation_id = data.conversation_id;
     this.workspace = data.workspace;
+    this.options = data; // 保存原始数据以便后续使用 / Save original data for later use
 
     this.initAgent(data);
   }
@@ -186,23 +188,10 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
         // 注入智能助手的预设规则和 skills（如果有）
         // Inject preset context and skills from smart assistant (if available)
-        const systemInstructions: string[] = [];
-
-        if (this.data.data.presetContext) {
-          systemInstructions.push(this.data.data.presetContext);
-        }
-
-        // 加载并注入 enabledSkills / Load and inject enabledSkills
-        if (this.data.data.enabledSkills && this.data.data.enabledSkills.length > 0) {
-          const skillsContent = await loadSkillsContent(this.data.data.enabledSkills);
-          if (skillsContent) {
-            systemInstructions.push(skillsContent);
-          }
-        }
-
-        if (systemInstructions.length > 0) {
-          processedContent = `${processedContent}\n\n<system_instruction>\n${systemInstructions.join('\n\n')}\n</system_instruction>`;
-        }
+        processedContent = await prepareFirstMessage(processedContent, {
+          presetContext: this.options.presetContext,
+          enabledSkills: this.options.enabledSkills,
+        });
 
         const result = await this.agent.newSession(this.workspace, processedContent);
 
