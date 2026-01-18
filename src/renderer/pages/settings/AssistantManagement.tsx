@@ -151,7 +151,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
 
       return (
         <Avatar.Group size={size}>
-          <Avatar className='border-none' shape='square' style={{ backgroundColor: 'var(--color-fill-2)' }}>
+          <Avatar className='border-none' shape='square' style={{ backgroundColor: 'var(--color-fill-2)', border: 'none' }}>
             {avatarImage ? <img src={avatarImage} alt='' width={emojiSize} height={emojiSize} style={{ objectFit: 'contain' }} /> : hasEmojiAvatar ? <span style={{ fontSize: emojiSize }}>{resolvedAvatar}</span> : <Robot theme='outline' size={iconSize} />}
           </Avatar>
         </Avatar.Group>
@@ -388,7 +388,8 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
           <Button
             type='text'
             size='small'
-            icon={<Plus size={14} />}
+            style={{ color: 'var(--text-primary)' }}
+            icon={<Plus size={14} fill='currentColor' />}
             onClick={(e) => {
               e.stopPropagation();
               void handleCreate();

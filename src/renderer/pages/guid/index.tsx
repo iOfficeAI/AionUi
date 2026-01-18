@@ -1026,6 +1026,7 @@ const Guid: React.FC = () => {
                   transition: 'all 0.6s cubic-bezier(0.2, 0.8, 0.3, 1)',
                   width: 'fit-content',
                   gap: 0,
+                  color: 'var(--text-primary)',
                 }}
               >
                 {availableAgents.map((agent, index) => {
@@ -1037,7 +1038,7 @@ const Guid: React.FC = () => {
 
                   return (
                     <React.Fragment key={getAgentKey(agent)}>
-                      {index > 0 && <div className='text-white/30 text-16px lh-1 p-2px select-none'>|</div>}
+                      {index > 0 && <div className='text-16px lh-1 p-2px select-none opacity-30'>|</div>}
                       <div
                         className={`group flex items-center cursor-pointer whitespace-nowrap overflow-hidden ${isSelected ? 'opacity-100 px-12px py-8px rd-20px mx-2px' : 'opacity-60 p-4px hover:opacity-100'}`}
                         style={
@@ -1056,11 +1057,11 @@ const Guid: React.FC = () => {
                           setMentionActiveIndex(0);
                         }}
                       >
-                        {avatarImage ? <img src={avatarImage} alt='' width={20} height={20} style={{ objectFit: 'contain', flexShrink: 0 }} /> : avatar ? <span style={{ fontSize: 16, lineHeight: '20px', flexShrink: 0 }}>{avatar}</span> : logoSrc ? <img src={logoSrc} alt={`${agent.backend} logo`} width={20} height={20} style={{ objectFit: 'contain', flexShrink: 0 }} /> : <Robot theme='outline' size={20} style={{ flexShrink: 0 }} />}
+                        {avatarImage ? <img src={avatarImage} alt='' width={20} height={20} style={{ objectFit: 'contain', flexShrink: 0 }} /> : avatar ? <span style={{ fontSize: 16, lineHeight: '20px', flexShrink: 0 }}>{avatar}</span> : logoSrc ? <img src={logoSrc} alt={`${agent.backend} logo`} width={20} height={20} style={{ objectFit: 'contain', flexShrink: 0 }} /> : <Robot theme='outline' size={20} fill='currentColor' style={{ flexShrink: 0 }} />}
                         <span
                           className={`font-medium text-14px ${isSelected ? 'font-semibold' : 'max-w-0 opacity-0 overflow-hidden group-hover:max-w-100px group-hover:opacity-100 group-hover:ml-8px'}`}
                           style={{
-                            color: 'var(--color-text-1)',
+                            color: 'var(--text-primary)',
                             transition: isSelected ? 'color 0.5s cubic-bezier(0.2, 0.8, 0.3, 1), font-weight 0.5s cubic-bezier(0.2, 0.8, 0.3, 1)' : 'max-width 0.6s cubic-bezier(0.2, 0.8, 0.3, 1), opacity 0.5s cubic-bezier(0.2, 0.8, 0.3, 1) 0.05s, margin 0.6s cubic-bezier(0.2, 0.8, 0.3, 1)',
                           }}
                         >
@@ -1071,7 +1072,7 @@ const Guid: React.FC = () => {
                   );
                 })}
                 {/* 添加助手按钮 */}
-                <div className='text-white/30 text-16px lh-1 p-2px select-none'>|</div>
+                <div className='text-16px lh-1 p-2px select-none opacity-30'>|</div>
                 <div className='flex items-center cursor-pointer opacity-60 hover:opacity-100 p-4px' style={{ transition: 'opacity 0.5s cubic-bezier(0.2, 0.8, 0.3, 1)' }} onClick={() => navigate('/settings/agent')}>
                   <Plus theme='outline' size={20} fill='currentColor' strokeWidth={3} style={{ lineHeight: 0 }} />
                 </div>
@@ -1182,7 +1183,7 @@ const Guid: React.FC = () => {
                   }
                 >
                   <span className='flex items-center gap-4px cursor-pointer lh-[1]'>
-                    <Button type='secondary' shape='circle' className={isPlusDropdownOpen ? styles.plusButtonRotate : ''} icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />}></Button>
+                    <Button type='text' shape='circle' className={isPlusDropdownOpen ? styles.plusButtonRotate : ''} icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />}></Button>
                     {files.length > 0 && (
                       <Tooltip className={'!max-w-max'} content={<span className='whitespace-break-spaces'>{getCleanFileNames(files).join('\n')}</span>}>
                         <span className='text-t-primary'>File({files.length})</span>
