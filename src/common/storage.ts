@@ -60,6 +60,8 @@ export interface IConfigStorageRefer {
   'guid.lastSelectedAgent'?: string;
   // 迁移标记：修复老版本中助手 enabled 默认值问题 / Migration flag: fix assistant enabled default value issue
   'migration.assistantEnabledFixed'?: boolean;
+  // 迁移标记：为 cowork 助手添加默认启用的 skills / Migration flag: add default enabled skills for cowork assistant
+  'migration.coworkDefaultSkillsAdded'?: boolean;
 }
 
 export interface IEnvStorageRefer {
