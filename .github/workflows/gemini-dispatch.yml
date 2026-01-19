@@ -9,10 +9,9 @@ on:
   pull_request_review:
     types:
       - 'submitted'
-  pull_request:
-    types:
-      - 'opened'
-    branches: [main, gemini-cli]
+  # NOTE: PR opened auto-review is now handled by pr-check-issue.yml
+  # which first checks if PR links to an issue before triggering review.
+  # Manual review can still be triggered via @gemini-cli /review comment.
   issues:
     types:
       - 'opened'
