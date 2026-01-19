@@ -596,7 +596,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                             <div className='flex-1 min-w-0'>
                               <div className='flex items-center gap-4px'>
                                 <div className='text-13px font-medium text-t-primary'>{skill.name}</div>
-                                <span className='text-10px px-4px py-1px bg-primary-1 text-primary rounded'>Pending</span>
+                                <span className='text-10px px-4px py-1px bg-primary-1 text-primary rounded'>{t('settings.pending', { defaultValue: 'Pending' })}</span>
                               </div>
                               {skill.description && <div className='text-12px text-t-secondary mt-2px line-clamp-2'>{skill.description}</div>}
                             </div>
@@ -606,7 +606,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                                 e.stopPropagation();
                                 setDeletePendingSkillName(skill.name);
                               }}
-                              title='Remove'
+                              title={t('common.remove', { defaultValue: 'Remove' })}
                             >
                               <Delete size={16} fill='var(--color-text-3)' />
                             </button>
@@ -640,7 +640,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                                   e.stopPropagation();
                                   setDeleteCustomSkillName(skill.name);
                                 }}
-                                title='Remove from assistant'
+                                title={t('settings.removeFromAssistant', { defaultValue: 'Remove from assistant' })}
                               >
                                 <Delete size={16} fill='var(--color-text-3)' />
                               </button>

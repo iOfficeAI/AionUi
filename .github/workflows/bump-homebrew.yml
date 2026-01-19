@@ -1,0 +1,71 @@
+name: Bump Homebrew Cask
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag to bump (e.g., v1.7.1)'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  bump-cask:
+    name: Bump Homebrew Cask
+    runs-on: macos-latest
+    # 只在非预发布版本时运行
+    if: |
+      (github.event_name == 'workflow_dispatch') ||
+      (github.event_name == 'release' && !github.event.release.prerelease && !github.event.release.draft)
+
+    steps:
+      - name: Get release info
+        id: release
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ inputs.tag }}" ]; then
+            TAG="${{ inputs.tag }}"
+          else
+            TAG="${{ github.event.release.tag_name }}"
+          fi
+
+          # 移除 v 前缀获取版本号
+          VERSION="${TAG#v}"
+
+          echo "tag=$TAG" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Bumping Homebrew cask to version: $VERSION"
+
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@master
+
+      - name: Bump cask PR
+        uses: Homebrew/actions/bump-cask-pr@master
+        with:
+          token: ${{ secrets.HOMEBREW_GITHUB_TOKEN }}
+          cask: aionui
+          tag: ${{ steps.release.outputs.tag }}
+          revision: ${{ github.event.release.target_commitish || github.sha }}
+        env:
+          HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.HOMEBREW_GITHUB_TOKEN }}
+
+      - name: Notify on success
+        if: success()
+        run: |
+          echo "✅ Successfully created PR to bump aionui to ${{ steps.release.outputs.version }}"
+          echo ""
+          echo "The PR will be reviewed by Homebrew maintainers."
+          echo "Once merged, users can install with: brew install --cask aionui"
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "❌ Failed to create Homebrew bump PR"
+          echo ""
+          echo "You may need to manually create a PR:"
+          echo "1. Fork https://github.com/Homebrew/homebrew-cask"
+          echo "2. Update Casks/a/aionui.rb with new version and SHA256"
+          echo "3. Submit PR to Homebrew/homebrew-cask"

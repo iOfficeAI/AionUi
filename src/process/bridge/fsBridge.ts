@@ -24,10 +24,30 @@ type ResourceType = 'rules' | 'skills';
 /**
  * Find the builtin resource directory (rules or skills)
  * 查找内置资源目录（rules 或 skills）
+ *
+ * When packaged, resources are in asarUnpack, so they're at app.asar.unpacked/
+ * 打包后，资源在 asarUnpack 中，所以在 app.asar.unpacked/ 目录下
  */
 async function findBuiltinResourceDir(resourceType: ResourceType): Promise<string> {
   if (app.isPackaged) {
-    return path.join(app.getAppPath(), resourceType);
+    const appPath = app.getAppPath();
+    // asarUnpack extracts files to app.asar.unpacked directory
+    // asarUnpack 会将文件解压到 app.asar.unpacked 目录
+    const unpackedPath = appPath.replace('app.asar', 'app.asar.unpacked');
+    const candidates = [
+      path.join(unpackedPath, resourceType), // Unpacked location (preferred)
+      path.join(appPath, resourceType), // Fallback to asar path
+    ];
+    for (const candidate of candidates) {
+      try {
+        await fs.access(candidate);
+        return candidate;
+      } catch {
+        // Try next path
+      }
+    }
+    console.warn(`[fsBridge] Could not find builtin ${resourceType} directory, tried:`, candidates);
+    return candidates[0]; // Default to unpacked path
   }
   // Development: try multiple paths
   const appPath = app.getAppPath();

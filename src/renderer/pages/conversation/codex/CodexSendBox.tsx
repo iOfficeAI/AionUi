@@ -11,7 +11,7 @@ import { mergeFileSelectionItems } from '@/renderer/utils/fileSelection';
 import { Button, Tag } from '@arco-design/web-react';
 import { Plus } from '@icon-park/react';
 import { iconColors } from '@/renderer/theme/colors';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { buildDisplayMessage } from '@/renderer/utils/messageFiles';
 import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/ThoughtDisplay';
@@ -49,6 +49,55 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
     description: '',
     subject: '',
   });
+
+  // Think 消息节流：限制更新频率，减少渲染次数
+  // Throttle thought updates to reduce render frequency
+  const thoughtThrottleRef = useRef<{
+    lastUpdate: number;
+    pending: ThoughtData | null;
+    timer: ReturnType<typeof setTimeout> | null;
+  }>({ lastUpdate: 0, pending: null, timer: null });
+
+  const throttledSetThought = useMemo(() => {
+    const THROTTLE_MS = 50;
+    return (data: ThoughtData) => {
+      const now = Date.now();
+      const ref = thoughtThrottleRef.current;
+      if (now - ref.lastUpdate >= THROTTLE_MS) {
+        ref.lastUpdate = now;
+        ref.pending = null;
+        if (ref.timer) {
+          clearTimeout(ref.timer);
+          ref.timer = null;
+        }
+        setThought(data);
+      } else {
+        ref.pending = data;
+        if (!ref.timer) {
+          ref.timer = setTimeout(
+            () => {
+              ref.lastUpdate = Date.now();
+              ref.timer = null;
+              if (ref.pending) {
+                setThought(ref.pending);
+                ref.pending = null;
+              }
+            },
+            THROTTLE_MS - (now - ref.lastUpdate)
+          );
+        }
+      }
+    };
+  }, []);
+
+  // 清理节流定时器
+  useEffect(() => {
+    return () => {
+      if (thoughtThrottleRef.current.timer) {
+        clearTimeout(thoughtThrottleRef.current.timer);
+      }
+    };
+  }, []);
 
   const { content, setContent, atPath, setAtPath, uploadFile, setUploadFile } = (function useDraft() {
     const { data, mutate } = useCodexSendBoxDraft(conversation_id);
@@ -101,10 +150,10 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
       // Frontend only needs to update UI
       switch (message.type) {
         case 'thought':
-          setThought(message.data as ThoughtData);
+          throttledSetThought(message.data as ThoughtData);
           break;
         case 'finish':
-          setThought(message.data as ThoughtData);
+          throttledSetThought(message.data as ThoughtData);
           setAiProcessing(false);
           break;
         case 'content':
