@@ -97,11 +97,70 @@ function validatePath(userPath: string, allowedBasePaths = DEFAULT_ALLOWED_DIREC
 // 为目录浏览接口增加限流，避免暴力扫描
 router.get('/browse', fileOperationLimiter, (req, res) => {
   try {
-    // 默认打开 AionUi 运行目录，而不是用户 home 目录
-    const rawPath = (req.query.path as string) || process.cwd();
+    // Get user input and validate type
+    // 获取用户输入并验证类型
+    const userInput = req.query.path;
+    
+    // Validate input type and reject if not a string (when provided)
+    // 验证输入类型，如果不是字符串则拒绝（当提供时）
+    if (userInput !== undefined && typeof userInput !== 'string') {
+      return res.status(400).json({ error: 'Invalid path: must be a string' });
+    }
+    
+    // Use safe default if no path provided - NEVER use user input directly
+    // 如果未提供路径，使用安全的默认值 - 永远不直接使用用户输入
+    const rawPath = userInput || process.cwd();
+
+    // Explicit input validation to reject path traversal patterns before processing
+    // 显式输入验证，在处理前拒绝路径遍历模式
+    // Reject paths containing dangerous patterns
+    // 拒绝包含危险模式的路径
+    const dangerousPatterns = [
+      /\.\.[\/\\]/,  // ../ or ..\
+      /[\/\\]\.\./,  // /.. or \..
+      /^\.\.$/,      // exactly ..
+      /\0/,          // null bytes
+      /%2e%2e/i,     // URL encoded ..
+      /%..\/.*/i,    // any URL encoded path separators
+      /\.\.$/,       // ends with ..
+      /^\.\./,       // starts with ..
+      /<|>/,         // angle brackets
+      /\|/,          // pipes
+    ];
+    
+    for (const pattern of dangerousPatterns) {
+      if (pattern.test(rawPath)) {
+        return res.status(400).json({ error: 'Invalid path: path traversal detected' });
+      }
+    }
 
     // Validate path to prevent directory traversal / 验证路径以防止目录遍历
-    const validatedPath = validatePath(rawPath);
+    // The validatePath function enforces that paths must be within allowed directories
+    // validatePath 函数强制路径必须在允许的目录内
+    let validatedPath: string;
+    try {
+      validatedPath = validatePath(rawPath);
+    } catch (error) {
+      // Reject any path that fails validation
+      // 拒绝任何验证失败的路径
+      const errorMessage = error instanceof Error ? error.message : 'Invalid path';
+      return res.status(400).json({ error: errorMessage });
+    }
+
+    // Additional security: verify the validated path is within allowed directories
+    // 额外安全检查：验证已验证的路径在允许的目录内
+    const isWithinAllowed = DEFAULT_ALLOWED_DIRECTORIES.some((allowedDir) => {
+      try {
+        const rel = path.relative(allowedDir, validatedPath);
+        return rel && !rel.startsWith('..') && !path.isAbsolute(rel);
+      } catch {
+        return false;
+      }
+    });
+    
+    if (!isWithinAllowed) {
+      return res.status(403).json({ error: 'Access denied: path is outside allowed directories' });
+    }
 
     // Use fs.realpathSync to resolve all symbolic links and get canonical path
     // This breaks the taint flow for CodeQL analysis
@@ -110,6 +169,8 @@ router.get('/browse', fileOperationLimiter, (req, res) => {
     let dirPath: string;
     try {
       const canonicalPath = fs.realpathSync(validatedPath);
+      // Re-validate the canonical path to ensure symbolic links don't escape allowed directories
+      // 重新验证规范路径以确保符号链接不会逃出允许的目录
       dirPath = validatePath(canonicalPath);
     } catch (error) {
       return res.status(404).json({ error: 'Directory not found or inaccessible' });
@@ -200,6 +261,21 @@ router.post('/validate', fileOperationLimiter, (req, res) => {
 
     if (!rawPath || typeof rawPath !== 'string') {
       return res.status(400).json({ error: 'Path is required' });
+    }
+
+    // Explicit input validation to reject path traversal patterns before processing
+    // 显式输入验证，在处理前拒绝路径遍历模式
+    const dangerousPatterns = [
+      /\.\.[\/\\]/,  // ../ or ..\
+      /[\/\\]\.\./,  // /.. or \..
+      /^\.\.$/,      // exactly ..
+      /\0/,          // null bytes
+    ];
+    
+    for (const pattern of dangerousPatterns) {
+      if (pattern.test(rawPath)) {
+        return res.status(400).json({ error: 'Invalid path: path traversal detected' });
+      }
     }
 
     // Validate path to prevent directory traversal / 验证路径以防止目录遍历
