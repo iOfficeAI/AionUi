@@ -146,6 +146,7 @@
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.8.0",
     "react-syntax-highlighter": "^16.1.0",
+    "react-virtuoso": "^4.18.1",
     "rehype-katex": "^7.0.1",
     "rehype-raw": "^7.0.0",
     "remark-breaks": "^4.0.0",
