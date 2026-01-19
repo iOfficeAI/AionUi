@@ -20,6 +20,12 @@ on:
     types:
       - 'created'
 
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+  id-token: write
+
 defaults:
   run:
     shell: 'bash'
