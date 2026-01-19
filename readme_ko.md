@@ -1,4 +1,4 @@
-<p align="center">
+﻿<p align="center">
   <img src="./resources/aionui-banner-1 copy.png" alt="AionUi - Cowork with Your CLI AI Agent" width="100%">
 </p>
 
@@ -30,7 +30,7 @@
 </p>
 
 <p align="center">
-  <a href="./readme.md">English</a> | <a href="./readme_ch.md">简体中文</a> | <a href="./readme_tw.md">繁體中文</a> | <a href="./readme_jp.md">日本語</a> | <strong>한국어</strong> | <a href="https://www.aionui.com" target="_blank">공식 웹사이트</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <a href="./readme.md">English</a> | <a href="./readme_ch.md">简体中文</a> | <a href="./readme_tw.md">繁體中文</a> | <a href="./readme_jp.md">日本語</a> | <strong>한국어</strong> | <a href="./readme_es.md">Español</a> | <a href="./readme_pt.md">Português</a> | <a href="https://www.aionui.com" target="_blank">공식 웹사이트</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
 </p>
 
 <p align="center">
@@ -62,7 +62,7 @@
 
 ### 🤖 **멀티 에이전트 모드 - 명령줄 AI 도구를 위한 통합 그래픽 인터페이스**
 
-_Gemini CLI, Claude Code, CodeX, Qwen Code, Goose AI, Augment Code와 같은 명령줄 도구를 설치했다면, AionUi가 자동으로 감지하고 통합 그래픽 인터페이스를 제공합니다_
+_AionUi에는 Gemini CLI가 내장되어 있어 다운로드 즉시 사용 가능하며 추가 설치가 필요 없습니다. 이미 Gemini CLI, Claude Code, CodeX, Qwen Code, Goose AI, Augment Code 같은 명령줄 도구를 설치했다면 AionUi가 자동으로 감지해 통합 그래픽 인터페이스를 제공하고 더 풍부한 경험을 제공합니다_
 
 - ✅ **자동 감지 + 통합 인터페이스** - 로컬 CLI 도구를 자동으로 인식하고 통합 그래픽 인터페이스를 제공하여 명령줄과 작별
 - ✅ **로컬 저장 + 다중 세션** - 대화가 로컬에 저장되고 독립적인 컨텍스트를 가진 다중 병렬 세션 지원
@@ -147,7 +147,7 @@ Gemini CLI, Claude Code, Codex, Qwen Code는 강력하지만 공통적인 문제
 
 AionUi는 이러한 명령줄 도구에 통합된 **Cowork 기능**을 제공합니다:
 
-- 🎯 **통합 플랫폼** - 하나의 인터페이스로 모든 명령줄 AI 도구 관리, 전환 필요 없음
+- 🎯 **통합 플랫폼** - 하나의 인터페이스로 모든 명령줄 AI 도구 관리, 전환 필요 없음; Gemini CLI 내장, 다운로드 즉시 사용 가능하며 완전 무료
 - 🚀 **다중 도구 지원** - Claude Code뿐만 아니라 Gemini CLI, Codex, Qwen Code 등도 지원
 - 🌐 **크로스 플랫폼** - macOS, Windows, Linux 전체 플랫폼 지원 (Claude Cowork는 현재 macOS만 지원)
 - 🔄 **다중 모델 전환** - 같은 인터페이스에서 다른 모델로 유연하게 전환, 다양한 작업 요구 충족
@@ -184,7 +184,7 @@ A: **개인 Cowork 작업 공간**이 될 수 있습니다. 폴더 일괄 정리
 
 <details>
 <summary><strong>Q: AionUi는 바로 사용할 수 있나요?</strong></summary>
-A: 네! 설치 후 Google 계정 로그인을 바로 사용할 수 있으며, AionUi가 자동으로 Gemini CLI와 연결되어 추가 설정 없이 바로 사용할 수 있습니다.
+A: 네! 설치 후 바로 사용할 수 있으며 Gemini CLI가 내장되어 추가 설치가 필요 없습니다. 이미 Gemini CLI 등 명령줄 도구를 사용 중이라면 AionUi가 자동으로 인식해 더 풍부한 경험을 제공합니다.
 </details>
 
 <details>

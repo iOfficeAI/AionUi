@@ -1,4 +1,4 @@
-<p align="center">
+﻿<p align="center">
   <img src="./resources/aionui-banner-1 copy.png" alt="AionUi - Cowork with Your CLI AI Agent" width="100%">
 </p>
 
@@ -30,7 +30,7 @@
 </p>
 
 <p align="center">
-  <a href="./readme.md">English</a> | <a href="./readme_ch.md">简体中文</a> | <strong>繁體中文</strong> | <a href="./readme_jp.md">日本語</a> | <a href="./readme_ko.md">한국어</a> | <a href="https://www.aionui.com" target="_blank">官網</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <a href="./readme.md">English</a> | <a href="./readme_ch.md">简体中文</a> | <strong>繁體中文</strong> | <a href="./readme_jp.md">日本語</a> | <a href="./readme_ko.md">한국어</a> | <a href="./readme_es.md">Español</a> | <a href="./readme_pt.md">Português</a> | <a href="https://www.aionui.com" target="_blank">官網</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
 </p>
 
 <p align="center">
@@ -62,7 +62,7 @@
 
 ### 🤖 **多代理模式 - 為您的命令列 AI 工具提供統一圖形介面**
 
-_如果您已經安裝了 Gemini CLI、Claude Code、CodeX、Qwen Code、Goose AI、Augment Code 等命令列工具，AionUi 可以自動檢測並為它們提供統一的圖形介面_
+_AionUi 內建 Gemini CLI，下載即用，無需額外安裝；如果您已經安裝了 Gemini CLI、Claude Code、CodeX、Qwen Code、Goose AI、Augment Code 等命令列工具，AionUi 會自動檢測並為它們提供統一的圖形介面，體驗更豐富_
 
 - ✅ **自動檢測 + 統一介面** - 自動識別本地 CLI 工具，提供統一的圖形介面，告別命令列
 - ✅ **本地儲存 + 多會話** - 對話儲存在本地，支援多會話並行，每個會話獨立上下文
@@ -147,7 +147,7 @@ Gemini CLI、Claude Code、Codex、Qwen Code 等命令列工具雖然強大，�
 
 AionUi 為這些命令列工具提供統一的 **Cowork 能力**：
 
-- 🎯 **統一平台** - 一個介面管理所有命令列 AI 工具，無需切換
+- 🎯 **統一平台** - 一個介面管理所有命令列 AI 工具，無需切換；內建 Gemini CLI，下載即用且完全免費
 - 🚀 **多工具支援** - 不僅支援 Claude Code，還支援 Gemini CLI、Codex、Qwen Code 等
 - 🌐 **跨平台** - macOS、Windows、Linux 全平台支援（Claude Cowork 目前僅 macOS）
 - 🔄 **多模型切換** - 在同一個介面中靈活切換不同模型，滿足不同任務需求
@@ -184,7 +184,7 @@ A: 它可以成為您的**私有化 Cowork 工作空間**。您可以讓它幫�
 
 <details>
 <summary><strong>Q: AionUi 是開箱即用嗎？</strong></summary>
-A: 是的！安裝後可以直接使用 Google 帳號登入，AionUi 會自動關聯 Gemini CLI，無需額外設定即可開始使用。
+A: 是的！安裝後即可直接使用，內建 Gemini CLI，無需額外安裝即可開始體驗。如果您本機已安裝並體驗過 Gemini CLI 等命令列工具，AionUi 會自動識別並提供更豐富的使用體驗。
 </details>
 
 <details>
