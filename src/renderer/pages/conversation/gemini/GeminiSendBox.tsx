@@ -46,6 +46,58 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
   // Current active message ID to filter out events from old requests (prevents aborted request events from interfering with new ones)
   const activeMsgIdRef = useRef<string | null>(null);
 
+  // Think 消息节流：限制更新频率，减少渲染次数
+  // Throttle thought updates to reduce render frequency
+  const thoughtThrottleRef = useRef<{
+    lastUpdate: number;
+    pending: ThoughtData | null;
+    timer: ReturnType<typeof setTimeout> | null;
+  }>({ lastUpdate: 0, pending: null, timer: null });
+
+  const throttledSetThought = useMemo(() => {
+    const THROTTLE_MS = 50; // 50ms 节流间隔
+    return (data: ThoughtData) => {
+      const now = Date.now();
+      const ref = thoughtThrottleRef.current;
+
+      // 如果距离上次更新超过节流间隔，立即更新
+      if (now - ref.lastUpdate >= THROTTLE_MS) {
+        ref.lastUpdate = now;
+        ref.pending = null;
+        if (ref.timer) {
+          clearTimeout(ref.timer);
+          ref.timer = null;
+        }
+        setThought(data);
+      } else {
+        // 否则保存最新数据，等待下次更新
+        ref.pending = data;
+        if (!ref.timer) {
+          ref.timer = setTimeout(
+            () => {
+              ref.lastUpdate = Date.now();
+              ref.timer = null;
+              if (ref.pending) {
+                setThought(ref.pending);
+                ref.pending = null;
+              }
+            },
+            THROTTLE_MS - (now - ref.lastUpdate)
+          );
+        }
+      }
+    };
+  }, []);
+
+  // 清理节流定时器
+  useEffect(() => {
+    return () => {
+      if (thoughtThrottleRef.current.timer) {
+        clearTimeout(thoughtThrottleRef.current.timer);
+      }
+    };
+  }, []);
+
   // 综合运行状态：流在运行 或 有工具在执行/等待确认
   // Combined running state: stream is running OR tools are active
   const running = streamRunning || hasActiveTools;
@@ -74,7 +126,7 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
       // console.log('responseStream.message', message);
       switch (message.type) {
         case 'thought':
-          setThought(message.data as ThoughtData);
+          throttledSetThought(message.data as ThoughtData);
           break;
         case 'start':
           setStreamRunning(true);
