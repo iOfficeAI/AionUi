@@ -387,6 +387,8 @@
     "removeCustomSkillConfirm": "确定要从此助手移除 \"{{name}}\" 吗？",
     "removeCustomSkillNote": "此操作仅从当前助手移除该技能。该技能仍保留在内置技能中，可稍后重新添加。",
     "skillRemovedFromAssistant": "技能已从此助手移除",
+    "pending": "待处理",
+    "removeFromAssistant": "从助手移除",
     "noRecentEmojis": "暂无最近使用的表情",
     "preset_agents": "自定义预设（规则）",
     "no_presets": "还没有生成过自定义预设",
@@ -850,6 +852,11 @@
     }
   },
   "tools": {
+    "unknownFile": "未知文件",
+    "newFile": "新文件",
+    "deletedFile": "已删除文件",
+    "modified": "已修改",
+    "fileChanges": "文件变更",
     "shell": {
       "displayName": "Shell命令",
       "description": "执行Shell命令"

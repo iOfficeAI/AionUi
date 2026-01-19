@@ -389,6 +389,8 @@
     "removeCustomSkillConfirm": "이 어시스턴트에서 \"{{name}}\"을(를) 제거하시겠습니까?",
     "removeCustomSkillNote": "이 작업은 이 어시스턴트에서 스킬만 제거합니다. 스킬은 내장 스킬에 남아 있으며 나중에 다시 추가할 수 있습니다.",
     "skillRemovedFromAssistant": "이 어시스턴트에서 스킬이 제거됨",
+    "pending": "보류 중",
+    "removeFromAssistant": "어시스턴트에서 제거",
     "noRecentEmojis": "최근 이모티콘 없음",
     "preset_agents": "사용자 정의 프리셋 (규칙)",
     "no_presets": "아직 생성된 사용자 정의 프리셋이 없습니다.",
@@ -853,6 +855,11 @@
     }
   },
   "tools": {
+    "unknownFile": "알 수 없는 파일",
+    "newFile": "새 파일",
+    "deletedFile": "삭제된 파일",
+    "modified": "수정됨",
+    "fileChanges": "파일 변경",
     "shell": {
       "displayName": "Shell 명령",
       "description": "Shell 명령 실행"

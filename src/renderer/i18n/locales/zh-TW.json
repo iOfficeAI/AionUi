@@ -450,6 +450,8 @@
     "removeCustomSkillConfirm": "確定要從此助理移除 \"{{name}}\" 嗎？",
     "removeCustomSkillNote": "此操作僅從目前助理移除該技能。該技能仍保留在內建技能中，可稍後重新新增。",
     "skillRemovedFromAssistant": "技能已從此助理移除",
+    "pending": "待處理",
+    "removeFromAssistant": "從助理移除",
     "noRecentEmojis": "暫無最近使用的表情符號",
     "addModel": "新增模型",
     "addModelPlaceholder": "請選擇或輸入模型ID",
@@ -771,6 +773,11 @@
     }
   },
   "tools": {
+    "unknownFile": "未知檔案",
+    "newFile": "新檔案",
+    "deletedFile": "已刪除檔案",
+    "modified": "已修改",
+    "fileChanges": "檔案變更",
     "shell": {
       "displayName": "Shell指令",
       "description": "執行Shell指令"

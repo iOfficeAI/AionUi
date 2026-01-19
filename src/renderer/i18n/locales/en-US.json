@@ -389,6 +389,8 @@
     "removeCustomSkillConfirm": "Are you sure you want to remove \"{{name}}\" from this assistant?",
     "removeCustomSkillNote": "This will only remove the skill from this assistant. The skill will remain in the builtin skills and can be added back later.",
     "skillRemovedFromAssistant": "Skill removed from this assistant",
+    "pending": "Pending",
+    "removeFromAssistant": "Remove from assistant",
     "noRecentEmojis": "No recent emojis",
     "preset_agents": "Custom Presets (Rules)",
     "no_presets": "No custom presets generated yet.",
@@ -853,6 +855,11 @@
     }
   },
   "tools": {
+    "unknownFile": "Unknown file",
+    "newFile": "New File",
+    "deletedFile": "Deleted File",
+    "modified": "Modified",
+    "fileChanges": "File Changes",
     "shell": {
       "displayName": "Shell Command",
       "description": "Execute shell commands"

@@ -479,6 +479,8 @@
     "removeCustomSkillConfirm": "このアシスタントから「{{name}}」を削除してもよろしいですか？",
     "removeCustomSkillNote": "これはこのアシスタントからスキルを削除するだけです。スキルはビルトインスキルに残り、後で再追加できます。",
     "skillRemovedFromAssistant": "このアシスタントからスキルを削除しました",
+    "pending": "保留中",
+    "removeFromAssistant": "アシスタントから削除",
     "noRecentEmojis": "最近使用した絵文字はありません",
     "addModel": "モデルを追加",
     "addModelPlaceholder": "モデルIDを選択または入力してください",
@@ -800,6 +802,11 @@
     }
   },
   "tools": {
+    "unknownFile": "不明なファイル",
+    "newFile": "新規ファイル",
+    "deletedFile": "削除済みファイル",
+    "modified": "変更済み",
+    "fileChanges": "ファイル変更",
     "shell": {
       "displayName": "Shellコマンド",
       "description": "Shellコマンドを実行"
