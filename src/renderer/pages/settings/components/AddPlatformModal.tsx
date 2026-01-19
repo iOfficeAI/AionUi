@@ -148,7 +148,9 @@ const AddPlatformModal = ModalHOC<{
           id: uuid(),
           platform: selectedPlatform?.platform ?? 'custom',
           name,
-          baseUrl: values.baseUrl || '',
+          // 优先使用用户输入的 baseUrl，否则使用平台预设值
+          // Prefer user input baseUrl, fallback to platform preset
+          baseUrl: values.baseUrl || selectedPlatform?.baseUrl || '',
           apiKey: values.apiKey,
           model: [values.model],
         });

@@ -51,6 +51,9 @@ export async function buildSystemInstructions(config: FirstMessageConfig): Promi
  * 为首次消息注入系统指令
  * Inject system instructions for first message
  *
+ * 注意：使用直接前缀方式而非 XML 标签，以确保 Claude Code CLI 等外部 agent 能正确识别
+ * Note: Use direct prefix instead of XML tags to ensure external agents like Claude Code CLI can recognize it
+ *
  * @param content - 原始消息内容 / Original message content
  * @param config - 首次消息配置 / First message configuration
  * @returns 注入系统指令后的消息内容 / Message content with system instructions injected
@@ -62,5 +65,7 @@ export async function prepareFirstMessage(content: string, config: FirstMessageC
     return content;
   }
 
-  return `${content}\n\n<system_instruction>\n${systemInstructions}\n</system_instruction>`;
+  // 使用与 Gemini Agent 类似的直接前缀格式，确保 Claude/Codex 等外部 agent 能正确识别
+  // Use direct prefix format similar to Gemini Agent to ensure Claude/Codex can recognize it
+  return `[Assistant Rules - You MUST follow these instructions]\n${systemInstructions}\n\n[User Request]\n${content}`;
 }

@@ -151,7 +151,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
 
       return (
         <Avatar.Group size={size}>
-          <Avatar className='border-none' shape='square' style={{ backgroundColor: 'var(--color-fill-2)' }}>
+          <Avatar className='border-none' shape='square' style={{ backgroundColor: 'var(--color-fill-2)', border: 'none' }}>
             {avatarImage ? <img src={avatarImage} alt='' width={emojiSize} height={emojiSize} style={{ objectFit: 'contain' }} /> : hasEmojiAvatar ? <span style={{ fontSize: emojiSize }}>{resolvedAvatar}</span> : <Robot theme='outline' size={iconSize} />}
           </Avatar>
         </Avatar.Group>
@@ -297,10 +297,23 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
 
         const updatedAgent: AcpBackendConfig = {
           ...activeAssistant,
+          name: editName,
+          description: editDescription,
+          avatar: editAvatar,
           presetAgentType: editAgent,
           enabledSkills: selectedSkills,
           customSkillNames: finalCustomSkills,
         };
+
+        // 保存规则文件（如果有更改）/ Save rule file (if changed)
+        if (editContext.trim()) {
+          await ipcBridge.fs.writeAssistantRule.invoke({
+            assistantId: activeAssistant.id,
+            locale: localeKey,
+            content: editContext,
+          });
+        }
+
         const updatedAgents = agents.map((agent) => (agent.id === activeAssistant.id ? updatedAgent : agent));
         await ConfigStorage.set('acp.customAgents', updatedAgents);
         setAssistants(updatedAgents.filter((agent) => agent.isPreset));
@@ -375,7 +388,8 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
           <Button
             type='text'
             size='small'
-            icon={<Plus size={14} />}
+            style={{ color: 'var(--text-primary)' }}
+            icon={<Plus size={14} fill='currentColor' />}
             onClick={(e) => {
               e.stopPropagation();
               void handleCreate();
@@ -582,7 +596,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                             <div className='flex-1 min-w-0'>
                               <div className='flex items-center gap-4px'>
                                 <div className='text-13px font-medium text-t-primary'>{skill.name}</div>
-                                <span className='text-10px px-4px py-1px bg-primary-1 text-primary rounded'>Pending</span>
+                                <span className='text-10px px-4px py-1px bg-primary-1 text-primary rounded'>{t('settings.pending', { defaultValue: 'Pending' })}</span>
                               </div>
                               {skill.description && <div className='text-12px text-t-secondary mt-2px line-clamp-2'>{skill.description}</div>}
                             </div>
@@ -592,7 +606,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                                 e.stopPropagation();
                                 setDeletePendingSkillName(skill.name);
                               }}
-                              title='Remove'
+                              title={t('common.remove', { defaultValue: 'Remove' })}
                             >
                               <Delete size={16} fill='var(--color-text-3)' />
                             </button>
@@ -626,7 +640,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                                   e.stopPropagation();
                                   setDeleteCustomSkillName(skill.name);
                                 }}
-                                title='Remove from assistant'
+                                title={t('settings.removeFromAssistant', { defaultValue: 'Remove from assistant' })}
                               >
                                 <Delete size={16} fill='var(--color-text-3)' />
                               </button>
@@ -638,13 +652,13 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                     )}
                   </Collapse.Item>
 
-                  {/* 所有已导入的 Skills（排除 Custom Skills）/ Builtin Skills (all imported skills except custom) */}
-                  <Collapse.Item header={<span className='text-13px font-medium'>{t('settings.builtinSkills', { defaultValue: 'Builtin Skills' })}</span>} name='builtin-skills' extra={<span className='text-12px text-t-secondary'>{availableSkills.filter((skill) => !customSkills.includes(skill.name)).length}</span>}>
-                    {availableSkills.filter((skill) => !customSkills.includes(skill.name)).length > 0 ? (
+                  {/* 内置 Skills（项目自带的，非用户导入的）/ Builtin Skills (project builtin, not user imported) */}
+                  <Collapse.Item header={<span className='text-13px font-medium'>{t('settings.builtinSkills', { defaultValue: 'Builtin Skills' })}</span>} name='builtin-skills' extra={<span className='text-12px text-t-secondary'>{availableSkills.filter((skill) => !skill.isCustom && !customSkills.includes(skill.name)).length}</span>}>
+                    {availableSkills.filter((skill) => !skill.isCustom && !customSkills.includes(skill.name)).length > 0 ? (
                       <div className='space-y-4px'>
-                        {/* 显示所有已导入的 skills（排除在 customSkills 中的）/ Show all imported skills (exclude those in customSkills) */}
+                        {/* 显示项目自带的内置 skills（排除用户导入的和当前助手 custom skills）/ Show project builtin skills (exclude user imported and current assistant's custom skills) */}
                         {availableSkills
-                          .filter((skill) => !customSkills.includes(skill.name))
+                          .filter((skill) => !skill.isCustom && !customSkills.includes(skill.name))
                           .map((skill) => (
                             <div key={skill.name} className='flex items-start gap-8px p-8px hover:bg-fill-1 rounded-4px'>
                               <Checkbox

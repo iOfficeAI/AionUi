@@ -7,12 +7,14 @@
 import type { CodexToolCallUpdate } from '@/common/chatLib';
 import { Tag } from '@arco-design/web-react';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import Diff2Html from '../../../components/Diff2Html';
 import BaseToolCallDisplay from './BaseToolCallDisplay';
 
 type TurnDiffContent = Extract<CodexToolCallUpdate, { subtype: 'turn_diff' }>;
 
 const TurnDiffDisplay: React.FC<{ content: TurnDiffContent }> = ({ content }) => {
+  const { t } = useTranslation();
   const { toolCallId, data } = content;
   const { unified_diff } = data;
 
@@ -34,8 +36,8 @@ const TurnDiffDisplay: React.FC<{ content: TurnDiffContent }> = ({ content }) =>
       }
     }
     return {
-      fileName: 'Unknown file',
-      fullPath: 'Unknown file',
+      fileName: t('tools.unknownFile', { defaultValue: 'Unknown file' }),
+      fullPath: t('tools.unknownFile', { defaultValue: 'Unknown file' }),
       isNewFile: false,
       isDeletedFile: false,
     };
@@ -59,16 +61,16 @@ const TurnDiffDisplay: React.FC<{ content: TurnDiffContent }> = ({ content }) =>
   // 生成额外的标签来显示文件状态
   const additionalTags = (
     <>
-      {isNewFile && <Tag color='green'>New File</Tag>}
-      {isDeletedFile && <Tag color='red'>Deleted File</Tag>}
-      {!isNewFile && !isDeletedFile && <Tag color='blue'>Modified</Tag>}
+      {isNewFile && <Tag color='green'>{t('tools.newFile', { defaultValue: 'New File' })}</Tag>}
+      {isDeletedFile && <Tag color='red'>{t('tools.deletedFile', { defaultValue: 'Deleted File' })}</Tag>}
+      {!isNewFile && !isDeletedFile && <Tag color='blue'>{t('tools.modified', { defaultValue: 'Modified' })}</Tag>}
     </>
   );
 
   return (
     <BaseToolCallDisplay
       toolCallId={toolCallId}
-      title='File Changes'
+      title={t('tools.fileChanges', { defaultValue: 'File Changes' })}
       status='success'
       description={
         <div className='max-w-full overflow-hidden'>

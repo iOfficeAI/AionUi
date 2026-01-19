@@ -29,6 +29,7 @@ interface StreamBuffer {
   chunkCount: number;
   lastDbUpdate: number;
   updateTimer?: NodeJS.Timeout;
+  mode: 'accumulate' | 'replace'; // 每个 buffer 独立的模式，避免并发冲突
 }
 
 interface StreamingConfig {
@@ -42,7 +43,6 @@ export class StreamingMessageBuffer {
   // 默认配置
   private readonly UPDATE_INTERVAL = 300; // 300ms 更新一次
   private readonly CHUNK_BATCH_SIZE = 20; // 或累积 20 个 chunk
-  private readonly mode: 'accumulate' | 'replace' = 'accumulate'; // 默认替换模式
 
   constructor(private config?: StreamingConfig) {
     if (config?.updateInterval) {
@@ -65,22 +65,22 @@ export class StreamingMessageBuffer {
    * @param mode
    */
   append(id: string, messageId: string, conversationId: string, chunk: string, mode: 'accumulate' | 'replace'): void {
-    (this as any).mode = mode;
     let buffer = this.buffers.get(messageId);
 
     if (!buffer) {
-      // 首次 chunk，初始化缓冲区
+      // 首次 chunk，初始化缓冲区（存储 mode 到 buffer 而非实例）
       buffer = {
         messageId,
         conversationId,
         currentContent: chunk,
         chunkCount: 1,
         lastDbUpdate: Date.now(),
+        mode, // 每个 buffer 使用独立的 mode，避免并发消息模式冲突
       };
       this.buffers.set(messageId, buffer);
     } else {
-      // 根据模式累积或替换内容
-      if (this.mode === 'accumulate') {
+      // 根据 buffer 的模式累积或替换内容（使用 buffer.mode 而非 this.mode）
+      if (buffer.mode === 'accumulate') {
         buffer.currentContent += chunk;
       } else {
         buffer.currentContent = chunk; // 替换模式：直接覆盖

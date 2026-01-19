@@ -12,8 +12,10 @@ import MessageAcpPermission from '@renderer/messages/acp/MessageAcpPermission';
 import MessageAcpToolCall from '@renderer/messages/acp/MessageAcpToolCall';
 import MessageAgentStatus from '@renderer/messages/MessageAgentStatus';
 import classNames from 'classnames';
-import React, { createContext, useEffect, useMemo, useRef, useState } from 'react';
+import React, { createContext, useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { VirtuosoHandle } from 'react-virtuoso';
+import { Virtuoso } from 'react-virtuoso';
 import HOC from '../utils/HOC';
 import MessageCodexPermission from './codex/MessageCodexPermission';
 import MessageCodexToolCall from './codex/MessageCodexToolCall';
@@ -29,99 +31,98 @@ type TurnDiffContent = Extract<CodexToolCallUpdate, { subtype: 'turn_diff' }>;
 // 图片预览上下文 Image preview context
 export const ImagePreviewContext = createContext<{ inPreviewGroup: boolean }>({ inPreviewGroup: false });
 
-const MessageItem: React.FC<{ message: TMessage }> = HOC((props) => {
-  const { message } = props as { message: TMessage };
-  return (
-    <div
-      className={classNames('flex items-start message-item [&>div]:max-w-full px-8px m-t-10px max-w-full md:max-w-780px mx-auto', message.type, {
-        'justify-center': message.position === 'center',
-        'justify-end': message.position === 'right',
-        'justify-start': message.position === 'left',
-      })}
-    >
-      {props.children}
-    </div>
-  );
-})(({ message }) => {
-  const { t } = useTranslation();
+const MessageItem: React.FC<{ message: TMessage }> = React.memo(
+  HOC((props) => {
+    const { message } = props as { message: TMessage };
+    return (
+      <div
+        className={classNames('flex items-start message-item [&>div]:max-w-full px-8px m-t-10px max-w-full md:max-w-780px mx-auto', message.type, {
+          'justify-center': message.position === 'center',
+          'justify-end': message.position === 'right',
+          'justify-start': message.position === 'left',
+        })}
+      >
+        {props.children}
+      </div>
+    );
+  })(({ message }) => {
+    const { t } = useTranslation();
 
-  switch (message.type) {
-    case 'text':
-      return <MessageText message={message}></MessageText>;
-    case 'tips':
-      return <MessageTips message={message}></MessageTips>;
-    case 'tool_call':
-      return <MessageToolCall message={message}></MessageToolCall>;
-    case 'tool_group':
-      return <MessageToolGroup message={message}></MessageToolGroup>;
-    case 'agent_status':
-      return <MessageAgentStatus message={message}></MessageAgentStatus>;
-    case 'acp_permission':
-      return <MessageAcpPermission message={message}></MessageAcpPermission>;
-    case 'acp_tool_call':
-      return <MessageAcpToolCall message={message}></MessageAcpToolCall>;
-    case 'codex_permission':
-      return <MessageCodexPermission message={message}></MessageCodexPermission>;
-    case 'codex_tool_call':
-      return <MessageCodexToolCall message={message}></MessageCodexToolCall>;
-    default:
-      return <div>{t('messages.unknownMessageType', { type: (message as any).type })}</div>;
-  }
-});
+    switch (message.type) {
+      case 'text':
+        return <MessageText message={message}></MessageText>;
+      case 'tips':
+        return <MessageTips message={message}></MessageTips>;
+      case 'tool_call':
+        return <MessageToolCall message={message}></MessageToolCall>;
+      case 'tool_group':
+        return <MessageToolGroup message={message}></MessageToolGroup>;
+      case 'agent_status':
+        return <MessageAgentStatus message={message}></MessageAgentStatus>;
+      case 'acp_permission':
+        return <MessageAcpPermission message={message}></MessageAcpPermission>;
+      case 'acp_tool_call':
+        return <MessageAcpToolCall message={message}></MessageAcpToolCall>;
+      case 'codex_permission':
+        return <MessageCodexPermission message={message}></MessageCodexPermission>;
+      case 'codex_tool_call':
+        return <MessageCodexToolCall message={message}></MessageCodexToolCall>;
+      default:
+        return <div>{t('messages.unknownMessageType', { type: (message as any).type })}</div>;
+    }
+  }),
+  (prev, next) => prev.message.id === next.message.id && prev.message.content === next.message.content && prev.message.position === next.message.position && prev.message.type === next.message.type
+);
 
 const MessageList: React.FC<{ className?: string }> = () => {
   const list = useMessageList();
-  const ref = useRef<HTMLDivElement>(null);
+  const virtuosoRef = useRef<VirtuosoHandle>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
-  const [isUserScrolling, setIsUserScrolling] = useState(false);
+  const [atBottom, setAtBottom] = useState(true);
   const previousListLengthRef = useRef(list.length);
   const { t } = useTranslation();
 
-  // 提取所有 Codex turn_diff 消息用于汇总显示 / Extract all Codex turn_diff messages for summary display
-  const { turnDiffMessages, firstTurnDiffIndex } = useMemo(() => {
+  // 预处理消息列表，将 Codex turn_diff 消息进行分组
+  // Pre-process message list to group Codex turn_diff messages
+  const processedList = useMemo(() => {
+    const result: Array<TMessage | { type: 'codex_summary'; id: string; messages: TurnDiffContent[] }> = [];
     const turnDiffs: TurnDiffContent[] = [];
-    let firstIndex = -1;
+    let firstTurnDiffId = '';
 
-    list.forEach((message, index) => {
-      // Codex turn_diff 消息 / Codex turn_diff messages
+    list.forEach((message) => {
       if (message.type === 'codex_tool_call' && message.content.subtype === 'turn_diff') {
-        if (firstIndex === -1) firstIndex = index;
+        if (!firstTurnDiffId) firstTurnDiffId = message.id;
         turnDiffs.push(message.content as TurnDiffContent);
+      } else {
+        if (turnDiffs.length > 0) {
+          result.push({ type: 'codex_summary', id: `summary-${firstTurnDiffId}`, messages: [...turnDiffs] });
+          turnDiffs.length = 0;
+          firstTurnDiffId = '';
+        }
+        result.push(message);
       }
     });
 
-    return { turnDiffMessages: turnDiffs, firstTurnDiffIndex: firstIndex };
+    if (turnDiffs.length > 0) {
+      result.push({ type: 'codex_summary', id: `summary-${firstTurnDiffId}`, messages: [...turnDiffs] });
+    }
+
+    return result;
   }, [list]);
 
-  // 判断消息是否为 turn_diff 类型（用于跳过单独渲染）/ Check if message is turn_diff type (for skipping individual render)
-  const isTurnDiffMessage = (message: TMessage) => {
-    return message.type === 'codex_tool_call' && message.content.subtype === 'turn_diff';
-  };
-
-  // 检查是否在底部（允许一定的误差范围）
-  const isAtBottom = () => {
-    if (!ref.current) return true;
-    const { scrollTop, scrollHeight, clientHeight } = ref.current;
-    return scrollHeight - scrollTop - clientHeight < 100;
-  };
-
   // 滚动到底部
-  const scrollToBottom = (smooth = false) => {
-    if (ref.current) {
-      ref.current.scrollTo({
-        top: ref.current.scrollHeight,
-        behavior: smooth ? 'smooth' : 'auto',
-      });
-    }
-  };
-
-  // 监听用户滚动
-  const handleScroll = () => {
-    if (!ref.current) return;
-    const atBottom = isAtBottom();
-    setShowScrollButton(!atBottom);
-    setIsUserScrolling(!atBottom);
-  };
+  const scrollToBottom = useCallback(
+    (smooth = false) => {
+      if (virtuosoRef.current) {
+        virtuosoRef.current.scrollToIndex({
+          index: processedList.length - 1,
+          behavior: smooth ? 'smooth' : 'auto',
+          align: 'end',
+        });
+      }
+    },
+    [processedList.length]
+  );
 
   // 当消息列表更新时，智能滚动
   useEffect(() => {
@@ -137,58 +138,66 @@ const MessageList: React.FC<{ className?: string }> = () => {
 
     // 如果是用户发送的消息，强制滚动到底部并重置滚动状态
     if (isUserMessage && isNewMessage) {
-      setIsUserScrolling(false);
+      setAtBottom(true);
       setTimeout(() => {
         scrollToBottom();
       }, 100);
       return;
     }
 
-    // 如果用户正在查看历史消息，不自动滚动
-    if (isUserScrolling) return;
-
-    // 只在新消息添加时才自动滚动，而不是消息内容更新时
-    if (isNewMessage && isAtBottom()) {
+    // 如果用户不在底部且不是新消息添加，不自动滚动
+    // 只在新消息添加时且原本在底部时才自动滚动
+    if (isNewMessage && atBottom) {
       setTimeout(() => {
         scrollToBottom();
       }, 100);
     }
-  }, [list, isUserScrolling]);
+  }, [list, atBottom, scrollToBottom]);
 
   // 点击滚动按钮
   const handleScrollButtonClick = () => {
     scrollToBottom(true);
-    setIsUserScrolling(false);
     setShowScrollButton(false);
+    setAtBottom(true);
+  };
+
+  const renderItem = (index: number, item: (typeof processedList)[0]) => {
+    if ('type' in item && item.type === 'codex_summary') {
+      return (
+        <div key={item.id} className='w-full message-item px-8px m-t-10px max-w-full md:max-w-780px mx-auto'>
+          <MessageFileChanges turnDiffChanges={item.messages} />
+        </div>
+      );
+    }
+    return <MessageItem message={item as TMessage} key={(item as TMessage).id}></MessageItem>;
   };
 
   return (
     <div className='relative flex-1 h-full'>
-      <div className='flex-1 overflow-auto h-full pb-10px box-border' ref={ref} onScroll={handleScroll}>
-        {/* 使用 PreviewGroup 包裹所有消息，实现跨消息预览图片 Use PreviewGroup to wrap all messages for cross-message image preview */}
-        <Image.PreviewGroup actionsLayout={['zoomIn', 'zoomOut', 'originalSize', 'rotateLeft', 'rotateRight']}>
-          <ImagePreviewContext.Provider value={{ inPreviewGroup: true }}>
-            {list.map((message, index) => {
-              // 跳过 Codex turn_diff 消息的单独渲染（除了第一个位置显示汇总）
-              // Skip individual Codex turn_diff message rendering (show summary at first position)
-              if (isTurnDiffMessage(message)) {
-                // 在第一个 turn_diff 位置显示汇总组件 / Show summary component at first turn_diff position
-                if (index === firstTurnDiffIndex && turnDiffMessages.length > 0) {
-                  return (
-                    <div key={`file-changes-${message.id}`} className='w-full message-item px-8px m-t-10px max-w-full md:max-w-780px mx-auto'>
-                      <MessageFileChanges turnDiffChanges={turnDiffMessages} />
-                    </div>
-                  );
-                }
-                // 跳过其他 turn_diff 消息 / Skip other turn_diff messages
-                return null;
-              }
+      {/* 使用 PreviewGroup 包裹所有消息，实现跨消息预览图片 */}
+      <Image.PreviewGroup actionsLayout={['zoomIn', 'zoomOut', 'originalSize', 'rotateLeft', 'rotateRight']}>
+        <ImagePreviewContext.Provider value={{ inPreviewGroup: true }}>
+          <Virtuoso
+            ref={virtuosoRef}
+            className='flex-1 h-full pb-10px box-border'
+            data={processedList}
+            initialTopMostItemIndex={processedList.length - 1}
+            atBottomStateChange={(isAtBottom) => {
+              setAtBottom(isAtBottom);
+              setShowScrollButton(!isAtBottom);
+            }}
+            atBottomThreshold={100}
+            increaseViewportBy={200}
+            itemContent={renderItem}
+            followOutput='auto'
+            components={{
+              Header: () => <div className='h-10px' />,
+              Footer: () => <div className='h-20px' />,
+            }}
+          />
+        </ImagePreviewContext.Provider>
+      </Image.PreviewGroup>
 
-              return <MessageItem message={message} key={message.id}></MessageItem>;
-            })}
-          </ImagePreviewContext.Provider>
-        </Image.PreviewGroup>
-      </div>
       {showScrollButton && (
         <>
           {/* 渐变遮罩 Gradient mask */}
