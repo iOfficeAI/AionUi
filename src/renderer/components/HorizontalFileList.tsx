@@ -26,7 +26,7 @@ const HorizontalFileList: React.FC<HorizontalFileListProps> = ({ children }) => 
    * 检查滚动状态，判断是否需要显示左右滚动按钮
    * 计算容器是否可滚动，以及当前是否在起始/结束位置
    */
-  const checkScroll = () => {
+  const checkScroll = React.useCallback(() => {
     const container = scrollContainerRef.current;
     if (!container) return;
 
@@ -37,10 +37,15 @@ const HorizontalFileList: React.FC<HorizontalFileListProps> = ({ children }) => 
     // 是否在结束位置（右边）
     const isAtEnd = container.scrollLeft + container.clientWidth >= container.scrollWidth - 1;
 
-    setShowScrollButton(hasScroll);
-    setCanScrollRight(hasScroll && !isAtEnd);
-    setCanScrollLeft(hasScroll && !isAtStart);
-  };
+    const nextShowScrollButton = hasScroll;
+    const nextCanScrollRight = hasScroll && !isAtEnd;
+    const nextCanScrollLeft = hasScroll && !isAtStart;
+
+    // 仅在状态确实发生变化时才更新，避免不必要的重渲染
+    setShowScrollButton((prev) => (prev !== nextShowScrollButton ? nextShowScrollButton : prev));
+    setCanScrollRight((prev) => (prev !== nextCanScrollRight ? nextCanScrollRight : prev));
+    setCanScrollLeft((prev) => (prev !== nextCanScrollLeft ? nextCanScrollLeft : prev));
+  }, []);
 
   useEffect(() => {
     checkScroll();
@@ -59,12 +64,13 @@ const HorizontalFileList: React.FC<HorizontalFileListProps> = ({ children }) => 
       }
     };
 
-    // 使用 ResizeObserver 监听容器大小变化，自动更新滚动状态，并将状态更新延迟到下一帧以避免 ResizeObserver 循环
+    // 使用 ResizeObserver 监听容器大小变化，自动更新滚动状态
+    // ResizeObserver 已经能很好地处理大部分布局变化
     const resizeObserver = new ResizeObserver(scheduleCheck);
     resizeObserver.observe(container);
 
     // 监听滚动事件，实时更新按钮显示状态
-    container.addEventListener('scroll', checkScroll);
+    container.addEventListener('scroll', checkScroll, { passive: true });
 
     return () => {
       if (rafId !== null) {
@@ -73,7 +79,12 @@ const HorizontalFileList: React.FC<HorizontalFileListProps> = ({ children }) => 
       resizeObserver.disconnect();
       container.removeEventListener('scroll', checkScroll);
     };
-  }, [children]);
+  }, [checkScroll]);
+
+  // 当 children 变化时也需要检查一次，但不需要作为 useEffect 的依赖导致频繁重运行
+  useEffect(() => {
+    checkScroll();
+  }, [children, checkScroll]);
 
   /**
    * 向右滚动 200px

@@ -30,7 +30,7 @@
 </p>
 
 <p align="center">
-  <a href="./readme.md">English</a> | <a href="./readme_ch.md">简体中文</a> | <strong>日本語</strong> | <a href="https://www.aionui.com" target="_blank">公式サイト</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <a href="./readme.md">English</a> | <a href="./readme_ch.md">简体中文</a> | <a href="./readme_tw.md">繁體中文</a> | <strong>日本語</strong> | <a href="./readme_ko.md">한국어</a> | <a href="https://www.aionui.com" target="_blank">公式サイト</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
 </p>
 
 <p align="center">
@@ -60,12 +60,12 @@
   <img src="./resources/offica-ai BANNER-function copy.png" alt="AionUi - Cowork with Your CLI AI Agent" width="800">
 </p>
 
-### 🤖 **マルチエージェントモード - あなたのコマンドラインAIツールのためのCowork、统一グラフィカルインターフェース**
+### 🤖 **マルチエージェントモード - あなたのコマンドラインAIツールのためのCowork、統一グラフィカルインターフェース**
 
-_Gemini CLI、Claude Code、CodeX、Qwen Code、Goose AI、Augment Codeなどのコマンドラインツールをインストール済みの場合、AionUiは自动的に検出し、统一されたグラフィカルインターフェースを提供します_
+_Gemini CLI、Claude Code、CodeX、Qwen Code、Goose AI、Augment Codeなどのコマンドラインツールをインストール済みの場合、AionUiは自動的に検出し、統一されたグラフィカルインターフェースを提供します_
 
-- ✅ **自动検出 + 统一インターフェース** - ローカルCLIツールを自动认识し、统一されたグラフィカルインターフェースを提供、コマンドラインに别れを告げる
-- ✅ **ローカル保存 + マルチセッション** - 会話をローカルに保存、マルチセッション并列をサポート、各セッションは独立したコンテキスト
+- ✅ **自動検出 + 統一インターフェース** - ローカルCLIツールを自動認識し、統一されたグラフィカルインターフェースを提供、コマンドラインに別れを告げる
+- ✅ **ローカル保存 + マルチセッション** - 会話をローカルに保存、マルチセッション並列をサポート、各セッションは独立したコンテキスト
 
 <p align="center">
   <img src="./resources/acp home page.gif" alt="マルチエージェントモードデモ" width="800">
@@ -75,10 +75,10 @@ _Gemini CLI、Claude Code、CodeX、Qwen Code、Goose AI、Augment Codeなどの
 
 ### 📁 **スマートファイル管理 (AI Cowork)**
 
-_一括リネーム、自动整理、スマート分类、ファイルマージ_
+_一括リネーム、自動整理、スマート分類、ファイルマージ_
 
-- **自动整理**：コンテンツをスマートに识别して自动分类し、フォルダを整理整顿します。
-- **効率的な一括处理**：ワンクリックでリネームや结合を行い、烦雑な手作业から解放されます。
+- **自動整理**：コンテンツをスマートに判別して自動分類し、フォルダを整理整頓します。
+- **効率的な一括処理**：ワンクリックでリネームや結合を行い、煩雑な手作業から解放されます。
 
 <p align="center">
   <img src="./resources/aionui sort file.gif" alt="スマートファイル管理デモ" width="800">
@@ -86,12 +86,12 @@ _一括リネーム、自动整理、スマート分类、ファイルマージ_
 
 ---
 
-### 📄 **プレビューパネル - AI生成结果を素早く确认**
+### 📄 **プレビューパネル - AI生成結果を素早く確認**
 
 _9种类以上の形式のビジュアルプレビューをサポート（PDF、Word、Excel、PPT、コード、Markdown、画像、HTML、Diffなど）_
 
-- ✅ **即座に结果を确认** - AIがファイルを生成した後、アプリを切り替えることなく、すぐにプレビューを确认
-- ✅ **リアルタイム追迹 + 编集可能** - ファイル変更を自动追迹、エディタとプレビューがインテリジェントに同期；Markdown、コード、HTMLのリアルタイム编集をサポート、WYSIWYG
+- ✅ **即座に結果を確認** - AIがファイルを生成した後、アプリを切り替えることなく、すぐにプレビューを確認
+- ✅ **リアルタイム追跡 + 編集可能** - ファイル変更を自動追跡、エディタとプレビューがインテリジェントに同期；Markdown、コード、HTMLのリアルタイム編集をサポート、WYSIWYG
 
 <p align="center">
   <img src="./resources/preview.gif" alt="プレビューパネルデモ" width="800">
@@ -299,6 +299,12 @@ _独自のCSSコードでカスタマイズし、インターフェースを好�
     <img src="https://img.shields.io/badge/ダウンロード-最新版-32CD32?style=for-the-badge&logo=github&logoColor=white" alt="最新版をダウンロード" height="50">
   </a>
 </p>
+
+### 🍺 Homebrewでインストール (macOS)
+
+```bash
+brew install aionui
+```
 
 ### 🔧 簡単インストール
 

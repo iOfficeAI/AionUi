@@ -144,6 +144,10 @@ asarUnpack:
   # tree-sitter WASM files need to be unpacked for fs.readFile access
   - "**/node_modules/web-tree-sitter/**/*"
   - "**/node_modules/tree-sitter-bash/**/*"
+  # Builtin resources need to be unpacked for fs.readdir with withFileTypes
+  # Required for Homebrew installations where asar paths may have issues
+  - "rules/**/*"
+  - "skills/**/*"
 
 compression: maximum
 removePackageScripts: true
