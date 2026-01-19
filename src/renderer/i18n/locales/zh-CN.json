@@ -606,7 +606,17 @@
     "multiKeyTestResult": "多 Key 测试：{{valid}}/{{total}} 个有效",
     "multiKeyAllValid": "所有 {{total}} 个 Key 均有效",
     "multiKeyPartialValid": "{{valid}} 个有效，{{invalid}} 个无效",
-    "multiKeyAllInvalid": "所有 {{total}} 个 Key 均无效"
+    "multiKeyAllInvalid": "所有 {{total}} 个 Key 均无效",
+    "addSkills": "添加技能",
+    "addSkillsTitle": "添加技能",
+    "skillFolderPath": "技能文件夹路径",
+    "skillPathPlaceholder": "输入或浏览技能文件夹路径，多个路径请用逗号分隔",
+    "skillsAdded": "已添加并勾选 {{addedCount}} 个技能{{skippedCountText}}",
+    "skippedCount": "{{count}} 个跳过",
+    "allSkillsExist": "所有找到的技能都已存在",
+    "noSkillsFound": "在选择的路径中未找到有效的技能",
+    "skillScanFailed": "扫描技能失败",
+    "quickScan": "快速扫描常用路径"
   },
   "messages": {
     "fileChanges": "文件变更",
