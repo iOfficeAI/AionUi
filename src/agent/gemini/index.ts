@@ -254,6 +254,16 @@ export class GeminiAgent {
     });
     await this.config.initialize();
 
+    // aioncli-core 的 SkillManager.discoverSkills() 会重新从用户 skills 目录加载所有 skills
+    // 覆盖了 loadCliConfig 中的过滤，需要在这里重新应用 enabledSkills 过滤
+    // aioncli-core's SkillManager.discoverSkills() reloads all skills from user directory,
+    // overriding our filtering in loadCliConfig, so we need to re-apply enabledSkills filter here
+    if (this.enabledSkills && this.enabledSkills.length > 0) {
+      const enabledSet = new Set(this.enabledSkills);
+      this.config.getSkillManager().filterSkills((skill) => enabledSet.has(skill.name));
+      console.log(`[GeminiAgent] Filtered skills after initialize: ${this.enabledSkills.join(', ')}`);
+    }
+
     // 对于 Google OAuth 认证，清除缓存的 OAuth 客户端以确保使用最新凭证
     // For Google OAuth auth, clear cached OAuth client to ensure fresh credentials
     if (this.authType === AuthType.LOGIN_WITH_GOOGLE) {
