@@ -68,9 +68,6 @@ const loggerPort = resolveLoggerPort(devServerPort, isDevPortOverridden);
 
 const apkName = 'AionUi_' + packageJson.version + '_' + (process.env.arch || process.arch);
 const skipNativeRebuild = process.env.FORGE_SKIP_NATIVE_REBUILD === 'true';
-// Forge start is webpack-driven; some plugins also override start logic.
-// Keep packaging-time plugins out of `start` to avoid override conflicts.
-const isForgeStart = process.argv.includes('start');
 
 // Use target arch from build script, not host arch
 const targetArch = process.env.ELECTRON_BUILDER_ARCH || process.env.npm_config_target_arch || process.env.arch || process.arch;
@@ -201,14 +198,10 @@ module.exports = {
     },
   ],
   plugins: [
-    ...(isForgeStart
-      ? []
-      : [
-          new AutoUnpackNativesPlugin({
-            // 配置需要处理的 native 依赖
-            include: ['node-pty', 'better-sqlite3', 'bcrypt'],
-          }),
-        ]),
+    new AutoUnpackNativesPlugin({
+      // 配置需要处理的 native 依赖
+      include: ['node-pty', 'better-sqlite3', 'bcrypt'],
+    }),
     new WebpackPlugin({
       port: devServerPort,
       loggerPort,
@@ -243,18 +236,14 @@ module.exports = {
     }),
     // Fuses are used to enable/disable various Electron functionality
     // at package time, before code signing the application
-    ...(isForgeStart
-      ? []
-      : [
-          new FusesPlugin({
-            version: FuseVersion.V1,
-            [FuseV1Options.RunAsNode]: false,
-            [FuseV1Options.EnableCookieEncryption]: true,
-            [FuseV1Options.EnableNodeOptionsEnvironmentVariable]: false,
-            [FuseV1Options.EnableNodeCliInspectArguments]: false,
-            [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: true,
-            [FuseV1Options.OnlyLoadAppFromAsar]: true,
-          }),
-        ]),
+    new FusesPlugin({
+      version: FuseVersion.V1,
+      [FuseV1Options.RunAsNode]: false,
+      [FuseV1Options.EnableCookieEncryption]: true,
+      [FuseV1Options.EnableNodeOptionsEnvironmentVariable]: false,
+      [FuseV1Options.EnableNodeCliInspectArguments]: false,
+      [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: true,
+      [FuseV1Options.OnlyLoadAppFromAsar]: true,
+    }),
   ],
 };
