@@ -33,7 +33,7 @@ import { emitter } from '@/renderer/utils/emitter';
 import { buildDisplayMessage } from '@/renderer/utils/messageFiles';
 import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
 import { updateWorkspaceTime } from '@/renderer/utils/workspaceHistory';
-import type { AcpBackend, AcpBackendConfig } from '@/types/acpTypes';
+import type { AcpBackend, AcpBackendConfig, PresetAgentType } from '@/types/acpTypes';
 import { Button, ConfigProvider, Dropdown, Input, Menu, Tooltip } from '@arco-design/web-react';
 import { IconClose } from '@arco-design/web-react/icon';
 import { ArrowUp, Down, FolderOpen, Plus, Robot, UploadOne } from '@icon-park/react';
@@ -229,7 +229,7 @@ const Guid: React.FC = () => {
       isPreset?: boolean;
       context?: string;
       avatar?: string;
-      presetAgentType?: 'gemini' | 'claude' | 'codex';
+      presetAgentType?: PresetAgentType;
     }>
   >();
   const [customAgents, setCustomAgents] = useState<AcpBackendConfig[]>([]);
@@ -789,8 +789,8 @@ const Guid: React.FC = () => {
       // ACP conversation type (including preset with claude agent type)
       const acpAgentInfo = agentInfo || findAgentByKey(selectedAgentKey);
 
-      // For preset with claude agent type, we use 'claude' as backend
-      const acpBackend = isPreset && presetAgentType === 'claude' ? 'claude' : selectedAgent;
+      // For preset with claude/opencode agent type, we use corresponding backend
+      const acpBackend = isPreset && (presetAgentType === 'claude' || presetAgentType === 'opencode') ? presetAgentType : selectedAgent;
 
       if (!acpAgentInfo && !isPreset) {
         alert(`${selectedAgent} CLI not found or not configured. Please ensure it's installed and accessible.`);

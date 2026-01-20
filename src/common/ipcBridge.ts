@@ -7,7 +7,7 @@
 import { bridge } from '@office-ai/platform';
 import type { OpenDialogOptions } from 'electron';
 import type { McpSource } from '../process/services/mcpServices/McpProtocol';
-import type { AcpBackend } from '../types/acpTypes';
+import type { AcpBackend, PresetAgentType } from '../types/acpTypes';
 import type { IMcpServer, IProvider, TChatConversation, TProviderWithModel } from './storage';
 import type { PreviewHistoryTarget, PreviewSnapshotInfo } from './types/preview';
 import type { ProtocolDetectionRequest, ProtocolDetectionResponse } from './utils/protocolDetector';
@@ -142,7 +142,7 @@ export const acpConversation = {
         isPreset?: boolean;
         context?: string;
         avatar?: string;
-        presetAgentType?: 'gemini' | 'claude' | 'codex';
+        presetAgentType?: PresetAgentType;
       }>
     >,
     void

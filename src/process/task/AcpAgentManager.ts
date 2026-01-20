@@ -11,7 +11,7 @@ import { ProcessConfig } from '../initStorage';
 import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '../message';
 import BaseAgentManager from './BaseAgentManager';
 import { handlePreviewOpenEvent } from '../utils/previewUtils';
-import { prepareFirstMessage } from './agentUtils';
+import { prepareFirstMessageWithSkillsIndex } from './agentUtils';
 
 interface AcpAgentManagerData {
   workspace?: string;
@@ -130,10 +130,10 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
           contentToSend = contentToSend.split(AIONUI_FILES_MARKER)[0].trimEnd();
         }
 
-        // 首条消息时注入预设规则和 skills（来自智能助手配置）
-        // Inject preset context and skills on first message (from smart assistant config)
+        // 首条消息时注入预设规则和 skills 索引（来自智能助手配置）
+        // Inject preset context and skills INDEX on first message (from smart assistant config)
         if (this.isFirstMessage) {
-          contentToSend = await prepareFirstMessage(contentToSend, {
+          contentToSend = await prepareFirstMessageWithSkillsIndex(contentToSend, {
             presetContext: this.options.presetContext,
             enabledSkills: this.options.enabledSkills,
           });
