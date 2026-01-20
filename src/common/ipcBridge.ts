@@ -8,7 +8,7 @@ import { bridge } from '@office-ai/platform';
 import type { OpenDialogOptions } from 'electron';
 import type { McpSource } from '../process/services/mcpServices/McpProtocol';
 import type { AcpBackend } from '../types/acpTypes';
-import type { IMcpServer, IProvider, TChatConversation, TProviderWithModel } from './storage';
+import type { CliSettingsConfig, IMcpServer, IProvider, TChatConversation, TProviderWithModel } from './storage';
 import type { PreviewHistoryTarget, PreviewSnapshotInfo } from './types/preview';
 import type { ProtocolDetectionRequest, ProtocolDetectionResponse } from './utils/protocolDetector';
 
@@ -174,6 +174,13 @@ export const codexConversation = {
   sendMessage: conversation.sendMessage,
   confirmMessage: bridge.buildProvider<IBridgeResponse, IConfirmMessageParams>('codex.input.confirm.message'),
   responseStream: conversation.responseStream,
+};
+
+// CLI 设置相关接口 / CLI settings API
+export const cliSettings = {
+  getAll: bridge.buildProvider<IBridgeResponse<Record<string, CliSettingsConfig>>, void>('cli-settings.get-all'),
+  save: bridge.buildProvider<IBridgeResponse, CliSettingsConfig>('cli-settings.save'),
+  saveAll: bridge.buildProvider<IBridgeResponse, Record<string, CliSettingsConfig>>('cli-settings.save-all'),
 };
 
 // Database operations

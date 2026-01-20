@@ -9,7 +9,7 @@ import { ConfigStorage } from '@/common/storage';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { useThemeContext } from '@/renderer/context/ThemeContext';
 import { Button, Divider, Form, Input, Message, Switch } from '@arco-design/web-react';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useImperativeHandle, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import classNames from 'classnames';
 import { useSettingsViewMode } from '../settingsViewContext';
@@ -17,9 +17,21 @@ import { useSettingsViewMode } from '../settingsViewContext';
 interface GeminiModalContentProps {
   /** 请求关闭设置弹窗 / Request closing the settings modal */
   onRequestClose?: () => void;
+  /** 隐藏底部按钮（用于嵌入到其他页面时） / Hide footer buttons (for embedding in other pages) */
+  hideButtons?: boolean;
+  /** 标记设置是否已更改 / Callback when settings are modified */
+  onDirtyChange?: (isDirty: boolean) => void;
 }
 
-const GeminiModalContent: React.FC<GeminiModalContentProps> = ({ onRequestClose }) => {
+/** 暴露给父组件的方法 / Methods exposed to parent component */
+export interface GeminiModalContentRef {
+  /** 保存设置 / Save settings */
+  save: () => Promise<boolean>;
+  /** 重置表单到上次保存的状态 / Reset form to last saved state */
+  reset: () => void;
+}
+
+const GeminiModalContent = React.forwardRef<GeminiModalContentRef, GeminiModalContentProps>(({ onRequestClose, hideButtons = false, onDirtyChange }, ref) => {
   const { t } = useTranslation();
   const { theme: _theme } = useThemeContext();
   const [form] = Form.useForm();
@@ -30,6 +42,7 @@ const GeminiModalContent: React.FC<GeminiModalContentProps> = ({ onRequestClose 
   const [message, messageContext] = Message.useMessage();
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
+  const [initialValues, setInitialValues] = useState<Record<string, unknown> | null>(null);
 
   /**
    * 加载当前账号对应的 GOOGLE_CLOUD_PROJECT
@@ -79,7 +92,13 @@ const GeminiModalContent: React.FC<GeminiModalContentProps> = ({ onRequestClose 
       });
   };
 
-  const onSubmit = async () => {
+  /**
+   * 保存 Gemini 设置（内部实现）
+   * Save Gemini settings (internal implementation)
+   * @param showMessage 是否显示消息 / Whether to show message
+   * @param closeOnSuccess 是否在成功后关闭 / Whether to close on success
+   */
+  const saveSettings = async (showMessage = true, closeOnSuccess = true): Promise<boolean> => {
     try {
       const values = await form.validate();
       const { googleAccount: _googleAccount, customCss, GOOGLE_CLOUD_PROJECT, ...restConfig } = values;
@@ -107,24 +126,60 @@ const GeminiModalContent: React.FC<GeminiModalContentProps> = ({ onRequestClose 
       await ConfigStorage.set('gemini.config', geminiConfig);
       await ConfigStorage.set('customCss', customCss || '');
 
-      message.success(t('common.saveSuccess'));
-      onRequestClose?.();
+      // 更新初始值以便 reset 正确工作 / Update initial values for reset to work correctly
+      setInitialValues({ ...values });
+      onDirtyChange?.(false);
+
+      if (showMessage) {
+        message.success(t('common.saveSuccess'));
+      }
+      if (closeOnSuccess) {
+        onRequestClose?.();
+      }
 
       window.dispatchEvent(
         new CustomEvent('custom-css-updated', {
           detail: { customCss: customCss || '' },
         })
       );
+      return true;
     } catch (error: unknown) {
-      message.error((error as Error)?.message || t('common.saveFailed'));
+      if (showMessage) {
+        message.error((error as Error)?.message || t('common.saveFailed'));
+      }
+      return false;
     } finally {
       setLoading(false);
     }
   };
 
+  const onSubmit = async () => {
+    await saveSettings(true, true);
+  };
+
   const handleCancel = () => {
     onRequestClose?.();
   };
+
+  /**
+   * 重置表单到初始值
+   * Reset form to initial values
+   */
+  const resetForm = useCallback(() => {
+    if (initialValues) {
+      form.setFieldsValue(initialValues);
+      onDirtyChange?.(false);
+    }
+  }, [form, initialValues, onDirtyChange]);
+
+  /**
+   * 暴露方法给父组件
+   * Expose methods to parent component
+   */
+  useImperativeHandle(ref, () => ({
+    save: () => saveSettings(false, false),
+    reset: resetForm,
+  }), [resetForm]);
 
   useEffect(() => {
     Promise.all([ConfigStorage.get('gemini.config'), ConfigStorage.get('customCss')])
@@ -137,6 +192,7 @@ const GeminiModalContent: React.FC<GeminiModalContentProps> = ({ onRequestClose 
           GOOGLE_CLOUD_PROJECT: '',
         };
         form.setFieldsValue(formData);
+        setInitialValues(formData);
         loadGoogleAuthStatus(geminiConfig?.proxy, geminiConfig);
       })
       .catch((error) => {
@@ -248,17 +304,21 @@ const GeminiModalContent: React.FC<GeminiModalContentProps> = ({ onRequestClose 
         </div>
       </AionScrollArea>
 
-      {/* Footer with Buttons */}
-      <div className={classNames('flex-shrink-0 flex gap-10px border-t border-border-2 pl-24px py-16px', isPageMode ? 'border-none pl-0 pr-0 pt-10px flex-col md:flex-row md:justify-end' : 'justify-end')}>
-        <Button className={classNames('rd-100px', isPageMode && 'w-full md:w-auto')} onClick={handleCancel}>
-          {t('common.cancel')}
-        </Button>
-        <Button type='primary' loading={loading} onClick={onSubmit} className={classNames('rd-100px', isPageMode && 'w-full md:w-auto')}>
-          {t('common.save')}
-        </Button>
-      </div>
+      {/* Footer with Buttons - only show when not embedded */}
+      {!hideButtons && (
+        <div className={classNames('flex-shrink-0 flex gap-10px border-t border-border-2 pl-24px py-16px', isPageMode ? 'border-none pl-0 pr-0 pt-10px flex-col md:flex-row md:justify-end' : 'justify-end')}>
+          <Button className={classNames('rd-100px', isPageMode && 'w-full md:w-auto')} onClick={handleCancel}>
+            {t('common.cancel')}
+          </Button>
+          <Button type='primary' loading={loading} onClick={onSubmit} className={classNames('rd-100px', isPageMode && 'w-full md:w-auto')}>
+            {t('common.save')}
+          </Button>
+        </div>
+      )}
     </div>
   );
-};
+});
+
+GeminiModalContent.displayName = 'GeminiModalContent';
 
 export default GeminiModalContent;

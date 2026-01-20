@@ -62,6 +62,8 @@ export interface IConfigStorageRefer {
   'migration.assistantEnabledFixed'?: boolean;
   // 迁移标记：为 cowork 助手添加默认启用的 skills / Migration flag: add default enabled skills for cowork assistant
   'migration.coworkDefaultSkillsAdded'?: boolean;
+  // CLI 设置配置 / CLI settings configuration
+  'cli.settings'?: Record<string, CliSettingsConfig>;
 }
 
 export interface IEnvStorageRefer {
@@ -247,4 +249,17 @@ export interface ICssTheme {
   isPreset?: boolean; // 是否为预设主题 / Whether it's a preset theme
   createdAt: number; // 创建时间 / Creation time
   updatedAt: number; // 更新时间 / Update time
+}
+
+/**
+ * CLI 设置配置接口 / CLI Settings configuration interface
+ * 用于存储每个检测到的 CLI 工具的配置 / Store configuration for each detected CLI tool
+ */
+export interface CliSettingsConfig {
+  cliPath: string; // CLI 可执行文件路径 / Path to CLI executable
+  backend: string; // 后端标识符 / Backend identifier (claude, goose, etc.)
+  enabled: boolean; // 是否启用此 CLI / Whether this CLI is enabled
+  customArgs: string[]; // 调用时传递的自定义参数 / Custom arguments to pass on invocation
+  yoloMode: boolean; // YOLO 模式切换 / YOLO mode toggle (e.g., --dangerously-skip-permissions)
+  env?: Record<string, string>; // 可选环境变量 / Optional environment variables
 }
