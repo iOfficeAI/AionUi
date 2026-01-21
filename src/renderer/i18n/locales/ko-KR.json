@@ -50,6 +50,24 @@
     "browse": "찾아보기",
     "remove": "제거"
   },
+  "update": {
+    "modalTitle": "Software update",
+    "checking": "Checking for updates...",
+    "checkFailed": "Failed to check for updates",
+    "upToDateTitle": "You're up to date",
+    "currentVersion": "Current version: {{version}}",
+    "availableTitle": "Update available",
+    "noReleaseNotes": "No release notes provided.",
+    "downloadingTitle": "Downloading update...",
+    "downloadButton": "Download",
+    "downloadStartFailed": "Failed to start download",
+    "downloadFailed": "Download failed",
+    "noCompatibleAsset": "No compatible download found for this platform",
+    "downloadCompleteTitle": "Download complete",
+    "showInFolder": "Show in folder",
+    "openFile": "Open file",
+    "errorTitle": "Update failed"
+  },
   "login": {
     "pageTitle": "AionUi - 로그인",
     "brand": "AionUi",
@@ -547,6 +565,8 @@
     "feedback": "피드백",
     "contactMe": "연락처",
     "officialWebsite": "공식 웹사이트",
+    "checkForUpdates": "업데이트 확인",
+    "includePrereleaseUpdates": "프리릴리즈/dev 빌드 포함",
     "saveModelConfigFailed": "모델 구성 저장 실패",
     "customAcpAgent": "사용자 정의 ACP 에이전트",
     "addCustomAgent": "추가",

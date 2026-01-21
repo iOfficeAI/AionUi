@@ -1,4 +1,22 @@
 {
+  "update": {
+    "modalTitle": "ソフトウェア更新",
+    "checking": "更新を確認しています...",
+    "checkFailed": "更新の確認に失敗しました",
+    "upToDateTitle": "最新です",
+    "currentVersion": "現在のバージョン：{{version}}",
+    "availableTitle": "更新があります",
+    "noReleaseNotes": "リリースノートはありません。",
+    "downloadingTitle": "更新をダウンロードしています...",
+    "downloadButton": "ダウンロード",
+    "downloadStartFailed": "ダウンロードを開始できませんでした",
+    "downloadFailed": "ダウンロードに失敗しました",
+    "noCompatibleAsset": "このプラットフォームに対応するファイルが見つかりません",
+    "downloadCompleteTitle": "ダウンロード完了",
+    "showInFolder": "フォルダーで表示",
+    "openFile": "ファイルを開く",
+    "errorTitle": "更新に失敗しました"
+  },
   "acp": {
     "auth": {
       "failed": "{{backend}} 認証が失敗しました：\n\n{{error}}\n\nローカルCLIツールの認証状態を確認してください",
@@ -500,7 +518,7 @@
     "testAllKeys": "すべてのキーをテスト",
     "authMethod": "認証",
     "baseUrl": "ベースURL",
-    "baseUrlAutoFix": "base_url 自動修復為：{{base_url}}",
+    "baseUrlAutoFix": "base_url を自動修復しました：{{base_url}}",
     "cacheDir": "キャッシュディレクトリ",
     "workDir": "作業ディレクトリ",
     "dirNotConfigured": "まだ設定されていません",
@@ -533,8 +551,6 @@
     "googleLoginSuccess": "ログインに成功しました",
     "googleLoginFailed": "ログインに失敗しました。もう一度お試しください。",
     "googleLogout": "ログアウト",
-    "imageGenerationGuide": "画像モデル設定ガイド",
-    "imageGenerationModel": "画像モデル",
     "language": "言語",
     "lightMode": "ライト",
     "model": "モデル",
@@ -544,7 +560,6 @@
     "modelProvider": "モデルプロバイダー",
     "multiApiKeyEditTip": "複数のAPIキーをサポート、1行に1つ、システムが自動ローテーションします",
     "multiApiKeyTip": "💡 複数のAPIキーを自動ローテーションで追加するには、後でプラットフォーム編集画面で設定してください",
-    "noAvailable": "利用可能な画像モデルがありません。先に設定してください。",
     "openai": "OpenAI",
     "personalAuth": "Google アカウント",
     "platformName": "プラットフォーム名",
@@ -580,12 +595,14 @@
     "googleCloudProjectPlaceholder": "Google Cloud プロジェクト ID を入力してください",
     "needHelpTooltip": "ヘルプが必要な場合は、",
     "noAvailableModels": "利用可能なモデルがありません",
-    "appDescription": "Free, local, open-source GUI app for Gemini CLI",
+    "appDescription": "Gemini CLI のための無料・ローカル・オープンソース GUI アプリ",
     "helpDocumentation": "ヘルプドキュメント",
     "updateLog": "アップデートログ",
     "feedback": "フィードバック",
     "contactMe": "お問い合わせ",
     "officialWebsite": "公式サイト",
+    "checkForUpdates": "更新を確認",
+    "includePrereleaseUpdates": "プレリリース/dev ビルドを含める",
     "mcpTestConnection": "MCP可用状態を検出",
     "mcpTestConnectionSuccess": "接続テスト成功",
     "mcpServerList": "MCP サーバー",
@@ -875,23 +892,6 @@
       "autoGemini3Desc": "Gemini CLI が最適なモデルを決定します: gemini-3-pro, gemini-3-flash",
       "autoGemini25Desc": "Gemini CLI が最適なモデルを決定します: gemini-2.5-pro, gemini-2.5-flash",
       "manualDesc": "手動でモデルを選択"
-    }
-  },
-  "acp": {
-    "auth": {
-      "failed": "{{backend}} 認証が失敗しました：\n\n{{error}}\n\nローカルCLIツールの認証状態を確認してください"
-    },
-    "sendbox": {
-      "placeholder": "{{backend}}にメッセージを送信..."
-    },
-    "status": {
-      "connecting": "{{agent}} に接続中...",
-      "connected": "{{agent}} に接続しました",
-      "authenticated": "{{agent}} 認証が完了しました",
-      "session_active": "{{agent}} セッション実行中",
-      "disconnected": "{{agent}} から切断されました",
-      "error": "接続エラー",
-      "unknown": "不明な状態"
     }
   }
 }
