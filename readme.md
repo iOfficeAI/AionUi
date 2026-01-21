@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <strong>💬 Community:</strong> <a href="https://discord.gg/g6u66vV9" target="_blank">Discord (English)</a> | <a href="./resources/wechat.jpg" target="_blank">微信 (中文群)</a>
+  <strong>💬 Community:</strong> <a href="https://discord.gg/g6u66vV9" target="_blank">Discord (English)</a> | <a href="./resources/wechat_group.png" target="_blank">微信 (中文群)</a>
 </p>
 
 ---
@@ -332,7 +332,7 @@ brew install aionui
 - [🐛 Report Issues](https://github.com/iOfficeAI/AionUi/issues) - Report bugs or feature requests
 - [📦 Release Updates](https://github.com/iOfficeAI/AionUi/releases) - Get the latest version
 - [💬 Discord Community](https://discord.gg/g6u66vV9) - **Join our English community on Discord**
-- [💬 微信 (中文群)](./resources/wechat.jpg) - **Click to view QR code**
+- [💬 微信 (中文群)](./resources/wechat_group.png) - **Click to view QR code**
 
 ### 🤝 Contributing
 
