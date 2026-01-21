@@ -34,7 +34,7 @@ import { emitter } from '@/renderer/utils/emitter';
 import { buildDisplayMessage } from '@/renderer/utils/messageFiles';
 import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
 import { updateWorkspaceTime } from '@/renderer/utils/workspaceHistory';
-import type { AcpBackend, AcpBackendConfig, PresetAgentType } from '@/types/acpTypes';
+import { isAcpRoutedPresetType, type AcpBackend, type AcpBackendConfig, type PresetAgentType } from '@/types/acpTypes';
 import { Button, ConfigProvider, Dropdown, Input, Menu, Tooltip } from '@arco-design/web-react';
 import { IconClose } from '@arco-design/web-react/icon';
 import { ArrowUp, Down, FolderOpen, Plus, Robot, UploadOne } from '@icon-park/react';
@@ -472,45 +472,47 @@ const Guid: React.FC = () => {
 
   // 加载上次选择的 agent / Load last selected agent
   useEffect(() => {
-    // 延迟执行以确保 customAgents 已加载
-    // Delay execution to ensure customAgents is loaded
     if (!availableAgents || availableAgents.length === 0) return;
 
-    ConfigStorage.get('guid.lastSelectedAgent')
-      .then((savedAgentKey) => {
-        if (!savedAgentKey) return;
+    let cancelled = false;
 
-        // 验证保存的 agent 是否仍然可用 / Validate saved agent is still available
-        let isAvailable = false;
+    const loadLastSelectedAgent = async () => {
+      try {
+        const savedAgentKey = await ConfigStorage.get('guid.lastSelectedAgent');
+        if (cancelled || !savedAgentKey) return;
 
-        // 1. Check availableAgents
-        isAvailable = availableAgents.some((agent) => {
+        // 1. Check availableAgents first
+        const isInAvailable = availableAgents.some((agent) => {
           const key = agent.backend === 'custom' && agent.customAgentId ? `custom:${agent.customAgentId}` : agent.backend;
           return key === savedAgentKey;
         });
 
-        // 2. If not found, check customAgents (Assistants)
-        if (!isAvailable && savedAgentKey.startsWith('custom:')) {
-          const customId = savedAgentKey.slice(7);
-          // We can't access customAgents state here reliably inside this effect if it's not in dependency
-          // But we can check ConfigStorage or trust it will be found by findAgentByKey later
-          // For now, let's just allow it if we have custom agents in storage
-          void ConfigStorage.get('acp.customAgents').then((agents) => {
-            if (agents && agents.some((a: AcpBackendConfig) => a.id === customId)) {
-              _setSelectedAgentKey(savedAgentKey);
-            }
-          });
+        if (isInAvailable) {
+          _setSelectedAgentKey(savedAgentKey);
           return;
         }
 
-        if (isAvailable) {
-          _setSelectedAgentKey(savedAgentKey);
+        // 2. For custom agents, check storage
+        if (savedAgentKey.startsWith('custom:')) {
+          const customId = savedAgentKey.slice(7);
+          const agents = await ConfigStorage.get('acp.customAgents');
+          if (cancelled) return;
+
+          if (agents?.some((a: AcpBackendConfig) => a.id === customId)) {
+            _setSelectedAgentKey(savedAgentKey);
+          }
         }
-      })
-      .catch((error) => {
+      } catch (error) {
         console.error('Failed to load last selected agent:', error);
-      });
-  }, [availableAgents]); // simplified dependency
+      }
+    };
+
+    void loadLastSelectedAgent();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [availableAgents]);
 
   useEffect(() => {
     let isActive = true;
@@ -826,8 +828,8 @@ const Guid: React.FC = () => {
       // ACP conversation type (including preset with claude agent type)
       const acpAgentInfo = agentInfo || findAgentByKey(selectedAgentKey);
 
-      // For preset with claude/opencode agent type, we use corresponding backend
-      const acpBackend = isPreset && (presetAgentType === 'claude' || presetAgentType === 'opencode') ? presetAgentType : selectedAgent;
+      // For preset with ACP-routed agent type (claude/opencode), use corresponding backend
+      const acpBackend = isPreset && isAcpRoutedPresetType(presetAgentType) ? presetAgentType : selectedAgent;
 
       if (!acpAgentInfo && !isPreset) {
         alert(`${selectedAgent} CLI not found or not configured. Please ensure it's installed and accessible.`);

@@ -91,8 +91,9 @@ export async function prepareFirstMessageWithSkillsIndex(content: string, config
   }
 
   // 2. 加载 skills 索引（而非完整内容）/ Load skills INDEX (not full content)
+  // 使用单例模式避免重复文件系统扫描 / Use singleton to avoid repeated filesystem scans
   if (config.enabledSkills && config.enabledSkills.length > 0) {
-    const skillManager = new AcpSkillManager();
+    const skillManager = AcpSkillManager.getInstance(config.enabledSkills);
     await skillManager.discoverSkills(config.enabledSkills);
 
     const skillsIndex = skillManager.getSkillsIndex();
