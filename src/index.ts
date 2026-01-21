@@ -180,7 +180,10 @@ const createWindow = (): void => {
   });
 
   initMainAdapterWithWindow(mainWindow);
-  setupApplicationMenu();
+  // Keep menu changes minimal in development; shipped builds still expose Help -> Check for Updates.
+  if (app.isPackaged) {
+    setupApplicationMenu();
+  }
   void applyZoomToWindow(mainWindow);
   registerWindowMaximizeListeners(mainWindow);
 

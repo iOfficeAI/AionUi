@@ -74,7 +74,12 @@ const UpdateModal: React.FC = () => {
         throw new Error('No compatible download found for this platform');
       }
 
-      const res = await ipcBridge.update.download.invoke({ url: asset.url, fileName: asset.name });
+      const res = await ipcBridge.update.download.invoke({
+        url: asset.url,
+        fileName: asset.name,
+        tagName: updateInfo.tagName,
+        version: updateInfo.version,
+      });
       if (!res?.success || !res.data) {
         throw new Error(res?.msg || 'Failed to start download');
       }

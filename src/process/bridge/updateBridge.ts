@@ -33,6 +33,14 @@ type GitHubReleaseApi = {
 const DEFAULT_REPO = 'iOfficeAI/AionUi';
 const DEFAULT_USER_AGENT = 'AionUi';
 const ALLOWED_ASSET_EXTS = ['.exe', '.msi', '.dmg', '.zip', '.AppImage', '.deb', '.rpm'];
+const ALLOWED_DOWNLOAD_HOSTS = new Set<string>(['github.com', 'objects.githubusercontent.com', 'github-releases.githubusercontent.com', 'release-assets.githubusercontent.com']);
+const MAX_REDIRECTS = 8;
+
+type UpdateState = {
+  lastDownloadedTag?: string;
+  lastDownloadedVersion?: string;
+  lastDownloadedAt?: number;
+};
 
 const isAllowedAssetName = (name: string) => {
   const ext = path.extname(name);
@@ -109,6 +117,76 @@ const resolveRepo = (requestRepo?: string): string => {
   return repo || DEFAULT_REPO;
 };
 
+const getUpdateStatePath = () => path.join(app.getPath('userData'), 'update-state.json');
+
+const loadUpdateState = (): UpdateState => {
+  try {
+    const filePath = getUpdateStatePath();
+    if (!fs.existsSync(filePath)) return {};
+    const raw = fs.readFileSync(filePath, 'utf-8');
+    const parsed = JSON.parse(raw) as unknown;
+    if (!parsed || typeof parsed !== 'object') return {};
+    return parsed as UpdateState;
+  } catch {
+    return {};
+  }
+};
+
+const saveUpdateState = (next: UpdateState) => {
+  try {
+    const filePath = getUpdateStatePath();
+    fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    fs.writeFileSync(filePath, JSON.stringify(next, null, 2) + '\n', 'utf-8');
+  } catch {
+    // ignore
+  }
+};
+
+const assertAllowedUrl = (rawUrl: string) => {
+  let parsed: URL;
+  try {
+    parsed = new URL(rawUrl);
+  } catch {
+    throw new Error('Invalid download URL');
+  }
+
+  if (parsed.protocol !== 'https:') {
+    throw new Error('Only https download URLs are allowed');
+  }
+  if (!ALLOWED_DOWNLOAD_HOSTS.has(parsed.hostname)) {
+    throw new Error(`Download host not allowed: ${parsed.hostname}`);
+  }
+};
+
+const fetchWithAllowlistedRedirects = async (rawUrl: string, signal: AbortSignal): Promise<Response> => {
+  let current = rawUrl;
+
+  for (let i = 0; i <= MAX_REDIRECTS; i++) {
+    assertAllowedUrl(current);
+
+    const res = await fetch(current, {
+      signal,
+      redirect: 'manual',
+      headers: {
+        'User-Agent': DEFAULT_USER_AGENT,
+      },
+    });
+
+    if (res.status >= 300 && res.status < 400) {
+      const location = res.headers.get('location');
+      if (!location) {
+        throw new Error(`Redirect (${res.status}) missing location header`);
+      }
+      current = new URL(location, current).toString();
+      continue;
+    }
+
+    return res;
+  }
+
+  throw new Error('Too many redirects while downloading');
+};
+
 const fetchGitHubReleases = async (repo: string): Promise<GitHubReleaseApi[]> => {
   const url = `https://api.github.com/repos/${repo}/releases`;
 
@@ -157,6 +235,8 @@ const mapRelease = (rel: GitHubReleaseApi): UpdateReleaseInfo | null => {
 type DownloadState = {
   abortController: AbortController;
   filePath: string;
+  tagName?: string;
+  version?: string;
 };
 
 const downloads = new Map<string, DownloadState>();
@@ -216,13 +296,7 @@ const startDownloadInBackground = async (downloadId: string, url: string, filePa
 
   let stream: fs.WriteStream | null = null;
   try {
-    const res = await fetch(url, {
-      signal: abortController.signal,
-      redirect: 'follow',
-      headers: {
-        'User-Agent': DEFAULT_USER_AGENT,
-      },
-    });
+    const res = await fetchWithAllowlistedRedirects(url, abortController.signal);
 
     if (!res.ok) {
       const body = await res.text().catch(() => '');
@@ -271,6 +345,16 @@ const startDownloadInBackground = async (downloadId: string, url: string, filePa
     });
 
     emitThrottled('completed');
+
+    // Persist last downloaded tag/version for dev/prerelease semantics.
+    const state = downloads.get(downloadId);
+    if (state?.tagName || state?.version) {
+      saveUpdateState({
+        lastDownloadedTag: state.tagName,
+        lastDownloadedVersion: state.version,
+        lastDownloadedAt: Date.now(),
+      });
+    }
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     const isAbort = abortController.signal.aborted || message.toLowerCase().includes('aborted');
@@ -308,6 +392,7 @@ export function initUpdateBridge(): void {
       const repo = resolveRepo(params?.repo);
       const includePrerelease = Boolean(params?.includePrerelease);
       const currentVersion = app.getVersion();
+      const updateState = includePrerelease ? loadUpdateState() : {};
 
       const releases = await fetchGitHubReleases(repo);
       const candidates = releases
@@ -327,7 +412,26 @@ export function initUpdateBridge(): void {
         return { success: true, data: { currentVersion, updateAvailable: false } };
       }
 
-      const updateAvailable = semver.gt(latest.version, currentSemver);
+      const lastDownloadedTag = updateState.lastDownloadedTag;
+      const rememberedVersion = updateState.lastDownloadedVersion;
+
+      // Default: strict semver comparison.
+      let updateAvailable = semver.gt(latest.version, currentSemver);
+
+      // If we have a remembered prerelease version (because CI may not inject it into app.getVersion()),
+      // treat it as the baseline in prerelease mode.
+      if (includePrerelease && rememberedVersion && semver.valid(rememberedVersion)) {
+        updateAvailable = semver.gt(latest.version, rememberedVersion);
+      }
+
+      // Special-case: opt-in prerelease/dev updates even when current app version is stable and
+      // latest prerelease shares the same base version.
+      const currentBase = semver.coerce(currentSemver)?.version;
+      const latestBase = semver.coerce(latest.version)?.version;
+      const optedInSameBasePrerelease = includePrerelease && latest.prerelease && Boolean(currentBase) && Boolean(latestBase) && currentBase === latestBase;
+      if (optedInSameBasePrerelease) {
+        updateAvailable = lastDownloadedTag ? lastDownloadedTag !== latest.tagName : true;
+      }
       return {
         success: true,
         data: {
@@ -347,6 +451,9 @@ export function initUpdateBridge(): void {
         return Promise.resolve({ success: false, msg: 'missing url' });
       }
 
+      // Defense-in-depth: do not allow arbitrary downloads from renderer.
+      assertAllowedUrl(params.url);
+
       const downloadId = uuid();
       const abortController = new AbortController();
 
@@ -356,7 +463,7 @@ export function initUpdateBridge(): void {
       const baseName = sanitizeFileName(params.fileName || urlName);
 
       const targetPath = ensureUniquePath(path.join(downloadsDir, baseName));
-      downloads.set(downloadId, { abortController, filePath: targetPath });
+      downloads.set(downloadId, { abortController, filePath: targetPath, tagName: params.tagName, version: params.version });
 
       // Start background download, but return immediately so the UI stays responsive.
       void startDownloadInBackground(downloadId, params.url, targetPath, abortController);
