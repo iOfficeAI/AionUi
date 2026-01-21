@@ -11,6 +11,7 @@ import type { AcpBackend, PresetAgentType } from '../types/acpTypes';
 import type { IMcpServer, IProvider, TChatConversation, TProviderWithModel } from './storage';
 import type { PreviewHistoryTarget, PreviewSnapshotInfo } from './types/preview';
 import type { ProtocolDetectionRequest, ProtocolDetectionResponse } from './utils/protocolDetector';
+import type { UpdateCheckRequest, UpdateCheckResult, UpdateDownloadProgressEvent, UpdateDownloadRequest, UpdateDownloadResult } from './updateTypes';
 
 export const shell = {
   openFile: bridge.buildProvider<void, string>('open-file'), // 使用系统默认程序打开文件
@@ -50,6 +51,18 @@ export const application = {
   updateSystemInfo: bridge.buildProvider<IBridgeResponse, { cacheDir: string; workDir: string }>('system.update-info'), // 更新系统信息
   getZoomFactor: bridge.buildProvider<number, void>('app.get-zoom-factor'),
   setZoomFactor: bridge.buildProvider<number, { factor: number }>('app.set-zoom-factor'),
+};
+
+// Manual (opt-in) updates via GitHub Releases
+export const update = {
+  /** Ask the renderer to open the update UI (e.g. from app menu). */
+  open: bridge.buildEmitter<{ source?: 'menu' | 'about' }>('update.open'),
+  /** Check GitHub releases and return latest version info. */
+  check: bridge.buildProvider<IBridgeResponse<UpdateCheckResult>, UpdateCheckRequest>('update.check'),
+  /** Download a chosen release asset (explicit user action). */
+  download: bridge.buildProvider<IBridgeResponse<UpdateDownloadResult>, UpdateDownloadRequest>('update.download'),
+  /** Download progress events emitted by main process. */
+  downloadProgress: bridge.buildEmitter<UpdateDownloadProgressEvent>('update.download.progress'),
 };
 
 export const dialog = {
