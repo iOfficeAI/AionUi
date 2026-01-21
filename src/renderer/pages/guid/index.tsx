@@ -13,6 +13,7 @@ import coworkSvg from '@/renderer/assets/cowork.svg';
 import AuggieLogo from '@/renderer/assets/logos/auggie.svg';
 import ClaudeLogo from '@/renderer/assets/logos/claude.svg';
 import CodexLogo from '@/renderer/assets/logos/codex.svg';
+import DroidLogo from '@/renderer/assets/logos/droid.svg';
 import GeminiLogo from '@/renderer/assets/logos/gemini.svg';
 import GooseLogo from '@/renderer/assets/logos/goose.svg';
 import IflowLogo from '@/renderer/assets/logos/iflow.svg';
@@ -130,6 +131,7 @@ const AGENT_LOGO_MAP: Partial<Record<AcpBackend, string>> = {
   gemini: GeminiLogo,
   qwen: QwenLogo,
   codex: CodexLogo,
+  droid: DroidLogo,
   iflow: IflowLogo,
   goose: GooseLogo,
   auggie: AuggieLogo,
