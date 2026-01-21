@@ -14,8 +14,8 @@ permissions:
 jobs:
   check-issue-link:
     runs-on: ubuntu-latest
-    # Skip PRs from forks for security (they can't access secrets)
-    if: github.event.pull_request.head.repo.fork == false
+    # Note: This job is safe for fork PRs because it only uses GitHub API
+    # via actions/github-script - no PR code is checked out or executed
     outputs:
       has_issue_link: ${{ steps.check.outputs.has_issue_link }}
       is_new_pr: ${{ steps.check.outputs.is_new_pr }}
@@ -88,22 +88,20 @@ jobs:
 
 Hi @${prAuthor},
 
-Thank you for your contribution! Before we can proceed with the **automated code review**, please:
+Thank you for your contribution! 🎉 The **automated code review** is already in progress.
 
-1. **Create an Issue first** - Please open a new issue describing what this PR addresses (bug fix, feature, enhancement, etc.)
+However, we noticed this PR is **not linked to an issue**. To help us track changes, please:
+
+1. **Create an Issue** - Open a new issue describing what this PR addresses (bug fix, feature, enhancement, etc.)
 2. **Link this PR to the Issue** - Add one of the following to your PR description:
    - \`Fixes #<issue_number>\`
    - \`Closes #<issue_number>\`
    - \`Resolves #<issue_number>\`
-3. **Complete basic testing** - Please confirm you have:
-   - [ ] Run \`bun run lint\` and fixed any errors
-   - [ ] Run \`bun run typecheck\` (or \`bun x tsc --noEmit\`) with no errors
-   - [ ] Tested the changes locally
 
-This helps us track changes and maintain a clear history of issues and their resolutions.
+This helps us maintain a clear history of issues and their resolutions.
 
 ---
-⏳ *Once you link an issue, edit your PR description and the automated code review will be triggered automatically.*`;
+📝 *Once you link an issue, this comment will be automatically removed.*`;
 
             await github.rest.issues.createComment({
               owner: context.repo.owner,
@@ -114,11 +112,11 @@ This helps us track changes and maintain a clear history of issues and their res
 
             core.info('Posted comment asking for issue link.');
 
-  # Post PR summary when issue is linked (only for new PRs)
+  # Post PR summary for new PRs (runs regardless of issue link)
+  # Safe for fork PRs: checkout defaults to base branch, only uses GitHub API
   summary:
-    needs: check-issue-link
-    if: ${{ needs.check-issue-link.outputs.has_issue_link == 'true' && needs.check-issue-link.outputs.is_new_pr == 'true' }}
     runs-on: ubuntu-latest
+    if: ${{ github.event.action == 'opened' }}
     permissions:
       contents: read
       pull-requests: write
@@ -196,7 +194,6 @@ Hello @${prAuthor}, I'm working on reviewing this pull request. Here's a quick s
 ${fileSummary}
 
 ### 🔍 Review Status
-- ✅ Issue linked
 - ⏳ Automated code review in progress...
 
 ---
@@ -220,13 +217,14 @@ You can request assistance at any point by creating a comment:
 
             core.info('Posted PR summary.');
 
-  # Trigger Gemini review only when PR has issue link
+  # Trigger Gemini review for all PRs (runs regardless of issue link)
+  # Safe for fork PRs: gemini-review.yml only reads PR diff via GitHub API,
+  # checkout defaults to base branch, no PR code is executed
   review:
-    needs: [check-issue-link, summary]
-    # Run review if issue is linked, even if summary was skipped (for edited PRs)
+    needs: [summary]
+    # Run review after summary completes or is skipped
     if: |
       always() &&
-      needs.check-issue-link.outputs.has_issue_link == 'true' &&
       (needs.summary.result == 'success' || needs.summary.result == 'skipped')
     uses: './.github/workflows/gemini-review.yml'
     permissions:

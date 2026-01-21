@@ -264,6 +264,7 @@ const PreviewPanel: React.FC = () => {
     try {
       let blob: Blob | null = null;
       let ext = 'txt';
+      const nameExt = metadata?.fileName?.split('.').pop();
 
       // 图片文件：从 Base64 数据或文件路径读取 / Image files: read from Base64 data or file path
       if (contentType === 'image') {
@@ -283,15 +284,18 @@ const PreviewPanel: React.FC = () => {
 
         // 优先使用文件名扩展名，其次使用 MIME 类型扩展名，最后默认为 png
         // Prefer filename extension, then MIME type extension, finally default to png
-        const nameExt = metadata?.fileName?.split('.').pop();
         const mimeExt = blob.type && blob.type.includes('/') ? blob.type.split('/').pop() : undefined;
         ext = nameExt || mimeExt || 'png';
       } else {
         // 文本文件：创建文本 Blob / Text files: create text Blob
-        blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+        let mimeType = 'text/plain;charset=utf-8';
+        if (contentType === 'markdown') mimeType = 'text/markdown;charset=utf-8';
+        else if (contentType === 'html') mimeType = 'text/html;charset=utf-8';
+        blob = new Blob([content], { type: mimeType });
 
         // 根据内容类型设置文件扩展名 / Set file extension based on content type
-        if (contentType === 'markdown') ext = 'md';
+        if (nameExt) ext = nameExt;
+        else if (contentType === 'markdown') ext = 'md';
         else if (contentType === 'diff') ext = 'diff';
         else if (contentType === 'code') {
           // 代码文件：根据语言设置扩展名 / Code files: set extension based on language
@@ -305,6 +309,8 @@ const PreviewPanel: React.FC = () => {
           else if (lang === 'html') ext = 'html';
           else if (lang === 'css') ext = 'css';
           else if (lang === 'json') ext = 'json';
+        } else if (contentType === 'html') {
+          ext = 'html';
         }
       }
 
@@ -318,9 +324,13 @@ const PreviewPanel: React.FC = () => {
       const link = document.createElement('a');
       link.href = url;
       const rawFileName = metadata?.fileName || `${contentType}-${Date.now()}`;
-      const normalizedExt = ext.toLowerCase();
-      const hasSameExt = rawFileName.toLowerCase().endsWith(`.${normalizedExt}`);
-      link.download = hasSameExt ? rawFileName : `${rawFileName}.${ext}`;
+      if (metadata?.fileName && nameExt) {
+        link.download = rawFileName;
+      } else {
+        const normalizedExt = ext.toLowerCase();
+        const hasSameExt = rawFileName.toLowerCase().endsWith(`.${normalizedExt}`);
+        link.download = hasSameExt ? rawFileName : `${rawFileName}.${ext}`;
+      }
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
