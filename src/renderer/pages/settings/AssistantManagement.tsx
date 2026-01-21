@@ -725,16 +725,31 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
             if (response.success && response.data) {
               const { name, description } = response.data;
 
-              // 检查是否已存在 / Check if already exists
-              const existsInAvailable = availableSkills.some((s) => s.name === name);
+              // 检查当前助手是否已配置该 skill / Check if this assistant already has the skill configured
+              const existsInCustom = customSkills.includes(name);
               const existsInPending = pendingSkills.some((s) => s.name === name);
 
-              if (existsInAvailable || existsInPending) {
+              if (existsInCustom || existsInPending) {
                 message.warning(t('settings.skillAlreadyExists', { defaultValue: `Skill "${name}" already exists` }));
                 return;
               }
 
-              // 添加到待导入列表、customSkills 并自动勾选 / Add to pending list, customSkills and auto-select
+              // 检查系统中是否已存在该 skill / Check if skill already exists in system
+              const existsInAvailable = availableSkills.some((s) => s.name === name);
+
+              if (existsInAvailable) {
+                // Skill 已存在于系统中，无需再导入，直接添加到当前助手的配置
+                // Skill already exists in system, no need to import, just add to current assistant's config
+                setCustomSkills([...customSkills, name]);
+                setSelectedSkills([...selectedSkills, name]);
+                message.success(t('settings.skillAdded', { defaultValue: `Skill "${name}" added and selected` }));
+                setSkillsModalVisible(false);
+                setSkillPath('');
+                return;
+              }
+
+              // Skill 不存在于系统中，添加到待导入列表、customSkills 并自动勾选
+              // Skill doesn't exist in system, add to pending list, customSkills and auto-select
               setPendingSkills([...pendingSkills, { path: skillPath.trim(), name, description }]);
               setCustomSkills([...customSkills, name]); // 标记为此助手的 custom skill / Mark as this assistant's custom skill
               setSelectedSkills([...selectedSkills, name]); // 自动勾选 / Auto-select
@@ -753,7 +768,10 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
         okText={t('common.confirm', { defaultValue: 'Confirm' })}
         cancelText={t('common.cancel', { defaultValue: 'Cancel' })}
         style={{ width: 500 }}
+        zIndex={10000}
         wrapStyle={{ zIndex: 10000 }}
+        maskStyle={{ zIndex: 9999 }}
+        getPopupContainer={() => document.body}
       >
         <div className='space-y-12px'>
           <Typography.Text>{t('settings.skillFolderPath', { defaultValue: 'Skill Folder Path' })}</Typography.Text>
