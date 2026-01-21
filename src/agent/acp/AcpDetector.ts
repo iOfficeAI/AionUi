@@ -5,7 +5,7 @@
  */
 
 import { execSync } from 'child_process';
-import type { AcpBackendAll } from '@/types/acpTypes';
+import type { AcpBackendAll, PresetAgentType } from '@/types/acpTypes';
 import { POTENTIAL_ACP_CLIS } from '@/types/acpTypes';
 import { ProcessConfig } from '@/process/initStorage';
 
@@ -18,7 +18,7 @@ interface DetectedAgent {
   isPreset?: boolean;
   context?: string;
   avatar?: string;
-  presetAgentType?: 'gemini' | 'claude' | 'codex'; // Primary agent type for presets
+  presetAgentType?: PresetAgentType; // Primary agent type for presets
 }
 
 /**
