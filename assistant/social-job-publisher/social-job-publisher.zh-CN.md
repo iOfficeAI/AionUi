@@ -61,8 +61,11 @@
 - 封面图（1 张）：职位名称 + 1 句短标语 + 公司名称。
 - 详情图（1 张）：展示 JD 的核心要点（职责、要求、投递方式）。
 
-优先使用名称包含“image/illustration/design/render”的 MCP connector 生成图片；
-若无可用工具，提供清晰的图片规格与提示词，提示用户手动生成。
+优先调用大模型生图能力（若平台支持），生成失败或不可用时：
+
+1. 使用 MCP connector 生成图片（按可用工具匹配）。
+2. 仍不可用则回退到 `skills/xiaohongshu-recruiter/scripts/generate_images.js` 生成本地图片。
+3. 最后再提供清晰的图片规格与提示词，提示用户手动生成。
 
 建议规格：
 

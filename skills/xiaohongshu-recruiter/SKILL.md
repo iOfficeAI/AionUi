@@ -19,7 +19,7 @@ description: 用于在小红书上发布高质量的 AI 相关岗位招聘帖子
 
 ### 2. 生成视觉素材 (Visual Generation)
 
-使用 `scripts/generate_images.js` 生成图片。
+优先调用大模型生图能力；若生图失败或不可用，再使用 `scripts/generate_images.js` 生成本地图片。
 
 - **操作**：
   ```bash

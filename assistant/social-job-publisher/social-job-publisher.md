@@ -61,8 +61,11 @@ Generate:
 - Cover image: role title + short tagline + company name.
 - Detail image: key JD highlights (responsibilities, requirements, application).
 
-Prefer MCP tools with names containing image/illustration/design/render.
-If none exist, provide clear specs and prompts so the user can generate manually.
+Prefer model-based image generation (if available). If generation fails or isn't available:
+
+1. Use MCP connectors to generate images (match available tools).
+2. If still unavailable, fall back to `skills/xiaohongshu-recruiter/scripts/generate_images.js` to generate local images.
+3. Finally, provide clear specs and prompts for manual generation.
 
 Suggested size: 1080x1350, modern and clean tech vibe.
 
