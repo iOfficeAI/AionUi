@@ -17,6 +17,7 @@ import { LayoutContext } from './context/LayoutContext';
 import { useDirectorySelection } from './hooks/useDirectorySelection';
 import { useMultiAgentDetection } from './hooks/useMultiAgentDetection';
 import { processCustomCss } from './utils/customCssProcessor';
+import UpdateModal from '@/renderer/components/UpdateModal';
 
 const useDebug = () => {
   const [count, setCount] = useState(0);
@@ -258,6 +259,7 @@ const Layout: React.FC<{
             {multiAgentContextHolder}
             {directorySelectionContextHolder}
             <PwaPullToRefresh />
+            <UpdateModal />
           </ArcoLayout.Content>
         </ArcoLayout>
       </div>
