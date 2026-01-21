@@ -11,7 +11,7 @@ def read_text(path: str) -> str:
 
 def main() -> None:
     if len(sys.argv) < 2:
-        print("Usage: python3 scripts/publish_x.py <post_content.txt> [cover.png] [jd_details.png]")
+        print("用法: python3 scripts/publish_x.py <post_content.txt> [cover.png] [jd_details.png]")
         sys.exit(1)
 
     content_path = sys.argv[1]
@@ -19,6 +19,13 @@ def main() -> None:
     details_path = sys.argv[3] if len(sys.argv) > 3 else None
 
     content = read_text(content_path)
+
+    print("🚀 X 发布脚本已启动")
+    print("操作指南：")
+    print("1) 观察浏览器窗口：脚本会打开 X 首页或发帖页。")
+    print("2) 若出现登录页，请完成登录。")
+    print("3) 登录完成后，脚本会自动填充文案与图片。")
+    print("4) 请在浏览器中检查内容，确认无误后点击“Post”。")
 
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=False)
@@ -30,9 +37,13 @@ def main() -> None:
 
         # If not logged in, X will redirect to login or show a login wall.
         if "login" in page.url or "i/flow/login" in page.url:
-            print("Please log in to X in the opened browser, then return here.")
-            input("Press Enter after login...")
-            page.goto("https://x.com/home", wait_until="domcontentloaded")
+            print("⏳ [步骤 2] 等待登录：请在浏览器窗口完成登录。")
+            print("   脚本将自动检测登录完成后继续；如检测不到，请回到终端按 Enter 继续。")
+            try:
+                page.wait_for_url("https://x.com/home", timeout=120000)
+            except Exception:
+                input("登录完成后回到终端，按 Enter 继续...")
+                page.goto("https://x.com/home", wait_until=\"domcontentloaded\")
             page.wait_for_timeout(2000)
 
         # Focus composer
@@ -63,7 +74,7 @@ def main() -> None:
 
         # Wait a bit to ensure posting
         page.wait_for_timeout(3000)
-        print("Post submitted. Please verify on X.")
+        print("✅ 已提交发布，请在 X 上确认。")
         time.sleep(5)
 
         context.close()
