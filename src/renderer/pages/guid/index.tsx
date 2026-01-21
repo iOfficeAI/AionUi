@@ -1093,7 +1093,7 @@ const Guid: React.FC = () => {
                         >
                           {logoSrc ? <img src={logoSrc} alt={`${agent.backend} logo`} width={20} height={20} style={{ objectFit: 'contain', flexShrink: 0 }} /> : <Robot theme='outline' size={20} fill='currentColor' style={{ flexShrink: 0 }} />}
                           <span
-                            className={`font-medium text-14px ${isSelected ? 'font-semibold' : 'max-w-0 opacity-0 overflow-hidden group-hover:max-w-100px group-hover:opacity-100 group-hover:ml-8px'}`}
+                            className={`font-medium text-14px ${isSelected ? 'font-semibold ml-4px' : 'max-w-0 opacity-0 overflow-hidden group-hover:max-w-100px group-hover:opacity-100 group-hover:ml-8px'}`}
                             style={{
                               color: 'var(--text-primary)',
                               transition: isSelected ? 'color 0.5s cubic-bezier(0.2, 0.8, 0.3, 1), font-weight 0.5s cubic-bezier(0.2, 0.8, 0.3, 1)' : 'max-width 0.6s cubic-bezier(0.2, 0.8, 0.3, 1), opacity 0.5s cubic-bezier(0.2, 0.8, 0.3, 1) 0.05s, margin 0.6s cubic-bezier(0.2, 0.8, 0.3, 1)',
@@ -1334,7 +1334,7 @@ const Guid: React.FC = () => {
 
                 {isPresetAgent && selectedAgentInfo && (
                   <div
-                    className='group flex items-center gap-6px bg-fill-2 pl-10px pr-6px py-4px rd-16px cursor-pointer select-none transition-colors hover:bg-fill-3'
+                    className='group flex items-center gap-6px bg-aou-2 pl-10px pr-6px py-4px rd-16px cursor-pointer select-none transition-colors hover:bg-fill-3'
                     onClick={() => {
                       /* Optional: Open assistant settings or do nothing, removal is via the X icon */
                     }}
@@ -1344,7 +1344,7 @@ const Guid: React.FC = () => {
                       const avatarImage = avatarValue ? CUSTOM_AVATAR_IMAGE_MAP[avatarValue] : undefined;
                       return avatarImage ? <img src={avatarImage} alt='' width={16} height={16} style={{ objectFit: 'contain' }} /> : avatarValue ? <span style={{ fontSize: 14, lineHeight: '16px' }}>{avatarValue}</span> : <Robot theme='outline' size={16} />;
                     })()}
-                    <span className='text-14px font-medium text-t-primary'>{customAgents.find((a) => a.id === selectedAgentInfo.customAgentId)?.nameI18n?.[localeKey] || customAgents.find((a) => a.id === selectedAgentInfo.customAgentId)?.name || selectedAgentInfo.name}</span>
+                    <span className='text-14px text-t-primary'>{customAgents.find((a) => a.id === selectedAgentInfo.customAgentId)?.nameI18n?.[localeKey] || customAgents.find((a) => a.id === selectedAgentInfo.customAgentId)?.name || selectedAgentInfo.name}</span>
                     <div
                       className='flex items-center justify-center w-16px h-16px rd-full hover:bg-fill-4 transition-colors ml-2px'
                       onClick={(e) => {
@@ -1397,11 +1397,19 @@ const Guid: React.FC = () => {
                 <div className='flex flex-col w-full animate-fade-in'>
                   <div className='w-full'>
                     <div className='flex items-center justify-between py-8px cursor-pointer select-none' onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}>
-                      <span className='text-13px font-medium text-[rgb(var(--primary-6))] opacity-80'>{t('settings.assistantDescription', { defaultValue: 'Assistant Description' })}</span>
+                      <span className='text-13px text-[rgb(var(--primary-6))] opacity-80'>{t('settings.assistantDescription', { defaultValue: 'Assistant Description' })}</span>
                       <Down theme='outline' size={14} fill='rgb(var(--primary-6))' className={`transition-transform duration-300 ${isDescriptionExpanded ? 'rotate-180' : ''}`} />
                     </div>
                     <div className={`overflow-hidden transition-all duration-300 ${isDescriptionExpanded ? 'max-h-500px mt-4px opacity-100' : 'max-h-0 opacity-0'}`}>
-                      <div className='p-12px bg-fill-1 rd-10px text-13px text-t-secondary whitespace-pre-wrap leading-relaxed border border-border-1'>{customAgents.find((a) => a.id === selectedAgentInfo.customAgentId)?.descriptionI18n?.[localeKey] || customAgents.find((a) => a.id === selectedAgentInfo.customAgentId)?.description || t('settings.assistantDescriptionPlaceholder', { defaultValue: 'No description' })}</div>
+                      <div
+                        className='p-12px rd-14px text-13px text-3 text-t-secondary whitespace-pre-wrap leading-relaxed '
+                        style={{
+                          border: '1px solid var(--color-border-2)',
+                          background: 'var(--fill-1, #F7F8FA)',
+                        }}
+                      >
+                        {customAgents.find((a) => a.id === selectedAgentInfo.customAgentId)?.descriptionI18n?.[localeKey] || customAgents.find((a) => a.id === selectedAgentInfo.customAgentId)?.description || t('settings.assistantDescriptionPlaceholder', { defaultValue: 'No description' })}
+                      </div>
                     </div>
                   </div>
 
@@ -1435,13 +1443,18 @@ const Guid: React.FC = () => {
                 <div className='flex flex-wrap gap-8px justify-center'>
                   {customAgents
                     .filter((a) => a.isPreset)
+                    .sort((a, b) => {
+                      if (a.id === 'builtin-cowork') return -1;
+                      if (b.id === 'builtin-cowork') return 1;
+                      return 0;
+                    })
                     .map((assistant) => {
                       const avatarValue = assistant.avatar?.trim();
                       const avatarImage = avatarValue ? CUSTOM_AVATAR_IMAGE_MAP[avatarValue] : undefined;
                       return (
                         <div
                           key={assistant.id}
-                          className='group flex items-center gap-8px px-12px py-8px bg-fill-2 hover:bg-fill-3 rd-12px cursor-pointer transition-all border border-transparent hover:border-border-2 select-none'
+                          className='h-28px group flex items-center gap-8px px-16px rd-100px cursor-pointer transition-all b-1 b-solid border-arco-2 hover:bg-fill-0 select-none'
                           onClick={() => {
                             setSelectedAgentKey(`custom:${assistant.id}`);
                             setMentionOpen(false);
@@ -1451,12 +1464,12 @@ const Guid: React.FC = () => {
                           }}
                         >
                           {avatarImage ? <img src={avatarImage} alt='' width={16} height={16} style={{ objectFit: 'contain' }} /> : avatarValue ? <span style={{ fontSize: 16, lineHeight: '18px' }}>{avatarValue}</span> : <Robot theme='outline' size={16} />}
-                          <span className='text-14px text-t-primary font-medium'>{assistant.nameI18n?.[localeKey] || assistant.name}</span>
+                          <span className='text-14px text-4 hover:text-2'>{assistant.nameI18n?.[localeKey] || assistant.name}</span>
                         </div>
                       );
                     })}
-                  <div className='flex items-center gap-8px px-12px py-8px bg-fill-1 hover:bg-fill-2 rd-12px cursor-pointer transition-all text-t-secondary hover:text-t-primary border border-dashed border-border-2 select-none' onClick={() => navigate('/settings/agent')}>
-                    <Plus theme='outline' size={14} />
+                  <div className='h-28px flex items-center gap-8px px-16px rd-100px cursor-pointer transition-all text-t-secondary hover:text-t-primary hover:bg-fill-2 b-1 b-dashed b-aou-2 select-none' onClick={() => navigate('/settings/agent')}>
+                    <Plus theme='outline' size={14} className='line-height-0' />
                     <span className='text-13px'>{t('settings.createAssistant', { defaultValue: 'Create' })}</span>
                   </div>
                 </div>
