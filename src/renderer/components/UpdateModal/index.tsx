@@ -45,7 +45,7 @@ const UpdateModal: React.FC = () => {
     try {
       const res = await ipcBridge.update.check.invoke({ includePrerelease });
       if (!res?.success) {
-        throw new Error(res?.msg || 'Failed to check for updates');
+        throw new Error(res?.msg || t('update.checkFailed'));
       }
       setCurrentVersion(res.data?.currentVersion || '');
 
@@ -71,17 +71,15 @@ const UpdateModal: React.FC = () => {
     try {
       const asset = updateInfo.recommendedAsset;
       if (!asset) {
-        throw new Error('No compatible download found for this platform');
+        throw new Error(t('update.noCompatibleAsset'));
       }
 
       const res = await ipcBridge.update.download.invoke({
         url: asset.url,
         fileName: asset.name,
-        tagName: updateInfo.tagName,
-        version: updateInfo.version,
       });
       if (!res?.success || !res.data) {
-        throw new Error(res?.msg || 'Failed to start download');
+        throw new Error(res?.msg || t('update.downloadStartFailed'));
       }
 
       setDownloadId(res.data.downloadId);
@@ -127,7 +125,7 @@ const UpdateModal: React.FC = () => {
         }
       } else if (evt.status === 'error' || evt.status === 'cancelled') {
         setStatus('error');
-        setErrorMsg(evt.error || 'Download failed');
+        setErrorMsg(evt.error || t('update.downloadFailed'));
       }
     });
 
@@ -161,7 +159,7 @@ const UpdateModal: React.FC = () => {
         return (
           <div className='flex flex-col items-center justify-center py-40px h-300px'>
             <div className='loading w-32px h-32px border-2 border-primary border-t-transparent rounded-full animate-spin mb-16px' />
-            <Typography.Text className='text-t-secondary'>{t('update.checking', { defaultValue: 'Checking for updates...' })}</Typography.Text>
+            <Typography.Text className='text-t-secondary'>{t('update.checking')}</Typography.Text>
           </div>
         );
 
@@ -172,9 +170,9 @@ const UpdateModal: React.FC = () => {
               <CheckOne theme='filled' size='32' />
             </div>
             <Typography.Title heading={5} className='m-0 mb-8px'>
-              {t('update.upToDateTitle', { defaultValue: "You're up to date" })}
+              {t('update.upToDateTitle')}
             </Typography.Title>
-            <Typography.Text className='text-t-secondary'>{t('update.currentVersion', { defaultValue: 'Current version: {{version}}', version: currentVersion || '-' })}</Typography.Text>
+            <Typography.Text className='text-t-secondary'>{t('update.currentVersion', { version: currentVersion || '-' })}</Typography.Text>
           </div>
         );
 
@@ -185,7 +183,7 @@ const UpdateModal: React.FC = () => {
               <div>
                 <div className='flex items-center gap-8px'>
                   <Typography.Title heading={5} className='m-0'>
-                    {t('update.availableTitle', { defaultValue: 'Update available' })}
+                    {t('update.availableTitle')}
                   </Typography.Title>
                   <span className='bg-primary/10 text-primary px-8px py-2px rounded text-12px font-bold'>{updateInfo?.version}</span>
                 </div>
@@ -193,7 +191,7 @@ const UpdateModal: React.FC = () => {
               </div>
             </div>
             <div className='flex-1 min-h-0 border border-border rounded-lg bg-bg-2 overflow-hidden flex flex-col'>
-              <div className='flex-1 overflow-y-auto p-16px custom-scrollbar'>{updateInfo?.body ? <MarkdownView>{updateInfo.body}</MarkdownView> : <Typography.Text className='text-t-secondary italic'>{t('update.noReleaseNotes', { defaultValue: 'No release notes provided.' })}</Typography.Text>}</div>
+              <div className='flex-1 overflow-y-auto p-16px custom-scrollbar'>{updateInfo?.body ? <MarkdownView>{updateInfo.body}</MarkdownView> : <Typography.Text className='text-t-secondary italic'>{t('update.noReleaseNotes')}</Typography.Text>}</div>
             </div>
           </div>
         );
@@ -202,7 +200,7 @@ const UpdateModal: React.FC = () => {
         return (
           <div className='flex flex-col items-center justify-center py-40px h-300px'>
             <Typography.Title heading={6} className='mb-24px'>
-              {t('update.downloadingTitle', { defaultValue: 'Downloading update...' })}
+              {t('update.downloadingTitle')}
             </Typography.Title>
             <div className='w-full max-w-300px'>
               <Progress percent={progress.percent} status='normal' width='100%' />
@@ -221,15 +219,15 @@ const UpdateModal: React.FC = () => {
               <CheckOne theme='filled' size='32' />
             </div>
             <Typography.Title heading={5} className='m-0 mb-8px'>
-              {t('update.downloadCompleteTitle', { defaultValue: 'Download complete' })}
+              {t('update.downloadCompleteTitle')}
             </Typography.Title>
             <Typography.Text className='text-t-secondary mb-24px text-center max-w-400px break-all'>{downloadPath}</Typography.Text>
             <Space>
               <Button onClick={showInFolder} icon={<FolderOpen />}>
-                {t('update.showInFolder', { defaultValue: 'Show in folder' })}
+                {t('update.showInFolder')}
               </Button>
               <Button type='primary' onClick={openFile} icon={<FileText />}>
-                {t('update.openFile', { defaultValue: 'Open file' })}
+                {t('update.openFile')}
               </Button>
             </Space>
           </div>
@@ -242,11 +240,11 @@ const UpdateModal: React.FC = () => {
               <Attention theme='filled' size='32' />
             </div>
             <Typography.Title heading={5} className='m-0 mb-8px'>
-              {t('update.errorTitle', { defaultValue: 'Update failed' })}
+              {t('update.errorTitle')}
             </Typography.Title>
             <Typography.Text className='text-t-secondary mb-24px text-center px-24px'>{errorMsg}</Typography.Text>
             <Button onClick={checkForUpdates} icon={<Refresh />}>
-              {t('common.retry', { defaultValue: 'Try again' })}
+              {t('common.retry')}
             </Button>
           </div>
         );
@@ -257,9 +255,9 @@ const UpdateModal: React.FC = () => {
     if (status === 'available') {
       return (
         <div className='flex justify-end gap-12px pt-16px border-t border-border'>
-          <Button onClick={handleClose}>{t('common.close', { defaultValue: 'Close' })}</Button>
+          <Button onClick={handleClose}>{t('common.close')}</Button>
           <Button type='primary' onClick={startDownload} icon={<Download />}>
-            {t('update.downloadButton', { defaultValue: 'Download' })}
+            {t('update.downloadButton')}
           </Button>
         </div>
       );
@@ -268,7 +266,7 @@ const UpdateModal: React.FC = () => {
       return (
         <div className='flex justify-center pt-16px'>
           <Button type='primary' onClick={handleClose}>
-            {t('common.close', { defaultValue: 'Close' })}
+            {t('common.close')}
           </Button>
         </div>
       );
@@ -282,7 +280,7 @@ const UpdateModal: React.FC = () => {
       onCancel={handleClose}
       size={status === 'available' ? 'large' : 'medium'}
       header={{
-        title: t('update.modalTitle', { defaultValue: 'Software update' }),
+        title: t('update.modalTitle'),
         showClose: true,
       }}
       footer={{

@@ -39,10 +39,6 @@ export interface UpdateCheckRequest {
 export interface UpdateDownloadRequest {
   url: string;
   fileName?: string;
-  /** Optional: used to improve dev/prerelease semantics without CI version injection. */
-  tagName?: string;
-  /** Optional normalized semver (may include prerelease). */
-  version?: string;
 }
 
 export interface UpdateDownloadResult {

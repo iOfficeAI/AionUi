@@ -91,10 +91,10 @@ const AboutModalContent: React.FC = () => {
             {/* Check Update Section */}
             <div className='flex flex-col items-center gap-12px w-full max-w-300px bg-fill-2 p-16px rounded-lg'>
               <Button type='primary' long onClick={checkUpdate}>
-                {t('settings.checkForUpdates', { defaultValue: 'Check for updates' })}
+                {t('settings.checkForUpdates')}
               </Button>
               <div className='flex items-center justify-between w-full'>
-                <Typography.Text className='text-12px text-t-secondary'>{t('settings.includePrereleaseUpdates', { defaultValue: 'Include prerelease/dev builds' })}</Typography.Text>
+                <Typography.Text className='text-12px text-t-secondary'>{t('settings.includePrereleaseUpdates')}</Typography.Text>
                 <Switch size='small' checked={includePrerelease} onChange={handlePrereleaseChange} />
               </div>
             </div>

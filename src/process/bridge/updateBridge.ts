@@ -36,12 +36,6 @@ const ALLOWED_ASSET_EXTS = ['.exe', '.msi', '.dmg', '.zip', '.AppImage', '.deb',
 const ALLOWED_DOWNLOAD_HOSTS = new Set<string>(['github.com', 'objects.githubusercontent.com', 'github-releases.githubusercontent.com', 'release-assets.githubusercontent.com']);
 const MAX_REDIRECTS = 8;
 
-type UpdateState = {
-  lastDownloadedTag?: string;
-  lastDownloadedVersion?: string;
-  lastDownloadedAt?: number;
-};
-
 const isAllowedAssetName = (name: string) => {
   const ext = path.extname(name);
   return ALLOWED_ASSET_EXTS.includes(ext);
@@ -115,31 +109,6 @@ const resolveRepo = (requestRepo?: string): string => {
   const envRepo = process.env.AIONUI_GITHUB_REPO?.trim();
   const repo = (requestRepo || envRepo || DEFAULT_REPO).trim();
   return repo || DEFAULT_REPO;
-};
-
-const getUpdateStatePath = () => path.join(app.getPath('userData'), 'update-state.json');
-
-const loadUpdateState = (): UpdateState => {
-  try {
-    const filePath = getUpdateStatePath();
-    if (!fs.existsSync(filePath)) return {};
-    const raw = fs.readFileSync(filePath, 'utf-8');
-    const parsed = JSON.parse(raw) as unknown;
-    if (!parsed || typeof parsed !== 'object') return {};
-    return parsed as UpdateState;
-  } catch {
-    return {};
-  }
-};
-
-const saveUpdateState = (next: UpdateState) => {
-  try {
-    const filePath = getUpdateStatePath();
-    fs.mkdirSync(path.dirname(filePath), { recursive: true });
-    fs.writeFileSync(filePath, JSON.stringify(next, null, 2) + '\n', 'utf-8');
-  } catch {
-    // ignore
-  }
 };
 
 const assertAllowedUrl = (rawUrl: string) => {
@@ -235,8 +204,6 @@ const mapRelease = (rel: GitHubReleaseApi): UpdateReleaseInfo | null => {
 type DownloadState = {
   abortController: AbortController;
   filePath: string;
-  tagName?: string;
-  version?: string;
 };
 
 const downloads = new Map<string, DownloadState>();
@@ -345,16 +312,6 @@ const startDownloadInBackground = async (downloadId: string, url: string, filePa
     });
 
     emitThrottled('completed');
-
-    // Persist last downloaded tag/version for dev/prerelease semantics.
-    const state = downloads.get(downloadId);
-    if (state?.tagName || state?.version) {
-      saveUpdateState({
-        lastDownloadedTag: state.tagName,
-        lastDownloadedVersion: state.version,
-        lastDownloadedAt: Date.now(),
-      });
-    }
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
     const isAbort = abortController.signal.aborted || message.toLowerCase().includes('aborted');
@@ -392,7 +349,18 @@ export function initUpdateBridge(): void {
       const repo = resolveRepo(params?.repo);
       const includePrerelease = Boolean(params?.includePrerelease);
       const currentVersion = app.getVersion();
-      const updateState = includePrerelease ? loadUpdateState() : {};
+
+      // EN: Versioning note
+      // Update comparisons are pure semver: `app.getVersion()` (packaged app version) vs release `tag_name`.
+      // If you want dev/prerelease updates to work reliably, CI must inject a prerelease semver into
+      // `package.json#version` for dev builds (e.g. `1.7.2-dev.1234+sha.abcdef0`) so semver ordering holds.
+      // We intentionally avoid heuristics based on tag strings when the app version is a stable semver.
+      //
+      // 中文：版本号说明
+      // 更新比较严格使用 semver：`app.getVersion()`（应用自身版本号）对比 Release 的 `tag_name`。
+      // 若要 dev/预发布版本更新可靠生效，需要 CI 在 dev 构建时把 `package.json#version`
+      // 注入为带 prerelease 的 semver（如 `1.7.2-dev.1234+sha.abcdef0`），以保证比较顺序正确。
+      // 这里刻意不对“当前是稳定版版本号但用户勾选了 prerelease”做字符串猜测。
 
       const releases = await fetchGitHubReleases(repo);
       const candidates = releases
@@ -412,26 +380,7 @@ export function initUpdateBridge(): void {
         return { success: true, data: { currentVersion, updateAvailable: false } };
       }
 
-      const lastDownloadedTag = updateState.lastDownloadedTag;
-      const rememberedVersion = updateState.lastDownloadedVersion;
-
-      // Default: strict semver comparison.
-      let updateAvailable = semver.gt(latest.version, currentSemver);
-
-      // If we have a remembered prerelease version (because CI may not inject it into app.getVersion()),
-      // treat it as the baseline in prerelease mode.
-      if (includePrerelease && rememberedVersion && semver.valid(rememberedVersion)) {
-        updateAvailable = semver.gt(latest.version, rememberedVersion);
-      }
-
-      // Special-case: opt-in prerelease/dev updates even when current app version is stable and
-      // latest prerelease shares the same base version.
-      const currentBase = semver.coerce(currentSemver)?.version;
-      const latestBase = semver.coerce(latest.version)?.version;
-      const optedInSameBasePrerelease = includePrerelease && latest.prerelease && Boolean(currentBase) && Boolean(latestBase) && currentBase === latestBase;
-      if (optedInSameBasePrerelease) {
-        updateAvailable = lastDownloadedTag ? lastDownloadedTag !== latest.tagName : true;
-      }
+      const updateAvailable = semver.gt(latest.version, currentSemver);
       return {
         success: true,
         data: {
@@ -452,6 +401,8 @@ export function initUpdateBridge(): void {
       }
 
       // Defense-in-depth: do not allow arbitrary downloads from renderer.
+      // EN: We only allow GitHub release hosts (and follow redirects manually with per-hop allowlist checks).
+      // 中文：仅允许 GitHub 相关下载域名，并手动处理重定向（每一跳都校验白名单）。
       assertAllowedUrl(params.url);
 
       const downloadId = uuid();
@@ -463,7 +414,7 @@ export function initUpdateBridge(): void {
       const baseName = sanitizeFileName(params.fileName || urlName);
 
       const targetPath = ensureUniquePath(path.join(downloadsDir, baseName));
-      downloads.set(downloadId, { abortController, filePath: targetPath, tagName: params.tagName, version: params.version });
+      downloads.set(downloadId, { abortController, filePath: targetPath });
 
       // Start background download, but return immediately so the UI stays responsive.
       void startDownloadInBackground(downloadId, params.url, targetPath, abortController);

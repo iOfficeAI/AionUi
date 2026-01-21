@@ -1,4 +1,22 @@
 {
+  "update": {
+    "modalTitle": "軟體更新",
+    "checking": "正在檢查更新...",
+    "checkFailed": "檢查更新失敗",
+    "upToDateTitle": "已是最新版本",
+    "currentVersion": "目前版本：{{version}}",
+    "availableTitle": "有新版本可用",
+    "noReleaseNotes": "沒有提供更新說明。",
+    "downloadingTitle": "正在下載更新...",
+    "downloadButton": "下載",
+    "downloadStartFailed": "啟動下載失敗",
+    "downloadFailed": "下載失敗",
+    "noCompatibleAsset": "找不到適用於此平台的安裝檔",
+    "downloadCompleteTitle": "下載完成",
+    "showInFolder": "在資料夾中顯示",
+    "openFile": "開啟檔案",
+    "errorTitle": "更新失敗"
+  },
   "codex": {
     "sendbox": {},
     "network": {
@@ -504,8 +522,6 @@
     "googleLoginSuccess": "登入成功",
     "googleLoginFailed": "登入失敗，請重試",
     "googleLogout": "登出",
-    "imageGenerationGuide": "圖像模型配置指南",
-    "imageGenerationModel": "圖像模型",
     "language": "語言",
     "lightMode": "淺色",
     "model": "模型",
@@ -515,7 +531,6 @@
     "modelProvider": "模型供應商",
     "multiApiKeyEditTip": "支援多個 API Key，每行一個，系統將自動輪詢使用",
     "multiApiKeyTip": "💡 如需新增多個 API Key 實現自動輪詢，請稍後到平台編輯界面配置",
-    "noAvailable": "暫無可用圖像模型，請先配置。",
     "openai": "OpenAI",
     "personalAuth": "Google 帳號",
     "platformName": "平台名稱",
@@ -557,6 +572,8 @@
     "feedback": "意見反饋",
     "contactMe": "聯繫我",
     "officialWebsite": "官網",
+    "checkForUpdates": "檢查更新",
+    "includePrereleaseUpdates": "包含預發佈/dev 版本",
     "mcpTestConnection": "檢測MCP可用狀態",
     "mcpTestConnectionSuccess": "連線測試成功",
     "mcpServerList": "MCP 伺服器",
