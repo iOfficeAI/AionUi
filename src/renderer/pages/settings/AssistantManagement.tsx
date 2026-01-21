@@ -768,7 +768,6 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
         okText={t('common.confirm', { defaultValue: 'Confirm' })}
         cancelText={t('common.cancel', { defaultValue: 'Cancel' })}
         style={{ width: 500 }}
-        zIndex={10000}
         wrapStyle={{ zIndex: 10000 }}
         maskStyle={{ zIndex: 9999 }}
         getPopupContainer={() => document.body}

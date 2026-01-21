@@ -1412,7 +1412,7 @@ const Guid: React.FC = () => {
                     if (prompts && prompts.length > 0) {
                       return (
                         <div className='flex flex-wrap gap-8px mt-16px'>
-                          {prompts.map((prompt, index) => (
+                          {prompts.map((prompt: string, index: number) => (
                             <div
                               key={index}
                               className='px-12px py-6px bg-white hover:bg-[rgba(255,255,255,0.8)] text-[rgb(var(--primary-6))] text-13px rd-16px cursor-pointer transition-colors shadow-sm'

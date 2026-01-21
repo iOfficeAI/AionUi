@@ -204,6 +204,12 @@ export interface AcpBackendConfig {
   /** 此预设的本地化提示词 / Localized prompts for this preset (e.g., { 'zh-CN': '...', 'en-US': '...' }) */
   contextI18n?: Record<string, string>;
 
+  /** 此预设的示例 prompts / Example prompts for this preset */
+  prompts?: string[];
+
+  /** 本地化示例 prompts / Localized example prompts */
+  promptsI18n?: Record<string, string[]>;
+
   /**
    * 此预设的主 Agent 类型（仅 isPreset=true 时生效）
    * 决定选择此预设时创建哪种类型的对话
