@@ -17,9 +17,10 @@ def publish(title, content, images):
     print(f"图片: {images}")
 
     with sync_playwright() as p:
-        # Launch non-headless so user can see and intervene (Login/Captcha)
-        browser = p.chromium.launch(headless=False)
-        context = browser.new_context()
+        # Use persistent context so login can be reused and browser stays open
+        profile_dir = os.path.join(os.path.expanduser("~"), ".aionui", "xiaohongshu-profile")
+        os.makedirs(profile_dir, exist_ok=True)
+        context = p.chromium.launch_persistent_context(profile_dir, headless=False)
         page = context.new_page()
 
         try:
@@ -112,7 +113,12 @@ def publish(title, content, images):
             print(f"❌ 脚本执行中断：{e}")
             print("👉 浏览器将保持打开，方便你手动完成发布。")
         finally:
-            input("完成后回到终端，按 Enter 结束脚本（浏览器将保持打开）...")
+            print("✅ 脚本已结束，浏览器将保持打开，请手动关闭浏览器窗口。")
+            try:
+                while True:
+                    time.sleep(1)
+            except KeyboardInterrupt:
+                print("收到退出指令，脚本结束。")
 
 if __name__ == "__main__":
     # Usage: python publish_xiaohongshu.py <title> <content_file_path> <img1> <img2> ...
