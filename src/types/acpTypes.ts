@@ -302,16 +302,6 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     enabled: true, // ✅ 已验证支持：Codex CLI v0.4.0+ 支持 acp 模式
     supportsStreaming: false,
   },
-  droid: {
-    id: 'droid',
-    name: 'Factory Droid',
-    cliCommand: 'droid',
-    // Droid uses FACTORY_API_KEY from environment, not an interactive auth flow.
-    authRequired: false,
-    enabled: true, // ✅ Factory docs: `droid exec --output-format acp` (JetBrains/Zed ACP integration)
-    supportsStreaming: false,
-    acpArgs: ['exec', '--output-format', 'acp'],
-  },
   goose: {
     id: 'goose',
     name: 'Goose',
@@ -347,6 +337,16 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     enabled: true, // ✅ OpenCode CLI，使用 `opencode acp` 启动
     supportsStreaming: false,
     acpArgs: ['acp'], // opencode 使用 acp 子命令
+  },
+  droid: {
+    id: 'droid',
+    name: 'Factory Droid',
+    cliCommand: 'droid',
+    // Droid uses FACTORY_API_KEY from environment, not an interactive auth flow.
+    authRequired: false,
+    enabled: true, // ✅ Factory docs: `droid exec --output-format acp` (JetBrains/Zed ACP integration)
+    supportsStreaming: false,
+    acpArgs: ['exec', '--output-format', 'acp'],
   },
   custom: {
     id: 'custom',
