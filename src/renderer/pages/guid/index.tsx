@@ -13,6 +13,7 @@ import coworkSvg from '@/renderer/assets/cowork.svg';
 import AuggieLogo from '@/renderer/assets/logos/auggie.svg';
 import ClaudeLogo from '@/renderer/assets/logos/claude.svg';
 import CodexLogo from '@/renderer/assets/logos/codex.svg';
+import DroidLogo from '@/renderer/assets/logos/droid.svg';
 import GeminiLogo from '@/renderer/assets/logos/gemini.svg';
 import GooseLogo from '@/renderer/assets/logos/goose.svg';
 import IflowLogo from '@/renderer/assets/logos/iflow.svg';
@@ -33,7 +34,7 @@ import { emitter } from '@/renderer/utils/emitter';
 import { buildDisplayMessage } from '@/renderer/utils/messageFiles';
 import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
 import { updateWorkspaceTime } from '@/renderer/utils/workspaceHistory';
-import type { AcpBackend, AcpBackendConfig } from '@/types/acpTypes';
+import type { AcpBackend, AcpBackendConfig, PresetAgentType } from '@/types/acpTypes';
 import { Button, ConfigProvider, Dropdown, Input, Menu, Tooltip } from '@arco-design/web-react';
 import { IconClose } from '@arco-design/web-react/icon';
 import { ArrowUp, Down, FolderOpen, Plus, Robot, UploadOne } from '@icon-park/react';
@@ -130,6 +131,7 @@ const AGENT_LOGO_MAP: Partial<Record<AcpBackend, string>> = {
   gemini: GeminiLogo,
   qwen: QwenLogo,
   codex: CodexLogo,
+  droid: DroidLogo,
   iflow: IflowLogo,
   goose: GooseLogo,
   auggie: AuggieLogo,
@@ -229,7 +231,7 @@ const Guid: React.FC = () => {
       isPreset?: boolean;
       context?: string;
       avatar?: string;
-      presetAgentType?: 'gemini' | 'claude' | 'codex';
+      presetAgentType?: PresetAgentType;
     }>
   >();
   const [customAgents, setCustomAgents] = useState<AcpBackendConfig[]>([]);
@@ -253,16 +255,32 @@ const Guid: React.FC = () => {
   const findAgentByKey = (key: string) => {
     if (key.startsWith('custom:')) {
       const customAgentId = key.slice(7);
-      return availableAgents?.find((a) => a.backend === 'custom' && a.customAgentId === customAgentId);
+      // First check availableAgents
+      const foundInAvailable = availableAgents?.find((a) => a.backend === 'custom' && a.customAgentId === customAgentId);
+      if (foundInAvailable) return foundInAvailable;
+
+      // Then check customAgents for presets
+      const assistant = customAgents.find((a) => a.id === customAgentId);
+      if (assistant) {
+        return {
+          backend: 'custom' as AcpBackend,
+          name: assistant.name,
+          customAgentId: assistant.id,
+          isPreset: true,
+          context: '', // Context loaded via other means
+          avatar: assistant.avatar,
+        };
+      }
     }
     return availableAgents?.find((a) => a.backend === key);
   };
 
   // 获取选中的后端类型（向后兼容）/ Get the selected backend type (for backward compatibility)
   const selectedAgent = selectedAgentKey.startsWith('custom:') ? 'custom' : (selectedAgentKey as AcpBackend);
-  const selectedAgentInfo = useMemo(() => findAgentByKey(selectedAgentKey), [selectedAgentKey, availableAgents]);
+  const selectedAgentInfo = useMemo(() => findAgentByKey(selectedAgentKey), [selectedAgentKey, availableAgents, customAgents]);
   const isPresetAgent = Boolean(selectedAgentInfo?.isPreset);
   const [isPlusDropdownOpen, setIsPlusDropdownOpen] = useState(false);
+  const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(true);
   const [typewriterPlaceholder, setTypewriterPlaceholder] = useState('');
   const [_isTyping, setIsTyping] = useState(true);
   const mentionMatchRegex = useMemo(() => /(?:^|\s)@([^\s@]*)$/, []);
@@ -454,6 +472,8 @@ const Guid: React.FC = () => {
 
   // 加载上次选择的 agent / Load last selected agent
   useEffect(() => {
+    // 延迟执行以确保 customAgents 已加载
+    // Delay execution to ensure customAgents is loaded
     if (!availableAgents || availableAgents.length === 0) return;
 
     ConfigStorage.get('guid.lastSelectedAgent')
@@ -461,10 +481,27 @@ const Guid: React.FC = () => {
         if (!savedAgentKey) return;
 
         // 验证保存的 agent 是否仍然可用 / Validate saved agent is still available
-        const isAvailable = availableAgents.some((agent) => {
+        let isAvailable = false;
+
+        // 1. Check availableAgents
+        isAvailable = availableAgents.some((agent) => {
           const key = agent.backend === 'custom' && agent.customAgentId ? `custom:${agent.customAgentId}` : agent.backend;
           return key === savedAgentKey;
         });
+
+        // 2. If not found, check customAgents (Assistants)
+        if (!isAvailable && savedAgentKey.startsWith('custom:')) {
+          const customId = savedAgentKey.slice(7);
+          // We can't access customAgents state here reliably inside this effect if it's not in dependency
+          // But we can check ConfigStorage or trust it will be found by findAgentByKey later
+          // For now, let's just allow it if we have custom agents in storage
+          void ConfigStorage.get('acp.customAgents').then((agents) => {
+            if (agents && agents.some((a: AcpBackendConfig) => a.id === customId)) {
+              _setSelectedAgentKey(savedAgentKey);
+            }
+          });
+          return;
+        }
 
         if (isAvailable) {
           _setSelectedAgentKey(savedAgentKey);
@@ -473,7 +510,7 @@ const Guid: React.FC = () => {
       .catch((error) => {
         console.error('Failed to load last selected agent:', error);
       });
-  }, [availableAgents]);
+  }, [availableAgents]); // simplified dependency
 
   useEffect(() => {
     let isActive = true;
@@ -789,8 +826,8 @@ const Guid: React.FC = () => {
       // ACP conversation type (including preset with claude agent type)
       const acpAgentInfo = agentInfo || findAgentByKey(selectedAgentKey);
 
-      // For preset with claude agent type, we use 'claude' as backend
-      const acpBackend = isPreset && presetAgentType === 'claude' ? 'claude' : selectedAgent;
+      // For preset with claude/opencode agent type, we use corresponding backend
+      const acpBackend = isPreset && (presetAgentType === 'claude' || presetAgentType === 'opencode') ? presetAgentType : selectedAgent;
 
       if (!acpAgentInfo && !isPreset) {
         alert(`${selectedAgent} CLI not found or not configured. Please ensure it's installed and accessible.`);
@@ -1029,53 +1066,47 @@ const Guid: React.FC = () => {
                   color: 'var(--text-primary)',
                 }}
               >
-                {availableAgents.map((agent, index) => {
-                  const isSelected = selectedAgentKey === getAgentKey(agent);
-                  const logoSrc = AGENT_LOGO_MAP[agent.backend];
-                  const avatarValue = agent.backend === 'custom' ? agent.avatar || customAgentAvatarMap.get(agent.customAgentId || '') : undefined;
-                  const avatar = avatarValue ? avatarValue.trim() : undefined;
-                  const avatarImage = avatar ? CUSTOM_AVATAR_IMAGE_MAP[avatar] : undefined;
+                {availableAgents
+                  .filter((agent) => agent.backend !== 'custom')
+                  .map((agent, index) => {
+                    const isSelected = selectedAgentKey === getAgentKey(agent);
+                    const logoSrc = AGENT_LOGO_MAP[agent.backend];
 
-                  return (
-                    <React.Fragment key={getAgentKey(agent)}>
-                      {index > 0 && <div className='text-16px lh-1 p-2px select-none opacity-30'>|</div>}
-                      <div
-                        className={`group flex items-center cursor-pointer whitespace-nowrap overflow-hidden ${isSelected ? 'opacity-100 px-12px py-8px rd-20px mx-2px' : 'opacity-60 p-4px hover:opacity-100'}`}
-                        style={
-                          isSelected
-                            ? {
-                                transition: 'opacity 0.5s cubic-bezier(0.2, 0.8, 0.3, 1)',
-                                backgroundColor: 'var(--fill-0)',
-                              }
-                            : { transition: 'opacity 0.5s cubic-bezier(0.2, 0.8, 0.3, 1)' }
-                        }
-                        onClick={() => {
-                          setSelectedAgentKey(getAgentKey(agent));
-                          setMentionOpen(false);
-                          setMentionQuery(null);
-                          setMentionSelectorOpen(false);
-                          setMentionActiveIndex(0);
-                        }}
-                      >
-                        {avatarImage ? <img src={avatarImage} alt='' width={20} height={20} style={{ objectFit: 'contain', flexShrink: 0 }} /> : avatar ? <span style={{ fontSize: 16, lineHeight: '20px', flexShrink: 0 }}>{avatar}</span> : logoSrc ? <img src={logoSrc} alt={`${agent.backend} logo`} width={20} height={20} style={{ objectFit: 'contain', flexShrink: 0 }} /> : <Robot theme='outline' size={20} fill='currentColor' style={{ flexShrink: 0 }} />}
-                        <span
-                          className={`font-medium text-14px ${isSelected ? 'font-semibold' : 'max-w-0 opacity-0 overflow-hidden group-hover:max-w-100px group-hover:opacity-100 group-hover:ml-8px'}`}
-                          style={{
-                            color: 'var(--text-primary)',
-                            transition: isSelected ? 'color 0.5s cubic-bezier(0.2, 0.8, 0.3, 1), font-weight 0.5s cubic-bezier(0.2, 0.8, 0.3, 1)' : 'max-width 0.6s cubic-bezier(0.2, 0.8, 0.3, 1), opacity 0.5s cubic-bezier(0.2, 0.8, 0.3, 1) 0.05s, margin 0.6s cubic-bezier(0.2, 0.8, 0.3, 1)',
+                    return (
+                      <React.Fragment key={getAgentKey(agent)}>
+                        {index > 0 && <div className='text-16px lh-1 p-2px select-none opacity-30'>|</div>}
+                        <div
+                          className={`group flex items-center cursor-pointer whitespace-nowrap overflow-hidden ${isSelected ? 'opacity-100 px-12px py-8px rd-20px mx-2px' : 'opacity-60 p-4px hover:opacity-100'}`}
+                          style={
+                            isSelected
+                              ? {
+                                  transition: 'opacity 0.5s cubic-bezier(0.2, 0.8, 0.3, 1)',
+                                  backgroundColor: 'var(--fill-0)',
+                                }
+                              : { transition: 'opacity 0.5s cubic-bezier(0.2, 0.8, 0.3, 1)' }
+                          }
+                          onClick={() => {
+                            setSelectedAgentKey(getAgentKey(agent));
+                            setMentionOpen(false);
+                            setMentionQuery(null);
+                            setMentionSelectorOpen(false);
+                            setMentionActiveIndex(0);
                           }}
                         >
-                          {agent.name}
-                        </span>
-                      </div>
-                    </React.Fragment>
-                  );
-                })}
-                {/* 添加助手按钮 */}
-                <div className='text-16px lh-1 p-2px select-none opacity-30'>|</div>
-                <div className='flex items-center cursor-pointer opacity-60 hover:opacity-100 p-4px' style={{ transition: 'opacity 0.5s cubic-bezier(0.2, 0.8, 0.3, 1)' }} onClick={() => navigate('/settings/agent')}>
-                  <Plus theme='outline' size={20} fill='currentColor' strokeWidth={3} style={{ lineHeight: 0 }} />
-                </div>
+                          {logoSrc ? <img src={logoSrc} alt={`${agent.backend} logo`} width={20} height={20} style={{ objectFit: 'contain', flexShrink: 0 }} /> : <Robot theme='outline' size={20} fill='currentColor' style={{ flexShrink: 0 }} />}
+                          <span
+                            className={`font-medium text-14px ${isSelected ? 'font-semibold ml-4px' : 'max-w-0 opacity-0 overflow-hidden group-hover:max-w-100px group-hover:opacity-100 group-hover:ml-8px'}`}
+                            style={{
+                              color: 'var(--text-primary)',
+                              transition: isSelected ? 'color 0.5s cubic-bezier(0.2, 0.8, 0.3, 1), font-weight 0.5s cubic-bezier(0.2, 0.8, 0.3, 1)' : 'max-width 0.6s cubic-bezier(0.2, 0.8, 0.3, 1), opacity 0.5s cubic-bezier(0.2, 0.8, 0.3, 1) 0.05s, margin 0.6s cubic-bezier(0.2, 0.8, 0.3, 1)',
+                            }}
+                          >
+                            {agent.name}
+                          </span>
+                        </div>
+                      </React.Fragment>
+                    );
+                  })}
               </div>
             </div>
           )}
@@ -1302,6 +1333,31 @@ const Guid: React.FC = () => {
                     </Button>
                   </Dropdown>
                 )}
+
+                {isPresetAgent && selectedAgentInfo && (
+                  <div
+                    className='group flex items-center gap-6px bg-aou-2 pl-10px pr-6px py-4px rd-16px cursor-pointer select-none transition-colors hover:bg-fill-3'
+                    onClick={() => {
+                      /* Optional: Open assistant settings or do nothing, removal is via the X icon */
+                    }}
+                  >
+                    {(() => {
+                      const avatarValue = selectedAgentInfo.avatar?.trim();
+                      const avatarImage = avatarValue ? CUSTOM_AVATAR_IMAGE_MAP[avatarValue] : undefined;
+                      return avatarImage ? <img src={avatarImage} alt='' width={16} height={16} style={{ objectFit: 'contain' }} /> : avatarValue ? <span style={{ fontSize: 14, lineHeight: '16px' }}>{avatarValue}</span> : <Robot theme='outline' size={16} />;
+                    })()}
+                    <span className='text-14px text-t-primary'>{customAgents.find((a) => a.id === selectedAgentInfo.customAgentId)?.nameI18n?.[localeKey] || customAgents.find((a) => a.id === selectedAgentInfo.customAgentId)?.name || selectedAgentInfo.name}</span>
+                    <div
+                      className='flex items-center justify-center w-16px h-16px rd-full hover:bg-fill-4 transition-colors ml-2px'
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedAgentKey('gemini'); // Reset to default
+                      }}
+                    >
+                      <IconClose style={{ fontSize: 12, color: 'var(--text-tertiary)' }} />
+                    </div>
+                  </div>
+                )}
               </div>
               <div className={styles.actionSubmit}>
                 <Button
@@ -1334,6 +1390,94 @@ const Guid: React.FC = () => {
               </div>
             )}
           </div>
+
+          {/* Assistant Selection Area */}
+          {customAgents && customAgents.some((a) => a.isPreset) && (
+            <div className='mt-16px w-full'>
+              {isPresetAgent && selectedAgentInfo ? (
+                // Selected Assistant View
+                <div className='flex flex-col w-full animate-fade-in'>
+                  <div className='w-full'>
+                    <div className='flex items-center justify-between py-8px cursor-pointer select-none' onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}>
+                      <span className='text-13px text-[rgb(var(--primary-6))] opacity-80'>{t('settings.assistantDescription', { defaultValue: 'Assistant Description' })}</span>
+                      <Down theme='outline' size={14} fill='rgb(var(--primary-6))' className={`transition-transform duration-300 ${isDescriptionExpanded ? 'rotate-180' : ''}`} />
+                    </div>
+                    <div className={`overflow-hidden transition-all duration-300 ${isDescriptionExpanded ? 'max-h-500px mt-4px opacity-100' : 'max-h-0 opacity-0'}`}>
+                      <div
+                        className='p-12px rd-14px text-13px text-3 text-t-secondary whitespace-pre-wrap leading-relaxed '
+                        style={{
+                          border: '1px solid var(--color-border-2)',
+                          background: 'var(--fill-1, #F7F8FA)',
+                        }}
+                      >
+                        {customAgents.find((a) => a.id === selectedAgentInfo.customAgentId)?.descriptionI18n?.[localeKey] || customAgents.find((a) => a.id === selectedAgentInfo.customAgentId)?.description || t('settings.assistantDescriptionPlaceholder', { defaultValue: 'No description' })}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Prompts Section */}
+                  {(() => {
+                    const agent = customAgents.find((a) => a.id === selectedAgentInfo.customAgentId);
+                    const prompts = agent?.promptsI18n?.[localeKey] || agent?.promptsI18n?.['en-US'] || agent?.prompts;
+                    if (prompts && prompts.length > 0) {
+                      return (
+                        <div className='flex flex-wrap gap-8px mt-16px'>
+                          {prompts.map((prompt: string, index: number) => (
+                            <div
+                              key={index}
+                              className='px-12px py-6px bg-white hover:bg-[rgba(255,255,255,0.8)] text-[rgb(var(--primary-6))] text-13px rd-16px cursor-pointer transition-colors shadow-sm'
+                              onClick={() => {
+                                setInput(prompt);
+                                handleTextareaFocus();
+                              }}
+                            >
+                              {prompt}
+                            </div>
+                          ))}
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
+                </div>
+              ) : (
+                // Assistant List View
+                <div className='flex flex-wrap gap-8px justify-center'>
+                  {customAgents
+                    .filter((a) => a.isPreset)
+                    .sort((a, b) => {
+                      if (a.id === 'builtin-cowork') return -1;
+                      if (b.id === 'builtin-cowork') return 1;
+                      return 0;
+                    })
+                    .map((assistant) => {
+                      const avatarValue = assistant.avatar?.trim();
+                      const avatarImage = avatarValue ? CUSTOM_AVATAR_IMAGE_MAP[avatarValue] : undefined;
+                      return (
+                        <div
+                          key={assistant.id}
+                          className='h-28px group flex items-center gap-8px px-16px rd-100px cursor-pointer transition-all b-1 b-solid border-arco-2 hover:bg-fill-0 select-none'
+                          onClick={() => {
+                            setSelectedAgentKey(`custom:${assistant.id}`);
+                            setMentionOpen(false);
+                            setMentionQuery(null);
+                            setMentionSelectorOpen(false);
+                            setMentionActiveIndex(0);
+                          }}
+                        >
+                          {avatarImage ? <img src={avatarImage} alt='' width={16} height={16} style={{ objectFit: 'contain' }} /> : avatarValue ? <span style={{ fontSize: 16, lineHeight: '18px' }}>{avatarValue}</span> : <Robot theme='outline' size={16} />}
+                          <span className='text-14px text-4 hover:text-2'>{assistant.nameI18n?.[localeKey] || assistant.name}</span>
+                        </div>
+                      );
+                    })}
+                  <div className='h-28px flex items-center gap-8px px-16px rd-100px cursor-pointer transition-all text-t-secondary hover:text-t-primary hover:bg-fill-2 b-1 b-dashed b-aou-2 select-none' onClick={() => navigate('/settings/agent')}>
+                    <Plus theme='outline' size={14} className='line-height-0' />
+                    <span className='text-13px'>{t('settings.createAssistant', { defaultValue: 'Create' })}</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* 底部快捷按钮 */}

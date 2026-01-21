@@ -185,9 +185,16 @@ export const processGeminiStreamEvents = async (stream: AsyncIterable<ServerGemi
           });
           break;
         case ServerGeminiEventType.InvalidStream:
+          // InvalidStream indicates the model returned invalid content (empty response, no finish reason, etc.)
+          // This is typically a transient issue - we emit a special event type so the caller can implement retry
+          // InvalidStream 表示模型返回了无效内容（空响应、无结束原因等）
+          // 这通常是临时问题 - 我们发出特殊事件类型，以便调用方可以实现重试
           onStreamEvent({
-            type: ServerGeminiEventType.Error,
-            data: 'Invalid response stream detected. Please retry the request.',
+            type: 'invalid_stream' as ServerGeminiEventType,
+            data: {
+              message: 'Invalid response stream detected. Retrying...',
+              retryable: true,
+            },
           });
           break;
         case ServerGeminiEventType.ChatCompressed:

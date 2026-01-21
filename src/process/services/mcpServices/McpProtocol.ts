@@ -296,7 +296,11 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
       }
 
       // 创建 SSE 传输层
-      const sseTransport = new SSEClientTransport(new URL(transport.url));
+      const sseTransport = new SSEClientTransport(new URL(transport.url), {
+        requestInit: {
+          headers: transport.headers,
+        },
+      });
 
       // 创建 MCP 客户端
       mcpClient = new Client(
@@ -449,7 +453,11 @@ export abstract class AbstractMcpAgent implements IMcpProtocol {
       // app imported statically
 
       // 创建 Streamable HTTP 传输层
-      const streamableHttpTransport = new StreamableHTTPClientTransport(new URL(transport.url));
+      const streamableHttpTransport = new StreamableHTTPClientTransport(new URL(transport.url), {
+        requestInit: {
+          headers: transport.headers,
+        },
+      });
 
       // 创建 MCP 客户端
       mcpClient = new Client(

@@ -18,7 +18,7 @@
  * 预设助手的主 Agent 类型，用于决定创建哪种类型的对话
  * The primary agent type for preset assistants, used to determine which conversation type to create.
  */
-export type PresetAgentType = 'gemini' | 'claude' | 'codex';
+export type PresetAgentType = 'gemini' | 'claude' | 'codex' | 'opencode';
 
 // 全部后端类型定义 - 包括暂时不支持的 / All backend types - including temporarily unsupported ones
 export type AcpBackendAll =
@@ -27,6 +27,7 @@ export type AcpBackendAll =
   | 'qwen' // Qwen Code ACP
   | 'iflow' // iFlow CLI ACP
   | 'codex' // OpenAI Codex MCP
+  | 'droid' // Factory Droid CLI (ACP via `droid exec --output-format acp`)
   | 'goose' // Block's Goose CLI
   | 'auggie' // Augment Code CLI
   | 'kimi' // Kimi CLI (Moonshot)
@@ -204,6 +205,12 @@ export interface AcpBackendConfig {
   /** 此预设的本地化提示词 / Localized prompts for this preset (e.g., { 'zh-CN': '...', 'en-US': '...' }) */
   contextI18n?: Record<string, string>;
 
+  /** 此预设的示例 prompts / Example prompts for this preset */
+  prompts?: string[];
+
+  /** 本地化示例 prompts / Localized example prompts */
+  promptsI18n?: Record<string, string[]>;
+
   /**
    * 此预设的主 Agent 类型（仅 isPreset=true 时生效）
    * 决定选择此预设时创建哪种类型的对话
@@ -294,6 +301,16 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     authRequired: false,
     enabled: true, // ✅ 已验证支持：Codex CLI v0.4.0+ 支持 acp 模式
     supportsStreaming: false,
+  },
+  droid: {
+    id: 'droid',
+    name: 'Factory Droid',
+    cliCommand: 'droid',
+    // Droid uses FACTORY_API_KEY from environment, not an interactive auth flow.
+    authRequired: false,
+    enabled: true, // ✅ Factory docs: `droid exec --output-format acp` (JetBrains/Zed ACP integration)
+    supportsStreaming: false,
+    acpArgs: ['exec', '--output-format', 'acp'],
   },
   goose: {
     id: 'goose',
