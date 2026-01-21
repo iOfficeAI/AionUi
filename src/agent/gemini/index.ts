@@ -371,12 +371,22 @@ export class GeminiAgent {
   }
 
   /**
-   * 处理消息流（带弹性监控）
-   * Handle message stream with resilience monitoring
+   * 处理消息流（带弹性监控和自动重试）
+   * Handle message stream with resilience monitoring and automatic retry
+   *
+   * @param query - 原始查询（用于重试）/ Original query (for retry)
+   * @param stream - 消息流 / Message stream
+   * @param msg_id - 消息 ID / Message ID
+   * @param abortController - 中止控制器 / Abort controller
+   * @param retryCount - 当前重试次数 / Current retry count
    */
-  private handleMessage(stream: AsyncGenerator<ServerGeminiStreamEvent, Turn, unknown>, msg_id: string, abortController: AbortController): Promise<void> {
+  private handleMessage(stream: AsyncGenerator<ServerGeminiStreamEvent, Turn, unknown>, msg_id: string, abortController: AbortController, query?: unknown, retryCount: number = 0): Promise<void> {
+    const MAX_INVALID_STREAM_RETRIES = 2; // 最多重试 2 次 / Max 2 retries
+    const RETRY_DELAY_MS = 1000; // 重试延迟 1 秒 / 1 second retry delay
+
     const toolCallRequests: ToolCallRequestInfo[] = [];
     let heartbeatWarned = false;
+    let invalidStreamDetected = false;
 
     // 流连接事件处理
     // Stream connection event handler
@@ -408,6 +418,25 @@ export class GeminiAgent {
           globalToolCallGuard.protect(toolRequest.callId);
           return;
         }
+
+        // 检测 invalid_stream 事件
+        // Detect invalid_stream event
+        if (data.type === ('invalid_stream' as string)) {
+          invalidStreamDetected = true;
+          const eventData = data.data as { message: string; retryable: boolean };
+          if (eventData.retryable && retryCount < MAX_INVALID_STREAM_RETRIES && query && !abortController.signal.aborted) {
+            console.warn(`[GeminiAgent] Invalid stream detected, will retry (attempt ${retryCount + 1}/${MAX_INVALID_STREAM_RETRIES})`);
+            // 向用户显示重试提示
+            // Show retry hint to user
+            this.onStreamEvent({
+              type: 'info',
+              data: `Stream interrupted, retrying... (${retryCount + 1}/${MAX_INVALID_STREAM_RETRIES})`,
+              msg_id,
+            });
+          }
+          return;
+        }
+
         this.onStreamEvent({
           ...data,
           msg_id,
@@ -416,6 +445,37 @@ export class GeminiAgent {
       { onConnectionEvent }
     )
       .then(async () => {
+        // 如果检测到 invalid_stream 且可以重试，执行重试
+        // If invalid_stream detected and can retry, perform retry
+        if (invalidStreamDetected && retryCount < MAX_INVALID_STREAM_RETRIES && query && !abortController.signal.aborted) {
+          console.log(`[GeminiAgent] Retrying after invalid stream (attempt ${retryCount + 1})`);
+
+          // 延迟后重试
+          // Delay before retry
+          await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+
+          if (abortController.signal.aborted) {
+            return;
+          }
+
+          // 重新发送消息
+          // Re-send message
+          const prompt_id = this.config.getSessionId() + '########' + getPromptCount();
+          const newStream = this.geminiClient.sendMessageStream(query, abortController.signal, prompt_id);
+          return this.handleMessage(newStream, msg_id, abortController, query, retryCount + 1);
+        }
+
+        // 如果检测到 invalid_stream 但无法重试，显示最终错误
+        // If invalid_stream detected but can't retry, show final error
+        if (invalidStreamDetected && retryCount >= MAX_INVALID_STREAM_RETRIES) {
+          this.onStreamEvent({
+            type: 'error',
+            data: 'Invalid response stream detected after multiple retries. Please try again.',
+            msg_id,
+          });
+          return;
+        }
+
         if (toolCallRequests.length > 0) {
           // Emit preview_open for navigation tools, but don't block execution
           // 对导航工具发送 preview_open 事件，但不阻止执行
@@ -514,7 +574,9 @@ export class GeminiAgent {
         data: '',
         msg_id,
       });
-      this.handleMessage(stream, msg_id, abortController)
+      // Pass query to handleMessage for potential retry on invalid stream
+      // 将 query 传递给 handleMessage 以便在 invalid stream 时重试
+      this.handleMessage(stream, msg_id, abortController, query)
         .catch((e: unknown) => {
           const errorMessage = e instanceof Error ? e.message : JSON.stringify(e);
           this.onStreamEvent({
