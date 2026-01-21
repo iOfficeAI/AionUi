@@ -27,6 +27,7 @@ export type AcpBackendAll =
   | 'qwen' // Qwen Code ACP
   | 'iflow' // iFlow CLI ACP
   | 'codex' // OpenAI Codex MCP
+  | 'droid' // Factory Droid CLI (ACP via `droid exec --output-format acp`)
   | 'goose' // Block's Goose CLI
   | 'auggie' // Augment Code CLI
   | 'kimi' // Kimi CLI (Moonshot)
@@ -300,6 +301,16 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     authRequired: false,
     enabled: true, // ✅ 已验证支持：Codex CLI v0.4.0+ 支持 acp 模式
     supportsStreaming: false,
+  },
+  droid: {
+    id: 'droid',
+    name: 'Factory Droid',
+    cliCommand: 'droid',
+    // Droid uses FACTORY_API_KEY from environment, not an interactive auth flow.
+    authRequired: false,
+    enabled: true, // ✅ Factory docs: `droid exec --output-format acp` (JetBrains/Zed ACP integration)
+    supportsStreaming: false,
+    acpArgs: ['exec', '--output-format', 'acp'],
   },
   goose: {
     id: 'goose',

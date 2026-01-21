@@ -1,4 +1,4 @@
-<p align="center">
+﻿<p align="center">
   <img src="./resources/aionui-banner-1 copy.png" alt="AionUi - Cowork with Your CLI AI Agent" width="100%">
 </p>
 
@@ -30,11 +30,11 @@
 </p>
 
 <p align="center">
-  <a href="./readme.md">English</a> | <a href="./readme_ch.md">简体中文</a> | <a href="./readme_tw.md">繁體中文</a> | <strong>日本語</strong> | <a href="./readme_ko.md">한국어</a> | <a href="https://www.aionui.com" target="_blank">公式サイト</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <a href="./readme.md">English</a> | <a href="./readme_ch.md">简体中文</a> | <a href="./readme_tw.md">繁體中文</a> | <strong>日本語</strong> | <a href="./readme_ko.md">한국어</a> | <a href="./readme_es.md">Español</a> | <a href="./readme_pt.md">Português</a> | <a href="https://www.aionui.com" target="_blank">公式サイト</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
 </p>
 
 <p align="center">
-  <strong>💬 コミュニティ：</strong> <a href="https://discord.gg/g6u66vV9" target="_blank">Discord (English)</a> | <a href="./resources/wechat.jpg" target="_blank">微信 (中文群)</a>
+  <strong>💬 コミュニティ：</strong> <a href="https://discord.gg/g6u66vV9" target="_blank">Discord (English)</a> | <a href="./resources/wechat_group.png" target="_blank">微信 (中文群)</a>
 </p>
 
 ---
@@ -62,7 +62,7 @@
 
 ### 🤖 **マルチエージェントモード - あなたのコマンドラインAIツールのためのCowork、統一グラフィカルインターフェース**
 
-_Gemini CLI、Claude Code、CodeX、Qwen Code、Goose AI、Augment Codeなどのコマンドラインツールをインストール済みの場合、AionUiは自動的に検出し、統一されたグラフィカルインターフェースを提供します_
+_AionUi には Gemini CLI を内蔵しており、ダウンロードしてすぐ使えます。追加インストール不要です。すでに Gemini CLI、Claude Code、CodeX、Qwen Code、Goose AI、Augment Code などのコマンドラインツールをインストールしている場合、AionUi が自動検出して統一されたグラフィカルインターフェースを提供し、体験がさらに豊かになります_
 
 - ✅ **自動検出 + 統一インターフェース** - ローカルCLIツールを自動認識し、統一されたグラフィカルインターフェースを提供、コマンドラインに別れを告げる
 - ✅ **ローカル保存 + マルチセッション** - 会話をローカルに保存、マルチセッション並列をサポート、各セッションは独立したコンテキスト
@@ -149,7 +149,7 @@ Gemini CLI、Claude Code、Codex、Qwen Codeなどのコマンドラインツー
 
 AionUiはこれらのコマンドラインツールに統一された **Cowork機能** を提供します：
 
-- 🎯 **統一プラットフォーム** - すべてのコマンドラインAIツールを1つのインターフェースで管理、切り替え不要
+- 🎯 **統一プラットフォーム** - すべてのコマンドラインAIツールを1つのインターフェースで管理、切り替え不要。Gemini CLI を内蔵、ダウンロードしてすぐ使えて完全無料
 - 🚀 **マルチツール対応** - Claude Codeだけでなく、Gemini CLI、Codex、Qwen Codeなどもサポート
 - 🌐 **クロスプラットフォーム** - macOS、Windows、Linux全プラットフォーム対応（Claude Coworkは現在macOSのみ）
 - 🔄 **マルチモデル切り替え** - 同じインターフェースで異なるモデルを柔軟に切り替え、さまざまなタスク要件に対応
@@ -184,7 +184,7 @@ A: AionUiはあなたの**プライベートなCoworkワークスペース**に�
 
 <details>
 <summary><strong>Q: AionUiはすぐに使えますか？</strong></summary>
-A: はい！インストール後、Googleアカウントでログインするだけで使用できます。AionUiは自動的にGemini CLIと関連付けられ、追加の設定なしで使用を開始できます。
+A: はい！インストール後すぐに使えます。Gemini CLI を内蔵しているため追加インストールは不要です。すでに Gemini CLI などのコマンドラインツールを使っている場合は、AionUi が自動認識してより豊かな体験を提供します。
 </details>
 
 <details>
@@ -332,7 +332,7 @@ brew install aionui
 - [🐛 問題を報告](https://github.com/iOfficeAI/AionUi/issues) - バグや機能リクエストを報告
 - [📦 リリース更新](https://github.com/iOfficeAI/AionUi/releases) - 最新版を取得
 - [💬 Discord Community](https://discord.gg/g6u66vV9) - **Discord の英語コミュニティに参加**
-- [💬 微信 (中文群)](./resources/wechat.jpg) - **QRコードを表示するにはクリック**
+- [💬 微信 (中文群)](./resources/wechat_group.png) - **QRコードを表示するにはクリック**
 
 ### 🤝 コード貢献
 

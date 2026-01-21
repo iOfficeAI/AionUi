@@ -1,4 +1,4 @@
-<p align="center">
+﻿<p align="center">
   <img src="./resources/aionui-banner-1 copy.png" alt="AionUi - Cowork with Your CLI AI Agent" width="100%">
 </p>
 
@@ -30,11 +30,11 @@
 </p>
 
 <p align="center">
-  <strong>English</strong> | <a href="./readme_ch.md">简体中文</a> | <a href="./readme_tw.md">繁體中文</a> | <a href="./readme_jp.md">日本語</a> | <a href="./readme_ko.md">한국어</a> | <a href="https://www.aionui.com" target="_blank">Official Website</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <strong>English</strong> | <a href="./readme_ch.md">简体中文</a> | <a href="./readme_tw.md">繁體中文</a> | <a href="./readme_jp.md">日本語</a> | <a href="./readme_ko.md">한국어</a> | <a href="./readme_es.md">Español</a> | <a href="./readme_pt.md">Português</a> | <a href="https://www.aionui.com" target="_blank">Official Website</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
 </p>
 
 <p align="center">
-  <strong>💬 Community:</strong> <a href="https://discord.gg/g6u66vV9" target="_blank">Discord (English)</a> | <a href="./resources/wechat.jpg" target="_blank">微信 (中文群)</a>
+  <strong>💬 Community:</strong> <a href="https://discord.gg/g6u66vV9" target="_blank">Discord (English)</a> | <a href="./resources/wechat_group.png" target="_blank">微信 (中文群)</a>
 </p>
 
 ---
@@ -62,7 +62,7 @@
 
 ### 🤖 **Multi-Agent Mode - Cowork for Your Command-Line AI Tools, Unified Graphical Interface**
 
-_If you have installed command-line tools like Gemini CLI, Claude Code, CodeX, Qwen Code, Goose AI, Augment Code, AionUi can automatically detect them and provide a unified graphical interface_
+_AionUi includes Gemini CLI built-in, ready to use out of the box with no extra installation. If you already have command-line tools like Gemini CLI, Claude Code, CodeX, Qwen Code, Goose AI, Augment Code installed, AionUi will auto-detect them and provide a unified graphical interface for a richer experience_
 
 - ✅ **Auto Detection + Unified Interface** - Automatically recognizes local CLI tools, provides a unified graphical interface, say goodbye to command line
 - ✅ **Local Storage + Multi-Session** - Conversations saved locally, supports multiple parallel sessions, each session with independent context
@@ -147,7 +147,7 @@ Gemini CLI, Claude Code, Codex, Qwen Code are powerful, but share common pain po
 
 AionUi provides unified **Cowork capabilities** for these command-line tools:
 
-- 🎯 **Unified Platform** - One interface to manage all command-line AI tools, no switching needed
+- 🎯 **Unified Platform** - One interface to manage all command-line AI tools, no switching needed; includes Gemini CLI, ready to use out of the box and completely free
 - 🚀 **Multi-Tool Support** - Not only supports Claude Code, but also Gemini CLI, Codex, Qwen Code, and more
 - 🌐 **Cross-Platform** - Full platform support for macOS, Windows, Linux (Claude Cowork currently only macOS)
 - 🔄 **Multi-Model Switching** - Flexibly switch between different models in the same interface, meeting different task requirements
@@ -184,7 +184,7 @@ A: It can be your **private Cowork workspace**. You can let it help you batch or
 
 <details>
 <summary><strong>Q: Is AionUi ready to use out of the box?</strong></summary>
-A: Yes! After installation, you can directly use Google account login, AionUi will automatically associate with Gemini CLI, no additional configuration needed to start using.
+A: Yes! AionUi is ready right after installation with a built-in Gemini CLI—no extra installation needed. If you already have Gemini CLI or other command-line tools installed, AionUi will auto-detect them for a richer experience.
 </details>
 
 <details>
@@ -332,7 +332,7 @@ brew install aionui
 - [🐛 Report Issues](https://github.com/iOfficeAI/AionUi/issues) - Report bugs or feature requests
 - [📦 Release Updates](https://github.com/iOfficeAI/AionUi/releases) - Get the latest version
 - [💬 Discord Community](https://discord.gg/g6u66vV9) - **Join our English community on Discord**
-- [💬 微信 (中文群)](./resources/wechat.jpg) - **Click to view QR code**
+- [💬 微信 (中文群)](./resources/wechat_group.png) - **Click to view QR code**
 
 ### 🤝 Contributing
 

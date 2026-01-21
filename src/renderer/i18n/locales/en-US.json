@@ -609,7 +609,17 @@
     "multiKeyTestResult": "Multi-key test: {{valid}}/{{total}} valid",
     "multiKeyAllValid": "All {{total}} keys are valid",
     "multiKeyPartialValid": "{{valid}} valid, {{invalid}} invalid",
-    "multiKeyAllInvalid": "All {{total}} keys are invalid"
+    "multiKeyAllInvalid": "All {{total}} keys are invalid",
+    "addSkills": "Add Skills",
+    "addSkillsTitle": "Add Skills",
+    "skillFolderPath": "Skill Folder Path",
+    "skillPathPlaceholder": "Enter or browse skill folder path(s), separated by comma",
+    "skillsAdded": "{{addedCount}} skills added and selected{{skippedCountText}}",
+    "skippedCount": "{{count}} skipped",
+    "allSkillsExist": "All found skills already exist",
+    "noSkillsFound": "No valid skills found in the selected path(s)",
+    "skillScanFailed": "Failed to scan skills",
+    "quickScan": "Quick Scan Common Paths"
   },
   "messages": {
     "fileChanges": "File Changes",
