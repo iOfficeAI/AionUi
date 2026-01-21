@@ -112,8 +112,7 @@ def publish(title, content, images):
             print(f"❌ 脚本执行中断：{e}")
             print("👉 浏览器将保持打开，方便你手动完成发布。")
         finally:
-            input("完成后回到终端，按 Enter 关闭浏览器...")
-            browser.close()
+            input("完成后回到终端，按 Enter 结束脚本（浏览器将保持打开）...")
 
 if __name__ == "__main__":
     # Usage: python publish_xiaohongshu.py <title> <content_file_path> <img1> <img2> ...
