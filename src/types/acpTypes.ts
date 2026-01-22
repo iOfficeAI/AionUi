@@ -568,13 +568,14 @@ export type AcpSessionUpdate = AgentMessageChunkUpdate | AgentThoughtChunkUpdate
 // | CurrentModeUpdate;
 
 // 当前的 ACP 权限请求接口 / Current ACP permission request interface
+export interface AcpPermissionOption {
+  optionId: string;
+  name: string;
+  kind: 'allow_once' | 'allow_always' | 'reject_once' | 'reject_always';
+}
 export interface AcpPermissionRequest {
   sessionId: string;
-  options: Array<{
-    optionId: string;
-    name: string;
-    kind: 'allow_once' | 'allow_always' | 'reject_once' | 'reject_always';
-  }>;
+  options: Array<AcpPermissionOption>;
   toolCall: {
     toolCallId: string;
     rawInput?: {

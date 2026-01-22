@@ -4,22 +4,23 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useCallback, useMemo, useRef, useState } from 'react';
-import { html } from 'diff2html';
-import 'diff2html/bundles/css/diff2html.min.css';
-import { Checkbox, Tooltip, Button } from '@arco-design/web-react';
-import { ExpandDownOne, FoldUpOne, PreviewOpen } from '@icon-park/react';
-import classNames from 'classnames';
-import ReactDOM from 'react-dom';
-import { iconColors } from '@/renderer/theme/colors';
 import { useThemeContext } from '@/renderer/context/ThemeContext';
+import { iconColors } from '@/renderer/theme/colors';
 import { extractContentFromDiff, parseFilePathFromDiff } from '@/renderer/utils/diffUtils';
 import { getFileTypeInfo } from '@/renderer/utils/fileType';
-import CollapsibleContent from './CollapsibleContent';
+import { Button, Checkbox, Tooltip } from '@arco-design/web-react';
+import { ExpandDownOne, FoldUpOne, PreviewOpen } from '@icon-park/react';
+import classNames from 'classnames';
+import { html } from 'diff2html';
+import 'diff2html/bundles/css/diff2html.min.css';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
+import ReactDOM from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import { usePreviewLauncher } from '@/renderer/hooks/usePreviewLauncher';
+import { usePreviewLauncher } from '../hooks/usePreviewLauncher';
+import CollapsibleContent from './CollapsibleContent';
 
 const Diff2Html = ({ diff, className, title, filePath }: { diff: string; className?: string; title?: string; filePath?: string }) => {
+  console.log('%c [ Diff2Html ]-23', 'font-size:13px; background:pink; color:#bf2c9f;');
   const { theme } = useThemeContext();
   const { t } = useTranslation();
   const { launchPreview, loading: previewLoading } = usePreviewLauncher();

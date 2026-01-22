@@ -4,20 +4,81 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { TMessage, IMessageText } from '@/common/chatLib';
-import type { TChatConversation } from '@/common/storage';
+import type { IMessageText, TMessage } from '@/common/chatLib';
 import { composeMessage } from '@/common/chatLib';
-import { getDatabase } from './database/export';
-import { ProcessChat } from './initStorage';
-import { streamingBuffer } from './database/StreamingMessageBuffer';
+import type { TChatConversation } from '@/common/storage';
 import type { AcpBackend } from '@/types/acpTypes';
 import { ACP_BACKENDS_ALL } from '@/types/acpTypes';
+import { getDatabase } from './database/export';
+import { streamingBuffer } from './database/StreamingMessageBuffer';
+import { ProcessChat } from './initStorage';
+
+const Cache = new Map<string, ConversationManageWithDB>();
+
+//@ 按会话将所有消息放入一个统一的更新队列中
+// 保证每条消息的更新机制与前端一致，即数据库与UI数据一致
+// 多条消息聚合同步更新，减少数据库的操作
+class ConversationManageWithDB {
+  private stack: Array<['insert' | 'accumulate', TMessage]> = [];
+  private db = getDatabase();
+  private bootstrap: Promise<any>;
+  private timer: NodeJS.Timeout;
+  constructor(private conversation_id: string) {
+    this.bootstrap = ensureConversationExists(this.db, this.conversation_id);
+  }
+  static get(conversation_id: string) {
+    if (Cache.has(conversation_id)) return Cache.get(conversation_id);
+    const manage = new ConversationManageWithDB(conversation_id);
+    Cache.set(conversation_id, manage);
+    return manage;
+  }
+  sync(type: 'insert' | 'accumulate', message: TMessage) {
+    this.stack.push([type, message]);
+    clearTimeout(this.timer);
+    if (type === 'insert') {
+      this.save2DataBase();
+      return;
+    }
+    this.timer = setTimeout(() => {
+      this.save2DataBase();
+    }, 2000);
+  }
+
+  private save2DataBase() {
+    this.bootstrap
+      .catch(() => {})
+      .finally(() => {
+        const stack = this.stack.slice();
+        this.stack = [];
+        const messages = this.db.getConversationMessages(this.conversation_id, 1, 20, 'DESC'); //
+        let messageList = messages.data.reverse();
+        let updateMessage = stack.shift();
+        while (updateMessage) {
+          if (updateMessage[0] === 'insert') {
+            this.db.insertMessage(updateMessage[1]);
+            messageList.push(updateMessage[1]);
+          } else {
+            messageList = composeMessage(updateMessage[1], messageList, (type, message) => {
+              if (type === 'insert') this.db.insertMessage(message);
+              if (type === 'update') {
+                this.db.updateMessage(message.id, message);
+              }
+            });
+          }
+          updateMessage = stack.shift();
+        }
+        executePendingCallbacks();
+      });
+  }
+}
 
 /**
  * Add a new message to the database
  * Wraps async work inside an IIFE to keep call sites synchronous.
  */
 export const addMessage = (conversation_id: string, message: TMessage): void => {
+  ConversationManageWithDB.get(conversation_id).sync('insert', message);
+  return;
   void (async () => {
     try {
       const db = getDatabase();
@@ -45,8 +106,9 @@ export const addMessage = (conversation_id: string, message: TMessage): void => 
 /**
  * Update messages in the database using a transform function
  * This loads all messages, applies the transform, and saves them back
+ * @deprecated This function is no longer needed with database storage
  */
-export const updateMessage = (conversation_id: string, transform: (messages: TMessage[]) => TMessage[]): void => {
+export const updateMessage_deprecated = (conversation_id: string, transform: (messages: TMessage[]) => TMessage[]): void => {
   try {
     const db = getDatabase();
 
@@ -137,6 +199,10 @@ export const addOrUpdateMessage = (conversation_id: string, message: TMessage, b
     return;
   }
 
+  ConversationManageWithDB.get(conversation_id).sync('accumulate', message);
+
+  return;
+
   void (async () => {
     try {
       const db = getDatabase();
@@ -187,7 +253,7 @@ export const addOrUpdateMessage = (conversation_id: string, message: TMessage, b
         // Other message types (status, tips, etc.) - usually don't need merging
         // Just insert or update based on msg_id if available
         if (message.msg_id) {
-          const existing = db.getMessageByMsgId(conversation_id, message.msg_id);
+          const existing = db.getMessageByMsgId(conversation_id, message.msg_id, message.type);
           if (existing.success && existing.data) {
             // Update existing
             const updateResult = db.updateMessage(existing.data.id, message);

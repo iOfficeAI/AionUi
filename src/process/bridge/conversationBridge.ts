@@ -421,4 +421,11 @@ export function initConversationBridge(): void {
       return { success: false, msg: e instanceof Error ? e.message : String(e) };
     }
   });
+
+  ipcBridge.conversation.confirmation.confirm.provider(async ({ conversation_id, id, data, callId }) => {
+    const task = WorkerManage.getTaskById(conversation_id);
+    if (!task) return { success: false, msg: 'conversation not found' };
+    task.confirm(id, callId, data);
+    return { success: true };
+  });
 }

@@ -376,7 +376,7 @@ export class AcpAgent {
     return await searchDir(workspace, 0);
   }
 
-  confirmMessage(data: { confirmKey: string; msg_id: string; callId: string }): Promise<AcpResult> {
+  confirmMessage(data: { confirmKey: string; callId: string }): Promise<AcpResult> {
     try {
       if (this.pendingPermissions.has(data.callId)) {
         const { resolve } = this.pendingPermissions.get(data.callId)!;

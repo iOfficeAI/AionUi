@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { CodexToolCallUpdate, TMessage } from '@/common/chatLib';
+import type { CodexToolCallUpdate, IMessageToolGroup, TMessage } from '@/common/chatLib';
 import { iconColors } from '@/renderer/theme/colors';
 import { Image } from '@arco-design/web-react';
 import { Down } from '@icon-park/react';
@@ -12,21 +12,34 @@ import MessageAcpPermission from '@renderer/messages/acp/MessageAcpPermission';
 import MessageAcpToolCall from '@renderer/messages/acp/MessageAcpToolCall';
 import MessageAgentStatus from '@renderer/messages/MessageAgentStatus';
 import classNames from 'classnames';
-import React, { createContext, useEffect, useMemo, useRef, useState, useCallback } from 'react';
+import React, { createContext, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { VirtuosoHandle } from 'react-virtuoso';
 import { Virtuoso } from 'react-virtuoso';
+import { uuid } from '../utils/common';
 import HOC from '../utils/HOC';
 import MessageCodexPermission from './codex/MessageCodexPermission';
 import MessageCodexToolCall from './codex/MessageCodexToolCall';
-import MessageFileChanges from './codex/MessageFileChanges';
+import type { FileChangeInfo } from './codex/MessageFileChanges';
+import MessageFileChanges, { parseDiff } from './codex/MessageFileChanges';
 import { useMessageList } from './hooks';
 import MessageTips from './MessageTips';
 import MessageToolCall from './MessageToolCall';
 import MessageToolGroup from './MessageToolGroup';
+import MessageToolGroupSummary from './MessageToolGroupSummary';
 import MessageText from './MessagetText';
+import type { WriteFileResult } from './types';
 
 type TurnDiffContent = Extract<CodexToolCallUpdate, { subtype: 'turn_diff' }>;
+
+type IMessageVO =
+  | TMessage
+  | { type: 'file_summary'; id: string; diffs: FileChangeInfo[] }
+  | {
+      type: 'tool_summary';
+      id: string;
+      messages: IMessageToolGroup[];
+    };
 
 // 图片预览上下文 Image preview context
 export const ImagePreviewContext = createContext<{ inPreviewGroup: boolean }>({ inPreviewGroup: false });
@@ -47,7 +60,6 @@ const MessageItem: React.FC<{ message: TMessage }> = React.memo(
     );
   })(({ message }) => {
     const { t } = useTranslation();
-
     switch (message.type) {
       case 'text':
         return <MessageText message={message}></MessageText>;
@@ -85,31 +97,50 @@ const MessageList: React.FC<{ className?: string }> = () => {
   // 预处理消息列表，将 Codex turn_diff 消息进行分组
   // Pre-process message list to group Codex turn_diff messages
   const processedList = useMemo(() => {
-    const result: Array<TMessage | { type: 'codex_summary'; id: string; messages: TurnDiffContent[] }> = [];
-    const turnDiffs: TurnDiffContent[] = [];
-    let firstTurnDiffId = '';
+    const result: Array<IMessageVO> = [];
+    let diffsChanges: FileChangeInfo[] = [];
+    let toolList: IMessageToolGroup[] = [];
 
-    list.forEach((message) => {
-      if (message.type === 'codex_tool_call' && message.content.subtype === 'turn_diff') {
-        if (!firstTurnDiffId) firstTurnDiffId = message.id;
-        turnDiffs.push(message.content as TurnDiffContent);
-      } else {
-        if (turnDiffs.length > 0) {
-          result.push({ type: 'codex_summary', id: `summary-${firstTurnDiffId}`, messages: [...turnDiffs] });
-          turnDiffs.length = 0;
-          firstTurnDiffId = '';
-        }
-        result.push(message);
+    const pushDffChanges = (changes: FileChangeInfo) => {
+      if (!diffsChanges.length) {
+        result.push({ type: 'file_summary', id: `summary-${uuid()}`, diffs: diffsChanges });
       }
-    });
+      diffsChanges.push(changes);
+      toolList = [];
+    };
+    const pushToolList = (message: IMessageToolGroup) => {
+      if (!toolList.length) {
+        result.push({ type: 'tool_summary', id: ``, messages: toolList });
+      }
+      toolList.push(message);
+      diffsChanges = [];
+    };
 
-    if (turnDiffs.length > 0) {
-      result.push({ type: 'codex_summary', id: `summary-${firstTurnDiffId}`, messages: [...turnDiffs] });
+    for (let i = 0, len = list.length; i < len; i++) {
+      const message = list[i];
+      if (message.type === 'codex_tool_call' && message.content.subtype === 'turn_diff') {
+        pushDffChanges(parseDiff((message.content as TurnDiffContent).data.unified_diff));
+        continue;
+      }
+      if (message.type === 'tool_group') {
+        if (message.content.length === 1) {
+          const writeFileResults = message.content.filter((item) => item.name === 'WriteFile' && item.resultDisplay && typeof item.resultDisplay === 'object' && 'fileDiff' in item.resultDisplay).map((item) => item.resultDisplay as WriteFileResult);
+          if (writeFileResults.length && writeFileResults[0].fileDiff) {
+            pushDffChanges(parseDiff(writeFileResults[0].fileDiff, writeFileResults[0].fileName));
+            continue;
+          }
+        }
+        pushToolList(message);
+        continue;
+      }
+      toolList = [];
+      diffsChanges = [];
+      result.push(message);
     }
-
     return result;
   }, [list]);
 
+  console.log('%c [MessageList  ]-144', 'font-size:13px; background:pink; color:#bf2c9f;');
   // 滚动到底部
   const scrollToBottom = useCallback(
     (smooth = false) => {
@@ -162,10 +193,11 @@ const MessageList: React.FC<{ className?: string }> = () => {
   };
 
   const renderItem = (index: number, item: (typeof processedList)[0]) => {
-    if ('type' in item && item.type === 'codex_summary') {
+    if ('type' in item && ['file_summary', 'tool_summary'].includes(item.type)) {
       return (
-        <div key={item.id} className='w-full message-item px-8px m-t-10px max-w-full md:max-w-780px mx-auto'>
-          <MessageFileChanges turnDiffChanges={item.messages} />
+        <div key={item.id} className={'w-full message-item px-8px m-t-10px max-w-full md:max-w-780px mx-auto ' + item.type}>
+          {item.type === 'file_summary' && <MessageFileChanges diffsChanges={item.diffs} />}
+          {item.type === 'tool_summary' && <MessageToolGroupSummary messages={item.messages}></MessageToolGroupSummary>}
         </div>
       );
     }

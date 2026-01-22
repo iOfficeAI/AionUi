@@ -1,17 +1,17 @@
 import { AcpAgent } from '@/agent/acp';
 import { ipcBridge } from '@/common';
-import type { AcpBackend } from '@/types/acpTypes';
-import { ACP_BACKENDS_ALL } from '@/types/acpTypes';
 import type { TMessage } from '@/common/chatLib';
-import { AIONUI_FILES_MARKER } from '@/common/constants';
 import { transformMessage } from '@/common/chatLib';
+import { AIONUI_FILES_MARKER } from '@/common/constants';
 import type { IConfirmMessageParams, IResponseMessage } from '@/common/ipcBridge';
 import { parseError, uuid } from '@/common/utils';
+import type { AcpBackend, AcpPermissionOption, AcpPermissionRequest } from '@/types/acpTypes';
+import { ACP_BACKENDS_ALL } from '@/types/acpTypes';
 import { ProcessConfig } from '../initStorage';
 import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '../message';
-import BaseAgentManager from './BaseAgentManager';
 import { handlePreviewOpenEvent } from '../utils/previewUtils';
 import { prepareFirstMessage } from './agentUtils';
+import BaseAgentManager from './BaseAgentManager';
 
 interface AcpAgentManagerData {
   workspace?: string;
@@ -25,7 +25,7 @@ interface AcpAgentManagerData {
   enabledSkills?: string[];
 }
 
-class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
+class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissionOption> {
   workspace: string;
   agent: AcpAgent;
   private bootstrap: Promise<AcpAgent> | undefined;
@@ -108,6 +108,21 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
         },
         onSignalEvent: (v) => {
           // 仅发送信号到前端，不更新消息列表
+          if (v.type === 'acp_permission') {
+            const { toolCall, options } = v.data as AcpPermissionRequest;
+            this.addConfirmation({
+              title: toolCall.title || 'messages.permissionRequest',
+              action: 'messages.command',
+              id: v.msg_id,
+              description: toolCall.rawInput?.description || 'messages.agentRequestingPermission',
+              callId: toolCall.toolCallId || v.msg_id,
+              options: options.map((option) => ({
+                label: option.name,
+                value: option,
+              })),
+            });
+            return;
+          }
           ipcBridge.acpConversation.responseStream.emit(v);
         },
       });
@@ -191,6 +206,15 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData> {
     }
   }
 
+  async confirm(id: string, callId: string, data: AcpPermissionOption) {
+    super.confirm(id, callId, data);
+    await this.bootstrap;
+    void this.agent.confirmMessage({
+      confirmKey: data.optionId,
+      // msg_id: dat;
+      callId: callId,
+    });
+  }
   async confirmMessage(data: Omit<IConfirmMessageParams, 'conversation_id'>) {
     await this.bootstrap;
     await this.agent.confirmMessage(data);

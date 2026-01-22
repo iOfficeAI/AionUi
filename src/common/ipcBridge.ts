@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import type { IConfirmation } from '@/common/chatLib';
 import { bridge } from '@office-ai/platform';
 import type { OpenDialogOptions } from 'electron';
 import type { McpSource } from '../process/services/mcpServices/McpProtocol';
@@ -34,6 +35,13 @@ export const conversation = {
   getWorkspace: bridge.buildProvider<IDirOrFile[], { conversation_id: string; workspace: string; path: string; search?: string }>('conversation.get-workspace'),
   responseSearchWorkSpace: bridge.buildProvider<void, { file: number; dir: number; match?: IDirOrFile }>('conversation.response.search.workspace'),
   reloadContext: bridge.buildProvider<IBridgeResponse, { conversation_id: string }>('conversation.reload-context'),
+  confirmation: {
+    add: bridge.buildEmitter<IConfirmation<any> & { conversation_id: string }>('confirmation.add'),
+    update: bridge.buildEmitter<IConfirmation<any> & { conversation_id: string }>('confirmation.update'),
+    confirm: bridge.buildProvider<IBridgeResponse, { conversation_id: string; id: string; data: any; callId: string }>('confirmation.confirm'),
+    list: bridge.buildProvider<IConfirmation<any>[], { conversation_id: string }>('confirmation.list'),
+    remove: bridge.buildEmitter<{ conversation_id: string; id: string }>('confirmation.remove'),
+  },
 };
 
 // Gemini对话相关接口 - 复用统一的conversation接口

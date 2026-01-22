@@ -4,11 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import type { CodexPermissionRequest } from '@/common/codex/types';
+import type { ExecCommandBeginData, ExecCommandEndData, ExecCommandOutputDeltaData, McpToolCallBeginData, McpToolCallEndData, PatchApplyBeginData, PatchApplyEndData, TurnDiffData, WebSearchBeginData, WebSearchEndData } from '@/common/codex/types/eventData';
+import type { AcpBackend, AcpPermissionRequest, ToolCallUpdate } from '@/types/acpTypes';
 import type { IResponseMessage } from './ipcBridge';
 import { uuid } from './utils';
-import type { AcpBackend, AcpPermissionRequest, ToolCallUpdate } from '@/types/acpTypes';
-import type { CodexPermissionRequest } from '@/common/codex/types';
-import type { ExecCommandBeginData, ExecCommandOutputDeltaData, ExecCommandEndData, PatchApplyBeginData, PatchApplyEndData, McpToolCallBeginData, McpToolCallEndData, WebSearchBeginData, WebSearchEndData, TurnDiffData } from '@/common/codex/types/eventData';
 
 /**
  * 安全的路径拼接函数，兼容Windows和Mac
@@ -256,6 +256,22 @@ export type IMessageCodexToolCall = IMessage<'codex_tool_call', CodexToolCallUpd
 // eslint-disable-next-line max-len
 export type TMessage = IMessageText | IMessageTips | IMessageToolCall | IMessageToolGroup | IMessageAgentStatus | IMessageAcpPermission | IMessageAcpToolCall | IMessageCodexPermission | IMessageCodexToolCall;
 
+// 统一所有需要用户交互的用户类型
+export interface IConfirmation<Option extends any = any> {
+  title?: string;
+  titleKey?: string;
+  id: string;
+  action?: string;
+  description?: string;
+  descriptionKey?: string;
+  callId: string;
+  options: Array<{
+    label?: string;
+    labelKey?: string;
+    value: Option;
+  }>;
+}
+
 /**
  * @description 将后端返回的消息转换为前端消息
  * */
@@ -369,10 +385,25 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
 /**
  * @description 将消息合并到消息列表中
  * */
-export const composeMessage = (message: TMessage | undefined, list: TMessage[] | undefined): TMessage[] => {
+export const composeMessage = (message: TMessage | undefined, list: TMessage[] | undefined, messageHandler: (type: 'update' | 'insert', message: TMessage) => void = () => {}): TMessage[] => {
   if (!message) return list || [];
-  if (!list?.length) return [message];
+  if (!list?.length) {
+    messageHandler('insert', message);
+    return [message];
+  }
   const last = list[list.length - 1];
+
+  const updateMessage = (index: number, message: TMessage, change = true) => {
+    message.id = list[index].id;
+    list[index] = message;
+    if (change) messageHandler('update', message);
+    return list;
+  };
+  const pushMessage = (message: TMessage) => {
+    list.push(message);
+    messageHandler('insert', message);
+    return list;
+  };
 
   if (message.type === 'tool_group') {
     const tools = message.content.slice();
@@ -381,22 +412,24 @@ export const composeMessage = (message: TMessage | undefined, list: TMessage[] |
       if (existingMessage.type === 'tool_group') {
         if (!existingMessage.content.length) continue;
         // Create a new content array with merged tool data
+        let change = false;
         const newContent = existingMessage.content.map((tool) => {
           const newToolIndex = tools.findIndex((t) => t.callId === tool.callId);
           if (newToolIndex === -1) return tool;
           // Create new object instead of mutating original
           const merged = { ...tool, ...tools[newToolIndex] };
+          change = true;
           tools.splice(newToolIndex, 1);
           return merged;
         });
         // Create a new message object instead of mutating the existing one
         // This ensures database update detection works correctly
-        list[i] = { ...existingMessage, content: newContent };
+        updateMessage(i, { ...existingMessage, content: newContent }, change);
       }
     }
     if (tools.length) {
       message.content = tools;
-      list.push(message);
+      pushMessage(message);
     }
     return list;
   }
@@ -407,14 +440,11 @@ export const composeMessage = (message: TMessage | undefined, list: TMessage[] |
       const msg = list[i];
       if (msg.type === 'tool_call' && msg.content.callId === message.content.callId) {
         // Create new object instead of mutating original
-        const merged = { ...msg.content, ...message.content };
-        list[i] = { ...msg, content: merged };
-        return list;
+        return updateMessage(i, { ...msg, content: { ...msg.content, ...message.content } });
       }
     }
     // If no existing tool call found, add new one
-    list.push(message);
-    return list;
+    return pushMessage(message);
   }
 
   // Handle codex_tool_call message merging
@@ -424,13 +454,11 @@ export const composeMessage = (message: TMessage | undefined, list: TMessage[] |
       if (msg.type === 'codex_tool_call' && msg.content.toolCallId === message.content.toolCallId) {
         // Create new object instead of mutating original
         const merged = { ...msg.content, ...message.content };
-        list[i] = { ...msg, content: merged };
-        return list;
+        return updateMessage(i, { ...msg, content: merged });
       }
     }
     // If no existing tool call found, add new one
-    list.push(message);
-    return list;
+    return pushMessage(message);
   }
 
   // Handle acp_tool_call message merging (same logic as codex_tool_call)
@@ -440,21 +468,18 @@ export const composeMessage = (message: TMessage | undefined, list: TMessage[] |
       if (msg.type === 'acp_tool_call' && msg.content.update?.toolCallId === message.content.update?.toolCallId) {
         // Create new object instead of mutating original
         const merged = { ...msg.content, ...message.content };
-        list[i] = { ...msg, content: merged };
-        return list;
+        return updateMessage(i, { ...msg, content: merged });
       }
     }
     // If no existing tool call found, add new one
-    list.push(message);
-    return list;
+    return pushMessage(message);
   }
 
-  if (last.msg_id !== message.msg_id || last.type !== message.type) return list.concat(message);
+  if (last.msg_id !== message.msg_id || last.type !== message.type) return pushMessage(message);
   if (message.type === 'text' && last.type === 'text') {
     message.content.content = last.content.content + message.content.content;
   }
-  Object.assign(last, message);
-  return list;
+  return updateMessage(list.length - 1, Object.assign({}, last, message));
 };
 
 export const handleImageGenerationWithWorkspace = (message: TMessage, workspace: string): TMessage => {

@@ -7,22 +7,22 @@
 import ReactMarkdown from 'react-markdown';
 
 import SyntaxHighlighter from 'react-syntax-highlighter';
-import { vs2015, vs } from 'react-syntax-highlighter/dist/esm/styles/hljs';
+import { vs, vs2015 } from 'react-syntax-highlighter/dist/esm/styles/hljs';
 import rehypeKatex from 'rehype-katex';
 import remarkBreaks from 'remark-breaks';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 
 import { ipcBridge } from '@/common';
-import { Copy, Down, Up } from '@icon-park/react';
 import { Message } from '@arco-design/web-react';
+import { Copy, Down, Up } from '@icon-park/react';
 import { theme } from '@office-ai/platform';
+import classNames from 'classnames';
 import React, { useMemo, useState } from 'react';
 import ReactDOM from 'react-dom';
 import { useTranslation } from 'react-i18next';
-import LocalImageView from './LocalImageView';
 import { addImportantToAll } from '../utils/customCssProcessor';
-import classNames from 'classnames';
+import LocalImageView from './LocalImageView';
 
 const formatCode = (code: string) => {
   const content = String(code).replace(/\n$/, '');
@@ -71,23 +71,27 @@ function CodeBlock(props: any) {
     const language = match?.[1] || 'text';
     const codeTheme = currentTheme === 'dark' ? vs2015 : vs;
     if (!String(children).includes('\n')) {
+      console.log('%c [  ]-75', 'font-size:13px; background:pink; color:#bf2c9f;', children);
       return (
         <code
           {...rest}
           className={className}
           style={{
-            backgroundColor: 'var(--bg-1)',
-            padding: '2px 4px',
-            margin: '0 4px',
-            borderRadius: '4px',
-            border: '1px solid',
-            borderColor: 'var(--bg-3)',
-            display: 'inline-block',
-            maxWidth: '100%',
-            overflowWrap: 'anywhere',
-            wordBreak: 'break-word',
-            whiteSpace: 'break-spaces',
+            fontWeight: 'bold',
           }}
+          // style={{
+          //   backgroundColor: 'var(--bg-1)',
+          //   padding: '2px 4px',
+          //   margin: '0 4px',
+          //   borderRadius: '4px',
+          //   border: '1px solid',
+          //   borderColor: 'var(--bg-3)',
+          //   display: 'inline-block',
+          //   maxWidth: '100%',
+          //   overflowWrap: 'anywhere',
+          //   wordBreak: 'break-word',
+          //   whiteSpace: 'break-spaces',
+          // }}
         >
           {children}
         </code>
@@ -191,7 +195,7 @@ const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string
 
   * {
     line-height:26px;
-    font-size:14px;
+    font-size:16px;
   }
 
   .markdown-shadow-body {
@@ -224,6 +228,9 @@ const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string
     font-weight: bold;
     margin-top: 8px;
     margin-bottom: 8px;
+  }
+  code{
+    font-size:14px;
   }
  
   .markdown-shadow-body>p:last-child{
