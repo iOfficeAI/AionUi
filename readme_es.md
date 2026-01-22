@@ -57,7 +57,7 @@
 ## ✨ ¿Qué puede hacer AionUi?
 
 <p align="center">
-  <img src="./resources/offica-ai BANNER-function copy.png" alt="AionUi - Cowork with Your CLI AI Agent" width="800">
+  <img src="./resources/offica-ai BANNER-function.png" alt="AionUi - Cowork with Your CLI AI Agent" width="800">
 </p>
 
 ### 🤖 **Modo multiagente - Cowork para tus herramientas de IA en línea de comandos, interfaz gráfica unificada**
@@ -272,6 +272,8 @@ _Personaliza con tu propio CSS, haz que la interfaz se adapte a tus preferencias
 - [📊 Procesamiento de Excel](https://github.com/iOfficeAI/AionUi/wiki/excel-processing) - Procesamiento de datos impulsado por IA
 - [🎨 Generación de imágenes](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide) - Creación de imágenes con IA
 - [📚 Más casos de uso](https://github.com/iOfficeAI/AionUi/wiki/Use-Cases-Overview)
+  - [🎬 WorldofAI](https://www.youtube.com/watch?v=yUU5E-U5B3M) - Reseña en YouTube
+  - [🎬 Julian Goldie SEO](https://www.youtube.com/watch?v=enQnkKfth10) - Reseña en YouTube
 
 ### ❓ Soporte y ayuda
 
