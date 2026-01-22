@@ -5,7 +5,7 @@
  */
 
 import type { IResponseMessage } from '@/common/ipcBridge';
-import type { TMessage } from '@/common/chatLib';
+import type { TMessage, IConfirmation } from '@/common/chatLib';
 
 /**
  * 消息发送回调接口
@@ -24,4 +24,10 @@ export interface ICodexMessageEmitter {
    * @param message 要持久化的消息 (TMessage 格式)
    */
   persistMessage(message: TMessage): void;
+
+  /**
+   * 添加确认项到确认列表（通过 BaseAgentManager 管理）
+   * @param data 确认项数据
+   */
+  addConfirmation(data: IConfirmation): void;
 }

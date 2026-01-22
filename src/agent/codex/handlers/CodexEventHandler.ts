@@ -171,6 +171,20 @@ export class CodexEventHandler {
 
     const displayInfo = getPermissionDisplayInfo(PermissionType.COMMAND_EXECUTION);
     const options = createPermissionOptionsForType(PermissionType.COMMAND_EXECUTION);
+    const description = msg.reason || `${displayInfo.icon} Codex wants to execute command: ${Array.isArray(msg.command) ? msg.command.join(' ') : msg.command}`;
+
+    // 通过 addConfirmation 统一管理确认项
+    this.messageEmitter.addConfirmation({
+      title: displayInfo.titleKey,
+      id: unifiedRequestId,
+      action: 'exec',
+      description: description,
+      callId: unifiedRequestId,
+      options: options.map((opt) => ({
+        label: opt.name,
+        value: opt.optionId,
+      })),
+    });
 
     // 权限请求需要持久化
     this.messageEmitter.emitAndPersistMessage(
@@ -181,7 +195,7 @@ export class CodexEventHandler {
         data: {
           subtype: 'exec_approval_request',
           title: displayInfo.titleKey,
-          description: msg.reason || `${displayInfo.icon} Codex wants to execute command: ${Array.isArray(msg.command) ? msg.command.join(' ') : msg.command}`,
+          description: description,
           agentType: 'codex',
           sessionId: '',
           options: options,
@@ -206,6 +220,7 @@ export class CodexEventHandler {
 
     const displayInfo = getPermissionDisplayInfo(PermissionType.FILE_WRITE);
     const options = createPermissionOptionsForType(PermissionType.FILE_WRITE);
+    const description = msg.message || `${displayInfo.icon} Codex wants to apply proposed code changes`;
 
     // Store patch changes for later execution
     if (msg?.changes || msg?.codex_changes) {
@@ -215,6 +230,19 @@ export class CodexEventHandler {
       }
     }
 
+    // 通过 addConfirmation 统一管理确认项
+    this.messageEmitter.addConfirmation({
+      title: displayInfo.titleKey,
+      id: unifiedRequestId,
+      action: 'edit',
+      description: description,
+      callId: unifiedRequestId,
+      options: options.map((opt) => ({
+        label: opt.name,
+        value: opt.optionId,
+      })),
+    });
+
     this.messageEmitter.emitAndPersistMessage(
       {
         type: 'codex_permission',
@@ -223,7 +251,7 @@ export class CodexEventHandler {
         data: {
           subtype: 'apply_patch_approval_request',
           title: displayInfo.titleKey,
-          description: msg.message || `${displayInfo.icon} Codex wants to apply proposed code changes`,
+          description: description,
           agentType: 'codex',
           sessionId: '',
           options: options,

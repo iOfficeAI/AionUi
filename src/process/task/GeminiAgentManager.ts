@@ -328,8 +328,8 @@ export class GeminiAgentManager extends BaseAgentManager<
     });
   }
 
-  confirm(id: string, data: string) {
-    super.confirm(id, data);
+  confirm(id: string, callId: string, data: string) {
+    super.confirm(id, callId, data);
     return this.postMessagePromise(id, data);
   }
 
