@@ -4,14 +4,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { ConversationProvider } from '@/renderer/context/ConversationContext';
 import FlexFullContainer from '@renderer/components/FlexFullContainer';
 import MessageList from '@renderer/messages/MessageList';
 import { MessageListProvider, useMessageLstCache } from '@renderer/messages/hooks';
 import HOC from '@renderer/utils/HOC';
 import React, { useEffect } from 'react';
-import CodexSendBox from './CodexSendBox';
 import LocalImageView from '../../../components/LocalImageView';
-import { ConversationProvider } from '@/renderer/context/ConversationContext';
+import ConversationChatConfirm from '../components/ConversationChatConfirm';
+import CodexSendBox from './CodexSendBox';
 
 const CodexChat: React.FC<{
   conversation_id: string;
@@ -28,7 +29,9 @@ const CodexChat: React.FC<{
         <FlexFullContainer>
           <MessageList className='flex-1'></MessageList>
         </FlexFullContainer>
-        <CodexSendBox conversation_id={conversation_id} />
+        <ConversationChatConfirm conversation_id={conversation_id}>
+          <CodexSendBox conversation_id={conversation_id} />
+        </ConversationChatConfirm>
       </div>
     </ConversationProvider>
   );
