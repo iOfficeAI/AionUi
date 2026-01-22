@@ -604,6 +604,17 @@ export class AcpConnection {
     });
   }
 
+  async setSessionMode(modeId: string): Promise<AcpResponse> {
+    if (!this.sessionId) {
+      throw new Error('No active ACP session');
+    }
+
+    return await this.sendRequest('session/set_mode', {
+      sessionId: this.sessionId,
+      modeId,
+    });
+  }
+
   disconnect(): void {
     if (this.child) {
       this.child.kill();
