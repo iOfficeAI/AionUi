@@ -1,4 +1,4 @@
-﻿<p align="center">
+<p align="center">
   <img src="./resources/aionui-banner-1 copy.png" alt="AionUi - Cowork with Your CLI AI Agent" width="100%">
 </p>
 
@@ -343,6 +343,13 @@ brew install aionui
 3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
 4. 推送到分支 (`git push origin feature/AmazingFeature`)
 5. 打开 Pull Request
+
+### 🙏 特别感谢
+
+|                                                                                                                       |                                                                                                                                                                                                                                                       |
+| :-------------------------------------------------------------------------------------------------------------------: | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+|    <a href="https://linux.do/" target="_blank"><img src="./resources/linuxdo.png" alt="LINUX DO" width="180"></a>     | [LINUX DO](https://linux.do/) - 新的理想型社区。                                                                                                                                                                                                      |
+| <a href="https://packycode.com" target="_blank"><img src="./resources/packycode.png" alt="PackyCode" width="180"></a> | [PackyCode](https://packycode.com) 是一家可靠高效的 API 中继服务提供商，为 Claude Code、Codex、Gemini 等平台提供中继服务。感谢 PackyCode 为支持 AionUi 用户低成本使用，为我们的用户提供专属 [9折优惠](https://www.packyapi.com/register?aff=aionui)。 |
 
 ---
 
