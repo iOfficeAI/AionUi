@@ -68,7 +68,7 @@ const MessageItem: React.FC<{ message: TMessage }> = React.memo(
       case 'codex_tool_call':
         return <MessageCodexToolCall message={message}></MessageCodexToolCall>;
       default:
-        return <div>{t('messages.unknownMessageType', { type: (message as any).type })}</div>;
+        return <div>{t('messages.unknownMessageType', { type: String((message as { type?: unknown }).type) })}</div>;
     }
   }),
   (prev, next) => prev.message.id === next.message.id && prev.message.content === next.message.content && prev.message.position === next.message.position && prev.message.type === next.message.type
@@ -78,9 +78,65 @@ const MessageList: React.FC<{ className?: string }> = () => {
   const list = useMessageList();
   const virtuosoRef = useRef<VirtuosoHandle>(null);
   const [showScrollButton, setShowScrollButton] = useState(false);
-  const [atBottom, setAtBottom] = useState(true);
   const previousListLengthRef = useRef(list.length);
+  const shouldFollowOutputRef = useRef(true);
+  const lastMessageSignatureRef = useRef('');
+  const autoscrollRafRef = useRef<number | null>(null);
+  const scrollerElementRef = useRef<HTMLElement | null>(null);
+  const lastScrollTopRef = useRef<number | null>(null);
   const { t } = useTranslation();
+
+  const scheduleAutoscrollToBottom = useCallback(() => {
+    if (autoscrollRafRef.current !== null) return;
+    autoscrollRafRef.current = requestAnimationFrame(() => {
+      autoscrollRafRef.current = null;
+      virtuosoRef.current?.autoscrollToBottom();
+    });
+  }, []);
+
+  const handleScrollerScroll = useCallback(() => {
+    const el = scrollerElementRef.current;
+    if (!el) return;
+    const prevTop = lastScrollTopRef.current;
+    const nextTop = el.scrollTop;
+
+    // If the user scrolls upward, disable follow mode until they return to bottom.
+    if (prevTop !== null && nextTop < prevTop - 1) {
+      shouldFollowOutputRef.current = false;
+    }
+
+    lastScrollTopRef.current = nextTop;
+  }, []);
+
+  const setVirtuosoScrollerRef = useCallback(
+    (ref: HTMLElement | Window | null) => {
+      const nextEl = ref instanceof HTMLElement ? ref : null;
+
+      if (scrollerElementRef.current && scrollerElementRef.current !== nextEl) {
+        scrollerElementRef.current.removeEventListener('scroll', handleScrollerScroll);
+      }
+
+      scrollerElementRef.current = nextEl;
+      lastScrollTopRef.current = nextEl ? nextEl.scrollTop : null;
+
+      if (nextEl) {
+        nextEl.addEventListener('scroll', handleScrollerScroll, { passive: true });
+      }
+    },
+    [handleScrollerScroll]
+  );
+
+  useEffect(() => {
+    return () => {
+      if (autoscrollRafRef.current !== null) {
+        cancelAnimationFrame(autoscrollRafRef.current);
+        autoscrollRafRef.current = null;
+      }
+      if (scrollerElementRef.current) {
+        scrollerElementRef.current.removeEventListener('scroll', handleScrollerScroll);
+      }
+    };
+  }, [handleScrollerScroll]);
 
   // 预处理消息列表，将 Codex turn_diff 消息进行分组
   // Pre-process message list to group Codex turn_diff messages
@@ -113,6 +169,7 @@ const MessageList: React.FC<{ className?: string }> = () => {
   // 滚动到底部
   const scrollToBottom = useCallback(
     (smooth = false) => {
+      if (processedList.length === 0) return;
       if (virtuosoRef.current) {
         virtuosoRef.current.scrollToIndex({
           index: processedList.length - 1,
@@ -123,6 +180,72 @@ const MessageList: React.FC<{ className?: string }> = () => {
     },
     [processedList.length]
   );
+
+  const getMessageFollowSignature = useCallback((message: TMessage | undefined) => {
+    if (!message) return '';
+    const base = `${message.id}|${message.msg_id || ''}|${message.type}|${message.position || ''}`;
+
+    switch (message.type) {
+      case 'text':
+        return `${base}|${message.content.content.length}`;
+      case 'tool_call':
+        return `${base}|${message.content.callId}|${message.content.status || ''}|${message.content.error ? 1 : 0}`;
+      case 'tool_group': {
+        const statuses = message.content.map((tool) => tool.status).join(',');
+        const contentSize = message.content.reduce((acc, tool) => {
+          acc += tool.description?.length || 0;
+          const resultDisplay = tool.resultDisplay;
+          if (typeof resultDisplay === 'string') {
+            acc += resultDisplay.length;
+          } else if (resultDisplay && typeof resultDisplay === 'object') {
+            const maybeDiff = (resultDisplay as { fileDiff?: string }).fileDiff;
+            if (typeof maybeDiff === 'string') acc += maybeDiff.length;
+            const maybeImg = (resultDisplay as { img_url?: string }).img_url;
+            if (typeof maybeImg === 'string') acc += maybeImg.length;
+          }
+          if (tool.confirmationDetails) {
+            acc += tool.confirmationDetails.title?.length || 0;
+          }
+          return acc;
+        }, 0);
+        return `${base}|${message.content.length}|${statuses}|${contentSize}`;
+      }
+      case 'acp_tool_call': {
+        const update = message.content.update;
+        const contentSize = (update.content || []).reduce((acc, item) => {
+          acc += item.type.length;
+          acc += item.path?.length || 0;
+          acc += item.oldText?.length || 0;
+          acc += item.newText?.length || 0;
+          acc += item.content?.text?.length || 0;
+          return acc;
+        }, 0);
+        return `${base}|${update.toolCallId}|${update.status}|${update.kind}|${update.title.length}|${contentSize}`;
+      }
+      case 'codex_tool_call': {
+        const contentSize = (message.content.content || []).reduce((acc, item) => {
+          acc += item.type.length;
+          acc += item.text?.length || 0;
+          acc += item.output?.length || 0;
+          acc += item.filePath?.length || 0;
+          acc += item.oldText?.length || 0;
+          acc += item.newText?.length || 0;
+          return acc;
+        }, 0);
+        return `${base}|${message.content.toolCallId}|${message.content.status}|${message.content.kind}|${message.content.subtype}|${contentSize}`;
+      }
+      case 'tips':
+        return `${base}|${message.content.type}|${message.content.content.length}`;
+      case 'agent_status':
+        return `${base}|${message.content.backend}|${message.content.status}`;
+      case 'acp_permission':
+      case 'codex_permission':
+        // Permission payloads are relatively small and not streamed; base signature is enough.
+        return base;
+      default:
+        return base;
+    }
+  }, []);
 
   // 当消息列表更新时，智能滚动
   useEffect(() => {
@@ -136,29 +259,43 @@ const MessageList: React.FC<{ className?: string }> = () => {
     const lastMessage = list[list.length - 1];
     const isUserMessage = lastMessage?.position === 'right';
 
+    const lastSig = getMessageFollowSignature(lastMessage);
+    const prevSig = lastMessageSignatureRef.current;
+    lastMessageSignatureRef.current = lastSig;
+
     // 如果是用户发送的消息，强制滚动到底部并重置滚动状态
     if (isUserMessage && isNewMessage) {
-      setAtBottom(true);
+      shouldFollowOutputRef.current = true;
       setTimeout(() => {
         scrollToBottom();
       }, 100);
       return;
     }
 
-    // 如果用户不在底部且不是新消息添加，不自动滚动
-    // 只在新消息添加时且原本在底部时才自动滚动
-    if (isNewMessage && atBottom) {
+    // Follow mode is driven by user intent (scrolling up disables it).
+    // We still keep `atBottom` state for UI (scroll-to-bottom button).
+    const shouldFollow = shouldFollowOutputRef.current;
+
+    // New message appended: scroll if follow mode is enabled.
+    if (isNewMessage && shouldFollow) {
       setTimeout(() => {
         scrollToBottom();
       }, 100);
+      return;
     }
-  }, [list, atBottom, scrollToBottom]);
+
+    // Existing last item updated (streaming / tool output / size increase): keep following.
+    // This fixes the case where list length doesn't change but content grows.
+    if (!isNewMessage && shouldFollow && prevSig && lastSig && lastSig !== prevSig) {
+      scheduleAutoscrollToBottom();
+    }
+  }, [list, scrollToBottom, scheduleAutoscrollToBottom, getMessageFollowSignature]);
 
   // 点击滚动按钮
   const handleScrollButtonClick = () => {
+    shouldFollowOutputRef.current = true;
     scrollToBottom(true);
     setShowScrollButton(false);
-    setAtBottom(true);
   };
 
   const renderItem = (index: number, item: (typeof processedList)[0]) => {
@@ -183,13 +320,18 @@ const MessageList: React.FC<{ className?: string }> = () => {
             data={processedList}
             initialTopMostItemIndex={processedList.length - 1}
             atBottomStateChange={(isAtBottom) => {
-              setAtBottom(isAtBottom);
               setShowScrollButton(!isAtBottom);
+
+              // When the list is back at bottom, resume follow mode.
+              if (isAtBottom) {
+                shouldFollowOutputRef.current = true;
+              }
             }}
             atBottomThreshold={100}
             increaseViewportBy={200}
             itemContent={renderItem}
-            followOutput='auto'
+            scrollerRef={setVirtuosoScrollerRef}
+            followOutput={() => (shouldFollowOutputRef.current ? 'auto' : false)}
             components={{
               Header: () => <div className='h-10px' />,
               Footer: () => <div className='h-20px' />,
