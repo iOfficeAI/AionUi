@@ -43,12 +43,12 @@
 
 <p align="center">
 
-[✨ 看看 AionUi 能做什麼](#✨-看看-aionui-能做什麼) ·
-[🤔 為什麼選擇 AionUi](#🤔-為什麼選擇-aionui) ·
-[✨ 核心功能](#✨-核心功能) ·
-[🚀 快速開始](#🚀-快速開始) ·
-[📖 詳細使用說明](#📖-詳細使用說明) ·
-[💬 社群交流](#🤝-社群與支援)
+[✨ 看看 AionUi 能做什麼](#看看-aionui-能做什麼) ·
+[🤔 為什麼選擇 AionUi](#為什麼選擇-aionui) ·
+[✨ 核心功能](#核心功能) ·
+[🚀 快速開始](#快速開始) ·
+[📖 詳細使用說明](#詳細使用說明) ·
+[💬 社群交流](#社群與支援)
 
 </p>
 
@@ -57,7 +57,7 @@
 ## ✨ 看看 AionUi 能做什麼？
 
 <p align="center">
-  <img src="./resources/offica-ai BANNER-function copy.png" alt="AionUi - Cowork with Your CLI AI Agent" width="800">
+  <img src="./resources/offica-ai BANNER-function.png" alt="AionUi - Cowork with Your CLI AI Agent" width="800">
 </p>
 
 ### 🤖 **多代理模式 - 為您的命令列 AI 工具提供統一圖形介面**
@@ -272,6 +272,8 @@ _自己寫 CSS 程式碼自訂，讓您的互動介面符合您的心意_
 - [📊 Excel 處理](https://github.com/iOfficeAI/AionUi/wiki/excel-processing) - AI 驅動的資料處理
 - [🎨 圖像生成](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide) - AI 圖像創作
 - [📚 更多使用案例](https://github.com/iOfficeAI/AionUi/wiki/Use-Cases-Overview)
+  - [🎬 WorldofAI](https://www.youtube.com/watch?v=yUU5E-U5B3M) - YouTube 影片測評
+  - [🎬 Julian Goldie SEO](https://www.youtube.com/watch?v=enQnkKfth10) - YouTube 影片測評
 
 ### ❓ 支援與幫助
 
@@ -344,6 +346,31 @@ brew install aionui
 4. 推送到分支 (`git push origin feature/AmazingFeature`)
 5. 開啟 Pull Request
 
+### 🙏 特別感謝
+
+<table>
+<tr>
+<td width="170" align="center">
+  <a href="https://linux.do/" target="_blank">
+    <img src="./resources/linuxdo.png" alt="LINUX DO" width="150">
+  </a>
+</td>
+<td>
+  <a href="https://linux.do/" target="_blank">LINUX DO</a> - 新的理想型社群。
+</td>
+</tr>
+<tr>
+<td width="170" align="center">
+  <a href="https://packycode.com" target="_blank">
+    <img src="./resources/packycode.png" alt="PackyCode" width="150">
+  </a>
+</td>
+<td>
+  <a href="https://packycode.com" target="_blank">PackyCode</a> 是一家可靠高效的 API 中繼服務提供商，為 Claude Code、Codex、Gemini 等平台提供中繼服務。感謝 PackyCode 為支持 AionUi 用戶低成本使用，為我們的用戶提供專屬 <a href="https://www.packyapi.com/register?aff=aionui" target="_blank">9折優惠</a>，點擊此連結並在付款時使用優惠碼 <code>aionui</code> 可立減 10%。
+</td>
+</tr>
+</table>
+
 ---
 
 ## 📄 授權條款
@@ -358,7 +385,7 @@ brew install aionui
 
 <p align="center">
   <a href="https://github.com/iOfficeAI/AionUi/graphs/contributors">
-    <img src="https://contrib.rocks/image?repo=iOfficeAI/AionUi&max=20" alt="Contributors" />
+    <img src="https://contrib.rocks/image?repo=iOfficeAI/AionUi&max=50" alt="Contributors" />
   </a>
 </p>
 

@@ -43,12 +43,12 @@
 
 <p align="center">
 
-[✨ AionUiでできること](#✨-aionuiでできること) ·
-[🤔 なぜAionUiを選ぶのか](#🤔-なぜaionuiを選ぶのか) ·
-[✨ コア機能](#✨-コア機能) ·
-[🚀 クイックスタート](#🚀-クイックスタート) ·
-[📖 詳細使用説明](#📖-詳細使用説明) ·
-[💬 コミュニティ](#🤝-コミュニティとサポート)
+[✨ AionUiでできること](#aionuiでできること) ·
+[🤔 なぜAionUiを選ぶのか](#なぜaionuiを選ぶのか) ·
+[✨ コア機能](#コア機能) ·
+[🚀 クイックスタート](#クイックスタート) ·
+[📖 詳細使用説明](#詳細使用説明) ·
+[💬 コミュニティ](#コミュニティとサポート)
 
 </p>
 
@@ -57,7 +57,7 @@
 ## ✨ AionUiでできること？
 
 <p align="center">
-  <img src="./resources/offica-ai BANNER-function copy.png" alt="AionUi - Cowork with Your CLI AI Agent" width="800">
+  <img src="./resources/offica-ai BANNER-function.png" alt="AionUi - Cowork with Your CLI AI Agent" width="800">
 </p>
 
 ### 🤖 **マルチエージェントモード - あなたのコマンドラインAIツールのためのCowork、統一グラフィカルインターフェース**
@@ -272,6 +272,8 @@ _独自のCSSコードでカスタマイズし、インターフェースを好�
 - [📊 Excel処理](https://github.com/iOfficeAI/AionUi/wiki/excel-processing) - AI駆動のデータ処理
 - [🎨 画像生成](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide) - AI画像作成
 - [📚 その他のユースケース](https://github.com/iOfficeAI/AionUi/wiki/Use-Cases-Overview)
+  - [🎬 WorldofAI](https://www.youtube.com/watch?v=yUU5E-U5B3M) - YouTube 動画レビュー
+  - [🎬 Julian Goldie SEO](https://www.youtube.com/watch?v=enQnkKfth10) - YouTube 動画レビュー
 
 ### ❓ サポートとヘルプ
 
@@ -358,7 +360,7 @@ AionUiに貢献してくれたすべての開発者に感謝します！
 
 <p align="center">
   <a href="https://github.com/iOfficeAI/AionUi/graphs/contributors">
-    <img src="https://contrib.rocks/image?repo=iOfficeAI/AionUi&max=20" alt="貢献者" />
+    <img src="https://contrib.rocks/image?repo=iOfficeAI/AionUi&max=50" alt="貢献者" />
   </a>
 </p>
 
