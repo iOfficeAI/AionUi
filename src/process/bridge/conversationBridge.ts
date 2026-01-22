@@ -399,33 +399,16 @@ export function initConversationBridge(): void {
   });
 
   // 通用 confirmMessage 实现 - 自动根据 conversation 类型分发
-  ipcBridge.conversation.confirmMessage.provider(async ({ confirmKey, msg_id, conversation_id, callId }) => {
+
+  ipcBridge.conversation.confirmation.confirm.provider(async ({ conversation_id, msg_id, data, callId }) => {
     const task = WorkerManage.getTaskById(conversation_id);
     if (!task) return { success: false, msg: 'conversation not found' };
-
-    try {
-      // 根据 task 类型调用对应的 confirmMessage 方法
-      if (task?.type === 'codex') {
-        await (task as CodexAgentManager).confirmMessage({ confirmKey, msg_id, callId });
-        return { success: true };
-      } else if (task.type === 'gemini') {
-        await (task as GeminiAgentManager).confirmMessage({ confirmKey, msg_id, callId });
-        return { success: true };
-      } else if (task.type === 'acp') {
-        await (task as AcpAgentManager).confirmMessage({ confirmKey, msg_id, callId });
-        return { success: true };
-      } else {
-        return { success: false, msg: `Unsupported task type: ${task.type}` };
-      }
-    } catch (e: unknown) {
-      return { success: false, msg: e instanceof Error ? e.message : String(e) };
-    }
-  });
-
-  ipcBridge.conversation.confirmation.confirm.provider(async ({ conversation_id, id, data, callId }) => {
-    const task = WorkerManage.getTaskById(conversation_id);
-    if (!task) return { success: false, msg: 'conversation not found' };
-    task.confirm(id, callId, data);
+    task.confirm(msg_id, callId, data);
     return { success: true };
+  });
+  ipcBridge.conversation.confirmation.list.provider(async ({ conversation_id }) => {
+    const task = WorkerManage.getTaskById(conversation_id);
+    if (!task) return [];
+    return task.getConfirmations();
   });
 }

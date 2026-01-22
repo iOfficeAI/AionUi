@@ -42,8 +42,8 @@ class BaseAgentManager<Data, ConfirmationOption extends any = any> extends ForkT
     this.confirmations.push(data);
     ipcBridge.conversation.confirmation.add.emit({ ...data, conversation_id: this.conversation_id });
   }
-  confirm(id: string, callId: string, data: ConfirmationOption) {
-    this.confirmations = this.confirmations.filter((p) => p.id !== id);
+  confirm(msg_id: string, callId: string, data: ConfirmationOption) {
+    this.confirmations = this.confirmations.filter((p) => p.id !== msg_id);
   }
   getConfirmations() {
     return this.confirmations;

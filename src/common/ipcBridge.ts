@@ -38,7 +38,7 @@ export const conversation = {
   confirmation: {
     add: bridge.buildEmitter<IConfirmation<any> & { conversation_id: string }>('confirmation.add'),
     update: bridge.buildEmitter<IConfirmation<any> & { conversation_id: string }>('confirmation.update'),
-    confirm: bridge.buildProvider<IBridgeResponse, { conversation_id: string; id: string; data: any; callId: string }>('confirmation.confirm'),
+    confirm: bridge.buildProvider<IBridgeResponse, { conversation_id: string; msg_id: string; data: any; callId: string }>('confirmation.confirm'),
     list: bridge.buildProvider<IConfirmation<any>[], { conversation_id: string }>('confirmation.list'),
     remove: bridge.buildEmitter<{ conversation_id: string; id: string }>('confirmation.remove'),
   },

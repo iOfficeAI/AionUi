@@ -60,6 +60,7 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
       if (conversation_id !== message.conversation_id) {
         return;
       }
+
       // 过滤掉不属于当前活跃请求的事件（防止 abort 后的事件干扰）
       // 注意: 只过滤 thought 和 start 等状态消息，其他消息都必须渲染
       // Filter out events not belonging to current active request (prevents aborted events from interfering)
@@ -71,6 +72,7 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
           return;
         }
       }
+
       // console.log('responseStream.message', message);
       switch (message.type) {
         case 'thought':
@@ -84,6 +86,7 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
             setStreamRunning(false);
             // 只有当没有活跃工具时才清除 thought
             // Only clear thought when no active tools
+
             if (!hasActiveTools) {
               setThought({ subject: '', description: '' });
             }
@@ -153,6 +156,13 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
                 },
                 mergeExtra: true,
               });
+            }
+            setStreamRunning(false);
+            // 只有当没有活跃工具时才清除 thought
+            // Only clear thought when no active tools
+
+            if (!hasActiveTools) {
+              setThought({ subject: '', description: '' });
             }
           }
           break;

@@ -193,11 +193,13 @@ export class GeminiAgentManager extends BaseAgentManager<
   private getConfirmationButtons = (confirmationDetails: IMessageToolGroup['content'][number]['confirmationDetails'], t: (key: string, options?: any) => string) => {
     if (!confirmationDetails) return {};
     let question: string;
+    let description: string;
     const options: Array<{ label: string; value: ToolConfirmationOutcome }> = [];
     switch (confirmationDetails.type) {
       case 'edit':
         {
           question = t('messages.confirmation.applyChange');
+          description = confirmationDetails.fileName;
           options.push(
             {
               label: t('messages.confirmation.yesAllowOnce'),
@@ -214,6 +216,7 @@ export class GeminiAgentManager extends BaseAgentManager<
       case 'exec':
         {
           question = t('messages.confirmation.allowExecution');
+          description = confirmationDetails.command;
           options.push(
             {
               label: t('messages.confirmation.yesAllowOnce'),
@@ -230,6 +233,7 @@ export class GeminiAgentManager extends BaseAgentManager<
       case 'info':
         {
           question = t('messages.confirmation.proceed');
+          description = confirmationDetails.urls?.join(';') || confirmationDetails.prompt;
           options.push(
             {
               label: t('messages.confirmation.yesAllowOnce'),
@@ -249,6 +253,7 @@ export class GeminiAgentManager extends BaseAgentManager<
           toolName: mcpProps.toolName,
           serverName: mcpProps.serverName,
         });
+        description = confirmationDetails.serverName + ':' + confirmationDetails.toolName;
         options.push(
           {
             label: t('messages.confirmation.yesAllowOnce'),
@@ -273,6 +278,7 @@ export class GeminiAgentManager extends BaseAgentManager<
     }
     return {
       question,
+      description,
       options,
     };
   };
@@ -280,15 +286,15 @@ export class GeminiAgentManager extends BaseAgentManager<
     const execMessages = message.content.filter((c) => c.status === 'Confirming');
     if (execMessages.length) {
       execMessages.forEach((content) => {
-        const { question, options } = this.getConfirmationButtons(content.confirmationDetails, (k) => k);
+        const { question, options, description } = this.getConfirmationButtons(content.confirmationDetails, (k) => k);
         if (!question) return;
         this.addConfirmation({
           title: content.confirmationDetails?.title || '',
           id: content.callId,
           action: content.confirmationDetails.type,
-          descriptionKey: question || content.description || '',
+          description: description || content.description || '',
           callId: content.callId,
-          options: options.map((v) => ({ value: v.value, labelKey: v.label })),
+          options: options,
         });
       });
     }
@@ -298,6 +304,7 @@ export class GeminiAgentManager extends BaseAgentManager<
     super.init();
     // 接受来子进程的对话消息
     this.on('gemini.message', (data) => {
+      console.log('%c [ gemini.message ]-308', 'font-size:13px; background:pink; color:#bf2c9f;', data);
       if (data.type === 'finish') {
         this.status = 'finished';
       }

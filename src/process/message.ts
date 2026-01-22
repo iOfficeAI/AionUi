@@ -23,8 +23,9 @@ class ConversationManageWithDB {
   private db = getDatabase();
   private bootstrap: Promise<any>;
   private timer: NodeJS.Timeout;
+  private savePromise = Promise.resolve();
   constructor(private conversation_id: string) {
-    this.bootstrap = ensureConversationExists(this.db, this.conversation_id);
+    this.bootstrap = ensureConversationExists(this.db, this.conversation_id).catch(() => {});
   }
   static get(conversation_id: string) {
     if (Cache.has(conversation_id)) return Cache.get(conversation_id);
@@ -45,12 +46,12 @@ class ConversationManageWithDB {
   }
 
   private save2DataBase() {
-    this.bootstrap
-      .catch(() => {})
-      .finally(() => {
+    this.savePromise = this.savePromise
+      .then(() => this.bootstrap)
+      .then(() => {
         const stack = this.stack.slice();
         this.stack = [];
-        const messages = this.db.getConversationMessages(this.conversation_id, 1, 20, 'DESC'); //
+        const messages = this.db.getConversationMessages(this.conversation_id, 0, 50, 'DESC'); //
         let messageList = messages.data.reverse();
         let updateMessage = stack.shift();
         while (updateMessage) {
@@ -68,6 +69,14 @@ class ConversationManageWithDB {
           updateMessage = stack.shift();
         }
         executePendingCallbacks();
+      })
+      .then(() => {
+        return new Promise((resolve) => {
+          const timer = setTimeout(() => {
+            resolve();
+            clearTimeout(timer);
+          }, 10);
+        });
       });
   }
 }

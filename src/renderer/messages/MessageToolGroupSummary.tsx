@@ -2,27 +2,45 @@ import type { BadgeProps } from '@arco-design/web-react';
 import { Badge } from '@arco-design/web-react';
 import { IconDown, IconRight } from '@arco-design/web-react/icon';
 import React, { useMemo, useState } from 'react';
-import type { IMessageToolGroup } from '../../common/chatLib';
+import type { IMessageAcpToolCall, IMessageToolGroup } from '../../common/chatLib';
 
-const MessageToolGroupSummary: React.FC<{ messages: IMessageToolGroup[] }> = ({ messages }) => {
-  const [showMore, setShowMore] = useState(false);
+const ToolGroupMapper = (m: IMessageToolGroup) => {
+  return m.content.map(({ name, callId, description, confirmationDetails, status }) => {
+    let desc = description.slice(0, 100);
+    const type = confirmationDetails?.type;
+    if (type === 'edit') desc = confirmationDetails.fileName;
+    if (type === 'exec') desc = confirmationDetails.command;
+    if (type === 'info') desc = confirmationDetails.urls?.join(';') || confirmationDetails.title;
+    if (type === 'mcp') desc = confirmationDetails.serverName + ':' + confirmationDetails.toolName;
+    return {
+      key: callId,
+      name: name,
+      desc,
+      status: (status === 'Success' ? 'success' : status === 'Error' ? 'error' : status === 'Canceled' ? 'default' : 'processing') as BadgeProps['status'],
+    };
+  });
+};
+
+const ToolAcpMapper = (message: IMessageAcpToolCall) => {
+  const update = message.content.update;
+  if (!update) return;
+  return {
+    key: update.toolCallId,
+    name: update.rawInput?.description || update.title,
+    desc: update.rawInput?.command || update.kind,
+    status: update.status === 'completed' ? 'success' : update.status === 'failed' ? 'error' : ('default' as BadgeProps['status']),
+  };
+};
+const MessageToolGroupSummary: React.FC<{ messages: Array<IMessageToolGroup | IMessageAcpToolCall> }> = ({ messages }) => {
+  const [showMore, setShowMore] = useState(() => {
+    if (!messages.length) return false;
+    return messages.some((m) => (m.type === 'tool_group' && m.content.some((t) => t.status !== 'Success' && t.status !== 'Error' && t.status !== 'Canceled')) || (m.type === 'acp_tool_call' && m.content.update.status !== 'completed'));
+  });
   const tools = useMemo(() => {
     return messages
       .map((m) => {
-        return m.content.map(({ name, callId, description, confirmationDetails, status }) => {
-          let desc = description.slice(0, 100);
-          const type = confirmationDetails?.type;
-          if (type === 'edit') desc = confirmationDetails.fileName;
-          if (type === 'exec') desc = confirmationDetails.command;
-          if (type === 'info') desc = confirmationDetails.urls?.join(';') || confirmationDetails.title;
-          if (type === 'mcp') desc = confirmationDetails.serverName + ':' + confirmationDetails.toolName;
-          return {
-            key: callId,
-            name: name,
-            desc,
-            status: (status === 'Success' ? 'success' : status === 'Error' ? 'error' : status === 'Canceled' ? 'default' : 'processing') as BadgeProps['status'],
-          };
-        });
+        if (m.type === 'tool_group') return ToolGroupMapper(m);
+        return ToolAcpMapper(m);
       })
       .flat();
   }, [messages]);

@@ -147,7 +147,7 @@ export type IMessageToolGroup = IMessage<
       | IMessageToolGroupConfirmationDetailsBase<
           'info',
           {
-            urls: string[];
+            urls?: string[];
             prompt: string;
           }
         >
@@ -259,15 +259,12 @@ export type TMessage = IMessageText | IMessageTips | IMessageToolCall | IMessage
 // 统一所有需要用户交互的用户类型
 export interface IConfirmation<Option extends any = any> {
   title?: string;
-  titleKey?: string;
   id: string;
   action?: string;
-  description?: string;
-  descriptionKey?: string;
+  description: string;
   callId: string;
   options: Array<{
-    label?: string;
-    labelKey?: string;
+    label: string;
     value: Option;
   }>;
 }

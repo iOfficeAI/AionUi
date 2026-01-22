@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { CodexToolCallUpdate, IMessageToolGroup, TMessage } from '@/common/chatLib';
+import type { CodexToolCallUpdate, IMessageAcpToolCall, IMessageToolGroup, TMessage } from '@/common/chatLib';
 import { iconColors } from '@/renderer/theme/colors';
 import { Image } from '@arco-design/web-react';
 import { Down } from '@icon-park/react';
@@ -38,7 +38,7 @@ type IMessageVO =
   | {
       type: 'tool_summary';
       id: string;
-      messages: IMessageToolGroup[];
+      messages: Array<IMessageToolGroup | IMessageAcpToolCall>;
     };
 
 // 图片预览上下文 Image preview context
@@ -99,16 +99,16 @@ const MessageList: React.FC<{ className?: string }> = () => {
   const processedList = useMemo(() => {
     const result: Array<IMessageVO> = [];
     let diffsChanges: FileChangeInfo[] = [];
-    let toolList: IMessageToolGroup[] = [];
+    let toolList: Array<IMessageToolGroup | IMessageAcpToolCall> = [];
 
-    const pushDffChanges = (changes: FileChangeInfo) => {
+    const pushFileDffChanges = (changes: FileChangeInfo) => {
       if (!diffsChanges.length) {
         result.push({ type: 'file_summary', id: `summary-${uuid()}`, diffs: diffsChanges });
       }
       diffsChanges.push(changes);
       toolList = [];
     };
-    const pushToolList = (message: IMessageToolGroup) => {
+    const pushToolList = (message: IMessageToolGroup | IMessageAcpToolCall) => {
       if (!toolList.length) {
         result.push({ type: 'tool_summary', id: ``, messages: toolList });
       }
@@ -119,17 +119,21 @@ const MessageList: React.FC<{ className?: string }> = () => {
     for (let i = 0, len = list.length; i < len; i++) {
       const message = list[i];
       if (message.type === 'codex_tool_call' && message.content.subtype === 'turn_diff') {
-        pushDffChanges(parseDiff((message.content as TurnDiffContent).data.unified_diff));
+        pushFileDffChanges(parseDiff((message.content as TurnDiffContent).data.unified_diff));
         continue;
       }
       if (message.type === 'tool_group') {
         if (message.content.length === 1) {
           const writeFileResults = message.content.filter((item) => item.name === 'WriteFile' && item.resultDisplay && typeof item.resultDisplay === 'object' && 'fileDiff' in item.resultDisplay).map((item) => item.resultDisplay as WriteFileResult);
           if (writeFileResults.length && writeFileResults[0].fileDiff) {
-            pushDffChanges(parseDiff(writeFileResults[0].fileDiff, writeFileResults[0].fileName));
+            pushFileDffChanges(parseDiff(writeFileResults[0].fileDiff, writeFileResults[0].fileName));
             continue;
           }
         }
+        pushToolList(message);
+        continue;
+      }
+      if (message.type === 'acp_tool_call') {
         pushToolList(message);
         continue;
       }

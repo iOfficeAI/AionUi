@@ -750,19 +750,21 @@ const Guid: React.FC = () => {
         emitter.emit('chat.history.refresh');
 
         // 然后导航到会话页面
-        await navigate(`/conversation/${conversation.id}`);
 
         // 然后发送消息（文件通过 files 参数传递，不在消息中添加 @ 前缀）
         // Send message (files passed via files param, no @ prefix in message)
         const workspacePath = conversation.extra?.workspace || '';
         const displayMessage = buildDisplayMessage(input, files, workspacePath);
 
-        void ipcBridge.geminiConversation.sendMessage
+        return ipcBridge.geminiConversation.sendMessage
           .invoke({
             input: displayMessage,
             conversation_id: conversation.id,
             msg_id: uuid(),
             files,
+          })
+          .then(() => {
+            void navigate(`/conversation/${conversation.id}`);
           })
           .catch((error) => {
             console.error('Failed to send message:', error);

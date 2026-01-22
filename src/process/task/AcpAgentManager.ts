@@ -3,7 +3,7 @@ import { ipcBridge } from '@/common';
 import type { TMessage } from '@/common/chatLib';
 import { transformMessage } from '@/common/chatLib';
 import { AIONUI_FILES_MARKER } from '@/common/constants';
-import type { IConfirmMessageParams, IResponseMessage } from '@/common/ipcBridge';
+import type { IResponseMessage } from '@/common/ipcBridge';
 import { parseError, uuid } from '@/common/utils';
 import type { AcpBackend, AcpPermissionOption, AcpPermissionRequest } from '@/types/acpTypes';
 import { ACP_BACKENDS_ALL } from '@/types/acpTypes';
@@ -214,10 +214,6 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
       // msg_id: dat;
       callId: callId,
     });
-  }
-  async confirmMessage(data: Omit<IConfirmMessageParams, 'conversation_id'>) {
-    await this.bootstrap;
-    await this.agent.confirmMessage(data);
   }
 }
 
