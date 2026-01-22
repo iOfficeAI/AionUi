@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { AIONUI_TIMESTAMP_REGEX } from '@/common/constants';
+import { AIONUI_TIMESTAMP_REGEX, AIONUI_TIMESTAMP_SEPARATOR } from '@/common/constants';
 import type { IDirOrFile } from '@/common/ipcBridge';
 import { app } from 'electron';
 import { existsSync, lstatSync, mkdirSync, readlinkSync, symlinkSync, unlinkSync } from 'fs';
@@ -293,11 +293,49 @@ export async function verifyDirectoryFiles(dir1: string, dir2: string): Promise<
   }
 }
 
+const fileExists = async (filePath: string): Promise<boolean> => {
+  try {
+    await fs.access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+const resolveNonConflictingDestPath = async (dir: string, preferredFileName: string, fallbackFileName?: string): Promise<string> => {
+  const tryNames = [preferredFileName, fallbackFileName].filter((v): v is string => !!v && v.length > 0);
+  for (const name of tryNames) {
+    const candidate = path.join(dir, name);
+    if (!(await fileExists(candidate))) {
+      return candidate;
+    }
+  }
+
+  // Fall back to a timestamped name. We keep the separator format so existing
+  // cleanup regexes (`AIONUI_TIMESTAMP_REGEX`) still recognize it.
+  const base = preferredFileName || fallbackFileName || 'file';
+  const ext = path.extname(base);
+  const nameWithoutExt = path.basename(base, ext);
+  for (let attempt = 0; attempt < 100; attempt++) {
+    const ts = Date.now() + attempt;
+    const stampedName = `${nameWithoutExt}${AIONUI_TIMESTAMP_SEPARATOR}${ts}${ext}`;
+    const candidate = path.join(dir, stampedName);
+    if (!(await fileExists(candidate))) {
+      return candidate;
+    }
+  }
+
+  // Extremely unlikely, but don't silently overwrite.
+  throw new Error(`Unable to generate a unique file name for: ${base}`);
+};
+
 export const copyFilesToDirectory = async (dir: string, files?: string[]) => {
-  if (!files) return Promise.resolve();
+  if (!files || files.length === 0) return Promise.resolve(undefined);
 
   const { cacheDir } = getSystemDir();
   const tempDir = path.join(cacheDir, 'temp');
+
+  const copiedFiles: string[] = [];
 
   for (const file of files) {
     // 确保文件路径是绝对路径
@@ -306,32 +344,32 @@ export const copyFilesToDirectory = async (dir: string, files?: string[]) => {
     // 检查源文件是否存在
     try {
       await fs.access(absoluteFilePath);
-    } catch (error) {
+    } catch {
       console.warn(`[AionUi] Source file does not exist, skipping: ${absoluteFilePath}`);
       console.warn(`[AionUi] Original path: ${file}`);
       // 跳过不存在的文件，而不是抛出错误
       continue;
     }
 
-    let fileName = path.basename(absoluteFilePath);
+    const srcBaseName = path.basename(absoluteFilePath);
+    const isTempFile = absoluteFilePath.startsWith(tempDir);
 
-    // 如果是临时文件，去掉 AionUI 时间戳后缀
-    if (absoluteFilePath.startsWith(tempDir)) {
-      // 去掉 AionUI 时间戳后缀 (例如: package_aionui_1758016286689.json -> package.json)
-      fileName = fileName.replace(AIONUI_TIMESTAMP_REGEX, '$1');
-    }
-
-    const destPath = path.join(dir, fileName);
+    // Historically we stripped the `_aionui_<timestamp>` suffix for temp files to keep
+    // workspace filenames clean. That can cause collisions (e.g. multiple `image.png`)
+    // and overwrite earlier attachments. Prefer clean name, but avoid collisions.
+    const preferredName = isTempFile ? srcBaseName.replace(AIONUI_TIMESTAMP_REGEX, '$1') : srcBaseName;
+    const destPath = await resolveNonConflictingDestPath(dir, preferredName, isTempFile ? srcBaseName : undefined);
 
     try {
       await fs.copyFile(absoluteFilePath, destPath);
+      copiedFiles.push(destPath);
     } catch (error) {
       console.error(`[AionUi] Failed to copy file from ${absoluteFilePath} to ${destPath}:`, error);
       // 继续处理其他文件，而不是完全失败
     }
 
     // 如果是临时文件，复制完成后删除
-    if (absoluteFilePath.startsWith(tempDir)) {
+    if (isTempFile) {
       try {
         await fs.unlink(absoluteFilePath);
         console.log(`Cleaned up temp file: ${absoluteFilePath}`);
@@ -340,6 +378,8 @@ export const copyFilesToDirectory = async (dir: string, files?: string[]) => {
       }
     }
   }
+
+  return copiedFiles;
 };
 
 export function ensureDirectory(dirPath: string): void {
