@@ -47,9 +47,28 @@ const SendBox: React.FC<{
   const { activeBorderColor, inactiveBorderColor, activeShadow } = useInputFocusRing();
   const containerRef = useRef<HTMLDivElement>(null);
   const singleLineWidthRef = useRef<number>(0);
+  // Mirror the baseline width in state so recalculation can run once it becomes available.
+  const [singleLineBaseWidth, setSingleLineBaseWidth] = useState(0);
   const measurementCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const latestInputRef = useLatestRef(input);
   const setInputRef = useLatestRef(setInput);
+
+  const ensureSingleLineBaseWidth = useCallback(() => {
+    if (singleLineWidthRef.current > 0) {
+      return;
+    }
+
+    const textarea = containerRef.current?.querySelector('textarea');
+    if (!textarea) {
+      return;
+    }
+
+    const width = textarea.offsetWidth;
+    if (width > 0) {
+      singleLineWidthRef.current = width;
+      setSingleLineBaseWidth(width);
+    }
+  }, []);
 
   // 集成预览面板的"添加到聊天"功能 / Integrate preview panel's "Add to chat" functionality
   const { setSendBoxHandler, domSnippets, removeDomSnippet, clearDomSnippets } = usePreviewContext();
@@ -71,17 +90,10 @@ const SendBox: React.FC<{
   // Initialize and get the available width of single-line input
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (containerRef.current && singleLineWidthRef.current === 0) {
-        const textarea = containerRef.current.querySelector('textarea');
-        if (textarea) {
-          // 保存单行模式下的可用宽度作为固定基准
-          // Save the available width in single-line mode as a fixed baseline
-          singleLineWidthRef.current = textarea.offsetWidth;
-        }
-      }
+      ensureSingleLineBaseWidth();
     }, 100);
     return () => clearTimeout(timer);
-  }, []);
+  }, [ensureSingleLineBaseWidth]);
 
   // 检测是否单行
   // Detect whether to use single-line or multi-line mode
@@ -93,16 +105,16 @@ const SendBox: React.FC<{
       return;
     }
 
-    // 还没获取到基准宽度时不做判断
-    // Skip detection if baseline width is not yet obtained
-    if (singleLineWidthRef.current === 0) {
-      return;
-    }
-
     // 长文本无需测量，直接切换多行，防止创建超宽 DOM 触发长时间布局计算
     // Skip measurement for long text and switch to multi-line immediately to avoid expensive layout caused by extra-wide DOM
     if (input.length >= MAX_SINGLE_LINE_CHARACTERS) {
       setIsSingleLine(false);
+      return;
+    }
+
+    // 还没获取到基准宽度时不做判断
+    // Skip detection if baseline width is not yet obtained
+    if (singleLineWidthRef.current === 0 && singleLineBaseWidth === 0) {
       return;
     }
 
@@ -134,7 +146,7 @@ const SendBox: React.FC<{
 
       // 使用初始化时保存的固定宽度作为判断基准
       // Use the fixed baseline width saved during initialization
-      const baseWidth = singleLineWidthRef.current;
+      const baseWidth = singleLineWidthRef.current || singleLineBaseWidth;
 
       // 文本宽度超过基准宽度时切换到多行
       // Switch to multi-line when text width exceeds baseline width
@@ -152,7 +164,7 @@ const SendBox: React.FC<{
     });
 
     return () => cancelAnimationFrame(frame);
-  }, [input, lockMultiLine]);
+  }, [input, lockMultiLine, singleLineBaseWidth]);
 
   // 使用拖拽 hook
   const { isFileDragging, dragHandlers } = useDragUpload({
@@ -166,31 +178,31 @@ const SendBox: React.FC<{
   const { compositionHandlers, createKeyDownHandler } = useCompositionInput();
 
   // 使用共享的PasteService集成
-  const { onPaste, onFocus: handlePasteFocus } = usePasteService({
-    supportedExts,
-    onFilesAdded,
-    onTextPaste: (text: string) => {
-      // 处理清理后的文本粘贴，在当前光标位置插入文本而不是替换整个内容
-      const textarea = document.activeElement as HTMLTextAreaElement;
-      if (textarea && textarea.tagName === 'TEXTAREA') {
-        const cursorPosition = textarea.selectionStart;
-        const currentValue = textarea.value;
-        const newValue = currentValue.slice(0, cursorPosition) + text + currentValue.slice(cursorPosition);
-        setInput(newValue);
-        // 设置光标到插入文本后的位置
-        setTimeout(() => {
-          textarea.setSelectionRange(cursorPosition + text.length, cursorPosition + text.length);
-        }, 0);
-      } else {
-        // 如果无法获取光标位置，回退到追加到末尾的行为
-        setInput(text);
+  // For plain text paste inside a textarea, rely on native behavior so the browser
+  // properly replaces selection and Arco's autosize logic can react to real input events.
+  const { onPaste, onFocus: handlePasteFocus } = usePasteService({ supportedExts, onFilesAdded });
+
+  const handleTextAreaPaste = useCallback(
+    (event: React.ClipboardEvent) => {
+      // If the incoming text already contains newlines, switch to multi-line immediately.
+      // Doing this in the paste event avoids a one-render lag where the textarea stays 20px tall
+      // until blur/focus or a second input event triggers autosize recalculation.
+      const files = event.clipboardData?.files;
+      if (!files || files.length === 0) {
+        const text = event.clipboardData?.getData('text') || '';
+        if (text.includes('\n') || text.length >= MAX_SINGLE_LINE_CHARACTERS) {
+          setIsSingleLine(false);
+        }
       }
+      return onPaste(event);
     },
-  });
+    [onPaste]
+  );
   const handleInputFocus = useCallback(() => {
     handlePasteFocus();
+    ensureSingleLineBaseWidth();
     setIsInputFocused(true);
-  }, [handlePasteFocus]);
+  }, [handlePasteFocus, ensureSingleLineBaseWidth]);
   const handleInputBlur = useCallback(() => {
     setIsInputFocused(false);
   }, []);
@@ -283,9 +295,9 @@ const SendBox: React.FC<{
               marginLeft: 0,
               marginRight: 0,
               marginBottom: isSingleLine ? 0 : '8px',
-              height: isSingleLine ? '20px' : 'auto',
-              minHeight: isSingleLine ? '20px' : '80px',
-              overflowY: isSingleLine ? 'hidden' : 'auto',
+              height: isSingleLine ? '20px' : undefined,
+              minHeight: isSingleLine ? '20px' : undefined,
+              overflowY: isSingleLine ? 'hidden' : undefined,
               overflowX: 'hidden',
               whiteSpace: isSingleLine ? 'nowrap' : 'pre-wrap',
               textOverflow: isSingleLine ? 'ellipsis' : 'clip',
@@ -293,9 +305,12 @@ const SendBox: React.FC<{
               overflowWrap: 'break-word',
             }}
             onChange={(v) => {
+              if (v.includes('\n') || v.length >= MAX_SINGLE_LINE_CHARACTERS) {
+                setIsSingleLine(false);
+              }
               setInput(v);
             }}
-            onPaste={onPaste}
+            onPaste={handleTextAreaPaste}
             onFocus={handleInputFocus}
             onBlur={handleInputBlur}
             {...compositionHandlers}
