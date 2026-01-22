@@ -43,12 +43,12 @@
 
 <p align="center">
 
-[✨ ¿Qué puede hacer AionUi?](#✨-qué-puede-hacer-aionui) ·
-[🤔 ¿Por qué elegir AionUi?](#🤔-por-qué-elegir-aionui) ·
-[✨ Funciones principales](#✨-funciones-principales) ·
-[🚀 Inicio rápido](#🚀-inicio-rápido) ·
-[📖 Guía de uso detallada](#📖-guía-de-uso-detallada) ·
-[💬 Comunidad](#🤝-comunidad--soporte)
+[✨ ¿Qué puede hacer AionUi?](#qué-puede-hacer-aionui) ·
+[🤔 ¿Por qué elegir AionUi?](#por-qué-elegir-aionui) ·
+[✨ Funciones principales](#funciones-principales) ·
+[🚀 Inicio rápido](#inicio-rápido) ·
+[📖 Guía de uso detallada](#guía-de-uso-detallada) ·
+[💬 Comunidad](#comunidad-y-soporte)
 
 </p>
 

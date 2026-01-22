@@ -43,12 +43,12 @@
 
 <p align="center">
 
-[✨ What Can AionUi Do?](#✨-what-can-aionui-do) ·
-[🤔 Why Choose AionUi?](#🤔-why-choose-aionui) ·
-[✨ Core Features](#✨-core-features) ·
-[🚀 Quick Start](#🚀-quick-start) ·
-[📖 Detailed Usage Guide](#📖-detailed-usage-guide) ·
-[💬 Community](#🤝-community--support)
+[✨ What Can AionUi Do?](#-what-can-aionui-do) ·
+[🤔 Why Choose AionUi?](#-why-choose-aionui) ·
+[✨ Core Features](#-core-features) ·
+[🚀 Quick Start](#-quick-start) ·
+[📖 Detailed Usage Guide](#-detailed-usage-guide) ·
+[💬 Community](#-community--support)
 
 </p>
 
