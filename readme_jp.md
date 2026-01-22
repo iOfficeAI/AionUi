@@ -358,7 +358,7 @@ AionUiに貢献してくれたすべての開発者に感謝します！
 
 <p align="center">
   <a href="https://github.com/iOfficeAI/AionUi/graphs/contributors">
-    <img src="https://contrib.rocks/image?repo=iOfficeAI/AionUi&max=20" alt="貢献者" />
+    <img src="https://contrib.rocks/image?repo=iOfficeAI/AionUi&max=50" alt="貢献者" />
   </a>
 </p>
 
