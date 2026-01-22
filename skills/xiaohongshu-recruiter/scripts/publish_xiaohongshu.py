@@ -150,212 +150,161 @@ def publish(title, content, images):
             except Exception:
                 log("⚠️ 读取页面标题失败，继续执行...")
 
-        # 2. Login Check
-        # Do not block on login URL; proceed to form detection directly.
-
-        # Ensure publish form is ready after login/redirect
-            log("⏳ [步骤 3] 正在等待发布表单加载...")
+            # 2. Check login status - wait if on login page
             start = time.time()
-            title_selectors = [
-                "input[placeholder*='填写标题']",
-                "input[placeholder*='标题']",
-                "textarea[placeholder*='标题']",
-                "textarea[placeholder*='填写']",
-                "div[contenteditable='true']",
-            ]
-            def try_open_image_post_tab():
-                # Try a set of common entry points for image/text posts
-                candidates = [
-                    "text=发布图文",
-                    "text=图文发布",
-                    "text=上传图文",
-                    "text=图文",
-                    "text=笔记",
-                    "text=发布",
-                ]
-                for sel in candidates:
-                    try:
-                        loc = page.locator(sel).first
-                        if loc.count() > 0 and loc.is_visible():
-                            loc.click()
-                            time.sleep(1)
-                            return True
-                    except Exception:
-                        continue
-                return False
-
-            def click_text_anywhere(texts):
-                # Try clicking text in main page and all frames
-                for t in texts:
-                    try:
-                        loc = page.get_by_text(t).first
-                        if loc.count() > 0 and loc.is_visible():
-                            loc.click()
-                            time.sleep(1)
-                            return True
-                    except Exception:
-                        pass
-                for frame in page.frames:
-                    for t in texts:
-                        try:
-                            loc = frame.get_by_text(t).first
-                            if loc.count() > 0 and loc.is_visible():
-                                loc.click()
-                                time.sleep(1)
-                                return True
-                        except Exception:
-                            pass
-                return False
-
-            def fallback_fill_any_editable():
-                # Last resort: type into the largest visible contenteditable area
-                try:
-                    editables = page.locator("div[contenteditable='true']")
-                    if editables.count() > 0:
-                        editable = editables.first
-                        editable.click()
-                        editable.fill(content)
-                        return True
-                except Exception:
-                    pass
-                return False
-            def find_in_page_or_frames():
-                # Try main page first, then iframes
-                for sel in title_selectors:
-                    if page.locator(sel).count() > 0:
-                        return page, sel
-                for frame in page.frames:
-                    for sel in title_selectors:
-                        if frame.locator(sel).count() > 0:
-                            return frame, sel
-                return None, None
-
-            def login_prompt_visible() -> bool:
-                try:
-                    return page.locator("text=登录").count() > 0 or page.locator("text=扫码").count() > 0
-                except Exception:
-                    return False
-
-            # Do not block on login prompt; continue to try opening publish form
-            ctx, sel = find_in_page_or_frames()
-            if ctx is None and login_prompt_visible():
-                log("⚠️ 检测到登录提示，但继续尝试打开发布表单。")
-            reloaded = False
-            login_notice_shown = False
-            while True:
-                ctx, sel = find_in_page_or_frames()
-                if ctx and sel:
-                    break
+            while "/login" in page.url:
                 elapsed = int(time.time() - start)
-                log(f"⏳ 仍在等待表单加载... 已等待 {elapsed}s, 当前页面: {page.url}")
-                if "/login" in page.url:
-                    if not login_notice_shown:
-                        login_notice_shown = True
-                        log("⚠️ 当前为未登录态（401），请在打开的窗口完成登录，脚本会自动继续。")
-                    time.sleep(2)
-                    continue
-                if elapsed % 5 == 0:
-                    try_open_image_post_tab()
-                # If login wall is shown even on publish URL, hint and keep waiting
-                try:
-                    if page.locator("text=登录").count() > 0 or page.locator("text=扫码").count() > 0:
-                        log("⚠️  检测到登录提示，请先完成登录。")
-                except Exception:
-                    pass
-                if elapsed % 10 == 0:
-                    try:
-                        page.screenshot(path=f"xhs_wait_{elapsed}s.png", full_page=True)
-                        with open(f"xhs_wait_{elapsed}s.html", "w", encoding="utf-8") as f:
-                            f.write(page.content())
-                        log(f"📸 已保存截图与页面源码: xhs_wait_{elapsed}s.png / .html")
-                    except Exception:
-                        pass
-                if elapsed > 30 and not reloaded:
-                    reloaded = True
-                    log("🔄 页面加载超时，尝试刷新发布页...")
-                    page.goto("https://creator.xiaohongshu.com/publish/publish")
-                    try:
-                        page.wait_for_load_state("networkidle", timeout=15000)
-                    except Exception:
-                        pass
-                if elapsed > 15 and elapsed % 10 == 5:
-                    log("🔍 尝试从创作首页进入发布入口...")
-                    page.goto("https://creator.xiaohongshu.com/", wait_until="domcontentloaded")
-                    try:
-                        page.wait_for_load_state("networkidle", timeout=5000)
-                    except Exception:
-                        pass
-                    click_text_anywhere(["发布", "创作", "发布图文", "图文发布", "新建笔记", "发笔记"])
-                    time.sleep(1)
-                if elapsed > 45:
-                    log("⚠️ 长时间未找到表单，尝试兜底直接填充可编辑区域...")
-                    if fallback_fill_any_editable():
-                        log("✅ 已在可编辑区域填充正文，继续发布流程...")
-                        break
+                if elapsed == 0 or elapsed % 5 == 0:
+                    log("⚠️ 当前为未登录态，请在打开的窗口完成登录，脚本会自动继续。")
+                if elapsed > 120:
+                    log("❌ 登录等待超时（2分钟），请手动操作。")
+                    break
                 time.sleep(2)
+
+            # Also check for login prompts on publish page
+            try:
+                if page.locator("text=扫码登录").count() > 0:
+                    log("⚠️ 检测到登录弹窗，请扫码登录...")
+                    # Wait for login to complete (URL change or popup disappear)
+                    for _ in range(60):
+                        if page.locator("text=扫码登录").count() == 0:
+                            log("✅ 登录成功！")
+                            break
+                        time.sleep(2)
+            except Exception:
+                pass
+
             page.wait_for_timeout(1000)
 
-        # 3. Switch to Image Tab
-            log("🔄 [步骤 3] 正在切换到图文发布...")
-            try:
-                # Wait for the tab to appear
-                # Use a robust selector or text match
-                tab = page.locator("div, span").filter(has_text="上传图文").last()
-                tab.wait_for(timeout=5000)
-                tab.click()
-                time.sleep(1) # Visual pause
-            except Exception as e:
-                log(f"⚠️  切换图文发布失败（可能已在该页面）：{e}")
+            # 3. Switch to Image Tab - use direct URL navigation for reliability
+            log("🔄 [步骤 2] 正在切换到图文发布模式...")
+            current_url = page.url
+            if "target=video" in current_url or "上传视频" in page.content():
+                # Navigate directly to image upload mode via URL
+                page.goto("https://creator.xiaohongshu.com/publish/publish?from=tab_switch", wait_until="domcontentloaded")
+                page.wait_for_timeout(2000)
 
-        # 4. Upload Images
-            log("📤 [步骤 3] 正在上传图片...")
+            # Also try clicking the tab as backup
             try:
-                # Handle the file chooser
-                # We look for the file input. Usually hidden.
-                # We trigger it by clicking the upload area if needed, 
-                # or just setting input files if the input is present in DOM.
-                
-                # Strategy A: Set input files directly if input exists
-                upload_input = page.locator("input[type='file']")
-                if upload_input.count() > 0:
-                    upload_input.set_input_files(images)
+                # Use get_by_text with exact=False to find "上传图文" in the tab area
+                tabs = page.locator("text=上传图文")
+                if tabs.count() >= 2:
+                    # The second occurrence is usually the clickable tab
+                    tabs.nth(1).click()
+                    page.wait_for_timeout(1000)
+                elif tabs.count() == 1:
+                    tabs.first.click()
+                    page.wait_for_timeout(1000)
+            except Exception as e:
+                log(f"⚠️ 点击图文标签失败: {e}")
+
+            # Verify we're on image upload page
+            if page.locator("text=上传图片，或写文字生成图片").count() > 0:
+                log("✅ 已切换到图文发布模式")
+            else:
+                log("⚠️ 可能未成功切换，继续尝试...")
+
+            # 4. Upload Images BEFORE waiting for form (form appears after upload)
+            log("📤 [步骤 3] 正在上传图片...")
+            upload_success = False
+            try:
+                # Wait for file input to be present
+                page.wait_for_selector("input[type='file']", timeout=5000)
+
+                # Set input files directly - this works even for hidden inputs
+                upload_input = page.locator("input[type='file']").first
+                upload_input.set_input_files(images)
+                log(f"✅ 已选择 {len(images)} 张图片")
+                upload_success = True
+
+                # Wait for upload to process - look for the image count indicator
+                log("⏳ 等待图片上传完成...")
+                for i in range(20):
+                    # Check for "(N/18)" pattern which indicates upload progress
+                    if page.locator("text=/\\(\\d+\\/18\\)/").count() > 0:
+                        log("✅ 图片上传成功")
+                        break
+                    # Also check for title input which appears after upload
+                    if page.locator("input[placeholder*='标题']").count() > 0:
+                        log("✅ 检测到发布表单已加载")
+                        break
+                    time.sleep(0.5)
                 else:
-                    # Strategy B: Click button and handle chooser
-                    with page.expect_file_chooser() as fc_info:
-                        page.get_by_text("上传图片").first.click()
-                    file_chooser = fc_info.value
-                    file_chooser.set_files(images)
-                
-                # Wait for upload to process (simple wait)
-                page.wait_for_timeout(8000)
+                    log("⚠️ 等待上传确认超时，继续执行...")
             except Exception as e:
                 log(f"❌ 图片上传失败：{e}")
-                # Continue anyway to allow manual fix
-            
-        # 5. Fill Content
-            log("✍️  [步骤 3] 正在填写标题与正文...")
+                log("👉 请手动上传图片后继续")
+
+            # 5. NOW wait for form to appear (after image upload)
+            log("⏳ [步骤 4] 正在等待发布表单加载...")
+
+            # Wait for title input to appear (max 30 seconds)
+            title_input = None
+            for i in range(15):
+                # Try multiple selectors
+                for sel in [
+                    "input[placeholder*='填写标题']",
+                    "input[placeholder*='标题']",
+                ]:
+                    loc = page.locator(sel)
+                    if loc.count() > 0 and loc.first.is_visible():
+                        title_input = loc.first
+                        break
+                if title_input:
+                    log("✅ 发布表单已加载")
+                    break
+                if i % 5 == 0:
+                    log(f"⏳ 等待表单加载... ({i*2}s)")
+                time.sleep(2)
+
+            if not title_input:
+                log("⚠️ 未找到标题输入框，尝试查找可编辑区域...")
+                # Try contenteditable as fallback
+                editables = page.locator("div[contenteditable='true']")
+                if editables.count() > 0:
+                    title_input = editables.first
+                else:
+                    raise RuntimeError("无法找到任何可输入区域")
+
+            # 6. Fill Content
+            log("✍️ [步骤 5] 正在填写标题与正文...")
 
             # Title (Limit 20 chars)
             if len(title) > 20:
-                log(f"⚠️  标题过长（{len(title)} 字），已截断到 20 字。")
+                log(f"⚠️ 标题过长（{len(title)} 字），已截断到 20 字。")
                 title = title[:20]
 
             try:
-                # Title input (try multiple selectors)
-                ctx, sel = find_in_page_or_frames()
-                title_input = ctx.locator(sel).first if ctx and sel else None
-                if title_input is None:
-                    raise RuntimeError("找不到标题输入框")
                 title_input.click()
                 title_input.fill(title)
+                log(f"✅ 已填写标题: {title}")
 
-                # Content input (Textarea)
-                # Find the content editable div or textarea
-                # Xiaohongshu often uses a contenteditable div
-                content_input = ctx.locator(".c-input_textarea, #post-content, .ql-editor, div[contenteditable='true']").first
-                content_input.wait_for(timeout=10000)
-                content_input.click()
-                content_input.fill(content)
+                # Wait a moment for content area to be ready
+                page.wait_for_timeout(500)
+
+                # Content input - find the multiline textbox (content area)
+                # Based on observation: it's a textbox that appears after the title
+                content_selectors = [
+                    "div[contenteditable='true'] p",  # Rich text editor paragraph
+                    ".ql-editor",  # Quill editor
+                    "div[contenteditable='true']",
+                ]
+
+                content_input = None
+                for sel in content_selectors:
+                    loc = page.locator(sel)
+                    if loc.count() > 0:
+                        # Get the last one (content is usually after title)
+                        content_input = loc.last
+                        if content_input.is_visible():
+                            break
+
+                if content_input:
+                    content_input.click()
+                    content_input.fill(content)
+                    log("✅ 已填写正文内容")
+                else:
+                    log("⚠️ 未找到正文输入框")
 
             except Exception as e:
                 log(f"❌ 填写文本失败：{e}")

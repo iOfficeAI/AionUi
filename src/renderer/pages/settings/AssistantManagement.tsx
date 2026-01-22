@@ -11,6 +11,7 @@ import type { AcpBackendConfig, PresetAgentType } from '@/types/acpTypes';
 import MarkdownView from '@/renderer/components/Markdown';
 import EmojiPicker from '@/renderer/components/EmojiPicker';
 import coworkSvg from '@/renderer/assets/cowork.svg';
+import { ASSISTANT_PRESETS } from '@/common/presets/assistantPresets';
 
 // Skill 信息类型 / Skill info type
 interface SkillInfo {
@@ -132,10 +133,22 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
       // 从配置中读取已存储的助手（包含内置助手和用户自定义助手）
       // Read stored assistants from config (includes builtin and user-defined)
       const allAgents: AcpBackendConfig[] = (await ConfigStorage.get('acp.customAgents')) || [];
+      const presetOrder = ASSISTANT_PRESETS.map((preset) => `builtin-${preset.id}`);
 
       // 过滤出助手（isPreset 为 true 的助手）
       // Filter assistants (agents with isPreset = true)
-      const presetAssistants = allAgents.filter((agent) => agent.isPreset);
+      const presetAssistants = allAgents
+        .filter((agent) => agent.isPreset)
+        .sort((a, b) => {
+          const indexA = presetOrder.indexOf(a.id);
+          const indexB = presetOrder.indexOf(b.id);
+          if (indexA !== -1 || indexB !== -1) {
+            if (indexA === -1) return 1;
+            if (indexB === -1) return -1;
+            return indexA - indexB;
+          }
+          return 0;
+        });
 
       setAssistants(presetAssistants);
       setActiveAssistantId((prev) => prev || presetAssistants[0]?.id || null);
