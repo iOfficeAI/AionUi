@@ -354,7 +354,7 @@ brew install aionui
   </a>
 </td>
 <td>
-  [LINUX DO](https://linux.do/) - 新的理想型社区。
+  <a href="https://linux.do/" target="_blank">LINUX DO</a> - 新的理想型社区。
 </td>
 </tr>
 <tr>
@@ -364,7 +364,7 @@ brew install aionui
   </a>
 </td>
 <td>
-  [PackyCode](https://packycode.com) 是一家可靠高效的 API 中继服务提供商，为 Claude Code、Codex、Gemini 等平台提供中继服务。感谢 PackyCode 为支持 AionUi 用户低成本使用，为我们的用户提供专属 [9折优惠](https://www.packyapi.com/register?aff=aionui)。
+  <a href="https://packycode.com" target="_blank">PackyCode</a> 是一家可靠高效的 API 中继服务提供商，为 Claude Code、Codex、Gemini 等平台提供中继服务。感谢 PackyCode 为支持 AionUi 用户低成本使用，为我们的用户提供专属 <a href="https://www.packyapi.com/register?aff=aionui" target="_blank">9折优惠</a>。
 </td>
 </tr>
 </table>
