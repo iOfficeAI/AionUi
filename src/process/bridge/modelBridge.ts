@@ -90,6 +90,11 @@ export function initModelBridge(): void {
     const openai = new OpenAI({
       baseURL: base_url,
       apiKey: actualApiKey,
+      // 使用自定义 User-Agent，避免某些 API 中转站（如 packyapi）拦截 OpenAI SDK 默认的 User-Agent
+      // Use custom User-Agent to avoid some API proxies (like packyapi) blocking OpenAI SDK's default User-Agent
+      defaultHeaders: {
+        'User-Agent': 'AionUI/1.0',
+      },
     });
 
     try {
@@ -105,9 +110,13 @@ export function initModelBridge(): void {
 
       if (!try_fix) return errRes;
 
-      // 如果是 API key 问题，直接返回错误，不尝试修复 URL
-      // If it's an API key issue, return error directly without trying to fix URL
-      if (e.status === 401 || e.message?.includes('401') || e.message?.includes('Unauthorized') || e.message?.includes('Invalid API key')) {
+      // 如果是明确的 API key 问题，直接返回错误，不尝试修复 URL
+      // If it's a clear API key issue, return error directly without trying to fix URL
+      // 注意：403 可能是 URL 错误（如缺少 /v1）也可能是权限问题，需要根据错误消息判断
+      // Note: 403 could be URL error (missing /v1) or permission issue, need to check error message
+      const isAuthError = e.status === 401 || e.message?.includes('401') || e.message?.includes('Unauthorized') || e.message?.includes('Invalid API key');
+      const isPermissionError = e.message?.includes('已被禁用') || e.message?.includes('disabled') || e.message?.includes('quota') || e.message?.includes('rate limit');
+      if (isAuthError || isPermissionError) {
         return errRes;
       }
 

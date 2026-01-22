@@ -43,12 +43,12 @@
 
 <p align="center">
 
-[✨ O que o AionUi pode fazer?](#✨-o-que-o-aionui-pode-fazer) ·
-[🤔 Por que escolher o AionUi?](#🤔-por-que-escolher-o-aionui) ·
-[✨ Recursos principais](#✨-recursos-principais) ·
-[🚀 Início rápido](#🚀-início-rápido) ·
-[📖 Guia de uso detalhado](#📖-guia-de-uso-detalhado) ·
-[💬 Comunidade](#🤝-comunidade--suporte)
+[✨ O que o AionUi pode fazer?](#o-que-o-aionui-pode-fazer) ·
+[🤔 Por que escolher o AionUi?](#por-que-escolher-o-aionui) ·
+[✨ Recursos principais](#recursos-principais) ·
+[🚀 Início rápido](#início-rápido) ·
+[📖 Guia de uso detalhado](#guia-de-uso-detalhado) ·
+[💬 Comunidade](#comunidade-e-suporte)
 
 </p>
 
@@ -57,7 +57,7 @@
 ## ✨ O que o AionUi pode fazer?
 
 <p align="center">
-  <img src="./resources/offica-ai BANNER-function copy.png" alt="AionUi - Cowork with Your CLI AI Agent" width="800">
+  <img src="./resources/offica-ai BANNER-function.png" alt="AionUi - Cowork with Your CLI AI Agent" width="800">
 </p>
 
 ### 🤖 **Modo multiagente - Cowork para suas ferramentas de IA em linha de comando, interface gráfica unificada**
@@ -272,6 +272,8 @@ _Personalize com seu próprio CSS e faça a interface combinar com suas preferê
 - [📊 Processamento de Excel](https://github.com/iOfficeAI/AionUi/wiki/excel-processing) - Processamento de dados orientado por IA
 - [🎨 Geração de imagens](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide) - Criação de imagens com IA
 - [📚 Mais casos de uso](https://github.com/iOfficeAI/AionUi/wiki/Use-Cases-Overview)
+  - [🎬 WorldofAI](https://www.youtube.com/watch?v=yUU5E-U5B3M) - Avaliação no YouTube
+  - [🎬 Julian Goldie SEO](https://www.youtube.com/watch?v=enQnkKfth10) - Avaliação no YouTube
 
 ### ❓ Suporte e ajuda
 
@@ -358,7 +360,7 @@ Obrigado a todos os desenvolvedores que contribuíram para o AionUi!
 
 <p align="center">
   <a href="https://github.com/iOfficeAI/AionUi/graphs/contributors">
-    <img src="https://contrib.rocks/image?repo=iOfficeAI/AionUi&max=20" alt="Contributors" />
+    <img src="https://contrib.rocks/image?repo=iOfficeAI/AionUi&max=50" alt="Contributors" />
   </a>
 </p>
 

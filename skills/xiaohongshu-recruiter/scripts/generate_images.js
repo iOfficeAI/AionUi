@@ -18,25 +18,39 @@ const COLORS = {
   surface: '#1A1B20',
 };
 
-// Font Paths (Adjust based on available resources)
-// Assuming standard fonts available in the skill's assets or system
-const FONT_DIR = '/Users/pojian/Library/Application Support/AionUi/config/skills/canvas-design/canvas-fonts';
-// Ideally this should be configurable or relative to the skill
-const FONTS = {
-  monoBold: path.join(FONT_DIR, 'JetBrainsMono-Bold.ttf'),
-  monoReg: path.join(FONT_DIR, 'JetBrainsMono-Regular.ttf'),
-  sansReg: path.join(FONT_DIR, 'InstrumentSans-Regular.ttf'),
-  sansBold: path.join(FONT_DIR, 'InstrumentSans-Bold.ttf'),
-};
+// Font Paths - Try multiple locations with fallback
+// Priority: 1) AIONUI_FONTS_DIR env var, 2) skills/canvas-design relative path, 3) system fonts
+function getFontDir() {
+  const candidates = [process.env.AIONUI_FONTS_DIR, path.join(__dirname, '../../canvas-design/canvas-fonts'), path.join(process.env.HOME || '', 'Library/Application Support/AionUi/config/skills/canvas-design/canvas-fonts'), path.join(process.env.APPDATA || '', 'AionUi/config/skills/canvas-design/canvas-fonts')].filter(Boolean);
 
-// Register Fonts
-try {
-  registerFont(FONTS.monoBold, { family: 'Mono', weight: 'bold' });
-  registerFont(FONTS.monoReg, { family: 'Mono', weight: 'normal' });
-  registerFont(FONTS.sansReg, { family: 'Sans', weight: 'normal' });
-  registerFont(FONTS.sansBold, { family: 'Sans', weight: 'bold' });
-} catch (e) {
-  console.error('Error registering fonts:', e);
+  for (const dir of candidates) {
+    if (fs.existsSync(dir)) return dir;
+  }
+  return null;
+}
+
+const FONT_DIR = getFontDir();
+const FONTS = FONT_DIR
+  ? {
+      monoBold: path.join(FONT_DIR, 'JetBrainsMono-Bold.ttf'),
+      monoReg: path.join(FONT_DIR, 'JetBrainsMono-Regular.ttf'),
+      sansReg: path.join(FONT_DIR, 'InstrumentSans-Regular.ttf'),
+      sansBold: path.join(FONT_DIR, 'InstrumentSans-Bold.ttf'),
+    }
+  : null;
+
+// Register Fonts (skip if fonts not found - will use system defaults)
+if (FONTS) {
+  try {
+    registerFont(FONTS.monoBold, { family: 'Mono', weight: 'bold' });
+    registerFont(FONTS.monoReg, { family: 'Mono', weight: 'normal' });
+    registerFont(FONTS.sansReg, { family: 'Sans', weight: 'normal' });
+    registerFont(FONTS.sansBold, { family: 'Sans', weight: 'bold' });
+  } catch (e) {
+    console.warn('Custom fonts not available, using system defaults:', e.message);
+  }
+} else {
+  console.warn('Font directory not found, using system default fonts');
 }
 
 // --- Helpers ---

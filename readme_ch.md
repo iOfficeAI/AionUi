@@ -1,4 +1,4 @@
-﻿<p align="center">
+<p align="center">
   <img src="./resources/aionui-banner-1 copy.png" alt="AionUi - Cowork with Your CLI AI Agent" width="100%">
 </p>
 
@@ -43,12 +43,12 @@
 
 <p align="center">
 
-[✨ 看看能做什么](#✨-看看-aionui-能做什么) ·
-[🤔 为什么选择 AionUi](#🤔-为什么选择-aionui) ·
-[✨ 核心功能](#✨-核心功能) ·
-[🚀 快速开始](#🚀-快速开始) ·
-[📖 详细使用说明](#📖-详细使用说明) ·
-[💬 社区交流](#🤝-社区与支持)
+[✨ 看看能做什么](#看看-aionui-能做什么) ·
+[🤔 为什么选择 AionUi](#为什么选择-aionui) ·
+[✨ 核心功能](#核心功能) ·
+[🚀 快速开始](#快速开始) ·
+[📖 详细使用说明](#详细使用说明) ·
+[💬 社区交流](#社区与支持)
 
 </p>
 
@@ -57,7 +57,7 @@
 ## ✨ 看看 AionUi 能做什么？
 
 <p align="center">
-  <img src="./resources/offica-ai BANNER-function copy.png" alt="AionUi - Cowork with Your CLI AI Agent" width="800">
+  <img src="./resources/offica-ai BANNER-function.png" alt="AionUi - Cowork with Your CLI AI Agent" width="800">
 </p>
 
 ### 🤖 **多代理模式 - Cowork for 你的命令行 AI 工具，统一图形界面**
@@ -272,6 +272,8 @@ _自己写 CSS 代码自定义，让你的交互界面符合你的心意_
 - [📊 Excel 处理](https://github.com/iOfficeAI/AionUi/wiki/excel-processing) - AI 驱动的数据处理
 - [🎨 图像生成](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide-Chinese) - AI 图像创作
 - [📚 更多使用案例](https://github.com/iOfficeAI/AionUi/wiki/Use-Cases-Overview-Chinese)
+  - [🎬 WorldofAI](https://www.youtube.com/watch?v=yUU5E-U5B3M) - YouTube 视频测评
+  - [🎬 Julian Goldie SEO](https://www.youtube.com/watch?v=enQnkKfth10) - YouTube 视频测评
 
 ### ❓ 支持与帮助
 
@@ -344,6 +346,31 @@ brew install aionui
 4. 推送到分支 (`git push origin feature/AmazingFeature`)
 5. 打开 Pull Request
 
+### 🙏 特别感谢
+
+<table>
+<tr>
+<td width="170" align="center">
+  <a href="https://linux.do/" target="_blank">
+    <img src="./resources/linuxdo.png" alt="LINUX DO" width="150">
+  </a>
+</td>
+<td>
+  <a href="https://linux.do/" target="_blank">LINUX DO</a> - 新的理想型社区。
+</td>
+</tr>
+<tr>
+<td width="170" align="center">
+  <a href="https://packycode.com" target="_blank">
+    <img src="./resources/packycode.png" alt="PackyCode" width="150">
+  </a>
+</td>
+<td>
+  <a href="https://packycode.com" target="_blank">PackyCode</a> 是一家可靠高效的 API 中继服务提供商，为 Claude Code、Codex、Gemini 等平台提供中继服务。感谢 PackyCode 为支持 AionUi 用户低成本使用，为我们的用户提供专属 <a href="https://www.packyapi.com/register?aff=aionui" target="_blank">9折优惠</a>，付款时使用优惠码 <code>aionui</code> 可立减 10%。
+</td>
+</tr>
+</table>
+
 ---
 
 ## 📄 许可证
@@ -358,7 +385,7 @@ brew install aionui
 
 <p align="center">
   <a href="https://github.com/iOfficeAI/AionUi/graphs/contributors">
-    <img src="https://contrib.rocks/image?repo=iOfficeAI/AionUi&max=20" alt="Contributors" />
+    <img src="https://contrib.rocks/image?repo=iOfficeAI/AionUi&max=50" alt="Contributors" />
   </a>
 </p>
 

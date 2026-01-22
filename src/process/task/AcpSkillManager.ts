@@ -80,14 +80,51 @@ function extractBody(content: string): string {
 /**
  * ACP Skill Manager
  * 为 ACP agents 提供 skills 的索引加载和按需获取能力
+ *
+ * 使用单例模式避免重复文件系统扫描
+ * Uses singleton pattern to avoid repeated filesystem scans
  */
 export class AcpSkillManager {
+  private static instance: AcpSkillManager | null = null;
+  private static instanceKey: string | null = null;
+
   private skills: Map<string, SkillDefinition> = new Map();
   private skillsDir: string;
   private initialized: boolean = false;
 
   constructor(skillsDir?: string) {
     this.skillsDir = skillsDir || getSkillsDir();
+  }
+
+  /**
+   * 获取单例实例（带 enabledSkills 缓存键）
+   * Get singleton instance (with enabledSkills cache key)
+   *
+   * @param enabledSkills - 启用的 skills 列表，用作缓存键 / Enabled skills list, used as cache key
+   * @returns AcpSkillManager 实例 / AcpSkillManager instance
+   */
+  static getInstance(enabledSkills?: string[]): AcpSkillManager {
+    const cacheKey = enabledSkills?.sort().join(',') || 'all';
+
+    // 如果缓存键变化，需要重新创建实例
+    // If cache key changed, need to recreate instance
+    if (AcpSkillManager.instance && AcpSkillManager.instanceKey === cacheKey) {
+      return AcpSkillManager.instance;
+    }
+
+    // 创建新实例
+    AcpSkillManager.instance = new AcpSkillManager();
+    AcpSkillManager.instanceKey = cacheKey;
+    return AcpSkillManager.instance;
+  }
+
+  /**
+   * 重置单例实例（用于测试或配置变更）
+   * Reset singleton instance (for testing or config changes)
+   */
+  static resetInstance(): void {
+    AcpSkillManager.instance = null;
+    AcpSkillManager.instanceKey = null;
   }
 
   /**

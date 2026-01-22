@@ -43,12 +43,12 @@
 
 <p align="center">
 
-[✨ AionUi로 무엇을 할 수 있나요?](#✨-aionui로-무엇을-할-수-있나요) ·
-[🤔 왜 AionUi를 선택해야 하나요?](#🤔-왜-aionui를-선택해야-하나요) ·
-[✨ 핵심 기능](#✨-핵심-기능) ·
-[🚀 빠른 시작](#🚀-빠른-시작) ·
-[📖 상세 사용 가이드](#📖-상세-사용-가이드) ·
-[💬 커뮤니티](#🤝-커뮤니티--지원)
+[✨ AionUi로 무엇을 할 수 있나요?](#aionui로-무엇을-할-수-있나요) ·
+[🤔 왜 AionUi를 선택해야 하나요?](#왜-aionui를-선택해야-하나요) ·
+[✨ 핵심 기능](#핵심-기능) ·
+[🚀 빠른 시작](#빠른-시작) ·
+[📖 상세 사용 가이드](#상세-사용-가이드) ·
+[💬 커뮤니티](#커뮤니티--지원)
 
 </p>
 
@@ -57,7 +57,7 @@
 ## ✨ AionUi로 무엇을 할 수 있나요?
 
 <p align="center">
-  <img src="./resources/offica-ai BANNER-function copy.png" alt="AionUi - Cowork with Your CLI AI Agent" width="800">
+  <img src="./resources/offica-ai BANNER-function.png" alt="AionUi - Cowork with Your CLI AI Agent" width="800">
 </p>
 
 ### 🤖 **멀티 에이전트 모드 - 명령줄 AI 도구를 위한 통합 그래픽 인터페이스**
@@ -272,6 +272,8 @@ _나만의 CSS 코드로 커스터마이즈하여 인터페이스를 취향에 �
 - [📊 Excel 처리](https://github.com/iOfficeAI/AionUi/wiki/excel-processing) - AI 기반 데이터 처리
 - [🎨 이미지 생성](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide) - AI 이미지 생성
 - [📚 더 많은 사용 사례](https://github.com/iOfficeAI/AionUi/wiki/Use-Cases-Overview)
+  - [🎬 WorldofAI](https://www.youtube.com/watch?v=yUU5E-U5B3M) - YouTube 영상 리뷰
+  - [🎬 Julian Goldie SEO](https://www.youtube.com/watch?v=enQnkKfth10) - YouTube 영상 리뷰
 
 ### ❓ 지원 및 도움말
 
@@ -358,7 +360,7 @@ AionUi에 기여해 주신 모든 개발자분들께 감사드립니다!
 
 <p align="center">
   <a href="https://github.com/iOfficeAI/AionUi/graphs/contributors">
-    <img src="https://contrib.rocks/image?repo=iOfficeAI/AionUi&max=20" alt="Contributors" />
+    <img src="https://contrib.rocks/image?repo=iOfficeAI/AionUi&max=50" alt="Contributors" />
   </a>
 </p>
 
