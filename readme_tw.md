@@ -43,12 +43,12 @@
 
 <p align="center">
 
-[✨ 看看 AionUi 能做什麼](#✨-看看-aionui-能做什麼) ·
-[🤔 為什麼選擇 AionUi](#🤔-為什麼選擇-aionui) ·
-[✨ 核心功能](#✨-核心功能) ·
-[🚀 快速開始](#🚀-快速開始) ·
-[📖 詳細使用說明](#📖-詳細使用說明) ·
-[💬 社群交流](#🤝-社群與支援)
+[✨ 看看 AionUi 能做什麼](#看看-aionui-能做什麼) ·
+[🤔 為什麼選擇 AionUi](#為什麼選擇-aionui) ·
+[✨ 核心功能](#核心功能) ·
+[🚀 快速開始](#快速開始) ·
+[📖 詳細使用說明](#詳細使用說明) ·
+[💬 社群交流](#社群與支援)
 
 </p>
 
@@ -358,7 +358,7 @@ brew install aionui
 
 <p align="center">
   <a href="https://github.com/iOfficeAI/AionUi/graphs/contributors">
-    <img src="https://contrib.rocks/image?repo=iOfficeAI/AionUi&max=20" alt="Contributors" />
+    <img src="https://contrib.rocks/image?repo=iOfficeAI/AionUi&max=50" alt="Contributors" />
   </a>
 </p>
 

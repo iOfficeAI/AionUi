@@ -43,12 +43,12 @@
 
 <p align="center">
 
-[✨ What Can AionUi Do?](#✨-what-can-aionui-do) ·
-[🤔 Why Choose AionUi?](#🤔-why-choose-aionui) ·
-[✨ Core Features](#✨-core-features) ·
-[🚀 Quick Start](#🚀-quick-start) ·
-[📖 Detailed Usage Guide](#📖-detailed-usage-guide) ·
-[💬 Community](#🤝-community--support)
+[✨ What Can AionUi Do?](#-what-can-aionui-do) ·
+[🤔 Why Choose AionUi?](#-why-choose-aionui) ·
+[✨ Core Features](#-core-features) ·
+[🚀 Quick Start](#-quick-start) ·
+[📖 Detailed Usage Guide](#-detailed-usage-guide) ·
+[💬 Community](#-community--support)
 
 </p>
 
@@ -358,7 +358,7 @@ Thanks to all developers who have contributed to AionUi!
 
 <p align="center">
   <a href="https://github.com/iOfficeAI/AionUi/graphs/contributors">
-    <img src="https://contrib.rocks/image?repo=iOfficeAI/AionUi&max=20" alt="Contributors" />
+    <img src="https://contrib.rocks/image?repo=iOfficeAI/AionUi&max=50" alt="Contributors" />
   </a>
 </p>
 

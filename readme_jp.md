@@ -43,12 +43,12 @@
 
 <p align="center">
 
-[✨ AionUiでできること](#✨-aionuiでできること) ·
-[🤔 なぜAionUiを選ぶのか](#🤔-なぜaionuiを選ぶのか) ·
-[✨ コア機能](#✨-コア機能) ·
-[🚀 クイックスタート](#🚀-クイックスタート) ·
-[📖 詳細使用説明](#📖-詳細使用説明) ·
-[💬 コミュニティ](#🤝-コミュニティとサポート)
+[✨ AionUiでできること](#aionuiでできること) ·
+[🤔 なぜAionUiを選ぶのか](#なぜaionuiを選ぶのか) ·
+[✨ コア機能](#コア機能) ·
+[🚀 クイックスタート](#クイックスタート) ·
+[📖 詳細使用説明](#詳細使用説明) ·
+[💬 コミュニティ](#コミュニティとサポート)
 
 </p>
 
@@ -358,7 +358,7 @@ AionUiに貢献してくれたすべての開発者に感謝します！
 
 <p align="center">
   <a href="https://github.com/iOfficeAI/AionUi/graphs/contributors">
-    <img src="https://contrib.rocks/image?repo=iOfficeAI/AionUi&max=20" alt="貢献者" />
+    <img src="https://contrib.rocks/image?repo=iOfficeAI/AionUi&max=50" alt="貢献者" />
   </a>
 </p>
 
