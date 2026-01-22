@@ -272,6 +272,8 @@ _Customize with your own CSS code, make your interface match your preferences_
 - [📊 Excel Processing](https://github.com/iOfficeAI/AionUi/wiki/excel-processing) - AI-driven data processing
 - [🎨 Image Generation](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide) - AI image creation
 - [📚 More Use Cases](https://github.com/iOfficeAI/AionUi/wiki/Use-Cases-Overview)
+  - [🎬 WorldofAI](https://www.youtube.com/watch?v=yUU5E-U5B3M) - YouTube Video Review
+  - [🎬 Julian Goldie SEO](https://www.youtube.com/watch?v=enQnkKfth10) - YouTube Video Review
 
 ### ❓ Support & Help
 

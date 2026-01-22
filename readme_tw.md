@@ -57,7 +57,7 @@
 ## ✨ 看看 AionUi 能做什麼？
 
 <p align="center">
-  <img src="./resources/offica-ai BANNER-function copy.png" alt="AionUi - Cowork with Your CLI AI Agent" width="800">
+  <img src="./resources/offica-ai BANNER-function.png" alt="AionUi - Cowork with Your CLI AI Agent" width="800">
 </p>
 
 ### 🤖 **多代理模式 - 為您的命令列 AI 工具提供統一圖形介面**
@@ -272,6 +272,8 @@ _自己寫 CSS 程式碼自訂，讓您的互動介面符合您的心意_
 - [📊 Excel 處理](https://github.com/iOfficeAI/AionUi/wiki/excel-processing) - AI 驅動的資料處理
 - [🎨 圖像生成](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide) - AI 圖像創作
 - [📚 更多使用案例](https://github.com/iOfficeAI/AionUi/wiki/Use-Cases-Overview)
+  - [🎬 WorldofAI](https://www.youtube.com/watch?v=yUU5E-U5B3M) - YouTube 影片測評
+  - [🎬 Julian Goldie SEO](https://www.youtube.com/watch?v=enQnkKfth10) - YouTube 影片測評
 
 ### ❓ 支援與幫助
 
