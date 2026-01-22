@@ -346,10 +346,28 @@ brew install aionui
 
 ### 🙏 特别感谢
 
-|                                                                                                                       |                                                                                                                                                                                                                                                       |
-| :-------------------------------------------------------------------------------------------------------------------: | :---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-|    <a href="https://linux.do/" target="_blank"><img src="./resources/linuxdo.png" alt="LINUX DO" width="200"></a>     | [LINUX DO](https://linux.do/) - 新的理想型社区。                                                                                                                                                                                                      |
-| <a href="https://packycode.com" target="_blank"><img src="./resources/packycode.png" alt="PackyCode" width="200"></a> | [PackyCode](https://packycode.com) 是一家可靠高效的 API 中继服务提供商，为 Claude Code、Codex、Gemini 等平台提供中继服务。感谢 PackyCode 为支持 AionUi 用户低成本使用，为我们的用户提供专属 [9折优惠](https://www.packyapi.com/register?aff=aionui)。 |
+<table>
+<tr>
+<td width="170" align="center">
+  <a href="https://linux.do/" target="_blank">
+    <img src="./resources/linuxdo.png" alt="LINUX DO" width="150">
+  </a>
+</td>
+<td>
+  [LINUX DO](https://linux.do/) - 新的理想型社区。
+</td>
+</tr>
+<tr>
+<td width="170" align="center">
+  <a href="https://packycode.com" target="_blank">
+    <img src="./resources/packycode.png" alt="PackyCode" width="150">
+  </a>
+</td>
+<td>
+  [PackyCode](https://packycode.com) 是一家可靠高效的 API 中继服务提供商，为 Claude Code、Codex、Gemini 等平台提供中继服务。感谢 PackyCode 为支持 AionUi 用户低成本使用，为我们的用户提供专属 [9折优惠](https://www.packyapi.com/register?aff=aionui)。
+</td>
+</tr>
+</table>
 
 ---
 
