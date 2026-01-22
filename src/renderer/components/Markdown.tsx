@@ -12,6 +12,7 @@ import rehypeKatex from 'rehype-katex';
 import remarkBreaks from 'remark-breaks';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
+import 'katex/dist/katex.min.css';
 
 import { ipcBridge } from '@/common';
 import { Copy, Down, Up } from '@icon-park/react';
@@ -23,6 +24,46 @@ import { useTranslation } from 'react-i18next';
 import LocalImageView from './LocalImageView';
 import { addImportantToAll } from '../utils/customCssProcessor';
 import classNames from 'classnames';
+import { normalizeLatexDelimiters } from '@/renderer/utils/markdownMath';
+
+let cachedKatexCssText: string | null = null;
+
+const getKatexCssText = (): string => {
+  if (cachedKatexCssText !== null) return cachedKatexCssText;
+
+  try {
+    // style-loader injects CSS into <style> tags; ShadowRoot can't see it.
+    const styles = Array.from(document.querySelectorAll('style'));
+    const katexBlocks = styles.map((el) => el.textContent || '').filter((css) => css.includes('.katex'));
+    if (katexBlocks.length > 0) {
+      cachedKatexCssText = katexBlocks.join('\n');
+      return cachedKatexCssText;
+    }
+
+    // Fallback: best-effort extract from CSSStyleSheet rules.
+    const rules: string[] = [];
+    for (const sheet of Array.from(document.styleSheets)) {
+      try {
+        // Some sheets may be cross-origin or otherwise restricted.
+        const cssRules = (sheet as CSSStyleSheet).cssRules;
+        if (!cssRules) continue;
+        for (const rule of Array.from(cssRules)) {
+          const text = rule.cssText || '';
+          if (text.includes('.katex')) {
+            rules.push(text);
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }
+    cachedKatexCssText = rules.join('\n');
+    return cachedKatexCssText;
+  } catch {
+    cachedKatexCssText = '';
+    return cachedKatexCssText;
+  }
+};
 
 const formatCode = (code: string) => {
   const content = String(code).replace(/\n$/, '');
@@ -174,8 +215,9 @@ function CodeBlock(props: any) {
   }, [props, currentTheme, fold]);
 }
 
-const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string>, customCss?: string) => {
+const createInitStyle = (_currentTheme = 'light', cssVars?: Record<string, string>, customCss?: string) => {
   const style = document.createElement('style');
+  const katexCss = getKatexCssText();
   // 将外部 CSS 变量注入到 Shadow DOM 中，支持深色模式 Inject external CSS variables into Shadow DOM for dark mode support
   const cssVarsDeclaration = cssVars
     ? Object.entries(cssVars)
@@ -189,9 +231,14 @@ const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string
     ${cssVarsDeclaration}
   }
 
-  * {
-    line-height:26px;
-    font-size:14px;
+  /*
+   * Base typography for markdown content.
+   * Avoid applying font-size/line-height to every element, because KaTeX relies
+   * on nested spans inheriting its own font metrics (fractions/layout break if overridden).
+   */
+  .markdown-shadow-body {
+    line-height: 26px;
+    font-size: 14px;
   }
 
   .markdown-shadow-body {
@@ -269,6 +316,9 @@ const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string
       transform: rotate(360deg);
     }
   }
+
+  /* KaTeX CSS copied into Shadow DOM (global styles don't penetrate ShadowRoot) */
+  ${katexCss || ''}
 
   /* 用户自定义 CSS（注入到 Shadow DOM）User Custom CSS (injected into Shadow DOM) */
   ${customCss || ''}
@@ -394,7 +444,8 @@ const MarkdownView: React.FC<MarkdownViewProps> = ({ hiddenCodeCopyButton, codeS
 
   const normalizedChildren = useMemo(() => {
     if (typeof childrenProp === 'string') {
-      return childrenProp.replace(/file:\/\//g, '');
+      const cleaned = childrenProp.replace(/file:\/\//g, '');
+      return normalizeLatexDelimiters(cleaned);
     }
     return childrenProp;
   }, [childrenProp]);
@@ -414,7 +465,7 @@ const MarkdownView: React.FC<MarkdownViewProps> = ({ hiddenCodeCopyButton, codeS
       <ShadowView>
         <div ref={onRef} className='markdown-shadow-body'>
           <ReactMarkdown
-            remarkPlugins={[remarkGfm, remarkMath, remarkBreaks]}
+            remarkPlugins={[remarkGfm, [remarkMath, { singleDollarTextMath: true }], remarkBreaks]}
             rehypePlugins={[rehypeKatex]}
             components={{
               code: (props: any) => CodeBlock({ ...props, codeStyle, hiddenCodeCopyButton }),

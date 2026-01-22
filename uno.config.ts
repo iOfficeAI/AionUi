@@ -96,7 +96,8 @@ export default defineConfig({
   transformers: [transformerVariantGroup(), transformerDirectives({ enforce: 'pre' })],
   content: {
     pipeline: {
-      include: ['src/**/*.{ts,tsx,vue,css}'],
+      // Streamdown ships Tailwind-classed JSX in dist/*.js; include it so UnoCSS generates styles.
+      include: ['src/**/*.{ts,tsx,vue,css}', 'node_modules/streamdown/dist/**/*.{js,mjs}'],
       exclude: [/\.html($|\?)/],
     },
   },

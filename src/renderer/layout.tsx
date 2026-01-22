@@ -8,6 +8,7 @@ import { ipcBridge } from '@/common';
 import { ConfigStorage } from '@/common/storage';
 import PwaPullToRefresh from '@/renderer/components/PwaPullToRefresh';
 import Titlebar from '@/renderer/components/Titlebar';
+import 'katex/dist/katex.min.css';
 import { Layout as ArcoLayout } from '@arco-design/web-react';
 import { MenuFold, MenuUnfold } from '@icon-park/react';
 import classNames from 'classnames';

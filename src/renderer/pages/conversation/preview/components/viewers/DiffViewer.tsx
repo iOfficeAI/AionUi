@@ -13,9 +13,13 @@ import ReactMarkdown from 'react-markdown';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { vs, vs2015 } from 'react-syntax-highlighter/dist/esm/styles/hljs';
 import remarkGfm from 'remark-gfm';
+import remarkMath from 'remark-math';
+import remarkBreaks from 'remark-breaks';
+import rehypeKatex from 'rehype-katex';
 import SelectionToolbar from '../renderers/SelectionToolbar';
 import { useTranslation } from 'react-i18next';
 import { extractContentFromDiff } from '@/renderer/utils/diffUtils';
+import { normalizeLatexDelimiters } from '@/renderer/utils/markdownMath';
 
 interface DiffPreviewProps {
   content: string; // Diff 内容 / Diff content
@@ -86,7 +90,7 @@ const DiffPreview: React.FC<DiffPreviewProps> = ({ content, metadata, onClose, h
   };
 
   // 提取纯净的文件内容 / Extract clean file content
-  const cleanContent = extractContentFromDiff(content);
+  const cleanContent = normalizeLatexDelimiters(extractContentFromDiff(content));
 
   // 判断提取的内容是否为 markdown / Check if extracted content is markdown
   const isMarkdownContent = metadata?.title?.toLowerCase().endsWith('.md') || metadata?.title?.toLowerCase().endsWith('.markdown');
@@ -131,7 +135,8 @@ const DiffPreview: React.FC<DiffPreviewProps> = ({ content, metadata, onClose, h
         isMarkdownContent ? (
           // Markdown 文件：渲染 markdown / Markdown file: Render markdown
           <ReactMarkdown
-            remarkPlugins={[remarkGfm]}
+            remarkPlugins={[remarkGfm, [remarkMath, { singleDollarTextMath: true }], remarkBreaks]}
+            rehypePlugins={[rehypeKatex]}
             components={{
               code({ className, children, ...props }: any) {
                 const match = /language-(\w+)/.exec(className || '');

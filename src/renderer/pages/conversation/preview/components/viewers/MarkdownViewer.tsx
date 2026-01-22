@@ -25,6 +25,7 @@ import { Streamdown } from 'streamdown';
 import MarkdownEditor from '../editors/MarkdownEditor';
 import SelectionToolbar from '../renderers/SelectionToolbar';
 import { useContainerScroll, useContainerScrollTarget } from '../../hooks/useScrollSyncHelpers';
+import { normalizeLatexDelimiters } from '@/renderer/utils/markdownMath';
 
 interface MarkdownPreviewProps {
   content: string; // Markdown 内容 / Markdown content
@@ -195,7 +196,7 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({ content, onClose, hid
   const viewMode = externalViewMode !== undefined ? externalViewMode : internalViewMode;
 
   // 🎯 使用流式打字动画 Hook / Use typing animation Hook
-  const previewSource = useMemo(() => rewriteExternalMediaUrls(content), [content]);
+  const previewSource = useMemo(() => normalizeLatexDelimiters(rewriteExternalMediaUrls(content)), [content]);
 
   const { displayedContent, isAnimating } = useTypingAnimation({
     content: previewSource,
@@ -373,7 +374,7 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({ content, onClose, hid
               parseIncompleteMarkdown={true}
               // 启用动画效果（当正在打字时）/ Enable animation when typing
               isAnimating={isAnimating}
-              remarkPlugins={[remarkGfm, remarkMath, remarkBreaks]}
+              remarkPlugins={[remarkGfm, [remarkMath, { singleDollarTextMath: true }], remarkBreaks]}
               rehypePlugins={[rehypeRaw, rehypeKatex]}
               components={{
                 img({ src, alt, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) {
