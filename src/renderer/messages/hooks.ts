@@ -138,7 +138,10 @@ function composeMessageWithIndex(message: TMessage, list: TMessage[], index: Mes
   if (message.type === 'text' && last.type === 'text') {
     message.content.content = last.content.content + message.content.content;
   }
+  // Preserve stable identity for React list keys.
+  const preservedId = last.id;
   Object.assign(last, message);
+  last.id = preservedId;
   return list;
 }
 

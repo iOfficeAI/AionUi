@@ -277,7 +277,9 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
     case 'content':
     case 'user_content': {
       return {
-        id: uuid(),
+        // Use msg_id as a stable React key for streaming chunks.
+        // Otherwise, each delta overwrites `id` via Object.assign and causes flicker/remount.
+        id: message.msg_id || uuid(),
         type: 'text',
         msg_id: message.msg_id,
         position: message.type === 'content' ? 'left' : 'right',
@@ -453,7 +455,10 @@ export const composeMessage = (message: TMessage | undefined, list: TMessage[] |
   if (message.type === 'text' && last.type === 'text') {
     message.content.content = last.content.content + message.content.content;
   }
+  // Preserve stable identity for React list keys.
+  const preservedId = last.id;
   Object.assign(last, message);
+  last.id = preservedId;
   return list;
 };
 
