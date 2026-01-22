@@ -344,6 +344,31 @@ brew install aionui
 4. 推送到分支 (`git push origin feature/AmazingFeature`)
 5. 開啟 Pull Request
 
+### 🙏 特別感謝
+
+<table>
+<tr>
+<td width="170" align="center">
+  <a href="https://linux.do/" target="_blank">
+    <img src="./resources/linuxdo.png" alt="LINUX DO" width="150">
+  </a>
+</td>
+<td>
+  <a href="https://linux.do/" target="_blank">LINUX DO</a> - 新的理想型社群。
+</td>
+</tr>
+<tr>
+<td width="170" align="center">
+  <a href="https://packycode.com" target="_blank">
+    <img src="./resources/packycode.png" alt="PackyCode" width="150">
+  </a>
+</td>
+<td>
+  <a href="https://packycode.com" target="_blank">PackyCode</a> 是一家可靠高效的 API 中繼服務提供商，為 Claude Code、Codex、Gemini 等平台提供中繼服務。感謝 PackyCode 為支持 AionUi 用戶低成本使用，為我們的用戶提供專屬 <a href="https://www.packyapi.com/register?aff=aionui" target="_blank">9折優惠</a>，點擊此連結並在付款時使用優惠碼 <code>aionui</code> 可立減 10%。
+</td>
+</tr>
+</table>
+
 ---
 
 ## 📄 授權條款
