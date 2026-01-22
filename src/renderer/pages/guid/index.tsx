@@ -1446,10 +1446,10 @@ const Guid: React.FC = () => {
                 // Assistant List View
                 <div className='flex flex-wrap gap-8px justify-center'>
                   {customAgents
-                    .filter((a) => a.isPreset)
+                    .filter((a) => a.isPreset && a.enabled !== false)
                     .sort((a, b) => {
-                      if (a.id === 'builtin-cowork') return -1;
-                      if (b.id === 'builtin-cowork') return 1;
+                      if (a.id === 'cowork') return -1;
+                      if (b.id === 'cowork') return 1;
                       return 0;
                     })
                     .map((assistant) => {

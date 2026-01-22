@@ -19,6 +19,28 @@ export type AssistantPreset = {
 
 export const ASSISTANT_PRESETS: AssistantPreset[] = [
   {
+    id: 'cowork',
+    avatar: 'cowork.svg',
+    presetAgentType: 'gemini',
+    resourceDir: 'assistant/cowork',
+    ruleFiles: {
+      'en-US': 'cowork.md',
+      'zh-CN': 'cowork.md', // 使用同一个文件，内容已精简 / Use same file, content is simplified
+    },
+    nameI18n: {
+      'en-US': 'Cowork',
+      'zh-CN': 'Cowork',
+    },
+    descriptionI18n: {
+      'en-US': 'Autonomous task execution with file operations, document processing, and multi-step workflow planning.',
+      'zh-CN': '具有文件操作、文档处理和多步骤工作流规划的自主任务执行助手。',
+    },
+    promptsI18n: {
+      'en-US': ['Analyze the project structure', 'Automate the build process'],
+      'zh-CN': ['分析项目结构', '自动化构建流程'],
+    },
+  },
+  {
     id: 'pptx-generator',
     avatar: '📊',
     presetAgentType: 'gemini',
@@ -148,28 +170,6 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     promptsI18n: {
       'en-US': ['Help me set quarterly goals', 'Reflect on my career progress'],
       'zh-CN': ['帮我设定季度目标', '反思我的职业发展进度'],
-    },
-  },
-  {
-    id: 'cowork',
-    avatar: 'cowork.svg',
-    presetAgentType: 'gemini',
-    resourceDir: 'assistant/cowork',
-    ruleFiles: {
-      'en-US': 'cowork.md',
-      'zh-CN': 'cowork.md', // 使用同一个文件，内容已精简 / Use same file, content is simplified
-    },
-    nameI18n: {
-      'en-US': 'Cowork',
-      'zh-CN': 'Cowork',
-    },
-    descriptionI18n: {
-      'en-US': 'Autonomous task execution with file operations, document processing, and multi-step workflow planning.',
-      'zh-CN': '具有文件操作、文档处理和多步骤工作流规划的自主任务执行助手。',
-    },
-    promptsI18n: {
-      'en-US': ['Analyze the project structure', 'Automate the build process'],
-      'zh-CN': ['分析项目结构', '自动化构建流程'],
     },
   },
   {
