@@ -707,6 +707,12 @@ export class AcpAgent {
         responseMessage.data = message.content;
         break;
       }
+      case 'plan':
+        {
+          responseMessage.type = 'plan';
+          responseMessage.data = message.content;
+        }
+        break;
       default:
         responseMessage.type = 'content';
         responseMessage.data = typeof message.content === 'string' ? message.content : JSON.stringify(message.content);

@@ -137,7 +137,6 @@ export const mode = {
 // ACP对话相关接口 - 复用统一的conversation接口
 export const acpConversation = {
   sendMessage: conversation.sendMessage,
-  confirmMessage: bridge.buildProvider<IBridgeResponse, IConfirmMessageParams>('acp.input.confirm.message'),
   responseStream: conversation.responseStream,
   detectCliPath: bridge.buildProvider<IBridgeResponse<{ path?: string }>, { backend: AcpBackend }>('acp.detect-cli-path'),
   getAvailableAgents: bridge.buildProvider<
@@ -176,7 +175,6 @@ export const mcpService = {
 // Codex 对话相关接口 - 复用统一的conversation接口
 export const codexConversation = {
   sendMessage: conversation.sendMessage,
-  confirmMessage: bridge.buildProvider<IBridgeResponse, IConfirmMessageParams>('codex.input.confirm.message'),
   responseStream: conversation.responseStream,
 };
 

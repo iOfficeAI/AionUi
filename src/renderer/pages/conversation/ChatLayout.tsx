@@ -355,9 +355,11 @@ const ChatLayout: React.FC<{
   return (
     <ArcoLayout
       className='size-full color-black '
-      style={{
-        fontFamily: `cursive,"anthropicSans","anthropicSans Fallback",system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif`,
-      }}
+      style={
+        {
+          // fontFamily: `cursive,"anthropicSans","anthropicSans Fallback",system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif`,
+        }
+      }
     >
       {/* 主内容区域：会话面板 + 工作空间面板 + 预览面板 / Main content area: chat + workspace + preview */}
       <div ref={containerRef} className='flex flex-1 relative w-full overflow-hidden'>

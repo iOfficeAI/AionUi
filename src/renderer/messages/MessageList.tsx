@@ -23,6 +23,7 @@ import MessageCodexToolCall from './codex/MessageCodexToolCall';
 import type { FileChangeInfo } from './codex/MessageFileChanges';
 import MessageFileChanges, { parseDiff } from './codex/MessageFileChanges';
 import { useMessageList } from './hooks';
+import MessagePlan from './MessagePlan';
 import MessageTips from './MessageTips';
 import MessageToolCall from './MessageToolCall';
 import MessageToolGroup from './MessageToolGroup';
@@ -79,6 +80,8 @@ const MessageItem: React.FC<{ message: TMessage }> = React.memo(
         return <MessageCodexPermission message={message}></MessageCodexPermission>;
       case 'codex_tool_call':
         return <MessageCodexToolCall message={message}></MessageCodexToolCall>;
+      case 'plan':
+        return <MessagePlan message={message}></MessagePlan>;
       default:
         return <div>{t('messages.unknownMessageType', { type: (message as any).type })}</div>;
     }

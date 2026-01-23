@@ -340,11 +340,6 @@ export class GeminiAgentManager extends BaseAgentManager<
     return this.postMessagePromise(id, data);
   }
 
-  // 发送tools用户确认的消息
-  confirmMessage(data: { confirmKey: string; msg_id: string; callId: string }) {
-    return this.postMessagePromise(data.callId, data.confirmKey);
-  }
-
   // Manually trigger context reload
   async reloadContext(): Promise<void> {
     await this.injectHistoryFromDatabase();

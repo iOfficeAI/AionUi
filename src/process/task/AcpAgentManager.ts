@@ -91,20 +91,20 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         workingDir: data.workspace,
         customArgs: customArgs,
         customEnv: customEnv,
-        onStreamEvent: (v) => {
+        onStreamEvent: (message) => {
           // Handle preview_open event (chrome-devtools navigation interception)
           // 处理 preview_open 事件（chrome-devtools 导航拦截）
-          if (handlePreviewOpenEvent(v)) {
+          if (handlePreviewOpenEvent(message)) {
             return; // Don't process further / 不需要继续处理
           }
 
-          if (v.type !== 'thought') {
-            const tMessage = transformMessage(v as IResponseMessage);
+          if (message.type !== 'thought') {
+            const tMessage = transformMessage(message as IResponseMessage);
             if (tMessage) {
-              addOrUpdateMessage(v.conversation_id, tMessage, data.backend);
+              addOrUpdateMessage(message.conversation_id, tMessage, data.backend);
             }
           }
-          ipcBridge.acpConversation.responseStream.emit(v);
+          ipcBridge.acpConversation.responseStream.emit(message as IResponseMessage);
         },
         onSignalEvent: (v) => {
           // 仅发送信号到前端，不更新消息列表

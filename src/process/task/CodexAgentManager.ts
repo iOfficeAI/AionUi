@@ -279,42 +279,6 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     this.agent.resolvePermission(origCallId, isApproved);
   }
 
-  // 发送tools用户确认的消息 (已废弃，暂时保留代码)
-  async confirmMessage(data: { confirmKey: string; msg_id: string; callId: string }) {
-    await this.bootstrap;
-    this.agent.getEventHandler().getToolHandlers().removePendingConfirmation(data.callId);
-
-    // Use standardized permission decision mapping
-    const decisionKey = data.confirmKey in PERMISSION_DECISION_MAP ? (data.confirmKey as keyof typeof PERMISSION_DECISION_MAP) : 'reject_once';
-    const decision = mapPermissionDecision(decisionKey) as 'approved' | 'approved_for_session' | 'denied' | 'abort';
-    const isApproved = decision === 'approved' || decision === 'approved_for_session';
-
-    // Apply patch changes if available and approved
-    const changes = this.agent.getEventHandler().getToolHandlers().getPatchChanges(data.callId);
-    if (changes && isApproved) {
-      await this.applyPatchChanges(data.callId, changes);
-    }
-
-    // Normalize call id back to server's codex_call_id
-    // Handle the new unified permission_ prefix as well as legacy prefixes
-    const origCallId = data.callId.startsWith('permission_')
-      ? data.callId.substring(11) // Remove 'permission_' prefix
-      : data.callId.startsWith('patch_')
-        ? data.callId.substring(6)
-        : data.callId.startsWith('elicitation_')
-          ? data.callId.substring(12)
-          : data.callId.startsWith('exec_')
-            ? data.callId.substring(5)
-            : data.callId;
-
-    // Respond to elicitation (server expects JSON-RPC response)
-    this.agent.respondElicitation(origCallId, decision);
-
-    // Also resolve local pause gate to resume queued requests
-    this.agent.resolvePermission(origCallId, isApproved);
-    return;
-  }
-
   private async applyPatchChanges(callId: string, changes: Record<string, FileChange>): Promise<void> {
     try {
       // 使用文件操作处理器来应用更改 - 参考 ACP 的批量操作

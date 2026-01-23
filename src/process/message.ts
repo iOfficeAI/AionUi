@@ -4,13 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IMessageText, TMessage } from '@/common/chatLib';
+import type { TMessage } from '@/common/chatLib';
 import { composeMessage } from '@/common/chatLib';
-import type { TChatConversation } from '@/common/storage';
 import type { AcpBackend } from '@/types/acpTypes';
-import { ACP_BACKENDS_ALL } from '@/types/acpTypes';
 import { getDatabase } from './database/export';
-import { streamingBuffer } from './database/StreamingMessageBuffer';
 import { ProcessChat } from './initStorage';
 
 const Cache = new Map<string, ConversationManageWithDB>();
@@ -87,82 +84,6 @@ class ConversationManageWithDB {
  */
 export const addMessage = (conversation_id: string, message: TMessage): void => {
   ConversationManageWithDB.get(conversation_id).sync('insert', message);
-  return;
-  void (async () => {
-    try {
-      const db = getDatabase();
-
-      // Ensure conversation exists in database
-      await ensureConversationExists(db, conversation_id);
-
-      const result = db.insertMessage(message);
-      if (!result.success) {
-        console.error('[Message] Insert failed:', result.error);
-        console.error('[Message] Message data:', JSON.stringify(message, null, 2));
-      } else {
-        db.updateConversation(conversation_id, {} as Partial<TChatConversation>);
-      }
-      // Execute pending callbacks after operation completes
-      executePendingCallbacks();
-    } catch (error) {
-      console.error('[Message] Failed to add message:', error);
-      // Execute pending callbacks even on error
-      executePendingCallbacks();
-    }
-  })();
-};
-
-/**
- * Update messages in the database using a transform function
- * This loads all messages, applies the transform, and saves them back
- * @deprecated This function is no longer needed with database storage
- */
-export const updateMessage_deprecated = (conversation_id: string, transform: (messages: TMessage[]) => TMessage[]): void => {
-  try {
-    const db = getDatabase();
-
-    // Get all messages for this conversation
-    const result = db.getConversationMessages(conversation_id, 0, 10000);
-    if (!result.data || result.data.length === 0) {
-      console.warn('[Message] No messages found for conversation:', conversation_id);
-      executePendingCallbacks();
-      return;
-    }
-
-    // Apply the transform
-    const updatedMessages = transform(result.data);
-
-    // Find what changed and update only those messages
-    const messageMap = new Map(result.data.map((m) => [m.id, m]));
-
-    for (const updated of updatedMessages) {
-      const original = messageMap.get(updated.id);
-
-      if (!original) {
-        // New message - insert it
-        db.insertMessage(updated);
-      } else if (JSON.stringify(original) !== JSON.stringify(updated)) {
-        // Message changed - update it
-        db.updateMessage(updated.id, updated);
-      }
-    }
-
-    // Handle deleted messages (if any were removed by transform)
-    const updatedIds = new Set(updatedMessages.map((m) => m.id));
-    for (const original of result.data) {
-      if (!updatedIds.has(original.id)) {
-        db.deleteMessage(original.id);
-      }
-    }
-
-    // Execute pending callbacks after operation completes
-    executePendingCallbacks();
-  } catch (error) {
-    console.error('[Message] Failed to update messages:', error);
-    // Execute pending callbacks even on error
-    executePendingCallbacks();
-    throw error;
-  }
 };
 
 /**
@@ -209,90 +130,6 @@ export const addOrUpdateMessage = (conversation_id: string, message: TMessage, b
   }
 
   ConversationManageWithDB.get(conversation_id).sync('accumulate', message);
-
-  return;
-
-  void (async () => {
-    try {
-      const db = getDatabase();
-      // Ensure conversation exists in database
-      await ensureConversationExists(db, conversation_id);
-      if (message.type === 'text' && message.msg_id) {
-        const incomingMsg = message as IMessageText;
-        const content = incomingMsg.content.content;
-        const messageId = message.msg_id || '';
-        streamingBuffer.append(message.id, messageId, conversation_id, content, backend ? 'accumulate' : ACP_BACKENDS_ALL[backend].supportsStreaming ? 'accumulate' : 'replace');
-      } else if (message.type === 'tool_group' || message.type === 'tool_call' || message.type === 'codex_tool_call' || message.type === 'acp_tool_call') {
-        // Complex message types that need composeMessage logic
-        // These are less frequent, so loading all messages of this type is acceptable
-        const result = db.getConversationMessages(conversation_id, 0, 10000);
-        const existingMessages = result.data || [];
-
-        // Filter to only messages of the same type (optimization)
-        const sameTypeMessages = existingMessages.filter((m) => m.type === message.type);
-
-        // Use composeMessage to merge
-        const composedList = composeMessage(message, sameTypeMessages.slice());
-
-        // Find what changed
-        if (composedList.length > sameTypeMessages.length) {
-          // New messages added
-          const newMessages = composedList.slice(sameTypeMessages.length);
-          for (const newMsg of newMessages) {
-            const insertResult = db.insertMessage(newMsg);
-            if (!insertResult.success) {
-              console.error('[Message] Insert failed:', insertResult.error);
-            }
-          }
-        } else {
-          // Messages updated in-place
-          for (let i = 0; i < composedList.length; i++) {
-            const original = sameTypeMessages[i];
-            const composed = composedList[i];
-
-            if (JSON.stringify(original) !== JSON.stringify(composed)) {
-              const updateResult = db.updateMessage(composed.id, composed);
-              if (!updateResult.success) {
-                console.error('[Message] Update failed:', updateResult.error);
-              }
-            }
-          }
-        }
-      } else {
-        // Other message types (status, tips, etc.) - usually don't need merging
-        // Just insert or update based on msg_id if available
-        if (message.msg_id) {
-          const existing = db.getMessageByMsgId(conversation_id, message.msg_id, message.type);
-          if (existing.success && existing.data) {
-            // Update existing
-            const updateResult = db.updateMessage(existing.data.id, message);
-            if (!updateResult.success) {
-              console.error('[Message] Update failed:', updateResult.error);
-            }
-          } else {
-            // Insert new
-            const insertResult = db.insertMessage(message);
-            if (!insertResult.success) {
-              console.error('[Message] Insert failed:', insertResult.error);
-            }
-          }
-        } else {
-          // No msg_id - always insert as new
-          const insertResult = db.insertMessage(message);
-          if (!insertResult.success) {
-            console.error('[Message] Insert failed:', insertResult.error);
-          }
-        }
-      }
-
-      // Execute pending callbacks after operation completes
-      executePendingCallbacks();
-    } catch (error) {
-      console.error('[Message] Failed to add or update message:', error);
-      // Execute pending callbacks even on error
-      executePendingCallbacks();
-    }
-  })();
 };
 
 /**
