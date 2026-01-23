@@ -44,7 +44,7 @@ This is the core module that handles all native module rebuilding. It provides:
 1. **`rebuildWithElectronRebuild(options)`**
    - Used by: `beforeBuild.js`
    - Rebuilds all native modules in source directory
-   - Modules: `better-sqlite3`, `bcrypt`, `node-pty` (macOS/Linux only)
+   - Modules: `better-sqlite3`
 
 2. **`rebuildSingleModule(options)`**
    - Used by: `afterPack.js`
@@ -62,17 +62,17 @@ This is the core module that handles all native module rebuilding. It provides:
 ### Platform-Specific Behavior
 
 #### Windows
-- **Modules rebuilt**: `better-sqlite3`, `bcrypt`
+- **Modules rebuilt**: `better-sqlite3`
 - **Skipped**: `node-pty` (uses prebuilt binaries)
 - **Environment**: MSVS 2022, Windows SDK 10.0.19041.0
 
 #### macOS
-- **Modules rebuilt**: `better-sqlite3`, `bcrypt`, `node-pty`
+- **Modules rebuilt**: `better-sqlite3`
 - **When**: `beforeBuild` hook only
 - **Post-build**: Code signing and notarization
 
 #### Linux
-- **Modules rebuilt**: `better-sqlite3`, `bcrypt`, `node-pty`
+- **Modules rebuilt**: `better-sqlite3`
 - **When**:
   - `beforeBuild`: Rebuild in source directory
   - `afterPack`: Rebuild `better-sqlite3` in packaged app
