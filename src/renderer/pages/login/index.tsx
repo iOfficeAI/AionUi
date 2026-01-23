@@ -4,7 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import AppLoader from '../../components/AppLoader';
 import { useAuth } from '../../context/AuthContext';
-import loginLogo from '@renderer/assets/logos/app.png';
+// 使用直接路径，绕过 webpack asset/resource loader 的编码问题
+const loginLogo = './static/images/app.png';
 import './LoginPage.css';
 
 type MessageState = {

@@ -21,6 +21,9 @@ export const plugins: WebpackPluginInstance[] = [
       { from: path.resolve(__dirname, '../../rules'), to: 'rules', noErrorOnMissing: true },
       // assistant 目录：包含助手配置和技能定义
       { from: path.resolve(__dirname, '../../assistant'), to: 'assistant', noErrorOnMissing: true },
+      // app.png：登录页直接路径使用，绕过 asset/resource loader 的编码问题，同时避免覆盖其他 logo 输出
+      // app.png: used by login page direct path, avoids asset/resource encoding issues and asset conflicts
+      { from: path.resolve(__dirname, '../../src/renderer/assets/logos/app.png'), to: 'static/images/app.png', noErrorOnMissing: true },
     ],
   }),
   new ForkTsCheckerWebpackPlugin({

@@ -104,6 +104,7 @@ const DirectorySelectionModal: React.FC<DirectorySelectionModalProps> = ({ visib
       onOk={handleConfirm}
       okButtonProps={{ disabled: !selectedPath }}
       style={{ width: 600 }}
+      wrapStyle={{ zIndex: 10001 }}
       footer={
         <div className='w-full flex justify-between items-center'>
           <div className='text-t-secondary text-14px overflow-hidden text-ellipsis whitespace-nowrap max-w-400px' title={selectedPath || currentPath}>
