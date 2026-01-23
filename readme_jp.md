@@ -1,5 +1,5 @@
 ﻿<p align="center">
-  <img src="./resources/aionui-banner-1 copy.png" alt="AionUi - Cowork with Your CLI AI Agent" width="100%">
+  <img src="./resources/aionui-banner-1.png" alt="AionUi - Cowork with Your CLI AI Agent" width="100%">
 </p>
 
 <p align="center">
@@ -115,9 +115,13 @@ _インテリジェントな画像生成、編集、認識、Geminiが駆動_
 
 _複数の会話を開く、タスクが混乱しない、記憶が独立、効率が倍増_
 
+<details>
+<summary><strong>🎬 クリックしてデモを見る ▶️</strong></summary>
+<br>
 <p align="center">
   <img src="./resources/multichat-side-by-side.gif" alt="会話管理デモ" width="800">
 </p>
+</details>
 
 ---
 
@@ -204,6 +208,27 @@ A: Gemini、OpenAI、Claude、Qwenなどの主流モデル、およびOllama、L
 <summary><strong>Q: データは安全ですか？</strong></summary>
 A: すべての会話データはローカルのSQLiteデータベースに保存され、どのサーバーにもアップロードされません。
 </details>
+
+---
+
+## 🎬 みんながAionUiをどう使っているか見てみよう
+
+_クリエイターたちがAionUiをレビュー・使用する様子をご覧ください_
+
+<p align="center">
+  <a href="https://www.youtube.com/watch?v=yUU5E-U5B3M" target="_blank">
+    <img src="https://img.youtube.com/vi/yUU5E-U5B3M/maxresdefault.jpg" alt="WorldofAI レビュー" width="400">
+  </a>
+  &nbsp;&nbsp;
+  <a href="https://www.youtube.com/watch?v=enQnkKfth10" target="_blank">
+    <img src="https://img.youtube.com/vi/enQnkKfth10/maxresdefault.jpg" alt="Julian Goldie SEO レビュー" width="400">
+  </a>
+</p>
+<p align="center">
+  <em>🎬 WorldofAI (20万登録者)</em> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <em>🎬 Julian Goldie SEO (31.8万登録者)</em>
+</p>
+
+> 💡 **AionUiについての動画を作りましたか？** [Xでお知らせください](https://x.com/AionUi)、ここで紹介します！皆様のフィードバックを参考に、継続的に改善していきます。
 
 ---
 

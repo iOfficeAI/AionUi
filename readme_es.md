@@ -1,5 +1,5 @@
 ﻿<p align="center">
-  <img src="./resources/aionui-banner-1 copy.png" alt="AionUi - Cowork with Your CLI AI Agent" width="100%">
+  <img src="./resources/aionui-banner-1.png" alt="AionUi - Cowork with Your CLI AI Agent" width="100%">
 </p>
 
 <p align="center">
@@ -113,9 +113,13 @@ _Generación, edición y reconocimiento inteligente de imágenes, impulsado por 
 
 _Abrir varias conversaciones, tareas sin mezclarse, memoria independiente, eficiencia duplicada_
 
+<details>
+<summary><strong>🎬 Haz clic para ver la demo ▶️</strong></summary>
+<br>
 <p align="center">
   <img src="./resources/multichat-side-by-side.gif" alt="Conversation Management Demo" width="800">
 </p>
+</details>
 
 ---
 
@@ -204,6 +208,27 @@ También puedes ejecutar varios agentes de IA simultáneamente (como Gemini CLI,
 <summary><strong>Q: ¿Mis datos están seguros?</strong></summary>
 A: Todos los datos de conversación se almacenan en una base de datos SQLite local y no se suben a ningún servidor.
 </details>
+
+---
+
+## 🎬 Mira cómo la gente usa AionUi
+
+_Mira cómo los creadores de contenido reseñan y usan AionUi_
+
+<p align="center">
+  <a href="https://www.youtube.com/watch?v=yUU5E-U5B3M" target="_blank">
+    <img src="https://img.youtube.com/vi/yUU5E-U5B3M/maxresdefault.jpg" alt="WorldofAI Reseña" width="400">
+  </a>
+  &nbsp;&nbsp;
+  <a href="https://www.youtube.com/watch?v=enQnkKfth10" target="_blank">
+    <img src="https://img.youtube.com/vi/enQnkKfth10/maxresdefault.jpg" alt="Julian Goldie SEO Reseña" width="400">
+  </a>
+</p>
+<p align="center">
+  <em>🎬 WorldofAI (200K suscriptores)</em> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <em>🎬 Julian Goldie SEO (318K suscriptores)</em>
+</p>
+
+> 💡 **¿Has hecho un video sobre AionUi?** [Cuéntanos en X](https://x.com/AionUi) y lo destacaremos aquí. Valoramos tus comentarios y seguiremos mejorando.
 
 ---
 

@@ -1,5 +1,5 @@
 ﻿<p align="center">
-  <img src="./resources/aionui-banner-1 copy.png" alt="AionUi - Cowork with Your CLI AI Agent" width="100%">
+  <img src="./resources/aionui-banner-1.png" alt="AionUi - Cowork with Your CLI AI Agent" width="100%">
 </p>
 
 <p align="center">
@@ -113,9 +113,13 @@ _Gemini 기반의 지능형 이미지 생성, 편집 및 인식_
 
 _여러 대화 열기, 작업이 섞이지 않음, 독립적인 메모리, 효율 두 배_
 
+<details>
+<summary><strong>🎬 클릭하여 데모 보기 ▶️</strong></summary>
+<br>
 <p align="center">
   <img src="./resources/multichat-side-by-side.gif" alt="대화 관리 데모" width="800">
 </p>
+</details>
 
 ---
 
@@ -204,6 +208,27 @@ A: Gemini, OpenAI, Claude, Qwen과 같은 주류 모델과 Ollama, LM Studio와 
 <summary><strong>Q: 데이터는 안전한가요?</strong></summary>
 A: 모든 대화 데이터는 로컬 SQLite 데이터베이스에 저장되며 어떤 서버에도 업로드되지 않습니다.
 </details>
+
+---
+
+## 🎬 사람들이 AionUi를 어떻게 사용하는지 확인하세요
+
+_크리에이터들이 AionUi를 리뷰하고 사용하는 모습을 시청하세요_
+
+<p align="center">
+  <a href="https://www.youtube.com/watch?v=yUU5E-U5B3M" target="_blank">
+    <img src="https://img.youtube.com/vi/yUU5E-U5B3M/maxresdefault.jpg" alt="WorldofAI 리뷰" width="400">
+  </a>
+  &nbsp;&nbsp;
+  <a href="https://www.youtube.com/watch?v=enQnkKfth10" target="_blank">
+    <img src="https://img.youtube.com/vi/enQnkKfth10/maxresdefault.jpg" alt="Julian Goldie SEO 리뷰" width="400">
+  </a>
+</p>
+<p align="center">
+  <em>🎬 WorldofAI (20만 구독자)</em> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <em>🎬 Julian Goldie SEO (31.8만 구독자)</em>
+</p>
+
+> 💡 **AionUi에 대한 영상을 만드셨나요?** [X에서 알려주세요](https://x.com/AionUi), 여기에 소개해 드립니다! 여러분의 피드백을 반영하여 지속적으로 개선하겠습니다.
 
 ---
 
