@@ -13,7 +13,7 @@ import remarkBreaks from 'remark-breaks';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 
-import { ipcBridge } from '@/common';
+import { openExternalUrl } from '@/renderer/utils/openExternal';
 import { Copy, Down, Up } from '@icon-park/react';
 import { Message } from '@arco-design/web-react';
 import { theme } from '@office-ai/platform';
@@ -427,13 +427,9 @@ const MarkdownView: React.FC<MarkdownViewProps> = ({ hiddenCodeCopyButton, codeS
                     e.preventDefault();
                     e.stopPropagation();
                     if (!props.href) return;
-                    try {
-                      ipcBridge.shell.openExternal.invoke(props.href).catch((error) => {
-                        console.error(t('messages.openLinkFailed'), error);
-                      });
-                    } catch (error) {
+                    openExternalUrl(props.href).catch((error) => {
                       console.error(t('messages.openLinkFailed'), error);
-                    }
+                    });
                   }}
                 />
               ),

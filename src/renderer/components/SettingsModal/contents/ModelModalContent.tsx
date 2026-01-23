@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { openExternalUrl } from '@/renderer/utils/openExternal';
 import type { IProvider } from '@/common/storage';
 import { Button, Divider, Message, Popconfirm, Collapse } from '@arco-design/web-react';
 import { DeleteFour, Info, Minus, Plus, Write, Down, Up } from '@icon-park/react';
@@ -115,9 +116,9 @@ const ModelModalContent: React.FC = () => {
             <h3 className='text-16px font-500 text-t-primary mb-8px'>{t('settings.noConfiguredModels')}</h3>
             <p className='text-14px text-t-secondary text-center max-w-400px'>
               {t('settings.needHelpConfigGuide')}
-              <a href='https://github.com/iOfficeAI/AionUi/wiki/LLM-Configuration' target='_blank' rel='noopener noreferrer' className='text-[rgb(var(--primary-6))] hover:text-[rgb(var(--primary-5))] underline ml-4px'>
+              <span className='text-[rgb(var(--primary-6))] hover:text-[rgb(var(--primary-5))] underline ml-4px cursor-pointer' onClick={() => openExternalUrl('https://github.com/iOfficeAI/AionUi/wiki/LLM-Configuration')}>
                 {t('settings.configGuide')}
-              </a>
+              </span>
               {t('settings.configGuideSuffix')}
             </p>
           </div>

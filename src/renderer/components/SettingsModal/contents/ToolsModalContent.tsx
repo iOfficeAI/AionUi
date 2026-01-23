@@ -6,6 +6,7 @@
 
 import { ConfigStorage, type IConfigStorageRefer, type IMcpServer } from '@/common/storage';
 import { acpConversation } from '@/common/ipcBridge';
+import { openExternalUrl } from '@/renderer/utils/openExternal';
 import { Divider, Form, Switch, Tooltip, Message, Button, Dropdown, Menu, Modal } from '@arco-design/web-react';
 import { Help, Down, Plus } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -344,15 +345,27 @@ const ToolsModalContent: React.FC = () => {
                       content={
                         <div>
                           {t('settings.needHelpTooltip')}
-                          <a href='https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide' target='_blank' rel='noopener noreferrer' className='text-[rgb(var(--primary-6))] hover:text-[rgb(var(--primary-5))] underline ml-4px' onClick={(e) => e.stopPropagation()}>
+                          <span
+                            className='text-[rgb(var(--primary-6))] hover:text-[rgb(var(--primary-5))] underline ml-4px cursor-pointer'
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void openExternalUrl('https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide');
+                            }}
+                          >
                             {t('settings.configGuide')}
-                          </a>
+                          </span>
                         </div>
                       }
                     >
-                      <a href='https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide' target='_blank' rel='noopener noreferrer' className='ml-8px text-[rgb(var(--primary-6))] hover:text-[rgb(var(--primary-5))] cursor-pointer' onClick={(e) => e.stopPropagation()}>
+                      <span
+                        className='ml-8px text-[rgb(var(--primary-6))] hover:text-[rgb(var(--primary-5))] cursor-pointer'
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void openExternalUrl('https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide');
+                        }}
+                      >
                         <Help theme='outline' size='14' />
-                      </a>
+                      </span>
                     </Tooltip>
                   </div>
                 )}
