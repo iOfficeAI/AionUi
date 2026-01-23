@@ -20,7 +20,7 @@ import { setupApplicationMenu } from './utils/appMenu';
 import { startWebServer } from './webserver';
 import { SERVER_CONFIG } from './webserver/config/constants';
 import { applyZoomToWindow } from './process/utils/zoom';
-import { ProcessConfig } from './process/initStorage';
+import { ConfigStorage } from './common/storage';
 import { applyStartupSettingsToSystem, wasLaunchedAtLogin, type StartupSettings } from './process/utils/autoStart';
 import { getCloseToTray, setCloseToTray } from './process/runtime/appRuntimeSettings';
 import { getTrayIcon, getTrayIconSyncFallback } from './process/utils/trayIcon';
@@ -358,10 +358,10 @@ const handleAppReady = async (): Promise<void> => {
   });
 
   const startupSettings: StartupSettings = {
-    startOnBoot: (await ProcessConfig.get('app.startOnBoot').catch(() => false)) === true,
-    openWebUiOnBoot: (await ProcessConfig.get('app.openWebUiOnBoot').catch(() => false)) === true,
-    silentOnBoot: (await ProcessConfig.get('app.silentOnBoot').catch(() => false)) === true,
-    closeToTray: (await ProcessConfig.get('app.closeToTray').catch(() => true)) !== false,
+    startOnBoot: (await ConfigStorage.get('app.startOnBoot').catch(() => false)) === true,
+    openWebUiOnBoot: (await ConfigStorage.get('app.openWebUiOnBoot').catch(() => false)) === true,
+    silentOnBoot: (await ConfigStorage.get('app.silentOnBoot').catch(() => false)) === true,
+    closeToTray: (await ConfigStorage.get('app.closeToTray').catch(() => true)) !== false,
   };
 
   // Apply runtime close behavior immediately.
