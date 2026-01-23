@@ -309,6 +309,21 @@ jobs:
           CI: true
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
+      # Clean up any stale disk images before DMG creation (macOS only)
+      # 清理可能残留的磁盘镜像，避免 hdiutil "Device not configured" 错误
+      - name: Clean up stale disk images (macOS only)
+        if: startsWith(matrix.platform, 'macos')
+        run: |
+          echo "Cleaning up any stale disk images..."
+          # Detach any mounted disk images
+          hdiutil info 2>/dev/null | grep '/dev/disk' | awk '{print $1}' | while read disk; do
+            echo "Detaching $disk..."
+            hdiutil detach "$disk" -force 2>/dev/null || true
+          done
+          # Clean up any temporary DMG files
+          rm -f /tmp/*.dmg 2>/dev/null || true
+          echo "Cleanup complete"
+
       - name: Build with electron-builder (non-Windows)
         if: "!startsWith(matrix.platform, 'windows')"
         uses: nick-fields/retry@v3
@@ -321,6 +336,14 @@ jobs:
           on_retry_command: |
             echo "⚠️ 构建超时或失败，5 分钟后进行第 2 次尝试..."
             echo "这可能是临时网络问题或 Apple 公证服务延迟"
+            # Clean up stale disk images before retry (macOS)
+            if [[ "$RUNNER_OS" == "macOS" ]]; then
+              echo "Cleaning up stale disk images before retry..."
+              hdiutil info 2>/dev/null | grep '/dev/disk' | awk '{print $1}' | while read disk; do
+                hdiutil detach "$disk" -force 2>/dev/null || true
+              done
+              rm -f /tmp/*.dmg 2>/dev/null || true
+            fi
         env:
           # Target architecture / 目标架构
           npm_config_arch: ${{ matrix.arch }}

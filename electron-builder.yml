@@ -105,6 +105,25 @@ mac:
   entitlements: entitlements.plist
   entitlementsInherit: entitlements.plist
 
+dmg:
+  # Use UDZO format which is more reliable on CI
+  format: UDZO
+  # Disable internet-enabled DMG to avoid network issues
+  internetEnabled: false
+  # Simple window settings to avoid layout issues
+  window:
+    width: 540
+    height: 380
+  # Contents positioning
+  contents:
+    - x: 140
+      y: 180
+      type: file
+    - x: 400
+      y: 180
+      type: link
+      path: /Applications
+
 afterPack: scripts/afterPack.js
 afterSign: scripts/afterSign.js
 
