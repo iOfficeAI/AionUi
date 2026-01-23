@@ -6,7 +6,8 @@
 
 import { app } from 'electron';
 import { ipcBridge } from '../../common';
-import { getSystemDir, ProcessConfig, ProcessEnv } from '../initStorage';
+import { ConfigStorage } from '../../common/storage';
+import { getSystemDir, ProcessEnv } from '../initStorage';
 import { copyDirectoryRecursively } from '../utils';
 import WorkerManage from '../WorkerManage';
 import { getZoomFactor, setZoomFactor } from '../utils/zoom';
@@ -52,10 +53,10 @@ export function initApplicationBridge(): void {
   });
 
   ipcBridge.application.getStartupSettings.provider(async () => {
-    const startOnBoot = (await ProcessConfig.get('app.startOnBoot').catch(() => false)) === true;
-    const openWebUiOnBoot = (await ProcessConfig.get('app.openWebUiOnBoot').catch(() => false)) === true;
-    const silentOnBoot = (await ProcessConfig.get('app.silentOnBoot').catch(() => false)) === true;
-    const closeToTray = (await ProcessConfig.get('app.closeToTray').catch(() => true)) !== false;
+    const startOnBoot = (await ConfigStorage.get('app.startOnBoot').catch(() => false)) === true;
+    const openWebUiOnBoot = (await ConfigStorage.get('app.openWebUiOnBoot').catch(() => false)) === true;
+    const silentOnBoot = (await ConfigStorage.get('app.silentOnBoot').catch(() => false)) === true;
+    const closeToTray = (await ConfigStorage.get('app.closeToTray').catch(() => true)) !== false;
 
     // Provide a best-effort view of what the OS currently has registered.
     let effectiveStartOnBoot: boolean | undefined;
@@ -77,10 +78,10 @@ export function initApplicationBridge(): void {
         closeToTray: closeToTray !== false,
       };
 
-      await ProcessConfig.set('app.startOnBoot', normalized.startOnBoot);
-      await ProcessConfig.set('app.openWebUiOnBoot', normalized.openWebUiOnBoot);
-      await ProcessConfig.set('app.silentOnBoot', normalized.silentOnBoot);
-      await ProcessConfig.set('app.closeToTray', normalized.closeToTray);
+      await ConfigStorage.set('app.startOnBoot', normalized.startOnBoot);
+      await ConfigStorage.set('app.openWebUiOnBoot', normalized.openWebUiOnBoot);
+      await ConfigStorage.set('app.silentOnBoot', normalized.silentOnBoot);
+      await ConfigStorage.set('app.closeToTray', normalized.closeToTray);
 
       // Apply runtime behavior immediately.
       setCloseToTray(normalized.closeToTray);
