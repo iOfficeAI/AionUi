@@ -148,6 +148,7 @@ const resolveRemoteAccess = (config: WebUIUserConfig): boolean => {
 const isWebUIMode = hasSwitch('webui');
 const isRemoteMode = hasSwitch('remote');
 const isResetPasswordMode = hasCommand('--resetpass');
+const isAddUserMode = hasCommand('--adduser');
 
 let mainWindow: BrowserWindow;
 
@@ -230,6 +231,32 @@ const handleAppReady = async (): Promise<void> => {
     } catch (error) {
       app.exit(1);
     }
+  } else if (isAddUserMode) {
+    // Handle adding user without creating window
+    try {
+      // Parse arguments: --adduser <username> [--password <pass>] [--email <email>]
+      const addUserIndex = process.argv.indexOf('--adduser');
+      const argsAfterCommand = process.argv.slice(addUserIndex + 1);
+      const username = argsAfterCommand.find((arg) => !arg.startsWith('--'));
+
+      if (!username) {
+        console.error('Error: Username is required');
+        console.error('Usage: aionui --adduser <username> [--password <pass>] [--email <email>]');
+        app.exit(1);
+        return;
+      }
+
+      const password = getSwitchValue('password');
+      const email = getSwitchValue('email');
+
+      // Import adduser logic
+      const { addUserCLI } = await import('./utils/addUserCLI');
+      await addUserCLI({ username, password, email });
+
+      app.quit();
+    } catch (error) {
+      app.exit(1);
+    }
   } else if (isWebUIMode) {
     const userConfigInfo = loadUserWebUIConfig();
     if (userConfigInfo.exists && userConfigInfo.path) {
@@ -242,8 +269,8 @@ const handleAppReady = async (): Promise<void> => {
     createWindow();
   }
 
-  // 启动时初始化ACP检测器 (skip in --resetpass mode)
-  if (!isResetPasswordMode) {
+  // 启动时初始化ACP检测器 (skip in CLI-only modes)
+  if (!isResetPasswordMode && !isAddUserMode) {
     await initializeAcpDetector();
   }
 };
