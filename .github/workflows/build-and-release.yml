@@ -204,7 +204,7 @@ jobs:
           # 如果需要，使用 electron-rebuild 作为备选方案
           Write-Host ""
           Write-Host "Step 2: Running electron-rebuild for critical modules..."
-          npx electron-rebuild --only better-sqlite3,bcrypt --force --arch $arch --version $electronVersion
+          npx electron-rebuild --only better-sqlite3 --force --arch $arch --version $electronVersion
 
           # 验证关键模块是否存在
           Write-Host ""
@@ -217,23 +217,6 @@ jobs:
           } else {
             Write-Error "❌ better-sqlite3 native module not found at: $sqliteNode"
             $verified = $false
-          }
-
-          # bcrypt 可能在不同位置，尝试多个路径
-          $bcryptPaths = @(
-            "node_modules/bcrypt/lib/binding/napi-v3/bcrypt_lib.node",
-            "node_modules/bcrypt/lib/binding/bcrypt_lib.node"
-          )
-          $bcryptFound = $false
-          foreach ($path in $bcryptPaths) {
-            if (Test-Path $path) {
-              Write-Host "✅ bcrypt found: $path"
-              $bcryptFound = $true
-              break
-            }
-          }
-          if (!$bcryptFound) {
-            Write-Warning "⚠️ bcrypt native module not found (may use prebuilt binaries)"
           }
 
           if (!$verified) {
