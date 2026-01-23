@@ -62,6 +62,19 @@ export interface IConfigStorageRefer {
   'migration.assistantEnabledFixed'?: boolean;
   // 迁移标记：为 cowork 助手添加默认启用的 skills / Migration flag: add default enabled skills for cowork assistant
   'migration.coworkDefaultSkillsAdded'?: boolean;
+
+  // App startup behavior
+  // - startOnBoot: register the app as an OS login item
+  // - openWebUiOnBoot: when launched by OS login item, start WebUI service (no browser auto-open)
+  'app.startOnBoot'?: boolean;
+  'app.openWebUiOnBoot'?: boolean;
+
+  // When auto-starting on boot, run silently (tray only, no main window).
+  // Only applies to login-item launches.
+  'app.silentOnBoot'?: boolean;
+
+  // Close button behavior (all launches): if true, closing window hides to tray.
+  'app.closeToTray'?: boolean;
 }
 
 export interface IEnvStorageRefer {

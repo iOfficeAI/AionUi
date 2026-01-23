@@ -50,6 +50,8 @@ export const application = {
   updateSystemInfo: bridge.buildProvider<IBridgeResponse, { cacheDir: string; workDir: string }>('system.update-info'), // 更新系统信息
   getZoomFactor: bridge.buildProvider<number, void>('app.get-zoom-factor'),
   setZoomFactor: bridge.buildProvider<number, { factor: number }>('app.set-zoom-factor'),
+  getStartupSettings: bridge.buildProvider<{ startOnBoot: boolean; openWebUiOnBoot: boolean; silentOnBoot: boolean; closeToTray: boolean; effectiveStartOnBoot?: boolean }, void>('app.get-startup-settings'),
+  setStartupSettings: bridge.buildProvider<IBridgeResponse<{ startOnBoot: boolean; openWebUiOnBoot: boolean; silentOnBoot: boolean; closeToTray: boolean; effectiveStartOnBoot?: boolean }>, { startOnBoot: boolean; openWebUiOnBoot: boolean; silentOnBoot: boolean; closeToTray: boolean }>('app.set-startup-settings'),
 };
 
 export const dialog = {

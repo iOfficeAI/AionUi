@@ -177,7 +177,17 @@ function displayInitialCredentials(credentials: { username: string; password: st
  * @param port 服务器端口 / Server port
  * @param allowRemote 是否允许远程访问 / Allow remote access
  */
-export async function startWebServer(port: number, allowRemote = false): Promise<void> {
+export async function startWebServer(
+  port: number,
+  allowRemote = false,
+  options?: {
+    /** Open the WebUI in default browser after server starts. Default: true */
+    openBrowser?: boolean;
+  }
+): Promise<void> {
+  // Keep old behavior by default.
+  // Callers can disable this (e.g. silent auto-start on boot).
+  const shouldOpenBrowser = options?.openBrowser !== false;
   // 设置服务器配置
   // Set server configuration
   SERVER_CONFIG.setServerConfig(port, allowRemote);
@@ -236,7 +246,7 @@ export async function startWebServer(port: number, allowRemote = false): Promise
       // Auto-open browser (only when desktop environment is available)
       // 当 allowRemote 为 true 时，优先打开局域网 IP
       // When allowRemote is true, prefer to open LAN IP
-      if (process.env.DISPLAY || process.platform !== 'linux') {
+      if (shouldOpenBrowser && (process.env.DISPLAY || process.platform !== 'linux')) {
         const urlToOpen = allowRemote && serverIP ? displayUrl : localUrl;
         void shell.openExternal(urlToOpen);
       }
