@@ -6,8 +6,10 @@
 
 import { ipcBridge } from '@/common';
 import LanguageSwitcher from '@/renderer/components/LanguageSwitcher';
+import { useStartupSettings } from '@/renderer/hooks/useStartupSettings';
+import type { StartupSettings } from '@/renderer/hooks/useStartupSettings';
 import { iconColors } from '@/renderer/theme/colors';
-import { Alert, Button, Form, Modal, Tooltip } from '@arco-design/web-react';
+import { Alert, Button, Form, Modal, Switch, Tooltip } from '@arco-design/web-react';
 import { FolderOpen } from '@icon-park/react';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -76,12 +78,22 @@ const DirInputItem: React.FC<{
 const PreferenceRow: React.FC<{
   /** 标签文本 / Label text */
   label: string;
+  /** 描述文本 / Description text */
+  description?: string;
   /** 控件元素 / Control element */
   children: React.ReactNode;
-}> = ({ label, children }) => (
-  <div className='flex items-center justify-between gap-24px py-12px'>
-    <div className='text-14px text-2'>{label}</div>
-    <div className='flex-1 flex justify-end'>{children}</div>
+  /** 额外内容 / Extra content */
+  extra?: React.ReactNode;
+}> = ({ label, description, children, extra }) => (
+  <div className='flex flex-col py-12px'>
+    <div className='flex items-center justify-between gap-24px'>
+      <div className='flex flex-col'>
+        <div className='text-14px text-2'>{label}</div>
+        {description && <div className='text-12px text-3 mt-4px'>{description}</div>}
+      </div>
+      <div className='flex-1 flex justify-end'>{children}</div>
+    </div>
+    {extra && <div className='mt-8px'>{extra}</div>}
   </div>
 );
 
@@ -110,6 +122,10 @@ const SystemModalContent: React.FC<SystemModalContentProps> = ({ onRequestClose 
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
 
+  // Startup settings
+  const { data: startupSettings, setStartupSettings } = useStartupSettings();
+  const [isSavingStartup, setIsSavingStartup] = useState(false);
+
   // Get system directory info
   const { data: systemInfo } = useSWR('system.dir.info', () => ipcBridge.application.systemInfo.invoke());
 
@@ -121,8 +137,83 @@ const SystemModalContent: React.FC<SystemModalContentProps> = ({ onRequestClose 
     }
   }, [systemInfo, form]);
 
+  const handleStartupChange = async (changes: Partial<StartupSettings>) => {
+    if (!startupSettings) return;
+    setIsSavingStartup(true);
+    try {
+      await setStartupSettings({
+        startOnBoot: startupSettings.startOnBoot,
+        openWebUiOnBoot: startupSettings.openWebUiOnBoot,
+        silentOnBoot: startupSettings.silentOnBoot,
+        closeToTray: startupSettings.closeToTray,
+        ...changes,
+      });
+    } finally {
+      setIsSavingStartup(false);
+    }
+  };
+
   // 偏好设置项配置 / Preference items configuration
-  const preferenceItems = [{ key: 'language', label: t('settings.language'), component: <LanguageSwitcher /> }];
+  const preferenceItems = [
+    { key: 'language', label: t('settings.language'), component: <LanguageSwitcher /> },
+    {
+      key: 'startOnBoot',
+      label: t('settings.startOnBoot'),
+      description: t('settings.startOnBootDesc'),
+      component: (
+        <Switch
+          checked={startupSettings?.startOnBoot ?? false}
+          disabled={!startupSettings || isSavingStartup}
+          onChange={(val) => {
+            void handleStartupChange({ startOnBoot: val });
+          }}
+        />
+      ),
+      extra: startupSettings?.effectiveStartOnBoot !== undefined && startupSettings.effectiveStartOnBoot !== startupSettings.startOnBoot ? <Alert type='warning' content={t('settings.startOnBootMismatch')} showIcon /> : null,
+    },
+    {
+      key: 'silentOnBoot',
+      label: t('settings.silentOnBoot'),
+      description: t('settings.silentOnBootDesc'),
+      component: (
+        <Switch
+          checked={startupSettings?.silentOnBoot ?? false}
+          disabled={!startupSettings || !startupSettings.startOnBoot || isSavingStartup}
+          onChange={(val) => {
+            void handleStartupChange({ silentOnBoot: val });
+          }}
+        />
+      ),
+    },
+    {
+      key: 'openWebUiOnBoot',
+      label: t('settings.openWebUiOnBoot'),
+      description: t('settings.openWebUiOnBootDesc'),
+      component: (
+        <Switch
+          checked={startupSettings?.openWebUiOnBoot ?? false}
+          disabled={!startupSettings || !startupSettings.startOnBoot || isSavingStartup}
+          onChange={(val) => {
+            void handleStartupChange({ openWebUiOnBoot: val });
+          }}
+        />
+      ),
+    },
+    {
+      key: 'closeToTray',
+      label: t('settings.closeToTray'),
+      description: t('settings.closeToTrayDesc'),
+      component: (
+        <Switch
+          checked={startupSettings?.closeToTray ?? false}
+          disabled={!startupSettings || isSavingStartup}
+          onChange={(val) => {
+            void handleStartupChange({ closeToTray: val });
+          }}
+        />
+      ),
+    },
+  ];
 
   // 目录配置保存确认 / Directory configuration save confirmation
   const saveDirConfigValidate = (_values: { cacheDir: string; workDir: string }): Promise<unknown> => {
@@ -205,7 +296,7 @@ const SystemModalContent: React.FC<SystemModalContentProps> = ({ onRequestClose 
           <div className='px-[12px] md:px-[32px] py-16px bg-2 rd-16px space-y-12px'>
             <div className='w-full flex flex-col divide-y divide-border-2'>
               {preferenceItems.map((item) => (
-                <PreferenceRow key={item.key} label={item.label}>
+                <PreferenceRow key={item.key} label={item.label} description={item.description} extra={item.extra}>
                   {item.component}
                 </PreferenceRow>
               ))}
