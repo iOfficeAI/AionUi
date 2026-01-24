@@ -12,17 +12,16 @@ import { ProcessChat } from './initStorage';
 
 const Cache = new Map<string, ConversationManageWithDB>();
 
-//@ 按会话将所有消息放入一个统一的更新队列中
-// 保证每条消息的更新机制与前端一致，即数据库与UI数据一致
-// 多条消息聚合同步更新，减少数据库的操作
+// Place all messages in a unified update queue based on the conversation
+// Ensure that the update mechanism for each message is consistent with the front end, meaning that the database and UI data are in sync
+// Aggregate multiple messages for synchronous updates, reducing database operations
 class ConversationManageWithDB {
   private stack: Array<['insert' | 'accumulate', TMessage]> = [];
   private db = getDatabase();
-  private bootstrap: Promise<any>;
   private timer: NodeJS.Timeout;
   private savePromise = Promise.resolve();
   constructor(private conversation_id: string) {
-    this.bootstrap = ensureConversationExists(this.db, this.conversation_id).catch(() => {});
+    this.savePromise = ensureConversationExists(this.db, this.conversation_id).catch(() => {});
   }
   static get(conversation_id: string) {
     if (Cache.has(conversation_id)) return Cache.get(conversation_id);
@@ -44,7 +43,6 @@ class ConversationManageWithDB {
 
   private save2DataBase() {
     this.savePromise = this.savePromise
-      .then(() => this.bootstrap)
       .then(() => {
         const stack = this.stack.slice();
         this.stack = [];
