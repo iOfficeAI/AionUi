@@ -16,7 +16,7 @@ import type { WriteFileResult } from '../types';
 type TurnDiffContent = Extract<CodexToolCallUpdate, { subtype: 'turn_diff' }>;
 
 // 内部文件变更信息（包含 diff 内容）/ Internal file change info (including diff content)
-interface FileChangeInfo extends FileChangeItem {
+export interface FileChangeInfo extends FileChangeItem {
   diff: string;
 }
 
@@ -28,13 +28,15 @@ export interface MessageFileChangesProps {
   writeFileChanges?: WriteFileResult[];
   /** 额外的类名 / Additional class name */
   className?: string;
+
+  diffsChanges?: FileChangeInfo[];
 }
 
 /**
  * 解析 unified diff 格式，提取文件信息和变更统计
  * Parse unified diff format, extract file info and change statistics
  */
-const parseDiff = (diff: string, fileNameHint?: string): FileChangeInfo => {
+export const parseDiff = (diff: string, fileNameHint?: string): FileChangeInfo => {
   const lines = diff.split('\n');
 
   // 提取文件名 / Extract filename
@@ -90,7 +92,7 @@ const parseDiff = (diff: string, fileNameHint?: string): FileChangeInfo => {
  * 显示会话中所有已生成/修改的文件，点击可打开预览
  * Display all generated/modified files in the conversation, click to preview
  */
-const MessageFileChanges: React.FC<MessageFileChangesProps> = ({ turnDiffChanges = [], writeFileChanges = [], className }) => {
+const MessageFileChanges: React.FC<MessageFileChangesProps> = ({ turnDiffChanges = [], writeFileChanges = [], diffsChanges = [], className }) => {
   const { t } = useTranslation();
   const { launchPreview } = usePreviewLauncher();
 
@@ -112,8 +114,8 @@ const MessageFileChanges: React.FC<MessageFileChangesProps> = ({ turnDiffChanges
       }
     }
 
-    return Array.from(filesMap.values());
-  }, [turnDiffChanges, writeFileChanges]);
+    return Array.from(filesMap.values()).concat(diffsChanges);
+  }, [turnDiffChanges, writeFileChanges, diffsChanges]);
 
   // 处理文件点击 / Handle file click
   const handleFileClick = useCallback(
@@ -145,4 +147,4 @@ const MessageFileChanges: React.FC<MessageFileChangesProps> = ({ turnDiffChanges
   return <FileChangesPanel title={t('messages.fileChangesCount', { count: fileChanges.length })} files={fileChanges} onFileClick={handleFileClick} className={className} />;
 };
 
-export default MessageFileChanges;
+export default React.memo(MessageFileChanges);

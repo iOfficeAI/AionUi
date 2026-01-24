@@ -3,9 +3,9 @@ import { STORAGE_KEYS } from '@/common/storageKeys';
 import FlexFullContainer from '@/renderer/components/FlexFullContainer';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { useResizableSplit } from '@/renderer/hooks/useResizableSplit';
-import { PreviewPanel, usePreviewContext } from '@/renderer/pages/conversation/preview';
 import ConversationTabs from '@/renderer/pages/conversation/ConversationTabs';
 import { useConversationTabs } from '@/renderer/pages/conversation/context/ConversationTabsContext';
+import { PreviewPanel, usePreviewContext } from '@/renderer/pages/conversation/preview';
 import { Layout as ArcoLayout } from '@arco-design/web-react';
 import { ExpandLeft, ExpandRight, Robot } from '@icon-park/react';
 import React, { useEffect, useRef, useState } from 'react';
@@ -36,7 +36,7 @@ const AGENT_LOGO_MAP: Partial<Record<AcpBackend, string>> = {
 };
 
 import { iconColors } from '@/renderer/theme/colors';
-import { WORKSPACE_TOGGLE_EVENT, WORKSPACE_HAS_FILES_EVENT, dispatchWorkspaceStateEvent, dispatchWorkspaceToggleEvent, type WorkspaceHasFilesDetail } from '@/renderer/utils/workspaceEvents';
+import { WORKSPACE_HAS_FILES_EVENT, WORKSPACE_TOGGLE_EVENT, dispatchWorkspaceStateEvent, dispatchWorkspaceToggleEvent, type WorkspaceHasFilesDetail } from '@/renderer/utils/workspaceEvents';
 import { ACP_BACKENDS_ALL } from '@/types/acpTypes';
 import classNames from 'classnames';
 
@@ -353,7 +353,14 @@ const ChatLayout: React.FC<{
       : null;
 
   return (
-    <ArcoLayout className='size-full'>
+    <ArcoLayout
+      className='size-full color-black '
+      style={
+        {
+          // fontFamily: `cursive,"anthropicSans","anthropicSans Fallback",system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif`,
+        }
+      }
+    >
       {/* 主内容区域：会话面板 + 工作空间面板 + 预览面板 / Main content area: chat + workspace + preview */}
       <div ref={containerRef} className='flex flex-1 relative w-full overflow-hidden'>
         {/* 会话面板（带拖动句柄）/ Chat panel (with drag handle) */}

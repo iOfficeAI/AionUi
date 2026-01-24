@@ -96,7 +96,41 @@ export const processGeminiStreamEvents = async (stream: AsyncIterable<ServerGemi
           onStreamEvent({ type: event.type, data: (event as unknown as { value: unknown }).value });
           break;
         case ServerGeminiEventType.Content:
-          onStreamEvent({ type: event.type, data: (event as unknown as { value: unknown }).value });
+          {
+            // Extract content value
+            const contentValue = (event as unknown as { value: unknown }).value;
+            const contentText = typeof contentValue === 'string' ? contentValue : '';
+
+            // Check if content contains <think> tags (common in proxy services like newapi)
+            // 检查内容是否包含 <think> 标签（中转站如 newapi 常见格式）
+            const thinkTagRegex = /<think>([\s\S]*?)<\/think>/gi;
+            const thinkMatches = contentText.match(thinkTagRegex);
+
+            if (thinkMatches && thinkMatches.length > 0) {
+              // Extract thinking content and emit as thought events
+              // 提取思考内容并作为 thought 事件发送
+              for (const match of thinkMatches) {
+                const thinkContent = match.replace(/<\/?think>/gi, '').trim();
+                if (thinkContent) {
+                  onStreamEvent({
+                    type: ServerGeminiEventType.Thought,
+                    data: thinkContent,
+                  });
+                }
+              }
+
+              // Remove <think> tags from content and emit remaining content
+              // 从内容中移除 <think> 标签，发送剩余内容
+              const cleanedContent = contentText.replace(thinkTagRegex, '').trim();
+              if (cleanedContent) {
+                onStreamEvent({ type: event.type, data: cleanedContent });
+              }
+            } else {
+              // No <think> tags, emit content as-is
+              // 没有 <think> 标签，直接发送内容
+              onStreamEvent({ type: event.type, data: contentValue });
+            }
+          }
           break;
         // InlineData: Handle inline image data from image generation models (e.g., gemini-3-pro-image)
         // 处理来自图片生成模型的内联图片数据（使用字符串字面量以兼容旧版本 aioncli-core）

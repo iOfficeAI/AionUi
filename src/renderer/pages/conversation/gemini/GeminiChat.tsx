@@ -4,14 +4,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import type { ConversationContextValue } from '@/renderer/context/ConversationContext';
+import { ConversationProvider } from '@/renderer/context/ConversationContext';
 import FlexFullContainer from '@renderer/components/FlexFullContainer';
 import MessageList from '@renderer/messages/MessageList';
 import { MessageListProvider, useMessageLstCache } from '@renderer/messages/hooks';
 import HOC from '@renderer/utils/HOC';
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import LocalImageView from '../../../components/LocalImageView';
+import ConversationChatConfirm from '../components/ConversationChatConfirm';
 import GeminiSendBox from './GeminiSendBox';
-import { ConversationProvider } from '@/renderer/context/ConversationContext';
 import type { GeminiModelSelection } from './useGeminiModelSelection';
 
 // GeminiChat 接收共享的模型选择状态，避免组件内重复管理
@@ -26,14 +28,19 @@ const GeminiChat: React.FC<{
   useEffect(() => {
     updateLocalImage({ root: workspace });
   }, [workspace]);
+  const conversationValue = useMemo<ConversationContextValue>(() => {
+    return { conversationId: conversation_id, workspace, type: 'gemini' };
+  }, [conversation_id, workspace]);
 
   return (
-    <ConversationProvider value={{ conversationId: conversation_id, workspace, type: 'gemini' }}>
+    <ConversationProvider value={conversationValue}>
       <div className='flex-1 flex flex-col px-20px'>
         <FlexFullContainer>
           <MessageList className='flex-1'></MessageList>
         </FlexFullContainer>
-        <GeminiSendBox conversation_id={conversation_id} modelSelection={modelSelection}></GeminiSendBox>
+        <ConversationChatConfirm conversation_id={conversation_id}>
+          <GeminiSendBox conversation_id={conversation_id} modelSelection={modelSelection}></GeminiSendBox>
+        </ConversationChatConfirm>
       </div>
     </ConversationProvider>
   );

@@ -19,7 +19,6 @@ import { useTranslation } from 'react-i18next';
 import FilePreview from '@/renderer/components/FilePreview';
 import HorizontalFileList from '@/renderer/components/HorizontalFileList';
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';
-import { buildDisplayMessage } from '@/renderer/utils/messageFiles';
 import { useLatestRef } from '@/renderer/hooks/useLatestRef';
 import { useAutoTitle } from '@/renderer/hooks/useAutoTitle';
 
@@ -268,7 +267,9 @@ const AcpSendBox: React.FC<{
       try {
         const initialMessage = JSON.parse(storedMessage);
         const { input, files } = initialMessage;
-        const displayMessage = buildDisplayMessage(input, files || [], workspacePath);
+        // ACP: 不使用 buildDisplayMessage，直接传原始 input
+        // 文件引用由后端 ACP agent 负责添加（使用复制后的实际路径）
+        // 避免消息中出现两套不一致的文件引用
         const msg_id = uuid();
 
         // Start AI processing loading state (user message will be added via backend response)
@@ -276,7 +277,7 @@ const AcpSendBox: React.FC<{
 
         // Send the message
         const result = await ipcBridge.acpConversation.sendMessage.invoke({
-          input: displayMessage,
+          input,
           msg_id,
           conversation_id,
           files,
@@ -325,7 +326,14 @@ const AcpSendBox: React.FC<{
   const onSendHandler = async (message: string) => {
     const msg_id = uuid();
 
-    const displayMessage = buildDisplayMessage(message, uploadFile, workspacePath);
+    // ACP: 不使用 buildDisplayMessage，直接传原始 message
+    // 文件引用由后端 ACP agent 负责添加（使用复制后的实际路径）
+    // 避免消息中出现两套不一致的文件引用导致 Claude 读取错误文件
+
+    // 合并 uploadFile 和 atPath（工作空间选择的文件）
+    // Merge uploadFile and atPath (workspace selected files)
+    const atPathFiles = atPath.map((item) => (typeof item === 'string' ? item : item.path));
+    const allFiles = [...uploadFile, ...atPathFiles];
 
     // 立即清空输入框，避免用户误以为消息没发送
     // Clear input immediately to avoid user thinking message wasn't sent
@@ -338,10 +346,10 @@ const AcpSendBox: React.FC<{
     // Send message via ACP
     try {
       await ipcBridge.acpConversation.sendMessage.invoke({
-        input: displayMessage,
+        input: message,
         msg_id,
         conversation_id,
-        files: uploadFile,
+        files: allFiles,
       });
       void checkAndUpdateTitle(conversation_id, message);
       emitter.emit('chat.history.refresh');
@@ -378,7 +386,7 @@ const AcpSendBox: React.FC<{
 
     // Clear selected files (similar to GeminiSendBox)
     emitter.emit('acp.selected.file.clear');
-    if (uploadFile.length) {
+    if (allFiles.length) {
       emitter.emit('acp.workspace.refresh');
     }
   };

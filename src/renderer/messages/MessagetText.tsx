@@ -4,18 +4,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { AIONUI_FILES_MARKER } from '@/common/constants';
 import type { IMessageText } from '@/common/chatLib';
-import classNames from 'classnames';
-import React, { useMemo, useState } from 'react';
-import MarkdownView from '../components/Markdown';
-import CollapsibleContent from '../components/CollapsibleContent';
-import { Copy } from '@icon-park/react';
-import { useTranslation } from 'react-i18next';
+import { AIONUI_FILES_MARKER } from '@/common/constants';
 import { iconColors } from '@/renderer/theme/colors';
 import { Alert, Tooltip } from '@arco-design/web-react';
+import { Copy } from '@icon-park/react';
+import classNames from 'classnames';
+import React, { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import CollapsibleContent from '../components/CollapsibleContent';
 import FilePreview from '../components/FilePreview';
 import HorizontalFileList from '../components/HorizontalFileList';
+import MarkdownView from '../components/Markdown';
 
 const parseFileMarker = (content: string) => {
   const markerIndex = content.indexOf(AIONUI_FILES_MARKER);
@@ -115,14 +115,14 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
             <MarkdownView codeStyle={{ marginTop: 4, marginBlock: 4 }}>{data}</MarkdownView>
           )}
         </div>
-        <div
+        {/* <div
           className={classNames('h-32px flex items-center mt-4px', {
             'justify-end': isUserMessage,
             'justify-start': !isUserMessage,
           })}
         >
           {copyButton}
-        </div>
+        </div> */}
       </div>
       {showCopyAlert && <Alert type='success' content={t('messages.copySuccess')} showIcon className='fixed top-20px left-50% transform -translate-x-50% z-9999 w-max max-w-[80%]' style={{ boxShadow: '0px 2px 12px rgba(0,0,0,0.12)' }} closable={false} />}
     </>

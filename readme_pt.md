@@ -1,5 +1,5 @@
 ﻿<p align="center">
-  <img src="./resources/aionui-banner-1 copy.png" alt="AionUi - Cowork with Your CLI AI Agent" width="100%">
+  <img src="./resources/aionui-banner-1.png" alt="AionUi - Cowork with Your CLI AI Agent" width="100%">
 </p>
 
 <p align="center">
@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <strong>💬 Comunidade:</strong> <a href="https://discord.gg/g6u66vV9" target="_blank">Discord (English)</a> | <a href="./resources/wechat_group.png" target="_blank">WeChat (中文)</a>
+  <strong>💬 Comunidade:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wechat_group_2.jpg" target="_blank">WeChat (中文)</a>
 </p>
 
 ---
@@ -113,9 +113,13 @@ _Geração, edição e reconhecimento inteligente de imagens, impulsionados pelo
 
 _Abrir várias conversas, tarefas sem se misturar, memória independente, eficiência dobrada_
 
+<details>
+<summary><strong>🎬 Clique para ver a demo ▶️</strong></summary>
+<br>
 <p align="center">
   <img src="./resources/multichat-side-by-side.gif" alt="Conversation Management Demo" width="800">
 </p>
+</details>
 
 ---
 
@@ -204,6 +208,27 @@ Você também pode executar vários agentes de IA simultaneamente (como Gemini C
 <summary><strong>Q: Meus dados estão seguros?</strong></summary>
 A: Todos os dados de conversas são armazenados em um banco SQLite local e não são enviados para nenhum servidor.
 </details>
+
+---
+
+## 🎬 Veja como as pessoas usam o AionUi
+
+_Assista como os criadores de conteúdo avaliam e usam o AionUi_
+
+<p align="center">
+  <a href="https://www.youtube.com/watch?v=yUU5E-U5B3M" target="_blank">
+    <img src="https://img.youtube.com/vi/yUU5E-U5B3M/maxresdefault.jpg" alt="WorldofAI Review" width="400">
+  </a>
+  &nbsp;&nbsp;
+  <a href="https://www.youtube.com/watch?v=enQnkKfth10" target="_blank">
+    <img src="https://img.youtube.com/vi/enQnkKfth10/maxresdefault.jpg" alt="Julian Goldie SEO Review" width="400">
+  </a>
+</p>
+<p align="center">
+  <em>🎬 WorldofAI (200K inscritos)</em> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <em>🎬 Julian Goldie SEO (318K inscritos)</em>
+</p>
+
+> 💡 **Você fez um vídeo sobre o AionUi?** [Conte-nos no X](https://x.com/AionUi) e vamos destacá-lo aqui! Valorizamos seu feedback e continuaremos melhorando.
 
 ---
 
@@ -333,8 +358,8 @@ brew install aionui
 - [💬 GitHub Discussions](https://github.com/iOfficeAI/AionUi/discussions) - **Compartilhe ideias, sugira melhorias, troque dicas de uso**
 - [🐛 Reportar problemas](https://github.com/iOfficeAI/AionUi/issues) - Relatar bugs ou solicitar recursos
 - [📦 Atualizações de versão](https://github.com/iOfficeAI/AionUi/releases) - Obter a versão mais recente
-- [💬 Discord Community](https://discord.gg/g6u66vV9) - **Participe da nossa comunidade em inglês**
-- [💬 WeChat (中文)](./resources/wechat_group.png) - **Clique para ver o QR**
+- [💬 Discord Community](https://discord.gg/2QAwJn7Egx) - **Participe da nossa comunidade em inglês**
+- [💬 WeChat (中文)](./resources/wechat_group_2.jpg) - **Clique para ver o QR**
 
 ### 🤝 Contribuir
 

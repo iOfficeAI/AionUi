@@ -1,5 +1,5 @@
 ﻿<p align="center">
-  <img src="./resources/aionui-banner-1 copy.png" alt="AionUi - Cowork with Your CLI AI Agent" width="100%">
+  <img src="./resources/aionui-banner-1.png" alt="AionUi - Cowork with Your CLI AI Agent" width="100%">
 </p>
 
 <p align="center">
@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <strong>💬 コミュニティ：</strong> <a href="https://discord.gg/g6u66vV9" target="_blank">Discord (English)</a> | <a href="./resources/wechat_group.png" target="_blank">微信 (中文群)</a>
+  <strong>💬 コミュニティ：</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wechat_group_2.jpg" target="_blank">微信 (中文群)</a>
 </p>
 
 ---
@@ -115,9 +115,13 @@ _インテリジェントな画像生成、編集、認識、Geminiが駆動_
 
 _複数の会話を開く、タスクが混乱しない、記憶が独立、効率が倍増_
 
+<details>
+<summary><strong>🎬 クリックしてデモを見る ▶️</strong></summary>
+<br>
 <p align="center">
   <img src="./resources/multichat-side-by-side.gif" alt="会話管理デモ" width="800">
 </p>
+</details>
 
 ---
 
@@ -204,6 +208,27 @@ A: Gemini、OpenAI、Claude、Qwenなどの主流モデル、およびOllama、L
 <summary><strong>Q: データは安全ですか？</strong></summary>
 A: すべての会話データはローカルのSQLiteデータベースに保存され、どのサーバーにもアップロードされません。
 </details>
+
+---
+
+## 🎬 みんながAionUiをどう使っているか見てみよう
+
+_クリエイターたちがAionUiをレビュー・使用する様子をご覧ください_
+
+<p align="center">
+  <a href="https://www.youtube.com/watch?v=yUU5E-U5B3M" target="_blank">
+    <img src="https://img.youtube.com/vi/yUU5E-U5B3M/maxresdefault.jpg" alt="WorldofAI レビュー" width="400">
+  </a>
+  &nbsp;&nbsp;
+  <a href="https://www.youtube.com/watch?v=enQnkKfth10" target="_blank">
+    <img src="https://img.youtube.com/vi/enQnkKfth10/maxresdefault.jpg" alt="Julian Goldie SEO レビュー" width="400">
+  </a>
+</p>
+<p align="center">
+  <em>🎬 WorldofAI (20万人登録)</em> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <em>🎬 Julian Goldie SEO (31.8万人登録)</em>
+</p>
+
+> 💡 **AionUiについての動画を作りましたか？** [Xでお知らせください](https://x.com/AionUi)、ここで紹介します！皆様のフィードバックを参考に、継続的に改善していきます。
 
 ---
 
@@ -333,8 +358,8 @@ brew install aionui
 - [💬 GitHub Discussions](https://github.com/iOfficeAI/AionUi/discussions) - **アイデアを共有、提案、使用のヒントを交換**
 - [🐛 問題を報告](https://github.com/iOfficeAI/AionUi/issues) - バグや機能リクエストを報告
 - [📦 リリース更新](https://github.com/iOfficeAI/AionUi/releases) - 最新版を取得
-- [💬 Discord Community](https://discord.gg/g6u66vV9) - **Discord の英語コミュニティに参加**
-- [💬 微信 (中文群)](./resources/wechat_group.png) - **QRコードを表示するにはクリック**
+- [💬 Discord Community](https://discord.gg/2QAwJn7Egx) - **Discord の英語コミュニティに参加**
+- [💬 微信 (中文群)](./resources/wechat_group_2.jpg) - **QRコードを表示するにはクリック**
 
 ### 🤝 コード貢献
 

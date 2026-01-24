@@ -4,18 +4,18 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { useInputFocusRing } from '@/renderer/hooks/useInputFocusRing';
+import { usePreviewContext } from '@/renderer/pages/conversation/preview';
 import { Button, Input, Message, Tag } from '@arco-design/web-react';
 import { ArrowUp, CloseSmall } from '@icon-park/react';
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCompositionInput } from '../hooks/useCompositionInput';
 import { useDragUpload } from '../hooks/useDragUpload';
+import { useLatestRef } from '../hooks/useLatestRef';
 import { usePasteService } from '../hooks/usePasteService';
 import type { FileMetadata } from '../services/FileService';
 import { allSupportedExts } from '../services/FileService';
-import { usePreviewContext } from '@/renderer/pages/conversation/preview';
-import { useLatestRef } from '../hooks/useLatestRef';
-import { useInputFocusRing } from '@/renderer/hooks/useInputFocusRing';
 
 const constVoid = (): void => undefined;
 // 临界值：超过该字符数直接切换至多行模式，避免为超长文本做昂贵的宽度测量
@@ -175,7 +175,9 @@ const SendBox: React.FC<{
       if (textarea && textarea.tagName === 'TEXTAREA') {
         const cursorPosition = textarea.selectionStart;
         const currentValue = textarea.value;
-        const newValue = currentValue.slice(0, cursorPosition) + text + currentValue.slice(cursorPosition);
+        const start = textarea.selectionStart ?? textarea.value.length;
+        const end = textarea.selectionEnd ?? start;
+        const newValue = currentValue.slice(0, start) + text + currentValue.slice(end);
         setInput(newValue);
         // 设置光标到插入文本后的位置
         setTimeout(() => {

@@ -6,29 +6,8 @@
 
 import { acpDetector } from '@/agent/acp/AcpDetector';
 import { ipcBridge } from '../../common';
-import WorkerManage from '../WorkerManage';
-import type AcpAgentManager from '../task/AcpAgentManager';
 
 export function initAcpConversationBridge(): void {
-  // ACP 专用的 confirmMessage provider (for backward compatibility with 'acp.input.confirm.message' channel)
-  ipcBridge.acpConversation.confirmMessage.provider(async ({ confirmKey, msg_id, conversation_id, callId }) => {
-    const task = WorkerManage.getTaskById(conversation_id) as AcpAgentManager;
-    if (!task) {
-      return { success: false, msg: 'conversation not found' };
-    }
-
-    if (task.type !== 'acp') {
-      return { success: false, msg: 'not support' };
-    }
-
-    try {
-      await task.confirmMessage({ confirmKey, msg_id, callId });
-      return { success: true };
-    } catch (err) {
-      return { success: false, msg: err };
-    }
-  });
-
   // Debug provider to check environment variables
   ipcBridge.acpConversation.checkEnv.provider(() => {
     return Promise.resolve({
