@@ -715,9 +715,20 @@ async function testMultipleKeys(
 /**
  * 检测是否为 PackyAPI 中转站
  * Check if it's PackyAPI proxy service
+ *
+ * 使用 URL 解析确保只匹配真正的 packyapi.com 域名，防止 URL 注入攻击
+ * Use URL parsing to ensure only real packyapi.com domain matches, preventing URL injection attacks
  */
 function isPackyAPI(baseUrl: string): boolean {
-  return baseUrl.toLowerCase().includes('packyapi.com');
+  try {
+    const url = new URL(baseUrl);
+    const hostname = url.hostname.toLowerCase();
+    // 精确匹配 packyapi.com 或其子域名
+    // Exact match packyapi.com or its subdomains
+    return hostname === 'packyapi.com' || hostname.endsWith('.packyapi.com');
+  } catch {
+    return false;
+  }
 }
 
 /**
