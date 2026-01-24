@@ -21,7 +21,7 @@ import type { IResponseMessage } from '@/common/ipcBridge';
 import { uuid } from '@/common/utils';
 import { addMessage } from '@process/message';
 import BaseAgentManager from '@process/task/BaseAgentManager';
-import { prepareFirstMessage } from '@process/task/agentUtils';
+import { prepareFirstMessageWithSkillsIndex } from '@process/task/agentUtils';
 import { handlePreviewOpenEvent } from '@process/utils/previewUtils';
 import { t } from 'i18next';
 import { getConfiguredAppClientName, getConfiguredAppClientVersion, getConfiguredCodexMcpProtocolVersion, setAppConfig } from '../../common/utils/appConfig';
@@ -186,9 +186,9 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
       if (this.isFirstMessage) {
         this.isFirstMessage = false;
 
-        // 注入智能助手的预设规则和 skills（如果有）
-        // Inject preset context and skills from smart assistant (if available)
-        processedContent = await prepareFirstMessage(processedContent, {
+        // 注入智能助手的预设规则和 skills 索引（如果有）
+        // Inject preset context and skills INDEX from smart assistant (if available)
+        processedContent = await prepareFirstMessageWithSkillsIndex(processedContent, {
           presetContext: this.options.presetContext,
           enabledSkills: this.options.enabledSkills,
         });

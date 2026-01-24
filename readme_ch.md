@@ -1,5 +1,5 @@
-<p align="center">
-  <img src="./resources/aionui-banner-1 copy.png" alt="AionUi - Cowork with Your CLI AI Agent" width="100%">
+﻿<p align="center">
+  <img src="./resources/aionui-banner-1.png" alt="AionUi - Cowork with Your CLI AI Agent" width="100%">
 </p>
 
 <p align="center">
@@ -30,11 +30,11 @@
 </p>
 
 <p align="center">
-  <a href="./readme.md">English</a> | <strong>简体中文</strong> | <a href="./readme_jp.md">日本語</a> | <a href="https://www.aionui.com" target="_blank">官网</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <a href="./readme.md">English</a> | <strong>简体中文</strong> | <a href="./readme_tw.md">繁體中文</a> | <a href="./readme_jp.md">日本語</a> | <a href="./readme_ko.md">한국어</a> | <a href="./readme_es.md">Español</a> | <a href="./readme_pt.md">Português</a> | <a href="https://www.aionui.com" target="_blank">官网</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
 </p>
 
 <p align="center">
-  <strong>💬 社区：</strong> <a href="https://discord.gg/g6u66vV9" target="_blank">Discord (English)</a> | <a href="./resources/wechat.jpg" target="_blank">微信 (中文群)</a>
+  <strong>💬 社区：</strong> <a href="https://discord.gg/g6u66vV9" target="_blank">Discord (English)</a> | <a href="./resources/wechat_group.png" target="_blank">微信 (中文群)</a>
 </p>
 
 ---
@@ -47,7 +47,6 @@
 [🤔 为什么选择 AionUi](#🤔-为什么选择-aionui) ·
 [✨ 核心功能](#✨-核心功能) ·
 [🚀 快速开始](#🚀-快速开始) ·
-[📖 详细使用说明](#📖-详细使用说明) ·
 [💬 社区交流](#🤝-社区与支持)
 
 </p>
@@ -57,12 +56,12 @@
 ## ✨ 看看 AionUi 能做什么？
 
 <p align="center">
-  <img src="./resources/offica-ai BANNER-function copy.png" alt="AionUi - Cowork with Your CLI AI Agent" width="800">
+  <img src="./resources/offica-ai BANNER-function.png" alt="AionUi - Cowork with Your CLI AI Agent" width="800">
 </p>
 
 ### 🤖 **多代理模式 - Cowork for 你的命令行 AI 工具，统一图形界面**
 
-_如果你已经安装了 Gemini CLI、Claude Code、CodeX、Qwen Code、Goose AI、Augment Code 等命令行工具，AionUi 可以自动检测并为它们提供统一的图形界面_
+_AionUi 内置 Gemini CLI，下载即用，无需额外安装；如果你已经安装了 Gemini CLI、Claude Code、CodeX、Qwen Code、Goose AI、Augment Code 等命令行工具，AionUi 会自动检测并为它们提供统一的图形界面，体验更丰富_
 
 - ✅ **自动检测 + 统一界面** - 自动识别本地 CLI 工具，提供统一的图形界面，告别命令行
 - ✅ **本地保存 + 多会话** - 对话保存在本地，支持多会话并行，每个会话独立上下文
@@ -115,9 +114,13 @@ _智能图像生成、编辑和识别，由 Gemini 驱动_
 
 _开多个对话、任务不混乱、记忆独立、效率翻倍_
 
+<details>
+<summary><strong>🎬 点击查看演示 ▶️</strong></summary>
+<br>
 <p align="center">
   <img src="./resources/multichat-side-by-side.gif" alt="对话管理演示" width="800">
 </p>
+</details>
 
 ---
 
@@ -149,7 +152,7 @@ Gemini CLI、Claude Code、Codex、Qwen Code 等命令行工具虽然强大，�
 
 AionUi 为这些命令行工具提供统一的 **Cowork 能力**：
 
-- 🎯 **统一平台** - 一个界面管理所有命令行 AI 工具，无需切换
+- 🎯 **统一平台** - 一个界面管理所有命令行 AI 工具，无需切换；内置 Gemini CLI，下载即用且完全免费
 - 🚀 **多工具支持** - 不仅支持 Claude Code，还支持 Gemini CLI、Codex、Qwen Code 等
 - 🌐 **跨平台** - macOS、Windows、Linux 全平台支持（Claude Cowork 目前仅 macOS）
 - 🔄 **多模型切换** - 在同一个界面中灵活切换不同模型，满足不同任务需求
@@ -184,7 +187,7 @@ A: 它可以成为你的**私有化 Cowork 工作空间**。你可以让它帮�
 
 <details>
 <summary><strong>Q: AionUi 是开箱即用吗？</strong></summary>
-A: 是的！安装后可以直接使用 Google 账号登录，AionUi 会自动关联 Gemini CLI，无需额外配置即可开始使用。
+A: 是的！安装后即可直接使用，内置 Gemini CLI，无需额外安装即可开始体验。如果你本机已安装并体验过 Gemini CLI 等命令行工具，AionUi 会自动识别并提供更丰富的使用体验。
 </details>
 
 <details>
@@ -204,6 +207,27 @@ A: 支持 Gemini、OpenAI、Claude、Qwen 等主流模型，以及 Ollama、LM S
 <summary><strong>Q: 数据安全吗？</strong></summary>
 A: 所有对话数据存储在本地 SQLite 数据库，不会上传到任何服务器。
 </details>
+
+---
+
+## 🎬 看看大家如何使用 AionUi
+
+_观看创作者们如何测评和使用 AionUi_
+
+<p align="center">
+  <a href="https://www.youtube.com/watch?v=yUU5E-U5B3M" target="_blank">
+    <img src="https://img.youtube.com/vi/yUU5E-U5B3M/maxresdefault.jpg" alt="WorldofAI 测评" width="400">
+  </a>
+  &nbsp;&nbsp;
+  <a href="https://www.youtube.com/watch?v=enQnkKfth10" target="_blank">
+    <img src="https://img.youtube.com/vi/enQnkKfth10/maxresdefault.jpg" alt="Julian Goldie SEO 测评" width="400">
+  </a>
+</p>
+<p align="center">
+  <em>🎬 WorldofAI (20万订阅)</em> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <em>🎬 Julian Goldie SEO (31.8万订阅)</em>
+</p>
+
+> 💡 **你也做了关于 AionUi 的视频？** [在 X 上告诉我们](https://x.com/AionUi)，我们会在这里展示！我们也会采纳你的反馈，并在未来持续优化。
 
 ---
 
@@ -272,6 +296,8 @@ _自己写 CSS 代码自定义，让你的交互界面符合你的心意_
 - [📊 Excel 处理](https://github.com/iOfficeAI/AionUi/wiki/excel-processing) - AI 驱动的数据处理
 - [🎨 图像生成](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide-Chinese) - AI 图像创作
 - [📚 更多使用案例](https://github.com/iOfficeAI/AionUi/wiki/Use-Cases-Overview-Chinese)
+  - [🎬 WorldofAI](https://www.youtube.com/watch?v=yUU5E-U5B3M) - YouTube 视频测评
+  - [🎬 Julian Goldie SEO](https://www.youtube.com/watch?v=enQnkKfth10) - YouTube 视频测评
 
 ### ❓ 支持与帮助
 
@@ -300,6 +326,12 @@ _自己写 CSS 代码自定义，让你的交互界面符合你的心意_
   </a>
 </p>
 
+### 🍺 通过 Homebrew 安装 (macOS)
+
+```bash
+brew install aionui
+```
+
 ### 🔧 简单安装
 
 1. **下载并安装** AionUi 应用程序
@@ -326,7 +358,7 @@ _自己写 CSS 代码自定义，让你的交互界面符合你的心意_
 - [🐛 报告问题](https://github.com/iOfficeAI/AionUi/issues) - 反馈 Bug 或功能请求
 - [📦 发布更新](https://github.com/iOfficeAI/AionUi/releases) - 获取最新版本
 - [💬 Discord Community](https://discord.gg/g6u66vV9) - **加入我们的英文 Discord 社区**
-- [💬 微信 (中文群)](./resources/wechat.jpg) - **点击查看二维码**
+- [💬 微信 (中文群)](./resources/wechat_group.png) - **点击查看二维码**
 
 ### 🤝 贡献代码
 
@@ -337,6 +369,31 @@ _自己写 CSS 代码自定义，让你的交互界面符合你的心意_
 3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
 4. 推送到分支 (`git push origin feature/AmazingFeature`)
 5. 打开 Pull Request
+
+### 🙏 特别感谢
+
+<table>
+<tr>
+<td width="170" align="center">
+  <a href="https://linux.do/" target="_blank">
+    <img src="./resources/linuxdo.png" alt="LINUX DO" width="150">
+  </a>
+</td>
+<td>
+  <a href="https://linux.do/" target="_blank">LINUX DO</a> - 新的理想型社区。
+</td>
+</tr>
+<tr>
+<td width="170" align="center">
+  <a href="https://packycode.com" target="_blank">
+    <img src="./resources/packycode.png" alt="PackyCode" width="150">
+  </a>
+</td>
+<td>
+  <a href="https://packycode.com" target="_blank">PackyCode</a> 是一家可靠高效的 API 中继服务提供商，为 Claude Code、Codex、Gemini 等平台提供中继服务。感谢 PackyCode 为支持 AionUi 用户低成本使用，为我们的用户提供专属 <a href="https://www.packyapi.com/register?aff=aionui" target="_blank">9折优惠</a>，付款时使用优惠码 <code>aionui</code> 可立减 10%。
+</td>
+</tr>
+</table>
 
 ---
 
@@ -352,7 +409,7 @@ _自己写 CSS 代码自定义，让你的交互界面符合你的心意_
 
 <p align="center">
   <a href="https://github.com/iOfficeAI/AionUi/graphs/contributors">
-    <img src="https://contrib.rocks/image?repo=iOfficeAI/AionUi&max=20" alt="Contributors" />
+    <img src="https://contrib.rocks/image?repo=iOfficeAI/AionUi&max=50" alt="Contributors" />
   </a>
 </p>
 

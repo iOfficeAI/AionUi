@@ -349,9 +349,22 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
 
   // 开发模式下使用项目根目录，生产模式使用 app.getAppPath()
   // In development, use project root. In production, use app.getAppPath()
+  // When packaged, resources are in asarUnpack, so they're at app.asar.unpacked/
+  // 打包后，资源在 asarUnpack 中，所以在 app.asar.unpacked/ 目录下
   const resolveBuiltinDir = (dirPath: string): string => {
     const appPath = app.getAppPath();
-    const candidates = app.isPackaged ? [path.join(appPath, dirPath)] : [path.join(appPath, dirPath), path.join(appPath, '..', dirPath), path.join(appPath, '..', '..', dirPath), path.join(appPath, '..', '..', '..', dirPath), path.join(process.cwd(), dirPath)];
+    let candidates: string[];
+    if (app.isPackaged) {
+      // asarUnpack extracts files to app.asar.unpacked directory
+      // asarUnpack 会将文件解压到 app.asar.unpacked 目录
+      const unpackedPath = appPath.replace('app.asar', 'app.asar.unpacked');
+      candidates = [
+        path.join(unpackedPath, dirPath), // Unpacked location (preferred)
+        path.join(appPath, dirPath), // Fallback to asar path
+      ];
+    } else {
+      candidates = [path.join(appPath, dirPath), path.join(appPath, '..', dirPath), path.join(appPath, '..', '..', dirPath), path.join(appPath, '..', '..', '..', dirPath), path.join(process.cwd(), dirPath)];
+    }
 
     for (const candidate of candidates) {
       if (existsSync(candidate)) {
@@ -359,6 +372,7 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
       }
     }
 
+    console.warn(`[AionUi] Could not find builtin ${dirPath} directory, tried:`, candidates);
     return candidates[0];
   };
 
@@ -507,6 +521,7 @@ const getBuiltinAssistants = (): AcpBackendConfig[] => {
   for (const preset of ASSISTANT_PRESETS) {
     // Cowork 默认启用的技能列表 / Default enabled skills for Cowork
     const defaultEnabledSkills = preset.id === 'cowork' ? ['skill-creator', 'pptx', 'docx', 'pdf', 'xlsx'] : undefined;
+    const enabledByDefault = preset.id === 'cowork';
 
     assistants.push({
       id: `builtin-${preset.id}`,
@@ -517,8 +532,8 @@ const getBuiltinAssistants = (): AcpBackendConfig[] => {
       avatar: preset.avatar,
       // context 不再存储在配置中，而是从文件读取
       // context is no longer stored in config, read from files instead
-      // Cowork 默认启用，其他助手默认关闭 / Cowork enabled by default, others disabled
-      enabled: preset.id === 'cowork',
+      // Cowork 默认启用 / Cowork enabled by default
+      enabled: enabledByDefault,
       isPreset: true,
       isBuiltin: true,
       presetAgentType: preset.presetAgentType || 'gemini',

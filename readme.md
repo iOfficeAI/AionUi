@@ -1,5 +1,5 @@
-<p align="center">
-  <img src="./resources/aionui-banner-1 copy.png" alt="AionUi - Cowork with Your CLI AI Agent" width="100%">
+﻿<p align="center">
+  <img src="./resources/aionui-banner-1.png" alt="AionUi - Cowork with Your CLI AI Agent" width="100%">
 </p>
 
 <p align="center">
@@ -30,11 +30,11 @@
 </p>
 
 <p align="center">
-  <strong>English</strong> | <a href="./readme_ch.md">简体中文</a> | <a href="./readme_jp.md">日本語</a> | <a href="https://www.aionui.com" target="_blank">Official Website</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <strong>English</strong> | <a href="./readme_ch.md">简体中文</a> | <a href="./readme_tw.md">繁體中文</a> | <a href="./readme_jp.md">日本語</a> | <a href="./readme_ko.md">한국어</a> | <a href="./readme_es.md">Español</a> | <a href="./readme_pt.md">Português</a> | <a href="https://www.aionui.com" target="_blank">Official Website</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
 </p>
 
 <p align="center">
-  <strong>💬 Community:</strong> <a href="https://discord.gg/g6u66vV9" target="_blank">Discord (English)</a> | <a href="./resources/wechat.jpg" target="_blank">微信 (中文群)</a>
+  <strong>💬 Community:</strong> <a href="https://discord.gg/g6u66vV9" target="_blank">Discord (English)</a> | <a href="./resources/wechat_group.png" target="_blank">微信 (中文群)</a>
 </p>
 
 ---
@@ -47,7 +47,6 @@
 [🤔 Why Choose AionUi?](#🤔-why-choose-aionui) ·
 [✨ Core Features](#✨-core-features) ·
 [🚀 Quick Start](#🚀-quick-start) ·
-[📖 Detailed Usage Guide](#📖-detailed-usage-guide) ·
 [💬 Community](#🤝-community--support)
 
 </p>
@@ -57,7 +56,7 @@
 ## ✨ What Can AionUi Do?
 
 <p align="center">
-  <img src="./resources/offica-ai BANNER-function copy.png" alt="AionUi - Cowork with Your CLI AI Agent" width="800">
+  <img src="./resources/offica-ai BANNER-function.png" alt="AionUi - Cowork with Your CLI AI Agent" width="800">
 </p>
 
 ### 🤖 **Multi-Agent Mode - Cowork for Your Command-Line AI Tools, Unified Graphical Interface**
@@ -107,15 +106,34 @@ _Intelligent image generation, editing, and recognition, powered by Gemini_
   <img src="./resources/Image_Generation.gif" alt="AI Image Generation Demo" width="800">
 </p>
 
+> 💡 **Need help setting up free image generation?** [Follow the tutorial to configure image generation models](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide)
+
+---
+
+### 📁 **Smart File Management (AI Cowork)**
+
+_Batch renaming, automatic organization, smart classification, file merging_
+
+- **Auto Organize**: Intelligently identify content and auto-classify, keeping folders tidy.
+- **Efficient Batch**: One-click rename, merge files, say goodbye to tedious manual tasks.
+
+<p align="center">
+  <img src="./resources/aionui sort file.gif" alt="Smart File Management Demo" width="800">
+</p>
+
 ---
 
 ### 💬 **Multi-Task Parallel Processing**
 
 _Open multiple conversations, tasks don't get mixed up, independent memory, double efficiency_
 
+<details>
+<summary><strong>🎬 Click to view demo ▶️</strong></summary>
+<br>
 <p align="center">
   <img src="./resources/multichat-side-by-side.gif" alt="Conversation Management Demo" width="800">
 </p>
+</details>
 
 ---
 
@@ -143,7 +161,7 @@ AionUi --webui --remote
 
 **Just like Claude Cowork makes Claude Code easier to use, AionUi is the Cowork platform for all your command-line AI tools**
 
-Gemini CLI, Claude Code, Codex, Qwen Code are powerful, but share common pain points: conversations can't be saved, single-session limitations, cumbersome file operations, and only support a single model.
+While command-line tools like Gemini CLI, Claude Code, Codex, Qwen Code are powerful, they share common pain points: conversations can't be saved, single-session limitations, cumbersome file operations, and only support a single model.
 
 AionUi provides unified **Cowork capabilities** for these command-line tools:
 
@@ -153,8 +171,6 @@ AionUi provides unified **Cowork capabilities** for these command-line tools:
 - 🔄 **Multi-Model Switching** - Flexibly switch between different models in the same interface, meeting different task requirements
 - 📄 **Real-time Preview** - Visual preview for 9+ formats, immediately view the effects of AI-generated files
 - 💾 **Local Data Security** - All conversations and files saved locally, data never leaves your device
-
----
 
 ### ❓ Quick Q&A
 
@@ -204,6 +220,27 @@ You can also run multiple AI Agents simultaneously (such as Gemini CLI, Claude C
 <summary><strong>Q: Is my data secure?</strong></summary>
 A: All conversation data is stored in a local SQLite database and will not be uploaded to any server.
 </details>
+
+---
+
+## 🎬 See How People Use AionUi
+
+_Watch how content creators review and use AionUi in real-world scenarios_
+
+<p align="center">
+  <a href="https://www.youtube.com/watch?v=yUU5E-U5B3M" target="_blank">
+    <img src="https://img.youtube.com/vi/yUU5E-U5B3M/maxresdefault.jpg" alt="WorldofAI Review" width="400">
+  </a>
+  &nbsp;&nbsp;
+  <a href="https://www.youtube.com/watch?v=enQnkKfth10" target="_blank">
+    <img src="https://img.youtube.com/vi/enQnkKfth10/maxresdefault.jpg" alt="Julian Goldie SEO Review" width="400">
+  </a>
+</p>
+<p align="center">
+  <em>🎬 WorldofAI (200K subscribers)</em> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <em>🎬 Julian Goldie SEO (318K subscribers)</em>
+</p>
+
+> 💡 **Have you made a video about AionUi?** [Let us know on X](https://x.com/AionUi) and we'll feature it here! We value your feedback and will continue to improve based on your suggestions.
 
 ---
 
@@ -325,8 +362,6 @@ _Customize with your own CSS code, make your interface match your preferences_
 - [💬 GitHub Discussions](https://github.com/iOfficeAI/AionUi/discussions) - **Share ideas, make suggestions, exchange usage tips**
 - [🐛 Report Issues](https://github.com/iOfficeAI/AionUi/issues) - Report bugs or feature requests
 - [📦 Release Updates](https://github.com/iOfficeAI/AionUi/releases) - Get the latest version
-- [💬 Discord Community](https://discord.gg/g6u66vV9) - **Join our English community on Discord**
-- [💬 微信 (中文群)](./resources/wechat.jpg) - **Click to view QR code**
 
 ### 🤝 Contributing
 
@@ -352,7 +387,7 @@ Thanks to all developers who have contributed to AionUi!
 
 <p align="center">
   <a href="https://github.com/iOfficeAI/AionUi/graphs/contributors">
-    <img src="https://contrib.rocks/image?repo=iOfficeAI/AionUi&max=20" alt="Contributors" />
+    <img src="https://contrib.rocks/image?repo=iOfficeAI/AionUi&max=50" alt="Contributors" />
   </a>
 </p>
 

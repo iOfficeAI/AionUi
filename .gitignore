@@ -140,7 +140,9 @@ debug.log
 test-*.js
 diagnose-*.js
 
-.gemini/
+# Keep .gemini config for AI code review (but ignore local cache)
+!.gemini/
+.gemini/cache/
 gha-creds-*.json
 
 # Spec-Kit working files

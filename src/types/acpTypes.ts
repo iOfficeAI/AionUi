@@ -18,7 +18,24 @@
  * 预设助手的主 Agent 类型，用于决定创建哪种类型的对话
  * The primary agent type for preset assistants, used to determine which conversation type to create.
  */
-export type PresetAgentType = 'gemini' | 'claude' | 'codex';
+export type PresetAgentType = 'gemini' | 'claude' | 'codex' | 'opencode';
+
+/**
+ * 使用 ACP 协议的预设 Agent 类型（需要通过 ACP 后端路由）
+ * Preset agent types that use ACP protocol (need to be routed through ACP backend)
+ *
+ * 这些类型会在创建对话时使用对应的 ACP 后端，而不是 Gemini 原生对话
+ * These types will use corresponding ACP backend when creating conversation, instead of native Gemini
+ */
+export const ACP_ROUTED_PRESET_TYPES: readonly PresetAgentType[] = ['claude', 'opencode'] as const;
+
+/**
+ * 检查预设 Agent 类型是否需要通过 ACP 后端路由
+ * Check if preset agent type should be routed through ACP backend
+ */
+export function isAcpRoutedPresetType(type: PresetAgentType | undefined): boolean {
+  return type !== undefined && ACP_ROUTED_PRESET_TYPES.includes(type);
+}
 
 // 全部后端类型定义 - 包括暂时不支持的 / All backend types - including temporarily unsupported ones
 export type AcpBackendAll =
@@ -27,6 +44,7 @@ export type AcpBackendAll =
   | 'qwen' // Qwen Code ACP
   | 'iflow' // iFlow CLI ACP
   | 'codex' // OpenAI Codex MCP
+  | 'droid' // Factory Droid CLI (ACP via `droid exec --output-format acp`)
   | 'goose' // Block's Goose CLI
   | 'auggie' // Augment Code CLI
   | 'kimi' // Kimi CLI (Moonshot)
@@ -204,6 +222,12 @@ export interface AcpBackendConfig {
   /** 此预设的本地化提示词 / Localized prompts for this preset (e.g., { 'zh-CN': '...', 'en-US': '...' }) */
   contextI18n?: Record<string, string>;
 
+  /** 此预设的示例 prompts / Example prompts for this preset */
+  prompts?: string[];
+
+  /** 本地化示例 prompts / Localized example prompts */
+  promptsI18n?: Record<string, string[]>;
+
   /**
    * 此预设的主 Agent 类型（仅 isPreset=true 时生效）
    * 决定选择此预设时创建哪种类型的对话
@@ -330,6 +354,16 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     enabled: true, // ✅ OpenCode CLI，使用 `opencode acp` 启动
     supportsStreaming: false,
     acpArgs: ['acp'], // opencode 使用 acp 子命令
+  },
+  droid: {
+    id: 'droid',
+    name: 'Factory Droid',
+    cliCommand: 'droid',
+    // Droid uses FACTORY_API_KEY from environment, not an interactive auth flow.
+    authRequired: false,
+    enabled: true, // ✅ Factory docs: `droid exec --output-format acp` (JetBrains/Zed ACP integration)
+    supportsStreaming: false,
+    acpArgs: ['exec', '--output-format', 'acp'],
   },
   custom: {
     id: 'custom',

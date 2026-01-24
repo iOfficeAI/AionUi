@@ -1,5 +1,5 @@
-<p align="center">
-  <img src="./resources/aionui-banner-1 copy.png" alt="AionUi - Cowork with Your CLI AI Agent" width="100%">
+﻿<p align="center">
+  <img src="./resources/aionui-banner-1.png" alt="AionUi - Cowork with Your CLI AI Agent" width="100%">
 </p>
 
 <p align="center">
@@ -30,11 +30,11 @@
 </p>
 
 <p align="center">
-  <a href="./readme.md">English</a> | <a href="./readme_ch.md">简体中文</a> | <strong>日本語</strong> | <a href="https://www.aionui.com" target="_blank">公式サイト</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <a href="./readme.md">English</a> | <a href="./readme_ch.md">简体中文</a> | <a href="./readme_tw.md">繁體中文</a> | <strong>日本語</strong> | <a href="./readme_ko.md">한국어</a> | <a href="./readme_es.md">Español</a> | <a href="./readme_pt.md">Português</a> | <a href="https://www.aionui.com" target="_blank">公式サイト</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
 </p>
 
 <p align="center">
-  <strong>💬 コミュニティ：</strong> <a href="https://discord.gg/g6u66vV9" target="_blank">Discord (English)</a> | <a href="./resources/wechat.jpg" target="_blank">微信 (中文群)</a>
+  <strong>💬 コミュニティ：</strong> <a href="https://discord.gg/g6u66vV9" target="_blank">Discord (English)</a> | <a href="./resources/wechat_group.png" target="_blank">微信 (中文群)</a>
 </p>
 
 ---
@@ -43,12 +43,12 @@
 
 <p align="center">
 
-[✨ AionUiでできること](#✨-aionuiでできること) ·
-[🤔 なぜAionUiを選ぶのか](#🤔-なぜaionuiを選ぶのか) ·
-[✨ コア機能](#✨-コア機能) ·
-[🚀 クイックスタート](#🚀-クイックスタート) ·
-[📖 詳細使用説明](#📖-詳細使用説明) ·
-[💬 コミュニティ](#🤝-コミュニティとサポート)
+[✨ AionUiでできること](#aionuiでできること) ·
+[🤔 なぜAionUiを選ぶのか](#なぜaionuiを選ぶのか) ·
+[✨ コア機能](#コア機能) ·
+[🚀 クイックスタート](#クイックスタート) ·
+[📖 詳細使用説明](#詳細使用説明) ·
+[💬 コミュニティ](#コミュニティとサポート)
 
 </p>
 
@@ -57,12 +57,12 @@
 ## ✨ AionUiでできること？
 
 <p align="center">
-  <img src="./resources/offica-ai BANNER-function copy.png" alt="AionUi - Cowork with Your CLI AI Agent" width="800">
+  <img src="./resources/offica-ai BANNER-function.png" alt="AionUi - Cowork with Your CLI AI Agent" width="800">
 </p>
 
 ### 🤖 **マルチエージェントモード - あなたのコマンドラインAIツールのためのCowork、統一グラフィカルインターフェース**
 
-_Gemini CLI、Claude Code、CodeX、Qwen Code、Goose AI、Augment Codeなどのコマンドラインツールをインストール済みの場合、AionUiは自動的に検出し、統一されたグラフィカルインターフェースを提供します_
+_AionUi には Gemini CLI を内蔵しており、ダウンロードしてすぐ使えます。追加インストール不要です。すでに Gemini CLI、Claude Code、CodeX、Qwen Code、Goose AI、Augment Code などのコマンドラインツールをインストールしている場合、AionUi が自動検出して統一されたグラフィカルインターフェースを提供し、体験がさらに豊かになります_
 
 - ✅ **自動検出 + 統一インターフェース** - ローカルCLIツールを自動認識し、統一されたグラフィカルインターフェースを提供、コマンドラインに別れを告げる
 - ✅ **ローカル保存 + マルチセッション** - 会話をローカルに保存、マルチセッション並列をサポート、各セッションは独立したコンテキスト
@@ -115,9 +115,13 @@ _インテリジェントな画像生成、編集、認識、Geminiが駆動_
 
 _複数の会話を開く、タスクが混乱しない、記憶が独立、効率が倍増_
 
+<details>
+<summary><strong>🎬 クリックしてデモを見る ▶️</strong></summary>
+<br>
 <p align="center">
   <img src="./resources/multichat-side-by-side.gif" alt="会話管理デモ" width="800">
 </p>
+</details>
 
 ---
 
@@ -149,7 +153,7 @@ Gemini CLI、Claude Code、Codex、Qwen Codeなどのコマンドラインツー
 
 AionUiはこれらのコマンドラインツールに統一された **Cowork機能** を提供します：
 
-- 🎯 **統一プラットフォーム** - すべてのコマンドラインAIツールを1つのインターフェースで管理、切り替え不要
+- 🎯 **統一プラットフォーム** - すべてのコマンドラインAIツールを1つのインターフェースで管理、切り替え不要。Gemini CLI を内蔵、ダウンロードしてすぐ使えて完全無料
 - 🚀 **マルチツール対応** - Claude Codeだけでなく、Gemini CLI、Codex、Qwen Codeなどもサポート
 - 🌐 **クロスプラットフォーム** - macOS、Windows、Linux全プラットフォーム対応（Claude Coworkは現在macOSのみ）
 - 🔄 **マルチモデル切り替え** - 同じインターフェースで異なるモデルを柔軟に切り替え、さまざまなタスク要件に対応
@@ -184,7 +188,7 @@ A: AionUiはあなたの**プライベートなCoworkワークスペース**に�
 
 <details>
 <summary><strong>Q: AionUiはすぐに使えますか？</strong></summary>
-A: はい！インストール後、Googleアカウントでログインするだけで使用できます。AionUiは自動的にGemini CLIと関連付けられ、追加の設定なしで使用を開始できます。
+A: はい！インストール後すぐに使えます。Gemini CLI を内蔵しているため追加インストールは不要です。すでに Gemini CLI などのコマンドラインツールを使っている場合は、AionUi が自動認識してより豊かな体験を提供します。
 </details>
 
 <details>
@@ -204,6 +208,27 @@ A: Gemini、OpenAI、Claude、Qwenなどの主流モデル、およびOllama、L
 <summary><strong>Q: データは安全ですか？</strong></summary>
 A: すべての会話データはローカルのSQLiteデータベースに保存され、どのサーバーにもアップロードされません。
 </details>
+
+---
+
+## 🎬 みんながAionUiをどう使っているか見てみよう
+
+_クリエイターたちがAionUiをレビュー・使用する様子をご覧ください_
+
+<p align="center">
+  <a href="https://www.youtube.com/watch?v=yUU5E-U5B3M" target="_blank">
+    <img src="https://img.youtube.com/vi/yUU5E-U5B3M/maxresdefault.jpg" alt="WorldofAI レビュー" width="400">
+  </a>
+  &nbsp;&nbsp;
+  <a href="https://www.youtube.com/watch?v=enQnkKfth10" target="_blank">
+    <img src="https://img.youtube.com/vi/enQnkKfth10/maxresdefault.jpg" alt="Julian Goldie SEO レビュー" width="400">
+  </a>
+</p>
+<p align="center">
+  <em>🎬 WorldofAI (20万人登録)</em> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <em>🎬 Julian Goldie SEO (31.8万人登録)</em>
+</p>
+
+> 💡 **AionUiについての動画を作りましたか？** [Xでお知らせください](https://x.com/AionUi)、ここで紹介します！皆様のフィードバックを参考に、継続的に改善していきます。
 
 ---
 
@@ -272,6 +297,8 @@ _独自のCSSコードでカスタマイズし、インターフェースを好�
 - [📊 Excel処理](https://github.com/iOfficeAI/AionUi/wiki/excel-processing) - AI駆動のデータ処理
 - [🎨 画像生成](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide) - AI画像作成
 - [📚 その他のユースケース](https://github.com/iOfficeAI/AionUi/wiki/Use-Cases-Overview)
+  - [🎬 WorldofAI](https://www.youtube.com/watch?v=yUU5E-U5B3M) - YouTube 動画レビュー
+  - [🎬 Julian Goldie SEO](https://www.youtube.com/watch?v=enQnkKfth10) - YouTube 動画レビュー
 
 ### ❓ サポートとヘルプ
 
@@ -300,6 +327,12 @@ _独自のCSSコードでカスタマイズし、インターフェースを好�
   </a>
 </p>
 
+### 🍺 Homebrewでインストール (macOS)
+
+```bash
+brew install aionui
+```
+
 ### 🔧 簡単インストール
 
 1. **ダウンロードしてインストール** AionUiアプリケーション
@@ -326,7 +359,7 @@ _独自のCSSコードでカスタマイズし、インターフェースを好�
 - [🐛 問題を報告](https://github.com/iOfficeAI/AionUi/issues) - バグや機能リクエストを報告
 - [📦 リリース更新](https://github.com/iOfficeAI/AionUi/releases) - 最新版を取得
 - [💬 Discord Community](https://discord.gg/g6u66vV9) - **Discord の英語コミュニティに参加**
-- [💬 微信 (中文群)](./resources/wechat.jpg) - **QRコードを表示するにはクリック**
+- [💬 微信 (中文群)](./resources/wechat_group.png) - **QRコードを表示するにはクリック**
 
 ### 🤝 コード貢献
 
@@ -352,7 +385,7 @@ AionUiに貢献してくれたすべての開発者に感謝します！
 
 <p align="center">
   <a href="https://github.com/iOfficeAI/AionUi/graphs/contributors">
-    <img src="https://contrib.rocks/image?repo=iOfficeAI/AionUi&max=20" alt="貢献者" />
+    <img src="https://contrib.rocks/image?repo=iOfficeAI/AionUi&max=50" alt="貢献者" />
   </a>
 </p>
 
