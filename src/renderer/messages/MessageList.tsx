@@ -147,7 +147,6 @@ const MessageList: React.FC<{ className?: string }> = () => {
     return result;
   }, [list]);
 
-  console.log('%c [MessageList  ]-144', 'font-size:13px; background:pink; color:#bf2c9f;');
   // 滚动到底部
   const scrollToBottom = useCallback(
     (smooth = false) => {

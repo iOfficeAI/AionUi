@@ -91,7 +91,6 @@ export class AcpAdapter {
       }
 
       case 'plan': {
-        console.log('%c [  ]-95', 'font-size:13px; background:pink; color:#bf2c9f;', sessionUpdate);
         const planMessage = this.convertPlanUpdate(sessionUpdate as PlanUpdate);
         if (planMessage) {
           messages.push(planMessage);

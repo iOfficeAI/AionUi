@@ -304,7 +304,6 @@ export class GeminiAgentManager extends BaseAgentManager<
     super.init();
     // 接受来子进程的对话消息
     this.on('gemini.message', (data) => {
-      console.log('%c [ gemini.message ]-308', 'font-size:13px; background:pink; color:#bf2c9f;', data);
       if (data.type === 'finish') {
         this.status = 'finished';
       }

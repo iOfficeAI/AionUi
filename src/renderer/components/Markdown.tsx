@@ -71,7 +71,6 @@ function CodeBlock(props: any) {
     const language = match?.[1] || 'text';
     const codeTheme = currentTheme === 'dark' ? vs2015 : vs;
     if (!String(children).includes('\n')) {
-      console.log('%c [  ]-75', 'font-size:13px; background:pink; color:#bf2c9f;', children);
       return (
         <code
           {...rest}

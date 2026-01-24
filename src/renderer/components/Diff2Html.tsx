@@ -20,7 +20,6 @@ import { usePreviewLauncher } from '../hooks/usePreviewLauncher';
 import CollapsibleContent from './CollapsibleContent';
 
 const Diff2Html = ({ diff, className, title, filePath }: { diff: string; className?: string; title?: string; filePath?: string }) => {
-  console.log('%c [ Diff2Html ]-23', 'font-size:13px; background:pink; color:#bf2c9f;');
   const { theme } = useThemeContext();
   const { t } = useTranslation();
   const { launchPreview, loading: previewLoading } = usePreviewLauncher();
