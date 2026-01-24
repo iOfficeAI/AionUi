@@ -90,6 +90,47 @@ const hasAvailableModels = (provider: IProvider): boolean => {
   return availableModels.length > 0;
 };
 
+/**
+ * 测量 textarea 中指定位置的垂直坐标
+ * @param textarea - 目标 textarea 元素
+ * @param position - 文本位置
+ * @returns 该位置的垂直像素坐标
+ */
+const measureCaretTop = (textarea: HTMLTextAreaElement, position: number): number => {
+  const textBefore = textarea.value.slice(0, position);
+  const measure = document.createElement('div');
+  const style = getComputedStyle(textarea);
+  measure.style.cssText = `
+    position: absolute;
+    visibility: hidden;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    width: ${textarea.clientWidth}px;
+    font: ${style.font};
+    line-height: ${style.lineHeight};
+    padding: ${style.padding};
+    border: ${style.border};
+    box-sizing: ${style.boxSizing};
+  `;
+  measure.textContent = textBefore;
+  document.body.appendChild(measure);
+  const caretTop = measure.scrollHeight;
+  document.body.removeChild(measure);
+  return caretTop;
+};
+
+/**
+ * 滚动 textarea 使光标位于视口最后一行
+ * @param textarea - 目标 textarea 元素
+ * @param caretTop - 光标的垂直坐标
+ */
+const scrollCaretToLastLine = (textarea: HTMLTextAreaElement, caretTop: number): void => {
+  const style = getComputedStyle(textarea);
+  const lineHeight = parseInt(style.lineHeight, 10) || 20;
+  // 滚动使光标位于视口最后一行
+  textarea.scrollTop = Math.max(0, caretTop - textarea.clientHeight + lineHeight);
+};
+
 const useModelList = () => {
   const { geminiModeOptions, isGoogleAuth } = useGeminiGoogleAuthModels();
   const { data: modelConfig } = useSWR('model.config.welcome', () => {
@@ -350,8 +391,12 @@ const Guid: React.FC = () => {
         const currentValue = textarea.value;
         const newValue = currentValue.slice(0, start) + text + currentValue.slice(end);
         setInput(newValue);
+
         setTimeout(() => {
-          textarea.setSelectionRange(start + text.length, start + text.length);
+          const newPos = start + text.length;
+          textarea.setSelectionRange(newPos, newPos);
+          const caretTop = measureCaretTop(textarea, newPos);
+          scrollCaretToLastLine(textarea, caretTop);
         }, 0);
       } else {
         setInput((prev) => prev + text);
@@ -744,19 +789,21 @@ const Guid: React.FC = () => {
         emitter.emit('chat.history.refresh');
 
         // 然后导航到会话页面
-        await navigate(`/conversation/${conversation.id}`);
 
         // 然后发送消息（文件通过 files 参数传递，不在消息中添加 @ 前缀）
         // Send message (files passed via files param, no @ prefix in message)
         const workspacePath = conversation.extra?.workspace || '';
         const displayMessage = buildDisplayMessage(input, files, workspacePath);
 
-        void ipcBridge.geminiConversation.sendMessage
+        return ipcBridge.geminiConversation.sendMessage
           .invoke({
             input: displayMessage,
             conversation_id: conversation.id,
             msg_id: uuid(),
             files,
+          })
+          .then(() => {
+            void navigate(`/conversation/${conversation.id}`);
           })
           .catch((error) => {
             console.error('Failed to send message:', error);
@@ -1152,7 +1199,7 @@ const Guid: React.FC = () => {
                 </Dropdown>
               </div>
             )}
-            <Input.TextArea rows={3} placeholder={typewriterPlaceholder || t('conversation.welcome.placeholder')} className={`text-16px focus:b-none rounded-xl !bg-transparent !b-none !resize-none !p-0 ${styles.lightPlaceholder}`} value={input} onChange={handleInputChange} onPaste={onPaste} onFocus={handleTextareaFocus} onBlur={handleTextareaBlur} {...compositionHandlers} onKeyDown={handleInputKeyDown}></Input.TextArea>
+            <Input.TextArea autoSize={{ minRows: 3, maxRows: 20 }} placeholder={typewriterPlaceholder || t('conversation.welcome.placeholder')} className={`text-16px focus:b-none rounded-xl !bg-transparent !b-none !resize-none !p-0 ${styles.lightPlaceholder}`} value={input} onChange={handleInputChange} onPaste={onPaste} onFocus={handleTextareaFocus} onBlur={handleTextareaBlur} {...compositionHandlers} onKeyDown={handleInputKeyDown}></Input.TextArea>
             {mentionOpen && (
               <div className='absolute z-50' style={{ left: 16, top: 44 }}>
                 {mentionMenu}

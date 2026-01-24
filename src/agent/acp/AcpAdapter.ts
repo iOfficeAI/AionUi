@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IMessageAcpToolCall, IMessageText, TMessage } from '@/common/chatLib';
+import type { IMessageAcpToolCall, IMessagePlan, IMessageText, TMessage } from '@/common/chatLib';
 import { uuid } from '@/common/utils';
 import type { AcpBackend, AcpSessionUpdate, AgentMessageChunkUpdate, AgentThoughtChunkUpdate, AvailableCommandsUpdate, PlanUpdate, ToolCallUpdate, ToolCallUpdateStatus } from '@/types/acpTypes';
 
@@ -244,7 +244,7 @@ export class AcpAdapter {
   /**
    * Convert plan update to AionUI message
    */
-  private convertPlanUpdate(update: PlanUpdate): TMessage | null {
+  private convertPlanUpdate(update: PlanUpdate): IMessagePlan | null {
     const baseMessage = {
       id: uuid(),
       msg_id: uuid(), // 生成独立的 msg_id，避免与其他消息合并
@@ -255,21 +255,14 @@ export class AcpAdapter {
 
     const planData = update.update;
     if (planData.entries && planData.entries.length > 0) {
-      const planContent = planData.entries
-        .map((entry) => {
-          const statusIcon = entry.status === 'completed' ? '✅' : entry.status === 'in_progress' ? '🔄' : '⏳';
-          const priority = entry.priority ? ` [${entry.priority.toUpperCase()}]` : '';
-          return `${statusIcon} ${entry.content}${priority}`;
-        })
-        .join('\n');
-
       return {
         ...baseMessage,
-        type: 'text',
+        type: 'plan',
         content: {
-          content: `📋 **Plan Update**\n\n${planContent}`,
+          sessionId: update.sessionId,
+          entries: planData.entries,
         },
-      } as IMessageText;
+      };
     }
 
     return null;

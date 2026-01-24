@@ -5,15 +5,16 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { TMessage } from '@/common/chatLib';
+import type { IMessageToolGroup, TMessage } from '@/common/chatLib';
 import { transformMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import type { IMcpServer, TProviderWithModel } from '@/common/storage';
 import { ProcessConfig, getSkillsDir } from '@/process/initStorage';
-import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '../message';
-import BaseAgentManager from './BaseAgentManager';
-import { handlePreviewOpenEvent } from '../utils/previewUtils';
 import { getOauthInfoWithCache } from '@office-ai/aioncli-core';
+import { ToolConfirmationOutcome } from '../../agent/gemini/cli/tools/tools';
+import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '../message';
+import { handlePreviewOpenEvent } from '../utils/previewUtils';
+import BaseAgentManager from './BaseAgentManager';
 
 // gemini agent管理器类
 type UiMcpServerConfig = {
@@ -23,22 +24,25 @@ type UiMcpServerConfig = {
   description?: string;
 };
 
-export class GeminiAgentManager extends BaseAgentManager<{
-  workspace: string;
-  model: TProviderWithModel;
-  imageGenerationModel?: TProviderWithModel;
-  webSearchEngine?: 'google' | 'default';
-  mcpServers?: Record<string, UiMcpServerConfig>;
-  contextFileName?: string;
-  // 系统规则 / System rules
-  presetRules?: string;
-  contextContent?: string; // 向后兼容 / Backward compatible
-  GOOGLE_CLOUD_PROJECT?: string;
-  /** 内置 skills 目录路径 / Builtin skills directory path */
-  skillsDir?: string;
-  /** 启用的 skills 列表 / Enabled skills list */
-  enabledSkills?: string[];
-}> {
+export class GeminiAgentManager extends BaseAgentManager<
+  {
+    workspace: string;
+    model: TProviderWithModel;
+    imageGenerationModel?: TProviderWithModel;
+    webSearchEngine?: 'google' | 'default';
+    mcpServers?: Record<string, UiMcpServerConfig>;
+    contextFileName?: string;
+    // 系统规则 / System rules
+    presetRules?: string;
+    contextContent?: string; // 向后兼容 / Backward compatible
+    GOOGLE_CLOUD_PROJECT?: string;
+    /** 内置 skills 目录路径 / Builtin skills directory path */
+    skillsDir?: string;
+    /** 启用的 skills 列表 / Enabled skills list */
+    enabledSkills?: string[];
+  },
+  string
+> {
   workspace: string;
   model: TProviderWithModel;
   contextFileName?: string;
@@ -186,6 +190,116 @@ export class GeminiAgentManager extends BaseAgentManager<{
     return result;
   }
 
+  private getConfirmationButtons = (confirmationDetails: IMessageToolGroup['content'][number]['confirmationDetails'], t: (key: string, options?: any) => string) => {
+    if (!confirmationDetails) return {};
+    let question: string;
+    let description: string;
+    const options: Array<{ label: string; value: ToolConfirmationOutcome }> = [];
+    switch (confirmationDetails.type) {
+      case 'edit':
+        {
+          question = t('messages.confirmation.applyChange');
+          description = confirmationDetails.fileName;
+          options.push(
+            {
+              label: t('messages.confirmation.yesAllowOnce'),
+              value: ToolConfirmationOutcome.ProceedOnce,
+            },
+            {
+              label: t('messages.confirmation.yesAllowAlways'),
+              value: ToolConfirmationOutcome.ProceedAlways,
+            },
+            { label: t('messages.confirmation.no'), value: ToolConfirmationOutcome.Cancel }
+          );
+        }
+        break;
+      case 'exec':
+        {
+          question = t('messages.confirmation.allowExecution');
+          description = confirmationDetails.command;
+          options.push(
+            {
+              label: t('messages.confirmation.yesAllowOnce'),
+              value: ToolConfirmationOutcome.ProceedOnce,
+            },
+            {
+              label: t('messages.confirmation.yesAllowAlways'),
+              value: ToolConfirmationOutcome.ProceedAlways,
+            },
+            { label: t('messages.confirmation.no'), value: ToolConfirmationOutcome.Cancel }
+          );
+        }
+        break;
+      case 'info':
+        {
+          question = t('messages.confirmation.proceed');
+          description = confirmationDetails.urls?.join(';') || confirmationDetails.prompt;
+          options.push(
+            {
+              label: t('messages.confirmation.yesAllowOnce'),
+              value: ToolConfirmationOutcome.ProceedOnce,
+            },
+            {
+              label: t('messages.confirmation.yesAllowAlways'),
+              value: ToolConfirmationOutcome.ProceedAlways,
+            },
+            { label: t('messages.confirmation.no'), value: ToolConfirmationOutcome.Cancel }
+          );
+        }
+        break;
+      default: {
+        const mcpProps = confirmationDetails;
+        question = t('messages.confirmation.allowMCPTool', {
+          toolName: mcpProps.toolName,
+          serverName: mcpProps.serverName,
+        });
+        description = confirmationDetails.serverName + ':' + confirmationDetails.toolName;
+        options.push(
+          {
+            label: t('messages.confirmation.yesAllowOnce'),
+            value: ToolConfirmationOutcome.ProceedOnce,
+          },
+          {
+            label: t('messages.confirmation.yesAlwaysAllowTool', {
+              toolName: mcpProps.toolName,
+              serverName: mcpProps.serverName,
+            }),
+            value: ToolConfirmationOutcome.ProceedAlwaysTool,
+          },
+          {
+            label: t('messages.confirmation.yesAlwaysAllowServer', {
+              serverName: mcpProps.serverName,
+            }),
+            value: ToolConfirmationOutcome.ProceedAlwaysServer,
+          },
+          { label: t('messages.confirmation.no'), value: ToolConfirmationOutcome.Cancel }
+        );
+      }
+    }
+    return {
+      question,
+      description,
+      options,
+    };
+  };
+  private handleConformationMessage(message: IMessageToolGroup) {
+    const execMessages = message.content.filter((c) => c.status === 'Confirming');
+    if (execMessages.length) {
+      execMessages.forEach((content) => {
+        const { question, options, description } = this.getConfirmationButtons(content.confirmationDetails, (k) => k);
+        if (!question) return;
+        this.addConfirmation({
+          title: content.confirmationDetails?.title || '',
+          id: content.callId,
+          action: content.confirmationDetails.type,
+          description: description || content.description || '',
+          callId: content.callId,
+          options: options,
+        });
+      });
+    }
+  }
+
   init() {
     super.init();
     // 接受来子进程的对话消息
@@ -211,14 +325,18 @@ export class GeminiAgentManager extends BaseAgentManager<{
         if (tMessage) {
           addOrUpdateMessage(this.conversation_id, tMessage, 'gemini');
         }
+        if (tMessage.type === 'tool_group') {
+          this.handleConformationMessage(tMessage);
+        }
       }
+
       ipcBridge.geminiConversation.responseStream.emit(data);
     });
   }
 
-  // 发送tools用户确认的消息
-  confirmMessage(data: { confirmKey: string; msg_id: string; callId: string }) {
-    return this.postMessagePromise(data.callId, data.confirmKey);
+  confirm(id: string, callId: string, data: string) {
+    super.confirm(id, callId, data);
+    return this.postMessagePromise(id, data);
   }
 
   // Manually trigger context reload

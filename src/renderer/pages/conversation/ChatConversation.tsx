@@ -7,6 +7,9 @@
 import { ipcBridge } from '@/common';
 import type { TChatConversation } from '@/common/storage';
 import { uuid } from '@/common/utils';
+import addChatIcon from '@/renderer/assets/add-chat.svg';
+import { usePresetAssistantInfo } from '@/renderer/hooks/usePresetAssistantInfo';
+import { iconColors } from '@/renderer/theme/colors';
 import { Button, Dropdown, Menu, Tooltip, Typography } from '@arco-design/web-react';
 import { History } from '@icon-park/react';
 import React, { useMemo } from 'react';
@@ -17,13 +20,10 @@ import { emitter } from '../../utils/emitter';
 import AcpChat from './acp/AcpChat';
 import ChatLayout from './ChatLayout';
 import ChatSider from './ChatSider';
-import GeminiChat from './gemini/GeminiChat';
 import CodexChat from './codex/CodexChat';
-import { iconColors } from '@/renderer/theme/colors';
-import addChatIcon from '@/renderer/assets/add-chat.svg';
+import GeminiChat from './gemini/GeminiChat';
 import GeminiModelSelector from './gemini/GeminiModelSelector';
 import { useGeminiModelSelection } from './gemini/useGeminiModelSelection';
-import { usePresetAssistantInfo } from '@/renderer/hooks/usePresetAssistantInfo';
 // import SkillRuleGenerator from './components/SkillRuleGenerator'; // Temporarily hidden
 
 const _AssociatedConversation: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {

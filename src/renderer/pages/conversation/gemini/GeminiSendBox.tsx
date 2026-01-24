@@ -8,17 +8,17 @@ import FilePreview from '@/renderer/components/FilePreview';
 import HorizontalFileList from '@/renderer/components/HorizontalFileList';
 import SendBox from '@/renderer/components/sendbox';
 import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/ThoughtDisplay';
-import { useLatestRef } from '@/renderer/hooks/useLatestRef';
 import { useAutoTitle } from '@/renderer/hooks/useAutoTitle';
+import { useLatestRef } from '@/renderer/hooks/useLatestRef';
 import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/useSendBoxDraft';
 import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/useSendBoxFiles';
-import { buildDisplayMessage, collectSelectedFiles } from '@/renderer/utils/messageFiles';
 import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';
 import { allSupportedExts } from '@/renderer/services/FileService';
 import { iconColors } from '@/renderer/theme/colors';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/fileSelection';
+import { buildDisplayMessage, collectSelectedFiles } from '@/renderer/utils/messageFiles';
 import { getModelContextLimit } from '@/renderer/utils/modelContextLimits';
 import { Button, Message, Tag } from '@arco-design/web-react';
 import { Plus } from '@icon-park/react';
@@ -112,6 +112,7 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
       if (conversation_id !== message.conversation_id) {
         return;
       }
+
       // 过滤掉不属于当前活跃请求的事件（防止 abort 后的事件干扰）
       // 注意: 只过滤 thought 和 start 等状态消息，其他消息都必须渲染
       // Filter out events not belonging to current active request (prevents aborted events from interfering)
@@ -123,6 +124,7 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
           return;
         }
       }
+
       // console.log('responseStream.message', message);
       switch (message.type) {
         case 'thought':
@@ -136,6 +138,7 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
             setStreamRunning(false);
             // 只有当没有活跃工具时才清除 thought
             // Only clear thought when no active tools
+
             if (!hasActiveTools) {
               setThought({ subject: '', description: '' });
             }
@@ -205,6 +208,13 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
                 },
                 mergeExtra: true,
               });
+            }
+            setStreamRunning(false);
+            // 只有当没有活跃工具时才清除 thought
+            // Only clear thought when no active tools
+
+            if (!hasActiveTools) {
+              setThought({ subject: '', description: '' });
             }
           }
           break;

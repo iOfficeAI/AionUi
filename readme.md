@@ -17,7 +17,7 @@
 </p>
 
 ---
-    
+
 <p align="center">
   <strong>🚀 Cowork with Your AI, Gemini CLI, Claude Code, Codex, Qwen Code, Goose CLI, Auggie, and more</strong><br>
   <em>User-friendly | Visual graphical interface | Multi-model support | Local data security</em>
