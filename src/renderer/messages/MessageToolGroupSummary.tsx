@@ -3,6 +3,7 @@ import { Badge } from '@arco-design/web-react';
 import { IconDown, IconRight } from '@arco-design/web-react/icon';
 import React, { useMemo, useState } from 'react';
 import type { IMessageAcpToolCall, IMessageToolGroup } from '../../common/chatLib';
+import './MessageToolGroupSummary.css';
 
 const ToolGroupMapper = (m: IMessageToolGroup) => {
   return m.content.map(({ name, callId, description, confirmationDetails, status }) => {
@@ -55,8 +56,8 @@ const MessageToolGroupSummary: React.FC<{ messages: Array<IMessageToolGroup | IM
         <div className='p-l-20px flex flex-col gap-8px pt-8px'>
           {tools.map((item) => {
             return (
-              <div className='flex flex-row color-#86909C gap-12px'>
-                <Badge key={item.key} status={item.status}></Badge>
+              <div key={item.key} className='flex flex-row color-#86909C gap-12px'>
+                <Badge status={item.status} className={item.status === 'processing' ? 'badge-breathing' : ''}></Badge>
                 <span>{`${item.name}(${item.desc})`} </span>
               </div>
             );

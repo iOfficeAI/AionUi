@@ -412,12 +412,12 @@ export const composeMessage = (message: TMessage | undefined, list: TMessage[] |
     message.id = list[index].id;
     list[index] = message;
     if (change) messageHandler('update', message);
-    return list;
+    return list.slice();
   };
   const pushMessage = (message: TMessage) => {
     list.push(message);
     messageHandler('insert', message);
-    return list;
+    return list.slice();
   };
 
   if (message.type === 'tool_group') {
@@ -437,14 +437,16 @@ export const composeMessage = (message: TMessage | undefined, list: TMessage[] |
           tools.splice(newToolIndex, 1);
           return merged;
         });
-        // Create a new message object instead of mutating the existing one
-        // This ensures database update detection works correctly
-        updateMessage(i, { ...existingMessage, content: newContent }, change);
+        // Only return if we actually matched and merged some tools
+        // Otherwise continue checking other tool_groups
+        if (change) {
+          return updateMessage(i, { ...existingMessage, content: newContent }, true);
+        }
       }
     }
     if (tools.length) {
       message.content = tools;
-      pushMessage(message);
+      return pushMessage(message);
     }
     return list;
   }
