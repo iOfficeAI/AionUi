@@ -17,7 +17,7 @@
 </p>
 
 ---
-
+    
 <p align="center">
   <strong>🚀 Cowork with Your AI, Gemini CLI, Claude Code, Codex, Qwen Code, Goose CLI, Auggie, and more</strong><br>
   <em>User-friendly | Visual graphical interface | Multi-model support | Local data security</em>
@@ -387,7 +387,7 @@ Thanks to all developers who have contributed to AionUi!
 
 <p align="center">
   <a href="https://github.com/iOfficeAI/AionUi/graphs/contributors">
-    <img src="https://contrib.rocks/image?repo=iOfficeAI/AionUi&max=20" alt="Contributors" />
+    <img src="https://contrib.rocks/image?repo=iOfficeAI/AionUi&max=50" alt="Contributors" />
   </a>
 </p>
 

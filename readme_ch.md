@@ -370,6 +370,31 @@ brew install aionui
 4. 推送到分支 (`git push origin feature/AmazingFeature`)
 5. 打开 Pull Request
 
+### 🙏 特别感谢
+
+<table>
+<tr>
+<td width="170" align="center">
+  <a href="https://linux.do/" target="_blank">
+    <img src="./resources/linuxdo.png" alt="LINUX DO" width="150">
+  </a>
+</td>
+<td>
+  <a href="https://linux.do/" target="_blank">LINUX DO</a> - 新的理想型社区。
+</td>
+</tr>
+<tr>
+<td width="170" align="center">
+  <a href="https://packycode.com" target="_blank">
+    <img src="./resources/packycode.png" alt="PackyCode" width="150">
+  </a>
+</td>
+<td>
+  <a href="https://packycode.com" target="_blank">PackyCode</a> 是一家可靠高效的 API 中继服务提供商，为 Claude Code、Codex、Gemini 等平台提供中继服务。感谢 PackyCode 为支持 AionUi 用户低成本使用，为我们的用户提供专属 <a href="https://www.packyapi.com/register?aff=aionui" target="_blank">9折优惠</a>，付款时使用优惠码 <code>aionui</code> 可立减 10%。
+</td>
+</tr>
+</table>
+
 ---
 
 ## 📄 许可证
@@ -384,7 +409,7 @@ brew install aionui
 
 <p align="center">
   <a href="https://github.com/iOfficeAI/AionUi/graphs/contributors">
-    <img src="https://contrib.rocks/image?repo=iOfficeAI/AionUi&max=20" alt="Contributors" />
+    <img src="https://contrib.rocks/image?repo=iOfficeAI/AionUi&max=50" alt="Contributors" />
   </a>
 </p>
 

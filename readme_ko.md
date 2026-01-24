@@ -43,12 +43,12 @@
 
 <p align="center">
 
-[✨ AionUi로 무엇을 할 수 있나요?](#✨-aionui로-무엇을-할-수-있나요) ·
-[🤔 왜 AionUi를 선택해야 하나요?](#🤔-왜-aionui를-선택해야-하나요) ·
-[✨ 핵심 기능](#✨-핵심-기능) ·
-[🚀 빠른 시작](#🚀-빠른-시작) ·
-[📖 상세 사용 가이드](#📖-상세-사용-가이드) ·
-[💬 커뮤니티](#🤝-커뮤니티--지원)
+[✨ AionUi로 무엇을 할 수 있나요?](#aionui로-무엇을-할-수-있나요) ·
+[🤔 왜 AionUi를 선택해야 하나요?](#왜-aionui를-선택해야-하나요) ·
+[✨ 핵심 기능](#핵심-기능) ·
+[🚀 빠른 시작](#빠른-시작) ·
+[📖 상세 사용 가이드](#상세-사용-가이드) ·
+[💬 커뮤니티](#커뮤니티--지원)
 
 </p>
 
@@ -385,7 +385,7 @@ AionUi에 기여해 주신 모든 개발자분들께 감사드립니다!
 
 <p align="center">
   <a href="https://github.com/iOfficeAI/AionUi/graphs/contributors">
-    <img src="https://contrib.rocks/image?repo=iOfficeAI/AionUi&max=20" alt="Contributors" />
+    <img src="https://contrib.rocks/image?repo=iOfficeAI/AionUi&max=50" alt="Contributors" />
   </a>
 </p>
 

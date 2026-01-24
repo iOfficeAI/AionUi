@@ -43,12 +43,12 @@
 
 <p align="center">
 
-[✨ ¿Qué puede hacer AionUi?](#✨-qué-puede-hacer-aionui) ·
-[🤔 ¿Por qué elegir AionUi?](#🤔-por-qué-elegir-aionui) ·
-[✨ Funciones principales](#✨-funciones-principales) ·
-[🚀 Inicio rápido](#🚀-inicio-rápido) ·
-[📖 Guía de uso detallada](#📖-guía-de-uso-detallada) ·
-[💬 Comunidad](#🤝-comunidad--soporte)
+[✨ ¿Qué puede hacer AionUi?](#qué-puede-hacer-aionui) ·
+[🤔 ¿Por qué elegir AionUi?](#por-qué-elegir-aionui) ·
+[✨ Funciones principales](#funciones-principales) ·
+[🚀 Inicio rápido](#inicio-rápido) ·
+[📖 Guía de uso detallada](#guía-de-uso-detallada) ·
+[💬 Comunidad](#comunidad-y-soporte)
 
 </p>
 
@@ -385,7 +385,7 @@ Este proyecto está licenciado bajo [Apache-2.0](LICENSE).
 
 <p align="center">
   <a href="https://github.com/iOfficeAI/AionUi/graphs/contributors">
-    <img src="https://contrib.rocks/image?repo=iOfficeAI/AionUi&max=20" alt="Contributors" />
+    <img src="https://contrib.rocks/image?repo=iOfficeAI/AionUi&max=50" alt="Contributors" />
   </a>
 </p>
 

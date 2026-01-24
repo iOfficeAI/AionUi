@@ -61,11 +61,12 @@ Generate:
 - Cover image: role title + short tagline + company name.
 - Detail image: key JD highlights (responsibilities, requirements, application).
 
-Prefer model-based image generation (if available). If generation fails or isn't available:
+Prefer model-based image generation (if available), but check capability before sending any image request:
 
-1. Use MCP connectors to generate images (match available tools).
-2. If still unavailable, fall back to `skills/xiaohongshu-recruiter/scripts/generate_images.js` to generate local images.
-3. Finally, provide clear specs and prompts for manual generation.
+1. Verify the model supports image generation via model list/capability check; if not supported, do not send the request.
+2. If supported, send the request; on failure, fall back immediately.
+3. Fallback order: MCP connectors → `skills/xiaohongshu-recruiter/scripts/generate_images.js` → manual specs and prompts.
+4. Do not display raw prompts or request bodies to the user; only show results or error summaries.
 
 Suggested size: 1080x1350, modern and clean tech vibe.
 
