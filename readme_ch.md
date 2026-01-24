@@ -1,5 +1,5 @@
-<p align="center">
-  <img src="./resources/aionui-banner-1 copy.png" alt="AionUi - Cowork with Your CLI AI Agent" width="100%">
+﻿<p align="center">
+  <img src="./resources/aionui-banner-1.png" alt="AionUi - Cowork with Your CLI AI Agent" width="100%">
 </p>
 
 <p align="center">
@@ -43,12 +43,11 @@
 
 <p align="center">
 
-[✨ 看看能做什么](#看看-aionui-能做什么) ·
-[🤔 为什么选择 AionUi](#为什么选择-aionui) ·
-[✨ 核心功能](#核心功能) ·
-[🚀 快速开始](#快速开始) ·
-[📖 详细使用说明](#详细使用说明) ·
-[💬 社区交流](#社区与支持)
+[✨ 看看能做什么](#✨-看看-aionui-能做什么) ·
+[🤔 为什么选择 AionUi](#🤔-为什么选择-aionui) ·
+[✨ 核心功能](#✨-核心功能) ·
+[🚀 快速开始](#🚀-快速开始) ·
+[💬 社区交流](#🤝-社区与支持)
 
 </p>
 
@@ -115,9 +114,13 @@ _智能图像生成、编辑和识别，由 Gemini 驱动_
 
 _开多个对话、任务不混乱、记忆独立、效率翻倍_
 
+<details>
+<summary><strong>🎬 点击查看演示 ▶️</strong></summary>
+<br>
 <p align="center">
   <img src="./resources/multichat-side-by-side.gif" alt="对话管理演示" width="800">
 </p>
+</details>
 
 ---
 
@@ -204,6 +207,27 @@ A: 支持 Gemini、OpenAI、Claude、Qwen 等主流模型，以及 Ollama、LM S
 <summary><strong>Q: 数据安全吗？</strong></summary>
 A: 所有对话数据存储在本地 SQLite 数据库，不会上传到任何服务器。
 </details>
+
+---
+
+## 🎬 看看大家如何使用 AionUi
+
+_观看创作者们如何测评和使用 AionUi_
+
+<p align="center">
+  <a href="https://www.youtube.com/watch?v=yUU5E-U5B3M" target="_blank">
+    <img src="https://img.youtube.com/vi/yUU5E-U5B3M/maxresdefault.jpg" alt="WorldofAI 测评" width="400">
+  </a>
+  &nbsp;&nbsp;
+  <a href="https://www.youtube.com/watch?v=enQnkKfth10" target="_blank">
+    <img src="https://img.youtube.com/vi/enQnkKfth10/maxresdefault.jpg" alt="Julian Goldie SEO 测评" width="400">
+  </a>
+</p>
+<p align="center">
+  <em>🎬 WorldofAI (20万订阅)</em> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <em>🎬 Julian Goldie SEO (31.8万订阅)</em>
+</p>
+
+> 💡 **你也做了关于 AionUi 的视频？** [在 X 上告诉我们](https://x.com/AionUi)，我们会在这里展示！我们也会采纳你的反馈，并在未来持续优化。
 
 ---
 

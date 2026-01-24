@@ -1,5 +1,5 @@
 ﻿<p align="center">
-  <img src="./resources/aionui-banner-1 copy.png" alt="AionUi - Cowork with Your CLI AI Agent" width="100%">
+  <img src="./resources/aionui-banner-1.png" alt="AionUi - Cowork with Your CLI AI Agent" width="100%">
 </p>
 
 <p align="center">
@@ -113,9 +113,13 @@ _智慧圖像生成、編輯和識別，由 Gemini 驅動_
 
 _開多個對話、任務不混亂、記憶獨立、效率加倍_
 
+<details>
+<summary><strong>🎬 點擊查看演示 ▶️</strong></summary>
+<br>
 <p align="center">
   <img src="./resources/multichat-side-by-side.gif" alt="對話管理示範" width="800">
 </p>
+</details>
 
 ---
 
@@ -204,6 +208,27 @@ A: 支援 Gemini、OpenAI、Claude、Qwen 等主流模型，以及 Ollama、LM S
 <summary><strong>Q: 資料安全嗎？</strong></summary>
 A: 所有對話資料儲存在本地 SQLite 資料庫，不會上傳到任何伺服器。
 </details>
+
+---
+
+## 🎬 看看大家如何使用 AionUi
+
+_觀看創作者們如何測評和使用 AionUi_
+
+<p align="center">
+  <a href="https://www.youtube.com/watch?v=yUU5E-U5B3M" target="_blank">
+    <img src="https://img.youtube.com/vi/yUU5E-U5B3M/maxresdefault.jpg" alt="WorldofAI 測評" width="400">
+  </a>
+  &nbsp;&nbsp;
+  <a href="https://www.youtube.com/watch?v=enQnkKfth10" target="_blank">
+    <img src="https://img.youtube.com/vi/enQnkKfth10/maxresdefault.jpg" alt="Julian Goldie SEO 測評" width="400">
+  </a>
+</p>
+<p align="center">
+  <em>🎬 WorldofAI (20萬訂閱者)</em> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <em>🎬 Julian Goldie SEO (31.8萬訂閱者)</em>
+</p>
+
+> 💡 **你也做了關於 AionUi 的視頻？** [在 X 上告訴我們](https://x.com/AionUi)，我們會在這裡展示！我們也會採納你的反饋，並在未來持續優化。
 
 ---
 
