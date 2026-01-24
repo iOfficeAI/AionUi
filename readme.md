@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <strong>💬 Community:</strong> <a href="https://discord.gg/g6u66vV9" target="_blank">Discord (English)</a> | <a href="./resources/wechat_group.png" target="_blank">微信 (中文群)</a>
+  <strong>💬 Community:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wechat_group_2.jpg" target="_blank">微信 (中文群)</a>
 </p>
 
 ---
