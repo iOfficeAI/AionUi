@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { ipcBridge } from '@/common';
 import type { TMessage } from '@/common/chatLib';
 import { composeMessage } from '@/common/chatLib';
-import { ipcBridge } from '@/common';
 import { useCallback, useEffect, useRef } from 'react';
 import { createContext } from '../utils/createContext';
 
@@ -145,10 +145,11 @@ function composeMessageWithIndex(message: TMessage, list: TMessage[], index: Mes
 export const useAddOrUpdateMessage = () => {
   const update = useUpdateMessageList();
   const pendingRef = useRef<Array<{ message: TMessage; add: boolean }>>([]);
-  const rafRef = useRef<number | null>(null);
+  const rafRef = useRef<any | null>(null);
 
   const flush = useCallback(() => {
     rafRef.current = null;
+
     const pending = pendingRef.current;
     if (!pending.length) return;
     pendingRef.current = [];
@@ -187,13 +188,14 @@ export const useAddOrUpdateMessage = () => {
       }
       return newList;
     });
-  }, [update]);
+
+    rafRef.current = setTimeout(flush);
+  }, []);
 
   useEffect(() => {
     return () => {
       if (rafRef.current !== null) {
-        cancelAnimationFrame(rafRef.current);
-        rafRef.current = null;
+        clearTimeout(rafRef.current);
       }
     };
   }, []);
@@ -201,7 +203,7 @@ export const useAddOrUpdateMessage = () => {
   return (message: TMessage, add = false) => {
     pendingRef.current.push({ message, add });
     if (rafRef.current === null) {
-      rafRef.current = requestAnimationFrame(flush);
+      rafRef.current = setTimeout(flush);
     }
   };
 };
