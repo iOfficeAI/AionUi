@@ -17,12 +17,24 @@ export type StartupSettings = {
 };
 
 export const useStartupSettings = () => {
-  const swr = useSWR<StartupSettings>('app.startup.settings', () => ipcBridge.application.getStartupSettings.invoke());
+  const swr = useSWR<StartupSettings>('app.startup.settings', () => ipcBridge.application.getStartupSettings.invoke(), {
+    fallbackData: {
+      startOnBoot: false,
+      openWebUiOnBoot: false,
+      silentOnBoot: false,
+      closeToTray: true,
+    },
+    shouldRetryOnError: false,
+  });
 
   const setStartupSettings = async (next: Pick<StartupSettings, 'startOnBoot' | 'openWebUiOnBoot' | 'silentOnBoot' | 'closeToTray'>) => {
     const result = await ipcBridge.application.setStartupSettings.invoke(next);
     if (result?.success) {
-      await swr.mutate();
+      if (result.data) {
+        await swr.mutate(result.data, { revalidate: false });
+      } else {
+        await swr.mutate();
+      }
     }
     return result;
   };

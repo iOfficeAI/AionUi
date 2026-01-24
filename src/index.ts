@@ -20,7 +20,7 @@ import { setupApplicationMenu } from './utils/appMenu';
 import { startWebServer } from './webserver';
 import { SERVER_CONFIG } from './webserver/config/constants';
 import { applyZoomToWindow } from './process/utils/zoom';
-import { ConfigStorage } from './common/storage';
+import { ProcessConfig } from './process/initStorage';
 import { applyStartupSettingsToSystem, wasLaunchedAtLogin, type StartupSettings } from './process/utils/autoStart';
 import { getCloseToTray, setCloseToTray } from './process/runtime/appRuntimeSettings';
 import { getTrayIcon, getTrayIconSyncFallback } from './process/utils/trayIcon';
@@ -63,7 +63,9 @@ process.on('unhandledRejection', (_reason, _promise) => {
   // Error reporting logic can be added here
 });
 
-const hasSwitch = (flag: string) => process.argv.includes(`--${flag}`) || app.commandLine.hasSwitch(flag);
+// NOTE: Use `process.argv` for app-level flags. `app.commandLine.hasSwitch` includes Chromium switches
+// and may contain unrelated defaults that would mis-detect our app modes (e.g. `webui`).
+const hasSwitch = (flag: string) => process.argv.includes(`--${flag}`);
 const getSwitchValue = (flag: string): string | undefined => {
   const withEqualsPrefix = `--${flag}=`;
   const equalsArg = process.argv.find((arg) => arg.startsWith(withEqualsPrefix));
@@ -342,8 +344,14 @@ ipcBridge.application.openDevTools.provider(() => {
 });
 
 const handleAppReady = async (): Promise<void> => {
+  if (!app.isPackaged) {
+    console.log('[AionUi][dev] handleAppReady: start');
+  }
   try {
     await initializeProcess();
+    if (!app.isPackaged) {
+      console.log('[AionUi][dev] handleAppReady: initializeProcess done');
+    }
   } catch (error) {
     console.error('Failed to initialize process:', error);
     app.exit(1);
@@ -357,12 +365,18 @@ const handleAppReady = async (): Promise<void> => {
     refreshTrayUi();
   });
 
+  if (!app.isPackaged) {
+    console.log('[AionUi][dev] handleAppReady: reading startup settings');
+  }
   const startupSettings: StartupSettings = {
-    startOnBoot: (await ConfigStorage.get('app.startOnBoot').catch(() => false)) === true,
-    openWebUiOnBoot: (await ConfigStorage.get('app.openWebUiOnBoot').catch(() => false)) === true,
-    silentOnBoot: (await ConfigStorage.get('app.silentOnBoot').catch(() => false)) === true,
-    closeToTray: (await ConfigStorage.get('app.closeToTray').catch(() => true)) !== false,
+    startOnBoot: (await ProcessConfig.get('app.startOnBoot').catch(() => false)) === true,
+    openWebUiOnBoot: (await ProcessConfig.get('app.openWebUiOnBoot').catch(() => false)) === true,
+    silentOnBoot: (await ProcessConfig.get('app.silentOnBoot').catch(() => false)) === true,
+    closeToTray: (await ProcessConfig.get('app.closeToTray').catch(() => true)) !== false,
   };
+  if (!app.isPackaged) {
+    console.log('[AionUi][dev] handleAppReady: startup settings read', startupSettings);
+  }
 
   // Apply runtime close behavior immediately.
   setCloseToTray(startupSettings.closeToTray);
@@ -378,6 +392,17 @@ const handleAppReady = async (): Promise<void> => {
   const isBootAutoStart = startupSettings.startOnBoot && wasLaunchedAtLogin();
   const shouldStartWebUiServiceOnLaunch = isWebUIMode || (isBootAutoStart && startupSettings.openWebUiOnBoot);
   const shouldCreateMainWindow = !isWebUIMode && (!isBootAutoStart || !startupSettings.silentOnBoot);
+
+  if (!app.isPackaged) {
+    console.log('[AionUi][dev] Startup mode flags:', {
+      argv: process.argv,
+      isWebUIMode,
+      isBootAutoStart,
+      startupSettings,
+      shouldStartWebUiServiceOnLaunch,
+      shouldCreateMainWindow,
+    });
+  }
 
   if (isResetPasswordMode) {
     // Handle password reset without creating window
@@ -420,6 +445,9 @@ const handleAppReady = async (): Promise<void> => {
     }
 
     if (shouldCreateMainWindow) {
+      if (!app.isPackaged) {
+        console.log('[AionUi][dev] Creating main window...');
+      }
       createWindow();
     }
 

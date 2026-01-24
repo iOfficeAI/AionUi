@@ -53,7 +53,7 @@ const applyWindowsLoginItem = (settings: StartupSettings): void => {
       path: updateExePath,
       // Squirrel requires Update.exe to be used as the launcher.
       // It expects args in a very specific form.
-      args: settings.startOnBoot ? ['--processStart', `"${exeName}"`, '--process-start-args', `"${args.join(' ')}"`] : undefined,
+      args: settings.startOnBoot ? ['--processStart', exeName, '--process-start-args', args.join(' ')] : undefined,
     });
     return;
   }
@@ -105,6 +105,13 @@ Hidden=false
 };
 
 export const applyStartupSettingsToSystem = (settings: StartupSettings): Promise<void> => {
+  // In development (`electron-forge start`), `process.execPath` points to the Electron binary,
+  // not the packaged app executable. Registering login items in this case would create broken
+  // autostart entries (or worse: point at Electron itself). Only apply OS autostart in packaged builds.
+  if (!app.isPackaged) {
+    return Promise.resolve();
+  }
+
   // Apply to OS immediately. This is safe to call after app.whenReady().
   if (process.platform === 'win32') {
     applyWindowsLoginItem(settings);
@@ -123,6 +130,43 @@ export const applyStartupSettingsToSystem = (settings: StartupSettings): Promise
 export const getLinuxAutostartEnabled = (): boolean => {
   if (process.platform !== 'linux') return false;
   return fs.existsSync(getLinuxAutostartFilePath());
+};
+
+const getWindowsAutostartEnabled = (): boolean => {
+  const args = buildAutostartArgs();
+  const { isSquirrel, updateExePath } = isWindowsSquirrelInstall();
+
+  if (isSquirrel) {
+    const exeName = path.basename(process.execPath);
+    return (
+      app.getLoginItemSettings({
+        path: updateExePath,
+        args: ['--processStart', exeName, '--process-start-args', args.join(' ')],
+      }).openAtLogin === true
+    );
+  }
+
+  return (
+    app.getLoginItemSettings({
+      path: process.execPath,
+      args,
+    }).openAtLogin === true
+  );
+};
+
+export const getEffectiveStartOnBoot = (): boolean | undefined => {
+  try {
+    if (process.platform === 'linux') {
+      return getLinuxAutostartEnabled();
+    }
+    if (process.platform === 'win32') {
+      return getWindowsAutostartEnabled();
+    }
+
+    return app.getLoginItemSettings().openAtLogin === true;
+  } catch {
+    return undefined;
+  }
 };
 
 export const wasLaunchedAtLogin = (): boolean => {

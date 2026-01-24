@@ -123,8 +123,9 @@ const SystemModalContent: React.FC<SystemModalContentProps> = ({ onRequestClose 
   const isPageMode = viewMode === 'page';
 
   // Startup settings
-  const { data: startupSettings, setStartupSettings } = useStartupSettings();
+  const { data: startupSettings, error: startupSettingsLoadError, mutate: refreshStartupSettings, setStartupSettings } = useStartupSettings();
   const [isSavingStartup, setIsSavingStartup] = useState(false);
+  const [startupNotice, setStartupNotice] = useState<{ type: 'error' | 'warning'; message: string } | null>(null);
 
   // Get system directory info
   const { data: systemInfo } = useSWR('system.dir.info', () => ipcBridge.application.systemInfo.invoke());
@@ -140,20 +141,32 @@ const SystemModalContent: React.FC<SystemModalContentProps> = ({ onRequestClose 
   const handleStartupChange = async (changes: Partial<StartupSettings>) => {
     if (!startupSettings) return;
     setIsSavingStartup(true);
+    setStartupNotice(null);
     try {
-      await setStartupSettings({
+      const result = await setStartupSettings({
         startOnBoot: startupSettings.startOnBoot,
         openWebUiOnBoot: startupSettings.openWebUiOnBoot,
         silentOnBoot: startupSettings.silentOnBoot,
         closeToTray: startupSettings.closeToTray,
         ...changes,
       });
+
+      if (!result?.success) {
+        setStartupNotice({ type: 'error', message: result?.msg || t('common.saveFailed') });
+      } else if (result?.msg) {
+        setStartupNotice({ type: 'warning', message: result.msg });
+      }
+    } catch (caughtError: unknown) {
+      setStartupNotice({ type: 'error', message: caughtError instanceof Error ? caughtError.message : String(caughtError) });
     } finally {
       setIsSavingStartup(false);
     }
   };
 
   // 偏好设置项配置 / Preference items configuration
+  const startupSettingsLoadErrorText = startupSettingsLoadError instanceof Error ? startupSettingsLoadError.message : startupSettingsLoadError ? String(startupSettingsLoadError) : null;
+  const shouldShowStartupMismatch = startupSettings?.effectiveStartOnBoot !== undefined && startupSettings.effectiveStartOnBoot !== startupSettings.startOnBoot;
+
   const preferenceItems = [
     { key: 'language', label: t('settings.language'), component: <LanguageSwitcher /> },
     {
@@ -163,13 +176,33 @@ const SystemModalContent: React.FC<SystemModalContentProps> = ({ onRequestClose 
       component: (
         <Switch
           checked={startupSettings?.startOnBoot ?? false}
-          disabled={!startupSettings || isSavingStartup}
+          disabled={isSavingStartup}
           onChange={(val) => {
             void handleStartupChange({ startOnBoot: val });
           }}
         />
       ),
-      extra: startupSettings?.effectiveStartOnBoot !== undefined && startupSettings.effectiveStartOnBoot !== startupSettings.startOnBoot ? <Alert type='warning' content={t('settings.startOnBootMismatch')} showIcon /> : null,
+      extra:
+        startupSettingsLoadErrorText || startupNotice || shouldShowStartupMismatch ? (
+          <div className='space-y-8px'>
+            {startupSettingsLoadErrorText ? (
+              <Alert
+                type='error'
+                showIcon
+                content={
+                  <div className='flex items-center justify-between gap-12px'>
+                    <div className='flex-1 min-w-0 truncate'>{startupSettingsLoadErrorText}</div>
+                    <Button size='mini' type='text' onClick={() => void refreshStartupSettings()}>
+                      {t('common.retry')}
+                    </Button>
+                  </div>
+                }
+              />
+            ) : null}
+            {startupNotice ? <Alert type={startupNotice.type} content={startupNotice.message} showIcon /> : null}
+            {shouldShowStartupMismatch ? <Alert type='warning' content={t('settings.startOnBootMismatch')} showIcon /> : null}
+          </div>
+        ) : null,
     },
     {
       key: 'silentOnBoot',
@@ -178,7 +211,7 @@ const SystemModalContent: React.FC<SystemModalContentProps> = ({ onRequestClose 
       component: (
         <Switch
           checked={startupSettings?.silentOnBoot ?? false}
-          disabled={!startupSettings || !startupSettings.startOnBoot || isSavingStartup}
+          disabled={!startupSettings?.startOnBoot || isSavingStartup}
           onChange={(val) => {
             void handleStartupChange({ silentOnBoot: val });
           }}
@@ -192,7 +225,7 @@ const SystemModalContent: React.FC<SystemModalContentProps> = ({ onRequestClose 
       component: (
         <Switch
           checked={startupSettings?.openWebUiOnBoot ?? false}
-          disabled={!startupSettings || !startupSettings.startOnBoot || isSavingStartup}
+          disabled={!startupSettings?.startOnBoot || isSavingStartup}
           onChange={(val) => {
             void handleStartupChange({ openWebUiOnBoot: val });
           }}
@@ -206,7 +239,7 @@ const SystemModalContent: React.FC<SystemModalContentProps> = ({ onRequestClose 
       component: (
         <Switch
           checked={startupSettings?.closeToTray ?? false}
-          disabled={!startupSettings || isSavingStartup}
+          disabled={isSavingStartup}
           onChange={(val) => {
             void handleStartupChange({ closeToTray: val });
           }}
