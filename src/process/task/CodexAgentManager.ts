@@ -23,7 +23,7 @@ import { addMessage } from '@process/message';
 import BaseAgentManager from '@process/task/BaseAgentManager';
 import { prepareFirstMessageWithSkillsIndex } from '@process/task/agentUtils';
 import { handlePreviewOpenEvent } from '@process/utils/previewUtils';
-import { t } from 'i18next';
+import i18n from '@process/i18n';
 import { getConfiguredAppClientName, getConfiguredAppClientVersion, getConfiguredCodexMcpProtocolVersion, setAppConfig } from '../../common/utils/appConfig';
 
 const APP_CLIENT_NAME = getConfiguredAppClientName();
@@ -313,26 +313,26 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
     switch (error.type) {
       case 'cloudflare_blocked':
-        userMessage = t('codex.network.cloudflare_blocked_title', { service: 'Codex' });
-        recoveryActions = t('codex.network.recovery_actions.cloudflare_blocked', { returnObjects: true }) as string[];
+        userMessage = i18n.t('codex.network.cloudflare_blocked_title', { service: 'Codex' });
+        recoveryActions = i18n.t('codex.network.recovery_actions.cloudflare_blocked', { returnObjects: true }) as string[];
         break;
 
       case 'network_timeout':
-        userMessage = t('codex.network.network_timeout_title');
-        recoveryActions = t('codex.network.recovery_actions.network_timeout', { returnObjects: true }) as string[];
+        userMessage = i18n.t('codex.network.network_timeout_title');
+        recoveryActions = i18n.t('codex.network.recovery_actions.network_timeout', { returnObjects: true }) as string[];
         break;
 
       case 'connection_refused':
-        userMessage = t('codex.network.connection_refused_title');
-        recoveryActions = t('codex.network.recovery_actions.connection_refused', { returnObjects: true }) as string[];
+        userMessage = i18n.t('codex.network.connection_refused_title');
+        recoveryActions = i18n.t('codex.network.recovery_actions.connection_refused', { returnObjects: true }) as string[];
         break;
 
       default:
-        userMessage = t('codex.network.unknown_error_title');
-        recoveryActions = t('codex.network.recovery_actions.unknown', { returnObjects: true }) as string[];
+        userMessage = i18n.t('codex.network.unknown_error_title');
+        recoveryActions = i18n.t('codex.network.recovery_actions.unknown', { returnObjects: true }) as string[];
     }
 
-    const detailedMessage = `${userMessage}\n\n${t('codex.network.recovery_suggestions')}\n${recoveryActions.join('\n')}\n\n${t('codex.network.technical_info')}\n- ${t('codex.network.error_type')}：${error.type}\n- ${t('codex.network.retry_count')}：${error.retryCount}\n- ${t('codex.network.error_details')}：${error.originalError.substring(0, 200)}${error.originalError.length > 200 ? '...' : ''}`;
+    const detailedMessage = `${userMessage}\n\n${i18n.t('codex.network.recovery_suggestions')}\n${recoveryActions.join('\n')}\n\n${i18n.t('codex.network.technical_info')}\n- ${i18n.t('codex.network.error_type')}：${error.type}\n- ${i18n.t('codex.network.retry_count')}：${error.retryCount}\n- ${i18n.t('codex.network.error_details')}：${error.originalError.substring(0, 200)}${error.originalError.length > 200 ? '...' : ''}`;
 
     // Emit network error message to UI
     const networkErrorMessage: IResponseMessage = {
@@ -344,7 +344,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
         title: userMessage,
         message: detailedMessage,
         recoveryActions: recoveryActions,
-        quickSwitchContent: t('codex.network.quick_switch_content'),
+        quickSwitchContent: i18n.t('codex.network.quick_switch_content'),
       },
     };
 
