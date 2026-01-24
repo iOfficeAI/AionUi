@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <strong>💬 Comunidade:</strong> <a href="https://discord.gg/g6u66vV9" target="_blank">Discord (English)</a> | <a href="./resources/wechat_group.png" target="_blank">WeChat (中文)</a>
+  <strong>💬 Comunidade:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wechat_group_2.jpg" target="_blank">WeChat (中文)</a>
 </p>
 
 ---
@@ -358,8 +358,8 @@ brew install aionui
 - [💬 GitHub Discussions](https://github.com/iOfficeAI/AionUi/discussions) - **Compartilhe ideias, sugira melhorias, troque dicas de uso**
 - [🐛 Reportar problemas](https://github.com/iOfficeAI/AionUi/issues) - Relatar bugs ou solicitar recursos
 - [📦 Atualizações de versão](https://github.com/iOfficeAI/AionUi/releases) - Obter a versão mais recente
-- [💬 Discord Community](https://discord.gg/g6u66vV9) - **Participe da nossa comunidade em inglês**
-- [💬 WeChat (中文)](./resources/wechat_group.png) - **Clique para ver o QR**
+- [💬 Discord Community](https://discord.gg/2QAwJn7Egx) - **Participe da nossa comunidade em inglês**
+- [💬 WeChat (中文)](./resources/wechat_group_2.jpg) - **Clique para ver o QR**
 
 ### 🤝 Contribuir
 
