@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import type { FileMetadata } from '@/renderer/services/FileService';
-import { getCleanFileNames, getFileExtension, textExts } from '@/renderer/services/FileService';
+import { getCleanFileNames } from '@/renderer/services/FileService';
 import type { FileOrFolderItem } from '@/renderer/types/files';
 
 /**
@@ -23,11 +23,12 @@ export const createSetUploadFile = (mutate: (fn: (prev: Record<string, unknown> 
 
 const formatFileRef = (fileName: string): string => {
   const trimmed = fileName.trim();
+  // Remove @ prefix if present (normalize)
+  // @ prefix is an internal implementation detail for ACP agents
+  // It will be added by the backend when needed
+  // 移除 @ 前缀（如果存在）
+  // @ 前缀是 ACP agent 的内部实现细节，由后端按需添加
   const normalized = trimmed.startsWith('@') ? trimmed.slice(1) : trimmed;
-  const ext = getFileExtension(normalized);
-  if (textExts.includes(ext)) {
-    return '@' + normalized;
-  }
   return normalized;
 };
 

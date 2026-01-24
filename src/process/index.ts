@@ -14,6 +14,7 @@ if (app.isPackaged) {
 }
 import initStorage from './initStorage';
 import './initBridge';
+import './i18n'; // Initialize i18n for main process
 
 export const initializeProcess = async () => {
   await initStorage();
