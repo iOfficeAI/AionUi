@@ -358,13 +358,20 @@ const Guid: React.FC = () => {
   const navigate = useNavigate();
   const _layout = useLayoutContext();
 
-  // 处理粘贴的文件
-  const handleFilesAdded = useCallback((pastedFiles: FileMetadata[]) => {
-    // 直接使用文件路径（现在总是有效的）/ Use file paths directly (always valid now)
+  // 处理粘贴的文件（替换模式，避免累积旧文件路径）
+  // Handle pasted files (replace mode to avoid accumulating old file paths)
+  const handleFilesPasted = useCallback((pastedFiles: FileMetadata[]) => {
     const filePaths = pastedFiles.map((file) => file.path);
+    // 粘贴操作替换现有文件，而不是追加
+    // Paste operation replaces existing files instead of appending
+    setFiles(filePaths);
+    setDir('');
+  }, []);
 
-    setFiles((prevFiles) => [...prevFiles, ...filePaths]);
-    setDir(''); // 清除文件夹选择 / Clear selected directory
+  // 处理通过对话框上传的文件（追加模式）
+  // Handle files uploaded via dialog (append mode)
+  const handleFilesUploaded = useCallback((uploadedPaths: string[]) => {
+    setFiles((prevFiles) => [...prevFiles, ...uploadedPaths]);
   }, []);
 
   const handleRemoveFile = useCallback((targetPath: string) => {
@@ -372,16 +379,18 @@ const Guid: React.FC = () => {
     setFiles((prevFiles) => prevFiles.filter((file) => file !== targetPath));
   }, []);
 
-  // 使用拖拽 hook
+  // 使用拖拽 hook（拖拽视为粘贴操作，替换现有文件）
+  // Use drag upload hook (drag is treated like paste, replaces existing files)
   const { isFileDragging, dragHandlers } = useDragUpload({
     supportedExts: allSupportedExts,
-    onFilesAdded: handleFilesAdded,
+    onFilesAdded: handleFilesPasted,
   });
 
-  // 使用共享的PasteService集成
+  // 使用共享的PasteService集成（粘贴操作替换现有文件）
+  // Use shared PasteService integration (paste replaces existing files)
   const { onPaste, onFocus } = usePasteService({
     supportedExts: allSupportedExts,
-    onFilesAdded: handleFilesAdded,
+    onFilesAdded: handleFilesPasted,
     onTextPaste: (text: string) => {
       // 按光标位置插入文本，保持现有内容
       const textarea = document.activeElement as HTMLTextAreaElement | null;
@@ -1225,9 +1234,11 @@ const Guid: React.FC = () => {
                         if (key === 'file') {
                           ipcBridge.dialog.showOpen
                             .invoke({ properties: ['openFile', 'multiSelections'] })
-                            .then((files) => {
-                              if (files && files.length > 0) {
-                                setFiles((prev) => [...prev, ...files]);
+                            .then((uploadedFiles) => {
+                              if (uploadedFiles && uploadedFiles.length > 0) {
+                                // 通过对话框上传的文件使用追加模式
+                                // Files uploaded via dialog use append mode
+                                handleFilesUploaded(uploadedFiles);
                               }
                             })
                             .catch((error) => {
