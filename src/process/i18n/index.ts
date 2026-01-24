@@ -66,8 +66,8 @@ ConfigStorage.get('language')
  * 可以在其他地方调用此函数来切换主进程的语言
  * Can be called from elsewhere to change the main process language
  */
-export function changeLanguage(language: string): Promise<void> {
-  return i18n.changeLanguage(language);
+export async function changeLanguage(language: string): Promise<void> {
+  await i18n.changeLanguage(language);
 }
 
 export default i18n;
