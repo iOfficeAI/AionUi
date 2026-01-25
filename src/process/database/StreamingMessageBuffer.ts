@@ -136,7 +136,7 @@ export class StreamingMessageBuffer {
       };
 
       // Check if message exists in database
-      const existing = db.getMessageByMsgId(buffer.conversationId, messageId);
+      const existing = db.getMessageByMsgId(buffer.conversationId, messageId, 'text');
 
       if (existing.success && existing.data) {
         // Message exists - update it

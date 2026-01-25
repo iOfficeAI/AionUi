@@ -710,6 +710,8 @@
     "protocolTimeout": "接続がタイムアウトしました。ネットワークまたは API アドレスを確認してください",
     "protocolInvalidKey": "API Key が無効です。Key が正しいか確認してください",
     "protocolCheckConfig": "API プロトコルを認識できません。設定を確認してください",
+    "packyapiOpenAIDetected": "PackyAPI：OpenAI 形式が検出されました。Claude 形式を使用する場合は、URL から /v1 を削除して Anthropic プラットフォームを選択してください",
+    "packyapiAnthropicDetected": "PackyAPI：Claude 形式が検出されました。OpenAI 形式を使用する場合は、URL の末尾に /v1 を追加して OpenAI/カスタム プラットフォームを選択してください",
     "multiKeyTestResult": "マルチキーテスト：{{valid}}/{{total}} 個有効",
     "multiKeyAllValid": "すべての {{total}} 個のキーが有効です",
     "multiKeyPartialValid": "{{valid}} 個有効、{{invalid}} 個無効",

@@ -90,6 +90,47 @@ const hasAvailableModels = (provider: IProvider): boolean => {
   return availableModels.length > 0;
 };
 
+/**
+ * 测量 textarea 中指定位置的垂直坐标
+ * @param textarea - 目标 textarea 元素
+ * @param position - 文本位置
+ * @returns 该位置的垂直像素坐标
+ */
+const measureCaretTop = (textarea: HTMLTextAreaElement, position: number): number => {
+  const textBefore = textarea.value.slice(0, position);
+  const measure = document.createElement('div');
+  const style = getComputedStyle(textarea);
+  measure.style.cssText = `
+    position: absolute;
+    visibility: hidden;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    width: ${textarea.clientWidth}px;
+    font: ${style.font};
+    line-height: ${style.lineHeight};
+    padding: ${style.padding};
+    border: ${style.border};
+    box-sizing: ${style.boxSizing};
+  `;
+  measure.textContent = textBefore;
+  document.body.appendChild(measure);
+  const caretTop = measure.scrollHeight;
+  document.body.removeChild(measure);
+  return caretTop;
+};
+
+/**
+ * 滚动 textarea 使光标位于视口最后一行
+ * @param textarea - 目标 textarea 元素
+ * @param caretTop - 光标的垂直坐标
+ */
+const scrollCaretToLastLine = (textarea: HTMLTextAreaElement, caretTop: number): void => {
+  const style = getComputedStyle(textarea);
+  const lineHeight = parseInt(style.lineHeight, 10) || 20;
+  // 滚动使光标位于视口最后一行
+  textarea.scrollTop = Math.max(0, caretTop - textarea.clientHeight + lineHeight);
+};
+
 const useModelList = () => {
   const { geminiModeOptions, isGoogleAuth } = useGeminiGoogleAuthModels();
   const { data: modelConfig } = useSWR('model.config.welcome', () => {
@@ -317,13 +358,20 @@ const Guid: React.FC = () => {
   const navigate = useNavigate();
   const _layout = useLayoutContext();
 
-  // 处理粘贴的文件
-  const handleFilesAdded = useCallback((pastedFiles: FileMetadata[]) => {
-    // 直接使用文件路径（现在总是有效的）/ Use file paths directly (always valid now)
+  // 处理粘贴的文件（替换模式，避免累积旧文件路径）
+  // Handle pasted files (replace mode to avoid accumulating old file paths)
+  const handleFilesPasted = useCallback((pastedFiles: FileMetadata[]) => {
     const filePaths = pastedFiles.map((file) => file.path);
+    // 粘贴操作替换现有文件，而不是追加
+    // Paste operation replaces existing files instead of appending
+    setFiles(filePaths);
+    setDir('');
+  }, []);
 
-    setFiles((prevFiles) => [...prevFiles, ...filePaths]);
-    setDir(''); // 清除文件夹选择 / Clear selected directory
+  // 处理通过对话框上传的文件（追加模式）
+  // Handle files uploaded via dialog (append mode)
+  const handleFilesUploaded = useCallback((uploadedPaths: string[]) => {
+    setFiles((prevFiles) => [...prevFiles, ...uploadedPaths]);
   }, []);
 
   const handleRemoveFile = useCallback((targetPath: string) => {
@@ -331,16 +379,18 @@ const Guid: React.FC = () => {
     setFiles((prevFiles) => prevFiles.filter((file) => file !== targetPath));
   }, []);
 
-  // 使用拖拽 hook
+  // 使用拖拽 hook（拖拽视为粘贴操作，替换现有文件）
+  // Use drag upload hook (drag is treated like paste, replaces existing files)
   const { isFileDragging, dragHandlers } = useDragUpload({
     supportedExts: allSupportedExts,
-    onFilesAdded: handleFilesAdded,
+    onFilesAdded: handleFilesPasted,
   });
 
-  // 使用共享的PasteService集成
+  // 使用共享的PasteService集成（粘贴操作替换现有文件）
+  // Use shared PasteService integration (paste replaces existing files)
   const { onPaste, onFocus } = usePasteService({
     supportedExts: allSupportedExts,
-    onFilesAdded: handleFilesAdded,
+    onFilesAdded: handleFilesPasted,
     onTextPaste: (text: string) => {
       // 按光标位置插入文本，保持现有内容
       const textarea = document.activeElement as HTMLTextAreaElement | null;
@@ -350,8 +400,12 @@ const Guid: React.FC = () => {
         const currentValue = textarea.value;
         const newValue = currentValue.slice(0, start) + text + currentValue.slice(end);
         setInput(newValue);
+
         setTimeout(() => {
-          textarea.setSelectionRange(start + text.length, start + text.length);
+          const newPos = start + text.length;
+          textarea.setSelectionRange(newPos, newPos);
+          const caretTop = measureCaretTop(textarea, newPos);
+          scrollCaretToLastLine(textarea, caretTop);
         }, 0);
       } else {
         setInput((prev) => prev + text);
@@ -744,19 +798,21 @@ const Guid: React.FC = () => {
         emitter.emit('chat.history.refresh');
 
         // 然后导航到会话页面
-        await navigate(`/conversation/${conversation.id}`);
 
         // 然后发送消息（文件通过 files 参数传递，不在消息中添加 @ 前缀）
         // Send message (files passed via files param, no @ prefix in message)
         const workspacePath = conversation.extra?.workspace || '';
         const displayMessage = buildDisplayMessage(input, files, workspacePath);
 
-        void ipcBridge.geminiConversation.sendMessage
+        return ipcBridge.geminiConversation.sendMessage
           .invoke({
             input: displayMessage,
             conversation_id: conversation.id,
             msg_id: uuid(),
             files,
+          })
+          .then(() => {
+            void navigate(`/conversation/${conversation.id}`);
           })
           .catch((error) => {
             console.error('Failed to send message:', error);
@@ -1152,7 +1208,7 @@ const Guid: React.FC = () => {
                 </Dropdown>
               </div>
             )}
-            <Input.TextArea rows={3} placeholder={typewriterPlaceholder || t('conversation.welcome.placeholder')} className={`text-16px focus:b-none rounded-xl !bg-transparent !b-none !resize-none !p-0 ${styles.lightPlaceholder}`} value={input} onChange={handleInputChange} onPaste={onPaste} onFocus={handleTextareaFocus} onBlur={handleTextareaBlur} {...compositionHandlers} onKeyDown={handleInputKeyDown}></Input.TextArea>
+            <Input.TextArea autoSize={{ minRows: 3, maxRows: 20 }} placeholder={typewriterPlaceholder || t('conversation.welcome.placeholder')} className={`text-16px focus:b-none rounded-xl !bg-transparent !b-none !resize-none !p-0 ${styles.lightPlaceholder}`} value={input} onChange={handleInputChange} onPaste={onPaste} onFocus={handleTextareaFocus} onBlur={handleTextareaBlur} {...compositionHandlers} onKeyDown={handleInputKeyDown}></Input.TextArea>
             {mentionOpen && (
               <div className='absolute z-50' style={{ left: 16, top: 44 }}>
                 {mentionMenu}
@@ -1178,9 +1234,11 @@ const Guid: React.FC = () => {
                         if (key === 'file') {
                           ipcBridge.dialog.showOpen
                             .invoke({ properties: ['openFile', 'multiSelections'] })
-                            .then((files) => {
-                              if (files && files.length > 0) {
-                                setFiles((prev) => [...prev, ...files]);
+                            .then((uploadedFiles) => {
+                              if (uploadedFiles && uploadedFiles.length > 0) {
+                                // 通过对话框上传的文件使用追加模式
+                                // Files uploaded via dialog use append mode
+                                handleFilesUploaded(uploadedFiles);
                               }
                             })
                             .catch((error) => {

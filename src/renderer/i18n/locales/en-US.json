@@ -626,6 +626,8 @@
     "protocolTimeout": "Connection timeout, please check network or API URL",
     "protocolInvalidKey": "Invalid API Key, please check your key",
     "protocolCheckConfig": "Unable to identify API protocol, please check configuration",
+    "packyapiOpenAIDetected": "PackyAPI: Detected OpenAI format. For Claude format, remove /v1 from URL and select Anthropic platform",
+    "packyapiAnthropicDetected": "PackyAPI: Detected Claude format. For OpenAI format, add /v1 to URL and select OpenAI/Custom platform",
     "multiKeyTestResult": "Multi-key test: {{valid}}/{{total}} valid",
     "multiKeyAllValid": "All {{total}} keys are valid",
     "multiKeyPartialValid": "{{valid}} valid, {{invalid}} invalid",

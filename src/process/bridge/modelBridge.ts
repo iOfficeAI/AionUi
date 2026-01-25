@@ -713,6 +713,25 @@ async function testMultipleKeys(
 }
 
 /**
+ * 检测是否为 PackyAPI 中转站
+ * Check if it's PackyAPI proxy service
+ *
+ * 使用 URL 解析确保只匹配真正的 packyapi.com 域名，防止 URL 注入攻击
+ * Use URL parsing to ensure only real packyapi.com domain matches, preventing URL injection attacks
+ */
+function isPackyAPI(baseUrl: string): boolean {
+  try {
+    const url = new URL(baseUrl);
+    const hostname = url.hostname.toLowerCase();
+    // 精确匹配 packyapi.com 或其子域名
+    // Exact match packyapi.com or its subdomains
+    return hostname === 'packyapi.com' || hostname.endsWith('.packyapi.com');
+  } catch {
+    return false;
+  }
+}
+
+/**
  * 生成建议
  * Generate suggestion
  *
@@ -743,6 +762,30 @@ function generateSuggestion(protocol: ProtocolType, _confidence: number, baseUrl
   }
 
   const displayName = getProtocolDisplayName(protocol);
+
+  // PackyAPI 特殊处理 / Special handling for PackyAPI
+  // PackyAPI 支持两种协议格式，通过不同的 URL 访问
+  // PackyAPI supports two protocol formats via different URLs
+  if (isPackyAPI(baseUrl)) {
+    if (protocol === 'openai' && baseUrl.includes('/v1')) {
+      // 检测到 OpenAI 格式（带 /v1），提示也可以使用 Claude 格式（不带 /v1）
+      // Detected OpenAI format (with /v1), suggest Claude format (without /v1) is also available
+      return {
+        type: 'none',
+        message: 'PackyAPI: Detected OpenAI format. For Claude format, use URL without /v1 and select Anthropic platform',
+        i18nKey: 'settings.packyapiOpenAIDetected',
+      };
+    }
+    if (protocol === 'anthropic') {
+      // 检测到 Anthropic 格式（不带 /v1），提示也可以使用 OpenAI 格式（带 /v1）
+      // Detected Anthropic format (without /v1), suggest OpenAI format (with /v1) is also available
+      return {
+        type: 'none',
+        message: 'PackyAPI: Detected Claude format. For OpenAI format, add /v1 to URL and select OpenAI/Custom platform',
+        i18nKey: 'settings.packyapiAnthropicDetected',
+      };
+    }
+  }
 
   // 检测到 Gemini 协议但用户可能选择了其他平台
   // Detected Gemini protocol but user may have selected a different platform

@@ -1,0 +1,13 @@
+@keyframes breathing {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.badge-breathing .arco-badge-status-dot {
+  animation: breathing 1.5s ease-in-out infinite;
+}

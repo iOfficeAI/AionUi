@@ -71,8 +71,7 @@
     "no-empty-pattern": "warn",
     "import/no-named-as-default-member": "warn",
     "@typescript-eslint/no-floating-promises": "error",
-    "@typescript-eslint/await-thenable": "error",
-    "require-await": "error"
+    "@typescript-eslint/await-thenable": "error"
   },
   "overrides": [
     {

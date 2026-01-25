@@ -7,7 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { PreviewContentType } from '@/common/types/preview';
 import { emitter } from '@/renderer/utils/emitter';
-import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
 /** DOM 片段数据结构 / DOM snippet data structure */
 export interface DomSnippet {
@@ -103,7 +103,8 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [isOpen, setIsOpen] = useState(persistedState.isOpen);
   const [tabs, setTabs] = useState<PreviewTab[]>(persistedState.tabs);
   const [activeTabId, setActiveTabId] = useState<string | null>(persistedState.activeTabId);
-  const [sendBoxHandler, setSendBoxHandlerState] = useState<((text: string) => void) | null>(null);
+  // const [sendBoxHandler, setSendBoxHandlerState] = useState<((text: string) => void) | null>(null);
+  const sendBoxHandler = useRef<((text: string) => void) | null>(null);
   const [domSnippets, setDomSnippets] = useState<DomSnippet[]>([]);
 
   // 持久化状态到 localStorage / Persist state to localStorage
@@ -126,7 +127,9 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const savingFilesRef = useRef<Set<string>>(new Set());
 
   // 获取当前激活的 tab / Get active tab
-  const activeTab = tabs.find((tab) => tab.id === activeTabId) || null;
+  const activeTab = useMemo(() => {
+    return tabs.find((tab) => tab.id === activeTabId) || null;
+  }, [tabs]);
 
   const normalize = useCallback((value?: string | null) => value?.trim() || '', []);
 
@@ -291,10 +294,6 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
     [activeTabId]
   );
 
-  const switchTab = useCallback((tabId: string) => {
-    setActiveTabId(tabId);
-  }, []);
-
   const closePreviewByIdentity = useCallback(
     (type: PreviewContentType, content?: string, meta?: PreviewMetadata) => {
       const tab = findPreviewTab(type, content, meta);
@@ -388,17 +387,14 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
     [activeTabId, tabs]
   );
 
-  const addToSendBox = useCallback(
-    (text: string) => {
-      if (sendBoxHandler) {
-        sendBoxHandler(text);
-      }
-    },
-    [sendBoxHandler]
-  );
+  const addToSendBox = useCallback((text: string) => {
+    if (sendBoxHandler.current) {
+      sendBoxHandler.current(text);
+    }
+  }, []);
 
   const setSendBoxHandler = useCallback((handler: ((text: string) => void) | null) => {
-    setSendBoxHandlerState(() => handler);
+    sendBoxHandler.current = handler;
   }, []);
 
   // DOM 片段管理函数 / DOM snippet management functions
@@ -514,32 +510,11 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
     };
   }, [openPreview]);
 
-  return (
-    <PreviewContext.Provider
-      value={{
-        isOpen,
-        tabs,
-        activeTabId,
-        activeTab,
-        openPreview,
-        closePreview,
-        closeTab,
-        switchTab,
-        updateContent,
-        saveContent,
-        findPreviewTab,
-        closePreviewByIdentity,
-        addToSendBox,
-        setSendBoxHandler,
-        domSnippets,
-        addDomSnippet,
-        removeDomSnippet,
-        clearDomSnippets,
-      }}
-    >
-      {children}
-    </PreviewContext.Provider>
-  );
+  const previewContextValue = useMemo(() => {
+    return { isOpen, tabs, activeTabId, activeTab, openPreview, closePreview, closeTab, switchTab: setActiveTabId, updateContent, saveContent, findPreviewTab, closePreviewByIdentity, addToSendBox, setSendBoxHandler, domSnippets, addDomSnippet, removeDomSnippet, clearDomSnippets };
+  }, [isOpen, tabs, activeTabId, activeTab, openPreview, closePreview, closeTab, setActiveTabId, updateContent, saveContent, findPreviewTab, closePreviewByIdentity, addToSendBox, setSendBoxHandler, domSnippets, addDomSnippet, removeDomSnippet, clearDomSnippets]);
+
+  return <PreviewContext.Provider value={previewContextValue}>{children}</PreviewContext.Provider>;
 };
 
 export const usePreviewContext = () => {

@@ -626,6 +626,8 @@
     "protocolTimeout": "연결 시간 초과, 네트워크 또는 API URL을 확인하세요",
     "protocolInvalidKey": "잘못된 API 키, 키를 확인하세요",
     "protocolCheckConfig": "API 프로토콜을 식별할 수 없습니다. 구성을 확인하세요.",
+    "packyapiOpenAIDetected": "PackyAPI: OpenAI 형식 감지됨. Claude 형식을 사용하려면 URL에서 /v1을 제거하고 Anthropic 플랫폼을 선택하세요",
+    "packyapiAnthropicDetected": "PackyAPI: Claude 형식 감지됨. OpenAI 형식을 사용하려면 URL 끝에 /v1을 추가하고 OpenAI/사용자 정의 플랫폼을 선택하세요",
     "multiKeyTestResult": "다중 키 테스트: {{valid}}/{{total}} 유효",
     "multiKeyAllValid": "모든 {{total}} 키가 유효합니다",
     "multiKeyPartialValid": "{{valid}} 유효, {{invalid}} 무효",

@@ -622,6 +622,8 @@
     "protocolTimeout": "连接超时，请检查网络或 API 地址是否正确",
     "protocolInvalidKey": "API Key 无效，请检查 Key 是否正确",
     "protocolCheckConfig": "无法识别 API 协议，请检查配置",
+    "packyapiOpenAIDetected": "PackyAPI：检测到 OpenAI 格式。如需使用 Claude 格式，请去掉 URL 中的 /v1 并选择 Anthropic 平台",
+    "packyapiAnthropicDetected": "PackyAPI：检测到 Claude 格式。如需使用 OpenAI 格式，请在 URL 末尾添加 /v1 并选择 OpenAI/自定义 平台",
     "multiKeyTestResult": "多 Key 测试：{{valid}}/{{total}} 个有效",
     "multiKeyAllValid": "所有 {{total}} 个 Key 均有效",
     "multiKeyPartialValid": "{{valid}} 个有效，{{invalid}} 个无效",

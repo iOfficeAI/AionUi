@@ -681,6 +681,8 @@
     "protocolTimeout": "連線逾時，請檢查網路或 API 位址是否正確",
     "protocolInvalidKey": "API Key 無效，請檢查 Key 是否正確",
     "protocolCheckConfig": "無法識別 API 協議，請檢查設定",
+    "packyapiOpenAIDetected": "PackyAPI：偵測到 OpenAI 格式。如需使用 Claude 格式，請移除 URL 中的 /v1 並選擇 Anthropic 平台",
+    "packyapiAnthropicDetected": "PackyAPI：偵測到 Claude 格式。如需使用 OpenAI 格式，請在 URL 末尾新增 /v1 並選擇 OpenAI/自訂 平台",
     "multiKeyTestResult": "多 Key 測試：{{valid}}/{{total}} 個有效",
     "multiKeyAllValid": "所有 {{total}} 個 Key 均有效",
     "multiKeyPartialValid": "{{valid}} 個有效，{{invalid}} 個無效",

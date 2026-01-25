@@ -195,6 +195,25 @@ export class AcpAgent {
       this.adapter.resetMessageTracking();
       let processedContent = data.content;
 
+      // Add @ prefix to ALL uploaded files (including images) with FULL PATH
+      // Claude CLI needs full path to read files
+      // 为所有上传的文件添加 @ 前缀（包括图片），使用完整路径让 Claude CLI 读取
+      if (data.files && data.files.length > 0) {
+        const fileRefs = data.files
+          .map((filePath) => {
+            // Use full path instead of just filename
+            // Escape paths with spaces using quotes for Claude CLI
+            // 对含空格的路径使用引号包裹，确保 Claude CLI 正确解析
+            if (filePath.includes(' ')) {
+              return `@"${filePath}"`;
+            }
+            return '@' + filePath;
+          })
+          .join(' ');
+        // Prepend file references to the content
+        processedContent = fileRefs + ' ' + processedContent;
+      }
+
       // Process @ file references in the message
       // 处理消息中的 @ 文件引用
       processedContent = await this.processAtFileReferences(processedContent, data.files);
@@ -256,6 +275,9 @@ export class AcpAgent {
     }
 
     // Parse all @ references in the content
+    // Note: @ prefix is already added to content by sendMessage for uploaded files
+    // 解析 content 中的所有 @ 引用
+    // 注意：sendMessage 已为上传的文件添加了 @ 前缀
     const parts = parseAllAtCommands(content);
     const atPaths = extractAtPaths(content);
 
@@ -264,40 +286,64 @@ export class AcpAgent {
       return content;
     }
 
-    // Get filenames from uploaded files for matching
-    const uploadedFilenames = (uploadedFiles || []).map((filePath) => {
-      const segments = filePath.split(/[\\/]/);
-      return segments[segments.length - 1] || filePath;
-    });
-
     // Track which @ references are resolved to files
     const resolvedFiles: Map<string, string> = new Map(); // atPath -> file content
+    // Track @ references that should be removed (duplicate file references by filename)
+    const referencesToRemove: Set<string> = new Set();
 
     for (const atPath of atPaths) {
-      // Skip if this @ reference matches an uploaded file (already handled by frontend)
-      if (uploadedFilenames.some((name) => atPath === name || atPath.endsWith('/' + name) || atPath.endsWith('\\' + name))) {
+      // Check if this @ reference is an uploaded file (full path or filename)
+      // If yes, skip it - let Claude CLI handle it natively
+      // 检查此 @ 引用是否是上传的文件（完整路径或文件名），如果是则跳过，让 Claude CLI 原生处理
+      const matchedUploadFile = uploadedFiles?.find((filePath) => {
+        // Match by full path
+        if (atPath === filePath) return true;
+        // Match by filename (for cases where message contains just filename)
+        const fileName = filePath.split(/[\\/]/).pop() || filePath;
+        return atPath === fileName;
+      });
+
+      if (matchedUploadFile) {
+        // If this is a filename reference (not full path), mark for removal
+        // The full path reference will be kept
+        // 如果这是文件名引用（不是完整路径），标记为移除，因为已经有完整路径引用了
+        if (atPath !== matchedUploadFile) {
+          referencesToRemove.add(atPath);
+        }
+        // Skip uploaded files - they are already in @ format with full path
+        // Claude CLI will handle them natively
         continue;
       }
 
-      // Try to resolve the path in workspace
+      // For workspace file references (filename only), try to resolve and read
+      // 对于工作区文件引用（只有文件名），尝试解析和读取
       const resolvedPath = await this.resolveAtPath(atPath, workspace);
+
       if (resolvedPath) {
         try {
+          // Try to read as text file
           const fileContent = await fs.readFile(resolvedPath, 'utf-8');
           resolvedFiles.set(atPath, fileContent);
         } catch (error) {
-          console.warn(`[ACP] Failed to read file ${resolvedPath}:`, error);
+          // Binary files (images, etc.) cannot be read as text
+          // Keep the @ reference as-is, let CLI handle it
+          // 二进制文件（图片等）无法作为文本读取，保持 @ 引用，让 CLI 处理
+          console.warn(`[ACP] Skipping binary file ${atPath} (will be handled by CLI)`);
         }
       }
     }
 
-    // If no files were resolved, return original content (let ACP handle unknown @ references)
-    if (resolvedFiles.size === 0) {
+    // If no files were resolved and no references to remove, return original content
+    if (resolvedFiles.size === 0 && referencesToRemove.size === 0) {
       return content;
     }
 
     // Reconstruct the message: replace @ references with plain text and append file contents
     const reconstructedQuery = reconstructQuery(parts, (atPath) => {
+      // Remove duplicate filename references (when full path already exists)
+      if (referencesToRemove.has(atPath)) {
+        return '';
+      }
       if (resolvedFiles.has(atPath)) {
         // Replace with just the filename (without @) as the reference
         return atPath;
@@ -376,7 +422,7 @@ export class AcpAgent {
     return await searchDir(workspace, 0);
   }
 
-  confirmMessage(data: { confirmKey: string; msg_id: string; callId: string }): Promise<AcpResult> {
+  confirmMessage(data: { confirmKey: string; callId: string }): Promise<AcpResult> {
     try {
       if (this.pendingPermissions.has(data.callId)) {
         const { resolve } = this.pendingPermissions.get(data.callId)!;
@@ -707,6 +753,12 @@ export class AcpAgent {
         responseMessage.data = message.content;
         break;
       }
+      case 'plan':
+        {
+          responseMessage.type = 'plan';
+          responseMessage.data = message.content;
+        }
+        break;
       default:
         responseMessage.type = 'content';
         responseMessage.data = typeof message.content === 'string' ? message.content : JSON.stringify(message.content);

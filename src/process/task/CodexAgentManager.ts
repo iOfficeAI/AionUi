@@ -6,25 +6,25 @@
 
 import { CodexAgent } from '@/agent/codex';
 import type { NetworkError } from '@/agent/codex/connection/CodexConnection';
+import { CodexEventHandler } from '@/agent/codex/handlers/CodexEventHandler';
+import { CodexFileOperationHandler } from '@/agent/codex/handlers/CodexFileOperationHandler';
+import { CodexSessionManager } from '@/agent/codex/handlers/CodexSessionManager';
+import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
 import { ipcBridge } from '@/common';
-import type { TMessage } from '@/common/chatLib';
+import type { IConfirmation, TMessage } from '@/common/chatLib';
 import { transformMessage } from '@/common/chatLib';
-import type { IResponseMessage } from '@/common/ipcBridge';
+import type { CodexAgentManagerData, FileChange } from '@/common/codex/types';
+import { PERMISSION_DECISION_MAP } from '@/common/codex/types/permissionTypes';
+import { mapPermissionDecision } from '@/common/codex/utils';
 import { AIONUI_FILES_MARKER } from '@/common/constants';
+import type { IResponseMessage } from '@/common/ipcBridge';
 import { uuid } from '@/common/utils';
 import { addMessage } from '@process/message';
 import BaseAgentManager from '@process/task/BaseAgentManager';
 import { prepareFirstMessageWithSkillsIndex } from '@process/task/agentUtils';
-import { t } from 'i18next';
-import { CodexEventHandler } from '@/agent/codex/handlers/CodexEventHandler';
-import { CodexSessionManager } from '@/agent/codex/handlers/CodexSessionManager';
-import { CodexFileOperationHandler } from '@/agent/codex/handlers/CodexFileOperationHandler';
-import type { CodexAgentManagerData, FileChange } from '@/common/codex/types';
-import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
-import { getConfiguredAppClientName, getConfiguredAppClientVersion, getConfiguredCodexMcpProtocolVersion, setAppConfig } from '../../common/utils/appConfig';
-import { mapPermissionDecision } from '@/common/codex/utils';
-import { PERMISSION_DECISION_MAP } from '@/common/codex/types/permissionTypes';
 import { handlePreviewOpenEvent } from '@process/utils/previewUtils';
+import i18n from '@process/i18n';
+import { getConfiguredAppClientName, getConfiguredAppClientVersion, getConfiguredCodexMcpProtocolVersion, setAppConfig } from '../../common/utils/appConfig';
 
 const APP_CLIENT_NAME = getConfiguredAppClientName();
 const APP_CLIENT_VERSION = getConfiguredAppClientVersion();
@@ -240,39 +240,43 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     }
   }
 
-  async confirmMessage(data: { confirmKey: string; msg_id: string; callId: string }) {
+  /**
+   * 统一的确认方法 - 通过 addConfirmation 管理所有确认项
+   * 参考 GeminiAgentManager 和 AcpAgentManager 的实现
+   */
+  async confirm(id: string, callId: string, data: string) {
+    super.confirm(id, callId, data);
     await this.bootstrap;
-    this.agent.getEventHandler().getToolHandlers().removePendingConfirmation(data.callId);
+    this.agent.getEventHandler().getToolHandlers().removePendingConfirmation(callId);
 
     // Use standardized permission decision mapping
-    const decisionKey = data.confirmKey in PERMISSION_DECISION_MAP ? (data.confirmKey as keyof typeof PERMISSION_DECISION_MAP) : 'reject_once';
+    const decisionKey = data in PERMISSION_DECISION_MAP ? (data as keyof typeof PERMISSION_DECISION_MAP) : 'reject_once';
     const decision = mapPermissionDecision(decisionKey) as 'approved' | 'approved_for_session' | 'denied' | 'abort';
     const isApproved = decision === 'approved' || decision === 'approved_for_session';
 
     // Apply patch changes if available and approved
-    const changes = this.agent.getEventHandler().getToolHandlers().getPatchChanges(data.callId);
+    const changes = this.agent.getEventHandler().getToolHandlers().getPatchChanges(callId);
     if (changes && isApproved) {
-      await this.applyPatchChanges(data.callId, changes);
+      await this.applyPatchChanges(callId, changes);
     }
 
     // Normalize call id back to server's codex_call_id
     // Handle the new unified permission_ prefix as well as legacy prefixes
-    const origCallId = data.callId.startsWith('permission_')
-      ? data.callId.substring(11) // Remove 'permission_' prefix
-      : data.callId.startsWith('patch_')
-        ? data.callId.substring(6)
-        : data.callId.startsWith('elicitation_')
-          ? data.callId.substring(12)
-          : data.callId.startsWith('exec_')
-            ? data.callId.substring(5)
-            : data.callId;
+    const origCallId = callId.startsWith('permission_')
+      ? callId.substring(11) // Remove 'permission_' prefix
+      : callId.startsWith('patch_')
+        ? callId.substring(6)
+        : callId.startsWith('elicitation_')
+          ? callId.substring(12)
+          : callId.startsWith('exec_')
+            ? callId.substring(5)
+            : callId;
 
     // Respond to elicitation (server expects JSON-RPC response)
     this.agent.respondElicitation(origCallId, decision);
 
     // Also resolve local pause gate to resume queued requests
     this.agent.resolvePermission(origCallId, isApproved);
-    return;
   }
 
   private async applyPatchChanges(callId: string, changes: Record<string, FileChange>): Promise<void> {
@@ -309,26 +313,26 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
     switch (error.type) {
       case 'cloudflare_blocked':
-        userMessage = t('codex.network.cloudflare_blocked_title', { service: 'Codex' });
-        recoveryActions = t('codex.network.recovery_actions.cloudflare_blocked', { returnObjects: true }) as string[];
+        userMessage = i18n.t('codex.network.cloudflare_blocked_title', { service: 'Codex' });
+        recoveryActions = i18n.t('codex.network.recovery_actions.cloudflare_blocked', { returnObjects: true }) as string[];
         break;
 
       case 'network_timeout':
-        userMessage = t('codex.network.network_timeout_title');
-        recoveryActions = t('codex.network.recovery_actions.network_timeout', { returnObjects: true }) as string[];
+        userMessage = i18n.t('codex.network.network_timeout_title');
+        recoveryActions = i18n.t('codex.network.recovery_actions.network_timeout', { returnObjects: true }) as string[];
         break;
 
       case 'connection_refused':
-        userMessage = t('codex.network.connection_refused_title');
-        recoveryActions = t('codex.network.recovery_actions.connection_refused', { returnObjects: true }) as string[];
+        userMessage = i18n.t('codex.network.connection_refused_title');
+        recoveryActions = i18n.t('codex.network.recovery_actions.connection_refused', { returnObjects: true }) as string[];
         break;
 
       default:
-        userMessage = t('codex.network.unknown_error_title');
-        recoveryActions = t('codex.network.recovery_actions.unknown', { returnObjects: true }) as string[];
+        userMessage = i18n.t('codex.network.unknown_error_title');
+        recoveryActions = i18n.t('codex.network.recovery_actions.unknown', { returnObjects: true }) as string[];
     }
 
-    const detailedMessage = `${userMessage}\n\n${t('codex.network.recovery_suggestions')}\n${recoveryActions.join('\n')}\n\n${t('codex.network.technical_info')}\n- ${t('codex.network.error_type')}：${error.type}\n- ${t('codex.network.retry_count')}：${error.retryCount}\n- ${t('codex.network.error_details')}：${error.originalError.substring(0, 200)}${error.originalError.length > 200 ? '...' : ''}`;
+    const detailedMessage = `${userMessage}\n\n${i18n.t('codex.network.recovery_suggestions')}\n${recoveryActions.join('\n')}\n\n${i18n.t('codex.network.technical_info')}\n- ${i18n.t('codex.network.error_type')}：${error.type}\n- ${i18n.t('codex.network.retry_count')}：${error.retryCount}\n- ${i18n.t('codex.network.error_details')}：${error.originalError.substring(0, 200)}${error.originalError.length > 200 ? '...' : ''}`;
 
     // Emit network error message to UI
     const networkErrorMessage: IResponseMessage = {
@@ -340,7 +344,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
         title: userMessage,
         message: detailedMessage,
         recoveryActions: recoveryActions,
-        quickSwitchContent: t('codex.network.quick_switch_content'),
+        quickSwitchContent: i18n.t('codex.network.quick_switch_content'),
       },
     };
 
@@ -428,6 +432,14 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
     // Always emit to frontend for UI display
     ipcBridge.codexConversation.responseStream.emit(message);
+  }
+
+  /**
+   * 实现 ICodexMessageEmitter 接口的 addConfirmation 方法
+   * 委托给 BaseAgentManager 的 addConfirmation 进行统一管理
+   */
+  addConfirmation(data: IConfirmation): void {
+    super.addConfirmation(data);
   }
 
   persistMessage(message: TMessage): void {

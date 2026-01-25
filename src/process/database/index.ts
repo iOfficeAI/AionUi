@@ -4,15 +4,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { ensureDirectory, getDataPath } from '@process/utils';
 import type Database from 'better-sqlite3';
 import BetterSqlite3 from 'better-sqlite3';
 import fs from 'fs';
 import path from 'path';
-import { CURRENT_DB_VERSION, getDatabaseVersion, initSchema, setDatabaseVersion } from './schema';
 import { runMigrations as executeMigrations } from './migrations';
+import { CURRENT_DB_VERSION, getDatabaseVersion, initSchema, setDatabaseVersion } from './schema';
 import type { IConversationRow, IMessageRow, IPaginatedResult, IQueryResult, IUser, TChatConversation, TMessage } from './types';
 import { conversationToRow, messageToRow, rowToConversation, rowToMessage } from './types';
-import { ensureDirectory, getDataPath } from '@process/utils';
 
 /**
  * Main database class for AionUi
@@ -550,7 +550,7 @@ export class AionUIDatabase {
     }
   }
 
-  getConversationMessages(conversationId: string, page = 0, pageSize = 100): IPaginatedResult<TMessage> {
+  getConversationMessages(conversationId: string, page = 0, pageSize = 100, order = 'ASC'): IPaginatedResult<TMessage> {
     try {
       const countResult = this.db.prepare('SELECT COUNT(*) as count FROM messages WHERE conversation_id = ?').get(conversationId) as {
         count: number;
@@ -562,7 +562,7 @@ export class AionUIDatabase {
             SELECT *
             FROM messages
             WHERE conversation_id = ?
-            ORDER BY created_at ASC LIMIT ?
+            ORDER BY created_at ${order} LIMIT ?
             OFFSET ?
           `
         )
@@ -657,17 +657,18 @@ export class AionUIDatabase {
    * Get message by msg_id and conversation_id
    * Used for finding existing messages to update (e.g., streaming text accumulation)
    */
-  getMessageByMsgId(conversationId: string, msgId: string): IQueryResult<TMessage | null> {
+  getMessageByMsgId(conversationId: string, msgId: string, type: TMessage['type']): IQueryResult<TMessage | null> {
     try {
       const stmt = this.db.prepare(`
         SELECT *
         FROM messages
         WHERE conversation_id = ?
           AND msg_id = ?
+          AND type = ?
         ORDER BY created_at DESC LIMIT 1
       `);
 
-      const row = stmt.get(conversationId, msgId) as IMessageRow | undefined;
+      const row = stmt.get(conversationId, msgId, type) as IMessageRow | undefined;
 
       return {
         success: true,
