@@ -36,4 +36,8 @@ contextBridge.exposeInMainWorld('electronAPI', {
   },
   // 获取拖拽文件/目录的绝对路径 / Get absolute path for dragged file/directory
   getPathForFile: (file: File) => webUtils.getPathForFile(file),
+  // 直接 IPC 调用（绕过 bridge 库）/ Direct IPC calls (bypass bridge library)
+  webuiResetPassword: () => ipcRenderer.invoke('webui-direct-reset-password'),
+  webuiGetStatus: () => ipcRenderer.invoke('webui-direct-get-status'),
+  webuiChangePassword: (currentPassword: string, newPassword: string) => ipcRenderer.invoke('webui-direct-change-password', { currentPassword, newPassword }),
 });

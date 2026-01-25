@@ -1,7 +1,7 @@
 {
   "name": "AionUi",
   "productName": "AionUi",
-  "version": "1.7.6",
+  "version": "1.7.7",
   "description": "Transform your command-line AI agent into a modern, efficient AI Chat interface.",
   "main": ".webpack/main",
   "scripts": {
@@ -140,6 +140,7 @@
     "openai": "^5.12.2",
     "pptx2json": "^0.0.10",
     "process": "^0.11.10",
+    "qrcode.react": "^4.2.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-i18next": "^14.0.5",

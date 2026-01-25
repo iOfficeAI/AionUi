@@ -303,8 +303,8 @@ export class AuthService {
   }
 
   /**
-   * 校验密码强度并返回错误提示
-   * Validate password strength and return messages
+   * 校验密码强度并返回错误提示（简化版，适用于本地 WebUI）
+   * Validate password strength (simplified for local WebUI)
    */
   public static validatePasswordStrength(password: string): {
     isValid: boolean;
@@ -312,6 +312,7 @@ export class AuthService {
   } {
     const errors: string[] = [];
 
+    // 仅要求最小长度 / Only require minimum length
     if (password.length < 8) {
       errors.push('Password must be at least 8 characters long');
     }
@@ -320,29 +321,10 @@ export class AuthService {
       errors.push('Password must be less than 128 characters long');
     }
 
-    if (!/[a-z]/.test(password)) {
-      errors.push('Password must contain at least one lowercase letter');
-    }
-
-    if (!/[A-Z]/.test(password)) {
-      errors.push('Password must contain at least one uppercase letter');
-    }
-
-    if (!/[0-9]/.test(password)) {
-      errors.push('Password must contain at least one number');
-    }
-
-    if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password)) {
-      errors.push('Password must contain at least one special character');
-    }
-
-    // 检查重复字符或常见弱口令模式 / Guard against repeats or common patterns
-    if (/(.)\1{2,}/.test(password)) {
-      errors.push('Password should not contain repeated characters');
-    }
-
-    if (/123|abc|qwerty|password/i.test(password)) {
-      errors.push('Password should not contain common patterns');
+    // 禁止明显的弱密码 / Block obvious weak passwords
+    const weakPasswords = ['password', '12345678', '123456789', 'qwertyui', 'abcdefgh'];
+    if (weakPasswords.includes(password.toLowerCase())) {
+      errors.push('Password is too common, please choose a stronger one');
     }
 
     return {

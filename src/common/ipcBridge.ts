@@ -234,6 +234,39 @@ export const windowControls = {
   maximizedChanged: bridge.buildEmitter<{ isMaximized: boolean }>('window-controls:maximized-changed'),
 };
 
+// WebUI 服务管理接口 / WebUI service management API
+export interface IWebUIStatus {
+  running: boolean;
+  port: number;
+  allowRemote: boolean;
+  localUrl: string;
+  networkUrl?: string;
+  lanIP?: string; // 局域网 IP，用于构建远程访问 URL / LAN IP for building remote access URL
+  adminUsername: string;
+  initialPassword?: string;
+}
+
+export const webui = {
+  // 获取 WebUI 状态 / Get WebUI status
+  getStatus: bridge.buildProvider<IBridgeResponse<IWebUIStatus>, void>('webui.get-status'),
+  // 启动 WebUI / Start WebUI
+  start: bridge.buildProvider<IBridgeResponse<{ port: number; localUrl: string; networkUrl?: string; lanIP?: string; initialPassword?: string }>, { port?: number; allowRemote?: boolean }>('webui.start'),
+  // 停止 WebUI / Stop WebUI
+  stop: bridge.buildProvider<IBridgeResponse, void>('webui.stop'),
+  // 修改密码 / Change password
+  changePassword: bridge.buildProvider<IBridgeResponse, { currentPassword: string; newPassword: string }>('webui.change-password'),
+  // 重置密码（生成新随机密码）/ Reset password (generate new random password)
+  resetPassword: bridge.buildProvider<IBridgeResponse<{ newPassword: string }>, void>('webui.reset-password'),
+  // 生成二维码登录 token / Generate QR login token
+  generateQRToken: bridge.buildProvider<IBridgeResponse<{ token: string; expiresAt: number; qrUrl: string }>, void>('webui.generate-qr-token'),
+  // 验证二维码 token / Verify QR token
+  verifyQRToken: bridge.buildProvider<IBridgeResponse<{ sessionToken: string; username: string }>, { qrToken: string }>('webui.verify-qr-token'),
+  // 状态变更事件 / Status changed event
+  statusChanged: bridge.buildEmitter<{ running: boolean; port?: number; localUrl?: string; networkUrl?: string }>('webui.status-changed'),
+  // 密码重置结果事件（绕过 provider 返回值问题）/ Password reset result event (workaround for provider return value issue)
+  resetPasswordResult: bridge.buildEmitter<{ success: boolean; newPassword?: string; msg?: string }>('webui.reset-password-result'),
+};
+
 interface ISendMessageParams {
   input: string;
   msg_id: string;

@@ -155,3 +155,4 @@ specs/**/draft-*
 specs/**/work-*
 .spec-cache/
 .tmp/
+my-video
