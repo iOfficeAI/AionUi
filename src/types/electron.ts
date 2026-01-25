@@ -24,6 +24,12 @@ export interface WebUIGetStatusResult {
   msg?: string;
 }
 
+// WebUI 修改密码结果 / WebUI change password result
+export interface WebUIChangePasswordResult {
+  success: boolean;
+  msg?: string;
+}
+
 export interface ElectronBridgeAPI {
   emit: (name: string, data: unknown) => Promise<unknown> | void;
   on: (callback: (event: { value: string }) => void) => void;
@@ -32,6 +38,7 @@ export interface ElectronBridgeAPI {
   // 直接 IPC 调用（绕过 bridge 库）/ Direct IPC calls (bypass bridge library)
   webuiResetPassword?: () => Promise<WebUIResetPasswordResult>;
   webuiGetStatus?: () => Promise<WebUIGetStatusResult>;
+  webuiChangePassword?: (currentPassword: string, newPassword: string) => Promise<WebUIChangePasswordResult>;
 }
 
 declare global {

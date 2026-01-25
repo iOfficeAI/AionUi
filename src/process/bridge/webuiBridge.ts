@@ -5,33 +5,12 @@
  */
 
 import crypto from 'crypto';
-import { networkInterfaces } from 'os';
 import { ipcMain } from 'electron';
-import { webui, type IWebUIStatus } from '@/common/ipcBridge';
+import { webui } from '@/common/ipcBridge';
 import { AuthService } from '@/webserver/auth/service/AuthService';
 import { UserRepository } from '@/webserver/auth/repository/UserRepository';
 import { AUTH_CONFIG, SERVER_CONFIG } from '@/webserver/config/constants';
-
-// 使用动态导入避免循环依赖 / Use dynamic import to avoid circular dependency
-// webserver/index -> authRoutes -> webuiBridge -> webserver/index
-let _getInitialAdminPassword: (() => string | null) | null = null;
-let _clearInitialAdminPassword: (() => void) | null = null;
-
-async function loadWebServerFunctions() {
-  if (!_getInitialAdminPassword || !_clearInitialAdminPassword) {
-    const webServer = await import('@/webserver/index');
-    _getInitialAdminPassword = webServer.getInitialAdminPassword;
-    _clearInitialAdminPassword = webServer.clearInitialAdminPassword;
-  }
-}
-
-function getInitialAdminPassword(): string | null {
-  return _getInitialAdminPassword?.() ?? null;
-}
-
-function clearInitialAdminPassword(): void {
-  _clearInitialAdminPassword?.();
-}
+import { WebuiService } from './services/WebuiService';
 
 // WebUI 服务器实例引用 / WebUI server instance reference
 let webServerInstance: {
@@ -118,27 +97,6 @@ export async function verifyQRTokenDirect(qrToken: string): Promise<{ success: b
 }
 
 /**
- * 获取局域网 IP 地址
- * Get LAN IP address
- */
-function getLanIP(): string | null {
-  const nets = networkInterfaces();
-  for (const name of Object.keys(nets)) {
-    const netInfo = nets[name];
-    if (!netInfo) continue;
-
-    for (const net of netInfo) {
-      const isIPv4 = net.family === 'IPv4';
-      const isNotInternal = !net.internal;
-      if (isIPv4 && isNotInternal) {
-        return net.address;
-      }
-    }
-  }
-  return null;
-}
-
-/**
  * 清理过期的 QR Token
  * Clean up expired QR tokens
  */
@@ -173,47 +131,14 @@ export function getWebServerInstance(): typeof webServerInstance {
  */
 export function initWebuiBridge(): void {
   console.log('[WebUI Bridge] Initializing webuiBridge...');
-  // 加载 webserver 函数（避免循环依赖）/ Load webserver functions (avoid circular dependency)
-  void loadWebServerFunctions();
 
   // 获取 WebUI 状态 / Get WebUI status
   webui.getStatus.provider(async () => {
     console.log('[WebUI Bridge] getStatus handler invoked');
-    try {
-      // 确保 webserver 函数已加载 / Ensure webserver functions are loaded
-      await loadWebServerFunctions();
-
-      const adminUser = UserRepository.findByUsername(AUTH_CONFIG.DEFAULT_USER.USERNAME);
-      const running = webServerInstance !== null;
-      const port = webServerInstance?.port ?? SERVER_CONFIG.DEFAULT_PORT;
-      const allowRemote = webServerInstance?.allowRemote ?? false;
-
-      const localUrl = `http://localhost:${port}`;
-      const lanIP = getLanIP();
-      const networkUrl = allowRemote && lanIP ? `http://${lanIP}:${port}` : undefined;
-
-      const status: IWebUIStatus = {
-        running,
-        port,
-        allowRemote,
-        localUrl,
-        networkUrl,
-        lanIP: lanIP ?? undefined, // 始终返回 LAN IP / Always return LAN IP
-        adminUsername: adminUser?.username ?? AUTH_CONFIG.DEFAULT_USER.USERNAME,
-        initialPassword: getInitialAdminPassword() ?? undefined,
-      };
-
-      return {
-        success: true,
-        data: status,
-      };
-    } catch (error) {
-      console.error('[WebUI Bridge] Get status error:', error);
-      return {
-        success: false,
-        msg: 'Failed to get WebUI status',
-      };
-    }
+    return WebuiService.handleAsync(async () => {
+      const status = await WebuiService.getStatus(webServerInstance);
+      return { success: true, data: status };
+    }, 'Get status');
   });
 
   // 启动 WebUI / Start WebUI
@@ -238,13 +163,12 @@ export function initWebuiBridge(): void {
       webServerInstance = instance;
       console.log('[WebUI Bridge] Server started, webServerInstance set:', !!webServerInstance);
 
-      // 确保 webserver 函数已加载 / Ensure webserver functions are loaded
-      await loadWebServerFunctions();
-
+      // 获取服务器信息 / Get server info
+      const status = await WebuiService.getStatus(webServerInstance);
       const localUrl = `http://localhost:${port}`;
-      const lanIP = getLanIP();
+      const lanIP = WebuiService.getLanIP();
       const networkUrl = remote && lanIP ? `http://${lanIP}:${port}` : undefined;
-      const initialPassword = getInitialAdminPassword() ?? undefined;
+      const initialPassword = status.initialPassword;
 
       // 发送状态变更事件 / Emit status changed event
       webui.statusChanged.emit({
@@ -317,54 +241,11 @@ export function initWebuiBridge(): void {
 
   // 修改密码 / Change password
   webui.changePassword.provider(async ({ currentPassword, newPassword }) => {
-    try {
-      // 确保 webserver 函数已加载 / Ensure webserver functions are loaded
-      await loadWebServerFunctions();
-
-      const adminUser = UserRepository.findByUsername(AUTH_CONFIG.DEFAULT_USER.USERNAME);
-      if (!adminUser) {
-        return {
-          success: false,
-          msg: 'Admin user not found',
-        };
-      }
-
-      // 验证当前密码 / Verify current password
-      const isValidPassword = await AuthService.verifyPassword(currentPassword, adminUser.password_hash);
-      if (!isValidPassword) {
-        return {
-          success: false,
-          msg: 'Current password is incorrect',
-        };
-      }
-
-      // 验证新密码强度 / Validate new password strength
-      const passwordValidation = AuthService.validatePasswordStrength(newPassword);
-      if (!passwordValidation.isValid) {
-        return {
-          success: false,
-          msg: passwordValidation.errors.join('; '),
-        };
-      }
-
-      // 更新密码 / Update password
-      const newPasswordHash = await AuthService.hashPassword(newPassword);
-      UserRepository.updatePassword(adminUser.id, newPasswordHash);
-
-      // 使所有现有 token 失效 / Invalidate all existing tokens
-      AuthService.invalidateAllTokens();
-
-      // 清除初始密码（用户已修改密码）/ Clear initial password (user has changed password)
-      clearInitialAdminPassword();
-
+    console.log('[WebUI Bridge] changePassword handler invoked');
+    return WebuiService.handleAsync(async () => {
+      await WebuiService.changePassword(currentPassword, newPassword);
       return { success: true };
-    } catch (error) {
-      console.error('[WebUI Bridge] Change password error:', error);
-      return {
-        success: false,
-        msg: error instanceof Error ? error.message : 'Failed to change password',
-      };
-    }
+    }, 'Change password');
   });
 
   // 重置密码（生成新随机密码）/ Reset password (generate new random password)
@@ -374,45 +255,19 @@ export function initWebuiBridge(): void {
   // we emit the result via emitter, frontend listens to resetPasswordResult event
   webui.resetPassword.provider(async () => {
     console.log('[WebUI Bridge] resetPassword handler invoked');
-    try {
-      // 确保 webserver 函数已加载 / Ensure webserver functions are loaded
-      await loadWebServerFunctions();
-
-      const adminUser = UserRepository.findByUsername(AUTH_CONFIG.DEFAULT_USER.USERNAME);
-      if (!adminUser) {
-        console.log('[WebUI Bridge] Admin user not found');
-        // 通过 emitter 发送错误结果 / Emit error result
-        webui.resetPasswordResult.emit({ success: false, msg: 'Admin user not found' });
-        return { success: false, msg: 'Admin user not found' };
-      }
-
-      // 生成新的随机密码 / Generate new random password
-      console.log('[WebUI Bridge] Generating new password...');
-      const newPassword = AuthService.generateRandomPassword();
-      const newPasswordHash = await AuthService.hashPassword(newPassword);
-
-      // 更新密码 / Update password
-      console.log('[WebUI Bridge] Updating password in database...');
-      UserRepository.updatePassword(adminUser.id, newPasswordHash);
-
-      // 使所有现有 token 失效 / Invalidate all existing tokens
-      AuthService.invalidateAllTokens();
-
-      // 清除旧的初始密码 / Clear old initial password
-      clearInitialAdminPassword();
-
-      console.log('[WebUI Bridge] Password reset successful, emitting result');
-      // 通过 emitter 发送成功结果 / Emit success result
-      webui.resetPasswordResult.emit({ success: true, newPassword });
-
+    const result = await WebuiService.handleAsync(async () => {
+      const newPassword = await WebuiService.resetPassword();
       return { success: true, data: { newPassword } };
-    } catch (error) {
-      console.error('[WebUI Bridge] Reset password error:', error);
-      const msg = error instanceof Error ? error.message : 'Failed to reset password';
-      // 通过 emitter 发送错误结果 / Emit error result
-      webui.resetPasswordResult.emit({ success: false, msg });
-      return { success: false, msg };
+    }, 'Reset password');
+
+    // 通过 emitter 发送结果 / Emit result via emitter
+    if (result.success && result.data) {
+      webui.resetPasswordResult.emit({ success: true, newPassword: result.data.newPassword });
+    } else {
+      webui.resetPasswordResult.emit({ success: false, msg: result.msg });
     }
+
+    return result;
   });
 
   // 生成二维码登录 token / Generate QR login token
@@ -444,7 +299,7 @@ export function initWebuiBridge(): void {
 
       // 构建 QR URL / Build QR URL
       const { port, allowRemote } = webServerInstance;
-      const lanIP = getLanIP();
+      const lanIP = WebuiService.getLanIP();
       const baseUrl = allowRemote && lanIP ? `http://${lanIP}:${port}` : `http://localhost:${port}`;
       const qrUrl = `${baseUrl}/qr-login?token=${token}`;
 
@@ -543,69 +398,28 @@ export function initWebuiBridge(): void {
   // 直接 IPC: 重置密码 / Direct IPC: Reset password
   ipcMain.handle('webui-direct-reset-password', async () => {
     console.log('[WebUI Bridge] Direct IPC: resetPassword invoked');
-    try {
-      await loadWebServerFunctions();
-
-      const adminUser = UserRepository.findByUsername(AUTH_CONFIG.DEFAULT_USER.USERNAME);
-      if (!adminUser) {
-        console.log('[WebUI Bridge] Direct IPC: Admin user not found');
-        return { success: false, msg: 'Admin user not found' };
-      }
-
-      // 生成新的随机密码 / Generate new random password
-      console.log('[WebUI Bridge] Direct IPC: Generating new password...');
-      const newPassword = AuthService.generateRandomPassword();
-      const newPasswordHash = await AuthService.hashPassword(newPassword);
-
-      // 更新密码 / Update password
-      console.log('[WebUI Bridge] Direct IPC: Updating password in database...');
-      UserRepository.updatePassword(adminUser.id, newPasswordHash);
-
-      // 使所有现有 token 失效 / Invalidate all existing tokens
-      AuthService.invalidateAllTokens();
-
-      // 清除旧的初始密码 / Clear old initial password
-      clearInitialAdminPassword();
-
-      console.log('[WebUI Bridge] Direct IPC: Password reset successful, returning newPassword');
+    return WebuiService.handleAsync(async () => {
+      const newPassword = await WebuiService.resetPassword();
       return { success: true, newPassword };
-    } catch (error) {
-      console.error('[WebUI Bridge] Direct IPC: Reset password error:', error);
-      return { success: false, msg: error instanceof Error ? error.message : 'Failed to reset password' };
-    }
+    }, 'Direct IPC: Reset password');
   });
 
   // 直接 IPC: 获取状态 / Direct IPC: Get status
   ipcMain.handle('webui-direct-get-status', async () => {
     console.log('[WebUI Bridge] Direct IPC: getStatus invoked');
-    try {
-      await loadWebServerFunctions();
-
-      const adminUser = UserRepository.findByUsername(AUTH_CONFIG.DEFAULT_USER.USERNAME);
-      const running = webServerInstance !== null;
-      const port = webServerInstance?.port ?? SERVER_CONFIG.DEFAULT_PORT;
-      const allowRemote = webServerInstance?.allowRemote ?? false;
-
-      const localUrl = `http://localhost:${port}`;
-      const lanIP = getLanIP();
-      const networkUrl = allowRemote && lanIP ? `http://${lanIP}:${port}` : undefined;
-
-      const status: IWebUIStatus = {
-        running,
-        port,
-        allowRemote,
-        localUrl,
-        networkUrl,
-        lanIP: lanIP ?? undefined,
-        adminUsername: adminUser?.username ?? AUTH_CONFIG.DEFAULT_USER.USERNAME,
-        initialPassword: getInitialAdminPassword() ?? undefined,
-      };
-
+    return WebuiService.handleAsync(async () => {
+      const status = await WebuiService.getStatus(webServerInstance);
       return { success: true, data: status };
-    } catch (error) {
-      console.error('[WebUI Bridge] Direct IPC: Get status error:', error);
-      return { success: false, msg: 'Failed to get WebUI status' };
-    }
+    }, 'Direct IPC: Get status');
+  });
+
+  // 直接 IPC: 修改密码 / Direct IPC: Change password
+  ipcMain.handle('webui-direct-change-password', async (_event, { currentPassword, newPassword }: { currentPassword: string; newPassword: string }) => {
+    console.log('[WebUI Bridge] Direct IPC: changePassword invoked');
+    return WebuiService.handleAsync(async () => {
+      await WebuiService.changePassword(currentPassword, newPassword);
+      return { success: true };
+    }, 'Direct IPC: Change password');
   });
 
   console.log('[WebUI Bridge] Direct IPC handlers registered');

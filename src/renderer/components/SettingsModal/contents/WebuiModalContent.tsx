@@ -145,7 +145,7 @@ const WebuiModalContent: React.FC = () => {
   // 使用 Electron 直接 IPC，绕过有问题的 bridge provider 模式
   // Use Electron direct IPC, bypassing the problematic bridge provider pattern
   const resetPasswordViaDirectIPC = useCallback(
-    async (shouldCopyAfter: boolean) => {
+    async (shouldCopyAfter: boolean, fillForm = false) => {
       setResetLoading(true);
       try {
         // 优先使用直接 IPC（Electron 环境）/ Prefer direct IPC (Electron environment)
@@ -157,7 +157,17 @@ const WebuiModalContent: React.FC = () => {
           if (result.success && result.newPassword) {
             setCachedPassword(result.newPassword);
             setStatus((prev) => (prev ? { ...prev, initialPassword: result.newPassword } : null));
-            if (shouldCopyAfter) {
+
+            if (fillForm) {
+              // 重置后新密码即为当前密码，填入当前密码字段
+              // After reset, the new password becomes the current password
+              form.setFieldsValue({
+                currentPassword: result.newPassword,
+                newPassword: '',
+                confirmPassword: '',
+              });
+              message.success(t('settings.webui.passwordResetAndFilled'));
+            } else if (shouldCopyAfter) {
               void navigator.clipboard.writeText(result.newPassword);
               message.success(t('settings.webui.passwordResetAndCopied'));
             } else {
@@ -181,7 +191,7 @@ const WebuiModalContent: React.FC = () => {
         setResetLoading(false);
       }
     },
-    [message, t]
+    [message, t, form]
   );
 
   // 监听密码重置结果事件（Web 环境后备）/ Listen to password reset result events (Web environment fallback)
@@ -413,9 +423,9 @@ const WebuiModalContent: React.FC = () => {
         message.success(t('settings.webui.passwordChanged'));
         setPasswordModalVisible(false);
         form.resetFields();
-        // 清除缓存的密码 / Clear cached password
-        setCachedPassword(null);
-        setStatus((prev) => (prev ? { ...prev, initialPassword: undefined } : null));
+        // 更新缓存的密码为新密码 / Update cached password to new password
+        setCachedPassword(values.newPassword);
+        setStatus((prev) => (prev ? { ...prev, initialPassword: values.newPassword } : null));
       } else {
         message.error(result.msg || t('settings.webui.passwordChangeFailed'));
       }
@@ -425,12 +435,6 @@ const WebuiModalContent: React.FC = () => {
     } finally {
       setPasswordLoading(false);
     }
-  };
-
-  // 重置密码（生成新随机密码）/ Reset password (generate new random password)
-  // 使用直接 IPC 调用 / Use direct IPC call
-  const handleResetPassword = () => {
-    void resetPasswordViaDirectIPC(false);
   };
 
   // 获取实际密码 / Get actual password
@@ -497,17 +501,12 @@ const WebuiModalContent: React.FC = () => {
             {/* 密码 / Password */}
             <InfoRow label='Password:' value={displayPassword} onCopy={handleCopyPassword} />
 
-            {/* 密码操作按钮 / Password action buttons */}
-            <div className='flex items-center justify-between mt-12px pt-12px border-t border-line'>
-              <button className='text-14px text-t-tertiary hover:text-warning cursor-pointer bg-transparent border-none' onClick={handleResetPassword} disabled={resetLoading}>
-                {resetLoading ? t('common.loading') : t('settings.webui.resetPassword')}
-              </button>
+            {/* 修改密码按钮 / Change password button */}
+            <div className='flex items-center justify-end mt-12px pt-12px border-t border-line'>
               <button className='text-14px text-primary hover:text-primary-hover cursor-pointer bg-transparent border-none underline' onClick={() => setPasswordModalVisible(true)}>
                 {t('settings.webui.changePassword')}
               </button>
             </div>
-            {/* 重置密码提示 / Reset password hint */}
-            <p className='text-12px text-t-tertiary mt-8px'>{t('settings.webui.resetPasswordHint')}</p>
           </div>
         </div>
       </AionScrollArea>
@@ -515,7 +514,20 @@ const WebuiModalContent: React.FC = () => {
       {/* 修改密码弹窗 / Change Password Modal */}
       <AionModal visible={passwordModalVisible} onCancel={() => setPasswordModalVisible(false)} onOk={handleChangePassword} confirmLoading={passwordLoading} title={t('settings.webui.changePassword')} size='small'>
         <Form form={form} layout='vertical' className='pt-16px'>
-          <Form.Item label={t('settings.webui.currentPassword')} field='currentPassword' rules={[{ required: true, message: t('settings.webui.currentPasswordRequired') }]}>
+          <Form.Item
+            label={
+              <div className='flex items-center gap-4px w-full'>
+                <span className='text-danger'>*</span>
+                <span>{t('settings.webui.currentPassword')}</span>
+                <button type='button' className='text-12px text-warning hover:text-warning-hover cursor-pointer bg-transparent border-none p-0 ml-auto' onClick={() => void resetPasswordViaDirectIPC(false, true)} disabled={resetLoading}>
+                  {resetLoading ? t('common.loading') : t('settings.webui.forgotPassword')}
+                </button>
+              </div>
+            }
+            field='currentPassword'
+            rules={[{ required: true, message: t('settings.webui.currentPasswordRequired') }]}
+            requiredSymbol={false}
+          >
             <Input.Password placeholder={t('settings.webui.currentPasswordPlaceholder')} />
           </Form.Item>
           <Form.Item

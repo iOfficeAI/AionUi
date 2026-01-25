@@ -39,4 +39,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // 直接 IPC 调用（绕过 bridge 库）/ Direct IPC calls (bypass bridge library)
   webuiResetPassword: () => ipcRenderer.invoke('webui-direct-reset-password'),
   webuiGetStatus: () => ipcRenderer.invoke('webui-direct-get-status'),
+  webuiChangePassword: (currentPassword: string, newPassword: string) => ipcRenderer.invoke('webui-direct-change-password', { currentPassword, newPassword }),
 });
