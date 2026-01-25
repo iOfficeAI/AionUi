@@ -353,6 +353,9 @@ export function registerAuthRoutes(app: Express): void {
     }
 
     // 返回自动验证并登录的页面 / Return auto-verify and login page
+    // 安全处理：将 token 用 base64 编码后放入 data 属性，避免 XSS
+    // Security: Base64 encode token in data attribute to prevent XSS
+    const safeToken = Buffer.from(token).toString('base64');
     res.send(`
       <!DOCTYPE html>
       <html>
@@ -372,30 +375,36 @@ export function registerAuthRoutes(app: Express): void {
           p { color: #666; margin-top: 12px; }
         </style>
       </head>
-      <body>
+      <body data-token="${safeToken}">
         <div class="container" id="content">
           <div class="spinner"></div>
           <p class="loading">Verifying... / 验证中...</p>
         </div>
         <script>
           (async function() {
-            const container = document.getElementById('content');
+            var container = document.getElementById('content');
+            var encodedToken = document.body.dataset.token || '';
+            if (!encodedToken) {
+              container.innerHTML = '<h2 class="error">Error</h2><p>Missing token.</p>';
+              return;
+            }
+            var qrToken = atob(encodedToken);
             try {
-              const response = await fetch('/api/auth/qr-login', {
+              var response = await fetch('/api/auth/qr-login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ qrToken: ${JSON.stringify(token)} }),
+                body: JSON.stringify({ qrToken: qrToken }),
                 credentials: 'include'
               });
-              const data = await response.json();
+              var data = await response.json();
 
               if (data.success) {
                 container.innerHTML = '<h2 class="success">Login Successful!</h2><p>Redirecting... / 登录成功，正在跳转...</p>';
-                setTimeout(() => { window.location.href = '/'; }, 1000);
+                setTimeout(function() { window.location.href = '/'; }, 1000);
               } else {
                 container.innerHTML = '<h2 class="error">Login Failed</h2><p>' + (data.error || 'QR code expired or invalid') + '</p><p>二维码已过期或无效，请重新扫描。</p>';
               }
-            } catch (error) {
+            } catch (e) {
               container.innerHTML = '<h2 class="error">Error</h2><p>Network error. Please try again.</p><p>网络错误，请重试。</p>';
             }
           })();
