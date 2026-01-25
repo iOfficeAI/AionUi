@@ -36,12 +36,12 @@ function getModulesToRebuild(platform) {
   // Linux: Skip node-pty (no ARM64 prebuilds available, cross-compilation requires ARM64 toolchain)
   // macOS: Skip node-pty (cross-compilation from ARM64→x64 fails, use @lydell/node-pty-* prebuilts)
   if (platform === 'win32' || platform === 'windows') {
-    return ['better-sqlite3', 'bcrypt'];
+    return ['better-sqlite3'];
   } else if (platform === 'linux') {
-    return ['better-sqlite3', 'bcrypt'];
+    return ['better-sqlite3'];
   }
-  // macOS: only rebuild better-sqlite3 and bcrypt, skip node-pty
-  return ['better-sqlite3', 'bcrypt'];
+  // macOS: only rebuild better-sqlite3, skip node-pty
+  return ['better-sqlite3'];
 }
 
 /**
@@ -163,7 +163,7 @@ function rebuildSingleModule(options) {
   if (mustUsePrebuild) {
     console.log(`     Linux cross-compilation detected (${normalizedBuildArch} → ${targetArch})`);
 
-    // Check if module already has prebuilds (e.g., bcrypt uses node-gyp-build with prebuilds/)
+    // Check if module already has prebuilds
     const prebuildsDir = path.join(moduleRoot, 'prebuilds', `${platform}-${targetArch}`);
     if (fs.existsSync(prebuildsDir)) {
       const files = fs.readdirSync(prebuildsDir);
@@ -263,31 +263,6 @@ function rebuildSingleModule(options) {
 }
 
 /**
- * Find bcrypt binding files (handles different NAPI versions)
- */
-function findBcryptBindings(moduleRoot) {
-  const bindingDir = path.join(moduleRoot, 'lib', 'binding');
-  if (!fs.existsSync(bindingDir)) {
-    return [];
-  }
-
-  const results = [];
-  try {
-    const napiDirs = fs.readdirSync(bindingDir);
-    for (const dir of napiDirs) {
-      const binaryPath = path.join(bindingDir, dir, 'bcrypt_lib.node');
-      if (fs.existsSync(binaryPath)) {
-        results.push(binaryPath);
-      }
-    }
-  } catch (error) {
-    // Ignore errors
-  }
-
-  return results;
-}
-
-/**
  * Recursively search for .node files in a directory
  */
 function findNodeFiles(dir, maxDepth = 3, currentDepth = 0) {
@@ -320,13 +295,6 @@ function verifyModuleBinary(moduleRoot, moduleName) {
   const binaryPathsToCheck = {
     'better-sqlite3': [
       path.join(moduleRoot, 'build', 'Release', 'better_sqlite3.node'),
-    ],
-    'bcrypt': [
-      path.join(moduleRoot, 'lib', 'binding', 'napi-v3', 'bcrypt_lib.node'),
-      path.join(moduleRoot, 'lib', 'binding', 'napi-v4', 'bcrypt_lib.node'),
-      path.join(moduleRoot, 'build', 'Release', 'bcrypt_lib.node'),
-      // Check for any bcrypt_lib.node under lib/binding/
-      ...findBcryptBindings(moduleRoot),
     ],
     'node-pty': [
       path.join(moduleRoot, 'build', 'Release', 'pty.node'),

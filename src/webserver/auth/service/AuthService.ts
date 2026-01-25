@@ -6,7 +6,7 @@
 
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import type { AuthUser } from '../repository/UserRepository';
 import { UserRepository } from '../repository/UserRepository';
 import { AUTH_CONFIG } from '../../config/constants';
@@ -27,6 +27,28 @@ interface UserCredentials {
   password: string;
   createdAt: number;
 }
+
+const hashPasswordAsync = (password: string, saltRounds: number): Promise<string> =>
+  new Promise((resolve, reject) => {
+    bcrypt.hash(password, saltRounds, (error, hash) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+      resolve(hash);
+    });
+  });
+
+const comparePasswordAsync = (password: string, hash: string): Promise<boolean> =>
+  new Promise((resolve, reject) => {
+    bcrypt.compare(password, hash, (error, same) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+      resolve(same);
+    });
+  });
 
 /**
  * 认证服务 - 提供密码哈希、Token 生成与验证等能力
@@ -118,7 +140,7 @@ export class AuthService {
    * Hash password using bcrypt
    */
   public static hashPassword(password: string): Promise<string> {
-    return bcrypt.hash(password, this.SALT_ROUNDS);
+    return hashPasswordAsync(password, this.SALT_ROUNDS);
   }
 
   /**
@@ -126,7 +148,7 @@ export class AuthService {
    * Verify whether the password matches the stored hash
    */
   public static verifyPassword(password: string, hash: string): Promise<boolean> {
-    return bcrypt.compare(password, hash);
+    return comparePasswordAsync(password, hash);
   }
 
   /**
@@ -361,7 +383,7 @@ export class AuthService {
 
     let result: boolean;
     if (hashProvided) {
-      result = await bcrypt.compare(provided, expected);
+      result = await comparePasswordAsync(provided, expected);
     } else {
       result = crypto.timingSafeEqual(Buffer.from(provided.padEnd(expected.length, '0')), Buffer.from(expected.padEnd(provided.length, '0')));
     }

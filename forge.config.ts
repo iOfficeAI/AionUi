@@ -83,7 +83,7 @@ const targetArch = process.env.ELECTRON_BUILDER_ARCH || process.env.npm_config_t
 module.exports = {
   packagerConfig: {
     asar: {
-      unpack: '**/node_modules/{node-pty,bcrypt,better-sqlite3,@mapbox,detect-libc,prebuild-install,node-gyp-build,bindings,web-tree-sitter,tree-sitter-bash}/**/*',
+      unpack: '**/node_modules/{node-pty,better-sqlite3,@mapbox,detect-libc,prebuild-install,node-gyp-build,bindings,web-tree-sitter,tree-sitter-bash}/**/*',
     }, // Enable asar with native modules and their dependencies unpacking
     executableName: 'AionUi',
     out: path.resolve(__dirname, 'out'),
@@ -200,7 +200,7 @@ module.exports = {
   plugins: [
     new AutoUnpackNativesPlugin({
       // 配置需要处理的 native 依赖
-      include: ['node-pty', 'better-sqlite3', 'bcrypt'],
+      include: ['node-pty', 'better-sqlite3'],
     }),
     new WebpackPlugin({
       port: devServerPort,

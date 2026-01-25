@@ -10,7 +10,7 @@
 import crypto from 'crypto';
 import type Database from 'better-sqlite3';
 import BetterSqlite3 from 'better-sqlite3';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import { getDataPath, ensureDirectory } from '@process/utils';
 import path from 'path';
 
@@ -33,10 +33,21 @@ const log = {
   highlight: (msg: string) => console.log(`${colors.cyan}${colors.bright}${msg}${colors.reset}`),
 };
 
+const hashPasswordAsync = (password: string, saltRounds: number): Promise<string> =>
+  new Promise((resolve, reject) => {
+    bcrypt.hash(password, saltRounds, (error, hash) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+      resolve(hash);
+    });
+  });
+
 // Hash password using bcrypt
 // 使用 bcrypt 哈希密码
 async function hashPassword(password: string): Promise<string> {
-  return await bcrypt.hash(password, 10);
+  return await hashPasswordAsync(password, 10);
 }
 
 // 生成随机密码 / Generate random password
