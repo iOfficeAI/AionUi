@@ -384,7 +384,7 @@ export function registerAuthRoutes(app: Express): void {
               const response = await fetch('/api/auth/qr-login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ qrToken: '${token}' }),
+                body: JSON.stringify({ qrToken: ${JSON.stringify(token)} }),
                 credentials: 'include'
               });
               const data = await response.json();
