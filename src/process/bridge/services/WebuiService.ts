@@ -148,7 +148,6 @@ export class WebuiService {
     }
 
     // 更新密码（密文存储）/ Update password (encrypted storage)
-    console.log('[WebUI Service] Updating password in database...');
     const newPasswordHash = await AuthService.hashPassword(newPassword);
     UserRepository.updatePassword(adminUser.id, newPasswordHash);
 
@@ -157,8 +156,6 @@ export class WebuiService {
 
     // 清除初始密码（用户已修改密码）/ Clear initial password (user has changed password)
     this.clearInitialAdminPassword();
-
-    console.log('[WebUI Service] Password changed successfully');
   }
 
   /**
@@ -169,12 +166,10 @@ export class WebuiService {
     const adminUser = await this.getAdminUser();
 
     // 生成新的随机密码 / Generate new random password
-    console.log('[WebUI Service] Generating new password...');
     const newPassword = AuthService.generateRandomPassword();
     const newPasswordHash = await AuthService.hashPassword(newPassword);
 
     // 更新密码 / Update password
-    console.log('[WebUI Service] Updating password in database...');
     UserRepository.updatePassword(adminUser.id, newPasswordHash);
 
     // 使所有现有 token 失效 / Invalidate all existing tokens
@@ -183,7 +178,6 @@ export class WebuiService {
     // 清除旧的初始密码 / Clear old initial password
     this.clearInitialAdminPassword();
 
-    console.log('[WebUI Service] Password reset successful');
     return newPassword;
   }
 }

@@ -11,6 +11,8 @@ import { AuthService } from '@/webserver/auth/service/AuthService';
 import { UserRepository } from '@/webserver/auth/repository/UserRepository';
 import { AUTH_CONFIG, SERVER_CONFIG } from '@/webserver/config/constants';
 import { WebuiService } from './services/WebuiService';
+// 预加载 webserver 模块避免启动时延迟 / Preload webserver module to avoid startup delay
+import { startWebServerWithInstance } from '@/webserver/index';
 
 // WebUI 服务器实例引用 / WebUI server instance reference
 let webServerInstance: {
@@ -171,11 +173,8 @@ export function getWebServerInstance(): typeof webServerInstance {
  * Initialize WebUI IPC bridge
  */
 export function initWebuiBridge(): void {
-  console.log('[WebUI Bridge] Initializing webuiBridge...');
-
   // 获取 WebUI 状态 / Get WebUI status
   webui.getStatus.provider(async () => {
-    console.log('[WebUI Bridge] getStatus handler invoked');
     return WebuiService.handleAsync(async () => {
       const status = await WebuiService.getStatus(webServerInstance);
       return { success: true, data: status };
@@ -184,7 +183,6 @@ export function initWebuiBridge(): void {
 
   // 启动 WebUI / Start WebUI
   webui.start.provider(async ({ port: requestedPort, allowRemote }) => {
-    console.log('[WebUI Bridge] start handler invoked, port:', requestedPort, 'allowRemote:', allowRemote);
     try {
       if (webServerInstance) {
         return {
@@ -196,13 +194,9 @@ export function initWebuiBridge(): void {
       const port = requestedPort ?? SERVER_CONFIG.DEFAULT_PORT;
       const remote = allowRemote ?? false;
 
-      // 动态导入避免循环依赖 / Dynamic import to avoid circular dependency
-      console.log('[WebUI Bridge] Starting server, port:', port, 'remote:', remote);
-      const { startWebServerWithInstance } = await import('@/webserver/index');
+      // 使用预加载的模块 / Use preloaded module
       const instance = await startWebServerWithInstance(port, remote);
-
       webServerInstance = instance;
-      console.log('[WebUI Bridge] Server started, webServerInstance set:', !!webServerInstance);
 
       // 获取服务器信息 / Get server info
       const status = await WebuiService.getStatus(webServerInstance);
@@ -282,7 +276,6 @@ export function initWebuiBridge(): void {
 
   // 修改密码（不需要当前密码）/ Change password (no current password required)
   webui.changePassword.provider(async ({ newPassword }) => {
-    console.log('[WebUI Bridge] changePassword handler invoked');
     return WebuiService.handleAsync(async () => {
       await WebuiService.changePassword(newPassword);
       return { success: true };
@@ -295,7 +288,6 @@ export function initWebuiBridge(): void {
   // Note: Since @office-ai/platform bridge provider doesn't support return values,
   // we emit the result via emitter, frontend listens to resetPasswordResult event
   webui.resetPassword.provider(async () => {
-    console.log('[WebUI Bridge] resetPassword handler invoked');
     const result = await WebuiService.handleAsync(async () => {
       const newPassword = await WebuiService.resetPassword();
       return { success: true, data: { newPassword } };
@@ -312,20 +304,14 @@ export function initWebuiBridge(): void {
   });
 
   // 生成二维码登录 token / Generate QR login token
-  console.log('[WebUI Bridge] Registering generateQRToken provider...');
   webui.generateQRToken.provider(async () => {
-    console.log('[WebUI Bridge] generateQRToken handler invoked');
-
     // 检查 webServerInstance 状态
     if (!webServerInstance) {
-      console.log('[WebUI Bridge] webServerInstance is null');
       return {
         success: false,
         msg: 'WebUI is not running. Please start WebUI first.',
       };
     }
-
-    console.log('[WebUI Bridge] webServerInstance exists, generating token...');
 
     try {
       // 清理过期 token / Clean up expired tokens
@@ -348,8 +334,6 @@ export function initWebuiBridge(): void {
       const lanIP = WebuiService.getLanIP();
       const baseUrl = allowRemote && lanIP ? `http://${lanIP}:${port}` : `http://localhost:${port}`;
       const qrUrl = `${baseUrl}/qr-login?token=${token}`;
-
-      console.log('[WebUI Bridge] QR token generated:', { token: token.substring(0, 8) + '...', qrUrl });
 
       return {
         success: true,
@@ -435,15 +419,12 @@ export function initWebuiBridge(): void {
     }
   });
 
-  console.log('[WebUI Bridge] All providers registered successfully');
-
   // ===== 直接 IPC 处理器（绕过 bridge 库）/ Direct IPC handlers (bypass bridge library) =====
   // 这些处理器直接返回结果，不依赖 emitter 模式
   // These handlers return results directly, without relying on emitter pattern
 
   // 直接 IPC: 重置密码 / Direct IPC: Reset password
   ipcMain.handle('webui-direct-reset-password', async () => {
-    console.log('[WebUI Bridge] Direct IPC: resetPassword invoked');
     return WebuiService.handleAsync(async () => {
       const newPassword = await WebuiService.resetPassword();
       return { success: true, newPassword };
@@ -452,7 +433,6 @@ export function initWebuiBridge(): void {
 
   // 直接 IPC: 获取状态 / Direct IPC: Get status
   ipcMain.handle('webui-direct-get-status', async () => {
-    console.log('[WebUI Bridge] Direct IPC: getStatus invoked');
     return WebuiService.handleAsync(async () => {
       const status = await WebuiService.getStatus(webServerInstance);
       return { success: true, data: status };
@@ -461,12 +441,9 @@ export function initWebuiBridge(): void {
 
   // 直接 IPC: 修改密码（不需要当前密码）/ Direct IPC: Change password (no current password required)
   ipcMain.handle('webui-direct-change-password', async (_event, { newPassword }: { newPassword: string }) => {
-    console.log('[WebUI Bridge] Direct IPC: changePassword invoked');
     return WebuiService.handleAsync(async () => {
       await WebuiService.changePassword(newPassword);
       return { success: true };
     }, 'Direct IPC: Change password');
   });
-
-  console.log('[WebUI Bridge] Direct IPC handlers registered');
 }
