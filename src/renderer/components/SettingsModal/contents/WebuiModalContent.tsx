@@ -4,10 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Switch, Input, Form, Message, Tooltip } from '@arco-design/web-react';
 import { Copy, Refresh } from '@icon-park/react';
+import { QRCodeSVG } from 'qrcode.react';
 import { webui, shell, type IWebUIStatus } from '@/common/ipcBridge';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import AionModal from '@/renderer/components/base/AionModal';
@@ -77,6 +78,12 @@ const WebuiModalContent: React.FC = () => {
   const [setPasswordModalVisible, setSetPasswordModalVisible] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [form] = Form.useForm();
+
+  // 二维码登录相关状态 / QR code login related state
+  const [qrUrl, setQrUrl] = useState<string | null>(null);
+  const [qrExpiresAt, setQrExpiresAt] = useState<number | null>(null);
+  const [qrLoading, setQrLoading] = useState(false);
+  const qrRefreshTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // 加载状态 / Load status
   const loadStatus = useCallback(async () => {
@@ -434,6 +441,80 @@ const WebuiModalContent: React.FC = () => {
     }
   };
 
+  // 生成二维码 / Generate QR code
+  const generateQRCode = useCallback(async () => {
+    if (!status?.running) return;
+
+    setQrLoading(true);
+    try {
+      // 优先使用直接 IPC（Electron 环境）/ Prefer direct IPC (Electron environment)
+      let result: { success: boolean; data?: { token: string; expiresAt: number; qrUrl: string }; msg?: string } | null = null;
+
+      if (window.electronAPI?.webuiGenerateQRToken) {
+        result = await window.electronAPI.webuiGenerateQRToken();
+      } else {
+        // 后备方案：使用 bridge / Fallback: use bridge
+        result = await webui.generateQRToken.invoke();
+      }
+
+      if (result && result.success && result.data) {
+        setQrUrl(result.data.qrUrl);
+        setQrExpiresAt(result.data.expiresAt);
+
+        // 设置自动刷新定时器（4分钟后自动刷新，因为 token 5分钟过期）
+        // Set auto-refresh timer (refresh after 4 minutes, as token expires in 5 minutes)
+        if (qrRefreshTimerRef.current) {
+          clearTimeout(qrRefreshTimerRef.current);
+        }
+        qrRefreshTimerRef.current = setTimeout(
+          () => {
+            void generateQRCode();
+          },
+          4 * 60 * 1000
+        );
+      } else {
+        console.error('Generate QR code failed:', result?.msg);
+        Message.error(t('settings.webui.qrGenerateFailed'));
+      }
+    } catch (error) {
+      console.error('Generate QR code error:', error);
+      Message.error(t('settings.webui.qrGenerateFailed'));
+    } finally {
+      setQrLoading(false);
+    }
+  }, [status?.running, t]);
+
+  // 当服务器启动且允许远程访问时自动生成二维码 / Auto-generate QR code when server starts and remote access is allowed
+  useEffect(() => {
+    if (status?.running && allowRemote && !qrUrl) {
+      void generateQRCode();
+    }
+    // 清理定时器 / Cleanup timer
+    return () => {
+      if (qrRefreshTimerRef.current) {
+        clearTimeout(qrRefreshTimerRef.current);
+      }
+    };
+  }, [status?.running, allowRemote, generateQRCode, qrUrl]);
+
+  // 服务器停止或关闭远程访问时清除二维码 / Clear QR code when server stops or remote access is disabled
+  useEffect(() => {
+    if (!status?.running || !allowRemote) {
+      setQrUrl(null);
+      setQrExpiresAt(null);
+      if (qrRefreshTimerRef.current) {
+        clearTimeout(qrRefreshTimerRef.current);
+        qrRefreshTimerRef.current = null;
+      }
+    }
+  }, [status?.running, allowRemote]);
+
+  // 格式化过期时间 / Format expiration time
+  const formatExpiresAt = (timestamp: number) => {
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  };
+
   // 获取实际密码 / Get actual password
   const actualPassword = status?.initialPassword || cachedPassword;
   // 获取显示的密码 / Get display password
@@ -543,6 +624,41 @@ const WebuiModalContent: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* 二维码登录卡片（仅服务器运行且允许远程访问时显示）/ QR Code Login Card (only when server running and remote access allowed) */}
+          {status?.running && allowRemote && (
+            <div className='px-[12px] md:px-[32px] py-16px bg-2 rd-16px'>
+              <div className='text-14px font-500 mb-8px text-t-primary'>{t('settings.webui.qrLogin')}</div>
+              <div className='text-12px text-t-tertiary mb-16px'>{t('settings.webui.qrLoginHint')}</div>
+
+              <div className='flex flex-col items-center gap-16px'>
+                {/* 二维码显示区域 / QR Code display area */}
+                <div className='p-16px bg-white rd-12px'>
+                  {qrLoading ? (
+                    <div className='w-160px h-160px flex items-center justify-center'>
+                      <span className='text-14px text-t-tertiary'>{t('common.loading')}</span>
+                    </div>
+                  ) : qrUrl ? (
+                    <QRCodeSVG value={qrUrl} size={160} level='M' />
+                  ) : (
+                    <div className='w-160px h-160px flex items-center justify-center'>
+                      <span className='text-14px text-t-tertiary'>{t('settings.webui.qrGenerateFailed')}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* 过期时间和刷新按钮 / Expiration time and refresh button */}
+                <div className='flex items-center gap-12px'>
+                  {qrExpiresAt && <span className='text-12px text-t-tertiary'>{t('settings.webui.qrExpires', { time: formatExpiresAt(qrExpiresAt) })}</span>}
+                  <Tooltip content={t('settings.webui.refreshQr')}>
+                    <button className='p-4px bg-transparent border-none text-t-tertiary hover:text-t-primary cursor-pointer' onClick={() => void generateQRCode()} disabled={qrLoading}>
+                      <Refresh size={16} className={qrLoading ? 'animate-spin' : ''} />
+                    </button>
+                  </Tooltip>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </AionScrollArea>
 

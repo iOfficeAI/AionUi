@@ -30,6 +30,17 @@ export interface WebUIChangePasswordResult {
   msg?: string;
 }
 
+// WebUI 生成二维码 token 结果 / WebUI generate QR token result
+export interface WebUIGenerateQRTokenResult {
+  success: boolean;
+  data?: {
+    token: string;
+    expiresAt: number;
+    qrUrl: string;
+  };
+  msg?: string;
+}
+
 export interface ElectronBridgeAPI {
   emit: (name: string, data: unknown) => Promise<unknown> | void;
   on: (callback: (event: { value: string }) => void) => void;
@@ -40,6 +51,8 @@ export interface ElectronBridgeAPI {
   webuiGetStatus?: () => Promise<WebUIGetStatusResult>;
   // 修改密码（不需要当前密码）/ Change password (no current password required)
   webuiChangePassword?: (newPassword: string) => Promise<WebUIChangePasswordResult>;
+  // 生成二维码 token / Generate QR token
+  webuiGenerateQRToken?: () => Promise<WebUIGenerateQRTokenResult>;
 }
 
 declare global {
