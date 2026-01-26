@@ -8,7 +8,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Switch, Input, Form, Message, Tooltip } from '@arco-design/web-react';
 import { Copy, Refresh } from '@icon-park/react';
-import { webui, type IWebUIStatus } from '@/common/ipcBridge';
+import { webui, shell, type IWebUIStatus } from '@/common/ipcBridge';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import AionModal from '@/renderer/components/base/AionModal';
 import { useSettingsViewMode } from '../settingsViewContext';
@@ -509,7 +509,9 @@ const WebuiModalContent: React.FC = () => {
             {status?.running && (
               <PreferenceRow label={t('settings.webui.accessUrl')}>
                 <div className='flex items-center gap-8px'>
-                  <span className='text-14px text-primary font-mono'>{getDisplayUrl()}</span>
+                  <button className='text-14px text-primary font-mono hover:underline cursor-pointer bg-transparent border-none p-0' onClick={() => shell.openExternal.invoke(getDisplayUrl()).catch(console.error)}>
+                    {getDisplayUrl()}
+                  </button>
                   <Tooltip content={t('common.copy')}>
                     <button className='p-4px text-t-tertiary hover:text-t-primary cursor-pointer bg-transparent border-none' onClick={() => handleCopy(getDisplayUrl())}>
                       <Copy size={16} />
