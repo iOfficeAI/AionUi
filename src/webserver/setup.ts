@@ -10,9 +10,32 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import csrf from 'tiny-csrf';
 import crypto from 'crypto';
+import { networkInterfaces } from 'os';
 import { AuthMiddleware } from '@/webserver/auth/middleware/AuthMiddleware';
 import { errorHandler } from './middleware/errorHandler';
 import { attachCsrfToken } from './middleware/security';
+
+/**
+ * 获取局域网 IP 地址
+ * Get LAN IP address for CORS configuration
+ */
+function getLanIP(): string | null {
+  const nets = networkInterfaces();
+  for (const name of Object.keys(nets)) {
+    const netInfo = nets[name];
+    if (!netInfo) continue;
+
+    for (const net of netInfo) {
+      // Node.js 18.4+ returns number (4/6), older versions return string ('IPv4'/'IPv6')
+      const isIPv4 = net.family === 'IPv4' || (net.family as unknown) === 4;
+      const isNotInternal = !net.internal;
+      if (isIPv4 && isNotInternal) {
+        return net.address;
+      }
+    }
+  }
+  return null;
+}
 
 /**
  * 获取或生成 CSRF Secret
@@ -96,6 +119,16 @@ function normalizeOrigin(origin: string): string | null {
 function getConfiguredOrigins(port: number, allowRemote: boolean): Set<string> {
   const baseOrigins = new Set<string>([`http://localhost:${port}`, `http://127.0.0.1:${port}`]);
 
+  // 允许远程访问时，自动添加局域网 IP
+  // When remote access is enabled, automatically add LAN IP
+  if (allowRemote) {
+    const lanIP = getLanIP();
+    if (lanIP) {
+      baseOrigins.add(`http://${lanIP}:${port}`);
+      console.log(`[CORS] Added LAN IP to allowed origins: http://${lanIP}:${port}`);
+    }
+  }
+
   if (process.env.SERVER_BASE_URL) {
     const normalizedBase = normalizeOrigin(process.env.SERVER_BASE_URL);
     if (normalizedBase) {
@@ -111,10 +144,6 @@ function getConfiguredOrigins(port: number, allowRemote: boolean): Set<string> {
     .filter((origin): origin is string => Boolean(origin));
 
   extraOrigins.forEach((origin) => baseOrigins.add(origin));
-
-  if (allowRemote && baseOrigins.size === 2 && extraOrigins.length === 0) {
-    console.warn('[security] Remote access enabled but no additional CORS origins configured. Requests from other origins will be blocked. Set AIONUI_ALLOWED_ORIGINS to a comma-separated list if cross-origin access is required.');
-  }
 
   return baseOrigins;
 }

@@ -82,17 +82,33 @@ const WebuiModalContent: React.FC = () => {
   const loadStatus = useCallback(async () => {
     setLoading(true);
     try {
-      const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000));
-      const result = await Promise.race([webui.getStatus.invoke(), timeoutPromise]);
+      let result: { success: boolean; data?: IWebUIStatus } | null = null;
+
+      // 优先使用直接 IPC（Electron 环境）/ Prefer direct IPC (Electron environment)
+      if (window.electronAPI?.webuiGetStatus) {
+        console.log('[WebuiModal] loadStatus: Using direct IPC');
+        result = await window.electronAPI.webuiGetStatus();
+        console.log('[WebuiModal] loadStatus: Direct IPC result:', result);
+      } else {
+        // 后备方案：使用 bridge / Fallback: use bridge
+        console.log('[WebuiModal] loadStatus: Using bridge');
+        const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000));
+        result = await Promise.race([webui.getStatus.invoke(), timeoutPromise]);
+        console.log('[WebuiModal] loadStatus: Bridge result:', result);
+      }
 
       if (result && result.success && result.data) {
         setStatus(result.data);
         setAllowRemote(result.data.allowRemote);
         if (result.data.lanIP) {
+          console.log('[WebuiModal] loadStatus: Got lanIP:', result.data.lanIP);
           setCachedIP(result.data.lanIP);
         } else if (result.data.networkUrl) {
           const match = result.data.networkUrl.match(/http:\/\/([^:]+):/);
-          if (match) setCachedIP(match[1]);
+          if (match) {
+            console.log('[WebuiModal] loadStatus: Extracted IP from networkUrl:', match[1]);
+            setCachedIP(match[1]);
+          }
         }
         if (result.data.initialPassword) {
           setCachedPassword(result.data.initialPassword);
@@ -114,7 +130,7 @@ const WebuiModalContent: React.FC = () => {
         );
       }
     } catch (error) {
-      console.error('Failed to load WebUI status:', error);
+      console.error('[WebuiModal] Failed to load WebUI status:', error);
     } finally {
       setLoading(false);
     }
@@ -149,29 +165,6 @@ const WebuiModalContent: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
-  // 自动重置密码（仅用于首次启动时没有密码的情况）
-  // Auto reset password (only for initial startup when no password exists)
-  const autoResetPassword = useCallback(async () => {
-    setResetLoading(true);
-    try {
-      if (window.electronAPI?.webuiResetPassword) {
-        console.log('[WebuiModal] Auto-resetting password via direct IPC');
-        const result = await window.electronAPI.webuiResetPassword();
-        if (result.success && result.newPassword) {
-          setCachedPassword(result.newPassword);
-          setStatus((prev) => (prev ? { ...prev, initialPassword: result.newPassword } : null));
-          setCanShowPlainPassword(true); // 首次自动重置显示明文 / Show plaintext on first auto-reset
-        }
-      } else {
-        webui.resetPassword.invoke().catch(console.error);
-      }
-    } catch (error) {
-      console.error('[WebuiModal] Auto reset password error:', error);
-    } finally {
-      setResetLoading(false);
-    }
-  }, []);
-
   // 监听密码重置结果事件（Web 环境后备）/ Listen to password reset result events (Web environment fallback)
   useEffect(() => {
     const unsubscribe = webui.resetPasswordResult.on((data) => {
@@ -185,14 +178,19 @@ const WebuiModalContent: React.FC = () => {
     return () => unsubscribe();
   }, []);
 
-  // 自动重置密码：当 WebUI 运行但没有密码时
-  // Auto-reset password: when WebUI is running but no password cached
+  // 注意：不再自动重置密码，用户已有密码存储在数据库中
+  // Note: No longer auto-reset password, user already has password stored in database
+  // 如果用户忘记密码，可以手动点击重置按钮
+  // If user forgets password, they can manually click reset button
   useEffect(() => {
-    if (status?.running && !status?.initialPassword && !cachedPassword && !loading && !resetLoading) {
-      console.log('[WebuiModal] Auto-resetting password because WebUI is running but no password cached');
-      void autoResetPassword();
+    // 仅在组件首次加载且没有显示过密码时，标记为密文状态
+    // Only when component first loads and password hasn't been shown, mark as hidden
+    if (status?.running && !status?.initialPassword && !cachedPassword && !loading) {
+      // 不自动重置，只是确保密码显示为 ******
+      // Don't auto-reset, just ensure password shows as ******
+      setCanShowPlainPassword(false);
     }
-  }, [status?.running, status?.initialPassword, cachedPassword, loading, resetLoading, autoResetPassword]);
+  }, [status?.running, status?.initialPassword, cachedPassword, loading]);
 
   // 获取当前 IP 地址 / Get current IP
   const getLocalIP = useCallback(() => {
@@ -303,47 +301,116 @@ const WebuiModalContent: React.FC = () => {
   };
 
   // 处理允许远程访问切换 / Handle allow remote toggle
+  // 需要重启服务器才能更改绑定地址 / Need to restart server to change binding address
   const handleAllowRemoteChange = async (checked: boolean) => {
-    setAllowRemote(checked);
+    const wasRunning = status?.running;
 
-    // 启用远程访问时，先获取 IP 再更新状态 / When enabling remote, get IP first then update state
-    if (checked) {
+    // 如果服务器正在运行，需要重启以应用新的绑定设置
+    // If server is running, need to restart to apply new binding settings
+    if (wasRunning) {
+      setStartLoading(true);
       try {
-        const result = await Promise.race([webui.getStatus.invoke(), new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000))]);
-        if (result && result.success && result.data) {
-          const newIP = result.data.lanIP;
-          if (newIP) {
-            setCachedIP(newIP);
-            setStatus((prev) =>
-              prev
-                ? {
-                    ...prev,
-                    allowRemote: checked,
-                    lanIP: newIP,
-                    networkUrl: `http://${newIP}:${port}`,
-                  }
-                : null
-            );
-            return; // 成功获取 IP，直接返回 / Successfully got IP, return
+        // 1. 先停止服务器 / First stop the server
+        console.log('[WebuiModal] Stopping server to change allowRemote setting');
+        try {
+          await Promise.race([webui.stop.invoke(), new Promise((resolve) => setTimeout(resolve, 3000))]);
+        } catch (err) {
+          console.error('WebUI stop error:', err);
+        }
+        // 等待服务器完全停止 / Wait for server to fully stop
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
+        // 2. 用新设置重新启动 / Restart with new settings
+        console.log('[WebuiModal] Restarting server with allowRemote:', checked);
+        const startResult = await Promise.race([webui.start.invoke({ port, allowRemote: checked }), new Promise<null>((resolve) => setTimeout(() => resolve(null), 10000))]);
+
+        console.log('[WebuiModal] Start result:', startResult);
+
+        if (startResult && startResult.success && startResult.data) {
+          const responseIP = startResult.data.lanIP;
+          const responsePassword = startResult.data.initialPassword;
+
+          if (responseIP) setCachedIP(responseIP);
+          if (responsePassword) setCachedPassword(responsePassword);
+
+          setAllowRemote(checked);
+          setStatus((prev) => ({
+            ...(prev || { adminUsername: 'admin' }),
+            running: true,
+            port,
+            allowRemote: checked,
+            localUrl: `http://localhost:${port}`,
+            networkUrl: checked && responseIP ? `http://${responseIP}:${port}` : undefined,
+            lanIP: responseIP,
+            initialPassword: responsePassword || cachedPassword || prev?.initialPassword,
+          }));
+
+          Message.success(t('settings.webui.restartSuccess'));
+        } else {
+          // 响应为空或失败，但服务器可能已启动，检查状态
+          // Response is null or failed, but server might have started, check status
+          console.log('[WebuiModal] Start result was null/failed, checking status...');
+          await new Promise((resolve) => setTimeout(resolve, 1000));
+
+          let statusResult: { success: boolean; data?: IWebUIStatus } | null = null;
+          if (window.electronAPI?.webuiGetStatus) {
+            statusResult = await window.electronAPI.webuiGetStatus();
+          } else {
+            statusResult = await Promise.race([webui.getStatus.invoke(), new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000))]);
+          }
+
+          console.log('[WebuiModal] Status check result:', statusResult);
+
+          if (statusResult?.success && statusResult?.data?.running) {
+            // 服务器实际上已启动 / Server actually started
+            const responseIP = statusResult.data.lanIP;
+            if (responseIP) setCachedIP(responseIP);
+
+            setAllowRemote(checked);
+            setStatus(statusResult.data);
+            Message.success(t('settings.webui.restartSuccess'));
+          } else {
+            // 真的启动失败 / Really failed to start
+            Message.error(t('settings.webui.operationFailed'));
+            setStatus((prev) => (prev ? { ...prev, running: false } : null));
           }
         }
       } catch (error) {
-        console.error('Failed to refresh IP:', error);
+        console.error('[WebuiModal] Restart error:', error);
+        Message.error(t('settings.webui.operationFailed'));
+      } finally {
+        setStartLoading(false);
       }
-    }
+    } else {
+      // 服务器未运行，只更新状态 / Server not running, just update state
+      setAllowRemote(checked);
 
-    // 关闭远程访问或获取 IP 失败时，使用已缓存的 IP / When disabling remote or IP fetch failed, use cached IP
-    const existingIP = cachedIP || status?.lanIP;
-    setStatus((prev) =>
-      prev
-        ? {
-            ...prev,
-            allowRemote: checked,
-            lanIP: existingIP || prev.lanIP,
-            networkUrl: checked && existingIP ? `http://${existingIP}:${port}` : undefined,
+      // 获取 IP 用于显示 / Get IP for display
+      let newIP: string | undefined;
+      try {
+        if (window.electronAPI?.webuiGetStatus) {
+          const result = await window.electronAPI.webuiGetStatus();
+          if (result?.success && result?.data?.lanIP) {
+            newIP = result.data.lanIP;
+            setCachedIP(newIP);
           }
-        : null
-    );
+        }
+      } catch {
+        // ignore
+      }
+
+      const existingIP = newIP || cachedIP || status?.lanIP;
+      setStatus((prev) =>
+        prev
+          ? {
+              ...prev,
+              allowRemote: checked,
+              lanIP: existingIP || prev.lanIP,
+              networkUrl: checked && existingIP ? `http://${existingIP}:${port}` : undefined,
+            }
+          : null
+      );
+    }
   };
 
   // 复制内容 / Copy content

@@ -616,6 +616,7 @@
     "webui.passwordChanged": "パスワードが正常に変更されました",
     "webui.passwordChangeFailed": "パスワードの変更に失敗しました",
     "webui.startSuccess": "WebUI が正常に起動しました",
+    "webui.restartSuccess": "WebUI を再起動しました",
     "webui.startFailed": "WebUI の起動に失敗しました",
     "webui.stopSuccess": "WebUI が停止しました",
     "webui.stopFailed": "WebUI の停止に失敗しました",

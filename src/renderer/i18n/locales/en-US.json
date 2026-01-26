@@ -543,6 +543,7 @@
     "webui.clickCopyToGet": "Click copy to get password",
     "webui.passwordResetFailed": "Failed to reset password",
     "webui.startSuccess": "WebUI started successfully",
+    "webui.restartSuccess": "WebUI restarted",
     "webui.startFailed": "Failed to start WebUI",
     "webui.stopSuccess": "WebUI stopped",
     "webui.stopFailed": "Failed to stop WebUI",

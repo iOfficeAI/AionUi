@@ -587,6 +587,7 @@
     "webui.passwordChanged": "密碼修改成功",
     "webui.passwordChangeFailed": "密碼修改失敗",
     "webui.startSuccess": "WebUI 啟動成功",
+    "webui.restartSuccess": "WebUI 已重啟",
     "webui.startFailed": "WebUI 啟動失敗",
     "webui.stopSuccess": "WebUI 已停止",
     "webui.stopFailed": "停止 WebUI 失敗",

@@ -530,6 +530,7 @@
     "webui.passwordChanged": "비밀번호가 성공적으로 변경되었습니다",
     "webui.passwordChangeFailed": "비밀번호 변경 실패",
     "webui.startSuccess": "WebUI가 성공적으로 시작되었습니다",
+    "webui.restartSuccess": "WebUI가 재시작되었습니다",
     "webui.startFailed": "WebUI 시작 실패",
     "webui.stopSuccess": "WebUI가 중지되었습니다",
     "webui.stopFailed": "WebUI 중지 실패",

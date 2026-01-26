@@ -540,6 +540,7 @@
     "webui.clickCopyToGet": "点击复制获取密码",
     "webui.passwordResetFailed": "密码重置失败",
     "webui.startSuccess": "WebUI 启动成功",
+    "webui.restartSuccess": "WebUI 已重启",
     "webui.startFailed": "WebUI 启动失败",
     "webui.stopSuccess": "WebUI 已停止",
     "webui.stopFailed": "停止 WebUI 失败",
