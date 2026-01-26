@@ -88,8 +88,8 @@ const WebuiModalContent: React.FC = () => {
       if (window.electronAPI?.webuiGetStatus) {
         result = await window.electronAPI.webuiGetStatus();
       } else {
-        // 后备方案：使用 bridge / Fallback: use bridge
-        const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000));
+        // 后备方案：使用 bridge（减少超时）/ Fallback: use bridge (reduced timeout)
+        const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500));
         result = await Promise.race([webui.getStatus.invoke(), timeoutPromise]);
       }
 
@@ -209,35 +209,28 @@ const WebuiModalContent: React.FC = () => {
 
   // 启动/停止 WebUI / Start/Stop WebUI
   const handleToggle = async (enabled: boolean) => {
-    // 先获取 IP（如果没有缓存且要启动）/ First get IP (if not cached and starting)
-    let currentIP = getLocalIP();
-    if (enabled && !currentIP) {
-      try {
-        const statusResult = await Promise.race([webui.getStatus.invoke(), new Promise<null>((resolve) => setTimeout(() => resolve(null), 2000))]);
-        if (statusResult?.success && statusResult.data?.lanIP) {
-          currentIP = statusResult.data.lanIP;
-          setCachedIP(statusResult.data.lanIP);
-        }
-      } catch {
-        // 忽略错误，继续使用 localhost / Ignore error, continue with localhost
-      }
-    }
+    // 使用缓存的 IP，不再阻塞获取 / Use cached IP, no longer block to fetch
+    const currentIP = getLocalIP();
 
-    // 立即显示 loading 和 URL / Immediately show loading and URL
+    // 立即显示 loading / Immediately show loading
     setStartLoading(true);
 
     try {
       if (enabled) {
         const localUrl = `http://localhost:${port}`;
 
-        const startResult = await Promise.race([webui.start.invoke({ port, allowRemote }), new Promise<null>((resolve) => setTimeout(() => resolve(null), 8000))]);
+        // 减少启动超时到3秒（服务器启动很快）/ Reduce start timeout to 3s (server starts quickly)
+        const startResult = await Promise.race([webui.start.invoke({ port, allowRemote }), new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000))]);
 
         if (startResult && startResult.success && startResult.data) {
           const responseIP = startResult.data.lanIP || currentIP;
           const responsePassword = startResult.data.initialPassword;
 
           if (responseIP) setCachedIP(responseIP);
-          if (responsePassword) setCachedPassword(responsePassword);
+          if (responsePassword) {
+            setCachedPassword(responsePassword);
+            setCanShowPlainPassword(true);
+          }
 
           setStatus((prev) => ({
             ...(prev || { adminUsername: 'admin' }),
@@ -263,28 +256,13 @@ const WebuiModalContent: React.FC = () => {
         }
 
         Message.success(t('settings.webui.startSuccess'));
-
-        // 延迟获取状态（减少延迟）/ Delayed status fetch (reduced delay)
-        const fetchStatusWithRetry = async (retries = 2, delay = 500) => {
-          try {
-            const result = await Promise.race([webui.getStatus.invoke(), new Promise<null>((resolve) => setTimeout(() => resolve(null), 2000))]);
-            if (result && result.success && result.data) {
-              if (result.data.lanIP) setCachedIP(result.data.lanIP);
-              if (result.data.initialPassword) setCachedPassword(result.data.initialPassword);
-              setStatus(result.data);
-              return;
-            }
-            if (retries > 0) setTimeout(() => fetchStatusWithRetry(retries - 1, delay), delay);
-          } catch {
-            if (retries > 0) setTimeout(() => fetchStatusWithRetry(retries - 1, delay), delay);
-          }
-        };
-        setTimeout(() => fetchStatusWithRetry(), 500);
+        // 启动返回的数据已经足够，不再需要延迟获取状态
+        // Start result contains all needed data, no need for delayed status fetch
       } else {
-        webui.stop.invoke().catch((err) => console.error('WebUI stop error:', err));
-        await new Promise((resolve) => setTimeout(resolve, 200));
+        // 立即更新UI，异步停止服务器 / Update UI immediately, stop server async
         setStatus((prev) => (prev ? { ...prev, running: false } : null));
         Message.success(t('settings.webui.stopSuccess'));
+        webui.stop.invoke().catch((err) => console.error('WebUI stop error:', err));
       }
     } catch (error) {
       console.error('Toggle WebUI error:', error);
@@ -306,15 +284,13 @@ const WebuiModalContent: React.FC = () => {
       try {
         // 1. 先停止服务器 / First stop the server
         try {
-          await Promise.race([webui.stop.invoke(), new Promise((resolve) => setTimeout(resolve, 3000))]);
+          await Promise.race([webui.stop.invoke(), new Promise((resolve) => setTimeout(resolve, 1500))]);
         } catch (err) {
           console.error('WebUI stop error:', err);
         }
-        // 等待服务器完全停止 / Wait for server to fully stop
-        await new Promise((resolve) => setTimeout(resolve, 300));
 
-        // 2. 用新设置重新启动 / Restart with new settings
-        const startResult = await Promise.race([webui.start.invoke({ port, allowRemote: checked }), new Promise<null>((resolve) => setTimeout(() => resolve(null), 10000))]);
+        // 2. 立即重新启动（服务器停止很快）/ Restart immediately (server stops quickly)
+        const startResult = await Promise.race([webui.start.invoke({ port, allowRemote: checked }), new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000))]);
 
         if (startResult && startResult.success && startResult.data) {
           const responseIP = startResult.data.lanIP;
@@ -339,13 +315,11 @@ const WebuiModalContent: React.FC = () => {
         } else {
           // 响应为空或失败，但服务器可能已启动，检查状态
           // Response is null or failed, but server might have started, check status
-          await new Promise((resolve) => setTimeout(resolve, 300));
-
           let statusResult: { success: boolean; data?: IWebUIStatus } | null = null;
           if (window.electronAPI?.webuiGetStatus) {
             statusResult = await window.electronAPI.webuiGetStatus();
           } else {
-            statusResult = await Promise.race([webui.getStatus.invoke(), new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000))]);
+            statusResult = await Promise.race([webui.getStatus.invoke(), new Promise<null>((resolve) => setTimeout(() => resolve(null), 1500))]);
           }
 
           if (statusResult?.success && statusResult?.data?.running) {
