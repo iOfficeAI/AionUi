@@ -64,7 +64,7 @@ export function setupBasicMiddleware(app: Express): void {
     csrf(
       CSRF_SECRET,
       ['POST', 'PUT', 'DELETE', 'PATCH'], // Protected methods
-      ['/api/auth/qr-login'], // Excluded: QR login uses one-time token for protection
+      ['/login', '/api/auth/qr-login'], // Excluded: login form and QR login
       [] // No service worker URLs
     )
   );
