@@ -189,6 +189,43 @@ body,
   }
 }
 
+/* Safe area utilities for mobile devices / 移动端安全区域工具类 */
+/* iOS 17+ Chrome, Safari 需要在 CSS 中使用 env() 而非内联样式 */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+}
+
+/* Mobile sidebar positioning / 移动端侧边栏定位 */
+@media (max-width: 767px) {
+  .layout-sider {
+    /* 使用 CSS 而非内联样式处理安全区域 */
+    top: 0 !important;
+    top: env(safe-area-inset-top, 0px) !important;
+    height: 100vh !important;
+    height: calc(100vh - env(safe-area-inset-top, 0px)) !important;
+  }
+
+  /* 侧边栏内容底部安全区域 */
+  .layout-sider-content {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+
+/* Fallback for browsers without env() support / 不支持 env() 的浏览器回退 */
+@supports not (padding-bottom: env(safe-area-inset-bottom)) {
+  @media (max-width: 767px) {
+    .layout-sider-content {
+      padding-bottom: 20px; /* 固定的安全回退值 */
+    }
+  }
+}
+
 /* Layout sider base styles / 布局侧栏基础样式 */
 .layout-sider {
   overflow-x: hidden;

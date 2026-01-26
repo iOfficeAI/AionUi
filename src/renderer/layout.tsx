@@ -188,9 +188,7 @@ const Layout: React.FC<{
               isMobile
                 ? {
                     position: 'fixed',
-                    top: 0,
                     left: 0,
-                    height: '100vh',
                     zIndex: 100,
                     transform: collapsed ? 'translateX(-100%)' : 'translateX(0)',
                     transition: 'none',
