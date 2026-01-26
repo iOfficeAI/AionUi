@@ -44,20 +44,17 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
       onSessionClick();
     }
   };
-  // 设置按钮高度 + 底部安全区域的预留空间
-  const footerHeight = 56;
-
   return (
-    <div className='size-full relative'>
-      {/* Main content area - scrollable, with bottom padding for footer */}
-      <div className='absolute inset-0 overflow-y-auto overflow-x-hidden' style={{ paddingBottom: footerHeight }}>
+    <div className='size-full flex flex-col'>
+      {/* Main content area */}
+      <div className='flex-1 min-h-0 overflow-hidden'>
         {isSettings ? (
           <SettingsSider collapsed={collapsed}></SettingsSider>
         ) : (
-          <>
+          <div className='size-full flex flex-col'>
             <Tooltip disabled={!collapsed} content={t('conversation.welcome.newConversation')} position='right'>
               <div
-                className='flex items-center justify-start gap-10px px-12px py-8px hover:bg-hover rd-0.5rem mb-8px cursor-pointer group'
+                className='flex items-center justify-start gap-10px px-12px py-8px hover:bg-hover rd-0.5rem mb-8px cursor-pointer group shrink-0'
                 onClick={() => {
                   closePreview();
                   Promise.resolve(navigate('/guid')).catch((error) => {
@@ -74,11 +71,11 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
               </div>
             </Tooltip>
             <WorkspaceGroupedHistory collapsed={collapsed} onSessionClick={onSessionClick}></WorkspaceGroupedHistory>
-          </>
+          </div>
         )}
       </div>
-      {/* Footer - absolutely positioned at bottom */}
-      <div className='absolute left-0 right-0 bottom-0 bg-2' style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+      {/* Footer - settings button */}
+      <div className='shrink-0 sider-footer'>
         <Tooltip disabled={!collapsed} content={isSettings ? t('common.back') : t('common.settings')} position='right'>
           <div onClick={handleSettingsClick} className='flex items-center justify-start gap-10px px-12px py-8px hover:bg-hover rd-0.5rem mb-8px cursor-pointer'>
             {isSettings ? <ArrowCircleLeft className='flex' theme='outline' size='24' fill={iconColors.primary} /> : <SettingTwo className='flex' theme='outline' size='24' fill={iconColors.primary} />}
