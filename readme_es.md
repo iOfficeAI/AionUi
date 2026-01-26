@@ -125,20 +125,21 @@ _Abrir varias conversaciones, tareas sin mezclarse, memoria independiente, efici
 
 ### 🌐 **Acceso desde cualquier lugar - Modo WebUI**
 
-_Controla tus herramientas de IA de forma remota: accede a AionUi desde cualquier dispositivo en la red. Controla de forma segura Gemini CLI, Claude Code, Codex y otras herramientas locales; los datos no salen de tu dispositivo_
+_Tu asistente de IA 7×24 horas - Accede a AionUi desde cualquier dispositivo en la red. En viajes de negocios, en casa, en la oficina, usa tus herramientas de IA en cualquier momento y lugar_
 
-```bash
-# Inicio básico
-AionUi --webui
+**✨ Inicio con un clic**: Abre la opción WebUI en el panel de configuración y haz clic en el interruptor para iniciar.
 
-# Acceso remoto (accesible desde otros dispositivos en la red local)
-AionUi --webui --remote
-```
+- ✅ **Acceso multiplataforma** - Teléfono, tableta, computadora, cualquier dispositivo puede acceder
+- ✅ **Colaboración remota** - Soporta LAN, red cruzada, despliegue en servidor y más
+- ✅ **Seguro y confiable** - Gestión de contraseñas, inicio de sesión con código QR, los datos nunca salen de tu dispositivo
 
-> 💡 **¿Necesitas una guía de configuración detallada?** Consulta la [Guía de configuración de WebUI](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) - incluye comandos de inicio completos para todas las plataformas
+> 💡 **¿Necesitas una guía de configuración detallada?** Consulta la [Guía de configuración de WebUI](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) y la [Guía de acceso remoto a Internet](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide)
 
 <p align="center">
-  <img src="./resources/webui banner.png" alt="WebUI Remote Access Demo" width="800">
+  <video width="800" controls poster="./resources/webui banner.png">
+    <source src="./resources/webui.mp4" type="video/mp4">
+    Su navegador no admite la reproducción de video.
+  </video>
 </p>
 
 ---

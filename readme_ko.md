@@ -125,20 +125,21 @@ _여러 대화 열기, 작업이 섞이지 않음, 독립적인 메모리, 효�
 
 ### 🌐 **어디서나 접속 - WebUI 모드**
 
-_AI 도구 원격 제어 - 네트워크의 모든 기기에서 AionUi에 접속하세요! 로컬 Gemini CLI, Claude Code, Codex 등의 도구를 안전하게 제어하고 데이터는 기기를 떠나지 않습니다_
+_당신의 7×24시간 AI 어시스턴트 - 네트워크의 모든 기기에서 AionUi에 접속하세요! 출장 중, 집에서, 사무실에서, 언제 어디서나 AI 도구를 사용하세요_
 
-```bash
-# 기본 시작
-AionUi --webui
+**✨ 원클릭 시작**：설정 패널에서 WebUI 옵션을 열고 스위치를 클릭하기만 하면 시작됩니다!
 
-# 원격 접속 (로컬 네트워크의 다른 기기에서 접속 가능)
-AionUi --webui --remote
-```
+- ✅ **크로스 디바이스 접속** - 스마트폰, 태블릿, 컴퓨터, 모든 기기에서 접속 가능
+- ✅ **원격 협업** - LAN, 크로스 네트워크, 서버 배포 등 다양한 시나리오 지원
+- ✅ **안전하고 신뢰할 수 있음** - 비밀번호 관리, QR 코드 로그인, 데이터는 기기를 떠나지 않습니다
 
-> 💡 **자세한 설정 가이드가 필요하신가요?** [WebUI 설정 튜토리얼](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide)을 확인하세요 - 모든 플랫폼의 전체 시작 명령어 포함
+> 💡 **자세한 설정 가이드가 필요하신가요?** [WebUI 설정 튜토리얼](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) 과 [원격 인터넷 접속 가이드](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide) 를 확인하세요
 
 <p align="center">
-  <img src="./resources/webui banner.png" alt="WebUI 원격 접속 데모" width="800">
+  <video width="800" controls poster="./resources/webui banner.png">
+    <source src="./resources/webui.mp4" type="video/mp4">
+    브라우저가 비디오 재생을 지원하지 않습니다.
+  </video>
 </p>
 
 ---

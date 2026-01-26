@@ -152,7 +152,10 @@ AionUi --webui --remote
 > 💡 **Need detailed configuration guide?** Check out the [WebUI Configuration Tutorial](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) - includes complete startup commands for all platforms
 
 <p align="center">
-  <img src="./resources/webui banner.png" alt="WebUI Remote Access Demo" width="800">
+  <video width="800" controls poster="./resources/webui banner.png">
+    <source src="./resources/webui.mp4" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
 </p>
 
 ---

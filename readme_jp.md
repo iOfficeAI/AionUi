@@ -127,20 +127,21 @@ _複数の会話を開く、タスクが混乱しない、記憶が独立、効�
 
 ### 🌐 **どこからでもアクセス - WebUIモード**
 
-_AIツールをリモート制御 - ネットワーク上の任意のデバイスからAionUiにアクセス！ローカルのGemini CLI、Claude Code、Codexなどのツールを安全に制御、データはデバイスから離れません_
+_あなたの 7×24 時間 AI アシスタント - ネットワーク上の任意のデバイスからAionUiにアクセス！出張中、自宅、オフィス、いつでもどこでもAIツールを使用_
 
-```bash
-# 基本起動
-AionUi --webui
+**✨ ワンクリック起動**：設定パネルでWebUIオプションを開き、スイッチをクリックするだけで起動！
 
-# リモートアクセス（ローカルネットワーク内の他のデバイスからアクセス可能）
-AionUi --webui --remote
-```
+- ✅ **クロスデバイスアクセス** - スマートフォン、タブレット、コンピューター、あらゆるデバイスからアクセス可能
+- ✅ **リモートコラボレーション** - LAN、クロスネットワーク、サーバー展開など、さまざまなシナリオをサポート
+- ✅ **安全で信頼性** - パスワード管理、QRコードログイン、データはデバイスから離れません
 
-> 💡 **詳細な設定ガイドが必要ですか？** [WebUI設定チュートリアル](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide)を確認 - 全プラットフォームの完全な起動コマンドを含む
+> 💡 **詳細な設定ガイドが必要ですか？** [WebUI設定チュートリアル](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) と [リモートインターネットアクセスガイド](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide) を確認
 
 <p align="center">
-  <img src="./resources/webui banner.png" alt="WebUIリモートアクセスデモ" width="800">
+  <video width="800" controls poster="./resources/webui banner.png">
+    <source src="./resources/webui.mp4" type="video/mp4">
+    お使いのブラウザは動画再生をサポートしていません。
+  </video>
 </p>
 
 ---
