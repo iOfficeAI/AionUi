@@ -21,6 +21,10 @@ export const plugins: WebpackPluginInstance[] = [
       { from: path.resolve(__dirname, '../../rules'), to: 'rules', noErrorOnMissing: true },
       // assistant 目录：包含助手配置和技能定义
       { from: path.resolve(__dirname, '../../assistant'), to: 'assistant', noErrorOnMissing: true },
+      // logos 目录：包含应用 logo 等图片资源，使用 CopyPlugin 确保二进制文件不被错误编码
+      // logos directory: contains app logo images, use CopyPlugin to ensure binary files are not incorrectly encoded
+      // force: true 强制覆盖 webpack asset/resource 输出的损坏文件
+      { from: path.resolve(__dirname, '../../src/renderer/assets/logos'), to: 'static/images', noErrorOnMissing: true, force: true },
     ],
   }),
   new ForkTsCheckerWebpackPlugin({

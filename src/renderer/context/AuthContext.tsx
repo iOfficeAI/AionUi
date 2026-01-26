@@ -107,13 +107,14 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
         return { success: true };
       }
 
+      // P1 安全修复：登录请求需要 CSRF Token / P1 Security fix: Login needs CSRF token
       const response = await fetch('/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'include',
-        body: JSON.stringify({ username, password, remember }),
+        body: JSON.stringify(withCsrfToken({ username, password, remember })),
       });
 
       const data = (await response.json()) as {

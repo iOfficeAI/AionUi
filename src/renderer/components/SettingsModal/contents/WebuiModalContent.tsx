@@ -305,6 +305,7 @@ const WebuiModalContent: React.FC = () => {
             port,
             allowRemote,
             localUrl,
+            lanIP: currentIP || prev?.lanIP,
             networkUrl: allowRemote && currentIP ? `http://${currentIP}:${port}` : undefined,
             initialPassword: cachedPassword || prev?.initialPassword,
           }));
@@ -375,16 +376,17 @@ const WebuiModalContent: React.FC = () => {
     }
 
     if (status?.running) {
-      setStatus((prev) =>
-        prev
+      setStatus((prev) => {
+        const ip = currentIP || prev?.lanIP;
+        return prev
           ? {
               ...prev,
               allowRemote: checked,
-              lanIP: currentIP || prev.lanIP,
-              networkUrl: checked && currentIP ? `http://${currentIP}:${port}` : undefined,
+              lanIP: ip,
+              networkUrl: checked && ip ? `http://${ip}:${port}` : undefined,
             }
-          : null
-      );
+          : null;
+      });
     }
   };
 

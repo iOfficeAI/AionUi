@@ -9,13 +9,37 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import csrf from 'tiny-csrf';
+import crypto from 'crypto';
 import { AuthMiddleware } from '@/webserver/auth/middleware/AuthMiddleware';
 import { errorHandler } from './middleware/errorHandler';
 import { attachCsrfToken } from './middleware/security';
 
-// CSRF secret must be exactly 32 characters for AES-256-CBC
-// CSRF 密钥必须正好 32 个字符以用于 AES-256-CBC
-const CSRF_SECRET = process.env.CSRF_SECRET || '12345678901234567890123456789012';
+/**
+ * 获取或生成 CSRF Secret
+ * Get or generate CSRF secret
+ *
+ * CSRF secret must be exactly 32 characters for AES-256-CBC
+ * CSRF 密钥必须正好 32 个字符以用于 AES-256-CBC
+ *
+ * 优先级：环境变量 > 随机生成（每次启动不同）
+ * Priority: Environment variable > Random generation (different on each startup)
+ */
+function getCsrfSecret(): string {
+  // 优先使用环境变量 / Prefer environment variable
+  if (process.env.CSRF_SECRET && process.env.CSRF_SECRET.length === 32) {
+    return process.env.CSRF_SECRET;
+  }
+
+  // 生成随机 32 字符密钥（16 字节的 hex 编码）
+  // Generate random 32-character secret (16 bytes hex encoded)
+  const randomSecret = crypto.randomBytes(16).toString('hex');
+  console.log('[security] Generated random CSRF secret for this session');
+  return randomSecret;
+}
+
+// 在模块加载时生成一次，整个进程生命周期内保持不变
+// Generate once at module load, remains constant for process lifetime
+const CSRF_SECRET = getCsrfSecret();
 
 /**
  * 配置基础中间件
@@ -32,11 +56,13 @@ export function setupBasicMiddleware(app: Express): void {
   // CSRF 保护使用 tiny-csrf（符合 CodeQL 要求）
   // 必须在 cookieParser 之后、路由之前应用
   app.use(cookieParser('cookie-parser-secret'));
+  // CSRF 保护：排除登录端点（有速率限制 + 凭据验证），QR 登录（有一次性 token 保护）
+  // CSRF protection: Exclude login (has rate limiting + credentials), QR login (has one-time token)
   app.use(
     csrf(
       CSRF_SECRET,
       ['POST', 'PUT', 'DELETE', 'PATCH'], // Protected methods
-      ['/login'], // Excluded URLs - login endpoint runs before CSRF token is available
+      ['/login', '/api/auth/qr-login'], // Excluded: login protected by rate limiter, QR login by one-time token
       [] // No service worker URLs
     )
   );

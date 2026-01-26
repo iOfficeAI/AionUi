@@ -8,7 +8,7 @@ import type { Express, Request, Response } from 'express';
 import { AuthService } from '@/webserver/auth/service/AuthService';
 import { AuthMiddleware } from '@/webserver/auth/middleware/AuthMiddleware';
 import { UserRepository } from '@/webserver/auth/repository/UserRepository';
-import { AUTH_CONFIG } from '../config/constants';
+import { AUTH_CONFIG, getCookieOptions } from '../config/constants';
 import { TokenUtils } from '@/webserver/auth/middleware/TokenMiddleware';
 import { createAppError } from '../middleware/errorHandler';
 import { authRateLimiter, authenticatedActionLimiter, apiRateLimiter } from '../middleware/security';
@@ -117,9 +117,10 @@ export function registerAuthRoutes(app: Express): void {
       // Update last login
       UserRepository.updateLastLogin(user.id);
 
-      // Set secure cookie
+      // Set secure cookie（远程模式下启用 secure 标志）
+      // Set secure cookie (enable secure flag in remote mode)
       res.cookie(AUTH_CONFIG.COOKIE.NAME, token, {
-        ...AUTH_CONFIG.COOKIE.OPTIONS,
+        ...getCookieOptions(),
         maxAge: AUTH_CONFIG.TOKEN.COOKIE_MAX_AGE,
       });
 
@@ -144,7 +145,13 @@ export function registerAuthRoutes(app: Express): void {
    */
   // Authenticated endpoints reuse shared limiter keyed by user/IP
   // 已登录接口复用按用户/IP 计数的限流器
-  app.post('/logout', apiRateLimiter, AuthMiddleware.authenticateToken, authenticatedActionLimiter, (_req: Request, res: Response) => {
+  app.post('/logout', apiRateLimiter, AuthMiddleware.authenticateToken, authenticatedActionLimiter, (req: Request, res: Response) => {
+    // 将当前 token 加入黑名单 / Blacklist current token
+    const token = TokenUtils.extractFromRequest(req);
+    if (token) {
+      AuthService.blacklistToken(token);
+    }
+
     res.clearCookie(AUTH_CONFIG.COOKIE.NAME);
     res.json({ success: true, message: 'Logged out successfully' });
   });
@@ -347,8 +354,12 @@ export function registerAuthRoutes(app: Express): void {
         return;
       }
 
+      // 获取客户端 IP（用于本地网络限制验证）
+      // Get client IP (for local network restriction verification)
+      const clientIP = req.ip || req.socket.remoteAddress || '';
+
       // 直接验证 QR token（无需 IPC）/ Verify QR token directly (no IPC)
-      const result = await verifyQRTokenDirect(qrToken);
+      const result = await verifyQRTokenDirect(qrToken, clientIP);
 
       if (!result.success || !result.data) {
         res.status(401).json({
@@ -358,9 +369,10 @@ export function registerAuthRoutes(app: Express): void {
         return;
       }
 
-      // 设置 session cookie / Set session cookie
+      // 设置 session cookie（远程模式下启用 secure 标志）
+      // Set session cookie (enable secure flag in remote mode)
       res.cookie(AUTH_CONFIG.COOKIE.NAME, result.data.sessionToken, {
-        ...AUTH_CONFIG.COOKIE.OPTIONS,
+        ...getCookieOptions(),
         maxAge: AUTH_CONFIG.TOKEN.COOKIE_MAX_AGE,
       });
 

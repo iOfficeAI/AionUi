@@ -59,7 +59,8 @@ export class WebuiService {
       if (!netInfo) continue;
 
       for (const net of netInfo) {
-        const isIPv4 = net.family === 'IPv4';
+        // Node.js 18.4+ returns number (4/6), older versions return string ('IPv4'/'IPv6')
+        const isIPv4 = net.family === 'IPv4' || (net.family as unknown) === 4;
         const isNotInternal = !net.internal;
         if (isIPv4 && isNotInternal) {
           return net.address;

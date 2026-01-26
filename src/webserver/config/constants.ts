@@ -92,6 +92,7 @@ export const SERVER_CONFIG = {
   _currentConfig: {
     host: '127.0.0.1' as string,
     port: 25808 as number,
+    allowRemote: false as boolean,
   },
 
   /**
@@ -101,6 +102,15 @@ export const SERVER_CONFIG = {
   setServerConfig(port: number, allowRemote: boolean): void {
     this._currentConfig.port = port;
     this._currentConfig.host = allowRemote ? '0.0.0.0' : '127.0.0.1';
+    this._currentConfig.allowRemote = allowRemote;
+  },
+
+  /**
+   * 检查是否为远程访问模式
+   * Check if remote access mode is enabled
+   */
+  get isRemoteMode(): boolean {
+    return this._currentConfig.allowRemote;
   },
 
   /**
@@ -118,6 +128,28 @@ export const SERVER_CONFIG = {
     return `http://${host}:${this._currentConfig.port}`;
   },
 } as const;
+
+/**
+ * 获取动态 Cookie 选项（根据服务器模式决定 secure 标志）
+ * Get dynamic cookie options (secure flag based on server mode)
+ *
+ * 安全说明：远程模式下启用 secure，要求 HTTPS 传输
+ * Security: Enable secure in remote mode, requires HTTPS transport
+ */
+export function getCookieOptions(): {
+  httpOnly: boolean;
+  secure: boolean;
+  sameSite: 'strict' | 'lax' | 'none';
+  maxAge?: number;
+} {
+  return {
+    httpOnly: AUTH_CONFIG.COOKIE.OPTIONS.httpOnly,
+    // 远程模式下启用 secure（建议配合 HTTPS 使用）
+    // Enable secure in remote mode (recommended with HTTPS)
+    secure: SERVER_CONFIG.isRemoteMode,
+    sameSite: AUTH_CONFIG.COOKIE.OPTIONS.sameSite,
+  };
+}
 
 // 安全配置
 export const SECURITY_CONFIG = {
