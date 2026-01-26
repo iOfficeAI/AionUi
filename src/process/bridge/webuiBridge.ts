@@ -13,6 +13,7 @@ import { AUTH_CONFIG, SERVER_CONFIG } from '@/webserver/config/constants';
 import { WebuiService } from './services/WebuiService';
 // 预加载 webserver 模块避免启动时延迟 / Preload webserver module to avoid startup delay
 import { startWebServerWithInstance } from '@/webserver/index';
+import { cleanupWebAdapter } from '@/webserver/adapter';
 
 // WebUI 服务器实例引用 / WebUI server instance reference
 let webServerInstance: {
@@ -256,6 +257,9 @@ export function initWebuiBridge(): void {
           else resolve();
         });
       });
+
+      // 清理 WebSocket 广播注册 / Cleanup WebSocket broadcaster registration
+      cleanupWebAdapter();
 
       webServerInstance = null;
 

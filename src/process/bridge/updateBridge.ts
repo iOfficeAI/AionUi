@@ -159,23 +159,37 @@ const fetchWithAllowlistedRedirects = async (rawUrl: string, signal: AbortSignal
 const fetchGitHubReleases = async (repo: string): Promise<GitHubReleaseApi[]> => {
   const url = `https://api.github.com/repos/${repo}/releases`;
 
-  const res = await fetch(url, {
-    headers: {
-      Accept: 'application/vnd.github+json',
-      'User-Agent': DEFAULT_USER_AGENT,
-    },
-  });
+  // 添加超时控制，防止网络问题导致无限等待 / Add timeout to prevent infinite wait on network issues
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 秒超时 / 30 second timeout
 
-  if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    throw new Error(`GitHub releases request failed (${res.status}): ${body || res.statusText}`);
-  }
+  try {
+    const res = await fetch(url, {
+      headers: {
+        Accept: 'application/vnd.github+json',
+        'User-Agent': DEFAULT_USER_AGENT,
+      },
+      signal: controller.signal,
+    });
 
-  const json = (await res.json()) as unknown;
-  if (!Array.isArray(json)) {
-    throw new Error('GitHub releases response is not an array');
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      throw new Error(`GitHub releases request failed (${res.status}): ${body || res.statusText}`);
+    }
+
+    const json = (await res.json()) as unknown;
+    if (!Array.isArray(json)) {
+      throw new Error('GitHub releases response is not an array');
+    }
+    return json as GitHubReleaseApi[];
+  } catch (err: unknown) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new Error('GitHub API request timed out (30s)');
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
   }
-  return json as GitHubReleaseApi[];
 };
 
 const mapRelease = (rel: GitHubReleaseApi): UpdateReleaseInfo | null => {
