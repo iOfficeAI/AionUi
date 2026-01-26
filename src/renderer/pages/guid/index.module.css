@@ -23,8 +23,9 @@
 .actionTools {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   flex-shrink: 1;
+  min-width: 0;
 }
 
 .actionSubmit {
@@ -57,6 +58,7 @@
   .guidLayout {
     width: clamp(var(--app-min-width, 360px), calc(100% - 32px), 100%);
     padding: 0 16px;
+    padding-bottom: 100px; /* 为底部快捷按钮留出空间 */
     box-sizing: border-box;
   }
 
@@ -81,10 +83,89 @@
   }
 }
 
+/* 移动端容器滚动支持 */
+.guidContainer {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  position: relative;
+}
+
+@media (max-width: 768px) {
+  .guidContainer {
+    justify-content: flex-start;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-top: 20px;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
 /* 浅色占位符 */
 .lightPlaceholder :global(textarea::placeholder) {
   color: var(--text-disabled) !important;
   opacity: 1 !important;
+}
+
+/* 预设助手标签 */
+.presetAgentTag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--color-fill-2);
+  padding: 4px 6px 4px 10px;
+  border-radius: 16px;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.presetAgentTag:hover {
+  background: var(--color-fill-3);
+}
+
+.presetAgentTagName {
+  font-size: 14px;
+  color: var(--color-text-1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.presetAgentTagClose {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  margin-left: 2px;
+  transition: background-color 0.2s;
+  flex-shrink: 0;
+}
+
+.presetAgentTagClose:hover {
+  background: var(--color-fill-4);
+}
+
+/* 移动端助手标签优化 */
+@media (max-width: 768px) {
+  .presetAgentTagName {
+    max-width: 120px;
+  }
+
+  .actionTools {
+    gap: 6px;
+    flex-shrink: 1;
+    min-width: 0;
+    overflow: hidden;
+  }
 }
 
 /* iPhone专门优化 */
@@ -101,5 +182,9 @@
 
   .actionSubmit {
     flex-shrink: 0;
+  }
+
+  .presetAgentTagName {
+    max-width: 100px;
   }
 }

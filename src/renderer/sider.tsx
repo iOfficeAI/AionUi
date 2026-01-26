@@ -45,7 +45,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
     }
   };
   return (
-    <div className='size-full flex flex-col'>
+    <div className='size-full flex flex-col' style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
       {isSettings ? (
         <SettingsSider collapsed={collapsed}></SettingsSider>
       ) : (
