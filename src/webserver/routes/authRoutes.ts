@@ -64,7 +64,19 @@ const QR_LOGIN_PAGE_HTML = `<!DOCTYPE html>
           container.innerHTML = '<h2 class="success">Login Successful!</h2><p>Redirecting... / 登录成功，正在跳转...</p>';
           setTimeout(function() { window.location.href = '/'; }, 1000);
         } else {
-          container.innerHTML = '<h2 class="error">Login Failed</h2><p>' + (data.error || 'QR code expired or invalid') + '</p><p>二维码已过期或无效，请重新扫描。</p>';
+          // XSS 安全修复：使用 textContent 而非 innerHTML 插入错误消息
+          // XSS Security fix: Use textContent instead of innerHTML for error message
+          var h2 = document.createElement('h2');
+          h2.className = 'error';
+          h2.textContent = 'Login Failed';
+          var p1 = document.createElement('p');
+          p1.textContent = data.error || 'QR code expired or invalid';
+          var p2 = document.createElement('p');
+          p2.textContent = '二维码已过期或无效，请重新扫描。';
+          container.innerHTML = '';
+          container.appendChild(h2);
+          container.appendChild(p1);
+          container.appendChild(p2);
         }
       } catch (e) {
         container.innerHTML = '<h2 class="error">Error</h2><p>Network error. Please try again.</p><p>网络错误，请重试。</p>';
