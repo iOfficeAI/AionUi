@@ -77,7 +77,6 @@ const WebuiModalContent: React.FC = () => {
   const [setPasswordModalVisible, setSetPasswordModalVisible] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [form] = Form.useForm();
-  const [message, messageContext] = Message.useMessage();
 
   // 加载状态 / Load status
   const loadStatus = useCallback(async () => {
@@ -271,7 +270,7 @@ const WebuiModalContent: React.FC = () => {
           }));
         }
 
-        message.success(t('settings.webui.startSuccess'));
+        Message.success(t('settings.webui.startSuccess'));
 
         // 延迟获取状态 / Delayed status fetch
         const fetchStatusWithRetry = async (retries = 3, delay = 2000) => {
@@ -293,11 +292,11 @@ const WebuiModalContent: React.FC = () => {
         webui.stop.invoke().catch((err) => console.error('WebUI stop error:', err));
         await new Promise((resolve) => setTimeout(resolve, 500));
         setStatus((prev) => (prev ? { ...prev, running: false } : null));
-        message.success(t('settings.webui.stopSuccess'));
+        Message.success(t('settings.webui.stopSuccess'));
       }
     } catch (error) {
       console.error('Toggle WebUI error:', error);
-      message.error(t('settings.webui.operationFailed'));
+      Message.error(t('settings.webui.operationFailed'));
     } finally {
       setStartLoading(false);
     }
@@ -307,24 +306,7 @@ const WebuiModalContent: React.FC = () => {
   const handleAllowRemoteChange = async (checked: boolean) => {
     setAllowRemote(checked);
 
-    // 先使用已缓存的 IP 立即更新 UI / Use cached IP to update UI immediately
-    const existingIP = cachedIP || status?.lanIP;
-
-    if (status?.running) {
-      // 立即更新状态以反映 UI 变化 / Update state immediately to reflect UI change
-      setStatus((prev) =>
-        prev
-          ? {
-              ...prev,
-              allowRemote: checked,
-              lanIP: existingIP || prev.lanIP,
-              networkUrl: checked && existingIP ? `http://${existingIP}:${port}` : undefined,
-            }
-          : null
-      );
-    }
-
-    // 启用远程访问时，后台刷新 IP / When enabling remote, refresh IP in background
+    // 启用远程访问时，先获取 IP 再更新状态 / When enabling remote, get IP first then update state
     if (checked) {
       try {
         const result = await Promise.race([webui.getStatus.invoke(), new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000))]);
@@ -332,30 +314,42 @@ const WebuiModalContent: React.FC = () => {
           const newIP = result.data.lanIP;
           if (newIP) {
             setCachedIP(newIP);
-            // 如果获取到新 IP，再次更新状态 / Update state again if we got a new IP
-            if (status?.running && newIP !== existingIP) {
-              setStatus((prev) =>
-                prev
-                  ? {
-                      ...prev,
-                      lanIP: newIP,
-                      networkUrl: `http://${newIP}:${port}`,
-                    }
-                  : null
-              );
-            }
+            setStatus((prev) =>
+              prev
+                ? {
+                    ...prev,
+                    allowRemote: checked,
+                    lanIP: newIP,
+                    networkUrl: `http://${newIP}:${port}`,
+                  }
+                : null
+            );
+            return; // 成功获取 IP，直接返回 / Successfully got IP, return
           }
         }
       } catch (error) {
         console.error('Failed to refresh IP:', error);
       }
     }
+
+    // 关闭远程访问或获取 IP 失败时，使用已缓存的 IP / When disabling remote or IP fetch failed, use cached IP
+    const existingIP = cachedIP || status?.lanIP;
+    setStatus((prev) =>
+      prev
+        ? {
+            ...prev,
+            allowRemote: checked,
+            lanIP: existingIP || prev.lanIP,
+            networkUrl: checked && existingIP ? `http://${existingIP}:${port}` : undefined,
+          }
+        : null
+    );
   };
 
   // 复制内容 / Copy content
   const handleCopy = (text: string) => {
     void navigator.clipboard.writeText(text);
-    message.success(t('common.copySuccess'));
+    Message.success(t('common.copySuccess'));
   };
 
   // 复制密码（复制后立即变密文）/ Copy password (immediately hide after copying)
@@ -363,7 +357,7 @@ const WebuiModalContent: React.FC = () => {
     const password = status?.initialPassword || cachedPassword;
     if (password) {
       void navigator.clipboard.writeText(password);
-      message.success(t('common.copySuccess'));
+      Message.success(t('common.copySuccess'));
       // 复制后立即隐藏明文，图标变成重置 / Hide plaintext immediately after copying, icon changes to reset
       setCanShowPlainPassword(false);
     }
@@ -396,7 +390,7 @@ const WebuiModalContent: React.FC = () => {
       }
 
       if (result.success) {
-        message.success(t('settings.webui.passwordChanged'));
+        Message.success(t('settings.webui.passwordChanged'));
         setSetPasswordModalVisible(false);
         form.resetFields();
         // 更新缓存的密码为新密码，不再显示明文 / Update cached password, no longer show plaintext
@@ -404,11 +398,11 @@ const WebuiModalContent: React.FC = () => {
         setCanShowPlainPassword(false);
         setStatus((prev) => (prev ? { ...prev, initialPassword: undefined } : null));
       } else {
-        message.error(result.msg || t('settings.webui.passwordChangeFailed'));
+        Message.error(result.msg || t('settings.webui.passwordChangeFailed'));
       }
     } catch (error) {
       console.error('Set new password error:', error);
-      message.error(t('settings.webui.passwordChangeFailed'));
+      Message.error(t('settings.webui.passwordChangeFailed'));
     } finally {
       setPasswordLoading(false);
     }
@@ -428,14 +422,6 @@ const WebuiModalContent: React.FC = () => {
   };
   const displayPassword = getDisplayPassword();
 
-  if (loading && !status) {
-    return (
-      <div className='flex items-center justify-center h-200px'>
-        <span className='text-t-secondary'>{t('common.loading')}</span>
-      </div>
-    );
-  }
-
   // 浏览器端不显示 WebUI 设置，出于安全考虑 / Don't show WebUI settings in browser for security reasons
   if (!isDesktop) {
     return (
@@ -450,8 +436,6 @@ const WebuiModalContent: React.FC = () => {
 
   return (
     <div className='flex flex-col h-full w-full'>
-      {messageContext}
-
       <AionScrollArea className='flex-1 min-h-0 pb-16px' disableOverflow={isPageMode}>
         <div className='space-y-16px'>
           {/* 标题 / Title */}
