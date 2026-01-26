@@ -86,27 +86,21 @@ const WebuiModalContent: React.FC = () => {
 
       // 优先使用直接 IPC（Electron 环境）/ Prefer direct IPC (Electron environment)
       if (window.electronAPI?.webuiGetStatus) {
-        console.log('[WebuiModal] loadStatus: Using direct IPC');
         result = await window.electronAPI.webuiGetStatus();
-        console.log('[WebuiModal] loadStatus: Direct IPC result:', result);
       } else {
         // 后备方案：使用 bridge / Fallback: use bridge
-        console.log('[WebuiModal] loadStatus: Using bridge');
         const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000));
         result = await Promise.race([webui.getStatus.invoke(), timeoutPromise]);
-        console.log('[WebuiModal] loadStatus: Bridge result:', result);
       }
 
       if (result && result.success && result.data) {
         setStatus(result.data);
         setAllowRemote(result.data.allowRemote);
         if (result.data.lanIP) {
-          console.log('[WebuiModal] loadStatus: Got lanIP:', result.data.lanIP);
           setCachedIP(result.data.lanIP);
         } else if (result.data.networkUrl) {
           const match = result.data.networkUrl.match(/http:\/\/([^:]+):/);
           if (match) {
-            console.log('[WebuiModal] loadStatus: Extracted IP from networkUrl:', match[1]);
             setCachedIP(match[1]);
           }
         }
@@ -311,7 +305,6 @@ const WebuiModalContent: React.FC = () => {
       setStartLoading(true);
       try {
         // 1. 先停止服务器 / First stop the server
-        console.log('[WebuiModal] Stopping server to change allowRemote setting');
         try {
           await Promise.race([webui.stop.invoke(), new Promise((resolve) => setTimeout(resolve, 3000))]);
         } catch (err) {
@@ -321,10 +314,7 @@ const WebuiModalContent: React.FC = () => {
         await new Promise((resolve) => setTimeout(resolve, 1000));
 
         // 2. 用新设置重新启动 / Restart with new settings
-        console.log('[WebuiModal] Restarting server with allowRemote:', checked);
         const startResult = await Promise.race([webui.start.invoke({ port, allowRemote: checked }), new Promise<null>((resolve) => setTimeout(() => resolve(null), 10000))]);
-
-        console.log('[WebuiModal] Start result:', startResult);
 
         if (startResult && startResult.success && startResult.data) {
           const responseIP = startResult.data.lanIP;
@@ -349,7 +339,6 @@ const WebuiModalContent: React.FC = () => {
         } else {
           // 响应为空或失败，但服务器可能已启动，检查状态
           // Response is null or failed, but server might have started, check status
-          console.log('[WebuiModal] Start result was null/failed, checking status...');
           await new Promise((resolve) => setTimeout(resolve, 1000));
 
           let statusResult: { success: boolean; data?: IWebUIStatus } | null = null;
@@ -358,8 +347,6 @@ const WebuiModalContent: React.FC = () => {
           } else {
             statusResult = await Promise.race([webui.getStatus.invoke(), new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000))]);
           }
-
-          console.log('[WebuiModal] Status check result:', statusResult);
 
           if (statusResult?.success && statusResult?.data?.running) {
             // 服务器实际上已启动 / Server actually started
@@ -446,11 +433,9 @@ const WebuiModalContent: React.FC = () => {
 
       // 优先使用直接 IPC（Electron 环境）/ Prefer direct IPC (Electron environment)
       if (window.electronAPI?.webuiChangePassword) {
-        console.log('[WebuiModal] Using direct IPC for change password');
         result = await window.electronAPI.webuiChangePassword(values.newPassword);
       } else {
         // 后备方案：使用 bridge / Fallback: use bridge
-        console.log('[WebuiModal] Falling back to bridge for change password');
         result = await webui.changePassword.invoke({
           newPassword: values.newPassword,
         });
