@@ -134,17 +134,11 @@ export class WebuiService {
   }
 
   /**
-   * 修改密码
-   * Change password
+   * 修改密码（不需要当前密码验证）
+   * Change password (no current password verification required)
    */
-  static async changePassword(currentPassword: string, newPassword: string): Promise<void> {
+  static async changePassword(newPassword: string): Promise<void> {
     const adminUser = await this.getAdminUser();
-
-    // 验证当前密码 / Verify current password
-    const isValidPassword = await AuthService.verifyPassword(currentPassword, adminUser.password_hash);
-    if (!isValidPassword) {
-      throw new Error('Current password is incorrect');
-    }
 
     // 验证新密码强度 / Validate new password strength
     const passwordValidation = AuthService.validatePasswordStrength(newPassword);
@@ -152,7 +146,7 @@ export class WebuiService {
       throw new Error(passwordValidation.errors.join('; '));
     }
 
-    // 更新密码 / Update password
+    // 更新密码（密文存储）/ Update password (encrypted storage)
     console.log('[WebUI Service] Updating password in database...');
     const newPasswordHash = await AuthService.hashPassword(newPassword);
     UserRepository.updatePassword(adminUser.id, newPasswordHash);

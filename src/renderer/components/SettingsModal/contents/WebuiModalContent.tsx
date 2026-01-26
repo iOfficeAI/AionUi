@@ -7,11 +7,12 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Switch, Input, Form, Message, Tooltip } from '@arco-design/web-react';
-import { Copy } from '@icon-park/react';
-import { webui, shell, type IWebUIStatus } from '@/common/ipcBridge';
+import { Copy, Refresh } from '@icon-park/react';
+import { webui, type IWebUIStatus } from '@/common/ipcBridge';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import AionModal from '@/renderer/components/base/AionModal';
 import { useSettingsViewMode } from '../settingsViewContext';
+import { isElectronDesktop } from '@/renderer/utils/platform';
 
 /**
  * 偏好设置行组件
@@ -34,16 +35,18 @@ const PreferenceRow: React.FC<{ label: string; description?: string; extra?: Rea
  * 信息行组件（用于登录信息展示）
  * Info row component (for login info display)
  */
-const InfoRow: React.FC<{ label: string; value: string; onCopy: () => void }> = ({ label, value, onCopy }) => (
+const InfoRow: React.FC<{ label: string; value: string; onCopy?: () => void; showCopy?: boolean }> = ({ label, value, onCopy, showCopy = true }) => (
   <div className='flex items-center justify-between py-12px'>
     <span className='text-14px text-t-secondary'>{label}</span>
     <div className='flex items-center gap-8px'>
       <span className='text-14px text-t-primary'>{value}</span>
-      <Tooltip content='复制'>
-        <button className='p-4px bg-transparent border-none text-t-tertiary hover:text-t-primary cursor-pointer' onClick={onCopy}>
-          <Copy size={16} />
-        </button>
-      </Tooltip>
+      {showCopy && onCopy && (
+        <Tooltip content='复制'>
+          <button className='p-4px bg-transparent border-none text-t-tertiary hover:text-t-primary cursor-pointer' onClick={onCopy}>
+            <Copy size={16} />
+          </button>
+        </Tooltip>
+      )}
     </div>
   </div>
 );
@@ -57,6 +60,9 @@ const WebuiModalContent: React.FC = () => {
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
 
+  // 检测是否在 Electron 桌面环境 / Check if running in Electron desktop environment
+  const isDesktop = isElectronDesktop();
+
   const [status, setStatus] = useState<IWebUIStatus | null>(null);
   const [loading, setLoading] = useState(false);
   const [startLoading, setStartLoading] = useState(false);
@@ -64,9 +70,14 @@ const WebuiModalContent: React.FC = () => {
   const [allowRemote, setAllowRemote] = useState(false);
   const [cachedIP, setCachedIP] = useState<string | null>(null);
   const [cachedPassword, setCachedPassword] = useState<string | null>(null);
+  // 标记密码是否可以明文显示（首次启动且未复制过）/ Flag for plaintext password display (first startup and not copied)
+  const [canShowPlainPassword, setCanShowPlainPassword] = useState(false);
   const [passwordModalVisible, setPasswordModalVisible] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
+  // 重置密码结果弹窗 / Reset password result modal
+  const [resetResultModalVisible, setResetResultModalVisible] = useState(false);
+  const [resetResultPassword, setResetResultPassword] = useState<string | null>(null);
   const [form] = Form.useForm();
   const [message, messageContext] = Message.useMessage();
   // 标记重置后是否需要复制密码 / Flag to copy password after reset
@@ -90,6 +101,8 @@ const WebuiModalContent: React.FC = () => {
         }
         if (result.data.initialPassword) {
           setCachedPassword(result.data.initialPassword);
+          // 有初始密码说明可以显示明文 / Having initial password means can show plaintext
+          setCanShowPlainPassword(true);
         }
         // 注意：如果 running 但没有密码，会在下面的 useEffect 中自动重置
         // Note: If running but no password, auto-reset will be triggered in the useEffect below
@@ -145,7 +158,7 @@ const WebuiModalContent: React.FC = () => {
   // 使用 Electron 直接 IPC，绕过有问题的 bridge provider 模式
   // Use Electron direct IPC, bypassing the problematic bridge provider pattern
   const resetPasswordViaDirectIPC = useCallback(
-    async (shouldCopyAfter: boolean, fillForm = false) => {
+    async (showModal = false) => {
       setResetLoading(true);
       try {
         // 优先使用直接 IPC（Electron 环境）/ Prefer direct IPC (Electron environment)
@@ -157,19 +170,13 @@ const WebuiModalContent: React.FC = () => {
           if (result.success && result.newPassword) {
             setCachedPassword(result.newPassword);
             setStatus((prev) => (prev ? { ...prev, initialPassword: result.newPassword } : null));
+            // 不再显示明文，因为用户已经主动重置 / No longer show plaintext since user actively reset
+            setCanShowPlainPassword(false);
 
-            if (fillForm) {
-              // 重置后新密码即为当前密码，填入当前密码字段
-              // After reset, the new password becomes the current password
-              form.setFieldsValue({
-                currentPassword: result.newPassword,
-                newPassword: '',
-                confirmPassword: '',
-              });
-              message.success(t('settings.webui.passwordResetAndFilled'));
-            } else if (shouldCopyAfter) {
-              void navigator.clipboard.writeText(result.newPassword);
-              message.success(t('settings.webui.passwordResetAndCopied'));
+            if (showModal) {
+              // 显示重置结果弹窗 / Show reset result modal
+              setResetResultPassword(result.newPassword);
+              setResetResultModalVisible(true);
             } else {
               message.success(t('settings.webui.passwordResetSuccess'));
             }
@@ -182,7 +189,7 @@ const WebuiModalContent: React.FC = () => {
           // 注意：不在此处设置 setResetLoading(false)，由 emitter 回调处理
           // Note: Don't setResetLoading(false) here, it's handled by emitter callback
           console.log('[WebuiModal] Falling back to bridge emitter for reset password');
-          copyAfterResetRef.current = shouldCopyAfter;
+          copyAfterResetRef.current = showModal;
           webui.resetPassword.invoke().catch(console.error);
         }
       } catch (error) {
@@ -191,18 +198,21 @@ const WebuiModalContent: React.FC = () => {
         setResetLoading(false);
       }
     },
-    [message, t, form]
+    [message, t]
   );
 
+  // 监听密码重置结果事件（Web 环境后备）/ Listen to password reset result events (Web environment fallback)
   // 监听密码重置结果事件（Web 环境后备）/ Listen to password reset result events (Web environment fallback)
   useEffect(() => {
     const unsubscribe = webui.resetPasswordResult.on((data) => {
       if (data.success && data.newPassword) {
         setCachedPassword(data.newPassword);
         setStatus((prev) => (prev ? { ...prev, initialPassword: data.newPassword } : null));
+        setCanShowPlainPassword(false);
         if (copyAfterResetRef.current) {
-          void navigator.clipboard.writeText(data.newPassword);
-          message.success(t('settings.webui.passwordResetAndCopied'));
+          // 显示重置结果弹窗 / Show reset result modal
+          setResetResultPassword(data.newPassword);
+          setResetResultModalVisible(true);
           copyAfterResetRef.current = false;
         } else {
           message.success(t('settings.webui.passwordResetSuccess'));
@@ -301,7 +311,6 @@ const WebuiModalContent: React.FC = () => {
         }
 
         message.success(t('settings.webui.startSuccess'));
-        void shell.openExternal.invoke(localUrl);
 
         // 延迟获取状态 / Delayed status fetch
         const fetchStatusWithRetry = async (retries = 3, delay = 2000) => {
@@ -385,20 +394,24 @@ const WebuiModalContent: React.FC = () => {
     message.success(t('common.copySuccess'));
   };
 
-  // 复制密码 / Copy password
+  // 复制密码（复制后立即变密文）/ Copy password (immediately hide after copying)
   const handleCopyPassword = async () => {
-    const actualPassword = status?.initialPassword || cachedPassword;
-    if (actualPassword) {
-      void navigator.clipboard.writeText(actualPassword);
+    const password = status?.initialPassword || cachedPassword;
+    if (password) {
+      void navigator.clipboard.writeText(password);
       message.success(t('common.copySuccess'));
-    } else {
-      // 没有缓存的密码，触发重置并标记需要复制
-      // No cached password, trigger reset and flag for copy
-      void resetPasswordViaDirectIPC(true);
+      // 复制后立即隐藏明文，图标变成重置 / Hide plaintext immediately after copying, icon changes to reset
+      setCanShowPlainPassword(false);
     }
   };
 
+  // 重置密码（点击重置图标时调用）/ Reset password (called when clicking reset icon)
+  const handleResetPassword = () => {
+    void resetPasswordViaDirectIPC(true);
+  };
+
   // 修改密码 / Change password
+  // 不需要输入当前密码，直接用新密码覆盖 / No need for current password, directly overwrite with new password
   const handleChangePassword = async () => {
     try {
       const values = await form.validate();
@@ -409,12 +422,11 @@ const WebuiModalContent: React.FC = () => {
       // 优先使用直接 IPC（Electron 环境）/ Prefer direct IPC (Electron environment)
       if (window.electronAPI?.webuiChangePassword) {
         console.log('[WebuiModal] Using direct IPC for change password');
-        result = await window.electronAPI.webuiChangePassword(values.currentPassword, values.newPassword);
+        result = await window.electronAPI.webuiChangePassword(values.newPassword);
       } else {
         // 后备方案：使用 bridge / Fallback: use bridge
         console.log('[WebuiModal] Falling back to bridge for change password');
         result = await webui.changePassword.invoke({
-          currentPassword: values.currentPassword,
           newPassword: values.newPassword,
         });
       }
@@ -423,9 +435,10 @@ const WebuiModalContent: React.FC = () => {
         message.success(t('settings.webui.passwordChanged'));
         setPasswordModalVisible(false);
         form.resetFields();
-        // 更新缓存的密码为新密码 / Update cached password to new password
+        // 更新缓存的密码为新密码，不再显示明文 / Update cached password, no longer show plaintext
         setCachedPassword(values.newPassword);
-        setStatus((prev) => (prev ? { ...prev, initialPassword: values.newPassword } : null));
+        setCanShowPlainPassword(false); // 修改密码后不再显示明文 / No longer show plaintext after changing password
+        setStatus((prev) => (prev ? { ...prev, initialPassword: undefined } : null));
       } else {
         message.error(result.msg || t('settings.webui.passwordChangeFailed'));
       }
@@ -440,14 +453,33 @@ const WebuiModalContent: React.FC = () => {
   // 获取实际密码 / Get actual password
   const actualPassword = status?.initialPassword || cachedPassword;
   // 获取显示的密码 / Get display password
-  // 重置中显示加载状态，否则显示密码或占位文本
-  // Show loading state when resetting, otherwise show password or placeholder
-  const displayPassword = resetLoading ? t('common.loading') : actualPassword || t('settings.webui.clickCopyToGet');
+  // 密码默认显示 ***，只在首次启动时显示明文 / Password shows *** by default, only show plaintext on first startup
+  // 重置中显示加载状态 / Show loading state when resetting
+  const getDisplayPassword = () => {
+    if (resetLoading) return t('common.loading');
+    // 可以显示明文且有密码时显示明文 / Show plaintext when allowed and has password
+    if (canShowPlainPassword && actualPassword) return actualPassword;
+    // 否则显示 ****** / Otherwise show ******
+    return t('settings.webui.passwordHidden');
+  };
+  const displayPassword = getDisplayPassword();
 
   if (loading && !status) {
     return (
       <div className='flex items-center justify-center h-200px'>
         <span className='text-t-secondary'>{t('common.loading')}</span>
+      </div>
+    );
+  }
+
+  // 浏览器端不显示 WebUI 设置，出于安全考虑 / Don't show WebUI settings in browser for security reasons
+  if (!isDesktop) {
+    return (
+      <div className='flex flex-col h-full w-full'>
+        <div className='flex flex-col items-center justify-center h-200px px-32px text-center'>
+          <div className='text-16px font-500 text-t-primary mb-8px'>{t('settings.webui.browserNotSupported')}</div>
+          <div className='text-14px text-t-secondary'>{t('settings.webui.browserNotSupportedDesc')}</div>
+        </div>
       </div>
     );
   }
@@ -499,7 +531,27 @@ const WebuiModalContent: React.FC = () => {
             <InfoRow label='Username:' value={status?.adminUsername || 'admin'} onCopy={() => handleCopy(status?.adminUsername || 'admin')} />
 
             {/* 密码 / Password */}
-            <InfoRow label='Password:' value={displayPassword} onCopy={handleCopyPassword} />
+            <div className='flex items-center justify-between py-12px'>
+              <span className='text-14px text-t-secondary'>Password:</span>
+              <div className='flex items-center gap-8px'>
+                <span className='text-14px text-t-primary'>{displayPassword}</span>
+                {canShowPlainPassword && actualPassword ? (
+                  // 可以显示明文时，显示复制图标 / Show copy icon when plaintext is visible
+                  <Tooltip content={t('common.copy')}>
+                    <button className='p-4px bg-transparent border-none text-t-tertiary hover:text-t-primary cursor-pointer' onClick={handleCopyPassword}>
+                      <Copy size={16} />
+                    </button>
+                  </Tooltip>
+                ) : (
+                  // 密文状态时，显示重置图标 / Show reset icon when password is hidden
+                  <Tooltip content={t('settings.webui.resetPassword')}>
+                    <button className='p-4px bg-transparent border-none text-t-tertiary hover:text-t-primary cursor-pointer' onClick={handleResetPassword} disabled={resetLoading}>
+                      <Refresh size={16} className={resetLoading ? 'animate-spin' : ''} />
+                    </button>
+                  </Tooltip>
+                )}
+              </div>
+            </div>
 
             {/* 修改密码按钮 / Change password button */}
             <div className='flex items-center justify-end mt-12px pt-12px border-t border-line'>
@@ -514,22 +566,6 @@ const WebuiModalContent: React.FC = () => {
       {/* 修改密码弹窗 / Change Password Modal */}
       <AionModal visible={passwordModalVisible} onCancel={() => setPasswordModalVisible(false)} onOk={handleChangePassword} confirmLoading={passwordLoading} title={t('settings.webui.changePassword')} size='small'>
         <Form form={form} layout='vertical' className='pt-16px'>
-          <Form.Item
-            label={
-              <div className='flex items-center gap-4px w-full'>
-                <span className='text-danger'>*</span>
-                <span>{t('settings.webui.currentPassword')}</span>
-                <button type='button' className='text-12px text-warning hover:text-warning-hover cursor-pointer bg-transparent border-none p-0 ml-auto' onClick={() => void resetPasswordViaDirectIPC(false, true)} disabled={resetLoading}>
-                  {resetLoading ? t('common.loading') : t('settings.webui.forgotPassword')}
-                </button>
-              </div>
-            }
-            field='currentPassword'
-            rules={[{ required: true, message: t('settings.webui.currentPasswordRequired') }]}
-            requiredSymbol={false}
-          >
-            <Input.Password placeholder={t('settings.webui.currentPasswordPlaceholder')} />
-          </Form.Item>
           <Form.Item
             label={t('settings.webui.newPassword')}
             field='newPassword'
@@ -559,6 +595,41 @@ const WebuiModalContent: React.FC = () => {
             <Input.Password placeholder={t('settings.webui.confirmPasswordPlaceholder')} />
           </Form.Item>
         </Form>
+      </AionModal>
+
+      {/* 重置密码结果弹窗 / Reset Password Result Modal */}
+      <AionModal
+        visible={resetResultModalVisible}
+        onCancel={() => {
+          setResetResultModalVisible(false);
+          setResetResultPassword(null);
+        }}
+        onOk={() => {
+          setResetResultModalVisible(false);
+          setResetResultPassword(null);
+        }}
+        title={t('settings.webui.resetPassword')}
+        style={{ width: '400px' }}
+      >
+        <div className='py-8px'>
+          <div className='text-14px text-warning mb-16px'>{t('settings.webui.resetPasswordWarning')}</div>
+          <div className='flex items-center justify-between p-12px bg-fill-2 rd-8px'>
+            <span className='text-14px text-t-primary font-mono'>{t('settings.webui.passwordHidden')}</span>
+            <Tooltip content={t('common.copy')}>
+              <button
+                className='p-4px bg-transparent border-none text-t-tertiary hover:text-t-primary cursor-pointer'
+                onClick={() => {
+                  if (resetResultPassword) {
+                    void navigator.clipboard.writeText(resetResultPassword);
+                    message.success(t('common.copySuccess'));
+                  }
+                }}
+              >
+                <Copy size={16} />
+              </button>
+            </Tooltip>
+          </div>
+        </div>
       </AionModal>
     </div>
   );

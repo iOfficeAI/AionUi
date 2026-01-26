@@ -7,6 +7,7 @@
 import AionModal from '@/renderer/components/base/AionModal';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { iconColors } from '@/renderer/theme/colors';
+import { isElectronDesktop } from '@/renderer/utils/platform';
 import { Computer, Gemini, Info, LinkCloud, Toolkit, Earth } from '@icon-park/react';
 import { Tabs } from '@arco-design/web-react';
 import classNames from 'classnames';
@@ -151,9 +152,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
     };
   }, [handleResize]);
 
+  // 检测是否在 Electron 桌面环境 / Check if running in Electron desktop environment
+  const isDesktop = isElectronDesktop();
+
   // 菜单项配置 / Menu items configuration
-  const menuItems = useMemo(
-    (): Array<{ key: SettingTab; label: string; icon: React.ReactNode }> => [
+  // WebUI 选项仅在桌面端显示，防止越权访问 / WebUI option only shown on desktop to prevent unauthorized access
+  const menuItems = useMemo((): Array<{ key: SettingTab; label: string; icon: React.ReactNode }> => {
+    const items: Array<{ key: SettingTab; label: string; icon: React.ReactNode }> = [
       {
         key: 'gemini',
         label: t('settings.gemini'),
@@ -169,11 +174,18 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
         label: t('settings.tools'),
         icon: <Toolkit theme='outline' size='20' fill={iconColors.secondary} />,
       },
-      {
+    ];
+
+    // 仅在桌面端添加 WebUI 选项 / Only add WebUI option on desktop
+    if (isDesktop) {
+      items.push({
         key: 'webui',
         label: t('settings.webui'),
         icon: <Earth theme='outline' size='20' fill={iconColors.secondary} />,
-      },
+      });
+    }
+
+    items.push(
       {
         key: 'system',
         label: t('settings.system'),
@@ -183,10 +195,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
         key: 'about',
         label: t('settings.about'),
         icon: <Info theme='outline' size='20' fill={iconColors.secondary} />,
-      },
-    ],
-    [t]
-  );
+      }
+    );
+
+    return items;
+  }, [t, isDesktop]);
 
   // 渲染当前选中的设置内容 / Render current selected settings content
   const renderContent = () => {

@@ -239,11 +239,11 @@ export function initWebuiBridge(): void {
     }
   });
 
-  // 修改密码 / Change password
-  webui.changePassword.provider(async ({ currentPassword, newPassword }) => {
+  // 修改密码（不需要当前密码）/ Change password (no current password required)
+  webui.changePassword.provider(async ({ newPassword }) => {
     console.log('[WebUI Bridge] changePassword handler invoked');
     return WebuiService.handleAsync(async () => {
-      await WebuiService.changePassword(currentPassword, newPassword);
+      await WebuiService.changePassword(newPassword);
       return { success: true };
     }, 'Change password');
   });
@@ -413,11 +413,11 @@ export function initWebuiBridge(): void {
     }, 'Direct IPC: Get status');
   });
 
-  // 直接 IPC: 修改密码 / Direct IPC: Change password
-  ipcMain.handle('webui-direct-change-password', async (_event, { currentPassword, newPassword }: { currentPassword: string; newPassword: string }) => {
+  // 直接 IPC: 修改密码（不需要当前密码）/ Direct IPC: Change password (no current password required)
+  ipcMain.handle('webui-direct-change-password', async (_event, { newPassword }: { newPassword: string }) => {
     console.log('[WebUI Bridge] Direct IPC: changePassword invoked');
     return WebuiService.handleAsync(async () => {
-      await WebuiService.changePassword(currentPassword, newPassword);
+      await WebuiService.changePassword(newPassword);
       return { success: true };
     }, 'Direct IPC: Change password');
   });
