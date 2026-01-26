@@ -139,17 +139,15 @@ _Open multiple conversations, tasks don't get mixed up, independent memory, doub
 
 ### 🌐 **Access Anywhere - WebUI Mode**
 
-_Remotely control your AI tools - Access AionUi from any device on the network! Securely control local Gemini CLI, Claude Code, Codex, and other tools, data never leaves your device_
+_Your 7×24 hour AI assistant - Access AionUi from any device on the network! On business trips, at home, in the office, use your AI tools anytime, anywhere_
 
-```bash
-# Basic startup
-AionUi --webui
+**✨ One-click start**: Open the WebUI option in the settings panel and click the switch to start!
 
-# Remote access (accessible from other devices on the local network)
-AionUi --webui --remote
-```
+- ✅ **Cross-device access** - Phone, tablet, computer, any device can access
+- ✅ **Remote collaboration** - Supports LAN, cross-network, server deployment and more
+- ✅ **Secure and reliable** - Password management, QR code login, data never leaves your device
 
-> 💡 **Need detailed configuration guide?** Check out the [WebUI Configuration Tutorial](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) - includes complete startup commands for all platforms
+> 💡 **Need detailed configuration guide?** Check out the [WebUI Configuration Tutorial](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) and [Remote Internet Access Guide](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide)
 
 <p align="center">
   <video width="800" controls poster="./resources/webui banner.png">
