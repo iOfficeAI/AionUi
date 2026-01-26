@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <strong>💬 社区：</strong> <a href="https://discord.gg/g6u66vV9" target="_blank">Discord (English)</a> | <a href="./resources/wechat_group.png" target="_blank">微信 (中文群)</a>
+  <strong>💬 社区：</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wechat_group_2.jpg" target="_blank">微信 (中文群)</a>
 </p>
 
 ---
@@ -227,7 +227,13 @@ _观看创作者们如何测评和使用 AionUi_
   <em>🎬 WorldofAI (20万订阅)</em> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <em>🎬 Julian Goldie SEO (31.8万订阅)</em>
 </p>
 
-> 💡 **你也做了关于 AionUi 的视频？** [在 X 上告诉我们](https://x.com/AionUi)，我们会在这里展示！我们也会采纳你的反馈，并在未来持续优化。
+### 📰 社区文章
+
+- [爆火！开源免费版 Cowork，全模型接入+文件自主操作，重新定义 AI 办公。](https://mp.weixin.qq.com/s/F3f-CCsVPaK3lK00jXhOOg) — 开源AI项目落地
+- [让普通人也能像用 APP 一样用上 Claude Code，ACP 协议是什么](https://mp.weixin.qq.com/s/TsMojSbkUUFvsd-HQCazZg) — 懒猫爱摸鱼
+- [5500星：开源如何撬动 Anthropic 的 AI 工具护城河](https://mp.weixin.qq.com/s/saEk49cYV6MqBgw19Lw6Gw) — AI硅基时刻
+
+> 💡 **你也做了关于 AionUi 的视频或文章？** [在 X 上告诉我们](https://x.com/AionUi)，我们会在这里展示！也会采纳你的反馈，并在未来持续优化。
 
 ---
 
@@ -357,8 +363,8 @@ brew install aionui
 - [💬 GitHub Discussions](https://github.com/iOfficeAI/AionUi/discussions) - **分享想法、提出建议、交流使用心得**
 - [🐛 报告问题](https://github.com/iOfficeAI/AionUi/issues) - 反馈 Bug 或功能请求
 - [📦 发布更新](https://github.com/iOfficeAI/AionUi/releases) - 获取最新版本
-- [💬 Discord Community](https://discord.gg/g6u66vV9) - **加入我们的英文 Discord 社区**
-- [💬 微信 (中文群)](./resources/wechat_group.png) - **点击查看二维码**
+- [💬 Discord Community](https://discord.gg/2QAwJn7Egx) - **加入我们的英文 Discord 社区**
+- [💬 微信 (中文群)](./resources/wechat_group_2.jpg) - **点击查看二维码**
 
 ### 🤝 贡献代码
 
