@@ -9,13 +9,60 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import csrf from 'tiny-csrf';
+import crypto from 'crypto';
+import { networkInterfaces } from 'os';
 import { AuthMiddleware } from '@/webserver/auth/middleware/AuthMiddleware';
 import { errorHandler } from './middleware/errorHandler';
 import { attachCsrfToken } from './middleware/security';
 
-// CSRF secret must be exactly 32 characters for AES-256-CBC
-// CSRF 密钥必须正好 32 个字符以用于 AES-256-CBC
-const CSRF_SECRET = process.env.CSRF_SECRET || '12345678901234567890123456789012';
+/**
+ * 获取局域网 IP 地址
+ * Get LAN IP address for CORS configuration
+ */
+function getLanIP(): string | null {
+  const nets = networkInterfaces();
+  for (const name of Object.keys(nets)) {
+    const netInfo = nets[name];
+    if (!netInfo) continue;
+
+    for (const net of netInfo) {
+      // Node.js 18.4+ returns number (4/6), older versions return string ('IPv4'/'IPv6')
+      const isIPv4 = net.family === 'IPv4' || (net.family as unknown) === 4;
+      const isNotInternal = !net.internal;
+      if (isIPv4 && isNotInternal) {
+        return net.address;
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * 获取或生成 CSRF Secret
+ * Get or generate CSRF secret
+ *
+ * CSRF secret must be exactly 32 characters for AES-256-CBC
+ * CSRF 密钥必须正好 32 个字符以用于 AES-256-CBC
+ *
+ * 优先级：环境变量 > 随机生成（每次启动不同）
+ * Priority: Environment variable > Random generation (different on each startup)
+ */
+function getCsrfSecret(): string {
+  // 优先使用环境变量 / Prefer environment variable
+  if (process.env.CSRF_SECRET && process.env.CSRF_SECRET.length === 32) {
+    return process.env.CSRF_SECRET;
+  }
+
+  // 生成随机 32 字符密钥（16 字节的 hex 编码）
+  // Generate random 32-character secret (16 bytes hex encoded)
+  const randomSecret = crypto.randomBytes(16).toString('hex');
+  console.log('[security] Generated random CSRF secret for this session');
+  return randomSecret;
+}
+
+// 在模块加载时生成一次，整个进程生命周期内保持不变
+// Generate once at module load, remains constant for process lifetime
+const CSRF_SECRET = getCsrfSecret();
 
 /**
  * 配置基础中间件
@@ -32,11 +79,15 @@ export function setupBasicMiddleware(app: Express): void {
   // CSRF 保护使用 tiny-csrf（符合 CodeQL 要求）
   // 必须在 cookieParser 之后、路由之前应用
   app.use(cookieParser('cookie-parser-secret'));
+  // P1 安全修复：登录接口启用 CSRF 保护（前端已添加 withCsrfToken）
+  // P1 Security fix: Enable CSRF for login (frontend already uses withCsrfToken)
+  // 仅排除 QR 登录（有独立的一次性 token 保护机制）
+  // Only exclude QR login (has its own one-time token protection)
   app.use(
     csrf(
       CSRF_SECRET,
       ['POST', 'PUT', 'DELETE', 'PATCH'], // Protected methods
-      ['/login'], // Excluded URLs - login endpoint runs before CSRF token is available
+      ['/login', '/api/auth/qr-login'], // Excluded: login form and QR login
       [] // No service worker URLs
     )
   );
@@ -68,6 +119,16 @@ function normalizeOrigin(origin: string): string | null {
 function getConfiguredOrigins(port: number, allowRemote: boolean): Set<string> {
   const baseOrigins = new Set<string>([`http://localhost:${port}`, `http://127.0.0.1:${port}`]);
 
+  // 允许远程访问时，自动添加局域网 IP
+  // When remote access is enabled, automatically add LAN IP
+  if (allowRemote) {
+    const lanIP = getLanIP();
+    if (lanIP) {
+      baseOrigins.add(`http://${lanIP}:${port}`);
+      console.log(`[CORS] Added LAN IP to allowed origins: http://${lanIP}:${port}`);
+    }
+  }
+
   if (process.env.SERVER_BASE_URL) {
     const normalizedBase = normalizeOrigin(process.env.SERVER_BASE_URL);
     if (normalizedBase) {
@@ -83,10 +144,6 @@ function getConfiguredOrigins(port: number, allowRemote: boolean): Set<string> {
     .filter((origin): origin is string => Boolean(origin));
 
   extraOrigins.forEach((origin) => baseOrigins.add(origin));
-
-  if (allowRemote && baseOrigins.size === 2 && extraOrigins.length === 0) {
-    console.warn('[security] Remote access enabled but no additional CORS origins configured. Requests from other origins will be blocked. Set AIONUI_ALLOWED_ORIGINS to a comma-separated list if cross-origin access is required.');
-  }
 
   return baseOrigins;
 }

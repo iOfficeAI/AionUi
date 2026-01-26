@@ -40,7 +40,6 @@ export const mainConfig: Configuration = {
     },
   },
   externals: {
-    'bcrypt': 'commonjs bcrypt',
     'better-sqlite3': 'commonjs better-sqlite3',
     'node-pty': 'commonjs node-pty',
     // tree-sitter 相关依赖需要作为外部模块，避免 webpack 处理 .wasm 文件

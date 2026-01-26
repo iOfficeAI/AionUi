@@ -8,10 +8,83 @@ import type { Express, Request, Response } from 'express';
 import { AuthService } from '@/webserver/auth/service/AuthService';
 import { AuthMiddleware } from '@/webserver/auth/middleware/AuthMiddleware';
 import { UserRepository } from '@/webserver/auth/repository/UserRepository';
-import { AUTH_CONFIG } from '../config/constants';
+import { AUTH_CONFIG, getCookieOptions } from '../config/constants';
 import { TokenUtils } from '@/webserver/auth/middleware/TokenMiddleware';
 import { createAppError } from '../middleware/errorHandler';
 import { authRateLimiter, authenticatedActionLimiter, apiRateLimiter } from '../middleware/security';
+import { verifyQRTokenDirect } from '@/process/bridge/webuiBridge';
+
+/**
+ * QR 登录页面 HTML（静态，不包含用户输入）
+ * QR login page HTML (static, no user input embedded)
+ * JavaScript 直接从 URL 参数读取 token，避免 XSS
+ * JavaScript reads token directly from URL params to prevent XSS
+ */
+const QR_LOGIN_PAGE_HTML = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>QR Login - AionUI</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; background: #f5f5f5; }
+    .container { text-align: center; padding: 40px; background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); max-width: 400px; }
+    .loading { color: #3498db; font-size: 18px; }
+    .success { color: #27ae60; }
+    .error { color: #e74c3c; }
+    .spinner { border: 3px solid #f3f3f3; border-top: 3px solid #3498db; border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 20px auto; }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    h2 { margin-bottom: 16px; }
+    p { color: #666; margin-top: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container" id="content">
+    <div class="spinner"></div>
+    <p class="loading">Verifying... / 验证中...</p>
+  </div>
+  <script>
+    (async function() {
+      var container = document.getElementById('content');
+      var params = new URLSearchParams(window.location.search);
+      var qrToken = params.get('token');
+      if (!qrToken) {
+        container.innerHTML = '<h2 class="error">Invalid QR Code</h2><p>The QR code is invalid or missing.</p><p>二维码无效或缺失。</p>';
+        return;
+      }
+      try {
+        var response = await fetch('/api/auth/qr-login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ qrToken: qrToken }),
+          credentials: 'include'
+        });
+        var data = await response.json();
+        if (data.success) {
+          container.innerHTML = '<h2 class="success">Login Successful!</h2><p>Redirecting... / 登录成功，正在跳转...</p>';
+          setTimeout(function() { window.location.href = '/'; }, 1000);
+        } else {
+          // XSS 安全修复：使用 textContent 而非 innerHTML 插入错误消息
+          // XSS Security fix: Use textContent instead of innerHTML for error message
+          var h2 = document.createElement('h2');
+          h2.className = 'error';
+          h2.textContent = 'Login Failed';
+          var p1 = document.createElement('p');
+          p1.textContent = data.error || 'QR code expired or invalid';
+          var p2 = document.createElement('p');
+          p2.textContent = '二维码已过期或无效，请重新扫描。';
+          container.innerHTML = '';
+          container.appendChild(h2);
+          container.appendChild(p1);
+          container.appendChild(p2);
+        }
+      } catch (e) {
+        container.innerHTML = '<h2 class="error">Error</h2><p>Network error. Please try again.</p><p>网络错误，请重试。</p>';
+      }
+    })();
+  </script>
+</body>
+</html>`;
 
 /**
  * 注册认证相关路由
@@ -56,9 +129,10 @@ export function registerAuthRoutes(app: Express): void {
       // Update last login
       UserRepository.updateLastLogin(user.id);
 
-      // Set secure cookie
+      // Set secure cookie（远程模式下启用 secure 标志）
+      // Set secure cookie (enable secure flag in remote mode)
       res.cookie(AUTH_CONFIG.COOKIE.NAME, token, {
-        ...AUTH_CONFIG.COOKIE.OPTIONS,
+        ...getCookieOptions(),
         maxAge: AUTH_CONFIG.TOKEN.COOKIE_MAX_AGE,
       });
 
@@ -83,7 +157,13 @@ export function registerAuthRoutes(app: Express): void {
    */
   // Authenticated endpoints reuse shared limiter keyed by user/IP
   // 已登录接口复用按用户/IP 计数的限流器
-  app.post('/logout', apiRateLimiter, AuthMiddleware.authenticateToken, authenticatedActionLimiter, (_req: Request, res: Response) => {
+  app.post('/logout', apiRateLimiter, AuthMiddleware.authenticateToken, authenticatedActionLimiter, (req: Request, res: Response) => {
+    // 将当前 token 加入黑名单 / Blacklist current token
+    const token = TokenUtils.extractFromRequest(req);
+    if (token) {
+      AuthService.blacklistToken(token);
+    }
+
     res.clearCookie(AUTH_CONFIG.COOKIE.NAME);
     res.json({ success: true, message: 'Logged out successfully' });
   });
@@ -268,6 +348,68 @@ export function registerAuthRoutes(app: Express): void {
     } catch (error) {
       next(error);
     }
+  });
+
+  /**
+   * 二维码登录验证 - QR code login verification
+   * POST /api/auth/qr-login
+   */
+  app.post('/api/auth/qr-login', authRateLimiter, async (req: Request, res: Response) => {
+    try {
+      const { qrToken } = req.body;
+
+      if (!qrToken) {
+        res.status(400).json({
+          success: false,
+          error: 'QR token is required',
+        });
+        return;
+      }
+
+      // 获取客户端 IP（用于本地网络限制验证）
+      // Get client IP (for local network restriction verification)
+      const clientIP = req.ip || req.socket.remoteAddress || '';
+
+      // 直接验证 QR token（无需 IPC）/ Verify QR token directly (no IPC)
+      const result = await verifyQRTokenDirect(qrToken, clientIP);
+
+      if (!result.success || !result.data) {
+        res.status(401).json({
+          success: false,
+          error: result.msg || 'Invalid or expired QR token',
+        });
+        return;
+      }
+
+      // 设置 session cookie（远程模式下启用 secure 标志）
+      // Set session cookie (enable secure flag in remote mode)
+      res.cookie(AUTH_CONFIG.COOKIE.NAME, result.data.sessionToken, {
+        ...getCookieOptions(),
+        maxAge: AUTH_CONFIG.TOKEN.COOKIE_MAX_AGE,
+      });
+
+      res.json({
+        success: true,
+        user: { username: result.data.username },
+        token: result.data.sessionToken,
+      });
+    } catch (error) {
+      console.error('QR login error:', error);
+      res.status(500).json({
+        success: false,
+        error: 'Internal server error',
+      });
+    }
+  });
+
+  /**
+   * 二维码登录页面 - QR code login page
+   * GET /qr-login
+   * 安全处理：返回静态 HTML，JavaScript 从 URL 读取 token，避免 XSS
+   * Security: Return static HTML, JavaScript reads token from URL to prevent XSS
+   */
+  app.get('/qr-login', (_req: Request, res: Response) => {
+    res.send(QR_LOGIN_PAGE_HTML);
   });
 }
 

@@ -28,14 +28,12 @@ bridge.adapter({
   emit(name, data) {
     for (let i = 0, len = adapterWindowList.length; i < len; i++) {
       const win = adapterWindowList[i];
-      // console.log('>>>>>>>>adapter.emit', name, data);
       win.webContents.send(ADAPTER_BRIDGE_EVENT_KEY, JSON.stringify({ name, data }));
     }
   },
   on(emitter) {
-    ipcMain.handle(ADAPTER_BRIDGE_EVENT_KEY, (event, info) => {
+    ipcMain.handle(ADAPTER_BRIDGE_EVENT_KEY, (_event, info) => {
       const { name, data } = JSON.parse(info) as BridgeEventData;
-      // console.log('>>>>>>>>adapter.on', name, data);
       return Promise.resolve(emitter.emit(name, data));
     });
   },

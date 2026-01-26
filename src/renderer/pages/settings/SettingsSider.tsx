@@ -1,5 +1,6 @@
 import FlexFullContainer from '@/renderer/components/FlexFullContainer';
-import { Computer, Gemini, Info, LinkCloud, System, Toolkit, Robot } from '@icon-park/react';
+import { isElectronDesktop } from '@/renderer/utils/platform';
+import { Computer, Gemini, Info, LinkCloud, System, Toolkit, Robot, Earth } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -11,8 +12,11 @@ const SettingsSider: React.FC<{ collapsed?: boolean }> = ({ collapsed = false })
   const { t } = useTranslation();
   const { pathname } = useLocation();
 
+  // 检测是否在 Electron 桌面环境 / Check if running in Electron desktop environment
+  const isDesktop = isElectronDesktop();
+
   const menus = useMemo(() => {
-    return [
+    const items = [
       {
         label: t('settings.gemini'),
         icon: <Gemini />,
@@ -38,6 +42,18 @@ const SettingsSider: React.FC<{ collapsed?: boolean }> = ({ collapsed = false })
         icon: <Computer />,
         path: 'display',
       },
+    ];
+
+    // 仅在桌面端添加 WebUI 选项 / Only add WebUI option on desktop
+    if (isDesktop) {
+      items.push({
+        label: t('settings.webui'),
+        icon: <Earth />,
+        path: 'webui',
+      });
+    }
+
+    items.push(
       {
         label: t('settings.system'),
         icon: <System />,
@@ -47,9 +63,11 @@ const SettingsSider: React.FC<{ collapsed?: boolean }> = ({ collapsed = false })
         label: t('settings.about'),
         icon: <Info />,
         path: 'about',
-      },
-    ];
-  }, [t]);
+      }
+    );
+
+    return items;
+  }, [t, isDesktop]);
   return (
     <div className={classNames('flex-1 settings-sider flex flex-col gap-2px', { 'settings-sider--collapsed': collapsed })}>
       {menus.map((item) => {

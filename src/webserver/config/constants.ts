@@ -92,6 +92,7 @@ export const SERVER_CONFIG = {
   _currentConfig: {
     host: '127.0.0.1' as string,
     port: 25808 as number,
+    allowRemote: false as boolean,
   },
 
   /**
@@ -101,6 +102,15 @@ export const SERVER_CONFIG = {
   setServerConfig(port: number, allowRemote: boolean): void {
     this._currentConfig.port = port;
     this._currentConfig.host = allowRemote ? '0.0.0.0' : '127.0.0.1';
+    this._currentConfig.allowRemote = allowRemote;
+  },
+
+  /**
+   * 检查是否为远程访问模式
+   * Check if remote access mode is enabled
+   */
+  get isRemoteMode(): boolean {
+    return this._currentConfig.allowRemote;
   },
 
   /**
@@ -118,6 +128,39 @@ export const SERVER_CONFIG = {
     return `http://${host}:${this._currentConfig.port}`;
   },
 } as const;
+
+/**
+ * 获取动态 Cookie 选项（根据 HTTPS 配置决定 secure 标志）
+ * Get dynamic cookie options (secure flag based on HTTPS configuration)
+ *
+ * 安全说明：只有在 HTTPS 环境下才启用 secure 标志
+ * Security: Only enable secure flag when HTTPS is configured
+ *
+ * 注意：远程模式下如果使用 HTTP，cookie 仍然可以工作（secure=false）
+ * Note: In remote mode with HTTP, cookies still work (secure=false)
+ * 建议生产环境配置 HTTPS 并设置 AIONUI_HTTPS=true
+ * Recommend configuring HTTPS in production and setting AIONUI_HTTPS=true
+ */
+export function getCookieOptions(): {
+  httpOnly: boolean;
+  secure: boolean;
+  sameSite: 'strict' | 'lax' | 'none';
+  maxAge?: number;
+} {
+  // 只有当明确配置 HTTPS 时才启用 secure 标志
+  // Only enable secure flag when HTTPS is explicitly configured
+  const isHttps = process.env.AIONUI_HTTPS === 'true' || (process.env.NODE_ENV === 'production' && process.env.HTTPS === 'true');
+
+  return {
+    httpOnly: AUTH_CONFIG.COOKIE.OPTIONS.httpOnly,
+    // HTTP 环境下 secure=false，允许 cookie 在非 HTTPS 连接中工作
+    // In HTTP environment secure=false, allows cookies to work over non-HTTPS connections
+    secure: isHttps,
+    // 远程 HTTP 模式需要 lax 以支持跨站请求（从不同 IP 访问）
+    // Remote HTTP mode needs 'lax' to support cross-site requests (access from different IPs)
+    sameSite: SERVER_CONFIG.isRemoteMode && !isHttps ? 'lax' : AUTH_CONFIG.COOKIE.OPTIONS.sameSite,
+  };
+}
 
 // 安全配置
 export const SECURITY_CONFIG = {

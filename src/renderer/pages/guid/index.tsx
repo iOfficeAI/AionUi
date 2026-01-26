@@ -1105,7 +1105,7 @@ const Guid: React.FC = () => {
   }, [t]);
   return (
     <ConfigProvider getPopupContainer={() => guidContainerRef.current || document.body}>
-      <div ref={guidContainerRef} className='h-full flex-center flex-col px-10px' style={{ position: 'relative' }}>
+      <div ref={guidContainerRef} className={styles.guidContainer}>
         <div className={styles.guidLayout}>
           <p className={`text-2xl font-semibold mb-8 text-0 text-center`}>{t('conversation.welcome.title')}</p>
 
@@ -1223,7 +1223,7 @@ const Guid: React.FC = () => {
               </div>
             )}
             <div className={styles.actionRow}>
-              <div className={`${styles.actionTools} flex items-center gap-10px`}>
+              <div className={styles.actionTools}>
                 <Dropdown
                   trigger='hover'
                   onVisibleChange={setIsPlusDropdownOpen}
@@ -1396,7 +1396,7 @@ const Guid: React.FC = () => {
 
                 {isPresetAgent && selectedAgentInfo && (
                   <div
-                    className='group flex items-center gap-6px bg-aou-2 pl-10px pr-6px py-4px rd-16px cursor-pointer select-none transition-colors hover:bg-fill-3'
+                    className={styles.presetAgentTag}
                     onClick={() => {
                       /* Optional: Open assistant settings or do nothing, removal is via the X icon */
                     }}
@@ -1404,17 +1404,21 @@ const Guid: React.FC = () => {
                     {(() => {
                       const avatarValue = selectedAgentInfo.avatar?.trim();
                       const avatarImage = avatarValue ? CUSTOM_AVATAR_IMAGE_MAP[avatarValue] : undefined;
-                      return avatarImage ? <img src={avatarImage} alt='' width={16} height={16} style={{ objectFit: 'contain' }} /> : avatarValue ? <span style={{ fontSize: 14, lineHeight: '16px' }}>{avatarValue}</span> : <Robot theme='outline' size={16} />;
+                      return avatarImage ? <img src={avatarImage} alt='' width={16} height={16} style={{ objectFit: 'contain', flexShrink: 0 }} /> : avatarValue ? <span style={{ fontSize: 14, lineHeight: '16px', flexShrink: 0 }}>{avatarValue}</span> : <Robot theme='outline' size={16} style={{ flexShrink: 0 }} />;
                     })()}
-                    <span className='text-14px text-t-primary'>{customAgents.find((a) => a.id === selectedAgentInfo.customAgentId)?.nameI18n?.[localeKey] || customAgents.find((a) => a.id === selectedAgentInfo.customAgentId)?.name || selectedAgentInfo.name}</span>
+                    {(() => {
+                      const agent = customAgents.find((a) => a.id === selectedAgentInfo.customAgentId);
+                      const name = agent?.nameI18n?.[localeKey] || agent?.name || selectedAgentInfo.name;
+                      return <span className={styles.presetAgentTagName}>{name}</span>;
+                    })()}
                     <div
-                      className='flex items-center justify-center w-16px h-16px rd-full hover:bg-fill-4 transition-colors ml-2px'
+                      className={styles.presetAgentTagClose}
                       onClick={(e) => {
                         e.stopPropagation();
                         setSelectedAgentKey('gemini'); // Reset to default
                       }}
                     >
-                      <IconClose style={{ fontSize: 12, color: 'var(--text-tertiary)' }} />
+                      <IconClose style={{ fontSize: 12, color: 'var(--color-text-3)' }} />
                     </div>
                   </div>
                 )}
@@ -1467,7 +1471,7 @@ const Guid: React.FC = () => {
                         className='p-12px rd-14px text-13px text-3 text-t-secondary whitespace-pre-wrap leading-relaxed '
                         style={{
                           border: '1px solid var(--color-border-2)',
-                          background: 'var(--fill-1, #F7F8FA)',
+                          background: 'var(--color-fill-1)',
                         }}
                       >
                         {customAgents.find((a) => a.id === selectedAgentInfo.customAgentId)?.descriptionI18n?.[localeKey] || customAgents.find((a) => a.id === selectedAgentInfo.customAgentId)?.description || t('settings.assistantDescriptionPlaceholder', { defaultValue: 'No description' })}
@@ -1485,7 +1489,7 @@ const Guid: React.FC = () => {
                           {prompts.map((prompt: string, index: number) => (
                             <div
                               key={index}
-                              className='px-12px py-6px bg-white hover:bg-[rgba(255,255,255,0.8)] text-[rgb(var(--primary-6))] text-13px rd-16px cursor-pointer transition-colors shadow-sm'
+                              className='px-12px py-6px bg-fill-2 hover:bg-fill-3 text-[rgb(var(--primary-6))] text-13px rd-16px cursor-pointer transition-colors shadow-sm'
                               onClick={() => {
                                 setInput(prompt);
                                 handleTextareaFocus();

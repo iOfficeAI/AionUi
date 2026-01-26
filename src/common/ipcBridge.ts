@@ -12,6 +12,7 @@ import type { AcpBackend, PresetAgentType } from '../types/acpTypes';
 import type { IMcpServer, IProvider, TChatConversation, TProviderWithModel } from './storage';
 import type { PreviewHistoryTarget, PreviewSnapshotInfo } from './types/preview';
 import type { ProtocolDetectionRequest, ProtocolDetectionResponse } from './utils/protocolDetector';
+import type { UpdateCheckRequest, UpdateCheckResult, UpdateDownloadProgressEvent, UpdateDownloadRequest, UpdateDownloadResult } from './updateTypes';
 
 export const shell = {
   openFile: bridge.buildProvider<void, string>('open-file'), // 使用系统默认程序打开文件
@@ -58,6 +59,18 @@ export const application = {
   updateSystemInfo: bridge.buildProvider<IBridgeResponse, { cacheDir: string; workDir: string }>('system.update-info'), // 更新系统信息
   getZoomFactor: bridge.buildProvider<number, void>('app.get-zoom-factor'),
   setZoomFactor: bridge.buildProvider<number, { factor: number }>('app.set-zoom-factor'),
+};
+
+// Manual (opt-in) updates via GitHub Releases
+export const update = {
+  /** Ask the renderer to open the update UI (e.g. from app menu). */
+  open: bridge.buildEmitter<{ source?: 'menu' | 'about' }>('update.open'),
+  /** Check GitHub releases and return latest version info. */
+  check: bridge.buildProvider<IBridgeResponse<UpdateCheckResult>, UpdateCheckRequest>('update.check'),
+  /** Download a chosen release asset (explicit user action). */
+  download: bridge.buildProvider<IBridgeResponse<UpdateDownloadResult>, UpdateDownloadRequest>('update.download'),
+  /** Download progress events emitted by main process. */
+  downloadProgress: bridge.buildEmitter<UpdateDownloadProgressEvent>('update.download.progress'),
 };
 
 export const dialog = {
@@ -219,6 +232,39 @@ export const windowControls = {
   close: bridge.buildProvider<void, void>('window-controls:close'),
   isMaximized: bridge.buildProvider<boolean, void>('window-controls:is-maximized'),
   maximizedChanged: bridge.buildEmitter<{ isMaximized: boolean }>('window-controls:maximized-changed'),
+};
+
+// WebUI 服务管理接口 / WebUI service management API
+export interface IWebUIStatus {
+  running: boolean;
+  port: number;
+  allowRemote: boolean;
+  localUrl: string;
+  networkUrl?: string;
+  lanIP?: string; // 局域网 IP，用于构建远程访问 URL / LAN IP for building remote access URL
+  adminUsername: string;
+  initialPassword?: string;
+}
+
+export const webui = {
+  // 获取 WebUI 状态 / Get WebUI status
+  getStatus: bridge.buildProvider<IBridgeResponse<IWebUIStatus>, void>('webui.get-status'),
+  // 启动 WebUI / Start WebUI
+  start: bridge.buildProvider<IBridgeResponse<{ port: number; localUrl: string; networkUrl?: string; lanIP?: string; initialPassword?: string }>, { port?: number; allowRemote?: boolean }>('webui.start'),
+  // 停止 WebUI / Stop WebUI
+  stop: bridge.buildProvider<IBridgeResponse, void>('webui.stop'),
+  // 修改密码（不需要当前密码）/ Change password (no current password required)
+  changePassword: bridge.buildProvider<IBridgeResponse, { newPassword: string }>('webui.change-password'),
+  // 重置密码（生成新随机密码）/ Reset password (generate new random password)
+  resetPassword: bridge.buildProvider<IBridgeResponse<{ newPassword: string }>, void>('webui.reset-password'),
+  // 生成二维码登录 token / Generate QR login token
+  generateQRToken: bridge.buildProvider<IBridgeResponse<{ token: string; expiresAt: number; qrUrl: string }>, void>('webui.generate-qr-token'),
+  // 验证二维码 token / Verify QR token
+  verifyQRToken: bridge.buildProvider<IBridgeResponse<{ sessionToken: string; username: string }>, { qrToken: string }>('webui.verify-qr-token'),
+  // 状态变更事件 / Status changed event
+  statusChanged: bridge.buildEmitter<{ running: boolean; port?: number; localUrl?: string; networkUrl?: string }>('webui.status-changed'),
+  // 密码重置结果事件（绕过 provider 返回值问题）/ Password reset result event (workaround for provider return value issue)
+  resetPasswordResult: bridge.buildEmitter<{ success: boolean; newPassword?: string; msg?: string }>('webui.reset-password-result'),
 };
 
 interface ISendMessageParams {

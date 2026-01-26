@@ -7,7 +7,6 @@
 import express from 'express';
 import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
-import { shell } from 'electron';
 import { execSync } from 'child_process';
 import { networkInterfaces } from 'os';
 import { AuthService } from '@/webserver/auth/service/AuthService';
@@ -23,6 +22,25 @@ import { registerStaticRoutes } from './routes/staticRoutes';
 // Express Request type extension is defined in src/webserver/types/express.d.ts
 
 const DEFAULT_ADMIN_USERNAME = AUTH_CONFIG.DEFAULT_USER.USERNAME;
+
+// 存储初始密码（内存中，用于首次显示）/ Store initial password (in memory, for first-time display)
+let initialAdminPassword: string | null = null;
+
+/**
+ * 获取初始管理员密码（仅用于首次显示）
+ * Get initial admin password (only for first-time display)
+ */
+export function getInitialAdminPassword(): string | null {
+  return initialAdminPassword;
+}
+
+/**
+ * 清除初始管理员密码（用户修改密码后调用）
+ * Clear initial admin password (called after user changes password)
+ */
+export function clearInitialAdminPassword(): void {
+  initialAdminPassword = null;
+}
 
 /**
  * 获取局域网 IP 地址
@@ -127,6 +145,7 @@ async function initializeDefaultAdmin(): Promise<{ username: string; password: s
       // 情况 1：库中已有 admin 记录但密码缺失 -> 重置密码并输出凭证
       // Case 1: admin row exists but password is blank -> refresh password and expose credentials
       UserRepository.updatePassword(existingAdmin.id, hashedPassword);
+      initialAdminPassword = password; // 存储初始密码 / Store initial password
       return { username, password };
     }
 
@@ -134,12 +153,14 @@ async function initializeDefaultAdmin(): Promise<{ username: string; password: s
       // 情况 2：仅存在 system_default_user 占位行 -> 更新用户名和密码
       // Case 2: only placeholder system user exists -> update username/password in place
       UserRepository.setSystemUserCredentials(username, hashedPassword);
+      initialAdminPassword = password; // 存储初始密码 / Store initial password
       return { username, password };
     }
 
     // 情况 3：初次启动，无任何用户 -> 新建 admin 账户
     // Case 3: fresh install with no users -> create admin user explicitly
     UserRepository.createUser(username, hashedPassword);
+    initialAdminPassword = password; // 存储初始密码 / Store initial password
     return { username, password };
   } catch (error) {
     console.error('❌ Failed to initialize default admin account:', error);
@@ -171,59 +192,62 @@ function displayInitialCredentials(credentials: { username: string; password: st
 }
 
 /**
- * 启动 Web 服务器
- * Start web server with authentication and WebSocket support
+ * WebUI 服务器实例类型
+ * WebUI server instance type
+ */
+export interface WebServerInstance {
+  server: import('http').Server;
+  wss: import('ws').WebSocketServer;
+  port: number;
+  allowRemote: boolean;
+}
+
+/**
+ * 启动 Web 服务器并返回实例（供 IPC 调用）
+ * Start web server and return instance (for IPC calls)
  *
  * @param port 服务器端口 / Server port
  * @param allowRemote 是否允许远程访问 / Allow remote access
+ * @returns 服务器实例 / Server instance
  */
-export async function startWebServer(port: number, allowRemote = false): Promise<void> {
-  // 设置服务器配置
-  // Set server configuration
+export async function startWebServerWithInstance(port: number, allowRemote = false): Promise<WebServerInstance> {
+  // 设置服务器配置 / Set server configuration
   SERVER_CONFIG.setServerConfig(port, allowRemote);
 
-  // 创建 Express 应用和服务器
-  // Create Express app and server
+  // 创建 Express 应用和服务器 / Create Express app and server
   const app = express();
   const server = createServer(app);
   const wss = new WebSocketServer({ server });
 
-  // 初始化默认管理员账户
-  // Initialize default admin account
+  // 初始化默认管理员账户 / Initialize default admin account
   const initialCredentials = await initializeDefaultAdmin();
 
-  // 配置中间件
-  // Configure middleware
+  // 配置中间件 / Configure middleware
   setupBasicMiddleware(app);
   setupCors(app, port, allowRemote);
 
-  // 注册路由
-  // Register routes
+  // 注册路由 / Register routes
   registerAuthRoutes(app);
   registerApiRoutes(app);
   registerStaticRoutes(app);
 
-  // 配置错误处理（必须最后）
-  // Configure error handler (must be last)
+  // 配置错误处理（必须最后）/ Setup error handler (must be last)
   setupErrorHandler(app);
 
-  // 启动服务器
-  // Start server
+  // 启动服务器 / Start server
+  // 根据 allowRemote 决定监听地址：0.0.0.0 (所有接口) 或 127.0.0.1 (仅本地)
+  // Listen on 0.0.0.0 (all interfaces) or 127.0.0.1 (local only) based on allowRemote
+  const host = allowRemote ? SERVER_CONFIG.REMOTE_HOST : SERVER_CONFIG.DEFAULT_HOST;
   return new Promise((resolve, reject) => {
-    server.listen(port, () => {
+    server.listen(port, host, () => {
       const localUrl = `http://localhost:${port}`;
-
-      // 尝试获取服务器 IP（Linux 无桌面环境获取公网 IP，其他环境获取局域网 IP）
-      // Try to get server IP (public IP for Linux headless, LAN IP for others)
       const serverIP = getServerIP();
       const displayUrl = serverIP ? `http://${serverIP}:${port}` : localUrl;
 
-      // 显示初始凭证（如果是首次启动）
-      // Display initial credentials (if first time)
+      // 显示初始凭证（如果是首次启动）/ Display initial credentials (if first startup)
       if (initialCredentials) {
         displayInitialCredentials(initialCredentials, localUrl, allowRemote, displayUrl);
       } else {
-        // Only show network access when --remote flag is enabled
         if (allowRemote && serverIP && serverIP !== 'localhost') {
           console.log(`\n   🚀 Local access / 本地访问: ${localUrl}`);
           console.log(`   🚀 Network access / 网络访问: ${displayUrl}\n`);
@@ -232,20 +256,15 @@ export async function startWebServer(port: number, allowRemote = false): Promise
         }
       }
 
-      // 自动打开浏览器（仅在有桌面环境时）
-      // Auto-open browser (only when desktop environment is available)
-      // 当 allowRemote 为 true 时，优先打开局域网 IP
-      // When allowRemote is true, prefer to open LAN IP
-      if (process.env.DISPLAY || process.platform !== 'linux') {
-        const urlToOpen = allowRemote && serverIP ? displayUrl : localUrl;
-        void shell.openExternal(urlToOpen);
-      }
-
-      // 初始化 WebSocket 适配器
-      // Initialize WebSocket adapter
+      // 初始化 WebSocket 适配器 / Initialize WebSocket adapter
       initWebAdapter(wss);
 
-      resolve();
+      resolve({
+        server,
+        wss,
+        port,
+        allowRemote,
+      });
     });
 
     server.on('error', (err: NodeJS.ErrnoException) => {
@@ -257,4 +276,20 @@ export async function startWebServer(port: number, allowRemote = false): Promise
       reject(err);
     });
   });
+}
+
+/**
+ * 启动 Web 服务器（CLI 模式，会自动打开浏览器）
+ * Start web server (CLI mode, auto-opens browser)
+ *
+ * @param port 服务器端口 / Server port
+ * @param allowRemote 是否允许远程访问 / Allow remote access
+ */
+export async function startWebServer(port: number, allowRemote = false): Promise<void> {
+  // 复用 startWebServerWithInstance
+  // Reuse startWebServerWithInstance
+  await startWebServerWithInstance(port, allowRemote);
+
+  // 不再自动打开浏览器，用户可手动访问控制台输出的 URL
+  // No longer auto-open browser, user can manually visit the URL printed in console
 }

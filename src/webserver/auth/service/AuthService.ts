@@ -6,7 +6,7 @@
 
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 import type { AuthUser } from '../repository/UserRepository';
 import { UserRepository } from '../repository/UserRepository';
 import { AUTH_CONFIG } from '../../config/constants';
@@ -28,6 +28,28 @@ interface UserCredentials {
   createdAt: number;
 }
 
+const hashPasswordAsync = (password: string, saltRounds: number): Promise<string> =>
+  new Promise((resolve, reject) => {
+    bcrypt.hash(password, saltRounds, (error, hash) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+      resolve(hash);
+    });
+  });
+
+const comparePasswordAsync = (password: string, hash: string): Promise<boolean> =>
+  new Promise((resolve, reject) => {
+    bcrypt.compare(password, hash, (error, same) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+      resolve(same);
+    });
+  });
+
 /**
  * 认证服务 - 提供密码哈希、Token 生成与验证等能力
  * Authentication Service - handles password hashing, token issuance, and validation
@@ -36,6 +58,80 @@ export class AuthService {
   private static readonly SALT_ROUNDS = 12;
   private static jwtSecret: string | null = null;
   private static readonly TOKEN_EXPIRY = AUTH_CONFIG.TOKEN.SESSION_EXPIRY;
+
+  /**
+   * Token 黑名单 - 存储已登出的 token（内存存储，重启后清空）
+   * Token blacklist - stores logged out tokens (in-memory, cleared on restart)
+   * Key: token 的 SHA-256 哈希, Value: 过期时间戳
+   */
+  private static tokenBlacklist: Map<string, number> = new Map();
+  private static readonly BLACKLIST_CLEANUP_INTERVAL = 60 * 60 * 1000; // 1 hour
+  private static blacklistCleanupTimer: ReturnType<typeof setInterval> | null = null;
+
+  /**
+   * 将 token 加入黑名单（登出时调用）
+   * Add token to blacklist (called on logout)
+   */
+  public static blacklistToken(token: string): void {
+    // 使用 token 的哈希作为 key，避免存储原始 token
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+
+    // 解析 token 获取过期时间
+    try {
+      const decoded = jwt.decode(token) as { exp?: number } | null;
+      const expiry = decoded?.exp ? decoded.exp * 1000 : Date.now() + AUTH_CONFIG.TOKEN.COOKIE_MAX_AGE;
+      this.tokenBlacklist.set(tokenHash, expiry);
+
+      // 启动清理定时器（如果还没启动）
+      this.startBlacklistCleanup();
+    } catch {
+      // 即使解析失败，也加入黑名单（使用默认过期时间）
+      this.tokenBlacklist.set(tokenHash, Date.now() + AUTH_CONFIG.TOKEN.COOKIE_MAX_AGE);
+    }
+  }
+
+  /**
+   * 检查 token 是否在黑名单中
+   * Check if token is blacklisted
+   */
+  public static isTokenBlacklisted(token: string): boolean {
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const expiry = this.tokenBlacklist.get(tokenHash);
+
+    if (!expiry) {
+      return false;
+    }
+
+    // 如果已过期，从黑名单移除
+    if (Date.now() > expiry) {
+      this.tokenBlacklist.delete(tokenHash);
+      return false;
+    }
+
+    return true;
+  }
+
+  /**
+   * 启动黑名单清理定时器
+   * Start blacklist cleanup timer
+   */
+  private static startBlacklistCleanup(): void {
+    if (this.blacklistCleanupTimer) {
+      return;
+    }
+
+    this.blacklistCleanupTimer = setInterval(() => {
+      const now = Date.now();
+      for (const [hash, expiry] of this.tokenBlacklist.entries()) {
+        if (now > expiry) {
+          this.tokenBlacklist.delete(hash);
+        }
+      }
+    }, this.BLACKLIST_CLEANUP_INTERVAL);
+
+    // 允许进程正常退出
+    this.blacklistCleanupTimer.unref();
+  }
 
   /**
    * 生成高强度的随机密钥
@@ -118,7 +214,7 @@ export class AuthService {
    * Hash password using bcrypt
    */
   public static hashPassword(password: string): Promise<string> {
-    return bcrypt.hash(password, this.SALT_ROUNDS);
+    return hashPasswordAsync(password, this.SALT_ROUNDS);
   }
 
   /**
@@ -126,7 +222,7 @@ export class AuthService {
    * Verify whether the password matches the stored hash
    */
   public static verifyPassword(password: string, hash: string): Promise<boolean> {
-    return bcrypt.compare(password, hash);
+    return comparePasswordAsync(password, hash);
   }
 
   /**
@@ -165,6 +261,11 @@ export class AuthService {
    */
   public static verifyToken(token: string): TokenPayload | null {
     try {
+      // 先检查黑名单 / Check blacklist first
+      if (this.isTokenBlacklisted(token)) {
+        return null;
+      }
+
       const decoded = jwt.verify(token, this.getJwtSecret(), {
         issuer: 'aionui',
         audience: 'aionui-webui',
@@ -194,6 +295,11 @@ export class AuthService {
    */
   public static verifyWebSocketToken(token: string): TokenPayload | null {
     try {
+      // 先检查黑名单 / Check blacklist first
+      if (this.isTokenBlacklisted(token)) {
+        return null;
+      }
+
       const decoded = jwt.verify(token, this.getJwtSecret(), {
         issuer: 'aionui',
         audience: 'aionui-webui', // 使用与 Web 登录相同的 audience
@@ -281,8 +387,8 @@ export class AuthService {
   }
 
   /**
-   * 校验密码强度并返回错误提示
-   * Validate password strength and return messages
+   * 校验密码强度并返回错误提示（简化版，适用于本地 WebUI）
+   * Validate password strength (simplified for local WebUI)
    */
   public static validatePasswordStrength(password: string): {
     isValid: boolean;
@@ -290,6 +396,7 @@ export class AuthService {
   } {
     const errors: string[] = [];
 
+    // 仅要求最小长度 / Only require minimum length
     if (password.length < 8) {
       errors.push('Password must be at least 8 characters long');
     }
@@ -298,29 +405,10 @@ export class AuthService {
       errors.push('Password must be less than 128 characters long');
     }
 
-    if (!/[a-z]/.test(password)) {
-      errors.push('Password must contain at least one lowercase letter');
-    }
-
-    if (!/[A-Z]/.test(password)) {
-      errors.push('Password must contain at least one uppercase letter');
-    }
-
-    if (!/[0-9]/.test(password)) {
-      errors.push('Password must contain at least one number');
-    }
-
-    if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password)) {
-      errors.push('Password must contain at least one special character');
-    }
-
-    // 检查重复字符或常见弱口令模式 / Guard against repeats or common patterns
-    if (/(.)\1{2,}/.test(password)) {
-      errors.push('Password should not contain repeated characters');
-    }
-
-    if (/123|abc|qwerty|password/i.test(password)) {
-      errors.push('Password should not contain common patterns');
+    // 禁止明显的弱密码 / Block obvious weak passwords
+    const weakPasswords = ['password', '12345678', '123456789', 'qwertyui', 'abcdefgh'];
+    if (weakPasswords.includes(password.toLowerCase())) {
+      errors.push('Password is too common, please choose a stronger one');
     }
 
     return {
@@ -379,7 +467,7 @@ export class AuthService {
 
     let result: boolean;
     if (hashProvided) {
-      result = await bcrypt.compare(provided, expected);
+      result = await comparePasswordAsync(provided, expected);
     } else {
       result = crypto.timingSafeEqual(Buffer.from(provided.padEnd(expected.length, '0')), Buffer.from(expected.padEnd(provided.length, '0')));
     }

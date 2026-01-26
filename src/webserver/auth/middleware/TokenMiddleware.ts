@@ -8,7 +8,7 @@ import type { Request, Response, NextFunction } from 'express';
 import type { IncomingMessage } from 'http';
 import { AuthService } from '../service/AuthService';
 import { UserRepository } from '../repository/UserRepository';
-import { AUTH_CONFIG, SERVER_CONFIG } from '../../config/constants';
+import { AUTH_CONFIG } from '../../config/constants';
 
 /**
  * Token 负载接口
@@ -22,18 +22,19 @@ export interface TokenPayload {
 /**
  * Token 提取器 - 从请求中提取认证 token
  * Token Extractor - Extract authentication token from request
+ *
+ * 安全说明：不再支持从 URL query 参数提取 token，避免 token 通过日志、Referrer 等泄露
+ * Security: URL query token is no longer supported to prevent token leakage via logs, Referrer, etc.
  */
 class TokenExtractor {
   /**
-   * 从请求中提取 token，支持多种来源：
+   * 从请求中提取 token，支持以下来源：
    * 1. Authorization header (Bearer token)
    * 2. Cookie (aionui-session)
-   * 3. Query parameter (token)
    *
-   * Extract token from request, supporting multiple sources:
+   * Extract token from request, supporting these sources:
    * 1. Authorization header (Bearer token)
    * 2. Cookie (aionui-session)
-   * 3. Query parameter (token)
    *
    * @param req - Express 请求对象 / Express request object
    * @returns Token 字符串或 null / Token string or null
@@ -53,10 +54,8 @@ class TokenExtractor {
       }
     }
 
-    // 3. 尝试从 Query 参数提取 / Try to extract from Query parameter
-    if (typeof req.query?.token === 'string') {
-      return req.query.token;
-    }
+    // 不再支持从 URL query 参数提取 token（安全风险）
+    // URL query token is no longer supported (security risk)
 
     return null;
   }
@@ -200,7 +199,13 @@ export const TokenMiddleware = {
     return createAuthMiddleware(options?.responseType ?? 'json');
   },
 
-  /** 从 WebSocket 请求中提取 token / Extract token from WebSocket request */
+  /**
+   * 从 WebSocket 请求中提取 token
+   * Extract token from WebSocket request
+   *
+   * 安全说明：不再支持从 URL query 参数提取 token，避免 token 通过日志、Referrer 等泄露
+   * Security: URL query token is no longer supported to prevent token leakage via logs, Referrer, etc.
+   */
   extractWebSocketToken(req: IncomingMessage): string | null {
     // 1. 从 Authorization header 提取
     const authHeader = req.headers['authorization'];
@@ -228,20 +233,14 @@ export const TokenMiddleware = {
       }
     }
 
-    // 3. 从 sec-websocket-protocol 提取
+    // 3. 从 sec-websocket-protocol 提取（用于不支持 Cookie 的客户端）
     const protocolHeader = req.headers['sec-websocket-protocol'];
     if (typeof protocolHeader === 'string' && protocolHeader.trim() !== '') {
       return protocolHeader.split(',')[0]?.trim() ?? null;
     }
 
-    // 4. 从 URL query 参数提取
-    if (req.url) {
-      const url = new URL(req.url, SERVER_CONFIG.BASE_URL);
-      const token = url.searchParams.get('token');
-      if (token) {
-        return token;
-      }
-    }
+    // 不再支持从 URL query 参数提取 token（安全风险）
+    // URL query token is no longer supported (security risk)
 
     return null;
   },

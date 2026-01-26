@@ -17,6 +17,7 @@ import { LayoutContext } from './context/LayoutContext';
 import { useDirectorySelection } from './hooks/useDirectorySelection';
 import { useMultiAgentDetection } from './hooks/useMultiAgentDetection';
 import { processCustomCss } from './utils/customCssProcessor';
+import UpdateModal from '@/renderer/components/UpdateModal';
 
 const useDebug = () => {
   const [count, setCount] = useState(0);
@@ -187,9 +188,7 @@ const Layout: React.FC<{
               isMobile
                 ? {
                     position: 'fixed',
-                    top: 0,
                     left: 0,
-                    height: '100vh',
                     zIndex: 100,
                     transform: collapsed ? 'translateX(-100%)' : 'translateX(0)',
                     transition: 'none',
@@ -229,7 +228,7 @@ const Layout: React.FC<{
               )}
               {/* 侧栏折叠改由标题栏统一控制 / Sidebar folding handled by Titlebar toggle */}
             </ArcoLayout.Header>
-            <ArcoLayout.Content className='h-[calc(100%-72px-16px)] p-8px layout-sider-content'>
+            <ArcoLayout.Content className={classNames('p-8px layout-sider-content', !isMobile && 'h-[calc(100%-72px-16px)]')}>
               {React.isValidElement(sider)
                 ? React.cloneElement(sider, {
                     onSessionClick: () => {
@@ -258,6 +257,7 @@ const Layout: React.FC<{
             {multiAgentContextHolder}
             {directorySelectionContextHolder}
             <PwaPullToRefresh />
+            <UpdateModal />
           </ArcoLayout.Content>
         </ArcoLayout>
       </div>

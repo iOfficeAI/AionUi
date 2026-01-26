@@ -189,6 +189,71 @@ body,
   }
 }
 
+/* Safe area utilities for mobile devices / 移动端安全区域工具类 */
+/* iOS 17+ Chrome, Safari 需要在 CSS 中使用 env() 而非内联样式 */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+}
+
+/* Mobile sidebar positioning / 移动端侧边栏定位 */
+/* 使用 dvh (dynamic viewport height) 以获得更好的移动端支持 */
+/* Use dvh for better mobile browser support (iOS Chrome/Safari) */
+@media (max-width: 767px) {
+  .layout-sider {
+    /* 固定定位从顶部开始 */
+    top: 0 !important;
+    /* 使用 dvh 单位，它会自动处理浏览器 UI 变化 */
+    /* dvh automatically accounts for browser chrome on mobile */
+    height: 100vh !important;
+    height: 100dvh !important;
+    /* 使用 flex 布局管理内部空间 */
+    display: flex !important;
+    flex-direction: column !important;
+    /* 通过 padding 处理安全区域，而不是调整 height */
+    /* Use padding for safe areas instead of height adjustment */
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    box-sizing: border-box !important;
+  }
+
+  /* Arco Layout 内部容器需要 flex 布局 */
+  .layout-sider > .arco-layout-sider-children {
+    display: flex !important;
+    flex-direction: column !important;
+    flex: 1 !important;
+    min-height: 0 !important;
+    height: auto !important;
+  }
+
+  /* 侧边栏头部固定高度 */
+  .layout-sider-header {
+    flex-shrink: 0 !important;
+  }
+
+  /* 侧边栏内容区域填充剩余空间 */
+  .layout-sider-content {
+    flex: 1 !important;
+    min-height: 0 !important;
+    height: auto !important;
+    overflow: hidden !important;
+  }
+
+  /* 侧边栏底部按钮固定在底部 */
+  /* Footer stays at bottom with extra padding as fallback */
+  .sider-footer {
+    flex-shrink: 0 !important;
+    /* 额外的 padding 作为 iOS Chrome 的回退方案 */
+    /* Extra padding as fallback for iOS Chrome */
+    padding-bottom: 20px;
+  }
+}
+
 /* Layout sider base styles / 布局侧栏基础样式 */
 .layout-sider {
   overflow-x: hidden;

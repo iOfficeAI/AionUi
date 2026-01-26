@@ -46,37 +46,43 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   };
   return (
     <div className='size-full flex flex-col'>
-      {isSettings ? (
-        <SettingsSider collapsed={collapsed}></SettingsSider>
-      ) : (
-        <>
-          <Tooltip disabled={!collapsed} content={t('conversation.welcome.newConversation')} position='right'>
-            <div
-              className='flex items-center justify-start gap-10px px-12px py-8px hover:bg-hover rd-0.5rem mb-8px cursor-pointer group'
-              onClick={() => {
-                closePreview();
-                Promise.resolve(navigate('/guid')).catch((error) => {
-                  console.error('Navigation failed:', error);
-                });
-                // 点击new chat后自动隐藏sidebar / Hide sidebar after starting new chat on mobile
-                if (onSessionClick) {
-                  onSessionClick();
-                }
-              }}
-            >
-              <Plus theme='outline' size='24' fill={iconColors.primary} className='flex' />
-              <span className='collapsed-hidden font-bold text-t-primary'>{t('conversation.welcome.newConversation')}</span>
-            </div>
-          </Tooltip>
-          <WorkspaceGroupedHistory collapsed={collapsed} onSessionClick={onSessionClick}></WorkspaceGroupedHistory>
-        </>
-      )}
-      <Tooltip disabled={!collapsed} content={isSettings ? t('common.back') : t('common.settings')} position='right'>
-        <div onClick={handleSettingsClick} className='flex items-center justify-start gap-10px px-12px py-8px hover:bg-hover rd-0.5rem mb-8px cursor-pointer'>
-          {isSettings ? <ArrowCircleLeft className='flex' theme='outline' size='24' fill={iconColors.primary} /> : <SettingTwo className='flex' theme='outline' size='24' fill={iconColors.primary} />}
-          <span className='collapsed-hidden text-t-primary'>{isSettings ? t('common.back') : t('common.settings')}</span>
-        </div>
-      </Tooltip>
+      {/* Main content area */}
+      <div className='flex-1 min-h-0 overflow-hidden'>
+        {isSettings ? (
+          <SettingsSider collapsed={collapsed}></SettingsSider>
+        ) : (
+          <div className='size-full flex flex-col'>
+            <Tooltip disabled={!collapsed} content={t('conversation.welcome.newConversation')} position='right'>
+              <div
+                className='flex items-center justify-start gap-10px px-12px py-8px hover:bg-hover rd-0.5rem mb-8px cursor-pointer group shrink-0'
+                onClick={() => {
+                  closePreview();
+                  Promise.resolve(navigate('/guid')).catch((error) => {
+                    console.error('Navigation failed:', error);
+                  });
+                  // 点击new chat后自动隐藏sidebar / Hide sidebar after starting new chat on mobile
+                  if (onSessionClick) {
+                    onSessionClick();
+                  }
+                }}
+              >
+                <Plus theme='outline' size='24' fill={iconColors.primary} className='flex' />
+                <span className='collapsed-hidden font-bold text-t-primary'>{t('conversation.welcome.newConversation')}</span>
+              </div>
+            </Tooltip>
+            <WorkspaceGroupedHistory collapsed={collapsed} onSessionClick={onSessionClick}></WorkspaceGroupedHistory>
+          </div>
+        )}
+      </div>
+      {/* Footer - settings button */}
+      <div className='shrink-0 sider-footer'>
+        <Tooltip disabled={!collapsed} content={isSettings ? t('common.back') : t('common.settings')} position='right'>
+          <div onClick={handleSettingsClick} className='flex items-center justify-start gap-10px px-12px py-8px hover:bg-hover rd-0.5rem mb-8px cursor-pointer'>
+            {isSettings ? <ArrowCircleLeft className='flex' theme='outline' size='24' fill={iconColors.primary} /> : <SettingTwo className='flex' theme='outline' size='24' fill={iconColors.primary} />}
+            <span className='collapsed-hidden text-t-primary'>{isSettings ? t('common.back') : t('common.settings')}</span>
+          </div>
+        </Tooltip>
+      </div>
     </div>
   );
 };

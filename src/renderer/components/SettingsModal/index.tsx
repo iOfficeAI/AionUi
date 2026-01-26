@@ -7,7 +7,8 @@
 import AionModal from '@/renderer/components/base/AionModal';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { iconColors } from '@/renderer/theme/colors';
-import { Computer, Gemini, Info, LinkCloud, Toolkit, Robot } from '@icon-park/react';
+import { isElectronDesktop } from '@/renderer/utils/platform';
+import { Computer, Gemini, Info, LinkCloud, Toolkit, Earth } from '@icon-park/react';
 import { Tabs } from '@arco-design/web-react';
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -18,6 +19,7 @@ import GeminiModalContent from './contents/GeminiModalContent';
 import ModelModalContent from './contents/ModelModalContent';
 import SystemModalContent from './contents/SystemModalContent';
 import ToolsModalContent from './contents/ToolsModalContent';
+import WebuiModalContent from './contents/WebuiModalContent';
 import { SettingsViewModeProvider } from './settingsViewContext';
 
 // ==================== 常量定义 / Constants ====================
@@ -49,7 +51,7 @@ const RESIZE_DEBOUNCE_DELAY = 150;
 /**
  * 设置标签页类型 / Settings tab type
  */
-export type SettingTab = 'gemini' | 'model' | 'agent' | 'tools' | 'system' | 'about';
+export type SettingTab = 'gemini' | 'model' | 'agent' | 'tools' | 'webui' | 'system' | 'about';
 
 /**
  * 设置弹窗组件属性 / Settings modal component props
@@ -150,9 +152,13 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
     };
   }, [handleResize]);
 
+  // 检测是否在 Electron 桌面环境 / Check if running in Electron desktop environment
+  const isDesktop = isElectronDesktop();
+
   // 菜单项配置 / Menu items configuration
-  const menuItems = useMemo(
-    (): Array<{ key: SettingTab; label: string; icon: React.ReactNode }> => [
+  // WebUI 选项仅在桌面端显示，防止越权访问 / WebUI option only shown on desktop to prevent unauthorized access
+  const menuItems = useMemo((): Array<{ key: SettingTab; label: string; icon: React.ReactNode }> => {
+    const items: Array<{ key: SettingTab; label: string; icon: React.ReactNode }> = [
       {
         key: 'gemini',
         label: t('settings.gemini'),
@@ -168,6 +174,18 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
         label: t('settings.tools'),
         icon: <Toolkit theme='outline' size='20' fill={iconColors.secondary} />,
       },
+    ];
+
+    // 仅在桌面端添加 WebUI 选项 / Only add WebUI option on desktop
+    if (isDesktop) {
+      items.push({
+        key: 'webui',
+        label: t('settings.webui'),
+        icon: <Earth theme='outline' size='20' fill={iconColors.secondary} />,
+      });
+    }
+
+    items.push(
       {
         key: 'system',
         label: t('settings.system'),
@@ -177,10 +195,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
         key: 'about',
         label: t('settings.about'),
         icon: <Info theme='outline' size='20' fill={iconColors.secondary} />,
-      },
-    ],
-    [t]
-  );
+      }
+    );
+
+    return items;
+  }, [t, isDesktop]);
 
   // 渲染当前选中的设置内容 / Render current selected settings content
   const renderContent = () => {
@@ -193,6 +212,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
         return <AgentModalContent />;
       case 'tools':
         return <ToolsModalContent />;
+      case 'webui':
+        return <WebuiModalContent />;
       case 'system':
         return <SystemModalContent onRequestClose={onCancel} />;
       case 'about':
