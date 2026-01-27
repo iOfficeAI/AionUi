@@ -139,7 +139,7 @@ _Abrir várias conversas, tarefas sem se misturar, memória independente, efici�
 
 ---
 
-## 🤔 Por que escolher o AionUi?
+## 🤔 Por que escolher o AionUi? | Tão bom quanto o Claudebot
 
 **Assim como o Claude Cowork torna o Claude Code mais fácil de usar, o AionUi é a plataforma Cowork para todas as suas ferramentas de IA em linha de comando**
 
@@ -236,6 +236,12 @@ _Assista como os criadores de conteúdo avaliam e usam o AionUi_
 - **Multissessão + contexto independente** - Abra vários chats ao mesmo tempo; cada sessão tem contexto independente, sem confusão
 - **Armazenamento local** - Todas as conversas são salvas localmente e não se perdem
 
+### 🌐 **Acesso remoto WebUI - Seu assistente de IA 24/7**
+
+- **Acesso entre dispositivos** - Acesse de qualquer dispositivo na rede via navegador, compatível com celulares
+- **A qualquer hora e lugar** - Em viagens de negócios, em casa, no escritório, acesse suas ferramentas de IA 7×24 horas, totalmente grátis
+- **Segurança de dados local** - Todos os dados são armazenados localmente em SQLite, adequado para implantação em servidor
+
 ### 🤖 **Suporte multimodelo**
 
 - **Suporte multiplataforma** - Compatível com modelos principais como Gemini, OpenAI, Claude, Qwen; troca flexível
@@ -256,11 +262,6 @@ _Assista como os criadores de conteúdo avaliam e usam o AionUi_
 
 - **Geração inteligente de imagens** - Suporta vários modelos de geração de imagens como Gemini 2.5 Flash Image Preview, Nano, Banana
 - **Reconhecimento e edição de imagens** - Recursos de análise e edição de imagens orientados por IA
-
-### 🌐 **Acesso remoto WebUI**
-
-- **Acesso entre dispositivos** - Acesse de qualquer dispositivo na rede via navegador, compatível com celulares
-- **Segurança de dados local** - Todos os dados são armazenados localmente em SQLite, adequado para implantação em servidor
 
 ### 🎨 **Personalização da interface**
 
