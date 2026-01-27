@@ -84,7 +84,11 @@ _你的 7×24 小时 AI 助手 - 从网络中的任何设备访问 AionUi！出�
 
 > 💡 **需要详细配置指南？** 查看 [WebUI 配置教程](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide-Chinese) 和 [远程外网连接教程](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide-Chinese)
 
-https://github.com/user-attachments/assets/c81b7826-30ea-405e-86db-7d6a503c533b
+<p align="center">
+  <a href="https://github.com/user-attachments/assets/c81b7826-30ea-405e-86db-7d6a503c533b">
+    <img src="./resources/webui banner.png" alt="WebUI Demo" width="800">
+  </a>
+</p>
 
 ---
 

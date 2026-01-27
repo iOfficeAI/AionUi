@@ -85,7 +85,11 @@ _Tu asistente de IA 7×24 horas - Accede a AionUi desde cualquier dispositivo en
 
 > 💡 **¿Necesitas una guía de configuración detallada?** Consulta la [Guía de configuración de WebUI](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) y la [Guía de acceso remoto a Internet](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide)
 
-https://github.com/user-attachments/assets/c81b7826-30ea-405e-86db-7d6a503c533b
+<p align="center">
+  <a href="https://github.com/user-attachments/assets/c81b7826-30ea-405e-86db-7d6a503c533b">
+    <img src="./resources/webui banner.png" alt="WebUI Demo" width="800">
+  </a>
+</p>
 
 ---
 

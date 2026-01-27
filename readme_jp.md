@@ -85,7 +85,11 @@ _あなたの 7×24 時間 AI アシスタント - ネットワーク上の任�
 
 > 💡 **詳細な設定ガイドが必要ですか？** [WebUI設定チュートリアル](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) と [リモートインターネットアクセスガイド](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide) を確認
 
-https://github.com/user-attachments/assets/c81b7826-30ea-405e-86db-7d6a503c533b
+<p align="center">
+  <a href="https://github.com/user-attachments/assets/c81b7826-30ea-405e-86db-7d6a503c533b">
+    <img src="./resources/webui banner.png" alt="WebUI Demo" width="800">
+  </a>
+</p>
 
 ---
 

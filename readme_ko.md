@@ -85,7 +85,11 @@ _당신의 7×24시간 AI 어시스턴트 - 네트워크의 모든 기기에서 
 
 > 💡 **자세한 설정 가이드가 필요하신가요?** [WebUI 설정 튜토리얼](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) 과 [원격 인터넷 접속 가이드](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide) 를 확인하세요
 
-https://github.com/user-attachments/assets/c81b7826-30ea-405e-86db-7d6a503c533b
+<p align="center">
+  <a href="https://github.com/user-attachments/assets/c81b7826-30ea-405e-86db-7d6a503c533b">
+    <img src="./resources/webui banner.png" alt="WebUI Demo" width="800">
+  </a>
+</p>
 
 ---
 
