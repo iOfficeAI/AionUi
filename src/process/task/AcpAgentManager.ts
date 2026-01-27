@@ -45,6 +45,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
       let cliPath = data.cliPath;
       let customArgs: string[] | undefined;
       let customEnv: Record<string, string> | undefined;
+      let yoloMode: boolean | undefined;
 
       // 处理自定义后端：从 acp.customAgents 配置数组中读取
       // Handle custom backend: read from acp.customAgents config array
@@ -72,6 +73,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         if (!cliPath && config?.[data.backend]?.cliPath) {
           cliPath = config[data.backend].cliPath;
         }
+        yoloMode = config?.[data.backend]?.yoloMode;
 
         // Get acpArgs from backend config (for goose, auggie, opencode, etc.)
         const backendConfig = ACP_BACKENDS_ALL[data.backend];
@@ -97,6 +99,15 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         workingDir: data.workspace,
         customArgs: customArgs,
         customEnv: customEnv,
+        extra: {
+          workspace: data.workspace,
+          backend: data.backend,
+          cliPath: cliPath,
+          customWorkspace: data.customWorkspace,
+          customArgs: customArgs,
+          customEnv: customEnv,
+          yoloMode: yoloMode,
+        },
         onStreamEvent: (message) => {
           // Handle preview_open event (chrome-devtools navigation interception)
           // 处理 preview_open 事件（chrome-devtools 导航拦截）

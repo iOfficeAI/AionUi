@@ -38,6 +38,7 @@ export interface IConfigStorageRefer {
       authToken?: string;
       lastAuthTime?: number;
       cliPath?: string;
+      yoloMode?: boolean;
     };
   };
   'acp.customAgents'?: AcpBackendConfig[];

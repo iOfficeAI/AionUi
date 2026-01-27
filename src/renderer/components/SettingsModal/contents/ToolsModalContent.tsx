@@ -221,6 +221,7 @@ const ToolsModalContent: React.FC = () => {
   const { t } = useTranslation();
   const [mcpMessage, mcpMessageContext] = Message.useMessage({ maxCount: 10 });
   const [imageGenerationModel, setImageGenerationModel] = useState<IConfigStorageRefer['tools.imageGenerationModel'] | undefined>();
+  const [claudeYoloMode, setClaudeYoloMode] = useState(false);
   const { modelListWithImage: data } = useConfigModelListWithImage();
 
   const imageGenerationModelList = useMemo(() => {
@@ -243,14 +244,25 @@ const ToolsModalContent: React.FC = () => {
   }, [data]);
 
   useEffect(() => {
-    ConfigStorage.get('tools.imageGenerationModel')
-      .then((data) => {
-        if (!data) return;
-        setImageGenerationModel(data);
-      })
-      .catch((error) => {
+    const loadConfigs = async () => {
+      try {
+        const data = await ConfigStorage.get('tools.imageGenerationModel');
+        if (data) {
+          setImageGenerationModel(data);
+        }
+      } catch (error) {
         console.error('Failed to load image generation model config:', error);
-      });
+      }
+
+      try {
+        const config = await ConfigStorage.get('acp.config');
+        setClaudeYoloMode(Boolean(config?.claude?.yoloMode));
+      } catch (error) {
+        console.error('Failed to load ACP config:', error);
+      }
+    };
+
+    void loadConfigs();
   }, []);
 
   // Sync imageGenerationModel apiKey when provider apiKey changes
@@ -285,6 +297,23 @@ const ToolsModalContent: React.FC = () => {
       });
       return newImageGenerationModel;
     });
+  };
+
+  const handleClaudeYoloModeChange = async (enabled: boolean) => {
+    setClaudeYoloMode(enabled);
+    try {
+      const config = await ConfigStorage.get('acp.config');
+      const nextConfig: IConfigStorageRefer['acp.config'] = {
+        ...(config || {}),
+        claude: {
+          ...(config?.claude || {}),
+          yoloMode: enabled,
+        },
+      };
+      await ConfigStorage.set('acp.config', nextConfig);
+    } catch (error) {
+      console.error('Failed to update ACP config:', error);
+    }
   };
 
   const viewMode = useSettingsViewMode();
@@ -358,6 +387,23 @@ const ToolsModalContent: React.FC = () => {
                 )}
               </Form.Item>
             </Form>
+          </div>
+
+          {/* Claude Code */}
+          <div className='px-[12px] md:px-[32px] py-[24px] bg-2 rd-12px md:rd-16px border border-border-2'>
+            <div className='flex items-center justify-between mb-16px'>
+              <span className='text-14px text-t-primary flex items-center gap-8px'>
+                {t('settings.claudeYoloMode')}
+                <Tooltip content={t('settings.claudeYoloModeDesc')} position='top'>
+                  <span className='inline-flex cursor-help text-[rgb(var(--primary-6))]'>
+                    <Help theme='outline' size='14' />
+                  </span>
+                </Tooltip>
+              </span>
+              <Switch checked={claudeYoloMode} onChange={handleClaudeYoloModeChange} />
+            </div>
+
+            <Divider className='mt-0px mb-0px' />
           </div>
         </div>
       </AionScrollArea>

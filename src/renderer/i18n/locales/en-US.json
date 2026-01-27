@@ -353,6 +353,8 @@
     "openai": "OpenAI",
     "proxyConfig": "Proxy",
     "yoloMode": "YOLO (Auto Allow)",
+    "claudeYoloMode": "Claude YOLO (Skip Permissions)",
+    "claudeYoloModeDesc": "Bypass all Claude Code permission checks (equivalent to --dangerously-skip-permissions).",
     "customCss": "Custom CSS",
     "customCssDesc": "Enter custom CSS styles here to modify the interface appearance. The system will automatically add !important to ensure highest priority. Changes will take effect immediately.",
     "assistants": "Assistants",

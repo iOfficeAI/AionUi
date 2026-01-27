@@ -353,6 +353,8 @@
     "openai": "OpenAI",
     "proxyConfig": "프록시",
     "yoloMode": "YOLO (자동 허용)",
+    "claudeYoloMode": "Claude YOLO (권한 건너뛰기)",
+    "claudeYoloModeDesc": "Claude Code의 모든 권한 확인을 건너뜁니다 (--dangerously-skip-permissions와 동일).",
     "customCss": "사용자 정의 CSS",
     "customCssDesc": "인터페이스 모양을 수정하려면 여기에 사용자 정의 CSS 스타일을 입력하세요. 시스템은 !important를 자동으로 추가하여 가장 높은 우선 순위를 보장합니다. 변경 사항은 즉시 적용됩니다.",
     "assistants": "어시스턴트",

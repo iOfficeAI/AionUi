@@ -350,6 +350,8 @@
     "openai": "OpenAI",
     "proxyConfig": "代理",
     "yoloMode": "自动允许",
+    "claudeYoloMode": "Claude 自动允许",
+    "claudeYoloModeDesc": "跳过 Claude Code 的所有权限确认（等同于 --dangerously-skip-permissions）。",
     "customCss": "自定义 CSS",
     "customCssDesc": "在此处输入自定义 CSS 样式以更改界面外观。系统会自动为所有样式添加 !important 以确保优先级最高，无需手动添加。修改会立即生效。",
     "assistants": "助手",
