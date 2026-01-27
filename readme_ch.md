@@ -72,6 +72,27 @@ _AionUi 内置 Gemini CLI，下载即用，无需额外安装；如果你已经�
 
 ---
 
+### 🌐 **随时随地访问 - WebUI 模式**
+
+_你的 7×24 小时 AI 助手 - 从网络中的任何设备访问 AionUi！出差、在家、办公室，随时随地使用你的 AI 工具_
+
+**✨ 一键启动**：在设置面板中打开 WebUI 选项，点击开关即可启动！
+
+- ✅ **跨设备访问** - 手机、平板、电脑，任何设备都能访问
+- ✅ **远程协作** - 支持局域网、跨网络、服务器部署等多种场景
+- ✅ **安全可靠** - 密码管理、二维码登录，数据不离开你的设备
+
+> 💡 **需要详细配置指南？** 查看 [WebUI 配置教程](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide-Chinese) 和 [远程外网连接教程](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide-Chinese)
+
+<p align="center">
+  <video width="800" controls poster="./resources/webui banner.png">
+    <source src="./resources/webui.mp4" type="video/mp4">
+    您的浏览器不支持视频播放。
+  </video>
+</p>
+
+---
+
 ### 📁 **智能文件管理 (AI Cowork)**
 
 _批量重命名、自动整理、智能分类、文件合并_
@@ -124,26 +145,6 @@ _开多个对话、任务不混乱、记忆独立、效率翻倍_
 
 ---
 
-### 🌐 **随时随地访问 - WebUI 模式**
-
-_远程控制您的 AI 工具 - 从网络中的任何设备访问 AionUi！安全控制本地 Gemini CLI、Claude Code、Codex 等工具，数据不离开您的设备_
-
-```bash
-# 基本启动
-AionUi --webui
-
-# 远程访问（局域网内其他设备可访问）
-AionUi --webui --remote
-```
-
-> 💡 **需要详细配置指南？** 查看 [WebUI 配置教程](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide-Chinese) - 包含各平台完整启动命令
-
-<p align="center">
-  <img src="./resources/webui banner.png" alt="WebUI 远程访问演示" width="800">
-</p>
-
----
-
 ## 🤔 为什么选择 AionUi？
 
 **就像 Claude Cowork 让 Claude Code 更易用，AionUi 是你所有命令行 AI 工具的 Cowork 平台**
@@ -154,7 +155,8 @@ AionUi 为这些命令行工具提供统一的 **Cowork 能力**：
 
 - 🎯 **统一平台** - 一个界面管理所有命令行 AI 工具，无需切换；内置 Gemini CLI，下载即用且完全免费
 - 🚀 **多工具支持** - 不仅支持 Claude Code，还支持 Gemini CLI、Codex、Qwen Code 等
-- 🌐 **跨平台** - macOS、Windows、Linux 全平台支持（Claude Cowork 目前仅 macOS）
+- 🖥️ **跨平台** - macOS、Windows、Linux 全平台支持（Claude Cowork 目前仅 macOS）
+- 🌐 **远程访问** - 你的远程 24/7 助手，访问随时随地，且免费
 - 🔄 **多模型切换** - 在同一个界面中灵活切换不同模型，满足不同任务需求
 - 📄 **实时预览** - 9+ 种格式可视化预览，AI 生成的文件立即查看效果
 - 💾 **本地数据安全** - 所有对话和文件保存在本地，数据不离开你的设备

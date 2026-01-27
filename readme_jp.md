@@ -73,6 +73,27 @@ _AionUi には Gemini CLI を内蔵しており、ダウンロードしてすぐ
 
 ---
 
+### 🌐 **どこからでもアクセス - WebUIモード**
+
+_あなたの 7×24 時間 AI アシスタント - ネットワーク上の任意のデバイスからAionUiにアクセス！出張中、自宅、オフィス、いつでもどこでもAIツールを使用_
+
+**✨ ワンクリック起動**：設定パネルでWebUIオプションを開き、スイッチをクリックするだけで起動！
+
+- ✅ **クロスデバイスアクセス** - スマートフォン、タブレット、コンピューター、あらゆるデバイスからアクセス可能
+- ✅ **リモートコラボレーション** - LAN、クロスネットワーク、サーバー展開など、さまざまなシナリオをサポート
+- ✅ **安全で信頼性** - パスワード管理、QRコードログイン、データはデバイスから離れません
+
+> 💡 **詳細な設定ガイドが必要ですか？** [WebUI設定チュートリアル](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) と [リモートインターネットアクセスガイド](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide) を確認
+
+<p align="center">
+  <video width="800" controls poster="./resources/webui banner.png">
+    <source src="./resources/webui.mp4" type="video/mp4">
+    お使いのブラウザは動画再生をサポートしていません。
+  </video>
+</p>
+
+---
+
 ### 📁 **スマートファイル管理 (AI Cowork)**
 
 _一括リネーム、自動整理、スマート分類、ファイルマージ_
@@ -125,26 +146,6 @@ _複数の会話を開く、タスクが混乱しない、記憶が独立、効�
 
 ---
 
-### 🌐 **どこからでもアクセス - WebUIモード**
-
-_AIツールをリモート制御 - ネットワーク上の任意のデバイスからAionUiにアクセス！ローカルのGemini CLI、Claude Code、Codexなどのツールを安全に制御、データはデバイスから離れません_
-
-```bash
-# 基本起動
-AionUi --webui
-
-# リモートアクセス（ローカルネットワーク内の他のデバイスからアクセス可能）
-AionUi --webui --remote
-```
-
-> 💡 **詳細な設定ガイドが必要ですか？** [WebUI設定チュートリアル](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide)を確認 - 全プラットフォームの完全な起動コマンドを含む
-
-<p align="center">
-  <img src="./resources/webui banner.png" alt="WebUIリモートアクセスデモ" width="800">
-</p>
-
----
-
 ## 🤔 なぜAionUiを選ぶのか？
 
 **Claude CoworkがClaude Codeをより使いやすくするように、AionUiはすべてのコマンドラインAIツールのためのCoworkプラットフォームです**
@@ -155,7 +156,8 @@ AionUiはこれらのコマンドラインツールに統一された **Cowork�
 
 - 🎯 **統一プラットフォーム** - すべてのコマンドラインAIツールを1つのインターフェースで管理、切り替え不要。Gemini CLI を内蔵、ダウンロードしてすぐ使えて完全無料
 - 🚀 **マルチツール対応** - Claude Codeだけでなく、Gemini CLI、Codex、Qwen Codeなどもサポート
-- 🌐 **クロスプラットフォーム** - macOS、Windows、Linux全プラットフォーム対応（Claude Coworkは現在macOSのみ）
+- 🖥️ **クロスプラットフォーム** - macOS、Windows、Linux全プラットフォーム対応（Claude Coworkは現在macOSのみ）
+- 🌐 **リモートアクセス** - あなたのリモート24/7アシスタント、いつでもどこでもアクセス可能、完全無料
 - 🔄 **マルチモデル切り替え** - 同じインターフェースで異なるモデルを柔軟に切り替え、さまざまなタスク要件に対応
 - 📄 **リアルタイムプレビュー** - 9種類以上の形式のビジュアルプレビュー、AI生成ファイルを即座に確認
 - 💾 **ローカルデータセキュリティ** - すべての会話とファイルをローカルに保存、データはデバイスから離れません

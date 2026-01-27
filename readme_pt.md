@@ -73,6 +73,27 @@ _AionUi inclui o Gemini CLI integrado, pronto para usar desde a instalação sem
 
 ---
 
+### 🌐 **Acesso de qualquer lugar - Modo WebUI**
+
+_Seu assistente de IA 7×24 horas - Acesse o AionUi de qualquer dispositivo na rede. Em viagens de negócios, em casa, no escritório, use suas ferramentas de IA a qualquer momento e em qualquer lugar_
+
+**✨ Início com um clique**: Abra a opção WebUI no painel de configurações e clique no interruptor para iniciar!
+
+- ✅ **Acesso multiplataforma** - Telefone, tablet, computador, qualquer dispositivo pode acessar
+- ✅ **Colaboração remota** - Suporta LAN, rede cruzada, implantação em servidor e mais
+- ✅ **Seguro e confiável** - Gerenciamento de senhas, login com código QR, os dados nunca saem do seu dispositivo
+
+> 💡 **Precisa de um guia de configuração detalhado?** Consulte o [Guia de configuração do WebUI](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) e o [Guia de acesso remoto à Internet](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide)
+
+<p align="center">
+  <video width="800" controls poster="./resources/webui banner.png">
+    <source src="./resources/webui.mp4" type="video/mp4">
+    Seu navegador não suporta a reprodução de vídeo.
+  </video>
+</p>
+
+---
+
 ### 📁 **Gerenciamento inteligente de arquivos (AI Cowork)**
 
 _Renomeação em lote, organização automática, classificação inteligente, mesclagem de arquivos_
@@ -123,26 +144,6 @@ _Abrir várias conversas, tarefas sem se misturar, memória independente, efici�
 
 ---
 
-### 🌐 **Acesso de qualquer lugar - Modo WebUI**
-
-_Controle suas ferramentas de IA remotamente: acesse o AionUi de qualquer dispositivo na rede. Controle com segurança Gemini CLI, Claude Code, Codex e outras ferramentas locais; os dados não saem do seu dispositivo_
-
-```bash
-# Inicialização básica
-AionUi --webui
-
-# Acesso remoto (acessível de outros dispositivos na rede local)
-AionUi --webui --remote
-```
-
-> 💡 **Precisa de um guia de configuração detalhado?** Consulte o [Guia de configuração do WebUI](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) - inclui comandos completos de inicialização para todas as plataformas
-
-<p align="center">
-  <img src="./resources/webui banner.png" alt="WebUI Remote Access Demo" width="800">
-</p>
-
----
-
 ## 🤔 Por que escolher o AionUi?
 
 **Assim como o Claude Cowork torna o Claude Code mais fácil de usar, o AionUi é a plataforma Cowork para todas as suas ferramentas de IA em linha de comando**
@@ -153,7 +154,8 @@ O AionUi oferece capacidades **Cowork unificadas** para essas ferramentas de lin
 
 - 🎯 **Plataforma unificada** - Uma interface para gerenciar todas as ferramentas de IA em linha de comando, sem troca; inclui Gemini CLI, pronto para usar desde a instalação e totalmente gratuito
 - 🚀 **Suporte a múltiplas ferramentas** - Não só suporta Claude Code, mas também Gemini CLI, Codex, Qwen Code e mais
-- 🌐 **Multiplataforma** - Suporte completo para macOS, Windows e Linux (Claude Cowork somente macOS)
+- 🖥️ **Multiplataforma** - Suporte completo para macOS, Windows e Linux (Claude Cowork somente macOS)
+- 🌐 **Acesso remoto** - Seu assistente remoto 24/7, acesse a qualquer momento e em qualquer lugar, completamente gratuito
 - 🔄 **Troca de modelo** - Troque modelos de forma flexível na mesma interface conforme a tarefa
 - 📄 **Visualização em tempo real** - Visualização de 9+ formatos, resultados imediatos
 - 💾 **Segurança de dados local** - Todas as conversas e arquivos salvos localmente, dados não saem do seu dispositivo
