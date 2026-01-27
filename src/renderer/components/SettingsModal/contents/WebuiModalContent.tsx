@@ -623,42 +623,43 @@ const WebuiModalContent: React.FC = () => {
                 )}
               </div>
             </div>
+
+            {/* 二维码登录（仅服务器运行且允许远程访问时显示）/ QR Code Login (only when server running and remote access allowed) */}
+            {status?.running && allowRemote && (
+              <>
+                <div className='border-t border-line my-12px' />
+                <div className='text-14px font-500 mb-4px text-t-primary'>{t('settings.webui.qrLogin')}</div>
+                <div className='text-12px text-t-tertiary mb-12px'>{t('settings.webui.qrLoginHint')}</div>
+
+                <div className='flex flex-col items-center gap-12px'>
+                  {/* 二维码显示区域 / QR Code display area */}
+                  <div className='p-12px bg-white rd-10px'>
+                    {qrLoading ? (
+                      <div className='w-140px h-140px flex items-center justify-center'>
+                        <span className='text-14px text-t-tertiary'>{t('common.loading')}</span>
+                      </div>
+                    ) : qrUrl ? (
+                      <QRCodeSVG value={qrUrl} size={140} level='M' />
+                    ) : (
+                      <div className='w-140px h-140px flex items-center justify-center'>
+                        <span className='text-14px text-t-tertiary'>{t('settings.webui.qrGenerateFailed')}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* 过期时间和刷新按钮 / Expiration time and refresh button */}
+                  <div className='flex items-center gap-8px'>
+                    {qrExpiresAt && <span className='text-12px text-t-tertiary'>{t('settings.webui.qrExpires', { time: formatExpiresAt(qrExpiresAt) })}</span>}
+                    <Tooltip content={t('settings.webui.refreshQr')}>
+                      <button className='p-4px bg-transparent border-none text-t-tertiary hover:text-t-primary cursor-pointer' onClick={() => void generateQRCode()} disabled={qrLoading}>
+                        <Refresh size={16} className={qrLoading ? 'animate-spin' : ''} />
+                      </button>
+                    </Tooltip>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
-
-          {/* 二维码登录卡片（仅服务器运行且允许远程访问时显示）/ QR Code Login Card (only when server running and remote access allowed) */}
-          {status?.running && allowRemote && (
-            <div className='px-[12px] md:px-[32px] py-16px bg-2 rd-16px'>
-              <div className='text-14px font-500 mb-8px text-t-primary'>{t('settings.webui.qrLogin')}</div>
-              <div className='text-12px text-t-tertiary mb-16px'>{t('settings.webui.qrLoginHint')}</div>
-
-              <div className='flex flex-col items-center gap-16px'>
-                {/* 二维码显示区域 / QR Code display area */}
-                <div className='p-16px bg-white rd-12px'>
-                  {qrLoading ? (
-                    <div className='w-160px h-160px flex items-center justify-center'>
-                      <span className='text-14px text-t-tertiary'>{t('common.loading')}</span>
-                    </div>
-                  ) : qrUrl ? (
-                    <QRCodeSVG value={qrUrl} size={160} level='M' />
-                  ) : (
-                    <div className='w-160px h-160px flex items-center justify-center'>
-                      <span className='text-14px text-t-tertiary'>{t('settings.webui.qrGenerateFailed')}</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* 过期时间和刷新按钮 / Expiration time and refresh button */}
-                <div className='flex items-center gap-12px'>
-                  {qrExpiresAt && <span className='text-12px text-t-tertiary'>{t('settings.webui.qrExpires', { time: formatExpiresAt(qrExpiresAt) })}</span>}
-                  <Tooltip content={t('settings.webui.refreshQr')}>
-                    <button className='p-4px bg-transparent border-none text-t-tertiary hover:text-t-primary cursor-pointer' onClick={() => void generateQRCode()} disabled={qrLoading}>
-                      <Refresh size={16} className={qrLoading ? 'animate-spin' : ''} />
-                    </button>
-                  </Tooltip>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       </AionScrollArea>
 
