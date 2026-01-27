@@ -85,11 +85,7 @@ _Tu asistente de IA 7×24 horas - Accede a AionUi desde cualquier dispositivo en
 
 > 💡 **¿Necesitas una guía de configuración detallada?** Consulta la [Guía de configuración de WebUI](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) y la [Guía de acceso remoto a Internet](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide)
 
-<p align="center">
-  <a href="https://github.com/user-attachments/assets/c81b7826-30ea-405e-86db-7d6a503c533b">
-    <img src="./resources/webui banner.png" alt="WebUI Demo" width="800">
-  </a>
-</p>
+https://github.com/user-attachments/assets/c81b7826-30ea-405e-86db-7d6a503c533b
 
 ---
 
@@ -143,7 +139,7 @@ _Abrir varias conversaciones, tareas sin mezclarse, memoria independiente, efici
 
 ---
 
-## 🤔 ¿Por qué elegir AionUi?
+## 🤔 ¿Por qué elegir AionUi? | Tan bueno como Claudebot
 
 **Al igual que Claude Cowork hace que Claude Code sea más fácil de usar, AionUi es la plataforma Cowork para todas tus herramientas de IA en línea de comandos**
 
@@ -240,6 +236,12 @@ _Mira cómo los creadores de contenido reseñan y usan AionUi_
 - **Multisesión + contexto independiente** - Abre varios chats a la vez; cada sesión tiene contexto independiente, sin confusión
 - **Almacenamiento local** - Todas las conversaciones se guardan localmente y no se pierden
 
+### 🌐 **Acceso remoto WebUI - Tu asistente de IA 24/7**
+
+- **Acceso entre dispositivos** - Accede desde cualquier dispositivo en la red vía navegador, compatible con móviles
+- **En cualquier momento y lugar** - En viajes de negocios, en casa, en la oficina, accede a tus herramientas de IA 7×24 horas, completamente gratis
+- **Seguridad de datos local** - Todos los datos se almacenan localmente en SQLite, adecuado para despliegues en servidor
+
 ### 🤖 **Soporte multimodelo**
 
 - **Soporte multiplataforma** - Compatible con modelos principales como Gemini, OpenAI, Claude, Qwen; cambio flexible
@@ -260,11 +262,6 @@ _Mira cómo los creadores de contenido reseñan y usan AionUi_
 
 - **Generación inteligente de imágenes** - Compatible con varios modelos de generación como Gemini 2.5 Flash Image Preview, Nano, Banana
 - **Reconocimiento y edición de imágenes** - Funciones de análisis y edición de imágenes impulsadas por IA
-
-### 🌐 **Acceso remoto WebUI**
-
-- **Acceso entre dispositivos** - Accede desde cualquier dispositivo en la red vía navegador, compatible con móviles
-- **Seguridad de datos local** - Todos los datos se almacenan localmente en SQLite, adecuado para despliegues en servidor
 
 ### 🎨 **Personalización de la interfaz**
 

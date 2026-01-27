@@ -85,11 +85,7 @@ _당신의 7×24시간 AI 어시스턴트 - 네트워크의 모든 기기에서 
 
 > 💡 **자세한 설정 가이드가 필요하신가요?** [WebUI 설정 튜토리얼](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) 과 [원격 인터넷 접속 가이드](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide) 를 확인하세요
 
-<p align="center">
-  <a href="https://github.com/user-attachments/assets/c81b7826-30ea-405e-86db-7d6a503c533b">
-    <img src="./resources/webui banner.png" alt="WebUI Demo" width="800">
-  </a>
-</p>
+https://github.com/user-attachments/assets/c81b7826-30ea-405e-86db-7d6a503c533b
 
 ---
 
@@ -143,7 +139,7 @@ _여러 대화 열기, 작업이 섞이지 않음, 독립적인 메모리, 효�
 
 ---
 
-## 🤔 왜 AionUi를 선택해야 하나요?
+## 🤔 왜 AionUi를 선택해야 하나요? | Claudebot처럼 편리함
 
 **Claude Cowork가 Claude Code를 더 쉽게 사용할 수 있게 해주는 것처럼, AionUi는 모든 명령줄 AI 도구를 위한 Cowork 플랫폼입니다**
 
@@ -240,6 +236,12 @@ _크리에이터들이 AionUi를 리뷰하고 사용하는 모습을 시청하�
 - **다중 세션 + 독립적 컨텍스트** - 동시에 여러 채팅 열기, 각 세션은 독립적인 컨텍스트 메모리를 가짐, 혼동 없음
 - **로컬 저장** - 모든 대화가 로컬에 저장되어 손실 없음
 
+### 🌐 **WebUI 원격 접속 - 당신의 24/7 AI 어시스턴트**
+
+- **크로스 디바이스 접속** - 네트워크의 모든 기기에서 브라우저를 통해 접속, 모바일 기기 지원
+- **언제 어디서나** - 출장 중, 집에서, 사무실에서, 7×24시간 언제든 AI 도구에 접속, 완전 무료
+- **로컬 데이터 보안** - 모든 데이터가 SQLite 데이터베이스에 로컬 저장, 서버 배포에 적합
+
 ### 🤖 **다중 모델 지원**
 
 - **다중 플랫폼 지원** - Gemini, OpenAI, Claude, Qwen과 같은 주류 모델 지원, 유연하게 전환
@@ -260,11 +262,6 @@ _크리에이터들이 AionUi를 리뷰하고 사용하는 모습을 시청하�
 
 - **지능형 이미지 생성** - Gemini 2.5 Flash Image Preview, Nano, Banana 등 다양한 이미지 생성 모델 지원
 - **이미지 인식 및 편집** - AI 기반 이미지 분석 및 편집 기능
-
-### 🌐 **WebUI 원격 접속**
-
-- **크로스 디바이스 접속** - 네트워크의 모든 기기에서 브라우저를 통해 접속, 모바일 기기 지원
-- **로컬 데이터 보안** - 모든 데이터가 SQLite 데이터베이스에 로컬 저장, 서버 배포에 적합
 
 ### 🎨 **개인화된 인터페이스 커스터마이징**
 
