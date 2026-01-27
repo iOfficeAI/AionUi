@@ -85,12 +85,7 @@ _あなたの 7×24 時間 AI アシスタント - ネットワーク上の任�
 
 > 💡 **詳細な設定ガイドが必要ですか？** [WebUI設定チュートリアル](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) と [リモートインターネットアクセスガイド](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide) を確認
 
-<p align="center">
-  <video width="800" controls poster="./resources/webui banner.png">
-    <source src="./resources/webui.mp4" type="video/mp4">
-    お使いのブラウザは動画再生をサポートしていません。
-  </video>
-</p>
+https://github.com/user-attachments/assets/c81b7826-30ea-405e-86db-7d6a503c533b
 
 ---
 

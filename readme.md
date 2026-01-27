@@ -72,27 +72,6 @@ _If you have installed command-line tools like Gemini CLI, Claude Code, CodeX, Q
 
 ---
 
-### 🌐 **Access Anywhere - WebUI Mode**
-
-_Your 7×24 hour AI assistant - Access AionUi from any device on the network! On business trips, at home, in the office, use your AI tools anytime, anywhere_
-
-**✨ One-click start**: Open the WebUI option in the settings panel and click the switch to start!
-
-- ✅ **Cross-device access** - Phone, tablet, computer, any device can access
-- ✅ **Remote collaboration** - Supports LAN, cross-network, server deployment and more
-- ✅ **Secure and reliable** - Password management, QR code login, data never leaves your device
-
-> 💡 **Need detailed configuration guide?** Check out the [WebUI Configuration Tutorial](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) and [Remote Internet Access Guide](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide)
-
-<p align="center">
-  <video width="800" controls poster="./resources/webui banner.png">
-    <source src="./resources/webui.mp4" type="video/mp4">
-    Your browser does not support the video tag.
-  </video>
-</p>
-
----
-
 ### 📁 **Smart File Management (AI Cowork)**
 
 _Batch renaming, automatic organization, smart classification, file merging_
@@ -158,6 +137,22 @@ _Open multiple conversations, tasks don't get mixed up, independent memory, doub
 
 ---
 
+### 🌐 **Access Anywhere - WebUI Mode**
+
+_Your 7×24 hour AI assistant - Access AionUi from any device on the network! On business trips, at home, in the office, use your AI tools anytime, anywhere_
+
+**✨ One-click start**: Open the WebUI option in the settings panel and click the switch to start!
+
+- ✅ **Cross-device access** - Phone, tablet, computer, any device can access
+- ✅ **Remote collaboration** - Supports LAN, cross-network, server deployment and more
+- ✅ **Secure and reliable** - Password management, QR code login, data never leaves your device
+
+> 💡 **Need detailed configuration guide?** Check out the [WebUI Configuration Tutorial](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) and [Remote Internet Access Guide](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide)
+
+https://github.com/user-attachments/assets/c81b7826-30ea-405e-86db-7d6a503c533b
+
+---
+
 ## 🤔 Why Choose AionUi?
 
 **Just like Claude Cowork makes Claude Code easier to use, AionUi is the Cowork platform for all your command-line AI tools**
@@ -166,10 +161,9 @@ While command-line tools like Gemini CLI, Claude Code, Codex, Qwen Code are powe
 
 AionUi provides unified **Cowork capabilities** for these command-line tools:
 
-- 🎯 **Unified Platform** - One interface to manage all command-line AI tools, no switching needed; built-in Gemini CLI, ready to use and completely free
-- 🚀 **Multi-Tool Support** - Not only supports one tool, but also Gemini CLI, Codex, Qwen Code, and more
-- 🖥️ **Cross-Platform** - Full platform support for macOS, Windows, Linux
-- 🌐 **Remote Access** - Your remote 24/7 assistant, access anytime, anywhere, completely free
+- 🎯 **Unified Platform** - One interface to manage all command-line AI tools, no switching needed
+- 🚀 **Multi-Tool Support** - Not only supports Claude Code, but also Gemini CLI, Codex, Qwen Code, and more
+- 🌐 **Cross-Platform** - Full platform support for macOS, Windows, Linux (Claude Cowork currently only macOS)
 - 🔄 **Multi-Model Switching** - Flexibly switch between different models in the same interface, meeting different task requirements
 - 📄 **Real-time Preview** - Visual preview for 9+ formats, immediately view the effects of AI-generated files
 - 💾 **Local Data Security** - All conversations and files saved locally, data never leaves your device
