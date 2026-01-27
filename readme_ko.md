@@ -85,12 +85,7 @@ _당신의 7×24시간 AI 어시스턴트 - 네트워크의 모든 기기에서 
 
 > 💡 **자세한 설정 가이드가 필요하신가요?** [WebUI 설정 튜토리얼](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) 과 [원격 인터넷 접속 가이드](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide) 를 확인하세요
 
-<p align="center">
-  <video width="800" controls poster="./resources/webui banner.png">
-    <source src="./resources/webui.mp4" type="video/mp4">
-    브라우저가 비디오 재생을 지원하지 않습니다.
-  </video>
-</p>
+https://github.com/user-attachments/assets/c81b7826-30ea-405e-86db-7d6a503c533b
 
 ---
 

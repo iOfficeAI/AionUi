@@ -39,7 +39,9 @@ const AboutModalContent: React.FC = () => {
   };
 
   const checkUpdate = () => {
-    ipcBridge.update.open.emit({ source: 'about' });
+    // 使用 window 自定义事件在渲染进程内部通信（buildEmitter 只支持主进程->渲染进程）
+    // Use window custom event for renderer-side communication (buildEmitter only works main->renderer)
+    window.dispatchEvent(new CustomEvent('aionui-open-update-modal', { detail: { source: 'about' } }));
   };
 
   const linkItems = [

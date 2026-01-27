@@ -13,6 +13,7 @@ import { AUTH_CONFIG, SERVER_CONFIG } from '@/webserver/config/constants';
 import { WebuiService } from './services/WebuiService';
 // 预加载 webserver 模块避免启动时延迟 / Preload webserver module to avoid startup delay
 import { startWebServerWithInstance } from '@/webserver/index';
+import { cleanupWebAdapter } from '@/webserver/adapter';
 
 // WebUI 服务器实例引用 / WebUI server instance reference
 let webServerInstance: {
@@ -257,6 +258,9 @@ export function initWebuiBridge(): void {
         });
       });
 
+      // 清理 WebSocket 广播注册 / Cleanup WebSocket broadcaster registration
+      cleanupWebAdapter();
+
       webServerInstance = null;
 
       // 发送状态变更事件 / Emit status changed event
@@ -445,5 +449,52 @@ export function initWebuiBridge(): void {
       await WebuiService.changePassword(newPassword);
       return { success: true };
     }, 'Direct IPC: Change password');
+  });
+
+  // 直接 IPC: 生成二维码 token / Direct IPC: Generate QR token
+  ipcMain.handle('webui-direct-generate-qr-token', async () => {
+    // 检查 webServerInstance 状态
+    if (!webServerInstance) {
+      return {
+        success: false,
+        msg: 'WebUI is not running. Please start WebUI first.',
+      };
+    }
+
+    try {
+      // 清理过期 token / Clean up expired tokens
+      cleanupExpiredTokens();
+
+      // 获取服务器配置 / Get server configuration
+      const { port, allowRemote } = webServerInstance;
+
+      // 生成随机 token / Generate random token
+      const token = crypto.randomBytes(32).toString('hex');
+      const expiresAt = Date.now() + QR_TOKEN_EXPIRY;
+
+      // 存储 token / Store token
+      const allowLocalOnly = !allowRemote;
+      qrTokenStore.set(token, { expiresAt, used: false, allowLocalOnly });
+
+      // 构建 QR URL / Build QR URL
+      const lanIP = WebuiService.getLanIP();
+      const baseUrl = allowRemote && lanIP ? `http://${lanIP}:${port}` : `http://localhost:${port}`;
+      const qrUrl = `${baseUrl}/qr-login?token=${token}`;
+
+      return {
+        success: true,
+        data: {
+          token,
+          expiresAt,
+          qrUrl,
+        },
+      };
+    } catch (error) {
+      console.error('[WebUI Bridge] Direct IPC: Generate QR token error:', error);
+      return {
+        success: false,
+        msg: error instanceof Error ? error.message : 'Failed to generate QR token',
+      };
+    }
   });
 }

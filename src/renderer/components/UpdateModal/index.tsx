@@ -5,8 +5,8 @@
  */
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Button, Progress, Space, Typography } from '@arco-design/web-react';
-import { Attention, CheckOne, Download, FileText, FolderOpen, Refresh } from '@icon-park/react';
+import { Button, Progress } from '@arco-design/web-react';
+import { CheckOne, Download, FolderOpen, Refresh, CloseOne } from '@icon-park/react';
 import { ipcBridge } from '@/common';
 import AionModal from '@/renderer/components/base/AionModal';
 import MarkdownView from '@/renderer/components/Markdown';
@@ -83,7 +83,6 @@ const UpdateModal: React.FC = () => {
       }
 
       setDownloadId(res.data.downloadId);
-      // We may not be done yet; this path is the target.
       setDownloadPath(res.data.filePath);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
@@ -100,13 +99,30 @@ const UpdateModal: React.FC = () => {
     return `${(bytesPerSecond / 1024).toFixed(1)} KB/s`;
   };
 
-  useEffect(() => {
-    const removeOpenListener = ipcBridge.update.open.on(() => {
-      setVisible(true);
-      resetState();
-      void checkForUpdates();
-    });
+  const formatSize = (bytes: number) => {
+    if (bytes > 1024 * 1024) {
+      return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+    }
+    return `${(bytes / 1024).toFixed(1)} KB`;
+  };
 
+  const handleOpenUpdateModal = () => {
+    setVisible(true);
+    resetState();
+    void checkForUpdates();
+  };
+
+  useEffect(() => {
+    const removeOpenListener = ipcBridge.update.open.on(handleOpenUpdateModal);
+    window.addEventListener('aionui-open-update-modal', handleOpenUpdateModal);
+
+    return () => {
+      removeOpenListener();
+      window.removeEventListener('aionui-open-update-modal', handleOpenUpdateModal);
+    };
+  }, []);
+
+  useEffect(() => {
     const removeProgressListener = ipcBridge.update.downloadProgress.on((evt: UpdateDownloadProgressEvent) => {
       if (!evt) return;
       if (!downloadId || evt.downloadId !== downloadId) return;
@@ -130,10 +146,9 @@ const UpdateModal: React.FC = () => {
     });
 
     return () => {
-      removeOpenListener();
       removeProgressListener();
     };
-  }, [downloadId]);
+  }, [downloadId, t]);
 
   const handleClose = () => {
     setVisible(false);
@@ -157,56 +172,75 @@ const UpdateModal: React.FC = () => {
     switch (status) {
       case 'checking':
         return (
-          <div className='flex flex-col items-center justify-center py-40px h-300px'>
-            <div className='loading w-32px h-32px border-2 border-primary border-t-transparent rounded-full animate-spin mb-16px' />
-            <Typography.Text className='text-t-secondary'>{t('update.checking')}</Typography.Text>
+          <div className='flex flex-col items-center justify-center py-48px'>
+            <div className='w-48px h-48px mb-20px relative'>
+              <div className='absolute inset-0 border-3 border-fill-3 rounded-full' />
+              <div className='absolute inset-0 border-3 border-primary border-t-transparent rounded-full animate-spin' />
+            </div>
+            <div className='text-15px text-t-primary font-500'>{t('update.checking')}</div>
           </div>
         );
 
       case 'upToDate':
         return (
-          <div className='flex flex-col items-center justify-center py-40px h-300px'>
-            <div className='w-64px h-64px bg-success/10 rounded-full flex items-center justify-center mb-16px text-success'>
-              <CheckOne theme='filled' size='32' />
+          <div className='flex flex-col items-center justify-center py-48px'>
+            <div className='w-56px h-56px bg-[rgb(var(--success-6))]/12 rounded-full flex items-center justify-center mb-20px'>
+              <CheckOne theme='filled' size='28' fill='rgb(var(--success-6))' />
             </div>
-            <Typography.Title heading={5} className='m-0 mb-8px'>
-              {t('update.upToDateTitle')}
-            </Typography.Title>
-            <Typography.Text className='text-t-secondary'>{t('update.currentVersion', { version: currentVersion || '-' })}</Typography.Text>
+            <div className='text-16px text-t-primary font-600 mb-8px'>{t('update.upToDateTitle')}</div>
+            <div className='text-13px text-t-tertiary'>{t('update.currentVersion', { version: currentVersion || '-' })}</div>
           </div>
         );
 
       case 'available':
         return (
-          <div className='flex flex-col h-full overflow-hidden'>
-            <div className='flex items-center justify-between mb-16px shrink-0'>
-              <div>
-                <div className='flex items-center gap-8px'>
-                  <Typography.Title heading={5} className='m-0'>
-                    {t('update.availableTitle')}
-                  </Typography.Title>
-                  <span className='bg-primary/10 text-primary px-8px py-2px rounded text-12px font-bold'>{updateInfo?.version}</span>
+          <div className='flex flex-col h-full'>
+            {/* 版本信息头部 / Version info header */}
+            <div className='flex items-center justify-between px-24px py-16px border-b border-border-2 bg-fill-1'>
+              <div className='flex items-center gap-12px'>
+                <div className='w-40px h-40px bg-[rgb(var(--primary-6))]/12 rounded-10px flex items-center justify-center'>
+                  <Download size='20' fill='rgb(var(--primary-6))' />
                 </div>
-                {updateInfo?.name && <Typography.Text className='text-t-secondary text-12px block mt-4px'>{updateInfo.name}</Typography.Text>}
+                <div>
+                  <div className='text-15px font-600 text-t-primary'>{t('update.availableTitle')}</div>
+                  <div className='text-12px text-t-tertiary mt-2px'>
+                    {currentVersion} → <span className='text-[rgb(var(--primary-6))] font-500'>{updateInfo?.version}</span>
+                  </div>
+                </div>
               </div>
+              <Button type='primary' size='small' onClick={startDownload} className='!px-16px'>
+                {t('update.downloadButton')}
+              </Button>
             </div>
-            <div className='flex-1 min-h-0 border border-border rounded-lg bg-bg-2 overflow-hidden flex flex-col'>
-              <div className='flex-1 overflow-y-auto p-16px custom-scrollbar'>{updateInfo?.body ? <MarkdownView>{updateInfo.body}</MarkdownView> : <Typography.Text className='text-t-secondary italic'>{t('update.noReleaseNotes')}</Typography.Text>}</div>
+
+            {/* 更新日志内容 / Release notes content */}
+            <div className='flex-1 min-h-0 overflow-y-auto px-24px py-16px custom-scrollbar'>
+              {updateInfo?.name && <div className='text-14px font-500 text-t-primary mb-12px'>{updateInfo.name}</div>}
+              {updateInfo?.body ? (
+                <div className='text-13px text-t-secondary leading-relaxed'>
+                  <MarkdownView>{updateInfo.body}</MarkdownView>
+                </div>
+              ) : (
+                <div className='text-13px text-t-tertiary italic'>{t('update.noReleaseNotes')}</div>
+              )}
             </div>
           </div>
         );
 
       case 'downloading':
         return (
-          <div className='flex flex-col items-center justify-center py-40px h-300px'>
-            <Typography.Title heading={6} className='mb-24px'>
-              {t('update.downloadingTitle')}
-            </Typography.Title>
-            <div className='w-full max-w-300px'>
-              <Progress percent={progress.percent} status='normal' width='100%' />
-              <div className='flex justify-between mt-8px text-12px text-t-secondary'>
-                <span>{progress.speed}</span>
-                <span>{progress.percent}%</span>
+          <div className='flex flex-col items-center justify-center py-48px px-32px'>
+            <div className='w-56px h-56px bg-[rgb(var(--primary-6))]/12 rounded-full flex items-center justify-center mb-20px'>
+              <Download size='24' fill='rgb(var(--primary-6))' className='animate-bounce' />
+            </div>
+            <div className='text-16px text-t-primary font-600 mb-20px'>{t('update.downloadingTitle')}</div>
+            <div className='w-full max-w-320px'>
+              <Progress percent={progress.percent} status='normal' showText={false} strokeWidth={6} className='!mb-12px' />
+              <div className='flex justify-between text-12px text-t-tertiary'>
+                <span>
+                  {formatSize(progress.transferred)} / {formatSize(progress.total)}
+                </span>
+                <span className='text-[rgb(var(--primary-6))] font-500'>{progress.speed}</span>
               </div>
             </div>
           </div>
@@ -214,36 +248,32 @@ const UpdateModal: React.FC = () => {
 
       case 'success':
         return (
-          <div className='flex flex-col items-center justify-center py-40px h-300px'>
-            <div className='w-64px h-64px bg-primary/10 rounded-full flex items-center justify-center mb-16px text-primary'>
-              <CheckOne theme='filled' size='32' />
+          <div className='flex flex-col items-center justify-center py-48px px-32px'>
+            <div className='w-56px h-56px bg-[rgb(var(--success-6))]/12 rounded-full flex items-center justify-center mb-20px'>
+              <CheckOne theme='filled' size='28' fill='rgb(var(--success-6))' />
             </div>
-            <Typography.Title heading={5} className='m-0 mb-8px'>
-              {t('update.downloadCompleteTitle')}
-            </Typography.Title>
-            <Typography.Text className='text-t-secondary mb-24px text-center max-w-400px break-all'>{downloadPath}</Typography.Text>
-            <Space>
-              <Button onClick={showInFolder} icon={<FolderOpen />}>
+            <div className='text-16px text-t-primary font-600 mb-8px'>{t('update.downloadCompleteTitle')}</div>
+            <div className='text-12px text-t-tertiary mb-24px text-center max-w-360px break-all line-clamp-2'>{downloadPath}</div>
+            <div className='flex gap-12px'>
+              <Button size='small' onClick={showInFolder} icon={<FolderOpen size='14' />} className='!px-16px'>
                 {t('update.showInFolder')}
               </Button>
-              <Button type='primary' onClick={openFile} icon={<FileText />}>
+              <Button type='primary' size='small' onClick={openFile} className='!px-16px'>
                 {t('update.openFile')}
               </Button>
-            </Space>
+            </div>
           </div>
         );
 
       case 'error':
         return (
-          <div className='flex flex-col items-center justify-center py-40px h-300px'>
-            <div className='w-64px h-64px bg-danger/10 rounded-full flex items-center justify-center mb-16px text-danger'>
-              <Attention theme='filled' size='32' />
+          <div className='flex flex-col items-center justify-center py-48px px-32px'>
+            <div className='w-56px h-56px bg-[rgb(var(--danger-6))]/12 rounded-full flex items-center justify-center mb-20px'>
+              <CloseOne theme='filled' size='28' fill='rgb(var(--danger-6))' />
             </div>
-            <Typography.Title heading={5} className='m-0 mb-8px'>
-              {t('update.errorTitle')}
-            </Typography.Title>
-            <Typography.Text className='text-t-secondary mb-24px text-center px-24px'>{errorMsg}</Typography.Text>
-            <Button onClick={checkForUpdates} icon={<Refresh />}>
+            <div className='text-16px text-t-primary font-600 mb-8px'>{t('update.errorTitle')}</div>
+            <div className='text-13px text-t-tertiary mb-24px text-center max-w-360px'>{errorMsg}</div>
+            <Button size='small' onClick={checkForUpdates} icon={<Refresh size='14' />} className='!px-16px'>
               {t('common.retry')}
             </Button>
           </div>
@@ -251,43 +281,19 @@ const UpdateModal: React.FC = () => {
     }
   };
 
-  const renderFooter = () => {
-    if (status === 'available') {
-      return (
-        <div className='flex justify-end gap-12px pt-16px border-t border-border'>
-          <Button onClick={handleClose}>{t('common.close')}</Button>
-          <Button type='primary' onClick={startDownload} icon={<Download />}>
-            {t('update.downloadButton')}
-          </Button>
-        </div>
-      );
-    }
-    if (status === 'upToDate') {
-      return (
-        <div className='flex justify-center pt-16px'>
-          <Button type='primary' onClick={handleClose}>
-            {t('common.close')}
-          </Button>
-        </div>
-      );
-    }
-    return null;
-  };
-
   return (
     <AionModal
       visible={visible}
       onCancel={handleClose}
-      size={status === 'available' ? 'large' : 'medium'}
+      size={status === 'available' ? 'medium' : 'small'}
       header={{
         title: t('update.modalTitle'),
         showClose: true,
       }}
-      footer={{
-        render: renderFooter,
-      }}
+      footer={{ render: () => null }}
       contentStyle={{
-        height: status === 'available' ? '500px' : 'auto',
+        height: status === 'available' ? '420px' : 'auto',
+        padding: 0,
         overflow: 'hidden',
       }}
     >
