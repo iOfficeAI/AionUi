@@ -189,7 +189,7 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({ content, filePath, containe
   const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>(() => {
     return (document.documentElement.getAttribute('data-theme') as 'light' | 'dark') || 'light';
   });
-  
+
   // 检测是否在 Electron 环境 / Detect if in Electron environment
   const isElectron = useMemo(() => typeof window !== 'undefined' && window.electronAPI !== undefined, []);
 
