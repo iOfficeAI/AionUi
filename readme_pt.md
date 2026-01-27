@@ -85,12 +85,7 @@ _Seu assistente de IA 7×24 horas - Acesse o AionUi de qualquer dispositivo na r
 
 > 💡 **Precisa de um guia de configuração detalhado?** Consulte o [Guia de configuração do WebUI](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) e o [Guia de acesso remoto à Internet](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide)
 
-<p align="center">
-  <video width="800" controls poster="./resources/webui banner.png">
-    <source src="./resources/webui.mp4" type="video/mp4">
-    Seu navegador não suporta a reprodução de vídeo.
-  </video>
-</p>
+https://github.com/user-attachments/assets/c81b7826-30ea-405e-86db-7d6a503c533b
 
 ---
 
