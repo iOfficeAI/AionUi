@@ -73,6 +73,27 @@ _AionUi에는 Gemini CLI가 내장되어 있어 다운로드 즉시 사용 가�
 
 ---
 
+### 🌐 **어디서나 접속 - WebUI 모드**
+
+_당신의 7×24시간 AI 어시스턴트 - 네트워크의 모든 기기에서 AionUi에 접속하세요! 출장 중, 집에서, 사무실에서, 언제 어디서나 AI 도구를 사용하세요_
+
+**✨ 원클릭 시작**：설정 패널에서 WebUI 옵션을 열고 스위치를 클릭하기만 하면 시작됩니다!
+
+- ✅ **크로스 디바이스 접속** - 스마트폰, 태블릿, 컴퓨터, 모든 기기에서 접속 가능
+- ✅ **원격 협업** - LAN, 크로스 네트워크, 서버 배포 등 다양한 시나리오 지원
+- ✅ **안전하고 신뢰할 수 있음** - 비밀번호 관리, QR 코드 로그인, 데이터는 기기를 떠나지 않습니다
+
+> 💡 **자세한 설정 가이드가 필요하신가요?** [WebUI 설정 튜토리얼](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) 과 [원격 인터넷 접속 가이드](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide) 를 확인하세요
+
+<p align="center">
+  <video width="800" controls poster="./resources/webui banner.png">
+    <source src="./resources/webui.mp4" type="video/mp4">
+    브라우저가 비디오 재생을 지원하지 않습니다.
+  </video>
+</p>
+
+---
+
 ### 📁 **스마트 파일 관리 (AI Cowork)**
 
 _일괄 이름 변경, 자동 정리, 스마트 분류, 파일 병합_
@@ -123,27 +144,6 @@ _여러 대화 열기, 작업이 섞이지 않음, 독립적인 메모리, 효�
 
 ---
 
-### 🌐 **어디서나 접속 - WebUI 모드**
-
-_당신의 7×24시간 AI 어시스턴트 - 네트워크의 모든 기기에서 AionUi에 접속하세요! 출장 중, 집에서, 사무실에서, 언제 어디서나 AI 도구를 사용하세요_
-
-**✨ 원클릭 시작**：설정 패널에서 WebUI 옵션을 열고 스위치를 클릭하기만 하면 시작됩니다!
-
-- ✅ **크로스 디바이스 접속** - 스마트폰, 태블릿, 컴퓨터, 모든 기기에서 접속 가능
-- ✅ **원격 협업** - LAN, 크로스 네트워크, 서버 배포 등 다양한 시나리오 지원
-- ✅ **안전하고 신뢰할 수 있음** - 비밀번호 관리, QR 코드 로그인, 데이터는 기기를 떠나지 않습니다
-
-> 💡 **자세한 설정 가이드가 필요하신가요?** [WebUI 설정 튜토리얼](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) 과 [원격 인터넷 접속 가이드](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide) 를 확인하세요
-
-<p align="center">
-  <video width="800" controls poster="./resources/webui banner.png">
-    <source src="./resources/webui.mp4" type="video/mp4">
-    브라우저가 비디오 재생을 지원하지 않습니다.
-  </video>
-</p>
-
----
-
 ## 🤔 왜 AionUi를 선택해야 하나요?
 
 **Claude Cowork가 Claude Code를 더 쉽게 사용할 수 있게 해주는 것처럼, AionUi는 모든 명령줄 AI 도구를 위한 Cowork 플랫폼입니다**
@@ -154,7 +154,8 @@ AionUi는 이러한 명령줄 도구에 통합된 **Cowork 기능**을 제공합
 
 - 🎯 **통합 플랫폼** - 하나의 인터페이스로 모든 명령줄 AI 도구 관리, 전환 필요 없음; Gemini CLI 내장, 다운로드 즉시 사용 가능하며 완전 무료
 - 🚀 **다중 도구 지원** - Claude Code뿐만 아니라 Gemini CLI, Codex, Qwen Code 등도 지원
-- 🌐 **크로스 플랫폼** - macOS, Windows, Linux 전체 플랫폼 지원 (Claude Cowork는 현재 macOS만 지원)
+- 🖥️ **크로스 플랫폼** - macOS, Windows, Linux 전체 플랫폼 지원 (Claude Cowork는 현재 macOS만 지원)
+- 🌐 **원격 접속** - 당신의 원격 24/7 어시스턴트, 언제 어디서나 접속 가능하며 완전 무료
 - 🔄 **다중 모델 전환** - 같은 인터페이스에서 다른 모델로 유연하게 전환, 다양한 작업 요구 충족
 - 📄 **실시간 미리보기** - 9가지 이상의 형식 시각적 미리보기, AI가 생성한 파일 즉시 확인
 - 💾 **로컬 데이터 보안** - 모든 대화와 파일이 로컬에 저장, 데이터가 기기를 떠나지 않음

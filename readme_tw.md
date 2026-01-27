@@ -73,6 +73,27 @@ _AionUi 內建 Gemini CLI，下載即用，無需額外安裝；如果您已經�
 
 ---
 
+### 🌐 **隨時隨地存取 - WebUI 模式**
+
+_你的 7×24 小時 AI 助手 - 從網路中的任何裝置存取 AionUi！出差、在家、辦公室，隨時隨地使用你的 AI 工具_
+
+**✨ 一鍵啟動**：在設定面板中打開 WebUI 選項，點擊開關即可啟動！
+
+- ✅ **跨裝置存取** - 手機、平板、電腦，任何裝置都能存取
+- ✅ **遠端協作** - 支援區域網路、跨網路、伺服器部署等多種場景
+- ✅ **安全可靠** - 密碼管理、二維碼登入，資料不離開你的裝置
+
+> 💡 **需要詳細設定指南？** 查看 [WebUI 設定教學](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) 和 [遠端外網連接教學](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide-Chinese)
+
+<p align="center">
+  <video width="800" controls poster="./resources/webui banner.png">
+    <source src="./resources/webui.mp4" type="video/mp4">
+    您的瀏覽器不支援視頻播放。
+  </video>
+</p>
+
+---
+
 ### 📁 **智慧檔案管理 (AI Cowork)**
 
 _批次重新命名、自動整理、智慧分類、檔案合併_
@@ -123,27 +144,6 @@ _開多個對話、任務不混亂、記憶獨立、效率加倍_
 
 ---
 
-### 🌐 **隨時隨地存取 - WebUI 模式**
-
-_你的 7×24 小時 AI 助手 - 從網路中的任何裝置存取 AionUi！出差、在家、辦公室，隨時隨地使用你的 AI 工具_
-
-**✨ 一鍵啟動**：在設定面板中打開 WebUI 選項，點擊開關即可啟動！
-
-- ✅ **跨裝置存取** - 手機、平板、電腦，任何裝置都能存取
-- ✅ **遠端協作** - 支援區域網路、跨網路、伺服器部署等多種場景
-- ✅ **安全可靠** - 密碼管理、二維碼登入，資料不離開你的裝置
-
-> 💡 **需要詳細設定指南？** 查看 [WebUI 設定教學](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) 和 [遠端外網連接教學](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide-Chinese)
-
-<p align="center">
-  <video width="800" controls poster="./resources/webui banner.png">
-    <source src="./resources/webui.mp4" type="video/mp4">
-    您的瀏覽器不支援視頻播放。
-  </video>
-</p>
-
----
-
 ## 🤔 為什麼選擇 AionUi？
 
 **就像 Claude Cowork 讓 Claude Code 更易用，AionUi 是您所有命令列 AI 工具的 Cowork 平台**
@@ -154,7 +154,8 @@ AionUi 為這些命令列工具提供統一的 **Cowork 能力**：
 
 - 🎯 **統一平台** - 一個介面管理所有命令列 AI 工具，無需切換；內建 Gemini CLI，下載即用且完全免費
 - 🚀 **多工具支援** - 不僅支援 Claude Code，還支援 Gemini CLI、Codex、Qwen Code 等
-- 🌐 **跨平台** - macOS、Windows、Linux 全平台支援（Claude Cowork 目前僅 macOS）
+- 🖥️ **跨平台** - macOS、Windows、Linux 全平台支援（Claude Cowork 目前僅 macOS）
+- 🌐 **遠端存取** - 您的遠端 24/7 助手，存取隨時隨地，且免費
 - 🔄 **多模型切換** - 在同一個介面中靈活切換不同模型，滿足不同任務需求
 - 📄 **即時預覽** - 9 種以上格式視覺化預覽，AI 生成的檔案立即查看效果
 - 💾 **本地資料安全** - 所有對話和檔案儲存在本地，資料不離開您的裝置

@@ -155,7 +155,8 @@ AionUi 为这些命令行工具提供统一的 **Cowork 能力**：
 
 - 🎯 **统一平台** - 一个界面管理所有命令行 AI 工具，无需切换；内置 Gemini CLI，下载即用且完全免费
 - 🚀 **多工具支持** - 不仅支持 Claude Code，还支持 Gemini CLI、Codex、Qwen Code 等
-- 🌐 **跨平台** - macOS、Windows、Linux 全平台支持（Claude Cowork 目前仅 macOS）
+- 🖥️ **跨平台** - macOS、Windows、Linux 全平台支持（Claude Cowork 目前仅 macOS）
+- 🌐 **远程访问** - 你的远程 24/7 助手，访问随时随地，且免费
 - 🔄 **多模型切换** - 在同一个界面中灵活切换不同模型，满足不同任务需求
 - 📄 **实时预览** - 9+ 种格式可视化预览，AI 生成的文件立即查看效果
 - 💾 **本地数据安全** - 所有对话和文件保存在本地，数据不离开你的设备
