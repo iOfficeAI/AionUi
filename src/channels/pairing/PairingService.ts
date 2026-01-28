@@ -7,6 +7,7 @@
 import { getDatabase } from '@/process/database';
 import { channel as channelBridge } from '@/common/ipcBridge';
 import type { IChannelPairingRequest, IChannelUser, PluginType, PairingStatus } from '../types';
+import * as crypto from 'crypto';
 
 /**
  * Pairing code configuration
@@ -167,7 +168,7 @@ export class PairingService {
     }
 
     // Create authorized user
-    const userId = `assistant_user_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const userId = `assistant_user_${Date.now()}_${crypto.randomBytes(4).toString('hex').slice(0, 6)}`;
     const user: IChannelUser = {
       id: userId,
       platformUserId: request.platformUserId,
