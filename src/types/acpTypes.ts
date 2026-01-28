@@ -342,9 +342,9 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     name: 'Kimi CLI',
     cliCommand: 'kimi',
     authRequired: false,
-    enabled: true, // ✅ Kimi CLI (Moonshot)，使用 `kimi --acp` 启动
+    enabled: true, // ✅ Kimi CLI (Moonshot)，使用 `kimi acp` 启动
     supportsStreaming: false,
-    acpArgs: ['--acp'], // kimi 使用 --acp flag
+    acpArgs: ['acp'], // kimi 使用 acp 子命令
   },
   opencode: {
     id: 'opencode',
