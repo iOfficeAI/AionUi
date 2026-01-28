@@ -117,7 +117,7 @@ export const handleSessionNew: ActionHandler = async (context) => {
   });
 
   if (!result.success || !result.conversation) {
-    return createErrorResponse(`创建会话失败: ${result.error || 'Unknown error'}`);
+    return createErrorResponse(`Failed to create session: ${result.error || 'Unknown error'}`);
   }
 
   // Create session with the new conversation ID
@@ -126,7 +126,7 @@ export const handleSessionNew: ActionHandler = async (context) => {
 
   return createSuccessResponse({
     type: 'text',
-    text: `🆕 <b>新会话已创建</b>\n\n会话ID: <code>${session.id.slice(-8)}</code>\n\n现在可以开始新的对话了！`,
+    text: `🆕 <b>New Session Created</b>\n\nSession ID: <code>${session.id.slice(-8)}</code>\n\nYou can start a new conversation now!`,
     parseMode: 'HTML',
     replyMarkup: createMainMenuKeyboard(),
   });
@@ -149,7 +149,7 @@ export const handleSessionStatus: ActionHandler = async (context) => {
   if (!session) {
     return createSuccessResponse({
       type: 'text',
-      text: '📊 <b>会话状态</b>\n\n当前没有活跃会话。\n\n发送消息开始新的对话，或点击「新对话」按钮。',
+      text: '📊 <b>Session Status</b>\n\nNo active session.\n\nSend a message to start a new conversation, or tap the "New Chat" button.',
       parseMode: 'HTML',
       replyMarkup: createSessionControlKeyboard(),
     });
@@ -160,7 +160,7 @@ export const handleSessionStatus: ActionHandler = async (context) => {
 
   return createSuccessResponse({
     type: 'text',
-    text: ['📊 <b>会话状态</b>', '', `🤖 Agent: <code>${session.agentType}</code>`, `⏱ 会话时长: ${duration} 分钟`, `📝 最后活动: ${lastActivity} 秒前`, `🔖 会话ID: <code>${session.id.slice(-8)}</code>`].join('\n'),
+    text: ['📊 <b>Session Status</b>', '', `🤖 Agent: <code>${session.agentType}</code>`, `⏱ Duration: ${duration} min`, `📝 Last activity: ${lastActivity} sec ago`, `🔖 Session ID: <code>${session.id.slice(-8)}</code>`].join('\n'),
     parseMode: 'HTML',
     replyMarkup: createSessionControlKeyboard(),
   });
@@ -172,7 +172,7 @@ export const handleSessionStatus: ActionHandler = async (context) => {
 export const handleHelpShow: ActionHandler = async (context) => {
   return createSuccessResponse({
     type: 'text',
-    text: ['❓ <b>AionUi 个人助手</b>', '', '通过 Telegram 与 AionUi 交互的远程助手。', '', '<b>常用操作:</b>', '• 🆕 新对话 - 开始新的会话', '• 📊 状态 - 查看当前会话状态', '• ❓ 帮助 - 显示此帮助信息', '', '直接发送消息即可与 AI 助手对话。'].join('\n'),
+    text: ['❓ <b>AionUi Assistant</b>', '', 'A remote assistant to interact with AionUi via Telegram.', '', '<b>Common Actions:</b>', '• 🆕 New Chat - Start a new session', '• 📊 Status - View current session status', '• ❓ Help - Show this help message', '', 'Send a message to chat with the AI assistant.'].join('\n'),
     parseMode: 'HTML',
     replyMarkup: createHelpKeyboard(),
   });
@@ -184,7 +184,7 @@ export const handleHelpShow: ActionHandler = async (context) => {
 export const handleHelpFeatures: ActionHandler = async (context) => {
   return createSuccessResponse({
     type: 'text',
-    text: ['🤖 <b>功能介绍</b>', '', '<b>AI 对话</b>', '• 支持自然语言对话', '• 流式输出，实时显示', '• 支持上下文记忆', '', '<b>会话管理</b>', '• 单会话模式', '• 随时清空上下文', '• 会话状态查看', '', '<b>消息操作</b>', '• 复制回复内容', '• 重新生成回复', '• 继续对话'].join('\n'),
+    text: ['🤖 <b>Features</b>', '', '<b>AI Chat</b>', '• Natural language conversation', '• Streaming output, real-time display', '• Context memory support', '', '<b>Session Management</b>', '• Single session mode', '• Clear context anytime', '• View session status', '', '<b>Message Actions</b>', '• Copy reply content', '• Regenerate reply', '• Continue conversation'].join('\n'),
     parseMode: 'HTML',
     replyMarkup: createHelpKeyboard(),
   });
@@ -196,7 +196,7 @@ export const handleHelpFeatures: ActionHandler = async (context) => {
 export const handleHelpPairing: ActionHandler = async (context) => {
   return createSuccessResponse({
     type: 'text',
-    text: ['🔗 <b>配对指南</b>', '', '<b>首次使用:</b>', '1. 发送任意消息给机器人', '2. 机器人显示配对码', '3. 在 AionUi 设置中批准配对', '4. 配对成功后即可使用', '', '<b>注意事项:</b>', '• 配对码 10 分钟内有效', '• 需要 AionUi 应用运行', '• 一个 Telegram 账号只能配对一次'].join('\n'),
+    text: ['🔗 <b>Pairing Guide</b>', '', '<b>First-time Setup:</b>', '1. Send any message to the bot', '2. Bot displays pairing code', '3. Approve pairing in AionUi settings', '4. Ready to use after pairing', '', '<b>Notes:</b>', '• Pairing code valid for 10 minutes', '• AionUi app must be running', '• One Telegram account can only pair once'].join('\n'),
     parseMode: 'HTML',
     replyMarkup: createHelpKeyboard(),
   });
@@ -208,7 +208,7 @@ export const handleHelpPairing: ActionHandler = async (context) => {
 export const handleHelpTips: ActionHandler = async (context) => {
   return createSuccessResponse({
     type: 'text',
-    text: ['💬 <b>使用技巧</b>', '', '<b>高效对话:</b>', '• 问题描述清晰具体', '• 可以追问和补充', '• 不满意可重新生成', '', '<b>快捷操作:</b>', '• 使用底部按钮快速操作', '• 点击消息按钮进行操作', '• 新对话清空历史上下文'].join('\n'),
+    text: ['💬 <b>Tips</b>', '', '<b>Effective Conversations:</b>', '• Be clear and specific', '• Feel free to ask follow-ups', '• Regenerate if not satisfied', '', '<b>Quick Actions:</b>', '• Use bottom buttons for quick access', '• Tap message buttons for actions', '• New chat clears history context'].join('\n'),
     parseMode: 'HTML',
     replyMarkup: createHelpKeyboard(),
   });
@@ -220,7 +220,7 @@ export const handleHelpTips: ActionHandler = async (context) => {
 export const handleSettingsShow: ActionHandler = async (context) => {
   return createSuccessResponse({
     type: 'text',
-    text: ['⚙️ <b>设置</b>', '', '个人助手设置需要在 AionUi 应用中进行配置。', '', '打开 AionUi → 设置 → Assistant'].join('\n'),
+    text: ['⚙️ <b>Settings</b>', '', 'Channel settings need to be configured in the AionUi app.', '', 'Open AionUi → WebUI → Channels'].join('\n'),
     parseMode: 'HTML',
     replyMarkup: createMainMenuKeyboard(),
   });

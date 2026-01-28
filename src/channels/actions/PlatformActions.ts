@@ -27,7 +27,7 @@ export const handlePairingShow: ActionHandler = async (context) => {
   if (pairingService.isUserAuthorized(context.userId, context.platform)) {
     return createSuccessResponse({
       type: 'text',
-      text: ['✅ <b>已授权</b>', '', '您的账号已经完成配对，可以直接使用。', '', '发送消息开始对话，或使用下方按钮进行操作。'].join('\n'),
+      text: ['✅ <b>Authorized</b>', '', 'Your account is already paired and ready to use.', '', 'Send a message to start chatting, or use the buttons below.'].join('\n'),
       parseMode: 'HTML',
       replyMarkup: createMainMenuKeyboard(),
     });
@@ -41,12 +41,12 @@ export const handlePairingShow: ActionHandler = async (context) => {
 
     return createSuccessResponse({
       type: 'text',
-      text: ['🔗 <b>设备配对</b>', '', '请在 AionUi 应用中批准此配对请求：', '', `<code>${code}</code>`, '', `⏱ 有效期: ${expiresInMinutes} 分钟`, '', '<b>步骤:</b>', '1. 打开 AionUi 应用', '2. 进入 WebUI → Channels', '3. 在「待批准配对」中点击「批准」'].join('\n'),
+      text: ['🔗 <b>Device Pairing</b>', '', 'Please approve this pairing request in the AionUi app:', '', `<code>${code}</code>`, '', `⏱ Valid for: ${expiresInMinutes} minutes`, '', '<b>Steps:</b>', '1. Open AionUi app', '2. Go to WebUI → Channels', '3. Click "Approve" in pending pairing requests'].join('\n'),
       parseMode: 'HTML',
       replyMarkup: createPairingCodeKeyboard(),
     });
   } catch (error: any) {
-    return createErrorResponse(`配对码生成失败: ${error.message}`);
+    return createErrorResponse(`Failed to generate pairing code: ${error.message}`);
   }
 };
 
@@ -60,7 +60,7 @@ export const handlePairingRefresh: ActionHandler = async (context) => {
   if (pairingService.isUserAuthorized(context.userId, context.platform)) {
     return createSuccessResponse({
       type: 'text',
-      text: '✅ 您已经完成配对，无需刷新配对码。',
+      text: '✅ You are already paired. No need to refresh the pairing code.',
       parseMode: 'HTML',
       replyMarkup: createMainMenuKeyboard(),
     });
@@ -74,12 +74,12 @@ export const handlePairingRefresh: ActionHandler = async (context) => {
 
     return createSuccessResponse({
       type: 'text',
-      text: ['🔄 <b>新配对码</b>', '', `<code>${code}</code>`, '', `⏱ 有效期: ${expiresInMinutes} 分钟`, '', '请在 AionUi 设置中批准此配对请求。'].join('\n'),
+      text: ['🔄 <b>New Pairing Code</b>', '', `<code>${code}</code>`, '', `⏱ Valid for: ${expiresInMinutes} minutes`, '', 'Please approve this pairing request in AionUi settings.'].join('\n'),
       parseMode: 'HTML',
       replyMarkup: createPairingCodeKeyboard(),
     });
   } catch (error: any) {
-    return createErrorResponse(`刷新配对码失败: ${error.message}`);
+    return createErrorResponse(`Failed to refresh pairing code: ${error.message}`);
   }
 };
 
@@ -93,7 +93,7 @@ export const handlePairingCheck: ActionHandler = async (context) => {
   if (pairingService.isUserAuthorized(context.userId, context.platform)) {
     return createSuccessResponse({
       type: 'text',
-      text: ['✅ <b>配对成功！</b>', '', '您的账号已完成配对，现在可以开始使用了。', '', '发送消息与 AI 助手对话。'].join('\n'),
+      text: ['✅ <b>Pairing Successful!</b>', '', 'Your account is now paired and ready to use.', '', 'Send a message to chat with the AI assistant.'].join('\n'),
       parseMode: 'HTML',
       replyMarkup: createMainMenuKeyboard(),
     });
@@ -107,7 +107,7 @@ export const handlePairingCheck: ActionHandler = async (context) => {
 
     return createSuccessResponse({
       type: 'text',
-      text: ['⏳ <b>等待批准</b>', '', `配对码: <code>${pendingRequest.code}</code>`, `剩余时间: ${expiresInMinutes} 分钟`, '', '请在 AionUi 设置中批准配对请求。'].join('\n'),
+      text: ['⏳ <b>Waiting for Approval</b>', '', `Pairing code: <code>${pendingRequest.code}</code>`, `Time remaining: ${expiresInMinutes} minutes`, '', 'Please approve the pairing request in AionUi settings.'].join('\n'),
       parseMode: 'HTML',
       replyMarkup: createPairingStatusKeyboard(),
     });
@@ -123,7 +123,7 @@ export const handlePairingCheck: ActionHandler = async (context) => {
 export const handlePairingHelp: ActionHandler = async (context) => {
   return createSuccessResponse({
     type: 'text',
-    text: ['❓ <b>配对帮助</b>', '', '<b>什么是配对？</b>', '配对是将您的 Telegram 账号与本地 AionUi 关联的过程。', '只有配对后才能使用 AI 助手功能。', '', '<b>配对步骤:</b>', '1. 获取配对码（发送任意消息）', '2. 打开 AionUi 应用', '3. 进入 WebUI → Channels', '4. 在待批准列表中点击「批准」', '', '<b>常见问题:</b>', '• 配对码 10 分钟有效，过期请刷新', '• 需要 AionUi 应用在运行中', '• 确保网络连接正常'].join('\n'),
+    text: ['❓ <b>Pairing Help</b>', '', '<b>What is pairing?</b>', 'Pairing links your Telegram account with the local AionUi application.', 'You need to pair before using the AI assistant.', '', '<b>Pairing steps:</b>', '1. Get pairing code (send any message)', '2. Open AionUi app', '3. Go to WebUI → Channels', '4. Click "Approve" in pending requests', '', '<b>FAQ:</b>', '• Pairing code valid for 10 minutes, refresh if expired', '• AionUi app must be running', '• Ensure network connection is stable'].join('\n'),
     parseMode: 'HTML',
     replyMarkup: createPairingCodeKeyboard(),
   });

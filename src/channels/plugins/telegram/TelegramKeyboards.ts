@@ -21,14 +21,14 @@ import { InlineKeyboard, Keyboard } from 'grammy';
  * Displayed persistently below the message input
  */
 export function createMainMenuKeyboard(): Keyboard {
-  return new Keyboard().text('🆕 新对话').text('📊 状态').row().text('❓ 帮助').resized().persistent();
+  return new Keyboard().text('🆕 New Chat').text('📊 Status').row().text('❓ Help').resized().persistent();
 }
 
 /**
  * Pairing keyboard shown during pairing process
  */
 export function createPairingKeyboard(): Keyboard {
-  return new Keyboard().text('🔄 刷新配对状态').text('❓ 帮助').resized().persistent();
+  return new Keyboard().text('🔄 Refresh Status').text('❓ Help').resized().persistent();
 }
 
 // ==================== Inline Keyboards ====================
@@ -37,49 +37,49 @@ export function createPairingKeyboard(): Keyboard {
  * Action buttons for AI response messages
  */
 export function createResponseActionsKeyboard(): InlineKeyboard {
-  return new InlineKeyboard().text('📋 复制', 'action:copy').text('🔄 重新生成', 'action:regenerate').row().text('💬 继续', 'action:continue');
+  return new InlineKeyboard().text('📋 Copy', 'action:copy').text('🔄 Regenerate', 'action:regenerate').row().text('💬 Continue', 'action:continue');
 }
 
 /**
  * Pairing code display with refresh option
  */
 export function createPairingCodeKeyboard(): InlineKeyboard {
-  return new InlineKeyboard().text('🔄 刷新配对码', 'pairing:refresh').row().text('❓ 配对帮助', 'pairing:help');
+  return new InlineKeyboard().text('🔄 Refresh Code', 'pairing:refresh').row().text('❓ Pairing Help', 'pairing:help');
 }
 
 /**
  * Pairing status check keyboard
  */
 export function createPairingStatusKeyboard(): InlineKeyboard {
-  return new InlineKeyboard().text('🔄 检查状态', 'pairing:check').text('🔄 获取新码', 'pairing:refresh');
+  return new InlineKeyboard().text('🔄 Check Status', 'pairing:check').text('🔄 Get New Code', 'pairing:refresh');
 }
 
 /**
  * Confirmation keyboard (generic)
  */
 export function createConfirmationKeyboard(confirmAction: string, cancelAction: string): InlineKeyboard {
-  return new InlineKeyboard().text('✅ 确认', confirmAction).text('❌ 取消', cancelAction);
+  return new InlineKeyboard().text('✅ Confirm', confirmAction).text('❌ Cancel', cancelAction);
 }
 
 /**
  * Session control keyboard
  */
 export function createSessionControlKeyboard(): InlineKeyboard {
-  return new InlineKeyboard().text('🆕 新建会话', 'session:new').text('📊 会话状态', 'session:status');
+  return new InlineKeyboard().text('🆕 New Session', 'session:new').text('📊 Session Status', 'session:status');
 }
 
 /**
  * Help menu keyboard
  */
 export function createHelpKeyboard(): InlineKeyboard {
-  return new InlineKeyboard().text('🤖 功能介绍', 'help:features').text('🔗 配对指南', 'help:pairing').row().text('💬 使用技巧', 'help:tips');
+  return new InlineKeyboard().text('🤖 Features', 'help:features').text('🔗 Pairing Guide', 'help:pairing').row().text('💬 Tips', 'help:tips');
 }
 
 /**
  * Error recovery keyboard
  */
 export function createErrorRecoveryKeyboard(): InlineKeyboard {
-  return new InlineKeyboard().text('🔄 重试', 'error:retry').text('🆕 新建会话', 'session:new');
+  return new InlineKeyboard().text('🔄 Retry', 'error:retry').text('🆕 New Session', 'session:new');
 }
 
 /**

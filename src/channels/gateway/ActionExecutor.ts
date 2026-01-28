@@ -28,27 +28,27 @@ function getConfirmationOptions(type: string): Array<{ label: string; value: str
   switch (type) {
     case 'edit':
       return [
-        { label: '✅ 允许此次', value: 'proceed_once' },
-        { label: '✅ 始终允许', value: 'proceed_always' },
-        { label: '❌ 取消', value: 'cancel' },
+        { label: '✅ Allow Once', value: 'proceed_once' },
+        { label: '✅ Always Allow', value: 'proceed_always' },
+        { label: '❌ Cancel', value: 'cancel' },
       ];
     case 'exec':
       return [
-        { label: '✅ 允许执行', value: 'proceed_once' },
-        { label: '✅ 始终允许', value: 'proceed_always' },
-        { label: '❌ 取消', value: 'cancel' },
+        { label: '✅ Allow Execution', value: 'proceed_once' },
+        { label: '✅ Always Allow', value: 'proceed_always' },
+        { label: '❌ Cancel', value: 'cancel' },
       ];
     case 'mcp':
       return [
-        { label: '✅ 允许此次', value: 'proceed_once' },
-        { label: '✅ 始终允许此工具', value: 'proceed_always_tool' },
-        { label: '✅ 始终允许此服务', value: 'proceed_always_server' },
-        { label: '❌ 取消', value: 'cancel' },
+        { label: '✅ Allow Once', value: 'proceed_once' },
+        { label: '✅ Always Allow Tool', value: 'proceed_always_tool' },
+        { label: '✅ Always Allow Server', value: 'proceed_always_server' },
+        { label: '❌ Cancel', value: 'cancel' },
       ];
     default:
       return [
-        { label: '✅ 确认', value: 'proceed_once' },
-        { label: '❌ 取消', value: 'cancel' },
+        { label: '✅ Confirm', value: 'proceed_once' },
+        { label: '❌ Cancel', value: 'cancel' },
       ];
   }
 }
@@ -60,19 +60,19 @@ function getConfirmationOptions(type: string): Array<{ label: string; value: str
  * Note: All user input content needs HTML special characters escaped
  */
 function getConfirmationPrompt(details: { type: string; title?: string; [key: string]: any }): string {
-  if (!details) return '请确认操作';
+  if (!details) return 'Please confirm the operation';
 
   switch (details.type) {
     case 'edit':
-      return `📝 <b>编辑文件确认</b>\n文件: <code>${escapeHtml(details.fileName || '未知文件')}</code>\n\n是否允许修改此文件？`;
+      return `📝 <b>Edit File Confirmation</b>\nFile: <code>${escapeHtml(details.fileName || 'Unknown file')}</code>\n\nAllow editing this file?`;
     case 'exec':
-      return `⚡ <b>执行命令确认</b>\n命令: <code>${escapeHtml(details.command || '未知命令')}</code>\n\n是否允许执行此命令？`;
+      return `⚡ <b>Execute Command Confirmation</b>\nCommand: <code>${escapeHtml(details.command || 'Unknown command')}</code>\n\nAllow executing this command?`;
     case 'mcp':
-      return `🔧 <b>MCP 工具确认</b>\n工具: <code>${escapeHtml(details.toolDisplayName || details.toolName || '未知工具')}</code>\n服务: <code>${escapeHtml(details.serverName || '未知服务')}</code>\n\n是否允许调用此工具？`;
+      return `🔧 <b>MCP Tool Confirmation</b>\nTool: <code>${escapeHtml(details.toolDisplayName || details.toolName || 'Unknown tool')}</code>\nServer: <code>${escapeHtml(details.serverName || 'Unknown server')}</code>\n\nAllow calling this tool?`;
     case 'info':
-      return `ℹ️ <b>信息确认</b>\n${escapeHtml(details.prompt || '')}\n\n是否继续？`;
+      return `ℹ️ <b>Information Confirmation</b>\n${escapeHtml(details.prompt || '')}\n\nContinue?`;
     default:
-      return '请确认操作';
+      return 'Please confirm the operation';
   }
 }
 
@@ -137,7 +137,7 @@ function convertTMessageToOutgoing(message: TMessage, isComplete = false): IUnif
 
       return {
         type: 'text',
-        text: toolLines.join('\n') || '🔧 执行工具...',
+        text: toolLines.join('\n') || '🔧 Executing tools...',
         parseMode: 'HTML',
       };
     }
@@ -159,7 +159,7 @@ function convertTMessageToOutgoing(message: TMessage, isComplete = false): IUnif
       // Other types not supported yet, show generic message
       return {
         type: 'text',
-        text: '⏳ 处理中...',
+        text: '⏳ Processing...',
         parseMode: 'HTML',
       };
   }
@@ -258,7 +258,7 @@ export class ActionExecutor {
         console.error(`[ActionExecutor] Authorized user not found in database: ${user.id}`);
         await context.sendMessage({
           type: 'text',
-          text: '❌ 用户数据错误，请重新配对。',
+          text: '❌ User data error. Please re-pair your account.',
           parseMode: 'HTML',
         });
         return;
@@ -288,7 +288,7 @@ export class ActionExecutor {
           console.error(`[ActionExecutor] Failed to create conversation: ${result.error}`);
           await context.sendMessage({
             type: 'text',
-            text: `❌ 创建会话失败: ${result.error || 'Unknown error'}`,
+            text: `❌ Failed to create session: ${result.error || 'Unknown error'}`,
             parseMode: 'HTML',
           });
           return;
@@ -313,7 +313,7 @@ export class ActionExecutor {
         // Unsupported content type
         await context.sendMessage({
           type: 'text',
-          text: '暂不支持此类型的消息，请发送文字消息。',
+          text: 'This message type is not supported. Please send a text message.',
           parseMode: 'HTML',
           replyMarkup: createMainMenuKeyboard(),
         });
@@ -322,7 +322,7 @@ export class ActionExecutor {
       console.error(`[ActionExecutor] Error handling message:`, error);
       await context.sendMessage({
         type: 'text',
-        text: `❌ 处理消息时出错: ${error.message}`,
+        text: `❌ Error processing message: ${error.message}`,
         parseMode: 'HTML',
         replyMarkup: createMainMenuKeyboard(),
       });
@@ -339,7 +339,7 @@ export class ActionExecutor {
       console.warn(`[ActionExecutor] Unknown action: ${actionName}`);
       await context.sendMessage({
         type: 'text',
-        text: `未知操作: ${actionName}`,
+        text: `Unknown action: ${actionName}`,
         parseMode: 'HTML',
       });
       return;
@@ -357,7 +357,7 @@ export class ActionExecutor {
       console.error(`[ActionExecutor] Action ${actionName} failed:`, error);
       await context.sendMessage({
         type: 'text',
-        text: `❌ 操作失败: ${error.message}`,
+        text: `❌ Action failed: ${error.message}`,
         parseMode: 'HTML',
       });
     }
@@ -375,7 +375,7 @@ export class ActionExecutor {
     // Send "thinking" indicator
     const thinkingMsgId = await context.sendMessage({
       type: 'text',
-      text: '⏳ 正在思考...',
+      text: '⏳ Thinking...',
       parseMode: 'HTML',
     });
 
@@ -484,7 +484,7 @@ export class ActionExecutor {
       try {
         // 使用最后一条消息的实际内容，添加操作按钮
         // Use actual content of last message, add action buttons
-        const finalMessage: IUnifiedOutgoingMessage = lastMessageContent ? { ...lastMessageContent, replyMarkup: createResponseActionsKeyboard() } : { type: 'text', text: '✅ 完成', parseMode: 'HTML', replyMarkup: createResponseActionsKeyboard() };
+        const finalMessage: IUnifiedOutgoingMessage = lastMessageContent ? { ...lastMessageContent, replyMarkup: createResponseActionsKeyboard() } : { type: 'text', text: '✅ Done', parseMode: 'HTML', replyMarkup: createResponseActionsKeyboard() };
         await context.editMessage(lastMsgId, finalMessage);
       } catch {
         // 忽略最终编辑错误

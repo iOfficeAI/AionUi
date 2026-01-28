@@ -28,7 +28,7 @@ export const handleChatSend: ActionHandler = async (context) => {
 
   return createSuccessResponse({
     type: 'text',
-    text: '⏳ 正在思考...',
+    text: '⏳ Thinking...',
     parseMode: 'HTML',
   });
 };
@@ -40,14 +40,14 @@ export const handleChatRegenerate: ActionHandler = async (context, params) => {
   const originalMessageId = params?.originalMessageId;
 
   if (!originalMessageId) {
-    return createErrorResponse('无法找到原始消息');
+    return createErrorResponse('Cannot find original message');
   }
 
   // This will trigger a regeneration
   // The ActionExecutor will handle the actual AI call
   return createSuccessResponse({
     type: 'text',
-    text: '🔄 正在重新生成...',
+    text: '🔄 Regenerating...',
     parseMode: 'HTML',
   });
 };
@@ -60,7 +60,7 @@ export const handleChatContinue: ActionHandler = async (context, params) => {
   // The ActionExecutor will handle the actual AI call
   return createSuccessResponse({
     type: 'text',
-    text: '💬 继续生成中...',
+    text: '💬 Continuing...',
     parseMode: 'HTML',
   });
 };
@@ -76,7 +76,7 @@ export const handleCopy: ActionHandler = async (context, params) => {
     success: true,
     message: {
       type: 'text',
-      text: '💡 长按消息文本可以复制内容',
+      text: '💡 Long press the message text to copy',
       parseMode: 'HTML',
     },
   };
@@ -96,7 +96,7 @@ export const handleToolConfirm: ActionHandler = async (context, params) => {
 
   if (!callId || !value || !conversationId) {
     console.error(`[ChatActions] Missing params - callId: ${callId}, value: ${value}, conversationId: ${conversationId}`);
-    return createErrorResponse('确认参数缺失');
+    return createErrorResponse('Missing confirmation parameters');
   }
 
   try {
@@ -110,7 +110,7 @@ export const handleToolConfirm: ActionHandler = async (context, params) => {
     return { success: true };
   } catch (error: any) {
     console.error('[ChatActions] Tool confirmation failed:', error);
-    return createErrorResponse(`确认失败: ${error.message}`);
+    return createErrorResponse(`Confirmation failed: ${error.message}`);
   }
 };
 
@@ -177,7 +177,7 @@ export function buildChatErrorResponse(error: string): {
   replyMarkup?: unknown;
 } {
   return {
-    text: `❌ <b>处理失败</b>\n\n${error}\n\n请重试或开始新对话。`,
+    text: `❌ <b>Processing Failed</b>\n\n${error}\n\nPlease retry or start a new conversation.`,
     parseMode: 'HTML',
     replyMarkup: createErrorRecoveryKeyboard(),
   };

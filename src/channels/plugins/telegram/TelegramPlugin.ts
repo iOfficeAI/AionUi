@@ -322,10 +322,10 @@ export class TelegramPlugin extends BasePlugin {
 
     // Map button text to actions
     const buttonActions: Record<string, { type: string; action: string }> = {
-      '🆕 新对话': { type: 'system', action: 'session.new' },
-      '📊 状态': { type: 'system', action: 'session.status' },
-      '❓ 帮助': { type: 'system', action: 'help.show' },
-      '🔄 刷新配对状态': { type: 'platform', action: 'pairing.check' },
+      '🆕 New Chat': { type: 'system', action: 'session.new' },
+      '📊 Status': { type: 'system', action: 'session.status' },
+      '❓ Help': { type: 'system', action: 'help.show' },
+      '🔄 Refresh Status': { type: 'platform', action: 'pairing.check' },
     };
 
     const buttonAction = buttonActions[text];
