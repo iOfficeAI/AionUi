@@ -50,12 +50,24 @@ const Diff2Html = ({ diff, className, title, filePath }: { diff: string; classNa
     return title.replace(/^File:\s*/i, '').trim();
   }, [title]);
 
-  const relativePath = useMemo(() => {
-    if (filePath && filePath.trim()) {
-      return filePath.trim();
+  const pathFromDiff = useMemo(() => parseFilePathFromDiff(diff), [diff]);
+
+  const resolvedFilePath = useMemo(() => {
+    const trimmed = filePath?.trim();
+    if (!trimmed) return pathFromDiff || '';
+    // If we only get a basename, prefer diff-derived path for subdirectories
+    if (!/[\\/]/.test(trimmed)) {
+      return pathFromDiff || trimmed;
     }
-    return parseFilePathFromDiff(diff) || normalizedTitle || '';
-  }, [diff, normalizedTitle, filePath]);
+    return trimmed;
+  }, [filePath, pathFromDiff]);
+
+  const relativePath = useMemo(() => {
+    if (resolvedFilePath) {
+      return resolvedFilePath;
+    }
+    return normalizedTitle || '';
+  }, [normalizedTitle, resolvedFilePath]);
 
   const fileName = useMemo(() => {
     if (relativePath) {
