@@ -15,7 +15,16 @@ if (app.isPackaged) {
 import initStorage from './initStorage';
 import './initBridge';
 import './i18n'; // Initialize i18n for main process
+import { getChannelManager } from '@/channels';
 
 export const initializeProcess = async () => {
   await initStorage();
+
+  // Initialize Channel subsystem
+  try {
+    await getChannelManager().initialize();
+  } catch (error) {
+    console.error('[Process] Failed to initialize ChannelManager:', error);
+    // Don't fail app startup if channel fails to initialize
+  }
 };

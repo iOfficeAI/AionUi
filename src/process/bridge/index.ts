@@ -7,23 +7,24 @@
 import { acpDetector } from '@/agent/acp/AcpDetector';
 import { initAcpConversationBridge } from './acpConversationBridge';
 import { initApplicationBridge } from './applicationBridge';
+import { initChannelBridge } from './channelBridge';
 import { initAuthBridge } from './authBridge';
 import { initCodexConversationBridge } from './codexConversationBridge';
 import { initConversationBridge } from './conversationBridge';
-import { initDocumentBridge } from './documentBridge';
 import { initDatabaseBridge } from './databaseBridge';
 import { initDialogBridge } from './dialogBridge';
+import { initDocumentBridge } from './documentBridge';
 import { initFileWatchBridge } from './fileWatchBridge';
 import { initFsBridge } from './fsBridge';
-import { initGeminiConversationBridge } from './geminiConversationBridge';
 import { initGeminiBridge } from './geminiBridge';
+import { initGeminiConversationBridge } from './geminiConversationBridge';
 import { initMcpBridge } from './mcpBridge';
 import { initModelBridge } from './modelBridge';
 import { initPreviewHistoryBridge } from './previewHistoryBridge';
 import { initShellBridge } from './shellBridge';
 import { initUpdateBridge } from './updateBridge';
-import { initWindowControlsBridge } from './windowControlsBridge';
 import { initWebuiBridge } from './webuiBridge';
+import { initWindowControlsBridge } from './windowControlsBridge';
 
 /**
  * 初始化所有IPC桥接模块
@@ -49,6 +50,7 @@ export function initAllBridges(): void {
   initWindowControlsBridge();
   initUpdateBridge();
   initWebuiBridge();
+  initChannelBridge();
 }
 
 /**
@@ -63,6 +65,6 @@ export async function initializeAcpDetector(): Promise<void> {
 }
 
 // 导出初始化函数供单独使用
-export { initAcpConversationBridge, initApplicationBridge, initAuthBridge, initCodexConversationBridge, initConversationBridge, initDatabaseBridge, initDialogBridge, initDocumentBridge, initFsBridge, initGeminiBridge, initGeminiConversationBridge, initMcpBridge, initModelBridge, initPreviewHistoryBridge, initShellBridge, initUpdateBridge, initWindowControlsBridge, initWebuiBridge };
+export { initAcpConversationBridge, initApplicationBridge, initChannelBridge, initAuthBridge, initCodexConversationBridge, initConversationBridge, initDatabaseBridge, initDialogBridge, initDocumentBridge, initFsBridge, initGeminiBridge, initGeminiConversationBridge, initMcpBridge, initModelBridge, initPreviewHistoryBridge, initShellBridge, initUpdateBridge, initWebuiBridge, initWindowControlsBridge };
 // 导出窗口控制相关工具函数
 export { registerWindowMaximizeListeners } from './windowControlsBridge';

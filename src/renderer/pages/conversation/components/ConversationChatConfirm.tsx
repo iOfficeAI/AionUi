@@ -17,6 +17,10 @@ const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: str
         if (conversation_id !== data.conversation_id) return;
         setConfirmations((prev) => prev.concat(data));
       }),
+      ipcBridge.conversation.confirmation.remove.on((data) => {
+        if (conversation_id !== data.conversation_id) return;
+        setConfirmations((prev) => prev.filter((p) => p.id !== data.id));
+      }),
       ipcBridge.conversation.confirmation.update.on(({ ...data }) => {
         if (conversation_id !== data.conversation_id) return;
         setConfirmations((list) => {
@@ -63,6 +67,7 @@ const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: str
           );
         })}
       </div>
+      <div className='hidden'>{children}</div>
     </div>
   );
 };

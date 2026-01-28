@@ -11,8 +11,8 @@ import type { McpSource } from '../process/services/mcpServices/McpProtocol';
 import type { AcpBackend, PresetAgentType } from '../types/acpTypes';
 import type { IMcpServer, IProvider, TChatConversation, TProviderWithModel } from './storage';
 import type { PreviewHistoryTarget, PreviewSnapshotInfo } from './types/preview';
-import type { ProtocolDetectionRequest, ProtocolDetectionResponse } from './utils/protocolDetector';
 import type { UpdateCheckRequest, UpdateCheckResult, UpdateDownloadProgressEvent, UpdateDownloadRequest, UpdateDownloadResult } from './updateTypes';
+import type { ProtocolDetectionRequest, ProtocolDetectionResponse } from './utils/protocolDetector';
 
 export const shell = {
   openFile: bridge.buildProvider<void, string>('open-file'), // 使用系统默认程序打开文件
@@ -353,3 +353,32 @@ interface IBridgeResponse<D = {}> {
   data?: D;
   msg?: string;
 }
+
+// ==================== Channel API ====================
+
+import type { IChannelPairingRequest, IChannelPluginStatus, IChannelSession, IChannelUser } from '@/channels/types';
+
+export const channel = {
+  // Plugin Management
+  getPluginStatus: bridge.buildProvider<IBridgeResponse<IChannelPluginStatus[]>, void>('channel.get-plugin-status'),
+  enablePlugin: bridge.buildProvider<IBridgeResponse, { pluginId: string; config: Record<string, unknown> }>('channel.enable-plugin'),
+  disablePlugin: bridge.buildProvider<IBridgeResponse, { pluginId: string }>('channel.disable-plugin'),
+  testPlugin: bridge.buildProvider<IBridgeResponse<{ success: boolean; botUsername?: string; error?: string }>, { pluginId: string; token: string }>('channel.test-plugin'),
+
+  // Pairing Management
+  getPendingPairings: bridge.buildProvider<IBridgeResponse<IChannelPairingRequest[]>, void>('channel.get-pending-pairings'),
+  approvePairing: bridge.buildProvider<IBridgeResponse, { code: string }>('channel.approve-pairing'),
+  rejectPairing: bridge.buildProvider<IBridgeResponse, { code: string }>('channel.reject-pairing'),
+
+  // User Management
+  getAuthorizedUsers: bridge.buildProvider<IBridgeResponse<IChannelUser[]>, void>('channel.get-authorized-users'),
+  revokeUser: bridge.buildProvider<IBridgeResponse, { userId: string }>('channel.revoke-user'),
+
+  // Session Management (MVP: read-only view)
+  getActiveSessions: bridge.buildProvider<IBridgeResponse<IChannelSession[]>, void>('channel.get-active-sessions'),
+
+  // Events
+  pairingRequested: bridge.buildEmitter<IChannelPairingRequest>('channel.pairing-requested'),
+  pluginStatusChanged: bridge.buildEmitter<{ pluginId: string; status: IChannelPluginStatus }>('channel.plugin-status-changed'),
+  userAuthorized: bridge.buildEmitter<IChannelUser>('channel.user-authorized'),
+};
