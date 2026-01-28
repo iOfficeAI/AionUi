@@ -195,6 +195,7 @@ const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string
   * {
     line-height:26px;
     font-size:16px;
+    color: inherit;
   }
 
   .markdown-shadow-body {
