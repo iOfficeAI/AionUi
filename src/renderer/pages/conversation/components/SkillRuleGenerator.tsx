@@ -98,7 +98,7 @@ Please acknowledge receiving this rule/skill and confirm you will apply it.
   };
 
   return (
-    <Modal title={t('conversation.skill_generator.load_title', { defaultValue: 'Load Rule/Skill' })} visible={visible} onCancel={onCancel} footer={null} style={{ width: 500 }}>
+    <Modal title={t('conversation.skill_generator.load_title', { defaultValue: 'Load Rule/Skill' })} visible={visible} onCancel={onCancel} footer={null} className='w-[90vw] md:w-[500px]'>
       <Spin loading={loading} style={{ display: 'block' }}>
         {files.length === 0 ? (
           <Empty description={t('conversation.skill_generator.no_files', { defaultValue: 'No relevant files found in workspace' })} />
@@ -271,7 +271,7 @@ Requirements:
       </Dropdown>
 
       {/* Generate Modal */}
-      <Modal title={t('conversation.skill_generator.title', { defaultValue: 'Generate Skill/Rule' })} visible={generateVisible} onOk={handleGenerate} onCancel={() => setGenerateVisible(false)} okText={t('conversation.skill_generator.generate', { defaultValue: 'Generate' })} confirmLoading={loading}>
+      <Modal title={t('conversation.skill_generator.title', { defaultValue: 'Generate Skill/Rule' })} visible={generateVisible} onOk={handleGenerate} onCancel={() => setGenerateVisible(false)} okText={t('conversation.skill_generator.generate', { defaultValue: 'Generate' })} confirmLoading={loading} className='w-[90vw] md:w-[500px]'>
         <div style={{ marginBottom: 16 }}>
           <div className='mb-4'>
             <Typography.Text>{t('conversation.skill_generator.name_label', { defaultValue: 'Agent Name:' })}</Typography.Text>
