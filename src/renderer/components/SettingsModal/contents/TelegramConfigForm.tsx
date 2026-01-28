@@ -437,7 +437,7 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({ pluginStatus, m
 
       {/* Authorized Users - show when there are authorized users */}
       {authorizedUsers.length > 0 && (
-        <div className='bg-fill-1 rd-12px p-16px'>
+        <div className='bg-fill-1 rd-12px pt-16px pr-16px pb-16px pl-0'>
           <SectionHeader
             title={t('settings.assistant.authorizedUsers', 'Authorized Users')}
             action={
