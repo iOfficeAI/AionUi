@@ -14,6 +14,7 @@ import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import AionModal from '@/renderer/components/base/AionModal';
 import { useSettingsViewMode } from '../settingsViewContext';
 import { isElectronDesktop } from '@/renderer/utils/platform';
+import ChannelModalContent from './ChannelModalContent';
 
 /**
  * 偏好设置行组件
@@ -659,6 +660,12 @@ const WebuiModalContent: React.FC = () => {
                 </div>
               </>
             )}
+          </div>
+
+          {/* Channels 配置 / Channels Configuration */}
+          <div className='mt-24px'>
+            <h2 className='text-20px font-500 text-t-primary m-0 mb-16px'>{t('settings.channels', 'Channels')}</h2>
+            <ChannelModalContent />
           </div>
         </div>
       </AionScrollArea>
