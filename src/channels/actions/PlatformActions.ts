@@ -41,7 +41,7 @@ export const handlePairingShow: ActionHandler = async (context) => {
 
     return createSuccessResponse({
       type: 'text',
-      text: ['🔗 <b>设备配对</b>', '', '请在 AionUi 应用中批准此配对请求：', '', `<code>${code}</code>`, '', `⏱ 有效期: ${expiresInMinutes} 分钟`, '', '<b>步骤:</b>', '1. 打开 AionUi 应用', '2. 进入 设置 → Assistant', '3. 在「待批准配对」中点击「批准」'].join('\n'),
+      text: ['🔗 <b>设备配对</b>', '', '请在 AionUi 应用中批准此配对请求：', '', `<code>${code}</code>`, '', `⏱ 有效期: ${expiresInMinutes} 分钟`, '', '<b>步骤:</b>', '1. 打开 AionUi 应用', '2. 进入 WebUI → Channels', '3. 在「待批准配对」中点击「批准」'].join('\n'),
       parseMode: 'HTML',
       replyMarkup: createPairingCodeKeyboard(),
     });
@@ -123,7 +123,7 @@ export const handlePairingCheck: ActionHandler = async (context) => {
 export const handlePairingHelp: ActionHandler = async (context) => {
   return createSuccessResponse({
     type: 'text',
-    text: ['❓ <b>配对帮助</b>', '', '<b>什么是配对？</b>', '配对是将您的 Telegram 账号与本地 AionUi 关联的过程。', '只有配对后才能使用 AI 助手功能。', '', '<b>配对步骤:</b>', '1. 获取配对码（发送任意消息）', '2. 打开 AionUi 应用', '3. 进入 设置 → Assistant', '4. 在待批准列表中点击「批准」', '', '<b>常见问题:</b>', '• 配对码 10 分钟有效，过期请刷新', '• 需要 AionUi 应用在运行中', '• 确保网络连接正常'].join('\n'),
+    text: ['❓ <b>配对帮助</b>', '', '<b>什么是配对？</b>', '配对是将您的 Telegram 账号与本地 AionUi 关联的过程。', '只有配对后才能使用 AI 助手功能。', '', '<b>配对步骤:</b>', '1. 获取配对码（发送任意消息）', '2. 打开 AionUi 应用', '3. 进入 WebUI → Channels', '4. 在待批准列表中点击「批准」', '', '<b>常见问题:</b>', '• 配对码 10 分钟有效，过期请刷新', '• 需要 AionUi 应用在运行中', '• 确保网络连接正常'].join('\n'),
     parseMode: 'HTML',
     replyMarkup: createPairingCodeKeyboard(),
   });
