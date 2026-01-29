@@ -32,6 +32,8 @@ export interface CodexAgentConfig {
   fileOperationHandler: CodexFileOperationHandler;
   onNetworkError?: (error: NetworkError) => void;
   sandboxMode?: 'read-only' | 'workspace-write' | 'danger-full-access'; // Filesystem sandbox mode
+  /** Yolo mode: skip confirmation prompts while keeping sandbox protection (for cron jobs) */
+  yoloMode?: boolean;
 }
 
 /**
@@ -47,6 +49,7 @@ export class CodexAgent {
   private readonly fileOperationHandler: CodexFileOperationHandler;
   private readonly onNetworkError?: (error: NetworkError) => void;
   private readonly sandboxMode: 'read-only' | 'workspace-write' | 'danger-full-access';
+  private readonly yoloMode: boolean;
   private conn: CodexConnection | null = null;
   private conversationId: string | null = null;
 
@@ -59,6 +62,7 @@ export class CodexAgent {
     this.fileOperationHandler = cfg.fileOperationHandler;
     this.onNetworkError = cfg.onNetworkError;
     this.sandboxMode = cfg.sandboxMode || 'workspace-write'; // Default to workspace-write for file operations
+    this.yoloMode = cfg.yoloMode || false;
   }
 
   async start(): Promise<void> {
@@ -68,7 +72,8 @@ export class CodexAgent {
 
     try {
       // 让 CodexConnection 根据版本自动检测合适的命令 / Let CodexConnection auto-detect the appropriate command based on version
-      await this.conn.start(this.cliPath || 'codex', this.workingDir);
+      // Pass yoloMode option for cron jobs to enable automatic execution
+      await this.conn.start(this.cliPath || 'codex', this.workingDir, [], { yoloMode: this.yoloMode });
 
       // Wait for MCP server to be fully ready
       await this.conn.waitForServerReady(30000);

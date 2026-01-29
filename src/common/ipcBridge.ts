@@ -267,6 +267,65 @@ export const webui = {
   resetPasswordResult: bridge.buildEmitter<{ success: boolean; newPassword?: string; msg?: string }>('webui.reset-password-result'),
 };
 
+// Cron job management API / 定时任务管理接口
+export const cron = {
+  // Query
+  listJobs: bridge.buildProvider<ICronJob[], void>('cron.list-jobs'),
+  listJobsByConversation: bridge.buildProvider<ICronJob[], { conversationId: string }>('cron.list-jobs-by-conversation'),
+  getJob: bridge.buildProvider<ICronJob | null, { jobId: string }>('cron.get-job'),
+  // CRUD
+  addJob: bridge.buildProvider<ICronJob, ICreateCronJobParams>('cron.add-job'),
+  updateJob: bridge.buildProvider<ICronJob, { jobId: string; updates: Partial<ICronJob> }>('cron.update-job'),
+  removeJob: bridge.buildProvider<void, { jobId: string }>('cron.remove-job'),
+  // Execution
+  runJobNow: bridge.buildProvider<void, { jobId: string }>('cron.run-job-now'),
+  // Events
+  onJobCreated: bridge.buildEmitter<ICronJob>('cron.job-created'),
+  onJobUpdated: bridge.buildEmitter<ICronJob>('cron.job-updated'),
+  onJobRemoved: bridge.buildEmitter<{ jobId: string }>('cron.job-removed'),
+  onJobExecuted: bridge.buildEmitter<{ jobId: string; status: 'ok' | 'error' | 'skipped'; error?: string }>('cron.job-executed'),
+};
+
+// Cron job types for IPC
+export type ICronSchedule = { kind: 'at'; atMs: number; description: string } | { kind: 'every'; everyMs: number; description: string } | { kind: 'cron'; expr: string; tz?: string; description: string };
+
+export type ICronAgentType = 'gemini' | 'claude' | 'codex' | 'opencode' | 'qwen' | 'goose' | 'custom';
+
+export interface ICronJob {
+  id: string;
+  name: string;
+  enabled: boolean;
+  schedule: ICronSchedule;
+  target: { payload: { kind: 'message'; text: string } };
+  metadata: {
+    conversationId: string;
+    conversationTitle?: string;
+    agentType: ICronAgentType;
+    createdBy: 'user' | 'agent';
+    createdAt: number;
+    updatedAt: number;
+  };
+  state: {
+    nextRunAtMs?: number;
+    lastRunAtMs?: number;
+    lastStatus?: 'ok' | 'error' | 'skipped';
+    lastError?: string;
+    runCount: number;
+    retryCount: number;
+    maxRetries: number;
+  };
+}
+
+export interface ICreateCronJobParams {
+  name: string;
+  schedule: ICronSchedule;
+  message: string;
+  conversationId: string;
+  conversationTitle?: string;
+  agentType: ICronAgentType;
+  createdBy: 'user' | 'agent';
+}
+
 interface ISendMessageParams {
   input: string;
   msg_id: string;

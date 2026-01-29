@@ -20,6 +20,7 @@ import { AIONUI_FILES_MARKER } from '@/common/constants';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import { uuid } from '@/common/utils';
 import { addMessage } from '@process/message';
+import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import BaseAgentManager from '@process/task/BaseAgentManager';
 import { prepareFirstMessageWithSkillsIndex } from '@process/task/agentUtils';
 import { handlePreviewOpenEvent } from '@process/utils/previewUtils';
@@ -88,10 +89,15 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
       sessionManager,
       fileOperationHandler,
       sandboxMode: data.sandboxMode || 'workspace-write', // Enable file writing within workspace by default
+      yoloMode: data.yoloMode, // Enable yoloMode for cron jobs
       onNetworkError: (error) => {
         this.handleNetworkError(error);
       },
     });
+
+    if (data.yoloMode) {
+      console.log(`[CodexAgentManager] yoloMode enabled for conversation ${data.conversation_id}`);
+    }
 
     // 使用 SessionManager 来管理连接状态 - 参考 ACP 的模式
     this.bootstrap = this.startWithSessionManagement()
@@ -161,6 +167,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
   }
 
   async sendMessage(data: { content: string; files?: string[]; msg_id?: string }) {
+    cronBusyGuard.setProcessing(this.conversation_id, true);
     try {
       await this.bootstrap;
       const contentToSend = data.content?.includes(AIONUI_FILES_MARKER) ? data.content.split(AIONUI_FILES_MARKER)[0].trimEnd() : data.content;
@@ -196,14 +203,17 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
         const result = await this.agent.newSession(this.workspace, processedContent);
 
         // Session created successfully - Codex will send session_configured event automatically
-
+        // Note: setProcessing(false) is called in CodexMessageProcessor.processTaskComplete
+        // when the message flow is actually complete
         return result;
       } else {
         // 后续消息使用正常的 sendPrompt
         const result = await this.agent.sendPrompt(processedContent);
+        // Note: setProcessing(false) is called in CodexMessageProcessor.processTaskComplete
         return result;
       }
     } catch (e) {
+      cronBusyGuard.setProcessing(this.conversation_id, false);
       // 对于某些错误类型，避免重复错误消息处理
       // 这些错误通常已经通过 MCP 连接的事件流处理过了
       const errorMsg = e instanceof Error ? e.message : String(e);
@@ -427,6 +437,8 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
       const tMessage = transformMessage(message);
       if (tMessage) {
         addMessage(this.conversation_id, tMessage);
+        // Note: Cron command detection is handled in CodexMessageProcessor.processFinalMessage
+        // where we have the complete agent_message text
       }
     }
 

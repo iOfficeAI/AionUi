@@ -341,11 +341,21 @@ export function initConversationBridge(): void {
 
   // 通用 sendMessage 实现 - 自动根据 conversation 类型分发
   ipcBridge.conversation.sendMessage.provider(async ({ conversation_id, files, ...other }) => {
-    const task = (await WorkerManage.getTaskByIdRollbackBuild(conversation_id)) as GeminiAgentManager | AcpAgentManager | CodexAgentManager | undefined;
+    console.log(`[conversationBridge] sendMessage called: conversation_id=${conversation_id}, msg_id=${other.msg_id}`);
+
+    let task: GeminiAgentManager | AcpAgentManager | CodexAgentManager | undefined;
+    try {
+      task = (await WorkerManage.getTaskByIdRollbackBuild(conversation_id)) as GeminiAgentManager | AcpAgentManager | CodexAgentManager | undefined;
+    } catch (err) {
+      console.log(`[conversationBridge] sendMessage: failed to get/build task: ${conversation_id}`, err);
+      return { success: false, msg: err instanceof Error ? err.message : 'conversation not found' };
+    }
 
     if (!task) {
+      console.log(`[conversationBridge] sendMessage: conversation not found: ${conversation_id}`);
       return { success: false, msg: 'conversation not found' };
     }
+    console.log(`[conversationBridge] sendMessage: found task type=${task.type}, status=${task.status}`);
 
     // 复制文件到工作空间（所有 agents 统一处理）
     // Copy files to workspace (unified for all agents)

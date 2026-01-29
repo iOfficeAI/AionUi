@@ -1086,5 +1086,34 @@
       "autoGemini25Desc": "让 Gemini CLI 决定最佳模型: gemini-2.5-pro, gemini-2.5-flash",
       "manualDesc": "手动选择模型"
     }
+  },
+  "cron": {
+    "scheduledTasks": "定时任务",
+    "allScheduledTasks": "全部定时任务",
+    "noTasks": "暂无定时任务",
+    "taskCount": "{{count}} 个任务",
+    "schedule": "调度规则",
+    "nextRun": "下次执行",
+    "lastRun": "上次执行",
+    "lastError": "错误信息",
+    "message": "执行内容",
+    "goToConversation": "跳转到所属会话",
+    "status": {
+      "active": "运行中",
+      "paused": "已暂停",
+      "error": "执行出错"
+    },
+    "actions": {
+      "goTo": "查看会话",
+      "pause": "暂停",
+      "resume": "恢复",
+      "runNow": "立即执行",
+      "delete": "删除"
+    },
+    "confirmDelete": "确定要删除此定时任务吗？",
+    "deleteSuccess": "任务已删除",
+    "pauseSuccess": "任务已暂停",
+    "resumeSuccess": "任务已恢复",
+    "runNowSuccess": "任务已触发执行"
   }
 }

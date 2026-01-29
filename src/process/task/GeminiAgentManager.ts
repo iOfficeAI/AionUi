@@ -11,11 +11,16 @@ import { transformMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import type { IMcpServer, TProviderWithModel } from '@/common/storage';
 import { ProcessConfig, getSkillsDir } from '@/process/initStorage';
+import { buildSystemInstructions } from './agentUtils';
+import { uuid } from '@/common/utils';
 import { getOauthInfoWithCache } from '@office-ai/aioncli-core';
 import { ToolConfirmationOutcome } from '../../agent/gemini/cli/tools/tools';
 import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '../message';
+import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import { handlePreviewOpenEvent } from '../utils/previewUtils';
 import BaseAgentManager from './BaseAgentManager';
+import { hasCronCommands } from './CronCommandDetector';
+import { extractTextFromMessage, processCronInMessage } from './MessageMiddleware';
 
 // gemini agent管理器类
 type UiMcpServerConfig = {
@@ -41,6 +46,8 @@ export class GeminiAgentManager extends BaseAgentManager<
     skillsDir?: string;
     /** 启用的 skills 列表 / Enabled skills list */
     enabledSkills?: string[];
+    /** Yolo mode: auto-approve all tool calls / 自动允许模式 */
+    yoloMode?: boolean;
   },
   string
 > {
@@ -56,6 +63,9 @@ export class GeminiAgentManager extends BaseAgentManager<
     // ... (omitting injectHistoryFromDatabase for space)
   }
 
+  /** Force yolo mode (for cron jobs) / 强制 yolo 模式（用于定时任务） */
+  private forceYoloMode?: boolean;
+
   constructor(
     data: {
       workspace: string;
@@ -67,6 +77,8 @@ export class GeminiAgentManager extends BaseAgentManager<
       contextContent?: string; // 向后兼容 / Backward compatible
       /** 启用的 skills 列表 / Enabled skills list */
       enabledSkills?: string[];
+      /** Force yolo mode (for cron jobs) / 强制 yolo 模式（用于定时任务） */
+      yoloMode?: boolean;
     },
     model: TProviderWithModel
   ) {
@@ -77,6 +89,7 @@ export class GeminiAgentManager extends BaseAgentManager<
     this.contextFileName = data.contextFileName;
     this.presetRules = data.presetRules;
     this.enabledSkills = data.enabledSkills;
+    this.forceYoloMode = data.yoloMode;
     // 向后兼容 / Backward compatible
     this.contextContent = data.contextContent || data.presetRules;
     this.bootstrap = Promise.all([ProcessConfig.get('gemini.config'), this.getImageGenerationModel(), this.getMcpServers()])
@@ -96,6 +109,22 @@ export class GeminiAgentManager extends BaseAgentManager<
           // If account retrieval fails, don't set projectId, let system use default
         }
 
+        // Build system instructions using unified agentUtils
+        // 使用统一的 agentUtils 构建系统指令
+        // Always include 'cron' as a built-in skill
+        // 始终将 'cron' 作为内置 skill 包含
+        const allEnabledSkills = ['cron', ...(this.enabledSkills || [])];
+        const finalPresetRules = await buildSystemInstructions({
+          presetContext: this.presetRules,
+          enabledSkills: allEnabledSkills,
+        });
+        console.log(`[GeminiAgentManager] Built system instructions with skills: ${allEnabledSkills.join(', ')}, length: ${finalPresetRules?.length || 0}`);
+
+        // Determine yoloMode: forceYoloMode (cron jobs) takes priority over config setting
+        // 确定 yoloMode：forceYoloMode（定时任务）优先于配置设置
+        const yoloMode = this.forceYoloMode ?? config?.yoloMode ?? false;
+        console.log(`[GeminiAgentManager] yoloMode: forceYoloMode=${this.forceYoloMode}, config.yoloMode=${config?.yoloMode}, final=${yoloMode}`);
+
         return this.start({
           ...config,
           GOOGLE_CLOUD_PROJECT: projectId,
@@ -105,13 +134,15 @@ export class GeminiAgentManager extends BaseAgentManager<
           webSearchEngine: data.webSearchEngine,
           mcpServers,
           contextFileName: this.contextFileName,
-          presetRules: this.presetRules,
+          presetRules: finalPresetRules,
           contextContent: this.contextContent,
           // Skills 通过 SkillManager 加载 / Skills loaded via SkillManager
           skillsDir: getSkillsDir(),
           // 启用的 skills 列表，用于过滤 SkillManager 中的 skills
           // Enabled skills list for filtering skills in SkillManager
           enabledSkills: this.enabledSkills,
+          // Yolo mode: auto-approve all tool calls / 自动允许模式
+          yoloMode,
         });
       })
       .then(async () => {
@@ -171,8 +202,10 @@ export class GeminiAgentManager extends BaseAgentManager<
     };
     addMessage(this.conversation_id, message);
     this.status = 'pending';
+    cronBusyGuard.setProcessing(this.conversation_id, true);
     const result = await this.bootstrap
       .catch((e) => {
+        cronBusyGuard.setProcessing(this.conversation_id, false);
         this.emit('gemini.message', {
           type: 'error',
           data: e.message || JSON.stringify(e),
@@ -187,7 +220,10 @@ export class GeminiAgentManager extends BaseAgentManager<
           });
         });
       })
-      .then(() => super.sendMessage(data));
+      .then(() => super.sendMessage(data))
+      .finally(() => {
+        cronBusyGuard.setProcessing(this.conversation_id, false);
+      });
     return result;
   }
 
@@ -307,6 +343,10 @@ export class GeminiAgentManager extends BaseAgentManager<
     this.on('gemini.message', (data) => {
       if (data.type === 'finish') {
         this.status = 'finished';
+        // When stream finishes, check for cron commands in the accumulated message
+        // Use longer delay and retry logic to ensure message is persisted
+        console.log(`[GeminiAgentManager] Stream finished, will check for cron commands after delay...`);
+        this.checkCronWithRetry(0);
       }
       if (data.type === 'start') {
         this.status = 'running';
@@ -337,6 +377,94 @@ export class GeminiAgentManager extends BaseAgentManager<
       // Emit to Channel global event bus (for Telegram and other external platforms)
       channelEventBus.emitAgentMessage(this.conversation_id, data);
     });
+  }
+
+  /**
+   * Retry checking for cron commands with increasing delays
+   * Max 3 retries: 1s, 2s, 3s
+   */
+  private checkCronWithRetry(attempt: number): void {
+    const delays = [1000, 2000, 3000];
+    const maxAttempts = delays.length;
+
+    if (attempt >= maxAttempts) {
+      console.log(`[GeminiAgentManager] Max retry attempts reached for cron check`);
+      return;
+    }
+
+    const delay = delays[attempt];
+    console.log(`[GeminiAgentManager] Cron check attempt ${attempt + 1}/${maxAttempts}, delay: ${delay}ms`);
+
+    setTimeout(async () => {
+      const found = await this.checkCronCommandsOnFinish();
+      if (!found && attempt < maxAttempts - 1) {
+        // No assistant messages found, retry
+        this.checkCronWithRetry(attempt + 1);
+      }
+    }, delay);
+  }
+
+  /**
+   * Check for cron commands when stream finishes
+   * Gets recent assistant messages from database and processes them
+   * Returns true if assistant messages were found (regardless of cron commands)
+   */
+  private async checkCronCommandsOnFinish(): Promise<boolean> {
+    try {
+      const { getDatabase } = await import('@process/database');
+      const db = getDatabase();
+      const result = db.getConversationMessages(this.conversation_id, 0, 20, 'DESC');
+
+      if (!result.data || result.data.length === 0) {
+        console.log(`[GeminiAgentManager] No messages found for cron check`);
+        return false;
+      }
+
+      // Debug: log all messages
+      console.log(`[GeminiAgentManager] Total messages: ${result.data.length}`);
+      result.data.forEach((m, i) => {
+        console.log(`[GeminiAgentManager] Message[${i}]: id=${m.id}, type=${m.type}, position=${m.position}`);
+      });
+
+      // Check recent assistant messages for cron commands (position: left means assistant)
+      // Relax type filter - check all left-positioned messages
+      const assistantMsgs = result.data.filter((m) => m.position === 'left');
+      console.log(`[GeminiAgentManager] Found ${assistantMsgs.length} assistant messages to check`);
+
+      // Return false if no assistant messages found (will trigger retry)
+      if (assistantMsgs.length === 0) {
+        return false;
+      }
+
+      for (const msg of assistantMsgs) {
+        const textContent = extractTextFromMessage(msg);
+        if (!textContent) continue;
+
+        console.log(`[GeminiAgentManager] Checking message id=${msg.id}, type=${msg.type}: length=${textContent.length}, preview=${textContent.substring(0, 80)}...`);
+
+        if (hasCronCommands(textContent)) {
+          console.log(`[GeminiAgentManager] Found cron commands in message ${msg.id}, processing...`);
+          // Create a message with finish status for middleware
+          const msgWithStatus = { ...msg, status: 'finish' as const };
+          await processCronInMessage(this.conversation_id, 'gemini', msgWithStatus, (sysMsg) => {
+            ipcBridge.geminiConversation.responseStream.emit({
+              type: 'system',
+              conversation_id: this.conversation_id,
+              msg_id: uuid(),
+              data: sysMsg,
+            });
+          });
+          // Only process the first message with cron commands
+          break;
+        }
+      }
+
+      // Found assistant messages, no need to retry
+      return true;
+    } catch (error) {
+      console.error(`[GeminiAgentManager] Error checking cron commands:`, error);
+      return false;
+    }
   }
 
   confirm(id: string, callId: string, data: string) {

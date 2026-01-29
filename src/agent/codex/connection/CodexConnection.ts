@@ -116,14 +116,23 @@ export class CodexConnection {
     }
   }
 
-  start(cliPath: string, cwd: string, args: string[] = []): Promise<void> {
+  start(cliPath: string, cwd: string, args: string[] = [], options?: { yoloMode?: boolean }): Promise<void> {
     // 根据 Codex 版本自动检测合适的 MCP 命令 / Auto-detect appropriate MCP command based on Codex version
     const cleanEnv = { ...process.env };
     delete cleanEnv.NODE_OPTIONS;
     delete cleanEnv.NODE_INSPECT;
     delete cleanEnv.NODE_DEBUG;
     const isWindows = process.platform === 'win32';
-    const finalArgs = args.length ? args : this.detectMcpCommand(cliPath);
+    let finalArgs = args.length ? args : this.detectMcpCommand(cliPath);
+
+    // Add approval_policy config for cron jobs (yoloMode)
+    // This enables automatic execution without user confirmation while keeping sandbox protection
+    // Note: --full-auto is only available for `codex exec`, not `mcp-server`
+    // For mcp-server, we use -c config to set approval_policy
+    if (options?.yoloMode) {
+      finalArgs = [...finalArgs, '-c', 'approval_policy="on-request"'];
+      console.log('[CodexConnection] Starting with approval_policy="on-request" for automatic execution (yoloMode)');
+    }
 
     return new Promise((resolve, reject) => {
       try {
@@ -174,7 +183,7 @@ export class CodexConnection {
           for (const line of lines) {
             if (!line.trim()) continue;
 
-            console.log('codex line ===>', line);
+            // console.log('codex line ===>', line);
 
             // Check if this looks like a JSON-RPC message
             if (line.trim().startsWith('{') && line.trim().endsWith('}')) {

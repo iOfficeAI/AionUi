@@ -9,6 +9,10 @@ import type { TMessage } from '@/common/chatLib';
 import type { CodexEventMsg } from '@/common/codex/types';
 import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageEmitter';
 import { ERROR_CODES, globalErrorService } from '@/agent/codex/core/ErrorService';
+import { hasCronCommands } from '@process/task/CronCommandDetector';
+import { processCronInMessage } from '@process/task/MessageMiddleware';
+import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
+import { ipcBridge } from '@/common';
 
 export class CodexMessageProcessor {
   private currentLoadingId: string | null = null;
@@ -35,6 +39,10 @@ export class CodexMessageProcessor {
     this.currentLoadingId = null;
     this.reasoningMsgId = null;
     this.currentReason = '';
+
+    // Mark conversation as no longer processing
+    // This is the reliable completion point for Codex message flow
+    cronBusyGuard.setProcessing(this.conversation_id, false);
 
     this.messageEmitter.emitAndPersistMessage(
       {
@@ -95,11 +103,31 @@ export class CodexMessageProcessor {
       position: 'left' as const,
       conversation_id: this.conversation_id,
       content: { content: msg.message },
+      status: 'finish', // Mark as finished for cron detection
       createdAt: Date.now(),
     };
 
     // Use messageEmitter to persist, maintaining architecture separation
     this.messageEmitter.persistMessage(transformedMessage);
+
+    // Process cron commands in final message
+    // This is the reliable point to detect cron commands since we have the complete message text
+    const messageText = msg.message || '';
+    console.log(`[CodexMessageProcessor] processFinalMessage: checking cron commands, length=${messageText.length}`);
+    console.log(`[CodexMessageProcessor] Message text preview:`, messageText.substring(0, 500));
+
+    if (hasCronCommands(messageText)) {
+      console.log(`[CodexMessageProcessor] Cron commands detected, processing...`);
+      void processCronInMessage(this.conversation_id, 'codex', transformedMessage, (sysMsg) => {
+        console.log(`[CodexMessageProcessor] Emitting system response:`, sysMsg);
+        ipcBridge.codexConversation.responseStream.emit({
+          type: 'system',
+          conversation_id: this.conversation_id,
+          msg_id: uuid(),
+          data: sysMsg,
+        });
+      });
+    }
   }
 
   processStreamError(message: string) {
