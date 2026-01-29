@@ -15,7 +15,7 @@ const FormItem = Form.Item;
 const TextArea = Input.TextArea;
 const CheckboxGroup = Checkbox.Group;
 
-type ScheduleType = 'daily' | 'weekly' | 'interval' | 'cron';
+type ScheduleType = 'daily' | 'weekly' | 'interval';
 
 interface CronJobDrawerProps {
   visible: boolean;
@@ -28,13 +28,12 @@ interface CronJobDrawerProps {
 /**
  * Parse existing schedule to get type and values
  */
-const parseSchedule = (schedule: ICronSchedule): { type: ScheduleType; time: string; weekdays: string[]; intervalValue: number; intervalUnit: 'minutes' | 'hours'; cronExpr: string } => {
+const parseSchedule = (schedule: ICronSchedule): { type: ScheduleType; time: string; weekdays: string[]; intervalValue: number; intervalUnit: 'minutes' | 'hours' } => {
   const defaults = {
     time: '09:00',
     weekdays: ['1'], // Monday
     intervalValue: 30,
     intervalUnit: 'minutes' as const,
-    cronExpr: '',
   };
 
   if (schedule.kind === 'every') {
@@ -53,12 +52,11 @@ const parseSchedule = (schedule: ICronSchedule): { type: ScheduleType; time: str
       const [, minute, hour, weekdayPart] = match;
       const time = `${hour.padStart(2, '0')}:${minute.padStart(2, '0')}`;
       if (weekdayPart === '*') {
-        return { type: 'daily', ...defaults, time, cronExpr: expr };
+        return { type: 'daily', ...defaults, time };
       }
       const weekdays = weekdayPart.split(',').map((d) => d.trim());
-      return { type: 'weekly', ...defaults, time, weekdays, cronExpr: expr };
+      return { type: 'weekly', ...defaults, time, weekdays };
     }
-    return { type: 'cron', ...defaults, cronExpr: expr };
   }
 
   // Default to daily
@@ -68,14 +66,10 @@ const parseSchedule = (schedule: ICronSchedule): { type: ScheduleType; time: str
 /**
  * Build schedule from form values
  */
-const buildSchedule = (type: ScheduleType, time: string, weekdays: string[], intervalValue: number, intervalUnit: 'minutes' | 'hours', cronExpr: string): ICronSchedule => {
+const buildSchedule = (type: ScheduleType, time: string, weekdays: string[], intervalValue: number, intervalUnit: 'minutes' | 'hours'): ICronSchedule => {
   if (type === 'interval') {
     const ms = intervalUnit === 'hours' ? intervalValue * 3600000 : intervalValue * 60000;
     return { kind: 'every', everyMs: ms, description: `Every ${intervalValue} ${intervalUnit}` };
-  }
-
-  if (type === 'cron') {
-    return { kind: 'cron', expr: cronExpr, description: cronExpr };
   }
 
   // Daily or Weekly - build cron expression
@@ -109,7 +103,6 @@ const CronJobDrawer: React.FC<CronJobDrawerProps> = ({ visible, job, onClose, on
       weekdays: parsed.weekdays,
       intervalValue: parsed.intervalValue,
       intervalUnit: parsed.intervalUnit,
-      cronExpr: parsed.cronExpr,
     };
   }, [job]);
 
@@ -125,7 +118,7 @@ const CronJobDrawer: React.FC<CronJobDrawerProps> = ({ visible, job, onClose, on
       const values = await form.validate();
       setSaving(true);
 
-      const schedule = buildSchedule(values.scheduleType, values.time, values.weekdays || [], values.intervalValue || 30, values.intervalUnit || 'minutes', values.cronExpr || '');
+      const schedule = buildSchedule(values.scheduleType, values.time, values.weekdays || [], values.intervalValue || 30, values.intervalUnit || 'minutes');
 
       await onSave({
         name: values.name,
@@ -172,107 +165,104 @@ const CronJobDrawer: React.FC<CronJobDrawerProps> = ({ visible, job, onClose, on
     { label: t('cron.drawer.scheduleTypeDaily'), value: 'daily' },
     { label: t('cron.drawer.scheduleTypeWeekly'), value: 'weekly' },
     { label: t('cron.drawer.scheduleTypeInterval'), value: 'interval' },
-    { label: t('cron.drawer.scheduleTypeCron'), value: 'cron' },
   ];
 
   return (
     <Drawer
       width={400}
       title={
-        <div className='flex items-center gap-8px'>
-          <AlarmClock theme='outline' size={18} />
-          <span>{t('cron.drawer.title')}</span>
+        <div className='inline-flex items-center gap-8px'>
+          <AlarmClock theme='outline' size={18} strokeWidth={4} fill='currentColor' className='flex items-center' />
+          <span className='leading-none'>{t('cron.drawer.title')}</span>
         </div>
       }
       visible={visible}
       onCancel={onClose}
       footer={
         <div className='flex justify-between'>
-          <Button type='primary' loading={saving} onClick={handleSave}>
+          <Button type='primary' shape='round' loading={saving} onClick={handleSave}>
             {t('cron.drawer.save')}
           </Button>
           <Popconfirm title={t('cron.confirmDelete')} onOk={handleDelete}>
-            <Button status='danger' loading={deleting} icon={<DeleteOne theme='outline' size={14} />}>
+            <Button status='danger' shape='round' loading={deleting} icon={<DeleteOne theme='outline' size={14} />}>
               {t('cron.actions.delete')}
             </Button>
           </Popconfirm>
         </div>
       }
     >
-      <Form form={form} layout='vertical' initialValues={initialValues}>
-        {/* Name */}
-        <FormItem label={t('cron.drawer.name')} field='name' rules={[{ required: true }]}>
-          <Input placeholder={t('cron.drawer.namePlaceholder')} />
-        </FormItem>
-
-        {/* Task Status */}
-        {/* Task Status - horizontal layout */}
-        <div className='flex items-center justify-between mb-20px'>
-          <span className='text-14px'>{t('cron.drawer.taskStatus')}</span>
-          <FormItem field='enabled' triggerPropName='checked' noStyle>
-            <Switch checkedText={t('cron.drawer.enabled')} uncheckedText={t('cron.drawer.disabled')} />
+      <Form form={form} layout='vertical' initialValues={initialValues} className='space-y-12px'>
+        {/* Name Section */}
+        <div className='bg-2 rd-16px px-16px py-16px'>
+          <FormItem label={t('cron.drawer.name')} field='name' rules={[{ required: true }]} className='!mb-0'>
+            <Input placeholder={t('cron.drawer.namePlaceholder')} />
           </FormItem>
         </div>
 
-        {/* Command */}
-        <FormItem label={t('cron.drawer.command')} field='command' rules={[{ required: true }]}>
-          <TextArea placeholder={t('cron.drawer.commandPlaceholder')} autoSize={{ minRows: 2, maxRows: 6 }} />
-        </FormItem>
+        {/* Task Status Section */}
+        <div className='bg-2 rd-16px px-16px py-16px'>
+          <div className='flex items-center justify-between'>
+            <span className='text-14px'>{t('cron.drawer.taskStatus')}</span>
+            <FormItem field='enabled' triggerPropName='checked' noStyle>
+              <Switch checkedText={t('cron.drawer.enabled')} uncheckedText={t('cron.drawer.disabled')} />
+            </FormItem>
+          </div>
+        </div>
 
-        {/* Schedule Type */}
-        <FormItem label={t('cron.drawer.scheduleType')} field='scheduleType'>
-          <Select options={scheduleTypeOptions} />
-        </FormItem>
+        {/* Schedule Section */}
+        <div className='bg-2 rd-16px px-16px py-16px'>
+          {/* Command */}
+          <FormItem label={t('cron.drawer.command')} field='command' rules={[{ required: true }]}>
+            <TextArea placeholder={t('cron.drawer.commandPlaceholder')} autoSize={{ minRows: 2, maxRows: 6 }} />
+          </FormItem>
 
-        {/* Conditional fields based on schedule type */}
-        <Form.Item noStyle shouldUpdate={(prev, cur) => prev.scheduleType !== cur.scheduleType}>
-          {(values) => {
-            const scheduleType = values.scheduleType as ScheduleType;
+          {/* Schedule Type */}
+          <FormItem label={t('cron.drawer.scheduleType')} field='scheduleType'>
+            <Select options={scheduleTypeOptions} />
+          </FormItem>
 
-            if (scheduleType === 'daily' || scheduleType === 'weekly') {
-              return (
-                <>
-                  <FormItem label={t('cron.drawer.time')} field='time'>
-                    <TimePicker format='HH:mm' value={dayjs(values.time, 'HH:mm')} onChange={(_, timeStr) => form.setFieldValue('time', timeStr)} />
-                  </FormItem>
-                  {scheduleType === 'weekly' && (
-                    <FormItem label={t('cron.drawer.weekday')} field='weekdays'>
-                      <CheckboxGroup options={weekdayOptions} />
+          {/* Conditional fields based on schedule type */}
+          <Form.Item noStyle shouldUpdate={(prev, cur) => prev.scheduleType !== cur.scheduleType}>
+            {(values) => {
+              const scheduleType = values.scheduleType as ScheduleType;
+
+              if (scheduleType === 'daily' || scheduleType === 'weekly') {
+                return (
+                  <>
+                    <FormItem label={t('cron.drawer.time')} field='time' className={scheduleType === 'daily' ? '!mb-0' : ''}>
+                      <TimePicker format='HH:mm' value={dayjs(values.time, 'HH:mm')} onChange={(_, timeStr) => form.setFieldValue('time', timeStr)} style={{ width: '100%' }} />
                     </FormItem>
-                  )}
-                </>
-              );
-            }
+                    {scheduleType === 'weekly' && (
+                      <FormItem label={t('cron.drawer.weekday')} field='weekdays' className='!mb-0'>
+                        <CheckboxGroup options={weekdayOptions} />
+                      </FormItem>
+                    )}
+                  </>
+                );
+              }
 
-            if (scheduleType === 'interval') {
-              return (
-                <div className='flex gap-8px'>
-                  <FormItem label={t('cron.drawer.interval')} field='intervalValue' className='flex-1'>
-                    <InputNumber min={1} max={1440} />
-                  </FormItem>
-                  <FormItem label='&nbsp;' field='intervalUnit' className='w-100px'>
-                    <Select
-                      options={[
-                        { label: t('cron.drawer.intervalMinutes'), value: 'minutes' },
-                        { label: t('cron.drawer.intervalHours'), value: 'hours' },
-                      ]}
-                    />
-                  </FormItem>
-                </div>
-              );
-            }
+              if (scheduleType === 'interval') {
+                return (
+                  <div className='flex gap-8px'>
+                    <FormItem label={t('cron.drawer.interval')} field='intervalValue' className='flex-1 !mb-0'>
+                      <InputNumber min={1} max={1440} />
+                    </FormItem>
+                    <FormItem label='&nbsp;' field='intervalUnit' className='w-100px !mb-0'>
+                      <Select
+                        options={[
+                          { label: t('cron.drawer.intervalMinutes'), value: 'minutes' },
+                          { label: t('cron.drawer.intervalHours'), value: 'hours' },
+                        ]}
+                      />
+                    </FormItem>
+                  </div>
+                );
+              }
 
-            if (scheduleType === 'cron') {
-              return (
-                <FormItem label={t('cron.drawer.cronExpr')} field='cronExpr' rules={[{ required: true }]} extra={t('cron.drawer.cronExprHelp')}>
-                  <Input placeholder={t('cron.drawer.cronExprPlaceholder')} />
-                </FormItem>
-              );
-            }
-
-            return null;
-          }}
-        </Form.Item>
+              return null;
+            }}
+          </Form.Item>
+        </div>
       </Form>
     </Drawer>
   );
