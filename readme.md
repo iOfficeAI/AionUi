@@ -1,4 +1,4 @@
-﻿<p align="center">
+<p align="center">
   <img src="./resources/aionui-banner-1.png" alt="AionUi - Cowork with Your CLI AI Agent" width="100%">
 </p>
 
@@ -45,7 +45,6 @@
 
 [✨ What Can AionUi Do?](#✨-what-can-aionui-do) ·
 [🤔 Why Choose AionUi?](#🤔-why-choose-aionui) ·
-[✨ Core Features](#✨-core-features) ·
 [🚀 Quick Start](#🚀-quick-start) ·
 [💬 Community](#🤝-community--support)
 
@@ -72,19 +71,25 @@ _If you have installed command-line tools like Gemini CLI, Claude Code, CodeX, Q
 
 ---
 
-### 🌐 **Access Anywhere - WebUI Mode**
+### 🌐 **Access Anywhere - WebUI & Telegram Channel**
 
-_Your 7×24 hour AI assistant - Access AionUi from any device on the network! On business trips, at home, in the office, use your AI tools anytime, anywhere_
+_Your 7×24 hour AI assistant - Access AionUi from any device, anywhere! On business trips, at home, in the office, use your AI tools anytime, anywhere through WebUI or Telegram_
 
-**✨ One-click start**: Open the WebUI option in the settings panel and click the switch to start!
+#### 🌐 **WebUI Mode**
 
-- ✅ **Cross-device access** - Phone, tablet, computer, any device can access
-- ✅ **Remote collaboration** - Supports LAN, cross-network, server deployment and more
-- ✅ **Secure and reliable** - Password management, QR code login, data never leaves your device
+Access AionUi from any device via browser - phone, tablet, computer. Supports LAN, cross-network, and server deployment.
 
 > 💡 **Need detailed configuration guide?** Check out the [WebUI Configuration Tutorial](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) and [Remote Internet Access Guide](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide)
 
-https://github.com/user-attachments/assets/c81b7826-30ea-405e-86db-7d6a503c533b
+#### 📱 **Telegram Channel**
+
+Chat with your AI assistant directly from Telegram on any device. Simple pairing code system for secure access.
+
+> 💡 **How to set up:** Go to Settings → Channels → Telegram, get your Bot Token from [@BotFather](https://t.me/BotFather), and start chatting!
+
+<p align="center">
+  <img src="./resources/remote.png" alt="Access Anywhere - WebUI & Telegram" width="800">
+</p>
 
 ---
 
@@ -123,6 +128,28 @@ _Intelligent image generation, editing, and recognition, powered by Gemini_
 </p>
 
 > 💡 **Need help setting up free image generation?** [Follow the tutorial to configure image generation models](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide)
+
+---
+
+### 🤖 **Multi-Model Support**
+
+_Supports mainstream models like Gemini, OpenAI, Claude, Qwen, and local models like Ollama, LM Studio. Switch between different models flexibly to meet various task requirements._
+
+<p align="center">
+  <img src="./resources/multi-model.png" alt="Multi-Model Support" width="800">
+</p>
+
+---
+
+### 🎨 **Personalized Interface Customization**
+
+_Customize with your own CSS code, make your interface match your preferences_
+
+<p align="center">
+  <img src="./resources/css with skin.gif" alt="CSS Custom Interface Demo" width="800">
+</p>
+
+- ✅ **Fully Customizable** - Freely customize interface colors, styles, layout through CSS code, create your exclusive experience
 
 ---
 
@@ -224,52 +251,6 @@ _Watch how content creators review and use AionUi in real-world scenarios_
 </p>
 
 > 💡 **Have you made a video about AionUi?** [Let us know on X](https://x.com/AionUi) and we'll feature it here! We value your feedback and will continue to improve based on your suggestions.
-
----
-
-## ✨ Core Features
-
-### 💬 **Multi-Session Chat**
-
-- **Multi-Session + Independent Context** - Open multiple chats simultaneously, each session has independent context memory, no confusion
-- **Local Storage** - All conversations are saved locally and will not be lost
-
-### 🌐 **WebUI Remote Access - Your 24/7 AI Assistant**
-
-- **Cross-Device Access** - Access from any device on the network via browser, supports mobile devices
-- **Anytime, Anywhere** - On business trips, at home, in the office, access your AI tools 24/7, completely free
-- **Local Data Security** - All data stored locally in SQLite database, suitable for server deployment
-
-### 🤖 **Multi-Model Support**
-
-- **Multi-Platform Support** - Supports mainstream models like Gemini, OpenAI, Claude, Qwen, flexible switching
-- **Local Model Support** - Supports local model deployment like Ollama, LM Studio, select Custom platform and set local API address (e.g., `http://localhost:11434/v1`) to connect
-- **Gemini 3 Subscription Optimization** - Automatically identifies subscribed users, recommends advanced models
-
-### 🗂️ **File Management**
-
-- **File Tree Browsing + Drag & Drop Upload** - Browse files like folders, support drag and drop files or folders for one-click import
-- **Smart Organization** - You can let AI help organize folders, automatic classification
-
-### 📄 **Preview Panel - Give AI Agent a Display**
-
-- **9+ Format Preview** - Supports PDF, Word, Excel, PPT, code, Markdown, images, etc., view results immediately after AI generation
-- **Real-time Tracking + Editable** - Automatically tracks file changes, supports real-time editing and debugging of Markdown, code, HTML
-
-### 🎨 **AI Image Generation & Editing**
-
-- **Intelligent Image Generation** - Supports multiple image generation models like Gemini 2.5 Flash Image Preview, Nano, Banana
-- **Image Recognition & Editing** - AI-driven image analysis and editing features
-
-### 🎨 **Personalized Interface Customization**
-
-_Customize with your own CSS code, make your interface match your preferences_
-
-<p align="center">
-  <img src="./resources/css with skin.gif" alt="CSS Custom Interface Demo" width="800">
-</p>
-
-- **Fully Customizable** - Freely customize interface colors, styles, layout through CSS code, create your exclusive experience
 
 ---
 

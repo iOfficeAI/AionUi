@@ -1,4 +1,4 @@
-﻿<p align="center">
+<p align="center">
   <img src="./resources/aionui-banner-1.png" alt="AionUi - Cowork with Your CLI AI Agent" width="100%">
 </p>
 
@@ -19,8 +19,8 @@
 ---
 
 <p align="center">
-  <strong>🚀 Cowork 与你的AI, Gemini CLI, Claude Code, Codex, Qwen Code, Goose Cli, Auggie, 等ai agent </strong><br>
-  <em> 任何用户友好 | 可视的图形化界面 | 多模型支持 | 本地数据安全</em>
+  <strong>🚀 基于 Gemini CLI、Claude Code、Codex、Qwen Code、Goose CLI、Auggie 等的「Cowork」个人助手</strong><br>
+  <em>用户友好 | 可视化图形界面 | 多模型支持 | 本地数据安全</em>
 </p>
 
 <p align="center">
@@ -45,7 +45,6 @@
 
 [✨ 看看能做什么](#✨-看看-aionui-能做什么) ·
 [🤔 为什么选择 AionUi](#🤔-为什么选择-aionui) ·
-[✨ 核心功能](#✨-核心功能) ·
 [🚀 快速开始](#🚀-快速开始) ·
 [💬 社区交流](#🤝-社区与支持)
 
@@ -72,19 +71,25 @@ _AionUi 内置 Gemini CLI，下载即用，无需额外安装；如果你已经�
 
 ---
 
-### 🌐 **随时随地访问 - WebUI 模式**
+### 🌐 **随时随地访问 - WebUI & Telegram Channel**
 
-_你的 7×24 小时 AI 助手 - 从网络中的任何设备访问 AionUi！出差、在家、办公室，随时随地使用你的 AI 工具_
+_你的 7×24 小时 AI 助手 - 从任何设备、任何地方访问 AionUi！出差、在家、办公室，随时随地通过 WebUI 或 Telegram 使用你的 AI 工具_
 
-**✨ 一键启动**：在设置面板中打开 WebUI 选项，点击开关即可启动！
+#### 🌐 **WebUI 模式**
 
-- ✅ **跨设备访问** - 手机、平板、电脑，任何设备都能访问
-- ✅ **远程协作** - 支持局域网、跨网络、服务器部署等多种场景
-- ✅ **安全可靠** - 密码管理、二维码登录，数据不离开你的设备
+通过浏览器从任何设备访问 AionUi - 手机、平板、电脑。支持局域网、跨网络和服务器部署。
 
 > 💡 **需要详细配置指南？** 查看 [WebUI 配置教程](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide-Chinese) 和 [远程外网连接教程](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide-Chinese)
 
-https://github.com/user-attachments/assets/c81b7826-30ea-405e-86db-7d6a503c533b
+#### 📱 **Telegram Channel**
+
+通过 Telegram 在任何设备上直接与你的 AI 助手聊天。简单的配对码系统，确保安全访问。
+
+> 💡 **如何设置：** 前往 设置 → Channels → Telegram，从 [@BotFather](https://t.me/BotFather) 获取你的 Bot Token，然后开始聊天！
+
+<p align="center">
+  <img src="./resources/remote.png" alt="随时随地访问 - WebUI & Telegram" width="800">
+</p>
 
 ---
 
@@ -123,6 +128,28 @@ _智能图像生成、编辑和识别，由 Gemini 驱动_
 </p>
 
 > 💡 **需要帮助设置免费图像生成？** [按照教程配置图像生成模型](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide-Chinese)
+
+---
+
+### 🤖 **多模型支持**
+
+_支持 Gemini、OpenAI、Claude、Qwen 等主流模型，以及 Ollama、LM Studio 等本地模型。灵活切换不同模型，满足各种任务需求。_
+
+<p align="center">
+  <img src="./resources/multi-model.png" alt="多模型支持" width="800">
+</p>
+
+---
+
+### 🎨 **个性化界面定制**
+
+_自己写 CSS 代码自定义，让你的交互界面符合你的心意_
+
+<p align="center">
+  <img src="./resources/css with skin.gif" alt="CSS 自定义界面演示" width="800">
+</p>
+
+- ✅ **完全自定义** - 通过 CSS 代码自由定制界面颜色、风格、布局，打造专属使用体验
 
 ---
 
@@ -231,52 +258,6 @@ _观看创作者们如何测评和使用 AionUi_
 - [5500星：开源如何撬动 Anthropic 的 AI 工具护城河](https://mp.weixin.qq.com/s/saEk49cYV6MqBgw19Lw6Gw) — AI硅基时刻
 
 > 💡 **你也做了关于 AionUi 的视频或文章？** [在 X 上告诉我们](https://x.com/AionUi)，我们会在这里展示！也会采纳你的反馈，并在未来持续优化。
-
----
-
-## ✨ 核心功能
-
-### 💬 **多会话聊天**
-
-- **多会话 + 独立上下文** - 同时开多个聊天，每个会话拥有独立的上下文记忆，互不混淆
-- **本地保存** - 所有对话都保存在本地，不会丢失
-
-### 🌐 **WebUI 远程访问 - 你的 24/7 AI 助手**
-
-- **跨设备访问** - 通过网络中的任何设备通过浏览器访问，支持移动端
-- **随时随地** - 出差、在家、办公室，7×24 小时随时访问你的 AI 工具，完全免费
-- **本地数据安全** - 所有数据使用 SQLite 数据库本地存储，适合服务器部署
-
-### 🤖 **多模型支持**
-
-- **多平台支持** - 支持 Gemini、OpenAI、Claude、Qwen 等主流模型，灵活切换
-- **本地模型支持** - 支持 Ollama、LM Studio 等本地模型部署，选择 Custom 平台并设置本地 API 地址（如 `http://localhost:11434/v1`）即可接入
-- **Gemini 3 订阅优化** - 自动识别订阅用户，推荐高级模型
-
-### 🗂️ **文件管理**
-
-- **文件树浏览 + 拖拽上传** - 像文件夹一样浏览文件，支持拖拽文件或文件夹一键导入
-- **智能整理** - 你可以让AI 帮你整理文件夹，自动分类
-
-### 📄 **预览面板 - 让 AI Agent 拥有显示器**
-
-- **9+ 种格式预览** - 支持 PDF、Word、Excel、PPT、代码、Markdown、图片等，AI 生成后立即查看效果
-- **实时追踪 + 可编辑** - 自动追踪文件变更，支持 Markdown、代码、HTML 实时编辑和调试
-
-### 🎨 **AI 图像生成与编辑**
-
-- **智能图像生成** - 支持 Gemini 2.5 Flash Image Preview、Nano、Banana 等多种图像生成模型
-- **图像识别与编辑** - AI 驱动的图像分析和编辑功能
-
-### 🎨 **个性化界面定制**
-
-_自己写 CSS 代码自定义，让你的交互界面符合你的心意_
-
-<p align="center">
-  <img src="./resources/css with skin.gif" alt="CSS 自定义界面演示" width="800">
-</p>
-
-- **完全自定义** - 通过 CSS 代码自由定制界面颜色、风格、布局，打造专属使用体验
 
 ---
 
