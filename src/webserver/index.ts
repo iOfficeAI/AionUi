@@ -9,6 +9,7 @@ import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
 import { execSync } from 'child_process';
 import { networkInterfaces } from 'os';
+import * as qrcode from 'qrcode-terminal';
 import { AuthService } from '@/webserver/auth/service/AuthService';
 import { UserRepository } from '@/webserver/auth/repository/UserRepository';
 import { AUTH_CONFIG, SERVER_CONFIG } from './config/constants';
@@ -188,6 +189,15 @@ function displayInitialCredentials(credentials: { username: string; password: st
   console.log(`   Password / 密码:   ${credentials.password}`);
   console.log('\n⚠️  Please change the password after first login!');
   console.log('⚠️  请在首次登录后修改密码！');
+
+  // 在 Linux 无桌面环境下显示二维码方便扫码登录
+  // Display QR code on Linux headless for easy scan-to-login
+  const isLinuxHeadless = process.platform === 'linux' && !process.env.DISPLAY;
+  if (isLinuxHeadless && allowRemote && networkUrl) {
+    console.log('\n📱 Scan QR Code to Login / 扫描二维码登录:');
+    qrcode.generate(networkUrl, { small: true });
+  }
+
   console.log('='.repeat(70) + '\n');
 }
 
