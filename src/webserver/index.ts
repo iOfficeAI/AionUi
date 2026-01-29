@@ -190,10 +190,9 @@ function displayInitialCredentials(credentials: { username: string; password: st
   console.log('\n⚠️  Please change the password after first login!');
   console.log('⚠️  请在首次登录后修改密码！');
 
-  // 在 Linux 无桌面环境下显示二维码方便扫码登录
-  // Display QR code on Linux headless for easy scan-to-login
-  const isLinuxHeadless = process.platform === 'linux' && !process.env.DISPLAY;
-  if (isLinuxHeadless && allowRemote && networkUrl) {
+  // 远程模式下显示二维码方便扫码登录
+  // Display QR code in remote mode for easy scan-to-login
+  if (allowRemote && networkUrl) {
     console.log('\n📱 Scan QR Code to Login / 扫描二维码登录:');
     qrcode.generate(networkUrl, { small: true });
   }
@@ -265,21 +264,12 @@ export async function startWebServerWithInstance(port: number, allowRemote = fal
           console.log(`\n   🚀 WebUI started / WebUI 已启动: ${localUrl}\n`);
         }
 
-        // 即使非首次启动，也在 Linux 无桌面环境下显示二维码
-        // Display QR code on Linux headless even on non-first startup
-        const isLinuxHeadless = process.platform === 'linux' && !process.env.DISPLAY;
-        if (isLinuxHeadless && allowRemote && serverIP && displayUrl !== localUrl) {
+        // 即使非首次启动，也在远程模式下显示二维码
+        // Display QR code in remote mode even on non-first startup
+        if (allowRemote && serverIP && displayUrl !== localUrl) {
           console.log('📱 Scan QR Code to Login / 扫描二维码登录:');
           qrcode.generate(displayUrl, { small: true });
           console.log();
-        } else if (allowRemote) {
-          // 调试信息：显示为什么没有显示 QR 码
-          // Debug: show why QR code is not displayed
-          console.log('\n💡 QR code not displayed. Conditions:');
-          console.log(`   Platform: ${process.platform} (need: linux)`);
-          console.log(`   DISPLAY env: ${process.env.DISPLAY || 'not set'} (need: not set)`);
-          console.log(`   Remote mode: ${allowRemote} (need: true)`);
-          console.log(`   Server IP: ${serverIP || 'not detected'} (need: detected)\n`);
         }
       }
 
