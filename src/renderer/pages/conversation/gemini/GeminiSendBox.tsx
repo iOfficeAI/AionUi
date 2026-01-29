@@ -257,7 +257,14 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
     });
   }, [conversation_id]);
 
-  return { thought, setThought, running, tokenUsage, setActiveMsgId, setWaitingResponse };
+  const resetState = useCallback(() => {
+    setWaitingResponse(false);
+    setStreamRunning(false);
+    setHasActiveTools(false);
+    setThought({ subject: '', description: '' });
+  }, []);
+
+  return { thought, setThought, running, tokenUsage, setActiveMsgId, setWaitingResponse, resetState };
 };
 
 const EMPTY_AT_PATH: Array<string | FileOrFolderItem> = [];
@@ -371,7 +378,7 @@ const GeminiSendBox: React.FC<{
     [currentModel, handleSelectModel, isQuotaErrorMessage, resolveFallbackTarget, t]
   );
 
-  const { thought, running, tokenUsage, setActiveMsgId, setWaitingResponse } = useGeminiMessage(conversation_id, handleGeminiError);
+  const { thought, running, tokenUsage, setActiveMsgId, setWaitingResponse, resetState } = useGeminiMessage(conversation_id, handleGeminiError);
 
   useEffect(() => {
     void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
@@ -521,10 +528,14 @@ const GeminiSendBox: React.FC<{
   });
 
   // 停止会话处理函数 Stop conversation handler
-  const handleStop = () => {
-    return ipcBridge.conversation.stop.invoke({ conversation_id }).then(() => {
+  const handleStop = async (): Promise<void> => {
+    // Use finally to ensure UI state is reset even if backend stop fails
+    try {
+      await ipcBridge.conversation.stop.invoke({ conversation_id });
+    } finally {
       console.log('stopStream');
-    });
+      resetState();
+    }
   };
 
   return (
