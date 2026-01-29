@@ -103,10 +103,13 @@ const DirectorySelectionModal: React.FC<DirectorySelectionModalProps> = ({ visib
       onCancel={onCancel}
       onOk={handleConfirm}
       okButtonProps={{ disabled: !selectedPath }}
-      style={{ width: 600 }}
+      className='w-[90vw] md:w-[600px]'
+      style={{ width: 'min(600px, 90vw)' }}
+      wrapStyle={{ zIndex: 3000 }}
+      maskStyle={{ zIndex: 2990 }}
       footer={
         <div className='w-full flex justify-between items-center'>
-          <div className='text-t-secondary text-14px overflow-hidden text-ellipsis whitespace-nowrap max-w-400px' title={selectedPath || currentPath}>
+          <div className='text-t-secondary text-14px overflow-hidden text-ellipsis whitespace-nowrap max-w-[70vw]' title={selectedPath || currentPath}>
             {selectedPath || currentPath || (isFileMode ? t('fileSelection.pleaseSelectFile') : t('fileSelection.pleaseSelectDirectory'))}
           </div>
           <div className='flex gap-10px'>
@@ -119,7 +122,7 @@ const DirectorySelectionModal: React.FC<DirectorySelectionModalProps> = ({ visib
       }
     >
       <Spin loading={loading} className='w-full'>
-        <div className='w-full border border-b-base rd-4px overflow-hidden' style={{ height: 400 }}>
+        <div className='w-full border border-b-base rd-4px overflow-hidden' style={{ height: 'min(400px, 60vh)' }}>
           <div className='h-full overflow-y-auto'>
             {directoryData.canGoUp && (
               <div className='flex items-center p-10px border-b border-b-light cursor-pointer hover:bg-hover transition' onClick={handleGoUp}>

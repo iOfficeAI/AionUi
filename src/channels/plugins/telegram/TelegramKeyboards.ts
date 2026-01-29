@@ -123,10 +123,7 @@ export function createErrorRecoveryKeyboard(): InlineKeyboard {
  * @param callId - The tool call ID for tracking
  * @param options - Array of { label, value } options
  */
-export function createToolConfirmationKeyboard(
-  callId: string,
-  options: Array<{ label: string; value: string }>
-): InlineKeyboard {
+export function createToolConfirmationKeyboard(callId: string, options: Array<{ label: string; value: string }>): InlineKeyboard {
   const keyboard = new InlineKeyboard();
   // 每行最多显示 2 个按钮
   // Show at most 2 buttons per row

@@ -32,6 +32,30 @@ const qrTokenStore = new Map<string, { expiresAt: number; used: boolean; allowLo
 const QR_TOKEN_EXPIRY = 5 * 60 * 1000;
 
 /**
+ * 直接生成二维码登录 URL（供服务端启动时调用）
+ * Generate QR login URL directly (for server-side use on startup)
+ */
+export function generateQRLoginUrlDirect(port: number, allowRemote: boolean): { qrUrl: string; expiresAt: number } {
+  // 清理过期 token / Clean up expired tokens
+  cleanupExpiredTokens();
+
+  // 生成随机 token / Generate random token
+  const token = crypto.randomBytes(32).toString('hex');
+  const expiresAt = Date.now() + QR_TOKEN_EXPIRY;
+
+  // 存储 token / Store token
+  const allowLocalOnly = !allowRemote;
+  qrTokenStore.set(token, { expiresAt, used: false, allowLocalOnly });
+
+  // 构建 QR URL / Build QR URL
+  const lanIP = WebuiService.getLanIP();
+  const baseUrl = allowRemote && lanIP ? `http://${lanIP}:${port}` : `http://localhost:${port}`;
+  const qrUrl = `${baseUrl}/qr-login?token=${token}`;
+
+  return { qrUrl, expiresAt };
+}
+
+/**
  * 检查 IP 是否为本地/局域网地址
  * Check if IP is localhost or local network address
  */
