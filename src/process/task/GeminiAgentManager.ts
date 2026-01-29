@@ -287,7 +287,25 @@ export class GeminiAgentManager extends BaseAgentManager<
     if (execMessages.length) {
       execMessages.forEach((content) => {
         const { question, options, description } = this.getConfirmationButtons(content.confirmationDetails, (k) => k);
-        if (!question) return;
+        const hasDetails = Boolean(content.confirmationDetails);
+        const hasOptions = options && options.length > 0;
+        if (!question && !hasDetails) {
+          // Fallback confirmation when tool is waiting but missing details
+          // 当工具处于确认状态但缺少详情时，提供兜底确认
+          this.addConfirmation({
+            title: 'Awaiting Confirmation',
+            id: content.callId,
+            action: 'confirm',
+            description: content.description || content.name || 'Tool requires confirmation',
+            callId: content.callId,
+            options: [
+              { label: 'messages.confirmation.yesAllowOnce', value: ToolConfirmationOutcome.ProceedOnce },
+              { label: 'messages.confirmation.no', value: ToolConfirmationOutcome.Cancel },
+            ],
+          });
+          return;
+        }
+        if (!question || !hasOptions) return;
         this.addConfirmation({
           title: content.confirmationDetails?.title || '',
           id: content.callId,
