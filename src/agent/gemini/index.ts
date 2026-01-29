@@ -574,14 +574,14 @@ export class GeminiAgent {
       }
 
       const stream = this.geminiClient.sendMessageStream(query, abortController.signal, prompt_id);
-      this.onStreamEvent({
-        type: 'start',
-        data: '',
-        msg_id,
-      });
+
+      // Send start event immediately when stream is created
+      // 流创建后立即发送 start 事件，确保 UI 显示停止按钮
+      this.onStreamEvent({ type: 'start', data: '', msg_id });
+
       // Pass query to handleMessage for potential retry on invalid stream
       // 将 query 传递给 handleMessage 以便在 invalid stream 时重试
-      this.handleMessage(stream, msg_id, abortController, query)
+      this.handleMessage(stream, msg_id, abortController, query, 0)
         .catch((e: unknown) => {
           const errorMessage = e instanceof Error ? e.message : JSON.stringify(e);
           this.onStreamEvent({

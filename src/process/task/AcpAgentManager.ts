@@ -232,6 +232,17 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
       callId: callId,
     });
   }
+
+  /**
+   * Override stop() because AcpAgentManager doesn't use ForkTask's subprocess architecture.
+   * It directly creates AcpAgent in the main process, so we need to call agent.stop() directly.
+   */
+  async stop() {
+    if (this.agent) {
+      return this.agent.stop();
+    }
+    return Promise.resolve();
+  }
 }
 
 export default AcpAgentManager;
