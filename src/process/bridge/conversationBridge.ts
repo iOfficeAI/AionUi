@@ -8,6 +8,7 @@ import type { CodexAgentManager } from '@/agent/codex';
 import { GeminiAgent } from '@/agent/gemini';
 import type { TChatConversation } from '@/common/storage';
 import { getDatabase } from '@process/database';
+import { cronService } from '@process/services/cron/CronService';
 import { ipcBridge } from '../../common';
 import { uuid } from '../../common/utils';
 import { ProcessChat } from '../initStorage';
@@ -179,6 +180,18 @@ export function initConversationBridge(): void {
 
       // Kill the running task if exists
       WorkerManage.kill(id);
+
+      // Delete associated cron jobs
+      try {
+        const jobs = await cronService.listJobsByConversation(id);
+        for (const job of jobs) {
+          await cronService.removeJob(job.id);
+          ipcBridge.cron.onJobRemoved.emit({ jobId: job.id });
+        }
+      } catch (cronError) {
+        console.warn('[conversationBridge] Failed to cleanup cron jobs:', cronError);
+        // Continue with deletion even if cron cleanup fails
+      }
 
       // If source is not 'aionui' (e.g., telegram), cleanup channel resources
       // 如果来源不是 aionui（如 telegram），需要清理 channel 相关资源

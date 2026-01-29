@@ -21,6 +21,7 @@ import type { IResponseMessage } from '@/common/ipcBridge';
 import { uuid } from '@/common/utils';
 import { addMessage } from '@process/message';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
+import { ProcessConfig } from '@process/initStorage';
 import BaseAgentManager from '@process/task/BaseAgentManager';
 import { prepareFirstMessageWithSkillsIndex } from '@process/task/agentUtils';
 import { handlePreviewOpenEvent } from '@process/utils/previewUtils';
@@ -33,7 +34,7 @@ const CODEX_MCP_PROTOCOL_VERSION = getConfiguredCodexMcpProtocolVersion();
 
 class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implements ICodexMessageEmitter {
   workspace?: string;
-  agent: CodexAgent;
+  agent!: CodexAgent; // Initialized in bootstrap promise
   bootstrap: Promise<CodexAgent>;
   private isFirstMessage: boolean = true;
   private options: CodexAgentManagerData; // 保存原始配置数据 / Store original config data
@@ -61,8 +62,10 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     );
     const fileOperationHandler = new CodexFileOperationHandler(data.workspace || process.cwd(), data.conversation_id, this);
 
-    // 设置 Codex Agent 的应用配置，使用 Electron API 在主进程中
-    void (async () => {
+    // 使用 SessionManager 来管理连接状态 - 参考 ACP 的模式
+    // Use async bootstrap to read config and initialize agent
+    this.bootstrap = (async () => {
+      // 设置 Codex Agent 的应用配置，使用 Electron API 在主进程中
       try {
         const electronModule = await import('electron');
         const app = electronModule.app;
@@ -79,31 +82,33 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
           protocolVersion: CODEX_MCP_PROTOCOL_VERSION,
         });
       }
-    })();
 
-    this.agent = new CodexAgent({
-      id: data.conversation_id,
-      cliPath: data.cliPath,
-      workingDir: data.workspace || process.cwd(),
-      eventHandler,
-      sessionManager,
-      fileOperationHandler,
-      sandboxMode: data.sandboxMode || 'workspace-write', // Enable file writing within workspace by default
-      yoloMode: data.yoloMode, // Enable yoloMode for cron jobs
-      onNetworkError: (error) => {
-        this.handleNetworkError(error);
-      },
-    });
+      // Read codex.config for global yoloMode setting
+      // yoloMode priority: data.yoloMode (from CronService) > config setting
+      // yoloMode 优先级：data.yoloMode（来自 CronService）> 配置设置
+      const codexConfig = await ProcessConfig.get('codex.config');
+      const yoloMode = data.yoloMode ?? codexConfig?.yoloMode;
 
-    // 使用 SessionManager 来管理连接状态 - 参考 ACP 的模式
-    this.bootstrap = this.startWithSessionManagement()
-      .then(() => {
-        return this.agent;
-      })
-      .catch((e) => {
-        this.agent.getSessionManager().emitSessionEvent('bootstrap_failed', { error: e.message });
-        throw e;
+      this.agent = new CodexAgent({
+        id: data.conversation_id,
+        cliPath: data.cliPath,
+        workingDir: data.workspace || process.cwd(),
+        eventHandler,
+        sessionManager,
+        fileOperationHandler,
+        sandboxMode: data.sandboxMode || 'workspace-write', // Enable file writing within workspace by default
+        yoloMode: yoloMode, // yoloMode from CronService or config
+        onNetworkError: (error) => {
+          this.handleNetworkError(error);
+        },
       });
+
+      await this.startWithSessionManagement();
+      return this.agent;
+    })().catch((e) => {
+      this.agent?.getSessionManager?.()?.emitSessionEvent('bootstrap_failed', { error: e.message });
+      throw e;
+    });
   }
 
   /**

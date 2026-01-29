@@ -362,17 +362,8 @@ const WorkspaceGroupedHistory: React.FC<{ onSessionClick?: () => void; collapsed
             })}
             onClick={() => handleConversationClick(conversation)}
           >
-            <MessageOne theme='outline' size='20' className='line-height-0 flex-shrink-0' />
-            <FlexFullContainer className='h-24px min-w-0 flex-1 collapsed-hidden ml-10px'>
-              {isEditing ? (
-                <Input className='chat-history__item-editor text-14px lh-24px h-24px w-full' value={editingName} onChange={setEditingName} onKeyDown={handleEditKeyDown} onBlur={handleEditSave} autoFocus size='small' />
-              ) : (
-                <div className='flex items-center gap-4px w-full min-w-0'>
-                  <div className='chat-history__item-name overflow-hidden text-ellipsis inline-block flex-1 text-14px lh-24px whitespace-nowrap min-w-0'>{conversation.name}</div>
-                  <CronJobIndicator status={cronStatus} size={14} />
-                </div>
-              )}
-            </FlexFullContainer>
+            {cronStatus !== 'none' ? <CronJobIndicator status={cronStatus} size={20} className='flex-shrink-0' /> : <MessageOne theme='outline' size='20' className='line-height-0 flex-shrink-0' />}
+            <FlexFullContainer className='h-24px min-w-0 flex-1 collapsed-hidden ml-10px'>{isEditing ? <Input className='chat-history__item-editor text-14px lh-24px h-24px w-full' value={editingName} onChange={setEditingName} onKeyDown={handleEditKeyDown} onBlur={handleEditSave} autoFocus size='small' /> : <div className='chat-history__item-name overflow-hidden text-ellipsis inline-block flex-1 text-14px lh-24px whitespace-nowrap min-w-0'>{conversation.name}</div>}</FlexFullContainer>
             {!isEditing && (
               <div
                 className={classNames('absolute right-0px top-0px h-full w-70px items-center justify-end hidden group-hover:flex !collapsed-hidden pr-12px')}

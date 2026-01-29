@@ -32,6 +32,10 @@ export interface IConfigStorageRefer {
     accountProjects?: Record<string, string>;
     yoloMode?: boolean;
   };
+  'codex.config'?: {
+    cliPath?: string;
+    yoloMode?: boolean;
+  };
   'acp.config': {
     [backend in AcpBackend]?: {
       authMethodId?: string;

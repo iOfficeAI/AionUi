@@ -125,13 +125,17 @@ export class CodexConnection {
     const isWindows = process.platform === 'win32';
     let finalArgs = args.length ? args : this.detectMcpCommand(cliPath);
 
-    // Add approval_policy config for cron jobs (yoloMode)
-    // This enables automatic execution without user confirmation while keeping sandbox protection
+    // Add ask_for_approval config for mcp-server
+    // This controls when user confirmation is required
     // Note: --full-auto is only available for `codex exec`, not `mcp-server`
-    // For mcp-server, we use -c config to set approval_policy
+    // For mcp-server, we use -c config to set ask_for_approval
+    // Values: untrusted (requires approval for non-trusted commands), on-failure, on-request (model decides), never (auto-approve all)
     if (options?.yoloMode) {
-      finalArgs = [...finalArgs, '-c', 'approval_policy="on-request"'];
-      console.log('[CodexConnection] Starting with approval_policy="on-request" for automatic execution (yoloMode)');
+      // yoloMode: auto-approve all operations without user confirmation
+      finalArgs = [...finalArgs, '-c', 'ask_for_approval=never'];
+    } else {
+      // Normal mode: require user approval for non-trusted commands
+      finalArgs = [...finalArgs, '-c', 'ask_for_approval=untrusted'];
     }
 
     return new Promise((resolve, reject) => {

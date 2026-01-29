@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import { uuid } from '@/common/utils';
+import { getDatabase } from '@process/database';
 import { Cron } from 'croner';
 import WorkerManage from '../../WorkerManage';
 import { copyFilesToDirectory } from '../../utils';
@@ -103,6 +104,14 @@ class CronService {
     // Save to database
     cronStore.insert(job);
 
+    // Update conversation modifyTime so it appears at the top of the list
+    try {
+      const db = getDatabase();
+      db.updateConversation(params.conversationId, { modifyTime: now });
+    } catch (err) {
+      console.warn('[CronService] Failed to update conversation modifyTime:', err);
+    }
+
     // Start timer
     this.startTimer(job);
 
@@ -171,18 +180,6 @@ class CronService {
    */
   async getJob(jobId: string): Promise<CronJob | null> {
     return cronStore.getById(jobId);
-  }
-
-  /**
-   * Run a job immediately (manual trigger)
-   */
-  async runJobNow(jobId: string): Promise<void> {
-    const job = cronStore.getById(jobId);
-    if (!job) {
-      throw new Error(`Job not found: ${jobId}`);
-    }
-
-    await this.executeJob(job);
   }
 
   /**
@@ -369,6 +366,14 @@ class CronService {
       job.state.lastStatus = 'ok';
       job.state.lastError = undefined;
       job.state.retryCount = 0;
+
+      // Update conversation modifyTime so it appears at the top of the list
+      try {
+        const db = getDatabase();
+        db.updateConversation(conversationId, {});
+      } catch (err) {
+        console.warn('[CronService] Failed to update conversation modifyTime after execution:', err);
+      }
     } catch (error) {
       // Error
       job.state.lastStatus = 'error';
