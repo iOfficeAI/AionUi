@@ -437,7 +437,8 @@
       "quotaExceededTitle": "モデルの上限に達しました",
       "quotaExceededBody": "現在のモデルの上限に達しました。{{model}}に切り替えて続行しますか？",
       "quotaExceededNoFallback": "現在のモデルの上限に達しました。別の利用可能なモデルに切り替えてください。",
-      "quotaSwitched": "{{model}}に切り替えました。"
+      "quotaSwitched": "{{model}}に切り替えました。",
+      "confirmationLoadError": "確認ダイアログの読み込みに失敗しました"
     },
     "contextUsage": {
       "contextUsed": "コンテキスト使用量"
@@ -711,6 +712,7 @@
     "mcpRemovePartialFailed": "MCP 設定の削除が部分的に失敗しました：{{errors}}",
     "mcpSyncFailed": "MCP 設定の同期に失敗しました：{{error}}",
     "mcpRemoveFailed": "MCP 設定の削除に失敗しました：{{error}}",
+    "mcpSyncFailedNoAgents": "利用可能なエージェントが検出されませんでした。MCP 設定を同期できません",
     "mcpDeletedWithCleanup": "MCP サーバーが削除され、設定がクリーンアップされました",
     "mcpDeleted": "MCP サーバーが削除されました",
     "mcpDeleteError": "MCP 設定の削除中にエラーが発生しました",

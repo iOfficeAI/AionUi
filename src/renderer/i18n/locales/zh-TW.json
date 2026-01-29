@@ -408,7 +408,8 @@
       "quotaExceededTitle": "模型額度已用盡",
       "quotaExceededBody": "當前模型額度已用盡，是否切換到 {{model}}？",
       "quotaExceededNoFallback": "當前模型額度已用盡，請切換到其他可用模型。",
-      "quotaSwitched": "已切換到 {{model}}。"
+      "quotaSwitched": "已切換到 {{model}}。",
+      "confirmationLoadError": "確認對話框載入失敗"
     },
     "contextUsage": {
       "contextUsed": "上下文已使用"
@@ -682,6 +683,7 @@
     "mcpRemovePartialFailed": "MCP 配置移除部分失敗：{{errors}}",
     "mcpSyncFailed": "MCP 配置同步失敗：{{error}}",
     "mcpRemoveFailed": "MCP 配置移除失敗：{{error}}",
+    "mcpSyncFailedNoAgents": "未檢測到可用的智慧體，無法同步 MCP 配置",
     "mcpDeletedWithCleanup": "MCP 伺服器已刪除並清理配置",
     "mcpDeleted": "MCP 伺服器已刪除",
     "mcpDeleteError": "刪除 MCP 配置時出錯",

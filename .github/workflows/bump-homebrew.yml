@@ -43,14 +43,13 @@ jobs:
         uses: Homebrew/actions/setup-homebrew@master
 
       - name: Bump cask PR
-        uses: Homebrew/actions/bump-cask-pr@master
+        uses: eugenesvk/action-homebrew-bump-cask@v3
         with:
           token: ${{ secrets.HOMEBREW_GITHUB_TOKEN }}
           cask: aionui
+          tap: homebrew/cask
           tag: ${{ steps.release.outputs.tag }}
           revision: ${{ github.event.release.target_commitish || github.sha }}
-        env:
-          HOMEBREW_GITHUB_API_TOKEN: ${{ secrets.HOMEBREW_GITHUB_TOKEN }}
 
       - name: Notify on success
         if: success()

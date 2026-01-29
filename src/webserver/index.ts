@@ -17,7 +17,7 @@ import { setupBasicMiddleware, setupCors, setupErrorHandler } from './setup';
 import { registerAuthRoutes } from './routes/authRoutes';
 import { registerApiRoutes } from './routes/apiRoutes';
 import { registerStaticRoutes } from './routes/staticRoutes';
-import { generateQRLoginUrlDirect } from '@/process/bridge/webuiBridge'; // Added import
+import { generateQRLoginUrlDirect } from '@/process/bridge/webuiBridge';
 
 // Express Request 类型扩展定义在 src/webserver/types/express.d.ts
 // Express Request type extension is defined in src/webserver/types/express.d.ts
@@ -219,6 +219,7 @@ function displayInitialCredentials(credentials: { username: string; password: st
   console.log(`   Password / 密码:   ${credentials.password}`);
   console.log('\n⚠️  Please change the password after first login!');
   console.log('⚠️  请在首次登录后修改密码！');
+
   console.log('='.repeat(70) + '\n');
 }
 
