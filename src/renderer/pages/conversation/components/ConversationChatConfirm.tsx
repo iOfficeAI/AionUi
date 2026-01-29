@@ -7,15 +7,39 @@ import { useTranslation } from 'react-i18next';
 import { removeStack } from '../../../utils/common';
 const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: string }>> = ({ conversation_id, children }) => {
   const [confirmations, setConfirmations] = useState<IConfirmation<any>[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const { t } = useTranslation();
+
   useEffect(() => {
-    void ipcBridge.conversation.confirmation.list.invoke({ conversation_id }).then((data) => {
-      setConfirmations(data);
-    });
+    // 修复 #475: 添加错误处理和重试机制
+    let retryCount = 0;
+    const maxRetries = 3;
+
+    const loadConfirmations = () => {
+      void ipcBridge.conversation.confirmation.list
+        .invoke({ conversation_id })
+        .then((data) => {
+          setConfirmations(data);
+          setLoadError(null);
+        })
+        .catch((error) => {
+          console.error('[ConversationChatConfirm] Failed to load confirmations:', error);
+          if (retryCount < maxRetries) {
+            retryCount++;
+            setTimeout(loadConfirmations, 1000);
+          } else {
+            setLoadError(error?.message || 'Failed to load confirmations');
+          }
+        });
+    };
+
+    loadConfirmations();
+
     return removeStack(
       ipcBridge.conversation.confirmation.add.on((data) => {
         if (conversation_id !== data.conversation_id) return;
         setConfirmations((prev) => prev.concat(data));
+        setLoadError(null); // 清除错误状态
       }),
       ipcBridge.conversation.confirmation.remove.on((data) => {
         if (conversation_id !== data.conversation_id) return;
@@ -61,6 +85,36 @@ const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: str
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [confirmations, conversation_id]);
+  // 修复 #475: 如果加载出错，显示错误信息和重试按钮
+  if (loadError && !confirmations.length) {
+    return (
+      <div>
+        <div
+          className={`relative p-16px bg-white flex flex-col overflow-hidden m-b-20px rd-20px max-w-800px w-full mx-auto box-border`}
+          style={{
+            boxShadow: '0px 2px 20px 0px rgba(74, 88, 250, 0.1)',
+          }}
+        >
+          <div className='color-[rgba(217,45,32,1)] text-14px font-medium mb-8px'>{t('conversation.confirmationLoadError', 'Failed to load confirmation dialog')}</div>
+          <div className='text-12px color-[rgba(134,144,156,1)] mb-12px'>{loadError}</div>
+          <button
+            onClick={() => {
+              setLoadError(null);
+              void ipcBridge.conversation.confirmation.list
+                .invoke({ conversation_id })
+                .then((data) => setConfirmations(data))
+                .catch((error) => setLoadError(error?.message || 'Failed to load'));
+            }}
+            className='px-12px py-6px bg-[rgba(22,93,255,1)] text-white rd-6px text-12px cursor-pointer hover:opacity-80 transition-opacity'
+          >
+            {t('common.retry', 'Retry')}
+          </button>
+        </div>
+        {children}
+      </div>
+    );
+  }
+
   if (!confirmations.length) return <>{children}</>;
   const confirmation = confirmations[0];
   const $t = (key: string) => t(key, key);

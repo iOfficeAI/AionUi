@@ -62,7 +62,9 @@ const McpManagement: React.FC<McpManagementProps> = ({ message }) => {
         if (addedServer.transport.type === 'http' || addedServer.transport.type === 'sse') {
           void checkOAuthStatus(addedServer);
         }
-        if (serverData.enabled) {
+        // 修复 #518: 使用 addedServer.enabled 而不是 serverData.enabled
+        // 因为服务器可能在添加过程中被修改
+        if (addedServer.enabled) {
           void syncMcpToAgents(addedServer, true);
         }
       }
@@ -81,7 +83,8 @@ const McpManagement: React.FC<McpManagementProps> = ({ message }) => {
         if (updatedServer.transport.type === 'http' || updatedServer.transport.type === 'sse') {
           void checkOAuthStatus(updatedServer);
         }
-        if (serverData.enabled) {
+        // 修复 #518: 使用 updatedServer.enabled 而不是 serverData.enabled
+        if (updatedServer.enabled) {
           void syncMcpToAgents(updatedServer, true);
         }
       }
