@@ -4,12 +4,15 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Button, Popover, Tooltip } from '@arco-design/web-react';
-import React from 'react';
+import type { ICronSchedule } from '@/common/ipcBridge';
+import { iconColors } from '@/renderer/theme/colors';
+import { Button, Tooltip } from '@arco-design/web-react';
+import { AlarmClock } from '@icon-park/react';
+import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCronJobs } from '../hooks/useCronJobs';
 import { getJobStatusFlags } from '../utils/cronUtils';
-import CronJobItem, { CronJobStatusIcon } from './CronJobItem';
+import CronJobDrawer from './CronJobDrawer';
 
 interface CronJobManagerProps {
   conversationId: string;
@@ -17,11 +20,12 @@ interface CronJobManagerProps {
 
 /**
  * Cron job manager component for ChatLayout headerExtra
- * Shows a single job per conversation
+ * Shows a single job per conversation with drawer for editing
  */
 const CronJobManager: React.FC<CronJobManagerProps> = ({ conversationId }) => {
   const { t } = useTranslation();
-  const { jobs, loading, hasJobs, pauseJob, resumeJob, deleteJob, runJobNow } = useCronJobs(conversationId);
+  const { jobs, loading, hasJobs, deleteJob, updateJob } = useCronJobs(conversationId);
+  const [drawerVisible, setDrawerVisible] = useState(false);
 
   // Don't render anything if no jobs or loading
   if (!hasJobs || loading) {
@@ -34,20 +38,39 @@ const CronJobManager: React.FC<CronJobManagerProps> = ({ conversationId }) => {
 
   const { hasError, isPaused } = getJobStatusFlags(job);
 
-  const popoverContent = (
-    <div className='cron-job-manager-popover w-[280px]'>
-      <CronJobItem job={job} onPause={() => pauseJob(job.id)} onResume={() => resumeJob(job.id)} onDelete={() => deleteJob(job.id)} onRunNow={() => runJobNow(job.id)} showMessage variant='full' />
-    </div>
-  );
-
   const tooltipContent = isPaused ? t('cron.status.paused') : hasError ? t('cron.status.error') : job.name;
 
+  const handleSave = async (updates: { name: string; message: string; schedule: ICronSchedule; enabled: boolean }) => {
+    await updateJob(job.id, {
+      name: updates.name,
+      enabled: updates.enabled,
+      schedule: updates.schedule,
+      target: { payload: { kind: 'message', text: updates.message } },
+    });
+  };
+
+  const handleDelete = async () => {
+    await deleteJob(job.id);
+  };
+
   return (
-    <Popover content={popoverContent} trigger='click' position='bottom'>
+    <>
       <Tooltip content={tooltipContent}>
-        <Button type='text' size='small' className='cron-job-manager-button' icon={<CronJobStatusIcon job={job} size={16} />} />
+        <Button
+          type='text'
+          size='small'
+          className='cron-job-manager-button'
+          onClick={() => setDrawerVisible(true)}
+          icon={
+            <span className='inline-flex items-center gap-2px rounded-full px-8px py-2px bg-2'>
+              <AlarmClock theme='outline' size={16} fill={hasError ? iconColors.warning : isPaused ? iconColors.secondary : iconColors.primary} />
+              <span className={`ml-4px w-8px h-8px rounded-full ${isPaused ? 'bg-[#f53f3f]' : 'bg-[#00b42a]'}`} />
+            </span>
+          }
+        />
       </Tooltip>
-    </Popover>
+      <CronJobDrawer visible={drawerVisible} job={job} onClose={() => setDrawerVisible(false)} onSave={handleSave} onDelete={handleDelete} />
+    </>
   );
 };
 

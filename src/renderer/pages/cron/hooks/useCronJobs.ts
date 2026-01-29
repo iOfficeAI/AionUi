@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { ICronJob } from '@/common/ipcBridge';
+import { emitter } from '@/renderer/utils/emitter';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 /**
@@ -15,7 +16,7 @@ interface CronJobActionsResult {
   pauseJob: (jobId: string) => Promise<void>;
   resumeJob: (jobId: string) => Promise<void>;
   deleteJob: (jobId: string) => Promise<void>;
-  runJobNow: (jobId: string) => Promise<void>;
+  updateJob: (jobId: string, updates: Partial<ICronJob>) => Promise<ICronJob>;
 }
 
 /**
@@ -46,11 +47,16 @@ function useCronJobActions(onJobUpdated?: (jobId: string, job: ICronJob) => void
     [onJobDeleted]
   );
 
-  const runJobNow = useCallback(async (jobId: string) => {
-    await ipcBridge.cron.runJobNow.invoke({ jobId });
-  }, []);
+  const updateJob = useCallback(
+    async (jobId: string, updates: Partial<ICronJob>) => {
+      const updated = await ipcBridge.cron.updateJob.invoke({ jobId, updates });
+      onJobUpdated?.(jobId, updated);
+      return updated;
+    },
+    [onJobUpdated]
+  );
 
-  return { pauseJob, resumeJob, deleteJob, runJobNow };
+  return { pauseJob, resumeJob, deleteJob, updateJob };
 }
 
 /**
@@ -158,7 +164,6 @@ export function useCronJobs(conversationId?: string) {
 
 /**
  * Hook for managing all cron jobs across all conversations
- * Used by CronJobGlobalManager and CronJobSiderEntry
  */
 export function useAllCronJobs() {
   const [jobs, setJobs] = useState<ICronJob[]>([]);
@@ -305,6 +310,9 @@ export function useCronJobsMap() {
           newMap.set(convId, [...existing, job]);
           return newMap;
         });
+        // Refresh conversation list to update sorting (modifyTime was updated)
+        console.log('[useCronJobsMap] onJobCreated, triggering chat.history.refresh');
+        emitter.emit('chat.history.refresh');
       },
       onJobUpdated: (job: ICronJob) => {
         const convId = job.metadata.conversationId;
@@ -324,6 +332,9 @@ export function useCronJobsMap() {
               return newSet;
             });
           }
+          // Refresh conversation list to update sorting (modifyTime was updated after execution)
+          console.log('[useCronJobsMap] onJobUpdated with new execution, triggering chat.history.refresh');
+          emitter.emit('chat.history.refresh');
         }
 
         setJobsMap((prev) => {
