@@ -37,6 +37,7 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
   const addOrUpdateMessage = useAddOrUpdateMessage();
   const [streamRunning, setStreamRunning] = useState(false); // API 流是否在运行
   const [hasActiveTools, setHasActiveTools] = useState(false); // 是否有工具在执行或等待确认
+  const [waitingResponse, setWaitingResponse] = useState(false); // 等待后端响应（发送消息后到收到 start 之前）
   const [thought, setThought] = useState<ThoughtData>({
     description: '',
     subject: '',
@@ -98,9 +99,9 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
     };
   }, []);
 
-  // 综合运行状态：流在运行 或 有工具在执行/等待确认
-  // Combined running state: stream is running OR tools are active
-  const running = streamRunning || hasActiveTools;
+  // 综合运行状态：等待响应 或 流在运行 或 有工具在执行/等待确认
+  // Combined running state: waiting for response OR stream is running OR tools are active
+  const running = waitingResponse || streamRunning || hasActiveTools;
 
   // 设置当前活跃的消息 ID / Set current active message ID
   const setActiveMsgId = useCallback((msgId: string | null) => {
@@ -132,10 +133,12 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
           break;
         case 'start':
           setStreamRunning(true);
+          setWaitingResponse(false); // 收到 start，可以清除等待状态
           break;
         case 'finish':
           {
             setStreamRunning(false);
+            setWaitingResponse(false);
             // 只有当没有活跃工具时才清除 thought
             // Only clear thought when no active tools
 
@@ -210,6 +213,7 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
               });
             }
             setStreamRunning(false);
+            setWaitingResponse(false);
             // 只有当没有活跃工具时才清除 thought
             // Only clear thought when no active tools
 
@@ -220,6 +224,7 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
           break;
         default: {
           if (message.type === 'error') {
+            setWaitingResponse(false);
             onError?.(message as IResponseMessage);
           }
           // Backend handles persistence, Frontend only updates UI
@@ -233,6 +238,7 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
   useEffect(() => {
     setStreamRunning(false);
     setHasActiveTools(false);
+    setWaitingResponse(false);
     setThought({ subject: '', description: '' });
     setTokenUsage(null);
     void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
@@ -251,7 +257,7 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
     });
   }, [conversation_id]);
 
-  return { thought, setThought, running, tokenUsage, setActiveMsgId };
+  return { thought, setThought, running, tokenUsage, setActiveMsgId, setWaitingResponse };
 };
 
 const EMPTY_AT_PATH: Array<string | FileOrFolderItem> = [];
@@ -365,7 +371,7 @@ const GeminiSendBox: React.FC<{
     [currentModel, handleSelectModel, isQuotaErrorMessage, resolveFallbackTarget, t]
   );
 
-  const { thought, running, tokenUsage, setActiveMsgId } = useGeminiMessage(conversation_id, handleGeminiError);
+  const { thought, running, tokenUsage, setActiveMsgId, setWaitingResponse } = useGeminiMessage(conversation_id, handleGeminiError);
 
   useEffect(() => {
     void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
@@ -394,6 +400,7 @@ const GeminiSendBox: React.FC<{
         const { input, files } = JSON.parse(storedMessage) as { input: string; files?: string[] };
         const msg_id = uuid();
         setActiveMsgId(msg_id);
+        setWaitingResponse(true); // 立即设置等待状态，确保按钮显示为停止
 
         // Display user message immediately
         addOrUpdateMessage(
@@ -462,6 +469,7 @@ const GeminiSendBox: React.FC<{
     // 设置当前活跃的消息 ID，用于过滤掉旧请求的事件
     // Set current active message ID to filter out events from old requests
     setActiveMsgId(msg_id);
+    setWaitingResponse(true); // 立即设置等待状态，确保按钮显示为停止
 
     // 保存文件列表（清空前需要保存）/ Save file list before clearing
     const filesToSend = collectSelectedFiles(uploadFile, atPath);

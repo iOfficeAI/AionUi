@@ -33,6 +33,34 @@ const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: str
       })
     );
   }, [conversation_id]);
+
+  // Handle ESC key to cancel confirmation
+  useEffect(() => {
+    if (!confirmations.length) return;
+
+    const confirmation = confirmations[0];
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        // Find cancel option (value is 'cancel')
+        const cancelOption = confirmation.options.find((opt) => opt.value === 'cancel');
+        if (cancelOption) {
+          event.preventDefault();
+          setConfirmations((prev) => prev.filter((p) => p.id !== confirmation.id));
+          void ipcBridge.conversation.confirmation.confirm.invoke({
+            conversation_id,
+            callId: confirmation.callId,
+            msg_id: confirmation.id,
+            data: cancelOption.value,
+          });
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [confirmations, conversation_id]);
   if (!confirmations.length) return <>{children}</>;
   const confirmation = confirmations[0];
   const $t = (key: string) => t(key, key);
