@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { ICronSchedule } from '@/common/ipcBridge';
 import { iconColors } from '@/renderer/theme/colors';
 import { Button, Tooltip } from '@arco-design/web-react';
 import { AlarmClock } from '@icon-park/react';
@@ -40,11 +39,9 @@ const CronJobManager: React.FC<CronJobManagerProps> = ({ conversationId }) => {
 
   const tooltipContent = isPaused ? t('cron.status.paused') : hasError ? t('cron.status.error') : job.name;
 
-  const handleSave = async (updates: { name: string; message: string; schedule: ICronSchedule; enabled: boolean }) => {
+  const handleSave = async (updates: { message: string; enabled: boolean }) => {
     await updateJob(job.id, {
-      name: updates.name,
       enabled: updates.enabled,
-      schedule: updates.schedule,
       target: { payload: { kind: 'message', text: updates.message } },
     });
   };
