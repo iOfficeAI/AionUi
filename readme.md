@@ -72,6 +72,22 @@ _If you have installed command-line tools like Gemini CLI, Claude Code, CodeX, Q
 
 ---
 
+### 🌐 **Access Anywhere - WebUI Mode**
+
+_Your 7×24 hour AI assistant - Access AionUi from any device on the network! On business trips, at home, in the office, use your AI tools anytime, anywhere_
+
+**✨ One-click start**: Open the WebUI option in the settings panel and click the switch to start!
+
+- ✅ **Cross-device access** - Phone, tablet, computer, any device can access
+- ✅ **Remote collaboration** - Supports LAN, cross-network, server deployment and more
+- ✅ **Secure and reliable** - Password management, QR code login, data never leaves your device
+
+> 💡 **Need detailed configuration guide?** Check out the [WebUI Configuration Tutorial](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) and [Remote Internet Access Guide](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide)
+
+https://github.com/user-attachments/assets/c81b7826-30ea-405e-86db-7d6a503c533b
+
+---
+
 ### 📁 **Smart File Management (AI Cowork)**
 
 _Batch renaming, automatic organization, smart classification, file merging_
@@ -110,19 +126,6 @@ _Intelligent image generation, editing, and recognition, powered by Gemini_
 
 ---
 
-### 📁 **Smart File Management (AI Cowork)**
-
-_Batch renaming, automatic organization, smart classification, file merging_
-
-- **Auto Organize**: Intelligently identify content and auto-classify, keeping folders tidy.
-- **Efficient Batch**: One-click rename, merge files, say goodbye to tedious manual tasks.
-
-<p align="center">
-  <img src="./resources/aionui sort file.gif" alt="Smart File Management Demo" width="800">
-</p>
-
----
-
 ### 💬 **Multi-Task Parallel Processing**
 
 _Open multiple conversations, tasks don't get mixed up, independent memory, double efficiency_
@@ -137,27 +140,7 @@ _Open multiple conversations, tasks don't get mixed up, independent memory, doub
 
 ---
 
-### 🌐 **Access Anywhere - WebUI Mode**
-
-_Remotely control your AI tools - Access AionUi from any device on the network! Securely control local Gemini CLI, Claude Code, Codex, and other tools, data never leaves your device_
-
-```bash
-# Basic startup
-AionUi --webui
-
-# Remote access (accessible from other devices on the local network)
-AionUi --webui --remote
-```
-
-> 💡 **Need detailed configuration guide?** Check out the [WebUI Configuration Tutorial](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) - includes complete startup commands for all platforms
-
-<p align="center">
-  <img src="./resources/webui banner.png" alt="WebUI Remote Access Demo" width="800">
-</p>
-
----
-
-## 🤔 Why Choose AionUi?
+## 🤔 Why Choose AionUi? | As Good as Claudebot
 
 **Just like Claude Cowork makes Claude Code easier to use, AionUi is the Cowork platform for all your command-line AI tools**
 
@@ -251,6 +234,12 @@ _Watch how content creators review and use AionUi in real-world scenarios_
 - **Multi-Session + Independent Context** - Open multiple chats simultaneously, each session has independent context memory, no confusion
 - **Local Storage** - All conversations are saved locally and will not be lost
 
+### 🌐 **WebUI Remote Access - Your 24/7 AI Assistant**
+
+- **Cross-Device Access** - Access from any device on the network via browser, supports mobile devices
+- **Anytime, Anywhere** - On business trips, at home, in the office, access your AI tools 24/7, completely free
+- **Local Data Security** - All data stored locally in SQLite database, suitable for server deployment
+
 ### 🤖 **Multi-Model Support**
 
 - **Multi-Platform Support** - Supports mainstream models like Gemini, OpenAI, Claude, Qwen, flexible switching
@@ -271,11 +260,6 @@ _Watch how content creators review and use AionUi in real-world scenarios_
 
 - **Intelligent Image Generation** - Supports multiple image generation models like Gemini 2.5 Flash Image Preview, Nano, Banana
 - **Image Recognition & Editing** - AI-driven image analysis and editing features
-
-### 🌐 **WebUI Remote Access**
-
-- **Cross-Device Access** - Access from any device on the network via browser, supports mobile devices
-- **Local Data Security** - All data stored locally in SQLite database, suitable for server deployment
 
 ### 🎨 **Personalized Interface Customization**
 

@@ -570,6 +570,8 @@
     "pleaseEnterBaseUrl": "ベースURLを入力してください",
     "pleaseSelectProvider": "モデルプロバイダーを選択してください",
     "proxyConfig": "プロキシ",
+    "claudeYoloMode": "Claude YOLO（権限をスキップ）",
+    "claudeYoloModeDesc": "Claude Code の権限確認をすべてバイパスします（--dangerously-skip-permissions 相当）。",
     "proxyHttpOnly": "HTTP/HTTPSのみをサポート",
     "restartConfirm": "変更後にアプリを再起動します。続行しますか？",
     "system": "システム",

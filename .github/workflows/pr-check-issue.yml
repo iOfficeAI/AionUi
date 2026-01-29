@@ -2,7 +2,7 @@ name: '🔗 PR Issue Link Check & Review'
 
 on:
   pull_request:
-    types: [opened, reopened, edited]
+    types: [opened, reopened]
     branches: [main]
 
 permissions:
@@ -22,7 +22,7 @@ jobs:
     steps:
       - name: Check if PR links to an issue
         id: check
-        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # ratchet:actions/github-script@v7.0.1
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd  # v8
         with:
           script: |
             const prBody = context.payload.pull_request.body || '';
@@ -122,12 +122,12 @@ This helps us maintain a clear history of issues and their resolutions.
       pull-requests: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # ratchet:actions/checkout@v5
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v6.0.1
         with:
           fetch-depth: 0
 
       - name: Generate PR Summary
-        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # ratchet:actions/github-script@v7.0.1
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd  # v8
         with:
           script: |
             const prNumber = context.payload.pull_request.number;

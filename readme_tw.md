@@ -73,6 +73,22 @@ _AionUi 內建 Gemini CLI，下載即用，無需額外安裝；如果您已經�
 
 ---
 
+### 🌐 **隨時隨地存取 - WebUI 模式**
+
+_你的 7×24 小時 AI 助手 - 從網路中的任何裝置存取 AionUi！出差、在家、辦公室，隨時隨地使用你的 AI 工具_
+
+**✨ 一鍵啟動**：在設定面板中打開 WebUI 選項，點擊開關即可啟動！
+
+- ✅ **跨裝置存取** - 手機、平板、電腦，任何裝置都能存取
+- ✅ **遠端協作** - 支援區域網路、跨網路、伺服器部署等多種場景
+- ✅ **安全可靠** - 密碼管理、二維碼登入，資料不離開你的裝置
+
+> 💡 **需要詳細設定指南？** 查看 [WebUI 設定教學](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) 和 [遠端外網連接教學](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide-Chinese)
+
+https://github.com/user-attachments/assets/c81b7826-30ea-405e-86db-7d6a503c533b
+
+---
+
 ### 📁 **智慧檔案管理 (AI Cowork)**
 
 _批次重新命名、自動整理、智慧分類、檔案合併_
@@ -123,27 +139,7 @@ _開多個對話、任務不混亂、記憶獨立、效率加倍_
 
 ---
 
-### 🌐 **隨時隨地存取 - WebUI 模式**
-
-_遠端控制您的 AI 工具 - 從網路中的任何裝置存取 AionUi！安全控制本地 Gemini CLI、Claude Code、Codex 等工具，資料不離開您的裝置_
-
-```bash
-# 基本啟動
-AionUi --webui
-
-# 遠端存取（區域網路內其他裝置可存取）
-AionUi --webui --remote
-```
-
-> 💡 **需要詳細設定指南？** 查看 [WebUI 設定教學](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) - 包含各平台完整啟動命令
-
-<p align="center">
-  <img src="./resources/webui banner.png" alt="WebUI 遠端存取示範" width="800">
-</p>
-
----
-
-## 🤔 為什麼選擇 AionUi？
+## 🤔 為什麼選擇 AionUi？ | 像 Claudebot 一樣好用
 
 **就像 Claude Cowork 讓 Claude Code 更易用，AionUi 是您所有命令列 AI 工具的 Cowork 平台**
 
@@ -153,7 +149,8 @@ AionUi 為這些命令列工具提供統一的 **Cowork 能力**：
 
 - 🎯 **統一平台** - 一個介面管理所有命令列 AI 工具，無需切換；內建 Gemini CLI，下載即用且完全免費
 - 🚀 **多工具支援** - 不僅支援 Claude Code，還支援 Gemini CLI、Codex、Qwen Code 等
-- 🌐 **跨平台** - macOS、Windows、Linux 全平台支援（Claude Cowork 目前僅 macOS）
+- 🖥️ **跨平台** - macOS、Windows、Linux 全平台支援（Claude Cowork 目前僅 macOS）
+- 🌐 **遠端存取** - 您的遠端 24/7 助手，存取隨時隨地，且免費
 - 🔄 **多模型切換** - 在同一個介面中靈活切換不同模型，滿足不同任務需求
 - 📄 **即時預覽** - 9 種以上格式視覺化預覽，AI 生成的檔案立即查看效果
 - 💾 **本地資料安全** - 所有對話和檔案儲存在本地，資料不離開您的裝置
@@ -239,6 +236,12 @@ _觀看創作者們如何測評和使用 AionUi_
 - **多會話 + 獨立上下文** - 同時開多個聊天，每個會話擁有獨立的上下文記憶，互不混淆
 - **本地儲存** - 所有對話都儲存在本地，不會遺失
 
+### 🌐 **WebUI 遠端存取 - 你的 24/7 AI 助手**
+
+- **跨裝置存取** - 透過網路中的任何裝置透過瀏覽器存取，支援行動裝置
+- **隨時隨地** - 出差、在家、辦公室，7×24 小時隨時存取你的 AI 工具，完全免費
+- **本地資料安全** - 所有資料使用 SQLite 資料庫本地儲存，適合伺服器部署
+
 ### 🤖 **多模型支援**
 
 - **多平台支援** - 支援 Gemini、OpenAI、Claude、Qwen 等主流模型，靈活切換
@@ -259,11 +262,6 @@ _觀看創作者們如何測評和使用 AionUi_
 
 - **智慧圖像生成** - 支援 Gemini 2.5 Flash Image Preview、Nano、Banana 等多種圖像生成模型
 - **圖像識別與編輯** - AI 驅動的圖像分析和編輯功能
-
-### 🌐 **WebUI 遠端存取**
-
-- **跨裝置存取** - 透過網路中的任何裝置透過瀏覽器存取，支援行動裝置
-- **本地資料安全** - 所有資料使用 SQLite 資料庫本地儲存，適合伺服器部署
 
 ### 🎨 **個人化介面自訂**
 
