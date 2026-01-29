@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { channelEventBus } from '@/channels/agent/ChannelEventBus';
 import { ipcBridge } from '@/common';
 import type { IMessageToolGroup, TMessage } from '@/common/chatLib';
 import { transformMessage } from '@/common/chatLib';
@@ -287,7 +288,25 @@ export class GeminiAgentManager extends BaseAgentManager<
     if (execMessages.length) {
       execMessages.forEach((content) => {
         const { question, options, description } = this.getConfirmationButtons(content.confirmationDetails, (k) => k);
-        if (!question) return;
+        const hasDetails = Boolean(content.confirmationDetails);
+        const hasOptions = options && options.length > 0;
+        if (!question && !hasDetails) {
+          // Fallback confirmation when tool is waiting but missing details
+          // 当工具处于确认状态但缺少详情时，提供兜底确认
+          this.addConfirmation({
+            title: 'Awaiting Confirmation',
+            id: content.callId,
+            action: 'confirm',
+            description: content.description || content.name || 'Tool requires confirmation',
+            callId: content.callId,
+            options: [
+              { label: 'messages.confirmation.yesAllowOnce', value: ToolConfirmationOutcome.ProceedOnce },
+              { label: 'messages.confirmation.no', value: ToolConfirmationOutcome.Cancel },
+            ],
+          });
+          return;
+        }
+        if (!question || !hasOptions) return;
         this.addConfirmation({
           title: content.confirmationDetails?.title || '',
           id: content.callId,
@@ -331,12 +350,18 @@ export class GeminiAgentManager extends BaseAgentManager<
       }
 
       ipcBridge.geminiConversation.responseStream.emit(data);
+
+      // 发送到 Channel 全局事件总线（用于 Telegram 等外部平台）
+      // Emit to Channel global event bus (for Telegram and other external platforms)
+      channelEventBus.emitAgentMessage(this.conversation_id, data);
     });
   }
 
   confirm(id: string, callId: string, data: string) {
     super.confirm(id, callId, data);
-    return this.postMessagePromise(id, data);
+    // 发送确认到 worker，使用 callId 作为消息类型
+    // Send confirmation to worker, using callId as message type
+    return this.postMessagePromise(callId, data);
   }
 
   // Manually trigger context reload

@@ -17,6 +17,7 @@ import { promises as fs } from 'fs';
 import * as path from 'path';
 import { AcpConnection } from './AcpConnection';
 import { CLAUDE_YOLO_SESSION_MODE } from './constants';
+import { getClaudeModel } from './utils';
 
 /**
  * Initialize response result interface
@@ -188,6 +189,20 @@ export class AcpAgent {
           throw new Error(`[ACP] Failed to enable Claude YOLO mode (${CLAUDE_YOLO_SESSION_MODE}): ${errorMessage}`);
         }
       }
+
+      // Auto-set model from ~/.claude/settings.json for Claude backend
+      if (this.extra.backend === 'claude') {
+        const configuredModel = getClaudeModel();
+        if (configuredModel) {
+          try {
+            await this.connection.setModel(configuredModel);
+          } catch (error) {
+            // Log warning but don't fail - fallback to default model
+            console.warn(`[ACP] Failed to set model from settings: ${error instanceof Error ? error.message : String(error)}`);
+          }
+        }
+      }
+
       this.emitStatusMessage('session_active');
     } catch (error) {
       this.emitStatusMessage('error');

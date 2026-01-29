@@ -78,27 +78,53 @@ class AcpDetector {
     const isWindows = process.platform === 'win32';
     const whichCommand = isWindows ? 'where' : 'which';
 
+    const isCliAvailable = (cliCommand: string): boolean => {
+      // Keep original behavior: prefer where/which, then fallback on Windows to Get-Command.
+      // 保持原逻辑：优先使用 where/which，Windows 下失败再回退到 Get-Command。
+      try {
+        execSync(`${whichCommand} ${cliCommand}`, {
+          encoding: 'utf-8',
+          stdio: 'pipe',
+          timeout: 1000,
+        });
+        return true;
+      } catch {
+        if (!isWindows) return false;
+      }
+
+      if (isWindows) {
+        try {
+          // PowerShell fallback for shim scripts like claude.ps1 (vfox)
+          // PowerShell 回退，支持 claude.ps1 这类 shim（例如 vfox）
+          execSync(`powershell -NoProfile -NonInteractive -Command "Get-Command -All ${cliCommand} | Select-Object -First 1 | Out-Null"`, {
+            encoding: 'utf-8',
+            stdio: 'pipe',
+            timeout: 1000,
+          });
+          return true;
+        } catch {
+          return false;
+        }
+      }
+
+      return false;
+    };
+
     const detected: DetectedAgent[] = [];
 
     // 并行检测所有潜在的 ACP CLI
     const detectionPromises = POTENTIAL_ACP_CLIS.map((cli) => {
       return Promise.resolve().then(() => {
-        try {
-          execSync(`${whichCommand} ${cli.cmd}`, {
-            encoding: 'utf-8',
-            stdio: 'pipe',
-            timeout: 1000,
-          });
-
-          return {
-            backend: cli.backendId,
-            name: cli.name,
-            cliPath: cli.cmd,
-            acpArgs: cli.args,
-          };
-        } catch {
+        if (!isCliAvailable(cli.cmd)) {
           return null;
         }
+
+        return {
+          backend: cli.backendId,
+          name: cli.name,
+          cliPath: cli.cmd,
+          acpArgs: cli.args,
+        };
       });
     });
 

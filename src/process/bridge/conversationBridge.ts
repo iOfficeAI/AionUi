@@ -8,11 +8,10 @@ import type { CodexAgentManager } from '@/agent/codex';
 import { GeminiAgent } from '@/agent/gemini';
 import type { TChatConversation } from '@/common/storage';
 import { getDatabase } from '@process/database';
-import path from 'path';
 import { ipcBridge } from '../../common';
 import { uuid } from '../../common/utils';
-import { createAcpAgent, createCodexAgent, createGeminiAgent } from '../initAgent';
 import { ProcessChat } from '../initStorage';
+import { ConversationService } from '../services/conversationService';
 import type AcpAgentManager from '../task/AcpAgentManager';
 import type { GeminiAgentManager } from '../task/GeminiAgentManager';
 import { copyFilesToDirectory, readDirectoryRecursive } from '../utils';
@@ -21,66 +20,17 @@ import { migrateConversationToDatabase } from './migrationUtils';
 
 export function initConversationBridge(): void {
   ipcBridge.conversation.create.provider(async (params): Promise<TChatConversation> => {
-    const { type, extra, name, model, id } = params;
-    const buildConversation = () => {
-      if (type === 'gemini') {
-        const extraWithPresets = extra as typeof extra & {
-          presetRules?: string;
-          enabledSkills?: string[];
-          presetAssistantId?: string;
-        };
-        let contextFileName = extra.contextFileName;
-        // Resolve relative paths to CWD (usually project root in dev)
-        // Ensure we pass an absolute path to the agent
-        if (contextFileName && !path.isAbsolute(contextFileName)) {
-          contextFileName = path.resolve(process.cwd(), contextFileName);
-        }
-        // 系统规则（初始化时注入）/ System rules (injected at initialization)
-        // skills 通过 SkillManager 加载 / Skills are loaded via SkillManager
-        const presetRules = extraWithPresets.presetRules || extraWithPresets.presetContext || extraWithPresets.context;
-        const enabledSkills = extraWithPresets.enabledSkills;
-        const presetAssistantId = extraWithPresets.presetAssistantId;
-        return createGeminiAgent(model, extra.workspace, extra.defaultFiles, extra.webSearchEngine, extra.customWorkspace, contextFileName, presetRules, enabledSkills, presetAssistantId);
-      }
-      if (type === 'acp') return createAcpAgent(params);
-      if (type === 'codex') return createCodexAgent(params);
-      throw new Error('Invalid conversation type');
-    };
-    try {
-      const conversation = await buildConversation();
-      if (name) {
-        conversation.name = name;
-      }
-      if (id) {
-        conversation.id = id;
-      }
-      const task = WorkerManage.buildConversation(conversation);
-      if (task.type === 'acp') {
-        //@todo
-        void (task as AcpAgentManager).initAgent();
-      }
+    // 使用 ConversationService 创建会话 / Use ConversationService to create conversation
+    const result = await ConversationService.createConversation({
+      ...params,
+      source: 'aionui', // AionUI 创建的会话标记为 aionui / Mark conversations created by AionUI as aionui
+    });
 
-      // Save to database only
-      const db = getDatabase();
-      const result = db.createConversation(conversation);
-      if (!result.success) {
-        console.error('[conversationBridge] Failed to create conversation in database:', result.error);
-      }
-
-      return conversation;
-    } catch (e) {
-      const errorMessage = e instanceof Error ? e.message : String(e);
-      const errorStack = e instanceof Error ? e.stack : undefined;
-      console.error('[conversationBridge] Failed to create conversation:', e);
-      console.error('[conversationBridge] Error details:', {
-        type: params.type,
-        hasModel: !!params.model,
-        hasWorkspace: !!params.extra?.workspace,
-        error: errorMessage,
-        stack: errorStack,
-      });
-      throw new Error(`Failed to create ${params.type} conversation: ${errorMessage}`);
+    if (!result.success || !result.conversation) {
+      throw new Error(result.error || 'Failed to create conversation');
     }
+
+    return result.conversation;
   });
 
   // Manually reload conversation context (Gemini): inject recent history into memory
@@ -218,25 +168,46 @@ export function initConversationBridge(): void {
     }
   });
 
-  ipcBridge.conversation.remove.provider(({ id }) => {
+  ipcBridge.conversation.remove.provider(async ({ id }) => {
     try {
+      const db = getDatabase();
+
+      // Get conversation to check source before deletion
+      const convResult = db.getConversation(id);
+      const conversation = convResult.data;
+      const source = conversation?.source;
+
       // Kill the running task if exists
       WorkerManage.kill(id);
 
-      // Delete from database only
-      const db = getDatabase();
+      // If source is not 'aionui' (e.g., telegram), cleanup channel resources
+      // 如果来源不是 aionui（如 telegram），需要清理 channel 相关资源
+      if (source && source !== 'aionui') {
+        try {
+          // Dynamic import to avoid circular dependency
+          const { getChannelManager } = await import('@/channels/core/ChannelManager');
+          const channelManager = getChannelManager();
+          if (channelManager.isInitialized()) {
+            await channelManager.cleanupConversation(id);
+            console.log(`[conversationBridge] Cleaned up channel resources for ${source} conversation ${id}`);
+          }
+        } catch (cleanupError) {
+          console.warn('[conversationBridge] Failed to cleanup channel resources:', cleanupError);
+          // Continue with deletion even if cleanup fails
+        }
+      }
 
       // Delete conversation from database (will cascade delete messages due to foreign key)
       const result = db.deleteConversation(id);
       if (!result.success) {
         console.error('[conversationBridge] Failed to delete conversation from database:', result.error);
-        return Promise.resolve(false);
+        return false;
       }
 
-      return Promise.resolve(true);
+      return true;
     } catch (error) {
       console.error('[conversationBridge] Failed to remove conversation:', error);
-      return Promise.resolve(false);
+      return false;
     }
   });
 

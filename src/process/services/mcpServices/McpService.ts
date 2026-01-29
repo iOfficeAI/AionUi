@@ -25,6 +25,36 @@ import type { IMcpProtocol, DetectedMcpServer, McpConnectionTestResult, McpSyncR
  */
 export class McpService {
   private agents: Map<McpSource, IMcpProtocol>;
+  private isCliAvailable(cliCommand: string): boolean {
+    const isWindows = process.platform === 'win32';
+    const whichCommand = isWindows ? 'where' : 'which';
+
+    // Keep original behavior: prefer where/which, then fallback on Windows to Get-Command.
+    // 保持原逻辑：优先使用 where/which，Windows 下失败再回退到 Get-Command。
+    try {
+      execSync(`${whichCommand} ${cliCommand}`, { encoding: 'utf-8', stdio: 'pipe', timeout: 1000 });
+      return true;
+    } catch {
+      if (!isWindows) return false;
+    }
+
+    if (isWindows) {
+      try {
+        // PowerShell fallback for shim scripts like *.ps1 (vfox)
+        // PowerShell 回退，支持 *.ps1 shim（例如 vfox）
+        execSync(`powershell -NoProfile -NonInteractive -Command "Get-Command -All ${cliCommand} | Select-Object -First 1 | Out-Null"`, {
+          encoding: 'utf-8',
+          stdio: 'pipe',
+          timeout: 1000,
+        });
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    return false;
+  }
 
   constructor() {
     this.agents = new Map([
@@ -65,9 +95,9 @@ export class McpService {
     if (!hasNativeGemini) {
       // 检查系统中是否安装了原生 Gemini CLI
       try {
-        const isWindows = process.platform === 'win32';
-        const whichCommand = isWindows ? 'where' : 'which';
-        execSync(`${whichCommand} gemini`, { encoding: 'utf-8', stdio: 'pipe', timeout: 1000 });
+        if (!this.isCliAvailable('gemini')) {
+          throw new Error('gemini not found');
+        }
 
         // 如果找到了原生 Gemini CLI，添加到检测列表
         allAgentsToCheck.push({

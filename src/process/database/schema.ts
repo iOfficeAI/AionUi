@@ -108,4 +108,4 @@ export function setDatabaseVersion(db: Database.Database, version: number): void
  * Current database schema version
  * Update this when adding new migrations in migrations.ts
  */
-export const CURRENT_DB_VERSION = 6;
+export const CURRENT_DB_VERSION = 8;

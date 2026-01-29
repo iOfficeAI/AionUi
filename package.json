@@ -71,6 +71,7 @@
     "@typescript-eslint/parser": "^6.21.0",
     "@unocss/webpack": "^66.3.3",
     "@vercel/webpack-asset-relocator-loader": "1.7.3",
+    "@types/qrcode-terminal": "^0.12.0",
     "copy-webpack-plugin": "^13.0.1",
     "cross-env": "^7.0.3",
     "css-loader": "^6.11.0",
@@ -101,16 +102,18 @@
     "webpack-cli": "^6.0.1"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.71.2",
     "@arco-design/web-react": "^2.66.1",
     "@codemirror/lang-css": "^6.3.1",
     "@codemirror/lang-json": "^6.0.2",
     "@codemirror/lang-markdown": "^6.5.0",
     "@floating-ui/react": "^0.27.16",
     "@google/genai": "^1.16.0",
+    "@grammyjs/transformer-throttler": "^1.2.1",
     "@icon-park/react": "^1.4.2",
     "@modelcontextprotocol/sdk": "^1.20.0",
     "@monaco-editor/react": "^4.7.0",
-    "@office-ai/aioncli-core": "^0.24.0",
+    "@office-ai/aioncli-core": "^0.24.2",
     "@office-ai/platform": "^0.3.16",
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.10",
@@ -130,6 +133,7 @@
     "express": "^5.1.0",
     "express-rate-limit": "^7.5.1",
     "fix-path": "^4.0.0",
+    "grammy": "^1.39.3",
     "html-to-text": "^9.0.5",
     "i18next": "^23.7.16",
     "i18next-browser-languagedetector": "^7.2.0",
@@ -143,6 +147,7 @@
     "process": "^0.11.10",
     "qrcode-terminal": "^0.12.0",
     "qrcode.react": "^4.2.0",
+    "qrcode-terminal": "^0.12.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-i18next": "^14.0.5",
@@ -183,7 +188,9 @@
     "jws@<4": "3.2.3",
     "jws@>=4": "4.0.1",
     "diff": "^8.0.3",
-    "lodash-es": "^4.17.23"
+    "lodash-es": "^4.17.23",
+    "tar": "^7.5.7",
+    "hono": "^4.11.7"
   },
   "lint-staged": {
     "*.{ts,tsx,js,jsx}": [

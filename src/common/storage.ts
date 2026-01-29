@@ -63,6 +63,11 @@ export interface IConfigStorageRefer {
   'migration.assistantEnabledFixed'?: boolean;
   // 迁移标记：为 cowork 助手添加默认启用的 skills / Migration flag: add default enabled skills for cowork assistant
   'migration.coworkDefaultSkillsAdded'?: boolean;
+  // Telegram assistant default model / Telegram 助手默认模型
+  'assistant.telegram.defaultModel'?: {
+    id: string;
+    useModel: string;
+  };
 }
 
 export interface IEnvStorageRefer {
@@ -71,6 +76,12 @@ export interface IEnvStorageRefer {
     cacheDir: string;
   };
 }
+
+/**
+ * Conversation source type - identifies where the conversation was created
+ * 会话来源类型 - 标识会话创建的来源
+ */
+export type ConversationSource = 'aionui' | 'telegram';
 
 interface IChatConversation<T, Extra> {
   createTime: number;
@@ -82,6 +93,8 @@ interface IChatConversation<T, Extra> {
   extra: Extra;
   model: TProviderWithModel;
   status?: 'pending' | 'running' | 'finished' | undefined;
+  /** 会话来源，默认为 aionui / Conversation source, defaults to aionui */
+  source?: ConversationSource;
 }
 
 // Token 使用统计数据类型
