@@ -205,7 +205,7 @@
   "conversation": {
     "welcome": {
       "title": "Hi，今天有什么安排？",
-      "placeholder": "发消息、上传文件或打开文件夹...",
+      "placeholder": "发消息、上传文件、打开文件夹或创建定时任务...",
       "uploadFile": "上传文件",
       "linkFolder": "打开文件夹",
       "newConversation": "新对话",

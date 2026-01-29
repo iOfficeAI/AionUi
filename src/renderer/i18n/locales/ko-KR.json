@@ -208,7 +208,7 @@
   "conversation": {
     "welcome": {
       "title": "안녕하세요, 오늘의 계획은 무엇인가요?",
-      "placeholder": "메시지 전송, 파일 업로드 또는 폴더 열기...",
+      "placeholder": "메시지 전송, 파일 업로드, 폴더 열기 또는 예약 작업 만들기...",
       "uploadFile": "파일 업로드",
       "linkFolder": "폴더 열기",
       "newConversation": "새 채팅",
