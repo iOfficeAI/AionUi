@@ -95,10 +95,6 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
       },
     });
 
-    if (data.yoloMode) {
-      console.log(`[CodexAgentManager] yoloMode enabled for conversation ${data.conversation_id}`);
-    }
-
     // 使用 SessionManager 来管理连接状态 - 参考 ACP 的模式
     this.bootstrap = this.startWithSessionManagement()
       .then(() => {
@@ -458,6 +454,17 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     // Direct persistence to database without emitting to frontend
     // Used for final messages where frontend has already displayed content via deltas
     addMessage(this.conversation_id, message);
+  }
+
+  /**
+   * Send message back to AI agent (for system response feedback)
+   * Used by CodexMessageProcessor to send cron command results back to AI
+   */
+  async sendMessageToAgent(content: string): Promise<void> {
+    await this.sendMessage({
+      content,
+      msg_id: uuid(),
+    });
   }
 }
 

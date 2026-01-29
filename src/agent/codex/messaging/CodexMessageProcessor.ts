@@ -115,13 +115,23 @@ export class CodexMessageProcessor {
     const messageText = msg.message || '';
 
     if (hasCronCommands(messageText)) {
+      // Collect system responses to send back to AI
+      const collectedResponses: string[] = [];
       void processCronInMessage(this.conversation_id, 'codex', transformedMessage, (sysMsg) => {
+        collectedResponses.push(sysMsg);
+        // Also emit to frontend for display
         ipcBridge.codexConversation.responseStream.emit({
           type: 'system',
           conversation_id: this.conversation_id,
           msg_id: uuid(),
           data: sysMsg,
         });
+      }).then(() => {
+        // Send collected responses back to AI agent so it can continue
+        if (collectedResponses.length > 0 && this.messageEmitter.sendMessageToAgent) {
+          const feedbackMessage = `[System Response]\n${collectedResponses.join('\n')}`;
+          void this.messageEmitter.sendMessageToAgent(feedbackMessage);
+        }
       });
     }
   }

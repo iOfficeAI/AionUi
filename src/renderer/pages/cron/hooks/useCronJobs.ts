@@ -6,7 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { ICronJob } from '@/common/ipcBridge';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 /**
  * Common cron job actions
@@ -232,6 +232,32 @@ export function useAllCronJobs() {
 export function useCronJobsMap() {
   const [jobsMap, setJobsMap] = useState<Map<string, ICronJob[]>>(new Map());
   const [loading, setLoading] = useState(true);
+  // Track conversations with unread cron executions (red dot indicator)
+  const [unreadConversations, setUnreadConversations] = useState<Set<string>>(() => {
+    // Restore from localStorage
+    try {
+      const stored = localStorage.getItem('aionui_cron_unread');
+      if (stored) {
+        return new Set(JSON.parse(stored));
+      }
+    } catch {
+      // ignore
+    }
+    return new Set();
+  });
+  // Track lastRunAtMs for each job to detect new executions
+  const lastRunAtMapRef = useRef<Map<string, number>>(new Map());
+  // Track current active conversation (use ref to access latest value in event handlers)
+  const activeConversationIdRef = useRef<string | null>(null);
+
+  // Persist unread state to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('aionui_cron_unread', JSON.stringify([...unreadConversations]));
+    } catch {
+      // ignore
+    }
+  }, [unreadConversations]);
 
   // Fetch all jobs and group by conversation
   const fetchAllJobs = useCallback(async () => {
@@ -246,6 +272,10 @@ export function useCronJobsMap() {
           map.set(convId, []);
         }
         map.get(convId)!.push(job);
+        // Initialize lastRunAtMap for detecting new executions
+        if (job.state.lastRunAtMs) {
+          lastRunAtMapRef.current.set(job.id, job.state.lastRunAtMs);
+        }
       }
 
       setJobsMap(map);
@@ -277,9 +307,27 @@ export function useCronJobsMap() {
         });
       },
       onJobUpdated: (job: ICronJob) => {
+        const convId = job.metadata.conversationId;
+
+        // Check if this is a new execution (lastRunAtMs changed)
+        const prevLastRunAt = lastRunAtMapRef.current.get(job.id);
+        const newLastRunAt = job.state.lastRunAtMs;
+        if (newLastRunAt && newLastRunAt !== prevLastRunAt) {
+          lastRunAtMapRef.current.set(job.id, newLastRunAt);
+          // Mark as unread only if user is not currently viewing this conversation
+          // Use ref to access the latest activeConversationId value
+          if (activeConversationIdRef.current !== convId) {
+            setUnreadConversations((prev) => {
+              if (prev.has(convId)) return prev;
+              const newSet = new Set(prev);
+              newSet.add(convId);
+              return newSet;
+            });
+          }
+        }
+
         setJobsMap((prev) => {
           const newMap = new Map(prev);
-          const convId = job.metadata.conversationId;
           const existing = newMap.get(convId) || [];
           newMap.set(
             convId,
@@ -334,11 +382,14 @@ export function useCronJobsMap() {
   );
 
   const getJobStatus = useCallback(
-    (conversationId: string): 'none' | 'active' | 'paused' | 'error' => {
+    (conversationId: string): 'none' | 'active' | 'paused' | 'error' | 'unread' => {
       const convJobs = jobsMap.get(conversationId);
       if (!convJobs || convJobs.length === 0) {
         return 'none';
       }
+
+      // Check if conversation has unread cron executions (highest priority for visual indicator)
+      if (unreadConversations.has(conversationId)) return 'unread';
 
       // Check if any job has error
       if (convJobs.some((j) => j.state.lastStatus === 'error')) return 'error';
@@ -348,7 +399,26 @@ export function useCronJobsMap() {
 
       return 'active';
     },
-    [jobsMap]
+    [jobsMap, unreadConversations]
+  );
+
+  // Mark a conversation as read (clear unread status)
+  const markAsRead = useCallback((conversationId: string) => {
+    activeConversationIdRef.current = conversationId;
+    setUnreadConversations((prev) => {
+      if (!prev.has(conversationId)) return prev;
+      const newSet = new Set(prev);
+      newSet.delete(conversationId);
+      return newSet;
+    });
+  }, []);
+
+  // Check if a conversation has unread cron executions
+  const hasUnread = useCallback(
+    (conversationId: string) => {
+      return unreadConversations.has(conversationId);
+    },
+    [unreadConversations]
   );
 
   return useMemo(
@@ -358,9 +428,11 @@ export function useCronJobsMap() {
       hasJobsForConversation,
       getJobsForConversation,
       getJobStatus,
+      markAsRead,
+      hasUnread,
       refetch: fetchAllJobs,
     }),
-    [jobsMap, loading, hasJobsForConversation, getJobsForConversation, getJobStatus, fetchAllJobs]
+    [jobsMap, loading, hasJobsForConversation, getJobsForConversation, getJobStatus, markAsRead, hasUnread, fetchAllJobs]
   );
 }
 

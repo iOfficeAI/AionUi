@@ -1101,7 +1101,8 @@
     "status": {
       "active": "运行中",
       "paused": "已暂停",
-      "error": "执行出错"
+      "error": "执行出错",
+      "unread": "有新执行"
     },
     "actions": {
       "goTo": "查看会话",

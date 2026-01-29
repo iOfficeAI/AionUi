@@ -773,11 +773,15 @@ export const loadSkillsContent = async (enabledSkills: string[]): Promise<string
   }
 
   const skillsDir = getSkillsDir();
+  const builtinSkillsDir = getBuiltinSkillsDir();
   const skillContents: string[] = [];
 
   for (const skillName of enabledSkills) {
-    // 优先尝试目录结构：{skillName}/SKILL.md（与 aioncli-core 的 loadSkillsFromDir 一致）
-    // First try directory structure: {skillName}/SKILL.md (consistent with aioncli-core's loadSkillsFromDir)
+    // 优先尝试内置 skills 目录：_builtin/{skillName}/SKILL.md
+    // First try builtin skills directory: _builtin/{skillName}/SKILL.md
+    const builtinSkillFile = path.join(builtinSkillsDir, skillName, 'SKILL.md');
+    // 然后尝试目录结构：{skillName}/SKILL.md（与 aioncli-core 的 loadSkillsFromDir 一致）
+    // Then try directory structure: {skillName}/SKILL.md (consistent with aioncli-core's loadSkillsFromDir)
     const skillDirFile = path.join(skillsDir, skillName, 'SKILL.md');
     // 向后兼容：扁平结构 {skillName}.md
     // Backward compatible: flat structure {skillName}.md
@@ -786,7 +790,9 @@ export const loadSkillsContent = async (enabledSkills: string[]): Promise<string
     try {
       let content: string | null = null;
 
-      if (existsSync(skillDirFile)) {
+      if (existsSync(builtinSkillFile)) {
+        content = await fs.readFile(builtinSkillFile, 'utf-8');
+      } else if (existsSync(skillDirFile)) {
         content = await fs.readFile(skillDirFile, 'utf-8');
       } else if (existsSync(skillFlatFile)) {
         content = await fs.readFile(skillFlatFile, 'utf-8');

@@ -155,8 +155,8 @@ export async function processCronInMessage(conversationId: string, agentType: Ag
     for (const sysMsg of result.systemResponses) {
       emitSystemResponse(sysMsg);
     }
-  } catch (error) {
-    console.error(`[MessageMiddleware] Error in processCronInMessage:`, error);
+  } catch {
+    // Silently handle errors
   }
 }
 
@@ -211,7 +211,6 @@ async function handleCronCommands(conversationId: string, agentType: AgentType, 
       }
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : String(error);
-      console.error(`[MessageMiddleware] Error processing command ${cmd.kind}:`, error);
       responses.push(`❌ Error: ${errorMsg}`);
     }
   }

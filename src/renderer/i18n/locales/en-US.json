@@ -1105,7 +1105,8 @@
     "status": {
       "active": "Active",
       "paused": "Paused",
-      "error": "Error"
+      "error": "Error",
+      "unread": "New execution"
     },
     "actions": {
       "goTo": "View Chat",

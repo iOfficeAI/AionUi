@@ -379,8 +379,10 @@ export class GeminiAgentManager extends BaseAgentManager<
   /**
    * Retry checking for cron commands with increasing delays
    * Max 3 retries: 1s, 2s, 3s
+   * @param attempt - current attempt number
+   * @param checkAfterTimestamp - only process messages created after this timestamp
    */
-  private checkCronWithRetry(attempt: number): void {
+  private checkCronWithRetry(attempt: number, checkAfterTimestamp?: number): void {
     const delays = [1000, 2000, 3000];
     const maxAttempts = delays.length;
 
@@ -388,13 +390,15 @@ export class GeminiAgentManager extends BaseAgentManager<
       return;
     }
 
+    // Record timestamp on first attempt to avoid re-processing old messages
+    const timestamp = checkAfterTimestamp ?? Date.now();
     const delay = delays[attempt];
 
     setTimeout(async () => {
-      const found = await this.checkCronCommandsOnFinish();
+      const found = await this.checkCronCommandsOnFinish(timestamp);
       if (!found && attempt < maxAttempts - 1) {
-        // No assistant messages found, retry
-        this.checkCronWithRetry(attempt + 1);
+        // No assistant messages found, retry with same timestamp
+        this.checkCronWithRetry(attempt + 1, timestamp);
       }
     }, delay);
   }
@@ -402,9 +406,10 @@ export class GeminiAgentManager extends BaseAgentManager<
   /**
    * Check for cron commands when stream finishes
    * Gets recent assistant messages from database and processes them
+   * @param afterTimestamp - Only process messages created after this timestamp
    * Returns true if assistant messages were found (regardless of cron commands)
    */
-  private async checkCronCommandsOnFinish(): Promise<boolean> {
+  private async checkCronCommandsOnFinish(afterTimestamp: number): Promise<boolean> {
     try {
       const { getDatabase } = await import('@process/database');
       const db = getDatabase();
@@ -415,38 +420,48 @@ export class GeminiAgentManager extends BaseAgentManager<
       }
 
       // Check recent assistant messages for cron commands (position: left means assistant)
-      // Relax type filter - check all left-positioned messages
-      const assistantMsgs = result.data.filter((m) => m.position === 'left');
+      // Filter by timestamp to avoid re-processing old messages
+      const assistantMsgs = result.data.filter((m) => m.position === 'left' && (m.createdAt ?? 0) > afterTimestamp);
 
-      // Return false if no assistant messages found (will trigger retry)
+      // Return false if no assistant messages found after timestamp (will trigger retry)
       if (assistantMsgs.length === 0) {
         return false;
       }
 
-      for (const msg of assistantMsgs) {
-        const textContent = extractTextFromMessage(msg);
-        if (!textContent) continue;
+      // Only check the LATEST assistant message to avoid re-processing old messages
+      // Messages are sorted DESC, so the first one is the latest
+      const latestMsg = assistantMsgs[0];
+      const textContent = extractTextFromMessage(latestMsg);
 
-        if (hasCronCommands(textContent)) {
-          // Create a message with finish status for middleware
-          const msgWithStatus = { ...msg, status: 'finish' as const };
-          await processCronInMessage(this.conversation_id, 'gemini', msgWithStatus, (sysMsg) => {
-            ipcBridge.geminiConversation.responseStream.emit({
-              type: 'system',
-              conversation_id: this.conversation_id,
-              msg_id: uuid(),
-              data: sysMsg,
-            });
+      if (textContent && hasCronCommands(textContent)) {
+        // Create a message with finish status for middleware
+        const msgWithStatus = { ...latestMsg, status: 'finish' as const };
+        // Collect system responses to send back to AI
+        const collectedResponses: string[] = [];
+        await processCronInMessage(this.conversation_id, 'gemini', msgWithStatus, (sysMsg) => {
+          collectedResponses.push(sysMsg);
+          // Also emit to frontend for display
+          ipcBridge.geminiConversation.responseStream.emit({
+            type: 'system',
+            conversation_id: this.conversation_id,
+            msg_id: uuid(),
+            data: sysMsg,
           });
-          // Only process the first message with cron commands
-          break;
+        });
+        // Send collected responses back to AI agent so it can continue
+        if (collectedResponses.length > 0) {
+          const feedbackMessage = `[System Response]\n${collectedResponses.join('\n')}`;
+          // Use sendMessage to send the feedback back to AI
+          await this.sendMessage({
+            input: feedbackMessage,
+            msg_id: uuid(),
+          });
         }
       }
 
       // Found assistant messages, no need to retry
       return true;
-    } catch (error) {
-      console.error(`[GeminiAgentManager] Error checking cron commands:`, error);
+    } catch {
       return false;
     }
   }

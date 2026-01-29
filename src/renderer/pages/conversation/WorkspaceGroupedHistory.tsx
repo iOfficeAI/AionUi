@@ -168,7 +168,7 @@ const WorkspaceGroupedHistory: React.FC<{ onSessionClick?: () => void; collapsed
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { openTab, closeAllTabs, activeTab, updateTabName } = useConversationTabs();
-  const { getJobStatus } = useCronJobsMap();
+  const { getJobStatus, markAsRead } = useCronJobsMap();
 
   // 加载会话列表
   useEffect(() => {
@@ -226,6 +226,9 @@ const WorkspaceGroupedHistory: React.FC<{ onSessionClick?: () => void; collapsed
       const customWorkspace = conv.extra?.customWorkspace;
       const newWorkspace = conv.extra?.workspace;
 
+      // Mark conversation as read (clear unread cron execution indicator)
+      markAsRead(conv.id);
+
       // 如果点击的是非自定义工作空间的会话，关闭所有tabs
       if (!customWorkspace) {
         closeAllTabs();
@@ -252,7 +255,7 @@ const WorkspaceGroupedHistory: React.FC<{ onSessionClick?: () => void; collapsed
         onSessionClick();
       }
     },
-    [openTab, closeAllTabs, activeTab, navigate, onSessionClick]
+    [openTab, closeAllTabs, activeTab, navigate, onSessionClick, markAsRead]
   );
 
   // 切换 workspace 展开/收起状态
