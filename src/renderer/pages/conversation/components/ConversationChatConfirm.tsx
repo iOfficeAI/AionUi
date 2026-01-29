@@ -12,22 +12,27 @@ const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: str
 
   useEffect(() => {
     // 修复 #475: 添加错误处理和重试机制
+    // Fix #475: Add error handling and retry mechanism
     let retryCount = 0;
-    const maxRetries = 3;
+    const maxRetries = 3; // 最大重试次数 / Maximum retry attempts
 
     const loadConfirmations = () => {
       void ipcBridge.conversation.confirmation.list
         .invoke({ conversation_id })
         .then((data) => {
           setConfirmations(data);
-          setLoadError(null);
+          setLoadError(null); // 加载成功，清除错误状态 / Load success, clear error state
         })
         .catch((error) => {
           console.error('[ConversationChatConfirm] Failed to load confirmations:', error);
+          // 自动重试机制：未达到最大重试次数时，1秒后重试
+          // Auto retry mechanism: retry after 1 second if max retries not reached
           if (retryCount < maxRetries) {
             retryCount++;
             setTimeout(loadConfirmations, 1000);
           } else {
+            // 重试次数耗尽，显示错误状态
+            // Retries exhausted, show error state
             setLoadError(error?.message || 'Failed to load confirmations');
           }
         });
@@ -39,7 +44,9 @@ const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: str
       ipcBridge.conversation.confirmation.add.on((data) => {
         if (conversation_id !== data.conversation_id) return;
         setConfirmations((prev) => prev.concat(data));
-        setLoadError(null); // 清除错误状态
+        // 新确认对话框成功加载时，清除之前的错误状态
+        // Clear previous error state when new confirmation loads successfully
+        setLoadError(null);
       }),
       ipcBridge.conversation.confirmation.remove.on((data) => {
         if (conversation_id !== data.conversation_id) return;
@@ -86,17 +93,22 @@ const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: str
     };
   }, [confirmations, conversation_id]);
   // 修复 #475: 如果加载出错，显示错误信息和重试按钮
+  // Fix #475: If loading fails, show error message and retry button
   if (loadError && !confirmations.length) {
     return (
       <div>
+        {/* 错误提示卡片 / Error notification card */}
         <div
           className={`relative p-16px bg-white flex flex-col overflow-hidden m-b-20px rd-20px max-w-800px w-full mx-auto box-border`}
           style={{
             boxShadow: '0px 2px 20px 0px rgba(74, 88, 250, 0.1)',
           }}
         >
+          {/* 错误标题 / Error title */}
           <div className='color-[rgba(217,45,32,1)] text-14px font-medium mb-8px'>{t('conversation.confirmationLoadError', 'Failed to load confirmation dialog')}</div>
+          {/* 错误详情 / Error details */}
           <div className='text-12px color-[rgba(134,144,156,1)] mb-12px'>{loadError}</div>
+          {/* 手动重试按钮 / Manual retry button */}
           <button
             onClick={() => {
               setLoadError(null);
