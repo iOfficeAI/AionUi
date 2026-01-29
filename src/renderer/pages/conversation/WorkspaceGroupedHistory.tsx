@@ -191,6 +191,19 @@ const WorkspaceGroupedHistory: React.FC<{ onSessionClick?: () => void; collapsed
     return addEventListener('chat.history.refresh', refresh);
   }, []);
 
+  // Scroll to active conversation when route changes
+  useEffect(() => {
+    if (!id) return;
+    // Use requestAnimationFrame to ensure DOM is updated
+    const rafId = requestAnimationFrame(() => {
+      const element = document.getElementById('c-' + id);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    });
+    return () => cancelAnimationFrame(rafId);
+  }, [id]);
+
   // 持久化展开状态
   useEffect(() => {
     try {
