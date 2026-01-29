@@ -15,6 +15,7 @@ import ClaudeLogo from '@/renderer/assets/logos/claude.svg';
 import CodexLogo from '@/renderer/assets/logos/codex.svg';
 import DroidLogo from '@/renderer/assets/logos/droid.svg';
 import GeminiLogo from '@/renderer/assets/logos/gemini.svg';
+import GitHubLogo from '@/renderer/assets/logos/github.svg';
 import GooseLogo from '@/renderer/assets/logos/goose.svg';
 import IflowLogo from '@/renderer/assets/logos/iflow.svg';
 import KimiLogo from '@/renderer/assets/logos/kimi.svg';
@@ -178,6 +179,7 @@ const AGENT_LOGO_MAP: Partial<Record<AcpBackend, string>> = {
   auggie: AuggieLogo,
   kimi: KimiLogo,
   opencode: OpenCodeLogo,
+  copilot: GitHubLogo,
 };
 const CUSTOM_AVATAR_IMAGE_MAP: Record<string, string> = {
   'cowork.svg': coworkSvg,
