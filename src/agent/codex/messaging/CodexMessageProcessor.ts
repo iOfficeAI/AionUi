@@ -113,13 +113,9 @@ export class CodexMessageProcessor {
     // Process cron commands in final message
     // This is the reliable point to detect cron commands since we have the complete message text
     const messageText = msg.message || '';
-    console.log(`[CodexMessageProcessor] processFinalMessage: checking cron commands, length=${messageText.length}`);
-    console.log(`[CodexMessageProcessor] Message text preview:`, messageText.substring(0, 500));
 
     if (hasCronCommands(messageText)) {
-      console.log(`[CodexMessageProcessor] Cron commands detected, processing...`);
       void processCronInMessage(this.conversation_id, 'codex', transformedMessage, (sysMsg) => {
-        console.log(`[CodexMessageProcessor] Emitting system response:`, sysMsg);
         ipcBridge.codexConversation.responseStream.emit({
           type: 'system',
           conversation_id: this.conversation_id,

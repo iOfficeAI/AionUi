@@ -46,6 +46,4 @@ export function initCronBridge(): void {
   ipcBridge.cron.runJobNow.provider(async ({ jobId }) => {
     await cronService.runJobNow(jobId);
   });
-
-  console.log('[CronBridge] Initialized');
 }

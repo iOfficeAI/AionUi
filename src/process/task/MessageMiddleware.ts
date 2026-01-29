@@ -37,26 +37,20 @@ export interface ProcessResult {
 export async function processAgentResponse(conversationId: string, agentType: AgentType, message: TMessage): Promise<ProcessResult> {
   const systemResponses: string[] = [];
 
-  console.log(`[MessageMiddleware] Processing message: status=${message.status}, type=${message.type}, agentType=${agentType}`);
-
   // Only process completed messages
   // Skip if message is still streaming or pending
   if (message.status !== 'finish') {
-    console.log(`[MessageMiddleware] Skipping: message not finished (status=${message.status})`);
     return { message, systemResponses };
   }
 
   // Extract text content from message
   const textContent = extractTextContent(message);
-  console.log(`[MessageMiddleware] Extracted text content (${textContent?.length ?? 0} chars):`, textContent?.substring(0, 200));
   if (!textContent) {
-    console.log(`[MessageMiddleware] Skipping: no text content`);
     return { message, systemResponses };
   }
 
   // Detect cron commands
   const cronCommands = detectCronCommands(textContent);
-  console.log(`[MessageMiddleware] Detected ${cronCommands.length} cron commands:`, cronCommands);
   if (cronCommands.length === 0) {
     return { message, systemResponses };
   }
@@ -154,14 +148,11 @@ function createDisplayMessage(original: TMessage, newContent: string): TMessage 
  * @param emitSystemResponse - Callback to emit system response messages
  */
 export async function processCronInMessage(conversationId: string, agentType: AgentType, message: TMessage, emitSystemResponse: (response: string) => void): Promise<void> {
-  console.log(`[MessageMiddleware] processCronInMessage called for conversation ${conversationId}`);
   try {
     const result = await processAgentResponse(conversationId, agentType, message);
 
-    console.log(`[MessageMiddleware] Got ${result.systemResponses.length} system responses to emit`);
     // Emit system responses through the provided callback
     for (const sysMsg of result.systemResponses) {
-      console.log(`[MessageMiddleware] Emitting system response: ${sysMsg.substring(0, 100)}...`);
       emitSystemResponse(sysMsg);
     }
   } catch (error) {
@@ -174,14 +165,11 @@ export async function processCronInMessage(conversationId: string, agentType: Ag
  */
 async function handleCronCommands(conversationId: string, agentType: AgentType, commands: CronCommand[]): Promise<string[]> {
   const responses: string[] = [];
-  console.log(`[MessageMiddleware] Handling ${commands.length} cron commands for conversation ${conversationId}`);
 
   for (const cmd of commands) {
-    console.log(`[MessageMiddleware] Processing command:`, cmd);
     try {
       switch (cmd.kind) {
         case 'create': {
-          console.log(`[MessageMiddleware] Creating cron job: name=${cmd.name}, schedule=${cmd.schedule}, description=${cmd.scheduleDescription}`);
           const job = await cronService.addJob({
             name: cmd.name,
             schedule: { kind: 'cron', expr: cmd.schedule, description: cmd.scheduleDescription },
@@ -197,9 +185,7 @@ async function handleCronCommands(conversationId: string, agentType: AgentType, 
         }
 
         case 'list': {
-          console.log(`[MessageMiddleware] Querying cron jobs for conversation ${conversationId}`);
           const jobs = await cronService.listJobsByConversation(conversationId);
-          console.log(`[MessageMiddleware] Found ${jobs.length} cron jobs`);
           if (jobs.length === 0) {
             responses.push('📋 No scheduled tasks in this conversation.');
           } else {
@@ -212,7 +198,6 @@ async function handleCronCommands(conversationId: string, agentType: AgentType, 
               .join('\n');
             responses.push(`📋 Scheduled tasks:\n${jobList}`);
           }
-          console.log(`[MessageMiddleware] List response: ${responses[responses.length - 1]}`);
           break;
         }
 
@@ -231,6 +216,5 @@ async function handleCronCommands(conversationId: string, agentType: AgentType, 
     }
   }
 
-  console.log(`[MessageMiddleware] Returning ${responses.length} responses:`, responses);
   return responses;
 }

@@ -118,12 +118,10 @@ export class GeminiAgentManager extends BaseAgentManager<
           presetContext: this.presetRules,
           enabledSkills: allEnabledSkills,
         });
-        console.log(`[GeminiAgentManager] Built system instructions with skills: ${allEnabledSkills.join(', ')}, length: ${finalPresetRules?.length || 0}`);
 
         // Determine yoloMode: forceYoloMode (cron jobs) takes priority over config setting
         // 确定 yoloMode：forceYoloMode（定时任务）优先于配置设置
         const yoloMode = this.forceYoloMode ?? config?.yoloMode ?? false;
-        console.log(`[GeminiAgentManager] yoloMode: forceYoloMode=${this.forceYoloMode}, config.yoloMode=${config?.yoloMode}, final=${yoloMode}`);
 
         return this.start({
           ...config,
@@ -345,7 +343,6 @@ export class GeminiAgentManager extends BaseAgentManager<
         this.status = 'finished';
         // When stream finishes, check for cron commands in the accumulated message
         // Use longer delay and retry logic to ensure message is persisted
-        console.log(`[GeminiAgentManager] Stream finished, will check for cron commands after delay...`);
         this.checkCronWithRetry(0);
       }
       if (data.type === 'start') {
@@ -388,12 +385,10 @@ export class GeminiAgentManager extends BaseAgentManager<
     const maxAttempts = delays.length;
 
     if (attempt >= maxAttempts) {
-      console.log(`[GeminiAgentManager] Max retry attempts reached for cron check`);
       return;
     }
 
     const delay = delays[attempt];
-    console.log(`[GeminiAgentManager] Cron check attempt ${attempt + 1}/${maxAttempts}, delay: ${delay}ms`);
 
     setTimeout(async () => {
       const found = await this.checkCronCommandsOnFinish();
@@ -416,20 +411,12 @@ export class GeminiAgentManager extends BaseAgentManager<
       const result = db.getConversationMessages(this.conversation_id, 0, 20, 'DESC');
 
       if (!result.data || result.data.length === 0) {
-        console.log(`[GeminiAgentManager] No messages found for cron check`);
         return false;
       }
-
-      // Debug: log all messages
-      console.log(`[GeminiAgentManager] Total messages: ${result.data.length}`);
-      result.data.forEach((m, i) => {
-        console.log(`[GeminiAgentManager] Message[${i}]: id=${m.id}, type=${m.type}, position=${m.position}`);
-      });
 
       // Check recent assistant messages for cron commands (position: left means assistant)
       // Relax type filter - check all left-positioned messages
       const assistantMsgs = result.data.filter((m) => m.position === 'left');
-      console.log(`[GeminiAgentManager] Found ${assistantMsgs.length} assistant messages to check`);
 
       // Return false if no assistant messages found (will trigger retry)
       if (assistantMsgs.length === 0) {
@@ -440,10 +427,7 @@ export class GeminiAgentManager extends BaseAgentManager<
         const textContent = extractTextFromMessage(msg);
         if (!textContent) continue;
 
-        console.log(`[GeminiAgentManager] Checking message id=${msg.id}, type=${msg.type}: length=${textContent.length}, preview=${textContent.substring(0, 80)}...`);
-
         if (hasCronCommands(textContent)) {
-          console.log(`[GeminiAgentManager] Found cron commands in message ${msg.id}, processing...`);
           // Create a message with finish status for middleware
           const msgWithStatus = { ...msg, status: 'finish' as const };
           await processCronInMessage(this.conversation_id, 'gemini', msgWithStatus, (sysMsg) => {

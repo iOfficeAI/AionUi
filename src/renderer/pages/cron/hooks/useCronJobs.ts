@@ -237,9 +237,7 @@ export function useCronJobsMap() {
   const fetchAllJobs = useCallback(async () => {
     setLoading(true);
     try {
-      console.log('[useCronJobsMap] Fetching all jobs...');
       const allJobs = await ipcBridge.cron.listJobs.invoke();
-      console.log('[useCronJobsMap] Fetched jobs:', allJobs?.length ?? 0, allJobs);
       const map = new Map<string, ICronJob[]>();
 
       for (const job of allJobs || []) {
@@ -250,7 +248,6 @@ export function useCronJobsMap() {
         map.get(convId)!.push(job);
       }
 
-      console.log('[useCronJobsMap] Jobs map size:', map.size);
       setJobsMap(map);
     } catch (err) {
       console.error('[useCronJobsMap] Failed to fetch jobs:', err);
@@ -268,22 +265,18 @@ export function useCronJobsMap() {
   const eventHandlers = useMemo<CronJobEventHandlers>(
     () => ({
       onJobCreated: (job: ICronJob) => {
-        console.log('[useCronJobsMap] Job created event:', job.id, job.name);
         setJobsMap((prev) => {
           const convId = job.metadata.conversationId;
           const existing = prev.get(convId) || [];
           if (existing.some((j) => j.id === job.id)) {
-            console.log('[useCronJobsMap] Job already exists, skipping');
             return prev;
           }
           const newMap = new Map(prev);
           newMap.set(convId, [...existing, job]);
-          console.log('[useCronJobsMap] Added job to map, new size:', newMap.size);
           return newMap;
         });
       },
       onJobUpdated: (job: ICronJob) => {
-        console.log('[useCronJobsMap] Job updated event:', job.id);
         setJobsMap((prev) => {
           const newMap = new Map(prev);
           const convId = job.metadata.conversationId;
@@ -296,7 +289,6 @@ export function useCronJobsMap() {
         });
       },
       onJobRemoved: ({ jobId }: { jobId: string }) => {
-        console.log('[useCronJobsMap] Job removed event:', jobId);
         setJobsMap((prev) => {
           const newMap = new Map(prev);
           for (const [convId, convJobs] of newMap.entries()) {
@@ -318,8 +310,6 @@ export function useCronJobsMap() {
     const unsubCreate = ipcBridge.cron.onJobCreated.on(eventHandlers.onJobCreated);
     const unsubUpdate = ipcBridge.cron.onJobUpdated.on(eventHandlers.onJobUpdated);
     const unsubRemove = ipcBridge.cron.onJobRemoved.on(eventHandlers.onJobRemoved);
-
-    console.log('[useCronJobsMap] Subscribed to cron events');
 
     return () => {
       unsubCreate();

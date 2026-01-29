@@ -42,22 +42,17 @@ class CronService {
    */
   async init(): Promise<void> {
     if (this.initialized) {
-      console.log('[CronService] Already initialized');
       return;
     }
 
-    console.log('[CronService] Initializing...');
-
     try {
       const jobs = cronStore.listEnabled();
-      console.log(`[CronService] Found ${jobs.length} enabled jobs`);
 
       for (const job of jobs) {
         this.startTimer(job);
       }
 
       this.initialized = true;
-      console.log('[CronService] Initialized successfully');
     } catch (error) {
       console.error('[CronService] Initialization failed:', error);
       throw error;
@@ -69,13 +64,10 @@ class CronService {
    * @throws Error if conversation already has a cron job (one job per conversation limit)
    */
   async addJob(params: CreateCronJobParams): Promise<CronJob> {
-    console.log(`[CronService] addJob called with params:`, JSON.stringify(params, null, 2));
-
     // Check if conversation already has a cron job (one job per conversation limit)
     const existingJobs = cronStore.listByConversation(params.conversationId);
     if (existingJobs.length > 0) {
       const existingJob = existingJobs[0];
-      console.log(`[CronService] Conversation ${params.conversationId} already has a cron job: ${existingJob.id} (${existingJob.name})`);
       throw new Error(`This conversation already has a scheduled task "${existingJob.name}" (ID: ${existingJob.id}). Please delete it first before creating a new one, or use [CRON_LIST] to view existing tasks.`);
     }
 
@@ -114,7 +106,6 @@ class CronService {
     // Start timer
     this.startTimer(job);
 
-    console.log(`[CronService] Job created: ${job.id} (${job.name})`);
     return job;
   }
 
@@ -147,7 +138,6 @@ class CronService {
       this.startTimer(updated);
     }
 
-    console.log(`[CronService] Job updated: ${jobId}`);
     return updated;
   }
 
@@ -160,8 +150,6 @@ class CronService {
 
     // Delete from database
     cronStore.delete(jobId);
-
-    console.log(`[CronService] Job removed: ${jobId}`);
   }
 
   /**
@@ -225,8 +213,6 @@ class CronService {
         job.state.nextRunAtMs = nextRun ? nextRun.getTime() : undefined;
         cronStore.update(job.id, { state: job.state });
         ipcBridge.cron.onJobUpdated.emit(job);
-
-        console.log(`[CronService] Started cron timer for ${job.id}: ${schedule.expr}, next at ${nextRun?.toLocaleTimeString() ?? 'N/A'}`);
         break;
       }
 
@@ -240,8 +226,6 @@ class CronService {
         job.state.nextRunAtMs = Date.now() + schedule.everyMs;
         cronStore.update(job.id, { state: job.state });
         ipcBridge.cron.onJobUpdated.emit(job);
-
-        console.log(`[CronService] Started interval timer for ${job.id}: every ${schedule.everyMs}ms, next at ${new Date(job.state.nextRunAtMs).toLocaleTimeString()}`);
         break;
       }
 
@@ -259,8 +243,6 @@ class CronService {
           job.state.nextRunAtMs = schedule.atMs;
           cronStore.update(job.id, { state: job.state });
           ipcBridge.cron.onJobUpdated.emit(job);
-
-          console.log(`[CronService] Started one-time timer for ${job.id}: in ${delay}ms`);
         } else {
           // Past one-time job, mark as expired and disable
           job.state.nextRunAtMs = undefined;
@@ -269,8 +251,6 @@ class CronService {
           job.enabled = false;
           cronStore.update(job.id, { enabled: false, state: job.state });
           ipcBridge.cron.onJobUpdated.emit(job);
-
-          console.log(`[CronService] Skipping past one-time job ${job.id}, disabled`);
         }
         break;
       }
@@ -306,11 +286,8 @@ class CronService {
   private async executeJob(job: CronJob): Promise<void> {
     const { conversationId } = job.metadata;
 
-    console.log(`[CronService] Executing job ${job.id} (${job.name}), conversationId=${conversationId}`);
-
     // Check if conversation is busy
     const isBusy = cronBusyGuard.isProcessing(conversationId);
-    console.log(`[CronService] Conversation ${conversationId} isProcessing: ${isBusy}`);
     if (isBusy) {
       job.state.retryCount++;
 
@@ -322,12 +299,10 @@ class CronService {
         this.updateNextRunTime(job);
         cronStore.update(job.id, { state: job.state });
         ipcBridge.cron.onJobUpdated.emit(job);
-        console.log(`[CronService] Job ${job.id} skipped: conversation busy`);
         return;
       }
 
       // Schedule retry in 30 seconds
-      console.log(`[CronService] Conversation ${conversationId} busy, retry ${job.state.retryCount}/${job.state.maxRetries || 3} in 30s`);
       const retryTimer = setTimeout(() => {
         this.retryTimers.delete(job.id);
         void this.executeJob(job);
@@ -345,7 +320,6 @@ class CronService {
       // IPC invoke doesn't work in main process - it's for renderer->main communication
       const messageText = job.target.payload.text;
       const msgId = uuid();
-      console.log(`[CronService] Sending message to conversation ${conversationId}: "${messageText.substring(0, 50)}...", msgId=${msgId}`);
 
       // Get or build task from WorkerManage
       // For cron jobs, we need yoloMode=true (auto-approve)
@@ -358,7 +332,6 @@ class CronService {
         const existingTask = WorkerManage.getTaskById(conversationId);
         if (existingTask) {
           // Kill existing task to ensure we get a fresh instance with yoloMode=true
-          console.log(`[CronService] Killing existing task for ${conversationId} to enable yoloMode`);
           WorkerManage.kill(conversationId);
         }
 
@@ -367,20 +340,16 @@ class CronService {
           yoloMode: true,
         });
       } catch (err) {
-        console.log(`[CronService] Failed to get/build task for ${conversationId}:`, err);
         job.state.lastStatus = 'error';
         job.state.lastError = err instanceof Error ? err.message : 'Conversation not found';
         return;
       }
 
       if (!task) {
-        console.log(`[CronService] Task not found for conversation ${conversationId}`);
         job.state.lastStatus = 'error';
         job.state.lastError = 'Conversation not found';
         return;
       }
-
-      console.log(`[CronService] Found task type=${task.type}, calling sendMessage...`);
 
       // Get workspace from task (all agent managers have this property)
       const workspace = (task as { workspace?: string }).workspace;
@@ -400,7 +369,6 @@ class CronService {
       job.state.lastStatus = 'ok';
       job.state.lastError = undefined;
       job.state.retryCount = 0;
-      console.log(`[CronService] Job ${job.id} executed successfully`);
     } catch (error) {
       // Error
       job.state.lastStatus = 'error';
@@ -453,7 +421,6 @@ class CronService {
    * Cleanup - stop all timers
    */
   cleanup(): void {
-    console.log('[CronService] Cleaning up...');
     for (const jobId of this.timers.keys()) {
       this.stopTimer(jobId);
     }

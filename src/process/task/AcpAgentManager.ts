@@ -173,7 +173,6 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           // Process cron commands when turn ends (finish signal)
           // ACP streams content in chunks, so we check the accumulated content here
           if (v.type === 'finish' && this.currentMsgContent && hasCronCommands(this.currentMsgContent)) {
-            console.log(`[AcpAgentManager] Cron commands detected in message, processing...`);
             const message: TMessage = {
               id: this.currentMsgId || uuid(),
               msg_id: this.currentMsgId || uuid(),
@@ -200,7 +199,6 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
             // Send collected responses back to AI agent so it can continue
             if (collectedResponses.length > 0 && this.agent) {
               const feedbackMessage = `[System Response]\n${collectedResponses.join('\n')}`;
-              console.log(`[AcpAgentManager] Sending cron response back to AI: ${feedbackMessage}`);
               await this.agent.sendMessage({ content: feedbackMessage });
             }
             // Reset after processing
