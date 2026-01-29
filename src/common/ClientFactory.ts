@@ -8,17 +8,18 @@ import { AuthType } from '@office-ai/aioncli-core';
 import type { TProviderWithModel } from './storage';
 import { OpenAIRotatingClient, type OpenAIClientConfig } from './adapters/OpenAIRotatingClient';
 import { GeminiRotatingClient, type GeminiClientConfig } from './adapters/GeminiRotatingClient';
+import { AnthropicRotatingClient, type AnthropicClientConfig } from './adapters/AnthropicRotatingClient';
 import type { RotatingApiClientOptions } from './RotatingApiClient';
 import { getProviderAuthType } from './utils/platformAuthType';
 
 export interface ClientOptions {
   timeout?: number;
   proxy?: string;
-  baseConfig?: OpenAIClientConfig | GeminiClientConfig;
+  baseConfig?: OpenAIClientConfig | GeminiClientConfig | AnthropicClientConfig;
   rotatingOptions?: RotatingApiClientOptions;
 }
 
-export type RotatingClient = OpenAIRotatingClient | GeminiRotatingClient;
+export type RotatingClient = OpenAIRotatingClient | GeminiRotatingClient | AnthropicRotatingClient;
 
 export class ClientFactory {
   static async createRotatingClient(provider: TProviderWithModel, options: ClientOptions = {}): Promise<RotatingClient> {
@@ -64,6 +65,17 @@ export class ClientFactory {
         };
 
         return new GeminiRotatingClient(provider.apiKey, clientConfig, rotatingOptions, authType);
+      }
+
+      case AuthType.USE_ANTHROPIC: {
+        const clientConfig: AnthropicClientConfig = {
+          model: provider.useModel,
+          baseURL: provider.baseUrl,
+          timeout: options.timeout,
+          ...(options.baseConfig as AnthropicClientConfig),
+        };
+
+        return new AnthropicRotatingClient(provider.apiKey, clientConfig, rotatingOptions);
       }
 
       default: {

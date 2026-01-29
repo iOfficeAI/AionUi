@@ -32,6 +32,8 @@ export class ApiKeyManager {
         return 'OPENAI_API_KEY';
       case AuthType.USE_GEMINI:
         return 'GEMINI_API_KEY';
+      case AuthType.USE_ANTHROPIC:
+        return 'ANTHROPIC_API_KEY';
       default:
         throw new Error(`Multi-key not supported for auth type: ${authType}`);
     }

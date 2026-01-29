@@ -100,6 +100,7 @@
     "webpack-cli": "^6.0.1"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.71.2",
     "@arco-design/web-react": "^2.66.1",
     "@codemirror/lang-css": "^6.3.1",
     "@codemirror/lang-json": "^6.0.2",
@@ -110,7 +111,7 @@
     "@icon-park/react": "^1.4.2",
     "@modelcontextprotocol/sdk": "^1.20.0",
     "@monaco-editor/react": "^4.7.0",
-    "@office-ai/aioncli-core": "^0.24.0",
+    "@office-ai/aioncli-core": "^0.25.0",
     "@office-ai/platform": "^0.3.16",
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.10",
