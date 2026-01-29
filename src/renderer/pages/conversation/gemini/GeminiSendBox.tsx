@@ -186,6 +186,10 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
         case 'finished':
           {
             // 处理 Finished 事件，提取 token 使用统计
+            // Note: 'finished' event is for token usage stats only, NOT for stream end
+            // Stream end is signaled by 'finish' event
+            // 注意：'finished' 事件仅用于 token 统计，不表示流结束
+            // 流结束由 'finish' 事件表示
             const finishedData = message.data as {
               reason?: string;
               usageMetadata?: {
@@ -212,14 +216,12 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
                 mergeExtra: true,
               });
             }
-            setStreamRunning(false);
-            setWaitingResponse(false);
-            // 只有当没有活跃工具时才清除 thought
-            // Only clear thought when no active tools
-
-            if (!hasActiveTools) {
-              setThought({ subject: '', description: '' });
-            }
+            // DO NOT reset streamRunning/waitingResponse here!
+            // For OpenAI-compatible APIs, 'finished' events are emitted per chunk
+            // Only 'finish' event should reset the stream state
+            // 不要在这里重置 streamRunning/waitingResponse！
+            // 对于 OpenAI 兼容 API，每个流块都会发送 'finished' 事件
+            // 只有 'finish' 事件才应该重置流状态
           }
           break;
         default: {
