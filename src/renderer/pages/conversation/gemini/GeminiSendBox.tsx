@@ -379,6 +379,58 @@ const GeminiSendBox: React.FC<{
   const addOrUpdateMessage = useAddOrUpdateMessage();
   const { setSendBoxHandler } = usePreviewContext();
 
+  // Handle initial message from guid page (stored in sessionStorage for instant page transition)
+  useEffect(() => {
+    const storageKey = `gemini_initial_message_${conversation_id}`;
+    const storedMessage = sessionStorage.getItem(storageKey);
+
+    if (!storedMessage || !currentModel?.useModel) return;
+
+    // Clear immediately to prevent duplicate sends
+    sessionStorage.removeItem(storageKey);
+
+    const sendInitialMessage = async () => {
+      try {
+        const { input, files } = JSON.parse(storedMessage) as { input: string; files?: string[] };
+        const msg_id = uuid();
+        setActiveMsgId(msg_id);
+
+        // Display user message immediately
+        addOrUpdateMessage(
+          {
+            id: msg_id,
+            type: 'text',
+            position: 'right',
+            conversation_id,
+            content: {
+              content: input,
+            },
+            createdAt: Date.now(),
+          },
+          true
+        );
+
+        // Send message to backend
+        await ipcBridge.geminiConversation.sendMessage.invoke({
+          input,
+          msg_id,
+          conversation_id,
+          files: files || [],
+        });
+
+        void checkAndUpdateTitle(conversation_id, input);
+        emitter.emit('chat.history.refresh');
+        if (files && files.length > 0) {
+          emitter.emit('gemini.workspace.refresh');
+        }
+      } catch (error) {
+        console.error('Failed to send initial message:', error);
+      }
+    };
+
+    void sendInitialMessage();
+  }, [conversation_id, currentModel?.useModel]);
+
   // 使用 useLatestRef 保存最新的 setContent/atPath，避免重复注册 handler
   // Use useLatestRef to keep latest setters to avoid re-registering handler
   const setContentRef = useLatestRef(setContent);
