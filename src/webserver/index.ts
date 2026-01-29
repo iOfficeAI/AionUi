@@ -9,7 +9,6 @@ import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
 import { execSync } from 'child_process';
 import { networkInterfaces } from 'os';
-import * as qrcode from 'qrcode-terminal';
 import { AuthService } from '@/webserver/auth/service/AuthService';
 import { UserRepository } from '@/webserver/auth/repository/UserRepository';
 import { AUTH_CONFIG, SERVER_CONFIG } from './config/constants';
@@ -18,7 +17,7 @@ import { setupBasicMiddleware, setupCors, setupErrorHandler } from './setup';
 import { registerAuthRoutes } from './routes/authRoutes';
 import { registerApiRoutes } from './routes/apiRoutes';
 import { registerStaticRoutes } from './routes/staticRoutes';
-import { generateQRLoginUrlDirect } from '@/process/bridge/webuiBridge'; // Added import
+import { generateQRLoginUrlDirect } from '@/process/bridge/webuiBridge';
 
 // Express Request 类型扩展定义在 src/webserver/types/express.d.ts
 // Express Request type extension is defined in src/webserver/types/express.d.ts
@@ -221,13 +220,6 @@ function displayInitialCredentials(credentials: { username: string; password: st
   console.log('\n⚠️  Please change the password after first login!');
   console.log('⚠️  请在首次登录后修改密码！');
 
-  // 远程模式下显示二维码方便扫码登录
-  // Display QR code in remote mode for easy scan-to-login
-  if (allowRemote && networkUrl) {
-    console.log('\n📱 Scan QR Code to Login / 扫描二维码登录:');
-    qrcode.generate(networkUrl, { small: true });
-  }
-
   console.log('='.repeat(70) + '\n');
 }
 
@@ -293,14 +285,6 @@ export async function startWebServerWithInstance(port: number, allowRemote = fal
           console.log(`   🚀 Network access / 网络访问: ${displayUrl}\n`);
         } else {
           console.log(`\n   🚀 WebUI started / WebUI 已启动: ${localUrl}\n`);
-        }
-
-        // 即使非首次启动，也在远程模式下显示二维码
-        // Display QR code in remote mode even on non-first startup
-        if (allowRemote && serverIP && displayUrl !== localUrl) {
-          console.log('📱 Scan QR Code to Login / 扫描二维码登录:');
-          qrcode.generate(displayUrl, { small: true });
-          console.log();
         }
       }
 
