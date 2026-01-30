@@ -83,31 +83,33 @@ jobs:
 
             // Post comment if not already commented
             if (!botComment) {
-              const commentBody = `<!-- pr-issue-check-bot -->
-
-⚠️ **Issue Link Required**
-
-Hi @${prAuthor},
-
-Thank you for your contribution! However, this PR **cannot be merged** until it is linked to an issue.
-
-### Required Action
-
-1. **Create an Issue** (if one doesn't exist) - Describe what this PR addresses (bug fix, feature, enhancement, etc.)
-2. **Link this PR to the Issue** - Add one of the following to your PR description:
-   - \`Fixes #<issue_number>\`
-   - \`Closes #<issue_number>\`
-   - \`Resolves #<issue_number>\`
-
-### Why is this required?
-
-This helps us:
-- Track all changes through our [Project Roadmap](https://github.com/orgs/iOfficeAI/projects/5)
-- Maintain a clear history of issues and resolutions
-- Ensure changes are properly reviewed and prioritized
-
----
-📝 *Once you link an issue, this check will pass automatically.*`;
+              const commentBody = [
+                '<!-- pr-issue-check-bot -->',
+                '',
+                '**Issue Link Required**',
+                '',
+                `Hi @${prAuthor},`,
+                '',
+                'Thank you for your contribution! However, this PR **cannot be merged** until it is linked to an issue.',
+                '',
+                '### Required Action',
+                '',
+                '1. **Create an Issue** (if one doesn\'t exist) - Describe what this PR addresses (bug fix, feature, enhancement, etc.)',
+                '2. **Link this PR to the Issue** - Add one of the following to your PR description:',
+                '   - `Fixes #<issue_number>`',
+                '   - `Closes #<issue_number>`',
+                '   - `Resolves #<issue_number>`',
+                '',
+                '### Why is this required?',
+                '',
+                'This helps us:',
+                '- Track all changes through our [Project Roadmap](https://github.com/orgs/iOfficeAI/projects/5)',
+                '- Maintain a clear history of issues and resolutions',
+                '- Ensure changes are properly reviewed and prioritized',
+                '',
+                '---',
+                '*Once you link an issue, this check will pass automatically.*'
+              ].join('\n');
 
               await github.rest.issues.createComment({
                 owner: context.repo.owner,
@@ -212,36 +214,38 @@ This helps us:
               return;
             }
 
-            const summaryBody = `<!-- pr-summary-bot -->
-
-## 📋 PR Summary
-
-Hello @${prAuthor}, I'm working on reviewing this pull request. Here's a quick summary:
-
-### 📊 Stats
-| Metric | Value |
-|--------|-------|
-| Files Changed | ${fileCount} |
-| Additions | +${additions} |
-| Deletions | -${deletions} |
-
-### 📁 Files by Type
-${fileSummary}
-
-### 🔍 Review Status
-- ⏳ Automated code review in progress...
-
----
-**Using AI Review**
-
-You can request assistance at any point by creating a comment:
-| Command | Description |
-|---------|-------------|
-| \`@gemini-cli /review\` | Request a code review |
-| \`@gemini-cli <question>\` | Ask a question about this PR |
-
----
-*This is an automated summary. The detailed code review will follow shortly.*`;
+            const summaryBody = [
+              '<!-- pr-summary-bot -->',
+              '',
+              '## PR Summary',
+              '',
+              `Hello @${prAuthor}, I'm working on reviewing this pull request. Here's a quick summary:`,
+              '',
+              '### Stats',
+              '| Metric | Value |',
+              '|--------|-------|',
+              `| Files Changed | ${fileCount} |`,
+              `| Additions | +${additions} |`,
+              `| Deletions | -${deletions} |`,
+              '',
+              '### Files by Type',
+              fileSummary,
+              '',
+              '### Review Status',
+              '- Automated code review in progress...',
+              '',
+              '---',
+              '**Using AI Review**',
+              '',
+              'You can request assistance at any point by creating a comment:',
+              '| Command | Description |',
+              '|---------|-------------|',
+              '| `@gemini-cli /review` | Request a code review |',
+              '| `@gemini-cli <question>` | Ask a question about this PR |',
+              '',
+              '---',
+              '*This is an automated summary. The detailed code review will follow shortly.*'
+            ].join('\n');
 
             await github.rest.issues.createComment({
               owner: context.repo.owner,
