@@ -23,6 +23,10 @@ concurrency:
   group: '${{ github.workflow }}'
   cancel-in-progress: true
 
+# Minimal permissions at workflow level, jobs declare their own
+permissions:
+  contents: 'read'
+
 defaults:
   run:
     shell: 'bash'

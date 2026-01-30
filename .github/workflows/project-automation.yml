@@ -6,6 +6,10 @@ on:
   pull_request:
     types: [opened, closed, reopened]
 
+# Minimal permissions at workflow level, jobs use PROJECT_TOKEN secret
+permissions:
+  contents: 'read'
+
 env:
   PROJECT_NUMBER: 5
   ORG_NAME: iOfficeAI
@@ -28,6 +32,8 @@ jobs:
     name: Add Issue to Project
     runs-on: ubuntu-latest
     if: github.event_name == 'issues' && github.event.action == 'opened'
+    permissions:
+      contents: 'read'
     outputs:
       item_id: ${{ steps.add.outputs.itemId }}
     steps:
@@ -43,12 +49,13 @@ jobs:
     runs-on: ubuntu-latest
     needs: add-issue-to-project
     if: github.event_name == 'issues' && github.event.action == 'opened' && needs.add-issue-to-project.outputs.item_id
+    permissions:
+      contents: 'read'
     steps:
       - name: Set status to To Triage
         uses: actions/github-script@v7
-        env:
-          GITHUB_TOKEN: ${{ secrets.PROJECT_TOKEN }}
         with:
+          github-token: ${{ secrets.PROJECT_TOKEN }}
           script: |
             const mutation = `
               mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
@@ -76,12 +83,13 @@ jobs:
     name: Update Issue on Close
     runs-on: ubuntu-latest
     if: github.event_name == 'issues' && github.event.action == 'closed'
+    permissions:
+      contents: 'read'
     steps:
       - name: Update issue status to Done
         uses: actions/github-script@v7
-        env:
-          GITHUB_TOKEN: ${{ secrets.PROJECT_TOKEN }}
         with:
+          github-token: ${{ secrets.PROJECT_TOKEN }}
           script: |
             const contentId = context.payload.issue.node_id;
 
@@ -135,12 +143,13 @@ jobs:
     name: Update Issue on Reopen
     runs-on: ubuntu-latest
     if: github.event_name == 'issues' && github.event.action == 'reopened'
+    permissions:
+      contents: 'read'
     steps:
       - name: Update issue status to To Triage
         uses: actions/github-script@v7
-        env:
-          GITHUB_TOKEN: ${{ secrets.PROJECT_TOKEN }}
         with:
+          github-token: ${{ secrets.PROJECT_TOKEN }}
           script: |
             const contentId = context.payload.issue.node_id;
 
@@ -197,12 +206,14 @@ jobs:
     name: Update Linked Issue Status
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
+    permissions:
+      contents: 'read'
+      pull-requests: 'read'
     steps:
       - name: Update linked issue status based on PR event
         uses: actions/github-script@v7
-        env:
-          GITHUB_TOKEN: ${{ secrets.PROJECT_TOKEN }}
         with:
+          github-token: ${{ secrets.PROJECT_TOKEN }}
           script: |
             const prBody = context.payload.pull_request.body || '';
             const prNumber = context.payload.pull_request.number;
