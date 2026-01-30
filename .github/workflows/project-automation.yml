@@ -1,0 +1,235 @@
+name: '📋 Project Automation'
+
+on:
+  issues:
+    types: [opened, closed, reopened]
+  pull_request:
+    types: [opened, closed, reopened]
+
+env:
+  PROJECT_NUMBER: 5
+  ORG_NAME: iOfficeAI
+  PROJECT_ID: PVT_kwDOCKhK-M4BN1Ah
+  STATUS_FIELD_ID: PVTSSF_lADOCKhK-M4BN1Ahzg8tcak
+  # Status option IDs
+  STATUS_TO_TRIAGE: 8e8f2d59
+  STATUS_BLOCKED: cd8368e3
+  STATUS_READY_FOR_WORK: 864da50e
+  STATUS_IN_PROGRESS: a5c1c67b
+  STATUS_CLOSED: 91437030
+  STATUS_DONE: 1aa2425f
+
+jobs:
+  add-to-project:
+    name: Add to Project
+    runs-on: ubuntu-latest
+    if: github.event.action == 'opened'
+    outputs:
+      item_id: ${{ steps.add.outputs.itemId }}
+    steps:
+      - name: Add issue/PR to project
+        id: add
+        uses: actions/add-to-project@v1.0.2
+        with:
+          project-url: https://github.com/orgs/iOfficeAI/projects/5
+          github-token: ${{ secrets.PROJECT_TOKEN }}
+
+  set-initial-status:
+    name: Set Initial Status (To Triage)
+    runs-on: ubuntu-latest
+    needs: add-to-project
+    if: github.event.action == 'opened' && needs.add-to-project.outputs.item_id
+    steps:
+      - name: Set status to To Triage
+        uses: actions/github-script@v7
+        env:
+          GITHUB_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+        with:
+          script: |
+            const mutation = `
+              mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
+                updateProjectV2ItemFieldValue(input: {
+                  projectId: $projectId
+                  itemId: $itemId
+                  fieldId: $fieldId
+                  value: { singleSelectOptionId: $optionId }
+                }) {
+                  projectV2Item {
+                    id
+                  }
+                }
+              }
+            `;
+
+            await github.graphql(mutation, {
+              projectId: process.env.PROJECT_ID,
+              itemId: '${{ needs.add-to-project.outputs.item_id }}',
+              fieldId: process.env.STATUS_FIELD_ID,
+              optionId: process.env.STATUS_TO_TRIAGE
+            });
+
+            core.info('Set status to To Triage');
+
+  update-status-on-close:
+    name: Update Status on Close
+    runs-on: ubuntu-latest
+    if: github.event.action == 'closed'
+    steps:
+      - name: Get project item and update status
+        uses: actions/github-script@v7
+        env:
+          GITHUB_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+        with:
+          script: |
+            const contentId = context.payload.issue?.node_id || context.payload.pull_request?.node_id;
+            const isMerged = context.payload.pull_request?.merged === true;
+            const isIssue = !!context.payload.issue;
+
+            // Query to find the item in project
+            const query = `
+              query($org: String!, $number: Int!) {
+                organization(login: $org) {
+                  projectV2(number: $number) {
+                    id
+                    items(first: 100) {
+                      nodes {
+                        id
+                        content {
+                          ... on Issue {
+                            id
+                          }
+                          ... on PullRequest {
+                            id
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            `;
+
+            const result = await github.graphql(query, {
+              org: 'iOfficeAI',
+              number: 5
+            });
+
+            const project = result.organization.projectV2;
+            const item = project.items.nodes.find(i => i.content?.id === contentId);
+
+            if (!item) {
+              core.info('Item not found in project, skipping');
+              return;
+            }
+
+            // Determine target status:
+            // - PR merged -> Done
+            // - PR closed without merge -> Closed
+            // - Issue closed -> Done (assuming completed)
+            let targetStatusId;
+            if (isMerged) {
+              targetStatusId = process.env.STATUS_DONE;
+              core.info('PR merged, moving to Done');
+            } else if (!isIssue) {
+              targetStatusId = process.env.STATUS_CLOSED;
+              core.info('PR closed without merge, moving to Closed');
+            } else {
+              targetStatusId = process.env.STATUS_DONE;
+              core.info('Issue closed, moving to Done');
+            }
+
+            const mutation = `
+              mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
+                updateProjectV2ItemFieldValue(input: {
+                  projectId: $projectId
+                  itemId: $itemId
+                  fieldId: $fieldId
+                  value: { singleSelectOptionId: $optionId }
+                }) {
+                  projectV2Item {
+                    id
+                  }
+                }
+              }
+            `;
+
+            await github.graphql(mutation, {
+              projectId: process.env.PROJECT_ID,
+              itemId: item.id,
+              fieldId: process.env.STATUS_FIELD_ID,
+              optionId: targetStatusId
+            });
+
+  update-status-on-reopen:
+    name: Update Status on Reopen
+    runs-on: ubuntu-latest
+    if: github.event.action == 'reopened'
+    steps:
+      - name: Get project item and update status
+        uses: actions/github-script@v7
+        env:
+          GITHUB_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+        with:
+          script: |
+            const contentId = context.payload.issue?.node_id || context.payload.pull_request?.node_id;
+
+            const query = `
+              query($org: String!, $number: Int!) {
+                organization(login: $org) {
+                  projectV2(number: $number) {
+                    id
+                    items(first: 100) {
+                      nodes {
+                        id
+                        content {
+                          ... on Issue {
+                            id
+                          }
+                          ... on PullRequest {
+                            id
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            `;
+
+            const result = await github.graphql(query, {
+              org: 'iOfficeAI',
+              number: 5
+            });
+
+            const project = result.organization.projectV2;
+            const item = project.items.nodes.find(i => i.content?.id === contentId);
+
+            if (!item) {
+              core.info('Item not found in project, skipping');
+              return;
+            }
+
+            // Reopen -> move back to To Triage for re-evaluation
+            const mutation = `
+              mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
+                updateProjectV2ItemFieldValue(input: {
+                  projectId: $projectId
+                  itemId: $itemId
+                  fieldId: $fieldId
+                  value: { singleSelectOptionId: $optionId }
+                }) {
+                  projectV2Item {
+                    id
+                  }
+                }
+              }
+            `;
+
+            await github.graphql(mutation, {
+              projectId: process.env.PROJECT_ID,
+              itemId: item.id,
+              fieldId: process.env.STATUS_FIELD_ID,
+              optionId: process.env.STATUS_TO_TRIAGE
+            });
+
+            core.info('Reopened item moved to To Triage');
