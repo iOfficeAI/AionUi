@@ -373,7 +373,7 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     authRequired: false,
     enabled: true, // ✅ GitHub Copilot CLI，使用 `copilot --acp --stdio` 启动
     supportsStreaming: true,
-    acpArgs: ['--stream off', '--acp', '--stdio'], // copilot 使用 --acp --stdio 启动 ACP mode
+    acpArgs: ['--acp', '--stdio'], // copilot 使用 --acp --stdio 启动 ACP mode
   },
   custom: {
     id: 'custom',
