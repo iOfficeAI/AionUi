@@ -347,7 +347,7 @@ const ToolsModalContent: React.FC = () => {
               <Form.Item label={t('settings.imageGenerationModel')}>
                 {imageGenerationModelList.length > 0 ? (
                   <AionSelect
-                    value={imageGenerationModel?.useModel}
+                    value={imageGenerationModel?.id && imageGenerationModel?.useModel ? `${imageGenerationModel.id}|${imageGenerationModel.useModel}` : undefined}
                     onChange={(value) => {
                       const [platformId, modelName] = value.split('|');
                       const platform = imageGenerationModelList.find((p) => p.id === platformId);
