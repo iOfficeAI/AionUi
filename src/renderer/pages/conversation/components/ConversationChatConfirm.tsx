@@ -129,7 +129,7 @@ const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: str
 
   if (!confirmations.length) return <>{children}</>;
   const confirmation = confirmations[0];
-  const $t = (key: string) => t(key, key);
+  const $t = (key: string, params?: Record<string, string>) => t(key, { ...params, defaultValue: key });
   return (
     <div
       className={`relative p-16px bg-white flex flex-col overflow-hidden m-b-20px rd-20px max-w-800px max-h-[calc(100vh-200px)] w-full mx-auto box-border`}
@@ -146,7 +146,7 @@ const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: str
       </div>
       <div className='shrink-0'>
         {confirmation.options.map((option, index) => {
-          const label = $t(option.label);
+          const label = $t(option.label, option.params);
           return (
             <div
               onClick={() => {

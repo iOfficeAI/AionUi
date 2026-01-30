@@ -195,7 +195,7 @@ export class GeminiAgentManager extends BaseAgentManager<
     if (!confirmationDetails) return {};
     let question: string;
     let description: string;
-    const options: Array<{ label: string; value: ToolConfirmationOutcome }> = [];
+    const options: Array<{ label: string; value: ToolConfirmationOutcome; params?: Record<string, string> }> = [];
     switch (confirmationDetails.type) {
       case 'edit':
         {
@@ -266,12 +266,14 @@ export class GeminiAgentManager extends BaseAgentManager<
               serverName: mcpProps.serverName,
             }),
             value: ToolConfirmationOutcome.ProceedAlwaysTool,
+            params: { toolName: mcpProps.toolName, serverName: mcpProps.serverName },
           },
           {
             label: t('messages.confirmation.yesAlwaysAllowServer', {
               serverName: mcpProps.serverName,
             }),
             value: ToolConfirmationOutcome.ProceedAlwaysServer,
+            params: { serverName: mcpProps.serverName },
           },
           { label: t('messages.confirmation.no'), value: ToolConfirmationOutcome.Cancel }
         );
