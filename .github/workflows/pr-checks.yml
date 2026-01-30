@@ -1,9 +1,13 @@
-name: '🔗 PR Issue Link Check & Review'
+name: '✅ PR Checks'
 
 on:
   pull_request:
-    types: [opened, reopened]
-    branches: [main]
+    types: [opened, reopened, edited, synchronize]
+    branches: [main, dev]
+
+concurrency:
+  group: pr-checks-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -12,17 +16,17 @@ permissions:
   id-token: write
 
 jobs:
+  # Job 1: Check if PR links to an issue
   check-issue-link:
+    name: Issue Link Check
     runs-on: ubuntu-latest
-    # Note: This job is safe for fork PRs because it only uses GitHub API
-    # via actions/github-script - no PR code is checked out or executed
     outputs:
       has_issue_link: ${{ steps.check.outputs.has_issue_link }}
       is_new_pr: ${{ steps.check.outputs.is_new_pr }}
     steps:
       - name: Check if PR links to an issue
         id: check
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd  # v8
+        uses: actions/github-script@v7
         with:
           script: |
             const prBody = context.payload.pull_request.body || '';
@@ -77,62 +81,95 @@ jobs:
               return;
             }
 
-            // If no issue link and bot already commented, skip
-            if (botComment) {
-              core.info('Bot has already commented on this PR.');
-              return;
+            // Post comment if not already commented
+            if (!botComment) {
+              const commentBody = [
+                '<!-- pr-issue-check-bot -->',
+                '',
+                '**Issue Link Required**',
+                '',
+                `Hi @${prAuthor},`,
+                '',
+                'Thank you for your contribution! However, this PR **cannot be merged** until it is linked to an issue.',
+                '',
+                '### Required Action',
+                '',
+                '1. **Create an Issue** (if one doesn\'t exist) - Describe what this PR addresses (bug fix, feature, enhancement, etc.)',
+                '2. **Link this PR to the Issue** - Add one of the following to your PR description:',
+                '   - `Fixes #<issue_number>`',
+                '   - `Closes #<issue_number>`',
+                '   - `Resolves #<issue_number>`',
+                '',
+                '### Why is this required?',
+                '',
+                'This helps us:',
+                '- Track all changes through our [Project Roadmap](https://github.com/orgs/iOfficeAI/projects/5)',
+                '- Maintain a clear history of issues and resolutions',
+                '- Ensure changes are properly reviewed and prioritized',
+                '',
+                '---',
+                '*Once you link an issue, this check will pass automatically.*'
+              ].join('\n');
+
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body: commentBody,
+              });
+
+              core.info('Posted comment asking for issue link.');
             }
 
-            // Post comment asking for issue link
-            const commentBody = `<!-- pr-issue-check-bot -->
+            // Fail the check - PR cannot be merged without issue link
+            core.setFailed('PR must be linked to an issue. Please add "Fixes #<issue_number>" to the PR description.');
 
-Hi @${prAuthor},
-
-Thank you for your contribution! 🎉 The **automated code review** is already in progress.
-
-However, we noticed this PR is **not linked to an issue**. To help us track changes, please:
-
-1. **Create an Issue** - Open a new issue describing what this PR addresses (bug fix, feature, enhancement, etc.)
-2. **Link this PR to the Issue** - Add one of the following to your PR description:
-   - \`Fixes #<issue_number>\`
-   - \`Closes #<issue_number>\`
-   - \`Resolves #<issue_number>\`
-
-This helps us maintain a clear history of issues and their resolutions.
-
----
-📝 *Once you link an issue, this comment will be automatically removed.*`;
-
-            await github.rest.issues.createComment({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: prNumber,
-              body: commentBody,
-            });
-
-            core.info('Posted comment asking for issue link.');
-
-  # Post PR summary for new PRs (runs regardless of issue link)
-  # Safe for fork PRs: checkout defaults to base branch, only uses GitHub API
-  summary:
+  # Job 2: Code quality checks (TypeScript, ESLint, Prettier)
+  code-quality:
+    name: Code Quality
     runs-on: ubuntu-latest
-    if: ${{ github.event.action == 'opened' }}
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript Check
+        run: npx tsc --noEmit
+
+      - name: ESLint Check
+        run: npm run lint
+
+      - name: Prettier Check
+        run: npm run format:check
+
+  # Job 3: Post PR summary (only for new PRs)
+  summary:
+    name: PR Summary
+    runs-on: ubuntu-latest
+    if: github.event.action == 'opened'
     permissions:
       contents: read
       pull-requests: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8  # v6.0.1
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Generate PR Summary
-        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd  # v8
+        uses: actions/github-script@v7
         with:
           script: |
             const prNumber = context.payload.pull_request.number;
-            const prTitle = context.payload.pull_request.title;
-            const prBody = context.payload.pull_request.body || '';
             const prAuthor = context.payload.pull_request.user.login;
 
             // Get changed files
@@ -177,36 +214,38 @@ This helps us maintain a clear history of issues and their resolutions.
               return;
             }
 
-            const summaryBody = `<!-- pr-summary-bot -->
-
-## 📋 PR Summary
-
-Hello @${prAuthor}, I'm working on reviewing this pull request. Here's a quick summary:
-
-### 📊 Stats
-| Metric | Value |
-|--------|-------|
-| Files Changed | ${fileCount} |
-| Additions | +${additions} |
-| Deletions | -${deletions} |
-
-### 📁 Files by Type
-${fileSummary}
-
-### 🔍 Review Status
-- ⏳ Automated code review in progress...
-
----
-**Using AI Review**
-
-You can request assistance at any point by creating a comment:
-| Command | Description |
-|---------|-------------|
-| \`@gemini-cli /review\` | Request a code review |
-| \`@gemini-cli <question>\` | Ask a question about this PR |
-
----
-*This is an automated summary. The detailed code review will follow shortly.*`;
+            const summaryBody = [
+              '<!-- pr-summary-bot -->',
+              '',
+              '## PR Summary',
+              '',
+              `Hello @${prAuthor}, I'm working on reviewing this pull request. Here's a quick summary:`,
+              '',
+              '### Stats',
+              '| Metric | Value |',
+              '|--------|-------|',
+              `| Files Changed | ${fileCount} |`,
+              `| Additions | +${additions} |`,
+              `| Deletions | -${deletions} |`,
+              '',
+              '### Files by Type',
+              fileSummary,
+              '',
+              '### Review Status',
+              '- Automated code review in progress...',
+              '',
+              '---',
+              '**Using AI Review**',
+              '',
+              'You can request assistance at any point by creating a comment:',
+              '| Command | Description |',
+              '|---------|-------------|',
+              '| `@gemini-cli /review` | Request a code review |',
+              '| `@gemini-cli <question>` | Ask a question about this PR |',
+              '',
+              '---',
+              '*This is an automated summary. The detailed code review will follow shortly.*'
+            ].join('\n');
 
             await github.rest.issues.createComment({
               owner: context.repo.owner,
@@ -217,12 +256,10 @@ You can request assistance at any point by creating a comment:
 
             core.info('Posted PR summary.');
 
-  # Trigger Gemini review for all PRs (runs regardless of issue link)
-  # Safe for fork PRs: gemini-review.yml only reads PR diff via GitHub API,
-  # checkout defaults to base branch, no PR code is executed
+  # Job 4: Trigger Gemini AI review
   review:
+    name: AI Review
     needs: [summary]
-    # Run review after summary completes or is skipped
     if: |
       always() &&
       (needs.summary.result == 'success' || needs.summary.result == 'skipped')

@@ -251,17 +251,64 @@ jobs:
                     {{SEVERITY}} {{COMMENT_TEXT}}
                     </COMMENT>
 
-            3. **Submit Final Review:** Call `mcp__github__submit_pending_pull_request_review` with a summary comment. **DO NOT** approve the pull request. **DO NOT** request changes. The summary comment **MUST** use this exact markdown format:
+            3. **Determine Review Decision:** Based on your analysis, decide whether to APPROVE or REQUEST_CHANGES:
+
+                **AUTO-APPROVE Criteria (ALL must be true):**
+                - No 🔴 (Critical) or 🟠 (High) severity issues found
+                - Total lines changed < 200
+                - No security-sensitive changes (authentication, authorization, API keys, secrets)
+                - No changes to core business logic in: `src/process/`, `src/agent/`, `src/webserver/auth/`
+                - Changes are limited to: documentation, i18n, UI styling, configuration, tests, or minor bug fixes
+
+                **Simple Change Types (can auto-approve if no issues):**
+                - Documentation updates (.md files, comments, JSDoc)
+                - Internationalization (i18n locale files)
+                - UI/styling changes (CSS, component styling)
+                - Configuration changes (non-security related)
+                - Test files additions/modifications
+                - Dependency version bumps (minor/patch)
+                - Typo fixes and code formatting
+
+                **REQUEST_CHANGES if any:**
+                - Any 🔴 (Critical) severity issue found
+                - Multiple 🟠 (High) severity issues found
+                - Security vulnerabilities detected
+                - Breaking changes without proper documentation
+
+                **COMMENT only (no approve/reject) if:**
+                - Complex changes that need human review
+                - Architectural changes
+                - Changes to core modules listed above
+
+            4. **Submit Final Review:** Call `mcp__github__submit_pending_pull_request_review` with appropriate event type:
+                - Use event `APPROVE` if AUTO-APPROVE criteria met
+                - Use event `REQUEST_CHANGES` if blocking issues found
+                - Use event `COMMENT` for complex changes needing human review
+
+                The summary comment **MUST** use this exact markdown format:
 
                 <SUMMARY>
                 ## 📋 Review Summary
 
                 A brief, high-level assessment of the Pull Request's objective and quality (2-3 sentences).
 
+                ## 🤖 AI Review Decision
+
+                **Decision:** [APPROVED ✅ / CHANGES REQUESTED ❌ / NEEDS HUMAN REVIEW 👀]
+
+                **Reason:** [Brief explanation of why this decision was made]
+
                 ## 🔍 General Feedback
 
                 - A bulleted list of general observations, positive highlights, or recurring patterns not suitable for inline comments.
                 - Keep this section concise and do not repeat details already covered in inline comments.
+
+                ## 📊 Change Statistics
+
+                - Files changed: [number]
+                - Lines added: [number]
+                - Lines removed: [number]
+                - Change type: [Documentation/Bug Fix/Feature/Refactor/etc.]
                 </SUMMARY>
 
             -----
@@ -269,3 +316,5 @@ jobs:
             ## Final Instructions
 
             Remember, you are running in a virtual machine and no one reviewing your output. Your review must be posted to GitHub using the MCP tools to create a pending review, add comments to the pending review, and submit the pending review.
+
+            **IMPORTANT:** You now have the authority to APPROVE simple, low-risk pull requests automatically. Use this power responsibly. When in doubt, use COMMENT instead of APPROVE to request human review.
