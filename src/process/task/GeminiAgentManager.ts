@@ -338,14 +338,16 @@ export class GeminiAgentManager extends BaseAgentManager<
       data.conversation_id = this.conversation_id;
       // Transform and persist message (skip transient UI state messages)
       // 跳过 thought, finished 等不需要持久化的消息类型
-      const skipTransformTypes = ['thought', 'finished'];
+      // Skip transient UI state messages that don't need persistence
+      // 跳过不需要持久化的临时 UI 状态消息 (thought, finished, start, finish)
+      const skipTransformTypes = ['thought', 'finished', 'start', 'finish'];
       if (!skipTransformTypes.includes(data.type)) {
         const tMessage = transformMessage(data as IResponseMessage);
         if (tMessage) {
           addOrUpdateMessage(this.conversation_id, tMessage, 'gemini');
-        }
-        if (tMessage.type === 'tool_group') {
-          this.handleConformationMessage(tMessage);
+          if (tMessage.type === 'tool_group') {
+            this.handleConformationMessage(tMessage);
+          }
         }
       }
 
