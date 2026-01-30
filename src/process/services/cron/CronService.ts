@@ -339,12 +339,24 @@ class CronService {
       } catch (err) {
         job.state.lastStatus = 'error';
         job.state.lastError = err instanceof Error ? err.message : 'Conversation not found';
+        this.updateNextRunTime(job);
+        cronStore.update(job.id, { state: job.state });
+        const updatedJob = cronStore.getById(job.id);
+        if (updatedJob) {
+          ipcBridge.cron.onJobUpdated.emit(updatedJob);
+        }
         return;
       }
 
       if (!task) {
         job.state.lastStatus = 'error';
         job.state.lastError = 'Conversation not found';
+        this.updateNextRunTime(job);
+        cronStore.update(job.id, { state: job.state });
+        const updatedJob = cronStore.getById(job.id);
+        if (updatedJob) {
+          ipcBridge.cron.onJobUpdated.emit(updatedJob);
+        }
         return;
       }
 
