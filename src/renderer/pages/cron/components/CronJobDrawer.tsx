@@ -120,9 +120,14 @@ const CronJobDrawer: React.FC<CronJobDrawerProps> = ({ visible, job, onClose, on
         <div className='bg-2 rd-16px px-16px py-16px'>
           <div className='flex items-center justify-between'>
             <span className='text-14px'>{t('cron.drawer.taskStatus')}</span>
-            <FormItem field='enabled' triggerPropName='checked' noStyle>
-              <Switch checkedText={t('cron.drawer.enabled')} uncheckedText={t('cron.drawer.disabled')} />
-            </FormItem>
+            <div className='flex items-center gap-8px'>
+              <Form.Item shouldUpdate noStyle>
+                {(values) => <span className='text-14px text-text-3'>{values.enabled ? t('cron.drawer.enabled') : t('cron.drawer.disabled')}</span>}
+              </Form.Item>
+              <FormItem field='enabled' triggerPropName='checked' noStyle>
+                <Switch />
+              </FormItem>
+            </div>
           </div>
         </div>
 
