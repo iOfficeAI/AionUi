@@ -47,6 +47,17 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
   // Current active message ID to filter out events from old requests (prevents aborted request events from interfering with new ones)
   const activeMsgIdRef = useRef<string | null>(null);
 
+  // Use refs to avoid useEffect re-subscription when these states change
+  // 使用 ref 避免状态变化时 useEffect 重新订阅导致事件丢失
+  const hasActiveToolsRef = useRef(hasActiveTools);
+  const streamRunningRef = useRef(streamRunning);
+  useEffect(() => {
+    hasActiveToolsRef.current = hasActiveTools;
+  }, [hasActiveTools]);
+  useEffect(() => {
+    streamRunningRef.current = streamRunning;
+  }, [streamRunning]);
+
   // Think 消息节流：限制更新频率，减少渲染次数
   // Throttle thought updates to reduce render frequency
   const thoughtThrottleRef = useRef<{
@@ -126,7 +137,6 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
         }
       }
 
-      // console.log('responseStream.message', message);
       switch (message.type) {
         case 'thought':
           throttledSetThought(message.data as ThoughtData);
@@ -138,11 +148,12 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
         case 'finish':
           {
             setStreamRunning(false);
-            setWaitingResponse(false);
-            // 只有当没有活跃工具时才清除 thought
-            // Only clear thought when no active tools
-
-            if (!hasActiveTools) {
+            // 只有当没有活跃工具时才清除等待状态和 thought
+            // Only clear waiting state and thought when no active tools
+            // 当有工具在执行时，工具完成后后端还需要继续向模型发送请求
+            // When tools are active, backend needs to continue sending requests to model after tool completion
+            if (!hasActiveToolsRef.current) {
+              setWaitingResponse(false);
               setThought({ subject: '', description: '' });
             }
           }
@@ -154,7 +165,16 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
             const tools = message.data as Array<{ status: string; name?: string }>;
             const activeStatuses = ['Executing', 'Confirming', 'Pending'];
             const hasActive = tools.some((tool) => activeStatuses.includes(tool.status));
+            const wasActive = hasActiveToolsRef.current;
             setHasActiveTools(hasActive);
+
+            // 当工具从活跃变为非活跃时，设置 waitingResponse=true
+            // 因为后端还需要继续向模型发送请求
+            // When tools transition from active to inactive, set waitingResponse=true
+            // because backend needs to continue sending requests to model
+            if (wasActive && !hasActive && tools.length > 0) {
+              setWaitingResponse(true);
+            }
 
             // 如果有工具在等待确认，更新 thought 提示
             // If tools are awaiting confirmation, update thought hint
@@ -172,7 +192,7 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
                   description: executingTool.name || 'Tool',
                 });
               }
-            } else if (!streamRunning) {
+            } else if (!streamRunningRef.current) {
               // 所有工具完成且流已停止，清除 thought
               // All tools completed and stream stopped, clear thought
               setThought({ subject: '', description: '' });
@@ -235,7 +255,9 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
         }
       }
     });
-  }, [conversation_id, addOrUpdateMessage, hasActiveTools, streamRunning, onError]);
+    // Note: hasActiveTools and streamRunning are accessed via refs to avoid re-subscription
+    // 注意：hasActiveTools 和 streamRunning 通过 ref 访问，避免重新订阅导致事件丢失
+  }, [conversation_id, addOrUpdateMessage, onError]);
 
   useEffect(() => {
     setStreamRunning(false);
@@ -535,7 +557,6 @@ const GeminiSendBox: React.FC<{
     try {
       await ipcBridge.conversation.stop.invoke({ conversation_id });
     } finally {
-      console.log('stopStream');
       resetState();
     }
   };
