@@ -9,7 +9,6 @@ import { createServer } from 'http';
 import { WebSocketServer } from 'ws';
 import { execSync } from 'child_process';
 import { networkInterfaces } from 'os';
-import qrcode from 'qrcode-terminal'; // Added import
 import { AuthService } from '@/webserver/auth/service/AuthService';
 import { UserRepository } from '@/webserver/auth/repository/UserRepository';
 import { AUTH_CONFIG, SERVER_CONFIG } from './config/constants';
@@ -27,6 +26,20 @@ const DEFAULT_ADMIN_USERNAME = AUTH_CONFIG.DEFAULT_USER.USERNAME;
 
 // 存储初始密码（内存中，用于首次显示）/ Store initial password (in memory, for first-time display)
 let initialAdminPassword: string | null = null;
+
+type QRCodeTerminal = {
+  generate: (text: string, options?: { small?: boolean }, cb?: (qr: string) => void) => void;
+};
+
+function loadQRCodeTerminal(): QRCodeTerminal | null {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const module = require('qrcode-terminal') as QRCodeTerminal;
+    return module;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * 获取初始管理员密码（仅用于首次显示）
@@ -190,9 +203,14 @@ function displayInitialCredentials(credentials: { username: string; password: st
 
   // 显示二维码 / Display QR Code
   console.log('\n📱 Scan QR Code to Login (expires in 5 mins) / 扫描二维码登录 (5分钟内有效)');
-  qrcode.generate(qrUrl, { small: true }, (qr: string) => {
-    console.log(qr);
-  });
+  const qrcode = loadQRCodeTerminal();
+  if (qrcode) {
+    qrcode.generate(qrUrl, { small: true }, (qr: string) => {
+      console.log(qr);
+    });
+  } else {
+    console.log('QRCode output disabled: qrcode-terminal is not installed.');
+  }
   console.log(`   QR URL: ${qrUrl}`);
 
   // 显示传统凭证作为备用 / Display traditional credentials as fallback
