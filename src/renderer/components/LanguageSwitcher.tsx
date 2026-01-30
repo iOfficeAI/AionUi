@@ -1,11 +1,12 @@
 import { ConfigStorage } from '@/common/storage';
 import AionSelect from '@/renderer/components/base/AionSelect';
+import type { SelectHandle } from '@arco-design/web-react/es/Select/interface';
 import React, { useCallback, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
 const LanguageSwitcher: React.FC = () => {
   const { i18n } = useTranslation();
-  const selectRef = useRef<any>(null);
+  const selectRef = useRef<SelectHandle>(null);
 
   const handleLanguageChange = useCallback(
     (value: string) => {
@@ -13,12 +14,12 @@ const LanguageSwitcher: React.FC = () => {
       // Blur before switching to avoid dropdown and language change fighting for layout
       selectRef.current?.blur?.();
 
-      ConfigStorage.set('language', value).catch((error) => {
+      ConfigStorage.set('language', value).catch((error: Error) => {
         console.error('Failed to save language preference:', error);
       });
 
       const applyLanguage = () => {
-        i18n.changeLanguage(value).catch((error) => {
+        i18n.changeLanguage(value).catch((error: Error) => {
           console.error('Failed to change language:', error);
         });
       };
@@ -40,6 +41,7 @@ const LanguageSwitcher: React.FC = () => {
         <AionSelect.Option value='zh-TW'>繁體中文</AionSelect.Option>
         <AionSelect.Option value='ja-JP'>日本語</AionSelect.Option>
         <AionSelect.Option value='ko-KR'>한국어</AionSelect.Option>
+        <AionSelect.Option value='tr-TR'>Türkçe</AionSelect.Option>
         <AionSelect.Option value='en-US'>English</AionSelect.Option>
       </AionSelect>
     </div>
