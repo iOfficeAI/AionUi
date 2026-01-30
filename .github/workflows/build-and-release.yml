@@ -345,6 +345,11 @@ jobs:
           npm_config_cache: ${{ runner.temp }}/.npm
           ELECTRON_CACHE: ${{ runner.temp }}/.cache/electron
           ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/.cache/electron-builder
+          # Use official GitHub releases for electron-builder binaries (dmg-builder, etc.)
+          # npmmirror may be missing some binaries causing 404 errors
+          # 使用官方 GitHub 源下载 electron-builder 二进制文件（如 dmg-builder）
+          # npmmirror 可能缺少部分文件导致 404 错误
+          ELECTRON_BUILDER_BINARIES_MIRROR: https://github.com/electron-userland/electron-builder-binaries/releases/download/
           # Electron headers download / Electron 头文件下载源
           npm_config_disturl: https://electronjs.org/headers
           npm_config_runtime: electron
