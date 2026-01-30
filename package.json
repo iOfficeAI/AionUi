@@ -1,7 +1,7 @@
 {
   "name": "AionUi",
   "productName": "AionUi",
-  "version": "1.7.8",
+  "version": "1.7.9",
   "description": "Transform your command-line AI agent into a modern, efficient AI Chat interface.",
   "main": ".webpack/main",
   "scripts": {
