@@ -23,9 +23,12 @@ concurrency:
   group: '${{ github.workflow }}'
   cancel-in-progress: true
 
-# Minimal permissions at workflow level, jobs declare their own
+# Permissions for workflow and nested workflow calls
 permissions:
   contents: 'read'
+  issues: 'write'
+  pull-requests: 'write'
+  id-token: 'write'
 
 defaults:
   run:
