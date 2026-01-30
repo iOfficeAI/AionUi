@@ -203,7 +203,8 @@ export const PROTOCOL_SIGNATURES: ProtocolSignature[] = [
       /api\.openai\.com/, // OpenAI 官方
       /\.openai\.azure\.com/, // Azure OpenAI
       /api\.deepseek\.com/, // DeepSeek
-      /api\.moonshot\.cn/, // Moonshot/Kimi
+      /api\.moonshot\.cn/, // Moonshot/Kimi China
+      /api\.moonshot\.ai/, // Moonshot/Kimi Global
       /api\.mistral\.ai/, // Mistral AI
       /api\.groq\.com/, // Groq
       /openrouter\.ai/, // OpenRouter

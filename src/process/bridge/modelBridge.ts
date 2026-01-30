@@ -47,6 +47,13 @@ export function initModelBridge(): void {
       return { success: true, data: { mode: vertexAIModels } };
     }
 
+    // 如果是 Anthropic/Claude 平台，直接返回 Anthropic 支持的模型列表
+    // For Anthropic/Claude platform, return the supported model list directly
+    if (platform?.includes('anthropic') || platform?.includes('claude')) {
+      const anthropicModels = ['claude-sonnet-4-20250514', 'claude-opus-4-20250514', 'claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022', 'claude-3-opus-20240229', 'claude-3-sonnet-20240229', 'claude-3-haiku-20240307'];
+      return { success: true, data: { mode: anthropicModels } };
+    }
+
     // 如果是 Gemini 平台，使用 Gemini API 协议
     // For Gemini platform, use Gemini API protocol
     if (platform?.includes('gemini')) {

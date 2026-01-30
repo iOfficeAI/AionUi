@@ -427,6 +427,30 @@ const MarkdownView: React.FC<MarkdownViewProps> = ({ hiddenCodeCopyButton, codeS
             remarkPlugins={[remarkGfm, remarkMath, remarkBreaks]}
             rehypePlugins={[rehypeKatex]}
             components={{
+              span: ({ node: _node, className, children, ...props }) => {
+                if (className?.includes('katex')) {
+                  return (
+                    <span
+                      {...props}
+                      className={className}
+                      style={{
+                        maxWidth: '100%',
+                        overflowX: 'auto',
+                        display: 'inline-block',
+                        verticalAlign: 'middle',
+                      }}
+                    >
+                      {children}
+                    </span>
+                  );
+                }
+
+                return (
+                  <span {...props} className={className}>
+                    {children}
+                  </span>
+                );
+              },
               code: (props: any) => CodeBlock({ ...props, codeStyle, hiddenCodeCopyButton }),
               a: ({ node: _node, ...props }) => (
                 <a

@@ -8,8 +8,8 @@ import AionModal from '@/renderer/components/base/AionModal';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { iconColors } from '@/renderer/theme/colors';
 import { isElectronDesktop } from '@/renderer/utils/platform';
-import { Computer, Gemini, Info, LinkCloud, Toolkit, Earth } from '@icon-park/react';
 import { Tabs } from '@arco-design/web-react';
+import { Computer, Earth, Gemini, Info, LinkCloud, Toolkit } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -176,7 +176,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
       },
     ];
 
-    // 仅在桌面端添加 WebUI 选项 / Only add WebUI option on desktop
+    // 仅在桌面端添加 WebUI 选项（包含 Assistant 配置）/ Only add WebUI option on desktop (includes Assistant config)
     if (isDesktop) {
       items.push({
         key: 'webui',
@@ -200,6 +200,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
 
     return items;
   }, [t, isDesktop]);
+
+  console.log('%c [  ]-211', 'font-size:13px; background:pink; color:#bf2c9f;', isDesktop, menuItems);
 
   // 渲染当前选中的设置内容 / Render current selected settings content
   const renderContent = () => {

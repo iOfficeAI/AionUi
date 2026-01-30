@@ -102,7 +102,7 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
           </div>
         )}
         <div
-          className={classNames('rd-8px rd-tr-2px [&>p:first-child]:mt-0px [&>p:last-child]:mb-0px', {
+          className={classNames('rd-8px rd-tr-2px [&>p:first-child]:mt-0px [&>p:last-child]:mb-0px md:max-w-780px', {
             'bg-aou-2 p-8px': isUserMessage,
           })}
         >
@@ -115,14 +115,14 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
             <MarkdownView codeStyle={{ marginTop: 4, marginBlock: 4 }}>{data}</MarkdownView>
           )}
         </div>
-        {/* <div
+        <div
           className={classNames('h-32px flex items-center mt-4px', {
             'justify-end': isUserMessage,
             'justify-start': !isUserMessage,
           })}
         >
           {copyButton}
-        </div> */}
+        </div>
       </div>
       {showCopyAlert && <Alert type='success' content={t('messages.copySuccess')} showIcon className='fixed top-20px left-50% transform -translate-x-50% z-9999 w-max max-w-[80%]' style={{ boxShadow: '0px 2px 12px rgba(0,0,0,0.12)' }} closable={false} />}
     </>

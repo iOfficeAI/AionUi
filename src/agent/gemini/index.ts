@@ -177,6 +177,11 @@ export class GeminiAgent {
     if (this.authType === AuthType.USE_OPENAI) {
       fallbackValue('OPENAI_BASE_URL', this.model.baseUrl);
       fallbackValue('OPENAI_API_KEY', getCurrentApiKey());
+      return;
+    }
+    if (this.authType === AuthType.USE_ANTHROPIC) {
+      fallbackValue('ANTHROPIC_BASE_URL', this.model.baseUrl);
+      fallbackValue('ANTHROPIC_API_KEY', getCurrentApiKey());
     }
   }
 
@@ -187,7 +192,7 @@ export class GeminiAgent {
     }
 
     // Only initialize for supported auth types
-    if (this.authType === AuthType.USE_OPENAI || this.authType === AuthType.USE_GEMINI) {
+    if (this.authType === AuthType.USE_OPENAI || this.authType === AuthType.USE_GEMINI || this.authType === AuthType.USE_ANTHROPIC) {
       this.apiKeyManager = new ApiKeyManager(apiKey, this.authType);
     }
   }

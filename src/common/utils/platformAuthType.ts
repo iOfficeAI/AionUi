@@ -25,8 +25,13 @@ export function getAuthTypeFromPlatform(platform: string): AuthType {
     return AuthType.USE_GEMINI;
   }
 
+  // Anthropic/Claude 相关平台
+  if (platformLower.includes('anthropic') || platformLower.includes('claude')) {
+    return AuthType.USE_ANTHROPIC;
+  }
+
   // 其他所有平台默认使用OpenAI兼容协议
-  // 包括：OpenRouter, OpenAI, DeepSeek, Anthropic, Claude, 等
+  // 包括：OpenRouter, OpenAI, DeepSeek, 等
   return AuthType.USE_OPENAI;
 }
 

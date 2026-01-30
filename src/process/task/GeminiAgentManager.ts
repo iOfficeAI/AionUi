@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { channelEventBus } from '@/channels/agent/ChannelEventBus';
 import { ipcBridge } from '@/common';
 import type { IMessageToolGroup, TMessage } from '@/common/chatLib';
 import { transformMessage } from '@/common/chatLib';
@@ -349,12 +350,18 @@ export class GeminiAgentManager extends BaseAgentManager<
       }
 
       ipcBridge.geminiConversation.responseStream.emit(data);
+
+      // 发送到 Channel 全局事件总线（用于 Telegram 等外部平台）
+      // Emit to Channel global event bus (for Telegram and other external platforms)
+      channelEventBus.emitAgentMessage(this.conversation_id, data);
     });
   }
 
   confirm(id: string, callId: string, data: string) {
     super.confirm(id, callId, data);
-    return this.postMessagePromise(id, data);
+    // 发送确认到 worker，使用 callId 作为消息类型
+    // Send confirmation to worker, using callId as message type
+    return this.postMessagePromise(callId, data);
   }
 
   // Manually trigger context reload

@@ -16,6 +16,8 @@ import { spawn } from 'child_process';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import { AcpConnection } from './AcpConnection';
+import { CLAUDE_YOLO_SESSION_MODE } from './constants';
+import { getClaudeModel } from './utils';
 
 /**
  * Initialize response result interface
@@ -61,6 +63,7 @@ export interface AcpAgentConfig {
     customWorkspace?: boolean;
     customArgs?: string[];
     customEnv?: Record<string, string>;
+    yoloMode?: boolean;
   };
   onStreamEvent: (data: IResponseMessage) => void;
   onSignalEvent?: (data: IResponseMessage) => void; // 新增：仅发送信号，不更新UI
@@ -76,6 +79,7 @@ export class AcpAgent {
     customWorkspace?: boolean;
     customArgs?: string[];
     customEnv?: Record<string, string>;
+    yoloMode?: boolean;
   };
   private connection: AcpConnection;
   private adapter: AcpAdapter;
@@ -99,6 +103,7 @@ export class AcpAgent {
       customWorkspace: false, // Default to system workspace
       customArgs: config.customArgs,
       customEnv: config.customEnv,
+      yoloMode: false,
     };
 
     this.connection = new AcpConnection();
@@ -156,20 +161,48 @@ export class AcpAgent {
     try {
       this.emitStatusMessage('connecting');
 
-      await Promise.race([
-        this.connection.connect(this.extra.backend, this.extra.cliPath, this.extra.workspace, this.extra.customArgs, this.extra.customEnv),
-        new Promise((_, reject) =>
-          setTimeout(() => {
-            reject(new Error('Connection timeout after 70 seconds'));
-          }, 70000)
-        ),
-      ]);
+      let connectTimeoutId: NodeJS.Timeout | null = null;
+      const connectTimeoutPromise = new Promise<never>((_, reject) => {
+        connectTimeoutId = setTimeout(() => reject(new Error('Connection timeout after 70 seconds')), 70000);
+      });
+
+      try {
+        await Promise.race([this.connection.connect(this.extra.backend, this.extra.cliPath, this.extra.workspace, this.extra.customArgs, this.extra.customEnv), connectTimeoutPromise]);
+      } finally {
+        if (connectTimeoutId) {
+          clearTimeout(connectTimeoutId);
+        }
+      }
       this.emitStatusMessage('connected');
       await this.performAuthentication();
       // 避免重复创建会话：仅当尚无活动会话时再创建
       if (!this.connection.hasActiveSession) {
         await this.connection.newSession(this.extra.workspace);
       }
+
+      // Claude Code "YOLO" mode: bypass all permission checks (equivalent to --dangerously-skip-permissions)
+      if (this.extra.backend === 'claude' && this.extra.yoloMode) {
+        try {
+          await this.connection.setSessionMode(CLAUDE_YOLO_SESSION_MODE);
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          throw new Error(`[ACP] Failed to enable Claude YOLO mode (${CLAUDE_YOLO_SESSION_MODE}): ${errorMessage}`);
+        }
+      }
+
+      // Auto-set model from ~/.claude/settings.json for Claude backend
+      if (this.extra.backend === 'claude') {
+        const configuredModel = getClaudeModel();
+        if (configuredModel) {
+          try {
+            await this.connection.setModel(configuredModel);
+          } catch (error) {
+            // Log warning but don't fail - fallback to default model
+            console.warn(`[ACP] Failed to set model from settings: ${error instanceof Error ? error.message : String(error)}`);
+          }
+        }
+      }
+
       this.emitStatusMessage('session_active');
     } catch (error) {
       this.emitStatusMessage('error');

@@ -277,9 +277,17 @@ app.on('activate', () => {
   }
 });
 
-app.on('before-quit', () => {
+app.on('before-quit', async () => {
   // 在应用退出前清理工作进程
   WorkerManage.clear();
+
+  // Shutdown Channel subsystem
+  try {
+    const { getChannelManager } = await import('@/channels');
+    await getChannelManager().shutdown();
+  } catch (error) {
+    console.error('[App] Failed to shutdown ChannelManager:', error);
+  }
 });
 
 // In this file you can include the rest of your app's specific main process

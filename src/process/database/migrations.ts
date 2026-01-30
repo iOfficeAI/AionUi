@@ -162,9 +162,130 @@ const migration_v6: IMigration = {
 };
 
 /**
+ * Migration v6 -> v7: Add Personal Assistant tables
+ * Supports remote interaction through messaging platforms (Telegram, Slack, Discord)
+ */
+const migration_v7: IMigration = {
+  version: 7,
+  name: 'Add Personal Assistant tables',
+  up: (db) => {
+    // Assistant plugins configuration
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS assistant_plugins (
+        id TEXT PRIMARY KEY,
+        type TEXT NOT NULL CHECK(type IN ('telegram', 'slack', 'discord')),
+        name TEXT NOT NULL,
+        enabled INTEGER NOT NULL DEFAULT 0,
+        config TEXT NOT NULL,
+        status TEXT CHECK(status IN ('created', 'initializing', 'ready', 'starting', 'running', 'stopping', 'stopped', 'error')),
+        last_connected INTEGER,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_assistant_plugins_type ON assistant_plugins(type);
+      CREATE INDEX IF NOT EXISTS idx_assistant_plugins_enabled ON assistant_plugins(enabled);
+    `);
+
+    // Authorized users whitelist
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS assistant_users (
+        id TEXT PRIMARY KEY,
+        platform_user_id TEXT NOT NULL,
+        platform_type TEXT NOT NULL,
+        display_name TEXT,
+        authorized_at INTEGER NOT NULL,
+        last_active INTEGER,
+        session_id TEXT,
+        UNIQUE(platform_user_id, platform_type)
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_assistant_users_platform ON assistant_users(platform_type, platform_user_id);
+    `);
+
+    // User sessions
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS assistant_sessions (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        agent_type TEXT NOT NULL CHECK(agent_type IN ('gemini', 'acp', 'codex')),
+        conversation_id TEXT,
+        workspace TEXT,
+        created_at INTEGER NOT NULL,
+        last_activity INTEGER NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES assistant_users(id) ON DELETE CASCADE,
+        FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE SET NULL
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_assistant_sessions_user ON assistant_sessions(user_id);
+      CREATE INDEX IF NOT EXISTS idx_assistant_sessions_conversation ON assistant_sessions(conversation_id);
+    `);
+
+    // Pending pairing requests
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS assistant_pairing_codes (
+        code TEXT PRIMARY KEY,
+        platform_user_id TEXT NOT NULL,
+        platform_type TEXT NOT NULL,
+        display_name TEXT,
+        requested_at INTEGER NOT NULL,
+        expires_at INTEGER NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'approved', 'rejected', 'expired'))
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_assistant_pairing_expires ON assistant_pairing_codes(expires_at);
+      CREATE INDEX IF NOT EXISTS idx_assistant_pairing_status ON assistant_pairing_codes(status);
+    `);
+
+    console.log('[Migration v7] Added Personal Assistant tables');
+  },
+  down: (db) => {
+    db.exec(`
+      DROP TABLE IF EXISTS assistant_pairing_codes;
+      DROP TABLE IF EXISTS assistant_sessions;
+      DROP TABLE IF EXISTS assistant_users;
+      DROP TABLE IF EXISTS assistant_plugins;
+    `);
+    console.log('[Migration v7] Rolled back: Removed Personal Assistant tables');
+  },
+};
+
+/**
+ * Migration v7 -> v8: Add source column to conversations table
+ * 为 conversations 表添加 source 列，标识会话来源
+ */
+const migration_v8: IMigration = {
+  version: 8,
+  name: 'Add source column to conversations',
+  up: (db) => {
+    // Add source column to conversations table
+    db.exec(`
+      ALTER TABLE conversations ADD COLUMN source TEXT CHECK(source IN ('aionui', 'telegram'));
+    `);
+
+    // Create index for efficient source-based queries
+    db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_conversations_source ON conversations(source);
+      CREATE INDEX IF NOT EXISTS idx_conversations_source_updated ON conversations(source, updated_at DESC);
+    `);
+
+    console.log('[Migration v8] Added source column to conversations table');
+  },
+  down: (db) => {
+    // SQLite doesn't support DROP COLUMN directly, need to recreate table
+    // For simplicity, just drop the indexes (column will remain)
+    db.exec(`
+      DROP INDEX IF EXISTS idx_conversations_source;
+      DROP INDEX IF EXISTS idx_conversations_source_updated;
+    `);
+    console.log('[Migration v8] Rolled back: Removed source indexes');
+  },
+};
+
+/**
  * All migrations in order
  */
-export const ALL_MIGRATIONS: IMigration[] = [migration_v1, migration_v2, migration_v3, migration_v4, migration_v5, migration_v6];
+export const ALL_MIGRATIONS: IMigration[] = [migration_v1, migration_v2, migration_v3, migration_v4, migration_v5, migration_v6, migration_v7, migration_v8];
 
 /**
  * Get migrations needed to upgrade from one version to another
