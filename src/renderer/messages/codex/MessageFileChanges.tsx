@@ -7,7 +7,7 @@
 import type { CodexToolCallUpdate } from '@/common/chatLib';
 import FileChangesPanel, { type FileChangeItem } from '@/renderer/components/base/FileChangesPanel';
 import { usePreviewLauncher } from '@/renderer/hooks/usePreviewLauncher';
-import { extractContentFromDiff } from '@/renderer/utils/diffUtils';
+import { extractContentFromDiff, parseFilePathFromDiff } from '@/renderer/utils/diffUtils';
 import { getFileTypeInfo } from '@/renderer/utils/fileType';
 import React, { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -50,10 +50,16 @@ export const parseDiff = (diff: string, fileNameHint?: string): FileChangeInfo =
       fullPath = match[1];
       fileName = fullPath.split('/').pop() || fullPath;
     }
-  } else if (fileNameHint) {
-    // 如果没有 git diff 头，使用 hint 作为文件名 / If no git diff header, use hint as filename
-    fileName = fileNameHint.split('/').pop() || fileNameHint;
-    fullPath = fileNameHint;
+  } else {
+    const parsedPath = parseFilePathFromDiff(diff);
+    if (parsedPath) {
+      fullPath = parsedPath;
+      fileName = parsedPath.split(/[\\/]/).pop() || parsedPath;
+    } else if (fileNameHint) {
+      // 如果没有 git diff 头，使用 hint 作为文件名 / If no git diff header, use hint as filename
+      fileName = fileNameHint.split(/[\\/]/).pop() || fileNameHint;
+      fullPath = fileNameHint;
+    }
   }
 
   // 计算新增和删除的行数 / Calculate insertions and deletions

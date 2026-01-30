@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { joinPath } from '@/common/chatLib';
 import type { PreviewContentType } from '@/common/types/preview';
 import { useConversationContextSafe } from '@/renderer/context/ConversationContext';
 import { usePreviewContext } from '@/renderer/pages/conversation/preview';
@@ -60,7 +61,7 @@ export const usePreviewLauncher = () => {
 
       // 路径解析 / Path resolution
       // 优先使用工作区 + 相对路径拼接绝对路径 / Prefer workspace + relative path to build absolute path
-      const absolutePath = workspace && relativePath ? `${workspace}/${relativePath}` : undefined;
+      const absolutePath = workspace && relativePath ? joinPath(workspace, relativePath) : undefined;
       const resolvedPath = absolutePath || originalPath || relativePath || undefined;
 
       // 文件名和标题计算 / Compute file name and title

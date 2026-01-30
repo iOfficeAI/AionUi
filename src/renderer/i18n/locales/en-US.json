@@ -312,7 +312,8 @@
       "quotaExceededTitle": "Model quota reached",
       "quotaExceededBody": "The current model quota is exhausted. Switch to {{model}} to continue?",
       "quotaExceededNoFallback": "Model quota reached. Please switch to another available model.",
-      "quotaSwitched": "Switched to {{model}}."
+      "quotaSwitched": "Switched to {{model}}.",
+      "confirmationLoadError": "Failed to load confirmation dialog"
     },
     "contextUsage": {
       "contextUsed": "context used"
@@ -673,6 +674,7 @@
     "mcpRemovePartialFailed": "MCP configuration removal partially failed: {{errors}}",
     "mcpSyncFailed": "MCP configuration sync failed: {{error}}",
     "mcpRemoveFailed": "MCP configuration removal failed: {{error}}",
+    "mcpSyncFailedNoAgents": "No available agents detected, unable to sync MCP configuration",
     "mcpDeletedWithCleanup": "MCP server deleted and configuration cleaned up",
     "mcpDeleted": "MCP server deleted",
     "mcpDeleteError": "Error deleting MCP configuration",

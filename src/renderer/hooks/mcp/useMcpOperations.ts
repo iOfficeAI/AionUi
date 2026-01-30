@@ -119,7 +119,15 @@ export const useMcpOperations = (mcpServers: IMcpServer[], message: ReturnType<t
           mcpServers: [server],
           agents: agentsResponse.data,
         });
+
         await handleMcpOperationResult(syncResponse, 'sync', undefined, skipRecheck);
+      } else {
+        // 修复: 处理没有可用 agents 的情况，显示友好的错误提示
+        // Fix: Handle case when no agents are available, show user-friendly error message
+        console.error('[useMcpOperations] Failed to get available agents:', agentsResponse.msg);
+        await globalMessageQueue.add(() => {
+          message.error(t('settings.mcpSyncFailedNoAgents'));
+        });
       }
     },
     [message, t, handleMcpOperationResult]

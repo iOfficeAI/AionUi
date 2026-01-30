@@ -1,17 +1,17 @@
+import { ipcBridge } from '@/common';
+import { ASSISTANT_PRESETS } from '@/common/presets/assistantPresets';
+import { ConfigStorage } from '@/common/storage';
+import { resolveLocaleKey } from '@/common/utils';
+import coworkSvg from '@/renderer/assets/cowork.svg';
+import EmojiPicker from '@/renderer/components/EmojiPicker';
+import MarkdownView from '@/renderer/components/Markdown';
+import type { AcpBackendConfig, PresetAgentType } from '@/types/acpTypes';
 import type { Message } from '@arco-design/web-react';
-import { Avatar, Button, Checkbox, Collapse, Input, Drawer, Modal, Typography, Select, Switch } from '@arco-design/web-react';
-import { Close, Plus, Robot, SettingOne, FolderOpen, Delete } from '@icon-park/react';
+import { Avatar, Button, Checkbox, Collapse, Drawer, Input, Modal, Select, Switch, Typography } from '@arco-design/web-react';
+import { Close, Delete, FolderOpen, Plus, Robot, SettingOne } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { mutate } from 'swr';
-import { ipcBridge } from '@/common';
-import { ConfigStorage } from '@/common/storage';
-import { resolveLocaleKey } from '@/common/utils';
-import type { AcpBackendConfig, PresetAgentType } from '@/types/acpTypes';
-import MarkdownView from '@/renderer/components/Markdown';
-import EmojiPicker from '@/renderer/components/EmojiPicker';
-import coworkSvg from '@/renderer/assets/cowork.svg';
-import { ASSISTANT_PRESETS } from '@/common/presets/assistantPresets';
 
 // Skill 信息类型 / Skill info type
 interface SkillInfo {
@@ -46,6 +46,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
   const [isCreating, setIsCreating] = useState(false);
   const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
   const [promptViewMode, setPromptViewMode] = useState<'edit' | 'preview'>('preview');
+  const [drawerWidth, setDrawerWidth] = useState(500);
   // Skills 选择模式相关 state / Skills selection mode states
   const [availableSkills, setAvailableSkills] = useState<SkillInfo[]>([]);
   const [customSkills, setCustomSkills] = useState<string[]>([]); // 通过 Add Skills 添加到此助手的 skills 名称 / Skill names added via Add Skills
@@ -74,6 +75,18 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
       return () => clearTimeout(timer);
     }
   }, [editVisible, promptViewMode]);
+
+  useEffect(() => {
+    const updateDrawerWidth = () => {
+      if (typeof window === 'undefined') return;
+      const nextWidth = Math.min(500, Math.max(320, Math.floor(window.innerWidth - 32)));
+      setDrawerWidth(nextWidth);
+    };
+
+    updateDrawerWidth();
+    window.addEventListener('resize', updateDrawerWidth);
+    return () => window.removeEventListener('resize', updateDrawerWidth);
+  }, []);
 
   // Detect common skill paths when modal opens
   useEffect(() => {
@@ -498,8 +511,8 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
         closable={false}
         visible={editVisible}
         placement='right'
-        width={500}
-        zIndex={2000}
+        width={drawerWidth}
+        zIndex={1200}
         autoFocus={false}
         onCancel={() => {
           setEditVisible(false);
@@ -718,7 +731,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
       </Drawer>
 
       {/* Delete Confirmation Modal */}
-      <Modal title={t('settings.deleteAssistantTitle', { defaultValue: 'Delete Assistant' })} visible={deleteConfirmVisible} onCancel={() => setDeleteConfirmVisible(false)} onOk={handleDeleteConfirm} okButtonProps={{ status: 'danger' }} okText={t('common.delete', { defaultValue: 'Delete' })} cancelText={t('common.cancel', { defaultValue: 'Cancel' })} style={{ width: 400 }} wrapStyle={{ zIndex: 10000 }} maskStyle={{ zIndex: 9999 }}>
+      <Modal title={t('settings.deleteAssistantTitle', { defaultValue: 'Delete Assistant' })} visible={deleteConfirmVisible} onCancel={() => setDeleteConfirmVisible(false)} onOk={handleDeleteConfirm} okButtonProps={{ status: 'danger' }} okText={t('common.delete', { defaultValue: 'Delete' })} cancelText={t('common.cancel', { defaultValue: 'Cancel' })} className='w-[90vw] md:w-[400px]' wrapStyle={{ zIndex: 10000 }} maskStyle={{ zIndex: 9999 }}>
         <p>{t('settings.deleteAssistantConfirm', { defaultValue: 'Are you sure you want to delete this assistant? This action cannot be undone.' })}</p>
         {activeAssistant && (
           <div className='mt-12px p-12px bg-fill-2 rounded-lg flex items-center gap-12px'>
@@ -819,8 +832,9 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
         title={t('settings.addSkillsTitle', { defaultValue: 'Add Skills' })}
         okText={t('common.confirm', { defaultValue: 'Confirm' })}
         cancelText={t('common.cancel', { defaultValue: 'Cancel' })}
-        style={{ width: 500 }}
-        wrapStyle={{ zIndex: 10000 }}
+        className='w-[90vw] md:w-[500px]'
+        wrapStyle={{ zIndex: 2500 }}
+        maskStyle={{ zIndex: 2490 }}
       >
         <div className='space-y-16px'>
           {commonPaths.length > 0 && (
@@ -891,7 +905,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
             message.success(t('settings.skillDeleted', { defaultValue: 'Skill removed from pending list' }));
           }
         }}
-        style={{ width: 400 }}
+        className='w-[90vw] md:w-[400px]'
         wrapStyle={{ zIndex: 10000 }}
         maskStyle={{ zIndex: 9999 }}
       >
@@ -925,7 +939,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
             message.success(t('settings.skillRemovedFromAssistant', { defaultValue: 'Skill removed from this assistant' }));
           }
         }}
-        style={{ width: 400 }}
+        className='w-[90vw] md:w-[400px]'
         wrapStyle={{ zIndex: 10000 }}
         maskStyle={{ zIndex: 9999 }}
       >

@@ -1,4 +1,4 @@
-﻿<p align="center">
+<p align="center">
   <img src="./resources/aionui-banner-1.png" alt="AionUi - Cowork with Your CLI AI Agent" width="100%">
 </p>
 
@@ -19,7 +19,7 @@
 ---
 
 <p align="center">
-  <strong>🚀 Cowork con tu IA, Gemini CLI, Claude Code, Codex, Qwen Code, Goose CLI, Auggie y más</strong><br>
+  <strong>🚀 Asistente personal 「Cowork」basado en Gemini CLI, Claude Code, Codex, Qwen Code, Goose CLI, Auggie y más</strong><br>
   <em>Fácil de usar | Interfaz gráfica visual | Soporte multimodelo | Seguridad de datos local</em>
 </p>
 
@@ -45,9 +45,7 @@
 
 [✨ ¿Qué puede hacer AionUi?](#qué-puede-hacer-aionui) ·
 [🤔 ¿Por qué elegir AionUi?](#por-qué-elegir-aionui) ·
-[✨ Funciones principales](#funciones-principales) ·
 [🚀 Inicio rápido](#inicio-rápido) ·
-[📖 Guía de uso detallada](#guía-de-uso-detallada) ·
 [💬 Comunidad](#comunidad-y-soporte)
 
 </p>
@@ -73,19 +71,25 @@ _AionUi incluye Gemini CLI de forma integrada, listo para usar desde la instalac
 
 ---
 
-### 🌐 **Acceso desde cualquier lugar - Modo WebUI**
+### 🌐 **Acceso desde cualquier lugar - WebUI & Telegram Channel**
 
-_Tu asistente de IA 7×24 horas - Accede a AionUi desde cualquier dispositivo en la red. En viajes de negocios, en casa, en la oficina, usa tus herramientas de IA en cualquier momento y lugar_
+_Tu asistente de IA 7×24 horas - Accede a AionUi desde cualquier dispositivo, en cualquier lugar. En viajes de negocios, en casa, en la oficina, usa tus herramientas de IA en cualquier momento y lugar a través de WebUI o Telegram_
 
-**✨ Inicio con un clic**: Abre la opción WebUI en el panel de configuración y haz clic en el interruptor para iniciar.
+#### 🌐 **Modo WebUI**
 
-- ✅ **Acceso multiplataforma** - Teléfono, tableta, computadora, cualquier dispositivo puede acceder
-- ✅ **Colaboración remota** - Soporta LAN, red cruzada, despliegue en servidor y más
-- ✅ **Seguro y confiable** - Gestión de contraseñas, inicio de sesión con código QR, los datos nunca salen de tu dispositivo
+Accede a AionUi desde cualquier dispositivo a través del navegador - teléfono, tableta, computadora. Soporta LAN, red cruzada y despliegue en servidor.
 
 > 💡 **¿Necesitas una guía de configuración detallada?** Consulta la [Guía de configuración de WebUI](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) y la [Guía de acceso remoto a Internet](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide)
 
-https://github.com/user-attachments/assets/c81b7826-30ea-405e-86db-7d6a503c533b
+#### 📱 **Telegram Channel**
+
+Chatea directamente con tu asistente de IA desde Telegram en cualquier dispositivo. Sistema de código de emparejamiento simple para acceso seguro.
+
+> 💡 **Cómo configurar:** Ve a Configuración → Channels → Telegram, obtén tu Bot Token de [@BotFather](https://t.me/BotFather) y comienza a chatear!
+
+<p align="center">
+  <img src="./resources/remote.png" alt="Acceso desde cualquier lugar - WebUI & Telegram" width="800">
+</p>
 
 ---
 
@@ -122,6 +126,28 @@ _Generación, edición y reconocimiento inteligente de imágenes, impulsado por 
 <p align="center">
   <img src="./resources/Image_Generation.gif" alt="AI Image Generation Demo" width="800">
 </p>
+
+---
+
+### 🤖 **Soporte multi-modelo**
+
+_Admite modelos principales como Gemini, OpenAI, Claude, Qwen, y modelos locales como Ollama, LM Studio. Cambia flexiblemente entre diferentes modelos para satisfacer varios requisitos de tareas._
+
+<p align="center">
+  <img src="./resources/multi-model.png" alt="Soporte multi-modelo" width="800">
+</p>
+
+---
+
+### 🎨 **Personalización de interfaz personalizada**
+
+_Personaliza con tu propio código CSS, haz que tu interfaz coincida con tus preferencias_
+
+<p align="center">
+  <img src="./resources/css with skin.gif" alt="CSS Custom Interface Demo" width="800">
+</p>
+
+- ✅ **Totalmente personalizable** - Personaliza libremente colores, estilos y diseño de la interfaz a través de código CSS, crea tu experiencia exclusiva
 
 ---
 
@@ -226,52 +252,6 @@ _Mira cómo los creadores de contenido reseñan y usan AionUi_
 </p>
 
 > 💡 **¿Has hecho un video sobre AionUi?** [Cuéntanos en X](https://x.com/AionUi) y lo destacaremos aquí. Valoramos tus comentarios y seguiremos mejorando.
-
----
-
-## ✨ Funciones principales
-
-### 💬 **Chat multisesión**
-
-- **Multisesión + contexto independiente** - Abre varios chats a la vez; cada sesión tiene contexto independiente, sin confusión
-- **Almacenamiento local** - Todas las conversaciones se guardan localmente y no se pierden
-
-### 🌐 **Acceso remoto WebUI - Tu asistente de IA 24/7**
-
-- **Acceso entre dispositivos** - Accede desde cualquier dispositivo en la red vía navegador, compatible con móviles
-- **En cualquier momento y lugar** - En viajes de negocios, en casa, en la oficina, accede a tus herramientas de IA 7×24 horas, completamente gratis
-- **Seguridad de datos local** - Todos los datos se almacenan localmente en SQLite, adecuado para despliegues en servidor
-
-### 🤖 **Soporte multimodelo**
-
-- **Soporte multiplataforma** - Compatible con modelos principales como Gemini, OpenAI, Claude, Qwen; cambio flexible
-- **Soporte de modelos locales** - Admite despliegue local como Ollama, LM Studio; selecciona plataforma Custom y define la API local (p. ej., `http://localhost:11434/v1`) para conectar
-- **Optimización de suscripción Gemini 3** - Identifica automáticamente usuarios suscritos y recomienda modelos avanzados
-
-### 🗂️ **Gestión de archivos**
-
-- **Exploración de árbol + arrastrar y soltar** - Navega archivos como carpetas, admite arrastrar archivos o carpetas para importar con un clic
-- **Organización inteligente** - Puedes dejar que la IA ayude a organizar carpetas con clasificación automática
-
-### 📄 **Panel de vista previa - Dale pantalla al agente de IA**
-
-- **Vista previa de 9+ formatos** - Compatible con PDF, Word, Excel, PPT, código, Markdown, imágenes, etc.; ve los resultados inmediatamente
-- **Seguimiento en tiempo real + editable** - Rastrea cambios de archivos, soporta edición y depuración en tiempo real de Markdown, código, HTML
-
-### 🎨 **Generación y edición de imágenes con IA**
-
-- **Generación inteligente de imágenes** - Compatible con varios modelos de generación como Gemini 2.5 Flash Image Preview, Nano, Banana
-- **Reconocimiento y edición de imágenes** - Funciones de análisis y edición de imágenes impulsadas por IA
-
-### 🎨 **Personalización de la interfaz**
-
-_Personaliza con tu propio CSS, haz que la interfaz se adapte a tus preferencias_
-
-<p align="center">
-  <img src="./resources/css with skin.gif" alt="CSS Custom Interface Demo" width="800">
-</p>
-
-- **Totalmente personalizable** - Personaliza colores, estilos y diseño mediante CSS para crear tu experiencia exclusiva
 
 ---
 
