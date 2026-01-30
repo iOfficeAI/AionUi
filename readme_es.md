@@ -71,25 +71,43 @@ _AionUi incluye Gemini CLI de forma integrada, listo para usar desde la instalac
 
 ---
 
-### 🌐 **Acceso desde cualquier lugar - WebUI & Telegram Channel**
+### 🌐 **Acceso a tu AionUi desde cualquier lugar**
 
 _Tu asistente de IA 7×24 horas - Accede a AionUi desde cualquier dispositivo, en cualquier lugar. En viajes de negocios, en casa, en la oficina, usa tus herramientas de IA en cualquier momento y lugar a través de WebUI o Telegram_
 
-#### 🌐 **Modo WebUI**
+AionUi proporciona dos métodos de acceso remoto：
 
-Accede a AionUi desde cualquier dispositivo a través del navegador - teléfono, tableta, computadora. Soporta LAN, red cruzada y despliegue en servidor.
+- **🌐 Modo WebUI**
 
-> 💡 **¿Necesitas una guía de configuración detallada?** Consulta la [Guía de configuración de WebUI](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) y la [Guía de acceso remoto a Internet](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide)
+  Accede a AionUi desde cualquier dispositivo a través del navegador - teléfono, tableta, computadora. Soporta LAN, red cruzada y despliegue en servidor. Puedes iniciar sesión escaneando un código QR o usando contraseña de cuenta, haciéndolo simple y conveniente.
 
-#### 📱 **Telegram Channel**
+  > 💡 **¿Necesitas una guía de configuración detallada?** Consulta la [Guía de acceso remoto a Internet](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide)
 
-Chatea directamente con tu asistente de IA desde Telegram en cualquier dispositivo. Sistema de código de emparejamiento simple para acceso seguro.
+- **📱 Telegram Channel**
 
-> 💡 **Cómo configurar:** Ve a Configuración → Channels → Telegram, obtén tu Bot Token de [@BotFather](https://t.me/BotFather) y comienza a chatear!
+  Chatea directamente con tu asistente de IA desde Telegram en cualquier dispositivo. Sistema de código de emparejamiento simple para acceso seguro.
+
+  > 💡 **Cómo configurar:** Ve a Configuración de AionUi → Configuración de WebUI → Channel, obtén tu Bot Token de [@BotFather](https://t.me/BotFather) y comienza a chatear!
 
 <p align="center">
-  <img src="./resources/remote.png" alt="Acceso desde cualquier lugar - WebUI & Telegram" width="800">
+  <img src="./resources/remote-telegram.png" alt="Acceso desde cualquier lugar - WebUI & Telegram" width="800">
 </p>
+
+---
+
+### ⏰ **Tareas programadas - Deja que AionUi automatice tu trabajo**
+
+_Después de configurar las tareas programadas, el asistente de IA se ejecutará automáticamente según el tiempo que establezcas, logrando verdaderamente una operación 7×24 horas sin supervisión_
+
+- **Conversación libre** - Dile a la IA qué hacer usando lenguaje natural, como chatear normalmente
+- **Configuración de tiempo flexible** - Diario, semanal, mensual, todo es posible
+- **Simple y fácil** - Crear, modificar, habilitar/deshabilitar, eliminar, ver y ajustar en cualquier momento
+
+<p align="center">
+  <img src="./resources/alart-task.png" alt="Tareas programadas Demo" width="800">
+</p>
+
+> 💡 **Casos de uso:** Agregación de datos programada, generación de informes regulares, organización automática de archivos, recordatorios programados, etc.
 
 ---
 

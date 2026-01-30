@@ -71,25 +71,43 @@ _AionUi には Gemini CLI を内蔵しており、ダウンロードしてすぐ
 
 ---
 
-### 🌐 **どこからでもアクセス - WebUI & Telegram Channel**
+### 🌐 **どこからでもアクセスできるAionUi**
 
 _あなたの 7×24 時間 AI アシスタント - 任意のデバイス、どこからでもAionUiにアクセス！出張中、自宅、オフィス、いつでもどこでもWebUIまたはTelegramを通じてAIツールを使用_
 
-#### 🌐 **WebUIモード**
+AionUiは2つのリモートアクセス方法を提供します：
 
-ブラウザから任意のデバイスでAionUiにアクセス - スマートフォン、タブレット、コンピューター。LAN、クロスネットワーク、サーバー展開をサポート。
+- **🌐 WebUIモード**
 
-> 💡 **詳細な設定ガイドが必要ですか？** [WebUI設定チュートリアル](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) と [リモートインターネットアクセスガイド](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide) を確認
+  ブラウザから任意のデバイスでAionUiにアクセス - スマートフォン、タブレット、コンピューター。LAN、クロスネットワーク、サーバー展開をサポート。QRコードをスキャンするか、アカウントパスワードでログインでき、操作が簡単で便利です。
 
-#### 📱 **Telegram Channel**
+  > 💡 **詳細な設定ガイドが必要ですか？** [リモートインターネットアクセスガイド](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide) を確認
 
-任意のデバイスからTelegramを通じてAIアシスタントと直接チャット。シンプルなペアリングコードシステムで安全なアクセスを確保。
+- **📱 Telegram Channel**
 
-> 💡 **設定方法：** 設定 → Channels → Telegram に移動し、[@BotFather](https://t.me/BotFather) からBot Tokenを取得して、チャットを開始！
+  任意のデバイスからTelegramを通じてAIアシスタントと直接チャット。シンプルなペアリングコードシステムで安全なアクセスを確保。
+
+  > 💡 **設定方法：** AionUi設定 → WebUI設定 → Channel に移動し、[@BotFather](https://t.me/BotFather) からBot Tokenを取得して、チャットを開始！
 
 <p align="center">
-  <img src="./resources/remote.png" alt="どこからでもアクセス - WebUI & Telegram" width="800">
+  <img src="./resources/remote-telegram.png" alt="どこからでもアクセス - WebUI & Telegram" width="800">
 </p>
+
+---
+
+### ⏰ **スケジュールタスク - AionUiが自動的にタスクを完了**
+
+_スケジュールタスクを設定すると、AIアシスタントが設定した時間に自動的に実行され、真の7×24時間無人運用を実現_
+
+- **自由な会話形式** - 自然言語でAIに何をすべきかを伝える、普段のチャットと同じように
+- **柔軟な時間設定** - 毎日、毎週、毎月など、いつでも可能
+- **シンプルで使いやすい** - 作成、変更、有効化/無効化、削除、いつでも表示と調整が可能
+
+<p align="center">
+  <img src="./resources/alart-task.png" alt="スケジュールタスクデモ" width="800">
+</p>
+
+> 💡 **使用例：** スケジュールデータ集計、定期レポート生成、自動ファイル整理、スケジュールリマインダーなど
 
 ---
 
