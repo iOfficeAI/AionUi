@@ -391,6 +391,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
     case 'start':
     case 'finish':
     case 'thought':
+    case 'system': // Cron system responses, ignored
       break;
     default: {
       throw new Error(`Unsupported message type '${message.type}'. All non-standard message types should be pre-processed by respective AgentManagers.`);

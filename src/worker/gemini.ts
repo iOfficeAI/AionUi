@@ -11,6 +11,8 @@ import { GeminiAgent } from '@/agent/gemini';
 import { forkTask } from './utils';
 export default forkTask(({ data }, pipe) => {
   pipe.log('gemini.init', data);
+  console.log(`[GeminiWorker] presetRules length: ${data.presetRules?.length || 0}`);
+  console.log(`[GeminiWorker] presetRules preview: ${data.presetRules?.substring(0, 200) || 'empty'}`);
   const agent = new GeminiAgent({
     ...data,
     onStreamEvent(event) {

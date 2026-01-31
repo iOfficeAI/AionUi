@@ -116,14 +116,27 @@ export class CodexConnection {
     }
   }
 
-  start(cliPath: string, cwd: string, args: string[] = []): Promise<void> {
+  start(cliPath: string, cwd: string, args: string[] = [], options?: { yoloMode?: boolean }): Promise<void> {
     // 根据 Codex 版本自动检测合适的 MCP 命令 / Auto-detect appropriate MCP command based on Codex version
     const cleanEnv = { ...process.env };
     delete cleanEnv.NODE_OPTIONS;
     delete cleanEnv.NODE_INSPECT;
     delete cleanEnv.NODE_DEBUG;
     const isWindows = process.platform === 'win32';
-    const finalArgs = args.length ? args : this.detectMcpCommand(cliPath);
+    let finalArgs = args.length ? args : this.detectMcpCommand(cliPath);
+
+    // Add ask_for_approval config for mcp-server
+    // This controls when user confirmation is required
+    // Note: --full-auto is only available for `codex exec`, not `mcp-server`
+    // For mcp-server, we use -c config to set ask_for_approval
+    // Values: untrusted (requires approval for non-trusted commands), on-failure, on-request (model decides), never (auto-approve all)
+    if (options?.yoloMode) {
+      // yoloMode: auto-approve all operations without user confirmation
+      finalArgs = [...finalArgs, '-c', 'ask_for_approval=never'];
+    } else {
+      // Normal mode: require user approval for non-trusted commands
+      finalArgs = [...finalArgs, '-c', 'ask_for_approval=untrusted'];
+    }
 
     return new Promise((resolve, reject) => {
       try {
@@ -174,7 +187,7 @@ export class CodexConnection {
           for (const line of lines) {
             if (!line.trim()) continue;
 
-            console.log('codex line ===>', line);
+            // console.log('codex line ===>', line);
 
             // Check if this looks like a JSON-RPC message
             if (line.trim().startsWith('{') && line.trim().endsWith('}')) {

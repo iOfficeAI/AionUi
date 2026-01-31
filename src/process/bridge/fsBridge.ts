@@ -643,6 +643,10 @@ export function initFsBridge(): void {
           for (const entry of entries) {
             if (!entry.isDirectory()) continue;
 
+            // 跳过内置 skills 目录（_builtin），这些 skills 自动注入，不需要用户选择
+            // Skip builtin skills directory (_builtin), these are auto-injected, no user selection needed
+            if (entry.name === '_builtin') continue;
+
             const skillMdPath = path.join(skillsDir, entry.name, 'SKILL.md');
 
             try {

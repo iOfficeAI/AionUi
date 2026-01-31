@@ -96,11 +96,13 @@ export async function loadCliConfig({ workspace, settings, extensions, sessionId
 
       // 根据 enabledSkills 过滤 skills
       // Filter skills based on enabledSkills
-      if (enabledSkills && enabledSkills.length > 0) {
+      // 当 enabledSkills 是数组时（包括空数组），进行过滤
+      // When enabledSkills is an array (including empty), apply filtering
+      if (Array.isArray(enabledSkills)) {
         const enabledSet = new Set(enabledSkills);
         const originalCount = builtinSkills.length;
         builtinSkills = builtinSkills.filter((skill) => enabledSet.has(skill.name));
-        console.log(`[Config] Filtered skills: ${builtinSkills.length}/${originalCount} enabled (${enabledSkills.join(', ')})`);
+        console.log(`[Config] Filtered skills: ${builtinSkills.length}/${originalCount} enabled (${enabledSkills.join(', ') || 'none'})`);
       }
     } catch (error) {
       console.warn(`[Config] Failed to load builtin skills from ${skillsDir}:`, error);

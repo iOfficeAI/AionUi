@@ -13,7 +13,7 @@ import type { TMessage } from '@/common/chatLib';
 import { ASSISTANT_PRESETS } from '@/common/presets/assistantPresets';
 import type { IChatConversationRefer, IConfigStorageRefer, IEnvStorageRefer, IMcpServer, TChatConversation, TProviderWithModel } from '../common/storage';
 import { ChatMessageStorage, ChatStorage, ConfigStorage, EnvStorage } from '../common/storage';
-import { copyDirectoryRecursively, getCliSafePath, getConfigPath, getDataPath, getTempPath, verifyDirectoryFiles } from './utils';
+import { copyDirectoryRecursively, getConfigPath, getDataPath, getTempPath, verifyDirectoryFiles } from './utils';
 import { getDatabase } from './database/export';
 import type { AcpBackendConfig } from '@/types/acpTypes';
 // Platform and architecture types (moved from deleted updateConfig)
@@ -341,6 +341,15 @@ const getSkillsDir = () => {
 };
 
 /**
+ * 获取内置技能目录路径（_builtin 子目录）
+ * Get builtin skills directory path (_builtin subdirectory)
+ * Skills in this directory are automatically injected for ALL agents and scenarios
+ */
+const getBuiltinSkillsDir = () => {
+  return path.join(getSkillsDir(), '_builtin');
+};
+
+/**
  * 初始化内置助手的规则和技能文件到用户目录
  * Initialize builtin assistant rule and skill files to user directory
  */
@@ -519,7 +528,8 @@ const getBuiltinAssistants = (): AcpBackendConfig[] => {
   const assistants: AcpBackendConfig[] = [];
 
   for (const preset of ASSISTANT_PRESETS) {
-    // Cowork 默认启用的技能列表 / Default enabled skills for Cowork
+    // Cowork 默认启用的技能列表（不包含 cron，因为它是内置 skill，自动注入）
+    // Default enabled skills for Cowork (excluding cron, which is builtin and auto-injected)
     const defaultEnabledSkills = preset.id === 'cowork' ? ['skill-creator', 'pptx', 'docx', 'pdf', 'xlsx'] : undefined;
     const enabledByDefault = preset.id === 'cowork';
 
@@ -723,9 +733,9 @@ export const ProcessEnv = envFile;
 export const getSystemDir = () => {
   return {
     cacheDir: cacheDir,
-    // Use CLI-safe path (symlink on macOS) for all agents to avoid spaces in paths
-    // 所有 agent 使用 CLI 安全路径（macOS 上的符号链接）以避免路径中空格导致的问题
-    workDir: dirConfig?.workDir || getCliSafePath(),
+    // getDataPath() returns CLI-safe path (symlink on macOS) to avoid spaces
+    // getDataPath() 返回 CLI 安全路径（macOS 上的符号链接）以避免空格问题
+    workDir: dirConfig?.workDir || getDataPath(),
     platform: process.platform as PlatformType,
     arch: process.arch as ArchitectureType,
   };
@@ -735,7 +745,7 @@ export const getSystemDir = () => {
  * 获取助手规则目录路径（供其他模块使用）
  * Get assistant rules directory path (for use by other modules)
  */
-export { getAssistantsDir, getSkillsDir };
+export { getAssistantsDir, getSkillsDir, getBuiltinSkillsDir };
 
 /**
  * Skills 内容缓存，避免重复从文件系统读取
@@ -763,11 +773,15 @@ export const loadSkillsContent = async (enabledSkills: string[]): Promise<string
   }
 
   const skillsDir = getSkillsDir();
+  const builtinSkillsDir = getBuiltinSkillsDir();
   const skillContents: string[] = [];
 
   for (const skillName of enabledSkills) {
-    // 优先尝试目录结构：{skillName}/SKILL.md（与 aioncli-core 的 loadSkillsFromDir 一致）
-    // First try directory structure: {skillName}/SKILL.md (consistent with aioncli-core's loadSkillsFromDir)
+    // 优先尝试内置 skills 目录：_builtin/{skillName}/SKILL.md
+    // First try builtin skills directory: _builtin/{skillName}/SKILL.md
+    const builtinSkillFile = path.join(builtinSkillsDir, skillName, 'SKILL.md');
+    // 然后尝试目录结构：{skillName}/SKILL.md（与 aioncli-core 的 loadSkillsFromDir 一致）
+    // Then try directory structure: {skillName}/SKILL.md (consistent with aioncli-core's loadSkillsFromDir)
     const skillDirFile = path.join(skillsDir, skillName, 'SKILL.md');
     // 向后兼容：扁平结构 {skillName}.md
     // Backward compatible: flat structure {skillName}.md
@@ -776,7 +790,9 @@ export const loadSkillsContent = async (enabledSkills: string[]): Promise<string
     try {
       let content: string | null = null;
 
-      if (existsSync(skillDirFile)) {
+      if (existsSync(builtinSkillFile)) {
+        content = await fs.readFile(builtinSkillFile, 'utf-8');
+      } else if (existsSync(skillDirFile)) {
         content = await fs.readFile(skillDirFile, 'utf-8');
       } else if (existsSync(skillFlatFile)) {
         content = await fs.readFile(skillFlatFile, 'utf-8');

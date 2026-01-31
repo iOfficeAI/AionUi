@@ -78,6 +78,9 @@ export async function prepareFirstMessage(content: string, config: FirstMessageC
  * 用于 ACP agents (Claude/OpenCode) 和 Codex，Agent 通过 Read 工具按需读取 skill 文件
  * Used for ACP agents (Claude/OpenCode) and Codex, Agent reads skill files on-demand using Read tool
  *
+ * 注意：内置 skills（_builtin/ 目录下）会自动注入，不需要在 enabledSkills 中指定
+ * Note: Builtin skills (in _builtin/ directory) are auto-injected, no need to specify in enabledSkills
+ *
  * @param content - 原始消息内容 / Original message content
  * @param config - 首次消息配置 / First message configuration
  * @returns 注入系统指令后的消息内容 / Message content with system instructions injected
@@ -90,15 +93,21 @@ export async function prepareFirstMessageWithSkillsIndex(content: string, config
     instructions.push(config.presetContext);
   }
 
-  // 2. 加载 skills 索引（而非完整内容）/ Load skills INDEX (not full content)
+  // 2. 加载 skills 索引（包括内置 skills + 可选 skills）
+  // Load skills INDEX (including builtin skills + optional skills)
   // 使用单例模式避免重复文件系统扫描 / Use singleton to avoid repeated filesystem scans
-  if (config.enabledSkills && config.enabledSkills.length > 0) {
-    const skillManager = AcpSkillManager.getInstance(config.enabledSkills);
-    await skillManager.discoverSkills(config.enabledSkills);
+  const skillManager = AcpSkillManager.getInstance(config.enabledSkills);
+  // discoverSkills 会自动先加载内置 skills / discoverSkills auto-loads builtin skills first
+  await skillManager.discoverSkills(config.enabledSkills);
 
+  // 只有当有任何 skills 时才注入 / Only inject if there are any skills
+  if (skillManager.hasAnySkills()) {
     const skillsIndex = skillManager.getSkillsIndex();
     if (skillsIndex.length > 0) {
+      // getSkillsDir() already returns CLI-safe path (symlink on macOS)
+      // getSkillsDir() 已返回 CLI 安全路径（macOS 上使用符号链接）
       const skillsDir = getSkillsDir();
+      const builtinSkillsDir = skillsDir + '/_builtin';
       const indexText = buildSkillsIndexText(skillsIndex);
 
       // 告诉 Agent skills 文件的位置，让它按需读取
@@ -106,12 +115,16 @@ export async function prepareFirstMessageWithSkillsIndex(content: string, config
       const skillsInstruction = `${indexText}
 
 [Skills Location]
-Skills are stored at: ${skillsDir}
-Each skill has a SKILL.md file containing detailed instructions.
-To use a skill, read its SKILL.md file when needed:
-- ${skillsDir}/{skill-name}/SKILL.md
+Skills are stored in two locations:
+- Builtin skills (auto-enabled): ${builtinSkillsDir}/{skill-name}/SKILL.md
+- Optional skills: ${skillsDir}/{skill-name}/SKILL.md
 
-For example, to use the "pptx" skill, read: ${skillsDir}/pptx/SKILL.md`;
+Each skill has a SKILL.md file containing detailed instructions.
+To use a skill, read its SKILL.md file when needed.
+
+For example:
+- Builtin "cron" skill: ${builtinSkillsDir}/cron/SKILL.md
+- Optional "pptx" skill: ${skillsDir}/pptx/SKILL.md`;
 
       instructions.push(skillsInstruction);
     }

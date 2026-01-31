@@ -324,6 +324,8 @@ export interface CodexAgentManagerData {
   presetContext?: string; // 智能助手的预设规则/提示词 / Preset context from smart assistant
   /** 启用的 skills 列表，用于过滤 SkillManager 加载的 skills / Enabled skills list for filtering SkillManager skills */
   enabledSkills?: string[];
+  /** Full auto mode for cron jobs - skip confirmation prompts while keeping sandbox protection */
+  yoloMode?: boolean;
 }
 
 export interface ElicitationCreateData {

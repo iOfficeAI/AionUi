@@ -11,11 +11,16 @@ import { transformMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import type { IMcpServer, TProviderWithModel } from '@/common/storage';
 import { ProcessConfig, getSkillsDir } from '@/process/initStorage';
+import { buildSystemInstructions } from './agentUtils';
+import { uuid } from '@/common/utils';
 import { getOauthInfoWithCache } from '@office-ai/aioncli-core';
 import { ToolConfirmationOutcome } from '../../agent/gemini/cli/tools/tools';
 import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '../message';
+import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import { handlePreviewOpenEvent } from '../utils/previewUtils';
 import BaseAgentManager from './BaseAgentManager';
+import { hasCronCommands } from './CronCommandDetector';
+import { extractTextFromMessage, processCronInMessage } from './MessageMiddleware';
 
 // gemini agent管理器类
 type UiMcpServerConfig = {
@@ -41,6 +46,8 @@ export class GeminiAgentManager extends BaseAgentManager<
     skillsDir?: string;
     /** 启用的 skills 列表 / Enabled skills list */
     enabledSkills?: string[];
+    /** Yolo mode: auto-approve all tool calls / 自动允许模式 */
+    yoloMode?: boolean;
   },
   string
 > {
@@ -56,6 +63,9 @@ export class GeminiAgentManager extends BaseAgentManager<
     // ... (omitting injectHistoryFromDatabase for space)
   }
 
+  /** Force yolo mode (for cron jobs) / 强制 yolo 模式（用于定时任务） */
+  private forceYoloMode?: boolean;
+
   constructor(
     data: {
       workspace: string;
@@ -67,6 +77,8 @@ export class GeminiAgentManager extends BaseAgentManager<
       contextContent?: string; // 向后兼容 / Backward compatible
       /** 启用的 skills 列表 / Enabled skills list */
       enabledSkills?: string[];
+      /** Force yolo mode (for cron jobs) / 强制 yolo 模式（用于定时任务） */
+      yoloMode?: boolean;
     },
     model: TProviderWithModel
   ) {
@@ -77,6 +89,7 @@ export class GeminiAgentManager extends BaseAgentManager<
     this.contextFileName = data.contextFileName;
     this.presetRules = data.presetRules;
     this.enabledSkills = data.enabledSkills;
+    this.forceYoloMode = data.yoloMode;
     // 向后兼容 / Backward compatible
     this.contextContent = data.contextContent || data.presetRules;
     this.bootstrap = Promise.all([ProcessConfig.get('gemini.config'), this.getImageGenerationModel(), this.getMcpServers()])
@@ -96,6 +109,20 @@ export class GeminiAgentManager extends BaseAgentManager<
           // If account retrieval fails, don't set projectId, let system use default
         }
 
+        // Build system instructions using unified agentUtils
+        // 使用统一的 agentUtils 构建系统指令
+        // Always include 'cron' as a built-in skill
+        // 始终将 'cron' 作为内置 skill 包含
+        const allEnabledSkills = ['cron', ...(this.enabledSkills || [])];
+        const finalPresetRules = await buildSystemInstructions({
+          presetContext: this.presetRules,
+          enabledSkills: allEnabledSkills,
+        });
+
+        // Determine yoloMode: forceYoloMode (cron jobs) takes priority over config setting
+        // 确定 yoloMode：forceYoloMode（定时任务）优先于配置设置
+        const yoloMode = this.forceYoloMode ?? config?.yoloMode ?? false;
+
         return this.start({
           ...config,
           GOOGLE_CLOUD_PROJECT: projectId,
@@ -105,13 +132,15 @@ export class GeminiAgentManager extends BaseAgentManager<
           webSearchEngine: data.webSearchEngine,
           mcpServers,
           contextFileName: this.contextFileName,
-          presetRules: this.presetRules,
+          presetRules: finalPresetRules,
           contextContent: this.contextContent,
           // Skills 通过 SkillManager 加载 / Skills loaded via SkillManager
           skillsDir: getSkillsDir(),
           // 启用的 skills 列表，用于过滤 SkillManager 中的 skills
           // Enabled skills list for filtering skills in SkillManager
           enabledSkills: this.enabledSkills,
+          // Yolo mode: auto-approve all tool calls / 自动允许模式
+          yoloMode,
         });
       })
       .then(async () => {
@@ -171,8 +200,10 @@ export class GeminiAgentManager extends BaseAgentManager<
     };
     addMessage(this.conversation_id, message);
     this.status = 'pending';
+    cronBusyGuard.setProcessing(this.conversation_id, true);
     const result = await this.bootstrap
       .catch((e) => {
+        cronBusyGuard.setProcessing(this.conversation_id, false);
         this.emit('gemini.message', {
           type: 'error',
           data: e.message || JSON.stringify(e),
@@ -187,7 +218,10 @@ export class GeminiAgentManager extends BaseAgentManager<
           });
         });
       })
-      .then(() => super.sendMessage(data));
+      .then(() => super.sendMessage(data))
+      .finally(() => {
+        cronBusyGuard.setProcessing(this.conversation_id, false);
+      });
     return result;
   }
 
@@ -327,6 +361,9 @@ export class GeminiAgentManager extends BaseAgentManager<
     this.on('gemini.message', (data) => {
       if (data.type === 'finish') {
         this.status = 'finished';
+        // When stream finishes, check for cron commands in the accumulated message
+        // Use longer delay and retry logic to ensure message is persisted
+        this.checkCronWithRetry(0);
       }
       if (data.type === 'start') {
         this.status = 'running';
@@ -359,6 +396,96 @@ export class GeminiAgentManager extends BaseAgentManager<
       // Emit to Channel global event bus (for Telegram and other external platforms)
       channelEventBus.emitAgentMessage(this.conversation_id, data);
     });
+  }
+
+  /**
+   * Retry checking for cron commands with increasing delays
+   * Max 3 retries: 1s, 2s, 3s
+   * @param attempt - current attempt number
+   * @param checkAfterTimestamp - only process messages created after this timestamp
+   */
+  private checkCronWithRetry(attempt: number, checkAfterTimestamp?: number): void {
+    const delays = [1000, 2000, 3000];
+    const maxAttempts = delays.length;
+
+    if (attempt >= maxAttempts) {
+      return;
+    }
+
+    // Record timestamp on first attempt to avoid re-processing old messages
+    const timestamp = checkAfterTimestamp ?? Date.now();
+    const delay = delays[attempt];
+
+    setTimeout(async () => {
+      const found = await this.checkCronCommandsOnFinish(timestamp);
+      if (!found && attempt < maxAttempts - 1) {
+        // No assistant messages found, retry with same timestamp
+        this.checkCronWithRetry(attempt + 1, timestamp);
+      }
+    }, delay);
+  }
+
+  /**
+   * Check for cron commands when stream finishes
+   * Gets recent assistant messages from database and processes them
+   * @param afterTimestamp - Only process messages created after this timestamp
+   * Returns true if assistant messages were found (regardless of cron commands)
+   */
+  private async checkCronCommandsOnFinish(afterTimestamp: number): Promise<boolean> {
+    try {
+      const { getDatabase } = await import('@process/database');
+      const db = getDatabase();
+      const result = db.getConversationMessages(this.conversation_id, 0, 20, 'DESC');
+
+      if (!result.data || result.data.length === 0) {
+        return false;
+      }
+
+      // Check recent assistant messages for cron commands (position: left means assistant)
+      // Filter by timestamp to avoid re-processing old messages
+      const assistantMsgs = result.data.filter((m) => m.position === 'left' && (m.createdAt ?? 0) > afterTimestamp);
+
+      // Return false if no assistant messages found after timestamp (will trigger retry)
+      if (assistantMsgs.length === 0) {
+        return false;
+      }
+
+      // Only check the LATEST assistant message to avoid re-processing old messages
+      // Messages are sorted DESC, so the first one is the latest
+      const latestMsg = assistantMsgs[0];
+      const textContent = extractTextFromMessage(latestMsg);
+
+      if (textContent && hasCronCommands(textContent)) {
+        // Create a message with finish status for middleware
+        const msgWithStatus = { ...latestMsg, status: 'finish' as const };
+        // Collect system responses to send back to AI
+        const collectedResponses: string[] = [];
+        await processCronInMessage(this.conversation_id, 'gemini', msgWithStatus, (sysMsg) => {
+          collectedResponses.push(sysMsg);
+          // Also emit to frontend for display
+          ipcBridge.geminiConversation.responseStream.emit({
+            type: 'system',
+            conversation_id: this.conversation_id,
+            msg_id: uuid(),
+            data: sysMsg,
+          });
+        });
+        // Send collected responses back to AI agent so it can continue
+        if (collectedResponses.length > 0) {
+          const feedbackMessage = `[System Response]\n${collectedResponses.join('\n')}`;
+          // Use sendMessage to send the feedback back to AI
+          await this.sendMessage({
+            input: feedbackMessage,
+            msg_id: uuid(),
+          });
+        }
+      }
+
+      // Found assistant messages, no need to retry
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   confirm(id: string, callId: string, data: string) {

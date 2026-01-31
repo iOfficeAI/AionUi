@@ -201,7 +201,7 @@ export class AcpConnection {
         if (line.trim()) {
           try {
             const message = JSON.parse(line) as AcpMessage;
-            console.log('AcpMessage==>', JSON.stringify(message));
+            // console.log('AcpMessage==>', JSON.stringify(message));
             this.handleMessage(message);
           } catch (error) {
             // Ignore parsing errors for non-JSON messages
