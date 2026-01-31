@@ -312,7 +312,8 @@
       "quotaExceededTitle": "모델 할당량 도달",
       "quotaExceededBody": "현재 모델 할당량이 소진되었습니다. {{model}}(으)로 전환하여 계속하시겠습니까?",
       "quotaExceededNoFallback": "모델 할당량에 도달했습니다. 다른 사용 가능한 모델로 전환하세요.",
-      "quotaSwitched": "{{model}}(으)로 전환되었습니다."
+      "quotaSwitched": "{{model}}(으)로 전환되었습니다.",
+      "confirmationLoadError": "확인 대화 상자 로드 실패"
     },
     "contextUsage": {
       "contextUsed": "사용된 컨텍스트"
@@ -610,6 +611,7 @@
     "mcpRemovePartialFailed": "MCP 구성 제거 일부 실패: {{errors}}",
     "mcpSyncFailed": "MCP 구성 동기화 실패: {{error}}",
     "mcpRemoveFailed": "MCP 구성 제거 실패: {{error}}",
+    "mcpSyncFailedNoAgents": "사용 가능한 에이전트가 감지되지 않아 MCP 구성을 동기화할 수 없습니다",
     "mcpDeletedWithCleanup": "MCP 서버 삭제 및 구성 정리 완료",
     "mcpDeleted": "MCP 서버 삭제됨",
     "mcpDeleteError": "MCP 구성 삭제 중 오류 발생",

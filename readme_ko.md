@@ -1,4 +1,4 @@
-﻿<p align="center">
+<p align="center">
   <img src="./resources/aionui-banner-1.png" alt="AionUi - Cowork with Your CLI AI Agent" width="100%">
 </p>
 
@@ -19,7 +19,7 @@
 ---
 
 <p align="center">
-  <strong>🚀 AI와 함께 협업하세요 - Gemini CLI, Claude Code, Codex, Qwen Code, Goose CLI, Auggie 등</strong><br>
+  <strong>🚀 Gemini CLI, Claude Code, Codex, Qwen Code, Goose CLI, Auggie 등을 기반으로 한 「Cowork」개인 어시스턴트</strong><br>
   <em>사용자 친화적 | 시각적 그래픽 인터페이스 | 다중 모델 지원 | 로컬 데이터 보안</em>
 </p>
 
@@ -45,9 +45,7 @@
 
 [✨ AionUi로 무엇을 할 수 있나요?](#aionui로-무엇을-할-수-있나요) ·
 [🤔 왜 AionUi를 선택해야 하나요?](#왜-aionui를-선택해야-하나요) ·
-[✨ 핵심 기능](#핵심-기능) ·
 [🚀 빠른 시작](#빠른-시작) ·
-[📖 상세 사용 가이드](#상세-사용-가이드) ·
 [💬 커뮤니티](#커뮤니티--지원)
 
 </p>
@@ -73,19 +71,43 @@ _AionUi에는 Gemini CLI가 내장되어 있어 다운로드 즉시 사용 가�
 
 ---
 
-### 🌐 **어디서나 접속 - WebUI 모드**
+### 🌐 **어디서나 접속할 수 있는 AionUi**
 
-_당신의 7×24시간 AI 어시스턴트 - 네트워크의 모든 기기에서 AionUi에 접속하세요! 출장 중, 집에서, 사무실에서, 언제 어디서나 AI 도구를 사용하세요_
+_당신의 7×24시간 AI 어시스턴트 - 모든 기기, 어디서나 AionUi에 접속하세요! 출장 중, 집에서, 사무실에서, 언제 어디서나 WebUI 또는 Telegram을 통해 AI 도구를 사용하세요_
 
-**✨ 원클릭 시작**：설정 패널에서 WebUI 옵션을 열고 스위치를 클릭하기만 하면 시작됩니다!
+AionUi는 두 가지 원격 접속 방법을 제공합니다：
 
-- ✅ **크로스 디바이스 접속** - 스마트폰, 태블릿, 컴퓨터, 모든 기기에서 접속 가능
-- ✅ **원격 협업** - LAN, 크로스 네트워크, 서버 배포 등 다양한 시나리오 지원
-- ✅ **안전하고 신뢰할 수 있음** - 비밀번호 관리, QR 코드 로그인, 데이터는 기기를 떠나지 않습니다
+- **🌐 WebUI 모드**
 
-> 💡 **자세한 설정 가이드가 필요하신가요?** [WebUI 설정 튜토리얼](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) 과 [원격 인터넷 접속 가이드](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide) 를 확인하세요
+  브라우저를 통해 모든 기기에서 AionUi에 접속 - 스마트폰, 태블릿, 컴퓨터. LAN, 크로스 네트워크 및 서버 배포를 지원합니다. QR 코드를 스캔하거나 계정 비밀번호로 로그인할 수 있어 간단하고 편리합니다.
 
-https://github.com/user-attachments/assets/c81b7826-30ea-405e-86db-7d6a503c533b
+  > 💡 **자세한 설정 가이드가 필요하신가요?** [원격 인터넷 접속 가이드](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide) 를 확인하세요
+
+- **📱 Telegram Channel**
+
+  모든 기기에서 Telegram을 통해 AI 어시스턴트와 직접 채팅하세요. 간단한 페어링 코드 시스템으로 안전한 접속을 보장합니다.
+
+  > 💡 **설정 방법：** AionUi 설정 → WebUI 설정 → Channel으로 이동하여 [@BotFather](https://t.me/BotFather)에서 Bot Token을 가져온 후 채팅을 시작하세요!
+
+<p align="center">
+  <img src="./resources/remote-telegram.png" alt="어디서나 접속 - WebUI & Telegram" width="800">
+</p>
+
+---
+
+### ⏰ **스케줄 작업 - AionUi가 자동으로 작업 완료**
+
+_스케줄 작업을 설정하면 AI 어시스턴트가 설정한 시간에 자동으로 실행되어 진정한 7×24시간 무인 운영을 실현합니다_
+
+- **자유로운 대화 형식** - 자연어로 AI에게 무엇을 해야 할지 알려주세요, 평소 채팅하는 것처럼
+- **유연한 시간 설정** - 매일, 매주, 매월 모두 가능합니다
+- **간단하고 사용하기 쉬움** - 생성, 수정, 활성화/비활성화, 삭제, 언제든지 확인 및 조정 가능
+
+<p align="center">
+  <img src="./resources/alart-task.png" alt="스케줄 작업 데모" width="800">
+</p>
+
+> 💡 **사용 사례：** 스케줄 데이터 집계, 정기 보고서 생성, 자동 파일 정리, 스케줄 알림 등
 
 ---
 
@@ -122,6 +144,28 @@ _Gemini 기반의 지능형 이미지 생성, 편집 및 인식_
 <p align="center">
   <img src="./resources/Image_Generation.gif" alt="AI 이미지 생성 데모" width="800">
 </p>
+
+---
+
+### 🤖 **다중 모델 지원**
+
+_Gemini, OpenAI, Claude, Qwen과 같은 주류 모델 및 Ollama, LM Studio와 같은 로컬 모델을 지원합니다. 다양한 작업 요구 사항을 충족하기 위해 다른 모델 간에 유연하게 전환합니다._
+
+<p align="center">
+  <img src="./resources/multi-model.png" alt="다중 모델 지원" width="800">
+</p>
+
+---
+
+### 🎨 **개인화된 인터페이스 사용자 정의**
+
+_자신만의 CSS 코드로 사용자 정의하여 인터페이스를 선호도에 맞게 조정_
+
+<p align="center">
+  <img src="./resources/css with skin.gif" alt="CSS 사용자 정의 인터페이스 데모" width="800">
+</p>
+
+- ✅ **완전히 사용자 정의 가능** - CSS 코드를 통해 인터페이스 색상, 스타일, 레이아웃을 자유롭게 사용자 정의하여 독점적인 사용 경험을 만듭니다
 
 ---
 
@@ -226,52 +270,6 @@ _크리에이터들이 AionUi를 리뷰하고 사용하는 모습을 시청하�
 </p>
 
 > 💡 **AionUi에 대한 영상을 만드셨나요?** [X에서 알려주세요](https://x.com/AionUi), 여기에 소개해 드립니다! 여러분의 피드백을 반영하여 지속적으로 개선하겠습니다.
-
----
-
-## ✨ 핵심 기능
-
-### 💬 **다중 세션 채팅**
-
-- **다중 세션 + 독립적 컨텍스트** - 동시에 여러 채팅 열기, 각 세션은 독립적인 컨텍스트 메모리를 가짐, 혼동 없음
-- **로컬 저장** - 모든 대화가 로컬에 저장되어 손실 없음
-
-### 🌐 **WebUI 원격 접속 - 당신의 24/7 AI 어시스턴트**
-
-- **크로스 디바이스 접속** - 네트워크의 모든 기기에서 브라우저를 통해 접속, 모바일 기기 지원
-- **언제 어디서나** - 출장 중, 집에서, 사무실에서, 7×24시간 언제든 AI 도구에 접속, 완전 무료
-- **로컬 데이터 보안** - 모든 데이터가 SQLite 데이터베이스에 로컬 저장, 서버 배포에 적합
-
-### 🤖 **다중 모델 지원**
-
-- **다중 플랫폼 지원** - Gemini, OpenAI, Claude, Qwen과 같은 주류 모델 지원, 유연하게 전환
-- **로컬 모델 지원** - Ollama, LM Studio와 같은 로컬 모델 배포 지원, Custom 플랫폼을 선택하고 로컬 API 주소(예: `http://localhost:11434/v1`)를 설정하여 연결
-- **Gemini 3 구독 최적화** - 구독 사용자 자동 식별, 고급 모델 추천
-
-### 🗂️ **파일 관리**
-
-- **파일 트리 탐색 + 드래그 앤 드롭 업로드** - 폴더처럼 파일 탐색, 파일이나 폴더를 드래그 앤 드롭하여 원클릭 가져오기 지원
-- **스마트 정리** - AI가 폴더 정리를 도와주고 자동 분류
-
-### 📄 **미리보기 패널 - AI Agent에게 디스플레이 제공**
-
-- **9가지 이상의 형식 미리보기** - PDF, Word, Excel, PPT, 코드, Markdown, 이미지 등 지원, AI 생성 후 즉시 결과 확인
-- **실시간 추적 + 편집 가능** - 파일 변경 자동 추적, Markdown, 코드, HTML 실시간 편집 및 디버깅 지원
-
-### 🎨 **AI 이미지 생성 및 편집**
-
-- **지능형 이미지 생성** - Gemini 2.5 Flash Image Preview, Nano, Banana 등 다양한 이미지 생성 모델 지원
-- **이미지 인식 및 편집** - AI 기반 이미지 분석 및 편집 기능
-
-### 🎨 **개인화된 인터페이스 커스터마이징**
-
-_나만의 CSS 코드로 커스터마이즈하여 인터페이스를 취향에 맞게_
-
-<p align="center">
-  <img src="./resources/css with skin.gif" alt="CSS 커스텀 인터페이스 데모" width="800">
-</p>
-
-- **완전 커스터마이즈** - CSS 코드를 통해 인터페이스 색상, 스타일, 레이아웃을 자유롭게 커스터마이즈하여 전용 경험 생성
 
 ---
 

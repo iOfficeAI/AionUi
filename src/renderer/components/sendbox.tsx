@@ -308,7 +308,7 @@ const SendBox: React.FC<{
             <div className='flex items-center gap-2'>
               {sendButtonPrefix}
               {isLoading || loading ? (
-                <Button shape='circle' type='secondary' className='bg-animate' icon={<div className='mx-auto size-12px bg-6' onClick={stopHandler}></div>}></Button>
+                <Button shape='circle' type='secondary' className='bg-animate' icon={<div className='mx-auto size-12px bg-6'></div>} onClick={stopHandler}></Button>
               ) : (
                 <Button
                   shape='circle'
@@ -328,7 +328,7 @@ const SendBox: React.FC<{
             <div className='flex items-center gap-2'>
               {sendButtonPrefix}
               {isLoading || loading ? (
-                <Button shape='circle' type='secondary' className='bg-animate' icon={<div className='mx-auto size-12px bg-6' onClick={stopHandler}></div>}></Button>
+                <Button shape='circle' type='secondary' className='bg-animate' icon={<div className='mx-auto size-12px bg-6'></div>} onClick={stopHandler}></Button>
               ) : (
                 <Button
                   shape='circle'

@@ -274,6 +274,7 @@ export interface IConfirmation<Option extends any = any> {
   options: Array<{
     label: string;
     value: Option;
+    params?: Record<string, string>; // Translation interpolation parameters
   }>;
 }
 
