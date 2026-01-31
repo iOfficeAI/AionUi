@@ -335,7 +335,7 @@
   "conversation": {
     "welcome": {
       "title": "Hi、今日の予定は何ですか？",
-      "placeholder": "メッセージの送信、ファイルの追加、またはフォルダーの追加...",
+      "placeholder": "メッセージの送信、ファイルの追加、フォルダーの追加、またはスケジュールタスクの作成...",
       "uploadFile": "ファイルを追加",
       "linkFolder": "フォルダを追加",
       "newConversation": "新しいチャット",
@@ -968,5 +968,47 @@
       "autoGemini25Desc": "Gemini CLI が最適なモデルを決定します: gemini-2.5-pro, gemini-2.5-flash",
       "manualDesc": "手動でモデルを選択"
     }
-  }
+  },
+  "cron": {
+    "scheduledTasks": "スケジュールタスク",
+    "allScheduledTasks": "すべてのスケジュールタスク",
+    "noTasks": "スケジュールタスクがありません",
+    "taskCount": "{{count}} 件のタスク",
+    "schedule": "スケジュール",
+    "nextRun": "次回実行",
+    "lastRun": "前回実行",
+    "lastError": "エラー",
+    "message": "実行内容",
+    "goToConversation": "会話に移動",
+    "status": {
+      "active": "実行中",
+      "paused": "一時停止中",
+      "error": "エラー",
+      "unread": "新しい実行"
+    },
+    "actions": {
+      "goTo": "チャットを表示",
+      "pause": "一時停止",
+      "resume": "再開",
+      "runNow": "今すぐ実行",
+      "delete": "削除"
+    },
+    "confirmDelete": "このスケジュールタスクを削除しますか？",
+    "deleteSuccess": "タスクを削除しました",
+    "pauseSuccess": "タスクを一時停止しました",
+    "resumeSuccess": "タスクを再開しました",
+    "runNowSuccess": "タスクの実行をトリガーしました"
+  },
+  "cron.drawer.title": "スケジュールタスク詳細",
+  "cron.drawer.name": "名前",
+  "cron.drawer.namePlaceholder": "タスク名を入力",
+  "cron.drawer.taskStatus": "タスク状態",
+  "cron.drawer.enabled": "有効",
+  "cron.drawer.disabled": "無効",
+  "cron.drawer.command": "コマンド",
+  "cron.drawer.commandPlaceholder": "実行するコマンドを入力",
+  "cron.drawer.schedule": "実行ルール",
+  "cron.drawer.nextRun": "次回実行",
+  "cron.drawer.save": "保存",
+  "cron.drawer.saveSuccess": "保存しました"
 }

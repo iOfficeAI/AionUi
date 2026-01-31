@@ -208,7 +208,7 @@
   "conversation": {
     "welcome": {
       "title": "안녕하세요, 오늘의 계획은 무엇인가요?",
-      "placeholder": "메시지 전송, 파일 업로드 또는 폴더 열기...",
+      "placeholder": "메시지 전송, 파일 업로드, 폴더 열기 또는 예약 작업 만들기...",
       "uploadFile": "파일 업로드",
       "linkFolder": "폴더 열기",
       "newConversation": "새 채팅",
@@ -1023,5 +1023,47 @@
       "autoGemini25Desc": "Gemini CLI가 작업에 가장 적합한 모델을 결정하도록 허용: gemini-2.5-pro, gemini-2.5-flash",
       "manualDesc": "수동으로 모델 선택"
     }
-  }
+  },
+  "cron": {
+    "scheduledTasks": "예약 작업",
+    "allScheduledTasks": "모든 예약 작업",
+    "noTasks": "예약 작업 없음",
+    "taskCount": "{{count}}개 작업",
+    "schedule": "일정",
+    "nextRun": "다음 실행",
+    "lastRun": "마지막 실행",
+    "lastError": "오류",
+    "message": "실행 내용",
+    "goToConversation": "대화로 이동",
+    "status": {
+      "active": "실행 중",
+      "paused": "일시 중지됨",
+      "error": "오류",
+      "unread": "새 실행"
+    },
+    "actions": {
+      "goTo": "채팅 보기",
+      "pause": "일시 중지",
+      "resume": "재개",
+      "runNow": "지금 실행",
+      "delete": "삭제"
+    },
+    "confirmDelete": "이 예약 작업을 삭제하시겠습니까?",
+    "deleteSuccess": "작업이 삭제되었습니다",
+    "pauseSuccess": "작업이 일시 중지되었습니다",
+    "resumeSuccess": "작업이 재개되었습니다",
+    "runNowSuccess": "작업 실행이 트리거되었습니다"
+  },
+  "cron.drawer.title": "예약 작업 상세",
+  "cron.drawer.name": "이름",
+  "cron.drawer.namePlaceholder": "작업 이름 입력",
+  "cron.drawer.taskStatus": "작업 상태",
+  "cron.drawer.enabled": "활성화됨",
+  "cron.drawer.disabled": "비활성화됨",
+  "cron.drawer.command": "명령",
+  "cron.drawer.commandPlaceholder": "실행할 명령 입력",
+  "cron.drawer.schedule": "실행 규칙",
+  "cron.drawer.nextRun": "다음 실행",
+  "cron.drawer.save": "저장",
+  "cron.drawer.saveSuccess": "저장되었습니다"
 }

@@ -15,32 +15,23 @@ export const getTempPath = () => {
   return path.join(rootPath, 'aionui');
 };
 
-export const getDataPath = () => {
-  const rootPath = app.getPath('userData');
-  return path.join(rootPath, 'aionui');
-};
-
 /**
- * Get symlink path for CLI tools that don't handle spaces in paths.
- * Creates ~/.aionui symlink pointing to ~/Library/Application Support/AionUi/aionui/
- * This allows CLI tools like Qwen to work with paths that don't contain spaces.
+ * Ensure CLI-safe symlink exists and return the symlink path.
+ * On macOS, creates a symlink in home directory to avoid spaces in paths.
+ * CLI tools like Qwen can't handle spaces in paths properly.
  *
- * 获取用于 CLI 工具的符号链接路径。
- * 创建 ~/.aionui 符号链接指向 ~/Library/Application Support/AionUi/aionui/
- * 这允许像 Qwen 这样不能正确处理路径中空格的 CLI 工具正常工作。
- *
- * @returns The symlink path on macOS, or original path on other platforms
+ * 确保 CLI 安全符号链接存在并返回符号链接路径。
+ * 在 macOS 上，在用户目录创建符号链接以避免路径中的空格。
+ * CLI 工具如 Qwen 无法正确处理路径中的空格。
  */
-export const getCliSafePath = (): string => {
-  const dataPath = getDataPath();
-
+const ensureCliSafeSymlink = (targetPath: string, symlinkName: string): string => {
   // Only needed on macOS where Application Support has a space
   if (process.platform !== 'darwin') {
-    return dataPath;
+    return targetPath;
   }
 
   const homePath = app.getPath('home');
-  const symlinkPath = path.join(homePath, '.aionui');
+  const symlinkPath = path.join(homePath, symlinkName);
 
   // Ensure symlink exists
   try {
@@ -48,14 +39,14 @@ export const getCliSafePath = (): string => {
     if (stats.isSymbolicLink()) {
       // Symlink exists, verify it points to the correct location
       const target = readlinkSync(symlinkPath);
-      if (target === dataPath) {
+      if (target === targetPath) {
         return symlinkPath;
       }
       // Wrong target, remove and recreate
       unlinkSync(symlinkPath);
     } else {
       // Not a symlink (maybe a directory), don't touch it
-      return dataPath;
+      return targetPath;
     }
   } catch {
     // Symlink doesn't exist, create it
@@ -63,19 +54,34 @@ export const getCliSafePath = (): string => {
 
   try {
     // Ensure the target directory exists first
-    if (!existsSync(dataPath)) {
-      mkdirSync(dataPath, { recursive: true });
+    if (!existsSync(targetPath)) {
+      mkdirSync(targetPath, { recursive: true });
     }
-    symlinkSync(dataPath, symlinkPath);
+    symlinkSync(targetPath, symlinkPath);
     return symlinkPath;
   } catch (error) {
-    return dataPath;
+    return targetPath;
   }
 };
 
-export const getConfigPath = () => {
+/**
+ * Get data path, using CLI-safe symlink (~/.aionui) on macOS.
+ * 获取数据目录路径，macOS 上使用 ~/.aionui 符号链接。
+ */
+export const getDataPath = (): string => {
   const rootPath = app.getPath('userData');
-  return path.join(rootPath, 'config');
+  const dataPath = path.join(rootPath, 'aionui');
+  return ensureCliSafeSymlink(dataPath, '.aionui');
+};
+
+/**
+ * Get config path, using CLI-safe symlink (~/.aionui-config) on macOS.
+ * 获取配置目录路径，macOS 上使用 ~/.aionui-config 符号链接。
+ */
+export const getConfigPath = (): string => {
+  const rootPath = app.getPath('userData');
+  const configPath = path.join(rootPath, 'config');
+  return ensureCliSafeSymlink(configPath, '.aionui-config');
 };
 
 export const generateHashWithFullName = (fullName: string): string => {
