@@ -4,13 +4,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { acpDetector } from '@/agent/acp/AcpDetector';
 import type { TProviderWithModel } from '@/common/storage';
 import { ProcessConfig } from '@/process/initStorage';
 import { ConversationService } from '@/process/services/conversationService';
 import WorkerManage from '@/process/WorkerManage';
 import { getChannelMessageService } from '../agent/ChannelMessageService';
 import { getChannelManager } from '../core/ChannelManager';
-import { createHelpKeyboard, createMainMenuKeyboard, createSessionControlKeyboard } from '../plugins/telegram/TelegramKeyboards';
+import type { AgentDisplayInfo } from '../plugins/telegram/TelegramKeyboards';
+import { createAgentSelectionKeyboard, createHelpKeyboard, createMainMenuKeyboard, createSessionControlKeyboard } from '../plugins/telegram/TelegramKeyboards';
+import type { ChannelAgentType } from '../types';
 import type { ActionHandler, IRegisteredAction } from './types';
 import { SystemActionNames, createErrorResponse, createSuccessResponse } from './types';
 
@@ -227,6 +230,169 @@ export const handleSettingsShow: ActionHandler = async (context) => {
 };
 
 /**
+ * Handle agent.show - Show agent selection keyboard
+ */
+export const handleAgentShow: ActionHandler = async (context) => {
+  const manager = getChannelManager();
+  const sessionManager = manager.getSessionManager();
+
+  if (!sessionManager) {
+    return createErrorResponse('Session manager not available');
+  }
+
+  // Get current agent type from session
+  const userId = context.channelUser?.id;
+  const session = userId ? sessionManager.getSession(userId) : null;
+  const currentAgent = session?.agentType || 'gemini';
+
+  // Get available agents dynamically
+  const availableAgents = getAvailableChannelAgents();
+
+  if (availableAgents.length === 0) {
+    return createErrorResponse('No agents available');
+  }
+
+  return createSuccessResponse({
+    type: 'text',
+    text: ['🔄 <b>Switch Agent</b>', '', 'Select an AI agent for your conversations:', '', `Current: <b>${getAgentDisplayName(currentAgent)}</b>`].join('\n'),
+    parseMode: 'HTML',
+    replyMarkup: createAgentSelectionKeyboard(availableAgents, currentAgent),
+  });
+};
+
+/**
+ * Handle agent.select - Switch to a different agent
+ */
+export const handleAgentSelect: ActionHandler = async (context, params) => {
+  const manager = getChannelManager();
+  const sessionManager = manager.getSessionManager();
+
+  if (!sessionManager) {
+    return createErrorResponse('Session manager not available');
+  }
+
+  if (!context.channelUser) {
+    return createErrorResponse('User not authorized');
+  }
+
+  const newAgentType = params?.agentType as ChannelAgentType;
+
+  // Validate agent type is available
+  const availableAgents = getAvailableChannelAgents();
+  const isValidAgent = availableAgents.some((agent) => agent.type === newAgentType);
+  if (!newAgentType || !isValidAgent) {
+    return createErrorResponse('Invalid or unavailable agent type');
+  }
+
+  // Get current session
+  const existingSession = sessionManager.getSession(context.channelUser.id);
+
+  // If same agent, no need to switch
+  if (existingSession?.agentType === newAgentType) {
+    return createSuccessResponse({
+      type: 'text',
+      text: `✓ Already using <b>${getAgentDisplayName(newAgentType)}</b>`,
+      parseMode: 'HTML',
+      replyMarkup: createMainMenuKeyboard(),
+    });
+  }
+
+  // Clear existing session and agent
+  if (existingSession) {
+    const messageService = getChannelMessageService();
+    await messageService.clearContext(existingSession.id);
+
+    if (existingSession.conversationId) {
+      try {
+        WorkerManage.kill(existingSession.conversationId);
+        console.log(`[SystemActions] Killed old conversation for agent switch: ${existingSession.conversationId}`);
+      } catch (err) {
+        console.warn(`[SystemActions] Failed to kill old conversation:`, err);
+      }
+    }
+  }
+  sessionManager.clearSession(context.channelUser.id);
+
+  // Create new session with the selected agent type
+  const session = sessionManager.createSession(context.channelUser, newAgentType);
+
+  console.log(`[SystemActions] Switched agent to ${newAgentType} for user ${context.channelUser.id}`);
+
+  return createSuccessResponse({
+    type: 'text',
+    text: [`✓ <b>Switched to ${getAgentDisplayName(newAgentType)}</b>`, '', 'A new conversation has been started.', '', 'Send a message to begin!'].join('\n'),
+    parseMode: 'HTML',
+    replyMarkup: createMainMenuKeyboard(),
+  });
+};
+
+/**
+ * Get display name for agent type
+ */
+function getAgentDisplayName(agentType: ChannelAgentType): string {
+  const names: Record<ChannelAgentType, string> = {
+    gemini: '🤖 Gemini',
+    acp: '🧠 Claude',
+    codex: '⚡ Codex',
+  };
+  return names[agentType] || agentType;
+}
+
+/**
+ * Map backend type to ChannelAgentType
+ * Only returns types that are supported by channels
+ */
+function backendToChannelAgentType(backend: string): ChannelAgentType | null {
+  const mapping: Record<string, ChannelAgentType> = {
+    gemini: 'gemini',
+    claude: 'acp',
+    codex: 'codex',
+  };
+  return mapping[backend] || null;
+}
+
+/**
+ * Get emoji for agent backend
+ */
+function getAgentEmoji(backend: string): string {
+  const emojis: Record<string, string> = {
+    gemini: '🤖',
+    claude: '🧠',
+    codex: '⚡',
+  };
+  return emojis[backend] || '🤖';
+}
+
+/**
+ * Get available agents for channel selection
+ * Filters detected agents to only those supported by channels
+ */
+function getAvailableChannelAgents(): AgentDisplayInfo[] {
+  const detectedAgents = acpDetector.getDetectedAgents();
+  const availableAgents: AgentDisplayInfo[] = [];
+  const seenTypes = new Set<ChannelAgentType>();
+
+  // Always include Gemini as it's built-in
+  availableAgents.push({ type: 'gemini', emoji: '🤖', name: 'Gemini' });
+  seenTypes.add('gemini');
+
+  // Add detected ACP agents (claude, codex, etc.)
+  for (const agent of detectedAgents) {
+    const channelType = backendToChannelAgentType(agent.backend);
+    if (channelType && !seenTypes.has(channelType)) {
+      availableAgents.push({
+        type: channelType,
+        emoji: getAgentEmoji(agent.backend),
+        name: agent.name,
+      });
+      seenTypes.add(channelType);
+    }
+  }
+
+  return availableAgents;
+}
+
+/**
  * All system actions
  */
 export const systemActions: IRegisteredAction[] = [
@@ -271,5 +437,17 @@ export const systemActions: IRegisteredAction[] = [
     category: 'system',
     description: 'Show settings info',
     handler: handleSettingsShow,
+  },
+  {
+    name: SystemActionNames.AGENT_SHOW,
+    category: 'system',
+    description: 'Show agent selection',
+    handler: handleAgentShow,
+  },
+  {
+    name: SystemActionNames.AGENT_SELECT,
+    category: 'system',
+    description: 'Switch to a different agent',
+    handler: handleAgentSelect,
   },
 ];

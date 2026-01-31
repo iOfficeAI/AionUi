@@ -110,8 +110,7 @@ function convertTMessageToOutgoing(message: TMessage, isComplete = false): IUnif
       // 显示工具调用状态
       // Show tool call status
       const toolLines = message.content.map((tool) => {
-        const statusIcon =
-          tool.status === 'Success' ? '✅' : tool.status === 'Error' ? '❌' : tool.status === 'Executing' ? '⏳' : tool.status === 'Confirming' ? '❓' : '📋';
+        const statusIcon = tool.status === 'Success' ? '✅' : tool.status === 'Error' ? '❌' : tool.status === 'Executing' ? '⏳' : tool.status === 'Confirming' ? '❓' : '📋';
         // 转义 HTML 特殊字符
         // Escape HTML special characters
         const desc = escapeHtml(tool.description || tool.name || '');

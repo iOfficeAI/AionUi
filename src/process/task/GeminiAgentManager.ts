@@ -229,7 +229,7 @@ export class GeminiAgentManager extends BaseAgentManager<
     if (!confirmationDetails) return {};
     let question: string;
     let description: string;
-    const options: Array<{ label: string; value: ToolConfirmationOutcome }> = [];
+    const options: Array<{ label: string; value: ToolConfirmationOutcome; params?: Record<string, string> }> = [];
     switch (confirmationDetails.type) {
       case 'edit':
         {
@@ -300,12 +300,14 @@ export class GeminiAgentManager extends BaseAgentManager<
               serverName: mcpProps.serverName,
             }),
             value: ToolConfirmationOutcome.ProceedAlwaysTool,
+            params: { toolName: mcpProps.toolName, serverName: mcpProps.serverName },
           },
           {
             label: t('messages.confirmation.yesAlwaysAllowServer', {
               serverName: mcpProps.serverName,
             }),
             value: ToolConfirmationOutcome.ProceedAlwaysServer,
+            params: { serverName: mcpProps.serverName },
           },
           { label: t('messages.confirmation.no'), value: ToolConfirmationOutcome.Cancel }
         );
@@ -322,7 +324,25 @@ export class GeminiAgentManager extends BaseAgentManager<
     if (execMessages.length) {
       execMessages.forEach((content) => {
         const { question, options, description } = this.getConfirmationButtons(content.confirmationDetails, (k) => k);
-        if (!question) return;
+        const hasDetails = Boolean(content.confirmationDetails);
+        const hasOptions = options && options.length > 0;
+        if (!question && !hasDetails) {
+          // Fallback confirmation when tool is waiting but missing details
+          // 当工具处于确认状态但缺少详情时，提供兜底确认
+          this.addConfirmation({
+            title: 'Awaiting Confirmation',
+            id: content.callId,
+            action: 'confirm',
+            description: content.description || content.name || 'Tool requires confirmation',
+            callId: content.callId,
+            options: [
+              { label: 'messages.confirmation.yesAllowOnce', value: ToolConfirmationOutcome.ProceedOnce },
+              { label: 'messages.confirmation.no', value: ToolConfirmationOutcome.Cancel },
+            ],
+          });
+          return;
+        }
+        if (!question || !hasOptions) return;
         this.addConfirmation({
           title: content.confirmationDetails?.title || '',
           id: content.callId,
@@ -357,14 +377,16 @@ export class GeminiAgentManager extends BaseAgentManager<
       data.conversation_id = this.conversation_id;
       // Transform and persist message (skip transient UI state messages)
       // 跳过 thought, finished 等不需要持久化的消息类型
-      const skipTransformTypes = ['thought', 'finished'];
+      // Skip transient UI state messages that don't need persistence
+      // 跳过不需要持久化的临时 UI 状态消息 (thought, finished, start, finish)
+      const skipTransformTypes = ['thought', 'finished', 'start', 'finish'];
       if (!skipTransformTypes.includes(data.type)) {
         const tMessage = transformMessage(data as IResponseMessage);
         if (tMessage) {
           addOrUpdateMessage(this.conversation_id, tMessage, 'gemini');
-        }
-        if (tMessage.type === 'tool_group') {
-          this.handleConformationMessage(tMessage);
+          if (tMessage.type === 'tool_group') {
+            this.handleConformationMessage(tMessage);
+          }
         }
       }
 

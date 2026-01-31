@@ -213,6 +213,13 @@ export class AcpAgent {
   stop(): Promise<void> {
     this.connection.disconnect();
     this.emitStatusMessage('disconnected');
+    // Emit finish event to reset frontend UI state
+    this.onStreamEvent({
+      type: 'finish',
+      conversation_id: this.id,
+      msg_id: uuid(),
+      data: null,
+    });
     return Promise.resolve();
   }
 

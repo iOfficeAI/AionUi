@@ -158,7 +158,13 @@ const useAcpMessage = (conversation_id: string) => {
     setAiProcessing(false);
   }, [conversation_id]);
 
-  return { thought, setThought, running, acpStatus, aiProcessing, setAiProcessing };
+  const resetState = useCallback(() => {
+    setRunning(false);
+    setAiProcessing(false);
+    setThought({ subject: '', description: '' });
+  }, []);
+
+  return { thought, setThought, running, acpStatus, aiProcessing, setAiProcessing, resetState };
 };
 
 const EMPTY_AT_PATH: Array<string | FileOrFolderItem> = [];
@@ -201,7 +207,7 @@ const AcpSendBox: React.FC<{
   backend: AcpBackend;
 }> = ({ conversation_id, backend }) => {
   const [workspacePath, setWorkspacePath] = useState('');
-  const { thought, running, acpStatus, aiProcessing, setAiProcessing } = useAcpMessage(conversation_id);
+  const { thought, running, acpStatus, aiProcessing, setAiProcessing, resetState } = useAcpMessage(conversation_id);
   const { t } = useTranslation();
   const { checkAndUpdateTitle } = useAutoTitle();
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
@@ -400,8 +406,13 @@ const AcpSendBox: React.FC<{
   });
 
   // 停止会话处理函数 Stop conversation handler
-  const handleStop = () => {
-    return ipcBridge.conversation.stop.invoke({ conversation_id }).then(() => {});
+  const handleStop = async (): Promise<void> => {
+    // Use finally to ensure UI state is reset even if backend stop fails
+    try {
+      await ipcBridge.conversation.stop.invoke({ conversation_id });
+    } finally {
+      resetState();
+    }
   };
 
   return (
@@ -411,7 +422,7 @@ const AcpSendBox: React.FC<{
       <SendBox
         value={content}
         onChange={setContent}
-        loading={running}
+        loading={running || aiProcessing}
         disabled={false}
         placeholder={t('acp.sendbox.placeholder', { backend, defaultValue: `Send message to {{backend}}...` })}
         onStop={handleStop}

@@ -797,27 +797,18 @@ const Guid: React.FC = () => {
         // 立即触发刷新，让左侧栏开始加载新会话（在导航前）
         emitter.emit('chat.history.refresh');
 
-        // 然后导航到会话页面
-
-        // 然后发送消息（文件通过 files 参数传递，不在消息中添加 @ 前缀）
-        // Send message (files passed via files param, no @ prefix in message)
+        // Store initial message to sessionStorage for GeminiSendBox to send after navigation
+        // This enables instant page transition without waiting for API response
         const workspacePath = conversation.extra?.workspace || '';
         const displayMessage = buildDisplayMessage(input, files, workspacePath);
+        const initialMessage = {
+          input: displayMessage,
+          files: files.length > 0 ? files : undefined,
+        };
+        sessionStorage.setItem(`gemini_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
 
-        return ipcBridge.geminiConversation.sendMessage
-          .invoke({
-            input: displayMessage,
-            conversation_id: conversation.id,
-            msg_id: uuid(),
-            files,
-          })
-          .then(() => {
-            void navigate(`/conversation/${conversation.id}`);
-          })
-          .catch((error) => {
-            console.error('Failed to send message:', error);
-            throw error;
-          });
+        // Navigate immediately for instant page transition
+        void navigate(`/conversation/${conversation.id}`);
       } catch (error: unknown) {
         console.error('Failed to create or send Gemini message:', error);
         const errorMessage = error instanceof Error ? error.message : String(error);

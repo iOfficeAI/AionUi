@@ -6,6 +6,8 @@
 
 import { InlineKeyboard, Keyboard } from 'grammy';
 
+import type { ChannelAgentType } from '../../types';
+
 /**
  * Telegram Keyboards for Personal Assistant
  *
@@ -21,7 +23,7 @@ import { InlineKeyboard, Keyboard } from 'grammy';
  * Displayed persistently below the message input
  */
 export function createMainMenuKeyboard(): Keyboard {
-  return new Keyboard().text('🆕 New Chat').text('📊 Status').row().text('❓ Help').resized().persistent();
+  return new Keyboard().text('🆕 New Chat').text('🔄 Agent').row().text('📊 Status').text('❓ Help').resized().persistent();
 }
 
 /**
@@ -32,6 +34,40 @@ export function createPairingKeyboard(): Keyboard {
 }
 
 // ==================== Inline Keyboards ====================
+
+/**
+ * Agent info for keyboard display
+ */
+export interface AgentDisplayInfo {
+  type: ChannelAgentType;
+  emoji: string;
+  name: string;
+}
+
+/**
+ * Agent selection keyboard
+ * Shows available agents with current selection marked
+ * @param availableAgents - List of available agents to display
+ * @param currentAgent - Currently selected agent type
+ */
+export function createAgentSelectionKeyboard(availableAgents: AgentDisplayInfo[], currentAgent?: ChannelAgentType): InlineKeyboard {
+  const keyboard = new InlineKeyboard();
+
+  // Add agents in rows of 2
+  for (let i = 0; i < availableAgents.length; i++) {
+    const agent = availableAgents[i];
+    const label = currentAgent === agent.type ? `✓ ${agent.emoji} ${agent.name}` : `${agent.emoji} ${agent.name}`;
+
+    keyboard.text(label, `agent:${agent.type}`);
+
+    // Start new row after every 2 buttons, except for the last one
+    if ((i + 1) % 2 === 0 && i < availableAgents.length - 1) {
+      keyboard.row();
+    }
+  }
+
+  return keyboard;
+}
 
 /**
  * Action buttons for AI response messages
@@ -87,10 +123,7 @@ export function createErrorRecoveryKeyboard(): InlineKeyboard {
  * @param callId - The tool call ID for tracking
  * @param options - Array of { label, value } options
  */
-export function createToolConfirmationKeyboard(
-  callId: string,
-  options: Array<{ label: string; value: string }>
-): InlineKeyboard {
+export function createToolConfirmationKeyboard(callId: string, options: Array<{ label: string; value: string }>): InlineKeyboard {
   const keyboard = new InlineKeyboard();
   // 每行最多显示 2 个按钮
   // Show at most 2 buttons per row

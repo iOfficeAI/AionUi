@@ -195,11 +195,13 @@ const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string
   * {
     line-height:26px;
     font-size:16px;
+    color: inherit;
   }
 
   .markdown-shadow-body {
     word-break: break-word;
     overflow-wrap: anywhere;
+    color: var(--text-primary);
   }
   .markdown-shadow-body>p:first-child
   {
@@ -334,6 +336,8 @@ const ShadowView = ({ children }: { children: React.ReactNode }) => {
         '--color-text-1': computedStyle.getPropertyValue('--color-text-1'),
         '--color-text-2': computedStyle.getPropertyValue('--color-text-2'),
         '--color-text-3': computedStyle.getPropertyValue('--color-text-3'),
+        '--text-primary': computedStyle.getPropertyValue('--text-primary'),
+        '--text-secondary': computedStyle.getPropertyValue('--text-secondary'),
       };
 
       // 移除旧样式并添加新样式 Remove old style and add new style

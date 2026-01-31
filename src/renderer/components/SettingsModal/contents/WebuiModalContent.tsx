@@ -4,16 +4,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useTranslation } from 'react-i18next';
-import { Switch, Input, Form, Message, Tooltip } from '@arco-design/web-react';
+import { shell, webui, type IWebUIStatus } from '@/common/ipcBridge';
+import AionModal from '@/renderer/components/base/AionModal';
+import AionScrollArea from '@/renderer/components/base/AionScrollArea';
+import { isElectronDesktop } from '@/renderer/utils/platform';
+import { Form, Input, Message, Switch, Tooltip } from '@arco-design/web-react';
 import { Copy, Refresh } from '@icon-park/react';
 import { QRCodeSVG } from 'qrcode.react';
-import { webui, shell, type IWebUIStatus } from '@/common/ipcBridge';
-import AionScrollArea from '@/renderer/components/base/AionScrollArea';
-import AionModal from '@/renderer/components/base/AionModal';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useSettingsViewMode } from '../settingsViewContext';
-import { isElectronDesktop } from '@/renderer/utils/platform';
 import ChannelModalContent from './ChannelModalContent';
 
 /**
