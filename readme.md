@@ -419,31 +419,6 @@ Welcome to submit Issues and Pull Requests!
 4. Push to the branch (`git push origin feature/AmazingFeature`)
 5. Open a Pull Request
 
-### 🙏 Special Thanks
-
-<table>
-<tr>
-<td width="170" align="center">
-  <a href="https://linux.do/" target="_blank">
-    <img src="./resources/linuxdo.png" alt="LINUX DO" width="150">
-  </a>
-</td>
-<td>
-  <a href="https://linux.do/" target="_blank">LINUX DO</a> - A new ideal community.
-</td>
-</tr>
-<tr>
-<td width="170" align="center">
-  <a href="https://packycode.com" target="_blank">
-    <img src="./resources/packycode.png" alt="PackyCode" width="150">
-  </a>
-</td>
-<td>
-  <a href="https://packycode.com" target="_blank">PackyCode</a> is a reliable and efficient API relay service provider for platforms like Claude Code, Codex, and Gemini. Thanks to PackyCode for supporting AionUi users with low-cost access, offering our users an exclusive <a href="https://www.packyapi.com/register?aff=aionui" target="_blank">10% discount</a>. Use promo code <code>aionui</code> at checkout to save 10%.
-</td>
-</tr>
-</table>
-
 ---
 
 ## 📄 License
