@@ -350,6 +350,12 @@ jobs:
           # 使用官方 GitHub 源下载 electron-builder 二进制文件（如 dmg-builder）
           # npmmirror 可能缺少部分文件导致 404 错误
           ELECTRON_BUILDER_BINARIES_MIRROR: https://github.com/electron-userland/electron-builder-binaries/releases/download/
+          # Also set npm_config_ version to ensure electron-builder reads it correctly
+          # 同时设置 npm_config_ 版本以确保 electron-builder 正确读取
+          npm_config_electron_builder_binaries_mirror: https://github.com/electron-userland/electron-builder-binaries/releases/download/
+          # Clear ELECTRON_MIRROR to prevent auto-derived (incorrect) binaries mirror
+          # 清除 ELECTRON_MIRROR 以防止自动派生错误的 binaries 镜像路径
+          ELECTRON_MIRROR: ""
           # Electron headers download / Electron 头文件下载源
           npm_config_disturl: https://electronjs.org/headers
           npm_config_runtime: electron

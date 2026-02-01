@@ -391,6 +391,7 @@
     "deleteAssistantTitle": "Delete Assistant",
     "deleteAssistantConfirm": "Are you sure you want to delete this assistant? This action cannot be undone.",
     "cannotDeleteBuiltin": "Cannot delete builtin assistants",
+    "duplicateAssistant": "Duplicate",
     "assistantMainAgent": "Main Agent",
     "addSkills": "Add Skills",
     "addSkillsTitle": "Add Skills",

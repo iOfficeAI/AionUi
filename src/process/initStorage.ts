@@ -528,9 +528,9 @@ const getBuiltinAssistants = (): AcpBackendConfig[] => {
   const assistants: AcpBackendConfig[] = [];
 
   for (const preset of ASSISTANT_PRESETS) {
-    // Cowork 默认启用的技能列表（不包含 cron，因为它是内置 skill，自动注入）
-    // Default enabled skills for Cowork (excluding cron, which is builtin and auto-injected)
-    const defaultEnabledSkills = preset.id === 'cowork' ? ['skill-creator', 'pptx', 'docx', 'pdf', 'xlsx'] : undefined;
+    // 从预设配置中读取默认启用的技能列表（不包含 cron，因为它是内置 skill，自动注入）
+    // Read default enabled skills from preset config (excluding cron, which is builtin and auto-injected)
+    const defaultEnabledSkills = preset.defaultEnabledSkills;
     const enabledByDefault = preset.id === 'cowork';
 
     assistants.push({
@@ -635,11 +635,11 @@ const initStorage = async () => {
     const migrationDone = await configFile.get(ASSISTANT_ENABLED_MIGRATION_KEY).catch(() => false);
     const needsMigration = !migrationDone && existingAgents.length > 0;
 
-    // 5.2.2 检查是否需要迁移：为 cowork 添加默认启用的技能
-    // Check if migration needed: add default enabled skills for cowork
-    const COWORK_SKILLS_MIGRATION_KEY = 'migration.coworkDefaultSkillsAdded';
-    const coworkSkillsMigrationDone = await configFile.get(COWORK_SKILLS_MIGRATION_KEY).catch(() => false);
-    const needsCoworkSkillsMigration = !coworkSkillsMigrationDone;
+    // 5.2.2 检查是否需要迁移：为内置助手添加默认启用的技能
+    // Check if migration needed: add default enabled skills for builtin assistants
+    const BUILTIN_SKILLS_MIGRATION_KEY = 'migration.builtinDefaultSkillsAdded_v2';
+    const builtinSkillsMigrationDone = await configFile.get(BUILTIN_SKILLS_MIGRATION_KEY).catch(() => false);
+    const needsBuiltinSkillsMigration = !builtinSkillsMigrationDone;
 
     // 更新或添加内置助手配置
     // Update or add built-in assistant configurations
@@ -667,14 +667,15 @@ const initStorage = async () => {
         // presetAgentType is user-controlled, use builtin default if not set
         const resolvedPresetAgentType = existing.presetAgentType ?? builtin.presetAgentType;
 
-        // 为 cowork 添加默认启用的技能（仅在迁移时且用户未设置 enabledSkills 时）
-        // Add default enabled skills for cowork (only during migration and if user hasn't set enabledSkills)
+        // 为有 defaultEnabledSkills 配置的内置助手添加默认技能（仅在迁移时且用户未设置 enabledSkills 时）
+        // Add default enabled skills for builtin assistants with defaultEnabledSkills (only during migration and if user hasn't set enabledSkills)
         let resolvedEnabledSkills = existing.enabledSkills;
-        if (needsCoworkSkillsMigration && builtin.id === 'builtin-cowork' && (!existing.enabledSkills || existing.enabledSkills.length === 0)) {
+        const needsSkillsMigration = needsBuiltinSkillsMigration && builtin.enabledSkills && (!existing.enabledSkills || existing.enabledSkills.length === 0);
+        if (needsSkillsMigration) {
           resolvedEnabledSkills = builtin.enabledSkills;
         }
 
-        if (shouldUpdate || needsEnabledFix || (needsCoworkSkillsMigration && builtin.id === 'builtin-cowork' && resolvedEnabledSkills !== existing.enabledSkills)) {
+        if (shouldUpdate || needsEnabledFix || (needsSkillsMigration && resolvedEnabledSkills !== existing.enabledSkills)) {
           // 保留用户已设置的 enabled 和 presetAgentType / Preserve user-set enabled and presetAgentType
           updatedAgents[index] = {
             ...existing,
@@ -702,9 +703,9 @@ const initStorage = async () => {
       await configFile.set(ASSISTANT_ENABLED_MIGRATION_KEY, true);
       console.log('[AionUi] Assistant enabled migration completed');
     }
-    if (needsCoworkSkillsMigration) {
-      await configFile.set(COWORK_SKILLS_MIGRATION_KEY, true);
-      console.log('[AionUi] Cowork default skills migration completed');
+    if (needsBuiltinSkillsMigration) {
+      await configFile.set(BUILTIN_SKILLS_MIGRATION_KEY, true);
+      console.log('[AionUi] Builtin assistants default skills migration completed');
     }
   } catch (error) {
     console.error('[AionUi] Failed to initialize builtin assistants:', error);

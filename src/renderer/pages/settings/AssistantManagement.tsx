@@ -21,6 +21,19 @@ interface SkillInfo {
   isCustom: boolean;
 }
 
+// 检查内置助手是否有 skills 配置（defaultEnabledSkills 或 skillFiles）
+// Check if builtin assistant has skills config (defaultEnabledSkills or skillFiles)
+const hasBuiltinSkills = (assistantId: string): boolean => {
+  if (!assistantId.startsWith('builtin-')) return false;
+  const presetId = assistantId.replace('builtin-', '');
+  const preset = ASSISTANT_PRESETS.find((p) => p.id === presetId);
+  if (!preset) return false;
+  // 有 defaultEnabledSkills 或 skillFiles 配置即可
+  const hasDefaultSkills = preset.defaultEnabledSkills && preset.defaultEnabledSkills.length > 0;
+  const hasSkillFiles = preset.skillFiles && Object.keys(preset.skillFiles).length > 0;
+  return hasDefaultSkills || hasSkillFiles;
+};
+
 // 待导入的 Skill / Pending skill to import
 interface PendingSkill {
   path: string; // 原始路径
@@ -218,8 +231,8 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
       setEditContext(context);
       setEditSkills(skills);
 
-      // 对于 cowork 助手和所有自定义助手，加载技能列表 / Load skills list for cowork and all custom assistants
-      if (assistant.id === 'builtin-cowork' || !assistant.isBuiltin) {
+      // 对于有 skillFiles 配置的内置助手和所有自定义助手，加载技能列表 / Load skills list for builtin assistants with skillFiles and all custom assistants
+      if (hasBuiltinSkills(assistant.id) || !assistant.isBuiltin) {
         const skillsList = await ipcBridge.fs.listAvailableSkills.invoke();
         setAvailableSkills(skillsList);
         // selectedSkills: 启用的 skills / Enabled skills
@@ -262,6 +275,35 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
     } catch (error) {
       console.error('Failed to load skills:', error);
       setAvailableSkills([]);
+    }
+  };
+
+  // 复制新建助手功能 / Duplicate assistant function
+  const handleDuplicate = async (assistant: AcpBackendConfig) => {
+    setIsCreating(true);
+    setActiveAssistantId(null);
+    setEditName(`${assistant.nameI18n?.[localeKey] || assistant.name} (Copy)`);
+    setEditDescription(assistant.descriptionI18n?.[localeKey] || assistant.description || '');
+    setEditAvatar(assistant.avatar || '🤖');
+    setEditAgent(assistant.presetAgentType || 'gemini');
+    setPromptViewMode('edit');
+    setEditVisible(true);
+
+    // 加载原助手的规则和技能内容 / Load original assistant's rules and skills
+    try {
+      const [context, skills, skillsList] = await Promise.all([loadAssistantContext(assistant.id), loadAssistantSkills(assistant.id), ipcBridge.fs.listAvailableSkills.invoke()]);
+      setEditContext(context);
+      setEditSkills(skills);
+      setAvailableSkills(skillsList);
+      setSelectedSkills(assistant.enabledSkills || []);
+      setCustomSkills(assistant.customSkillNames || []);
+    } catch (error) {
+      console.error('Failed to load assistant content for duplication:', error);
+      setEditContext('');
+      setEditSkills('');
+      setAvailableSkills([]);
+      setSelectedSkills([]);
+      setCustomSkills([]);
     }
   };
 
@@ -450,7 +492,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                 {assistants.map((assistant) => (
                   <div
                     key={assistant.id}
-                    className='bg-fill-0 rounded-lg px-16px py-12px flex items-center justify-between cursor-pointer hover:bg-fill-1 transition-colors'
+                    className='group bg-fill-0 rounded-lg px-16px py-12px flex items-center justify-between cursor-pointer hover:bg-fill-1 transition-colors'
                     onClick={() => {
                       setActiveAssistantId(assistant.id);
                       void handleEdit(assistant);
@@ -464,6 +506,15 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                       </div>
                     </div>
                     <div className='flex items-center gap-12px text-t-secondary'>
+                      <span
+                        className='invisible group-hover:visible text-12px text-primary cursor-pointer hover:underline transition-all'
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void handleDuplicate(assistant);
+                        }}
+                      >
+                        {t('settings.duplicateAssistant', { defaultValue: 'Duplicate' })}
+                      </span>
                       <Switch
                         size='small'
                         checked={assistant.enabled !== false}
@@ -604,8 +655,8 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                 </div>
               </div>
             </div>
-            {/* 创建助手或编辑 cowork/自定义助手时显示技能选择 / Show skills selection when creating or editing cowork/custom assistant */}
-            {(isCreating || activeAssistantId === 'builtin-cowork' || (activeAssistant && !activeAssistant.isBuiltin)) && (
+            {/* 创建助手或编辑有 skillFiles 配置的内置助手/自定义助手时显示技能选择 / Show skills selection when creating or editing builtin assistants with skillFiles/custom assistants */}
+            {(isCreating || (activeAssistantId && hasBuiltinSkills(activeAssistantId)) || (activeAssistant && !activeAssistant.isBuiltin)) && (
               <div className='flex-shrink-0 mt-16px'>
                 <div className='flex items-center justify-between mb-12px'>
                   <Typography.Text bold>{t('settings.assistantSkills', { defaultValue: 'Skills' })}</Typography.Text>
