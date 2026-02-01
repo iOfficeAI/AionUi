@@ -388,6 +388,7 @@
     "deleteAssistantTitle": "删除助手",
     "deleteAssistantConfirm": "确定要删除此助手吗？此操作无法撤销。",
     "cannotDeleteBuiltin": "无法删除内置助手",
+    "duplicateAssistant": "复制新建",
     "assistantMainAgent": "主代理",
     "addSkills": "添加技能",
     "addSkillsTitle": "添加技能",

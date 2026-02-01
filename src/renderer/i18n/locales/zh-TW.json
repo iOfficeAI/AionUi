@@ -450,6 +450,7 @@
     "deleteAssistantTitle": "刪除助理",
     "deleteAssistantConfirm": "確定要刪除此助理嗎？此操作無法復原。",
     "cannotDeleteBuiltin": "無法刪除內建助理",
+    "duplicateAssistant": "複製新建",
     "assistantMainAgent": "主代理",
     "addSkills": "新增技能",
     "addSkillsTitle": "新增技能",

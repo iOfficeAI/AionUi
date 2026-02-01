@@ -265,6 +265,35 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
     }
   };
 
+  // 复制新建助手功能 / Duplicate assistant function
+  const handleDuplicate = async (assistant: AcpBackendConfig) => {
+    setIsCreating(true);
+    setActiveAssistantId(null);
+    setEditName(`${assistant.nameI18n?.[localeKey] || assistant.name} (Copy)`);
+    setEditDescription(assistant.descriptionI18n?.[localeKey] || assistant.description || '');
+    setEditAvatar(assistant.avatar || '🤖');
+    setEditAgent(assistant.presetAgentType || 'gemini');
+    setPromptViewMode('edit');
+    setEditVisible(true);
+
+    // 加载原助手的规则和技能内容 / Load original assistant's rules and skills
+    try {
+      const [context, skills, skillsList] = await Promise.all([loadAssistantContext(assistant.id), loadAssistantSkills(assistant.id), ipcBridge.fs.listAvailableSkills.invoke()]);
+      setEditContext(context);
+      setEditSkills(skills);
+      setAvailableSkills(skillsList);
+      setSelectedSkills(assistant.enabledSkills || []);
+      setCustomSkills(assistant.customSkillNames || []);
+    } catch (error) {
+      console.error('Failed to load assistant content for duplication:', error);
+      setEditContext('');
+      setEditSkills('');
+      setAvailableSkills([]);
+      setSelectedSkills([]);
+      setCustomSkills([]);
+    }
+  };
+
   const handleSave = async () => {
     try {
       // 验证必填字段 / Validate required fields
@@ -450,7 +479,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                 {assistants.map((assistant) => (
                   <div
                     key={assistant.id}
-                    className='bg-fill-0 rounded-lg px-16px py-12px flex items-center justify-between cursor-pointer hover:bg-fill-1 transition-colors'
+                    className='group bg-fill-0 rounded-lg px-16px py-12px flex items-center justify-between cursor-pointer hover:bg-fill-1 transition-colors'
                     onClick={() => {
                       setActiveAssistantId(assistant.id);
                       void handleEdit(assistant);
@@ -464,6 +493,15 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                       </div>
                     </div>
                     <div className='flex items-center gap-12px text-t-secondary'>
+                      <span
+                        className='invisible group-hover:visible text-12px text-primary cursor-pointer hover:underline transition-all'
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void handleDuplicate(assistant);
+                        }}
+                      >
+                        {t('settings.duplicateAssistant', { defaultValue: 'Duplicate' })}
+                      </span>
                       <Switch
                         size='small'
                         checked={assistant.enabled !== false}

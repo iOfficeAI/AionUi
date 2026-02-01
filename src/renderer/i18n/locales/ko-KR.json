@@ -391,6 +391,7 @@
     "deleteAssistantTitle": "어시스턴트 삭제",
     "deleteAssistantConfirm": "이 어시스턴트를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
     "cannotDeleteBuiltin": "내장 어시스턴트는 삭제할 수 없습니다",
+    "duplicateAssistant": "복제하여 생성",
     "assistantMainAgent": "메인 에이전트",
     "addSkills": "스킬 추가",
     "addSkillsTitle": "스킬 추가",

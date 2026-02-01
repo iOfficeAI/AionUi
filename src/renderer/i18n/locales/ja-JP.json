@@ -479,6 +479,7 @@
     "deleteAssistantTitle": "アシスタントを削除",
     "deleteAssistantConfirm": "このアシスタントを削除してもよろしいですか？この操作は元に戻せません。",
     "cannotDeleteBuiltin": "ビルトインアシスタントは削除できません",
+    "duplicateAssistant": "複製して作成",
     "assistantMainAgent": "メインエージェント",
     "addSkills": "スキルを追加",
     "addSkillsTitle": "スキルを追加",
