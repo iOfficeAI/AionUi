@@ -199,6 +199,19 @@ export interface IProvider {
    * 上下文token限制，可选字段，只在明确知道时填写
    */
   contextLimit?: number;
+  /**
+   * AWS Bedrock specific configuration
+   * Only used when platform is 'bedrock'
+   */
+  bedrockConfig?: {
+    authMethod: 'accessKey' | 'profile';
+    region: string;
+    // For access key method
+    accessKeyId?: string;
+    secretAccessKey?: string;
+    // For profile method
+    profile?: string;
+  };
 }
 
 export type TProviderWithModel = Omit<IProvider, 'model'> & { useModel: string };
