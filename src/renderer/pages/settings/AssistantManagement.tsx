@@ -21,6 +21,14 @@ interface SkillInfo {
   isCustom: boolean;
 }
 
+// 检查内置助手是否有 skillFiles 配置 / Check if builtin assistant has skillFiles config
+const hasBuiltinSkills = (assistantId: string): boolean => {
+  if (!assistantId.startsWith('builtin-')) return false;
+  const presetId = assistantId.replace('builtin-', '');
+  const preset = ASSISTANT_PRESETS.find((p) => p.id === presetId);
+  return preset?.skillFiles !== undefined && Object.keys(preset.skillFiles).length > 0;
+};
+
 // 待导入的 Skill / Pending skill to import
 interface PendingSkill {
   path: string; // 原始路径
@@ -218,8 +226,8 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
       setEditContext(context);
       setEditSkills(skills);
 
-      // 对于 cowork 助手和所有自定义助手，加载技能列表 / Load skills list for cowork and all custom assistants
-      if (assistant.id === 'builtin-cowork' || !assistant.isBuiltin) {
+      // 对于有 skillFiles 配置的内置助手和所有自定义助手，加载技能列表 / Load skills list for builtin assistants with skillFiles and all custom assistants
+      if (hasBuiltinSkills(assistant.id) || !assistant.isBuiltin) {
         const skillsList = await ipcBridge.fs.listAvailableSkills.invoke();
         setAvailableSkills(skillsList);
         // selectedSkills: 启用的 skills / Enabled skills
@@ -642,8 +650,8 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                 </div>
               </div>
             </div>
-            {/* 创建助手或编辑 cowork/自定义助手时显示技能选择 / Show skills selection when creating or editing cowork/custom assistant */}
-            {(isCreating || activeAssistantId === 'builtin-cowork' || (activeAssistant && !activeAssistant.isBuiltin)) && (
+            {/* 创建助手或编辑有 skillFiles 配置的内置助手/自定义助手时显示技能选择 / Show skills selection when creating or editing builtin assistants with skillFiles/custom assistants */}
+            {(isCreating || (activeAssistantId && hasBuiltinSkills(activeAssistantId)) || (activeAssistant && !activeAssistant.isBuiltin)) && (
               <div className='flex-shrink-0 mt-16px'>
                 <div className='flex items-center justify-between mb-12px'>
                   <Typography.Text bold>{t('settings.assistantSkills', { defaultValue: 'Skills' })}</Typography.Text>

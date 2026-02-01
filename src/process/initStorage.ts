@@ -528,9 +528,9 @@ const getBuiltinAssistants = (): AcpBackendConfig[] => {
   const assistants: AcpBackendConfig[] = [];
 
   for (const preset of ASSISTANT_PRESETS) {
-    // Cowork 默认启用的技能列表（不包含 cron，因为它是内置 skill，自动注入）
-    // Default enabled skills for Cowork (excluding cron, which is builtin and auto-injected)
-    const defaultEnabledSkills = preset.id === 'cowork' ? ['skill-creator', 'pptx', 'docx', 'pdf', 'xlsx'] : undefined;
+    // 从预设配置中读取默认启用的技能列表（不包含 cron，因为它是内置 skill，自动注入）
+    // Read default enabled skills from preset config (excluding cron, which is builtin and auto-injected)
+    const defaultEnabledSkills = preset.defaultEnabledSkills;
     const enabledByDefault = preset.id === 'cowork';
 
     assistants.push({
