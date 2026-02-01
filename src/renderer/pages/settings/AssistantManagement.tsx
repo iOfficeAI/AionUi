@@ -21,12 +21,17 @@ interface SkillInfo {
   isCustom: boolean;
 }
 
-// 检查内置助手是否有 skillFiles 配置 / Check if builtin assistant has skillFiles config
+// 检查内置助手是否有 skills 配置（defaultEnabledSkills 或 skillFiles）
+// Check if builtin assistant has skills config (defaultEnabledSkills or skillFiles)
 const hasBuiltinSkills = (assistantId: string): boolean => {
   if (!assistantId.startsWith('builtin-')) return false;
   const presetId = assistantId.replace('builtin-', '');
   const preset = ASSISTANT_PRESETS.find((p) => p.id === presetId);
-  return preset?.skillFiles !== undefined && Object.keys(preset.skillFiles).length > 0;
+  if (!preset) return false;
+  // 有 defaultEnabledSkills 或 skillFiles 配置即可
+  const hasDefaultSkills = preset.defaultEnabledSkills && preset.defaultEnabledSkills.length > 0;
+  const hasSkillFiles = preset.skillFiles && Object.keys(preset.skillFiles).length > 0;
+  return hasDefaultSkills || hasSkillFiles;
 };
 
 // 待导入的 Skill / Pending skill to import
