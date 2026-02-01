@@ -218,6 +218,10 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
       'en-US': 'moltbook.md',
       'zh-CN': 'moltbook.md',
     },
+    skillFiles: {
+      'en-US': 'moltbook-skills.md',
+      'zh-CN': 'moltbook-skills.zh-CN.md',
+    },
     defaultEnabledSkills: ['moltbook'],
     nameI18n: {
       'en-US': 'moltbook',
