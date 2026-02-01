@@ -528,10 +528,10 @@ const getBuiltinAssistants = (): AcpBackendConfig[] => {
   const assistants: AcpBackendConfig[] = [];
 
   for (const preset of ASSISTANT_PRESETS) {
-    // Cowork 默认启用的技能列表（不包含 cron，因为它是内置 skill，自动注入）
-    // Default enabled skills for Cowork (excluding cron, which is builtin and auto-injected)
-    const defaultEnabledSkills = preset.id === 'cowork' ? ['skill-creator', 'pptx', 'docx', 'pdf', 'xlsx'] : undefined;
-    const enabledByDefault = preset.id === 'cowork';
+    // 默认启用的技能列表（不包含 cron，因为它是内置 skill，自动注入）
+    // Default enabled skills (excluding cron, which is builtin and auto-injected)
+    const defaultEnabledSkills = preset.id === 'cowork' ? ['skill-creator', 'pptx', 'docx', 'pdf', 'xlsx'] : preset.id === 'moltbook' ? ['moltbook'] : undefined;
+    const enabledByDefault = preset.id === 'cowork' || preset.id === 'moltbook';
 
     assistants.push({
       id: `builtin-${preset.id}`,
@@ -641,6 +641,12 @@ const initStorage = async () => {
     const coworkSkillsMigrationDone = await configFile.get(COWORK_SKILLS_MIGRATION_KEY).catch(() => false);
     const needsCoworkSkillsMigration = !coworkSkillsMigrationDone;
 
+    // 5.2.3 检查是否需要迁移：为 moltbook 添加默认启用的技能
+    // Check if migration needed: add default enabled skills for moltbook
+    const MOLTBOOK_SKILLS_MIGRATION_KEY = 'migration.moltbookDefaultSkillsAdded';
+    const moltbookSkillsMigrationDone = await configFile.get(MOLTBOOK_SKILLS_MIGRATION_KEY).catch(() => false);
+    const needsMoltbookSkillsMigration = !moltbookSkillsMigrationDone;
+
     // 更新或添加内置助手配置
     // Update or add built-in assistant configurations
     const updatedAgents = [...existingAgents];
@@ -667,14 +673,19 @@ const initStorage = async () => {
         // presetAgentType is user-controlled, use builtin default if not set
         const resolvedPresetAgentType = existing.presetAgentType ?? builtin.presetAgentType;
 
-        // 为 cowork 添加默认启用的技能（仅在迁移时且用户未设置 enabledSkills 时）
-        // Add default enabled skills for cowork (only during migration and if user hasn't set enabledSkills)
+        // 为 cowork/moltbook 添加默认启用的技能（仅在迁移时且用户未设置 enabledSkills 时）
+        // Add default enabled skills for cowork/moltbook (only during migration and if user hasn't set enabledSkills)
         let resolvedEnabledSkills = existing.enabledSkills;
         if (needsCoworkSkillsMigration && builtin.id === 'builtin-cowork' && (!existing.enabledSkills || existing.enabledSkills.length === 0)) {
           resolvedEnabledSkills = builtin.enabledSkills;
         }
+        if (needsMoltbookSkillsMigration && builtin.id === 'builtin-moltbook' && (!existing.enabledSkills || existing.enabledSkills.length === 0)) {
+          resolvedEnabledSkills = builtin.enabledSkills;
+        }
 
-        if (shouldUpdate || needsEnabledFix || (needsCoworkSkillsMigration && builtin.id === 'builtin-cowork' && resolvedEnabledSkills !== existing.enabledSkills)) {
+        const needsCoworkSkillsUpdate = needsCoworkSkillsMigration && builtin.id === 'builtin-cowork' && resolvedEnabledSkills !== existing.enabledSkills;
+        const needsMoltbookSkillsUpdate = needsMoltbookSkillsMigration && builtin.id === 'builtin-moltbook' && resolvedEnabledSkills !== existing.enabledSkills;
+        if (shouldUpdate || needsEnabledFix || needsCoworkSkillsUpdate || needsMoltbookSkillsUpdate) {
           // 保留用户已设置的 enabled 和 presetAgentType / Preserve user-set enabled and presetAgentType
           updatedAgents[index] = {
             ...existing,
@@ -705,6 +716,10 @@ const initStorage = async () => {
     if (needsCoworkSkillsMigration) {
       await configFile.set(COWORK_SKILLS_MIGRATION_KEY, true);
       console.log('[AionUi] Cowork default skills migration completed');
+    }
+    if (needsMoltbookSkillsMigration) {
+      await configFile.set(MOLTBOOK_SKILLS_MIGRATION_KEY, true);
+      console.log('[AionUi] Moltbook default skills migration completed');
     }
   } catch (error) {
     console.error('[AionUi] Failed to initialize builtin assistants:', error);

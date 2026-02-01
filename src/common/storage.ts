@@ -67,6 +67,8 @@ export interface IConfigStorageRefer {
   'migration.assistantEnabledFixed'?: boolean;
   // 迁移标记：为 cowork 助手添加默认启用的 skills / Migration flag: add default enabled skills for cowork assistant
   'migration.coworkDefaultSkillsAdded'?: boolean;
+  // 迁移标记：为 moltbook 助手添加默认启用的 skills / Migration flag: add default enabled skills for moltbook assistant
+  'migration.moltbookDefaultSkillsAdded'?: boolean;
   // Telegram assistant default model / Telegram 助手默认模型
   'assistant.telegram.defaultModel'?: {
     id: string;
