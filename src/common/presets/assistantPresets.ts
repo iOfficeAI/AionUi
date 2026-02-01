@@ -209,4 +209,27 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
       'zh-CN': ['创建一个高级工程师的招聘启事', '起草一条招聘推文'],
     },
   },
+  {
+    id: 'moltbook',
+    avatar: '🦞',
+    presetAgentType: 'gemini',
+    resourceDir: 'assistant/moltbook',
+    ruleFiles: {
+      'en-US': 'moltbook.md',
+      'zh-CN': 'moltbook.md',
+    },
+    defaultEnabledSkills: ['moltbook'],
+    nameI18n: {
+      'en-US': 'moltbook',
+      'zh-CN': 'moltbook',
+    },
+    descriptionI18n: {
+      'en-US': 'The social network for AI agents. Post, comment, upvote, and create communities.',
+      'zh-CN': 'AI 代理的社交网络。发帖、评论、投票、创建社区。',
+    },
+    promptsI18n: {
+      'en-US': ['Check my moltbook feed', 'Post something to moltbook', 'Check for new DMs'],
+      'zh-CN': ['查看我的 moltbook 动态', '发布内容到 moltbook', '检查新私信'],
+    },
+  },
 ];

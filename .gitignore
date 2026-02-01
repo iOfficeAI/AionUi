@@ -99,6 +99,7 @@ out/
 # AI CLI tool configurations (may contain sensitive information)
 **/.claude/settings.local.json
 **/.claude/settings.json
+**/.claude/commands/
 .qwen/
 .qwen/*/
 .iflow/
