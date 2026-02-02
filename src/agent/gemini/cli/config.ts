@@ -269,6 +269,11 @@ export async function loadCliConfig({ workspace, settings, extensions, sessionId
     // Skills 通过 SkillManager 加载 / Skills loaded via SkillManager
     // skillsDir 有值时启用 / Enabled when skillsDir has value
     skillsSupport: !!skillsDir,
+    // 启用 fetch 错误重试，处理 "exception TypeError: fetch failed sending request" 错误
+    // Enable retry on fetch errors to handle "exception TypeError: fetch failed sending request"
+    // 这通常是由网络不稳定或代理问题导致的临时错误
+    // This is usually a transient error caused by network instability or proxy issues
+    retryFetchErrors: true,
   });
 
   // FallbackModelHandler 返回类型在 aioncli-core v0.18.4 中使用 FallbackIntent
