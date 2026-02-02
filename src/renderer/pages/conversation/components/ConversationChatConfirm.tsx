@@ -8,16 +8,28 @@ import { useTranslation } from 'react-i18next';
 import { removeStack } from '../../../utils/common';
 
 /**
+ * Validate if a string is a valid command name for storage
+ * Valid command names: start with letter or underscore, contain only alphanumeric, underscore, or hyphen
+ * This filters out special shell characters like '[', ']', '(', ')' that may be parsed as commands
+ */
+function isValidCommandName(name: string): boolean {
+  return /^[a-zA-Z_][a-zA-Z0-9_-]*$/.test(name);
+}
+
+/**
  * Parse commandType string into individual commands
  * Handles comma-separated commands from piped operations (e.g., "curl, grep")
+ * Filters out invalid command names (e.g., special shell characters)
  * @example "curl, grep" -> ["curl", "grep"]
  * @example "npm" -> ["npm"]
+ * @example "[, test" -> ["test"] (filters out invalid "[")
  */
 function parseCommandTypes(commandType: string): string[] {
   return commandType
     .split(',')
     .map((cmd) => cmd.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .filter(isValidCommandName);
 }
 
 /**
