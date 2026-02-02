@@ -32,17 +32,27 @@ export function initChannelBridge(): void {
         return { success: false, msg: result.error };
       }
 
-      const statuses: IChannelPluginStatus[] = result.data.map((plugin) => ({
-        id: plugin.id,
-        type: plugin.type,
-        name: plugin.name,
-        enabled: plugin.enabled,
-        connected: plugin.status === 'running',
-        status: plugin.status,
-        lastConnected: plugin.lastConnected,
-        activeUsers: 0, // Will be populated from PluginManager when implemented
-        hasToken: !!plugin.credentials?.token,
-      }));
+      const statuses: IChannelPluginStatus[] = result.data.map((plugin) => {
+        // Check credentials based on plugin type
+        let hasToken = false;
+        if (plugin.type === 'lark') {
+          hasToken = !!(plugin.credentials?.appId && plugin.credentials?.appSecret);
+        } else {
+          hasToken = !!plugin.credentials?.token;
+        }
+
+        return {
+          id: plugin.id,
+          type: plugin.type,
+          name: plugin.name,
+          enabled: plugin.enabled,
+          connected: plugin.status === 'running',
+          status: plugin.status,
+          lastConnected: plugin.lastConnected,
+          activeUsers: 0, // Will be populated from PluginManager when implemented
+          hasToken,
+        };
+      });
 
       return { success: true, data: statuses };
     } catch (error: any) {
@@ -92,10 +102,10 @@ export function initChannelBridge(): void {
   /**
    * Test plugin connection (validate token)
    */
-  channel.testPlugin.provider(async ({ pluginId, token }) => {
+  channel.testPlugin.provider(async ({ pluginId, token, extraConfig }) => {
     try {
       const manager = getChannelManager();
-      const result = await manager.testPlugin(pluginId, token);
+      const result = await manager.testPlugin(pluginId, token, extraConfig);
       return { success: true, data: result };
     } catch (error: any) {
       console.error('[ChannelBridge] testPlugin error:', error);

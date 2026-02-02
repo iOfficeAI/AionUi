@@ -283,9 +283,77 @@ const migration_v8: IMigration = {
 };
 
 /**
+ * Migration v8 -> v9: Add 'lark' to assistant_plugins type constraint
+ * 为 assistant_plugins 表的 type 约束添加 'lark' 类型
+ */
+const migration_v9: IMigration = {
+  version: 9,
+  name: 'Add lark to assistant_plugins type constraint',
+  up: (db) => {
+    // SQLite doesn't support ALTER TABLE to modify CHECK constraints
+    // We need to recreate the table with the new constraint
+    db.exec(`
+      -- Create new table with updated constraint
+      CREATE TABLE IF NOT EXISTS assistant_plugins_new (
+        id TEXT PRIMARY KEY,
+        type TEXT NOT NULL CHECK(type IN ('telegram', 'slack', 'discord', 'lark')),
+        name TEXT NOT NULL,
+        enabled INTEGER NOT NULL DEFAULT 0,
+        config TEXT NOT NULL,
+        status TEXT CHECK(status IN ('created', 'initializing', 'ready', 'starting', 'running', 'stopping', 'stopped', 'error')),
+        last_connected INTEGER,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+
+      -- Copy data from old table (if exists)
+      INSERT OR IGNORE INTO assistant_plugins_new SELECT * FROM assistant_plugins;
+
+      -- Drop old table
+      DROP TABLE IF EXISTS assistant_plugins;
+
+      -- Rename new table
+      ALTER TABLE assistant_plugins_new RENAME TO assistant_plugins;
+
+      -- Recreate indexes
+      CREATE INDEX IF NOT EXISTS idx_assistant_plugins_type ON assistant_plugins(type);
+      CREATE INDEX IF NOT EXISTS idx_assistant_plugins_enabled ON assistant_plugins(enabled);
+    `);
+
+    console.log('[Migration v9] Added lark to assistant_plugins type constraint');
+  },
+  down: (db) => {
+    // Rollback: recreate table without lark type (data with lark type will be lost)
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS assistant_plugins_old (
+        id TEXT PRIMARY KEY,
+        type TEXT NOT NULL CHECK(type IN ('telegram', 'slack', 'discord')),
+        name TEXT NOT NULL,
+        enabled INTEGER NOT NULL DEFAULT 0,
+        config TEXT NOT NULL,
+        status TEXT CHECK(status IN ('created', 'initializing', 'ready', 'starting', 'running', 'stopping', 'stopped', 'error')),
+        last_connected INTEGER,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+
+      INSERT OR IGNORE INTO assistant_plugins_old SELECT * FROM assistant_plugins WHERE type != 'lark';
+
+      DROP TABLE IF EXISTS assistant_plugins;
+
+      ALTER TABLE assistant_plugins_old RENAME TO assistant_plugins;
+
+      CREATE INDEX IF NOT EXISTS idx_assistant_plugins_type ON assistant_plugins(type);
+      CREATE INDEX IF NOT EXISTS idx_assistant_plugins_enabled ON assistant_plugins(enabled);
+    `);
+    console.log('[Migration v9] Rolled back: Removed lark from assistant_plugins type constraint');
+  },
+};
+
+/**
  * All migrations in order
  */
-export const ALL_MIGRATIONS: IMigration[] = [migration_v1, migration_v2, migration_v3, migration_v4, migration_v5, migration_v6, migration_v7, migration_v8];
+export const ALL_MIGRATIONS: IMigration[] = [migration_v1, migration_v2, migration_v3, migration_v4, migration_v5, migration_v6, migration_v7, migration_v8, migration_v9];
 
 /**
  * Get migrations needed to upgrade from one version to another

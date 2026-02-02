@@ -263,6 +263,14 @@ export class PluginManager {
     // 从插件实例或错误缓存中获取错误
     const errorMessage = plugin?.error ?? this.pluginErrors.get(config.id);
 
+    // Check credentials based on plugin type
+    let hasToken = false;
+    if (config.type === 'lark') {
+      hasToken = !!(config.credentials?.appId && config.credentials?.appSecret);
+    } else {
+      hasToken = !!config.credentials?.token;
+    }
+
     return {
       id: config.id,
       type: config.type,
@@ -274,7 +282,7 @@ export class PluginManager {
       error: errorMessage,
       activeUsers: plugin?.getActiveUserCount() ?? 0,
       botUsername: botInfo?.username,
-      hasToken: !!config.credentials?.token,
+      hasToken,
     };
   }
 

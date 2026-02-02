@@ -99,9 +99,14 @@ export class ChannelMessageService {
       return;
     }
 
+    console.log('[ChannelMessageService] Incoming message:', message.msg_id, message.type, 'content preview:', message.type === 'text' ? message.content.content?.slice(0, 30) : 'non-text');
+
     let messageList = this.messageListMap.get(conversationId);
     if (!messageList) {
       messageList = [];
+      console.log('[ChannelMessageService] New conversation, empty messageList');
+    } else {
+      console.log('[ChannelMessageService] Existing conversation, messageList has', messageList.length, 'messages, last msg_id:', messageList[messageList.length - 1]?.msg_id);
     }
 
     messageList = composeMessage(message, messageList, (type, msg: TMessage) => {
