@@ -8,50 +8,70 @@ import { useTranslation } from 'react-i18next';
 import { removeStack } from '../../../utils/common';
 
 /**
- * Generate storage key for permission memory
+ * Parse commandType string into individual commands
+ * Handles comma-separated commands from piped operations (e.g., "curl, grep")
+ * @example "curl, grep" -> ["curl", "grep"]
+ * @example "npm" -> ["npm"]
+ */
+function parseCommandTypes(commandType: string): string[] {
+  return commandType
+    .split(',')
+    .map((cmd) => cmd.trim())
+    .filter(Boolean);
+}
+
+/**
+ * Generate storage keys for permission memory
  * @param agentType - The agent type (gemini, acp, codex)
  * @param confirmation - The confirmation object
- * @returns Storage key or null if not applicable
+ * @returns Array of storage keys (empty if not applicable)
  */
-function getPermissionStorageKey(agentType: string, confirmation: IConfirmation<string>): string | null {
+function getPermissionStorageKeys(agentType: string, confirmation: IConfirmation<string>): string[] {
   const { action, commandType } = confirmation;
   const prefix = `${agentType}_always_allow_`;
-  // For exec confirmations, use commandType (e.g., 'curl', 'npm')
+  // For exec confirmations, split commandType and return keys for each command
   if (action === 'exec' && commandType) {
-    return `${prefix}exec_${commandType}`;
+    const commands = parseCommandTypes(commandType);
+    return commands.map((cmd) => `${prefix}exec_${cmd}`);
   }
   // For edit confirmations, use a generic key
   if (action === 'edit') {
-    return `${prefix}edit`;
+    return [`${prefix}edit`];
   }
   // For info confirmations, use a generic key
   if (action === 'info') {
-    return `${prefix}info`;
+    return [`${prefix}info`];
   }
-  return null;
+  return [];
 }
 
 /**
  * Check if "always allow" is stored for this confirmation type
+ * For exec confirmations with multiple commands (e.g., "curl, grep"),
+ * all commands must be allowed for auto-confirm to trigger
  */
 function hasAlwaysAllow(agentType: string, confirmation: IConfirmation<string>): boolean {
-  const key = getPermissionStorageKey(agentType, confirmation);
-  if (!key) return false;
+  const keys = getPermissionStorageKeys(agentType, confirmation);
+  if (keys.length === 0) return false;
   try {
-    return localStorage.getItem(key) === 'true';
+    // All commands must be allowed
+    return keys.every((key) => localStorage.getItem(key) === 'true');
   } catch {
     return false;
   }
 }
 
 /**
- * Store "always allow" permission
+ * Store "always allow" permission for all commands in the confirmation
+ * For exec confirmations with multiple commands (e.g., "curl, grep"),
+ * each command gets its own permission entry
  */
 function storeAlwaysAllow(agentType: string, confirmation: IConfirmation<string>): void {
-  const key = getPermissionStorageKey(agentType, confirmation);
-  if (!key) return;
+  const keys = getPermissionStorageKeys(agentType, confirmation);
+  if (keys.length === 0) return;
   try {
-    localStorage.setItem(key, 'true');
+    // Store permission for each command
+    keys.forEach((key) => localStorage.setItem(key, 'true'));
   } catch {
     // Ignore storage errors
   }
