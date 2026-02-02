@@ -55,7 +55,7 @@ Output example:
 npx tsx scripts/render.ts diagram.mmd --theme github-dark --output out.svg
 ```
 
-Available themes: `github-dark`, `github-light`, `dracula`, `nord`, `one-dark-pro`, `monokai`, etc.
+Use invalid theme name to see available themes list (e.g., `--theme ?`)
 
 ## Resources
 
