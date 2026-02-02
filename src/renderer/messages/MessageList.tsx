@@ -18,7 +18,6 @@ import type { VirtuosoHandle } from 'react-virtuoso';
 import { Virtuoso } from 'react-virtuoso';
 import { uuid } from '../utils/common';
 import HOC from '../utils/HOC';
-import MessageCodexPermission from './codex/MessageCodexPermission';
 import MessageCodexToolCall from './codex/MessageCodexToolCall';
 import type { FileChangeInfo } from './codex/MessageFileChanges';
 import MessageFileChanges, { parseDiff } from './codex/MessageFileChanges';
@@ -77,7 +76,8 @@ const MessageItem: React.FC<{ message: TMessage }> = React.memo(
       case 'acp_tool_call':
         return <MessageAcpToolCall message={message}></MessageAcpToolCall>;
       case 'codex_permission':
-        return <MessageCodexPermission message={message}></MessageCodexPermission>;
+        // Permission UI is now handled by ConversationChatConfirm component
+        return null;
       case 'codex_tool_call':
         return <MessageCodexToolCall message={message}></MessageCodexToolCall>;
       case 'plan':
