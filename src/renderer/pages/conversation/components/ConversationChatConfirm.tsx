@@ -1,32 +1,32 @@
 import { ipcBridge } from '@/common';
 import type { IConfirmation } from '@/common/chatLib';
+import { useConversationContextSafe } from '@/renderer/context/ConversationContext';
 import { Divider, Typography } from '@arco-design/web-react';
 import type { PropsWithChildren } from 'react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { removeStack } from '../../../utils/common';
 
-// Storage key prefix for "always allow" permissions
-const PERMISSION_KEY_PREFIX = 'gemini_always_allow_';
-
 /**
  * Generate storage key for permission memory
+ * @param agentType - The agent type (gemini, acp, codex)
  * @param confirmation - The confirmation object
  * @returns Storage key or null if not applicable
  */
-function getPermissionStorageKey(confirmation: IConfirmation<string>): string | null {
+function getPermissionStorageKey(agentType: string, confirmation: IConfirmation<string>): string | null {
   const { action, commandType } = confirmation;
+  const prefix = `${agentType}_always_allow_`;
   // For exec confirmations, use commandType (e.g., 'curl', 'npm')
   if (action === 'exec' && commandType) {
-    return `${PERMISSION_KEY_PREFIX}exec_${commandType}`;
+    return `${prefix}exec_${commandType}`;
   }
   // For edit confirmations, use a generic key
   if (action === 'edit') {
-    return `${PERMISSION_KEY_PREFIX}edit`;
+    return `${prefix}edit`;
   }
   // For info confirmations, use a generic key
   if (action === 'info') {
-    return `${PERMISSION_KEY_PREFIX}info`;
+    return `${prefix}info`;
   }
   return null;
 }
@@ -34,8 +34,8 @@ function getPermissionStorageKey(confirmation: IConfirmation<string>): string | 
 /**
  * Check if "always allow" is stored for this confirmation type
  */
-function hasAlwaysAllow(confirmation: IConfirmation<string>): boolean {
-  const key = getPermissionStorageKey(confirmation);
+function hasAlwaysAllow(agentType: string, confirmation: IConfirmation<string>): boolean {
+  const key = getPermissionStorageKey(agentType, confirmation);
   if (!key) return false;
   try {
     return localStorage.getItem(key) === 'true';
@@ -47,8 +47,8 @@ function hasAlwaysAllow(confirmation: IConfirmation<string>): boolean {
 /**
  * Store "always allow" permission
  */
-function storeAlwaysAllow(confirmation: IConfirmation<string>): void {
-  const key = getPermissionStorageKey(confirmation);
+function storeAlwaysAllow(agentType: string, confirmation: IConfirmation<string>): void {
+  const key = getPermissionStorageKey(agentType, confirmation);
   if (!key) return;
   try {
     localStorage.setItem(key, 'true');
@@ -60,11 +60,13 @@ const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: str
   const [confirmations, setConfirmations] = useState<IConfirmation<any>[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const { t } = useTranslation();
+  const conversationContext = useConversationContextSafe();
+  const agentType = conversationContext?.type || 'unknown';
 
   // Auto-confirm handler for "always allow" permissions
   const autoConfirmIfAllowed = useCallback(
     (confirmation: IConfirmation<string>) => {
-      if (hasAlwaysAllow(confirmation)) {
+      if (hasAlwaysAllow(agentType, confirmation)) {
         // Find the "proceed_always" or "proceed_once" option to use for auto-confirm
         const allowOption = confirmation.options.find((opt) => opt.value === 'proceed_always' || opt.value === 'proceed_once');
         if (allowOption) {
@@ -80,7 +82,7 @@ const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: str
       }
       return false; // Not auto-confirmed
     },
-    [conversation_id]
+    [conversation_id, agentType]
   );
 
   useEffect(() => {
@@ -231,7 +233,7 @@ const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: str
               onClick={() => {
                 // Store "always allow" permission if selected
                 if (option.value === 'proceed_always') {
-                  storeAlwaysAllow(confirmation);
+                  storeAlwaysAllow(agentType, confirmation);
                 }
                 setConfirmations((prev) => prev.filter((p) => p.id !== confirmation.id));
                 void ipcBridge.conversation.confirmation.confirm.invoke({ conversation_id, callId: confirmation.callId, msg_id: confirmation.id, data: option.value });
