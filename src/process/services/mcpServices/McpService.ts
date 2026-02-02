@@ -75,6 +75,24 @@ export class McpService {
   }
 
   /**
+   * 根据 agent 配置获取正确的 MCP agent 实例
+   * Fork Gemini (cliPath=undefined) 使用 AionuiMcpAgent
+   * Native Gemini (cliPath='gemini') 使用 GeminiMcpAgent
+   *
+   * Get the correct MCP agent instance based on agent config.
+   * Fork Gemini (cliPath=undefined) uses AionuiMcpAgent.
+   * Native Gemini (cliPath='gemini') uses GeminiMcpAgent.
+   */
+  private getAgentForConfig(agent: { backend: AcpBackend; cliPath?: string }): IMcpProtocol | undefined {
+    // Fork Gemini 使用 AionuiMcpAgent 管理 MCP 配置
+    // Fork Gemini uses AionuiMcpAgent to manage MCP config
+    if (agent.backend === 'gemini' && !agent.cliPath) {
+      return this.agents.get('aionui');
+    }
+    return this.agents.get(agent.backend);
+  }
+
+  /**
    * 从检测到的ACP agents中获取MCP配置（并发版本）
    *
    * 注意：此方法还会额外检测原生 Gemini CLI 的 MCP 配置，
@@ -180,7 +198,9 @@ export class McpService {
     // 并发执行所有agent的MCP同步
     const promises = agents.map(async (agent) => {
       try {
-        const agentInstance = this.getAgent(agent.backend);
+        // 使用 getAgentForConfig 来正确区分 fork Gemini 和 native Gemini
+        // Use getAgentForConfig to correctly distinguish fork Gemini from native Gemini
+        const agentInstance = this.getAgentForConfig(agent);
         if (!agentInstance) {
           console.warn(`[McpService] Skipping MCP sync for unsupported backend: ${agent.backend}`);
           return {
@@ -225,7 +245,9 @@ export class McpService {
     // 并发执行所有agent的MCP删除
     const promises = agents.map(async (agent) => {
       try {
-        const agentInstance = this.getAgent(agent.backend);
+        // 使用 getAgentForConfig 来正确区分 fork Gemini 和 native Gemini
+        // Use getAgentForConfig to correctly distinguish fork Gemini from native Gemini
+        const agentInstance = this.getAgentForConfig(agent);
         if (!agentInstance) {
           console.warn(`[McpService] Skipping MCP removal for unsupported backend: ${agent.backend}`);
           return {
