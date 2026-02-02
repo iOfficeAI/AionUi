@@ -16,6 +16,7 @@ import { spawn } from 'child_process';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import { AcpConnection } from './AcpConnection';
+import { AcpApprovalStore, createAcpApprovalKey } from './ApprovalStore';
 import { CLAUDE_YOLO_SESSION_MODE } from './constants';
 import { getClaudeModel } from './utils';
 
@@ -91,6 +92,13 @@ export class AcpAgent {
   // Track pending navigation tool calls for URL extraction from results
   // 跟踪待处理的导航工具调用，以便从结果中提取 URL
   private pendingNavigationTools = new Set<string>();
+
+  // ApprovalStore for session-level "always allow" caching
+  // Workaround for claude-code-acp bug: it doesn't check suggestions to auto-approve
+  private approvalStore = new AcpApprovalStore();
+
+  // Store permission request metadata for later use in confirmMessage
+  private permissionRequestMeta = new Map<string, { kind?: string; title?: string; rawInput?: Record<string, unknown> }>();
 
   constructor(config: AcpAgentConfig) {
     this.id = config.id;
@@ -467,6 +475,24 @@ export class AcpAgent {
       if (this.pendingPermissions.has(data.callId)) {
         const { resolve } = this.pendingPermissions.get(data.callId)!;
         this.pendingPermissions.delete(data.callId);
+
+        // Store "allow_always" decision to ApprovalStore for future auto-approval
+        // Workaround for claude-code-acp bug: it returns updatedPermissions but doesn't check suggestions
+        if (data.confirmKey === 'allow_always') {
+          const meta = this.permissionRequestMeta.get(data.callId);
+          if (meta) {
+            const approvalKey = createAcpApprovalKey({
+              kind: meta.kind,
+              title: meta.title,
+              rawInput: meta.rawInput,
+            });
+            this.approvalStore.put(approvalKey, 'allow_always');
+          }
+        }
+
+        // Clean up metadata
+        this.permissionRequestMeta.delete(data.callId);
+
         resolve({ optionId: data.confirmKey });
         return Promise.resolve({ success: true, data: null });
       }
@@ -552,6 +578,22 @@ export class AcpAgent {
         data.toolCall.toolCallId = uuid();
       }
       const requestId = data.toolCall.toolCallId; // 使用 toolCallId 作为 requestId
+
+      // Check ApprovalStore for cached "always allow" decision
+      // Workaround for claude-code-acp bug: it returns updatedPermissions but doesn't check suggestions
+      const approvalKey = createAcpApprovalKey(data.toolCall);
+      if (this.approvalStore.isApprovedForSession(approvalKey)) {
+        // Auto-approve without showing dialog
+        resolve({ optionId: 'allow_always' });
+        return;
+      }
+
+      // Store metadata for later use in confirmMessage
+      this.permissionRequestMeta.set(requestId, {
+        kind: data.toolCall.kind,
+        title: data.toolCall.title,
+        rawInput: data.toolCall.rawInput,
+      });
 
       // Intercept chrome-devtools navigation tools and show in preview panel
       // 拦截 chrome-devtools 导航工具，在预览面板中显示

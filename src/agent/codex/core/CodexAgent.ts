@@ -414,6 +414,24 @@ export class CodexAgent {
   }
 
   /**
+   * Check if an exec command has been rejected for session (abort)
+   * @returns true if auto-reject, false if needs user confirmation
+   */
+  public checkExecRejection(command: string | string[], cwd?: string): boolean {
+    const key = createExecApprovalKey(command, cwd);
+    return this.approvalStore.isRejectedForSession(key);
+  }
+
+  /**
+   * Check if file changes have been rejected for session (abort)
+   * @returns true if auto-reject, false if needs user confirmation
+   */
+  public checkPatchRejection(files: string[]): boolean {
+    const key = createPatchApprovalKey(files);
+    return this.approvalStore.isRejectedForSession(key);
+  }
+
+  /**
    * Store exec approval decision in cache
    */
   public storeExecApproval(command: string | string[], cwd: string | undefined, decision: ReviewDecision): void {

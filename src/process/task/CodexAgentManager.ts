@@ -267,8 +267,8 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
     const isApproved = decision === 'approved' || decision === 'approved_for_session';
 
-    // Store approval in ApprovalStore if user selected "always allow"
-    if (decision === 'approved_for_session') {
+    // Store decision in ApprovalStore if user selected "always allow" or "always reject"
+    if (decision === 'approved_for_session' || decision === 'abort') {
       this.storeApprovalDecision(callId, decision);
     }
 
@@ -298,9 +298,9 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
   }
 
   /**
-   * Store approval decision in ApprovalStore based on request type
+   * Store approval/rejection decision in ApprovalStore based on request type
    */
-  private storeApprovalDecision(callId: string, decision: 'approved_for_session'): void {
+  private storeApprovalDecision(callId: string, decision: 'approved_for_session' | 'abort'): void {
     const toolHandlers = this.agent.getEventHandler().getToolHandlers();
 
     // Check if this is an exec request
@@ -514,6 +514,20 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
    */
   checkPatchApproval(files: string[]): boolean {
     return this.agent?.checkPatchApproval(files) || false;
+  }
+
+  /**
+   * Check if an exec command has been rejected for session (abort)
+   */
+  checkExecRejection(command: string | string[], cwd?: string): boolean {
+    return this.agent?.checkExecRejection(command, cwd) || false;
+  }
+
+  /**
+   * Check if file changes have been rejected for session (abort)
+   */
+  checkPatchRejection(files: string[]): boolean {
+    return this.agent?.checkPatchRejection(files) || false;
   }
 
   /**

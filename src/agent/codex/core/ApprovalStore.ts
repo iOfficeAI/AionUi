@@ -8,12 +8,12 @@
  * ApprovalStore - Session-level approval cache for Codex permissions
  *
  * This implementation is inspired by Codex CLI's ApprovalStore (codex-rs/core/src/tools/sandboxing.rs).
- * It caches "always allow" decisions so that identical or similar operations
- * can be auto-approved without prompting the user again.
+ * It caches "always allow" and "always reject" decisions so that identical
+ * or similar operations can be auto-approved/rejected without prompting the user again.
  *
  * Key design:
  * - Uses serialized keys (command + cwd, or file paths) as cache identifiers
- * - Only caches "approved_for_session" decisions
+ * - Caches "approved_for_session" (allow_always) and "abort" (reject_always) decisions
  * - Scoped to a single conversation/session
  */
 
@@ -69,13 +69,20 @@ export class ApprovalStore {
 
   /**
    * Store a decision for a key
-   * Only stores approved_for_session decisions (the only type worth caching)
+   * Caches approved_for_session (allow_always) and abort (reject_always) decisions
    */
   put(key: ApprovalKey, decision: ReviewDecision): void {
-    if (decision === 'approved_for_session') {
+    if (decision === 'approved_for_session' || decision === 'abort') {
       const serialized = serializeKey(key);
       this.map.set(serialized, decision);
     }
+  }
+
+  /**
+   * Check if key has abort (reject_always) status
+   */
+  isRejectedForSession(key: ApprovalKey): boolean {
+    return this.get(key) === 'abort';
   }
 
   /**
@@ -87,11 +94,11 @@ export class ApprovalStore {
   }
 
   /**
-   * Store approved_for_session for multiple keys at once
-   * This is useful when a single approval covers multiple files/commands
+   * Store decision for multiple keys at once
+   * This is useful when a single approval/rejection covers multiple files/commands
    */
   putAll(keys: ApprovalKey[], decision: ReviewDecision): void {
-    if (decision === 'approved_for_session') {
+    if (decision === 'approved_for_session' || decision === 'abort') {
       for (const key of keys) {
         this.put(key, decision);
       }

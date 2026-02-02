@@ -52,9 +52,21 @@ export interface ICodexMessageEmitter {
   checkPatchApproval?(files: string[]): boolean;
 
   /**
-   * Auto-confirm a permission request (used when ApprovalStore has cached approval)
+   * Check if an exec command has been rejected for session (from ApprovalStore cache)
+   * @returns true if auto-reject should be used, false if user confirmation needed
+   */
+  checkExecRejection?(command: string | string[], cwd?: string): boolean;
+
+  /**
+   * Check if file changes have been rejected for session (from ApprovalStore cache)
+   * @returns true if auto-reject should be used, false if user confirmation needed
+   */
+  checkPatchRejection?(files: string[]): boolean;
+
+  /**
+   * Auto-confirm a permission request (used when ApprovalStore has cached approval/rejection)
    * @param callId The call ID to auto-confirm
-   * @param decision The decision to send (usually 'approved_for_session')
+   * @param decision The decision to send ('allow_always' or 'reject_always')
    */
   autoConfirm?(callId: string, decision: string): void;
 }

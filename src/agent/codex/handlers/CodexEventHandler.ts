@@ -174,6 +174,13 @@ export class CodexEventHandler {
     // Store exec metadata for ApprovalStore (used when user confirms)
     this.toolHandlers.storeExecRequestMeta(unifiedRequestId, { command, cwd });
 
+    // Check ApprovalStore for cached rejection first
+    if (this.messageEmitter.checkExecRejection?.(command, cwd)) {
+      // Auto-reject without showing dialog
+      this.messageEmitter.autoConfirm?.(unifiedRequestId, 'reject_always');
+      return;
+    }
+
     // Check ApprovalStore for cached approval
     if (this.messageEmitter.checkExecApproval?.(command, cwd)) {
       // Auto-confirm without showing dialog
@@ -238,6 +245,13 @@ export class CodexEventHandler {
 
     // Get file paths for ApprovalStore check
     const files = changes ? Object.keys(changes) : [];
+
+    // Check ApprovalStore for cached rejection first
+    if (files.length > 0 && this.messageEmitter.checkPatchRejection?.(files)) {
+      // Auto-reject without showing dialog
+      this.messageEmitter.autoConfirm?.(unifiedRequestId, 'reject_always');
+      return;
+    }
 
     // Check ApprovalStore for cached approval
     if (files.length > 0 && this.messageEmitter.checkPatchApproval?.(files)) {
