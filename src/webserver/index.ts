@@ -17,6 +17,7 @@ import { setupBasicMiddleware, setupCors, setupErrorHandler } from './setup';
 import { registerAuthRoutes } from './routes/authRoutes';
 import { registerApiRoutes } from './routes/apiRoutes';
 import { registerStaticRoutes } from './routes/staticRoutes';
+import { generateQRLoginUrlDirect } from '@/process/bridge/webuiBridge';
 
 // Express Request 类型扩展定义在 src/webserver/types/express.d.ts
 // Express Request type extension is defined in src/webserver/types/express.d.ts
@@ -25,6 +26,20 @@ const DEFAULT_ADMIN_USERNAME = AUTH_CONFIG.DEFAULT_USER.USERNAME;
 
 // 存储初始密码（内存中，用于首次显示）/ Store initial password (in memory, for first-time display)
 let initialAdminPassword: string | null = null;
+
+type QRCodeTerminal = {
+  generate: (text: string, options?: { small?: boolean }, cb?: (qr: string) => void) => void;
+};
+
+function loadQRCodeTerminal(): QRCodeTerminal | null {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const module = require('qrcode-terminal') as QRCodeTerminal;
+    return module;
+  } catch {
+    return null;
+  }
+}
 
 /**
  * 获取初始管理员密码（仅用于首次显示）
@@ -174,6 +189,9 @@ async function initializeDefaultAdmin(): Promise<{ username: string; password: s
  * Display initial credentials in console
  */
 function displayInitialCredentials(credentials: { username: string; password: string }, localUrl: string, allowRemote: boolean, networkUrl?: string): void {
+  const port = parseInt(localUrl.split(':').pop() || '3000', 10);
+  const { qrUrl } = generateQRLoginUrlDirect(port, allowRemote);
+
   console.log('\n' + '='.repeat(70));
   console.log('🎉 AionUI Web Server Started Successfully! / AionUI Web 服务器启动成功！');
   console.log('='.repeat(70));
@@ -183,11 +201,25 @@ function displayInitialCredentials(credentials: { username: string; password: st
     console.log(`📍 Network URL / 网络地址:  ${networkUrl}`);
   }
 
-  console.log('\n🔐 Initial Admin Credentials / 初始管理员凭证:');
+  // 显示二维码 / Display QR Code
+  console.log('\n📱 Scan QR Code to Login (expires in 5 mins) / 扫描二维码登录 (5分钟内有效)');
+  const qrcode = loadQRCodeTerminal();
+  if (qrcode) {
+    qrcode.generate(qrUrl, { small: true }, (qr: string) => {
+      console.log(qr);
+    });
+  } else {
+    console.log('QRCode output disabled: qrcode-terminal is not installed.');
+  }
+  console.log(`   QR URL: ${qrUrl}`);
+
+  // 显示传统凭证作为备用 / Display traditional credentials as fallback
+  console.log('\n🔐 Or Use Initial Admin Credentials / 或使用初始管理员凭证:');
   console.log(`   Username / 用户名: ${credentials.username}`);
   console.log(`   Password / 密码:   ${credentials.password}`);
   console.log('\n⚠️  Please change the password after first login!');
   console.log('⚠️  请在首次登录后修改密码！');
+
   console.log('='.repeat(70) + '\n');
 }
 

@@ -1,17 +1,17 @@
+import { ipcBridge } from '@/common';
+import { ASSISTANT_PRESETS } from '@/common/presets/assistantPresets';
+import { ConfigStorage } from '@/common/storage';
+import { resolveLocaleKey } from '@/common/utils';
+import coworkSvg from '@/renderer/assets/cowork.svg';
+import EmojiPicker from '@/renderer/components/EmojiPicker';
+import MarkdownView from '@/renderer/components/Markdown';
+import type { AcpBackendConfig, PresetAgentType } from '@/types/acpTypes';
 import type { Message } from '@arco-design/web-react';
-import { Avatar, Button, Checkbox, Collapse, Input, Drawer, Modal, Typography, Select, Switch } from '@arco-design/web-react';
-import { Close, Plus, Robot, SettingOne, FolderOpen, Delete } from '@icon-park/react';
+import { Avatar, Button, Checkbox, Collapse, Drawer, Input, Modal, Select, Switch, Typography } from '@arco-design/web-react';
+import { Close, Delete, FolderOpen, Plus, Robot, SettingOne } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { mutate } from 'swr';
-import { ipcBridge } from '@/common';
-import { ConfigStorage } from '@/common/storage';
-import { resolveLocaleKey } from '@/common/utils';
-import type { AcpBackendConfig, PresetAgentType } from '@/types/acpTypes';
-import MarkdownView from '@/renderer/components/Markdown';
-import EmojiPicker from '@/renderer/components/EmojiPicker';
-import coworkSvg from '@/renderer/assets/cowork.svg';
-import { ASSISTANT_PRESETS } from '@/common/presets/assistantPresets';
 
 // Skill 信息类型 / Skill info type
 interface SkillInfo {
@@ -20,6 +20,19 @@ interface SkillInfo {
   location: string;
   isCustom: boolean;
 }
+
+// 检查内置助手是否有 skills 配置（defaultEnabledSkills 或 skillFiles）
+// Check if builtin assistant has skills config (defaultEnabledSkills or skillFiles)
+const hasBuiltinSkills = (assistantId: string): boolean => {
+  if (!assistantId.startsWith('builtin-')) return false;
+  const presetId = assistantId.replace('builtin-', '');
+  const preset = ASSISTANT_PRESETS.find((p) => p.id === presetId);
+  if (!preset) return false;
+  // 有 defaultEnabledSkills 或 skillFiles 配置即可
+  const hasDefaultSkills = preset.defaultEnabledSkills && preset.defaultEnabledSkills.length > 0;
+  const hasSkillFiles = preset.skillFiles && Object.keys(preset.skillFiles).length > 0;
+  return hasDefaultSkills || hasSkillFiles;
+};
 
 // 待导入的 Skill / Pending skill to import
 interface PendingSkill {
@@ -46,6 +59,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
   const [isCreating, setIsCreating] = useState(false);
   const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
   const [promptViewMode, setPromptViewMode] = useState<'edit' | 'preview'>('preview');
+  const [drawerWidth, setDrawerWidth] = useState(500);
   // Skills 选择模式相关 state / Skills selection mode states
   const [availableSkills, setAvailableSkills] = useState<SkillInfo[]>([]);
   const [customSkills, setCustomSkills] = useState<string[]>([]); // 通过 Add Skills 添加到此助手的 skills 名称 / Skill names added via Add Skills
@@ -74,6 +88,18 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
       return () => clearTimeout(timer);
     }
   }, [editVisible, promptViewMode]);
+
+  useEffect(() => {
+    const updateDrawerWidth = () => {
+      if (typeof window === 'undefined') return;
+      const nextWidth = Math.min(500, Math.max(320, Math.floor(window.innerWidth - 32)));
+      setDrawerWidth(nextWidth);
+    };
+
+    updateDrawerWidth();
+    window.addEventListener('resize', updateDrawerWidth);
+    return () => window.removeEventListener('resize', updateDrawerWidth);
+  }, []);
 
   // Detect common skill paths when modal opens
   useEffect(() => {
@@ -205,8 +231,8 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
       setEditContext(context);
       setEditSkills(skills);
 
-      // 对于 cowork 助手和所有自定义助手，加载技能列表 / Load skills list for cowork and all custom assistants
-      if (assistant.id === 'builtin-cowork' || !assistant.isBuiltin) {
+      // 对于有 skillFiles 配置的内置助手和所有自定义助手，加载技能列表 / Load skills list for builtin assistants with skillFiles and all custom assistants
+      if (hasBuiltinSkills(assistant.id) || !assistant.isBuiltin) {
         const skillsList = await ipcBridge.fs.listAvailableSkills.invoke();
         setAvailableSkills(skillsList);
         // selectedSkills: 启用的 skills / Enabled skills
@@ -249,6 +275,35 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
     } catch (error) {
       console.error('Failed to load skills:', error);
       setAvailableSkills([]);
+    }
+  };
+
+  // 复制新建助手功能 / Duplicate assistant function
+  const handleDuplicate = async (assistant: AcpBackendConfig) => {
+    setIsCreating(true);
+    setActiveAssistantId(null);
+    setEditName(`${assistant.nameI18n?.[localeKey] || assistant.name} (Copy)`);
+    setEditDescription(assistant.descriptionI18n?.[localeKey] || assistant.description || '');
+    setEditAvatar(assistant.avatar || '🤖');
+    setEditAgent(assistant.presetAgentType || 'gemini');
+    setPromptViewMode('edit');
+    setEditVisible(true);
+
+    // 加载原助手的规则和技能内容 / Load original assistant's rules and skills
+    try {
+      const [context, skills, skillsList] = await Promise.all([loadAssistantContext(assistant.id), loadAssistantSkills(assistant.id), ipcBridge.fs.listAvailableSkills.invoke()]);
+      setEditContext(context);
+      setEditSkills(skills);
+      setAvailableSkills(skillsList);
+      setSelectedSkills(assistant.enabledSkills || []);
+      setCustomSkills(assistant.customSkillNames || []);
+    } catch (error) {
+      console.error('Failed to load assistant content for duplication:', error);
+      setEditContext('');
+      setEditSkills('');
+      setAvailableSkills([]);
+      setSelectedSkills([]);
+      setCustomSkills([]);
     }
   };
 
@@ -437,7 +492,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                 {assistants.map((assistant) => (
                   <div
                     key={assistant.id}
-                    className='bg-fill-0 rounded-lg px-16px py-12px flex items-center justify-between cursor-pointer hover:bg-fill-1 transition-colors'
+                    className='group bg-fill-0 rounded-lg px-16px py-12px flex items-center justify-between cursor-pointer hover:bg-fill-1 transition-colors'
                     onClick={() => {
                       setActiveAssistantId(assistant.id);
                       void handleEdit(assistant);
@@ -451,6 +506,15 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                       </div>
                     </div>
                     <div className='flex items-center gap-12px text-t-secondary'>
+                      <span
+                        className='invisible group-hover:visible text-12px text-primary cursor-pointer hover:underline transition-all'
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void handleDuplicate(assistant);
+                        }}
+                      >
+                        {t('settings.duplicateAssistant', { defaultValue: 'Duplicate' })}
+                      </span>
                       <Switch
                         size='small'
                         checked={assistant.enabled !== false}
@@ -498,8 +562,8 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
         closable={false}
         visible={editVisible}
         placement='right'
-        width={500}
-        zIndex={2000}
+        width={drawerWidth}
+        zIndex={1200}
         autoFocus={false}
         onCancel={() => {
           setEditVisible(false);
@@ -591,8 +655,8 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                 </div>
               </div>
             </div>
-            {/* 创建助手或编辑 cowork/自定义助手时显示技能选择 / Show skills selection when creating or editing cowork/custom assistant */}
-            {(isCreating || activeAssistantId === 'builtin-cowork' || (activeAssistant && !activeAssistant.isBuiltin)) && (
+            {/* 创建助手或编辑有 skillFiles 配置的内置助手/自定义助手时显示技能选择 / Show skills selection when creating or editing builtin assistants with skillFiles/custom assistants */}
+            {(isCreating || (activeAssistantId && hasBuiltinSkills(activeAssistantId)) || (activeAssistant && !activeAssistant.isBuiltin)) && (
               <div className='flex-shrink-0 mt-16px'>
                 <div className='flex items-center justify-between mb-12px'>
                   <Typography.Text bold>{t('settings.assistantSkills', { defaultValue: 'Skills' })}</Typography.Text>
@@ -718,7 +782,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
       </Drawer>
 
       {/* Delete Confirmation Modal */}
-      <Modal title={t('settings.deleteAssistantTitle', { defaultValue: 'Delete Assistant' })} visible={deleteConfirmVisible} onCancel={() => setDeleteConfirmVisible(false)} onOk={handleDeleteConfirm} okButtonProps={{ status: 'danger' }} okText={t('common.delete', { defaultValue: 'Delete' })} cancelText={t('common.cancel', { defaultValue: 'Cancel' })} style={{ width: 400 }} wrapStyle={{ zIndex: 10000 }} maskStyle={{ zIndex: 9999 }}>
+      <Modal title={t('settings.deleteAssistantTitle', { defaultValue: 'Delete Assistant' })} visible={deleteConfirmVisible} onCancel={() => setDeleteConfirmVisible(false)} onOk={handleDeleteConfirm} okButtonProps={{ status: 'danger' }} okText={t('common.delete', { defaultValue: 'Delete' })} cancelText={t('common.cancel', { defaultValue: 'Cancel' })} className='w-[90vw] md:w-[400px]' wrapStyle={{ zIndex: 10000 }} maskStyle={{ zIndex: 9999 }}>
         <p>{t('settings.deleteAssistantConfirm', { defaultValue: 'Are you sure you want to delete this assistant? This action cannot be undone.' })}</p>
         {activeAssistant && (
           <div className='mt-12px p-12px bg-fill-2 rounded-lg flex items-center gap-12px'>
@@ -819,8 +883,9 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
         title={t('settings.addSkillsTitle', { defaultValue: 'Add Skills' })}
         okText={t('common.confirm', { defaultValue: 'Confirm' })}
         cancelText={t('common.cancel', { defaultValue: 'Cancel' })}
-        style={{ width: 500 }}
-        wrapStyle={{ zIndex: 10000 }}
+        className='w-[90vw] md:w-[500px]'
+        wrapStyle={{ zIndex: 2500 }}
+        maskStyle={{ zIndex: 2490 }}
       >
         <div className='space-y-16px'>
           {commonPaths.length > 0 && (
@@ -891,7 +956,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
             message.success(t('settings.skillDeleted', { defaultValue: 'Skill removed from pending list' }));
           }
         }}
-        style={{ width: 400 }}
+        className='w-[90vw] md:w-[400px]'
         wrapStyle={{ zIndex: 10000 }}
         maskStyle={{ zIndex: 9999 }}
       >
@@ -925,7 +990,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
             message.success(t('settings.skillRemovedFromAssistant', { defaultValue: 'Skill removed from this assistant' }));
           }
         }}
-        style={{ width: 400 }}
+        className='w-[90vw] md:w-[400px]'
         wrapStyle={{ zIndex: 10000 }}
         maskStyle={{ zIndex: 9999 }}
       >

@@ -177,6 +177,11 @@ export class GeminiAgent {
     if (this.authType === AuthType.USE_OPENAI) {
       fallbackValue('OPENAI_BASE_URL', this.model.baseUrl);
       fallbackValue('OPENAI_API_KEY', getCurrentApiKey());
+      return;
+    }
+    if (this.authType === AuthType.USE_ANTHROPIC) {
+      fallbackValue('ANTHROPIC_BASE_URL', this.model.baseUrl);
+      fallbackValue('ANTHROPIC_API_KEY', getCurrentApiKey());
     }
   }
 
@@ -187,7 +192,7 @@ export class GeminiAgent {
     }
 
     // Only initialize for supported auth types
-    if (this.authType === AuthType.USE_OPENAI || this.authType === AuthType.USE_GEMINI) {
+    if (this.authType === AuthType.USE_OPENAI || this.authType === AuthType.USE_GEMINI || this.authType === AuthType.USE_ANTHROPIC) {
       this.apiKeyManager = new ApiKeyManager(apiKey, this.authType);
     }
   }
@@ -278,11 +283,15 @@ export class GeminiAgent {
     // Inject presetRules into userMemory at initialization
     // Rules 定义系统行为规则，在会话开始时就应该生效
     // Rules define system behavior, should be effective from session start
+    console.log(`[GeminiAgent] presetRules length: ${this.presetRules?.length || 0}`);
     if (this.presetRules) {
       const currentMemory = this.config.getUserMemory();
       const rulesSection = `[Assistant System Rules]\n${this.presetRules}`;
       const combined = currentMemory ? `${rulesSection}\n\n${currentMemory}` : rulesSection;
       this.config.setUserMemory(combined);
+      console.log(`[GeminiAgent] Injected presetRules into userMemory, total length: ${combined.length}`);
+    } else {
+      console.log(`[GeminiAgent] No presetRules to inject`);
     }
 
     // Note: Skills (技能定义) are prepended to the first message in send() method
@@ -569,14 +578,14 @@ export class GeminiAgent {
       }
 
       const stream = this.geminiClient.sendMessageStream(query, abortController.signal, prompt_id);
-      this.onStreamEvent({
-        type: 'start',
-        data: '',
-        msg_id,
-      });
+
+      // Send start event immediately when stream is created
+      // 流创建后立即发送 start 事件，确保 UI 显示停止按钮
+      this.onStreamEvent({ type: 'start', data: '', msg_id });
+
       // Pass query to handleMessage for potential retry on invalid stream
       // 将 query 传递给 handleMessage 以便在 invalid stream 时重试
-      this.handleMessage(stream, msg_id, abortController, query)
+      this.handleMessage(stream, msg_id, abortController, query, 0)
         .catch((e: unknown) => {
           const errorMessage = e instanceof Error ? e.message : JSON.stringify(e);
           this.onStreamEvent({
@@ -654,10 +663,11 @@ export class GeminiAgent {
     let skillsPrefix = '';
 
     if (!this.skillsIndexPrependedOnce) {
-      // 向后兼容：使用 contextContent 作为助手规则
-      // Backward compatible: use contextContent as assistant rules
-      if (this.contextContent && !this.presetRules) {
-        skillsPrefix = `[Assistant Rules - You MUST follow these instructions]\n${this.contextContent}\n\n`;
+      // 优先使用 presetRules，否则回退到 contextContent
+      // Prefer presetRules, fallback to contextContent
+      const rulesContent = this.presetRules || this.contextContent;
+      if (rulesContent) {
+        skillsPrefix = `[Assistant Rules - You MUST follow these instructions]\n${rulesContent}\n\n`;
       }
       this.skillsIndexPrependedOnce = true;
 

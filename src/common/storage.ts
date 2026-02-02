@@ -32,6 +32,10 @@ export interface IConfigStorageRefer {
     accountProjects?: Record<string, string>;
     yoloMode?: boolean;
   };
+  'codex.config'?: {
+    cliPath?: string;
+    yoloMode?: boolean;
+  };
   'acp.config': {
     [backend in AcpBackend]?: {
       authMethodId?: string;
@@ -70,7 +74,15 @@ export interface IConfigStorageRefer {
   // 迁移标记：修复老版本中助手 enabled 默认值问题 / Migration flag: fix assistant enabled default value issue
   'migration.assistantEnabledFixed'?: boolean;
   // 迁移标记：为 cowork 助手添加默认启用的 skills / Migration flag: add default enabled skills for cowork assistant
+  /** @deprecated Use migration.builtinDefaultSkillsAdded_v2 instead */
   'migration.coworkDefaultSkillsAdded'?: boolean;
+  // 迁移标记：为所有内置助手添加默认启用的 skills / Migration flag: add default enabled skills for all builtin assistants
+  'migration.builtinDefaultSkillsAdded_v2'?: boolean;
+  // Telegram assistant default model / Telegram 助手默认模型
+  'assistant.telegram.defaultModel'?: {
+    id: string;
+    useModel: string;
+  };
 }
 
 export interface IEnvStorageRefer {
@@ -79,6 +91,12 @@ export interface IEnvStorageRefer {
     cacheDir: string;
   };
 }
+
+/**
+ * Conversation source type - identifies where the conversation was created
+ * 会话来源类型 - 标识会话创建的来源
+ */
+export type ConversationSource = 'aionui' | 'telegram';
 
 interface IChatConversation<T, Extra> {
   createTime: number;
@@ -90,6 +108,8 @@ interface IChatConversation<T, Extra> {
   extra: Extra;
   model: TProviderWithModel;
   status?: 'pending' | 'running' | 'finished' | undefined;
+  /** 会话来源，默认为 aionui / Conversation source, defaults to aionui */
+  source?: ConversationSource;
 }
 
 // Token 使用统计数据类型

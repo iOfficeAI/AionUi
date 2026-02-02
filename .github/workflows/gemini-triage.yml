@@ -7,9 +7,26 @@ on:
         type: 'string'
         description: 'Any additional context from the request'
         required: false
+      issue_number:
+        type: 'number'
+        description: 'Issue number to triage (for batch processing)'
+        required: false
+      issue_title:
+        type: 'string'
+        description: 'Issue title (for batch processing)'
+        required: false
+      issue_body:
+        type: 'string'
+        description: 'Issue body (for batch processing)'
+        required: false
+      skip_comment:
+        type: 'boolean'
+        description: 'Skip posting triage result comment'
+        required: false
+        default: false
 
 concurrency:
-  group: '${{ github.workflow }}-triage-${{ github.event_name }}-${{ github.event.pull_request.number || github.event.issue.number }}'
+  group: '${{ github.workflow }}-triage-${{ github.event_name }}-${{ inputs.issue_number || github.event.pull_request.number || github.event.issue.number }}'
   cancel-in-progress: true
 
 defaults:
@@ -58,8 +75,8 @@ jobs:
         uses: 'google-github-actions/run-gemini-cli@v0' # ratchet:exclude
         env:
           GITHUB_TOKEN: '' # Do NOT pass any auth tokens here since this runs on untrusted inputs
-          ISSUE_TITLE: '${{ github.event.issue.title }}'
-          ISSUE_BODY: '${{ github.event.issue.body }}'
+          ISSUE_TITLE: '${{ inputs.issue_title || github.event.issue.title }}'
+          ISSUE_BODY: '${{ inputs.issue_body || github.event.issue.body }}'
           AVAILABLE_LABELS: '${{ steps.get_labels.outputs.available_labels }}'
         with:
           gemini_cli_version: '${{ vars.GEMINI_CLI_VERSION }}'
@@ -96,6 +113,17 @@ jobs:
             - Environment variables are specified in the format "${VARIABLE}" (with quotes and braces).
             - Only use labels that are from the list of available labels.
             - You can choose multiple labels to apply.
+            - **REQUIRED**: You MUST assign exactly ONE priority label from: `priority/p0`, `priority/p1`, `priority/p2`, `priority/p3`.
+
+            ## Priority Guidelines
+
+            Use these criteria to determine priority:
+            - `priority/p0` (Critical): App crashes, data loss, security issues, completely blocks usage
+            - `priority/p1` (High): Major feature broken, affects many users, no workaround available
+            - `priority/p2` (Medium): Feature partially broken, has workaround, or minor but annoying bug
+            - `priority/p3` (Low): Nice to have, cosmetic issues, feature requests with low impact
+
+            When in doubt, use `priority/p2` as the default.
 
             ## Steps
 
@@ -107,13 +135,17 @@ jobs:
 
             4. Review the issue title, issue body, and available labels.
 
-            5. Based on the issue title and issue body, classify the issue and choose all appropriate labels from the list of available labels.
+            5. Determine the priority level (p0/p1/p2/p3) based on the Priority Guidelines above. This is REQUIRED.
 
-            5. Classify the issue by identifying the appropriate labels from the list of available labels.
+            6. Based on the issue title and issue body, classify the issue and choose all appropriate labels including:
+               - One type label (bug, enhancement, question, etc.)
+               - One priority label (REQUIRED: priority/p0, priority/p1, priority/p2, or priority/p3)
+               - Relevant area labels (area/ui, area/agent, area/mcp, etc.) if applicable
+               - Platform labels (platform/macos, platform/windows, platform/linux) if mentioned
 
-            6. Convert the list of appropriate labels into a comma-separated list (CSV). If there are no appropriate labels, use the empty string.
+            7. Convert the list of appropriate labels into a comma-separated list (CSV). The list MUST include a priority label.
 
-            7. Use the "echo" shell command to append the CSV labels into the filepath referenced by the environment variable "${GITHUB_ENV}":
+            8. Use the "echo" shell command to append the CSV labels into the filepath referenced by the environment variable "${GITHUB_ENV}":
 
                 ```
                 echo "SELECTED_LABELS=[APPROPRIATE_LABELS_AS_CSV]" >> "[filepath_for_env]"
@@ -122,7 +154,7 @@ jobs:
                 for example:
 
                 ```
-                echo "SELECTED_LABELS=bug,enhancement" >> "/tmp/runner/env"
+                echo "SELECTED_LABELS=bug,priority/p2,area/ui" >> "/tmp/runner/env"
                 ```
 
   label:
@@ -150,7 +182,7 @@ jobs:
 
       - name: 'Apply labels'
         env:
-          ISSUE_NUMBER: '${{ github.event.issue.number }}'
+          ISSUE_NUMBER: '${{ inputs.issue_number || github.event.issue.number }}'
           AVAILABLE_LABELS: '${{ needs.triage.outputs.available_labels }}'
           SELECTED_LABELS: '${{ needs.triage.outputs.selected_labels }}'
         uses: 'actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea' # ratchet:actions/github-script@v7.0.1
@@ -181,6 +213,59 @@ jobs:
                 labels: selectedLabels,
               });
               core.info(`Successfully set labels: ${selectedLabels.join(',')}`);
+              core.setOutput('applied_labels', selectedLabels.join(', '));
+              core.setOutput('success', 'true');
             } else {
               core.info(`Failed to determine labels to set. There may not be enough information in the issue or pull request.`)
+              core.setOutput('success', 'false');
             }
+
+      - name: 'Post triage result'
+        if: ${{ always() && inputs.skip_comment != true }}
+        env:
+          GITHUB_TOKEN: '${{ steps.mint_identity_token.outputs.token || secrets.GITHUB_TOKEN || github.token }}'
+          ISSUE_NUMBER: '${{ inputs.issue_number || github.event.issue.number }}'
+          SELECTED_LABELS: '${{ needs.triage.outputs.selected_labels }}'
+        uses: 'actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea' # ratchet:actions/github-script@v7.0.1
+        with:
+          github-token: '${{ steps.mint_identity_token.outputs.token || secrets.GITHUB_TOKEN || github.token }}'
+          script: |-
+            const issueNumber = process.env.ISSUE_NUMBER;
+            const selectedLabels = (process.env.SELECTED_LABELS || '').split(',')
+              .map((label) => label.trim())
+              .filter((label) => label.length > 0);
+
+            // Find and delete the "working on it" comment
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+            });
+
+            const botComment = comments.data.find(comment =>
+              comment.body.includes("I've received your request, and I'm working on it now")
+            );
+
+            if (botComment) {
+              await github.rest.issues.deleteComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+              });
+            }
+
+            // Post result comment
+            let message;
+            if (selectedLabels.length > 0) {
+              const labelList = selectedLabels.map(l => `\`${l}\``).join(', ');
+              message = `🏷️ **Auto-triage complete**\n\nI've analyzed this issue and applied the following labels: ${labelList}\n\nThis issue has been added to our [Project Roadmap](https://github.com/orgs/iOfficeAI/projects/5) for tracking.`;
+            } else {
+              message = `🤖 **Auto-triage complete**\n\nI couldn't determine appropriate labels for this issue. A maintainer will review it shortly.`;
+            }
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: issueNumber,
+              body: message,
+            });

@@ -162,9 +162,193 @@ const migration_v6: IMigration = {
 };
 
 /**
+ * Migration v6 -> v7: Add Personal Assistant tables
+ * Supports remote interaction through messaging platforms (Telegram, Slack, Discord)
+ */
+const migration_v7: IMigration = {
+  version: 7,
+  name: 'Add Personal Assistant tables',
+  up: (db) => {
+    // Assistant plugins configuration
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS assistant_plugins (
+        id TEXT PRIMARY KEY,
+        type TEXT NOT NULL CHECK(type IN ('telegram', 'slack', 'discord')),
+        name TEXT NOT NULL,
+        enabled INTEGER NOT NULL DEFAULT 0,
+        config TEXT NOT NULL,
+        status TEXT CHECK(status IN ('created', 'initializing', 'ready', 'starting', 'running', 'stopping', 'stopped', 'error')),
+        last_connected INTEGER,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_assistant_plugins_type ON assistant_plugins(type);
+      CREATE INDEX IF NOT EXISTS idx_assistant_plugins_enabled ON assistant_plugins(enabled);
+    `);
+
+    // Authorized users whitelist
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS assistant_users (
+        id TEXT PRIMARY KEY,
+        platform_user_id TEXT NOT NULL,
+        platform_type TEXT NOT NULL,
+        display_name TEXT,
+        authorized_at INTEGER NOT NULL,
+        last_active INTEGER,
+        session_id TEXT,
+        UNIQUE(platform_user_id, platform_type)
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_assistant_users_platform ON assistant_users(platform_type, platform_user_id);
+    `);
+
+    // User sessions
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS assistant_sessions (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        agent_type TEXT NOT NULL CHECK(agent_type IN ('gemini', 'acp', 'codex')),
+        conversation_id TEXT,
+        workspace TEXT,
+        created_at INTEGER NOT NULL,
+        last_activity INTEGER NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES assistant_users(id) ON DELETE CASCADE,
+        FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE SET NULL
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_assistant_sessions_user ON assistant_sessions(user_id);
+      CREATE INDEX IF NOT EXISTS idx_assistant_sessions_conversation ON assistant_sessions(conversation_id);
+    `);
+
+    // Pending pairing requests
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS assistant_pairing_codes (
+        code TEXT PRIMARY KEY,
+        platform_user_id TEXT NOT NULL,
+        platform_type TEXT NOT NULL,
+        display_name TEXT,
+        requested_at INTEGER NOT NULL,
+        expires_at INTEGER NOT NULL,
+        status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending', 'approved', 'rejected', 'expired'))
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_assistant_pairing_expires ON assistant_pairing_codes(expires_at);
+      CREATE INDEX IF NOT EXISTS idx_assistant_pairing_status ON assistant_pairing_codes(status);
+    `);
+
+    console.log('[Migration v7] Added Personal Assistant tables');
+  },
+  down: (db) => {
+    db.exec(`
+      DROP TABLE IF EXISTS assistant_pairing_codes;
+      DROP TABLE IF EXISTS assistant_sessions;
+      DROP TABLE IF EXISTS assistant_users;
+      DROP TABLE IF EXISTS assistant_plugins;
+    `);
+    console.log('[Migration v7] Rolled back: Removed Personal Assistant tables');
+  },
+};
+
+/**
+ * Migration v7 -> v8: Add source column to conversations table
+ * 为 conversations 表添加 source 列，标识会话来源
+ */
+const migration_v8: IMigration = {
+  version: 8,
+  name: 'Add source column to conversations',
+  up: (db) => {
+    // Add source column to conversations table
+    db.exec(`
+      ALTER TABLE conversations ADD COLUMN source TEXT CHECK(source IN ('aionui', 'telegram'));
+    `);
+
+    // Create index for efficient source-based queries
+    db.exec(`
+      CREATE INDEX IF NOT EXISTS idx_conversations_source ON conversations(source);
+      CREATE INDEX IF NOT EXISTS idx_conversations_source_updated ON conversations(source, updated_at DESC);
+    `);
+
+    console.log('[Migration v8] Added source column to conversations table');
+  },
+  down: (db) => {
+    // SQLite doesn't support DROP COLUMN directly, need to recreate table
+    // For simplicity, just drop the indexes (column will remain)
+    db.exec(`
+      DROP INDEX IF EXISTS idx_conversations_source;
+      DROP INDEX IF EXISTS idx_conversations_source_updated;
+    `);
+    console.log('[Migration v8] Rolled back: Removed source indexes');
+  },
+};
+
+/**
+ * Migration v8 -> v9: Add cron_jobs table for scheduled tasks
+ */
+const migration_v9: IMigration = {
+  version: 9,
+  name: 'Add cron_jobs table',
+  up: (db) => {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS cron_jobs (
+        -- Basic info
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        enabled INTEGER DEFAULT 1,
+
+        -- Schedule
+        schedule_kind TEXT NOT NULL,       -- 'at' | 'every' | 'cron'
+        schedule_value TEXT NOT NULL,      -- timestamp | ms | cron expr
+        schedule_tz TEXT,                  -- timezone (optional)
+        schedule_description TEXT NOT NULL, -- human-readable description
+
+        -- Target
+        payload_message TEXT NOT NULL,
+
+        -- Metadata (for management)
+        conversation_id TEXT NOT NULL,     -- Which conversation created this
+        conversation_title TEXT,           -- For display in UI
+        agent_type TEXT NOT NULL,          -- 'gemini' | 'claude' | 'codex' | etc.
+        created_by TEXT NOT NULL,          -- 'user' | 'agent'
+        created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
+        updated_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
+
+        -- Runtime state
+        next_run_at INTEGER,
+        last_run_at INTEGER,
+        last_status TEXT,                  -- 'ok' | 'error' | 'skipped'
+        last_error TEXT,                   -- Error message if failed
+        run_count INTEGER DEFAULT 0,
+        retry_count INTEGER DEFAULT 0,
+        max_retries INTEGER DEFAULT 3
+      );
+
+      -- Index for querying jobs by conversation (frontend management)
+      CREATE INDEX IF NOT EXISTS idx_cron_jobs_conversation ON cron_jobs(conversation_id);
+
+      -- Index for scheduler to find next jobs to run
+      CREATE INDEX IF NOT EXISTS idx_cron_jobs_next_run ON cron_jobs(next_run_at) WHERE enabled = 1;
+
+      -- Index for querying by agent type (if needed)
+      CREATE INDEX IF NOT EXISTS idx_cron_jobs_agent_type ON cron_jobs(agent_type);
+    `);
+    console.log('[Migration v9] Added cron_jobs table');
+  },
+  down: (db) => {
+    db.exec(`
+      DROP INDEX IF EXISTS idx_cron_jobs_agent_type;
+      DROP INDEX IF EXISTS idx_cron_jobs_next_run;
+      DROP INDEX IF EXISTS idx_cron_jobs_conversation;
+      DROP TABLE IF EXISTS cron_jobs;
+    `);
+    console.log('[Migration v9] Rolled back: Removed cron_jobs table');
+  },
+};
+
+/**
  * All migrations in order
  */
-export const ALL_MIGRATIONS: IMigration[] = [migration_v1, migration_v2, migration_v3, migration_v4, migration_v5, migration_v6];
+export const ALL_MIGRATIONS: IMigration[] = [migration_v1, migration_v2, migration_v3, migration_v4, migration_v5, migration_v6, migration_v7, migration_v8, migration_v9];
 
 /**
  * Get migrations needed to upgrade from one version to another

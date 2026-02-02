@@ -361,7 +361,7 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({ content, onClose, hid
       )}
 
       {/* 内容区域 / Content area */}
-      <div ref={containerRef} className={`flex-1 ${viewMode === 'source' ? 'overflow-hidden' : 'overflow-auto p-32px'}`} style={{ minWidth: 0 }}>
+      <div ref={containerRef} className={`flex-1 ${viewMode === 'source' ? 'overflow-hidden' : 'overflow-auto p-32px text-t-primary'}`} style={{ minWidth: 0 }}>
         {viewMode === 'source' ? (
           // 原文模式：使用编辑器 / Source mode: Use editor
           <MarkdownEditor value={content} onChange={(value) => onContentChange?.(value)} />

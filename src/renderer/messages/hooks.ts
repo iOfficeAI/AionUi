@@ -135,11 +135,22 @@ function composeMessageWithIndex(message: TMessage, list: TMessage[], index: Mes
   }
 
   // 合并 text 消息
+  // Merge text messages - create new array to trigger React re-render
+  const newList = list.slice();
+  const lastIdx = newList.length - 1;
   if (message.type === 'text' && last.type === 'text') {
-    message.content.content = last.content.content + message.content.content;
+    // Create new message object with merged content
+    newList[lastIdx] = {
+      ...last,
+      content: {
+        ...last.content,
+        content: last.content.content + message.content.content,
+      },
+    };
+  } else {
+    newList[lastIdx] = { ...last, ...message };
   }
-  Object.assign(last, message);
-  return list;
+  return newList;
 }
 
 export const useAddOrUpdateMessage = () => {

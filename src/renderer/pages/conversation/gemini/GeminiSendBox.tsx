@@ -37,6 +37,7 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
   const addOrUpdateMessage = useAddOrUpdateMessage();
   const [streamRunning, setStreamRunning] = useState(false); // API 流是否在运行
   const [hasActiveTools, setHasActiveTools] = useState(false); // 是否有工具在执行或等待确认
+  const [waitingResponse, setWaitingResponse] = useState(false); // 等待后端响应（发送消息后到收到 start 之前）
   const [thought, setThought] = useState<ThoughtData>({
     description: '',
     subject: '',
@@ -45,6 +46,17 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
   // 当前活跃的消息 ID，用于过滤旧请求的事件（防止 abort 后的事件干扰新请求）
   // Current active message ID to filter out events from old requests (prevents aborted request events from interfering with new ones)
   const activeMsgIdRef = useRef<string | null>(null);
+
+  // Use refs to avoid useEffect re-subscription when these states change
+  // 使用 ref 避免状态变化时 useEffect 重新订阅导致事件丢失
+  const hasActiveToolsRef = useRef(hasActiveTools);
+  const streamRunningRef = useRef(streamRunning);
+  useEffect(() => {
+    hasActiveToolsRef.current = hasActiveTools;
+  }, [hasActiveTools]);
+  useEffect(() => {
+    streamRunningRef.current = streamRunning;
+  }, [streamRunning]);
 
   // Think 消息节流：限制更新频率，减少渲染次数
   // Throttle thought updates to reduce render frequency
@@ -98,9 +110,9 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
     };
   }, []);
 
-  // 综合运行状态：流在运行 或 有工具在执行/等待确认
-  // Combined running state: stream is running OR tools are active
-  const running = streamRunning || hasActiveTools;
+  // 综合运行状态：等待响应 或 流在运行 或 有工具在执行/等待确认
+  // Combined running state: waiting for response OR stream is running OR tools are active
+  const running = waitingResponse || streamRunning || hasActiveTools;
 
   // 设置当前活跃的消息 ID / Set current active message ID
   const setActiveMsgId = useCallback((msgId: string | null) => {
@@ -125,21 +137,23 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
         }
       }
 
-      // console.log('responseStream.message', message);
       switch (message.type) {
         case 'thought':
           throttledSetThought(message.data as ThoughtData);
           break;
         case 'start':
           setStreamRunning(true);
+          setWaitingResponse(false); // 收到 start，可以清除等待状态
           break;
         case 'finish':
           {
             setStreamRunning(false);
-            // 只有当没有活跃工具时才清除 thought
-            // Only clear thought when no active tools
-
-            if (!hasActiveTools) {
+            // 只有当没有活跃工具时才清除等待状态和 thought
+            // Only clear waiting state and thought when no active tools
+            // 当有工具在执行时，工具完成后后端还需要继续向模型发送请求
+            // When tools are active, backend needs to continue sending requests to model after tool completion
+            if (!hasActiveToolsRef.current) {
+              setWaitingResponse(false);
               setThought({ subject: '', description: '' });
             }
           }
@@ -151,7 +165,16 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
             const tools = message.data as Array<{ status: string; name?: string }>;
             const activeStatuses = ['Executing', 'Confirming', 'Pending'];
             const hasActive = tools.some((tool) => activeStatuses.includes(tool.status));
+            const wasActive = hasActiveToolsRef.current;
             setHasActiveTools(hasActive);
+
+            // 当工具从活跃变为非活跃时，设置 waitingResponse=true
+            // 因为后端还需要继续向模型发送请求
+            // When tools transition from active to inactive, set waitingResponse=true
+            // because backend needs to continue sending requests to model
+            if (wasActive && !hasActive && tools.length > 0) {
+              setWaitingResponse(true);
+            }
 
             // 如果有工具在等待确认，更新 thought 提示
             // If tools are awaiting confirmation, update thought hint
@@ -169,7 +192,7 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
                   description: executingTool.name || 'Tool',
                 });
               }
-            } else if (!streamRunning) {
+            } else if (!streamRunningRef.current) {
               // 所有工具完成且流已停止，清除 thought
               // All tools completed and stream stopped, clear thought
               setThought({ subject: '', description: '' });
@@ -183,6 +206,10 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
         case 'finished':
           {
             // 处理 Finished 事件，提取 token 使用统计
+            // Note: 'finished' event is for token usage stats only, NOT for stream end
+            // Stream end is signaled by 'finish' event
+            // 注意：'finished' 事件仅用于 token 统计，不表示流结束
+            // 流结束由 'finish' 事件表示
             const finishedData = message.data as {
               reason?: string;
               usageMetadata?: {
@@ -209,17 +236,17 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
                 mergeExtra: true,
               });
             }
-            setStreamRunning(false);
-            // 只有当没有活跃工具时才清除 thought
-            // Only clear thought when no active tools
-
-            if (!hasActiveTools) {
-              setThought({ subject: '', description: '' });
-            }
+            // DO NOT reset streamRunning/waitingResponse here!
+            // For OpenAI-compatible APIs, 'finished' events are emitted per chunk
+            // Only 'finish' event should reset the stream state
+            // 不要在这里重置 streamRunning/waitingResponse！
+            // 对于 OpenAI 兼容 API，每个流块都会发送 'finished' 事件
+            // 只有 'finish' 事件才应该重置流状态
           }
           break;
         default: {
           if (message.type === 'error') {
+            setWaitingResponse(false);
             onError?.(message as IResponseMessage);
           }
           // Backend handles persistence, Frontend only updates UI
@@ -228,11 +255,14 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
         }
       }
     });
-  }, [conversation_id, addOrUpdateMessage, hasActiveTools, streamRunning, onError]);
+    // Note: hasActiveTools and streamRunning are accessed via refs to avoid re-subscription
+    // 注意：hasActiveTools 和 streamRunning 通过 ref 访问，避免重新订阅导致事件丢失
+  }, [conversation_id, addOrUpdateMessage, onError]);
 
   useEffect(() => {
     setStreamRunning(false);
     setHasActiveTools(false);
+    setWaitingResponse(false);
     setThought({ subject: '', description: '' });
     setTokenUsage(null);
     void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
@@ -251,7 +281,14 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
     });
   }, [conversation_id]);
 
-  return { thought, setThought, running, tokenUsage, setActiveMsgId };
+  const resetState = useCallback(() => {
+    setWaitingResponse(false);
+    setStreamRunning(false);
+    setHasActiveTools(false);
+    setThought({ subject: '', description: '' });
+  }, []);
+
+  return { thought, setThought, running, tokenUsage, setActiveMsgId, setWaitingResponse, resetState };
 };
 
 const EMPTY_AT_PATH: Array<string | FileOrFolderItem> = [];
@@ -365,7 +402,7 @@ const GeminiSendBox: React.FC<{
     [currentModel, handleSelectModel, isQuotaErrorMessage, resolveFallbackTarget, t]
   );
 
-  const { thought, running, tokenUsage, setActiveMsgId } = useGeminiMessage(conversation_id, handleGeminiError);
+  const { thought, running, tokenUsage, setActiveMsgId, setWaitingResponse, resetState } = useGeminiMessage(conversation_id, handleGeminiError);
 
   useEffect(() => {
     void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
@@ -378,6 +415,59 @@ const GeminiSendBox: React.FC<{
 
   const addOrUpdateMessage = useAddOrUpdateMessage();
   const { setSendBoxHandler } = usePreviewContext();
+
+  // Handle initial message from guid page (stored in sessionStorage for instant page transition)
+  useEffect(() => {
+    const storageKey = `gemini_initial_message_${conversation_id}`;
+    const storedMessage = sessionStorage.getItem(storageKey);
+
+    if (!storedMessage || !currentModel?.useModel) return;
+
+    // Clear immediately to prevent duplicate sends
+    sessionStorage.removeItem(storageKey);
+
+    const sendInitialMessage = async () => {
+      try {
+        const { input, files } = JSON.parse(storedMessage) as { input: string; files?: string[] };
+        const msg_id = uuid();
+        setActiveMsgId(msg_id);
+        setWaitingResponse(true); // 立即设置等待状态，确保按钮显示为停止
+
+        // Display user message immediately
+        addOrUpdateMessage(
+          {
+            id: msg_id,
+            type: 'text',
+            position: 'right',
+            conversation_id,
+            content: {
+              content: input,
+            },
+            createdAt: Date.now(),
+          },
+          true
+        );
+
+        // Send message to backend
+        await ipcBridge.geminiConversation.sendMessage.invoke({
+          input,
+          msg_id,
+          conversation_id,
+          files: files || [],
+        });
+
+        void checkAndUpdateTitle(conversation_id, input);
+        emitter.emit('chat.history.refresh');
+        if (files && files.length > 0) {
+          emitter.emit('gemini.workspace.refresh');
+        }
+      } catch (error) {
+        console.error('Failed to send initial message:', error);
+      }
+    };
+
+    void sendInitialMessage();
+  }, [conversation_id, currentModel?.useModel]);
 
   // 使用 useLatestRef 保存最新的 setContent/atPath，避免重复注册 handler
   // Use useLatestRef to keep latest setters to avoid re-registering handler
@@ -410,6 +500,7 @@ const GeminiSendBox: React.FC<{
     // 设置当前活跃的消息 ID，用于过滤掉旧请求的事件
     // Set current active message ID to filter out events from old requests
     setActiveMsgId(msg_id);
+    setWaitingResponse(true); // 立即设置等待状态，确保按钮显示为停止
 
     // 保存文件列表（清空前需要保存）/ Save file list before clearing
     const filesToSend = collectSelectedFiles(uploadFile, atPath);
@@ -461,10 +552,13 @@ const GeminiSendBox: React.FC<{
   });
 
   // 停止会话处理函数 Stop conversation handler
-  const handleStop = () => {
-    return ipcBridge.conversation.stop.invoke({ conversation_id }).then(() => {
-      console.log('stopStream');
-    });
+  const handleStop = async (): Promise<void> => {
+    // Use finally to ensure UI state is reset even if backend stop fails
+    try {
+      await ipcBridge.conversation.stop.invoke({ conversation_id });
+    } finally {
+      resetState();
+    }
   };
 
   return (

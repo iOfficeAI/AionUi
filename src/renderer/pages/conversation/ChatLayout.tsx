@@ -50,6 +50,11 @@ const isMacEnvironment = () => {
   return /mac/i.test(navigator.userAgent);
 };
 
+const isWindowsEnvironment = () => {
+  if (typeof navigator === 'undefined') return false;
+  return /win/i.test(navigator.userAgent);
+};
+
 interface WorkspaceHeaderProps {
   children?: React.ReactNode;
   showToggle?: boolean;
@@ -112,6 +117,7 @@ const ChatLayout: React.FC<{
   const { backend, agentName, agentLogo, agentLogoIsEmoji, workspaceEnabled = true } = props;
   const layout = useLayoutContext();
   const isMacRuntime = isMacEnvironment();
+  const isWindowsRuntime = isWindowsEnvironment();
   // 右侧栏折叠状态引用 / Mirror ref for collapse state
   const rightCollapsedRef = useRef(rightSiderCollapsed);
   const previousWorkspaceCollapsedRef = useRef<boolean | null>(null);
@@ -400,6 +406,11 @@ const ChatLayout: React.FC<{
                     <span className='text-sm'>{displayName}</span>
                   </div>
                 )}
+                {isWindowsRuntime && workspaceEnabled && (
+                  <button type='button' className='workspace-header__toggle' aria-label='Toggle workspace' onClick={() => dispatchWorkspaceToggleEvent()}>
+                    {rightSiderCollapsed ? <ExpandRight size={16} /> : <ExpandLeft size={16} />}
+                  </button>
+                )}
               </div>
             </ArcoLayout.Header>
             <ArcoLayout.Content className='flex flex-col flex-1 bg-1 overflow-hidden'>{props.children}</ArcoLayout.Content>
@@ -452,7 +463,7 @@ const ChatLayout: React.FC<{
                 style: {},
                 reverse: true,
               })}
-            <WorkspacePanelHeader showToggle={!isMacRuntime} collapsed={rightSiderCollapsed} onToggle={() => dispatchWorkspaceToggleEvent()} togglePlacement={layout?.isMobile ? 'left' : 'right'}>
+            <WorkspacePanelHeader showToggle={!isMacRuntime && !isWindowsRuntime} collapsed={rightSiderCollapsed} onToggle={() => dispatchWorkspaceToggleEvent()} togglePlacement={layout?.isMobile ? 'left' : 'right'}>
               {props.siderTitle}
             </WorkspacePanelHeader>
             <ArcoLayout.Content style={{ height: `calc(100% - ${WORKSPACE_HEADER_HEIGHT}px)` }}>{props.sider}</ArcoLayout.Content>
@@ -488,7 +499,7 @@ const ChatLayout: React.FC<{
           </div>
         )}
 
-        {!isMacRuntime && workspaceEnabled && rightSiderCollapsed && !layout?.isMobile && (
+        {!isMacRuntime && !isWindowsRuntime && workspaceEnabled && rightSiderCollapsed && !layout?.isMobile && (
           <button type='button' className='workspace-toggle-floating workspace-header__toggle absolute top-1/2 right-2 z-10' style={{ transform: 'translateY(-50%)' }} onClick={() => dispatchWorkspaceToggleEvent()} aria-label='Expand workspace'>
             <ExpandLeft size={16} />
           </button>

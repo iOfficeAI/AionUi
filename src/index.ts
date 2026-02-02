@@ -31,6 +31,25 @@ declare const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string;
 // 修复 macOS 和 Linux 下 GUI 应用的 PATH 环境变量,使其与命令行一致
 if (process.platform === 'darwin' || process.platform === 'linux') {
   fixPath();
+
+  // Supplement nvm paths that fix-path might miss (nvm is often only in .zshrc, not .zshenv)
+  const nvmDir = process.env.NVM_DIR || path.join(process.env.HOME || '', '.nvm');
+  const nvmVersionsDir = path.join(nvmDir, 'versions', 'node');
+  if (fs.existsSync(nvmVersionsDir)) {
+    try {
+      const versions = fs.readdirSync(nvmVersionsDir);
+      const nvmPaths = versions.map((v) => path.join(nvmVersionsDir, v, 'bin')).filter((p) => fs.existsSync(p));
+      if (nvmPaths.length > 0) {
+        const currentPath = process.env.PATH || '';
+        const missingPaths = nvmPaths.filter((p) => !currentPath.includes(p));
+        if (missingPaths.length > 0) {
+          process.env.PATH = [...missingPaths, currentPath].join(path.delimiter);
+        }
+      }
+    } catch {
+      // Ignore errors when reading nvm directory
+    }
+  }
 }
 
 // Handle Squirrel startup events (Windows installer)
@@ -277,9 +296,17 @@ app.on('activate', () => {
   }
 });
 
-app.on('before-quit', () => {
+app.on('before-quit', async () => {
   // 在应用退出前清理工作进程
   WorkerManage.clear();
+
+  // Shutdown Channel subsystem
+  try {
+    const { getChannelManager } = await import('@/channels');
+    await getChannelManager().shutdown();
+  } catch (error) {
+    console.error('[App] Failed to shutdown ChannelManager:', error);
+  }
 });
 
 // In this file you can include the rest of your app's specific main process

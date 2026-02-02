@@ -11,8 +11,8 @@ import type { McpSource } from '../process/services/mcpServices/McpProtocol';
 import type { AcpBackend, PresetAgentType } from '../types/acpTypes';
 import type { IMcpServer, IProvider, TChatConversation, TProviderWithModel } from './storage';
 import type { PreviewHistoryTarget, PreviewSnapshotInfo } from './types/preview';
-import type { ProtocolDetectionRequest, ProtocolDetectionResponse } from './utils/protocolDetector';
 import type { UpdateCheckRequest, UpdateCheckResult, UpdateDownloadProgressEvent, UpdateDownloadRequest, UpdateDownloadResult } from './updateTypes';
+import type { ProtocolDetectionRequest, ProtocolDetectionResponse } from './utils/protocolDetector';
 
 export const shell = {
   openFile: bridge.buildProvider<void, string>('open-file'), // 使用系统默认程序打开文件
@@ -267,6 +267,63 @@ export const webui = {
   resetPasswordResult: bridge.buildEmitter<{ success: boolean; newPassword?: string; msg?: string }>('webui.reset-password-result'),
 };
 
+// Cron job management API / 定时任务管理接口
+export const cron = {
+  // Query
+  listJobs: bridge.buildProvider<ICronJob[], void>('cron.list-jobs'),
+  listJobsByConversation: bridge.buildProvider<ICronJob[], { conversationId: string }>('cron.list-jobs-by-conversation'),
+  getJob: bridge.buildProvider<ICronJob | null, { jobId: string }>('cron.get-job'),
+  // CRUD
+  addJob: bridge.buildProvider<ICronJob, ICreateCronJobParams>('cron.add-job'),
+  updateJob: bridge.buildProvider<ICronJob, { jobId: string; updates: Partial<ICronJob> }>('cron.update-job'),
+  removeJob: bridge.buildProvider<void, { jobId: string }>('cron.remove-job'),
+  // Events
+  onJobCreated: bridge.buildEmitter<ICronJob>('cron.job-created'),
+  onJobUpdated: bridge.buildEmitter<ICronJob>('cron.job-updated'),
+  onJobRemoved: bridge.buildEmitter<{ jobId: string }>('cron.job-removed'),
+  onJobExecuted: bridge.buildEmitter<{ jobId: string; status: 'ok' | 'error' | 'skipped'; error?: string }>('cron.job-executed'),
+};
+
+// Cron job types for IPC
+export type ICronSchedule = { kind: 'at'; atMs: number; description: string } | { kind: 'every'; everyMs: number; description: string } | { kind: 'cron'; expr: string; tz?: string; description: string };
+
+export type ICronAgentType = 'gemini' | 'claude' | 'codex' | 'opencode' | 'qwen' | 'goose' | 'custom';
+
+export interface ICronJob {
+  id: string;
+  name: string;
+  enabled: boolean;
+  schedule: ICronSchedule;
+  target: { payload: { kind: 'message'; text: string } };
+  metadata: {
+    conversationId: string;
+    conversationTitle?: string;
+    agentType: ICronAgentType;
+    createdBy: 'user' | 'agent';
+    createdAt: number;
+    updatedAt: number;
+  };
+  state: {
+    nextRunAtMs?: number;
+    lastRunAtMs?: number;
+    lastStatus?: 'ok' | 'error' | 'skipped';
+    lastError?: string;
+    runCount: number;
+    retryCount: number;
+    maxRetries: number;
+  };
+}
+
+export interface ICreateCronJobParams {
+  name: string;
+  schedule: ICronSchedule;
+  message: string;
+  conversationId: string;
+  conversationTitle?: string;
+  agentType: ICronAgentType;
+  createdBy: 'user' | 'agent';
+}
+
 interface ISendMessageParams {
   input: string;
   msg_id: string;
@@ -353,3 +410,32 @@ interface IBridgeResponse<D = {}> {
   data?: D;
   msg?: string;
 }
+
+// ==================== Channel API ====================
+
+import type { IChannelPairingRequest, IChannelPluginStatus, IChannelSession, IChannelUser } from '@/channels/types';
+
+export const channel = {
+  // Plugin Management
+  getPluginStatus: bridge.buildProvider<IBridgeResponse<IChannelPluginStatus[]>, void>('channel.get-plugin-status'),
+  enablePlugin: bridge.buildProvider<IBridgeResponse, { pluginId: string; config: Record<string, unknown> }>('channel.enable-plugin'),
+  disablePlugin: bridge.buildProvider<IBridgeResponse, { pluginId: string }>('channel.disable-plugin'),
+  testPlugin: bridge.buildProvider<IBridgeResponse<{ success: boolean; botUsername?: string; error?: string }>, { pluginId: string; token: string }>('channel.test-plugin'),
+
+  // Pairing Management
+  getPendingPairings: bridge.buildProvider<IBridgeResponse<IChannelPairingRequest[]>, void>('channel.get-pending-pairings'),
+  approvePairing: bridge.buildProvider<IBridgeResponse, { code: string }>('channel.approve-pairing'),
+  rejectPairing: bridge.buildProvider<IBridgeResponse, { code: string }>('channel.reject-pairing'),
+
+  // User Management
+  getAuthorizedUsers: bridge.buildProvider<IBridgeResponse<IChannelUser[]>, void>('channel.get-authorized-users'),
+  revokeUser: bridge.buildProvider<IBridgeResponse, { userId: string }>('channel.revoke-user'),
+
+  // Session Management (MVP: read-only view)
+  getActiveSessions: bridge.buildProvider<IBridgeResponse<IChannelSession[]>, void>('channel.get-active-sessions'),
+
+  // Events
+  pairingRequested: bridge.buildEmitter<IChannelPairingRequest>('channel.pairing-requested'),
+  pluginStatusChanged: bridge.buildEmitter<{ pluginId: string; status: IChannelPluginStatus }>('channel.plugin-status-changed'),
+  userAuthorized: bridge.buildEmitter<IChannelUser>('channel.user-authorized'),
+};

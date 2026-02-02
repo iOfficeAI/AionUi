@@ -13,6 +13,9 @@ import { runMigrations as executeMigrations } from './migrations';
 import { CURRENT_DB_VERSION, getDatabaseVersion, initSchema, setDatabaseVersion } from './schema';
 import type { IConversationRow, IMessageRow, IPaginatedResult, IQueryResult, IUser, TChatConversation, TMessage } from './types';
 import { conversationToRow, messageToRow, rowToConversation, rowToMessage } from './types';
+import type { IChannelPluginConfig, IChannelUser, IChannelSession, IChannelPairingRequest, IChannelUserRow, IChannelSessionRow, IChannelPairingCodeRow, PluginType, PluginStatus } from '@/channels/types';
+import { rowToChannelUser, rowToChannelSession, rowToPairingRequest } from '@/channels/types';
+import { encryptCredentials, decryptCredentials } from '@/channels/utils/credentialCrypto';
 
 /**
  * Main database class for AionUi
@@ -383,11 +386,11 @@ export class AionUIDatabase {
       const row = conversationToRow(conversation, userId || this.defaultUserId);
 
       const stmt = this.db.prepare(`
-        INSERT INTO conversations (id, user_id, name, type, extra, model, status, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        INSERT INTO conversations (id, user_id, name, type, extra, model, status, source, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
-      stmt.run(row.id, row.user_id, row.name, row.type, row.extra, row.model, row.status, row.created_at, row.updated_at);
+      stmt.run(row.id, row.user_id, row.name, row.type, row.extra, row.model, row.status, row.source, row.created_at, row.updated_at);
 
       return {
         success: true,
@@ -415,6 +418,36 @@ export class AionUIDatabase {
       return {
         success: true,
         data: rowToConversation(row),
+      };
+    } catch (error: any) {
+      return {
+        success: false,
+        error: error.message,
+      };
+    }
+  }
+
+  /**
+   * Get the latest conversation by source type
+   * 根据来源类型获取最新的会话
+   */
+  getLatestConversationBySource(source: 'aionui' | 'telegram', userId?: string): IQueryResult<TChatConversation | null> {
+    try {
+      const finalUserId = userId || this.defaultUserId;
+      const row = this.db
+        .prepare(
+          `
+          SELECT * FROM conversations
+          WHERE user_id = ? AND source = ?
+          ORDER BY updated_at DESC
+          LIMIT 1
+        `
+        )
+        .get(finalUserId, source) as IConversationRow | undefined;
+
+      return {
+        success: true,
+        data: row ? rowToConversation(row) : null,
       };
     } catch (error: any) {
       return {
@@ -679,6 +712,378 @@ export class AionUIDatabase {
         success: false,
         error: error.message,
       };
+    }
+  }
+
+  /**
+   * ==================
+   * Channel Plugin operations
+   * 个人助手插件操作
+   * ==================
+   */
+
+  /**
+   * Get all assistant plugins
+   */
+  getChannelPlugins(): IQueryResult<IChannelPluginConfig[]> {
+    try {
+      const rows = this.db.prepare('SELECT * FROM assistant_plugins ORDER BY created_at ASC').all() as Array<{
+        id: string;
+        type: string;
+        name: string;
+        enabled: number;
+        config: string;
+        status: string | null;
+        last_connected: number | null;
+        created_at: number;
+        updated_at: number;
+      }>;
+
+      const plugins: IChannelPluginConfig[] = rows.map((row) => {
+        const storedConfig = JSON.parse(row.config || '{}');
+        // Decrypt credentials when loading
+        const decryptedCredentials = decryptCredentials(storedConfig.credentials);
+
+        return {
+          id: row.id,
+          type: row.type as PluginType,
+          name: row.name,
+          enabled: row.enabled === 1,
+          credentials: decryptedCredentials,
+          config: storedConfig.config,
+          status: (row.status as PluginStatus) || 'stopped',
+          lastConnected: row.last_connected ?? undefined,
+          createdAt: row.created_at,
+          updatedAt: row.updated_at,
+        };
+      });
+
+      return { success: true, data: plugins };
+    } catch (error: any) {
+      return { success: false, error: error.message, data: [] };
+    }
+  }
+
+  /**
+   * Get assistant plugin by ID
+   */
+  getChannelPlugin(pluginId: string): IQueryResult<IChannelPluginConfig | null> {
+    try {
+      const row = this.db.prepare('SELECT * FROM assistant_plugins WHERE id = ?').get(pluginId) as
+        | {
+            id: string;
+            type: string;
+            name: string;
+            enabled: number;
+            config: string;
+            status: string | null;
+            last_connected: number | null;
+            created_at: number;
+            updated_at: number;
+          }
+        | undefined;
+
+      if (!row) {
+        return { success: true, data: null };
+      }
+
+      const storedConfig = JSON.parse(row.config || '{}');
+      // Decrypt credentials when loading
+      const decryptedCredentials = decryptCredentials(storedConfig.credentials);
+
+      const plugin: IChannelPluginConfig = {
+        id: row.id,
+        type: row.type as PluginType,
+        name: row.name,
+        enabled: row.enabled === 1,
+        credentials: decryptedCredentials,
+        config: storedConfig.config,
+        status: (row.status as PluginStatus) || 'stopped',
+        lastConnected: row.last_connected ?? undefined,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+      };
+
+      return { success: true, data: plugin };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Create or update assistant plugin
+   */
+  upsertChannelPlugin(plugin: IChannelPluginConfig): IQueryResult<boolean> {
+    try {
+      const now = Date.now();
+      const stmt = this.db.prepare(`
+        INSERT INTO assistant_plugins (id, type, name, enabled, config, status, last_connected, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(id) DO UPDATE SET
+          name = excluded.name,
+          enabled = excluded.enabled,
+          config = excluded.config,
+          status = excluded.status,
+          last_connected = excluded.last_connected,
+          updated_at = excluded.updated_at
+      `);
+
+      // Encrypt credentials before storing
+      const encryptedCredentials = encryptCredentials(plugin.credentials);
+
+      // Store both credentials and config in the config column
+      const storedConfig = {
+        credentials: encryptedCredentials,
+        config: plugin.config,
+      };
+
+      stmt.run(plugin.id, plugin.type, plugin.name, plugin.enabled ? 1 : 0, JSON.stringify(storedConfig), plugin.status, plugin.lastConnected ?? null, plugin.createdAt || now, now);
+
+      return { success: true, data: true };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Update assistant plugin status
+   */
+  updateChannelPluginStatus(pluginId: string, status: PluginStatus, lastConnected?: number): IQueryResult<boolean> {
+    try {
+      const now = Date.now();
+      this.db.prepare('UPDATE assistant_plugins SET status = ?, last_connected = COALESCE(?, last_connected), updated_at = ? WHERE id = ?').run(status, lastConnected ?? null, now, pluginId);
+      return { success: true, data: true };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Delete assistant plugin
+   */
+  deleteChannelPlugin(pluginId: string): IQueryResult<boolean> {
+    try {
+      const result = this.db.prepare('DELETE FROM assistant_plugins WHERE id = ?').run(pluginId);
+      return { success: true, data: result.changes > 0 };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * ==================
+   * Channel User operations
+   * 个人助手用户操作
+   * ==================
+   */
+
+  /**
+   * Get all authorized assistant users
+   */
+  getChannelUsers(): IQueryResult<IChannelUser[]> {
+    try {
+      const rows = this.db.prepare('SELECT * FROM assistant_users ORDER BY authorized_at DESC').all() as IChannelUserRow[];
+      return { success: true, data: rows.map(rowToChannelUser) };
+    } catch (error: any) {
+      return { success: false, error: error.message, data: [] };
+    }
+  }
+
+  /**
+   * Get assistant user by platform user ID
+   */
+  getChannelUserByPlatform(platformUserId: string, platformType: PluginType): IQueryResult<IChannelUser | null> {
+    try {
+      const row = this.db.prepare('SELECT * FROM assistant_users WHERE platform_user_id = ? AND platform_type = ?').get(platformUserId, platformType) as IChannelUserRow | undefined;
+
+      return { success: true, data: row ? rowToChannelUser(row) : null };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Create assistant user (authorize)
+   */
+  createChannelUser(user: IChannelUser): IQueryResult<IChannelUser> {
+    try {
+      const stmt = this.db.prepare(`
+        INSERT INTO assistant_users (id, platform_user_id, platform_type, display_name, authorized_at, last_active, session_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `);
+
+      stmt.run(user.id, user.platformUserId, user.platformType, user.displayName ?? null, user.authorizedAt, user.lastActive ?? null, user.sessionId ?? null);
+
+      return { success: true, data: user };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Update assistant user's last active time
+   */
+  updateChannelUserActivity(userId: string): IQueryResult<boolean> {
+    try {
+      const now = Date.now();
+      this.db.prepare('UPDATE assistant_users SET last_active = ? WHERE id = ?').run(now, userId);
+      return { success: true, data: true };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Delete assistant user (revoke authorization)
+   */
+  deleteChannelUser(userId: string): IQueryResult<boolean> {
+    try {
+      const result = this.db.prepare('DELETE FROM assistant_users WHERE id = ?').run(userId);
+      return { success: true, data: result.changes > 0 };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * ==================
+   * Channel Session operations
+   * 个人助手会话操作
+   * ==================
+   */
+
+  /**
+   * Get all active assistant sessions
+   */
+  getChannelSessions(): IQueryResult<IChannelSession[]> {
+    try {
+      const rows = this.db.prepare('SELECT * FROM assistant_sessions ORDER BY last_activity DESC').all() as IChannelSessionRow[];
+      return { success: true, data: rows.map(rowToChannelSession) };
+    } catch (error: any) {
+      return { success: false, error: error.message, data: [] };
+    }
+  }
+
+  /**
+   * Get assistant session by user ID
+   */
+  getChannelSessionByUser(userId: string): IQueryResult<IChannelSession | null> {
+    try {
+      const row = this.db.prepare('SELECT * FROM assistant_sessions WHERE user_id = ?').get(userId) as IChannelSessionRow | undefined;
+      return { success: true, data: row ? rowToChannelSession(row) : null };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Create or update assistant session
+   */
+  upsertChannelSession(session: IChannelSession): IQueryResult<boolean> {
+    try {
+      const now = Date.now();
+      const stmt = this.db.prepare(`
+        INSERT INTO assistant_sessions (id, user_id, agent_type, conversation_id, workspace, created_at, last_activity)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(id) DO UPDATE SET
+          agent_type = excluded.agent_type,
+          conversation_id = excluded.conversation_id,
+          workspace = excluded.workspace,
+          last_activity = excluded.last_activity
+      `);
+
+      stmt.run(session.id, session.userId, session.agentType, session.conversationId ?? null, session.workspace ?? null, session.createdAt || now, session.lastActivity || now);
+
+      return { success: true, data: true };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Delete assistant session
+   */
+  deleteChannelSession(sessionId: string): IQueryResult<boolean> {
+    try {
+      const result = this.db.prepare('DELETE FROM assistant_sessions WHERE id = ?').run(sessionId);
+      return { success: true, data: result.changes > 0 };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * ==================
+   * Channel Pairing Code operations
+   * 个人助手配对码操作
+   * ==================
+   */
+
+  /**
+   * Get all pending pairing requests
+   */
+  getPendingPairingRequests(): IQueryResult<IChannelPairingRequest[]> {
+    try {
+      const now = Date.now();
+      const rows = this.db.prepare("SELECT * FROM assistant_pairing_codes WHERE status = 'pending' AND expires_at > ? ORDER BY requested_at DESC").all(now) as IChannelPairingCodeRow[];
+      return { success: true, data: rows.map(rowToPairingRequest) };
+    } catch (error: any) {
+      return { success: false, error: error.message, data: [] };
+    }
+  }
+
+  /**
+   * Get pairing request by code
+   */
+  getPairingRequestByCode(code: string): IQueryResult<IChannelPairingRequest | null> {
+    try {
+      const row = this.db.prepare('SELECT * FROM assistant_pairing_codes WHERE code = ?').get(code) as IChannelPairingCodeRow | undefined;
+      return { success: true, data: row ? rowToPairingRequest(row) : null };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Create pairing request
+   */
+  createPairingRequest(request: IChannelPairingRequest): IQueryResult<IChannelPairingRequest> {
+    try {
+      const stmt = this.db.prepare(`
+        INSERT INTO assistant_pairing_codes (code, platform_user_id, platform_type, display_name, requested_at, expires_at, status)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `);
+
+      stmt.run(request.code, request.platformUserId, request.platformType, request.displayName ?? null, request.requestedAt, request.expiresAt, request.status);
+
+      return { success: true, data: request };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Update pairing request status
+   */
+  updatePairingRequestStatus(code: string, status: IChannelPairingRequest['status']): IQueryResult<boolean> {
+    try {
+      const result = this.db.prepare('UPDATE assistant_pairing_codes SET status = ? WHERE code = ?').run(status, code);
+      return { success: true, data: result.changes > 0 };
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  /**
+   * Delete expired pairing requests
+   */
+  cleanupExpiredPairingRequests(): IQueryResult<number> {
+    try {
+      const now = Date.now();
+      const result = this.db.prepare("DELETE FROM assistant_pairing_codes WHERE expires_at < ? OR status != 'pending'").run(now);
+      return { success: true, data: result.changes };
+    } catch (error: any) {
+      return { success: false, error: error.message, data: 0 };
     }
   }
 

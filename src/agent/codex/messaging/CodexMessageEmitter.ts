@@ -30,4 +30,10 @@ export interface ICodexMessageEmitter {
    * @param data 确认项数据
    */
   addConfirmation(data: IConfirmation): void;
+
+  /**
+   * 发送消息回 AI agent（用于系统响应反馈）
+   * @param content 要发送的消息内容
+   */
+  sendMessageToAgent?(content: string): Promise<void>;
 }

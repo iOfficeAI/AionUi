@@ -7,6 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { TChatConversation } from '@/common/storage';
 import FlexFullContainer from '@/renderer/components/FlexFullContainer';
+import { CronJobIndicator, useCronJobsMap } from '@/renderer/pages/cron';
 import { addEventListener, emitter } from '@/renderer/utils/emitter';
 import { getActivityTime, createTimelineGrouper } from '@/renderer/utils/timeline';
 import { Empty, Popconfirm, Input, Tooltip } from '@arco-design/web-react';
@@ -63,6 +64,7 @@ const ChatHistory: React.FC<{ onSessionClick?: () => void; collapsed?: boolean }
   const { id } = useParams();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const { getJobStatus } = useCronJobsMap();
 
   useScrollIntoView(id);
 
@@ -163,6 +165,7 @@ const ChatHistory: React.FC<{ onSessionClick?: () => void; collapsed?: boolean }
   const renderConversation = (conversation: TChatConversation) => {
     const isSelected = id === conversation.id;
     const isEditing = editingId === conversation.id;
+    const cronStatus = getJobStatus(conversation.id);
 
     return (
       <Tooltip key={conversation.id} disabled={!collapsed} content={conversation.name || t('conversation.welcome.newConversation')} position='right'>
@@ -174,7 +177,16 @@ const ChatHistory: React.FC<{ onSessionClick?: () => void; collapsed?: boolean }
           onClick={handleSelect.bind(null, conversation)}
         >
           <MessageOne theme='outline' size='20' className='mt-2px flex' />
-          <FlexFullContainer className='h-24px collapsed-hidden ml-10px'>{isEditing ? <Input className='chat-history__item-editor text-14px lh-24px h-24px w-full' value={editingName} onChange={setEditingName} onKeyDown={handleEditKeyDown} onBlur={handleEditSave} autoFocus size='small' /> : <div className='chat-history__item-name text-nowrap overflow-hidden inline-block w-full text-14px lh-24px whitespace-nowrap'>{conversation.name}</div>}</FlexFullContainer>
+          <FlexFullContainer className='h-24px collapsed-hidden ml-10px'>
+            {isEditing ? (
+              <Input className='chat-history__item-editor text-14px lh-24px h-24px w-full' value={editingName} onChange={setEditingName} onKeyDown={handleEditKeyDown} onBlur={handleEditSave} autoFocus size='small' />
+            ) : (
+              <div className='flex items-center gap-4px w-full'>
+                <div className='chat-history__item-name text-nowrap overflow-hidden inline-block flex-1 text-14px lh-24px whitespace-nowrap'>{conversation.name}</div>
+                <CronJobIndicator status={cronStatus} size={14} />
+              </div>
+            )}
+          </FlexFullContainer>
           {!isEditing && (
             <div
               className={classNames('absolute right-0px top-0px h-full w-70px items-center justify-end hidden group-hover:flex !collapsed-hidden pr-12px')}

@@ -1,4 +1,4 @@
-﻿<p align="center">
+<p align="center">
   <img src="./resources/aionui-banner-1.png" alt="AionUi - Cowork with Your CLI AI Agent" width="100%">
 </p>
 
@@ -19,7 +19,7 @@
 ---
 
 <p align="center">
-  <strong>🚀 Colabore com sua IA, Gemini CLI, Claude Code, Codex, Qwen Code, Goose CLI, Auggie e mais</strong><br>
+  <strong>🚀 Assistente pessoal 「Cowork」baseado em Gemini CLI, Claude Code, Codex, Qwen Code, Goose CLI, Auggie e mais</strong><br>
   <em>Fácil de usar | Interface gráfica visual | Suporte multimodelo | Segurança de dados local</em>
 </p>
 
@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <strong>💬 Comunidade:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wechat_group_2.jpg" target="_blank">WeChat (中文)</a>
+  <strong>💬 Comunidade:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wx.png" target="_blank">WeChat (中文)</a>
 </p>
 
 ---
@@ -45,9 +45,7 @@
 
 [✨ O que o AionUi pode fazer?](#o-que-o-aionui-pode-fazer) ·
 [🤔 Por que escolher o AionUi?](#por-que-escolher-o-aionui) ·
-[✨ Recursos principais](#recursos-principais) ·
 [🚀 Início rápido](#início-rápido) ·
-[📖 Guia de uso detalhado](#guia-de-uso-detalhado) ·
 [💬 Comunidade](#comunidade-e-suporte)
 
 </p>
@@ -73,19 +71,43 @@ _AionUi inclui o Gemini CLI integrado, pronto para usar desde a instalação sem
 
 ---
 
-### 🌐 **Acesso de qualquer lugar - Modo WebUI**
+### 🌐 **Acesso ao seu AionUi de qualquer lugar**
 
-_Seu assistente de IA 7×24 horas - Acesse o AionUi de qualquer dispositivo na rede. Em viagens de negócios, em casa, no escritório, use suas ferramentas de IA a qualquer momento e em qualquer lugar_
+_Seu assistente de IA 7×24 horas - Acesse o AionUi de qualquer dispositivo, em qualquer lugar. Em viagens de negócios, em casa, no escritório, use suas ferramentas de IA a qualquer momento e em qualquer lugar através do WebUI ou Telegram_
 
-**✨ Início com um clique**: Abra a opção WebUI no painel de configurações e clique no interruptor para iniciar!
+O AionUi fornece dois métodos de acesso remoto：
 
-- ✅ **Acesso multiplataforma** - Telefone, tablet, computador, qualquer dispositivo pode acessar
-- ✅ **Colaboração remota** - Suporta LAN, rede cruzada, implantação em servidor e mais
-- ✅ **Seguro e confiável** - Gerenciamento de senhas, login com código QR, os dados nunca saem do seu dispositivo
+- **🌐 Modo WebUI**
 
-> 💡 **Precisa de um guia de configuração detalhado?** Consulte o [Guia de configuração do WebUI](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) e o [Guia de acesso remoto à Internet](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide)
+  Acesse o AionUi de qualquer dispositivo através do navegador - telefone, tablet, computador. Suporta LAN, rede cruzada e implantação em servidor. Você pode fazer login escaneando um código QR ou usando senha da conta, tornando simples e conveniente.
 
-https://github.com/user-attachments/assets/c81b7826-30ea-405e-86db-7d6a503c533b
+  > 💡 **Precisa de um guia de configuração detalhado?** Consulte o [Guia de acesso remoto à Internet](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide)
+
+- **📱 Telegram Channel**
+
+  Converse diretamente com seu assistente de IA pelo Telegram em qualquer dispositivo. Sistema de código de emparelhamento simples para acesso seguro.
+
+  > 💡 **Como configurar:** Vá para Configurações do AionUi → Configurações do WebUI → Channel, obtenha seu Bot Token de [@BotFather](https://t.me/BotFather) e comece a conversar!
+
+<p align="center">
+  <img src="./resources/remote-telegram.png" alt="Acesso de qualquer lugar - WebUI & Telegram" width="800">
+</p>
+
+---
+
+### ⏰ **Tarefas agendadas - Deixe o AionUi automatizar seu trabalho**
+
+_Após configurar as tarefas agendadas, o assistente de IA será executado automaticamente de acordo com o tempo que você definir, alcançando verdadeiramente uma operação 7×24 horas sem supervisão_
+
+- **Conversa livre** - Diga à IA o que fazer usando linguagem natural, como conversar normalmente
+- **Configuração de tempo flexível** - Diário, semanal, mensal, tudo é possível
+- **Simples e fácil** - Criar, modificar, habilitar/desabilitar, excluir, visualizar e ajustar a qualquer momento
+
+<p align="center">
+  <img src="./resources/alart-task.png" alt="Tarefas agendadas Demo" width="800">
+</p>
+
+> 💡 **Casos de uso:** Agregação de dados agendada, geração de relatórios regulares, organização automática de arquivos, lembretes agendados, etc.
 
 ---
 
@@ -122,6 +144,28 @@ _Geração, edição e reconhecimento inteligente de imagens, impulsionados pelo
 <p align="center">
   <img src="./resources/Image_Generation.gif" alt="AI Image Generation Demo" width="800">
 </p>
+
+---
+
+### 🤖 **Suporte multi-modelo**
+
+_Admite modelos principais como Gemini, OpenAI, Claude, Qwen, e modelos locais como Ollama, LM Studio. Alterne flexivelmente entre diferentes modelos para atender a vários requisitos de tarefas._
+
+<p align="center">
+  <img src="./resources/multi-model.png" alt="Suporte multi-modelo" width="800">
+</p>
+
+---
+
+### 🎨 **Personalização de interface personalizada**
+
+_Personalize com seu próprio código CSS, faça sua interface corresponder às suas preferências_
+
+<p align="center">
+  <img src="./resources/css with skin.gif" alt="CSS Custom Interface Demo" width="800">
+</p>
+
+- ✅ **Totalmente personalizável** - Personalize livremente cores, estilos e layout da interface através de código CSS, crie sua experiência exclusiva
 
 ---
 
@@ -229,52 +273,6 @@ _Assista como os criadores de conteúdo avaliam e usam o AionUi_
 
 ---
 
-## ✨ Recursos principais
-
-### 💬 **Chat multissessão**
-
-- **Multissessão + contexto independente** - Abra vários chats ao mesmo tempo; cada sessão tem contexto independente, sem confusão
-- **Armazenamento local** - Todas as conversas são salvas localmente e não se perdem
-
-### 🌐 **Acesso remoto WebUI - Seu assistente de IA 24/7**
-
-- **Acesso entre dispositivos** - Acesse de qualquer dispositivo na rede via navegador, compatível com celulares
-- **A qualquer hora e lugar** - Em viagens de negócios, em casa, no escritório, acesse suas ferramentas de IA 7×24 horas, totalmente grátis
-- **Segurança de dados local** - Todos os dados são armazenados localmente em SQLite, adequado para implantação em servidor
-
-### 🤖 **Suporte multimodelo**
-
-- **Suporte multiplataforma** - Compatível com modelos principais como Gemini, OpenAI, Claude, Qwen; troca flexível
-- **Suporte a modelos locais** - Suporta implantação local como Ollama, LM Studio; selecione a plataforma Custom e defina a API local (ex.: `http://localhost:11434/v1`) para conectar
-- **Otimização de assinatura Gemini 3** - Identifica automaticamente usuários assinantes e recomenda modelos avançados
-
-### 🗂️ **Gerenciamento de arquivos**
-
-- **Navegação em árvore + arrastar e soltar** - Navegue arquivos como pastas, arraste arquivos ou pastas para importar com um clique
-- **Organização inteligente** - Você pode deixar a IA ajudar a organizar pastas com classificação automática
-
-### 📄 **Painel de visualização - Dê uma tela ao agente de IA**
-
-- **Visualização de 9+ formatos** - Suporta PDF, Word, Excel, PPT, código, Markdown, imagens etc.; veja os resultados imediatamente
-- **Acompanhamento em tempo real + editável** - Rastreia mudanças de arquivos, suporta edição e depuração em tempo real de Markdown, código, HTML
-
-### 🎨 **Geração e edição de imagens com IA**
-
-- **Geração inteligente de imagens** - Suporta vários modelos de geração de imagens como Gemini 2.5 Flash Image Preview, Nano, Banana
-- **Reconhecimento e edição de imagens** - Recursos de análise e edição de imagens orientados por IA
-
-### 🎨 **Personalização da interface**
-
-_Personalize com seu próprio CSS e faça a interface combinar com suas preferências_
-
-<p align="center">
-  <img src="./resources/css with skin.gif" alt="CSS Custom Interface Demo" width="800">
-</p>
-
-- **Totalmente personalizável** - Personalize cores, estilos e layout via CSS para criar sua experiência exclusiva
-
----
-
 ## 📖 Guia de uso detalhado
 
 <details>
@@ -357,7 +355,7 @@ brew install aionui
 - [🐛 Reportar problemas](https://github.com/iOfficeAI/AionUi/issues) - Relatar bugs ou solicitar recursos
 - [📦 Atualizações de versão](https://github.com/iOfficeAI/AionUi/releases) - Obter a versão mais recente
 - [💬 Discord Community](https://discord.gg/2QAwJn7Egx) - **Participe da nossa comunidade em inglês**
-- [💬 WeChat (中文)](./resources/wechat_group_2.jpg) - **Clique para ver o QR**
+- [💬 WeChat (中文)](./resources/wx.png) - **Clique para ver o QR**
 
 ### 🤝 Contribuir
 
