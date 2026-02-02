@@ -135,12 +135,15 @@ Examples:
       // ASCII output
       result = mermaid.renderMermaidAscii(mermaidCode);
     } else {
-      // SVG output
-      const renderOptions: Record<string, unknown> = {};
-      if (options.theme) {
-        renderOptions.theme = options.theme;
+      // SVG output - theme must be an object, not a string
+      let themeColors = undefined;
+      if (options.theme && mermaid.THEMES) {
+        themeColors = mermaid.THEMES[options.theme];
+        if (!themeColors) {
+          console.error(`Warning: Unknown theme "${options.theme}". Available: ${Object.keys(mermaid.THEMES).join(', ')}`);
+        }
       }
-      result = await mermaid.renderMermaid(mermaidCode, renderOptions);
+      result = await mermaid.renderMermaid(mermaidCode, themeColors);
     }
 
     if (options.output) {
