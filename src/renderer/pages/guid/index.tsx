@@ -770,7 +770,9 @@ const Guid: React.FC = () => {
             defaultFiles: files,
             workspace: finalWorkspace,
             customWorkspace: isCustomWorkspace,
-            webSearchEngine: isGoogleAuth ? 'google' : 'default',
+            // 只有当模型使用 Google OAuth 认证时才启用 Google 搜索
+            // Only enable Google search when the model uses Google OAuth authentication
+            webSearchEngine: currentModel.platform === 'gemini-with-google-auth' || currentModel.platform === 'gemini-vertex-ai' ? 'google' : 'default',
             // 传递 rules（skills 通过 SkillManager 加载）
             // Pass rules (skills loaded via SkillManager)
             presetRules: isPreset ? presetRules : undefined,
