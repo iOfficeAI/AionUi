@@ -10,6 +10,8 @@ import type { FileChange, CodexEventParams, CodexJsonRpcEvent } from '@/common/c
 import type { CodexEventHandler } from '@/agent/codex/handlers/CodexEventHandler';
 import type { CodexSessionManager } from '@/agent/codex/handlers/CodexSessionManager';
 import type { CodexFileOperationHandler } from '@/agent/codex/handlers/CodexFileOperationHandler';
+import { ApprovalStore, createExecApprovalKey, createPatchApprovalKey } from './ApprovalStore';
+import type { ApprovalKey, ReviewDecision } from './ApprovalStore';
 import { getConfiguredAppClientName, getConfiguredAppClientVersion, getConfiguredCodexMcpProtocolVersion } from '../../../common/utils/appConfig';
 import { lt } from 'semver';
 
@@ -52,6 +54,12 @@ export class CodexAgent {
   private readonly yoloMode: boolean;
   private conn: CodexConnection | null = null;
   private conversationId: string | null = null;
+
+  /**
+   * ApprovalStore - Session-level cache for "always allow" decisions
+   * Inspired by Codex CLI's ApprovalStore (codex-rs/core/src/tools/sandboxing.rs)
+   */
+  private readonly approvalStore: ApprovalStore = new ApprovalStore();
 
   constructor(cfg: CodexAgentConfig) {
     this.id = cfg.id;
@@ -381,5 +389,57 @@ export class CodexAgent {
 
   public getFileOperationHandler(): CodexFileOperationHandler {
     return this.fileOperationHandler;
+  }
+
+  // ===== ApprovalStore methods =====
+
+  /**
+   * Check if an exec command has been approved for session
+   * @returns true if auto-approve, false if needs user confirmation
+   */
+  public checkExecApproval(command: string | string[], cwd?: string): boolean {
+    const key = createExecApprovalKey(command, cwd);
+    const decision = this.approvalStore.get(key);
+    return decision === 'approved_for_session';
+  }
+
+  /**
+   * Check if file changes have been approved for session
+   * @returns true if auto-approve, false if needs user confirmation
+   */
+  public checkPatchApproval(files: string[]): boolean {
+    const key = createPatchApprovalKey(files);
+    const decision = this.approvalStore.get(key);
+    return decision === 'approved_for_session';
+  }
+
+  /**
+   * Store exec approval decision in cache
+   */
+  public storeExecApproval(command: string | string[], cwd: string | undefined, decision: ReviewDecision): void {
+    const key = createExecApprovalKey(command, cwd);
+    this.approvalStore.put(key, decision);
+  }
+
+  /**
+   * Store patch approval decision in cache
+   */
+  public storePatchApproval(files: string[], decision: ReviewDecision): void {
+    const key = createPatchApprovalKey(files);
+    this.approvalStore.put(key, decision);
+  }
+
+  /**
+   * Get ApprovalStore debug info
+   */
+  public getApprovalStoreInfo(): { keyCount: number; keys: string[] } {
+    return this.approvalStore.getDebugInfo();
+  }
+
+  /**
+   * Clear all cached approvals (e.g., when session ends)
+   */
+  public clearApprovalStore(): void {
+    this.approvalStore.clear();
   }
 }

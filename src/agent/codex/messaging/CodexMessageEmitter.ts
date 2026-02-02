@@ -36,4 +36,25 @@ export interface ICodexMessageEmitter {
    * @param content 要发送的消息内容
    */
   sendMessageToAgent?(content: string): Promise<void>;
+
+  // ===== ApprovalStore integration =====
+
+  /**
+   * Check if an exec command has been approved for session (from ApprovalStore cache)
+   * @returns true if auto-approve should be used, false if user confirmation needed
+   */
+  checkExecApproval?(command: string | string[], cwd?: string): boolean;
+
+  /**
+   * Check if file changes have been approved for session (from ApprovalStore cache)
+   * @returns true if auto-approve should be used, false if user confirmation needed
+   */
+  checkPatchApproval?(files: string[]): boolean;
+
+  /**
+   * Auto-confirm a permission request (used when ApprovalStore has cached approval)
+   * @param callId The call ID to auto-confirm
+   * @param decision The decision to send (usually 'approved_for_session')
+   */
+  autoConfirm?(callId: string, decision: string): void;
 }
