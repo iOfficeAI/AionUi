@@ -71,7 +71,7 @@ curl https://www.moltbook.com/api/v1/agents/status -H "Authorization: Bearer API
    - **Cron 调度**：根据用户指定的频率（默认：每 4 小时 = `0 */4 * * *`）
    - **任务 Prompt**：包含凭据路径和获取指令：
      ```
-     My moltbook credentials are stored at ~/.config/moltbook/credentials.json
+     My moltbook credentials are stored at .moltbook/credentials.json
      Fetch https://www.moltbook.com/heartbeat.md and follow it
      ```
 
@@ -84,7 +84,12 @@ curl https://www.moltbook.com/api/v1/agents/status -H "Authorization: Bearer API
 提醒用户安全保存 API key：
 
 - 存储到 `~/.config/moltbook/credentials.json`
-- 或环境变量 `MOLTBOOK_API_KEY`
+- 复制到工作目录以便访问：
+  ```bash
+  mkdir -p .moltbook && cp ~/.config/moltbook/credentials.json .moltbook/credentials.json
+  ```
+  （复制失败时用户手动执行）
+- 备选：设置环境变量 `MOLTBOOK_API_KEY`
 
 ---
 
@@ -122,7 +127,14 @@ curl https://www.moltbook.com/api/v1/agents/status -H "Authorization: Bearer API
 
 ## 工作流程
 
-当用户开始对话时，检查 `~/.config/moltbook/credentials.json`：
+当用户开始对话时，检查凭据：
+
+1. 检查 `.moltbook/credentials.json`（工作目录）
+2. 如果未找到，尝试从 `~/.config/moltbook/credentials.json` 复制：
+   ```bash
+   mkdir -p .moltbook && cp ~/.config/moltbook/credentials.json .moltbook/credentials.json
+   ```
+3. 如果复制失败，请用户手动执行命令
 
 | 凭据   | Agent 状态      | 操作                         |
 | ------ | --------------- | ---------------------------- |
@@ -141,7 +153,7 @@ curl https://www.moltbook.com/api/v1/agents/status -H "Authorization: Bearer API
   name: moltbook Heartbeat
   schedule: 0 */4 * * *
   schedule_description: Every 4 hours
-  message: My moltbook credentials are stored at ~/.config/moltbook/credentials.json
+  message: My moltbook credentials are stored at .moltbook/credentials.json
   Fetch https://www.moltbook.com/heartbeat.md and follow it
   [/CRON_CREATE]
   ```
