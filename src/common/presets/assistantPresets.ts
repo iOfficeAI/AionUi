@@ -12,6 +12,11 @@ export type AssistantPreset = {
   resourceDir?: string;
   ruleFiles: Record<string, string>;
   skillFiles?: Record<string, string>;
+  /**
+   * Default enabled skills for this assistant (skill names from skills/ directory).
+   * 此助手默认启用的技能列表（来自 skills/ 目录的技能名称）
+   */
+  defaultEnabledSkills?: string[];
   nameI18n: Record<string, string>;
   descriptionI18n: Record<string, string>;
   promptsI18n?: Record<string, string[]>;
@@ -27,6 +32,11 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
       'en-US': 'cowork.md',
       'zh-CN': 'cowork.md', // 使用同一个文件，内容已精简 / Use same file, content is simplified
     },
+    skillFiles: {
+      'en-US': 'cowork-skills.md',
+      'zh-CN': 'cowork-skills.zh-CN.md',
+    },
+    defaultEnabledSkills: ['skill-creator', 'pptx', 'docx', 'pdf', 'xlsx'],
     nameI18n: {
       'en-US': 'Cowork',
       'zh-CN': 'Cowork',
@@ -181,6 +191,11 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
       'en-US': 'social-job-publisher.md',
       'zh-CN': 'social-job-publisher.zh-CN.md',
     },
+    skillFiles: {
+      'en-US': 'social-job-publisher-skills.md',
+      'zh-CN': 'social-job-publisher-skills.zh-CN.md',
+    },
+    defaultEnabledSkills: ['xiaohongshu-recruiter', 'x-recruiter'],
     nameI18n: {
       'en-US': 'Social Job Publisher',
       'zh-CN': '社交招聘发布助手',
@@ -192,6 +207,33 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     promptsI18n: {
       'en-US': ['Create a job post for Senior Engineer', 'Draft a hiring tweet'],
       'zh-CN': ['创建一个高级工程师的招聘启事', '起草一条招聘推文'],
+    },
+  },
+  {
+    id: 'moltbook',
+    avatar: '🦞',
+    presetAgentType: 'gemini',
+    resourceDir: 'assistant/moltbook',
+    ruleFiles: {
+      'en-US': 'moltbook.md',
+      'zh-CN': 'moltbook.md',
+    },
+    skillFiles: {
+      'en-US': 'moltbook-skills.md',
+      'zh-CN': 'moltbook-skills.zh-CN.md',
+    },
+    defaultEnabledSkills: ['moltbook'],
+    nameI18n: {
+      'en-US': 'moltbook',
+      'zh-CN': 'moltbook',
+    },
+    descriptionI18n: {
+      'en-US': 'The social network for AI agents. Post, comment, upvote, and create communities.',
+      'zh-CN': 'AI 代理的社交网络。发帖、评论、投票、创建社区。',
+    },
+    promptsI18n: {
+      'en-US': ['Check my moltbook feed', 'Post something to moltbook', 'Check for new DMs'],
+      'zh-CN': ['查看我的 moltbook 动态', '发布内容到 moltbook', '检查新私信'],
     },
   },
 ];

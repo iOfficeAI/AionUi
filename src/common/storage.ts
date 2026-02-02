@@ -32,6 +32,10 @@ export interface IConfigStorageRefer {
     accountProjects?: Record<string, string>;
     yoloMode?: boolean;
   };
+  'codex.config'?: {
+    cliPath?: string;
+    yoloMode?: boolean;
+  };
   'acp.config': {
     [backend in AcpBackend]?: {
       authMethodId?: string;
@@ -62,7 +66,10 @@ export interface IConfigStorageRefer {
   // 迁移标记：修复老版本中助手 enabled 默认值问题 / Migration flag: fix assistant enabled default value issue
   'migration.assistantEnabledFixed'?: boolean;
   // 迁移标记：为 cowork 助手添加默认启用的 skills / Migration flag: add default enabled skills for cowork assistant
+  /** @deprecated Use migration.builtinDefaultSkillsAdded_v2 instead */
   'migration.coworkDefaultSkillsAdded'?: boolean;
+  // 迁移标记：为所有内置助手添加默认启用的 skills / Migration flag: add default enabled skills for all builtin assistants
+  'migration.builtinDefaultSkillsAdded_v2'?: boolean;
   // Telegram assistant default model / Telegram 助手默认模型
   'assistant.telegram.defaultModel'?: {
     id: string;

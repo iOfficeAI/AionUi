@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <strong>💬 커뮤니티:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wechat_group_2.jpg" target="_blank">微信 (中文群)</a>
+  <strong>💬 커뮤니티:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wx.png" target="_blank">微信 (中文群)</a>
 </p>
 
 ---
@@ -71,25 +71,43 @@ _AionUi에는 Gemini CLI가 내장되어 있어 다운로드 즉시 사용 가�
 
 ---
 
-### 🌐 **어디서나 접속 - WebUI & Telegram Channel**
+### 🌐 **어디서나 접속할 수 있는 AionUi**
 
 _당신의 7×24시간 AI 어시스턴트 - 모든 기기, 어디서나 AionUi에 접속하세요! 출장 중, 집에서, 사무실에서, 언제 어디서나 WebUI 또는 Telegram을 통해 AI 도구를 사용하세요_
 
-#### 🌐 **WebUI 모드**
+AionUi는 두 가지 원격 접속 방법을 제공합니다：
 
-브라우저를 통해 모든 기기에서 AionUi에 접속 - 스마트폰, 태블릿, 컴퓨터. LAN, 크로스 네트워크 및 서버 배포를 지원합니다.
+- **🌐 WebUI 모드**
 
-> 💡 **자세한 설정 가이드가 필요하신가요?** [WebUI 설정 튜토리얼](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) 과 [원격 인터넷 접속 가이드](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide) 를 확인하세요
+  브라우저를 통해 모든 기기에서 AionUi에 접속 - 스마트폰, 태블릿, 컴퓨터. LAN, 크로스 네트워크 및 서버 배포를 지원합니다. QR 코드를 스캔하거나 계정 비밀번호로 로그인할 수 있어 간단하고 편리합니다.
 
-#### 📱 **Telegram Channel**
+  > 💡 **자세한 설정 가이드가 필요하신가요?** [원격 인터넷 접속 가이드](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide) 를 확인하세요
 
-모든 기기에서 Telegram을 통해 AI 어시스턴트와 직접 채팅하세요. 간단한 페어링 코드 시스템으로 안전한 접속을 보장합니다.
+- **📱 Telegram Channel**
 
-> 💡 **설정 방법：** 설정 → Channels → Telegram으로 이동하여 [@BotFather](https://t.me/BotFather)에서 Bot Token을 가져온 후 채팅을 시작하세요!
+  모든 기기에서 Telegram을 통해 AI 어시스턴트와 직접 채팅하세요. 간단한 페어링 코드 시스템으로 안전한 접속을 보장합니다.
+
+  > 💡 **설정 방법：** AionUi 설정 → WebUI 설정 → Channel으로 이동하여 [@BotFather](https://t.me/BotFather)에서 Bot Token을 가져온 후 채팅을 시작하세요!
 
 <p align="center">
-  <img src="./resources/remote.png" alt="어디서나 접속 - WebUI & Telegram" width="800">
+  <img src="./resources/remote-telegram.png" alt="어디서나 접속 - WebUI & Telegram" width="800">
 </p>
+
+---
+
+### ⏰ **스케줄 작업 - AionUi가 자동으로 작업 완료**
+
+_스케줄 작업을 설정하면 AI 어시스턴트가 설정한 시간에 자동으로 실행되어 진정한 7×24시간 무인 운영을 실현합니다_
+
+- **자유로운 대화 형식** - 자연어로 AI에게 무엇을 해야 할지 알려주세요, 평소 채팅하는 것처럼
+- **유연한 시간 설정** - 매일, 매주, 매월 모두 가능합니다
+- **간단하고 사용하기 쉬움** - 생성, 수정, 활성화/비활성화, 삭제, 언제든지 확인 및 조정 가능
+
+<p align="center">
+  <img src="./resources/alart-task.png" alt="스케줄 작업 데모" width="800">
+</p>
+
+> 💡 **사용 사례：** 스케줄 데이터 집계, 정기 보고서 생성, 자동 파일 정리, 스케줄 알림 등
 
 ---
 
@@ -337,7 +355,7 @@ brew install aionui
 - [🐛 문제 보고](https://github.com/iOfficeAI/AionUi/issues) - 버그 또는 기능 요청 보고
 - [📦 릴리스 업데이트](https://github.com/iOfficeAI/AionUi/releases) - 최신 버전 받기
 - [💬 Discord Community](https://discord.gg/2QAwJn7Egx) - **Discord에서 영어 커뮤니티에 가입하세요**
-- [💬 微信 (中文群)](./resources/wechat_group_2.jpg) - **QR 코드 보기**
+- [💬 微信 (中文群)](./resources/wx.png) - **QR 코드 보기**
 
 ### 🤝 기여하기
 

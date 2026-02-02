@@ -1,4 +1,4 @@
-<p align="center">
+﻿<p align="center">
   <img src="./resources/aionui-banner-1.png" alt="AionUi - Cowork with Your CLI AI Agent" width="100%">
 </p>
 
@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <strong>💬 Community:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wechat_group_2.jpg" target="_blank">微信 (中文群)</a>
+  <strong>💬 Community:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wx.png" target="_blank">微信 (中文群)</a>
 </p>
 
 ---
@@ -45,6 +45,7 @@
 
 [✨ What Can AionUi Do?](#✨-what-can-aionui-do) ·
 [🤔 Why Choose AionUi?](#🤔-why-choose-aionui) ·
+[✨ Core Features](#✨-core-features) ·
 [🚀 Quick Start](#🚀-quick-start) ·
 [💬 Community](#🤝-community--support)
 
@@ -60,7 +61,7 @@
 
 ### 🤖 **Multi-Agent Mode - Cowork for Your Command-Line AI Tools, Unified Graphical Interface**
 
-_If you have installed command-line tools like Gemini CLI, Claude Code, CodeX, Qwen Code, Goose AI, Augment Code, AionUi can automatically detect them and provide a unified graphical interface_
+_AionUi comes with built-in Gemini CLI, ready to use out of the box with no additional installation required; if you have already installed command-line tools like Gemini CLI, Claude Code, CodeX, Qwen Code, Goose AI, Augment Code, AionUi will automatically detect them and provide a unified graphical interface for a richer experience_
 
 - ✅ **Auto Detection + Unified Interface** - Automatically recognizes local CLI tools, provides a unified graphical interface, say goodbye to command line
 - ✅ **Local Storage + Multi-Session** - Conversations saved locally, supports multiple parallel sessions, each session with independent context
@@ -71,25 +72,47 @@ _If you have installed command-line tools like Gemini CLI, Claude Code, CodeX, Q
 
 ---
 
-### 🌐 **Access Anywhere - WebUI & Telegram Channel**
+### 🌐 **Access Your AionUi Anywhere**
 
 _Your 7×24 hour AI assistant - Access AionUi from any device, anywhere! On business trips, at home, in the office, use your AI tools anytime, anywhere through WebUI or Telegram_
 
-#### 🌐 **WebUI Mode**
+AionUi provides two remote access methods:
 
-Access AionUi from any device via browser - phone, tablet, computer. Supports LAN, cross-network, and server deployment.
+- **🌐 WebUI Mode**
 
-> 💡 **Need detailed configuration guide?** Check out the [WebUI Configuration Tutorial](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) and [Remote Internet Access Guide](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide)
+  Access AionUi from any device via browser - phone, tablet, computer. Supports LAN, cross-network, and server deployment. You can log in by scanning a QR code or using account password, making it simple and convenient.
 
-#### 📱 **Telegram Channel**
+  > 💡 **Need detailed configuration guide?** Check out [Remote Internet Access Tutorial](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide-Chinese)
 
-Chat with your AI assistant directly from Telegram on any device. Simple pairing code system for secure access.
+  <p align="center">
+    <img src="./resources/webui-remote.png" alt="WebUI Remote Access" width="800">
+  </p>
 
-> 💡 **How to set up:** Go to Settings → Channels → Telegram, get your Bot Token from [@BotFather](https://t.me/BotFather), and start chatting!
+- **📱 Telegram Channel**
+
+  Chat with your AI assistant directly from Telegram on any device. Simple pairing code system for secure access.
+
+  > 💡 **How to set up:** Go to AionUi Settings → WebUI Settings → Channel, get your Bot Token from [@BotFather](https://t.me/BotFather), and start chatting!
 
 <p align="center">
-  <img src="./resources/remote.png" alt="Access Anywhere - WebUI & Telegram" width="800">
+  <img src="./resources/remote-telegram.png" alt="Access Anywhere - WebUI & Telegram" width="800">
 </p>
+
+---
+
+### ⏰ **Scheduled Tasks - Let AionUi Automate Your Work**
+
+_After setting up scheduled tasks, the AI assistant will automatically execute according to your set time, truly achieving 7×24 hours unattended operation_
+
+- **Free Conversation** - Tell AI what to do using natural language, just like chatting normally
+- **Flexible Time Setting** - Daily, weekly, monthly are all possible
+- **Simple and Easy** - Create, modify, enable/disable, delete, view and adjust anytime
+
+<p align="center">
+  <img src="./resources/alart-task.png" alt="Scheduled Tasks Demo" width="800">
+</p>
+
+> 💡 **Use Cases:** Scheduled data aggregation, regular report generation, automatic file organization, scheduled reminders, etc.
 
 ---
 
@@ -133,7 +156,7 @@ _Intelligent image generation, editing, and recognition, powered by Gemini_
 
 ### 🤖 **Multi-Model Support**
 
-_Supports mainstream models like Gemini, OpenAI, Claude, Qwen, and local models like Ollama, LM Studio. Switch between different models flexibly to meet various task requirements._
+_Supports mainstream models like Gemini, OpenAI, Claude, Qwen, as well as local models like Ollama, LM Studio. Flexibly switch between different models to meet various task requirements._
 
 <p align="center">
   <img src="./resources/multi-model.png" alt="Multi-Model Support" width="800">
@@ -167,7 +190,7 @@ _Open multiple conversations, tasks don't get mixed up, independent memory, doub
 
 ---
 
-## 🤔 Why Choose AionUi? | As Good as Claudebot
+## 🤔 Why Choose AionUi?
 
 **Just like Claude Cowork makes Claude Code easier to use, AionUi is the Cowork platform for all your command-line AI tools**
 
@@ -175,9 +198,10 @@ While command-line tools like Gemini CLI, Claude Code, Codex, Qwen Code are powe
 
 AionUi provides unified **Cowork capabilities** for these command-line tools:
 
-- 🎯 **Unified Platform** - One interface to manage all command-line AI tools, no switching needed
+- 🎯 **Unified Platform** - One interface to manage all command-line AI tools, no switching needed; built-in Gemini CLI, ready to use out of the box and completely free
 - 🚀 **Multi-Tool Support** - Not only supports Claude Code, but also Gemini CLI, Codex, Qwen Code, and more
-- 🌐 **Cross-Platform** - Full platform support for macOS, Windows, Linux (Claude Cowork currently only macOS)
+- 🖥️ **Cross-Platform** - Full platform support for macOS, Windows, Linux (Claude Cowork currently only macOS)
+- 🌐 **Remote Access** - Your remote 24/7 assistant, access anytime, anywhere, and completely free
 - 🔄 **Multi-Model Switching** - Flexibly switch between different models in the same interface, meeting different task requirements
 - 📄 **Real-time Preview** - Visual preview for 9+ formats, immediately view the effects of AI-generated files
 - 💾 **Local Data Security** - All conversations and files saved locally, data never leaves your device
@@ -210,7 +234,7 @@ A: It can be your **private Cowork workspace**. You can let it help you batch or
 
 <details>
 <summary><strong>Q: Is AionUi ready to use out of the box?</strong></summary>
-A: Yes! After installation, you can directly use Google account login, AionUi will automatically associate with Gemini CLI, no additional configuration needed to start using.
+A: Yes! After installation, you can use it directly. AionUi comes with built-in Gemini CLI, no additional installation needed to start experiencing. If you have already installed and used command-line tools like Gemini CLI on your machine, AionUi will automatically detect them and provide a richer experience.
 </details>
 
 <details>
@@ -250,7 +274,54 @@ _Watch how content creators review and use AionUi in real-world scenarios_
   <em>🎬 WorldofAI (200K subscribers)</em> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <em>🎬 Julian Goldie SEO (318K subscribers)</em>
 </p>
 
+### 📰 Community Articles
+
+- [🔥 Explosive! Open-source free version of Cowork, full model integration + autonomous file operations, redefining AI office work.](https://mp.weixin.qq.com/s/F3f-CCsVPaK3lK00jXhOOg) — Open Source AI Project Landing
+- [Making ordinary people use Claude Code like an APP, what is the ACP protocol](https://mp.weixin.qq.com/s/TsMojSbkUUFvsd-HQCazZg) — Lazy Cat Loves Fishing
+- [5500 Stars: How Open Source Breaks Anthropic's AI Tool Moat](https://mp.weixin.qq.com/s/saEk49cYV6MqBgw19Lw6Gw) — AI Silicon Moment
+
 > 💡 **Have you made a video about AionUi?** [Let us know on X](https://x.com/AionUi) and we'll feature it here! We value your feedback and will continue to improve based on your suggestions.
+
+### 📰 Community Articles
+
+- [🔥 Explosive! Open-source free version of Cowork, full model integration + autonomous file operations, redefining AI office work.](https://mp.weixin.qq.com/s/F3f-CCsVPaK3lK00jXhOOg) — Open Source AI Project Landing
+- [Making ordinary people use Claude Code like an APP, what is the ACP protocol](https://mp.weixin.qq.com/s/TsMojSbkUUFvsd-HQCazZg) — Lazy Cat Loves Fishing
+- [5500 Stars: How Open Source Breaks Anthropic's AI Tool Moat](https://mp.weixin.qq.com/s/saEk49cYV6MqBgw19Lw6Gw) — AI Silicon Moment
+
+---
+
+## ✨ Core Features
+
+### 💬 **Multi-Session Chat**
+
+- **Multi-Session + Independent Context** - Open multiple chats simultaneously, each session has independent context memory, no confusion
+- **Local Storage** - All conversations are saved locally and will not be lost
+
+### 🤖 **Multi-Model Support**
+
+- **Multi-Platform Support** - Supports mainstream models like Gemini, OpenAI, Claude, Qwen, flexible switching
+- **Local Model Support** - Supports local model deployment like Ollama, LM Studio, select Custom platform and set local API address (e.g., `http://localhost:11434/v1`) to connect
+- **Gemini 3 Subscription Optimization** - Automatically identifies subscribed users, recommends advanced models
+
+### 🗂️ **File Management**
+
+- **File Tree Browsing + Drag & Drop Upload** - Browse files like folders, support drag and drop files or folders for one-click import
+- **Smart Organization** - You can let AI help organize folders, automatic classification
+
+### 📄 **Preview Panel - Give AI Agent a Display**
+
+- **9+ Format Preview** - Supports PDF, Word, Excel, PPT, code, Markdown, images, etc., view results immediately after AI generation
+- **Real-time Tracking + Editable** - Automatically tracks file changes, supports real-time editing and debugging of Markdown, code, HTML
+
+### 🎨 **AI Image Generation & Editing**
+
+- **Intelligent Image Generation** - Supports multiple image generation models like Gemini 2.5 Flash Image Preview, Nano, Banana
+- **Image Recognition & Editing** - AI-driven image analysis and editing features
+
+### 🌐 **WebUI Remote Access**
+
+- **Cross-Device Access** - Access from any device on the network via browser, supports mobile devices
+- **Local Data Security** - All data stored locally in SQLite database, suitable for server deployment
 
 ---
 
@@ -302,6 +373,12 @@ _Watch how content creators review and use AionUi in real-world scenarios_
   </a>
 </p>
 
+### 🍺 Install via Homebrew (macOS)
+
+```bash
+brew install aionui
+```
+
 ### 🔧 Simple Installation
 
 1. **Download and install** AionUi application
@@ -327,6 +404,10 @@ _Watch how content creators review and use AionUi in real-world scenarios_
 - [💬 GitHub Discussions](https://github.com/iOfficeAI/AionUi/discussions) - **Share ideas, make suggestions, exchange usage tips**
 - [🐛 Report Issues](https://github.com/iOfficeAI/AionUi/issues) - Report bugs or feature requests
 - [📦 Release Updates](https://github.com/iOfficeAI/AionUi/releases) - Get the latest version
+- [💬 Discord Community](https://discord.gg/2QAwJn7Egx) - **Join our English Discord community**
+- [💬 WeChat (Chinese Group)](./resources/wx.png) - **Click to view QR code**
+- [💬 Discord Community](https://discord.gg/2QAwJn7Egx) - **Join our English Discord community**
+- [💬 WeChat (Chinese Group)](./resources/wx.png) - **Click to view QR code**
 
 ### 🤝 Contributing
 

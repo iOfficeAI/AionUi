@@ -54,8 +54,11 @@ export function initDatabaseBridge(): void {
       }
 
       // Combine database conversations (source of truth) with any remaining file-only conversations
-      // 返回数据库结果 + 未迁移会话，这样“今天”与“更早”记录都能稳定展示
-      return [...dbConversations, ...fileOnlyConversations];
+      // 返回数据库结果 + 未迁移会话，这样"今天"与"更早"记录都能稳定展示
+      const allConversations = [...dbConversations, ...fileOnlyConversations];
+      // Re-sort by modifyTime (or createTime as fallback) to maintain correct order
+      allConversations.sort((a, b) => (b.modifyTime || b.createTime || 0) - (a.modifyTime || a.createTime || 0));
+      return allConversations;
     } catch (error) {
       console.error('[DatabaseBridge] Error getting user conversations:', error);
       return [];

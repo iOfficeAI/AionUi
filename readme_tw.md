@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <strong>💬 社群：</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wechat_group_2.jpg" target="_blank">微信 (中文群)</a>
+  <strong>💬 社群：</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wx.png" target="_blank">微信 (中文群)</a>
 </p>
 
 ---
@@ -71,25 +71,43 @@ _AionUi 內建 Gemini CLI，下載即用，無需額外安裝；如果您已經�
 
 ---
 
-### 🌐 **隨時隨地存取 - WebUI & Telegram Channel**
+### 🌐 **隨時隨地存取你的AionUi**
 
 _你的 7×24 小時 AI 助手 - 從任何裝置、任何地方存取 AionUi！出差、在家、辦公室，隨時隨地透過 WebUI 或 Telegram 使用你的 AI 工具_
 
-#### 🌐 **WebUI 模式**
+AionUi 提供兩種遠端存取方式：
 
-透過瀏覽器從任何裝置存取 AionUi - 手機、平板、電腦。支援區域網路、跨網路和伺服器部署。
+- **🌐 WebUI 模式**
 
-> 💡 **需要詳細設定指南？** 查看 [WebUI 設定教學](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) 和 [遠端外網連接教學](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide-Chinese)
+  透過瀏覽器從任何裝置存取 AionUi - 手機、平板、電腦。支援區域網路、跨網路和伺服器部署。可以透過掃描二維碼或帳號密碼登入，操作簡單方便。
 
-#### 📱 **Telegram Channel**
+  > 💡 **需要詳細設定指南？** 查看 [遠端外網連接教學](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide-Chinese)
 
-透過 Telegram 在任何裝置上直接與你的 AI 助手聊天。簡單的配對碼系統，確保安全存取。
+- **📱 Telegram Channel**
 
-> 💡 **如何設定：** 前往 設定 → Channels → Telegram，從 [@BotFather](https://t.me/BotFather) 取得你的 Bot Token，然後開始聊天！
+  透過 Telegram 在任何裝置上直接與你的 AI 助手聊天。簡單的配對碼系統，確保安全存取。
+
+  > 💡 **如何設定：** 前往 AionUi 設定 → WebUI 設定 → Channel，從 [@BotFather](https://t.me/BotFather) 取得你的 Bot Token，然後開始聊天！
 
 <p align="center">
-  <img src="./resources/remote.png" alt="隨時隨地存取 - WebUI & Telegram" width="800">
+  <img src="./resources/remote-telegram.png" alt="隨時隨地存取 - WebUI & Telegram" width="800">
 </p>
+
+---
+
+### ⏰ **定時任務 - AionUi幫你自動完成任務**
+
+_設定好定時任務後，AI 助手會按照你設定的時間自動執行，真正實現 7×24 小時無人值守_
+
+- **自由對話** - 用自然語言告訴 AI 要做什麼，就像平時聊天一樣
+- **靈活設定時間** - 每天、每週、每月都可以
+- **簡單易用** - 建立、修改、開啟/關閉、刪除，隨時查看和調整
+
+<p align="center">
+  <img src="./resources/alart-task.png" alt="定時任務演示" width="800">
+</p>
+
+> 💡 **使用場景：** 定時彙總資料、定期產生報告、自動整理檔案、定時提醒等
 
 ---
 
@@ -337,7 +355,7 @@ brew install aionui
 - [🐛 報告問題](https://github.com/iOfficeAI/AionUi/issues) - 回報 Bug 或功能請求
 - [📦 發布更新](https://github.com/iOfficeAI/AionUi/releases) - 取得最新版本
 - [💬 Discord Community](https://discord.gg/2QAwJn7Egx) - **加入我們的英文 Discord 社群**
-- [💬 微信 (中文群)](./resources/wechat_group_2.jpg) - **點擊查看 QR Code**
+- [💬 微信 (中文群)](./resources/wx.png) - **點擊查看 QR Code**
 
 ### 🤝 貢獻程式碼
 
