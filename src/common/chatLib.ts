@@ -276,6 +276,11 @@ export interface IConfirmation<Option extends any = any> {
     value: Option;
     params?: Record<string, string>; // Translation interpolation parameters
   }>;
+  /**
+   * Command type for exec confirmations (e.g., 'curl', 'npm', 'git')
+   * Used for "always allow" permission memory
+   */
+  commandType?: string;
 }
 
 /**

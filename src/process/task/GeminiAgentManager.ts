@@ -343,6 +343,8 @@ export class GeminiAgentManager extends BaseAgentManager<
           return;
         }
         if (!question || !hasOptions) return;
+        // Extract commandType from exec confirmations for "always allow" memory
+        const commandType = content.confirmationDetails?.type === 'exec' ? (content.confirmationDetails as { rootCommand?: string }).rootCommand : undefined;
         this.addConfirmation({
           title: content.confirmationDetails?.title || '',
           id: content.callId,
@@ -350,6 +352,7 @@ export class GeminiAgentManager extends BaseAgentManager<
           description: description || content.description || '',
           callId: content.callId,
           options: options,
+          commandType,
         });
       });
     }

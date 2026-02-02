@@ -2,13 +2,86 @@ import { ipcBridge } from '@/common';
 import type { IConfirmation } from '@/common/chatLib';
 import { Divider, Typography } from '@arco-design/web-react';
 import type { PropsWithChildren } from 'react';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { removeStack } from '../../../utils/common';
+
+// Storage key prefix for "always allow" permissions
+const PERMISSION_KEY_PREFIX = 'gemini_always_allow_';
+
+/**
+ * Generate storage key for permission memory
+ * @param confirmation - The confirmation object
+ * @returns Storage key or null if not applicable
+ */
+function getPermissionStorageKey(confirmation: IConfirmation<string>): string | null {
+  const { action, commandType } = confirmation;
+  // For exec confirmations, use commandType (e.g., 'curl', 'npm')
+  if (action === 'exec' && commandType) {
+    return `${PERMISSION_KEY_PREFIX}exec_${commandType}`;
+  }
+  // For edit confirmations, use a generic key
+  if (action === 'edit') {
+    return `${PERMISSION_KEY_PREFIX}edit`;
+  }
+  // For info confirmations, use a generic key
+  if (action === 'info') {
+    return `${PERMISSION_KEY_PREFIX}info`;
+  }
+  return null;
+}
+
+/**
+ * Check if "always allow" is stored for this confirmation type
+ */
+function hasAlwaysAllow(confirmation: IConfirmation<string>): boolean {
+  const key = getPermissionStorageKey(confirmation);
+  if (!key) return false;
+  try {
+    return localStorage.getItem(key) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Store "always allow" permission
+ */
+function storeAlwaysAllow(confirmation: IConfirmation<string>): void {
+  const key = getPermissionStorageKey(confirmation);
+  if (!key) return;
+  try {
+    localStorage.setItem(key, 'true');
+  } catch {
+    // Ignore storage errors
+  }
+}
 const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: string }>> = ({ conversation_id, children }) => {
   const [confirmations, setConfirmations] = useState<IConfirmation<any>[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const { t } = useTranslation();
+
+  // Auto-confirm handler for "always allow" permissions
+  const autoConfirmIfAllowed = useCallback(
+    (confirmation: IConfirmation<string>) => {
+      if (hasAlwaysAllow(confirmation)) {
+        // Find the "proceed_always" or "proceed_once" option to use for auto-confirm
+        const allowOption = confirmation.options.find((opt) => opt.value === 'proceed_always' || opt.value === 'proceed_once');
+        if (allowOption) {
+          // Auto-confirm with the allow option
+          void ipcBridge.conversation.confirmation.confirm.invoke({
+            conversation_id,
+            callId: confirmation.callId,
+            msg_id: confirmation.id,
+            data: allowOption.value,
+          });
+          return true; // Was auto-confirmed
+        }
+      }
+      return false; // Not auto-confirmed
+    },
+    [conversation_id]
+  );
 
   useEffect(() => {
     // 修复 #475: 添加错误处理和重试机制
@@ -20,7 +93,9 @@ const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: str
       void ipcBridge.conversation.confirmation.list
         .invoke({ conversation_id })
         .then((data) => {
-          setConfirmations(data);
+          // Filter out confirmations that should be auto-confirmed
+          const manualConfirmations = data.filter((c) => !autoConfirmIfAllowed(c));
+          setConfirmations(manualConfirmations);
           setLoadError(null); // 加载成功，清除错误状态 / Load success, clear error state
         })
         .catch((error) => {
@@ -43,6 +118,10 @@ const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: str
     return removeStack(
       ipcBridge.conversation.confirmation.add.on((data) => {
         if (conversation_id !== data.conversation_id) return;
+        // Check if should auto-confirm
+        if (autoConfirmIfAllowed(data)) {
+          return; // Was auto-confirmed, don't add to list
+        }
         setConfirmations((prev) => prev.concat(data));
         // 新确认对话框成功加载时，清除之前的错误状态
         // Clear previous error state when new confirmation loads successfully
@@ -63,7 +142,7 @@ const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: str
         });
       })
     );
-  }, [conversation_id]);
+  }, [conversation_id, autoConfirmIfAllowed]);
 
   // Handle ESC key to cancel confirmation
   useEffect(() => {
@@ -150,6 +229,10 @@ const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: str
           return (
             <div
               onClick={() => {
+                // Store "always allow" permission if selected
+                if (option.value === 'proceed_always') {
+                  storeAlwaysAllow(confirmation);
+                }
                 setConfirmations((prev) => prev.filter((p) => p.id !== confirmation.id));
                 void ipcBridge.conversation.confirmation.confirm.invoke({ conversation_id, callId: confirmation.callId, msg_id: confirmation.id, data: option.value });
               }}
