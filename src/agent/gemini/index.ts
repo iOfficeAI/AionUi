@@ -275,7 +275,16 @@ export class GeminiAgent {
       clearOauthClientCache();
     }
 
-    await this.config.refreshAuth(this.authType || AuthType.USE_GEMINI);
+    // 只对需要 OAuth 的认证类型调用 refreshAuth
+    // 对于 API KEY 模式 (USE_GEMINI, USE_OPENAI, USE_ANTHROPIC)，凭证已通过 setupEnv() 设置在环境变量中
+    // 调用 refreshAuth 可能会触发 aioncli-core 中不必要的 OAuth 检查，导致浏览器跳转
+    // Only call refreshAuth for auth types that need OAuth
+    // For API KEY modes (USE_GEMINI, USE_OPENAI, USE_ANTHROPIC), credentials are already set in env vars by setupEnv()
+    // Calling refreshAuth may trigger unnecessary OAuth checks in aioncli-core, causing browser redirects
+    const needsOAuthRefresh = this.authType === AuthType.LOGIN_WITH_GOOGLE || this.authType === AuthType.USE_VERTEX_AI;
+    if (needsOAuthRefresh) {
+      await this.config.refreshAuth(this.authType);
+    }
 
     this.geminiClient = this.config.getGeminiClient();
 
