@@ -631,6 +631,19 @@ export class GeminiAgent {
       message = stripFilesMarker(message);
     }
 
+    // 将 files 参数中的文件路径作为 @ 引用添加到消息末尾
+    // Append files from files parameter as @ references to the message
+    if (files && files.length > 0) {
+      const fileRefs = files.map((filePath) => `@${filePath}`).join(' ');
+      if (Array.isArray(message)) {
+        if (message[0]?.text) {
+          message[0].text = `${message[0].text} ${fileRefs}`;
+        }
+      } else if (typeof message === 'string') {
+        message = `${message} ${fileRefs}`;
+      }
+    }
+
     // OAuth Token 预检查（仅对 OAuth 模式生效）
     // Preemptive OAuth Token check (only for OAuth mode)
     if (this.authType === AuthType.LOGIN_WITH_GOOGLE) {
@@ -681,8 +694,6 @@ export class GeminiAgent {
         }
       }
     }
-
-    // files 参数仅用于复制到工作空间，不向模型传递路径提示
 
     // Track error messages from @ command processing
     let atCommandError: string | null = null;
