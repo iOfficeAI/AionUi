@@ -32,13 +32,19 @@ export interface AcpApprovalKey {
 
 /**
  * Serialize an approval key to a string for use as a cache key
+ *
+ * Note: Only key operation identifiers (command, path, file_path) are included
+ * in the hash. This means same operation with different descriptions will be
+ * treated as identical and auto-approved. This is intentional for better UX -
+ * users approve commands/paths, not descriptions.
  */
 function serializeKey(key: AcpApprovalKey): string {
   // Normalize rawInput for consistent hashing
+  // Only include operation-identifying fields (not descriptions or metadata)
   const normalizedInput: Record<string, unknown> = {};
 
   if (key.rawInput) {
-    // Only include relevant fields for matching
+    // Command is the primary identifier for execute operations
     if (key.rawInput.command) {
       normalizedInput.command = key.rawInput.command;
     }

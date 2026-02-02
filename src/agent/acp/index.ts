@@ -222,6 +222,9 @@ export class AcpAgent {
   stop(): Promise<void> {
     this.connection.disconnect();
     this.emitStatusMessage('disconnected');
+    // Clear session-scoped caches when session ends
+    this.approvalStore.clear();
+    this.permissionRequestMeta.clear();
     // Emit finish event to reset frontend UI state
     this.onStreamEvent({
       type: 'finish',
@@ -584,9 +587,15 @@ export class AcpAgent {
       // Workaround for claude-code-acp bug: it returns updatedPermissions but doesn't check suggestions
       const approvalKey = createAcpApprovalKey(data.toolCall);
       if (this.approvalStore.isApprovedForSession(approvalKey)) {
-        // Auto-approve without showing dialog
+        // Auto-approve without showing dialog - no metadata storage needed
         resolve({ optionId: 'allow_always' });
         return;
+      }
+
+      // Clean up any existing metadata for this requestId before storing new one
+      // This handles duplicate permission requests properly
+      if (this.permissionRequestMeta.has(requestId)) {
+        this.permissionRequestMeta.delete(requestId);
       }
 
       // Store metadata for later use in confirmMessage

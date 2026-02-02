@@ -127,6 +127,8 @@ export class CodexAgent {
   async stop(): Promise<void> {
     await this.conn?.stop();
     this.conn = null;
+    // Clear session-scoped approval cache when session ends
+    this.approvalStore.clear();
   }
 
   /**

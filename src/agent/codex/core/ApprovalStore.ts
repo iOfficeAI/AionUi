@@ -43,9 +43,9 @@ export type ApprovalKey = ExecApprovalKey | PatchApprovalKey;
  */
 function serializeKey(key: ApprovalKey): string {
   if (key.type === 'exec') {
-    // Normalize command to string for consistent hashing
-    const cmd = Array.isArray(key.command) ? key.command.join(' ') : key.command;
-    return JSON.stringify({ type: 'exec', command: cmd, cwd: key.cwd || '' });
+    // Preserve command array structure for unambiguous hashing
+    const commandArray = Array.isArray(key.command) ? key.command : [key.command];
+    return JSON.stringify({ type: 'exec', command: commandArray, cwd: key.cwd || '' });
   } else {
     // Sort files for consistent hashing
     const sortedFiles = [...key.files].sort();

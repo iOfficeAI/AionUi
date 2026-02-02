@@ -39,7 +39,8 @@ function readUserApprovalPolicyConfig(): string | null {
     const configPath = getCodexConfigPath();
     const content = readFileSync(configPath, 'utf-8');
     // Simple TOML parsing for top-level approval_policy
-    const match = content.match(/^\s*approval_policy\s*=\s*"([^"]+)"/m);
+    // Supports: double-quoted, single-quoted, or unquoted values with optional inline comments
+    const match = content.match(/^\s*approval_policy\s*=\s*['"]?([^'"#\s]+)['"]?/m);
     if (match) {
       return match[1];
     }
