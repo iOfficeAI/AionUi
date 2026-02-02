@@ -402,7 +402,7 @@ export function convertHtmlToLarkMarkdown(html: string): string {
  * Escape special characters for Lark markdown
  */
 export function escapeLarkMarkdown(text: string): string {
-  return text.replace(/[*_`\[\]()~]/g, '\\$&');
+  return text.replace(/[\\*_`\[\]()~]/g, '\\$&');
 }
 
 // ==================== Message Length Utilities ====================
