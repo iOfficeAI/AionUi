@@ -192,7 +192,7 @@ export class CodexToolHandlers {
     const toolName = String(inv.tool || inv.name || inv.method || 'unknown');
     // Use type assertion since call_id may exist in runtime data but not in type definition
     // 使用类型断言，因为 call_id 可能在运行时数据中存在但不在类型定义中
-    const callId = (msg as any).call_id || `mcp_${toolName}_${uuid()}`;
+    const callId = (msg as unknown as { call_id?: string }).call_id || `mcp_${toolName}_${uuid()}`;
     const title = this.formatMcpInvocation(inv);
 
     // Intercept chrome-devtools navigation tools using unified NavigationInterceptor

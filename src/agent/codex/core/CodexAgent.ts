@@ -11,7 +11,7 @@ import type { CodexEventHandler } from '@/agent/codex/handlers/CodexEventHandler
 import type { CodexSessionManager } from '@/agent/codex/handlers/CodexSessionManager';
 import type { CodexFileOperationHandler } from '@/agent/codex/handlers/CodexFileOperationHandler';
 import { ApprovalStore, createExecApprovalKey, createPatchApprovalKey } from './ApprovalStore';
-import type { ApprovalKey, ReviewDecision } from './ApprovalStore';
+import type { ReviewDecision } from './ApprovalStore';
 import { getConfiguredAppClientName, getConfiguredAppClientVersion, getConfiguredCodexMcpProtocolVersion } from '../../../common/utils/appConfig';
 import { lt } from 'semver';
 
@@ -162,7 +162,7 @@ export class CodexAgent {
     let lastError: Error | null = null;
 
     // Prepare arguments based on version
-    const args: Record<string, any> = {
+    const args: Record<string, unknown> = {
       prompt: initialPrompt || '',
       cwd: cwd || this.workingDir,
       sandbox: this.sandboxMode, // 强制指定沙盒模式

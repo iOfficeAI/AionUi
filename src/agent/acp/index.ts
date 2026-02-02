@@ -151,6 +151,7 @@ export class AcpAgent {
    *
    * Delegates to NavigationInterceptor for unified logic
    */
+  // eslint-disable-next-line max-len
   private extractNavigationUrl(toolCall: { rawInput?: Record<string, unknown>; content?: Array<{ type?: string; content?: { type?: string; text?: string }; text?: string }>; title?: string }): string | null {
     return NavigationInterceptor.extractUrl(toolCall);
   }
