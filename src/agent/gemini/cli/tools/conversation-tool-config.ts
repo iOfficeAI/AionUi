@@ -48,10 +48,19 @@ export class ConversationToolConfig {
     this.excludeTools.push('web_fetch');
 
     // 根据 webSearchEngine 配置决定启用哪个搜索工具
-    if (this.webSearchEngine === 'google' && authType === AuthType.USE_OPENAI) {
-      // 启用 Google 搜索（仅OpenAI模型需要，需要认证）
-      this.useGeminiWebSearch = true;
-      this.excludeTools.push('google_web_search'); // 排除内置的 Google 搜索
+    if (this.webSearchEngine === 'google') {
+      if (authType === AuthType.USE_OPENAI) {
+        // 对于 OpenAI 兼容的 provider（如 OpenRouter），不启用 gemini_web_search
+        // 因为这会尝试创建独立的 Google OAuth 客户端，触发不必要的授权跳转
+        // For OpenAI-compatible providers (e.g., OpenRouter), don't enable gemini_web_search
+        // as it attempts to create a dedicated Google OAuth client, triggering unwanted auth redirects
+        this.useGeminiWebSearch = false;
+      } else if (authType === AuthType.LOGIN_WITH_GOOGLE || authType === AuthType.USE_VERTEX_AI) {
+        // 对于 Google 认证的 provider，启用 gemini_web_search
+        // For Google-authenticated providers, enable gemini_web_search
+        this.useGeminiWebSearch = true;
+        this.excludeTools.push('google_web_search'); // 排除内置的 Google 搜索
+      }
     }
     // webSearchEngine === 'default' 时不启用 Google 搜索工具
   }
