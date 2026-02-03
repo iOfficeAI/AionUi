@@ -381,18 +381,15 @@ export function convertHtmlToLarkMarkdown(html: string): string {
   let result = html;
 
   // 1. Decode all HTML entities (including numeric), loop until stable to prevent double-encoding bypass
-  let prev = '';
-  while (prev !== result) {
-    prev = result;
-    result = result
-      .replace(/&amp;/gi, '&')
-      .replace(/&lt;/gi, '<')
-      .replace(/&gt;/gi, '>')
-      .replace(/&quot;/gi, '"')
-      .replace(/&#39;|&apos;/gi, "'")
-      .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
-      .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(parseInt(dec, 10)));
-  }
+
+  result = result
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+    .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(parseInt(dec, 10)));
 
   // 2. Convert allowed HTML tags to markdown (case-insensitive)
   result = result.replace(/<b>(.+?)<\/b>/gi, '**$1**');
@@ -413,8 +410,12 @@ export function convertHtmlToLarkMarkdown(html: string): string {
     return text; // Dangerous protocol: keep text only
   });
 
-  // 4. Remove ALL remaining HTML tags
-  result = result.replace(/<[^>]+>/g, '');
+  // 4. Remove ALL remaining HTML tags (loop until stable to handle nested patterns like <scr<script>ipt>)
+  let prevResult = '';
+  while (prevResult !== result) {
+    prevResult = result;
+    result = result.replace(/<[^>]+>/g, '');
+  }
 
   return result;
 }
