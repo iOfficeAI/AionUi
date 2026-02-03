@@ -133,6 +133,9 @@ export class AcpAgent {
     this.connection.onFileOperation = (operation) => {
       this.handleFileOperation(operation);
     };
+    this.connection.onDisconnect = (error) => {
+      this.handleDisconnect(error);
+    };
   }
 
   /**
@@ -238,11 +241,17 @@ export class AcpAgent {
   // 发送消息到ACP服务器
   async sendMessage(data: { content: string; files?: string[]; msg_id?: string }): Promise<AcpResult> {
     try {
+      // Auto-reconnect if connection is lost (e.g., after unexpected process exit)
       if (!this.connection.isConnected || !this.connection.hasActiveSession) {
-        return {
-          success: false,
-          error: createAcpError(AcpErrorType.CONNECTION_NOT_READY, 'ACP connection not ready', true),
-        };
+        try {
+          await this.start();
+        } catch (reconnectError) {
+          const errorMsg = reconnectError instanceof Error ? reconnectError.message : String(reconnectError);
+          return {
+            success: false,
+            error: createAcpError(AcpErrorType.CONNECTION_NOT_READY, `Failed to reconnect: ${errorMsg}`, true),
+          };
+        }
       }
       this.adapter.resetMessageTracking();
       let processedContent = data.content;
@@ -662,6 +671,36 @@ export class AcpAgent {
         data: null,
       });
     }
+  }
+
+  /**
+   * Handle unexpected disconnect from ACP backend
+   * Notify frontend and clean up internal state
+   */
+  private handleDisconnect(error: { code: number | null; signal: NodeJS.Signals | null }): void {
+    // 1. Emit disconnected status to frontend
+    this.emitStatusMessage('disconnected');
+
+    // 2. Emit error message with helpful information
+    const errorMsg = `${this.extra.backend} process disconnected unexpectedly ` + `(code: ${error.code}, signal: ${error.signal}). ` + `Please try sending a new message to reconnect.`;
+    this.emitErrorMessage(errorMsg);
+
+    // 3. Emit finish signal to reset UI loading state
+    if (this.onSignalEvent) {
+      this.onSignalEvent({
+        type: 'finish',
+        conversation_id: this.id,
+        msg_id: uuid(),
+        data: null,
+      });
+    }
+
+    // 4. Clear internal state
+    this.pendingPermissions.clear();
+    this.permissionRequestMeta.clear();
+    this.approvalStore.clear();
+    this.pendingNavigationTools.clear();
+    this.statusMessageId = null;
   }
 
   private handleFileOperation(operation: { method: string; path: string; content?: string; sessionId: string }): void {
