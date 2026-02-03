@@ -71,7 +71,6 @@
     "@typescript-eslint/parser": "^6.21.0",
     "@unocss/webpack": "^66.3.3",
     "@vercel/webpack-asset-relocator-loader": "1.7.3",
-    "@types/qrcode-terminal": "^0.12.0",
     "copy-webpack-plugin": "^13.0.1",
     "cross-env": "^7.0.3",
     "css-loader": "^6.11.0",
@@ -148,7 +147,6 @@
     "process": "^0.11.10",
     "qrcode-terminal": "^0.12.0",
     "qrcode.react": "^4.2.0",
-    "qrcode-terminal": "^0.12.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-i18next": "^14.0.5",
@@ -190,7 +188,7 @@
     "jws@>=4": "4.0.1",
     "diff": "^8.0.3",
     "lodash-es": "^4.17.23",
-    "tar": "^7.5.7",
+    "tar": "^6.2.1",
     "hono": "^4.11.7"
   },
   "lint-staged": {

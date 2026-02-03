@@ -168,6 +168,25 @@ export class CodexEventHandler {
     unifiedRequestId: string
   ) {
     const callId = msg.call_id || uuid();
+    const command = msg.command;
+    const cwd = msg.cwd;
+
+    // Store exec metadata for ApprovalStore (used when user confirms)
+    this.toolHandlers.storeExecRequestMeta(unifiedRequestId, { command, cwd });
+
+    // Check ApprovalStore for cached rejection first
+    if (this.messageEmitter.checkExecRejection?.(command, cwd)) {
+      // Auto-reject without showing dialog
+      this.messageEmitter.autoConfirm?.(unifiedRequestId, 'reject_always');
+      return;
+    }
+
+    // Check ApprovalStore for cached approval
+    if (this.messageEmitter.checkExecApproval?.(command, cwd)) {
+      // Auto-confirm without showing dialog
+      this.messageEmitter.autoConfirm?.(unifiedRequestId, 'allow_always');
+      return;
+    }
 
     const displayInfo = getPermissionDisplayInfo(PermissionType.COMMAND_EXECUTION);
     const options = createPermissionOptionsForType(PermissionType.COMMAND_EXECUTION);
@@ -218,17 +237,32 @@ export class CodexEventHandler {
   ) {
     const callId = msg.call_id || uuid();
 
+    // Store patch changes for later execution
+    const changes = msg?.changes || msg?.codex_changes;
+    if (changes) {
+      this.toolHandlers.storePatchChanges(unifiedRequestId, changes);
+    }
+
+    // Get file paths for ApprovalStore check
+    const files = changes ? Object.keys(changes) : [];
+
+    // Check ApprovalStore for cached rejection first
+    if (files.length > 0 && this.messageEmitter.checkPatchRejection?.(files)) {
+      // Auto-reject without showing dialog
+      this.messageEmitter.autoConfirm?.(unifiedRequestId, 'reject_always');
+      return;
+    }
+
+    // Check ApprovalStore for cached approval
+    if (files.length > 0 && this.messageEmitter.checkPatchApproval?.(files)) {
+      // Auto-confirm without showing dialog
+      this.messageEmitter.autoConfirm?.(unifiedRequestId, 'allow_always');
+      return;
+    }
+
     const displayInfo = getPermissionDisplayInfo(PermissionType.FILE_WRITE);
     const options = createPermissionOptionsForType(PermissionType.FILE_WRITE);
     const description = msg.message || `${displayInfo.icon} Codex wants to apply proposed code changes`;
-
-    // Store patch changes for later execution
-    if (msg?.changes || msg?.codex_changes) {
-      const changes = msg?.changes || msg?.codex_changes;
-      if (changes) {
-        this.toolHandlers.storePatchChanges(unifiedRequestId, changes);
-      }
-    }
 
     // 通过 addConfirmation 统一管理确认项
     this.messageEmitter.addConfirmation({
