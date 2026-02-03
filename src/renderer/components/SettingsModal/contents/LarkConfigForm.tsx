@@ -37,12 +37,16 @@ const PreferenceRow: React.FC<{
   label: string;
   description?: React.ReactNode;
   extra?: React.ReactNode;
+  required?: boolean;
   children: React.ReactNode;
-}> = ({ label, description, extra, children }) => (
+}> = ({ label, description, extra, required, children }) => (
   <div className='flex items-center justify-between gap-24px py-12px'>
     <div className='flex-1'>
       <div className='flex items-center gap-8px'>
-        <span className='text-14px text-t-primary'>{label}</span>
+        <span className='text-14px text-t-primary'>
+          {label}
+          {required && <span className='text-red-500 ml-2px'>*</span>}
+        </span>
         {extra}
       </div>
       {description && <div className='text-12px text-t-tertiary mt-2px'>{description}</div>}
@@ -80,6 +84,7 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelList
 
   const [testLoading, setTestLoading] = useState(false);
   const [credentialsTested, setCredentialsTested] = useState(false);
+  const [touched, setTouched] = useState({ appId: false, appSecret: false });
   const [pairingLoading, setPairingLoading] = useState(false);
   const [usersLoading, setUsersLoading] = useState(false);
   const [pendingPairings, setPendingPairings] = useState<IChannelPairingRequest[]>([]);
@@ -152,6 +157,9 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelList
 
   // Test Lark connection
   const handleTestConnection = async () => {
+    // Mark fields as touched to show validation errors
+    setTouched({ appId: true, appSecret: true });
+
     if (!appId.trim() || !appSecret.trim()) {
       Message.warning(t('settings.lark.credentialsRequired', 'Please enter App ID and App Secret'));
       return;
@@ -312,29 +320,33 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelList
   return (
     <div className='flex flex-col gap-24px'>
       {/* App ID */}
-      <PreferenceRow label={t('settings.lark.appId', 'App ID')} description={t('settings.lark.appIdDesc', 'Open Feishu Developer Console to get your App ID')}>
+      <PreferenceRow label={t('settings.lark.appId', 'App ID')} description={t('settings.lark.appIdDesc', 'Open Feishu Developer Console to get your App ID')} required>
         <Input
           value={appId}
           onChange={(value) => {
             setAppId(value);
             handleCredentialsChange();
           }}
+          onBlur={() => setTouched((prev) => ({ ...prev, appId: true }))}
           placeholder={hasExistingUsers || pluginStatus?.hasToken ? '••••••••••••••••' : 'cli_xxxxxxxxxx'}
           style={{ width: 240 }}
+          status={touched.appId && !appId.trim() && !pluginStatus?.hasToken ? 'error' : undefined}
           disabled={hasExistingUsers}
         />
       </PreferenceRow>
 
       {/* App Secret */}
-      <PreferenceRow label={t('settings.lark.appSecret', 'App Secret')} description={t('settings.lark.appSecretDesc', 'App Secret from Feishu Developer Console')}>
+      <PreferenceRow label={t('settings.lark.appSecret', 'App Secret')} description={t('settings.lark.appSecretDesc', 'App Secret from Feishu Developer Console')} required>
         <Input.Password
           value={appSecret}
           onChange={(value) => {
             setAppSecret(value);
             handleCredentialsChange();
           }}
+          onBlur={() => setTouched((prev) => ({ ...prev, appSecret: true }))}
           placeholder={hasExistingUsers || pluginStatus?.hasToken ? '••••••••••••••••' : 'xxxxxxxxxxxxxxxxxx'}
           style={{ width: 240 }}
+          status={touched.appSecret && !appSecret.trim() && !pluginStatus?.hasToken ? 'error' : undefined}
           visibilityToggle
           disabled={hasExistingUsers}
         />
