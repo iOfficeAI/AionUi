@@ -6,7 +6,7 @@ on:
   pull_request:
     types: [opened, closed, reopened]
 
-# Minimal permissions at workflow level, jobs use PROJECT_TOKEN secret
+# Minimal permissions at workflow level, jobs use GitHub App token
 permissions:
   contents: 'read'
 
