@@ -236,4 +236,27 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
       'zh-CN': ['查看我的 moltbook 动态', '发布内容到 moltbook', '检查新私信'],
     },
   },
+  {
+    id: 'beautiful-mermaid',
+    avatar: '📈',
+    presetAgentType: 'gemini',
+    resourceDir: 'assistant/beautiful-mermaid',
+    ruleFiles: {
+      'en-US': 'beautiful-mermaid.md',
+      'zh-CN': 'beautiful-mermaid.zh-CN.md',
+    },
+    defaultEnabledSkills: ['mermaid'],
+    nameI18n: {
+      'en-US': 'Beautiful Mermaid',
+      'zh-CN': 'Beautiful Mermaid',
+    },
+    descriptionI18n: {
+      'en-US': 'Create flowcharts, sequence diagrams, state diagrams, class diagrams, and ER diagrams with beautiful themes.',
+      'zh-CN': '创建流程图、时序图、状态图、类图和 ER 图，支持多种精美主题。',
+    },
+    promptsI18n: {
+      'en-US': ['Draw a user login flowchart', 'Create an API sequence diagram', 'Draw a TCP state diagram'],
+      'zh-CN': ['画一个用户登录流程图', '创建一个 API 时序图', '画一个 TCP 状态图'],
+    },
+  },
 ];
