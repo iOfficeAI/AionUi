@@ -841,7 +841,27 @@ const Guid: React.FC = () => {
 
     // 默认情况使用 Gemini，或 Preset 配置为 Gemini
     if (!selectedAgent || selectedAgent === 'gemini' || (isPreset && effectiveAgentType === 'gemini')) {
-      if (!currentModel) return;
+      if (!currentModel) {
+        // 没有可用模型时的处理 / Handle case when no model is available
+        if (!isGoogleAuth) {
+          // 未登录 Google，触发登录流程 / Not logged in, trigger Google login
+          try {
+            const result = await ipcBridge.googleAuth.login.invoke({});
+            if (result.success) {
+              // 登录成功，刷新模型列表 / Login successful, refresh model list
+              await mutate('google.auth.status');
+              await mutate('model.config.welcome');
+              // 提示用户重新发送 / Prompt user to resend
+              return;
+            }
+          } catch (error) {
+            console.error('Failed to login to Google:', error);
+          }
+        }
+        // 已登录但没有模型，或登录失败，跳转到设置页 / Logged in but no model, or login failed, navigate to settings
+        void navigate('/settings/model');
+        return;
+      }
       try {
         const presetAssistantIdToPass = isPreset ? agentInfo?.customAgentId : undefined;
 
@@ -1504,7 +1524,12 @@ const Guid: React.FC = () => {
                   shape='circle'
                   type='primary'
                   loading={loading}
-                  disabled={!input.trim() || ((!selectedAgent || selectedAgent === 'gemini' || (isPresetAgent && currentEffectiveAgentInfo.agentType === 'gemini')) && !currentModel)}
+                  disabled={
+                    !input.trim() ||
+                    // For Gemini mode: disable only when logged in but no model selected
+                    // When not logged in, allow click to trigger Google login flow
+                    ((!selectedAgent || selectedAgent === 'gemini' || (isPresetAgent && currentEffectiveAgentInfo.agentType === 'gemini')) && !currentModel && isGoogleAuth)
+                  }
                   icon={<ArrowUp theme='outline' size='14' fill='white' strokeWidth={2} />}
                   onClick={() => {
                     handleSend().catch((error) => {
