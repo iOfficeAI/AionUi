@@ -863,19 +863,19 @@ const Guid: React.FC = () => {
 
     if (shouldCheckGeminiCompatibility) {
       const platform = currentModel!.platform?.toLowerCase() || '';
-      // 只有原生 Gemini 平台才能使用 Gemini CLI（需要 Google 认证）
-      // Only native Gemini platforms can use Gemini CLI (requires Google auth)
-      // 第三方 API Key 提供商（即使平台名包含 gemini）应该切换到其他 CLI
-      // Third-party API key providers (even if platform name contains gemini) should switch to other CLIs
-      const isGeminiCompatiblePlatform = platform === 'gemini-with-google-auth' || platform === 'gemini-vertex-ai';
+      // 只有 gemini-with-google-auth 需要 Google 登录
+      // Only gemini-with-google-auth requires Google login
+      // 其他平台（包括 custom、gemini API Key 等）使用 API Key，不需要切换
+      // Other platforms (including custom, gemini API key, etc.) use API key, no need to switch
+      const needsGoogleLogin = platform === 'gemini-with-google-auth';
 
-      if (!isGeminiCompatiblePlatform) {
-        // 选中的模型不是 Gemini 兼容平台，尝试切换到 CLI（跳过 gemini）
-        // Selected model is not Gemini-compatible, try to switch to CLI (skip gemini)
+      if (needsGoogleLogin) {
+        // 需要 Google 登录但用户未登录，尝试切换到 CLI
+        // Needs Google login but user not logged in, try to switch to CLI
         const cliOnlyOrder: PresetAgentType[] = ['claude', 'codex', 'opencode'];
         for (const cli of cliOnlyOrder) {
           if (availableAgents?.some((agent) => agent.backend === cli)) {
-            console.info(`Selected model platform "${platform}" is not Gemini-compatible, switching to ${cli} CLI`);
+            console.info(`Platform "${platform}" requires Google login, switching to ${cli} CLI`);
             // 对于 Agent Tab，显示提示通知 / For Agent Tab, show notification
             if (!isPreset) {
               Message.info({
