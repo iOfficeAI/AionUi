@@ -713,22 +713,26 @@ const Guid: React.FC = () => {
   );
 
   /**
-   * 检查 Main Agent 类型是否可用
-   * Check if a Main Agent type is available
+   * 检查 Main Agent 类型是否可用（用于预设助手的自动切换判断）
+   * Check if a Main Agent type is available (for preset assistant auto-switch)
    *
-   * - gemini: 检查是否有可用的模型 / Check if there are available models
-   * - claude/codex/opencode: 检查 availableAgents 中是否有对应的 backend / Check if backend exists in availableAgents
+   * - gemini: 登录 Google OAuth 或有可用的 API key 模型
+   * - claude/codex/opencode: 检查 availableAgents 中是否有对应的 backend（CLI 已安装）
    */
   const isMainAgentAvailable = useCallback(
     (agentType: PresetAgentType): boolean => {
       if (agentType === 'gemini') {
-        // Gemini 使用 API，需要有可用的模型 / Gemini uses API, needs available models
-        return modelList && modelList.length > 0;
+        // Gemini Main Agent 可用条件：
+        // 1. 登录了 Google OAuth，或
+        // 2. 有可用的模型（API key）可以选择
+        // Gemini available when: Google OAuth logged in OR has API key models
+        return isGoogleAuth || (modelList != null && modelList.length > 0);
       }
-      // 其他类型检查 availableAgents / Other types check availableAgents
+      // 其他类型检查 availableAgents（CLI 是否已安装）
+      // Other types check availableAgents (whether CLI is installed)
       return availableAgents?.some((agent) => agent.backend === agentType) ?? false;
     },
-    [modelList, availableAgents]
+    [modelList, availableAgents, isGoogleAuth]
   );
 
   /**
@@ -756,22 +760,23 @@ const Guid: React.FC = () => {
    * If the configured Main Agent is unavailable, automatically fallback to an available one
    */
   const getEffectiveAgentType = useCallback(
-    (agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined): { agentType: PresetAgentType; isFallback: boolean; originalType: PresetAgentType } => {
+    (agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined): { agentType: PresetAgentType; isFallback: boolean; originalType: PresetAgentType; isAvailable: boolean } => {
       const originalType = resolvePresetAgentType(agentInfo);
 
       // 检查原始类型是否可用 / Check if original type is available
       if (isMainAgentAvailable(originalType)) {
-        return { agentType: originalType, isFallback: false, originalType };
+        return { agentType: originalType, isFallback: false, originalType, isAvailable: true };
       }
 
       // 获取备选 Agent / Get fallback agent
       const fallbackType = getAvailableFallbackAgent();
       if (fallbackType) {
-        return { agentType: fallbackType, isFallback: true, originalType };
+        return { agentType: fallbackType, isFallback: true, originalType, isAvailable: true };
       }
 
-      // 没有可用的 Agent，返回原始类型 / No available agent, return original type
-      return { agentType: originalType, isFallback: false, originalType };
+      // 没有可用的 Agent，返回原始类型（但标记为不可用）
+      // No available agent, return original type (but mark as unavailable)
+      return { agentType: originalType, isFallback: false, originalType, isAvailable: false };
     },
     [resolvePresetAgentType, isMainAgentAvailable, getAvailableFallbackAgent]
   );
@@ -782,11 +787,13 @@ const Guid: React.FC = () => {
    */
   const currentEffectiveAgentInfo = useMemo(() => {
     if (!isPresetAgent) {
-      // 非预设助手，使用原始的 selectedAgent
-      return { agentType: selectedAgent as PresetAgentType, isFallback: false, originalType: selectedAgent as PresetAgentType };
+      // 非预设助手，检查选中的 agent 是否可用
+      // For non-preset agents, check if selected agent is available
+      const isAvailable = isMainAgentAvailable(selectedAgent as PresetAgentType);
+      return { agentType: selectedAgent as PresetAgentType, isFallback: false, originalType: selectedAgent as PresetAgentType, isAvailable };
     }
     return getEffectiveAgentType(selectedAgentInfo);
-  }, [isPresetAgent, selectedAgent, selectedAgentInfo, getEffectiveAgentType]);
+  }, [isPresetAgent, selectedAgent, selectedAgentInfo, getEffectiveAgentType, isMainAgentAvailable]);
 
   const refreshCustomAgents = useCallback(async () => {
     try {
@@ -827,7 +834,17 @@ const Guid: React.FC = () => {
     const isPreset = isPresetAgent;
 
     // 获取有效的 Agent 类型（考虑可用性回退）/ Get effective agent type (with availability fallback)
-    const { agentType: effectiveAgentType, isFallback, originalType } = getEffectiveAgentType(agentInfo);
+    const { agentType: effectiveAgentType, isFallback, originalType, isAvailable } = getEffectiveAgentType(agentInfo);
+
+    // 如果没有可用的 Agent，提示用户配置 / If no agent is available, prompt user to configure
+    if (!isAvailable && isPreset) {
+      console.warn(`No available Main Agent for this assistant. Original type: "${originalType}"`);
+      const confirmed = window.confirm(t('guid.noAgentAvailable', { defaultValue: 'No Main Agent is available. Please login to Google or install Claude/Codex CLI. Go to settings?' }));
+      if (confirmed) {
+        void navigate('/settings/model');
+      }
+      return;
+    }
 
     // 如果发生了回退，显示提示 / Show notification if fallback occurred
     if (isFallback && isPreset) {
@@ -839,8 +856,31 @@ const Guid: React.FC = () => {
     // 获取启用的 skills 列表 / Get enabled skills list
     const enabledSkills = resolveEnabledSkills(agentInfo);
 
+    // 对于预设助手，检查选中的模型是否真正兼容 Gemini
+    // For preset assistants, check if selected model is actually Gemini-compatible
+    let finalEffectiveAgentType = effectiveAgentType;
+    if (isPreset && effectiveAgentType === 'gemini' && currentModel && !isGoogleAuth) {
+      const platform = currentModel.platform?.toLowerCase() || '';
+      // 检查平台是否为 Gemini 兼容（官方 Gemini 平台或平台名包含 gemini）
+      // Check if platform is Gemini-compatible (official Gemini platform or contains gemini)
+      const isGeminiCompatiblePlatform = platform === 'gemini-with-google-auth' || platform === 'gemini-vertex-ai' || platform.includes('gemini');
+
+      if (!isGeminiCompatiblePlatform) {
+        // 选中的模型不是 Gemini 兼容平台，尝试切换到 CLI（跳过 gemini）
+        // Selected model is not Gemini-compatible, try to switch to CLI (skip gemini)
+        const cliOnlyOrder: PresetAgentType[] = ['claude', 'codex', 'opencode'];
+        for (const cli of cliOnlyOrder) {
+          if (availableAgents?.some((agent) => agent.backend === cli)) {
+            console.info(`Selected model platform "${platform}" is not Gemini-compatible, switching to ${cli} CLI`);
+            finalEffectiveAgentType = cli;
+            break;
+          }
+        }
+      }
+    }
+
     // 默认情况使用 Gemini，或 Preset 配置为 Gemini
-    if (!selectedAgent || selectedAgent === 'gemini' || (isPreset && effectiveAgentType === 'gemini')) {
+    if (!selectedAgent || selectedAgent === 'gemini' || (isPreset && finalEffectiveAgentType === 'gemini')) {
       if (!currentModel) {
         // 没有可用模型时的处理 / Handle case when no model is available
         if (!isGoogleAuth) {
@@ -921,7 +961,7 @@ const Guid: React.FC = () => {
         throw error; // Re-throw to prevent input clearing
       }
       return;
-    } else if (selectedAgent === 'codex' || (isPreset && effectiveAgentType === 'codex')) {
+    } else if (selectedAgent === 'codex' || (isPreset && finalEffectiveAgentType === 'codex')) {
       // Codex conversation type (including preset with codex agent type)
       const codexAgentInfo = agentInfo || findAgentByKey(selectedAgentKey);
 
@@ -981,7 +1021,7 @@ const Guid: React.FC = () => {
       const acpAgentInfo = agentInfo || findAgentByKey(selectedAgentKey);
 
       // For preset with ACP-routed agent type (claude/opencode), use corresponding backend
-      const acpBackend = isPreset && isAcpRoutedPresetType(effectiveAgentType) ? effectiveAgentType : selectedAgent;
+      const acpBackend = isPreset && isAcpRoutedPresetType(finalEffectiveAgentType) ? finalEffectiveAgentType : selectedAgent;
 
       if (!acpAgentInfo && !isPreset) {
         alert(`${selectedAgent} CLI not found or not configured. Please ensure it's installed and accessible.`);
@@ -1379,7 +1419,7 @@ const Guid: React.FC = () => {
                   </span>
                 </Dropdown>
 
-                {(selectedAgent === 'gemini' || (isPresetAgent && currentEffectiveAgentInfo.agentType === 'gemini')) && (
+                {((selectedAgent === 'gemini' && !isPresetAgent) || (isPresetAgent && currentEffectiveAgentInfo.agentType === 'gemini' && currentEffectiveAgentInfo.isAvailable)) && (
                   <Dropdown
                     trigger='hover'
                     droplist={
@@ -1528,7 +1568,7 @@ const Guid: React.FC = () => {
                     !input.trim() ||
                     // For Gemini mode: disable only when logged in but no model selected
                     // When not logged in, allow click to trigger Google login flow
-                    ((!selectedAgent || selectedAgent === 'gemini' || (isPresetAgent && currentEffectiveAgentInfo.agentType === 'gemini')) && !currentModel && isGoogleAuth)
+                    ((((!selectedAgent || selectedAgent === 'gemini') && !isPresetAgent) || (isPresetAgent && currentEffectiveAgentInfo.agentType === 'gemini' && currentEffectiveAgentInfo.isAvailable)) && !currentModel && isGoogleAuth)
                   }
                   icon={<ArrowUp theme='outline' size='14' fill='white' strokeWidth={2} />}
                   onClick={() => {
@@ -1577,6 +1617,24 @@ const Guid: React.FC = () => {
                           original: currentEffectiveAgentInfo.originalType.charAt(0).toUpperCase() + currentEffectiveAgentInfo.originalType.slice(1),
                           fallback: currentEffectiveAgentInfo.agentType.charAt(0).toUpperCase() + currentEffectiveAgentInfo.agentType.slice(1),
                           defaultValue: `${currentEffectiveAgentInfo.originalType.charAt(0).toUpperCase() + currentEffectiveAgentInfo.originalType.slice(1)} is unavailable, using ${currentEffectiveAgentInfo.agentType.charAt(0).toUpperCase() + currentEffectiveAgentInfo.agentType.slice(1)} instead.`,
+                        })}
+                      </span>
+                    </div>
+                  )}
+                  {/* No Agent Available Warning / 无可用 Agent 警告 */}
+                  {!currentEffectiveAgentInfo.isAvailable && (
+                    <div
+                      className='mb-12px px-12px py-8px rd-8px text-12px flex items-center gap-8px cursor-pointer'
+                      style={{
+                        background: 'rgb(var(--danger-1))',
+                        border: '1px solid rgb(var(--danger-3))',
+                        color: 'rgb(var(--danger-6))',
+                      }}
+                      onClick={() => navigate('/settings/model')}
+                    >
+                      <span>
+                        {t('guid.noAgentAvailableShort', {
+                          defaultValue: 'No Main Agent available. Click to configure.',
                         })}
                       </span>
                     </div>
