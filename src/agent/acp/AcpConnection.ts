@@ -7,9 +7,101 @@
 import type { AcpBackend, AcpIncomingMessage, AcpMessage, AcpNotification, AcpPermissionRequest, AcpRequest, AcpResponse, AcpSessionUpdate } from '@/types/acpTypes';
 import { ACP_METHODS, JSONRPC_VERSION } from '@/types/acpTypes';
 import type { ChildProcess, SpawnOptions } from 'child_process';
-import { spawn } from 'child_process';
+import { execSync, spawn } from 'child_process';
 import { promises as fs } from 'fs';
+import os from 'os';
 import path from 'path';
+
+/**
+ * Environment variables to inherit from user's shell.
+ * These may not be available when Electron app starts from Finder/launchd.
+ *
+ * 需要从用户 shell 继承的环境变量。
+ * 当 Electron 应用从 Finder/launchd 启动时，这些变量可能不可用。
+ */
+const SHELL_INHERITED_ENV_VARS = [
+  'PATH', // Required for finding CLI tools (e.g., ~/.npm-global/bin, ~/.nvm/...)
+  'NODE_EXTRA_CA_CERTS', // Custom CA certificates
+  'SSL_CERT_FILE',
+  'SSL_CERT_DIR',
+  'REQUESTS_CA_BUNDLE',
+  'CURL_CA_BUNDLE',
+  'NODE_TLS_REJECT_UNAUTHORIZED',
+] as const;
+
+/** Cache for shell environment (loaded once per session) */
+let cachedShellEnv: Record<string, string> | null = null;
+
+/**
+ * Load environment variables from user's login shell.
+ * Captures variables set in .bashrc, .zshrc, .bash_profile, etc.
+ *
+ * 从用户的登录 shell 加载环境变量。
+ * 捕获 .bashrc、.zshrc、.bash_profile 等配置中设置的变量。
+ */
+function loadShellEnvironment(): Record<string, string> {
+  if (cachedShellEnv !== null) {
+    return cachedShellEnv;
+  }
+
+  cachedShellEnv = {};
+
+  // Skip on Windows - shell config loading not needed
+  if (process.platform === 'win32') {
+    return cachedShellEnv;
+  }
+
+  try {
+    const shell = process.env.SHELL || '/bin/bash';
+    // Use -i (interactive) and -l (login) to load all shell configs
+    // including .bashrc, .zshrc, .bash_profile, .zprofile, etc.
+    const command = `${shell} -i -l -c 'env' 2>/dev/null`;
+
+    const output = execSync(command, {
+      encoding: 'utf-8',
+      timeout: 5000,
+      stdio: ['pipe', 'pipe', 'pipe'],
+      env: { ...process.env, HOME: os.homedir() },
+    });
+
+    // Parse and capture only the variables we need
+    for (const line of output.split('\n')) {
+      const eqIndex = line.indexOf('=');
+      if (eqIndex > 0) {
+        const key = line.substring(0, eqIndex);
+        const value = line.substring(eqIndex + 1);
+        if (SHELL_INHERITED_ENV_VARS.includes(key as (typeof SHELL_INHERITED_ENV_VARS)[number])) {
+          cachedShellEnv[key] = value;
+        }
+      }
+    }
+
+    if (cachedShellEnv.PATH) {
+      console.log('[ACP] Loaded PATH from shell:', cachedShellEnv.PATH.substring(0, 100) + '...');
+    }
+  } catch (error) {
+    // Silent fail - shell environment loading is best-effort
+    console.warn('[ACP] Failed to load shell environment:', error instanceof Error ? error.message : String(error));
+  }
+
+  return cachedShellEnv;
+}
+
+/**
+ * Get enhanced environment variables by merging shell env with process.env.
+ * Priority: process.env < shell env < customEnv
+ *
+ * 获取增强的环境变量，合并 shell 环境变量和 process.env。
+ * 优先级: process.env < shell 环境 < customEnv
+ */
+export function getEnhancedEnv(customEnv?: Record<string, string>): Record<string, string> {
+  const shellEnv = loadShellEnvironment();
+  return {
+    ...process.env,
+    ...shellEnv,
+    ...customEnv,
+  } as Record<string, string>;
+}
 
 interface PendingRequest<T = unknown> {
   resolve: (value: T) => void;
@@ -32,7 +124,8 @@ interface PendingRequest<T = unknown> {
  */
 export function createGenericSpawnConfig(cliPath: string, workingDir: string, acpArgs?: string[], customEnv?: Record<string, string>) {
   const isWindows = process.platform === 'win32';
-  const env = { ...process.env, ...customEnv };
+  // Use enhanced env that includes shell environment variables (PATH, SSL certs, etc.)
+  const env = getEnhancedEnv(customEnv);
 
   // Default to --experimental-acp if no acpArgs specified
   const effectiveAcpArgs = acpArgs && acpArgs.length > 0 ? acpArgs : ['--experimental-acp'];
@@ -88,7 +181,7 @@ export class AcpConnection {
   private isSetupComplete = false;
 
   // 通用的后端连接方法
-  private async connectGenericBackend(backend: 'gemini' | 'qwen' | 'iflow' | 'droid' | 'goose' | 'auggie' | 'kimi' | 'opencode' | 'custom', cliPath: string, workingDir: string, acpArgs?: string[], customEnv?: Record<string, string>): Promise<void> {
+  private async connectGenericBackend(backend: 'gemini' | 'qwen' | 'iflow' | 'droid' | 'goose' | 'auggie' | 'kimi' | 'opencode' | 'copilot' | 'qoder' | 'custom', cliPath: string, workingDir: string, acpArgs?: string[], customEnv?: Record<string, string>): Promise<void> {
     const config = createGenericSpawnConfig(cliPath, workingDir, acpArgs, customEnv);
     this.child = spawn(config.command, config.args, config.options);
     await this.setupChildProcessHandlers(backend);
@@ -117,6 +210,8 @@ export class AcpConnection {
       case 'auggie':
       case 'kimi':
       case 'opencode':
+      case 'copilot':
+      case 'qoder':
         if (!cliPath) {
           throw new Error(`CLI path is required for ${backend} backend`);
         }
@@ -140,8 +235,8 @@ export class AcpConnection {
     // This eliminates dependency packaging issues and simplifies deployment
     console.error('[ACP] Using NPX approach for Claude ACP bridge');
 
-    // Clean environment
-    const cleanEnv = { ...process.env };
+    // Use enhanced env with shell variables, then clean up Node.js debugging vars
+    const cleanEnv = getEnhancedEnv();
     delete cleanEnv.NODE_OPTIONS;
     delete cleanEnv.NODE_INSPECT;
     delete cleanEnv.NODE_DEBUG;
@@ -615,6 +710,12 @@ export class AcpConnection {
   private normalizeCwdForAgent(cwd?: string): string {
     const defaultPath = '.';
     if (!cwd) return defaultPath;
+
+    // GitHub Copilot CLI requires absolute paths
+    // Error: "Directory path must be absolute: ."
+    if (this.backend === 'copilot') {
+      return path.resolve(cwd);
+    }
 
     try {
       const workspaceRoot = path.resolve(this.workingDir);

@@ -154,3 +154,6 @@ specs/**/work-*
 .spec-cache/
 .tmp/
 my-video
+
+# Agent Kit
+.agent

@@ -75,6 +75,11 @@ export interface IConfigStorageRefer {
     id: string;
     useModel: string;
   };
+  // Lark assistant default model / Lark 助手默认模型
+  'assistant.lark.defaultModel'?: {
+    id: string;
+    useModel: string;
+  };
 }
 
 export interface IEnvStorageRefer {

@@ -49,6 +49,8 @@ export type AcpBackendAll =
   | 'auggie' // Augment Code CLI
   | 'kimi' // Kimi CLI (Moonshot)
   | 'opencode' // OpenCode CLI
+  | 'copilot' // GitHub Copilot CLI
+  | 'qoder' // Qoder CLI
   | 'custom'; // User-configured custom ACP agent
 
 /**
@@ -200,15 +202,15 @@ export interface AcpBackendConfig {
   /**
    * 启用 ACP 模式时的参数
    * 不同 CLI 使用不同约定：
-   *   - ['--experimental-acp'] 用于 claude, qwen（未指定时的默认值）
+   *   - ['--experimental-acp'] 用于 claude（未指定时的默认值）
+   *   - ['--acp'] 用于 qwen, auggie
    *   - ['acp'] 用于 goose（子命令）
-   *   - ['--acp'] 用于 auggie
    *
    * Arguments to enable ACP mode when spawning the CLI.
    * Different CLIs use different conventions:
-   *   - ['--experimental-acp'] for claude, qwen (default if not specified)
+   *   - ['--experimental-acp'] for claude (default if not specified)
+   *   - ['--acp'] for qwen, auggie
    *   - ['acp'] for goose (subcommand)
-   *   - ['--acp'] for auggie
    * If not specified, defaults to ['--experimental-acp'].
    */
   acpArgs?: string[];
@@ -300,8 +302,9 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     cliCommand: 'qwen',
     defaultCliPath: 'npx @qwen-code/qwen-code',
     authRequired: true,
-    enabled: true, // ✅ 已验证支持：Qwen CLI v0.0.10+ 支持 --experimental-acp
+    enabled: true, // ✅ 已验证支持：Qwen CLI v0.0.10+ 支持 --acp
     supportsStreaming: true,
+    acpArgs: ['--acp'], // Use --acp instead of deprecated --experimental-acp
   },
   iflow: {
     id: 'iflow',
@@ -364,6 +367,24 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     enabled: true, // ✅ Factory docs: `droid exec --output-format acp` (JetBrains/Zed ACP integration)
     supportsStreaming: false,
     acpArgs: ['exec', '--output-format', 'acp'],
+  },
+  copilot: {
+    id: 'copilot',
+    name: 'GitHub Copilot',
+    cliCommand: 'copilot',
+    authRequired: false,
+    enabled: true, // ✅ GitHub Copilot CLI，使用 `copilot --acp --stdio` 启动
+    supportsStreaming: true,
+    acpArgs: ['--acp', '--stdio'], // copilot 使用 --acp --stdio 启动 ACP mode
+  },
+  qoder: {
+    id: 'qoder',
+    name: 'Qoder CLI',
+    cliCommand: 'qodercli',
+    authRequired: false,
+    enabled: true, // ✅ Qoder CLI，使用 `qodercli --acp` 启动
+    supportsStreaming: false,
+    acpArgs: ['--acp'], // qoder 使用 --acp flag
   },
   custom: {
     id: 'custom',
