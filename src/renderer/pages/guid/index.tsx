@@ -893,7 +893,9 @@ const Guid: React.FC = () => {
     }
 
     // 默认情况使用 Gemini，或 Preset 配置为 Gemini
-    if (!selectedAgent || selectedAgent === 'gemini' || (isPreset && finalEffectiveAgentType === 'gemini')) {
+    // 对于非预设 agent tabs，也需要检查 finalEffectiveAgentType（可能因兼容性问题自动切换）
+    // For non-preset agent tabs, also check finalEffectiveAgentType (may have auto-switched due to compatibility)
+    if (!selectedAgent || (selectedAgent === 'gemini' && finalEffectiveAgentType === 'gemini') || (isPreset && finalEffectiveAgentType === 'gemini')) {
       if (!currentModel) {
         // 没有可用模型时的处理 / Handle case when no model is available
         if (!isGoogleAuth) {
@@ -974,7 +976,7 @@ const Guid: React.FC = () => {
         throw error; // Re-throw to prevent input clearing
       }
       return;
-    } else if (selectedAgent === 'codex' || (isPreset && finalEffectiveAgentType === 'codex')) {
+    } else if (selectedAgent === 'codex' || finalEffectiveAgentType === 'codex') {
       // Codex conversation type (including preset with codex agent type)
       const codexAgentInfo = agentInfo || findAgentByKey(selectedAgentKey);
 
