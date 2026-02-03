@@ -1066,5 +1066,6 @@
   "cron.drawer.schedule": "실행 규칙",
   "cron.drawer.nextRun": "다음 실행",
   "cron.drawer.save": "저장",
-  "cron.drawer.saveSuccess": "저장되었습니다"
+  "cron.drawer.saveSuccess": "저장되었습니다",
+  "guid.agentFallbackNotice": "{{original}}을(를) 사용할 수 없어 {{fallback}}으로 자동 전환되었습니다."
 }

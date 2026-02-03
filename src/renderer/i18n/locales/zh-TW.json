@@ -999,5 +999,6 @@
   "cron.drawer.schedule": "執行規則",
   "cron.drawer.nextRun": "下次執行",
   "cron.drawer.save": "儲存",
-  "cron.drawer.saveSuccess": "儲存成功"
+  "cron.drawer.saveSuccess": "儲存成功",
+  "guid.agentFallbackNotice": "{{original}} 不可用，已自動切換到 {{fallback}}。"
 }

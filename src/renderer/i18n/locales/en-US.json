@@ -1131,5 +1131,6 @@
   "cron.drawer.schedule": "Schedule",
   "cron.drawer.nextRun": "Next Run",
   "cron.drawer.save": "Save",
-  "cron.drawer.saveSuccess": "Saved successfully"
+  "cron.drawer.saveSuccess": "Saved successfully",
+  "guid.agentFallbackNotice": "{{original}} is unavailable, using {{fallback}} instead."
 }

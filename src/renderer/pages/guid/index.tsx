@@ -712,6 +712,82 @@ const Guid: React.FC = () => {
     [customAgents]
   );
 
+  /**
+   * 检查 Main Agent 类型是否可用
+   * Check if a Main Agent type is available
+   *
+   * - gemini: 检查是否有可用的模型 / Check if there are available models
+   * - claude/codex/opencode: 检查 availableAgents 中是否有对应的 backend / Check if backend exists in availableAgents
+   */
+  const isMainAgentAvailable = useCallback(
+    (agentType: PresetAgentType): boolean => {
+      if (agentType === 'gemini') {
+        // Gemini 使用 API，需要有可用的模型 / Gemini uses API, needs available models
+        return modelList && modelList.length > 0;
+      }
+      // 其他类型检查 availableAgents / Other types check availableAgents
+      return availableAgents?.some((agent) => agent.backend === agentType) ?? false;
+    },
+    [modelList, availableAgents]
+  );
+
+  /**
+   * 获取可用的备选 Main Agent
+   * Get an available fallback Main Agent
+   *
+   * 优先级: gemini > claude > codex > opencode
+   * Priority: gemini > claude > codex > opencode
+   */
+  const getAvailableFallbackAgent = useCallback((): PresetAgentType | null => {
+    const fallbackOrder: PresetAgentType[] = ['gemini', 'claude', 'codex', 'opencode'];
+    for (const agentType of fallbackOrder) {
+      if (isMainAgentAvailable(agentType)) {
+        return agentType;
+      }
+    }
+    return null;
+  }, [isMainAgentAvailable]);
+
+  /**
+   * 获取助手的有效 Main Agent 类型（考虑可用性回退）
+   * Get the effective Main Agent type for an assistant (with availability fallback)
+   *
+   * 如果助手配置的 Main Agent 不可用，自动回退到可用的 Agent
+   * If the configured Main Agent is unavailable, automatically fallback to an available one
+   */
+  const getEffectiveAgentType = useCallback(
+    (agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined): { agentType: PresetAgentType; isFallback: boolean; originalType: PresetAgentType } => {
+      const originalType = resolvePresetAgentType(agentInfo);
+
+      // 检查原始类型是否可用 / Check if original type is available
+      if (isMainAgentAvailable(originalType)) {
+        return { agentType: originalType, isFallback: false, originalType };
+      }
+
+      // 获取备选 Agent / Get fallback agent
+      const fallbackType = getAvailableFallbackAgent();
+      if (fallbackType) {
+        return { agentType: fallbackType, isFallback: true, originalType };
+      }
+
+      // 没有可用的 Agent，返回原始类型 / No available agent, return original type
+      return { agentType: originalType, isFallback: false, originalType };
+    },
+    [resolvePresetAgentType, isMainAgentAvailable, getAvailableFallbackAgent]
+  );
+
+  /**
+   * 当前选中助手的有效 Agent 类型（用于 UI 显示）
+   * Effective agent type for the currently selected assistant (for UI display)
+   */
+  const currentEffectiveAgentInfo = useMemo(() => {
+    if (!isPresetAgent) {
+      // 非预设助手，使用原始的 selectedAgent
+      return { agentType: selectedAgent as PresetAgentType, isFallback: false, originalType: selectedAgent as PresetAgentType };
+    }
+    return getEffectiveAgentType(selectedAgentInfo);
+  }, [isPresetAgent, selectedAgent, selectedAgentInfo, getEffectiveAgentType]);
+
   const refreshCustomAgents = useCallback(async () => {
     try {
       await ipcBridge.acpConversation.refreshCustomAgents.invoke();
@@ -749,7 +825,14 @@ const Guid: React.FC = () => {
 
     const agentInfo = selectedAgentInfo;
     const isPreset = isPresetAgent;
-    const presetAgentType = resolvePresetAgentType(agentInfo);
+
+    // 获取有效的 Agent 类型（考虑可用性回退）/ Get effective agent type (with availability fallback)
+    const { agentType: effectiveAgentType, isFallback, originalType } = getEffectiveAgentType(agentInfo);
+
+    // 如果发生了回退，显示提示 / Show notification if fallback occurred
+    if (isFallback && isPreset) {
+      console.info(`Main Agent "${originalType}" is unavailable, using "${effectiveAgentType}" instead.`);
+    }
 
     // 加载 rules（skills 已迁移到 SkillManager）/ Load rules (skills migrated to SkillManager)
     const { rules: presetRules } = await resolvePresetRulesAndSkills(agentInfo);
@@ -757,7 +840,7 @@ const Guid: React.FC = () => {
     const enabledSkills = resolveEnabledSkills(agentInfo);
 
     // 默认情况使用 Gemini，或 Preset 配置为 Gemini
-    if (!selectedAgent || selectedAgent === 'gemini' || (isPreset && presetAgentType === 'gemini')) {
+    if (!selectedAgent || selectedAgent === 'gemini' || (isPreset && effectiveAgentType === 'gemini')) {
       if (!currentModel) return;
       try {
         const presetAssistantIdToPass = isPreset ? agentInfo?.customAgentId : undefined;
@@ -818,7 +901,7 @@ const Guid: React.FC = () => {
         throw error; // Re-throw to prevent input clearing
       }
       return;
-    } else if (selectedAgent === 'codex' || (isPreset && presetAgentType === 'codex')) {
+    } else if (selectedAgent === 'codex' || (isPreset && effectiveAgentType === 'codex')) {
       // Codex conversation type (including preset with codex agent type)
       const codexAgentInfo = agentInfo || findAgentByKey(selectedAgentKey);
 
@@ -878,7 +961,7 @@ const Guid: React.FC = () => {
       const acpAgentInfo = agentInfo || findAgentByKey(selectedAgentKey);
 
       // For preset with ACP-routed agent type (claude/opencode), use corresponding backend
-      const acpBackend = isPreset && isAcpRoutedPresetType(presetAgentType) ? presetAgentType : selectedAgent;
+      const acpBackend = isPreset && isAcpRoutedPresetType(effectiveAgentType) ? effectiveAgentType : selectedAgent;
 
       if (!acpAgentInfo && !isPreset) {
         alert(`${selectedAgent} CLI not found or not configured. Please ensure it's installed and accessible.`);
@@ -1276,7 +1359,7 @@ const Guid: React.FC = () => {
                   </span>
                 </Dropdown>
 
-                {(selectedAgent === 'gemini' || (isPresetAgent && resolvePresetAgentType(selectedAgentInfo) === 'gemini')) && (
+                {(selectedAgent === 'gemini' || (isPresetAgent && currentEffectiveAgentInfo.agentType === 'gemini')) && (
                   <Dropdown
                     trigger='hover'
                     droplist={
@@ -1421,7 +1504,7 @@ const Guid: React.FC = () => {
                   shape='circle'
                   type='primary'
                   loading={loading}
-                  disabled={!input.trim() || ((!selectedAgent || selectedAgent === 'gemini' || (isPresetAgent && resolvePresetAgentType(selectedAgentInfo) === 'gemini')) && !currentModel)}
+                  disabled={!input.trim() || ((!selectedAgent || selectedAgent === 'gemini' || (isPresetAgent && currentEffectiveAgentInfo.agentType === 'gemini')) && !currentModel)}
                   icon={<ArrowUp theme='outline' size='14' fill='white' strokeWidth={2} />}
                   onClick={() => {
                     handleSend().catch((error) => {
@@ -1454,6 +1537,25 @@ const Guid: React.FC = () => {
               {isPresetAgent && selectedAgentInfo ? (
                 // Selected Assistant View
                 <div className='flex flex-col w-full animate-fade-in'>
+                  {/* Main Agent Fallback Notice / Main Agent 回退提示 */}
+                  {currentEffectiveAgentInfo.isFallback && (
+                    <div
+                      className='mb-12px px-12px py-8px rd-8px text-12px flex items-center gap-8px'
+                      style={{
+                        background: 'rgb(var(--warning-1))',
+                        border: '1px solid rgb(var(--warning-3))',
+                        color: 'rgb(var(--warning-6))',
+                      }}
+                    >
+                      <span>
+                        {t('guid.agentFallbackNotice', {
+                          original: currentEffectiveAgentInfo.originalType.charAt(0).toUpperCase() + currentEffectiveAgentInfo.originalType.slice(1),
+                          fallback: currentEffectiveAgentInfo.agentType.charAt(0).toUpperCase() + currentEffectiveAgentInfo.agentType.slice(1),
+                          defaultValue: `${currentEffectiveAgentInfo.originalType.charAt(0).toUpperCase() + currentEffectiveAgentInfo.originalType.slice(1)} is unavailable, using ${currentEffectiveAgentInfo.agentType.charAt(0).toUpperCase() + currentEffectiveAgentInfo.agentType.slice(1)} instead.`,
+                        })}
+                      </span>
+                    </div>
+                  )}
                   <div className='w-full'>
                     <div className='flex items-center justify-between py-8px cursor-pointer select-none' onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}>
                       <span className='text-13px text-[rgb(var(--primary-6))] opacity-80'>{t('settings.assistantDescription', { defaultValue: 'Assistant Description' })}</span>

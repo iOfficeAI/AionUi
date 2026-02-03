@@ -1011,5 +1011,6 @@
   "cron.drawer.schedule": "実行ルール",
   "cron.drawer.nextRun": "次回実行",
   "cron.drawer.save": "保存",
-  "cron.drawer.saveSuccess": "保存しました"
+  "cron.drawer.saveSuccess": "保存しました",
+  "guid.agentFallbackNotice": "{{original}} が利用できないため、{{fallback}} に自動切り替えしました。"
 }
