@@ -1069,5 +1069,6 @@
   "cron.drawer.saveSuccess": "저장되었습니다",
   "guid.agentFallbackNotice": "{{original}}을(를) 사용할 수 없어 {{fallback}}으로 자동 전환되었습니다.",
   "guid.noAgentAvailable": "사용 가능한 Main Agent가 없습니다. Google에 로그인하거나 Claude/Codex CLI를 설치하세요. 설정으로 이동하시겠습니까?",
-  "guid.noAgentAvailableShort": "사용 가능한 Main Agent가 없습니다. 클릭하여 설정하세요."
+  "guid.noAgentAvailableShort": "사용 가능한 Main Agent가 없습니다. 클릭하여 설정하세요.",
+  "guid.agentTabAutoSwitch": "모델이 Gemini와 호환되지 않아 {{fallback}}으로 자동 전환되었습니다"
 }

@@ -35,7 +35,7 @@ import { buildDisplayMessage } from '@/renderer/utils/messageFiles';
 import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
 import { updateWorkspaceTime } from '@/renderer/utils/workspaceHistory';
 import { isAcpRoutedPresetType, type AcpBackend, type AcpBackendConfig, type PresetAgentType } from '@/types/acpTypes';
-import { Button, ConfigProvider, Dropdown, Input, Menu, Tooltip } from '@arco-design/web-react';
+import { Button, ConfigProvider, Dropdown, Input, Menu, Message, Tooltip } from '@arco-design/web-react';
 import { IconClose } from '@arco-design/web-react/icon';
 import { ArrowUp, Down, FolderOpen, Plus, Robot, UploadOne } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -856,11 +856,13 @@ const Guid: React.FC = () => {
     // 获取启用的 skills 列表 / Get enabled skills list
     const enabledSkills = resolveEnabledSkills(agentInfo);
 
-    // 对于预设助手，检查选中的模型是否真正兼容 Gemini
-    // For preset assistants, check if selected model is actually Gemini-compatible
+    // 对于预设助手或 Agent Tab，检查选中的模型是否真正兼容 Gemini
+    // For preset assistants or Agent Tab, check if selected model is actually Gemini-compatible
     let finalEffectiveAgentType = effectiveAgentType;
-    if (isPreset && effectiveAgentType === 'gemini' && currentModel && !isGoogleAuth) {
-      const platform = currentModel.platform?.toLowerCase() || '';
+    const shouldCheckGeminiCompatibility = (isPreset && effectiveAgentType === 'gemini' && currentModel && !isGoogleAuth) || (!isPreset && selectedAgent === 'gemini' && currentModel && !isGoogleAuth);
+
+    if (shouldCheckGeminiCompatibility) {
+      const platform = currentModel!.platform?.toLowerCase() || '';
       // 检查平台是否为 Gemini 兼容（官方 Gemini 平台或平台名包含 gemini）
       // Check if platform is Gemini-compatible (official Gemini platform or contains gemini)
       const isGeminiCompatiblePlatform = platform === 'gemini-with-google-auth' || platform === 'gemini-vertex-ai' || platform.includes('gemini');
@@ -872,6 +874,17 @@ const Guid: React.FC = () => {
         for (const cli of cliOnlyOrder) {
           if (availableAgents?.some((agent) => agent.backend === cli)) {
             console.info(`Selected model platform "${platform}" is not Gemini-compatible, switching to ${cli} CLI`);
+            // 对于 Agent Tab，显示提示通知 / For Agent Tab, show notification
+            if (!isPreset) {
+              Message.info({
+                content: t('guid.agentTabAutoSwitch', {
+                  original: 'Gemini',
+                  fallback: cli.charAt(0).toUpperCase() + cli.slice(1),
+                  defaultValue: 'Model not compatible with Gemini, auto-switched to {{fallback}}',
+                }),
+                duration: 3000,
+              });
+            }
             finalEffectiveAgentType = cli;
             break;
           }

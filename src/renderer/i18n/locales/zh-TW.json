@@ -1002,5 +1002,6 @@
   "cron.drawer.saveSuccess": "儲存成功",
   "guid.agentFallbackNotice": "{{original}} 不可用，已自動切換到 {{fallback}}。",
   "guid.noAgentAvailable": "沒有可用的 Main Agent。請登入 Google 或安裝 Claude/Codex CLI。是否前往設定？",
-  "guid.noAgentAvailableShort": "沒有可用的 Main Agent。點擊配置。"
+  "guid.noAgentAvailableShort": "沒有可用的 Main Agent。點擊配置。",
+  "guid.agentTabAutoSwitch": "模型不相容 Gemini，已自動切換到 {{fallback}}"
 }

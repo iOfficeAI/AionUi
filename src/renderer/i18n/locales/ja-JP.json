@@ -1014,5 +1014,6 @@
   "cron.drawer.saveSuccess": "保存しました",
   "guid.agentFallbackNotice": "{{original}} が利用できないため、{{fallback}} に自動切り替えしました。",
   "guid.noAgentAvailable": "利用可能なMain Agentがありません。Googleにログインするか、Claude/Codex CLIをインストールしてください。設定に移動しますか？",
-  "guid.noAgentAvailableShort": "利用可能なMain Agentがありません。クリックして設定。"
+  "guid.noAgentAvailableShort": "利用可能なMain Agentがありません。クリックして設定。",
+  "guid.agentTabAutoSwitch": "モデルがGeminiと互換性がないため、{{fallback}}に自動切り替えしました"
 }
