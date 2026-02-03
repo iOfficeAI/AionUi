@@ -1107,7 +1107,11 @@
       "active": "Active",
       "paused": "Paused",
       "error": "Error",
-      "unread": "New execution"
+      "unread": "New execution",
+      "unconfigured": "No scheduled task",
+      "unconfiguredHint": "No scheduled task yet. Create one with your Agent!",
+      "createNow": "Create Now",
+      "defaultPrompt": "Every day at 10am, search for the latest AI news, summarize and output an insight report."
     },
     "actions": {
       "goTo": "View Chat",

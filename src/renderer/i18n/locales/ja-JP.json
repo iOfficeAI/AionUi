@@ -985,7 +985,11 @@
       "active": "実行中",
       "paused": "一時停止中",
       "error": "エラー",
-      "unread": "新しい実行"
+      "unread": "新しい実行",
+      "unconfigured": "スケジュールタスク未設定",
+      "unconfiguredHint": "このチャットにはまだスケジュールタスクがありません。Agentと一緒に作成しましょう！",
+      "createNow": "今すぐ作成",
+      "defaultPrompt": "毎日午前10時に、最新のAIニュースを検索し、まとめてインサイトレポートを出力してください。"
     },
     "actions": {
       "goTo": "チャットを表示",

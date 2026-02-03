@@ -10,7 +10,7 @@ import { AlarmClock, Attention, PauseOne } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
-export type CronJobStatus = 'none' | 'active' | 'paused' | 'error' | 'unread';
+export type CronJobStatus = 'none' | 'active' | 'paused' | 'error' | 'unread' | 'unconfigured';
 
 interface CronJobIndicatorProps {
   status: CronJobStatus;
@@ -53,6 +53,8 @@ const CronJobIndicator: React.FC<CronJobIndicatorProps> = ({ status, size = 14, 
         return <PauseOne theme='outline' size={size} fill={iconColors.secondary} className='flex items-center' />;
       case 'error':
         return <Attention theme='outline' size={size} fill={iconColors.warning} className='flex items-center' />;
+      case 'unconfigured':
+        return <AlarmClock theme='outline' size={size} fill={iconColors.disabled} className='flex items-center' />;
       default:
         return null;
     }
@@ -68,6 +70,8 @@ const CronJobIndicator: React.FC<CronJobIndicatorProps> = ({ status, size = 14, 
         return t('cron.status.paused');
       case 'error':
         return t('cron.status.error');
+      case 'unconfigured':
+        return t('cron.status.unconfigured');
       default:
         return '';
     }

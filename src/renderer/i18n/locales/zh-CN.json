@@ -1105,7 +1105,11 @@
       "active": "运行中",
       "paused": "已暂停",
       "error": "执行出错",
-      "unread": "有新执行"
+      "unread": "有新执行",
+      "unconfigured": "未配置定时任务",
+      "unconfiguredHint": "当前会话暂无定时任务，和 Agent 一起创建一个吧",
+      "createNow": "立即创建",
+      "defaultPrompt": "每天早上10点，为我搜索AI最新的新闻动向，汇总并输出洞察报告。"
     },
     "actions": {
       "goTo": "查看会话",
