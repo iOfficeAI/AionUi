@@ -406,4 +406,23 @@ export function initConversationBridge(): void {
     if (!task) return [];
     return task.getConfirmations();
   });
+
+  // Session-level approval memory for "always allow" decisions
+  // 会话级别的权限记忆，用于 "always allow" 决策
+  ipcBridge.conversation.approval.check.provider(async ({ conversation_id, keys }) => {
+    const task = WorkerManage.getTaskById(conversation_id) as GeminiAgentManager | undefined;
+    if (!task || task.type !== 'gemini' || !task.approvalStore) {
+      return false;
+    }
+    return task.approvalStore.allApproved(keys);
+  });
+
+  ipcBridge.conversation.approval.store.provider(async ({ conversation_id, keys }) => {
+    const task = WorkerManage.getTaskById(conversation_id) as GeminiAgentManager | undefined;
+    if (!task || task.type !== 'gemini' || !task.approvalStore) {
+      return { success: false, msg: 'approval store not available' };
+    }
+    task.approvalStore.approveAll(keys);
+    return { success: true };
+  });
 }

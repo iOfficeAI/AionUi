@@ -14,6 +14,7 @@ import { ProcessConfig, getSkillsDir } from '@/process/initStorage';
 import { buildSystemInstructions } from './agentUtils';
 import { uuid } from '@/common/utils';
 import { getOauthInfoWithCache } from '@office-ai/aioncli-core';
+import { GeminiApprovalStore } from '../../agent/gemini/GeminiApprovalStore';
 import { ToolConfirmationOutcome } from '../../agent/gemini/cli/tools/tools';
 import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '../message';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
@@ -58,6 +59,9 @@ export class GeminiAgentManager extends BaseAgentManager<
   contextContent?: string;
   enabledSkills?: string[];
   private bootstrap: Promise<void>;
+
+  /** Session-level approval store for "always allow" memory */
+  readonly approvalStore = new GeminiApprovalStore();
 
   private async injectHistoryFromDatabase(): Promise<void> {
     // ... (omitting injectHistoryFromDatabase for space)
@@ -492,6 +496,16 @@ export class GeminiAgentManager extends BaseAgentManager<
   }
 
   confirm(id: string, callId: string, data: string) {
+    // Store "always allow" decision before removing confirmation from cache
+    // 在从缓存中移除确认之前，存储 "always allow" 决策
+    if (data === ToolConfirmationOutcome.ProceedAlways) {
+      const confirmation = this.confirmations.find((c) => c.callId === callId);
+      if (confirmation?.action) {
+        const keys = GeminiApprovalStore.createKeysFromConfirmation(confirmation.action, confirmation.commandType);
+        this.approvalStore.approveAll(keys);
+      }
+    }
+
     super.confirm(id, callId, data);
     // 发送确认到 worker，使用 callId 作为消息类型
     // Send confirmation to worker, using callId as message type
