@@ -371,26 +371,50 @@ function buildInteractiveCard(text: string, buttons: IUnifiedOutgoingMessage['bu
 /**
  * Convert HTML to Lark markdown format
  * Lark supports a subset of markdown
+ *
+ * Security measures:
+ * - Decodes all HTML entities (including numeric) with loop to prevent double-encoding bypass
+ * - Uses protocol whitelist for links (not blacklist)
+ * - Case-insensitive matching for tags and protocols
  */
 export function convertHtmlToLarkMarkdown(html: string): string {
   let result = html;
 
-  // Convert HTML tags to markdown
-  result = result.replace(/<b>(.+?)<\/b>/g, '**$1**');
-  result = result.replace(/<strong>(.+?)<\/strong>/g, '**$1**');
-  result = result.replace(/<i>(.+?)<\/i>/g, '*$1*');
-  result = result.replace(/<em>(.+?)<\/em>/g, '*$1*');
-  result = result.replace(/<code>(.+?)<\/code>/g, '`$1`');
-  result = result.replace(/<pre><code>([\s\S]+?)<\/code><\/pre>/g, '```\n$1\n```');
-  result = result.replace(/<a href="(.+?)">(.+?)<\/a>/g, '[$2]($1)');
+  // 1. Decode all HTML entities (including numeric), loop until stable to prevent double-encoding bypass
+  let prev = '';
+  while (prev !== result) {
+    prev = result;
+    result = result
+      .replace(/&amp;/gi, '&')
+      .replace(/&lt;/gi, '<')
+      .replace(/&gt;/gi, '>')
+      .replace(/&quot;/gi, '"')
+      .replace(/&#39;|&apos;/gi, "'")
+      .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
+      .replace(/&#(\d+);/g, (_, dec) => String.fromCharCode(parseInt(dec, 10)));
+  }
 
-  // Remove remaining HTML tags
+  // 2. Convert allowed HTML tags to markdown (case-insensitive)
+  result = result.replace(/<b>(.+?)<\/b>/gi, '**$1**');
+  result = result.replace(/<strong>(.+?)<\/strong>/gi, '**$1**');
+  result = result.replace(/<i>(.+?)<\/i>/gi, '*$1*');
+  result = result.replace(/<em>(.+?)<\/em>/gi, '*$1*');
+  result = result.replace(/<code>(.+?)<\/code>/gi, '`$1`');
+  result = result.replace(/<pre><code>([\s\S]+?)<\/code><\/pre>/gi, '```\n$1\n```');
+
+  // 3. Convert links - use protocol whitelist (not blacklist) for security
+  result = result.replace(/<a href="([^"]+)">(.+?)<\/a>/gi, (_, url: string, text: string) => {
+    const normalizedUrl = url.trim().toLowerCase();
+    // Only allow safe protocols: http, https, mailto, relative paths, or no protocol
+    const isSafeUrl = /^(https?:\/\/|mailto:|\/)|^[^:]*$/.test(normalizedUrl);
+    if (isSafeUrl) {
+      return `[${text}](${url})`;
+    }
+    return text; // Dangerous protocol: keep text only
+  });
+
+  // 4. Remove ALL remaining HTML tags
   result = result.replace(/<[^>]+>/g, '');
-
-  // Unescape HTML entities
-  result = result.replace(/&lt;/g, '<');
-  result = result.replace(/&gt;/g, '>');
-  result = result.replace(/&amp;/g, '&');
 
   return result;
 }
