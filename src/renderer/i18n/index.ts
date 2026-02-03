@@ -1,13 +1,14 @@
 import i18n from 'i18next';
-import { initReactI18next } from 'react-i18next';
 import LanguageDetector from 'i18next-browser-languagedetector';
+import { initReactI18next } from 'react-i18next';
 
-import zhCN from './locales/zh-CN.json';
+import { ConfigStorage } from '@/common/storage';
 import enUS from './locales/en-US.json';
 import jaJP from './locales/ja-JP.json';
-import zhTW from './locales/zh-TW.json';
 import koKR from './locales/ko-KR.json';
-import { ConfigStorage } from '@/common/storage';
+import trTR from './locales/tr-TR.json';
+import zhCN from './locales/zh-CN.json';
+import zhTW from './locales/zh-TW.json';
 
 const resources = {
   'zh-CN': {
@@ -24,6 +25,9 @@ const resources = {
   },
   'ko-KR': {
     translation: koKR,
+  },
+  'tr-TR': {
+    translation: trTR,
   },
 };
 
@@ -42,19 +46,19 @@ i18n
       caches: ['localStorage'],
     },
   })
-  .catch((error) => {
+  .catch((error: Error) => {
     console.error('Failed to initialize i18n:', error);
   });
 
 ConfigStorage.get('language')
-  .then((language) => {
+  .then((language: string) => {
     if (language) {
-      i18n.changeLanguage(language).catch((error) => {
+      i18n.changeLanguage(language).catch((error: Error) => {
         console.error('Failed to change language:', error);
       });
     }
   })
-  .catch((error) => {
+  .catch((error: Error) => {
     console.error('Failed to load language setting:', error);
   });
 

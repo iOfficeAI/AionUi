@@ -6,9 +6,49 @@
 
 import type { ChildProcess } from 'child_process';
 import { spawn, execSync } from 'child_process';
+import { readFileSync } from 'fs';
+import { homedir } from 'os';
+import { join } from 'path';
 import type { CodexEventParams } from '@/common/codex/types';
 import { globalErrorService, fromNetworkError } from '../core/ErrorService';
 import { JSONRPC_VERSION } from '@/types/acpTypes';
+
+/**
+ * Get Codex config file path based on platform
+ * - Windows: %APPDATA%\codex\config.toml or ~/.codex/config.toml
+ * - macOS/Linux: ~/.codex/config.toml
+ */
+function getCodexConfigPath(): string {
+  if (process.platform === 'win32') {
+    // Windows: try APPDATA first, then fallback to home directory
+    const appData = process.env.APPDATA;
+    if (appData) {
+      return join(appData, 'codex', 'config.toml');
+    }
+  }
+  // macOS/Linux or Windows fallback
+  return join(homedir(), '.codex', 'config.toml');
+}
+
+/**
+ * Read user's approval_policy setting from Codex config.toml
+ * Returns the value if set, otherwise returns null
+ */
+function readUserApprovalPolicyConfig(): string | null {
+  try {
+    const configPath = getCodexConfigPath();
+    const content = readFileSync(configPath, 'utf-8');
+    // Simple TOML parsing for top-level approval_policy
+    // Supports: double-quoted, single-quoted, or unquoted values with optional inline comments
+    const match = content.match(/^\s*approval_policy\s*=\s*['"]?([^'"#\s]+)['"]?/m);
+    if (match) {
+      return match[1];
+    }
+  } catch {
+    // Config file doesn't exist or can't be read
+  }
+  return null;
+}
 
 type JsonRpcId = number | string;
 
@@ -125,17 +165,19 @@ export class CodexConnection {
     const isWindows = process.platform === 'win32';
     let finalArgs = args.length ? args : this.detectMcpCommand(cliPath);
 
-    // Add ask_for_approval config for mcp-server
-    // This controls when user confirmation is required
-    // Note: --full-auto is only available for `codex exec`, not `mcp-server`
-    // For mcp-server, we use -c config to set ask_for_approval
+    // Add approval_policy config for mcp-server
+    // mcp-server may not automatically read all config.toml settings, so we explicitly pass it
     // Values: untrusted (requires approval for non-trusted commands), on-failure, on-request (model decides), never (auto-approve all)
     if (options?.yoloMode) {
       // yoloMode: auto-approve all operations without user confirmation
-      finalArgs = [...finalArgs, '-c', 'ask_for_approval=never'];
+      finalArgs = [...finalArgs, '-c', 'approval_policy=never'];
     } else {
-      // Normal mode: require user approval for non-trusted commands
-      finalArgs = [...finalArgs, '-c', 'ask_for_approval=untrusted'];
+      // Read user's config.toml setting and pass it explicitly to mcp-server
+      const userApprovalPolicy = readUserApprovalPolicyConfig();
+      if (userApprovalPolicy) {
+        finalArgs = [...finalArgs, '-c', `approval_policy=${userApprovalPolicy}`];
+      }
+      // If no user config, don't add any flag - let Codex use its default
     }
 
     return new Promise((resolve, reject) => {

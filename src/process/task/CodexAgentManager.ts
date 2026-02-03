@@ -261,9 +261,16 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     this.agent.getEventHandler().getToolHandlers().removePendingConfirmation(callId);
 
     // Use standardized permission decision mapping
+    // Maps UI options to Codex CLI's ReviewDecision (snake_case format)
     const decisionKey = data in PERMISSION_DECISION_MAP ? (data as keyof typeof PERMISSION_DECISION_MAP) : 'reject_once';
     const decision = mapPermissionDecision(decisionKey) as 'approved' | 'approved_for_session' | 'denied' | 'abort';
+
     const isApproved = decision === 'approved' || decision === 'approved_for_session';
+
+    // Store decision in ApprovalStore if user selected "always allow" or "always reject"
+    if (decision === 'approved_for_session' || decision === 'abort') {
+      this.storeApprovalDecision(callId, decision);
+    }
 
     // Apply patch changes if available and approved
     const changes = this.agent.getEventHandler().getToolHandlers().getPatchChanges(callId);
@@ -288,6 +295,27 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
     // Also resolve local pause gate to resume queued requests
     this.agent.resolvePermission(origCallId, isApproved);
+  }
+
+  /**
+   * Store approval/rejection decision in ApprovalStore based on request type
+   */
+  private storeApprovalDecision(callId: string, decision: 'approved_for_session' | 'abort'): void {
+    const toolHandlers = this.agent.getEventHandler().getToolHandlers();
+
+    // Check if this is an exec request
+    const execMeta = toolHandlers.getExecRequestMeta(callId);
+    if (execMeta) {
+      this.agent.storeExecApproval(execMeta.command, execMeta.cwd, decision);
+      return;
+    }
+
+    // Check if this is a patch request
+    const patchChanges = toolHandlers.getPatchChanges(callId);
+    if (patchChanges) {
+      const files = Object.keys(patchChanges);
+      this.agent.storePatchApproval(files, decision);
+    }
   }
 
   private async applyPatchChanges(callId: string, changes: Record<string, FileChange>): Promise<void> {
@@ -470,6 +498,44 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
       content,
       msg_id: uuid(),
     });
+  }
+
+  // ===== ApprovalStore integration (ICodexMessageEmitter) =====
+
+  /**
+   * Check if an exec command has been approved for session
+   */
+  checkExecApproval(command: string | string[], cwd?: string): boolean {
+    return this.agent?.checkExecApproval(command, cwd) || false;
+  }
+
+  /**
+   * Check if file changes have been approved for session
+   */
+  checkPatchApproval(files: string[]): boolean {
+    return this.agent?.checkPatchApproval(files) || false;
+  }
+
+  /**
+   * Check if an exec command has been rejected for session (abort)
+   */
+  checkExecRejection(command: string | string[], cwd?: string): boolean {
+    return this.agent?.checkExecRejection(command, cwd) || false;
+  }
+
+  /**
+   * Check if file changes have been rejected for session (abort)
+   */
+  checkPatchRejection(files: string[]): boolean {
+    return this.agent?.checkPatchRejection(files) || false;
+  }
+
+  /**
+   * Auto-confirm a permission request (used when ApprovalStore has cached approval)
+   */
+  autoConfirm(callId: string, decision: string): void {
+    // Simulate user clicking "allow_always" - reuse the confirm logic
+    void this.confirm(callId, callId, decision);
   }
 }
 

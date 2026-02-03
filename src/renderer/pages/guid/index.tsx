@@ -20,6 +20,7 @@ import GooseLogo from '@/renderer/assets/logos/goose.svg';
 import IflowLogo from '@/renderer/assets/logos/iflow.svg';
 import KimiLogo from '@/renderer/assets/logos/kimi.svg';
 import OpenCodeLogo from '@/renderer/assets/logos/opencode.svg';
+import QoderLogo from '@/renderer/assets/logos/qoder.png';
 import QwenLogo from '@/renderer/assets/logos/qwen.svg';
 import FilePreview from '@/renderer/components/FilePreview';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
@@ -180,6 +181,7 @@ const AGENT_LOGO_MAP: Partial<Record<AcpBackend, string>> = {
   kimi: KimiLogo,
   opencode: OpenCodeLogo,
   copilot: GitHubLogo,
+  qoder: QoderLogo,
 };
 const CUSTOM_AVATAR_IMAGE_MAP: Record<string, string> = {
   'cowork.svg': coworkSvg,
