@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IApprovalKey } from '@/common/approval';
 import type { IConfirmation } from '@/common/chatLib';
 import { bridge } from '@office-ai/platform';
 import type { OpenDialogOptions } from 'electron';
@@ -47,8 +46,9 @@ export const conversation = {
   // Session-level approval memory for "always allow" decisions
   // 会话级别的权限记忆，用于 "always allow" 决策
   approval: {
-    check: bridge.buildProvider<boolean, { conversation_id: string; keys: IApprovalKey[] }>('approval.check'),
-    store: bridge.buildProvider<IBridgeResponse, { conversation_id: string; keys: IApprovalKey[] }>('approval.store'),
+    // Check if action is approved (keys are parsed from action+commandType in backend)
+    // 检查操作是否已批准（keys 由后端从 action+commandType 解析）
+    check: bridge.buildProvider<boolean, { conversation_id: string; action: string; commandType?: string }>('approval.check'),
   },
 };
 

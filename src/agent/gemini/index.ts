@@ -4,6 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+// Re-export GeminiApprovalStore for use in other modules
+export { GeminiApprovalStore } from './GeminiApprovalStore';
+
 // src/core/ConfigManager.ts
 import { AIONUI_FILES_MARKER } from '@/common/constants';
 import { NavigationInterceptor } from '@/common/navigation';

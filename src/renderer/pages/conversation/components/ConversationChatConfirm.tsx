@@ -1,4 +1,3 @@
-import type { IApprovalKey } from '@/common/approval';
 import { ipcBridge } from '@/common';
 import type { IConfirmation } from '@/common/chatLib';
 import { useConversationContextSafe } from '@/renderer/context/ConversationContext';
@@ -8,45 +7,6 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { removeStack } from '../../../utils/common';
 
-/**
- * Validate if a string is a valid command name
- */
-function isValidCommandName(name: string): boolean {
-  return /^[a-zA-Z_][a-zA-Z0-9_-]*$/.test(name);
-}
-
-/**
- * Parse commandType string into individual commands
- */
-function parseCommandTypes(commandType: string): string[] {
-  return commandType
-    .split(',')
-    .map((cmd) => cmd.trim())
-    .filter(Boolean)
-    .filter(isValidCommandName);
-}
-
-/**
- * Build approval keys from confirmation data for IPC calls
- */
-function buildApprovalKeys(confirmation: IConfirmation<string>): IApprovalKey[] {
-  const { action, commandType } = confirmation;
-
-  if (action === 'exec' && commandType) {
-    const commands = parseCommandTypes(commandType);
-    return commands.map((cmd) => ({ action: 'exec', identifier: cmd }));
-  }
-
-  if (action === 'edit') {
-    return [{ action: 'edit' }];
-  }
-
-  if (action === 'info') {
-    return [{ action: 'info' }];
-  }
-
-  return [];
-}
 const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: string }>> = ({ conversation_id, children }) => {
   const [confirmations, setConfirmations] = useState<IConfirmation<any>[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -56,18 +16,22 @@ const ConversationChatConfirm: React.FC<PropsWithChildren<{ conversation_id: str
 
   // Check if confirmation should be auto-confirmed via backend approval store
   // 通过后端 approval store 检查是否应该自动确认
+  // Keys are parsed in backend (single source of truth)
+  // Keys 在后端解析（单一数据源）
   const checkAndAutoConfirm = useCallback(
     async (confirmation: IConfirmation<string>): Promise<boolean> => {
       // Only check gemini agent type (others don't have approval store yet)
       if (agentType !== 'gemini') return false;
 
-      const keys = buildApprovalKeys(confirmation);
-      if (keys.length === 0) return false;
+      const { action, commandType } = confirmation;
+      // Skip if no action (backend will return false for empty keys)
+      if (!action) return false;
 
       try {
         const isApproved = await ipcBridge.conversation.approval.check.invoke({
           conversation_id,
-          keys,
+          action,
+          commandType,
         });
 
         if (isApproved) {
