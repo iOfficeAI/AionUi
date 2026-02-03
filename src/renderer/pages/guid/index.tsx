@@ -358,13 +358,13 @@ const Guid: React.FC = () => {
   const navigate = useNavigate();
   const _layout = useLayoutContext();
 
-  // 处理粘贴的文件（替换模式，避免累积旧文件路径）
-  // Handle pasted files (replace mode to avoid accumulating old file paths)
+  // 处理粘贴的文件（追加模式，支持多次粘贴）
+  // Handle pasted files (append mode to support multiple pastes)
   const handleFilesPasted = useCallback((pastedFiles: FileMetadata[]) => {
     const filePaths = pastedFiles.map((file) => file.path);
-    // 粘贴操作替换现有文件，而不是追加
-    // Paste operation replaces existing files instead of appending
-    setFiles(filePaths);
+    // 粘贴操作追加到现有文件列表
+    // Paste operation appends to existing files
+    setFiles((prevFiles) => [...prevFiles, ...filePaths]);
     setDir('');
   }, []);
 
@@ -379,15 +379,15 @@ const Guid: React.FC = () => {
     setFiles((prevFiles) => prevFiles.filter((file) => file !== targetPath));
   }, []);
 
-  // 使用拖拽 hook（拖拽视为粘贴操作，替换现有文件）
-  // Use drag upload hook (drag is treated like paste, replaces existing files)
+  // 使用拖拽 hook（拖拽视为粘贴操作，追加到现有文件）
+  // Use drag upload hook (drag is treated like paste, appends to existing files)
   const { isFileDragging, dragHandlers } = useDragUpload({
     supportedExts: allSupportedExts,
     onFilesAdded: handleFilesPasted,
   });
 
-  // 使用共享的PasteService集成（粘贴操作替换现有文件）
-  // Use shared PasteService integration (paste replaces existing files)
+  // 使用共享的PasteService集成（粘贴操作追加到现有文件）
+  // Use shared PasteService integration (paste appends to existing files)
   const { onPaste, onFocus } = usePasteService({
     supportedExts: allSupportedExts,
     onFilesAdded: handleFilesPasted,
