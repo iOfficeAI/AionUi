@@ -373,19 +373,19 @@ function buildInteractiveCard(text: string, buttons: IUnifiedOutgoingMessage['bu
  * Lark supports a subset of markdown
  *
  * Security measures:
- * - Decodes all HTML entities (including numeric) with loop to prevent double-encoding bypass
+ * - Decodes only safe HTML entities (quotes and numeric)
+ * - Does NOT decode `<`, `>`, `&` so tags cannot be reintroduced via entities
  * - Uses protocol whitelist for links (not blacklist)
  * - Case-insensitive matching for tags and protocols
  */
 export function convertHtmlToLarkMarkdown(html: string): string {
   let result = html;
 
-  // 1. Decode all HTML entities (including numeric), loop until stable to prevent double-encoding bypass
+  // 1. Decode a SAFE subset of HTML entities.
+  //    We intentionally do NOT decode &lt; &gt; &amp; so that HTML tags
+  //    cannot be smuggled in via entities (and to avoid double-unescaping issues).
 
   result = result
-    .replace(/&amp;/gi, '&')
-    .replace(/&lt;/gi, '<')
-    .replace(/&gt;/gi, '>')
     .replace(/&quot;/gi, '"')
     .replace(/&#39;|&apos;/gi, "'")
     .replace(/&#x([0-9a-f]+);/gi, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
