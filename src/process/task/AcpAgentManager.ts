@@ -10,8 +10,11 @@ import { ACP_BACKENDS_ALL } from '@/types/acpTypes';
 import { ProcessConfig } from '../initStorage';
 import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '../message';
 import { handlePreviewOpenEvent } from '../utils/previewUtils';
+import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import { prepareFirstMessageWithSkillsIndex } from './agentUtils';
 import BaseAgentManager from './BaseAgentManager';
+import { hasCronCommands } from './CronCommandDetector';
+import { extractTextFromMessage, processCronInMessage } from './MessageMiddleware';
 
 interface AcpAgentManagerData {
   workspace?: string;
@@ -23,6 +26,8 @@ interface AcpAgentManagerData {
   presetContext?: string; // 智能助手的预设规则/提示词 / Preset context from smart assistant
   /** 启用的 skills 列表，用于过滤 SkillManager 加载的 skills / Enabled skills list for filtering SkillManager skills */
   enabledSkills?: string[];
+  /** Force yolo mode (auto-approve) - used by CronService for scheduled tasks */
+  yoloMode?: boolean;
 }
 
 class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissionOption> {
@@ -31,6 +36,9 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
   private bootstrap: Promise<AcpAgent> | undefined;
   private isFirstMessage: boolean = true;
   options: AcpAgentManagerData;
+  // Track current message for cron detection (accumulated from streaming chunks)
+  private currentMsgId: string | null = null;
+  private currentMsgContent: string = '';
 
   constructor(data: AcpAgentManagerData) {
     super('acp', data);
@@ -73,7 +81,9 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         if (!cliPath && config?.[data.backend]?.cliPath) {
           cliPath = config[data.backend].cliPath;
         }
-        yoloMode = config?.[data.backend]?.yoloMode;
+        // yoloMode priority: data.yoloMode (from CronService) > config setting
+        // yoloMode 优先级：data.yoloMode（来自 CronService）> 配置设置
+        yoloMode = data.yoloMode ?? (config?.[data.backend] as any)?.yoloMode;
 
         // Get acpArgs from backend config (for goose, auggie, opencode, etc.)
         const backendConfig = ACP_BACKENDS_ALL[data.backend];
@@ -119,11 +129,25 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
             const tMessage = transformMessage(message as IResponseMessage);
             if (tMessage) {
               addOrUpdateMessage(message.conversation_id, tMessage, data.backend);
+
+              // Track streaming content for cron detection when turn ends
+              // ACP sends content in chunks, we accumulate here for later detection
+              if (tMessage.type === 'text' && message.type === 'content') {
+                const textContent = extractTextFromMessage(tMessage);
+                if (tMessage.msg_id !== this.currentMsgId) {
+                  // New message, reset accumulator
+                  this.currentMsgId = tMessage.msg_id || null;
+                  this.currentMsgContent = textContent;
+                } else {
+                  // Same message, accumulate content
+                  this.currentMsgContent += textContent;
+                }
+              }
             }
           }
           ipcBridge.acpConversation.responseStream.emit(message as IResponseMessage);
         },
-        onSignalEvent: (v) => {
+        onSignalEvent: async (v) => {
           // 仅发送信号到前端，不更新消息列表
           if (v.type === 'acp_permission') {
             const { toolCall, options } = v.data as AcpPermissionRequest;
@@ -140,6 +164,48 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
             });
             return;
           }
+
+          // Clear busy guard when turn ends
+          if (v.type === 'finish') {
+            cronBusyGuard.setProcessing(this.conversation_id, false);
+          }
+
+          // Process cron commands when turn ends (finish signal)
+          // ACP streams content in chunks, so we check the accumulated content here
+          if (v.type === 'finish' && this.currentMsgContent && hasCronCommands(this.currentMsgContent)) {
+            const message: TMessage = {
+              id: this.currentMsgId || uuid(),
+              msg_id: this.currentMsgId || uuid(),
+              type: 'text',
+              position: 'left',
+              conversation_id: this.conversation_id,
+              content: { content: this.currentMsgContent },
+              status: 'finish',
+              createdAt: Date.now(),
+            };
+            // Process cron commands and send results back to AI
+            const collectedResponses: string[] = [];
+            await processCronInMessage(this.conversation_id, data.backend as any, message, (sysMsg) => {
+              collectedResponses.push(sysMsg);
+              // Also emit to frontend for display
+              const systemMessage: IResponseMessage = {
+                type: 'system',
+                conversation_id: this.conversation_id,
+                msg_id: uuid(),
+                data: sysMsg,
+              };
+              ipcBridge.acpConversation.responseStream.emit(systemMessage);
+            });
+            // Send collected responses back to AI agent so it can continue
+            if (collectedResponses.length > 0 && this.agent) {
+              const feedbackMessage = `[System Response]\n${collectedResponses.join('\n')}`;
+              await this.agent.sendMessage({ content: feedbackMessage });
+            }
+            // Reset after processing
+            this.currentMsgId = null;
+            this.currentMsgContent = '';
+          }
+
           ipcBridge.acpConversation.responseStream.emit(v);
         },
       });
@@ -153,6 +219,8 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     msg?: string;
     message?: string;
   }> {
+    // Mark conversation as busy to prevent cron jobs from running
+    cronBusyGuard.setProcessing(this.conversation_id, true);
     try {
       await this.initAgent(this.options);
       // Save user message to chat history ONLY after successful sending
@@ -196,10 +264,14 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
         if (this.isFirstMessage) {
           this.isFirstMessage = false;
         }
+        // Note: cronBusyGuard.setProcessing(false) is not called here
+        // because the response streaming is still in progress.
+        // It will be cleared when the conversation ends or on error.
         return result;
       }
       return await this.agent.sendMessage(data);
     } catch (e) {
+      cronBusyGuard.setProcessing(this.conversation_id, false);
       const message: IResponseMessage = {
         type: 'error',
         conversation_id: this.conversation_id,

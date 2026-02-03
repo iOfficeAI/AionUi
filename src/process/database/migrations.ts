@@ -283,9 +283,72 @@ const migration_v8: IMigration = {
 };
 
 /**
+ * Migration v8 -> v9: Add cron_jobs table for scheduled tasks
+ */
+const migration_v9: IMigration = {
+  version: 9,
+  name: 'Add cron_jobs table',
+  up: (db) => {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS cron_jobs (
+        -- Basic info
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        enabled INTEGER DEFAULT 1,
+
+        -- Schedule
+        schedule_kind TEXT NOT NULL,       -- 'at' | 'every' | 'cron'
+        schedule_value TEXT NOT NULL,      -- timestamp | ms | cron expr
+        schedule_tz TEXT,                  -- timezone (optional)
+        schedule_description TEXT NOT NULL, -- human-readable description
+
+        -- Target
+        payload_message TEXT NOT NULL,
+
+        -- Metadata (for management)
+        conversation_id TEXT NOT NULL,     -- Which conversation created this
+        conversation_title TEXT,           -- For display in UI
+        agent_type TEXT NOT NULL,          -- 'gemini' | 'claude' | 'codex' | etc.
+        created_by TEXT NOT NULL,          -- 'user' | 'agent'
+        created_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
+        updated_at INTEGER DEFAULT (strftime('%s', 'now') * 1000),
+
+        -- Runtime state
+        next_run_at INTEGER,
+        last_run_at INTEGER,
+        last_status TEXT,                  -- 'ok' | 'error' | 'skipped'
+        last_error TEXT,                   -- Error message if failed
+        run_count INTEGER DEFAULT 0,
+        retry_count INTEGER DEFAULT 0,
+        max_retries INTEGER DEFAULT 3
+      );
+
+      -- Index for querying jobs by conversation (frontend management)
+      CREATE INDEX IF NOT EXISTS idx_cron_jobs_conversation ON cron_jobs(conversation_id);
+
+      -- Index for scheduler to find next jobs to run
+      CREATE INDEX IF NOT EXISTS idx_cron_jobs_next_run ON cron_jobs(next_run_at) WHERE enabled = 1;
+
+      -- Index for querying by agent type (if needed)
+      CREATE INDEX IF NOT EXISTS idx_cron_jobs_agent_type ON cron_jobs(agent_type);
+    `);
+    console.log('[Migration v9] Added cron_jobs table');
+  },
+  down: (db) => {
+    db.exec(`
+      DROP INDEX IF EXISTS idx_cron_jobs_agent_type;
+      DROP INDEX IF EXISTS idx_cron_jobs_next_run;
+      DROP INDEX IF EXISTS idx_cron_jobs_conversation;
+      DROP TABLE IF EXISTS cron_jobs;
+    `);
+    console.log('[Migration v9] Rolled back: Removed cron_jobs table');
+  },
+};
+
+/**
  * All migrations in order
  */
-export const ALL_MIGRATIONS: IMigration[] = [migration_v1, migration_v2, migration_v3, migration_v4, migration_v5, migration_v6, migration_v7, migration_v8];
+export const ALL_MIGRATIONS: IMigration[] = [migration_v1, migration_v2, migration_v3, migration_v4, migration_v5, migration_v6, migration_v7, migration_v8, migration_v9];
 
 /**
  * Get migrations needed to upgrade from one version to another

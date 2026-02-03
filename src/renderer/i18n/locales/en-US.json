@@ -208,7 +208,7 @@
   "conversation": {
     "welcome": {
       "title": "Hi, what's your plan for today?",
-      "placeholder": "Send a message, upload files, or open a folder...",
+      "placeholder": "Send a message, upload files, open a folder, or create a scheduled task...",
       "uploadFile": "Upload Files",
       "linkFolder": "Open Folder",
       "newConversation": "New Chat",
@@ -391,6 +391,7 @@
     "deleteAssistantTitle": "Delete Assistant",
     "deleteAssistantConfirm": "Are you sure you want to delete this assistant? This action cannot be undone.",
     "cannotDeleteBuiltin": "Cannot delete builtin assistants",
+    "duplicateAssistant": "Duplicate",
     "assistantMainAgent": "Main Agent",
     "addSkills": "Add Skills",
     "addSkillsTitle": "Add Skills",
@@ -1092,5 +1093,43 @@
       "autoGemini25Desc": "Let Gemini CLI decide the best model for the task: gemini-2.5-pro, gemini-2.5-flash",
       "manualDesc": "Manually select a model"
     }
-  }
+  },
+  "cron": {
+    "scheduledTasks": "Scheduled Tasks",
+    "taskCount": "{{count}} task(s)",
+    "schedule": "Schedule",
+    "nextRun": "Next run",
+    "lastRun": "Last run",
+    "lastError": "Error",
+    "message": "Message",
+    "goToConversation": "Go to conversation",
+    "status": {
+      "active": "Active",
+      "paused": "Paused",
+      "error": "Error",
+      "unread": "New execution"
+    },
+    "actions": {
+      "goTo": "View Chat",
+      "pause": "Pause",
+      "resume": "Resume",
+      "delete": "Delete"
+    },
+    "confirmDelete": "Are you sure you want to delete this scheduled task?",
+    "deleteSuccess": "Task deleted",
+    "pauseSuccess": "Task paused",
+    "resumeSuccess": "Task resumed"
+  },
+  "cron.drawer.title": "Scheduled Task Details",
+  "cron.drawer.name": "Name",
+  "cron.drawer.namePlaceholder": "Enter task name",
+  "cron.drawer.taskStatus": "Task Status",
+  "cron.drawer.enabled": "Enabled",
+  "cron.drawer.disabled": "Disabled",
+  "cron.drawer.command": "Command",
+  "cron.drawer.commandPlaceholder": "Enter command to execute",
+  "cron.drawer.schedule": "Schedule",
+  "cron.drawer.nextRun": "Next Run",
+  "cron.drawer.save": "Save",
+  "cron.drawer.saveSuccess": "Saved successfully"
 }

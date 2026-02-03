@@ -6,9 +6,49 @@
 
 import type { ChildProcess } from 'child_process';
 import { spawn, execSync } from 'child_process';
+import { readFileSync } from 'fs';
+import { homedir } from 'os';
+import { join } from 'path';
 import type { CodexEventParams } from '@/common/codex/types';
 import { globalErrorService, fromNetworkError } from '../core/ErrorService';
 import { JSONRPC_VERSION } from '@/types/acpTypes';
+
+/**
+ * Get Codex config file path based on platform
+ * - Windows: %APPDATA%\codex\config.toml or ~/.codex/config.toml
+ * - macOS/Linux: ~/.codex/config.toml
+ */
+function getCodexConfigPath(): string {
+  if (process.platform === 'win32') {
+    // Windows: try APPDATA first, then fallback to home directory
+    const appData = process.env.APPDATA;
+    if (appData) {
+      return join(appData, 'codex', 'config.toml');
+    }
+  }
+  // macOS/Linux or Windows fallback
+  return join(homedir(), '.codex', 'config.toml');
+}
+
+/**
+ * Read user's approval_policy setting from Codex config.toml
+ * Returns the value if set, otherwise returns null
+ */
+function readUserApprovalPolicyConfig(): string | null {
+  try {
+    const configPath = getCodexConfigPath();
+    const content = readFileSync(configPath, 'utf-8');
+    // Simple TOML parsing for top-level approval_policy
+    // Supports: double-quoted, single-quoted, or unquoted values with optional inline comments
+    const match = content.match(/^\s*approval_policy\s*=\s*['"]?([^'"#\s]+)['"]?/m);
+    if (match) {
+      return match[1];
+    }
+  } catch {
+    // Config file doesn't exist or can't be read
+  }
+  return null;
+}
 
 type JsonRpcId = number | string;
 
@@ -116,14 +156,29 @@ export class CodexConnection {
     }
   }
 
-  start(cliPath: string, cwd: string, args: string[] = []): Promise<void> {
+  start(cliPath: string, cwd: string, args: string[] = [], options?: { yoloMode?: boolean }): Promise<void> {
     // 根据 Codex 版本自动检测合适的 MCP 命令 / Auto-detect appropriate MCP command based on Codex version
     const cleanEnv = { ...process.env };
     delete cleanEnv.NODE_OPTIONS;
     delete cleanEnv.NODE_INSPECT;
     delete cleanEnv.NODE_DEBUG;
     const isWindows = process.platform === 'win32';
-    const finalArgs = args.length ? args : this.detectMcpCommand(cliPath);
+    let finalArgs = args.length ? args : this.detectMcpCommand(cliPath);
+
+    // Add approval_policy config for mcp-server
+    // mcp-server may not automatically read all config.toml settings, so we explicitly pass it
+    // Values: untrusted (requires approval for non-trusted commands), on-failure, on-request (model decides), never (auto-approve all)
+    if (options?.yoloMode) {
+      // yoloMode: auto-approve all operations without user confirmation
+      finalArgs = [...finalArgs, '-c', 'approval_policy=never'];
+    } else {
+      // Read user's config.toml setting and pass it explicitly to mcp-server
+      const userApprovalPolicy = readUserApprovalPolicyConfig();
+      if (userApprovalPolicy) {
+        finalArgs = [...finalArgs, '-c', `approval_policy=${userApprovalPolicy}`];
+      }
+      // If no user config, don't add any flag - let Codex use its default
+    }
 
     return new Promise((resolve, reject) => {
       try {
@@ -174,7 +229,7 @@ export class CodexConnection {
           for (const line of lines) {
             if (!line.trim()) continue;
 
-            console.log('codex line ===>', line);
+            // console.log('codex line ===>', line);
 
             // Check if this looks like a JSON-RPC message
             if (line.trim().startsWith('{') && line.trim().endsWith('}')) {

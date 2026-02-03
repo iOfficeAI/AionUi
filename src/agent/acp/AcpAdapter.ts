@@ -32,8 +32,9 @@ export class AcpAdapter {
 
   /**
    * Get current message ID for streaming chunks
+   * Also used for cron command detection to find the accumulated message
    */
-  private getCurrentMessageId(): string {
+  getCurrentMessageId(): string {
     if (!this.currentMessageId) {
       this.currentMessageId = uuid();
     }

@@ -20,6 +20,8 @@ import { AIONUI_FILES_MARKER } from '@/common/constants';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import { uuid } from '@/common/utils';
 import { addMessage } from '@process/message';
+import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
+import { ProcessConfig } from '@process/initStorage';
 import BaseAgentManager from '@process/task/BaseAgentManager';
 import { prepareFirstMessageWithSkillsIndex } from '@process/task/agentUtils';
 import { handlePreviewOpenEvent } from '@process/utils/previewUtils';
@@ -32,7 +34,7 @@ const CODEX_MCP_PROTOCOL_VERSION = getConfiguredCodexMcpProtocolVersion();
 
 class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implements ICodexMessageEmitter {
   workspace?: string;
-  agent: CodexAgent;
+  agent!: CodexAgent; // Initialized in bootstrap promise
   bootstrap: Promise<CodexAgent>;
   private isFirstMessage: boolean = true;
   private options: CodexAgentManagerData; // 保存原始配置数据 / Store original config data
@@ -60,8 +62,10 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     );
     const fileOperationHandler = new CodexFileOperationHandler(data.workspace || process.cwd(), data.conversation_id, this);
 
-    // 设置 Codex Agent 的应用配置，使用 Electron API 在主进程中
-    void (async () => {
+    // 使用 SessionManager 来管理连接状态 - 参考 ACP 的模式
+    // Use async bootstrap to read config and initialize agent
+    this.bootstrap = (async () => {
+      // 设置 Codex Agent 的应用配置，使用 Electron API 在主进程中
       try {
         const electronModule = await import('electron');
         const app = electronModule.app;
@@ -78,30 +82,33 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
           protocolVersion: CODEX_MCP_PROTOCOL_VERSION,
         });
       }
-    })();
 
-    this.agent = new CodexAgent({
-      id: data.conversation_id,
-      cliPath: data.cliPath,
-      workingDir: data.workspace || process.cwd(),
-      eventHandler,
-      sessionManager,
-      fileOperationHandler,
-      sandboxMode: data.sandboxMode || 'workspace-write', // Enable file writing within workspace by default
-      onNetworkError: (error) => {
-        this.handleNetworkError(error);
-      },
-    });
+      // Read codex.config for global yoloMode setting
+      // yoloMode priority: data.yoloMode (from CronService) > config setting
+      // yoloMode 优先级：data.yoloMode（来自 CronService）> 配置设置
+      const codexConfig = await ProcessConfig.get('codex.config');
+      const yoloMode = data.yoloMode ?? codexConfig?.yoloMode;
 
-    // 使用 SessionManager 来管理连接状态 - 参考 ACP 的模式
-    this.bootstrap = this.startWithSessionManagement()
-      .then(() => {
-        return this.agent;
-      })
-      .catch((e) => {
-        this.agent.getSessionManager().emitSessionEvent('bootstrap_failed', { error: e.message });
-        throw e;
+      this.agent = new CodexAgent({
+        id: data.conversation_id,
+        cliPath: data.cliPath,
+        workingDir: data.workspace || process.cwd(),
+        eventHandler,
+        sessionManager,
+        fileOperationHandler,
+        sandboxMode: data.sandboxMode || 'workspace-write', // Enable file writing within workspace by default
+        yoloMode: yoloMode, // yoloMode from CronService or config
+        onNetworkError: (error) => {
+          this.handleNetworkError(error);
+        },
       });
+
+      await this.startWithSessionManagement();
+      return this.agent;
+    })().catch((e) => {
+      this.agent?.getSessionManager?.()?.emitSessionEvent('bootstrap_failed', { error: e.message });
+      throw e;
+    });
   }
 
   /**
@@ -161,6 +168,7 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
   }
 
   async sendMessage(data: { content: string; files?: string[]; msg_id?: string }) {
+    cronBusyGuard.setProcessing(this.conversation_id, true);
     try {
       await this.bootstrap;
       const contentToSend = data.content?.includes(AIONUI_FILES_MARKER) ? data.content.split(AIONUI_FILES_MARKER)[0].trimEnd() : data.content;
@@ -196,14 +204,17 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
         const result = await this.agent.newSession(this.workspace, processedContent);
 
         // Session created successfully - Codex will send session_configured event automatically
-
+        // Note: setProcessing(false) is called in CodexMessageProcessor.processTaskComplete
+        // when the message flow is actually complete
         return result;
       } else {
         // 后续消息使用正常的 sendPrompt
         const result = await this.agent.sendPrompt(processedContent);
+        // Note: setProcessing(false) is called in CodexMessageProcessor.processTaskComplete
         return result;
       }
     } catch (e) {
+      cronBusyGuard.setProcessing(this.conversation_id, false);
       // 对于某些错误类型，避免重复错误消息处理
       // 这些错误通常已经通过 MCP 连接的事件流处理过了
       const errorMsg = e instanceof Error ? e.message : String(e);
@@ -250,9 +261,16 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     this.agent.getEventHandler().getToolHandlers().removePendingConfirmation(callId);
 
     // Use standardized permission decision mapping
+    // Maps UI options to Codex CLI's ReviewDecision (snake_case format)
     const decisionKey = data in PERMISSION_DECISION_MAP ? (data as keyof typeof PERMISSION_DECISION_MAP) : 'reject_once';
     const decision = mapPermissionDecision(decisionKey) as 'approved' | 'approved_for_session' | 'denied' | 'abort';
+
     const isApproved = decision === 'approved' || decision === 'approved_for_session';
+
+    // Store decision in ApprovalStore if user selected "always allow" or "always reject"
+    if (decision === 'approved_for_session' || decision === 'abort') {
+      this.storeApprovalDecision(callId, decision);
+    }
 
     // Apply patch changes if available and approved
     const changes = this.agent.getEventHandler().getToolHandlers().getPatchChanges(callId);
@@ -277,6 +295,27 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
 
     // Also resolve local pause gate to resume queued requests
     this.agent.resolvePermission(origCallId, isApproved);
+  }
+
+  /**
+   * Store approval/rejection decision in ApprovalStore based on request type
+   */
+  private storeApprovalDecision(callId: string, decision: 'approved_for_session' | 'abort'): void {
+    const toolHandlers = this.agent.getEventHandler().getToolHandlers();
+
+    // Check if this is an exec request
+    const execMeta = toolHandlers.getExecRequestMeta(callId);
+    if (execMeta) {
+      this.agent.storeExecApproval(execMeta.command, execMeta.cwd, decision);
+      return;
+    }
+
+    // Check if this is a patch request
+    const patchChanges = toolHandlers.getPatchChanges(callId);
+    if (patchChanges) {
+      const files = Object.keys(patchChanges);
+      this.agent.storePatchApproval(files, decision);
+    }
   }
 
   private async applyPatchChanges(callId: string, changes: Record<string, FileChange>): Promise<void> {
@@ -427,6 +466,8 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
       const tMessage = transformMessage(message);
       if (tMessage) {
         addMessage(this.conversation_id, tMessage);
+        // Note: Cron command detection is handled in CodexMessageProcessor.processFinalMessage
+        // where we have the complete agent_message text
       }
     }
 
@@ -446,6 +487,55 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
     // Direct persistence to database without emitting to frontend
     // Used for final messages where frontend has already displayed content via deltas
     addMessage(this.conversation_id, message);
+  }
+
+  /**
+   * Send message back to AI agent (for system response feedback)
+   * Used by CodexMessageProcessor to send cron command results back to AI
+   */
+  async sendMessageToAgent(content: string): Promise<void> {
+    await this.sendMessage({
+      content,
+      msg_id: uuid(),
+    });
+  }
+
+  // ===== ApprovalStore integration (ICodexMessageEmitter) =====
+
+  /**
+   * Check if an exec command has been approved for session
+   */
+  checkExecApproval(command: string | string[], cwd?: string): boolean {
+    return this.agent?.checkExecApproval(command, cwd) || false;
+  }
+
+  /**
+   * Check if file changes have been approved for session
+   */
+  checkPatchApproval(files: string[]): boolean {
+    return this.agent?.checkPatchApproval(files) || false;
+  }
+
+  /**
+   * Check if an exec command has been rejected for session (abort)
+   */
+  checkExecRejection(command: string | string[], cwd?: string): boolean {
+    return this.agent?.checkExecRejection(command, cwd) || false;
+  }
+
+  /**
+   * Check if file changes have been rejected for session (abort)
+   */
+  checkPatchRejection(files: string[]): boolean {
+    return this.agent?.checkPatchRejection(files) || false;
+  }
+
+  /**
+   * Auto-confirm a permission request (used when ApprovalStore has cached approval)
+   */
+  autoConfirm(callId: string, decision: string): void {
+    // Simulate user clicking "allow_always" - reuse the confirm logic
+    void this.confirm(callId, callId, decision);
   }
 }
 

@@ -7,6 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { TChatConversation } from '@/common/storage';
 import FlexFullContainer from '@/renderer/components/FlexFullContainer';
+import { CronJobIndicator, useCronJobsMap } from '@/renderer/pages/cron';
 import { addEventListener, emitter } from '@/renderer/utils/emitter';
 import { getActivityTime, getTimelineLabel } from '@/renderer/utils/timeline';
 import { getWorkspaceDisplayName } from '@/renderer/utils/workspace';
@@ -167,6 +168,7 @@ const WorkspaceGroupedHistory: React.FC<{ onSessionClick?: () => void; collapsed
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { openTab, closeAllTabs, activeTab, updateTabName } = useConversationTabs();
+  const { getJobStatus, markAsRead } = useCronJobsMap();
 
   // 加载会话列表
   useEffect(() => {
@@ -188,6 +190,19 @@ const WorkspaceGroupedHistory: React.FC<{ onSessionClick?: () => void; collapsed
     refresh();
     return addEventListener('chat.history.refresh', refresh);
   }, []);
+
+  // Scroll to active conversation when route changes
+  useEffect(() => {
+    if (!id) return;
+    // Use requestAnimationFrame to ensure DOM is updated
+    const rafId = requestAnimationFrame(() => {
+      const element = document.getElementById('c-' + id);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    });
+    return () => cancelAnimationFrame(rafId);
+  }, [id]);
 
   // 持久化展开状态
   useEffect(() => {
@@ -224,6 +239,9 @@ const WorkspaceGroupedHistory: React.FC<{ onSessionClick?: () => void; collapsed
       const customWorkspace = conv.extra?.customWorkspace;
       const newWorkspace = conv.extra?.workspace;
 
+      // Mark conversation as read (clear unread cron execution indicator)
+      markAsRead(conv.id);
+
       // 如果点击的是非自定义工作空间的会话，关闭所有tabs
       if (!customWorkspace) {
         closeAllTabs();
@@ -250,7 +268,7 @@ const WorkspaceGroupedHistory: React.FC<{ onSessionClick?: () => void; collapsed
         onSessionClick();
       }
     },
-    [openTab, closeAllTabs, activeTab, navigate, onSessionClick]
+    [openTab, closeAllTabs, activeTab, navigate, onSessionClick, markAsRead]
   );
 
   // 切换 workspace 展开/收起状态
@@ -333,6 +351,7 @@ const WorkspaceGroupedHistory: React.FC<{ onSessionClick?: () => void; collapsed
     (conversation: TChatConversation) => {
       const isSelected = id === conversation.id;
       const isEditing = editingId === conversation.id;
+      const cronStatus = getJobStatus(conversation.id);
 
       return (
         <Tooltip key={conversation.id} disabled={!collapsed} content={conversation.name || t('conversation.welcome.newConversation')} position='right'>
@@ -343,8 +362,8 @@ const WorkspaceGroupedHistory: React.FC<{ onSessionClick?: () => void; collapsed
             })}
             onClick={() => handleConversationClick(conversation)}
           >
-            <MessageOne theme='outline' size='20' className='line-height-0 flex-shrink-0' />
-            <FlexFullContainer className='h-24px min-w-0 flex-1 collapsed-hidden ml-10px'>{isEditing ? <Input className='chat-history__item-editor text-14px lh-24px h-24px w-full' value={editingName} onChange={setEditingName} onKeyDown={handleEditKeyDown} onBlur={handleEditSave} autoFocus size='small' /> : <div className='chat-history__item-name overflow-hidden text-ellipsis inline-block w-full text-14px lh-24px whitespace-nowrap'>{conversation.name}</div>}</FlexFullContainer>
+            {cronStatus !== 'none' ? <CronJobIndicator status={cronStatus} size={20} className='flex-shrink-0' /> : <MessageOne theme='outline' size='20' className='line-height-0 flex-shrink-0' />}
+            <FlexFullContainer className='h-24px min-w-0 flex-1 collapsed-hidden ml-10px'>{isEditing ? <Input className='chat-history__item-editor text-14px lh-24px h-24px w-full' value={editingName} onChange={setEditingName} onKeyDown={handleEditKeyDown} onBlur={handleEditSave} autoFocus size='small' /> : <div className='chat-history__item-name overflow-hidden text-ellipsis inline-block flex-1 text-14px lh-24px whitespace-nowrap min-w-0'>{conversation.name}</div>}</FlexFullContainer>
             {!isEditing && (
               <div
                 className={classNames('absolute right-0px top-0px h-full w-70px items-center justify-end hidden group-hover:flex !collapsed-hidden pr-12px')}
@@ -392,7 +411,7 @@ const WorkspaceGroupedHistory: React.FC<{ onSessionClick?: () => void; collapsed
         </Tooltip>
       );
     },
-    [id, collapsed, editingId, editingName, t, handleConversationClick, handleEditStart, handleEditKeyDown, handleEditSave, handleRemoveConversation]
+    [id, collapsed, editingId, editingName, t, handleConversationClick, handleEditStart, handleEditKeyDown, handleEditSave, handleRemoveConversation, getJobStatus]
   );
 
   // 如果没有任何会话，显示空状态

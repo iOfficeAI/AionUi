@@ -18,15 +18,28 @@ const taskList: {
   task: AgentBaseTask<unknown>;
 }[] = [];
 
+/**
+ * Runtime options for building conversations
+ * Used by cron jobs to force yoloMode
+ */
+export interface BuildConversationOptions {
+  /** Force yolo mode (auto-approve all tool calls) */
+  yoloMode?: boolean;
+  /** Skip task cache - create a new isolated instance */
+  skipCache?: boolean;
+}
+
 const getTaskById = (id: string) => {
   return taskList.find((item) => item.id === id)?.task;
 };
 
-const buildConversation = (conversation: TChatConversation) => {
-  const task = getTaskById(conversation.id);
-
-  if (task) {
-    return task;
+const buildConversation = (conversation: TChatConversation, options?: BuildConversationOptions) => {
+  // If not skipping cache, check for existing task
+  if (!options?.skipCache) {
+    const task = getTaskById(conversation.id);
+    if (task) {
+      return task;
+    }
   }
 
   switch (conversation.type) {
@@ -42,20 +55,39 @@ const buildConversation = (conversation: TChatConversation) => {
           contextContent: conversation.extra.contextContent,
           // 启用的 skills 列表（通过 SkillManager 加载）/ Enabled skills list (loaded via SkillManager)
           enabledSkills: conversation.extra.enabledSkills,
+          // Runtime options / 运行时选项
+          yoloMode: options?.yoloMode,
         },
         conversation.model
       );
-      taskList.push({ id: conversation.id, task });
+      // Only cache if not skipping cache
+      if (!options?.skipCache) {
+        taskList.push({ id: conversation.id, task });
+      }
       return task;
     }
     case 'acp': {
-      const task = new AcpAgentManager({ ...conversation.extra, conversation_id: conversation.id });
-      taskList.push({ id: conversation.id, task });
+      const task = new AcpAgentManager({
+        ...conversation.extra,
+        conversation_id: conversation.id,
+        // Runtime options / 运行时选项
+        yoloMode: options?.yoloMode,
+      });
+      if (!options?.skipCache) {
+        taskList.push({ id: conversation.id, task });
+      }
       return task;
     }
     case 'codex': {
-      const task = new CodexAgentManager({ ...conversation.extra, conversation_id: conversation.id });
-      taskList.push({ id: conversation.id, task });
+      const task = new CodexAgentManager({
+        ...conversation.extra,
+        conversation_id: conversation.id,
+        // Runtime options / 运行时选项
+        yoloMode: options?.yoloMode,
+      });
+      if (!options?.skipCache) {
+        taskList.push({ id: conversation.id, task });
+      }
       return task;
     }
     default: {
@@ -64,22 +96,34 @@ const buildConversation = (conversation: TChatConversation) => {
   }
 };
 
-const getTaskByIdRollbackBuild = async (id: string): Promise<AgentBaseTask<unknown>> => {
-  const task = taskList.find((item) => item.id === id)?.task;
-  if (task) return Promise.resolve(task);
+const getTaskByIdRollbackBuild = async (id: string, options?: BuildConversationOptions): Promise<AgentBaseTask<unknown>> => {
+  console.log(`[WorkerManage] getTaskByIdRollbackBuild: id=${id}, options=${JSON.stringify(options)}`);
+
+  // If not skipping cache, check for existing task
+  if (!options?.skipCache) {
+    const task = taskList.find((item) => item.id === id)?.task;
+    if (task) {
+      console.log(`[WorkerManage] Found existing task in memory for: ${id}`);
+      return Promise.resolve(task);
+    }
+  }
+
   // Try to load from database first
   const db = getDatabase();
   const dbResult = db.getConversation(id);
+  console.log(`[WorkerManage] Database lookup result: success=${dbResult.success}, hasData=${!!dbResult.data}`);
 
   if (dbResult.success && dbResult.data) {
-    return buildConversation(dbResult.data);
+    console.log(`[WorkerManage] Building conversation from database: ${id}`);
+    return buildConversation(dbResult.data, options);
   }
 
   // Fallback to file storage
   const list = (await ProcessChat.get('chat.history')) as TChatConversation[] | undefined;
   const conversation = list?.find((item) => item.id === id);
   if (conversation) {
-    return buildConversation(conversation);
+    console.log(`[WorkerManage] Building conversation from file storage: ${id}`);
+    return buildConversation(conversation, options);
   }
 
   console.error('[WorkerManage] Conversation not found in database or file storage:', id);
