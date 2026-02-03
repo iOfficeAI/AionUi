@@ -863,9 +863,11 @@ const Guid: React.FC = () => {
 
     if (shouldCheckGeminiCompatibility) {
       const platform = currentModel!.platform?.toLowerCase() || '';
-      // 检查平台是否为 Gemini 兼容（官方 Gemini 平台或平台名包含 gemini）
-      // Check if platform is Gemini-compatible (official Gemini platform or contains gemini)
-      const isGeminiCompatiblePlatform = platform === 'gemini-with-google-auth' || platform === 'gemini-vertex-ai' || platform.includes('gemini');
+      // 只有原生 Gemini 平台才能使用 Gemini CLI（需要 Google 认证）
+      // Only native Gemini platforms can use Gemini CLI (requires Google auth)
+      // 第三方 API Key 提供商（即使平台名包含 gemini）应该切换到其他 CLI
+      // Third-party API key providers (even if platform name contains gemini) should switch to other CLIs
+      const isGeminiCompatiblePlatform = platform === 'gemini-with-google-auth' || platform === 'gemini-vertex-ai';
 
       if (!isGeminiCompatiblePlatform) {
         // 选中的模型不是 Gemini 兼容平台，尝试切换到 CLI（跳过 gemini）
