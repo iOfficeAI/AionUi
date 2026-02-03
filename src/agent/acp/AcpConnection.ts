@@ -7,101 +7,9 @@
 import type { AcpBackend, AcpIncomingMessage, AcpMessage, AcpNotification, AcpPermissionRequest, AcpRequest, AcpResponse, AcpSessionUpdate } from '@/types/acpTypes';
 import { ACP_METHODS, JSONRPC_VERSION } from '@/types/acpTypes';
 import type { ChildProcess, SpawnOptions } from 'child_process';
-import { execSync, spawn } from 'child_process';
+import { spawn } from 'child_process';
 import { promises as fs } from 'fs';
-import os from 'os';
 import path from 'path';
-
-/**
- * SSL/TLS certificate related environment variable names
- * These variables are commonly used to configure custom CA certificates
- * SSL/TLS 证书相关的环境变量名
- * 这些变量通常用于配置自定义 CA 证书
- */
-const SSL_CERT_ENV_VARS = ['NODE_EXTRA_CA_CERTS', 'SSL_CERT_FILE', 'SSL_CERT_DIR', 'REQUESTS_CA_BUNDLE', 'CURL_CA_BUNDLE', 'NODE_TLS_REJECT_UNAUTHORIZED'] as const;
-
-/**
- * Cache for shell environment variables (loaded once per session)
- * Shell 环境变量缓存（每个会话加载一次）
- */
-let cachedShellEnv: Record<string, string> | null = null;
-
-/**
- * Load environment variables from user's login shell.
- * This captures variables set in .bashrc, .zshrc, .bash_profile, etc.
- * that may not be available when Electron app starts from Finder/launchd.
- *
- * 从用户的登录 shell 加载环境变量。
- * 这会捕获在 .bashrc、.zshrc、.bash_profile 等中设置的变量，
- * 这些变量在从 Finder/launchd 启动 Electron 应用时可能不可用。
- */
-function loadShellEnvironment(): Record<string, string> {
-  if (cachedShellEnv !== null) {
-    return cachedShellEnv;
-  }
-
-  cachedShellEnv = {};
-
-  // Skip on Windows - shell config loading not needed
-  if (process.platform === 'win32') {
-    return cachedShellEnv;
-  }
-
-  try {
-    // Determine user's default shell
-    const shell = process.env.SHELL || '/bin/bash';
-    const isZsh = shell.includes('zsh');
-
-    // Use login shell to get full environment including .profile, .bashrc, .zshrc
-    // The -l flag ensures login shell behavior, -i for interactive (loads rc files)
-    // We echo a marker and then env to reliably parse the output
-    const command = isZsh ? `${shell} -l -c 'env'` : `${shell} -l -c 'env'`;
-
-    const output = execSync(command, {
-      encoding: 'utf-8',
-      timeout: 5000,
-      stdio: ['pipe', 'pipe', 'pipe'],
-      env: { ...process.env, HOME: os.homedir() },
-    });
-
-    // Parse environment variables from output
-    const lines = output.split('\n');
-    for (const line of lines) {
-      const eqIndex = line.indexOf('=');
-      if (eqIndex > 0) {
-        const key = line.substring(0, eqIndex);
-        const value = line.substring(eqIndex + 1);
-        // Only capture SSL/certificate related variables to avoid pollution
-        if (SSL_CERT_ENV_VARS.includes(key as (typeof SSL_CERT_ENV_VARS)[number])) {
-          cachedShellEnv[key] = value;
-        }
-      }
-    }
-  } catch (error) {
-    // Silent fail - shell environment loading is best-effort
-    console.warn('[ACP] Failed to load shell environment:', error instanceof Error ? error.message : String(error));
-  }
-
-  return cachedShellEnv;
-}
-
-/**
- * Get SSL certificate related environment variables.
- * Merges variables from: process.env < shell environment < customEnv
- *
- * 获取 SSL 证书相关的环境变量。
- * 合并顺序: process.env < shell 环境 < customEnv
- */
-export function getEnhancedEnv(customEnv?: Record<string, string>): Record<string, string> {
-  const shellEnv = loadShellEnvironment();
-
-  // Merge order: process.env (base) -> shell env (override) -> customEnv (highest priority)
-  return {
-    ...process.env,
-    ...shellEnv,
-    ...customEnv,
-  } as Record<string, string>;
-}
 
 interface PendingRequest<T = unknown> {
   resolve: (value: T) => void;
@@ -124,9 +32,7 @@ interface PendingRequest<T = unknown> {
  */
 export function createGenericSpawnConfig(cliPath: string, workingDir: string, acpArgs?: string[], customEnv?: Record<string, string>) {
   const isWindows = process.platform === 'win32';
-  // Use enhanced env that includes shell environment variables (SSL certs, etc.)
-  // 使用增强的环境变量，包含 shell 环境中的变量（SSL 证书等）
-  const env = getEnhancedEnv(customEnv);
+  const env = { ...process.env, ...customEnv };
 
   // Default to --experimental-acp if no acpArgs specified
   const effectiveAcpArgs = acpArgs && acpArgs.length > 0 ? acpArgs : ['--experimental-acp'];
@@ -236,11 +142,8 @@ export class AcpConnection {
     // This eliminates dependency packaging issues and simplifies deployment
     console.error('[ACP] Using NPX approach for Claude ACP bridge');
 
-    // Use enhanced env that includes shell environment variables (SSL certs, etc.)
-    // Then clean up Node.js debugging variables
-    // 使用增强的环境变量，包含 shell 环境中的变量（SSL 证书等）
-    // 然后清理 Node.js 调试变量
-    const cleanEnv = getEnhancedEnv();
+    // Clean environment
+    const cleanEnv = { ...process.env };
     delete cleanEnv.NODE_OPTIONS;
     delete cleanEnv.NODE_INSPECT;
     delete cleanEnv.NODE_DEBUG;
