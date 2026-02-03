@@ -5,7 +5,7 @@
  */
 
 import type { CodexAgentManager } from '@/agent/codex';
-import { GeminiAgent } from '@/agent/gemini';
+import { GeminiAgent, GeminiApprovalStore } from '@/agent/gemini';
 import type { TChatConversation } from '@/common/storage';
 import { getDatabase } from '@process/database';
 import { cronService } from '@process/services/cron/CronService';
@@ -405,5 +405,19 @@ export function initConversationBridge(): void {
     const task = WorkerManage.getTaskById(conversation_id);
     if (!task) return [];
     return task.getConfirmations();
+  });
+
+  // Session-level approval memory for "always allow" decisions
+  // 会话级别的权限记忆，用于 "always allow" 决策
+  // Keys are parsed from raw action+commandType here (single source of truth)
+  // Keys 在此处从原始 action+commandType 解析（单一数据源）
+  ipcBridge.conversation.approval.check.provider(async ({ conversation_id, action, commandType }) => {
+    const task = WorkerManage.getTaskById(conversation_id) as GeminiAgentManager | undefined;
+    if (!task || task.type !== 'gemini' || !task.approvalStore) {
+      return false;
+    }
+    const keys = GeminiApprovalStore.createKeysFromConfirmation(action, commandType);
+    if (keys.length === 0) return false;
+    return task.approvalStore.allApproved(keys);
   });
 }
