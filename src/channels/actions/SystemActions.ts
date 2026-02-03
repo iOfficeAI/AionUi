@@ -153,9 +153,7 @@ export const handleSessionStatus: ActionHandler = async (context) => {
 
   // Use platform-specific markup
   if (context.platform === 'lark') {
-    const sessionData = session
-      ? { id: session.id, agentType: session.agentType, createdAt: session.createdAt, lastActivity: session.lastActivity }
-      : undefined;
+    const sessionData = session ? { id: session.id, agentType: session.agentType, createdAt: session.createdAt, lastActivity: session.lastActivity } : undefined;
     return createSuccessResponse({
       type: 'text',
       text: '', // Lark card includes the text

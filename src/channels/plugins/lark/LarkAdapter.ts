@@ -73,10 +73,7 @@ interface LarkCardActionEvent {
 /**
  * Convert Lark event to unified incoming message
  */
-export function toUnifiedIncomingMessage(
-  event: LarkMessageEvent | LarkCardActionEvent,
-  actionInfo?: IMessageAction
-): IUnifiedIncomingMessage | null {
+export function toUnifiedIncomingMessage(event: LarkMessageEvent | LarkCardActionEvent, actionInfo?: IMessageAction): IUnifiedIncomingMessage | null {
   // Handle card action
   if (actionInfo && 'operator' in (event.event || {})) {
     const cardEvent = event as LarkCardActionEvent;
@@ -252,7 +249,7 @@ export function extractCardAction(action: LarkCardActionEvent['event']['action']
   const [fullAction, paramsStr] = actionName.split(':');
   const [prefix, name] = fullAction.includes('.') ? fullAction.split('.') : ['system', fullAction];
 
-  let params: Record<string, string> = {};
+  const params: Record<string, string> = {};
   if (paramsStr) {
     paramsStr.split(',').forEach((param) => {
       const [key, val] = param.split('=');
@@ -402,7 +399,7 @@ export function convertHtmlToLarkMarkdown(html: string): string {
  * Escape special characters for Lark markdown
  */
 export function escapeLarkMarkdown(text: string): string {
-  return text.replace(/[\\*_`\[\]()~]/g, '\\$&');
+  return text.replace(/[\\*_`[\]()~]/g, '\\$&');
 }
 
 // ==================== Message Length Utilities ====================
