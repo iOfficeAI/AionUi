@@ -22,6 +22,7 @@ import GooseLogo from '@/renderer/assets/logos/goose.svg';
 import AuggieLogo from '@/renderer/assets/logos/auggie.svg';
 import KimiLogo from '@/renderer/assets/logos/kimi.svg';
 import OpencodeLogo from '@/renderer/assets/logos/opencode.svg';
+import QoderLogo from '@/renderer/assets/logos/qoder.png';
 
 /**
  * 后端 Logo 映射表，用于在 CLI 卡片中显示对应的图标
@@ -32,6 +33,7 @@ const BACKEND_LOGO_MAP: Record<string, string> = {
   auggie: AuggieLogo,
   kimi: KimiLogo,
   opencode: OpencodeLogo,
+  qoder: QoderLogo,
 };
 
 interface CustomAcpAgentModalProps {

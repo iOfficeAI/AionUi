@@ -4,9 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { conversation } from '@/common/ipcBridge';
 import type { CodexPermissionOption } from '../types/permissionTypes';
-import { useState } from 'react';
 import { PermissionType, PermissionSeverity, PERMISSION_DECISION_MAP } from '../types/permissionTypes';
 
 /**
@@ -129,72 +127,3 @@ export function getPermissionDisplayInfo(type: PermissionType) {
     severity: config.severity,
   };
 }
-
-// Shared interface for confirmation data
-export interface ConfirmationData {
-  confirmKey: string;
-  msg_id: string;
-  conversation_id: string;
-  callId: string;
-}
-
-/**
- * Common hook to handle message confirmation for both tool groups and codex permissions
- */
-export const useConfirmationHandler = () => {
-  const handleConfirmation = async (data: ConfirmationData): Promise<{ success: boolean; error?: string }> => {
-    try {
-      await conversation.confirmMessage.invoke(data);
-      return { success: true, error: undefined };
-    } catch (error) {
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
-    }
-  };
-
-  return { handleConfirmation };
-};
-
-/**
- * Hook to handle local storage state for permissions
- */
-export const usePermissionState = (storageKey: string, responseKey: string) => {
-  const [selected, setSelected] = useState<string | null>(() => {
-    try {
-      return localStorage.getItem(storageKey);
-    } catch {
-      return null;
-    }
-  });
-
-  const [hasResponded, setHasResponded] = useState<boolean>(() => {
-    try {
-      return localStorage.getItem(responseKey) === 'true';
-    } catch {
-      return false;
-    }
-  });
-
-  return { selected, setSelected, hasResponded, setHasResponded };
-};
-
-/**
- * Hook to clean up old permission storage entries (older than 7 days)
- */
-export const usePermissionStorageCleanup = () => {
-  const cleanupOldPermissionStorage = () => {
-    const now = Date.now();
-    const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
-
-    Object.keys(localStorage).forEach((key) => {
-      if (key.startsWith('codex_permission_choice_') || key.startsWith('codex_permission_responded_')) {
-        const timestamp = localStorage.getItem(`${key}_timestamp`);
-        if (timestamp && parseInt(timestamp, 10) < sevenDaysAgo) {
-          localStorage.removeItem(key);
-          localStorage.removeItem(`${key}_timestamp`);
-        }
-      }
-    });
-  };
-
-  return { cleanupOldPermissionStorage };
-};
