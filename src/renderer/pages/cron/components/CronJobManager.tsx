@@ -98,7 +98,7 @@ const CronJobManager: React.FC<CronJobManagerProps> = ({ conversationId }) => {
           icon={
             <span className='inline-flex items-center gap-2px rounded-full px-8px py-2px  bg-2'>
               <AlarmClock theme='outline' size={16} fill={hasError ? iconColors.warning : isPaused ? iconColors.secondary : iconColors.primary} />
-              <span className={`ml-4px w-8px h-8px rounded-full ${isPaused ? 'bg-[#f53f3f]' : 'bg-[#00b42a]'}`} />
+              <span className={`ml-4px w-8px h-8px rounded-full ${hasError ? 'bg-[#f53f3f]' : isPaused ? 'bg-[#ff7d00]' : 'bg-[#00b42a]'}`} />
             </span>
           }
         />
