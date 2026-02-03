@@ -17,6 +17,7 @@ const AboutModalContent: React.FC = () => {
   const { t } = useTranslation();
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
+  const isElectron = typeof (window as any).electronAPI !== 'undefined';
 
   const [includePrerelease, setIncludePrerelease] = useState(false);
 
@@ -91,15 +92,17 @@ const AboutModalContent: React.FC = () => {
             </div>
 
             {/* Check Update Section */}
-            <div className='flex flex-col items-center gap-12px w-full max-w-300px bg-fill-2 p-16px rounded-lg'>
-              <Button type='primary' long onClick={checkUpdate}>
-                {t('settings.checkForUpdates')}
-              </Button>
-              <div className='flex items-center justify-between w-full'>
-                <Typography.Text className='text-12px text-t-secondary'>{t('settings.includePrereleaseUpdates')}</Typography.Text>
-                <Switch size='small' checked={includePrerelease} onChange={handlePrereleaseChange} />
+            {isElectron && (
+              <div className='flex flex-col items-center gap-12px w-full max-w-300px bg-fill-2 p-16px rounded-lg'>
+                <Button type='primary' long onClick={checkUpdate}>
+                  {t('settings.checkForUpdates')}
+                </Button>
+                <div className='flex items-center justify-between w-full'>
+                  <Typography.Text className='text-12px text-t-secondary'>{t('settings.includePrereleaseUpdates')}</Typography.Text>
+                  <Switch size='small' checked={includePrerelease} onChange={handlePrereleaseChange} />
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Divider */}
