@@ -49,6 +49,7 @@ export type AcpBackendAll =
   | 'auggie' // Augment Code CLI
   | 'kimi' // Kimi CLI (Moonshot)
   | 'opencode' // OpenCode CLI
+  | 'qoder' // Qoder CLI
   | 'custom'; // User-configured custom ACP agent
 
 /**
@@ -364,6 +365,15 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     enabled: true, // ✅ Factory docs: `droid exec --output-format acp` (JetBrains/Zed ACP integration)
     supportsStreaming: false,
     acpArgs: ['exec', '--output-format', 'acp'],
+  },
+  qoder: {
+    id: 'qoder',
+    name: 'Qoder CLI',
+    cliCommand: 'qodercli',
+    authRequired: false,
+    enabled: true, // ✅ Qoder CLI，使用 `qodercli --acp` 启动
+    supportsStreaming: false,
+    acpArgs: ['--acp'], // qoder 使用 --acp flag
   },
   custom: {
     id: 'custom',
