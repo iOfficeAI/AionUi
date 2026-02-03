@@ -50,11 +50,11 @@ const CronJobIndicator: React.FC<CronJobIndicatorProps> = ({ status, size = 14, 
       case 'active':
         return <AlarmClock theme='outline' size={size} className='flex items-center' />;
       case 'paused':
-        return <PauseOne theme='outline' size={size} fill={iconColors.secondary} className='flex items-center' />;
+        return <PauseOne theme='outline' size={size} className='flex items-center' />;
       case 'error':
-        return <Attention theme='outline' size={size} fill={iconColors.warning} className='flex items-center' />;
+        return <Attention theme='outline' size={size} className='flex items-center' />;
       case 'unconfigured':
-        return <AlarmClock theme='outline' size={size} fill={iconColors.disabled} className='flex items-center' />;
+        return <AlarmClock theme='outline' size={size} className='flex items-center' />;
       default:
         return null;
     }
