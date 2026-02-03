@@ -354,7 +354,7 @@ const Guid: React.FC = () => {
   const setCurrentModel = async (modelInfo: TProviderWithModel) => {
     // 记录最新的选中 key，避免列表刷新后被错误重置
     selectedModelKeyRef.current = buildModelKey(modelInfo.id, modelInfo.useModel);
-    await ConfigStorage.set('gemini.defaultModel', modelInfo.useModel).catch((error) => {
+    await ConfigStorage.set('gemini.defaultModel', { id: modelInfo.id, useModel: modelInfo.useModel }).catch((error) => {
       console.error('Failed to save default model:', error);
     });
     _setCurrentModel(modelInfo);
@@ -1050,10 +1050,39 @@ const Guid: React.FC = () => {
       return;
     }
     // 读取默认配置，或回落到新的第一个模型
-    const useModel = await ConfigStorage.get('gemini.defaultModel');
-    const defaultModel = modelList.find((m) => m.model.includes(useModel)) || modelList[0];
-    if (!defaultModel || !defaultModel.model.length) return;
-    const resolvedUseModel = defaultModel.model.includes(useModel) ? useModel : defaultModel.model[0];
+    // Read default config, or fallback to first model
+    const savedModel = await ConfigStorage.get('gemini.defaultModel');
+
+    // Handle backward compatibility: old format is string, new format is { id, useModel }
+    const isNewFormat = savedModel && typeof savedModel === 'object' && 'id' in savedModel;
+
+    let defaultModel: IProvider | undefined;
+    let resolvedUseModel: string;
+
+    if (isNewFormat) {
+      // New format: find by provider ID first, then verify model exists
+      const { id, useModel } = savedModel;
+      const exactMatch = modelList.find((m) => m.id === id);
+      if (exactMatch && exactMatch.model.includes(useModel)) {
+        defaultModel = exactMatch;
+        resolvedUseModel = useModel;
+      } else {
+        // Provider deleted or model removed, fallback
+        defaultModel = modelList[0];
+        resolvedUseModel = defaultModel?.model[0] ?? '';
+      }
+    } else if (typeof savedModel === 'string') {
+      // Old format: fallback to model name matching (backward compatibility)
+      defaultModel = modelList.find((m) => m.model.includes(savedModel)) || modelList[0];
+      resolvedUseModel = defaultModel?.model.includes(savedModel) ? savedModel : (defaultModel?.model[0] ?? '');
+    } else {
+      // No saved model, use first one
+      defaultModel = modelList[0];
+      resolvedUseModel = defaultModel?.model[0] ?? '';
+    }
+
+    if (!defaultModel || !resolvedUseModel) return;
+
     await setCurrentModel({
       ...defaultModel,
       useModel: resolvedUseModel,

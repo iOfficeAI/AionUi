@@ -5,7 +5,7 @@
  */
 
 import './utils/configureChromium';
-import { app, BrowserWindow, screen } from 'electron';
+import { app, BrowserWindow, nativeImage, screen } from 'electron';
 import fixPath from 'fix-path';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -180,11 +180,30 @@ const createWindow = (): void => {
   const windowWidth = Math.floor(screenWidth * 0.8);
   const windowHeight = Math.floor(screenHeight * 0.8);
 
+  // Get app icon for development mode (Windows/Linux need icon in BrowserWindow)
+  // In production, icons are set via forge.config.ts packagerConfig
+  let devIcon: Electron.NativeImage | undefined;
+  if (!app.isPackaged) {
+    try {
+      // Windows: app.ico (no dev version), Linux: app_dev.png (with padding)
+      const iconFile = process.platform === 'win32' ? 'app.ico' : 'app_dev.png';
+      const iconPath = path.join(process.cwd(), 'resources', iconFile);
+      if (fs.existsSync(iconPath)) {
+        devIcon = nativeImage.createFromPath(iconPath);
+        if (devIcon.isEmpty()) devIcon = undefined;
+      }
+    } catch {
+      // Ignore icon loading errors in development
+    }
+  }
+
   // Create the browser window.
   mainWindow = new BrowserWindow({
     width: windowWidth,
     height: windowHeight,
     autoHideMenuBar: true,
+    // Set icon for Windows/Linux in development mode
+    ...(devIcon && process.platform !== 'darwin' ? { icon: devIcon } : {}),
     // Custom titlebar configuration / 自定义标题栏配置
     ...(process.platform === 'darwin'
       ? {
@@ -226,6 +245,22 @@ ipcBridge.application.openDevTools.provider(() => {
 });
 
 const handleAppReady = async (): Promise<void> => {
+  // Set dock icon in development mode on macOS
+  // In production, the icon is set via forge.config.ts packagerConfig.icon
+  if (process.platform === 'darwin' && !app.isPackaged && app.dock) {
+    try {
+      const iconPath = path.join(process.cwd(), 'resources', 'app_dev.png');
+      if (fs.existsSync(iconPath)) {
+        const icon = nativeImage.createFromPath(iconPath);
+        if (!icon.isEmpty()) {
+          app.dock.setIcon(icon);
+        }
+      }
+    } catch {
+      // Ignore dock icon errors in development
+    }
+  }
+
   try {
     await initializeProcess();
   } catch (error) {

@@ -973,7 +973,11 @@
       "active": "執行中",
       "paused": "已暫停",
       "error": "執行出錯",
-      "unread": "有新執行"
+      "unread": "有新執行",
+      "unconfigured": "未配置定時任務",
+      "unconfiguredHint": "目前對話暫無定時任務，和 Agent 一起建立一個吧",
+      "createNow": "立即建立",
+      "defaultPrompt": "每天早上10點，為我搜尋AI最新的新聞動向，彙總並輸出洞察報告。"
     },
     "actions": {
       "goTo": "查看對話",

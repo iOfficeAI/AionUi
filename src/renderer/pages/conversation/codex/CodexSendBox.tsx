@@ -141,6 +141,15 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
     setSendBoxHandler(handler);
   }, [setSendBoxHandler, content]);
 
+  // Listen for sendbox.fill event to populate input from external sources
+  useAddEventListener(
+    'sendbox.fill',
+    (text: string) => {
+      setContentRef.current(text);
+    },
+    []
+  );
+
   useEffect(() => {
     return ipcBridge.codexConversation.responseStream.on((message) => {
       if (conversation_id !== message.conversation_id) {
