@@ -81,6 +81,11 @@ export class AcpConnection {
   }> = () => Promise.resolve({ optionId: 'allow' }); // Returns a resolved Promise for interface consistency
   public onEndTurn: () => void = () => {}; // Handler for end_turn messages
   public onFileOperation: (operation: { method: string; path: string; content?: string; sessionId: string }) => void = () => {};
+  // Disconnect callback - called when child process exits unexpectedly during runtime
+  public onDisconnect: (error: { code: number | null; signal: NodeJS.Signals | null }) => void = () => {};
+
+  // Track if initial setup is complete (to distinguish startup errors from runtime exits)
+  private isSetupComplete = false;
 
   // 通用的后端连接方法
   private async connectGenericBackend(backend: 'gemini' | 'qwen' | 'iflow' | 'droid' | 'goose' | 'auggie' | 'kimi' | 'opencode' | 'custom', cliPath: string, workingDir: string, acpArgs?: string[], customEnv?: Record<string, string>): Promise<void> {
@@ -167,12 +172,18 @@ export class AcpConnection {
       spawnError = error;
     });
 
+    // Exit handler for both startup and runtime phases
     this.child.on('exit', (code, signal) => {
       console.error(`[ACP ${backend}] Process exited with code: ${code}, signal: ${signal}`);
-      if (code !== 0) {
-        if (!spawnError) {
+
+      if (!this.isSetupComplete) {
+        // Startup phase - set error for initial check
+        if (code !== 0 && !spawnError) {
           spawnError = new Error(`${backend} ACP process failed with exit code: ${code}`);
         }
+      } else {
+        // Runtime phase - handle unexpected exit
+        this.handleProcessExit(code, signal);
       }
     });
 
@@ -219,6 +230,35 @@ export class AcpConnection {
         }, 60000)
       ),
     ]);
+
+    // Mark setup as complete - future exits will be handled as runtime disconnects
+    this.isSetupComplete = true;
+  }
+
+  /**
+   * Handle unexpected process exit during runtime
+   * Similar to Codex's handleProcessExit implementation
+   */
+  private handleProcessExit(code: number | null, signal: NodeJS.Signals | null): void {
+    // 1. Reject all pending requests with clear error message
+    for (const [_id, request] of this.pendingRequests) {
+      if (request.timeoutId) {
+        clearTimeout(request.timeoutId);
+      }
+      request.reject(new Error(`ACP process exited unexpectedly (code: ${code}, signal: ${signal})`));
+    }
+    this.pendingRequests.clear();
+
+    // 2. Clear connection state
+    this.sessionId = null;
+    this.isInitialized = false;
+    this.isSetupComplete = false;
+    this.backend = null;
+    this.initializeResponse = null;
+    this.child = null;
+
+    // 3. Notify AcpAgent about disconnect
+    this.onDisconnect({ code, signal });
   }
 
   private sendRequest<T = unknown>(method: string, params?: Record<string, unknown>): Promise<T> {
@@ -636,6 +676,7 @@ export class AcpConnection {
     this.pendingRequests.clear();
     this.sessionId = null;
     this.isInitialized = false;
+    this.isSetupComplete = false;
     this.backend = null;
     this.initializeResponse = null;
   }
