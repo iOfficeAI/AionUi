@@ -112,7 +112,7 @@
     "@icon-park/react": "^1.4.2",
     "@modelcontextprotocol/sdk": "^1.20.0",
     "@monaco-editor/react": "^4.7.0",
-    "@office-ai/aioncli-core": "^0.24.2",
+    "@office-ai/aioncli-core": "^0.24.4",
     "@office-ai/platform": "^0.3.16",
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.10",
