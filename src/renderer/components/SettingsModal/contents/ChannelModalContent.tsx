@@ -143,21 +143,21 @@ const ChannelModalContent: React.FC = () => {
 
     const loadSavedModel = async () => {
       try {
-        const savedModel = await ConfigStorage.get('assistant.telegram.defaultModel');
-        if (savedModel && savedModel.id && savedModel.useModel) {
-          // Verify the saved model still exists in the provider list
-          const provider = modelList.find((p) => p.id === savedModel.id);
-          if (provider && provider.model?.includes(savedModel.useModel)) {
-            setSelectedModel({ ...provider, useModel: savedModel.useModel });
-            return;
+        // Load Telegram model
+        const savedTelegramModel = await ConfigStorage.get('assistant.telegram.defaultModel');
+        if (savedTelegramModel && savedTelegramModel.id && savedTelegramModel.useModel) {
+          const provider = modelList.find((p) => p.id === savedTelegramModel.id);
+          if (provider && provider.model?.includes(savedTelegramModel.useModel)) {
+            setSelectedModel({ ...provider, useModel: savedTelegramModel.useModel });
           }
         }
-        // Default to first available model if no saved selection
-        const firstProvider = modelList[0];
-        if (firstProvider) {
-          const availableModels = getAvailableModels(firstProvider);
-          if (availableModels.length > 0) {
-            setSelectedModel({ ...firstProvider, useModel: availableModels[0] });
+
+        // Load Lark model
+        const savedLarkModel = await ConfigStorage.get('assistant.lark.defaultModel');
+        if (savedLarkModel && savedLarkModel.id && savedLarkModel.useModel) {
+          const provider = modelList.find((p) => p.id === savedLarkModel.id);
+          if (provider && provider.model?.includes(savedLarkModel.useModel)) {
+            setLarkSelectedModel({ ...provider, useModel: savedLarkModel.useModel });
           }
         }
       } catch (error) {
