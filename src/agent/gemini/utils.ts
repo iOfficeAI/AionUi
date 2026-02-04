@@ -101,16 +101,17 @@ export const processGeminiStreamEvents = async (stream: AsyncIterable<ServerGemi
             const contentValue = (event as unknown as { value: unknown }).value;
             const contentText = typeof contentValue === 'string' ? contentValue : '';
 
-            // Check if content contains <think> tags (common in proxy services like newapi)
-            // 检查内容是否包含 <think> 标签（中转站如 newapi 常见格式）
-            const thinkTagRegex = /<think>([\s\S]*?)<\/think>/gi;
-            const thinkMatches = contentText.match(thinkTagRegex);
+            // Check if content contains <think> or <thinking> tags (common in proxy services like newapi)
+            // 检查内容是否包含 <think> 或 <thinking> 标签（中转站如 newapi 常见格式）
+            const thinkTagRegex = /<think(?:ing)?>([\s\S]*?)<\/think(?:ing)?>/gi;
+            const hasThinkTags = /<think(?:ing)?>/i.test(contentText);
 
-            if (thinkMatches && thinkMatches.length > 0) {
+            if (hasThinkTags) {
               // Extract thinking content and emit as thought events
               // 提取思考内容并作为 thought 事件发送
+              const thinkMatches = contentText.matchAll(thinkTagRegex);
               for (const match of thinkMatches) {
-                const thinkContent = match.replace(/<\/?think>/gi, '').trim();
+                const thinkContent = match[1]?.trim();
                 if (thinkContent) {
                   onStreamEvent({
                     type: ServerGeminiEventType.Thought,
@@ -119,9 +120,15 @@ export const processGeminiStreamEvents = async (stream: AsyncIterable<ServerGemi
                 }
               }
 
-              // Remove <think> tags from content and emit remaining content
-              // 从内容中移除 <think> 标签，发送剩余内容
-              const cleanedContent = contentText.replace(thinkTagRegex, '').trim();
+              // Remove <think> and <thinking> tags from content and emit remaining content
+              // 从内容中移除 <think> 和 <thinking> 标签，发送剩余内容
+              const cleanedContent = contentText
+                .replace(/<think(?:ing)?>([\s\S]*?)<\/think(?:ing)?>/gi, '')
+                // Also remove unclosed tags at the end
+                .replace(/<think(?:ing)?>[\s\S]*$/gi, '')
+                .replace(/\n{3,}/g, '\n\n')
+                .trim();
+
               if (cleanedContent) {
                 onStreamEvent({ type: event.type, data: cleanedContent });
               }

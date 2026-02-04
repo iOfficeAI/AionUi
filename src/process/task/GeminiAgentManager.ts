@@ -22,6 +22,7 @@ import { handlePreviewOpenEvent } from '../utils/previewUtils';
 import BaseAgentManager from './BaseAgentManager';
 import { hasCronCommands } from './CronCommandDetector';
 import { extractTextFromMessage, processCronInMessage } from './MessageMiddleware';
+import { stripThinkTags } from './ThinkTagDetector';
 
 // gemini agent管理器类
 type UiMcpServerConfig = {
@@ -399,11 +400,14 @@ export class GeminiAgentManager extends BaseAgentManager<
         }
       }
 
-      ipcBridge.geminiConversation.responseStream.emit(data);
+      // Filter think tags from streaming content before emitting to UI
+      // 在发送到 UI 前过滤流式内容中的 think 标签
+      const filteredData = this.filterThinkTagsFromMessage(data);
+      ipcBridge.geminiConversation.responseStream.emit(filteredData);
 
       // 发送到 Channel 全局事件总线（用于 Telegram 等外部平台）
       // Emit to Channel global event bus (for Telegram and other external platforms)
-      channelEventBus.emitAgentMessage(this.conversation_id, data);
+      channelEventBus.emitAgentMessage(this.conversation_id, filteredData);
     });
   }
 
@@ -507,5 +511,41 @@ export class GeminiAgentManager extends BaseAgentManager<
   // Manually trigger context reload
   async reloadContext(): Promise<void> {
     await this.injectHistoryFromDatabase();
+  }
+
+  /**
+   * Filter think tags from message content during streaming
+   * This ensures users don't see internal reasoning tags in real-time
+   * Handles both 'content' and 'thought' message types
+   *
+   * @param message - The streaming message to filter
+   * @returns Message with think tags removed from content
+   */
+  private filterThinkTagsFromMessage(message: IResponseMessage): IResponseMessage {
+    // Filter content messages
+    if (message.type === 'content' && typeof message.data === 'string') {
+      const content = message.data;
+      // Quick check to avoid unnecessary processing
+      if (/<think(?:ing)?>/i.test(content)) {
+        return {
+          ...message,
+          data: stripThinkTags(content),
+        };
+      }
+    }
+
+    // Filter thought messages (they might contain think tags too)
+    if (message.type === 'thought' && typeof message.data === 'string') {
+      const content = message.data;
+      // Quick check to avoid unnecessary processing
+      if (/<think(?:ing)?>/i.test(content)) {
+        return {
+          ...message,
+          data: stripThinkTags(content),
+        };
+      }
+    }
+
+    return message;
   }
 }
