@@ -124,7 +124,7 @@ export class LarkPlugin extends BasePlugin {
         .then(() => {
           console.log(`[LarkPlugin] WebSocket start() promise resolved`);
         })
-        .catch((err) => {
+        .catch((err: unknown) => {
           console.error(`[LarkPlugin] WebSocket start() error:`, err);
         });
 
