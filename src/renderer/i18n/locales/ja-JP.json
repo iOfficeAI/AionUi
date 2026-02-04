@@ -441,7 +441,10 @@
       "apiErrorNoCli": "APIエラーが発生しました。フォールバック用のCLIエージェントがありません。",
       "apiErrorSwitchFailed": "フォールバック会話の作成に失敗しました。",
       "apiErrorSwitched": "APIエラー、{{cli}} CLIに自動切り替えしました",
-      "confirmationLoadError": "確認ダイアログの読み込みに失敗しました"
+      "confirmationLoadError": "確認ダイアログの読み込みに失敗しました",
+      "tryAnotherAgent": "別のエージェントを試す：",
+      "switchedToAgent": "{{agent}}に切り替えました",
+      "switchAgentFailed": "エージェントの切り替えに失敗しました"
     },
     "contextUsage": {
       "contextUsed": "コンテキスト使用量"

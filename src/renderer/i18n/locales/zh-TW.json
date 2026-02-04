@@ -412,7 +412,10 @@
       "apiErrorNoCli": "API 錯誤，沒有可用的 CLI 代理進行回退。",
       "apiErrorSwitchFailed": "建立回退會話失敗。",
       "apiErrorSwitched": "API 錯誤，已自動切換到 {{cli}} CLI",
-      "confirmationLoadError": "確認對話框載入失敗"
+      "confirmationLoadError": "確認對話框載入失敗",
+      "tryAnotherAgent": "嘗試其他 Agent：",
+      "switchedToAgent": "已切換到 {{agent}}",
+      "switchAgentFailed": "切換 Agent 失敗"
     },
     "contextUsage": {
       "contextUsed": "上下文已使用"

@@ -316,7 +316,10 @@
       "apiErrorNoCli": "API 오류가 발생했습니다. 폴백용 CLI 에이전트가 없습니다.",
       "apiErrorSwitchFailed": "폴백 대화 생성에 실패했습니다.",
       "apiErrorSwitched": "API 오류, {{cli}} CLI로 자동 전환되었습니다",
-      "confirmationLoadError": "확인 대화 상자 로드 실패"
+      "confirmationLoadError": "확인 대화 상자 로드 실패",
+      "tryAnotherAgent": "다른 에이전트 시도:",
+      "switchedToAgent": "{{agent}}(으)로 전환되었습니다",
+      "switchAgentFailed": "에이전트 전환 실패"
     },
     "contextUsage": {
       "contextUsed": "사용된 컨텍스트"

@@ -316,7 +316,10 @@
       "apiErrorNoCli": "API error occurred. No CLI agent available for fallback.",
       "apiErrorSwitchFailed": "Failed to create fallback conversation.",
       "apiErrorSwitched": "API error, auto-switched to {{cli}} CLI",
-      "confirmationLoadError": "Failed to load confirmation dialog"
+      "confirmationLoadError": "Failed to load confirmation dialog",
+      "tryAnotherAgent": "Try another agent:",
+      "switchedToAgent": "Switched to {{agent}}",
+      "switchAgentFailed": "Failed to switch agent"
     },
     "contextUsage": {
       "contextUsed": "context used"
