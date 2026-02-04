@@ -15,29 +15,48 @@ import MarkdownView from '../components/Markdown';
 import CollapsibleContent from '../components/CollapsibleContent';
 import { ipcBridge } from '@/common';
 import { Button, Message } from '@arco-design/web-react';
-import type { PresetAgentType } from '@/types/acpTypes';
+import type { AcpBackendAll } from '@/types/acpTypes';
 import ClaudeLogo from '@/renderer/assets/logos/claude.svg';
 import CodexLogo from '@/renderer/assets/logos/codex.svg';
 import OpenCodeLogo from '@/renderer/assets/logos/opencode.svg';
 import GeminiLogo from '@/renderer/assets/logos/gemini.svg';
+import QwenLogo from '@/renderer/assets/logos/qwen.svg';
+import IflowLogo from '@/renderer/assets/logos/iflow.svg';
+import DroidLogo from '@/renderer/assets/logos/droid.svg';
+import GooseLogo from '@/renderer/assets/logos/goose.svg';
+import AuggieLogo from '@/renderer/assets/logos/auggie.svg';
+import KimiLogo from '@/renderer/assets/logos/kimi.svg';
+
 const icon = {
   success: <CheckOne theme='filled' size='16' fill={theme.Color.FunctionalColor.success} className='m-t-2px' />,
   warning: <Attention theme='filled' size='16' strokeLinejoin='bevel' className='m-t-2px' fill={theme.Color.FunctionalColor.warn} />,
   error: <Attention theme='filled' size='16' strokeLinejoin='bevel' className='m-t-2px' fill={theme.Color.FunctionalColor.error} />,
 };
 
-const AGENT_LOGOS: Record<PresetAgentType, string> = {
+const AGENT_LOGOS: Partial<Record<AcpBackendAll, string>> = {
   claude: ClaudeLogo,
   codex: CodexLogo,
   opencode: OpenCodeLogo,
   gemini: GeminiLogo,
+  qwen: QwenLogo,
+  iflow: IflowLogo,
+  droid: DroidLogo,
+  goose: GooseLogo,
+  auggie: AuggieLogo,
+  kimi: KimiLogo,
 };
 
-const AGENT_NAMES: Record<PresetAgentType, string> = {
+const AGENT_NAMES: Partial<Record<AcpBackendAll, string>> = {
   claude: 'Claude',
   codex: 'Codex',
   opencode: 'OpenCode',
   gemini: 'Gemini',
+  qwen: 'Qwen Code',
+  iflow: 'iFlow',
+  droid: 'Droid',
+  goose: 'Goose',
+  auggie: 'Auggie',
+  kimi: 'Kimi',
 };
 
 const useFormatContent = (content: string) => {
@@ -57,23 +76,23 @@ const useFormatContent = (content: string) => {
 // Agent 选择器组件
 const AgentSelector: React.FC<{
   conversationId: string;
-  excludeAgents: PresetAgentType[];
+  excludeAgents: AcpBackendAll[];
 }> = ({ conversationId, excludeAgents }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [availableAgents, setAvailableAgents] = useState<Array<{ backend: PresetAgentType; name: string; cliPath?: string }>>([]);
+  const [availableAgents, setAvailableAgents] = useState<Array<{ backend: AcpBackendAll; name: string; cliPath?: string }>>([]);
   const [switching, setSwitching] = useState(false);
 
   useEffect(() => {
     const fetchAgents = async () => {
       const result = await ipcBridge.acpConversation.getAvailableAgents.invoke();
       if (result.success && result.data) {
-        // 显示所有可用的 agents，排除 custom 和已失败的 agents
-        // Show all available agents, excluding 'custom' and failed agents
+        // 显示所有可用的 agents，排除 custom 和已失败的 agents，以及没有 logo 的 agents
+        // Show all available agents, excluding 'custom', failed agents, and agents without logos
         const agents = result.data
-          .filter((agent) => agent.backend !== 'custom' && !excludeAgents.includes(agent.backend as PresetAgentType))
+          .filter((agent) => agent.backend !== 'custom' && !excludeAgents.includes(agent.backend) && AGENT_LOGOS[agent.backend])
           .map((agent) => ({
-            backend: agent.backend as PresetAgentType,
+            backend: agent.backend,
             name: agent.name,
             cliPath: agent.cliPath,
           }));
@@ -84,7 +103,7 @@ const AgentSelector: React.FC<{
   }, [excludeAgents]);
 
   const handleSwitch = useCallback(
-    async (agentType: PresetAgentType, cliPath?: string) => {
+    async (agentType: AcpBackendAll, cliPath?: string) => {
       if (switching) return;
       setSwitching(true);
 
@@ -124,7 +143,7 @@ const AgentSelector: React.FC<{
             ...(isGemini
               ? {
                   // Gemini 会话的 extra 字段
-                  presetRules: (conversation.extra as Record<string, unknown>)?.presetRules || (conversation.extra as Record<string, unknown>)?.presetContext,
+                  presetRules: ((conversation.extra as Record<string, unknown>)?.presetRules || (conversation.extra as Record<string, unknown>)?.presetContext) as string,
                   enabledSkills: conversation.extra?.enabledSkills,
                   presetAssistantId: conversation.extra?.presetAssistantId,
                 }
@@ -132,7 +151,7 @@ const AgentSelector: React.FC<{
                   // ACP 会话的 extra 字段
                   backend: agentType,
                   cliPath,
-                  presetContext: (conversation.extra as Record<string, unknown>)?.presetRules || (conversation.extra as Record<string, unknown>)?.presetContext,
+                  presetContext: ((conversation.extra as Record<string, unknown>)?.presetRules || (conversation.extra as Record<string, unknown>)?.presetContext) as string,
                   enabledSkills: conversation.extra?.enabledSkills,
                   presetAssistantId: conversation.extra?.presetAssistantId,
                 }),
@@ -158,7 +177,7 @@ const AgentSelector: React.FC<{
         }
 
         // 显示通知并导航到新会话
-        const agentName = AGENT_NAMES[agentType];
+        const agentName = AGENT_NAMES[agentType] || agentType;
         Message.success(t('conversation.chat.switchedToAgent', { defaultValue: `Switched to ${agentName}`, agent: agentName }));
 
         void navigate(`/conversation/${newConversation.id}`);
@@ -221,7 +240,7 @@ const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
   // 从 localStorage 获取已排除的 agents（按会话 ID 存储）
   const conversationId = message.conversation_id;
   const excludedAgentsKey = `excluded_agents_${conversationId}`;
-  const [excludedAgents, setExcludedAgents] = useState<PresetAgentType[]>(() => {
+  const [excludedAgents, setExcludedAgents] = useState<AcpBackendAll[]>(() => {
     try {
       const stored = localStorage.getItem(excludedAgentsKey);
       return stored ? JSON.parse(stored) : [];
@@ -233,11 +252,17 @@ const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
   // 当检测到错误时，将当前使用的 agent 添加到排除列表
   useEffect(() => {
     if (isApiError && message.conversation_id) {
-      // 检测当前会话类型，如果是 gemini 则排除它
+      // 检测当前会话类型，如果是 gemini 则排除它；如果是 acp，排除对应的 backend
       void ipcBridge.conversation.get.invoke({ id: message.conversation_id }).then((conv) => {
         if (conv?.type === 'gemini') {
           setExcludedAgents((prev) => {
-            const newExcluded = [...new Set([...prev, 'gemini' as PresetAgentType])];
+            const newExcluded = [...new Set([...prev, 'gemini' as AcpBackendAll])];
+            localStorage.setItem(excludedAgentsKey, JSON.stringify(newExcluded));
+            return newExcluded;
+          });
+        } else if (conv?.type === 'acp' && conv.extra?.backend) {
+          setExcludedAgents((prev) => {
+            const newExcluded = [...new Set([...prev, conv.extra.backend as AcpBackendAll])];
             localStorage.setItem(excludedAgentsKey, JSON.stringify(newExcluded));
             return newExcluded;
           });
