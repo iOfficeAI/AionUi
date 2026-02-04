@@ -439,16 +439,12 @@ const GeminiSendBox: React.FC<{
         return;
       }
 
-      // 获取用户的原始消息（第一条消息）
-      const messages = await ipcBridge.message.getByConversationId.invoke({ conversation_id });
-      const userMessage = messages?.find((msg) => msg.role === 'user');
-      if (userMessage) {
-        // 存储初始消息，让新会话页面发送
-        const initialMessage = {
-          input: userMessage.content,
-          files: userMessage.extra?.files,
-        };
-        sessionStorage.setItem(`acp_initial_message_${newConversation.id}`, JSON.stringify(initialMessage));
+      // 获取用户的原始消息（从 sessionStorage）
+      const storageKey = `gemini_initial_message_${conversation_id}`;
+      const storedMessage = sessionStorage.getItem(storageKey);
+      if (storedMessage) {
+        // 将初始消息转移到新会话
+        sessionStorage.setItem(`acp_initial_message_${newConversation.id}`, storedMessage);
       }
 
       // 显示通知并导航到新会话
