@@ -13,6 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import MarkdownView from '../components/Markdown';
 import CollapsibleContent from '../components/CollapsibleContent';
+import AgentHealthCheckModal from '../components/AgentHealthCheckModal';
 import { ipcBridge } from '@/common';
 import { Button, Message } from '@arco-design/web-react';
 import type { AcpBackendAll } from '@/types/acpTypes';
@@ -214,6 +215,9 @@ const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
   const { content, type } = message.content;
   const { json, data } = useFormatContent(content);
   const { t } = useTranslation();
+  const navigate = useNavigate();
+  const [showHealthCheckModal, setShowHealthCheckModal] = useState(false);
+  const [currentAgent, setCurrentAgent] = useState<AcpBackendAll | 'gemini'>('gemini');
 
   // 检测是否是 API 错误（适合显示 agent 选择器）
   const isApiError = useMemo(() => {
@@ -249,27 +253,115 @@ const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
     }
   });
 
-  // 当检测到错误时，将当前使用的 agent 添加到排除列表
+  // 当检测到错误时，将当前使用的 agent 添加到排除列表，并打开健康检查弹窗
   useEffect(() => {
     if (isApiError && message.conversation_id) {
       // 检测当前会话类型，如果是 gemini 则排除它；如果是 acp，排除对应的 backend
       void ipcBridge.conversation.get.invoke({ id: message.conversation_id }).then((conv) => {
         if (conv?.type === 'gemini') {
+          setCurrentAgent('gemini');
           setExcludedAgents((prev) => {
             const newExcluded = [...new Set([...prev, 'gemini' as AcpBackendAll])];
             localStorage.setItem(excludedAgentsKey, JSON.stringify(newExcluded));
             return newExcluded;
           });
+          setShowHealthCheckModal(true);
         } else if (conv?.type === 'acp' && conv.extra?.backend) {
+          setCurrentAgent(conv.extra.backend as AcpBackendAll);
           setExcludedAgents((prev) => {
             const newExcluded = [...new Set([...prev, conv.extra.backend as AcpBackendAll])];
             localStorage.setItem(excludedAgentsKey, JSON.stringify(newExcluded));
             return newExcluded;
           });
+          setShowHealthCheckModal(true);
         }
       });
     }
   }, [isApiError, message.conversation_id, excludedAgentsKey]);
+
+  // Handle agent selection from health check modal
+  const handleSelectAgent = useCallback(
+    async (agentType: AcpBackendAll) => {
+      if (!message.conversation_id) return;
+
+      try {
+        // Get current conversation info
+        const conversation = await ipcBridge.conversation.get.invoke({ id: message.conversation_id });
+        if (!conversation) {
+          Message.error(t('conversation.chat.switchAgentFailed', { defaultValue: 'Failed to switch agent' }));
+          return;
+        }
+
+        // Determine conversation type based on agentType
+        const isGemini = agentType === 'gemini';
+        const conversationType = isGemini ? 'gemini' : 'acp';
+
+        // Get current conversation's model info (if gemini type)
+        const currentModel = conversation.type === 'gemini' ? conversation.model : undefined;
+
+        // Create new conversation
+        const newConversation = await ipcBridge.conversation.create.invoke({
+          type: conversationType,
+          name: conversation.name || 'New Conversation',
+          model: currentModel || {
+            id: 'default',
+            name: 'Default',
+            useModel: 'default',
+            platform: 'custom',
+            baseUrl: '',
+            apiKey: '',
+          },
+          extra: {
+            workspace: conversation.extra?.workspace || '',
+            customWorkspace: conversation.extra?.customWorkspace || false,
+            ...(isGemini
+              ? {
+                  // Gemini conversation extra fields
+                  presetRules: ((conversation.extra as Record<string, unknown>)?.presetRules || (conversation.extra as Record<string, unknown>)?.presetContext) as string,
+                  enabledSkills: conversation.extra?.enabledSkills,
+                  presetAssistantId: conversation.extra?.presetAssistantId,
+                }
+              : {
+                  // ACP conversation extra fields
+                  backend: agentType,
+                  presetContext: ((conversation.extra as Record<string, unknown>)?.presetRules || (conversation.extra as Record<string, unknown>)?.presetContext) as string,
+                  enabledSkills: conversation.extra?.enabledSkills,
+                  presetAssistantId: conversation.extra?.presetAssistantId,
+                }),
+          },
+        });
+
+        if (!newConversation?.id) {
+          Message.error(t('conversation.chat.switchAgentFailed', { defaultValue: 'Failed to switch agent' }));
+          return;
+        }
+
+        // Get user's original message (from sessionStorage or database)
+        const messages = await ipcBridge.database.getConversationMessages.invoke({ conversation_id: message.conversation_id });
+        const userMessage = messages?.find((msg) => msg.position === 'right' && msg.type === 'text');
+        if (userMessage && userMessage.type === 'text') {
+          // Store initial message for new conversation page to send
+          const initialMessage: { input: string; files: string[] } = {
+            input: userMessage.content.content,
+            files: [],
+          };
+          const storageKey = isGemini ? `gemini_initial_message_${newConversation.id}` : `acp_initial_message_${newConversation.id}`;
+          sessionStorage.setItem(storageKey, JSON.stringify(initialMessage));
+        }
+
+        // Show notification and navigate to new conversation
+        const agentName = AGENT_NAMES[agentType] || agentType;
+        Message.success(t('conversation.chat.switchedToAgent', { defaultValue: `Switched to ${agentName}`, agent: agentName }));
+
+        setShowHealthCheckModal(false);
+        void navigate(`/conversation/${newConversation.id}`);
+      } catch (error) {
+        console.error('Failed to switch agent:', error);
+        Message.error(t('conversation.chat.switchAgentFailed', { defaultValue: 'Failed to switch agent' }));
+      }
+    },
+    [message.conversation_id, navigate, t]
+  );
 
   // Handle structured error messages with error codes
   const getDisplayContent = (content: string): string => {
@@ -307,6 +399,7 @@ const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
           <MarkdownView>{`\`\`\`json\n${JSON.stringify(data, null, 2)}\n\`\`\``}</MarkdownView>
         </CollapsibleContent>
         {isApiError && conversationId && <AgentSelector conversationId={conversationId} excludeAgents={excludedAgents} />}
+        {isApiError && conversationId && <AgentHealthCheckModal visible={showHealthCheckModal} currentAgent={currentAgent} errorMessage={displayContent} excludedAgents={excludedAgents} onClose={() => setShowHealthCheckModal(false)} onSelectAgent={handleSelectAgent} />}
       </div>
     );
   return (
@@ -323,6 +416,7 @@ const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
         </CollapsibleContent>
       </div>
       {isApiError && conversationId && <AgentSelector conversationId={conversationId} excludeAgents={excludedAgents} />}
+      {isApiError && conversationId && <AgentHealthCheckModal visible={showHealthCheckModal} currentAgent={currentAgent} errorMessage={displayContent} excludedAgents={excludedAgents} onClose={() => setShowHealthCheckModal(false)} onSelectAgent={handleSelectAgent} />}
     </div>
   );
 };

@@ -1141,5 +1141,22 @@
   "guid.agentFallbackNotice": "{{original}} is unavailable, using {{fallback}} instead.",
   "guid.noAgentAvailable": "No Main Agent is available. Please login to Google or install Claude/Codex CLI. Go to settings?",
   "guid.noAgentAvailableShort": "No Main Agent available. Click to configure.",
-  "guid.agentTabAutoSwitch": "Model not compatible with Gemini, auto-switched to {{fallback}}"
+  "guid.agentTabAutoSwitch": "Model not compatible with Gemini, auto-switched to {{fallback}}",
+  "agent": {
+    "health": {
+      "detectedError": "Detected error with current agent ({{agent}})",
+      "autoSwitching": ". System will attempt to switch automatically.",
+      "evaluating": "Evaluating network latency and model availability...",
+      "checking": "Checking {{agent}} endpoint...",
+      "foundBest": "Found best alternative",
+      "recommendSwitch": "Recommended",
+      "available": "Available",
+      "lowLatency": "Low Latency",
+      "mediumLatency": "Medium Latency",
+      "highLatency": "High Latency",
+      "bestMatch": "Best Match",
+      "noAvailable": "No available agents in current environment",
+      "checkConfig": "Please check configuration or try again later"
+    }
+  }
 }

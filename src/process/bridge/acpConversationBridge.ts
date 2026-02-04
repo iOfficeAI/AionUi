@@ -56,4 +56,58 @@ export function initAcpConversationBridge(): void {
       };
     }
   });
+
+  // Check agent health (availability and latency)
+  ipcBridge.acpConversation.checkAgentHealth.provider(async ({ backend }) => {
+    try {
+      const startTime = Date.now();
+
+      // Step 1: Check if CLI is installed
+      const agents = acpDetector.getDetectedAgents();
+      const agent = agents.find((a) => a.backend === backend);
+
+      if (!agent?.cliPath) {
+        return {
+          success: false,
+          msg: `${backend} CLI not found`,
+          data: { available: false, error: 'CLI not installed' },
+        };
+      }
+
+      // Step 2: For Gemini, check if it's logged in
+      if (backend === 'gemini') {
+        try {
+          const { execSync } = await import('child_process');
+          const loginStatus = execSync('gemini auth status', { encoding: 'utf-8', timeout: 5000 });
+          if (!loginStatus.includes('Logged in') && !loginStatus.includes('logged in')) {
+            return {
+              success: false,
+              msg: 'Gemini not logged in',
+              data: { available: false, error: 'Not authenticated' },
+            };
+          }
+        } catch (error) {
+          return {
+            success: false,
+            msg: 'Failed to check Gemini auth status',
+            data: { available: false, error: error instanceof Error ? error.message : 'Auth check failed' },
+          };
+        }
+      }
+
+      // Step 3: Calculate latency
+      const latency = Date.now() - startTime;
+
+      return {
+        success: true,
+        data: { available: true, latency },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        msg: error instanceof Error ? error.message : 'Unknown error',
+        data: { available: false, error: error instanceof Error ? error.message : 'Unknown error' },
+      };
+    }
+  });
 }

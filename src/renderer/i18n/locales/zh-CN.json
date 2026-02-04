@@ -1141,5 +1141,22 @@
   "guid.agentFallbackNotice": "{{original}} 不可用，已自动切换到 {{fallback}}。",
   "guid.noAgentAvailable": "没有可用的 Main Agent。请登录 Google 或安装 Claude/Codex CLI。是否前往设置？",
   "guid.noAgentAvailableShort": "没有可用的 Main Agent。点击配置。",
-  "guid.agentTabAutoSwitch": "模型不兼容 Gemini，已自动切换到 {{fallback}}"
+  "guid.agentTabAutoSwitch": "模型不兼容 Gemini，已自动切换到 {{fallback}}",
+  "agent": {
+    "health": {
+      "detectedError": "检测到当前 Agent ({{agent}}) 响应异常",
+      "autoSwitching": "。系统将自动尝试切换线路。",
+      "evaluating": "正在评估网络延迟与模型可用性...",
+      "checking": "检查 {{agent}} 节点...",
+      "foundBest": "已找到最佳替代方案",
+      "recommendSwitch": "推荐切换",
+      "available": "可用",
+      "lowLatency": "低延迟",
+      "mediumLatency": "中等延迟",
+      "highLatency": "高延迟",
+      "bestMatch": "最佳匹配",
+      "noAvailable": "当前环境没有可用 agent",
+      "checkConfig": "请检查配置或稍后重试"
+    }
+  }
 }

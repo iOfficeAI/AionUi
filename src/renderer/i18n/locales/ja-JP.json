@@ -1021,5 +1021,22 @@
   "guid.agentFallbackNotice": "{{original}} が利用できないため、{{fallback}} に自動切り替えしました。",
   "guid.noAgentAvailable": "利用可能なMain Agentがありません。Googleにログインするか、Claude/Codex CLIをインストールしてください。設定に移動しますか？",
   "guid.noAgentAvailableShort": "利用可能なMain Agentがありません。クリックして設定。",
-  "guid.agentTabAutoSwitch": "モデルがGeminiと互換性がないため、{{fallback}}に自動切り替えしました"
+  "guid.agentTabAutoSwitch": "モデルがGeminiと互換性がないため、{{fallback}}に自動切り替えしました",
+  "agent": {
+    "health": {
+      "detectedError": "現在のエージェント ({{agent}}) の応答エラーを検出しました",
+      "autoSwitching": "。システムは自動的に切り替えを試みます。",
+      "evaluating": "ネットワーク遅延とモデルの可用性を評価中...",
+      "checking": "{{agent}} エンドポイントを確認中...",
+      "foundBest": "最適な代替案を見つけました",
+      "recommendSwitch": "推奨",
+      "available": "利用可能",
+      "lowLatency": "低遅延",
+      "mediumLatency": "中遅延",
+      "highLatency": "高遅延",
+      "bestMatch": "最適一致",
+      "noAvailable": "現在の環境で利用可能なエージェントがありません",
+      "checkConfig": "設定を確認するか、後でもう一度お試しください"
+    }
+  }
 }

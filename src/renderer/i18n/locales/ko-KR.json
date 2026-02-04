@@ -1074,7 +1074,24 @@
   "cron.drawer.save": "저장",
   "cron.drawer.saveSuccess": "저장되었습니다",
   "guid.agentFallbackNotice": "{{original}}을(를) 사용할 수 없어 {{fallback}}으로 자동 전환되었습니다.",
-  "guid.noAgentAvailable": "사용 가능한 Main Agent가 없습니다. Google에 로그인하거나 Claude/Codex CLI를 설치하세요. 설정으로 이동하시겠습니까?",
+  "guid.noAgentAvailable": "사용 가용한 Main Agent가 없습니다. Google에 로그인하거나 Claude/Codex CLI를 설치하세요. 설정으로 이동하시겠습니까?",
   "guid.noAgentAvailableShort": "사용 가능한 Main Agent가 없습니다. 클릭하여 설정하세요.",
-  "guid.agentTabAutoSwitch": "모델이 Gemini와 호환되지 않아 {{fallback}}으로 자동 전환되었습니다"
+  "guid.agentTabAutoSwitch": "모델이 Gemini와 호환되지 않아 {{fallback}}으로 자동 전환되었습니다",
+  "agent": {
+    "health": {
+      "detectedError": "현재 에이전트 ({{agent}})에서 오류 감지됨",
+      "autoSwitching": ". 시스템이 자동으로 전환을 시도합니다.",
+      "evaluating": "네트워크 지연 및 모델 가용성 평가 중...",
+      "checking": "{{agent}} 엔드포인트 확인 중...",
+      "foundBest": "최적의 대안을 찾았습니다",
+      "recommendSwitch": "추천",
+      "available": "사용 가능",
+      "lowLatency": "낮은 지연",
+      "mediumLatency": "중간 지연",
+      "highLatency": "높은 지연",
+      "bestMatch": "최적 일치",
+      "noAvailable": "현재 환경에서 사용 가능한 에이전트 없음",
+      "checkConfig": "설정을 확인하거나 나중에 다시 시도하세요"
+    }
+  }
 }
