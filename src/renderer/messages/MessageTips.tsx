@@ -5,7 +5,7 @@
  */
 
 import type { IMessageTips } from '@/common/chatLib';
-import { Attention, CheckOne } from '@icon-park/react';
+import { Attention, CheckOne, CloseOne, Loading } from '@icon-park/react';
 import { theme } from '@office-ai/platform';
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -13,9 +13,8 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import MarkdownView from '../components/Markdown';
 import CollapsibleContent from '../components/CollapsibleContent';
-import AgentHealthCheckModal from '../components/AgentHealthCheckModal';
 import { ipcBridge } from '@/common';
-import { Button, Message } from '@arco-design/web-react';
+import { Button, Message, Progress } from '@arco-design/web-react';
 import type { AcpBackendAll } from '@/types/acpTypes';
 import ClaudeLogo from '@/renderer/assets/logos/claude.svg';
 import CodexLogo from '@/renderer/assets/logos/codex.svg';
@@ -59,6 +58,15 @@ const AGENT_NAMES: Partial<Record<AcpBackendAll, string>> = {
   auggie: 'Auggie',
   kimi: 'Kimi',
 };
+
+interface AgentCheckResult {
+  backend: AcpBackendAll;
+  name: string;
+  available: boolean;
+  latency?: number;
+  error?: string;
+  checking: boolean;
+}
 
 const useFormatContent = (content: string) => {
   return useMemo(() => {
@@ -216,8 +224,12 @@ const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
   const { json, data } = useFormatContent(content);
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [showHealthCheckModal, setShowHealthCheckModal] = useState(false);
+  const [showHealthCheck, setShowHealthCheck] = useState(false);
   const [currentAgent, setCurrentAgent] = useState<AcpBackendAll | 'gemini'>('gemini');
+  const [checkResults, setCheckResults] = useState<AgentCheckResult[]>([]);
+  const [checking, setChecking] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [bestAgent, setBestAgent] = useState<AgentCheckResult | null>(null);
 
   // 检测是否是 API 错误（适合显示 agent 选择器）
   const isApiError = useMemo(() => {
@@ -253,9 +265,9 @@ const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
     }
   });
 
-  // 当检测到错误时，将当前使用的 agent 添加到排除列表，并打开健康检查弹窗
+  // 当检测到错误时，将当前使用的 agent 添加到排除列表，并开始健康检查
   useEffect(() => {
-    if (isApiError && message.conversation_id) {
+    if (isApiError && message.conversation_id && !showHealthCheck) {
       // 检测当前会话类型，如果是 gemini 则排除它；如果是 acp，排除对应的 backend
       void ipcBridge.conversation.get.invoke({ id: message.conversation_id }).then((conv) => {
         if (conv?.type === 'gemini') {
@@ -265,21 +277,108 @@ const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
             localStorage.setItem(excludedAgentsKey, JSON.stringify(newExcluded));
             return newExcluded;
           });
-          setShowHealthCheckModal(true);
+          setShowHealthCheck(true);
+          void startHealthCheck('gemini');
         } else if (conv?.type === 'acp' && conv.extra?.backend) {
-          setCurrentAgent(conv.extra.backend as AcpBackendAll);
+          const backend = conv.extra.backend as AcpBackendAll;
+          setCurrentAgent(backend);
           setExcludedAgents((prev) => {
-            const newExcluded = [...new Set([...prev, conv.extra.backend as AcpBackendAll])];
+            const newExcluded = [...new Set([...prev, backend])];
             localStorage.setItem(excludedAgentsKey, JSON.stringify(newExcluded));
             return newExcluded;
           });
-          setShowHealthCheckModal(true);
+          setShowHealthCheck(true);
+          void startHealthCheck(backend);
         }
       });
     }
-  }, [isApiError, message.conversation_id, excludedAgentsKey]);
+  }, [isApiError, message.conversation_id, excludedAgentsKey, showHealthCheck]);
 
-  // Handle agent selection from health check modal
+  // Start health check for available agents
+  const startHealthCheck = useCallback(
+    async (failedAgent: AcpBackendAll | 'gemini') => {
+      setChecking(true);
+      setProgress(0);
+      setCheckResults([]);
+      setBestAgent(null);
+
+      try {
+        const result = await ipcBridge.acpConversation.getAvailableAgents.invoke();
+        if (!result.success || !result.data) {
+          setChecking(false);
+          return;
+        }
+
+        const agentsToCheck = result.data
+          .filter((agent) => agent.backend !== 'custom' && !excludedAgents.includes(agent.backend) && agent.backend !== failedAgent && AGENT_LOGOS[agent.backend])
+          .map((agent) => ({
+            backend: agent.backend as AcpBackendAll,
+            name: AGENT_NAMES[agent.backend] || agent.name,
+            available: false,
+            checking: true,
+          }));
+
+        if (agentsToCheck.length === 0) {
+          setChecking(false);
+          return;
+        }
+
+        setCheckResults(agentsToCheck);
+
+        const total = agentsToCheck.length;
+        let completed = 0;
+        const results: AgentCheckResult[] = [];
+
+        for (const agent of agentsToCheck) {
+          const startTime = Date.now();
+
+          try {
+            const healthResult = await ipcBridge.acpConversation.checkAgentHealth.invoke({ backend: agent.backend });
+            const latency = Date.now() - startTime;
+
+            const result: AgentCheckResult = {
+              ...agent,
+              available: healthResult.success === true,
+              latency: healthResult.success ? latency : undefined,
+              error: healthResult.success ? undefined : healthResult.msg,
+              checking: false,
+            };
+
+            results.push(result);
+          } catch (error) {
+            results.push({
+              ...agent,
+              available: false,
+              error: error instanceof Error ? error.message : 'Unknown error',
+              checking: false,
+            });
+          }
+
+          completed++;
+          setProgress(Math.round((completed / total) * 100));
+          setCheckResults([...results, ...agentsToCheck.slice(completed).map((a) => ({ ...a, checking: true }))]);
+        }
+
+        const availableAgents = results.filter((r) => r.available);
+        if (availableAgents.length > 0) {
+          const best = availableAgents.reduce((prev, current) => {
+            if (!prev.latency) return current;
+            if (!current.latency) return prev;
+            return current.latency < prev.latency ? current : prev;
+          });
+          setBestAgent(best);
+        }
+
+        setChecking(false);
+      } catch (error) {
+        console.error('Health check failed:', error);
+        setChecking(false);
+      }
+    },
+    [excludedAgents]
+  );
+
+  // Handle agent selection from health check card
   const handleSelectAgent = useCallback(
     async (agentType: AcpBackendAll) => {
       if (!message.conversation_id) return;
@@ -353,7 +452,7 @@ const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
         const agentName = AGENT_NAMES[agentType] || agentType;
         Message.success(t('conversation.chat.switchedToAgent', { defaultValue: `Switched to ${agentName}`, agent: agentName }));
 
-        setShowHealthCheckModal(false);
+        setShowHealthCheck(false);
         void navigate(`/conversation/${newConversation.id}`);
       } catch (error) {
         console.error('Failed to switch agent:', error);
@@ -361,6 +460,17 @@ const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
       }
     },
     [message.conversation_id, navigate, t]
+  );
+
+  // Get latency label based on latency value
+  const getLatencyLabel = useCallback(
+    (latency?: number): string => {
+      if (!latency) return '';
+      if (latency < 1000) return t('agent.health.lowLatency', { defaultValue: 'Low Latency' });
+      if (latency < 3000) return t('agent.health.mediumLatency', { defaultValue: 'Medium Latency' });
+      return t('agent.health.highLatency', { defaultValue: 'High Latency' });
+    },
+    [t]
   );
 
   // Handle structured error messages with error codes
@@ -392,14 +502,120 @@ const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
 
   const displayContent = getDisplayContent(content);
 
+  const currentAgentName = AGENT_NAMES[currentAgent as AcpBackendAll] || currentAgent;
+
   if (json)
     return (
       <div className=' p-x-12px p-y-8px w-full max-w-100% min-w-0'>
         <CollapsibleContent maxHeight={300} defaultCollapsed={true}>
           <MarkdownView>{`\`\`\`json\n${JSON.stringify(data, null, 2)}\n\`\`\``}</MarkdownView>
         </CollapsibleContent>
-        {isApiError && conversationId && <AgentSelector conversationId={conversationId} excludeAgents={excludedAgents} />}
-        {isApiError && conversationId && <AgentHealthCheckModal visible={showHealthCheckModal} currentAgent={currentAgent} errorMessage={displayContent} excludedAgents={excludedAgents} onClose={() => setShowHealthCheckModal(false)} onSelectAgent={handleSelectAgent} />}
+        {isApiError && conversationId && !showHealthCheck && <AgentSelector conversationId={conversationId} excludeAgents={excludedAgents} />}
+        {isApiError && conversationId && showHealthCheck && (
+          <div className='m-t-12px border-1 border-solid border-border-2 rounded-8px p-16px bg-fill-1'>
+            {/* Header */}
+            <div className='flex items-center gap-8px mb-12px'>
+              <span className='text-20px'>⚠️</span>
+              <div className='flex-1'>
+                <div className='text-14px font-medium text-t-primary'>{t('agent.health.detectedError', { defaultValue: '检测到当前 Agent ({{agent}}) 响应异常', agent: currentAgentName })}</div>
+                <div className='text-12px text-t-secondary m-t-4px'>{t('agent.health.autoSwitching', { defaultValue: '系统将自动尝试切换线路' })}</div>
+              </div>
+            </div>
+
+            {/* Checking Phase */}
+            {checking && (
+              <div>
+                <div className='flex items-center gap-6px mb-8px'>
+                  <Loading theme='outline' size={14} className='animate-spin' />
+                  <span className='text-12px text-t-secondary'>{t('agent.health.evaluating', { defaultValue: '正在评估网络延迟与模型可用性...' })}</span>
+                </div>
+
+                {/* Check results list with fixed height scrolling */}
+                <div className='max-h-120px overflow-y-auto mb-10px space-y-6px'>
+                  {checkResults.map((result) => (
+                    <div key={result.backend} className='flex items-center gap-6px text-12px'>
+                      {result.checking ? <Loading theme='outline' size={12} className='animate-spin text-t-tertiary' /> : result.available ? <CheckOne theme='filled' size={12} fill='var(--color-success-6)' /> : <CloseOne theme='filled' size={12} fill='var(--color-danger-6)' />}
+                      <span className='text-t-secondary'>{t('agent.health.checking', { defaultValue: '检查 {{agent}} 节点...', agent: result.name })}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Progress bar */}
+                <Progress percent={progress} size='small' status={progress === 100 ? 'success' : 'normal'} />
+              </div>
+            )}
+
+            {/* Results Phase */}
+            {!checking && bestAgent && (
+              <div>
+                <div className='flex items-center gap-6px mb-10px'>
+                  <span className='text-16px'>⚡</span>
+                  <span className='text-13px font-medium text-t-primary'>{t('agent.health.foundBest', { defaultValue: '已找到最佳替代方案' })}</span>
+                </div>
+
+                {/* Available agents list with fixed height scrolling */}
+                <div className='max-h-160px overflow-y-auto space-y-8px'>
+                  {/* Best agent card */}
+                  <div className='bg-primary-1 border-1 border-primary-3 rounded-6px p-12px cursor-pointer hover:bg-primary-2 transition-colors' onClick={() => handleSelectAgent(bestAgent.backend)}>
+                    <div className='flex items-center justify-between'>
+                      <div className='flex items-center gap-10px'>
+                        {AGENT_LOGOS[bestAgent.backend] && <img src={AGENT_LOGOS[bestAgent.backend]} alt={bestAgent.name} className='w-20px h-20px' />}
+                        <div>
+                          <div className='text-13px font-medium text-t-primary'>{bestAgent.name}</div>
+                          <div className='flex items-center gap-6px text-11px'>
+                            <span className='flex items-center gap-3px text-success'>
+                              <span className='w-5px h-5px rounded-full bg-success'></span>
+                              {t('agent.health.available', { defaultValue: 'Available' })}
+                            </span>
+                            {bestAgent.latency && (
+                              <>
+                                <span className='text-t-tertiary'>·</span>
+                                <span className='text-t-secondary'>{getLatencyLabel(bestAgent.latency)}</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <span className='px-8px py-2px bg-primary text-white text-11px font-medium rounded-full'>{t('agent.health.bestMatch', { defaultValue: 'Best Match' })}</span>
+                    </div>
+                  </div>
+
+                  {/* Other available agents */}
+                  {checkResults
+                    .filter((r) => r.available && r.backend !== bestAgent.backend)
+                    .map((result) => (
+                      <div key={result.backend} className='bg-fill-2 rounded-6px p-10px cursor-pointer hover:bg-fill-3 transition-colors' onClick={() => handleSelectAgent(result.backend)}>
+                        <div className='flex items-center gap-10px'>
+                          {AGENT_LOGOS[result.backend] && <img src={AGENT_LOGOS[result.backend]} alt={result.name} className='w-18px h-18px' />}
+                          <div>
+                            <div className='text-12px font-medium text-t-primary'>{result.name}</div>
+                            <div className='flex items-center gap-6px text-11px'>
+                              <span className='text-t-secondary'>{t('agent.health.available', { defaultValue: 'Available' })}</span>
+                              {result.latency && (
+                                <>
+                                  <span className='text-t-tertiary'>·</span>
+                                  <span className='text-t-tertiary'>{result.latency}ms</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              </div>
+            )}
+
+            {/* No available agents */}
+            {!checking && !bestAgent && checkResults.length > 0 && (
+              <div className='text-center py-16px'>
+                <div className='text-32px mb-6px'>😔</div>
+                <div className='text-13px font-medium text-t-primary mb-6px'>{t('agent.health.noAvailable', { defaultValue: '当前环境没有可用 agent' })}</div>
+                <div className='text-12px text-t-secondary'>{t('agent.health.checkConfig', { defaultValue: '请检查配置或稍后重试' })}</div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     );
   return (
@@ -415,8 +631,112 @@ const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
           ></span>
         </CollapsibleContent>
       </div>
-      {isApiError && conversationId && <AgentSelector conversationId={conversationId} excludeAgents={excludedAgents} />}
-      {isApiError && conversationId && <AgentHealthCheckModal visible={showHealthCheckModal} currentAgent={currentAgent} errorMessage={displayContent} excludedAgents={excludedAgents} onClose={() => setShowHealthCheckModal(false)} onSelectAgent={handleSelectAgent} />}
+      {isApiError && conversationId && !showHealthCheck && <AgentSelector conversationId={conversationId} excludeAgents={excludedAgents} />}
+      {isApiError && conversationId && showHealthCheck && (
+        <div className='m-t-12px border-1 border-solid border-border-2 rounded-8px p-16px bg-fill-1'>
+          {/* Header */}
+          <div className='flex items-center gap-8px mb-12px'>
+            <span className='text-20px'>⚠️</span>
+            <div className='flex-1'>
+              <div className='text-14px font-medium text-t-primary'>{t('agent.health.detectedError', { defaultValue: '检测到当前 Agent ({{agent}}) 响应异常', agent: currentAgentName })}</div>
+              <div className='text-12px text-t-secondary m-t-4px'>{t('agent.health.autoSwitching', { defaultValue: '系统将自动尝试切换线路' })}</div>
+            </div>
+          </div>
+
+          {/* Checking Phase */}
+          {checking && (
+            <div>
+              <div className='flex items-center gap-6px mb-8px'>
+                <Loading theme='outline' size={14} className='animate-spin' />
+                <span className='text-12px text-t-secondary'>{t('agent.health.evaluating', { defaultValue: '正在评估网络延迟与模型可用性...' })}</span>
+              </div>
+
+              {/* Check results list with fixed height scrolling */}
+              <div className='max-h-120px overflow-y-auto mb-10px space-y-6px'>
+                {checkResults.map((result) => (
+                  <div key={result.backend} className='flex items-center gap-6px text-12px'>
+                    {result.checking ? <Loading theme='outline' size={12} className='animate-spin text-t-tertiary' /> : result.available ? <CheckOne theme='filled' size={12} fill='var(--color-success-6)' /> : <CloseOne theme='filled' size={12} fill='var(--color-danger-6)' />}
+                    <span className='text-t-secondary'>{t('agent.health.checking', { defaultValue: '检查 {{agent}} 节点...', agent: result.name })}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Progress bar */}
+              <Progress percent={progress} size='small' status={progress === 100 ? 'success' : 'normal'} />
+            </div>
+          )}
+
+          {/* Results Phase */}
+          {!checking && bestAgent && (
+            <div>
+              <div className='flex items-center gap-6px mb-10px'>
+                <span className='text-16px'>⚡</span>
+                <span className='text-13px font-medium text-t-primary'>{t('agent.health.foundBest', { defaultValue: '已找到最佳替代方案' })}</span>
+              </div>
+
+              {/* Available agents list with fixed height scrolling */}
+              <div className='max-h-160px overflow-y-auto space-y-8px'>
+                {/* Best agent card */}
+                <div className='bg-primary-1 border-1 border-primary-3 rounded-6px p-12px cursor-pointer hover:bg-primary-2 transition-colors' onClick={() => handleSelectAgent(bestAgent.backend)}>
+                  <div className='flex items-center justify-between'>
+                    <div className='flex items-center gap-10px'>
+                      {AGENT_LOGOS[bestAgent.backend] && <img src={AGENT_LOGOS[bestAgent.backend]} alt={bestAgent.name} className='w-20px h-20px' />}
+                      <div>
+                        <div className='text-13px font-medium text-t-primary'>{bestAgent.name}</div>
+                        <div className='flex items-center gap-6px text-11px'>
+                          <span className='flex items-center gap-3px text-success'>
+                            <span className='w-5px h-5px rounded-full bg-success'></span>
+                            {t('agent.health.available', { defaultValue: 'Available' })}
+                          </span>
+                          {bestAgent.latency && (
+                            <>
+                              <span className='text-t-tertiary'>·</span>
+                              <span className='text-t-secondary'>{getLatencyLabel(bestAgent.latency)}</span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <span className='px-8px py-2px bg-primary text-white text-11px font-medium rounded-full'>{t('agent.health.bestMatch', { defaultValue: 'Best Match' })}</span>
+                  </div>
+                </div>
+
+                {/* Other available agents */}
+                {checkResults
+                  .filter((r) => r.available && r.backend !== bestAgent.backend)
+                  .map((result) => (
+                    <div key={result.backend} className='bg-fill-2 rounded-6px p-10px cursor-pointer hover:bg-fill-3 transition-colors' onClick={() => handleSelectAgent(result.backend)}>
+                      <div className='flex items-center gap-10px'>
+                        {AGENT_LOGOS[result.backend] && <img src={AGENT_LOGOS[result.backend]} alt={result.name} className='w-18px h-18px' />}
+                        <div>
+                          <div className='text-12px font-medium text-t-primary'>{result.name}</div>
+                          <div className='flex items-center gap-6px text-11px'>
+                            <span className='text-t-secondary'>{t('agent.health.available', { defaultValue: 'Available' })}</span>
+                            {result.latency && (
+                              <>
+                                <span className='text-t-tertiary'>·</span>
+                                <span className='text-t-tertiary'>{result.latency}ms</span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          )}
+
+          {/* No available agents */}
+          {!checking && !bestAgent && checkResults.length > 0 && (
+            <div className='text-center py-16px'>
+              <div className='text-32px mb-6px'>😔</div>
+              <div className='text-13px font-medium text-t-primary mb-6px'>{t('agent.health.noAvailable', { defaultValue: '当前环境没有可用 agent' })}</div>
+              <div className='text-12px text-t-secondary'>{t('agent.health.checkConfig', { defaultValue: '请检查配置或稍后重试' })}</div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
