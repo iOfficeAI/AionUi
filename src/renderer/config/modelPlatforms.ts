@@ -32,6 +32,7 @@ import ModelScopeLogo from '@/renderer/assets/logos/modelscope.svg';
 import InfiniAILogo from '@/renderer/assets/logos/infiniai.svg';
 import CtyunLogo from '@/renderer/assets/logos/ctyun.svg';
 import StepFunLogo from '@/renderer/assets/logos/stepfun.svg';
+import MiniMaxLogo from '@/renderer/assets/logos/minimax.png';
 
 /**
  * 平台类型
@@ -80,6 +81,7 @@ export const MODEL_PLATFORMS: PlatformConfig[] = [
   { name: 'OpenAI', value: 'OpenAI', logo: OpenAILogo, platform: 'custom', baseUrl: 'https://api.openai.com/v1' },
   { name: 'Anthropic', value: 'Anthropic', logo: AnthropicLogo, platform: 'anthropic', baseUrl: 'https://api.anthropic.com' },
   { name: 'DeepSeek', value: 'DeepSeek', logo: DeepSeekLogo, platform: 'custom', baseUrl: 'https://api.deepseek.com/v1' },
+  { name: 'MiniMax', value: 'MiniMax', logo: MiniMaxLogo, platform: 'custom', baseUrl: 'https://api.minimaxi.com/v1' },
   { name: 'OpenRouter', value: 'OpenRouter', logo: OpenRouterLogo, platform: 'custom', baseUrl: 'https://openrouter.ai/api/v1' },
   { name: 'Dashscope', value: 'Dashscope', logo: QwenLogo, platform: 'custom', baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1' },
   { name: 'SiliconFlow', value: 'SiliconFlow', logo: SiliconFlowLogo, platform: 'custom', baseUrl: 'https://api.siliconflow.cn/v1' },

@@ -47,11 +47,55 @@ export function initModelBridge(): void {
       return { success: true, data: { mode: vertexAIModels } };
     }
 
-    // 如果是 Anthropic/Claude 平台，直接返回 Anthropic 支持的模型列表
-    // For Anthropic/Claude platform, return the supported model list directly
+    // 如果是 MiniMax 平台，直接返回 MiniMax 支持的模型列表
+    // MiniMax does not provide /v1/models endpoint (verified 2026-02), return hardcoded list
+    // For MiniMax platform, return the supported model list directly
+    if (base_url?.includes('minimaxi.com') || base_url?.includes('minimax.io')) {
+      console.log('Using MiniMax model list (text models only)');
+      const minimaxModels = [
+        // Text/Chat Models - For conversational AI use
+        'MiniMax-M2.1', // 230B params, 10B active - Best for programming & reasoning (~60 tokens/sec)
+        'MiniMax-M2.1-lightning', // Same as M2.1 but faster (~100 tokens/sec)
+        'MiniMax-M2', // 200k context, 128k output - Complex reasoning & function calling
+        'M2-her', // Role-play & character-driven conversations
+      ];
+      return { success: true, data: { mode: minimaxModels } };
+    }
+
+    // 如果是 Anthropic/Claude 平台，使用 Anthropic API 获取模型列表
+    // For Anthropic/Claude platform, use Anthropic API to fetch models
     if (platform?.includes('anthropic') || platform?.includes('claude')) {
-      const anthropicModels = ['claude-sonnet-4-20250514', 'claude-opus-4-20250514', 'claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022', 'claude-3-opus-20240229', 'claude-3-sonnet-20240229', 'claude-3-haiku-20240307'];
-      return { success: true, data: { mode: anthropicModels } };
+      try {
+        const anthropicUrl = base_url ? `${base_url}/v1/models` : 'https://api.anthropic.com/v1/models';
+
+        const response = await fetch(anthropicUrl, {
+          headers: {
+            'x-api-key': actualApiKey,
+            'anthropic-version': '2023-06-01',
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+
+        if (!data.data || !Array.isArray(data.data)) {
+          throw new Error('Invalid response format');
+        }
+
+        // Extract model IDs from response
+        const modelList = data.data.map((model: { id: string }) => model.id);
+
+        return { success: true, data: { mode: modelList } };
+      } catch (e: unknown) {
+        // Fall back to default model list on API failure
+        const errorMessage = e instanceof Error ? e.message : String(e);
+        console.warn('Failed to fetch Anthropic models via API, falling back to default list:', errorMessage);
+        const defaultAnthropicModels = ['claude-sonnet-4-20250514', 'claude-opus-4-20250514', 'claude-3-7-sonnet-20250219', 'claude-3-haiku-20240307'];
+        return { success: true, data: { mode: defaultAnthropicModels } };
+      }
     }
 
     // 如果是 Gemini 平台，使用 Gemini API 协议
