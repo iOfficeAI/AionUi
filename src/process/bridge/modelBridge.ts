@@ -50,7 +50,7 @@ export function initModelBridge(): void {
     // 如果是 MiniMax 平台，直接返回 MiniMax 支持的模型列表
     // MiniMax does not provide /v1/models endpoint (verified 2026-02), return hardcoded list
     // For MiniMax platform, return the supported model list directly
-    if (base_url?.includes('minimaxi.com') || base_url?.includes('minimax.io')) {
+    if (base_url && isMiniMaxAPI(base_url)) {
       console.log('Using MiniMax model list (text models only)');
       const minimaxModels = [
         // Text/Chat Models - For conversational AI use
@@ -761,6 +761,25 @@ async function testMultipleKeys(
     invalid: results.filter((r) => !r.valid).length,
     details: results,
   };
+}
+
+/**
+ * 检测是否为 MiniMax API
+ * Check if it's MiniMax API
+ *
+ * 使用 URL 解析确保只匹配真正的 MiniMax 域名，防止 URL 注入攻击
+ * Use URL parsing to ensure only real MiniMax domains match, preventing URL injection attacks
+ */
+function isMiniMaxAPI(baseUrl: string): boolean {
+  try {
+    const url = new URL(baseUrl);
+    const hostname = url.hostname.toLowerCase();
+    // 精确匹配 minimaxi.com、minimax.io 或其子域名
+    // Exact match minimaxi.com, minimax.io or their subdomains
+    return hostname === 'minimaxi.com' || hostname.endsWith('.minimaxi.com') || hostname === 'minimax.io' || hostname.endsWith('.minimax.io');
+  } catch {
+    return false;
+  }
 }
 
 /**
