@@ -462,17 +462,6 @@ const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
     [message.conversation_id, navigate, t]
   );
 
-  // Get latency label based on latency value
-  const getLatencyLabel = useCallback(
-    (latency?: number): string => {
-      if (!latency) return '';
-      if (latency < 1000) return t('agent.health.lowLatency', { defaultValue: 'Low Latency' });
-      if (latency < 3000) return t('agent.health.mediumLatency', { defaultValue: 'Medium Latency' });
-      return t('agent.health.highLatency', { defaultValue: 'High Latency' });
-    },
-    [t]
-  );
-
   // Handle structured error messages with error codes
   const getDisplayContent = (content: string): string => {
     if (content.startsWith('ERROR_')) {
@@ -546,62 +535,51 @@ const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
             )}
 
             {/* Results Phase */}
-            {!checking && bestAgent && (
+            {!checking && checkResults.filter((r) => r.available).length > 0 && (
               <div>
                 <div className='flex items-center gap-6px mb-10px'>
                   <span className='text-16px'>⚡</span>
                   <span className='text-13px font-medium text-t-primary'>{t('agent.health.foundBest', { defaultValue: '已找到最佳替代方案' })}</span>
                 </div>
 
-                {/* Available agents list with fixed height scrolling */}
+                {/* All available agents list with fixed height scrolling */}
                 <div className='max-h-160px overflow-y-auto space-y-8px'>
-                  {/* Best agent card */}
-                  <div className='bg-primary-1 border-1 border-primary-3 rounded-6px p-12px cursor-pointer hover:bg-primary-2 transition-colors' onClick={() => handleSelectAgent(bestAgent.backend)}>
-                    <div className='flex items-center justify-between'>
-                      <div className='flex items-center gap-10px'>
-                        {AGENT_LOGOS[bestAgent.backend] && <img src={AGENT_LOGOS[bestAgent.backend]} alt={bestAgent.name} className='w-20px h-20px' />}
-                        <div>
-                          <div className='text-13px font-medium text-t-primary'>{bestAgent.name}</div>
-                          <div className='flex items-center gap-6px text-11px'>
-                            <span className='flex items-center gap-3px text-success'>
-                              <span className='w-5px h-5px rounded-full bg-success'></span>
-                              {t('agent.health.available', { defaultValue: 'Available' })}
-                            </span>
-                            {bestAgent.latency && (
-                              <>
-                                <span className='text-t-tertiary'>·</span>
-                                <span className='text-t-secondary'>{getLatencyLabel(bestAgent.latency)}</span>
-                              </>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <span className='px-8px py-2px bg-primary text-white text-11px font-medium rounded-full'>{t('agent.health.bestMatch', { defaultValue: 'Best Match' })}</span>
-                    </div>
-                  </div>
-
-                  {/* Other available agents */}
                   {checkResults
-                    .filter((r) => r.available && r.backend !== bestAgent.backend)
-                    .map((result) => (
-                      <div key={result.backend} className='bg-fill-2 rounded-6px p-10px cursor-pointer hover:bg-fill-3 transition-colors' onClick={() => handleSelectAgent(result.backend)}>
-                        <div className='flex items-center gap-10px'>
-                          {AGENT_LOGOS[result.backend] && <img src={AGENT_LOGOS[result.backend]} alt={result.name} className='w-18px h-18px' />}
-                          <div>
-                            <div className='text-12px font-medium text-t-primary'>{result.name}</div>
-                            <div className='flex items-center gap-6px text-11px'>
-                              <span className='text-t-secondary'>{t('agent.health.available', { defaultValue: 'Available' })}</span>
-                              {result.latency && (
-                                <>
-                                  <span className='text-t-tertiary'>·</span>
-                                  <span className='text-t-tertiary'>{result.latency}ms</span>
-                                </>
-                              )}
+                    .filter((r) => r.available)
+                    .sort((a, b) => {
+                      // Sort by latency (lowest first)
+                      if (!a.latency) return 1;
+                      if (!b.latency) return -1;
+                      return a.latency - b.latency;
+                    })
+                    .map((result) => {
+                      const isBest = bestAgent?.backend === result.backend;
+                      return (
+                        <div key={result.backend} className={classNames('rounded-6px p-12px cursor-pointer transition-colors', isBest ? 'bg-primary-1 border-1 border-primary-3 hover:bg-primary-2' : 'bg-fill-2 border-1 border-transparent hover:bg-fill-3')} onClick={() => handleSelectAgent(result.backend)}>
+                          <div className='flex items-center justify-between'>
+                            <div className='flex items-center gap-10px'>
+                              {AGENT_LOGOS[result.backend] && <img src={AGENT_LOGOS[result.backend]} alt={result.name} className='w-20px h-20px' />}
+                              <div>
+                                <div className='text-13px font-medium text-t-primary'>{result.name}</div>
+                                <div className='flex items-center gap-6px text-11px'>
+                                  <span className='flex items-center gap-3px text-success'>
+                                    <span className='w-5px h-5px rounded-full bg-success'></span>
+                                    {t('agent.health.available', { defaultValue: 'Available' })}
+                                  </span>
+                                  {result.latency && (
+                                    <>
+                                      <span className='text-t-tertiary'>·</span>
+                                      <span className='text-t-secondary'>{result.latency}ms</span>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
                             </div>
+                            {isBest && <span className='px-8px py-2px bg-primary text-white text-11px font-medium rounded-full'>{t('agent.health.bestMatch', { defaultValue: 'Best Match' })}</span>}
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                 </div>
               </div>
             )}
@@ -667,62 +645,51 @@ const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
           )}
 
           {/* Results Phase */}
-          {!checking && bestAgent && (
+          {!checking && checkResults.filter((r) => r.available).length > 0 && (
             <div>
               <div className='flex items-center gap-6px mb-10px'>
                 <span className='text-16px'>⚡</span>
                 <span className='text-13px font-medium text-t-primary'>{t('agent.health.foundBest', { defaultValue: '已找到最佳替代方案' })}</span>
               </div>
 
-              {/* Available agents list with fixed height scrolling */}
+              {/* All available agents list with fixed height scrolling */}
               <div className='max-h-160px overflow-y-auto space-y-8px'>
-                {/* Best agent card */}
-                <div className='bg-primary-1 border-1 border-primary-3 rounded-6px p-12px cursor-pointer hover:bg-primary-2 transition-colors' onClick={() => handleSelectAgent(bestAgent.backend)}>
-                  <div className='flex items-center justify-between'>
-                    <div className='flex items-center gap-10px'>
-                      {AGENT_LOGOS[bestAgent.backend] && <img src={AGENT_LOGOS[bestAgent.backend]} alt={bestAgent.name} className='w-20px h-20px' />}
-                      <div>
-                        <div className='text-13px font-medium text-t-primary'>{bestAgent.name}</div>
-                        <div className='flex items-center gap-6px text-11px'>
-                          <span className='flex items-center gap-3px text-success'>
-                            <span className='w-5px h-5px rounded-full bg-success'></span>
-                            {t('agent.health.available', { defaultValue: 'Available' })}
-                          </span>
-                          {bestAgent.latency && (
-                            <>
-                              <span className='text-t-tertiary'>·</span>
-                              <span className='text-t-secondary'>{getLatencyLabel(bestAgent.latency)}</span>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <span className='px-8px py-2px bg-primary text-white text-11px font-medium rounded-full'>{t('agent.health.bestMatch', { defaultValue: 'Best Match' })}</span>
-                  </div>
-                </div>
-
-                {/* Other available agents */}
                 {checkResults
-                  .filter((r) => r.available && r.backend !== bestAgent.backend)
-                  .map((result) => (
-                    <div key={result.backend} className='bg-fill-2 rounded-6px p-10px cursor-pointer hover:bg-fill-3 transition-colors' onClick={() => handleSelectAgent(result.backend)}>
-                      <div className='flex items-center gap-10px'>
-                        {AGENT_LOGOS[result.backend] && <img src={AGENT_LOGOS[result.backend]} alt={result.name} className='w-18px h-18px' />}
-                        <div>
-                          <div className='text-12px font-medium text-t-primary'>{result.name}</div>
-                          <div className='flex items-center gap-6px text-11px'>
-                            <span className='text-t-secondary'>{t('agent.health.available', { defaultValue: 'Available' })}</span>
-                            {result.latency && (
-                              <>
-                                <span className='text-t-tertiary'>·</span>
-                                <span className='text-t-tertiary'>{result.latency}ms</span>
-                              </>
-                            )}
+                  .filter((r) => r.available)
+                  .sort((a, b) => {
+                    // Sort by latency (lowest first)
+                    if (!a.latency) return 1;
+                    if (!b.latency) return -1;
+                    return a.latency - b.latency;
+                  })
+                  .map((result) => {
+                    const isBest = bestAgent?.backend === result.backend;
+                    return (
+                      <div key={result.backend} className={classNames('rounded-6px p-12px cursor-pointer transition-colors', isBest ? 'bg-primary-1 border-1 border-primary-3 hover:bg-primary-2' : 'bg-fill-2 border-1 border-transparent hover:bg-fill-3')} onClick={() => handleSelectAgent(result.backend)}>
+                        <div className='flex items-center justify-between'>
+                          <div className='flex items-center gap-10px'>
+                            {AGENT_LOGOS[result.backend] && <img src={AGENT_LOGOS[result.backend]} alt={result.name} className='w-20px h-20px' />}
+                            <div>
+                              <div className='text-13px font-medium text-t-primary'>{result.name}</div>
+                              <div className='flex items-center gap-6px text-11px'>
+                                <span className='flex items-center gap-3px text-success'>
+                                  <span className='w-5px h-5px rounded-full bg-success'></span>
+                                  {t('agent.health.available', { defaultValue: 'Available' })}
+                                </span>
+                                {result.latency && (
+                                  <>
+                                    <span className='text-t-tertiary'>·</span>
+                                    <span className='text-t-secondary'>{result.latency}ms</span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
                           </div>
+                          {isBest && <span className='px-8px py-2px bg-primary text-white text-11px font-medium rounded-full'>{t('agent.health.bestMatch', { defaultValue: 'Best Match' })}</span>}
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
               </div>
             </div>
           )}
