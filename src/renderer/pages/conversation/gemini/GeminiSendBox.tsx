@@ -24,9 +24,7 @@ import { Button, Message, Tag } from '@arco-design/web-react';
 import { Plus } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
 import type { GeminiModelSelection } from './useGeminiModelSelection';
-import type { PresetAgentType } from '@/types/acpTypes';
 
 const useGeminiSendBoxDraft = getSendBoxDraftHook('gemini', {
   _type: 'gemini',
@@ -335,11 +333,9 @@ const GeminiSendBox: React.FC<{
 }> = ({ conversation_id, modelSelection }) => {
   const [workspacePath, setWorkspacePath] = useState('');
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const { checkAndUpdateTitle } = useAutoTitle();
   const quotaPromptedRef = useRef<string | null>(null);
   const exhaustedModelsRef = useRef(new Set<string>());
-  const apiErrorSwitchedRef = useRef(false); // 防止重复切换 / Prevent duplicate switching
 
   const { currentModel, getDisplayModelName, providers, geminiModeLookup, getAvailableModels, handleSelectModel } = modelSelection;
 
@@ -412,73 +408,15 @@ const GeminiSendBox: React.FC<{
     return hasStatusError || hasInvalidUrl || hasNotFound || hasUnauthorized || hasForbidden || hasInvalidApiKey || hasInvalidArgument;
   }, []);
 
-  // 处理 API 错误，自动切换到可用的 CLI
-  // Handle API errors, auto-switch to available CLI
+  // 处理 API 错误 - 禁用自动切换，让用户通过 MessageTips 中的 AgentSelector 手动选择
+  // Handle API errors - disable auto-switch, let user manually select via AgentSelector in MessageTips
   const handleApiErrorSwitch = useCallback(async () => {
-    if (apiErrorSwitchedRef.current) return; // 已经尝试过切换
-    apiErrorSwitchedRef.current = true;
-
-    try {
-      // 获取当前会话信息
-      const conversation = await ipcBridge.conversation.get.invoke({ id: conversation_id });
-      if (!conversation) return;
-
-      // 如果会话是从 agent tabs (preset assistant) 创建的，禁用自动切换
-      // If conversation is created from agent tabs (preset assistant), disable auto-switch
-      // Agent tabs 应该依赖 MessageTips 中的手动选择器
-      // Agent tabs should rely on manual selector in MessageTips
-      if (conversation.extra?.presetAssistantId) {
-        return;
-      }
-
-      // 获取可用的 CLI agents
-      const result = await ipcBridge.acpConversation.getAvailableAgents.invoke();
-      if (!result.success || !result.data) return;
-
-      const cliOrder: PresetAgentType[] = ['claude', 'codex', 'opencode'];
-      const availableCli = cliOrder.find((cli) => result.data.some((agent) => agent.backend === cli));
-
-      if (!availableCli) {
-        Message.warning(t('conversation.chat.apiErrorNoCli', { defaultValue: 'API error occurred. No CLI agent available for fallback.' }));
-        return;
-      }
-
-      // 创建新的 ACP 会话
-      const agentInfo = result.data.find((agent) => agent.backend === availableCli);
-      const newConversation = await ipcBridge.conversation.create.invoke({
-        type: 'acp',
-        name: conversation.name || 'New Conversation',
-        model: currentModel!,
-        extra: {
-          workspace: conversation.extra?.workspace || '',
-          customWorkspace: conversation.extra?.customWorkspace || false,
-          backend: availableCli,
-          cliPath: agentInfo?.cliPath,
-        },
-      });
-
-      if (!newConversation?.id) {
-        Message.error(t('conversation.chat.apiErrorSwitchFailed', { defaultValue: 'Failed to create fallback conversation.' }));
-        return;
-      }
-
-      // 获取用户的原始消息（从 sessionStorage）
-      const storageKey = `gemini_initial_message_${conversation_id}`;
-      const storedMessage = sessionStorage.getItem(storageKey);
-      if (storedMessage) {
-        // 将初始消息转移到新会话
-        sessionStorage.setItem(`acp_initial_message_${newConversation.id}`, storedMessage);
-      }
-
-      // 显示通知并导航到新会话
-      const cliName = availableCli.charAt(0).toUpperCase() + availableCli.slice(1);
-      Message.info(t('conversation.chat.apiErrorSwitched', { defaultValue: `API error, auto-switched to ${cliName} CLI`, cli: cliName }));
-
-      void navigate(`/conversation/${newConversation.id}`);
-    } catch (error) {
-      console.error('Failed to switch to CLI:', error);
-    }
-  }, [conversation_id, currentModel, navigate, t]);
+    // 禁用自动切换逻辑，让用户通过 MessageTips 中的横向 AgentSelector 手动选择
+    // Disable auto-switch logic, let user manually select via horizontal AgentSelector in MessageTips
+    // AgentSelector 会自动排除当前失败的 agent (gemini) 和之前失败的 agents
+    // AgentSelector will automatically exclude the current failed agent (gemini) and previously failed agents
+    console.info('API error detected. Showing agent selector for manual switch.');
+  }, []);
 
   const handleGeminiError = useCallback(
     (message: IResponseMessage) => {

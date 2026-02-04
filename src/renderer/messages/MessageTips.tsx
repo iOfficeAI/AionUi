@@ -19,22 +19,25 @@ import type { PresetAgentType } from '@/types/acpTypes';
 import ClaudeLogo from '@/renderer/assets/logos/claude.svg';
 import CodexLogo from '@/renderer/assets/logos/codex.svg';
 import OpenCodeLogo from '@/renderer/assets/logos/opencode.svg';
+import GeminiLogo from '@/renderer/assets/logos/gemini.svg';
 const icon = {
   success: <CheckOne theme='filled' size='16' fill={theme.Color.FunctionalColor.success} className='m-t-2px' />,
   warning: <Attention theme='filled' size='16' strokeLinejoin='bevel' className='m-t-2px' fill={theme.Color.FunctionalColor.warn} />,
   error: <Attention theme='filled' size='16' strokeLinejoin='bevel' className='m-t-2px' fill={theme.Color.FunctionalColor.error} />,
 };
 
-const AGENT_LOGOS = {
+const AGENT_LOGOS: Record<PresetAgentType, string> = {
   claude: ClaudeLogo,
   codex: CodexLogo,
   opencode: OpenCodeLogo,
+  gemini: GeminiLogo,
 };
 
-const AGENT_NAMES: Record<string, string> = {
+const AGENT_NAMES: Record<PresetAgentType, string> = {
   claude: 'Claude',
   codex: 'Codex',
   opencode: 'OpenCode',
+  gemini: 'Gemini',
 };
 
 const useFormatContent = (content: string) => {
@@ -65,14 +68,15 @@ const AgentSelector: React.FC<{
     const fetchAgents = async () => {
       const result = await ipcBridge.acpConversation.getAvailableAgents.invoke();
       if (result.success && result.data) {
-        const cliOrder: PresetAgentType[] = ['claude', 'codex', 'opencode'];
-        const agents = cliOrder
-          .filter((cli) => !excludeAgents.includes(cli))
-          .map((cli) => {
-            const agent = result.data.find((a) => a.backend === cli);
-            return agent ? { backend: cli as PresetAgentType, name: agent.name, cliPath: agent.cliPath } : null;
-          })
-          .filter((a) => a !== null);
+        // 显示所有可用的 agents，排除 custom 和已失败的 agents
+        // Show all available agents, excluding 'custom' and failed agents
+        const agents = result.data
+          .filter((agent) => agent.backend !== 'custom' && !excludeAgents.includes(agent.backend as PresetAgentType))
+          .map((agent) => ({
+            backend: agent.backend as PresetAgentType,
+            name: agent.name,
+            cliPath: agent.cliPath,
+          }));
         setAvailableAgents(agents);
       }
     };
@@ -92,11 +96,21 @@ const AgentSelector: React.FC<{
           return;
         }
 
-        // 创建新的会话（使用 ACP 类型的 extra）
+        // 根据 agentType 决定会话类型
+        // Determine conversation type based on agentType
+        const isGemini = agentType === 'gemini';
+        const conversationType = isGemini ? 'gemini' : 'acp';
+
+        // 获取当前会话的模型信息（如果是 gemini 类型）
+        // Get current conversation's model info (if gemini type)
+        const currentModel = conversation.type === 'gemini' ? conversation.model : undefined;
+
+        // 创建新的会话
+        // Create new conversation
         const newConversation = await ipcBridge.conversation.create.invoke({
-          type: 'acp',
+          type: conversationType,
           name: conversation.name || 'New Conversation',
-          model: {
+          model: currentModel || {
             id: 'default',
             name: 'Default',
             useModel: 'default',
@@ -107,11 +121,21 @@ const AgentSelector: React.FC<{
           extra: {
             workspace: conversation.extra?.workspace || '',
             customWorkspace: conversation.extra?.customWorkspace || false,
-            backend: agentType,
-            cliPath,
-            presetContext: (conversation.extra as any)?.presetRules || (conversation.extra as any)?.presetContext,
-            enabledSkills: conversation.extra?.enabledSkills,
-            presetAssistantId: conversation.extra?.presetAssistantId,
+            ...(isGemini
+              ? {
+                  // Gemini 会话的 extra 字段
+                  presetRules: (conversation.extra as Record<string, unknown>)?.presetRules || (conversation.extra as Record<string, unknown>)?.presetContext,
+                  enabledSkills: conversation.extra?.enabledSkills,
+                  presetAssistantId: conversation.extra?.presetAssistantId,
+                }
+              : {
+                  // ACP 会话的 extra 字段
+                  backend: agentType,
+                  cliPath,
+                  presetContext: (conversation.extra as Record<string, unknown>)?.presetRules || (conversation.extra as Record<string, unknown>)?.presetContext,
+                  enabledSkills: conversation.extra?.enabledSkills,
+                  presetAssistantId: conversation.extra?.presetAssistantId,
+                }),
           },
         });
 
@@ -129,7 +153,8 @@ const AgentSelector: React.FC<{
             input: userMessage.content.content,
             files: [],
           };
-          sessionStorage.setItem(`acp_initial_message_${newConversation.id}`, JSON.stringify(initialMessage));
+          const storageKey = isGemini ? `gemini_initial_message_${newConversation.id}` : `acp_initial_message_${newConversation.id}`;
+          sessionStorage.setItem(storageKey, JSON.stringify(initialMessage));
         }
 
         // 显示通知并导航到新会话
