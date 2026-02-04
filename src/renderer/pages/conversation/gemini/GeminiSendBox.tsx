@@ -386,8 +386,21 @@ const GeminiSendBox: React.FC<{
   // 检测 API 错误（400, 401, 403, 404, 5xx 等）
   // Detect API errors (400, 401, 403, 404, 5xx, etc.)
   const isApiErrorMessage = useCallback((data: unknown) => {
-    if (typeof data !== 'string') return false;
-    const text = data.toLowerCase();
+    // 将 data 转换为字符串进行检查
+    let text = '';
+    if (typeof data === 'string') {
+      text = data.toLowerCase();
+    } else if (data && typeof data === 'object') {
+      // 如果是对象，序列化为 JSON 字符串
+      try {
+        text = JSON.stringify(data).toLowerCase();
+      } catch {
+        return false;
+      }
+    } else {
+      return false;
+    }
+
     // 检测常见的 API 错误
     const hasStatusError = /(?:status|code|error)[:\s]*(?:400|401|403|404|500|502|503|504)/i.test(text);
     const hasInvalidUrl = text.includes('invalid url');
