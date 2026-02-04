@@ -409,6 +409,9 @@
       "quotaExceededBody": "當前模型額度已用盡，是否切換到 {{model}}？",
       "quotaExceededNoFallback": "當前模型額度已用盡，請切換到其他可用模型。",
       "quotaSwitched": "已切換到 {{model}}。",
+      "apiErrorNoCli": "API 錯誤，沒有可用的 CLI 代理進行回退。",
+      "apiErrorSwitchFailed": "建立回退會話失敗。",
+      "apiErrorSwitched": "API 錯誤，已自動切換到 {{cli}} CLI",
       "confirmationLoadError": "確認對話框載入失敗"
     },
     "contextUsage": {

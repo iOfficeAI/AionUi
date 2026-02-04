@@ -313,6 +313,9 @@
       "quotaExceededBody": "The current model quota is exhausted. Switch to {{model}} to continue?",
       "quotaExceededNoFallback": "Model quota reached. Please switch to another available model.",
       "quotaSwitched": "Switched to {{model}}.",
+      "apiErrorNoCli": "API error occurred. No CLI agent available for fallback.",
+      "apiErrorSwitchFailed": "Failed to create fallback conversation.",
+      "apiErrorSwitched": "API error, auto-switched to {{cli}} CLI",
       "confirmationLoadError": "Failed to load confirmation dialog"
     },
     "contextUsage": {

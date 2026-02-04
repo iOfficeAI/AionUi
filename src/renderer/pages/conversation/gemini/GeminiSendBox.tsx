@@ -24,7 +24,9 @@ import { Button, Message, Tag } from '@arco-design/web-react';
 import { Plus } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import type { GeminiModelSelection } from './useGeminiModelSelection';
+import type { PresetAgentType } from '@/types/acpTypes';
 
 const useGeminiSendBoxDraft = getSendBoxDraftHook('gemini', {
   _type: 'gemini',
@@ -333,9 +335,11 @@ const GeminiSendBox: React.FC<{
 }> = ({ conversation_id, modelSelection }) => {
   const [workspacePath, setWorkspacePath] = useState('');
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { checkAndUpdateTitle } = useAutoTitle();
   const quotaPromptedRef = useRef<string | null>(null);
   const exhaustedModelsRef = useRef(new Set<string>());
+  const apiErrorSwitchedRef = useRef(false); // 防止重复切换 / Prevent duplicate switching
 
   const { currentModel, getDisplayModelName, providers, geminiModeLookup, getAvailableModels, handleSelectModel } = modelSelection;
 
@@ -379,8 +383,95 @@ const GeminiSendBox: React.FC<{
     return hasQuota && hasLimit;
   }, []);
 
+  // 检测 API 错误（404, 403, 401, 5xx 等）
+  // Detect API errors (404, 403, 401, 5xx, etc.)
+  const isApiErrorMessage = useCallback((data: unknown) => {
+    if (typeof data !== 'string') return false;
+    const text = data.toLowerCase();
+    // 检测常见的 API 错误
+    const hasStatusError = /(?:status|code|error)[:\s]*(?:401|403|404|500|502|503|504)/i.test(text);
+    const hasInvalidUrl = text.includes('invalid url');
+    const hasNotFound = text.includes('not found') || text.includes('notfound');
+    const hasUnauthorized = text.includes('unauthorized') || text.includes('authentication');
+    const hasForbidden = text.includes('forbidden') || text.includes('access denied');
+    return hasStatusError || hasInvalidUrl || hasNotFound || hasUnauthorized || hasForbidden;
+  }, []);
+
+  // 处理 API 错误，自动切换到可用的 CLI
+  // Handle API errors, auto-switch to available CLI
+  const handleApiErrorSwitch = useCallback(async () => {
+    if (apiErrorSwitchedRef.current) return; // 已经尝试过切换
+    apiErrorSwitchedRef.current = true;
+
+    try {
+      // 获取可用的 CLI agents
+      const result = await ipcBridge.acpConversation.getAvailableAgents.invoke();
+      if (!result.success || !result.data) return;
+
+      const cliOrder: PresetAgentType[] = ['claude', 'codex', 'opencode'];
+      const availableCli = cliOrder.find((cli) => result.data.some((agent) => agent.backend === cli));
+
+      if (!availableCli) {
+        Message.warning(t('conversation.chat.apiErrorNoCli', { defaultValue: 'API error occurred. No CLI agent available for fallback.' }));
+        return;
+      }
+
+      // 获取当前会话信息
+      const conversation = await ipcBridge.conversation.get.invoke({ id: conversation_id });
+      if (!conversation) return;
+
+      // 创建新的 ACP 会话
+      const agentInfo = result.data.find((agent) => agent.backend === availableCli);
+      const newConversation = await ipcBridge.conversation.create.invoke({
+        type: 'acp',
+        name: conversation.name || 'New Conversation',
+        model: currentModel!,
+        extra: {
+          workspace: conversation.extra?.workspace || '',
+          customWorkspace: conversation.extra?.customWorkspace || false,
+          backend: availableCli,
+          cliPath: agentInfo?.cliPath,
+        },
+      });
+
+      if (!newConversation?.id) {
+        Message.error(t('conversation.chat.apiErrorSwitchFailed', { defaultValue: 'Failed to create fallback conversation.' }));
+        return;
+      }
+
+      // 获取用户的原始消息（第一条消息）
+      const messages = await ipcBridge.message.getByConversationId.invoke({ conversation_id });
+      const userMessage = messages?.find((msg) => msg.role === 'user');
+      if (userMessage) {
+        // 存储初始消息，让新会话页面发送
+        const initialMessage = {
+          input: userMessage.content,
+          files: userMessage.extra?.files,
+        };
+        sessionStorage.setItem(`acp_initial_message_${newConversation.id}`, JSON.stringify(initialMessage));
+      }
+
+      // 显示通知并导航到新会话
+      const cliName = availableCli.charAt(0).toUpperCase() + availableCli.slice(1);
+      Message.info(t('conversation.chat.apiErrorSwitched', { defaultValue: `API error, auto-switched to ${cliName} CLI`, cli: cliName }));
+
+      void navigate(`/conversation/${newConversation.id}`);
+    } catch (error) {
+      console.error('Failed to switch to CLI:', error);
+    }
+  }, [conversation_id, currentModel, navigate, t]);
+
   const handleGeminiError = useCallback(
     (message: IResponseMessage) => {
+      // 首先检查是否是 API 错误（404, 403 等）
+      // First check if it's an API error (404, 403, etc.)
+      if (isApiErrorMessage(message.data)) {
+        void handleApiErrorSwitch();
+        return;
+      }
+
+      // 然后检查是否是配额错误
+      // Then check if it's a quota error
       if (!isQuotaErrorMessage(message.data)) return;
       const msgId = message.msg_id || 'unknown';
       if (quotaPromptedRef.current === msgId) return;
@@ -399,7 +490,7 @@ const GeminiSendBox: React.FC<{
         Message.success(t('conversation.chat.quotaSwitched', { defaultValue: `Switched to ${fallbackTarget.model}.`, model: fallbackTarget.model }));
       });
     },
-    [currentModel, handleSelectModel, isQuotaErrorMessage, resolveFallbackTarget, t]
+    [currentModel, handleApiErrorSwitch, handleSelectModel, isApiErrorMessage, isQuotaErrorMessage, resolveFallbackTarget, t]
   );
 
   const { thought, running, tokenUsage, setActiveMsgId, setWaitingResponse, resetState } = useGeminiMessage(conversation_id, handleGeminiError);

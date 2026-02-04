@@ -438,6 +438,9 @@
       "quotaExceededBody": "現在のモデルの上限に達しました。{{model}}に切り替えて続行しますか？",
       "quotaExceededNoFallback": "現在のモデルの上限に達しました。別の利用可能なモデルに切り替えてください。",
       "quotaSwitched": "{{model}}に切り替えました。",
+      "apiErrorNoCli": "APIエラーが発生しました。フォールバック用のCLIエージェントがありません。",
+      "apiErrorSwitchFailed": "フォールバック会話の作成に失敗しました。",
+      "apiErrorSwitched": "APIエラー、{{cli}} CLIに自動切り替えしました",
       "confirmationLoadError": "確認ダイアログの読み込みに失敗しました"
     },
     "contextUsage": {
