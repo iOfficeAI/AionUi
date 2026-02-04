@@ -383,18 +383,20 @@ const GeminiSendBox: React.FC<{
     return hasQuota && hasLimit;
   }, []);
 
-  // 检测 API 错误（404, 403, 401, 5xx 等）
-  // Detect API errors (404, 403, 401, 5xx, etc.)
+  // 检测 API 错误（400, 401, 403, 404, 5xx 等）
+  // Detect API errors (400, 401, 403, 404, 5xx, etc.)
   const isApiErrorMessage = useCallback((data: unknown) => {
     if (typeof data !== 'string') return false;
     const text = data.toLowerCase();
     // 检测常见的 API 错误
-    const hasStatusError = /(?:status|code|error)[:\s]*(?:401|403|404|500|502|503|504)/i.test(text);
+    const hasStatusError = /(?:status|code|error)[:\s]*(?:400|401|403|404|500|502|503|504)/i.test(text);
     const hasInvalidUrl = text.includes('invalid url');
     const hasNotFound = text.includes('not found') || text.includes('notfound');
     const hasUnauthorized = text.includes('unauthorized') || text.includes('authentication');
     const hasForbidden = text.includes('forbidden') || text.includes('access denied');
-    return hasStatusError || hasInvalidUrl || hasNotFound || hasUnauthorized || hasForbidden;
+    const hasInvalidApiKey = text.includes('api key not valid') || text.includes('api_key_invalid') || text.includes('invalid api key');
+    const hasInvalidArgument = text.includes('invalid_argument');
+    return hasStatusError || hasInvalidUrl || hasNotFound || hasUnauthorized || hasForbidden || hasInvalidApiKey || hasInvalidArgument;
   }, []);
 
   // 处理 API 错误，自动切换到可用的 CLI
