@@ -419,6 +419,18 @@ const GeminiSendBox: React.FC<{
     apiErrorSwitchedRef.current = true;
 
     try {
+      // 获取当前会话信息
+      const conversation = await ipcBridge.conversation.get.invoke({ id: conversation_id });
+      if (!conversation) return;
+
+      // 如果会话是从 agent tabs (preset assistant) 创建的，禁用自动切换
+      // If conversation is created from agent tabs (preset assistant), disable auto-switch
+      // Agent tabs 应该依赖 MessageTips 中的手动选择器
+      // Agent tabs should rely on manual selector in MessageTips
+      if (conversation.extra?.presetAssistantId) {
+        return;
+      }
+
       // 获取可用的 CLI agents
       const result = await ipcBridge.acpConversation.getAvailableAgents.invoke();
       if (!result.success || !result.data) return;
@@ -430,10 +442,6 @@ const GeminiSendBox: React.FC<{
         Message.warning(t('conversation.chat.apiErrorNoCli', { defaultValue: 'API error occurred. No CLI agent available for fallback.' }));
         return;
       }
-
-      // 获取当前会话信息
-      const conversation = await ipcBridge.conversation.get.invoke({ id: conversation_id });
-      if (!conversation) return;
 
       // 创建新的 ACP 会话
       const agentInfo = result.data.find((agent) => agent.backend === availableCli);
