@@ -50,7 +50,8 @@
     "browse": "Browse",
     "remove": "Remove",
     "show": "Show",
-    "hide": "Hide"
+    "hide": "Hide",
+    "goToSettings": "Go to Settings"
   },
   "update": {
     "modalTitle": "Software update",
@@ -1157,6 +1158,16 @@
       "bestMatch": "Best Match",
       "noAvailable": "No available agents in current environment",
       "checkConfig": "Please check configuration or try again later"
+    },
+    "setup": {
+      "notConfigured": "{{agent}} is not configured",
+      "authRequired": "Authentication or API key is required to use this agent.",
+      "findingAlternatives": "Finding available alternatives...",
+      "checkingAgent": "Checking {{agent}}...",
+      "alternativesFound": "{{count}} available alternatives found",
+      "noAlternatives": "No available agents found",
+      "configureFirst": "Please configure an agent in Settings first.",
+      "switching": "Switching agent..."
     }
   }
 }

@@ -47,7 +47,8 @@
     "browse": "浏览",
     "remove": "移除",
     "show": "显示",
-    "hide": "隐藏"
+    "hide": "隐藏",
+    "goToSettings": "前往设置"
   },
   "update": {
     "modalTitle": "软件更新",
@@ -1157,6 +1158,16 @@
       "bestMatch": "最佳匹配",
       "noAvailable": "当前环境没有可用 agent",
       "checkConfig": "请检查配置或稍后重试"
+    },
+    "setup": {
+      "notConfigured": "{{agent}} 尚未配置",
+      "authRequired": "使用此 Agent 需要先完成认证或配置 API Key。",
+      "findingAlternatives": "正在查找可用的替代方案...",
+      "checkingAgent": "正在检查 {{agent}}...",
+      "alternativesFound": "找到 {{count}} 个可用的替代方案",
+      "noAlternatives": "未找到可用的 Agent",
+      "configureFirst": "请先在设置中配置一个 Agent。",
+      "switching": "正在切换 Agent..."
     }
   }
 }

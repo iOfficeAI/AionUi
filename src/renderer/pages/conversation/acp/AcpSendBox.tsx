@@ -3,8 +3,10 @@ import type { AcpBackend } from '@/types/acpTypes';
 import { transformMessage, type TMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import { uuid } from '@/common/utils';
+import AgentSetupCard from '@/renderer/components/AgentSetupCard';
 import SendBox from '@/renderer/components/sendbox';
 import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/ThoughtDisplay';
+import { useAgentReadinessCheck } from '@/renderer/hooks/useAgentReadinessCheck';
 import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/useSendBoxDraft';
 import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/useSendBoxFiles';
 import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
@@ -212,6 +214,25 @@ const AcpSendBox: React.FC<{
   const { checkAndUpdateTitle } = useAutoTitle();
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
   const { setSendBoxHandler } = usePreviewContext();
+  const [showSetupCard, setShowSetupCard] = useState(false);
+  const hasCheckedRef = useRef(false);
+
+  // Agent readiness check for new user experience
+  const {
+    isReady: agentIsReady,
+    isChecking: agentIsChecking,
+    error: agentError,
+    availableAgents,
+    bestAgent,
+    progress: checkProgress,
+    currentAgent,
+    performFullCheck,
+    reset: resetAgentCheck,
+  } = useAgentReadinessCheck({
+    backend,
+    conversationType: 'acp',
+    autoCheck: false,
+  });
 
   useEffect(() => {
     void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
@@ -219,6 +240,32 @@ const AcpSendBox: React.FC<{
       setWorkspacePath(res.extra.workspace);
     });
   }, [conversation_id]);
+
+  // Check agent readiness on first message attempt for new users
+  // Reset check state when conversation changes
+  useEffect(() => {
+    hasCheckedRef.current = false;
+    setShowSetupCard(false);
+    resetAgentCheck();
+  }, [conversation_id, resetAgentCheck]);
+
+  // Handle pre-send check result
+  useEffect(() => {
+    if (hasCheckedRef.current && !agentIsChecking && !agentIsReady) {
+      setShowSetupCard(true);
+    }
+  }, [agentIsChecking, agentIsReady]);
+
+  // Dismiss the setup card
+  const handleDismissSetupCard = useCallback(() => {
+    setShowSetupCard(false);
+  }, []);
+
+  // Retry agent check
+  const handleRetryCheck = useCallback(() => {
+    hasCheckedRef.current = true;
+    void performFullCheck();
+  }, [performFullCheck]);
 
   // 使用 useLatestRef 保存最新的 setContent/atPath，避免重复注册 handler
   // Use useLatestRef to keep latest setters to avoid re-registering handler
@@ -330,6 +377,26 @@ const AcpSendBox: React.FC<{
   }, [conversation_id, backend, acpStatus]);
 
   const onSendHandler = async (message: string) => {
+    // For new users: check agent readiness before first send
+    if (!hasCheckedRef.current) {
+      hasCheckedRef.current = true;
+      const isReady = await new Promise<boolean>((resolve) => {
+        ipcBridge.acpConversation.checkAgentHealth
+          .invoke({ backend })
+          .then((result) => {
+            resolve(result.success === true && result.data?.available === true);
+          })
+          .catch(() => resolve(false));
+      });
+
+      if (!isReady) {
+        // Not ready - trigger full check and show setup card
+        setShowSetupCard(true);
+        void performFullCheck();
+        return; // Don't send the message yet
+      }
+    }
+
     const msg_id = uuid();
 
     // ACP: 不使用 buildDisplayMessage，直接传原始 message
@@ -417,6 +484,9 @@ const AcpSendBox: React.FC<{
 
   return (
     <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
+      {/* Agent Setup Card for new users without configured auth */}
+      {showSetupCard && <AgentSetupCard conversationId={conversation_id} currentAgent={currentAgent} error={agentError} isChecking={agentIsChecking} progress={checkProgress} availableAgents={availableAgents} bestAgent={bestAgent} onDismiss={handleDismissSetupCard} onRetry={handleRetryCheck} />}
+
       <ThoughtDisplay thought={thought} running={running || aiProcessing} onStop={handleStop} />
 
       <SendBox

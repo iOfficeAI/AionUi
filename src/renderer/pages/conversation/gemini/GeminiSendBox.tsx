@@ -3,12 +3,14 @@ import { transformMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import type { TChatConversation, TokenUsageData } from '@/common/storage';
 import { uuid } from '@/common/utils';
+import AgentSetupCard from '@/renderer/components/AgentSetupCard';
 import ContextUsageIndicator from '@/renderer/components/ContextUsageIndicator';
 import FilePreview from '@/renderer/components/FilePreview';
 import HorizontalFileList from '@/renderer/components/HorizontalFileList';
 import SendBox from '@/renderer/components/sendbox';
 import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/ThoughtDisplay';
 import { useAutoTitle } from '@/renderer/hooks/useAutoTitle';
+import { useAgentReadinessCheck } from '@/renderer/hooks/useAgentReadinessCheck';
 import { useLatestRef } from '@/renderer/hooks/useLatestRef';
 import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/useSendBoxDraft';
 import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/useSendBoxFiles';
@@ -336,6 +338,24 @@ const GeminiSendBox: React.FC<{
   const { checkAndUpdateTitle } = useAutoTitle();
   const quotaPromptedRef = useRef<string | null>(null);
   const exhaustedModelsRef = useRef(new Set<string>());
+  const [showSetupCard, setShowSetupCard] = useState(false);
+  const hasCheckedRef = useRef(false);
+
+  // Agent readiness check for new user experience
+  const {
+    isReady: agentIsReady,
+    isChecking: agentIsChecking,
+    error: agentError,
+    availableAgents,
+    bestAgent,
+    progress: checkProgress,
+    currentAgent,
+    performFullCheck,
+    reset: resetAgentCheck,
+  } = useAgentReadinessCheck({
+    conversationType: 'gemini',
+    autoCheck: false,
+  });
 
   const { currentModel, getDisplayModelName, providers, geminiModeLookup, getAvailableModels, handleSelectModel } = modelSelection;
 
@@ -459,6 +479,33 @@ const GeminiSendBox: React.FC<{
     });
   }, [conversation_id]);
 
+  // Check agent readiness on first message attempt for new users
+  // This runs once when the component mounts or conversation changes
+  useEffect(() => {
+    // Reset check state when conversation changes
+    hasCheckedRef.current = false;
+    setShowSetupCard(false);
+    resetAgentCheck();
+  }, [conversation_id, resetAgentCheck]);
+
+  // Handle pre-send check result
+  useEffect(() => {
+    if (hasCheckedRef.current && !agentIsChecking && !agentIsReady) {
+      setShowSetupCard(true);
+    }
+  }, [agentIsChecking, agentIsReady]);
+
+  // Dismiss the setup card
+  const handleDismissSetupCard = useCallback(() => {
+    setShowSetupCard(false);
+  }, []);
+
+  // Retry agent check
+  const handleRetryCheck = useCallback(() => {
+    hasCheckedRef.current = true;
+    void performFullCheck();
+  }, [performFullCheck]);
+
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
 
   const addOrUpdateMessage = useAddOrUpdateMessage();
@@ -544,6 +591,27 @@ const GeminiSendBox: React.FC<{
 
   const onSendHandler = async (message: string) => {
     if (!currentModel?.useModel) return;
+
+    // For new users: check agent readiness before first send
+    if (!hasCheckedRef.current) {
+      hasCheckedRef.current = true;
+      const isReady = await new Promise<boolean>((resolve) => {
+        ipcBridge.acpConversation.checkAgentHealth
+          .invoke({ backend: 'gemini' })
+          .then((result) => {
+            resolve(result.success === true && result.data?.available === true);
+          })
+          .catch(() => resolve(false));
+      });
+
+      if (!isReady) {
+        // Not ready - trigger full check and show setup card
+        setShowSetupCard(true);
+        void performFullCheck();
+        return; // Don't send the message yet
+      }
+    }
+
     const msg_id = uuid();
     // 设置当前活跃的消息 ID，用于过滤掉旧请求的事件
     // Set current active message ID to filter out events from old requests
@@ -611,6 +679,9 @@ const GeminiSendBox: React.FC<{
 
   return (
     <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
+      {/* Agent Setup Card for new users without configured auth */}
+      {showSetupCard && <AgentSetupCard conversationId={conversation_id} currentAgent={currentAgent} error={agentError} isChecking={agentIsChecking} progress={checkProgress} availableAgents={availableAgents} bestAgent={bestAgent} onDismiss={handleDismissSetupCard} onRetry={handleRetryCheck} />}
+
       <ThoughtDisplay thought={thought} running={running} onStop={handleStop} />
 
       <SendBox
