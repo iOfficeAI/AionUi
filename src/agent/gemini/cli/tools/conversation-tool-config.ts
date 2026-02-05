@@ -138,8 +138,11 @@ export class ConversationToolConfig {
 
     if (this.imageGenerationModel) {
       // 注册 aionui_image_generation 工具（所有模型）
+      console.log(`[ConversationToolConfig] Registering aionui_image_generation tool with model: ${this.imageGenerationModel.useModel}`);
       const imageGenTool = new ImageGenerationTool(config, this.imageGenerationModel, this.proxy);
       toolRegistry.registerTool(imageGenTool);
+    } else {
+      console.log('[ConversationToolConfig] Image generation tool NOT registered - no imageGenerationModel configured');
     }
 
     // 注册 gemini_web_search 工具（仅OpenAI模型）

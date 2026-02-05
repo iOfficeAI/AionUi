@@ -96,6 +96,14 @@ export class GeminiAgentManager extends BaseAgentManager<
     this.contextContent = data.contextContent || data.presetRules;
     this.bootstrap = Promise.all([ProcessConfig.get('gemini.config'), this.getImageGenerationModel(), this.getMcpServers()])
       .then(async ([config, imageGenerationModel, mcpServers]) => {
+        // Log image generation model status for debugging
+        // 记录图像生成模型状态用于调试
+        if (imageGenerationModel) {
+          console.log(`[GeminiAgentManager] Image generation enabled with model: ${imageGenerationModel.useModel}`);
+        } else {
+          console.log('[GeminiAgentManager] Image generation not configured. To enable, go to Settings > Tools > Image Generation');
+        }
+
         // 获取当前账号对应的 GOOGLE_CLOUD_PROJECT
         // Get GOOGLE_CLOUD_PROJECT for current account
         let projectId: string | undefined;

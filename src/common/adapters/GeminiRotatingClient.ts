@@ -76,6 +76,13 @@ export class GeminiRotatingClient extends RotatingApiClient<GoogleGenAI> {
       // Convert OpenAI format to Gemini format using converter
       const geminiRequest = this.converter.convertRequest(params);
 
+      // Debug: Log the actual request being sent
+      // 调试：记录实际发送的请求
+      console.log(`[GeminiRotatingClient] Sending request to model: ${geminiRequest.model}`);
+      if (geminiRequest.generationConfig) {
+        console.log(`[GeminiRotatingClient] generationConfig:`, JSON.stringify(geminiRequest.generationConfig));
+      }
+
       // Call Gemini API
       const geminiResponse = await client.models.generateContent(geminiRequest);
 

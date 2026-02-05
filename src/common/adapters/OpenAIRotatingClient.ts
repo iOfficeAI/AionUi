@@ -44,8 +44,22 @@ export class OpenAIRotatingClient extends RotatingApiClient<OpenAI> {
 
   // Convenience methods for common OpenAI operations
   async createChatCompletion(params: OpenAI.Chat.Completions.ChatCompletionCreateParams, options?: OpenAI.RequestOptions): Promise<OpenAI.Chat.Completions.ChatCompletion> {
-    return await this.executeWithRetry((client) => {
-      return client.chat.completions.create(params, options) as Promise<OpenAI.Chat.Completions.ChatCompletion>;
+    // Debug: Log request info for image generation requests
+    const hasImageContent = Array.isArray(params.messages) && params.messages.some((msg) => Array.isArray(msg.content) && msg.content.some((c: any) => c.type === 'image_url'));
+    const isImageGeneration = params.model?.toLowerCase().includes('image');
+    if (hasImageContent || isImageGeneration) {
+      console.log(`[OpenAIRotatingClient] Image request - Model: ${params.model}, BaseURL: ${this.baseConfig.baseURL}`);
+    }
+
+    return await this.executeWithRetry(async (client) => {
+      const result = await client.chat.completions.create(params, options);
+      // Debug: Log response for image generation requests
+      if (hasImageContent || isImageGeneration) {
+        const completion = result as OpenAI.Chat.Completions.ChatCompletion;
+        const contentLength = completion.choices?.[0]?.message?.content?.length || 0;
+        console.log(`[OpenAIRotatingClient] Image response - Content length: ${contentLength}`);
+      }
+      return result as OpenAI.Chat.Completions.ChatCompletion;
     });
   }
 
