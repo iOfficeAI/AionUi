@@ -985,8 +985,8 @@ const Guid: React.FC = () => {
           }
 
           if (firstAvailableCli && cliAgent) {
-            // 找到可用且已认证的 CLI Agent，自动切换并创建 ACP 会话
-            // Found available and authenticated CLI agent, auto-switch and create ACP conversation
+            // 找到可用且已认证的 CLI Agent，自动切换并创建会话
+            // Found available and authenticated CLI agent, auto-switch and create conversation
             Message.info({
               content: t('guid.autoSwitchToAgent', {
                 agent: firstAvailableCli.charAt(0).toUpperCase() + firstAvailableCli.slice(1),
@@ -995,8 +995,55 @@ const Guid: React.FC = () => {
               duration: 3000,
             });
 
-            // 创建 ACP 会话 / Create ACP conversation
             try {
+              // Codex 使用单独的会话类型 / Codex uses separate conversation type
+              if (firstAvailableCli === 'codex') {
+                const conversation = await ipcBridge.conversation.create.invoke({
+                  type: 'codex',
+                  name: input,
+                  model: currentModel || {
+                    id: 'cli',
+                    name: 'codex',
+                    useModel: 'default',
+                    platform: 'cli',
+                    baseUrl: '',
+                    apiKey: '',
+                  },
+                  extra: {
+                    defaultFiles: files,
+                    workspace: finalWorkspace,
+                    customWorkspace: isCustomWorkspace,
+                    presetContext: isPreset ? presetRules : undefined,
+                    enabledSkills: isPreset ? enabledSkills : undefined,
+                    presetAssistantId: isPreset ? agentInfo?.customAgentId : undefined,
+                  },
+                });
+
+                if (!conversation || !conversation.id) {
+                  throw new Error('Failed to create Codex conversation');
+                }
+
+                if (isCustomWorkspace) {
+                  closeAllTabs();
+                  updateWorkspaceTime(finalWorkspace);
+                  openTab(conversation);
+                }
+
+                emitter.emit('chat.history.refresh');
+
+                // Store initial message for CodexSendBox to send
+                const initialMessage = {
+                  input,
+                  files: files.length > 0 ? files : undefined,
+                };
+                sessionStorage.setItem(`codex_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
+
+                void navigate(`/conversation/${conversation.id}`);
+                return;
+              }
+
+              // 其他 CLI agents (claude, opencode) 使用 ACP 会话类型
+              // Other CLI agents (claude, opencode) use ACP conversation type
               const conversation = await ipcBridge.conversation.create.invoke({
                 type: 'acp',
                 name: input,
@@ -1252,6 +1299,47 @@ const Guid: React.FC = () => {
       }
 
       try {
+        // Codex 使用单独的会话类型 / Codex uses separate conversation type
+        if (acpBackend === 'codex') {
+          const conversation = await ipcBridge.conversation.create.invoke({
+            type: 'codex',
+            name: input,
+            model: currentModel!,
+            extra: {
+              defaultFiles: files,
+              workspace: finalWorkspace,
+              customWorkspace: isCustomWorkspace,
+              presetContext: isPreset ? presetRules : undefined,
+              enabledSkills: isPreset ? enabledSkills : undefined,
+              presetAssistantId: isPreset ? acpAgentInfo?.customAgentId : undefined,
+            },
+          });
+
+          if (!conversation || !conversation.id) {
+            alert('Failed to create Codex conversation. Please ensure the Codex CLI is installed and accessible in PATH.');
+            return;
+          }
+
+          if (isCustomWorkspace) {
+            closeAllTabs();
+            updateWorkspaceTime(finalWorkspace);
+            openTab(conversation);
+          }
+
+          emitter.emit('chat.history.refresh');
+
+          const initialMessage = {
+            input,
+            files: files.length > 0 ? files : undefined,
+          };
+          sessionStorage.setItem(`codex_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
+
+          await navigate(`/conversation/${conversation.id}`);
+          return;
+        }
+
+        // 其他 CLI agents (claude, opencode) 使用 ACP 会话类型
+        // Other CLI agents (claude, opencode) use ACP conversation type
         const conversation = await ipcBridge.conversation.create.invoke({
           type: 'acp',
           name: input,
