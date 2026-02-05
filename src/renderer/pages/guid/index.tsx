@@ -942,9 +942,9 @@ const Guid: React.FC = () => {
         // Navigate immediately for instant page transition
         void navigate(`/conversation/${conversation.id}`);
       } catch (error: unknown) {
-        console.error('Failed to create or send Gemini message:', error);
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        alert(`Failed to create Gemini conversation: ${errorMessage}`);
+        // 静默处理错误，让会话面板的 AgentSetupCard 来处理
+        // Silently handle errors, let conversation panel's AgentSetupCard handle it
+        console.error('Failed to create Gemini conversation:', error);
         throw error; // Re-throw to prevent input clearing
       }
       return;
@@ -973,7 +973,7 @@ const Guid: React.FC = () => {
         });
 
         if (!conversation || !conversation.id) {
-          alert('Failed to create Codex conversation. Please ensure the Codex CLI is installed and accessible in PATH.');
+          console.error('Failed to create Codex conversation - conversation object is null or missing id');
           return;
         }
 
@@ -998,8 +998,9 @@ const Guid: React.FC = () => {
         // 然后导航到会话页面
         await navigate(`/conversation/${conversation.id}`);
       } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        alert(`Failed to create Codex conversation: ${errorMessage}`);
+        // 静默处理错误，让会话面板处理
+        // Silently handle errors, let conversation panel handle it
+        console.error('Failed to create Codex conversation:', error);
         throw error;
       }
       return;
@@ -1020,9 +1021,10 @@ const Guid: React.FC = () => {
       // 不在 guid 页面做 CLI agents 健康检查和自动切换，让会话面板的 AgentSetupCard 来处理
       // Don't do CLI agents health check and auto-switch in guid page, let conversation panel's AgentSetupCard handle it
 
+      // 不阻止流程，让会话面板处理 agent 可用性
+      // Don't block flow, let conversation panel handle agent availability
       if (!acpAgentInfo && !isPreset) {
-        alert(`${acpBackend} CLI not found or not configured. Please ensure it's installed and accessible.`);
-        return;
+        console.warn(`${acpBackend} CLI not found, but proceeding to let conversation panel handle it.`);
       }
 
       try {
@@ -1051,7 +1053,7 @@ const Guid: React.FC = () => {
         });
 
         if (!conversation || !conversation.id) {
-          alert('Failed to create ACP conversation. Please check your ACP configuration and ensure the CLI is installed.');
+          console.error('Failed to create ACP conversation - conversation object is null or missing id');
           return;
         }
 
@@ -1079,19 +1081,9 @@ const Guid: React.FC = () => {
         // 然后导航到会话页面
         await navigate(`/conversation/${conversation.id}`);
       } catch (error: unknown) {
+        // 静默处理错误，让会话面板的 AgentSetupCard 来处理可用性检查和自动切换
+        // Silently handle errors, let conversation panel's AgentSetupCard handle availability check and auto-switch
         console.error('Failed to create ACP conversation:', error);
-
-        // Check if it's an authentication error
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        if (errorMessage.includes('[ACP-AUTH-')) {
-          console.error(t('acp.auth.console_error'), errorMessage);
-          const confirmed = window.confirm(t('acp.auth.failed_confirm', { backend: selectedAgent, error: errorMessage }));
-          if (confirmed) {
-            void navigate('/settings/model');
-          }
-        } else {
-          alert(`Failed to create ${selectedAgent} ACP conversation. Please check your ACP configuration and ensure the CLI is installed.`);
-        }
         throw error; // Re-throw to prevent input clearing
       }
     }
