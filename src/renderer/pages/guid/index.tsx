@@ -1932,24 +1932,6 @@ const Guid: React.FC = () => {
                       </span>
                     </div>
                   )}
-                  {/* No Agent Available Warning / 无可用 Agent 警告 */}
-                  {!currentEffectiveAgentInfo.isAvailable && (
-                    <div
-                      className='mb-12px px-12px py-8px rd-8px text-12px flex items-center gap-8px cursor-pointer'
-                      style={{
-                        background: 'rgb(var(--danger-1))',
-                        border: '1px solid rgb(var(--danger-3))',
-                        color: 'rgb(var(--danger-6))',
-                      }}
-                      onClick={() => navigate('/settings/model')}
-                    >
-                      <span>
-                        {t('guid.noAgentAvailableShort', {
-                          defaultValue: 'No Main Agent available. Click to configure.',
-                        })}
-                      </span>
-                    </div>
-                  )}
                   <div className='w-full'>
                     <div className='flex items-center justify-between py-8px cursor-pointer select-none' onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}>
                       <span className='text-13px text-[rgb(var(--primary-6))] opacity-80'>{t('settings.assistantDescription', { defaultValue: 'Assistant Description' })}</span>

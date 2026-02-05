@@ -445,7 +445,6 @@ const initBuiltinAssistantRules = async (): Promise<void> => {
           // Replace relative paths with absolute paths so AI can find scripts correctly
           content = content.replace(/skills\//g, userSkillsDir + '/');
           await fs.writeFile(targetPath, content, 'utf-8');
-          console.log(`[AionUi] Updated builtin rule: ${targetFileName}`);
         } catch (error) {
           // 忽略缺失的语言文件 / Ignore missing locale files
           console.warn(`[AionUi] Failed to copy rule file ${ruleFile}:`, error);
