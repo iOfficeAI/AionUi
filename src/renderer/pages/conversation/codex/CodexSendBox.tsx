@@ -2,8 +2,10 @@ import { ipcBridge } from '@/common';
 import type { TMessage } from '@/common/chatLib';
 import { transformMessage } from '@/common/chatLib';
 import { uuid } from '@/common/utils';
+import AgentSetupCard from '@/renderer/components/AgentSetupCard';
 import SendBox from '@/renderer/components/sendbox';
 import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/useSendBoxDraft';
+import { useAgentReadinessCheck } from '@/renderer/hooks/useAgentReadinessCheck';
 import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
 import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
@@ -48,6 +50,26 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
   const [thought, setThought] = useState<ThoughtData>({
     description: '',
     subject: '',
+  });
+
+  // Agent readiness check for new user experience
+  const [showSetupCard, setShowSetupCard] = useState(false);
+  const hasCheckedRef = useRef(false);
+
+  const {
+    isReady: agentIsReady,
+    isChecking: agentIsChecking,
+    error: agentError,
+    availableAgents,
+    bestAgent,
+    progress: checkProgress,
+    currentAgent,
+    performFullCheck,
+    reset: resetAgentCheck,
+  } = useAgentReadinessCheck({
+    backend: 'codex',
+    conversationType: 'codex',
+    autoCheck: false,
   });
 
   // Think 消息节流：限制更新频率，减少渲染次数
@@ -119,6 +141,72 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
   // Use useLatestRef to keep latest setters to avoid re-registering handler
   const setContentRef = useLatestRef(setContent);
   const atPathRef = useLatestRef(atPath);
+
+  // Reset agent check state when conversation changes
+  useEffect(() => {
+    hasCheckedRef.current = false;
+    setShowSetupCard(false);
+    resetAgentCheck();
+  }, [conversation_id, resetAgentCheck]);
+
+  // Handle agent check result
+  useEffect(() => {
+    if (hasCheckedRef.current && !agentIsChecking && !agentIsReady) {
+      setShowSetupCard(true);
+    }
+  }, [agentIsChecking, agentIsReady]);
+
+  // Dismiss the setup card
+  const handleDismissSetupCard = useCallback(() => {
+    setShowSetupCard(false);
+  }, []);
+
+  // Retry agent check
+  const handleRetryCheck = useCallback(() => {
+    hasCheckedRef.current = true;
+    void performFullCheck();
+  }, [performFullCheck]);
+
+  // Early check for initial message from guid page
+  // 提前检查：如果有初始消息，立即检查 agent 可用性，不等待 session_active
+  useEffect(() => {
+    const storageKey = `codex_initial_message_${conversation_id}`;
+    const storedMessage = sessionStorage.getItem(storageKey);
+
+    // Skip if no initial message or already checked
+    if (!storedMessage || hasCheckedRef.current) {
+      return;
+    }
+
+    hasCheckedRef.current = true;
+
+    const checkAndShowSetupCard = async () => {
+      try {
+        const result = await ipcBridge.acpConversation.checkAgentHealth.invoke({ backend: 'codex' });
+        if (!result.success || !result.data?.available) {
+          // Agent not available, show AgentSetupCard and start scanning
+          setShowSetupCard(true);
+          void performFullCheck();
+
+          // Store message in sendbox
+          try {
+            const { input } = JSON.parse(storedMessage) as { input: string };
+            setContent(input);
+          } catch {
+            // Ignore parse errors
+          }
+          sessionStorage.removeItem(storageKey);
+        }
+        // If agent is available, let the original sendInitialMessage logic handle it
+      } catch {
+        // Check failed, show AgentSetupCard
+        setShowSetupCard(true);
+        void performFullCheck();
+      }
+    };
+
+    void checkAndShowSetupCard();
+  }, [conversation_id, performFullCheck, setContent]);
 
   // 当会话ID变化时，清理所有状态避免状态污染
   useEffect(() => {
@@ -351,6 +439,9 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
 
   return (
     <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
+      {/* Agent Setup Card for new users without configured auth */}
+      {showSetupCard && <AgentSetupCard conversationId={conversation_id} currentAgent={currentAgent} error={agentError} isChecking={agentIsChecking} progress={checkProgress} availableAgents={availableAgents} bestAgent={bestAgent} onDismiss={handleDismissSetupCard} onRetry={handleRetryCheck} autoSwitch={true} initialMessage={content} />}
+
       <ThoughtDisplay thought={thought} running={aiProcessing || running} onStop={handleStop} />
 
       <SendBox
