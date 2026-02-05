@@ -932,15 +932,34 @@ const Guid: React.FC = () => {
             }
           }
 
-          // 未登录 Google，优先检查是否有其他可用的 CLI Agent
-          // Not logged in to Google, first check if other CLI agents are available
+          // 未登录 Google，优先检查是否有其他可用的 CLI Agent（需要验证认证状态）
+          // Not logged in to Google, check if other CLI agents are available (verify auth status)
           const cliAgentOrder: PresetAgentType[] = ['claude', 'codex', 'opencode'];
-          const firstAvailableCli = cliAgentOrder.find((cli) => agentsToCheck?.some((agent) => agent.backend === cli));
 
-          if (firstAvailableCli) {
-            // 找到可用的 CLI Agent，自动切换并创建 ACP 会话
-            // Found available CLI agent, auto-switch and create ACP conversation
-            const cliAgent = agentsToCheck?.find((agent) => agent.backend === firstAvailableCli);
+          // 逐个检查 CLI agent 的健康状态（包括认证）
+          // Check each CLI agent's health status (including authentication)
+          let firstAvailableCli: PresetAgentType | null = null;
+          let cliAgent: (typeof agentsToCheck)[number] | undefined;
+
+          for (const cli of cliAgentOrder) {
+            const agent = agentsToCheck?.find((a) => a.backend === cli);
+            if (!agent) continue;
+
+            try {
+              const healthResult = await ipcBridge.acpConversation.checkAgentHealth.invoke({ backend: cli });
+              if (healthResult.success && healthResult.data?.available) {
+                firstAvailableCli = cli;
+                cliAgent = agent;
+                break;
+              }
+            } catch (e) {
+              console.error(`Failed to check ${cli} health:`, e);
+            }
+          }
+
+          if (firstAvailableCli && cliAgent) {
+            // 找到可用且已认证的 CLI Agent，自动切换并创建 ACP 会话
+            // Found available and authenticated CLI agent, auto-switch and create ACP conversation
             Message.info({
               content: t('guid.autoSwitchToAgent', {
                 agent: firstAvailableCli.charAt(0).toUpperCase() + firstAvailableCli.slice(1),
@@ -1136,14 +1155,68 @@ const Guid: React.FC = () => {
       // For preset with ACP-routed agent type (claude/opencode), use corresponding backend
       // Check if agent type changed from user selection (due to availability fallback or compatibility switch)
       const agentTypeChanged = selectedAgent !== finalEffectiveAgentType;
-      const acpBackend = agentTypeChanged
+      let acpBackend = agentTypeChanged
         ? finalEffectiveAgentType // Agent type changed from selection, use the final effective type
         : isPreset && isAcpRoutedPresetType(finalEffectiveAgentType)
           ? finalEffectiveAgentType
           : selectedAgent;
 
       // Get the agent info for the actual backend being used (might be different from selection after type change)
-      const acpAgentInfo = agentTypeChanged ? findAgentByKey(acpBackend as string) : agentInfo || findAgentByKey(selectedAgentKey);
+      let acpAgentInfo = agentTypeChanged ? findAgentByKey(acpBackend as string) : agentInfo || findAgentByKey(selectedAgentKey);
+
+      // 当 agent 类型发生改变时，验证目标 agent 的认证状态
+      // When agent type changed, verify the target agent's authentication status
+      if (agentTypeChanged && acpBackend) {
+        try {
+          const healthResult = await ipcBridge.acpConversation.checkAgentHealth.invoke({ backend: acpBackend });
+          if (!healthResult.success || !healthResult.data?.available) {
+            // 目标 agent 未认证，尝试找其他可用的 agent
+            // Target agent not authenticated, try to find another available agent
+            const fallbackOrder: PresetAgentType[] = ['claude', 'codex', 'opencode'];
+            let foundFallback = false;
+
+            for (const cli of fallbackOrder) {
+              if (cli === acpBackend) continue; // 跳过已检查失败的
+              const agent = availableAgents?.find((a) => a.backend === cli);
+              if (!agent) continue;
+
+              try {
+                const fallbackHealth = await ipcBridge.acpConversation.checkAgentHealth.invoke({ backend: cli });
+                if (fallbackHealth.success && fallbackHealth.data?.available) {
+                  acpBackend = cli;
+                  acpAgentInfo = agent;
+                  foundFallback = true;
+                  Message.info({
+                    content: t('guid.autoSwitchToAgent', {
+                      agent: cli.charAt(0).toUpperCase() + cli.slice(1),
+                      defaultValue: 'Auto-switching to {{agent}}',
+                    }),
+                    duration: 3000,
+                  });
+                  break;
+                }
+              } catch (e) {
+                console.error(`Failed to check ${cli} health:`, e);
+              }
+            }
+
+            if (!foundFallback) {
+              // 没有可用的已认证 agent，提示用户配置
+              // No authenticated agent available, prompt user to configure
+              Message.warning({
+                content: t('guid.noAuthenticatedAgent', {
+                  defaultValue: 'No authenticated agent available. Please configure an agent in Settings.',
+                }),
+                duration: 5000,
+              });
+              void navigate('/settings');
+              return;
+            }
+          }
+        } catch (e) {
+          console.error('Failed to check agent health:', e);
+        }
+      }
 
       if (!acpAgentInfo && !isPreset) {
         alert(`${acpBackend} CLI not found or not configured. Please ensure it's installed and accessible.`);
