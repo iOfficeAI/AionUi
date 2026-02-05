@@ -24,9 +24,36 @@ import { getPromptCount, handleCompletedTools, processGeminiStreamEvents, startN
 import { globalToolCallGuard, type StreamConnectionEvent } from './cli/streamResilience';
 import { getGlobalTokenManager } from './cli/oauthTokenManager';
 import fs from 'fs';
+import path from 'path';
+import os from 'os';
 
 // Global registry for current agent instance (used by flashFallbackHandler)
 let currentGeminiAgent: GeminiAgent | null = null;
+
+/**
+ * Check if Google OAuth credentials exist
+ * 检查 Google OAuth 凭证是否存在
+ *
+ * Gemini CLI stores OAuth credentials in ~/.gemini/oauth_creds.json
+ * If this file doesn't exist or is empty, OAuth hasn't been configured
+ * Gemini CLI 将 OAuth 凭证存储在 ~/.gemini/oauth_creds.json
+ * 如果此文件不存在或为空，则表示 OAuth 尚未配置
+ */
+function hasGoogleOAuthCredentials(): boolean {
+  try {
+    const credentialsPath = path.join(os.homedir(), '.gemini', 'oauth_creds.json');
+    if (!fs.existsSync(credentialsPath)) {
+      return false;
+    }
+    const content = fs.readFileSync(credentialsPath, 'utf-8');
+    const creds = JSON.parse(content);
+    // Check if credentials have the required fields
+    // 检查凭证是否包含必要字段
+    return !!(creds && (creds.access_token || creds.refresh_token));
+  } catch {
+    return false;
+  }
+}
 
 interface GeminiAgent2Options {
   workspace: string;
@@ -269,9 +296,20 @@ export class GeminiAgent {
       console.log(`[GeminiAgent] Filtered skills after initialize: ${this.enabledSkills.join(', ')}`);
     }
 
-    // 对于 Google OAuth 认证，清除缓存的 OAuth 客户端以确保使用最新凭证
-    // For Google OAuth auth, clear cached OAuth client to ensure fresh credentials
+    // 对于 Google OAuth 认证，先检查凭证是否存在，避免触发浏览器授权弹窗
+    // For Google OAuth auth, check if credentials exist first to avoid triggering browser auth popup
     if (this.authType === AuthType.LOGIN_WITH_GOOGLE) {
+      // 检查 OAuth 凭证是否存在 / Check if OAuth credentials exist
+      if (!hasGoogleOAuthCredentials()) {
+        // 抛出认证错误，让 UI 层处理自动切换
+        // Throw auth error to let UI layer handle auto-switching
+        // 错误信息包含 "authentication" 关键字以触发 GeminiSendBox 的 API 错误检测和自动切换
+        // Error message contains "authentication" keyword to trigger GeminiSendBox API error detection and auto-switch
+        console.error('[GeminiAgent] Google OAuth credentials not found. User needs to authenticate via Gemini CLI first.');
+        throw new Error('Google OAuth authentication not configured. Please run "gemini" CLI to authenticate first, or switch to an API key-based agent.');
+      }
+      // 凭证存在时才清除缓存并刷新
+      // Only clear cache and refresh when credentials exist
       clearOauthClientCache();
     }
 

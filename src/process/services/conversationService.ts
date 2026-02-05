@@ -9,7 +9,6 @@ import type { ConversationSource, TChatConversation, TProviderWithModel } from '
 import { getDatabase } from '@process/database';
 import path from 'path';
 import { createAcpAgent, createCodexAgent, createGeminiAgent } from '../initAgent';
-import type AcpAgentManager from '../task/AcpAgentManager';
 import WorkerManage from '../WorkerManage';
 
 /**
@@ -156,10 +155,9 @@ export class ConversationService {
       }
 
       // Register with WorkerManage
-      const task = WorkerManage.buildConversation(conversation);
-      if (task.type === 'acp') {
-        void (task as AcpAgentManager).initAgent();
-      }
+      // Note: Don't call initAgent() here - let it be lazy initialized when sendMessage() is called
+      // This allows frontend to check agent availability and show AgentSetupCard before auth flow
+      WorkerManage.buildConversation(conversation);
 
       // Save to database
       const db = getDatabase();
