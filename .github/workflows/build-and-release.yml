@@ -264,6 +264,8 @@ jobs:
           }
         env:
           WINDOWS_BUILD_COMMAND: ${{ matrix.command }}
+          # Increase Node.js heap memory to prevent OOM during webpack build
+          NODE_OPTIONS: "--max-old-space-size=8192"
           # Target arch / 目标架构
           npm_config_arch: ${{ matrix.arch }}
           npm_config_target_arch: ${{ matrix.arch }}
@@ -328,6 +330,8 @@ jobs:
               rm -f /tmp/*.dmg 2>/dev/null || true
             fi
         env:
+          # Increase Node.js heap memory to prevent OOM during webpack build
+          NODE_OPTIONS: "--max-old-space-size=8192"
           # Target architecture / 目标架构
           npm_config_arch: ${{ matrix.arch }}
           # App ID configuration / 应用 ID 配置
