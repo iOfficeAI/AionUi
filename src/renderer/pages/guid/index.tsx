@@ -861,22 +861,9 @@ const Guid: React.FC = () => {
     const isPreset = isPresetAgent;
 
     // 获取有效的 Agent 类型（考虑可用性回退）/ Get effective agent type (with availability fallback)
-    const { agentType: effectiveAgentType, isFallback, originalType, isAvailable } = getEffectiveAgentType(agentInfo);
-
-    // 如果没有可用的 Agent，提示用户配置 / If no agent is available, prompt user to configure
-    if (!isAvailable && isPreset) {
-      console.warn(`No available Main Agent for this assistant. Original type: "${originalType}"`);
-      const confirmed = window.confirm(t('guid.noAgentAvailable', { defaultValue: 'No Main Agent is available. Please login to Google or install Claude/Codex CLI. Go to settings?' }));
-      if (confirmed) {
-        void navigate('/settings/model');
-      }
-      return;
-    }
-
-    // 如果发生了回退，显示提示 / Show notification if fallback occurred
-    if (isFallback && isPreset) {
-      console.info(`Main Agent "${originalType}" is unavailable, using "${effectiveAgentType}" instead.`);
-    }
+    // 注意：isAvailable 只检查 CLI 安装状态，真正的认证检查在发送时通过健康检查进行
+    // Note: isAvailable only checks CLI installation, real auth check happens at send time via health check
+    const { agentType: effectiveAgentType } = getEffectiveAgentType(agentInfo);
 
     // 加载 rules（skills 已迁移到 SkillManager）/ Load rules (skills migrated to SkillManager)
     const { rules: presetRules } = await resolvePresetRulesAndSkills(agentInfo);
