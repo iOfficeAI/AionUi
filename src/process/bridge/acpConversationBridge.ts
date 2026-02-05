@@ -5,7 +5,9 @@
  */
 
 import { acpDetector } from '@/agent/acp/AcpDetector';
+import { AcpConnection } from '@/agent/acp/AcpConnection';
 import { ipcBridge } from '../../common';
+import * as os from 'os';
 
 export function initAcpConversationBridge(): void {
   // Debug provider to check environment variables
@@ -57,239 +59,72 @@ export function initAcpConversationBridge(): void {
     }
   });
 
-  // Check agent health (availability and latency)
-  // Only performs reliable checks - verifies CLI exists and can run
-  // Does NOT verify ACP support since that requires runtime testing
+  // Check agent health by sending a real test message
+  // This is the most reliable way to verify an agent can actually respond
   ipcBridge.acpConversation.checkAgentHealth.provider(async ({ backend }) => {
+    const startTime = Date.now();
+
+    // Step 1: Check if CLI is installed
+    const agents = acpDetector.getDetectedAgents();
+    const agent = agents.find((a) => a.backend === backend);
+
+    if (!agent?.cliPath && backend !== 'claude') {
+      return {
+        success: false,
+        msg: `${backend} CLI not found`,
+        data: { available: false, error: 'CLI not installed' },
+      };
+    }
+
+    // Step 2: Create a temporary ACP connection and send test message
+    const connection = new AcpConnection();
+    const tempDir = os.tmpdir();
+
     try {
-      const startTime = Date.now();
+      // Connect to the agent
+      await connection.connect(backend, agent?.cliPath, tempDir, agent?.acpArgs);
 
-      // Step 1: Check if CLI is installed
-      const agents = acpDetector.getDetectedAgents();
-      const agent = agents.find((a) => a.backend === backend);
+      // Create a new session
+      await connection.newSession(tempDir);
 
-      if (!agent?.cliPath) {
-        return {
-          success: false,
-          msg: `${backend} CLI not found`,
-          data: { available: false, error: 'CLI not installed' },
-        };
-      }
+      // Send a minimal test message - just need to verify we can communicate
+      // Using a simple prompt that should get a quick response
+      await connection.sendPrompt('hi');
 
-      const { execSync } = await import('child_process');
-
-      // Step 2: Perform backend-specific health checks
-      // Only check what we can reliably verify
-      switch (backend) {
-        case 'gemini': {
-          // Gemini: Check auth status (tested and reliable)
-          try {
-            const loginStatus = execSync('gemini auth status', { encoding: 'utf-8', timeout: 5000 });
-            if (!loginStatus.includes('Logged in') && !loginStatus.includes('logged in')) {
-              return {
-                success: false,
-                msg: 'Gemini not logged in',
-                data: { available: false, error: 'Not authenticated' },
-              };
-            }
-          } catch (error) {
-            return {
-              success: false,
-              msg: 'Failed to check Gemini auth status',
-              data: { available: false, error: error instanceof Error ? error.message : 'Auth check failed' },
-            };
-          }
-          break;
-        }
-
-        case 'claude': {
-          // Claude: Check if authenticated by running 'claude doctor'
-          // This verifies both CLI installation and authentication status
-          try {
-            const doctorOutput = execSync(`"${agent.cliPath}" doctor`, {
-              encoding: 'utf-8',
-              timeout: 10000,
-              stdio: 'pipe',
-            });
-            // Check for authentication issues in doctor output
-            const lowerOutput = doctorOutput.toLowerCase();
-            if (lowerOutput.includes('not authenticated') || lowerOutput.includes('not logged in') || lowerOutput.includes('authentication required') || lowerOutput.includes('please login') || lowerOutput.includes('no api key')) {
-              return {
-                success: false,
-                msg: 'Claude not authenticated',
-                data: { available: false, error: 'Not authenticated' },
-              };
-            }
-          } catch (error) {
-            // doctor command failed, might not be authenticated or CLI issue
-            const errorMsg = error instanceof Error ? error.message : String(error);
-            if (errorMsg.toLowerCase().includes('auth') || errorMsg.toLowerCase().includes('login') || errorMsg.toLowerCase().includes('api key')) {
-              return {
-                success: false,
-                msg: 'Claude not authenticated',
-                data: { available: false, error: 'Not authenticated' },
-              };
-            }
-            // Fallback to version check if doctor command doesn't exist
-            try {
-              execSync(`"${agent.cliPath}" --version`, { encoding: 'utf-8', timeout: 5000, stdio: 'pipe' });
-            } catch {
-              return {
-                success: false,
-                msg: 'Claude CLI check failed',
-                data: { available: false, error: errorMsg },
-              };
-            }
-          }
-          break;
-        }
-
-        case 'codex': {
-          // Codex (OpenAI): Check if OPENAI_API_KEY is set
-          try {
-            execSync(`"${agent.cliPath}" --version`, { encoding: 'utf-8', timeout: 5000, stdio: 'pipe' });
-            // Also check if OPENAI_API_KEY environment variable is set
-            if (!process.env.OPENAI_API_KEY) {
-              return {
-                success: false,
-                msg: 'Codex not configured (OPENAI_API_KEY not set)',
-                data: { available: false, error: 'API key not configured' },
-              };
-            }
-          } catch (error) {
-            return {
-              success: false,
-              msg: 'Codex CLI check failed',
-              data: { available: false, error: error instanceof Error ? error.message : 'CLI check failed' },
-            };
-          }
-          break;
-        }
-
-        case 'kimi': {
-          // Kimi: Check auth status using 'kimi auth status' or similar
-          try {
-            // First check if CLI works
-            execSync(`"${agent.cliPath}" --version`, { encoding: 'utf-8', timeout: 5000, stdio: 'pipe' });
-            // Try to check auth status
-            try {
-              const authOutput = execSync(`"${agent.cliPath}" auth status`, {
-                encoding: 'utf-8',
-                timeout: 5000,
-                stdio: 'pipe',
-              });
-              const lowerOutput = authOutput.toLowerCase();
-              if (lowerOutput.includes('not logged') || lowerOutput.includes('not authenticated') || lowerOutput.includes('please login')) {
-                return {
-                  success: false,
-                  msg: 'Kimi not authenticated',
-                  data: { available: false, error: 'Not authenticated' },
-                };
-              }
-            } catch {
-              // auth status command might not exist, check config file instead
-              const os = await import('os');
-              const path = await import('path');
-              const fs = await import('fs');
-              const kimiConfigPath = path.join(os.homedir(), '.kimi', 'config.json');
-              if (!fs.existsSync(kimiConfigPath)) {
-                return {
-                  success: false,
-                  msg: 'Kimi not configured',
-                  data: { available: false, error: 'Configuration not found' },
-                };
-              }
-            }
-          } catch (error) {
-            return {
-              success: false,
-              msg: 'Kimi CLI check failed',
-              data: { available: false, error: error instanceof Error ? error.message : 'CLI check failed' },
-            };
-          }
-          break;
-        }
-
-        case 'qwen': {
-          // Qwen: Check if authenticated
-          try {
-            execSync(`"${agent.cliPath}" --version`, { encoding: 'utf-8', timeout: 5000, stdio: 'pipe' });
-            // Check for Qwen config/auth
-            const os = await import('os');
-            const path = await import('path');
-            const fs = await import('fs');
-            const qwenConfigPath = path.join(os.homedir(), '.qwen', 'config.json');
-            const qwenAltConfigPath = path.join(os.homedir(), '.config', 'qwen', 'config.json');
-            if (!fs.existsSync(qwenConfigPath) && !fs.existsSync(qwenAltConfigPath)) {
-              // Also check environment variable
-              if (!process.env.DASHSCOPE_API_KEY && !process.env.QWEN_API_KEY) {
-                return {
-                  success: false,
-                  msg: 'Qwen not configured',
-                  data: { available: false, error: 'Configuration not found' },
-                };
-              }
-            }
-          } catch (error) {
-            return {
-              success: false,
-              msg: 'Qwen CLI check failed',
-              data: { available: false, error: error instanceof Error ? error.message : 'CLI check failed' },
-            };
-          }
-          break;
-        }
-
-        default: {
-          // For all other CLIs: Check version and try auth status if available
-          try {
-            try {
-              execSync(`"${agent.cliPath}" --version`, { encoding: 'utf-8', timeout: 5000, stdio: 'pipe' });
-            } catch {
-              // If --version fails, try --help (some CLIs don't support --version)
-              execSync(`"${agent.cliPath}" --help`, { encoding: 'utf-8', timeout: 5000, stdio: 'pipe' });
-            }
-            // Try auth status command as a bonus check (won't fail if command doesn't exist)
-            try {
-              const authOutput = execSync(`"${agent.cliPath}" auth status`, {
-                encoding: 'utf-8',
-                timeout: 3000,
-                stdio: 'pipe',
-              });
-              const lowerOutput = authOutput.toLowerCase();
-              if (lowerOutput.includes('not logged') || lowerOutput.includes('not authenticated')) {
-                return {
-                  success: false,
-                  msg: `${backend} not authenticated`,
-                  data: { available: false, error: 'Not authenticated' },
-                };
-              }
-            } catch {
-              // auth status command doesn't exist, that's OK
-            }
-          } catch (error) {
-            return {
-              success: false,
-              msg: `${backend} CLI check failed`,
-              data: { available: false, error: error instanceof Error ? error.message : 'CLI check failed' },
-            };
-          }
-          break;
-        }
-      }
-
-      // Step 3: Calculate latency (time to verify CLI works)
+      // If we get here, the agent responded successfully
       const latency = Date.now() - startTime;
+
+      // Clean up
+      connection.disconnect();
 
       return {
         success: true,
         data: { available: true, latency },
       };
     } catch (error) {
+      // Clean up on error
+      try {
+        connection.disconnect();
+      } catch {
+        // Ignore disconnect errors
+      }
+
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      const lowerError = errorMsg.toLowerCase();
+
+      // Check for authentication-related errors
+      if (lowerError.includes('auth') || lowerError.includes('login') || lowerError.includes('credential') || lowerError.includes('api key') || lowerError.includes('unauthorized') || lowerError.includes('forbidden')) {
+        return {
+          success: false,
+          msg: `${backend} not authenticated`,
+          data: { available: false, error: 'Not authenticated' },
+        };
+      }
+
       return {
         success: false,
-        msg: error instanceof Error ? error.message : 'Unknown error',
-        data: { available: false, error: error instanceof Error ? error.message : 'Unknown error' },
+        msg: `${backend} health check failed: ${errorMsg}`,
+        data: { available: false, error: errorMsg },
       };
     }
   });
