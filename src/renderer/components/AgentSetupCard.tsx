@@ -301,7 +301,7 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({ conversationId, current
                   }
 
                   return (
-                    <div key={result.backend} className={classNames('rounded-10px p-12px transition-all min-w-120px flex-shrink-0', isSelected ? 'bg-success-1 border-2 border-solid border-success shadow-sm' : result.available && !hasAvailableAndSwitching ? 'bg-white border-1 border-solid border-border-2 cursor-pointer hover:border-primary-3 hover:bg-fill-1' : 'bg-white border-1 border-solid border-border-2')} onClick={result.available && !hasAvailableAndSwitching ? () => handleSelectAgent(result) : undefined}>
+                    <div key={result.backend} className={classNames('rounded-10px p-12px transition-all min-w-120px flex-shrink-0', isSelected ? 'bg-success-1 border-2 border-solid border-success shadow-sm' : result.available && !hasAvailableAndSwitching ? 'bg-bg-2 border-1 border-solid border-border-2 cursor-pointer hover:border-primary-3 hover:bg-fill-1' : 'bg-bg-2 border-1 border-solid border-border-2')} onClick={result.available && !hasAvailableAndSwitching ? () => handleSelectAgent(result) : undefined}>
                       <div className='flex flex-col items-center text-center'>
                         <div className='relative w-32px h-32px mb-6px'>
                           {AGENT_LOGOS[result.backend] ? <img src={AGENT_LOGOS[result.backend]} alt={result.name} className='w-full h-full' /> : <div className='w-full h-full rounded-full bg-fill-2 flex items-center justify-center text-14px'>{result.name.charAt(0)}</div>}

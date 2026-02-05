@@ -870,63 +870,13 @@ const Guid: React.FC = () => {
     // 获取启用的 skills 列表 / Get enabled skills list
     const enabledSkills = resolveEnabledSkills(agentInfo);
 
-    // 对于预设助手或 Agent Tab，检查选中的模型是否真正兼容 Gemini
-    // For preset assistants or Agent Tab, check if selected model is actually Gemini-compatible
-    let finalEffectiveAgentType = effectiveAgentType;
-    const shouldCheckGeminiCompatibility = (isPreset && effectiveAgentType === 'gemini' && currentModel && !isGoogleAuth) || (!isPreset && selectedAgent === 'gemini' && currentModel && !isGoogleAuth);
-
-    if (shouldCheckGeminiCompatibility) {
-      const platform = currentModel!.platform?.toLowerCase() || '';
-      // 只有 gemini-with-google-auth 需要 Google 登录
-      // Only gemini-with-google-auth requires Google login
-      // 其他平台（包括 custom、gemini API Key 等）使用 API Key，不需要切换
-      // Other platforms (including custom, gemini API key, etc.) use API key, no need to switch
-      const needsGoogleLogin = platform === 'gemini-with-google-auth';
-
-      if (needsGoogleLogin) {
-        // 需要 Google 登录但用户未登录，尝试切换到 CLI
-        // Needs Google login but user not logged in, try to switch to CLI
-
-        // 确保有可用的 agents 数据（SWR 可能还在加载）
-        // Ensure we have available agents data (SWR might still be loading)
-        let agentsForCompatCheck = availableAgents;
-        if (!agentsForCompatCheck || agentsForCompatCheck.length === 0) {
-          try {
-            const result = await ipcBridge.acpConversation.getAvailableAgents.invoke();
-            if (result.success) {
-              agentsForCompatCheck = result.data.filter((agent) => !(agent.backend === 'gemini' && agent.cliPath));
-            }
-          } catch (e) {
-            console.error('[Guid] Failed to get available agents for compatibility check:', e);
-          }
-        }
-
-        const cliOnlyOrder: PresetAgentType[] = ['claude', 'codex', 'opencode'];
-        for (const cli of cliOnlyOrder) {
-          if (agentsForCompatCheck?.some((agent) => agent.backend === cli)) {
-            console.info(`Platform "${platform}" requires Google login, switching to ${cli} CLI`);
-            // 对于 Agent Tab，显示提示通知 / For Agent Tab, show notification
-            if (!isPreset) {
-              Message.info({
-                content: t('guid.agentTabAutoSwitch', {
-                  original: 'Gemini',
-                  fallback: cli.charAt(0).toUpperCase() + cli.slice(1),
-                  defaultValue: 'Model not compatible with Gemini, auto-switched to {{fallback}}',
-                }),
-                duration: 3000,
-              });
-            }
-            finalEffectiveAgentType = cli;
-            break;
-          }
-        }
-      }
-    }
+    // 不在 guid 页面做 Gemini 兼容性自动切换，让会话面板的 AgentSetupCard 来处理
+    // Don't auto-switch for Gemini compatibility in guid page, let conversation panel's AgentSetupCard handle it
+    const finalEffectiveAgentType = effectiveAgentType;
 
     // 默认情况使用 Gemini，或 Preset 配置为 Gemini
-    // 对于非预设 agent tabs，也需要检查 finalEffectiveAgentType（可能因兼容性问题自动切换）
-    // For non-preset agent tabs, also check finalEffectiveAgentType (may have auto-switched due to compatibility)
-    if (!selectedAgent || (selectedAgent === 'gemini' && finalEffectiveAgentType === 'gemini') || (isPreset && finalEffectiveAgentType === 'gemini')) {
+    // Default case uses Gemini, or Preset configured as Gemini
+    if (!selectedAgent || selectedAgent === 'gemini' || (isPreset && finalEffectiveAgentType === 'gemini')) {
       // 当没有 currentModel 但选择了 Gemini 时，仍然创建 Gemini 会话
       // 让会话面板的 GeminiSendBox 处理 agent 可用性检查和自动切换
       // When no currentModel but Gemini is selected, still create Gemini conversation
