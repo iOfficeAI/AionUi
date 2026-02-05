@@ -901,7 +901,75 @@ const Guid: React.FC = () => {
       if (!currentModel) {
         // 没有可用模型时的处理 / Handle case when no model is available
         if (!isGoogleAuth) {
-          // 未登录 Google，触发登录流程 / Not logged in, trigger Google login
+          // 未登录 Google，优先检查是否有其他可用的 CLI Agent
+          // Not logged in to Google, first check if other CLI agents are available
+          const cliAgentOrder: PresetAgentType[] = ['claude', 'codex', 'opencode'];
+          const firstAvailableCli = cliAgentOrder.find((cli) => availableAgents?.some((agent) => agent.backend === cli));
+
+          if (firstAvailableCli) {
+            // 找到可用的 CLI Agent，自动切换并创建 ACP 会话
+            // Found available CLI agent, auto-switch and create ACP conversation
+            const cliAgent = availableAgents?.find((agent) => agent.backend === firstAvailableCli);
+            console.info(`Gemini not available (no model/auth), auto-switching to ${firstAvailableCli}`);
+            Message.info({
+              content: t('guid.autoSwitchToAgent', {
+                agent: firstAvailableCli.charAt(0).toUpperCase() + firstAvailableCli.slice(1),
+                defaultValue: 'Gemini is not configured, auto-switching to {{agent}}',
+              }),
+              duration: 3000,
+            });
+
+            // 创建 ACP 会话 / Create ACP conversation
+            try {
+              const conversation = await ipcBridge.conversation.create.invoke({
+                type: 'acp',
+                name: input,
+                model: {
+                  id: 'cli',
+                  name: firstAvailableCli,
+                  useModel: 'default',
+                  platform: 'cli',
+                  baseUrl: '',
+                  apiKey: '',
+                },
+                extra: {
+                  backend: firstAvailableCli,
+                  cliPath: cliAgent?.cliPath,
+                  workspace: finalWorkspace,
+                  customWorkspace: isCustomWorkspace,
+                  presetContext: isPreset ? presetRules : undefined,
+                  enabledSkills: isPreset ? enabledSkills : undefined,
+                  presetAssistantId: isPreset ? agentInfo?.customAgentId : undefined,
+                },
+              });
+
+              if (!conversation || !conversation.id) {
+                throw new Error('Failed to create conversation');
+              }
+
+              if (isCustomWorkspace) {
+                closeAllTabs();
+                updateWorkspaceTime(finalWorkspace);
+                openTab(conversation);
+              }
+
+              emitter.emit('chat.history.refresh');
+
+              // Store initial message for AcpSendBox to send
+              const workspacePath = conversation.extra?.workspace || '';
+              const displayMessage = buildDisplayMessage(input, files, workspacePath);
+              sessionStorage.setItem(`acp_initial_message_${conversation.id}`, JSON.stringify({ input: displayMessage, files }));
+
+              void navigate(`/conversation/${conversation.id}`);
+              return;
+            } catch (error) {
+              console.error(`Failed to create ${firstAvailableCli} conversation:`, error);
+              // Fall through to Google login as fallback
+            }
+          }
+
+          // 没有可用的 CLI Agent，触发 Google 登录
+          // No available CLI agents, trigger Google login
           try {
             const result = await ipcBridge.googleAuth.login.invoke({});
             if (result.success) {

@@ -1143,6 +1143,7 @@
   "guid.noAgentAvailable": "没有可用的 Main Agent。请登录 Google 或安装 Claude/Codex CLI。是否前往设置？",
   "guid.noAgentAvailableShort": "没有可用的 Main Agent。点击配置。",
   "guid.agentTabAutoSwitch": "模型不兼容 Gemini，已自动切换到 {{fallback}}",
+  "guid.autoSwitchToAgent": "Gemini 未配置，正在自动切换到 {{agent}}",
   "agent": {
     "health": {
       "detectedError": "检测到当前 Agent ({{agent}}) 响应异常",

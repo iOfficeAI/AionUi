@@ -1143,6 +1143,7 @@
   "guid.noAgentAvailable": "No Main Agent is available. Please login to Google or install Claude/Codex CLI. Go to settings?",
   "guid.noAgentAvailableShort": "No Main Agent available. Click to configure.",
   "guid.agentTabAutoSwitch": "Model not compatible with Gemini, auto-switched to {{fallback}}",
+  "guid.autoSwitchToAgent": "Gemini is not configured, auto-switching to {{agent}}",
   "agent": {
     "health": {
       "detectedError": "Detected error with current agent ({{agent}})",
