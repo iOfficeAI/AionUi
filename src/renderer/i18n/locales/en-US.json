@@ -1171,6 +1171,7 @@
       "checkConfig": "Please check configuration or try again later"
     },
     "setup": {
+      "connectionError": "Connection Error",
       "notConfigured": "{{agent}} is not configured",
       "authRequired": "Authentication or API key is required to use this agent.",
       "findingAlternatives": "Finding available alternatives...",

@@ -12,7 +12,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Button, Message, Progress } from '@arco-design/web-react';
-import { CheckOne, CloseOne, Loading, Close } from '@icon-park/react';
+import { CheckOne, CloseOne, Loading, Close, Down } from '@icon-park/react';
 import classNames from 'classnames';
 import { ipcBridge } from '@/common';
 import type { AcpBackendAll } from '@/types/acpTypes';
@@ -70,15 +70,16 @@ type AgentSetupCardProps = {
   autoSwitch?: boolean;
 };
 
-const AgentSetupCard: React.FC<AgentSetupCardProps> = ({ conversationId, currentAgent, error, isChecking, progress, availableAgents, bestAgent, onDismiss, onRetry, autoSwitch = true }) => {
+const AgentSetupCard: React.FC<AgentSetupCardProps> = ({ conversationId, currentAgent, error, isChecking, progress: _progress, availableAgents, bestAgent, onDismiss, onRetry, autoSwitch = true }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [switching, setSwitching] = useState(false);
   const switchingRef = React.useRef(false); // Use ref to avoid stale closure in auto-switch
   const autoSwitchTriggeredRef = React.useRef(false);
+  const [errorExpanded, setErrorExpanded] = useState(false); // 错误信息默认收起 / Error collapsed by default
 
-  const currentAgentName = currentAgent ? AGENT_NAMES[currentAgent] || currentAgent : 'Agent';
-  const currentAgentLogo = currentAgent ? AGENT_LOGOS[currentAgent] : undefined;
+  const _currentAgentName = currentAgent ? AGENT_NAMES[currentAgent] || currentAgent : 'Agent';
+  const _currentAgentLogo = currentAgent ? AGENT_LOGOS[currentAgent] : undefined;
 
   const handleSelectAgent = useCallback(
     async (agent: AgentCheckResult) => {
@@ -182,132 +183,155 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({ conversationId, current
     switchingRef.current = false;
   }, [conversationId]);
 
+  // 是否有可用的 agent 且正在切换 / Has available agent and is switching
+  const hasAvailableAndSwitching = !isChecking && availableCount > 0 && (switching || (autoSwitch && bestAgent));
+
   return (
-    <div className='relative border-1 border-solid border-warning-3 rounded-12px p-16px bg-warning-1 mb-12px'>
-      {/* Dismiss button */}
-      {onDismiss && (
-        <button onClick={onDismiss} className='absolute top-12px right-12px p-4px rounded-4px hover:bg-warning-2 transition-colors cursor-pointer border-none bg-transparent' aria-label={t('common.close', { defaultValue: 'Close' })}>
-          <Close theme='outline' size={14} className='text-t-secondary' />
-        </button>
-      )}
-
-      {/* Header */}
-      <div className='flex items-center gap-10px mb-12px'>
-        {currentAgentLogo && <img src={currentAgentLogo} alt={currentAgentName} className='w-24px h-24px' />}
-        <div className='flex-1'>
-          <div className='text-14px font-medium text-t-primary'>
-            {t('agent.setup.notConfigured', {
-              defaultValue: '{{agent}} is not configured',
-              agent: currentAgentName,
-            })}
+    <div className='mb-12px'>
+      {/* Collapsible Error Header - 可折叠的错误信息 */}
+      {error && (
+        <div className='border-1 border-solid border-danger-3 rounded-12px bg-danger-1 mb-12px overflow-hidden'>
+          <div className='flex items-center justify-between p-12px cursor-pointer select-none' onClick={() => setErrorExpanded(!errorExpanded)}>
+            <div className='flex items-center gap-8px'>
+              <CloseOne theme='filled' size={16} fill='var(--color-danger-6)' />
+              <span className='text-13px font-medium text-danger-6'>{t('agent.setup.connectionError', { defaultValue: 'Connection Error' })}</span>
+            </div>
+            <Down theme='outline' size={14} className={classNames('text-t-secondary transition-transform duration-200', errorExpanded && 'rotate-180')} />
           </div>
-          <div className='text-12px text-t-secondary mt-2px'>{error || t('agent.setup.authRequired', { defaultValue: 'Authentication or API key is required to use this agent.' })}</div>
-        </div>
-      </div>
-
-      {/* Checking Phase */}
-      {isChecking && (
-        <div className='mt-12px'>
-          <div className='flex items-center gap-6px mb-8px'>
-            <Loading theme='outline' size={14} className='animate-spin text-primary' />
-            <span className='text-12px text-t-secondary'>{t('agent.setup.findingAlternatives', { defaultValue: 'Finding available alternatives...' })}</span>
-          </div>
-
-          {/* Check results list */}
-          <div className='max-h-100px overflow-y-auto mb-8px space-y-4px'>
-            {availableAgents.map((result) => (
-              <div key={result.backend} className='flex items-center gap-6px text-12px'>
-                {result.checking ? <Loading theme='outline' size={12} className='animate-spin text-t-tertiary' /> : result.available ? <CheckOne theme='filled' size={12} fill='var(--color-success-6)' /> : <CloseOne theme='filled' size={12} fill='var(--color-danger-6)' />}
-                <span className='text-t-secondary'>{t('agent.setup.checkingAgent', { defaultValue: 'Checking {{agent}}...', agent: result.name })}</span>
-              </div>
-            ))}
-          </div>
-
-          {/* Progress bar */}
-          <Progress percent={progress} size='small' status={progress === 100 ? 'success' : 'normal'} />
+          {errorExpanded && (
+            <div className='px-12px pb-12px'>
+              <div className='text-12px text-t-secondary'>{error}</div>
+            </div>
+          )}
         </div>
       )}
 
-      {/* Results Phase - Available Agents */}
-      {!isChecking && availableCount > 0 && (
-        <div className='mt-12px'>
-          <div className='flex items-center gap-6px mb-10px'>
-            <span className='text-16px'>{autoSwitch ? '⚡' : '⚠️'}</span>
-            <span className='text-13px font-medium text-t-primary'>{autoSwitch ? t('agent.setup.autoSwitching', { defaultValue: 'Auto-switching to best available agent...' }) : t('agent.setup.configError', { defaultValue: 'Configuration error. Please check your settings or select an alternative:' })}</span>
-          </div>
+      {/* Scanning / Connecting Card - 扫描/连接卡片 */}
+      <div className={classNames('relative border-1 border-solid rounded-12px p-16px', hasAvailableAndSwitching ? 'border-success-3 bg-success-1' : 'border-primary-3 bg-primary-1')}>
+        {/* Dismiss button */}
+        {onDismiss && !isChecking && !switching && (
+          <button onClick={onDismiss} className='absolute top-12px right-12px p-4px rounded-4px hover:bg-fill-2 transition-colors cursor-pointer border-none bg-transparent' aria-label={t('common.close', { defaultValue: 'Close' })}>
+            <Close theme='outline' size={14} className='text-t-secondary' />
+          </button>
+        )}
 
-          {/* Available agents - horizontal scroll */}
-          <div className='overflow-x-auto pb-8px -mx-4px px-4px'>
+        {/* Success Message - 连接成功提示 */}
+        {hasAvailableAndSwitching && (
+          <div className='flex items-center gap-8px mb-12px'>
+            <CheckOne theme='filled' size={16} fill='var(--color-success-6)' />
+            <span className='text-13px font-medium text-success-6'>{t('guid.scanning.connectingMessage', { defaultValue: 'Connected successfully, please wait...' })}</span>
+          </div>
+        )}
+
+        {/* Scanning Header - 扫描中提示 */}
+        {isChecking && (
+          <div className='flex items-center gap-8px mb-12px'>
+            <Loading theme='outline' size={16} className='animate-spin text-primary' />
+            <span className='text-13px text-t-secondary'>{t('guid.scanning.scanningMessage', { defaultValue: 'Scanning local available agents...' })}</span>
+          </div>
+        )}
+
+        {/* Initial Message - 初始检测提示 */}
+        {!isChecking && !hasAvailableAndSwitching && availableAgents.length === 0 && (
+          <div className='flex items-center gap-8px mb-12px'>
+            <Loading theme='outline' size={16} className='animate-spin text-primary' />
+            <span className='text-13px text-t-secondary'>{t('guid.scanning.initialMessage', { defaultValue: 'Current Agent is unavailable, detecting other available agents...' })}</span>
+          </div>
+        )}
+
+        {/* Agent Cards - Agent 卡片列表 */}
+        {(isChecking || hasAvailableAndSwitching) && availableAgents.length > 0 && (
+          <div className='overflow-x-auto pb-4px -mx-4px px-4px'>
             <div className='flex gap-10px' style={{ width: 'max-content' }}>
               {availableAgents
-                .filter((r) => r.available)
                 .sort((a, b) => {
-                  // Best match first, then by latency (lowest first)
+                  // Best match first, then available ones, then by checking status
                   const aIsBest = bestAgent?.backend === a.backend;
                   const bIsBest = bestAgent?.backend === b.backend;
                   if (aIsBest && !bIsBest) return -1;
                   if (!aIsBest && bIsBest) return 1;
-                  if (!a.latency) return 1;
-                  if (!b.latency) return -1;
-                  return a.latency - b.latency;
+                  if (a.available && !b.available) return -1;
+                  if (!a.available && b.available) return 1;
+                  if (a.checking && !b.checking) return -1;
+                  if (!a.checking && b.checking) return 1;
+                  return 0;
                 })
                 .map((result) => {
                   const isBest = bestAgent?.backend === result.backend;
+                  const isSelected = hasAvailableAndSwitching && isBest;
+
+                  // Determine status display
+                  let statusIcon: React.ReactNode;
+                  let statusText: string;
+                  let statusColor: string;
+
+                  if (result.checking) {
+                    statusIcon = <Loading theme='outline' size={12} className='animate-spin' style={{ color: 'var(--color-warning-6)' }} />;
+                    statusText = t('guid.scanning.statusTesting', { defaultValue: 'Testing latency...' });
+                    statusColor = 'var(--color-warning-6)';
+                  } else if (result.available) {
+                    statusIcon = <CheckOne theme='filled' size={12} fill='var(--color-success-6)' />;
+                    statusText = result.latency ? `${result.latency}ms` : t('guid.scanning.statusAvailable', { defaultValue: 'Available' });
+                    statusColor = 'var(--color-success-6)';
+                  } else if (result.error) {
+                    statusIcon = <CloseOne theme='filled' size={12} fill='var(--color-danger-6)' />;
+                    statusText = t('guid.scanning.statusUnreachable', { defaultValue: 'Unreachable' });
+                    statusColor = 'var(--color-danger-6)';
+                  } else {
+                    statusIcon = null;
+                    statusText = t('guid.scanning.statusQueued', { defaultValue: 'Queued' });
+                    statusColor = 'var(--color-text-3)';
+                  }
+
                   return (
-                    <div key={result.backend} className={classNames('rounded-10px p-12px cursor-pointer transition-all min-w-120px flex-shrink-0', isBest ? 'bg-primary-1 border-2 border-solid border-primary shadow-sm' : 'bg-white border-1 border-solid border-border-2 hover:border-primary-3 hover:bg-fill-1')} onClick={() => handleSelectAgent(result)}>
+                    <div key={result.backend} className={classNames('rounded-10px p-12px transition-all min-w-120px flex-shrink-0', isSelected ? 'bg-success-1 border-2 border-solid border-success shadow-sm' : result.available && !hasAvailableAndSwitching ? 'bg-white border-1 border-solid border-border-2 cursor-pointer hover:border-primary-3 hover:bg-fill-1' : 'bg-white border-1 border-solid border-border-2')} onClick={result.available && !hasAvailableAndSwitching ? () => handleSelectAgent(result) : undefined}>
                       <div className='flex flex-col items-center text-center'>
-                        {AGENT_LOGOS[result.backend] && <img src={AGENT_LOGOS[result.backend]} alt={result.name} className='w-32px h-32px mb-6px' />}
-                        <div className='text-13px font-medium text-t-primary mb-2px'>{result.name}</div>
-                        <div className='flex items-center gap-4px text-11px'>
-                          <span className='flex items-center gap-2px text-success'>
-                            <span className='w-4px h-4px rounded-full bg-success' />
-                            {t('agent.health.available', { defaultValue: 'Available' })}
-                          </span>
-                          {result.latency && (
-                            <>
-                              <span className='text-t-tertiary'>·</span>
-                              <span className='text-t-secondary'>{result.latency}ms</span>
-                            </>
-                          )}
+                        <div className='relative w-32px h-32px mb-6px'>
+                          {AGENT_LOGOS[result.backend] ? <img src={AGENT_LOGOS[result.backend]} alt={result.name} className='w-full h-full' /> : <div className='w-full h-full rounded-full bg-fill-2 flex items-center justify-center text-14px'>{result.name.charAt(0)}</div>}
+                          {!result.available && !result.checking && <CloseOne theme='filled' size={14} fill='var(--color-danger-6)' className='absolute -top-2px -right-2px' />}
                         </div>
-                        {isBest && <span className='mt-6px px-8px py-2px bg-primary text-white text-10px font-medium rounded-full'>{t('agent.health.bestMatch', { defaultValue: 'Best Match' })}</span>}
+                        <div className='text-13px font-medium text-t-primary mb-2px'>{result.name}</div>
+                        <div className='flex items-center gap-4px text-11px' style={{ color: statusColor }}>
+                          {statusIcon}
+                          <span>{statusText}</span>
+                        </div>
                       </div>
                     </div>
                   );
                 })}
             </div>
           </div>
+        )}
 
-          {/* Loading overlay during switch */}
-          {switching && (
-            <div className='mt-8px flex items-center gap-6px text-12px text-t-secondary'>
-              <Loading theme='outline' size={12} className='animate-spin' />
-              <span>{t('agent.setup.switching', { defaultValue: 'Switching agent...' })}</span>
-            </div>
-          )}
-        </div>
-      )}
+        {/* Connection Progress - 连接进度条 */}
+        {hasAvailableAndSwitching && bestAgent && (
+          <div className='mt-12px'>
+            <Progress percent={switching ? 50 : 100} size='small' status='success' showText={false} />
+            <div className='text-11px text-t-tertiary mt-4px text-center'>{t('guid.scanning.establishingConnection', { defaultValue: 'Establishing connection...' })}</div>
+          </div>
+        )}
 
-      {/* No alternatives found */}
-      {!isChecking && availableCount === 0 && availableAgents.length > 0 && (
-        <div className='mt-12px text-center py-12px'>
-          <div className='text-24px mb-4px'>😔</div>
-          <div className='text-13px font-medium text-t-primary mb-4px'>{t('agent.setup.noAlternatives', { defaultValue: 'No available agents found' })}</div>
-          <div className='text-12px text-t-secondary'>{t('agent.setup.configureFirst', { defaultValue: 'Please configure an agent in Settings first.' })}</div>
-          <Button type='outline' size='small' className='mt-8px' onClick={() => navigate('/settings')}>
-            {t('common.goToSettings', { defaultValue: 'Go to Settings' })}
-          </Button>
-        </div>
-      )}
+        {/* No alternatives found */}
+        {!isChecking && availableCount === 0 && availableAgents.length > 0 && (
+          <div className='text-center py-12px'>
+            <div className='text-24px mb-4px'>😔</div>
+            <div className='text-13px font-medium text-t-primary mb-4px'>{t('agent.setup.noAlternatives', { defaultValue: 'No available agents found' })}</div>
+            <div className='text-12px text-t-secondary'>{t('agent.setup.configureFirst', { defaultValue: 'Please configure an agent in Settings first.' })}</div>
+            <Button type='outline' size='small' className='mt-8px' onClick={() => navigate('/settings')}>
+              {t('common.goToSettings', { defaultValue: 'Go to Settings' })}
+            </Button>
+          </div>
+        )}
 
-      {/* Retry button */}
-      {!isChecking && onRetry && (
-        <div className='mt-12px flex justify-end'>
-          <Button type='text' size='small' onClick={onRetry}>
-            {t('common.retry', { defaultValue: 'Retry' })}
-          </Button>
-        </div>
-      )}
+        {/* Retry button */}
+        {!isChecking && !switching && onRetry && availableCount === 0 && (
+          <div className='mt-12px flex justify-end'>
+            <Button type='text' size='small' onClick={onRetry}>
+              {t('common.retry', { defaultValue: 'Retry' })}
+            </Button>
+          </div>
+        )}
+      </div>
     </div>
   );
 };

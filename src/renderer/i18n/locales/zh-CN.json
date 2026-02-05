@@ -1171,6 +1171,7 @@
       "checkConfig": "请检查配置或稍后重试"
     },
     "setup": {
+      "connectionError": "连接错误",
       "notConfigured": "{{agent}} 尚未配置",
       "authRequired": "使用此 Agent 需要先完成认证或配置 API Key。",
       "findingAlternatives": "正在查找可用的替代方案...",

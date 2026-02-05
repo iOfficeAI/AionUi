@@ -1049,6 +1049,19 @@
       "bestMatch": "最適一致",
       "noAvailable": "現在の環境で利用可能なエージェントがありません",
       "checkConfig": "設定を確認するか、後でもう一度お試しください"
+    },
+    "setup": {
+      "connectionError": "接続エラー",
+      "notConfigured": "{{agent}} は設定されていません",
+      "authRequired": "このエージェントを使用するには認証またはAPIキーが必要です。",
+      "findingAlternatives": "利用可能な代替案を検索中...",
+      "checkingAgent": "{{agent}} を確認中...",
+      "alternativesFound": "{{count}} 個の利用可能な代替案が見つかりました",
+      "autoSwitching": "最適なエージェントに自動切り替え中...",
+      "configError": "設定エラー。設定を確認するか、別のエージェントを選択してください：",
+      "noAlternatives": "利用可能なエージェントが見つかりません",
+      "configureFirst": "まず設定でエージェントを設定してください。",
+      "switching": "エージェントを切り替え中..."
     }
   }
 }
