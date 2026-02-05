@@ -339,6 +339,7 @@ const GeminiSendBox: React.FC<{
   const quotaPromptedRef = useRef<string | null>(null);
   const exhaustedModelsRef = useRef(new Set<string>());
   const [showSetupCard, setShowSetupCard] = useState(false);
+  const [shouldAutoSwitch, setShouldAutoSwitch] = useState(true); // true for new conversation, false for post-error
   const hasCheckedRef = useRef(false);
 
   // Agent readiness check for new user experience
@@ -428,12 +429,13 @@ const GeminiSendBox: React.FC<{
     return hasStatusError || hasInvalidUrl || hasNotFound || hasUnauthorized || hasForbidden || hasInvalidApiKey || hasInvalidArgument;
   }, []);
 
-  // 处理 API 错误 - 显示 AgentSetupCard 并自动切换到可用的 agent
-  // Handle API errors - show AgentSetupCard and auto-switch to available agent
+  // 处理 API 错误 - 显示提示，不自动切换（已有上下文场景）
+  // Handle API errors - show prompt only, no auto-switch (existing context scenario)
   const handleApiErrorSwitch = useCallback(() => {
-    // 显示 AgentSetupCard 并触发健康检查，找到可用的替代 agent
-    // Show AgentSetupCard and trigger health check to find available alternatives
-    console.info('API error detected. Showing setup card and checking for alternatives...');
+    // 已有上下文时，只显示提示让用户检查配置或手动选择
+    // When there's existing context, only show prompt for user to check config or manually select
+    console.info('API error detected. Showing setup card for manual selection (no auto-switch).');
+    setShouldAutoSwitch(false); // 不自动切换 / Disable auto-switch
     setShowSetupCard(true);
     void performFullCheck();
   }, [performFullCheck]);
@@ -485,6 +487,7 @@ const GeminiSendBox: React.FC<{
     // Reset check state when conversation changes
     hasCheckedRef.current = false;
     setShowSetupCard(false);
+    setShouldAutoSwitch(true); // Reset to default auto-switch behavior
     resetAgentCheck();
   }, [conversation_id, resetAgentCheck]);
 
@@ -605,7 +608,9 @@ const GeminiSendBox: React.FC<{
       });
 
       if (!isReady) {
-        // Not ready - trigger full check and show setup card
+        // Not ready - trigger full check and show setup card with auto-switch
+        // 新对话首次发送，自动切换到可用agent / New conversation first send, auto-switch to available agent
+        setShouldAutoSwitch(true);
         setShowSetupCard(true);
         void performFullCheck();
         return; // Don't send the message yet
@@ -680,7 +685,7 @@ const GeminiSendBox: React.FC<{
   return (
     <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
       {/* Agent Setup Card for new users without configured auth */}
-      {showSetupCard && <AgentSetupCard conversationId={conversation_id} currentAgent={currentAgent} error={agentError} isChecking={agentIsChecking} progress={checkProgress} availableAgents={availableAgents} bestAgent={bestAgent} onDismiss={handleDismissSetupCard} onRetry={handleRetryCheck} />}
+      {showSetupCard && <AgentSetupCard conversationId={conversation_id} currentAgent={currentAgent} error={agentError} isChecking={agentIsChecking} progress={checkProgress} availableAgents={availableAgents} bestAgent={bestAgent} onDismiss={handleDismissSetupCard} onRetry={handleRetryCheck} autoSwitch={shouldAutoSwitch} />}
 
       <ThoughtDisplay thought={thought} running={running} onStop={handleStop} />
 

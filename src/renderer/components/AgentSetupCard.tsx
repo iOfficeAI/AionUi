@@ -164,10 +164,15 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({ conversationId, current
   const availableCount = availableAgents.filter((a) => a.available).length;
 
   // Auto-switch to best agent when check completes and best agent is found
+  // Add a delay (1.5s) to let users see the animation and understand what's happening
   useEffect(() => {
     if (autoSwitch && !isChecking && bestAgent && !autoSwitchTriggeredRef.current && !switchingRef.current) {
       autoSwitchTriggeredRef.current = true;
-      void handleSelectAgent(bestAgent);
+      // Delay auto-switch to give users time to see what's happening
+      const timer = setTimeout(() => {
+        void handleSelectAgent(bestAgent);
+      }, 1500);
+      return () => clearTimeout(timer);
     }
   }, [autoSwitch, isChecking, bestAgent, handleSelectAgent]);
 
@@ -227,8 +232,8 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({ conversationId, current
       {!isChecking && availableCount > 0 && (
         <div className='mt-12px'>
           <div className='flex items-center gap-6px mb-10px'>
-            <span className='text-16px'>⚡</span>
-            <span className='text-13px font-medium text-t-primary'>{autoSwitch ? t('agent.setup.autoSwitching', { defaultValue: 'Auto-switching to best available agent...' }) : t('agent.setup.alternativesFound', { defaultValue: '{{count}} available alternatives found', count: availableCount })}</span>
+            <span className='text-16px'>{autoSwitch ? '⚡' : '⚠️'}</span>
+            <span className='text-13px font-medium text-t-primary'>{autoSwitch ? t('agent.setup.autoSwitching', { defaultValue: 'Auto-switching to best available agent...' }) : t('agent.setup.configError', { defaultValue: 'Configuration error. Please check your settings or select an alternative:' })}</span>
           </div>
 
           {/* Available agents - horizontal scroll */}

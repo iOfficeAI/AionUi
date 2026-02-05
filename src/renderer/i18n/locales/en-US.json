@@ -1166,6 +1166,7 @@
       "checkingAgent": "Checking {{agent}}...",
       "alternativesFound": "{{count}} available alternatives found",
       "autoSwitching": "Auto-switching to best available agent...",
+      "configError": "Configuration error. Please check your settings or select an alternative:",
       "noAlternatives": "No available agents found",
       "configureFirst": "Please configure an agent in Settings first.",
       "switching": "Switching agent..."
