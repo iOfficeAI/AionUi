@@ -508,7 +508,7 @@ const Guid: React.FC = () => {
   );
 
   // 获取可用的 ACP agents - 基于全局标记位
-  const { data: availableAgentsData, isLoading: isLoadingAgents } = useSWR('acp.agents.available', async () => {
+  const { data: availableAgentsData } = useSWR('acp.agents.available', async () => {
     const result = await ipcBridge.acpConversation.getAvailableAgents.invoke();
     if (result.success) {
       // 过滤掉检测到的gemini命令，只保留内置Gemini
@@ -927,182 +927,32 @@ const Guid: React.FC = () => {
     // 对于非预设 agent tabs，也需要检查 finalEffectiveAgentType（可能因兼容性问题自动切换）
     // For non-preset agent tabs, also check finalEffectiveAgentType (may have auto-switched due to compatibility)
     if (!selectedAgent || (selectedAgent === 'gemini' && finalEffectiveAgentType === 'gemini') || (isPreset && finalEffectiveAgentType === 'gemini')) {
-      if (!currentModel) {
-        // 没有可用模型时的处理 / Handle case when no model is available
-        if (!isGoogleAuth) {
-          // 等待 agent 检测完成后再判断 / Wait for agent detection to complete
-          // 如果 agents 还在加载，等待加载完成
-          // If agents are still loading, wait for them
-          let agentsToCheck = availableAgents;
-          if (isLoadingAgents || !availableAgentsData) {
-            // 等待 SWR 加载完成 / Wait for SWR to complete loading
-            try {
-              const result = await ipcBridge.acpConversation.getAvailableAgents.invoke();
-              if (result.success) {
-                agentsToCheck = result.data.filter((agent) => !(agent.backend === 'gemini' && agent.cliPath));
-              }
-            } catch (e) {
-              console.error('Failed to get available agents:', e);
-            }
-          }
-
-          // 未登录 Google，优先检查是否有其他可用的 CLI Agent（需要验证认证状态）
-          // Not logged in to Google, check if other CLI agents are available (verify auth status)
-          const cliAgentOrder: PresetAgentType[] = ['claude', 'codex', 'opencode'];
-
-          // 逐个检查 CLI agent 的健康状态（包括认证）
-          // Check each CLI agent's health status (including authentication)
-          let firstAvailableCli: PresetAgentType | null = null;
-          let cliAgent: (typeof agentsToCheck)[number] | undefined;
-
-          for (const cli of cliAgentOrder) {
-            const agent = agentsToCheck?.find((a) => a.backend === cli);
-            if (!agent) continue;
-
-            try {
-              const healthResult = await ipcBridge.acpConversation.checkAgentHealth.invoke({ backend: cli });
-              if (healthResult.success && healthResult.data?.available) {
-                firstAvailableCli = cli;
-                cliAgent = agent;
-                break;
-              }
-            } catch (e) {
-              console.error(`Failed to check ${cli} health:`, e);
-            }
-          }
-
-          if (firstAvailableCli && cliAgent) {
-            // 找到可用且已认证的 CLI Agent
-            // Found available and authenticated CLI agent
-            try {
-              // Codex 使用单独的会话类型 / Codex uses separate conversation type
-              if (firstAvailableCli === 'codex') {
-                const conversation = await ipcBridge.conversation.create.invoke({
-                  type: 'codex',
-                  name: input,
-                  model: currentModel || {
-                    id: 'cli',
-                    name: 'codex',
-                    useModel: 'default',
-                    platform: 'cli',
-                    baseUrl: '',
-                    apiKey: '',
-                  },
-                  extra: {
-                    defaultFiles: files,
-                    workspace: finalWorkspace,
-                    customWorkspace: isCustomWorkspace,
-                    presetContext: isPreset ? presetRules : undefined,
-                    enabledSkills: isPreset ? enabledSkills : undefined,
-                    presetAssistantId: isPreset ? agentInfo?.customAgentId : undefined,
-                  },
-                });
-
-                if (!conversation || !conversation.id) {
-                  throw new Error('Failed to create Codex conversation');
-                }
-
-                if (isCustomWorkspace) {
-                  closeAllTabs();
-                  updateWorkspaceTime(finalWorkspace);
-                  openTab(conversation);
-                }
-
-                emitter.emit('chat.history.refresh');
-
-                // Store initial message for CodexSendBox to send
-                const initialMessage = {
-                  input,
-                  files: files.length > 0 ? files : undefined,
-                };
-                sessionStorage.setItem(`codex_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
-
-                void navigate(`/conversation/${conversation.id}`);
-                return;
-              }
-
-              // 其他 CLI agents (claude, opencode) 使用 ACP 会话类型
-              // Other CLI agents (claude, opencode) use ACP conversation type
-              const conversation = await ipcBridge.conversation.create.invoke({
-                type: 'acp',
-                name: input,
-                model: {
-                  id: 'cli',
-                  name: firstAvailableCli,
-                  useModel: 'default',
-                  platform: 'cli',
-                  baseUrl: '',
-                  apiKey: '',
-                },
-                extra: {
-                  backend: firstAvailableCli,
-                  cliPath: cliAgent?.cliPath,
-                  workspace: finalWorkspace,
-                  customWorkspace: isCustomWorkspace,
-                  presetContext: isPreset ? presetRules : undefined,
-                  enabledSkills: isPreset ? enabledSkills : undefined,
-                  presetAssistantId: isPreset ? agentInfo?.customAgentId : undefined,
-                },
-              });
-
-              if (!conversation || !conversation.id) {
-                throw new Error('Failed to create conversation');
-              }
-
-              if (isCustomWorkspace) {
-                closeAllTabs();
-                updateWorkspaceTime(finalWorkspace);
-                openTab(conversation);
-              }
-
-              emitter.emit('chat.history.refresh');
-
-              // Store initial message for AcpSendBox to send
-              const workspacePath = conversation.extra?.workspace || '';
-              const displayMessage = buildDisplayMessage(input, files, workspacePath);
-              sessionStorage.setItem(`acp_initial_message_${conversation.id}`, JSON.stringify({ input: displayMessage, files }));
-
-              void navigate(`/conversation/${conversation.id}`);
-              return;
-            } catch (error) {
-              console.error(`Failed to create ${firstAvailableCli} conversation:`, error);
-              // Fall through to Google login as fallback
-            }
-          }
-
-          // 没有可用的 CLI Agent，触发 Google 登录
-          // No available CLI agents, trigger Google login
-          try {
-            const result = await ipcBridge.googleAuth.login.invoke({});
-            if (result.success) {
-              // 登录成功，刷新模型列表 / Login successful, refresh model list
-              await mutate('google.auth.status');
-              await mutate('model.config.welcome');
-              // 提示用户重新发送 / Prompt user to resend
-              return;
-            }
-          } catch (error) {
-            console.error('Failed to login to Google:', error);
-          }
-        }
-        // 已登录但没有模型，或登录失败，跳转到设置页 / Logged in but no model, or login failed, navigate to settings
-        void navigate('/settings/model');
-        return;
-      }
+      // 当没有 currentModel 但选择了 Gemini 时，仍然创建 Gemini 会话
+      // 让会话面板的 GeminiSendBox 处理 agent 可用性检查和自动切换
+      // When no currentModel but Gemini is selected, still create Gemini conversation
+      // Let the conversation panel's GeminiSendBox handle agent availability check and auto-switch
+      const placeholderModel = currentModel || {
+        id: 'gemini-placeholder',
+        name: 'Gemini',
+        useModel: 'default',
+        platform: 'gemini-with-google-auth' as const,
+        baseUrl: '',
+        apiKey: '',
+      };
       try {
         const presetAssistantIdToPass = isPreset ? agentInfo?.customAgentId : undefined;
 
         const conversation = await ipcBridge.conversation.create.invoke({
           type: 'gemini',
           name: input,
-          model: currentModel,
+          model: placeholderModel,
           extra: {
             defaultFiles: files,
             workspace: finalWorkspace,
             customWorkspace: isCustomWorkspace,
             // 只有当模型使用 Google OAuth 认证时才启用 Google 搜索
             // Only enable Google search when the model uses Google OAuth authentication
-            webSearchEngine: currentModel.platform === 'gemini-with-google-auth' || currentModel.platform === 'gemini-vertex-ai' ? 'google' : 'default',
+            webSearchEngine: placeholderModel.platform === 'gemini-with-google-auth' || placeholderModel.platform === 'gemini-vertex-ai' ? 'google' : 'default',
             // 传递 rules（skills 通过 SkillManager 加载）
             // Pass rules (skills loaded via SkillManager)
             presetRules: isPreset ? presetRules : undefined,
