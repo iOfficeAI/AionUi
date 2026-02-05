@@ -561,6 +561,7 @@
     "agent": "代理",
     "tools": "工具",
     "webui": "WebUI",
+    "channels": "頻道",
     "webui.configuration": "WebUI 配置",
     "webui.enable": "啟用 WebUI",
     "webui.enableDesc": "啟動 Web 服務，允許透過瀏覽器存取",

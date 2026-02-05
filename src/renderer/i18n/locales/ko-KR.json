@@ -504,6 +504,7 @@
     "agent": "에이전트",
     "tools": "도구",
     "webui": "WebUI",
+    "channels": "채널",
     "webui.configuration": "WebUI 구성",
     "webui.enable": "WebUI 활성화",
     "webui.enableDesc": "브라우저 접근을 허용하는 웹 서비스 시작",
