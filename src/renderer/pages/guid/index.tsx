@@ -795,6 +795,38 @@ const Guid: React.FC = () => {
     return getEffectiveAgentType(selectedAgentInfo);
   }, [isPresetAgent, selectedAgent, selectedAgentInfo, getEffectiveAgentType, isMainAgentAvailable]);
 
+  /**
+   * 自动切换到可用的 agent（当选中的 agent 不可用时）
+   * Auto-switch to an available agent when the selected agent is unavailable
+   *
+   * 适用于：
+   * 1. 非预设 agent（如 gemini、claude 等）不可用时，自动切换到可用的 agent
+   * 2. 预设助手配置的 main agent 不可用时，自动切换到可用的 fallback agent
+   */
+  useEffect(() => {
+    // 跳过初始状态（availableAgents 还未加载）
+    // Skip initial state (availableAgents not yet loaded)
+    if (!availableAgents || availableAgents.length === 0) return;
+
+    // 检查当前选中的 agent/助手是否可用
+    // Check if the currently selected agent/assistant is available
+    if (!currentEffectiveAgentInfo.isAvailable) {
+      // 当前 agent 不可用，尝试获取可用的 fallback
+      // Current agent unavailable, try to get an available fallback
+      const fallbackType = getAvailableFallbackAgent();
+      if (fallbackType && fallbackType !== selectedAgent) {
+        console.log(`[Guid] Auto-switching from unavailable agent "${selectedAgent}" to "${fallbackType}"`);
+        setSelectedAgentKey(fallbackType);
+      }
+    } else if (isPresetAgent && currentEffectiveAgentInfo.isFallback) {
+      // 预设助手的 main agent 不可用，已自动回退到 fallback
+      // 更新 UI 显示（但不更改 selectedAgentKey，保持助手选中状态）
+      // Preset assistant's main agent unavailable, already fell back
+      // This is handled by currentEffectiveAgentInfo, no action needed here
+      console.log(`[Guid] Preset assistant using fallback agent: "${currentEffectiveAgentInfo.agentType}" (original: "${currentEffectiveAgentInfo.originalType}")`);
+    }
+  }, [availableAgents, currentEffectiveAgentInfo, selectedAgent, isPresetAgent, getAvailableFallbackAgent, setSelectedAgentKey]);
+
   const refreshCustomAgents = useCallback(async () => {
     try {
       await ipcBridge.acpConversation.refreshCustomAgents.invoke();
@@ -1155,7 +1187,7 @@ const Guid: React.FC = () => {
       // For preset with ACP-routed agent type (claude/opencode), use corresponding backend
       // Check if agent type changed from user selection (due to availability fallback or compatibility switch)
       const agentTypeChanged = selectedAgent !== finalEffectiveAgentType;
-      let acpBackend = agentTypeChanged
+      let acpBackend: PresetAgentType | undefined = agentTypeChanged
         ? finalEffectiveAgentType // Agent type changed from selection, use the final effective type
         : isPreset && isAcpRoutedPresetType(finalEffectiveAgentType)
           ? finalEffectiveAgentType
