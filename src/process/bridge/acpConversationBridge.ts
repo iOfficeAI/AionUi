@@ -6,6 +6,7 @@
 
 import { acpDetector } from '@/agent/acp/AcpDetector';
 import { AcpConnection } from '@/agent/acp/AcpConnection';
+import { CodexConnection } from '@/agent/codex/connection/CodexConnection';
 import { ipcBridge } from '../../common';
 import * as os from 'os';
 
@@ -68,7 +69,8 @@ export function initAcpConversationBridge(): void {
     const agents = acpDetector.getDetectedAgents();
     const agent = agents.find((a) => a.backend === backend);
 
-    if (!agent?.cliPath && backend !== 'claude') {
+    // Skip CLI check for claude (uses npx) and codex (has its own detection)
+    if (!agent?.cliPath && backend !== 'claude' && backend !== 'codex') {
       return {
         success: false,
         msg: `${backend} CLI not found`,
@@ -76,9 +78,58 @@ export function initAcpConversationBridge(): void {
       };
     }
 
-    // Step 2: Create a temporary ACP connection and send test message
-    const connection = new AcpConnection();
     const tempDir = os.tmpdir();
+
+    // Step 2: Handle Codex separately - it uses MCP protocol, not ACP
+    if (backend === 'codex') {
+      const codexConnection = new CodexConnection();
+      try {
+        // Start Codex MCP server
+        await codexConnection.start(agent?.cliPath || 'codex', tempDir);
+
+        // Wait for server to be ready and ping it
+        await codexConnection.waitForServerReady(15000);
+        const pingResult = await codexConnection.ping(5000);
+
+        if (!pingResult) {
+          throw new Error('Codex server not responding to ping');
+        }
+
+        const latency = Date.now() - startTime;
+        void codexConnection.stop();
+
+        return {
+          success: true,
+          data: { available: true, latency },
+        };
+      } catch (error) {
+        try {
+          void codexConnection.stop();
+        } catch {
+          // Ignore stop errors
+        }
+
+        const errorMsg = error instanceof Error ? error.message : String(error);
+        const lowerError = errorMsg.toLowerCase();
+
+        if (lowerError.includes('auth') || lowerError.includes('login') || lowerError.includes('api key') || lowerError.includes('not found') || lowerError.includes('command not found')) {
+          return {
+            success: false,
+            msg: `codex not available`,
+            data: { available: false, error: errorMsg },
+          };
+        }
+
+        return {
+          success: false,
+          msg: `codex health check failed: ${errorMsg}`,
+          data: { available: false, error: errorMsg },
+        };
+      }
+    }
+
+    // Step 3: For ACP-based agents (claude, gemini, qwen, etc.)
+    const connection = new AcpConnection();
 
     try {
       // Connect to the agent
