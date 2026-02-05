@@ -508,7 +508,7 @@ const Guid: React.FC = () => {
   );
 
   // 获取可用的 ACP agents - 基于全局标记位
-  const { data: availableAgentsData } = useSWR('acp.agents.available', async () => {
+  const { data: availableAgentsData, isLoading: isLoadingAgents } = useSWR('acp.agents.available', async () => {
     const result = await ipcBridge.acpConversation.getAvailableAgents.invoke();
     if (result.success) {
       // 过滤掉检测到的gemini命令，只保留内置Gemini
@@ -901,15 +901,31 @@ const Guid: React.FC = () => {
       if (!currentModel) {
         // 没有可用模型时的处理 / Handle case when no model is available
         if (!isGoogleAuth) {
+          // 等待 agent 检测完成后再判断 / Wait for agent detection to complete
+          // 如果 agents 还在加载，等待加载完成
+          // If agents are still loading, wait for them
+          let agentsToCheck = availableAgents;
+          if (isLoadingAgents || !availableAgentsData) {
+            // 等待 SWR 加载完成 / Wait for SWR to complete loading
+            try {
+              const result = await ipcBridge.acpConversation.getAvailableAgents.invoke();
+              if (result.success) {
+                agentsToCheck = result.data.filter((agent) => !(agent.backend === 'gemini' && agent.cliPath));
+              }
+            } catch (e) {
+              console.error('Failed to get available agents:', e);
+            }
+          }
+
           // 未登录 Google，优先检查是否有其他可用的 CLI Agent
           // Not logged in to Google, first check if other CLI agents are available
           const cliAgentOrder: PresetAgentType[] = ['claude', 'codex', 'opencode'];
-          const firstAvailableCli = cliAgentOrder.find((cli) => availableAgents?.some((agent) => agent.backend === cli));
+          const firstAvailableCli = cliAgentOrder.find((cli) => agentsToCheck?.some((agent) => agent.backend === cli));
 
           if (firstAvailableCli) {
             // 找到可用的 CLI Agent，自动切换并创建 ACP 会话
             // Found available CLI agent, auto-switch and create ACP conversation
-            const cliAgent = availableAgents?.find((agent) => agent.backend === firstAvailableCli);
+            const cliAgent = agentsToCheck?.find((agent) => agent.backend === firstAvailableCli);
             console.info(`Gemini not available (no model/auth), auto-switching to ${firstAvailableCli}`);
             Message.info({
               content: t('guid.autoSwitchToAgent', {
