@@ -20,6 +20,7 @@ import IflowLogo from '@/renderer/assets/logos/iflow.svg';
 import KimiLogo from '@/renderer/assets/logos/kimi.svg';
 import OpenCodeLogo from '@/renderer/assets/logos/opencode.svg';
 import QwenLogo from '@/renderer/assets/logos/qwen.svg';
+import AgentScanningOverlay, { type ScannedAgent, type ScanningPhase } from '@/renderer/components/AgentScanningOverlay';
 import FilePreview from '@/renderer/components/FilePreview';
 import { useLayoutContext } from '@/renderer/context/LayoutContext';
 import { useCompositionInput } from '@/renderer/hooks/useCompositionInput';
@@ -325,6 +326,14 @@ const Guid: React.FC = () => {
   const [typewriterPlaceholder, setTypewriterPlaceholder] = useState('');
   const [_isTyping, setIsTyping] = useState(true);
   const mentionMatchRegex = useMemo(() => /(?:^|\s)@([^\s@]*)$/, []);
+
+  // Agent scanning state for auto-switch UI
+  // Agent 扫描状态，用于自动切换 UI
+  const [scanningPhase, setScanningPhase] = useState<ScanningPhase>('done');
+  const [scannedAgents, setScannedAgents] = useState<ScannedAgent[]>([]);
+  const [selectedScannedAgent, setSelectedScannedAgent] = useState<ScannedAgent | undefined>();
+  const [connectionProgress, setConnectionProgress] = useState(0);
+  const scanningVisible = scanningPhase !== 'done';
 
   /**
    * 生成唯一模型 key（providerId:model）
@@ -950,6 +959,27 @@ const Guid: React.FC = () => {
           // Not logged in to Google, check if other CLI agents are available (verify auth status)
           const cliAgentOrder: PresetAgentType[] = ['claude', 'codex', 'opencode'];
 
+          // 初始化扫描 UI / Initialize scanning UI
+          const initialAgents: ScannedAgent[] = cliAgentOrder
+            .filter((cli) => agentsToCheck?.some((a) => a.backend === cli))
+            .map((cli) => ({
+              backend: cli,
+              name: cli.charAt(0).toUpperCase() + cli.slice(1),
+              status: 'queued' as const,
+            }));
+
+          // 显示初始扫描状态 / Show initial scanning state
+          if (initialAgents.length > 0) {
+            setScanningPhase('initial');
+            setScannedAgents(initialAgents);
+            setSelectedScannedAgent(undefined);
+            setConnectionProgress(0);
+
+            // 短暂延迟后进入扫描阶段 / Brief delay before entering scanning phase
+            await new Promise((resolve) => setTimeout(resolve, 500));
+            setScanningPhase('scanning');
+          }
+
           // 逐个检查 CLI agent 的健康状态（包括认证）
           // Check each CLI agent's health status (including authentication)
           let firstAvailableCli: PresetAgentType | null = null;
@@ -959,28 +989,44 @@ const Guid: React.FC = () => {
             const agent = agentsToCheck?.find((a) => a.backend === cli);
             if (!agent) continue;
 
+            // 更新当前检查的 agent 状态 / Update current checking agent status
+            setScannedAgents((prev) => prev.map((a) => (a.backend === cli ? { ...a, status: 'checking' as const } : a)));
+
             try {
               const healthResult = await ipcBridge.acpConversation.checkAgentHealth.invoke({ backend: cli });
               if (healthResult.success && healthResult.data?.available) {
                 firstAvailableCli = cli;
                 cliAgent = agent;
+                // 更新为可用状态 / Update to available status
+                setScannedAgents((prev) => prev.map((a) => (a.backend === cli ? { ...a, status: 'available' as const } : a)));
                 break;
+              } else {
+                // 更新为不可达状态 / Update to unreachable status
+                setScannedAgents((prev) => prev.map((a) => (a.backend === cli ? { ...a, status: 'unreachable' as const } : a)));
               }
             } catch (e) {
               console.error(`Failed to check ${cli} health:`, e);
+              // 更新为不可达状态 / Update to unreachable status
+              setScannedAgents((prev) => prev.map((a) => (a.backend === cli ? { ...a, status: 'unreachable' as const } : a)));
             }
           }
 
           if (firstAvailableCli && cliAgent) {
-            // 找到可用且已认证的 CLI Agent，自动切换并创建会话
-            // Found available and authenticated CLI agent, auto-switch and create conversation
-            Message.info({
-              content: t('guid.autoSwitchToAgent', {
-                agent: firstAvailableCli.charAt(0).toUpperCase() + firstAvailableCli.slice(1),
-                defaultValue: 'Gemini is not configured, auto-switching to {{agent}}',
-              }),
-              duration: 3000,
-            });
+            // 找到可用且已认证的 CLI Agent，显示连接状态
+            // Found available and authenticated CLI agent, show connecting state
+            const selectedAgent: ScannedAgent = {
+              backend: firstAvailableCli,
+              name: firstAvailableCli.charAt(0).toUpperCase() + firstAvailableCli.slice(1),
+              status: 'available',
+            };
+            setSelectedScannedAgent(selectedAgent);
+            setScanningPhase('connecting');
+
+            // 模拟连接进度 / Simulate connection progress
+            for (let progress = 0; progress <= 100; progress += 20) {
+              setConnectionProgress(progress);
+              await new Promise((resolve) => setTimeout(resolve, 100));
+            }
 
             try {
               // Codex 使用单独的会话类型 / Codex uses separate conversation type
@@ -1025,6 +1071,8 @@ const Guid: React.FC = () => {
                 };
                 sessionStorage.setItem(`codex_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
 
+                // 重置扫描状态 / Reset scanning state
+                setScanningPhase('done');
                 void navigate(`/conversation/${conversation.id}`);
                 return;
               }
@@ -1070,12 +1118,19 @@ const Guid: React.FC = () => {
               const displayMessage = buildDisplayMessage(input, files, workspacePath);
               sessionStorage.setItem(`acp_initial_message_${conversation.id}`, JSON.stringify({ input: displayMessage, files }));
 
+              // 重置扫描状态 / Reset scanning state
+              setScanningPhase('done');
               void navigate(`/conversation/${conversation.id}`);
               return;
             } catch (error) {
               console.error(`Failed to create ${firstAvailableCli} conversation:`, error);
+              // 重置扫描状态 / Reset scanning state on error
+              setScanningPhase('done');
               // Fall through to Google login as fallback
             }
+          } else {
+            // 没有找到可用的 CLI agent，重置扫描状态 / No available CLI agent found, reset scanning state
+            setScanningPhase('done');
           }
 
           // 没有可用的 CLI Agent，触发 Google 登录
@@ -1602,6 +1657,9 @@ const Guid: React.FC = () => {
               </div>
             </div>
           )}
+
+          {/* Agent Scanning Overlay - 在自动切换时显示扫描进度 / Show scanning progress during auto-switch */}
+          <AgentScanningOverlay phase={scanningPhase} agents={scannedAgents} selectedAgent={selectedScannedAgent} connectionProgress={connectionProgress} visible={scanningVisible} />
 
           <div
             className={`${styles.guidInputCard} relative p-16px border-3 b bg-dialog-fill-0 b-solid rd-20px flex flex-col ${mentionOpen ? 'overflow-visible' : 'overflow-hidden'} transition-all duration-200 ${isFileDragging ? 'border-dashed' : ''}`}

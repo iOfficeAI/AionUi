@@ -1144,6 +1144,16 @@
   "guid.noAgentAvailableShort": "没有可用的 Main Agent。点击配置。",
   "guid.agentTabAutoSwitch": "模型不兼容 Gemini，已自动切换到 {{fallback}}",
   "guid.autoSwitchToAgent": "Gemini 未配置，正在自动切换到 {{agent}}",
+  "guid.scanning": {
+    "initialMessage": "当前Agent不可用, 正在检测其他可用agent...",
+    "scanningMessage": "正在扫描本地可用agent...",
+    "connectingMessage": "已连接成功，请稍后...",
+    "establishingConnection": "正在建立连接...",
+    "statusQueued": "排队中",
+    "statusTesting": "正在测试延迟...",
+    "statusUnreachable": "不可达",
+    "statusAvailable": "可用"
+  },
   "agent": {
     "health": {
       "detectedError": "检测到当前 Agent ({{agent}}) 响应异常",

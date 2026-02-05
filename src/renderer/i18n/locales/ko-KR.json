@@ -1077,6 +1077,17 @@
   "guid.noAgentAvailable": "사용 가용한 Main Agent가 없습니다. Google에 로그인하거나 Claude/Codex CLI를 설치하세요. 설정으로 이동하시겠습니까?",
   "guid.noAgentAvailableShort": "사용 가능한 Main Agent가 없습니다. 클릭하여 설정하세요.",
   "guid.agentTabAutoSwitch": "모델이 Gemini와 호환되지 않아 {{fallback}}으로 자동 전환되었습니다",
+  "guid.autoSwitchToAgent": "Gemini가 설정되지 않아 {{agent}}로 자동 전환 중",
+  "guid.scanning": {
+    "initialMessage": "현재 Agent를 사용할 수 없습니다. 다른 사용 가능한 agent를 감지 중...",
+    "scanningMessage": "로컬에서 사용 가능한 agent 스캔 중...",
+    "connectingMessage": "연결 성공, 잠시 기다려 주세요...",
+    "establishingConnection": "연결 설정 중...",
+    "statusQueued": "대기 중",
+    "statusTesting": "지연 테스트 중...",
+    "statusUnreachable": "연결 불가",
+    "statusAvailable": "사용 가능"
+  },
   "agent": {
     "health": {
       "detectedError": "현재 에이전트 ({{agent}})에서 오류 감지됨",

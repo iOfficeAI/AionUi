@@ -1010,6 +1010,17 @@
   "guid.noAgentAvailable": "沒有可用的 Main Agent。請登入 Google 或安裝 Claude/Codex CLI。是否前往設定？",
   "guid.noAgentAvailableShort": "沒有可用的 Main Agent。點擊配置。",
   "guid.agentTabAutoSwitch": "模型不相容 Gemini，已自動切換到 {{fallback}}",
+  "guid.autoSwitchToAgent": "Gemini 未配置，正在自動切換到 {{agent}}",
+  "guid.scanning": {
+    "initialMessage": "當前Agent不可用, 正在檢測其他可用agent...",
+    "scanningMessage": "正在掃描本地可用agent...",
+    "connectingMessage": "已連接成功，請稍後...",
+    "establishingConnection": "正在建立連接...",
+    "statusQueued": "排隊中",
+    "statusTesting": "正在測試延遲...",
+    "statusUnreachable": "不可達",
+    "statusAvailable": "可用"
+  },
   "agent": {
     "health": {
       "detectedError": "檢測到當前 Agent ({{agent}}) 回應異常",
