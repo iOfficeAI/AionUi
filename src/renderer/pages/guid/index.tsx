@@ -912,20 +912,47 @@ const Guid: React.FC = () => {
     // 默认情况使用 Gemini，或 Preset 配置为 Gemini
     // 对于非预设 agent tabs，也需要检查 finalEffectiveAgentType（可能因兼容性问题自动切换）
     // For non-preset agent tabs, also check finalEffectiveAgentType (may have auto-switched due to compatibility)
+    console.info('[Guid Send] Branch check:', {
+      selectedAgent,
+      finalEffectiveAgentType,
+      isPreset,
+      hasCurrentModel: !!currentModel,
+      currentModelPlatform: currentModel?.platform,
+      isGoogleAuth,
+      willEnterGeminiBranch: !selectedAgent || (selectedAgent === 'gemini' && finalEffectiveAgentType === 'gemini') || (isPreset && finalEffectiveAgentType === 'gemini'),
+    });
     if (!selectedAgent || (selectedAgent === 'gemini' && finalEffectiveAgentType === 'gemini') || (isPreset && finalEffectiveAgentType === 'gemini')) {
       if (!currentModel) {
         // 没有可用模型时的处理 / Handle case when no model is available
+        console.info('[Guid Send] No currentModel, checking isGoogleAuth:', isGoogleAuth);
         if (!isGoogleAuth) {
           // 等待 agent 检测完成后再判断 / Wait for agent detection to complete
           // 如果 agents 还在加载，等待加载完成
           // If agents are still loading, wait for them
+          console.info('[Guid AutoSwitch] Starting auto-switch check...', {
+            hasAvailableAgents: !!availableAgents,
+            availableAgentsLength: availableAgents?.length,
+            isLoadingAgents,
+            hasAvailableAgentsData: !!availableAgentsData,
+          });
+
           let agentsToCheck = availableAgents;
           if (isLoadingAgents || !availableAgentsData) {
             // 等待 SWR 加载完成 / Wait for SWR to complete loading
+            console.info('[Guid AutoSwitch] SWR not ready, calling IPC directly...');
             try {
               const result = await ipcBridge.acpConversation.getAvailableAgents.invoke();
+              console.info('[Guid AutoSwitch] IPC result:', {
+                success: result.success,
+                dataLength: result.data?.length,
+                agents: result.data?.map((a) => ({ backend: a.backend, name: a.name })),
+              });
               if (result.success) {
                 agentsToCheck = result.data.filter((agent) => !(agent.backend === 'gemini' && agent.cliPath));
+                console.info(
+                  '[Guid AutoSwitch] After filter:',
+                  agentsToCheck?.map((a) => ({ backend: a.backend, name: a.name }))
+                );
               }
             } catch (e) {
               console.error('Failed to get available agents:', e);
@@ -936,6 +963,12 @@ const Guid: React.FC = () => {
           // Not logged in to Google, first check if other CLI agents are available
           const cliAgentOrder: PresetAgentType[] = ['claude', 'codex', 'opencode'];
           const firstAvailableCli = cliAgentOrder.find((cli) => agentsToCheck?.some((agent) => agent.backend === cli));
+
+          console.info('[Guid AutoSwitch] CLI search result:', {
+            cliAgentOrder,
+            agentsToCheckBackends: agentsToCheck?.map((a) => a.backend),
+            firstAvailableCli,
+          });
 
           if (firstAvailableCli) {
             // 找到可用的 CLI Agent，自动切换并创建 ACP 会话
@@ -1001,6 +1034,7 @@ const Guid: React.FC = () => {
 
           // 没有可用的 CLI Agent，触发 Google 登录
           // No available CLI agents, trigger Google login
+          console.info('[Guid AutoSwitch] No CLI found, triggering Google login...');
           try {
             const result = await ipcBridge.googleAuth.login.invoke({});
             if (result.success) {
