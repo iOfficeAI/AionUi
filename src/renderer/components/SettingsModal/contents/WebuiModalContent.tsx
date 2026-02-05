@@ -536,7 +536,7 @@ const WebuiModalContent: React.FC = () => {
       <div className='flex flex-col h-full w-full'>
         <AionScrollArea className='flex-1 min-h-0 pb-16px' disableOverflow={isPageMode}>
           <div className='space-y-16px'>
-            <h2 className='text-20px font-500 text-t-primary m-0'>{t('settings.channels', 'Channels')}</h2>
+            <h2 className='text-20px font-500 text-t-primary m-0'>Channels</h2>
             <ChannelModalContent />
           </div>
         </AionScrollArea>
@@ -666,7 +666,7 @@ const WebuiModalContent: React.FC = () => {
 
           {/* Channels 配置 / Channels Configuration */}
           <div className='mt-24px'>
-            <h2 className='text-20px font-500 text-t-primary m-0 mb-16px'>{t('settings.channels', 'Channels')}</h2>
+            <h2 className='text-20px font-500 text-t-primary m-0 mb-16px'>Channels</h2>
             <ChannelModalContent />
           </div>
         </div>

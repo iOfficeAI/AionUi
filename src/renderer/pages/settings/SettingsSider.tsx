@@ -46,7 +46,7 @@ const SettingsSider: React.FC<{ collapsed?: boolean }> = ({ collapsed = false })
 
     // 桌面端显示 WebUI，WebUI 浏览器模式下显示 Channels / Desktop shows WebUI, WebUI browser mode shows Channels
     items.push({
-      label: isDesktop ? t('settings.webui') : t('settings.channels', { defaultValue: 'Channels' }),
+      label: t('settings.webui'),
       icon: isDesktop ? <Earth /> : <Communication />,
       path: 'webui',
     });
