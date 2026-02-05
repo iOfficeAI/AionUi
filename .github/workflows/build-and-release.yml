@@ -264,7 +264,8 @@ jobs:
           }
         env:
           WINDOWS_BUILD_COMMAND: ${{ matrix.command }}
-          # Increase Node.js heap memory to prevent OOM during webpack build
+          # Node.js memory limit for webpack bundling (prevents OOM during build)
+          # Node.js 内存限制，防止 webpack 打包时内存不足
           NODE_OPTIONS: "--max-old-space-size=8192"
           # Target arch / 目标架构
           npm_config_arch: ${{ matrix.arch }}
@@ -309,63 +310,175 @@ jobs:
           rm -f /tmp/*.dmg 2>/dev/null || true
           echo "Cleanup complete"
 
-      - name: Build with electron-builder (non-Windows)
-        if: "!startsWith(matrix.platform, 'windows')"
-        uses: nick-fields/retry@v3
-        with:
-          timeout_minutes: 80
-          max_attempts: 2
-          retry_wait_seconds: 300
-          continue_on_error: ${{ startsWith(matrix.platform, 'macos') }}
-          command: ${{ matrix.command }}
-          on_retry_command: |
-            echo "⚠️ 构建超时或失败，5 分钟后进行第 2 次尝试..."
-            echo "这可能是临时网络问题或 Apple 公证服务延迟"
-            # Clean up stale disk images before retry (macOS)
-            if [[ "$RUNNER_OS" == "macOS" ]]; then
-              echo "Cleaning up stale disk images before retry..."
-              hdiutil info 2>/dev/null | grep '/dev/disk' | awk '{print $1}' | while read disk; do
-                hdiutil detach "$disk" -force 2>/dev/null || true
-              done
-              rm -f /tmp/*.dmg 2>/dev/null || true
-            fi
+      # macOS: Two-phase build to ensure artifacts exist even if notarization fails
+      # macOS: 两阶段构建，确保即使公证失败也有产物
+      #
+      # Phase 1: Build without notarization (guaranteed to produce DMG/ZIP)
+      # Phase 2: Attempt notarization (optional, failure won't lose artifacts)
+
+      - name: Build with electron-builder (macOS) - Phase 1 (no notarization)
+        if: startsWith(matrix.platform, 'macos')
+        id: macos-build
+        shell: bash
+        run: |
+          set +e  # Don't exit on error, handle manually
+
+          # Phase 1: Build WITHOUT notarization to ensure artifacts are created
+          # 阶段1：不公证构建，确保产物被创建
+          echo "📦 Phase 1: Building without notarization..."
+          BUILD_LOG="${RUNNER_TEMP}/build.log"
+
+          # Temporarily disable notarization
+          # 临时禁用公证
+          ${{ matrix.command }} -c.mac.notarize=false 2>&1 | tee "$BUILD_LOG"
+          BUILD_EXIT_CODE=${PIPESTATUS[0]}
+
+          # Check if artifacts exist
+          ARTIFACTS_EXIST=false
+          if ls out/*.dmg 1>/dev/null 2>&1 || ls out/*.zip 1>/dev/null 2>&1; then
+            ARTIFACTS_EXIST=true
+            echo "✓ Build artifacts found"
+            ls -la out/*.dmg out/*.zip 2>/dev/null || true
+          fi
+
+          if [ $BUILD_EXIT_CODE -eq 0 ] && [ "$ARTIFACTS_EXIST" = true ]; then
+            echo "result=build_success" >> $GITHUB_OUTPUT
+            echo "artifacts_exist=true" >> $GITHUB_OUTPUT
+            echo "✅ Phase 1 completed: Build successful, artifacts created"
+            exit 0
+          fi
+
+          # Build failed - analyze error type
+          echo "⚠️ Build exited with code $BUILD_EXIT_CODE, analyzing error..."
+
+          # OOM error
+          if grep -qiE "heap.out.of.memory|JavaScript.heap|ENOMEM|allocation.failed" "$BUILD_LOG"; then
+            echo "result=oom_error" >> $GITHUB_OUTPUT
+            echo "artifacts_exist=false" >> $GITHUB_OUTPUT
+            echo "❌ Build failed: Out of memory (OOM)"
+            echo "::error title=OOM Error::Build failed due to JavaScript heap out of memory."
+            exit 1
+          fi
+
+          # Compilation errors
+          if grep -qiE "Module.build.failed|SyntaxError|TypeError.*webpack|Cannot.find.module" "$BUILD_LOG"; then
+            echo "result=compilation_error" >> $GITHUB_OUTPUT
+            echo "artifacts_exist=false" >> $GITHUB_OUTPUT
+            echo "❌ Build failed: Compilation error"
+            echo "::error title=Compilation Error::Webpack or TypeScript compilation failed."
+            exit 1
+          fi
+
+          # If we somehow have artifacts despite error, continue
+          if [ "$ARTIFACTS_EXIST" = true ]; then
+            echo "result=build_success" >> $GITHUB_OUTPUT
+            echo "artifacts_exist=true" >> $GITHUB_OUTPUT
+            echo "⚠️ Build had errors but artifacts exist - continuing"
+            exit 0
+          fi
+
+          # No artifacts - fail
+          echo "result=build_error" >> $GITHUB_OUTPUT
+          echo "artifacts_exist=false" >> $GITHUB_OUTPUT
+          echo "❌ Build failed with no usable artifacts"
+          exit 1
         env:
-          # Increase Node.js heap memory to prevent OOM during webpack build
           NODE_OPTIONS: "--max-old-space-size=8192"
-          # Target architecture / 目标架构
           npm_config_arch: ${{ matrix.arch }}
-          # App ID configuration / 应用 ID 配置
           APP_ID: ${{ secrets.APP_ID }}
-          # macOS signing configuration / macOS 签名配置
-          appleId: ${{ secrets.APPLE_ID }}
-          appleIdPassword: ${{ secrets.APPLE_ID_PASSWORD }}
-          teamId: ${{ secrets.TEAM_ID }}
+          # Signing credentials (still sign, just don't notarize)
           identity: ${{ secrets.IDENTITY }}
-          # electron-builder signing configuration / electron-builder 签名配置
           CSC_NAME: ${{ secrets.IDENTITY }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
-          # Native dependency compilation / 原生依赖编译缓存
-          # Prefer prebuilt binaries for better compatibility (especially on Linux)
           npm_config_cache: ${{ runner.temp }}/.npm
           ELECTRON_CACHE: ${{ runner.temp }}/.cache/electron
           ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/.cache/electron-builder
-          # Use official GitHub releases for electron-builder binaries (dmg-builder, etc.)
-          # npmmirror may be missing some binaries causing 404 errors
-          # 使用官方 GitHub 源下载 electron-builder 二进制文件（如 dmg-builder）
-          # npmmirror 可能缺少部分文件导致 404 错误
           ELECTRON_BUILDER_BINARIES_MIRROR: https://github.com/electron-userland/electron-builder-binaries/releases/download/
-          # Also set npm_config_ version to ensure electron-builder reads it correctly
-          # 同时设置 npm_config_ 版本以确保 electron-builder 正确读取
           npm_config_electron_builder_binaries_mirror: https://github.com/electron-userland/electron-builder-binaries/releases/download/
-          # Clear ELECTRON_MIRROR to prevent auto-derived (incorrect) binaries mirror
-          # 清除 ELECTRON_MIRROR 以防止自动派生错误的 binaries 镜像路径
           ELECTRON_MIRROR: ""
-          # Electron headers download / Electron 头文件下载源
           npm_config_disturl: https://electronjs.org/headers
           npm_config_runtime: electron
           npm_config_target: ${{ steps.electron-version.outputs.version }}
           npm_config_target_arch: ${{ matrix.arch }}
-          # CI flag & GitHub token / CI 标识与 GitHub Token
+          CI: true
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+
+      - name: Notarize DMG (macOS) - Phase 2 (optional)
+        if: startsWith(matrix.platform, 'macos') && steps.macos-build.outputs.artifacts_exist == 'true'
+        id: macos-notarize
+        continue-on-error: true  # Notarization failure won't block artifact upload
+        shell: bash
+        run: |
+          echo "🔏 Phase 2: Attempting notarization..."
+
+          # Find DMG to notarize
+          DMG_PATH=$(ls out/*.dmg 2>/dev/null | head -1)
+          if [ -z "$DMG_PATH" ]; then
+            echo "⚠️ No DMG found, skipping notarization"
+            echo "notarized=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          echo "Found DMG: $DMG_PATH"
+
+          # Check if Apple credentials are available
+          if [ -z "$APPLE_ID" ] || [ -z "$APPLE_ID_PASSWORD" ] || [ -z "$TEAM_ID" ]; then
+            echo "⚠️ Apple credentials not configured, skipping notarization"
+            echo "notarized=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Notarize DMG using xcrun notarytool (with 30min timeout)
+          echo "Submitting to Apple notarization service..."
+          if xcrun notarytool submit "$DMG_PATH" \
+            --apple-id "$APPLE_ID" \
+            --password "$APPLE_ID_PASSWORD" \
+            --team-id "$TEAM_ID" \
+            --wait --timeout 30m 2>&1; then
+
+            echo "✅ Notarization successful"
+
+            # Staple the notarization ticket to DMG
+            if xcrun stapler staple "$DMG_PATH"; then
+              echo "✅ Stapling successful"
+              echo "notarized=true" >> $GITHUB_OUTPUT
+            else
+              echo "⚠️ Stapling failed, but notarization succeeded"
+              echo "notarized=partial" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "⚠️ Notarization failed or timed out"
+            echo "::warning title=Notarization Skipped::DMG was built and signed but not notarized. Users may see Gatekeeper warnings on first launch."
+            echo "notarized=false" >> $GITHUB_OUTPUT
+          fi
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
+          TEAM_ID: ${{ secrets.TEAM_ID }}
+
+      # Linux: Standard build without special error handling
+      # Linux: 标准构建，无特殊错误处理
+      - name: Build with electron-builder (Linux)
+        if: matrix.platform == 'linux'
+        uses: nick-fields/retry@v3
+        with:
+          timeout_minutes: 60
+          max_attempts: 2
+          retry_wait_seconds: 60
+          command: ${{ matrix.command }}
+        env:
+          NODE_OPTIONS: "--max-old-space-size=8192"
+          npm_config_arch: ${{ matrix.arch }}
+          npm_config_cache: ${{ runner.temp }}/.npm
+          ELECTRON_CACHE: ${{ runner.temp }}/.cache/electron
+          ELECTRON_BUILDER_CACHE: ${{ runner.temp }}/.cache/electron-builder
+          ELECTRON_BUILDER_BINARIES_MIRROR: https://github.com/electron-userland/electron-builder-binaries/releases/download/
+          npm_config_electron_builder_binaries_mirror: https://github.com/electron-userland/electron-builder-binaries/releases/download/
+          ELECTRON_MIRROR: ""
+          npm_config_disturl: https://electronjs.org/headers
+          npm_config_runtime: electron
+          npm_config_target: ${{ steps.electron-version.outputs.version }}
+          npm_config_target_arch: ${{ matrix.arch }}
           CI: true
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
@@ -378,34 +491,46 @@ jobs:
             echo "Temporary keychain deleted"
           fi
 
-      # macOS 构建超时或失败通知
-      - name: Notify on macOS build timeout or failure
+      # macOS 构建失败通知（仅当无可用产物时触发）
+      # macOS build failure notification (only triggers when no usable artifacts)
+      - name: Notify on macOS build failure
         if: startsWith(matrix.platform, 'macos') && failure()
         run: |
-          echo "::warning title=macOS Build Timeout or Failure::macOS build did not complete within 40 minutes or failed. This is often due to Apple notarization delays."
+          BUILD_RESULT="${{ steps.macos-build.outputs.result }}"
+          echo "::error title=macOS Build Failed::Build failed with result: $BUILD_RESULT"
           echo ""
-          echo "⚠️  macOS Build Issue Detected"
+          echo "❌ macOS Build Failed"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo ""
-          echo "The macOS build exceeded the 40-minute timeout or encountered an error."
+          echo "Build result: $BUILD_RESULT"
           echo ""
-          echo "Common causes:"
-          echo "  • Apple notarization service delays (first-time apps may take days)"
-          echo "  • Apple server experiencing high load"
-          echo "  • Network connectivity issues"
-          echo ""
-          echo "Recommended actions:"
-          echo "  1. Check if signed (but not notarized) artifacts were uploaded"
-          echo "  2. Wait a few hours and manually retry the workflow"
-          echo "  3. For urgent releases, consider using the signed-only version"
-          echo ""
-          echo "Note: According to Apple, first-time notarizations can take 'a few days'"
-          echo "Reference: https://developer.apple.com/forums/thread/756867"
+          case "$BUILD_RESULT" in
+            oom_error)
+              echo "Cause: JavaScript heap out of memory"
+              echo "Fix: NODE_OPTIONS is set to 8GB, but build still ran out of memory."
+              echo "     Consider optimizing webpack config or increasing memory further."
+              ;;
+            compilation_error)
+              echo "Cause: Webpack/TypeScript compilation error"
+              echo "Fix: Check the build logs for specific compilation errors."
+              ;;
+            native_module_error)
+              echo "Cause: Native module (better-sqlite3, node-pty, etc.) compilation failed"
+              echo "Fix: Check if prebuild binaries are available for this platform/arch."
+              ;;
+            build_error)
+              echo "Cause: Build failed with no usable artifacts"
+              echo "Fix: Review the full build log for details."
+              ;;
+            *)
+              echo "Cause: Unknown error"
+              ;;
+          esac
           echo ""
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
       - name: List build artifacts
-        if: success() || (failure() && startsWith(matrix.platform, 'macos'))
+        if: success() || failure()
         shell: bash
         run: |
           echo "=========================================="
@@ -420,11 +545,19 @@ jobs:
             echo "No out directory found!"
           fi
 
+      # Upload artifacts when:
+      # - Build succeeded (all platforms)
+      # - macOS: notarization timeout but artifacts exist (handled in build step)
+      # - Windows: only if windows-build step succeeded
+      # 上传产物条件：
+      # - 构建成功（所有平台）
+      # - macOS: 公证超时但有产物（已在构建步骤中处理）
+      # - Windows: 仅当 windows-build 步骤成功
       - name: Upload build artifacts
         uses: actions/upload-artifact@v6
         if: >-
-          (success() && (!startsWith(matrix.platform, 'windows') || steps.windows-build.outputs.result == 'success'))
-          || (failure() && startsWith(matrix.platform, 'macos'))
+          success() &&
+          (!startsWith(matrix.platform, 'windows') || steps.windows-build.outputs.result == 'success')
         with:
           name: ${{ matrix.artifact-name }}
           path: |
