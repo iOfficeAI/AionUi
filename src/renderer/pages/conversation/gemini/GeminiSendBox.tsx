@@ -525,6 +525,33 @@ const GeminiSendBox: React.FC<{
     const sendInitialMessage = async () => {
       try {
         const { input, files } = JSON.parse(storedMessage) as { input: string; files?: string[] };
+
+        // Check agent readiness before sending (for new users without configured auth)
+        // 检查 agent 可用性（针对没有配置认证的新用户）
+        if (!hasCheckedRef.current) {
+          hasCheckedRef.current = true;
+          const isReady = await new Promise<boolean>((resolve) => {
+            ipcBridge.acpConversation.checkAgentHealth
+              .invoke({ backend: 'gemini' })
+              .then((result) => {
+                resolve(result.success === true && result.data?.available === true);
+              })
+              .catch(() => resolve(false));
+          });
+
+          if (!isReady) {
+            // Not ready - show setup card with scanning animation
+            // 不可用 - 显示设置卡片和扫描动画
+            setShouldAutoSwitch(true);
+            setShowSetupCard(true);
+            void performFullCheck();
+            // Store message in sendbox for user to send after selecting agent
+            // 将消息存储到输入框，用户选择 agent 后可以发送
+            setContent(input);
+            return;
+          }
+        }
+
         const msg_id = uuid();
         setActiveMsgId(msg_id);
         setWaitingResponse(true); // 立即设置等待状态，确保按钮显示为停止
@@ -563,7 +590,7 @@ const GeminiSendBox: React.FC<{
     };
 
     void sendInitialMessage();
-  }, [conversation_id, currentModel?.useModel]);
+  }, [conversation_id, currentModel?.useModel, performFullCheck, setContent]);
 
   // 使用 useLatestRef 保存最新的 setContent/atPath，避免重复注册 handler
   // Use useLatestRef to keep latest setters to avoid re-registering handler

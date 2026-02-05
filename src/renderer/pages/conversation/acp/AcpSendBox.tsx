@@ -320,6 +320,34 @@ const AcpSendBox: React.FC<{
       try {
         const initialMessage = JSON.parse(storedMessage);
         const { input, files } = initialMessage;
+
+        // Check agent readiness before sending (for new users without configured auth)
+        // 检查 agent 可用性（针对没有配置认证的新用户）
+        if (!hasCheckedRef.current) {
+          hasCheckedRef.current = true;
+          const isReady = await new Promise<boolean>((resolve) => {
+            ipcBridge.acpConversation.checkAgentHealth
+              .invoke({ backend })
+              .then((result) => {
+                resolve(result.success === true && result.data?.available === true);
+              })
+              .catch(() => resolve(false));
+          });
+
+          if (!isReady) {
+            // Not ready - show setup card with scanning animation
+            // 不可用 - 显示设置卡片和扫描动画
+            setShowSetupCard(true);
+            void performFullCheck();
+            // Store message in sendbox for user to send after selecting agent
+            // 将消息存储到输入框，用户选择 agent 后可以发送
+            setContent(input);
+            sessionStorage.removeItem(storageKey);
+            sendingInitialMessageRef.current = false;
+            return;
+          }
+        }
+
         // ACP: 不使用 buildDisplayMessage，直接传原始 input
         // 文件引用由后端 ACP agent 负责添加（使用复制后的实际路径）
         // 避免消息中出现两套不一致的文件引用
@@ -374,7 +402,7 @@ const AcpSendBox: React.FC<{
     sendInitialMessage().catch((error) => {
       console.error('Failed to send initial message:', error);
     });
-  }, [conversation_id, backend, acpStatus]);
+  }, [conversation_id, backend, acpStatus, performFullCheck, setContent]);
 
   const onSendHandler = async (message: string) => {
     // For new users: check agent readiness before first send
