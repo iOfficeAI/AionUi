@@ -256,6 +256,55 @@ const AcpSendBox: React.FC<{
     }
   }, [agentIsChecking, agentIsReady]);
 
+  // Early check for initial message from guid page
+  // 提前检查：如果有初始消息，立即检查 agent 可用性，不等待 session_active
+  // If there's an initial message from guid page, check agent availability immediately
+  useEffect(() => {
+    const storageKey = `acp_initial_message_${conversation_id}`;
+    const storedMessage = sessionStorage.getItem(storageKey);
+
+    // 如果没有初始消息或已经检查过，跳过
+    // Skip if no initial message or already checked
+    if (!storedMessage || hasCheckedRef.current) {
+      return;
+    }
+
+    // 标记为已检查，立即进行健康检查
+    // Mark as checked and perform health check immediately
+    hasCheckedRef.current = true;
+
+    const checkAndShowSetupCard = async () => {
+      try {
+        const result = await ipcBridge.acpConversation.checkAgentHealth.invoke({ backend });
+        if (!result.success || !result.data?.available) {
+          // Agent 不可用，显示 AgentSetupCard 并开始扫描
+          // Agent not available, show AgentSetupCard and start scanning
+          setShowSetupCard(true);
+          void performFullCheck();
+
+          // 将消息存储到输入框
+          // Store message in sendbox
+          try {
+            const { input } = JSON.parse(storedMessage) as { input: string };
+            setContent(input);
+          } catch {
+            // Ignore parse errors
+          }
+          sessionStorage.removeItem(storageKey);
+        }
+        // 如果 agent 可用，让原来的 sendInitialMessage 逻辑处理
+        // If agent is available, let the original sendInitialMessage logic handle it
+      } catch {
+        // 检查失败，显示 AgentSetupCard
+        // Check failed, show AgentSetupCard
+        setShowSetupCard(true);
+        void performFullCheck();
+      }
+    };
+
+    void checkAndShowSetupCard();
+  }, [conversation_id, backend, performFullCheck, setContent]);
+
   // Dismiss the setup card
   const handleDismissSetupCard = useCallback(() => {
     setShowSetupCard(false);
