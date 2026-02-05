@@ -102,15 +102,138 @@ export function initAcpConversationBridge(): void {
           break;
         }
 
-        case 'claude':
+        case 'claude': {
+          // Claude: Check if authenticated by running 'claude doctor'
+          // This verifies both CLI installation and authentication status
+          try {
+            const doctorOutput = execSync(`"${agent.cliPath}" doctor`, {
+              encoding: 'utf-8',
+              timeout: 10000,
+              stdio: 'pipe',
+            });
+            // Check for authentication issues in doctor output
+            const lowerOutput = doctorOutput.toLowerCase();
+            if (lowerOutput.includes('not authenticated') || lowerOutput.includes('not logged in') || lowerOutput.includes('authentication required') || lowerOutput.includes('please login') || lowerOutput.includes('no api key')) {
+              return {
+                success: false,
+                msg: 'Claude not authenticated',
+                data: { available: false, error: 'Not authenticated' },
+              };
+            }
+          } catch (error) {
+            // doctor command failed, might not be authenticated or CLI issue
+            const errorMsg = error instanceof Error ? error.message : String(error);
+            if (errorMsg.toLowerCase().includes('auth') || errorMsg.toLowerCase().includes('login') || errorMsg.toLowerCase().includes('api key')) {
+              return {
+                success: false,
+                msg: 'Claude not authenticated',
+                data: { available: false, error: 'Not authenticated' },
+              };
+            }
+            // Fallback to version check if doctor command doesn't exist
+            try {
+              execSync(`"${agent.cliPath}" --version`, { encoding: 'utf-8', timeout: 5000, stdio: 'pipe' });
+            } catch {
+              return {
+                success: false,
+                msg: 'Claude CLI check failed',
+                data: { available: false, error: errorMsg },
+              };
+            }
+          }
+          break;
+        }
+
         case 'codex': {
-          // Claude/Codex: Check --version (standard and reliable)
+          // Codex (OpenAI): Check if OPENAI_API_KEY is set
           try {
             execSync(`"${agent.cliPath}" --version`, { encoding: 'utf-8', timeout: 5000, stdio: 'pipe' });
+            // Also check if OPENAI_API_KEY environment variable is set
+            if (!process.env.OPENAI_API_KEY) {
+              return {
+                success: false,
+                msg: 'Codex not configured (OPENAI_API_KEY not set)',
+                data: { available: false, error: 'API key not configured' },
+              };
+            }
           } catch (error) {
             return {
               success: false,
-              msg: `${backend} CLI check failed`,
+              msg: 'Codex CLI check failed',
+              data: { available: false, error: error instanceof Error ? error.message : 'CLI check failed' },
+            };
+          }
+          break;
+        }
+
+        case 'kimi': {
+          // Kimi: Check auth status using 'kimi auth status' or similar
+          try {
+            // First check if CLI works
+            execSync(`"${agent.cliPath}" --version`, { encoding: 'utf-8', timeout: 5000, stdio: 'pipe' });
+            // Try to check auth status
+            try {
+              const authOutput = execSync(`"${agent.cliPath}" auth status`, {
+                encoding: 'utf-8',
+                timeout: 5000,
+                stdio: 'pipe',
+              });
+              const lowerOutput = authOutput.toLowerCase();
+              if (lowerOutput.includes('not logged') || lowerOutput.includes('not authenticated') || lowerOutput.includes('please login')) {
+                return {
+                  success: false,
+                  msg: 'Kimi not authenticated',
+                  data: { available: false, error: 'Not authenticated' },
+                };
+              }
+            } catch {
+              // auth status command might not exist, check config file instead
+              const os = await import('os');
+              const path = await import('path');
+              const fs = await import('fs');
+              const kimiConfigPath = path.join(os.homedir(), '.kimi', 'config.json');
+              if (!fs.existsSync(kimiConfigPath)) {
+                return {
+                  success: false,
+                  msg: 'Kimi not configured',
+                  data: { available: false, error: 'Configuration not found' },
+                };
+              }
+            }
+          } catch (error) {
+            return {
+              success: false,
+              msg: 'Kimi CLI check failed',
+              data: { available: false, error: error instanceof Error ? error.message : 'CLI check failed' },
+            };
+          }
+          break;
+        }
+
+        case 'qwen': {
+          // Qwen: Check if authenticated
+          try {
+            execSync(`"${agent.cliPath}" --version`, { encoding: 'utf-8', timeout: 5000, stdio: 'pipe' });
+            // Check for Qwen config/auth
+            const os = await import('os');
+            const path = await import('path');
+            const fs = await import('fs');
+            const qwenConfigPath = path.join(os.homedir(), '.qwen', 'config.json');
+            const qwenAltConfigPath = path.join(os.homedir(), '.config', 'qwen', 'config.json');
+            if (!fs.existsSync(qwenConfigPath) && !fs.existsSync(qwenAltConfigPath)) {
+              // Also check environment variable
+              if (!process.env.DASHSCOPE_API_KEY && !process.env.QWEN_API_KEY) {
+                return {
+                  success: false,
+                  msg: 'Qwen not configured',
+                  data: { available: false, error: 'Configuration not found' },
+                };
+              }
+            }
+          } catch (error) {
+            return {
+              success: false,
+              msg: 'Qwen CLI check failed',
               data: { available: false, error: error instanceof Error ? error.message : 'CLI check failed' },
             };
           }
@@ -118,15 +241,31 @@ export function initAcpConversationBridge(): void {
         }
 
         default: {
-          // For all other CLIs: Just verify the CLI binary can execute
-          // Don't try to verify ACP support - it's unreliable and not all CLIs
-          // support --version. Use --help as fallback.
+          // For all other CLIs: Check version and try auth status if available
           try {
             try {
               execSync(`"${agent.cliPath}" --version`, { encoding: 'utf-8', timeout: 5000, stdio: 'pipe' });
             } catch {
               // If --version fails, try --help (some CLIs don't support --version)
               execSync(`"${agent.cliPath}" --help`, { encoding: 'utf-8', timeout: 5000, stdio: 'pipe' });
+            }
+            // Try auth status command as a bonus check (won't fail if command doesn't exist)
+            try {
+              const authOutput = execSync(`"${agent.cliPath}" auth status`, {
+                encoding: 'utf-8',
+                timeout: 3000,
+                stdio: 'pipe',
+              });
+              const lowerOutput = authOutput.toLowerCase();
+              if (lowerOutput.includes('not logged') || lowerOutput.includes('not authenticated')) {
+                return {
+                  success: false,
+                  msg: `${backend} not authenticated`,
+                  data: { available: false, error: 'Not authenticated' },
+                };
+              }
+            } catch {
+              // auth status command doesn't exist, that's OK
             }
           } catch (error) {
             return {
