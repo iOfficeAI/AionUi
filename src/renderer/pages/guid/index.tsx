@@ -796,29 +796,31 @@ const Guid: React.FC = () => {
   }, [isPresetAgent, selectedAgent, selectedAgentInfo, getEffectiveAgentType, isMainAgentAvailable]);
 
   /**
-   * 自动切换到可用的 agent（当选中的 agent 不可用时）
-   * Auto-switch to an available agent when the selected agent is unavailable
+   * 自动切换仅适用于 Gemini agent（可以同步检查可用性）
+   * Auto-switch only applies to Gemini agent (availability can be checked synchronously)
    *
-   * 适用于：
-   * 1. 非预设 agent（如 gemini、claude 等）不可用时，自动切换到可用的 agent
-   * 2. 预设助手配置的 main agent 不可用时，自动切换到可用的 fallback agent
+   * CLI agents (claude, codex, opencode) 需要异步健康检查来验证认证状态，
+   * 这些检查在用户发送消息时进行，而不是在组件加载时。
+   * CLI agents require async health checks to verify authentication status,
+   * which are performed when the user sends a message, not on component mount.
    */
   useEffect(() => {
     // 跳过初始状态（availableAgents 还未加载）
     // Skip initial state (availableAgents not yet loaded)
     if (!availableAgents || availableAgents.length === 0) return;
 
-    // 检查当前选中的 agent/助手是否可用
-    // Check if the currently selected agent/assistant is available
-    if (!currentEffectiveAgentInfo.isAvailable) {
-      // 当前 agent 不可用，尝试获取可用的 fallback
-      // Current agent unavailable, try to get an available fallback
-      const fallbackType = getAvailableFallbackAgent();
-      if (fallbackType && fallbackType !== selectedAgent) {
-        setSelectedAgentKey(fallbackType);
-      }
+    // 只对 Gemini 进行自动切换（因为 Gemini 可用性可以同步检查）
+    // Only auto-switch for Gemini (because Gemini availability can be checked synchronously)
+    // CLI agents 的认证状态需要异步健康检查，在发送时验证
+    // CLI agents auth status requires async health check, verified at send time
+    if (selectedAgent === 'gemini' && !currentEffectiveAgentInfo.isAvailable) {
+      // Gemini 不可用（未登录 Google 且无 API key），提示用户但不自动切换
+      // Gemini unavailable (not logged into Google and no API key), prompt user but don't auto-switch
+      // 自动切换在发送时通过健康检查进行
+      // Auto-switch is done at send time via health check
+      console.log('[Guid] Gemini is not configured. Will check for alternatives when sending.');
     }
-  }, [availableAgents, currentEffectiveAgentInfo, selectedAgent, isPresetAgent, getAvailableFallbackAgent, setSelectedAgentKey]);
+  }, [availableAgents, currentEffectiveAgentInfo, selectedAgent]);
 
   const refreshCustomAgents = useCallback(async () => {
     try {
