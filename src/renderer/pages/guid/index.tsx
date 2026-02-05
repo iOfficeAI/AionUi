@@ -1008,69 +1008,17 @@ const Guid: React.FC = () => {
       // For preset with ACP-routed agent type (claude/opencode), use corresponding backend
       // Check if agent type changed from user selection (due to availability fallback or compatibility switch)
       const agentTypeChanged = selectedAgent !== finalEffectiveAgentType;
-      let acpBackend: PresetAgentType | undefined = agentTypeChanged
+      const acpBackend: PresetAgentType | undefined = agentTypeChanged
         ? finalEffectiveAgentType // Agent type changed from selection, use the final effective type
         : isPreset && isAcpRoutedPresetType(finalEffectiveAgentType)
           ? finalEffectiveAgentType
           : selectedAgent;
 
       // Get the agent info for the actual backend being used (might be different from selection after type change)
-      let acpAgentInfo = agentTypeChanged ? findAgentByKey(acpBackend as string) : agentInfo || findAgentByKey(selectedAgentKey);
+      const acpAgentInfo = agentTypeChanged ? findAgentByKey(acpBackend as string) : agentInfo || findAgentByKey(selectedAgentKey);
 
-      // 对于 CLI agents 始终运行健康检查，确保认证状态有效
-      // Always run health check for CLI agents to ensure authentication is valid
-      const isCliAgent = acpBackend && ['claude', 'codex', 'opencode'].includes(acpBackend);
-      if (isCliAgent) {
-        try {
-          const healthResult = await ipcBridge.acpConversation.checkAgentHealth.invoke({ backend: acpBackend });
-          if (!healthResult.success || !healthResult.data?.available) {
-            // 目标 agent 未认证，尝试找其他可用的 agent
-            // Target agent not authenticated, try to find another available agent
-            const fallbackOrder: PresetAgentType[] = ['claude', 'codex', 'opencode'];
-            let foundFallback = false;
-
-            for (const cli of fallbackOrder) {
-              if (cli === acpBackend) continue; // 跳过已检查失败的
-              const agent = availableAgents?.find((a) => a.backend === cli);
-              if (!agent) continue;
-
-              try {
-                const fallbackHealth = await ipcBridge.acpConversation.checkAgentHealth.invoke({ backend: cli });
-                if (fallbackHealth.success && fallbackHealth.data?.available) {
-                  acpBackend = cli;
-                  acpAgentInfo = agent;
-                  foundFallback = true;
-                  Message.info({
-                    content: t('guid.autoSwitchToAgent', {
-                      agent: cli.charAt(0).toUpperCase() + cli.slice(1),
-                      defaultValue: 'Auto-switching to {{agent}}',
-                    }),
-                    duration: 3000,
-                  });
-                  break;
-                }
-              } catch (e) {
-                console.error(`Failed to check ${cli} health:`, e);
-              }
-            }
-
-            if (!foundFallback) {
-              // 没有可用的已认证 agent，提示用户配置
-              // No authenticated agent available, prompt user to configure
-              Message.warning({
-                content: t('guid.noAuthenticatedAgent', {
-                  defaultValue: 'No authenticated agent available. Please configure an agent in Settings.',
-                }),
-                duration: 5000,
-              });
-              void navigate('/settings');
-              return;
-            }
-          }
-        } catch (e) {
-          console.error('Failed to check agent health:', e);
-        }
-      }
+      // 不在 guid 页面做 CLI agents 健康检查和自动切换，让会话面板的 AgentSetupCard 来处理
+      // Don't do CLI agents health check and auto-switch in guid page, let conversation panel's AgentSetupCard handle it
 
       if (!acpAgentInfo && !isPreset) {
         alert(`${acpBackend} CLI not found or not configured. Please ensure it's installed and accessible.`);
