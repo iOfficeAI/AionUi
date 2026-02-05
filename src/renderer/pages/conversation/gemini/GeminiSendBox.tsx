@@ -429,13 +429,11 @@ const GeminiSendBox: React.FC<{
     return hasStatusError || hasInvalidUrl || hasNotFound || hasUnauthorized || hasForbidden || hasInvalidApiKey || hasInvalidArgument;
   }, []);
 
-  // 处理 API 错误 - 显示提示，不自动切换（已有上下文场景）
-  // Handle API errors - show prompt only, no auto-switch (existing context scenario)
+  // 处理 API 错误 - 自动切换到可用 agent
+  // Handle API errors - auto-switch to available agent
   const handleApiErrorSwitch = useCallback(() => {
-    // 已有上下文时，只显示提示让用户检查配置或手动选择
-    // When there's existing context, only show prompt for user to check config or manually select
-    console.info('API error detected. Showing setup card for manual selection (no auto-switch).');
-    setShouldAutoSwitch(false); // 不自动切换 / Disable auto-switch
+    console.info('API error detected. Auto-switching to available agent.');
+    setShouldAutoSwitch(true); // 自动切换 / Enable auto-switch
     setShowSetupCard(true);
     void performFullCheck();
   }, [performFullCheck]);
