@@ -12,7 +12,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Button, Message, Progress } from '@arco-design/web-react';
-import { CheckOne, CloseOne, Loading, Close, Down } from '@icon-park/react';
+import { CheckOne, CloseOne, Loading, Close } from '@icon-park/react';
 import classNames from 'classnames';
 import { ipcBridge } from '@/common';
 import type { AcpBackendAll } from '@/types/acpTypes';
@@ -43,19 +43,6 @@ const AGENT_LOGOS: Partial<Record<AcpBackendAll, string>> = {
   kimi: KimiLogo,
 };
 
-const AGENT_NAMES: Partial<Record<AcpBackendAll, string>> = {
-  claude: 'Claude',
-  codex: 'Codex',
-  opencode: 'OpenCode',
-  gemini: 'Gemini',
-  qwen: 'Qwen Code',
-  iflow: 'iFlow',
-  droid: 'Droid',
-  goose: 'Goose',
-  auggie: 'Auggie',
-  kimi: 'Kimi',
-};
-
 type AgentSetupCardProps = {
   conversationId: string;
   currentAgent: AcpBackendAll | null;
@@ -72,16 +59,12 @@ type AgentSetupCardProps = {
   initialMessage?: string;
 };
 
-const AgentSetupCard: React.FC<AgentSetupCardProps> = ({ conversationId, currentAgent, error, isChecking, progress: _progress, availableAgents, bestAgent, onDismiss, onRetry, autoSwitch = true, initialMessage }) => {
+const AgentSetupCard: React.FC<AgentSetupCardProps> = ({ conversationId, currentAgent: _currentAgent, error: _error, isChecking, progress: _progress, availableAgents, bestAgent, onDismiss, onRetry, autoSwitch = true, initialMessage }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [switching, setSwitching] = useState(false);
   const switchingRef = React.useRef(false); // Use ref to avoid stale closure in auto-switch
   const autoSwitchTriggeredRef = React.useRef(false);
-  const [errorExpanded, setErrorExpanded] = useState(false); // 错误信息默认收起 / Error collapsed by default
-
-  const _currentAgentName = currentAgent ? AGENT_NAMES[currentAgent] || currentAgent : 'Agent';
-  const _currentAgentLogo = currentAgent ? AGENT_LOGOS[currentAgent] : undefined;
 
   const handleSelectAgent = useCallback(
     async (agent: AgentCheckResult) => {
@@ -205,32 +188,12 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({ conversationId, current
 
   return (
     <div className='mb-12px'>
-      {/* Collapsible Error Header - 可折叠的错误信息 */}
-      {error && (
-        <div className='border-1 border-solid border-danger-3 rounded-12px bg-danger-1 mb-12px overflow-hidden'>
-          <div className='flex items-center justify-between p-12px cursor-pointer select-none' onClick={() => setErrorExpanded(!errorExpanded)}>
-            <div className='flex items-center gap-8px'>
-              <CloseOne theme='filled' size={16} fill='var(--color-danger-6)' />
-              <span className='text-13px font-medium text-danger-6'>{t('agent.setup.connectionError', { defaultValue: 'Connection Error' })}</span>
-            </div>
-            <Down theme='outline' size={14} className={classNames('transition-transform duration-200', errorExpanded && 'rotate-180')} style={{ color: 'var(--color-text-2)' }} />
-          </div>
-          {errorExpanded && (
-            <div className='px-12px pb-12px'>
-              <div className='text-12px' style={{ color: 'var(--color-text-2)' }}>
-                {error}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Scanning / Connecting Card - 扫描/连接卡片 */}
-      <div className={classNames('relative border-1 border-solid rounded-12px p-16px', hasAvailableAndSwitching ? 'border-success-3 bg-success-1' : 'border-primary-3 bg-primary-1')}>
+      {/* Main Card - 主卡片 */}
+      <div className='relative rounded-12px p-16px bg-bg-2 border-1 border-solid border-border-2'>
         {/* Dismiss button */}
         {onDismiss && !isChecking && !switching && (
-          <button onClick={onDismiss} className='absolute top-12px right-12px p-4px rounded-4px hover:bg-fill-2 transition-colors cursor-pointer border-none bg-transparent' aria-label={t('common.close', { defaultValue: 'Close' })}>
-            <Close theme='outline' size={14} style={{ color: 'var(--color-text-2)' }} />
+          <button onClick={onDismiss} className='absolute top-12px right-12px p-4px rounded-4px hover:bg-fill-3 transition-colors cursor-pointer border-none bg-transparent' aria-label={t('common.close', { defaultValue: 'Close' })}>
+            <Close theme='outline' size={14} style={{ color: 'var(--color-text-3)' }} />
           </button>
         )}
 
@@ -238,15 +201,17 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({ conversationId, current
         {hasAvailableAndSwitching && (
           <div className='flex items-center gap-8px mb-12px'>
             <CheckOne theme='filled' size={16} fill='var(--color-success-6)' />
-            <span className='text-13px font-medium text-success-6'>{t('guid.scanning.connectingMessage', { defaultValue: 'Connected successfully, please wait...' })}</span>
+            <span className='text-13px font-medium' style={{ color: 'var(--color-success-6)' }}>
+              {t('guid.scanning.connectingMessage', { defaultValue: 'Connected successfully, please wait...' })}
+            </span>
           </div>
         )}
 
         {/* Scanning Header - 扫描中提示 */}
-        {isChecking && (
+        {isChecking && !hasAvailableAndSwitching && (
           <div className='flex items-center gap-8px mb-12px'>
-            <Loading theme='outline' size={16} className='animate-spin text-primary' />
-            <span className='text-13px' style={{ color: 'var(--color-text-2)' }}>
+            <Loading theme='outline' size={16} className='animate-spin' style={{ color: 'var(--color-text-2)' }} />
+            <span className='text-13px' style={{ color: 'var(--color-text-1)' }}>
               {t('guid.scanning.scanningMessage', { defaultValue: 'Scanning local available agents...' })}
             </span>
           </div>
@@ -255,15 +220,15 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({ conversationId, current
         {/* Initial Message - 初始检测提示 */}
         {!isChecking && !hasAvailableAndSwitching && availableAgents.length === 0 && (
           <div className='flex items-center gap-8px mb-12px'>
-            <Loading theme='outline' size={16} className='animate-spin text-primary' />
-            <span className='text-13px' style={{ color: 'var(--color-text-2)' }}>
+            <Loading theme='outline' size={16} className='animate-spin' style={{ color: 'var(--color-text-2)' }} />
+            <span className='text-13px' style={{ color: 'var(--color-text-1)' }}>
               {t('guid.scanning.initialMessage', { defaultValue: 'Current Agent is unavailable, detecting other available agents...' })}
             </span>
           </div>
         )}
 
         {/* Agent Cards - Agent 卡片列表 */}
-        {(isChecking || hasAvailableAndSwitching) && availableAgents.length > 0 && (
+        {availableAgents.length > 0 && (
           <div className='overflow-x-auto pb-4px -mx-4px px-4px'>
             <div className='flex gap-10px' style={{ width: 'max-content' }}>
               {availableAgents
@@ -283,6 +248,16 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({ conversationId, current
                   const isBest = bestAgent?.backend === result.backend;
                   const isSelected = hasAvailableAndSwitching && isBest;
 
+                  // Determine card style based on status
+                  let cardStyle = 'bg-fill-1 border-1 border-solid border-border-2';
+                  if (isSelected) {
+                    cardStyle = 'bg-success-1 border-2 border-solid border-success-6';
+                  } else if (result.checking) {
+                    cardStyle = 'bg-warning-1 border-1 border-solid border-warning-3';
+                  } else if (result.available && !hasAvailableAndSwitching) {
+                    cardStyle = 'bg-fill-1 border-1 border-solid border-border-2 cursor-pointer hover:border-primary-4 hover:bg-fill-2';
+                  }
+
                   // Determine status display
                   let statusIcon: React.ReactNode;
                   let statusText: string;
@@ -297,9 +272,9 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({ conversationId, current
                     statusText = result.latency ? `${result.latency}ms` : t('guid.scanning.statusAvailable', { defaultValue: 'Available' });
                     statusColor = 'var(--color-success-6)';
                   } else if (result.error) {
-                    statusIcon = <CloseOne theme='filled' size={12} fill='var(--color-danger-6)' />;
+                    statusIcon = <CloseOne theme='filled' size={12} fill='var(--color-text-3)' />;
                     statusText = t('guid.scanning.statusUnreachable', { defaultValue: 'Unreachable' });
-                    statusColor = 'var(--color-danger-6)';
+                    statusColor = 'var(--color-text-3)';
                   } else {
                     statusIcon = null;
                     statusText = t('guid.scanning.statusQueued', { defaultValue: 'Queued' });
@@ -307,7 +282,7 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({ conversationId, current
                   }
 
                   return (
-                    <div key={result.backend} className={classNames('rounded-10px p-12px transition-all min-w-120px flex-shrink-0', isSelected ? 'bg-success-1 border-2 border-solid border-success shadow-sm' : result.available && !hasAvailableAndSwitching ? 'bg-bg-2 border-1 border-solid border-border-2 cursor-pointer hover:border-primary-3 hover:bg-fill-1' : 'bg-bg-2 border-1 border-solid border-border-2')} onClick={result.available && !hasAvailableAndSwitching ? () => handleSelectAgent(result) : undefined}>
+                    <div key={result.backend} className={classNames('rounded-10px p-12px transition-all min-w-120px flex-shrink-0', cardStyle)} onClick={result.available && !hasAvailableAndSwitching ? () => handleSelectAgent(result) : undefined}>
                       <div className='flex flex-col items-center text-center'>
                         <div className='relative w-32px h-32px mb-6px'>
                           {AGENT_LOGOS[result.backend] ? (
@@ -317,7 +292,7 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({ conversationId, current
                               {result.name.charAt(0)}
                             </div>
                           )}
-                          {!result.available && !result.checking && <CloseOne theme='filled' size={14} fill='var(--color-danger-6)' className='absolute -top-2px -right-2px' />}
+                          {!result.available && !result.checking && <CloseOne theme='filled' size={14} fill='var(--color-text-3)' className='absolute -top-2px -right-2px' />}
                         </div>
                         <div className='text-13px font-medium mb-2px' style={{ color: 'var(--color-text-1)' }}>
                           {result.name}
