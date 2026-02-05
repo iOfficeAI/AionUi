@@ -753,32 +753,32 @@ const Guid: React.FC = () => {
   }, [isMainAgentAvailable]);
 
   /**
-   * 获取助手的有效 Main Agent 类型（考虑可用性回退）
-   * Get the effective Main Agent type for an assistant (with availability fallback)
+   * 获取助手的有效 Main Agent 类型（仅用于 UI 显示）
+   * Get the effective Main Agent type for an assistant (for UI display only)
    *
-   * 如果助手配置的 Main Agent 不可用，自动回退到可用的 Agent
-   * If the configured Main Agent is unavailable, automatically fallback to an available one
+   * 注意：不再提前计算 fallback，因为 CLI agents 需要异步健康检查
+   * 实际的 agent 切换在发送时通过健康检查进行
+   * Note: No longer pre-computing fallback since CLI agents require async health check
+   * Actual agent switching happens at send time via health check
    */
   const getEffectiveAgentType = useCallback(
     (agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined): { agentType: PresetAgentType; isFallback: boolean; originalType: PresetAgentType; isAvailable: boolean } => {
       const originalType = resolvePresetAgentType(agentInfo);
 
       // 检查原始类型是否可用 / Check if original type is available
-      if (isMainAgentAvailable(originalType)) {
-        return { agentType: originalType, isFallback: false, originalType, isAvailable: true };
-      }
+      // 对于 Gemini：可以同步检查（登录状态或 API key）
+      // 对于 CLI agents：这里只检查 CLI 安装，真正的认证检查在发送时进行
+      // For Gemini: can check synchronously (login status or API key)
+      // For CLI agents: only checks CLI installation here, real auth check happens at send time
+      const isAvailable = isMainAgentAvailable(originalType);
 
-      // 获取备选 Agent / Get fallback agent
-      const fallbackType = getAvailableFallbackAgent();
-      if (fallbackType) {
-        return { agentType: fallbackType, isFallback: true, originalType, isAvailable: true };
-      }
-
-      // 没有可用的 Agent，返回原始类型（但标记为不可用）
-      // No available agent, return original type (but mark as unavailable)
-      return { agentType: originalType, isFallback: false, originalType, isAvailable: false };
+      // 不再提前设置 isFallback，因为 CLI agents 的可用性需要异步检查
+      // No longer setting isFallback upfront since CLI agent availability requires async check
+      // 用户会看到原始选择的 agent，实际切换在发送时进行
+      // User sees their originally selected agent, actual switch happens at send time
+      return { agentType: originalType, isFallback: false, originalType, isAvailable };
     },
-    [resolvePresetAgentType, isMainAgentAvailable, getAvailableFallbackAgent]
+    [resolvePresetAgentType, isMainAgentAvailable]
   );
 
   /**
