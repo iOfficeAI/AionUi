@@ -513,7 +513,7 @@ const AcpSendBox: React.FC<{
   return (
     <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
       {/* Agent Setup Card for new users without configured auth */}
-      {showSetupCard && <AgentSetupCard conversationId={conversation_id} currentAgent={currentAgent} error={agentError} isChecking={agentIsChecking} progress={checkProgress} availableAgents={availableAgents} bestAgent={bestAgent} onDismiss={handleDismissSetupCard} onRetry={handleRetryCheck} />}
+      {showSetupCard && <AgentSetupCard conversationId={conversation_id} currentAgent={currentAgent} error={agentError} isChecking={agentIsChecking} progress={checkProgress} availableAgents={availableAgents} bestAgent={bestAgent} onDismiss={handleDismissSetupCard} onRetry={handleRetryCheck} initialMessage={content} />}
 
       <ThoughtDisplay thought={thought} running={running || aiProcessing} onStop={handleStop} />
 

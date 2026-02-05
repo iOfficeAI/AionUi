@@ -68,9 +68,11 @@ type AgentSetupCardProps = {
   onRetry?: () => void;
   // Auto-switch to best agent when found
   autoSwitch?: boolean;
+  // Initial message to pass to the new conversation after switching
+  initialMessage?: string;
 };
 
-const AgentSetupCard: React.FC<AgentSetupCardProps> = ({ conversationId, currentAgent, error, isChecking, progress: _progress, availableAgents, bestAgent, onDismiss, onRetry, autoSwitch = true }) => {
+const AgentSetupCard: React.FC<AgentSetupCardProps> = ({ conversationId, currentAgent, error, isChecking, progress: _progress, availableAgents, bestAgent, onDismiss, onRetry, autoSwitch = true, initialMessage }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [switching, setSwitching] = useState(false);
@@ -98,8 +100,10 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({ conversationId, current
         }
 
         // Determine conversation type based on agent
+        // Codex uses 'codex' type, Gemini uses 'gemini' type, others use 'acp' type
         const isGemini = agent.backend === 'gemini';
-        const conversationType = isGemini ? 'gemini' : 'acp';
+        const isCodex = agent.backend === 'codex';
+        const conversationType = isGemini ? 'gemini' : isCodex ? 'codex' : 'acp';
 
         // Get current conversation's model info (if gemini type)
         const currentModel = conversation.type === 'gemini' ? conversation.model : undefined;
@@ -142,6 +146,19 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({ conversationId, current
           return;
         }
 
+        // Store initial message for the new conversation to send automatically
+        // 存储初始消息，让新会话自动发送
+        if (initialMessage) {
+          const messageData = { input: initialMessage, files: [] as string[] };
+          if (isGemini) {
+            sessionStorage.setItem(`gemini_initial_message_${newConversation.id}`, JSON.stringify(messageData));
+          } else if (isCodex) {
+            sessionStorage.setItem(`codex_initial_message_${newConversation.id}`, JSON.stringify(messageData));
+          } else {
+            sessionStorage.setItem(`acp_initial_message_${newConversation.id}`, JSON.stringify(messageData));
+          }
+        }
+
         // Show success notification and navigate
         Message.success(
           t('conversation.chat.switchedToAgent', {
@@ -159,7 +176,7 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({ conversationId, current
         setSwitching(false);
       }
     },
-    [conversationId, navigate, t]
+    [conversationId, navigate, t, initialMessage]
   );
 
   const availableCount = availableAgents.filter((a) => a.available).length;
