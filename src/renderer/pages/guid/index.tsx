@@ -872,9 +872,24 @@ const Guid: React.FC = () => {
       if (needsGoogleLogin) {
         // 需要 Google 登录但用户未登录，尝试切换到 CLI
         // Needs Google login but user not logged in, try to switch to CLI
+
+        // 确保有可用的 agents 数据（SWR 可能还在加载）
+        // Ensure we have available agents data (SWR might still be loading)
+        let agentsForCompatCheck = availableAgents;
+        if (!agentsForCompatCheck || agentsForCompatCheck.length === 0) {
+          try {
+            const result = await ipcBridge.acpConversation.getAvailableAgents.invoke();
+            if (result.success) {
+              agentsForCompatCheck = result.data.filter((agent) => !(agent.backend === 'gemini' && agent.cliPath));
+            }
+          } catch (e) {
+            console.error('[Guid] Failed to get available agents for compatibility check:', e);
+          }
+        }
+
         const cliOnlyOrder: PresetAgentType[] = ['claude', 'codex', 'opencode'];
         for (const cli of cliOnlyOrder) {
-          if (availableAgents?.some((agent) => agent.backend === cli)) {
+          if (agentsForCompatCheck?.some((agent) => agent.backend === cli)) {
             console.info(`Platform "${platform}" requires Google login, switching to ${cli} CLI`);
             // 对于 Agent Tab，显示提示通知 / For Agent Tab, show notification
             if (!isPreset) {
@@ -1119,13 +1134,20 @@ const Guid: React.FC = () => {
       return;
     } else {
       // ACP conversation type (including preset with claude agent type)
-      const acpAgentInfo = agentInfo || findAgentByKey(selectedAgentKey);
-
       // For preset with ACP-routed agent type (claude/opencode), use corresponding backend
-      const acpBackend = isPreset && isAcpRoutedPresetType(finalEffectiveAgentType) ? finalEffectiveAgentType : selectedAgent;
+      // Also handle compatibility switch: if finalEffectiveAgentType was changed from effectiveAgentType, use the new type
+      const wasCompatibilitySwitched = finalEffectiveAgentType !== effectiveAgentType;
+      const acpBackend = wasCompatibilitySwitched
+        ? finalEffectiveAgentType // Compatibility switch happened, use the switched type
+        : isPreset && isAcpRoutedPresetType(finalEffectiveAgentType)
+          ? finalEffectiveAgentType
+          : selectedAgent;
+
+      // Get the agent info for the actual backend being used (might be different from selection after compatibility switch)
+      const acpAgentInfo = wasCompatibilitySwitched ? findAgentByKey(acpBackend as string) : agentInfo || findAgentByKey(selectedAgentKey);
 
       if (!acpAgentInfo && !isPreset) {
-        alert(`${selectedAgent} CLI not found or not configured. Please ensure it's installed and accessible.`);
+        alert(`${acpBackend} CLI not found or not configured. Please ensure it's installed and accessible.`);
         return;
       }
 
