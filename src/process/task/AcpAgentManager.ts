@@ -7,6 +7,7 @@ import type { IResponseMessage } from '@/common/ipcBridge';
 import { parseError, uuid } from '@/common/utils';
 import type { AcpBackend, AcpPermissionOption, AcpPermissionRequest } from '@/types/acpTypes';
 import { ACP_BACKENDS_ALL } from '@/types/acpTypes';
+import { getDatabase } from '@process/database';
 import { ProcessConfig } from '../initStorage';
 import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '../message';
 import { handlePreviewOpenEvent } from '../utils/previewUtils';
@@ -28,6 +29,10 @@ interface AcpAgentManagerData {
   enabledSkills?: string[];
   /** Force yolo mode (auto-approve) - used by CronService for scheduled tasks */
   yoloMode?: boolean;
+  /** ACP session ID for resume support / ACP session ID 用于会话恢复 */
+  acpSessionId?: string;
+  /** Last update time of ACP session / ACP session 最后更新时间 */
+  acpSessionUpdatedAt?: number;
 }
 
 class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissionOption> {
@@ -117,6 +122,13 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           customArgs: customArgs,
           customEnv: customEnv,
           yoloMode: yoloMode,
+          acpSessionId: data.acpSessionId,
+          acpSessionUpdatedAt: data.acpSessionUpdatedAt,
+        },
+        onSessionIdUpdate: (sessionId: string) => {
+          // Save ACP session ID to database for resume support
+          // 保存 ACP session ID 到数据库以支持会话恢复
+          this.saveAcpSessionId(sessionId);
         },
         onStreamEvent: (message) => {
           // Handle preview_open event (chrome-devtools navigation interception)
@@ -314,6 +326,29 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
       return this.agent.stop();
     }
     return Promise.resolve();
+  }
+
+  /**
+   * Save ACP session ID to database for resume support.
+   * 保存 ACP session ID 到数据库以支持会话恢复。
+   */
+  private saveAcpSessionId(sessionId: string): void {
+    try {
+      const db = getDatabase();
+      const result = db.getConversation(this.conversation_id);
+      if (result.success && result.data && result.data.type === 'acp') {
+        const conversation = result.data;
+        const updatedExtra = {
+          ...conversation.extra,
+          acpSessionId: sessionId,
+          acpSessionUpdatedAt: Date.now(),
+        };
+        db.updateConversation(this.conversation_id, { extra: updatedExtra } as Partial<typeof conversation>);
+        console.log(`[AcpAgentManager] Saved ACP session ID: ${sessionId} for conversation: ${this.conversation_id}`);
+      }
+    } catch (error) {
+      console.error('[AcpAgentManager] Failed to save ACP session ID:', error);
+    }
   }
 }
 

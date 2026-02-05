@@ -688,15 +688,45 @@ export class AcpConnection {
     return result;
   }
 
-  async newSession(cwd: string = process.cwd()): Promise<AcpResponse> {
+  /**
+   * Create a new session or resume an existing one.
+   * 创建新会话或恢复现有会话。
+   *
+   * @param cwd - Working directory for the session
+   * @param options - Optional resume parameters
+   * @param options.resumeSessionId - Session ID to resume (if supported by backend)
+   * @param options.forkSession - When true, creates a new session ID while preserving conversation context.
+   *                              When false (default), reuses the original session ID.
+   *                              为 true 时创建新 session ID 但保留对话上下文；为 false（默认）时复用原 session ID。
+   */
+  async newSession(cwd: string = process.cwd(), options?: { resumeSessionId?: string; forkSession?: boolean }): Promise<AcpResponse & { sessionId?: string }> {
     // Normalize workspace-relative paths:
     // Agents such as qwen already run with `workingDir` as their process cwd.
     // Sending the absolute path again makes some CLIs treat it as a nested relative path.
     const normalizedCwd = this.normalizeCwdForAgent(cwd);
 
+    // Build _meta for Claude ACP resume support
+    // claude-code-acp uses _meta.claudeCode.options.resume for session resume
+    // claude-code-acp 使用 _meta.claudeCode.options.resume 来恢复会话
+    const meta =
+      this.backend === 'claude' && options?.resumeSessionId
+        ? {
+            claudeCode: {
+              options: {
+                resume: options.resumeSessionId,
+              },
+            },
+          }
+        : undefined;
+
     const response = await this.sendRequest<AcpResponse & { sessionId?: string }>('session/new', {
       cwd: normalizedCwd,
       mcpServers: [] as unknown[],
+      // Claude ACP uses _meta for resume
+      ...(meta && { _meta: meta }),
+      // Generic resume parameters for other ACP backends
+      ...(this.backend !== 'claude' && options?.resumeSessionId && { resumeSessionId: options.resumeSessionId }),
+      ...(options?.forkSession && { forkSession: options.forkSession }),
     });
 
     this.sessionId = response.sessionId;
@@ -790,6 +820,14 @@ export class AcpConnection {
   get hasActiveSession(): boolean {
     const hasSession = this.sessionId !== null;
     return hasSession;
+  }
+
+  /**
+   * Get the current session ID (for session resume support).
+   * 获取当前 session ID（用于会话恢复支持）。
+   */
+  get currentSessionId(): string | null {
+    return this.sessionId;
   }
 
   get currentBackend(): AcpBackend | null {

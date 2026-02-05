@@ -65,9 +65,15 @@ export interface AcpAgentConfig {
     customArgs?: string[];
     customEnv?: Record<string, string>;
     yoloMode?: boolean;
+    /** ACP session ID for resume support / ACP session ID 用于会话恢复 */
+    acpSessionId?: string;
+    /** Last update time of ACP session / ACP session 最后更新时间 */
+    acpSessionUpdatedAt?: number;
   };
   onStreamEvent: (data: IResponseMessage) => void;
   onSignalEvent?: (data: IResponseMessage) => void; // 新增：仅发送信号，不更新UI
+  /** Callback when ACP session ID is updated / 当 ACP session ID 更新时的回调 */
+  onSessionIdUpdate?: (sessionId: string) => void;
 }
 
 // ACP agent任务类
@@ -81,6 +87,10 @@ export class AcpAgent {
     customArgs?: string[];
     customEnv?: Record<string, string>;
     yoloMode?: boolean;
+    /** ACP session ID for resume support / ACP session ID 用于会话恢复 */
+    acpSessionId?: string;
+    /** Last update time of ACP session / ACP session 最后更新时间 */
+    acpSessionUpdatedAt?: number;
   };
   private connection: AcpConnection;
   private adapter: AcpAdapter;
@@ -88,6 +98,7 @@ export class AcpAgent {
   private statusMessageId: string | null = null;
   private readonly onStreamEvent: (data: IResponseMessage) => void;
   private readonly onSignalEvent?: (data: IResponseMessage) => void;
+  private readonly onSessionIdUpdate?: (sessionId: string) => void;
 
   // Track pending navigation tool calls for URL extraction from results
   // 跟踪待处理的导航工具调用，以便从结果中提取 URL
@@ -104,6 +115,7 @@ export class AcpAgent {
     this.id = config.id;
     this.onStreamEvent = config.onStreamEvent;
     this.onSignalEvent = config.onSignalEvent;
+    this.onSessionIdUpdate = config.onSessionIdUpdate;
     this.extra = config.extra || {
       workspace: config.workingDir,
       backend: config.backend,
@@ -188,8 +200,9 @@ export class AcpAgent {
       this.emitStatusMessage('connected');
       await this.performAuthentication();
       // 避免重复创建会话：仅当尚无活动会话时再创建
+      // Create new session or resume existing one (if ACP backend supports it)
       if (!this.connection.hasActiveSession) {
-        await this.connection.newSession(this.extra.workspace);
+        await this.createOrResumeSession();
       }
 
       // Claude Code "YOLO" mode: bypass all permission checks (equivalent to --dangerously-skip-permissions)
@@ -916,6 +929,30 @@ export class AcpAgent {
     return this.connection.hasActiveSession;
   }
 
+  /**
+   * Get the current ACP session ID (for session resume support).
+   * 获取当前 ACP session ID（用于会话恢复支持）。
+   */
+  get currentSessionId(): string | null {
+    return this.connection.currentSessionId;
+  }
+
+  /**
+   * Create a new session or resume an existing one, and notify upper layer if session ID changed.
+   * 创建新会话或恢复现有会话，如果 session ID 变化则通知上层。
+   */
+  private async createOrResumeSession(): Promise<void> {
+    const resumeSessionId = this.extra.acpSessionId;
+    const response = await this.connection.newSession(this.extra.workspace, {
+      resumeSessionId,
+      forkSession: false,
+    });
+    // Notify upper layer if session ID changed (new session or resume failed)
+    if (response.sessionId && response.sessionId !== resumeSessionId) {
+      this.onSessionIdUpdate?.(response.sessionId);
+    }
+  }
+
   // Add kill method for compatibility with WorkerManage
   kill(): void {
     this.stop().catch((error) => {
@@ -991,9 +1028,10 @@ export class AcpAgent {
         return;
       }
 
-      // 先尝试直接创建session以判断是否已鉴权
+      // 先尝试直接创建session以判断是否已鉴权（同时尝试恢复已有会话）
+      // Try to create/resume session to check if already authenticated
       try {
-        await this.connection.newSession(this.extra.workspace);
+        await this.createOrResumeSession();
         this.emitStatusMessage('authenticated');
         return;
       } catch (_err) {
@@ -1007,13 +1045,15 @@ export class AcpAgent {
         await this.ensureClaudeAuth();
       }
 
-      // 预热后重试创建session
+      // 预热后重试创建session（同时尝试恢复会话）
+      // Retry creating/resuming session after warmup
       try {
-        await this.connection.newSession(this.extra.workspace);
+        await this.createOrResumeSession();
         this.emitStatusMessage('authenticated');
         return;
       } catch (error) {
-        // If still failing,引导用户手动登录
+        // If still failing, guide user to login manually
+        // 如果仍然失败，引导用户手动登录
         this.emitStatusMessage('error');
       }
     } catch (error) {
