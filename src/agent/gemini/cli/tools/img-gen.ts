@@ -477,14 +477,6 @@ class ImageGenerationInvocation extends BaseToolInvocation<ImageGenerationToolPa
         }
       );
 
-      // Debug: Log complete API response structure
-      // 调试：记录完整的 API 响应结构
-      console.log(`[ImageGen] API response received. Model: ${this.currentModel}, Choices: ${completion.choices?.length || 0}`);
-      if (completion.choices?.[0]) {
-        const msg = completion.choices[0].message;
-        console.log(`[ImageGen] Response message - content length: ${msg?.content?.length || 0}, images count: ${msg?.images?.length || 0}`);
-      }
-
       const choice = completion.choices[0];
       if (!choice) {
         const errorMsg = 'No response from image generation API';
@@ -512,7 +504,6 @@ class ImageGenerationInvocation extends BaseToolInvocation<ImageGenerationToolPa
         const dataUrlRegex = /!\[[^\]]*\]\((data:image\/[^;]+;base64,[^)]+)\)/g;
         const dataUrlMatches = [...responseText.matchAll(dataUrlRegex)];
         if (dataUrlMatches.length > 0) {
-          console.log(`[ImageGen] Found ${dataUrlMatches.length} markdown image(s) with data URL in response`);
           images = dataUrlMatches.map((match) => ({
             type: 'image_url' as const,
             image_url: { url: match[1] },
@@ -522,7 +513,6 @@ class ImageGenerationInvocation extends BaseToolInvocation<ImageGenerationToolPa
           const filePathRegex = /!\[[^\]]*\]\(([^)]+\.(?:jpg|jpeg|png|gif|webp|bmp|tiff|svg))\)/gi;
           const filePathMatches = [...responseText.matchAll(filePathRegex)];
           if (filePathMatches.length > 0) {
-            console.log(`[ImageGen] Found ${filePathMatches.length} markdown image(s) with file path in response`);
             const workspaceDir = this.config.getWorkingDir();
 
             // Process file paths - convert to full path and read as base64
@@ -540,7 +530,6 @@ class ImageGenerationInvocation extends BaseToolInvocation<ImageGenerationToolPa
                   type: 'image_url',
                   image_url: { url: `data:${mimeType};base64,${base64Data}` },
                 });
-                console.log(`[ImageGen] Successfully loaded image from file: ${filePath}`);
               } catch (fileError) {
                 console.warn(`[ImageGen] Could not load image file: ${filePath}`, fileError);
               }

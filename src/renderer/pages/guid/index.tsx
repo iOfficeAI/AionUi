@@ -815,15 +815,8 @@ const Guid: React.FC = () => {
       // Current agent unavailable, try to get an available fallback
       const fallbackType = getAvailableFallbackAgent();
       if (fallbackType && fallbackType !== selectedAgent) {
-        console.log(`[Guid] Auto-switching from unavailable agent "${selectedAgent}" to "${fallbackType}"`);
         setSelectedAgentKey(fallbackType);
       }
-    } else if (isPresetAgent && currentEffectiveAgentInfo.isFallback) {
-      // 预设助手的 main agent 不可用，已自动回退到 fallback
-      // 更新 UI 显示（但不更改 selectedAgentKey，保持助手选中状态）
-      // Preset assistant's main agent unavailable, already fell back
-      // This is handled by currentEffectiveAgentInfo, no action needed here
-      console.log(`[Guid] Preset assistant using fallback agent: "${currentEffectiveAgentInfo.agentType}" (original: "${currentEffectiveAgentInfo.originalType}")`);
     }
   }, [availableAgents, currentEffectiveAgentInfo, selectedAgent, isPresetAgent, getAvailableFallbackAgent, setSelectedAgentKey]);
 
@@ -1196,9 +1189,10 @@ const Guid: React.FC = () => {
       // Get the agent info for the actual backend being used (might be different from selection after type change)
       let acpAgentInfo = agentTypeChanged ? findAgentByKey(acpBackend as string) : agentInfo || findAgentByKey(selectedAgentKey);
 
-      // 当 agent 类型发生改变时，验证目标 agent 的认证状态
-      // When agent type changed, verify the target agent's authentication status
-      if (agentTypeChanged && acpBackend) {
+      // 对于 CLI agents 始终运行健康检查，确保认证状态有效
+      // Always run health check for CLI agents to ensure authentication is valid
+      const isCliAgent = acpBackend && ['claude', 'codex', 'opencode'].includes(acpBackend);
+      if (isCliAgent) {
         try {
           const healthResult = await ipcBridge.acpConversation.checkAgentHealth.invoke({ backend: acpBackend });
           if (!healthResult.success || !healthResult.data?.available) {
