@@ -8,7 +8,7 @@
  * agent or switch to an available alternative.
  */
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { Button, Message, Progress } from '@arco-design/web-react';
@@ -66,19 +66,24 @@ type AgentSetupCardProps = {
   bestAgent: AgentCheckResult | null;
   onDismiss?: () => void;
   onRetry?: () => void;
+  // Auto-switch to best agent when found
+  autoSwitch?: boolean;
 };
 
-const AgentSetupCard: React.FC<AgentSetupCardProps> = ({ conversationId, currentAgent, error, isChecking, progress, availableAgents, bestAgent, onDismiss, onRetry }) => {
+const AgentSetupCard: React.FC<AgentSetupCardProps> = ({ conversationId, currentAgent, error, isChecking, progress, availableAgents, bestAgent, onDismiss, onRetry, autoSwitch = true }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [switching, setSwitching] = useState(false);
+  const switchingRef = React.useRef(false); // Use ref to avoid stale closure in auto-switch
+  const autoSwitchTriggeredRef = React.useRef(false);
 
   const currentAgentName = currentAgent ? AGENT_NAMES[currentAgent] || currentAgent : 'Agent';
   const currentAgentLogo = currentAgent ? AGENT_LOGOS[currentAgent] : undefined;
 
   const handleSelectAgent = useCallback(
     async (agent: AgentCheckResult) => {
-      if (switching) return;
+      if (switchingRef.current) return;
+      switchingRef.current = true;
       setSwitching(true);
 
       try {
@@ -86,6 +91,7 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({ conversationId, current
         const conversation = await ipcBridge.conversation.get.invoke({ id: conversationId });
         if (!conversation) {
           Message.error(t('conversation.chat.switchAgentFailed', { defaultValue: 'Failed to switch agent' }));
+          switchingRef.current = false;
           setSwitching(false);
           return;
         }
@@ -130,6 +136,7 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({ conversationId, current
 
         if (!newConversation?.id) {
           Message.error(t('conversation.chat.switchAgentFailed', { defaultValue: 'Failed to switch agent' }));
+          switchingRef.current = false;
           setSwitching(false);
           return;
         }
@@ -147,13 +154,28 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({ conversationId, current
         console.error('Failed to switch agent:', error);
         Message.error(t('conversation.chat.switchAgentFailed', { defaultValue: 'Failed to switch agent' }));
       } finally {
+        switchingRef.current = false;
         setSwitching(false);
       }
     },
-    [conversationId, navigate, switching, t]
+    [conversationId, navigate, t]
   );
 
   const availableCount = availableAgents.filter((a) => a.available).length;
+
+  // Auto-switch to best agent when check completes and best agent is found
+  useEffect(() => {
+    if (autoSwitch && !isChecking && bestAgent && !autoSwitchTriggeredRef.current && !switchingRef.current) {
+      autoSwitchTriggeredRef.current = true;
+      void handleSelectAgent(bestAgent);
+    }
+  }, [autoSwitch, isChecking, bestAgent, handleSelectAgent]);
+
+  // Reset refs when conversation changes
+  useEffect(() => {
+    autoSwitchTriggeredRef.current = false;
+    switchingRef.current = false;
+  }, [conversationId]);
 
   return (
     <div className='relative border-1 border-solid border-warning-3 rounded-12px p-16px bg-warning-1 mb-12px'>
@@ -206,52 +228,49 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({ conversationId, current
         <div className='mt-12px'>
           <div className='flex items-center gap-6px mb-10px'>
             <span className='text-16px'>⚡</span>
-            <span className='text-13px font-medium text-t-primary'>
-              {t('agent.setup.alternativesFound', {
-                defaultValue: '{{count}} available alternatives found',
-                count: availableCount,
-              })}
-            </span>
+            <span className='text-13px font-medium text-t-primary'>{autoSwitch ? t('agent.setup.autoSwitching', { defaultValue: 'Auto-switching to best available agent...' }) : t('agent.setup.alternativesFound', { defaultValue: '{{count}} available alternatives found', count: availableCount })}</span>
           </div>
 
-          {/* Available agents list */}
-          <div className='max-h-140px overflow-y-auto space-y-8px'>
-            {availableAgents
-              .filter((r) => r.available)
-              .sort((a, b) => {
-                // Sort by latency (lowest first)
-                if (!a.latency) return 1;
-                if (!b.latency) return -1;
-                return a.latency - b.latency;
-              })
-              .map((result) => {
-                const isBest = bestAgent?.backend === result.backend;
-                return (
-                  <div key={result.backend} className={classNames('rounded-8px p-10px cursor-pointer transition-colors', isBest ? 'bg-primary-1 border-1 border-solid border-primary-3 hover:bg-primary-2' : 'bg-white border-1 border-solid border-border-2 hover:bg-fill-2')} onClick={() => handleSelectAgent(result)}>
-                    <div className='flex items-center justify-between'>
-                      <div className='flex items-center gap-8px'>
-                        {AGENT_LOGOS[result.backend] && <img src={AGENT_LOGOS[result.backend]} alt={result.name} className='w-20px h-20px' />}
-                        <div>
-                          <div className='text-13px font-medium text-t-primary'>{result.name}</div>
-                          <div className='flex items-center gap-6px text-11px'>
-                            <span className='flex items-center gap-3px text-success'>
-                              <span className='w-5px h-5px rounded-full bg-success' />
-                              {t('agent.health.available', { defaultValue: 'Available' })}
-                            </span>
-                            {result.latency && (
-                              <>
-                                <span className='text-t-tertiary'>·</span>
-                                <span className='text-t-secondary'>{result.latency}ms</span>
-                              </>
-                            )}
-                          </div>
+          {/* Available agents - horizontal scroll */}
+          <div className='overflow-x-auto pb-8px -mx-4px px-4px'>
+            <div className='flex gap-10px' style={{ width: 'max-content' }}>
+              {availableAgents
+                .filter((r) => r.available)
+                .sort((a, b) => {
+                  // Best match first, then by latency (lowest first)
+                  const aIsBest = bestAgent?.backend === a.backend;
+                  const bIsBest = bestAgent?.backend === b.backend;
+                  if (aIsBest && !bIsBest) return -1;
+                  if (!aIsBest && bIsBest) return 1;
+                  if (!a.latency) return 1;
+                  if (!b.latency) return -1;
+                  return a.latency - b.latency;
+                })
+                .map((result) => {
+                  const isBest = bestAgent?.backend === result.backend;
+                  return (
+                    <div key={result.backend} className={classNames('rounded-10px p-12px cursor-pointer transition-all min-w-120px flex-shrink-0', isBest ? 'bg-primary-1 border-2 border-solid border-primary shadow-sm' : 'bg-white border-1 border-solid border-border-2 hover:border-primary-3 hover:bg-fill-1')} onClick={() => handleSelectAgent(result)}>
+                      <div className='flex flex-col items-center text-center'>
+                        {AGENT_LOGOS[result.backend] && <img src={AGENT_LOGOS[result.backend]} alt={result.name} className='w-32px h-32px mb-6px' />}
+                        <div className='text-13px font-medium text-t-primary mb-2px'>{result.name}</div>
+                        <div className='flex items-center gap-4px text-11px'>
+                          <span className='flex items-center gap-2px text-success'>
+                            <span className='w-4px h-4px rounded-full bg-success' />
+                            {t('agent.health.available', { defaultValue: 'Available' })}
+                          </span>
+                          {result.latency && (
+                            <>
+                              <span className='text-t-tertiary'>·</span>
+                              <span className='text-t-secondary'>{result.latency}ms</span>
+                            </>
+                          )}
                         </div>
+                        {isBest && <span className='mt-6px px-8px py-2px bg-primary text-white text-10px font-medium rounded-full'>{t('agent.health.bestMatch', { defaultValue: 'Best Match' })}</span>}
                       </div>
-                      {isBest && <span className='px-8px py-2px bg-primary text-white text-11px font-medium rounded-full'>{t('agent.health.bestMatch', { defaultValue: 'Best Match' })}</span>}
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+            </div>
           </div>
 
           {/* Loading overlay during switch */}

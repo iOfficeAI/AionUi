@@ -1165,6 +1165,7 @@
       "findingAlternatives": "正在查找可用的替代方案...",
       "checkingAgent": "正在检查 {{agent}}...",
       "alternativesFound": "找到 {{count}} 个可用的替代方案",
+      "autoSwitching": "正在自动切换到最佳可用 Agent...",
       "noAlternatives": "未找到可用的 Agent",
       "configureFirst": "请先在设置中配置一个 Agent。",
       "switching": "正在切换 Agent..."

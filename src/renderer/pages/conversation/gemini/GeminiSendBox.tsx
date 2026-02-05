@@ -428,15 +428,15 @@ const GeminiSendBox: React.FC<{
     return hasStatusError || hasInvalidUrl || hasNotFound || hasUnauthorized || hasForbidden || hasInvalidApiKey || hasInvalidArgument;
   }, []);
 
-  // 处理 API 错误 - 禁用自动切换，让用户通过 MessageTips 中的 AgentSelector 手动选择
-  // Handle API errors - disable auto-switch, let user manually select via AgentSelector in MessageTips
-  const handleApiErrorSwitch = useCallback(async () => {
-    // 禁用自动切换逻辑，让用户通过 MessageTips 中的横向 AgentSelector 手动选择
-    // Disable auto-switch logic, let user manually select via horizontal AgentSelector in MessageTips
-    // AgentSelector 会自动排除当前失败的 agent (gemini) 和之前失败的 agents
-    // AgentSelector will automatically exclude the current failed agent (gemini) and previously failed agents
-    console.info('API error detected. Showing agent selector for manual switch.');
-  }, []);
+  // 处理 API 错误 - 显示 AgentSetupCard 并自动切换到可用的 agent
+  // Handle API errors - show AgentSetupCard and auto-switch to available agent
+  const handleApiErrorSwitch = useCallback(() => {
+    // 显示 AgentSetupCard 并触发健康检查，找到可用的替代 agent
+    // Show AgentSetupCard and trigger health check to find available alternatives
+    console.info('API error detected. Showing setup card and checking for alternatives...');
+    setShowSetupCard(true);
+    void performFullCheck();
+  }, [performFullCheck]);
 
   const handleGeminiError = useCallback(
     (message: IResponseMessage) => {
