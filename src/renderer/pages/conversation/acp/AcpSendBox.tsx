@@ -3,10 +3,8 @@ import type { AcpBackend } from '@/types/acpTypes';
 import { transformMessage, type TMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import { uuid } from '@/common/utils';
-import AgentSetupCard from '@/renderer/components/AgentSetupCard';
 import SendBox from '@/renderer/components/sendbox';
 import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/ThoughtDisplay';
-import { useAgentReadinessCheck } from '@/renderer/hooks/useAgentReadinessCheck';
 import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/useSendBoxDraft';
 import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/useSendBoxFiles';
 import { useAddOrUpdateMessage } from '@/renderer/messages/hooks';
@@ -208,113 +206,11 @@ const AcpSendBox: React.FC<{
   conversation_id: string;
   backend: AcpBackend;
 }> = ({ conversation_id, backend }) => {
-  const [workspacePath, setWorkspacePath] = useState('');
   const { thought, running, acpStatus, aiProcessing, setAiProcessing, resetState } = useAcpMessage(conversation_id);
   const { t } = useTranslation();
   const { checkAndUpdateTitle } = useAutoTitle();
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
   const { setSendBoxHandler } = usePreviewContext();
-  const [showSetupCard, setShowSetupCard] = useState(false);
-  const hasCheckedRef = useRef(false);
-
-  // Agent readiness check for new user experience
-  const {
-    isReady: agentIsReady,
-    isChecking: agentIsChecking,
-    error: agentError,
-    availableAgents,
-    bestAgent,
-    progress: checkProgress,
-    currentAgent,
-    performFullCheck,
-    reset: resetAgentCheck,
-  } = useAgentReadinessCheck({
-    backend,
-    conversationType: 'acp',
-    autoCheck: false,
-  });
-
-  useEffect(() => {
-    void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
-      if (!res?.extra?.workspace) return;
-      setWorkspacePath(res.extra.workspace);
-    });
-  }, [conversation_id]);
-
-  // Check agent readiness on first message attempt for new users
-  // Reset check state when conversation changes
-  useEffect(() => {
-    hasCheckedRef.current = false;
-    setShowSetupCard(false);
-    resetAgentCheck();
-  }, [conversation_id, resetAgentCheck]);
-
-  // Handle pre-send check result
-  useEffect(() => {
-    if (hasCheckedRef.current && !agentIsChecking && !agentIsReady) {
-      setShowSetupCard(true);
-    }
-  }, [agentIsChecking, agentIsReady]);
-
-  // Early check for initial message from guid page
-  // 提前检查：如果有初始消息，立即检查 agent 可用性，不等待 session_active
-  // If there's an initial message from guid page, check agent availability immediately
-  useEffect(() => {
-    const storageKey = `acp_initial_message_${conversation_id}`;
-    const storedMessage = sessionStorage.getItem(storageKey);
-
-    // 如果没有初始消息或已经检查过，跳过
-    // Skip if no initial message or already checked
-    if (!storedMessage || hasCheckedRef.current) {
-      return;
-    }
-
-    // 标记为已检查，立即进行健康检查
-    // Mark as checked and perform health check immediately
-    hasCheckedRef.current = true;
-
-    const checkAndShowSetupCard = async () => {
-      try {
-        const result = await ipcBridge.acpConversation.checkAgentHealth.invoke({ backend });
-        if (!result.success || !result.data?.available) {
-          // Agent 不可用，显示 AgentSetupCard 并开始扫描
-          // Agent not available, show AgentSetupCard and start scanning
-          setShowSetupCard(true);
-          void performFullCheck();
-
-          // 将消息存储到输入框
-          // Store message in sendbox
-          try {
-            const { input } = JSON.parse(storedMessage) as { input: string };
-            setContent(input);
-          } catch {
-            // Ignore parse errors
-          }
-          sessionStorage.removeItem(storageKey);
-        }
-        // 如果 agent 可用，让原来的 sendInitialMessage 逻辑处理
-        // If agent is available, let the original sendInitialMessage logic handle it
-      } catch {
-        // 检查失败，显示 AgentSetupCard
-        // Check failed, show AgentSetupCard
-        setShowSetupCard(true);
-        void performFullCheck();
-      }
-    };
-
-    void checkAndShowSetupCard();
-  }, [conversation_id, backend, performFullCheck, setContent]);
-
-  // Dismiss the setup card
-  const handleDismissSetupCard = useCallback(() => {
-    setShowSetupCard(false);
-  }, []);
-
-  // Retry agent check
-  const handleRetryCheck = useCallback(() => {
-    hasCheckedRef.current = true;
-    void performFullCheck();
-  }, [performFullCheck]);
 
   // 使用 useLatestRef 保存最新的 setContent/atPath，避免重复注册 handler
   // Use useLatestRef to keep latest setters to avoid re-registering handler
@@ -370,33 +266,6 @@ const AcpSendBox: React.FC<{
         const initialMessage = JSON.parse(storedMessage);
         const { input, files } = initialMessage;
 
-        // Check agent readiness before sending (for new users without configured auth)
-        // 检查 agent 可用性（针对没有配置认证的新用户）
-        if (!hasCheckedRef.current) {
-          hasCheckedRef.current = true;
-          const isReady = await new Promise<boolean>((resolve) => {
-            ipcBridge.acpConversation.checkAgentHealth
-              .invoke({ backend })
-              .then((result) => {
-                resolve(result.success === true && result.data?.available === true);
-              })
-              .catch(() => resolve(false));
-          });
-
-          if (!isReady) {
-            // Not ready - show setup card with scanning animation
-            // 不可用 - 显示设置卡片和扫描动画
-            setShowSetupCard(true);
-            void performFullCheck();
-            // Store message in sendbox for user to send after selecting agent
-            // 将消息存储到输入框，用户选择 agent 后可以发送
-            setContent(input);
-            sessionStorage.removeItem(storageKey);
-            sendingInitialMessageRef.current = false;
-            return;
-          }
-        }
-
         // ACP: 不使用 buildDisplayMessage，直接传原始 input
         // 文件引用由后端 ACP agent 负责添加（使用复制后的实际路径）
         // 避免消息中出现两套不一致的文件引用
@@ -451,29 +320,9 @@ const AcpSendBox: React.FC<{
     sendInitialMessage().catch((error) => {
       console.error('Failed to send initial message:', error);
     });
-  }, [conversation_id, backend, acpStatus, performFullCheck, setContent]);
+  }, [conversation_id, backend, acpStatus]);
 
   const onSendHandler = async (message: string) => {
-    // For new users: check agent readiness before first send
-    if (!hasCheckedRef.current) {
-      hasCheckedRef.current = true;
-      const isReady = await new Promise<boolean>((resolve) => {
-        ipcBridge.acpConversation.checkAgentHealth
-          .invoke({ backend })
-          .then((result) => {
-            resolve(result.success === true && result.data?.available === true);
-          })
-          .catch(() => resolve(false));
-      });
-
-      if (!isReady) {
-        // Not ready - trigger full check and show setup card
-        setShowSetupCard(true);
-        void performFullCheck();
-        return; // Don't send the message yet
-      }
-    }
-
     const msg_id = uuid();
 
     // ACP: 不使用 buildDisplayMessage，直接传原始 message
@@ -561,9 +410,6 @@ const AcpSendBox: React.FC<{
 
   return (
     <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
-      {/* Agent Setup Card for new users without configured auth */}
-      {showSetupCard && <AgentSetupCard conversationId={conversation_id} currentAgent={currentAgent} error={agentError} isChecking={agentIsChecking} progress={checkProgress} availableAgents={availableAgents} bestAgent={bestAgent} onDismiss={handleDismissSetupCard} onRetry={handleRetryCheck} initialMessage={content} />}
-
       <ThoughtDisplay thought={thought} running={running || aiProcessing} onStop={handleStop} />
 
       <SendBox

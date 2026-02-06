@@ -9,8 +9,8 @@ import FilePreview from '@/renderer/components/FilePreview';
 import HorizontalFileList from '@/renderer/components/HorizontalFileList';
 import SendBox from '@/renderer/components/sendbox';
 import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/ThoughtDisplay';
-import { useAutoTitle } from '@/renderer/hooks/useAutoTitle';
 import { useAgentReadinessCheck } from '@/renderer/hooks/useAgentReadinessCheck';
+import { useAutoTitle } from '@/renderer/hooks/useAutoTitle';
 import { useLatestRef } from '@/renderer/hooks/useLatestRef';
 import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/useSendBoxDraft';
 import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/useSendBoxFiles';
@@ -338,13 +338,22 @@ const GeminiSendBox: React.FC<{
   const { checkAndUpdateTitle } = useAutoTitle();
   const quotaPromptedRef = useRef<string | null>(null);
   const exhaustedModelsRef = useRef(new Set<string>());
-  const [showSetupCard, setShowSetupCard] = useState(false);
-  const [shouldAutoSwitch, setShouldAutoSwitch] = useState(true); // true for new conversation, false for post-error
-  const hasCheckedRef = useRef(false);
 
-  // Agent readiness check for new user experience
+  // Agent 自动检测状态 - 仅用于新对话+无auth的场景
+  // Agent auto-detection state - only for new conversation + no auth scenario
+  const [showSetupCard, setShowSetupCard] = useState(false);
+  const [isNewConversation, setIsNewConversation] = useState(true); // 是否是新对话（无消息历史）
+  const autoSwitchTriggeredRef = useRef(false); // 防止重复触发
+
+  const { currentModel, getDisplayModelName, providers, geminiModeLookup, getAvailableModels, handleSelectModel } = modelSelection;
+
+  // 判断是否无 auth（无 Google 登录且无 API key 配置）
+  // Check if no auth (no Google login AND no API key configured)
+  const hasNoAuth = providers.length === 0;
+
+  // Agent readiness check - 仅在无 auth 时使用
+  // Agent readiness check - only used when no auth
   const {
-    isReady: agentIsReady,
     isChecking: agentIsChecking,
     error: agentError,
     availableAgents,
@@ -357,8 +366,6 @@ const GeminiSendBox: React.FC<{
     conversationType: 'gemini',
     autoCheck: false,
   });
-
-  const { currentModel, getDisplayModelName, providers, geminiModeLookup, getAvailableModels, handleSelectModel } = modelSelection;
 
   const resolveFallbackTarget = useCallback(
     (exhaustedModels: Set<string>) => {
@@ -400,15 +407,13 @@ const GeminiSendBox: React.FC<{
     return hasQuota && hasLimit;
   }, []);
 
-  // 检测 API 错误（400, 401, 403, 404, 5xx 等）
-  // Detect API errors (400, 401, 403, 404, 5xx, etc.)
-  const isApiErrorMessage = useCallback((data: unknown) => {
-    // 将 data 转换为字符串进行检查
+  // 检测 API Key 错误（用户配置问题，不应该自动切换）
+  // Detect API Key errors (user configuration issue, should not auto-switch)
+  const isApiKeyError = useCallback((data: unknown) => {
     let text = '';
     if (typeof data === 'string') {
       text = data.toLowerCase();
     } else if (data && typeof data === 'object') {
-      // 如果是对象，序列化为 JSON 字符串
       try {
         text = JSON.stringify(data).toLowerCase();
       } catch {
@@ -418,32 +423,56 @@ const GeminiSendBox: React.FC<{
       return false;
     }
 
-    // 检测常见的 API 错误
-    const hasStatusError = /(?:status|code|error)[:\s]*(?:400|401|403|404|500|502|503|504)/i.test(text);
-    const hasInvalidUrl = text.includes('invalid url');
-    const hasNotFound = text.includes('not found') || text.includes('notfound');
-    const hasUnauthorized = text.includes('unauthorized') || text.includes('authentication');
-    const hasForbidden = text.includes('forbidden') || text.includes('access denied');
-    const hasInvalidApiKey = text.includes('api key not valid') || text.includes('api_key_invalid') || text.includes('invalid api key');
-    const hasInvalidArgument = text.includes('invalid_argument');
-    return hasStatusError || hasInvalidUrl || hasNotFound || hasUnauthorized || hasForbidden || hasInvalidApiKey || hasInvalidArgument;
+    // 检测 API key 相关错误 - 这些是用户配置问题，应该显示错误而非自动切换
+    // Detect API key related errors - these are user config issues, show error instead of auto-switch
+    const hasInvalidApiKey = text.includes('api key not valid') || text.includes('api_key_invalid') || text.includes('invalid api key') || text.includes('google_api_key');
+    return hasInvalidApiKey;
   }, []);
 
-  // 处理 API 错误 - 自动切换到可用 agent
-  // Handle API errors - auto-switch to available agent
-  const handleApiErrorSwitch = useCallback(() => {
-    console.info('API error detected. Auto-switching to available agent.');
-    setShouldAutoSwitch(true); // 自动切换 / Enable auto-switch
-    setShowSetupCard(true);
-    void performFullCheck();
-  }, [performFullCheck]);
+  // 检测 API 错误（400, 401, 403, 404, 5xx 等，但排除 API key 错误）
+  // Detect API errors (400, 401, 403, 404, 5xx, etc., excluding API key errors)
+  const isApiErrorMessage = useCallback(
+    (data: unknown) => {
+      // 如果是 API key 错误，不视为需要自动切换的 API 错误
+      // If it's an API key error, don't treat it as an auto-switch API error
+      if (isApiKeyError(data)) {
+        return false;
+      }
+
+      // 将 data 转换为字符串进行检查
+      let text = '';
+      if (typeof data === 'string') {
+        text = data.toLowerCase();
+      } else if (data && typeof data === 'object') {
+        // 如果是对象，序列化为 JSON 字符串
+        try {
+          text = JSON.stringify(data).toLowerCase();
+        } catch {
+          return false;
+        }
+      } else {
+        return false;
+      }
+
+      // 检测常见的 API 错误（排除 API key 错误，因为那是用户配置问题）
+      const hasStatusError = /(?:status|code|error)[:\s]*(?:400|401|403|404|500|502|503|504)/i.test(text);
+      const hasInvalidUrl = text.includes('invalid url');
+      const hasNotFound = text.includes('not found') || text.includes('notfound');
+      const hasUnauthorized = text.includes('unauthorized') || text.includes('authentication');
+      const hasForbidden = text.includes('forbidden') || text.includes('access denied');
+      const hasInvalidArgument = text.includes('invalid_argument');
+      return hasStatusError || hasInvalidUrl || hasNotFound || hasUnauthorized || hasForbidden || hasInvalidArgument;
+    },
+    [isApiKeyError]
+  );
 
   const handleGeminiError = useCallback(
     (message: IResponseMessage) => {
-      // 首先检查是否是 API 错误（404, 403 等）
-      // First check if it's an API error (404, 403, etc.)
+      // API 错误不触发 agent 检测，只处理配额错误
+      // API errors do NOT trigger agent detection, only handle quota errors
       if (isApiErrorMessage(message.data)) {
-        void handleApiErrorSwitch();
+        // Just log the error, don't show setup card
+        console.info('API error detected. Not triggering agent detection.');
         return;
       }
 
@@ -467,7 +496,7 @@ const GeminiSendBox: React.FC<{
         Message.success(t('conversation.chat.quotaSwitched', { defaultValue: `Switched to ${fallbackTarget.model}.`, model: fallbackTarget.model }));
       });
     },
-    [currentModel, handleApiErrorSwitch, handleSelectModel, isApiErrorMessage, isQuotaErrorMessage, resolveFallbackTarget, t]
+    [currentModel, handleSelectModel, isApiErrorMessage, isQuotaErrorMessage, resolveFallbackTarget, t]
   );
 
   const { thought, running, tokenUsage, setActiveMsgId, setWaitingResponse, resetState } = useGeminiMessage(conversation_id, handleGeminiError);
@@ -479,22 +508,29 @@ const GeminiSendBox: React.FC<{
     });
   }, [conversation_id]);
 
-  // Check agent readiness on first message attempt for new users
-  // This runs once when the component mounts or conversation changes
+  // 检查是否是新对话（无消息历史）并决定是否触发自动检测
+  // Check if it's a new conversation and decide whether to trigger auto-detection
   useEffect(() => {
-    // Reset check state when conversation changes
-    hasCheckedRef.current = false;
+    // 重置状态
     setShowSetupCard(false);
-    setShouldAutoSwitch(true); // Reset to default auto-switch behavior
+    setIsNewConversation(true);
+    autoSwitchTriggeredRef.current = false;
     resetAgentCheck();
-  }, [conversation_id, resetAgentCheck]);
 
-  // Handle pre-send check result
-  useEffect(() => {
-    if (hasCheckedRef.current && !agentIsChecking && !agentIsReady) {
-      setShowSetupCard(true);
-    }
-  }, [agentIsChecking, agentIsReady]);
+    // 检查对话是否有消息历史
+    void ipcBridge.database.getConversationMessages.invoke({ conversation_id, page: 0, pageSize: 1 }).then((messages) => {
+      const hasMessages = messages && messages.length > 0;
+      setIsNewConversation(!hasMessages);
+
+      // 只有新对话 + 无 auth 才触发自动检测
+      // Only trigger auto-detection for new conversation + no auth
+      if (!hasMessages && hasNoAuth && !autoSwitchTriggeredRef.current) {
+        autoSwitchTriggeredRef.current = true;
+        setShowSetupCard(true);
+        void performFullCheck();
+      }
+    });
+  }, [conversation_id, hasNoAuth, performFullCheck, resetAgentCheck]);
 
   // Dismiss the setup card
   const handleDismissSetupCard = useCallback(() => {
@@ -503,7 +539,6 @@ const GeminiSendBox: React.FC<{
 
   // Retry agent check
   const handleRetryCheck = useCallback(() => {
-    hasCheckedRef.current = true;
     void performFullCheck();
   }, [performFullCheck]);
 
@@ -517,7 +552,22 @@ const GeminiSendBox: React.FC<{
     const storageKey = `gemini_initial_message_${conversation_id}`;
     const storedMessage = sessionStorage.getItem(storageKey);
 
-    if (!storedMessage || !currentModel?.useModel) return;
+    if (!storedMessage) return;
+
+    // 如果无 auth，将消息存储到输入框，让 setup card 处理
+    // If no auth, store message in input box, let setup card handle it
+    if (hasNoAuth) {
+      try {
+        const { input } = JSON.parse(storedMessage) as { input: string };
+        setContent(input);
+        sessionStorage.removeItem(storageKey);
+      } catch {
+        // Ignore parse errors
+      }
+      return;
+    }
+
+    if (!currentModel?.useModel) return;
 
     // Clear immediately to prevent duplicate sends
     sessionStorage.removeItem(storageKey);
@@ -525,32 +575,6 @@ const GeminiSendBox: React.FC<{
     const sendInitialMessage = async () => {
       try {
         const { input, files } = JSON.parse(storedMessage) as { input: string; files?: string[] };
-
-        // Check agent readiness before sending (for new users without configured auth)
-        // 检查 agent 可用性（针对没有配置认证的新用户）
-        if (!hasCheckedRef.current) {
-          hasCheckedRef.current = true;
-          const isReady = await new Promise<boolean>((resolve) => {
-            ipcBridge.acpConversation.checkAgentHealth
-              .invoke({ backend: 'gemini' })
-              .then((result) => {
-                resolve(result.success === true && result.data?.available === true);
-              })
-              .catch(() => resolve(false));
-          });
-
-          if (!isReady) {
-            // Not ready - show setup card with scanning animation
-            // 不可用 - 显示设置卡片和扫描动画
-            setShouldAutoSwitch(true);
-            setShowSetupCard(true);
-            void performFullCheck();
-            // Store message in sendbox for user to send after selecting agent
-            // 将消息存储到输入框，用户选择 agent 后可以发送
-            setContent(input);
-            return;
-          }
-        }
 
         const msg_id = uuid();
         setActiveMsgId(msg_id);
@@ -590,7 +614,7 @@ const GeminiSendBox: React.FC<{
     };
 
     void sendInitialMessage();
-  }, [conversation_id, currentModel?.useModel, performFullCheck, setContent]);
+  }, [conversation_id, currentModel?.useModel]);
 
   // 使用 useLatestRef 保存最新的 setContent/atPath，避免重复注册 handler
   // Use useLatestRef to keep latest setters to avoid re-registering handler
@@ -619,28 +643,6 @@ const GeminiSendBox: React.FC<{
 
   const onSendHandler = async (message: string) => {
     if (!currentModel?.useModel) return;
-
-    // For new users: check agent readiness before first send
-    if (!hasCheckedRef.current) {
-      hasCheckedRef.current = true;
-      const isReady = await new Promise<boolean>((resolve) => {
-        ipcBridge.acpConversation.checkAgentHealth
-          .invoke({ backend: 'gemini' })
-          .then((result) => {
-            resolve(result.success === true && result.data?.available === true);
-          })
-          .catch(() => resolve(false));
-      });
-
-      if (!isReady) {
-        // Not ready - trigger full check and show setup card with auto-switch
-        // 新对话首次发送，自动切换到可用agent / New conversation first send, auto-switch to available agent
-        setShouldAutoSwitch(true);
-        setShowSetupCard(true);
-        void performFullCheck();
-        return; // Don't send the message yet
-      }
-    }
 
     const msg_id = uuid();
     // 设置当前活跃的消息 ID，用于过滤掉旧请求的事件
@@ -709,8 +711,9 @@ const GeminiSendBox: React.FC<{
 
   return (
     <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
-      {/* Agent Setup Card for new users without configured auth */}
-      {showSetupCard && <AgentSetupCard conversationId={conversation_id} currentAgent={currentAgent} error={agentError} isChecking={agentIsChecking} progress={checkProgress} availableAgents={availableAgents} bestAgent={bestAgent} onDismiss={handleDismissSetupCard} onRetry={handleRetryCheck} autoSwitch={shouldAutoSwitch} initialMessage={content} />}
+      {/* Agent Setup Card - 仅在新对话+无auth时显示，自动切换到可用agent */}
+      {/* Only show for new conversation + no auth, auto-switch to available agent */}
+      {showSetupCard && isNewConversation && hasNoAuth && <AgentSetupCard conversationId={conversation_id} currentAgent={currentAgent} error={agentError} isChecking={agentIsChecking} progress={checkProgress} availableAgents={availableAgents} bestAgent={bestAgent} onDismiss={handleDismissSetupCard} onRetry={handleRetryCheck} autoSwitch={true} initialMessage={content} />}
 
       <ThoughtDisplay thought={thought} running={running} onStop={handleStop} />
 
