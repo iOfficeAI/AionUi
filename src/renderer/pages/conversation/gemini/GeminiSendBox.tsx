@@ -367,6 +367,8 @@ const GeminiSendBox: React.FC<{
     autoCheck: false,
   });
 
+  const performFullCheckRef = useLatestRef(performFullCheck);
+
   const resolveFallbackTarget = useCallback(
     (exhaustedModels: Set<string>) => {
       if (!currentModel) return null;
@@ -508,29 +510,19 @@ const GeminiSendBox: React.FC<{
     });
   }, [conversation_id]);
 
-  // 检查是否是新对话（无消息历史）并决定是否触发自动检测
-  // Check if it's a new conversation and decide whether to trigger auto-detection
+  // 重置对话状态（不再自动触发检测，检测只在发送新消息时触发）
+  // Reset conversation state (detection only triggers on new message, not on mount/tab-switch)
   useEffect(() => {
-    // 重置状态
     setShowSetupCard(false);
     setIsNewConversation(true);
     autoSwitchTriggeredRef.current = false;
     resetAgentCheck();
 
-    // 检查对话是否有消息历史
     void ipcBridge.database.getConversationMessages.invoke({ conversation_id, page: 0, pageSize: 1 }).then((messages) => {
       const hasMessages = messages && messages.length > 0;
       setIsNewConversation(!hasMessages);
-
-      // 只有新对话 + 无 auth 才触发自动检测
-      // Only trigger auto-detection for new conversation + no auth
-      if (!hasMessages && hasNoAuth && !autoSwitchTriggeredRef.current) {
-        autoSwitchTriggeredRef.current = true;
-        setShowSetupCard(true);
-        void performFullCheck();
-      }
     });
-  }, [conversation_id, hasNoAuth, performFullCheck, resetAgentCheck]);
+  }, [conversation_id, resetAgentCheck]);
 
   // Dismiss the setup card
   const handleDismissSetupCard = useCallback(() => {
@@ -554,8 +546,8 @@ const GeminiSendBox: React.FC<{
 
     if (!storedMessage) return;
 
-    // 如果无 auth，将消息存储到输入框，让 setup card 处理
-    // If no auth, store message in input box, let setup card handle it
+    // 如果无 auth，将消息存储到输入框，并以此为起始检测点触发自动检测
+    // If no auth, store message in input box and trigger auto-detection from this new message point
     if (hasNoAuth) {
       try {
         const { input } = JSON.parse(storedMessage) as { input: string };
@@ -563,6 +555,13 @@ const GeminiSendBox: React.FC<{
         sessionStorage.removeItem(storageKey);
       } catch {
         // Ignore parse errors
+      }
+      // 以发起新消息为起始检测点：仅在有初始消息时触发自动检测
+      // Detection start point = new message: only trigger when there's an initial message to send
+      if (!autoSwitchTriggeredRef.current) {
+        autoSwitchTriggeredRef.current = true;
+        setShowSetupCard(true);
+        void performFullCheckRef.current();
       }
       return;
     }
