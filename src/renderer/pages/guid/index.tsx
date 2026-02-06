@@ -694,7 +694,9 @@ const Guid: React.FC = () => {
   const resolvePresetAgentType = useCallback(
     (agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined) => {
       if (!agentInfo) return 'gemini';
-      if (agentInfo.backend !== 'custom') return 'gemini';
+      // 非 custom 的 backend，直接返回其 backend 类型（如 'claude', 'codex' 等）
+      // For non-custom backends, return the backend type directly (e.g., 'claude', 'codex', etc.)
+      if (agentInfo.backend !== 'custom') return agentInfo.backend as PresetAgentType;
       const customAgent = customAgents.find((agent) => agent.id === agentInfo.customAgentId);
       return customAgent?.presetAgentType || 'gemini';
     },

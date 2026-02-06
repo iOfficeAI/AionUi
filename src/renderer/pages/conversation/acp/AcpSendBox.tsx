@@ -206,7 +206,7 @@ const AcpSendBox: React.FC<{
   conversation_id: string;
   backend: AcpBackend;
 }> = ({ conversation_id, backend }) => {
-  const { thought, running, acpStatus, aiProcessing, setAiProcessing, resetState } = useAcpMessage(conversation_id);
+  const { thought, running, aiProcessing, setAiProcessing, resetState } = useAcpMessage(conversation_id);
   const { t } = useTranslation();
   const { checkAndUpdateTitle } = useAutoTitle();
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
@@ -241,15 +241,12 @@ const AcpSendBox: React.FC<{
     setSendBoxHandler(handler);
   }, [setSendBoxHandler, content]);
 
-  // Check for and send initial message from guid page when ACP is authenticated
+  // Check for and send initial message from guid page
+  // Note: We don't wait for acpStatus because:
+  // 1. ACP connection is initialized when first message is sent
+  // 2. Waiting for 'session_active' creates a deadlock (status only updates after message is sent)
+  // 3. This matches the behavior of onSendHandler which sends immediately
   useEffect(() => {
-    if (!acpStatus) {
-      return;
-    }
-    if (acpStatus !== 'session_active') {
-      return;
-    }
-
     const sendInitialMessage = async () => {
       // Check flag at the actual execution time
       if (sendingInitialMessageRef.current) {
@@ -320,7 +317,7 @@ const AcpSendBox: React.FC<{
     sendInitialMessage().catch((error) => {
       console.error('Failed to send initial message:', error);
     });
-  }, [conversation_id, backend, acpStatus]);
+  }, [conversation_id, backend]);
 
   const onSendHandler = async (message: string) => {
     const msg_id = uuid();
