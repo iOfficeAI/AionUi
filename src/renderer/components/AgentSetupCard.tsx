@@ -193,37 +193,31 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({ conversationId, current
         {/* Dismiss button */}
         {onDismiss && !isChecking && !switching && (
           <button onClick={onDismiss} className='absolute top-12px right-12px p-4px rounded-4px hover:bg-fill-3 transition-colors cursor-pointer border-none bg-transparent' aria-label={t('common.close', { defaultValue: 'Close' })}>
-            <Close theme='outline' size={14} style={{ color: 'var(--color-text-3)' }} />
+            <Close theme='outline' size={14} className='text-t-tertiary' />
           </button>
         )}
 
         {/* Success Message - 连接成功提示 */}
         {hasAvailableAndSwitching && (
           <div className='flex items-center gap-8px mb-12px'>
-            <CheckOne theme='filled' size={16} fill='var(--color-success-6)' />
-            <span className='text-13px font-medium' style={{ color: 'var(--color-success-6)' }}>
-              {t('guid.scanning.connectingMessage', { defaultValue: 'Connected successfully, please wait...' })}
-            </span>
+            <CheckOne theme='filled' size={16} className='text-success-6' />
+            <span className='text-13px font-medium text-success-6'>{t('guid.scanning.connectingMessage', { defaultValue: 'Connected successfully, please wait...' })}</span>
           </div>
         )}
 
         {/* Scanning Header - 扫描中提示 */}
         {isChecking && !hasAvailableAndSwitching && (
           <div className='flex items-center gap-8px mb-12px'>
-            <Loading theme='outline' size={16} className='animate-spin' style={{ color: 'var(--color-text-2)' }} />
-            <span className='text-13px' style={{ color: 'var(--color-text-1)' }}>
-              {t('guid.scanning.scanningMessage', { defaultValue: 'Scanning local available agents...' })}
-            </span>
+            <Loading theme='outline' size={16} className='animate-spin text-t-secondary' />
+            <span className='text-13px text-t-primary'>{t('guid.scanning.scanningMessage', { defaultValue: 'Scanning local available agents...' })}</span>
           </div>
         )}
 
         {/* Initial Message - 初始检测提示 */}
         {!isChecking && !hasAvailableAndSwitching && availableAgents.length === 0 && (
           <div className='flex items-center gap-8px mb-12px'>
-            <Loading theme='outline' size={16} className='animate-spin' style={{ color: 'var(--color-text-2)' }} />
-            <span className='text-13px' style={{ color: 'var(--color-text-1)' }}>
-              {t('guid.scanning.initialMessage', { defaultValue: 'Current Agent is unavailable, detecting other available agents...' })}
-            </span>
+            <Loading theme='outline' size={16} className='animate-spin text-t-secondary' />
+            <span className='text-13px text-t-primary'>{t('guid.scanning.initialMessage', { defaultValue: 'Current Agent is unavailable, detecting other available agents...' })}</span>
           </div>
         )}
 
@@ -261,43 +255,35 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({ conversationId, current
                   // Determine status display
                   let statusIcon: React.ReactNode;
                   let statusText: string;
-                  let statusColor: string;
+                  let statusClass: string;
 
                   if (result.checking) {
-                    statusIcon = <Loading theme='outline' size={12} className='animate-spin' style={{ color: 'var(--color-warning-6)' }} />;
+                    statusIcon = <Loading theme='outline' size={12} className='animate-spin text-warning-6' />;
                     statusText = t('guid.scanning.statusTesting', { defaultValue: 'Testing latency...' });
-                    statusColor = 'var(--color-warning-6)';
+                    statusClass = 'text-warning-6';
                   } else if (result.available) {
-                    statusIcon = <CheckOne theme='filled' size={12} fill='var(--color-success-6)' />;
+                    statusIcon = <CheckOne theme='filled' size={12} className='text-success-6' />;
                     statusText = result.latency ? `${result.latency}ms` : t('guid.scanning.statusAvailable', { defaultValue: 'Available' });
-                    statusColor = 'var(--color-success-6)';
+                    statusClass = 'text-success-6';
                   } else if (result.error) {
-                    statusIcon = <CloseOne theme='filled' size={12} fill='var(--color-text-3)' />;
+                    statusIcon = <CloseOne theme='filled' size={12} className='text-t-tertiary' />;
                     statusText = t('guid.scanning.statusUnreachable', { defaultValue: 'Unreachable' });
-                    statusColor = 'var(--color-text-3)';
+                    statusClass = 'text-t-tertiary';
                   } else {
                     statusIcon = null;
                     statusText = t('guid.scanning.statusQueued', { defaultValue: 'Queued' });
-                    statusColor = 'var(--color-text-3)';
+                    statusClass = 'text-t-tertiary';
                   }
 
                   return (
                     <div key={result.backend} className={classNames('rounded-10px p-12px transition-all min-w-120px flex-shrink-0', cardStyle)} onClick={result.available && !hasAvailableAndSwitching ? () => handleSelectAgent(result) : undefined}>
                       <div className='flex flex-col items-center text-center'>
                         <div className='relative w-32px h-32px mb-6px'>
-                          {AGENT_LOGOS[result.backend] ? (
-                            <img src={AGENT_LOGOS[result.backend]} alt={result.name} className='w-full h-full' />
-                          ) : (
-                            <div className='w-full h-full rounded-full bg-fill-2 flex items-center justify-center text-14px' style={{ color: 'var(--color-text-1)' }}>
-                              {result.name.charAt(0)}
-                            </div>
-                          )}
-                          {!result.available && !result.checking && <CloseOne theme='filled' size={14} fill='var(--color-text-3)' className='absolute -top-2px -right-2px' />}
+                          {AGENT_LOGOS[result.backend] ? <img src={AGENT_LOGOS[result.backend]} alt={result.name} className='w-full h-full' /> : <div className='w-full h-full rounded-full bg-fill-2 flex items-center justify-center text-14px text-t-primary'>{result.name.charAt(0)}</div>}
+                          {!result.available && !result.checking && <CloseOne theme='filled' size={14} className='absolute -top-2px -right-2px text-t-tertiary' />}
                         </div>
-                        <div className='text-13px font-medium mb-2px' style={{ color: 'var(--color-text-1)' }}>
-                          {result.name}
-                        </div>
-                        <div className='flex items-center gap-4px text-11px' style={{ color: statusColor }}>
+                        <div className='text-13px font-medium mb-2px text-t-primary'>{result.name}</div>
+                        <div className={classNames('flex items-center gap-4px text-11px', statusClass)}>
                           {statusIcon}
                           <span>{statusText}</span>
                         </div>
@@ -313,9 +299,7 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({ conversationId, current
         {hasAvailableAndSwitching && bestAgent && (
           <div className='mt-12px'>
             <Progress percent={switching ? 50 : 100} size='small' status='success' showText={false} />
-            <div className='text-11px mt-4px text-center' style={{ color: 'var(--color-text-3)' }}>
-              {t('guid.scanning.establishingConnection', { defaultValue: 'Establishing connection...' })}
-            </div>
+            <div className='text-11px mt-4px text-center text-t-tertiary'>{t('guid.scanning.establishingConnection', { defaultValue: 'Establishing connection...' })}</div>
           </div>
         )}
 
@@ -323,12 +307,8 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({ conversationId, current
         {!isChecking && availableCount === 0 && availableAgents.length > 0 && (
           <div className='text-center py-12px'>
             <div className='text-24px mb-4px'>😔</div>
-            <div className='text-13px font-medium mb-4px' style={{ color: 'var(--color-text-1)' }}>
-              {t('agent.setup.noAlternatives', { defaultValue: 'No available agents found' })}
-            </div>
-            <div className='text-12px' style={{ color: 'var(--color-text-2)' }}>
-              {t('agent.setup.configureFirst', { defaultValue: 'Please configure an agent in Settings first.' })}
-            </div>
+            <div className='text-13px font-medium mb-4px text-t-primary'>{t('agent.setup.noAlternatives', { defaultValue: 'No available agents found' })}</div>
+            <div className='text-12px text-t-secondary'>{t('agent.setup.configureFirst', { defaultValue: 'Please configure an agent in Settings first.' })}</div>
             <Button type='outline' size='small' className='mt-8px' onClick={() => navigate('/settings')}>
               {t('common.goToSettings', { defaultValue: 'Go to Settings' })}
             </Button>
