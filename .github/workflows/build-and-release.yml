@@ -411,10 +411,11 @@ jobs:
         continue-on-error: true  # Notarization failure won't block artifact upload
         shell: bash
         run: |
+          set +e  # Disable exit on error - we handle errors manually
           echo "🔏 Phase 2: Attempting notarization..."
 
-          # Find DMG to notarize
-          DMG_PATH=$(ls out/*.dmg 2>/dev/null | head -1)
+          # Find DMG to notarize (use || true to prevent pipefail)
+          DMG_PATH=$(ls out/*.dmg 2>/dev/null | head -1 || true)
           if [ -z "$DMG_PATH" ]; then
             echo "⚠️ No DMG found, skipping notarization"
             echo "notarized=false" >> $GITHUB_OUTPUT
