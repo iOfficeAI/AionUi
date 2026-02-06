@@ -276,6 +276,11 @@ export interface IConfirmation<Option extends any = any> {
     value: Option;
     params?: Record<string, string>; // Translation interpolation parameters
   }>;
+  /**
+   * Command type for exec confirmations (e.g., 'curl', 'npm', 'git')
+   * Used for "always allow" permission memory
+   */
+  commandType?: string;
 }
 
 /**
@@ -405,10 +410,12 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
 export const composeMessage = (message: TMessage | undefined, list: TMessage[] | undefined, messageHandler: (type: 'update' | 'insert', message: TMessage) => void = () => {}): TMessage[] => {
   if (!message) return list || [];
   if (!list?.length) {
+    console.log('[composeMessage] Empty list, inserting first message:', message.msg_id, message.type);
     messageHandler('insert', message);
     return [message];
   }
   const last = list[list.length - 1];
+  console.log('[composeMessage] Comparing - incoming msg_id:', message.msg_id, 'type:', message.type, '| last msg_id:', last.msg_id, 'type:', last.type);
 
   const updateMessage = (index: number, message: TMessage, change = true) => {
     message.id = list[index].id;
@@ -448,8 +455,10 @@ export const composeMessage = (message: TMessage | undefined, list: TMessage[] |
     }
     if (tools.length) {
       message.content = tools;
+      console.log('[composeMessage] tool_group with new tools, inserting');
       return pushMessage(message);
     }
+    console.log('[composeMessage] tool_group with no new tools, skipping');
     return list;
   }
 
@@ -507,7 +516,11 @@ export const composeMessage = (message: TMessage | undefined, list: TMessage[] |
     // If no existing plan found, add new one
   }
 
-  if (last.msg_id !== message.msg_id || last.type !== message.type) return pushMessage(message);
+  if (last.msg_id !== message.msg_id || last.type !== message.type) {
+    console.log('[composeMessage] msg_id or type mismatch, inserting new message');
+    return pushMessage(message);
+  }
+  console.log('[composeMessage] Same msg_id and type, updating existing message');
   if (message.type === 'text' && last.type === 'text') {
     message.content.content = last.content.content + message.content.content;
   }

@@ -15,10 +15,12 @@ import AuggieLogo from '@/renderer/assets/logos/auggie.svg';
 import ClaudeLogo from '@/renderer/assets/logos/claude.svg';
 import CodexLogo from '@/renderer/assets/logos/codex.svg';
 import GeminiLogo from '@/renderer/assets/logos/gemini.svg';
+import GitHubLogo from '@/renderer/assets/logos/github.svg';
 import GooseLogo from '@/renderer/assets/logos/goose.svg';
 import IflowLogo from '@/renderer/assets/logos/iflow.svg';
 import KimiLogo from '@/renderer/assets/logos/kimi.svg';
 import OpenCodeLogo from '@/renderer/assets/logos/opencode.svg';
+import QoderLogo from '@/renderer/assets/logos/qoder.png';
 import QwenLogo from '@/renderer/assets/logos/qwen.svg';
 import type { AcpBackend } from '@/types/acpTypes';
 
@@ -33,6 +35,8 @@ const AGENT_LOGO_MAP: Partial<Record<AcpBackend, string>> = {
   auggie: AuggieLogo,
   kimi: KimiLogo,
   opencode: OpenCodeLogo,
+  copilot: GitHubLogo,
+  qoder: QoderLogo,
 };
 
 import { iconColors } from '@/renderer/theme/colors';

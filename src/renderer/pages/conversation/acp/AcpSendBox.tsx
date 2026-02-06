@@ -241,6 +241,15 @@ const AcpSendBox: React.FC<{
     setSendBoxHandler(handler);
   }, [setSendBoxHandler, content]);
 
+  // Listen for sendbox.fill event to populate input from external sources
+  useAddEventListener(
+    'sendbox.fill',
+    (text: string) => {
+      setContentRef.current(text);
+    },
+    []
+  );
+
   // Check for and send initial message from guid page
   // Note: We don't wait for acpStatus because:
   // 1. ACP connection is initialized when first message is sent
