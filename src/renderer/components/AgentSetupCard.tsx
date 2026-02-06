@@ -280,13 +280,13 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({ conversationId, current
                         statusText = result.latency ? `${result.latency}ms` : t('guid.scanning.statusAvailable', { defaultValue: 'Available' });
                         statusClass = 'text-success-6';
                       } else if (result.error) {
-                        statusIcon = <CloseOne theme='filled' size={12} className='text-t-tertiary' />;
+                        statusIcon = <CloseOne theme='filled' size={12} className='text-success-6' />;
                         statusText = t('guid.scanning.statusUnreachable', { defaultValue: 'Unreachable' });
-                        statusClass = 'text-t-tertiary';
+                        statusClass = 'text-success-6';
                       } else {
                         statusIcon = null;
                         statusText = t('guid.scanning.statusQueued', { defaultValue: 'Queued' });
-                        statusClass = 'text-t-tertiary';
+                        statusClass = 'text-success-6';
                       }
 
                       return (
