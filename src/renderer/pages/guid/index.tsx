@@ -876,9 +876,22 @@ const Guid: React.FC = () => {
     // 获取启用的 skills 列表 / Get enabled skills list
     const enabledSkills = resolveEnabledSkills(agentInfo);
 
-    // 不在 guid 页面做 Gemini 兼容性自动切换，让会话面板的 AgentSetupCard 来处理
-    // Don't auto-switch for Gemini compatibility in guid page, let conversation panel's AgentSetupCard handle it
-    const finalEffectiveAgentType = effectiveAgentType;
+    // 对于预设助手，当 Main Agent 不可用时自动切换到下一个可用的 Agent
+    // For preset assistants, auto-switch to next available agent when Main Agent is unavailable
+    let finalEffectiveAgentType = effectiveAgentType;
+    if (isPreset && !isMainAgentAvailable(effectiveAgentType)) {
+      const fallback = getAvailableFallbackAgent();
+      if (fallback && fallback !== effectiveAgentType) {
+        finalEffectiveAgentType = fallback;
+        Message.info(
+          t('guid.autoSwitchedAgent', {
+            defaultValue: `${effectiveAgentType} is not available, switched to ${fallback}`,
+            from: effectiveAgentType,
+            to: fallback,
+          })
+        );
+      }
+    }
 
     // 默认情况使用 Gemini，或 Preset 配置为 Gemini
     // Default case uses Gemini, or Preset configured as Gemini
@@ -1054,7 +1067,9 @@ const Guid: React.FC = () => {
             enabledSkills: isPreset ? enabledSkills : undefined,
             // 预设助手 ID，用于在会话面板显示助手名称和头像
             // Preset assistant ID for displaying name and avatar in conversation panel
-            presetAssistantId: isPreset ? acpAgentInfo?.customAgentId : undefined,
+            // 使用原始 agentInfo 的 ID，确保 agent 类型切换后仍保留预设助手信息
+            // Use original agentInfo ID to preserve preset assistant info after agent type fallback
+            presetAssistantId: isPreset ? agentInfo?.customAgentId || acpAgentInfo?.customAgentId : undefined,
           },
         });
 
