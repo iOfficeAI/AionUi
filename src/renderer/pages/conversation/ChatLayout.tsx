@@ -19,6 +19,7 @@ import GitHubLogo from '@/renderer/assets/logos/github.svg';
 import GooseLogo from '@/renderer/assets/logos/goose.svg';
 import IflowLogo from '@/renderer/assets/logos/iflow.svg';
 import KimiLogo from '@/renderer/assets/logos/kimi.svg';
+import OpenClawLogo from '@/renderer/assets/logos/openclaw.svg';
 import OpenCodeLogo from '@/renderer/assets/logos/opencode.svg';
 import QoderLogo from '@/renderer/assets/logos/qoder.png';
 import QwenLogo from '@/renderer/assets/logos/qwen.svg';
@@ -37,6 +38,7 @@ const AGENT_LOGO_MAP: Partial<Record<AcpBackend, string>> = {
   opencode: OpenCodeLogo,
   copilot: GitHubLogo,
   qoder: QoderLogo,
+  openclaw: OpenClawLogo,
 };
 
 import { iconColors } from '@/renderer/theme/colors';
