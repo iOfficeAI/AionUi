@@ -312,83 +312,62 @@ jobs:
           rm -f /tmp/*.dmg 2>/dev/null || true
           echo "Cleanup complete"
 
-      # macOS: Two-phase build to ensure artifacts exist even if notarization fails
-      # macOS: 两阶段构建，确保即使公证失败也有产物
-      #
-      # Phase 1: Build without notarization (guaranteed to produce DMG/ZIP)
-      # Phase 2: Attempt notarization (optional, failure won't lose artifacts)
-
-      - name: Build with electron-builder (macOS) - Phase 1 (no notarization)
+      # macOS: Build with notarization - DMG failure = CI failure, notarization failure = warning only
+      # macOS: 构建并公证 - DMG 失败 = CI 失败，公证失败 = 仅警告
+      - name: Build with electron-builder (macOS)
         if: startsWith(matrix.platform, 'macos')
         id: macos-build
         shell: bash
         run: |
-          set +e  # Don't exit on error, handle manually
+          set +e  # Handle errors manually
 
-          # Phase 1: Build WITHOUT notarization to ensure artifacts are created
-          # 阶段1：不公证构建，确保产物被创建
-          echo "📦 Phase 1: Building without notarization..."
-          BUILD_LOG="${RUNNER_TEMP}/build.log"
-
-          # Temporarily disable notarization
-          # 临时禁用公证
-          ${{ matrix.command }} -c.mac.notarize=false 2>&1 | tee "$BUILD_LOG"
+          # Run build command
+          ${{ matrix.command }} 2>&1 | tee "${RUNNER_TEMP}/build.log"
           BUILD_EXIT_CODE=${PIPESTATUS[0]}
 
-          # Check if artifacts exist
-          ARTIFACTS_EXIST=false
-          if ls out/*.dmg 1>/dev/null 2>&1 || ls out/*.zip 1>/dev/null 2>&1; then
-            ARTIFACTS_EXIST=true
-            echo "✓ Build artifacts found"
-            ls -la out/*.dmg out/*.zip 2>/dev/null || true
+          # Check if DMG was created (most important artifact)
+          DMG_EXISTS=false
+          if ls out/*.dmg 1>/dev/null 2>&1; then
+            DMG_EXISTS=true
+            echo "✅ DMG created successfully"
           fi
 
-          if [ $BUILD_EXIT_CODE -eq 0 ] && [ "$ARTIFACTS_EXIST" = true ]; then
-            echo "result=build_success" >> $GITHUB_OUTPUT
-            echo "artifacts_exist=true" >> $GITHUB_OUTPUT
-            echo "✅ Phase 1 completed: Build successful, artifacts created"
+          # If build succeeded completely
+          if [ $BUILD_EXIT_CODE -eq 0 ]; then
+            echo "✅ Build completed successfully"
+            echo "notarization_status=success" >> $GITHUB_OUTPUT
             exit 0
           fi
 
-          # Build failed - analyze error type
-          echo "⚠️ Build exited with code $BUILD_EXIT_CODE, analyzing error..."
-
-          # OOM error
-          if grep -qiE "heap.out.of.memory|JavaScript.heap|ENOMEM|allocation.failed" "$BUILD_LOG"; then
-            echo "result=oom_error" >> $GITHUB_OUTPUT
-            echo "artifacts_exist=false" >> $GITHUB_OUTPUT
-            echo "❌ Build failed: Out of memory (OOM)"
-            echo "::error title=OOM Error::Build failed due to JavaScript heap out of memory."
-            exit 1
+          # Build failed - check if it's just notarization failure
+          if [ "$DMG_EXISTS" = true ]; then
+            # DMG exists but build failed - likely notarization issue
+            if grep -qiE "notariz|staple" "${RUNNER_TEMP}/build.log"; then
+              echo "⚠️ DMG created but notarization failed"
+              echo "notarization_status=failed" >> $GITHUB_OUTPUT
+              echo "::warning title=Notarization Failed::DMG was built successfully but notarization failed. Users may see Gatekeeper warnings."
+              # Write to job summary
+              echo "## ⚠️ Notarization Warning" >> $GITHUB_STEP_SUMMARY
+              echo "DMG was built and signed successfully, but **notarization failed**." >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "Users may see Gatekeeper warnings when opening the app for the first time." >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              echo "To fix: Right-click the app → Open → Open" >> $GITHUB_STEP_SUMMARY
+              exit 0  # Allow CI to continue
+            fi
           fi
 
-          # Compilation errors
-          if grep -qiE "Module.build.failed|SyntaxError|TypeError.*webpack|Cannot.find.module" "$BUILD_LOG"; then
-            echo "result=compilation_error" >> $GITHUB_OUTPUT
-            echo "artifacts_exist=false" >> $GITHUB_OUTPUT
-            echo "❌ Build failed: Compilation error"
-            echo "::error title=Compilation Error::Webpack or TypeScript compilation failed."
-            exit 1
-          fi
-
-          # If we somehow have artifacts despite error, continue
-          if [ "$ARTIFACTS_EXIST" = true ]; then
-            echo "result=build_success" >> $GITHUB_OUTPUT
-            echo "artifacts_exist=true" >> $GITHUB_OUTPUT
-            echo "⚠️ Build had errors but artifacts exist - continuing"
-            exit 0
-          fi
-
-          # No artifacts - fail
-          echo "result=build_error" >> $GITHUB_OUTPUT
-          echo "artifacts_exist=false" >> $GITHUB_OUTPUT
-          echo "❌ Build failed with no usable artifacts"
+          # DMG doesn't exist or other fatal error - fail CI
+          echo "❌ Build failed - DMG was not created"
+          echo "notarization_status=build_failed" >> $GITHUB_OUTPUT
           exit 1
         env:
           NODE_OPTIONS: "--max-old-space-size=8192"
           npm_config_arch: ${{ matrix.arch }}
           APP_ID: ${{ secrets.APP_ID }}
-          # Signing credentials (still sign, just don't notarize)
+          appleId: ${{ secrets.APPLE_ID }}
+          appleIdPassword: ${{ secrets.APPLE_ID_PASSWORD }}
+          teamId: ${{ secrets.TEAM_ID }}
           identity: ${{ secrets.IDENTITY }}
           CSC_NAME: ${{ secrets.IDENTITY }}
           CSC_IDENTITY_AUTO_DISCOVERY: false
@@ -404,60 +383,6 @@ jobs:
           npm_config_target_arch: ${{ matrix.arch }}
           CI: true
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
-
-      - name: Notarize DMG (macOS) - Phase 2 (optional)
-        if: startsWith(matrix.platform, 'macos') && steps.macos-build.outputs.artifacts_exist == 'true'
-        id: macos-notarize
-        continue-on-error: true  # Notarization failure won't block artifact upload
-        shell: bash
-        run: |
-          set +e  # Disable exit on error - we handle errors manually
-          echo "🔏 Phase 2: Attempting notarization..."
-
-          # Find DMG to notarize (use || true to prevent pipefail)
-          DMG_PATH=$(ls out/*.dmg 2>/dev/null | head -1 || true)
-          if [ -z "$DMG_PATH" ]; then
-            echo "⚠️ No DMG found, skipping notarization"
-            echo "notarized=false" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          echo "Found DMG: $DMG_PATH"
-
-          # Check if Apple credentials are available
-          if [ -z "$APPLE_ID" ] || [ -z "$APPLE_ID_PASSWORD" ] || [ -z "$TEAM_ID" ]; then
-            echo "⚠️ Apple credentials not configured, skipping notarization"
-            echo "notarized=false" >> $GITHUB_OUTPUT
-            exit 0
-          fi
-
-          # Notarize DMG using xcrun notarytool (with 30min timeout)
-          echo "Submitting to Apple notarization service..."
-          if xcrun notarytool submit "$DMG_PATH" \
-            --apple-id "$APPLE_ID" \
-            --password "$APPLE_ID_PASSWORD" \
-            --team-id "$TEAM_ID" \
-            --wait --timeout 30m 2>&1; then
-
-            echo "✅ Notarization successful"
-
-            # Staple the notarization ticket to DMG
-            if xcrun stapler staple "$DMG_PATH"; then
-              echo "✅ Stapling successful"
-              echo "notarized=true" >> $GITHUB_OUTPUT
-            else
-              echo "⚠️ Stapling failed, but notarization succeeded"
-              echo "notarized=partial" >> $GITHUB_OUTPUT
-            fi
-          else
-            echo "⚠️ Notarization failed or timed out"
-            echo "::warning title=Notarization Skipped::DMG was built and signed but not notarized. Users may see Gatekeeper warnings on first launch."
-            echo "notarized=false" >> $GITHUB_OUTPUT
-          fi
-        env:
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_ID_PASSWORD: ${{ secrets.APPLE_ID_PASSWORD }}
-          TEAM_ID: ${{ secrets.TEAM_ID }}
 
       # Linux: Standard build without special error handling
       # Linux: 标准构建，无特殊错误处理
@@ -494,41 +419,23 @@ jobs:
             echo "Temporary keychain deleted"
           fi
 
-      # macOS 构建失败通知（仅当无可用产物时触发）
-      # macOS build failure notification (only triggers when no usable artifacts)
+      # macOS 构建失败通知
+      # macOS build failure notification
       - name: Notify on macOS build failure
         if: startsWith(matrix.platform, 'macos') && failure()
         run: |
-          BUILD_RESULT="${{ steps.macos-build.outputs.result }}"
-          echo "::error title=macOS Build Failed::Build failed with result: $BUILD_RESULT"
+          echo "::error title=macOS Build Failed::Build failed. Check the logs for details."
           echo ""
           echo "❌ macOS Build Failed"
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
           echo ""
-          echo "Build result: $BUILD_RESULT"
+          echo "Common causes:"
+          echo "  • hdiutil/DMG creation failure (Device not configured)"
+          echo "  • Code signing issues"
+          echo "  • Notarization timeout"
+          echo "  • Out of memory (OOM)"
           echo ""
-          case "$BUILD_RESULT" in
-            oom_error)
-              echo "Cause: JavaScript heap out of memory"
-              echo "Fix: NODE_OPTIONS is set to 8GB, but build still ran out of memory."
-              echo "     Consider optimizing webpack config or increasing memory further."
-              ;;
-            compilation_error)
-              echo "Cause: Webpack/TypeScript compilation error"
-              echo "Fix: Check the build logs for specific compilation errors."
-              ;;
-            native_module_error)
-              echo "Cause: Native module (better-sqlite3, node-pty, etc.) compilation failed"
-              echo "Fix: Check if prebuild binaries are available for this platform/arch."
-              ;;
-            build_error)
-              echo "Cause: Build failed with no usable artifacts"
-              echo "Fix: Review the full build log for details."
-              ;;
-            *)
-              echo "Cause: Unknown error"
-              ;;
-          esac
+          echo "Check the build logs above for the specific error."
           echo ""
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
