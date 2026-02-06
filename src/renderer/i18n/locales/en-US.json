@@ -1218,7 +1218,6 @@
   "guid.noAgentAvailableShort": "No Main Agent available. Click to configure.",
   "guid.agentTabAutoSwitch": "Model not compatible with Gemini, auto-switched to {{fallback}}",
   "guid.autoSwitchToAgent": "Gemini is not configured, auto-switching to {{agent}}",
-  "guid.autoSwitchedAgent": "{{from}} is not available, switched to {{to}}",
   "guid.scanning": {
     "initialMessage": "Current Agent is unavailable, detecting other available agents...",
     "scanningMessage": "Scanning local available agents...",

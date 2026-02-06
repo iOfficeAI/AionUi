@@ -1028,7 +1028,6 @@
   "guid.noAgentAvailableShort": "利用可能なMain Agentがありません。クリックして設定。",
   "guid.agentTabAutoSwitch": "モデルがGeminiと互換性がないため、{{fallback}}に自動切り替えしました",
   "guid.autoSwitchToAgent": "Geminiが設定されていないため、{{agent}}に自動切り替え中",
-  "guid.autoSwitchedAgent": "{{from}} が利用できないため、{{to}} に自動切り替えしました",
   "guid.scanning": {
     "initialMessage": "現在のAgentが利用できません。他の利用可能なagentを検出中...",
     "scanningMessage": "ローカルで利用可能なagentをスキャン中...",

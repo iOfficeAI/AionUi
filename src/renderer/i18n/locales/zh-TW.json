@@ -1016,7 +1016,6 @@
   "guid.noAgentAvailableShort": "沒有可用的 Main Agent。點擊配置。",
   "guid.agentTabAutoSwitch": "模型不相容 Gemini，已自動切換到 {{fallback}}",
   "guid.autoSwitchToAgent": "Gemini 未配置，正在自動切換到 {{agent}}",
-  "guid.autoSwitchedAgent": "{{from}} 不可用，已自動切換到 {{to}}",
   "guid.scanning": {
     "initialMessage": "當前Agent不可用, 正在檢測其他可用agent...",
     "scanningMessage": "正在掃描本地可用agent...",
