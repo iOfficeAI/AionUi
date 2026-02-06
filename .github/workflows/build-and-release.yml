@@ -37,43 +37,31 @@ jobs:
       - name: Run Prettier check
         run: npm run format:check || echo "Prettier formatting issues detected but not blocking build"
 
+  # Determine build matrix based on branch
+  setup-matrix:
+    name: Setup Build Matrix
+    runs-on: ubuntu-latest
+    needs: code-quality
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - id: set-matrix
+        run: |
+          if [ "${{ github.ref_name }}" = "dev" ]; then
+            echo 'matrix={"include":[{"platform":"windows-x64","os":"windows-2022","command":"node scripts/build-with-builder.js x64 --win --x64","artifact-name":"windows-build-x64","arch":"x64"},{"platform":"windows-arm64","os":"windows-2022","command":"node scripts/build-with-builder.js arm64 --win --arm64","artifact-name":"windows-build-arm64","arch":"arm64"}]}' >> $GITHUB_OUTPUT
+          else
+            echo 'matrix={"include":[{"platform":"macos-arm64","os":"macos-14","command":"node scripts/build-with-builder.js arm64 --mac --arm64","artifact-name":"macos-build-arm64","arch":"arm64"}]}' >> $GITHUB_OUTPUT
+          fi
+
   build:
     name: Build ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
-    needs: code-quality
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
+    needs: setup-matrix
 
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - platform: 'macos-arm64'
-            os: 'macos-14'
-            command: 'node scripts/build-with-builder.js arm64 --mac --arm64'
-            artifact-name: 'macos-build-arm64'
-            arch: 'arm64'
-          # Temporarily disabled - only build mac-arm64 for testing
-          # 暂时禁用 - 仅构建 mac-arm64 用于测试
-          # - platform: 'macos-x64'
-          #   os: 'macos-14'
-          #   command: 'node scripts/build-with-builder.js x64 --mac --x64'
-          #   artifact-name: 'macos-build-x64'
-          #   arch: 'x64'
-          # - platform: 'windows-x64'
-          #   os: 'windows-2022'
-          #   command: 'node scripts/build-with-builder.js x64 --win --x64'
-          #   artifact-name: 'windows-build-x64'
-          #   arch: 'x64'
-          # - platform: 'windows-arm64'
-          #   os: 'windows-2022'
-          #   command: 'node scripts/build-with-builder.js arm64 --win --arm64'
-          #   artifact-name: 'windows-build-arm64'
-          #   arch: 'arm64'
-          # - platform: 'linux'
-          #   os: 'ubuntu-latest'
-          #   command: 'npm run dist:linux'
-          #   artifact-name: 'linux-build'
-          #   arch: 'x64,arm64'
+      matrix: ${{ fromJson(needs.setup-matrix.outputs.matrix) }}
 
     steps:
       - name: Checkout code
