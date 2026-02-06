@@ -19,7 +19,7 @@
 ---
 
 <p align="center">
-  <strong>🚀 Gemini CLI, Claude Code, Codex, Qwen Code, Goose CLI, Auggie 등을 기반으로 한 「Cowork」개인 어시스턴트</strong><br>
+  <strong>🚀 Gemini CLI, Claude Code, Codex, Qwen Code, Goose CLI, OpenClaw, Auggie 등을 기반으로 한 「Cowork」개인 어시스턴트</strong><br>
   <em>사용자 친화적 | 시각적 그래픽 인터페이스 | 다중 모델 지원 | 로컬 데이터 보안</em>
 </p>
 
@@ -55,7 +55,7 @@
 ## ✨ AionUi로 무엇을 할 수 있나요?
 
 <p align="center">
-  <img src="./resources/offica-ai BANNER-function.png" alt="AionUi - Cowork with Your CLI AI Agent" width="800">
+  <img src="./resources/offica-ai%20BANNER-function.png" alt="AionUi - Cowork with Your CLI AI Agent" width="800">
 </p>
 
 ### 🤖 **멀티 에이전트 모드 - 명령줄 AI 도구를 위한 통합 그래픽 인터페이스**
@@ -66,7 +66,10 @@ _AionUi에는 Gemini CLI가 내장되어 있어 다운로드 즉시 사용 가�
 - ✅ **로컬 저장 + 다중 세션** - 대화가 로컬에 저장되고 독립적인 컨텍스트를 가진 다중 병렬 세션 지원
 
 <p align="center">
-  <img src="./resources/acp home page.gif" alt="멀티 에이전트 모드 데모" width="800">
+  <img src="./resources/acp%20home%20page.gif" alt="멀티 에이전트 모드 데모" width="800"></p>
+
+<p align="center">
+  <img src="./resources/openclawvia.png" alt="OpenClaw Integration in AionUi" width="800">
 </p>
 
 ---
@@ -83,14 +86,19 @@ AionUi는 두 가지 원격 접속 방법을 제공합니다：
 
   > 💡 **자세한 설정 가이드가 필요하신가요?** [원격 인터넷 접속 가이드](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide) 를 확인하세요
 
-- **📱 Telegram Channel**
+- **📱 채팅 플랫폼 통합**
+  - **Telegram** - 모든 기기에서 AI 어시스턴트와 채팅
+  - **Lark (Feishu)** - Feishu 봇을 통한 기업 협업
+  - **Slack** 그 외 더 많은 플랫폼 출시 예정 🚧
+
+  > 💡 **설정 방법:** AionUi 설정 → WebUI 설정 → Channel로 이동하여 해당 Bot Token을 구성하여 시작!
 
   모든 기기에서 Telegram을 통해 AI 어시스턴트와 직접 채팅하세요. 간단한 페어링 코드 시스템으로 안전한 접속을 보장합니다.
 
   > 💡 **설정 방법：** AionUi 설정 → WebUI 설정 → Channel으로 이동하여 [@BotFather](https://t.me/BotFather)에서 Bot Token을 가져온 후 채팅을 시작하세요!
 
 <p align="center">
-  <img src="./resources/remote-telegram.png" alt="어디서나 접속 - WebUI & Telegram" width="800">
+  <img src="./resources/remote-telegram.png" alt="어디서나 접속 - WebUI 및 채팅 플랫폼" width="800">
 </p>
 
 ---
@@ -119,7 +127,7 @@ _일괄 이름 변경, 자동 정리, 스마트 분류, 파일 병합_
 - **효율적인 일괄 처리**: 원클릭 이름 변경, 파일 병합으로 번거로운 수동 작업과 작별합니다.
 
 <p align="center">
-  <img src="./resources/aionui sort file.gif" alt="스마트 파일 관리 데모" width="800">
+  <img src="./resources/aionui%20sort%20file.gif" alt="스마트 파일 관리 데모" width="800">
 </p>
 
 ---
@@ -162,7 +170,7 @@ _Gemini, OpenAI, Claude, Qwen과 같은 주류 모델 및 Ollama, LM Studio와 �
 _자신만의 CSS 코드로 사용자 정의하여 인터페이스를 선호도에 맞게 조정_
 
 <p align="center">
-  <img src="./resources/css with skin.gif" alt="CSS 사용자 정의 인터페이스 데모" width="800">
+  <img src="./resources/css%20with%20skin.gif" alt="CSS 사용자 정의 인터페이스 데모" width="800">
 </p>
 
 - ✅ **완전히 사용자 정의 가능** - CSS 코드를 통해 인터페이스 색상, 스타일, 레이아웃을 자유롭게 사용자 정의하여 독점적인 사용 경험을 만듭니다

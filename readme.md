@@ -70,13 +70,17 @@ _AionUi comes with built-in Gemini CLI, ready to use out of the box with no addi
   <img src="./resources/acp home page.gif" alt="Multi-Agent Mode Demo" width="800">
 </p>
 
+<p align="center">
+  <img src="./resources/openclawvia.png" alt="OpenClaw Integration in AionUi" width="800">
+</p>
+
 ---
 
 ### 🌐 **Access Your AionUi Anywhere**
 
-_Your 7×24 hour AI assistant - Access AionUi from any device, anywhere! On business trips, at home, in the office, use your AI tools anytime, anywhere through WebUI or Telegram_
+_Your 7×24 hour AI assistant - Access AionUi from any device, anywhere! On business trips, at home, in the office, use your AI tools anytime, anywhere through WebUI or various chat platforms_
 
-AionUi provides two remote access methods:
+AionUi provides multiple remote access methods:
 
 - **🌐 WebUI Mode**
 
@@ -88,14 +92,15 @@ AionUi provides two remote access methods:
     <img src="./resources/webui-remote.png" alt="WebUI Remote Access" width="800">
   </p>
 
-- **📱 Telegram Channel**
+- **📱 Chat Platform Integration**
+  - **Telegram** - Chat with your AI assistant directly from Telegram on any device. Simple pairing code system for secure access.
+  - **Lark (Feishu)** - Interact with your AI assistant through Feishu bots, supporting enterprise collaboration scenarios.
+  - **Slack** and more platforms coming soon 🚧
 
-  Chat with your AI assistant directly from Telegram on any device. Simple pairing code system for secure access.
-
-  > 💡 **How to set up:** Go to AionUi Settings → WebUI Settings → Channel, get your Bot Token from [@BotFather](https://t.me/BotFather), and start chatting!
+  > 💡 **How to set up:** Go to AionUi Settings → WebUI Settings → Channel, configure the corresponding Bot Token to get started!
 
 <p align="center">
-  <img src="./resources/remote-telegram.png" alt="Access Anywhere - WebUI & Telegram" width="800">
+  <img src="./resources/remote-telegram.png" alt="Access Anywhere - WebUI & Chat Platforms" width="800">
 </p>
 
 ---
@@ -163,6 +168,36 @@ _Supports mainstream models like Gemini, OpenAI, Claude, Qwen, as well as local 
 </p>
 
 ---
+
+---
+
+### 🛠️ **AI Assistants & Skills Ecosystem**
+
+_Extensible assistant system with built-in specialized assistants and custom skill support_
+
+<details>
+<summary><strong>🔍 Click to explore AI Assistants & Skills ▶️</strong></summary>
+
+<br>
+
+AionUi includes **10+ professional assistants** with predefined capabilities, extendable through custom skills:
+
+- **🤝 Cowork** - Autonomous task execution (file operations, document processing, workflow planning)
+- **📊 PPTX Generator** - Generate PPTX presentations
+- **📄 PDF to PPT** - Convert PDF to PPT
+- **🎮 3D Game** - Single-file 3D game generation
+- **🎨 UI/UX Pro Max** - Professional UI/UX design (57 styles, 95 color palettes)
+- **📋 Planning with Files** - File-based planning for complex tasks
+- **🧭 HUMAN 3.0 Coach** - Personal development coach
+- **📣 Social Job Publisher** - Job posting and publishing
+- **🦞 moltbook** - Zero-deployment integration with automatic heartbeat scheduling, activity reporting, and seamless AI agent social networking
+- **📈 Beautiful Mermaid** - Flowcharts, sequence diagrams, and more
+
+**Custom Skills**: Create skills in the `skills/` directory, enable/disable skills for assistants to extend AI capabilities. Built-in skills include `pptx`, `docx`, `pdf`, `xlsx`, `mermaid`, and more.
+
+> 💡 Each assistant is defined by a markdown file. Check the `assistant/` directory for examples.
+
+</details>
 
 ### 🎨 **Personalized Interface Customization**
 

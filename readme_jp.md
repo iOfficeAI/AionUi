@@ -19,7 +19,7 @@
 ---
 
 <p align="center">
-  <strong>🚀 Gemini CLI、Claude Code、Codex、Qwen Code、Goose CLI、Auggie などをベースとした「Cowork」個人アシスタント</strong><br>
+  <strong>🚀 Gemini CLI、Claude Code、Codex、Qwen Code、Goose CLI, OpenClaw、Auggie などをベースとした「Cowork」個人アシスタント</strong><br>
   <em>ユーザーフレンドリー | 視覚的なグラフィカルインターフェース | マルチモデル対応 | ローカルデータセキュリティ</em>
 </p>
 
@@ -55,7 +55,7 @@
 ## ✨ AionUiでできること？
 
 <p align="center">
-  <img src="./resources/offica-ai BANNER-function.png" alt="AionUi - Cowork with Your CLI AI Agent" width="800">
+  <img src="./resources/offica-ai%20BANNER-function.png" alt="AionUi - Cowork with Your CLI AI Agent" width="800">
 </p>
 
 ### 🤖 **マルチエージェントモード - あなたのコマンドラインAIツールのためのCowork、統一グラフィカルインターフェース**
@@ -66,7 +66,10 @@ _AionUi には Gemini CLI を内蔵しており、ダウンロードしてすぐ
 - ✅ **ローカル保存 + マルチセッション** - 会話をローカルに保存、マルチセッション並列をサポート、各セッションは独立したコンテキスト
 
 <p align="center">
-  <img src="./resources/acp home page.gif" alt="マルチエージェントモードデモ" width="800">
+  <img src="./resources/acp%20home%20page.gif" alt="マルチエージェントモードデモ" width="800"></p>
+
+<p align="center">
+  <img src="./resources/openclawvia.png" alt="OpenClaw Integration in AionUi" width="800">
 </p>
 
 ---
@@ -75,7 +78,7 @@ _AionUi には Gemini CLI を内蔵しており、ダウンロードしてすぐ
 
 _あなたの 7×24 時間 AI アシスタント - 任意のデバイス、どこからでもAionUiにアクセス！出張中、自宅、オフィス、いつでもどこでもWebUIまたはTelegramを通じてAIツールを使用_
 
-AionUiは2つのリモートアクセス方法を提供します：
+AionUiは複数のリモートアクセス方法を提供します：
 
 - **🌐 WebUIモード**
 
@@ -83,14 +86,19 @@ AionUiは2つのリモートアクセス方法を提供します：
 
   > 💡 **詳細な設定ガイドが必要ですか？** [リモートインターネットアクセスガイド](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide) を確認
 
-- **📱 Telegram Channel**
+- **📱 チャットプラットフォーム統合**
+  - **Telegram** - 任意のデバイスでAIアシスタントとチャット
+  - **Lark (Feishu)** - Feishuボットによる企業コラボレーション
+  - **Slack** その他、さらに多くのプラットフォームが近日公開予定 🚧
+
+  > 💡 **セットアップ方法:** AionUi設定 → WebUI設定 → Channelに移動し、対応するBot Tokenを設定して開始!
 
   任意のデバイスからTelegramを通じてAIアシスタントと直接チャット。シンプルなペアリングコードシステムで安全なアクセスを確保。
 
   > 💡 **設定方法：** AionUi設定 → WebUI設定 → Channel に移動し、[@BotFather](https://t.me/BotFather) からBot Tokenを取得して、チャットを開始！
 
 <p align="center">
-  <img src="./resources/remote-telegram.png" alt="どこからでもアクセス - WebUI & Telegram" width="800">
+  <img src="./resources/remote-telegram.png" alt="どこからでもアクセス - WebUIとチャットプラットフォーム" width="800">
 </p>
 
 ---
@@ -119,7 +127,7 @@ _一括リネーム、自動整理、スマート分類、ファイルマージ_
 - **効率的な一括処理**：ワンクリックでリネームや結合を行い、煩雑な手作業から解放されます。
 
 <p align="center">
-  <img src="./resources/aionui sort file.gif" alt="スマートファイル管理デモ" width="800">
+  <img src="./resources/aionui%20sort%20file.gif" alt="スマートファイル管理デモ" width="800">
 </p>
 
 ---
@@ -164,7 +172,7 @@ _Gemini、OpenAI、Claude、Qwenなどの主流モデル、およびOllama、LM 
 _独自のCSSコードでカスタマイズし、インターフェースを好みに合わせる_
 
 <p align="center">
-  <img src="./resources/css with skin.gif" alt="CSSカスタムインターフェースデモ" width="800">
+  <img src="./resources/css%20with%20skin.gif" alt="CSSカスタムインターフェースデモ" width="800">
 </p>
 
 - ✅ **完全にカスタマイズ可能** - CSSコードを通じてインターフェースの色、スタイル、レイアウトを自由にカスタマイズし、専属の使用体験を作成

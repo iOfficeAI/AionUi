@@ -19,7 +19,7 @@
 ---
 
 <p align="center">
-  <strong>🚀 Assistente pessoal 「Cowork」baseado em Gemini CLI, Claude Code, Codex, Qwen Code, Goose CLI, Auggie e mais</strong><br>
+  <strong>🚀 Assistente pessoal 「Cowork」baseado em Gemini CLI, Claude Code, Codex, Qwen Code, Goose CLI, OpenClaw, Auggie e mais</strong><br>
   <em>Fácil de usar | Interface gráfica visual | Suporte multimodelo | Segurança de dados local</em>
 </p>
 
@@ -55,7 +55,7 @@
 ## ✨ O que o AionUi pode fazer?
 
 <p align="center">
-  <img src="./resources/offica-ai BANNER-function.png" alt="AionUi - Cowork with Your CLI AI Agent" width="800">
+  <img src="./resources/offica-ai%20BANNER-function.png" alt="AionUi - Cowork with Your CLI AI Agent" width="800">
 </p>
 
 ### 🤖 **Modo multiagente - Cowork para suas ferramentas de IA em linha de comando, interface gráfica unificada**
@@ -66,7 +66,10 @@ _AionUi inclui o Gemini CLI integrado, pronto para usar desde a instalação sem
 - ✅ **Armazenamento local + multissessão** - Conversas salvas localmente, suporta várias sessões em paralelo, cada uma com contexto independente
 
 <p align="center">
-  <img src="./resources/acp home page.gif" alt="Multi-Agent Mode Demo" width="800">
+  <img src="./resources/acp%20home%20page.gif" alt="Multi-Agent Mode Demo" width="800"></p>
+
+<p align="center">
+  <img src="./resources/openclawvia.png" alt="OpenClaw Integration in AionUi" width="800">
 </p>
 
 ---
@@ -75,7 +78,7 @@ _AionUi inclui o Gemini CLI integrado, pronto para usar desde a instalação sem
 
 _Seu assistente de IA 7×24 horas - Acesse o AionUi de qualquer dispositivo, em qualquer lugar. Em viagens de negócios, em casa, no escritório, use suas ferramentas de IA a qualquer momento e em qualquer lugar através do WebUI ou Telegram_
 
-O AionUi fornece dois métodos de acesso remoto：
+O AionUi fornece múltiplos métodos de acesso remoto：
 
 - **🌐 Modo WebUI**
 
@@ -83,14 +86,19 @@ O AionUi fornece dois métodos de acesso remoto：
 
   > 💡 **Precisa de um guia de configuração detalhado?** Consulte o [Guia de acesso remoto à Internet](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide)
 
-- **📱 Telegram Channel**
+- **📱 Integração de plataformas de chat**
+  - **Telegram** - Converse com seu assistente de IA em qualquer dispositivo
+  - **Lark (Feishu)** - Colaboração empresarial via bots Feishu
+  - **Slack** e mais plataformas em breve 🚧
+
+  > 💡 **Como configurar:** Vá para Configurações do AionUi → Configurações do WebUI → Channel, configure o Bot Token correspondente para começar!
 
   Converse diretamente com seu assistente de IA pelo Telegram em qualquer dispositivo. Sistema de código de emparelhamento simples para acesso seguro.
 
   > 💡 **Como configurar:** Vá para Configurações do AionUi → Configurações do WebUI → Channel, obtenha seu Bot Token de [@BotFather](https://t.me/BotFather) e comece a conversar!
 
 <p align="center">
-  <img src="./resources/remote-telegram.png" alt="Acesso de qualquer lugar - WebUI & Telegram" width="800">
+  <img src="./resources/remote-telegram.png" alt="Acesso de qualquer lugar - WebUI e plataformas de chat" width="800">
 </p>
 
 ---
@@ -119,7 +127,7 @@ _Renomeação em lote, organização automática, classificação inteligente, m
 - **Lotes eficientes**: Renomeia e mescla arquivos com um clique, adeus às tarefas manuais tediosas.
 
 <p align="center">
-  <img src="./resources/aionui sort file.gif" alt="Smart File Management Demo" width="800">
+  <img src="./resources/aionui%20sort%20file.gif" alt="Smart File Management Demo" width="800">
 </p>
 
 ---
@@ -162,7 +170,7 @@ _Admite modelos principais como Gemini, OpenAI, Claude, Qwen, e modelos locais c
 _Personalize com seu próprio código CSS, faça sua interface corresponder às suas preferências_
 
 <p align="center">
-  <img src="./resources/css with skin.gif" alt="CSS Custom Interface Demo" width="800">
+  <img src="./resources/css%20with%20skin.gif" alt="CSS Custom Interface Demo" width="800">
 </p>
 
 - ✅ **Totalmente personalizável** - Personalize livremente cores, estilos e layout da interface através de código CSS, crie sua experiência exclusiva

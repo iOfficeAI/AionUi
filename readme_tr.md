@@ -19,7 +19,7 @@
 ---
 
 <p align="center">
-  <strong>🚀 Yapay Zekanızla Birlikte Çalışın: Gemini CLI, Claude Code, Codex, Qwen Code, Goose CLI, Auggie ve daha fazlası</strong><br>
+  <strong>🚀 Yapay Zekanızla Birlikte Çalışın: Gemini CLI, Claude Code, Codex, Qwen Code, Goose CLI, OpenClaw, Auggie ve daha fazlası</strong><br>
   <em>Kullanıcı Dostu | Görsel Grafik Arayüz | Çoklu Model Desteği | Yerel Veri Güvenliği</em>
 </p>
 
@@ -55,7 +55,7 @@
 ## ✨ AionUi Neler Yapabilir?
 
 <p align="center">
-  <img src="./resources/offica-ai BANNER-function.png" alt="AionUi - CLI Yapay Zeka Ajanınızla Birlikte Çalışın" width="800">
+  <img src="./resources/offica-ai%20BANNER-function.png" alt="AionUi - CLI Yapay Zeka Ajanınızla Birlikte Çalışın" width="800">
 </p>
 
 ### 🤖 **Çoklu Ajan Modu - Komut Satırı Yapay Zeka Araçlarınız İçin Ortak Çalışma, Birleşik Grafik Arayüz**
@@ -66,12 +66,15 @@ _Eğer Gemini CLI, Claude Code, CodeX, Qwen Code, Goose AI, Augment Code gibi ko
 - ✅ **Yerel Depolama + Çoklu Oturum** - Konuşmalar yerel olarak kaydedilir, birden fazla paralel oturumu destekler, her oturum bağımsız bağlama sahiptir
 
 <p align="center">
-  <img src="./resources/acp home page.gif" alt="Çoklu Ajan Modu Demo" width="800">
+  <img src="./resources/acp%20home%20page.gif" alt="Çoklu Ajan Modu Demo" width="800"></p>
+
+<p align="center">
+  <img src="./resources/openclawvia.png" alt="OpenClaw Integration in AionUi" width="800">
 </p>
 
 ---
 
-### 🌐 **Her Yerden Erişim - WebUI & Telegram Kanalı**
+### 🌐 **Her Yerden Erişim - WebUI ve sohbet platformları Kanalı**
 
 _7/24 Yapay Zeka Asistanınız - AionUi'ye herhangi bir cihazdan, her yerden erişin! İş gezisinde, evde, ofiste; yapay zeka araçlarınızı WebUI veya Telegram üzerinden her an kullanın_
 
@@ -88,7 +91,7 @@ Yapay zeka asistanınızla doğrudan Telegram üzerinden herhangi bir cihazdan s
 > 💡 **Nasıl kurulur:** Ayarlar → Kanallar → Telegram yolunu izleyin, [@BotFather](https://t.me/BotFather) üzerinden Bot Token'ınızı alın ve sohbete başlayın!
 
 <p align="center">
-  <img src="./resources/remote.png" alt="Her Yerden Erişim - WebUI & Telegram" width="800">
+  <img src="./resources/remote.png" alt="Her Yerden Erişim - WebUI ve sohbet platformları" width="800">
 </p>
 
 ---
@@ -101,7 +104,7 @@ _Toplu yeniden adlandırma, otomatik düzenleme, akıllı sınıflandırma, dosy
 - **Verimli Toplu İşlem**: Tek tıkla yeniden adlandırın, dosyaları birleştirin, sıkıcı manuel işlere veda edin.
 
 <p align="center">
-  <img src="./resources/aionui sort file.gif" alt="Akıllı Dosya Yönetimi Demo" width="800">
+  <img src="./resources/aionui%20sort%20file.gif" alt="Akıllı Dosya Yönetimi Demo" width="800">
 </p>
 
 ---
@@ -146,7 +149,7 @@ _Gemini, OpenAI, Claude, Qwen gibi ana akım modelleri ve Ollama, LM Studio gibi
 _Kendi CSS kodunuzla özelleştirin, arayüzü tercihlerinize uygun hale getirin_
 
 <p align="center">
-  <img src="./resources/css with skin.gif" alt="CSS Özel Arayüz Demo" width="800">
+  <img src="./resources/css%20with%20skin.gif" alt="CSS Özel Arayüz Demo" width="800">
 </p>
 
 - ✅ **Tamamen Özelleştirilebilir** - Arayüz renklerini, stillerini, düzenini CSS koduyla özgürce özelleştirin, size özel deneyiminizi yaratın
