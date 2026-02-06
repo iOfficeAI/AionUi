@@ -13,7 +13,8 @@ import type { IMcpServer, TProviderWithModel } from '@/common/storage';
 import { ProcessConfig, getSkillsDir } from '@/process/initStorage';
 import { buildSystemInstructions } from './agentUtils';
 import { uuid } from '@/common/utils';
-import { getOauthInfoWithCache } from '@office-ai/aioncli-core';
+import { getProviderAuthType } from '@/common/utils/platformAuthType';
+import { AuthType, getOauthInfoWithCache } from '@office-ai/aioncli-core';
 import { GeminiApprovalStore } from '../../agent/gemini/GeminiApprovalStore';
 import { ToolConfirmationOutcome } from '../../agent/gemini/cli/tools/tools';
 import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '../message';
@@ -22,6 +23,7 @@ import { handlePreviewOpenEvent } from '../utils/previewUtils';
 import BaseAgentManager from './BaseAgentManager';
 import { hasCronCommands } from './CronCommandDetector';
 import { extractTextFromMessage, processCronInMessage } from './MessageMiddleware';
+import { stripThinkTags } from './ThinkTagDetector';
 
 // gemini agent管理器类
 type UiMcpServerConfig = {
@@ -101,16 +103,24 @@ export class GeminiAgentManager extends BaseAgentManager<
         // 获取当前账号对应的 GOOGLE_CLOUD_PROJECT
         // Get GOOGLE_CLOUD_PROJECT for current account
         let projectId: string | undefined;
-        try {
-          const oauthInfo = await getOauthInfoWithCache(config?.proxy);
-          if (oauthInfo && oauthInfo.email && config?.accountProjects) {
-            projectId = config.accountProjects[oauthInfo.email];
+
+        // 只有使用 Google OAuth 认证时才需要获取 OAuth 信息
+        // Only fetch OAuth info when using Google OAuth authentication
+        const authType = getProviderAuthType(this.model);
+        const needsGoogleOAuth = authType === AuthType.LOGIN_WITH_GOOGLE || authType === AuthType.USE_VERTEX_AI;
+
+        if (needsGoogleOAuth) {
+          try {
+            const oauthInfo = await getOauthInfoWithCache(config?.proxy);
+            if (oauthInfo && oauthInfo.email && config?.accountProjects) {
+              projectId = config.accountProjects[oauthInfo.email];
+            }
+            // 注意：不使用旧的全局 GOOGLE_CLOUD_PROJECT 回退，因为可能属于其他账号
+            // Note: Don't fall back to old global GOOGLE_CLOUD_PROJECT, it might belong to another account
+          } catch {
+            // 获取账号失败时不设置 projectId，让系统使用默认值
+            // If account retrieval fails, don't set projectId, let system use default
           }
-          // 注意：不使用旧的全局 GOOGLE_CLOUD_PROJECT 回退，因为可能属于其他账号
-          // Note: Don't fall back to old global GOOGLE_CLOUD_PROJECT, it might belong to another account
-        } catch {
-          // 获取账号失败时不设置 projectId，让系统使用默认值
-          // If account retrieval fails, don't set projectId, let system use default
         }
 
         // Build system instructions using unified agentUtils
@@ -397,11 +407,14 @@ export class GeminiAgentManager extends BaseAgentManager<
         }
       }
 
-      ipcBridge.geminiConversation.responseStream.emit(data);
+      // Filter think tags from streaming content before emitting to UI
+      // 在发送到 UI 前过滤流式内容中的 think 标签
+      const filteredData = this.filterThinkTagsFromMessage(data);
+      ipcBridge.geminiConversation.responseStream.emit(filteredData);
 
       // 发送到 Channel 全局事件总线（用于 Telegram 等外部平台）
       // Emit to Channel global event bus (for Telegram and other external platforms)
-      channelEventBus.emitAgentMessage(this.conversation_id, data);
+      channelEventBus.emitAgentMessage(this.conversation_id, filteredData);
     });
   }
 
@@ -515,5 +528,41 @@ export class GeminiAgentManager extends BaseAgentManager<
   // Manually trigger context reload
   async reloadContext(): Promise<void> {
     await this.injectHistoryFromDatabase();
+  }
+
+  /**
+   * Filter think tags from message content during streaming
+   * This ensures users don't see internal reasoning tags in real-time
+   * Handles both 'content' and 'thought' message types
+   *
+   * @param message - The streaming message to filter
+   * @returns Message with think tags removed from content
+   */
+  private filterThinkTagsFromMessage(message: IResponseMessage): IResponseMessage {
+    // Filter content messages
+    if (message.type === 'content' && typeof message.data === 'string') {
+      const content = message.data;
+      // Quick check to avoid unnecessary processing
+      if (/<think(?:ing)?>/i.test(content)) {
+        return {
+          ...message,
+          data: stripThinkTags(content),
+        };
+      }
+    }
+
+    // Filter thought messages (they might contain think tags too)
+    if (message.type === 'thought' && typeof message.data === 'string') {
+      const content = message.data;
+      // Quick check to avoid unnecessary processing
+      if (/<think(?:ing)?>/i.test(content)) {
+        return {
+          ...message,
+          data: stripThinkTags(content),
+        };
+      }
+    }
+
+    return message;
   }
 }

@@ -211,12 +211,15 @@ export const useAddOrUpdateMessage = () => {
     };
   }, []);
 
-  return (message: TMessage, add = false) => {
-    pendingRef.current.push({ message, add });
-    if (rafRef.current === null) {
-      rafRef.current = setTimeout(flush);
-    }
-  };
+  return useCallback(
+    (message: TMessage, add = false) => {
+      pendingRef.current.push({ message, add });
+      if (rafRef.current === null) {
+        rafRef.current = setTimeout(flush);
+      }
+    },
+    [flush]
+  );
 };
 
 export const useMessageLstCache = (key: string) => {
