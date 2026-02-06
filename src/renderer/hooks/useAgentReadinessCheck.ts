@@ -171,7 +171,9 @@ export function useAgentReadinessCheck(options: UseAgentReadinessCheckOptions) {
       let completed = 0;
       const results: AgentCheckResult[] = [];
 
-      // Check each agent sequentially
+      // Check each agent sequentially, stop as soon as we find the first available one
+      let firstAvailableAgent: AgentCheckResult | null = null;
+
       for (const agent of agentsToCheck) {
         const startTime = Date.now();
 
@@ -181,13 +183,36 @@ export function useAgentReadinessCheck(options: UseAgentReadinessCheckOptions) {
           });
           const latency = Date.now() - startTime;
 
-          results.push({
+          const checkedAgent: AgentCheckResult = {
             ...agent,
             available: healthResult.success === true,
             latency: healthResult.success ? latency : undefined,
             error: healthResult.success ? undefined : healthResult.msg,
             checking: false,
-          });
+          };
+
+          results.push(checkedAgent);
+
+          // If this is the first available agent, set it as bestAgent immediately
+          if (checkedAgent.available && !firstAvailableAgent) {
+            firstAvailableAgent = checkedAgent;
+
+            // Update state with bestAgent immediately
+            setState((prev) => ({
+              ...prev,
+              isChecking: false, // Stop checking indicator
+              bestAgent: firstAvailableAgent,
+              availableAgents: [...results, ...agentsToCheck.slice(completed + 1).map((a) => ({ ...a, checking: false }))],
+            }));
+
+            // Trigger callback immediately
+            if (onAgentReady) {
+              onAgentReady(firstAvailableAgent);
+            }
+
+            // Stop checking other agents
+            return;
+          }
         } catch (error) {
           results.push({
             ...agent,
@@ -207,28 +232,13 @@ export function useAgentReadinessCheck(options: UseAgentReadinessCheckOptions) {
         }));
       }
 
-      // Find the best agent (lowest latency among available ones)
-      const availableAgents = results.filter((r) => r.available);
-      let bestAgent: AgentCheckResult | null = null;
-
-      if (availableAgents.length > 0) {
-        bestAgent = availableAgents.reduce((prev, current) => {
-          if (!prev.latency) return current;
-          if (!current.latency) return prev;
-          return current.latency < prev.latency ? current : prev;
-        });
-      }
-
+      // All agents checked, none available
       setState((prev) => ({
         ...prev,
         isChecking: false,
         availableAgents: results,
-        bestAgent,
+        bestAgent: null,
       }));
-
-      if (bestAgent && onAgentReady) {
-        onAgentReady(bestAgent);
-      }
     } catch (error) {
       console.error('Failed to find alternatives:', error);
       setState((prev) => ({
