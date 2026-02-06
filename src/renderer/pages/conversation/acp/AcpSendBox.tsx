@@ -217,7 +217,6 @@ const AcpSendBox: React.FC<{
   const setContentRef = useLatestRef(setContent);
   const atPathRef = useLatestRef(atPath);
 
-  const sendingInitialMessageRef = useRef(false); // Prevent duplicate sends
   const addOrUpdateMessage = useAddOrUpdateMessage(); // Move this here so it's available in useEffect
   const addOrUpdateMessageRef = useLatestRef(addOrUpdateMessage);
 
@@ -256,18 +255,15 @@ const AcpSendBox: React.FC<{
   // 2. Waiting for 'session_active' creates a deadlock (status only updates after message is sent)
   // 3. This matches the behavior of onSendHandler which sends immediately
   useEffect(() => {
-    const sendInitialMessage = async () => {
-      // Check flag at the actual execution time
-      if (sendingInitialMessageRef.current) {
-        return;
-      }
-      sendingInitialMessageRef.current = true;
-      const storageKey = `acp_initial_message_${conversation_id}`;
-      const storedMessage = sessionStorage.getItem(storageKey);
+    const storageKey = `acp_initial_message_${conversation_id}`;
+    const storedMessage = sessionStorage.getItem(storageKey);
 
-      if (!storedMessage) {
-        return;
-      }
+    if (!storedMessage) return;
+
+    // Clear immediately to prevent duplicate sends (e.g., if component remounts while sendMessage is pending)
+    sessionStorage.removeItem(storageKey);
+
+    const sendInitialMessage = async () => {
       try {
         const initialMessage = JSON.parse(storedMessage);
         const { input, files } = initialMessage;
@@ -291,9 +287,6 @@ const AcpSendBox: React.FC<{
         if (result && result.success === true) {
           // Initial message sent successfully
           void checkAndUpdateTitle(conversation_id, input);
-          // 等待一小段时间确保后端数据库更新完成
-          await new Promise((resolve) => setTimeout(resolve, 100));
-          sessionStorage.removeItem(storageKey);
           emitter.emit('chat.history.refresh');
         } else {
           // Handle send failure
@@ -312,13 +305,10 @@ const AcpSendBox: React.FC<{
             createdAt: Date.now() + 2,
           };
           addOrUpdateMessageRef.current(errorMessage, true);
-          sendingInitialMessageRef.current = false; // Reset flag on failure
           setAiProcessing(false); // Stop loading state on failure
         }
       } catch (error) {
         console.error('Error sending initial message:', error);
-        sessionStorage.removeItem(storageKey);
-        sendingInitialMessageRef.current = false; // Reset flag on error
         setAiProcessing(false); // Stop loading state on error
       }
     };
