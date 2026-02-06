@@ -27,6 +27,12 @@ type Draft =
       content: string;
       atPath: Array<string | FileOrFolderItem>;
       uploadFile: string[];
+    }
+  | {
+      _type: 'openclaw';
+      content: string;
+      atPath: Array<string | FileOrFolderItem>;
+      uploadFile: string[];
     };
 
 /**
@@ -40,6 +46,7 @@ const store: SendBoxDraftStore = {
   gemini: new Map(),
   acp: new Map(),
   codex: new Map(),
+  openclaw: new Map(),
 };
 
 const setDraft = <K extends TChatConversation['type']>(type: K, conversation_id: string, draft: Extract<Draft, { _type: K }> | undefined) => {
@@ -66,6 +73,13 @@ const setDraft = <K extends TChatConversation['type']>(type: K, conversation_id:
         store.codex.delete(conversation_id);
       }
       break;
+    case 'openclaw':
+      if (draft) {
+        store.openclaw.set(conversation_id, draft as Extract<Draft, { _type: 'openclaw' }>);
+      } else {
+        store.openclaw.delete(conversation_id);
+      }
+      break;
     default:
       break;
   }
@@ -80,6 +94,8 @@ const getDraft = <K extends TChatConversation['type']>(type: K, conversation_id:
       return store.acp.get(conversation_id) as Extract<Draft, { _type: K }>;
     case 'codex':
       return store.codex.get(conversation_id) as Extract<Draft, { _type: K }>;
+    case 'openclaw':
+      return store.openclaw.get(conversation_id) as Extract<Draft, { _type: K }>;
     default:
       return undefined;
   }

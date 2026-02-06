@@ -202,6 +202,12 @@ export const codexConversation = {
   responseStream: conversation.responseStream,
 };
 
+// OpenClaw 对话相关接口 - 复用统一的conversation接口
+export const openclawConversation = {
+  sendMessage: conversation.sendMessage,
+  responseStream: bridge.buildEmitter<IResponseMessage>('openclaw.response.stream'),
+};
+
 // Database operations
 export const database = {
   getConversationMessages: bridge.buildProvider<import('@/common/chatLib').TMessage[], { conversation_id: string; page?: number; pageSize?: number }>('database.get-conversation-messages'),
@@ -348,7 +354,7 @@ export interface IConfirmMessageParams {
 }
 
 export interface ICreateConversationParams {
-  type: 'gemini' | 'acp' | 'codex';
+  type: 'gemini' | 'acp' | 'codex' | 'openclaw';
   id?: string;
   name?: string;
   model: TProviderWithModel;

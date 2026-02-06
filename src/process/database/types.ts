@@ -70,7 +70,7 @@ export interface IConversationRow {
   id: string;
   user_id: string;
   name: string;
-  type: 'gemini' | 'acp' | 'codex';
+  type: 'gemini' | 'acp' | 'codex' | 'openclaw';
   extra: string; // JSON string of extra data
   model?: string; // JSON string of TProviderWithModel (gemini type has this)
   status?: 'pending' | 'running' | 'finished';
@@ -160,9 +160,18 @@ export function rowToConversation(row: IConversationRow): TChatConversation {
   }
 
   // Codex type
+  if (row.type === 'codex') {
+    return {
+      ...base,
+      type: 'codex' as const,
+      extra: JSON.parse(row.extra),
+    } as TChatConversation;
+  }
+
+  // OpenClaw type
   return {
     ...base,
-    type: 'codex' as const,
+    type: 'openclaw' as const,
     extra: JSON.parse(row.extra),
   } as TChatConversation;
 }

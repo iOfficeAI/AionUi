@@ -19,6 +19,7 @@ import GitHubLogo from '@/renderer/assets/logos/github.svg';
 import GooseLogo from '@/renderer/assets/logos/goose.svg';
 import IflowLogo from '@/renderer/assets/logos/iflow.svg';
 import KimiLogo from '@/renderer/assets/logos/kimi.svg';
+import OpenClawLogo from '@/renderer/assets/logos/openclaw.svg';
 import OpenCodeLogo from '@/renderer/assets/logos/opencode.svg';
 import QoderLogo from '@/renderer/assets/logos/qoder.png';
 import QwenLogo from '@/renderer/assets/logos/qwen.svg';
@@ -182,6 +183,7 @@ const AGENT_LOGO_MAP: Partial<Record<AcpBackend, string>> = {
   opencode: OpenCodeLogo,
   copilot: GitHubLogo,
   qoder: QoderLogo,
+  'openclaw-gateway': OpenClawLogo,
 };
 const CUSTOM_AVATAR_IMAGE_MAP: Record<string, string> = {
   'cowork.svg': coworkSvg,
@@ -872,6 +874,59 @@ const Guid: React.FC = () => {
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : String(error);
         alert(`Failed to create Codex conversation: ${errorMessage}`);
+        throw error;
+      }
+      return;
+    } else if (selectedAgent === 'openclaw-gateway') {
+      // OpenClaw Gateway conversation type (WebSocket mode)
+      const openclawAgentInfo = agentInfo || findAgentByKey(selectedAgentKey);
+
+      try {
+        const conversation = await ipcBridge.conversation.create.invoke({
+          type: 'openclaw',
+          name: input,
+          model: currentModel!, // not used by openclaw, but required by type
+          extra: {
+            defaultFiles: files,
+            workspace: finalWorkspace,
+            customWorkspace: isCustomWorkspace,
+            // Gateway configuration is handled by OpenClawAgentManager
+            // 启用的 skills 列表（通过 SkillManager 加载）/ Enabled skills list (loaded via SkillManager)
+            enabledSkills: isPreset ? enabledSkills : undefined,
+            // 预设助手 ID，用于在会话面板显示助手名称和头像
+            // Preset assistant ID for displaying name and avatar in conversation panel
+            presetAssistantId: isPreset ? openclawAgentInfo?.customAgentId : undefined,
+          },
+        });
+
+        if (!conversation || !conversation.id) {
+          alert('Failed to create OpenClaw conversation. Please ensure the OpenClaw Gateway is running.');
+          return;
+        }
+
+        // 更新 workspace 时间戳，确保分组会话能正确排序（仅自定义工作空间）
+        if (isCustomWorkspace) {
+          closeAllTabs();
+          updateWorkspaceTime(finalWorkspace);
+          // 将新会话添加到 tabs
+          openTab(conversation);
+        }
+
+        // 立即触发刷新，让左侧栏开始加载新会话（在导航前）
+        emitter.emit('chat.history.refresh');
+
+        // Store initial message to be picked up by the conversation page
+        const initialMessage = {
+          input,
+          files: files.length > 0 ? files : undefined,
+        };
+        sessionStorage.setItem(`openclaw_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
+
+        // 然后导航到会话页面
+        await navigate(`/conversation/${conversation.id}`);
+      } catch (error: unknown) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        alert(`Failed to create OpenClaw conversation: ${errorMessage}`);
         throw error;
       }
       return;

@@ -171,6 +171,31 @@ export type TChatConversation =
         }
       >,
       'model'
+    >
+  | Omit<
+      IChatConversation<
+        'openclaw',
+        {
+          workspace?: string;
+          customWorkspace?: boolean;
+          /** Gateway configuration */
+          gateway?: {
+            host?: string;
+            port?: number;
+            token?: string;
+            password?: string;
+            useExternalGateway?: boolean;
+            cliPath?: string;
+          };
+          /** Session key for resume */
+          sessionKey?: string;
+          /** 启用的 skills 列表 / Enabled skills list */
+          enabledSkills?: string[];
+          /** 预设助手 ID / Preset assistant ID */
+          presetAssistantId?: string;
+        }
+      >,
+      'model'
     >;
 
 export type IChatConversationRefer = {
