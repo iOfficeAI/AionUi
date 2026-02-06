@@ -77,8 +77,18 @@ function composeMessageWithIndex(message: TMessage, list: TMessage[], index: Mes
 
   // 对于 tool_group 类型，使用原始的 composeMessage（因为涉及内部数组匹配）
   // For tool_group type, use original composeMessage (involves inner array matching)
+  // After composeMessage, the returned list may have different length/ordering,
+  // so we must invalidate the index to prevent stale lookups in subsequent calls.
   if (message.type === 'tool_group') {
-    return composeMessage(message, list);
+    const result = composeMessage(message, list);
+    if (result !== list) {
+      // Rebuild index maps from the new list to keep them in sync
+      const rebuilt = buildMessageIndex(result);
+      index.msgIdIndex = rebuilt.msgIdIndex;
+      index.callIdIndex = rebuilt.callIdIndex;
+      index.toolCallIdIndex = rebuilt.toolCallIdIndex;
+    }
+    return result;
   }
 
   // tool_call: 使用 callIdIndex 快速查找

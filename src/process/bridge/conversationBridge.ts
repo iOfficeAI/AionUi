@@ -346,7 +346,7 @@ export function initConversationBridge(): void {
   ipcBridge.conversation.stop.provider(async ({ conversation_id }) => {
     const task = WorkerManage.getTaskById(conversation_id);
     if (!task) return { success: true, msg: 'conversation not found' };
-    if (task.type !== 'gemini' && task.type !== 'acp' && task.type !== 'codex' && task.type !== 'openclaw') {
+    if (task.type !== 'gemini' && task.type !== 'acp' && task.type !== 'codex' && task.type !== 'openclaw-gateway') {
       return { success: false, msg: 'not support' };
     }
     await task.stop();
@@ -386,7 +386,7 @@ export function initConversationBridge(): void {
       } else if (task.type === 'codex') {
         await (task as CodexAgentManager).sendMessage({ content: other.input, files: workspaceFiles, msg_id: other.msg_id });
         return { success: true };
-      } else if (task.type === 'openclaw') {
+      } else if (task.type === 'openclaw-gateway') {
         await (task as OpenClawAgentManager).sendMessage({ content: other.input, files: workspaceFiles, msg_id: other.msg_id });
         return { success: true };
       } else {

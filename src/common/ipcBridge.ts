@@ -354,7 +354,7 @@ export interface IConfirmMessageParams {
 }
 
 export interface ICreateConversationParams {
-  type: 'gemini' | 'acp' | 'codex' | 'openclaw';
+  type: 'gemini' | 'acp' | 'codex' | 'openclaw-gateway';
   id?: string;
   name?: string;
   model: TProviderWithModel;

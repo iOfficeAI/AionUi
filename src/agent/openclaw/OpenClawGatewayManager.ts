@@ -163,8 +163,9 @@ export class OpenClawGatewayManager extends EventEmitter {
       });
 
       // Timeout fallback - assume ready after 5 seconds if no explicit signal
+      // Only resolve if process is still running (not already exited)
       setTimeout(() => {
-        if (!hasResolved) {
+        if (!hasResolved && this.process && !this.process.killed) {
           hasResolved = true;
           console.log(`[OpenClawGatewayManager] Gateway assumed ready (timeout fallback) on port ${this.port}`);
           this.emit('ready', this.port);

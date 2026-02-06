@@ -70,7 +70,7 @@ export interface IConversationRow {
   id: string;
   user_id: string;
   name: string;
-  type: 'gemini' | 'acp' | 'codex' | 'openclaw';
+  type: 'gemini' | 'acp' | 'codex' | 'openclaw-gateway';
   extra: string; // JSON string of extra data
   model?: string; // JSON string of TProviderWithModel (gemini type has this)
   status?: 'pending' | 'running' | 'finished';
@@ -168,12 +168,17 @@ export function rowToConversation(row: IConversationRow): TChatConversation {
     } as TChatConversation;
   }
 
-  // OpenClaw type
-  return {
-    ...base,
-    type: 'openclaw' as const,
-    extra: JSON.parse(row.extra),
-  } as TChatConversation;
+  // OpenClaw Gateway type
+  if (row.type === 'openclaw-gateway') {
+    return {
+      ...base,
+      type: 'openclaw-gateway' as const,
+      extra: JSON.parse(row.extra),
+    } as TChatConversation;
+  }
+
+  // Unknown type - should never happen with valid data
+  throw new Error(`Unknown conversation type: ${row.type}`);
 }
 
 /**

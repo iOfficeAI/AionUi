@@ -138,7 +138,7 @@ const ChatConversation: React.FC<{
         return <AcpChat key={conversation.id} conversation_id={conversation.id} workspace={conversation.extra?.workspace} backend={conversation.extra?.backend || 'claude'}></AcpChat>;
       case 'codex':
         return <CodexChat key={conversation.id} conversation_id={conversation.id} workspace={conversation.extra?.workspace} />;
-      case 'openclaw':
+      case 'openclaw-gateway':
         return <OpenClawChat key={conversation.id} conversation_id={conversation.id} workspace={conversation.extra?.workspace} />;
       default:
         return null;
@@ -172,7 +172,7 @@ const ChatConversation: React.FC<{
         agentLogoIsEmoji: presetAssistantInfo.isEmoji,
       }
     : {
-        backend: conversation?.type === 'acp' ? conversation?.extra?.backend : conversation?.type === 'codex' ? 'codex' : conversation?.type === 'openclaw' ? 'openclaw-gateway' : undefined,
+        backend: conversation?.type === 'acp' ? conversation?.extra?.backend : conversation?.type === 'codex' ? 'codex' : conversation?.type === 'openclaw-gateway' ? 'openclaw-gateway' : undefined,
         agentName: (conversation?.extra as { agentName?: string })?.agentName,
       };
 

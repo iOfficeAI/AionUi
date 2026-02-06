@@ -140,7 +140,7 @@ export class ConversationService {
         conversation = await createAcpAgent(params);
       } else if (type === 'codex') {
         conversation = await createCodexAgent(params);
-      } else if (type === 'openclaw') {
+      } else if (type === 'openclaw-gateway') {
         conversation = await createOpenClawAgent(params);
       } else {
         return { success: false, error: 'Invalid conversation type' };

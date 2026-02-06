@@ -40,7 +40,7 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
   private options: OpenClawAgentManagerData;
 
   constructor(data: OpenClawAgentManagerData) {
-    super('openclaw', data);
+    super('openclaw-gateway', data);
     this.conversation_id = data.conversation_id;
     this.workspace = data.workspace;
     this.options = data;
@@ -81,14 +81,14 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
   }
 
   private handleStreamEvent(message: IResponseMessage): void {
-    message.conversation_id = this.conversation_id;
+    const msg = { ...message, conversation_id: this.conversation_id };
 
     // Persist messages to database
-    const tMessage = transformMessage(message);
+    const tMessage = transformMessage(msg);
     if (tMessage) {
       // Use addOrUpdateMessage for streaming content to merge deltas with same msg_id
       // Use addMessage for non-streaming messages that should be inserted as-is
-      if (message.type === 'content' && message.msg_id) {
+      if (msg.type === 'content' && msg.msg_id) {
         addOrUpdateMessage(this.conversation_id, tMessage);
       } else {
         addMessage(this.conversation_id, tMessage);
@@ -96,15 +96,15 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
     }
 
     // Emit to frontend
-    ipcBridge.openclawConversation.responseStream.emit(message);
+    ipcBridge.openclawConversation.responseStream.emit(msg);
   }
 
   private handleSignalEvent(message: IResponseMessage): void {
-    message.conversation_id = this.conversation_id;
+    const msg = { ...message, conversation_id: this.conversation_id };
 
     // Handle permission requests
-    if (message.type === 'acp_permission') {
-      const permissionData = message.data as {
+    if (msg.type === 'acp_permission') {
+      const permissionData = msg.data as {
         sessionId: string;
         toolCall: { toolCallId: string; title?: string; kind?: string; rawInput?: Record<string, unknown> };
         options: Array<{ optionId: string; name: string; kind: string }>;
@@ -127,12 +127,12 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
     }
 
     // Handle finish event
-    if (message.type === 'finish') {
+    if (msg.type === 'finish') {
       cronBusyGuard.setProcessing(this.conversation_id, false);
     }
 
     // Emit signal events to frontend
-    ipcBridge.openclawConversation.responseStream.emit(message);
+    ipcBridge.openclawConversation.responseStream.emit(msg);
   }
 
   private handleSessionKeyUpdate(sessionKey: string): void {

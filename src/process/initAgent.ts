@@ -116,7 +116,7 @@ export const createOpenClawAgent = async (options: ICreateConversationParams): P
   const { extra } = options;
   const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(`openclaw-temp-${Date.now()}`, extra.workspace, extra.defaultFiles, extra.customWorkspace);
   return {
-    type: 'openclaw',
+    type: 'openclaw-gateway',
     extra: {
       workspace: workspace,
       customWorkspace,

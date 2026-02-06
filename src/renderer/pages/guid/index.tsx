@@ -883,7 +883,7 @@ const Guid: React.FC = () => {
 
       try {
         const conversation = await ipcBridge.conversation.create.invoke({
-          type: 'openclaw',
+          type: 'openclaw-gateway',
           name: input,
           model: currentModel!, // not used by openclaw, but required by type
           extra: {

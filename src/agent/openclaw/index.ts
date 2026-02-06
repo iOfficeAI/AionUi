@@ -5,7 +5,7 @@
  */
 
 import { AcpAdapter } from '@/agent/acp/AcpAdapter';
-import { AcpApprovalStore, createAcpApprovalKey } from '@/agent/acp/ApprovalStore';
+import { AcpApprovalStore } from '@/agent/acp/ApprovalStore';
 import type { TMessage } from '@/common/chatLib';
 import type { IResponseMessage } from '@/common/ipcBridge';
 import { NavigationInterceptor } from '@/common/navigation';
@@ -73,7 +73,7 @@ export class OpenClawAgent {
     this.onSessionKeyUpdate = config.onSessionKeyUpdate;
 
     // Initialize adapter with 'openclaw-gateway' backend
-    this.adapter = new AcpAdapter(this.id, 'openclaw-gateway' as 'claude');
+    this.adapter = new AcpAdapter(this.id, 'openclaw-gateway');
   }
 
   /**
@@ -366,7 +366,10 @@ export class OpenClawAgent {
         this.accumulatedAssistantText = '';
       }
 
-      // Detect if rawDelta is cumulative text (starts with accumulated) or incremental delta
+      // Heuristic: detect if rawDelta is cumulative text or incremental delta.
+      // NOTE: This prefix-matching approach can misidentify incremental deltas as cumulative
+      // if the delta content happens to start with the accumulated text. A protocol-level
+      // indicator from the gateway would be more reliable.
       let actualDelta: string;
       const isCumulative = rawDelta.startsWith(this.accumulatedAssistantText) && this.accumulatedAssistantText.length > 0;
 
@@ -471,20 +474,9 @@ export class OpenClawAgent {
 
     const requestId = request.requestId || uuid();
 
-    // Check approval store
-    if (request.toolCall) {
-      const approvalKey = createAcpApprovalKey(request.toolCall);
-      if (this.approvalStore.isApprovedForSession(approvalKey)) {
-        // Auto-approve
-        // TODO: Send approval response to gateway
-        return;
-      }
-    }
-
     // Store pending and emit to UI
     this.pendingPermissions.set(requestId, {
       resolve: (response) => {
-        // TODO: Send approval response to gateway
         console.log('[OpenClawAgent] Permission response:', response);
       },
       reject: (error) => {
@@ -510,10 +502,12 @@ export class OpenClawAgent {
       });
     }
 
-    // Timeout
+    // Timeout - reject pending to avoid silent hang
     setTimeout(() => {
-      if (this.pendingPermissions.has(requestId)) {
+      const pending = this.pendingPermissions.get(requestId);
+      if (pending) {
         this.pendingPermissions.delete(requestId);
+        pending.reject(new Error('Permission request timed out'));
       }
     }, 70000);
   }

@@ -28,14 +28,14 @@ import { useLatestRef } from '@/renderer/hooks/useLatestRef';
 import { useAutoTitle } from '@/renderer/hooks/useAutoTitle';
 
 interface OpenClawDraftData {
-  _type: 'openclaw';
+  _type: 'openclaw-gateway';
   atPath: Array<string | FileOrFolderItem>;
   content: string;
   uploadFile: string[];
 }
 
-const useOpenClawSendBoxDraft = getSendBoxDraftHook('openclaw', {
-  _type: 'openclaw',
+const useOpenClawSendBoxDraft = getSendBoxDraftHook('openclaw-gateway', {
+  _type: 'openclaw-gateway',
   atPath: [],
   content: '',
   uploadFile: [],
@@ -48,7 +48,6 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
   const addOrUpdateMessage = useAddOrUpdateMessage();
   const { setSendBoxHandler } = usePreviewContext();
 
-  const [running, setRunning] = useState(false);
   const [aiProcessing, setAiProcessing] = useState(false);
   const [openclawStatus, setOpenClawStatus] = useState<string | null>(null);
   const [thought, setThought] = useState<ThoughtData>({
@@ -123,7 +122,6 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
   const atPathRef = useLatestRef(atPath);
 
   useEffect(() => {
-    setRunning(false);
     setAiProcessing(false);
     setOpenClawStatus(null);
     setThought({ subject: '', description: '' });
@@ -155,7 +153,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
           throttledSetThought(message.data as ThoughtData);
           break;
         case 'finish':
-          throttledSetThought(message.data as ThoughtData);
+          setThought({ subject: '', description: '' });
           setAiProcessing(false);
           break;
         case 'content':
@@ -177,7 +175,6 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
           break;
         }
         default: {
-          setRunning(false);
           setThought({ subject: '', description: '' });
           const transformedMessage = transformMessage(message);
           if (transformedMessage) {
@@ -203,13 +200,13 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
     [uploadFile, setUploadFile]
   );
 
-  useAddEventListener('openclaw.selected.file', (items: Array<string | FileOrFolderItem>) => {
+  useAddEventListener('openclaw-gateway.selected.file', (items: Array<string | FileOrFolderItem>) => {
     setTimeout(() => {
       setAtPath(items);
     }, 10);
   });
 
-  useAddEventListener('openclaw.selected.file.append', (items: Array<string | FileOrFolderItem>) => {
+  useAddEventListener('openclaw-gateway.selected.file.append', (items: Array<string | FileOrFolderItem>) => {
     setTimeout(() => {
       const merged = mergeFileSelectionItems(atPathRef.current, items);
       if (merged !== atPathRef.current) {
@@ -221,7 +218,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
   const onSendHandler = async (message: string) => {
     const msg_id = uuid();
     setContent('');
-    emitter.emit('openclaw.selected.file.clear');
+    emitter.emit('openclaw-gateway.selected.file.clear');
     const currentAtPath = [...atPath];
     const currentUploadFile = [...uploadFile];
     setAtPath([]);
@@ -314,7 +311,6 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
     try {
       await ipcBridge.conversation.stop.invoke({ conversation_id });
     } finally {
-      setRunning(false);
       setAiProcessing(false);
       setThought({ subject: '', description: '' });
     }
@@ -322,7 +318,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
 
   return (
     <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
-      <ThoughtDisplay thought={thought} running={aiProcessing || running} onStop={handleStop} />
+      <ThoughtDisplay thought={thought} running={aiProcessing} onStop={handleStop} />
 
       <SendBox
         value={content}
@@ -331,7 +327,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
             setContent(val);
           }
         }}
-        loading={running || aiProcessing}
+        loading={aiProcessing}
         disabled={aiProcessing}
         className='z-10'
         placeholder={
@@ -376,7 +372,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
                         path={path}
                         onRemove={() => {
                           const newAtPath = atPath.filter((v) => (typeof v === 'string' ? v !== path : v.path !== path));
-                          emitter.emit('openclaw.selected.file', newAtPath);
+                          emitter.emit('openclaw-gateway.selected.file', newAtPath);
                           setAtPath(newAtPath);
                         }}
                       />
@@ -398,7 +394,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
                         closable
                         onClose={() => {
                           const newAtPath = atPath.filter((v) => (typeof v === 'string' ? true : v.path !== item.path));
-                          emitter.emit('openclaw.selected.file', newAtPath);
+                          emitter.emit('openclaw-gateway.selected.file', newAtPath);
                           setAtPath(newAtPath);
                         }}
                       >

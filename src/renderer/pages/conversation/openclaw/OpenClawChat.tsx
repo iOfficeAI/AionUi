@@ -24,7 +24,7 @@ const OpenClawChat: React.FC<{
     updateLocalImage({ root: workspace });
   }, [workspace]);
   return (
-    <ConversationProvider value={{ conversationId: conversation_id, workspace, type: 'openclaw' }}>
+    <ConversationProvider value={{ conversationId: conversation_id, workspace, type: 'openclaw-gateway' }}>
       <div className='flex-1 flex flex-col px-20px'>
         <FlexFullContainer>
           <MessageList className='flex-1'></MessageList>

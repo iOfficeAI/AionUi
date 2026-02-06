@@ -174,7 +174,7 @@ export type TChatConversation =
     >
   | Omit<
       IChatConversation<
-        'openclaw',
+        'openclaw-gateway',
         {
           workspace?: string;
           customWorkspace?: boolean;

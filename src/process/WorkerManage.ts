@@ -91,7 +91,7 @@ const buildConversation = (conversation: TChatConversation, options?: BuildConve
       }
       return task;
     }
-    case 'openclaw': {
+    case 'openclaw-gateway': {
       const task = new OpenClawAgentManager({
         ...conversation.extra,
         conversation_id: conversation.id,

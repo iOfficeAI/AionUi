@@ -6,7 +6,7 @@
 
 import WebSocket from 'ws';
 import { randomUUID } from 'crypto';
-import type { ChatAbortParams, ChatSendParams, ConnectParams, EventFrame, GatewayClientMode, HelloOk, OpenClawGatewayClientOptions, RequestFrame, ResponseFrame, SessionsResolveParams } from './types';
+import type { ChatAbortParams, ChatSendParams, ConnectParams, EventFrame, HelloOk, OpenClawGatewayClientOptions, RequestFrame, ResponseFrame, SessionsResolveParams } from './types';
 import { GATEWAY_CLIENT_IDS, GATEWAY_CLIENT_MODES, GATEWAY_CLOSE_CODE_HINTS, OPENCLAW_PROTOCOL_VERSION } from './types';
 import { buildDeviceAuthPayload, type DeviceIdentity, loadOrCreateDeviceIdentity, publicKeyRawBase64UrlFromPem, signDevicePayload } from './deviceIdentity';
 import { clearDeviceAuthToken, loadDeviceAuthToken, storeDeviceAuthToken } from './deviceAuthStore';
@@ -38,6 +38,9 @@ export class OpenClawGatewayConnection {
   private opts: OpenClawGatewayClientOptions;
   private pending = new Map<string, PendingRequest>();
   private backoffMs = 1000;
+  private reconnectAttempts = 0;
+  private readonly maxReconnectAttempts = 10;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private closed = false;
   private lastSeq: number | null = null;
   private connectNonce: string | null = null;
@@ -124,6 +127,10 @@ export class OpenClawGatewayConnection {
     if (this.connectTimer) {
       clearTimeout(this.connectTimer);
       this.connectTimer = null;
+    }
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
     }
     this.ws?.close();
     this.ws = null;
@@ -224,7 +231,8 @@ export class OpenClawGatewayConnection {
     const authToken = storedToken ?? this.opts.token ?? undefined;
     const canFallbackToShared = Boolean(storedToken && this.opts.token);
 
-    const auth = authToken || this.opts.password ? { token: authToken, password: this.opts.password } : undefined;
+    const hasAuth = authToken || this.opts.password;
+    const auth = hasAuth ? { token: authToken, password: this.opts.password } : undefined;
 
     // Build device identity for authentication
     const device = (() => {
@@ -284,6 +292,7 @@ export class OpenClawGatewayConnection {
         this._isConnected = true;
         this._helloOk = helloOk;
         this.backoffMs = 1000;
+        this.reconnectAttempts = 0;
         this.tickIntervalMs = typeof helloOk.policy?.tickIntervalMs === 'number' ? helloOk.policy.tickIntervalMs : 30_000;
         this.lastTick = Date.now();
         this.startTickWatch();
@@ -386,13 +395,22 @@ export class OpenClawGatewayConnection {
     if (this.closed) {
       return;
     }
+    this.reconnectAttempts++;
+    if (this.reconnectAttempts > this.maxReconnectAttempts) {
+      console.error(`[OpenClawGateway] Max reconnect attempts (${this.maxReconnectAttempts}) reached, giving up`);
+      this.opts.onConnectError?.(new Error(`Max reconnect attempts (${this.maxReconnectAttempts}) reached`));
+      return;
+    }
     if (this.tickTimer) {
       clearInterval(this.tickTimer);
       this.tickTimer = null;
     }
     const delay = this.backoffMs;
     this.backoffMs = Math.min(this.backoffMs * 2, 30_000);
-    setTimeout(() => this.start(), delay);
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = null;
+      this.start();
+    }, delay);
   }
 
   private flushPendingErrors(err: Error): void {
