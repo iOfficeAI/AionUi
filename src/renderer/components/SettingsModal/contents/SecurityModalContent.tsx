@@ -32,7 +32,7 @@ const BUILTIN_AGENTS: AgentItem[] = [
 ];
 
 // ACP backend IDs to display (excluding gemini, codex, and custom)
-const ACP_AGENT_IDS: AcpBackendAll[] = ['claude', 'qwen', 'goose', 'auggie', 'kimi', 'opencode', 'droid', 'copilot', 'qoder', 'iflow'];
+const ACP_AGENT_IDS: AcpBackendAll[] = ['claude', 'qwen', 'goose', 'auggie', 'kimi', 'opencode', 'droid', 'copilot', 'qoder', 'iflow', 'openclaw-gateway'];
 
 // ==================== Component ====================
 
@@ -107,12 +107,14 @@ const SecurityModalContent: React.FC = () => {
 
       if (agentId === 'gemini') {
         const config = await ConfigStorage.get('gemini.config');
-        if (config) {
-          await ConfigStorage.set('gemini.config', { ...config, yoloMode: enabled });
-        }
+        // Create default config if not exists
+        const baseConfig = config || { authType: '', proxy: '' };
+        const newConfig = { ...baseConfig, yoloMode: enabled };
+        await ConfigStorage.set('gemini.config', newConfig);
       } else if (agentId === 'codex') {
         const config = await ConfigStorage.get('codex.config');
-        await ConfigStorage.set('codex.config', { ...config, yoloMode: enabled });
+        const newConfig = { ...config, yoloMode: enabled };
+        await ConfigStorage.set('codex.config', newConfig);
       } else {
         // ACP backends
         const acpConfig = (await ConfigStorage.get('acp.config')) || {};
