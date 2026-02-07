@@ -26,10 +26,8 @@ export type RotatingClient = OpenAIRotatingClient | GeminiRotatingClient | Anthr
  * 为 new-api 网关规范化 base URL
  * Normalize base URL for new-api gateway based on target protocol
  *
- * new-api 用户通常输入带 /v1 的 URL（OpenAI 格式），但 Gemini/Anthropic SDK
- * 需要根 URL（它们会自动附加各自的路径）。
- * new-api users typically enter URL with /v1 (OpenAI format), but Gemini/Anthropic SDKs
- * need the root URL (they append their own paths).
+ * 策略：先剥离所有已知 API 路径后缀得到根 URL，再根据目标协议添加正确后缀。
+ * Strategy: strip all known API path suffixes to get root URL, then add the correct suffix for target protocol.
  *
  * @param baseUrl 原始 base URL / Original base URL
  * @param authType 目标认证类型 / Target auth type
@@ -38,25 +36,26 @@ export type RotatingClient = OpenAIRotatingClient | GeminiRotatingClient | Anthr
 export function normalizeNewApiBaseUrl(baseUrl: string, authType: AuthType): string {
   if (!baseUrl) return baseUrl;
 
-  // 移除尾部斜杠 / Remove trailing slashes
-  const url = baseUrl.replace(/\/+$/, '');
+  // 1. 移除尾部斜杠，剥离所有已知 API 路径后缀，得到根 URL
+  //    Remove trailing slashes, strip all known API path suffixes to get root URL
+  const rootUrl = baseUrl
+    .replace(/\/+$/, '')
+    .replace(/\/v1$/, '')
+    .replace(/\/v1beta$/, '');
 
+  // 2. 根据目标协议添加正确的路径后缀
+  //    Add the correct path suffix for the target protocol
   switch (authType) {
-    case AuthType.USE_OPENAI: {
+    case AuthType.USE_OPENAI:
       // OpenAI SDK 需要带 /v1 的路径 / OpenAI SDK expects URL with /v1 path
-      if (!url.endsWith('/v1')) {
-        return `${url}/v1`;
-      }
-      return url;
-    }
+      return `${rootUrl}/v1`;
     case AuthType.USE_GEMINI:
-    case AuthType.USE_ANTHROPIC: {
-      // Gemini/Anthropic SDK 需要根 URL，移除常见的 API 路径后缀
-      // Gemini/Anthropic SDKs need root URL, strip common API path suffixes
-      return url.replace(/\/v1$/, '').replace(/\/v1beta$/, '');
-    }
+    case AuthType.USE_ANTHROPIC:
+      // Gemini/Anthropic SDK 需要根 URL（它们会自动附加各自的路径）
+      // Gemini/Anthropic SDKs need root URL (they append their own paths)
+      return rootUrl;
     default:
-      return url;
+      return rootUrl;
   }
 }
 
