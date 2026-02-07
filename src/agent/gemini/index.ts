@@ -13,20 +13,22 @@ import { NavigationInterceptor } from '@/common/navigation';
 import type { TProviderWithModel } from '@/common/storage';
 import { uuid } from '@/common/utils';
 import { getProviderAuthType } from '@/common/utils/platformAuthType';
+import { isNewApiPlatform } from '@/common/utils/platformConstants';
+import { normalizeNewApiBaseUrl } from '@/common/ClientFactory';
 import type { CompletedToolCall, Config, GeminiClient, ServerGeminiStreamEvent, ToolCall, ToolCallRequestInfo, Turn } from '@office-ai/aioncli-core';
-import { AuthType, CoreToolScheduler, FileDiscoveryService, sessionId, refreshServerHierarchicalMemory, clearOauthClientCache } from '@office-ai/aioncli-core';
+import { AuthType, clearOauthClientCache, CoreToolScheduler, FileDiscoveryService, refreshServerHierarchicalMemory, sessionId } from '@office-ai/aioncli-core';
+import fs from 'fs';
 import { ApiKeyManager } from '../../common/ApiKeyManager';
 import { handleAtCommand } from './cli/atCommandProcessor';
 import { loadCliConfig } from './cli/config';
 import { loadExtensions } from './cli/extension';
+import { getGlobalTokenManager } from './cli/oauthTokenManager';
 import type { Settings } from './cli/settings';
 import { loadSettings } from './cli/settings';
+import { globalToolCallGuard, type StreamConnectionEvent } from './cli/streamResilience';
 import { ConversationToolConfig } from './cli/tools/conversation-tool-config';
 import { mapToDisplay, type TrackedToolCall } from './cli/useReactToolScheduler';
 import { getPromptCount, handleCompletedTools, processGeminiStreamEvents, startNewPrompt } from './utils';
-import { globalToolCallGuard, type StreamConnectionEvent } from './cli/streamResilience';
-import { getGlobalTokenManager } from './cli/oauthTokenManager';
-import fs from 'fs';
 import path from 'path';
 import os from 'os';
 
@@ -180,9 +182,14 @@ export class GeminiAgent {
 
     clearAllAuthEnvVars();
 
+    // 对 new-api 网关进行 URL 规范化（不同协议需要不同的 URL 格式）
+    // Normalize URL for new-api gateway (different protocols need different URL formats)
+    const isNewApi = isNewApiPlatform(this.model.platform);
+    const getBaseUrl = () => (isNewApi ? normalizeNewApiBaseUrl(this.model.baseUrl, this.authType) : this.model.baseUrl);
+
     if (this.authType === AuthType.USE_GEMINI) {
       fallbackValue('GEMINI_API_KEY', getCurrentApiKey());
-      fallbackValue('GOOGLE_GEMINI_BASE_URL', this.model.baseUrl);
+      fallbackValue('GOOGLE_GEMINI_BASE_URL', getBaseUrl());
       return;
     }
     if (this.authType === AuthType.USE_VERTEX_AI) {
@@ -205,12 +212,12 @@ export class GeminiAgent {
       return;
     }
     if (this.authType === AuthType.USE_OPENAI) {
-      fallbackValue('OPENAI_BASE_URL', this.model.baseUrl);
+      fallbackValue('OPENAI_BASE_URL', getBaseUrl());
       fallbackValue('OPENAI_API_KEY', getCurrentApiKey());
       return;
     }
     if (this.authType === AuthType.USE_ANTHROPIC) {
-      fallbackValue('ANTHROPIC_BASE_URL', this.model.baseUrl);
+      fallbackValue('ANTHROPIC_BASE_URL', getBaseUrl());
       fallbackValue('ANTHROPIC_API_KEY', getCurrentApiKey());
     }
   }
