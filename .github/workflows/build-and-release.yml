@@ -48,20 +48,38 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # macOS builds
           - platform: macos-arm64
             os: macos-14
-            command: "node scripts/build-with-builder.js arm64 --mac --arm64"
+            command: "node scripts/build-with-builder.js arm64 --mac"
             artifact-name: macos-build-arm64
             arch: arm64
+          - platform: macos-x64
+            os: macos-13
+            command: "node scripts/build-with-builder.js x64 --mac"
+            artifact-name: macos-build-x64
+            arch: x64
+          # Windows builds
           - platform: windows-x64
             os: windows-2022
-            command: "node scripts/build-with-builder.js x64 --win --x64"
+            command: "node scripts/build-with-builder.js x64 --win"
             artifact-name: windows-build-x64
             arch: x64
           - platform: windows-arm64
             os: windows-2022
-            command: "node scripts/build-with-builder.js arm64 --win --arm64"
+            command: "node scripts/build-with-builder.js arm64 --win"
             artifact-name: windows-build-arm64
+            arch: arm64
+          # Linux builds
+          - platform: linux-x64
+            os: ubuntu-22.04
+            command: "node scripts/build-with-builder.js x64 --linux"
+            artifact-name: linux-build-x64
+            arch: x64
+          - platform: linux-arm64
+            os: ubuntu-22.04
+            command: "node scripts/build-with-builder.js arm64 --linux"
+            artifact-name: linux-build-arm64
             arch: arm64
 
     steps:
@@ -166,7 +184,7 @@ jobs:
           fi
 
       - name: Install Linux dependencies
-        if: matrix.platform == 'linux'
+        if: startsWith(matrix.platform, 'linux')
         run: |
           sudo apt-get update
           sudo apt-get install -y build-essential python3 python3-pip pkg-config libsqlite3-dev fakeroot dpkg-dev rpm libnss3-dev libatk-bridge2.0-dev libdrm2 libxkbcommon-dev libxss1 libatspi2.0-dev libgtk-3-dev libxrandr2 libasound2-dev
@@ -376,7 +394,7 @@ jobs:
       # Linux: Standard build without special error handling
       # Linux: 标准构建，无特殊错误处理
       - name: Build with electron-builder (Linux)
-        if: matrix.platform == 'linux'
+        if: startsWith(matrix.platform, 'linux')
         uses: nick-fields/retry@v3
         with:
           timeout_minutes: 60
@@ -465,8 +483,7 @@ jobs:
             out/*.dmg
             out/*.deb
             out/*.AppImage
-            out/AionUi-*-win32-*.zip
-            out/AionUi-*-mac-*.zip
+            out/*.zip
           if-no-files-found: warn
           retention-days: 7
 
