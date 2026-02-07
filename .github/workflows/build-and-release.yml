@@ -53,7 +53,7 @@ jobs:
             artifact-name: macos-build-arm64
             arch: arm64
           - platform: macos-x64
-            os: macos-13
+            os: macos-14  # Apple Silicon runner; install Rosetta to build x64
             command: "node scripts/build-with-builder.js x64 --mac --x64"
             artifact-name: macos-build-x64
             arch: x64
@@ -87,6 +87,15 @@ jobs:
         uses: actions/setup-python@v6
         with:
           python-version: '3.11'
+
+      - name: Install Rosetta 2 (for macOS x64 target)
+        if: matrix.platform == 'macos-x64'
+        run: |
+          if /usr/sbin/sysctl -n sysctl.proc_translated 2>/dev/null | grep -q '1'; then
+            echo "Rosetta already installed"
+          else
+            softwareupdate --install-rosetta --agree-to-license
+          fi
 
       - name: Install dependencies
         run: npm ci
