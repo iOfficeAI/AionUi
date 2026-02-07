@@ -16,6 +16,7 @@ import { prepareFirstMessageWithSkillsIndex } from './agentUtils';
 import BaseAgentManager from './BaseAgentManager';
 import { hasCronCommands } from './CronCommandDetector';
 import { extractTextFromMessage, processCronInMessage } from './MessageMiddleware';
+import { stripThinkTags } from './ThinkTagDetector';
 
 interface AcpAgentManagerData {
   workspace?: string;
@@ -157,7 +158,11 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
               }
             }
           }
-          ipcBridge.acpConversation.responseStream.emit(message as IResponseMessage);
+
+          // Filter think tags from streaming content before emitting to UI
+          // 在发送到 UI 之前过滤流式内容中的 think 标签
+          const filteredMessage = this.filterThinkTagsFromMessage(message as IResponseMessage);
+          ipcBridge.acpConversation.responseStream.emit(filteredMessage);
         },
         onSignalEvent: async (v) => {
           // 仅发送信号到前端，不更新消息列表
@@ -315,6 +320,35 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
       // msg_id: dat;
       callId: callId,
     });
+  }
+
+  /**
+   * Filter think tags from message content during streaming
+   * This ensures users don't see internal reasoning tags in real-time
+   *
+   * @param message - The streaming message to filter
+   * @returns Message with think tags removed from content
+   */
+  private filterThinkTagsFromMessage(message: IResponseMessage): IResponseMessage {
+    // Only filter content messages
+    if (message.type !== 'content' || typeof message.data !== 'string') {
+      return message;
+    }
+
+    const content = message.data;
+    // Quick check to avoid unnecessary processing
+    if (!/<think(?:ing)?>/i.test(content)) {
+      return message;
+    }
+
+    // Strip think tags from content
+    const cleanedContent = stripThinkTags(content);
+
+    // Return new message object with cleaned content
+    return {
+      ...message,
+      data: cleanedContent,
+    };
   }
 
   /**

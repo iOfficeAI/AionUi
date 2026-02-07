@@ -206,26 +206,17 @@ const AcpSendBox: React.FC<{
   conversation_id: string;
   backend: AcpBackend;
 }> = ({ conversation_id, backend }) => {
-  const [workspacePath, setWorkspacePath] = useState('');
-  const { thought, running, acpStatus, aiProcessing, setAiProcessing, resetState } = useAcpMessage(conversation_id);
+  const { thought, running, aiProcessing, setAiProcessing, resetState } = useAcpMessage(conversation_id);
   const { t } = useTranslation();
   const { checkAndUpdateTitle } = useAutoTitle();
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
   const { setSendBoxHandler } = usePreviewContext();
-
-  useEffect(() => {
-    void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
-      if (!res?.extra?.workspace) return;
-      setWorkspacePath(res.extra.workspace);
-    });
-  }, [conversation_id]);
 
   // 使用 useLatestRef 保存最新的 setContent/atPath，避免重复注册 handler
   // Use useLatestRef to keep latest setters to avoid re-registering handler
   const setContentRef = useLatestRef(setContent);
   const atPathRef = useLatestRef(atPath);
 
-  const sendingInitialMessageRef = useRef(false); // Prevent duplicate sends
   const addOrUpdateMessage = useAddOrUpdateMessage(); // Move this here so it's available in useEffect
   const addOrUpdateMessageRef = useLatestRef(addOrUpdateMessage);
 
@@ -258,30 +249,25 @@ const AcpSendBox: React.FC<{
     []
   );
 
-  // Check for and send initial message from guid page when ACP is authenticated
+  // Check for and send initial message from guid page
+  // Note: We don't wait for acpStatus because:
+  // 1. ACP connection is initialized when first message is sent
+  // 2. Waiting for 'session_active' creates a deadlock (status only updates after message is sent)
+  // 3. This matches the behavior of onSendHandler which sends immediately
   useEffect(() => {
-    if (!acpStatus) {
-      return;
-    }
-    if (acpStatus !== 'session_active') {
-      return;
-    }
+    const storageKey = `acp_initial_message_${conversation_id}`;
+    const storedMessage = sessionStorage.getItem(storageKey);
+
+    if (!storedMessage) return;
+
+    // Clear immediately to prevent duplicate sends (e.g., if component remounts while sendMessage is pending)
+    sessionStorage.removeItem(storageKey);
 
     const sendInitialMessage = async () => {
-      // Check flag at the actual execution time
-      if (sendingInitialMessageRef.current) {
-        return;
-      }
-      sendingInitialMessageRef.current = true;
-      const storageKey = `acp_initial_message_${conversation_id}`;
-      const storedMessage = sessionStorage.getItem(storageKey);
-
-      if (!storedMessage) {
-        return;
-      }
       try {
         const initialMessage = JSON.parse(storedMessage);
         const { input, files } = initialMessage;
+
         // ACP: 不使用 buildDisplayMessage，直接传原始 input
         // 文件引用由后端 ACP agent 负责添加（使用复制后的实际路径）
         // 避免消息中出现两套不一致的文件引用
@@ -301,9 +287,6 @@ const AcpSendBox: React.FC<{
         if (result && result.success === true) {
           // Initial message sent successfully
           void checkAndUpdateTitle(conversation_id, input);
-          // 等待一小段时间确保后端数据库更新完成
-          await new Promise((resolve) => setTimeout(resolve, 100));
-          sessionStorage.removeItem(storageKey);
           emitter.emit('chat.history.refresh');
         } else {
           // Handle send failure
@@ -322,13 +305,10 @@ const AcpSendBox: React.FC<{
             createdAt: Date.now() + 2,
           };
           addOrUpdateMessageRef.current(errorMessage, true);
-          sendingInitialMessageRef.current = false; // Reset flag on failure
           setAiProcessing(false); // Stop loading state on failure
         }
       } catch (error) {
         console.error('Error sending initial message:', error);
-        sessionStorage.removeItem(storageKey);
-        sendingInitialMessageRef.current = false; // Reset flag on error
         setAiProcessing(false); // Stop loading state on error
       }
     };
@@ -336,7 +316,7 @@ const AcpSendBox: React.FC<{
     sendInitialMessage().catch((error) => {
       console.error('Failed to send initial message:', error);
     });
-  }, [conversation_id, backend, acpStatus]);
+  }, [conversation_id, backend]);
 
   const onSendHandler = async (message: string) => {
     const msg_id = uuid();

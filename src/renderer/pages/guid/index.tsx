@@ -38,7 +38,7 @@ import { buildDisplayMessage } from '@/renderer/utils/messageFiles';
 import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
 import { updateWorkspaceTime } from '@/renderer/utils/workspaceHistory';
 import { isAcpRoutedPresetType, type AcpBackend, type AcpBackendConfig, type PresetAgentType } from '@/types/acpTypes';
-import { Button, ConfigProvider, Dropdown, Input, Menu, Tooltip } from '@arco-design/web-react';
+import { Button, ConfigProvider, Dropdown, Input, Menu, Message, Tooltip } from '@arco-design/web-react';
 import { IconClose } from '@arco-design/web-react/icon';
 import { ArrowUp, Down, FolderOpen, Plus, Robot, UploadOne } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -364,13 +364,13 @@ const Guid: React.FC = () => {
   const navigate = useNavigate();
   const _layout = useLayoutContext();
 
-  // 处理粘贴的文件（替换模式，避免累积旧文件路径）
-  // Handle pasted files (replace mode to avoid accumulating old file paths)
+  // 处理粘贴的文件（追加模式，支持多次粘贴）
+  // Handle pasted files (append mode to support multiple pastes)
   const handleFilesPasted = useCallback((pastedFiles: FileMetadata[]) => {
     const filePaths = pastedFiles.map((file) => file.path);
-    // 粘贴操作替换现有文件，而不是追加
-    // Paste operation replaces existing files instead of appending
-    setFiles(filePaths);
+    // 粘贴操作追加到现有文件列表
+    // Paste operation appends to existing files
+    setFiles((prevFiles) => [...prevFiles, ...filePaths]);
     setDir('');
   }, []);
 
@@ -385,15 +385,15 @@ const Guid: React.FC = () => {
     setFiles((prevFiles) => prevFiles.filter((file) => file !== targetPath));
   }, []);
 
-  // 使用拖拽 hook（拖拽视为粘贴操作，替换现有文件）
-  // Use drag upload hook (drag is treated like paste, replaces existing files)
+  // 使用拖拽 hook（拖拽视为粘贴操作，追加到现有文件）
+  // Use drag upload hook (drag is treated like paste, appends to existing files)
   const { isFileDragging, dragHandlers } = useDragUpload({
     supportedExts: allSupportedExts,
     onFilesAdded: handleFilesPasted,
   });
 
-  // 使用共享的PasteService集成（粘贴操作替换现有文件）
-  // Use shared PasteService integration (paste replaces existing files)
+  // 使用共享的PasteService集成（粘贴操作追加到现有文件）
+  // Use shared PasteService integration (paste appends to existing files)
   const { onPaste, onFocus } = usePasteService({
     supportedExts: allSupportedExts,
     onFilesAdded: handleFilesPasted,
@@ -700,7 +700,9 @@ const Guid: React.FC = () => {
   const resolvePresetAgentType = useCallback(
     (agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined) => {
       if (!agentInfo) return 'gemini';
-      if (agentInfo.backend !== 'custom') return 'gemini';
+      // 非 custom 的 backend，直接返回其 backend 类型（如 'claude', 'codex' 等）
+      // For non-custom backends, return the backend type directly (e.g., 'claude', 'codex', etc.)
+      if (agentInfo.backend !== 'custom') return agentInfo.backend as PresetAgentType;
       const customAgent = customAgents.find((agent) => agent.id === agentInfo.customAgentId);
       return customAgent?.presetAgentType || 'gemini';
     },
@@ -717,6 +719,116 @@ const Guid: React.FC = () => {
     },
     [customAgents]
   );
+
+  /**
+   * 检查 Main Agent 类型是否可用（用于预设助手的自动切换判断）
+   * Check if a Main Agent type is available (for preset assistant auto-switch)
+   *
+   * - gemini: 登录 Google OAuth 或有可用的 API key 模型
+   * - claude/codex/opencode: 检查 availableAgents 中是否有对应的 backend（CLI 已安装）
+   */
+  const isMainAgentAvailable = useCallback(
+    (agentType: PresetAgentType): boolean => {
+      if (agentType === 'gemini') {
+        // Gemini Main Agent 可用条件：
+        // 1. 登录了 Google OAuth，或
+        // 2. 有可用的模型（API key）可以选择
+        // Gemini available when: Google OAuth logged in OR has API key models
+        return isGoogleAuth || (modelList != null && modelList.length > 0);
+      }
+      // 其他类型检查 availableAgents（CLI 是否已安装）
+      // Other types check availableAgents (whether CLI is installed)
+      return availableAgents?.some((agent) => agent.backend === agentType) ?? false;
+    },
+    [modelList, availableAgents, isGoogleAuth]
+  );
+
+  /**
+   * 获取可用的备选 Main Agent
+   * Get an available fallback Main Agent
+   *
+   * 优先级: gemini > claude > codex > opencode
+   * Priority: gemini > claude > codex > opencode
+   */
+  const getAvailableFallbackAgent = useCallback((): PresetAgentType | null => {
+    const fallbackOrder: PresetAgentType[] = ['gemini', 'claude', 'codex', 'opencode'];
+    for (const agentType of fallbackOrder) {
+      if (isMainAgentAvailable(agentType)) {
+        return agentType;
+      }
+    }
+    return null;
+  }, [isMainAgentAvailable]);
+
+  /**
+   * 获取助手的有效 Main Agent 类型（仅用于 UI 显示）
+   * Get the effective Main Agent type for an assistant (for UI display only)
+   *
+   * 注意：不再提前计算 fallback，因为 CLI agents 需要异步健康检查
+   * 实际的 agent 切换在发送时通过健康检查进行
+   * Note: No longer pre-computing fallback since CLI agents require async health check
+   * Actual agent switching happens at send time via health check
+   */
+  const getEffectiveAgentType = useCallback(
+    (agentInfo: { backend: AcpBackend; customAgentId?: string } | undefined): { agentType: PresetAgentType; isFallback: boolean; originalType: PresetAgentType; isAvailable: boolean } => {
+      const originalType = resolvePresetAgentType(agentInfo);
+
+      // 检查原始类型是否可用 / Check if original type is available
+      // 对于 Gemini：可以同步检查（登录状态或 API key）
+      // 对于 CLI agents：这里只检查 CLI 安装，真正的认证检查在发送时进行
+      // For Gemini: can check synchronously (login status or API key)
+      // For CLI agents: only checks CLI installation here, real auth check happens at send time
+      const isAvailable = isMainAgentAvailable(originalType);
+
+      // 不再提前设置 isFallback，因为 CLI agents 的可用性需要异步检查
+      // No longer setting isFallback upfront since CLI agent availability requires async check
+      // 用户会看到原始选择的 agent，实际切换在发送时进行
+      // User sees their originally selected agent, actual switch happens at send time
+      return { agentType: originalType, isFallback: false, originalType, isAvailable };
+    },
+    [resolvePresetAgentType, isMainAgentAvailable]
+  );
+
+  /**
+   * 当前选中助手的有效 Agent 类型（用于 UI 显示）
+   * Effective agent type for the currently selected assistant (for UI display)
+   */
+  const currentEffectiveAgentInfo = useMemo(() => {
+    if (!isPresetAgent) {
+      // 非预设助手，检查选中的 agent 是否可用
+      // For non-preset agents, check if selected agent is available
+      const isAvailable = isMainAgentAvailable(selectedAgent as PresetAgentType);
+      return { agentType: selectedAgent as PresetAgentType, isFallback: false, originalType: selectedAgent as PresetAgentType, isAvailable };
+    }
+    return getEffectiveAgentType(selectedAgentInfo);
+  }, [isPresetAgent, selectedAgent, selectedAgentInfo, getEffectiveAgentType, isMainAgentAvailable]);
+
+  /**
+   * 自动切换仅适用于 Gemini agent（可以同步检查可用性）
+   * Auto-switch only applies to Gemini agent (availability can be checked synchronously)
+   *
+   * CLI agents (claude, codex, opencode) 需要异步健康检查来验证认证状态，
+   * 这些检查在用户发送消息时进行，而不是在组件加载时。
+   * CLI agents require async health checks to verify authentication status,
+   * which are performed when the user sends a message, not on component mount.
+   */
+  useEffect(() => {
+    // 跳过初始状态（availableAgents 还未加载）
+    // Skip initial state (availableAgents not yet loaded)
+    if (!availableAgents || availableAgents.length === 0) return;
+
+    // 只对 Gemini 进行自动切换（因为 Gemini 可用性可以同步检查）
+    // Only auto-switch for Gemini (because Gemini availability can be checked synchronously)
+    // CLI agents 的认证状态需要异步健康检查，在发送时验证
+    // CLI agents auth status requires async health check, verified at send time
+    if (selectedAgent === 'gemini' && !currentEffectiveAgentInfo.isAvailable) {
+      // Gemini 不可用（未登录 Google 且无 API key），提示用户但不自动切换
+      // Gemini unavailable (not logged into Google and no API key), prompt user but don't auto-switch
+      // 自动切换在发送时通过健康检查进行
+      // Auto-switch is done at send time via health check
+      console.log('[Guid] Gemini is not configured. Will check for alternatives when sending.');
+    }
+  }, [availableAgents, currentEffectiveAgentInfo, selectedAgent]);
 
   const refreshCustomAgents = useCallback(async () => {
     try {
@@ -755,28 +867,65 @@ const Guid: React.FC = () => {
 
     const agentInfo = selectedAgentInfo;
     const isPreset = isPresetAgent;
-    const presetAgentType = resolvePresetAgentType(agentInfo);
+
+    // 获取有效的 Agent 类型（考虑可用性回退）/ Get effective agent type (with availability fallback)
+    // 注意：isAvailable 只检查 CLI 安装状态，真正的认证检查在发送时通过健康检查进行
+    // Note: isAvailable only checks CLI installation, real auth check happens at send time via health check
+    const { agentType: effectiveAgentType } = getEffectiveAgentType(agentInfo);
 
     // 加载 rules（skills 已迁移到 SkillManager）/ Load rules (skills migrated to SkillManager)
     const { rules: presetRules } = await resolvePresetRulesAndSkills(agentInfo);
     // 获取启用的 skills 列表 / Get enabled skills list
     const enabledSkills = resolveEnabledSkills(agentInfo);
 
+    // 对于预设助手，当 Main Agent 不可用时自动切换到下一个可用的 Agent
+    // 会话类型会随之改变（如 gemini → acp），但 presetAssistantId/rules/skills 保持不变
+    // For preset assistants, auto-switch to next available agent when Main Agent is unavailable
+    // Conversation type changes accordingly (e.g., gemini → acp), but presetAssistantId/rules/skills are preserved
+    let finalEffectiveAgentType = effectiveAgentType;
+    if (isPreset && !isMainAgentAvailable(effectiveAgentType)) {
+      const fallback = getAvailableFallbackAgent();
+      if (fallback && fallback !== effectiveAgentType) {
+        finalEffectiveAgentType = fallback;
+        Message.info(
+          t('guid.autoSwitchedAgent', {
+            defaultValue: `${effectiveAgentType} is not available, switched to ${fallback}`,
+            from: effectiveAgentType,
+            to: fallback,
+          })
+        );
+      }
+    }
+
     // 默认情况使用 Gemini，或 Preset 配置为 Gemini
-    if (!selectedAgent || selectedAgent === 'gemini' || (isPreset && presetAgentType === 'gemini')) {
-      if (!currentModel) return;
+    // Default case uses Gemini, or Preset configured as Gemini
+    if (!selectedAgent || selectedAgent === 'gemini' || (isPreset && finalEffectiveAgentType === 'gemini')) {
+      // 当没有 currentModel 但选择了 Gemini 时，仍然创建 Gemini 会话
+      // 让会话面板的 GeminiSendBox 处理 agent 可用性检查和自动切换
+      // When no currentModel but Gemini is selected, still create Gemini conversation
+      // Let the conversation panel's GeminiSendBox handle agent availability check and auto-switch
+      const placeholderModel = currentModel || {
+        id: 'gemini-placeholder',
+        name: 'Gemini',
+        useModel: 'default',
+        platform: 'gemini-with-google-auth' as const,
+        baseUrl: '',
+        apiKey: '',
+      };
       try {
         const presetAssistantIdToPass = isPreset ? agentInfo?.customAgentId : undefined;
 
         const conversation = await ipcBridge.conversation.create.invoke({
           type: 'gemini',
           name: input,
-          model: currentModel,
+          model: placeholderModel,
           extra: {
             defaultFiles: files,
             workspace: finalWorkspace,
             customWorkspace: isCustomWorkspace,
-            webSearchEngine: isGoogleAuth ? 'google' : 'default',
+            // 只有当模型使用 Google OAuth 认证时才启用 Google 搜索
+            // Only enable Google search when the model uses Google OAuth authentication
+            webSearchEngine: placeholderModel.platform === 'gemini-with-google-auth' || placeholderModel.platform === 'gemini-vertex-ai' ? 'google' : 'default',
             // 传递 rules（skills 通过 SkillManager 加载）
             // Pass rules (skills loaded via SkillManager)
             presetRules: isPreset ? presetRules : undefined,
@@ -816,13 +965,13 @@ const Guid: React.FC = () => {
         // Navigate immediately for instant page transition
         void navigate(`/conversation/${conversation.id}`);
       } catch (error: unknown) {
-        console.error('Failed to create or send Gemini message:', error);
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        alert(`Failed to create Gemini conversation: ${errorMessage}`);
+        // 静默处理错误，让会话面板的 AgentSetupCard 来处理
+        // Silently handle errors, let conversation panel's AgentSetupCard handle it
+        console.error('Failed to create Gemini conversation:', error);
         throw error; // Re-throw to prevent input clearing
       }
       return;
-    } else if (selectedAgent === 'codex' || (isPreset && presetAgentType === 'codex')) {
+    } else if (selectedAgent === 'codex' || finalEffectiveAgentType === 'codex') {
       // Codex conversation type (including preset with codex agent type)
       const codexAgentInfo = agentInfo || findAgentByKey(selectedAgentKey);
 
@@ -847,7 +996,7 @@ const Guid: React.FC = () => {
         });
 
         if (!conversation || !conversation.id) {
-          alert('Failed to create Codex conversation. Please ensure the Codex CLI is installed and accessible in PATH.');
+          console.error('Failed to create Codex conversation - conversation object is null or missing id');
           return;
         }
 
@@ -872,24 +1021,38 @@ const Guid: React.FC = () => {
         // 然后导航到会话页面
         await navigate(`/conversation/${conversation.id}`);
       } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        alert(`Failed to create Codex conversation: ${errorMessage}`);
+        // 静默处理错误，让会话面板处理
+        // Silently handle errors, let conversation panel handle it
+        console.error('Failed to create Codex conversation:', error);
         throw error;
       }
       return;
     } else {
       // ACP conversation type (including preset with claude agent type)
-      const acpAgentInfo = agentInfo || findAgentByKey(selectedAgentKey);
-
       // For preset with ACP-routed agent type (claude/opencode), use corresponding backend
-      const acpBackend = isPreset && isAcpRoutedPresetType(presetAgentType) ? presetAgentType : selectedAgent;
+      // Check if agent type changed from user selection (due to availability fallback or compatibility switch)
+      const agentTypeChanged = selectedAgent !== finalEffectiveAgentType;
+      const acpBackend: PresetAgentType | undefined = agentTypeChanged
+        ? finalEffectiveAgentType // Agent type changed from selection, use the final effective type
+        : isPreset && isAcpRoutedPresetType(finalEffectiveAgentType)
+          ? finalEffectiveAgentType
+          : selectedAgent;
 
+      // Get the agent info for the actual backend being used (might be different from selection after type change)
+      const acpAgentInfo = agentTypeChanged ? findAgentByKey(acpBackend as string) : agentInfo || findAgentByKey(selectedAgentKey);
+
+      // 不在 guid 页面做 CLI agents 健康检查和自动切换，让会话面板的 AgentSetupCard 来处理
+      // Don't do CLI agents health check and auto-switch in guid page, let conversation panel's AgentSetupCard handle it
+
+      // 不阻止流程，让会话面板处理 agent 可用性
+      // Don't block flow, let conversation panel handle agent availability
       if (!acpAgentInfo && !isPreset) {
-        alert(`${selectedAgent} CLI not found or not configured. Please ensure it's installed and accessible.`);
-        return;
+        console.warn(`${acpBackend} CLI not found, but proceeding to let conversation panel handle it.`);
       }
 
       try {
+        // CLI agents (claude, opencode) 使用 ACP 会话类型
+        // CLI agents (claude, opencode) use ACP conversation type
         const conversation = await ipcBridge.conversation.create.invoke({
           type: 'acp',
           name: input,
@@ -908,12 +1071,14 @@ const Guid: React.FC = () => {
             enabledSkills: isPreset ? enabledSkills : undefined,
             // 预设助手 ID，用于在会话面板显示助手名称和头像
             // Preset assistant ID for displaying name and avatar in conversation panel
-            presetAssistantId: isPreset ? acpAgentInfo?.customAgentId : undefined,
+            // 使用原始 agentInfo 的 ID，确保 agent 类型切换后仍保留预设助手信息
+            // Use original agentInfo's ID to preserve preset assistant info after agent type fallback
+            presetAssistantId: isPreset ? agentInfo?.customAgentId || acpAgentInfo?.customAgentId : undefined,
           },
         });
 
         if (!conversation || !conversation.id) {
-          alert('Failed to create ACP conversation. Please check your ACP configuration and ensure the CLI is installed.');
+          console.error('Failed to create ACP conversation - conversation object is null or missing id');
           return;
         }
 
@@ -941,19 +1106,9 @@ const Guid: React.FC = () => {
         // 然后导航到会话页面
         await navigate(`/conversation/${conversation.id}`);
       } catch (error: unknown) {
+        // 静默处理错误，让会话面板的 AgentSetupCard 来处理可用性检查和自动切换
+        // Silently handle errors, let conversation panel's AgentSetupCard handle availability check and auto-switch
         console.error('Failed to create ACP conversation:', error);
-
-        // Check if it's an authentication error
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        if (errorMessage.includes('[ACP-AUTH-')) {
-          console.error(t('acp.auth.console_error'), errorMessage);
-          const confirmed = window.confirm(t('acp.auth.failed_confirm', { backend: selectedAgent, error: errorMessage }));
-          if (confirmed) {
-            void navigate('/settings/model');
-          }
-        } else {
-          alert(`Failed to create ${selectedAgent} ACP conversation. Please check your ACP configuration and ensure the CLI is installed.`);
-        }
         throw error; // Re-throw to prevent input clearing
       }
     }
@@ -1309,7 +1464,7 @@ const Guid: React.FC = () => {
                   </span>
                 </Dropdown>
 
-                {(selectedAgent === 'gemini' || (isPresetAgent && resolvePresetAgentType(selectedAgentInfo) === 'gemini')) && (
+                {((selectedAgent === 'gemini' && !isPresetAgent) || (isPresetAgent && currentEffectiveAgentInfo.agentType === 'gemini' && currentEffectiveAgentInfo.isAvailable)) && (
                   <Dropdown
                     trigger='hover'
                     droplist={
@@ -1454,7 +1609,12 @@ const Guid: React.FC = () => {
                   shape='circle'
                   type='primary'
                   loading={loading}
-                  disabled={!input.trim() || ((!selectedAgent || selectedAgent === 'gemini' || (isPresetAgent && resolvePresetAgentType(selectedAgentInfo) === 'gemini')) && !currentModel)}
+                  disabled={
+                    !input.trim() ||
+                    // For Gemini mode: disable only when logged in but no model selected
+                    // When not logged in, allow click to trigger Google login flow
+                    ((((!selectedAgent || selectedAgent === 'gemini') && !isPresetAgent) || (isPresetAgent && currentEffectiveAgentInfo.agentType === 'gemini' && currentEffectiveAgentInfo.isAvailable)) && !currentModel && isGoogleAuth)
+                  }
                   icon={<ArrowUp theme='outline' size='14' fill='white' strokeWidth={2} />}
                   onClick={() => {
                     handleSend().catch((error) => {
@@ -1487,6 +1647,25 @@ const Guid: React.FC = () => {
               {isPresetAgent && selectedAgentInfo ? (
                 // Selected Assistant View
                 <div className='flex flex-col w-full animate-fade-in'>
+                  {/* Main Agent Fallback Notice / Main Agent 回退提示 */}
+                  {currentEffectiveAgentInfo.isFallback && (
+                    <div
+                      className='mb-12px px-12px py-8px rd-8px text-12px flex items-center gap-8px'
+                      style={{
+                        background: 'rgb(var(--warning-1))',
+                        border: '1px solid rgb(var(--warning-3))',
+                        color: 'rgb(var(--warning-6))',
+                      }}
+                    >
+                      <span>
+                        {t('guid.agentFallbackNotice', {
+                          original: currentEffectiveAgentInfo.originalType.charAt(0).toUpperCase() + currentEffectiveAgentInfo.originalType.slice(1),
+                          fallback: currentEffectiveAgentInfo.agentType.charAt(0).toUpperCase() + currentEffectiveAgentInfo.agentType.slice(1),
+                          defaultValue: `${currentEffectiveAgentInfo.originalType.charAt(0).toUpperCase() + currentEffectiveAgentInfo.originalType.slice(1)} is unavailable, using ${currentEffectiveAgentInfo.agentType.charAt(0).toUpperCase() + currentEffectiveAgentInfo.agentType.slice(1)} instead.`,
+                        })}
+                      </span>
+                    </div>
+                  )}
                   <div className='w-full'>
                     <div className='flex items-center justify-between py-8px cursor-pointer select-none' onClick={() => setIsDescriptionExpanded(!isDescriptionExpanded)}>
                       <span className='text-13px text-[rgb(var(--primary-6))] opacity-80'>{t('settings.assistantDescription', { defaultValue: 'Assistant Description' })}</span>
