@@ -88,18 +88,60 @@ function loadShellEnvironment(): Record<string, string> {
 }
 
 /**
+ * Merge two PATH strings, removing duplicates while preserving order.
+ * Exported for unit testing.
+ *
+ * 合并两个 PATH 字符串，去重并保持顺序。
+ */
+export function mergePaths(path1?: string, path2?: string): string {
+  const separator = process.platform === 'win32' ? ';' : ':';
+  const paths1 = path1?.split(separator).filter(Boolean) || [];
+  const paths2 = path2?.split(separator).filter(Boolean) || [];
+
+  const seen = new Set<string>();
+  const merged: string[] = [];
+
+  // Add paths from first source (process.env, typically from terminal)
+  for (const p of paths1) {
+    if (!seen.has(p)) {
+      seen.add(p);
+      merged.push(p);
+    }
+  }
+
+  // Add paths from second source (shell env, for Finder/launchd launches)
+  for (const p of paths2) {
+    if (!seen.has(p)) {
+      seen.add(p);
+      merged.push(p);
+    }
+  }
+
+  return merged.join(separator);
+}
+
+/**
  * Get enhanced environment variables by merging shell env with process.env.
- * Priority: process.env < shell env < customEnv
+ * For PATH, we merge both sources to ensure CLI tools are found regardless of
+ * how the app was started (terminal vs Finder/launchd).
  *
  * 获取增强的环境变量，合并 shell 环境变量和 process.env。
- * 优先级: process.env < shell 环境 < customEnv
+ * 对于 PATH，合并两个来源以确保无论应用如何启动都能找到 CLI 工具。
  */
 export function getEnhancedEnv(customEnv?: Record<string, string>): Record<string, string> {
   const shellEnv = loadShellEnvironment();
+
+  // Merge PATH from both sources (shell env may miss nvm/fnm paths in dev mode)
+  // 合并两个来源的 PATH（开发模式下 shell 环境可能缺少 nvm/fnm 路径）
+  const mergedPath = mergePaths(process.env.PATH, shellEnv.PATH);
+
   return {
     ...process.env,
     ...shellEnv,
     ...customEnv,
+    // PATH must be set after spreading to ensure merged value is used
+    // When customEnv.PATH exists, merge it with the already merged path (fix: don't override)
+    PATH: customEnv?.PATH ? mergePaths(mergedPath, customEnv.PATH) : mergedPath,
   } as Record<string, string>;
 }
 

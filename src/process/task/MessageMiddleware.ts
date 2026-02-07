@@ -8,6 +8,7 @@ import type { TMessage } from '@/common/chatLib';
 import { ipcBridge } from '@/common';
 import { cronService, type AgentType } from '@process/services/cron/CronService';
 import { detectCronCommands, stripCronCommands, type CronCommand } from './CronCommandDetector';
+import { hasThinkTags, stripThinkTags } from './ThinkTagDetector';
 
 /**
  * Result of processing an agent response
@@ -25,9 +26,10 @@ export interface ProcessResult {
  * Process agent response before emitting to UI
  *
  * This middleware:
- * 1. Detects cron commands in completed messages
- * 2. Executes detected commands (create/list/delete jobs)
- * 3. Returns cleaned message for UI display
+ * 1. Strips think tags from messages (e.g., <think>...</think>)
+ * 2. Detects cron commands in completed messages
+ * 3. Executes detected commands (create/list/delete jobs)
+ * 4. Returns cleaned message for UI display
  *
  * @param conversationId - The conversation ID
  * @param agentType - The agent type (gemini, claude, codex, etc.)
@@ -49,25 +51,38 @@ export async function processAgentResponse(conversationId: string, agentType: Ag
     return { message, systemResponses };
   }
 
-  // Detect cron commands
-  const cronCommands = detectCronCommands(textContent);
-  if (cronCommands.length === 0) {
-    return { message, systemResponses };
+  let displayContent = textContent;
+  let needsDisplayMessage = false;
+
+  // Strip think tags first (internal reasoning tags from models like MiniMax, DeepSeek, etc.)
+  if (hasThinkTags(displayContent)) {
+    displayContent = stripThinkTags(displayContent);
+    needsDisplayMessage = true;
   }
 
-  // Handle detected commands
-  const responses = await handleCronCommands(conversationId, agentType, cronCommands);
-  systemResponses.push(...responses);
+  // Detect cron commands
+  const cronCommands = detectCronCommands(displayContent);
+  if (cronCommands.length > 0) {
+    // Handle detected commands
+    const responses = await handleCronCommands(conversationId, agentType, cronCommands);
+    systemResponses.push(...responses);
 
-  // Create display version with cron commands stripped
-  const displayContent = stripCronCommands(textContent);
-  const displayMessage = createDisplayMessage(message, displayContent);
+    // Strip cron commands from display
+    displayContent = stripCronCommands(displayContent);
+    needsDisplayMessage = true;
+  }
 
-  return {
-    message, // Original for database
-    displayMessage, // Cleaned for UI
-    systemResponses,
-  };
+  // Return cleaned message if any processing was done
+  if (needsDisplayMessage) {
+    const displayMessage = createDisplayMessage(message, displayContent);
+    return {
+      message, // Original for database
+      displayMessage, // Cleaned for UI
+      systemResponses,
+    };
+  }
+
+  return { message, systemResponses };
 }
 
 /**

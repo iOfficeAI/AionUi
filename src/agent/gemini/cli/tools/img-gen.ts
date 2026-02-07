@@ -139,23 +139,25 @@ export class ImageGenerationTool extends BaseDeclarativeTool<ImageGenerationTool
     super(
       ImageGenerationTool.Name,
       'ImageGeneration',
-      `AI image generation and analysis tool using OpenRouter API.
+      `REQUIRED tool for generating or editing images. You MUST use this tool for ANY image generation request.
+
+⚠️ CRITICAL: You (the AI assistant) CANNOT generate images directly. You MUST call this tool for:
+- Creating/generating any new images from text descriptions
+- Drawing, painting, or making any visual content
+- Editing or modifying existing images
 
 Primary Functions:
 - Generate new images from English text descriptions
-- Analyze and describe existing images (alternative to built-in vision)
 - Edit/modify existing images with English text prompts
-- Support multiple image processing and comparison
+- Analyze and describe existing images (alternative to built-in vision)
 
 IMPORTANT: All prompts must be in English for optimal results.
 
-When to Use:
-- When the current model lacks image analysis capabilities
-- For creating new images from text descriptions
-- For editing existing images with AI assistance
-- For processing multiple images together (comparison, combining, etc.)
-- As a fallback when built-in vision features are unavailable
-- IMPORTANT: Always use this tool when user mentions @filename with image extensions (.jpg, .jpeg, .png, .gif, .webp, .bmp, .tiff, .svg)
+When to Use (MANDATORY):
+- User asks to "generate", "create", "draw", "make", "paint" an image → MUST use this tool
+- User asks for any visual content creation → MUST use this tool
+- User asks to edit or modify an image → MUST use this tool
+- User mentions @filename with image extensions (.jpg, .jpeg, .png, .gif, .webp, .bmp, .tiff, .svg)
 
 Input Support:
 - Multiple local file paths in array format: ["img1.jpg", "img2.png"]
@@ -478,6 +480,7 @@ class ImageGenerationInvocation extends BaseToolInvocation<ImageGenerationToolPa
       const choice = completion.choices[0];
       if (!choice) {
         const errorMsg = 'No response from image generation API';
+        console.error(`[ImageGen] ${errorMsg}. Full response: ${JSON.stringify(completion).substring(0, 500)}`);
         return {
           llmContent: `Error: ${errorMsg}`,
           returnDisplay: errorMsg,
@@ -494,23 +497,59 @@ class ImageGenerationInvocation extends BaseToolInvocation<ImageGenerationToolPa
       let images = choice.message.images;
 
       // If no images field, try to extract from markdown in content
-      // Antigravity proxy returns images as ![image](data:mime;base64,xxx) in content
+      // OpenAI-compatible APIs may return images as markdown: ![alt](data:mime;base64,xxx) or ![alt](filename.jpg)
+      // Support various alt text formats: ![image](...), ![](...), ![generated](...), etc.
       if ((!images || images.length === 0) && responseText) {
-        const markdownImageRegex = /!\[image\]\((data:image\/[^;]+;base64,[^)]+)\)/g;
-        const matches = [...responseText.matchAll(markdownImageRegex)];
-        if (matches.length > 0) {
-          images = matches.map((match) => ({
+        // First try: Match markdown images with data URL format
+        const dataUrlRegex = /!\[[^\]]*\]\((data:image\/[^;]+;base64,[^)]+)\)/g;
+        const dataUrlMatches = [...responseText.matchAll(dataUrlRegex)];
+        if (dataUrlMatches.length > 0) {
+          images = dataUrlMatches.map((match) => ({
             type: 'image_url' as const,
             image_url: { url: match[1] },
           }));
+        } else {
+          // Second try: Match markdown images with file path (e.g., ![alt](img-xxx.jpg) or ![alt](path/to/image.png))
+          const filePathRegex = /!\[[^\]]*\]\(([^)]+\.(?:jpg|jpeg|png|gif|webp|bmp|tiff|svg))\)/gi;
+          const filePathMatches = [...responseText.matchAll(filePathRegex)];
+          if (filePathMatches.length > 0) {
+            const workspaceDir = this.config.getWorkingDir();
+
+            // Process file paths - convert to full path and read as base64
+            const processedImages: Array<{ type: 'image_url'; image_url: { url: string } }> = [];
+            for (const match of filePathMatches) {
+              const filePath = match[1];
+              const fullPath = path.isAbsolute(filePath) ? filePath : path.join(workspaceDir, filePath);
+
+              try {
+                // Check if file exists and read it
+                await fs.promises.access(fullPath);
+                const base64Data = await fileToBase64(fullPath);
+                const mimeType = getImageMimeType(fullPath);
+                processedImages.push({
+                  type: 'image_url',
+                  image_url: { url: `data:${mimeType};base64,${base64Data}` },
+                });
+              } catch (fileError) {
+                console.warn(`[ImageGen] Could not load image file: ${filePath}`, fileError);
+              }
+            }
+
+            if (processedImages.length > 0) {
+              images = processedImages;
+            }
+          }
         }
       }
 
       if (!images || images.length === 0) {
-        // No images generated, return text response
+        // No images generated - warn user with clear feedback
+        // 未生成图像 - 向用户提供清晰的反馈
+        console.warn(`[ImageGen] No images returned from model ${this.currentModel}. Response: ${responseText.substring(0, 200)}`);
+        const warningMessage = `⚠️ Image generation did not produce any images.\n\nModel response: ${responseText}\n\n💡 Tip: Make sure your image generation model supports this type of request. Current model: ${this.currentModel}`;
         return {
-          llmContent: responseText,
-          returnDisplay: responseText,
+          llmContent: warningMessage,
+          returnDisplay: warningMessage,
         };
       }
 
@@ -548,6 +587,10 @@ class ImageGenerationInvocation extends BaseToolInvocation<ImageGenerationToolPa
         returnDisplay: responseText,
       };
     } catch (error) {
+      // Log detailed error for debugging
+      // 记录详细错误用于调试
+      console.error(`[ImageGen] API call failed for model ${this.currentModel}:`, error);
+
       if (signal.aborted) {
         return {
           llmContent: 'Image generation was cancelled by user.',

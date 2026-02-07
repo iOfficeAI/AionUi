@@ -44,7 +44,7 @@ export function initSchema(db: Database.Database): void {
       id TEXT PRIMARY KEY,
       user_id TEXT NOT NULL,
       name TEXT NOT NULL,
-      type TEXT NOT NULL CHECK(type IN ('gemini', 'acp', 'codex')),
+      type TEXT NOT NULL CHECK(type IN ('gemini', 'acp', 'codex', 'openclaw-gateway')),
       extra TEXT NOT NULL,
       model TEXT,
       status TEXT CHECK(status IN ('pending', 'running', 'finished')),
@@ -108,4 +108,4 @@ export function setDatabaseVersion(db: Database.Database, version: number): void
  * Current database schema version
  * Update this when adding new migrations in migrations.ts
  */
-export const CURRENT_DB_VERSION = 10;
+export const CURRENT_DB_VERSION = 11;

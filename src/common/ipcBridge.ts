@@ -180,6 +180,7 @@ export const acpConversation = {
   >('acp.get-available-agents'),
   checkEnv: bridge.buildProvider<{ env: Record<string, string> }, void>('acp.check.env'),
   refreshCustomAgents: bridge.buildProvider<IBridgeResponse, void>('acp.refresh-custom-agents'),
+  checkAgentHealth: bridge.buildProvider<IBridgeResponse<{ available: boolean; latency?: number; error?: string }>, { backend: AcpBackend }>('acp.check-agent-health'),
   // clearAllCache: bridge.buildProvider<IBridgeResponse<{ details?: any }>, void>('acp.clear.all.cache'),
 };
 
@@ -200,6 +201,12 @@ export const mcpService = {
 export const codexConversation = {
   sendMessage: conversation.sendMessage,
   responseStream: conversation.responseStream,
+};
+
+// OpenClaw 对话相关接口 - 复用统一的conversation接口
+export const openclawConversation = {
+  sendMessage: conversation.sendMessage,
+  responseStream: bridge.buildEmitter<IResponseMessage>('openclaw.response.stream'),
 };
 
 // Database operations
@@ -348,7 +355,7 @@ export interface IConfirmMessageParams {
 }
 
 export interface ICreateConversationParams {
-  type: 'gemini' | 'acp' | 'codex';
+  type: 'gemini' | 'acp' | 'codex' | 'openclaw-gateway';
   id?: string;
   name?: string;
   model: TProviderWithModel;

@@ -154,34 +154,37 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
     [localeKey]
   );
 
+  // Helper function to sort assistants according to ASSISTANT_PRESETS order
+  // 根据 ASSISTANT_PRESETS 顺序排序助手的辅助函数
+  const sortAssistants = useCallback((agents: AcpBackendConfig[]) => {
+    const presetOrder = ASSISTANT_PRESETS.map((preset) => `builtin-${preset.id}`);
+    return agents
+      .filter((agent) => agent.isPreset)
+      .sort((a, b) => {
+        const indexA = presetOrder.indexOf(a.id);
+        const indexB = presetOrder.indexOf(b.id);
+        if (indexA !== -1 || indexB !== -1) {
+          if (indexA === -1) return 1;
+          if (indexB === -1) return -1;
+          return indexA - indexB;
+        }
+        return 0;
+      });
+  }, []);
+
   const loadAssistants = useCallback(async () => {
     try {
       // 从配置中读取已存储的助手（包含内置助手和用户自定义助手）
       // Read stored assistants from config (includes builtin and user-defined)
       const allAgents: AcpBackendConfig[] = (await ConfigStorage.get('acp.customAgents')) || [];
-      const presetOrder = ASSISTANT_PRESETS.map((preset) => `builtin-${preset.id}`);
+      const sortedAssistants = sortAssistants(allAgents);
 
-      // 过滤出助手（isPreset 为 true 的助手）
-      // Filter assistants (agents with isPreset = true)
-      const presetAssistants = allAgents
-        .filter((agent) => agent.isPreset)
-        .sort((a, b) => {
-          const indexA = presetOrder.indexOf(a.id);
-          const indexB = presetOrder.indexOf(b.id);
-          if (indexA !== -1 || indexB !== -1) {
-            if (indexA === -1) return 1;
-            if (indexB === -1) return -1;
-            return indexA - indexB;
-          }
-          return 0;
-        });
-
-      setAssistants(presetAssistants);
-      setActiveAssistantId((prev) => prev || presetAssistants[0]?.id || null);
+      setAssistants(sortedAssistants);
+      setActiveAssistantId((prev) => prev || sortedAssistants[0]?.id || null);
     } catch (error) {
       console.error('Failed to load assistant presets:', error);
     }
-  }, []);
+  }, [sortAssistants]);
 
   useEffect(() => {
     void loadAssistants();
@@ -373,7 +376,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
 
         const updatedAgents = [...agents, newAssistant];
         await ConfigStorage.set('acp.customAgents', updatedAgents);
-        setAssistants(updatedAgents.filter((agent) => agent.isPreset));
+        setAssistants(sortAssistants(updatedAgents));
         setActiveAssistantId(newId);
         message.success(t('common.createSuccess', { defaultValue: 'Created successfully' }));
       } else {
@@ -401,7 +404,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
 
         const updatedAgents = agents.map((agent) => (agent.id === activeAssistant.id ? updatedAgent : agent));
         await ConfigStorage.set('acp.customAgents', updatedAgents);
-        setAssistants(updatedAgents.filter((agent) => agent.isPreset));
+        setAssistants(sortAssistants(updatedAgents));
         message.success(t('common.saveSuccess', { defaultValue: 'Saved successfully' }));
       }
 
@@ -434,8 +437,11 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
       const agents = (await ConfigStorage.get('acp.customAgents')) || [];
       const updatedAgents = agents.filter((agent) => agent.id !== activeAssistant.id);
       await ConfigStorage.set('acp.customAgents', updatedAgents);
-      setAssistants(updatedAgents.filter((agent) => agent.isPreset));
-      setActiveAssistantId(updatedAgents.find((agent) => agent.isPreset)?.id || null);
+
+      // Apply sorting / 应用排序
+      const sortedAssistants = sortAssistants(updatedAgents);
+      setAssistants(sortedAssistants);
+      setActiveAssistantId(sortedAssistants[0]?.id || null);
       setDeleteConfirmVisible(false);
       setEditVisible(false);
       message.success(t('common.success', { defaultValue: 'Success' }));
@@ -452,7 +458,9 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
       const agents = (await ConfigStorage.get('acp.customAgents')) || [];
       const updatedAgents = agents.map((agent) => (agent.id === assistant.id ? { ...agent, enabled } : agent));
       await ConfigStorage.set('acp.customAgents', updatedAgents);
-      setAssistants(updatedAgents.filter((agent) => agent.isPreset));
+
+      // Apply sorting / 应用排序
+      setAssistants(sortAssistants(updatedAgents));
       await refreshAgentDetection();
     } catch (error) {
       console.error('Failed to toggle assistant:', error);
@@ -626,6 +634,7 @@ const AssistantManagement: React.FC<AssistantManagementProps> = ({ message }) =>
                 <Select.Option value='gemini'>Gemini</Select.Option>
                 <Select.Option value='claude'>Claude</Select.Option>
                 <Select.Option value='codex'>Codex</Select.Option>
+                <Select.Option value='opencode'>OpenCode</Select.Option>
               </Select>
             </div>
             <div className='flex-shrink-0'>
