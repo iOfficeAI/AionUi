@@ -32,7 +32,7 @@ const BUILTIN_AGENTS: AgentItem[] = [
 ];
 
 // ACP backend IDs to display (excluding gemini, codex, and custom)
-const ACP_AGENT_IDS: AcpBackendAll[] = ['claude', 'qwen', 'goose', 'auggie', 'kimi', 'opencode', 'droid', 'copilot', 'qoder', 'iflow', 'openclaw-gateway'];
+const ACP_AGENT_IDS: AcpBackendAll[] = ['claude', 'qwen', 'goose', 'auggie', 'kimi', 'opencode', 'droid', 'copilot', 'qoder', 'iflow'];
 
 // ==================== Component ====================
 
