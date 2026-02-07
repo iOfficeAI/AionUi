@@ -414,9 +414,99 @@ const migration_v10: IMigration = {
 };
 
 /**
+ * Migration v10 -> v11: Add 'openclaw-gateway' to conversations type constraint
+ * 为 conversations 表的 type 约束添加 'openclaw-gateway' 类型
+ */
+const migration_v11: IMigration = {
+  version: 11,
+  name: 'Add openclaw-gateway to conversations type constraint',
+  up: (db) => {
+    // SQLite doesn't support ALTER TABLE to modify CHECK constraints.
+    // We recreate the table with the new constraint.
+    // NOTE: The migration runner disables foreign_keys before the transaction,
+    // so DROP TABLE will NOT trigger ON DELETE CASCADE on the messages table.
+
+    // Clean up any invalid source values before copying
+    db.exec(`
+      UPDATE conversations SET source = NULL WHERE source IS NOT NULL AND source NOT IN ('aionui', 'telegram');
+    `);
+
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS conversations_new (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        type TEXT NOT NULL CHECK(type IN ('gemini', 'acp', 'codex', 'openclaw-gateway')),
+        extra TEXT NOT NULL,
+        model TEXT,
+        status TEXT CHECK(status IN ('pending', 'running', 'finished')),
+        source TEXT CHECK(source IS NULL OR source IN ('aionui', 'telegram')),
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+
+      -- Use explicit columns (ALTER TABLE ADD COLUMN appends at the end,
+      -- so column order in the old table may differ from the new table)
+      INSERT INTO conversations_new (id, user_id, name, type, extra, model, status, source, created_at, updated_at)
+      SELECT id, user_id, name, type, extra, model, status, source, created_at, updated_at FROM conversations;
+
+      DROP TABLE conversations;
+      ALTER TABLE conversations_new RENAME TO conversations;
+
+      -- Recreate indexes
+      CREATE INDEX IF NOT EXISTS idx_conversations_user_id ON conversations(user_id);
+      CREATE INDEX IF NOT EXISTS idx_conversations_updated_at ON conversations(updated_at);
+      CREATE INDEX IF NOT EXISTS idx_conversations_type ON conversations(type);
+      CREATE INDEX IF NOT EXISTS idx_conversations_user_updated ON conversations(user_id, updated_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_conversations_source ON conversations(source);
+      CREATE INDEX IF NOT EXISTS idx_conversations_source_updated ON conversations(source, updated_at DESC);
+    `);
+
+    console.log('[Migration v11] Added openclaw-gateway to conversations type constraint');
+  },
+  down: (db) => {
+    // Rollback: recreate table without openclaw-gateway type
+    // (data with openclaw-gateway type will be lost)
+    // NOTE: foreign_keys is disabled by the migration runner before the transaction.
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS conversations_rollback (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        type TEXT NOT NULL CHECK(type IN ('gemini', 'acp', 'codex')),
+        extra TEXT NOT NULL,
+        model TEXT,
+        status TEXT CHECK(status IN ('pending', 'running', 'finished')),
+        source TEXT CHECK(source IS NULL OR source IN ('aionui', 'telegram')),
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+      );
+
+      INSERT INTO conversations_rollback (id, user_id, name, type, extra, model, status, source, created_at, updated_at)
+      SELECT id, user_id, name, type, extra, model, status, source, created_at, updated_at FROM conversations WHERE type != 'openclaw-gateway';
+
+      DROP TABLE conversations;
+      ALTER TABLE conversations_rollback RENAME TO conversations;
+
+      CREATE INDEX IF NOT EXISTS idx_conversations_user_id ON conversations(user_id);
+      CREATE INDEX IF NOT EXISTS idx_conversations_updated_at ON conversations(updated_at);
+      CREATE INDEX IF NOT EXISTS idx_conversations_type ON conversations(type);
+      CREATE INDEX IF NOT EXISTS idx_conversations_user_updated ON conversations(user_id, updated_at DESC);
+      CREATE INDEX IF NOT EXISTS idx_conversations_source ON conversations(source);
+      CREATE INDEX IF NOT EXISTS idx_conversations_source_updated ON conversations(source, updated_at DESC);
+    `);
+
+    console.log('[Migration v11] Rolled back: Removed openclaw-gateway from conversations type constraint');
+  },
+};
+
+/**
  * All migrations in order
  */
-export const ALL_MIGRATIONS: IMigration[] = [migration_v1, migration_v2, migration_v3, migration_v4, migration_v5, migration_v6, migration_v7, migration_v8, migration_v9, migration_v10];
+// prettier-ignore
+export const ALL_MIGRATIONS: IMigration[] = [migration_v1, migration_v2, migration_v3, migration_v4, migration_v5, migration_v6, migration_v7, migration_v8, migration_v9, migration_v10, migration_v11];
 
 /**
  * Get migrations needed to upgrade from one version to another
@@ -454,6 +544,12 @@ export function runMigrations(db: Database.Database, fromVersion: number, toVers
 
   console.log(`[Migrations] Running ${migrations.length} migrations from v${fromVersion} to v${toVersion}`);
 
+  // Disable foreign keys BEFORE the transaction to allow table recreation
+  // (DROP TABLE + CREATE TABLE). PRAGMA foreign_keys cannot be changed inside
+  // a transaction — it is silently ignored.
+  // See: https://www.sqlite.org/lang_altertable.html#otheralter
+  db.pragma('foreign_keys = OFF');
+
   // Run all migrations in a single transaction
   const runAll = db.transaction(() => {
     for (const migration of migrations) {
@@ -467,6 +563,13 @@ export function runMigrations(db: Database.Database, fromVersion: number, toVers
         throw error; // Transaction will rollback
       }
     }
+
+    // Verify foreign key integrity after all migrations
+    const fkViolations = db.pragma('foreign_key_check') as unknown[];
+    if (fkViolations.length > 0) {
+      console.error('[Migrations] Foreign key violations detected:', fkViolations);
+      throw new Error(`[Migrations] Foreign key check failed: ${fkViolations.length} violation(s)`);
+    }
   });
 
   try {
@@ -475,6 +578,9 @@ export function runMigrations(db: Database.Database, fromVersion: number, toVers
   } catch (error) {
     console.error('[Migrations] Migration failed, all changes rolled back:', error);
     throw error;
+  } finally {
+    // Re-enable foreign keys regardless of success or failure
+    db.pragma('foreign_keys = ON');
   }
 }
 
@@ -497,6 +603,9 @@ export function rollbackMigrations(db: Database.Database, fromVersion: number, t
   console.log(`[Migrations] Rolling back ${migrations.length} migrations from v${fromVersion} to v${toVersion}`);
   console.warn('[Migrations] WARNING: This may cause data loss!');
 
+  // Disable foreign keys BEFORE the transaction (same reason as runMigrations)
+  db.pragma('foreign_keys = OFF');
+
   // Run all rollbacks in a single transaction
   const rollbackAll = db.transaction(() => {
     for (const migration of migrations) {
@@ -510,6 +619,13 @@ export function rollbackMigrations(db: Database.Database, fromVersion: number, t
         throw error; // Transaction will rollback
       }
     }
+
+    // Verify foreign key integrity after rollback
+    const fkViolations = db.pragma('foreign_key_check') as unknown[];
+    if (fkViolations.length > 0) {
+      console.error('[Migrations] Foreign key violations detected after rollback:', fkViolations);
+      throw new Error(`[Migrations] Foreign key check failed: ${fkViolations.length} violation(s)`);
+    }
   });
 
   try {
@@ -518,6 +634,8 @@ export function rollbackMigrations(db: Database.Database, fromVersion: number, t
   } catch (error) {
     console.error('[Migrations] Rollback failed:', error);
     throw error;
+  } finally {
+    db.pragma('foreign_keys = ON');
   }
 }
 

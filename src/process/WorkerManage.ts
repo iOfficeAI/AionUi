@@ -7,6 +7,7 @@
 import type { TChatConversation } from '@/common/storage';
 import AcpAgentManager from './task/AcpAgentManager';
 import { CodexAgentManager } from '@/agent/codex';
+import OpenClawAgentManager from './task/OpenClawAgentManager';
 // import type { AcpAgentTask } from './task/AcpAgentTask';
 import { ProcessChat } from './initStorage';
 import type AgentBaseTask from './task/BaseAgentManager';
@@ -80,6 +81,18 @@ const buildConversation = (conversation: TChatConversation, options?: BuildConve
     }
     case 'codex': {
       const task = new CodexAgentManager({
+        ...conversation.extra,
+        conversation_id: conversation.id,
+        // Runtime options / 运行时选项
+        yoloMode: options?.yoloMode,
+      });
+      if (!options?.skipCache) {
+        taskList.push({ id: conversation.id, task });
+      }
+      return task;
+    }
+    case 'openclaw-gateway': {
+      const task = new OpenClawAgentManager({
         ...conversation.extra,
         conversation_id: conversation.id,
         // Runtime options / 运行时选项
