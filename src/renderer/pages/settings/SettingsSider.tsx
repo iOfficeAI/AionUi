@@ -1,6 +1,6 @@
 import FlexFullContainer from '@/renderer/components/FlexFullContainer';
 import { isElectronDesktop } from '@/renderer/utils/platform';
-import { Computer, Gemini, Info, LinkCloud, System, Toolkit, Robot, Earth } from '@icon-park/react';
+import { Communication, Computer, Gemini, Info, LinkCloud, System, Toolkit, Robot, Earth } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -44,14 +44,12 @@ const SettingsSider: React.FC<{ collapsed?: boolean }> = ({ collapsed = false })
       },
     ];
 
-    // 仅在桌面端添加 WebUI 选项（包含 Assistant 配置）/ Only add WebUI option on desktop (includes Assistant config)
-    if (isDesktop) {
-      items.push({
-        label: t('settings.webui'),
-        icon: <Earth />,
-        path: 'webui',
-      });
-    }
+    // 桌面端显示 WebUI，WebUI 浏览器模式下显示 Channels / Desktop shows WebUI, WebUI browser mode shows Channels
+    items.push({
+      label: t('settings.webui'),
+      icon: isDesktop ? <Earth /> : <Communication />,
+      path: 'webui',
+    });
 
     items.push(
       {

@@ -58,6 +58,7 @@ export interface OpenAIChatCompletionResponse {
 export interface GeminiRequest {
   model: string;
   contents: Array<{
+    role?: string;
     parts: Array<{
       text?: string;
       inlineData?: {
@@ -73,6 +74,11 @@ export interface GeminiRequest {
       parameters?: any;
     }>;
   }>;
+  generationConfig?: {
+    responseModalities?: string[];
+    maxOutputTokens?: number;
+    temperature?: number;
+  };
 }
 
 /**
@@ -129,15 +135,27 @@ export class OpenAI2GeminiConverter implements ProtocolConverter<OpenAIChatCompl
       }
     }
 
-    // Use image generation model if request seems to be for image generation
+    // Check if request seems to be for image generation
+    // 检查请求是否为图片生成
     const isImageGeneration = parts.some((part) => part.text && (part.text.toLowerCase().includes('generate image') || part.text.toLowerCase().includes('create image') || part.text.toLowerCase().includes('draw') || part.text.toLowerCase().includes('make image')));
 
-    const model = isImageGeneration ? 'gemini-2.5-flash-image-preview' : this.config.defaultModel || params.model;
+    // Use the model passed in params, don't override with hardcoded model
+    // 使用传入的模型，不要硬编码覆盖
+    const model = params.model || this.config.defaultModel || 'gemini-1.5-flash';
 
     const request: GeminiRequest = {
       model,
-      contents: [{ parts }],
+      contents: [{ role: 'user', parts }],
     };
+
+    // For image generation, add responseModalities to request image output
+    // 对于图片生成，添加 responseModalities 以请求图片输出
+    if (isImageGeneration) {
+      request.generationConfig = {
+        responseModalities: ['IMAGE', 'TEXT'],
+      };
+      console.log(`[OpenAI2GeminiConverter] Image generation detected, adding responseModalities: ["IMAGE", "TEXT"]`);
+    }
 
     // Add tools if present in OpenAI request
     if (params.tools && params.tools.length > 0) {

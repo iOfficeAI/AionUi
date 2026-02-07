@@ -47,7 +47,8 @@
     "browse": "浏览",
     "remove": "移除",
     "show": "显示",
-    "hide": "隐藏"
+    "hide": "隐藏",
+    "goToSettings": "前往设置"
   },
   "update": {
     "modalTitle": "软件更新",
@@ -310,7 +311,13 @@
       "quotaExceededBody": "当前模型额度已用尽，是否切换到 {{model}}？",
       "quotaExceededNoFallback": "当前模型额度已用尽，请切换到其他可用模型。",
       "quotaSwitched": "已切换到 {{model}}。",
-      "confirmationLoadError": "确认对话框加载失败"
+      "apiErrorNoCli": "API 错误，没有可用的 CLI 代理进行回退。",
+      "apiErrorSwitchFailed": "创建回退会话失败。",
+      "apiErrorSwitched": "API 错误，已自动切换到 {{cli}} CLI",
+      "confirmationLoadError": "确认对话框加载失败",
+      "tryAnotherAgent": "尝试其他 Agent：",
+      "switchedToAgent": "已切换到 {{agent}}",
+      "switchAgentFailed": "切换 Agent 失败"
     },
     "contextUsage": {
       "contextUsed": "上下文已使用"
@@ -495,7 +502,7 @@
     "agent": "代理",
     "tools": "工具",
     "webui": "WebUI",
-    "channels": "Channels",
+    "channels": "频道",
     "webui.description": "把 AionUi 当作“7*24小时的远程助手”，,随时随地用远程设备安排任务。",
     "webui.steps": "步骤 1. 打开 WebUI 开关;  步骤 2. 复制访问地址;  步骤 3.远程浏览器打开",
     "webui.configuration": "WebUI 配置",
@@ -1205,5 +1212,51 @@
   "cron.drawer.schedule": "执行规则",
   "cron.drawer.nextRun": "下次执行",
   "cron.drawer.save": "保存",
-  "cron.drawer.saveSuccess": "保存成功"
+  "cron.drawer.saveSuccess": "保存成功",
+  "guid.agentFallbackNotice": "{{original}} 不可用，已自动切换到 {{fallback}}。",
+  "guid.noAgentAvailable": "没有可用的 Main Agent。请登录 Google 或安装 Claude/Codex CLI。是否前往设置？",
+  "guid.noAgentAvailableShort": "没有可用的 Main Agent。点击配置。",
+  "guid.agentTabAutoSwitch": "模型不兼容 Gemini，已自动切换到 {{fallback}}",
+  "guid.autoSwitchToAgent": "Gemini 未配置，正在自动切换到 {{agent}}",
+  "guid.autoSwitchedAgent": "{{from}} 不可用，已自动切换到 {{to}}",
+  "guid.scanning": {
+    "initialMessage": "当前Agent不可用, 正在检测其他可用agent...",
+    "scanningMessage": "正在扫描本地可用agent...",
+    "connectingMessage": "已连接成功，请稍后...",
+    "establishingConnection": "正在建立连接...",
+    "statusQueued": "排队中",
+    "statusTesting": "正在测试延迟...",
+    "statusUnreachable": "不可达",
+    "statusAvailable": "可用"
+  },
+  "agent": {
+    "health": {
+      "detectedError": "检测到当前 Agent ({{agent}}) 响应异常",
+      "autoSwitching": "。系统将自动尝试切换线路。",
+      "evaluating": "正在评估网络延迟与模型可用性...",
+      "checking": "检查 {{agent}} 节点...",
+      "foundBest": "已找到最佳替代方案",
+      "recommendSwitch": "推荐切换",
+      "available": "可用",
+      "lowLatency": "低延迟",
+      "mediumLatency": "中等延迟",
+      "highLatency": "高延迟",
+      "bestMatch": "最佳匹配",
+      "noAvailable": "当前环境没有可用 agent",
+      "checkConfig": "请检查配置或稍后重试"
+    },
+    "setup": {
+      "connectionError": "连接错误",
+      "notConfigured": "{{agent}} 尚未配置",
+      "authRequired": "使用此 Agent 需要先完成认证或配置 API Key。",
+      "findingAlternatives": "正在查找可用的替代方案...",
+      "checkingAgent": "正在检查 {{agent}}...",
+      "alternativesFound": "找到 {{count}} 个可用的替代方案",
+      "autoSwitching": "正在自动切换到最佳可用 Agent...",
+      "configError": "配置有问题，请检查配置或选择其他 Agent：",
+      "noAlternatives": "未找到可用的 Agent",
+      "configureFirst": "请先在设置中配置一个 Agent。",
+      "switching": "正在切换 Agent..."
+    }
+  }
 }

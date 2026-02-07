@@ -152,6 +152,27 @@ try {
     ensureDir(sourceDir, webpackDir, 'native_modules');
   }
 
+  // 4.1 Validate renderer entry exists (critical for packaged app)
+  const rendererIndex = path.join(webpackDir, 'renderer', 'main_window', 'index.html');
+  if (!fs.existsSync(rendererIndex)) {
+    const topLevelDirs = fs.readdirSync(webpackDir, { withFileTypes: true })
+      .filter(entry => entry.isDirectory())
+      .map(entry => entry.name);
+
+    for (const dirName of topLevelDirs) {
+      const candidate = path.join(webpackDir, dirName, 'renderer', 'main_window', 'index.html');
+      if (fs.existsSync(candidate)) {
+        console.log(`🔁 Found renderer entry under .webpack/${dirName}, copying to .webpack/renderer...`);
+        ensureDir(path.join(webpackDir, dirName), webpackDir, 'renderer');
+        break;
+      }
+    }
+  }
+
+  if (!fs.existsSync(rendererIndex)) {
+    throw new Error('Missing renderer entry: .webpack/renderer/main_window/index.html');
+  }
+
   // 5. 运行 electron-builder 生成分发包（DMG/ZIP/EXE等）
   // Run electron-builder to create distributables (DMG/ZIP/EXE, etc.)
   const isRelease = process.env.GITHUB_REF && process.env.GITHUB_REF.startsWith('refs/tags/v');

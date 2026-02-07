@@ -154,6 +154,7 @@ specs/**/work-*
 .spec-cache/
 .tmp/
 my-video
+${env.ELECTRON_CACHE}/
 
 # Agent Kit
 .agent
