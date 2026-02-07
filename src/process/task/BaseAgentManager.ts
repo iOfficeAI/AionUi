@@ -9,7 +9,7 @@ import path from 'path';
 import { ipcBridge } from '../../common';
 import type { IConfirmation } from '../../common/chatLib';
 
-type AgentType = 'gemini' | 'acp' | 'codex';
+type AgentType = 'gemini' | 'acp' | 'codex' | 'openclaw-gateway';
 
 /**
  * @description agent任务基础类

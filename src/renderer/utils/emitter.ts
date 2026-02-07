@@ -23,6 +23,10 @@ interface EventTypes {
   'codex.selected.file.append': [Array<string | FileOrFolderItem>];
   'codex.selected.file.clear': void;
   'codex.workspace.refresh': void;
+  'openclaw-gateway.selected.file': [Array<string | FileOrFolderItem>];
+  'openclaw-gateway.selected.file.append': [Array<string | FileOrFolderItem>];
+  'openclaw-gateway.selected.file.clear': void;
+  'openclaw-gateway.workspace.refresh': void;
   'chat.history.refresh': void;
   // 会话删除事件 / Conversation deletion event
   'conversation.deleted': [string]; // conversationId

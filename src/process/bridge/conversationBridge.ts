@@ -15,6 +15,7 @@ import { ProcessChat } from '../initStorage';
 import { ConversationService } from '../services/conversationService';
 import type AcpAgentManager from '../task/AcpAgentManager';
 import type { GeminiAgentManager } from '../task/GeminiAgentManager';
+import type OpenClawAgentManager from '../task/OpenClawAgentManager';
 import { copyFilesToDirectory, readDirectoryRecursive } from '../utils';
 import WorkerManage from '../WorkerManage';
 import { migrateConversationToDatabase } from './migrationUtils';
@@ -345,7 +346,7 @@ export function initConversationBridge(): void {
   ipcBridge.conversation.stop.provider(async ({ conversation_id }) => {
     const task = WorkerManage.getTaskById(conversation_id);
     if (!task) return { success: true, msg: 'conversation not found' };
-    if (task.type !== 'gemini' && task.type !== 'acp' && task.type !== 'codex') {
+    if (task.type !== 'gemini' && task.type !== 'acp' && task.type !== 'codex' && task.type !== 'openclaw-gateway') {
       return { success: false, msg: 'not support' };
     }
     await task.stop();
@@ -356,9 +357,9 @@ export function initConversationBridge(): void {
   ipcBridge.conversation.sendMessage.provider(async ({ conversation_id, files, ...other }) => {
     console.log(`[conversationBridge] sendMessage called: conversation_id=${conversation_id}, msg_id=${other.msg_id}`);
 
-    let task: GeminiAgentManager | AcpAgentManager | CodexAgentManager | undefined;
+    let task: GeminiAgentManager | AcpAgentManager | CodexAgentManager | OpenClawAgentManager | undefined;
     try {
-      task = (await WorkerManage.getTaskByIdRollbackBuild(conversation_id)) as GeminiAgentManager | AcpAgentManager | CodexAgentManager | undefined;
+      task = (await WorkerManage.getTaskByIdRollbackBuild(conversation_id)) as GeminiAgentManager | AcpAgentManager | CodexAgentManager | OpenClawAgentManager | undefined;
     } catch (err) {
       console.log(`[conversationBridge] sendMessage: failed to get/build task: ${conversation_id}`, err);
       return { success: false, msg: err instanceof Error ? err.message : 'conversation not found' };
@@ -384,6 +385,9 @@ export function initConversationBridge(): void {
         return { success: true };
       } else if (task.type === 'codex') {
         await (task as CodexAgentManager).sendMessage({ content: other.input, files: workspaceFiles, msg_id: other.msg_id });
+        return { success: true };
+      } else if (task.type === 'openclaw-gateway') {
+        await (task as OpenClawAgentManager).sendMessage({ content: other.input, files: workspaceFiles, msg_id: other.msg_id });
         return { success: true };
       } else {
         return { success: false, msg: `Unsupported task type: ${task.type}` };
