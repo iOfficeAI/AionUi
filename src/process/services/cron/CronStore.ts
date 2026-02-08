@@ -5,16 +5,12 @@
  */
 
 import { getDatabase } from '@process/database';
+import type { AcpBackendAll } from '@/types/acpTypes';
 
 /**
  * Cron schedule types
  */
 export type CronSchedule = { kind: 'at'; atMs: number; description: string } | { kind: 'every'; everyMs: number; description: string } | { kind: 'cron'; expr: string; tz?: string; description: string };
-
-/**
- * Agent types supported by AionUI
- */
-export type AgentType = 'gemini' | 'claude' | 'codex' | 'opencode' | 'qwen' | 'goose' | 'custom';
 
 /**
  * Cron job definition
@@ -30,7 +26,7 @@ export interface CronJob {
   metadata: {
     conversationId: string;
     conversationTitle?: string;
-    agentType: AgentType;
+    agentType: AcpBackendAll;
     createdBy: 'user' | 'agent';
     createdAt: number;
     updatedAt: number;
@@ -143,7 +139,7 @@ function rowToJob(row: CronJobRow): CronJob {
     metadata: {
       conversationId: row.conversation_id,
       conversationTitle: row.conversation_title ?? undefined,
-      agentType: row.agent_type as AgentType,
+      agentType: row.agent_type as AcpBackendAll,
       createdBy: row.created_by as 'user' | 'agent',
       createdAt: row.created_at,
       updatedAt: row.updated_at,
