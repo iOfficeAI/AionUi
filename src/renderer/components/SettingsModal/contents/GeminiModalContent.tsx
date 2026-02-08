@@ -8,7 +8,7 @@ import { ipcBridge } from '@/common';
 import { ConfigStorage } from '@/common/storage';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { useThemeContext } from '@/renderer/context/ThemeContext';
-import { Button, Divider, Form, Input, Message, Switch } from '@arco-design/web-react';
+import { Button, Divider, Form, Input, Message } from '@arco-design/web-react';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import classNames from 'classnames';
@@ -230,18 +230,6 @@ const GeminiModalContent: React.FC<GeminiModalContentProps> = ({ onRequestClose 
 
               <Form.Item label='GOOGLE_CLOUD_PROJECT' field='GOOGLE_CLOUD_PROJECT' layout='vertical'>
                 <Input className='aion-input' placeholder={t('settings.googleCloudProjectPlaceholder')} />
-              </Form.Item>
-
-              <Form.Item label={t('settings.yoloMode')} field='yoloMode' layout='horizontal'>
-                {(value, form) => (
-                  <div
-                    className={classNames('flex justify-end', {
-                      'mt-12px w-full justify-start md:mt-0 md:w-auto md:justify-end': isPageMode,
-                    })}
-                  >
-                    <Switch checked={value.yoloMode} onChange={(checked) => form.setFieldValue('yoloMode', checked)} />
-                  </div>
-                )}
               </Form.Item>
             </Form>
           </div>

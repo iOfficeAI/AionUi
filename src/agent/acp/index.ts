@@ -17,7 +17,7 @@ import { promises as fs } from 'fs';
 import * as path from 'path';
 import { AcpConnection } from './AcpConnection';
 import { AcpApprovalStore, createAcpApprovalKey } from './ApprovalStore';
-import { CLAUDE_YOLO_SESSION_MODE } from './constants';
+import { CLAUDE_YOLO_SESSION_MODE, QWEN_YOLO_SESSION_MODE } from './constants';
 import { getClaudeModel } from './utils';
 
 /**
@@ -205,13 +205,20 @@ export class AcpAgent {
         await this.createOrResumeSession();
       }
 
-      // Claude Code "YOLO" mode: bypass all permission checks (equivalent to --dangerously-skip-permissions)
-      if (this.extra.backend === 'claude' && this.extra.yoloMode) {
-        try {
-          await this.connection.setSessionMode(CLAUDE_YOLO_SESSION_MODE);
-        } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : String(error);
-          throw new Error(`[ACP] Failed to enable Claude YOLO mode (${CLAUDE_YOLO_SESSION_MODE}): ${errorMessage}`);
+      // YOLO mode: bypass all permission checks for supported backends
+      if (this.extra.yoloMode) {
+        const yoloModeMap: Partial<Record<AcpBackend, string>> = {
+          claude: CLAUDE_YOLO_SESSION_MODE,
+          qwen: QWEN_YOLO_SESSION_MODE,
+        };
+        const sessionMode = yoloModeMap[this.extra.backend];
+        if (sessionMode) {
+          try {
+            await this.connection.setSessionMode(sessionMode);
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            throw new Error(`[ACP] Failed to enable ${this.extra.backend} YOLO mode (${sessionMode}): ${errorMessage}`);
+          }
         }
       }
 
