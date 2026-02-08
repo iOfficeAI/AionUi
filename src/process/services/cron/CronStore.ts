@@ -5,6 +5,7 @@
  */
 
 import { getDatabase } from '@process/database';
+import type { AcpBackendAll } from '@/types/acpTypes';
 
 /**
  * Cron schedule types
@@ -12,9 +13,9 @@ import { getDatabase } from '@process/database';
 export type CronSchedule = { kind: 'at'; atMs: number; description: string } | { kind: 'every'; everyMs: number; description: string } | { kind: 'cron'; expr: string; tz?: string; description: string };
 
 /**
- * Agent types supported by AionUI
+ * Agent types supported by cron jobs (subset of AcpBackendAll)
  */
-export type AgentType = 'gemini' | 'claude' | 'codex' | 'opencode' | 'qwen' | 'goose' | 'custom';
+export type AgentType = Extract<AcpBackendAll, 'gemini' | 'claude' | 'codex' | 'opencode' | 'qwen' | 'goose' | 'custom'>;
 
 /**
  * Cron job definition

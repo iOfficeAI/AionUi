@@ -25,14 +25,14 @@ interface AgentItem {
 
 // ==================== Constants ====================
 
-// Built-in agents that are always shown
-const BUILTIN_AGENTS: AgentItem[] = [
-  { id: 'gemini', name: 'Gemini CLI', type: 'builtin', installed: true },
-  { id: 'codex', name: 'Codex', type: 'builtin', installed: true },
-];
+// Built-in agents that are always shown (gemini is built-in, no CLI detection needed)
+const BUILTIN_AGENTS: AgentItem[] = [{ id: 'gemini', name: 'Gemini CLI', type: 'builtin', installed: true }];
 
-// ACP backend IDs to display (excluding gemini, codex, and custom)
-const ACP_AGENT_IDS: AcpBackendAll[] = ['claude', 'qwen', 'goose', 'auggie', 'kimi', 'opencode', 'droid', 'copilot', 'qoder', 'iflow'];
+// ACP backends to exclude from security settings
+const EXCLUDED_ACP_BACKENDS: AcpBackendAll[] = ['gemini', 'custom', 'openclaw-gateway'];
+
+// ACP backend IDs to display (derived from ACP_BACKENDS_ALL, excluding specified backends)
+const ACP_AGENT_IDS = (Object.keys(ACP_BACKENDS_ALL) as AcpBackendAll[]).filter((id) => !EXCLUDED_ACP_BACKENDS.includes(id));
 
 // ==================== Component ====================
 
