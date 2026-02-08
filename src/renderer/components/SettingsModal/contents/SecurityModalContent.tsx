@@ -139,12 +139,10 @@ const SecurityModalContent: React.FC = () => {
           <div className='px-[12px] md:px-[32px] py-[24px] bg-2 rd-12px border border-border-2'>
             {/* Section Header */}
             <div className='flex items-center gap-8px mb-16px'>
-              <Shield theme='outline' size='20' fill={iconColors.secondary} />
-              <span className='text-16px font-500 text-t-primary'>{t('settings.autoApprove')}</span>
+              <Shield theme='outline' size='20' fill={iconColors.secondary} className='flex' />
+              <span className='text-16px font-500 text-t-primary leading-20px'>{t('settings.autoApprove')}</span>
               <Tooltip content={t('settings.autoApproveDesc')}>
-                <span className='inline-flex cursor-help'>
-                  <Help theme='outline' size='16' fill={iconColors.disabled} />
-                </span>
+                <Help theme='outline' size='16' fill={iconColors.disabled} className='flex cursor-help' />
               </Tooltip>
             </div>
 
