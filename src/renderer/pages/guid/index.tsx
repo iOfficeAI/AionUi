@@ -19,6 +19,7 @@ import GitHubLogo from '@/renderer/assets/logos/github.svg';
 import GooseLogo from '@/renderer/assets/logos/goose.svg';
 import IflowLogo from '@/renderer/assets/logos/iflow.svg';
 import KimiLogo from '@/renderer/assets/logos/kimi.svg';
+import MistralLogo from '@/renderer/assets/logos/mistral.svg';
 import OpenClawLogo from '@/renderer/assets/logos/openclaw.svg';
 import OpenCodeLogo from '@/renderer/assets/logos/opencode.svg';
 import QoderLogo from '@/renderer/assets/logos/qoder.png';
@@ -31,7 +32,7 @@ import { useGeminiGoogleAuthModels } from '@/renderer/hooks/useGeminiGoogleAuthM
 import { useInputFocusRing } from '@/renderer/hooks/useInputFocusRing';
 import { usePasteService } from '@/renderer/hooks/usePasteService';
 import { useConversationTabs } from '@/renderer/pages/conversation/context/ConversationTabsContext';
-import { allSupportedExts, type FileMetadata, getCleanFileNames } from '@/renderer/services/FileService';
+import { allSupportedExts, getCleanFileNames, type FileMetadata } from '@/renderer/services/FileService';
 import { iconColors } from '@/renderer/theme/colors';
 import { emitter } from '@/renderer/utils/emitter';
 import { buildDisplayMessage } from '@/renderer/utils/messageFiles';
@@ -183,6 +184,7 @@ const AGENT_LOGO_MAP: Partial<Record<AcpBackend, string>> = {
   opencode: OpenCodeLogo,
   copilot: GitHubLogo,
   qoder: QoderLogo,
+  vibe: MistralLogo,
   'openclaw-gateway': OpenClawLogo,
 };
 const CUSTOM_AVATAR_IMAGE_MAP: Record<string, string> = {

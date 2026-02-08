@@ -223,7 +223,7 @@ export class AcpConnection {
   private isSetupComplete = false;
 
   // 通用的后端连接方法
-  private async connectGenericBackend(backend: 'gemini' | 'qwen' | 'iflow' | 'droid' | 'goose' | 'auggie' | 'kimi' | 'opencode' | 'copilot' | 'qoder' | 'custom', cliPath: string, workingDir: string, acpArgs?: string[], customEnv?: Record<string, string>): Promise<void> {
+  private async connectGenericBackend(backend: 'gemini' | 'qwen' | 'iflow' | 'droid' | 'goose' | 'auggie' | 'kimi' | 'opencode' | 'copilot' | 'qoder' | 'vibe' | 'custom', cliPath: string, workingDir: string, acpArgs?: string[], customEnv?: Record<string, string>): Promise<void> {
     const config = createGenericSpawnConfig(cliPath, workingDir, acpArgs, customEnv);
     this.child = spawn(config.command, config.args, config.options);
     await this.setupChildProcessHandlers(backend);
@@ -254,6 +254,7 @@ export class AcpConnection {
       case 'opencode':
       case 'copilot':
       case 'qoder':
+      case 'vibe':
         if (!cliPath) {
           throw new Error(`CLI path is required for ${backend} backend`);
         }
