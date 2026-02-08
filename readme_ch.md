@@ -19,7 +19,7 @@
 ---
 
 <p align="center">
-  <strong>🚀 基于 Gemini CLI、Claude Code、Codex、Qwen Code、Goose CLI、Auggie 等的「Cowork」个人助手</strong><br>
+  <strong>🚀 基于 Gemini CLI、Claude Code、Codex、Qwen Code、Goose CLI、OpenClaw、Auggie 等的「Cowork」个人助手</strong><br>
   <em>用户友好 | 可视化图形界面 | 多模型支持 | 本地数据安全</em>
 </p>
 
@@ -55,27 +55,31 @@
 ## ✨ 看看 AionUi 能做什么？
 
 <p align="center">
-  <img src="./resources/offica-ai BANNER-function.png" alt="AionUi - Cowork with Your CLI AI Agent" width="800">
+  <img src="./resources/offica-ai%20BANNER-function.png" alt="AionUi - Cowork with Your CLI AI Agent" width="800">
 </p>
 
 ### 🤖 **多代理模式 - Cowork for 你的命令行 AI 工具，统一图形界面**
 
-_AionUi 内置 Gemini CLI，下载即用，无需额外安装；如果你已经安装了 Gemini CLI、Claude Code、CodeX、Qwen Code、Goose AI、Augment Code 等命令行工具，AionUi 会自动检测并为它们提供统一的图形界面，体验更丰富_
+_AionUi 内置 Gemini CLI，下载即用，无需额外安装；如果你已经安装了 Gemini CLI、Claude Code、CodeX、Qwen Code、Goose AI、OpenClaw、Augment Code 等命令行工具，AionUi 会自动检测并为它们提供统一的图形界面，体验更丰富_
 
 - ✅ **自动检测 + 统一界面** - 自动识别本地 CLI 工具，提供统一的图形界面，告别命令行
 - ✅ **本地保存 + 多会话** - 对话保存在本地，支持多会话并行，每个会话独立上下文
 
 <p align="center">
-  <img src="./resources/acp home page.gif" alt="多代理模式演示" width="800">
+  <img src="./resources/acp%20home%20page.gif" alt="多代理模式演示" width="800">
+</p>
+
+<p align="center">
+  <img src="./resources/openclawvia.png" alt="AionUi 中的 OpenClaw 集成" width="800">
 </p>
 
 ---
 
 ### 🌐 **随时随地访问你的AionUi**
 
-_你的 7×24 小时 AI 助手 - 从任何设备、任何地方访问 AionUi！出差、在家、办公室，随时随地通过 WebUI 或 Telegram 使用你的 AI 工具_
+_你的 7×24 小时 AI 助手 - 从任何设备、任何地方访问 AionUi！出差、在家、办公室，随时随地通过 WebUI 或多种聊天平台使用你的 AI 工具_
 
-AionUi 提供两种远程访问方式：
+AionUi 提供多种远程访问方式：
 
 - **🌐 WebUI 模式**
 
@@ -83,14 +87,15 @@ AionUi 提供两种远程访问方式：
 
   > 💡 **需要详细配置指南？** 查看 [远程外网连接教程](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide-Chinese)
 
-- **📱 Telegram Channel**
+- **📱 聊天平台集成**
+  - **Telegram** - 在任何设备上与 AI 助手聊天
+  - **Lark (Feishu/飞书)** - 通过飞书机器人进行企业协作
+  - **Slack** 等更多平台正在开发中 🚧
 
-  通过 Telegram 在任何设备上直接与你的 AI 助手聊天。简单的配对码系统，确保安全访问。
-
-  > 💡 **如何设置：** 前往 AionUi 设置 → WebUI 设置 → Channel，从 [@BotFather](https://t.me/BotFather) 获取你的 Bot Token，然后开始聊天！
+  > 💡 **如何设置：** 前往 AionUi 设置 → WebUI 设置 → Channel，配置对应的 Bot Token 即可开始使用！
 
 <p align="center">
-  <img src="./resources/remote-telegram.png" alt="随时随地访问 - WebUI & Telegram" width="800">
+  <img src="./resources/remote-telegram.png" alt="随时随地访问 - WebUI & 聊天平台" width="800">
 </p>
 
 ---
@@ -119,7 +124,7 @@ _批量重命名、自动整理、智能分类、文件合并_
 - **高效批量**：一键重命名、合并文件，彻底告别繁琐手动。
 
 <p align="center">
-  <img src="./resources/aionui sort file.gif" alt="智能文件管理演示" width="800">
+  <img src="./resources/aionui%20sort%20file.gif" alt="智能文件管理演示" width="800">
 </p>
 
 ---
@@ -159,12 +164,42 @@ _支持 Gemini、OpenAI、Claude、Qwen 等主流模型，以及 Ollama、LM Stu
 
 ---
 
+### 🛠️ **AI 助手与技能生态**
+
+_可扩展的助手系统，内置专业助手，支持自定义技能_
+
+<details>
+<summary><strong>🔍 点击探索 AI 助手与技能 ▶️</strong></summary>
+
+<br>
+
+AionUi 内置 **10+ 个专业助手**，每个助手都具备预定义能力，可通过自定义技能扩展：
+
+- **🤝 Cowork** - 自主任务执行（文件操作、文档处理、工作流规划）
+- **📊 PPTX 生成器** - 生成 PPTX 演示文稿
+- **📄 PDF 转 PPT** - PDF 转 PPT 转换
+- **🎮 3D 游戏生成** - 单文件 3D 游戏生成
+- **🎨 UI/UX 专业设计师** - 专业 UI/UX 设计（57 种风格、95 个配色方案）
+- **📋 文件规划助手** - 复杂任务的文件规划
+- **🧭 HUMAN 3.0 教练** - 个人发展教练
+- **📣 社交招聘发布助手** - 招聘信息发布
+- **🦞 moltbook** - 免部署集成，支持自动定时触发、活动汇报推送，无缝接入 AI 代理社交网络
+- **📈 Beautiful Mermaid** - 流程图、时序图等图表生成
+
+**自定义技能**：在 `skills/` 目录创建技能，为助手启用/禁用技能，扩展 AI 能力。内置技能包括 `pptx`、`docx`、`pdf`、`xlsx`、`mermaid` 等。
+
+> 💡 每个助手由 markdown 文件定义，查看 `assistant/` 目录获取示例。
+
+</details>
+
+---
+
 ### 🎨 **个性化界面定制**
 
 _自己写 CSS 代码自定义，让你的交互界面符合你的心意_
 
 <p align="center">
-  <img src="./resources/css with skin.gif" alt="CSS 自定义界面演示" width="800">
+  <img src="./resources/css%20with%20skin.gif" alt="CSS 自定义界面演示" width="800">
 </p>
 
 - ✅ **完全自定义** - 通过 CSS 代码自由定制界面颜色、风格、布局，打造专属使用体验
