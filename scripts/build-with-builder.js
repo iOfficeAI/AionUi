@@ -175,8 +175,9 @@ try {
 
   // 5. 运行 electron-builder 生成分发包（DMG/ZIP/EXE等）
   // Run electron-builder to create distributables (DMG/ZIP/EXE, etc.)
-  const isRelease = process.env.GITHUB_REF && process.env.GITHUB_REF.startsWith('refs/tags/v');
-  const publishArg = isRelease ? '' : '--publish=never';
+  // Always disable auto-publish to avoid electron-builder's implicit tag-based publishing
+  // Publishing is handled by a separate release job in CI
+  const publishArg = '--publish=never';
 
   // 根据模式添加架构标志
   // Add arch flags based on mode
