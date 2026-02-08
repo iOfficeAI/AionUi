@@ -13,11 +13,6 @@ import type { AcpBackendAll } from '@/types/acpTypes';
 export type CronSchedule = { kind: 'at'; atMs: number; description: string } | { kind: 'every'; everyMs: number; description: string } | { kind: 'cron'; expr: string; tz?: string; description: string };
 
 /**
- * Agent types supported by cron jobs (subset of AcpBackendAll)
- */
-export type AgentType = Extract<AcpBackendAll, 'gemini' | 'claude' | 'codex' | 'opencode' | 'qwen' | 'goose' | 'custom'>;
-
-/**
  * Cron job definition
  */
 export interface CronJob {
@@ -31,7 +26,7 @@ export interface CronJob {
   metadata: {
     conversationId: string;
     conversationTitle?: string;
-    agentType: AgentType;
+    agentType: AcpBackendAll;
     createdBy: 'user' | 'agent';
     createdAt: number;
     updatedAt: number;
@@ -144,7 +139,7 @@ function rowToJob(row: CronJobRow): CronJob {
     metadata: {
       conversationId: row.conversation_id,
       conversationTitle: row.conversation_title ?? undefined,
-      agentType: row.agent_type as AgentType,
+      agentType: row.agent_type as AcpBackendAll,
       createdBy: row.created_by as 'user' | 'agent',
       createdAt: row.created_at,
       updatedAt: row.updated_at,

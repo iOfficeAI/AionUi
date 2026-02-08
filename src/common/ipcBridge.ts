@@ -301,8 +301,6 @@ export const cron = {
 // Cron job types for IPC
 export type ICronSchedule = { kind: 'at'; atMs: number; description: string } | { kind: 'every'; everyMs: number; description: string } | { kind: 'cron'; expr: string; tz?: string; description: string };
 
-export type ICronAgentType = Extract<AcpBackendAll, 'gemini' | 'claude' | 'codex' | 'opencode' | 'qwen' | 'goose' | 'custom'>;
-
 export interface ICronJob {
   id: string;
   name: string;
@@ -312,7 +310,7 @@ export interface ICronJob {
   metadata: {
     conversationId: string;
     conversationTitle?: string;
-    agentType: ICronAgentType;
+    agentType: AcpBackendAll;
     createdBy: 'user' | 'agent';
     createdAt: number;
     updatedAt: number;
@@ -334,7 +332,7 @@ export interface ICreateCronJobParams {
   message: string;
   conversationId: string;
   conversationTitle?: string;
-  agentType: ICronAgentType;
+  agentType: AcpBackendAll;
   createdBy: 'user' | 'agent';
 }
 
