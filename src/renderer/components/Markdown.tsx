@@ -14,6 +14,7 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 
 import { ipcBridge } from '@/common';
+import { diffColors } from '@/renderer/theme/colors';
 import { Message } from '@arco-design/web-react';
 import { Copy, Down, Up } from '@icon-park/react';
 import { theme } from '@office-ai/platform';
@@ -50,18 +51,19 @@ const logicRender = <T, F>(condition: boolean, trueComponent: T, falseComponent?
  */
 const getDiffLineStyle = (line: string, isDark: boolean): React.CSSProperties => {
   if (line.startsWith('+') && !line.startsWith('+++')) {
-    return { backgroundColor: isDark ? 'rgba(46,160,67,0.15)' : '#e6ffec' };
+    return { backgroundColor: isDark ? diffColors.additionBgDark : diffColors.additionBgLight };
   }
   if (line.startsWith('-') && !line.startsWith('---')) {
-    return { backgroundColor: isDark ? 'rgba(248,81,73,0.15)' : '#ffebe9' };
+    return { backgroundColor: isDark ? diffColors.deletionBgDark : diffColors.deletionBgLight };
   }
   if (line.startsWith('@@')) {
-    return { backgroundColor: isDark ? 'rgba(56,139,253,0.15)' : '#ddf4ff' };
+    return { backgroundColor: isDark ? diffColors.hunkBgDark : diffColors.hunkBgLight };
   }
   return {};
 };
 
 function CodeBlock(props: any) {
+  const { t } = useTranslation();
   const [fold, setFlow] = useState(false);
   const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>(() => {
     return (document.documentElement.getAttribute('data-theme') as 'light' | 'dark') || 'light';
@@ -147,7 +149,7 @@ function CodeBlock(props: any) {
                 fill='var(--text-secondary)'
                 onClick={() => {
                   void navigator.clipboard.writeText(formatCode(children)).then(() => {
-                    Message.success('复制成功');
+                    Message.success(t('common.copySuccess'));
                   });
                 }}
               />
@@ -191,7 +193,7 @@ function CodeBlock(props: any) {
         </div>
       </div>
     );
-  }, [props, currentTheme, fold]);
+  }, [props, currentTheme, fold, t]);
 }
 
 const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string>, customCss?: string) => {

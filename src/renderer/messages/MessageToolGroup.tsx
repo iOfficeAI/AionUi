@@ -11,11 +11,10 @@ import { Alert, Button, Image, Message, Radio, Tag, Tooltip } from '@arco-design
 import { Copy, Download, LoadingOne } from '@icon-park/react';
 import React, { useCallback, useContext, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import FileChangesPanel, { type FileChangeItem } from '@/renderer/components/base/FileChangesPanel';
-import { usePreviewLauncher } from '@/renderer/hooks/usePreviewLauncher';
-import { extractContentFromDiff } from '@/renderer/utils/diffUtils';
-import { getFileTypeInfo } from '@/renderer/utils/fileType';
-import MessageFileChanges, { parseDiff } from './codex/MessageFileChanges';
+import FileChangesPanel from '@/renderer/components/base/FileChangesPanel';
+import { useDiffPreviewHandlers } from '@/renderer/hooks/useDiffPreviewHandlers';
+import { parseDiff } from '@/renderer/utils/diffUtils';
+import MessageFileChanges from './codex/MessageFileChanges';
 import CollapsibleContent from '../components/CollapsibleContent';
 import LocalImageView from '../components/LocalImageView';
 import MarkdownView from '../components/Markdown';
@@ -125,42 +124,9 @@ const useConfirmationButtons = (confirmationDetails: IMessageToolGroupProps['mes
 };
 
 const EditConfirmationDiff: React.FC<{ diff: string; fileName: string; title: string }> = ({ diff, fileName, title }) => {
-  const { launchPreview } = usePreviewLauncher();
   const fileInfo = useMemo(() => parseDiff(diff, fileName), [diff, fileName]);
   const displayName = fileName.split(/[/\\]/).pop() || fileName;
-
-  // 点击预览按钮 → 打开文件预览 / Click preview → open file preview
-  const handleFileClick = useCallback(
-    (_file: FileChangeItem) => {
-      const { contentType, editable, language } = getFileTypeInfo(displayName);
-      void launchPreview({
-        relativePath: fileName,
-        fileName: displayName,
-        title,
-        contentType,
-        editable,
-        language,
-        fallbackContent: editable ? extractContentFromDiff(diff) : undefined,
-        diffContent: diff,
-      });
-    },
-    [diff, displayName, fileName, title, launchPreview]
-  );
-
-  // 点击变更统计 → 打开 diff 对比 / Click stats → open diff view
-  const handleDiffClick = useCallback(
-    (_file: FileChangeItem) => {
-      void launchPreview({
-        fileName: displayName,
-        title,
-        contentType: 'diff',
-        editable: false,
-        language: 'diff',
-        diffContent: diff,
-      });
-    },
-    [diff, displayName, fileName, title, launchPreview]
-  );
+  const { handleFileClick, handleDiffClick } = useDiffPreviewHandlers({ diffText: diff, displayName, filePath: fileName, title });
 
   return <FileChangesPanel title={title} files={[fileInfo]} onFileClick={handleFileClick} onDiffClick={handleDiffClick} defaultExpanded={true} />;
 };
@@ -458,8 +424,8 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
                     callId: callId,
                     conversation_id: message.conversation_id,
                   })
-                  .then((res) => {
-                    console.log('------onConfirm.res>:', res);
+                  .then(() => {
+                    // confirmation sent successfully
                   })
                   .catch((error) => {
                     console.error('Failed to confirm message:', error);

@@ -7,7 +7,7 @@
 import classNames from 'classnames';
 import React, { useState } from 'react';
 import { Down, PreviewOpen } from '@icon-park/react';
-import { iconColors } from '@/renderer/theme/colors';
+import { diffColors, iconColors } from '@/renderer/theme/colors';
 import { useTranslation } from 'react-i18next';
 
 /**
@@ -63,7 +63,7 @@ const FileChangesPanel: React.FC<FileChangesPanelProps> = ({ title, files, defau
       <div className='flex items-center justify-between px-16px py-12px cursor-pointer select-none' onClick={() => setExpanded(!expanded)}>
         <div className='flex items-center gap-8px'>
           {/* 绿色圆点 / Green dot */}
-          <span className='w-8px h-8px rounded-full bg-[#52c41a] shrink-0'></span>
+          <span className='w-8px h-8px rounded-full shrink-0' style={{ backgroundColor: diffColors.addition }}></span>
           {/* 标题 / Title */}
           <span className='text-14px text-t-primary font-medium'>{title}</span>
         </div>
@@ -91,8 +91,16 @@ const FileChangesPanel: React.FC<FileChangesPanelProps> = ({ title, files, defau
                       onDiffClick?.(file);
                     }}
                   >
-                    {file.insertions > 0 && <span className='text-14px text-[#52c41a] font-medium'>+{file.insertions}</span>}
-                    {file.deletions > 0 && <span className='text-14px text-[#ff4d4f] font-medium'>-{file.deletions}</span>}
+                    {file.insertions > 0 && (
+                      <span className='text-14px font-medium' style={{ color: diffColors.addition }}>
+                        +{file.insertions}
+                      </span>
+                    )}
+                    {file.deletions > 0 && (
+                      <span className='text-14px font-medium' style={{ color: diffColors.deletion }}>
+                        -{file.deletions}
+                      </span>
+                    )}
                   </span>
                 )}
                 {/* 预览按钮 - 点击打开文件预览 / Preview button - click to open file preview */}

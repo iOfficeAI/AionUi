@@ -5,54 +5,21 @@
  */
 
 import type { CodexToolCallUpdate } from '@/common/chatLib';
-import FileChangesPanel, { type FileChangeItem } from '@/renderer/components/base/FileChangesPanel';
-import { usePreviewLauncher } from '@/renderer/hooks/usePreviewLauncher';
-import { extractContentFromDiff } from '@/renderer/utils/diffUtils';
-import { getFileTypeInfo } from '@/renderer/utils/fileType';
-import { parseDiff } from '../MessageFileChanges';
-import React, { useCallback, useMemo } from 'react';
+import FileChangesPanel from '@/renderer/components/base/FileChangesPanel';
+import { useDiffPreviewHandlers } from '@/renderer/hooks/useDiffPreviewHandlers';
+import { parseDiff } from '@/renderer/utils/diffUtils';
+import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 type TurnDiffContent = Extract<CodexToolCallUpdate, { subtype: 'turn_diff' }>;
 
 const TurnDiffDisplay: React.FC<{ content: TurnDiffContent }> = ({ content }) => {
   const { t } = useTranslation();
-  const { launchPreview } = usePreviewLauncher();
   const { data } = content;
   const { unified_diff } = data;
 
   const fileInfo = useMemo(() => parseDiff(unified_diff), [unified_diff]);
-
-  // 点击预览按钮 → 打开文件预览 / Click preview → open file preview
-  const handleFileClick = useCallback(
-    (_file: FileChangeItem) => {
-      const { contentType, editable, language } = getFileTypeInfo(fileInfo.fileName);
-      void launchPreview({
-        relativePath: fileInfo.fullPath,
-        fileName: fileInfo.fileName,
-        contentType,
-        editable,
-        language,
-        fallbackContent: editable ? extractContentFromDiff(unified_diff) : undefined,
-        diffContent: unified_diff,
-      });
-    },
-    [fileInfo, launchPreview, unified_diff]
-  );
-
-  // 点击变更统计 → 打开 diff 对比 / Click stats → open diff view
-  const handleDiffClick = useCallback(
-    (_file: FileChangeItem) => {
-      void launchPreview({
-        fileName: fileInfo.fileName,
-        contentType: 'diff',
-        editable: false,
-        language: 'diff',
-        diffContent: unified_diff,
-      });
-    },
-    [fileInfo, launchPreview, unified_diff]
-  );
+  const { handleFileClick, handleDiffClick } = useDiffPreviewHandlers({ diffText: unified_diff, displayName: fileInfo.fileName, filePath: fileInfo.fullPath });
 
   return <FileChangesPanel title={t('messages.fileChangesCount', { count: 1 })} files={[fileInfo]} onFileClick={handleFileClick} onDiffClick={handleDiffClick} defaultExpanded={true} />;
 };

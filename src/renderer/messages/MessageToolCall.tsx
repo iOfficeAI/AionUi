@@ -5,20 +5,17 @@
  */
 
 import type { IMessageToolCall } from '@/common/chatLib';
-import FileChangesPanel, { type FileChangeItem } from '@/renderer/components/base/FileChangesPanel';
-import { usePreviewLauncher } from '@/renderer/hooks/usePreviewLauncher';
-import { extractContentFromDiff } from '@/renderer/utils/diffUtils';
-import { getFileTypeInfo } from '@/renderer/utils/fileType';
-import { parseDiff } from './codex/MessageFileChanges';
+import FileChangesPanel from '@/renderer/components/base/FileChangesPanel';
+import { useDiffPreviewHandlers } from '@/renderer/hooks/useDiffPreviewHandlers';
+import { parseDiff } from '@/renderer/utils/diffUtils';
 import { Alert } from '@arco-design/web-react';
 import { MessageSearch } from '@icon-park/react';
 import { createTwoFilesPatch } from 'diff';
-import React, { useCallback, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import MarkdownView from '../components/Markdown';
 import { iconColors } from '@/renderer/theme/colors';
 
 const ReplacePreview: React.FC<{ message: IMessageToolCall }> = ({ message }) => {
-  const { launchPreview } = usePreviewLauncher();
   const filePath = message.content.args.file_path;
 
   const diffText = useMemo(() => {
@@ -26,39 +23,8 @@ const ReplacePreview: React.FC<{ message: IMessageToolCall }> = ({ message }) =>
   }, [filePath, message.content.args.old_string, message.content.args.new_string]);
 
   const fileInfo = useMemo(() => parseDiff(diffText, filePath), [diffText, filePath]);
-
   const displayName = filePath.split(/[/\\]/).pop() || filePath;
-
-  // 点击预览按钮 → 打开文件预览 / Click preview → open file preview
-  const handleFileClick = useCallback(
-    (_file: FileChangeItem) => {
-      const { contentType, editable, language } = getFileTypeInfo(displayName);
-      void launchPreview({
-        relativePath: filePath,
-        fileName: displayName,
-        contentType,
-        editable,
-        language,
-        fallbackContent: editable ? extractContentFromDiff(diffText) : undefined,
-        diffContent: diffText,
-      });
-    },
-    [diffText, displayName, filePath, launchPreview]
-  );
-
-  // 点击变更统计 → 打开 diff 对比 / Click stats → open diff view
-  const handleDiffClick = useCallback(
-    (_file: FileChangeItem) => {
-      void launchPreview({
-        fileName: displayName,
-        contentType: 'diff',
-        editable: false,
-        language: 'diff',
-        diffContent: diffText,
-      });
-    },
-    [diffText, displayName, launchPreview]
-  );
+  const { handleFileClick, handleDiffClick } = useDiffPreviewHandlers({ diffText, displayName, filePath });
 
   return <FileChangesPanel title={fileInfo.fileName} files={[fileInfo]} onFileClick={handleFileClick} onDiffClick={handleDiffClick} defaultExpanded={true} />;
 };

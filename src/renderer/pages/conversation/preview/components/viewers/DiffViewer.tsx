@@ -77,7 +77,7 @@ const DiffPreview: React.FC<DiffPreviewProps> = ({ content, hideToolbar = false,
     operatorRef.current = document.createElement('div');
   }
 
-  // Inject operator into d2h-file-header after each render
+  // Inject operator into d2h-file-header after diff content changes
   useLayoutEffect(() => {
     const el = diffContainerRef.current;
     if (!el || viewMode !== 'preview') return;
@@ -91,7 +91,7 @@ const DiffPreview: React.FC<DiffPreviewProps> = ({ content, hideToolbar = false,
         header.appendChild(operatorRef.current);
       }
     }
-  });
+  }, [diffHtmlContent, viewMode]);
 
   const handleDownload = () => {
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
@@ -146,7 +146,7 @@ const DiffPreview: React.FC<DiffPreviewProps> = ({ content, hideToolbar = false,
 
       <div ref={containerRef} className='flex-1 overflow-auto p-16px'>
         {viewMode === 'source' ? (
-          <SyntaxHighlighter style={currentTheme === 'dark' ? vs2015 : vs} language='diff' PreTag='div' showLineNumbers wrapLongLines customStyle={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+          <SyntaxHighlighter style={currentTheme === 'dark' ? vs2015 : vs} language='diff' PreTag='div' showLineNumbers wrapLongLines>
             {content}
           </SyntaxHighlighter>
         ) : (

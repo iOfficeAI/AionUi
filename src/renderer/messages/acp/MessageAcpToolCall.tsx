@@ -5,14 +5,12 @@
  */
 
 import type { IMessageAcpToolCall } from '@/common/chatLib';
-import FileChangesPanel, { type FileChangeItem } from '@/renderer/components/base/FileChangesPanel';
-import { usePreviewLauncher } from '@/renderer/hooks/usePreviewLauncher';
-import { extractContentFromDiff } from '@/renderer/utils/diffUtils';
-import { getFileTypeInfo } from '@/renderer/utils/fileType';
-import { parseDiff } from '../codex/MessageFileChanges';
+import FileChangesPanel from '@/renderer/components/base/FileChangesPanel';
+import { useDiffPreviewHandlers } from '@/renderer/hooks/useDiffPreviewHandlers';
+import { parseDiff } from '@/renderer/utils/diffUtils';
 import { Card, Tag } from '@arco-design/web-react';
 import { createTwoFilesPatch } from 'diff';
-import React, { useCallback, useMemo } from 'react';
+import React, { useMemo } from 'react';
 import MarkdownView from '../../components/Markdown';
 
 const StatusTag: React.FC<{ status: string }> = ({ status }) => {
@@ -31,66 +29,32 @@ const StatusTag: React.FC<{ status: string }> = ({ status }) => {
   return <Tag color={color}>{text}</Tag>;
 };
 
+// Diff content display as a separate component to ensure hooks are called unconditionally
+const DiffContentView: React.FC<{ oldText: string; newText: string; path: string }> = ({ oldText, newText, path }) => {
+  const displayName = path.split(/[/\\]/).pop() || path || 'Unknown file';
+  const formattedDiff = useMemo(() => createTwoFilesPatch(displayName, displayName, oldText, newText, '', '', { context: 3 }), [displayName, oldText, newText]);
+  const fileInfo = useMemo(() => parseDiff(formattedDiff, displayName), [formattedDiff, displayName]);
+  const { handleFileClick, handleDiffClick } = useDiffPreviewHandlers({ diffText: formattedDiff, displayName, filePath: path || displayName });
+
+  return <FileChangesPanel title={displayName} files={[fileInfo]} onFileClick={handleFileClick} onDiffClick={handleDiffClick} defaultExpanded={true} />;
+};
+
 const ContentView: React.FC<{ content: IMessageAcpToolCall['content']['update']['content'][0] }> = ({ content }) => {
-  const { launchPreview } = usePreviewLauncher();
-
-  // 处理 diff 类型
   if (content.type === 'diff') {
-    const oldText = content.oldText || '';
-    const newText = content.newText || '';
-    const resolvedPath = content.path || '';
-    const displayName = resolvedPath.split(/[/\\]/).pop() || resolvedPath || 'Unknown file';
-    const formattedDiff = useMemo(() => createTwoFilesPatch(displayName, displayName, oldText, newText, '', '', { context: 3 }), [displayName, oldText, newText]);
-    const fileInfo = useMemo(() => parseDiff(formattedDiff, displayName), [formattedDiff, displayName]);
-
-    // 点击预览按钮 → 打开文件预览 / Click preview → open file preview
-    const handleFileClick = useCallback(
-      (_file: FileChangeItem) => {
-        const { contentType, editable, language } = getFileTypeInfo(displayName);
-        void launchPreview({
-          relativePath: resolvedPath || displayName,
-          fileName: displayName,
-          contentType,
-          editable,
-          language,
-          fallbackContent: editable ? extractContentFromDiff(formattedDiff) : undefined,
-          diffContent: formattedDiff,
-        });
-      },
-      [formattedDiff, resolvedPath, displayName, launchPreview]
-    );
-
-    // 点击变更统计 → 打开 diff 对比 / Click stats → open diff view
-    const handleDiffClick = useCallback(
-      (_file: FileChangeItem) => {
-        void launchPreview({
-          fileName: displayName,
-          contentType: 'diff',
-          editable: false,
-          language: 'diff',
-          diffContent: formattedDiff,
-        });
-      },
-      [formattedDiff, displayName, launchPreview]
-    );
-
-    return <FileChangesPanel title={displayName} files={[fileInfo]} onFileClick={handleFileClick} onDiffClick={handleDiffClick} defaultExpanded={true} />;
+    return <DiffContentView oldText={content.oldText || ''} newText={content.newText || ''} path={content.path || ''} />;
   }
 
   // 处理 content 类型，包含 text 内容
-  const contentAny = content as any;
-  if (content.type === 'content' && contentAny.content) {
-    if (contentAny.content.type === 'text' && contentAny.content.text) {
-      return (
-        <div className='mt-3'>
-          <div className='bg-1 p-3 rounded border overflow-hidden'>
-            <div className='overflow-x-auto break-words'>
-              <MarkdownView>{contentAny.content.text}</MarkdownView>
-            </div>
+  if (content.type === 'content' && content.content && content.content.type === 'text' && content.content.text) {
+    return (
+      <div className='mt-3'>
+        <div className='bg-1 p-3 rounded border overflow-hidden'>
+          <div className='overflow-x-auto break-words'>
+            <MarkdownView>{content.content.text}</MarkdownView>
           </div>
         </div>
-      );
-    }
+      </div>
+    );
   }
 
   return null;
