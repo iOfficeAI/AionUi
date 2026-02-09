@@ -116,6 +116,35 @@ export const NEW_API_PROTOCOL_OPTIONS = [
   { label: 'Anthropic', value: 'anthropic' },
 ];
 
+/**
+ * New API 推荐模型列表（当远程获取为空时作为预填建议）
+ * Recommended models for New API gateway (used as pre-fill suggestions when remote fetch is empty)
+ */
+export const NEW_API_RECOMMENDED_MODELS = [
+  { label: 'gpt-4o', value: 'gpt-4o' },
+  { label: 'gpt-4o-mini', value: 'gpt-4o-mini' },
+  { label: 'o3-mini', value: 'o3-mini' },
+  { label: 'claude-sonnet-4-5-20250929', value: 'claude-sonnet-4-5-20250929' },
+  { label: 'claude-3-5-sonnet-20241022', value: 'claude-3-5-sonnet-20241022' },
+  { label: 'gemini-2.0-flash', value: 'gemini-2.0-flash' },
+  { label: 'gemini-2.5-pro-preview', value: 'gemini-2.5-pro-preview' },
+  { label: 'deepseek-chat', value: 'deepseek-chat' },
+  { label: 'deepseek-reasoner', value: 'deepseek-reasoner' },
+  { label: 'qwen-plus', value: 'qwen-plus' },
+];
+
+/**
+ * 根据模型名称自动推断 New API 协议类型
+ * Auto-detect New API protocol type based on model name
+ */
+export const detectNewApiProtocol = (modelName: string): string => {
+  const name = modelName.toLowerCase();
+  if (name.startsWith('claude') || name.startsWith('anthropic')) return 'anthropic';
+  if (name.startsWith('gemini') || name.startsWith('models/gemini')) return 'gemini';
+  // Default to openai (covers gpt, deepseek, qwen, o1, o3, etc.)
+  return 'openai';
+};
+
 // ============ 工具函数 / Utility Functions ============
 
 /**

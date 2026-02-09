@@ -12,7 +12,7 @@ import useProtocolDetection from '../../../hooks/useProtocolDetection';
 import AionModal from '@/renderer/components/base/AionModal';
 import ApiKeyEditorModal from './ApiKeyEditorModal';
 import ProtocolDetectionStatus from './ProtocolDetectionStatus';
-import { MODEL_PLATFORMS, NEW_API_PROTOCOL_OPTIONS, getPlatformByValue, isCustomOption, isGeminiPlatform, isNewApiPlatform, type PlatformConfig } from '@/renderer/config/modelPlatforms';
+import { MODEL_PLATFORMS, NEW_API_PROTOCOL_OPTIONS, NEW_API_RECOMMENDED_MODELS, detectNewApiProtocol, getPlatformByValue, isCustomOption, isGeminiPlatform, isNewApiPlatform, type PlatformConfig } from '@/renderer/config/modelPlatforms';
 
 /**
  * 供应商 Logo 组件
@@ -380,7 +380,16 @@ const AddPlatformModal = ModalHOC<{
                   className='cursor-pointer text-t-secondary hover:text-t-primary'
                 />
               }
-              options={modelListState.data?.models || []}
+              options={isNewApi && !modelListState.data?.models?.length ? NEW_API_RECOMMENDED_MODELS : modelListState.data?.models || []}
+              onChange={
+                isNewApi
+                  ? (value: string) => {
+                      form.setFieldValue('model', value);
+                      // Auto-detect protocol based on model name
+                      setModelProtocol(detectNewApiProtocol(value));
+                    }
+                  : undefined
+              }
             />
           </Form.Item>
 

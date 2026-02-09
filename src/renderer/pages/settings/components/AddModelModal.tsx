@@ -5,7 +5,7 @@ import { Button, Select, Tag } from '@arco-design/web-react';
 import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useModeModeList from '../../../hooks/useModeModeList';
-import { isNewApiPlatform, NEW_API_PROTOCOL_OPTIONS } from '@/renderer/config/modelPlatforms';
+import { isNewApiPlatform, NEW_API_PROTOCOL_OPTIONS, NEW_API_RECOMMENDED_MODELS, detectNewApiProtocol } from '@/renderer/config/modelPlatforms';
 
 const AddModelModal = ModalHOC<{ data?: IProvider; onSubmit: (model: IProvider) => void }>(({ modalProps, data, onSubmit, modalCtrl }) => {
   const { t } = useTranslation();
@@ -43,7 +43,18 @@ const AddModelModal = ModalHOC<{ data?: IProvider; onSubmit: (model: IProvider) 
       <div className='flex flex-col gap-16px pt-20px'>
         <div className='space-y-8px'>
           <div className='text-13px font-500 text-t-secondary'>{t('settings.addModelPlaceholder')}</div>
-          <Select showSearch options={optionsList} loading={isLoading} onChange={setModel} value={model} allowCreate placeholder={t('settings.addModelPlaceholder')}></Select>
+          <Select
+            showSearch
+            options={isNewApi && !optionsList?.length ? NEW_API_RECOMMENDED_MODELS : optionsList}
+            loading={isLoading}
+            onChange={(value: string) => {
+              setModel(value);
+              if (isNewApi) setModelProtocol(detectNewApiProtocol(value));
+            }}
+            value={model}
+            allowCreate
+            placeholder={t('settings.addModelPlaceholder')}
+          ></Select>
         </div>
 
         {/* New API 协议选择 / New API Protocol Selection */}
