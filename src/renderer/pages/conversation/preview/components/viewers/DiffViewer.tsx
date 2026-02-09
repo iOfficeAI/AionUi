@@ -160,7 +160,7 @@ const DiffPreview: React.FC<DiffPreviewProps> = ({ content, metadata, onClose, h
           </ReactMarkdown>
         ) : (
           // 其他文件：显示语法高亮的代码 / Other files: Show syntax-highlighted code
-          <SyntaxHighlighter style={currentTheme === 'dark' ? vs2015 : vs} language='text' PreTag='div' showLineNumbers>
+          <SyntaxHighlighter style={currentTheme === 'dark' ? vs2015 : vs} language='text' PreTag='div' showLineNumbers wrapLongLines customStyle={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
             {cleanContent}
           </SyntaxHighlighter>
         )}
