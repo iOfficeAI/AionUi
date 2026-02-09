@@ -14,25 +14,13 @@ import { getChannelManager } from '../core/ChannelManager';
 import type { AgentDisplayInfo } from '../plugins/telegram/TelegramKeyboards';
 import { createAgentSelectionKeyboard, createHelpKeyboard, createMainMenuKeyboard, createSessionControlKeyboard } from '../plugins/telegram/TelegramKeyboards';
 import { createAgentSelectionCard, createFeaturesCard, createHelpCard, createMainMenuCard, createPairingGuideCard, createSessionStatusCard, createSettingsCard, createTipsCard } from '../plugins/lark/LarkCards';
-import type { ChannelAgentType } from '../types';
+import { getChannelConversationName, isChannelPlatform } from '../types';
+import type { ChannelAgentType, type ChannelPlatform } from '../types';
 import type { ActionHandler, IRegisteredAction } from './types';
 import { SystemActionNames, createErrorResponse, createSuccessResponse } from './types';
 
-/**
- * Channel platform type for model configuration
- */
-export type ChannelPlatform = 'telegram' | 'lark';
-
-/**
- * Get default conversation name for a channel platform
- */
-export function getChannelConversationName(platform: ChannelPlatform): string {
-  const names: Record<ChannelPlatform, string> = {
-    telegram: 'Telegram Assistant',
-    lark: 'Lark Assistant',
-  };
-  return names[platform];
-}
+export type { ChannelPlatform };
+export { getChannelConversationName };
 
 /**
  * Get the default model for a channel platform
@@ -128,16 +116,15 @@ export const handleSessionNew: ActionHandler = async (context) => {
   sessionManager.clearSession(context.channelUser.id);
 
   // 获取用户选择的模型（根据平台）/ Get user selected model (based on platform)
-  const platform = (context.platform as 'telegram' | 'lark') || 'telegram';
+  const platform: ChannelPlatform = isChannelPlatform(context.platform) ? context.platform : 'telegram';
   const model = await getChannelDefaultModel(platform);
-  const source = platform === 'lark' ? 'lark' : 'telegram';
   const conversationName = getChannelConversationName(platform);
 
   // 使用 ConversationService 创建新会话（始终创建新的，不复用）
   // Use ConversationService to create new conversation (always new, don't reuse)
   const result = await ConversationService.createGeminiConversation({
     model,
-    source,
+    source: platform,
     name: conversationName,
   });
 

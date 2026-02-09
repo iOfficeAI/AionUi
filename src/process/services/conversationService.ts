@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { getChannelConversationName } from '@/channels/actions/SystemActions';
+import { getChannelConversationName, isChannelPlatform } from '@/channels/types';
 import type { ICreateConversationParams } from '@/common/ipcBridge';
 import type { ConversationSource, TChatConversation, TProviderWithModel } from '@/common/storage';
 import { getDatabase } from '@process/database';
@@ -204,18 +204,21 @@ export class ConversationService {
       const conv = latestConv.data;
       // Check if the model matches the current config (channel conversations are always gemini type)
       const existingModel = 'model' in conv ? conv.model : undefined;
-      if (existingModel && existingModel.id === params.model.id && existingModel.useModel === params.model.useModel) {
+      if (!existingModel) {
+        console.log(`[ConversationService] No model info in existing ${source} conversation ${conv.id}, creating new`);
+      } else if (existingModel.id === params.model.id && existingModel.useModel === params.model.useModel) {
         console.log(`[ConversationService] Reusing existing ${source} conversation: ${conv.id}`);
         return { success: true, conversation: conv };
+      } else {
+        console.log(`[ConversationService] Model changed for ${source} conversation (existing: ${existingModel.id}/${existingModel.useModel}, configured: ${params.model.id}/${params.model.useModel}), creating new`);
       }
-      console.log(`[ConversationService] Model mismatch for ${source} conversation (existing: ${existingModel?.id}/${existingModel?.useModel}, configured: ${params.model.id}/${params.model.useModel}), creating new`);
     }
 
     // Create new conversation for this channel
     return this.createGeminiConversation({
       ...params,
       source,
-      name: params.name || getChannelConversationName(source as 'telegram' | 'lark'),
+      name: params.name || (isChannelPlatform(source) ? getChannelConversationName(source) : `${source} Assistant`),
     });
   }
 }
