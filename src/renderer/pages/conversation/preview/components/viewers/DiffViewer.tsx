@@ -23,19 +23,24 @@ interface DiffPreviewProps {
   hideToolbar?: boolean;
   viewMode?: 'source' | 'preview';
   onViewModeChange?: (mode: 'source' | 'preview') => void;
+  sideBySide?: boolean;
+  onSideBySideChange?: (value: boolean) => void;
 }
 
 /**
  * Diff preview component with rich diff2html rendering
  */
-const DiffPreview: React.FC<DiffPreviewProps> = ({ content, hideToolbar = false, viewMode: externalViewMode, onViewModeChange }) => {
+const DiffPreview: React.FC<DiffPreviewProps> = ({ content, hideToolbar = false, viewMode: externalViewMode, onViewModeChange, sideBySide: externalSideBySide, onSideBySideChange }) => {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
   const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>(() => {
     return (document.documentElement.getAttribute('data-theme') as 'light' | 'dark') || 'light';
   });
   const [internalViewMode, setInternalViewMode] = useState<'source' | 'preview'>('preview');
-  const [sideBySide, setSideBySide] = useState(false);
+  const [internalSideBySide, setInternalSideBySide] = useState(false);
+
+  const sideBySide = externalSideBySide !== undefined ? externalSideBySide : internalSideBySide;
+  const setSideBySide = onSideBySideChange || setInternalSideBySide;
 
   const viewMode = externalViewMode !== undefined ? externalViewMode : internalViewMode;
 
@@ -127,7 +132,7 @@ const DiffPreview: React.FC<DiffPreviewProps> = ({ content, hideToolbar = false,
           </SyntaxHighlighter>
         ) : (
           <div
-            className={classNames('w-full max-w-full [&_div.d2h-file-header]:bg-bg-3', {
+            className={classNames('w-full max-w-full min-w-0', '![&_.line-num1]:hidden ![&_.line-num2]:w-30px', '[&_td:first-child]:w-40px ![&_td:nth-child(2)>div]:pl-45px', '[&_div.d2h-file-wrapper]:rd-[0.3rem_0.3rem_0px_0px]', '[&_div.d2h-file-header]:items-center [&_div.d2h-file-header]:bg-bg-3', {
               'd2h-dark-color-scheme': currentTheme === 'dark',
             })}
             dangerouslySetInnerHTML={{ __html: diffHtmlContent }}

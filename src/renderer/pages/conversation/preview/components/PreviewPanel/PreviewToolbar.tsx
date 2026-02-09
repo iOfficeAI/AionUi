@@ -6,7 +6,7 @@
 
 import type { PreviewHistoryTarget } from '@/common/types/preview';
 import { iconColors } from '@/renderer/theme/colors';
-import { Dropdown } from '@arco-design/web-react';
+import { Checkbox, Dropdown } from '@arco-design/web-react';
 import { Close } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
@@ -155,6 +155,16 @@ interface PreviewToolbarProps {
   onInspectModeToggle?: () => void;
 
   /**
+   * Diff side-by-side mode
+   */
+  sideBySide?: boolean;
+
+  /**
+   * Toggle side-by-side mode callback
+   */
+  onSideBySideChange?: (value: boolean) => void;
+
+  /**
    * 左侧额外渲染内容
    * Extra content rendered on the left section
    */
@@ -175,16 +185,17 @@ interface PreviewToolbarProps {
  * Contains filename, view mode toggle, edit button, snapshot/history buttons, download button, close button, etc.
  */
 // eslint-disable-next-line max-len
-const PreviewToolbar: React.FC<PreviewToolbarProps> = ({ contentType, isMarkdown, isHTML, isEditable, isEditMode, viewMode, isSplitScreenEnabled, fileName, showOpenInSystemButton, historyTarget, snapshotSaving, onViewModeChange, onSplitScreenToggle, onEditClick, onExitEdit, onSaveSnapshot, onRefreshHistory, renderHistoryDropdown, onOpenInSystem, onDownload, onClose, inspectMode, onInspectModeToggle, leftExtra, rightExtra }) => {
+const PreviewToolbar: React.FC<PreviewToolbarProps> = ({ contentType, isMarkdown, isHTML, isEditable, isEditMode, viewMode, isSplitScreenEnabled, fileName, showOpenInSystemButton, historyTarget, snapshotSaving, onViewModeChange, onSplitScreenToggle, onEditClick, onExitEdit, onSaveSnapshot, onRefreshHistory, renderHistoryDropdown, onOpenInSystem, onDownload, onClose, inspectMode, onInspectModeToggle, sideBySide, onSideBySideChange, leftExtra, rightExtra }) => {
   const { t } = useTranslation();
+  const isDiff = contentType === 'diff';
 
   return (
     <div className='flex items-center justify-between h-40px px-12px bg-bg-2 flex-shrink-0 border-b border-border-1 overflow-x-auto'>
       <div className='flex items-center justify-between gap-12px w-full' style={{ minWidth: 'max-content' }}>
         {/* 左侧：Tabs（Markdown/HTML）+ 文件名 / Left: Tabs (Markdown/HTML) + Filename */}
         <div className='flex items-center h-full gap-12px'>
-          {/* Markdown/HTML 文件显示原文/预览 Tabs / Show source/preview tabs for Markdown/HTML files */}
-          {(isMarkdown || isHTML) && (
+          {/* Markdown/HTML/Diff 文件显示原文/预览 Tabs / Show source/preview tabs for Markdown/HTML/Diff files */}
+          {(isMarkdown || isHTML || isDiff) && (
             <>
               <div className='flex items-center h-full gap-2px'>
                 {/* 原文 Tab */}
@@ -221,23 +232,32 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({ contentType, isMarkdown
                 </div>
               </div>
 
+              {/* Diff side-by-side toggle */}
+              {isDiff && viewMode === 'preview' && onSideBySideChange && (
+                <Checkbox className='whitespace-nowrap text-12px' checked={sideBySide} onChange={(value) => onSideBySideChange(value)}>
+                  <span className='text-12px text-t-secondary'>side-by-side</span>
+                </Checkbox>
+              )}
+
               {/* 分屏按钮 / Split-screen button */}
-              <div
-                className={`flex items-center px-8px py-4px rd-4px cursor-pointer transition-colors ${isSplitScreenEnabled ? 'bg-primary text-white' : 'text-t-secondary hover:bg-bg-3'}`}
-                onClick={() => {
-                  try {
-                    onSplitScreenToggle();
-                  } catch {
-                    // Silently ignore errors
-                  }
-                }}
-                title={isSplitScreenEnabled ? t('preview.closeSplitScreen') : t('preview.openSplitScreen')}
-              >
-                <svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'>
-                  <rect x='3' y='3' width='18' height='18' rx='2' />
-                  <line x1='12' y1='3' x2='12' y2='21' />
-                </svg>
-              </div>
+              {!isDiff && (
+                <div
+                  className={`flex items-center px-8px py-4px rd-4px cursor-pointer transition-colors ${isSplitScreenEnabled ? 'bg-primary text-white' : 'text-t-secondary hover:bg-bg-3'}`}
+                  onClick={() => {
+                    try {
+                      onSplitScreenToggle();
+                    } catch {
+                      // Silently ignore errors
+                    }
+                  }}
+                  title={isSplitScreenEnabled ? t('preview.closeSplitScreen') : t('preview.openSplitScreen')}
+                >
+                  <svg width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='currentColor' strokeWidth='2'>
+                    <rect x='3' y='3' width='18' height='18' rx='2' />
+                    <line x1='12' y1='3' x2='12' y2='21' />
+                  </svg>
+                </div>
+              )}
             </>
           )}
 

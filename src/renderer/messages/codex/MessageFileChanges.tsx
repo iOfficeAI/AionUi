@@ -123,10 +123,9 @@ const MessageFileChanges: React.FC<MessageFileChangesProps> = ({ turnDiffChanges
     return Array.from(filesMap.values()).concat(diffsChanges);
   }, [turnDiffChanges, writeFileChanges, diffsChanges]);
 
-  // 处理文件点击 / Handle file click
+  // 点击预览按钮 → 打开文件预览 / Click preview button → open file preview
   const handleFileClick = useCallback(
     (file: FileChangeItem) => {
-      // 找到对应的 FileChangeInfo 获取 diff / Find corresponding FileChangeInfo to get diff
       const fileInfo = fileChanges.find((f) => f.fullPath === file.fullPath);
       if (!fileInfo) return;
 
@@ -145,12 +144,29 @@ const MessageFileChanges: React.FC<MessageFileChangesProps> = ({ turnDiffChanges
     [fileChanges, launchPreview]
   );
 
+  // 点击变更统计 → 打开 diff 对比视图 / Click change stats → open diff comparison view
+  const handleDiffClick = useCallback(
+    (file: FileChangeItem) => {
+      const fileInfo = fileChanges.find((f) => f.fullPath === file.fullPath);
+      if (!fileInfo) return;
+
+      void launchPreview({
+        fileName: fileInfo.fileName,
+        contentType: 'diff',
+        editable: false,
+        language: 'diff',
+        diffContent: fileInfo.diff,
+      });
+    },
+    [fileChanges, launchPreview]
+  );
+
   // 如果没有文件变更，不渲染 / Don't render if no file changes
   if (fileChanges.length === 0) {
     return null;
   }
 
-  return <FileChangesPanel title={t('messages.fileChangesCount', { count: fileChanges.length })} files={fileChanges} onFileClick={handleFileClick} className={className} />;
+  return <FileChangesPanel title={t('messages.fileChangesCount', { count: fileChanges.length })} files={fileChanges} onFileClick={handleFileClick} onDiffClick={handleDiffClick} className={className} />;
 };
 
 export default React.memo(MessageFileChanges);

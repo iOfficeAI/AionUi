@@ -7,6 +7,8 @@
 import type { IMessageAcpToolCall } from '@/common/chatLib';
 import FileChangesPanel, { type FileChangeItem } from '@/renderer/components/base/FileChangesPanel';
 import { usePreviewLauncher } from '@/renderer/hooks/usePreviewLauncher';
+import { extractContentFromDiff } from '@/renderer/utils/diffUtils';
+import { getFileTypeInfo } from '@/renderer/utils/fileType';
 import { parseDiff } from '../codex/MessageFileChanges';
 import { Card, Tag } from '@arco-design/web-react';
 import { createTwoFilesPatch } from 'diff';
@@ -41,10 +43,27 @@ const ContentView: React.FC<{ content: IMessageAcpToolCall['content']['update'][
     const formattedDiff = useMemo(() => createTwoFilesPatch(displayName, displayName, oldText, newText, '', '', { context: 3 }), [displayName, oldText, newText]);
     const fileInfo = useMemo(() => parseDiff(formattedDiff, displayName), [formattedDiff, displayName]);
 
+    // 点击预览按钮 → 打开文件预览 / Click preview → open file preview
     const handleFileClick = useCallback(
       (_file: FileChangeItem) => {
+        const { contentType, editable, language } = getFileTypeInfo(displayName);
         void launchPreview({
           relativePath: resolvedPath || displayName,
+          fileName: displayName,
+          contentType,
+          editable,
+          language,
+          fallbackContent: editable ? extractContentFromDiff(formattedDiff) : undefined,
+          diffContent: formattedDiff,
+        });
+      },
+      [formattedDiff, resolvedPath, displayName, launchPreview]
+    );
+
+    // 点击变更统计 → 打开 diff 对比 / Click stats → open diff view
+    const handleDiffClick = useCallback(
+      (_file: FileChangeItem) => {
+        void launchPreview({
           fileName: displayName,
           contentType: 'diff',
           editable: false,
@@ -52,10 +71,10 @@ const ContentView: React.FC<{ content: IMessageAcpToolCall['content']['update'][
           diffContent: formattedDiff,
         });
       },
-      [formattedDiff, resolvedPath, displayName, launchPreview]
+      [formattedDiff, displayName, launchPreview]
     );
 
-    return <FileChangesPanel title={displayName} files={[fileInfo]} onFileClick={handleFileClick} defaultExpanded={true} />;
+    return <FileChangesPanel title={displayName} files={[fileInfo]} onFileClick={handleFileClick} onDiffClick={handleDiffClick} defaultExpanded={true} />;
   }
 
   // 处理 content 类型，包含 text 内容

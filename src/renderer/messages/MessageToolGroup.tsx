@@ -13,6 +13,8 @@ import React, { useCallback, useContext, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import FileChangesPanel, { type FileChangeItem } from '@/renderer/components/base/FileChangesPanel';
 import { usePreviewLauncher } from '@/renderer/hooks/usePreviewLauncher';
+import { extractContentFromDiff } from '@/renderer/utils/diffUtils';
+import { getFileTypeInfo } from '@/renderer/utils/fileType';
 import MessageFileChanges, { parseDiff } from './codex/MessageFileChanges';
 import CollapsibleContent from '../components/CollapsibleContent';
 import LocalImageView from '../components/LocalImageView';
@@ -125,12 +127,31 @@ const useConfirmationButtons = (confirmationDetails: IMessageToolGroupProps['mes
 const EditConfirmationDiff: React.FC<{ diff: string; fileName: string; title: string }> = ({ diff, fileName, title }) => {
   const { launchPreview } = usePreviewLauncher();
   const fileInfo = useMemo(() => parseDiff(diff, fileName), [diff, fileName]);
+  const displayName = fileName.split(/[/\\]/).pop() || fileName;
 
+  // 点击预览按钮 → 打开文件预览 / Click preview → open file preview
   const handleFileClick = useCallback(
     (_file: FileChangeItem) => {
+      const { contentType, editable, language } = getFileTypeInfo(displayName);
       void launchPreview({
         relativePath: fileName,
-        fileName: fileName.split(/[/\\]/).pop() || fileName,
+        fileName: displayName,
+        title,
+        contentType,
+        editable,
+        language,
+        fallbackContent: editable ? extractContentFromDiff(diff) : undefined,
+        diffContent: diff,
+      });
+    },
+    [diff, displayName, fileName, title, launchPreview]
+  );
+
+  // 点击变更统计 → 打开 diff 对比 / Click stats → open diff view
+  const handleDiffClick = useCallback(
+    (_file: FileChangeItem) => {
+      void launchPreview({
+        fileName: displayName,
         title,
         contentType: 'diff',
         editable: false,
@@ -138,10 +159,10 @@ const EditConfirmationDiff: React.FC<{ diff: string; fileName: string; title: st
         diffContent: diff,
       });
     },
-    [diff, fileName, title, launchPreview]
+    [diff, displayName, fileName, title, launchPreview]
   );
 
-  return <FileChangesPanel title={title} files={[fileInfo]} onFileClick={handleFileClick} defaultExpanded={true} />;
+  return <FileChangesPanel title={title} files={[fileInfo]} onFileClick={handleFileClick} onDiffClick={handleDiffClick} defaultExpanded={true} />;
 };
 
 const ConfirmationDetails: React.FC<{

@@ -45,6 +45,7 @@ const PreviewPanel: React.FC = () => {
   const [isSplitScreenEnabled, setIsSplitScreenEnabled] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [inspectMode, setInspectMode] = useState(false);
+  const [sideBySide, setSideBySide] = useState(false);
   const [toolbarExtras, setToolbarExtras] = useState<PreviewToolbarExtras | null>(null);
 
   // 确认对话框状态 / Confirmation dialog states
@@ -472,7 +473,7 @@ const PreviewPanel: React.FC = () => {
 
     // 其他类型：全屏预览 / Other types: Full-screen preview
     if (contentType === 'diff') {
-      return <DiffPreview content={content} metadata={metadata} hideToolbar viewMode={viewMode} onViewModeChange={setViewMode} />;
+      return <DiffPreview content={content} metadata={metadata} hideToolbar viewMode={viewMode} onViewModeChange={setViewMode} sideBySide={sideBySide} onSideBySideChange={setSideBySide} />;
     } else if (contentType === 'code') {
       // 分屏模式：左右分割（编辑器 + 预览）/ Split-screen mode: Editor + Preview
       if (isSplitScreenEnabled && isEditMode && isEditable) {
@@ -586,6 +587,8 @@ const PreviewPanel: React.FC = () => {
             onClose={closePreview}
             inspectMode={inspectMode}
             onInspectModeToggle={() => setInspectMode(!inspectMode)}
+            sideBySide={sideBySide}
+            onSideBySideChange={setSideBySide}
             leftExtra={toolbarExtras?.left}
             rightExtra={toolbarExtras?.right}
           />
