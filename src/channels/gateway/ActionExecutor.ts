@@ -9,7 +9,7 @@ import { getDatabase } from '@/process/database';
 import { ConversationService } from '@/process/services/conversationService';
 import { buildChatErrorResponse, chatActions } from '../actions/ChatActions';
 import { handlePairingShow, platformActions } from '../actions/PlatformActions';
-import { getTelegramDefaultModel, systemActions } from '../actions/SystemActions';
+import { getChannelConversationName, getChannelDefaultModel, systemActions } from '../actions/SystemActions';
 import type { IActionContext, IRegisteredAction } from '../actions/types';
 import { getChannelMessageService } from '../agent/ChannelMessageService';
 import type { SessionManager } from '../core/SessionManager';
@@ -318,15 +318,18 @@ export class ActionExecutor {
       // 获取或创建会话，优先复用该平台来源的会话
       let session = this.sessionManager.getSession(channelUser.id);
       if (!session || !session.conversationId) {
-        // 获取用户选择的模型 / Get user selected model
-        const model = await getTelegramDefaultModel();
+        // 获取用户选择的模型（根据平台）/ Get user selected model (based on platform)
+        const channelPlatform = (platform as 'telegram' | 'lark') || 'telegram';
+        const model = await getChannelDefaultModel(channelPlatform);
 
         // 使用 ConversationService 获取或创建会话（根据平台）
         // Use ConversationService to get or create conversation (based on platform)
-        const conversationName = platform === 'lark' ? 'Lark Assistant' : 'Telegram Assistant';
-        const result = await ConversationService.getOrCreateTelegramConversation({
+        const source = channelPlatform === 'lark' ? 'lark' : 'telegram';
+        const conversationName = getChannelConversationName(channelPlatform);
+        const result = await ConversationService.getOrCreateChannelConversation({
           model,
           name: conversationName,
+          source,
         });
 
         if (result.success && result.conversation) {

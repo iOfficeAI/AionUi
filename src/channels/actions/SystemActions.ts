@@ -19,13 +19,31 @@ import type { ActionHandler, IRegisteredAction } from './types';
 import { SystemActionNames, createErrorResponse, createSuccessResponse } from './types';
 
 /**
- * Get the default model for Telegram assistant
+ * Channel platform type for model configuration
+ */
+export type ChannelPlatform = 'telegram' | 'lark';
+
+/**
+ * Get default conversation name for a channel platform
+ */
+export function getChannelConversationName(platform: ChannelPlatform): string {
+  const names: Record<ChannelPlatform, string> = {
+    telegram: 'Telegram Assistant',
+    lark: 'Lark Assistant',
+  };
+  return names[platform];
+}
+
+/**
+ * Get the default model for a channel platform
  * Reads from saved config or falls back to default Gemini model
  */
-export async function getTelegramDefaultModel(): Promise<TProviderWithModel> {
+export async function getChannelDefaultModel(platform: ChannelPlatform): Promise<TProviderWithModel> {
+  const configKey = platform === 'lark' ? 'assistant.lark.defaultModel' : 'assistant.telegram.defaultModel';
+
   try {
     // Try to get saved model selection
-    const savedModel = await ProcessConfig.get('assistant.telegram.defaultModel');
+    const savedModel = await ProcessConfig.get(configKey);
     if (savedModel?.id && savedModel?.useModel) {
       // Get full provider config from model.config
       const providers = await ProcessConfig.get('model.config');
@@ -52,7 +70,7 @@ export async function getTelegramDefaultModel(): Promise<TProviderWithModel> {
       }
     }
   } catch (error) {
-    console.warn('[SystemActions] Failed to get saved model, using default:', error);
+    console.warn(`[SystemActions] Failed to get saved model for ${platform}, using default:`, error);
   }
 
   // Default fallback - minimal config for Gemini
@@ -109,15 +127,18 @@ export const handleSessionNew: ActionHandler = async (context) => {
   }
   sessionManager.clearSession(context.channelUser.id);
 
-  // 获取用户选择的模型 / Get user selected model
-  const model = await getTelegramDefaultModel();
+  // 获取用户选择的模型（根据平台）/ Get user selected model (based on platform)
+  const platform = (context.platform as 'telegram' | 'lark') || 'telegram';
+  const model = await getChannelDefaultModel(platform);
+  const source = platform === 'lark' ? 'lark' : 'telegram';
+  const conversationName = getChannelConversationName(platform);
 
   // 使用 ConversationService 创建新会话（始终创建新的，不复用）
   // Use ConversationService to create new conversation (always new, don't reuse)
   const result = await ConversationService.createGeminiConversation({
     model,
-    source: 'telegram',
-    name: 'Telegram Assistant',
+    source,
+    name: conversationName,
   });
 
   if (!result.success || !result.conversation) {
