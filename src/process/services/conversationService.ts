@@ -201,8 +201,14 @@ export class ConversationService {
     // Try to find existing conversation for this channel
     const latestConv = db.getLatestConversationBySource(source);
     if (latestConv.success && latestConv.data) {
-      console.log(`[ConversationService] Reusing existing ${source} conversation: ${latestConv.data.id}`);
-      return { success: true, conversation: latestConv.data };
+      const conv = latestConv.data;
+      // Check if the model matches the current config (channel conversations are always gemini type)
+      const existingModel = 'model' in conv ? conv.model : undefined;
+      if (existingModel && existingModel.id === params.model.id && existingModel.useModel === params.model.useModel) {
+        console.log(`[ConversationService] Reusing existing ${source} conversation: ${conv.id}`);
+        return { success: true, conversation: conv };
+      }
+      console.log(`[ConversationService] Model mismatch for ${source} conversation (existing: ${existingModel?.id}/${existingModel?.useModel}, configured: ${params.model.id}/${params.model.useModel}), creating new`);
     }
 
     // Create new conversation for this channel
