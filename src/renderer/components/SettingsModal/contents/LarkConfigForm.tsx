@@ -542,7 +542,7 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelList
                   <div className='flex-1'>
                     <div className='text-14px font-500 text-t-primary'>{user.displayName || 'Unknown User'}</div>
                     <div className='text-12px text-t-tertiary mt-4px'>
-                      {t('settings.assistant.platform', 'Platform')}: Lark
+                      {t('settings.assistant.platform', 'Platform')}: {user.platformType}
                       <span className='mx-8px'>|</span>
                       {t('settings.assistant.authorizedAt', 'Authorized')}: {formatTime(user.authorizedAt)}
                     </div>

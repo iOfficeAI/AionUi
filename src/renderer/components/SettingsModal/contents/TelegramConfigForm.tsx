@@ -121,7 +121,7 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({ pluginStatus, m
     try {
       const result = await channel.getAuthorizedUsers.invoke();
       if (result.success && result.data) {
-        setAuthorizedUsers(result.data);
+        setAuthorizedUsers(result.data.filter((u) => u.platformType === 'telegram'));
       }
     } catch (error) {
       console.error('[ChannelSettings] Failed to load authorized users:', error);
