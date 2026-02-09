@@ -1,3 +1,14 @@
+# =============================================================================
+# REFERENCE TEMPLATE ONLY - DO NOT MODIFY
+# =============================================================================
+# This file is a reference template for the Homebrew cask definition.
+# The actual cask is maintained in the official Homebrew repository:
+#   https://github.com/Homebrew/homebrew-cask/blob/master/Casks/a/aionui.rb
+#
+# Updates are automated via .github/workflows/bump-homebrew.yml which
+# creates PRs to the official repository when a new release is published.
+# =============================================================================
+
 cask "aionui" do
   arch arm: "arm64", intel: "x64"
 

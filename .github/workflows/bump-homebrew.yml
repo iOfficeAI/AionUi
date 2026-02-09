@@ -43,7 +43,7 @@ jobs:
         uses: Homebrew/actions/setup-homebrew@master
 
       - name: Bump cask PR
-        uses: eugenesvk/action-homebrew-bump-cask@v3
+        uses: eugenesvk/action-homebrew-bump-cask@3.8.6
         with:
           token: ${{ secrets.HOMEBREW_GITHUB_TOKEN }}
           cask: aionui
