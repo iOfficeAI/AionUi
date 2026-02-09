@@ -10,7 +10,8 @@ import { Checkbox } from '@arco-design/web-react';
 import classNames from 'classnames';
 import { html } from 'diff2html';
 import 'diff2html/bundles/css/diff2html.min.css';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import ReactDOM from 'react-dom';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { vs, vs2015 } from 'react-syntax-highlighter/dist/esm/styles/hljs';
 import SelectionToolbar from '../renderers/SelectionToolbar';
@@ -23,24 +24,20 @@ interface DiffPreviewProps {
   hideToolbar?: boolean;
   viewMode?: 'source' | 'preview';
   onViewModeChange?: (mode: 'source' | 'preview') => void;
-  sideBySide?: boolean;
-  onSideBySideChange?: (value: boolean) => void;
 }
 
 /**
  * Diff preview component with rich diff2html rendering
  */
-const DiffPreview: React.FC<DiffPreviewProps> = ({ content, hideToolbar = false, viewMode: externalViewMode, onViewModeChange, sideBySide: externalSideBySide, onSideBySideChange }) => {
+const DiffPreview: React.FC<DiffPreviewProps> = ({ content, hideToolbar = false, viewMode: externalViewMode, onViewModeChange }) => {
   const { t } = useTranslation();
   const containerRef = useRef<HTMLDivElement>(null);
+  const diffContainerRef = useRef<HTMLDivElement>(null);
   const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>(() => {
     return (document.documentElement.getAttribute('data-theme') as 'light' | 'dark') || 'light';
   });
   const [internalViewMode, setInternalViewMode] = useState<'source' | 'preview'>('preview');
-  const [internalSideBySide, setInternalSideBySide] = useState(false);
-
-  const sideBySide = externalSideBySide !== undefined ? externalSideBySide : internalSideBySide;
-  const setSideBySide = onSideBySideChange || setInternalSideBySide;
+  const [sideBySide, setSideBySide] = useState(false);
 
   const viewMode = externalViewMode !== undefined ? externalViewMode : internalViewMode;
 
@@ -73,6 +70,28 @@ const DiffPreview: React.FC<DiffPreviewProps> = ({ content, hideToolbar = false,
       renderNothingWhenEmpty: false,
     });
   }, [content, sideBySide]);
+
+  // Portal container for injecting side-by-side toggle into d2h-file-header
+  const operatorRef = useRef<HTMLDivElement | null>(null);
+  if (!operatorRef.current) {
+    operatorRef.current = document.createElement('div');
+  }
+
+  // Inject operator into d2h-file-header after each render
+  useLayoutEffect(() => {
+    const el = diffContainerRef.current;
+    if (!el || viewMode !== 'preview') return;
+
+    const header = el.querySelector('.d2h-file-header') as HTMLDivElement;
+    if (header && operatorRef.current) {
+      header.style.alignItems = 'center';
+      operatorRef.current.className = 'flex items-center justify-center gap-10px';
+
+      if (!header.contains(operatorRef.current)) {
+        header.appendChild(operatorRef.current);
+      }
+    }
+  });
 
   const handleDownload = () => {
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
@@ -132,6 +151,7 @@ const DiffPreview: React.FC<DiffPreviewProps> = ({ content, hideToolbar = false,
           </SyntaxHighlighter>
         ) : (
           <div
+            ref={diffContainerRef}
             className={classNames('w-full max-w-full min-w-0', '![&_.line-num1]:hidden ![&_.line-num2]:w-30px', '[&_td:first-child]:w-40px ![&_td:nth-child(2)>div]:pl-45px', '[&_div.d2h-file-wrapper]:rd-[0.3rem_0.3rem_0px_0px]', '[&_div.d2h-file-header]:items-center [&_div.d2h-file-header]:bg-bg-3', {
               'd2h-dark-color-scheme': currentTheme === 'dark',
             })}
@@ -139,6 +159,16 @@ const DiffPreview: React.FC<DiffPreviewProps> = ({ content, hideToolbar = false,
           />
         )}
       </div>
+
+      {/* Portal: inject side-by-side toggle into d2h-file-header */}
+      {viewMode === 'preview' &&
+        operatorRef.current &&
+        ReactDOM.createPortal(
+          <Checkbox className='whitespace-nowrap' checked={sideBySide} onChange={(value) => setSideBySide(value)}>
+            <span className='whitespace-nowrap'>side-by-side</span>
+          </Checkbox>,
+          operatorRef.current
+        )}
 
       {selectedText && <SelectionToolbar selectedText={selectedText} position={selectionPosition} onClear={clearSelection} />}
     </div>

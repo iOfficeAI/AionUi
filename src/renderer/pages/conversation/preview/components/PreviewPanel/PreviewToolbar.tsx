@@ -6,7 +6,7 @@
 
 import type { PreviewHistoryTarget } from '@/common/types/preview';
 import { iconColors } from '@/renderer/theme/colors';
-import { Checkbox, Dropdown } from '@arco-design/web-react';
+import { Dropdown } from '@arco-design/web-react';
 import { Close } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
@@ -155,16 +155,6 @@ interface PreviewToolbarProps {
   onInspectModeToggle?: () => void;
 
   /**
-   * Diff side-by-side mode
-   */
-  sideBySide?: boolean;
-
-  /**
-   * Toggle side-by-side mode callback
-   */
-  onSideBySideChange?: (value: boolean) => void;
-
-  /**
    * 左侧额外渲染内容
    * Extra content rendered on the left section
    */
@@ -185,7 +175,7 @@ interface PreviewToolbarProps {
  * Contains filename, view mode toggle, edit button, snapshot/history buttons, download button, close button, etc.
  */
 // eslint-disable-next-line max-len
-const PreviewToolbar: React.FC<PreviewToolbarProps> = ({ contentType, isMarkdown, isHTML, isEditable, isEditMode, viewMode, isSplitScreenEnabled, fileName, showOpenInSystemButton, historyTarget, snapshotSaving, onViewModeChange, onSplitScreenToggle, onEditClick, onExitEdit, onSaveSnapshot, onRefreshHistory, renderHistoryDropdown, onOpenInSystem, onDownload, onClose, inspectMode, onInspectModeToggle, sideBySide, onSideBySideChange, leftExtra, rightExtra }) => {
+const PreviewToolbar: React.FC<PreviewToolbarProps> = ({ contentType, isMarkdown, isHTML, isEditable, isEditMode, viewMode, isSplitScreenEnabled, fileName, showOpenInSystemButton, historyTarget, snapshotSaving, onViewModeChange, onSplitScreenToggle, onEditClick, onExitEdit, onSaveSnapshot, onRefreshHistory, renderHistoryDropdown, onOpenInSystem, onDownload, onClose, inspectMode, onInspectModeToggle, leftExtra, rightExtra }) => {
   const { t } = useTranslation();
   const isDiff = contentType === 'diff';
 
@@ -231,13 +221,6 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({ contentType, isMarkdown
                   {t('preview.preview')}
                 </div>
               </div>
-
-              {/* Diff side-by-side toggle */}
-              {isDiff && viewMode === 'preview' && onSideBySideChange && (
-                <Checkbox className='whitespace-nowrap text-12px' checked={sideBySide} onChange={(value) => onSideBySideChange(value)}>
-                  <span className='text-12px text-t-secondary'>side-by-side</span>
-                </Checkbox>
-              )}
 
               {/* 分屏按钮 / Split-screen button */}
               {!isDiff && (
