@@ -5,10 +5,12 @@
  */
 
 import type { IMessageAcpToolCall } from '@/common/chatLib';
+import FileChangesPanel, { type FileChangeItem } from '@/renderer/components/base/FileChangesPanel';
+import { usePreviewLauncher } from '@/renderer/hooks/usePreviewLauncher';
+import { parseDiff } from '../codex/MessageFileChanges';
 import { Card, Tag } from '@arco-design/web-react';
 import { createTwoFilesPatch } from 'diff';
-import React from 'react';
-import Diff2Html from '../../components/Diff2Html';
+import React, { useCallback, useMemo } from 'react';
 import MarkdownView from '../../components/Markdown';
 
 const StatusTag: React.FC<{ status: string }> = ({ status }) => {
@@ -28,14 +30,32 @@ const StatusTag: React.FC<{ status: string }> = ({ status }) => {
 };
 
 const ContentView: React.FC<{ content: IMessageAcpToolCall['content']['update']['content'][0] }> = ({ content }) => {
+  const { launchPreview } = usePreviewLauncher();
+
   // 处理 diff 类型
   if (content.type === 'diff') {
     const oldText = content.oldText || '';
     const newText = content.newText || '';
     const resolvedPath = content.path || '';
     const displayName = resolvedPath.split(/[/\\]/).pop() || resolvedPath || 'Unknown file';
-    const formattedDiff = createTwoFilesPatch(displayName, displayName, oldText, newText, '', '', { context: 3 });
-    return <Diff2Html diff={formattedDiff} title={`File: ${displayName}`} className='border rounded' filePath={resolvedPath || displayName} />;
+    const formattedDiff = useMemo(() => createTwoFilesPatch(displayName, displayName, oldText, newText, '', '', { context: 3 }), [displayName, oldText, newText]);
+    const fileInfo = useMemo(() => parseDiff(formattedDiff, displayName), [formattedDiff, displayName]);
+
+    const handleFileClick = useCallback(
+      (_file: FileChangeItem) => {
+        void launchPreview({
+          relativePath: resolvedPath || displayName,
+          fileName: displayName,
+          contentType: 'diff',
+          editable: false,
+          language: 'diff',
+          diffContent: formattedDiff,
+        });
+      },
+      [formattedDiff, resolvedPath, displayName, launchPreview]
+    );
+
+    return <FileChangesPanel title={displayName} files={[fileInfo]} onFileClick={handleFileClick} defaultExpanded={true} />;
   }
 
   // 处理 content 类型，包含 text 内容
