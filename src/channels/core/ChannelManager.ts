@@ -9,6 +9,7 @@ import { getChannelMessageService } from '../agent/ChannelMessageService';
 import { ActionExecutor } from '../gateway/ActionExecutor';
 import { PluginManager, registerPlugin } from '../gateway/PluginManager';
 import { PairingService } from '../pairing/PairingService';
+import { LarkPlugin } from '../plugins/lark/LarkPlugin';
 import { TelegramPlugin } from '../plugins/telegram/TelegramPlugin';
 import type { IChannelPluginConfig, PluginType } from '../types';
 import { SessionManager } from './SessionManager';
@@ -43,6 +44,7 @@ export class ChannelManager {
     // Private constructor for singleton pattern
     // Register available plugins
     registerPlugin('telegram', TelegramPlugin);
+    registerPlugin('lark', LarkPlugin);
   }
 
   /**
@@ -214,15 +216,31 @@ export class ChannelManager {
     const existingResult = db.getChannelPlugin(pluginId);
     const existing = existingResult.data;
 
-    // Extract token from config
-    const token = config.token as string | undefined;
+    // Extract credentials from config based on plugin type
+    const pluginType = (existing?.type || this.getPluginTypeFromId(pluginId)) as PluginType;
+    let credentials = existing?.credentials;
+
+    if (pluginType === 'telegram') {
+      const token = config.token as string | undefined;
+      if (token) {
+        credentials = { token };
+      }
+    } else if (pluginType === 'lark') {
+      const appId = config.appId as string | undefined;
+      const appSecret = config.appSecret as string | undefined;
+      const encryptKey = config.encryptKey as string | undefined;
+      const verificationToken = config.verificationToken as string | undefined;
+      if (appId && appSecret) {
+        credentials = { appId, appSecret, encryptKey, verificationToken };
+      }
+    }
 
     const pluginConfig: IChannelPluginConfig = {
       id: pluginId,
-      type: (existing?.type || this.getPluginTypeFromId(pluginId)) as PluginType,
+      type: pluginType,
       name: existing?.name || this.getPluginNameFromId(pluginId),
       enabled: true,
-      credentials: token ? { token } : existing?.credentials,
+      credentials,
       config: { ...existing?.config },
       status: 'created',
       createdAt: existing?.createdAt || Date.now(),
@@ -273,7 +291,7 @@ export class ChannelManager {
   /**
    * Test a plugin connection without enabling it
    */
-  async testPlugin(pluginId: string, token: string): Promise<{ success: boolean; botUsername?: string; error?: string }> {
+  async testPlugin(pluginId: string, token: string, extraConfig?: { appId?: string; appSecret?: string }): Promise<{ success: boolean; botUsername?: string; error?: string }> {
     const pluginType = this.getPluginTypeFromId(pluginId);
 
     if (pluginType === 'telegram') {
@@ -281,6 +299,20 @@ export class ChannelManager {
       return {
         success: result.success,
         botUsername: result.botInfo?.username,
+        error: result.error,
+      };
+    }
+
+    if (pluginType === 'lark') {
+      const appId = extraConfig?.appId;
+      const appSecret = extraConfig?.appSecret;
+      if (!appId || !appSecret) {
+        return { success: false, error: 'App ID and App Secret are required for Lark' };
+      }
+      const result = await LarkPlugin.testConnection(appId, appSecret);
+      return {
+        success: result.success,
+        botUsername: result.botInfo?.name,
         error: result.error,
       };
     }
@@ -295,6 +327,7 @@ export class ChannelManager {
     if (pluginId.startsWith('telegram')) return 'telegram';
     if (pluginId.startsWith('slack')) return 'slack';
     if (pluginId.startsWith('discord')) return 'discord';
+    if (pluginId.startsWith('lark')) return 'lark';
     return 'telegram'; // Default
   }
 

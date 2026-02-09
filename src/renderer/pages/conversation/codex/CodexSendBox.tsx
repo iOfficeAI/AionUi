@@ -141,6 +141,15 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
     setSendBoxHandler(handler);
   }, [setSendBoxHandler, content]);
 
+  // Listen for sendbox.fill event to populate input from external sources
+  useAddEventListener(
+    'sendbox.fill',
+    (text: string) => {
+      setContentRef.current(text);
+    },
+    []
+  );
+
   useEffect(() => {
     return ipcBridge.codexConversation.responseStream.on((message) => {
       if (conversation_id !== message.conversation_id) {
@@ -264,12 +273,13 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
     }
   };
 
-  // 处理从引导页带过来的 initial message，等待连接状态建立后再发送
+  // 处理从引导页带过来的 initial message
+  // Note: We don't wait for codexStatus because:
+  // 1. Codex connection is initialized when first message is sent (via getTaskByIdRollbackBuild)
+  // 2. Waiting for 'session_active' creates a deadlock (status only updates after message is sent)
+  // 3. This matches the behavior of onSendHandler which sends immediately
   useEffect(() => {
-    if (!conversation_id || !codexStatus) return;
-
-    // 只有在连接状态为 session_active 时才发送初始化消息
-    if (codexStatus !== 'session_active') return;
+    if (!conversation_id) return;
 
     const storageKey = `codex_initial_message_${conversation_id}`;
     const processedKey = `codex_initial_processed_${conversation_id}`;
@@ -335,7 +345,7 @@ const CodexSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }
     return () => {
       clearTimeout(timer);
     };
-  }, [conversation_id, codexStatus, addOrUpdateMessage]);
+  }, [conversation_id, addOrUpdateMessage]);
 
   // 停止会话处理函数 Stop conversation handler
   const handleStop = async (): Promise<void> => {

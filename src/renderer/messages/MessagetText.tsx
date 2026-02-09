@@ -16,6 +16,7 @@ import CollapsibleContent from '../components/CollapsibleContent';
 import FilePreview from '../components/FilePreview';
 import HorizontalFileList from '../components/HorizontalFileList';
 import MarkdownView from '../components/Markdown';
+import { stripThinkTags, hasThinkTags } from '../utils/thinkTagFilter';
 
 const parseFileMarker = (content: string) => {
   const markerIndex = content.indexOf(AIONUI_FILES_MARKER);
@@ -49,7 +50,17 @@ const useFormatContent = (content: string) => {
 };
 
 const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
-  const { text, files } = parseFileMarker(message.content.content);
+  // Filter think tags from content before rendering
+  // 在渲染前过滤 think 标签
+  const contentToRender = useMemo(() => {
+    const rawContent = message.content.content;
+    if (typeof rawContent === 'string' && hasThinkTags(rawContent)) {
+      return stripThinkTags(rawContent);
+    }
+    return rawContent;
+  }, [message.content.content]);
+
+  const { text, files } = parseFileMarker(contentToRender);
   const { data, json } = useFormatContent(text);
   const { t } = useTranslation();
   const [showCopyAlert, setShowCopyAlert] = useState(false);

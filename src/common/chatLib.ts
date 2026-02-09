@@ -276,6 +276,11 @@ export interface IConfirmation<Option extends any = any> {
     value: Option;
     params?: Record<string, string>; // Translation interpolation parameters
   }>;
+  /**
+   * Command type for exec confirmations (e.g., 'curl', 'npm', 'git')
+   * Used for "always allow" permission memory
+   */
+  commandType?: string;
 }
 
 /**
@@ -507,7 +512,9 @@ export const composeMessage = (message: TMessage | undefined, list: TMessage[] |
     // If no existing plan found, add new one
   }
 
-  if (last.msg_id !== message.msg_id || last.type !== message.type) return pushMessage(message);
+  if (last.msg_id !== message.msg_id || last.type !== message.type) {
+    return pushMessage(message);
+  }
   if (message.type === 'text' && last.type === 'text') {
     message.content.content = last.content.content + message.content.content;
   }

@@ -18,7 +18,7 @@ export interface ConversationTab {
   /** 工作空间路径 / Workspace path */
   workspace: string;
   /** 会话类型 / Conversation type */
-  type: 'gemini' | 'acp' | 'codex';
+  type: 'gemini' | 'acp' | 'codex' | 'openclaw-gateway';
   /** 是否有未保存的修改 / Whether there are unsaved changes */
   isDirty?: boolean;
 }

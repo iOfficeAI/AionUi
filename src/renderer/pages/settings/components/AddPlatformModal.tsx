@@ -12,7 +12,7 @@ import useProtocolDetection from '../../../hooks/useProtocolDetection';
 import AionModal from '@/renderer/components/base/AionModal';
 import ApiKeyEditorModal from './ApiKeyEditorModal';
 import ProtocolDetectionStatus from './ProtocolDetectionStatus';
-import { MODEL_PLATFORMS, getPlatformByValue, isCustomOption, isGeminiPlatform, type PlatformConfig } from '@/renderer/config/modelPlatforms';
+import { MODEL_PLATFORMS, NEW_API_PROTOCOL_OPTIONS, getPlatformByValue, isCustomOption, isGeminiPlatform, isNewApiPlatform, type PlatformConfig } from '@/renderer/config/modelPlatforms';
 
 /**
  * 供应商 Logo 组件
@@ -66,6 +66,10 @@ const AddPlatformModal = ModalHOC<{
   // 判断是否为"自定义"选项（没有预设 baseUrl） / Check if "Custom" option (no preset baseUrl)
   const isCustom = isCustomOption(platformValue);
   const isGemini = isGeminiPlatform(platform);
+  const isNewApi = isNewApiPlatform(platform);
+
+  // new-api 每模型协议选择状态 / new-api per-model protocol selection state
+  const [modelProtocol, setModelProtocol] = useState<string>('openai');
 
   // 计算实际使用的 baseUrl（优先使用用户输入，否则使用平台预设）
   // Calculate actual baseUrl (prefer user input, fallback to platform preset)
@@ -120,6 +124,7 @@ const AddPlatformModal = ModalHOC<{
       form.setFieldValue('platform', 'gemini');
       protocolDetection.reset();
       setLastDetectionInput(null); // 重置检测记录 / Reset detection record
+      setModelProtocol('openai'); // 重置协议选择 / Reset protocol selection
     }
   }, [modalProps.visible]);
 
@@ -144,7 +149,7 @@ const AddPlatformModal = ModalHOC<{
         // 如果有 i18nKey 使用翻译后的名称，否则使用 platform 的 name
         // If i18nKey exists use translated name, otherwise use platform name
         const name = selectedPlatform?.i18nKey ? t(selectedPlatform.i18nKey) : (selectedPlatform?.name ?? values.platform);
-        onSubmit({
+        const provider: IProvider = {
           id: uuid(),
           platform: selectedPlatform?.platform ?? 'custom',
           name,
@@ -153,7 +158,14 @@ const AddPlatformModal = ModalHOC<{
           baseUrl: values.baseUrl || selectedPlatform?.baseUrl || '',
           apiKey: values.apiKey,
           model: [values.model],
-        });
+        };
+
+        // new-api 平台：保存每模型协议配置 / new-api platform: save per-model protocol config
+        if (isNewApi && values.model) {
+          provider.modelProtocols = { [values.model]: modelProtocol };
+        }
+
+        onSubmit(provider);
         modalCtrl.close();
       })
       .catch(() => {
@@ -196,10 +208,10 @@ const AddPlatformModal = ModalHOC<{
             </Select>
           </Form.Item>
 
-          {/* Base URL - 仅自定义选项和标准 Gemini 显示 / Base URL - only for Custom option and standard Gemini */}
-          <Form.Item hidden={!isCustom && platformValue !== 'gemini'} label={t('settings.baseUrl')} field={'baseUrl'} required={isCustom} rules={[{ required: isCustom }]}>
+          {/* Base URL - 自定义选项、标准 Gemini 和 New API 显示 / Base URL - for Custom, standard Gemini and New API */}
+          <Form.Item hidden={!isCustom && !isNewApi && platformValue !== 'gemini'} label={t('settings.baseUrl')} field={'baseUrl'} required={isCustom || isNewApi} rules={[{ required: isCustom || isNewApi }]}>
             <Input
-              placeholder={selectedPlatform?.baseUrl || ''}
+              placeholder={isNewApi ? 'https://your-newapi-instance.com' : selectedPlatform?.baseUrl || ''}
               onBlur={() => {
                 void modelListState.mutate();
               }}
@@ -238,7 +250,7 @@ const AddPlatformModal = ModalHOC<{
                 <Search
                   onClick={(e) => {
                     e.stopPropagation();
-                    if (isCustom && !baseUrl) {
+                    if ((isCustom || isNewApi) && !baseUrl) {
                       message.warning(t('settings.pleaseEnterBaseUrl'));
                       return;
                     }
@@ -254,6 +266,13 @@ const AddPlatformModal = ModalHOC<{
               options={modelListState.data?.models || []}
             />
           </Form.Item>
+
+          {/* New API 协议选择 / New API Protocol Selection */}
+          {isNewApi && (
+            <Form.Item label={t('settings.modelProtocol')} extra={<span className='text-11px text-t-secondary'>{t('settings.modelProtocolTip')}</span>}>
+              <Select value={modelProtocol} onChange={setModelProtocol} options={NEW_API_PROTOCOL_OPTIONS} />
+            </Form.Item>
+          )}
         </Form>
       </div>
 

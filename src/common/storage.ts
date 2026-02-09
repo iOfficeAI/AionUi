@@ -55,7 +55,7 @@ export interface IConfigStorageRefer {
   customCss: string; // 自定义 CSS 样式
   'css.themes': ICssTheme[]; // 自定义 CSS 主题列表 / Custom CSS themes list
   'css.activeThemeId': string; // 当前激活的主题 ID / Currently active theme ID
-  'gemini.defaultModel': string;
+  'gemini.defaultModel': string | { id: string; useModel: string };
   'tools.imageGenerationModel': TProviderWithModel & {
     switch: boolean;
     // Common settings for image generation
@@ -80,6 +80,11 @@ export interface IConfigStorageRefer {
   'migration.builtinDefaultSkillsAdded_v2'?: boolean;
   // Telegram assistant default model / Telegram 助手默认模型
   'assistant.telegram.defaultModel'?: {
+    id: string;
+    useModel: string;
+  };
+  // Lark assistant default model / Lark 助手默认模型
+  'assistant.lark.defaultModel'?: {
     id: string;
     useModel: string;
   };
@@ -150,6 +155,10 @@ export type TChatConversation =
           enabledSkills?: string[];
           /** 预设助手 ID，用于在会话面板显示助手名称和头像 / Preset assistant ID for displaying name and avatar in conversation panel */
           presetAssistantId?: string;
+          /** ACP 后端的 session UUID，用于会话恢复 / ACP backend session UUID for session resume */
+          acpSessionId?: string;
+          /** ACP session 最后更新时间 / Last update time of ACP session */
+          acpSessionUpdatedAt?: number;
         }
       >,
       'model'
@@ -166,6 +175,31 @@ export type TChatConversation =
           /** 启用的 skills 列表，用于过滤 SkillManager 加载的 skills / Enabled skills list for filtering SkillManager skills */
           enabledSkills?: string[];
           /** 预设助手 ID，用于在会话面板显示助手名称和头像 / Preset assistant ID for displaying name and avatar in conversation panel */
+          presetAssistantId?: string;
+        }
+      >,
+      'model'
+    >
+  | Omit<
+      IChatConversation<
+        'openclaw-gateway',
+        {
+          workspace?: string;
+          customWorkspace?: boolean;
+          /** Gateway configuration */
+          gateway?: {
+            host?: string;
+            port?: number;
+            token?: string;
+            password?: string;
+            useExternalGateway?: boolean;
+            cliPath?: string;
+          };
+          /** Session key for resume */
+          sessionKey?: string;
+          /** 启用的 skills 列表 / Enabled skills list */
+          enabledSkills?: string[];
+          /** 预设助手 ID / Preset assistant ID */
           presetAssistantId?: string;
         }
       >,
@@ -210,6 +244,14 @@ export interface IProvider {
    * 上下文token限制，可选字段，只在明确知道时填写
    */
   contextLimit?: number;
+  /**
+   * 每个模型的协议覆盖配置。映射模型名称到协议字符串。
+   * 仅在 platform 为 'new-api' 时使用。
+   * Per-model protocol overrides. Maps model name to protocol string.
+   * Only used when platform is 'new-api'.
+   * e.g. { "gemini-2.5-pro": "gemini", "claude-sonnet-4": "anthropic", "gpt-4o": "openai" }
+   */
+  modelProtocols?: Record<string, string>;
 }
 
 export type TProviderWithModel = Omit<IProvider, 'model'> & { useModel: string };

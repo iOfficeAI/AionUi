@@ -23,11 +23,17 @@ interface EventTypes {
   'codex.selected.file.append': [Array<string | FileOrFolderItem>];
   'codex.selected.file.clear': void;
   'codex.workspace.refresh': void;
+  'openclaw-gateway.selected.file': [Array<string | FileOrFolderItem>];
+  'openclaw-gateway.selected.file.append': [Array<string | FileOrFolderItem>];
+  'openclaw-gateway.selected.file.clear': void;
+  'openclaw-gateway.workspace.refresh': void;
   'chat.history.refresh': void;
   // 会话删除事件 / Conversation deletion event
   'conversation.deleted': [string]; // conversationId
   // 预览面板事件 / Preview panel events
   'preview.open': [{ content: string; contentType: PreviewContentType; metadata?: { title?: string; fileName?: string } }];
+  // 填充输入框事件 / Fill sendbox input event
+  'sendbox.fill': [string]; // prompt text to fill
 }
 
 export const emitter = new EventEmitter<EventTypes>();

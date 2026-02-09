@@ -8,8 +8,7 @@ import type { ICreateConversationParams } from '@/common/ipcBridge';
 import type { ConversationSource, TChatConversation, TProviderWithModel } from '@/common/storage';
 import { getDatabase } from '@process/database';
 import path from 'path';
-import { createAcpAgent, createCodexAgent, createGeminiAgent } from '../initAgent';
-import type AcpAgentManager from '../task/AcpAgentManager';
+import { createAcpAgent, createCodexAgent, createGeminiAgent, createOpenClawAgent } from '../initAgent';
 import WorkerManage from '../WorkerManage';
 
 /**
@@ -140,6 +139,8 @@ export class ConversationService {
         conversation = await createAcpAgent(params);
       } else if (type === 'codex') {
         conversation = await createCodexAgent(params);
+      } else if (type === 'openclaw-gateway') {
+        conversation = await createOpenClawAgent(params);
       } else {
         return { success: false, error: 'Invalid conversation type' };
       }
@@ -156,10 +157,9 @@ export class ConversationService {
       }
 
       // Register with WorkerManage
-      const task = WorkerManage.buildConversation(conversation);
-      if (task.type === 'acp') {
-        void (task as AcpAgentManager).initAgent();
-      }
+      // Note: Don't call initAgent() here - let it be lazy initialized when sendMessage() is called
+      // This allows frontend to check agent availability and show AgentSetupCard before auth flow
+      WorkerManage.buildConversation(conversation);
 
       // Save to database
       const db = getDatabase();

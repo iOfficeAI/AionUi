@@ -32,12 +32,14 @@ import ModelScopeLogo from '@/renderer/assets/logos/modelscope.svg';
 import InfiniAILogo from '@/renderer/assets/logos/infiniai.svg';
 import CtyunLogo from '@/renderer/assets/logos/ctyun.svg';
 import StepFunLogo from '@/renderer/assets/logos/stepfun.svg';
+import MiniMaxLogo from '@/renderer/assets/logos/minimax.png';
+import NewApiLogo from '@/renderer/assets/logos/newapi.svg';
 
 /**
  * 平台类型
  * Platform type
  */
-export type PlatformType = 'gemini' | 'gemini-vertex-ai' | 'anthropic' | 'custom';
+export type PlatformType = 'gemini' | 'gemini-vertex-ai' | 'anthropic' | 'custom' | 'new-api';
 
 /**
  * 模型平台配置接口
@@ -72,6 +74,9 @@ export const MODEL_PLATFORMS: PlatformConfig[] = [
   // 自定义选项（需要用户输入 base url）/ Custom option (requires user to input base url)
   { name: 'Custom', value: 'custom', logo: null, platform: 'custom', i18nKey: 'settings.platformCustom' },
 
+  // New API 多模型网关 / New API multi-model gateway
+  { name: 'New API', value: 'new-api', logo: NewApiLogo, platform: 'new-api', i18nKey: 'settings.platformNewApi' },
+
   // 官方 Gemini 平台
   { name: 'Gemini', value: 'gemini', logo: GeminiLogo, platform: 'gemini', baseUrl: 'https://generativelanguage.googleapis.com/v1beta' },
   { name: 'Gemini (Vertex AI)', value: 'gemini-vertex-ai', logo: GeminiLogo, platform: 'gemini-vertex-ai' },
@@ -80,6 +85,7 @@ export const MODEL_PLATFORMS: PlatformConfig[] = [
   { name: 'OpenAI', value: 'OpenAI', logo: OpenAILogo, platform: 'custom', baseUrl: 'https://api.openai.com/v1' },
   { name: 'Anthropic', value: 'Anthropic', logo: AnthropicLogo, platform: 'anthropic', baseUrl: 'https://api.anthropic.com' },
   { name: 'DeepSeek', value: 'DeepSeek', logo: DeepSeekLogo, platform: 'custom', baseUrl: 'https://api.deepseek.com/v1' },
+  { name: 'MiniMax', value: 'MiniMax', logo: MiniMaxLogo, platform: 'custom', baseUrl: 'https://api.minimaxi.com/v1' },
   { name: 'OpenRouter', value: 'OpenRouter', logo: OpenRouterLogo, platform: 'custom', baseUrl: 'https://openrouter.ai/api/v1' },
   { name: 'Dashscope', value: 'Dashscope', logo: QwenLogo, platform: 'custom', baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1' },
   { name: 'SiliconFlow', value: 'SiliconFlow', logo: SiliconFlowLogo, platform: 'custom', baseUrl: 'https://api.siliconflow.cn/v1' },
@@ -96,6 +102,16 @@ export const MODEL_PLATFORMS: PlatformConfig[] = [
   { name: 'InfiniAI', value: 'InfiniAI', logo: InfiniAILogo, platform: 'custom', baseUrl: 'https://cloud.infini-ai.com/maas/v1' },
   { name: 'Ctyun', value: 'Ctyun', logo: CtyunLogo, platform: 'custom', baseUrl: 'https://wishub-x1.ctyun.cn/v1' },
   { name: 'StepFun', value: 'StepFun', logo: StepFunLogo, platform: 'custom', baseUrl: 'https://api.stepfun.com/v1' },
+];
+
+/**
+ * New API 协议选项
+ * New API protocol options for per-model protocol configuration
+ */
+export const NEW_API_PROTOCOL_OPTIONS = [
+  { label: 'OpenAI', value: 'openai' },
+  { label: 'Gemini', value: 'gemini' },
+  { label: 'Anthropic', value: 'anthropic' },
 ];
 
 // ============ 工具函数 / Utility Functions ============
@@ -140,6 +156,9 @@ export const isCustomOption = (value: string): boolean => {
   const platform = getPlatformByValue(value);
   return value === 'custom' && !platform?.baseUrl;
 };
+
+// Re-export from common for renderer convenience
+export { isNewApiPlatform } from '@/common/utils/platformConstants';
 
 /**
  * 根据名称搜索平台（不区分大小写）

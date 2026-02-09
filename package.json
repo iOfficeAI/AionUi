@@ -1,7 +1,7 @@
 {
   "name": "AionUi",
   "productName": "AionUi",
-  "version": "1.8.1",
+  "version": "1.8.4",
   "description": "Transform your command-line AI agent into a modern, efficient AI Chat interface.",
   "main": ".webpack/main",
   "scripts": {
@@ -61,7 +61,7 @@
     "@types/cors": "^2.8.19",
     "@types/html-to-text": "^9.0.4",
     "@types/node": "^24.3.1",
-    "@types/qrcode-terminal": "^0.12.2",
+    "@types/qrcode-terminal": "^0.12.0",
     "@types/react-dom": "^19.1.6",
     "@types/react-syntax-highlighter": "^15.5.13",
     "@types/semver": "^7.7.1",
@@ -110,9 +110,10 @@
     "@google/genai": "^1.16.0",
     "@grammyjs/transformer-throttler": "^1.2.1",
     "@icon-park/react": "^1.4.2",
+    "@larksuiteoapi/node-sdk": "^1.58.0",
     "@modelcontextprotocol/sdk": "^1.20.0",
     "@monaco-editor/react": "^4.7.0",
-    "@office-ai/aioncli-core": "^0.24.2",
+    "@office-ai/aioncli-core": "^0.24.4",
     "@office-ai/platform": "^0.3.16",
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.10",
@@ -188,7 +189,7 @@
     "jws@>=4": "4.0.1",
     "diff": "^8.0.3",
     "lodash-es": "^4.17.23",
-    "tar": "^6.2.1",
+    "tar": "^7.5.7",
     "hono": "^4.11.7"
   },
   "lint-staged": {

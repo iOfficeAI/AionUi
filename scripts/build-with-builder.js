@@ -5,9 +5,68 @@
  * Coordinates Electron Forge (webpack) and electron-builder (packaging)
  */
 
-const { execSync } = require('child_process');
+const { execSync, spawnSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+
+// Retry wrapper for electron-builder on macOS to handle transient hdiutil failures.
+// GitHub Actions macos-14 runners occasionally suffer from "Device not configured"
+// errors during DMG creation (electron-builder#8415, actions/runner-images#12323).
+const HDIUTIL_ERROR_PATTERNS = ['hdiutil', 'Device not configured', 'Resource busy'];
+const MAX_RETRIES = 3;
+const RETRY_DELAY_SEC = 30;
+
+function isHdiutilError(errorMessage) {
+  return HDIUTIL_ERROR_PATTERNS.some(pattern => errorMessage.includes(pattern));
+}
+
+function cleanupDiskImages() {
+  try {
+    // Detach all mounted disk images that may block subsequent DMG creation:
+    // hdiutil info → grep device paths → force detach each
+    const result = spawnSync('sh', ['-c',
+      'hdiutil info 2>/dev/null | grep /dev/disk | awk \'{print $1}\' | xargs -I {} hdiutil detach {} -force 2>/dev/null'
+    ], { stdio: 'ignore' });
+    if (result.status !== 0) {
+      console.log(`   ℹ️  Disk image cleanup exit code: ${result.status}`);
+    }
+    return result.status === 0;
+  } catch (error) {
+    console.log(`   ℹ️  Disk image cleanup failed: ${error.message}`);
+    return false;
+  }
+}
+
+function execWithHdiutilRetry(cmd, options) {
+  const isMac = process.platform === 'darwin';
+
+  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      execSync(cmd, options);
+      return;
+    } catch (error) {
+      const msg = error.message || '';
+      const stderr = error.stderr?.toString() || '';
+      const combined = `${msg}\n${stderr}`;
+
+      if (isMac && isHdiutilError(combined) && attempt < MAX_RETRIES) {
+        const errorLine = combined.split('\n').find(l =>
+          HDIUTIL_ERROR_PATTERNS.some(p => l.includes(p))
+        );
+        console.log(`\n⚠️  hdiutil error on attempt ${attempt}/${MAX_RETRIES}, retrying in ${RETRY_DELAY_SEC}s...`);
+        console.log(`   Error: ${errorLine || msg || 'Unknown hdiutil error'}`);
+        cleanupDiskImages();
+        spawnSync('sleep', [String(RETRY_DELAY_SEC)]);
+        continue;
+      }
+
+      if (isMac && isHdiutilError(combined)) {
+        console.log(`\n❌ hdiutil error persisted after ${MAX_RETRIES} attempts, giving up.`);
+      }
+      throw error;
+    }
+  }
+}
 
 // Parse command line arguments
 const args = process.argv.slice(2);
@@ -152,10 +211,32 @@ try {
     ensureDir(sourceDir, webpackDir, 'native_modules');
   }
 
+  // 4.1 Validate renderer entry exists (critical for packaged app)
+  const rendererIndex = path.join(webpackDir, 'renderer', 'main_window', 'index.html');
+  if (!fs.existsSync(rendererIndex)) {
+    const topLevelDirs = fs.readdirSync(webpackDir, { withFileTypes: true })
+      .filter(entry => entry.isDirectory())
+      .map(entry => entry.name);
+
+    for (const dirName of topLevelDirs) {
+      const candidate = path.join(webpackDir, dirName, 'renderer', 'main_window', 'index.html');
+      if (fs.existsSync(candidate)) {
+        console.log(`🔁 Found renderer entry under .webpack/${dirName}, copying to .webpack/renderer...`);
+        ensureDir(path.join(webpackDir, dirName), webpackDir, 'renderer');
+        break;
+      }
+    }
+  }
+
+  if (!fs.existsSync(rendererIndex)) {
+    throw new Error('Missing renderer entry: .webpack/renderer/main_window/index.html');
+  }
+
   // 5. 运行 electron-builder 生成分发包（DMG/ZIP/EXE等）
   // Run electron-builder to create distributables (DMG/ZIP/EXE, etc.)
-  const isRelease = process.env.GITHUB_REF && process.env.GITHUB_REF.startsWith('refs/tags/v');
-  const publishArg = isRelease ? '' : '--publish=never';
+  // Always disable auto-publish to avoid electron-builder's implicit tag-based publishing
+  // Publishing is handled by a separate release job in CI
+  const publishArg = '--publish=never';
 
   // 根据模式添加架构标志
   // Add arch flags based on mode
@@ -172,7 +253,7 @@ try {
     console.log(`🚀 Creating distributables for ${targetArch}...`);
   }
 
-  execSync(`npx electron-builder ${builderArgs} ${archFlag} ${publishArg}`, { stdio: 'inherit' });
+  execWithHdiutilRetry(`npx electron-builder ${builderArgs} ${archFlag} ${publishArg}`, { stdio: 'inherit' });
 
   console.log('✅ Build completed!');
 } catch (error) {

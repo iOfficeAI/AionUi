@@ -11,7 +11,8 @@ import { Cron } from 'croner';
 import WorkerManage from '../../WorkerManage';
 import { copyFilesToDirectory } from '../../utils';
 import { cronBusyGuard } from './CronBusyGuard';
-import { cronStore, type AgentType, type CronJob, type CronSchedule } from './CronStore';
+import type { AcpBackendAll } from '@/types/acpTypes';
+import { cronStore, type CronJob, type CronSchedule } from './CronStore';
 
 /**
  * Parameters for creating a new cron job
@@ -22,7 +23,7 @@ export interface CreateCronJobParams {
   message: string;
   conversationId: string;
   conversationTitle?: string;
-  agentType: AgentType;
+  agentType: AcpBackendAll;
   createdBy: 'user' | 'agent';
 }
 
@@ -451,4 +452,4 @@ class CronService {
 export const cronService = new CronService();
 
 // Re-export types
-export type { AgentType, CronJob, CronSchedule } from './CronStore';
+export type { CronJob, CronSchedule } from './CronStore';

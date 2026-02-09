@@ -9,7 +9,7 @@
 /**
  * Supported platform types for plugins
  */
-export type PluginType = 'telegram' | 'slack' | 'discord';
+export type PluginType = 'telegram' | 'slack' | 'discord' | 'lark';
 
 /**
  * Plugin connection status
@@ -20,14 +20,20 @@ export type PluginStatus = 'created' | 'initializing' | 'ready' | 'starting' | '
  * Plugin credentials (stored encrypted in database)
  */
 export interface IPluginCredentials {
+  // Telegram
   token?: string;
+  // Lark/Feishu
+  appId?: string;
+  appSecret?: string;
+  encryptKey?: string;
+  verificationToken?: string;
 }
 
 /**
  * Plugin configuration options
  */
 export interface IPluginConfigOptions {
-  mode?: 'polling' | 'webhook';
+  mode?: 'polling' | 'webhook' | 'websocket';
   webhookUrl?: string;
   rateLimit?: number; // Max messages per minute
   requireMention?: boolean; // Require @mention in groups

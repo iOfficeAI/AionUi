@@ -19,7 +19,7 @@
 ---
 
 <p align="center">
-  <strong>🚀 Asistente personal 「Cowork」basado en Gemini CLI, Claude Code, Codex, Qwen Code, Goose CLI, Auggie y más</strong><br>
+  <strong>🚀 Asistente personal 「Cowork」basado en Gemini CLI, Claude Code, Codex, Qwen Code, Goose CLI, OpenClaw, Auggie y más</strong><br>
   <em>Fácil de usar | Interfaz gráfica visual | Soporte multimodelo | Seguridad de datos local</em>
 </p>
 
@@ -55,7 +55,7 @@
 ## ✨ ¿Qué puede hacer AionUi?
 
 <p align="center">
-  <img src="./resources/offica-ai BANNER-function.png" alt="AionUi - Cowork with Your CLI AI Agent" width="800">
+  <img src="./resources/offica-ai%20BANNER-function.png" alt="AionUi - Cowork with Your CLI AI Agent" width="800">
 </p>
 
 ### 🤖 **Modo multiagente - Cowork para tus herramientas de IA en línea de comandos, interfaz gráfica unificada**
@@ -66,16 +66,19 @@ _AionUi incluye Gemini CLI de forma integrada, listo para usar desde la instalac
 - ✅ **Almacenamiento local + multi-sesión** - Conversaciones guardadas localmente, admite múltiples sesiones en paralelo, cada una con contexto independiente
 
 <p align="center">
-  <img src="./resources/acp home page.gif" alt="Multi-Agent Mode Demo" width="800">
+  <img src="./resources/acp%20home%20page.gif" alt="Multi-Agent Mode Demo" width="800"></p>
+
+<p align="center">
+  <img src="./resources/openclawvia.png" alt="OpenClaw Integration in AionUi" width="800">
 </p>
 
 ---
 
 ### 🌐 **Acceso a tu AionUi desde cualquier lugar**
 
-_Tu asistente de IA 7×24 horas - Accede a AionUi desde cualquier dispositivo, en cualquier lugar. En viajes de negocios, en casa, en la oficina, usa tus herramientas de IA en cualquier momento y lugar a través de WebUI o Telegram_
+_Tu asistente de IA 7×24 horas - Accede a AionUi desde cualquier dispositivo, en cualquier lugar. En viajes de negocios, en casa, en la oficina, usa tus herramientas de IA en cualquier momento y lugar a través de WebUI o varias plataformas de chat_
 
-AionUi proporciona dos métodos de acceso remoto：
+AionUi proporciona múltiples métodos de acceso remoto：
 
 - **🌐 Modo WebUI**
 
@@ -83,14 +86,19 @@ AionUi proporciona dos métodos de acceso remoto：
 
   > 💡 **¿Necesitas una guía de configuración detallada?** Consulta la [Guía de acceso remoto a Internet](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide)
 
-- **📱 Telegram Channel**
+- **📱 Integración de plataformas de chat**
+  - **Telegram** - Chatea con tu asistente de IA en cualquier dispositivo
+  - **Lark (Feishu)** - Colaboración empresarial mediante bots de Feishu
+  - **Slack** y más plataformas próximamente 🚧
+
+  > 💡 **Cómo configurar:** Ve a Configuración de AionUi → Configuración de WebUI → Channel, configura el Bot Token correspondiente para comenzar!
 
   Chatea directamente con tu asistente de IA desde Telegram en cualquier dispositivo. Sistema de código de emparejamiento simple para acceso seguro.
 
   > 💡 **Cómo configurar:** Ve a Configuración de AionUi → Configuración de WebUI → Channel, obtén tu Bot Token de [@BotFather](https://t.me/BotFather) y comienza a chatear!
 
 <p align="center">
-  <img src="./resources/remote-telegram.png" alt="Acceso desde cualquier lugar - WebUI & Telegram" width="800">
+  <img src="./resources/remote-telegram.png" alt="Acceso desde cualquier lugar - WebUI y plataformas de chat" width="800">
 </p>
 
 ---
@@ -119,7 +127,7 @@ _Renombrado por lotes, organización automática, clasificación inteligente, fu
 - **Lotes eficientes**: Renombra y fusiona archivos con un clic, adiós a tareas manuales tediosas.
 
 <p align="center">
-  <img src="./resources/aionui sort file.gif" alt="Smart File Management Demo" width="800">
+  <img src="./resources/aionui%20sort%20file.gif" alt="Smart File Management Demo" width="800">
 </p>
 
 ---
@@ -162,7 +170,7 @@ _Admite modelos principales como Gemini, OpenAI, Claude, Qwen, y modelos locales
 _Personaliza con tu propio código CSS, haz que tu interfaz coincida con tus preferencias_
 
 <p align="center">
-  <img src="./resources/css with skin.gif" alt="CSS Custom Interface Demo" width="800">
+  <img src="./resources/css%20with%20skin.gif" alt="CSS Custom Interface Demo" width="800">
 </p>
 
 - ✅ **Totalmente personalizable** - Personaliza libremente colores, estilos y diseño de la interfaz a través de código CSS, crea tu experiencia exclusiva
