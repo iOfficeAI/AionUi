@@ -5,7 +5,7 @@
  */
 
 import type { IChannelPairingRequest, IChannelPluginStatus, IChannelUser } from '@/channels/types';
-import { channel } from '@/common/ipcBridge';
+import { channel, shell } from '@/common/ipcBridge';
 import type { IProvider, TProviderWithModel } from '@/common/storage';
 import { ConfigStorage } from '@/common/storage';
 import { hasSpecificModelCapability } from '@/renderer/utils/modelCapabilities';
@@ -82,6 +82,7 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelList
   const [encryptKey, setEncryptKey] = useState('');
   const [verificationToken, setVerificationToken] = useState('');
 
+  const [showOptional, setShowOptional] = useState(false);
   const [testLoading, setTestLoading] = useState(false);
   const [credentialsTested, setCredentialsTested] = useState(false);
   const [touched, setTouched] = useState({ appId: false, appSecret: false });
@@ -320,7 +321,18 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelList
   return (
     <div className='flex flex-col gap-24px'>
       {/* App ID */}
-      <PreferenceRow label={t('settings.lark.appId', 'App ID')} description={t('settings.lark.appIdDesc', 'Open Feishu Developer Console to get your App ID')} required>
+      <PreferenceRow
+        label={t('settings.lark.appId', 'App ID')}
+        description={
+          <span>
+            <button className='text-primary hover:underline cursor-pointer bg-transparent border-none p-0 text-12px' onClick={() => shell.openExternal.invoke('https://open.feishu.cn/document/develop-an-echo-bot/introduction').catch(console.error)}>
+              {t('settings.lark.devConsoleLink', 'Feishu Developer Console')}
+            </button>{' '}
+            {t('settings.lark.appIdDescSuffix', 'to get your App ID')}
+          </span>
+        }
+        required
+      >
         <Input
           value={appId}
           onChange={(value) => {
@@ -336,7 +348,18 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelList
       </PreferenceRow>
 
       {/* App Secret */}
-      <PreferenceRow label={t('settings.lark.appSecret', 'App Secret')} description={t('settings.lark.appSecretDesc', 'App Secret from Feishu Developer Console')} required>
+      <PreferenceRow
+        label={t('settings.lark.appSecret', 'App Secret')}
+        description={
+          <span>
+            <button className='text-primary hover:underline cursor-pointer bg-transparent border-none p-0 text-12px' onClick={() => shell.openExternal.invoke('https://open.feishu.cn/document/develop-an-echo-bot/introduction').catch(console.error)}>
+              {t('settings.lark.devConsoleLink', 'Feishu Developer Console')}
+            </button>{' '}
+            {t('settings.lark.appSecretDescSuffix', 'to get App Secret')}
+          </span>
+        }
+        required
+      >
         <Input.Password
           value={appSecret}
           onChange={(value) => {
@@ -352,35 +375,45 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelList
         />
       </PreferenceRow>
 
-      {/* Encrypt Key (Optional) */}
-      <PreferenceRow label={t('settings.lark.encryptKey', 'Encrypt Key')} description={t('settings.lark.encryptKeyDesc', 'Optional: For event encryption (from Event Subscription settings)')}>
-        <Input.Password
-          value={encryptKey}
-          onChange={(value) => {
-            setEncryptKey(value);
-            handleCredentialsChange();
-          }}
-          placeholder={t('settings.lark.optional', 'Optional')}
-          style={{ width: 240 }}
-          visibilityToggle
-          disabled={hasExistingUsers}
-        />
-      </PreferenceRow>
+      {/* Optional fields toggle */}
+      <div className='flex items-center gap-4px text-12px text-t-tertiary cursor-pointer select-none' onClick={() => setShowOptional((prev) => !prev)}>
+        <Down theme='outline' size={12} style={{ transform: showOptional ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }} />
+        <span>{showOptional ? t('settings.lark.hideOptionalFields', 'Hide optional settings') : t('settings.lark.showOptionalFields', 'Show optional settings')}</span>
+      </div>
 
-      {/* Verification Token (Optional) */}
-      <PreferenceRow label={t('settings.lark.verificationToken', 'Verification Token')} description={t('settings.lark.verificationTokenDesc', 'Optional: For event verification (from Event Subscription settings)')}>
-        <Input.Password
-          value={verificationToken}
-          onChange={(value) => {
-            setVerificationToken(value);
-            handleCredentialsChange();
-          }}
-          placeholder={t('settings.lark.optional', 'Optional')}
-          style={{ width: 240 }}
-          visibilityToggle
-          disabled={hasExistingUsers}
-        />
-      </PreferenceRow>
+      {showOptional && (
+        <>
+          {/* Encrypt Key (Optional) */}
+          <PreferenceRow label={t('settings.lark.encryptKey', 'Encrypt Key')} description={t('settings.lark.encryptKeyDesc', 'Optional: For event encryption (from Event Subscription settings)')}>
+            <Input.Password
+              value={encryptKey}
+              onChange={(value) => {
+                setEncryptKey(value);
+                handleCredentialsChange();
+              }}
+              placeholder={t('settings.lark.optional', 'Optional')}
+              style={{ width: 240 }}
+              visibilityToggle
+              disabled={hasExistingUsers}
+            />
+          </PreferenceRow>
+
+          {/* Verification Token (Optional) */}
+          <PreferenceRow label={t('settings.lark.verificationToken', 'Verification Token')} description={t('settings.lark.verificationTokenDesc', 'Optional: For event verification (from Event Subscription settings)')}>
+            <Input.Password
+              value={verificationToken}
+              onChange={(value) => {
+                setVerificationToken(value);
+                handleCredentialsChange();
+              }}
+              placeholder={t('settings.lark.optional', 'Optional')}
+              style={{ width: 240 }}
+              visibilityToggle
+              disabled={hasExistingUsers}
+            />
+          </PreferenceRow>
+        </>
+      )}
 
       {/* Test Connection Button - only show when not connected or no existing users */}
       {!hasExistingUsers && !pluginStatus?.connected && (
