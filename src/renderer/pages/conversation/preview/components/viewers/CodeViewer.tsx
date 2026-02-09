@@ -138,7 +138,7 @@ const CodePreview: React.FC<CodePreviewProps> = ({ content, language = 'text', o
           <pre className='w-full m-0 p-12px bg-bg-2 rd-8px overflow-auto font-mono text-12px text-t-primary whitespace-pre-wrap break-words'>{content}</pre>
         ) : (
           // 预览模式：语法高亮 / Preview mode: Syntax highlighting
-          <SyntaxHighlighter style={currentTheme === 'dark' ? vs2015 : vs} language={language} PreTag='div' wrapLongLines={language === 'text'} customStyle={language === 'text' ? { whiteSpace: 'pre-wrap', wordBreak: 'break-word' } : undefined}>
+          <SyntaxHighlighter style={currentTheme === 'dark' ? vs2015 : vs} language={language} PreTag='div' wrapLongLines={language === 'text' || language === 'txt'} customStyle={language === 'text' || language === 'txt' ? { whiteSpace: 'pre-wrap', wordBreak: 'break-word' } : undefined}>
             {displayedContent}
           </SyntaxHighlighter>
         )}
