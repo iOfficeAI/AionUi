@@ -273,6 +273,15 @@ export class AcpAgent {
           };
         }
       }
+
+      // Emit start event to set frontend loading state
+      this.onStreamEvent({
+        type: 'start',
+        conversation_id: this.id,
+        msg_id: data.msg_id || uuid(),
+        data: null,
+      });
+
       this.adapter.resetMessageTracking();
       let processedContent = data.content;
 

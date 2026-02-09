@@ -44,6 +44,7 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
     this.conversation_id = data.conversation_id;
     this.workspace = data.workspace;
     this.options = data;
+    this.status = 'pending';
 
     this.bootstrap = this.initAgent(data);
   }
@@ -129,6 +130,7 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
     // Handle finish event
     if (msg.type === 'finish') {
       cronBusyGuard.setProcessing(this.conversation_id, false);
+      this.status = 'finished';
     }
 
     // Emit signal events to frontend
@@ -143,6 +145,8 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
 
   async sendMessage(data: { content: string; files?: string[]; msg_id?: string }) {
     cronBusyGuard.setProcessing(this.conversation_id, true);
+    // Set status to running when message is being processed
+    this.status = 'running';
     try {
       await this.bootstrap;
 
@@ -170,6 +174,7 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
       return result;
     } catch (error) {
       cronBusyGuard.setProcessing(this.conversation_id, false);
+      this.status = 'finished';
 
       const errorMsg = error instanceof Error ? error.message : String(error);
       this.emitErrorMessage(`Failed to send message: ${errorMsg}`);

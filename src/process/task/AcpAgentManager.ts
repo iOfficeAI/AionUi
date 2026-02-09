@@ -51,6 +51,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     this.conversation_id = data.conversation_id;
     this.workspace = data.workspace;
     this.options = data;
+    this.status = 'pending';
   }
 
   initAgent(data: AcpAgentManagerData = this.options) {
@@ -182,9 +183,10 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
             return;
           }
 
-          // Clear busy guard when turn ends
+          // Clear busy guard and update status when turn ends
           if (v.type === 'finish') {
             cronBusyGuard.setProcessing(this.conversation_id, false);
+            this.status = 'finished';
           }
 
           // Process cron commands when turn ends (finish signal)
@@ -238,6 +240,8 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
   }> {
     // Mark conversation as busy to prevent cron jobs from running
     cronBusyGuard.setProcessing(this.conversation_id, true);
+    // Set status to running when message is being processed
+    this.status = 'running';
     try {
       await this.initAgent(this.options);
       // Save user message to chat history ONLY after successful sending
@@ -289,6 +293,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
       return await this.agent.sendMessage(data);
     } catch (e) {
       cronBusyGuard.setProcessing(this.conversation_id, false);
+      this.status = 'finished';
       const message: IResponseMessage = {
         type: 'error',
         conversation_id: this.conversation_id,

@@ -39,6 +39,10 @@ const useAcpMessage = (conversation_id: string) => {
   const [acpStatus, setAcpStatus] = useState<'connecting' | 'connected' | 'authenticated' | 'session_active' | 'disconnected' | 'error' | null>(null);
   const [aiProcessing, setAiProcessing] = useState(false); // New loading state for AI response
 
+  // Track whether current turn has content output
+  // Only reset aiProcessing when finish arrives after content (not after tool calls)
+  const hasContentInTurnRef = useRef(false);
+
   // Think 消息节流：限制更新频率，减少渲染次数
   // Throttle thought updates to reduce render frequency
   const thoughtThrottleRef = useRef<{
@@ -102,11 +106,19 @@ const useAcpMessage = (conversation_id: string) => {
           setRunning(true);
           break;
         case 'finish':
-          setRunning(false);
-          setAiProcessing(false);
-          setThought({ subject: '', description: '' });
+          // Only reset when current turn has content output
+          // Tool-only turns (no content) should not reset aiProcessing
+          if (hasContentInTurnRef.current) {
+            setRunning(false);
+            setAiProcessing(false);
+            setThought({ subject: '', description: '' });
+          }
+          // Reset flag for next turn
+          hasContentInTurnRef.current = false;
           break;
         case 'content':
+          // Mark that current turn has content output
+          hasContentInTurnRef.current = true;
           // Clear thought when final answer arrives
           setThought({ subject: '', description: '' });
           addOrUpdateMessage(transformedMessage);
@@ -150,18 +162,28 @@ const useAcpMessage = (conversation_id: string) => {
     return ipcBridge.acpConversation.responseStream.on(handleResponseMessage);
   }, [handleResponseMessage]);
 
-  // Reset state when conversation changes
+  // Reset state when conversation changes and restore actual running status
   useEffect(() => {
     setRunning(false);
     setThought({ subject: '', description: '' });
     setAcpStatus(null);
     setAiProcessing(false);
+    hasContentInTurnRef.current = false;
+
+    // Check actual conversation status from backend
+    void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
+      if (!res) return;
+      if (res.status === 'running') {
+        setAiProcessing(true);
+      }
+    });
   }, [conversation_id]);
 
   const resetState = useCallback(() => {
     setRunning(false);
     setAiProcessing(false);
     setThought({ subject: '', description: '' });
+    hasContentInTurnRef.current = false;
   }, []);
 
   return { thought, setThought, running, acpStatus, aiProcessing, setAiProcessing, resetState };

@@ -55,6 +55,10 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
     subject: '',
   });
 
+  // Track whether current turn has content output
+  // Only reset aiProcessing when finish arrives after content (not after tool calls)
+  const hasContentInTurnRef = useRef(false);
+
   // Throttle thought updates to reduce render frequency
   const thoughtThrottleRef = useRef<{
     lastUpdate: number;
@@ -121,10 +125,20 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
   const setContentRef = useLatestRef(setContent);
   const atPathRef = useLatestRef(atPath);
 
+  // Reset state when conversation changes and restore actual running status
   useEffect(() => {
     setAiProcessing(false);
     setOpenClawStatus(null);
     setThought({ subject: '', description: '' });
+    hasContentInTurnRef.current = false;
+
+    // Check actual conversation status from backend
+    void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
+      if (!res) return;
+      if (res.status === 'running') {
+        setAiProcessing(true);
+      }
+    });
   }, [conversation_id]);
 
   useEffect(() => {
@@ -153,11 +167,19 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
           throttledSetThought(message.data as ThoughtData);
           break;
         case 'finish':
-          setThought({ subject: '', description: '' });
-          setAiProcessing(false);
+          // Only reset when current turn has content output
+          // Tool-only turns (no content) should not reset aiProcessing
+          if (hasContentInTurnRef.current) {
+            setAiProcessing(false);
+            setThought({ subject: '', description: '' });
+          }
+          // Reset flag for next turn
+          hasContentInTurnRef.current = false;
           break;
         case 'content':
         case 'acp_permission': {
+          // Mark that current turn has content output
+          hasContentInTurnRef.current = true;
           setThought({ subject: '', description: '' });
           const transformedMessage = transformMessage(message);
           if (transformedMessage) {
@@ -175,6 +197,8 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
           break;
         }
         default: {
+          // Mark that current turn has content output
+          hasContentInTurnRef.current = true;
           setThought({ subject: '', description: '' });
           const transformedMessage = transformMessage(message);
           if (transformedMessage) {
@@ -248,8 +272,10 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
       });
       void checkAndUpdateTitle(conversation_id, message);
       emitter.emit('chat.history.refresh');
-    } finally {
+    } catch (error) {
+      // Only reset aiProcessing on error, normal flow is reset by 'finish' event
       setAiProcessing(false);
+      throw error;
     }
   };
 
@@ -291,7 +317,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
         sessionStorage.removeItem(storageKey);
       } catch (err) {
         sessionStorage.removeItem(processedKey);
-      } finally {
+        // Only reset aiProcessing on error, normal flow is reset by 'finish' event
         setAiProcessing(false);
       }
     };
@@ -313,6 +339,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
     } finally {
       setAiProcessing(false);
       setThought({ subject: '', description: '' });
+      hasContentInTurnRef.current = false;
     }
   };
 

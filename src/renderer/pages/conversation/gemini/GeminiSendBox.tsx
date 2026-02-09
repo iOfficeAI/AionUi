@@ -53,6 +53,10 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
   // 使用 ref 避免状态变化时 useEffect 重新订阅导致事件丢失
   const hasActiveToolsRef = useRef(hasActiveTools);
   const streamRunningRef = useRef(streamRunning);
+
+  // Track whether current turn has content output
+  // Only reset waitingResponse when finish arrives after content (not after tool calls)
+  const hasContentInTurnRef = useRef(false);
   useEffect(() => {
     hasActiveToolsRef.current = hasActiveTools;
   }, [hasActiveTools]);
@@ -150,14 +154,16 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
         case 'finish':
           {
             setStreamRunning(false);
-            // 只有当没有活跃工具时才清除等待状态和 thought
-            // Only clear waiting state and thought when no active tools
-            // 当有工具在执行时，工具完成后后端还需要继续向模型发送请求
-            // When tools are active, backend needs to continue sending requests to model after tool completion
-            if (!hasActiveToolsRef.current) {
+            // 只有当有内容输出且没有活跃工具时才完全重置
+            // Only fully reset when there's content output AND no active tools
+            // 工具回合（无 content）不应重置 waitingResponse
+            // Tool-only turns (no content) should not reset waitingResponse
+            if (hasContentInTurnRef.current && !hasActiveToolsRef.current) {
               setWaitingResponse(false);
               setThought({ subject: '', description: '' });
             }
+            // Reset flag for next turn
+            hasContentInTurnRef.current = false;
           }
           break;
         case 'tool_group':
@@ -250,6 +256,9 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
           if (message.type === 'error') {
             setWaitingResponse(false);
             onError?.(message as IResponseMessage);
+          } else {
+            // Mark that current turn has content output (exclude error type)
+            hasContentInTurnRef.current = true;
           }
           // Backend handles persistence, Frontend only updates UI
           addOrUpdateMessage(transformMessage(message));
@@ -267,6 +276,7 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
     setWaitingResponse(false);
     setThought({ subject: '', description: '' });
     setTokenUsage(null);
+    hasContentInTurnRef.current = false;
     void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
       if (!res) return;
       if (res.status === 'running') {
@@ -288,6 +298,7 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
     setStreamRunning(false);
     setHasActiveTools(false);
     setThought({ subject: '', description: '' });
+    hasContentInTurnRef.current = false;
   }, []);
 
   return { thought, setThought, running, tokenUsage, setActiveMsgId, setWaitingResponse, resetState };
