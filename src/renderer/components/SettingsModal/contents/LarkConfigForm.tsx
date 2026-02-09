@@ -73,6 +73,8 @@ interface LarkConfigFormProps {
   onModelChange: (model: TProviderWithModel | null) => void;
 }
 
+const LARK_DEV_DOCS_URL = 'https://open.feishu.cn/document/develop-an-echo-bot/introduction';
+
 const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelList, selectedModel, onStatusChange, onModelChange }) => {
   const { t } = useTranslation();
 
@@ -325,9 +327,16 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelList
         label={t('settings.lark.appId', 'App ID')}
         description={
           <span>
-            <button className='text-primary hover:underline cursor-pointer bg-transparent border-none p-0 text-12px' onClick={() => shell.openExternal.invoke('https://open.feishu.cn/document/develop-an-echo-bot/introduction').catch(console.error)}>
+            <a
+              className='text-primary hover:underline cursor-pointer text-12px'
+              href={LARK_DEV_DOCS_URL}
+              onClick={(e) => {
+                e.preventDefault();
+                shell.openExternal.invoke(LARK_DEV_DOCS_URL).catch(console.error);
+              }}
+            >
               {t('settings.lark.devConsoleLink', 'Feishu Developer Console')}
-            </button>{' '}
+            </a>{' '}
             {t('settings.lark.appIdDescSuffix', 'to get your App ID')}
           </span>
         }
@@ -352,9 +361,16 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelList
         label={t('settings.lark.appSecret', 'App Secret')}
         description={
           <span>
-            <button className='text-primary hover:underline cursor-pointer bg-transparent border-none p-0 text-12px' onClick={() => shell.openExternal.invoke('https://open.feishu.cn/document/develop-an-echo-bot/introduction').catch(console.error)}>
+            <a
+              className='text-primary hover:underline cursor-pointer text-12px'
+              href={LARK_DEV_DOCS_URL}
+              onClick={(e) => {
+                e.preventDefault();
+                shell.openExternal.invoke(LARK_DEV_DOCS_URL).catch(console.error);
+              }}
+            >
               {t('settings.lark.devConsoleLink', 'Feishu Developer Console')}
-            </button>{' '}
+            </a>{' '}
             {t('settings.lark.appSecretDescSuffix', 'to get App Secret')}
           </span>
         }
