@@ -432,3 +432,29 @@ export function pairingRequestToRow(request: IChannelPairingRequest): IChannelPa
     status: request.status,
   };
 }
+
+// ==================== Channel Platform Helpers ====================
+
+/**
+ * Channel platform type for model configuration.
+ * Subset of PluginType that currently supports channel conversations.
+ */
+export type ChannelPlatform = 'telegram' | 'lark';
+
+/**
+ * Type guard to check if a string is a valid ChannelPlatform
+ */
+export function isChannelPlatform(value: string): value is ChannelPlatform {
+  return value === 'telegram' || value === 'lark';
+}
+
+/**
+ * Get default conversation name for a channel platform
+ */
+export function getChannelConversationName(platform: ChannelPlatform): string {
+  const names: Record<ChannelPlatform, string> = {
+    telegram: 'Telegram Assistant',
+    lark: 'Lark Assistant',
+  };
+  return names[platform];
+}

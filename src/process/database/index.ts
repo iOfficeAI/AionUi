@@ -431,7 +431,7 @@ export class AionUIDatabase {
    * Get the latest conversation by source type
    * 根据来源类型获取最新的会话
    */
-  getLatestConversationBySource(source: 'aionui' | 'telegram', userId?: string): IQueryResult<TChatConversation | null> {
+  getLatestConversationBySource(source: 'aionui' | 'telegram' | 'lark', userId?: string): IQueryResult<TChatConversation | null> {
     try {
       const finalUserId = userId || this.defaultUserId;
       const row = this.db

@@ -839,9 +839,10 @@
     },
     "lark": {
       "appId": "App ID",
-      "appIdDesc": "Open Feishu Developer Console to get your App ID",
+      "devConsoleLink": "Feishu Developer Console",
+      "appIdDescSuffix": "to get your App ID",
       "appSecret": "App Secret",
-      "appSecretDesc": "App Secret from Feishu Developer Console",
+      "appSecretDescSuffix": "to get App Secret",
       "encryptKey": "Encrypt Key",
       "encryptKeyDesc": "Optional: For event encryption (from Event Subscription settings)",
       "verificationToken": "Verification Token",
@@ -864,7 +865,9 @@
       "step2": "Send any message to initiate pairing",
       "step3": "A pairing request will appear below. Click \"Approve\" to authorize the user.",
       "step4": "Once approved, you can start chatting with the AI assistant through Lark!",
-      "waitingConnection": "WebSocket connection is being established. Please wait..."
+      "waitingConnection": "WebSocket connection is being established. Please wait...",
+      "showOptionalFields": "Show optional settings",
+      "hideOptionalFields": "Hide optional settings"
     }
   },
   "messages": {

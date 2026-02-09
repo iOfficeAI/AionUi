@@ -835,9 +835,10 @@
     },
     "lark": {
       "appId": "App ID",
-      "appIdDesc": "打开飞书开放平台开发者后台获取 App ID",
+      "devConsoleLink": "飞书开放平台开发者后台",
+      "appIdDescSuffix": "获取 App ID",
       "appSecret": "App Secret",
-      "appSecretDesc": "飞书开放平台开发者后台获取 App Secret",
+      "appSecretDescSuffix": "获取 App Secret",
       "encryptKey": "Encrypt Key",
       "encryptKeyDesc": "可选：用于事件加密（来自事件订阅配置）",
       "verificationToken": "Verification Token",
@@ -860,7 +861,9 @@
       "step2": "发送任意消息开始配对",
       "step3": "配对请求会显示在下方，点击「批准」授权用户",
       "step4": "授权成功后，你可以通过飞书与 AI 助手聊天！",
-      "waitingConnection": "WebSocket 连接正在建立，请稍候..."
+      "waitingConnection": "WebSocket 连接正在建立，请稍候...",
+      "showOptionalFields": "显示可选配置",
+      "hideOptionalFields": "隐藏可选配置"
     }
   },
   "messages": {
