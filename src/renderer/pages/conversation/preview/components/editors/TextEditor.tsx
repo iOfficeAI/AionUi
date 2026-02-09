@@ -5,6 +5,7 @@
  */
 
 import { useThemeContext } from '@/renderer/context/ThemeContext';
+import { EditorView } from '@codemirror/view';
 import CodeMirror from '@uiw/react-codemirror';
 import React, { useCallback, useMemo } from 'react';
 
@@ -70,16 +71,7 @@ const TextEditor: React.FC<TextEditorProps> = ({ value, onChange, readOnly = fal
 
   return (
     <div ref={containerRef} className='h-full w-full overflow-auto text-left'>
-      <CodeMirror
-        value={value}
-        height='100%'
-        theme={theme === 'dark' ? 'dark' : 'light'}
-        extensions={[]} // 不使用特定语法支持，保持通用 / No specific syntax support, keep it generic
-        onChange={handleChange}
-        readOnly={readOnly}
-        basicSetup={basicSetupConfig}
-        style={editorStyle}
-      />
+      <CodeMirror value={value} height='100%' theme={theme === 'dark' ? 'dark' : 'light'} extensions={[EditorView.lineWrapping]} onChange={handleChange} readOnly={readOnly} basicSetup={basicSetupConfig} style={editorStyle} />
     </div>
   );
 };
