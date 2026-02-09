@@ -304,6 +304,7 @@ export const copyFilesToDirectory = async (dir: string, files?: string[], skipCl
   const { cacheDir } = getSystemDir();
   const tempDir = path.join(cacheDir, 'temp');
   const copiedFiles: string[] = [];
+  const resolvedDir = path.resolve(dir);
 
   for (const file of files) {
     // 确保文件路径是绝对路径
@@ -316,6 +317,14 @@ export const copyFilesToDirectory = async (dir: string, files?: string[], skipCl
       console.warn(`[AionUi] Source file does not exist, skipping: ${absoluteFilePath}`);
       console.warn(`[AionUi] Original path: ${file}`);
       // 跳过不存在的文件，而不是抛出错误
+      continue;
+    }
+
+    // Skip files that are already inside the target directory to avoid duplicates
+    // 跳过已在目标目录中的文件，避免创建重复副本
+    const resolvedFile = path.resolve(absoluteFilePath);
+    if (resolvedFile.startsWith(resolvedDir + path.sep)) {
+      copiedFiles.push(absoluteFilePath);
       continue;
     }
 
