@@ -117,8 +117,9 @@ const SecurityModalContent: React.FC = () => {
         codex: (codexConfig as { yoloMode?: boolean })?.yoloMode ?? false,
       };
 
-      // Load ACP backend yoloModes
+      // Load ACP backend yoloModes (skip codex, it uses codex.config)
       for (const id of ACP_AGENT_IDS) {
+        if (id === 'codex') continue;
         const backendConfig = (acpConfig as Record<string, { yoloMode?: boolean }> | undefined)?.[id];
         modes[id] = backendConfig?.yoloMode ?? false;
       }
