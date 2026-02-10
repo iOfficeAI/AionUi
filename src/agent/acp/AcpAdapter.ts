@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IMessageAcpToolCall, IMessagePlan, IMessageText, TMessage } from '@/common/chatLib';
+import type { IMessageAcpToolCall, IMessageAvailableCommands, IMessagePlan, IMessageText, TMessage } from '@/common/chatLib';
 import { uuid } from '@/common/utils';
 import type { AcpBackend, AcpSessionUpdate, AgentMessageChunkUpdate, AgentThoughtChunkUpdate, AvailableCommandsUpdate, PlanUpdate, ToolCallUpdate, ToolCallUpdateStatus } from '@/types/acpTypes';
 
@@ -273,33 +273,25 @@ export class AcpAdapter {
    * Convert available commands update to AionUI message
    */
   private convertAvailableCommandsUpdate(update: AvailableCommandsUpdate): TMessage | null {
-    const baseMessage = {
-      id: uuid(),
-      msg_id: uuid(), // 生成独立的 msg_id，避免与其他消息合并
-      conversation_id: this.conversationId,
-      createdAt: Date.now(),
-      position: 'left' as const,
-    };
-
     const commandsData = update.update;
     if (commandsData.availableCommands && commandsData.availableCommands.length > 0) {
-      const commandsList = commandsData.availableCommands
-        .map((command) => {
-          let line = `• **${command.name}**: ${command.description}`;
-          if (command.input?.hint) {
-            line += ` (${command.input.hint})`;
-          }
-          return line;
-        })
-        .join('\n');
+      const commands = commandsData.availableCommands.map((command) => ({
+        name: command.name,
+        description: command.description,
+        hint: command.input?.hint,
+      }));
 
       return {
-        ...baseMessage,
-        type: 'text',
+        id: uuid(),
+        msg_id: uuid(),
+        conversation_id: this.conversationId,
+        createdAt: Date.now(),
+        position: 'left' as const,
+        type: 'available_commands',
         content: {
-          content: `🛠️ **Available Commands**\n\n${commandsList}`,
+          commands,
         },
-      } as IMessageText;
+      } as IMessageAvailableCommands;
     }
 
     return null;
