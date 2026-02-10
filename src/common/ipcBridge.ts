@@ -353,7 +353,7 @@ export interface IConfirmMessageParams {
 }
 
 export interface ICreateConversationParams {
-  type: 'gemini' | 'acp' | 'codex' | 'openclaw-gateway';
+  type: 'gemini' | 'acp' | 'codex' | 'openclaw-gateway' | 'nanobot';
   id?: string;
   name?: string;
   model: TProviderWithModel;

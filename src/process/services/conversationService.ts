@@ -9,7 +9,7 @@ import type { ICreateConversationParams } from '@/common/ipcBridge';
 import type { ConversationSource, TChatConversation, TProviderWithModel } from '@/common/storage';
 import { getDatabase } from '@process/database';
 import path from 'path';
-import { createAcpAgent, createCodexAgent, createGeminiAgent, createOpenClawAgent } from '../initAgent';
+import { createAcpAgent, createCodexAgent, createGeminiAgent, createNanobotAgent, createOpenClawAgent } from '../initAgent';
 import WorkerManage from '../WorkerManage';
 
 /**
@@ -142,6 +142,8 @@ export class ConversationService {
         conversation = await createCodexAgent(params);
       } else if (type === 'openclaw-gateway') {
         conversation = await createOpenClawAgent(params);
+      } else if (type === 'nanobot') {
+        conversation = await createNanobotAgent(params);
       } else {
         return { success: false, error: 'Invalid conversation type' };
       }

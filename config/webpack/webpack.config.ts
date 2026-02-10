@@ -20,6 +20,7 @@ export const mainConfig: Configuration = {
     acp: './src/worker/acp.ts',
     codex: './src/worker/codex.ts',
     'openclaw-gateway': './src/worker/openclaw-gateway.ts',
+    nanobot: './src/worker/nanobot.ts',
   },
   output: {
     filename: '[name].js',
