@@ -312,26 +312,32 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
   }, [conversation_id, addOrUpdateMessage, onError]);
 
   useEffect(() => {
-    setHasActiveTools(false);
-    hasActiveToolsRef.current = false;
-    setWaitingResponse(false);
-    waitingResponseRef.current = false;
     setThought({ subject: '', description: '' });
     setTokenUsage(null);
     hasContentInTurnRef.current = false;
 
-    // Check actual conversation status from backend before resetting streamRunning
+    // Check actual conversation status from backend before resetting all running states
     // to avoid flicker when switching to a running conversation
-    // 先获取后端状态再重置 streamRunning，避免切换到运行中的会话时闪烁
+    // 先获取后端状态再重置所有运行状态，避免切换到运行中的会话时闪烁
     void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
       if (!res) {
         setStreamRunning(false);
         streamRunningRef.current = false;
+        setHasActiveTools(false);
+        hasActiveToolsRef.current = false;
+        setWaitingResponse(false);
+        waitingResponseRef.current = false;
         return;
       }
       const isRunning = res.status === 'running';
       setStreamRunning(isRunning);
       streamRunningRef.current = isRunning;
+      // Reset tool states - they will be restored by incoming messages if still active
+      // 重置工具状态 - 如果仍在活动中，会通过后续消息恢复
+      setHasActiveTools(false);
+      hasActiveToolsRef.current = false;
+      setWaitingResponse(isRunning);
+      waitingResponseRef.current = isRunning;
       // 加载持久化的 token 使用统计
       if (res.type === 'gemini' && res.extra?.lastTokenUsage) {
         const { lastTokenUsage } = res.extra;

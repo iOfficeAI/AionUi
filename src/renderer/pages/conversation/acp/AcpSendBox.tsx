@@ -220,22 +220,24 @@ const useAcpMessage = (conversation_id: string) => {
       (window as unknown as { __acpFinishTimeout?: ReturnType<typeof setTimeout> }).__acpFinishTimeout = undefined;
     }
 
-    setRunning(false);
-    runningRef.current = false;
     setThought({ subject: '', description: '' });
     setAcpStatus(null);
     hasContentInTurnRef.current = false;
 
-    // Check actual conversation status from backend before resetting aiProcessing
+    // Check actual conversation status from backend before resetting running/aiProcessing
     // to avoid flicker when switching to a running conversation
-    // 先获取后端状态再重置 aiProcessing，避免切换到运行中的会话时闪烁
+    // 先获取后端状态再重置 running/aiProcessing，避免切换到运行中的会话时闪烁
     void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
       if (!res) {
+        setRunning(false);
+        runningRef.current = false;
         setAiProcessing(false);
         aiProcessingRef.current = false;
         return;
       }
       const isRunning = res.status === 'running';
+      setRunning(isRunning);
+      runningRef.current = isRunning;
       setAiProcessing(isRunning);
       aiProcessingRef.current = isRunning;
     });
