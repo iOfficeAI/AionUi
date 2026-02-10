@@ -10,8 +10,10 @@ const fs = require('fs');
 const path = require('path');
 
 // DMG retry logic for macOS: detects DMG creation failures by checking artifacts
-// (.app exists but .dmg missing) and retries only the DMG step using --prepackaged.
+// (.app exists but .dmg missing) and retries only the DMG step using hdiutil directly.
 // This avoids re-running the entire electron-builder pipeline (~45 min) on retry.
+// Note: we use hdiutil instead of electron-builder --prepackaged because the latter
+// wraps the app in an extra directory layer (e.g. mac-arm64/AionUi.app instead of AionUi.app).
 // Background: GitHub Actions macos-14 runners occasionally suffer from transient
 // "Device not configured" hdiutil errors (electron-builder#8415, actions/runner-images#12323).
 const DMG_RETRY_MAX = 3;
@@ -56,6 +58,36 @@ function dmgExists(outDir) {
   }
 }
 
+// Create DMG directly using hdiutil (used for retry to avoid --prepackaged issues)
+function createDmgWithHdiutil(appDir, outDir, targetArch) {
+  const appName = fs.readdirSync(appDir).find(f => f.endsWith('.app'));
+  if (!appName) throw new Error(`No .app found in ${appDir}`);
+
+  const pkg = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../package.json'), 'utf8'));
+  const productName = pkg.productName || pkg.name;
+  const dmgName = `${productName}-${pkg.version}-mac-${targetArch}.dmg`;
+  const dmgPath = path.join(outDir, dmgName);
+
+  const stagingDir = path.join(outDir, '_dmg_staging');
+  if (fs.existsSync(stagingDir)) fs.rmSync(stagingDir, { recursive: true });
+  fs.mkdirSync(stagingDir, { recursive: true });
+
+  try {
+    execSync(`cp -R "${path.join(appDir, appName)}" "${stagingDir}/"`, { stdio: 'inherit' });
+    fs.symlinkSync('/Applications', path.join(stagingDir, 'Applications'));
+
+    if (fs.existsSync(dmgPath)) fs.unlinkSync(dmgPath);
+
+    execSync(
+      `hdiutil create -volname "${productName} ${pkg.version}" ` +
+      `-srcfolder "${stagingDir}" -ov -format UDZO "${dmgPath}"`,
+      { stdio: 'inherit' }
+    );
+  } finally {
+    if (fs.existsSync(stagingDir)) fs.rmSync(stagingDir, { recursive: true });
+  }
+}
+
 function buildWithDmgRetry(cmd, targetArch) {
   const isMac = process.platform === 'darwin';
   const outDir = path.resolve(__dirname, '../out');
@@ -70,7 +102,7 @@ function buildWithDmgRetry(cmd, targetArch) {
 
     // .app exists but no .dmg → DMG creation failed
     console.log('\n🔄 Build failed during DMG creation (.app exists, .dmg missing)');
-    console.log('   Retrying DMG creation only with --prepackaged...');
+    console.log('   Retrying DMG creation with hdiutil...');
 
     for (let attempt = 1; attempt <= DMG_RETRY_MAX; attempt++) {
       cleanupDiskImages();
@@ -78,10 +110,7 @@ function buildWithDmgRetry(cmd, targetArch) {
 
       try {
         console.log(`\n📀 DMG retry attempt ${attempt}/${DMG_RETRY_MAX}...`);
-        execSync(
-          `npx electron-builder --mac dmg --${targetArch} --prepackaged "${appDir}" --publish=never`,
-          { stdio: 'inherit' }
-        );
+        createDmgWithHdiutil(appDir, outDir, targetArch);
         console.log('✅ DMG created successfully on retry');
         return;
       } catch (retryError) {
