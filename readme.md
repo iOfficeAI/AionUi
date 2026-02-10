@@ -245,7 +245,7 @@ AionUi provides unified **Cowork capabilities** for these command-line tools:
 
 <details>
 <summary><strong>Q: Why is AionUi a great replacement for Claude Cowork?</strong></summary>
-A: AionUi is a **free and open-source** **Multi-AI Agent Desktop**. Compared to the official Cowork which only runs on macOS and is locked to Claude, AionUi is its **full-model, cross-platform enhanced version**, deeply covering **AI Office Automation** scenarios.
+A: AionUi is a <b>free and open-source</b> <b>Multi-AI Agent Desktop</b>. Compared to the official Cowork which only runs on macOS and is locked to Claude, AionUi is its <b>full-model, cross-platform enhanced version</b>, deeply covering <b>AI Office Automation</b> scenarios.
 
 | Dimension     | Claude Cowork        | AionUi (This Project)                       |
 | :------------ | :------------------- | :------------------------------------------ |
@@ -264,7 +264,7 @@ A: AionUi is a **free and open-source** **Multi-AI Agent Desktop**. Compared to 
 
 <details>
 <summary><strong>Q: What can I do with AionUi?</strong></summary>
-A: It can be your **private Cowork workspace**. You can let it help you batch organize folders, deeply beautify Excel, and preview web code in real-time. It's your best graphical choice for exploring office automation workflows and enhancing your experience with Claude Code or Gemini CLI.
+A: It can be your <b>private Cowork workspace</b>. You can let it help you batch organize folders, deeply beautify Excel, and preview web code in real-time. It's your best graphical choice for exploring office automation workflows and enhancing your experience with Claude Code or Gemini CLI.
 </details>
 
 <details>
