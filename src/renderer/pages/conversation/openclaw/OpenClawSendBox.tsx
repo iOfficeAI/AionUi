@@ -138,19 +138,22 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
       (window as unknown as { __openclawFinishTimeout?: ReturnType<typeof setTimeout> }).__openclawFinishTimeout = undefined;
     }
 
-    setAiProcessing(false);
-    aiProcessingRef.current = false;
     setOpenClawStatus(null);
     setThought({ subject: '', description: '' });
     hasContentInTurnRef.current = false;
 
-    // Check actual conversation status from backend
+    // Check actual conversation status from backend before resetting aiProcessing
+    // to avoid flicker when switching to a running conversation
+    // 先获取后端状态再重置 aiProcessing，避免切换到运行中的会话时闪烁
     void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
-      if (!res) return;
-      if (res.status === 'running') {
-        setAiProcessing(true);
-        aiProcessingRef.current = true;
+      if (!res) {
+        setAiProcessing(false);
+        aiProcessingRef.current = false;
+        return;
       }
+      const isRunning = res.status === 'running';
+      setAiProcessing(isRunning);
+      aiProcessingRef.current = isRunning;
     });
   }, [conversation_id]);
 
