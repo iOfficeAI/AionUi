@@ -330,6 +330,7 @@ export class GeminiAgent {
     // 对于 USE_OPENAI, USE_GEMINI, USE_ANTHROPIC 等，会创建相应的 Generator 但不会触发 OAuth
     // For USE_OPENAI, USE_GEMINI, USE_ANTHROPIC, etc., corresponding Generator is created without OAuth
     await this.config.refreshAuth(this.authType);
+    console.log(`[GeminiAgent] After refreshAuth — config.getModel(): "${this.config.getModel()}", authType used: ${this.authType}`);
 
     this.geminiClient = this.config.getGeminiClient();
 
