@@ -9,16 +9,15 @@ const { execSync, spawnSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 
-// Retry wrapper for electron-builder on macOS to handle transient hdiutil failures.
-// GitHub Actions macos-14 runners occasionally suffer from "Device not configured"
-// errors during DMG creation (electron-builder#8415, actions/runner-images#12323).
-const HDIUTIL_ERROR_PATTERNS = ['hdiutil', 'Device not configured', 'Resource busy'];
-const MAX_RETRIES = 3;
-const RETRY_DELAY_SEC = 30;
-
-function isHdiutilError(errorMessage) {
-  return HDIUTIL_ERROR_PATTERNS.some(pattern => errorMessage.includes(pattern));
-}
+// DMG retry logic for macOS: detects DMG creation failures by checking artifacts
+// (.app exists but .dmg missing) and retries only the DMG step using hdiutil directly.
+// This avoids re-running the entire electron-builder pipeline (~45 min) on retry.
+// Note: we use hdiutil instead of electron-builder --prepackaged because the latter
+// wraps the app in an extra directory layer (e.g. mac-arm64/AionUi.app instead of AionUi.app).
+// Background: GitHub Actions macos-14 runners occasionally suffer from transient
+// "Device not configured" hdiutil errors (electron-builder#8415, actions/runner-images#12323).
+const DMG_RETRY_MAX = 3;
+const DMG_RETRY_DELAY_SEC = 30;
 
 function cleanupDiskImages() {
   try {
@@ -37,33 +36,91 @@ function cleanupDiskImages() {
   }
 }
 
-function execWithHdiutilRetry(cmd, options) {
+// Find the .app directory from electron-builder output
+function findAppDir(outDir) {
+  const candidates = ['mac', 'mac-arm64', 'mac-x64', 'mac-universal'];
+  for (const dir of candidates) {
+    const fullPath = path.join(outDir, dir);
+    if (fs.existsSync(fullPath)) {
+      const hasApp = fs.readdirSync(fullPath).some(f => f.endsWith('.app'));
+      if (hasApp) return fullPath;
+    }
+  }
+  return null;
+}
+
+// Check if DMG exists in output directory
+function dmgExists(outDir) {
+  try {
+    return fs.readdirSync(outDir).some(f => f.endsWith('.dmg'));
+  } catch {
+    return false;
+  }
+}
+
+// Create DMG directly using hdiutil (used for retry to avoid --prepackaged issues)
+function createDmgWithHdiutil(appDir, outDir, targetArch) {
+  const appName = fs.readdirSync(appDir).find(f => f.endsWith('.app'));
+  if (!appName) throw new Error(`No .app found in ${appDir}`);
+
+  const pkg = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../package.json'), 'utf8'));
+  const productName = pkg.productName || pkg.name;
+  const dmgName = `${productName}-${pkg.version}-mac-${targetArch}.dmg`;
+  const dmgPath = path.join(outDir, dmgName);
+
+  const stagingDir = path.join(outDir, '_dmg_staging');
+  if (fs.existsSync(stagingDir)) fs.rmSync(stagingDir, { recursive: true });
+  fs.mkdirSync(stagingDir, { recursive: true });
+
+  try {
+    execSync(`cp -R "${path.join(appDir, appName)}" "${stagingDir}/"`, { stdio: 'inherit' });
+    fs.symlinkSync('/Applications', path.join(stagingDir, 'Applications'));
+
+    if (fs.existsSync(dmgPath)) fs.unlinkSync(dmgPath);
+
+    execSync(
+      `hdiutil create -volname "${productName} ${pkg.version}" ` +
+      `-srcfolder "${stagingDir}" -ov -format UDZO "${dmgPath}"`,
+      { stdio: 'inherit' }
+    );
+  } finally {
+    if (fs.existsSync(stagingDir)) fs.rmSync(stagingDir, { recursive: true });
+  }
+}
+
+function buildWithDmgRetry(cmd, targetArch) {
   const isMac = process.platform === 'darwin';
+  const outDir = path.resolve(__dirname, '../out');
 
-  for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-    try {
-      execSync(cmd, options);
-      return;
-    } catch (error) {
-      const msg = error.message || '';
-      const stderr = error.stderr?.toString() || '';
-      const combined = `${msg}\n${stderr}`;
+  try {
+    execSync(cmd, { stdio: 'inherit' });
+    return;
+  } catch (error) {
+    // On non-macOS or if .app doesn't exist, just throw
+    const appDir = isMac ? findAppDir(outDir) : null;
+    if (!appDir || dmgExists(outDir)) throw error;
 
-      if (isMac && isHdiutilError(combined) && attempt < MAX_RETRIES) {
-        const errorLine = combined.split('\n').find(l =>
-          HDIUTIL_ERROR_PATTERNS.some(p => l.includes(p))
-        );
-        console.log(`\n⚠️  hdiutil error on attempt ${attempt}/${MAX_RETRIES}, retrying in ${RETRY_DELAY_SEC}s...`);
-        console.log(`   Error: ${errorLine || msg || 'Unknown hdiutil error'}`);
+    // .app exists but no .dmg → DMG creation failed
+    console.log('\n🔄 Build failed during DMG creation (.app exists, .dmg missing)');
+    console.log('   Retrying DMG creation with hdiutil...');
+
+    for (let attempt = 1; attempt <= DMG_RETRY_MAX; attempt++) {
+      cleanupDiskImages();
+      spawnSync('sleep', [String(DMG_RETRY_DELAY_SEC)]);
+
+      try {
+        console.log(`\n📀 DMG retry attempt ${attempt}/${DMG_RETRY_MAX}...`);
+        createDmgWithHdiutil(appDir, outDir, targetArch);
+        console.log('✅ DMG created successfully on retry');
+        return;
+      } catch (retryError) {
+        console.log(`   ⚠️  DMG retry ${attempt}/${DMG_RETRY_MAX} failed`);
         cleanupDiskImages();
-        spawnSync('sleep', [String(RETRY_DELAY_SEC)]);
-        continue;
+        if (attempt === DMG_RETRY_MAX) {
+          console.log(`   ❌ DMG creation failed after ${DMG_RETRY_MAX} retries`);
+          throw retryError;
+        }
       }
-
-      if (isMac && isHdiutilError(combined)) {
-        console.log(`\n❌ hdiutil error persisted after ${MAX_RETRIES} attempts, giving up.`);
-      }
-      throw error;
     }
   }
 }
@@ -253,7 +310,7 @@ try {
     console.log(`🚀 Creating distributables for ${targetArch}...`);
   }
 
-  execWithHdiutilRetry(`npx electron-builder ${builderArgs} ${archFlag} ${publishArg}`, { stdio: 'inherit' });
+  buildWithDmgRetry(`npx electron-builder ${builderArgs} ${archFlag} ${publishArg}`, targetArch);
 
   console.log('✅ Build completed!');
 } catch (error) {

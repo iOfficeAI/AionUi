@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <strong>💬 コミュニティ：</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wx.png" target="_blank">微信 (中文群)</a>
+  <strong>💬 コミュニティ：</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wechat-group-3.png" target="_blank">微信 (中文群)</a>
 </p>
 
 ---
@@ -60,17 +60,19 @@
 
 ### 🤖 **マルチエージェントモード - あなたのコマンドラインAIツールのためのCowork、統一グラフィカルインターフェース**
 
-_AionUi には Gemini CLI を内蔵しており、ダウンロードしてすぐ使えます。追加インストール不要です。すでに Gemini CLI、Claude Code、CodeX、Qwen Code、Goose AI、Augment Code などのコマンドラインツールをインストールしている場合、AionUi が自動検出して統一されたグラフィカルインターフェースを提供し、体験がさらに豊かになります_
+AionUi はコマンドライン AI ツールに統一グラフィカルインターフェースを提供します。内蔵 Gemini CLI 付き、セットアップ不要。
 
-- ✅ **自動検出 + 統一インターフェース** - ローカルCLIツールを自動認識し、統一されたグラフィカルインターフェースを提供、コマンドラインに別れを告げる
-- ✅ **ローカル保存 + マルチセッション** - 会話をローカルに保存、マルチセッション並列をサポート、各セッションは独立したコンテキスト
-
-<p align="center">
-  <img src="./resources/acp%20home%20page.gif" alt="マルチエージェントモードデモ" width="800"></p>
+**サポートツール：** Gemini CLI（内蔵） • Claude Code • CodeX • Qwen Code • Goose AI • OpenClaw • Augment Code
 
 <p align="center">
-  <img src="./resources/openclawvia.png" alt="OpenClaw Integration in AionUi" width="800">
+  <img src="./resources/multi-agent支持openclaw.gif" alt="AionUi 中的 OpenClaw 集成" width="800">
 </p>
+
+**主要機能：**
+
+- ✅ **自動検出** - ローカル CLI ツールを自動認識し統合
+- ✅ **統一インターフェース** - すべての AI ツールを一つのインターフェースで管理、コマンドラインに別れを告げる
+- ✅ **ローカル保存 + マルチセッション** - 会話をローカルに保存、複数の並列セッションをサポート、各セッションは独立したコンテキスト
 
 ---
 
@@ -363,7 +365,7 @@ brew install aionui
 - [🐛 問題を報告](https://github.com/iOfficeAI/AionUi/issues) - バグや機能リクエストを報告
 - [📦 リリース更新](https://github.com/iOfficeAI/AionUi/releases) - 最新版を取得
 - [💬 Discord Community](https://discord.gg/2QAwJn7Egx) - **Discord の英語コミュニティに参加**
-- [💬 微信 (中文群)](./resources/wx.png) - **QRコードを表示するにはクリック**
+- [💬 微信 (中文群)](./resources/wechat-group-3.png) - **QRコードを表示するにはクリック**
 
 ### 🤝 コード貢献
 
