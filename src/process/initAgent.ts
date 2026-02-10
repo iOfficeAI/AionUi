@@ -68,6 +68,9 @@ export const createGeminiAgent = async (model: TProviderWithModel, workspace?: s
 export const createAcpAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
   const { extra } = options;
   const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(`${extra.backend}-temp-${Date.now()}`, extra.workspace, extra.defaultFiles, extra.customWorkspace);
+  if (!extra.backend) {
+    throw new Error(`Please set a backend for Acp Agent`);
+  }
   return {
     type: 'acp',
     extra: {
