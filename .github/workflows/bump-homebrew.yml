@@ -45,7 +45,7 @@ jobs:
       - name: Bump cask PR
         uses: eugenesvk/action-homebrew-bump-cask@3.8.6
         with:
-          token: ${{ secrets.HOMEBREW_GITHUB_TOKEN }}
+          token: ${{ secrets.GH_TOKEN }}
           cask: aionui
           tap: homebrew/cask
           tag: ${{ steps.release.outputs.tag }}
