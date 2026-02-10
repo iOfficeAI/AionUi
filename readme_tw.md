@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <strong>💬 社群：</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wx.png" target="_blank">微信 (中文群)</a>
+  <strong>💬 社群：</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wechat-group-3.png" target="_blank">微信 (中文群)</a>
 </p>
 
 ---
@@ -363,7 +363,7 @@ brew install aionui
 - [🐛 報告問題](https://github.com/iOfficeAI/AionUi/issues) - 回報 Bug 或功能請求
 - [📦 發布更新](https://github.com/iOfficeAI/AionUi/releases) - 取得最新版本
 - [💬 Discord Community](https://discord.gg/2QAwJn7Egx) - **加入我們的英文 Discord 社群**
-- [💬 微信 (中文群)](./resources/wx.png) - **點擊查看 QR Code**
+- [💬 微信 (中文群)](./resources/wechat-group-3.png) - **點擊查看 QR Code**
 
 ### 🤝 貢獻程式碼
 
