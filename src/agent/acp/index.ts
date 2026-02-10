@@ -1096,6 +1096,7 @@ export class AcpAgent {
       } else if (this.extra.backend === 'claude') {
         await this.ensureClaudeAuth();
       }
+      // Note: CodeBuddy does not have a CLI login command; auth is handled by the CLI itself
 
       // 预热后重试创建session（同时尝试恢复会话）
       // Retry creating/resuming session after warmup
