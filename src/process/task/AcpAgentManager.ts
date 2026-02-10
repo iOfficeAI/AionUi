@@ -51,6 +51,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
     this.conversation_id = data.conversation_id;
     this.workspace = data.workspace;
     this.options = data;
+    this.status = 'pending';
   }
 
   initAgent(data: AcpAgentManagerData = this.options) {
@@ -136,6 +137,13 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
           // 处理 preview_open 事件（chrome-devtools 导航拦截）
           if (handlePreviewOpenEvent(message)) {
             return; // Don't process further / 不需要继续处理
+          }
+
+          // Mark as finished when content is output (visible to user)
+          // ACP uses: content, agent_status, acp_tool_call, plan
+          const contentTypes = ['content', 'agent_status', 'acp_tool_call', 'plan'];
+          if (contentTypes.includes(message.type)) {
+            this.status = 'finished';
           }
 
           if (message.type !== 'thought') {
@@ -238,6 +246,8 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
   }> {
     // Mark conversation as busy to prevent cron jobs from running
     cronBusyGuard.setProcessing(this.conversation_id, true);
+    // Set status to running when message is being processed
+    this.status = 'running';
     try {
       await this.initAgent(this.options);
       // Save user message to chat history ONLY after successful sending
@@ -289,6 +299,7 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
       return await this.agent.sendMessage(data);
     } catch (e) {
       cronBusyGuard.setProcessing(this.conversation_id, false);
+      this.status = 'finished';
       const message: IResponseMessage = {
         type: 'error',
         conversation_id: this.conversation_id,

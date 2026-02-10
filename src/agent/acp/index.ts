@@ -273,6 +273,15 @@ export class AcpAgent {
           };
         }
       }
+
+      // Emit start event to set frontend loading state
+      this.onStreamEvent({
+        type: 'start',
+        conversation_id: this.id,
+        msg_id: data.msg_id || uuid(),
+        data: null,
+      });
+
       this.adapter.resetMessageTracking();
       let processedContent = data.content;
 
@@ -909,6 +918,10 @@ export class AcpAgent {
           responseMessage.type = 'plan';
           responseMessage.data = message.content;
         }
+        break;
+      case 'available_commands':
+        responseMessage.type = 'available_commands';
+        responseMessage.data = message.content;
         break;
       default:
         responseMessage.type = 'content';
