@@ -919,6 +919,10 @@ export class AcpAgent {
           responseMessage.data = message.content;
         }
         break;
+      case 'available_commands':
+        responseMessage.type = 'available_commands';
+        responseMessage.data = message.content;
+        break;
       default:
         responseMessage.type = 'content';
         responseMessage.data = typeof message.content === 'string' ? message.content : JSON.stringify(message.content);
