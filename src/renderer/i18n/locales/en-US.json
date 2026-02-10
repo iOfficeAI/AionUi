@@ -887,6 +887,7 @@
     "downloadFailed": "Failed to download",
     "imageLoadFailed": "Failed to load image",
     "scrollToBottom": "Scroll to bottom",
+    "availableCommands": "{{count}} Available Commands",
     "unknownMessageType": "Unknown message type: {{type}}",
     "permissionRequest": "Permission Request",
     "agentRequestingPermission": "The agent is requesting permission.",

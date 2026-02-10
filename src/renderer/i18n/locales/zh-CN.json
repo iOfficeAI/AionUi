@@ -883,6 +883,7 @@
     "downloadFailed": "下载失败",
     "imageLoadFailed": "图片加载失败",
     "scrollToBottom": "滚动到底部",
+    "availableCommands": "{{count}} 个可用命令",
     "unknownMessageType": "未知消息类型：{{type}}",
     "permissionRequest": "权限请求",
     "agentRequestingPermission": "代理正在请求权限。",

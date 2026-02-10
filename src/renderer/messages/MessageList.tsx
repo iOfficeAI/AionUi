@@ -10,6 +10,7 @@ import { Image } from '@arco-design/web-react';
 import { Down } from '@icon-park/react';
 import MessageAcpPermission from '@renderer/messages/acp/MessageAcpPermission';
 import MessageAcpToolCall from '@renderer/messages/acp/MessageAcpToolCall';
+import MessageAvailableCommands from '@renderer/messages/acp/MessageAvailableCommands';
 import MessageAgentStatus from '@renderer/messages/MessageAgentStatus';
 import classNames from 'classnames';
 import React, { createContext, useMemo } from 'react';
@@ -82,6 +83,8 @@ const MessageItem: React.FC<{ message: TMessage }> = React.memo(
         return <MessageCodexToolCall message={message}></MessageCodexToolCall>;
       case 'plan':
         return <MessagePlan message={message}></MessagePlan>;
+      case 'available_commands':
+        return <MessageAvailableCommands message={message}></MessageAvailableCommands>;
       default:
         return <div>{t('messages.unknownMessageType', { type: (message as any).type })}</div>;
     }
