@@ -13,6 +13,9 @@ import remarkBreaks from 'remark-breaks';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 
+// Import KaTeX CSS to make it available in the document
+import 'katex/dist/katex.min.css';
+
 import { ipcBridge } from '@/common';
 import { diffColors } from '@/renderer/theme/colors';
 import { Message } from '@arco-design/web-react';
@@ -303,6 +306,52 @@ const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string
   return style;
 };
 
+// Cache for KaTeX stylesheet to share across Shadow DOM instances
+let katexStyleSheet: CSSStyleSheet | null = null;
+
+/**
+ * Get or create a shared KaTeX CSSStyleSheet for Shadow DOM adoption
+ * This extracts KaTeX styles from the document and creates a constructable stylesheet
+ */
+const getKatexStyleSheet = (): CSSStyleSheet | null => {
+  if (katexStyleSheet) return katexStyleSheet;
+
+  try {
+    // Find the KaTeX stylesheet in the document
+    const katexSheet = [...document.styleSheets].find((sheet) => sheet.href?.includes('katex') || (sheet.ownerNode as HTMLElement)?.dataset?.katex);
+
+    if (katexSheet) {
+      const cssRules = [...katexSheet.cssRules].map((rule) => rule.cssText).join('\n');
+      katexStyleSheet = new CSSStyleSheet();
+      katexStyleSheet.replaceSync(cssRules);
+      return katexStyleSheet;
+    }
+
+    // Fallback: try to find KaTeX styles by checking style tags
+    const styleSheets = [...document.styleSheets];
+    for (const sheet of styleSheets) {
+      try {
+        const rules = [...sheet.cssRules];
+        // Check if this stylesheet contains KaTeX rules
+        const hasKatexRules = rules.some((rule) => rule.cssText.includes('.katex'));
+        if (hasKatexRules) {
+          const cssRules = rules.map((rule) => rule.cssText).join('\n');
+          katexStyleSheet = new CSSStyleSheet();
+          katexStyleSheet.replaceSync(cssRules);
+          return katexStyleSheet;
+        }
+      } catch {
+        // CORS may block access to cssRules for external stylesheets
+        continue;
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to create KaTeX stylesheet for Shadow DOM:', error);
+  }
+
+  return null;
+};
+
 const ShadowView = ({ children }: { children: React.ReactNode }) => {
   const [root, setRoot] = useState<ShadowRoot | null>(null);
   const styleRef = React.useRef<HTMLStyleElement | null>(null);
@@ -366,6 +415,13 @@ const ShadowView = ({ children }: { children: React.ReactNode }) => {
       const newStyle = createInitStyle(currentTheme, cssVars, customCss);
       styleRef.current = newStyle;
       shadowRoot.appendChild(newStyle);
+
+      // Inject KaTeX styles into Shadow DOM using adoptedStyleSheets
+      // This allows math expressions to render correctly
+      const katexSheet = getKatexStyleSheet();
+      if (katexSheet && !shadowRoot.adoptedStyleSheets.includes(katexSheet)) {
+        shadowRoot.adoptedStyleSheets = [...shadowRoot.adoptedStyleSheets, katexSheet];
+      }
     },
     [customCss]
   );
