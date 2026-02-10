@@ -60,17 +60,19 @@
 
 ### 🤖 **多代理模式 - 為您的命令列 AI 工具提供統一圖形介面**
 
-_AionUi 內建 Gemini CLI，下載即用，無需額外安裝；如果您已經安裝了 Gemini CLI、Claude Code、CodeX、Qwen Code、Goose AI、Augment Code 等命令列工具，AionUi 會自動檢測並為它們提供統一的圖形介面，體驗更豐富_
+AionUi 為您的命令列 AI 工具提供統一圖形介面。內建 Gemini CLI，開箱即用。
 
-- ✅ **自動檢測 + 統一介面** - 自動識別本地 CLI 工具，提供統一的圖形介面，告別命令列
-- ✅ **本地儲存 + 多會話** - 對話儲存在本地，支援多會話並行，每個會話獨立上下文
-
-<p align="center">
-  <img src="./resources/acp%20home%20page.gif" alt="多代理模式示範" width="800"></p>
+**支援的工具：** Gemini CLI（內建） • Claude Code • CodeX • Qwen Code • Goose AI • OpenClaw • Augment Code
 
 <p align="center">
-  <img src="./resources/openclawvia.png" alt="OpenClaw Integration in AionUi" width="800">
+  <img src="./resources/multi-agent支持openclaw.gif" alt="AionUi 中的 OpenClaw 集成" width="800">
 </p>
+
+**核心特性：**
+
+- ✅ **自動檢測** - 自動識別並整合本地 CLI 工具
+- ✅ **統一介面** - 一個介面管理所有 AI 工具，告別命令列
+- ✅ **本地保存 + 多會話** - 對話本地保存，支援多會話並行，每個會話獨立上下文
 
 ---
 

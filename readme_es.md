@@ -60,17 +60,19 @@
 
 ### 🤖 **Modo multiagente - Cowork para tus herramientas de IA en línea de comandos, interfaz gráfica unificada**
 
-_AionUi incluye Gemini CLI de forma integrada, listo para usar desde la instalación sin extras. Si ya tienes herramientas de línea de comandos como Gemini CLI, Claude Code, CodeX, Qwen Code, Goose AI o Augment Code, AionUi las detecta automáticamente y ofrece una interfaz gráfica unificada para una experiencia más completa_
+AionUi proporciona una interfaz gráfica unificada para tus herramientas de IA en línea de comandos. Gemini CLI integrado incluido, sin configuración requerida.
 
-- ✅ **Detección automática + interfaz unificada** - Reconoce automáticamente las herramientas CLI locales y proporciona una interfaz gráfica unificada, despídete de la línea de comandos
-- ✅ **Almacenamiento local + multi-sesión** - Conversaciones guardadas localmente, admite múltiples sesiones en paralelo, cada una con contexto independiente
-
-<p align="center">
-  <img src="./resources/acp%20home%20page.gif" alt="Multi-Agent Mode Demo" width="800"></p>
+**Herramientas compatibles：** Gemini CLI (integrado) • Claude Code • CodeX • Qwen Code • Goose AI • OpenClaw • Augment Code
 
 <p align="center">
-  <img src="./resources/openclawvia.png" alt="OpenClaw Integration in AionUi" width="800">
+  <img src="./resources/multi-agent支持openclaw.gif" alt="AionUi 中的 OpenClaw 集成" width="800">
 </p>
+
+**Características principales：**
+
+- ✅ **Detección automática** - Reconoce e integra automáticamente las herramientas CLI locales
+- ✅ **Interfaz unificada** - Una interfaz para todas tus herramientas de IA, adiós a la línea de comandos
+- ✅ **Almacenamiento local + multi-sesión** - Conversaciones guardadas localmente, múltiples sesiones en paralelo con contexto independiente
 
 ---
 

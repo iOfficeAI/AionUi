@@ -60,17 +60,19 @@
 
 ### 🤖 **Çoklu Ajan Modu - Komut Satırı Yapay Zeka Araçlarınız İçin Ortak Çalışma, Birleşik Grafik Arayüz**
 
-_Eğer Gemini CLI, Claude Code, CodeX, Qwen Code, Goose AI, Augment Code gibi komut satırı araçları yüklü ise, AionUi bunları otomatik olarak algılar ve birleşik bir grafik arayüz sunar_
+AionUi, komut satırı yapay zeka araçlarınız için birleşik bir grafik arayüz sağlar. Dahili Gemini CLI dahil, kurulum gerekmez.
 
-- ✅ **Otomatik Algılama + Birleşik Arayüz** - Yerel CLI araçlarını otomatik tanır, tek bir grafik arayüz sunar, komut satırına elveda deyin
-- ✅ **Yerel Depolama + Çoklu Oturum** - Konuşmalar yerel olarak kaydedilir, birden fazla paralel oturumu destekler, her oturum bağımsız bağlama sahiptir
-
-<p align="center">
-  <img src="./resources/acp%20home%20page.gif" alt="Çoklu Ajan Modu Demo" width="800"></p>
+**Desteklenen araçlar：** Gemini CLI (dahili) • Claude Code • CodeX • Qwen Code • Goose AI • OpenClaw • Augment Code
 
 <p align="center">
-  <img src="./resources/openclawvia.png" alt="OpenClaw Integration in AionUi" width="800">
+  <img src="./resources/multi-agent支持openclaw.gif" alt="AionUi 中的 OpenClaw 集成" width="800">
 </p>
+
+**Temel özellikler：**
+
+- ✅ **Otomatik algılama** - Yerel CLI araçlarını otomatik olarak tanır ve entegre eder
+- ✅ **Birleşik arayüz** - Tüm AI araçlarınız için tek bir arayüz, komut satırına elveda
+- ✅ **Yerel depolama + çoklu oturum** - Konuşmalar yerel olarak kaydedilir, bağımsız bağlamlara sahip birden fazla paralel oturum
 
 ---
 
