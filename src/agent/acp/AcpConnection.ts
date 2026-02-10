@@ -129,6 +129,7 @@ export class AcpConnection {
       case 'gemini':
       case 'qwen':
       case 'iflow':
+      case 'codebuddy':
       case 'droid':
       case 'goose':
       case 'auggie':

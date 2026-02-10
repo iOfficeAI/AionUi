@@ -536,6 +536,7 @@
     "yoloAlwaysOn": "Always On",
     "yoloNotSupportedOpencode": "OpenCode v1.1.39 does not support auto-approve",
     "yoloNotSupportedAuggie": "Security-first design, no bypass option",
+    "yoloNotSupportedCodebuddy": "Not verified, may require manual confirmation",
     "yoloNotSupportedIflow": "Not verified, may require manual confirmation",
     "yoloNotSupportedUnknown": "Not verified, may require manual confirmation",
     "channels": "Channels",

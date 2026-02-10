@@ -588,6 +588,7 @@
     "yoloAlwaysOn": "始終開啟",
     "yoloNotSupportedOpencode": "OpenCode v1.1.39 不支援自動批准",
     "yoloNotSupportedAuggie": "安全優先設計，無繞過選項",
+    "yoloNotSupportedCodebuddy": "未驗證，可能需要手動確認",
     "yoloNotSupportedIflow": "未驗證，可能需要手動確認",
     "yoloNotSupportedUnknown": "未驗證，可能需要手動確認",
     "channels": "頻道",

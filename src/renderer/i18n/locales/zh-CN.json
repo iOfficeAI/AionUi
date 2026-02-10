@@ -533,6 +533,7 @@
     "yoloAlwaysOn": "始终开启",
     "yoloNotSupportedOpencode": "OpenCode v1.1.39 不支持自动批准",
     "yoloNotSupportedAuggie": "安全优先设计，无绕过选项",
+    "yoloNotSupportedCodebuddy": "未验证，可能需要手动确认",
     "yoloNotSupportedIflow": "未验证，可能需要手动确认",
     "yoloNotSupportedUnknown": "未验证，可能需要手动确认",
     "channels": "频道",

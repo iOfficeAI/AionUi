@@ -17,7 +17,7 @@ import { promises as fs } from 'fs';
 import * as path from 'path';
 import { AcpConnection } from './AcpConnection';
 import { AcpApprovalStore, createAcpApprovalKey } from './ApprovalStore';
-import { CLAUDE_YOLO_SESSION_MODE, QWEN_YOLO_SESSION_MODE } from './constants';
+import { CLAUDE_YOLO_SESSION_MODE, CODEBUDDY_YOLO_SESSION_MODE, QWEN_YOLO_SESSION_MODE } from './constants';
 import { getClaudeModel } from './utils';
 
 /** Enable ACP performance diagnostics via ACP_PERF=1 */
@@ -222,6 +222,7 @@ export class AcpAgent {
       if (this.extra.yoloMode) {
         const yoloModeMap: Partial<Record<AcpBackend, string>> = {
           claude: CLAUDE_YOLO_SESSION_MODE,
+          codebuddy: CODEBUDDY_YOLO_SESSION_MODE,
           qwen: QWEN_YOLO_SESSION_MODE,
         };
         const sessionMode = yoloModeMap[this.extra.backend];

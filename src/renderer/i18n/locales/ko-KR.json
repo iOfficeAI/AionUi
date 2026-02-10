@@ -531,6 +531,7 @@
     "yoloAlwaysOn": "항상 켜짐",
     "yoloNotSupportedOpencode": "OpenCode v1.1.39는 자동 승인을 지원하지 않습니다",
     "yoloNotSupportedAuggie": "보안 우선 설계, 우회 옵션 없음",
+    "yoloNotSupportedCodebuddy": "검증되지 않음, 수동 확인이 필요할 수 있음",
     "yoloNotSupportedIflow": "검증되지 않음, 수동 확인이 필요할 수 있음",
     "yoloNotSupportedUnknown": "검증되지 않음, 수동 확인이 필요할 수 있음",
     "channels": "채널",

@@ -49,6 +49,7 @@ type UseAgentReadinessCheckOptions = {
 const AGENT_NAMES: Partial<Record<AcpBackendAll, string>> = {
   claude: 'Claude',
   codex: 'Codex',
+  codebuddy: 'CodeBuddy',
   opencode: 'OpenCode',
   gemini: 'Gemini',
   qwen: 'Qwen Code',

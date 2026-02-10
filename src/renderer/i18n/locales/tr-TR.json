@@ -527,6 +527,7 @@
     "yoloAlwaysOn": "Her zaman açık",
     "yoloNotSupportedOpencode": "OpenCode v1.1.39 otomatik onayı desteklemiyor",
     "yoloNotSupportedAuggie": "Güvenlik öncelikli tasarım, bypass seçeneği yok",
+    "yoloNotSupportedCodebuddy": "Doğrulanmadı, manuel onay gerekebilir",
     "yoloNotSupportedIflow": "Doğrulanmadı, manuel onay gerekebilir",
     "yoloNotSupportedUnknown": "Doğrulanmadı, manuel onay gerekebilir",
     "channels": "Kanallar",
