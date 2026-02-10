@@ -139,6 +139,13 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
             return; // Don't process further / 不需要继续处理
           }
 
+          // Mark as finished when content is output (visible to user)
+          // ACP uses: content, agent_status, acp_tool_call, plan
+          const contentTypes = ['content', 'agent_status', 'acp_tool_call', 'plan'];
+          if (contentTypes.includes(message.type)) {
+            this.status = 'finished';
+          }
+
           if (message.type !== 'thought') {
             const tMessage = transformMessage(message as IResponseMessage);
             if (tMessage) {
@@ -183,10 +190,9 @@ class AcpAgentManager extends BaseAgentManager<AcpAgentManagerData, AcpPermissio
             return;
           }
 
-          // Clear busy guard and update status when turn ends
+          // Clear busy guard when turn ends
           if (v.type === 'finish') {
             cronBusyGuard.setProcessing(this.conversation_id, false);
-            this.status = 'finished';
           }
 
           // Process cron commands when turn ends (finish signal)

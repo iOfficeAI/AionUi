@@ -53,6 +53,7 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
   // 使用 ref 避免状态变化时 useEffect 重新订阅导致事件丢失
   const hasActiveToolsRef = useRef(hasActiveTools);
   const streamRunningRef = useRef(streamRunning);
+  const waitingResponseRef = useRef(waitingResponse);
 
   // Track whether current turn has content output
   // Only reset waitingResponse when finish arrives after content (not after tool calls)
@@ -143,38 +144,67 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
         }
       }
 
+      // Cancel pending finish timeout if new message arrives
+      const pendingTimeout = (window as unknown as { __geminiFinishTimeout?: ReturnType<typeof setTimeout> }).__geminiFinishTimeout;
+      if (pendingTimeout && message.type !== 'finish') {
+        clearTimeout(pendingTimeout);
+        (window as unknown as { __geminiFinishTimeout?: ReturnType<typeof setTimeout> }).__geminiFinishTimeout = undefined;
+      }
+
       switch (message.type) {
         case 'thought':
+          // Auto-recover streamRunning if thought arrives after finish
+          if (!streamRunningRef.current) {
+            setStreamRunning(true);
+            streamRunningRef.current = true;
+          }
           throttledSetThought(message.data as ThoughtData);
           break;
         case 'start':
           setStreamRunning(true);
-          setWaitingResponse(false); // 收到 start，可以清除等待状态
+          streamRunningRef.current = true;
+          // Don't reset waitingResponse here - let tool completion flow handle it
+          // 不在这里重置 waitingResponse - 让工具完成流程处理
           break;
         case 'finish':
           {
-            setStreamRunning(false);
-            // 只有当有内容输出且没有活跃工具时才完全重置
-            // Only fully reset when there's content output AND no active tools
-            // 工具回合（无 content）不应重置 waitingResponse
-            // Tool-only turns (no content) should not reset waitingResponse
-            if (hasContentInTurnRef.current && !hasActiveToolsRef.current) {
-              setWaitingResponse(false);
-              setThought({ subject: '', description: '' });
+            // If waitingResponse is true (tool just completed, waiting for AI to continue),
+            // don't start timeout - let AI continue naturally
+            // 如果 waitingResponse=true（工具刚完成，等待 AI 继续），不启动 timeout
+            if (!waitingResponseRef.current) {
+              // Use delayed reset to detect true end of task
+              const timeoutId = setTimeout(() => {
+                setStreamRunning(false);
+                streamRunningRef.current = false;
+                setWaitingResponse(false);
+                waitingResponseRef.current = false;
+                setThought({ subject: '', description: '' });
+              }, 1000);
+              (window as unknown as { __geminiFinishTimeout?: ReturnType<typeof setTimeout> }).__geminiFinishTimeout = timeoutId;
             }
-            // Reset flag for next turn
             hasContentInTurnRef.current = false;
           }
           break;
         case 'tool_group':
           {
+            // Mark that current turn has content output
+            hasContentInTurnRef.current = true;
+
+            // Auto-recover streamRunning if tool_group arrives after finish
+            if (!streamRunningRef.current) {
+              setStreamRunning(true);
+              streamRunningRef.current = true;
+            }
+
             // 检查是否有工具在执行或等待确认
             // Check if any tools are executing or awaiting confirmation
             const tools = message.data as Array<{ status: string; name?: string }>;
             const activeStatuses = ['Executing', 'Confirming', 'Pending'];
             const hasActive = tools.some((tool) => activeStatuses.includes(tool.status));
             const wasActive = hasActiveToolsRef.current;
+
             setHasActiveTools(hasActive);
+            hasActiveToolsRef.current = hasActive; // Sync update ref immediately
 
             // 当工具从活跃变为非活跃时，设置 waitingResponse=true
             // 因为后端还需要继续向模型发送请求
@@ -182,6 +212,7 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
             // because backend needs to continue sending requests to model
             if (wasActive && !hasActive && tools.length > 0) {
               setWaitingResponse(true);
+              waitingResponseRef.current = true;
             }
 
             // 如果有工具在等待确认，更新 thought 提示
@@ -259,6 +290,16 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
           } else {
             // Mark that current turn has content output (exclude error type)
             hasContentInTurnRef.current = true;
+            // Reset waitingResponse when actual content arrives
+            if (message.type === 'content') {
+              setWaitingResponse(false);
+              waitingResponseRef.current = false;
+            }
+            // Auto-recover streamRunning if content arrives after finish
+            if (!streamRunningRef.current) {
+              setStreamRunning(true);
+              streamRunningRef.current = true;
+            }
           }
           // Backend handles persistence, Frontend only updates UI
           addOrUpdateMessage(transformMessage(message));
@@ -272,7 +313,9 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
 
   useEffect(() => {
     setStreamRunning(false);
+    streamRunningRef.current = false;
     setHasActiveTools(false);
+    hasActiveToolsRef.current = false;
     setWaitingResponse(false);
     setThought({ subject: '', description: '' });
     setTokenUsage(null);
@@ -281,6 +324,7 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
       if (!res) return;
       if (res.status === 'running') {
         setStreamRunning(true);
+        streamRunningRef.current = true;
       }
       // 加载持久化的 token 使用统计
       if (res.type === 'gemini' && res.extra?.lastTokenUsage) {
@@ -296,7 +340,9 @@ const useGeminiMessage = (conversation_id: string, onError?: (message: IResponse
   const resetState = useCallback(() => {
     setWaitingResponse(false);
     setStreamRunning(false);
+    streamRunningRef.current = false;
     setHasActiveTools(false);
+    hasActiveToolsRef.current = false;
     setThought({ subject: '', description: '' });
     hasContentInTurnRef.current = false;
   }, []);

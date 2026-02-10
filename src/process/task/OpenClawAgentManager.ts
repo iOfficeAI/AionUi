@@ -84,6 +84,13 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
   private handleStreamEvent(message: IResponseMessage): void {
     const msg = { ...message, conversation_id: this.conversation_id };
 
+    // Mark as finished when content is output (visible to user)
+    // OpenClaw uses: content, agent_status, acp_tool_call, plan
+    const contentTypes = ['content', 'agent_status', 'acp_tool_call', 'plan'];
+    if (contentTypes.includes(msg.type)) {
+      this.status = 'finished';
+    }
+
     // Persist messages to database
     const tMessage = transformMessage(msg);
     if (tMessage) {
@@ -130,7 +137,6 @@ class OpenClawAgentManager extends BaseAgentManager<OpenClawAgentManagerData> {
     // Handle finish event
     if (msg.type === 'finish') {
       cronBusyGuard.setProcessing(this.conversation_id, false);
-      this.status = 'finished';
     }
 
     // Emit signal events to frontend

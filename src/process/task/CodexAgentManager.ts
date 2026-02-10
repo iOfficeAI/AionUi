@@ -442,8 +442,10 @@ class CodexAgentManager extends BaseAgentManager<CodexAgentManagerData> implemen
   emitAndPersistMessage(message: IResponseMessage, persist: boolean = true): void {
     message.conversation_id = this.conversation_id;
 
-    // Update status when turn ends
-    if (message.type === 'finish') {
+    // Mark as finished when content is output (visible to user)
+    // Codex uses: content, agent_status, codex_tool_call
+    const contentTypes = ['content', 'agent_status', 'codex_tool_call'];
+    if (contentTypes.includes(message.type)) {
       this.status = 'finished';
     }
 
