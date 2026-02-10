@@ -7,18 +7,16 @@
 import type { CodexToolCallUpdate } from '@/common/chatLib';
 import FileChangesPanel, { type FileChangeItem } from '@/renderer/components/base/FileChangesPanel';
 import { usePreviewLauncher } from '@/renderer/hooks/usePreviewLauncher';
-import { extractContentFromDiff, parseFilePathFromDiff } from '@/renderer/utils/diffUtils';
+import { extractContentFromDiff, parseDiff, type FileChangeInfo } from '@/renderer/utils/diffUtils';
 import { getFileTypeInfo } from '@/renderer/utils/fileType';
 import React, { useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { WriteFileResult } from '../types';
 
-type TurnDiffContent = Extract<CodexToolCallUpdate, { subtype: 'turn_diff' }>;
+// Re-export for backwards compatibility
+export { parseDiff, type FileChangeInfo } from '@/renderer/utils/diffUtils';
 
-// 内部文件变更信息（包含 diff 内容）/ Internal file change info (including diff content)
-export interface FileChangeInfo extends FileChangeItem {
-  diff: string;
-}
+type TurnDiffContent = Extract<CodexToolCallUpdate, { subtype: 'turn_diff' }>;
 
 // 支持两种数据源 / Support two data sources
 export interface MessageFileChangesProps {
@@ -31,65 +29,6 @@ export interface MessageFileChangesProps {
 
   diffsChanges?: FileChangeInfo[];
 }
-
-/**
- * 解析 unified diff 格式，提取文件信息和变更统计
- * Parse unified diff format, extract file info and change statistics
- */
-export const parseDiff = (diff: string, fileNameHint?: string): FileChangeInfo => {
-  const lines = diff.split('\n');
-
-  // 提取文件名 / Extract filename
-  const gitLine = lines.find((line) => line.startsWith('diff --git'));
-  let fileName = fileNameHint || 'Unknown file';
-  let fullPath = fileNameHint || 'Unknown file';
-
-  if (gitLine) {
-    const match = gitLine.match(/diff --git a\/(.+) b\/(.+)/);
-    if (match) {
-      fullPath = match[1];
-      fileName = fullPath.split('/').pop() || fullPath;
-    }
-  } else {
-    const parsedPath = parseFilePathFromDiff(diff);
-    if (parsedPath) {
-      fullPath = parsedPath;
-      fileName = parsedPath.split(/[\\/]/).pop() || parsedPath;
-    } else if (fileNameHint) {
-      // 如果没有 git diff 头，使用 hint 作为文件名 / If no git diff header, use hint as filename
-      fileName = fileNameHint.split(/[\\/]/).pop() || fileNameHint;
-      fullPath = fileNameHint;
-    }
-  }
-
-  // 计算新增和删除的行数 / Calculate insertions and deletions
-  let insertions = 0;
-  let deletions = 0;
-
-  for (const line of lines) {
-    // 跳过 diff 头部行 / Skip diff header lines
-    if (line.startsWith('diff --git') || line.startsWith('index ') || line.startsWith('---') || line.startsWith('+++') || line.startsWith('@@') || line.startsWith('\\')) {
-      continue;
-    }
-
-    // 计算新增行（以 + 开头但不是 +++）/ Count insertions (lines starting with + but not +++)
-    if (line.startsWith('+')) {
-      insertions++;
-    }
-    // 计算删除行（以 - 开头但不是 ---）/ Count deletions (lines starting with - but not ---)
-    else if (line.startsWith('-')) {
-      deletions++;
-    }
-  }
-
-  return {
-    fileName,
-    fullPath,
-    insertions,
-    deletions,
-    diff,
-  };
-};
 
 /**
  * 文件变更消息组件
@@ -123,10 +62,9 @@ const MessageFileChanges: React.FC<MessageFileChangesProps> = ({ turnDiffChanges
     return Array.from(filesMap.values()).concat(diffsChanges);
   }, [turnDiffChanges, writeFileChanges, diffsChanges]);
 
-  // 处理文件点击 / Handle file click
+  // 点击预览按钮 → 打开文件预览 / Click preview button → open file preview
   const handleFileClick = useCallback(
     (file: FileChangeItem) => {
-      // 找到对应的 FileChangeInfo 获取 diff / Find corresponding FileChangeInfo to get diff
       const fileInfo = fileChanges.find((f) => f.fullPath === file.fullPath);
       if (!fileInfo) return;
 
@@ -145,12 +83,29 @@ const MessageFileChanges: React.FC<MessageFileChangesProps> = ({ turnDiffChanges
     [fileChanges, launchPreview]
   );
 
+  // 点击变更统计 → 打开 diff 对比视图 / Click change stats → open diff comparison view
+  const handleDiffClick = useCallback(
+    (file: FileChangeItem) => {
+      const fileInfo = fileChanges.find((f) => f.fullPath === file.fullPath);
+      if (!fileInfo) return;
+
+      void launchPreview({
+        fileName: fileInfo.fileName,
+        contentType: 'diff',
+        editable: false,
+        language: 'diff',
+        diffContent: fileInfo.diff,
+      });
+    },
+    [fileChanges, launchPreview]
+  );
+
   // 如果没有文件变更，不渲染 / Don't render if no file changes
   if (fileChanges.length === 0) {
     return null;
   }
 
-  return <FileChangesPanel title={t('messages.fileChangesCount', { count: fileChanges.length })} files={fileChanges} onFileClick={handleFileClick} className={className} />;
+  return <FileChangesPanel title={t('messages.fileChangesCount', { count: fileChanges.length })} files={fileChanges} onFileClick={handleFileClick} onDiffClick={handleDiffClick} className={className} />;
 };
 
 export default React.memo(MessageFileChanges);

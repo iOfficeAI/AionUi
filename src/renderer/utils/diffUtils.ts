@@ -80,3 +80,77 @@ export function extractContentFromDiff(diffContent: string): string {
 
   return contentLines.join('\n').trim();
 }
+
+/**
+ * File change info including diff content
+ */
+export interface FileChangeInfo {
+  /** File name */
+  fileName: string;
+  /** Full path */
+  fullPath: string;
+  /** Number of insertions */
+  insertions: number;
+  /** Number of deletions */
+  deletions: number;
+  /** Raw diff content */
+  diff: string;
+}
+
+/**
+ * Parse unified diff format, extract file info and change statistics
+ *
+ * @param diff Unified diff string
+ * @param fileNameHint Optional filename hint when diff header is missing
+ * @returns Parsed file change info
+ */
+export const parseDiff = (diff: string, fileNameHint?: string): FileChangeInfo => {
+  const lines = diff.split('\n');
+
+  // Extract filename
+  const gitLine = lines.find((line) => line.startsWith('diff --git'));
+  let fileName = fileNameHint || 'Unknown file';
+  let fullPath = fileNameHint || 'Unknown file';
+
+  if (gitLine) {
+    const match = gitLine.match(/diff --git a\/(.+) b\/(.+)/);
+    if (match) {
+      fullPath = match[1];
+      fileName = fullPath.split('/').pop() || fullPath;
+    }
+  } else {
+    const parsedPath = parseFilePathFromDiff(diff);
+    if (parsedPath) {
+      fullPath = parsedPath;
+      fileName = parsedPath.split(/[\\/]/).pop() || parsedPath;
+    } else if (fileNameHint) {
+      fileName = fileNameHint.split(/[\\/]/).pop() || fileNameHint;
+      fullPath = fileNameHint;
+    }
+  }
+
+  // Calculate insertions and deletions
+  let insertions = 0;
+  let deletions = 0;
+
+  for (const line of lines) {
+    // Skip diff header lines
+    if (line.startsWith('diff --git') || line.startsWith('index ') || line.startsWith('---') || line.startsWith('+++') || line.startsWith('@@') || line.startsWith('\\')) {
+      continue;
+    }
+
+    if (line.startsWith('+')) {
+      insertions++;
+    } else if (line.startsWith('-')) {
+      deletions++;
+    }
+  }
+
+  return {
+    fileName,
+    fullPath,
+    insertions,
+    deletions,
+    diff,
+  };
+};

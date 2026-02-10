@@ -26,6 +26,7 @@ import ModelScopeLogo from '@/renderer/assets/logos/modelscope.svg';
 import InfiniAILogo from '@/renderer/assets/logos/infiniai.svg';
 import CtyunLogo from '@/renderer/assets/logos/ctyun.svg';
 import StepFunLogo from '@/renderer/assets/logos/stepfun.svg';
+import NewApiLogo from '@/renderer/assets/logos/newapi.svg';
 
 /**
  * 供应商配置（包含名称、URL、Logo）
@@ -34,6 +35,7 @@ import StepFunLogo from '@/renderer/assets/logos/stepfun.svg';
 const PROVIDER_CONFIGS = [
   { name: 'Gemini', url: '', logo: GeminiLogo, platform: 'gemini' },
   { name: 'Gemini (Vertex AI)', url: '', logo: GeminiLogo, platform: 'gemini-vertex-ai' },
+  { name: 'New API', url: '', logo: NewApiLogo, platform: 'new-api' },
   { name: 'OpenAI', url: 'https://api.openai.com/v1', logo: OpenAILogo },
   { name: 'Anthropic', url: 'https://api.anthropic.com/v1', logo: AnthropicLogo },
   { name: 'DeepSeek', url: 'https://api.deepseek.com', logo: DeepSeekLogo },

@@ -7,7 +7,9 @@ permissions:
 
 on:
   push:
-    branches: [ main, dev ]
+    branches: [ dev ]
+    tags:
+      - '*'
 
 jobs:
   # 代码质量检查
@@ -37,32 +39,42 @@ jobs:
       - name: Run Prettier check
         run: npm run format:check || echo "Prettier formatting issues detected but not blocking build"
 
-  # 构建所有平台（macOS + Windows + Linux）
   build:
     name: Build ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
     needs: code-quality
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev'
+    # dev 分支或正式 tag 触发构建（排除 -dev- tag，避免重复构建）
+    if: github.ref == 'refs/heads/dev' || (startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-dev-'))
 
     strategy:
       fail-fast: false
       matrix:
         include:
-          - platform: macos-arm64
-            os: macos-14
-            command: "node scripts/build-with-builder.js arm64 --mac --arm64"
-            artifact-name: macos-build-arm64
-            arch: arm64
-          - platform: windows-x64
-            os: windows-2022
-            command: "node scripts/build-with-builder.js x64 --win --x64"
-            artifact-name: windows-build-x64
-            arch: x64
-          - platform: windows-arm64
-            os: windows-2022
-            command: "node scripts/build-with-builder.js arm64 --win --arm64"
-            artifact-name: windows-build-arm64
-            arch: arm64
+          - platform: 'macos-arm64'
+            os: 'macos-14'
+            command: 'node scripts/build-with-builder.js arm64 --mac --arm64'
+            artifact-name: 'macos-build-arm64'
+            arch: 'arm64'
+          - platform: 'macos-x64'
+            os: 'macos-14'
+            command: 'node scripts/build-with-builder.js x64 --mac --x64'
+            artifact-name: 'macos-build-x64'
+            arch: 'x64'
+          - platform: 'windows-x64'
+            os: 'windows-2022'
+            command: 'node scripts/build-with-builder.js x64 --win --x64'
+            artifact-name: 'windows-build-x64'
+            arch: 'x64'
+          - platform: 'windows-arm64'
+            os: 'windows-2022'
+            command: 'node scripts/build-with-builder.js arm64 --win --arm64'
+            artifact-name: 'windows-build-arm64'
+            arch: 'arm64'
+          - platform: 'linux'
+            os: 'ubuntu-latest'
+            command: 'npm run dist:linux'
+            artifact-name: 'linux-build'
+            arch: 'x64,arm64'
 
     steps:
       - name: Checkout code
@@ -531,12 +543,12 @@ jobs:
             exit 1
           fi
 
-  # 自动创建tag（main/dev分支推送时）
+  # 自动创建tag（仅 dev 分支推送时）
   create-tag:
     name: Create Tag from Branch
     runs-on: ubuntu-latest
     needs: [ build ]
-    if: success() && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
+    if: success() && github.ref == 'refs/heads/dev'
     outputs:
       tag_name: ${{ steps.create_tag.outputs.tag_name }}
       is_dev: ${{ steps.create_tag.outputs.is_dev }}
@@ -632,9 +644,11 @@ jobs:
     name: Create Release
     runs-on: ubuntu-latest
     needs: [ build, create-tag ]
-    if: always() && needs.create-tag.result == 'success'
+    # Tag 推送时 create-tag 会被跳过，所以需要检查两种情况（排除 -dev- tag 避免重复）
+    if: always() && needs.build.result == 'success' && (needs.create-tag.result == 'success' || (startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-dev-')))
+    # dev 分支使用 dev-release 环境，正式 tag 使用 release 环境
     environment: ${{ needs.create-tag.outputs.is_dev == 'true' && 'dev-release' || 'release' }}
-    
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -642,15 +656,21 @@ jobs:
       - name: Get version for release
         id: version
         run: |
-          TAG_NAME="${{ needs.create-tag.outputs.tag_name }}"
-          IS_DEV="${{ needs.create-tag.outputs.is_dev }}"
-          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
-          
-          if [ "$IS_DEV" = "true" ]; then
-            echo "🔧 Creating development release: $TAG_NAME"
+          # 判断触发来源：正式 tag 推送 or dev 分支
+          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+            # 正式 Tag 推送触发（-dev- tag 已被排除，不会到达这里）
+            TAG_NAME="${GITHUB_REF#refs/tags/}"
+            IS_DEV="false"
+            echo "🚀 Creating stable release from tag: $TAG_NAME"
           else
-            echo "🚀 Creating stable release: $TAG_NAME"
+            # dev 分支触发，使用 create-tag job 的输出
+            TAG_NAME="${{ needs.create-tag.outputs.tag_name }}"
+            IS_DEV="${{ needs.create-tag.outputs.is_dev }}"
+            echo "🔧 Creating development release: $TAG_NAME"
           fi
+
+          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+          echo "is_dev=$IS_DEV" >> $GITHUB_OUTPUT
 
       - name: Download all build artifacts
         uses: actions/download-artifact@v7
@@ -661,7 +681,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.version.outputs.tag_name }}
-          name: ${{ needs.create-tag.outputs.is_dev == 'true' && format('Development Build {0}', steps.version.outputs.tag_name) || steps.version.outputs.tag_name }}
+          name: ${{ steps.version.outputs.is_dev == 'true' && format('Development Build {0}', steps.version.outputs.tag_name) || steps.version.outputs.tag_name }}
           files: |
             build-artifacts/**/*.exe
             build-artifacts/**/*.msi
@@ -671,6 +691,6 @@ jobs:
             build-artifacts/**/*.zip
           generate_release_notes: true
           draft: true
-          prerelease: ${{ needs.create-tag.outputs.is_dev == 'true' || contains(steps.version.outputs.tag_name, 'beta') || contains(steps.version.outputs.tag_name, 'alpha') || contains(steps.version.outputs.tag_name, 'rc') }}
+          prerelease: ${{ steps.version.outputs.is_dev == 'true' || contains(steps.version.outputs.tag_name, 'beta') || contains(steps.version.outputs.tag_name, 'alpha') || contains(steps.version.outputs.tag_name, 'rc') }}
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}

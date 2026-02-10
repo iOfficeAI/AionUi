@@ -9,6 +9,7 @@ import { uuid } from '@/common/utils';
 import { type ProtocolDetectionRequest, type ProtocolDetectionResponse, type ProtocolType, type MultiKeyTestResult, parseApiKeys, maskApiKey, normalizeBaseUrl, removeApiPathSuffix, guessProtocolFromUrl, guessProtocolFromKey, getProtocolDisplayName } from '@/common/utils/protocolDetector';
 import { isGoogleApisHost } from '@/common/utils/urlValidation';
 import OpenAI from 'openai';
+import { isNewApiPlatform } from '@/common/utils/platformConstants';
 import { ipcBridge } from '../../common';
 import { ProcessConfig } from '../initStorage';
 
@@ -95,6 +96,36 @@ export function initModelBridge(): void {
         console.warn('Failed to fetch Anthropic models via API, falling back to default list:', errorMessage);
         const defaultAnthropicModels = ['claude-sonnet-4-20250514', 'claude-opus-4-20250514', 'claude-3-7-sonnet-20250219', 'claude-3-haiku-20240307'];
         return { success: true, data: { mode: defaultAnthropicModels } };
+      }
+    }
+
+    // 如果是 New API 网关，使用 OpenAI 兼容协议获取模型列表
+    // For New API gateway, use OpenAI-compatible protocol to fetch model list
+    // new-api 暴露标准的 /v1/models 端点，直接走 OpenAI 路径
+    // new-api exposes standard /v1/models endpoint, use OpenAI path directly
+    if (isNewApiPlatform(platform)) {
+      // 确保 base_url 带有 /v1 后缀 / Ensure base_url has /v1 suffix
+      let openaiBaseUrl = base_url?.replace(/\/+$/, '') || '';
+      if (openaiBaseUrl && !openaiBaseUrl.endsWith('/v1')) {
+        openaiBaseUrl = `${openaiBaseUrl}/v1`;
+      }
+
+      const openai = new OpenAI({
+        baseURL: openaiBaseUrl,
+        apiKey: actualApiKey,
+        defaultHeaders: {
+          'User-Agent': 'AionUI/1.0',
+        },
+      });
+
+      try {
+        const res = await openai.models.list();
+        if (res.data?.length === 0) {
+          throw new Error('Invalid response: empty data');
+        }
+        return { success: true, data: { mode: res.data.map((v) => v.id) } };
+      } catch (e: any) {
+        return { success: false, msg: e.message || e.toString() };
       }
     }
 

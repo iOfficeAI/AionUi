@@ -55,6 +55,14 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
     subject: '',
   });
 
+  // Use ref to sync state for immediate access in event handlers
+  // 使用 ref 同步状态，以便在事件处理程序中立即访问
+  const aiProcessingRef = useRef(aiProcessing);
+
+  // Track whether current turn has content output
+  // Only reset aiProcessing when finish arrives after content (not after tool calls)
+  const hasContentInTurnRef = useRef(false);
+
   // Throttle thought updates to reduce render frequency
   const thoughtThrottleRef = useRef<{
     lastUpdate: number;
@@ -121,10 +129,32 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
   const setContentRef = useLatestRef(setContent);
   const atPathRef = useLatestRef(atPath);
 
+  // Reset state when conversation changes and restore actual running status
   useEffect(() => {
-    setAiProcessing(false);
+    // Clear pending finish timeout when conversation changes
+    const pendingTimeout = (window as unknown as { __openclawFinishTimeout?: ReturnType<typeof setTimeout> }).__openclawFinishTimeout;
+    if (pendingTimeout) {
+      clearTimeout(pendingTimeout);
+      (window as unknown as { __openclawFinishTimeout?: ReturnType<typeof setTimeout> }).__openclawFinishTimeout = undefined;
+    }
+
     setOpenClawStatus(null);
     setThought({ subject: '', description: '' });
+    hasContentInTurnRef.current = false;
+
+    // Check actual conversation status from backend before resetting aiProcessing
+    // to avoid flicker when switching to a running conversation
+    // 先获取后端状态再重置 aiProcessing，避免切换到运行中的会话时闪烁
+    void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
+      if (!res) {
+        setAiProcessing(false);
+        aiProcessingRef.current = false;
+        return;
+      }
+      const isRunning = res.status === 'running';
+      setAiProcessing(isRunning);
+      aiProcessingRef.current = isRunning;
+    });
   }, [conversation_id]);
 
   useEffect(() => {
@@ -148,16 +178,47 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
       if (conversation_id !== message.conversation_id) {
         return;
       }
+
+      // Cancel pending finish timeout if new message arrives
+      // 如果新消息到达，取消待处理的 finish timeout
+      const pendingTimeout = (window as unknown as { __openclawFinishTimeout?: ReturnType<typeof setTimeout> }).__openclawFinishTimeout;
+      if (pendingTimeout && message.type !== 'finish') {
+        clearTimeout(pendingTimeout);
+        (window as unknown as { __openclawFinishTimeout?: ReturnType<typeof setTimeout> }).__openclawFinishTimeout = undefined;
+      }
+
       switch (message.type) {
         case 'thought':
+          // Auto-recover aiProcessing state if thought arrives after finish
+          // 如果 thought 在 finish 后到达，自动恢复 aiProcessing 状态
+          if (!aiProcessingRef.current) {
+            setAiProcessing(true);
+            aiProcessingRef.current = true;
+          }
           throttledSetThought(message.data as ThoughtData);
           break;
         case 'finish':
-          setThought({ subject: '', description: '' });
-          setAiProcessing(false);
+          {
+            // Use delayed reset to detect true end of task
+            // 使用延迟重置来检测任务的真正结束
+            const timeoutId = setTimeout(() => {
+              setAiProcessing(false);
+              aiProcessingRef.current = false;
+              setThought({ subject: '', description: '' });
+            }, 1000);
+            (window as unknown as { __openclawFinishTimeout?: ReturnType<typeof setTimeout> }).__openclawFinishTimeout = timeoutId;
+            hasContentInTurnRef.current = false;
+          }
           break;
         case 'content':
         case 'acp_permission': {
+          // Mark that current turn has content output
+          hasContentInTurnRef.current = true;
+          // Auto-recover aiProcessing state if content arrives after finish
+          if (!aiProcessingRef.current) {
+            setAiProcessing(true);
+            aiProcessingRef.current = true;
+          }
           setThought({ subject: '', description: '' });
           const transformedMessage = transformMessage(message);
           if (transformedMessage) {
@@ -166,6 +227,11 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
           break;
         }
         case 'agent_status': {
+          // Auto-recover aiProcessing state if agent_status arrives after finish
+          if (!aiProcessingRef.current) {
+            setAiProcessing(true);
+            aiProcessingRef.current = true;
+          }
           const statusData = message.data as { status: string; message: string };
           setOpenClawStatus(statusData.status);
           const transformedMessage = transformMessage(message);
@@ -175,6 +241,13 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
           break;
         }
         default: {
+          // Mark that current turn has content output
+          hasContentInTurnRef.current = true;
+          // Auto-recover aiProcessing state if other messages arrive after finish
+          if (!aiProcessingRef.current) {
+            setAiProcessing(true);
+            aiProcessingRef.current = true;
+          }
           setThought({ subject: '', description: '' });
           const transformedMessage = transformMessage(message);
           if (transformedMessage) {
@@ -238,6 +311,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
     };
     addOrUpdateMessage(userMessage, true);
     setAiProcessing(true);
+    aiProcessingRef.current = true;
     try {
       const atPathStrings = currentAtPath.map((item) => (typeof item === 'string' ? item : item.path));
       await ipcBridge.openclawConversation.sendMessage.invoke({
@@ -248,8 +322,11 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
       });
       void checkAndUpdateTitle(conversation_id, message);
       emitter.emit('chat.history.refresh');
-    } finally {
+    } catch (error) {
+      // Only reset aiProcessing on error, normal flow is reset by 'finish' event
       setAiProcessing(false);
+      aiProcessingRef.current = false;
+      throw error;
     }
   };
 
@@ -269,6 +346,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
 
       try {
         setAiProcessing(true);
+        aiProcessingRef.current = true;
         const { input, files = [] } = JSON.parse(stored) as { input: string; files?: string[] };
         const msg_id = `initial_${conversation_id}_${Date.now()}`;
         const loading_id = uuid();
@@ -291,8 +369,9 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
         sessionStorage.removeItem(storageKey);
       } catch (err) {
         sessionStorage.removeItem(processedKey);
-      } finally {
+        // Only reset aiProcessing on error, normal flow is reset by 'finish' event
         setAiProcessing(false);
+        aiProcessingRef.current = false;
       }
     };
 
@@ -311,8 +390,17 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
     try {
       await ipcBridge.conversation.stop.invoke({ conversation_id });
     } finally {
+      // Clear pending finish timeout
+      const pendingTimeout = (window as unknown as { __openclawFinishTimeout?: ReturnType<typeof setTimeout> }).__openclawFinishTimeout;
+      if (pendingTimeout) {
+        clearTimeout(pendingTimeout);
+        (window as unknown as { __openclawFinishTimeout?: ReturnType<typeof setTimeout> }).__openclawFinishTimeout = undefined;
+      }
+
       setAiProcessing(false);
+      aiProcessingRef.current = false;
       setThought({ subject: '', description: '' });
+      hasContentInTurnRef.current = false;
     }
   };
 

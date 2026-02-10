@@ -6,18 +6,51 @@
 
 import { ipcBridge } from '@/common';
 import type { IProvider } from '@/common/storage';
-import { Button, Divider, Message, Popconfirm, Collapse } from '@arco-design/web-react';
-import { DeleteFour, Info, Minus, Plus, Write, Down, Up } from '@icon-park/react';
+import { Button, Divider, Message, Popconfirm, Collapse, Tag } from '@arco-design/web-react';
+import { DeleteFour, Info, Minus, Plus, Write } from '@icon-park/react';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import AddModelModal from '@/renderer/pages/settings/components/AddModelModal';
 import AddPlatformModal from '@/renderer/pages/settings/components/AddPlatformModal';
+import { isNewApiPlatform, NEW_API_PROTOCOL_OPTIONS } from '@/renderer/config/modelPlatforms';
 import EditModeModal from '@/renderer/pages/settings/components/EditModeModal';
-import { iconColors } from '@/renderer/theme/colors';
-import AionCollapse from '@/renderer/components/base/AionCollapse';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { useSettingsViewMode } from '../settingsViewContext';
+
+/**
+ * 获取协议显示标签颜色
+ * Get protocol badge color
+ */
+const getProtocolColor = (protocol: string): string => {
+  switch (protocol) {
+    case 'gemini':
+      return 'blue';
+    case 'anthropic':
+      return 'orange';
+    case 'openai':
+    default:
+      return 'green';
+  }
+};
+
+/**
+ * 获取协议显示名称
+ * Get protocol display name
+ */
+const getProtocolLabel = (protocol: string): string => {
+  return NEW_API_PROTOCOL_OPTIONS.find((p) => p.value === protocol)?.label || 'OpenAI';
+};
+
+/**
+ * 获取下一个协议（循环切换）
+ * Get next protocol (cycle through options)
+ */
+const getNextProtocol = (current: string): string => {
+  const idx = NEW_API_PROTOCOL_OPTIONS.findIndex((p) => p.value === current);
+  const nextIdx = (idx + 1) % NEW_API_PROTOCOL_OPTIONS.length;
+  return NEW_API_PROTOCOL_OPTIONS[nextIdx].value;
+};
 
 // Calculate API Key count
 const getApiKeyCount = (apiKey: string): number => {
@@ -68,7 +101,7 @@ const ModelModalContent: React.FC = () => {
   };
 
   const removePlatform = (id: string) => {
-    const newData = data.filter((item) => item.id !== id);
+    const newData = data.filter((item: IProvider) => item.id !== id);
     saveModelConfig(newData);
   };
 
@@ -123,7 +156,7 @@ const ModelModalContent: React.FC = () => {
           </div>
         ) : (
           <div className='space-y-12px'>
-            {(data || []).map((platform) => {
+            {(data || []).map((platform: IProvider) => {
               const key = platform.id;
               const isExpanded = collapseKey[platform.id] ?? false;
               return (
@@ -166,25 +199,52 @@ const ModelModalContent: React.FC = () => {
                       </div>
                     }
                   >
-                    {platform.model.map((model, index, arr) => (
-                      <div key={model}>
-                        <div className='flex items-center justify-between py-4px'>
-                          <span className='text-14px text-t-primary'>{model}</span>
-                          <Popconfirm
-                            title={t('settings.deleteModelConfirm')}
-                            onOk={() => {
-                              const newModels = platform.model.filter((item) => item !== model);
-                              updatePlatform({ ...platform, model: newModels }, () => {
-                                setCacheKey('model.config' + Date.now());
-                              });
-                            }}
-                          >
-                            <Button size='mini' icon={<DeleteFour theme='outline' size='18' strokeWidth={2} />} />
-                          </Popconfirm>
+                    {platform.model.map((model: string, index: number, arr: string[]) => {
+                      const isNewApiProvider = isNewApiPlatform(platform.platform);
+                      const modelProtocol = platform.modelProtocols?.[model] || 'openai';
+                      return (
+                        <div key={model}>
+                          <div className='flex items-center justify-between py-4px'>
+                            <div className='flex items-center gap-8px'>
+                              <span className='text-14px text-t-primary'>{model}</span>
+                              {/* New API 协议标签（点击循环切换）/ New API protocol badge (click to cycle) */}
+                              {isNewApiProvider && (
+                                <Tag
+                                  size='small'
+                                  color={getProtocolColor(modelProtocol)}
+                                  className='cursor-pointer select-none'
+                                  onClick={() => {
+                                    const nextProtocol = getNextProtocol(modelProtocol);
+                                    const newProtocols = { ...(platform.modelProtocols || {}) };
+                                    newProtocols[model] = nextProtocol;
+                                    updatePlatform({ ...platform, modelProtocols: newProtocols }, () => {
+                                      setCacheKey('model.config' + Date.now());
+                                    });
+                                  }}
+                                >
+                                  {getProtocolLabel(modelProtocol)}
+                                </Tag>
+                              )}
+                            </div>
+                            <Popconfirm
+                              title={t('settings.deleteModelConfirm')}
+                              onOk={() => {
+                                const newModels = platform.model.filter((item: string) => item !== model);
+                                // 同时清理 modelProtocols 中对应的条目 / Also clean up corresponding modelProtocols entry
+                                const newProtocols = { ...(platform.modelProtocols || {}) };
+                                delete newProtocols[model];
+                                updatePlatform({ ...platform, model: newModels, modelProtocols: Object.keys(newProtocols).length > 0 ? newProtocols : undefined }, () => {
+                                  setCacheKey('model.config' + Date.now());
+                                });
+                              }}
+                            >
+                              <Button size='mini' icon={<DeleteFour theme='outline' size='18' strokeWidth={2} />} />
+                            </Popconfirm>
+                          </div>
+                          {index < arr.length - 1 && <Divider className='!my-8px' />}
                         </div>
-                        {index < arr.length - 1 && <Divider className='!my-8px' />}
-                      </div>
-                    ))}
+                      );
+                    })}
                   </Collapse.Item>
                 </Collapse>
               );

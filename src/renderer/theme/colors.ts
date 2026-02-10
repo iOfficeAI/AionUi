@@ -113,6 +113,29 @@ export const iconColors = {
 } as const;
 
 /**
+ * Diff/change colors for file change indicators
+ * Used in FileChangesPanel, Markdown diff highlighting, etc.
+ */
+export const diffColors = {
+  /** Green for additions / insertions */
+  addition: '#52c41a',
+  /** Red for deletions / removals */
+  deletion: '#ff4d4f',
+  /** Addition background (dark mode) */
+  additionBgDark: 'rgba(46,160,67,0.15)',
+  /** Addition background (light mode) */
+  additionBgLight: '#e6ffec',
+  /** Deletion background (dark mode) */
+  deletionBgDark: 'rgba(248,81,73,0.15)',
+  /** Deletion background (light mode) */
+  deletionBgLight: '#ffebe9',
+  /** Hunk header background (dark mode) */
+  hunkBgDark: 'rgba(56,139,253,0.15)',
+  /** Hunk header background (light mode) */
+  hunkBgLight: '#ddf4ff',
+} as const;
+
+/**
  * Color mapping reference for migration
  * Maps common hex values to their theme variable names
  */

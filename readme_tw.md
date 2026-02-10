@@ -19,7 +19,7 @@
 ---
 
 <p align="center">
-  <strong>🚀 基於 Gemini CLI、Claude Code、Codex、Qwen Code、Goose CLI、Auggie 等的「Cowork」個人助手</strong><br>
+  <strong>🚀 基於 Gemini CLI、Claude Code、Codex、Qwen Code、Goose CLI, OpenClaw、Auggie 等的「Cowork」個人助手</strong><br>
   <em>使用者友善 | 視覺化圖形介面 | 多模型支援 | 本地資料安全</em>
 </p>
 
@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <strong>💬 社群：</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wx.png" target="_blank">微信 (中文群)</a>
+  <strong>💬 社群：</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wechat-group-3.png" target="_blank">微信 (中文群)</a>
 </p>
 
 ---
@@ -55,19 +55,24 @@
 ## ✨ 看看 AionUi 能做什麼？
 
 <p align="center">
-  <img src="./resources/offica-ai BANNER-function.png" alt="AionUi - Cowork with Your CLI AI Agent" width="800">
+  <img src="./resources/offica-ai%20BANNER-function.png" alt="AionUi - Cowork with Your CLI AI Agent" width="800">
 </p>
 
 ### 🤖 **多代理模式 - 為您的命令列 AI 工具提供統一圖形介面**
 
-_AionUi 內建 Gemini CLI，下載即用，無需額外安裝；如果您已經安裝了 Gemini CLI、Claude Code、CodeX、Qwen Code、Goose AI、Augment Code 等命令列工具，AionUi 會自動檢測並為它們提供統一的圖形介面，體驗更豐富_
+AionUi 為您的命令列 AI 工具提供統一圖形介面。內建 Gemini CLI，開箱即用。
 
-- ✅ **自動檢測 + 統一介面** - 自動識別本地 CLI 工具，提供統一的圖形介面，告別命令列
-- ✅ **本地儲存 + 多會話** - 對話儲存在本地，支援多會話並行，每個會話獨立上下文
+**支援的工具：** Gemini CLI（內建） • Claude Code • CodeX • Qwen Code • Goose AI • OpenClaw • Augment Code
 
 <p align="center">
-  <img src="./resources/acp home page.gif" alt="多代理模式示範" width="800">
+  <img src="./resources/multi-agent支持openclaw.gif" alt="AionUi 中的 OpenClaw 集成" width="800">
 </p>
+
+**核心特性：**
+
+- ✅ **自動檢測** - 自動識別並整合本地 CLI 工具
+- ✅ **統一介面** - 一個介面管理所有 AI 工具，告別命令列
+- ✅ **本地保存 + 多會話** - 對話本地保存，支援多會話並行，每個會話獨立上下文
 
 ---
 
@@ -75,7 +80,7 @@ _AionUi 內建 Gemini CLI，下載即用，無需額外安裝；如果您已經�
 
 _你的 7×24 小時 AI 助手 - 從任何裝置、任何地方存取 AionUi！出差、在家、辦公室，隨時隨地透過 WebUI 或 Telegram 使用你的 AI 工具_
 
-AionUi 提供兩種遠端存取方式：
+AionUi 提供多種遠端存取方式：
 
 - **🌐 WebUI 模式**
 
@@ -83,14 +88,19 @@ AionUi 提供兩種遠端存取方式：
 
   > 💡 **需要詳細設定指南？** 查看 [遠端外網連接教學](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide-Chinese)
 
-- **📱 Telegram Channel**
+- **📱 聊天平台整合**
+  - **Telegram** - 在任何裝置上與 AI 助手聊天
+  - **Lark (Feishu/飛書)** - 透過飛書機器人進行企業協作
+  - **Slack** 等更多平台正在開發中 🚧
+
+  > 💡 **如何設定:** 前往 AionUi 設定 → WebUI 設定 → Channel，配置對應的 Bot Token 即可開始使用!
 
   透過 Telegram 在任何裝置上直接與你的 AI 助手聊天。簡單的配對碼系統，確保安全存取。
 
   > 💡 **如何設定：** 前往 AionUi 設定 → WebUI 設定 → Channel，從 [@BotFather](https://t.me/BotFather) 取得你的 Bot Token，然後開始聊天！
 
 <p align="center">
-  <img src="./resources/remote-telegram.png" alt="隨時隨地存取 - WebUI & Telegram" width="800">
+  <img src="./resources/remote-telegram.png" alt="隨時隨地存取 - WebUI 與聊天平台" width="800">
 </p>
 
 ---
@@ -119,7 +129,7 @@ _批次重新命名、自動整理、智慧分類、檔案合併_
 - **高效批次**：一鍵重新命名、合併檔案，徹底告別繁瑣手動作業。
 
 <p align="center">
-  <img src="./resources/aionui sort file.gif" alt="智慧檔案管理示範" width="800">
+  <img src="./resources/aionui%20sort%20file.gif" alt="智慧檔案管理示範" width="800">
 </p>
 
 ---
@@ -162,7 +172,7 @@ _支援 Gemini、OpenAI、Claude、Qwen 等主流模型，以及 Ollama、LM Stu
 _自己寫 CSS 程式碼自訂，讓您的互動介面符合您的心意_
 
 <p align="center">
-  <img src="./resources/css with skin.gif" alt="CSS 自訂介面示範" width="800">
+  <img src="./resources/css%20with%20skin.gif" alt="CSS 自訂介面示範" width="800">
 </p>
 
 - ✅ **完全自訂** - 透過 CSS 程式碼自由定製介面顏色、風格、版面配置，打造專屬使用體驗
@@ -355,7 +365,7 @@ brew install aionui
 - [🐛 報告問題](https://github.com/iOfficeAI/AionUi/issues) - 回報 Bug 或功能請求
 - [📦 發布更新](https://github.com/iOfficeAI/AionUi/releases) - 取得最新版本
 - [💬 Discord Community](https://discord.gg/2QAwJn7Egx) - **加入我們的英文 Discord 社群**
-- [💬 微信 (中文群)](./resources/wx.png) - **點擊查看 QR Code**
+- [💬 微信 (中文群)](./resources/wechat-group-3.png) - **點擊查看 QR Code**
 
 ### 🤝 貢獻程式碼
 
