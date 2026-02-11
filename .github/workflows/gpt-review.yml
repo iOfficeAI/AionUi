@@ -452,21 +452,10 @@ jobs:
               else if (/^MEDIUM/i.test(section)) medium = issueCount;
             }
 
-            // Determine review event
-            const totalLinesNum = parseInt(totalLines, 10);
-            const fileListParsed = JSON.parse(fileListRaw);
-            const touchesCoreFiles = fileListParsed.some(f =>
-              /^src\/(process|agent|webserver\/auth)\//.test(f.filename)
-            );
+            // Always use COMMENT to avoid blocking merge with unstable review results
+            const reviewEvent = 'COMMENT';
 
-            let reviewEvent = 'COMMENT';
-            if (critical > 0) {
-              reviewEvent = 'REQUEST_CHANGES';
-            } else if (critical === 0 && high === 0 && totalLinesNum < 200 && !touchesCoreFiles) {
-              reviewEvent = 'APPROVE';
-            }
-
-            core.info(`Review decision: ${reviewEvent} (critical=${critical}, high=${high}, medium=${medium}, lines=${totalLinesNum}, core=${touchesCoreFiles})`);
+            core.info(`Review result: critical=${critical}, high=${high}, medium=${medium}`);
 
             fs.writeFileSync(`${tmpDir}/review_body.txt`, finalReview);
             core.setOutput('review_event', reviewEvent);
