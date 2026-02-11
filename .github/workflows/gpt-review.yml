@@ -403,7 +403,13 @@ jobs:
                   }
 
                   const data = await response.json();
-                  return data.choices[0].message.content;
+                  const content = data?.choices?.[0]?.message?.content;
+                  if (typeof content !== 'string' || content.trim().length === 0) {
+                    throw new Error(
+                      `OpenAI response missing choices[0].message.content. Payload keys: ${Object.keys(data || {}).join(', ')}`
+                    );
+                  }
+                  return content;
                 } catch (error) {
                   const isRetryable = attempt < retries && (
                     error.cause?.code === 'ECONNRESET' ||
