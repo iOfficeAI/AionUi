@@ -20,6 +20,9 @@ import { AcpApprovalStore, createAcpApprovalKey } from './ApprovalStore';
 import { CLAUDE_YOLO_SESSION_MODE, QWEN_YOLO_SESSION_MODE } from './constants';
 import { getClaudeModel } from './utils';
 
+/** Enable ACP performance diagnostics via ACP_PERF=1 */
+const ACP_PERF_LOG = process.env.ACP_PERF === '1';
+
 /**
  * Initialize response result interface
  * ACP 初始化响应结果接口
@@ -199,20 +202,20 @@ export class AcpAgent {
           clearTimeout(connectTimeoutId);
         }
       }
-      console.log(`[ACP-PERF] start: connection.connect() completed ${Date.now() - connectStart}ms`);
+      if (ACP_PERF_LOG) console.log(`[ACP-PERF] start: connection.connect() completed ${Date.now() - connectStart}ms`);
 
       this.emitStatusMessage('connected');
 
       const authStart = Date.now();
       await this.performAuthentication();
-      console.log(`[ACP-PERF] start: authentication completed ${Date.now() - authStart}ms`);
+      if (ACP_PERF_LOG) console.log(`[ACP-PERF] start: authentication completed ${Date.now() - authStart}ms`);
 
       // 避免重复创建会话：仅当尚无活动会话时再创建
       // Create new session or resume existing one (if ACP backend supports it)
       if (!this.connection.hasActiveSession) {
         const sessionStart = Date.now();
         await this.createOrResumeSession();
-        console.log(`[ACP-PERF] start: session created ${Date.now() - sessionStart}ms`);
+        if (ACP_PERF_LOG) console.log(`[ACP-PERF] start: session created ${Date.now() - sessionStart}ms`);
       }
 
       // YOLO mode: bypass all permission checks for supported backends
@@ -226,7 +229,7 @@ export class AcpAgent {
           try {
             const modeStart = Date.now();
             await this.connection.setSessionMode(sessionMode);
-            console.log(`[ACP-PERF] start: session mode set ${Date.now() - modeStart}ms`);
+            if (ACP_PERF_LOG) console.log(`[ACP-PERF] start: session mode set ${Date.now() - modeStart}ms`);
           } catch (error) {
             const errorMessage = error instanceof Error ? error.message : String(error);
             throw new Error(`[ACP] Failed to enable ${this.extra.backend} YOLO mode (${sessionMode}): ${errorMessage}`);
@@ -241,7 +244,7 @@ export class AcpAgent {
           try {
             const modelStart = Date.now();
             await this.connection.setModel(configuredModel);
-            console.log(`[ACP-PERF] start: model set ${Date.now() - modelStart}ms`);
+            if (ACP_PERF_LOG) console.log(`[ACP-PERF] start: model set ${Date.now() - modelStart}ms`);
           } catch (error) {
             // Log warning but don't fail - fallback to default model
             console.warn(`[ACP] Failed to set model from settings: ${error instanceof Error ? error.message : String(error)}`);
@@ -250,9 +253,9 @@ export class AcpAgent {
       }
 
       this.emitStatusMessage('session_active');
-      console.log(`[ACP-PERF] start: total ${Date.now() - startTotal}ms`);
+      if (ACP_PERF_LOG) console.log(`[ACP-PERF] start: total ${Date.now() - startTotal}ms`);
     } catch (error) {
-      console.log(`[ACP-PERF] start: failed after ${Date.now() - startTotal}ms`);
+      if (ACP_PERF_LOG) console.log(`[ACP-PERF] start: failed after ${Date.now() - startTotal}ms`);
       this.emitStatusMessage('error');
       throw error;
     }
@@ -283,9 +286,9 @@ export class AcpAgent {
         const reconnectStart = Date.now();
         try {
           await this.start();
-          console.log(`[ACP-PERF] send: auto-reconnect completed ${Date.now() - reconnectStart}ms`);
+          if (ACP_PERF_LOG) console.log(`[ACP-PERF] send: auto-reconnect completed ${Date.now() - reconnectStart}ms`);
         } catch (reconnectError) {
-          console.log(`[ACP-PERF] send: auto-reconnect failed ${Date.now() - reconnectStart}ms`);
+          if (ACP_PERF_LOG) console.log(`[ACP-PERF] send: auto-reconnect failed ${Date.now() - reconnectStart}ms`);
           const errorMsg = reconnectError instanceof Error ? reconnectError.message : String(reconnectError);
           return {
             success: false,
@@ -330,12 +333,12 @@ export class AcpAgent {
       processedContent = await this.processAtFileReferences(processedContent, data.files);
       const atFileDuration = Date.now() - atFileStart;
       if (atFileDuration > 10) {
-        console.log(`[ACP-PERF] send: @file references processed ${atFileDuration}ms`);
+        if (ACP_PERF_LOG) console.log(`[ACP-PERF] send: @file references processed ${atFileDuration}ms`);
       }
 
       const promptStart = Date.now();
       await this.connection.sendPrompt(processedContent);
-      console.log(`[ACP-PERF] send: sendPrompt completed ${Date.now() - promptStart}ms (total send: ${Date.now() - sendStart}ms)`);
+      if (ACP_PERF_LOG) console.log(`[ACP-PERF] send: sendPrompt completed ${Date.now() - promptStart}ms (total send: ${Date.now() - sendStart}ms)`);
 
       this.statusMessageId = null;
       return { success: true, data: null };

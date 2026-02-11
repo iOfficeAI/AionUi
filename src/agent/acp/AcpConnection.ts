@@ -7,10 +7,13 @@
 import type { AcpBackend, AcpIncomingMessage, AcpMessage, AcpNotification, AcpPermissionRequest, AcpRequest, AcpResponse, AcpSessionUpdate } from '@/types/acpTypes';
 import { ACP_METHODS, JSONRPC_VERSION } from '@/types/acpTypes';
 import type { ChildProcess, SpawnOptions } from 'child_process';
-import { exec, execSync, spawn } from 'child_process';
+import { execFile, execFileSync, spawn } from 'child_process';
 import { promises as fs } from 'fs';
 import os from 'os';
 import path from 'path';
+
+/** Enable ACP performance diagnostics via ACP_PERF=1 */
+const ACP_PERF_LOG = process.env.ACP_PERF === '1';
 
 /**
  * Environment variables to inherit from user's shell.
@@ -49,17 +52,19 @@ function loadShellEnvironment(): Record<string, string> {
 
   // Skip on Windows - shell config loading not needed
   if (process.platform === 'win32') {
-    console.log(`[ACP-PERF] connect: shell env skipped (Windows) ${Date.now() - startTime}ms`);
+    if (ACP_PERF_LOG) console.log(`[ACP-PERF] connect: shell env skipped (Windows) ${Date.now() - startTime}ms`);
     return cachedShellEnv;
   }
 
   try {
     const shell = process.env.SHELL || '/bin/bash';
+    if (!path.isAbsolute(shell)) {
+      console.warn('[ACP] SHELL is not an absolute path, skipping shell env loading:', shell);
+      return cachedShellEnv;
+    }
     // Use -i (interactive) and -l (login) to load all shell configs
     // including .bashrc, .zshrc, .bash_profile, .zprofile, etc.
-    const command = `${shell} -i -l -c 'env' 2>/dev/null`;
-
-    const output = execSync(command, {
+    const output = execFileSync(shell, ['-i', '-l', '-c', 'env'], {
       encoding: 'utf-8',
       timeout: 5000,
       stdio: ['pipe', 'pipe', 'pipe'],
@@ -78,7 +83,7 @@ function loadShellEnvironment(): Record<string, string> {
       }
     }
 
-    if (cachedShellEnv.PATH) {
+    if (ACP_PERF_LOG && cachedShellEnv.PATH) {
       console.log('[ACP] Loaded PATH from shell:', cachedShellEnv.PATH.substring(0, 100) + '...');
     }
   } catch (error) {
@@ -86,7 +91,7 @@ function loadShellEnvironment(): Record<string, string> {
     console.warn('[ACP] Failed to load shell environment:', error instanceof Error ? error.message : String(error));
   }
 
-  console.log(`[ACP-PERF] connect: shell env loaded ${Date.now() - startTime}ms`);
+  if (ACP_PERF_LOG) console.log(`[ACP-PERF] connect: shell env loaded ${Date.now() - startTime}ms`);
   return cachedShellEnv;
 }
 
@@ -111,11 +116,16 @@ export async function loadShellEnvironmentAsync(): Promise<Record<string, string
 
   try {
     const shell = process.env.SHELL || '/bin/bash';
-    const command = `${shell} -i -l -c 'env' 2>/dev/null`;
+    if (!path.isAbsolute(shell)) {
+      console.warn('[ACP] SHELL is not an absolute path, skipping async shell env loading:', shell);
+      cachedShellEnv = {};
+      return cachedShellEnv;
+    }
 
     const output = await new Promise<string>((resolve, reject) => {
-      exec(
-        command,
+      execFile(
+        shell,
+        ['-i', '-l', '-c', 'env'],
         {
           encoding: 'utf-8',
           timeout: 5000,
@@ -142,10 +152,10 @@ export async function loadShellEnvironmentAsync(): Promise<Record<string, string
 
     cachedShellEnv = env;
 
-    if (cachedShellEnv.PATH) {
+    if (ACP_PERF_LOG && cachedShellEnv.PATH) {
       console.log('[ACP] Preloaded PATH from shell:', cachedShellEnv.PATH.substring(0, 100) + '...');
     }
-    console.log(`[ACP-PERF] preload: shell env async loaded ${Date.now() - startTime}ms`);
+    if (ACP_PERF_LOG) console.log(`[ACP-PERF] preload: shell env async loaded ${Date.now() - startTime}ms`);
   } catch (error) {
     cachedShellEnv = {};
     console.warn('[ACP] Failed to async load shell environment:', error instanceof Error ? error.message : String(error));
@@ -298,13 +308,13 @@ export class AcpConnection {
     const spawnStart = Date.now();
     const config = createGenericSpawnConfig(cliPath, workingDir, acpArgs, customEnv);
     this.child = spawn(config.command, config.args, config.options);
-    console.log(`[ACP-PERF] connect: ${backend} process spawned ${Date.now() - spawnStart}ms`);
+    if (ACP_PERF_LOG) console.log(`[ACP-PERF] connect: ${backend} process spawned ${Date.now() - spawnStart}ms`);
     await this.setupChildProcessHandlers(backend);
   }
 
   async connect(backend: AcpBackend, cliPath?: string, workingDir: string = process.cwd(), acpArgs?: string[], customEnv?: Record<string, string>): Promise<void> {
     const connectStart = Date.now();
-    console.log(`[ACP-PERF] connect: start backend=${backend}`);
+    if (ACP_PERF_LOG) console.log(`[ACP-PERF] connect: start backend=${backend}`);
 
     if (this.child) {
       this.disconnect();
@@ -333,7 +343,7 @@ export class AcpConnection {
         if (!cliPath) {
           throw new Error(`CLI path is required for ${backend} backend`);
         }
-        await this.connectGenericBackend(backend, cliPath, workingDir, acpArgs);
+        await this.connectGenericBackend(backend, cliPath, workingDir, acpArgs, customEnv);
         break;
 
       case 'custom':
@@ -347,7 +357,7 @@ export class AcpConnection {
         throw new Error(`Unsupported backend: ${backend}`);
     }
 
-    console.log(`[ACP-PERF] connect: total ${Date.now() - connectStart}ms`);
+    if (ACP_PERF_LOG) console.log(`[ACP-PERF] connect: total ${Date.now() - connectStart}ms`);
   }
 
   private async connectClaude(workingDir: string = process.cwd()): Promise<void> {
@@ -361,7 +371,7 @@ export class AcpConnection {
     delete cleanEnv.NODE_OPTIONS;
     delete cleanEnv.NODE_INSPECT;
     delete cleanEnv.NODE_DEBUG;
-    console.log(`[ACP-PERF] connect: env prepared ${Date.now() - envStart}ms`);
+    if (ACP_PERF_LOG) console.log(`[ACP-PERF] connect: env prepared ${Date.now() - envStart}ms`);
 
     // Use npx to run the Claude ACP bridge directly from npm registry
     const isWindows = process.platform === 'win32';
@@ -375,7 +385,7 @@ export class AcpConnection {
       env: cleanEnv,
       shell: isWindows,
     });
-    console.log(`[ACP-PERF] connect: claude process spawned ${Date.now() - spawnStart}ms`);
+    if (ACP_PERF_LOG) console.log(`[ACP-PERF] connect: claude process spawned ${Date.now() - spawnStart}ms`);
 
     await this.setupChildProcessHandlers('claude');
   }
@@ -430,12 +440,14 @@ export class AcpConnection {
       for (const line of lines) {
         if (line.trim()) {
           try {
-            const handleStart = Date.now();
+            const handleStart = ACP_PERF_LOG ? Date.now() : 0;
             const message = JSON.parse(line) as AcpMessage;
             this.handleMessage(message);
-            const handleDuration = Date.now() - handleStart;
-            if (handleDuration > 5) {
-              console.log(`[ACP-PERF] stream: handleMessage ${handleDuration}ms method=${'method' in message ? (message as any).method : 'response'}`);
+            if (ACP_PERF_LOG) {
+              const handleDuration = Date.now() - handleStart;
+              if (handleDuration > 5) {
+                console.log(`[ACP-PERF] stream: handleMessage ${handleDuration}ms method=${'method' in message ? (message as AcpIncomingMessage).method : 'response'}`);
+              }
             }
           } catch (error) {
             // Ignore parsing errors for non-JSON messages
@@ -454,7 +466,7 @@ export class AcpConnection {
         }, 60000)
       ),
     ]);
-    console.log(`[ACP-PERF] connect: protocol initialized ${Date.now() - initStart}ms`);
+    if (ACP_PERF_LOG) console.log(`[ACP-PERF] connect: protocol initialized ${Date.now() - initStart}ms`);
 
     // Mark setup as complete - future exits will be handled as runtime disconnects
     this.isSetupComplete = true;
@@ -679,7 +691,7 @@ export class AcpConnection {
           // Track first chunk latency since prompt was sent
           if (!this.firstChunkReceived && this.lastPromptSentAt > 0) {
             this.firstChunkReceived = true;
-            console.log(`[ACP-PERF] stream: first chunk received ${Date.now() - this.lastPromptSentAt}ms (since prompt sent)`);
+            if (ACP_PERF_LOG) console.log(`[ACP-PERF] stream: first chunk received ${Date.now() - this.lastPromptSentAt}ms (since prompt sent)`);
           }
           // Reset timeout on streaming updates - LLM is still processing
           this.resetSessionPromptTimeouts();
@@ -906,7 +918,7 @@ export class AcpConnection {
 
     this.lastPromptSentAt = Date.now();
     this.firstChunkReceived = false;
-    console.log(`[ACP-PERF] send: prompt sent to ${this.backend}`);
+    if (ACP_PERF_LOG) console.log(`[ACP-PERF] send: prompt sent to ${this.backend}`);
 
     return await this.sendRequest('session/prompt', {
       sessionId: this.sessionId,
