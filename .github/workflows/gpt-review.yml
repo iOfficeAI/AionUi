@@ -367,11 +367,13 @@ jobs:
               fileContents || '(No file contents available)',
             ].join('\n');
 
-            // Call OpenAI API with retry logic
+            // Call OpenAI Responses API with retry logic
+            // Using /v1/responses instead of /v1/chat/completions because
+            // gpt-5.2-codex is not a chat model and requires the Responses API
             async function callOpenAI(retries = 2) {
               for (let attempt = 0; attempt <= retries; attempt++) {
                 try {
-                  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                  const response = await fetch('https://api.openai.com/v1/responses', {
                     method: 'POST',
                     headers: {
                       'Content-Type': 'application/json',
@@ -379,12 +381,10 @@ jobs:
                     },
                     body: JSON.stringify({
                       model: 'gpt-5.2-codex',
-                      messages: [
-                        { role: 'system', content: systemPrompt },
-                        { role: 'user', content: userPrompt },
-                      ],
+                      instructions: systemPrompt,
+                      input: userPrompt,
                       temperature: 0.1,
-                      max_completion_tokens: 16384,
+                      max_output_tokens: 16384,
                     }),
                   });
 
@@ -403,7 +403,16 @@ jobs:
                   }
 
                   const data = await response.json();
-                  return data.choices[0].message.content;
+
+                  // Extract text from Responses API output format
+                  const outputText = data.output
+                    ?.filter(item => item.type === 'message')
+                    ?.flatMap(item => item.content || [])
+                    ?.filter(block => block.type === 'output_text')
+                    ?.map(block => block.text)
+                    ?.join('\n');
+
+                  return outputText || null;
                 } catch (error) {
                   const isRetryable = attempt < retries && (
                     error.cause?.code === 'ECONNRESET' ||
