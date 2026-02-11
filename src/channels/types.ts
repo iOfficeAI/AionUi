@@ -9,7 +9,7 @@
 /**
  * Supported platform types for plugins
  */
-export type PluginType = 'telegram' | 'slack' | 'discord';
+export type PluginType = 'telegram' | 'slack' | 'discord' | 'lark';
 
 /**
  * Plugin connection status
@@ -20,14 +20,20 @@ export type PluginStatus = 'created' | 'initializing' | 'ready' | 'starting' | '
  * Plugin credentials (stored encrypted in database)
  */
 export interface IPluginCredentials {
+  // Telegram
   token?: string;
+  // Lark/Feishu
+  appId?: string;
+  appSecret?: string;
+  encryptKey?: string;
+  verificationToken?: string;
 }
 
 /**
  * Plugin configuration options
  */
 export interface IPluginConfigOptions {
-  mode?: 'polling' | 'webhook';
+  mode?: 'polling' | 'webhook' | 'websocket';
   webhookUrl?: string;
   rateLimit?: number; // Max messages per minute
   requireMention?: boolean; // Require @mention in groups
@@ -425,4 +431,30 @@ export function pairingRequestToRow(request: IChannelPairingRequest): IChannelPa
     expires_at: request.expiresAt,
     status: request.status,
   };
+}
+
+// ==================== Channel Platform Helpers ====================
+
+/**
+ * Channel platform type for model configuration.
+ * Subset of PluginType that currently supports channel conversations.
+ */
+export type ChannelPlatform = 'telegram' | 'lark';
+
+/**
+ * Type guard to check if a string is a valid ChannelPlatform
+ */
+export function isChannelPlatform(value: string): value is ChannelPlatform {
+  return value === 'telegram' || value === 'lark';
+}
+
+/**
+ * Get default conversation name for a channel platform
+ */
+export function getChannelConversationName(platform: ChannelPlatform): string {
+  const names: Record<ChannelPlatform, string> = {
+    telegram: 'Telegram Assistant',
+    lark: 'Lark Assistant',
+  };
+  return names[platform];
 }

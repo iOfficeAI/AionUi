@@ -7,9 +7,143 @@
 import type { AcpBackend, AcpIncomingMessage, AcpMessage, AcpNotification, AcpPermissionRequest, AcpRequest, AcpResponse, AcpSessionUpdate } from '@/types/acpTypes';
 import { ACP_METHODS, JSONRPC_VERSION } from '@/types/acpTypes';
 import type { ChildProcess, SpawnOptions } from 'child_process';
-import { spawn } from 'child_process';
+import { execSync, spawn } from 'child_process';
 import { promises as fs } from 'fs';
+import os from 'os';
 import path from 'path';
+
+/**
+ * Environment variables to inherit from user's shell.
+ * These may not be available when Electron app starts from Finder/launchd.
+ *
+ * 需要从用户 shell 继承的环境变量。
+ * 当 Electron 应用从 Finder/launchd 启动时，这些变量可能不可用。
+ */
+const SHELL_INHERITED_ENV_VARS = [
+  'PATH', // Required for finding CLI tools (e.g., ~/.npm-global/bin, ~/.nvm/...)
+  'NODE_EXTRA_CA_CERTS', // Custom CA certificates
+  'SSL_CERT_FILE',
+  'SSL_CERT_DIR',
+  'REQUESTS_CA_BUNDLE',
+  'CURL_CA_BUNDLE',
+  'NODE_TLS_REJECT_UNAUTHORIZED',
+] as const;
+
+/** Cache for shell environment (loaded once per session) */
+let cachedShellEnv: Record<string, string> | null = null;
+
+/**
+ * Load environment variables from user's login shell.
+ * Captures variables set in .bashrc, .zshrc, .bash_profile, etc.
+ *
+ * 从用户的登录 shell 加载环境变量。
+ * 捕获 .bashrc、.zshrc、.bash_profile 等配置中设置的变量。
+ */
+function loadShellEnvironment(): Record<string, string> {
+  if (cachedShellEnv !== null) {
+    return cachedShellEnv;
+  }
+
+  cachedShellEnv = {};
+
+  // Skip on Windows - shell config loading not needed
+  if (process.platform === 'win32') {
+    return cachedShellEnv;
+  }
+
+  try {
+    const shell = process.env.SHELL || '/bin/bash';
+    // Use -i (interactive) and -l (login) to load all shell configs
+    // including .bashrc, .zshrc, .bash_profile, .zprofile, etc.
+    const command = `${shell} -i -l -c 'env' 2>/dev/null`;
+
+    const output = execSync(command, {
+      encoding: 'utf-8',
+      timeout: 5000,
+      stdio: ['pipe', 'pipe', 'pipe'],
+      env: { ...process.env, HOME: os.homedir() },
+    });
+
+    // Parse and capture only the variables we need
+    for (const line of output.split('\n')) {
+      const eqIndex = line.indexOf('=');
+      if (eqIndex > 0) {
+        const key = line.substring(0, eqIndex);
+        const value = line.substring(eqIndex + 1);
+        if (SHELL_INHERITED_ENV_VARS.includes(key as (typeof SHELL_INHERITED_ENV_VARS)[number])) {
+          cachedShellEnv[key] = value;
+        }
+      }
+    }
+
+    if (cachedShellEnv.PATH) {
+      console.log('[ACP] Loaded PATH from shell:', cachedShellEnv.PATH.substring(0, 100) + '...');
+    }
+  } catch (error) {
+    // Silent fail - shell environment loading is best-effort
+    console.warn('[ACP] Failed to load shell environment:', error instanceof Error ? error.message : String(error));
+  }
+
+  return cachedShellEnv;
+}
+
+/**
+ * Merge two PATH strings, removing duplicates while preserving order.
+ * Exported for unit testing.
+ *
+ * 合并两个 PATH 字符串，去重并保持顺序。
+ */
+export function mergePaths(path1?: string, path2?: string): string {
+  const separator = process.platform === 'win32' ? ';' : ':';
+  const paths1 = path1?.split(separator).filter(Boolean) || [];
+  const paths2 = path2?.split(separator).filter(Boolean) || [];
+
+  const seen = new Set<string>();
+  const merged: string[] = [];
+
+  // Add paths from first source (process.env, typically from terminal)
+  for (const p of paths1) {
+    if (!seen.has(p)) {
+      seen.add(p);
+      merged.push(p);
+    }
+  }
+
+  // Add paths from second source (shell env, for Finder/launchd launches)
+  for (const p of paths2) {
+    if (!seen.has(p)) {
+      seen.add(p);
+      merged.push(p);
+    }
+  }
+
+  return merged.join(separator);
+}
+
+/**
+ * Get enhanced environment variables by merging shell env with process.env.
+ * For PATH, we merge both sources to ensure CLI tools are found regardless of
+ * how the app was started (terminal vs Finder/launchd).
+ *
+ * 获取增强的环境变量，合并 shell 环境变量和 process.env。
+ * 对于 PATH，合并两个来源以确保无论应用如何启动都能找到 CLI 工具。
+ */
+export function getEnhancedEnv(customEnv?: Record<string, string>): Record<string, string> {
+  const shellEnv = loadShellEnvironment();
+
+  // Merge PATH from both sources (shell env may miss nvm/fnm paths in dev mode)
+  // 合并两个来源的 PATH（开发模式下 shell 环境可能缺少 nvm/fnm 路径）
+  const mergedPath = mergePaths(process.env.PATH, shellEnv.PATH);
+
+  return {
+    ...process.env,
+    ...shellEnv,
+    ...customEnv,
+    // PATH must be set after spreading to ensure merged value is used
+    // When customEnv.PATH exists, merge it with the already merged path (fix: don't override)
+    PATH: customEnv?.PATH ? mergePaths(mergedPath, customEnv.PATH) : mergedPath,
+  } as Record<string, string>;
+}
 
 interface PendingRequest<T = unknown> {
   resolve: (value: T) => void;
@@ -32,7 +166,8 @@ interface PendingRequest<T = unknown> {
  */
 export function createGenericSpawnConfig(cliPath: string, workingDir: string, acpArgs?: string[], customEnv?: Record<string, string>) {
   const isWindows = process.platform === 'win32';
-  const env = { ...process.env, ...customEnv };
+  // Use enhanced env that includes shell environment variables (PATH, SSL certs, etc.)
+  const env = getEnhancedEnv(customEnv);
 
   // Default to --experimental-acp if no acpArgs specified
   const effectiveAcpArgs = acpArgs && acpArgs.length > 0 ? acpArgs : ['--experimental-acp'];
@@ -81,9 +216,14 @@ export class AcpConnection {
   }> = () => Promise.resolve({ optionId: 'allow' }); // Returns a resolved Promise for interface consistency
   public onEndTurn: () => void = () => {}; // Handler for end_turn messages
   public onFileOperation: (operation: { method: string; path: string; content?: string; sessionId: string }) => void = () => {};
+  // Disconnect callback - called when child process exits unexpectedly during runtime
+  public onDisconnect: (error: { code: number | null; signal: NodeJS.Signals | null }) => void = () => {};
+
+  // Track if initial setup is complete (to distinguish startup errors from runtime exits)
+  private isSetupComplete = false;
 
   // 通用的后端连接方法
-  private async connectGenericBackend(backend: 'gemini' | 'qwen' | 'iflow' | 'droid' | 'goose' | 'auggie' | 'kimi' | 'opencode' | 'custom', cliPath: string, workingDir: string, acpArgs?: string[], customEnv?: Record<string, string>): Promise<void> {
+  private async connectGenericBackend(backend: Exclude<AcpBackend, 'claude' | 'codex'>, cliPath: string, workingDir: string, acpArgs?: string[], customEnv?: Record<string, string>): Promise<void> {
     const config = createGenericSpawnConfig(cliPath, workingDir, acpArgs, customEnv);
     this.child = spawn(config.command, config.args, config.options);
     await this.setupChildProcessHandlers(backend);
@@ -112,6 +252,8 @@ export class AcpConnection {
       case 'auggie':
       case 'kimi':
       case 'opencode':
+      case 'copilot':
+      case 'qoder':
         if (!cliPath) {
           throw new Error(`CLI path is required for ${backend} backend`);
         }
@@ -135,8 +277,8 @@ export class AcpConnection {
     // This eliminates dependency packaging issues and simplifies deployment
     console.error('[ACP] Using NPX approach for Claude ACP bridge');
 
-    // Clean environment
-    const cleanEnv = { ...process.env };
+    // Use enhanced env with shell variables, then clean up Node.js debugging vars
+    const cleanEnv = getEnhancedEnv();
     delete cleanEnv.NODE_OPTIONS;
     delete cleanEnv.NODE_INSPECT;
     delete cleanEnv.NODE_DEBUG;
@@ -167,12 +309,18 @@ export class AcpConnection {
       spawnError = error;
     });
 
+    // Exit handler for both startup and runtime phases
     this.child.on('exit', (code, signal) => {
       console.error(`[ACP ${backend}] Process exited with code: ${code}, signal: ${signal}`);
-      if (code !== 0) {
-        if (!spawnError) {
+
+      if (!this.isSetupComplete) {
+        // Startup phase - set error for initial check
+        if (code !== 0 && !spawnError) {
           spawnError = new Error(`${backend} ACP process failed with exit code: ${code}`);
         }
+      } else {
+        // Runtime phase - handle unexpected exit
+        this.handleProcessExit(code, signal);
       }
     });
 
@@ -219,6 +367,35 @@ export class AcpConnection {
         }, 60000)
       ),
     ]);
+
+    // Mark setup as complete - future exits will be handled as runtime disconnects
+    this.isSetupComplete = true;
+  }
+
+  /**
+   * Handle unexpected process exit during runtime
+   * Similar to Codex's handleProcessExit implementation
+   */
+  private handleProcessExit(code: number | null, signal: NodeJS.Signals | null): void {
+    // 1. Reject all pending requests with clear error message
+    for (const [_id, request] of this.pendingRequests) {
+      if (request.timeoutId) {
+        clearTimeout(request.timeoutId);
+      }
+      request.reject(new Error(`ACP process exited unexpectedly (code: ${code}, signal: ${signal})`));
+    }
+    this.pendingRequests.clear();
+
+    // 2. Clear connection state
+    this.sessionId = null;
+    this.isInitialized = false;
+    this.isSetupComplete = false;
+    this.backend = null;
+    this.initializeResponse = null;
+    this.child = null;
+
+    // 3. Notify AcpAgent about disconnect
+    this.onDisconnect({ code, signal });
   }
 
   private sendRequest<T = unknown>(method: string, params?: Record<string, unknown>): Promise<T> {
@@ -553,15 +730,45 @@ export class AcpConnection {
     return result;
   }
 
-  async newSession(cwd: string = process.cwd()): Promise<AcpResponse> {
+  /**
+   * Create a new session or resume an existing one.
+   * 创建新会话或恢复现有会话。
+   *
+   * @param cwd - Working directory for the session
+   * @param options - Optional resume parameters
+   * @param options.resumeSessionId - Session ID to resume (if supported by backend)
+   * @param options.forkSession - When true, creates a new session ID while preserving conversation context.
+   *                              When false (default), reuses the original session ID.
+   *                              为 true 时创建新 session ID 但保留对话上下文；为 false（默认）时复用原 session ID。
+   */
+  async newSession(cwd: string = process.cwd(), options?: { resumeSessionId?: string; forkSession?: boolean }): Promise<AcpResponse & { sessionId?: string }> {
     // Normalize workspace-relative paths:
     // Agents such as qwen already run with `workingDir` as their process cwd.
     // Sending the absolute path again makes some CLIs treat it as a nested relative path.
     const normalizedCwd = this.normalizeCwdForAgent(cwd);
 
+    // Build _meta for Claude ACP resume support
+    // claude-code-acp uses _meta.claudeCode.options.resume for session resume
+    // claude-code-acp 使用 _meta.claudeCode.options.resume 来恢复会话
+    const meta =
+      this.backend === 'claude' && options?.resumeSessionId
+        ? {
+            claudeCode: {
+              options: {
+                resume: options.resumeSessionId,
+              },
+            },
+          }
+        : undefined;
+
     const response = await this.sendRequest<AcpResponse & { sessionId?: string }>('session/new', {
       cwd: normalizedCwd,
       mcpServers: [] as unknown[],
+      // Claude ACP uses _meta for resume
+      ...(meta && { _meta: meta }),
+      // Generic resume parameters for other ACP backends
+      ...(this.backend !== 'claude' && options?.resumeSessionId && { resumeSessionId: options.resumeSessionId }),
+      ...(options?.forkSession && { forkSession: options.forkSession }),
     });
 
     this.sessionId = response.sessionId;
@@ -575,6 +782,12 @@ export class AcpConnection {
   private normalizeCwdForAgent(cwd?: string): string {
     const defaultPath = '.';
     if (!cwd) return defaultPath;
+
+    // GitHub Copilot CLI requires absolute paths
+    // Error: "Directory path must be absolute: ."
+    if (this.backend === 'copilot') {
+      return path.resolve(cwd);
+    }
 
     try {
       const workspaceRoot = path.resolve(this.workingDir);
@@ -636,6 +849,7 @@ export class AcpConnection {
     this.pendingRequests.clear();
     this.sessionId = null;
     this.isInitialized = false;
+    this.isSetupComplete = false;
     this.backend = null;
     this.initializeResponse = null;
   }
@@ -648,6 +862,14 @@ export class AcpConnection {
   get hasActiveSession(): boolean {
     const hasSession = this.sessionId !== null;
     return hasSession;
+  }
+
+  /**
+   * Get the current session ID (for session resume support).
+   * 获取当前 session ID（用于会话恢复支持）。
+   */
+  get currentSessionId(): string | null {
+    return this.sessionId;
   }
 
   get currentBackend(): AcpBackend | null {

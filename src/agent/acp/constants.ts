@@ -18,8 +18,15 @@ export const GOOSE_YOLO_ENV_VAR = 'GOOSE_MODE' as const;
 export const GOOSE_YOLO_ENV_VALUE = 'auto' as const;
 
 /**
- * OpenCode: v1.1.39 does not support --yolo flag
- * Note: OpenCode has been archived and migrated to Crush (by Charm team)
- * Crush supports --yolo flag, but OpenCode does not
- * OpenCode's ACP mode behavior needs further testing to determine if permissions are auto-approved
+ * OpenCode: AionUi integrates with the TypeScript version (anomalyco/opencode)
+ * which has full ACP protocol support via `opencode acp` command.
+ *
+ * Note: There are two OpenCode projects:
+ * - TypeScript version: https://github.com/anomalyco/opencode (actively maintained, recommended)
+ * - Go version: https://github.com/opencode-ai/opencode (archived, migrated to Crush by Charm team)
+ *
+ * Both versions support `opencode acp` command, so the integration is compatible with either.
+ * Currently, OpenCode does not support --yolo flag for auto-approve mode.
+ *
+ * @see https://github.com/iOfficeAI/AionUi/issues/788
  */

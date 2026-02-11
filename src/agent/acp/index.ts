@@ -16,7 +16,8 @@ import { spawn } from 'child_process';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import { AcpConnection } from './AcpConnection';
-import { CLAUDE_YOLO_SESSION_MODE } from './constants';
+import { AcpApprovalStore, createAcpApprovalKey } from './ApprovalStore';
+import { CLAUDE_YOLO_SESSION_MODE, QWEN_YOLO_SESSION_MODE } from './constants';
 import { getClaudeModel } from './utils';
 
 /**
@@ -64,9 +65,15 @@ export interface AcpAgentConfig {
     customArgs?: string[];
     customEnv?: Record<string, string>;
     yoloMode?: boolean;
+    /** ACP session ID for resume support / ACP session ID 用于会话恢复 */
+    acpSessionId?: string;
+    /** Last update time of ACP session / ACP session 最后更新时间 */
+    acpSessionUpdatedAt?: number;
   };
   onStreamEvent: (data: IResponseMessage) => void;
   onSignalEvent?: (data: IResponseMessage) => void; // 新增：仅发送信号，不更新UI
+  /** Callback when ACP session ID is updated / 当 ACP session ID 更新时的回调 */
+  onSessionIdUpdate?: (sessionId: string) => void;
 }
 
 // ACP agent任务类
@@ -80,6 +87,10 @@ export class AcpAgent {
     customArgs?: string[];
     customEnv?: Record<string, string>;
     yoloMode?: boolean;
+    /** ACP session ID for resume support / ACP session ID 用于会话恢复 */
+    acpSessionId?: string;
+    /** Last update time of ACP session / ACP session 最后更新时间 */
+    acpSessionUpdatedAt?: number;
   };
   private connection: AcpConnection;
   private adapter: AcpAdapter;
@@ -87,15 +98,24 @@ export class AcpAgent {
   private statusMessageId: string | null = null;
   private readonly onStreamEvent: (data: IResponseMessage) => void;
   private readonly onSignalEvent?: (data: IResponseMessage) => void;
+  private readonly onSessionIdUpdate?: (sessionId: string) => void;
 
   // Track pending navigation tool calls for URL extraction from results
   // 跟踪待处理的导航工具调用，以便从结果中提取 URL
   private pendingNavigationTools = new Set<string>();
 
+  // ApprovalStore for session-level "always allow" caching
+  // Workaround for claude-code-acp bug: it doesn't check suggestions to auto-approve
+  private approvalStore = new AcpApprovalStore();
+
+  // Store permission request metadata for later use in confirmMessage
+  private permissionRequestMeta = new Map<string, { kind?: string; title?: string; rawInput?: Record<string, unknown> }>();
+
   constructor(config: AcpAgentConfig) {
     this.id = config.id;
     this.onStreamEvent = config.onStreamEvent;
     this.onSignalEvent = config.onSignalEvent;
+    this.onSessionIdUpdate = config.onSessionIdUpdate;
     this.extra = config.extra || {
       workspace: config.workingDir,
       backend: config.backend,
@@ -125,6 +145,9 @@ export class AcpAgent {
     this.connection.onFileOperation = (operation) => {
       this.handleFileOperation(operation);
     };
+    this.connection.onDisconnect = (error) => {
+      this.handleDisconnect(error);
+    };
   }
 
   /**
@@ -143,6 +166,7 @@ export class AcpAgent {
    *
    * Delegates to NavigationInterceptor for unified logic
    */
+  // eslint-disable-next-line max-len
   private extractNavigationUrl(toolCall: { rawInput?: Record<string, unknown>; content?: Array<{ type?: string; content?: { type?: string; text?: string }; text?: string }>; title?: string }): string | null {
     return NavigationInterceptor.extractUrl(toolCall);
   }
@@ -176,17 +200,25 @@ export class AcpAgent {
       this.emitStatusMessage('connected');
       await this.performAuthentication();
       // 避免重复创建会话：仅当尚无活动会话时再创建
+      // Create new session or resume existing one (if ACP backend supports it)
       if (!this.connection.hasActiveSession) {
-        await this.connection.newSession(this.extra.workspace);
+        await this.createOrResumeSession();
       }
 
-      // Claude Code "YOLO" mode: bypass all permission checks (equivalent to --dangerously-skip-permissions)
-      if (this.extra.backend === 'claude' && this.extra.yoloMode) {
-        try {
-          await this.connection.setSessionMode(CLAUDE_YOLO_SESSION_MODE);
-        } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : String(error);
-          throw new Error(`[ACP] Failed to enable Claude YOLO mode (${CLAUDE_YOLO_SESSION_MODE}): ${errorMessage}`);
+      // YOLO mode: bypass all permission checks for supported backends
+      if (this.extra.yoloMode) {
+        const yoloModeMap: Partial<Record<AcpBackend, string>> = {
+          claude: CLAUDE_YOLO_SESSION_MODE,
+          qwen: QWEN_YOLO_SESSION_MODE,
+        };
+        const sessionMode = yoloModeMap[this.extra.backend];
+        if (sessionMode) {
+          try {
+            await this.connection.setSessionMode(sessionMode);
+          } catch (error) {
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            throw new Error(`[ACP] Failed to enable ${this.extra.backend} YOLO mode (${sessionMode}): ${errorMessage}`);
+          }
         }
       }
 
@@ -213,6 +245,9 @@ export class AcpAgent {
   stop(): Promise<void> {
     this.connection.disconnect();
     this.emitStatusMessage('disconnected');
+    // Clear session-scoped caches when session ends
+    this.approvalStore.clear();
+    this.permissionRequestMeta.clear();
     // Emit finish event to reset frontend UI state
     this.onStreamEvent({
       type: 'finish',
@@ -226,12 +261,27 @@ export class AcpAgent {
   // 发送消息到ACP服务器
   async sendMessage(data: { content: string; files?: string[]; msg_id?: string }): Promise<AcpResult> {
     try {
+      // Auto-reconnect if connection is lost (e.g., after unexpected process exit)
       if (!this.connection.isConnected || !this.connection.hasActiveSession) {
-        return {
-          success: false,
-          error: createAcpError(AcpErrorType.CONNECTION_NOT_READY, 'ACP connection not ready', true),
-        };
+        try {
+          await this.start();
+        } catch (reconnectError) {
+          const errorMsg = reconnectError instanceof Error ? reconnectError.message : String(reconnectError);
+          return {
+            success: false,
+            error: createAcpError(AcpErrorType.CONNECTION_NOT_READY, `Failed to reconnect: ${errorMsg}`, true),
+          };
+        }
       }
+
+      // Emit start event to set frontend loading state
+      this.onStreamEvent({
+        type: 'start',
+        conversation_id: this.id,
+        msg_id: data.msg_id || uuid(),
+        data: null,
+      });
+
       this.adapter.resetMessageTracking();
       let processedContent = data.content;
 
@@ -467,6 +517,24 @@ export class AcpAgent {
       if (this.pendingPermissions.has(data.callId)) {
         const { resolve } = this.pendingPermissions.get(data.callId)!;
         this.pendingPermissions.delete(data.callId);
+
+        // Store "allow_always" decision to ApprovalStore for future auto-approval
+        // Workaround for claude-code-acp bug: it returns updatedPermissions but doesn't check suggestions
+        if (data.confirmKey === 'allow_always') {
+          const meta = this.permissionRequestMeta.get(data.callId);
+          if (meta) {
+            const approvalKey = createAcpApprovalKey({
+              kind: meta.kind,
+              title: meta.title,
+              rawInput: meta.rawInput,
+            });
+            this.approvalStore.put(approvalKey, 'allow_always');
+          }
+        }
+
+        // Clean up metadata
+        this.permissionRequestMeta.delete(data.callId);
+
         resolve({ optionId: data.confirmKey });
         return Promise.resolve({ success: true, data: null });
       }
@@ -553,6 +621,28 @@ export class AcpAgent {
       }
       const requestId = data.toolCall.toolCallId; // 使用 toolCallId 作为 requestId
 
+      // Check ApprovalStore for cached "always allow" decision
+      // Workaround for claude-code-acp bug: it returns updatedPermissions but doesn't check suggestions
+      const approvalKey = createAcpApprovalKey(data.toolCall);
+      if (this.approvalStore.isApprovedForSession(approvalKey)) {
+        // Auto-approve without showing dialog - no metadata storage needed
+        resolve({ optionId: 'allow_always' });
+        return;
+      }
+
+      // Clean up any existing metadata for this requestId before storing new one
+      // This handles duplicate permission requests properly
+      if (this.permissionRequestMeta.has(requestId)) {
+        this.permissionRequestMeta.delete(requestId);
+      }
+
+      // Store metadata for later use in confirmMessage
+      this.permissionRequestMeta.set(requestId, {
+        kind: data.toolCall.kind,
+        title: data.toolCall.title,
+        rawInput: data.toolCall.rawInput,
+      });
+
       // Intercept chrome-devtools navigation tools and show in preview panel
       // 拦截 chrome-devtools 导航工具，在预览面板中显示
       // Note: We only emit preview_open event, do NOT block tool execution
@@ -610,6 +700,36 @@ export class AcpAgent {
         data: null,
       });
     }
+  }
+
+  /**
+   * Handle unexpected disconnect from ACP backend
+   * Notify frontend and clean up internal state
+   */
+  private handleDisconnect(error: { code: number | null; signal: NodeJS.Signals | null }): void {
+    // 1. Emit disconnected status to frontend
+    this.emitStatusMessage('disconnected');
+
+    // 2. Emit error message with helpful information
+    const errorMsg = `${this.extra.backend} process disconnected unexpectedly ` + `(code: ${error.code}, signal: ${error.signal}). ` + `Please try sending a new message to reconnect.`;
+    this.emitErrorMessage(errorMsg);
+
+    // 3. Emit finish signal to reset UI loading state
+    if (this.onSignalEvent) {
+      this.onSignalEvent({
+        type: 'finish',
+        conversation_id: this.id,
+        msg_id: uuid(),
+        data: null,
+      });
+    }
+
+    // 4. Clear internal state
+    this.pendingPermissions.clear();
+    this.permissionRequestMeta.clear();
+    this.approvalStore.clear();
+    this.pendingNavigationTools.clear();
+    this.statusMessageId = null;
   }
 
   private handleFileOperation(operation: { method: string; path: string; content?: string; sessionId: string }): void {
@@ -799,6 +919,10 @@ export class AcpAgent {
           responseMessage.data = message.content;
         }
         break;
+      case 'available_commands':
+        responseMessage.type = 'available_commands';
+        responseMessage.data = message.content;
+        break;
       default:
         responseMessage.type = 'content';
         responseMessage.data = typeof message.content === 'string' ? message.content : JSON.stringify(message.content);
@@ -823,6 +947,30 @@ export class AcpAgent {
 
   get hasActiveSession(): boolean {
     return this.connection.hasActiveSession;
+  }
+
+  /**
+   * Get the current ACP session ID (for session resume support).
+   * 获取当前 ACP session ID（用于会话恢复支持）。
+   */
+  get currentSessionId(): string | null {
+    return this.connection.currentSessionId;
+  }
+
+  /**
+   * Create a new session or resume an existing one, and notify upper layer if session ID changed.
+   * 创建新会话或恢复现有会话，如果 session ID 变化则通知上层。
+   */
+  private async createOrResumeSession(): Promise<void> {
+    const resumeSessionId = this.extra.acpSessionId;
+    const response = await this.connection.newSession(this.extra.workspace, {
+      resumeSessionId,
+      forkSession: false,
+    });
+    // Notify upper layer if session ID changed (new session or resume failed)
+    if (response.sessionId && response.sessionId !== resumeSessionId) {
+      this.onSessionIdUpdate?.(response.sessionId);
+    }
   }
 
   // Add kill method for compatibility with WorkerManage
@@ -900,9 +1048,10 @@ export class AcpAgent {
         return;
       }
 
-      // 先尝试直接创建session以判断是否已鉴权
+      // 先尝试直接创建session以判断是否已鉴权（同时尝试恢复已有会话）
+      // Try to create/resume session to check if already authenticated
       try {
-        await this.connection.newSession(this.extra.workspace);
+        await this.createOrResumeSession();
         this.emitStatusMessage('authenticated');
         return;
       } catch (_err) {
@@ -916,13 +1065,15 @@ export class AcpAgent {
         await this.ensureClaudeAuth();
       }
 
-      // 预热后重试创建session
+      // 预热后重试创建session（同时尝试恢复会话）
+      // Retry creating/resuming session after warmup
       try {
-        await this.connection.newSession(this.extra.workspace);
+        await this.createOrResumeSession();
         this.emitStatusMessage('authenticated');
         return;
       } catch (error) {
-        // If still failing,引导用户手动登录
+        // If still failing, guide user to login manually
+        // 如果仍然失败，引导用户手动登录
         this.emitStatusMessage('error');
       }
     } catch (error) {

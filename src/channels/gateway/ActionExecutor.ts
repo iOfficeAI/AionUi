@@ -9,16 +9,71 @@ import { getDatabase } from '@/process/database';
 import { ConversationService } from '@/process/services/conversationService';
 import { buildChatErrorResponse, chatActions } from '../actions/ChatActions';
 import { handlePairingShow, platformActions } from '../actions/PlatformActions';
-import { getTelegramDefaultModel, systemActions } from '../actions/SystemActions';
+import { getChannelDefaultModel, systemActions } from '../actions/SystemActions';
+import { getChannelConversationName, isChannelPlatform } from '../types';
 import type { IActionContext, IRegisteredAction } from '../actions/types';
 import { getChannelMessageService } from '../agent/ChannelMessageService';
 import type { SessionManager } from '../core/SessionManager';
 import type { PairingService } from '../pairing/PairingService';
 import type { PluginMessageHandler } from '../plugins/BasePlugin';
+import { createMainMenuCard, createErrorRecoveryCard, createResponseActionsCard, createToolConfirmationCard } from '../plugins/lark/LarkCards';
+import { convertHtmlToLarkMarkdown } from '../plugins/lark/LarkAdapter';
 import { createMainMenuKeyboard, createResponseActionsKeyboard, createToolConfirmationKeyboard } from '../plugins/telegram/TelegramKeyboards';
 import { escapeHtml } from '../plugins/telegram/TelegramAdapter';
-import type { IUnifiedIncomingMessage, IUnifiedOutgoingMessage } from '../types';
+import type { IUnifiedIncomingMessage, IUnifiedOutgoingMessage, PluginType } from '../types';
 import type { PluginManager } from './PluginManager';
+
+// ==================== Platform-specific Helpers ====================
+
+/**
+ * Get main menu reply markup based on platform
+ */
+function getMainMenuMarkup(platform: PluginType) {
+  if (platform === 'lark') {
+    return createMainMenuCard();
+  }
+  return createMainMenuKeyboard();
+}
+
+/**
+ * Get response actions markup based on platform
+ */
+function getResponseActionsMarkup(platform: PluginType, text?: string) {
+  if (platform === 'lark') {
+    return createResponseActionsCard(text || '');
+  }
+  return createResponseActionsKeyboard();
+}
+
+/**
+ * Get tool confirmation markup based on platform
+ */
+function getToolConfirmationMarkup(platform: PluginType, callId: string, options: Array<{ label: string; value: string }>, title?: string, description?: string) {
+  if (platform === 'lark') {
+    return createToolConfirmationCard(callId, title || 'Confirmation', description || 'Please confirm', options);
+  }
+  return createToolConfirmationKeyboard(callId, options);
+}
+
+/**
+ * Get error recovery markup based on platform
+ */
+function getErrorRecoveryMarkup(platform: PluginType, errorMessage?: string) {
+  if (platform === 'lark') {
+    return createErrorRecoveryCard(errorMessage);
+  }
+  return createMainMenuKeyboard(); // Telegram uses main menu for recovery
+}
+
+/**
+ * Escape/format text for platform
+ */
+function formatTextForPlatform(text: string, platform: PluginType): string {
+  if (platform === 'lark') {
+    return convertHtmlToLarkMarkdown(text);
+  }
+  return escapeHtml(text);
+}
 
 /**
  * 获取确认选项
@@ -78,27 +133,25 @@ function getConfirmationPrompt(details: { type: string; title?: string; [key: st
 
 /**
  * 将 TMessage 转换为 IUnifiedOutgoingMessage
- * Convert TMessage to IUnifiedOutgoingMessage for Telegram
+ * Convert TMessage to IUnifiedOutgoingMessage for platform
  */
-function convertTMessageToOutgoing(message: TMessage, isComplete = false): IUnifiedOutgoingMessage {
+function convertTMessageToOutgoing(message: TMessage, platform: PluginType, isComplete = false): IUnifiedOutgoingMessage {
   switch (message.type) {
     case 'text': {
-      // 转义 HTML 特殊字符
-      // Escape HTML special characters
-      const text = escapeHtml(message.content.content || '') || '...';
+      // 根据平台格式化文本
+      // Format text based on platform
+      const text = formatTextForPlatform(message.content.content || '', platform) || '...';
       return {
         type: 'text',
         text,
         parseMode: 'HTML',
-        replyMarkup: isComplete ? createResponseActionsKeyboard() : undefined,
+        replyMarkup: isComplete ? getResponseActionsMarkup(platform, text) : undefined,
       };
     }
 
     case 'tips': {
       const icon = message.content.type === 'error' ? '❌' : message.content.type === 'success' ? '✅' : '⚠️';
-      // 转义 HTML 特殊字符
-      // Escape HTML special characters
-      const content = escapeHtml(message.content.content || '');
+      const content = formatTextForPlatform(message.content.content || '', platform);
       return {
         type: 'text',
         text: `${icon} ${content}`,
@@ -111,9 +164,7 @@ function convertTMessageToOutgoing(message: TMessage, isComplete = false): IUnif
       // Show tool call status
       const toolLines = message.content.map((tool) => {
         const statusIcon = tool.status === 'Success' ? '✅' : tool.status === 'Error' ? '❌' : tool.status === 'Executing' ? '⏳' : tool.status === 'Confirming' ? '❓' : '📋';
-        // 转义 HTML 特殊字符
-        // Escape HTML special characters
-        const desc = escapeHtml(tool.description || tool.name || '');
+        const desc = formatTextForPlatform(tool.description || tool.name || '', platform);
         return `${statusIcon} ${desc}`;
       });
 
@@ -130,7 +181,7 @@ function convertTMessageToOutgoing(message: TMessage, isComplete = false): IUnif
           type: 'text',
           text: confirmText,
           parseMode: 'HTML',
-          replyMarkup: createToolConfirmationKeyboard(confirmingTool.callId, options),
+          replyMarkup: getToolConfirmationMarkup(platform, confirmingTool.callId, options, 'Tool Confirmation', confirmText),
         };
       }
 
@@ -143,9 +194,7 @@ function convertTMessageToOutgoing(message: TMessage, isComplete = false): IUnif
 
     case 'tool_call': {
       const statusIcon = message.content.status === 'success' ? '✅' : message.content.status === 'error' ? '❌' : '⏳';
-      // 转义 HTML 特殊字符
-      // Escape HTML special characters
-      const name = escapeHtml(message.content.name || '');
+      const name = formatTextForPlatform(message.content.name || '', platform);
       return {
         type: 'text',
         text: `${statusIcon} ${name}`,
@@ -267,17 +316,20 @@ export class ActionExecutor {
       context.channelUser = channelUser;
 
       // Get or create session
-      // 获取或创建会话，优先复用最后一个 telegram 来源的会话
+      // 获取或创建会话，优先复用该平台来源的会话
       let session = this.sessionManager.getSession(channelUser.id);
       if (!session || !session.conversationId) {
-        // 获取用户选择的模型 / Get user selected model
-        const model = await getTelegramDefaultModel();
+        // 获取用户选择的模型（根据平台）/ Get user selected model (based on platform)
+        const channelPlatform = isChannelPlatform(platform) ? platform : 'telegram';
+        const model = await getChannelDefaultModel(channelPlatform);
 
-        // 使用 ConversationService 获取或创建 telegram 会话
-        // Use ConversationService to get or create telegram conversation
-        const result = await ConversationService.getOrCreateTelegramConversation({
+        // 使用 ConversationService 获取或创建会话（根据平台）
+        // Use ConversationService to get or create conversation (based on platform)
+        const conversationName = getChannelConversationName(channelPlatform);
+        const result = await ConversationService.getOrCreateChannelConversation({
           model,
-          name: 'Telegram Assistant',
+          name: conversationName,
+          source: channelPlatform,
         });
 
         if (result.success && result.conversation) {
@@ -314,7 +366,7 @@ export class ActionExecutor {
           type: 'text',
           text: 'This message type is not supported. Please send a text message.',
           parseMode: 'HTML',
-          replyMarkup: createMainMenuKeyboard(),
+          replyMarkup: getMainMenuMarkup(platform as PluginType),
         });
       }
     } catch (error: any) {
@@ -323,7 +375,7 @@ export class ActionExecutor {
         type: 'text',
         text: `❌ Error processing message: ${error.message}`,
         parseMode: 'HTML',
-        replyMarkup: createMainMenuKeyboard(),
+        replyMarkup: getErrorRecoveryMarkup(platform as PluginType, error.message),
       });
     }
   }
@@ -422,26 +474,63 @@ export class ActionExecutor {
       await messageService.sendMessage(sessionId, conversationId, text, async (message: TMessage, isInsert: boolean) => {
         const now = Date.now();
 
-        // 转换消息格式
-        // Convert message format
-        const outgoingMessage = convertTMessageToOutgoing(message, false);
+        // 转换消息格式（根据平台）
+        // Convert message format (based on platform)
+        const outgoingMessage = convertTMessageToOutgoing(message, context.platform as PluginType, false);
 
         // 保存最后一条消息内容
         // Save last message content
         lastMessageContent = outgoingMessage;
 
-        if (isInsert) {
+        console.log(`[ActionExecutor] Stream callback - isInsert: ${isInsert}, msg_id: ${message.msg_id}, type: ${message.type}, sentMessageIds count: ${sentMessageIds.length}`);
+
+        // IMPORTANT: Always treat first streaming message as update to thinking message
+        // This prevents async race condition where first insert's sendMessage takes time
+        // while subsequent messages arrive and get processed as updates
+        // 重要：始终将第一个流式消息视为更新thinking消息
+        // 这可以防止异步竞态条件：第一个insert的sendMessage耗时时，后续消息已到达并被当作update处理
+        if (isInsert && sentMessageIds.length === 1) {
+          // First streaming message: update thinking message instead of inserting
+          // 第一个流式消息：更新thinking消息而不是插入新消息
+          console.log(`[ActionExecutor] First streaming message, updating thinking message instead of inserting`);
+          const targetMsgId = sentMessageIds[0] || thinkingMsgId;
+          console.log(`[ActionExecutor] Updating message, targetMsgId: ${targetMsgId}, content preview: ${outgoingMessage.text?.slice(0, 50)}`);
+          pendingMessage = outgoingMessage;
+
+          if (now - lastUpdateTime >= UPDATE_THROTTLE_MS) {
+            if (pendingUpdateTimer) {
+              clearTimeout(pendingUpdateTimer);
+              pendingUpdateTimer = null;
+            }
+            await doEditMessage(outgoingMessage);
+          } else {
+            if (pendingUpdateTimer) {
+              clearTimeout(pendingUpdateTimer);
+            }
+            const delay = UPDATE_THROTTLE_MS - (now - lastUpdateTime);
+            pendingUpdateTimer = setTimeout(() => {
+              if (pendingMessage) {
+                void doEditMessage(pendingMessage);
+                pendingMessage = null;
+              }
+              pendingUpdateTimer = null;
+            }, delay);
+          }
+        } else if (isInsert) {
           // 新消息：发送新消息
           // New message: send new message
           try {
             const newMsgId = await context.sendMessage(outgoingMessage);
             sentMessageIds.push(newMsgId);
+            console.log(`[ActionExecutor] Inserted new message, newMsgId: ${newMsgId}, total messages: ${sentMessageIds.length}`);
           } catch (sendError) {
             console.debug('[ActionExecutor] Send error (ignored):', sendError);
           }
         } else {
           // 更新消息：使用定时器节流，确保最后一条消息能被发送
           // Update message: throttle with timer to ensure last message is sent
+          const targetMsgId = sentMessageIds[sentMessageIds.length - 1] || thinkingMsgId;
+          console.log(`[ActionExecutor] Updating message, targetMsgId: ${targetMsgId}, content preview: ${outgoingMessage.text?.slice(0, 50)}`);
           pendingMessage = outgoingMessage;
 
           if (now - lastUpdateTime >= UPDATE_THROTTLE_MS) {
@@ -476,14 +565,25 @@ export class ActionExecutor {
         clearTimeout(pendingUpdateTimer);
         pendingUpdateTimer = null;
       }
+      // 如果有待发送的消息，立即发送
+      // If there's a pending message, send it immediately
+      if (pendingMessage) {
+        try {
+          await doEditMessage(pendingMessage);
+        } catch (error) {
+          console.debug('[ActionExecutor] Final pending message edit error (ignored):', error);
+        }
+        pendingMessage = null;
+      }
 
       // 流结束后，更新最后一条消息添加操作按钮（保留原内容）
       // After stream ends, update last message with action buttons (keep original content)
       const lastMsgId = sentMessageIds[sentMessageIds.length - 1] || thinkingMsgId;
       try {
-        // 使用最后一条消息的实际内容，添加操作按钮
-        // Use actual content of last message, add action buttons
-        const finalMessage: IUnifiedOutgoingMessage = lastMessageContent ? { ...lastMessageContent, replyMarkup: createResponseActionsKeyboard() } : { type: 'text', text: '✅ Done', parseMode: 'HTML', replyMarkup: createResponseActionsKeyboard() };
+        // 使用最后一条消息的实际内容，添加操作按钮（根据平台）
+        // Use actual content of last message, add action buttons (based on platform)
+        const responseMarkup = getResponseActionsMarkup(context.platform as PluginType, lastMessageContent?.text);
+        const finalMessage: IUnifiedOutgoingMessage = lastMessageContent ? { ...lastMessageContent, replyMarkup: responseMarkup } : { type: 'text', text: '✅ Done', parseMode: 'HTML', replyMarkup: responseMarkup };
         await context.editMessage(lastMsgId, finalMessage);
       } catch {
         // 忽略最终编辑错误

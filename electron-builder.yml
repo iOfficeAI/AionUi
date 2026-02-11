@@ -26,6 +26,12 @@ files:
   - node_modules/prebuild-install/**/*
   - node_modules/node-gyp-build/**/*
   - node_modules/bindings/**/*
+  # open library - needs to be external for Windows asar compatibility
+  - node_modules/open/**/*
+  - node_modules/default-browser/**/*
+  - node_modules/default-browser-id/**/*
+  - node_modules/run-applescript/**/*
+  - node_modules/bundle-name/**/*
   # tree-sitter WASM dependencies
   - node_modules/web-tree-sitter/**/*
   - node_modules/tree-sitter-bash/**/*
@@ -160,6 +166,12 @@ asarUnpack:
   - "**/node_modules/prebuild-install/**/*"
   - "**/node_modules/node-gyp-build/**/*"
   - "**/node_modules/bindings/**/*"
+  # open library and dependencies - needed for Windows asar compatibility
+  - "**/node_modules/open/**/*"
+  - "**/node_modules/default-browser/**/*"
+  - "**/node_modules/default-browser-id/**/*"
+  - "**/node_modules/run-applescript/**/*"
+  - "**/node_modules/bundle-name/**/*"
   # tree-sitter WASM files need to be unpacked for fs.readFile access
   - "**/node_modules/web-tree-sitter/**/*"
   - "**/node_modules/tree-sitter-bash/**/*"

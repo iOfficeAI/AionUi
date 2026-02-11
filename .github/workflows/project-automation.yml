@@ -37,12 +37,19 @@ jobs:
     outputs:
       item_id: ${{ steps.add.outputs.itemId }}
     steps:
+      - name: Mint identity token
+        id: mint_token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
       - name: Add issue to project
         id: add
         uses: actions/add-to-project@v1.0.2
         with:
           project-url: https://github.com/orgs/iOfficeAI/projects/5
-          github-token: ${{ secrets.PROJECT_TOKEN }}
+          github-token: ${{ steps.mint_token.outputs.token }}
 
   set-issue-initial-status:
     name: Set Issue Initial Status
@@ -52,10 +59,17 @@ jobs:
     permissions:
       contents: 'read'
     steps:
+      - name: Mint identity token
+        id: mint_token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
       - name: Set status to To Triage
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.PROJECT_TOKEN }}
+          github-token: ${{ steps.mint_token.outputs.token }}
           script: |
             const mutation = `
               mutation($projectId: ID!, $itemId: ID!, $fieldId: ID!, $optionId: String!) {
@@ -86,10 +100,17 @@ jobs:
     permissions:
       contents: 'read'
     steps:
+      - name: Mint identity token
+        id: mint_token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
       - name: Update issue status to Done
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.PROJECT_TOKEN }}
+          github-token: ${{ steps.mint_token.outputs.token }}
           script: |
             const contentId = context.payload.issue.node_id;
 
@@ -146,10 +167,17 @@ jobs:
     permissions:
       contents: 'read'
     steps:
+      - name: Mint identity token
+        id: mint_token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
       - name: Update issue status to To Triage
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.PROJECT_TOKEN }}
+          github-token: ${{ steps.mint_token.outputs.token }}
           script: |
             const contentId = context.payload.issue.node_id;
 
@@ -210,10 +238,17 @@ jobs:
       contents: 'read'
       pull-requests: 'read'
     steps:
+      - name: Mint identity token
+        id: mint_token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
       - name: Update linked issue status based on PR event
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.PROJECT_TOKEN }}
+          github-token: ${{ steps.mint_token.outputs.token }}
           script: |
             const prBody = context.payload.pull_request.body || '';
             const prNumber = context.payload.pull_request.number;

@@ -10,15 +10,14 @@ import { Image } from '@arco-design/web-react';
 import { Down } from '@icon-park/react';
 import MessageAcpPermission from '@renderer/messages/acp/MessageAcpPermission';
 import MessageAcpToolCall from '@renderer/messages/acp/MessageAcpToolCall';
+import MessageAvailableCommands from '@renderer/messages/acp/MessageAvailableCommands';
 import MessageAgentStatus from '@renderer/messages/MessageAgentStatus';
 import classNames from 'classnames';
-import React, { createContext, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { createContext, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { VirtuosoHandle } from 'react-virtuoso';
 import { Virtuoso } from 'react-virtuoso';
 import { uuid } from '../utils/common';
 import HOC from '../utils/HOC';
-import MessageCodexPermission from './codex/MessageCodexPermission';
 import MessageCodexToolCall from './codex/MessageCodexToolCall';
 import type { FileChangeInfo } from './codex/MessageFileChanges';
 import MessageFileChanges, { parseDiff } from './codex/MessageFileChanges';
@@ -30,6 +29,7 @@ import MessageToolGroup from './MessageToolGroup';
 import MessageToolGroupSummary from './MessageToolGroupSummary';
 import MessageText from './MessagetText';
 import type { WriteFileResult } from './types';
+import { useAutoScroll } from './useAutoScroll';
 
 type TurnDiffContent = Extract<CodexToolCallUpdate, { subtype: 'turn_diff' }>;
 
@@ -42,7 +42,7 @@ type IMessageVO =
       messages: Array<IMessageToolGroup | IMessageAcpToolCall>;
     };
 
-// 图片预览上下文 Image preview context
+// Image preview context
 export const ImagePreviewContext = createContext<{ inPreviewGroup: boolean }>({ inPreviewGroup: false });
 
 const MessageItem: React.FC<{ message: TMessage }> = React.memo(
@@ -77,11 +77,14 @@ const MessageItem: React.FC<{ message: TMessage }> = React.memo(
       case 'acp_tool_call':
         return <MessageAcpToolCall message={message}></MessageAcpToolCall>;
       case 'codex_permission':
-        return <MessageCodexPermission message={message}></MessageCodexPermission>;
+        // Permission UI is now handled by ConversationChatConfirm component
+        return null;
       case 'codex_tool_call':
         return <MessageCodexToolCall message={message}></MessageCodexToolCall>;
       case 'plan':
         return <MessagePlan message={message}></MessagePlan>;
+      case 'available_commands':
+        return <MessageAvailableCommands message={message}></MessageAvailableCommands>;
       default:
         return <div>{t('messages.unknownMessageType', { type: (message as any).type })}</div>;
     }
@@ -91,13 +94,8 @@ const MessageItem: React.FC<{ message: TMessage }> = React.memo(
 
 const MessageList: React.FC<{ className?: string }> = () => {
   const list = useMessageList();
-  const virtuosoRef = useRef<VirtuosoHandle>(null);
-  const [showScrollButton, setShowScrollButton] = useState(false);
-  const [atBottom, setAtBottom] = useState(true);
-  const previousListLengthRef = useRef(list.length);
   const { t } = useTranslation();
 
-  // 预处理消息列表，将 Codex turn_diff 消息进行分组
   // Pre-process message list to group Codex turn_diff messages
   const processedList = useMemo(() => {
     const result: Array<IMessageVO> = [];
@@ -147,58 +145,19 @@ const MessageList: React.FC<{ className?: string }> = () => {
     return result;
   }, [list]);
 
-  // 滚动到底部
-  const scrollToBottom = useCallback(
-    (smooth = false) => {
-      if (virtuosoRef.current) {
-        virtuosoRef.current.scrollToIndex({
-          index: processedList.length - 1,
-          behavior: smooth ? 'smooth' : 'auto',
-          align: 'end',
-        });
-      }
-    },
-    [processedList.length]
-  );
+  // Use auto-scroll hook
+  const { virtuosoRef, handleScroll, showScrollButton, scrollToBottom, hideScrollButton } = useAutoScroll({
+    messages: list,
+    itemCount: processedList.length,
+  });
 
-  // 当消息列表更新时，智能滚动
-  useEffect(() => {
-    const currentListLength = list.length;
-    const isNewMessage = currentListLength !== previousListLengthRef.current;
-
-    // 更新记录的列表长度
-    previousListLengthRef.current = currentListLength;
-
-    // 检查最新消息是否是用户发送的（position === 'right'）
-    const lastMessage = list[list.length - 1];
-    const isUserMessage = lastMessage?.position === 'right';
-
-    // 如果是用户发送的消息，强制滚动到底部并重置滚动状态
-    if (isUserMessage && isNewMessage) {
-      setAtBottom(true);
-      setTimeout(() => {
-        scrollToBottom();
-      }, 100);
-      return;
-    }
-
-    // 如果用户不在底部且不是新消息添加，不自动滚动
-    // 只在新消息添加时且原本在底部时才自动滚动
-    if (isNewMessage && atBottom) {
-      setTimeout(() => {
-        scrollToBottom();
-      }, 100);
-    }
-  }, [list, atBottom, scrollToBottom]);
-
-  // 点击滚动按钮
+  // Click scroll button
   const handleScrollButtonClick = () => {
-    scrollToBottom(true);
-    setShowScrollButton(false);
-    setAtBottom(true);
+    hideScrollButton();
+    scrollToBottom('smooth');
   };
 
-  const renderItem = (index: number, item: (typeof processedList)[0]) => {
+  const renderItem = (_index: number, item: (typeof processedList)[0]) => {
     if ('type' in item && ['file_summary', 'tool_summary'].includes(item.type)) {
       return (
         <div key={item.id} className={'w-full message-item px-8px m-t-10px max-w-full md:max-w-780px mx-auto ' + item.type}>
@@ -212,7 +171,7 @@ const MessageList: React.FC<{ className?: string }> = () => {
 
   return (
     <div className='relative flex-1 h-full'>
-      {/* 使用 PreviewGroup 包裹所有消息，实现跨消息预览图片 */}
+      {/* Use PreviewGroup to wrap all messages for cross-message image preview */}
       <Image.PreviewGroup actionsLayout={['zoomIn', 'zoomOut', 'originalSize', 'rotateLeft', 'rotateRight']}>
         <ImagePreviewContext.Provider value={{ inPreviewGroup: true }}>
           <Virtuoso
@@ -220,14 +179,10 @@ const MessageList: React.FC<{ className?: string }> = () => {
             className='flex-1 h-full pb-10px box-border'
             data={processedList}
             initialTopMostItemIndex={processedList.length - 1}
-            atBottomStateChange={(isAtBottom) => {
-              setAtBottom(isAtBottom);
-              setShowScrollButton(!isAtBottom);
-            }}
             atBottomThreshold={100}
             increaseViewportBy={200}
             itemContent={renderItem}
-            followOutput='auto'
+            onScroll={handleScroll}
             components={{
               Header: () => <div className='h-10px' />,
               Footer: () => <div className='h-20px' />,
@@ -238,9 +193,9 @@ const MessageList: React.FC<{ className?: string }> = () => {
 
       {showScrollButton && (
         <>
-          {/* 渐变遮罩 Gradient mask */}
+          {/* Gradient mask */}
           <div className='absolute bottom-0 left-0 right-0 h-100px pointer-events-none' />
-          {/* 滚动按钮 Scroll button */}
+          {/* Scroll button */}
           <div className='absolute bottom-20px left-50% transform -translate-x-50% z-100'>
             <div className='flex items-center justify-center w-40px h-40px rd-full bg-base shadow-lg cursor-pointer hover:bg-1 transition-all hover:scale-110 border-1 border-solid border-3' onClick={handleScrollButtonClick} title={t('messages.scrollToBottom')} style={{ lineHeight: 0 }}>
               <Down theme='filled' size='20' fill={iconColors.secondary} style={{ display: 'block' }} />

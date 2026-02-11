@@ -5,10 +5,13 @@ import { Button, Select, Tag } from '@arco-design/web-react';
 import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useModeModeList from '../../../hooks/useModeModeList';
+import { isNewApiPlatform, NEW_API_PROTOCOL_OPTIONS } from '@/renderer/config/modelPlatforms';
 
 const AddModelModal = ModalHOC<{ data?: IProvider; onSubmit: (model: IProvider) => void }>(({ modalProps, data, onSubmit, modalCtrl }) => {
   const { t } = useTranslation();
   const [model, setModel] = useState('');
+  const [modelProtocol, setModelProtocol] = useState<string>('openai');
+  const isNewApi = isNewApiPlatform(data?.platform ?? '');
   const { data: modelList, isLoading } = useModeModeList(data?.platform, data?.baseUrl, data?.apiKey);
   const existingModels = data?.model || [];
   const optionsList = useMemo(() => {
@@ -24,10 +27,16 @@ const AddModelModal = ModalHOC<{ data?: IProvider; onSubmit: (model: IProvider) 
 
   const handleConfirm = useCallback(() => {
     if (!model) return;
-    const updatedData = { ...data, model: [...existingModels, model] };
+    const updatedData: IProvider = { ...data, model: [...existingModels, model] };
+
+    // new-api 平台：添加模型协议配置 / new-api platform: add model protocol config
+    if (isNewApi) {
+      updatedData.modelProtocols = { ...(data?.modelProtocols || {}), [model]: modelProtocol };
+    }
+
     onSubmit(updatedData);
     modalCtrl.close();
-  }, [data, existingModels, model, onSubmit, modalCtrl]);
+  }, [data, existingModels, model, modelProtocol, isNewApi, onSubmit, modalCtrl]);
 
   return (
     <AionModal visible={modalProps.visible} onCancel={modalCtrl.close} header={{ title: t('settings.addModel'), showClose: true }} style={{ maxHeight: '90vh' }} contentStyle={{ background: 'var(--bg-1)', borderRadius: 16, padding: '20px 24px', overflow: 'auto' }} onOk={handleConfirm} okText={t('common.confirm')} cancelText={t('common.cancel')} okButtonProps={{ disabled: !model }}>
@@ -36,6 +45,15 @@ const AddModelModal = ModalHOC<{ data?: IProvider; onSubmit: (model: IProvider) 
           <div className='text-13px font-500 text-t-secondary'>{t('settings.addModelPlaceholder')}</div>
           <Select showSearch options={optionsList} loading={isLoading} onChange={setModel} value={model} allowCreate placeholder={t('settings.addModelPlaceholder')}></Select>
         </div>
+
+        {/* New API 协议选择 / New API Protocol Selection */}
+        {isNewApi && (
+          <div className='space-y-8px'>
+            <div className='text-13px font-500 text-t-secondary'>{t('settings.modelProtocol')}</div>
+            <Select value={modelProtocol} onChange={setModelProtocol} options={NEW_API_PROTOCOL_OPTIONS} triggerProps={{ getPopupContainer: (node) => node.parentElement || document.body }} />
+            <div className='text-11px text-t-secondary leading-4'>{t('settings.modelProtocolTip')}</div>
+          </div>
+        )}
 
         <div className='space-y-8px'>
           {/* <div className='text-13px font-500 text-t-secondary'>{t('settings.currentModelsLabel')}</div>

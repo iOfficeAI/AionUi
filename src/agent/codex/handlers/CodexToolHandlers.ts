@@ -12,10 +12,19 @@ import type { ICodexMessageEmitter } from '@/agent/codex/messaging/CodexMessageE
 import type { IResponseMessage } from '@/common/ipcBridge';
 import { NavigationInterceptor } from '@/common/navigation';
 
+/**
+ * Metadata for exec approval requests (for ApprovalStore)
+ */
+export interface ExecRequestMeta {
+  command: string | string[];
+  cwd?: string;
+}
+
 export class CodexToolHandlers {
   private cmdBuffers: Map<string, { stdout: string; stderr: string; combined: string }> = new Map();
   private patchBuffers: Map<string, string> = new Map();
   private patchChanges: Map<string, Record<string, FileChange>> = new Map();
+  private execRequestMeta: Map<string, ExecRequestMeta> = new Map(); // callId -> exec metadata for ApprovalStore
   private pendingConfirmations: Set<string> = new Set();
   private toolRegistry: ToolRegistry;
   private activeToolGroups: Map<string, string> = new Map(); // callId -> msg_id mapping
@@ -183,7 +192,7 @@ export class CodexToolHandlers {
     const toolName = String(inv.tool || inv.name || inv.method || 'unknown');
     // Use type assertion since call_id may exist in runtime data but not in type definition
     // 使用类型断言，因为 call_id 可能在运行时数据中存在但不在类型定义中
-    const callId = (msg as any).call_id || `mcp_${toolName}_${uuid()}`;
+    const callId = (msg as unknown as { call_id?: string }).call_id || `mcp_${toolName}_${uuid()}`;
     const title = this.formatMcpInvocation(inv);
 
     // Intercept chrome-devtools navigation tools using unified NavigationInterceptor
@@ -388,10 +397,27 @@ export class CodexToolHandlers {
     this.patchChanges.set(callId, changes);
   }
 
+  // ===== Exec request metadata for ApprovalStore =====
+
+  /**
+   * Store exec request metadata for later use by ApprovalStore
+   */
+  storeExecRequestMeta(callId: string, meta: ExecRequestMeta): void {
+    this.execRequestMeta.set(callId, meta);
+  }
+
+  /**
+   * Get exec request metadata
+   */
+  getExecRequestMeta(callId: string): ExecRequestMeta | undefined {
+    return this.execRequestMeta.get(callId);
+  }
+
   cleanup() {
     this.cmdBuffers.clear();
     this.patchBuffers.clear();
     this.patchChanges.clear();
+    this.execRequestMeta.clear();
     this.pendingConfirmations.clear();
     this.activeToolGroups.clear();
     this.activeToolCalls.clear();

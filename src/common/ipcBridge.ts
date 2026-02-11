@@ -8,7 +8,7 @@ import type { IConfirmation } from '@/common/chatLib';
 import { bridge } from '@office-ai/platform';
 import type { OpenDialogOptions } from 'electron';
 import type { McpSource } from '../process/services/mcpServices/McpProtocol';
-import type { AcpBackend, PresetAgentType } from '../types/acpTypes';
+import type { AcpBackend, AcpBackendAll, PresetAgentType } from '../types/acpTypes';
 import type { IMcpServer, IProvider, TChatConversation, TProviderWithModel } from './storage';
 import type { PreviewHistoryTarget, PreviewSnapshotInfo } from './types/preview';
 import type { UpdateCheckRequest, UpdateCheckResult, UpdateDownloadProgressEvent, UpdateDownloadRequest, UpdateDownloadResult } from './updateTypes';
@@ -42,6 +42,13 @@ export const conversation = {
     confirm: bridge.buildProvider<IBridgeResponse, { conversation_id: string; msg_id: string; data: any; callId: string }>('confirmation.confirm'),
     list: bridge.buildProvider<IConfirmation<any>[], { conversation_id: string }>('confirmation.list'),
     remove: bridge.buildEmitter<{ conversation_id: string; id: string }>('confirmation.remove'),
+  },
+  // Session-level approval memory for "always allow" decisions
+  // 会话级别的权限记忆，用于 "always allow" 决策
+  approval: {
+    // Check if action is approved (keys are parsed from action+commandType in backend)
+    // 检查操作是否已批准（keys 由后端从 action+commandType 解析）
+    check: bridge.buildProvider<boolean, { conversation_id: string; action: string; commandType?: string }>('approval.check'),
   },
 };
 
@@ -178,6 +185,7 @@ export const acpConversation = {
   >('acp.get-available-agents'),
   checkEnv: bridge.buildProvider<{ env: Record<string, string> }, void>('acp.check.env'),
   refreshCustomAgents: bridge.buildProvider<IBridgeResponse, void>('acp.refresh-custom-agents'),
+  checkAgentHealth: bridge.buildProvider<IBridgeResponse<{ available: boolean; latency?: number; error?: string }>, { backend: AcpBackend }>('acp.check-agent-health'),
   // clearAllCache: bridge.buildProvider<IBridgeResponse<{ details?: any }>, void>('acp.clear.all.cache'),
 };
 
@@ -198,6 +206,12 @@ export const mcpService = {
 export const codexConversation = {
   sendMessage: conversation.sendMessage,
   responseStream: conversation.responseStream,
+};
+
+// OpenClaw 对话相关接口 - 复用统一的conversation接口
+export const openclawConversation = {
+  sendMessage: conversation.sendMessage,
+  responseStream: bridge.buildEmitter<IResponseMessage>('openclaw.response.stream'),
 };
 
 // Database operations
@@ -292,8 +306,6 @@ export const cron = {
 // Cron job types for IPC
 export type ICronSchedule = { kind: 'at'; atMs: number; description: string } | { kind: 'every'; everyMs: number; description: string } | { kind: 'cron'; expr: string; tz?: string; description: string };
 
-export type ICronAgentType = 'gemini' | 'claude' | 'codex' | 'opencode' | 'qwen' | 'goose' | 'custom';
-
 export interface ICronJob {
   id: string;
   name: string;
@@ -303,7 +315,7 @@ export interface ICronJob {
   metadata: {
     conversationId: string;
     conversationTitle?: string;
-    agentType: ICronAgentType;
+    agentType: AcpBackendAll;
     createdBy: 'user' | 'agent';
     createdAt: number;
     updatedAt: number;
@@ -325,7 +337,7 @@ export interface ICreateCronJobParams {
   message: string;
   conversationId: string;
   conversationTitle?: string;
-  agentType: ICronAgentType;
+  agentType: AcpBackendAll;
   createdBy: 'user' | 'agent';
 }
 
@@ -346,7 +358,7 @@ export interface IConfirmMessageParams {
 }
 
 export interface ICreateConversationParams {
-  type: 'gemini' | 'acp' | 'codex';
+  type: 'gemini' | 'acp' | 'codex' | 'openclaw-gateway';
   id?: string;
   name?: string;
   model: TProviderWithModel;
@@ -425,7 +437,7 @@ export const channel = {
   getPluginStatus: bridge.buildProvider<IBridgeResponse<IChannelPluginStatus[]>, void>('channel.get-plugin-status'),
   enablePlugin: bridge.buildProvider<IBridgeResponse, { pluginId: string; config: Record<string, unknown> }>('channel.enable-plugin'),
   disablePlugin: bridge.buildProvider<IBridgeResponse, { pluginId: string }>('channel.disable-plugin'),
-  testPlugin: bridge.buildProvider<IBridgeResponse<{ success: boolean; botUsername?: string; error?: string }>, { pluginId: string; token: string }>('channel.test-plugin'),
+  testPlugin: bridge.buildProvider<IBridgeResponse<{ success: boolean; botUsername?: string; error?: string }>, { pluginId: string; token: string; extraConfig?: { appId?: string; appSecret?: string } }>('channel.test-plugin'),
 
   // Pairing Management
   getPendingPairings: bridge.buildProvider<IBridgeResponse<IChannelPairingRequest[]>, void>('channel.get-pending-pairings'),

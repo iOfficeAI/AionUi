@@ -148,9 +148,16 @@ fix(webui): correct modal z-index issue
 chore: remove debug console.log statements
 ```
 
-### No Claude Signature
+### No AI Signature (MANDATORY)
 
-Do not add `🤖 Generated with Claude` or similar signatures to commits.
+**NEVER add any AI-related signatures to commits.** This includes but is not limited to:
+
+- `Co-Authored-By: Claude` or any Claude-related attribution
+- `Co-Authored-By: <any AI assistant>`
+- `🤖 Generated with Claude` or similar markers
+- Any other AI tool signatures or attributions
+
+This is a strict rule. Violating this will pollute the git history.
 
 ## Architecture Notes
 

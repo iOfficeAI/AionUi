@@ -82,7 +82,7 @@ export const ChatActionNames = {
   REGENERATE: 'chat.regenerate',
   CONTINUE: 'chat.continue',
   COPY: 'action.copy',
-  TOOL_CONFIRM: 'confirm', // Tool confirmation action
+  TOOL_CONFIRM: 'system.confirm', // Tool confirmation action
 } as const;
 
 /**

@@ -5,7 +5,8 @@
  */
 
 import { iconColors } from '@/renderer/theme/colors';
-import { Button, Tooltip } from '@arco-design/web-react';
+import { emitter } from '@/renderer/utils/emitter';
+import { Button, Popover, Tooltip } from '@arco-design/web-react';
 import { AlarmClock } from '@icon-park/react';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -26,8 +27,43 @@ const CronJobManager: React.FC<CronJobManagerProps> = ({ conversationId }) => {
   const { jobs, loading, hasJobs, deleteJob, updateJob } = useCronJobs(conversationId);
   const [drawerVisible, setDrawerVisible] = useState(false);
 
-  // Don't render anything if no jobs or loading
-  if (!hasJobs || loading) {
+  // Handle unconfigured state (no jobs)
+  if (!hasJobs && !loading) {
+    const handleCreateClick = () => {
+      emitter.emit('sendbox.fill', t('cron.status.defaultPrompt'));
+    };
+
+    return (
+      <Popover
+        trigger='hover'
+        position='bottom'
+        content={
+          <div className='flex flex-col gap-8px p-4px max-w-240px'>
+            <div className='text-13px text-t-secondary'>{t('cron.status.unconfiguredHint')}</div>
+            <Button type='primary' size='mini' onClick={handleCreateClick}>
+              {t('cron.status.createNow')}
+            </Button>
+          </div>
+        }
+      >
+        <Button
+          type='text'
+          size='small'
+          className='cron-job-manager-button'
+          style={{ marginRight: 16 }}
+          icon={
+            <span className='inline-flex items-center gap-2px rounded-full px-8px py-2px bg-2'>
+              <AlarmClock theme='outline' size={16} fill={iconColors.disabled} />
+              <span className='ml-4px w-8px h-8px rounded-full bg-[#86909c]' />
+            </span>
+          }
+        />
+      </Popover>
+    );
+  }
+
+  // Don't render anything while loading
+  if (loading) {
     return null;
   }
 
@@ -61,8 +97,8 @@ const CronJobManager: React.FC<CronJobManagerProps> = ({ conversationId }) => {
           onClick={() => setDrawerVisible(true)}
           icon={
             <span className='inline-flex items-center gap-2px rounded-full px-8px py-2px  bg-2'>
-              <AlarmClock theme='outline' size={16} fill={hasError ? iconColors.warning : isPaused ? iconColors.secondary : iconColors.primary} />
-              <span className={`ml-4px w-8px h-8px rounded-full ${isPaused ? 'bg-[#f53f3f]' : 'bg-[#00b42a]'}`} />
+              <AlarmClock theme='outline' size={16} fill={iconColors.primary} />
+              <span className={`ml-4px w-8px h-8px rounded-full ${hasError ? 'bg-[#f53f3f]' : isPaused ? 'bg-[#ff7d00]' : 'bg-[#00b42a]'}`} />
             </span>
           }
         />

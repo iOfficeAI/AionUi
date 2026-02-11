@@ -54,7 +54,7 @@ export const joinPath = (basePath: string, relativePath: string): string => {
  * @description 跟对话相关的消息类型申明 及相关处理
  */
 
-type TMessageType = 'text' | 'tips' | 'tool_call' | 'tool_group' | 'agent_status' | 'acp_permission' | 'acp_tool_call' | 'codex_permission' | 'codex_tool_call' | 'plan';
+type TMessageType = 'text' | 'tips' | 'tool_call' | 'tool_group' | 'agent_status' | 'acp_permission' | 'acp_tool_call' | 'codex_permission' | 'codex_tool_call' | 'plan' | 'available_commands';
 
 interface IMessage<T extends TMessageType, Content extends Record<string, any>> {
   /**
@@ -261,8 +261,22 @@ export type IMessagePlan = IMessage<
   }
 >;
 
+// Available commands from ACP agents (Claude, etc.)
+export type AvailableCommand = {
+  name: string;
+  description: string;
+  hint?: string;
+};
+
+export type IMessageAvailableCommands = IMessage<
+  'available_commands',
+  {
+    commands: AvailableCommand[];
+  }
+>;
+
 // eslint-disable-next-line max-len
-export type TMessage = IMessageText | IMessageTips | IMessageToolCall | IMessageToolGroup | IMessageAgentStatus | IMessageAcpPermission | IMessageAcpToolCall | IMessageCodexPermission | IMessageCodexToolCall | IMessagePlan;
+export type TMessage = IMessageText | IMessageTips | IMessageToolCall | IMessageToolGroup | IMessageAgentStatus | IMessageAcpPermission | IMessageAcpToolCall | IMessageCodexPermission | IMessageCodexToolCall | IMessagePlan | IMessageAvailableCommands;
 
 // 统一所有需要用户交互的用户类型
 export interface IConfirmation<Option extends any = any> {
@@ -276,6 +290,11 @@ export interface IConfirmation<Option extends any = any> {
     value: Option;
     params?: Record<string, string>; // Translation interpolation parameters
   }>;
+  /**
+   * Command type for exec confirmations (e.g., 'curl', 'npm', 'git')
+   * Used for "always allow" permission memory
+   */
+  commandType?: string;
 }
 
 /**
@@ -382,6 +401,16 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
       return {
         id: uuid(),
         type: 'plan',
+        msg_id: message.msg_id,
+        position: 'left',
+        conversation_id: message.conversation_id,
+        content: message.data as any,
+      };
+    }
+    case 'available_commands': {
+      return {
+        id: uuid(),
+        type: 'available_commands',
         msg_id: message.msg_id,
         position: 'left',
         conversation_id: message.conversation_id,
@@ -507,7 +536,9 @@ export const composeMessage = (message: TMessage | undefined, list: TMessage[] |
     // If no existing plan found, add new one
   }
 
-  if (last.msg_id !== message.msg_id || last.type !== message.type) return pushMessage(message);
+  if (last.msg_id !== message.msg_id || last.type !== message.type) {
+    return pushMessage(message);
+  }
   if (message.type === 'text' && last.type === 'text') {
     message.content.content = last.content.content + message.content.content;
   }

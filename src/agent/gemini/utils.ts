@@ -4,13 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { DEFAULT_IMAGE_EXTENSION, MIME_TO_EXT_MAP } from '@/common/constants';
 import type { CompletedToolCall, Config, GeminiClient, ServerGeminiStreamEvent, ToolCallRequestInfo } from '@office-ai/aioncli-core';
 import { executeToolCall, GeminiEventType as ServerGeminiEventType } from '@office-ai/aioncli-core';
-import { parseAndFormatApiError } from './cli/errorParsing';
-import { MIME_TO_EXT_MAP, DEFAULT_IMAGE_EXTENSION } from '@/common/constants';
 import * as fs from 'fs';
 import * as path from 'path';
-import { StreamMonitor, globalToolCallGuard, type StreamConnectionEvent, type StreamResilienceConfig, DEFAULT_STREAM_RESILIENCE_CONFIG } from './cli/streamResilience';
+import { parseAndFormatApiError } from './cli/errorParsing';
+import { DEFAULT_STREAM_RESILIENCE_CONFIG, globalToolCallGuard, StreamMonitor, type StreamConnectionEvent, type StreamResilienceConfig } from './cli/streamResilience';
 
 enum StreamProcessingStatus {
   Completed,
@@ -101,16 +101,17 @@ export const processGeminiStreamEvents = async (stream: AsyncIterable<ServerGemi
             const contentValue = (event as unknown as { value: unknown }).value;
             const contentText = typeof contentValue === 'string' ? contentValue : '';
 
-            // Check if content contains <think> tags (common in proxy services like newapi)
-            // 检查内容是否包含 <think> 标签（中转站如 newapi 常见格式）
-            const thinkTagRegex = /<think>([\s\S]*?)<\/think>/gi;
-            const thinkMatches = contentText.match(thinkTagRegex);
+            // Check if content contains <think> or <thinking> tags (common in proxy services like newapi)
+            // 检查内容是否包含 <think> 或 <thinking> 标签（中转站如 newapi 常见格式）
+            const thinkTagRegex = /<think(?:ing)?>([\s\S]*?)<\/think(?:ing)?>/gi;
+            const hasThinkTags = /<think(?:ing)?>/i.test(contentText);
 
-            if (thinkMatches && thinkMatches.length > 0) {
+            if (hasThinkTags) {
               // Extract thinking content and emit as thought events
               // 提取思考内容并作为 thought 事件发送
+              const thinkMatches = contentText.matchAll(thinkTagRegex);
               for (const match of thinkMatches) {
-                const thinkContent = match.replace(/<\/?think>/gi, '').trim();
+                const thinkContent = match[1]?.trim();
                 if (thinkContent) {
                   onStreamEvent({
                     type: ServerGeminiEventType.Thought,
@@ -119,9 +120,15 @@ export const processGeminiStreamEvents = async (stream: AsyncIterable<ServerGemi
                 }
               }
 
-              // Remove <think> tags from content and emit remaining content
-              // 从内容中移除 <think> 标签，发送剩余内容
-              const cleanedContent = contentText.replace(thinkTagRegex, '').trim();
+              // Remove <think> and <thinking> tags from content and emit remaining content
+              // 从内容中移除 <think> 和 <thinking> 标签，发送剩余内容
+              const cleanedContent = contentText
+                .replace(/<think(?:ing)?>([\s\S]*?)<\/think(?:ing)?>/gi, '')
+                // Also remove unclosed tags at the end
+                .replace(/<think(?:ing)?>[\s\S]*$/gi, '')
+                .replace(/\n{3,}/g, '\n\n')
+                .trim();
+
               if (cleanedContent) {
                 onStreamEvent({ type: event.type, data: cleanedContent });
               }
