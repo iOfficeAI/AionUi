@@ -22,7 +22,7 @@ const NanobotChat: React.FC<{
   const updateLocalImage = LocalImageView.useUpdateLocalImage();
   useEffect(() => {
     updateLocalImage({ root: workspace });
-  }, [workspace]);
+  }, [workspace, updateLocalImage]);
   return (
     <ConversationProvider value={{ conversationId: conversation_id, workspace, type: 'nanobot' }}>
       <div className='flex-1 flex flex-col px-20px'>
