@@ -1,0 +1,508 @@
+name: '🤖 GPT Review'
+
+on:
+  workflow_call:
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: 'PR number to review'
+        required: true
+        type: string
+
+concurrency:
+  group: 'gpt-review-${{ github.event.pull_request.number || inputs.pr_number || github.run_id }}'
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: 'bash'
+
+jobs:
+  review:
+    runs-on: 'ubuntu-latest'
+    timeout-minutes: 10
+    permissions:
+      contents: 'read'
+      pull-requests: 'write'
+    steps:
+      - name: 'Checkout repository'
+        uses: 'actions/checkout@v4'
+
+      - name: 'Gather PR diff and changed files'
+        id: 'gather'
+        uses: 'actions/github-script@v7'
+        env:
+          INPUT_PR_NUMBER: '${{ inputs.pr_number }}'
+        with:
+          script: |
+            const fs = require('fs');
+            const tmpDir = process.env.RUNNER_TEMP || '/tmp';
+
+            // Support both PR event trigger and manual workflow_dispatch
+            const prNumber = context.payload.pull_request?.number
+              || Number(process.env.INPUT_PR_NUMBER)
+              || null;
+
+            if (!prNumber) {
+              core.setFailed('No PR number found. Provide pr_number input for manual trigger.');
+              return;
+            }
+
+            // Fetch diff (returns raw text when using diff media type)
+            const { data: diff } = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: prNumber,
+              mediaType: { format: 'diff' },
+            });
+
+            if (!diff || String(diff).trim().length === 0) {
+              core.warning('PR has an empty diff, skipping review');
+              core.setOutput('skip', 'true');
+              return;
+            }
+
+            // Fetch all changed files (paginated)
+            const allFiles = [];
+            let page = 1;
+            while (true) {
+              const { data: files } = await github.rest.pulls.listFiles({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber,
+                per_page: 100,
+                page,
+              });
+              allFiles.push(...files);
+              if (files.length < 100) break;
+              page++;
+            }
+
+            const additions = allFiles.reduce((s, f) => s + f.additions, 0);
+            const deletions = allFiles.reduce((s, f) => s + f.deletions, 0);
+            const totalLines = additions + deletions;
+
+            // Truncate diff to 100K characters
+            const MAX_DIFF = 100000;
+            const diffStr = String(diff);
+            const truncatedDiff = diffStr.length > MAX_DIFF
+              ? diffStr.substring(0, MAX_DIFF) + '\n\n... [diff truncated at 100K chars]'
+              : diffStr;
+
+            // Build compact file list
+            const fileList = allFiles.map(f => ({
+              filename: f.filename,
+              status: f.status,
+              additions: f.additions,
+              deletions: f.deletions,
+            }));
+
+            // Write large data to temp files (avoid output size limits)
+            fs.writeFileSync(`${tmpDir}/pr_diff.txt`, truncatedDiff);
+            fs.writeFileSync(`${tmpDir}/file_list.json`, JSON.stringify(fileList));
+
+            // Only small values as step outputs
+            core.setOutput('skip', 'false');
+            core.setOutput('additions', String(additions));
+            core.setOutput('deletions', String(deletions));
+            core.setOutput('total_lines', String(totalLines));
+            core.setOutput('file_count', String(allFiles.length));
+
+      - name: 'Read changed file contents for cross-file analysis'
+        if: steps.gather.outputs.skip != 'true'
+        uses: 'actions/github-script@v7'
+        with:
+          script: |
+            const fs = require('fs');
+            const path = require('path');
+            const tmpDir = process.env.RUNNER_TEMP || '/tmp';
+            const fileList = JSON.parse(fs.readFileSync(`${tmpDir}/file_list.json`, 'utf-8'));
+
+            const SKIP_PATTERNS = [
+              /package-lock\.json$/,
+              /yarn\.lock$/,
+              /pnpm-lock\.yaml$/,
+              /\.lock$/,
+              /\.png$/i, /\.jpg$/i, /\.jpeg$/i, /\.gif$/i, /\.svg$/i, /\.ico$/i, /\.webp$/i,
+              /\.woff2?$/i, /\.ttf$/i, /\.eot$/i, /\.otf$/i,
+              /\.mp3$/i, /\.mp4$/i, /\.wav$/i, /\.ogg$/i, /\.webm$/i,
+              /\.zip$/i, /\.tar$/i, /\.gz$/i, /\.br$/i,
+              /\.pdf$/i, /\.wasm$/i,
+              /\.map$/,
+              /dist\//,
+              /\.min\./,
+              /node_modules\//,
+            ];
+
+            // Priority scoring: lower = more important, read first
+            function filePriority(filename) {
+              if (/^src\/(process|agent|webserver)\//.test(filename)) return 0;
+              if (/^src\/channels\//.test(filename)) return 1;
+              if (/^src\/common\//.test(filename)) return 2;
+              if (/^src\/worker\//.test(filename)) return 3;
+              if (/^src\/renderer\//.test(filename)) return 4;
+              if (/\.(ts|tsx|js|jsx)$/.test(filename)) return 5;
+              return 6;
+            }
+
+            const MAX_CONTENT = 80000;
+            let totalSize = 0;
+            const contents = [];
+
+            const sortedFiles = fileList
+              .filter(f => f.status !== 'removed')
+              .filter(f => !SKIP_PATTERNS.some(p => p.test(f.filename)))
+              .sort((a, b) => filePriority(a.filename) - filePriority(b.filename));
+
+            for (const file of sortedFiles) {
+              if (totalSize >= MAX_CONTENT) {
+                contents.push(`\n--- [remaining files omitted, ${MAX_CONTENT / 1000}K content limit reached] ---`);
+                break;
+              }
+              const filePath = path.join(process.cwd(), file.filename);
+              try {
+                const content = fs.readFileSync(filePath, 'utf-8');
+                const remaining = MAX_CONTENT - totalSize;
+                const truncated = content.length > remaining
+                  ? content.substring(0, remaining) + '\n... [file truncated]'
+                  : content;
+                contents.push(`=== FILE: ${file.filename} ===\n${truncated}\n`);
+                totalSize += truncated.length;
+              } catch {
+                // File might not exist in checkout (e.g. binary or renamed from)
+              }
+            }
+
+            fs.writeFileSync(`${tmpDir}/file_contents.txt`, contents.join('\n'));
+
+      - name: 'Call OpenAI GPT for code review'
+        id: 'gpt_review'
+        if: steps.gather.outputs.skip != 'true'
+        uses: 'actions/github-script@v7'
+        env:
+          OPENAI_API_KEY: '${{ secrets.OPENAI_API_KEY }}'
+          INPUT_PR_NUMBER: '${{ inputs.pr_number }}'
+          FILE_COUNT: '${{ steps.gather.outputs.file_count }}'
+          ADDITIONS: '${{ steps.gather.outputs.additions }}'
+          DELETIONS: '${{ steps.gather.outputs.deletions }}'
+          TOTAL_LINES: '${{ steps.gather.outputs.total_lines }}'
+        with:
+          script: |
+            const fs = require('fs');
+            const tmpDir = process.env.RUNNER_TEMP || '/tmp';
+
+            const apiKey = process.env.OPENAI_API_KEY;
+            if (!apiKey) {
+              core.setFailed('OPENAI_API_KEY secret is not configured');
+              return;
+            }
+
+            // Read PR metadata: from event context or fetch via API for manual trigger
+            let prTitle, prBody, prAuthor;
+            if (context.payload.pull_request) {
+              prTitle = context.payload.pull_request.title || '';
+              prBody = context.payload.pull_request.body || '';
+              prAuthor = context.payload.pull_request.user.login || '';
+            } else {
+              const prNum = Number(process.env.INPUT_PR_NUMBER);
+              const { data: pr } = await github.rest.pulls.get({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNum,
+              });
+              prTitle = pr.title || '';
+              prBody = pr.body || '';
+              prAuthor = pr.user.login || '';
+            }
+            const fileCount = process.env.FILE_COUNT || '0';
+            const additions = process.env.ADDITIONS || '0';
+            const deletions = process.env.DELETIONS || '0';
+            const totalLines = process.env.TOTAL_LINES || '0';
+
+            // Read large data from temp files
+            const diff = fs.readFileSync(`${tmpDir}/pr_diff.txt`, 'utf-8');
+            const fileListRaw = fs.readFileSync(`${tmpDir}/file_list.json`, 'utf-8');
+            let fileContents = '';
+            try {
+              fileContents = fs.readFileSync(`${tmpDir}/file_contents.txt`, 'utf-8');
+            } catch {
+              core.warning('Could not read file contents, proceeding with diff only');
+            }
+
+            const systemPrompt = [
+              'You are a world-class code review expert for the AionUi project — a cross-platform Electron desktop application that provides a unified AI agent graphical interface.',
+              '',
+              '## Tech Stack',
+              '- Electron 37.x + React 19.x + TypeScript 5.8.x (strict mode)',
+              '- Express 5.x (WebUI server), Better SQLite3 (local DB)',
+              '- Arco Design 2.x (UI), UnoCSS 66.x (atomic CSS), Monaco Editor 4.x',
+              '- Anthropic SDK, Google GenAI, OpenAI SDK, MCP SDK',
+              '- Webpack 6.x, Electron Forge 7.8.x',
+              '',
+              '## Architecture',
+              '- Multi-process: Main (Electron + DB + IPC), Renderer (React UI), Worker (background AI tasks)',
+              '- IPC via secure contextBridge isolation',
+              '- WebUI: Express + WebSocket + JWT auth',
+              '- Agent system: channels/, agent/ directories',
+              '- Security-sensitive paths: src/process/, src/agent/, src/webserver/auth/',
+              '',
+              '## Code Conventions',
+              '- TypeScript strict mode, prefer `type` over `interface`',
+              '- Functional React components only, hooks with `use*` prefix',
+              '- IMMUTABILITY: always create new objects, never mutate',
+              '- Path aliases: @/*, @process/*, @renderer/*, @worker/*',
+              '- UnoCSS atomic classes + CSS modules',
+              '- English code comments, conventional commits',
+              '',
+              '## ESLint Key Rules',
+              '- @typescript-eslint/consistent-type-definitions: prefer type',
+              '- @typescript-eslint/no-explicit-any: warn',
+              '- no-console: warn (no console.log in production code)',
+              '- react-hooks/rules-of-hooks: error',
+              '- react-hooks/exhaustive-deps: warn',
+              '',
+              '## Review Dimensions (Priority Order)',
+              '1. **Correctness** — Logic errors, unhandled edge cases, race conditions, incorrect API usage',
+              '2. **Security** — Injection, insecure storage, access control, secrets exposure, OWASP Top 10',
+              '3. **Performance** — Bottlenecks, memory leaks, unnecessary computation, inefficient data structures',
+              '4. **Maintainability** — Readability, modularity, naming, adherence to project conventions',
+              '5. **Immutability** — Object mutations, array mutations, state mutations (CRITICAL for this project)',
+              '6. **Error Handling** — Missing try/catch, swallowed errors, unhelpful error messages',
+              '7. **Type Safety** — any usage, missing types, incorrect type assertions, unsafe casts',
+              '',
+              '## Cross-File Analysis',
+              'You are provided with both the diff AND the full content of changed files. Use the full file content to:',
+              '- Trace function call chains across files',
+              '- Verify exported/imported symbols exist and are correct',
+              '- Check that cache/state management is consistent',
+              '- Identify dead code introduced by the changes',
+              '- Verify error handling propagation across module boundaries',
+              '',
+              '## Output Format',
+              '',
+              '**CRITICAL: Detect the language of the PR title and body. Write your ENTIRE review in that same language.** If the PR is in Chinese, write in Chinese. If in English, write in English. If mixed or unclear, default to English.',
+              '',
+              'Structure your review as a single comprehensive comment using this EXACT format:',
+              '',
+              '# Code Review',
+              '',
+              '## CRITICAL Issues',
+              '',
+              '### 1. [Issue Title]',
+              '',
+              '**File**: `path/to/file.ts:LINE-LINE`',
+              '',
+              '```typescript',
+              '// problematic code snippet',
+              '```',
+              '',
+              '**Problem**: [Detailed explanation of why this is critical]',
+              '',
+              '**Fix**: [Concrete fix suggestion with code if applicable]',
+              '',
+              '---',
+              '',
+              '## HIGH Issues',
+              '',
+              '### N. [Issue Title]',
+              '',
+              '**File**: `path/to/file.ts:LINE-LINE`',
+              '',
+              '**Problem**: [Explanation]',
+              '',
+              '**Fix**: [Suggestion]',
+              '',
+              '---',
+              '',
+              '## MEDIUM Issues',
+              '',
+              '### N. [Issue Title]',
+              '',
+              '**File**: `path/to/file.ts`',
+              '',
+              '[Description of the issue and recommendation]',
+              '',
+              '---',
+              '',
+              '## Summary',
+              '',
+              '| Level | Count | Must Fix Before Merge |',
+              '|-------|-------|-----------------------|',
+              '| CRITICAL | N | Yes |',
+              '| HIGH | N | Yes |',
+              '| MEDIUM | N | Recommended |',
+              '',
+              '[1-2 sentence overall assessment of the PR]',
+              '',
+              '## Rules',
+              '- ONLY report real, verifiable issues. Do NOT add praise, validation, or "looks good" comments.',
+              '- If a section has no issues, OMIT that section entirely (do not write "None found").',
+              '- Include code snippets from the diff to pinpoint exact locations.',
+              '- Each issue must have a concrete, actionable fix suggestion.',
+              '- Number issues sequentially across all sections (1, 2, 3...).',
+              '- For CRITICAL and HIGH issues, always include the specific file path and line numbers.',
+              '- Do NOT comment on: lock files, auto-generated files, license headers, formatting-only changes.',
+              '- If the PR has NO issues at any level, output exactly: "# Code Review\\n\\nNo issues found. The changes are clean and well-implemented."',
+            ].join('\n');
+
+            const userPrompt = [
+              '## Pull Request',
+              '',
+              `**Title**: ${prTitle}`,
+              `**Author**: ${prAuthor}`,
+              `**Stats**: ${fileCount} files changed, +${additions} -${deletions} (${totalLines} total lines)`,
+              '',
+              '**Description**:',
+              prBody || '(No description provided)',
+              '',
+              '**Changed Files**:',
+              fileListRaw,
+              '',
+              '## Diff',
+              '',
+              diff,
+              '',
+              '## Full File Contents (for cross-file analysis)',
+              '',
+              fileContents || '(No file contents available)',
+            ].join('\n');
+
+            // Call OpenAI API with retry logic
+            async function callOpenAI(retries = 2) {
+              for (let attempt = 0; attempt <= retries; attempt++) {
+                try {
+                  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${apiKey}`,
+                    },
+                    body: JSON.stringify({
+                      model: 'gpt-5.2-codex',
+                      messages: [
+                        { role: 'system', content: systemPrompt },
+                        { role: 'user', content: userPrompt },
+                      ],
+                      temperature: 0.1,
+                      max_completion_tokens: 16384,
+                    }),
+                  });
+
+                  if (response.status === 429 || response.status >= 500) {
+                    if (attempt < retries) {
+                      const delay = Math.pow(2, attempt + 1) * 1000;
+                      core.warning(`OpenAI API returned ${response.status}, retrying in ${delay}ms (attempt ${attempt + 1}/${retries})`);
+                      await new Promise(r => setTimeout(r, delay));
+                      continue;
+                    }
+                  }
+
+                  if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`OpenAI API error ${response.status}: ${errorText}`);
+                  }
+
+                  const data = await response.json();
+                  return data.choices[0].message.content;
+                } catch (error) {
+                  const isRetryable = attempt < retries && (
+                    error.cause?.code === 'ECONNRESET' ||
+                    error.cause?.code === 'ETIMEDOUT' ||
+                    error.cause?.code === 'ENOTFOUND' ||
+                    error.message.includes('fetch') ||
+                    error.message.includes('network') ||
+                    error.message.includes('socket')
+                  );
+                  if (isRetryable) {
+                    const delay = Math.pow(2, attempt + 1) * 1000;
+                    core.warning(`Network error, retrying in ${delay}ms: ${error.message}`);
+                    await new Promise(r => setTimeout(r, delay));
+                    continue;
+                  }
+                  throw error;
+                }
+              }
+            }
+
+            const reviewContent = await callOpenAI();
+            if (!reviewContent) {
+              core.setFailed('GPT returned empty review content');
+              return;
+            }
+
+            // Truncate review if it exceeds GitHub's 65536 char limit for review body
+            const MAX_REVIEW_LENGTH = 65000;
+            const finalReview = reviewContent.length > MAX_REVIEW_LENGTH
+              ? reviewContent.substring(0, MAX_REVIEW_LENGTH) + '\n\n---\n*[Review truncated due to length]*'
+              : reviewContent;
+
+            // Count issues by severity (split by ## headers and count ### within each)
+            const sections = finalReview.split(/^## /gm);
+            let critical = 0, high = 0, medium = 0;
+            for (const section of sections) {
+              const issueCount = (section.match(/^### \d+\./gm) || []).length;
+              if (/^CRITICAL/i.test(section)) critical = issueCount;
+              else if (/^HIGH/i.test(section)) high = issueCount;
+              else if (/^MEDIUM/i.test(section)) medium = issueCount;
+            }
+
+            // Determine review event
+            const totalLinesNum = parseInt(totalLines, 10);
+            const fileListParsed = JSON.parse(fileListRaw);
+            const touchesCoreFiles = fileListParsed.some(f =>
+              /^src\/(process|agent|webserver\/auth)\//.test(f.filename)
+            );
+
+            let reviewEvent = 'COMMENT';
+            if (critical > 0) {
+              reviewEvent = 'REQUEST_CHANGES';
+            } else if (critical === 0 && high === 0 && totalLinesNum < 200 && !touchesCoreFiles) {
+              reviewEvent = 'APPROVE';
+            }
+
+            core.info(`Review decision: ${reviewEvent} (critical=${critical}, high=${high}, medium=${medium}, lines=${totalLinesNum}, core=${touchesCoreFiles})`);
+
+            fs.writeFileSync(`${tmpDir}/review_body.txt`, finalReview);
+            core.setOutput('review_event', reviewEvent);
+
+      - name: 'Submit review to PR'
+        if: steps.gather.outputs.skip != 'true' && success()
+        uses: 'actions/github-script@v7'
+        env:
+          REVIEW_EVENT: '${{ steps.gpt_review.outputs.review_event }}'
+          INPUT_PR_NUMBER: '${{ inputs.pr_number }}'
+        with:
+          script: |
+            const fs = require('fs');
+            const tmpDir = process.env.RUNNER_TEMP || '/tmp';
+
+            const reviewBody = fs.readFileSync(`${tmpDir}/review_body.txt`, 'utf-8');
+            const reviewEvent = process.env.REVIEW_EVENT;
+            const prNumber = context.payload.pull_request?.number
+              || Number(process.env.INPUT_PR_NUMBER);
+
+            core.info(`Submitting ${reviewEvent} review to PR #${prNumber}`);
+
+            try {
+              await github.rest.pulls.createReview({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                pull_number: prNumber,
+                event: reviewEvent,
+                body: reviewBody,
+              });
+              core.info('Review submitted successfully via createReview');
+            } catch (reviewError) {
+              core.warning(`createReview failed: ${reviewError.message}, falling back to comment`);
+              try {
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: prNumber,
+                  body: `<!-- gpt-review-bot -->\n\n${reviewBody}`,
+                });
+                core.info('Review posted as comment (fallback)');
+              } catch (commentError) {
+                core.setFailed(`Failed to post review: ${commentError.message}`);
+              }
+            }
