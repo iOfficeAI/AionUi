@@ -159,10 +159,10 @@ _Generación, edición y reconocimiento inteligente de imágenes, impulsado por 
 
 ### 🤖 **Soporte multi-modelo**
 
-_Admite modelos principales como Gemini, OpenAI, Claude, Qwen, y modelos locales como Ollama, LM Studio. Cambia flexiblemente entre diferentes modelos para satisfacer varios requisitos de tareas._
+_Admite modelos principales como Gemini, OpenAI, Claude, Qwen, y modelos locales como Ollama, LM Studio. AionUi también admite el servicio de puerta de enlace [NewAPI](https://github.com/QuantumNous/new-api)(un centro unificado de modelos de IA que agrega y distribuye varios LLM). Cambia flexiblemente entre diferentes modelos para satisfacer varios requisitos de tareas._
 
 <p align="center">
-  <img src="./resources/multi-model.png" alt="Soporte multi-modelo" width="800">
+  <img src="./resources/llm_newapi.png" alt="Soporte multi-modelo" width="800">
 </p>
 
 ---

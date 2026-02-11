@@ -159,10 +159,10 @@ _智慧圖像生成、編輯和識別，由 Gemini 驅動_
 
 ### 🤖 **多模型支援**
 
-_支援 Gemini、OpenAI、Claude、Qwen 等主流模型，以及 Ollama、LM Studio 等本地模型。靈活切換不同模型，滿足各種任務需求。_
+_支援 Gemini、OpenAI、Claude、Qwen 等主流模型，以及 Ollama、LM Studio 等本地模型。AionUi 還支援 [NewAPI](https://github.com/QuantumNous/new-api) 中轉服務(這是一個統一的 AI 模型中心，可聚合和分發各種大語言模型)。靈活切換不同模型，滿足各種任務需求。_
 
 <p align="center">
-  <img src="./resources/multi-model.png" alt="多模型支援" width="800">
+  <img src="./resources/llm_newapi.png" alt="多模型支援" width="800">
 </p>
 
 ---

@@ -161,10 +161,10 @@ _インテリジェントな画像生成、編集、認識、Geminiが駆動_
 
 ### 🤖 **マルチモデルサポート**
 
-_Gemini、OpenAI、Claude、Qwenなどの主流モデル、およびOllama、LM Studioなどのローカルモデルをサポート。さまざまなタスク要件を満たすために、異なるモデル間を柔軟に切り替え。_
+_Gemini、OpenAI、Claude、Qwenなどの主流モデル、およびOllama、LM Studioなどのローカルモデルをサポート。AionUiは[NewAPI](https://github.com/QuantumNous/new-api)中継サービス(様々な大規模言語モデルを集約・配布する統合AIモデルハブ)もサポートしています。さまざまなタスク要件を満たすために、異なるモデル間を柔軟に切り替え。_
 
 <p align="center">
-  <img src="./resources/multi-model.png" alt="マルチモデルサポート" width="800">
+  <img src="./resources/llm_newapi.png" alt="マルチモデルサポート" width="800">
 </p>
 
 ---

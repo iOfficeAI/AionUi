@@ -138,10 +138,10 @@ _Gemini tarafından desteklenen akıllı görüntü oluşturma, düzenleme ve ta
 
 ### 🤖 **Çoklu Model Desteği**
 
-_Gemini, OpenAI, Claude, Qwen gibi ana akım modelleri ve Ollama, LM Studio gibi yerel modelleri destekler. Çeşitli görev gereksinimlerini karşılamak için farklı modeller arasında esnek geçiş yapın._
+_Gemini, OpenAI, Claude, Qwen gibi ana akım modelleri ve Ollama, LM Studio gibi yerel modelleri destekler. AionUi ayrıca [NewAPI](https://github.com/QuantumNous/new-api) ağ geçidi hizmetini(çeşitli LLM'leri toplayan ve dağıtan birleşik bir AI model merkezi) destekler. Çeşitli görev gereksinimlerini karşılamak için farklı modeller arasında esnek geçiş yapın._
 
 <p align="center">
-  <img src="./resources/multi-model.png" alt="Çoklu Model Desteği" width="800">
+  <img src="./resources/llm_newapi.png" alt="Çoklu Model Desteği" width="800">
 </p>
 
 ---

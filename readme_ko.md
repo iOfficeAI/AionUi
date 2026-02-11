@@ -159,10 +159,10 @@ _Gemini 기반의 지능형 이미지 생성, 편집 및 인식_
 
 ### 🤖 **다중 모델 지원**
 
-_Gemini, OpenAI, Claude, Qwen과 같은 주류 모델 및 Ollama, LM Studio와 같은 로컬 모델을 지원합니다. 다양한 작업 요구 사항을 충족하기 위해 다른 모델 간에 유연하게 전환합니다._
+_Gemini, OpenAI, Claude, Qwen과 같은 주류 모델 및 Ollama, LM Studio와 같은 로컬 모델을 지원합니다. AionUi는 [NewAPI](https://github.com/QuantumNous/new-api) 중계 서비스(다양한 대규모 언어 모델을 집계 및 배포하는 통합 AI 모델 허브)도 지원합니다. 다양한 작업 요구 사항을 충족하기 위해 다른 모델 간에 유연하게 전환합니다._
 
 <p align="center">
-  <img src="./resources/multi-model.png" alt="다중 모델 지원" width="800">
+  <img src="./resources/llm_newapi.png" alt="다중 모델 지원" width="800">
 </p>
 
 ---
