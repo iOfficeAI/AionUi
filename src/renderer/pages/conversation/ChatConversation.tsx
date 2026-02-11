@@ -102,7 +102,7 @@ const GeminiConversationPanel: React.FC<{ conversation: GeminiConversation; slid
   const workspaceEnabled = Boolean(conversation.extra?.workspace);
 
   // 使用统一的 Hook 获取预设助手信息 / Use unified hook for preset assistant info
-  const presetAssistantInfo = usePresetAssistantInfo(conversation);
+  const { info: presetAssistantInfo } = usePresetAssistantInfo(conversation);
 
   const chatLayoutProps = {
     title: conversation.name,
@@ -150,7 +150,7 @@ const ChatConversation: React.FC<{
 
   // 使用统一的 Hook 获取预设助手信息（ACP/Codex 会话）
   // Use unified hook for preset assistant info (ACP/Codex conversations)
-  const presetAssistantInfo = usePresetAssistantInfo(isGeminiConversation ? undefined : conversation);
+  const { info: presetAssistantInfo, isLoading: isLoadingPreset } = usePresetAssistantInfo(isGeminiConversation ? undefined : conversation);
 
   const sliderTitle = useMemo(() => {
     return (
@@ -166,18 +166,20 @@ const ChatConversation: React.FC<{
     return <GeminiConversationPanel conversation={conversation} sliderTitle={sliderTitle} />;
   }
 
-  // 如果有预设助手信息，使用预设助手的 logo 和名称；否则使用 backend 的 logo
-  // If preset assistant info exists, use preset logo/name; otherwise use backend logo
+  // 如果有预设助手信息，使用预设助手的 logo 和名称；加载中时不进入 fallback；否则使用 backend 的 logo
+  // If preset assistant info exists, use preset logo/name; while loading, avoid fallback; otherwise use backend logo
   const chatLayoutProps = presetAssistantInfo
     ? {
         agentName: presetAssistantInfo.name,
         agentLogo: presetAssistantInfo.logo,
         agentLogoIsEmoji: presetAssistantInfo.isEmoji,
       }
-    : {
-        backend: conversation?.type === 'acp' ? conversation?.extra?.backend : conversation?.type === 'codex' ? 'codex' : conversation?.type === 'openclaw-gateway' ? 'openclaw-gateway' : conversation?.type === 'nanobot' ? 'nanobot' : undefined,
-        agentName: (conversation?.extra as { agentName?: string })?.agentName,
-      };
+    : isLoadingPreset
+      ? {} // Still loading custom agents — avoid showing backend logo prematurely
+      : {
+          backend: conversation?.type === 'acp' ? conversation?.extra?.backend : conversation?.type === 'codex' ? 'codex' : conversation?.type === 'openclaw-gateway' ? 'openclaw-gateway' : conversation?.type === 'nanobot' ? 'nanobot' : undefined,
+          agentName: (conversation?.extra as { agentName?: string })?.agentName,
+        };
 
   return (
     <ChatLayout title={conversation?.name} {...chatLayoutProps} headerExtra={conversation ? <CronJobManager conversationId={conversation.id} /> : undefined} siderTitle={sliderTitle} sider={<ChatSider conversation={conversation} />} workspaceEnabled={workspaceEnabled}>
