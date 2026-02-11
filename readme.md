@@ -1,4 +1,4 @@
-﻿<p align="center">
+<p align="center">
   <img src="./resources/aionui-banner-1.png" alt="AionUi - Cowork with Your CLI AI Agent" width="100%">
 </p>
 
@@ -158,10 +158,10 @@ _Intelligent image generation, editing, and recognition, powered by Gemini_
 
 ### 🤖 **Multi-Model Support**
 
-_Supports mainstream models like Gemini, OpenAI, Claude, Qwen, as well as local models like Ollama, LM Studio. Flexibly switch between different models to meet various task requirements._
+_Supports mainstream models like Gemini, OpenAI, Claude, Qwen, as well as local models like Ollama, LM Studio. AionUi also supports [NewAPI](https://github.com/QuantumNous/new-api) gateway service(a unified AI model hub that aggregates and distributes various LLMs). Flexibly switch between different models to meet various task requirements._
 
 <p align="center">
-  <img src="./resources/multi-model.png" alt="Multi-Model Support" width="800">
+  <img src="./resources/llm_newapi.png" alt="Multi-Model Support" width="800">
 </p>
 
 ---
