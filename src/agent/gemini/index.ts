@@ -178,6 +178,10 @@ export class GeminiAgent {
       delete process.env.GOOGLE_CLOUD_PROJECT;
       delete process.env.OPENAI_BASE_URL;
       delete process.env.OPENAI_API_KEY;
+      delete process.env.AWS_ACCESS_KEY_ID;
+      delete process.env.AWS_SECRET_ACCESS_KEY;
+      delete process.env.AWS_PROFILE;
+      delete process.env.AWS_REGION;
     };
 
     clearAllAuthEnvVars();
@@ -219,6 +223,34 @@ export class GeminiAgent {
     if (this.authType === AuthType.USE_ANTHROPIC) {
       fallbackValue('ANTHROPIC_BASE_URL', getBaseUrl());
       fallbackValue('ANTHROPIC_API_KEY', getCurrentApiKey());
+      return;
+    }
+    if (this.authType === AuthType.USE_BEDROCK) {
+      const bedrockConfig = this.model.bedrockConfig;
+
+      if (!bedrockConfig) {
+        throw new Error('Bedrock configuration missing');
+      }
+
+      // Set region (required)
+      process.env.AWS_REGION = bedrockConfig.region;
+
+      if (bedrockConfig.authMethod === 'accessKey') {
+        if (!bedrockConfig.accessKeyId || !bedrockConfig.secretAccessKey) {
+          throw new Error('AWS credentials missing for access key authentication');
+        }
+        process.env.AWS_ACCESS_KEY_ID = bedrockConfig.accessKeyId;
+        process.env.AWS_SECRET_ACCESS_KEY = bedrockConfig.secretAccessKey;
+      } else if (bedrockConfig.authMethod === 'profile') {
+        if (!bedrockConfig.profile) {
+          throw new Error('AWS profile name missing');
+        }
+        process.env.AWS_PROFILE = bedrockConfig.profile;
+        // Clear access keys to ensure profile is used
+        delete process.env.AWS_ACCESS_KEY_ID;
+        delete process.env.AWS_SECRET_ACCESS_KEY;
+      }
+      return;
     }
   }
 
